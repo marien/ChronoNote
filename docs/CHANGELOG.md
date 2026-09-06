@@ -2068,3 +2068,122 @@ inside `#top-bar`, so observing `#tab-bar` itself would mean the
 observer's own layout decisions could resize the thing it's watching;
 `#top-bar`'s width is driven only by the window, never by its own
 children's reflow, so it doesn't have that problem.
+
+---
+
+## 56. Bug fix: top-bar action-button labels flickering rapidly
+
+**Status: fixed.** Reported right after §55's freeze fix landed: "when the
+right most tab is selected when the top bar is full of tabs, the labels
+of the top right buttons start to appear and disappear in rapid
+succession." Same neighborhood as §55 but a different mechanism —
+reproduced headlessly with a fully-overflowing tab strip and confirmed,
+via bisection, that `settleLayout()` was being re-invoked continuously by
+its own `$: {...}` reactive statement even with its `ResizeObserver`
+disabled outright, and even though every measurement it took
+(`#top-bar`'s width, `#tab-bar`'s `clientWidth`/`scrollWidth`) stayed
+byte-for-byte identical across every single call. Narrowed further to one
+specific line: writing `isOverflowing = tabBarEl.scrollWidth >
+tabBarEl.clientWidth` was the trigger — reassigning `showActionLabels`
+the same way did not retrigger anything.
+
+**Root cause:** Svelte invalidates (and schedules a re-render) on *every*
+assignment to a reactive variable, never checking whether the new value
+actually differs from the old one — Svelte 4 semantics, apparently still
+true for legacy `let`s under Svelte 5's compatibility layer. Reassigning
+`isOverflowing` to the exact value it already held was still enough to
+mark the component dirty and re-render `{#if isOverflowing}` (the
+scroll-arrow buttons), and that render pass was, through some channel not
+fully traced to ground (plausibly related to the same async/`$:`
+interaction behind §55, just via a different path — reassigning
+`showActionLabels` even repeatedly never reproduced it, so it isn't
+simply "any write inside an async function called from a `$:` block"),
+enough on its own to cause the surrounding `$:` statement to run again —
+which read the identical measurements, wrote the identical value, and
+triggered another pass, forever.
+
+**Fix:** both writes in `settleLayout()` (`showActionLabels` and
+`isOverflowing`) are now guarded to only actually assign when the
+computed value differs from the current one. Reproduced-and-confirmed
+fixed: with the guard in place the same scenario settles in a handful of
+calls and then goes fully quiet, instead of climbing indefinitely.
+
+---
+
+## 57. Bug fix: leftmost tab left partially hidden behind the scroll arrow
+
+**Status: fixed.** Reported alongside §56: cycling backward
+(`Ctrl+Shift+Tab`) all the way to the leftmost tab left it still partly
+covered by the left scroll-arrow button, even though `scrollLeft` had
+supposedly been set to bring it fully into view — dragging the tab strip
+manually would reveal the rest of it.
+
+**Root cause:** `scrollActiveTabIntoView()` (§48) used `el.offsetLeft` to
+find the active tab's position within `#tab-bar`. `offsetLeft` is
+relative to the element's nearest *positioned* ancestor (the nearest one
+with `position` other than `static`) — not necessarily its scroll
+container. Nothing in the tab bar's markup sets `position`, so that
+ancestor turned out to be further out than `#tab-bar` itself, and the
+reported offset included the left arrow button's own width whenever the
+arrows were showing (confirmed directly: the first tab's `offsetLeft` was
+`24`, matching the arrow button's width, not `0`). Scrolling to that
+inflated value left the tab positioned exactly one arrow-width short of
+fully visible.
+
+**Fix:** compute the tab's position relative to `#tab-bar` directly via
+`getBoundingClientRect()` differences (`el`'s rect minus `tabBarEl`'s
+rect, plus the current `scrollLeft`) instead of `offsetLeft`/`offsetWidth`
+— immune to whatever element happens to be the nearest positioned
+ancestor. Confirmed fixed: the leftmost tab now sits flush against the
+tab bar's own left edge, immediately after the arrow, with nothing
+hidden.
+
+---
+
+## 58. `=> <symbol>` glyphs should be separately editable
+
+**Status: implemented.** The Delegate arrow (`➔`) and the action-state
+glyph that can follow it (`☐`/`☑`/`»`/`☒`) were visually two distinct
+glyphs already, but behaved as one glyph for editing purposes: `Editor
+View.atomicRanges` treated the whole 5-character `=> # ` span as a single
+atomic unit, so the cursor couldn't land between them, and
+selecting/backspacing either one took both. Requested: make them
+separately editable.
+
+Fix: `glyphs.ts`'s `atomicMatcher` regex used to match `=> <symbol> ` as
+one combined alternative; it now matches `=> ` (the shared alternative
+also used for a plain follow-up) and `<symbol> ` as two independent
+alternatives, the latter gated by a `(?<==>\s)` lookbehind so it only
+fires immediately after a Delegate arrow (never confused with a
+standalone action line's own symbol, which is already gated by its own
+`(?<=^\s*)` lookbehind). The two resulting atomic ranges are adjacent,
+not merged, so the cursor can rest at the boundary between them.
+Backspacing the symbol turns "=> # text" into "=> text" — un-marking it
+as a consequence-action, the same way deleting `@name` off a delegated
+line un-delegates it. Backspacing the arrow instead leaves the bare
+"# text" behind. No change to `renderMatcher` was needed — it already
+added the arrow and the symbol as two separate `Decoration.replace`
+widgets; only the atomic-range bookkeeping was merging them.
+
+---
+
+## 59. Bug fix: `Ctrl+Space` didn't cycle a `=> <symbol>` line unless the arrow opened the line
+
+**Status: fixed.** Reported alongside §58: cycling a consequence-action's
+state with `Ctrl+Space` worked when `=> ` was the first thing on the
+line, but did nothing when it followed other text — e.g. "Talked to Sam
+=> # follow up" wouldn't cycle, while "=> # follow up" on its own would.
+
+**Root cause:** `cycleActionSymbol()` (`tokens.ts`) matched the
+consequence-action form with `/^(=>\s)([#vx>])(\s.*)$/` — anchored so the
+arrow had to be the very first character of the line. Any line with
+so much as a word before the arrow failed this match, fell through to
+the plain-action-line pattern (which requires the *symbol* to open the
+line), matched nothing there either, and returned `null` — a no-op.
+
+**Fix:** dropped the anchor's assumption that the arrow opens the line —
+the pattern is now `/^(.*=>\s)([#vx>])(\s.*)$/`, capturing whatever
+precedes the arrow (nothing, or "Talked to Sam ", or anything else) as
+part of the preserved prefix instead of requiring it to be empty. Cycling
+now works identically regardless of where on the line the `=> <symbol>`
+sits.

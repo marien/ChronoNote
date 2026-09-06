@@ -36,10 +36,15 @@ export function innermostActionSymbol(line: string): "#" | "v" | ">" | "x" | nul
  * `=> <symbol>` consequence-action (§41), cycling only the symbol itself
  * and preserving everything else (indentation, the `=> ` prefix, the rest
  * of the line). Returns `null` if the line has no action symbol to cycle
- * (including plain `=> text` and `=> @name text`, which have none). */
+ * (including plain `=> text` and `=> @name text`, which have none).
+ *
+ * The consequence-action match isn't anchored to the start of the line —
+ * `=> <symbol>` can (and often does) follow other text on the line, e.g.
+ * "Talked to Sam => # follow up", and cycling needs to work there too, not
+ * just when the arrow happens to open the line. */
 const ACTION_CYCLE_ORDER = ["#", "v", ">", "x"];
 export function cycleActionSymbol(line: string): string | null {
-  const delegateMatch = line.match(/^(=>\s)([#vx>])(\s.*)$/);
+  const delegateMatch = line.match(/^(.*=>\s)([#vx>])(\s.*)$/);
   if (delegateMatch) {
     const [, prefix, sym, rest] = delegateMatch;
     return prefix + ACTION_CYCLE_ORDER[(ACTION_CYCLE_ORDER.indexOf(sym) + 1) % ACTION_CYCLE_ORDER.length] + rest;

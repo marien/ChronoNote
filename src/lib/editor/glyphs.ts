@@ -122,14 +122,18 @@ const renderMatcher = new MatchDecorator({
  * that would make it uneditable again, defeating the whole point of
  * marking it instead of replacing it. The actual Decoration value here is
  * never rendered (only fed to `atomicRanges`), so its content doesn't
- * matter, only its range. The `=> <symbol>` form's arrow and action glyph
- * are covered by one 5-character range rather than two separate atomic
- * ranges — there's no editable content between them (unlike `=> @name`,
- * where `@name` sits between the arrow and the rest of the line), so
- * treating the whole "=> # " span as one atomic unit is simplest and
- * matches how a plain `# ` token is already a single atomic unit. */
+ * matter, only its range. The `=> <symbol>` form's arrow and its action
+ * glyph are each their own atomic range (`=> ` via the shared `(=>\s)`
+ * alternative below, the symbol via its own lookbehind-gated one) rather
+ * than one combined 5-character range — so the cursor can land between
+ * them, and backspacing/selecting one doesn't take the other with it
+ * (turning "=> # text" into "=> text" un-marks it as a consequence-action
+ * without touching the delegate arrow, same as deleting `# ` off a plain
+ * action line does; deleting just the arrow leaves the bare "# text"
+ * action line behind, symmetrically). */
 const atomicMatcher = new MatchDecorator({
-  regexp: /((?<=^\s*)#\s)|((?<=^\s*)v\s)|((?<=^\s*)>\s)|((?<=^\s*)x\s)|(=>\s[#vx>]\s)|(=>\s)|((?<=^\s*)[-*]\s)/gm,
+  regexp:
+    /((?<=^\s*)#\s)|((?<=^\s*)v\s)|((?<=^\s*)>\s)|((?<=^\s*)x\s)|((?<==>\s)[#vx>]\s)|(=>\s)|((?<=^\s*)[-*]\s)/gm,
   decoration: () => Decoration.replace({}),
 });
 

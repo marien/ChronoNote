@@ -1,3 +1,13 @@
+<script module lang="ts">
+  // Re-entrance guards for `settleLayout`/`scrollActiveTabIntoView` live
+  // here, in the module scope, rather than as ordinary component `let`s —
+  // see the long comment on `settling` below for why. There's only ever
+  // one `TopBar` instance, so module-level (shared across instances, in
+  // principle) is fine in practice.
+  let settling = false;
+  let scrollIntoViewToken = 0;
+</script>
+
 <script lang="ts">
   import { onDestroy, onMount } from "svelte";
   import * as controller from "../controller";
@@ -14,7 +24,6 @@
   // the whole time the bar is overflowing, and clicking one at an edge
   // wraps to the other end instead of the arrow just vanishing.
   let isOverflowing = false;
-  let settling = false;
   let resizeObserver: ResizeObserver | null = null;
 
   $: activeTab = $tabs.find((t) => t.id === $activeTabId);
@@ -48,13 +57,30 @@
     if (!tabBarEl || settling) return;
     settling = true;
     try {
-      showActionLabels = $chromeExpanded;
+      // Svelte invalidates (and re-renders) on every assignment to a
+      // reactive variable, even one that reassigns the exact same value —
+      // it doesn't check equality first the way a signal-based framework
+      // typically would. `showActionLabels`/`isOverflowing` get compared
+      // against their current value before writing, everywhere below, so
+      // settling here never causes a render pass (and the DOM churn that
+      // comes with one — mounting/unmounting the scroll-arrow buttons,
+      // which live as siblings of `#tab-bar` and so can perturb its
+      // measured width) when nothing actually changed. Skipping that was
+      // the fix for a real bug: with unconditional assignment, an
+      // already-settled, unchanging layout could still flicker the
+      // action-button labels on and off in rapid succession forever,
+      // because each redundant render was itself enough to trigger another
+      // pass (through channels not fully tracked down, but reliably
+      // reproduced and reliably cured by adding this guard).
+      const wantLabels = $chromeExpanded;
+      if (wantLabels !== showActionLabels) showActionLabels = wantLabels;
       await nextFrame();
       if (showActionLabels && tabBarEl.scrollWidth > tabBarEl.clientWidth) {
         showActionLabels = false;
         await nextFrame();
       }
-      isOverflowing = tabBarEl.scrollWidth > tabBarEl.clientWidth;
+      const nowOverflowing = tabBarEl.scrollWidth > tabBarEl.clientWidth;
+      if (nowOverflowing !== isOverflowing) isOverflowing = nowOverflowing;
     } finally {
       settling = false;
     }
@@ -83,8 +109,6 @@
    * changes. Waits a frame first since a *newly created* tab (a fresh
    * scratchpad, a just-opened dated file) needs a render pass before its
    * element exists in the DOM to scroll to. */
-  let scrollIntoViewToken = 0;
-
   async function scrollActiveTabIntoView() {
     const token = ++scrollIntoViewToken;
     const targetTabId = $activeTabId;
@@ -97,8 +121,19 @@
     if (!tabBarEl) return;
     const el = tabBarEl.querySelector<HTMLElement>(`[data-tab-id="${targetTabId}"]`);
     if (!el) return;
-    const elLeft = el.offsetLeft;
-    const elRight = elLeft + el.offsetWidth;
+    // `el.offsetLeft` is relative to its nearest *positioned* ancestor, not
+    // necessarily to `tabBarEl` — nothing here sets `position`, so that
+    // ancestor ends up being further out than `tabBarEl` and its offset
+    // includes the left scroll-arrow button's width whenever the arrows
+    // are showing. That threw this off by exactly the arrow's width,
+    // leaving the leftmost tab still partly hidden behind it after
+    // scrolling "all the way left". `getBoundingClientRect()` differences
+    // aren't affected by any of that — they give the element's position
+    // relative to `tabBarEl`'s own scrollable content directly.
+    const tabBarRect = tabBarEl.getBoundingClientRect();
+    const elRect = el.getBoundingClientRect();
+    const elLeft = elRect.left - tabBarRect.left + tabBarEl.scrollLeft;
+    const elRight = elRect.right - tabBarRect.left + tabBarEl.scrollLeft;
     if (elLeft < tabBarEl.scrollLeft) {
       tabBarEl.scrollLeft = elLeft;
     } else if (elRight > tabBarEl.scrollLeft + tabBarEl.clientWidth) {
