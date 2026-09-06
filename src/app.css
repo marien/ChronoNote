@@ -1,0 +1,529 @@
+:root {
+  --bg: #1e1e1e;
+  --tab-bg: #252526;
+  --tab-active: #1e1e1e;
+  --text: #d4d4d4;
+  --muted: #858585;
+  --border: #333333;
+  --selected-bg: #4a4a4a;
+  --selected-fg: #ffffff;
+  --status-bg: #3a3a3a;
+  --status-fg: #f0f0f0;
+  --highlight: rgba(255, 255, 255, 0.25);
+  --tab-active-border: var(--text);
+  --caret-color: #ffffff;
+  /* Neutral, deliberately hue-independent of the color/grayscale toggle:
+     this backdrop needs to stay legible under every possible foreground —
+     body text, any glyph color, any weight — so it doesn't get a themed
+     color the way status-driven tokens do. */
+  --editor-selection-bg: #454952;
+  --font: "Cascadia Code", "JetBrains Mono", "Consolas", monospace;
+
+  /* Grayscale glyph theme: distinguished by weight/opacity, not hue. */
+  --glyph-open-color: var(--text);
+  --glyph-open-weight: normal;
+  --glyph-done-color: var(--text);
+  --glyph-done-weight: normal;
+  --glyph-done-opacity: 0.55;
+  --glyph-progress-color: var(--text);
+  --glyph-progress-weight: bold;
+  --glyph-followup-color: var(--muted);
+  --glyph-followup-weight: normal;
+  --glyph-assignee-bg: rgba(128, 128, 128, 0.18);
+  --glyph-assignee-color: var(--text);
+  --glyph-emphasis-color: var(--text);
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    --bg: #ffffff;
+    --tab-bg: #f3f3f3;
+    --tab-active: #ffffff;
+    --text: #1b1b1b;
+    --muted: #6e6e6e;
+    --border: #e0e0e0;
+    --selected-bg: #d6d6d6;
+    --selected-fg: #000000;
+    --status-bg: #dcdcdc;
+    --status-fg: #1b1b1b;
+    --highlight: rgba(0, 0, 0, 0.15);
+    --caret-color: #000000;
+    --editor-selection-bg: #c8d3e0;
+  }
+}
+
+/* Color theme: same structural tokens, real hues instead of grayscale.
+   Declared after :root so it wins on specificity ties via source order. */
+[data-color-mode="color"] {
+  --selected-bg: #007acc;
+  --selected-fg: #ffffff;
+  --status-bg: #007acc;
+  --status-fg: #ffffff;
+  --highlight: rgba(255, 213, 0, 0.25);
+  --tab-active-border: #007acc;
+
+  --glyph-open-color: #ff6b6b;
+  --glyph-open-weight: bold;
+  --glyph-done-color: #51cf66;
+  --glyph-done-weight: bold;
+  --glyph-done-opacity: 1;
+  --glyph-progress-color: #e5a50a;
+  --glyph-progress-weight: bold;
+  --glyph-followup-color: #0098ff;
+  --glyph-followup-weight: bold;
+  --glyph-assignee-bg: rgba(0, 122, 204, 0.15);
+  --glyph-assignee-color: #0098ff;
+  --glyph-emphasis-color: #ffd43b;
+}
+
+@media (prefers-color-scheme: light) {
+  [data-color-mode="color"] {
+    --selected-bg: #0066b8;
+    --selected-fg: #ffffff;
+    --status-bg: #0066b8;
+    --status-fg: #ffffff;
+    --highlight: rgba(255, 230, 0, 0.4);
+    --tab-active-border: #0066b8;
+
+    --glyph-open-color: #d9383a;
+    --glyph-done-color: #2b8a3e;
+    --glyph-progress-color: #b25e00;
+    --glyph-followup-color: #0066b8;
+    --glyph-assignee-bg: rgba(0, 102, 184, 0.12);
+    --glyph-assignee-color: #0066b8;
+    --glyph-emphasis-color: #f08c00;
+  }
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body,
+#app {
+  height: 100%;
+}
+
+body {
+  font-family: var(--font);
+  background: var(--bg);
+  color: var(--text);
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+  user-select: none;
+}
+
+#app {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+.boot-loading {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+/* Top Chrome / Tabs */
+#top-bar {
+  display: flex;
+  background: var(--tab-bg);
+  border-bottom: 1px solid var(--border);
+  height: 38px;
+  align-items: center;
+  padding-right: 8px;
+}
+#tab-bar {
+  display: flex;
+  flex: 1;
+  height: 100%;
+  overflow-x: auto;
+}
+#tab-bar::-webkit-scrollbar {
+  height: 3px;
+}
+#tab-bar::-webkit-scrollbar-thumb {
+  background: var(--border);
+}
+
+.tab {
+  flex-shrink: 0;
+  padding: 0 12px;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  cursor: pointer;
+  border-right: 1px solid var(--border);
+  background: var(--tab-bg);
+  color: var(--muted);
+  white-space: nowrap;
+}
+.tab-bar-new-btn {
+  flex-shrink: 0;
+  border-radius: 0;
+}
+.tab-scroll-btn {
+  flex-shrink: 0;
+  height: 100%;
+  padding: 0 6px;
+  border-radius: 0;
+}
+.tab.active {
+  background: var(--tab-active);
+  color: var(--text);
+  border-top: 2px solid var(--tab-active-border);
+  font-weight: 600;
+}
+.tab-close {
+  opacity: 0.5;
+  font-size: 11px;
+  padding: 2px 4px;
+  border-radius: 3px;
+}
+.tab-close:hover {
+  opacity: 1;
+  background: rgba(128, 128, 128, 0.2);
+}
+
+.icon-btn {
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--text);
+  padding: 4px 8px;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 13px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  filter: grayscale(1);
+}
+[data-color-mode="color"] .icon-btn,
+[data-color-mode="color"] .modal-input-wrap > span:first-child {
+  filter: none;
+}
+.icon-btn:hover {
+  background: var(--tab-active);
+  border-color: var(--border);
+}
+.icon-btn .icon-label {
+  white-space: nowrap;
+}
+
+/* Editor Canvas */
+#editor-container {
+  flex: 1;
+  overflow: auto;
+  position: relative;
+}
+.editor-host {
+  height: 100%;
+}
+.cm-editor {
+  height: 100%;
+  font-family: var(--font) !important;
+  font-size: 14px !important;
+}
+.cm-scroller {
+  padding: 16px 20px !important;
+}
+.cm-line {
+  line-height: 1.6;
+}
+
+.cm-content {
+  caret-color: var(--caret-color) !important;
+}
+/* drawSelection()'s own default theme assumes a light-background editor
+   (a near-white selection fill) — against our dark theme's light text
+   that made selected text nearly unreadable. Overriding with a neutral
+   backdrop that contrasts against both light and dark foreground colors. */
+.cm-selectionBackground,
+.cm-focused .cm-selectionBackground {
+  background: var(--editor-selection-bg) !important;
+}
+.cm-cursor,
+.cm-dropCursor,
+.cm-editor .cm-cursor-primary,
+.cm-editor .cm-cursor-secondary {
+  border-left: 2.5px solid var(--caret-color) !important;
+  margin-left: -1px !important;
+}
+
+/* Custom In-line Presentation Glyphs — theme-driven via CSS variables, so
+   the color/grayscale toggle applies with no component logic needed.
+   Fixed `ch`-unit widths force exact column alignment: a single Unicode
+   character doesn't guarantee single-monospace-cell rendered width in
+   every font, so width is forced via CSS rather than trusted to the
+   glyph's own natural size — 2ch for the two-character tokens (`# `, `v `,
+   `> `, `- `), 3ch for the three-character `=> `. */
+.glyph-open,
+.glyph-done,
+.glyph-progress,
+.glyph-bullet {
+  display: inline-block;
+  width: 2ch;
+}
+.glyph-followup {
+  display: inline-block;
+  width: 3ch;
+}
+.glyph-open {
+  color: var(--glyph-open-color);
+  font-weight: var(--glyph-open-weight);
+}
+.glyph-done {
+  color: var(--glyph-done-color);
+  font-weight: var(--glyph-done-weight);
+  opacity: var(--glyph-done-opacity);
+}
+.glyph-progress {
+  color: var(--glyph-progress-color);
+  font-weight: var(--glyph-progress-weight);
+}
+.glyph-followup {
+  color: var(--glyph-followup-color);
+  font-weight: var(--glyph-followup-weight);
+}
+.glyph-bullet {
+  color: var(--text);
+  font-weight: normal;
+}
+.glyph-assignee {
+  background: var(--glyph-assignee-bg);
+  border-radius: 3px;
+  padding: 0 4px;
+  color: var(--glyph-assignee-color);
+  font-weight: 600;
+}
+.glyph-emphasis-line {
+  font-weight: bold;
+  color: var(--glyph-emphasis-color);
+}
+
+/* Status Bar */
+#status-bar {
+  height: 24px;
+  background: var(--status-bg);
+  color: var(--status-fg);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 12px;
+  font-size: 11px;
+}
+.status-group {
+  display: flex;
+  gap: 14px;
+}
+
+/* Overlays / Dialogs */
+.overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding-top: 50px;
+  z-index: 200;
+}
+
+.modal-card {
+  background: var(--tab-bg);
+  border: 1px solid var(--border);
+  width: 720px;
+  max-width: 92vw;
+  border-radius: 6px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.modal-input-wrap {
+  padding: 12px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--tab-active);
+}
+.modal-input-wrap > span:first-child {
+  filter: grayscale(1);
+}
+.modal-input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  font-family: var(--font);
+  font-size: 14px;
+  color: var(--text);
+}
+textarea.modal-input.import-textarea {
+  min-height: 160px;
+  resize: vertical;
+  line-height: 1.5;
+  width: 100%;
+}
+.modal-counter {
+  font-size: 12px;
+  color: var(--muted);
+}
+.modal-list {
+  max-height: 380px;
+  overflow-y: auto;
+}
+.modal-item {
+  padding: 8px 14px;
+  font-size: 13px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid rgba(128, 128, 128, 0.08);
+  font-family: var(--font);
+}
+.modal-item:hover,
+.modal-item.selected {
+  background: var(--selected-bg);
+  color: var(--selected-fg) !important;
+}
+.modal-item:hover .item-tag,
+.modal-item.selected .item-tag,
+.modal-item:hover .item-breadcrumb,
+.modal-item.selected .item-breadcrumb {
+  color: var(--selected-fg);
+  opacity: 0.85;
+}
+.modal-item-main {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+  margin-right: 12px;
+}
+.item-breadcrumb {
+  font-size: 11px;
+  color: var(--muted);
+  white-space: nowrap;
+  margin-right: 8px;
+  font-style: italic;
+}
+.item-tag {
+  font-size: 11px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.item-completed {
+  opacity: 0.6;
+  text-decoration: line-through;
+}
+.modal-item:hover .item-completed,
+.modal-item.selected .item-completed {
+  opacity: 0.9;
+}
+.modal-group-header {
+  padding: 6px 14px;
+  font-size: 11px;
+  font-weight: bold;
+  text-transform: uppercase;
+  background: rgba(128, 128, 128, 0.06);
+  color: var(--muted);
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+.modal-group-header:first-child {
+  border-top: none;
+}
+
+.modal-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 14px;
+  border-top: 1px solid var(--border);
+  font-size: 11px;
+  color: var(--muted);
+  background: var(--tab-bg);
+}
+kbd {
+  background: rgba(128, 128, 128, 0.2);
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-family: inherit;
+}
+
+.settings-section-label {
+  font-size: 12px;
+  color: var(--muted);
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  font-weight: bold;
+}
+.settings-section {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+.settings-toggle-row {
+  display: flex;
+  gap: 8px;
+}
+.settings-toggle-row .icon-btn.active {
+  background: var(--selected-bg);
+  color: var(--selected-fg);
+}
+.settings-dir-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.settings-dir-path {
+  flex: 1;
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+.settings-hint {
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 6px;
+}
+
+#toast {
+  position: fixed;
+  bottom: 36px;
+  right: 20px;
+  background: #323232;
+  color: #ffffff;
+  padding: 8px 16px;
+  border-radius: 4px;
+  font-size: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  z-index: 500;
+  opacity: 0;
+  transition: opacity 0.2s ease-in-out;
+  pointer-events: none;
+}
+#toast.show {
+  opacity: 1;
+}

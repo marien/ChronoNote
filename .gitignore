@@ -1,0 +1,11 @@
+node_modules
+dist
+dist-ssr
+*.local
+tauri-dev.log
+
+src-tauri/target
+src-tauri/gen
+
+.DS_Store
+Thumbs.db

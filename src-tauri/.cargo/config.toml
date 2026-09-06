@@ -1,0 +1,7 @@
+# The project lives under OneDrive, which intermittently marks files in
+# fast-churning build directories (like Cargo's `target/`) read-only while
+# it reconciles sync state. That breaks Cargo/rustc build scripts with
+# "output path is not a writable directory". Redirecting the target dir to
+# a local, non-synced path avoids it without moving the project itself.
+[build]
+target-dir = "C:/Users/marie/.cargo-target/chrononote"
