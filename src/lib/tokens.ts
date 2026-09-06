@@ -1,11 +1,73 @@
 /** Token semantics from spec section 2.2/2.3: parsing helpers shared by the
  * editor's glyph rendering, the action drawer, and section history. */
 
+/** §40: `x` (won't-do) folds into Closed alongside `v` (done) — both mean
+ * "no longer outstanding," just for different reasons. §41: a
+ * `=> <symbol>` consequence-action counts toward the same bucket its
+ * inner symbol would on its own (`=> #` → Open, `=> v`/`=> x` → Closed,
+ * `=> >` → Forwarded). §50: the leading action symbol may be indented,
+ * matching how bulleted lines already tolerate indentation. */
 export function countActions(text: string): { open: number; closed: number; forwarded: number } {
-  const openMatches = text.match(/^#\s/gm) || [];
-  const closedMatches = text.match(/^v\s/gm) || [];
-  const forwardedMatches = text.match(/^>\s/gm) || [];
+  const openMatches = text.match(/(^\s*#\s)|(=>\s#\s)/gm) || [];
+  const closedMatches = text.match(/(^\s*[vx]\s)|(=>\s[vx]\s)/gm) || [];
+  const forwardedMatches = text.match(/(^\s*>\s)|(=>\s>\s)/gm) || [];
   return { open: openMatches.length, closed: closedMatches.length, forwarded: forwardedMatches.length };
+}
+
+/** The action symbol that actually governs a line's state — whether it's
+ * a plain action line or a `=> <symbol>` consequence-action (§41).
+ * Returns `null` for lines with no action symbol at all (including plain
+ * `=> text` and `=> @name text`, which have no state of their own). Shared
+ * by the Action Drawer's "only open" toggle (§44) and its glyph-only
+ * display (§45), so both agree on exactly what counts as "this line's
+ * action state." */
+export function innermostActionSymbol(line: string): "#" | "v" | ">" | "x" | null {
+  const consequence = line.match(/=>\s([#vx>])\s/);
+  if (consequence) return consequence[1] as "#" | "v" | ">" | "x";
+  const plain = line.match(/^\s*([#vx>])\s/);
+  if (plain) return plain[1] as "#" | "v" | ">" | "x";
+  return null;
+}
+
+/** `Ctrl+Space`'s cycle (§40: `# → v → > → x → #`), shared between the
+ * editor (`EditorPane.svelte`) and the Action Drawer's own `Ctrl+Space`
+ * (`toggleActionLine` in `controller.ts`) so the two can't drift apart.
+ * Handles both a plain (optionally indented, §50) action line and a
+ * `=> <symbol>` consequence-action (§41), cycling only the symbol itself
+ * and preserving everything else (indentation, the `=> ` prefix, the rest
+ * of the line). Returns `null` if the line has no action symbol to cycle
+ * (including plain `=> text` and `=> @name text`, which have none). */
+const ACTION_CYCLE_ORDER = ["#", "v", ">", "x"];
+export function cycleActionSymbol(line: string): string | null {
+  const delegateMatch = line.match(/^(=>\s)([#vx>])(\s.*)$/);
+  if (delegateMatch) {
+    const [, prefix, sym, rest] = delegateMatch;
+    return prefix + ACTION_CYCLE_ORDER[(ACTION_CYCLE_ORDER.indexOf(sym) + 1) % ACTION_CYCLE_ORDER.length] + rest;
+  }
+  const plainMatch = line.match(/^(\s*)([#vx>])(\s.*)$/);
+  if (plainMatch) {
+    const [, indent, sym, rest] = plainMatch;
+    return indent + ACTION_CYCLE_ORDER[(ACTION_CYCLE_ORDER.indexOf(sym) + 1) % ACTION_CYCLE_ORDER.length] + rest;
+  }
+  return null;
+}
+
+/** Strips a line's leading token(s) for display in the Action Drawer/
+ * Section History (§45), which already show the equivalent glyph
+ * separately — showing the raw character too was a duplicate, confusing
+ * presentation (`☐ # Buy milk`). Leaves a delegated `@name` in place
+ * (real, meaningful content — who it's assigned to — not a duplicate of
+ * any glyph) and strips only the token characters proper. */
+export function stripLeadingToken(line: string): string {
+  const consequence = line.match(/^=>\s[#vx>]\s(.*)$/);
+  if (consequence) return consequence[1];
+  const delegated = line.match(/^=>\s(@\w+\s.*)$/);
+  if (delegated) return delegated[1];
+  const followUp = line.match(/^=>\s(.*)$/);
+  if (followUp) return followUp[1];
+  const plain = line.match(/^(\s*)[#vx>](\s.*)$/);
+  if (plain) return plain[1] + plain[2].slice(1);
+  return line;
 }
 
 export function isSetextUnderline(line: string): boolean {

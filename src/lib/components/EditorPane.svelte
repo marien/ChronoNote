@@ -6,6 +6,7 @@
   import { indentUnit } from "@codemirror/language";
   import { glyphAtomicRanges, liveGlyphs } from "../editor/glyphs";
   import { underlineFor } from "../sectionImport";
+  import { cycleActionSymbol } from "../tokens";
   import * as controller from "../controller";
 
   // `content` is only used as the initial document for this mount. Tab
@@ -21,15 +22,10 @@
   function cycleLine(v: EditorView): boolean {
     const pos = v.state.selection.main.head;
     const line = v.state.doc.lineAt(pos);
-    let updated: string | null = null;
-    if (line.text.startsWith("# ")) updated = "v " + line.text.slice(2);
-    else if (line.text.startsWith("v ")) updated = "> " + line.text.slice(2);
-    else if (line.text.startsWith("> ")) updated = "# " + line.text.slice(2);
-    if (updated !== null) {
-      v.dispatch({ changes: { from: line.from, to: line.to, insert: updated } });
-      return true;
-    }
-    return false;
+    const updated = cycleActionSymbol(line.text);
+    if (updated === null) return false;
+    v.dispatch({ changes: { from: line.from, to: line.to, insert: updated } });
+    return true;
   }
 
   /** Ctrl+Shift+S: turns the current line into a section header by
@@ -52,9 +48,10 @@
     return true;
   }
 
-  /** Enter/Shift+Enter smart continuation for bulleted lines (`- `,
-   * optionally indented — nesting is two spaces per level). Enter adds a
-   * fresh bullet at the same indentation (or, on an *empty* bullet,
+  /** Enter/Shift+Enter smart continuation for bulleted lines (`- ` or `* `,
+   * §51 — optionally indented — nesting is two spaces per level). Enter
+   * adds a fresh bullet at the same indentation, using whichever marker
+   * character the current line already uses (or, on an *empty* bullet,
    * removes it instead — the common "press Enter to exit a list" pattern).
    * Shift+Enter adds a plain continuation line at the same indentation,
    * no new bullet. Off a bullet line, Enter defers entirely to
@@ -64,20 +61,20 @@
     return (v: EditorView): boolean => {
       const pos = v.state.selection.main.head;
       const line = v.state.doc.lineAt(pos);
-      const match = line.text.match(/^(\s*)-\s/);
+      const match = line.text.match(/^(\s*)([-*])\s/);
       if (!match) {
         if (insertBullet) return false;
         v.dispatch({ changes: { from: pos, to: pos, insert: "\n" }, selection: { anchor: pos + 1 }, scrollIntoView: true });
         return true;
       }
-      const indent = match[1];
-      if (insertBullet && line.text.trim() === "-") {
+      const [, indent, marker] = match;
+      if (insertBullet && line.text.trim() === marker) {
         v.dispatch({ changes: { from: line.from, to: line.to, insert: "" }, selection: { anchor: line.from } });
         return true;
       }
       // Shift+Enter aligns under the bullet's *text* (past the marker),
       // not just at the bullet's own indentation — two spaces further in.
-      const insertText = insertBullet ? `\n${indent}- ` : `\n${indent}  `;
+      const insertText = insertBullet ? `\n${indent}${marker} ` : `\n${indent}  `;
       v.dispatch({
         changes: { from: pos, to: pos, insert: insertText },
         selection: { anchor: pos + insertText.length },

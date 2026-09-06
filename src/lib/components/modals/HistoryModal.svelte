@@ -1,14 +1,26 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import * as controller from "../../controller";
-  import { historyItems, historyTargetHeader } from "../../controller";
+  import { activeTabId, historyItems, historyTargetHeader, tabs } from "../../controller";
   import { closeOnOutsideClick } from "../../actions/closeOnOutsideClick";
+  import { innermostActionSymbol, stripLeadingToken } from "../../tokens";
   import type { HistoryItem } from "../../types";
 
   let selectedIndex = 0;
   let titleEl: HTMLInputElement;
 
-  onMount(() => titleEl?.focus());
+  // §42: open focused on whatever entry belongs to the currently active
+  // tab, instead of always starting at the top of the (most-recent-first)
+  // list. Falls back to 0 if the active tab has no entries here at all.
+  onMount(() => {
+    const active = $tabs.find((t) => t.id === $activeTabId);
+    if (active) {
+      const idx = flatList.findIndex((it) => it.filename === active.filename);
+      if (idx !== -1) selectedIndex = idx;
+    }
+    titleEl?.focus();
+    scrollSelectedIntoView();
+  });
 
   // Carrying each item's position as data (assigned once, here) rather
   // than looking it up per rendered row via flatList.indexOf(item) in the
@@ -99,17 +111,26 @@
 
   // References the same CSS custom properties the main editor's .glyph-*
   // classes use, so this list follows the color/grayscale toggle for free.
+  // Uses the *innermost* symbol (§41) for a `=> <symbol>` consequence-
+  // action, same as the Action Drawer — falls through to the plain
+  // follow-up arrow only when there's no action-state symbol at all.
   function glyphFor(line: string) {
-    if (line.startsWith("v "))
+    const sym = innermostActionSymbol(line);
+    if (sym === "v")
       return {
         char: "☑",
         style: "color:var(--glyph-done-color); font-weight:var(--glyph-done-weight); opacity:var(--glyph-done-opacity);",
       };
-    if (line.startsWith("> "))
+    if (sym === ">")
       return { char: "»", style: "color:var(--glyph-progress-color); font-weight:var(--glyph-progress-weight);" };
-    if (line.startsWith("=> "))
-      return { char: "➔", style: "color:var(--glyph-followup-color); font-weight:var(--glyph-followup-weight);" };
-    return { char: "☐", style: "color:var(--glyph-open-color); font-weight:var(--glyph-open-weight);" };
+    if (sym === "x")
+      return {
+        char: "☒",
+        style:
+          "color:var(--glyph-cancelled-color); font-weight:var(--glyph-cancelled-weight); opacity:var(--glyph-cancelled-opacity);",
+      };
+    if (sym === "#") return { char: "☐", style: "color:var(--glyph-open-color); font-weight:var(--glyph-open-weight);" };
+    return { char: "➔", style: "color:var(--glyph-followup-color); font-weight:var(--glyph-followup-weight);" };
   }
 
   function onKeydown(e: KeyboardEvent) {
@@ -187,7 +208,7 @@
             >
               <div class="modal-item-main">
                 <span style={g.style}>{g.char}</span>
-                <span>{it.line}</span>
+                <span>{stripLeadingToken(it.line)}</span>
               </div>
               <div class="item-tag">Ln {it.lineIdx + 1}</div>
             </div>

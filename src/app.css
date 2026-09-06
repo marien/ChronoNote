@@ -27,6 +27,9 @@
   --glyph-done-opacity: 0.55;
   --glyph-progress-color: var(--text);
   --glyph-progress-weight: bold;
+  --glyph-cancelled-color: var(--text);
+  --glyph-cancelled-weight: normal;
+  --glyph-cancelled-opacity: 0.55;
   --glyph-followup-color: var(--muted);
   --glyph-followup-weight: normal;
   --glyph-assignee-bg: rgba(128, 128, 128, 0.18);
@@ -69,6 +72,9 @@
   --glyph-done-opacity: 1;
   --glyph-progress-color: #e5a50a;
   --glyph-progress-weight: bold;
+  --glyph-cancelled-color: #868e96;
+  --glyph-cancelled-weight: bold;
+  --glyph-cancelled-opacity: 1;
   --glyph-followup-color: #0098ff;
   --glyph-followup-weight: bold;
   --glyph-assignee-bg: rgba(0, 122, 204, 0.15);
@@ -88,6 +94,7 @@
     --glyph-open-color: #d9383a;
     --glyph-done-color: #2b8a3e;
     --glyph-progress-color: #b25e00;
+    --glyph-cancelled-color: #5c636a;
     --glyph-followup-color: #0066b8;
     --glyph-assignee-bg: rgba(0, 102, 184, 0.12);
     --glyph-assignee-color: #0066b8;
@@ -130,7 +137,7 @@ body {
   align-items: center;
   justify-content: center;
   color: var(--muted);
-  font-size: 13px;
+  font-size: 12px;
 }
 
 /* Top Chrome / Tabs */
@@ -162,7 +169,7 @@ body {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 13px;
+  font-size: 12px;
   cursor: pointer;
   border-right: 1px solid var(--border);
   background: var(--tab-bg);
@@ -171,6 +178,7 @@ body {
 }
 .tab-bar-new-btn {
   flex-shrink: 0;
+  height: 100%;
   border-radius: 0;
 }
 .tab-scroll-btn {
@@ -203,7 +211,7 @@ body {
   padding: 4px 8px;
   cursor: pointer;
   font-family: inherit;
-  font-size: 13px;
+  font-size: 12px;
   border-radius: 4px;
   display: flex;
   align-items: center;
@@ -234,7 +242,7 @@ body {
 .cm-editor {
   height: 100%;
   font-family: var(--font) !important;
-  font-size: 14px !important;
+  font-size: 12px !important;
 }
 .cm-scroller {
   padding: 16px 20px !important;
@@ -331,6 +339,7 @@ body {
 .glyph-open,
 .glyph-done,
 .glyph-progress,
+.glyph-cancelled,
 .glyph-bullet {
   display: inline-block;
   width: 2ch;
@@ -351,6 +360,11 @@ body {
 .glyph-progress {
   color: var(--glyph-progress-color);
   font-weight: var(--glyph-progress-weight);
+}
+.glyph-cancelled {
+  color: var(--glyph-cancelled-color);
+  font-weight: var(--glyph-cancelled-weight);
+  opacity: var(--glyph-cancelled-opacity);
 }
 .glyph-followup {
   color: var(--glyph-followup-color);
@@ -431,7 +445,7 @@ body {
   border: none;
   outline: none;
   font-family: var(--font);
-  font-size: 14px;
+  font-size: 12px;
   color: var(--text);
 }
 textarea.modal-input.import-textarea {
@@ -464,7 +478,7 @@ textarea.modal-input.import-textarea {
 }
 .modal-item {
   padding: 8px 14px;
-  font-size: 13px;
+  font-size: 12px;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -498,12 +512,30 @@ textarea.modal-input.import-textarea {
   flex: 1;
   margin-right: 12px;
 }
+/* §54: capped so a long section title can't crowd out the action text it
+   shares a row with; on hover, the row reflows to give that space back to
+   the action text instead — a pure width/opacity transition (not a
+   floating overlay), since virtualized rows (§38) are absolutely
+   positioned at a fixed height, and this keeps the change within that
+   box rather than needing the list to actually reflow. */
 .item-breadcrumb {
   font-size: 11px;
   color: var(--muted);
   white-space: nowrap;
   margin-right: 8px;
   font-style: italic;
+  max-width: 50%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex-shrink: 0;
+  transition:
+    max-width 0.15s ease,
+    opacity 0.15s ease;
+}
+.modal-item:hover .item-breadcrumb {
+  max-width: 0;
+  opacity: 0;
+  margin-right: 0;
 }
 .item-tag {
   font-size: 11px;
@@ -563,11 +595,61 @@ kbd {
 }
 .settings-toggle-row {
   display: flex;
+  align-items: center;
   gap: 8px;
 }
 .settings-toggle-row .icon-btn.active {
   background: var(--selected-bg);
   color: var(--selected-fg);
+}
+/* §43/§44 — a real on/off switch (not a button styled "active"), pushed
+   to the right edge of whatever row it's in via margin-left: auto. */
+.toggle-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+  cursor: pointer;
+  font-size: 12px;
+  color: var(--text);
+  user-select: none;
+}
+.toggle-switch input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+.toggle-switch-track {
+  position: relative;
+  width: 30px;
+  height: 16px;
+  border-radius: 8px;
+  background: var(--border);
+  transition: background 0.15s ease;
+  flex-shrink: 0;
+}
+.toggle-switch-track::before {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--muted);
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+.toggle-switch input:checked + .toggle-switch-track {
+  background: var(--selected-bg);
+}
+.toggle-switch input:checked + .toggle-switch-track::before {
+  transform: translateX(14px);
+  background: var(--selected-fg);
+}
+.toggle-switch input:focus-visible + .toggle-switch-track {
+  outline: 2px solid var(--selected-bg);
+  outline-offset: 2px;
 }
 .settings-dir-row {
   display: flex;
@@ -576,7 +658,7 @@ kbd {
 }
 .settings-dir-path {
   flex: 1;
-  font-size: 13px;
+  font-size: 12px;
   overflow-wrap: anywhere;
 }
 .settings-hint {

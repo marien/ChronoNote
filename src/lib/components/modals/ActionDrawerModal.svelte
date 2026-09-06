@@ -1,16 +1,29 @@
 <script lang="ts">
   import { onMount, tick } from "svelte";
   import * as controller from "../../controller";
-  import { actionSnapshot, tabs } from "../../controller";
+  import { actionSnapshot, activeTabId, tabs } from "../../controller";
   import { closeOnOutsideClick } from "../../actions/closeOnOutsideClick";
+  import { innermostActionSymbol, stripLeadingToken } from "../../tokens";
   import type { ActionSnapshotItem } from "../../types";
 
   let filter = "";
   let selectedIndex = 0;
   let scope: "open" | "all" = "open";
+  let showOnlyOpen = false;
   let inputEl: HTMLInputElement;
 
-  onMount(() => inputEl?.focus());
+  // §42: open focused on whatever entry belongs to the currently active
+  // tab, instead of always starting at the top of the (most-recent-first)
+  // list. Falls back to 0 if the active tab has no entries here at all.
+  onMount(() => {
+    const active = $tabs.find((t) => t.id === $activeTabId);
+    if (active) {
+      const idx = flatList.findIndex((it) => it.filename === active.filename);
+      if (idx !== -1) selectedIndex = idx;
+    }
+    inputEl?.focus();
+    scrollSelectedIntoView();
+  });
 
   async function setScope(next: "open" | "all") {
     if (scope === next) return;
@@ -36,6 +49,10 @@
   });
 
   $: filtered = liveSnapshot.filter((item) => {
+    // §44: toggle between today's behavior (open/deferred/delegated) and
+    // strictly open only — an open `# ` line, or an open `=> #`
+    // consequence-action (§41); resolved states are never "open."
+    if (showOnlyOpen && innermostActionSymbol(item.line) !== "#") return false;
     const isDelegated = item.line.includes("=> @");
     if (isDelegated && !showDelegated) return false;
     if (!filter) return true;
@@ -66,7 +83,10 @@
     }
     return Array.from(map.values());
   })();
-  $: uncompletedCount = flatList.filter((i) => !i.line.startsWith("v ")).length;
+  $: uncompletedCount = flatList.filter((i) => {
+    const sym = innermostActionSymbol(i.line);
+    return sym !== "v" && sym !== "x";
+  }).length;
   $: if (selectedIndex >= flatList.length) selectedIndex = Math.max(0, flatList.length - 1);
 
   // --- Virtualized rendering (§38) --- see SearchModal.svelte for the
@@ -147,16 +167,28 @@
 
   // References the same CSS custom properties the main editor's .glyph-*
   // classes use, so this list follows the color/grayscale toggle for free.
+  // Uses the *innermost* symbol (§41) — a `=> #`/`=> v`/etc. consequence-
+  // action shows the same state glyph a plain action line would, since
+  // that's the info this column exists to convey; the drawer's own icon
+  // column doesn't also draw the arrow the editor shows for that form.
   function glyphFor(line: string) {
-    if (line.startsWith("v "))
+    const sym = innermostActionSymbol(line);
+    if (sym === "v")
       return {
         char: "☑",
         style: "color:var(--glyph-done-color); font-weight:var(--glyph-done-weight); opacity:var(--glyph-done-opacity);",
       };
-    if (line.startsWith("> "))
+    if (sym === ">")
       return { char: "»", style: "color:var(--glyph-progress-color); font-weight:var(--glyph-progress-weight);" };
-    if (line.includes("=> @")) return { char: "➔", style: "color:var(--glyph-assignee-color); font-weight:600;" };
-    return { char: "☐", style: "color:var(--glyph-open-color); font-weight:var(--glyph-open-weight);" };
+    if (sym === "x")
+      return {
+        char: "☒",
+        style:
+          "color:var(--glyph-cancelled-color); font-weight:var(--glyph-cancelled-weight); opacity:var(--glyph-cancelled-opacity);",
+      };
+    if (sym === "#") return { char: "☐", style: "color:var(--glyph-open-color); font-weight:var(--glyph-open-weight);" };
+    // No action-state symbol at all — a plain delegated-to-a-person line.
+    return { char: "➔", style: "color:var(--glyph-assignee-color); font-weight:600;" };
   }
 
   function onKeydown(e: KeyboardEvent) {
@@ -206,6 +238,11 @@
           >Open Tabs</button
         >
         <button class="icon-btn {scope === 'all' ? 'active' : ''}" on:click={() => setScope("all")}>All Files</button>
+        <label class="toggle-switch">
+          <input type="checkbox" bind:checked={showOnlyOpen} />
+          <span class="toggle-switch-track"></span>
+          Only Open
+        </label>
       </div>
     </div>
     <div
@@ -231,6 +268,7 @@
             {@const item = row.item}
             {@const idx = item.__flatIndex}
             {@const g = glyphFor(item.line)}
+            {@const sym = innermostActionSymbol(item.line)}
             <div
               class="modal-item {idx === selectedIndex ? 'selected' : ''}"
               role="option"
@@ -243,7 +281,7 @@
             >
               <div class="modal-item-main">
                 <span style={g.style}>{g.char}</span>
-                <span class={item.line.startsWith("v ") ? "item-completed" : ""}>{item.line}</span>
+                <span class={sym === "v" || sym === "x" ? "item-completed" : ""}>{stripLeadingToken(item.line)}</span>
               </div>
               {#if item.header}<span class="item-breadcrumb">· {item.header}</span>{/if}
               <div class="item-tag">Ln {item.lineIdx + 1}</div>

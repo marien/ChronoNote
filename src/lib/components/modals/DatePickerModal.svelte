@@ -11,11 +11,16 @@
     label: string;
     exists: boolean;
     openCount: number;
+    // §43: the typed-date "direct match" is a pinned "jump here" result,
+    // not a browsed one — it always shows regardless of the open-only
+    // toggle below.
+    isDirectMatch: boolean;
   }
 
   let query = "";
   let selectedIndex = 0;
   let inputEl: HTMLInputElement;
+  let openOnly = false;
 
   onMount(async () => {
     await controller.refreshAllNotesCache();
@@ -32,18 +37,20 @@
         label: `Direct match: ${parsed}`,
         exists: content !== undefined,
         openCount: countActions(content ?? "").open,
+        isDirectMatch: true,
       });
     }
     controller.sortFilenamesByRecency(Object.keys(cache)).forEach((fn) => {
       const d = fn.replace(/\.txt$/, "");
       if (!list.some((c) => c.date === d) && (!q || d.includes(q))) {
-        list.push({ date: d, label: d, exists: true, openCount: countActions(cache[fn]).open });
+        list.push({ date: d, label: d, exists: true, openCount: countActions(cache[fn]).open, isDirectMatch: false });
       }
     });
     return list;
   }
 
-  $: candidates = buildCandidates(query, $allNotesCache);
+  $: allCandidates = buildCandidates(query, $allNotesCache);
+  $: candidates = allCandidates.filter((c) => c.isDirectMatch || !openOnly || c.openCount > 0);
   $: if (selectedIndex >= candidates.length) selectedIndex = Math.max(0, candidates.length - 1);
 
   // --- Virtualized rendering (§38) --- see SearchModal.svelte for the
@@ -113,6 +120,15 @@
         on:keydown={onKeydown}
         autocomplete="off"
       />
+    </div>
+    <div class="modal-input-wrap">
+      <div class="settings-toggle-row">
+        <label class="toggle-switch">
+          <input type="checkbox" bind:checked={openOnly} />
+          <span class="toggle-switch-track"></span>
+          Open Only
+        </label>
+      </div>
     </div>
     <div
       class="modal-list"

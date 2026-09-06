@@ -3,7 +3,14 @@ import { tick } from "svelte";
 import { open as openFolderDialog } from "@tauri-apps/plugin-dialog";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import * as api from "./tauriApi";
-import { countActions, getSectionHeaderForLine, isSetextUnderline, normalizeHeaderTitle, titleForMatching } from "./tokens";
+import {
+  countActions,
+  cycleActionSymbol,
+  getSectionHeaderForLine,
+  isSetextUnderline,
+  normalizeHeaderTitle,
+  titleForMatching,
+} from "./tokens";
 import { todayISO } from "./date";
 import { linesToSections } from "./sectionImport";
 import type { ActionSnapshotItem, ColorMode, HistoryItem, NoteTab, SearchResultItem } from "./types";
@@ -565,8 +572,14 @@ export async function commitDatePick(dateStr: string) {
 
 // --- Action drawer (toggle between open tabs and all files) ---
 
+/** "Action lines" the drawer surfaces: open (`# `) and deferred (`> `) —
+ * including indented (§50) and `=> <symbol>` consequence-action (§41)
+ * forms — plus plain delegated-to-a-person lines (`=> @name`, unchanged).
+ * Resolved states (`v `/`x `, standalone or via `=> `) are excluded here
+ * the same way `v ` always was — that's what "only open" (§44) narrows
+ * further, not what decides inclusion in the first place. */
 function isActionLine(line: string): boolean {
-  return line.startsWith("# ") || line.startsWith("> ") || line.includes("=> @");
+  return /^\s*#\s/.test(line) || /^\s*>\s/.test(line) || line.includes("=> @") || /=>\s[#>]\s/.test(line);
 }
 
 export function buildActionSnapshotOpenTabs(): ActionSnapshotItem[] {
@@ -637,11 +650,7 @@ export function toggleActionLine(tabId: string, lineIdx: number) {
   const tab = list.find((t) => t.id === tabId);
   if (!tab) return;
   const lines = tab.content.split("\n");
-  const target = lines[lineIdx];
-  let updated: string | null = null;
-  if (target.startsWith("# ")) updated = "v " + target.slice(2);
-  else if (target.startsWith("v ")) updated = "> " + target.slice(2);
-  else if (target.startsWith("> ")) updated = "# " + target.slice(2);
+  const updated = cycleActionSymbol(lines[lineIdx]);
   if (updated === null) return;
   lines[lineIdx] = updated;
   tabs.set(writeTabContent(tabId, lines.join("\n"), list));
@@ -653,10 +662,19 @@ export function forwardActionToToday(tabId: string, lineIdx: number) {
   if (!src) return;
   const lines = src.content.split("\n");
   const target = lines[lineIdx];
-  if (!target.startsWith("# ") && !target.startsWith("> ")) return;
+  // Indented (§50), same as everywhere else an action symbol is
+  // recognized. Deliberately not extended to the `=> <symbol>` form
+  // (§41) — forwarding a delegated consequence-action raises questions
+  // (keep or drop the "=> " context?) outside this request's scope.
+  const match = target.match(/^(\s*)([#>])(\s.*)$/);
+  if (!match) return;
+  const [, indent, , rest] = match;
 
-  lines[lineIdx] = "> " + target.slice(2);
-  const taskText = "# " + target.slice(2);
+  lines[lineIdx] = indent + ">" + rest;
+  // The forwarded copy starts fresh at today's top level — the source's
+  // indentation was relative to structure (a bullet, a section) that has
+  // no meaning in today's note.
+  const taskText = "#" + rest;
   const todayFilename = todayISO() + ".txt";
 
   let next = writeTabContent(tabId, lines.join("\n"), list);
@@ -735,11 +753,13 @@ export async function openMeetingHistory() {
         return;
       }
       if (!inSection) return;
-      const isActionOrFollow =
-        line.startsWith("# ") || line.startsWith("v ") || line.startsWith("> ") || line.startsWith("=> ");
+      // §40/§50: `x` and indentation join the other three action symbols.
+      const isActionOrFollow = /^\s*[#vx>]\s/.test(line) || line.startsWith("=> ");
       if (isActionOrFollow) {
+        // §41: an optional inner action symbol after "=> " (as well as an
+        // assignee) is stripped from the dedup key the same way.
         const normalizedBody = line
-          .replace(/^(#|v|>|=>)\s+(@\w+\s+)?/, "")
+          .replace(/^\s*(#|v|x|>|=>)\s+(@\w+\s+|[#vx>]\s+)?/, "")
           .trim()
           .toLowerCase();
         if (!seen.has(normalizedBody)) {
@@ -942,7 +962,17 @@ export function handlePasteIntoTab(targetTabId: string) {
 
   const todayFilename = todayISO() + ".txt";
   const targetTab = get(tabs).find((t) => t.id === targetTabId);
-  if (!targetTab || targetTab.filename !== todayFilename || copied.sourceTabId === targetTabId) {
+  // §49: today or any later date counts as "forwarding," not just today
+  // exactly. Scratchpads are excluded outright — their filename (e.g.
+  // "Scratchpad 1") isn't a date at all, and would sort after any real
+  // date string, which would otherwise make this comparison wrongly treat
+  // pasting into a scratchpad as "later than today."
+  if (
+    !targetTab ||
+    targetTab.isScratchpad ||
+    targetTab.filename < todayFilename ||
+    copied.sourceTabId === targetTabId
+  ) {
     return;
   }
 

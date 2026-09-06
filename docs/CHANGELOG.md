@@ -1633,3 +1633,438 @@ Confirmed defaults, both accepted as proposed:
    Tauri command) rather than stored as a flag, so a folder that
    reappears later (e.g. a drive remounted) isn't permanently lost from
    the list.
+
+---
+
+# Feedback from a real-life test run (§40-§54)
+
+Logged in one batch per the user's explicit request ("keep track of each of
+the feedback items for implementation") — **none of these are implemented
+yet**. Each is its own section below so it can be confirmed and built
+independently. Several reference exact current code so the proposed
+change is unambiguous; several also carry genuine open questions that need
+an answer before implementation, not just an assumption.
+
+## 40. New token: `x ` — an action that won't be done
+
+**Status: implemented.** Actions marked `x` (done and
+*not* going to happen — distinct from `v `, which means it *was* done)
+render as a "☒" glyph (ballot-box-with-X), the same family as `☐`/`☑`.
+
+Confirmed:
+- `x` joins the `Ctrl+Space` cycle in `EditorPane.svelte`'s `cycleLine()`
+  (currently `# → v → > → #`). Proposed order: `# → v → > → x → #` (added
+  at the end, before wrapping) — not explicitly specified, so flagging
+  the exact position as my default rather than silently assuming it's
+  uncontroversial; easy to reorder if a different position is wanted.
+- `x` folds into the existing **Closed** bucket in `countActions()`
+  (`tokens.ts`) and the status bar — no new fourth bucket. `countActions()`'s
+  `closedMatches` regex becomes `/^[vx]\s/gm` (matching either token).
+- Per §44, `isActionLine()` continues to exclude resolved states the same
+  way `v ` already is excluded — `x` is resolved (just resolved as "won't
+  do" rather than "done"), so it's excluded from the Action Drawer/
+  snapshot building on the same basis.
+
+Mechanical implementation (unchanged from the original draft):
+- `glyphs.ts`: add `(^x\s)` to both `renderMatcher` and `atomicMatcher`'s
+  regexes, rendering `Decoration.replace` with a new
+  `InlineGlyphWidget("☒", "glyph-cancelled")`.
+- `app.css`: a new `--glyph-cancelled-*` token family, following the same
+  light/dark + color/grayscale pattern as `--glyph-open-*` etc.
+
+---
+
+## 41. An action-state symbol can follow a Delegate (`=> `) token
+
+**Status: implemented.** Confirmed: there are exactly
+three variants of a `=> `-prefixed line — no fourth combined form:
+1. `=> text` — plain follow-up/consequence, no assignee, no action-state.
+   Unchanged from today.
+2. `=> @name text` — delegated to a person, no action-state of its own.
+   Unchanged from today.
+3. `=> <symbol> text`, where `<symbol>` is any of `# `/`v `/`> `/`x ` —
+   **not** delegated to anyone; instead, this marks `text` as an action
+   that is a *consequence* of the line before it (or of text earlier in
+   the same line, before the `=>`) — e.g. a decision recorded above
+   naturally produces this follow-up action, and that action can itself
+   be open, done, deferred, or won't-do, exactly like a standalone action
+   line. Confirmed explicitly: `=> @name <symbol> text` (assignee **and**
+   action-state together) is **not** a thing — a line is either
+   delegated-to-a-person (variant 2) or a consequence-action (variant 3),
+   never both.
+
+Design:
+- **Rendering** (`glyphs.ts`): `=> ` replaces to the ➔ glyph (unchanged,
+  3 chars) immediately followed by a second replacement for the inner
+  action symbol (☐/☑/»/☒, 2 chars) — the same two-glyphs-in-a-row shape
+  `=> @name`'s ➔-then-badge already has, just with a second *replaced*
+  widget instead of a marked/editable span. Everything after the inner
+  symbol is real, plain, editable text — "only the text after the action
+  symbol is part of the action," per the original request.
+- **Counting/matching**: `isActionLine()` (`controller.ts`) and
+  `countActions()` (`tokens.ts`) need a variant-3 case — `=> #` counts
+  toward Open the same as a bare `# ` line would, `=> v`/`=> x` toward
+  Closed (per §40's fold-in), and `=> >` toward Forwarded — consistent
+  with §44's "only open" toggle needing to recognize a `=> #` line as
+  open too, not just a bare `# ` line.
+- **`Ctrl+Space` cycle**: on a `=> # text` line, cycles the inner symbol
+  in place (`# → v → > → x → #`, same order as §40), leaving the `=> `
+  prefix untouched — mirrors how the cycle already only ever rewrites the
+  first two characters of a plain action line today.
+
+---
+
+## 42. Action Drawer and History Drawer should open focused on the active tab's entry
+
+**Status: implemented.** Currently, both
+`ActionDrawerModal.svelte` and `HistoryModal.svelte` always start with
+`selectedIndex = 0` — the top of the list (most-recent-first, per §27) —
+regardless of which tab was active when the drawer opened. Requested:
+open with the selection (and, given both are now virtualized per §38,
+the scroll position) landed on whatever entry corresponds to the
+currently *active* tab's date/file.
+
+Proposed: on mount, look up `get(activeTabId)`'s tab, find the first
+entry in `flatList` whose `filename` (Action Drawer) or `date` (History)
+matches that tab's filename/date, and set `selectedIndex` to it (falling
+back to `0` if the active tab has no entries in the list — e.g. it has no
+open actions, or no history for the current section). Then call the
+existing `scrollSelectedIntoView()` so it's actually visible, not just
+selected off-screen.
+
+---
+
+## 43. Date drawer: toggle to show only dates with open actions
+
+**Status: implemented.** `DatePickerModal.svelte`
+already computes `openCount` per candidate (via `countActions(...).open`)
+and displays it, but always lists every existing file matching the typed
+query. A toggle (matching the "Open Tabs"/"All Files" toggle style
+already used in Search/Action Drawer) filters the list down to
+`candidates.filter(c => c.openCount > 0)`.
+
+Confirmed: the "Direct match" entry (the literal typed date, the `parsed`
+branch in `buildCandidates()`) stays pinned at the top regardless of the
+toggle — it represents "jump here" intent, not a browse result, so it's
+unaffected either way.
+
+---
+
+## 44. Action Drawer: toggle between existing behavior and "only open"
+
+**Status: implemented.** Changed from the original
+ask (permanently narrowing the drawer) to a *toggle*: a new control,
+alongside the existing "Open Tabs"/"All Files" scope toggle, switching
+between today's behavior (shows `# `, `> `, and `=> @` lines — open,
+deferred, and delegated) and an "only open" mode showing strictly `# `
+lines (and, per §41, a `=> #` consequence-action, if §41's "stand-in for
+all four" reading is confirmed — an open consequence-action is still an
+open action). Neither mode shows `x`/`v`-resolved lines, consistent with
+§40.
+
+Implementation: `ActionDrawerModal.svelte` gets a second local toggle
+state (e.g. `showOnlyOpen: boolean`), filtering `filtered` (or `liveSnapshot`,
+before grouping) down to lines whose innermost action symbol is `#` when
+active — a small helper shared with §41/§45's token-parsing work, not a
+one-off regex, since "what's the innermost action symbol on this line"
+is now a concept needed in at least three places (this toggle,
+`glyphFor()`, and the display-stripping from §45).
+
+---
+
+## 45. Action Drawer should show only the glyph, not the raw character
+
+**Status: implemented.** Confirmed as a real
+display bug by reading the template: `ActionDrawerModal.svelte` renders
+`glyphFor(item.line)`'s icon **and then separately renders `item.line`
+verbatim** —
+
+```svelte
+<span style={g.style}>{g.char}</span>
+<span class={...}>{item.line}</span>
+```
+
+`item.line` is the raw line text, e.g. `"# Buy milk"` — so the drawer
+currently shows `☐ # Buy milk`, with the raw `# ` token still visible
+right next to the glyph that already represents it. (The main editor
+doesn't have this problem — `glyphs.ts` *replaces* the token in-place in
+the actual CodeMirror document view, whereas the Action Drawer just prints
+the stored string as plain text.)
+
+Fix: strip the leading token before display — a small helper (e.g.
+`stripLeadingToken(line): string`, likely worth putting in `tokens.ts`
+since History (`HistoryModal.svelte`, same `{g.char}` + raw-line pattern)
+has the identical issue and should get the identical fix) that removes a
+leading `# `, `v `, `> `, `x ` (§40), or `=> ` / `=> @name ` (§41) before
+the text is rendered — the glyph alone conveys the token; the text should
+start at the actual content.
+
+---
+
+## 46. Editor text size
+
+**Status: implemented.** Confirmed: `.cm-editor`'s
+`font-size: 14px !important;` (`app.css`) becomes `11px`. (Factual note
+for the record: the actual prior value was 14px, not the assumed 12px —
+confirmed as still wanting 11px against that corrected starting point.)
+
+---
+
+## 47. Render the Setext underline as an actual line, not literal `=` characters
+
+**Status: attempted, reverted — logged for a future attempt.** Section
+headers use a Setext-style underline (a title line followed by a `====`
+line — spec 2.1/`isSetextUnderline()` in `tokens.ts`). Today this isn't
+glyph-rendered at all; the raw `=` characters show as literal text in the
+editor. Requested: replace the visual presentation of that underline row
+with an actual drawn horizontal line, the same *length* as the title text
+above it, without changing the line's height, character-editable when the
+cursor is on the line (also confirmed: hovering it should reveal edit
+mode too), and rendered as the drawn line otherwise.
+
+**What was built, and why it was reverted:** a `glyphs.ts` decoration
+replacing the `====` line with a `Decoration.replace` widget (a `<span>`
+sized via `ch`-units to the title's character count), gated on both
+cursor position (`state.selection`) and mouse hover (tracked via a
+`StateField`/`StateEffect` pair updated from `EditorView.domEventHandlers`'
+`mousemove`, since `posAtCoords` works whether the line is currently
+rendered as the widget or as plain text — a `mouseenter`/`mouseleave` pair
+on the widget's own element doesn't, because the element is removed from
+the DOM the moment hover reveals the plain text underneath it). This
+compiled and ran, but two rounds of visual feedback found it genuinely
+broken:
+1. **Vertical alignment never landed correctly.** First attempt used
+   `height: 1em; vertical-align: text-bottom;` on an empty `inline-block`
+   span with a `border-bottom` — too low, "near the top of the characters
+   of the line below." Second attempt removed the explicit height/
+   vertical-align and gave the span real (invisible) text content (a
+   space) so its own line-box metrics would anchor the border — this made
+   it *lower still*, the opposite of the intended correction. Both
+   attempts were guesses at how `.cm-line`'s `line-height: 1.6` interacts
+   with an `inline-block` widget's content-box vs. the actual text
+   baseline, made without the ability to see the running app directly —
+   correcting this by further guessing was assessed as more likely to
+   waste rounds than to converge, especially after the second guess moved
+   the wrong direction.
+2. **Hover/click-to-edit only worked once**, then stopped reliably
+   revealing edit mode on subsequent attempts — root cause not
+   isolated before the decision to revert (leading candidate: CodeMirror's
+   coordinate-to-position mapping, `posAtCoords`, may not resolve
+   correctly for on-screen positions that fall *within* a custom replaced
+   widget's own rendered DOM, as opposed to ordinary text — the widget is
+   an opaque foreign element from CodeMirror's layout model's perspective
+   for hit-testing purposes, unlike a `Decoration.mark` over real
+   characters, which stays part of the normal text flow).
+
+**Direction worth trying next time, not attempted here:** using
+`Decoration.mark` (color: transparent + `text-decoration`/`border-bottom`)
+over the *actual* `=` characters already in the document, instead of a
+synthetic `Decoration.replace` widget with invented content. Marking real
+text keeps it in CodeMirror's normal layout/hit-testing model — hover and
+click-to-position should work natively, with no custom
+`domEventHandlers`/`posAtCoords` plumbing needed — and a `text-decoration`
+applied to real text is positioned by the browser's own font-metric
+baseline calculation, not by guessing at box-model interactions with line-
+height. The open problem that approach doesn't solve on its own: the
+underline's rendered length would then track however many `=` characters
+already exist in the file, not automatically conform to the title's
+length above it — squaring that with "same length as the title" (without
+silently auto-editing the file's actual `=` count, which would cross this
+app's zero-database/no-silent-edits principle) is exactly the design
+question to resolve before trying again.
+
+Code changes from this attempt (the `glyphs.ts` decoration/StateField/
+domEventHandlers, its `EditorPane.svelte` registration, and its
+`.glyph-section-underline` CSS) have all been reverted — nothing from
+this section shipped.
+
+---
+
+## 48. Top bar should scroll to follow the selected tab
+
+**Status: implemented.** Confirmed by reading
+`TopBar.svelte`: there's no `scrollIntoView`-equivalent logic anywhere —
+`updateScrollState()` only tracks whether the arrows should show, and
+nothing reacts to `activeTabId` changing. Switching tabs via `Ctrl+Tab`/
+`Ctrl+Shift+Tab` (or via the Date picker, Search, etc.) can move the
+active tab off-screen with no indication other than the highlight simply
+not being visible.
+
+Fix: a reactive block watching `$activeTabId` that finds the active tab's
+DOM element within `#tab-bar` and scrolls it into view if it isn't
+already (mirroring the pattern already established in Search/Action
+Drawer/History's `scrollSelectedIntoView()` from §38, though tab widths
+aren't fixed here the way virtualized list rows are, so this would use the
+tab element's own `getBoundingClientRect()`/`offsetLeft` rather than a
+precomputed offset table).
+
+---
+
+## 49. Copy/paste deferral should apply to today *or any later date*, not just today
+
+**Status: implemented.** Confirmed by reading
+`handlePasteIntoTab()` (`controller.ts`): the guard is
+`targetTab.filename !== todayFilename` — pasting a copied `# ` line into
+any tab other than *exactly* today's marks the original as deferred only
+if the target is today. Requested: this should also apply when pasting
+into a tab dated *after* today (forwarding a task to next week, say,
+should count the same as forwarding it to today).
+
+Fix is small and low-risk: since filenames are `YYYY-MM-DD.txt` and ISO
+dates sort correctly as plain strings, the condition becomes
+`targetTab.filename < todayFilename` (reject only *past* dates) instead
+of `!== todayFilename` (reject everything except today). No open
+questions — pasting into a past-dated tab presumably still shouldn't
+count as deferral, since that's not "forwarding," it's backdating.
+
+---
+
+## 50. Actions can be indented by two spaces, like bullets
+
+**Status: implemented.** Clarified: this is specifically
+a bug-fix request, not a nesting/outline feature — confirmed there's no
+"belongs to the bullet above it" semantic intended. Today, an indented
+action line (e.g. `"  # Buy milk"`) is invisible to the app entirely: no
+glyph renders, and it doesn't count anywhere, because `# `/`v `/`> `/`=> `
+are matched anchored to the true start of the line (`^#\s` etc., both in
+`glyphs.ts`'s regexes and `countActions()`/`isActionLine()`) — unlike
+`- ` bullets, which already tolerate arbitrary leading indentation via a
+lookbehind (`(?<=^\s*)-\s`). Wanted: an indented action should be
+recognized as an action (rendered, counted, shown in the drawer) exactly
+like an unindented one, with its glyph appearing at the correct visual
+indentation — i.e. bring actions to parity with how bullets already
+handle indentation, nothing more.
+
+Implementation: change `^#\s`-style anchors to `(?<=^\s*)#\s` throughout
+`glyphs.ts` (mirroring the bullet lookbehind exactly, both matchers) and
+update `countActions()`/`isActionLine()` to `^\s*#\s`-equivalent patterns
+(same idea, different regex flavor since those aren't lookbehind-based
+today). Same treatment applies to `v `/`> `/`x ` (§40) — all four action
+symbols should tolerate leading indentation consistently.
+
+---
+
+## 51. Bulleted lists: `*` as an alternative to `-`
+
+**Status: implemented.** Small, well-scoped:
+`glyphs.ts`'s bullet lookbehind pattern `(?<=^\s*)-\s` (in both
+`renderMatcher` and `atomicMatcher`) becomes `(?<=^\s*)[-*]\s`, so either
+character triggers the same `•` glyph. No open questions — this is
+additive and doesn't change how `-` already behaves.
+
+---
+
+## 52. Top bar overflow: keep scroll arrows visible and make them wrap
+
+**Status: implemented — this reverses a documented design decision from
+§26, flagging explicitly rather than treating it as a bug fix.** §26's original design: `canScrollLeft`/
+`canScrollRight` (`TopBar.svelte`) are computed from actual scroll
+position, so an arrow disappears once there's nothing left to scroll in
+that direction (e.g. the left arrow vanishes once you're scrolled all the
+way left). Requested: once the tab bar is overflowing at all, show
+**both** arrows permanently, and clicking one at an edge **wraps around**
+to the other end — the same cyclic behavior `Ctrl+Tab`/`Ctrl+Shift+Tab`
+already has for switching tabs (`cycleTab()` in `controller.ts`), just
+applied to scroll position instead of selection.
+
+Proposed: once `tabBarEl.scrollWidth > tabBarEl.clientWidth` (i.e.
+overflowing at all — computed once in `settleLayout()`, not per-scroll),
+show both arrows unconditionally rather than deriving them from
+`scrollLeft`. `scrollTabBar(direction)` then checks whether the requested
+scroll would go past an edge and, if so, jumps to the opposite edge
+(`scrollLeft = 0` or `scrollLeft = scrollWidth - clientWidth`) instead of
+the current unconditional `scrollBy`.
+
+---
+
+## 53. Top bar overflow: always show the New Scratchpad button
+
+**Status: implemented.** Confirmed by reading
+`TopBar.svelte`: the `+` button (`.tab-bar-new-btn`) is a child of
+`#tab-bar` itself — the same scrollable container the tabs live in — so
+when tabs overflow and the strip scrolls, the `+` button scrolls along
+with them and can end up off-screen. Requested: it should always be
+visible regardless of scroll position.
+
+Fix: move the button out of `#tab-bar` in the markup, placing it as a
+sibling positioned after the right scroll arrow (before the fixed action
+buttons — Date/My Actions/etc.) — structurally the same kind of change as
+§26 already made for the scroll arrows themselves, which live outside the
+scrollable region for the same reason. This changes its visual position
+slightly (currently "directly next to the rightmost tab," per §25/§28 —
+moving it outside the scroll region means it's no longer immediately
+adjacent to the last tab when the strip *isn't* overflowing). Flagging
+since that's a small but real layout change beyond just "fix the overflow
+case," not asking to confirm since keeping one consistent position
+(always in the same place, scrolling or not) seems clearly better than a
+button that jumps between "next to last tab" and "fixed after arrows"
+depending on overflow state — but noting it in case that trade-off isn't
+obvious from the request alone.
+
+---
+
+## 54. Action Drawer: hovering shows full action text over the header; header capped to 50% width
+
+**Status: implemented.** Confirmed by reading the CSS:
+`.item-breadcrumb` (the section-header tag shown after each action's
+text, e.g. "· Weekly Sync") has no width constraint at all
+(`.modal-item-main` has `overflow:hidden; text-overflow:ellipsis; flex:1`,
+but the breadcrumb itself doesn't shrink or truncate) — so a long section
+title can crowd or push against the action's own text within the row's
+fixed width, since both compete for space in one `justify-content:
+space-between` flex row.
+
+Confirmed design:
+1. **Cap the header/breadcrumb to 50% of the drawer's width**, with
+   ellipsis truncation — `max-width: 50%` plus `overflow: hidden;
+   text-overflow: ellipsis` on `.item-breadcrumb`.
+2. **On hover, the row reflows** to give the action text the header's
+   space — i.e. a `:hover`/JS-driven state where `.item-breadcrumb`
+   shrinks or hides (rather than a floating tooltip overlay), letting
+   `.modal-item-main`'s content claim the freed width so the full,
+   untruncated action text can display. Since virtualized rows are
+   absolutely positioned (§38) with a fixed row height, this needs to be
+   a pure width/visibility change within the row's existing box — not an
+   actual height-changing reflow of the list, which would conflict with
+   the fixed-row-height assumption the virtualization's offset math
+   depends on.
+
+---
+
+## 55. Bug fix: switching tabs could freeze the whole window
+
+**Status: fixed.** Reported during testing of §48: "when switching tabs
+with Ctrl+Tab, when the top bar started to follow the tab and it (almost)
+reached the end, the topbar froze. I cannot switch tabs, and cannot press
+any buttons anymore, and shortcuts don't work anymore." A second report
+found it could also happen right at launch, once session restore's
+initial active tab happened to sit in the same position.
+
+**Root cause:** the app runs on Svelte 5. `TopBar.svelte`'s
+`settleLayout()` (§52) and `scrollActiveTabIntoView()` (§48) are both
+`async` functions invoked from legacy `$:` reactive statements, and both
+used Svelte's own `await tick()` internally to wait a render pass. In
+Svelte 5, `tick()` resolves through Svelte's own reactive scheduler —
+resuming from it *inside* a function a `$:` block kicked off hands
+control back into that same scheduler, which can decide the originating
+statement is still "active" and re-run it. `scrollActiveTabIntoView` had
+no guard against this, so each re-run kicked off a fresh `tick()`-await
+cycle, and the resulting `scrollLeft` writes kept flip-flopping between
+two values forever — a genuine, effectively-synchronous infinite loop
+that pins the whole render thread (confirmed by reproducing it headlessly
+outside Tauri, bisecting extensions/handlers/observers one at a time
+until the single `await tick()` call was isolated as the trigger).
+
+**Fix:** both functions now wait via a small `nextFrame()` helper
+(`requestAnimationFrame`-based) instead of `tick()`. This still yields a
+render pass — needed so a newly-created tab's element exists in the DOM
+before being measured or scrolled to — but sits entirely outside Svelte's
+scheduler, so resuming from it can no longer retrigger the reactive
+statement that called it. The `ResizeObserver` in `onMount` was also kept
+observing `#top-bar` rather than `#tab-bar` (a change made while
+investigating this bug): `settleLayout()` toggles the action-button
+labels, scroll arrows, and Promote button, all siblings of `#tab-bar`
+inside `#top-bar`, so observing `#tab-bar` itself would mean the
+observer's own layout decisions could resize the thing it's watching;
+`#top-bar`'s width is driven only by the window, never by its own
+children's reflow, so it doesn't have that problem.
