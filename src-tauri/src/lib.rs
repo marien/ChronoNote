@@ -1,6 +1,6 @@
 mod storage;
 
-use tauri::AppHandle;
+use tauri::{AppHandle, Manager};
 
 #[tauri::command]
 fn get_config(app: AppHandle) -> Result<storage::AppConfig, String> {
@@ -57,10 +57,37 @@ fn write_tab_session(
     storage::write_tab_session(&app, &storage::TabSession { open_tabs, active_tab })
 }
 
+/// Window starts hidden (see `tauri.conf.json`) so it can be shown only
+/// once its background already matches the theme it's about to render —
+/// otherwise the OS paints the window's own default (white) canvas for
+/// the brief span between window creation and the webview's first real
+/// paint, which is the actual source of the launch-time white flash (the
+/// app's own CSS is already dark by default and paints correctly the
+/// moment the webview does render; the flash happens entirely before
+/// that point). Reading `window.theme()` before showing lets light-mode
+/// users get a matching white background instead of an assumed dark one.
+fn show_window_without_flash(app: &tauri::App) {
+    let Some(window) = app.get_webview_window("main") else {
+        return;
+    };
+    let is_light = matches!(window.theme(), Ok(tauri::Theme::Light));
+    let color = if is_light {
+        tauri::window::Color(255, 255, 255, 255)
+    } else {
+        tauri::window::Color(0x1e, 0x1e, 0x1e, 255)
+    };
+    let _ = window.set_background_color(Some(color));
+    let _ = window.show();
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
+        .setup(|app| {
+            show_window_without_flash(app);
+            Ok(())
+        })
         .invoke_handler(tauri::generate_handler![
             get_config,
             set_notes_dir,

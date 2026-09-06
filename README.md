@@ -117,3 +117,10 @@ file — no database, no front-matter, no injected IDs.
 - `Ctrl+/` opens a shortcuts help drawer listing every keybinding
 - Top-bar buttons show icon+label when the window is maximized or
   fullscreen, and collapse to icon-only otherwise
+- Launches without the white-flash-before-dark-theme most Tauri apps show:
+  the window's native background is set to match the OS theme before it's
+  ever shown. Restoring a previous session's tabs (§34) also reads them
+  all in parallel rather than one at a time, for a faster time-to-typable.
+- Thin, theme-matched scrollbars (editor, modal lists, the import
+  textarea) in place of the OS-default ones, including a custom resize
+  grip icon on the import textarea.

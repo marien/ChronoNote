@@ -34,7 +34,7 @@
         openCount: countActions(content ?? "").open,
       });
     }
-    Object.keys(cache).forEach((fn) => {
+    controller.sortFilenamesByRecency(Object.keys(cache)).forEach((fn) => {
       const d = fn.replace(/\.txt$/, "");
       if (!list.some((c) => c.date === d) && (!q || d.includes(q))) {
         list.push({ date: d, label: d, exists: true, openCount: countActions(cache[fn]).open });

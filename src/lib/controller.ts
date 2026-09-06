@@ -166,23 +166,29 @@ async function restoreOrBootstrapTabs() {
   try {
     const todayFilename = todayISO() + ".txt";
     const session = await api.readTabSession();
+    const otherFilenames = (session?.openTabs ?? []).filter((f) => f !== todayFilename);
+
+    // Fire every read concurrently (one IPC round-trip in flight per file,
+    // all in parallel) rather than one-at-a-time — with several tabs open,
+    // a sequential await-per-file loop was adding a full extra round-trip
+    // of latency per tab before the editor became typable.
+    const [otherContents, todayContent] = await Promise.all([
+      Promise.all(otherFilenames.map((filename) => api.readNote(filename))),
+      api.readNote(todayFilename),
+    ]);
 
     const restored: NoteTab[] = [];
-    if (session) {
-      for (const filename of session.openTabs) {
-        if (filename === todayFilename) continue; // added once, below, regardless
-        const content = await api.readNote(filename);
-        if (content === null) continue; // file no longer exists — silently skip
-        restored.push({ id: `tab-${Date.now()}-${filename}`, filename, isScratchpad: false, content });
-      }
-    }
+    otherFilenames.forEach((filename, i) => {
+      const content = otherContents[i];
+      if (content === null) return; // file no longer exists — silently skip
+      restored.push({ id: `tab-${Date.now()}-${filename}`, filename, isScratchpad: false, content });
+    });
 
-    const todayContent = (await api.readNote(todayFilename)) ?? "";
     const todayTab: NoteTab = {
       id: `tab-${Date.now()}-${todayFilename}`,
       filename: todayFilename,
       isScratchpad: false,
-      content: todayContent,
+      content: todayContent ?? "",
     };
     restored.push(todayTab);
 
@@ -295,7 +301,7 @@ function compareTabsByRecency(a: NoteTab, b: NoteTab): number {
 
 /** `YYYY-MM-DD.txt` filenames sort chronologically as plain strings, so
  * ascending-then-reverse gives most-recent-first without parsing dates. */
-function sortFilenamesByRecency(filenames: string[]): string[] {
+export function sortFilenamesByRecency(filenames: string[]): string[] {
   return [...filenames].sort().reverse();
 }
 

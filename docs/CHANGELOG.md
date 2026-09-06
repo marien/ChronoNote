@@ -963,6 +963,16 @@ building their snapshot/results list, via two small helpers in
   list), so keeping them as two small, separately-named functions reads
   more clearly than one comparator with a direction flag.
 
+**Follow-up, same root cause found elsewhere:** the Date drawer
+(`Ctrl+O`/`DatePickerModal.svelte`) had the identical bug — its "existing
+notes" list also iterated `Object.keys(cache)` directly, so it listed
+oldest-first. Fixed the same way: `sortFilenamesByRecency()` is now
+exported from `controller.ts` and reused there rather than duplicating
+the sort inline, so all three places (Action Drawer, Search, Date picker)
+share one ordering rule instead of three independent ones that could
+drift again later. The typed-query "Direct match" line is unaffected —
+it's a distinct pinned-to-top result, not part of the browsed list.
+
 ---
 
 ## 28. "New Scratchpad" never shows a label
@@ -1205,3 +1215,94 @@ Implementation:
   and seeding the dedup baseline for future no-op writes.
 - **First time a folder is opened** (no session file yet): falls back to
   today's tab only, exactly like the old behavior.
+
+---
+
+## 35. Launch performance: no more white flash, faster time-to-typable
+
+**Status: implemented.** Reported symptom: on launch, a plain white
+window shows briefly before turning to the (dark, OS-default) theme, and
+the app feels slow to reach a typable state. Investigated before touching
+anything (see the assessment shared in chat) — the flash was **not** a
+CSS or Svelte issue (`body`'s dark background and the `.boot-loading`
+placeholder in `App.svelte` were already correct and would paint
+near-instantly once the webview renders anything), it was purely a
+platform-level gap: `tauri.conf.json`'s window had no `visible` setting,
+so Tauri's default (`true`) shows the native OS window immediately on
+creation, before WebView2 has done its own cold-start and painted a
+single pixel of our HTML/CSS. That gap is inherently blank, regardless of
+how fast our own code runs, and no amount of front-end optimization
+removes it.
+
+Fixed with two independent changes:
+- **The flash itself:** `tauri.conf.json`'s window now starts
+  `"visible": false`. In Rust's `setup()` hook (`lib.rs`,
+  `show_window_without_flash`), before the window is ever shown, it reads
+  the window's actual OS theme via `window.theme()` and calls
+  `set_background_color()` to match (dark `#1e1e1e` or light `#ffffff`,
+  mirroring `--bg` in `app.css`) — only then does it call `.show()`. The
+  window's own native background now matches what the webview is about
+  to paint, so there's nothing to flash between; light-mode users get a
+  correctly-matching white background instead of an assumed dark one.
+  This is a synchronous sequence inside `setup()` with no dependency on
+  frontend readiness (no waiting on `initApp()`/IPC), so there's no risk
+  of the window silently never appearing if something in the JS boot path
+  were to hang.
+- **Time-to-typable:** `restoreOrBootstrapTabs()` (§34) was reading each
+  restored tab's file with a sequential `for...await` loop — one IPC
+  round-trip per tab, one after another. Rewritten to fire all reads
+  concurrently via `Promise.all`, so N restored tabs cost roughly one
+  round-trip's worth of wall-clock time instead of N. Purely a
+  latency/ordering change — the missing-file-skips-silently and
+  today's-tab-always-included behavior from §34 are unchanged.
+
+Considered and deliberately not done: hiding the window and waiting for
+an explicit "frontend ready" signal before showing it (more moving parts,
+and a real risk of the window never appearing if `initApp()` throws or an
+IPC call hangs — the background-color approach above achieves the same
+result with none of that risk, so there was no reason to reach for it);
+and bundling a fixed WebView2 runtime instead of the shared one (would
+not have addressed either symptom — the flash is a window/webview
+sequencing issue, not a WebView2-installation one — while meaningfully
+growing the installer and adding a runtime-update burden this app
+doesn't otherwise have).
+
+---
+
+## 36. Thin, theme-matched scrollbars and a themed textarea resize grip
+
+**Status: implemented.** Requested look: replace the OS-default scrollbar
+with something thinner and theme-aware, "similar to Notepad or the Claude
+application" — applied to the editor first, then to every other
+scrollable/resizable area for consistency (the request named the Import
+drawer's textarea specifically).
+
+- `app.css` styles `.cm-scroller` (the editor), `.modal-list` (search/
+  history/action-drawer results), and `.import-textarea` with
+  `scrollbar-width: thin` / `scrollbar-color` (standards-track) and
+  matching `::-webkit-scrollbar`/`-track`/`-thumb`/`-thumb:hover` rules
+  (WebKit/Chromium, which covers all three Tauri desktop targets — none
+  of Windows/WebView2, macOS/WKWebView, or Linux/WebKitGTK is
+  Gecko-based). Thumb/track colors reuse the existing `--border`/`--muted`
+  tokens, so light/dark and color/grayscale are already handled with no
+  extra rules, same pattern as the pre-existing `#tab-bar` scrollbar (§25).
+- **Follow-up, found while testing:** once the scrollbar appeared, the
+  textarea's bottom-right resize grip showed a stray white sliver.
+  Diagnosed in two passes (confirmed by a zoomed screenshot on the
+  second): it was **not** the scrollbar-corner pseudo-element alone (that
+  needed its own fix too — `::-webkit-scrollbar-corner` defaults to an
+  opaque white box, separate from the track/thumb) — the more stubborn
+  part was that Chromium's *native* resize-grip icon bakes in its own
+  light top/left 3D-bevel highlight as part of the themed icon itself,
+  which isn't a separate layer `background-color` can strip out. Worse,
+  styling `::-webkit-resizer` at all (confirmed experimentally) switches
+  Chromium off native rendering for it entirely — a plain
+  `background: transparent` left the grip fully invisible (still
+  functional, just unstyled/blank) rather than just removing the bevel.
+  Resolved by fully replacing the icon: `background-image` with a small
+  inline SVG (three diagonal lines, the classic grip shape, mid-gray
+  `#888` chosen to read on both light and dark) instead of
+  `mask-image` — deliberately avoided masking since these scrollbar
+  sub-pseudo-elements only reliably support a limited CSS subset, and
+  `background-image` was already proven to work here (it's how the thumb
+  color is set).

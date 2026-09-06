@@ -243,6 +243,65 @@ body {
   line-height: 1.6;
 }
 
+/* Thin, theme-matched scrollbar (Notepad/Claude-style) in place of the
+   OS-default one, for every scrollable pane — the editor, any
+   overflowing modal list (search/history/action-drawer results), and any
+   resizable/overflowing input field (e.g. the import textarea). Uses the
+   same tokens as everything else, so it already follows light/dark and
+   color/grayscale without any extra rules. */
+.cm-scroller,
+.modal-list,
+.import-textarea {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+.cm-scroller::-webkit-scrollbar,
+.modal-list::-webkit-scrollbar,
+.import-textarea::-webkit-scrollbar {
+  width: 8px;
+}
+.cm-scroller::-webkit-scrollbar-track,
+.modal-list::-webkit-scrollbar-track,
+.import-textarea::-webkit-scrollbar-track {
+  background: transparent;
+}
+/* The bottom-right corner (the gap where scrollbars would meet) is its
+   own pseudo-element, not styled by the track/thumb rules above — left
+   unstyled it defaults to an opaque white box in Chromium/WebView2,
+   showing as a stray white sliver behind the resize grip once the
+   scrollbar appears. */
+.import-textarea::-webkit-scrollbar-corner {
+  background: transparent;
+}
+/* The native resize-grip icon itself bakes in a light top/left 3D-bevel
+   highlight (confirmed via a zoomed screenshot) that isn't a separate
+   background layer — it's part of Chromium's built-in themed icon, so it
+   can't be selectively removed. Styling ::-webkit-resizer at all switches
+   Chromium off that native rendering (confirmed earlier: plain
+   `background: transparent` left it blank, not just un-beveled), so the
+   only way to keep a visible grip is to fully replace it with our own
+   flat icon — three diagonal lines, matching the classic grip shape,
+   drawn via background-image since these scrollbar sub-elements only
+   support a limited CSS subset (mask-image isn't reliably one of them). */
+.import-textarea::-webkit-resizer {
+  background-color: transparent;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cline x1='11' y1='16' x2='16' y2='11' stroke='%23888888' stroke-width='1.6'/%3E%3Cline x1='7' y1='16' x2='16' y2='7' stroke='%23888888' stroke-width='1.6'/%3E%3Cline x1='3' y1='16' x2='16' y2='3' stroke='%23888888' stroke-width='1.6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: bottom right;
+  background-size: 10px 10px;
+}
+.cm-scroller::-webkit-scrollbar-thumb,
+.modal-list::-webkit-scrollbar-thumb,
+.import-textarea::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 4px;
+}
+.cm-scroller::-webkit-scrollbar-thumb:hover,
+.modal-list::-webkit-scrollbar-thumb:hover,
+.import-textarea::-webkit-scrollbar-thumb:hover {
+  background: var(--muted);
+}
+
 .cm-content {
   caret-color: var(--caret-color) !important;
 }
