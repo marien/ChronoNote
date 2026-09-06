@@ -36,3 +36,7 @@ export function readTabSession(): Promise<TabSession | null> {
 export function writeTabSession(openTabs: string[], activeTab: string | null): Promise<void> {
   return invoke("write_tab_session", { openTabs, activeTab });
 }
+
+export function pathExists(path: string): Promise<boolean> {
+  return invoke("path_exists", { path });
+}

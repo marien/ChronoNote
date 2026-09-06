@@ -444,6 +444,20 @@ textarea.modal-input.import-textarea {
   font-size: 12px;
   color: var(--muted);
 }
+.modal-spinner {
+  display: inline-block;
+  font-size: 14px;
+  color: var(--muted);
+  animation: modal-spinner-spin 0.8s linear infinite;
+}
+@keyframes modal-spinner-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
 .modal-list {
   max-height: 380px;
   overflow-y: auto;
@@ -458,14 +472,18 @@ textarea.modal-input.import-textarea {
   border-bottom: 1px solid rgba(128, 128, 128, 0.08);
   font-family: var(--font);
 }
-.modal-item:hover,
+/* Deliberately driven only by the JS-tracked `.selected` state, not
+ * `:hover` — mouseenter already updates the same selection index keyboard
+ * navigation uses, so keeping both as independent highlight sources let
+ * a stale hover (mouse resting somewhere while the keyboard, or a scroll
+ * under a stationary cursor, moves selection elsewhere) show two
+ * different rows highlighted at once. With one shared state, whichever
+ * input — mouse or keyboard — touched it more recently simply wins. */
 .modal-item.selected {
   background: var(--selected-bg);
   color: var(--selected-fg) !important;
 }
-.modal-item:hover .item-tag,
 .modal-item.selected .item-tag,
-.modal-item:hover .item-breadcrumb,
 .modal-item.selected .item-breadcrumb {
   color: var(--selected-fg);
   opacity: 0.85;
@@ -496,7 +514,6 @@ textarea.modal-input.import-textarea {
   opacity: 0.6;
   text-decoration: line-through;
 }
-.modal-item:hover .item-completed,
 .modal-item.selected .item-completed {
   opacity: 0.9;
 }
@@ -566,6 +583,29 @@ kbd {
   font-size: 11px;
   color: var(--muted);
   margin-top: 6px;
+}
+.settings-recent-dirs {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: 8px;
+}
+.settings-recent-dir {
+  text-align: left;
+  font-size: 12px;
+  color: var(--muted);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  padding: 4px 8px;
+  cursor: pointer;
+  overflow-wrap: anywhere;
+  font-family: inherit;
+}
+.settings-recent-dir:hover {
+  background: var(--tab-active);
+  border-color: var(--border);
+  color: var(--text);
 }
 
 #toast {

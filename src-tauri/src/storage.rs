@@ -13,11 +13,19 @@ pub struct AppConfig {
     pub notes_dir: String,
     #[serde(default = "default_color_mode")]
     pub color_mode: String,
+    /// Up to 5 previously-used notes folders, most-recent-first, excluding
+    /// whatever is current — spec §39. Maintained by `set_notes_dir`
+    /// alone, so switching folders by hand-editing this file (as this
+    /// project's own stress testing did) never adds spurious entries.
+    #[serde(default)]
+    pub recent_notes_dirs: Vec<String>,
 }
 
 fn default_color_mode() -> String {
     "grayscale".to_string()
 }
+
+const MAX_RECENT_NOTES_DIRS: usize = 5;
 
 fn config_path(app: &AppHandle) -> Result<PathBuf, String> {
     let dir = app.path().app_config_dir().map_err(|e| e.to_string())?;
@@ -40,6 +48,7 @@ pub fn load_config(app: &AppHandle) -> Result<AppConfig, String> {
         let cfg = AppConfig {
             notes_dir: dir.to_string_lossy().to_string(),
             color_mode: default_color_mode(),
+            recent_notes_dirs: Vec::new(),
         };
         save_config(app, &cfg)?;
         Ok(cfg)
@@ -50,6 +59,17 @@ pub fn save_config(app: &AppHandle, cfg: &AppConfig) -> Result<(), String> {
     let path = config_path(app)?;
     let raw = serde_json::to_string_pretty(cfg).map_err(|e| e.to_string())?;
     fs::write(path, raw).map_err(|e| e.to_string())
+}
+
+/// Records `old_path` (the folder just switched away from) into the
+/// recent-folders list, and removes `new_path` from it — `new_path` is
+/// about to become current, so it shouldn't also appear as "other folders
+/// to switch to". Deduped and capped at `MAX_RECENT_NOTES_DIRS`,
+/// most-recent-first.
+pub fn push_recent_notes_dir(recent: &mut Vec<String>, old_path: &str, new_path: &str) {
+    recent.retain(|p| p != new_path && p != old_path);
+    recent.insert(0, old_path.to_string());
+    recent.truncate(MAX_RECENT_NOTES_DIRS);
 }
 
 /// Daily note filenames must be exactly `YYYY-MM-DD.txt`. This is both the

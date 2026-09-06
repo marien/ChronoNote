@@ -3,7 +3,7 @@ import { tick } from "svelte";
 import { open as openFolderDialog } from "@tauri-apps/plugin-dialog";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import * as api from "./tauriApi";
-import { countActions, getSectionHeaderForLine, isSetextUnderline, normalizeHeaderTitle } from "./tokens";
+import { countActions, getSectionHeaderForLine, isSetextUnderline, normalizeHeaderTitle, titleForMatching } from "./tokens";
 import { todayISO } from "./date";
 import { linesToSections } from "./sectionImport";
 import type { ActionSnapshotItem, ColorMode, HistoryItem, NoteTab, SearchResultItem } from "./types";
@@ -23,6 +23,10 @@ export type ModalKind =
 export const tabs = writable<NoteTab[]>([]);
 export const activeTabId = writable<string>("");
 export const notesDir = writable<string>("");
+/** Up to 5 previously-used notes folders, most-recent-first — spec §39.
+ * Maintained server-side (Rust) in `set_notes_dir`; this store just
+ * mirrors whatever `AppConfig` last reported. */
+export const recentNotesDirs = writable<string[]>([]);
 export const colorMode = writable<ColorMode>("grayscale");
 /** Whether the top bar should show icon+label (true) or icon-only (false) —
  * driven by the OS window being maximized or fullscreen. */
@@ -118,7 +122,7 @@ function scheduleSave(tab: NoteTab) {
   clearTimeout(saveTimers[tab.id]);
   saveTimers[tab.id] = setTimeout(() => {
     delete saveTimers[tab.id];
-    api.writeNote(tab.filename, tab.content).catch(() => showToast("Failed to save note"));
+    writeNoteAndInvalidateCache(tab.filename, tab.content).catch(() => showToast("Failed to save note"));
   }, 400);
 }
 
@@ -130,7 +134,7 @@ function flushSave(tabId: string) {
   }
   const tab = latestTabs.find((t) => t.id === tabId);
   if (tab && !tab.isScratchpad) {
-    api.writeNote(tab.filename, tab.content).catch(() => showToast("Failed to save note"));
+    writeNoteAndInvalidateCache(tab.filename, tab.content).catch(() => showToast("Failed to save note"));
   }
 }
 
@@ -232,6 +236,7 @@ function persistTabSession() {
 export async function initApp() {
   const cfg = await api.getConfig();
   notesDir.set(cfg.notesDir);
+  recentNotesDirs.set(cfg.recentNotesDirs);
   colorMode.set(cfg.colorMode);
   applyColorModeToDom(cfg.colorMode);
   await restoreOrBootstrapTabs();
@@ -471,7 +476,7 @@ export async function promoteScratchpad(tabId: string) {
   const todayFilename = todayISO() + ".txt";
   const existingToday = (await api.readNote(todayFilename)) ?? "";
   const merged = existingToday ? `${existingToday}\n\n\n${scratchContent}\n` : `${scratchContent}\n`;
-  await api.writeNote(todayFilename, merged);
+  await writeNoteAndInvalidateCache(todayFilename, merged);
 
   const remaining = list.filter((t) => t.id !== tabId);
   let todayTab = remaining.find((t) => t.filename === todayFilename);
@@ -505,7 +510,7 @@ function writeTabContent(tabId: string, newContent: string, list: NoteTab[]): No
   const next = [...list];
   next[idx] = { ...next[idx], content: newContent };
   if (!next[idx].isScratchpad) {
-    api.writeNote(next[idx].filename, newContent).catch(() => showToast("Failed to save note"));
+    writeNoteAndInvalidateCache(next[idx].filename, newContent).catch(() => showToast("Failed to save note"));
   }
   if (tabId === get(activeTabId) && editorApi) editorApi.setContent(newContent);
   return next;
@@ -517,12 +522,40 @@ export function openDatePicker() {
   modal.set("date");
 }
 
+/** The expensive part of "all notes" is the disk read — the merge with
+ * currently-open tabs' live (possibly unsaved) content below is cheap and
+ * always re-run, so a cached disk layer can't go stale with respect to
+ * anything actually open right now. `null` means "needs a fresh read";
+ * invalidated by writeNoteAndInvalidateCache() and on a directory switch.
+ * (§38 — this used to unconditionally re-read every file on every single
+ * Action Drawer/Search/Date-picker/History open.) */
+let diskNotesCacheRaw: Record<string, string> | null = null;
+
 export async function refreshAllNotesCache() {
-  const entries = await api.readAllNotes();
-  const map: Record<string, string> = {};
-  for (const [fn, content] of entries) map[fn] = content;
+  if (diskNotesCacheRaw === null) {
+    const entries = await api.readAllNotes();
+    diskNotesCacheRaw = {};
+    for (const [fn, content] of entries) diskNotesCacheRaw[fn] = content;
+  }
+  const map: Record<string, string> = { ...diskNotesCacheRaw };
   for (const t of get(tabs)) if (!t.isScratchpad) map[t.filename] = t.content;
   allNotesCache.set(map);
+}
+
+/** All disk writes should go through this rather than calling
+ * api.writeNote() directly, so the disk-read cache above knows when it
+ * might be stale. Skips invalidation when the written filename already
+ * has an open, non-scratchpad tab — that case is always correctly
+ * reflected by refreshAllNotesCache()'s live-tab overlay regardless of
+ * the disk layer's staleness, so ordinary autosave (the overwhelming
+ * majority of writes) doesn't pay for a refetch. Only a write for a
+ * filename with *no* open tab — promoteScratchpad's brand-new today
+ * file, forwardActionToToday's no-open-tab fallback — actually needs to
+ * invalidate. */
+function writeNoteAndInvalidateCache(filename: string, content: string): Promise<void> {
+  const hasOpenTab = get(tabs).some((t) => !t.isScratchpad && t.filename === filename);
+  if (!hasOpenTab) diskNotesCacheRaw = null;
+  return api.writeNote(filename, content);
 }
 
 export async function commitDatePick(dateStr: string) {
@@ -633,7 +666,7 @@ export function forwardActionToToday(tabId: string, lineIdx: number) {
   } else {
     api.readNote(todayFilename).then((existing) => {
       const base = existing ?? "";
-      api.writeNote(todayFilename, `${taskText}\n${base}`).catch(() => {});
+      writeNoteAndInvalidateCache(todayFilename, `${taskText}\n${base}`).catch(() => {});
     });
   }
   tabs.set(next);
@@ -675,7 +708,12 @@ export async function openMeetingHistory() {
   const lines = tab.content.split("\n");
   const cursorLineIdx = editorApi ? editorApi.getCursorLineIdx() : 0;
   const rawHeader = getSectionHeaderForLine(lines, cursorLineIdx);
-  const targetHeader = normalizeHeaderTitle(rawHeader);
+  // Matching (not display) ignores a date embedded in the title, so
+  // "Weekly Sync - 2026-08-08" and "...- 2026-08-09" are recognized as
+  // the same recurring section (§37) — the drawer's own heading shows
+  // this canonical form too, since it now aggregates entries from many
+  // different dates under one topic.
+  const targetHeader = titleForMatching(normalizeHeaderTitle(rawHeader));
   if (!targetHeader) {
     showToast("Cursor is not on or inside a named section.");
     return;
@@ -692,7 +730,7 @@ export async function openMeetingHistory() {
     let inSection = false;
     flines.forEach((line, idx) => {
       if (idx + 1 < flines.length && isSetextUnderline(flines[idx + 1])) {
-        const h = normalizeHeaderTitle(flines[idx].trim());
+        const h = titleForMatching(normalizeHeaderTitle(flines[idx].trim()));
         inSection = h.toLowerCase() === targetHeader.toLowerCase();
         return;
       }
@@ -823,19 +861,31 @@ export function openShortcutsHelp() {
  * config. The one thing that gate has to protect is unpromoted scratchpad
  * content — it's the only state that would actually be destroyed, since
  * everything else is already safely persisted to the old folder. */
-export async function pickAndSwitchNotesDirectory() {
-  const current = get(notesDir);
-  const picked = await openFolderDialog({ directory: true, defaultPath: current || undefined });
-  if (!picked || Array.isArray(picked)) return;
-
+/** Shared by the Browse dialog and by picking a recent folder directly
+ * (§39) — both need the same unsaved-scratchpad safety gate before a
+ * full workspace reset. */
+async function switchNotesDirectoryWithSafetyCheck(path: string) {
   const unresolved = get(tabs).filter((t) => t.isScratchpad && t.content.trim() !== "");
   if (unresolved.length > 0) {
-    pendingNotesDirSwitch.set(picked);
+    pendingNotesDirSwitch.set(path);
     unsavedScratchpadNames.set(unresolved.map((t) => t.filename));
     modal.set("unsavedScratchpads");
     return;
   }
-  await performDirectorySwitch(picked);
+  await performDirectorySwitch(path);
+}
+
+export async function pickAndSwitchNotesDirectory() {
+  const current = get(notesDir);
+  const picked = await openFolderDialog({ directory: true, defaultPath: current || undefined });
+  if (!picked || Array.isArray(picked)) return;
+  await switchNotesDirectoryWithSafetyCheck(picked);
+}
+
+/** Settings' recent-folders list (§39) — same safety flow as Browse, just
+ * skipping the native dialog since the path is already known. */
+export async function switchToRecentDirectory(path: string) {
+  await switchNotesDirectoryWithSafetyCheck(path);
 }
 
 export function cancelDirectorySwitch() {
@@ -857,8 +907,10 @@ async function performDirectorySwitch(path: string) {
   }
   const cfg = await api.setNotesDir(path);
   notesDir.set(cfg.notesDir);
+  recentNotesDirs.set(cfg.recentNotesDirs);
 
   clearImportDraft();
+  diskNotesCacheRaw = null;
   allNotesCache.set({});
   actionSnapshot.set([]);
   historyItems.set([]);

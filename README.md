@@ -109,11 +109,12 @@ file — no database, no front-matter, no injected IDs.
 - Settings panel (`Ctrl+,`, gear icon): toggle between a full-color and a
   grayscale-only UI theme (glyphs, tab/status-bar accents, and search
   highlight all follow it, including in the action drawer and section
-  history), and change the notes folder via a native "Browse…" dialog.
-  Changing the folder is treated as switching projects/scopes: it closes
-  every open tab and reloads everything from the new folder, blocking the
-  switch first if any scratchpad has content that was never promoted
-  (the only state that would actually be lost)
+  history), and change the notes folder via a native "Browse…" dialog —
+  or pick from up to 5 recently-used folders listed right there, no
+  dialog needed. Changing the folder is treated as switching
+  projects/scopes: it closes every open tab and reloads everything from
+  the new folder, blocking the switch first if any scratchpad has content
+  that was never promoted (the only state that would actually be lost)
 - `Ctrl+/` opens a shortcuts help drawer listing every keybinding
 - Top-bar buttons show icon+label when the window is maximized or
   fullscreen, and collapse to icon-only otherwise

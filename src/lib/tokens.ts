@@ -34,3 +34,20 @@ export function normalizeHeaderTitle(rawHeader: string): string {
     .replace(/^\[CANCELED\]\s*/, "")
     .trim();
 }
+
+/** Section History (§34/§37) should treat "Weekly Sync - 2026-08-08" and
+ * "Weekly Sync - 2026-08-09" as the same recurring section — a date is a
+ * very natural thing to include in a section title, and without this the
+ * feature never finds a second match. Deliberately layered on top of
+ * normalizeHeaderTitle()'s output rather than folded into it: that
+ * function's result is also used to build the Action Drawer's section-tag
+ * *display*, where the date is useful context, not noise — only the
+ * History *matching* comparison should ignore it. Only the spec's own
+ * YYYY-MM-DD format is stripped; other date spellings a user might type
+ * aren't recognized, which is an accepted limitation, not a bug. */
+export function titleForMatching(normalizedTitle: string): string {
+  return normalizedTitle
+    .replace(/^\d{4}-\d{2}-\d{2}\s*[-:]?\s*/, "")
+    .replace(/\s*[-:]?\s*\d{4}-\d{2}-\d{2}$/, "")
+    .trim();
+}

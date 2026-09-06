@@ -1306,3 +1306,330 @@ drawer's textarea specifically).
   sub-pseudo-elements only reliably support a limited CSS subset, and
   `background-image` was already proven to work here (it's how the thumb
   color is set).
+
+---
+
+## 37. Section History didn't match titles that include a date
+
+**Status: implemented and confirmed** (retested against the large stress
+dataset: went from finding only a single literal-match hit to correctly
+aggregating 16 results for the same recurring section across different
+dates). Found during stress testing with a large generated dataset.
+`openMeetingHistory()`
+matches a section's history by comparing `normalizeHeaderTitle()` output
+case-insensitively (`controller.ts`, the `h.toLowerCase() ===
+targetHeader.toLowerCase()` check). `normalizeHeaderTitle()`
+(`tokens.ts`) only strips a leading `[HH:MM - HH:MM]` time range or a
+leading `[CANCELED]` tag — it does nothing about a date embedded in the
+title itself. A title like `Weekly Sync - 2026-08-08` therefore never
+matches `Weekly Sync - 2026-08-09` from a different day, defeating the
+point of "history for this recurring section" the moment someone's
+section-naming habit includes today's date (a very natural thing to do,
+and exactly what the synthetic stress-test dataset's generator did for
+every title, which is how this surfaced).
+
+**Fix:** a new `titleForMatching()` in `tokens.ts` strips a leading or
+trailing `YYYY-MM-DD` token (with a `" - "`, `": "`, or bare-space
+separator) from `normalizeHeaderTitle()`'s output, and is layered on top
+of it rather than folded in — `normalizeHeaderTitle()` itself is
+unchanged, since it's also used to build the Action Drawer's per-action
+section-tag *display*, where the date is useful context, not noise.
+`openMeetingHistory()`'s two comparison sites (the target header and each
+candidate section's header) both go through `titleForMatching()`; the
+drawer's own "Section History: ..." heading now shows this canonical
+(date-stripped) form too, since it aggregates entries from many different
+dates under one topic.
+
+Accepted limitation, unchanged from the original proposal: only the
+spec's own `YYYY-MM-DD` format is stripped — other date spellings a user
+might type (`Aug 8`, `08/08/2026`) aren't recognized.
+
+---
+
+## 38. Large-dataset stress test: findings, fixes, and retest results
+
+**Status: implemented and confirmed via retest against the 3000-file
+tier**, including once more against a copy of that dataset placed outside
+OneDrive specifically to rule OneDrive out as a variable (per the user's
+suggestion) before re-measuring.
+
+### Methodology
+
+Generated three synthetic dated-note datasets (dense, every calendar day,
+realistic mixed content — sections, bullets, actions, followups,
+emphasis) in an isolated folder outside the real notes directory
+(`ChronoNote-StressTest-Data/tier-{small,medium,large}`, 30/500/3000
+files respectively), each seeded with a `.chrononote-session.json`
+simulating ~20 previously-open tabs so the restore path (§34) could be
+exercised without manually opening tabs. Pointed the app at each tier in
+turn via `config.json` (not through the Settings UI, to avoid needing
+screen control the assistant doesn't have — see below), full-restarted
+between tiers, and exercised Action Drawer/Search (both "All Files"),
+Date picker, and Section History at each size.
+
+Added temporary timing instrumentation (a Tauri `append_perf_log`
+command, an `appendPerfLog` wrapper, and `performance.now()` wraps around
+`refreshAllNotesCache`, `buildActionSnapshotAllFiles`, `openMeetingHistory`,
+and `restoreOrBootstrapTabs` in `controller.ts`) logging to a file outside
+git and outside the notes folder, since there's no way to attach a
+profiler to the running window from outside it. This instrumentation is
+still in the tree as of this writing — flagged for removal once any
+resulting fixes are implemented and re-verified against it, so it doesn't
+ship. A relevant methodology constraint: the assistant has no OS-level
+screen or mouse control (only browser-automation tools, which can't reach
+a native Tauri window) and no way to view the live window, so folder
+switching was done by editing `config.json` directly and all interactive
+verification (does it *feel* smooth, does a visual artifact appear) relied
+on the user driving the app and reporting back / sending screenshots.
+
+### Findings
+
+**Confirmed cheap regardless of dataset size:**
+- `restoreOrBootstrapTabs()` (§34): ~30ms flat across all three tiers
+  (30/500/3000 files) — it scales with *open tab count* (~20 here), not
+  total notes in the folder, exactly as designed. No action needed.
+- Scrolling the (unvirtualized) 12,544-item Action Drawer "All Files"
+  list on the large tier: user-reported "quite ok, barely perceptable
+  lag." Not currently a priority on its own.
+
+**Confirmed to scale with folder size, and now measurable:**
+- `refreshAllNotesCache()` — reads every file's full content via
+  `read_all_notes` and ships it across IPC in one call, unconditionally,
+  every time Action Drawer/Search ("All Files") or the Date picker or
+  Section History opens. Measured: ~7ms (30 files) → ~40ms (500 files) →
+  ~210ms (3000 files, warm). Real but not severe on its own.
+- One outlier: a single `refreshAllNotesCache` call on the large tier
+  measured **2.1 seconds** — roughly 10x the other same-size calls
+  moments earlier. OneDrive was confirmed paused beforehand (ruling out
+  the sync-contention theory this assistant first suspected) and the user
+  wasn't typing/saving at that moment either. Left unexplained — best
+  remaining guess is unrelated external I/O contention (e.g. Windows
+  Search Indexer reacting to 3000 freshly-created files, or antivirus
+  real-time scanning), not something the app can fully control or that's
+  worth building speculative mitigation for. Noted as a watch-item: if a
+  multi-second stall recurs in normal use (not stress testing), revisit.
+
+**The standout, well-understood, high-priority bug — "search all files
+almost froze the app for a couple of seconds":** two independent,
+compounding causes, both confirmed by reading the code, not guessed:
+1. `SearchModal.svelte`'s `$: controller.runSearch(query, scope)` is a
+   plain reactive statement — it re-runs on **every keystroke**, with no
+   debounce. In "All Files" scope, `runSearch()` splits every cached
+   file's content into lines and does a substring check against **every
+   line of every file**, synchronously, on the main thread. At 3000
+   files this is tens of thousands of lines re-scanned per character
+   typed, blocking rendering/input the whole time it runs — typing a
+   3-letter query fires this three times in a row.
+2. Independently, `SearchModal.svelte` (and, found while checking,
+   `ActionDrawerModal.svelte` too — same pattern, likely dormant there
+   for the same reason) determines which rendered row is
+   keyboard-selected via `{@const idx = flatList.indexOf(item)}` **inside
+   the `{#each}` render loop** — an O(N) lookup performed once per
+   rendered row, making the render itself O(N²) in match count. With a
+   common query like "the" plausibly matching thousands of lines across
+   3000 files, this alone is expensive; combined with #1 re-triggering it
+   on every keystroke, the two compound into the multi-second freeze
+   reported.
+   `ActionDrawerModal.svelte`'s own filter-while-typing wasn't reported as
+   laggy — plausibly because it only re-filters an already-built
+   in-memory array (cheap) rather than re-scanning raw file text like
+   Search does, so cause #1 doesn't apply there even though cause #2
+   (the `indexOf` render cost) does, and wasn't triggered by the tests run
+   so far. Worth explicitly testing the Action Drawer's text filter at
+   the large tier before assuming it's fine.
+- §37 (Section History date-matching) was found during this same testing
+  pass and is logged separately above; not repeated here.
+
+### Changes implemented, and retest results
+
+1. **Fixed the O(N²) `indexOf` selection lookup** in both
+   `SearchModal.svelte` and `ActionDrawerModal.svelte` — each list now
+   annotates every item with its own `__flatIndex` once, while building
+   the flat/grouped list, instead of recomputing it per rendered row via
+   `flatList.indexOf(item)`. Zero behavior change, pure performance fix.
+2. **Debounced the Search input in "All Files" scope** (200ms after
+   typing stops; an empty query still runs immediately, since there's
+   nothing to scan and waiting out a debounce just to clear the list
+   would itself feel laggy). "Open Tabs" scope stays synchronous — its
+   cost is already small, bounded by open-tab count, not total notes.
+3. **Cached `allNotesCache`'s disk-read layer, invalidated only on
+   write.** `refreshAllNotesCache()` now only calls `read_all_notes` when
+   a new module-level `diskNotesCacheRaw` is `null`; the (cheap) merge
+   with currently-open tabs' live content still re-runs every time, so an
+   unsaved edit is never stale regardless of the disk layer's freshness.
+   All 5 call sites that write a note now go through a new
+   `writeNoteAndInvalidateCache()` instead of calling `api.writeNote()`
+   directly — it only actually invalidates when the written filename has
+   *no* open tab (`promoteScratchpad`'s brand-new today file,
+   `forwardActionToToday`'s no-open-tab fallback); ordinary autosave
+   writes (the overwhelming majority) skip invalidation entirely, since
+   the live-tab merge already covers them regardless of disk-cache
+   staleness. Resolved the open invalidation-story question from the
+   original proposal: no manual "refresh" affordance was added for a file
+   changed *outside* the app while it's running — an accepted, unchanged
+   gap, not a new one.
+4. **Virtualized Search's result list** (`SearchModal.svelte`) — of the
+   four modals originally proposed for virtualization, only Search was
+   built, deliberately, after a mid-point check-in: the other three
+   weren't confirmed to actually need it (the user had already reported
+   the large Action Drawer list scrolled fine), so virtualizing all four
+   up front would have been speculative risk for unconfirmed benefit.
+   Implementation: a flat array of fixed-height `Row`s (`{type: "header"
+   | "item", ...}`, matching the existing group-header-then-items visual
+   structure) with precomputed `top` offsets; only rows within the
+   scrolled viewport (plus a 200px overscan buffer) are ever mounted,
+   located via binary search over `top` (`rowAt()`) rather than a linear
+   scan on every scroll tick. Keyboard nav calls a new
+   `scrollSelectedIntoView()` explicitly from the Arrow Up/Down handlers
+   (not reactively on `scrollTop`, which would otherwise fight a
+   deliberate manual scroll away from the selected row). Action Drawer,
+   Date picker, and Section History remain unvirtualized for now.
+
+**Retest results** (3000-file tier, both inside and outside OneDrive —
+no measurable difference between the two locations, so OneDrive was not
+a factor in this environment):
+- `refreshAllNotesCache`: first call (cold) ~415ms disk read; every
+  subsequent call within the session ~0.8-1.3ms (cache hit) — down from
+  ~210ms *every single time* before caching.
+- `buildActionSnapshotAllFiles` (12,544 results): ~8-12ms total, down
+  from ~220-230ms.
+- `runSearch:all`, measured directly: **6-8ms even at 24,159 results** —
+  confirms the scan itself was never the bottleneck once debounced; the
+  remaining perceptible delay the user asked about afterward was
+  render cost, not search cost, which directly motivated building #4.
+- Section History (§37, retested here too): 16 results found across
+  different dates, up from a single literal-match hit.
+
+**Two more issues found and fixed during this same retest pass** (not
+in the original proposal — surfaced by using the fixes, not predicted):
+- **Toggling "Open Tabs"/"All Files" moved focus to the button**,
+  requiring an extra click back into the input before typing a new
+  query/filter. Fixed in both `SearchModal.svelte` and
+  `ActionDrawerModal.svelte`'s `setScope()`: after the scope switches,
+  `await tick()` then refocus the input and `.select()` its current
+  text, so typing immediately starts fresh.
+- **A "searching" spinner** (`.modal-spinner`, a small rotating ⟳) was
+  added next to Search's match counter, shown while a debounced "All
+  Files" scan is pending — the scan is wrapped in a `requestAnimationFrame`
+  so the spinner actually gets a chance to paint before the (brief but
+  synchronous) scan runs.
+- **Two rows could appear highlighted simultaneously** — reported after
+  scrolling the (now virtualized) Search results and then navigating with
+  arrow keys: the row under the mouse cursor stayed highlighted via CSS
+  `:hover` independently of the keyboard-selected row's `.selected`
+  class, since a stationary mouse over content that scrolled underneath
+  it doesn't fire a fresh `mouseenter`/`mouseleave`. This was a
+  pre-existing bug, not something virtualization introduced — it would
+  have reproduced the same way (mouse-wheel-scroll-then-arrow-key) before
+  this session's changes too, just apparently never exercised that way
+  before. Fixed by removing `:hover` from the shared `.modal-item`
+  highlight rule in `app.css` (used by every list modal, so this fixes
+  all of them at once) — `mouseenter` already updates the same
+  `selectedIndex` keyboard nav uses, so with only one CSS trigger
+  (`.selected`) left, whichever input touched it more recently naturally
+  wins, matching the user's own suggested resolution exactly.
+
+**Not pursued:** the 2.1-second outlier from the initial pass remains a
+watch-item, not a fix — it didn't recur during retesting, including
+outside OneDrive, and there's no reproducible cause to build mitigation
+around.
+
+### Final round: virtualized the remaining three modals
+
+Requested explicitly after the Search retest confirmed the approach:
+extended the same virtualization to `ActionDrawerModal.svelte`,
+`DatePickerModal.svelte`, and `HistoryModal.svelte`.
+
+- **Action Drawer**: identical structure to Search (group headers, then
+  items), so reused the same fixed-height `Row` model and binary-search
+  windowing verbatim.
+- **Date picker**: simpler — a flat list with no grouping, so row
+  position is `index * ITEM_ROW_HEIGHT` directly rather than needing
+  precomputed offsets or a binary search.
+- **Section History**: same grouped structure as Action Drawer/Search
+  (grouped by date rather than filename). While implementing this one,
+  found it still had the **exact same O(N²) `indexOf` selection bug**
+  from earlier in §38 (`{@const idx = flatList.indexOf(it)}`) — missed in
+  the first pass because History wasn't the surface that originally
+  triggered the freeze investigation. Fixed the same way as Search/Action
+  Drawer: each item now carries its own `__flatIndex`, assigned once.
+
+All three follow the same pattern as Search: fixed/dictated row heights
+(not measured), a 200px overscan buffer, and `scrollSelectedIntoView()`
+called explicitly from the Arrow Up/Down handlers rather than reactively
+on `scrollTop` (to avoid fighting a deliberate manual scroll).
+
+**Retest, large tier (3000 files), confirmed working**: Action Drawer
+~13ms (12,544 results), Section History ~7ms (16 results, correctly
+aggregated per §37), Search 6-14ms even at 24,000-28,000 results —
+consistent with the Search-only numbers from the prior round, now true
+for all four modals.
+
+**Cleanup after this retest confirmed everything working:**
+- Removed all temporary stress-test instrumentation: the
+  `append_perf_log` Tauri command, `appendPerfLog` in `tauriApi.ts`, and
+  every `performance.now()`/`logPerf` call and the `PERF_LOG_PATH`
+  constant in `controller.ts`. None of it ships.
+- `config.json`'s `notesDir` restored to the real notes folder.
+- Per the user's decision: the three OneDrive-hosted tiers
+  (`ChronoNote-StressTest-Data/tier-{small,medium,large}`) were deleted;
+  `ChronoNote-StressTest-NoOneDrive/tier-large` was kept for possible
+  future stress testing. Neither location was ever inside the repo or the
+  real notes folder.
+
+---
+
+## 39. Settings: show recent notes folders to switch to directly
+
+**Status: implemented and confirmed.** Requested behavior: under
+Settings' "Notes Location" section, show up to 5 recently-used notes
+folders (other than the current one) as clickable entries — picking one
+switches there directly, without opening the native folder-browse dialog.
+
+Both open questions confirmed as proposed (full path display, silently
+omit missing folders). Verified by seeding `config.json` with two test
+entries — one real, one pointing at a nonexistent path — and confirming
+only the real one appeared in Settings and correctly switched when
+clicked. Also incidentally confirmed the recency-tracking logic itself:
+after switching to the test folder and back, `recentNotesDirs` correctly
+became `[<test folder>, <fake nonexistent path>]` — exactly the result
+of removing/reinserting on both switches, matching the design below.
+
+Implementation:
+- **Storage**: a new `#[serde(default)] recent_notes_dirs: Vec<String>`
+  field on `AppConfig` (`storage.rs`), living in the same global
+  `config.json` as `notes_dir`/`color_mode` — this is inherently a
+  cross-folder concern (a list of *other* folders), so unlike §34's
+  per-folder tab session, it can't sensibly live inside any one notes
+  folder.
+- **When it's updated**: `set_notes_dir` (Rust) records the folder being
+  switched *away from* — before overwriting `notes_dir`, it removes the
+  new target path from `recent_notes_dirs` (if present — it's about to
+  become current, so it shouldn't also appear in "other folders"), then
+  inserts the *old* `notes_dir` at the front (deduped against any
+  existing entry), capped at 5. This naturally builds a most-recent-first
+  list of distinct folders you've actually used, and only through the
+  app's own switch flow — editing `config.json` by hand (as this stress
+  testing session did repeatedly) doesn't add spurious entries, since
+  that bypasses `set_notes_dir` entirely.
+- **UI**: `SettingsModal.svelte` gets a small list below the existing
+  "Browse…" row, populated from `recentNotesDirs` (excluding whatever is
+  currently active, so it only ever shows folders you'd actually switch
+  *to*). Clicking an entry goes through the same safety flow as Browse —
+  the existing unsaved-scratchpad check before a full workspace reset
+  (§8) — via a new `switchToRecentDirectory(path)`, factored to share
+  that check with `pickAndSwitchNotesDirectory()` rather than duplicating
+  it.
+
+Confirmed defaults, both accepted as proposed:
+1. **Full path displayed**, not just the folder name — two recent folders
+   could share the same last segment (e.g. "Notes" in different parent
+   locations), and Settings already shows the *current* folder's full
+   path in this same section, so showing recents any less precisely would
+   be inconsistent.
+2. **A folder that no longer exists on disk is silently omitted** from
+   the list (consistent with how §34 already silently skips missing
+   files) — checked at display time (`api.pathExists`, a new `path_exists`
+   Tauri command) rather than stored as a flag, so a folder that
+   reappears later (e.g. a drive remounted) isn't permanently lost from
+   the list.

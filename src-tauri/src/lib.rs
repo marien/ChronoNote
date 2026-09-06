@@ -10,9 +10,18 @@ fn get_config(app: AppHandle) -> Result<storage::AppConfig, String> {
 #[tauri::command]
 fn set_notes_dir(app: AppHandle, path: String) -> Result<storage::AppConfig, String> {
     let mut cfg = storage::load_config(&app)?;
+    if cfg.notes_dir != path {
+        let old_path = cfg.notes_dir.clone();
+        storage::push_recent_notes_dir(&mut cfg.recent_notes_dirs, &old_path, &path);
+    }
     cfg.notes_dir = path;
     storage::save_config(&app, &cfg)?;
     Ok(cfg)
+}
+
+#[tauri::command]
+fn path_exists(path: String) -> bool {
+    std::path::Path::new(&path).exists()
 }
 
 #[tauri::command]
@@ -97,7 +106,8 @@ pub fn run() {
             write_note,
             read_all_notes,
             read_tab_session,
-            write_tab_session
+            write_tab_session,
+            path_exists
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
