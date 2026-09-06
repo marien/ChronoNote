@@ -1,5 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
-import type { AppConfig, ColorMode } from "./types";
+import type { AppConfig, ColorMode, TabSession } from "./types";
 
 export function getConfig(): Promise<AppConfig> {
   return invoke("get_config");
@@ -27,4 +27,12 @@ export function writeNote(filename: string, content: string): Promise<void> {
 
 export function readAllNotes(): Promise<[string, string][]> {
   return invoke("read_all_notes");
+}
+
+export function readTabSession(): Promise<TabSession | null> {
+  return invoke("read_tab_session");
+}
+
+export function writeTabSession(openTabs: string[], activeTab: string | null): Promise<void> {
+  return invoke("write_tab_session", { openTabs, activeTab });
 }

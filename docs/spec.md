@@ -28,6 +28,7 @@ ChronoNote is a minimalist, keyboard-driven plain-text desktop application engin
 ### 2.1 Storage Structure
 * **Root Storage Directory:** Configurable via `config.json` (defaults to `~/Documents/Notes/`).
 * **Daily File Naming Scheme:** ISO 8601 strict format: `YYYY-MM-DD.txt`.
+* **Session State:** Which tabs were open and which was active is remembered per notes folder in a `.chrononote-session.json` file written inside that folder (not in the global `config.json`), so it travels with the folder rather than accumulating in a global list, and restores automatically both on app launch and when switching back to a previously-used folder. It is excluded from every note-scanning path by the same strict `YYYY-MM-DD.txt` filename check that governs daily files.
 
 ### 2.2 Token Semantics & Dynamic Glyph Replacement
 

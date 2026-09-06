@@ -43,6 +43,20 @@ fn read_all_notes(app: AppHandle) -> Result<Vec<(String, String)>, String> {
     storage::read_all_notes(&app)
 }
 
+#[tauri::command]
+fn read_tab_session(app: AppHandle) -> Result<Option<storage::TabSession>, String> {
+    storage::read_tab_session(&app)
+}
+
+#[tauri::command]
+fn write_tab_session(
+    app: AppHandle,
+    open_tabs: Vec<String>,
+    active_tab: Option<String>,
+) -> Result<(), String> {
+    storage::write_tab_session(&app, &storage::TabSession { open_tabs, active_tab })
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -54,7 +68,9 @@ pub fn run() {
             list_note_files,
             read_note,
             write_note,
-            read_all_notes
+            read_all_notes,
+            read_tab_session,
+            write_tab_session
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -1,5 +1,6 @@
 <script lang="ts">
   import * as controller from "../../controller";
+  import { closeOnOutsideClick } from "../../actions/closeOnOutsideClick";
 
   const shortcuts: [string, string][] = [
     ["Ctrl+N / Ctrl+T", "New scratchpad"],
@@ -20,7 +21,7 @@
   ];
 </script>
 
-<div class="overlay" role="presentation" on:click|self={controller.closeAllModals}>
+<div class="overlay" role="presentation" use:closeOnOutsideClick={controller.closeAllModals}>
   <div class="modal-card" role="dialog" aria-modal="true" aria-label="Keyboard shortcuts">
     <div class="modal-input-wrap">
       <span>⌨</span> Keyboard Shortcuts

@@ -2,6 +2,7 @@
   import { onMount } from "svelte";
   import * as controller from "../../controller";
   import { allNotesCache } from "../../controller";
+  import { closeOnOutsideClick } from "../../actions/closeOnOutsideClick";
   import { parseDateQuery } from "../../date";
   import { countActions } from "../../tokens";
 
@@ -66,7 +67,7 @@
   }
 </script>
 
-<div class="overlay" role="presentation" on:click|self={controller.closeAllModals}>
+<div class="overlay" role="presentation" use:closeOnOutsideClick={controller.closeAllModals}>
   <div class="modal-card" role="dialog" aria-modal="true" aria-label="Jump to date">
     <div class="modal-input-wrap">
       <span>📅</span>

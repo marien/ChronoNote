@@ -1,20 +1,36 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import * as controller from "../../controller";
+  import { closeOnOutsideClick } from "../../actions/closeOnOutsideClick";
 
-  let text = "";
+  let text = controller.getImportDraftText();
+  const hadDraft = text.length > 0;
   let textareaEl: HTMLTextAreaElement;
 
-  onMount(() => textareaEl?.focus());
+  onMount(() => {
+    textareaEl?.focus();
+    if (hadDraft) textareaEl?.select();
+  });
+
+  function closeDrawer() {
+    controller.saveImportDraft(text);
+    controller.closeAllModals();
+  }
+
+  function cancel() {
+    controller.clearImportDraft();
+    controller.closeAllModals();
+  }
 
   function submit() {
     controller.importSectionsIntoActiveTab(text);
+    controller.clearImportDraft();
     controller.closeAllModals();
   }
 
   function onKeydown(e: KeyboardEvent) {
     if (e.key === "Escape") {
-      controller.closeAllModals();
+      closeDrawer();
     } else if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
       e.preventDefault();
       submit();
@@ -22,7 +38,7 @@
   }
 </script>
 
-<div class="overlay" role="presentation" on:click|self={controller.closeAllModals}>
+<div class="overlay" role="presentation" use:closeOnOutsideClick={closeDrawer}>
   <div class="modal-card" role="dialog" aria-modal="true" aria-label="Import sections">
     <div class="modal-input-wrap" style="align-items: flex-start;">
       <span>📥</span>
@@ -35,7 +51,7 @@
       ></textarea>
     </div>
     <div class="modal-footer" style="justify-content: flex-end; gap: 8px;">
-      <button class="icon-btn" on:click={controller.closeAllModals}>Cancel</button>
+      <button class="icon-btn" on:click={cancel}>Cancel</button>
       <button class="icon-btn" on:click={submit}>Import</button>
     </div>
   </div>

@@ -2,6 +2,7 @@
   import { onMount } from "svelte";
   import * as controller from "../../controller";
   import { searchResultsStore } from "../../controller";
+  import { closeOnOutsideClick } from "../../actions/closeOnOutsideClick";
   import type { SearchResultItem } from "../../types";
 
   let query = "";
@@ -59,7 +60,7 @@
   }
 </script>
 
-<div class="overlay" role="presentation" on:click|self={controller.closeAllModals}>
+<div class="overlay" role="presentation" use:closeOnOutsideClick={controller.closeAllModals}>
   <div class="modal-card" role="dialog" aria-modal="true" aria-label="Cross-tab search">
     <div class="modal-input-wrap">
       <span>🔎</span>

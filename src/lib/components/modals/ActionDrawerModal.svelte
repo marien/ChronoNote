@@ -2,6 +2,7 @@
   import { onMount } from "svelte";
   import * as controller from "../../controller";
   import { actionSnapshot, tabs } from "../../controller";
+  import { closeOnOutsideClick } from "../../actions/closeOnOutsideClick";
   import type { ActionSnapshotItem } from "../../types";
 
   let filter = "";
@@ -93,7 +94,7 @@
   }
 </script>
 
-<div class="overlay" role="presentation" on:click|self={controller.closeAllModals}>
+<div class="overlay" role="presentation" use:closeOnOutsideClick={controller.closeAllModals}>
   <div class="modal-card" role="dialog" aria-modal="true" aria-label="Action drawer">
     <div class="modal-input-wrap">
       <span>📋</span>

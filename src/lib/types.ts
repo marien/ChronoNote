@@ -38,3 +38,8 @@ export interface AppConfig {
   notesDir: string;
   colorMode: ColorMode;
 }
+
+export interface TabSession {
+  openTabs: string[];
+  activeTab: string | null;
+}

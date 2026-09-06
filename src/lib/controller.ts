@@ -140,12 +140,87 @@ function applyColorModeToDom(mode: ColorMode) {
   document.documentElement.dataset.colorMode = mode;
 }
 
-async function bootstrapTodayTab() {
-  const filename = todayISO() + ".txt";
-  const content = (await api.readNote(filename)) ?? "";
-  const id = `tab-${Date.now()}`;
-  tabs.set([{ id, filename, isScratchpad: false, content }]);
-  activeTabId.set(id);
+/** Set while a session restore (or a directory switch's fresh restore) is
+ * rebuilding the `tabs`/`activeTabId` stores step by step, so the
+ * persistence subscribers below don't write a half-built intermediate
+ * state to disk (§34). */
+let restoringTabs = false;
+
+/** Spec §34: restores the tabs and active tab this specific notes folder
+ * had open last time (skipping any that no longer exist on disk), and
+ * always force-opens today's dated tab as well — confirmed design
+ * decisions: today's tab is always present, and it's also the fallback
+ * active tab whenever the previously-active one can't be restored (its
+ * file was deleted, or it was a scratchpad, which never persists). A
+ * folder with no saved session yet (first time it's opened) just gets
+ * today's tab, same as before this feature existed. */
+async function restoreOrBootstrapTabs() {
+  restoringTabs = true;
+  // A save from just before this call (e.g. performDirectorySwitch clearing
+  // `tabs`/`activeTabId` ahead of the restore) may already be pending —
+  // cancel it so it can't fire mid-restore and persist a half-built state.
+  if (sessionSaveTimer) {
+    clearTimeout(sessionSaveTimer);
+    sessionSaveTimer = null;
+  }
+  try {
+    const todayFilename = todayISO() + ".txt";
+    const session = await api.readTabSession();
+
+    const restored: NoteTab[] = [];
+    if (session) {
+      for (const filename of session.openTabs) {
+        if (filename === todayFilename) continue; // added once, below, regardless
+        const content = await api.readNote(filename);
+        if (content === null) continue; // file no longer exists — silently skip
+        restored.push({ id: `tab-${Date.now()}-${filename}`, filename, isScratchpad: false, content });
+      }
+    }
+
+    const todayContent = (await api.readNote(todayFilename)) ?? "";
+    const todayTab: NoteTab = {
+      id: `tab-${Date.now()}-${todayFilename}`,
+      filename: todayFilename,
+      isScratchpad: false,
+      content: todayContent,
+    };
+    restored.push(todayTab);
+
+    tabs.set(restored);
+    const activeMatch = session?.activeTab ? restored.find((t) => t.filename === session.activeTab) : undefined;
+    activeTabId.set((activeMatch ?? todayTab).id);
+  } finally {
+    restoringTabs = false;
+  }
+  scheduleTabSessionSave();
+}
+
+let sessionSaveTimer: ReturnType<typeof setTimeout> | null = null;
+let lastPersistedSessionKey = "";
+
+function scheduleTabSessionSave() {
+  if (restoringTabs) return;
+  if (sessionSaveTimer) clearTimeout(sessionSaveTimer);
+  sessionSaveTimer = setTimeout(persistTabSession, 150);
+}
+
+function persistTabSession() {
+  sessionSaveTimer = null;
+  const list = get(tabs);
+  const activeId = get(activeTabId);
+  const openTabs = list
+    .filter((t) => !t.isScratchpad)
+    .map((t) => t.filename)
+    .sort();
+  const activeTab = list.find((t) => t.id === activeId);
+  const activeFilename = activeTab && !activeTab.isScratchpad ? activeTab.filename : null;
+
+  const key = JSON.stringify({ openTabs, activeFilename });
+  if (key === lastPersistedSessionKey) return;
+  lastPersistedSessionKey = key;
+  api.writeTabSession(openTabs, activeFilename).catch(() => {
+    // Best-effort bookkeeping, not user note content — fail silently.
+  });
 }
 
 export async function initApp() {
@@ -153,7 +228,9 @@ export async function initApp() {
   notesDir.set(cfg.notesDir);
   colorMode.set(cfg.colorMode);
   applyColorModeToDom(cfg.colorMode);
-  await bootstrapTodayTab();
+  await restoreOrBootstrapTabs();
+  tabs.subscribe(() => scheduleTabSessionSave());
+  activeTabId.subscribe(() => scheduleTabSessionSave());
 }
 
 /** Tracks whether the OS window is maximized or fullscreen, so the top bar
@@ -685,8 +762,30 @@ export function runSearch(query: string, scope: "open" | "all" = "open") {
 
 // --- Section import (Ctrl+Shift+I): paste lines, each becomes a section ---
 
+/** In-memory only (spec 1.1's "Zero Database" tenet) — text the drawer was
+ * closed with before it was actually imported, so reopening the drawer can
+ * offer it back up (§33). Never written to disk, and deliberately cleared
+ * on a notes-directory switch by `performDirectorySwitch`, since a folder
+ * switch is meant to feel like a clean slate. */
+let importDraftText = "";
+
 export function openSectionImport() {
   modal.set("sectionImport");
+}
+
+export function getImportDraftText(): string {
+  return importDraftText;
+}
+
+/** Called when the drawer is dismissed without importing (Cancel, Escape,
+ * or an outside click) — keeps unsubmitted text around for next time, or
+ * clears a stale draft if the field was left empty. */
+export function saveImportDraft(text: string) {
+  importDraftText = text.trim() ? text : "";
+}
+
+export function clearImportDraft() {
+  importDraftText = "";
 }
 
 export function importSectionsIntoActiveTab(rawText: string) {
@@ -753,6 +852,7 @@ async function performDirectorySwitch(path: string) {
   const cfg = await api.setNotesDir(path);
   notesDir.set(cfg.notesDir);
 
+  clearImportDraft();
   allNotesCache.set({});
   actionSnapshot.set([]);
   historyItems.set([]);
@@ -761,7 +861,7 @@ async function performDirectorySwitch(path: string) {
   tabs.set([]);
   activeTabId.set("");
 
-  await bootstrapTodayTab();
+  await restoreOrBootstrapTabs();
   modal.set("none");
   showToast(`Switched notes directory to ${path}`);
 }

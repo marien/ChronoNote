@@ -1,9 +1,10 @@
 <script lang="ts">
   import * as controller from "../../controller";
   import { colorMode, notesDir } from "../../controller";
+  import { closeOnOutsideClick } from "../../actions/closeOnOutsideClick";
 </script>
 
-<div class="overlay" role="presentation" on:click|self={controller.closeAllModals}>
+<div class="overlay" role="presentation" use:closeOnOutsideClick={controller.closeAllModals}>
   <div class="modal-card" role="dialog" aria-modal="true" aria-label="Settings" style="width: 520px;">
     <div class="modal-input-wrap">
       <span>⚙</span> Settings

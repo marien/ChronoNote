@@ -119,3 +119,42 @@ pub fn read_all_notes(app: &AppHandle) -> Result<Vec<(String, String)>, String> 
     }
     Ok(out)
 }
+
+/// Which tabs were open, and which was active, last time this specific
+/// notes folder was used — spec §34. Deliberately stored *inside* the
+/// notes folder itself (rather than alongside `notes_dir`/`color_mode` in
+/// the global `config.json`) so the state travels with the folder if it's
+/// ever moved or copied, and so switching between folders doesn't need a
+/// growing map of every folder ever opened. `is_valid_note_filename`
+/// already restricts the daily-note scan to exactly `YYYY-MM-DD.txt`, so
+/// this file is never picked up as a note.
+const SESSION_FILENAME: &str = ".chrononote-session.json";
+
+#[derive(Serialize, Deserialize, Clone, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct TabSession {
+    #[serde(default)]
+    pub open_tabs: Vec<String>,
+    #[serde(default)]
+    pub active_tab: Option<String>,
+}
+
+fn session_path(app: &AppHandle) -> Result<PathBuf, String> {
+    Ok(notes_root(app)?.join(SESSION_FILENAME))
+}
+
+pub fn read_tab_session(app: &AppHandle) -> Result<Option<TabSession>, String> {
+    let path = session_path(app)?;
+    if !path.exists() {
+        return Ok(None);
+    }
+    let raw = fs::read_to_string(&path).map_err(|e| e.to_string())?;
+    serde_json::from_str(&raw).map(Some).map_err(|e| e.to_string())
+}
+
+pub fn write_tab_session(app: &AppHandle, session: &TabSession) -> Result<(), String> {
+    let root = notes_root(app)?;
+    fs::create_dir_all(&root).map_err(|e| e.to_string())?;
+    let raw = serde_json::to_string_pretty(session).map_err(|e| e.to_string())?;
+    fs::write(session_path(app)?, raw).map_err(|e| e.to_string())
+}

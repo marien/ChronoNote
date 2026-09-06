@@ -2,6 +2,7 @@
   import { onMount } from "svelte";
   import * as controller from "../../controller";
   import { historyItems, historyTargetHeader } from "../../controller";
+  import { closeOnOutsideClick } from "../../actions/closeOnOutsideClick";
   import type { HistoryItem } from "../../types";
 
   let selectedIndex = 0;
@@ -56,7 +57,7 @@
   }
 </script>
 
-<div class="overlay" role="presentation" on:click|self={controller.closeAllModals}>
+<div class="overlay" role="presentation" use:closeOnOutsideClick={controller.closeAllModals}>
   <div class="modal-card" role="dialog" aria-modal="true" aria-label="Section history">
     <div class="modal-input-wrap">
       <span>🕒</span>

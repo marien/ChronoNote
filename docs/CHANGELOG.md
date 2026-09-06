@@ -1041,3 +1041,167 @@ call at each site. Path parsing splits on both `\` and `/` to handle
 Windows and Unix paths uniformly. Required one addition to
 `src-tauri/capabilities/default.json`: `core:window:allow-set-title`,
 added explicitly rather than assuming `core:default` already covers it.
+
+---
+
+## 32. Bug fix: dragging inside a modal could close it on mouse-up outside
+
+**Status: implemented.** Reported against the Import drawer specifically —
+resizing `.import-textarea` via its native corner handle and releasing the
+mouse outside the drawer closed it, even though the gesture was a resize,
+not a request to dismiss. Root cause was generic to all 7 dismissable
+modals (`ActionDrawerModal`, `HistoryModal`, `SearchModal`,
+`DatePickerModal`, `SectionImportModal`, `ShortcutsModal`,
+`SettingsModal`): each overlay used `on:click|self={controller.closeAllModals}`,
+which only checks the *click* event's target. A drag that starts inside
+the modal (resizing a textarea, or simply selecting text with the mouse)
+but ends with the pointer over the overlay fires a `click` whose target
+*is* the overlay, satisfying `|self` even though the user never intended
+to click outside. `SafetyModal` and `UnsavedScratchpadsModal` were never
+affected — by design they have no click-outside-to-close behavior at all
+(§13), only explicit Cancel/Confirm.
+
+Fixed with a small shared Svelte action,
+`closeOnOutsideClick` (`src/lib/actions/closeOnOutsideClick.ts`), used via
+`use:closeOnOutsideClick={controller.closeAllModals}` in place of the old
+`on:click|self` on all 7 overlays. It tracks whether the *mousedown* that
+started the current gesture also landed on the overlay itself, and only
+closes if both the mousedown and the click targeted the overlay directly
+— so a drag that starts on any child element (textarea, list item, input)
+never closes the modal, no matter where the mouse is released.
+
+---
+
+## 33. Import drawer: remember unsaved draft text between opens
+
+**Status: implemented.** Requested behavior:
+if the Import drawer (`Ctrl+Shift+I`) is closed — via Cancel, Escape, or
+an outside click — while its textarea holds text that was never actually
+imported, keep that text in memory. The next time the drawer opens,
+pre-fill the textarea with it, with the text **selected** (not just the
+cursor placed), so typing immediately overwrites it if it's no longer
+wanted, while a stray click-away or Escape doesn't silently lose it.
+
+Proposed implementation:
+- A new module-level variable in `controller.ts`, e.g. `importDraftText`
+  (plain string, not a store — nothing else needs to react to it), mirroring
+  the existing in-memory-only pattern used for `lastCopiedAction` (§10).
+  Session-lifetime only: never written to `config.json` or disk, and lost
+  on app restart, consistent with the "Zero Database" tenet (spec §1) —
+  this is scratch memory, not note content.
+- `SectionImportModal.svelte`: on mount, if `importDraftText` is
+  non-empty, initialize `text` from it and call `textareaEl.select()`
+  instead of (or in addition to) `.focus()`. On close — Cancel, Escape, or
+  the outside-click handler from §32, i.e. every path that does *not* go
+  through `submit()` — save the current (possibly-edited) `text` back into
+  `importDraftText` if non-empty, or clear it if the field was left empty.
+- On a successful `submit()` (the actual Import button / Ctrl+Enter path),
+  clear `importDraftText` — the text has been consumed, so nothing should
+  reappear next time the drawer opens.
+- `performDirectorySwitch` (§8's full workspace reset) also clears
+  `importDraftText`, per confirmed answer to open question 2 below — a
+  directory switch is a clean slate, and the draft should not leak from
+  one notes folder's working context into another's.
+
+Confirmed answers, all reflected in the implementation:
+1. "Input that was not important" means "input that was not yet
+   **imported**".
+2. The draft does **not** survive a notes-directory switch (§8) —
+   `performDirectorySwitch` calls `clearImportDraft()`.
+3. A single global draft, not per-tab.
+
+Implementation matches the proposal above exactly: `importDraftText` in
+`controller.ts`, `getImportDraftText()`/`saveImportDraft()`/
+`clearImportDraft()` as the only ways to read or mutate it.
+`SectionImportModal.svelte` seeds its local `text` from the draft at
+component creation (so the textarea's first render already shows it — no
+post-mount flash), and calls `.select()` in `onMount` only when a draft
+was actually loaded, leaving a fresh empty drawer's focus behavior
+unchanged. Escape and the §32 outside-click handler route through a
+shared `closeDrawer()` that saves the current text as the new draft (or
+clears it, if left empty); `submit()` clears the draft instead, since
+that text has now been consumed.
+
+**Follow-up refinement (tested and requested immediately after landing):**
+Cancel does not follow that same "remember it" path. Clicking Cancel is a
+deliberate "discard this" action, distinct from Escape or clicking away —
+which read more as incidental dismissals a user might want to recover
+from — so Cancel calls `clearImportDraft()` directly instead of going
+through `closeDrawer()`.
+
+---
+
+## 34. Session restore: remember open tabs and the active tab per folder
+
+**Status: implemented.** Previously `initApp()` always called
+`bootstrapTodayTab()` (`controller.ts`) unconditionally — every launch
+opened exactly one tab, today's dated note, and made it active. Nothing
+about which tabs were open or which one had focus was persisted anywhere;
+`AppConfig` (`storage.rs`) only held `notes_dir` and `color_mode`.
+Requested behavior: reopening the app restores the tabs that were open
+last time, with the tab that was active last time active again — and this
+is remembered **per notes folder**, so switching folders (§8) and
+switching back restores each folder's own last-known session, not a
+single global one.
+
+Confirmed answers to the three open questions below, both reflected in
+the implementation:
+1. If the previously-active tab can't be restored (file deleted, or it was
+   a scratchpad — which never persists), **today's tab** becomes active.
+2. Today's dated tab is **always** force-opened, regardless of what else
+   restores — it's also what a fully-empty restore (every previously-open
+   file now deleted) naturally falls back to, satisfying the existing
+   always-at-least-one-tab guarantee for free.
+3. The per-folder session is stored **inside each notes folder itself**
+   (a small non-`.txt` file), not in the global `config.json` — so it
+   travels with the folder if it's ever moved or copied, and switching
+   between many folders over time doesn't grow one ever-larger global map
+   of stale entries for folders that may no longer even exist.
+
+Implementation:
+- **What's persisted, per folder:** the list of open *dated* tab filenames
+  (`YYYY-MM-DD.txt`) and which filename was active. Scratchpads are
+  excluded — spec 1.3 makes them memory-only by design (never written to
+  disk), so there is nothing to restore for one after the process has
+  exited. Display order is never stored, since tabs are always re-sorted
+  chronologically on render regardless of array order (§25) — only the
+  filename set and the active filename matter.
+- **Where it lives:** a new `.chrononote-session.json` file written
+  directly in the notes folder root (`storage.rs`: `TabSession { open_tabs:
+  Vec<String>, active_tab: Option<String> }`, via new `read_tab_session`/
+  `write_tab_session` commands). `is_valid_note_filename`'s strict
+  `YYYY-MM-DD.txt` check already excludes it from every note-scanning path
+  (`list_note_files`, `read_all_notes`), so it never shows up as a note in
+  search, the action drawer, or section history.
+- **When it's saved:** `controller.ts` subscribes to both `tabs` and
+  `activeTabId` (same pattern as the `notesDir.subscribe(...)` →
+  window-title code from §31), computing the tuple (sorted non-scratchpad
+  filenames, active filename-or-null-if-scratchpad) on every change and
+  persisting only when that tuple actually differs from what was last
+  written — so ordinary content autosave, which also calls `tabs.set(...)`
+  on every edit via `writeTabContent`, recomputes the same tuple and skips
+  the write instead of hitting disk on every keystroke. A 150ms debounce
+  (`sessionSaveTimer`) coalesces the two near-simultaneous `tabs`/
+  `activeTabId` updates a single tab operation (e.g. closing a tab) causes
+  into one write.
+- **When it's restored:** `restoreOrBootstrapTabs()` replaces the old
+  `bootstrapTodayTab()`, called from both `initApp()` and
+  `performDirectorySwitch()`. It reads the current folder's
+  `.chrononote-session.json` (if any), calls `readNote()` for each saved
+  filename — silently skipping any that come back missing, no toast, no
+  error — force-adds today's tab, and sets it active unless the
+  previously-active filename survived among the restored tabs.
+- **Guarding against a restore race:** a module-level `restoringTabs` flag
+  suppresses the save-subscription while `restoreOrBootstrapTabs()` is
+  rebuilding the stores step by step (each intermediate `tabs.set(...)`
+  would otherwise itself look like a real state change worth persisting),
+  and explicitly cancels any debounced save left pending from just before
+  the restore started — relevant for `performDirectorySwitch`, which
+  clears `tabs`/`activeTabId` immediately before calling
+  `restoreOrBootstrapTabs()`, since without that cancellation a slow
+  restore could let that leftover timer fire mid-restore and write a
+  half-built state to the *new* folder's session file. One explicit save
+  fires right after the restore completes, capturing the settled result
+  and seeding the dedup baseline for future no-op writes.
+- **First time a folder is opened** (no session file yet): falls back to
+  today's tab only, exactly like the old behavior.
