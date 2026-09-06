@@ -3,6 +3,7 @@ dist
 dist-ssr
 *.local
 tauri-dev.log
+tauri-build.log
 
 src-tauri/target
 src-tauri/gen
