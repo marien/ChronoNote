@@ -17,6 +17,7 @@ npm run test:e2e            # headless, all specs
 npm run test:e2e -- editor  # just specs matching "editor"
 npm run test:e2e:ui         # Playwright's watch/inspector UI
 npm run test:e2e:report     # open the last HTML report
+npm run check:e2e           # type-check the specs (tsc, no browser)
 ```
 
 Playwright starts the Vite dev server itself (`webServer` in

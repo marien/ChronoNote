@@ -11,8 +11,8 @@
  *
  * Testing-only. `src/main.ts` imports this dynamically behind an
  * `import.meta.env.DEV` check, so the whole `src/lib/testing/` tree is
- * dropped from `vite build` output — verified by the
- * `tests/e2e/prod-build.spec.ts`-style grep in CI / the build check.
+ * dropped from `vite build` output — verified by the `build-guard` CI job
+ * (`.github/workflows/test.yml`), which greps `dist/` after a real build.
  *
  * Parity note: the command semantics here must track
  * `src-tauri/src/storage.rs`. The behaviours mirrored deliberately:

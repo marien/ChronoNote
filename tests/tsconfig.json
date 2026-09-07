@@ -1,0 +1,11 @@
+{
+  "//": "Type-checks the E2E specs + helpers. The mock backend itself lives under src/ and is covered by the root `npm run check`. Run via `npm run check:e2e`.",
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "types": ["@playwright/test"],
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "noEmit": true,
+    "checkJs": false
+  },
+  "include": ["e2e/**/*.ts"]
+}
