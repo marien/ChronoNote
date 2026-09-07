@@ -6,11 +6,15 @@ kept for the rationale behind each one — not just *what* changed but
 was still being gathered and confirmed before implementation; renamed once
 everything below was applied, since nothing here is "pending" anymore.
 
-**Status: all 31 sections implemented**, verified (frontend build +
-type-check + `cargo check` all clean) — see individual sections below for
-what each one covers; §27–31 are small fixes/additions logged briefly in a
-`next-revision-notes.md` scratch file before being applied and folded in
-here.
+**Status: all sections through §81 implemented and on `main`**, each
+verified before merge (`svelte-check`, the Vitest suite, `cargo test`,
+and — from §77 on — the Playwright E2E suite, all green in CI). See each
+section for what it covers and why. §27–31 were small fixes logged
+briefly in a `next-revision-notes.md` scratch file before being folded in
+here; everything from §32 on was written directly.
+
+Which sections shipped in which release: §1–55 → v0.2.0, §56–59 → v0.2.1,
+§60–74 → v0.3.0, §75–81 → v0.4.0.
 
 ---
 
