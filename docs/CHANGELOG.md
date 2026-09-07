@@ -2741,3 +2741,92 @@ Also added a short "Learn more" section to `AboutModal.svelte` naming
 `Ctrl+/` (Keyboard Shortcuts) and `Ctrl+Shift+/` (Symbols & Sections) —
 someone who found the About screen via its icon might not otherwise
 know either drawer exists, since neither has its own top-bar icon.
+
+---
+
+## 75. Automated test suite (Vitest + `cargo test`)
+
+**Status: implemented.** The project had zero automated tests through
+§74 — every fix in this changelog to date was verified by hand in the
+running app. Added a real suite covering the layer where virtually all
+of those bugs actually lived: parsing/regex logic and state management,
+not rendering.
+
+**Frontend (Vitest, `npm test`):** `vite.config.ts` gained a `test`
+block (jsdom environment, for the handful of DOM-touching cases) via
+switching its `defineConfig` import from `vite` to `vitest/config` —
+same config object, now typed for both. Vitest 3.x was pinned
+deliberately (rather than latest/5.x) since this repo is still on Vite
+5 and Vitest 5 requires Vite 6+; no reason to bump Vite just for this.
+Test files are colocated as `*.test.ts` next to the module they cover:
+
+- `tokens.test.ts` — every function, with explicit regression cases for
+  the mid-line-`=>` bugs (§59, §70) and indentation tolerance (§41/§50).
+- `date.test.ts`, `sectionImport.test.ts` — straightforward, using
+  `vi.setSystemTime` for the date-relative cases.
+- `actions/closeOnOutsideClick.test.ts`,
+  `actions/focusScrollableList.test.ts` — the two Svelte actions, tested
+  as plain DOM functions (no component framework needed for either).
+  `focusScrollableList`'s test spies on `scrollBy`/`scrollTo` rather
+  than asserting `scrollTop` afterward, since jsdom has no real layout
+  engine and doesn't move `scrollTop` for those calls — this tests the
+  actual key-dispatch logic (which key does what) independently of that
+  limitation, the same distinction this session's own §71/§73
+  investigation had to draw against a real browser.
+- `controller.test.ts` — the largest one: tab lifecycle (create/switch/
+  cycle/close, the safety-close gate, reopen-last-closed), the §64
+  copy/paste-deferral feature (single line, multi-line, today-or-later
+  only, not into a scratchpad, not back into the source), action-drawer
+  snapshotting (§69's v/x-inclusion, §41's consequence-actions), §70's
+  section-history dedup, directory switching (including the unsaved-
+  scratchpad safety gate), and `initApp`'s session restore (today's tab
+  always present, previously-active tab restored or falling back,
+  deleted files silently skipped). `./tauriApi`,
+  `@tauri-apps/api/window`, and `@tauri-apps/plugin-dialog` are mocked;
+  `vi.resetModules()` + a fresh dynamic `import("./controller")` before
+  every test sidesteps the module's several pieces of private,
+  module-level singleton state (closed-tab history, the last-copied-
+  action record, the disk-notes cache) — none of which have (or need) an
+  exported reset function for the real app, since it only ever loads
+  once — so no test can leak state into another regardless of run order.
+
+**Deliberately out of scope:** no `.svelte` component is rendered or
+tested directly. §72/§73's pixel-layout bugs needed a real browser to
+even *measure* correctly during their own investigation — jsdom, which
+has no real layout engine, would tell you even less than that did.
+`EditorPane.svelte` (CodeMirror) and the modal components would need a
+much heavier `@testing-library/svelte`-based setup for comparatively low
+return, given `controller.ts` — where the actual business-logic risk
+lives — is already directly covered. Documented as a deliberate scoping
+decision (not an oversight) in `README.md` and `CLAUDE.local.md`.
+
+**Rust (`cargo test`, `src-tauri/`):** `storage.rs`'s functions all took
+`&AppHandle` and resolved real OS paths (`app_config_dir`/
+`document_dir`) internally, which isn't something a plain `#[test]` can
+control — and `tauri::test::mock_app()`'s path resolver still resolves
+to real machine paths, not a temp directory, so using it here would have
+meant tests actually touching real config/notes locations. Refactored
+instead: every function's file-handling core was extracted into a
+path-parameterized `_at` sibling (`load_config_at(path, ...)`,
+`write_note_at(root, ...)`, etc.), with the original `AppHandle`-taking
+functions becoming thin wrappers that resolve the real path and delegate
+— **behavior-preserving, no public signature changed** (confirmed by
+`cargo check` passing unchanged and by re-diffing `lib.rs`'s call
+sites). `is_valid_note_filename` and `push_recent_notes_dir` needed no
+refactor at all, already pure. Added `tempfile` as a dev-dependency;
+tests cover filename validation (including path-traversal rejection),
+the recent-folders dedup/cap-at-5 logic, config load/save (including
+defaulting newer fields when loading an older/hand-edited file), note
+CRUD, and tab-session persistence — 22 tests, all passing on the first
+run after the refactor.
+
+**CI:** added `.github/workflows/test.yml` (frontend job on
+`ubuntu-latest`: `npm run check` + `npm test`; Rust job on
+`windows-latest`, matching the only platform this project has actually
+been built on: `cargo test`) running on every push/PR to `main` — so the
+suite can't silently drift out of sync with what's actually committed.
+
+**Keeping it current going forward:** documented as an explicit
+expectation in `CLAUDE.local.md` — a change to the tested logic without
+a corresponding test change is a sign something was missed, the same
+way a change without a changelog entry would be.

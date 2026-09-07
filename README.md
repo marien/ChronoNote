@@ -27,6 +27,24 @@ npm run tauri dev
 npm run tauri build
 ```
 
+## Running tests
+
+```bash
+npm run check                    # svelte-check — TypeScript/Svelte type errors
+npm test                         # Vitest — unit tests for the frontend's business logic
+cd src-tauri && cargo test       # unit tests for the storage layer
+```
+
+The suite covers the token/glyph parsing rules (`tokens.ts`), date
+handling, section import, the two focus/click Svelte actions, the
+controller's tab/action/search/history logic, and the Rust storage layer
+(config, note files, session state) — everything that isn't itself a
+rendering/layout concern (those are exercised by hand in the running
+app; see `docs/CHANGELOG.md` for why a couple of specific bugs, like a
+1px icon/label misalignment, needed a real browser rather than a unit
+test to actually pin down). A GitHub Actions workflow
+(`.github/workflows/test.yml`) runs both suites on every push/PR.
+
 ## Where your notes live
 
 Daily notes are plain `.txt` files named `YYYY-MM-DD.txt`, stored in a

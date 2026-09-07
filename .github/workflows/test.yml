@@ -1,0 +1,34 @@
+name: Test
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  frontend:
+    name: Frontend (svelte-check + vitest)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm run check
+      - run: npm test
+
+  rust:
+    name: Rust (cargo test)
+    # Tauri's Windows target needs the MSVC toolchain, which the
+    # `windows-latest` GitHub-hosted runner already has preinstalled —
+    # matches the only platform this project has actually been built and
+    # tested on so far (see CLAUDE.local.md).
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: cargo test
+        working-directory: src-tauri
+        run: cargo test
