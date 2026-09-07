@@ -176,3 +176,7 @@ file — no database, no front-matter, no injected IDs.
 - Thin, theme-matched scrollbars (editor, modal lists, the import
   textarea) in place of the OS-default ones, including a custom resize
   grip icon on the import textarea.
+
+## License
+
+[MIT](LICENSE)
