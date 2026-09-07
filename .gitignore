@@ -8,5 +8,10 @@ tauri-build.log
 src-tauri/target
 src-tauri/gen
 
+# Machine-specific Cargo target-dir override (OneDrive-sync workaround) —
+# personal to whichever machine needs it; recreate locally if you hit
+# "output path is not a writable directory" (see CLAUDE.local.md).
+src-tauri/.cargo/config.toml
+
 .DS_Store
 Thumbs.db
