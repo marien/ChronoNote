@@ -434,6 +434,34 @@ body {
   color: var(--glyph-emphasis-color);
 }
 
+/* §81: a Setext underline row (`====` under a section title) drawn as a
+   double rule. `Decoration.mark` over the real `=` characters — they stay
+   in the layout (so hit-testing and `posAtCoords` work natively for
+   hover/click-to-edit) but render invisible. The mark is dropped —
+   reverting to the literal, editable `=` — whenever the cursor,
+   selection, or mouse is on that row (see setextRule.ts).
+
+   The rule is two 1px lines drawn as background gradients at
+   `51% ± 0.09em` of the line box — i.e. straight through where the `=`
+   glyph's own ink sits (measured: Cascadia Code renders `=` essentially
+   centred in the line box; 51% landed dead-on in an overlay check). This
+   means there's no vertical jump when the row toggles between the rule
+   and the literal `=`. A `border-bottom` sat at the text box's bottom
+   edge instead — about half a line too low — which showed as a visible
+   shift on reveal. Backgrounds don't affect layout, so the row stays
+   exactly one line tall. */
+.cm-setext-rule {
+  color: transparent;
+  background-image:
+    linear-gradient(var(--muted), var(--muted)),
+    linear-gradient(var(--muted), var(--muted));
+  background-size: 100% 1px;
+  background-repeat: no-repeat;
+  background-position:
+    0 calc(51% - 0.09em),
+    0 calc(51% + 0.09em);
+}
+
 /* Status Bar */
 #status-bar {
   height: 24px;

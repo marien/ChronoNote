@@ -3039,3 +3039,58 @@ Covered by `storage.rs` tests (round-trip + older-config default),
 across reload, seeded-on boots wrapped, reconfigure-in-place). The mock
 backend (`src/lib/testing/mockBackend.ts`) mirrors the new command and
 field.
+
+---
+
+## 81. Setext underline rendered as a double rule (retry of §47)
+
+**Status: implemented.** §47 tried to draw the `====` row under a section
+title as an actual rule and reverted it — vertical alignment never
+landed (two guesses, both wrong), and hover/click-to-edit only worked
+once. §47's own post-mortem named the fix: use `Decoration.mark` over the
+real `=` characters instead of a `Decoration.replace` widget with
+invented content. That's what this does, and it works.
+
+**How** (`src/lib/editor/setextRule.ts`):
+- A `ViewPlugin` marks the `=` run of every Setext underline row
+  (`isSetextUnderline()`) with `.cm-setext-rule` — `color: transparent`,
+  the characters kept in the layout so hit-testing / `posAtCoords` work
+  natively. Width tracks the `=` count in the file; the app's own
+  section-creation paths already write `max(3, title.length)` `=`, so for
+  anything it created the rule matches the title width, with no silent
+  auto-editing of the document.
+- The mark is dropped — reverting to the literal, fully editable `=` —
+  whenever the row is *active*: the cursor is on it, the selection
+  touches it, or the mouse is over it. Cursor/selection come from
+  `state.selection`; hover is tracked by `posAtCoords` on `mousemove`
+  (a `StateField` holding the hovered line number), **not** by listeners
+  on the mark's span — the moment hover reveals the plain text the span
+  is gone, so a `mouseleave` on it would fire instantly and flip back.
+  `posAtCoords` keeps resolving the same line whether it's drawn as the
+  rule or as text, so the row stays revealed while the pointer is on it.
+- The rule itself is **two 1px lines drawn as background gradients** at
+  `calc(51% ± 0.09em)` of the line box — straight through where the `=`
+  glyph's own ink sits (Cascadia Code renders `=` essentially centred in
+  the line box; `51%` landed dead-on in a 10× overlay check of the rule
+  against the real characters). Positioning the rule on the glyph, rather
+  than somewhere that merely looks like an underline, is what makes the
+  reveal seamless — there's no vertical jump when the row toggles between
+  the rule and the literal `=`. (First cut used `border-bottom: 3px
+  double` + `position: relative; top: -0.2em`; the border sits at the
+  text box's *bottom*, ~half a line below the `=` ink, so the line
+  visibly shifted up on reveal — caught in review.) Backgrounds don't
+  affect layout, so the row stays exactly one line tall (all lines a
+  uniform 20.8px, glyph rows included, per §79).
+
+**Why it converged this time:** §47 was done "without the ability to see
+the running app directly." This was tuned and verified in a real browser
+via the §77 E2E harness — every reveal path (cursor, selection, keyboard-
+onto-the-row, hover), the no-stuck-state guarantee, the row height, and
+the vertical position (overlaid against the real `=` at 10× zoom), all
+measured. Covered by `tests/e2e/setext-rule.spec.ts`.
+
+**Not done:** revealing the underline while the cursor is on the *title*
+line (only the underline row itself reveals it). §47's original ask was
+"editable when the cursor is on the line" — singular, the underline —
+and that's what shipped; extending it to the title row is a small
+follow-up if wanted.

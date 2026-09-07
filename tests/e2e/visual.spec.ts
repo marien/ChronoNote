@@ -75,4 +75,26 @@ test.describe("visual — state gallery", () => {
     await modalCard(page, MODAL_LABELS.safety).waitFor();
     await shot(page, "modal-safety");
   });
+
+  test("setext underline as a rule (§81), and word wrap (§80)", async ({ page }) => {
+    await seedApp(page, { seed: "empty" });
+    await setEditorText(
+      page,
+      [
+        "Q4 Planning",
+        "===========",
+        "# lock the roadmap by Friday",
+        "notes from the session about the priorities for next quarter",
+        "",
+        "",
+        "Retro",
+        "=====",
+        "- what went well",
+        "=> @dana write up the themes",
+      ].join("\n"),
+    );
+    await editor(page).click();
+    await page.keyboard.press("ControlOrMeta+Home");
+    await shot(page, "editor-setext-rule");
+  });
 });

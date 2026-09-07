@@ -6,6 +6,7 @@
   import { defaultKeymap, history, historyKeymap, indentWithTab } from "@codemirror/commands";
   import { indentUnit } from "@codemirror/language";
   import { glyphAtomicRanges, liveGlyphs } from "../editor/glyphs";
+  import { setextRule } from "../editor/setextRule";
   import { underlineFor } from "../sectionImport";
   import { adjacentOpenActionLine, cycleActionSymbol } from "../tokens";
   import * as controller from "../controller";
@@ -190,6 +191,7 @@
           wrapCompartment.of(wrapExtension(get(wordWrap))),
           liveGlyphs,
           glyphAtomicRanges,
+          setextRule,
           shortcuts,
           keymap.of([...defaultKeymap, ...historyKeymap, indentWithTab]),
           EditorView.updateListener.of((u) => {
