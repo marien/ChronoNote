@@ -29,6 +29,34 @@ export function innermostActionSymbol(line: string): "#" | "v" | ">" | "x" | nul
   return null;
 }
 
+/** 0-based indices of every line whose governing action symbol is an open
+ * `#` — a plain (optionally indented, §50) `# ` line or a `=> #`
+ * consequence-action (§41). Exactly the set `countActions().open` counts
+ * and the Action Drawer's "Only Open" toggle shows. */
+export function openActionLineIndices(text: string): number[] {
+  const out: number[] = [];
+  const lines = text.split("\n");
+  for (let i = 0; i < lines.length; i++) {
+    if (innermostActionSymbol(lines[i]) === "#") out.push(i);
+  }
+  return out;
+}
+
+/** The line to jump to for "next open action" (`dir` +1) or "previous"
+ * (`dir` -1) relative to `fromLineIdx`, wrapping around at the ends.
+ * `null` when the note has no open actions at all. When the cursor is
+ * already on the only open action, returns that same line (nothing else
+ * to move to). Shared by `EditorPane`'s `Ctrl+↓`/`Ctrl+↑` (§78). */
+export function adjacentOpenActionLine(text: string, fromLineIdx: number, dir: 1 | -1): number | null {
+  const idxs = openActionLineIndices(text);
+  if (idxs.length === 0) return null;
+  if (dir === 1) {
+    return idxs.find((i) => i > fromLineIdx) ?? idxs[0];
+  }
+  const before = idxs.filter((i) => i < fromLineIdx);
+  return before.length > 0 ? before[before.length - 1] : idxs[idxs.length - 1];
+}
+
 /** `Ctrl+Space`'s cycle (§40: `# → v → > → x → #`), shared between the
  * editor (`EditorPane.svelte`) and the Action Drawer's own `Ctrl+Space`
  * (`toggleActionLine` in `controller.ts`) so the two can't drift apart.

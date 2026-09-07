@@ -3,6 +3,8 @@ import {
   countActions,
   innermostActionSymbol,
   cycleActionSymbol,
+  openActionLineIndices,
+  adjacentOpenActionLine,
   stripLeadingToken,
   isSetextUnderline,
   getSectionHeaderForLine,
@@ -74,6 +76,64 @@ describe("innermostActionSymbol", () => {
 
   it("returns null for ordinary text", () => {
     expect(innermostActionSymbol("just a normal line")).toBeNull();
+  });
+});
+
+describe("openActionLineIndices", () => {
+  it("returns the indices of `#` lines only — plain, indented, and consequence-actions (§41/§50)", () => {
+    const text = [
+      "# first open", // 0
+      "plain prose", // 1
+      "  # indented open", // 2
+      "v a done one", // 3
+      "Talked to Sam => # a consequence open", // 4
+      "> deferred", // 5
+      "=> @alice delegated", // 6
+      "# last open", // 7
+    ].join("\n");
+    expect(openActionLineIndices(text)).toEqual([0, 2, 4, 7]);
+  });
+
+  it("is empty for a note with no open actions", () => {
+    expect(openActionLineIndices("v done\n> deferred\nplain")).toEqual([]);
+  });
+});
+
+describe("adjacentOpenActionLine", () => {
+  // Open actions on lines 1, 4, 6.
+  const text = ["header", "# a", "notes", "notes", "# b", "notes", "# c", "trailing"].join("\n");
+
+  it("moves forward to the next open action", () => {
+    expect(adjacentOpenActionLine(text, 1, 1)).toBe(4);
+    expect(adjacentOpenActionLine(text, 2, 1)).toBe(4);
+    expect(adjacentOpenActionLine(text, 4, 1)).toBe(6);
+  });
+
+  it("wraps forward past the last one back to the first", () => {
+    expect(adjacentOpenActionLine(text, 6, 1)).toBe(1);
+    expect(adjacentOpenActionLine(text, 7, 1)).toBe(1);
+  });
+
+  it("moves backward to the previous open action", () => {
+    expect(adjacentOpenActionLine(text, 6, -1)).toBe(4);
+    expect(adjacentOpenActionLine(text, 5, -1)).toBe(4);
+    expect(adjacentOpenActionLine(text, 4, -1)).toBe(1);
+  });
+
+  it("wraps backward past the first one to the last", () => {
+    expect(adjacentOpenActionLine(text, 1, -1)).toBe(6);
+    expect(adjacentOpenActionLine(text, 0, -1)).toBe(6);
+  });
+
+  it("returns null when there are no open actions", () => {
+    expect(adjacentOpenActionLine("v done\nplain\n> deferred", 0, 1)).toBeNull();
+    expect(adjacentOpenActionLine("v done\nplain\n> deferred", 0, -1)).toBeNull();
+  });
+
+  it("returns the same line when it's the only open action", () => {
+    const one = "plain\n# only\nplain";
+    expect(adjacentOpenActionLine(one, 1, 1)).toBe(1);
+    expect(adjacentOpenActionLine(one, 1, -1)).toBe(1);
   });
 });
 

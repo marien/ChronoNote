@@ -6,7 +6,7 @@
   import { indentUnit } from "@codemirror/language";
   import { glyphAtomicRanges, liveGlyphs } from "../editor/glyphs";
   import { underlineFor } from "../sectionImport";
-  import { cycleActionSymbol } from "../tokens";
+  import { adjacentOpenActionLine, cycleActionSymbol } from "../tokens";
   import * as controller from "../controller";
 
   // `content` is only used as the initial document for this mount. Tab
@@ -41,6 +41,23 @@
     const updated = cycleActionSymbol(line.text);
     if (updated === null) return false;
     v.dispatch({ changes: { from: line.from, to: line.to, insert: updated } });
+    return true;
+  }
+
+  /** §78: `Ctrl+↓` / `Ctrl+↑` — move the cursor to the next / previous
+   * open action (`# ` line, indented or not, plus `=> #` consequence-
+   * actions) in this note, wrapping at the ends. Lands at the start of
+   * the line, same as the Action Drawer's "jump to line". A no-op with a
+   * toast when the note has none. */
+  function jumpToAdjacentOpenAction(v: EditorView, dir: 1 | -1): boolean {
+    const curLineIdx = v.state.doc.lineAt(v.state.selection.main.head).number - 1;
+    const target = adjacentOpenActionLine(v.state.doc.toString(), curLineIdx, dir);
+    if (target === null) {
+      controller.showToast("No open actions in this note");
+      return true;
+    }
+    const line = v.state.doc.line(target + 1);
+    v.dispatch({ selection: { anchor: line.from }, scrollIntoView: true });
     return true;
   }
 
@@ -104,6 +121,8 @@
     const shortcuts = keymap.of([
       { key: "Ctrl-Space", run: (v) => cycleLine(v) },
       { key: "Ctrl-Shift-s", run: (v) => convertLineToSection(v) },
+      { key: "Ctrl-ArrowDown", run: (v) => jumpToAdjacentOpenAction(v, 1) },
+      { key: "Ctrl-ArrowUp", run: (v) => jumpToAdjacentOpenAction(v, -1) },
       { key: "Enter", run: bulletContinuation(true) },
       { key: "Shift-Enter", run: bulletContinuation(false) },
     ]);
