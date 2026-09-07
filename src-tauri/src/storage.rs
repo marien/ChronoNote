@@ -13,6 +13,12 @@ pub struct AppConfig {
     pub notes_dir: String,
     #[serde(default = "default_color_mode")]
     pub color_mode: String,
+    /// Soft word-wrap in the editor (§80). Off by default — the app's
+    /// tabular-monospace-grid tenet assumes no wrapping; this is an
+    /// opt-in for prose-heavy notes. `#[serde(default)]` gives `false`
+    /// for a config written before this field existed.
+    #[serde(default)]
+    pub word_wrap: bool,
     /// Up to 5 previously-used notes folders, most-recent-first, excluding
     /// whatever is current — spec §39. Maintained by `set_notes_dir`
     /// alone, so switching folders by hand-editing this file (as this
@@ -58,6 +64,7 @@ fn load_config_at(path: &Path, default_notes_dir: &Path) -> Result<AppConfig, St
         let cfg = AppConfig {
             notes_dir: default_notes_dir.to_string_lossy().to_string(),
             color_mode: default_color_mode(),
+            word_wrap: false,
             recent_notes_dirs: Vec::new(),
         };
         save_config_at(path, &cfg)?;
@@ -307,12 +314,14 @@ mod tests {
         let cfg = AppConfig {
             notes_dir: "/my/notes".to_string(),
             color_mode: "color".to_string(),
+            word_wrap: true,
             recent_notes_dirs: vec!["/old1".to_string(), "/old2".to_string()],
         };
         save_config_at(&path, &cfg).unwrap();
         let loaded = load_config_at(&path, &dir.path().join("Notes")).unwrap();
         assert_eq!(loaded.notes_dir, "/my/notes");
         assert_eq!(loaded.color_mode, "color");
+        assert!(loaded.word_wrap);
         assert_eq!(loaded.recent_notes_dirs, vec!["/old1", "/old2"]);
     }
 
@@ -326,6 +335,7 @@ mod tests {
         let loaded = load_config_at(&path, &dir.path().join("Notes")).unwrap();
         assert_eq!(loaded.notes_dir, "/hand/edited");
         assert_eq!(loaded.color_mode, "grayscale");
+        assert!(!loaded.word_wrap);
         assert!(loaded.recent_notes_dirs.is_empty());
     }
 

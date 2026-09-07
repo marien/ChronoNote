@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import * as controller from "../../controller";
-  import { colorMode, notesDir, recentNotesDirs } from "../../controller";
+  import { colorMode, notesDir, recentNotesDirs, wordWrap } from "../../controller";
   import * as api from "../../tauriApi";
   import { closeOnOutsideClick } from "../../actions/closeOnOutsideClick";
 
@@ -41,6 +41,24 @@
           >
             Grayscale
           </button>
+        </div>
+      </div>
+      <div>
+        <div class="settings-section-label">Editor</div>
+        <div class="settings-toggle-row">
+          <label class="toggle-switch">
+            <input
+              type="checkbox"
+              checked={$wordWrap}
+              on:change={(e) => controller.setWordWrap(e.currentTarget.checked)}
+            />
+            <span class="toggle-switch-track"></span>
+            Word wrap
+          </label>
+        </div>
+        <div class="settings-hint">
+          Wrap long lines instead of scrolling horizontally. Off keeps the monospace grid intact for tables and
+          aligned columns.
         </div>
       </div>
       <div>

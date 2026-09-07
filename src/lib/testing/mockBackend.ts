@@ -22,6 +22,8 @@
  *   - `set_notes_dir` -> `push_recent_notes_dir` — old dir goes to the
  *     front of `recent_notes_dirs`, new dir is removed from it, deduped,
  *     capped at 5.
+ *   - `set_color_mode` / `set_word_wrap` — write the one field, persist,
+ *     return the whole `AppConfig`.
  *   - `read_note` returns `null` (not an error) for a missing file.
  *   - the session file lives *inside* the notes dir and is never returned
  *     by `list_note_files` / `read_all_notes`.
@@ -36,6 +38,7 @@ export interface MockSeed {
   /** Saved tab session for the active directory, or `null` for none. */
   session?: TabSession | null;
   colorMode?: ColorMode;
+  wordWrap?: boolean;
   /** Seeds `recent_notes_dirs` directly (normally only `set_notes_dir`
    * writes it). */
   recentNotesDirs?: string[];
@@ -57,7 +60,13 @@ const NOTE_FILENAME_RE = /^\d{4}-\d{2}-\d{2}\.txt$/;
 
 /** Commands that change persisted state — after these, snapshot to
  * `sessionStorage` so a reload sees the same "disk". */
-const MUTATING_COMMANDS = new Set(["set_notes_dir", "set_color_mode", "write_note", "write_tab_session"]);
+const MUTATING_COMMANDS = new Set([
+  "set_notes_dir",
+  "set_color_mode",
+  "set_word_wrap",
+  "write_note",
+  "write_tab_session",
+]);
 
 function isValidNoteFilename(name: string): boolean {
   // Mirrors storage.rs::is_valid_note_filename — length + shape check,
@@ -75,6 +84,7 @@ export class MockBackend {
   dirs = new Map<string, MockDir>();
   notesDir: string;
   colorMode: ColorMode;
+  wordWrap: boolean;
   recentNotesDirs: string[];
   appVersion: string;
 
@@ -105,6 +115,7 @@ export class MockBackend {
   constructor(seed: MockSeed = {}) {
     this.notesDir = seed.notesDir ?? "/notes";
     this.colorMode = seed.colorMode ?? "grayscale";
+    this.wordWrap = seed.wordWrap ?? false;
     this.recentNotesDirs = seed.recentNotesDirs ? [...seed.recentNotesDirs] : [];
     this.appVersion = seed.appVersion ?? "0.3.0";
 
@@ -134,6 +145,7 @@ export class MockBackend {
     return JSON.stringify({
       notesDir: this.notesDir,
       colorMode: this.colorMode,
+      wordWrap: this.wordWrap,
       recentNotesDirs: this.recentNotesDirs,
       appVersion: this.appVersion,
       dirs: [...this.dirs].map(([path, d]) => [path, [...d.notes], d.session]),
@@ -160,6 +172,7 @@ export class MockBackend {
       const s = JSON.parse(raw) as {
         notesDir: string;
         colorMode: ColorMode;
+        wordWrap?: boolean;
         recentNotesDirs: string[];
         appVersion: string;
         dirs: [string, [string, string][], TabSession | null][];
@@ -167,6 +180,7 @@ export class MockBackend {
       const b = new MockBackend();
       b.notesDir = s.notesDir;
       b.colorMode = s.colorMode;
+      b.wordWrap = s.wordWrap ?? false;
       b.recentNotesDirs = s.recentNotesDirs;
       b.appVersion = s.appVersion;
       b.dirs = new Map(s.dirs.map(([path, notes, session]) => [path, { notes: new Map(notes), session }]));
@@ -189,6 +203,7 @@ export class MockBackend {
     return {
       notesDir: this.notesDir,
       colorMode: this.colorMode,
+      wordWrap: this.wordWrap,
       recentNotesDirs: [...this.recentNotesDirs],
     };
   }
@@ -244,6 +259,10 @@ export class MockBackend {
 
       case "set_color_mode":
         this.colorMode = args.mode === "color" ? "color" : "grayscale";
+        return this.config();
+
+      case "set_word_wrap":
+        this.wordWrap = !!args.enabled;
         return this.config();
 
       case "list_note_files":

@@ -15,6 +15,10 @@ export function setColorMode(mode: ColorMode): Promise<AppConfig> {
   return invoke("set_color_mode", { mode });
 }
 
+export function setWordWrap(enabled: boolean): Promise<AppConfig> {
+  return invoke("set_word_wrap", { enabled });
+}
+
 export function listNoteFiles(): Promise<string[]> {
   return invoke("list_note_files");
 }

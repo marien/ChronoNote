@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onDestroy, onMount } from "svelte";
-  import { EditorSelection, EditorState, type StateEffect } from "@codemirror/state";
+  import { get } from "svelte/store";
+  import { Compartment, EditorSelection, EditorState, type StateEffect } from "@codemirror/state";
   import { drawSelection, EditorView, keymap } from "@codemirror/view";
   import { defaultKeymap, history, historyKeymap, indentWithTab } from "@codemirror/commands";
   import { indentUnit } from "@codemirror/language";
@@ -8,6 +9,7 @@
   import { underlineFor } from "../sectionImport";
   import { adjacentOpenActionLine, cycleActionSymbol } from "../tokens";
   import * as controller from "../controller";
+  import { wordWrap } from "../controller";
 
   // `content` is only used as the initial document for this mount. Tab
   // switches are handled by wrapping this component in a {#key} block
@@ -23,6 +25,15 @@
 
   let container: HTMLDivElement;
   let view: EditorView | null = null;
+
+  /** §80: soft word-wrap, toggled live from Settings. A CodeMirror
+   * compartment so flipping it reconfigures just this one extension in
+   * place — no remount, cursor and undo history untouched. Seeded from
+   * the `wordWrap` store's current value at mount, then kept in sync by
+   * the subscription set up in `onMount`. */
+  const wrapCompartment = new Compartment();
+  const wrapExtension = (on: boolean) => (on ? EditorView.lineWrapping : []);
+  let unsubscribeWrap: (() => void) | undefined;
   // Kept up to date on every scroll rather than captured once at destroy
   // time — by the time `onDestroy` runs (this component is torn down via
   // the `{#key}` in App.svelte switching to a new tab), the scroller's raw
@@ -176,6 +187,7 @@
           // written for.
           drawSelection(),
           indentUnit.of("  "),
+          wrapCompartment.of(wrapExtension(get(wordWrap))),
           liveGlyphs,
           glyphAtomicRanges,
           shortcuts,
@@ -207,6 +219,20 @@
 
     view.scrollDOM.addEventListener("scroll", () => {
       if (view) lastScrollEffect = view.scrollSnapshot();
+    });
+
+    // Reconfigure the wrap compartment whenever Settings toggles it. Fires
+    // immediately with the current value too, which harmlessly re-applies
+    // what the initial state already set. Plain store subscription, not a
+    // `$:` block — see TopBar.svelte's long note on why that matters near
+    // CodeMirror.
+    let first = true;
+    unsubscribeWrap = wordWrap.subscribe((on) => {
+      if (first) {
+        first = false;
+        return;
+      }
+      view?.dispatch({ effects: wrapCompartment.reconfigure(wrapExtension(on)) });
     });
 
     controller.registerEditorApi({
@@ -250,6 +276,7 @@
   });
 
   onDestroy(() => {
+    unsubscribeWrap?.();
     if (view) {
       controller.saveEditorViewState(tabId, {
         selectionJSON: view.state.selection.toJSON(),

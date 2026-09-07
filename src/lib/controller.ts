@@ -37,6 +37,10 @@ export const notesDir = writable<string>("");
  * mirrors whatever `AppConfig` last reported. */
 export const recentNotesDirs = writable<string[]>([]);
 export const colorMode = writable<ColorMode>("grayscale");
+/** Soft word-wrap in the editor (§80). Mirrors `AppConfig.wordWrap`;
+ * `EditorPane` subscribes to it and reconfigures a CodeMirror compartment
+ * live, so toggling takes effect without a remount. Off by default. */
+export const wordWrap = writable<boolean>(false);
 /** Whether the top bar should show icon+label (true) or icon-only (false) —
  * driven by the OS window being maximized or fullscreen. */
 export const chromeExpanded = writable<boolean>(false);
@@ -292,6 +296,7 @@ export async function initApp() {
   recentNotesDirs.set(cfg.recentNotesDirs);
   colorMode.set(cfg.colorMode);
   applyColorModeToDom(cfg.colorMode);
+  wordWrap.set(cfg.wordWrap);
   await restoreOrBootstrapTabs();
   tabs.subscribe(() => scheduleTabSessionSave());
   activeTabId.subscribe(() => scheduleTabSessionSave());
@@ -323,6 +328,15 @@ export async function setColorMode(mode: ColorMode) {
     await api.setColorMode(mode);
   } catch {
     showToast("Failed to save theme preference");
+  }
+}
+
+export async function setWordWrap(enabled: boolean) {
+  wordWrap.set(enabled);
+  try {
+    await api.setWordWrap(enabled);
+  } catch {
+    showToast("Failed to save word-wrap preference");
   }
 }
 
