@@ -2941,3 +2941,34 @@ needed now that `main.ts` reads `import.meta.env`); `@playwright/test` as
 a dev dependency; `npm run test:e2e` / `:e2e:ui` / `:e2e:report` scripts;
 `e2e` + `build-guard` jobs in `.github/workflows/test.yml`;
 `tests/e2e/README.md` documents the whole setup.
+
+---
+
+## 78. Jump to next / previous open action (`Ctrl+↓` / `Ctrl+↑`)
+
+**Status: implemented.** `Ctrl+Space` cycles the *current* line's action
+state; there was no quick way to *get to* the next unresolved one in a
+long note without scrolling and hunting. Added an editor-level shortcut
+that moves the cursor to the next (`Ctrl+↓`) or previous (`Ctrl+↑`) open
+action, wrapping around at the ends.
+
+"Open action" is the same set everything else already agrees on — a
+plain `# ` line (indented or not, §50) or a `=> #` consequence-action
+(§41), i.e. `innermostActionSymbol(line) === "#"`. Resolved states
+(`v `/`x `/`> `), bullets, emphasis, plain `=> ` follow-ups and `=> @name`
+delegations are skipped.
+
+`tokens.ts` gained `openActionLineIndices()` and `adjacentOpenActionLine(text,
+fromLineIdx, dir)` (the wrap logic, unit-tested — empty note, single
+action, both directions, cursor on/between actions). `EditorPane.svelte`'s
+keymap calls it and dispatches a cursor move to the target line's start
+with `scrollIntoView`, matching how the Action Drawer's "jump to line"
+already behaves. A note with zero open actions gets a
+`"No open actions in this note"` toast rather than a silent no-op (same
+pattern as `reopenLastClosedTab`'s "No recently closed tabs").
+
+**Key choice:** `Ctrl+ArrowUp`/`Ctrl+ArrowDown` are unbound in CodeMirror's
+`defaultKeymap` and not intercepted by `App.svelte`'s global handler, so
+there's no conflict; the editor `keymap` sits ahead of `defaultKeymap` in
+the extension order regardless. Listed in the Shortcuts drawer. Covered
+by `tokens.test.ts` and `tests/e2e/open-action-nav.spec.ts`.
