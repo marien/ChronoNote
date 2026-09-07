@@ -37,6 +37,7 @@ export type ColorMode = "color" | "grayscale";
 export interface AppConfig {
   notesDir: string;
   colorMode: ColorMode;
+  wordWrap: boolean;
   recentNotesDirs: string[];
 }
 

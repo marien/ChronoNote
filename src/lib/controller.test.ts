@@ -9,6 +9,7 @@ const apiMock = {
   getConfig: vi.fn(),
   setNotesDir: vi.fn(),
   setColorMode: vi.fn(),
+  setWordWrap: vi.fn(),
   listNoteFiles: vi.fn(),
   readNote: vi.fn(),
   writeNote: vi.fn(),
@@ -58,8 +59,18 @@ beforeEach(async () => {
   apiMock.writeNote.mockResolvedValue(undefined);
   apiMock.writeTabSession.mockResolvedValue(undefined);
   apiMock.openExternalUrl.mockResolvedValue(undefined);
-  apiMock.getConfig.mockResolvedValue({ notesDir: "/notes", colorMode: "grayscale", recentNotesDirs: [] });
-  apiMock.setNotesDir.mockResolvedValue({ notesDir: "/new", colorMode: "grayscale", recentNotesDirs: [] });
+  apiMock.getConfig.mockResolvedValue({
+    notesDir: "/notes",
+    colorMode: "grayscale",
+    wordWrap: false,
+    recentNotesDirs: [],
+  });
+  apiMock.setNotesDir.mockResolvedValue({
+    notesDir: "/new",
+    colorMode: "grayscale",
+    wordWrap: false,
+    recentNotesDirs: [],
+  });
   apiMock.getAppVersion.mockResolvedValue("0.0.0-test");
   tauriWindowMock.setTitle.mockResolvedValue(undefined);
   tauriWindowMock.isFullscreen.mockResolvedValue(false);
@@ -440,7 +451,12 @@ describe("importSectionsIntoActiveTab", () => {
 describe("directory switching", () => {
   it("switches directly when there's no unresolved scratchpad content", async () => {
     controller.tabs.set([tab({ id: "a", content: "saved note" })]);
-    apiMock.setNotesDir.mockResolvedValue({ notesDir: "/new-folder", colorMode: "grayscale", recentNotesDirs: [] });
+    apiMock.setNotesDir.mockResolvedValue({
+      notesDir: "/new-folder",
+      colorMode: "grayscale",
+      wordWrap: false,
+      recentNotesDirs: [],
+    });
     await controller.switchToRecentDirectory("/new-folder");
     expect(get(controller.notesDir)).toBe("/new-folder");
     expect(get(controller.modal)).toBe("none");
@@ -464,7 +480,12 @@ describe("directory switching", () => {
 
   it("confirmDiscardAndSwitch proceeds despite the unsaved scratchpad", async () => {
     controller.tabs.set([tab({ id: "a", isScratchpad: true, content: "unsaved idea" })]);
-    apiMock.setNotesDir.mockResolvedValue({ notesDir: "/new-folder", colorMode: "grayscale", recentNotesDirs: [] });
+    apiMock.setNotesDir.mockResolvedValue({
+      notesDir: "/new-folder",
+      colorMode: "grayscale",
+      wordWrap: false,
+      recentNotesDirs: [],
+    });
     await controller.switchToRecentDirectory("/new-folder");
     await controller.confirmDiscardAndSwitch();
     expect(apiMock.setNotesDir).toHaveBeenCalledWith("/new-folder");
@@ -474,11 +495,17 @@ describe("directory switching", () => {
 
 describe("initApp", () => {
   it("loads config and always includes today's tab", async () => {
-    apiMock.getConfig.mockResolvedValue({ notesDir: "/notes", colorMode: "color", recentNotesDirs: ["/old"] });
+    apiMock.getConfig.mockResolvedValue({
+      notesDir: "/notes",
+      colorMode: "color",
+      wordWrap: true,
+      recentNotesDirs: ["/old"],
+    });
     vi.setSystemTime(new Date(2026, 8, 15));
     await controller.initApp();
     expect(get(controller.notesDir)).toBe("/notes");
     expect(get(controller.colorMode)).toBe("color");
+    expect(get(controller.wordWrap)).toBe(true);
     expect(get(controller.recentNotesDirs)).toEqual(["/old"]);
     expect(get(controller.tabs).some((t) => t.filename === "2026-09-15.txt")).toBe(true);
     vi.useRealTimers();
@@ -542,6 +569,18 @@ describe("setColorMode", () => {
     expect(get(controller.colorMode)).toBe("color");
     expect(document.documentElement.dataset.colorMode).toBe("color");
     expect(apiMock.setColorMode).toHaveBeenCalledWith("color");
+  });
+});
+
+describe("setWordWrap (§80)", () => {
+  it("updates the store and persists via the API", async () => {
+    await controller.setWordWrap(true);
+    expect(get(controller.wordWrap)).toBe(true);
+    expect(apiMock.setWordWrap).toHaveBeenCalledWith(true);
+
+    await controller.setWordWrap(false);
+    expect(get(controller.wordWrap)).toBe(false);
+    expect(apiMock.setWordWrap).toHaveBeenLastCalledWith(false);
   });
 });
 

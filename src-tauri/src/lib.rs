@@ -33,6 +33,14 @@ fn set_color_mode(app: AppHandle, mode: String) -> Result<storage::AppConfig, St
 }
 
 #[tauri::command]
+fn set_word_wrap(app: AppHandle, enabled: bool) -> Result<storage::AppConfig, String> {
+    let mut cfg = storage::load_config(&app)?;
+    cfg.word_wrap = enabled;
+    storage::save_config(&app, &cfg)?;
+    Ok(cfg)
+}
+
+#[tauri::command]
 fn list_note_files(app: AppHandle) -> Result<Vec<String>, String> {
     storage::list_note_files(&app)
 }
@@ -102,6 +110,7 @@ pub fn run() {
             get_config,
             set_notes_dir,
             set_color_mode,
+            set_word_wrap,
             list_note_files,
             read_note,
             write_note,

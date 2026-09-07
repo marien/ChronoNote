@@ -3006,3 +3006,36 @@ baseline alignment) to dead-centered (`delta: 0`), so glyphs read as
 better aligned with their text than before, not just consistently
 spaced. Locked in by `tests/e2e/glyph-layout.spec.ts`, including the
 tall-fallback-font simulation.
+
+---
+
+## 80. Optional soft word-wrap in the editor
+
+**Status: implemented.** The editor has always scrolled long lines
+horizontally — deliberate, per the tabular-monospace-grid tenet (spec
+1.2): wrapping would break column alignment in tables and aligned notes.
+But for prose-heavy notes that's the wrong default, and there was no way
+to change it. Added a **Settings toggle** ("Editor → Word wrap"), off by
+default so nothing changes for anyone who doesn't opt in.
+
+**Persistence** follows the exact `color_mode` pattern: a new
+`word_wrap: bool` field on `AppConfig` (`storage.rs`, `#[serde(default)]`
+→ `false` for a config written before it existed), a `set_word_wrap`
+command (`lib.rs`), `api.setWordWrap()`, a `wordWrap` store in
+`controller.ts` set from config in `initApp` and written through
+`setWordWrap()`.
+
+**Live toggle, no remount:** `EditorPane.svelte` wraps
+`EditorView.lineWrapping` in a CodeMirror `Compartment`, seeded from the
+store at mount and `reconfigure`d by a plain store subscription (not a
+`$:` block — the TopBar.svelte reactivity note applies) whenever Settings
+flips it. The document, cursor, undo history and scroll position are
+untouched — confirmed by an E2E test that tags the `.cm-editor` node and
+checks it's the same element after toggling.
+
+Covered by `storage.rs` tests (round-trip + older-config default),
+`controller.test.ts` (`setWordWrap` + `initApp` reads it), and
+`tests/e2e/word-wrap.spec.ts` (default scrolls, toggle wraps + persists
+across reload, seeded-on boots wrapped, reconfigure-in-place). The mock
+backend (`src/lib/testing/mockBackend.ts`) mirrors the new command and
+field.

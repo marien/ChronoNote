@@ -110,6 +110,9 @@ Scenarios: `empty`, `single-day`, `busy-week`, `heavy` (~10 weeks),
 | --- | --- |
 | `smoke` | mock boot, session restore, token→glyph→disk round-trip |
 | `editor-tokens` | every spec-2.2 glyph, Ctrl+Space cycle, bullet continuation, indentation |
+| `open-action-nav` | Ctrl+↓ / Ctrl+↑ jump between open actions, wrapping (§78) |
+| `glyph-layout` | glyph lines are the same height as plain lines, incl. tall-fallback-font sim (§79) |
+| `word-wrap` | Settings toggle wraps / unwraps, persists across reload, reconfigures in place (§80) |
 | `tabs-lifecycle` | create/close/cycle/reopen, both safety-close gates |
 | `action-drawer` | open/all scope, Only-Open, filter, `@`, cycle, forward-to-today, jump |
 | `navigation` | date-picker grammar, Open-Only, create-on-open |
