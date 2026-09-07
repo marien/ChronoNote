@@ -2830,3 +2830,32 @@ suite can't silently drift out of sync with what's actually committed.
 expectation in `CLAUDE.local.md` — a change to the tested logic without
 a corresponding test change is a sign something was missed, the same
 way a change without a changelog entry would be.
+
+---
+
+## 76. MIT license
+
+**Status: implemented.** Through §75 the repo had no `LICENSE` file at
+all. For a project that's public on GitHub with tagged releases and
+downloadable installers, "no license" is not neutral — it defaults to
+all-rights-reserved, so nobody can legally fork, modify, or redistribute
+it even though every other signal (open repo, published binaries) invites
+them to. This closes that gap.
+
+**MIT**, specifically: it's about the shortest permissive license, imposes
+no copyleft, and asks only that the notice travel with source copies — no
+obligations that would touch the distributed binary, which would be
+overkill for a plain-text notes editor. Copyright line is
+`2026 Marien de Gelder`.
+
+Declared in three places beyond the `LICENSE` file itself so tooling and
+GitHub's license-detection actually pick it up:
+- `package.json` — `"license": "MIT"`
+- `src-tauri/Cargo.toml` — `license = "MIT"`
+- `README.md` — a `## License` section linking `LICENSE`
+
+Landed in commit `36e711d`, after v0.3.0 was already tagged. No version
+bump: adding a license isn't a code change and doesn't alter the built
+app. This entry is written retroactively — the commit shipped without a
+§-entry at the time, which (per §75's own closing note) is exactly the
+kind of gap the changelog is supposed to not have.
