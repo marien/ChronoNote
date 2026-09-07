@@ -5,6 +5,10 @@ dist-ssr
 tauri-dev.log
 tauri-build.log
 
+# Claude Code tooling config (Browser-pane dev-server launch config) —
+# not part of the project itself, kept local rather than shared via git.
+.claude/
+
 src-tauri/target
 src-tauri/gen
 
