@@ -11,6 +11,10 @@
     "check": "svelte-check --tsconfig ./tsconfig.json",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:report": "playwright show-report",
+    "check:e2e": "tsc -p tests/tsconfig.json",
     "tauri": "tauri"
   },
   "dependencies": {
@@ -22,6 +26,7 @@
     "@tauri-apps/plugin-opener": "^2.5.5"
   },
   "devDependencies": {
+    "@playwright/test": "^1.63.0",
     "@sveltejs/vite-plugin-svelte": "^4.0.0",
     "@tauri-apps/cli": "^2.1.0",
     "jsdom": "^30.0.1",
