@@ -79,7 +79,9 @@ file — no database, no front-matter, no injected IDs.
   aligned under the bullet's text (two spaces past the bullet's own
   indentation) with no new bullet.
 - Copying a `# ` line and pasting it into today's note, or any later-dated
-  note, marks the original as deferred (`> `) back in its source file/tab.
+  note, marks the original as deferred (`> `) back in its source file/tab
+  — copying several lines together defers every open action found in the
+  copy, not just one at its start.
 - Safety modal blocking tab close for two independent reasons: unresolved
   open actions, or a non-empty scratchpad (which would otherwise be
   permanently lost, since scratchpads are never written to disk) — with
@@ -87,9 +89,11 @@ file — no database, no front-matter, no injected IDs.
   `Ctrl+Shift+T` / `Ctrl+Shift+N` reopen the most recently closed tab, with
   a multi-level history, as a second layer of recovery.
 - Date picker (`Ctrl+O`, with a toggle to show only dates with open
-  actions), cross-tab action drawer (`Ctrl+Shift+A`, items you complete
-  with `Ctrl+Space` stay visible until you close the drawer, plus a toggle
-  to show every open/deferred/delegated line or strictly open ones only),
+  actions — remembered for the rest of the session, off by default),
+  cross-tab action drawer (`Ctrl+Shift+A`, items you complete with
+  `Ctrl+Space` stay visible until you close the drawer, plus a toggle —
+  remembered for the session, on by default — to show every open/
+  deferred/delegated/done/won't-do line or strictly open ones only),
   section history (`Ctrl+Shift+H`), cross-tab search (`Ctrl+Shift+F`), and
   manual section import (`Ctrl+Shift+I`) — paste freeform lines and each
   becomes a new section header, appended to the current note. Both the
@@ -117,6 +121,9 @@ file — no database, no front-matter, no injected IDs.
   `Ctrl+Shift+Tab`. If the window is maximized/fullscreen and space gets
   tight, the action buttons' labels collapse to icon-only first to reclaim
   room, before the scroll buttons are needed at all.
+- Switching away from a tab and back resumes exactly where you left off —
+  the cursor position and how far you'd scrolled are both remembered per
+  tab for the rest of the session (not persisted across restarts).
 - The window title shows the current notes folder's name (just the folder,
   not the full path) — e.g. "ChronoNote - Notes" — updating live if you
   switch folders via Settings.
@@ -132,7 +139,16 @@ file — no database, no front-matter, no injected IDs.
   projects/scopes: it closes every open tab and reloads everything from
   the new folder, blocking the switch first if any scratchpad has content
   that was never promoted (the only state that would actually be lost)
-- `Ctrl+/` opens a shortcuts help drawer listing every keybinding
+- `Ctrl+/` opens a shortcuts help drawer listing every keybinding;
+  `Ctrl+Shift+/` opens a Symbols & Sections legend explaining every
+  token → glyph mapping and how section headers are formatted. Both
+  drawers move keyboard focus into their own scrollable list on open, so
+  arrow keys/Page Up/Page Down/Home/End scroll the drawer instead of the
+  editor behind it, while every global shortcut (including `Escape`)
+  keeps working regardless of where focus sits.
+- An About drawer (the "ℹ" icon, right of the Settings gear) shows the
+  project's GitHub link — opened in the OS's default browser — and the
+  currently-running version number, read live rather than hardcoded.
 - Top-bar buttons show icon+label when the window is maximized or
   fullscreen, and collapse to icon-only otherwise
 - Launches without the white-flash-before-dark-theme most Tauri apps show:

@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount, tick } from "svelte";
   import * as controller from "../../controller";
-  import { actionSnapshot, activeTabId, tabs } from "../../controller";
+  import { actionDrawerShowOnlyOpen, actionSnapshot, activeTabId, tabs } from "../../controller";
   import { closeOnOutsideClick } from "../../actions/closeOnOutsideClick";
   import { innermostActionSymbol, stripLeadingToken } from "../../tokens";
   import type { ActionSnapshotItem } from "../../types";
@@ -9,7 +9,6 @@
   let filter = "";
   let selectedIndex = 0;
   let scope: "open" | "all" = "open";
-  let showOnlyOpen = false;
   let inputEl: HTMLInputElement;
 
   // §42: open focused on whatever entry belongs to the currently active
@@ -52,7 +51,7 @@
     // §44: toggle between today's behavior (open/deferred/delegated) and
     // strictly open only — an open `# ` line, or an open `=> #`
     // consequence-action (§41); resolved states are never "open."
-    if (showOnlyOpen && innermostActionSymbol(item.line) !== "#") return false;
+    if ($actionDrawerShowOnlyOpen && innermostActionSymbol(item.line) !== "#") return false;
     const isDelegated = item.line.includes("=> @");
     if (isDelegated && !showDelegated) return false;
     if (!filter) return true;
@@ -239,7 +238,7 @@
         >
         <button class="icon-btn {scope === 'all' ? 'active' : ''}" on:click={() => setScope("all")}>All Files</button>
         <label class="toggle-switch">
-          <input type="checkbox" bind:checked={showOnlyOpen} />
+          <input type="checkbox" bind:checked={$actionDrawerShowOnlyOpen} />
           <span class="toggle-switch-track"></span>
           Only Open
         </label>

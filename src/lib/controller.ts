@@ -25,6 +25,8 @@ export type ModalKind =
   | "sectionImport"
   | "settings"
   | "shortcuts"
+  | "glyphLegend"
+  | "about"
   | "unsavedScratchpads";
 
 export const tabs = writable<NoteTab[]>([]);
@@ -39,6 +41,18 @@ export const colorMode = writable<ColorMode>("grayscale");
  * driven by the OS window being maximized or fullscreen. */
 export const chromeExpanded = writable<boolean>(false);
 
+/** Action Drawer's "Only Open" toggle (§44), remembered across drawer
+ * opens/closes for the rest of the session rather than resetting to a
+ * fixed default every time — in-memory only, like `chromeExpanded` above,
+ * not persisted to disk. Defaults to on at launch. */
+export const actionDrawerShowOnlyOpen = writable<boolean>(true);
+
+/** Date picker's "Open Only" toggle (§43) — same in-memory,
+ * remembered-for-the-session treatment as `actionDrawerShowOnlyOpen`
+ * above, but defaults to *off* at launch (unlike the Action Drawer's),
+ * per what was actually asked for each. */
+export const datePickerOpenOnly = writable<boolean>(false);
+
 export const toastMessage = writable<string>("");
 export const statusPos = writable<{ line: number; col: number }>({ line: 1, col: 1 });
 export const statusCounts = writable<{ open: number; closed: number; forwarded: number }>({
@@ -48,6 +62,10 @@ export const statusCounts = writable<{ open: number; closed: number; forwarded: 
 });
 
 export const modal = writable<ModalKind>("none");
+/** Populated once at startup (`initApp`) for the About drawer — read live
+ * from Tauri rather than hardcoded, so it can't drift from whatever
+ * version is actually running. Empty string until then. */
+export const appVersion = writable<string>("");
 export const pendingCloseTabId = writable<string | null>(null);
 export const safetyMessage = writable<string>("");
 export const pendingNotesDirSwitch = writable<string | null>(null);
@@ -71,6 +89,34 @@ export interface EditorApi {
 export let editorApi: EditorApi | null = null;
 export function registerEditorApi(next: EditorApi | null) {
   editorApi = next;
+}
+
+/** Remembers each tab's cursor/selection and scroll position across
+ * switches, so returning to a tab resumes exactly where you left off
+ * instead of dropping you at the top with the cursor at (1,1) — every tab
+ * switch fully remounts CodeMirror (see the `{#key}` block in App.svelte
+ * and `EditorPane.svelte`'s `onDestroy`/`onMount`), which would otherwise
+ * lose both. Keyed by tab id, in-memory only — not persisted to disk or
+ * restored across app restarts, since this is about switching tabs
+ * within a running session, not session restore (a separate, existing
+ * mechanism). Cleared when a tab actually closes, in `closeTab()` below,
+ * so entries can't accumulate for tabs that no longer exist. */
+export interface EditorViewState {
+  selectionJSON: unknown;
+  // A CodeMirror `StateEffect` from `view.scrollSnapshot()` (typed `unknown`
+  // here so this module doesn't need to depend on `@codemirror/state` —
+  // `EditorPane.svelte` is the only thing that creates or consumes it).
+  // Anchored to a specific line/block rather than a raw pixel offset, so
+  // it stays correct even if line heights shift slightly between saving
+  // and restoring.
+  scrollEffect: unknown;
+}
+const editorViewStateByTabId = new Map<string, EditorViewState>();
+export function saveEditorViewState(tabId: string, state: EditorViewState) {
+  editorViewStateByTabId.set(tabId, state);
+}
+export function getEditorViewState(tabId: string): EditorViewState | undefined {
+  return editorViewStateByTabId.get(tabId);
 }
 
 export function getActiveTabId(): string {
@@ -249,6 +295,7 @@ export async function initApp() {
   await restoreOrBootstrapTabs();
   tabs.subscribe(() => scheduleTabSessionSave());
   activeTabId.subscribe(() => scheduleTabSessionSave());
+  api.getAppVersion().then((v) => appVersion.set(v));
 }
 
 /** Tracks whether the OS window is maximized or fullscreen, so the top bar
@@ -400,6 +447,7 @@ export function closeTab(tabId: string) {
   const idx = list.findIndex((t) => t.id === tabId);
   if (idx === -1) return;
 
+  editorViewStateByTabId.delete(tabId);
   closedTabHistory.push({
     filename: list[idx].filename,
     isScratchpad: list[idx].isScratchpad,
@@ -572,14 +620,15 @@ export async function commitDatePick(dateStr: string) {
 
 // --- Action drawer (toggle between open tabs and all files) ---
 
-/** "Action lines" the drawer surfaces: open (`# `) and deferred (`> `) —
- * including indented (§50) and `=> <symbol>` consequence-action (§41)
- * forms — plus plain delegated-to-a-person lines (`=> @name`, unchanged).
- * Resolved states (`v `/`x `, standalone or via `=> `) are excluded here
- * the same way `v ` always was — that's what "only open" (§44) narrows
- * further, not what decides inclusion in the first place. */
+/** "Action lines" the drawer surfaces: all four action states (`# `/
+ * `v `/`> `/`x `, standalone or indented, §50) and both `=> ` forms — a
+ * consequence-action's own inner symbol (`=> <symbol>`, §41) and plain
+ * delegated-to-a-person lines (`=> @name`). "Only Open" (§44/§67) is what
+ * narrows this down to `#` alone; inclusion here covers every state so
+ * turning that toggle off reveals `v `/`x ` lines too (previously
+ * excluded from the drawer outright, regardless of the toggle). */
 function isActionLine(line: string): boolean {
-  return /^\s*#\s/.test(line) || /^\s*>\s/.test(line) || line.includes("=> @") || /=>\s[#>]\s/.test(line);
+  return /^\s*[#>vx]\s/.test(line) || line.includes("=> @") || /=>\s[#>vx]\s/.test(line);
 }
 
 export function buildActionSnapshotOpenTabs(): ActionSnapshotItem[] {
@@ -754,12 +803,21 @@ export async function openMeetingHistory() {
       }
       if (!inSection) return;
       // §40/§50: `x` and indentation join the other three action symbols.
-      const isActionOrFollow = /^\s*[#vx>]\s/.test(line) || line.startsWith("=> ");
+      // §41/§59: `=> ` isn't anchored to the start of the line either —
+      // it can follow other text ("Talked to Sam => # follow up") — so
+      // this checks for it anywhere, not just as the line's first two
+      // characters, the same fix `cycleActionSymbol`/`stripLeadingToken`
+      // needed for the same reason.
+      const isActionOrFollow = /^\s*[#vx>]\s/.test(line) || line.includes("=> ");
       if (isActionOrFollow) {
-        // §41: an optional inner action symbol after "=> " (as well as an
-        // assignee) is stripped from the dedup key the same way.
+        // Strip a plain leading symbol (still anchored — those are always
+        // at the true start of the line) and, separately, a `=> ` and its
+        // optional assignee/inner symbol wherever *that* falls, so two
+        // occurrences of the same action reworded with different leading
+        // context still dedupe as one.
         const normalizedBody = line
-          .replace(/^\s*(#|v|x|>|=>)\s+(@\w+\s+|[#vx>]\s+)?/, "")
+          .replace(/^\s*[#vx>]\s+/, "")
+          .replace(/=>\s+(@\w+\s+|[#vx>]\s+)?/, "")
           .trim()
           .toLowerCase();
         if (!seen.has(normalizedBody)) {
@@ -874,6 +932,24 @@ export function openShortcutsHelp() {
   modal.set("shortcuts");
 }
 
+export function openGlyphLegend() {
+  modal.set("glyphLegend");
+}
+
+export const PROJECT_URL = "https://github.com/marien/ChronoNote";
+
+export function openAbout() {
+  modal.set("about");
+}
+
+/** Opens a link in the OS's default browser rather than inside the app's
+ * own webview — used by the About drawer's project link. Errors are
+ * swallowed rather than surfaced: worst case a click does nothing, which
+ * isn't worth a toast/modal of its own. */
+export function openProjectLink() {
+  api.openExternalUrl(PROJECT_URL).catch(() => {});
+}
+
 /** Directory switching is treated as project/scope switching: everything
  * currently loaded (open tabs, search/action/history caches) is scoped to
  * the old directory and becomes stale the moment `notesDir` changes, so a
@@ -938,6 +1014,7 @@ async function performDirectorySwitch(path: string) {
   searchResultsStore.set([]);
   tabs.set([]);
   activeTabId.set("");
+  editorViewStateByTabId.clear();
 
   await restoreOrBootstrapTabs();
   modal.set("none");
@@ -949,8 +1026,16 @@ async function performDirectorySwitch(path: string) {
 
 let lastCopiedAction: { text: string; sourceTabId: string } | null = null;
 
+/** Indentation-tolerant (§50, same as everywhere else an open-action
+ * symbol is recognized) and multi-line: a copied block only needs *some*
+ * line to be an open action, not the whole selection to start with one —
+ * copying a few lines together (a mix of open actions and plain text, or
+ * several open actions at once) is exactly the case this needs to keep
+ * working for. */
+const OPEN_ACTION_LINE = /^(\s*)#(\s)/;
+
 export function recordCopiedAction(text: string, sourceTabId: string) {
-  if (text.startsWith("# ")) {
+  if (new RegExp(OPEN_ACTION_LINE, "m").test(text)) {
     lastCopiedAction = { text, sourceTabId };
   }
 }
@@ -979,8 +1064,18 @@ export function handlePasteIntoTab(targetTabId: string) {
   const list = get(tabs);
   const srcTab = list.find((t) => t.id === copied.sourceTabId);
   if (srcTab && srcTab.content.includes(copied.text)) {
-    const newSrcContent = srcTab.content.replace(copied.text, "> " + copied.text.slice(2));
+    // Defer every open action *within* the copied block, not just one at
+    // its start — pasting a multi-line copy that happens to carry several
+    // "# " lines (or one indented past the block's first line) should
+    // forward all of them, the same as pasting just one always has.
+    const deferredBlock = copied.text.replace(new RegExp(OPEN_ACTION_LINE, "gm"), "$1>$2");
+    const newSrcContent = srcTab.content.replace(copied.text, deferredBlock);
     tabs.set(writeTabContent(srcTab.id, newSrcContent, list));
-    showToast(`Original task on ${srcTab.filename} marked deferred`);
+    const count = (copied.text.match(new RegExp(OPEN_ACTION_LINE, "gm")) ?? []).length;
+    showToast(
+      count > 1
+        ? `${count} original tasks on ${srcTab.filename} marked deferred`
+        : `Original task on ${srcTab.filename} marked deferred`,
+    );
   }
 }

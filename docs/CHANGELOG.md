@@ -2187,3 +2187,557 @@ precedes the arrow (nothing, or "Talked to Sam ", or anything else) as
 part of the preserved prefix instead of requiring it to be empty. Cycling
 now works identically regardless of where on the line the `=> <symbol>`
 sits.
+
+---
+
+## 60. Bug fix: top-bar label flicker persisted on a specific display (§56 was incomplete, and so was this)
+
+**Status: superseded by §61 — the hysteresis fix below turned out to be
+solving the wrong problem, though it's harmless and was left in place.**
+Reported the morning after v0.2.1 shipped: still
+flickering when maximized, but only on one machine's main display
+(1920×1200) and not on its other two (1920×1080) — same width, different
+height, so almost certainly a difference in per-monitor Windows display
+scaling (DPI) between them rather than raw resolution.
+
+§56 fixed one real cause of this (Svelte re-rendering on every assignment
+to a reactive variable even when reassigning the exact same value) but
+that fix only helps when `settleLayout()`'s *decision* comes out
+identical from one call to the next. It does nothing if the
+*measurement* itself is genuinely noisy right at the fits/doesn't-fit
+boundary — which is exactly what non-100% display scaling can cause:
+`scrollWidth`/`clientWidth` are both whole device pixels under the hood,
+and at certain scale factors that rounding can land on either side of
+the line from one layout pass to the next with nothing meaningfully
+different about the actual content. Confirmed the mechanism (not
+reproducible directly without matching hardware, but verified in
+isolation): simulating that exact pattern — a boundary value jittering by
+1-3px across calls — against the old algorithm reproduced continuous
+flip-flopping on nearly every call, while the same simulation against the
+new one below never flipped once.
+
+**Fix:** rewrote `settleLayout()`'s decision to (a) start from the
+*current* `showActionLabels` state each time instead of always resetting
+to "try labels on" from scratch, and (b) require clearing an 8px margin —
+not just barely crossing the exact fits/doesn't-fit line — before
+flipping either direction. A measurement wobbling by a pixel or two can
+no longer flip the decision on its own; only a real, clearly-more-than-
+noise change in available width can. `isOverflowing` keeps its exact
+(no-margin) comparison, since scroll-arrow correctness has no comparable
+noise-tolerance need and no reason to lag the true state.
+
+Left in place (see §61) since it's harmless and a reasonable defensive
+measure, but it did not fix the report it was written for — the user
+retested and confirmed the flicker was unchanged.
+
+---
+
+## 61. Bug fix: top-bar label flicker, the actual root cause
+
+**Status: fixed** (superseding §60's diagnosis). With §60's fix confirmed
+not to help, and temporary diagnostic logging added to `settleLayout()`,
+the user captured real console output from the affected display via the
+dev build's DevTools — and it immediately reframed the whole problem:
+
+```
+[dbg] settle 1159 end {labels: false, overflowing: true, sw: 1781, cw: 1607}
+[dbg] settle 1160 start {labels: false, sw: 1781, cw: 1607, dpr: 1}
+[dbg] settle 1160 after-try-on {sw: 1781, cw: 1185}
+[dbg] settle 1160 end {labels: false, overflowing: true, sw: 1781, cw: 1607}
+[dbg] settle 1161 start {labels: false, sw: 1781, cw: 1607, dpr: 1}
+...
+```
+
+`settleLayout()` had been called **1160+ times**, every single one
+computing the *exact same* correct decision (`labels: false`,
+`overflowing: true`) from *identical* measurements (`sw`/`cw` never
+varied). §60's entire premise — a measurement wobbling near the
+fits/doesn't-fit boundary — was wrong: there was no boundary wobble here
+at all, just a runaway call count. The visible "flicker" was each pass
+still optimistically flashing labels on for one frame (`showActionLabels
+= true`, wait a frame, measure, revert) before reverting — a real,
+correct part of the algorithm, just repeated far more often than it
+should ever run.
+
+**Root cause:** `settleLayout()` and `scrollActiveTabIntoView()` are
+`async` and `await` a video frame partway through (via `nextFrame()`, a
+`requestAnimationFrame` wrapper — §55 already moved them off Svelte's own
+`tick()` to fix an earlier, harder freeze caused by exactly this class of
+problem). §55's fix reduced *how often* a write in the resumed
+continuation could retrigger the very `$:` reactive statement that made
+the original call — bounding it to once per rendered frame instead of
+potentially many times per Svelte flush — but it turns out that wasn't
+enough to eliminate the retrigger, only slow it down. On a display that's
+continuously compositing at 60Hz+ (unlike the throttled/backgrounded test
+environments used to verify §55 and §60), "at most once per frame" is
+still unbounded over time — which is exactly what a call count in the
+thousands looks like.
+
+**Fix:** both `$:` blocks now invoke their function via
+`queueMicrotask(...)` instead of calling it directly:
+
+```ts
+$: {
+  void $chromeExpanded;
+  void displayTabs;
+  if (tabBarEl) queueMicrotask(settleLayout);
+}
+```
+
+Queuing the call defers even its first synchronous statement to a later
+microtask, run only after Svelte has fully finished flushing the current
+reactive statement. Nothing inside the queued function — not its
+synchronous prefix, not anything after an internal `await` — can then be
+attributed back to the `$:` block that scheduled it, because by the time
+any of it runs, that block's own execution is long over. Verified by
+forcing continuous repainting for several seconds under a live, moving
+resize (not just a single static layout) and confirming the call count
+stayed at the number of genuine triggers instead of climbing.
+
+This did not hold up either — see §62.
+
+---
+
+## 62. Bug fix: top-bar label flicker, attempt four
+
+**Status: fixed** (pending the user's confirmation on the display that
+reproduces it — every prior attempt looked fixed here first). Reported
+again after §61 shipped, with a new detail: it now also happened on
+*middle* tabs, not just tabs near either end of the strip, pointing at
+`scrollActiveTabIntoView` (which scrolls the tab strip to follow the
+active tab) as at least as implicated as `settleLayout`.
+
+Every attempt through §55/§56/§60/§61 treated a symptom where it was
+last observed — first `tick()` specifically, then any reactive write,
+then calling the function directly from a `$:` block at all — without
+removing the actual channel: `settleLayout` and `scrollActiveTabIntoView`
+are both `async`, both `await` a frame partway through, and both were
+being *invoked from* `$:` reactive statements. Svelte 5's fine-grained,
+signal-based reactivity (unlike Svelte 4's static, compile-time
+dependency analysis) tracks a `$:` block's dependencies by what it
+actually touches while running — §61's `queueMicrotask` was meant to put
+the call fully outside that tracking window, and evidently still didn't,
+for reasons not confirmed against Svelte's source, only inferred from
+every fix so far moving where the retrigger showed up rather than ending
+it.
+
+**Fix:** stopped using `$:` blocks to invoke these two functions at all.
+`onMount` now sets up plain store subscriptions instead —
+`tabs.subscribe`, `chromeExpanded.subscribe`, and `activeTabId.subscribe`
+call `settleLayout`/`scrollActiveTabIntoView` directly:
+
+```ts
+const unsubTabs = tabs.subscribe(() => settleLayout());
+const unsubChrome = chromeExpanded.subscribe(() => settleLayout());
+const unsubActive = activeTabId.subscribe(() => scrollActiveTabIntoView());
+```
+
+Store subscriptions are Svelte 3/4's older, plain callback-based pub/sub
+— entirely separate machinery from the signals-based `$:` tracking that
+every previous fix was fighting. A write inside a subscription callback,
+or inside something it awaits, has no reactive statement left to ever be
+misattributed back to, because there is no reactive statement involved at
+all. This removes the channel rather than narrowing it further.
+
+---
+
+## 63. Remember each tab's cursor and scroll position across switches
+
+**Status: implemented.** Every tab switch fully remounts the editor (the
+`{#key activeTab.id}` block in App.svelte, there so typing doesn't reset
+the undo history or cursor on every keystroke — see §34-era notes),
+which as a side effect always dropped the cursor back to (1, 1) with no
+scroll, even mid-thought in a long note. Requested: remember where the
+caret was and how the viewport looked when leaving a tab, and restore
+both when coming back to it.
+
+Fix: `EditorPane.svelte` now takes a `tabId` prop and, on `onDestroy`,
+saves the view's current selection (`view.state.selection.toJSON()`) and
+a scroll snapshot (`view.scrollSnapshot()`) into a new in-memory,
+tab-id-keyed map (`saveEditorViewState`/`getEditorViewState` in
+controller.ts — not persisted to disk or restored across app restarts,
+since this is about switching tabs within a running session, not the
+separate, existing session-restore mechanism). On the next mount for that
+same tab, both are passed into the initial `EditorState`/`EditorView`
+config (`selection`/`scrollTo`) rather than applied via a `dispatch()`
+afterward — CodeMirror's own initial layout pass was observed fighting a
+post-construction scroll assignment (and, once a plain `view.focus()`'s
+native scroll-into-view behavior got involved too, sending it to the
+*bottom* instead) and winning regardless of ordering; setting both up
+front leaves nothing for anything else to override.
+
+A few implementation notes worth having found the hard way:
+- `view.scrollSnapshot()` is captured continuously (on every `scroll`
+  event), not once at destroy time — by the time `onDestroy` actually
+  runs, the scroller's raw `scrollTop`/`scrollLeft` had already been
+  observed reporting 0 regardless of where it visually was right
+  beforehand (something about the `{#key}` teardown order; not fully
+  explained, just reliably worked around).
+- `scrollSnapshot()` anchors to a specific line/block rather than a raw
+  pixel offset, so the restored scroll stays correct even if line heights
+  shift slightly between saving and restoring — a better fit here than
+  storing `scrollTop` directly.
+- Restoring a saved selection clamps both ends to the current document's
+  length first, in case content changed while the tab was inactive (e.g.
+  §49's paste-forward marking a `#` line as `>` elsewhere) and a saved
+  position no longer exists.
+- `EditorView.updateListener` only fires on a `dispatch()`, never for the
+  state a view is constructed with — since the initial selection is now
+  set that way, the status bar's line/column is set explicitly from
+  `view.state.selection` right after construction instead of assuming
+  (1, 1).
+- Entries are cleared from the map when a tab actually closes (in
+  `closeTab()`) or all tabs are torn down at once (switching notes
+  folders), so they can't accumulate for tabs that no longer exist.
+
+---
+
+## 64. Bug fix: copy/paste deferral only marked the first line of a multi-line copy
+
+**Status: fixed.** The copy/paste deferral feature (marks a copied `# `
+line as `> ` back in its source when pasted into today's note or later —
+spec 2.2) only ever recognized and rewrote the *first* line of what was
+copied. Copying several lines together — a few open actions at once, or
+one buried after some plain text — left every line but the first
+untouched in the source, even though all of them got pasted into the
+target as-is. Requested: mark every copied open action as deferred, not
+just the one on the first line.
+
+**Root cause:** `recordCopiedAction()` gated on `text.startsWith("# ")` —
+true only when the *entire* copied selection began with an unindented
+open-action token — and `handlePasteIntoTab()` rewrote the source by
+slicing off exactly the first two characters of the whole copied block
+and prepending `"> "` once, regardless of how many lines or other open
+actions it contained.
+
+**Fix:** `recordCopiedAction()` now checks for an open-action line
+*anywhere* in the copied text (`/^(\s*)#(\s)/m`, indentation-tolerant per
+§50) rather than requiring the whole selection to start with one, and
+`handlePasteIntoTab()` rewrites every matching line within the copied
+block (`.replace(..., "gm")`) instead of just the block's own start.
+Lines that aren't open actions — plain text, bullets, already-resolved
+actions — are left untouched wherever they fall in the copied block. The
+toast now reads "N original tasks... marked deferred" when more than one
+line was affected, instead of always describing a single task.
+
+---
+
+## 65. Bug fix: top-bar labels stopped appearing at all after §62
+
+**Status: fixed.** §62's store-subscription rewrite (confirmed to fix the
+flicker) came with a real regression: reported right after, the
+action-button labels never showed again, even after closing tabs down to
+just one with far more room than needed. Two independent bugs, found
+together while reproducing it directly:
+
+1. **A burst of rapid `tabs` updates could leave a stale decision in
+   place.** `settleLayout()`'s reentrancy guard (`settling`) simply
+   dropped a call that arrived while a previous one was still awaiting a
+   frame, rather than asking it to re-check afterward — closing several
+   tabs in quick succession could mean only an early, still-overflowing
+   state ever actually got evaluated, with nothing left to prompt a
+   re-check once the rest had closed too. Fixed by setting a
+   `settlePending` flag instead of dropping the call, and having the
+   in-flight run loop once more on the fresh state before releasing the
+   guard.
+
+2. **The actual root cause, and why fix #1 alone didn't help:**
+   `settleLayout()`'s "was icon-only, does it now fit with labels?" check
+   compared `tabBarEl.scrollWidth` against `clientWidth - FIT_MARGIN`.
+   `scrollWidth` is specified to never report less than `clientWidth` —
+   an element with room to spare reports them as *equal*, not the
+   content's actual (smaller) width — so once content fit at all,
+   `scrollWidth > clientWidth - FIT_MARGIN` reduced to `clientWidth >
+   clientWidth - 8`, which is unconditionally true regardless of how much
+   spare room actually existed. Labels got tried on, immediately measured
+   as "not enough room" no matter what, and reverted — every single time.
+   `scrollWidth`/`clientWidth` can answer "is it overflowing, and by how
+   much" correctly (used for the other two checks in this function,
+   unaffected by this), just not "how much spare room is there," which
+   isn't answerable from them at all once content fits.
+
+**Fix:** added `tabsContentWidth()`, which sums the tab elements' own
+`offsetWidth`s directly instead of relying on the container's
+`scrollWidth` — a measurement that actually shrinks when there's less
+content, however comfortably it fits — and used it only for that one
+check. Verified both fixes together: closing tabs one at a time in rapid
+succession down to a single tab, and closing straight down to one tab in
+a single update, both correctly bring the labels back.
+
+---
+
+## 66. Status bar always grayscale, regardless of the color/grayscale toggle
+
+**Status: implemented.** `--status-bg`/`--status-fg` were themed by
+Settings' color/grayscale toggle the same as everything else (blue in
+color mode) — requested: keep the status bar neutral always, independent
+of that setting.
+
+Fix: removed the two `[data-color-mode="color"]` overrides for
+`--status-bg` (dark and light-media-query variants), so it always
+resolved to its base `:root` value regardless of the toggle — the same
+pattern `--editor-selection-bg` already used for the same reason (a
+backdrop that needs to stay neutral under everything, not a themed
+accent).
+
+Follow-up, same session: asked to go a step further and use the *same*
+background as the top bar rather than its own neutral shade. `#status-bar`
+now uses `--tab-bg` directly instead of a separate `--status-bg` token,
+which has been removed entirely (`--status-fg` remains, still contrasts
+correctly against `--tab-bg` in both light and dark). The status bar
+renders nothing else color-mode-dependent, so this is the whole change.
+
+---
+
+## 67. Action Drawer: remember the "Only Open" toggle across opens
+
+**Status: implemented.** The "Only Open" toggle (§44) reset to its
+default every time the drawer was reopened, rather than staying as the
+user left it. Requested: remember it for the rest of the session, and
+default to on at launch.
+
+Fix: moved the toggle's state from a local `let` in
+`ActionDrawerModal.svelte` to `actionDrawerShowOnlyOpen`, a new writable
+store in controller.ts (`writable<boolean>(true)` — same in-memory-only,
+not-persisted-to-disk treatment as `chromeExpanded`/the §63 editor-view-
+state map, and the same reason: this is session-lived UI state, not note
+content). The checkbox binds directly to the store
+(`bind:checked={$actionDrawerShowOnlyOpen}`), and the filter logic itself
+is unchanged — only where the boolean lives moved, not how it's used.
+
+---
+
+## 68. Date picker: remember the "Open Only" toggle across opens
+
+**Status: implemented.** Same request as §67, extended to the Date
+picker's own "Open Only" toggle (§43) — requested to default to *off*
+here, unlike the Action Drawer's "Only Open" (on).
+
+Fix: identical pattern to §67 — moved from a local `let openOnly` in
+`DatePickerModal.svelte` to `datePickerOpenOnly`, a new writable store in
+controller.ts (`writable<boolean>(false)`), bound directly
+(`bind:checked={$datePickerOpenOnly}`).
+
+---
+
+## 69. Action Drawer: show `v`/`x` lines too when "Only Open" is off
+
+**Status: implemented.** The drawer's snapshot-building (`isActionLine()`
+in controller.ts) excluded resolved states (`v `/`x `, standalone or via
+`=> `) outright, regardless of the "Only Open" toggle — so turning the
+toggle off only ever revealed deferred/delegated lines, never done or
+won't-do ones. Requested: with the toggle off, show `v`/`x` lines too;
+with it on, keep showing only `#`.
+
+Fix: `isActionLine()` now includes all four action states in what the
+drawer's snapshot considers a candidate line at all
+(`/^\s*[#>vx]\s/.test(line) || ... || /=>\s[#>vx]\s/.test(line)`) —
+previously only `#`/`>` and their `=> ` forms qualified. No other change
+was needed: the drawer's existing filter (`$actionDrawerShowOnlyOpen &&
+innermostActionSymbol(item.line) !== "#"`) already narrows correctly to
+`#`-only when the toggle is on, and the glyph/`item-completed` styling
+for `v`/`x` rows was already in place from §45 — it just never had
+anything to render before now.
+
+---
+
+## 70. Bug fix: History Drawer showed raw token characters for mid-line consequence-actions
+
+**Status: fixed.** Reported as a scrolling-position-dependent glitch
+("the top part shows correctly, but lower is not") — turned out to be
+content-dependent instead, and coincidentally correlated with scroll
+position only because the affected lines happened to sit lower in the
+test data. The actual trigger: a `=> <symbol>` consequence-action that
+follows other text on the line (e.g. "Talked to Sam => # follow up" —
+exactly what §41 designed the form for) rather than opening it.
+
+**Root cause, two bugs stacked:**
+1. `openMeetingHistory()`'s inclusion check used `line.startsWith("=> ")`
+   — true only when the arrow is the line's first two characters. A
+   mid-line `=> ` was invisible to Section History entirely, on top of
+   whatever else was wrong.
+2. `stripLeadingToken()` (tokens.ts) had the same anchoring assumption
+   across all three of its `=> `-based branches (`^=>\s...`) — a line
+   that got included by some other path with `=> ` mid-line would fall
+   through every branch unmodified, showing its raw `=> #`/`=> v` token
+   text right next to the row's glyph instead of being stripped.
+
+Both are the same class of bug §59 already fixed once for
+`cycleActionSymbol()` — `=> ` support was added for the mid-line case in
+that one place without being carried to every other function that also
+assumes `=> ` opens the line.
+
+**Fix:** `openMeetingHistory()`'s check is now `line.includes("=> ")`
+(and its dedup-key normalization strips a mid-line `=> ` separately from
+an anchored plain leading symbol, so two occurrences of the same action
+with different leading context still dedupe as one). `stripLeadingToken()`'s
+three `=> `-based patterns now capture and preserve whatever precedes the
+arrow instead of requiring it to be empty, mirroring §59's fix to
+`cycleActionSymbol()`. Verified with a 25-file synthetic history
+containing a mid-line consequence-action on every date: entries now
+appear (250 vs. 225 before) and render with clean, glyph-only text at
+both the top and bottom of the scrolled list.
+
+---
+
+## 71. About drawer, Symbols & Sections legend, and a real focus fix for both non-input drawers
+
+**Status: implemented.** Three requests bundled together: an About
+drawer (project link + running version), a new drawer documenting every
+token → glyph mapping and how section headers are formatted, and fixing
+Keyboard Shortcuts (and, by the same reasoning, this new drawer too) so
+that opening it actually moves keyboard focus into it — previously
+neither drawer had any focus management at all, so arrow keys (and
+everything else) kept reaching the background editor instead of
+scrolling the drawer's own list.
+
+**About drawer:** `AboutModal.svelte`, opened via a new "ℹ" icon button
+placed to the right of the Settings gear in `TopBar.svelte` (no keyboard
+shortcut — it's a simple info panel, not something reached for
+mid-editing the way the other drawers are). Shows the project's GitHub
+link (`controller.PROJECT_URL`, opened via `controller.openProjectLink()`
+in the OS's default browser, not the app's own webview — see "opening
+links" below) and the currently-running version number, read live from
+`appVersion` (a new controller.ts store, populated once at `initApp()`
+via `api.getAppVersion()`) rather than hardcoded anywhere in the
+frontend, so it can't drift from `tauri.conf.json`/`package.json` at
+release time.
+
+**Opening links:** the app had no way to open a URL outside its own
+webview before this — added `tauri-plugin-opener` (Cargo.toml, `lib.rs`,
+the new `@tauri-apps/plugin-opener` npm dependency, and
+`opener:allow-open-url` in `capabilities/default.json`), wrapped as
+`tauriApi.openExternalUrl()`. `getAppVersion()` needed no new capability
+— Tauri's core `app` module (`plugin:app|version`) is already covered by
+`core:default`.
+
+**Symbols & Sections legend:** `GlyphLegendModal.svelte`, modeled
+directly on `ShortcutsModal.svelte`'s structure — a table of every token
+→ glyph pair (`#`/`v`/`>`/`x`, `-`/`* `, `=> `, `=> @name`,
+`=> <symbol>`, `! `) each with a one-line plain-language explanation,
+plus a short paragraph on Setext-style section headers (a title line
+followed by a `====` underline of four or more `=`, matching the exact
+rule `isSetextUnderline()`/`getSectionHeaderForLine()` already use in
+tokens.ts — the legend's wording was written to describe that real
+implementation, not a separate approximation of it). Opened via
+`Ctrl+Shift+/` (added to `App.svelte`'s global keydown handler and
+listed in the Shortcuts drawer itself, next to the existing `Ctrl+/`).
+
+**The focus fix:** neither `ShortcutsModal.svelte` nor the new
+`GlyphLegendModal.svelte` has a text input to focus the way the Date
+picker/Action Drawer/History/Search modals do, so both had exactly the
+same gap — nothing ever moved focus off the editor when they opened.
+Tried the obvious minimal fix first (just call `.focus()` on the
+scrollable `.modal-list` div in `onMount`, relying on the browser's
+default arrow-key/Page Up/Page Down/Home/End scroll behavior for a
+focused `overflow: auto` element to do the rest) — browser-pane testing
+of the *actual key presses* (not just checking `document.activeElement`,
+which looked correct on its own) showed that default scroll action
+couldn't be relied on to fire. Replaced it with an explicit handler
+instead: a new shared action, `focusScrollableList()`
+(`src/lib/actions/focusScrollableList.ts`, same `use:` pattern as the
+existing `closeOnOutsideClick` action), focuses the list on mount and
+handles Up/Down/Page Up/Page Down/Home/End itself via `scrollBy`/
+`scrollTo` — verified in the browser pane by watching `scrollTop` move
+in response to real key presses (`0 → 40` on the first `ArrowDown`,
+clamped correctly at the bottom, `→ 0` again on `ArrowUp`). Nothing in
+the handler calls `stopPropagation`, so the app's global shortcuts
+(bound on `window` in App.svelte, `Escape` included — confirmed still
+closing the drawer with focus inside it) are completely unaffected by
+where focus sits.
+
+---
+
+## 72. Bug fix: About icon rendered tiny/misaligned; Glyph legend now theme-aware
+
+**Status: fixed.** Two follow-ups reported after §71 shipped.
+
+**About icon:** the plain `ℹ` character (U+2139) has *text* presentation
+by default in the app's monospace font stack — it rendered as a small,
+oddly-proportioned glyph next to the full-size color emoji used for
+every other top-bar button (📅/📋/🕒/🔎/📥). Confirmed by rendering each
+candidate to an offscreen canvas at the button's actual font and
+measuring the opaque-pixel bounding box: plain `ℹ` came out ~7×16px
+against ~23×23px for `📅`/`⚙`/etc. — visibly smaller and off-center, not
+just a subjective impression. **Fix:** append the emoji variation
+selector, U+FE0F (`ℹ️` instead of `ℹ`), which forces emoji presentation
+— re-measured afterward at an identical 23×23px bounding box, byte-for-
+byte matching `📅`'s. User was offered a few alternative icons (🛈, ❓,
+📖) after the fix landed and confirmed keeping ℹ️.
+
+**Glyph legend theming:** `GlyphLegendModal.svelte` originally rendered
+every glyph in the list as plain text — it never followed the
+color/grayscale toggle the way the actual editor and every other
+glyph-displaying drawer (Action Drawer, Section History) do. Fix: each
+glyph now uses the same `.glyph-open`/`.glyph-done`/`.glyph-progress`/
+`.glyph-cancelled`/`.glyph-bullet`/`.glyph-followup`/`.glyph-assignee`/
+`.glyph-emphasis-line` classes the editor's own decorations use
+(app.css) — these already read the `--glyph-*-color`/`-weight`/
+`-opacity` custom properties that `[data-color-mode="color"]` overrides,
+so the legend now follows the toggle for free, with zero component
+logic (no `colorMode` read, no conditional styling) — the exact same
+"reference the same CSS variables" pattern `ActionDrawerModal.svelte`'s
+and `HistoryModal.svelte`'s `glyphFor()` already used, just applied via
+class instead of inline `style` since the legend's set of possible
+glyphs is fixed rather than data-driven. Verified in both modes: open
+action shows red/bold in color mode vs. plain weight in grayscale, done
+green vs. dimmed, deferred orange vs. bold, delegated's `@name` badge
+blue vs. neutral, etc.
+
+---
+
+## 73. Bug fix: top-bar icon and label sat ~1px out of vertical alignment
+
+**Status: fixed.** Reported precisely: "all icons are aligned, and all
+labels are aligned, but all together they look misaligned" — i.e. not
+per-button jitter, a *systematic* offset between the icon glyph and its
+label wherever both show. Confirmed and quantified in the browser rather
+than by eye: `.icon-btn` is a `display: flex; align-items: center` row
+whose two children — the emoji character and the (conditional)
+`.icon-label` span — should both land centered on the same line.
+Measuring their actual boxes (`getBoundingClientRect()`/`Range` on the
+bare icon text) showed the label's box sitting exactly 1px higher than
+the icon's on *every* button, despite both boxes reporting the same
+14px height — the icon glyph (rendered from a color-emoji fallback font,
+since none of the emoji used are in the app's own monospace stack) and
+the label text (the app's actual monospace font) apparently get centered
+slightly differently as a bare, unwrapped text-node flex item vs. a real
+element flex item, even at equal box height.
+
+**Fix:** wrap each button's icon character in its own `<span
+class="icon-glyph">` (TopBar.svelte) — turning it from a bare text-run
+flex item into a real element flex item, matching `.icon-label`.
+`.icon-glyph` needed no styling of its own at all; wrapping alone was
+enough. Re-measured afterward across every icon+label button (Date, My
+Actions, Section History, Search, Import, Promote, Settings, About):
+icon and label centers now land on the exact same pixel (`diff: 0`)
+everywhere, confirmed on the actual compiled component, not just an
+isolated test span.
+
+**Follow-up:** still didn't read as aligned once actually looked at —
+box-centers matching isn't the same thing as *looking* centered, since
+an emoji's visible ink typically sits higher within its own box than a
+line of text does in its. Rather than guess at another number, built a
+side-by-side comparison artifact reusing the real button markup/CSS at
+several label offsets (0-6px, actual size plus zoomed, with a guide line
+through the icon's center) for a direct visual pick instead of another
+measured-but-wrong attempt. `+1px` (`.icon-label { position: relative;
+top: 1px; }` in app.css) was confirmed as the one that reads right.
+
+---
+
+## 74. About drawer: keyboard shortcut, and mention of the other two drawers' shortcuts
+
+**Status: implemented.** Every other drawer opens via both a top-bar icon
+and a keyboard shortcut except About, which only had the icon. Added
+`Ctrl+Shift+,` (`App.svelte`'s global keydown handler, `controller.openAbout()`)
+— paired with Settings' existing `Ctrl+,` the same way the Symbols &
+Sections legend's `Ctrl+Shift+/` is paired with the Shortcuts drawer's
+`Ctrl+/`, so the two shifted variants read as "the same key, plus the
+drawer that goes one level further." Listed in the Shortcuts drawer
+itself and in the About button's tooltip, same as every other shortcut.
+
+Also added a short "Learn more" section to `AboutModal.svelte` naming
+`Ctrl+/` (Keyboard Shortcuts) and `Ctrl+Shift+/` (Symbols & Sections) —
+someone who found the About screen via its icon might not otherwise
+know either drawer exists, since neither has its own top-bar icon.

@@ -62,14 +62,21 @@ export function cycleActionSymbol(line: string): string | null {
  * separately — showing the raw character too was a duplicate, confusing
  * presentation (`☐ # Buy milk`). Leaves a delegated `@name` in place
  * (real, meaningful content — who it's assigned to — not a duplicate of
- * any glyph) and strips only the token characters proper. */
+ * any glyph) and strips only the token characters proper.
+ *
+ * The three `=> `-based patterns aren't anchored to the start of the
+ * line — `=> ` can (and often does) follow other text, e.g. "Talked to
+ * Sam => # follow up" (§41/§59) — so whatever precedes it is kept, with
+ * only the arrow and its symbol removed. Without this, a line like that
+ * fell through every branch below unmodified, showing its raw `=> #`
+ * token text right next to the row's glyph instead of being stripped. */
 export function stripLeadingToken(line: string): string {
-  const consequence = line.match(/^=>\s[#vx>]\s(.*)$/);
-  if (consequence) return consequence[1];
-  const delegated = line.match(/^=>\s(@\w+\s.*)$/);
-  if (delegated) return delegated[1];
-  const followUp = line.match(/^=>\s(.*)$/);
-  if (followUp) return followUp[1];
+  const consequence = line.match(/^(.*)=>\s[#vx>]\s(.*)$/);
+  if (consequence) return consequence[1] + consequence[2];
+  const delegated = line.match(/^(.*)=>\s(@\w+\s.*)$/);
+  if (delegated) return delegated[1] + delegated[2];
+  const followUp = line.match(/^(.*)=>\s(.*)$/);
+  if (followUp) return followUp[1] + followUp[2];
   const plain = line.match(/^(\s*)[#vx>](\s.*)$/);
   if (plain) return plain[1] + plain[2].slice(1);
   return line;

@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onDestroy, onMount } from "svelte";
-  import { EditorState } from "@codemirror/state";
+  import { EditorSelection, EditorState, type StateEffect } from "@codemirror/state";
   import { drawSelection, EditorView, keymap } from "@codemirror/view";
   import { defaultKeymap, history, historyKeymap, indentWithTab } from "@codemirror/commands";
   import { indentUnit } from "@codemirror/language";
@@ -15,9 +15,25 @@
   // changes on every keystroke (which would otherwise reset the cursor
   // and undo history on every character typed).
   export let content: string;
+  // Identifies which tab this mount belongs to, so its cursor/selection
+  // and scroll position can be saved on the way out and restored the next
+  // time this same tab becomes active — see `saveEditorViewState`/
+  // `getEditorViewState` in controller.ts.
+  export let tabId: string;
 
   let container: HTMLDivElement;
   let view: EditorView | null = null;
+  // Kept up to date on every scroll rather than captured once at destroy
+  // time — by the time `onDestroy` runs (this component is torn down via
+  // the `{#key}` in App.svelte switching to a new tab), the scroller's raw
+  // `scrollTop`/`scrollLeft` had already been observed reporting 0
+  // regardless of where it visually was right beforehand. Capturing a
+  // fresh snapshot on every scroll instead means whatever resets the live
+  // DOM property by teardown time doesn't matter — the last real one is
+  // already in hand. `scrollSnapshot()` (rather than the raw pixel
+  // offsets) also anchors to a specific line/block, so it stays correct
+  // even if line heights shift slightly between the save and the restore.
+  let lastScrollEffect: StateEffect<unknown> | null = null;
 
   function cycleLine(v: EditorView): boolean {
     const pos = v.state.selection.main.head;
@@ -92,9 +108,44 @@
       { key: "Shift-Enter", run: bulletContinuation(false) },
     ]);
 
+    // Resume where this tab was left off, if it's been visited before this
+    // session — the cursor/selection and how far the view had scrolled.
+    // Every tab switch fully remounts this component (see the {#key} in
+    // App.svelte), which would otherwise always drop you back at (1,1)
+    // with no scroll, even mid-thought in a long note. Both go into the
+    // initial `EditorState`/`EditorView` config below rather than being
+    // applied via a `dispatch()` after construction — CodeMirror's own
+    // initial layout pass was observed fighting a post-construction
+    // `scrollDOM.scrollTop` assignment (and even a `dispatch`ed selection
+    // combined with it) and winning, leaving the view scrolled to the top
+    // (or, once a plain `view.focus()`'s native scroll-into-view behavior
+    // got involved too, to the bottom) regardless. Setting both up front
+    // means there's no "after" for anything else to override.
+    const saved = controller.getEditorViewState(tabId);
+    let initialSelection: EditorSelection | undefined;
+    if (saved) {
+      try {
+        const restored = EditorSelection.fromJSON(saved.selectionJSON);
+        // Clamp to content's length in case it changed while this tab was
+        // inactive (e.g. §49's paste-forward marking a `#` line as `>`
+        // elsewhere) and a saved position no longer exists — same-length
+        // replacements like that one won't actually trigger this, but it
+        // costs nothing to be safe against ones that might.
+        const docLength = content.length;
+        initialSelection = EditorSelection.create(
+          restored.ranges.map((r) => EditorSelection.range(Math.min(r.anchor, docLength), Math.min(r.head, docLength))),
+          restored.mainIndex,
+        );
+      } catch {
+        // Saved selection doesn't fit this document anymore — fall back
+        // to the default start-of-document cursor instead.
+      }
+    }
+
     view = new EditorView({
       state: EditorState.create({
         doc: content,
+        selection: initialSelection,
         extensions: [
           history(),
           // Coordinate-based selection/cursor painting instead of native
@@ -132,6 +183,11 @@
         ],
       }),
       parent: container,
+      scrollTo: saved?.scrollEffect as StateEffect<unknown> | undefined,
+    });
+
+    view.scrollDOM.addEventListener("scroll", () => {
+      if (view) lastScrollEffect = view.scrollSnapshot();
     });
 
     controller.registerEditorApi({
@@ -158,11 +214,29 @@
       focus: () => view?.focus(),
     });
 
-    controller.setStatusPosition(1, 1);
-    view.focus();
+    // The `updateListener` above only fires on a `dispatch()`, not on the
+    // initial state a view is constructed with — so it never ran for the
+    // selection just set (default or restored) above. Set the status bar
+    // from it directly instead of assuming (1, 1).
+    const initialPos = view.state.selection.main.head;
+    const initialLine = view.state.doc.lineAt(initialPos);
+    controller.setStatusPosition(initialLine.number, initialPos - initialLine.from + 1);
+
+    // Plain `view.focus()` (== `contentDOM.focus()` with no options) lets
+    // the browser's native "scroll the newly focused element into view"
+    // behavior run, which can override the `scrollTo` set above (or, for
+    // a fresh/default cursor, is harmless but unnecessary). `preventScroll`
+    // stops that so the initial scroll position sticks either way.
+    view.contentDOM.focus({ preventScroll: true });
   });
 
   onDestroy(() => {
+    if (view) {
+      controller.saveEditorViewState(tabId, {
+        selectionJSON: view.state.selection.toJSON(),
+        scrollEffect: lastScrollEffect ?? view.scrollSnapshot(),
+      });
+    }
     view?.destroy();
     controller.registerEditorApi(null);
   });

@@ -65,8 +65,11 @@ untouched whitespace; only the symbol itself is replaced.
 **Copy/paste deferral:** copying a `# ` line and pasting it into today's
 note, or into any *later*-dated note, marks the original line as `> `
 (deferred) back in its source file/tab — a quick way to forward a task
-without manually editing the original. Pasting into a scratchpad or a
-past-dated note does not trigger this.
+without manually editing the original. Copying several lines together
+defers every open-action line found anywhere in the copied block, not
+just one at its start — other lines in the same copy (plain text,
+bullets, already-resolved actions) are left as they were. Pasting into a
+scratchpad or a past-dated note does not trigger this.
 
 ### 2.3 Structural Spacing Rules
 * **Inter-Section Spacing:** All automated insertions (section import, templating) must enforce **two blank lines** (`\n\n\n`) between the end of a section body and the subsequent Setext heading line.

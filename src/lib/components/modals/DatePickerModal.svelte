@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import * as controller from "../../controller";
-  import { allNotesCache } from "../../controller";
+  import { allNotesCache, datePickerOpenOnly } from "../../controller";
   import { closeOnOutsideClick } from "../../actions/closeOnOutsideClick";
   import { parseDateQuery } from "../../date";
   import { countActions } from "../../tokens";
@@ -20,7 +20,6 @@
   let query = "";
   let selectedIndex = 0;
   let inputEl: HTMLInputElement;
-  let openOnly = false;
 
   onMount(async () => {
     await controller.refreshAllNotesCache();
@@ -50,7 +49,7 @@
   }
 
   $: allCandidates = buildCandidates(query, $allNotesCache);
-  $: candidates = allCandidates.filter((c) => c.isDirectMatch || !openOnly || c.openCount > 0);
+  $: candidates = allCandidates.filter((c) => c.isDirectMatch || !$datePickerOpenOnly || c.openCount > 0);
   $: if (selectedIndex >= candidates.length) selectedIndex = Math.max(0, candidates.length - 1);
 
   // --- Virtualized rendering (§38) --- see SearchModal.svelte for the
@@ -124,7 +123,7 @@
     <div class="modal-input-wrap">
       <div class="settings-toggle-row">
         <label class="toggle-switch">
-          <input type="checkbox" bind:checked={openOnly} />
+          <input type="checkbox" bind:checked={$datePickerOpenOnly} />
           <span class="toggle-switch-track"></span>
           Open Only
         </label>

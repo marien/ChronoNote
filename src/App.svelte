@@ -15,6 +15,8 @@
   import SectionImportModal from "./lib/components/modals/SectionImportModal.svelte";
   import SettingsModal from "./lib/components/modals/SettingsModal.svelte";
   import ShortcutsModal from "./lib/components/modals/ShortcutsModal.svelte";
+  import GlyphLegendModal from "./lib/components/modals/GlyphLegendModal.svelte";
+  import AboutModal from "./lib/components/modals/AboutModal.svelte";
   import UnsavedScratchpadsModal from "./lib/components/modals/UnsavedScratchpadsModal.svelte";
 
   let ready = false;
@@ -63,9 +65,15 @@
       } else if (e.ctrlKey && !e.shiftKey && e.code === "Comma") {
         e.preventDefault();
         controller.openSettings();
+      } else if (e.ctrlKey && e.shiftKey && e.code === "Comma") {
+        e.preventDefault();
+        controller.openAbout();
       } else if (e.ctrlKey && !e.shiftKey && e.code === "Slash") {
         e.preventDefault();
         controller.openShortcutsHelp();
+      } else if (e.ctrlKey && e.shiftKey && e.code === "Slash") {
+        e.preventDefault();
+        controller.openGlyphLegend();
       }
     }
     window.addEventListener("keydown", onKeydown);
@@ -80,7 +88,7 @@
   <div id="editor-container">
     {#if activeTab}
       {#key activeTab.id}
-        <EditorPane content={activeTab.content} />
+        <EditorPane content={activeTab.content} tabId={activeTab.id} />
       {/key}
     {/if}
   </div>
@@ -103,6 +111,10 @@
     <SettingsModal />
   {:else if $modal === "shortcuts"}
     <ShortcutsModal />
+  {:else if $modal === "glyphLegend"}
+    <GlyphLegendModal />
+  {:else if $modal === "about"}
+    <AboutModal />
   {:else if $modal === "unsavedScratchpads"}
     <UnsavedScratchpadsModal />
   {/if}

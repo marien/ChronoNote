@@ -1,6 +1,7 @@
 <script lang="ts">
   import * as controller from "../../controller";
   import { closeOnOutsideClick } from "../../actions/closeOnOutsideClick";
+  import { focusScrollableList } from "../../actions/focusScrollableList";
 
   const shortcuts: [string, string][] = [
     ["Ctrl+N / Ctrl+T", "New scratchpad"],
@@ -16,7 +17,9 @@
     ["Ctrl+Shift+F", "Cross-tab search"],
     ["Ctrl+Shift+I", "Import sections"],
     ["Ctrl+,", "Settings"],
+    ["Ctrl+Shift+,", "About ChronoNote"],
     ["Ctrl+/", "This shortcuts drawer"],
+    ["Ctrl+Shift+/", "Symbols & sections legend"],
     ["Escape", "Close whatever modal is open"],
   ];
 </script>
@@ -26,7 +29,7 @@
     <div class="modal-input-wrap">
       <span>⌨</span> Keyboard Shortcuts
     </div>
-    <div class="modal-list">
+    <div class="modal-list" use:focusScrollableList style="outline: none;">
       {#each shortcuts as [keys, label]}
         <div class="modal-item" style="cursor: default;">
           <div class="modal-item-main">

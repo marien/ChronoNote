@@ -1,4 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
+import { getVersion } from "@tauri-apps/api/app";
+import { openUrl } from "@tauri-apps/plugin-opener";
 import type { AppConfig, ColorMode, TabSession } from "./types";
 
 export function getConfig(): Promise<AppConfig> {
@@ -39,4 +41,18 @@ export function writeTabSession(openTabs: string[], activeTab: string | null): P
 
 export function pathExists(path: string): Promise<boolean> {
   return invoke("path_exists", { path });
+}
+
+/** The app's own version (from `tauri.conf.json`, kept in sync with
+ * `package.json`/`Cargo.toml` at release time) — read live via Tauri's
+ * core `app` module rather than baked into a JS constant, so the About
+ * drawer never drifts from what's actually running. */
+export function getAppVersion(): Promise<string> {
+  return getVersion();
+}
+
+/** Opens a URL in the OS's default browser (via `tauri-plugin-opener`)
+ * rather than navigating the app's own webview to it. */
+export function openExternalUrl(url: string): Promise<void> {
+  return openUrl(url);
 }

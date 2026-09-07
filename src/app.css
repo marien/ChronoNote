@@ -7,7 +7,10 @@
   --border: #333333;
   --selected-bg: #4a4a4a;
   --selected-fg: #ffffff;
-  --status-bg: #3a3a3a;
+  /* Deliberately not themed by the color/grayscale toggle below (like
+     `--editor-selection-bg`) — the status bar reads as chrome, not
+     content, and stays neutral either way. Its background is `--tab-bg`
+     itself (see `#status-bar`), matching the top bar. */
   --status-fg: #f0f0f0;
   --highlight: rgba(255, 255, 255, 0.25);
   --tab-active-border: var(--text);
@@ -47,7 +50,6 @@
     --border: #e0e0e0;
     --selected-bg: #d6d6d6;
     --selected-fg: #000000;
-    --status-bg: #dcdcdc;
     --status-fg: #1b1b1b;
     --highlight: rgba(0, 0, 0, 0.15);
     --caret-color: #000000;
@@ -60,8 +62,6 @@
 [data-color-mode="color"] {
   --selected-bg: #007acc;
   --selected-fg: #ffffff;
-  --status-bg: #007acc;
-  --status-fg: #ffffff;
   --highlight: rgba(255, 213, 0, 0.25);
   --tab-active-border: #007acc;
 
@@ -86,8 +86,6 @@
   [data-color-mode="color"] {
     --selected-bg: #0066b8;
     --selected-fg: #ffffff;
-    --status-bg: #0066b8;
-    --status-fg: #ffffff;
     --highlight: rgba(255, 230, 0, 0.4);
     --tab-active-border: #0066b8;
 
@@ -228,7 +226,34 @@ body {
 }
 .icon-btn .icon-label {
   white-space: nowrap;
+  /* §73: box-centering the label against `.icon-glyph` (below) landed
+     them on the same measured center pixel, but that's the *box* center,
+     not the visible *ink* center — an emoji glyph's ink typically sits
+     higher within its own em-box than a line of text does in its, so
+     even with matching box centers the label still read as sitting too
+     high next to the icon. Confirmed by eye across a side-by-side
+     comparison of several offsets (0-6px): +1px reads correctly. */
+  position: relative;
+  top: 1px;
 }
+/* §73: `.icon-glyph` (wrapping each button's emoji, in TopBar.svelte) is
+   deliberately unstyled — a plain default-`inline` span. The icon used to
+   be a bare text node instead of an element; inside `.icon-btn`'s flex
+   row, that bare text run and the `.icon-label` span next to it are two
+   separate flex items, and `align-items: center` should have centered
+   both on the same line, but measured in the browser it consistently
+   didn't — the label's box sat 1px higher than the icon's on every
+   button, even though both boxes were the same height (likely some
+   difference in how a bare-text flex item's line box centers vs. an
+   element's, tied to the emoji glyph coming from a fallback font with
+   different ascent/descent metrics than the label's own monospace font).
+   Simply wrapping the icon in an element — any element, no styling
+   needed — was enough to fix it: re-measured afterward, the two items'
+   vertical centers land on the exact same pixel. Giving `.icon-glyph` a
+   `display` of its own (e.g. `inline-flex`) would make it establish a
+   nested flex context for the lone emoji text run inside it, which is
+   exactly the bare-text-flex-item situation being avoided — so it stays
+   empty on purpose. */
 
 /* Editor Canvas */
 #editor-container {
@@ -242,7 +267,7 @@ body {
 .cm-editor {
   height: 100%;
   font-family: var(--font) !important;
-  font-size: 12px !important;
+  font-size: 13px !important;
 }
 .cm-scroller {
   padding: 16px 20px !important;
@@ -389,7 +414,7 @@ body {
 /* Status Bar */
 #status-bar {
   height: 24px;
-  background: var(--status-bg);
+  background: var(--tab-bg);
   color: var(--status-fg);
   display: flex;
   align-items: center;
