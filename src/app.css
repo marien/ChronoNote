@@ -434,6 +434,24 @@ body {
   color: var(--glyph-emphasis-color);
 }
 
+/* §81: a Setext underline row (`====` under a section title) drawn as a
+   double rule. `Decoration.mark` over the real `=` characters — they stay
+   in the layout (so hit-testing and `posAtCoords` work natively for
+   hover/click-to-edit) but render invisible, with a `border-bottom`
+   double line the browser positions by the characters' own font metrics.
+   The mark is dropped — reverting to the literal, editable `=` — whenever
+   the cursor, selection, or mouse is on that row (see setextRule.ts). */
+.cm-setext-rule {
+  color: transparent;
+  border-bottom: 3px double var(--muted);
+  /* Lift the rule to sit centred in the underline row rather than at the
+     bottom of the (invisible) `=` glyph box — tuned by eye against the
+     running app; `position: relative` keeps it out of layout so the row
+     stays exactly one line tall. */
+  position: relative;
+  top: -0.2em;
+}
+
 /* Status Bar */
 #status-bar {
   height: 24px;
