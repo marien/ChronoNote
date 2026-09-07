@@ -356,21 +356,44 @@ body {
 
 /* Custom In-line Presentation Glyphs — theme-driven via CSS variables, so
    the color/grayscale toggle applies with no component logic needed.
+
    Fixed `ch`-unit widths force exact column alignment: a single Unicode
    character doesn't guarantee single-monospace-cell rendered width in
    every font, so width is forced via CSS rather than trusted to the
    glyph's own natural size — 2ch for the two-character tokens (`# `, `v `,
-   `> `, `- `), 3ch for the three-character `=> `. */
+   `> `, `- `), 3ch for the three-character `=> `.
+
+   Fixed *height* matters for the same reason (§79): the geometric
+   characters (☐ ☑ ☒ » ➔ •) aren't in the monospace stack and fall back
+   to a symbol font — Segoe UI Symbol in WebView2 — whose glyph box runs
+   ~1px taller than the editor's own line box. Left unconstrained, an
+   `inline-block` sized by that fallback dragged every glyph line taller
+   than the plain lines around it. Pinning the box to exactly one line
+   (`height`/`line-height` at the `.cm-line` 1.6 ratio) with
+   `overflow: hidden` and top alignment keeps the fallback's vertical
+   metrics out of layout; `text-align: center` keeps the glyph centered
+   in its 2ch / 3ch cell. */
+.glyph-open,
+.glyph-done,
+.glyph-progress,
+.glyph-cancelled,
+.glyph-bullet,
+.glyph-followup {
+  display: inline-block;
+  height: 1.6em;
+  line-height: 1.6em;
+  overflow: hidden;
+  vertical-align: top;
+  text-align: center;
+}
 .glyph-open,
 .glyph-done,
 .glyph-progress,
 .glyph-cancelled,
 .glyph-bullet {
-  display: inline-block;
   width: 2ch;
 }
 .glyph-followup {
-  display: inline-block;
   width: 3ch;
 }
 .glyph-open {

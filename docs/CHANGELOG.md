@@ -2972,3 +2972,37 @@ pattern as `reopenLastClosedTab`'s "No recently closed tabs").
 there's no conflict; the editor `keymap` sits ahead of `defaultKeymap` in
 the extension order regardless. Listed in the Shortcuts drawer. Covered
 by `tokens.test.ts` and `tests/e2e/open-action-nav.spec.ts`.
+
+---
+
+## 79. Bug fix: glyph lines rendered ~1px taller than plain lines
+
+**Status: fixed.** Reported after §71's editor font bump (12px → 13px,
+commit `111ffdb`): lines carrying a token glyph (`☐`/`☑`/`☒`/`»`/`➔`/`•`)
+sat slightly taller than lines without one, so line spacing visibly
+hitched wherever an action or bullet appeared.
+
+**Root cause** — confirmed in a real browser via the §77 E2E harness, not
+by eye. The glyph characters aren't in the editor's monospace stack
+(`Cascadia Code`/`JetBrains Mono`/`Consolas`) and fall back to a symbol
+font — `Segoe UI Symbol` in WebView2 — whose glyph box runs ~1px taller
+than the editor's own line box. Each glyph renders as a fixed-width
+`inline-block` (the column-alignment guarantee, spec 2.2); with only
+`width` pinned, the box's *height* was whatever the fallback font
+produced, and an `inline-block` taller than the line drags the whole
+line's height up with it. Forcing `.glyph-open`'s font to
+`Segoe UI Symbol` in a throwaway measurement reproduced it exactly:
+20.8px line → 21.8px.
+
+**Fix** (`app.css`) — pin the glyph box to exactly one line: `height` and
+`line-height` both `1.6em` (the `.cm-line` ratio), `overflow: hidden` so
+a tall fallback glyph is contained rather than expansive, and
+`vertical-align: top` so the box aligns to the line box's top instead of
+its baseline. `text-align: center` keeps the glyph centered in its
+2ch / 3ch cell. Re-measured across every glyph: all lines a uniform
+20.8px, and the forced-tall-font case stays 20.8px too. Bonus — the glyph
+box centers went from sitting 0.9–1.9px *above* the line center (the old
+baseline alignment) to dead-centered (`delta: 0`), so glyphs read as
+better aligned with their text than before, not just consistently
+spaced. Locked in by `tests/e2e/glyph-layout.spec.ts`, including the
+tall-fallback-font simulation.
