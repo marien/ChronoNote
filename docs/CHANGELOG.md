@@ -2859,3 +2859,85 @@ bump: adding a license isn't a code change and doesn't alter the built
 app. This entry is written retroactively — the commit shipped without a
 §-entry at the time, which (per §75's own closing note) is exactly the
 kind of gap the changelog is supposed to not have.
+
+---
+
+## 77. UI/UX end-to-end test harness (Playwright + mock Tauri backend)
+
+**Status: implemented.** §75 added the unit layer (`tokens.ts`, `date.ts`,
+`sectionImport.ts`, the bulk of `controller.ts`, `storage.rs`) but drew a
+hard line at rendered components: "no `.svelte` component is rendered or
+tested directly." That left the entire *interaction* surface — does typing
+`# ` actually paint a glyph, does `Ctrl+Shift+A` open the drawer, does
+forwarding an action really rewrite two files — verified only by hand in
+the running app. This fills that gap without walking back §75's reasoning
+about jsdom.
+
+**Approach — real frontend, fake backend.** The specs drive the *actual*
+Svelte + CodeMirror frontend in headless Chromium (Playwright), but the
+Tauri IPC layer is replaced with an in-memory stand-in. The frontend only
+ever reaches Rust through `window.__TAURI_INTERNALS__.invoke(...)` (see
+`tauriApi.ts` and the plugin packages), so `src/lib/testing/mockBackend.ts`
+installs a substitute for that object: a `Map`-backed notes "filesystem"
+implementing every command in `src-tauri/src/lib.rs`
+(`get_config`/`list_note_files`/`read_note`/`write_note`/`read_all_notes`/
+`read_tab_session`/`write_tab_session`/`set_notes_dir`/`set_color_mode`/
+`path_exists`) plus the `plugin:app|version` / `plugin:dialog|open` /
+`plugin:opener|open_url` / `plugin:event|*` / `plugin:window|*` calls the
+app makes. No Rust build in the loop; the whole suite runs in ~25s.
+
+Parity with `storage.rs` is deliberate and load-bearing: the mock mirrors
+`is_valid_note_filename` (exactly `YYYY-MM-DD.txt` — the path-traversal
+guard), `push_recent_notes_dir` (old dir to the front, new dir removed,
+dedup, cap 5), `read_note` returning `null` (not an error) for a missing
+file, and the session file being invisible to `list_note_files`. If
+`storage.rs` semantics change, `mockBackend.ts` has to move with it — same
+standing rule as tests tracking the code they cover.
+
+**Generated dataset.** `src/lib/testing/dataset.ts` produces a realistic
+run of daily notes — recurring meeting sections, carried-over actions,
+delegated (`=> @name`) and consequence (`=> #`) lines, nested bullets,
+emphasis, plain prose — deterministic from a seed (`prng.ts`, mulberry32;
+nothing here touches `Math.random`). `scenarios.ts` packages named seeds
+(`empty`, `busy-week`, `heavy` ≈ 10 weeks, `delegation`, `dir-switch`).
+Drive any of them by hand with `npm run dev` →
+`localhost:1420/?mock&scenario=busy-week`.
+
+**Wiring.** `src/main.ts` gained one branch:
+`if (import.meta.env.DEV && ?mock) await import("./lib/testing/bootMock")`.
+`import.meta.env.DEV` is a compile-time constant, so `vite build` drops
+the branch and the dynamic import with it — `src/lib/testing/` never
+enters a production bundle. A dedicated CI job (`build-guard`) greps
+`dist/` after a real build to keep it that way. Reload-persistence (for
+"…survives a restart" tests) is handled by the mock snapshotting itself to
+`sessionStorage` on every write and rehydrating from it — per browser tab,
+so Playwright's per-test context isolation still gives each test a clean
+slate.
+
+**Coverage** (`tests/e2e/*.spec.ts`, 50+ cases): the token→glyph→disk
+round-trip and every glyph; `Ctrl+Space` cycling and bullet continuation;
+tab create/close/cycle/reopen and both safety-close gates (open actions,
+unpromoted scratchpad); the Action Drawer (open/all scope, Only-Open,
+`@`-filter, cycle-in-place, forward-to-today rewriting both files, jump);
+the date picker grammar and create-on-open; section import spacing and
+draft persistence; cross-tab / all-files search; Section History
+aggregation and dedup across a recurring dated section; theme toggle
+persisting across a reload; directory switching via both the recent list
+and the folder picker, including the unsaved-scratchpad gate; the
+Shortcuts / Symbols / About drawers, the external-link path, and drawer
+focus capture. `visual.spec.ts` captures a screenshot gallery of every
+modal and the full token vocabulary in both colour modes — **artifacts
+for review, not pixel-diff assertions**: §72/§73 already established that
+this app's sub-pixel layout is too noisy under display scaling for
+`toHaveScreenshot()` to be anything but a flake source.
+
+**Two component fixes made for testability, both real improvements:**
+`SafetyModal` and `UnsavedScratchpadsModal` were the only two modals with
+no `role="dialog"` / `aria-modal` / `aria-label` — added, so they're
+consistent with the other eight and reachable by accessible name.
+
+**Also:** `src/vite-env.d.ts` (the standard Vite ambient-types file —
+needed now that `main.ts` reads `import.meta.env`); `@playwright/test` as
+a dev dependency; `npm run test:e2e` / `:e2e:ui` / `:e2e:report` scripts;
+`e2e` + `build-guard` jobs in `.github/workflows/test.yml`;
+`tests/e2e/README.md` documents the whole setup.

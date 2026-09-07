@@ -8,7 +8,7 @@
 </script>
 
 <div class="overlay">
-  <div class="modal-card" style="width: 480px;">
+  <div class="modal-card" role="dialog" aria-modal="true" aria-label="Unresolved actions warning" style="width: 480px;">
     <div class="modal-input-wrap" style="font-weight: bold;">
       <span style="filter: grayscale(1);">⚠</span> Unresolved Actions Warning
     </div>

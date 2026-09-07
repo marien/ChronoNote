@@ -25,6 +25,46 @@ jobs:
       - run: npm run check
       - run: npm test
 
+  e2e:
+    name: E2E (Playwright, mock backend)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e
+      - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 14
+
+  build-guard:
+    name: Prod build drops the test harness
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      # `src/lib/testing/` is dev-only (import.meta.env.DEV gate in
+      # src/main.ts). It must never appear in a production bundle.
+      - name: assert no test harness in dist/
+        run: |
+          if grep -rlE "installMockTauri|__CHRONO_MOCK__|lib/testing" dist/; then
+            echo "::error::test harness leaked into the production build"
+            exit 1
+          fi
+          echo "clean — no mock/testing code in dist/"
+
   rust:
     name: Rust (cargo test)
     # Tauri's Windows target needs the MSVC toolchain, which the
