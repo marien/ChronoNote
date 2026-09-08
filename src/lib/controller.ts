@@ -15,11 +15,11 @@ import { todayISO } from "./date";
 import { linesToSections } from "./sectionImport";
 import type { ActionSnapshotItem, ColorMode, HistoryItem, NoteTab, SearchResultItem } from "./types";
 
-// All app state (the Svelte stores + `editorApi` + the editor-view-state
-// map) now lives in `./stores`; this module re-exports it so components
-// can keep importing from `./controller` too, and holds the behaviour
-// that reads and writes it.
+// App state lives in `./stores`; disk writes + the notes read-cache live
+// in `./persistence`. This module re-exports both so components can keep
+// importing from `./controller`, and holds the behaviour on top.
 export * from "./stores";
+export * from "./persistence";
 import {
   actionDrawerShowOnlyOpen,
   actionSnapshot,
@@ -41,24 +41,24 @@ import {
   recentNotesDirs,
   safetyMessage,
   searchResultsStore,
+  showToast,
   statusCounts,
   statusPos,
   tabs,
-  toastMessage,
   unsavedScratchpadNames,
   wordWrap,
 } from "./stores";
+import {
+  flushSave,
+  invalidateDiskNotesCache,
+  refreshAllNotesCache,
+  writeNoteAndInvalidateCache,
+  writeTabContent,
+} from "./persistence";
 
-let toastTimer: ReturnType<typeof setTimeout> | undefined;
-export function showToast(msg: string) {
-  toastMessage.set(msg);
-  clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => toastMessage.set(""), 2400);
-}
-
-export function setStatusPosition(line: number, col: number) {
-  statusPos.set({ line, col });
-}
+// (`updateActiveTabContent` and `scheduleSave` also come from
+// `./persistence` via the `export *` above — used by `EditorPane`, not
+// this module.)
 
 // Keep the status bar's action counts in sync with whichever tab is active,
 // including edits made through the drawers/modals rather than typing.
@@ -91,31 +91,6 @@ notesDir.subscribe((dir) => {
     .setTitle(`ChronoNote - ${folderNameFromPath(dir)}`)
     .catch(() => {});
 });
-
-// --- Persistence (debounced on typing, immediate on deliberate actions) ---
-
-const saveTimers: Record<string, ReturnType<typeof setTimeout>> = {};
-
-function scheduleSave(tab: NoteTab) {
-  if (tab.isScratchpad) return;
-  clearTimeout(saveTimers[tab.id]);
-  saveTimers[tab.id] = setTimeout(() => {
-    delete saveTimers[tab.id];
-    writeNoteAndInvalidateCache(tab.filename, tab.content).catch(() => showToast("Failed to save note"));
-  }, 400);
-}
-
-function flushSave(tabId: string) {
-  const timer = saveTimers[tabId];
-  if (timer) {
-    clearTimeout(timer);
-    delete saveTimers[tabId];
-  }
-  const tab = latestTabs.find((t) => t.id === tabId);
-  if (tab && !tab.isScratchpad) {
-    writeNoteAndInvalidateCache(tab.filename, tab.content).catch(() => showToast("Failed to save note"));
-  }
-}
 
 // --- Boot ---
 
@@ -501,71 +476,10 @@ export async function promoteScratchpad(tabId: string) {
   showToast(`Promoted scratchpad into ${todayFilename}`);
 }
 
-// --- Editing ---
-
-export function updateActiveTabContent(newContent: string) {
-  const list = get(tabs);
-  const idx = list.findIndex((t) => t.id === get(activeTabId));
-  if (idx === -1) return;
-  const updated = { ...list[idx], content: newContent };
-  const next = [...list];
-  next[idx] = updated;
-  tabs.set(next);
-  scheduleSave(updated);
-}
-
-function writeTabContent(tabId: string, newContent: string, list: NoteTab[]): NoteTab[] {
-  const idx = list.findIndex((t) => t.id === tabId);
-  if (idx === -1) return list;
-  const next = [...list];
-  next[idx] = { ...next[idx], content: newContent };
-  if (!next[idx].isScratchpad) {
-    writeNoteAndInvalidateCache(next[idx].filename, newContent).catch(() => showToast("Failed to save note"));
-  }
-  if (tabId === get(activeTabId) && editorApi) editorApi.setContent(newContent);
-  return next;
-}
-
 // --- Date picker ---
 
 export function openDatePicker() {
   modal.set("date");
-}
-
-/** The expensive part of "all notes" is the disk read — the merge with
- * currently-open tabs' live (possibly unsaved) content below is cheap and
- * always re-run, so a cached disk layer can't go stale with respect to
- * anything actually open right now. `null` means "needs a fresh read";
- * invalidated by writeNoteAndInvalidateCache() and on a directory switch.
- * (§38 — this used to unconditionally re-read every file on every single
- * Action Drawer/Search/Date-picker/History open.) */
-let diskNotesCacheRaw: Record<string, string> | null = null;
-
-export async function refreshAllNotesCache() {
-  if (diskNotesCacheRaw === null) {
-    const entries = await api.readAllNotes();
-    diskNotesCacheRaw = {};
-    for (const [fn, content] of entries) diskNotesCacheRaw[fn] = content;
-  }
-  const map: Record<string, string> = { ...diskNotesCacheRaw };
-  for (const t of get(tabs)) if (!t.isScratchpad) map[t.filename] = t.content;
-  allNotesCache.set(map);
-}
-
-/** All disk writes should go through this rather than calling
- * api.writeNote() directly, so the disk-read cache above knows when it
- * might be stale. Skips invalidation when the written filename already
- * has an open, non-scratchpad tab — that case is always correctly
- * reflected by refreshAllNotesCache()'s live-tab overlay regardless of
- * the disk layer's staleness, so ordinary autosave (the overwhelming
- * majority of writes) doesn't pay for a refetch. Only a write for a
- * filename with *no* open tab — promoteScratchpad's brand-new today
- * file, forwardActionToToday's no-open-tab fallback — actually needs to
- * invalidate. */
-function writeNoteAndInvalidateCache(filename: string, content: string): Promise<void> {
-  const hasOpenTab = get(tabs).some((t) => !t.isScratchpad && t.filename === filename);
-  if (!hasOpenTab) diskNotesCacheRaw = null;
-  return api.writeNote(filename, content);
 }
 
 export async function commitDatePick(dateStr: string) {
@@ -961,7 +875,7 @@ async function performDirectorySwitch(path: string) {
   recentNotesDirs.set(cfg.recentNotesDirs);
 
   clearImportDraft();
-  diskNotesCacheRaw = null;
+  invalidateDiskNotesCache();
   allNotesCache.set({});
   actionSnapshot.set([]);
   historyItems.set([]);

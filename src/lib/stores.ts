@@ -78,6 +78,18 @@ export function getActiveTabId(): string {
   return get(activeTabId);
 }
 
+let toastTimer: ReturnType<typeof setTimeout> | undefined;
+/** Flash a transient message in the status bar; auto-clears after 2.4s. */
+export function showToast(msg: string) {
+  toastMessage.set(msg);
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => toastMessage.set(""), 2400);
+}
+
+export function setStatusPosition(line: number, col: number) {
+  statusPos.set({ line, col });
+}
+
 export interface EditorApi {
   getContent: () => string;
   setContent: (text: string) => void;
