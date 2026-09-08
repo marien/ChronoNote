@@ -14,7 +14,7 @@ briefly in a `next-revision-notes.md` scratch file before being folded in
 here; everything from §32 on was written directly.
 
 Which sections shipped in which release: §1–55 → v0.2.0, §56–59 → v0.2.1,
-§60–74 → v0.3.0, §75–81 → v0.4.0.
+§60–74 → v0.3.0, §75–81 → v0.4.0, §82–83 → v0.4.1.
 
 ---
 
