@@ -384,7 +384,11 @@ body {
   line-height: 1.6em;
   overflow: hidden;
   vertical-align: top;
-  text-align: center;
+  /* §87 (#16): left, not centred — the glyph sits exactly where the first
+     character of the token it replaces did (`#`/`v`/`>`/`x`/`=`), and the
+     token's trailing space becomes a real gap before the text. Centering
+     used to push every glyph a half-cell right and swallow that gap. */
+  text-align: left;
 }
 
 /* §84 (#13): the checkbox characters (☐ ☑ ☒) in the symbol fallback font
@@ -399,7 +403,20 @@ body {
 .glyph-open,
 .glyph-done,
 .glyph-cancelled {
-  transform: scale(0.85);
+  /* §87 (#16): `transform-origin: left center` so the shrink pulls toward
+     the cell's left edge (keeping the glyph on column 0), and `translateY`
+     drops it ~0.05em — against lowercase text the checkboxes read a touch
+     high, their ink reaching well above the x-height while sharing the
+     baseline. */
+  transform: translateY(0.05em) scale(0.85);
+  transform-origin: left center;
+}
+.glyph-followup {
+  /* §87 (#16): same downward nudge. Left-aligned in its 3ch cell like the
+     others, so the arrow starts on column 0 flush with the action glyphs;
+     the `=> ` token is one char wider than `# `, so its gap-to-text runs a
+     touch wider too, which is fine. */
+  transform: translateY(0.05em);
 }
 .glyph-open,
 .glyph-done,

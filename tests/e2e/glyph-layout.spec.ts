@@ -51,17 +51,55 @@ test.describe("glyph line layout", () => {
     expect(Math.abs(heightWithTallFont - plainHeight)).toBeLessThan(0.5);
   });
 
-  test("the glyph stays vertically centered in the line box", async ({ page }) => {
+  test("the glyph is vertically aligned with the line's own text (§87 / #16)", async ({ page }) => {
     await seedApp(page, { seed: "empty" });
     await setEditorText(page, "# open action");
 
+    // Compare the glyph's vertical centre to the first real character
+    // after it, not to the line box — the two should track each other so
+    // the glyph reads as part of the line, not floating above it.
     const delta = await page.evaluate(() => {
       const g = document.querySelector<HTMLElement>(".glyph-open")!;
       const line = g.closest(".cm-line")!;
-      const lr = line.getBoundingClientRect();
+      const walker = document.createTreeWalker(line, NodeFilter.SHOW_TEXT);
+      let textNode: Node | null = null;
+      while ((textNode = walker.nextNode())) {
+        if (textNode.nodeValue && textNode.nodeValue.trim()) break;
+      }
+      const r = document.createRange();
+      r.setStart(textNode!, 0);
+      r.setEnd(textNode!, 1);
+      const cr = r.getBoundingClientRect();
       const gr = g.getBoundingClientRect();
-      return gr.y + gr.height / 2 - (lr.y + lr.height / 2);
+      return gr.y + gr.height / 2 - (cr.y + cr.height / 2);
     });
     expect(Math.abs(delta)).toBeLessThan(1);
+  });
+
+  test("the glyph sits at the column its token started at, not centred in the cell (§87 / #16)", async ({ page }) => {
+    await seedApp(page, { seed: "empty" });
+    await setEditorText(page, "# open action\n  # indented open\nplain line");
+
+    const { unindented, indented, oneCh } = await page.evaluate(() => {
+      const lines = [...document.querySelectorAll<HTMLElement>(".cm-editor .cm-line")];
+      // x of column 0, measured from the plain line's first character.
+      const t = lines[2].firstChild!;
+      const r = document.createRange();
+      r.setStart(t, 0);
+      r.setEnd(t, 1);
+      const col0 = r.getBoundingClientRect();
+      const g0 = lines[0].querySelector<HTMLElement>(".glyph-open")!.getBoundingClientRect();
+      const gi = lines[1].querySelector<HTMLElement>(".glyph-open")!.getBoundingClientRect();
+      return {
+        unindented: g0.left - col0.left,
+        indented: gi.left - col0.left,
+        oneCh: col0.width,
+      };
+    });
+    // Unindented glyph starts flush with column 0 (same x as a plain char).
+    expect(Math.abs(unindented)).toBeLessThan(1);
+    // Indented glyph starts exactly two spaces in — the indentation is
+    // real, untouched whitespace.
+    expect(Math.abs(indented - 2 * oneCh)).toBeLessThan(1.5);
   });
 });
