@@ -10,6 +10,7 @@
     ["Ctrl+W", "Close current tab"],
     ["Ctrl+Tab / Ctrl+Shift+Tab", "Next / previous tab"],
     ["Tab / Shift+Tab", "Indent / dedent (in editor)"],
+    ["Ctrl+Z / Ctrl+Y / Ctrl+Shift+Z", "Undo / redo (kept per tab)"],
     ["Ctrl+Space", "Cycle open → done → deferred (in editor, current line)"],
     ["F2 / Shift+F2", "Jump to next / previous open action (in editor, wraps)"],
     ["Ctrl+Shift+S", "Convert current line into a section header"],
