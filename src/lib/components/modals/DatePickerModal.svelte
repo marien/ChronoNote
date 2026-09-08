@@ -5,6 +5,15 @@
   import { closeOnOutsideClick } from "../../actions/closeOnOutsideClick";
   import { parseDateQuery } from "../../date";
   import { countActions } from "../../tokens";
+  import {
+    MODAL_ITEM_ROW_HEIGHT,
+    clampIndex,
+    scrollToShow,
+    stackHeight,
+    uniformRows,
+    visibleWindow,
+    wrapIndex,
+  } from "./virtualList";
 
   interface Candidate {
     date: string;
@@ -50,23 +59,19 @@
 
   $: allCandidates = buildCandidates(query, $allNotesCache);
   $: candidates = allCandidates.filter((c) => c.isDirectMatch || !$datePickerOpenOnly || c.openCount > 0);
-  $: if (selectedIndex >= candidates.length) selectedIndex = Math.max(0, candidates.length - 1);
+  $: selectedIndex = clampIndex(selectedIndex, candidates.length);
 
-  // --- Virtualized rendering (§38) --- see SearchModal.svelte for the
-  // full rationale. Simpler here than Search/Action Drawer: no group
-  // headers, so every row is the same fixed height and a position can be
-  // computed directly (index * height) instead of needing a binary search
-  // over precomputed offsets.
-  const ITEM_ROW_HEIGHT = 36;
-  const OVERSCAN_PX = 200;
-
+  // --- Virtualized rendering (§38) --- the window math is shared with
+  // Search / History / Action Drawer via `./virtualList`. Simpler here:
+  // no group headers, so every row is `MODAL_ITEM_ROW_HEIGHT` tall
+  // (`uniformRows`).
   let listEl: HTMLDivElement;
   let scrollTop = 0;
   let viewportHeight = 380;
 
-  $: totalHeight = candidates.length * ITEM_ROW_HEIGHT;
-  $: windowStart = Math.max(0, Math.floor((scrollTop - OVERSCAN_PX) / ITEM_ROW_HEIGHT));
-  $: windowEnd = Math.min(candidates.length, Math.ceil((scrollTop + viewportHeight + OVERSCAN_PX) / ITEM_ROW_HEIGHT));
+  $: rows = uniformRows(candidates.length, MODAL_ITEM_ROW_HEIGHT);
+  $: totalHeight = stackHeight(rows);
+  $: ({ start: windowStart, end: windowEnd } = visibleWindow(rows, scrollTop, viewportHeight));
   $: visibleCandidates = candidates.slice(windowStart, windowEnd).map((c, i) => ({ ...c, idx: windowStart + i }));
 
   function onScroll() {
@@ -74,13 +79,9 @@
   }
 
   function scrollSelectedIntoView() {
-    if (!listEl) return;
-    const top = selectedIndex * ITEM_ROW_HEIGHT;
-    if (top < listEl.scrollTop) {
-      listEl.scrollTop = top;
-    } else if (top + ITEM_ROW_HEIGHT > listEl.scrollTop + viewportHeight) {
-      listEl.scrollTop = top + ITEM_ROW_HEIGHT - viewportHeight;
-    }
+    if (!listEl || !rows[selectedIndex]) return;
+    const next = scrollToShow(rows[selectedIndex], listEl.scrollTop, viewportHeight);
+    if (next !== null) listEl.scrollTop = next;
     scrollTop = listEl.scrollTop;
   }
 
@@ -92,11 +93,11 @@
   function onKeydown(e: KeyboardEvent) {
     if (e.key === "ArrowDown") {
       e.preventDefault();
-      if (candidates.length) selectedIndex = (selectedIndex + 1) % candidates.length;
+      selectedIndex = wrapIndex(selectedIndex, candidates.length, 1);
       scrollSelectedIntoView();
     } else if (e.key === "ArrowUp") {
       e.preventDefault();
-      if (candidates.length) selectedIndex = (selectedIndex - 1 + candidates.length) % candidates.length;
+      selectedIndex = wrapIndex(selectedIndex, candidates.length, -1);
       scrollSelectedIntoView();
     } else if (e.key === "Enter") {
       e.preventDefault();
@@ -144,7 +145,7 @@
             role="option"
             aria-selected={c.idx === selectedIndex}
             tabindex="0"
-            style="position: absolute; top: {c.idx * ITEM_ROW_HEIGHT}px; left: 0; right: 0; height: {ITEM_ROW_HEIGHT}px;"
+            style="position: absolute; top: {c.idx * MODAL_ITEM_ROW_HEIGHT}px; left: 0; right: 0; height: {MODAL_ITEM_ROW_HEIGHT}px;"
             on:click={() => commit(c.idx)}
             on:mouseenter={() => (selectedIndex = c.idx)}
             on:keydown={(e) => e.key === "Enter" && commit(c.idx)}

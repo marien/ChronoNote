@@ -4,6 +4,17 @@
   import { searchResultsStore } from "../../controller";
   import { closeOnOutsideClick } from "../../actions/closeOnOutsideClick";
   import type { SearchResultItem } from "../../types";
+  import {
+    MODAL_HEADER_ROW_HEIGHT,
+    MODAL_ITEM_ROW_HEIGHT,
+    clampIndex,
+    scrollToShow,
+    stackHeight,
+    visibleWindow,
+    withTops,
+    wrapIndex,
+    type PlacedRow,
+  } from "./virtualList";
 
   let query = "";
   let selectedIndex = 0;
@@ -74,106 +85,68 @@
     }
     return Array.from(map.entries());
   })();
-  $: if (selectedIndex >= flatList.length) selectedIndex = Math.max(0, flatList.length - 1);
+  $: selectedIndex = clampIndex(selectedIndex, flatList.length);
 
-  // --- Virtualized rendering (§38) ---
-  // A common query at the large tier can match tens of thousands of
-  // lines; rendering one real DOM node per match (as this used to do) was
-  // the actual remaining cost after the scan itself was measured at a few
-  // milliseconds — the scan was never the bottleneck. Only the rows
-  // currently scrolled into view (plus a small overscan buffer) are ever
-  // mounted; everything else is represented purely as numbers (a total
-  // height + each row's offset), which is what makes the scrollbar's size
-  // and position come out right without actually rendering the rest.
-  // Heights are fixed/dictated (not measured) — both row kinds render a
-  // single non-wrapping line, so their height is a known constant from
-  // the CSS padding + font-size, not something that varies per row.
-  const ITEM_ROW_HEIGHT = 36;
-  const HEADER_ROW_HEIGHT = 29;
-  const OVERSCAN_PX = 200;
+  // --- Virtualized rendering (§38) --- a common query at the large tier
+  // can match tens of thousands of lines; only the rows scrolled into
+  // view (plus overscan) are ever mounted, everything past the fold is
+  // just a total height + per-row offset. The window math is shared with
+  // History / Action Drawer via `./virtualList`; this component owns the
+  // row model and the DOM refs.
+  type RawRow =
+    | { type: "header"; key: string; filename: string; count: number; height: number; isFirst: boolean }
+    | { type: "item"; key: string; item: IndexedItem; height: number };
+  type Row = RawRow & PlacedRow;
 
-  type Row =
-    | { type: "header"; key: string; filename: string; count: number; top: number; height: number; isFirst: boolean }
-    | { type: "item"; key: string; item: IndexedItem; top: number; height: number };
-
-  $: rows = ((): Row[] => {
-    const out: Row[] = [];
-    let top = 0;
-    let isFirst = true;
-    for (const [key, group] of groups) {
-      out.push({
-        type: "header",
-        key: `h-${key}`,
-        filename: group.filename,
-        count: group.items.length,
-        top,
-        height: HEADER_ROW_HEIGHT,
-        isFirst,
-      });
-      top += HEADER_ROW_HEIGHT;
-      isFirst = false;
-      for (const item of group.items) {
+  $: rows = withTops<RawRow>(
+    ((): RawRow[] => {
+      const out: RawRow[] = [];
+      let isFirst = true;
+      for (const [key, group] of groups) {
         out.push({
-          type: "item",
-          key: item.tabFilename + ":" + item.lineIdx,
-          item,
-          top,
-          height: ITEM_ROW_HEIGHT,
+          type: "header",
+          key: `h-${key}`,
+          filename: group.filename,
+          count: group.items.length,
+          height: MODAL_HEADER_ROW_HEIGHT,
+          isFirst,
         });
-        top += ITEM_ROW_HEIGHT;
+        isFirst = false;
+        for (const item of group.items) {
+          out.push({
+            type: "item",
+            key: item.tabFilename + ":" + item.lineIdx,
+            item,
+            height: MODAL_ITEM_ROW_HEIGHT,
+          });
+        }
       }
-    }
-    return out;
-  })();
-  $: totalHeight = rows.length ? rows[rows.length - 1].top + rows[rows.length - 1].height : 0;
+      return out;
+    })(),
+  ) as Row[];
+  $: totalHeight = stackHeight(rows);
 
   let listEl: HTMLDivElement;
   let scrollTop = 0;
   let viewportHeight = 380;
 
-  /** First row whose bottom edge is past `y` — rows are laid out in
-   * strictly increasing `top` order, so this is a binary search rather
-   * than scanning every row on every scroll/resize tick. */
-  function rowAt(rowList: Row[], y: number): number {
-    let lo = 0;
-    let hi = rowList.length - 1;
-    let result = rowList.length;
-    while (lo <= hi) {
-      const mid = (lo + hi) >> 1;
-      if (rowList[mid].top + rowList[mid].height <= y) {
-        lo = mid + 1;
-      } else {
-        result = mid;
-        hi = mid - 1;
-      }
-    }
-    return result;
-  }
-
-  $: windowStart = rowAt(rows, Math.max(0, scrollTop - OVERSCAN_PX));
-  $: windowEnd = rowAt(rows, scrollTop + viewportHeight + OVERSCAN_PX);
+  $: ({ start: windowStart, end: windowEnd } = visibleWindow(rows, scrollTop, viewportHeight));
   $: visibleRows = rows.slice(windowStart, windowEnd);
 
   function onScroll() {
     if (listEl) scrollTop = listEl.scrollTop;
   }
 
-  /** Keyboard nav can move `selectedIndex` to a row outside the currently
-   * rendered window — without this it would still change the *item*, but
-   * there'd be nothing on screen to show it happened until the user
-   * scrolled manually. Called only right after ArrowUp/ArrowDown change
-   * `selectedIndex` (not reactively on every `scrollTop` change) — a
-   * reactive version would fight a manual scroll that moves the selected
-   * row out of view on purpose. */
+  /** Keeps the selected row on screen when keyboard nav moves it outside
+   * the rendered window. Called right after ArrowUp/ArrowDown (not
+   * reactively on every scroll) so it can't fight a deliberate manual
+   * scroll that pushes the selected row out of view. */
   function scrollSelectedIntoView() {
     if (!listEl) return;
     const row = rows.find((r) => r.type === "item" && r.item.__flatIndex === selectedIndex);
     if (!row) return;
-    if (row.top < listEl.scrollTop) {
-      listEl.scrollTop = row.top;
-    } else if (row.top + row.height > listEl.scrollTop + viewportHeight) {
-      listEl.scrollTop = row.top + row.height - viewportHeight;
-    }
+    const next = scrollToShow(row, listEl.scrollTop, viewportHeight);
+    if (next !== null) listEl.scrollTop = next;
     scrollTop = listEl.scrollTop;
   }
 
@@ -191,11 +164,11 @@
   function onKeydown(e: KeyboardEvent) {
     if (e.key === "ArrowDown") {
       e.preventDefault();
-      if (flatList.length) selectedIndex = (selectedIndex + 1) % flatList.length;
+      selectedIndex = wrapIndex(selectedIndex, flatList.length, 1);
       scrollSelectedIntoView();
     } else if (e.key === "ArrowUp") {
       e.preventDefault();
-      if (flatList.length) selectedIndex = (selectedIndex - 1 + flatList.length) % flatList.length;
+      selectedIndex = wrapIndex(selectedIndex, flatList.length, -1);
       scrollSelectedIntoView();
     } else if (e.key === "Enter") {
       e.preventDefault();

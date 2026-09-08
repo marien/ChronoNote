@@ -5,6 +5,17 @@
   import { closeOnOutsideClick } from "../../actions/closeOnOutsideClick";
   import { innermostActionSymbol, stripLeadingToken } from "../../tokens";
   import type { HistoryItem } from "../../types";
+  import {
+    MODAL_HEADER_ROW_HEIGHT,
+    MODAL_ITEM_ROW_HEIGHT,
+    clampIndex,
+    scrollToShow,
+    stackHeight,
+    visibleWindow,
+    withTops,
+    wrapIndex,
+    type PlacedRow,
+  } from "./virtualList";
 
   let selectedIndex = 0;
   let titleEl: HTMLInputElement;
@@ -39,58 +50,45 @@
     }
     return Array.from(map.entries());
   })();
-  $: if (selectedIndex >= flatList.length) selectedIndex = Math.max(0, flatList.length - 1);
+  $: selectedIndex = clampIndex(selectedIndex, flatList.length);
 
-  // --- Virtualized rendering (§38) --- see SearchModal.svelte for the
-  // full rationale; same approach as Search/Action Drawer, reused here
-  // since this list has the identical group-header-then-items structure.
-  const ITEM_ROW_HEIGHT = 36;
-  const HEADER_ROW_HEIGHT = 29;
-  const OVERSCAN_PX = 200;
+  // --- Virtualized rendering (§38) --- the group-header-then-items list
+  // structure and its window math are shared with Search / Action Drawer
+  // via `./virtualList`; this component owns the row *model* (what each
+  // row is) and the scroll DOM refs.
+  type RawRow =
+    | { type: "header"; key: string; date: string; count: number; height: number; isFirst: boolean }
+    | { type: "item"; key: string; item: IndexedItem; height: number };
+  type Row = RawRow & PlacedRow;
 
-  type Row =
-    | { type: "header"; key: string; date: string; count: number; top: number; height: number; isFirst: boolean }
-    | { type: "item"; key: string; item: IndexedItem; top: number; height: number };
-
-  $: rows = ((): Row[] => {
-    const out: Row[] = [];
-    let top = 0;
-    let isFirst = true;
-    for (const [date, items] of groups) {
-      out.push({ type: "header", key: `h-${date}`, date, count: items.length, top, height: HEADER_ROW_HEIGHT, isFirst });
-      top += HEADER_ROW_HEIGHT;
-      isFirst = false;
-      for (const it of items) {
-        out.push({ type: "item", key: it.filename + ":" + it.lineIdx, item: it, top, height: ITEM_ROW_HEIGHT });
-        top += ITEM_ROW_HEIGHT;
+  $: rows = withTops<RawRow>(
+    ((): RawRow[] => {
+      const out: RawRow[] = [];
+      let isFirst = true;
+      for (const [date, items] of groups) {
+        out.push({
+          type: "header",
+          key: `h-${date}`,
+          date,
+          count: items.length,
+          height: MODAL_HEADER_ROW_HEIGHT,
+          isFirst,
+        });
+        isFirst = false;
+        for (const it of items) {
+          out.push({ type: "item", key: it.filename + ":" + it.lineIdx, item: it, height: MODAL_ITEM_ROW_HEIGHT });
+        }
       }
-    }
-    return out;
-  })();
-  $: totalHeight = rows.length ? rows[rows.length - 1].top + rows[rows.length - 1].height : 0;
+      return out;
+    })(),
+  ) as Row[];
+  $: totalHeight = stackHeight(rows);
 
   let listEl: HTMLDivElement;
   let scrollTop = 0;
   let viewportHeight = 380;
 
-  function rowAt(rowList: Row[], y: number): number {
-    let lo = 0;
-    let hi = rowList.length - 1;
-    let result = rowList.length;
-    while (lo <= hi) {
-      const mid = (lo + hi) >> 1;
-      if (rowList[mid].top + rowList[mid].height <= y) {
-        lo = mid + 1;
-      } else {
-        result = mid;
-        hi = mid - 1;
-      }
-    }
-    return result;
-  }
-
-  $: windowStart = rowAt(rows, Math.max(0, scrollTop - OVERSCAN_PX));
-  $: windowEnd = rowAt(rows, scrollTop + viewportHeight + OVERSCAN_PX);
+  $: ({ start: windowStart, end: windowEnd } = visibleWindow(rows, scrollTop, viewportHeight));
   $: visibleRows = rows.slice(windowStart, windowEnd);
 
   function onScroll() {
@@ -101,11 +99,8 @@
     if (!listEl) return;
     const row = rows.find((r) => r.type === "item" && r.item.__flatIndex === selectedIndex);
     if (!row) return;
-    if (row.top < listEl.scrollTop) {
-      listEl.scrollTop = row.top;
-    } else if (row.top + row.height > listEl.scrollTop + viewportHeight) {
-      listEl.scrollTop = row.top + row.height - viewportHeight;
-    }
+    const next = scrollToShow(row, listEl.scrollTop, viewportHeight);
+    if (next !== null) listEl.scrollTop = next;
     scrollTop = listEl.scrollTop;
   }
 
@@ -136,11 +131,11 @@
   function onKeydown(e: KeyboardEvent) {
     if (e.key === "ArrowDown") {
       e.preventDefault();
-      if (flatList.length) selectedIndex = (selectedIndex + 1) % flatList.length;
+      selectedIndex = wrapIndex(selectedIndex, flatList.length, 1);
       scrollSelectedIntoView();
     } else if (e.key === "ArrowUp") {
       e.preventDefault();
-      if (flatList.length) selectedIndex = (selectedIndex - 1 + flatList.length) % flatList.length;
+      selectedIndex = wrapIndex(selectedIndex, flatList.length, -1);
       scrollSelectedIntoView();
     } else if (e.key === "Enter" && e.shiftKey) {
       e.preventDefault();
