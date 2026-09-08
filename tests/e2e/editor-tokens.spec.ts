@@ -71,4 +71,35 @@ test.describe("editor — token glyphs", () => {
 
     expect(await activeTabContent(page)).toBe("- first\n- second\nplain");
   });
+
+  test("action continuation (#12): Enter on an action line starts a new open action", async ({ page }) => {
+    await typeInEditor(page, "# first task");
+    await page.keyboard.press("Enter"); // continues as a new open action
+    await page.keyboard.type("second task");
+    await page.keyboard.press("Enter"); // empty action line
+    await page.keyboard.press("Enter"); // exits — symbol removed
+    await page.keyboard.type("plain line");
+
+    expect(await activeTabContent(page)).toBe("# first task\n# second task\nplain line");
+    expect((await statusCounts(page)).open).toBe(2);
+  });
+
+  test("action continuation (#12): a done/deferred line still spawns an *open* action, and Enter mid-line splits it", async ({ page }) => {
+    await typeInEditor(page, "v shipped the thing");
+    // walk the caret back to just before "the thing", then split there
+    for (let i = 0; i < "the thing".length; i++) await page.keyboard.press("ArrowLeft");
+    await page.keyboard.press("Enter");
+
+    expect(await activeTabContent(page)).toBe("v shipped \n# the thing");
+    expect((await statusCounts(page)).open).toBe(1);
+    expect((await statusCounts(page)).closed).toBe(1);
+  });
+
+  test("action continuation (#12): Shift+Enter stays a plain newline", async ({ page }) => {
+    await typeInEditor(page, "# a task");
+    await page.keyboard.press("Shift+Enter");
+    await page.keyboard.type("continued prose");
+
+    expect(await activeTabContent(page)).toBe("# a task\ncontinued prose");
+  });
 });

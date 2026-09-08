@@ -5,6 +5,7 @@ import {
   cycleActionSymbol,
   openActionLineIndices,
   adjacentOpenActionLine,
+  actionLineEnter,
   stripLeadingToken,
   isSetextUnderline,
   getSectionHeaderForLine,
@@ -169,6 +170,33 @@ describe("cycleActionSymbol", () => {
     expect(cycleActionSymbol("Talked to Sam => let's regroup")).toBeNull();
     expect(cycleActionSymbol("Talked to Sam => @alice")).toBeNull();
     expect(cycleActionSymbol("just prose")).toBeNull();
+  });
+});
+
+describe("actionLineEnter", () => {
+  it("continues any action symbol as a fresh open action", () => {
+    expect(actionLineEnter("# buy milk")).toEqual({ insert: "\n# " });
+    expect(actionLineEnter("v shipped it")).toEqual({ insert: "\n# " });
+    expect(actionLineEnter("> deferred this")).toEqual({ insert: "\n# " });
+    expect(actionLineEnter("x won't do it")).toEqual({ insert: "\n# " });
+  });
+
+  it("preserves indentation (§50)", () => {
+    expect(actionLineEnter("    v nested done")).toEqual({ insert: "\n    # " });
+  });
+
+  it("exits on an empty action line — symbol only, or with trailing space", () => {
+    expect(actionLineEnter("# ")).toEqual({ removeSymbol: true });
+    expect(actionLineEnter("  > ")).toEqual({ removeSymbol: true });
+    expect(actionLineEnter("v   ")).toEqual({ removeSymbol: true });
+  });
+
+  it("returns null for non-action lines so the caller falls through", () => {
+    expect(actionLineEnter("just prose")).toBeNull();
+    expect(actionLineEnter("- a bullet")).toBeNull();
+    expect(actionLineEnter("Talked to Sam => # follow up")).toBeNull();
+    expect(actionLineEnter("=== ")).toBeNull();
+    expect(actionLineEnter("")).toBeNull();
   });
 });
 

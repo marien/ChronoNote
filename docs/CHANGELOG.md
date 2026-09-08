@@ -3180,3 +3180,36 @@ caught this on the first attempt (delta 1.56px > 1px tolerance). A
 transform doesn't touch the layout box, so all three glyph-layout cases
 stay green and the row height is unchanged. `.glyph-progress` (`»`),
 `.glyph-bullet` (`•`), `.glyph-followup` (`➔`) are left as they were.
+
+---
+
+## 85. `Enter` on an action line continues it as a new open action (#12)
+
+**Status: implemented.** Requested after v0.4.1 — the same convenience
+bullet lines already have (§51). Pressing `Enter` on a `# `/`v `/`> `/`x `
+line (indented or not, §50) now:
+
+- splits the line at the cursor and starts the tail on a new line, the
+  way `Enter` on a bullet does — so it works mid-line, splitting one
+  action into two;
+- makes that new line a fresh **open** action (`# `) at the same
+  indentation, *regardless* of the current line's symbol — you're adding
+  a task, and tasks start open (writing `v ` or `x ` under a done item
+  makes no sense; continuing under a `> ` deferred item you almost
+  certainly mean a new to-do);
+- on an *empty* action line (just the symbol), removes the marker
+  instead — the "press Enter twice to leave the list" exit, identical to
+  an empty bullet.
+
+`Shift+Enter` is unchanged: a plain newline, no new marker.
+
+**How.** New pure helper `actionLineEnter(lineText)` in `tokens.ts`
+(returns `{ removeSymbol: true }`, `{ insert: "\n<indent># " }`, or
+`null` to fall through) — unit-tested in `tokens.test.ts`. Wired into the
+existing `bulletContinuation` in `EditorPane.svelte`: when the line isn't
+a bullet and the key is plain `Enter`, it consults `actionLineEnter`
+before deferring to CodeMirror's default newline. Leading-symbol lines
+only — a `=> #` consequence-action or a `=> @name` delegation is not a
+list item and still gets a plain newline. E2E coverage in
+`editor-tokens.spec.ts` (continue, empty-exit, done-line → open, mid-line
+split, `Shift+Enter` untouched).
