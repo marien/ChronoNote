@@ -15,7 +15,7 @@ here; everything from §32 on was written directly.
 
 Which sections shipped in which release: §1–55 → v0.2.0, §56–59 → v0.2.1,
 §60–74 → v0.3.0, §75–81 → v0.4.0, §82–83 → v0.4.1, §84–85 → v0.4.2,
-§86–87 → v0.4.3.
+§86–87 → v0.4.3, §88–89 → v0.4.4.
 
 ---
 
