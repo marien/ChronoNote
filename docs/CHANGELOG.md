@@ -3134,3 +3134,21 @@ previous copy is no longer what's about to be pasted. Covered by two new
 `controller.test.ts` cases (a plain copy clears it; a different
 open-action copy replaces it) and a `tests/e2e/paste-deferral.spec.ts`
 case driving it through real copy/paste across tabs.
+
+---
+
+## 83. Rebind next / previous open action to `F2` / `Shift+F2` (#7)
+
+**Status: fixed.** §78 shipped the jump on `Ctrl+↓` / `Ctrl+↑`. Poor
+choice: CodeMirror's `defaultKeymap` doesn't bind those on Windows, so the
+editor's contenteditable falls through to the browser's own "move the
+caret to the start of this / the next line" — which is exactly what a user
+expects `Ctrl+↓`/`Ctrl+↑` to do, and the §78 binding was fighting it.
+
+Moved to **`F2` (next) / `Shift+F2` (previous)** — the near-universal
+editor convention for "go to next / previous <match | problem | bookmark>"
+(VS Code, Visual Studio, IntelliJ). Function keys aren't bound anywhere
+else in ChronoNote. `Ctrl+↓`/`Ctrl+↑` are unbound in the editor keymap
+again and go back to the browser's caret motion. One-line keymap change in
+`EditorPane.svelte`, plus the Shortcuts drawer and
+`tests/e2e/open-action-nav.spec.ts`.
