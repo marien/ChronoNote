@@ -57,6 +57,27 @@ export function adjacentOpenActionLine(text: string, fromLineIdx: number, dir: 1
   return before.length > 0 ? before[before.length - 1] : idxs[idxs.length - 1];
 }
 
+/** §85 (#12): what pressing `Enter` on an action line should do, given
+ * the current line's full text. A leading (optionally indented, §50)
+ * `# `/`v `/`> `/`x ` line continues the way a bullet does — except the
+ * new line is always a fresh **open** action (`# `), since you're adding
+ * a task and tasks start open. An *empty* action line (just the symbol)
+ * exits instead, same as an empty bullet. Returns `null` for anything
+ * that isn't a leading-symbol action line (plain text, `=> #`
+ * consequence-actions, `=> @name` delegations) — the caller then falls
+ * through to CodeMirror's default newline.
+ *
+ * The insert is `\n<indent># ` placed at the cursor, so pressing Enter
+ * mid-line splits the action in two, the tail becoming its own open
+ * action — mirroring `bulletContinuation`'s split-anywhere behaviour. */
+export function actionLineEnter(lineText: string): { removeSymbol: true } | { insert: string } | null {
+  const match = lineText.match(/^(\s*)([#vx>])\s/);
+  if (!match) return null;
+  const [, indent, symbol] = match;
+  if (lineText.trim() === symbol) return { removeSymbol: true };
+  return { insert: `\n${indent}# ` };
+}
+
 /** `Ctrl+Space`'s cycle (§40: `# → v → > → x → #`), shared between the
  * editor (`EditorPane.svelte`) and the Action Drawer's own `Ctrl+Space`
  * (`toggleActionLine` in `controller.ts`) so the two can't drift apart.

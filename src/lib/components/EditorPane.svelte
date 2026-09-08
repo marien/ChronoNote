@@ -8,7 +8,7 @@
   import { glyphAtomicRanges, liveGlyphs } from "../editor/glyphs";
   import { setextRule } from "../editor/setextRule";
   import { underlineFor } from "../sectionImport";
-  import { adjacentOpenActionLine, cycleActionSymbol } from "../tokens";
+  import { actionLineEnter, adjacentOpenActionLine, cycleActionSymbol } from "../tokens";
   import * as controller from "../controller";
   import { wordWrap } from "../controller";
 
@@ -95,12 +95,14 @@
   }
 
   /** Enter/Shift+Enter smart continuation for bulleted lines (`- ` or `* `,
-   * §51 — optionally indented — nesting is two spaces per level). Enter
-   * adds a fresh bullet at the same indentation, using whichever marker
-   * character the current line already uses (or, on an *empty* bullet,
-   * removes it instead — the common "press Enter to exit a list" pattern).
-   * Shift+Enter adds a plain continuation line at the same indentation,
-   * no new bullet. Off a bullet line, Enter defers entirely to
+   * §51 — optionally indented — nesting is two spaces per level) and, from
+   * §85 (#12), action lines (`# `/`v `/`> `/`x `). Enter adds a fresh
+   * bullet at the same indentation using the line's own marker — or, on an
+   * action line, a fresh **open** action (`# `) regardless of the current
+   * symbol, since you're adding a task; on an *empty* bullet or action
+   * line it removes the marker instead ("press Enter to exit a list").
+   * Shift+Enter adds a plain continuation line at the same indentation, no
+   * new marker. Off both kinds of line, Enter defers entirely to
    * CodeMirror's own default newline handling; Shift+Enter isn't bound
    * anywhere else, so it explicitly inserts a plain newline itself. */
   function bulletContinuation(insertBullet: boolean) {
@@ -109,8 +111,22 @@
       const line = v.state.doc.lineAt(pos);
       const match = line.text.match(/^(\s*)([-*])\s/);
       if (!match) {
-        if (insertBullet) return false;
-        v.dispatch({ changes: { from: pos, to: pos, insert: "\n" }, selection: { anchor: pos + 1 }, scrollIntoView: true });
+        if (!insertBullet) {
+          v.dispatch({ changes: { from: pos, to: pos, insert: "\n" }, selection: { anchor: pos + 1 }, scrollIntoView: true });
+          return true;
+        }
+        // §85 (#12): Enter on an action line continues it as a new open action.
+        const edit = actionLineEnter(line.text);
+        if (edit === null) return false;
+        if ("removeSymbol" in edit) {
+          v.dispatch({ changes: { from: line.from, to: line.to, insert: "" }, selection: { anchor: line.from } });
+        } else {
+          v.dispatch({
+            changes: { from: pos, to: pos, insert: edit.insert },
+            selection: { anchor: pos + edit.insert.length },
+            scrollIntoView: true,
+          });
+        }
         return true;
       }
       const [, indent, marker] = match;
