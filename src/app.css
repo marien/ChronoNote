@@ -386,6 +386,21 @@ body {
   vertical-align: top;
   text-align: center;
 }
+
+/* §84 (#13): the checkbox characters (☐ ☑ ☒) in the symbol fallback font
+   draw a near-full-em bordered square, which reads visibly larger and
+   heavier than the `#` / `v` / `x` they replace. Shrink just those three
+   to sit at roughly the `#` cap height. Uses `transform: scale()` rather
+   than `font-size` on purpose: `font-size` would also shrink the `1.6em`
+   height/line-height box above and break the §79 vertical-centering fix,
+   whereas a transform leaves the layout box untouched and scales the
+   drawn mark about its centre. `»` (progress) is left alone — Marien
+   confirmed it looks right as-is. */
+.glyph-open,
+.glyph-done,
+.glyph-cancelled {
+  transform: scale(0.85);
+}
 .glyph-open,
 .glyph-done,
 .glyph-progress,

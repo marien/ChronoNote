@@ -3152,3 +3152,31 @@ else in ChronoNote. `Ctrl+↓`/`Ctrl+↑` are unbound in the editor keymap
 again and go back to the browser's caret motion. One-line keymap change in
 `EditorPane.svelte`, plus the Shortcuts drawer and
 `tests/e2e/open-action-nav.spec.ts`.
+
+---
+
+## 84. Action glyphs `☐` `☑` `☒` shrunk to the size of the character they replace (#13)
+
+**Status: fixed.** Reported after v0.4.1. The open / done / cancelled
+glyphs render from a bordered-square symbol character (`☐ ☑ ☒`) that the
+WebView2 fallback font draws at near-full-em — a closed shape that reads
+visibly larger and heavier than the `#` / `v` / `x` it stands in for. The
+deferred glyph (`»`) is a light chevron and already sits right; Marien
+confirmed it should stay untouched.
+
+**Fix** (`src/app.css`) — `transform: scale(0.85)` on `.glyph-open`,
+`.glyph-done`, `.glyph-cancelled` only. That brings the drawn box down to
+roughly the `#` cap height (measured in a 4.5× overlay of the rendered
+editor against a plain `#` line), scaled about its own centre so it stays
+put on the line.
+
+**Why `transform`, not `font-size`:** the glyph span carries the §79
+one-line box (`height: 1.6em; line-height: 1.6em` with `overflow: hidden`,
+`vertical-align: top`) that keeps glyph rows exactly as tall as plain rows
+(20.8px). `font-size: 0.85em` would also shrink that `1.6em` box to
+~17.7px, and `vertical-align: top` would then hang the glyph above the
+line's centre — `glyph-layout.spec.ts`'s vertical-centring assertion
+caught this on the first attempt (delta 1.56px > 1px tolerance). A
+transform doesn't touch the layout box, so all three glyph-layout cases
+stay green and the row height is unchanged. `.glyph-progress` (`»`),
+`.glyph-bullet` (`•`), `.glyph-followup` (`➔`) are left as they were.
