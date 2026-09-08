@@ -403,6 +403,94 @@ describe("recordCopiedAction / handlePasteIntoTab (§64)", () => {
   });
 });
 
+describe("paste-forward undo link (§86 / #9)", () => {
+  const srcContent = "notes\n# do the thing\nmore notes";
+
+  function seedAndPaste() {
+    controller.tabs.set([
+      tab({ id: "src", filename: "2026-08-01.txt", content: srcContent }),
+      tab({ id: "today", filename: "2026-09-15.txt", content: "" }),
+    ]);
+    vi.setSystemTime(new Date(2026, 8, 15));
+    controller.recordCopiedAction("# do the thing", "src");
+    controller.handlePasteIntoTab("today");
+    vi.useRealTimers();
+  }
+  const src = () => get(controller.tabs).find((t) => t.id === "src")!.content;
+
+  it("records a link on a successful paste-forward and clears it otherwise", () => {
+    seedAndPaste();
+    expect(controller._pasteDeferLinkForTest()).toMatchObject({
+      targetTabId: "today",
+      sourceTabId: "src",
+      openBlock: "# do the thing",
+      deferredBlock: "> do the thing",
+      reverted: false,
+    });
+  });
+
+  it("undoing the paste in the target tab flips the source's `> ` back to `# `", () => {
+    seedAndPaste();
+    expect(src()).toBe("notes\n> do the thing\nmore notes");
+    // The undo that removes the pasted block from the target.
+    controller.onEditorUndo("today", "# do the thing", "");
+    expect(src()).toBe(srcContent);
+    expect(controller._pasteDeferLinkForTest()!.reverted).toBe(true);
+  });
+
+  it("redoing the paste re-defers the source", () => {
+    seedAndPaste();
+    controller.onEditorUndo("today", "# do the thing", "");
+    controller.onEditorRedo("today", "", "# do the thing");
+    expect(src()).toBe("notes\n> do the thing\nmore notes");
+    expect(controller._pasteDeferLinkForTest()!.reverted).toBe(false);
+  });
+
+  it("only the undo step that removes the pasted block fires — earlier undos are ignored", () => {
+    seedAndPaste();
+    // Undo of some edit made after the paste: the block is still there before and after.
+    controller.onEditorUndo("today", "# do the thing\ntyped extra", "# do the thing");
+    expect(src()).toBe("notes\n> do the thing\nmore notes"); // still deferred
+    expect(controller._pasteDeferLinkForTest()!.reverted).toBe(false);
+  });
+
+  it("ignores an undo in a different tab", () => {
+    seedAndPaste();
+    controller.onEditorUndo("src", "# do the thing", "");
+    expect(src()).toBe("notes\n> do the thing\nmore notes");
+  });
+
+  it("drops the link (no revert) when the source's `> ` block was since hand-edited away", () => {
+    seedAndPaste();
+    controller.tabs.set(
+      get(controller.tabs).map((t) => (t.id === "src" ? { ...t, content: "notes\nx do the thing\nmore notes" } : t)),
+    );
+    controller.onEditorUndo("today", "# do the thing", "");
+    expect(src()).toBe("notes\nx do the thing\nmore notes"); // untouched
+    expect(controller._pasteDeferLinkForTest()).toBeNull();
+  });
+
+  it("clears the link when either linked tab closes", () => {
+    seedAndPaste();
+    controller.closeTab("src");
+    expect(controller._pasteDeferLinkForTest()).toBeNull();
+  });
+
+  it("defers every open action in a multi-line forward and restores them all on undo", () => {
+    controller.tabs.set([
+      tab({ id: "src", filename: "2026-08-01.txt", content: "# one\nplain\n# two" }),
+      tab({ id: "today", filename: "2026-09-15.txt", content: "" }),
+    ]);
+    vi.setSystemTime(new Date(2026, 8, 15));
+    controller.recordCopiedAction("# one\nplain\n# two", "src");
+    controller.handlePasteIntoTab("today");
+    vi.useRealTimers();
+    expect(src()).toBe("> one\nplain\n> two");
+    controller.onEditorUndo("today", "# one\nplain\n# two", "");
+    expect(src()).toBe("# one\nplain\n# two");
+  });
+});
+
 describe("runSearch", () => {
   it("finds a case-insensitive match across open tabs", () => {
     controller.tabs.set([tab({ id: "a", content: "Talk to BOB about the roadmap" })]);

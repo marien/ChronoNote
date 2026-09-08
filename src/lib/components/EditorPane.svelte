@@ -3,7 +3,7 @@
   import { get } from "svelte/store";
   import { Compartment, EditorSelection, EditorState, type StateEffect } from "@codemirror/state";
   import { drawSelection, EditorView, keymap } from "@codemirror/view";
-  import { defaultKeymap, history, historyKeymap, indentWithTab } from "@codemirror/commands";
+  import { defaultKeymap, history, historyField, historyKeymap, indentWithTab, redo } from "@codemirror/commands";
   import { indentUnit } from "@codemirror/language";
   import { glyphAtomicRanges, liveGlyphs } from "../editor/glyphs";
   import { setextRule } from "../editor/setextRule";
@@ -154,6 +154,11 @@
       { key: "Shift-F2", run: (v) => jumpToAdjacentOpenAction(v, -1) },
       { key: "Enter", run: bulletContinuation(true) },
       { key: "Shift-Enter", run: bulletContinuation(false) },
+      // §86 (#9): `historyKeymap` only binds Ctrl+Shift+Z to redo on
+      // macOS/Linux (Windows gets Ctrl+Y). Add it everywhere — it's the
+      // combo most people reach for, and undo/redo is the whole point of
+      // this change. Ctrl+Y still works too (from `historyKeymap`).
+      { key: "Mod-Shift-z", run: redo },
     ]);
 
     // Resume where this tab was left off, if it's been visited before this
@@ -190,48 +195,80 @@
       }
     }
 
-    view = new EditorView({
-      state: EditorState.create({
-        doc: content,
-        selection: initialSelection,
-        extensions: [
-          history(),
-          // Coordinate-based selection/cursor painting instead of native
-          // browser DOM-range selection — the latter has known quirks with
-          // `display: inline-block` widgets (like the fixed-width glyphs),
-          // where the highlight doesn't reliably cover the widget's full
-          // box. This is also what the `.cm-cursor-primary`/
-          // `.cm-cursor-secondary` caret styling in app.css was already
-          // written for.
-          drawSelection(),
-          indentUnit.of("  "),
-          wrapCompartment.of(wrapExtension(get(wordWrap))),
-          liveGlyphs,
-          glyphAtomicRanges,
-          setextRule,
-          shortcuts,
-          keymap.of([...defaultKeymap, ...historyKeymap, indentWithTab]),
-          EditorView.updateListener.of((u) => {
-            if (u.docChanged) {
-              controller.updateActiveTabContent(u.state.doc.toString());
+    const extensions = [
+      history(),
+      // Coordinate-based selection/cursor painting instead of native
+      // browser DOM-range selection — the latter has known quirks with
+      // `display: inline-block` widgets (like the fixed-width glyphs),
+      // where the highlight doesn't reliably cover the widget's full
+      // box. This is also what the `.cm-cursor-primary`/
+      // `.cm-cursor-secondary` caret styling in app.css was already
+      // written for.
+      drawSelection(),
+      indentUnit.of("  "),
+      wrapCompartment.of(wrapExtension(get(wordWrap))),
+      liveGlyphs,
+      glyphAtomicRanges,
+      setextRule,
+      shortcuts,
+      keymap.of([...defaultKeymap, ...historyKeymap, indentWithTab]),
+      EditorView.updateListener.of((u) => {
+        if (u.docChanged) {
+          controller.updateActiveTabContent(u.state.doc.toString());
+          // §86 (#9): if this doc change was an undo/redo of the paste that
+          // forwarded actions here, tell the controller so it can flip the
+          // source tab's `> `/`# ` to match.
+          for (const tr of u.transactions) {
+            if (!tr.docChanged) continue;
+            if (tr.isUserEvent("undo")) {
+              controller.onEditorUndo(tabId, tr.startState.doc.toString(), tr.state.doc.toString());
+            } else if (tr.isUserEvent("redo")) {
+              controller.onEditorRedo(tabId, tr.startState.doc.toString(), tr.state.doc.toString());
             }
-            if (u.selectionSet || u.docChanged) {
-              const pos = u.state.selection.main.head;
-              const line = u.state.doc.lineAt(pos);
-              controller.setStatusPosition(line.number, pos - line.from + 1);
-            }
-          }),
-          EditorView.domEventHandlers({
-            copy: (_event, v) => {
-              const sel = v.state.sliceDoc(v.state.selection.main.from, v.state.selection.main.to);
-              controller.recordCopiedAction(sel, controller.getActiveTabId());
-            },
-            paste: () => {
-              controller.handlePasteIntoTab(controller.getActiveTabId());
-            },
-          }),
-        ],
+          }
+        }
+        if (u.selectionSet || u.docChanged) {
+          const pos = u.state.selection.main.head;
+          const line = u.state.doc.lineAt(pos);
+          controller.setStatusPosition(line.number, pos - line.from + 1);
+        }
       }),
+      EditorView.domEventHandlers({
+        copy: (_event, v) => {
+          const sel = v.state.sliceDoc(v.state.selection.main.from, v.state.selection.main.to);
+          controller.recordCopiedAction(sel, controller.getActiveTabId());
+        },
+        paste: () => {
+          controller.handlePasteIntoTab(controller.getActiveTabId());
+        },
+      }),
+    ];
+
+    // §86 (#9): CodeMirror is fully remounted on every tab switch (the
+    // `{#key}` in App.svelte), so its undo history would restart empty each
+    // time. Restore the serialized history alongside the cursor — but only
+    // when the tab's content is byte-for-byte what this editor last saved.
+    // If it changed while the tab was inactive (an action-drawer edit, or a
+    // paste elsewhere deferring its actions), the saved change offsets no
+    // longer line up, so that tab starts with a fresh undo baseline.
+    let initialState: EditorState;
+    const canRestoreHistory = saved?.historyJSON != null && saved.docAtSave === content;
+    if (canRestoreHistory) {
+      try {
+        initialState = EditorState.fromJSON(
+          { doc: content, selection: saved!.selectionJSON, history: saved!.historyJSON },
+          { extensions },
+          { history: historyField },
+        );
+      } catch {
+        initialState = EditorState.create({ doc: content, selection: initialSelection, extensions });
+      }
+    } else {
+      initialState = EditorState.create({ doc: content, selection: initialSelection, extensions });
+    }
+
+    view = new EditorView({
+      state: initialState,
       parent: container,
       scrollTo: saved?.scrollEffect as StateEffect<unknown> | undefined,
     });
@@ -300,6 +337,11 @@
       controller.saveEditorViewState(tabId, {
         selectionJSON: view.state.selection.toJSON(),
         scrollEffect: lastScrollEffect ?? view.scrollSnapshot(),
+        // §86 (#9): keep this tab's undo/redo stack for when it's next
+        // shown. `docAtSave` is the guard the restore path checks against
+        // the (possibly since-changed) tab content.
+        historyJSON: view.state.toJSON({ history: historyField }).history,
+        docAtSave: view.state.doc.toString(),
       });
     }
     view?.destroy();

@@ -6,7 +6,7 @@ kept for the rationale behind each one — not just *what* changed but
 was still being gathered and confirmed before implementation; renamed once
 everything below was applied, since nothing here is "pending" anymore.
 
-**Status: all sections through §85 implemented and on `main`**, each
+**Status: all sections through §86 implemented and on `main`**, each
 verified before merge (`svelte-check`, the Vitest suite, `cargo test`,
 and — from §77 on — the Playwright E2E suite, all green in CI). See each
 section for what it covers and why. §27–31 were small fixes logged
@@ -3213,3 +3213,61 @@ only — a `=> #` consequence-action or a `=> @name` delegation is not a
 list item and still gets a plain newline. E2E coverage in
 `editor-tokens.spec.ts` (continue, empty-exit, done-line → open, mid-line
 split, `Shift+Enter` untouched).
+
+---
+
+## 86. Per-tab undo/redo history, and undoing a paste-forward un-defers the source (#9)
+
+**Status: implemented.** Two parts.
+
+**(a) Undo history is kept per tab.** `App.svelte` wraps the editor in
+`{#key activeTab.id}`, so every tab switch fully unmounts and rebuilds
+CodeMirror — which meant its undo stack restarted empty each time, even
+though the cursor and scroll position were already being preserved
+(`saveEditorViewState`/`getEditorViewState`). The history now rides along:
+`onDestroy` serializes it with `view.state.toJSON({ history: historyField })`
+and `onMount` restores it via `EditorState.fromJSON(…, { history: historyField })`.
+
+The one catch is that CodeMirror's history stores changes as
+position-based change sets, so it's only valid against the exact document
+it was recorded on. A tab's text *can* change while it's inactive — an
+action-drawer edit, or (part b) its `# ` lines being deferred by a paste
+in another tab. So the saved state also carries `docAtSave`, and the
+restore only happens when that still equals the tab's current content;
+otherwise that one tab starts with a fresh undo baseline (you can't undo
+"through" an edit the editor never saw). Cursor/scroll restore regardless,
+as before. Confirmed with Marien.
+
+Redo persists too (it's part of the same serialized field). `historyKeymap`
+only binds Ctrl+Shift+Z to redo on macOS/Linux — Windows gets Ctrl+Y — so
+§86 also adds `Mod-Shift-z → redo` to the editor keymap for parity, since
+that's the combo most people reach for and undo/redo is the whole point
+of the change. Ctrl+Y still works.
+
+**(b) Undoing a paste-forward flips the source tab's `> ` back to `# `.**
+The copy/paste-deferral feature (§64) marks the copied `# ` lines as `> `
+in their *source* tab when you paste them into today's (or a later) note.
+That source edit is a separate `writeTabContent`, outside the target
+editor's transaction, so a plain Ctrl+Z in the target only ever undid the
+paste itself and left the source deferred.
+
+`handlePasteIntoTab` now records a `pasteDeferLink`
+(`{ targetTabId, sourceTabId, openBlock, deferredBlock, reverted }`) — one
+at a time, like `lastCopiedAction`, replaced by the next paste-forward.
+`EditorPane`'s update listener reports every `undo`/`redo` transaction
+(via `tr.isUserEvent`) to `onEditorUndo`/`onEditorRedo`. When the undo
+that actually *removes the pasted block* from the target fires, the
+controller flips the source's `> ` block back to `# ` (a targeted
+`.replace`, so later edits in the source tab aren't clobbered); redo
+re-applies it. Earlier undos — of edits made after the paste — pass
+through untouched, and the link is dropped (source stays deferred) if the
+block was since edited so it can't be matched, or if either tab closes.
+Per Marien's call, the reach is deliberately just the paste's own undo
+step: no attempt to also make the defer independently undoable *from* the
+source tab (that would need synthetic history injection into an unmounted
+editor).
+
+Covered by `undo-history.spec.ts` (6 E2E cases: history survives a switch,
+per-tab isolation, stale-baseline safety, the paste-undo flip, redo, and
+undo-past-later-edits) and 8 `controller.test.ts` cases for the link
+state machine.

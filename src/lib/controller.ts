@@ -114,6 +114,16 @@ export interface EditorViewState {
   // it stays correct even if line heights shift slightly between saving
   // and restoring.
   scrollEffect: unknown;
+  // §86 (#9): the CodeMirror history field, serialized via
+  // `state.toJSON({ history: historyField })`. Restored on the next
+  // remount of this tab *only* when `docAtSave` still equals the tab's
+  // current content — an edit made to the tab while it was inactive (an
+  // action-drawer change, or its own `# ` lines deferred by a paste in
+  // another tab) shifts the change positions the saved history encodes,
+  // so in that case the tab gets a fresh undo baseline instead. `unknown`
+  // for the same module-boundary reason as `scrollEffect`.
+  historyJSON?: unknown;
+  docAtSave?: string;
 }
 const editorViewStateByTabId = new Map<string, EditorViewState>();
 export function saveEditorViewState(tabId: string, state: EditorViewState) {
@@ -462,6 +472,11 @@ export function closeTab(tabId: string) {
   if (idx === -1) return;
 
   editorViewStateByTabId.delete(tabId);
+  // §86 (#9): a paste-defer undo link that points at the tab being closed
+  // (either end) can no longer be honoured.
+  if (pasteDeferLink && (pasteDeferLink.targetTabId === tabId || pasteDeferLink.sourceTabId === tabId)) {
+    pasteDeferLink = null;
+  }
   closedTabHistory.push({
     filename: list[idx].filename,
     isScratchpad: list[idx].isScratchpad,
@@ -1063,6 +1078,80 @@ export function recordCopiedAction(text: string, sourceTabId: string) {
   lastCopiedAction = new RegExp(OPEN_ACTION_LINE, "m").test(text) ? { text, sourceTabId } : null;
 }
 
+/** §86 (#9): links the most recent paste-forward to the `# ` → `> ` defer
+ * it caused in the *source* tab, so that undoing the paste in the target
+ * tab also flips the source's actions back to open. One at a time, like
+ * `lastCopiedAction` — the next paste-forward replaces it. `reverted`
+ * tracks whether the source is currently back to `# ` (an undo happened),
+ * so a redo of the same paste can re-apply the defer. Cleared when either
+ * tab closes, or when the source's `> ` block can no longer be found
+ * (closed, or hand-edited) — in which case there's nothing safe to flip. */
+interface PasteDeferLink {
+  targetTabId: string;
+  sourceTabId: string;
+  openBlock: string;
+  deferredBlock: string;
+  reverted: boolean;
+}
+let pasteDeferLink: PasteDeferLink | null = null;
+
+/** Test-only view of the link state. */
+export function _pasteDeferLinkForTest(): Readonly<PasteDeferLink> | null {
+  return pasteDeferLink;
+}
+
+function deferRestoredToast(sourceFilename: string, blockText: string) {
+  const n = (blockText.match(new RegExp(OPEN_ACTION_LINE, "gm")) ?? []).length;
+  showToast(
+    n > 1
+      ? `${n} deferred tasks on ${sourceFilename} restored to open`
+      : `Deferred task on ${sourceFilename} restored to open`,
+  );
+}
+
+/** Called by `EditorPane` after an `undo` transaction that changed the
+ * document in the active (target) tab. If that undo is the one that
+ * removed the pasted block, flip the linked source tab's `> ` back to
+ * `# ` to match. */
+export function onEditorUndo(activeTabId: string, before: string, after: string) {
+  const link = pasteDeferLink;
+  if (!link || link.reverted || link.targetTabId !== activeTabId) return;
+  // Only the undo step that actually removes the pasted block should fire —
+  // earlier undos (of edits made after the paste) leave it in place.
+  if (!before.includes(link.openBlock) || after.includes(link.openBlock)) return;
+
+  const list = get(tabs);
+  const src = list.find((t) => t.id === link.sourceTabId);
+  if (src && src.content.includes(link.deferredBlock)) {
+    tabs.set(writeTabContent(src.id, src.content.replace(link.deferredBlock, link.openBlock), list));
+    deferRestoredToast(src.filename, link.openBlock);
+    link.reverted = true;
+  } else {
+    pasteDeferLink = null;
+  }
+}
+
+/** Mirror of `onEditorUndo` for a `redo` that re-inserts the pasted block:
+ * re-applies the defer on the source tab. */
+export function onEditorRedo(activeTabId: string, before: string, after: string) {
+  const link = pasteDeferLink;
+  if (!link || !link.reverted || link.targetTabId !== activeTabId) return;
+  if (before.includes(link.openBlock) || !after.includes(link.openBlock)) return;
+
+  const list = get(tabs);
+  const src = list.find((t) => t.id === link.sourceTabId);
+  if (src && src.content.includes(link.openBlock)) {
+    tabs.set(writeTabContent(src.id, src.content.replace(link.openBlock, link.deferredBlock), list));
+    const n = (link.openBlock.match(new RegExp(OPEN_ACTION_LINE, "gm")) ?? []).length;
+    showToast(
+      n > 1 ? `${n} tasks on ${src.filename} deferred again` : `Task on ${src.filename} deferred again`,
+    );
+    link.reverted = false;
+  } else {
+    pasteDeferLink = null;
+  }
+}
+
 export function handlePasteIntoTab(targetTabId: string) {
   if (!lastCopiedAction) return;
   const copied = lastCopiedAction;
@@ -1094,6 +1183,15 @@ export function handlePasteIntoTab(targetTabId: string) {
     const deferredBlock = copied.text.replace(new RegExp(OPEN_ACTION_LINE, "gm"), "$1>$2");
     const newSrcContent = srcTab.content.replace(copied.text, deferredBlock);
     tabs.set(writeTabContent(srcTab.id, newSrcContent, list));
+    // §86 (#9): remember this defer so an undo of the paste in the target
+    // tab can flip it back.
+    pasteDeferLink = {
+      targetTabId,
+      sourceTabId: srcTab.id,
+      openBlock: copied.text,
+      deferredBlock,
+      reverted: false,
+    };
     const count = (copied.text.match(new RegExp(OPEN_ACTION_LINE, "gm")) ?? []).length;
     showToast(
       count > 1
