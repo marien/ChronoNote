@@ -6,7 +6,7 @@ kept for the rationale behind each one — not just *what* changed but
 was still being gathered and confirmed before implementation; renamed once
 everything below was applied, since nothing here is "pending" anymore.
 
-**Status: all sections through §86 implemented and on `main`**, each
+**Status: all sections through §87 implemented and on `main`**, each
 verified before merge (`svelte-check`, the Vitest suite, `cargo test`,
 and — from §77 on — the Playwright E2E suite, all green in CI). See each
 section for what it covers and why. §27–31 were small fixes logged
@@ -3271,3 +3271,35 @@ Covered by `undo-history.spec.ts` (6 E2E cases: history survives a switch,
 per-tab isolation, stale-baseline safety, the paste-undo flip, redo, and
 undo-past-later-edits) and 8 `controller.test.ts` cases for the link
 state machine.
+
+---
+
+## 87. Glyphs aligned to the character they replace, with the trailing space as a gap (#16)
+
+**Status: implemented.** The inline glyphs are `Decoration.replace` widgets
+sized `display: inline-block; width: 2ch` (`# `, `v `, `> `, `x `, `- `) or
+`3ch` (`=> `) so text after them lines up with the same line unglyphed
+(§79's note). They were also `text-align: center`, which pushed every
+glyph a half-cell to the right of where its first character had been and
+swallowed the token's trailing space — so `☐open` read as one clump,
+shifted right of a bare `#`.
+
+**Fix** (`src/app.css`), all in the `.glyph-*` rules:
+- `text-align: left` — the glyph now starts on the same column its token
+  did (`#`/`v`/`>`/`x`/`=` at column 0, or two spaces in when the action
+  line is indented), and the rest of the `Nch` cell is the gap before the
+  text.
+- The scaled checkboxes (§84) get `transform-origin: left center` so the
+  0.85 shrink pulls toward that left edge instead of the centre.
+- `.glyph-open` / `.glyph-done` / `.glyph-cancelled` and `.glyph-followup`
+  also get `translateY(0.05em)`: against lowercase text the checkbox and
+  the follow-up arrow sat a hair high (their ink reaches well above the
+  x-height while sharing the baseline). `»` (progress) and `•` (bullet)
+  already aligned and are only left-shifted, not nudged.
+
+Layout height is untouched — `transform` and `text-align` don't affect the
+box — so §79's "every glyph line is exactly as tall as a plain line" still
+holds. `glyph-layout.spec.ts` gains two cases (glyph vertically tracks the
+line's own text; glyph starts on column 0 / two-spaces-in when indented)
+and its old "centred in the line box" case is reworked to measure against
+the text rather than the box.
