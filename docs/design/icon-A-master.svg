@@ -1,0 +1,8 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+  <title>ChronoNote app icon — concept A (checkbox clock)</title>
+  <desc>The open-action glyph as a rounded square, with clock hands set inside it: the action list and the passage of days in one mark. Shipped treatment is a white knockout on the accent-blue tile (evolves the previous white-clock-on-blue icon). For a neutral-tile variant that follows the in-app colour setting, see docs/design/icon-proposals.html concept A.</desc>
+  <rect x="32" y="32" width="960" height="960" rx="232" fill="#007acc"/>
+  <rect x="300" y="300" width="424" height="424" rx="72" fill="none" stroke="#ffffff" stroke-width="66"/>
+  <path d="M512 524 V400 M512 524 H660" fill="none" stroke="#ffffff" stroke-width="66" stroke-linecap="round"/>
+  <circle cx="512" cy="524" r="33" fill="#ffffff"/>
+</svg>
