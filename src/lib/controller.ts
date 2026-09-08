@@ -1048,10 +1048,19 @@ let lastCopiedAction: { text: string; sourceTabId: string } | null = null;
  * working for. */
 const OPEN_ACTION_LINE = /^(\s*)#(\s)/;
 
+/** Called on every `copy` inside the editor. `lastCopiedAction` is only
+ * ever meaningful for the *very next* paste, so any fresh copy must
+ * replace it — a copy that carries an open action becomes the new record,
+ * a copy that doesn't (a plain line, a done/deferred action, a section
+ * header) clears it.
+ *
+ * §82: it used to only *set* the record, never clear it. So: copy an
+ * open-action block in an old tab (e.g. to paste into another app), then
+ * copy something unrelated in today's tab, then paste — the stale
+ * old-tab record was still live and its `# ` lines got marked `> ` in the
+ * wrong tab. */
 export function recordCopiedAction(text: string, sourceTabId: string) {
-  if (new RegExp(OPEN_ACTION_LINE, "m").test(text)) {
-    lastCopiedAction = { text, sourceTabId };
-  }
+  lastCopiedAction = new RegExp(OPEN_ACTION_LINE, "m").test(text) ? { text, sourceTabId } : null;
 }
 
 export function handlePasteIntoTab(targetTabId: string) {

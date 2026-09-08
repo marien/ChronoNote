@@ -366,6 +366,41 @@ describe("recordCopiedAction / handlePasteIntoTab (§64)", () => {
     expect(() => controller.handlePasteIntoTab("a")).not.toThrow();
     expect(get(controller.tabs)[0].content).toBe("# do the thing");
   });
+
+  it("a later copy of a non-action line clears the stale record — no wrong-tab defer (§82 / #8)", () => {
+    controller.tabs.set([
+      tab({ id: "old", filename: "2026-08-01.txt", content: "# forward me\n# and me" }),
+      tab({ id: "today", filename: "2026-09-15.txt", content: "some notes here" }),
+    ]);
+    vi.setSystemTime(new Date(2026, 8, 15));
+
+    // Copy an open-action block in the old tab (e.g. to paste into another app).
+    controller.recordCopiedAction("# forward me\n# and me", "old");
+    // Then copy a plain line in today's tab and paste it into today.
+    controller.recordCopiedAction("some notes here", "today");
+    controller.handlePasteIntoTab("today");
+
+    // The old tab's actions are untouched — the plain copy replaced the record.
+    expect(get(controller.tabs).find((t) => t.id === "old")!.content).toBe("# forward me\n# and me");
+    vi.useRealTimers();
+  });
+
+  it("a later copy of a different open action replaces the record (defers the new one, not the old)", () => {
+    controller.tabs.set([
+      tab({ id: "old", filename: "2026-08-01.txt", content: "# old task" }),
+      tab({ id: "recent", filename: "2026-09-14.txt", content: "# recent task" }),
+      tab({ id: "today", filename: "2026-09-15.txt", content: "" }),
+    ]);
+    vi.setSystemTime(new Date(2026, 8, 15));
+
+    controller.recordCopiedAction("# old task", "old");
+    controller.recordCopiedAction("# recent task", "recent");
+    controller.handlePasteIntoTab("today");
+
+    expect(get(controller.tabs).find((t) => t.id === "old")!.content).toBe("# old task");
+    expect(get(controller.tabs).find((t) => t.id === "recent")!.content).toBe("> recent task");
+    vi.useRealTimers();
+  });
 });
 
 describe("runSearch", () => {
