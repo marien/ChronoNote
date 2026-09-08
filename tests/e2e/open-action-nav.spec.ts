@@ -65,12 +65,22 @@ test.describe("open-action navigation (F2 / Shift+F2)", () => {
     await expect(toast(page)).toContainText(/no open actions/i);
   });
 
-  test("Ctrl+↓ no longer runs the jump — three presses don't land on the last action", async ({ page }) => {
-    // The old binding did line 1 → 3 → 6 → 8. Ctrl+↓ is unbound now, so
-    // whatever the browser does with it, we should not end up on line 8.
+  test("Ctrl+↓ / Ctrl+↑ move the caret to line starts, not between open actions (§89 / #20)", async ({ page }) => {
+    // §78's old binding did the open-action jump 1 → 3 → 6 → 8 here.
+    // Ctrl+↓ now just steps to the start of the next line.
+    await page.keyboard.press("Control+ArrowDown");
+    expect(await cursorLine(page)).toBe(2);
     await page.keyboard.press("Control+ArrowDown");
     await page.keyboard.press("Control+ArrowDown");
-    await page.keyboard.press("Control+ArrowDown");
-    expect(await cursorLine(page)).not.toBe(8);
+    expect(await cursorLine(page)).toBe(4);
+    // Col 1 — it lands on the start of the line, not wherever the column was.
+    const pos = (await page.locator("#stat-pos").textContent()) ?? "";
+    expect(pos).toMatch(/Col\s+1\b/);
+    // Ctrl+↑ goes to the start of the current line (does not step up a line).
+    await page.keyboard.press("ArrowRight");
+    await page.keyboard.press("ArrowRight");
+    await page.keyboard.press("Control+ArrowUp");
+    expect(await cursorLine(page)).toBe(4);
+    expect((await page.locator("#stat-pos").textContent()) ?? "").toMatch(/Col\s+1\b/);
   });
 });

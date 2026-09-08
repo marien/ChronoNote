@@ -20,6 +20,34 @@ test.describe("info drawers", () => {
     expect(await currentModal(page)).toBe("glyphLegend");
   });
 
+  test("legend glyphs render as plain inline text, aligned with the row (§88 / #19)", async ({ page }) => {
+    await editor(page).click();
+    await page.keyboard.press("Control+Shift+Slash");
+    await expect(modalCard(page, MODAL_LABELS.glyphLegend)).toBeVisible();
+
+    const info = await page.evaluate(() => {
+      const g = document.querySelector<HTMLElement>(".item-tag .glyph-open");
+      const kbd = g?.closest(".item-tag")?.querySelector("kbd");
+      if (!g || !kbd) return null;
+      const cs = getComputedStyle(g);
+      const gr = g.getBoundingClientRect();
+      const kr = kbd.getBoundingClientRect();
+      return {
+        display: cs.display,
+        transform: cs.transform,
+        // editor box model would force ~2ch; plain text is ~1 char.
+        widthUnderOneAndAHalfCh: gr.width < parseFloat(cs.fontSize) * 1.5,
+        // vertical centre tracks the token pill on the same row.
+        vDelta: Math.abs(gr.top + gr.height / 2 - (kr.top + kr.height / 2)),
+      };
+    });
+    expect(info).not.toBeNull();
+    expect(info!.display).toBe("inline");
+    expect(info!.transform).toBe("none");
+    expect(info!.widthUnderOneAndAHalfCh).toBe(true);
+    expect(info!.vDelta).toBeLessThan(4);
+  });
+
   test("Ctrl+Shift+, opens About and shows the version from the backend", async ({ page }) => {
     await editor(page).click();
     await page.keyboard.press("Control+Shift+Comma");

@@ -6,7 +6,7 @@ kept for the rationale behind each one — not just *what* changed but
 was still being gathered and confirmed before implementation; renamed once
 everything below was applied, since nothing here is "pending" anymore.
 
-**Status: all sections through §87 implemented, released, and on `main`**, each
+**Status: all sections through §89 implemented, released, and on `main`**, each
 verified before merge (`svelte-check`, the Vitest suite, `cargo test`,
 and — from §77 on — the Playwright E2E suite, all green in CI). See each
 section for what it covers and why. §27–31 were small fixes logged
@@ -3304,3 +3304,49 @@ holds. `glyph-layout.spec.ts` gains two cases (glyph vertically tracks the
 line's own text; glyph starts on column 0 / two-spaces-in when indented)
 and its old "centred in the line box" case is reworked to measure against
 the text rather than the box.
+
+---
+
+## 88. Symbols & Sections legend: glyphs render as plain inline text (#19)
+
+**Status: fixed.** The `.glyph-*` classes do two jobs: the `--glyph-*`
+colour / weight / opacity theming (wanted anywhere a glyph appears) and
+the editor's fixed-cell box model — `display: inline-block`, `width: 2ch`
+/ `3ch`, the `1.6em` one-line box, `vertical-align: top`, and the §84/§87
+`transform`s. `GlyphLegendModal` reuses the classes purely for the
+colours (so the drawer follows the grayscale/colour toggle for free), but
+it got the box model too: in each `<kbd>token</kbd> → <glyph>` row the
+glyph sat in a 2ch inline-block, half a cell to the right of the arrow
+and nudged down by the editor's `translateY`, so it read as misaligned.
+
+**Fix** (`src/app.css`) — scope every layout declaration to `.cm-line`
+(`.cm-line .glyph-open { … }`, etc.), leaving only the colour rules
+unscoped. Editor glyphs are always inside a `.cm-line`, so the editor is
+unchanged; everywhere else the classes are now just coloured text. In the
+legend the glyph's vertical centre lands exactly on the token pill's
+(measured delta 0). Covered by a `drawers.spec.ts` case asserting the
+legend glyph is `display: inline`, un-transformed, ~1 char wide, and
+row-aligned. The class doing double duty is still a smell — noted for the
+0.5.0 refactor (a dedicated colour-only class, or moving the box model
+into `glyphs.ts`).
+
+---
+
+## 89. `Ctrl+↑` / `Ctrl+↓` — caret to start of line / start of next line (#20)
+
+**Status: implemented.** §83 moved the open-action jump off these keys
+because the browser's contenteditable already did "caret to start of
+line / start of next line" with them on Windows — but that was an
+implicit browser default, not something ChronoNote guaranteed. Now it's
+an explicit editor binding: `Ctrl+↑` moves the caret to the start of the
+current line, `Ctrl+↓` to the start of the next line (`Shift` extends the
+selection). "Line" is the document line — word wrap is off by default —
+and `Ctrl+↑` is deliberately *"go to start of line"*, not *"step to the
+previous line"*, exactly as the request read; if the up key should also
+walk upward through line-starts that's a one-line follow-up.
+
+Bound `win:` / `linux:` only in `EditorPane`'s `shortcuts` keymap, so
+macOS keeps `defaultKeymap`'s page-scroll on `Ctrl+↑`/`Ctrl+↓` (the app
+ships Windows-only today, but the binding stays correct if that changes).
+Shortcuts drawer updated; `open-action-nav.spec.ts`'s old "Ctrl+↓ is
+unbound now" case is reworked to assert the new caret motion.
