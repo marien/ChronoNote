@@ -3098,3 +3098,39 @@ line (only the underline row itself reveals it). §47's original ask was
 "editable when the cursor is on the line" — singular, the underline —
 and that's what shipped; extending it to the title row is a small
 follow-up if wanted.
+
+---
+
+## 82. Bug fix: a stale copy record deferred actions in the wrong tab (#8)
+
+**Status: fixed.** Reported after v0.4.0. Steps: copy a block of text
+containing open actions from an older tab (to paste into another
+application); switch to today's tab; copy and paste something there — and
+the *older* tab's `# ` lines get marked `> ` (deferred), even though
+nothing from that tab was pasted anywhere in ChronoNote.
+
+**Root cause** — the copy/paste-deferral feature (§64) tracks the last
+copied text in a module-level `lastCopiedAction` so the next paste knows
+which source lines to forward. `recordCopiedAction()` (called on every
+`copy` inside the editor) only ever *set* that record — and only when the
+copied text contained an open action:
+
+```ts
+if (OPEN_ACTION_LINE.test(text)) lastCopiedAction = { text, sourceTabId };
+```
+
+So a later copy that *didn't* contain an open action (a plain line, a
+done/deferred action, a section header) left the previous record
+untouched. The next paste — anywhere today-or-later, in any tab — then
+ran against that stale block and deferred its actions in the tab it was
+originally copied from. `handlePasteIntoTab`'s existing
+`srcTab.content.includes(copied.text)` guard didn't help here: the older
+tab genuinely still contained the block.
+
+**Fix** — `recordCopiedAction` now *always* replaces the record: a copy
+that carries an open action becomes the new `lastCopiedAction`, and a
+copy that doesn't clears it to `null`. A fresh copy of anything means the
+previous copy is no longer what's about to be pasted. Covered by two new
+`controller.test.ts` cases (a plain copy clears it; a different
+open-action copy replaces it) and a `tests/e2e/paste-deferral.spec.ts`
+case driving it through real copy/paste across tabs.
