@@ -1,0 +1,429 @@
+<title>ChronoNote icon proposals</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500&family=JetBrains+Mono:wght@400;500;700&display=swap">
+<style>
+  :root{
+    --bg:#fbfbf9;
+    --surface:#ffffff;
+    --text:#1b1b1a;
+    --dim:#6c6c68;
+    --faint:#9a9a94;
+    --line:#e7e6e2;
+    --accent:#0066b8;
+    --code-bg:#f3f3f0;
+    --mono:"JetBrains Mono",ui-monospace,"Cascadia Code","Consolas","Segoe UI Symbol",monospace;
+    --sans:"IBM Plex Sans","Segoe UI",system-ui,sans-serif;
+  }
+  @media (prefers-color-scheme:dark){
+    :root:not([data-theme="light"]){
+      --bg:#181817;
+      --surface:#1f1f1e;
+      --text:#e5e4e0;
+      --dim:#9d9d98;
+      --faint:#6f6f6a;
+      --line:#2e2e2c;
+      --accent:#57a6e0;
+      --code-bg:#242422;
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#181817;
+    --surface:#1f1f1e;
+    --text:#e5e4e0;
+    --dim:#9d9d98;
+    --faint:#6f6f6a;
+    --line:#2e2e2c;
+    --accent:#57a6e0;
+    --code-bg:#242422;
+  }
+
+  *{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--text);
+    font-family:var(--sans);
+    font-size:16px;
+    line-height:1.65;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{
+    max-width:min(760px,calc(100% - 40px));
+    margin:0 auto;
+    padding:64px 0 96px;
+  }
+
+  .masthead{margin-bottom:52px}
+  .wordmark{
+    font-family:var(--mono);
+    font-weight:500;
+    font-size:14px;
+    letter-spacing:.14em;
+    color:var(--text);
+    margin:0;
+  }
+  .rule{
+    border:0;
+    border-top:1px solid var(--line);
+    border-bottom:1px solid var(--line);
+    height:3px;
+    margin:14px 0 20px;
+  }
+  .lede{
+    font-size:17px;
+    color:var(--dim);
+    max-width:60ch;
+    margin:0;
+  }
+
+  section{margin-top:56px}
+  .eyebrow{
+    font-family:var(--mono);
+    font-size:11px;
+    letter-spacing:.18em;
+    text-transform:uppercase;
+    color:var(--faint);
+    margin:0 0 18px;
+  }
+
+  .prop-head{
+    display:flex;
+    align-items:baseline;
+    gap:14px;
+    margin-bottom:8px;
+  }
+  .tag{
+    font-family:var(--mono);
+    font-weight:700;
+    font-size:13px;
+    color:var(--accent);
+    border:1px solid var(--accent);
+    border-radius:5px;
+    padding:1px 8px;
+    line-height:1.5;
+    flex:none;
+  }
+  h2{
+    font-family:var(--sans);
+    font-weight:500;
+    font-size:21px;
+    letter-spacing:-.01em;
+    margin:0;
+    text-wrap:balance;
+  }
+  .prop-note{
+    color:var(--dim);
+    max-width:62ch;
+    margin:14px 0 0;
+  }
+  .prop-note strong{font-weight:500;color:var(--text)}
+  .setting{
+    font-family:var(--mono);
+    font-size:12.5px;
+    line-height:1.7;
+    color:var(--dim);
+    background:var(--code-bg);
+    border-left:2px solid var(--line);
+    border-radius:0;
+    padding:12px 16px;
+    margin:18px 0 0;
+  }
+  .setting b{color:var(--text);font-weight:500}
+  .setting code{background:var(--surface)}
+
+  .board{
+    margin-top:22px;
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:26px 20px;
+  }
+  @media (max-width:560px){ .board{grid-template-columns:1fr} }
+  .mode{
+    border:1px solid var(--line);
+    border-radius:12px;
+    background:var(--surface);
+    padding:16px 16px 14px;
+  }
+  .mode h3{
+    font-family:var(--mono);
+    font-size:11px;
+    font-weight:500;
+    letter-spacing:.16em;
+    text-transform:uppercase;
+    color:var(--dim);
+    margin:0 0 14px;
+  }
+  .pair{display:flex;gap:14px}
+  .cell{flex:1;display:flex;flex-direction:column;align-items:center;gap:8px}
+  .cell svg{display:block}
+  .altrow{
+    display:flex;
+    gap:14px;
+    margin-top:14px;
+    padding-top:12px;
+    border-top:1px dashed var(--line);
+  }
+  .altrow .cell{flex:none}
+  .cell span{
+    font-family:var(--mono);
+    font-size:10px;
+    letter-spacing:.08em;
+    color:var(--faint);
+  }
+  .ramp{
+    grid-column:1 / -1;
+    display:flex;
+    align-items:flex-end;
+    gap:20px;
+    padding:14px 4px 2px;
+    border-top:1px dashed var(--line);
+  }
+  .ramp .cell{flex:none;flex-direction:column}
+  .ramp-label{
+    font-family:var(--mono);
+    font-size:10px;
+    letter-spacing:.14em;
+    text-transform:uppercase;
+    color:var(--faint);
+    align-self:center;
+    margin-left:auto;
+    text-align:right;
+    max-width:15ch;
+    line-height:1.5;
+  }
+
+  .now-row{display:flex;align-items:center;gap:20px;margin-top:16px}
+  .now-row svg{border-radius:16px;flex:none}
+  .now-row p{margin:0;color:var(--dim);font-size:15px;max-width:46ch}
+
+  .ship dl{
+    margin:20px 0 0;
+    display:grid;
+    grid-template-columns:auto 1fr;
+    gap:4px 20px;
+    font-size:15px;
+  }
+  .ship dt{
+    font-family:var(--mono);
+    font-size:12px;
+    letter-spacing:.06em;
+    color:var(--faint);
+    padding-top:5px;
+    white-space:nowrap;
+  }
+  .ship dd{margin:0;color:var(--dim)}
+  .ship dd b{color:var(--text);font-weight:500}
+  code{
+    font-family:var(--mono);
+    font-size:.86em;
+    background:var(--code-bg);
+    padding:1px 5px;
+    border-radius:4px;
+  }
+  .rec{
+    margin-top:26px;
+    border:1px solid var(--accent);
+    border-radius:12px;
+    padding:18px 20px;
+  }
+  .rec h3{
+    font-family:var(--mono);
+    font-size:11px;
+    letter-spacing:.16em;
+    text-transform:uppercase;
+    color:var(--accent);
+    margin:0 0 8px;
+  }
+  .rec p{margin:0;color:var(--text);font-size:15px}
+  .rec p + p{margin-top:8px;color:var(--dim)}
+
+  footer{
+    margin-top:64px;
+    padding-top:18px;
+    border-top:1px solid var(--line);
+    font-family:var(--mono);
+    font-size:11px;
+    letter-spacing:.1em;
+    color:var(--faint);
+  }
+  a{color:var(--accent)}
+  :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+</style>
+
+<div class="wrap">
+  <header class="masthead">
+    <p class="wordmark">chrononote</p>
+    <hr class="rule">
+    <p class="lede">Three directions for the app icon. The current one is a stock clock &mdash; it says <em>time</em> and nothing about notes or actions. Each proposal below is drawn from the app&rsquo;s own vocabulary and shown in both glyph color modes, at the sizes Windows actually renders.</p>
+  </header>
+
+  <section>
+    <p class="eyebrow">Now shipping &mdash; v0.4.3</p>
+    <div class="now-row" id="now"></div>
+  </section>
+
+  <section id="prop-a">
+    <div class="prop-head">
+      <span class="tag">A</span>
+      <h2>Checkbox clock</h2>
+    </div>
+    <p class="prop-note">The open-action glyph <code>&#9744;</code> is the app&rsquo;s most-seen mark; two hands set inside it turn the box into a clock face. One shape holds both halves of the name &mdash; the action list and the passage of days. It stays a clean silhouette down to 16&nbsp;px, where the list concept (B) turns to mush.</p>
+    <div class="board" data-icon="A"></div>
+    <p class="setting"><b>Follows the color setting.</b> Tile stays neutral in every mode, exactly like the app&rsquo;s chrome. Grayscale mode &rarr; the mark is <b>ink</b>. Color mode &rarr; the mark is <b>accent blue</b> (<code>#007acc</code>) &mdash; not a status hue, so it never reads as &ldquo;done&rdquo; or &ldquo;overdue.&rdquo;</p>
+  </section>
+
+  <section id="prop-b">
+    <div class="prop-head">
+      <span class="tag">B</span>
+      <h2>The day&rsquo;s list</h2>
+    </div>
+    <p class="prop-note">A dated page under its <code>===</code> section rule, carrying the two states that drive the daily loop: one still-open action, one carried forward. It is the most literal picture of what ChronoNote is for &mdash; and the proposal where the two color modes read as genuinely different objects.</p>
+    <div class="board" data-icon="B"></div>
+    <p class="setting"><b>Follows the color setting &mdash; hardest of the three.</b> Grayscale mode &rarr; both glyphs are ink, told apart by <b>shape and weight</b> (the app&rsquo;s real grayscale philosophy). Color mode &rarr; <b>open is red</b> <code>#ff6b6b</code>, <b>deferred is amber</b> <code>#e5a50a</code> &mdash; the exact token palette. At 16&nbsp;px it falls back to the page plus one bold box.</p>
+  </section>
+
+  <section id="prop-c">
+    <div class="prop-head">
+      <span class="tag">C</span>
+      <h2>Forward mark</h2>
+    </div>
+    <p class="prop-note">Just the deferred glyph <code>&raquo;</code>, set like a monospace character over a cursor tick. It is the verb at the centre of the app: carry this to tomorrow. The most confident and the most scalable mark &mdash; and the most abstract, since <code>&raquo;</code> alone leans on the viewer knowing the app.</p>
+    <div class="board" data-icon="C"></div>
+    <p class="setting"><b>Follows the color setting.</b> Grayscale mode &rarr; <b>ink</b> chevrons. Color mode &rarr; <b>accent blue</b>. Swapping the color mark to amber <code>#e5a50a</code> would be the semantically exact choice, since <code>&raquo;</code> <em>is</em> the deferred color &mdash; shown small under the color pair.</p>
+  </section>
+
+  <section class="ship">
+    <p class="eyebrow">Shipping it</p>
+    <dl>
+      <dt>OS icon</dt>
+      <dd>Static &mdash; <code>icon.ico</code> and the PNGs are baked at build time and can&rsquo;t follow a runtime setting. Ship <b>one variant</b>; the color version reads better in a taskbar. Generate the set from a single 1024&nbsp;px master: <code>npx tauri icon icon-master.png</code> rewrites <code>src-tauri/icons/{32x32,128x128,128x128@2x}.png</code> and <code>icon.ico</code>.</dd>
+      <dt>In-app icon</dt>
+      <dd>An inline SVG in the title bar / About modal <b>can</b> follow <code>color_mode</code> &mdash; give its mark <code>fill: currentColor</code> or the <code>--glyph-*</code> custom properties and it themes with everything else, no rebuild.</dd>
+      <dt>Both themes</dt>
+      <dd>The neutral tile is <code>--tab-bg</code> (<code>#252526</code> dark, <code>#f3f3f3</code> light) with a <code>--border</code> hairline, so the icon sits correctly on a dark or light OS shell without a second asset.</dd>
+    </dl>
+    <div class="rec">
+      <h3>Recommendation</h3>
+      <p>Ship <b>A</b> as the OS icon &mdash; it is the only mark that names both &ldquo;notes&rdquo; and &ldquo;time&rdquo; in one glance and holds up at 16&nbsp;px.</p>
+      <p>Use <b>B</b> for the in-app icon, where size isn&rsquo;t a constraint and its grayscale/color split becomes a tiny live demo of the setting itself.</p>
+    </div>
+  </section>
+
+  <footer>chrononote &mdash; keyboard-driven plain-text daily notes</footer>
+</div>
+
+<script>
+(function(){
+  var APP = {
+    light:{ ground:"#ffffff", panel:"#f3f3f3", ink:"#1b1b1b", muted:"#8b8b8b", border:"#e0e0e0", accent:"#0066b8" },
+    dark: { ground:"#1e1e1e", panel:"#252526", ink:"#d4d4d4", muted:"#858585", border:"#3a3a3a", accent:"#007acc" }
+  };
+  var GLYPH = { open:"#ff6b6b", defer:"#e5a50a" };
+
+  function svg(size, inner){
+    return '<svg width="'+size+'" height="'+size+'" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">'+inner+'</svg>';
+  }
+  function tile(p){
+    return '<rect x="3.5" y="3.5" width="93" height="93" rx="23" fill="'+p.panel+'" stroke="'+p.border+'" stroke-width="1.4"/>';
+  }
+
+  // ---- concept A: checkbox clock ----
+  function iconA(p, mark, size){
+    var s = size < 26 ? 8.4 : 7;
+    var m = tile(p);
+    m += '<rect x="27" y="27" width="46" height="46" rx="8" fill="none" stroke="'+mark+'" stroke-width="'+s+'"/>';
+    m += '<path d="M50 51 V35 M50 51 H63.5" fill="none" stroke="'+mark+'" stroke-width="'+s+'" stroke-linecap="round"/>';
+    if(size >= 26) m += '<circle cx="50" cy="51" r="3.4" fill="'+mark+'"/>';
+    return svg(size, m);
+  }
+
+  // ---- concept B: the day's list ----
+  function iconB(p, cols, size){
+    var m = tile(p);
+    var big = size >= 58, mid = size >= 30;
+    m += '<rect x="23" y="15" width="54" height="70" rx="7" fill="'+p.ground+'" stroke="'+p.border+'" stroke-width="2"/>';
+    if(mid){
+      m += '<path d="M30 27 H70 M30 31.5 H70" stroke="'+p.muted+'" stroke-width="2.4" stroke-linecap="round"/>';
+    } else {
+      m += '<path d="M31 25 H69" stroke="'+p.muted+'" stroke-width="3" stroke-linecap="round"/>';
+    }
+    if(big){
+      m += '<rect x="30" y="43" width="9.5" height="9.5" rx="1.6" fill="none" stroke="'+cols.open+'" stroke-width="2.7"/>';
+      m += '<path d="M45 48 H67" stroke="'+p.muted+'" stroke-width="3" stroke-linecap="round"/>';
+      m += '<path d="M30 60 l5 5 l-5 5 M36.5 60 l5 5 l-5 5" fill="none" stroke="'+cols.defer+'" stroke-width="2.7" stroke-linecap="round" stroke-linejoin="round"/>';
+      m += '<path d="M46 65 H64" stroke="'+p.muted+'" stroke-width="3" stroke-linecap="round"/>';
+    } else if(mid){
+      m += '<rect x="35" y="42" width="12" height="12" rx="2" fill="none" stroke="'+cols.open+'" stroke-width="3.4"/>';
+      m += '<path d="M39 60 l6 6 l-6 6 M47 60 l6 6 l-6 6" fill="none" stroke="'+cols.defer+'" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/>';
+    } else {
+      m += '<rect x="36" y="40" width="28" height="28" rx="4" fill="none" stroke="'+cols.open+'" stroke-width="6"/>';
+    }
+    return svg(size, m);
+  }
+
+  // ---- concept C: forward mark ----
+  function iconC(p, mark, size){
+    var w = size < 26 ? 9.5 : 8;
+    var m = tile(p);
+    m += '<path d="M35 31 L54 50.5 L35 70 M50 31 L69 50.5 L50 70" fill="none" stroke="'+mark+'" stroke-width="'+w+'" stroke-linecap="round" stroke-linejoin="round"/>';
+    if(size >= 44) m += '<path d="M34 79 H50" stroke="'+mark+'" stroke-width="7" stroke-linecap="round" opacity="0.45"/>';
+    return svg(size, m);
+  }
+
+  function render(icon, opts){
+    var p = APP[opts.theme];
+    if(icon === "A") return iconA(p, opts.mode === "gray" ? p.ink : p.accent, opts.size);
+    if(icon === "C") return iconC(p, opts.mode === "gray" ? p.ink : (opts.alt ? GLYPH.defer : p.accent), opts.size);
+    var cols = opts.mode === "gray"
+      ? { open:p.ink, defer:p.ink }
+      : { open:GLYPH.open, defer:GLYPH.defer };
+    return iconB(p, cols, opts.size);
+  }
+
+  function cell(html, label){
+    return '<div class="cell">'+html+'<span>'+label+'</span></div>';
+  }
+
+  function board(el){
+    var icon = el.dataset.icon;
+    var modes = [["gray","grayscale mode"],["color","color mode"]];
+    modes.forEach(function(md){
+      var box = document.createElement("div");
+      box.className = "mode";
+      var pair = "";
+      ["light","dark"].forEach(function(th){
+        pair += cell(render(icon, {mode:md[0], theme:th, size:84}), th);
+      });
+      var html = '<h3>'+md[1]+'</h3><div class="pair">'+pair+'</div>';
+      if(icon === "C" && md[0] === "color"){
+        var alt = "";
+        ["light","dark"].forEach(function(th){
+          alt += cell(render(icon, {mode:"color", theme:th, size:52, alt:true}), th+" · amber alt");
+        });
+        html += '<div class="altrow">'+alt+'</div>';
+      }
+      box.innerHTML = html;
+      el.appendChild(box);
+    });
+    var ramp = document.createElement("div");
+    ramp.className = "ramp";
+    [48,32,16].forEach(function(sz){
+      ramp.innerHTML += cell(render(icon, {mode:"color", theme:"dark", size:sz}), sz+" px");
+    });
+    ramp.innerHTML += '<span class="ramp-label">color mode, dark shell</span>';
+    el.appendChild(ramp);
+  }
+
+  document.querySelectorAll(".board").forEach(board);
+
+  document.getElementById("now").innerHTML =
+    svg(80,
+      '<rect x="3.5" y="3.5" width="93" height="93" rx="23" fill="#007acc"/>' +
+      '<circle cx="50" cy="50" r="30" fill="none" stroke="#ffffff" stroke-width="7"/>' +
+      '<path d="M50 50 V29 M50 50 H67" stroke="#ffffff" stroke-width="7" stroke-linecap="round"/>'
+    ) +
+    '<p>The v0.4.3 icon: a white clock on the accent tile. Generic &mdash; it could be any timer, reminder, or world-clock app.</p>';
+})();
+</script>

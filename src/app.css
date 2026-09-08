@@ -357,11 +357,19 @@ body {
 /* Custom In-line Presentation Glyphs — theme-driven via CSS variables, so
    the color/grayscale toggle applies with no component logic needed.
 
-   Fixed `ch`-unit widths force exact column alignment: a single Unicode
-   character doesn't guarantee single-monospace-cell rendered width in
-   every font, so width is forced via CSS rather than trusted to the
-   glyph's own natural size — 2ch for the two-character tokens (`# `, `v `,
-   `> `, `- `), 3ch for the three-character `=> `.
+   §88 (#19): the `.glyph-*` classes carry two unrelated things — the
+   `--glyph-*` colour/weight/opacity theming (below, unscoped, wanted
+   anywhere a glyph is shown) and the editor's fixed-cell box model
+   (`.cm-line .glyph-*`, scoped, only meaningful inside CodeMirror). The
+   Symbols & Sections legend reuses the classes purely for the colours; it
+   must render them as plain inline text, so everything layout-related is
+   gated behind `.cm-line`.
+
+   Fixed `ch`-unit widths force exact column alignment in the editor: a
+   single Unicode character doesn't guarantee single-monospace-cell
+   rendered width in every font, so width is forced via CSS rather than
+   trusted to the glyph's own natural size — 2ch for the two-character
+   tokens (`# `, `v `, `> `, `- `), 3ch for the three-character `=> `.
 
    Fixed *height* matters for the same reason (§79): the geometric
    characters (☐ ☑ ☒ » ➔ •) aren't in the monospace stack and fall back
@@ -371,23 +379,20 @@ body {
    than the plain lines around it. Pinning the box to exactly one line
    (`height`/`line-height` at the `.cm-line` 1.6 ratio) with
    `overflow: hidden` and top alignment keeps the fallback's vertical
-   metrics out of layout; `text-align: center` keeps the glyph centered
-   in its 2ch / 3ch cell. */
-.glyph-open,
-.glyph-done,
-.glyph-progress,
-.glyph-cancelled,
-.glyph-bullet,
-.glyph-followup {
+   metrics out of layout. §87 (#16): `text-align: left` puts the glyph on
+   the column its token's first character had, with the trailing space as
+   the gap. */
+.cm-line .glyph-open,
+.cm-line .glyph-done,
+.cm-line .glyph-progress,
+.cm-line .glyph-cancelled,
+.cm-line .glyph-bullet,
+.cm-line .glyph-followup {
   display: inline-block;
   height: 1.6em;
   line-height: 1.6em;
   overflow: hidden;
   vertical-align: top;
-  /* §87 (#16): left, not centred — the glyph sits exactly where the first
-     character of the token it replaces did (`#`/`v`/`>`/`x`/`=`), and the
-     token's trailing space becomes a real gap before the text. Centering
-     used to push every glyph a half-cell right and swallow that gap. */
   text-align: left;
 }
 
@@ -399,33 +404,30 @@ body {
    height/line-height box above and break the §79 vertical-centering fix,
    whereas a transform leaves the layout box untouched and scales the
    drawn mark about its centre. `»` (progress) is left alone — Marien
-   confirmed it looks right as-is. */
-.glyph-open,
-.glyph-done,
-.glyph-cancelled {
-  /* §87 (#16): `transform-origin: left center` so the shrink pulls toward
-     the cell's left edge (keeping the glyph on column 0), and `translateY`
-     drops it ~0.05em — against lowercase text the checkboxes read a touch
-     high, their ink reaching well above the x-height while sharing the
-     baseline. */
+   confirmed it looks right as-is.
+
+   §87 (#16): `transform-origin: left center` so the shrink pulls toward
+   the cell's left edge (keeping the glyph on column 0), and `translateY`
+   drops it ~0.05em — against lowercase text the checkboxes and the
+   follow-up arrow read a touch high, their ink reaching well above the
+   x-height while sharing the baseline. */
+.cm-line .glyph-open,
+.cm-line .glyph-done,
+.cm-line .glyph-cancelled {
   transform: translateY(0.05em) scale(0.85);
   transform-origin: left center;
 }
-.glyph-followup {
-  /* §87 (#16): same downward nudge. Left-aligned in its 3ch cell like the
-     others, so the arrow starts on column 0 flush with the action glyphs;
-     the `=> ` token is one char wider than `# `, so its gap-to-text runs a
-     touch wider too, which is fine. */
+.cm-line .glyph-followup {
   transform: translateY(0.05em);
 }
-.glyph-open,
-.glyph-done,
-.glyph-progress,
-.glyph-cancelled,
-.glyph-bullet {
+.cm-line .glyph-open,
+.cm-line .glyph-done,
+.cm-line .glyph-progress,
+.cm-line .glyph-cancelled,
+.cm-line .glyph-bullet {
   width: 2ch;
 }
-.glyph-followup {
+.cm-line .glyph-followup {
   width: 3ch;
 }
 .glyph-open {

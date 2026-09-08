@@ -60,8 +60,8 @@
    * action (`# ` line, indented or not, plus `=> #` consequence-actions)
    * in this note, wrapping at the ends. Lands at the start of the line,
    * same as the Action Drawer's "jump to line". A no-op with a toast when
-   * the note has none. (§83: was `Ctrl+↓`/`Ctrl+↑`, which the browser
-   * already uses for caret-to-line-start in a contenteditable.) */
+   * the note has none. (§83: moved off `Ctrl+↓`/`Ctrl+↑`, which now do
+   * caret-to-line-start explicitly — see §89 below.) */
   function jumpToAdjacentOpenAction(v: EditorView, dir: 1 | -1): boolean {
     const curLineIdx = v.state.doc.lineAt(v.state.selection.main.head).number - 1;
     const target = adjacentOpenActionLine(v.state.doc.toString(), curLineIdx, dir);
@@ -71,6 +71,35 @@
     }
     const line = v.state.doc.line(target + 1);
     v.dispatch({ selection: { anchor: line.from }, scrollIntoView: true });
+    return true;
+  }
+
+  /** §89 (#20): `Ctrl+↑` / `Ctrl+↓` move the caret to the start of the
+   * current line / the start of the next line — the caret motion the
+   * browser's contenteditable already did on Windows for these keys
+   * (§83), now bound explicitly so it's reliable and consistent. Line
+   * here means the *document* line (word-wrap off by default), and
+   * `Ctrl+↑` deliberately does not step to the previous line — it is
+   * "go to start of line", per the request. `Shift` extends the
+   * selection. Bound `win:`/`linux:` only, so macOS keeps its
+   * `defaultKeymap` page-scroll on these keys. */
+  function lineStartTarget(v: EditorView): number {
+    return v.state.doc.lineAt(v.state.selection.main.head).from;
+  }
+  function nextLineStartTarget(v: EditorView): number {
+    const line = v.state.doc.lineAt(v.state.selection.main.head);
+    return line.number < v.state.doc.lines ? v.state.doc.line(line.number + 1).from : line.to;
+  }
+  function moveCaret(v: EditorView, target: number): boolean {
+    v.dispatch({ selection: EditorSelection.cursor(target), scrollIntoView: true, userEvent: "select" });
+    return true;
+  }
+  function extendSelection(v: EditorView, target: number): boolean {
+    v.dispatch({
+      selection: EditorSelection.range(v.state.selection.main.anchor, target),
+      scrollIntoView: true,
+      userEvent: "select",
+    });
     return true;
   }
 
@@ -152,6 +181,18 @@
       { key: "Ctrl-Shift-s", run: (v) => convertLineToSection(v) },
       { key: "F2", run: (v) => jumpToAdjacentOpenAction(v, 1) },
       { key: "Shift-F2", run: (v) => jumpToAdjacentOpenAction(v, -1) },
+      {
+        win: "Ctrl-ArrowUp",
+        linux: "Ctrl-ArrowUp",
+        run: (v) => moveCaret(v, lineStartTarget(v)),
+        shift: (v) => extendSelection(v, lineStartTarget(v)),
+      },
+      {
+        win: "Ctrl-ArrowDown",
+        linux: "Ctrl-ArrowDown",
+        run: (v) => moveCaret(v, nextLineStartTarget(v)),
+        shift: (v) => extendSelection(v, nextLineStartTarget(v)),
+      },
       { key: "Enter", run: bulletContinuation(true) },
       { key: "Shift-Enter", run: bulletContinuation(false) },
       // §86 (#9): `historyKeymap` only binds Ctrl+Shift+Z to redo on
