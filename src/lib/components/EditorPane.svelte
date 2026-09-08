@@ -56,11 +56,12 @@
     return true;
   }
 
-  /** §78: `Ctrl+↓` / `Ctrl+↑` — move the cursor to the next / previous
-   * open action (`# ` line, indented or not, plus `=> #` consequence-
-   * actions) in this note, wrapping at the ends. Lands at the start of
-   * the line, same as the Action Drawer's "jump to line". A no-op with a
-   * toast when the note has none. */
+  /** §78: `F2` / `Shift+F2` — move the cursor to the next / previous open
+   * action (`# ` line, indented or not, plus `=> #` consequence-actions)
+   * in this note, wrapping at the ends. Lands at the start of the line,
+   * same as the Action Drawer's "jump to line". A no-op with a toast when
+   * the note has none. (§83: was `Ctrl+↓`/`Ctrl+↑`, which the browser
+   * already uses for caret-to-line-start in a contenteditable.) */
   function jumpToAdjacentOpenAction(v: EditorView, dir: 1 | -1): boolean {
     const curLineIdx = v.state.doc.lineAt(v.state.selection.main.head).number - 1;
     const target = adjacentOpenActionLine(v.state.doc.toString(), curLineIdx, dir);
@@ -133,8 +134,8 @@
     const shortcuts = keymap.of([
       { key: "Ctrl-Space", run: (v) => cycleLine(v) },
       { key: "Ctrl-Shift-s", run: (v) => convertLineToSection(v) },
-      { key: "Ctrl-ArrowDown", run: (v) => jumpToAdjacentOpenAction(v, 1) },
-      { key: "Ctrl-ArrowUp", run: (v) => jumpToAdjacentOpenAction(v, -1) },
+      { key: "F2", run: (v) => jumpToAdjacentOpenAction(v, 1) },
+      { key: "Shift-F2", run: (v) => jumpToAdjacentOpenAction(v, -1) },
       { key: "Enter", run: bulletContinuation(true) },
       { key: "Shift-Enter", run: bulletContinuation(false) },
     ]);

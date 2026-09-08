@@ -11,7 +11,7 @@
     ["Ctrl+Tab / Ctrl+Shift+Tab", "Next / previous tab"],
     ["Tab / Shift+Tab", "Indent / dedent (in editor)"],
     ["Ctrl+Space", "Cycle open → done → deferred (in editor, current line)"],
-    ["Ctrl+↓ / Ctrl+↑", "Jump to next / previous open action (in editor, wraps)"],
+    ["F2 / Shift+F2", "Jump to next / previous open action (in editor, wraps)"],
     ["Ctrl+Shift+S", "Convert current line into a section header"],
     ["Ctrl+Shift+A", "Action drawer"],
     ["Ctrl+Shift+H", "Section history"],
