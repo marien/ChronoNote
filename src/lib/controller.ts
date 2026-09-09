@@ -17,11 +17,13 @@
  *   menu                 static-modal openers (Settings / Shortcuts / …)
  *   boot                 startup, session restore, standing subscriptions
  *   directory            notes-directory switching (§39)
+ *   drift                external-modification / conflict detection (§94)
  */
 export * from "./stores";
 export * from "./persistence";
 export * from "./tabSort";
 export * from "./paste";
+export * from "./drift";
 export * from "./tabs";
 export * from "./actions";
 export * from "./history";

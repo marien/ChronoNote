@@ -14,6 +14,8 @@ import {
   activeTabId,
   allNotesCache,
   clearAllEditorViewState,
+  clearAllTabCleanHashes,
+  conflictInfo,
   historyItems,
   historyTargetHeader,
   modal,
@@ -88,9 +90,11 @@ async function performDirectorySwitch(path: string) {
   historyItems.set([]);
   historyTargetHeader.set("");
   searchResultsStore.set([]);
+  conflictInfo.set(null);
   tabs.set([]);
   activeTabId.set("");
   clearAllEditorViewState();
+  clearAllTabCleanHashes();
 
   await restoreOrBootstrapTabs();
   modal.set("none");

@@ -53,10 +53,14 @@ export interface MockSeed {
 interface MockDir {
   notes: Map<string, string>;
   session: TabSession | null;
+  /** `.chrononote-conflicts/<name>` copies written by `write_conflict_copy`
+   * (§94). Kept separate from `notes` so they never surface as note files. */
+  conflictCopies: Map<string, string>;
 }
 
 const MAX_RECENT = 5;
 const NOTE_FILENAME_RE = /^\d{4}-\d{2}-\d{2}\.txt$/;
+const CONFLICTS_DIRNAME = ".chrononote-conflicts";
 
 /** Commands that change persisted state — after these, snapshot to
  * `sessionStorage` so a reload sees the same "disk". */
@@ -65,6 +69,7 @@ const MUTATING_COMMANDS = new Set([
   "set_color_mode",
   "set_word_wrap",
   "write_note",
+  "write_conflict_copy",
   "write_tab_session",
 ]);
 
@@ -72,6 +77,26 @@ function isValidNoteFilename(name: string): boolean {
   // Mirrors storage.rs::is_valid_note_filename — length + shape check,
   // which is also what stops `../` and absolute paths.
   return name.length === 14 && NOTE_FILENAME_RE.test(name);
+}
+
+/** SHA-256 hex — the exact digest `storage.rs`'s `sha2` produces and
+ * `drift.ts`'s `sha256Hex` computes in-memory, so mock metadata hashes
+ * compare correctly against both. */
+async function sha256Hex(text: string): Promise<string> {
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text));
+  return [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+async function fileMetadata(content: string | undefined) {
+  if (content === undefined) {
+    return { exists: false, contentHash: null, sizeBytes: null, modifiedMs: null };
+  }
+  return {
+    exists: true,
+    contentHash: await sha256Hex(content),
+    sizeBytes: new TextEncoder().encode(content).length,
+    modifiedMs: Date.now(),
+  };
 }
 
 export interface InvokeLogEntry {
@@ -108,6 +133,7 @@ export class MockBackend {
     statusCounts: () => { open: number; closed: number; forwarded: number };
     setEditorContent: (text: string) => void;
     getEditorContent: () => string;
+    checkDrift: () => Promise<void>;
   };
 
   private eventListenerId = 0;
@@ -136,11 +162,13 @@ export class MockBackend {
     this.dirs.set(this.notesDir, {
       notes: new Map(Object.entries(seed.notes ?? {})),
       session: seed.session ?? null,
+      conflictCopies: new Map(),
     });
     for (const [path, notes] of Object.entries(seed.otherDirs ?? {})) {
       this.dirs.set(path, {
         notes: new Map(Object.entries(notes)),
         session: seed.sessions?.[path] ?? null,
+        conflictCopies: new Map(),
       });
     }
   }
@@ -162,7 +190,7 @@ export class MockBackend {
       wordWrap: this.wordWrap,
       recentNotesDirs: this.recentNotesDirs,
       appVersion: this.appVersion,
-      dirs: [...this.dirs].map(([path, d]) => [path, [...d.notes], d.session]),
+      dirs: [...this.dirs].map(([path, d]) => [path, [...d.notes], d.session, [...d.conflictCopies]]),
     });
   }
 
@@ -189,7 +217,7 @@ export class MockBackend {
         wordWrap?: boolean;
         recentNotesDirs: string[];
         appVersion: string;
-        dirs: [string, [string, string][], TabSession | null][];
+        dirs: [string, [string, string][], TabSession | null, [string, string][]?][];
       };
       const b = new MockBackend();
       b.notesDir = s.notesDir;
@@ -197,7 +225,12 @@ export class MockBackend {
       b.wordWrap = s.wordWrap ?? false;
       b.recentNotesDirs = s.recentNotesDirs;
       b.appVersion = s.appVersion;
-      b.dirs = new Map(s.dirs.map(([path, notes, session]) => [path, { notes: new Map(notes), session }]));
+      b.dirs = new Map(
+        s.dirs.map(([path, notes, session, conflicts]) => [
+          path,
+          { notes: new Map(notes), session, conflictCopies: new Map(conflicts ?? []) },
+        ]),
+      );
       return b;
     } catch {
       return null;
@@ -207,7 +240,7 @@ export class MockBackend {
   private dir(path = this.notesDir): MockDir {
     let d = this.dirs.get(path);
     if (!d) {
-      d = { notes: new Map(), session: null };
+      d = { notes: new Map(), session: null, conflictCopies: new Map() };
       this.dirs.set(path, d);
     }
     return d;
@@ -232,6 +265,11 @@ export class MockBackend {
     this.dir(dirPath).notes.set(filename, content);
   }
 
+  /** Simulate an external deletion of a note file. */
+  deleteNote(filename: string, dirPath = this.notesDir): void {
+    this.dir(dirPath).notes.delete(filename);
+  }
+
   listFiles(dirPath = this.notesDir): string[] {
     return [...this.dir(dirPath).notes.keys()].filter(isValidNoteFilename).sort();
   }
@@ -245,6 +283,15 @@ export class MockBackend {
   lastWrite(filename: string): string | null {
     const w = this.writesFor(filename);
     return w.length ? w[w.length - 1] : null;
+  }
+
+  /** §94: names of the `.chrononote-conflicts/` copies written this session. */
+  conflictCopyNames(): string[] {
+    return [...this.dir().conflictCopies.keys()];
+  }
+
+  conflictCopy(name: string): string | null {
+    return this.dir().conflictCopies.get(name) ?? null;
   }
 
   // --- the invoke dispatcher -------------------------------------------
@@ -295,8 +342,40 @@ export class MockBackend {
         if (!isValidNoteFilename(filename)) {
           throw new Error(`Invalid note filename: ${filename}`);
         }
-        this.dir().notes.set(filename, String(args.content));
-        return null;
+        const content = String(args.content);
+        // §94: compare-and-swap when the caller passed the hash it last saw.
+        const expected = args.expectedHash;
+        if (typeof expected === "string") {
+          const current = this.dir().notes.get(filename);
+          const currentHash = current === undefined ? null : await sha256Hex(current);
+          if (currentHash !== expected) {
+            throw new Error(`conflict: note changed on disk: ${filename}`);
+          }
+        }
+        this.dir().notes.set(filename, content);
+        return fileMetadata(content);
+      }
+
+      case "get_file_metadata": {
+        const filename = String(args.filename);
+        if (!isValidNoteFilename(filename)) throw new Error(`Invalid note filename: ${filename}`);
+        return fileMetadata(this.dir().notes.get(filename));
+      }
+
+      case "read_note_with_metadata": {
+        const filename = String(args.filename);
+        if (!isValidNoteFilename(filename)) throw new Error(`Invalid note filename: ${filename}`);
+        const content = this.dir().notes.get(filename) ?? null;
+        return { content, metadata: await fileMetadata(content ?? undefined) };
+      }
+
+      case "write_conflict_copy": {
+        const name = String(args.name);
+        if (!/^[A-Za-z0-9._-]+\.txt$/.test(name) || name.includes("..")) {
+          throw new Error(`Invalid conflict-copy filename: ${name}`);
+        }
+        this.dir().conflictCopies.set(name, String(args.content));
+        return `${this.notesDir}/${CONFLICTS_DIRNAME}/${name}`;
       }
 
       case "read_all_notes":

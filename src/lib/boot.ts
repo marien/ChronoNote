@@ -14,6 +14,7 @@ import {
   appVersion,
   chromeExpanded,
   colorMode,
+  markTabClean,
   modal,
   notesDir,
   recentNotesDirs,
@@ -26,6 +27,7 @@ import {
   wordWrap,
 } from "./stores";
 import { flushAllPendingSaves } from "./persistence";
+import { checkActiveTabForDrift } from "./drift";
 import type { ColorMode, NoteTab } from "./types";
 
 // --- Standing subscriptions (wired once, from initApp) -----------------
@@ -115,6 +117,29 @@ async function flushThenDestroy() {
   }
 }
 
+// --- §94: external-modification detection triggers -------------------
+//
+// Check the active tab for drift whenever it becomes active, and whenever
+// the OS window regains focus (the "I edited the file in another app and
+// alt-tabbed back" case). The check itself is in `drift.ts` and is a
+// cheap no-op when nothing changed.
+
+let driftWired = false;
+function wireDriftDetection() {
+  if (driftWired) return;
+  driftWired = true;
+  activeTabId.subscribe(() => {
+    void checkActiveTabForDrift();
+  });
+  getCurrentWindow()
+    .onFocusChanged(({ payload: focused }) => {
+      if (focused) void checkActiveTabForDrift();
+    })
+    .catch(() => {
+      // No window handle — focus trigger just isn't active here.
+    });
+}
+
 /** Unsaved-scratchpads gate, "close" context: Cancel — stay in the app. */
 export function cancelAppClose() {
   unsavedScratchpadNames.set([]);
@@ -168,28 +193,36 @@ export async function restoreOrBootstrapTabs() {
     // Fire every read concurrently (one IPC round-trip in flight per file,
     // all in parallel) rather than one-at-a-time — with several tabs open,
     // a sequential await-per-file loop was adding a full extra round-trip
-    // of latency per tab before the editor became typable.
-    const [otherContents, todayContent] = await Promise.all([
-      Promise.all(otherFilenames.map((filename) => api.readNote(filename))),
-      api.readNote(todayFilename),
+    // of latency per tab before the editor became typable. §94:
+    // `read_note_with_metadata` so each tab starts with a clean-hash
+    // baseline for external-modification detection.
+    const [otherReads, todayRead] = await Promise.all([
+      Promise.all(otherFilenames.map((filename) => api.readNoteWithMetadata(filename))),
+      api.readNoteWithMetadata(todayFilename),
     ]);
 
     const restored: NoteTab[] = [];
+    const cleanHashes: Array<[string, string | null]> = [];
     otherFilenames.forEach((filename, i) => {
-      const content = otherContents[i];
+      const { content, metadata } = otherReads[i];
       if (content === null) return; // file no longer exists — silently skip
-      restored.push({ id: `tab-${Date.now()}-${filename}`, filename, isScratchpad: false, content });
+      const id = `tab-${Date.now()}-${filename}`;
+      restored.push({ id, filename, isScratchpad: false, content });
+      cleanHashes.push([id, metadata.contentHash]);
     });
 
+    const todayId = `tab-${Date.now()}-${todayFilename}`;
     const todayTab: NoteTab = {
-      id: `tab-${Date.now()}-${todayFilename}`,
+      id: todayId,
       filename: todayFilename,
       isScratchpad: false,
-      content: todayContent ?? "",
+      content: todayRead.content ?? "",
     };
     restored.push(todayTab);
+    cleanHashes.push([todayId, todayRead.metadata.contentHash]);
 
     tabs.set(restored);
+    for (const [id, hash] of cleanHashes) markTabClean(id, hash);
     // #23: on the first launch of a new day (and the very first launch
     // after install, where `session` is null), open with today's note
     // active regardless of which tab was last active — the point of a
@@ -244,6 +277,7 @@ export async function initApp() {
   wireStatusBarSync();
   wireWindowTitleSync();
   wireCloseBarrier();
+  wireDriftDetection();
   const cfg = await api.getConfig();
   notesDir.set(cfg.notesDir);
   recentNotesDirs.set(cfg.recentNotesDirs);

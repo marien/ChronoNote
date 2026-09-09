@@ -20,7 +20,8 @@ export type ModalKind =
   | "shortcuts"
   | "glyphLegend"
   | "about"
-  | "unsavedScratchpads";
+  | "unsavedScratchpads"
+  | "conflict";
 
 export const tabs = writable<NoteTab[]>([]);
 export const activeTabId = writable<string>("");
@@ -165,3 +166,34 @@ export function clearEditorViewState(tabId: string) {
 export function clearAllEditorViewState() {
   editorViewStateByTabId.clear();
 }
+
+/** §94: per-tab SHA-256 of the note's disk content as of the last load or
+ * successful save — the "clean" baseline the drift check compares the
+ * current on-disk hash against. Keyed by tab id, in-memory only (like the
+ * editor-view-state map above), and cleared when a tab closes or on a
+ * directory switch. A tab with no entry (a scratchpad, or a note whose
+ * initial load predates this being recorded) simply never triggers a
+ * drift prompt. */
+const cleanHashByTabId = new Map<string, string>();
+export function markTabClean(tabId: string, hash: string | null | undefined) {
+  if (hash) cleanHashByTabId.set(tabId, hash);
+}
+export function getTabCleanHash(tabId: string): string | undefined {
+  return cleanHashByTabId.get(tabId);
+}
+export function clearTabCleanHash(tabId: string) {
+  cleanHashByTabId.delete(tabId);
+}
+export function clearAllTabCleanHashes() {
+  cleanHashByTabId.clear();
+}
+
+/** §94: the conflict currently awaiting the user's decision, or `null`.
+ * Set when the drift check finds the active tab both dirty *and* changed
+ * on disk; drives `ConflictModal`. */
+export const conflictInfo = writable<{
+  tabId: string;
+  filename: string;
+  diskContent: string;
+  diskHash: string;
+} | null>(null);

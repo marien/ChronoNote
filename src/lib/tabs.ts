@@ -11,7 +11,9 @@ import * as api from "./tauriApi";
 import {
   activeTabId,
   clearEditorViewState,
+  clearTabCleanHash,
   editorApi,
+  markTabClean,
   modal,
   pendingCloseTabId,
   safetyMessage,
@@ -20,6 +22,7 @@ import {
 } from "./stores";
 import { flushSave, writeNoteAndInvalidateCache } from "./persistence";
 import { notifyTabClosed } from "./paste";
+import { sha256Hex } from "./drift";
 import { sortedTabsForDisplay } from "./tabSort";
 import { countActions } from "./tokens";
 import { todayISO } from "./date";
@@ -58,9 +61,10 @@ export async function openOrCreateDatedFile(dateStr: string) {
     switchTab(existing.id);
     return;
   }
-  const content = (await api.readNote(filename)) ?? "";
-  const newTab: NoteTab = { id: `tab-${Date.now()}`, filename, isScratchpad: false, content };
+  const { content, metadata } = await api.readNoteWithMetadata(filename);
+  const newTab: NoteTab = { id: `tab-${Date.now()}`, filename, isScratchpad: false, content: content ?? "" };
   tabs.set([...list, newTab]);
+  markTabClean(newTab.id, metadata.contentHash); // §94 baseline
   activeTabId.set(newTab.id);
 }
 
@@ -109,6 +113,7 @@ export function closeTab(tabId: string) {
   if (idx === -1) return;
 
   clearEditorViewState(tabId);
+  clearTabCleanHash(tabId); // §94: drop the drift baseline for a gone tab
   // §86 (#9): a paste-defer undo link that points at the tab being closed
   // (either end) can no longer be honoured.
   notifyTabClosed(tabId);
@@ -202,6 +207,7 @@ export async function promoteScratchpad(tabId: string) {
     remaining.push(todayTab);
   }
   tabs.set(remaining);
+  markTabClean(todayTab.id, await sha256Hex(merged)); // §94 baseline for the promoted note
   activeTabId.set(todayTab.id);
   showToast(`Promoted scratchpad into ${todayFilename}`);
 }

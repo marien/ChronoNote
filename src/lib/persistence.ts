@@ -4,7 +4,7 @@
  * and types — no cycle back to `controller.ts`. */
 import { get } from "svelte/store";
 import * as api from "./tauriApi";
-import { allNotesCache, editorApi, activeTabId, showToast, tabs } from "./stores";
+import { allNotesCache, editorApi, activeTabId, markTabClean, showToast, tabs } from "./stores";
 import type { NoteTab } from "./types";
 
 // --- Debounced autosave on typing, immediate on deliberate actions ---
@@ -40,6 +40,17 @@ export function flushSave(tabId: string) {
   const tab = get(tabs).find((t) => t.id === tabId);
   if (tab && !tab.isScratchpad) {
     writeNoteAndInvalidateCache(tab.filename, tab.content).catch(() => showToast("Failed to save note"));
+  }
+}
+
+/** Drop a tab's pending debounced write *without* writing it — used while
+ * a §94 conflict prompt is open for that tab, so a stale autosave can't
+ * clobber the disk version out from under the user's decision. */
+export function cancelScheduledSave(tabId: string) {
+  const timer = saveTimers[tabId];
+  if (timer) {
+    clearTimeout(timer);
+    delete saveTimers[tabId];
   }
 }
 
@@ -98,9 +109,20 @@ export function writeNoteAndInvalidateCache(filename: string, content: string): 
   if (!hasOpenTab) diskNotesCacheRaw = null;
   const p = api.writeNote(filename, content);
   inFlightWrites.add(p);
-  const forget = () => inFlightWrites.delete(p);
-  p.then(forget, forget);
-  return p;
+  return p.then(
+    (meta) => {
+      inFlightWrites.delete(p);
+      // §94: the disk now matches this content — refresh the tab's clean
+      // baseline so a later external edit is detected against what we
+      // actually last wrote, not a stale hash.
+      const tab = get(tabs).find((t) => !t.isScratchpad && t.filename === filename);
+      if (tab) markTabClean(tab.id, meta?.contentHash);
+    },
+    (err) => {
+      inFlightWrites.delete(p);
+      throw err; // callers still see the failure (their `.catch` toasts it)
+    },
+  );
 }
 
 // --- Editing ---

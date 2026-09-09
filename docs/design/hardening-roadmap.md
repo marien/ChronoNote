@@ -94,24 +94,27 @@ Mock backend gained real event plumbing (`emitEvent`) — also groundwork
 for Phase 4's window-focus trigger. `tests/e2e/exit-barrier.spec.ts` +
 3 `controller.test.ts` cases.
 
-### ☐ Phase 4 — External-modification / conflict detection (§2) → **v0.5.0**
+### ☑ Phase 4 — External-modification / conflict detection (§2) — code done, folded into v0.5.0
 
-The large one. Marien wants all phases in one release (v0.5.0), not a
-string of point releases — so this lands on `refactor/foundation` too,
-after Phase 3.
+§94. `sha2` crate; `FileMetadata` (`exists`/`contentHash`/`sizeBytes`/
+`modifiedMs`); `get_file_metadata` + `read_note_with_metadata` +
+`write_conflict_copy` commands; `write_note` gained an optional
+`expectedHash` compare-and-swap guard + returns `FileMetadata`.
 
-- IPC: `get_file_metadata`, `read_note_with_metadata`,
-  `atomic_write_note(path, content, expectedHash?)`. Adds `sha2` crate for
-  the SHA-256 content hash; `FileMetadata { path, exists, modifiedMs,
-  contentHash, sizeBytes }`.
-- Per-buffer state machine in `tabs.ts` / a new `buffers.ts`:
-  `{ cleanHash, lastKnownMtime, memoryContent, isDirty, rev }`.
-- Trigger **only** on tab→active transition or window `focus`; active tab only.
-- Case A (hash matches): nothing. Case B (differs, not dirty): silent
-  auto-reload. Case C (differs, dirty): `ConflictModal` — Keep External /
-  Keep In-Memory (`expectedHash` bypass on next save) / Save Local as Copy
-  (`.chrononote-conflicts/<date>-<ts>.txt`, then reload).
-- `tests/e2e/concurrency.spec.ts` — external write + focus → dialog → resolve.
+Frontend `drift.ts` — `checkActiveTabForDrift` (Case A no-op / Case B
+silent reload + toast / Case C `ConflictModal` / deleted → drop baseline)
++ the three resolvers + `sha256Hex` (same digest as Rust). Per-tab
+clean-hash baselines in `stores.ts` (`markTabClean`, a `Map` keyed by tab
+id). `boot.ts` `wireDriftDetection()` binds the `activeTabId` subscription
++ `onFocusChanged`. Autosave frozen (`cancelScheduledSave`) while the
+prompt is open.
+
+Marien's UX calls: three conflict buttons (keep disk / keep mine / save a
+copy to `.chrononote-conflicts/`); the no-local-edits case is a silent
+reload + toast, not a prompt.
+
+`concurrency.spec.ts` + 5 `controller.test.ts` cases. Mock computes real
+SHA-256 so hashes line up across Rust / `drift.ts` / mock.
 
 ### ☐ Phase 5 — Modal focus trap (§5.2) → **v0.5.0**
 

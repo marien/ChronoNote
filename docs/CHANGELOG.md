@@ -6,7 +6,7 @@ kept for the rationale behind each one — not just *what* changed but
 was still being gathered and confirmed before implementation; renamed once
 everything below was applied, since nothing here is "pending" anymore.
 
-**Status: sections through §92 released on `main`; §93+ on `refactor/foundation` (→ v0.5.0)**, each
+**Status: sections through §92 released on `main`; §93–94 on `refactor/foundation` (→ v0.5.0)**, each
 verified before merge (`svelte-check`, the Vitest suite, `cargo test`,
 and — from §77 on — the Playwright E2E suite, all green in CI). See each
 section for what it covers and why. §27–31 were small fixes logged
@@ -16,7 +16,7 @@ here; everything from §32 on was written directly.
 Which sections shipped in which release: §1–55 → v0.2.0, §56–59 → v0.2.1,
 §60–74 → v0.3.0, §75–81 → v0.4.0, §82–83 → v0.4.1, §84–85 → v0.4.2,
 §86–87 → v0.4.3, §88–89 → v0.4.4, §90–91 → v0.4.5, §92 → v0.4.6,
-§refactor + §93+ → v0.5.0 (unreleased).
+§refactor + §93–94 → v0.5.0 (unreleased).
 
 ---
 
@@ -3477,3 +3477,61 @@ registry keyed to `plugin:event|listen`) so a test can drive
 trigger. Covered by `tests/e2e/exit-barrier.spec.ts` (flush-before-
 destroy, clean close when idle, the scratchpad gate + its two buttons)
 and three `controller.test.ts` cases for `flushAllPendingSaves`.
+
+---
+
+## 94. External-modification detection & conflict resolution (hardening §2)
+
+**Status: implemented.** Hardening roadmap Phase 4, on `refactor/
+foundation` (→ v0.5.0). ChronoNote notes are plain files a cloud-sync
+client or another editor can rewrite underneath an open tab. Now the
+active tab's on-disk content is checked — on every tab activate and every
+time the OS window regains focus — against a SHA-256 baseline recorded at
+its last load or save:
+
+- **hash unchanged** → nothing (the overwhelmingly common case; one
+  `get_file_metadata` IPC).
+- **changed, no local edits** → silent reload of the tab + a toast
+  (`Reloaded … — it changed on disk`). Marien's call: no confirmation
+  prompt for the clean case.
+- **changed, with local edits** → the conflict prompt (`ConflictModal`),
+  three choices, none of which lose data silently: **Keep disk version**
+  (reload, drop my edits), **Keep my version** (overwrite disk — a
+  compare-and-swap on the hash the user was shown, so a *third* change
+  re-opens the prompt instead of clobbering), **Save mine as a copy**
+  (writes `<name>-<HHMMSS>.txt` into a hidden `.chrononote-conflicts/`
+  subdir, then reloads disk).
+- **deleted on disk** → toast, drop the baseline; the tab keeps its
+  content and the next save re-creates the file. No prompt either way.
+
+While the conflict prompt is open the tab's debounced autosave is
+frozen (`cancelScheduledSave`) so it can't overwrite the disk copy mid-
+decision.
+
+**Rust** (`storage.rs`, `lib.rs`): `sha2` dependency; `FileMetadata`
+(`exists` / `contentHash` / `sizeBytes` / `modifiedMs`); `hash_bytes`;
+new commands `get_file_metadata`, `read_note_with_metadata`,
+`write_conflict_copy`; `write_note` now takes an optional `expectedHash`
+compare-and-swap guard (rejects with a `conflict: note changed on disk`
+prefix) and returns the `FileMetadata` of what it wrote. The
+`.chrononote-conflicts/` dir and its timestamped files are invisible to
+`list_note_files` / `read_all_notes` (both already filter by
+`is_valid_note_filename`). 8 new `storage.rs` tests.
+
+**Frontend**: new `drift.ts` (`checkActiveTabForDrift`, the three
+`resolveConflict*` handlers, `sha256Hex` — same digest as Rust, so an
+in-memory hash compares directly to a disk one). Per-tab clean-hash
+baselines live in `stores.ts` (`markTabClean` / friends, a `Map` keyed by
+tab id like the editor-view-state map), set by every note load
+(`boot.ts` restore, `openOrCreateDatedFile`, `promoteScratchpad`) and
+every successful save (`writeNoteAndInvalidateCache` captures the
+returned hash). `boot.ts` `wireDriftDetection()` from `initApp` binds the
+two triggers (`activeTabId` subscription + `onFocusChanged`). New
+`ConflictModal.svelte`; `ModalKind` gains `"conflict"`; Escape is a
+no-op on it (an explicit choice is required).
+
+Covered by `tests/e2e/concurrency.spec.ts` (Case B, all three Case-C
+buttons, deletion, the activate trigger) and five `controller.test.ts`
+cases for the `checkActiveTabForDrift` state machine. The mock backend
+computes real SHA-256 (`crypto.subtle`) so its metadata hashes match
+both Rust and `drift.ts`.

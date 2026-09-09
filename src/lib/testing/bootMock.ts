@@ -49,6 +49,10 @@ export function bootMockBackend(params: URLSearchParams): MockBackend {
     // own smart Enter / bullet-continuation handling.
     setEditorContent: (text: string) => controller.editorApi?.setContent(text),
     getEditorContent: () => controller.editorApi?.getContent() ?? "",
+    // §94: run the external-modification check for the active tab on
+    // demand — the deterministic stand-in for a real tab-activate /
+    // window-focus trigger in exit-barrier-free e2e specs.
+    checkDrift: () => controller.checkActiveTabForDrift(),
   };
 
   console.info(

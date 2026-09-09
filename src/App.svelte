@@ -18,6 +18,7 @@
   import GlyphLegendModal from "./lib/components/modals/GlyphLegendModal.svelte";
   import AboutModal from "./lib/components/modals/AboutModal.svelte";
   import UnsavedScratchpadsModal from "./lib/components/modals/UnsavedScratchpadsModal.svelte";
+  import ConflictModal from "./lib/components/modals/ConflictModal.svelte";
 
   let ready = false;
 
@@ -31,7 +32,9 @@
       if (e.key === "Escape") {
         const current = get(modal);
         if (current === "safety") controller.cancelSafetyClose();
-        else if (current === "unsavedScratchpads")
+        else if (current === "conflict") {
+          /* a disk-vs-memory conflict needs an explicit choice — Escape is a no-op */
+        } else if (current === "unsavedScratchpads")
           get(scratchpadGateContext) === "close"
             ? controller.cancelAppClose()
             : controller.cancelDirectorySwitch();
@@ -120,6 +123,8 @@
     <AboutModal />
   {:else if $modal === "unsavedScratchpads"}
     <UnsavedScratchpadsModal />
+  {:else if $modal === "conflict"}
+    <ConflictModal />
   {/if}
 {:else}
   <div class="boot-loading">Loading ChronoNote…</div>
