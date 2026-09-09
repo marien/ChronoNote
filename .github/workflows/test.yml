@@ -36,18 +36,14 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run check:e2e
-      # `--with-deps` runs apt, which intermittently trips over the Chrome
-      # apt repo on the runner image ("Hash Sum mismatch" from
-      # dl.google.com) — a Google-side hiccup that clears on its own.
-      # Retry a few times rather than fail the whole run.
-      - name: Install Playwright chromium (with deps)
-        run: |
-          for i in 1 2 3 4 5; do
-            npx playwright install --with-deps chromium && exit 0
-            echo "::warning::playwright install failed (attempt $i) — retrying in 20s"
-            sleep 20
-          done
-          exit 1
+      # `playwright install --with-deps` runs `apt-get update`, which on
+      # the runner image hits Google's Chrome apt repo — and that repo
+      # intermittently serves a mismatched `Packages.gz` ("Hash Sum
+      # mismatch"), failing the whole job. We only need Playwright's own
+      # bundled Chromium + its shared libs, never Google's chrome package,
+      # so drop that apt source before installing.
+      - run: sudo rm -f /etc/apt/sources.list.d/google-chrome.list
+      - run: npx playwright install --with-deps chromium
       - run: npm run test:e2e
       - uses: actions/upload-artifact@v4
         if: ${{ !cancelled() }}
