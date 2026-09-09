@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import * as controller from "../../controller";
+  import { focusTrap } from "../../actions/focusTrap";
   import { activeTabId, historyItems, historyTargetHeader, tabs } from "../../controller";
   import { closeOnOutsideClick } from "../../actions/closeOnOutsideClick";
   import { innermostActionSymbol, stripLeadingToken } from "../../tokens";
@@ -152,7 +153,7 @@
 </script>
 
 <div class="overlay" role="presentation" use:closeOnOutsideClick={controller.closeAllModals}>
-  <div class="modal-card" role="dialog" aria-modal="true" aria-label="Section history">
+  <div class="modal-card" role="dialog" aria-modal="true" use:focusTrap aria-label="Section history">
     <div class="modal-input-wrap">
       <span>🕒</span>
       <input

@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onDestroy, onMount, tick } from "svelte";
   import * as controller from "../../controller";
+  import { focusTrap } from "../../actions/focusTrap";
   import { searchResultsStore } from "../../controller";
   import { closeOnOutsideClick } from "../../actions/closeOnOutsideClick";
   import type { SearchResultItem } from "../../types";
@@ -181,7 +182,7 @@
 </script>
 
 <div class="overlay" role="presentation" use:closeOnOutsideClick={controller.closeAllModals}>
-  <div class="modal-card" role="dialog" aria-modal="true" aria-label="Cross-tab search">
+  <div class="modal-card" role="dialog" aria-modal="true" use:focusTrap aria-label="Cross-tab search">
     <div class="modal-input-wrap">
       <span>🔎</span>
       <input

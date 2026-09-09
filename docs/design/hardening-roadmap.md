@@ -116,11 +116,19 @@ reload + toast, not a prompt.
 `concurrency.spec.ts` + 5 `controller.test.ts` cases. Mock computes real
 SHA-256 so hashes line up across Rust / `drift.ts` / mock.
 
-### ☐ Phase 5 — Modal focus trap (§5.2) → **v0.5.0**
+### ☑ Phase 5 — Modal focus trap (§5.2) — code done, folded into v0.5.0
 
-Shared Svelte action: record `document.activeElement` on open, cycle Tab /
-Shift+Tab within the modal's tabbables, restore focus to the editor on close.
-Applied to every `modals/*.svelte` wrapper. `aria-*` attributes already done.
+§95. `src/lib/actions/focusTrap.ts` + `use:focusTrap` on all 12 modal
+cards. `document`-level capture keydown listener (a card-only one never
+fires while focus is on the editor): Tab / Shift+Tab cycle within the
+modal, pull focus in if it starts outside, swallow Tab if the modal has
+no focusables. `destroy()` restores focus to the pre-open element (the
+editor), fallback `.cm-content`. `aria-*` were already present.
+7 unit + 2 e2e (`modal-a11y.spec.ts`).
+
+**All five hardening phases are code-complete on `refactor/foundation`.**
+Remaining before v0.5.0: Marien's review + the app icon (`npx tauri icon
+docs/design/icon-A-master.svg`) + version bump + release.
 
 ---
 

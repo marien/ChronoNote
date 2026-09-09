@@ -2,6 +2,7 @@
   import { onMount } from "svelte";
   import * as controller from "../../controller";
   import { scratchpadGateContext, unsavedScratchpadNames } from "../../controller";
+  import { focusTrap } from "../../actions/focusTrap";
 
   let cancelBtn: HTMLButtonElement;
   onMount(() => cancelBtn?.focus());
@@ -18,7 +19,7 @@
 </script>
 
 <div class="overlay">
-  <div class="modal-card" role="dialog" aria-modal="true" aria-label="Unsaved scratchpad content" style="width: 480px;">
+  <div class="modal-card" role="dialog" aria-modal="true" use:focusTrap aria-label="Unsaved scratchpad content" style="width: 480px;">
     <div class="modal-input-wrap" style="font-weight: bold;">
       <span style="filter: grayscale(1);">⚠</span> Unsaved Scratchpad Content
     </div>

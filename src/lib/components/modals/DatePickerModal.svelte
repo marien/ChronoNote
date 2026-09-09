@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import * as controller from "../../controller";
+  import { focusTrap } from "../../actions/focusTrap";
   import { allNotesCache, datePickerOpenOnly } from "../../controller";
   import { closeOnOutsideClick } from "../../actions/closeOnOutsideClick";
   import { parseDateQuery } from "../../date";
@@ -109,7 +110,7 @@
 </script>
 
 <div class="overlay" role="presentation" use:closeOnOutsideClick={controller.closeAllModals}>
-  <div class="modal-card" role="dialog" aria-modal="true" aria-label="Jump to date">
+  <div class="modal-card" role="dialog" aria-modal="true" use:focusTrap aria-label="Jump to date">
     <div class="modal-input-wrap">
       <span>📅</span>
       <input

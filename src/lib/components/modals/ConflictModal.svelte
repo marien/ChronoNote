@@ -2,6 +2,7 @@
   import { onMount } from "svelte";
   import * as controller from "../../controller";
   import { conflictInfo } from "../../controller";
+  import { focusTrap } from "../../actions/focusTrap";
 
   let keepDiskBtn: HTMLButtonElement;
   onMount(() => keepDiskBtn?.focus());
@@ -11,7 +12,7 @@
 
 {#if info}
   <div class="overlay">
-    <div class="modal-card" role="dialog" aria-modal="true" aria-label="Note changed on disk" style="width: 520px;">
+    <div class="modal-card" role="dialog" aria-modal="true" use:focusTrap aria-label="Note changed on disk" style="width: 520px;">
       <div class="modal-input-wrap" style="font-weight: bold;">
         <span style="filter: grayscale(1);">⚠</span> "{info.filename}" changed on disk
       </div>

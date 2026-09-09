@@ -2,6 +2,7 @@
   import * as controller from "../../controller";
   import { closeOnOutsideClick } from "../../actions/closeOnOutsideClick";
   import { focusScrollableList } from "../../actions/focusScrollableList";
+  import { focusTrap } from "../../actions/focusTrap";
 
   // Each row's glyph is rendered with the *same* `.glyph-*` classes the
   // editor itself uses (app.css), which read the `--glyph-*-color`/
@@ -23,7 +24,7 @@
 </script>
 
 <div class="overlay" role="presentation" use:closeOnOutsideClick={controller.closeAllModals}>
-  <div class="modal-card" role="dialog" aria-modal="true" aria-label="Symbols and section formatting">
+  <div class="modal-card" role="dialog" aria-modal="true" use:focusTrap aria-label="Symbols and section formatting">
     <div class="modal-input-wrap">
       <span>☑</span> Symbols &amp; Sections
     </div>

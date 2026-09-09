@@ -6,7 +6,7 @@ kept for the rationale behind each one — not just *what* changed but
 was still being gathered and confirmed before implementation; renamed once
 everything below was applied, since nothing here is "pending" anymore.
 
-**Status: sections through §92 released on `main`; §93–94 on `refactor/foundation` (→ v0.5.0)**, each
+**Status: sections through §92 released on `main`; §93–95 on `refactor/foundation` (→ v0.5.0)**, each
 verified before merge (`svelte-check`, the Vitest suite, `cargo test`,
 and — from §77 on — the Playwright E2E suite, all green in CI). See each
 section for what it covers and why. §27–31 were small fixes logged
@@ -16,7 +16,7 @@ here; everything from §32 on was written directly.
 Which sections shipped in which release: §1–55 → v0.2.0, §56–59 → v0.2.1,
 §60–74 → v0.3.0, §75–81 → v0.4.0, §82–83 → v0.4.1, §84–85 → v0.4.2,
 §86–87 → v0.4.3, §88–89 → v0.4.4, §90–91 → v0.4.5, §92 → v0.4.6,
-§refactor + §93–94 → v0.5.0 (unreleased).
+§refactor + §93–95 → v0.5.0 (unreleased).
 
 ---
 
@@ -3535,3 +3535,30 @@ buttons, deletion, the activate trigger) and five `controller.test.ts`
 cases for the `checkActiveTabForDrift` state machine. The mock backend
 computes real SHA-256 (`crypto.subtle`) so its metadata hashes match
 both Rust and `drift.ts`.
+
+---
+
+## 95. Modal focus trap & focus restore (hardening §5.2)
+
+**Status: implemented.** Hardening roadmap Phase 5 (the last), on
+`refactor/foundation` (→ v0.5.0). Every modal already carried
+`role="dialog"` + `aria-modal="true"` + `aria-label`; what was missing
+was the actual keyboard containment.
+
+New `src/lib/actions/focusTrap.ts`, `use:focusTrap` on all twelve
+modals' `.modal-card`:
+
+- **Trap** — while a modal is open, `Tab` / `Shift+Tab` cycle within its
+  own controls and never reach the editor, a tab, or the top bar behind
+  the overlay. If focus somehow starts outside the card (most modals
+  don't `focus()` a control on mount), the first `Tab` pulls it in. A
+  modal with no focusables swallows `Tab`. The listener is on `document`
+  in the capture phase, not the card — a card-only listener never fires
+  while focus is still on the editor.
+- **Restore** — on close the action's `destroy()` returns focus to
+  whatever held it when the modal opened (the editor, normally), falling
+  back to `.cm-content` if that element is gone.
+
+Nothing here touches Escape — App.svelte's global handlers still close
+modals. 7 `focusTrap.test.ts` unit cases + `tests/e2e/modal-a11y.spec.ts`
+(Tab stays inside Settings; closing returns focus to the editor).

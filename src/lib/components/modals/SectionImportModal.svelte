@@ -2,6 +2,7 @@
   import { onMount } from "svelte";
   import * as controller from "../../controller";
   import { closeOnOutsideClick } from "../../actions/closeOnOutsideClick";
+  import { focusTrap } from "../../actions/focusTrap";
 
   let text = controller.getImportDraftText();
   const hadDraft = text.length > 0;
@@ -39,7 +40,7 @@
 </script>
 
 <div class="overlay" role="presentation" use:closeOnOutsideClick={closeDrawer}>
-  <div class="modal-card" role="dialog" aria-modal="true" aria-label="Import sections">
+  <div class="modal-card" role="dialog" aria-modal="true" use:focusTrap aria-label="Import sections">
     <div class="modal-input-wrap" style="align-items: flex-start;">
       <span>📥</span>
       <textarea

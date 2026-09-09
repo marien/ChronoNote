@@ -1,5 +1,6 @@
 <script lang="ts">
   import * as controller from "../../controller";
+  import { focusTrap } from "../../actions/focusTrap";
   import { closeOnOutsideClick } from "../../actions/closeOnOutsideClick";
   import { focusScrollableList } from "../../actions/focusScrollableList";
 
@@ -28,7 +29,7 @@
 </script>
 
 <div class="overlay" role="presentation" use:closeOnOutsideClick={controller.closeAllModals}>
-  <div class="modal-card" role="dialog" aria-modal="true" aria-label="Keyboard shortcuts">
+  <div class="modal-card" role="dialog" aria-modal="true" use:focusTrap aria-label="Keyboard shortcuts">
     <div class="modal-input-wrap">
       <span>⌨</span> Keyboard Shortcuts
     </div>
