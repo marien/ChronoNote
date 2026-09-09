@@ -5,9 +5,14 @@
  *     the top bar) behind the overlay. If focus somehow starts outside the
  *     card, the first Tab pulls it in. A modal with no focusables just
  *     swallows Tab.
- *  2. **Restore** — on close, focus returns to wherever it was when the
- *     modal opened (in practice the CodeMirror editor), falling back to
- *     the editor if that element is gone.
+ *  2. **Restore** — on close, focus returns to the editor. It only goes
+ *     back to the *exact* pre-modal element when that was already the
+ *     editor, another still-open overlay (a chained modal), or `<body>`:
+ *     a modal opened from a top-bar button or a tab shouldn't strand
+ *     focus on that control afterwards — the reviews' Task 8 wants the
+ *     caret back where the writing was. CodeMirror keeps its own
+ *     selection across the focus loss, so the caret lands exactly where
+ *     it was.
  *
  * The keydown listener is on `document` in the capture phase (not on the
  * card) so it works regardless of where focus currently is — a card-only
@@ -64,11 +69,17 @@ export function focusTrap(node: HTMLElement) {
   return {
     destroy() {
       document.removeEventListener("keydown", onKeydown, true);
-      const target =
-        previouslyFocused && document.contains(previouslyFocused)
-          ? previouslyFocused
-          : document.querySelector<HTMLElement>(".cm-content");
-      target?.focus();
+      const editor = document.querySelector<HTMLElement>(".cm-content");
+      const prev = previouslyFocused;
+      const restorePrev =
+        prev &&
+        document.contains(prev) &&
+        (prev === document.body ||
+          prev.closest(".cm-editor") !== null ||
+          // A chained modal is already open — its own focusTrap will take
+          // over; don't yank focus to the editor between the two.
+          prev.closest(".overlay") !== null);
+      (restorePrev ? prev : editor)?.focus();
     },
   };
 }

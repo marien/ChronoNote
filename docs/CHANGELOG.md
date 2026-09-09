@@ -3741,3 +3741,23 @@ the e2e `toast()` helper). Final colours are placeholders until the
 surface-palette decision (A/B/C) lands. Kept the `#stat-pos` /
 `#stat-open|closed|forwarded` ids so existing e2e selectors still work.
 2 new Vitest cases, 4 new `status-bar.spec.ts` e2e cases.
+
+---
+
+## 101. Focus always returns to the editor after a modal (0.6 UX pass — Phase 1)
+
+**Status: implemented on `feat/ux-0.6`, not yet released.** Tightens §95's
+focus-restore. It restored focus to *whatever* held it when the modal
+opened — fine for the keyboard path (the editor), but a modal opened by
+**clicking a top-bar button** left focus stranded on that button after
+close, so the next keystroke did nothing until you clicked back into the
+text.
+
+`focusTrap`'s `destroy` now restores the pre-modal element only when it
+was the editor (`.cm-editor` descendant), `<body>`, or still inside an
+open `.overlay` (a chained modal hand-off); otherwise it focuses
+`.cm-content` directly. CodeMirror keeps its own selection across the
+focus loss, so the caret still lands exactly where it was — the reviews'
+Task 8 without needing to serialise selection offsets (the editor isn't a
+`<textarea>`). 1 extra `focusTrap.test.ts` case, 1 extra
+`modal-a11y.spec.ts` case.

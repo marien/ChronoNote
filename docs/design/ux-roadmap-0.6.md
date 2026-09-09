@@ -68,8 +68,10 @@ Each phase = its own PR, CI green, browser-pane walkthrough. All land on
   Folding `#toast` into the same slot is still pending.
 - ☑ **`readableLineLength`** setting (§99) — `AppConfig` field + command +
   store + Settings toggle + `EditorPane` compartment. Gated on word-wrap.
-- ☐ **Focus/selection-restoration audit** — confirm §95 covers modals;
-  add outside-click + Esc handling for the new anchored popovers.
+- ◐ **Focus/selection-restoration audit** (§101) — §95 covers modals; the
+  top-bar-button-opened case is now fixed too (focus back to the editor,
+  not the button). Outside-click + Esc for the *new* anchored popovers
+  comes with Phase 2/5 when those popovers are built.
 
 ### Phase 2 — Tab strip & date navigation
 
