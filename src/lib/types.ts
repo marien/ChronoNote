@@ -34,6 +34,16 @@ export interface SearchResultItem {
 
 export type ColorMode = "color" | "grayscale";
 
+/** Snapshot of a note file on disk, for external-modification detection
+ * (§94). `contentHash` (SHA-256 hex) is the authority — mtime is
+ * unreliable across cloud-sync clients. */
+export interface FileMetadata {
+  exists: boolean;
+  contentHash: string | null;
+  sizeBytes: number | null;
+  modifiedMs: number | null;
+}
+
 export interface AppConfig {
   notesDir: string;
   colorMode: ColorMode;

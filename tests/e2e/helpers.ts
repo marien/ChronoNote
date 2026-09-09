@@ -168,6 +168,7 @@ export const MODAL_LABELS = {
   glyphLegend: "Symbols and section formatting",
   about: "About ChronoNote",
   unsavedScratchpads: "Unsaved scratchpad content",
+  conflict: "Note changed on disk",
 } as const;
 
 export type ModalKey = keyof typeof MODAL_LABELS;

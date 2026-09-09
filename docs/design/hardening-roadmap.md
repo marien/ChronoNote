@@ -48,68 +48,102 @@ Branch `harden/atomic-storage` off `main`. No frontend changes.
   in the notes dir. Not data loss (target untouched); `is_valid_note_filename`
   keeps it out of every listing. Acceptable; revisit if it ever bites.
 
-### ☐ Phase 1 — Finish the `controller.ts` refactor (§4) → **v0.5.0**
+### ◐ Phase 1 — Finish the `controller.ts` refactor (§4) → **v0.5.0** — code done, awaiting review
 
-Continues `refactor/foundation` (draft PR #22). Plain-store + facade shape,
-**not** rune stores. Remaining cut: `tabs.ts` (lifecycle/sort/close/reopen/
-safety), `boot.ts` (initApp + session restore + chrome watcher), `actions.ts`
-(drawer + history + snapshots), `search.ts`, `sectionImport.ts`,
-`directory.ts`, `paste.ts` (copy/paste defer + §86 undo link). `tabs.ts` +
-`boot.ts` are the entangled ones (module-level subscriptions, `restoringTabs`
-guard, `latestTabs` cache).
+`refactor/foundation` / draft PR #22. Plain-store + facade shape, **not**
+rune stores. `controller.ts` is now a 34-line `export *` facade over twelve
+modules: `stores`, `persistence`, `tabSort`, `paste`, `tabs`, `actions`,
+`history`, `search`, `sectionImportActions`, `menu`, `boot`, `directory`
+(+ `virtualList` from the earlier chunk). Clean DAG, no cycles. Every
+commit green on check + Vitest (180) + Playwright (83) + build.
 
-Fold in from review §4 while here:
-- per-tab `cleanHash` + monotonic `rev` on the tab model (cheap now, and
-  Phase 4 needs it) — replaces string-equality dirty checks.
-- modal focus-restore hook in whatever owns `ModalKind` (pairs with Phase 5).
-- a sweep for un-`.catch`-ed promise paths (review's "zero unhandled
-  rejections" gate) — e.g. the tab-session subscription writes.
+Notes:
+- The status-bar + window-title subscriptions moved from module-load side
+  effects into `initApp` (`boot.ts`).
+- `closeAllModals` moved to `stores.ts` (next to the `modal` store).
+- `restoreOrBootstrapTabs` is now exported (from `boot.ts`) so `directory.ts`
+  can reuse it for the workspace re-load.
+
+Deferred to when Phase 4 needs them (no behaviour need yet): per-tab
+`cleanHash` + `rev`, the modal focus-restore hook, the un-`.catch`-ed
+promise sweep.
 
 Also for v0.5.0: ship app icon concept A (`docs/design/icon-A-master.svg`
 via `npx tauri icon`).
 
-### ☐ Phase 3 — Zero-loss exit barrier (§3) → **v0.5.1**
+### ☑ Phase 3 — Zero-loss exit barrier (§3) — code done, folded into v0.5.0
 
-- `lib.rs`: `on_window_event` → `WindowEvent::CloseRequested { api, .. }` →
-  `api.prevent_close()` + `window.emit("chrono:app-close-requested", ())`.
-- `force_window_exit` command → `window.destroy()`.
-- Frontend (in `boot.ts` from Phase 1): cancel debounce timers → parallel
-  atomic writes for every dirty doc (incl. scratchpads) → await all →
-  `force_window_exit()`.
-- e2e: type 500 words, close immediately, assert all flushed.
+Turned out to be **frontend-only**: Tauri v2 auto-`prevent_close()`s when a
+JS `tauri://close-requested` listener exists (`tauri` crate
+`manager/window.rs`), so no Rust `on_window_event` / `force_window_exit`
+command. `boot.ts` `wireCloseBarrier()` (from `initApp`):
+`onCloseRequested` → `preventDefault` → `flushAllPendingSaves()` (new in
+`persistence.ts`; fires debounced writes + awaits in-flight, never
+rejects) → `getCurrentWindow().destroy()`.
 
-### ☐ Phase 4 — External-modification / conflict detection (§2) → **v0.5.2 / v0.6.0**
+Non-empty scratchpad on quit: routes through the existing
+unsaved-scratchpads gate (Marien's call), now context-aware via a
+`scratchpadGateContext` store (`"switch" | "close"`) — modal shows
+**Discard & Quit** / **Cancel**.
 
-The large one. Only after 1–3 are solid.
+One capability grant: `core:window:allow-destroy` (default set has only
+read-only window APIs — without it the barrier hung the window
+un-closable; caught only by a real-app close test).
 
-- IPC: `get_file_metadata`, `read_note_with_metadata`,
-  `atomic_write_note(path, content, expectedHash?)`. Adds `sha2` crate for
-  the SHA-256 content hash; `FileMetadata { path, exists, modifiedMs,
-  contentHash, sizeBytes }`.
-- Per-buffer state machine in `tabs.ts` / a new `buffers.ts`:
-  `{ cleanHash, lastKnownMtime, memoryContent, isDirty, rev }`.
-- Trigger **only** on tab→active transition or window `focus`; active tab only.
-- Case A (hash matches): nothing. Case B (differs, not dirty): silent
-  auto-reload. Case C (differs, dirty): `ConflictModal` — Keep External /
-  Keep In-Memory (`expectedHash` bypass on next save) / Save Local as Copy
-  (`.chrononote-conflicts/<date>-<ts>.txt`, then reload).
-- `tests/e2e/concurrency.spec.ts` — external write + focus → dialog → resolve.
+Mock backend gained real event plumbing (`emitEvent`) — also groundwork
+for Phase 4's window-focus trigger. `tests/e2e/exit-barrier.spec.ts` +
+3 `controller.test.ts` cases.
 
-### ☐ Phase 5 — Modal focus trap (§5.2) → any time after Phase 1
+### ☑ Phase 4 — External-modification / conflict detection (§2) — code done, folded into v0.5.0
 
-Shared Svelte action: record `document.activeElement` on open, cycle Tab /
-Shift+Tab within the modal's tabbables, restore focus to the editor on close.
-Applied to every `modals/*.svelte` wrapper. `aria-*` attributes already done.
+§94. `sha2` crate; `FileMetadata` (`exists`/`contentHash`/`sizeBytes`/
+`modifiedMs`); `get_file_metadata` + `read_note_with_metadata` +
+`write_conflict_copy` commands; `write_note` gained an optional
+`expectedHash` compare-and-swap guard + returns `FileMetadata`.
+
+Frontend `drift.ts` — `checkActiveTabForDrift` (Case A no-op / Case B
+silent reload + toast / Case C `ConflictModal` / deleted → drop baseline)
++ the three resolvers + `sha256Hex` (same digest as Rust). Per-tab
+clean-hash baselines in `stores.ts` (`markTabClean`, a `Map` keyed by tab
+id). `boot.ts` `wireDriftDetection()` binds the `activeTabId` subscription
++ `onFocusChanged`. Autosave frozen (`cancelScheduledSave`) while the
+prompt is open.
+
+Marien's UX calls: three conflict buttons (keep disk / keep mine / save a
+copy to `.chrononote-conflicts/`); the no-local-edits case is a silent
+reload + toast, not a prompt.
+
+`concurrency.spec.ts` + 5 `controller.test.ts` cases. Mock computes real
+SHA-256 so hashes line up across Rust / `drift.ts` / mock.
+
+### ☑ Phase 5 — Modal focus trap (§5.2) — code done, folded into v0.5.0
+
+§95. `src/lib/actions/focusTrap.ts` + `use:focusTrap` on all 12 modal
+cards. `document`-level capture keydown listener (a card-only one never
+fires while focus is on the editor): Tab / Shift+Tab cycle within the
+modal, pull focus in if it starts outside, swallow Tab if the modal has
+no focusables. `destroy()` restores focus to the pre-open element (the
+editor), fallback `.cm-content`. `aria-*` were already present.
+7 unit + 2 e2e (`modal-a11y.spec.ts`).
+
+**All five hardening phases are code-complete on `refactor/foundation`.**
+Remaining before v0.5.0: Marien's review + the app icon (`npx tauri icon
+docs/design/icon-A-master.svg`) + version bump + release.
 
 ---
 
 ## Release ordering
 
+Marien's call (2026-09-09): **no interim point releases** — all of
+Phases 1, 3, 4, 5 accumulate on `refactor/foundation` and cut together as
+**v0.5.0** once everything's tested and he's reviewed it.
+
 ```
-main ──v0.4.5──┬──v0.4.6 (Phase 2, harden/atomic-storage)
-               │
-               └── refactor/foundation ──v0.5.0 (Phase 1) ── v0.5.1 (Phase 3) ── v0.5.2/v0.6.0 (Phase 4)
-                                                                    Phase 5 folds in wherever it lands
+main ──v0.4.5── v0.4.6 (Phase 2, shipped)
+                  │
+                  └── refactor/foundation ── v0.5.0  =  Phase 1 (refactor) + 3 (exit barrier)
+                                                       + 4 (conflict detection) + 5 (focus trap)
+                                                       + app icon concept A
 ```
 
 Rebase `refactor/foundation` onto `main` after every interim release

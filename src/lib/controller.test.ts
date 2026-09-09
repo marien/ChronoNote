@@ -13,6 +13,9 @@ const apiMock = {
   listNoteFiles: vi.fn(),
   readNote: vi.fn(),
   writeNote: vi.fn(),
+  readNoteWithMetadata: vi.fn(),
+  getFileMetadata: vi.fn(),
+  writeConflictCopy: vi.fn(),
   readAllNotes: vi.fn(),
   readTabSession: vi.fn(),
   writeTabSession: vi.fn(),
@@ -21,6 +24,14 @@ const apiMock = {
   openExternalUrl: vi.fn(),
 };
 
+const NO_META = { exists: false, contentHash: null, sizeBytes: null, modifiedMs: null };
+/** `read_note_with_metadata` mock result for a note whose content is `c`
+ * (`null` = the file doesn't exist). */
+const withMeta = (c: string | null) => ({
+  content: c,
+  metadata: c === null ? NO_META : { exists: true, contentHash: `h:${c}`, sizeBytes: c.length, modifiedMs: 0 },
+});
+
 vi.mock("./tauriApi", () => apiMock);
 
 const tauriWindowMock = {
@@ -28,6 +39,9 @@ const tauriWindowMock = {
   isFullscreen: vi.fn(),
   isMaximized: vi.fn(),
   onResized: vi.fn(),
+  onCloseRequested: vi.fn(),
+  onFocusChanged: vi.fn(),
+  destroy: vi.fn(),
 };
 vi.mock("@tauri-apps/api/window", () => ({
   getCurrentWindow: () => tauriWindowMock,
@@ -54,9 +68,12 @@ beforeEach(async () => {
   vi.resetModules();
   vi.clearAllMocks();
   apiMock.readNote.mockResolvedValue(null);
+  apiMock.readNoteWithMetadata.mockResolvedValue({ content: null, metadata: NO_META });
+  apiMock.getFileMetadata.mockResolvedValue(NO_META);
+  apiMock.writeConflictCopy.mockResolvedValue("/notes/.chrononote-conflicts/copy.txt");
   apiMock.readAllNotes.mockResolvedValue([]);
   apiMock.readTabSession.mockResolvedValue(null);
-  apiMock.writeNote.mockResolvedValue(undefined);
+  apiMock.writeNote.mockResolvedValue({ exists: true, contentHash: "hash", sizeBytes: 0, modifiedMs: 0 });
   apiMock.writeTabSession.mockResolvedValue(undefined);
   apiMock.openExternalUrl.mockResolvedValue(undefined);
   apiMock.getConfig.mockResolvedValue({
@@ -76,6 +93,9 @@ beforeEach(async () => {
   tauriWindowMock.isFullscreen.mockResolvedValue(false);
   tauriWindowMock.isMaximized.mockResolvedValue(false);
   tauriWindowMock.onResized.mockResolvedValue(undefined);
+  tauriWindowMock.onCloseRequested.mockResolvedValue(() => {});
+  tauriWindowMock.onFocusChanged.mockResolvedValue(() => {});
+  tauriWindowMock.destroy.mockResolvedValue(undefined);
   controller = await import("./controller");
 });
 
@@ -212,7 +232,7 @@ describe("tab lifecycle", () => {
   it("reopenLastClosedTab re-reads a dated file from disk rather than trusting the cached snapshot", async () => {
     controller.tabs.set([tab({ id: "a", filename: "2026-09-01.txt", content: "stale cached content" })]);
     controller.closeTab("a");
-    apiMock.readNote.mockResolvedValue("fresh content from disk");
+    apiMock.readNoteWithMetadata.mockResolvedValue(withMeta("fresh content from disk"));
     await controller.reopenLastClosedTab();
     const list = get(controller.tabs);
     expect(list.some((t) => t.filename === "2026-09-01.txt" && t.content === "fresh content from disk")).toBe(true);
@@ -229,6 +249,103 @@ describe("updateActiveTabContent", () => {
     controller.activeTabId.set("a");
     controller.updateActiveTabContent("new");
     expect(get(controller.tabs)[0].content).toBe("new");
+  });
+});
+
+describe("flushAllPendingSaves (§93 exit barrier)", () => {
+  it("writes a tab's debounced content immediately instead of waiting out the 400ms", async () => {
+    controller.tabs.set([tab({ id: "a", filename: "2026-09-01.txt", content: "start" })]);
+    controller.activeTabId.set("a");
+    controller.updateActiveTabContent("typed just now"); // schedules a 400ms save
+    expect(apiMock.writeNote).not.toHaveBeenCalled();
+
+    await controller.flushAllPendingSaves();
+
+    expect(apiMock.writeNote).toHaveBeenCalledWith("2026-09-01.txt", "typed just now");
+  });
+
+  it("resolves cleanly when nothing is pending", async () => {
+    await expect(controller.flushAllPendingSaves()).resolves.toBeUndefined();
+  });
+
+  it("never rejects even if a write fails", async () => {
+    apiMock.writeNote.mockRejectedValueOnce(new Error("disk full"));
+    controller.tabs.set([tab({ id: "a", filename: "2026-09-02.txt", content: "x" })]);
+    controller.activeTabId.set("a");
+    controller.updateActiveTabContent("more");
+    await expect(controller.flushAllPendingSaves()).resolves.toBeUndefined();
+  });
+});
+
+describe("checkActiveTabForDrift (§94)", () => {
+  const FILE = "2026-09-01.txt";
+  async function openTabAt(content: string) {
+    const hash = await controller.sha256Hex(content);
+    controller.tabs.set([tab({ id: "a", filename: FILE, content })]);
+    controller.activeTabId.set("a");
+    controller.markTabClean("a", hash); // baseline: disk matched `content`
+    return hash;
+  }
+  const metaFor = async (content: string | null) => ({
+    exists: content !== null,
+    contentHash: content === null ? null : await controller.sha256Hex(content),
+    sizeBytes: 0,
+    modifiedMs: 0,
+  });
+
+  it("Case A: no-op when the disk hash still matches the baseline", async () => {
+    await openTabAt("same on both");
+    apiMock.getFileMetadata.mockResolvedValue(await metaFor("same on both"));
+    await controller.checkActiveTabForDrift();
+    expect(get(controller.modal)).toBe("none");
+    expect(get(controller.tabs)[0].content).toBe("same on both");
+  });
+
+  it("Case B: silent reload when disk changed but there are no local edits", async () => {
+    await openTabAt("v1");
+    apiMock.getFileMetadata.mockResolvedValue(await metaFor("v2 from elsewhere"));
+    apiMock.readNoteWithMetadata.mockResolvedValue({
+      content: "v2 from elsewhere",
+      metadata: await metaFor("v2 from elsewhere"),
+    });
+    await controller.checkActiveTabForDrift();
+    expect(get(controller.modal)).toBe("none");
+    expect(get(controller.tabs)[0].content).toBe("v2 from elsewhere");
+  });
+
+  it("Case C: opens the conflict prompt when disk changed AND there are local edits", async () => {
+    await openTabAt("v1");
+    // local edit — content no longer matches the baseline
+    controller.tabs.update((list) => list.map((t) => ({ ...t, content: "v1 + my edit" })));
+    apiMock.getFileMetadata.mockResolvedValue(await metaFor("v2 external"));
+    apiMock.readNoteWithMetadata.mockResolvedValue({
+      content: "v2 external",
+      metadata: await metaFor("v2 external"),
+    });
+    await controller.checkActiveTabForDrift();
+    expect(get(controller.modal)).toBe("conflict");
+    expect(get(controller.conflictInfo)?.diskContent).toBe("v2 external");
+  });
+
+  it("Case C then 'keep my version' writes with a compare-and-swap hash", async () => {
+    await openTabAt("v1");
+    controller.tabs.update((list) => list.map((t) => ({ ...t, content: "mine" })));
+    const externalHash = (await metaFor("external")).contentHash;
+    apiMock.getFileMetadata.mockResolvedValue(await metaFor("external"));
+    apiMock.readNoteWithMetadata.mockResolvedValue({ content: "external", metadata: await metaFor("external") });
+    await controller.checkActiveTabForDrift();
+
+    await controller.resolveConflictKeepMine();
+    expect(apiMock.writeNote).toHaveBeenCalledWith(FILE, "mine", externalHash);
+    expect(get(controller.modal)).toBe("none");
+  });
+
+  it("a deleted-on-disk file drops the baseline without a prompt", async () => {
+    await openTabAt("still here in memory");
+    apiMock.getFileMetadata.mockResolvedValue(await metaFor(null));
+    await controller.checkActiveTabForDrift();
+    expect(get(controller.modal)).toBe("none");
+    expect(get(controller.tabs)[0].content).toBe("still here in memory");
   });
 });
 
@@ -641,8 +758,8 @@ describe("initApp", () => {
       activeTab: "2026-09-14.txt",
       lastOpenedDate: "2026-09-15", // already opened today — restore my last tab
     });
-    apiMock.readNote.mockImplementation(async (filename: string) =>
-      filename === "2026-09-14.txt" ? "yesterday's note" : null,
+    apiMock.readNoteWithMetadata.mockImplementation(async (filename: string) =>
+      withMeta(filename === "2026-09-14.txt" ? "yesterday's note" : null),
     );
     await controller.initApp();
     const active = get(controller.tabs).find((t) => t.id === get(controller.activeTabId));
@@ -657,8 +774,8 @@ describe("initApp", () => {
       activeTab: "2026-09-14.txt",
       lastOpenedDate: "2026-09-14", // last opened yesterday
     });
-    apiMock.readNote.mockImplementation(async (filename: string) =>
-      filename === "2026-09-14.txt" ? "yesterday's note" : "",
+    apiMock.readNoteWithMetadata.mockImplementation(async (filename: string) =>
+      withMeta(filename === "2026-09-14.txt" ? "yesterday's note" : ""),
     );
     await controller.initApp();
     const active = get(controller.tabs).find((t) => t.id === get(controller.activeTabId));
@@ -690,7 +807,7 @@ describe("initApp", () => {
   it("silently skips a session tab whose file was deleted", async () => {
     vi.setSystemTime(new Date(2026, 8, 15));
     apiMock.readTabSession.mockResolvedValue({ openTabs: ["2026-09-10.txt"], activeTab: "2026-09-10.txt" });
-    apiMock.readNote.mockResolvedValue(null); // file no longer exists
+    apiMock.readNoteWithMetadata.mockResolvedValue(withMeta(null)); // file no longer exists
     await controller.initApp();
     expect(get(controller.tabs).some((t) => t.filename === "2026-09-10.txt")).toBe(false);
     // Falls back to today since the previously-active tab couldn't be restored.

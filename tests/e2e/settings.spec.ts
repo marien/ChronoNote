@@ -77,6 +77,9 @@ test.describe("settings (Ctrl+,)", () => {
     const warn = modalCard(page, MODAL_LABELS.unsavedScratchpads);
     await expect(warn).toBeVisible();
     await expect(warn).toContainText("permanently lost");
+    // §93 shares this gate with the app-close barrier — in the switch
+    // context the confirm button must still say "Switch", not "Quit".
+    await expect(warn).toContainText(/discard & switch/i);
 
     await warn.getByRole("button", { name: "Cancel" }).click();
     expect(await page.evaluate(() => window.__CHRONO_MOCK__!.notesDir)).toBe("/work-notes");

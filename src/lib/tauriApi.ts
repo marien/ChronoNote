@@ -1,7 +1,7 @@
 import { invoke } from "@tauri-apps/api/core";
 import { getVersion } from "@tauri-apps/api/app";
 import { openUrl } from "@tauri-apps/plugin-opener";
-import type { AppConfig, ColorMode, TabSession } from "./types";
+import type { AppConfig, ColorMode, FileMetadata, TabSession } from "./types";
 
 export function getConfig(): Promise<AppConfig> {
   return invoke("get_config");
@@ -27,8 +27,35 @@ export function readNote(filename: string): Promise<string | null> {
   return invoke("read_note", { filename });
 }
 
-export function writeNote(filename: string, content: string): Promise<void> {
-  return invoke("write_note", { filename, content });
+/** Write a note. `expectedHash` opts into a compare-and-swap: the write
+ * is rejected (error message starting `conflict: note changed on disk`)
+ * if the file's current SHA-256 isn't `expectedHash` — used only by the
+ * conflict-resolution "keep my version" path (§94), never by autosave.
+ * Resolves to the metadata of what was just written. */
+export function writeNote(
+  filename: string,
+  content: string,
+  expectedHash?: string,
+): Promise<FileMetadata> {
+  return invoke("write_note", { filename, content, expectedHash: expectedHash ?? null });
+}
+
+export function getFileMetadata(filename: string): Promise<FileMetadata> {
+  return invoke("get_file_metadata", { filename });
+}
+
+export function readNoteWithMetadata(
+  filename: string,
+): Promise<{ content: string | null; metadata: FileMetadata }> {
+  return invoke("read_note_with_metadata", { filename });
+}
+
+/** Write the user's in-memory version to `.chrononote-conflicts/<name>`
+ * when they chose "save mine as a copy". `name` is a plain basename the
+ * frontend builds from the note's date + the local time. Resolves to the
+ * absolute path written, for the confirmation toast. */
+export function writeConflictCopy(name: string, content: string): Promise<string> {
+  return invoke("write_conflict_copy", { name, content });
 }
 
 export function readAllNotes(): Promise<[string, string][]> {

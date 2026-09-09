@@ -51,8 +51,31 @@ fn read_note(app: AppHandle, filename: String) -> Result<Option<String>, String>
 }
 
 #[tauri::command]
-fn write_note(app: AppHandle, filename: String, content: String) -> Result<(), String> {
-    storage::write_note(&app, &filename, &content)
+fn write_note(
+    app: AppHandle,
+    filename: String,
+    content: String,
+    expected_hash: Option<String>,
+) -> Result<storage::FileMetadata, String> {
+    storage::write_note(&app, &filename, &content, expected_hash.as_deref())
+}
+
+#[tauri::command]
+fn get_file_metadata(app: AppHandle, filename: String) -> Result<storage::FileMetadata, String> {
+    storage::get_file_metadata(&app, &filename)
+}
+
+#[tauri::command]
+fn read_note_with_metadata(
+    app: AppHandle,
+    filename: String,
+) -> Result<storage::NoteWithMetadata, String> {
+    storage::read_note_with_metadata(&app, &filename)
+}
+
+#[tauri::command]
+fn write_conflict_copy(app: AppHandle, name: String, content: String) -> Result<String, String> {
+    storage::write_conflict_copy(&app, &name, &content)
 }
 
 #[tauri::command]
@@ -118,6 +141,9 @@ pub fn run() {
             list_note_files,
             read_note,
             write_note,
+            get_file_metadata,
+            read_note_with_metadata,
+            write_conflict_copy,
             read_all_notes,
             read_tab_session,
             write_tab_session,

@@ -241,13 +241,141 @@ fn read_note_at(root: &Path, filename: &str) -> Result<Option<String>, String> {
     fs::read_to_string(path).map(Some).map_err(|e| e.to_string())
 }
 
-fn write_note_at(root: &Path, filename: &str, content: &str) -> Result<(), String> {
+// --- External-modification detection (§2 / §94) -------------------------
+
+/// The subdirectory `write_conflict_copy` drops "keep my version" copies
+/// into when the on-disk note changed under the user's feet. Inside the
+/// notes folder, hidden, and invisible to `list_note_files_at` /
+/// `read_all_notes_at` because `is_valid_note_filename` rejects both the
+/// directory name and the timestamped `.txt` files it holds.
+const CONFLICTS_DIRNAME: &str = ".chrononote-conflicts";
+
+/// Prefix on the error returned by `write_note_at` when an `expected_hash`
+/// guard fails — the note on disk is no longer what the caller last saw.
+/// The frontend matches on this to re-open the conflict prompt instead of
+/// surfacing it as a generic save failure.
+pub const CONFLICT_ERROR_PREFIX: &str = "conflict: note changed on disk";
+
+/// What the frontend needs to tell whether a note file changed underneath
+/// it: the SHA-256 of the current bytes (the authority — mtime is
+/// unreliable across cloud-sync clients, which is the main case this
+/// guards against), plus cheap corroborating signals.
+#[derive(Serialize, Clone, PartialEq, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct FileMetadata {
+    pub exists: bool,
+    /// SHA-256 hex of the file's bytes, or `None` when it doesn't exist.
+    pub content_hash: Option<String>,
+    pub size_bytes: Option<u64>,
+    /// mtime in milliseconds since the Unix epoch, best-effort.
+    pub modified_ms: Option<i64>,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NoteWithMetadata {
+    pub content: Option<String>,
+    pub metadata: FileMetadata,
+}
+
+fn hash_bytes(bytes: &[u8]) -> String {
+    use sha2::{Digest, Sha256};
+    let mut hasher = Sha256::new();
+    hasher.update(bytes);
+    hasher.finalize().iter().map(|b| format!("{b:02x}")).collect()
+}
+
+fn file_metadata_at(root: &Path, filename: &str) -> Result<FileMetadata, String> {
+    if !is_valid_note_filename(filename) {
+        return Err(format!("Invalid note filename: {filename}"));
+    }
+    let path = root.join(filename);
+    let bytes = match fs::read(&path) {
+        Ok(b) => b,
+        // Only a genuine "not there" is `exists: false`. A transient
+        // failure (a sync client or another editor holding the file
+        // locked mid-write — the case §94 exists for) must surface as an
+        // error so the frontend retries on its next trigger rather than
+        // announcing a deletion.
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
+            return Ok(FileMetadata { exists: false, content_hash: None, size_bytes: None, modified_ms: None });
+        }
+        Err(e) => return Err(e.to_string()),
+    };
+    let modified_ms = fs::metadata(&path)
+        .and_then(|m| m.modified())
+        .ok()
+        .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
+        .map(|d| d.as_millis() as i64);
+    Ok(FileMetadata {
+        exists: true,
+        content_hash: Some(hash_bytes(&bytes)),
+        size_bytes: Some(bytes.len() as u64),
+        modified_ms,
+    })
+}
+
+fn read_note_with_metadata_at(root: &Path, filename: &str) -> Result<NoteWithMetadata, String> {
+    let content = read_note_at(root, filename)?;
+    let metadata = file_metadata_at(root, filename)?;
+    Ok(NoteWithMetadata { content, metadata })
+}
+
+/// Validates a conflict-copy filename from the frontend: a plain basename
+/// ending `.txt`, no path separators or `..`. The timestamped name is
+/// built frontend-side (it owns the local clock); this is the guard.
+fn is_valid_conflict_filename(name: &str) -> bool {
+    name.ends_with(".txt")
+        && !name.is_empty()
+        && name.len() <= 128
+        && name.chars().all(|c| c.is_ascii_alphanumeric() || matches!(c, '.' | '_' | '-'))
+        && !name.contains("..")
+}
+
+fn write_conflict_copy_at(root: &Path, name: &str, content: &str) -> Result<String, String> {
+    if !is_valid_conflict_filename(name) {
+        return Err(format!("Invalid conflict-copy filename: {name}"));
+    }
+    let dir = root.join(CONFLICTS_DIRNAME);
+    fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
+    let target = resolve_workspace_path(&dir, Path::new(name)).map_err(String::from)?;
+    atomic_write(&target, content.as_bytes()).map_err(|e| e.to_string())?;
+    Ok(target.to_string_lossy().into_owned())
+}
+
+fn write_note_at(
+    root: &Path,
+    filename: &str,
+    content: &str,
+    expected_hash: Option<&str>,
+) -> Result<FileMetadata, String> {
     if !is_valid_note_filename(filename) {
         return Err(format!("Invalid note filename: {filename}"));
     }
     fs::create_dir_all(root).map_err(|e| e.to_string())?;
+
+    // §94: compare-and-swap. When the caller passes the hash it last saw,
+    // refuse the write if the file has since changed — a blind overwrite
+    // there would silently lose whatever landed on disk in between.
+    if let Some(expected) = expected_hash {
+        let current = file_metadata_at(root, filename)?.content_hash;
+        if current.as_deref() != Some(expected) {
+            return Err(format!("{CONFLICT_ERROR_PREFIX}: {filename}"));
+        }
+    }
+
     let target = resolve_workspace_path(root, Path::new(filename)).map_err(String::from)?;
-    atomic_write(&target, content.as_bytes()).map_err(|e| e.to_string())
+    atomic_write(&target, content.as_bytes()).map_err(|e| e.to_string())?;
+    Ok(FileMetadata {
+        exists: true,
+        content_hash: Some(hash_bytes(content.as_bytes())),
+        size_bytes: Some(content.len() as u64),
+        modified_ms: fs::metadata(&target)
+            .and_then(|m| m.modified())
+            .ok()
+            .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
+            .map(|d| d.as_millis() as i64),
+    })
 }
 
 fn read_all_notes_at(root: &Path) -> Result<Vec<(String, String)>, String> {
@@ -326,8 +454,25 @@ pub fn read_note(app: &AppHandle, filename: &str) -> Result<Option<String>, Stri
     read_note_at(&notes_root(app)?, filename)
 }
 
-pub fn write_note(app: &AppHandle, filename: &str, content: &str) -> Result<(), String> {
-    write_note_at(&notes_root(app)?, filename, content)
+pub fn write_note(
+    app: &AppHandle,
+    filename: &str,
+    content: &str,
+    expected_hash: Option<&str>,
+) -> Result<FileMetadata, String> {
+    write_note_at(&notes_root(app)?, filename, content, expected_hash)
+}
+
+pub fn get_file_metadata(app: &AppHandle, filename: &str) -> Result<FileMetadata, String> {
+    file_metadata_at(&notes_root(app)?, filename)
+}
+
+pub fn read_note_with_metadata(app: &AppHandle, filename: &str) -> Result<NoteWithMetadata, String> {
+    read_note_with_metadata_at(&notes_root(app)?, filename)
+}
+
+pub fn write_conflict_copy(app: &AppHandle, name: &str, content: &str) -> Result<String, String> {
+    write_conflict_copy_at(&notes_root(app)?, name, content)
 }
 
 pub fn read_all_notes(app: &AppHandle) -> Result<Vec<(String, String)>, String> {
@@ -481,7 +626,7 @@ mod tests {
     #[test]
     fn write_then_read_note_round_trips() {
         let dir = tempdir().unwrap();
-        write_note_at(dir.path(), "2026-09-07.txt", "hello world").unwrap();
+        write_note_at(dir.path(), "2026-09-07.txt", "hello world", None).unwrap();
         let content = read_note_at(dir.path(), "2026-09-07.txt").unwrap();
         assert_eq!(content, Some("hello world".to_string()));
     }
@@ -497,7 +642,7 @@ mod tests {
     fn write_note_creates_the_notes_directory_if_missing() {
         let dir = tempdir().unwrap();
         let root = dir.path().join("nested").join("notes");
-        write_note_at(&root, "2026-09-07.txt", "content").unwrap();
+        write_note_at(&root, "2026-09-07.txt", "content", None).unwrap();
         assert!(root.join("2026-09-07.txt").exists());
     }
 
@@ -505,14 +650,14 @@ mod tests {
     fn read_and_write_note_reject_an_invalid_filename() {
         let dir = tempdir().unwrap();
         assert!(read_note_at(dir.path(), "not-a-date.txt").is_err());
-        assert!(write_note_at(dir.path(), "../escape.txt", "x").is_err());
+        assert!(write_note_at(dir.path(), "../escape.txt", "x", None).is_err());
     }
 
     #[test]
     fn read_all_notes_returns_every_valid_file_with_its_content() {
         let dir = tempdir().unwrap();
-        write_note_at(dir.path(), "2026-09-01.txt", "first").unwrap();
-        write_note_at(dir.path(), "2026-09-02.txt", "second").unwrap();
+        write_note_at(dir.path(), "2026-09-01.txt", "first", None).unwrap();
+        write_note_at(dir.path(), "2026-09-02.txt", "second", None).unwrap();
         let mut all = read_all_notes_at(dir.path()).unwrap();
         all.sort();
         assert_eq!(
@@ -569,8 +714,8 @@ mod tests {
     #[test]
     fn write_note_at_round_trips_through_the_atomic_path() {
         let dir = tempdir().unwrap();
-        write_note_at(dir.path(), "2026-09-07.txt", "content").unwrap();
-        write_note_at(dir.path(), "2026-09-07.txt", "updated").unwrap();
+        write_note_at(dir.path(), "2026-09-07.txt", "content", None).unwrap();
+        write_note_at(dir.path(), "2026-09-07.txt", "updated", None).unwrap();
         assert_eq!(
             read_note_at(dir.path(), "2026-09-07.txt").unwrap(),
             Some("updated".to_string()),
@@ -633,6 +778,91 @@ mod tests {
         ));
     }
 
+    // --- external-modification detection (§94) ---
+
+    #[test]
+    fn file_metadata_reports_absent_for_a_missing_note() {
+        let dir = tempdir().unwrap();
+        let m = file_metadata_at(dir.path(), "2026-09-07.txt").unwrap();
+        assert!(!m.exists);
+        assert_eq!(m.content_hash, None);
+    }
+
+    #[test]
+    fn file_metadata_hash_changes_iff_content_changes() {
+        let dir = tempdir().unwrap();
+        write_note_at(dir.path(), "2026-09-07.txt", "one", None).unwrap();
+        let a = file_metadata_at(dir.path(), "2026-09-07.txt").unwrap();
+        write_note_at(dir.path(), "2026-09-07.txt", "one", None).unwrap();
+        let a2 = file_metadata_at(dir.path(), "2026-09-07.txt").unwrap();
+        write_note_at(dir.path(), "2026-09-07.txt", "two", None).unwrap();
+        let b = file_metadata_at(dir.path(), "2026-09-07.txt").unwrap();
+        assert_eq!(a.content_hash, a2.content_hash);
+        assert_ne!(a.content_hash, b.content_hash);
+        assert_eq!(a.size_bytes, Some(3));
+    }
+
+    #[test]
+    fn write_note_returns_the_hash_it_wrote() {
+        let dir = tempdir().unwrap();
+        let meta = write_note_at(dir.path(), "2026-09-07.txt", "hello", None).unwrap();
+        let read = file_metadata_at(dir.path(), "2026-09-07.txt").unwrap();
+        assert_eq!(meta.content_hash, read.content_hash);
+    }
+
+    #[test]
+    fn read_note_with_metadata_agrees_with_get_file_metadata() {
+        let dir = tempdir().unwrap();
+        write_note_at(dir.path(), "2026-09-07.txt", "body", None).unwrap();
+        let r = read_note_with_metadata_at(dir.path(), "2026-09-07.txt").unwrap();
+        assert_eq!(r.content, Some("body".to_string()));
+        assert_eq!(r.metadata.content_hash, file_metadata_at(dir.path(), "2026-09-07.txt").unwrap().content_hash);
+    }
+
+    #[test]
+    fn write_note_with_a_matching_expected_hash_succeeds() {
+        let dir = tempdir().unwrap();
+        let m = write_note_at(dir.path(), "2026-09-07.txt", "v1", None).unwrap();
+        let hash = m.content_hash.unwrap();
+        write_note_at(dir.path(), "2026-09-07.txt", "v2", Some(&hash)).unwrap();
+        assert_eq!(read_note_at(dir.path(), "2026-09-07.txt").unwrap(), Some("v2".to_string()));
+    }
+
+    #[test]
+    fn write_note_with_a_stale_expected_hash_is_rejected_as_a_conflict() {
+        let dir = tempdir().unwrap();
+        write_note_at(dir.path(), "2026-09-07.txt", "v1", None).unwrap();
+        // Someone else changed the file since we last read it.
+        write_note_at(dir.path(), "2026-09-07.txt", "external edit", None).unwrap();
+        let err = write_note_at(dir.path(), "2026-09-07.txt", "our edit", Some("deadbeef")).unwrap_err();
+        assert!(err.starts_with(CONFLICT_ERROR_PREFIX));
+        // The file was NOT overwritten.
+        assert_eq!(read_note_at(dir.path(), "2026-09-07.txt").unwrap(), Some("external edit".to_string()));
+    }
+
+    #[test]
+    fn write_conflict_copy_lands_in_the_hidden_subdir_and_stays_invisible() {
+        let dir = tempdir().unwrap();
+        write_note_at(dir.path(), "2026-09-07.txt", "real note", None).unwrap();
+        let path = write_conflict_copy_at(dir.path(), "2026-09-07-143022.txt", "my unsaved version").unwrap();
+        assert!(path.contains(CONFLICTS_DIRNAME));
+        assert_eq!(
+            fs::read_to_string(dir.path().join(CONFLICTS_DIRNAME).join("2026-09-07-143022.txt")).unwrap(),
+            "my unsaved version",
+        );
+        // The conflicts dir and its files never show up as notes.
+        assert_eq!(list_note_files_at(dir.path()).unwrap(), vec!["2026-09-07.txt"]);
+        assert_eq!(read_all_notes_at(dir.path()).unwrap().len(), 1);
+    }
+
+    #[test]
+    fn write_conflict_copy_rejects_a_path_traversal_name() {
+        let dir = tempdir().unwrap();
+        assert!(write_conflict_copy_at(dir.path(), "../escape.txt", "x").is_err());
+        assert!(write_conflict_copy_at(dir.path(), "sub/nested.txt", "x").is_err());
+        assert!(write_conflict_copy_at(dir.path(), "no-extension", "x").is_err());
+    }
+
     // --- tab session ---
 
     #[test]
@@ -669,7 +899,7 @@ mod tests {
     #[test]
     fn the_session_file_is_never_picked_up_by_list_note_files() {
         let dir = tempdir().unwrap();
-        write_note_at(dir.path(), "2026-09-01.txt", "note").unwrap();
+        write_note_at(dir.path(), "2026-09-01.txt", "note", None).unwrap();
         write_tab_session_at(dir.path(), &TabSession::default()).unwrap();
         assert_eq!(list_note_files_at(dir.path()).unwrap(), vec!["2026-09-01.txt"]);
     }

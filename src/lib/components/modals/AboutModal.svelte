@@ -2,10 +2,11 @@
   import * as controller from "../../controller";
   import { appVersion } from "../../controller";
   import { closeOnOutsideClick } from "../../actions/closeOnOutsideClick";
+  import { focusTrap } from "../../actions/focusTrap";
 </script>
 
 <div class="overlay" role="presentation" use:closeOnOutsideClick={controller.closeAllModals}>
-  <div class="modal-card" role="dialog" aria-modal="true" aria-label="About ChronoNote" style="width: 420px;">
+  <div class="modal-card" role="dialog" aria-modal="true" use:focusTrap aria-label="About ChronoNote" style="width: 420px;">
     <div class="modal-input-wrap">
       <span>ℹ</span> About ChronoNote
     </div>
