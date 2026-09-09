@@ -75,15 +75,20 @@ Each phase = its own PR, CI green, browser-pane walkthrough. All land on
   trigger. `DatePickerModal.svelte` rewritten; `monthGrid`/`addMonths` in
   `date.ts`.
 
-### Phase 3 — Glyph redesign & inline interaction
+### Phase 3 — Glyph interaction & colour
 
-- ☐ Redraw the four action glyphs as checkbox-style marks inside the
-  existing 2-char inline cell (`glyphs.ts` widgets + `app.css`).
-- ☐ Semantic `color`-mode palette refresh (cyan open / emerald done /
-  violet deferred / slate cancelled) — `[data-color-mode="color"]` block.
-- ☐ Click-glyph-to-cycle (clickable atomic widget) + `Ctrl+Enter` alias
-  for the `Ctrl+Space` cycle. Preserve selection + undo/redo.
-- ☐ Update `GlyphLegendModal`, `visual.spec.ts`, `editor-tokens.spec.ts`.
+- ☑ **Semantic `color`-mode palette refresh** (§105) — cyan open / emerald
+  done / violet deferred / slate cancelled; amber reserved for emphasis.
+  `[data-color-mode="color"]` + light block. Grayscale untouched.
+- ☑ **Click-glyph-to-cycle + `Ctrl/Cmd+Enter`** (§106) — the four action
+  glyphs (standalone or a `=> <symbol>` inner symbol) cycle on click via
+  `mousedown` + `view.posAtDOM`; `Mod-Enter` aliases the `Ctrl+Space`
+  cycle. Selection/undo preserved (plain CM transaction).
+- ⏸ **Unicode → SVG checkbox shapes** — SPLIT OUT. 3 of the 4 glyphs are
+  already checkbox-style (`☐ ☑ ☒`); `»` was explicitly kept (§84). A full
+  SVG set touches 4 render sites + the finicky §79/§84/§87 layout CSS +
+  3 layout specs, and "1px off" needs Marien's eyes on the real Windows
+  app. Worth doing, but as its own reviewed change, not bundled here.
 
 ### Phase 4 — Command palette (Ctrl+K)
 

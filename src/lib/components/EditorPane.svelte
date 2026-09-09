@@ -199,6 +199,9 @@
   onMount(() => {
     const shortcuts = keymap.of([
       { key: "Ctrl-Space", run: (v) => cycleLine(v) },
+      // §106: Ctrl/Cmd+Enter is the same action-state cycle as Ctrl+Space
+      // — the combo the UX reviews (and most task apps) reach for.
+      { key: "Mod-Enter", run: (v) => cycleLine(v) },
       { key: "Ctrl-Shift-s", run: (v) => convertLineToSection(v) },
       { key: "F2", run: (v) => jumpToAdjacentOpenAction(v, 1) },
       { key: "Shift-F2", run: (v) => jumpToAdjacentOpenAction(v, -1) },

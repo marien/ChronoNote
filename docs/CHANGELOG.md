@@ -3869,3 +3869,48 @@ the "Open Only" filter. `helpers.ts` gains `datePicker()`;
 `navigation.spec.ts` rewritten (9 cases), `modal-a11y` + `visual`
 updated. `svelte-check` (240), Vitest (204), Playwright (108),
 `cargo test` (42) green.
+
+---
+
+## 105. Semantic colour-mode palette refresh (0.6 UX pass — Phase 3)
+
+**Status: implemented on `feat/ux-0.6`, not yet released.** `color` mode's
+glyph hues move to the reviews' semantic set (Marien's Q3 call — refresh
+the existing mode, no new flag):
+
+| state | was | now (dark) |
+| --- | --- | --- |
+| open / to-do | red `#ff6b6b` | cyan `#38bdf8` |
+| done | green `#51cf66` | emerald `#10b981` |
+| deferred | amber `#e5a50a` | violet `#a855f7` |
+| won't-do | grey `#868e96` | slate `#7c8794` |
+| follow-up / assignee | blue | cyan |
+| emphasis (`! `) | yellow | amber `#f59e0b` — the one reserved warning hue |
+
+Light-mode equivalents updated to match. **Grayscale mode is untouched.**
+Chrome accent stays the option-B blue family; only the glyph tokens
+changed. The Action Drawer / Section History / glyph-legend glyph columns
+follow automatically (they read the same `--glyph-*` vars).
+
+## 106. Click a glyph to cycle its state + Ctrl/Cmd+Enter (0.6 UX pass — Phase 3)
+
+**Status: implemented on `feat/ux-0.6`, not yet released.**
+
+- **Click a glyph** — the four action-state glyphs (a standalone `# v > x`
+  or the inner symbol of a `=> <symbol>` consequence-action) now advance
+  `# → v → > → x → #` on click. `InlineGlyphWidget` gained a `cyclable`
+  flag; its `toDOM` adds a `mousedown` handler that `preventDefault`s
+  (no cursor move / focus steal), resolves its own position with
+  `view.posAtDOM`, and dispatches `cycleActionSymbol` on that line.
+  `ignoreEvent()` returns true so CodeMirror doesn't also treat the click
+  as a caret placement into the atomic range. The arrow, bullet and
+  assignee glyphs are not cyclable. `.glyph-cyclable` gets a pointer
+  cursor + a faint hover tint.
+- **`Ctrl/Cmd+Enter`** — `Mod-Enter` in `EditorPane`'s keymap aliases the
+  existing `Ctrl+Space` state cycle (the combo the reviews and most task
+  apps use). Both stay.
+
+Selection and undo/redo are preserved (a plain single CM transaction).
+`ShortcutsModal` updated. 2 new `editor-tokens.spec.ts` cases.
+`svelte-check` (240), Vitest (204), Playwright (110), `cargo test` (42)
+green.
