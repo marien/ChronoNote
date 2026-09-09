@@ -3,5 +3,11 @@
   "identifier": "default",
   "description": "Default capability for the main window",
   "windows": ["main"],
-  "permissions": ["core:default", "dialog:allow-open", "core:window:allow-set-title", "opener:allow-open-url"]
+  "permissions": [
+    "core:default",
+    "dialog:allow-open",
+    "core:window:allow-set-title",
+    "core:window:allow-destroy",
+    "opener:allow-open-url"
+  ]
 }

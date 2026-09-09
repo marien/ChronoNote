@@ -14,14 +14,18 @@ import {
   appVersion,
   chromeExpanded,
   colorMode,
+  modal,
   notesDir,
   recentNotesDirs,
+  scratchpadGateContext,
   showToast,
   statusCounts,
   statusPos,
   tabs,
+  unsavedScratchpadNames,
   wordWrap,
 } from "./stores";
+import { flushAllPendingSaves } from "./persistence";
 import type { ColorMode, NoteTab } from "./types";
 
 // --- Standing subscriptions (wired once, from initApp) -----------------
@@ -68,6 +72,63 @@ function wireWindowTitleSync() {
       .setTitle(`ChronoNote - ${folderNameFromPath(dir)}`)
       .catch(() => {});
   });
+}
+
+// --- §93: zero-loss exit barrier -------------------------------------
+//
+// The autosave debounce (400ms) means the last burst of typing before an
+// OS window close (X button, Alt+F4) could be lost. Intercept the close:
+// flush every pending + in-flight disk write first, then destroy the
+// window. A non-empty scratchpad has no disk file, so it goes through the
+// same unsaved-scratchpads gate a notes-folder switch uses (§39) —
+// close is cancelled until the user promotes or discards it.
+
+let closeBarrierWired = false;
+function wireCloseBarrier() {
+  if (closeBarrierWired) return;
+  closeBarrierWired = true;
+  const win = getCurrentWindow();
+  win
+    .onCloseRequested(async (event) => {
+      // Take the close off Tauri's hands; we decide when the window dies.
+      event.preventDefault();
+      const unsaved = get(tabs).filter((t) => t.isScratchpad && t.content.trim() !== "");
+      if (unsaved.length > 0) {
+        unsavedScratchpadNames.set(unsaved.map((t) => t.filename));
+        scratchpadGateContext.set("close");
+        modal.set("unsavedScratchpads");
+        return; // stay open; the modal's buttons resolve it
+      }
+      await flushThenDestroy();
+    })
+    .catch(() => {
+      // No window handle (tests without the mock event plumbing, or a
+      // non-Tauri context) — the barrier just isn't active there.
+    });
+}
+
+async function flushThenDestroy() {
+  try {
+    await flushAllPendingSaves();
+  } finally {
+    await getCurrentWindow().destroy();
+  }
+}
+
+/** Unsaved-scratchpads gate, "close" context: Cancel — stay in the app. */
+export function cancelAppClose() {
+  unsavedScratchpadNames.set([]);
+  scratchpadGateContext.set(null);
+  modal.set("none");
+}
+
+/** Unsaved-scratchpads gate, "close" context: Discard & Quit — drop the
+ * scratchpads, flush the real notes, then close. */
+export async function confirmDiscardAndClose() {
+  unsavedScratchpadNames.set([]);
+  scratchpadGateContext.set(null);
+  modal.set("none");
+  await flushThenDestroy();
 }
 
 // --- Boot ---
@@ -182,6 +243,7 @@ function persistTabSession() {
 export async function initApp() {
   wireStatusBarSync();
   wireWindowTitleSync();
+  wireCloseBarrier();
   const cfg = await api.getConfig();
   notesDir.set(cfg.notesDir);
   recentNotesDirs.set(cfg.recentNotesDirs);

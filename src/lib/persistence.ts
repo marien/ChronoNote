@@ -11,6 +11,12 @@ import type { NoteTab } from "./types";
 
 const saveTimers: Record<string, ReturnType<typeof setTimeout>> = {};
 
+/** Every disk write currently in flight (`api.writeNote` promise not yet
+ * settled). `flushAllPendingSaves` awaits these so the app-close barrier
+ * (§93) can guarantee nothing typed is still on its way to disk when the
+ * window is destroyed. */
+const inFlightWrites = new Set<Promise<unknown>>();
+
 /** Queue a disk write for `tab` 400ms out, replacing any pending write
  * for the same tab. Scratchpads never touch disk. */
 export function scheduleSave(tab: NoteTab) {
@@ -35,6 +41,17 @@ export function flushSave(tabId: string) {
   if (tab && !tab.isScratchpad) {
     writeNoteAndInvalidateCache(tab.filename, tab.content).catch(() => showToast("Failed to save note"));
   }
+}
+
+/** App-close barrier (§93): fire every debounced write immediately, then
+ * wait for those plus anything already mid-flight to finish. Resolves
+ * once the disk is caught up with every open note's in-memory content —
+ * the window can then be destroyed with no risk of losing the last few
+ * keystrokes. Never rejects (individual write failures already surface a
+ * toast); a quit shouldn't hang on a failing disk. */
+export async function flushAllPendingSaves(): Promise<void> {
+  for (const tabId of Object.keys(saveTimers)) flushSave(tabId);
+  await Promise.allSettled([...inFlightWrites]);
 }
 
 // --- The "all notes" disk read-cache (§38) ---
@@ -79,7 +96,11 @@ export async function refreshAllNotesCache() {
 export function writeNoteAndInvalidateCache(filename: string, content: string): Promise<void> {
   const hasOpenTab = get(tabs).some((t) => !t.isScratchpad && t.filename === filename);
   if (!hasOpenTab) diskNotesCacheRaw = null;
-  return api.writeNote(filename, content);
+  const p = api.writeNote(filename, content);
+  inFlightWrites.add(p);
+  const forget = () => inFlightWrites.delete(p);
+  p.then(forget, forget);
+  return p;
 }
 
 // --- Editing ---

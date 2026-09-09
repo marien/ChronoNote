@@ -6,7 +6,7 @@ kept for the rationale behind each one — not just *what* changed but
 was still being gathered and confirmed before implementation; renamed once
 everything below was applied, since nothing here is "pending" anymore.
 
-**Status: all sections through §92 implemented, released, and on `main`**, each
+**Status: sections through §92 released on `main`; §93+ on `refactor/foundation` (→ v0.5.0)**, each
 verified before merge (`svelte-check`, the Vitest suite, `cargo test`,
 and — from §77 on — the Playwright E2E suite, all green in CI). See each
 section for what it covers and why. §27–31 were small fixes logged
@@ -15,7 +15,8 @@ here; everything from §32 on was written directly.
 
 Which sections shipped in which release: §1–55 → v0.2.0, §56–59 → v0.2.1,
 §60–74 → v0.3.0, §75–81 → v0.4.0, §82–83 → v0.4.1, §84–85 → v0.4.2,
-§86–87 → v0.4.3, §88–89 → v0.4.4, §90–91 → v0.4.5, §92 → v0.4.6.
+§86–87 → v0.4.3, §88–89 → v0.4.4, §90–91 → v0.4.5, §92 → v0.4.6,
+§refactor + §93+ → v0.5.0 (unreleased).
 
 ---
 
@@ -3431,3 +3432,48 @@ Deps added: `tempfile` (dev→prod), `dunce`. Eight new `storage.rs` tests:
 round-trip, replace-in-place, no-temp-litter, 50 rapid writes land the
 last value, and `resolve_workspace_path` rejecting parent / absolute /
 (Unix) symlink escapes while allowing direct children.
+
+---
+
+## 93. Zero-loss exit barrier (hardening §3)
+
+**Status: implemented.** Hardening roadmap Phase 3, on the `refactor/
+foundation` branch (→ v0.5.0). Autosave is debounced 400ms, so the last
+burst of typing before an OS window close (X button, Alt+F4) could be
+lost. Now the close is intercepted, every pending disk write is flushed,
+and only then is the window destroyed.
+
+**Frontend only** — Tauri v2's window manager already calls
+`api.prevent_close()` automatically whenever a JS `tauri://close-requested`
+listener exists (`tauri` crate, `manager/window.rs`:
+`if window.has_js_listener(WINDOW_CLOSE_REQUESTED_EVENT) { api.prevent_close() }`),
+so no Rust `on_window_event` handler is needed. `boot.ts`'s
+`wireCloseBarrier()` (wired from `initApp`) registers
+`getCurrentWindow().onCloseRequested`, `preventDefault()`s, then:
+
+- **No unsaved scratchpad:** `flushAllPendingSaves()` (new, in
+  `persistence.ts`) fires every debounced write immediately and awaits
+  those plus anything already in flight — tracked via a module-level
+  `inFlightWrites` set that every `writeNoteAndInvalidateCache` now adds
+  to. It never rejects (`Promise.allSettled`), so a failing disk can't
+  hang the quit. Then `getCurrentWindow().destroy()`.
+- **Non-empty scratchpad present:** a scratchpad has no disk file, so it
+  routes through the same unsaved-scratchpads gate a notes-folder switch
+  uses (§39). Close is cancelled; the modal offers **Discard & Quit** or
+  **Cancel**. A new `scratchpadGateContext` store (`"switch" | "close" |
+  null`) drives the modal's wording and which resolve handlers its
+  buttons call (`confirmDiscardAndClose` / `cancelAppClose` in `boot.ts`
+  vs. the existing `confirmDiscardAndSwitch` / `cancelDirectorySwitch`).
+
+One capability added: `core:window:allow-destroy` in
+`src-tauri/capabilities/default.json` — `core:default` grants the
+read-only window APIs but not `destroy`, so without this the barrier
+prevented the close and then couldn't complete it (the window hung
+un-closable — caught in a real-app close test, not by any suite).
+
+The mock backend grew real event plumbing (`emitEvent`, listener
+registry keyed to `plugin:event|listen`) so a test can drive
+`tauri://close-requested` — also groundwork for Phase 4's window-focus
+trigger. Covered by `tests/e2e/exit-barrier.spec.ts` (flush-before-
+destroy, clean close when idle, the scratchpad gate + its two buttons)
+and three `controller.test.ts` cases for `flushAllPendingSaves`.

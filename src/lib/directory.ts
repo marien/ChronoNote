@@ -20,6 +20,7 @@ import {
   notesDir,
   pendingNotesDirSwitch,
   recentNotesDirs,
+  scratchpadGateContext,
   searchResultsStore,
   showToast,
   tabs,
@@ -37,6 +38,7 @@ async function switchNotesDirectoryWithSafetyCheck(path: string) {
   if (unresolved.length > 0) {
     pendingNotesDirSwitch.set(path);
     unsavedScratchpadNames.set(unresolved.map((t) => t.filename));
+    scratchpadGateContext.set("switch");
     modal.set("unsavedScratchpads");
     return;
   }
@@ -59,6 +61,7 @@ export async function switchToRecentDirectory(path: string) {
 export function cancelDirectorySwitch() {
   pendingNotesDirSwitch.set(null);
   unsavedScratchpadNames.set([]);
+  scratchpadGateContext.set(null);
   modal.set("settings");
 }
 
@@ -66,6 +69,7 @@ export async function confirmDiscardAndSwitch() {
   const path = get(pendingNotesDirSwitch);
   pendingNotesDirSwitch.set(null);
   unsavedScratchpadNames.set([]);
+  scratchpadGateContext.set(null);
   if (path) await performDirectorySwitch(path);
 }
 

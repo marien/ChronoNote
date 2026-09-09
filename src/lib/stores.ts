@@ -67,6 +67,11 @@ export const pendingCloseTabId = writable<string | null>(null);
 export const safetyMessage = writable<string>("");
 export const pendingNotesDirSwitch = writable<string | null>(null);
 export const unsavedScratchpadNames = writable<string[]>([]);
+/** Which flow raised the unsaved-scratchpads gate: a notes-folder switch
+ * (§39) or an app quit (§93 close barrier). `null` when the gate isn't
+ * up. Drives the modal's wording and which resolve handlers its buttons
+ * call. */
+export const scratchpadGateContext = writable<"switch" | "close" | null>(null);
 
 export const allNotesCache = writable<Record<string, string>>({});
 export const actionSnapshot = writable<ActionSnapshotItem[]>([]);

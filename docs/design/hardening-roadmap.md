@@ -71,19 +71,34 @@ promise sweep.
 Also for v0.5.0: ship app icon concept A (`docs/design/icon-A-master.svg`
 via `npx tauri icon`).
 
-### ☐ Phase 3 — Zero-loss exit barrier (§3) → **v0.5.1**
+### ☑ Phase 3 — Zero-loss exit barrier (§3) — code done, folded into v0.5.0
 
-- `lib.rs`: `on_window_event` → `WindowEvent::CloseRequested { api, .. }` →
-  `api.prevent_close()` + `window.emit("chrono:app-close-requested", ())`.
-- `force_window_exit` command → `window.destroy()`.
-- Frontend (in `boot.ts` from Phase 1): cancel debounce timers → parallel
-  atomic writes for every dirty doc (incl. scratchpads) → await all →
-  `force_window_exit()`.
-- e2e: type 500 words, close immediately, assert all flushed.
+Turned out to be **frontend-only**: Tauri v2 auto-`prevent_close()`s when a
+JS `tauri://close-requested` listener exists (`tauri` crate
+`manager/window.rs`), so no Rust `on_window_event` / `force_window_exit`
+command. `boot.ts` `wireCloseBarrier()` (from `initApp`):
+`onCloseRequested` → `preventDefault` → `flushAllPendingSaves()` (new in
+`persistence.ts`; fires debounced writes + awaits in-flight, never
+rejects) → `getCurrentWindow().destroy()`.
 
-### ☐ Phase 4 — External-modification / conflict detection (§2) → **v0.5.2 / v0.6.0**
+Non-empty scratchpad on quit: routes through the existing
+unsaved-scratchpads gate (Marien's call), now context-aware via a
+`scratchpadGateContext` store (`"switch" | "close"`) — modal shows
+**Discard & Quit** / **Cancel**.
 
-The large one. Only after 1–3 are solid.
+One capability grant: `core:window:allow-destroy` (default set has only
+read-only window APIs — without it the barrier hung the window
+un-closable; caught only by a real-app close test).
+
+Mock backend gained real event plumbing (`emitEvent`) — also groundwork
+for Phase 4's window-focus trigger. `tests/e2e/exit-barrier.spec.ts` +
+3 `controller.test.ts` cases.
+
+### ☐ Phase 4 — External-modification / conflict detection (§2) → **v0.5.0**
+
+The large one. Marien wants all phases in one release (v0.5.0), not a
+string of point releases — so this lands on `refactor/foundation` too,
+after Phase 3.
 
 - IPC: `get_file_metadata`, `read_note_with_metadata`,
   `atomic_write_note(path, content, expectedHash?)`. Adds `sha2` crate for
@@ -98,7 +113,7 @@ The large one. Only after 1–3 are solid.
   (`.chrononote-conflicts/<date>-<ts>.txt`, then reload).
 - `tests/e2e/concurrency.spec.ts` — external write + focus → dialog → resolve.
 
-### ☐ Phase 5 — Modal focus trap (§5.2) → any time after Phase 1
+### ☐ Phase 5 — Modal focus trap (§5.2) → **v0.5.0**
 
 Shared Svelte action: record `document.activeElement` on open, cycle Tab /
 Shift+Tab within the modal's tabbables, restore focus to the editor on close.
@@ -108,11 +123,16 @@ Applied to every `modals/*.svelte` wrapper. `aria-*` attributes already done.
 
 ## Release ordering
 
+Marien's call (2026-09-09): **no interim point releases** — all of
+Phases 1, 3, 4, 5 accumulate on `refactor/foundation` and cut together as
+**v0.5.0** once everything's tested and he's reviewed it.
+
 ```
-main ──v0.4.5──┬──v0.4.6 (Phase 2, harden/atomic-storage)
-               │
-               └── refactor/foundation ──v0.5.0 (Phase 1) ── v0.5.1 (Phase 3) ── v0.5.2/v0.6.0 (Phase 4)
-                                                                    Phase 5 folds in wherever it lands
+main ──v0.4.5── v0.4.6 (Phase 2, shipped)
+                  │
+                  └── refactor/foundation ── v0.5.0  =  Phase 1 (refactor) + 3 (exit barrier)
+                                                       + 4 (conflict detection) + 5 (focus trap)
+                                                       + app icon concept A
 ```
 
 Rebase `refactor/foundation` onto `main` after every interim release

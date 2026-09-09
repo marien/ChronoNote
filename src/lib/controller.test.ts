@@ -28,6 +28,8 @@ const tauriWindowMock = {
   isFullscreen: vi.fn(),
   isMaximized: vi.fn(),
   onResized: vi.fn(),
+  onCloseRequested: vi.fn(),
+  destroy: vi.fn(),
 };
 vi.mock("@tauri-apps/api/window", () => ({
   getCurrentWindow: () => tauriWindowMock,
@@ -76,6 +78,8 @@ beforeEach(async () => {
   tauriWindowMock.isFullscreen.mockResolvedValue(false);
   tauriWindowMock.isMaximized.mockResolvedValue(false);
   tauriWindowMock.onResized.mockResolvedValue(undefined);
+  tauriWindowMock.onCloseRequested.mockResolvedValue(() => {});
+  tauriWindowMock.destroy.mockResolvedValue(undefined);
   controller = await import("./controller");
 });
 
@@ -229,6 +233,31 @@ describe("updateActiveTabContent", () => {
     controller.activeTabId.set("a");
     controller.updateActiveTabContent("new");
     expect(get(controller.tabs)[0].content).toBe("new");
+  });
+});
+
+describe("flushAllPendingSaves (§93 exit barrier)", () => {
+  it("writes a tab's debounced content immediately instead of waiting out the 400ms", async () => {
+    controller.tabs.set([tab({ id: "a", filename: "2026-09-01.txt", content: "start" })]);
+    controller.activeTabId.set("a");
+    controller.updateActiveTabContent("typed just now"); // schedules a 400ms save
+    expect(apiMock.writeNote).not.toHaveBeenCalled();
+
+    await controller.flushAllPendingSaves();
+
+    expect(apiMock.writeNote).toHaveBeenCalledWith("2026-09-01.txt", "typed just now");
+  });
+
+  it("resolves cleanly when nothing is pending", async () => {
+    await expect(controller.flushAllPendingSaves()).resolves.toBeUndefined();
+  });
+
+  it("never rejects even if a write fails", async () => {
+    apiMock.writeNote.mockRejectedValueOnce(new Error("disk full"));
+    controller.tabs.set([tab({ id: "a", filename: "2026-09-02.txt", content: "x" })]);
+    controller.activeTabId.set("a");
+    controller.updateActiveTabContent("more");
+    await expect(controller.flushAllPendingSaves()).resolves.toBeUndefined();
   });
 });
 

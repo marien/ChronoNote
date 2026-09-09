@@ -111,6 +111,20 @@ export class MockBackend {
   };
 
   private eventListenerId = 0;
+  /** Active `@tauri-apps/api/event` listeners. Lets a test drive a Tauri
+   * event the real OS would fire — e.g. `tauri://close-requested` for the
+   * §93 exit barrier. `fireCallback` is wired by `installMockTauri` (it
+   * owns the transformed-callback id→fn map). */
+  private eventListeners: { event: string; handlerId: number; eventId: number }[] = [];
+  fireCallback?: (handlerId: number, payload: unknown) => void;
+
+  /** Fire a Tauri event to every frontend listener registered for it.
+   * Test-only, via `window.__CHRONO_MOCK__.emitEvent(...)`. */
+  emitEvent(event: string, payload: unknown = null): void {
+    for (const l of this.eventListeners) {
+      if (l.event === event) this.fireCallback?.(l.handlerId, { event, id: l.handlerId, payload });
+    }
+  }
 
   constructor(seed: MockSeed = {}) {
     this.notesDir = seed.notesDir ?? "/notes";
@@ -317,10 +331,19 @@ export class MockBackend {
         return r;
       }
 
-      case "plugin:event|listen":
-        return ++this.eventListenerId;
-      case "plugin:event|unlisten":
+      case "plugin:event|listen": {
+        const eventId = ++this.eventListenerId;
+        if (typeof args.event === "string" && typeof args.handler === "number") {
+          this.eventListeners.push({ event: args.event, handlerId: args.handler, eventId });
+        }
+        return eventId;
+      }
+      case "plugin:event|unlisten": {
+        if (typeof args.eventId === "number") {
+          this.eventListeners = this.eventListeners.filter((l) => l.eventId !== args.eventId);
+        }
         return null;
+      }
 
       case "plugin:window|set_title":
         // A real Tauri app sets the OS window title here; in a browser the
@@ -409,6 +432,17 @@ export function installMockTauri(seed?: MockSeed): MockBackend {
       currentWindow: { label: "main" },
       currentWebview: { windowLabel: "main", label: "main" },
     },
+  };
+
+  // Let the backend fire Tauri events at the real frontend listeners
+  // (`backend.emitEvent(...)` from a test) — it registers listener ids in
+  // `plugin:event|listen`, this closure owns the id→fn map.
+  backend.fireCallback = (id, payload) => callbacks.get(id)?.(payload);
+
+  // `@tauri-apps/api/event`'s unlisten path touches this before its
+  // invoke; stub it so a listener teardown can't throw under the mock.
+  (window as unknown as { __TAURI_EVENT_PLUGIN_INTERNALS__: unknown }).__TAURI_EVENT_PLUGIN_INTERNALS__ = {
+    unregisterListener: () => {},
   };
 
   window.__CHRONO_MOCK__ = backend;
