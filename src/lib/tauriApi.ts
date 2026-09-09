@@ -39,8 +39,12 @@ export function readTabSession(): Promise<TabSession | null> {
   return invoke("read_tab_session");
 }
 
-export function writeTabSession(openTabs: string[], activeTab: string | null): Promise<void> {
-  return invoke("write_tab_session", { openTabs, activeTab });
+export function writeTabSession(
+  openTabs: string[],
+  activeTab: string | null,
+  lastOpenedDate: string | null,
+): Promise<void> {
+  return invoke("write_tab_session", { openTabs, activeTab, lastOpenedDate });
 }
 
 export function pathExists(path: string): Promise<boolean> {

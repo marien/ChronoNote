@@ -44,4 +44,9 @@ export interface AppConfig {
 export interface TabSession {
   openTabs: string[];
   activeTab: string | null;
+  /** ISO date (`YYYY-MM-DD`) this folder was last opened on. `null`/absent
+   * for sessions written before #23. At boot, a value other than today
+   * means this is the first launch of the day, so today's note is forced
+   * active regardless of `activeTab`. */
+  lastOpenedDate?: string | null;
 }

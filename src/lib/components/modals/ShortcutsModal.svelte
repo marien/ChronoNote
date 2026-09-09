@@ -13,7 +13,7 @@
     ["Ctrl+Z / Ctrl+Y / Ctrl+Shift+Z", "Undo / redo (kept per tab)"],
     ["Ctrl+Space", "Cycle open → done → deferred (in editor, current line)"],
     ["F2 / Shift+F2", "Jump to next / previous open action (in editor, wraps)"],
-    ["Ctrl+↑ / Ctrl+↓", "Caret to start of line / start of next line (in editor)"],
+    ["Ctrl+↑ / Ctrl+↓", "Caret to start of line, then previous line / start of next line (in editor)"],
     ["Ctrl+Shift+S", "Convert current line into a section header"],
     ["Ctrl+Shift+A", "Action drawer"],
     ["Ctrl+Shift+H", "Section history"],

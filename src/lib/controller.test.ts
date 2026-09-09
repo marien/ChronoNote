@@ -634,15 +634,56 @@ describe("initApp", () => {
     vi.useRealTimers();
   });
 
-  it("restores the previously active tab, falling back to today if it no longer exists", async () => {
+  it("restores the previously active tab on a same-day reopen, falling back to today if it no longer exists", async () => {
     vi.setSystemTime(new Date(2026, 8, 15));
-    apiMock.readTabSession.mockResolvedValue({ openTabs: ["2026-09-14.txt"], activeTab: "2026-09-14.txt" });
+    apiMock.readTabSession.mockResolvedValue({
+      openTabs: ["2026-09-14.txt"],
+      activeTab: "2026-09-14.txt",
+      lastOpenedDate: "2026-09-15", // already opened today — restore my last tab
+    });
     apiMock.readNote.mockImplementation(async (filename: string) =>
       filename === "2026-09-14.txt" ? "yesterday's note" : null,
     );
     await controller.initApp();
     const active = get(controller.tabs).find((t) => t.id === get(controller.activeTabId));
     expect(active?.filename).toBe("2026-09-14.txt");
+    vi.useRealTimers();
+  });
+
+  it("#23: forces today's tab active on the first open of a new day", async () => {
+    vi.setSystemTime(new Date(2026, 8, 15));
+    apiMock.readTabSession.mockResolvedValue({
+      openTabs: ["2026-09-14.txt"],
+      activeTab: "2026-09-14.txt",
+      lastOpenedDate: "2026-09-14", // last opened yesterday
+    });
+    apiMock.readNote.mockImplementation(async (filename: string) =>
+      filename === "2026-09-14.txt" ? "yesterday's note" : "",
+    );
+    await controller.initApp();
+    const active = get(controller.tabs).find((t) => t.id === get(controller.activeTabId));
+    expect(active?.filename).toBe("2026-09-15.txt");
+    // yesterday's tab is still restored, just not active
+    expect(get(controller.tabs).some((t) => t.filename === "2026-09-14.txt")).toBe(true);
+    vi.useRealTimers();
+  });
+
+  it("#23: forces today's tab active on the very first launch after install", async () => {
+    vi.setSystemTime(new Date(2026, 8, 15));
+    apiMock.readTabSession.mockResolvedValue(null);
+    await controller.initApp();
+    const active = get(controller.tabs).find((t) => t.id === get(controller.activeTabId));
+    expect(active?.filename).toBe("2026-09-15.txt");
+    vi.useRealTimers();
+  });
+
+  it("#23: stamps the session with today's date on boot", async () => {
+    vi.setSystemTime(new Date(2026, 8, 15));
+    apiMock.readTabSession.mockResolvedValue(null);
+    await controller.initApp();
+    await vi.waitFor(() =>
+      expect(apiMock.writeTabSession).toHaveBeenCalledWith(expect.anything(), expect.anything(), "2026-09-15"),
+    );
     vi.useRealTimers();
   });
 

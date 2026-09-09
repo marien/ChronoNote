@@ -264,7 +264,16 @@ async function restoreOrBootstrapTabs() {
     restored.push(todayTab);
 
     tabs.set(restored);
-    const activeMatch = session?.activeTab ? restored.find((t) => t.filename === session.activeTab) : undefined;
+    // #23: on the first launch of a new day (and the very first launch
+    // after install, where `session` is null), open with today's note
+    // active regardless of which tab was last active — the point of a
+    // daily-notes app is to land you on today when the day turns over.
+    // Later launches the same day restore the last-active tab as before.
+    const isFirstOpenToday = (session?.lastOpenedDate ?? null) !== todayISO();
+    const activeMatch =
+      !isFirstOpenToday && session?.activeTab
+        ? restored.find((t) => t.filename === session.activeTab)
+        : undefined;
     activeTabId.set((activeMatch ?? todayTab).id);
   } finally {
     restoringTabs = false;
@@ -292,10 +301,15 @@ function persistTabSession() {
   const activeTab = list.find((t) => t.id === activeId);
   const activeFilename = activeTab && !activeTab.isScratchpad ? activeTab.filename : null;
 
-  const key = JSON.stringify({ openTabs, activeFilename });
+  // #23: stamp the session with today's date so the next boot can tell
+  // whether it's the first launch of a new day. Part of the dedup key so
+  // the day rolling over always forces a fresh write, even if the open
+  // tabs and active tab are unchanged from yesterday.
+  const today = todayISO();
+  const key = JSON.stringify({ openTabs, activeFilename, today });
   if (key === lastPersistedSessionKey) return;
   lastPersistedSessionKey = key;
-  api.writeTabSession(openTabs, activeFilename).catch(() => {
+  api.writeTabSession(openTabs, activeFilename, today).catch(() => {
     // Best-effort bookkeeping, not user note content — fail silently.
   });
 }

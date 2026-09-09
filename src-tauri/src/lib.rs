@@ -70,8 +70,12 @@ fn write_tab_session(
     app: AppHandle,
     open_tabs: Vec<String>,
     active_tab: Option<String>,
+    last_opened_date: Option<String>,
 ) -> Result<(), String> {
-    storage::write_tab_session(&app, &storage::TabSession { open_tabs, active_tab })
+    storage::write_tab_session(
+        &app,
+        &storage::TabSession { open_tabs, active_tab, last_opened_date },
+    )
 }
 
 /// Window starts hidden (see `tauri.conf.json`) so it can be shown only

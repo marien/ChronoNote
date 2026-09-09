@@ -295,6 +295,7 @@ export class MockBackend {
         this.dir().session = {
           openTabs: (args.openTabs as string[]) ?? [],
           activeTab: (args.activeTab as string | null) ?? null,
+          lastOpenedDate: (args.lastOpenedDate as string | null) ?? null,
         };
         return null;
       }

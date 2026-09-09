@@ -27,6 +27,21 @@ export async function seedApp(page: Page, opts: SeedApp = {}): Promise<void> {
   const seed: MockSeed =
     typeof opts.seed === "string" ? scenario(opts.seed) : (opts.seed ?? scenario("empty"));
 
+  // #23: session restore forces today's tab active on the *first* launch of
+  // a day (`lastOpenedDate` older than today, or absent). Specs that seed a
+  // session expect the ordinary "later launch" behaviour — their saved
+  // active tab restored — so stamp today's date on any seeded session that
+  // doesn't set one. A spec exercising the first-open-of-day path passes an
+  // explicit older `lastOpenedDate` (or seeds no session at all).
+  const stampToday = (s: MockSeed["session"]) =>
+    s && s.lastOpenedDate == null ? { ...s, lastOpenedDate: REFERENCE_TODAY } : s;
+  seed.session = stampToday(seed.session);
+  if (seed.sessions) {
+    seed.sessions = Object.fromEntries(
+      Object.entries(seed.sessions).map(([path, s]) => [path, stampToday(s)!]),
+    );
+  }
+
   await page.clock.setFixedTime(opts.now ?? REFERENCE_INSTANT);
   await page.addInitScript((s) => {
     (window as unknown as { __CHRONO_SEED__: unknown }).__CHRONO_SEED__ = s;
