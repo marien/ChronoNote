@@ -6,7 +6,7 @@ kept for the rationale behind each one — not just *what* changed but
 was still being gathered and confirmed before implementation; renamed once
 everything below was applied, since nothing here is "pending" anymore.
 
-**Status: all sections through §97 implemented, released, and on `main`**, each
+**Status: all sections through §98 implemented, released, and on `main`**, each
 verified before merge (`svelte-check`, the Vitest suite, `cargo test`,
 and — from §77 on — the Playwright E2E suite, all green in CI). See each
 section for what it covers and why. §27–31 were small fixes logged
@@ -16,7 +16,7 @@ here; everything from §32 on was written directly.
 Which sections shipped in which release: §1–55 → v0.2.0, §56–59 → v0.2.1,
 §60–74 → v0.3.0, §75–81 → v0.4.0, §82–83 → v0.4.1, §84–85 → v0.4.2,
 §86–87 → v0.4.3, §88–89 → v0.4.4, §90–91 → v0.4.5, §92 → v0.4.6,
-§refactor + §93–96 → v0.5.0, §97 → v0.5.1.
+§refactor + §93–96 → v0.5.0, §97 → v0.5.1, §98 → v0.5.2.
 
 ---
 
@@ -3642,3 +3642,45 @@ assertions — §72/§73), and tauri-driver native E2E (real value, but it
 needs a `windows-latest` CI job + flaky `msedgedriver`; the manual
 per-release smoke tests cover the same ground for now). Rust→TS type
 codegen (`ts-rs`) and compile-time mock parity are queued as follow-ups.
+
+---
+
+## 98. Rust→TS type codegen + compile-time mock parity (test-coverage review, follow-ups)
+
+**Status: implemented.** The two items §97 explicitly queued. Both close
+the same gap: the frontend's model of the Rust IPC surface was
+hand-maintained in `src/lib/types.ts` and `src/lib/testing/mockBackend.ts`,
+and nothing failed if it drifted from `src-tauri/`.
+
+**`ts-rs` — the payload types are generated from Rust.** `AppConfig`,
+`TabSession`, `FileMetadata`, `NoteWithMetadata` and the new `ColorMode`
+enum carry `#[derive(TS)]`. A module-level `#[cfg(test)]`
+`generate_typescript_bindings` in `storage.rs` writes
+`src/lib/generated/tauri-types.ts` (deps-first so intra-file refs
+resolve; `u64`/`i64` → `number`, not `bigint`, since our sizes and
+mtimes are well inside a JS safe integer; ts-rs's inline `/* … */` doc
+blocks are stripped for a one-line-per-type file). `types.ts` now
+re-exports those and keeps only the frontend-only shapes (`NoteTab`,
+`ActionSnapshotItem`, …). A new step in the `rust` CI job runs
+`git diff --exit-code src/lib/generated/` after `cargo test` — a stale
+checked-in file fails the build. `color_mode` also went from a bare
+`String` on the Rust side (`"color"`/`"grayscale"` by convention) to a
+real `#[serde(rename_all = "lowercase")]` enum; `set_color_mode` takes
+`storage::ColorMode` now, so an unknown mode is rejected at the IPC
+boundary instead of silently falling through to grayscale.
+
+`ts-rs` is a dev/compile-time dependency only — the derive macro runs
+during `cargo test`; nothing it ships is linked into the release binary.
+
+**Compile-time mock parity.** New `src/lib/tauriCommands.ts` declares a
+`TauriCommands` interface — one entry per `#[tauri::command]` in
+`lib.rs`, mapping the command name to its `{ args, returns }` shape
+(payloads sourced from the generated types). Both sides are now checked
+against it:
+
+- `tauriApi.ts`'s IPC wrapper is a generic `invoke<K extends TauriCommand>(cmd: K, args: CommandArgs<K>)` — a command name typo or a wrong arg shape is a `svelte-check` error, not a runtime `invoke` rejection.
+- `mockBackend.ts`'s `dispatch` switch became a typed `CommandHandlers` map (`{ [K in keyof TauriCommands]: (args) => returns | Promise<returns> }`). A command that exists in Rust but has no mock handler — or a handler whose args/return don't match — fails `svelte-check`. Plugin calls (`plugin:*`, not real commands) stay in a separate loose switch.
+
+No behaviour change for users. `svelte-check` (241 files), Vitest (195),
+Playwright (95), and `cargo test` (42, +1 for the codegen test) all
+green.

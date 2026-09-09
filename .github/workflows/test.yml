@@ -87,3 +87,14 @@ jobs:
       - name: cargo test
         working-directory: src-tauri
         run: cargo test
+      # `generate_typescript_bindings` (in storage.rs) rewrites
+      # `src/lib/generated/tauri-types.ts` from the `#[derive(TS)]` structs.
+      # If the checked-in file doesn't match what the Rust types now
+      # produce, the frontend is compiling against a stale contract — fail.
+      - name: generated TS bindings are up to date
+        shell: bash
+        run: |
+          if ! git diff --exit-code -- src/lib/generated/; then
+            echo "::error::src/lib/generated/ is stale — run 'cd src-tauri && cargo test' and commit the result"
+            exit 1
+          fi

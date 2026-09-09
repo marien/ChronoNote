@@ -3,17 +3,31 @@ use std::fs;
 use std::io::Write;
 use std::path::{Component, Path, PathBuf};
 use tauri::{AppHandle, Manager};
+use ts_rs::TS;
+
+/// Editor glyph colouring — the accent-hued set (§1's "colour" mode) or
+/// the weight/opacity-only greyscale set. Stored in `config.json`;
+/// deserialization now rejects anything else (an invalid value trips the
+/// §97 corrupt-config recovery instead of silently passing through, as it
+/// did while this was a bare `String`).
+#[derive(Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Debug, Default, TS)]
+#[serde(rename_all = "lowercase")]
+pub enum ColorMode {
+    Color,
+    #[default]
+    Grayscale,
+}
 
 /// Persisted app configuration. Lives outside the notes folder, in the
 /// OS-appropriate app config directory (e.g. %APPDATA%\com.chrononote.app on
 /// Windows, ~/.config/com.chrononote.app on Linux, ~/Library/Application
 /// Support/com.chrononote.app on macOS) as `config.json`.
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, TS)]
 #[serde(rename_all = "camelCase")]
 pub struct AppConfig {
     pub notes_dir: String,
-    #[serde(default = "default_color_mode")]
-    pub color_mode: String,
+    #[serde(default)]
+    pub color_mode: ColorMode,
     /// Soft word-wrap in the editor (§80). Off by default — the app's
     /// tabular-monospace-grid tenet assumes no wrapping; this is an
     /// opt-in for prose-heavy notes. `#[serde(default)]` gives `false`
@@ -26,10 +40,6 @@ pub struct AppConfig {
     /// project's own stress testing did) never adds spurious entries.
     #[serde(default)]
     pub recent_notes_dirs: Vec<String>,
-}
-
-fn default_color_mode() -> String {
-    "grayscale".to_string()
 }
 
 const MAX_RECENT_NOTES_DIRS: usize = 5;
@@ -236,7 +246,7 @@ fn load_config_at(path: &Path, default_notes_dir: &Path) -> Result<AppConfig, St
     }
     let cfg = AppConfig {
         notes_dir: default_notes_dir.to_string_lossy().to_string(),
-        color_mode: default_color_mode(),
+        color_mode: ColorMode::default(),
         word_wrap: false,
         recent_notes_dirs: Vec::new(),
     };
@@ -321,7 +331,7 @@ pub const CONFLICT_ERROR_PREFIX: &str = "conflict: note changed on disk";
 /// it: the SHA-256 of the current bytes (the authority — mtime is
 /// unreliable across cloud-sync clients, which is the main case this
 /// guards against), plus cheap corroborating signals.
-#[derive(Serialize, Clone, PartialEq, Debug)]
+#[derive(Serialize, Clone, PartialEq, Debug, TS)]
 #[serde(rename_all = "camelCase")]
 pub struct FileMetadata {
     pub exists: bool,
@@ -332,7 +342,7 @@ pub struct FileMetadata {
     pub modified_ms: Option<i64>,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, TS)]
 #[serde(rename_all = "camelCase")]
 pub struct NoteWithMetadata {
     pub content: Option<String>,
@@ -459,7 +469,7 @@ fn read_all_notes_at(root: &Path) -> Result<Vec<(String, String)>, String> {
 /// this file is never picked up as a note.
 const SESSION_FILENAME: &str = ".chrononote-session.json";
 
-#[derive(Serialize, Deserialize, Clone, Default)]
+#[derive(Serialize, Deserialize, Clone, Default, TS)]
 #[serde(rename_all = "camelCase")]
 pub struct TabSession {
     #[serde(default)]
@@ -471,6 +481,7 @@ pub struct TabSession {
     /// folder never opened. Used at boot to detect the first launch of a
     /// new day and force today's note active regardless of `active_tab`.
     #[serde(default)]
+    #[ts(optional = nullable)]
     pub last_opened_date: Option<String>,
 }
 
@@ -556,6 +567,86 @@ pub fn write_tab_session(app: &AppHandle, session: &TabSession) -> Result<(), St
     write_tab_session_at(&notes_root(app)?, session)
 }
 
+// --- TS binding generation (§98) ---------------------------------------
+//
+// The Rust payload structs are the single source of truth for their
+// TypeScript shapes. This test (re)writes `src/lib/generated/
+// tauri-types.ts` from the `#[derive(TS)]` types; CI fails if the checked-
+// in file is stale (`git diff --exit-code`). Kept out of the `tests`
+// module below so it runs even when that module is filtered.
+
+#[cfg(test)]
+#[test]
+fn generate_typescript_bindings() {
+    // `u64`/`i64` -> `number` (not `bigint`): our sizes are KB and mtimes
+    // ~1.8e12 ms, both well inside a JS safe integer, and the frontend +
+    // mock treat these as plain numbers.
+    let cfg = ts_rs::Config::default().with_large_int("number");
+    // Emitted deps-first so intra-file references resolve.
+    let decls = [
+        ColorMode::decl(&cfg),
+        FileMetadata::decl(&cfg),
+        AppConfig::decl(&cfg),
+        TabSession::decl(&cfg),
+        NoteWithMetadata::decl(&cfg),
+    ];
+    // ts-rs inlines each Rust doc comment as a `/* … */` block mid-decl,
+    // which reads badly on one line. Strip those and collapse whitespace
+    // so every type is a single tidy line — the `// GENERATED …` header
+    // and `storage.rs` already point a reader at the source of truth.
+    let body = decls
+        .iter()
+        .map(|d| format!("export {}\n", tidy_decl(d)))
+        .collect::<Vec<_>>()
+        .join("\n");
+    let contents = format!(
+        "// GENERATED by `cd src-tauri && cargo test` from the `#[derive(TS)]` structs\n\
+         // in `src-tauri/src/storage.rs` (§98). Do not edit by hand — the Rust\n\
+         // definitions are the source of truth, and CI fails if this file is stale.\n\
+         \n{body}"
+    );
+    let out = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("..")
+        .join("src")
+        .join("lib")
+        .join("generated")
+        .join("tauri-types.ts");
+    fs::create_dir_all(out.parent().unwrap()).unwrap();
+    // Only rewrite on a real change so an unrelated test run doesn't churn
+    // the file's mtime.
+    if fs::read_to_string(&out).ok().as_deref() != Some(&contents) {
+        fs::write(&out, &contents).unwrap();
+    }
+}
+
+/// Drop `/* … */` blocks (ts-rs emits doc comments as these) and collapse
+/// every whitespace run — including newlines — to a single space, so a
+/// `TS::decl` string becomes one clean line.
+#[cfg(test)]
+fn tidy_decl(decl: &str) -> String {
+    let mut out = String::with_capacity(decl.len());
+    let mut chars = decl.chars().peekable();
+    while let Some(c) = chars.next() {
+        if c == '/' && chars.peek() == Some(&'*') {
+            chars.next();
+            let mut prev = '\0';
+            for c2 in chars.by_ref() {
+                if prev == '*' && c2 == '/' {
+                    break;
+                }
+                prev = c2;
+            }
+        } else {
+            out.push(c);
+        }
+    }
+    out.split_whitespace()
+        .collect::<Vec<_>>()
+        .join(" ")
+        .replace(", }", " }")
+        .replace("{  ", "{ ")
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -633,7 +724,7 @@ mod tests {
         let default_dir = dir.path().join("Notes");
         let cfg = load_config_at(&path, &default_dir).unwrap();
         assert_eq!(cfg.notes_dir, default_dir.to_string_lossy());
-        assert_eq!(cfg.color_mode, "grayscale");
+        assert_eq!(cfg.color_mode, ColorMode::Grayscale);
         assert!(cfg.recent_notes_dirs.is_empty());
         // The default is also persisted, not just returned in memory.
         assert!(path.exists());
@@ -645,14 +736,14 @@ mod tests {
         let path = dir.path().join("config.json");
         let cfg = AppConfig {
             notes_dir: "/my/notes".to_string(),
-            color_mode: "color".to_string(),
+            color_mode: ColorMode::Color,
             word_wrap: true,
             recent_notes_dirs: vec!["/old1".to_string(), "/old2".to_string()],
         };
         save_config_at(&path, &cfg).unwrap();
         let loaded = load_config_at(&path, &dir.path().join("Notes")).unwrap();
         assert_eq!(loaded.notes_dir, "/my/notes");
-        assert_eq!(loaded.color_mode, "color");
+        assert_eq!(loaded.color_mode, ColorMode::Color);
         assert!(loaded.word_wrap);
         assert_eq!(loaded.recent_notes_dirs, vec!["/old1", "/old2"]);
     }
@@ -666,7 +757,7 @@ mod tests {
         fs::write(&path, r#"{"notesDir": "/hand/edited"}"#).unwrap();
         let loaded = load_config_at(&path, &dir.path().join("Notes")).unwrap();
         assert_eq!(loaded.notes_dir, "/hand/edited");
-        assert_eq!(loaded.color_mode, "grayscale");
+        assert_eq!(loaded.color_mode, ColorMode::Grayscale);
         assert!(!loaded.word_wrap);
         assert!(loaded.recent_notes_dirs.is_empty());
     }

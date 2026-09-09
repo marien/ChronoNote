@@ -1,10 +1,19 @@
-import { invoke } from "@tauri-apps/api/core";
+import { invoke as coreInvoke } from "@tauri-apps/api/core";
 import { getVersion } from "@tauri-apps/api/app";
 import { openUrl } from "@tauri-apps/plugin-opener";
-import type { AppConfig, ColorMode, FileMetadata, TabSession } from "./types";
+import type { AppConfig, ColorMode, FileMetadata, NoteWithMetadata, TabSession } from "./types";
+import type { CommandArgs, CommandReturn, TauriCommand } from "./tauriCommands";
+
+/** Every Rust IPC call goes through this: the command name is constrained
+ * to `TauriCommands`, and the arg shape + resolved type are checked
+ * against it (see `tauriCommands.ts`). A command that exists in Rust but
+ * not the contract — or an arg typo — fails `svelte-check` here. */
+function invoke<K extends TauriCommand>(cmd: K, args: CommandArgs<K>): Promise<CommandReturn<K>> {
+  return coreInvoke(cmd, args);
+}
 
 export function getConfig(): Promise<AppConfig> {
-  return invoke("get_config");
+  return invoke("get_config", {});
 }
 
 export function setNotesDir(path: string): Promise<AppConfig> {
@@ -20,7 +29,7 @@ export function setWordWrap(enabled: boolean): Promise<AppConfig> {
 }
 
 export function listNoteFiles(): Promise<string[]> {
-  return invoke("list_note_files");
+  return invoke("list_note_files", {});
 }
 
 export function readNote(filename: string): Promise<string | null> {
@@ -44,9 +53,7 @@ export function getFileMetadata(filename: string): Promise<FileMetadata> {
   return invoke("get_file_metadata", { filename });
 }
 
-export function readNoteWithMetadata(
-  filename: string,
-): Promise<{ content: string | null; metadata: FileMetadata }> {
+export function readNoteWithMetadata(filename: string): Promise<NoteWithMetadata> {
   return invoke("read_note_with_metadata", { filename });
 }
 
@@ -59,11 +66,11 @@ export function writeConflictCopy(name: string, content: string): Promise<string
 }
 
 export function readAllNotes(): Promise<[string, string][]> {
-  return invoke("read_all_notes");
+  return invoke("read_all_notes", {});
 }
 
 export function readTabSession(): Promise<TabSession | null> {
-  return invoke("read_tab_session");
+  return invoke("read_tab_session", {});
 }
 
 export function writeTabSession(

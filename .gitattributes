@@ -1,0 +1,5 @@
+# The Rust codegen test (storage.rs::generate_typescript_bindings) writes
+# this file with LF line endings. Pin it so the CI staleness gate
+# (`git diff --exit-code src/lib/generated/` on the Windows runner)
+# compares like-for-like regardless of core.autocrlf.
+src/lib/generated/*.ts text eol=lf
