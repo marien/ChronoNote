@@ -23,6 +23,7 @@ import {
   showToast,
   statusCounts,
   statusPos,
+  statusWordCount,
   tabs,
   unsavedScratchpadNames,
   wordWrap,
@@ -53,7 +54,18 @@ function wireStatusBarSync() {
 }
 function syncActiveStatus() {
   const t = latestTabs.find((x) => x.id === get(activeTabId));
-  if (t) statusCounts.set(countActions(t.content));
+  if (t) {
+    statusCounts.set(countActions(t.content));
+    statusWordCount.set(countWords(t.content));
+  }
+}
+
+/** Whitespace-separated runs — matches what most editors call a "word".
+ * Glyph tokens (`# `, `=> `, …) count as words here; not worth special-
+ * casing, and it stays stable as you type. */
+function countWords(text: string): number {
+  const trimmed = text.trim();
+  return trimmed === "" ? 0 : trimmed.split(/\s+/).length;
 }
 
 /** Shows which notes folder (project/scope, see §6.3) is currently active

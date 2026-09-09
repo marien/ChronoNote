@@ -280,6 +280,23 @@ describe("flushAllPendingSaves (§93 exit barrier)", () => {
   });
 });
 
+describe("saveState (§100)", () => {
+  it("goes saving → saved around a successful write, and to error on failure", async () => {
+    controller.tabs.set([tab({ id: "a", filename: "2026-09-03.txt", content: "start" })]);
+    controller.activeTabId.set("a");
+
+    controller.updateActiveTabContent("edited"); // schedules a save
+    expect(get(controller.saveState)).toBe("saving");
+    await controller.flushAllPendingSaves();
+    expect(get(controller.saveState)).toBe("saved");
+
+    apiMock.writeNote.mockRejectedValueOnce(new Error("disk full"));
+    controller.updateActiveTabContent("edited again");
+    await controller.flushAllPendingSaves();
+    expect(get(controller.saveState)).toBe("error");
+  });
+});
+
 describe("checkActiveTabForDrift (§94)", () => {
   const FILE = "2026-09-01.txt";
   async function openTabAt(content: string) {
@@ -820,6 +837,21 @@ describe("initApp", () => {
     // Falls back to today since the previously-active tab couldn't be restored.
     const active = get(controller.tabs).find((t) => t.id === get(controller.activeTabId));
     expect(active?.filename).toBe("2026-09-15.txt");
+    vi.useRealTimers();
+  });
+
+  it("§100: keeps the status word count in sync with the active tab", async () => {
+    vi.setSystemTime(new Date(2026, 8, 15));
+    apiMock.readTabSession.mockResolvedValue(null);
+    apiMock.readNoteWithMetadata.mockResolvedValue(withMeta("one two three"));
+    await controller.initApp();
+    expect(get(controller.statusWordCount)).toBe(3);
+
+    controller.updateActiveTabContent("now there are five whole words");
+    expect(get(controller.statusWordCount)).toBe(6);
+
+    controller.updateActiveTabContent("   ");
+    expect(get(controller.statusWordCount)).toBe(0);
     vi.useRealTimers();
   });
 });

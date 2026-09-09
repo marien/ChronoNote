@@ -3711,3 +3711,33 @@ handler follow from §98's infrastructure. `EditorPane` applies it through a
 CodeMirror `Compartment` (like §80's word-wrap), reconfigured live from the
 `readableLineLength` store — no remount. 1 new Vitest case, 2 new
 `settings.spec.ts` e2e cases (persist + reload; no-op with wrap off).
+
+---
+
+## 100. Three-zone status bar + ambient save state (0.6 UX pass — Phase 1)
+
+**Status: implemented on `feat/ux-0.6`, not yet released.** The status bar
+goes from two loosely-packed groups to a `1fr / auto / 1fr` grid:
+
+- **Left** — `Ln N, Col C · N words · Open N Closed N Fwd N`. Cursor
+  position and the spec's action counts stay; a live **word count** is
+  new (`statusWordCount`, kept in sync by the same `boot.ts` subscription
+  that already tracked the counts). Tabular figures so nothing jitters
+  while typing.
+- **Centre** — an **ambient autosave indicator** (`#stat-save`): a 6px
+  dot + label, `data-state` = `saving` (amber, a real note has unflushed
+  keystrokes or a write is in flight) → `saved` (green, "All changes
+  saved") → `error` (red, "Save failed" — a toast still fires too). A
+  scratchpad shows an honest "In memory only" instead, since it never
+  touches disk. New `saveState` store driven by `persistence.ts`;
+  distinct from the §94 per-tab drift baseline — this is only about
+  *our* writes landing.
+- **Right** — the app version (`v0.6.0`) and a `?` button that opens the
+  shortcuts drawer (was a plain "[Ctrl+/] Shortcuts" text hint).
+
+Toasts are untouched for now — folding the informational ones into the
+centre slot is deferred to the Phase-1 visual pass (it ripples through
+the e2e `toast()` helper). Final colours are placeholders until the
+surface-palette decision (A/B/C) lands. Kept the `#stat-pos` /
+`#stat-open|closed|forwarded` ids so existing e2e selectors still work.
+2 new Vitest cases, 4 new `status-bar.spec.ts` e2e cases.

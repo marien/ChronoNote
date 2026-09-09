@@ -63,6 +63,20 @@ export const statusCounts = writable<{ open: number; closed: number; forwarded: 
   closed: 0,
   forwarded: 0,
 });
+/** Word count of the active tab's content — status-bar left zone (§100).
+ * Kept in sync by `boot.ts`'s active-status subscription, same as
+ * `statusCounts`. */
+export const statusWordCount = writable<number>(0);
+
+/** §100: ambient autosave state for the status-bar centre zone.
+ *   `idle`   nothing written this session / scratchpad
+ *   `saving` a disk write is in flight
+ *   `saved`  the last disk write succeeded
+ *   `error`  the last disk write failed (a toast also fired)
+ * Driven by `persistence.ts`. Distinct from the per-tab drift baseline
+ * (§94) — this is only about *our* writes reaching disk. */
+export type SaveState = "idle" | "saving" | "saved" | "error";
+export const saveState = writable<SaveState>("idle");
 
 export const modal = writable<ModalKind>("none");
 /** Populated once at startup (`initApp`) for the About drawer — read live

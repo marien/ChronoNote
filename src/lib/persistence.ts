@@ -4,7 +4,7 @@
  * and types — no cycle back to `controller.ts`. */
 import { get } from "svelte/store";
 import * as api from "./tauriApi";
-import { allNotesCache, editorApi, activeTabId, markTabClean, showToast, tabs } from "./stores";
+import { allNotesCache, editorApi, activeTabId, markTabClean, saveState, showToast, tabs } from "./stores";
 import type { NoteTab } from "./types";
 
 // --- Debounced autosave on typing, immediate on deliberate actions ---
@@ -21,6 +21,10 @@ const inFlightWrites = new Set<Promise<unknown>>();
  * for the same tab. Scratchpads never touch disk. */
 export function scheduleSave(tab: NoteTab) {
   if (tab.isScratchpad) return;
+  // §100: the moment a real note has unsaved keystrokes it reads as
+  // "saving" (pending), settling to "saved" once the debounced write
+  // below lands.
+  saveState.set("saving");
   clearTimeout(saveTimers[tab.id]);
   saveTimers[tab.id] = setTimeout(() => {
     delete saveTimers[tab.id];
@@ -109,9 +113,13 @@ export function writeNoteAndInvalidateCache(filename: string, content: string): 
   if (!hasOpenTab) diskNotesCacheRaw = null;
   const p = api.writeNote(filename, content);
   inFlightWrites.add(p);
+  saveState.set("saving"); // §100: ambient status-bar indicator
   return p.then(
     (meta) => {
       inFlightWrites.delete(p);
+      // Only settle to "saved" once nothing else is still writing — a
+      // burst of debounced writes shouldn't flicker saving→saved→saving.
+      if (inFlightWrites.size === 0) saveState.set("saved");
       // §94: the disk now matches this content — refresh the tab's clean
       // baseline so a later external edit is detected against what we
       // actually last wrote, not a stale hash.
@@ -120,6 +128,7 @@ export function writeNoteAndInvalidateCache(filename: string, content: string): 
     },
     (err) => {
       inFlightWrites.delete(p);
+      saveState.set("error");
       throw err; // callers still see the failure (their `.catch` toasts it)
     },
   );

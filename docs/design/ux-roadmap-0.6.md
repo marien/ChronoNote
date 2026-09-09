@@ -60,17 +60,14 @@ Each phase = its own PR, CI green, browser-pane walkthrough. All land on
 
 - ☐ **Surface-elevation tokens** (`app.css`) — 4 tiers, hairline borders,
   one overlay surface. *(gated on A/B/C)*
-- ◐ **Three-zone status bar** — `Ln/Col · N words · Open/Closed/Forwarded`
-  | ambient save-state dot + transient messages | `vX.Y.Z` + `?`.
-  Structure + word count + save-state store land now; final styling with
-  the palette.
-- ◐ **Save-state store** (`idle | saving | saved | error`) wired through
-  `persistence.ts`; the bottom-right `#toast` folds into the status
-  centre slot (modal confirmations untouched).
-- ☐ **`readableLineLength`** setting — `AppConfig` field (Rust + ts-rs
-  regen + `set_readable_line_length` command + mock handler +
-  `tauriCommands.ts`), a store, a Settings toggle, and a `max-width`
-  wrapper in `EditorPane` (only bites with word-wrap on).
+- ◐ **Three-zone status bar** (§100) — structure, word count and the
+  save-state store shipped; the toast fold + final palette styling are
+  still to come with the surface work.
+- ◐ **Save-state store** (§100) — `saveState` (`idle | saving | saved |
+  error`) driven by `persistence.ts` and shown in the centre zone.
+  Folding `#toast` into the same slot is still pending.
+- ☑ **`readableLineLength`** setting (§99) — `AppConfig` field + command +
+  store + Settings toggle + `EditorPane` compartment. Gated on word-wrap.
 - ☐ **Focus/selection-restoration audit** — confirm §95 covers modals;
   add outside-click + Esc handling for the new anchored popovers.
 
