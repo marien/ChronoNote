@@ -3945,3 +3945,35 @@ stale async result sets when you keep typing.
 Reuses the `.modal-*` styles — no new chrome. `ShortcutsModal` gains the
 `Ctrl+K` row. 6 new `command-palette.spec.ts` e2e cases. `svelte-check`
 (242), Vitest (204), Playwright (116), `cargo test` (42) green.
+
+---
+
+## 108. Non-modal in-document find bar — Ctrl/Cmd+F (0.6 UX pass — Phase 5)
+
+**Status: implemented on `feat/ux-0.6`, not yet released.** ChronoNote had
+no in-document find at all (`Ctrl+Shift+F` is a *cross-tab results list*).
+Now `Ctrl/Cmd+F` opens a **floating bar docked top-right of the editor** —
+the editor stays fully scrollable and editable underneath, it's not a
+modal.
+
+- New dep `@codemirror/search` — used for `findNext`/`findPrevious`
+  (wrap + scroll-into-view) and `SearchCursor` (counting). Its own panel
+  is never opened.
+- `FindBar.svelte` (rendered in `#editor-container` when the `findOpen`
+  store is set): query input, live **"N of M"** (`findMatch` store),
+  `‹`/`›`, `✕`. `Enter` / `Shift+Enter` = next / prev, `Esc` closes and
+  clears — also from the global handler when focus has moved back to the
+  editor.
+- Match highlighting is a **custom compartment** highlighter in
+  `EditorPane` (`@codemirror/search` only paints matches while its panel
+  is open, which we don't use) — a `ViewPlugin` that marks
+  case-insensitive `SearchCursor` hits across the visible ranges,
+  swapped in as the query changes.
+- The bar belongs to the editor instance: a tab switch (which remounts
+  `EditorPane`) closes it and drops the query.
+- `EditorApi` gained a `find` sub-object (`setQuery`/`next`/`prev`/
+  `clear`); the two fake editor APIs in `controller.test.ts` updated.
+
+`ShortcutsModal` + prod bundle (+31 kB for `@codemirror/search`). 4 new
+`find-bar.spec.ts` e2e cases. `svelte-check` (244), Vitest (204),
+Playwright (120), `cargo test` (42) green.

@@ -79,6 +79,13 @@ export const statusWordCount = writable<number>(0);
 export type SaveState = "idle" | "saving" | "saved" | "error";
 export const saveState = writable<SaveState>("idle");
 
+/** §108: the non-modal in-document find bar (Ctrl+F). `findOpen` toggles
+ * the floating widget docked top-right of the editor; `findMatch` mirrors
+ * "N of M" as the editor reports it. The editor stays fully live while
+ * this is open — it's not a modal. */
+export const findOpen = writable<boolean>(false);
+export const findMatch = writable<{ current: number; total: number }>({ current: 0, total: 0 });
+
 export const modal = writable<ModalKind>("none");
 /** Populated once at startup (`initApp`) for the About drawer — read live
  * from Tauri rather than hardcoded, so it can't drift from whatever
@@ -130,6 +137,13 @@ export interface EditorApi {
   jumpToLine: (lineIdx: number) => void;
   getCursorLineIdx: () => number;
   focus: () => void;
+  /** §108: in-document find, driven by the floating `FindBar`. */
+  find: {
+    setQuery: (q: string) => void;
+    next: () => void;
+    prev: () => void;
+    clear: () => void;
+  };
 }
 
 /** The single live editor's imperative handle, or `null` between mounts.

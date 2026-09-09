@@ -96,11 +96,10 @@ Each phase = its own PR, CI green, browser-pane walkthrough. All land on
   Prefix routing `> ! # @ ?`, fuzzy subsequence match, grouped results,
   keyboard nav. Reuses the modal system. All existing shortcuts stay.
 
-### Phase 5 — Search & section preview
+### Phase 5 — Search & section preview  (◐ find done)
 
-- ☐ Floating non-modal in-document find (`@codemirror/search`): match
-  count, Enter / Shift+Enter, Esc, editor stays live. Docked top-right of
-  `EditorPane`.
+- ☑ §108 — floating in-document find bar, Ctrl/Cmd+F. `@codemirror/search`
+  for nav + counting; custom compartment highlighter; editor stays live.
 - ☐ Side-by-side preview for **Section History** — selected section text +
   where it lands in the active note, before confirming.
 

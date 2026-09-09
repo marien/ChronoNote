@@ -20,6 +20,7 @@
     ["Ctrl+Shift+S", "Convert current line into a section header"],
     ["Ctrl+Shift+A", "Action drawer"],
     ["Ctrl+Shift+H", "Section history"],
+    ["Ctrl+F", "Find in this note (floating bar; Enter / Shift+Enter to step)"],
     ["Ctrl+Shift+F", "Cross-tab search"],
     ["Ctrl+Shift+I", "Import sections"],
     ["Ctrl+,", "Settings"],

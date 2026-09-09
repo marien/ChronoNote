@@ -332,6 +332,74 @@ body {
   overflow: auto;
   position: relative;
 }
+
+/* §108: floating in-document find bar, docked top-right of the editor.
+   Not a modal — the editor stays scrollable and editable underneath. */
+.find-bar {
+  position: absolute;
+  top: 8px;
+  right: 14px;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 4px 4px 8px;
+  background: var(--surface-overlay);
+  border: 1px solid var(--edge-strong);
+  border-radius: 7px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  font-size: 12px;
+}
+.find-input {
+  width: 180px;
+  background: var(--surface-raised);
+  border: 1px solid var(--edge-soft);
+  border-radius: 4px;
+  padding: 4px 7px;
+  font-family: var(--font);
+  font-size: 12px;
+  color: var(--text);
+  outline: none;
+}
+.find-input:focus-visible {
+  border-color: var(--tab-active-border);
+}
+.find-count {
+  min-width: 62px;
+  text-align: right;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+  padding: 0 2px;
+}
+.find-btn {
+  background: transparent;
+  border: none;
+  color: var(--muted);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 13px;
+  width: 22px;
+  height: 22px;
+  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.find-btn:hover {
+  background: var(--surface-raised);
+  color: var(--text);
+}
+
+/* Search-match highlighting from @codemirror/search — its defaults are
+   tuned for a light editor; retheme for ours. */
+.cm-searchMatch {
+  background: var(--highlight);
+  border-radius: 2px;
+}
+.cm-searchMatch-selected {
+  background: var(--selected-bg);
+  color: var(--selected-fg);
+}
 .editor-host {
   height: 100%;
 }

@@ -662,6 +662,7 @@ describe("openMeetingHistory (§70: mid-line consequence-action dedup)", () => {
       jumpToLine: () => {},
       getCursorLineIdx: () => 2,
       focus: () => {},
+      find: { setQuery: () => {}, next: () => {}, prev: () => {}, clear: () => {} },
     });
     apiMock.readAllNotes.mockResolvedValue([
       ["2026-09-01.txt", "Weekly Sync\n====\nTalked to Sam => # follow up with him"],
@@ -683,6 +684,7 @@ describe("openMeetingHistory (§70: mid-line consequence-action dedup)", () => {
       jumpToLine: () => {},
       getCursorLineIdx: () => 0,
       focus: () => {},
+      find: { setQuery: () => {}, next: () => {}, prev: () => {}, clear: () => {} },
     });
     await controller.openMeetingHistory();
     expect(get(controller.modal)).not.toBe("history");
