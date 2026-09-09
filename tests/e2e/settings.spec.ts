@@ -1,5 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
-import { seedApp, editor, modalCard, MODAL_LABELS, activeTabLabel, currentModal, toast, tab } from "./helpers";
+import { seedApp, editor, modalCard, MODAL_LABELS, activeTabLabel, currentModal, toast, tab, tabLabels } from "./helpers";
 
 const settings = (page: Page) => modalCard(page, MODAL_LABELS.settings);
 
@@ -74,7 +74,7 @@ test.describe("settings (Ctrl+,)", () => {
     await expect(toast(page)).toContainText("/personal-notes");
     expect(await page.evaluate(() => window.__CHRONO_MOCK__!.notesDir)).toBe("/personal-notes");
     // The personal dir's own saved session is restored (its files, not work's).
-    const labels = await page.locator("#tab-bar .tab span").allTextContents();
+    const labels = await tabLabels(page);
     expect(labels.join(" ")).toMatch(/2026-09-07/); // today always present
     // work-notes is now in the recent list.
     await page.keyboard.press("Control+Comma");

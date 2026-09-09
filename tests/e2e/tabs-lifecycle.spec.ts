@@ -10,6 +10,7 @@ import {
   modalCard,
   MODAL_LABELS,
   activeTabContent,
+  tabLabels,
 } from "./helpers";
 
 test.describe("tabs — lifecycle & safe close", () => {
@@ -18,7 +19,7 @@ test.describe("tabs — lifecycle & safe close", () => {
 
     await editor(page).click();
     await page.keyboard.press("Control+n");
-    await expect(activeTabLabel(page)).toHaveText("Scratchpad 1 *");
+    await expect(activeTabLabel(page)).toHaveText("Scratchpad 1");
 
     await page.keyboard.press("Control+w");
     await expect(tab(page, "Scratchpad 1")).toHaveCount(0);
@@ -58,8 +59,8 @@ test.describe("tabs — lifecycle & safe close", () => {
   test("Ctrl+Shift+T reopens the last closed tab", async ({ page }) => {
     await seedApp(page, { seed: "busy-week" });
 
-    const labels = await page.locator("#tab-bar .tab span").allTextContents();
-    const victim = labels.find((l) => !l.includes(todayFilename()))!.replace(" *", "");
+    const labels = await tabLabels(page);
+    const victim = labels.find((l) => !l.includes(todayFilename()))!;
     await tab(page, victim).locator(".tab-close").click();
 
     // A dated tab with unresolved `# ` actions asks first — confirm it.

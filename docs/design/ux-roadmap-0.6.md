@@ -67,9 +67,9 @@ Each phase = its own PR, CI green, browser-pane walkthrough. All land on
 
 ### Phase 2 — Tab strip & date navigation
 
-- ☐ **44px top bar**, daily-vs-scratchpad tab archetypes (📅 date /
-  📝 italic scratchpad + amber dot when non-empty), 1.5px group divider,
-  ≥28px hit targets with hover chips. `TopBar.svelte`, `app.css`.
+- ☑ **44px top bar** + daily/scratchpad tab archetypes (§103) — calendar
+  icon / draft icon + italic + amber unsaved dot, 1.5px group divider,
+  ≥30px chip hit targets, pill-topped tabs, hover-reveal close buttons.
 - ☐ **Anchored mini calendar popover** — month grid + open-action
   indicator dots + keep the type-to-jump input on top; replaces the
   centered `DatePickerModal`, keyboard-navigable, anchored under the

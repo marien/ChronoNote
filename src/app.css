@@ -160,12 +160,12 @@ body {
   font-size: 12px;
 }
 
-/* Top Chrome / Tabs */
+/* Top Chrome / Tabs (§103: 44px bar, daily vs scratchpad archetypes) */
 #top-bar {
   display: flex;
-  background: var(--tab-bg);
-  border-bottom: 1px solid var(--border);
-  height: 38px;
+  background: var(--surface-chrome);
+  border-bottom: 1px solid var(--edge-soft);
+  height: 44px;
   align-items: center;
   padding-right: 8px;
 }
@@ -173,6 +173,7 @@ body {
   display: flex;
   flex: 1;
   height: 100%;
+  align-items: center;
   overflow-x: auto;
 }
 #tab-bar::-webkit-scrollbar {
@@ -184,44 +185,83 @@ body {
 
 .tab {
   flex-shrink: 0;
-  padding: 0 12px;
-  height: 100%;
+  padding: 0 10px 0 12px;
+  height: 32px;
+  margin: 0 1px;
+  border-radius: 6px 6px 0 0;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 7px;
   font-size: 12px;
   cursor: pointer;
-  border-right: 1px solid var(--border);
-  background: var(--tab-bg);
+  background: transparent;
   color: var(--muted);
   white-space: nowrap;
 }
+.tab:hover {
+  background: var(--surface-raised);
+  color: var(--text);
+}
+.tab-icon {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  opacity: 0.7;
+}
+.tab.active .tab-icon {
+  opacity: 1;
+  color: var(--tab-active-border);
+}
+.tab.scratch .tab-label {
+  font-style: italic;
+}
+.tab-unsaved-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--state-warn);
+  flex-shrink: 0;
+}
+.tab-group-divider {
+  width: 1.5px;
+  height: 20px;
+  background: var(--edge-strong);
+  flex-shrink: 0;
+  margin: 0 7px;
+}
 .tab-bar-new-btn {
   flex-shrink: 0;
-  height: 100%;
-  border-radius: 0;
+  height: 28px;
+  margin-left: 4px;
 }
 .tab-scroll-btn {
   flex-shrink: 0;
-  height: 100%;
+  height: 28px;
   padding: 0 6px;
-  border-radius: 0;
 }
 .tab.active {
-  background: var(--tab-active);
+  background: var(--surface-canvas);
   color: var(--text);
-  border-top: 2px solid var(--tab-active-border);
+  box-shadow: inset 0 2px 0 var(--tab-active-border);
   font-weight: 600;
 }
 .tab-close {
-  opacity: 0.5;
+  opacity: 0;
   font-size: 11px;
-  padding: 2px 4px;
-  border-radius: 3px;
+  padding: 3px 5px;
+  margin-left: 2px;
+  border-radius: 4px;
+  line-height: 1;
 }
-.tab-close:hover {
-  opacity: 1;
-  background: rgba(128, 128, 128, 0.2);
+.tab:hover .tab-close,
+.tab.active .tab-close,
+.tab-close:focus-visible {
+  opacity: 0.55;
+}
+.tab-close:hover,
+.tab-close:focus-visible {
+  opacity: 1 !important;
+  background: var(--surface-raised);
 }
 
 .icon-btn {
@@ -237,6 +277,13 @@ body {
   align-items: center;
   gap: 4px;
   filter: grayscale(1);
+}
+/* §103: in the 44px top bar, every control is a ≥28px hit target. */
+#top-bar .icon-btn {
+  height: 30px;
+  min-width: 30px;
+  justify-content: center;
+  padding: 0 8px;
 }
 [data-color-mode="color"] .icon-btn,
 [data-color-mode="color"] .modal-input-wrap > span:first-child {

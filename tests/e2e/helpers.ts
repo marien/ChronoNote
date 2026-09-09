@@ -132,12 +132,18 @@ export function todayFilename(): string {
 // --- chrome / tabs --------------------------------------------------
 
 export function tab(page: Page, filename: string): Locator {
-  // The tab label is `filename` (+ " *" for scratchpads); match on the text span.
+  // §103: the tab shows an icon + `.tab-label` (dated files) or an italic
+  // `.tab-label` + unsaved dot (scratchpads); match on the label text.
   return page.locator("#tab-bar .tab", { hasText: filename });
 }
 
 export function activeTabLabel(page: Page): Locator {
-  return page.locator("#tab-bar .tab.active span").first();
+  return page.locator("#tab-bar .tab.active .tab-label");
+}
+
+/** Every open tab's visible label text, in display order. */
+export function tabLabels(page: Page): Promise<string[]> {
+  return page.locator("#tab-bar .tab .tab-label").allTextContents();
 }
 
 /** Transient status messages (§102 — formerly the floating `#toast`) now

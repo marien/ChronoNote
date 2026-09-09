@@ -3802,3 +3802,34 @@ Visual change is deliberately subtle at rest — the depth reads when a
 modal or (coming in Phase 2) a popover opens over the editor. `svelte-check`
 (240 files, −1 for `Toast.svelte`), Vitest (199), Playwright (102),
 `cargo test` (42) green.
+
+---
+
+## 103. 44px top bar + daily / scratchpad tab archetypes (0.6 UX pass — Phase 2)
+
+**Status: implemented on `feat/ux-0.6`, not yet released.** The top bar
+goes to a steady **44px** and tabs become two visibly different kinds:
+
+- **Daily notes** — a small monochrome calendar icon (inline SVG,
+  `currentColor`), the `YYYY-MM-DD` label, normal weight.
+- **Scratchpads** — a draft-page icon, an *italic* label, and a 6px
+  **amber dot** (`--state-warn`) between the label and the close button
+  whenever the buffer has unsaved content (`content.trim() !== ""`). The
+  old ` *` suffix is gone.
+
+A 1.5px vertical **divider** (`--edge-strong`, 20px tall) separates the
+daily-note group from the scratchpad group — rendered in `TopBar.svelte`
+before the first tab whose `isScratchpad` flips true (they're already
+sorted dated-then-scratchpad by `sortedTabsForDisplay`).
+
+Tabs are now pill-topped (`border-radius: 6px 6px 0 0`, `inset` top
+accent on the active one) with no inter-tab borders — hover raises them
+to `--surface-raised`. Close buttons fade in on tab hover / focus / when
+active (the VS Code pattern) and stay ≥24px hit targets; every top-bar
+`.icon-btn` is now a ≥30px chip. Purely presentational — tab behaviour,
+ordering, overflow scrolling and keyboard nav are untouched.
+
+`helpers.ts` gained `tabLabels()` and `activeTabLabel()` now targets
+`.tab-label` (tabs have multiple spans now); 4 specs updated, 1 new
+`tab-archetypes.spec.ts`. Vitest (199), Playwright (103), `cargo test`
+(42), `svelte-check` (240) green.

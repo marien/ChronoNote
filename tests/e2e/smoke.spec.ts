@@ -8,6 +8,7 @@ import {
   todayFilename,
   mockFiles,
   mockNote,
+  tabLabels,
 } from "./helpers";
 
 test.describe("smoke — mock backend + boot", () => {
@@ -27,7 +28,7 @@ test.describe("smoke — mock backend + boot", () => {
   test("boots a generated scenario and restores its session", async ({ page }) => {
     await seedApp(page, { seed: "busy-week" });
 
-    const openTabs = await page.locator("#tab-bar .tab span").allTextContents();
+    const openTabs = await tabLabels(page);
     expect(openTabs.length).toBeGreaterThanOrEqual(4);
     await expect(page.locator("#tab-bar .tab.active")).toHaveText(new RegExp(todayFilename()));
 

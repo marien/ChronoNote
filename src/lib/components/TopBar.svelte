@@ -276,9 +276,13 @@
     >
   {/if}
   <div id="tab-bar" bind:this={tabBarEl}>
-    {#each displayTabs as tab (tab.id)}
+    {#each displayTabs as tab, i (tab.id)}
+      {#if i > 0 && tab.isScratchpad && !displayTabs[i - 1].isScratchpad}
+        <!-- §103: hairline between the daily-note group and the scratchpad group -->
+        <div class="tab-group-divider" aria-hidden="true"></div>
+      {/if}
       <div
-        class="tab {tab.id === $activeTabId ? 'active' : ''}"
+        class="tab {tab.id === $activeTabId ? 'active' : ''} {tab.isScratchpad ? 'scratch' : 'daily'}"
         role="tab"
         tabindex="0"
         data-tab-id={tab.id}
@@ -286,7 +290,23 @@
         on:click={() => controller.switchTab(tab.id)}
         on:keydown={(e) => e.key === "Enter" && controller.switchTab(tab.id)}
       >
-        <span>{tab.filename}{tab.isScratchpad ? " *" : ""}</span>
+        <span class="tab-icon" aria-hidden="true">
+          {#if tab.isScratchpad}
+            <svg viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.4">
+              <path d="M4 2.5h5l3 3v8H4z" stroke-linejoin="round" />
+              <path d="M6 8h4M6 10.5h3" stroke-linecap="round" />
+            </svg>
+          {:else}
+            <svg viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.4">
+              <rect x="2.5" y="3.5" width="11" height="10" rx="1.5" />
+              <path d="M2.5 6.5h11M5.5 2v3M10.5 2v3" stroke-linecap="round" />
+            </svg>
+          {/if}
+        </span>
+        <span class="tab-label">{tab.filename}</span>
+        {#if tab.isScratchpad && tab.content.trim() !== ""}
+          <span class="tab-unsaved-dot" title="Unsaved — this scratchpad is only in memory"></span>
+        {/if}
         <span
           class="tab-close"
           role="button"
