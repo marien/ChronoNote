@@ -48,22 +48,25 @@ Branch `harden/atomic-storage` off `main`. No frontend changes.
   in the notes dir. Not data loss (target untouched); `is_valid_note_filename`
   keeps it out of every listing. Acceptable; revisit if it ever bites.
 
-### ☐ Phase 1 — Finish the `controller.ts` refactor (§4) → **v0.5.0**
+### ◐ Phase 1 — Finish the `controller.ts` refactor (§4) → **v0.5.0** — code done, awaiting review
 
-Continues `refactor/foundation` (draft PR #22). Plain-store + facade shape,
-**not** rune stores. Remaining cut: `tabs.ts` (lifecycle/sort/close/reopen/
-safety), `boot.ts` (initApp + session restore + chrome watcher), `actions.ts`
-(drawer + history + snapshots), `search.ts`, `sectionImport.ts`,
-`directory.ts`, `paste.ts` (copy/paste defer + §86 undo link). `tabs.ts` +
-`boot.ts` are the entangled ones (module-level subscriptions, `restoringTabs`
-guard, `latestTabs` cache).
+`refactor/foundation` / draft PR #22. Plain-store + facade shape, **not**
+rune stores. `controller.ts` is now a 34-line `export *` facade over twelve
+modules: `stores`, `persistence`, `tabSort`, `paste`, `tabs`, `actions`,
+`history`, `search`, `sectionImportActions`, `menu`, `boot`, `directory`
+(+ `virtualList` from the earlier chunk). Clean DAG, no cycles. Every
+commit green on check + Vitest (180) + Playwright (83) + build.
 
-Fold in from review §4 while here:
-- per-tab `cleanHash` + monotonic `rev` on the tab model (cheap now, and
-  Phase 4 needs it) — replaces string-equality dirty checks.
-- modal focus-restore hook in whatever owns `ModalKind` (pairs with Phase 5).
-- a sweep for un-`.catch`-ed promise paths (review's "zero unhandled
-  rejections" gate) — e.g. the tab-session subscription writes.
+Notes:
+- The status-bar + window-title subscriptions moved from module-load side
+  effects into `initApp` (`boot.ts`).
+- `closeAllModals` moved to `stores.ts` (next to the `modal` store).
+- `restoreOrBootstrapTabs` is now exported (from `boot.ts`) so `directory.ts`
+  can reuse it for the workspace re-load.
+
+Deferred to when Phase 4 needs them (no behaviour need yet): per-tab
+`cleanHash` + `rev`, the modal focus-restore hook, the un-`.catch`-ed
+promise sweep.
 
 Also for v0.5.0: ship app icon concept A (`docs/design/icon-A-master.svg`
 via `npx tauri icon`).
