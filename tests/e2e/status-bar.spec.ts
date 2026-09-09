@@ -1,7 +1,7 @@
 import { test, expect } from "@playwright/test";
 import { seedApp, editor, setEditorText, todayFilename, modalCard, MODAL_LABELS } from "./helpers";
 
-test.describe("status bar — three zones (§100)", () => {
+test.describe("status bar — three zones (§100/§110)", () => {
   test("left zone tracks cursor, word count and action counts", async ({ page }) => {
     await seedApp(page, { seed: { notes: { [todayFilename()]: "# open one\nv done two\nplain words here" } } });
 
@@ -15,33 +15,35 @@ test.describe("status bar — three zones (§100)", () => {
     await expect(page.locator("#stat-words")).toHaveText("1 word");
   });
 
-  test("centre zone shows ambient save state for a real note", async ({ page }) => {
-    await seedApp(page, { seed: { notes: { [todayFilename()]: "start" } } });
-    const save = page.locator("#stat-save");
+  test("centre zone is empty until a transient message appears", async ({ page }) => {
+    await seedApp(page, { seed: { notes: { [todayFilename()]: "no actions here" } } });
+    await expect(page.locator("#stat-message")).toHaveCount(0);
 
+    await editor(page).click();
+    await page.keyboard.press("F2"); // "No open actions in this note"
+    await expect(page.locator("#stat-message")).toContainText(/no open actions/i);
+  });
+
+  test("a failed save surfaces as a red dot on the active tab, not a status readout", async ({ page }) => {
+    await seedApp(page, { seed: { notes: { [todayFilename()]: "start" } } });
+    await page.evaluate(() => {
+      window.__CHRONO_MOCK__!.throwOnCommands = new Set(["write_note"]);
+    });
     await editor(page).click();
     await page.keyboard.type("x");
-    await expect(save).toHaveAttribute("data-state", "saving");
-    await expect(save).toContainText(/saving/i);
-
-    // settles after the 400ms autosave debounce + the write resolving
-    await expect(save).toHaveAttribute("data-state", "saved", { timeout: 3000 });
-    await expect(save).toContainText(/all changes saved/i);
+    // debounced write (400ms) then it rejects
+    const dot = page.locator("#tab-bar .tab.active .tab-status-dot.err");
+    await expect(dot).toBeVisible({ timeout: 3000 });
+    // no persistent text readout in the centre zone
+    await expect(page.locator("#stat-save")).toHaveCount(0);
   });
 
-  test("centre zone is honest that a scratchpad never hits disk", async ({ page }) => {
-    await seedApp(page, { seed: "empty" });
-    await editor(page).click();
-    await page.keyboard.press("Control+n"); // new scratchpad
-    await expect(page.locator("#stat-save")).toContainText(/in memory only/i);
-    await expect(page.locator("#stat-save")).toHaveAttribute("data-state", "mem");
-  });
-
-  test("right zone: version and the ? shortcut trigger", async ({ page }) => {
+  test("right zone: version and the ? shortcut trigger open the combined drawer", async ({ page }) => {
     await seedApp(page, { seed: { notes: {}, appVersion: "9.9.9" } });
     await expect(page.locator("#stat-version")).toHaveText("v9.9.9");
 
     await page.locator(".status-help").click();
     await expect(modalCard(page, MODAL_LABELS.shortcuts)).toBeVisible();
+    await expect(modalCard(page, MODAL_LABELS.shortcuts)).toContainText("Symbols → glyphs");
   });
 });

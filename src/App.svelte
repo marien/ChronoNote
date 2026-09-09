@@ -15,7 +15,6 @@
   import SectionImportModal from "./lib/components/modals/SectionImportModal.svelte";
   import SettingsModal from "./lib/components/modals/SettingsModal.svelte";
   import ShortcutsModal from "./lib/components/modals/ShortcutsModal.svelte";
-  import GlyphLegendModal from "./lib/components/modals/GlyphLegendModal.svelte";
   import AboutModal from "./lib/components/modals/AboutModal.svelte";
   import UnsavedScratchpadsModal from "./lib/components/modals/UnsavedScratchpadsModal.svelte";
   import ConflictModal from "./lib/components/modals/ConflictModal.svelte";
@@ -58,15 +57,23 @@
         else controller.closeAllModals();
         return;
       }
+      // Ctrl+K / Ctrl+F are top-level: ignore them while any modal is up
+      // (the find bar would just mount hidden behind the overlay).
       if ((e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey && e.code === "KeyK") {
+        if (get(modal) !== "none") return;
         e.preventDefault();
         controller.openCommandPalette();
       } else if ((e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey && e.code === "KeyF") {
-        // §108: also catch Ctrl/Cmd+F when focus is in the find input or
-        // elsewhere (the editor's own keymap covers the editor-focused case).
+        if (get(modal) !== "none") return;
+        // Catches Ctrl/Cmd+F when focus is in the find input or elsewhere
+        // outside the editor (the editor's own keymap covers the rest).
         e.preventDefault();
         findOpen.set(true);
-        document.querySelector<HTMLInputElement>(".find-bar .find-input")?.select();
+        // The bar isn't mounted in this tick — re-select on the next frame
+        // so a second Ctrl+F re-focuses the query.
+        requestAnimationFrame(() =>
+          document.querySelector<HTMLInputElement>(".find-bar .find-input")?.select(),
+        );
       } else if (e.ctrlKey && !e.shiftKey && (e.code === "KeyN" || e.code === "KeyT")) {
         e.preventDefault();
         controller.createScratchpad();
@@ -113,6 +120,14 @@
   });
 
   $: activeTab = $tabs.find((t) => t.id === $activeTabId);
+
+  // §108: a modal opening over an open find bar leaves the bar stranded
+  // behind the overlay — close it. (`find.clear()` is synchronous, so
+  // this can't retrigger itself the way an awaited `$:` block can.)
+  $: if ($modal !== "none" && $findOpen) {
+    editorApi?.find.clear();
+    findOpen.set(false);
+  }
 </script>
 
 {#if ready}
@@ -145,8 +160,6 @@
     <SettingsModal />
   {:else if $modal === "shortcuts"}
     <ShortcutsModal />
-  {:else if $modal === "glyphLegend"}
-    <GlyphLegendModal />
   {:else if $modal === "about"}
     <AboutModal />
   {:else if $modal === "unsavedScratchpads"}

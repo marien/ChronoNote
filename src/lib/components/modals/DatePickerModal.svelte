@@ -3,7 +3,16 @@
   import * as controller from "../../controller";
   import { allNotesCache } from "../../controller";
   import { focusTrap } from "../../actions/focusTrap";
-  import { addMonths, formatISO, monthGrid, MONTH_NAMES, parseDateQuery, todayISO } from "../../date";
+  import {
+    addDaysISO,
+    addMonths,
+    formatISO,
+    monthGrid,
+    MONTH_NAMES,
+    parseDateQuery,
+    parseISODateLocal,
+    todayISO,
+  } from "../../date";
   import { countActions } from "../../tokens";
 
   const WEEKDAYS = ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"];
@@ -11,6 +20,7 @@
 
   let popEl: HTMLDivElement;
   let gridEl: HTMLDivElement;
+  let inputEl: HTMLInputElement;
   let jumpQuery = "";
   let anchorStyle = "visibility:hidden"; // until measured against the trigger
 
@@ -22,22 +32,49 @@
 
   $: cells = monthGrid(year, month);
 
-  /** `YYYY-MM-DD` → has ≥1 open action. Rebuilt whenever the notes cache
-   * changes (it's refreshed once on mount). */
-  $: openByIso = (() => {
-    const set = new Set<string>();
+  // Follow the query live: as you type a date (or a `YYYY-MM` prefix) the
+  // grid jumps to it and marks the target — Enter then commits it.
+  $: followQuery(jumpQuery);
+  function followQuery(q: string) {
+    const parsed = parseDateQuery(q);
+    if (parsed) {
+      focusedIso = parsed;
+      showMonthOf(parsed);
+      return;
+    }
+    const ym = q.trim().match(/^(\d{4})-(\d{1,2})$/);
+    if (ym) {
+      year = +ym[1];
+      month = Math.min(11, Math.max(0, +ym[2] - 1));
+      focusedIso = formatISO(new Date(year, month, 1));
+    } else if (/^\d{4}$/.test(q.trim())) {
+      year = +q.trim();
+      focusedIso = formatISO(new Date(year, month, 1));
+    }
+  }
+
+  /** One pass over the notes cache: `noteByIso` = every day that has a
+   * dated note at all, `openByIso` = the subset with ≥1 open action. The
+   * grid shows the first as a brighter day number and the second as a
+   * dot, so "I wrote something that day" and "I still have work there"
+   * read differently. */
+  $: ({ noteByIso, openByIso } = (() => {
+    const noteByIso = new Set<string>();
+    const openByIso = new Set<string>();
     for (const [fn, content] of Object.entries($allNotesCache)) {
       const d = fn.replace(/\.txt$/, "");
-      if (/^\d{4}-\d{2}-\d{2}$/.test(d) && countActions(content).open > 0) set.add(d);
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(d)) continue;
+      noteByIso.add(d);
+      if (countActions(content).open > 0) openByIso.add(d);
     }
-    return set;
-  })();
+    return { noteByIso, openByIso };
+  })());
 
   onMount(async () => {
     positionUnderTrigger();
-    await controller.refreshAllNotesCache();
     await tick();
-    focusFocusedDay();
+    inputEl?.focus(); // type-to-jump is the default, same as the other drawers
+    await controller.refreshAllNotesCache();
   });
 
   function positionUnderTrigger() {
@@ -58,20 +95,29 @@
     gridEl?.querySelector<HTMLButtonElement>(`[data-iso="${focusedIso}"]`)?.focus();
   }
 
+  function showMonthOf(iso: string) {
+    const d = parseISODateLocal(iso);
+    year = d.getFullYear();
+    month = d.getMonth();
+  }
+
+  function moveFocus(iso: string) {
+    focusedIso = iso;
+    showMonthOf(iso);
+    focusFocusedDay();
+  }
+
   function shiftMonth(delta: number) {
     ({ year, month } = addMonths(year, month, delta));
     // Keep the focused day inside the visible month.
-    const clamped = new Date(year, month, Math.min(new Date(focusedIso).getDate(), new Date(year, month + 1, 0).getDate()));
-    focusedIso = formatISO(clamped);
+    const dom = parseISODateLocal(focusedIso).getDate();
+    const lastDom = new Date(year, month + 1, 0).getDate();
+    focusedIso = formatISO(new Date(year, month, Math.min(dom, lastDom)));
     focusFocusedDay();
   }
 
   function goToday() {
-    const d = new Date();
-    year = d.getFullYear();
-    month = d.getMonth();
-    focusedIso = today;
-    focusFocusedDay();
+    moveFocus(today);
   }
 
   function commit(iso: string) {
@@ -81,39 +127,39 @@
   function onJumpKeydown(e: KeyboardEvent) {
     if (e.key === "Enter") {
       e.preventDefault();
-      const parsed = parseDateQuery(jumpQuery);
-      if (parsed) commit(parsed);
+      // `followQuery` has already moved `focusedIso` to the best reading
+      // of what's typed (a full date, or the 1st of a typed month); Enter
+      // just commits wherever that landed.
+      commit(parseDateQuery(jumpQuery) ?? focusedIso);
+    } else if (e.key === "ArrowDown" || (e.key === "Tab" && !e.shiftKey)) {
+      e.preventDefault();
+      focusFocusedDay();
     }
   }
 
   function onGridKeydown(e: KeyboardEvent) {
-    const step: Record<string, number> = {
-      ArrowLeft: -1,
-      ArrowRight: 1,
-      ArrowUp: -7,
-      ArrowDown: 7,
-    };
+    const step: Record<string, number> = { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -7, ArrowDown: 7 };
     if (e.key in step) {
       e.preventDefault();
-      const d = new Date(focusedIso);
-      d.setDate(d.getDate() + step[e.key]);
-      focusedIso = formatISO(d);
-      if (d.getFullYear() !== year || d.getMonth() !== month) {
-        year = d.getFullYear();
-        month = d.getMonth();
-      }
-      focusFocusedDay();
+      moveFocus(addDaysISO(focusedIso, step[e.key]));
     } else if (e.key === "PageUp") {
       e.preventDefault();
       shiftMonth(-1);
     } else if (e.key === "PageDown") {
       e.preventDefault();
       shiftMonth(1);
+    } else if (e.key === "Home") {
+      e.preventDefault();
+      inputEl?.focus();
     }
   }
 
   function onOutsideMousedown(e: MouseEvent) {
-    if (popEl && !popEl.contains(e.target as Node)) controller.closeAllModals();
+    const t = e.target as HTMLElement | null;
+    // Ignore clicks on the 📅 trigger — its own click handler toggles the
+    // popover, and closing here would just let it immediately re-open.
+    if (t?.closest("[data-datepicker-trigger]")) return;
+    if (popEl && !popEl.contains(t)) controller.closeAllModals();
   }
 </script>
 
@@ -129,6 +175,7 @@
 >
   <input
     class="datepicker-jump"
+    bind:this={inputEl}
     placeholder="Jump to date — today, -2, 2026-09-05…"
     bind:value={jumpQuery}
     on:keydown={onJumpKeydown}
@@ -153,10 +200,14 @@
         class="cal-day"
         class:out={!cell.inMonth}
         class:today={cell.iso === today}
+        class:target={cell.iso === focusedIso}
+        class:hasnote={noteByIso.has(cell.iso)}
         class:has={openByIso.has(cell.iso)}
         data-iso={cell.iso}
         tabindex={cell.iso === focusedIso ? 0 : -1}
-        aria-label="{cell.iso}{openByIso.has(cell.iso) ? ', has open actions' : ''}"
+        aria-label={`${cell.iso}${
+          openByIso.has(cell.iso) ? ", has open actions" : noteByIso.has(cell.iso) ? ", has a note" : ""
+        }`}
         aria-current={cell.iso === today ? "date" : undefined}
         on:click={() => commit(cell.iso)}
       >

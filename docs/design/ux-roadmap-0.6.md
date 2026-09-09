@@ -14,8 +14,9 @@ together (Marien's call — matches v0.5.0). Work accumulates on
 `feat/ux-0.6`.
 
 **STATUS 2026-09-10: all five phases feature-complete on `feat/ux-0.6`
-(§99–§109). Awaiting Marien's review, then cut v0.6.0.** Palette pick was
-**B** (§102).
+(§99–§109); §110 = the `/code-review` fixes + Marien's first round of
+visual feedback from the dev build. Palette pick was **B** (§102).
+Awaiting a second look, then cut v0.6.0.**
 
 ---
 

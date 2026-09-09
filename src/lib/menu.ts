@@ -14,8 +14,11 @@ export function openShortcutsHelp() {
   modal.set("shortcuts");
 }
 
+/** Kept as its own entry point (Ctrl+Shift+/, the command palette, the
+ * About drawer's link) but the symbols legend now lives in the same
+ * combined Shortcuts & Symbols drawer. */
 export function openGlyphLegend() {
-  modal.set("glyphLegend");
+  modal.set("shortcuts");
 }
 
 export const PROJECT_URL = "https://github.com/marien/ChronoNote";

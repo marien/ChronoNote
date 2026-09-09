@@ -1,30 +1,6 @@
 <script lang="ts">
-  import {
-    activeTabId,
-    appVersion,
-    saveState,
-    statusCounts,
-    statusPos,
-    statusWordCount,
-    tabs,
-    toastMessage,
-  } from "../controller";
+  import { appVersion, statusCounts, statusPos, statusWordCount, toastMessage } from "../controller";
   import * as controller from "../controller";
-
-  $: activeTab = $tabs.find((t) => t.id === $activeTabId);
-  $: isScratchpad = activeTab?.isScratchpad ?? false;
-
-  // §100: centre-zone save indicator. Scratchpads never touch disk, so
-  // they get their own honest label rather than a stale "saved".
-  $: save = isScratchpad
-    ? { cls: "mem", label: "In memory only" }
-    : $saveState === "saving"
-      ? { cls: "saving", label: "Saving…" }
-      : $saveState === "error"
-        ? { cls: "error", label: "Save failed" }
-        : $saveState === "saved"
-          ? { cls: "saved", label: "All changes saved" }
-          : { cls: "idle", label: "Saved" };
 </script>
 
 <div id="status-bar">
@@ -41,11 +17,6 @@
   <div class="status-zone status-centre">
     {#if $toastMessage}
       <span id="stat-message" role="status">{$toastMessage}</span>
-    {:else}
-      <span id="stat-save" data-state={save.cls}>
-        <span class="save-dot" class:spin={save.cls === "saving"}></span>
-        <span>{save.label}</span>
-      </span>
     {/if}
   </div>
 
@@ -54,7 +25,7 @@
     <button
       type="button"
       class="status-help"
-      title="Keyboard shortcuts (Ctrl+/)"
+      title="Shortcuts & symbols (Ctrl+/)"
       on:click={controller.openShortcutsHelp}
     >
       ?

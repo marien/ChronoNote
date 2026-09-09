@@ -24,7 +24,8 @@ test.describe("command palette (Ctrl+K, §107)", () => {
     await editor(page).click();
     await page.keyboard.press("Control+k");
     await palette(page).locator(".modal-input").fill("2026-09-04");
-    const row = palette(page).locator('.modal-item[role="option"]', { hasText: "2026-09-04.txt" }).first();
+    const row = palette(page).locator('.modal-item[role="option"]', { hasText: "2026-09-04" }).first();
+    await expect(row).toBeVisible();
     await row.click();
     await expect(activeTabLabel(page)).toHaveText(/2026-09-04/);
   });
@@ -65,6 +66,8 @@ test.describe("command palette (Ctrl+K, §107)", () => {
     await editor(page).click();
     await page.keyboard.press("Control+k");
     await palette(page).locator(".modal-input").fill(">colored");
+    // wait for the (debounced) filter to actually narrow before Enter
+    await expect(palette(page).locator('.modal-item[role="option"]')).toHaveCount(1);
     await page.keyboard.press("Enter"); // "Switch to colored glyphs"
     await expect(page.locator("html")).toHaveAttribute("data-color-mode", "color");
 

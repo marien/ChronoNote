@@ -22,10 +22,29 @@ test.describe("tab archetypes (§103)", () => {
     const fontStyle = await scratch.locator(".tab-label").evaluate((el) => getComputedStyle(el).fontStyle);
     expect(fontStyle).toBe("italic");
 
-    // empty scratchpad → no unsaved dot; type something → dot appears
-    await expect(scratch.locator(".tab-unsaved-dot")).toHaveCount(0);
+    // empty scratchpad → no dot; type something → a grey "memory-only" dot appears
+    await expect(scratch.locator(".tab-status-dot")).toHaveCount(0);
     await editor(page).click();
     await page.keyboard.type("a thought");
-    await expect(scratch.locator(".tab-unsaved-dot")).toHaveCount(1);
+    const dot = scratch.locator(".tab-status-dot.mem");
+    await expect(dot).toHaveCount(1);
+  });
+
+  test("a daily tab shows its date without the .txt extension (§110)", async ({ page }) => {
+    await seedApp(page, { seed: { notes: { [todayFilename()]: "hi" } } });
+    await expect(page.locator("#tab-bar .tab.daily .tab-label")).toHaveText(todayFilename().replace(/\.txt$/, ""));
+  });
+
+  test("middle-click closes a tab (§110)", async ({ page }) => {
+    await seedApp(page, { seed: "busy-week" });
+    const before = await page.locator("#tab-bar .tab").count();
+    // middle-click a non-active daily tab (no open-action prompt on those in busy-week's older notes)
+    const victim = page.locator("#tab-bar .tab.daily").first();
+    await victim.click({ button: "middle" });
+    // it either closes outright or (if it had open actions) raises the safety modal
+    const closedOrPrompted =
+      (await page.locator("#tab-bar .tab").count()) < before ||
+      (await page.locator('.modal-card[aria-label="Unresolved actions warning"]').isVisible());
+    expect(closedOrPrompted).toBe(true);
   });
 });

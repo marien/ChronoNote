@@ -1,5 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
-import { seedApp, editor, activeTabContent, modalCard, MODAL_LABELS, toast } from "./helpers";
+import { seedApp, editor, activeTabContent, modalCard, MODAL_LABELS, toast, tab } from "./helpers";
 import type { SeedApp } from "./helpers";
 
 /** §94: external-modification / conflict detection. A note file changing
@@ -104,6 +104,6 @@ test("switching to a tab whose file changed reloads it (activate trigger)", asyn
     },
   });
   await page.evaluate(() => window.__CHRONO_MOCK__!.setNote("2026-09-03.txt", "Older\n=====\nv2 external\n"));
-  await page.locator("#tab-bar .tab", { hasText: "2026-09-03.txt" }).click();
+  await tab(page, "2026-09-03.txt").click();
   await expect.poll(() => activeTabContent(page)).toContain("v2 external");
 });

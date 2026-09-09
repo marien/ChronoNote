@@ -109,12 +109,14 @@
     const cursor = new SearchCursor(doc, lastFindQuery, 0, doc.length, norm);
     const selFrom = view.state.selection.main.from;
     let total = 0;
-    let current = 0;
+    // The match the caret sits on, or the last one before it (so a click
+    // between matches still shows a sensible "k of N", never "– of N").
+    let atOrBefore = 0;
     while (!cursor.next().done) {
       total++;
-      if (cursor.value.from === selFrom) current = total;
+      if (cursor.value.from <= selFrom) atOrBefore = total;
     }
-    findMatch.set({ current, total });
+    findMatch.set({ current: total === 0 ? 0 : Math.max(1, atOrBefore), total });
   }
 
   function cycleLine(v: EditorView): boolean {
@@ -366,6 +368,9 @@
           const pos = u.state.selection.main.head;
           const line = u.state.doc.lineAt(pos);
           controller.setStatusPosition(line.number, pos - line.from + 1);
+          // §108: the find bar is non-modal, so the caret can move (click,
+          // arrows, an edit) while it's open — keep "N of M" in step.
+          if (get(findOpen) && lastFindQuery) recomputeFindMatch();
         }
       }),
       EditorView.domEventHandlers({

@@ -47,10 +47,11 @@
       <div>
         <div class="settings-section-label">Editor</div>
         <div class="settings-toggle-row">
-          <label class="toggle-switch">
+          <label class="toggle-switch" class:disabled={$readableLineLength}>
             <input
               type="checkbox"
-              checked={$wordWrap}
+              checked={$wordWrap || $readableLineLength}
+              disabled={$readableLineLength}
               on:change={(e) => controller.setWordWrap(e.currentTarget.checked)}
             />
             <span class="toggle-switch-track"></span>
@@ -59,7 +60,7 @@
         </div>
         <div class="settings-hint">
           Wrap long lines instead of scrolling horizontally. Off keeps the monospace grid intact for tables and
-          aligned columns.
+          aligned columns.{$readableLineLength ? " (kept on by “Limit line width” below.)" : ""}
         </div>
         <div class="settings-toggle-row" style="margin-top: 12px;">
           <label class="toggle-switch">
@@ -73,7 +74,7 @@
           </label>
         </div>
         <div class="settings-hint">
-          Caps the text column to a comfortable measure and centres it. Only applies while lines are wrapped.
+          Wraps lines and caps the text column to a comfortable measure, centred — a single prose-reading mode.
         </div>
       </div>
       <div>

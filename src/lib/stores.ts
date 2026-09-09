@@ -18,7 +18,6 @@ export type ModalKind =
   | "sectionImport"
   | "settings"
   | "shortcuts"
-  | "glyphLegend"
   | "about"
   | "unsavedScratchpads"
   | "conflict"
@@ -51,11 +50,6 @@ export const chromeExpanded = writable<boolean>(false);
  * not persisted to disk. Defaults to on at launch. */
 export const actionDrawerShowOnlyOpen = writable<boolean>(true);
 
-/** Date picker's "Open Only" toggle (§43) — same in-memory,
- * remembered-for-the-session treatment as `actionDrawerShowOnlyOpen`
- * above, but defaults to *off* at launch (unlike the Action Drawer's),
- * per what was actually asked for each. */
-export const datePickerOpenOnly = writable<boolean>(false);
 
 export const toastMessage = writable<string>("");
 export const statusPos = writable<{ line: number; col: number }>({ line: 1, col: 1 });

@@ -7,7 +7,7 @@
 import { get } from "svelte/store";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import * as api from "./tauriApi";
-import { countActions } from "./tokens";
+import { countActions, countWords } from "./tokens";
 import { todayISO } from "./date";
 import {
   activeTabId,
@@ -28,7 +28,7 @@ import {
   unsavedScratchpadNames,
   wordWrap,
 } from "./stores";
-import { flushAllPendingSaves } from "./persistence";
+import { flushAllPendingSaves, recomputeSaveState } from "./persistence";
 import { checkActiveTabForDrift } from "./drift";
 import type { ColorMode, NoteTab } from "./types";
 
@@ -58,14 +58,9 @@ function syncActiveStatus() {
     statusCounts.set(countActions(t.content));
     statusWordCount.set(countWords(t.content));
   }
-}
-
-/** Whitespace-separated runs — matches what most editors call a "word".
- * Glyph tokens (`# `, `=> `, …) count as words here; not worth special-
- * casing, and it stays stable as you type. */
-function countWords(text: string): number {
-  const trimmed = text.trim();
-  return trimmed === "" ? 0 : trimmed.split(/\s+/).length;
+  // §102: the ambient save indicator describes the active tab, so it
+  // re-derives whenever the active tab or the tab list changes.
+  recomputeSaveState();
 }
 
 /** Shows which notes folder (project/scope, see §6.3) is currently active
@@ -296,8 +291,10 @@ export async function initApp() {
   recentNotesDirs.set(cfg.recentNotesDirs);
   colorMode.set(cfg.colorMode);
   applyColorModeToDom(cfg.colorMode);
-  wordWrap.set(cfg.wordWrap);
+  // §110: "limit line width" implies word-wrap. Reconcile a stale config
+  // (from the version where the two were gated the other way round).
   readableLineLength.set(cfg.readableLineLength);
+  wordWrap.set(cfg.wordWrap || cfg.readableLineLength);
   await restoreOrBootstrapTabs();
   tabs.subscribe(() => scheduleTabSessionSave());
   activeTabId.subscribe(() => scheduleTabSessionSave());
@@ -343,6 +340,9 @@ export async function setWordWrap(enabled: boolean) {
 
 export async function setReadableLineLength(enabled: boolean) {
   readableLineLength.set(enabled);
+  // §110: "limit line width" owns word-wrap while it's on — turning it on
+  // force-enables wrap; the Settings wrap toggle is disabled meanwhile.
+  if (enabled && !get(wordWrap)) await setWordWrap(true);
   try {
     await api.setReadableLineLength(enabled);
   } catch {

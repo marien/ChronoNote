@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { seedApp, activeTabLabel, tab, todayFilename } from "./helpers";
+import { seedApp, activeTabLabel, tab, todayFilename, dateLabel } from "./helpers";
 
 /** §91 / #23 — the first launch of a day (and the very first launch after
  * install) opens on today's note, regardless of which tab was last
@@ -26,14 +26,14 @@ test("first open of a new day lands on today's note, not the last-active tab", a
     },
   });
 
-  await expect(activeTabLabel(page)).toHaveText(todayFilename());
+  await expect(activeTabLabel(page)).toHaveText(dateLabel(todayFilename()));
   // the old tab is still open, just not focused
   await expect(tab(page, "2026-09-01.txt")).toBeVisible();
 });
 
 test("very first launch after install lands on today's note", async ({ page }) => {
   await seedApp(page, { seed: { notes: {}, session: null } });
-  await expect(activeTabLabel(page)).toHaveText(todayFilename());
+  await expect(activeTabLabel(page)).toHaveText(dateLabel(todayFilename()));
 });
 
 test("a later launch the same day restores the saved active tab", async ({ page }) => {
@@ -48,5 +48,5 @@ test("a later launch the same day restores the saved active tab", async ({ page 
     },
   });
 
-  await expect(activeTabLabel(page)).toHaveText("2026-09-01.txt");
+  await expect(activeTabLabel(page)).toHaveText("2026-09-01");
 });

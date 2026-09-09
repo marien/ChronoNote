@@ -8,6 +8,23 @@ export function todayISO(): string {
   return formatISO(new Date());
 }
 
+/** Parse a `YYYY-MM-DD` string into a **local-time** `Date` at midnight.
+ * `new Date("2026-09-10")` parses as UTC per spec, which then disagrees
+ * with `formatISO`/`getDate` (both local) by up to a day in non-UTC
+ * timezones — every date the calendar popover round-trips through a
+ * `Date` must go through here, not the `Date` string constructor. */
+export function parseISODateLocal(iso: string): Date {
+  const [y, m, d] = iso.split("-").map(Number);
+  return new Date(y, m - 1, d);
+}
+
+/** `iso` shifted by `deltaDays`, still `YYYY-MM-DD`, all in local time. */
+export function addDaysISO(iso: string, deltaDays: number): string {
+  const d = parseISODateLocal(iso);
+  d.setDate(d.getDate() + deltaDays);
+  return formatISO(d);
+}
+
 /** Mirrors the date-jump grammar from the reference prototype's date picker. */
 export function parseDateQuery(input: string): string | null {
   const trimmed = input.trim().toLowerCase();

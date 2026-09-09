@@ -55,7 +55,6 @@ test.describe("visual — state gallery", () => {
       ["Control+Shift+i", "sectionImport"],
       ["Control+Comma", "settings"],
       ["Control+Slash", "shortcuts"],
-      ["Control+Shift+Slash", "glyphLegend"],
       ["Control+Shift+Comma", "about"],
     ];
     for (const [combo, key] of shots) {

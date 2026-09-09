@@ -7,24 +7,41 @@
 
   let query = "";
   let items: PaletteItem[] = [];
+  /** The query `items` were actually built for — `commit()` refuses to
+   * run against a result set that's a keystroke or two stale (the `!`/`@`
+   * modes resolve async). */
+  let itemsQuery = "\0";
   let selected = 0;
   let inputEl: HTMLInputElement;
   let listEl: HTMLDivElement;
   let seq = 0;
+  let debounce: ReturnType<typeof setTimeout> | undefined;
 
   onMount(() => {
     inputEl?.focus();
+    void runRefresh(query);
   });
 
-  async function refresh() {
+  async function runRefresh(q: string) {
     const mine = ++seq;
-    const next = await controller.buildPaletteResults(query);
+    const next = await controller.buildPaletteResults(q);
     if (mine !== seq) return; // a newer keystroke already superseded this
     items = next;
+    itemsQuery = q;
     selected = 0;
   }
 
-  $: query, refresh();
+  // The `!`/`#`/`@` prefixes scan the whole notes cache, so those are
+  // debounced; plain command / tab filtering is cheap and runs at once.
+  function scheduleRefresh(q: string) {
+    clearTimeout(debounce);
+    if (/^\s*[!#@]/.test(q)) {
+      debounce = setTimeout(() => runRefresh(q), 120);
+    } else {
+      void runRefresh(q);
+    }
+  }
+  $: scheduleRefresh(query);
 
   // Group headers are derived so the list stays a flat keyboard target.
   $: rows = (() => {
@@ -48,6 +65,18 @@
     await item.run();
   }
 
+  /** Enter from the input: if a debounced refresh is still pending (the
+   * `!`/`@` modes resolve async), run it now and *don't* fire a stale
+   * command — the user presses Enter again once results show. */
+  async function commitFromInput() {
+    if (query.trim() !== itemsQuery.trim()) {
+      clearTimeout(debounce);
+      await runRefresh(query);
+      return;
+    }
+    commit(selected);
+  }
+
   function move(delta: number) {
     if (items.length === 0) return;
     selected = (selected + delta + items.length) % items.length;
@@ -68,7 +97,7 @@
       move(-1);
     } else if (e.key === "Enter") {
       e.preventDefault();
-      commit(selected);
+      commitFromInput();
     }
   }
 

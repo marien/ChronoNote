@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import { formatISO, todayISO, parseDateQuery, addMonths, monthGrid } from "./date";
+import { formatISO, todayISO, parseDateQuery, addMonths, monthGrid, parseISODateLocal, addDaysISO } from "./date";
 
 describe("formatISO", () => {
   it("formats as zero-padded YYYY-MM-DD", () => {
@@ -64,6 +64,29 @@ describe("time-dependent date helpers", () => {
     expect(parseDateQuery("next tuesday")).toBeNull();
     expect(parseDateQuery("")).toBeNull();
     expect(parseDateQuery("2026-13-01")).toBe("2026-13-01"); // shape-only check, not calendar-valid — documents current behavior
+  });
+});
+
+describe("parseISODateLocal / addDaysISO (§110 — no UTC drift)", () => {
+  it("parses YYYY-MM-DD at local midnight, round-tripping through formatISO", () => {
+    for (const iso of ["2026-01-01", "2026-09-10", "2026-12-31", "2024-02-29"]) {
+      expect(formatISO(parseISODateLocal(iso))).toBe(iso);
+    }
+    const d = parseISODateLocal("2026-09-10");
+    expect([d.getFullYear(), d.getMonth(), d.getDate()]).toEqual([2026, 8, 10]);
+    expect(d.getHours()).toBe(0); // local midnight, not shifted by a UTC parse
+  });
+
+  it("addDaysISO steps by whole days across month and year boundaries", () => {
+    expect(addDaysISO("2026-09-10", 1)).toBe("2026-09-11");
+    expect(addDaysISO("2026-09-10", -1)).toBe("2026-09-09");
+    expect(addDaysISO("2026-09-10", 7)).toBe("2026-09-17");
+    expect(addDaysISO("2026-09-30", 1)).toBe("2026-10-01");
+    expect(addDaysISO("2026-01-01", -1)).toBe("2025-12-31");
+    // the bug this fixes: repeated +1 must always advance, never stall
+    let cur = "2026-03-01";
+    for (let i = 0; i < 40; i++) cur = addDaysISO(cur, 1);
+    expect(cur).toBe("2026-04-10");
   });
 });
 

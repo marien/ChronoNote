@@ -177,7 +177,7 @@ export class MockBackend {
     this.notesDir = seed.notesDir ?? "/notes";
     this.colorMode = seed.colorMode ?? "grayscale";
     this.wordWrap = seed.wordWrap ?? false;
-    this.readableLineLength = seed.readableLineLength ?? true;
+    this.readableLineLength = seed.readableLineLength ?? false;
     this.recentNotesDirs = seed.recentNotesDirs ? [...seed.recentNotesDirs] : [];
     this.appVersion = seed.appVersion ?? "0.3.0";
     this.throwOnCommands = new Set(seed.throwOnCommands ?? []);
@@ -248,7 +248,7 @@ export class MockBackend {
       b.notesDir = s.notesDir;
       b.colorMode = s.colorMode;
       b.wordWrap = s.wordWrap ?? false;
-      b.readableLineLength = s.readableLineLength ?? true;
+      b.readableLineLength = s.readableLineLength ?? false;
       b.recentNotesDirs = s.recentNotesDirs;
       b.appVersion = s.appVersion;
       b.dirs = new Map(

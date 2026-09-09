@@ -6,24 +6,28 @@ test.describe("info drawers", () => {
     await seedApp(page, { seed: "empty" });
   });
 
-  test("Ctrl+/ opens Keyboard Shortcuts", async ({ page }) => {
+  test("Ctrl+/ opens the combined Shortcuts & Symbols drawer", async ({ page }) => {
     await editor(page).click();
     await page.keyboard.press("Control+Slash");
-    await expect(modalCard(page, MODAL_LABELS.shortcuts)).toBeVisible();
+    const drawer = modalCard(page, MODAL_LABELS.shortcuts);
+    await expect(drawer).toBeVisible();
     expect(await currentModal(page)).toBe("shortcuts");
+    // §110: one drawer now holds both halves.
+    await expect(drawer).toContainText("Keyboard shortcuts");
+    await expect(drawer).toContainText("Symbols → glyphs");
   });
 
-  test("Ctrl+Shift+/ opens the Symbols & Sections legend", async ({ page }) => {
+  test("Ctrl+Shift+/ opens the same combined drawer (§110)", async ({ page }) => {
     await editor(page).click();
     await page.keyboard.press("Control+Shift+Slash");
-    await expect(modalCard(page, MODAL_LABELS.glyphLegend)).toBeVisible();
-    expect(await currentModal(page)).toBe("glyphLegend");
+    await expect(modalCard(page, MODAL_LABELS.shortcuts)).toBeVisible();
+    expect(await currentModal(page)).toBe("shortcuts");
   });
 
   test("legend glyphs render as plain inline text, aligned with the row (§88 / #19)", async ({ page }) => {
     await editor(page).click();
     await page.keyboard.press("Control+Shift+Slash");
-    await expect(modalCard(page, MODAL_LABELS.glyphLegend)).toBeVisible();
+    await expect(modalCard(page, MODAL_LABELS.shortcuts)).toBeVisible();
 
     const info = await page.evaluate(() => {
       const g = document.querySelector<HTMLElement>(".item-tag .glyph-open");
@@ -82,7 +86,7 @@ test.describe("info drawers", () => {
   test("Escape closes whichever drawer is open", async ({ page }) => {
     for (const [combo, key] of [
       ["Control+Slash", "shortcuts"],
-      ["Control+Shift+Slash", "glyphLegend"],
+      ["Control+Shift+Slash", "shortcuts"],
       ["Control+Shift+Comma", "about"],
     ] as const) {
       await editor(page).click();

@@ -11,6 +11,7 @@ import {
   MODAL_LABELS,
   activeTabContent,
   tabLabels,
+  dateLabel,
 } from "./helpers";
 
 test.describe("tabs — lifecycle & safe close", () => {
@@ -23,7 +24,7 @@ test.describe("tabs — lifecycle & safe close", () => {
 
     await page.keyboard.press("Control+w");
     await expect(tab(page, "Scratchpad 1")).toHaveCount(0);
-    await expect(activeTabLabel(page)).toHaveText(new RegExp(todayFilename()));
+    await expect(activeTabLabel(page)).toHaveText(new RegExp(dateLabel(todayFilename())));
   });
 
   test("closing a tab with unresolved open actions prompts, and Cancel keeps it", async ({ page }) => {
@@ -38,7 +39,7 @@ test.describe("tabs — lifecycle & safe close", () => {
     await expect(warn).toContainText("unresolved open action");
 
     await warn.getByRole("button", { name: "Cancel" }).click();
-    await expect(activeTabLabel(page)).toHaveText(new RegExp(todayFilename()));
+    await expect(activeTabLabel(page)).toHaveText(new RegExp(dateLabel(todayFilename())));
     expect(await currentModal(page)).toBe("none");
   });
 
@@ -60,7 +61,7 @@ test.describe("tabs — lifecycle & safe close", () => {
     await seedApp(page, { seed: "busy-week" });
 
     const labels = await tabLabels(page);
-    const victim = labels.find((l) => !l.includes(todayFilename()))!;
+    const victim = labels.find((l) => !l.includes(dateLabel(todayFilename())))!;
     await tab(page, victim).locator(".tab-close").click();
 
     // A dated tab with unresolved `# ` actions asks first — confirm it.

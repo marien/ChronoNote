@@ -26,33 +26,42 @@ test.describe("settings (Ctrl+,)", () => {
     await expect(page.locator("html")).toHaveAttribute("data-color-mode", "color");
   });
 
-  test("readable line width persists and only constrains the editor with wrap on (§99)", async ({ page }) => {
-    await seedApp(page, { seed: { notes: {}, wordWrap: true } });
+  test("Limit line width is off by default; turning it on wraps + caps + persists (§110)", async ({ page }) => {
+    await seedApp(page, { seed: { notes: {} } });
     await openSettings(page);
 
     const readableToggle = () => settings(page).getByText("Limit line width for readability", { exact: false });
-    const contentMaxWidth = () =>
-      page.locator(".cm-content").evaluate((el) => getComputedStyle(el).maxWidth);
+    const wrapInput = () => settings(page).locator(".toggle-switch input").first();
+    const contentMaxWidth = () => page.locator(".cm-content").evaluate((el) => getComputedStyle(el).maxWidth);
 
-    // default on: wrap on + readable on → column capped at 720px
-    expect(await page.evaluate(() => window.__CHRONO_MOCK__!.readableLineLength)).toBe(true);
-    expect(await contentMaxWidth()).toBe("720px");
-
-    // turn it off → column spans full width again, and the mock persisted it
-    await readableToggle().click();
-    expect(await contentMaxWidth()).toBe("none");
+    // default: off, no cap, word wrap freely toggleable
     expect(await page.evaluate(() => window.__CHRONO_MOCK__!.readableLineLength)).toBe(false);
+    expect(await contentMaxWidth()).toBe("none");
+    await expect(wrapInput()).toBeEnabled();
 
-    // survives a reload (read from config on boot)
+    // turn readable on → wrap force-enabled + disabled, column capped
+    await readableToggle().click();
+    expect(await contentMaxWidth()).toBe("720px");
+    expect(await page.evaluate(() => window.__CHRONO_MOCK__!.readableLineLength)).toBe(true);
+    expect(await page.evaluate(() => window.__CHRONO_MOCK__!.wordWrap)).toBe(true);
+    await expect(wrapInput()).toBeDisabled();
+    await expect(wrapInput()).toBeChecked();
+
+    // survives a reload
     await page.reload();
     await editor(page).click();
+    expect(await contentMaxWidth()).toBe("720px");
+
+    // turn readable off → cap gone, wrap stays (user owns it again)
+    await page.keyboard.press("Control+Comma");
+    await readableToggle().click();
     expect(await contentMaxWidth()).toBe("none");
+    await expect(wrapInput()).toBeEnabled();
   });
 
-  test("readable line width is a no-op while word wrap is off (§99)", async ({ page }) => {
-    await seedApp(page, { seed: { notes: {}, wordWrap: false, readableLineLength: true } });
+  test("word wrap alone doesn't cap the column (§110)", async ({ page }) => {
+    await seedApp(page, { seed: { notes: {}, wordWrap: true } });
     await editor(page).click();
-    // readable on but wrap off → no column cap (wide tables still scroll)
     const maxWidth = await page.locator(".cm-content").evaluate((el) => getComputedStyle(el).maxWidth);
     expect(maxWidth).toBe("none");
   });

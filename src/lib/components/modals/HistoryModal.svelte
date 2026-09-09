@@ -134,11 +134,8 @@
   // and where it lands in the active note.
   $: selectedItem = flatList[selectedIndex] as IndexedItem | undefined;
   $: activeTab = $tabs.find((t) => t.id === $activeTabId);
-  $: insertText = selectedItem
-    ? selectedItem.line.startsWith("> ")
-      ? "# " + selectedItem.line.slice(2)
-      : selectedItem.line
-    : "";
+  $: insertText = selectedItem ? controller.historyInsertText(selectedItem.line) : "";
+  $: insertRewritten = !!selectedItem && insertText !== selectedItem.line;
   $: preview = (() => {
     if (!selectedItem) return null;
     const src = $allNotesCache[selectedItem.filename];
@@ -258,7 +255,7 @@
         <div class="hp-section">
           <div class="hp-label">Shift+Enter inserts</div>
           <pre class="hp-insert">{insertText}</pre>
-          {#if selectedItem.line.startsWith("> ")}
+          {#if insertRewritten}
             <div class="hp-note">Deferred <kbd>&gt;</kbd> becomes a fresh open <kbd>#</kbd> in this note.</div>
           {/if}
         </div>

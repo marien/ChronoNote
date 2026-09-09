@@ -175,20 +175,22 @@ body {
   display: flex;
   flex: 1;
   height: 100%;
-  align-items: center;
+  /* Tabs sit on the floor of the bar so the active one meets the editor
+     canvas below — the `‹ ›` arrows cover overflow, so the scrollbar
+     itself is hidden (it otherwise ate the 3px the active tab needed to
+     reach the edge). */
+  align-items: flex-end;
   overflow-x: auto;
+  scrollbar-width: none;
 }
 #tab-bar::-webkit-scrollbar {
-  height: 3px;
-}
-#tab-bar::-webkit-scrollbar-thumb {
-  background: var(--border);
+  height: 0;
 }
 
 .tab {
   flex-shrink: 0;
   padding: 0 10px 0 12px;
-  height: 32px;
+  height: 34px;
   margin: 0 1px;
   border-radius: 6px 6px 0 0;
   display: flex;
@@ -217,12 +219,20 @@ body {
 .tab.scratch .tab-label {
   font-style: italic;
 }
-.tab-unsaved-dot {
-  width: 6px;
-  height: 6px;
+/* A small dot beside the tab label. Deliberately quiet: `mem` (grey) just
+   marks a scratchpad as memory-only, `err` (red) is the only attention-
+   grabbing state — a normal autosave shows nothing at all. */
+.tab-status-dot {
+  width: 5px;
+  height: 5px;
   border-radius: 50%;
-  background: var(--state-warn);
   flex-shrink: 0;
+}
+.tab-status-dot.mem {
+  background: var(--muted);
+}
+.tab-status-dot.err {
+  background: var(--state-error);
 }
 .tab-group-divider {
   width: 1.5px;
@@ -246,6 +256,11 @@ body {
   color: var(--text);
   box-shadow: inset 0 2px 0 var(--tab-active-border);
   font-weight: 600;
+  /* Bridge the 1px chrome border so the active tab reads as one surface
+     with the editor below it. */
+  position: relative;
+  z-index: 1;
+  margin-bottom: -1px;
 }
 .tab-close {
   opacity: 0;
@@ -658,6 +673,11 @@ body {
   padding: 0 12px;
   font-size: 11px;
   border-top: 1px solid var(--border);
+  /* Stays lit above a modal's `.overlay` (z-index 200) so the save state
+     and transient messages (§102, e.g. "Sections imported" fired from a
+     drawer that stays open) are always visible. */
+  position: relative;
+  z-index: 250;
 }
 .status-zone {
   display: flex;
@@ -687,39 +707,9 @@ body {
 #stat-forwarded {
   color: var(--muted);
 }
-#stat-save {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-.save-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--muted);
-  flex-shrink: 0;
-}
-#stat-save[data-state="saved"] .save-dot {
-  background: var(--state-ok);
-}
-#stat-save[data-state="saving"] .save-dot {
-  background: var(--state-warn);
-}
-#stat-save[data-state="error"] .save-dot {
-  background: var(--state-error);
-}
-#stat-save[data-state="error"] {
-  color: var(--state-error);
-}
-#stat-save[data-state="mem"] {
-  opacity: 0.7;
-}
-.save-dot.spin {
-  animation: modal-spinner-spin 1.1s linear infinite;
-  border-radius: 1px;
-}
-/* §102: transient messages (former floating toast) live in the centre
-   zone and pre-empt the save-state readout while shown. */
+/* §102/§110: transient messages (the former floating toast) — the centre
+   zone is otherwise empty; the ambient save state moved to a quiet dot on
+   the tab itself. */
 #stat-message {
   display: flex;
   align-items: center;
@@ -734,7 +724,7 @@ body {
   border-radius: 50%;
   background: var(--text);
   flex-shrink: 0;
-  opacity: 0.6;
+  opacity: 0.55;
 }
 .status-help {
   background: transparent;
@@ -834,22 +824,34 @@ body {
   background: transparent;
   border: none;
   border-radius: 5px;
-  color: var(--text);
+  /* Plain dates are quiet; a day you actually wrote a note on reads at
+     full strength (`.hasnote`), and open actions add the dot (`.has`). */
+  color: var(--muted);
   font-family: inherit;
   font-size: 11.5px;
   cursor: pointer;
   font-variant-numeric: tabular-nums;
 }
+.cal-day.hasnote {
+  color: var(--text);
+  font-weight: 500;
+}
 .cal-day:hover {
   background: var(--surface-raised);
+  color: var(--text);
 }
 .cal-day.out {
   color: var(--muted);
-  opacity: 0.5;
+  opacity: 0.45;
 }
 .cal-day.today {
   box-shadow: inset 0 0 0 1px var(--tab-active-border);
   font-weight: 700;
+}
+/* Where the typed query / keyboard cursor is pointing. */
+.cal-day.target {
+  background: var(--selected-bg);
+  color: var(--selected-fg);
 }
 .cal-day:focus-visible {
   outline: 2px solid var(--tab-active-border);
@@ -1169,6 +1171,10 @@ kbd {
   font-size: 12px;
   color: var(--text);
   user-select: none;
+}
+.toggle-switch.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 .toggle-switch input {
   position: absolute;

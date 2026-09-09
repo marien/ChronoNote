@@ -131,10 +131,13 @@ export function todayFilename(): string {
 
 // --- chrome / tabs --------------------------------------------------
 
+/** §110: dated tabs display the date without the `.txt` extension. */
+export const dateLabel = (filename: string) => filename.replace(/\.txt$/, "");
+
 export function tab(page: Page, filename: string): Locator {
-  // §103: the tab shows an icon + `.tab-label` (dated files) or an italic
-  // `.tab-label` + unsaved dot (scratchpads); match on the label text.
-  return page.locator("#tab-bar .tab", { hasText: filename });
+  // §103: the tab shows an icon + `.tab-label` (date, no `.txt`) or an
+  // italic `.tab-label` + a dot (scratchpads); match on the label text.
+  return page.locator("#tab-bar .tab", { hasText: dateLabel(filename) });
 }
 
 export function activeTabLabel(page: Page): Locator {
@@ -183,7 +186,6 @@ export const MODAL_LABELS = {
   sectionImport: "Import sections",
   settings: "Settings",
   shortcuts: "Keyboard shortcuts",
-  glyphLegend: "Symbols and section formatting",
   about: "About ChronoNote",
   unsavedScratchpads: "Unsaved scratchpad content",
   conflict: "Note changed on disk",

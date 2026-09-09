@@ -25,7 +25,11 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import * as controller from "../controller";
-  import { activeTabId, chromeExpanded, tabs } from "../controller";
+  import { activeTabId, chromeExpanded, saveState, tabs } from "../controller";
+  import type { NoteTab } from "../types";
+
+  /** Dated tabs show just the date; scratchpads keep their given name. */
+  const tabLabel = (t: NoteTab) => (t.isScratchpad ? t.filename : t.filename.replace(/\.txt$/, ""));
 
   let topBarEl: HTMLDivElement;
   let tabBarEl: HTMLDivElement;
@@ -288,6 +292,13 @@
         data-tab-id={tab.id}
         aria-selected={tab.id === $activeTabId}
         on:click={() => controller.switchTab(tab.id)}
+        on:mousedown={(e) => {
+          // Middle-click closes the tab (and suppress the autoscroll cursor).
+          if (e.button === 1) {
+            e.preventDefault();
+            controller.requestTabClose(tab.id);
+          }
+        }}
         on:keydown={(e) => e.key === "Enter" && controller.switchTab(tab.id)}
       >
         <span class="tab-icon" aria-hidden="true">
@@ -303,9 +314,11 @@
             </svg>
           {/if}
         </span>
-        <span class="tab-label">{tab.filename}</span>
+        <span class="tab-label">{tabLabel(tab)}</span>
         {#if tab.isScratchpad && tab.content.trim() !== ""}
-          <span class="tab-unsaved-dot" title="Unsaved — this scratchpad is only in memory"></span>
+          <span class="tab-status-dot mem" title="Kept in memory only (not written to disk)"></span>
+        {:else if tab.id === $activeTabId && $saveState === "error"}
+          <span class="tab-status-dot err" title="The last save of this note failed"></span>
         {/if}
         <span
           class="tab-close"

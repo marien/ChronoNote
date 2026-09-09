@@ -131,6 +131,20 @@ export function stripLeadingToken(line: string): string {
   return line;
 }
 
+/** Whitespace-delimited word count for the status bar (§100). Single
+ * pass, no allocation — it runs on every keystroke over the whole note.
+ * Glyph tokens (`# `, `=> `, …) count as words; not worth special-casing. */
+export function countWords(text: string): number {
+  let n = 0;
+  let inWord = false;
+  for (let i = 0; i < text.length; i++) {
+    const ws = text.charCodeAt(i) <= 32;
+    if (!ws && !inWord) n++;
+    inWord = !ws;
+  }
+  return n;
+}
+
 export function isSetextUnderline(line: string): boolean {
   return /^={3,}$/.test(line.trim());
 }

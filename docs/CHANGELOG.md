@@ -3892,6 +3892,8 @@ Chrome accent stays the option-B blue family; only the glyph tokens
 changed. The Action Drawer / Section History / glyph-legend glyph columns
 follow automatically (they read the same `--glyph-*` vars).
 
+---
+
 ## 106. Click a glyph to cycle its state + Ctrl/Cmd+Enter (0.6 UX pass — Phase 3)
 
 **Status: implemented on `feat/ux-0.6`, not yet released.**
@@ -4011,3 +4013,72 @@ green.
 redesign (§105 note) and folding the remaining informational toasts (they
 already route to the status bar's message slot). Ready to cut **v0.6.0**
 once reviewed.
+
+---
+
+## 110. 0.6 review fixes + first round of visual feedback
+
+**Status: implemented on `feat/ux-0.6`, not yet released.** An 8-angle
+`/code-review` of the branch, plus Marien's notes from a live run of the
+dev build.
+
+### Review findings fixed (all introduced §99–§109)
+
+- **DatePicker keyboard nav drifted in non-UTC timezones** — `new
+  Date("2026-09-10")` parses as UTC midnight, disagreeing with the
+  local-time grid. New `parseISODateLocal` / `addDaysISO` in `date.ts`
+  (tested); the popover routes every `Date` through them.
+- **`Ctrl+F` / `Ctrl+K` fired while a modal was open** — mounted the find
+  bar invisibly behind the overlay. Both now no-op unless `modal ===
+  "none"`; a reactive guard also closes the bar if a modal opens over it.
+- **Save state masked a failure / stuck on "Saving…"** — `saveState` is
+  now *derived per active tab* (`recomputeSaveState()` off
+  `pendingSaveTabIds` / `inFlightFilenames` / `failedFilenames`), so a
+  background write can't stomp it, a real failure isn't hidden by a
+  concurrent success, and a §94 conflict cancelling the pending write
+  clears it. 4 new Vitest cases.
+- **Clicking the 📅 trigger to close the popover re-opened it** —
+  `onOutsideMousedown` now ignores the trigger element.
+- **Command palette ran a stale command** when you typed a `!`/`@`
+  prefix and hit Enter before the async scan resolved — `commitFromInput`
+  refuses to fire against a superseded query; the `!`/`#`/`@` modes are
+  debounced 120 ms, plain filtering stays instant.
+- **Find "N of M" showed "– of M"** whenever the caret wasn't exactly on
+  a match, and went stale on clicks — `current` is now the match at/before
+  the caret, recomputed on every selection change while the bar is open.
+- **Section History import gave no visible confirmation** — its toast was
+  behind the modal overlay. `#status-bar` now sits at `z-index: 250`
+  (above `.overlay` at 200), so transient messages show with any drawer
+  open. The `> `→`# ` rewrite is deduped into `historyInsertText()`.
+- Deleted the dead `datePickerOpenOnly` store; `countWords` moved to
+  `tokens.ts` as a non-allocating single-pass counter (+ test).
+
+### Feedback
+
+- **Combined help drawer** — the `?` (and `Ctrl+/` / `Ctrl+Shift+/`) now
+  open one **Shortcuts & Symbols** drawer; `GlyphLegendModal` is deleted
+  and its content folded into `ShortcutsModal` under a group header.
+- **Tab / editor connection** — the tab-strip scrollbar (which ate the
+  gap) is hidden; tabs are bottom-anchored so the active one meets the
+  editor canvas.
+- **Quieter save state** — the status-bar centre readout is gone. The
+  active tab shows a small dot only when it matters: **red** for a failed
+  save, **grey** for a memory-only scratchpad (was an amber "unsaved"
+  dot). Nothing during a normal autosave.
+- **Tab labels** drop the `.txt` — dated tabs show just `2026-09-10`.
+- **Middle-click a tab to close it.**
+- **The calendar follows what you type** — the jump input has focus on
+  open (like the other drawers), and as you type a date or `YYYY-MM` the
+  grid jumps to it and marks the target; `↓`/`Tab` hands off into the
+  grid; a day you've written a note on renders at full strength vs a
+  muted plain date.
+- **"Limit line width for readability" now owns word-wrap** — turning it
+  on force-enables wrap and disables the wrap toggle; it's a single
+  prose-reading mode. **Default is now off** (`AppConfig.readable_line_length`
+  → `#[serde(default)]` = false) — the monospace grid stays the
+  out-of-box editor.
+
+`svelte-check` (243), Vitest (212), Playwright (124), `cargo test` (42)
+all green. `visual.spec.ts` / `drawers.spec.ts` / `navigation.spec.ts` /
+`tab-archetypes.spec.ts` / `status-bar.spec.ts` / `settings.spec.ts`
+updated; `helpers.ts` gains `dateLabel()`.

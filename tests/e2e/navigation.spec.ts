@@ -61,7 +61,11 @@ test.describe("date picker — anchored calendar popover (Ctrl+O, §104)", () =>
   });
 
   test("arrow keys move the focused day; Escape closes and restores editor focus", async ({ page }) => {
-    // focus starts on today (2026-09-07); ArrowRight → 09-08, ArrowDown → 09-15
+    // Focus opens on the jump input; ArrowDown drops into the grid on
+    // today (2026-09-07). Then ArrowRight → 09-08, ArrowDown → 09-15.
+    await expect(pop(page).locator(".datepicker-jump")).toBeFocused();
+    await page.keyboard.press("ArrowDown");
+    await expect(pop(page).locator('.cal-day[data-iso="2026-09-07"]')).toBeFocused();
     await page.keyboard.press("ArrowRight");
     await page.keyboard.press("ArrowDown");
     await expect(pop(page).locator('.cal-day[data-iso="2026-09-15"]')).toBeFocused();
@@ -71,6 +75,15 @@ test.describe("date picker — anchored calendar popover (Ctrl+O, §104)", () =>
     expect(
       await page.evaluate(() => document.activeElement?.classList.contains("cm-content") ?? false),
     ).toBe(true);
+  });
+
+  test("the calendar follows the query as you type it (§110)", async ({ page }) => {
+    await pop(page).locator(".datepicker-jump").fill("2026-11-20");
+    await expect(pop(page).locator(".cal-title")).toHaveText("November 2026");
+    await expect(pop(page).locator('.cal-day[data-iso="2026-11-20"]')).toHaveClass(/\btarget\b/);
+    // a bare month prefix jumps too
+    await pop(page).locator(".datepicker-jump").fill("2026-02");
+    await expect(pop(page).locator(".cal-title")).toHaveText("February 2026");
   });
 
   test("an outside click closes it", async ({ page }) => {

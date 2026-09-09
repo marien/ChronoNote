@@ -101,7 +101,7 @@ function commandItems(): PaletteItem[] {
 function openTabItems(): PaletteItem[] {
   return get(tabs).map((t) => ({
     id: `tab-${t.id}`,
-    label: t.filename,
+    label: t.isScratchpad ? t.filename : t.filename.replace(/\.txt$/, ""),
     hint: t.isScratchpad ? "scratchpad" : "open tab",
     group: "Open tabs",
     run: () => switchTab(t.id),

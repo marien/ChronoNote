@@ -4,12 +4,45 @@
  * and types — no cycle back to `controller.ts`. */
 import { get } from "svelte/store";
 import * as api from "./tauriApi";
-import { allNotesCache, editorApi, activeTabId, markTabClean, saveState, showToast, tabs } from "./stores";
+import {
+  allNotesCache,
+  editorApi,
+  activeTabId,
+  markTabClean,
+  saveState,
+  showToast,
+  tabs,
+  type SaveState,
+} from "./stores";
 import type { NoteTab } from "./types";
 
 // --- Debounced autosave on typing, immediate on deliberate actions ---
 
 const saveTimers: Record<string, ReturnType<typeof setTimeout>> = {};
+
+// --- §100/§102: ambient save-state, derived from the *active* tab -------
+//
+// `saveState` describes the tab the user is looking at, so a background
+// write for another tab can't stomp it, a genuine failure isn't masked
+// by a later unrelated success, and a §94 conflict cancelling the
+// pending write doesn't leave it stuck on "saving".
+
+/** Tab ids with a debounced write queued (or just fired, pre-dispatch). */
+const pendingSaveTabIds = new Set<string>();
+/** Filenames with an `api.writeNote` promise in flight. */
+const inFlightFilenames = new Set<string>();
+/** Filenames whose last write *failed*; cleared by the next success. */
+const failedFilenames = new Set<string>();
+
+export function recomputeSaveState() {
+  const t = get(tabs).find((x) => x.id === get(activeTabId));
+  let next: SaveState;
+  if (!t || t.isScratchpad) next = "idle";
+  else if (failedFilenames.has(t.filename)) next = "error";
+  else if (pendingSaveTabIds.has(t.id) || inFlightFilenames.has(t.filename)) next = "saving";
+  else next = "saved";
+  saveState.set(next);
+}
 
 /** Every disk write currently in flight (`api.writeNote` promise not yet
  * settled). `flushAllPendingSaves` awaits these so the app-close barrier
@@ -21,13 +54,14 @@ const inFlightWrites = new Set<Promise<unknown>>();
  * for the same tab. Scratchpads never touch disk. */
 export function scheduleSave(tab: NoteTab) {
   if (tab.isScratchpad) return;
-  // §100: the moment a real note has unsaved keystrokes it reads as
-  // "saving" (pending), settling to "saved" once the debounced write
-  // below lands.
-  saveState.set("saving");
+  pendingSaveTabIds.add(tab.id); // §100: reads as "Saving…" until the write lands
+  recomputeSaveState();
   clearTimeout(saveTimers[tab.id]);
   saveTimers[tab.id] = setTimeout(() => {
     delete saveTimers[tab.id];
+    pendingSaveTabIds.delete(tab.id);
+    // `writeNoteAndInvalidateCache` synchronously moves this filename into
+    // `inFlightFilenames`, so there's no "saved" flicker in between.
     writeNoteAndInvalidateCache(tab.filename, tab.content).catch(() => showToast("Failed to save note"));
   }, 400);
 }
@@ -41,9 +75,12 @@ export function flushSave(tabId: string) {
     clearTimeout(timer);
     delete saveTimers[tabId];
   }
+  pendingSaveTabIds.delete(tabId);
   const tab = get(tabs).find((t) => t.id === tabId);
   if (tab && !tab.isScratchpad) {
     writeNoteAndInvalidateCache(tab.filename, tab.content).catch(() => showToast("Failed to save note"));
+  } else {
+    recomputeSaveState();
   }
 }
 
@@ -56,6 +93,8 @@ export function cancelScheduledSave(tabId: string) {
     clearTimeout(timer);
     delete saveTimers[tabId];
   }
+  pendingSaveTabIds.delete(tabId);
+  recomputeSaveState();
 }
 
 /** App-close barrier (§93): fire every debounced write immediately, then
@@ -113,13 +152,14 @@ export function writeNoteAndInvalidateCache(filename: string, content: string): 
   if (!hasOpenTab) diskNotesCacheRaw = null;
   const p = api.writeNote(filename, content);
   inFlightWrites.add(p);
-  saveState.set("saving"); // §100: ambient status-bar indicator
+  inFlightFilenames.add(filename);
+  failedFilenames.delete(filename); // a retry clears the prior failure mark
+  recomputeSaveState();
   return p.then(
     (meta) => {
       inFlightWrites.delete(p);
-      // Only settle to "saved" once nothing else is still writing — a
-      // burst of debounced writes shouldn't flicker saving→saved→saving.
-      if (inFlightWrites.size === 0) saveState.set("saved");
+      inFlightFilenames.delete(filename);
+      recomputeSaveState();
       // §94: the disk now matches this content — refresh the tab's clean
       // baseline so a later external edit is detected against what we
       // actually last wrote, not a stale hash.
@@ -128,7 +168,9 @@ export function writeNoteAndInvalidateCache(filename: string, content: string): 
     },
     (err) => {
       inFlightWrites.delete(p);
-      saveState.set("error");
+      inFlightFilenames.delete(filename);
+      failedFilenames.add(filename);
+      recomputeSaveState();
       throw err; // callers still see the failure (their `.catch` toasts it)
     },
   );
