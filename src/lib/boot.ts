@@ -1,0 +1,232 @@
+/** App startup: load config, restore the tab session (§34), and wire the
+ * standing subscriptions (status-bar action counts, window title, session
+ * autosave). Also the two small config-backed toggles (`setColorMode` /
+ * `setWordWrap`) and the maximize/fullscreen chrome watcher. Split out of
+ * `controller.ts` in the v0.5.0 refactor. `directory.ts` reuses
+ * `restoreOrBootstrapTabs` for the workspace re-load on a folder switch. */
+import { get } from "svelte/store";
+import { getCurrentWindow } from "@tauri-apps/api/window";
+import * as api from "./tauriApi";
+import { countActions } from "./tokens";
+import { todayISO } from "./date";
+import {
+  activeTabId,
+  appVersion,
+  chromeExpanded,
+  colorMode,
+  notesDir,
+  recentNotesDirs,
+  showToast,
+  statusCounts,
+  statusPos,
+  tabs,
+  wordWrap,
+} from "./stores";
+import type { ColorMode, NoteTab } from "./types";
+
+// --- Standing subscriptions (wired once, from initApp) -----------------
+
+/** Keep the status bar's action counts in sync with whichever tab is
+ * active, including edits made through the drawers/modals rather than
+ * typing. `latestTabs` is a plain cache of the last `tabs` value so the
+ * `activeTabId` subscription can read it without a `get()`. */
+let latestTabs: NoteTab[] = [];
+let statusSyncWired = false;
+function wireStatusBarSync() {
+  if (statusSyncWired) return;
+  statusSyncWired = true;
+  tabs.subscribe((v) => {
+    latestTabs = v;
+    syncActiveStatus();
+  });
+  activeTabId.subscribe(() => {
+    syncActiveStatus();
+    statusPos.set({ line: 1, col: 1 });
+  });
+}
+function syncActiveStatus() {
+  const t = latestTabs.find((x) => x.id === get(activeTabId));
+  if (t) statusCounts.set(countActions(t.content));
+}
+
+/** Shows which notes folder (project/scope, see §6.3) is currently active
+ * right in the window title, without needing to open Settings — just the
+ * folder's own name, not the full path. Fires on every `notesDir` change
+ * regardless of which code path caused it (initial boot, or a directory
+ * switch), rather than needing a call at each call site. */
+function folderNameFromPath(path: string): string {
+  const segments = path.split(/[\\/]/).filter(Boolean);
+  return segments.length > 0 ? segments[segments.length - 1] : path;
+}
+let titleSyncWired = false;
+function wireWindowTitleSync() {
+  if (titleSyncWired) return;
+  titleSyncWired = true;
+  notesDir.subscribe((dir) => {
+    if (!dir) return;
+    getCurrentWindow()
+      .setTitle(`ChronoNote - ${folderNameFromPath(dir)}`)
+      .catch(() => {});
+  });
+}
+
+// --- Boot ---
+
+export function applyColorModeToDom(mode: ColorMode) {
+  document.documentElement.dataset.colorMode = mode;
+}
+
+/** Set while a session restore (or a directory switch's fresh restore) is
+ * rebuilding the `tabs`/`activeTabId` stores step by step, so the
+ * persistence subscribers below don't write a half-built intermediate
+ * state to disk (§34). */
+let restoringTabs = false;
+
+/** Spec §34: restores the tabs and active tab this specific notes folder
+ * had open last time (skipping any that no longer exist on disk), and
+ * always force-opens today's dated tab as well — confirmed design
+ * decisions: today's tab is always present, and it's also the fallback
+ * active tab whenever the previously-active one can't be restored (its
+ * file was deleted, or it was a scratchpad, which never persists). A
+ * folder with no saved session yet (first time it's opened) just gets
+ * today's tab, same as before this feature existed. */
+export async function restoreOrBootstrapTabs() {
+  restoringTabs = true;
+  // A save from just before this call (e.g. performDirectorySwitch clearing
+  // `tabs`/`activeTabId` ahead of the restore) may already be pending —
+  // cancel it so it can't fire mid-restore and persist a half-built state.
+  if (sessionSaveTimer) {
+    clearTimeout(sessionSaveTimer);
+    sessionSaveTimer = null;
+  }
+  try {
+    const todayFilename = todayISO() + ".txt";
+    const session = await api.readTabSession();
+    const otherFilenames = (session?.openTabs ?? []).filter((f) => f !== todayFilename);
+
+    // Fire every read concurrently (one IPC round-trip in flight per file,
+    // all in parallel) rather than one-at-a-time — with several tabs open,
+    // a sequential await-per-file loop was adding a full extra round-trip
+    // of latency per tab before the editor became typable.
+    const [otherContents, todayContent] = await Promise.all([
+      Promise.all(otherFilenames.map((filename) => api.readNote(filename))),
+      api.readNote(todayFilename),
+    ]);
+
+    const restored: NoteTab[] = [];
+    otherFilenames.forEach((filename, i) => {
+      const content = otherContents[i];
+      if (content === null) return; // file no longer exists — silently skip
+      restored.push({ id: `tab-${Date.now()}-${filename}`, filename, isScratchpad: false, content });
+    });
+
+    const todayTab: NoteTab = {
+      id: `tab-${Date.now()}-${todayFilename}`,
+      filename: todayFilename,
+      isScratchpad: false,
+      content: todayContent ?? "",
+    };
+    restored.push(todayTab);
+
+    tabs.set(restored);
+    // #23: on the first launch of a new day (and the very first launch
+    // after install, where `session` is null), open with today's note
+    // active regardless of which tab was last active — the point of a
+    // daily-notes app is to land you on today when the day turns over.
+    // Later launches the same day restore the last-active tab as before.
+    const isFirstOpenToday = (session?.lastOpenedDate ?? null) !== todayISO();
+    const activeMatch =
+      !isFirstOpenToday && session?.activeTab
+        ? restored.find((t) => t.filename === session.activeTab)
+        : undefined;
+    activeTabId.set((activeMatch ?? todayTab).id);
+  } finally {
+    restoringTabs = false;
+  }
+  scheduleTabSessionSave();
+}
+
+let sessionSaveTimer: ReturnType<typeof setTimeout> | null = null;
+let lastPersistedSessionKey = "";
+
+function scheduleTabSessionSave() {
+  if (restoringTabs) return;
+  if (sessionSaveTimer) clearTimeout(sessionSaveTimer);
+  sessionSaveTimer = setTimeout(persistTabSession, 150);
+}
+
+function persistTabSession() {
+  sessionSaveTimer = null;
+  const list = get(tabs);
+  const activeId = get(activeTabId);
+  const openTabs = list
+    .filter((t) => !t.isScratchpad)
+    .map((t) => t.filename)
+    .sort();
+  const activeTab = list.find((t) => t.id === activeId);
+  const activeFilename = activeTab && !activeTab.isScratchpad ? activeTab.filename : null;
+
+  // #23: stamp the session with today's date so the next boot can tell
+  // whether it's the first launch of a new day. Part of the dedup key so
+  // the day rolling over always forces a fresh write, even if the open
+  // tabs and active tab are unchanged from yesterday.
+  const today = todayISO();
+  const key = JSON.stringify({ openTabs, activeFilename, today });
+  if (key === lastPersistedSessionKey) return;
+  lastPersistedSessionKey = key;
+  api.writeTabSession(openTabs, activeFilename, today).catch(() => {
+    // Best-effort bookkeeping, not user note content — fail silently.
+  });
+}
+
+export async function initApp() {
+  wireStatusBarSync();
+  wireWindowTitleSync();
+  const cfg = await api.getConfig();
+  notesDir.set(cfg.notesDir);
+  recentNotesDirs.set(cfg.recentNotesDirs);
+  colorMode.set(cfg.colorMode);
+  applyColorModeToDom(cfg.colorMode);
+  wordWrap.set(cfg.wordWrap);
+  await restoreOrBootstrapTabs();
+  tabs.subscribe(() => scheduleTabSessionSave());
+  activeTabId.subscribe(() => scheduleTabSessionSave());
+  api.getAppVersion().then((v) => appVersion.set(v));
+}
+
+/** Tracks whether the OS window is maximized or fullscreen, so the top bar
+ * can show icon+label when there's room and icon-only when there isn't. */
+export async function initWindowChromeWatcher() {
+  const win = getCurrentWindow();
+  async function refresh() {
+    try {
+      const [fullscreen, maximized] = await Promise.all([win.isFullscreen(), win.isMaximized()]);
+      chromeExpanded.set(fullscreen || maximized);
+    } catch {
+      // Window introspection unavailable — keep the icon-only default.
+    }
+  }
+  await refresh();
+  await win.onResized(() => {
+    refresh();
+  });
+}
+
+export async function setColorMode(mode: ColorMode) {
+  colorMode.set(mode);
+  applyColorModeToDom(mode);
+  try {
+    await api.setColorMode(mode);
+  } catch {
+    showToast("Failed to save theme preference");
+  }
+}
+
+export async function setWordWrap(enabled: boolean) {
+  wordWrap.set(enabled);
+  try {
+    await api.setWordWrap(enabled);
+  } catch {
+    showToast("Failed to save word-wrap preference");
+  }
+}
