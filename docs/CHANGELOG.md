@@ -6,19 +6,18 @@ kept for the rationale behind each one — not just *what* changed but
 was still being gathered and confirmed before implementation; renamed once
 everything below was applied, since nothing here is "pending" anymore.
 
-**Status: all sections through §98 implemented, released, and on `main`.**
-**§99+ is the 0.6 UX/UI pass — in progress on `feat/ux-0.6`, not yet
-released** (see `docs/design/ux-roadmap-0.6.md`). Each section is verified
-before merge (`svelte-check`, the Vitest suite, `cargo test`, and — from
-§77 on — the Playwright E2E suite, all green in CI). See each section for
-what it covers and why. §27–31 were small fixes logged briefly in a
-`next-revision-notes.md` scratch file before being folded in here;
-everything from §32 on was written directly.
+**Status: all sections through §110 implemented, released, and on `main`.**
+§99–§110 are the 0.6 UX/UI pass (`docs/design/ux-roadmap-0.6.md`). Each
+section is verified before merge (`svelte-check`, the Vitest suite,
+`cargo test`, and — from §77 on — the Playwright E2E suite, all green in
+CI). See each section for what it covers and why. §27–31 were small fixes
+logged briefly in a `next-revision-notes.md` scratch file before being
+folded in here; everything from §32 on was written directly.
 
 Which sections shipped in which release: §1–55 → v0.2.0, §56–59 → v0.2.1,
 §60–74 → v0.3.0, §75–81 → v0.4.0, §82–83 → v0.4.1, §84–85 → v0.4.2,
 §86–87 → v0.4.3, §88–89 → v0.4.4, §90–91 → v0.4.5, §92 → v0.4.6,
-§refactor + §93–96 → v0.5.0, §97 → v0.5.1, §98 → v0.5.2, §99+ → v0.6.0 (pending).
+§refactor + §93–96 → v0.5.0, §97 → v0.5.1, §98 → v0.5.2, §99–110 → v0.6.0.
 
 ---
 
@@ -3691,7 +3690,7 @@ green.
 
 ## 99. Configurable reading measure (0.6 UX pass — Phase 1)
 
-**Status: implemented on `feat/ux-0.6`, not yet released.** First slice of
+**Status: implemented (v0.6.0).** First slice of
 the 0.6 UX/UI work (`docs/design/ux-roadmap-0.6.md`, reconciled from three
 external reviews). A new **"Limit line width for readability"** toggle in
 Settings → Editor caps the editor's text column to a ~720px measure and
@@ -3716,7 +3715,7 @@ CodeMirror `Compartment` (like §80's word-wrap), reconfigured live from the
 
 ## 100. Three-zone status bar + ambient save state (0.6 UX pass — Phase 1)
 
-**Status: implemented on `feat/ux-0.6`, not yet released.** The status bar
+**Status: implemented (v0.6.0).** The status bar
 goes from two loosely-packed groups to a `1fr / auto / 1fr` grid:
 
 - **Left** — `Ln N, Col C · N words · Open N Closed N Fwd N`. Cursor
@@ -3746,7 +3745,7 @@ surface-palette decision (A/B/C) lands. Kept the `#stat-pos` /
 
 ## 101. Focus always returns to the editor after a modal (0.6 UX pass — Phase 1)
 
-**Status: implemented on `feat/ux-0.6`, not yet released.** Tightens §95's
+**Status: implemented (v0.6.0).** Tightens §95's
 focus-restore. It restored focus to *whatever* held it when the modal
 opened — fine for the keyboard path (the editor), but a modal opened by
 **clicking a top-bar button** left focus stranded on that button after
@@ -3766,7 +3765,7 @@ Task 8 without needing to serialise selection offsets (the editor isn't a
 
 ## 102. Surface elevation + retire the floating toast (0.6 UX pass — Phase 1)
 
-**Status: implemented on `feat/ux-0.6`, not yet released.** Marien picked
+**Status: implemented (v0.6.0).** Marien picked
 **option B** from the surface study — keep ChronoNote's VS-Code charcoal
 family, give it real depth.
 
@@ -3807,7 +3806,7 @@ modal or (coming in Phase 2) a popover opens over the editor. `svelte-check`
 
 ## 103. 44px top bar + daily / scratchpad tab archetypes (0.6 UX pass — Phase 2)
 
-**Status: implemented on `feat/ux-0.6`, not yet released.** The top bar
+**Status: implemented (v0.6.0).** The top bar
 goes to a steady **44px** and tabs become two visibly different kinds:
 
 - **Daily notes** — a small monochrome calendar icon (inline SVG,
@@ -3838,7 +3837,7 @@ ordering, overflow scrolling and keyboard nav are untouched.
 
 ## 104. Anchored mini calendar popover (0.6 UX pass — Phase 2)
 
-**Status: implemented on `feat/ux-0.6`, not yet released.** The date
+**Status: implemented (v0.6.0).** The date
 picker stops being a screen-centred modal with a text-query result list
 and becomes a compact **month-grid popover** anchored under the top-bar
 📅 trigger (`[data-datepicker-trigger]`, measured on mount;
@@ -3874,7 +3873,7 @@ updated. `svelte-check` (240), Vitest (204), Playwright (108),
 
 ## 105. Semantic colour-mode palette refresh (0.6 UX pass — Phase 3)
 
-**Status: implemented on `feat/ux-0.6`, not yet released.** `color` mode's
+**Status: implemented (v0.6.0).** `color` mode's
 glyph hues move to the reviews' semantic set (Marien's Q3 call — refresh
 the existing mode, no new flag):
 
@@ -3896,7 +3895,7 @@ follow automatically (they read the same `--glyph-*` vars).
 
 ## 106. Click a glyph to cycle its state + Ctrl/Cmd+Enter (0.6 UX pass — Phase 3)
 
-**Status: implemented on `feat/ux-0.6`, not yet released.**
+**Status: implemented (v0.6.0).**
 
 - **Click a glyph** — the four action-state glyphs (a standalone `# v > x`
   or the inner symbol of a `=> <symbol>` consequence-action) now advance
@@ -3921,7 +3920,7 @@ green.
 
 ## 107. Unified command palette — Ctrl/Cmd+K (0.6 UX pass — Phase 4)
 
-**Status: implemented on `feat/ux-0.6`, not yet released.** A fast-path
+**Status: implemented (v0.6.0).** A fast-path
 layer over everything that already has a shortcut and a drawer — nothing
 here is the *only* way to reach a feature.
 
@@ -3952,7 +3951,7 @@ Reuses the `.modal-*` styles — no new chrome. `ShortcutsModal` gains the
 
 ## 108. Non-modal in-document find bar — Ctrl/Cmd+F (0.6 UX pass — Phase 5)
 
-**Status: implemented on `feat/ux-0.6`, not yet released.** ChronoNote had
+**Status: implemented (v0.6.0).** ChronoNote had
 no in-document find at all (`Ctrl+Shift+F` is a *cross-tab results list*).
 Now `Ctrl/Cmd+F` opens a **floating bar docked top-right of the editor** —
 the editor stays fully scrollable and editable underneath, it's not a
@@ -3984,7 +3983,7 @@ Playwright (120), `cargo test` (42) green.
 
 ## 109. Section History gets a side-by-side preview (0.6 UX pass — Phase 5)
 
-**Status: implemented on `feat/ux-0.6`, not yet released.** The Section
+**Status: implemented (v0.6.0).** The Section
 History drawer (`Ctrl+Shift+H`) — which aggregates a recurring section's
 action lines across every dated note — used to let you `Shift+Enter` an
 entry into the current note blind. It now has a **right-hand preview
@@ -4008,17 +4007,14 @@ green.
 
 ---
 
-**Phase 5 done → the 0.6 UX pass is feature-complete on `feat/ux-0.6`
-(§99–§109).** Deferred within the pass: the Unicode → SVG glyph-shape
-redesign (§105 note) and folding the remaining informational toasts (they
-already route to the status bar's message slot). Ready to cut **v0.6.0**
-once reviewed.
+**The 0.6 UX pass (§99–§110) shipped as v0.6.0.** Deferred within the
+pass: the Unicode → SVG glyph-shape redesign (§105 note).
 
 ---
 
 ## 110. 0.6 review fixes + first round of visual feedback
 
-**Status: implemented on `feat/ux-0.6`, not yet released.** An 8-angle
+**Status: implemented (v0.6.0).** An 8-angle
 `/code-review` of the branch, plus Marien's notes from a live run of the
 dev build.
 
