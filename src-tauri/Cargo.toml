@@ -1,6 +1,6 @@
 [package]
 name = "chrononote"
-version = "0.5.1"
+version = "0.5.2"
 description = "ChronoNote - a minimalist plain-text daily notes and task editor"
 edition = "2021"
 license = "MIT"
@@ -25,6 +25,11 @@ tempfile = "3"
 dunce = "1"
 # SHA-256 content hashing for external-modification detection (§2 / §94).
 sha2 = "0.10"
+# Rust structs are the single source of truth for the Rust<->TS payload
+# shapes; a `cargo test` regenerates `src/lib/generated/tauri-types.ts`
+# from the `#[derive(TS)]` types (§98). Only the derive macro is used at
+# compile time; nothing ts-rs ships in the release binary.
+ts-rs = "12"
 
 [profile.release]
 panic = "abort"

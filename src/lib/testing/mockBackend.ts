@@ -28,7 +28,8 @@
  *   - the session file lives *inside* the notes dir and is never returned
  *     by `list_note_files` / `read_all_notes`.
  */
-import type { AppConfig, ColorMode, TabSession } from "../types";
+import type { AppConfig, ColorMode, FileMetadata, TabSession } from "../types";
+import type { CommandArgs, CommandReturn, TauriCommand, TauriCommands } from "../tauriCommands";
 
 export interface MockSeed {
   /** Path used as the active notes directory. Default `/notes`. */
@@ -90,7 +91,7 @@ async function sha256Hex(text: string): Promise<string> {
   return [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
-async function fileMetadata(content: string | undefined) {
+async function fileMetadata(content: string | undefined): Promise<FileMetadata> {
   if (content === undefined) {
     return { exists: false, contentHash: null, sizeBytes: null, modifiedMs: null };
   }
@@ -107,6 +108,17 @@ export interface InvokeLogEntry {
   args: unknown;
   at: number;
 }
+
+/** One handler per Tauri command, its args and resolved value both bound
+ * to the `TauriCommands` contract (the same one `tauriApi.ts` checks the
+ * real IPC wrapper against). Adding or reshaping a Rust command breaks
+ * `svelte-check` here until the mock is updated to match — so the mock
+ * can't silently drift from the backend. */
+type CommandHandlers = {
+  [K in keyof TauriCommands]: (
+    args: CommandArgs<K>,
+  ) => CommandReturn<K> | Promise<CommandReturn<K>>;
+};
 
 export class MockBackend {
   dirs = new Map<string, MockDir>();
@@ -313,99 +325,97 @@ export class MockBackend {
     return out;
   }
 
+  /** Every `#[tauri::command]` in `src-tauri/src/lib.rs`, one arrow each,
+   * type-checked against the `TauriCommands` contract. Plugin calls
+   * (`plugin:*`) are not commands and stay in `dispatch`'s switch. */
+  private readonly core: CommandHandlers = {
+    get_config: () => this.config(),
+
+    set_notes_dir: ({ path }) => {
+      if (path !== this.notesDir) {
+        pushRecentNotesDir(this.recentNotesDirs, this.notesDir, path);
+      }
+      this.notesDir = path;
+      this.dir(path); // materialise if brand-new
+      return this.config();
+    },
+
+    set_color_mode: ({ mode }) => {
+      this.colorMode = mode;
+      return this.config();
+    },
+
+    set_word_wrap: ({ enabled }) => {
+      this.wordWrap = enabled;
+      return this.config();
+    },
+
+    list_note_files: () => this.listFiles(),
+
+    read_note: ({ filename }) => {
+      if (!isValidNoteFilename(filename)) {
+        throw new Error(`Invalid note filename: ${filename}`);
+      }
+      return this.dir().notes.get(filename) ?? null;
+    },
+
+    write_note: async ({ filename, content, expectedHash }) => {
+      if (!isValidNoteFilename(filename)) {
+        throw new Error(`Invalid note filename: ${filename}`);
+      }
+      // §94: compare-and-swap when the caller passed the hash it last saw.
+      if (typeof expectedHash === "string") {
+        const current = this.dir().notes.get(filename);
+        const currentHash = current === undefined ? null : await sha256Hex(current);
+        if (currentHash !== expectedHash) {
+          throw new Error(`conflict: note changed on disk: ${filename}`);
+        }
+      }
+      this.dir().notes.set(filename, content);
+      return fileMetadata(content);
+    },
+
+    get_file_metadata: ({ filename }) => {
+      if (!isValidNoteFilename(filename)) throw new Error(`Invalid note filename: ${filename}`);
+      return fileMetadata(this.dir().notes.get(filename));
+    },
+
+    read_note_with_metadata: async ({ filename }) => {
+      if (!isValidNoteFilename(filename)) throw new Error(`Invalid note filename: ${filename}`);
+      const content = this.dir().notes.get(filename) ?? null;
+      return { content, metadata: await fileMetadata(content ?? undefined) };
+    },
+
+    write_conflict_copy: ({ name, content }) => {
+      if (!/^[A-Za-z0-9._-]+\.txt$/.test(name) || name.includes("..")) {
+        throw new Error(`Invalid conflict-copy filename: ${name}`);
+      }
+      this.dir().conflictCopies.set(name, content);
+      return `${this.notesDir}/${CONFLICTS_DIRNAME}/${name}`;
+    },
+
+    read_all_notes: () =>
+      this.listFiles().map((f) => [f, this.dir().notes.get(f) ?? ""] as [string, string]),
+
+    read_tab_session: () => this.dir().session,
+
+    write_tab_session: ({ openTabs, activeTab, lastOpenedDate }) => {
+      this.dir().session = {
+        openTabs: openTabs ?? [],
+        activeTab: activeTab ?? null,
+        lastOpenedDate: lastOpenedDate ?? null,
+      };
+    },
+
+    path_exists: ({ path }) => this.dirs.has(path),
+  };
+
   private async dispatch(cmd: string, args: Record<string, unknown>): Promise<unknown> {
+    if (Object.prototype.hasOwnProperty.call(this.core, cmd)) {
+      const handler = this.core[cmd as TauriCommand] as (a: unknown) => unknown;
+      return handler(args);
+    }
     switch (cmd) {
-      case "get_config":
-        return this.config();
-
-      case "set_notes_dir": {
-        const path = String(args.path);
-        if (path !== this.notesDir) {
-          pushRecentNotesDir(this.recentNotesDirs, this.notesDir, path);
-        }
-        this.notesDir = path;
-        this.dir(path); // materialise if brand-new
-        return this.config();
-      }
-
-      case "set_color_mode":
-        this.colorMode = args.mode === "color" ? "color" : "grayscale";
-        return this.config();
-
-      case "set_word_wrap":
-        this.wordWrap = !!args.enabled;
-        return this.config();
-
-      case "list_note_files":
-        return this.listFiles();
-
-      case "read_note": {
-        const filename = String(args.filename);
-        if (!isValidNoteFilename(filename)) {
-          throw new Error(`Invalid note filename: ${filename}`);
-        }
-        return this.dir().notes.get(filename) ?? null;
-      }
-
-      case "write_note": {
-        const filename = String(args.filename);
-        if (!isValidNoteFilename(filename)) {
-          throw new Error(`Invalid note filename: ${filename}`);
-        }
-        const content = String(args.content);
-        // §94: compare-and-swap when the caller passed the hash it last saw.
-        const expected = args.expectedHash;
-        if (typeof expected === "string") {
-          const current = this.dir().notes.get(filename);
-          const currentHash = current === undefined ? null : await sha256Hex(current);
-          if (currentHash !== expected) {
-            throw new Error(`conflict: note changed on disk: ${filename}`);
-          }
-        }
-        this.dir().notes.set(filename, content);
-        return fileMetadata(content);
-      }
-
-      case "get_file_metadata": {
-        const filename = String(args.filename);
-        if (!isValidNoteFilename(filename)) throw new Error(`Invalid note filename: ${filename}`);
-        return fileMetadata(this.dir().notes.get(filename));
-      }
-
-      case "read_note_with_metadata": {
-        const filename = String(args.filename);
-        if (!isValidNoteFilename(filename)) throw new Error(`Invalid note filename: ${filename}`);
-        const content = this.dir().notes.get(filename) ?? null;
-        return { content, metadata: await fileMetadata(content ?? undefined) };
-      }
-
-      case "write_conflict_copy": {
-        const name = String(args.name);
-        if (!/^[A-Za-z0-9._-]+\.txt$/.test(name) || name.includes("..")) {
-          throw new Error(`Invalid conflict-copy filename: ${name}`);
-        }
-        this.dir().conflictCopies.set(name, String(args.content));
-        return `${this.notesDir}/${CONFLICTS_DIRNAME}/${name}`;
-      }
-
-      case "read_all_notes":
-        return this.listFiles().map((f) => [f, this.dir().notes.get(f) ?? ""] as [string, string]);
-
-      case "read_tab_session":
-        return this.dir().session;
-
-      case "write_tab_session": {
-        this.dir().session = {
-          openTabs: (args.openTabs as string[]) ?? [],
-          activeTab: (args.activeTab as string | null) ?? null,
-          lastOpenedDate: (args.lastOpenedDate as string | null) ?? null,
-        };
-        return null;
-      }
-
-      case "path_exists":
-        return this.dirs.has(String(args.path));
-
       // --- plugins the frontend pulls in ---
       case "plugin:app|version":
         return this.appVersion;

@@ -25,7 +25,7 @@ fn path_exists(path: String) -> bool {
 }
 
 #[tauri::command]
-fn set_color_mode(app: AppHandle, mode: String) -> Result<storage::AppConfig, String> {
+fn set_color_mode(app: AppHandle, mode: storage::ColorMode) -> Result<storage::AppConfig, String> {
     let mut cfg = storage::load_config(&app)?;
     cfg.color_mode = mode;
     storage::save_config(&app, &cfg)?;
