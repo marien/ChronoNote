@@ -13,6 +13,10 @@ Cadence: **one v0.6.0** cut after every phase lands and is reviewed
 together (Marien's call — matches v0.5.0). Work accumulates on
 `feat/ux-0.6`.
 
+**STATUS 2026-09-10: all five phases feature-complete on `feat/ux-0.6`
+(§99–§109). Awaiting Marien's review, then cut v0.6.0.** Palette pick was
+**B** (§102).
+
 ---
 
 ## Corrections to the source reviews
@@ -96,12 +100,12 @@ Each phase = its own PR, CI green, browser-pane walkthrough. All land on
   Prefix routing `> ! # @ ?`, fuzzy subsequence match, grouped results,
   keyboard nav. Reuses the modal system. All existing shortcuts stay.
 
-### Phase 5 — Search & section preview  (◐ find done)
+### Phase 5 — Search & section preview  ✅ DONE
 
 - ☑ §108 — floating in-document find bar, Ctrl/Cmd+F. `@codemirror/search`
   for nav + counting; custom compartment highlighter; editor stays live.
-- ☐ Side-by-side preview for **Section History** — selected section text +
-  where it lands in the active note, before confirming.
+- ☑ §109 — Section History right-hand preview: source context, exact
+  insert text (`>`→`#` applied), and the cursor target in the active note.
 
 ---
 

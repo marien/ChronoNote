@@ -1,5 +1,14 @@
 import { test, expect, type Page } from "@playwright/test";
-import { seedApp, editor, setEditorText, modalCard, MODAL_LABELS, activeTabLabel, currentModal } from "./helpers";
+import {
+  seedApp,
+  editor,
+  setEditorText,
+  modalCard,
+  MODAL_LABELS,
+  activeTabLabel,
+  currentModal,
+  todayFilename,
+} from "./helpers";
 
 const search = (page: Page) => modalCard(page, MODAL_LABELS.search);
 const history = (page: Page) => modalCard(page, MODAL_LABELS.history);
@@ -71,10 +80,39 @@ test.describe("section history (Ctrl+Shift+H)", () => {
     // Title (in the readonly input) names the section being aggregated.
     await expect(history(page).locator(".modal-input")).toHaveValue(/Weekly Planning/);
     // "renew the TLS cert" appears in all three days but dedupes to one row.
-    await expect(history(page).getByText("renew the TLS cert")).toHaveCount(1);
+    const list = history(page).locator(".modal-list");
+    await expect(list.getByText("renew the TLS cert")).toHaveCount(1);
     // The other, distinct lines from earlier days are listed.
-    await expect(history(page)).toContainText("shipped the docs");
-    await expect(history(page)).toContainText("defer the audit");
+    await expect(list).toContainText("shipped the docs");
+    await expect(list).toContainText("defer the audit");
+  });
+
+  test("the preview pane shows the source context, insert text and target (§109)", async ({ page }) => {
+    await seedApp(page, {
+      seed: {
+        notes: {
+          [todayFilename()]: "Standup\n====\nnothing here yet",
+          "2026-09-05.txt": "Standup\n====\n> chase the flaky test\nplain follow-up line",
+        },
+      },
+    });
+    await editor(page).click();
+    await page.keyboard.press("Control+Home");
+    await page.keyboard.press("ArrowDown"); // into the "Standup" section
+    await page.keyboard.press("Control+Shift+H");
+
+    const preview = history(page).locator(".history-preview");
+    await expect(preview).toBeVisible();
+
+    // hover the deferred action from the older note to select it (a click
+    // would jump to the source file instead)
+    await history(page).locator('.modal-item[role="option"]', { hasText: "chase the flaky test" }).hover();
+
+    await expect(preview).toContainText("From 2026-09-05.txt");
+    await expect(preview.locator(".hp-context")).toContainText("chase the flaky test");
+    // Shift+Enter rewrites a deferred `>` as a fresh open `#`
+    await expect(preview.locator(".hp-insert")).toHaveText("# chase the flaky test");
+    await expect(preview).toContainText(todayFilename());
   });
 
   test("cursor outside any named section shows a toast, no drawer", async ({ page }) => {

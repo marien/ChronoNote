@@ -3977,3 +3977,37 @@ modal.
 `ShortcutsModal` + prod bundle (+31 kB for `@codemirror/search`). 4 new
 `find-bar.spec.ts` e2e cases. `svelte-check` (244), Vitest (204),
 Playwright (120), `cargo test` (42) green.
+
+---
+
+## 109. Section History gets a side-by-side preview (0.6 UX pass — Phase 5)
+
+**Status: implemented on `feat/ux-0.6`, not yet released.** The Section
+History drawer (`Ctrl+Shift+H`) — which aggregates a recurring section's
+action lines across every dated note — used to let you `Shift+Enter` an
+entry into the current note blind. It now has a **right-hand preview
+column** (card widened to 880px) that updates as you arrow/hover through
+the list:
+
+- **From `<file>`** — the entry in its source context (two lines either
+  side; the matched line bolded).
+- **Shift+Enter inserts** — exactly the text that will be inserted, with
+  the `> ` → `# ` "deferred becomes a fresh open action" rewrite already
+  applied, plus a one-line note when that rewrite happens.
+- **Target** — `→ at your cursor in <active note> (line N)`.
+
+Pure presentation over the existing `importHistoricalItem` flow — reads
+`allNotesCache` (already populated) and `editorApi.getCursorLineIdx()`.
+`HistoryModal.svelte` + `app.css` (`.history-body` / `.history-preview` /
+`.hp-*`). 1 new `search-and-history.spec.ts` case; 3 list assertions
+scoped to `.modal-list` now that entry text also appears in the preview.
+`svelte-check` (244), Vitest (204), Playwright (121), `cargo test` (42)
+green.
+
+---
+
+**Phase 5 done → the 0.6 UX pass is feature-complete on `feat/ux-0.6`
+(§99–§109).** Deferred within the pass: the Unicode → SVG glyph-shape
+redesign (§105 note) and folding the remaining informational toasts (they
+already route to the status bar's message slot). Ready to cut **v0.6.0**
+once reviewed.

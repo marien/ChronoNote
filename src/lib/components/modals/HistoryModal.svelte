@@ -2,7 +2,7 @@
   import { onMount } from "svelte";
   import * as controller from "../../controller";
   import { focusTrap } from "../../actions/focusTrap";
-  import { activeTabId, historyItems, historyTargetHeader, tabs } from "../../controller";
+  import { allNotesCache, activeTabId, editorApi, historyItems, historyTargetHeader, tabs } from "../../controller";
   import { closeOnOutsideClick } from "../../actions/closeOnOutsideClick";
   import { innermostActionSymbol, stripLeadingToken } from "../../tokens";
   import type { HistoryItem } from "../../types";
@@ -129,6 +129,33 @@
     return { char: "➔", style: "color:var(--glyph-followup-color); font-weight:var(--glyph-followup-weight);" };
   }
 
+  // §109: the right-hand preview for whatever entry is selected — the
+  // source context it comes from, exactly what Shift+Enter will insert,
+  // and where it lands in the active note.
+  $: selectedItem = flatList[selectedIndex] as IndexedItem | undefined;
+  $: activeTab = $tabs.find((t) => t.id === $activeTabId);
+  $: insertText = selectedItem
+    ? selectedItem.line.startsWith("> ")
+      ? "# " + selectedItem.line.slice(2)
+      : selectedItem.line
+    : "";
+  $: preview = (() => {
+    if (!selectedItem) return null;
+    const src = $allNotesCache[selectedItem.filename];
+    if (src === undefined) return { context: [] as { n: number; text: string; hit: boolean }[] };
+    const lines = src.split("\n");
+    const from = Math.max(0, selectedItem.lineIdx - 2);
+    const to = Math.min(lines.length, selectedItem.lineIdx + 3);
+    return {
+      context: lines.slice(from, to).map((text, i) => ({
+        n: from + i + 1,
+        text,
+        hit: from + i === selectedItem.lineIdx,
+      })),
+    };
+  })();
+  $: cursorLineNo = (editorApi?.getCursorLineIdx() ?? 0) + 1;
+
   function onKeydown(e: KeyboardEvent) {
     if (e.key === "ArrowDown") {
       e.preventDefault();
@@ -153,7 +180,14 @@
 </script>
 
 <div class="overlay" role="presentation" use:closeOnOutsideClick={controller.closeAllModals}>
-  <div class="modal-card" role="dialog" aria-modal="true" use:focusTrap aria-label="Section history">
+  <div
+    class="modal-card"
+    role="dialog"
+    aria-modal="true"
+    use:focusTrap
+    aria-label="Section history"
+    style="width: 880px;"
+  >
     <div class="modal-input-wrap">
       <span>🕒</span>
       <input
@@ -166,13 +200,14 @@
       />
       <span class="modal-counter">{flatList.length} entries</span>
     </div>
+    <div class="history-body">
     <div
       class="modal-list"
       role="listbox"
       bind:this={listEl}
       bind:clientHeight={viewportHeight}
       on:scroll={onScroll}
-      style="position: relative; overflow-y: auto;"
+      style="position: relative; overflow-y: auto; flex: 1;"
     >
       {#if flatList.length === 0}
         <div style="padding: 16px; opacity: 0.6;">No prior occurrences found across open or closed notes.</div>
@@ -212,6 +247,33 @@
         {/each}
       </div>
     </div>
+
+    <aside class="history-preview" aria-label="Preview">
+      {#if selectedItem && preview}
+        <div class="hp-section">
+          <div class="hp-label">From {selectedItem.filename}</div>
+          <pre class="hp-context">{#each preview.context as l}<span class:hp-hit={l.hit}>{String(l.n).padStart(3)}  {l.text || " "}
+</span>{/each}</pre>
+        </div>
+        <div class="hp-section">
+          <div class="hp-label">Shift+Enter inserts</div>
+          <pre class="hp-insert">{insertText}</pre>
+          {#if selectedItem.line.startsWith("> ")}
+            <div class="hp-note">Deferred <kbd>&gt;</kbd> becomes a fresh open <kbd>#</kbd> in this note.</div>
+          {/if}
+        </div>
+        <div class="hp-section">
+          <div class="hp-label">Target</div>
+          <div class="hp-target">
+            → at your cursor in <strong>{activeTab?.filename ?? "the active note"}</strong> (line {cursorLineNo})
+          </div>
+        </div>
+      {:else}
+        <div class="hp-empty">Select an entry to preview it.</div>
+      {/if}
+    </aside>
+    </div>
+
     <div class="modal-footer">
       <div><kbd>Enter</kbd> Jump to source file &nbsp;|&nbsp; <kbd>Shift+Enter</kbd> Import action into note</div>
       <div><kbd>Esc</kbd> Close</div>
