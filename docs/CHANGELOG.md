@@ -3914,3 +3914,34 @@ Selection and undo/redo are preserved (a plain single CM transaction).
 `ShortcutsModal` updated. 2 new `editor-tokens.spec.ts` cases.
 `svelte-check` (240), Vitest (204), Playwright (110), `cargo test` (42)
 green.
+
+---
+
+## 107. Unified command palette — Ctrl/Cmd+K (0.6 UX pass — Phase 4)
+
+**Status: implemented on `feat/ux-0.6`, not yet released.** A fast-path
+layer over everything that already has a shortcut and a drawer — nothing
+here is the *only* way to reach a feature.
+
+New `src/lib/commandPalette.ts` (in the `controller` facade) +
+`CommandPaletteModal.svelte` + `modal` kind `commandPalette`, bound to
+**Ctrl/Cmd+K** in `App.svelte`. Query prefixes route the results:
+
+| prefix | shows |
+| --- | --- |
+| *(none)* | fuzzy-matched commands **+ open-tab titles** |
+| `>` | application commands only (settings toggles, drawers, tab ops) |
+| `!` or `#` | open-action lines across every daily note → jump to the line |
+| `@` | the `parseDateQuery` grammar (`today`, `-2`, `2026-09-05`) + existing dated notes → open that note |
+| `?` | hands off to the keyboard-shortcuts drawer |
+
+Subsequence fuzzy matching; results carry a group header
+(Commands / Settings / Help / Open tabs / Open actions / Dates). Arrow
+keys + Enter, `Esc` / outside-click close (via the shared `focusTrap` /
+`closeOnOutsideClick`), then §101 returns focus to the editor. The
+`!`/`@` modes refresh the notes cache on demand; a `seq` guard drops
+stale async result sets when you keep typing.
+
+Reuses the `.modal-*` styles — no new chrome. `ShortcutsModal` gains the
+`Ctrl+K` row. 6 new `command-palette.spec.ts` e2e cases. `svelte-check`
+(242), Vitest (204), Playwright (116), `cargo test` (42) green.

@@ -187,6 +187,7 @@ export const MODAL_LABELS = {
   about: "About ChronoNote",
   unsavedScratchpads: "Unsaved scratchpad content",
   conflict: "Note changed on disk",
+  commandPalette: "Command palette",
 } as const;
 
 export type ModalKey = keyof typeof MODAL_LABELS;

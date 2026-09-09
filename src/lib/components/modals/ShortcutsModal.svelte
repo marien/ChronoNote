@@ -5,6 +5,7 @@
   import { focusScrollableList } from "../../actions/focusScrollableList";
 
   const shortcuts: [string, string][] = [
+    ["Ctrl+K", "Command palette — run any command, jump to a tab, date or action"],
     ["Ctrl+N / Ctrl+T", "New scratchpad"],
     ["Ctrl+Shift+T / Ctrl+Shift+N", "Reopen most recently closed tab"],
     ["Ctrl+O", "Open/create a dated note"],

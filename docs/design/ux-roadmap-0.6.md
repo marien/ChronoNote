@@ -90,12 +90,11 @@ Each phase = its own PR, CI green, browser-pane walkthrough. All land on
   3 layout specs, and "1px off" needs Marien's eyes on the real Windows
   app. Worth doing, but as its own reviewed change, not bundled here.
 
-### Phase 4 — Command palette (Ctrl+K)
+### Phase 4 — Command palette (Ctrl+K)  ✅ DONE
 
-- ☐ New `CommandPaletteModal.svelte` + `modal` kind + `App.svelte`
-  binding. Prefix routing: default = commands + open-tab titles;
-  `>` app commands; `!`/`#` open actions across notes; `@` dates;
-  `?` shortcut cheat-sheet. All existing shortcuts/drawers stay.
+- ☑ §107 — `commandPalette.ts` + `CommandPaletteModal.svelte`, Ctrl/Cmd+K.
+  Prefix routing `> ! # @ ?`, fuzzy subsequence match, grouped results,
+  keyboard nav. Reuses the modal system. All existing shortcuts stay.
 
 ### Phase 5 — Search & section preview
 

@@ -18,6 +18,7 @@
   import AboutModal from "./lib/components/modals/AboutModal.svelte";
   import UnsavedScratchpadsModal from "./lib/components/modals/UnsavedScratchpadsModal.svelte";
   import ConflictModal from "./lib/components/modals/ConflictModal.svelte";
+  import CommandPaletteModal from "./lib/components/modals/CommandPaletteModal.svelte";
 
   let ready = false;
   let bootError = "";
@@ -50,7 +51,10 @@
         else controller.closeAllModals();
         return;
       }
-      if (e.ctrlKey && !e.shiftKey && (e.code === "KeyN" || e.code === "KeyT")) {
+      if ((e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey && e.code === "KeyK") {
+        e.preventDefault();
+        controller.openCommandPalette();
+      } else if (e.ctrlKey && !e.shiftKey && (e.code === "KeyN" || e.code === "KeyT")) {
         e.preventDefault();
         controller.createScratchpad();
       } else if (e.ctrlKey && !e.shiftKey && e.code === "KeyO") {
@@ -133,6 +137,8 @@
     <UnsavedScratchpadsModal />
   {:else if $modal === "conflict"}
     <ConflictModal />
+  {:else if $modal === "commandPalette"}
+    <CommandPaletteModal />
   {/if}
 {:else if bootError}
   <div class="boot-loading" role="alert">

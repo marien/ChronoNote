@@ -21,7 +21,8 @@ export type ModalKind =
   | "glyphLegend"
   | "about"
   | "unsavedScratchpads"
-  | "conflict";
+  | "conflict"
+  | "commandPalette";
 
 export const tabs = writable<NoteTab[]>([]);
 export const activeTabId = writable<string>("");
