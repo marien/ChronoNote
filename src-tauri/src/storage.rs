@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 use std::fs;
-use std::path::{Path, PathBuf};
+use std::io::Write;
+use std::path::{Component, Path, PathBuf};
 use tauri::{AppHandle, Manager};
 
 /// Persisted app configuration. Lives outside the notes folder, in the
@@ -56,6 +57,116 @@ fn default_notes_dir(app: &AppHandle) -> Result<PathBuf, String> {
 // `document_dir` — which isn't something a plain `#[test]` can fake without
 // either this split or standing up a full mock app pointed at a temp HOME).
 
+// --- Durable, confined disk writes (§1) ----------------------------------
+
+/// Errors from the workspace-confinement guard. The rest of this module
+/// still surfaces failures as `String` (mapped at the Tauri-command
+/// boundary); this dedicated type exists only where a caller or test
+/// needs to tell "the requested path would escape the workspace" apart
+/// from an ordinary I/O failure.
+#[derive(Debug)]
+enum StorageError {
+    /// The resolved path lies outside the canonical workspace root —
+    /// `..` traversal, an absolute override, or a symlink pointing out.
+    PathEscapesWorkspace,
+    Io(std::io::Error),
+}
+
+impl std::fmt::Display for StorageError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            StorageError::PathEscapesWorkspace => write!(f, "path escapes the workspace root"),
+            StorageError::Io(e) => write!(f, "{e}"),
+        }
+    }
+}
+
+impl From<std::io::Error> for StorageError {
+    fn from(e: std::io::Error) -> Self {
+        StorageError::Io(e)
+    }
+}
+
+impl From<StorageError> for String {
+    fn from(e: StorageError) -> Self {
+        e.to_string()
+    }
+}
+
+/// Resolve `rel` against `workspace` and guarantee the result stays
+/// inside it, following symlinks (§1.1). `..` components, absolute
+/// paths, and symlinks that escape the tree all fail with
+/// `StorageError::PathEscapesWorkspace`. Daily-note filenames are already
+/// shape-checked by `is_valid_note_filename` before any join reaches
+/// here, so in practice this is defense-in-depth on the workspace root
+/// itself — but it's the single chokepoint every note write now passes
+/// through.
+fn resolve_workspace_path(workspace: &Path, rel: &Path) -> Result<PathBuf, StorageError> {
+    // Canonicalize the root so the containment check compares like with
+    // like. `dunce` keeps Windows paths as `C:\…` rather than the `\\?\`
+    // verbatim form `std::fs::canonicalize` yields, which `starts_with`
+    // wouldn't match against a plain root.
+    let canonical_root = dunce::canonicalize(workspace)?;
+
+    // Rebuild the path one component at a time, refusing anything that
+    // could climb out lexically before we ever touch the filesystem.
+    let mut resolved = canonical_root.clone();
+    for comp in rel.components() {
+        match comp {
+            Component::Normal(c) => resolved.push(c),
+            Component::CurDir => {}
+            Component::ParentDir | Component::RootDir | Component::Prefix(_) => {
+                return Err(StorageError::PathEscapesWorkspace);
+            }
+        }
+    }
+
+    // Then defeat symlinks: canonicalize the target (or, if it doesn't
+    // exist yet, its containing directory) and confirm it's still under
+    // the root.
+    let anchor = match dunce::canonicalize(&resolved) {
+        Ok(p) => p,
+        Err(_) => match resolved.parent() {
+            Some(parent) => dunce::canonicalize(parent).unwrap_or_else(|_| resolved.clone()),
+            None => resolved.clone(),
+        },
+    };
+    if anchor.starts_with(&canonical_root) {
+        Ok(resolved)
+    } else {
+        Err(StorageError::PathEscapesWorkspace)
+    }
+}
+
+/// Crash-atomic, durable file write (§1.2). Streams `contents` into a
+/// sibling temp file in the *same* directory (so the commit is a
+/// same-filesystem rename), forces it to physical media with `sync_all`,
+/// then atomically renames it over `path`. A crash at any point leaves
+/// either the complete old file or the complete new one — never the
+/// truncated or zero-byte note `fs::write` can produce when it dies
+/// mid-stream. `NamedTempFile` unlinks itself on drop, so a failure
+/// before the rename leaves nothing behind.
+fn atomic_write(path: &Path, contents: &[u8]) -> std::io::Result<()> {
+    let dir = path.parent().unwrap_or_else(|| Path::new("."));
+    fs::create_dir_all(dir)?;
+    let mut tmp = tempfile::Builder::new()
+        .prefix(".chrono-")
+        .suffix(".tmp")
+        .tempfile_in(dir)?;
+    tmp.write_all(contents)?;
+    tmp.as_file().sync_all()?;
+    tmp.persist(path).map_err(|e| e.error)?;
+    // Directory-entry durability: on Unix the rename isn't guaranteed
+    // persisted until the containing directory is fsynced too. Opening a
+    // directory for `sync_all` is a no-op / unsupported on Windows, where
+    // `MoveFileEx` already commits the metadata.
+    #[cfg(unix)]
+    if let Ok(dir_handle) = fs::File::open(dir) {
+        let _ = dir_handle.sync_all();
+    }
+    Ok(())
+}
+
 fn load_config_at(path: &Path, default_notes_dir: &Path) -> Result<AppConfig, String> {
     if path.exists() {
         let raw = fs::read_to_string(path).map_err(|e| e.to_string())?;
@@ -74,7 +185,7 @@ fn load_config_at(path: &Path, default_notes_dir: &Path) -> Result<AppConfig, St
 
 fn save_config_at(path: &Path, cfg: &AppConfig) -> Result<(), String> {
     let raw = serde_json::to_string_pretty(cfg).map_err(|e| e.to_string())?;
-    fs::write(path, raw).map_err(|e| e.to_string())
+    atomic_write(path, raw.as_bytes()).map_err(|e| e.to_string())
 }
 
 /// Records `old_path` (the folder just switched away from) into the
@@ -135,7 +246,8 @@ fn write_note_at(root: &Path, filename: &str, content: &str) -> Result<(), Strin
         return Err(format!("Invalid note filename: {filename}"));
     }
     fs::create_dir_all(root).map_err(|e| e.to_string())?;
-    fs::write(root.join(filename), content).map_err(|e| e.to_string())
+    let target = resolve_workspace_path(root, Path::new(filename)).map_err(String::from)?;
+    atomic_write(&target, content.as_bytes()).map_err(|e| e.to_string())
 }
 
 fn read_all_notes_at(root: &Path) -> Result<Vec<(String, String)>, String> {
@@ -185,7 +297,7 @@ fn read_tab_session_at(root: &Path) -> Result<Option<TabSession>, String> {
 fn write_tab_session_at(root: &Path, session: &TabSession) -> Result<(), String> {
     fs::create_dir_all(root).map_err(|e| e.to_string())?;
     let raw = serde_json::to_string_pretty(session).map_err(|e| e.to_string())?;
-    fs::write(root.join(SESSION_FILENAME), raw).map_err(|e| e.to_string())
+    atomic_write(&root.join(SESSION_FILENAME), raw.as_bytes()).map_err(|e| e.to_string())
 }
 
 // --- Public, Tauri-command-facing functions --------------------------------
@@ -410,6 +522,115 @@ mod tests {
                 ("2026-09-02.txt".to_string(), "second".to_string()),
             ]
         );
+    }
+
+    // --- atomic_write (§1.2) ---
+
+    #[test]
+    fn atomic_write_creates_and_reads_back() {
+        let dir = tempdir().unwrap();
+        let path = dir.path().join("2026-09-07.txt");
+        atomic_write(&path, b"hello").unwrap();
+        assert_eq!(fs::read_to_string(&path).unwrap(), "hello");
+    }
+
+    #[test]
+    fn atomic_write_replaces_existing_content_in_place() {
+        let dir = tempdir().unwrap();
+        let path = dir.path().join("2026-09-07.txt");
+        atomic_write(&path, b"first").unwrap();
+        atomic_write(&path, b"second").unwrap();
+        assert_eq!(fs::read_to_string(&path).unwrap(), "second");
+    }
+
+    #[test]
+    fn atomic_write_leaves_no_temp_files_behind() {
+        let dir = tempdir().unwrap();
+        atomic_write(&dir.path().join("2026-09-07.txt"), b"x").unwrap();
+        let leftovers: Vec<String> = fs::read_dir(dir.path())
+            .unwrap()
+            .filter_map(|e| e.ok())
+            .map(|e| e.file_name().to_string_lossy().into_owned())
+            .filter(|n| n != "2026-09-07.txt")
+            .collect();
+        assert!(leftovers.is_empty(), "unexpected files left behind: {leftovers:?}");
+    }
+
+    #[test]
+    fn rapid_consecutive_writes_land_the_last_value() {
+        let dir = tempdir().unwrap();
+        let path = dir.path().join("2026-09-07.txt");
+        for i in 0..50 {
+            atomic_write(&path, format!("rev {i}").as_bytes()).unwrap();
+        }
+        assert_eq!(fs::read_to_string(&path).unwrap(), "rev 49");
+    }
+
+    #[test]
+    fn write_note_at_round_trips_through_the_atomic_path() {
+        let dir = tempdir().unwrap();
+        write_note_at(dir.path(), "2026-09-07.txt", "content").unwrap();
+        write_note_at(dir.path(), "2026-09-07.txt", "updated").unwrap();
+        assert_eq!(
+            read_note_at(dir.path(), "2026-09-07.txt").unwrap(),
+            Some("updated".to_string()),
+        );
+        // No stray temp files in the notes dir after repeated writes.
+        let names: Vec<String> = fs::read_dir(dir.path())
+            .unwrap()
+            .filter_map(|e| e.ok())
+            .map(|e| e.file_name().to_string_lossy().into_owned())
+            .collect();
+        assert_eq!(names, vec!["2026-09-07.txt"]);
+    }
+
+    // --- resolve_workspace_path (§1.1) ---
+
+    #[test]
+    fn resolve_workspace_path_allows_a_direct_child() {
+        let dir = tempdir().unwrap();
+        let resolved = resolve_workspace_path(dir.path(), Path::new("2026-09-07.txt")).unwrap();
+        assert!(resolved.starts_with(dunce::canonicalize(dir.path()).unwrap()));
+        assert!(resolved.ends_with("2026-09-07.txt"));
+    }
+
+    #[test]
+    fn resolve_workspace_path_rejects_parent_traversal() {
+        let dir = tempdir().unwrap();
+        assert!(matches!(
+            resolve_workspace_path(dir.path(), Path::new("../outside.txt")),
+            Err(StorageError::PathEscapesWorkspace),
+        ));
+        assert!(matches!(
+            resolve_workspace_path(dir.path(), Path::new("sub/../../outside.txt")),
+            Err(StorageError::PathEscapesWorkspace),
+        ));
+    }
+
+    #[test]
+    fn resolve_workspace_path_rejects_an_absolute_path() {
+        let dir = tempdir().unwrap();
+        #[cfg(windows)]
+        let abs = Path::new(r"C:\Windows\System32\drivers\etc\hosts");
+        #[cfg(unix)]
+        let abs = Path::new("/etc/passwd");
+        assert!(matches!(
+            resolve_workspace_path(dir.path(), abs),
+            Err(StorageError::PathEscapesWorkspace),
+        ));
+    }
+
+    #[test]
+    #[cfg(unix)]
+    fn resolve_workspace_path_rejects_a_symlink_that_escapes() {
+        use std::os::unix::fs::symlink;
+        let workspace = tempdir().unwrap();
+        let outside = tempdir().unwrap();
+        symlink(outside.path(), workspace.path().join("link")).unwrap();
+        assert!(matches!(
+            resolve_workspace_path(workspace.path(), Path::new("link/x.txt")),
+            Err(StorageError::PathEscapesWorkspace),
+        ));
     }
 
     // --- tab session ---

@@ -469,6 +469,7 @@ dependencies = [
 name = "chrononote"
 version = "0.4.5"
 dependencies = [
+ "dunce",
  "serde",
  "serde_json",
  "tauri",

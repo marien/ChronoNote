@@ -6,7 +6,7 @@ kept for the rationale behind each one — not just *what* changed but
 was still being gathered and confirmed before implementation; renamed once
 everything below was applied, since nothing here is "pending" anymore.
 
-**Status: all sections through §91 implemented, released, and on `main`**, each
+**Status: all sections through §92 implemented, released, and on `main`**, each
 verified before merge (`svelte-check`, the Vitest suite, `cargo test`,
 and — from §77 on — the Playwright E2E suite, all green in CI). See each
 section for what it covers and why. §27–31 were small fixes logged
@@ -15,7 +15,7 @@ here; everything from §32 on was written directly.
 
 Which sections shipped in which release: §1–55 → v0.2.0, §56–59 → v0.2.1,
 §60–74 → v0.3.0, §75–81 → v0.4.0, §82–83 → v0.4.1, §84–85 → v0.4.2,
-§86–87 → v0.4.3, §88–89 → v0.4.4, §90–91 → v0.4.5.
+§86–87 → v0.4.3, §88–89 → v0.4.4, §90–91 → v0.4.5, §92 → v0.4.6.
 
 ---
 
@@ -3392,3 +3392,42 @@ Covered by `controller.test.ts` (`initApp`): first-open-of-day forces
 today, first-launch-after-install forces today, same-day reopen restores
 the last active tab, and the session is stamped with today's date on
 boot. `storage.rs` round-trip test extended for the new field.
+
+---
+
+## 92. Crash-atomic, workspace-confined disk writes (hardening §1)
+
+**Status: implemented.** First slice of the hardening roadmap
+(`docs/design/hardening-roadmap.md`, reconciled from an external review).
+Storage-layer only — no frontend or IPC change, behaviour identical to
+every caller.
+
+**Atomic writes (§1.2).** `write_note_at`, `save_config_at` and
+`write_tab_session_at` all went through `std::fs::write`, which truncates
+the target *then* streams bytes — a crash, freeze, or `ENOSPC` mid-write
+left a truncated or zero-byte note. New `atomic_write(path, bytes)` in
+`storage.rs`: stream into a sibling temp file in the same directory (via
+the `tempfile` crate — promoted dev→prod dependency), `sync_all()` to
+force data + metadata to physical media, then `persist()` — an atomic
+rename that replaces the target. On Unix the containing directory is
+`sync_all()`'d too so the rename itself is durable. A crash at any point
+leaves either the complete old file or the complete new one. The
+`NamedTempFile` unlinks itself on drop, so a failure before the rename
+leaves nothing behind (caveat: a *panic* — not a normal `Err` — under
+release's `panic = "abort"` skips the drop, leaving one `.chrono-*.tmp`
+in the notes dir; harmless, and `is_valid_note_filename` keeps it out of
+every listing).
+
+**Workspace confinement (§1.1).** New `resolve_workspace_path(workspace,
+rel)` — rejects `..`, absolute paths and path prefixes lexically, then
+`dunce::canonicalize`s (Windows-friendly, no `\\?\`) to catch symlinks
+that escape the tree, returning `StorageError::PathEscapesWorkspace`.
+Every note write now passes through it. `is_valid_note_filename` already
+shape-checks daily filenames before any join, so in practice this is
+defense-in-depth on the workspace root — but it's now a single
+chokepoint.
+
+Deps added: `tempfile` (dev→prod), `dunce`. Eight new `storage.rs` tests:
+round-trip, replace-in-place, no-temp-litter, 50 rapid writes land the
+last value, and `resolve_workspace_path` rejecting parent / absolute /
+(Unix) symlink escapes while allowing direct children.
