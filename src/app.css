@@ -1,16 +1,26 @@
 :root {
-  --bg: #1e1e1e;
-  --tab-bg: #252526;
-  --tab-active: #1e1e1e;
+  /* ── Surface elevation (§102) ──────────────────────────────────────
+     Four tiers so depth reads by tone, not by a border alone. Option B
+     from the 0.6 surface study: the existing VS-Code charcoal family,
+     just given real steps. */
+  --surface-canvas: #1e1e1e; /* editor canvas */
+  --surface-chrome: #252526; /* top bar · tab strip · status bar */
+  --surface-overlay: #2d2d2e; /* modals · popovers · drawers */
+  --surface-raised: #37373b; /* hovered rows · inputs · chips · active controls */
+
+  --edge-soft: rgba(255, 255, 255, 0.07); /* internal divisions */
+  --edge-strong: rgba(255, 255, 255, 0.13); /* overlay & input outlines */
+
+  /* Semantic status — deliberately NOT the accent hue, and stable across
+     the colour/grayscale toggle (status *is* chrome, not content). */
+  --state-ok: #4bbf87;
+  --state-warn: #d8a24a;
+  --state-error: #d66b63;
+
   --text: #d4d4d4;
   --muted: #858585;
-  --border: #333333;
   --selected-bg: #4a4a4a;
   --selected-fg: #ffffff;
-  /* Deliberately not themed by the color/grayscale toggle below (like
-     `--editor-selection-bg`) — the status bar reads as chrome, not
-     content, and stays neutral either way. Its background is `--tab-bg`
-     itself (see `#status-bar`), matching the top bar. */
   --status-fg: #f0f0f0;
   --highlight: rgba(255, 255, 255, 0.25);
   --tab-active-border: var(--text);
@@ -21,6 +31,12 @@
      color the way status-driven tokens do. */
   --editor-selection-bg: #454952;
   --font: "Cascadia Code", "JetBrains Mono", "Consolas", monospace;
+
+  /* Back-compat aliases — a lot of rules still read these names. */
+  --bg: var(--surface-canvas);
+  --tab-bg: var(--surface-chrome);
+  --tab-active: var(--surface-canvas);
+  --border: var(--edge-soft);
 
   /* Grayscale glyph theme: distinguished by weight/opacity, not hue. */
   --glyph-open-color: var(--text);
@@ -42,12 +58,18 @@
 
 @media (prefers-color-scheme: light) {
   :root {
-    --bg: #ffffff;
-    --tab-bg: #f3f3f3;
-    --tab-active: #ffffff;
+    --surface-canvas: #ffffff;
+    --surface-chrome: #f3f3f3;
+    --surface-overlay: #ffffff;
+    --surface-raised: #e7e7e7;
+    --edge-soft: rgba(0, 0, 0, 0.09);
+    --edge-strong: rgba(0, 0, 0, 0.16);
+    --state-ok: #2f9e6b;
+    --state-warn: #b5771f;
+    --state-error: #c4463e;
+
     --text: #1b1b1b;
     --muted: #6e6e6e;
-    --border: #e0e0e0;
     --selected-bg: #d6d6d6;
     --selected-fg: #000000;
     --status-fg: #1b1b1b;
@@ -221,8 +243,8 @@ body {
   filter: none;
 }
 .icon-btn:hover {
-  background: var(--tab-active);
-  border-color: var(--border);
+  background: var(--surface-raised);
+  border-color: var(--edge-strong);
 }
 .icon-btn .icon-label {
   white-space: nowrap;
@@ -538,6 +560,11 @@ body {
 #stat-forwarded {
   color: var(--muted);
 }
+#stat-save {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
 .save-dot {
   width: 6px;
   height: 6px;
@@ -546,13 +573,16 @@ body {
   flex-shrink: 0;
 }
 #stat-save[data-state="saved"] .save-dot {
-  background: #4caf7d;
+  background: var(--state-ok);
 }
 #stat-save[data-state="saving"] .save-dot {
-  background: var(--warn, #e0a44b);
+  background: var(--state-warn);
 }
 #stat-save[data-state="error"] .save-dot {
-  background: #d9534f;
+  background: var(--state-error);
+}
+#stat-save[data-state="error"] {
+  color: var(--state-error);
 }
 #stat-save[data-state="mem"] {
   opacity: 0.7;
@@ -560,6 +590,24 @@ body {
 .save-dot.spin {
   animation: modal-spinner-spin 1.1s linear infinite;
   border-radius: 1px;
+}
+/* §102: transient messages (former floating toast) live in the centre
+   zone and pre-empt the save-state readout while shown. */
+#stat-message {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--status-fg);
+  font-weight: 500;
+}
+#stat-message::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--text);
+  flex-shrink: 0;
+  opacity: 0.6;
 }
 .status-help {
   background: transparent;
@@ -578,7 +626,7 @@ body {
   padding: 0;
 }
 .status-help:hover {
-  background: var(--tab-active);
+  background: var(--surface-raised);
   border-color: var(--muted);
 }
 
@@ -589,7 +637,7 @@ body {
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.55);
+  background: rgba(0, 0, 0, 0.5);
   display: flex;
   justify-content: center;
   align-items: flex-start;
@@ -598,23 +646,23 @@ body {
 }
 
 .modal-card {
-  background: var(--tab-bg);
-  border: 1px solid var(--border);
+  background: var(--surface-overlay);
+  border: 1px solid var(--edge-strong);
   width: 720px;
   max-width: 92vw;
-  border-radius: 6px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  border-radius: 8px;
+  box-shadow: 0 16px 44px rgba(0, 0, 0, 0.5);
   overflow: hidden;
   display: flex;
   flex-direction: column;
 }
 .modal-input-wrap {
   padding: 12px;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--edge-soft);
   display: flex;
   align-items: center;
   gap: 8px;
-  background: var(--tab-active);
+  background: var(--surface-raised);
 }
 .modal-input-wrap > span:first-child {
   filter: grayscale(1);
@@ -748,10 +796,10 @@ textarea.modal-input.import-textarea {
   justify-content: space-between;
   align-items: center;
   padding: 8px 14px;
-  border-top: 1px solid var(--border);
+  border-top: 1px solid var(--edge-soft);
   font-size: 11px;
   color: var(--muted);
-  background: var(--tab-bg);
+  background: var(--surface-chrome);
 }
 kbd {
   background: rgba(128, 128, 128, 0.2);
@@ -865,26 +913,10 @@ kbd {
   font-family: inherit;
 }
 .settings-recent-dir:hover {
-  background: var(--tab-active);
-  border-color: var(--border);
+  background: var(--surface-raised);
+  border-color: var(--edge-strong);
   color: var(--text);
 }
 
-#toast {
-  position: fixed;
-  bottom: 36px;
-  right: 20px;
-  background: #323232;
-  color: #ffffff;
-  padding: 8px 16px;
-  border-radius: 4px;
-  font-size: 12px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-  z-index: 500;
-  opacity: 0;
-  transition: opacity 0.2s ease-in-out;
-  pointer-events: none;
-}
-#toast.show {
-  opacity: 1;
-}
+/* §102: the floating toast is gone — transient messages now surface in
+   the status bar's centre zone (`#stat-message`, styled above). */

@@ -1,5 +1,14 @@
 <script lang="ts">
-  import { activeTabId, appVersion, saveState, statusCounts, statusPos, statusWordCount, tabs } from "../controller";
+  import {
+    activeTabId,
+    appVersion,
+    saveState,
+    statusCounts,
+    statusPos,
+    statusWordCount,
+    tabs,
+    toastMessage,
+  } from "../controller";
   import * as controller from "../controller";
 
   $: activeTab = $tabs.find((t) => t.id === $activeTabId);
@@ -29,9 +38,15 @@
     <span id="stat-forwarded">Fwd {$statusCounts.forwarded}</span>
   </div>
 
-  <div class="status-zone status-centre" id="stat-save" data-state={save.cls}>
-    <span class="save-dot" class:spin={save.cls === "saving"}></span>
-    <span>{save.label}</span>
+  <div class="status-zone status-centre">
+    {#if $toastMessage}
+      <span id="stat-message" role="status">{$toastMessage}</span>
+    {:else}
+      <span id="stat-save" data-state={save.cls}>
+        <span class="save-dot" class:spin={save.cls === "saving"}></span>
+        <span>{save.label}</span>
+      </span>
+    {/if}
   </div>
 
   <div class="status-zone status-right">

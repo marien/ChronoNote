@@ -3761,3 +3761,44 @@ focus loss, so the caret still lands exactly where it was — the reviews'
 Task 8 without needing to serialise selection offsets (the editor isn't a
 `<textarea>`). 1 extra `focusTrap.test.ts` case, 1 extra
 `modal-a11y.spec.ts` case.
+
+---
+
+## 102. Surface elevation + retire the floating toast (0.6 UX pass — Phase 1)
+
+**Status: implemented on `feat/ux-0.6`, not yet released.** Marien picked
+**option B** from the surface study — keep ChronoNote's VS-Code charcoal
+family, give it real depth.
+
+**Four surface tiers** in `app.css`, replacing the old two:
+
+| token | dark | role |
+| --- | --- | --- |
+| `--surface-canvas` | `#1e1e1e` | editor |
+| `--surface-chrome` | `#252526` | top bar · tab strip · status bar |
+| `--surface-overlay` | `#2d2d2e` | modals · popovers · drawers (was reusing chrome) |
+| `--surface-raised` | `#37373b` | hovered rows · inputs · chips |
+
+Borders split into `--edge-soft` (`rgba(255,255,255,.07)`, internal
+divisions) and `--edge-strong` (`.13`, overlay/input outlines) — the old
+opaque `#333` `--border` becomes an alias for the soft one. New
+`--state-ok` / `--state-warn` / `--state-error` semantic tokens (not the
+accent hue) now drive the §100 save dot. Light-theme values defined
+alongside. The old flat names (`--bg`, `--tab-bg`, `--tab-active`,
+`--border`) stay as aliases so no component rule had to be rewritten
+wholesale — only the handful that genuinely wanted a different tier
+(modal card → overlay, hovers → raised, inputs → raised + strong edge).
+
+**The floating `#toast` is gone.** Transient messages ("Sections
+imported", "No open actions in this note", the §94 drift notices) now
+surface in the status bar's centre zone (`#stat-message`), pre-empting
+the save-state readout while shown (still a 2.4s auto-clear via the
+existing `showToast`). `Toast.svelte` deleted; `App.svelte` no longer
+mounts it. `helpers.ts`'s `toast()` locator points at `#stat-message`,
+so the 7 e2e assertions that used it keep working; 1 more updated
+directly.
+
+Visual change is deliberately subtle at rest — the depth reads when a
+modal or (coming in Phase 2) a popover opens over the editor. `svelte-check`
+(240 files, −1 for `Toast.svelte`), Vitest (199), Playwright (102),
+`cargo test` (42) green.

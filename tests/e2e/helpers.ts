@@ -140,8 +140,10 @@ export function activeTabLabel(page: Page): Locator {
   return page.locator("#tab-bar .tab.active span").first();
 }
 
+/** Transient status messages (§102 — formerly the floating `#toast`) now
+ * surface in the status bar's centre zone. */
 export function toast(page: Page): Locator {
-  return page.locator("#toast");
+  return page.locator("#stat-message");
 }
 
 export async function statusCounts(page: Page): Promise<{ open: number; closed: number; forwarded: number }> {

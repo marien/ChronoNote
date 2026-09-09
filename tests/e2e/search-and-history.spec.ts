@@ -84,6 +84,6 @@ test.describe("section history (Ctrl+Shift+H)", () => {
     await page.keyboard.press("Control+Shift+H");
 
     await expect(history(page)).toBeHidden();
-    await expect(page.locator("#toast")).toContainText(/section/i);
+    await expect(page.locator("#stat-message")).toContainText(/section/i);
   });
 });

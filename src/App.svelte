@@ -6,7 +6,6 @@
   import TopBar from "./lib/components/TopBar.svelte";
   import StatusBar from "./lib/components/StatusBar.svelte";
   import EditorPane from "./lib/components/EditorPane.svelte";
-  import Toast from "./lib/components/Toast.svelte";
   import DatePickerModal from "./lib/components/modals/DatePickerModal.svelte";
   import ActionDrawerModal from "./lib/components/modals/ActionDrawerModal.svelte";
   import HistoryModal from "./lib/components/modals/HistoryModal.svelte";
@@ -109,7 +108,6 @@
     {/if}
   </div>
   <StatusBar />
-  <Toast />
 
   {#if $modal === "date"}
     <DatePickerModal />

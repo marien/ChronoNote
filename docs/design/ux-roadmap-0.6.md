@@ -39,15 +39,11 @@ Three options mocked on one window in
 (published as an artifact for review):
 
 - **A — Current.** VS Code charcoal, one flat border, 38px bar. Baseline.
-- **B — Structural (recommended).** Same charcoal + blue accent, but 4
-  surface tiers, translucent hairlines, a 44px bar, one dedicated overlay
-  surface. Token-only change in `app.css`; both themes keep working.
-- **C — Full re-skin.** The reviews' `hsl(220 14% 10–22%)` bluish charcoal
-  + teal/emerald accent + semantic glyph palette. Distinct identity; needs
-  a hand-built light counterpart + a tuning round.
-
-**Phase 1's `app.css` token work is gated on this pick.** Everything else
-proceeds regardless.
+- **B — Structural. ← PICKED (2026-09-09).** Same charcoal + blue accent,
+  4 surface tiers, translucent hairlines, one dedicated overlay surface.
+  Token-only change in `app.css`; both themes keep working. Shipped as
+  §102. (The 44px bar is Phase 2.)
+- **C — Full re-skin.** Not taken.
 
 ---
 
@@ -56,22 +52,18 @@ proceeds regardless.
 Each phase = its own PR, CI green, browser-pane walkthrough. All land on
 `feat/ux-0.6`; v0.6.0 is cut once the whole set is reviewed.
 
-### Phase 1 — Foundation & low-risk polish
+### Phase 1 — Foundation & low-risk polish  ✅ DONE
 
-- ☐ **Surface-elevation tokens** (`app.css`) — 4 tiers, hairline borders,
-  one overlay surface. *(gated on A/B/C)*
-- ◐ **Three-zone status bar** (§100) — structure, word count and the
-  save-state store shipped; the toast fold + final palette styling are
-  still to come with the surface work.
-- ◐ **Save-state store** (§100) — `saveState` (`idle | saving | saved |
-  error`) driven by `persistence.ts` and shown in the centre zone.
-  Folding `#toast` into the same slot is still pending.
-- ☑ **`readableLineLength`** setting (§99) — `AppConfig` field + command +
-  store + Settings toggle + `EditorPane` compartment. Gated on word-wrap.
-- ◐ **Focus/selection-restoration audit** (§101) — §95 covers modals; the
-  top-bar-button-opened case is now fixed too (focus back to the editor,
-  not the button). Outside-click + Esc for the *new* anchored popovers
-  comes with Phase 2/5 when those popovers are built.
+- ☑ **Surface-elevation tokens** (§102) — 4 tiers (`--surface-canvas/
+  chrome/overlay/raised`), `--edge-soft`/`--edge-strong`, `--state-*`
+  semantic colours; light values too. Old flat names kept as aliases.
+- ☑ **Three-zone status bar** (§100) — `Ln/Col · N words · O/C/F` |
+  save dot / transient message | version + `?`.
+- ☑ **Save-state store** (§100/§102) — `saveState`; `#toast` retired into
+  the status centre zone (`#stat-message`), `Toast.svelte` deleted.
+- ☑ **`readableLineLength`** setting (§99) — gated on word-wrap.
+- ☑ **Focus/selection-restoration** (§101) — modal close always lands in
+  the editor. Anchored-popover outside-click/Esc still comes with P2/P5.
 
 ### Phase 2 — Tab strip & date navigation
 
