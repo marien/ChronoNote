@@ -21,11 +21,21 @@
   import ConflictModal from "./lib/components/modals/ConflictModal.svelte";
 
   let ready = false;
+  let bootError = "";
 
   onMount(() => {
-    controller.initApp().then(() => {
-      ready = true;
-    });
+    controller.initApp().then(
+      () => {
+        ready = true;
+      },
+      (e) => {
+        // The Rust side already recovers a corrupt config / session file
+        // (renames it aside, falls back to a default). This only fires for
+        // something rarer — an unwritable config directory, say — and a
+        // readable message beats an endless "Loading…" spinner.
+        bootError = e instanceof Error ? e.message : String(e);
+      },
+    );
     controller.initWindowChromeWatcher();
 
     function onKeydown(e: KeyboardEvent) {
@@ -126,6 +136,11 @@
   {:else if $modal === "conflict"}
     <ConflictModal />
   {/if}
+{:else if bootError}
+  <div class="boot-loading" role="alert">
+    ChronoNote couldn't start.<br />
+    <span style="opacity: 0.7; font-size: 12px;">{bootError}</span>
+  </div>
 {:else}
   <div class="boot-loading">Loading ChronoNote…</div>
 {/if}

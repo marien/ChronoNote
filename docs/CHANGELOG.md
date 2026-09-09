@@ -6,7 +6,7 @@ kept for the rationale behind each one — not just *what* changed but
 was still being gathered and confirmed before implementation; renamed once
 everything below was applied, since nothing here is "pending" anymore.
 
-**Status: all sections through §96 implemented, released, and on `main`**, each
+**Status: all sections through §97 implemented, released, and on `main`**, each
 verified before merge (`svelte-check`, the Vitest suite, `cargo test`,
 and — from §77 on — the Playwright E2E suite, all green in CI). See each
 section for what it covers and why. §27–31 were small fixes logged
@@ -16,7 +16,7 @@ here; everything from §32 on was written directly.
 Which sections shipped in which release: §1–55 → v0.2.0, §56–59 → v0.2.1,
 §60–74 → v0.3.0, §75–81 → v0.4.0, §82–83 → v0.4.1, §84–85 → v0.4.2,
 §86–87 → v0.4.3, §88–89 → v0.4.4, §90–91 → v0.4.5, §92 → v0.4.6,
-§refactor + §93–96 → v0.5.0.
+§refactor + §93–96 → v0.5.0, §97 → v0.5.1.
 
 ---
 
@@ -3588,3 +3588,57 @@ the same accent blue. Master at `docs/design/icon-A-master.svg`;
 `src-tauri/icons/{32x32,128x128,128x128@2x}.png` + `icon.ico` regenerated
 via `npx tauri icon`. `tauri icon` also emits iOS/Android/Store variants
 — gitignored, since ChronoNote ships Windows-only.
+
+---
+
+## 97. Corrupt-sidecar recovery + concurrent-write fix (test-coverage review)
+
+**Status: implemented.** From a third external review (test coverage).
+Two storage-layer robustness fixes + the tests that found the second one.
+
+**Corrupt `config.json` / `.chrononote-session.json` → graceful
+fallback.** A JSON sidecar that won't parse (a mid-write crash from
+before atomic writes, disk rot, a botched hand-edit, a truncated
+cloud-sync copy) used to propagate the `serde` error all the way to
+`initApp()`, which then rejected — leaving the app stuck on "Loading
+ChronoNote…" with no recovery path but deleting the file by hand. Now
+`load_config_at` / `read_tab_session_at` rename the bad file aside as
+`<name>.corrupt-<unix-ms>` (best-effort; the bytes stay for a
+post-mortem) and fall back to a fresh default / a no-session bootstrap.
+The quarantine name never matches `is_valid_note_filename`, so one
+landing in the notes folder is invisible to every listing. App.svelte
+also gained a `bootError` branch — a readable "ChronoNote couldn't
+start" message instead of an endless spinner for the rarer case where a
+core boot IPC just fails outright.
+
+**Concurrent writes to one note no longer fail on Windows.** The new
+`concurrent_writes_to_one_note_never_interleave_or_leave_litter` test
+(6 threads hammering one file) surfaced a real bug in the §92 atomic
+write: on Windows, `tempfile`'s `persist()` rename hits
+`ERROR_ACCESS_DENIED` when the target is momentarily open — which
+happens whenever ChronoNote fires two writes for the same note close
+together (an autosave timer and an Action-Drawer edit; a `flushSave`
+racing a pending `scheduleSave`; the §93 exit barrier flushing while a
+debounced write is still queued). It showed up as random "Failed to save
+note" toasts. Fix: a process-wide `WRITE_LOCK` mutex serializes every
+`atomic_write` (writes are sub-millisecond and rare, so one global lock
+beats per-path locking), plus a short retry loop around the rename for
+genuinely *external* interference (an AV scanner / sync client holding
+the file — `ERROR_ACCESS_DENIED` / `ERROR_SHARING_VIOLATION`, up to 8
+tries with a linear backoff).
+
+3 new `storage.rs` tests (corrupt config incl. empty + truncated,
+corrupt session, concurrent writes) → 41 total; 1 new
+`smoke.spec.ts` case (degraded boot shows a message). The mock backend
+gained a `throwOnCommands` seed for testing failure paths.
+
+Deliberately **not** done from that review: an integration-test dir
+under `src-tauri/tests/` (the in-file `#[cfg(test)]` convention with
+path-parameterized `_at` functions is the established pattern), a schema
+version field (`#[serde(default)]` already covers additive changes; no
+breaking migration exists), visual-regression pixel-diffing in a Docker
+container (`visual.spec.ts` deliberately captures artifacts, not
+assertions — §72/§73), and tauri-driver native E2E (real value, but it
+needs a `windows-latest` CI job + flaky `msedgedriver`; the manual
+per-release smoke tests cover the same ground for now). Rust→TS type
+codegen (`ts-rs`) and compile-time mock parity are queued as follow-ups.

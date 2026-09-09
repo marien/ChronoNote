@@ -21,6 +21,9 @@ export interface SeedApp {
   seed?: ScenarioName | MockSeed;
   /** Override the pinned instant (rarely needed). */
   now?: Date;
+  /** Skip the wait for the app to finish booting — for specs that
+   * deliberately break boot (e.g. a seeded `throwOnCommands`). */
+  expectBootFailure?: boolean;
 }
 
 export async function seedApp(page: Page, opts: SeedApp = {}): Promise<void> {
@@ -48,6 +51,7 @@ export async function seedApp(page: Page, opts: SeedApp = {}): Promise<void> {
   }, seed);
 
   await page.goto("/?mock");
+  if (opts.expectBootFailure) return;
   // `#top-bar` only renders once `controller.initApp()` resolves.
   await expect(page.locator("#top-bar")).toBeVisible({ timeout: 15_000 });
   await expect(page.locator(".cm-editor")).toBeVisible();
