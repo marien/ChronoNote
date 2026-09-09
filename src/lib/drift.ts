@@ -48,68 +48,92 @@ function applyContent(tabId: string, content: string, hash: string | null) {
 }
 
 let checkInFlight = false;
+let recheckQueued = false;
+
+/** The current active *non-scratchpad* tab plus its recorded clean-hash
+ * baseline, or `null` when there's nothing to check (no active tab, a
+ * scratchpad, a conflict prompt already open, or no baseline yet). Read
+ * fresh — never held across an `await`, since the store can change under
+ * us while an IPC is in flight. */
+function driftTarget(): { id: string; filename: string; content: string; clean: string } | null {
+  if (get(modal) === "conflict") return null;
+  const id = get(activeTabId);
+  const tab = get(tabs).find((t) => t.id === id);
+  if (!tab || tab.isScratchpad) return null;
+  const clean = getTabCleanHash(id);
+  if (!clean) return null;
+  return { id, filename: tab.filename, content: tab.content, clean };
+}
 
 /** The core of the drift check — run for the active tab on the triggers
  * `boot.ts` wires. Cheap no-op for scratchpads, tabs with no baseline
  * yet, and the common "nothing changed" case (one `get_file_metadata`
- * IPC). Guarded against re-entry and against the active tab changing
- * mid-check. */
+ * IPC). Re-entrant calls are coalesced into one follow-up run so a burst
+ * of tab switches still checks whatever tab you land on; every store read
+ * is re-taken after each `await` so a mid-check edit or tab switch can't
+ * cause a stale decision. */
 export async function checkActiveTabForDrift(): Promise<void> {
-  if (checkInFlight) return;
-  const activeId = get(activeTabId);
-  const tab = get(tabs).find((t) => t.id === activeId);
-  if (!tab || tab.isScratchpad) return;
-  // Don't stack a second prompt on top of an unresolved one.
-  if (get(modal) === "conflict") return;
-  const clean = getTabCleanHash(tab.id);
-  if (!clean) return; // no baseline recorded — can't judge a change
+  if (checkInFlight) {
+    recheckQueued = true;
+    return;
+  }
+  const start = driftTarget();
+  if (!start) return;
 
   checkInFlight = true;
   try {
     let diskHash: string | null;
     try {
-      diskHash = (await api.getFileMetadata(tab.filename)).contentHash;
+      diskHash = (await api.getFileMetadata(start.filename)).contentHash;
     } catch {
-      return; // metadata read failed — try again on the next trigger
+      return; // transient read failure — the next trigger retries
     }
-    if (diskHash === clean) return; // Case A — disk matches our baseline
-    if (get(activeTabId) !== tab.id) return; // user moved on while we awaited
+
+    // Re-validate against the *current* store state, not the snapshot we
+    // took before the IPC.
+    const now = driftTarget();
+    if (!now || now.id !== start.id || now.clean !== start.clean) return;
+
+    if (diskHash === now.clean) return; // Case A — disk matches our baseline
 
     if (diskHash === null) {
-      // The file was deleted on disk. Whether or not there are local
-      // edits, the safe move is the same: keep whatever's in the tab,
-      // drop the baseline so it behaves like a fresh unsaved note, and
-      // let the next save re-create the file.
-      clearTabCleanHash(tab.id);
-      showToast(`${tab.filename} was deleted on disk — save to re-create it`);
+      // File deleted on disk. Either way — local edits or not — keep the
+      // tab's content, drop the baseline so it acts like a fresh unsaved
+      // note, and let the next save re-create the file.
+      clearTabCleanHash(now.id);
+      showToast(`${now.filename} was deleted on disk — save to re-create it`);
       return;
     }
 
-    const mine = await sha256Hex(tab.content);
-    if (get(activeTabId) !== tab.id || get(modal) === "conflict") return;
+    const mine = await sha256Hex(now.content);
+    const after = driftTarget();
+    // Bail if anything moved while we hashed: a different tab, a landed
+    // save (new baseline), or an edit since we read `now.content`.
+    if (!after || after.id !== now.id || after.clean !== now.clean || after.content !== now.content) return;
 
-    if (mine === clean) {
+    if (mine === now.clean) {
       // Case B — no local edits, disk moved. Silent reload.
-      const { content } = await api.readNoteWithMetadata(tab.filename);
-      applyContent(tab.id, content ?? "", diskHash);
-      showToast(`Reloaded ${tab.filename} — it changed on disk`);
+      const { content } = await api.readNoteWithMetadata(now.filename);
+      if (driftTarget()?.id !== now.id) return;
+      applyContent(now.id, content ?? "", diskHash);
+      showToast(`Reloaded ${now.filename} — it changed on disk`);
       return;
     }
 
     // Case C — local edits AND an external change. Freeze this tab's
     // autosave so it can't overwrite the disk version while the user
     // decides, then ask.
-    cancelScheduledSave(tab.id);
-    const { content } = await api.readNoteWithMetadata(tab.filename);
-    conflictInfo.set({
-      tabId: tab.id,
-      filename: tab.filename,
-      diskContent: content ?? "",
-      diskHash,
-    });
+    cancelScheduledSave(now.id);
+    const { content } = await api.readNoteWithMetadata(now.filename);
+    if (driftTarget()?.id !== now.id) return;
+    conflictInfo.set({ tabId: now.id, filename: now.filename, diskContent: content ?? "", diskHash });
     modal.set("conflict");
   } finally {
     checkInFlight = false;
+    if (recheckQueued) {
+      recheckQueued = false;
+      void checkActiveTabForDrift();
+    }
   }
 }
 

@@ -290,8 +290,17 @@ fn file_metadata_at(root: &Path, filename: &str) -> Result<FileMetadata, String>
         return Err(format!("Invalid note filename: {filename}"));
     }
     let path = root.join(filename);
-    let Ok(bytes) = fs::read(&path) else {
-        return Ok(FileMetadata { exists: false, content_hash: None, size_bytes: None, modified_ms: None });
+    let bytes = match fs::read(&path) {
+        Ok(b) => b,
+        // Only a genuine "not there" is `exists: false`. A transient
+        // failure (a sync client or another editor holding the file
+        // locked mid-write — the case §94 exists for) must surface as an
+        // error so the frontend retries on its next trigger rather than
+        // announcing a deletion.
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
+            return Ok(FileMetadata { exists: false, content_hash: None, size_bytes: None, modified_ms: None });
+        }
+        Err(e) => return Err(e.to_string()),
     };
     let modified_ms = fs::metadata(&path)
         .and_then(|m| m.modified())
