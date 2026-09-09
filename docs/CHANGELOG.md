@@ -6,7 +6,7 @@ kept for the rationale behind each one — not just *what* changed but
 was still being gathered and confirmed before implementation; renamed once
 everything below was applied, since nothing here is "pending" anymore.
 
-**Status: sections through §92 released on `main`; §93–95 on `refactor/foundation` (→ v0.5.0)**, each
+**Status: all sections through §96 implemented, released, and on `main`**, each
 verified before merge (`svelte-check`, the Vitest suite, `cargo test`,
 and — from §77 on — the Playwright E2E suite, all green in CI). See each
 section for what it covers and why. §27–31 were small fixes logged
@@ -16,7 +16,7 @@ here; everything from §32 on was written directly.
 Which sections shipped in which release: §1–55 → v0.2.0, §56–59 → v0.2.1,
 §60–74 → v0.3.0, §75–81 → v0.4.0, §82–83 → v0.4.1, §84–85 → v0.4.2,
 §86–87 → v0.4.3, §88–89 → v0.4.4, §90–91 → v0.4.5, §92 → v0.4.6,
-§refactor + §93–95 → v0.5.0 (unreleased).
+§refactor + §93–96 → v0.5.0.
 
 ---
 
@@ -3574,3 +3574,17 @@ modals' `.modal-card`:
 Nothing here touches Escape — App.svelte's global handlers still close
 modals. 7 `focusTrap.test.ts` unit cases + `tests/e2e/modal-a11y.spec.ts`
 (Tab stays inside Settings; closing returns focus to the editor).
+
+---
+
+## 96. App icon — concept A (checkbox + clock hands)
+
+**Status: implemented.** The v0.5.0 identity change. The old icon was a
+plain white clock on the accent-blue tile; the new one (concept A from
+the three pitched in `docs/design/icon-proposals.html`, chosen for
+0.5.0) sets clock hands *inside* the open-action checkbox glyph — the
+action list and the passage of days in one mark, white-knocked-out on
+the same accent blue. Master at `docs/design/icon-A-master.svg`;
+`src-tauri/icons/{32x32,128x128,128x128@2x}.png` + `icon.ico` regenerated
+via `npx tauri icon`. `tauri icon` also emits iOS/Android/Store variants
+— gitignored, since ChronoNote ships Windows-only.

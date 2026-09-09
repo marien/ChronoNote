@@ -17,6 +17,17 @@ tauri-build.log
 src-tauri/target
 src-tauri/gen
 
+# `tauri icon` also emits iOS / Android / Windows-Store / macOS variants.
+# ChronoNote ships Windows-only; only the four in tauri.conf.json's `icon`
+# array are tracked. Regenerate all with `npx tauri icon docs/design/icon-A-master.svg`.
+src-tauri/icons/android/
+src-tauri/icons/ios/
+src-tauri/icons/Square*Logo.png
+src-tauri/icons/StoreLogo.png
+src-tauri/icons/64x64.png
+src-tauri/icons/icon.png
+src-tauri/icons/icon.icns
+
 # Machine-specific Cargo target-dir override (OneDrive-sync workaround) —
 # personal to whichever machine needs it; recreate locally if you hit
 # "output path is not a writable directory" (see CLAUDE.local.md).

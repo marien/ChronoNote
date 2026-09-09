@@ -48,7 +48,7 @@ Branch `harden/atomic-storage` off `main`. No frontend changes.
   in the notes dir. Not data loss (target untouched); `is_valid_note_filename`
   keeps it out of every listing. Acceptable; revisit if it ever bites.
 
-### ◐ Phase 1 — Finish the `controller.ts` refactor (§4) → **v0.5.0** — code done, awaiting review
+### ☑ Phase 1 — Finish the `controller.ts` refactor (§4) — shipped v0.5.0
 
 `refactor/foundation` / draft PR #22. Plain-store + facade shape, **not**
 rune stores. `controller.ts` is now a 34-line `export *` facade over twelve
@@ -68,10 +68,10 @@ Deferred to when Phase 4 needs them (no behaviour need yet): per-tab
 `cleanHash` + `rev`, the modal focus-restore hook, the un-`.catch`-ed
 promise sweep.
 
-Also for v0.5.0: ship app icon concept A (`docs/design/icon-A-master.svg`
-via `npx tauri icon`).
+App icon concept A shipped too (§96 — `npx tauri icon
+docs/design/icon-A-master.svg`).
 
-### ☑ Phase 3 — Zero-loss exit barrier (§3) — code done, folded into v0.5.0
+### ☑ Phase 3 — Zero-loss exit barrier (§3) — shipped v0.5.0
 
 Turned out to be **frontend-only**: Tauri v2 auto-`prevent_close()`s when a
 JS `tauri://close-requested` listener exists (`tauri` crate
@@ -94,7 +94,7 @@ Mock backend gained real event plumbing (`emitEvent`) — also groundwork
 for Phase 4's window-focus trigger. `tests/e2e/exit-barrier.spec.ts` +
 3 `controller.test.ts` cases.
 
-### ☑ Phase 4 — External-modification / conflict detection (§2) — code done, folded into v0.5.0
+### ☑ Phase 4 — External-modification / conflict detection (§2) — shipped v0.5.0
 
 §94. `sha2` crate; `FileMetadata` (`exists`/`contentHash`/`sizeBytes`/
 `modifiedMs`); `get_file_metadata` + `read_note_with_metadata` +
@@ -116,7 +116,7 @@ reload + toast, not a prompt.
 `concurrency.spec.ts` + 5 `controller.test.ts` cases. Mock computes real
 SHA-256 so hashes line up across Rust / `drift.ts` / mock.
 
-### ☑ Phase 5 — Modal focus trap (§5.2) — code done, folded into v0.5.0
+### ☑ Phase 5 — Modal focus trap (§5.2) — shipped v0.5.0
 
 §95. `src/lib/actions/focusTrap.ts` + `use:focusTrap` on all 12 modal
 cards. `document`-level capture keydown listener (a card-only one never
@@ -126,25 +126,23 @@ no focusables. `destroy()` restores focus to the pre-open element (the
 editor), fallback `.cm-content`. `aria-*` were already present.
 7 unit + 2 e2e (`modal-a11y.spec.ts`).
 
-**All five hardening phases are code-complete on `refactor/foundation`.**
-Remaining before v0.5.0: Marien's review + the app icon (`npx tauri icon
-docs/design/icon-A-master.svg`) + version bump + release.
+**All five hardening phases + the app icon SHIPPED in v0.5.0
+(2026-09-09, `main` @ the `#22` squash-merge).** A pre-release self
+code-review fixed three drift-check races (stale `tab.content` across
+awaits, transient-read-error mistaken for deletion, dropped re-entrant
+checks). The whole roadmap is done — no roadmap work remains.
 
 ---
 
-## Release ordering
-
-Marien's call (2026-09-09): **no interim point releases** — all of
-Phases 1, 3, 4, 5 accumulate on `refactor/foundation` and cut together as
-**v0.5.0** once everything's tested and he's reviewed it.
+## Release history
 
 ```
-main ──v0.4.5── v0.4.6 (Phase 2, shipped)
-                  │
-                  └── refactor/foundation ── v0.5.0  =  Phase 1 (refactor) + 3 (exit barrier)
-                                                       + 4 (conflict detection) + 5 (focus trap)
-                                                       + app icon concept A
+main ──v0.4.5── v0.4.6 (Phase 2) ── v0.5.0  =  Phase 1 (refactor)
+                                             + Phase 3 (exit barrier)
+                                             + Phase 4 (conflict detection)
+                                             + Phase 5 (focus trap)
+                                             + app icon concept A (§96)
 ```
 
-Rebase `refactor/foundation` onto `main` after every interim release
+Historical note — rebase `refactor/foundation` onto `main` after every interim release
 (`git rebase main` + `git push --force-with-lease`).
