@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { seedApp, editor, openViaShortcut, modalCard, MODAL_LABELS } from "./helpers";
+import { seedApp, editor, openViaShortcut, modalCard, MODAL_LABELS, datePicker } from "./helpers";
 
 /** §95: every modal traps Tab within its own controls and hands focus
  * back to the editor when it closes. */
@@ -42,7 +42,7 @@ test("a modal opened from a top-bar button still hands focus back to the editor"
 
   // Open the date picker by clicking its top-bar button, not the shortcut.
   await page.locator("#top-bar button[title^='Open Date Note']").click();
-  await expect(modalCard(page, MODAL_LABELS.date)).toBeVisible();
+  await expect(datePicker(page)).toBeVisible();
   await page.keyboard.press("Escape");
 
   const editorHasFocus = await page.evaluate(

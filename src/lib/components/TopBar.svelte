@@ -330,7 +330,12 @@
   <button class="icon-btn tab-bar-new-btn" title="New Scratchpad (Ctrl+N)" on:click={controller.createScratchpad}>
     ＋
   </button>
-  <button class="icon-btn" title="Open Date Note (Ctrl+O)" on:click={controller.openDatePicker}>
+  <button
+    class="icon-btn"
+    title="Open Date Note (Ctrl+O)"
+    data-datepicker-trigger
+    on:click={controller.openDatePicker}
+  >
     <span class="icon-glyph">📅</span>{#if showActionLabels}<span class="icon-label"> Date</span>{/if}
   </button>
   <button class="icon-btn" title="Action Drawer (Ctrl+Shift+A)" on:click={controller.openActionDrawer}>

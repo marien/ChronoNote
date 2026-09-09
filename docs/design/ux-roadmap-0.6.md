@@ -65,16 +65,15 @@ Each phase = its own PR, CI green, browser-pane walkthrough. All land on
 - ☑ **Focus/selection-restoration** (§101) — modal close always lands in
   the editor. Anchored-popover outside-click/Esc still comes with P2/P5.
 
-### Phase 2 — Tab strip & date navigation
+### Phase 2 — Tab strip & date navigation  ✅ DONE
 
 - ☑ **44px top bar** + daily/scratchpad tab archetypes (§103) — calendar
   icon / draft icon + italic + amber unsaved dot, 1.5px group divider,
   ≥30px chip hit targets, pill-topped tabs, hover-reveal close buttons.
-- ☐ **Anchored mini calendar popover** — month grid + open-action
-  indicator dots + keep the type-to-jump input on top; replaces the
-  centered `DatePickerModal`, keyboard-navigable, anchored under the
-  trigger. New month-grid date helpers in `date.ts`. `openCount` per note
-  already exists (`countActions`).
+- ☑ **Anchored mini calendar popover** (§104) — month grid, open-action
+  dots, type-to-jump input kept, full keyboard nav, anchored under the 📅
+  trigger. `DatePickerModal.svelte` rewritten; `monthGrid`/`addMonths` in
+  `date.ts`.
 
 ### Phase 3 — Glyph redesign & inline interaction
 

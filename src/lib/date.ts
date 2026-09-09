@@ -34,3 +34,56 @@ export function parseDateQuery(input: string): string | null {
   if (/^\d{2}-\d{2}$/.test(trimmed)) return `${base.getFullYear()}-${trimmed}`;
   return null;
 }
+
+// --- Month-grid helpers for the anchored calendar popover (§104) -------
+
+export interface CalCell {
+  /** `YYYY-MM-DD`. */
+  iso: string;
+  /** Day-of-month number (1–31). */
+  day: number;
+  /** False for the leading/trailing days borrowed from the adjacent
+   * month to square off the grid. */
+  inMonth: boolean;
+}
+
+/** `{ year, month }` shifted by `delta` whole months, month 0-indexed
+ * (0 = January) — the shape `Date` itself uses. */
+export function addMonths(year: number, month: number, delta: number): { year: number; month: number } {
+  const d = new Date(year, month + delta, 1);
+  return { year: d.getFullYear(), month: d.getMonth() };
+}
+
+/** A Monday-first calendar grid for the given month: always whole weeks,
+ * with adjacent-month days filling the edges (`inMonth: false`). Six rows
+ * only when the month genuinely spans six weeks, otherwise five (four for
+ * a non-leap February starting on a Monday). */
+export function monthGrid(year: number, month: number): CalCell[] {
+  const first = new Date(year, month, 1);
+  // JS: 0 = Sunday. Shift so Monday = 0.
+  const lead = (first.getDay() + 6) % 7;
+  const start = new Date(year, month, 1 - lead);
+  const daysInThisMonth = new Date(year, month + 1, 0).getDate();
+  const total = Math.ceil((lead + daysInThisMonth) / 7) * 7;
+  const cells: CalCell[] = [];
+  for (let i = 0; i < total; i++) {
+    const d = new Date(start.getFullYear(), start.getMonth(), start.getDate() + i);
+    cells.push({ iso: formatISO(d), day: d.getDate(), inMonth: d.getMonth() === month });
+  }
+  return cells;
+}
+
+export const MONTH_NAMES = [
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
+];

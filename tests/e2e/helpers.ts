@@ -168,6 +168,12 @@ export function modalCard(page: Page, label: string): Locator {
   return page.locator(`.modal-card[aria-label="${label}"]`);
 }
 
+/** §104: the date picker is an anchored calendar popover, not a
+ * `.modal-card`. */
+export function datePicker(page: Page): Locator {
+  return page.locator(".datepicker-pop");
+}
+
 export const MODAL_LABELS = {
   date: "Jump to date",
   actions: "Action drawer",
@@ -202,7 +208,7 @@ export async function openViaShortcut(page: Page, combo: string, modal: ModalKey
   await editor(page).click();
   await parkMouse(page);
   await page.keyboard.press(combo);
-  const card = modalCard(page, MODAL_LABELS[modal]);
+  const card = modal === "date" ? datePicker(page) : modalCard(page, MODAL_LABELS[modal]);
   await expect(card).toBeVisible();
   return card;
 }

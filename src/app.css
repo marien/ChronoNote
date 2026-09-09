@@ -677,6 +677,142 @@ body {
   border-color: var(--muted);
 }
 
+/* §104: anchored mini calendar popover (the date picker). Not an
+   overlay — it's positioned under the top-bar 📅 trigger and closed by
+   Esc / an outside click. */
+.datepicker-pop {
+  position: fixed;
+  z-index: 250;
+  width: 248px;
+  background: var(--surface-overlay);
+  border: 1px solid var(--edge-strong);
+  border-radius: 8px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5);
+  padding: 8px;
+  font-size: 12px;
+  color: var(--text);
+  user-select: none;
+}
+.datepicker-jump {
+  width: 100%;
+  background: var(--surface-raised);
+  border: 1px solid var(--edge-soft);
+  border-radius: 5px;
+  padding: 6px 8px;
+  font-family: var(--font);
+  font-size: 12px;
+  color: var(--text);
+  outline: none;
+  margin-bottom: 8px;
+}
+.datepicker-jump:focus-visible {
+  border-color: var(--tab-active-border);
+}
+.cal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 2px 2px 6px;
+}
+.cal-title {
+  font-weight: 600;
+}
+.cal-nav {
+  background: transparent;
+  border: none;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 15px;
+  line-height: 1;
+  width: 22px;
+  height: 22px;
+  border-radius: 4px;
+  font-family: inherit;
+}
+.cal-nav:hover {
+  background: var(--surface-raised);
+  color: var(--text);
+}
+.cal-weekdays,
+.cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+}
+.cal-weekdays {
+  margin-bottom: 2px;
+}
+.cal-weekdays span {
+  text-align: center;
+  color: var(--muted);
+  font-size: 10px;
+  padding: 3px 0;
+}
+.cal-day {
+  position: relative;
+  aspect-ratio: 1;
+  background: transparent;
+  border: none;
+  border-radius: 5px;
+  color: var(--text);
+  font-family: inherit;
+  font-size: 11.5px;
+  cursor: pointer;
+  font-variant-numeric: tabular-nums;
+}
+.cal-day:hover {
+  background: var(--surface-raised);
+}
+.cal-day.out {
+  color: var(--muted);
+  opacity: 0.5;
+}
+.cal-day.today {
+  box-shadow: inset 0 0 0 1px var(--tab-active-border);
+  font-weight: 700;
+}
+.cal-day:focus-visible {
+  outline: 2px solid var(--tab-active-border);
+  outline-offset: -1px;
+}
+.cal-day.has::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: 3px;
+  transform: translateX(-50%);
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: var(--tab-active-border);
+}
+.cal-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 8px;
+  padding-top: 7px;
+  border-top: 1px solid var(--edge-soft);
+}
+.cal-today-btn {
+  background: transparent;
+  border: none;
+  color: var(--tab-active-border);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 4px;
+  border-radius: 3px;
+}
+.cal-today-btn:hover {
+  background: var(--surface-raised);
+}
+.cal-hint {
+  color: var(--muted);
+  font-size: 10.5px;
+}
+
 /* Overlays / Dialogs */
 .overlay {
   position: absolute;

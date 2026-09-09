@@ -3833,3 +3833,39 @@ ordering, overflow scrolling and keyboard nav are untouched.
 `.tab-label` (tabs have multiple spans now); 4 specs updated, 1 new
 `tab-archetypes.spec.ts`. Vitest (199), Playwright (103), `cargo test`
 (42), `svelte-check` (240) green.
+
+---
+
+## 104. Anchored mini calendar popover (0.6 UX pass — Phase 2)
+
+**Status: implemented on `feat/ux-0.6`, not yet released.** The date
+picker stops being a screen-centred modal with a text-query result list
+and becomes a compact **month-grid popover** anchored under the top-bar
+📅 trigger (`[data-datepicker-trigger]`, measured on mount;
+`position: fixed`, right-aligned, clamped to the viewport).
+
+- **Month grid** — Monday-first, whole weeks, adjacent-month days greyed
+  at the edges. New `date.ts` helpers: `monthGrid(year, month)` →
+  `CalCell[]`, `addMonths`, `MONTH_NAMES` (11 Vitest cases).
+- **Open-action dots** — a cell carries a `.has` dot when
+  `<date>.txt` in the notes cache has `countActions().open > 0` (same
+  signal the old picker's "N open actions" used; cache refreshed once on
+  mount).
+- **Type-to-jump kept** — a text field on top; `Enter` runs the existing
+  `parseDateQuery` grammar (`today`, `-2`, `2026-09-05`, `12-25`) and
+  commits. So the power-user path survives the redesign.
+- **Keyboard** — arrows move a roving-`tabindex` focused day (crossing
+  month boundaries re-pages the grid), `PageUp`/`PageDown` change month,
+  `Enter` opens the focused day, a **Today** button re-centres. `Esc`
+  and an outside `mousedown` close it; §101 then returns focus to the
+  editor.
+- Clicking any day → `commitDatePick` (unchanged: open/switch the tab,
+  close the popover).
+
+`DatePickerModal.svelte` rewritten in place (still `modal === "date"`,
+still Ctrl+O / the 📅 button). The `datePickerOpenOnly` store and the
+virtual-list plumbing it used are no longer imported — the dot replaces
+the "Open Only" filter. `helpers.ts` gains `datePicker()`;
+`navigation.spec.ts` rewritten (9 cases), `modal-a11y` + `visual`
+updated. `svelte-check` (240), Vitest (204), Playwright (108),
+`cargo test` (42) green.
