@@ -138,6 +138,26 @@ fn resolve_workspace_path(workspace: &Path, rel: &Path) -> Result<PathBuf, Stora
     }
 }
 
+/// Serializes every `atomic_write` in the process. ChronoNote's own code
+/// can fire two writes for the same note near-simultaneously (an autosave
+/// timer and an Action-Drawer edit, say); on Windows the second one's
+/// rename would then hit `ERROR_ACCESS_DENIED` because the target is
+/// momentarily open. Writes are sub-millisecond and rare, so one global
+/// lock is simpler and safer than per-path locking, and it makes the
+/// rename retry below only about *external* interference.
+static WRITE_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
+
+#[cfg(windows)]
+fn is_transient_rename_error(e: &std::io::Error) -> bool {
+    // ERROR_ACCESS_DENIED (5) / ERROR_SHARING_VIOLATION (32) — the target
+    // is briefly locked by an AV scanner, a cloud-sync client, or Explorer.
+    matches!(e.raw_os_error(), Some(5) | Some(32))
+}
+#[cfg(not(windows))]
+fn is_transient_rename_error(_e: &std::io::Error) -> bool {
+    false
+}
+
 /// Crash-atomic, durable file write (§1.2). Streams `contents` into a
 /// sibling temp file in the *same* directory (so the commit is a
 /// same-filesystem rename), forces it to physical media with `sync_all`,
@@ -147,6 +167,7 @@ fn resolve_workspace_path(workspace: &Path, rel: &Path) -> Result<PathBuf, Stora
 /// mid-stream. `NamedTempFile` unlinks itself on drop, so a failure
 /// before the rename leaves nothing behind.
 fn atomic_write(path: &Path, contents: &[u8]) -> std::io::Result<()> {
+    let _guard = WRITE_LOCK.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
     let dir = path.parent().unwrap_or_else(|| Path::new("."));
     fs::create_dir_all(dir)?;
     let mut tmp = tempfile::Builder::new()
@@ -155,7 +176,23 @@ fn atomic_write(path: &Path, contents: &[u8]) -> std::io::Result<()> {
         .tempfile_in(dir)?;
     tmp.write_all(contents)?;
     tmp.as_file().sync_all()?;
-    tmp.persist(path).map_err(|e| e.error)?;
+
+    // The global lock removes contention from *our* writes; a cloud-sync
+    // client or an AV scanner can still hold the target open for a few
+    // milliseconds. Retry the rename a handful of times before giving up.
+    let mut attempt = 0u32;
+    loop {
+        match tmp.persist(path) {
+            Ok(_) => break,
+            Err(e) if attempt < 8 && is_transient_rename_error(&e.error) => {
+                tmp = e.file; // persist hands the temp file back on failure
+                attempt += 1;
+                std::thread::sleep(std::time::Duration::from_millis(u64::from(attempt) * 15));
+            }
+            Err(e) => return Err(e.error),
+        }
+    }
+
     // Directory-entry durability: on Unix the rename isn't guaranteed
     // persisted until the containing directory is fsynced too. Opening a
     // directory for `sync_all` is a no-op / unsupported on Windows, where
@@ -167,20 +204,44 @@ fn atomic_write(path: &Path, contents: &[u8]) -> std::io::Result<()> {
     Ok(())
 }
 
+/// A JSON sidecar (`config.json`, `.chrononote-session.json`) that won't
+/// parse is renamed aside as `<name>.corrupt-<unix-ms>` so the app can
+/// fall back to a fresh default instead of refusing to boot — while the
+/// bad bytes stay on disk for a post-mortem. Best-effort: a failed rename
+/// just logs (the caller still falls back). The quarantine name is long
+/// and un-dated-looking, so `is_valid_note_filename` never picks it up as
+/// a note even when it lands in the notes folder.
+fn quarantine_corrupt_file(path: &Path) {
+    let stamp = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_millis())
+        .unwrap_or(0);
+    let mut aside = path.as_os_str().to_owned();
+    aside.push(format!(".corrupt-{stamp}"));
+    if let Err(e) = fs::rename(path, &aside) {
+        eprintln!("chrononote: could not quarantine corrupt {}: {e}", path.display());
+    }
+}
+
 fn load_config_at(path: &Path, default_notes_dir: &Path) -> Result<AppConfig, String> {
     if path.exists() {
         let raw = fs::read_to_string(path).map_err(|e| e.to_string())?;
-        serde_json::from_str(&raw).map_err(|e| e.to_string())
-    } else {
-        let cfg = AppConfig {
-            notes_dir: default_notes_dir.to_string_lossy().to_string(),
-            color_mode: default_color_mode(),
-            word_wrap: false,
-            recent_notes_dirs: Vec::new(),
-        };
-        save_config_at(path, &cfg)?;
-        Ok(cfg)
+        match serde_json::from_str(&raw) {
+            Ok(cfg) => return Ok(cfg),
+            // Corrupt or truncated (a mid-write crash from before atomic
+            // writes, disk rot, a botched hand-edit). Set it aside and
+            // rebuild a default rather than leave the app unbootable.
+            Err(_) => quarantine_corrupt_file(path),
+        }
     }
+    let cfg = AppConfig {
+        notes_dir: default_notes_dir.to_string_lossy().to_string(),
+        color_mode: default_color_mode(),
+        word_wrap: false,
+        recent_notes_dirs: Vec::new(),
+    };
+    save_config_at(path, &cfg)?;
+    Ok(cfg)
 }
 
 fn save_config_at(path: &Path, cfg: &AppConfig) -> Result<(), String> {
@@ -419,7 +480,15 @@ fn read_tab_session_at(root: &Path) -> Result<Option<TabSession>, String> {
         return Ok(None);
     }
     let raw = fs::read_to_string(&path).map_err(|e| e.to_string())?;
-    serde_json::from_str(&raw).map(Some).map_err(|e| e.to_string())
+    match serde_json::from_str(&raw) {
+        Ok(session) => Ok(Some(session)),
+        // Corrupt / truncated session — quarantine it and boot as if this
+        // folder had no saved session (fresh today's-tab bootstrap).
+        Err(_) => {
+            quarantine_corrupt_file(&path);
+            Ok(None)
+        }
+    }
 }
 
 fn write_tab_session_at(root: &Path, session: &TabSession) -> Result<(), String> {
@@ -602,6 +671,29 @@ mod tests {
         assert!(loaded.recent_notes_dirs.is_empty());
     }
 
+    #[test]
+    fn load_config_recovers_from_a_corrupt_or_truncated_file() {
+        for bad in [r#"{ not json at all"#, r#"{"notesDir": "/x", "colorMo"#, ""] {
+            let dir = tempdir().unwrap();
+            let path = dir.path().join("config.json");
+            fs::write(&path, bad).unwrap();
+            // Falls back to a fresh default rather than erroring...
+            let loaded = load_config_at(&path, &dir.path().join("Notes")).unwrap();
+            assert_eq!(loaded.notes_dir, dir.path().join("Notes").to_string_lossy());
+            // ...the rebuilt config is now valid on disk...
+            assert!(load_config_at(&path, &dir.path().join("Notes")).is_ok());
+            // ...and the bad bytes were set aside, not deleted.
+            let quarantined: Vec<_> = fs::read_dir(dir.path())
+                .unwrap()
+                .filter_map(|e| e.ok())
+                .map(|e| e.file_name().to_string_lossy().into_owned())
+                .filter(|n| n.starts_with("config.json.corrupt-"))
+                .collect();
+            assert_eq!(quarantined.len(), 1, "expected one quarantine file, got {quarantined:?}");
+            assert_eq!(fs::read_to_string(dir.path().join(&quarantined[0])).unwrap(), bad);
+        }
+    }
+
     // --- notes: list/read/write/read_all ---
 
     #[test]
@@ -709,6 +801,41 @@ mod tests {
             atomic_write(&path, format!("rev {i}").as_bytes()).unwrap();
         }
         assert_eq!(fs::read_to_string(&path).unwrap(), "rev 49");
+    }
+
+    #[test]
+    fn concurrent_writes_to_one_note_never_interleave_or_leave_litter() {
+        // Two ChronoNote paths (autosave + a drawer action, say) can call
+        // write_note_at for the same file near-simultaneously. Each write
+        // must land whole — the reader must never see a mix of two
+        // writers' bytes — and no `.chrono-*.tmp` may survive.
+        let dir = tempdir().unwrap();
+        let root = dir.path().to_path_buf();
+        let handles: Vec<_> = (0..6)
+            .map(|w| {
+                let root = root.clone();
+                std::thread::spawn(move || {
+                    let body = format!("writer {w}\n").repeat(40);
+                    for _ in 0..25 {
+                        write_note_at(&root, "2026-09-07.txt", &body, None).unwrap();
+                    }
+                })
+            })
+            .collect();
+        for h in handles {
+            h.join().unwrap();
+        }
+        let content = read_note_at(&root, "2026-09-07.txt").unwrap().unwrap();
+        let lines: Vec<&str> = content.lines().collect();
+        assert_eq!(lines.len(), 40);
+        assert!(lines.iter().all(|l| *l == lines[0]), "content interleaved: {content}");
+        let stray: Vec<_> = fs::read_dir(&root)
+            .unwrap()
+            .filter_map(|e| e.ok())
+            .map(|e| e.file_name().to_string_lossy().into_owned())
+            .filter(|n| n != "2026-09-07.txt")
+            .collect();
+        assert!(stray.is_empty(), "stray temp files after concurrent writes: {stray:?}");
     }
 
     #[test]
@@ -869,6 +996,26 @@ mod tests {
     fn read_tab_session_returns_none_when_no_session_file_exists() {
         let dir = tempdir().unwrap();
         assert!(read_tab_session_at(dir.path()).unwrap().is_none());
+    }
+
+    #[test]
+    fn read_tab_session_recovers_from_a_corrupt_file() {
+        let dir = tempdir().unwrap();
+        let path = dir.path().join(SESSION_FILENAME);
+        fs::write(&path, r#"{"openTabs": ["2026-09-01.txt"], "activeTab"#).unwrap(); // truncated
+        // Boots as if there were no session, rather than erroring.
+        assert!(read_tab_session_at(dir.path()).unwrap().is_none());
+        assert!(!path.exists()); // the bad file was moved aside
+        let quarantined: Vec<_> = fs::read_dir(dir.path())
+            .unwrap()
+            .filter_map(|e| e.ok())
+            .map(|e| e.file_name().to_string_lossy().into_owned())
+            .filter(|n| n.starts_with(&format!("{SESSION_FILENAME}.corrupt-")))
+            .collect();
+        assert_eq!(quarantined.len(), 1);
+        // A quarantine file in the notes folder is never seen as a note.
+        fs::write(dir.path().join("2026-09-05.txt"), "note").unwrap();
+        assert_eq!(list_note_files_at(dir.path()).unwrap(), vec!["2026-09-05.txt"]);
     }
 
     #[test]

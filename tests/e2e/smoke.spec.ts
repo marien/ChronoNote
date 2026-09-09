@@ -44,4 +44,11 @@ test.describe("smoke — mock backend + boot", () => {
     expect(await lastWrittenNote(page, todayFilename())).toContain("# ship the release");
     await expect(editor(page).locator(".glyph-open")).toBeVisible();
   });
+
+  test("a boot failure shows a readable message, not an endless spinner", async ({ page }) => {
+    // The Rust side recovers a corrupt config/session file on its own; this
+    // covers the rarer case where a core boot IPC just fails.
+    await seedApp(page, { seed: { throwOnCommands: ["get_config"] }, expectBootFailure: true });
+    await expect(page.locator('[role="alert"]')).toContainText(/couldn't start/i);
+  });
 });

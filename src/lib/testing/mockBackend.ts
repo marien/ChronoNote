@@ -48,6 +48,9 @@ export interface MockSeed {
   sessions?: Record<string, TabSession>;
   /** Reported by `plugin:app|version` / the About drawer. Default `0.3.0`. */
   appVersion?: string;
+  /** Invoke commands that should reject with an error, for testing
+   * degraded-boot / failure paths (e.g. `["get_config"]`). */
+  throwOnCommands?: string[];
 }
 
 interface MockDir {
@@ -152,12 +155,16 @@ export class MockBackend {
     }
   }
 
+  /** Commands seeded to reject (`MockSeed.throwOnCommands`). */
+  throwOnCommands: Set<string>;
+
   constructor(seed: MockSeed = {}) {
     this.notesDir = seed.notesDir ?? "/notes";
     this.colorMode = seed.colorMode ?? "grayscale";
     this.wordWrap = seed.wordWrap ?? false;
     this.recentNotesDirs = seed.recentNotesDirs ? [...seed.recentNotesDirs] : [];
     this.appVersion = seed.appVersion ?? "0.3.0";
+    this.throwOnCommands = new Set(seed.throwOnCommands ?? []);
 
     this.dirs.set(this.notesDir, {
       notes: new Map(Object.entries(seed.notes ?? {})),
@@ -298,6 +305,9 @@ export class MockBackend {
 
   async invoke(cmd: string, args: Record<string, unknown> = {}): Promise<unknown> {
     this.invokeLog.push({ cmd, args, at: Date.now() });
+    if (this.throwOnCommands.has(cmd)) {
+      throw new Error(`mock: ${cmd} failed (seeded via throwOnCommands)`);
+    }
     const out = await this.dispatch(cmd, args);
     if (MUTATING_COMMANDS.has(cmd)) this.persist();
     return out;
