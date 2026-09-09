@@ -13,7 +13,7 @@ import {
 } from "./tokens";
 import { todayISO } from "./date";
 import { linesToSections } from "./sectionImport";
-import type { ActionSnapshotItem, ColorMode, HistoryItem, NoteTab, SearchResultItem } from "./types";
+import type { ActionSnapshotItem, ColorMode, HistoryItem, NoteTab } from "./types";
 
 // App state lives in `./stores`; disk writes + the notes read-cache live
 // in `./persistence`. This module re-exports both so components can keep
@@ -21,6 +21,8 @@ import type { ActionSnapshotItem, ColorMode, HistoryItem, NoteTab, SearchResultI
 export * from "./stores";
 export * from "./persistence";
 export * from "./paste";
+export * from "./tabSort";
+export * from "./search";
 import {
   actionDrawerShowOnlyOpen,
   actionSnapshot,
@@ -57,6 +59,7 @@ import {
   writeTabContent,
 } from "./persistence";
 import { notifyTabClosed } from "./paste";
+import { compareTabsByRecency, sortedTabsForDisplay, sortFilenamesByRecency } from "./tabSort";
 
 // (`updateActiveTabContent` and `scheduleSave` also come from
 // `./persistence` via the `export *` above — used by `EditorPane`, not
@@ -254,42 +257,6 @@ export async function setWordWrap(enabled: boolean) {
 }
 
 // --- Tabs ---
-
-/** Dated tabs sort earliest-to-latest (plain string comparison works since
- * filenames are strict `YYYY-MM-DD.txt`); scratchpads always sort after
- * every dated tab, keeping their existing relative order (stable sort). A
- * display-order concern only — the `tabs` store itself is never reordered,
- * every insertion function keeps appending as before. Used consistently
- * wherever "visual tab order" matters: the tab bar itself, cycling, and
- * picking which tab activates next after a close. */
-function compareTabsForDisplay(a: NoteTab, b: NoteTab): number {
-  if (a.isScratchpad && b.isScratchpad) return 0;
-  if (a.isScratchpad) return 1;
-  if (b.isScratchpad) return -1;
-  return a.filename < b.filename ? -1 : a.filename > b.filename ? 1 : 0;
-}
-
-export function sortedTabsForDisplay(list: NoteTab[]): NoteTab[] {
-  return [...list].sort(compareTabsForDisplay);
-}
-
-/** Opposite direction from `compareTabsForDisplay`: most recent dated tab
- * first, scratchpads still last. Used for the action drawer/search "Open
- * Tabs" grouping order, to match "All Files" mode's most-recent-first
- * ordering (see `sortFilenamesByRecency`) rather than the tab bar's own
- * earliest-first convention. */
-function compareTabsByRecency(a: NoteTab, b: NoteTab): number {
-  if (a.isScratchpad && b.isScratchpad) return 0;
-  if (a.isScratchpad) return 1;
-  if (b.isScratchpad) return -1;
-  return a.filename < b.filename ? 1 : a.filename > b.filename ? -1 : 0;
-}
-
-/** `YYYY-MM-DD.txt` filenames sort chronologically as plain strings, so
- * ascending-then-reverse gives most-recent-first without parsing dates. */
-export function sortFilenamesByRecency(filenames: string[]): string[] {
-  return [...filenames].sort().reverse();
-}
 
 export function switchTab(id: string) {
   const prev = get(activeTabId);
@@ -713,43 +680,8 @@ export function importHistoricalItem(rawLine: string) {
   showToast(`Imported "${toInsert.slice(0, 30)}..." into note`);
 }
 
-// --- Cross-tab search (open tabs only) ---
-
-export function openCrossTabSearch() {
-  searchResultsStore.set([]);
-  modal.set("search");
-}
-
-export function runSearch(query: string, scope: "open" | "all" = "open") {
-  const q = query.trim();
-  if (!q) {
-    searchResultsStore.set([]);
-    return;
-  }
-  const results: SearchResultItem[] = [];
-  if (scope === "open") {
-    for (const tab of [...get(tabs)].sort(compareTabsByRecency)) {
-      const lines = tab.content.split("\n");
-      lines.forEach((line, lineIdx) => {
-        if (line.toLowerCase().includes(q.toLowerCase())) {
-          results.push({ tabId: tab.id, tabFilename: tab.filename, lineIdx, line });
-        }
-      });
-    }
-  } else {
-    const allSources = get(allNotesCache);
-    const openTabIdByFilename = new Map(get(tabs).filter((t) => !t.isScratchpad).map((t) => [t.filename, t.id]));
-    for (const filename of sortFilenamesByRecency(Object.keys(allSources))) {
-      const lines = allSources[filename].split("\n");
-      lines.forEach((line, lineIdx) => {
-        if (line.toLowerCase().includes(q.toLowerCase())) {
-          results.push({ tabId: openTabIdByFilename.get(filename), tabFilename: filename, lineIdx, line });
-        }
-      });
-    }
-  }
-  searchResultsStore.set(results);
-}
+// Cross-tab search (Ctrl+Shift+F) lives in `./search` now — re-exported
+// via `export * from "./search"` above.
 
 // --- Section import (Ctrl+Shift+I): paste lines, each becomes a section ---
 
