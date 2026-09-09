@@ -3536,6 +3536,18 @@ cases for the `checkActiveTabForDrift` state machine. The mock backend
 computes real SHA-256 (`crypto.subtle`) so its metadata hashes match
 both Rust and `drift.ts`.
 
+**Post-review hardening of the check itself.** `checkActiveTabForDrift`
+re-derives the tab, its baseline, and its content from the stores after
+*every* `await` (via `driftTarget()`) rather than trusting a snapshot
+taken before the first IPC — a keystroke landing during that window
+could otherwise make Case B's silent reload discard it. Re-entrant calls
+are coalesced into one follow-up run so a burst of tab switches still
+checks whatever tab you land on. And `file_metadata_at` now only reports
+`exists: false` for a genuine `ErrorKind::NotFound`; any other `fs::read`
+failure (a sync client holding the file locked mid-write) propagates as
+an error so the frontend simply retries on its next trigger instead of
+announcing a phantom deletion.
+
 ---
 
 ## 95. Modal focus trap & focus restore (hardening §5.2)
