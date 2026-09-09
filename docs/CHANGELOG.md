@@ -6,7 +6,7 @@ kept for the rationale behind each one — not just *what* changed but
 was still being gathered and confirmed before implementation; renamed once
 everything below was applied, since nothing here is "pending" anymore.
 
-**Status: all sections through §89 implemented, released, and on `main`**, each
+**Status: all sections through §91 implemented, released, and on `main`**, each
 verified before merge (`svelte-check`, the Vitest suite, `cargo test`,
 and — from §77 on — the Playwright E2E suite, all green in CI). See each
 section for what it covers and why. §27–31 were small fixes logged
@@ -15,7 +15,7 @@ here; everything from §32 on was written directly.
 
 Which sections shipped in which release: §1–55 → v0.2.0, §56–59 → v0.2.1,
 §60–74 → v0.3.0, §75–81 → v0.4.0, §82–83 → v0.4.1, §84–85 → v0.4.2,
-§86–87 → v0.4.3, §88–89 → v0.4.4.
+§86–87 → v0.4.3, §88–89 → v0.4.4, §90–91 → v0.4.5.
 
 ---
 
@@ -3350,3 +3350,45 @@ macOS keeps `defaultKeymap`'s page-scroll on `Ctrl+↑`/`Ctrl+↓` (the app
 ships Windows-only today, but the binding stays correct if that changes).
 Shortcuts drawer updated; `open-action-nav.spec.ts`'s old "Ctrl+↓ is
 unbound now" case is reworked to assert the new caret motion.
+
+---
+
+## 90. `Ctrl+↑` at the start of a line steps up a line (#24)
+
+**Status: implemented.** The §89 follow-up that section flagged. `Ctrl+↑`
+still goes to the start of the current line, but when the caret is
+*already* there it now moves to the start of the line above (and a
+repeated press keeps climbing, clamping at line 1) — so the key is never
+a no-op. `Ctrl+↓` is unchanged (already stepped to the next line). Just a
+tweak to `lineStartTarget()` in `EditorPane`: `head === line.from &&
+line.number > 1 ? doc.line(line.number - 1).from : line.from`. `Shift`
+still extends the selection to the same target. Shortcuts drawer wording
+updated; two `open-action-nav.spec.ts` cases added (climb + clamp, and
+`Shift` extension from a line start).
+
+---
+
+## 91. First launch of the day opens on today's note (#23)
+
+**Status: implemented.** ChronoNote restores the exact tab set and
+active tab a folder had open last time (§34). But for a daily-notes app,
+the first time you open it on a new day you almost always want *today* —
+not yesterday's note you happened to leave focused. Session restore now
+distinguishes the first launch of a day from a later one.
+
+`TabSession` gains a `lastOpenedDate` field (`YYYY-MM-DD`, written by the
+frontend on every session save, `Option<String>` / `#[serde(default)]`
+in `storage.rs` so pre-#23 session files still load). At boot,
+`restoreOrBootstrapTabs()` compares it to `todayISO()`: if they differ —
+a new day, or a null session (**first launch ever, after install**) —
+today's dated tab is forced active regardless of the saved `activeTab`.
+The previously-open tabs are still all restored, just not focused. Later
+the same day, `lastOpenedDate` matches and the saved active tab is
+restored as before. The date is part of `persistTabSession()`'s dedup key
+so the day rolling over always triggers a fresh write even when the tab
+set is otherwise identical to yesterday's.
+
+Covered by `controller.test.ts` (`initApp`): first-open-of-day forces
+today, first-launch-after-install forces today, same-day reopen restores
+the last active tab, and the session is stamped with today's date on
+boot. `storage.rs` round-trip test extended for the new field.

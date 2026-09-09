@@ -78,13 +78,18 @@
    * current line / the start of the next line — the caret motion the
    * browser's contenteditable already did on Windows for these keys
    * (§83), now bound explicitly so it's reliable and consistent. Line
-   * here means the *document* line (word-wrap off by default), and
-   * `Ctrl+↑` deliberately does not step to the previous line — it is
-   * "go to start of line", per the request. `Shift` extends the
-   * selection. Bound `win:`/`linux:` only, so macOS keeps its
-   * `defaultKeymap` page-scroll on these keys. */
+   * here means the *document* line (word-wrap off by default). §90 (#24):
+   * when the caret is already at the start of its line, `Ctrl+↑` steps to
+   * the start of the line above (a second press keeps climbing), so it's
+   * never a dead key. `Shift` extends the selection. Bound `win:`/`linux:`
+   * only, so macOS keeps its `defaultKeymap` page-scroll on these keys. */
   function lineStartTarget(v: EditorView): number {
-    return v.state.doc.lineAt(v.state.selection.main.head).from;
+    const head = v.state.selection.main.head;
+    const line = v.state.doc.lineAt(head);
+    if (head === line.from && line.number > 1) {
+      return v.state.doc.line(line.number - 1).from;
+    }
+    return line.from;
   }
   function nextLineStartTarget(v: EditorView): number {
     const line = v.state.doc.lineAt(v.state.selection.main.head);

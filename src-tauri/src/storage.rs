@@ -165,6 +165,12 @@ pub struct TabSession {
     pub open_tabs: Vec<String>,
     #[serde(default)]
     pub active_tab: Option<String>,
+    /// ISO date (`YYYY-MM-DD`) this folder was last opened on, as reported
+    /// by the frontend. `None` for sessions written before #23 / for a
+    /// folder never opened. Used at boot to detect the first launch of a
+    /// new day and force today's note active regardless of `active_tab`.
+    #[serde(default)]
+    pub last_opened_date: Option<String>,
 }
 
 fn read_tab_session_at(root: &Path) -> Result<Option<TabSession>, String> {
@@ -420,11 +426,13 @@ mod tests {
         let session = TabSession {
             open_tabs: vec!["2026-09-01.txt".to_string(), "2026-09-02.txt".to_string()],
             active_tab: Some("2026-09-02.txt".to_string()),
+            last_opened_date: Some("2026-09-02".to_string()),
         };
         write_tab_session_at(dir.path(), &session).unwrap();
         let loaded = read_tab_session_at(dir.path()).unwrap().unwrap();
         assert_eq!(loaded.open_tabs, session.open_tabs);
         assert_eq!(loaded.active_tab, session.active_tab);
+        assert_eq!(loaded.last_opened_date, session.last_opened_date);
     }
 
     #[test]
@@ -434,6 +442,7 @@ mod tests {
         let loaded = read_tab_session_at(dir.path()).unwrap().unwrap();
         assert!(loaded.open_tabs.is_empty());
         assert_eq!(loaded.active_tab, None);
+        assert_eq!(loaded.last_opened_date, None);
     }
 
     #[test]
