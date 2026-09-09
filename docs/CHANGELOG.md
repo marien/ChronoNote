@@ -6,17 +6,19 @@ kept for the rationale behind each one — not just *what* changed but
 was still being gathered and confirmed before implementation; renamed once
 everything below was applied, since nothing here is "pending" anymore.
 
-**Status: all sections through §98 implemented, released, and on `main`**, each
-verified before merge (`svelte-check`, the Vitest suite, `cargo test`,
-and — from §77 on — the Playwright E2E suite, all green in CI). See each
-section for what it covers and why. §27–31 were small fixes logged
-briefly in a `next-revision-notes.md` scratch file before being folded in
-here; everything from §32 on was written directly.
+**Status: all sections through §98 implemented, released, and on `main`.**
+**§99+ is the 0.6 UX/UI pass — in progress on `feat/ux-0.6`, not yet
+released** (see `docs/design/ux-roadmap-0.6.md`). Each section is verified
+before merge (`svelte-check`, the Vitest suite, `cargo test`, and — from
+§77 on — the Playwright E2E suite, all green in CI). See each section for
+what it covers and why. §27–31 were small fixes logged briefly in a
+`next-revision-notes.md` scratch file before being folded in here;
+everything from §32 on was written directly.
 
 Which sections shipped in which release: §1–55 → v0.2.0, §56–59 → v0.2.1,
 §60–74 → v0.3.0, §75–81 → v0.4.0, §82–83 → v0.4.1, §84–85 → v0.4.2,
 §86–87 → v0.4.3, §88–89 → v0.4.4, §90–91 → v0.4.5, §92 → v0.4.6,
-§refactor + §93–96 → v0.5.0, §97 → v0.5.1, §98 → v0.5.2.
+§refactor + §93–96 → v0.5.0, §97 → v0.5.1, §98 → v0.5.2, §99+ → v0.6.0 (pending).
 
 ---
 
@@ -3684,3 +3686,28 @@ against it:
 No behaviour change for users. `svelte-check` (241 files), Vitest (195),
 Playwright (95), and `cargo test` (42, +1 for the codegen test) all
 green.
+
+---
+
+## 99. Configurable reading measure (0.6 UX pass — Phase 1)
+
+**Status: implemented on `feat/ux-0.6`, not yet released.** First slice of
+the 0.6 UX/UI work (`docs/design/ux-roadmap-0.6.md`, reconciled from three
+external reviews). A new **"Limit line width for readability"** toggle in
+Settings → Editor caps the editor's text column to a ~720px measure and
+centres it, instead of spanning the full window.
+
+Deliberately gated: the cap **only takes effect while word wrap is on**.
+With wrapping off (the default), a narrower `.cm-content` would just push
+wide tables and aligned columns into a horizontal scroll inside a smaller
+box — the opposite of what wrap-off is for. So a user on defaults sees no
+change; turning on word wrap now also gives a comfortable measure unless
+they opt out.
+
+New `AppConfig.readable_line_length: bool` (`#[serde(default = …)]` → `true`
+for configs written before it existed) + `set_readable_line_length`
+command; the generated TS binding, `TauriCommands` contract and mock
+handler follow from §98's infrastructure. `EditorPane` applies it through a
+CodeMirror `Compartment` (like §80's word-wrap), reconfigured live from the
+`readableLineLength` store — no remount. 1 new Vitest case, 2 new
+`settings.spec.ts` e2e cases (persist + reload; no-op with wrap off).

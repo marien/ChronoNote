@@ -34,6 +34,15 @@ pub struct AppConfig {
     /// for a config written before this field existed.
     #[serde(default)]
     pub word_wrap: bool,
+    /// §99: cap the editor's text column to a comfortable reading measure
+    /// (~720px, centred) instead of spanning the full window. On by
+    /// default, but only *takes effect* when `word_wrap` is also on — with
+    /// wrapping off (the default), a narrower column would just force
+    /// horizontal scrolling of wide tables in a smaller box, which is the
+    /// opposite of what wrap-off is for. `#[serde(default = ...)]` so a
+    /// config written before this field existed still gets `true`.
+    #[serde(default = "default_readable_line_length")]
+    pub readable_line_length: bool,
     /// Up to 5 previously-used notes folders, most-recent-first, excluding
     /// whatever is current — spec §39. Maintained by `set_notes_dir`
     /// alone, so switching folders by hand-editing this file (as this
@@ -43,6 +52,10 @@ pub struct AppConfig {
 }
 
 const MAX_RECENT_NOTES_DIRS: usize = 5;
+
+fn default_readable_line_length() -> bool {
+    true
+}
 
 fn config_path(app: &AppHandle) -> Result<PathBuf, String> {
     let dir = app.path().app_config_dir().map_err(|e| e.to_string())?;
@@ -248,6 +261,7 @@ fn load_config_at(path: &Path, default_notes_dir: &Path) -> Result<AppConfig, St
         notes_dir: default_notes_dir.to_string_lossy().to_string(),
         color_mode: ColorMode::default(),
         word_wrap: false,
+        readable_line_length: default_readable_line_length(),
         recent_notes_dirs: Vec::new(),
     };
     save_config_at(path, &cfg)?;
@@ -738,6 +752,7 @@ mod tests {
             notes_dir: "/my/notes".to_string(),
             color_mode: ColorMode::Color,
             word_wrap: true,
+            readable_line_length: false,
             recent_notes_dirs: vec!["/old1".to_string(), "/old2".to_string()],
         };
         save_config_at(&path, &cfg).unwrap();
@@ -745,6 +760,7 @@ mod tests {
         assert_eq!(loaded.notes_dir, "/my/notes");
         assert_eq!(loaded.color_mode, ColorMode::Color);
         assert!(loaded.word_wrap);
+        assert!(!loaded.readable_line_length);
         assert_eq!(loaded.recent_notes_dirs, vec!["/old1", "/old2"]);
     }
 
@@ -759,6 +775,8 @@ mod tests {
         assert_eq!(loaded.notes_dir, "/hand/edited");
         assert_eq!(loaded.color_mode, ColorMode::Grayscale);
         assert!(!loaded.word_wrap);
+        // Omitted from an older config → defaults on (§99).
+        assert!(loaded.readable_line_length);
         assert!(loaded.recent_notes_dirs.is_empty());
     }
 

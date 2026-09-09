@@ -28,6 +28,10 @@ export function setWordWrap(enabled: boolean): Promise<AppConfig> {
   return invoke("set_word_wrap", { enabled });
 }
 
+export function setReadableLineLength(enabled: boolean): Promise<AppConfig> {
+  return invoke("set_readable_line_length", { enabled });
+}
+
 export function listNoteFiles(): Promise<string[]> {
   return invoke("list_note_files", {});
 }

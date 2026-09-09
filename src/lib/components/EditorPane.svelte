@@ -10,7 +10,7 @@
   import { underlineFor } from "../sectionImport";
   import { actionLineEnter, adjacentOpenActionLine, cycleActionSymbol } from "../tokens";
   import * as controller from "../controller";
-  import { wordWrap } from "../controller";
+  import { readableLineLength, wordWrap } from "../controller";
 
   // `content` is only used as the initial document for this mount. Tab
   // switches are handled by wrapping this component in a {#key} block
@@ -35,6 +35,22 @@
   const wrapCompartment = new Compartment();
   const wrapExtension = (on: boolean) => (on ? EditorView.lineWrapping : []);
   let unsubscribeWrap: (() => void) | undefined;
+
+  /** §99: cap the text column to a ~720px reading measure, centred. A
+   * compartment like `wrapCompartment` so Settings can flip it live with
+   * no remount. Deliberately only applied when word-wrap is *also* on —
+   * with wrapping off, a narrower `.cm-content` just scrolls wide lines
+   * (tables, aligned columns) horizontally inside a smaller box, which is
+   * the opposite of what wrap-off is for. */
+  const measureCompartment = new Compartment();
+  const measureExtension = (on: boolean) =>
+    on
+      ? EditorView.theme({
+          ".cm-content": { maxWidth: "720px", marginInline: "auto", width: "100%" },
+        })
+      : [];
+  const measureActive = (wrap: boolean, readable: boolean) => wrap && readable;
+  let unsubscribeMeasure: (() => void) | undefined;
   // Kept up to date on every scroll rather than captured once at destroy
   // time — by the time `onDestroy` runs (this component is torn down via
   // the `{#key}` in App.svelte switching to a new tab), the scroller's raw
@@ -253,6 +269,7 @@
       drawSelection(),
       indentUnit.of("  "),
       wrapCompartment.of(wrapExtension(get(wordWrap))),
+      measureCompartment.of(measureExtension(measureActive(get(wordWrap), get(readableLineLength)))),
       liveGlyphs,
       glyphAtomicRanges,
       setextRule,
@@ -328,13 +345,31 @@
     // what the initial state already set. Plain store subscription, not a
     // `$:` block — see TopBar.svelte's long note on why that matters near
     // CodeMirror.
-    let first = true;
+    const reconfigureMeasure = () => {
+      view?.dispatch({
+        effects: measureCompartment.reconfigure(
+          measureExtension(measureActive(get(wordWrap), get(readableLineLength))),
+        ),
+      });
+    };
+    let firstWrap = true;
     unsubscribeWrap = wordWrap.subscribe((on) => {
-      if (first) {
-        first = false;
+      if (firstWrap) {
+        firstWrap = false;
         return;
       }
       view?.dispatch({ effects: wrapCompartment.reconfigure(wrapExtension(on)) });
+      // §99: the reading measure only applies with wrap on, so a wrap
+      // toggle can turn it on or off too.
+      reconfigureMeasure();
+    });
+    let firstMeasure = true;
+    unsubscribeMeasure = readableLineLength.subscribe(() => {
+      if (firstMeasure) {
+        firstMeasure = false;
+        return;
+      }
+      reconfigureMeasure();
     });
 
     controller.registerEditorApi({
@@ -379,6 +414,7 @@
 
   onDestroy(() => {
     unsubscribeWrap?.();
+    unsubscribeMeasure?.();
     if (view) {
       controller.saveEditorViewState(tabId, {
         selectionJSON: view.state.selection.toJSON(),

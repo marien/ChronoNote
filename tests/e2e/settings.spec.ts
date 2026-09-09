@@ -26,6 +26,37 @@ test.describe("settings (Ctrl+,)", () => {
     await expect(page.locator("html")).toHaveAttribute("data-color-mode", "color");
   });
 
+  test("readable line width persists and only constrains the editor with wrap on (§99)", async ({ page }) => {
+    await seedApp(page, { seed: { notes: {}, wordWrap: true } });
+    await openSettings(page);
+
+    const readableToggle = () => settings(page).getByText("Limit line width for readability", { exact: false });
+    const contentMaxWidth = () =>
+      page.locator(".cm-content").evaluate((el) => getComputedStyle(el).maxWidth);
+
+    // default on: wrap on + readable on → column capped at 720px
+    expect(await page.evaluate(() => window.__CHRONO_MOCK__!.readableLineLength)).toBe(true);
+    expect(await contentMaxWidth()).toBe("720px");
+
+    // turn it off → column spans full width again, and the mock persisted it
+    await readableToggle().click();
+    expect(await contentMaxWidth()).toBe("none");
+    expect(await page.evaluate(() => window.__CHRONO_MOCK__!.readableLineLength)).toBe(false);
+
+    // survives a reload (read from config on boot)
+    await page.reload();
+    await editor(page).click();
+    expect(await contentMaxWidth()).toBe("none");
+  });
+
+  test("readable line width is a no-op while word wrap is off (§99)", async ({ page }) => {
+    await seedApp(page, { seed: { notes: {}, wordWrap: false, readableLineLength: true } });
+    await editor(page).click();
+    // readable on but wrap off → no column cap (wide tables still scroll)
+    const maxWidth = await page.locator(".cm-content").evaluate((el) => getComputedStyle(el).maxWidth);
+    expect(maxWidth).toBe("none");
+  });
+
   test("shows the current notes folder path", async ({ page }) => {
     await seedApp(page, { seed: "dir-switch" });
     await openSettings(page);

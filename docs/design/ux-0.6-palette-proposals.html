@@ -1,0 +1,764 @@
+<title>ChronoNote 0.6 Surface Study</title>
+<meta name="description" content="Three visual-identity options for the ChronoNote 0.6 UX pass, shown on the same mock window." />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,600;12..96,700&family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap" />
+
+<style>
+  :root {
+    color-scheme: light dark;
+
+    --ground: #f7f7f5;
+    --panel: #ffffff;
+    --panel-2: #f0f0ee;
+    --ink: #1b1d22;
+    --ink-soft: #4a4d55;
+    --muted: #7c7f88;
+    --hair: #e3e3df;
+    --hair-strong: #d3d3ce;
+    --accent: #4f5bd5;
+    --accent-soft: #ecedfb;
+    --ok: #1a7f4b;
+    --warn: #a66300;
+
+    --maxw: 1120px;
+    --read: 68ch;
+    --radius: 14px;
+
+    --f-display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+    --f-body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+    --f-mono: "JetBrains Mono", "Cascadia Code", ui-monospace, monospace;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground: #0e0f12;
+      --panel: #16171b;
+      --panel-2: #1d1e23;
+      --ink: #e7e8ea;
+      --ink-soft: #b7b9c0;
+      --muted: #83868f;
+      --hair: #26272c;
+      --hair-strong: #34353c;
+      --accent: #9aa4f2;
+      --accent-soft: #1e2030;
+      --ok: #5fd39a;
+      --warn: #e0a95e;
+    }
+  }
+  :root[data-theme="dark"] {
+    --ground: #0e0f12;
+    --panel: #16171b;
+    --panel-2: #1d1e23;
+    --ink: #e7e8ea;
+    --ink-soft: #b7b9c0;
+    --muted: #83868f;
+    --hair: #26272c;
+    --hair-strong: #34353c;
+    --accent: #9aa4f2;
+    --accent-soft: #1e2030;
+    --ok: #5fd39a;
+    --warn: #e0a95e;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--ink);
+    font-family: var(--f-body);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; }
+  }
+
+  .wrap { max-width: var(--maxw); margin: 0 auto; padding: 56px 24px 96px; }
+
+  header.page { max-width: var(--read); }
+  .eyebrow {
+    font-family: var(--f-mono);
+    font-size: 12px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin: 0 0 14px;
+  }
+  h1 {
+    font-family: var(--f-display);
+    font-weight: 700;
+    font-size: clamp(30px, 4.5vw, 44px);
+    line-height: 1.08;
+    letter-spacing: -0.02em;
+    text-wrap: balance;
+    margin: 0 0 18px;
+  }
+  header.page p { color: var(--ink-soft); font-size: 17px; margin: 0 0 10px; }
+  header.page p.meta { color: var(--muted); font-size: 14px; font-family: var(--f-mono); }
+
+  .decisions {
+    margin: 34px 0 0;
+    border: 1px solid var(--hair);
+    border-radius: var(--radius);
+    background: var(--panel);
+    padding: 20px 22px;
+    max-width: var(--read);
+  }
+  .decisions h2 {
+    font-family: var(--f-mono);
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    font-size: 12px;
+    color: var(--muted);
+    margin: 0 0 12px;
+  }
+  .decisions ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 9px; }
+  .decisions li { display: flex; gap: 10px; font-size: 14.5px; }
+  .decisions li b { color: var(--ink); font-weight: 600; }
+  .decisions li span:first-child { color: var(--ok); flex: none; font-weight: 700; }
+
+  section.variant { margin-top: 72px; scroll-margin-top: 24px; }
+  .variant-head { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; margin-bottom: 6px; }
+  .tag {
+    font-family: var(--f-mono);
+    font-weight: 700;
+    font-size: 13px;
+    color: var(--panel);
+    background: var(--ink);
+    border-radius: 6px;
+    padding: 3px 9px;
+    flex: none;
+  }
+  .variant-head h2 {
+    font-family: var(--f-display);
+    font-weight: 600;
+    font-size: 24px;
+    letter-spacing: -0.015em;
+    margin: 0;
+  }
+  .variant-head .verdict {
+    font-family: var(--f-mono);
+    font-size: 12px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-left: auto;
+  }
+  .variant > p.lead { max-width: var(--read); color: var(--ink-soft); margin: 8px 0 22px; }
+
+  /* ============================================================
+     MOCK WINDOW — a stripped ChronoNote frame. Each variant sets
+     its own --m-* tokens; the structure below is identical so the
+     three read as the same window in three skins.
+     ============================================================ */
+  .mock {
+    --m-radius: 8px;
+    border-radius: var(--m-radius);
+    overflow: hidden;
+    font-family: var(--m-font, "JetBrains Mono", monospace);
+    box-shadow: 0 24px 60px -28px rgba(0, 0, 0, 0.5), 0 0 0 1px var(--hair);
+    position: relative;
+    isolation: isolate;
+  }
+  .mock * { box-sizing: border-box; }
+
+  .m-topbar {
+    height: var(--m-topbar-h, 38px);
+    background: var(--m-chrome);
+    border-bottom: 1px solid var(--m-border);
+    display: flex;
+    align-items: stretch;
+    padding-right: 8px;
+    gap: 0;
+  }
+  .m-tabs { display: flex; align-items: stretch; }
+  .m-tab {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 0 14px;
+    font-size: 12px;
+    color: var(--m-muted);
+    border-right: 1px solid var(--m-border);
+    white-space: nowrap;
+    position: relative;
+  }
+  .m-tab .ico { font-size: 11px; opacity: 0.8; filter: grayscale(1); }
+  .m-tab.daily .ico { color: var(--m-accent); opacity: 1; filter: none; }
+  .m-tab.active {
+    background: var(--m-canvas);
+    color: var(--m-ink);
+    font-weight: 600;
+    box-shadow: inset 0 2px 0 var(--m-accent);
+  }
+  .m-tab.scratch { font-style: italic; }
+  .m-tab .dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--m-warn);
+    flex: none;
+  }
+  .m-tab .x { color: var(--m-faint); font-style: normal; margin-left: 2px; }
+  .m-divider { width: 1.5px; align-self: center; height: 20px; background: var(--m-border-strong); margin: 0 6px; }
+  .m-spacer { flex: 1; }
+  .m-btn {
+    display: flex; align-items: center; justify-content: center;
+    min-width: 30px; padding: 0 8px;
+    color: var(--m-muted); font-size: 13px;
+    align-self: center; height: 28px;
+    border-radius: 6px;
+  }
+  .m-btn.chip { background: var(--m-tier3); border: 1px solid var(--m-border); }
+
+  .m-body { position: relative; background: var(--m-canvas); }
+  .m-editor {
+    padding: 16px 20px;
+    font-size: 13px;
+    line-height: 1.62;
+    color: var(--m-ink);
+    min-height: 232px;
+  }
+  .m-editor .ln { white-space: pre; }
+  .m-editor .sect { color: var(--m-ink); font-weight: 500; }
+  .m-editor .rule { color: var(--m-faint); letter-spacing: -1px; }
+  .g { display: inline-block; width: 2ch; }
+  .g-open   { color: var(--m-g-open);   font-weight: var(--m-g-open-w, 400); }
+  .g-done   { color: var(--m-g-done);   opacity: var(--m-g-done-o, 1); }
+  .g-defer  { color: var(--m-g-defer);  font-weight: 700; }
+  .g-cancel { color: var(--m-g-cancel); opacity: var(--m-g-cancel-o, 1); }
+  .g-bullet { color: var(--m-ink); }
+  .g-arrow  { color: var(--m-g-arrow); width: 3ch; }
+  .t-done   { opacity: var(--m-g-done-o, 1); }
+  .t-cancel { opacity: var(--m-g-cancel-o, 1); text-decoration: line-through; text-decoration-color: var(--m-faint); }
+  .assignee {
+    background: var(--m-chip-bg); color: var(--m-chip-fg);
+    border-radius: 3px; padding: 0 4px; font-weight: 600;
+  }
+
+  /* anchored calendar popover */
+  .m-pop {
+    position: absolute;
+    top: 6px; left: 96px;
+    width: 232px;
+    background: var(--m-tier2);
+    border: 1px solid var(--m-border-strong);
+    border-radius: 8px;
+    box-shadow: 0 18px 40px -14px rgba(0, 0, 0, 0.55);
+    padding: 10px 11px 12px;
+    z-index: 5;
+    font-size: 11px;
+    color: var(--m-ink);
+  }
+  .m-pop .cal-head { display: flex; justify-content: space-between; align-items: center; color: var(--m-muted); padding: 2px 2px 8px; }
+  .m-pop .cal-head b { color: var(--m-ink); font-weight: 600; font-size: 11.5px; }
+  .m-pop .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; text-align: center; }
+  .m-pop .cal-grid span { color: var(--m-faint); font-size: 9.5px; padding: 3px 0; }
+  .m-pop .cal-grid b {
+    font-weight: 400; padding: 4px 0; border-radius: 4px; position: relative; color: var(--m-ink);
+  }
+  .m-pop .cal-grid b.out { color: var(--m-faint); }
+  .m-pop .cal-grid b.today { background: var(--m-accent); color: #fff; font-weight: 700; }
+  .m-pop .cal-grid b.has::after {
+    content: ""; position: absolute; left: 50%; bottom: 1px; transform: translateX(-50%);
+    width: 3px; height: 3px; border-radius: 50%; background: var(--m-accent);
+  }
+  .m-pop .cal-grid b.today.has::after { background: #fff; }
+  .m-pop .cal-foot { display: flex; justify-content: space-between; margin-top: 8px; padding-top: 7px; border-top: 1px solid var(--m-border); color: var(--m-muted); }
+  .m-pop .cal-foot .now { color: var(--m-accent); font-weight: 600; }
+
+  .m-status {
+    height: 25px;
+    background: var(--m-chrome);
+    border-top: 1px solid var(--m-border);
+    display: flex;
+    align-items: center;
+    padding: 0 12px;
+    font-size: 11px;
+    color: var(--m-muted);
+    gap: 16px;
+  }
+  .m-status .z2 { margin-left: auto; margin-right: auto; display: flex; align-items: center; gap: 6px; }
+  .m-status .z3 { display: flex; align-items: center; gap: 12px; }
+  .m-status .sdot { width: 6px; height: 6px; border-radius: 50%; background: var(--m-ok); flex: none; }
+  .m-status .sdot.saving { background: var(--m-warn); }
+  .m-status .save-ok { color: var(--m-ok); }
+  .m-status .help {
+    border: 1px solid var(--m-border-strong); border-radius: 3px;
+    width: 15px; height: 15px; display: inline-flex; align-items: center; justify-content: center;
+    font-size: 10px; color: var(--m-ink);
+  }
+  .m-status .nums { font-variant-numeric: tabular-nums; }
+
+  /* ---------- Variant A · current ---------- */
+  .mock--a {
+    --m-canvas: #1e1e1e;
+    --m-chrome: #252526;
+    --m-border: #333333;
+    --m-border-strong: #333333;
+    --m-ink: #d4d4d4;
+    --m-muted: #858585;
+    --m-faint: #5a5a5a;
+    --m-accent: #d4d4d4;
+    --m-warn: #e5a50a;
+    --m-ok: #7bbf7b;
+    --m-tier2: #252526;
+    --m-tier3: #2d2d2d;
+    --m-chip-bg: rgba(128,128,128,0.18);
+    --m-chip-fg: #d4d4d4;
+    --m-g-open: #d4d4d4; --m-g-open-w: 400;
+    --m-g-done: #d4d4d4; --m-g-done-o: 0.55;
+    --m-g-defer: #d4d4d4;
+    --m-g-cancel: #d4d4d4; --m-g-cancel-o: 0.55;
+    --m-g-arrow: #858585;
+  }
+
+  /* ---------- Variant B · structural, current hues ---------- */
+  .mock--b {
+    --m-topbar-h: 44px;
+    --m-canvas: #1e1e1e;
+    --m-chrome: #202022;
+    --m-border: rgba(255,255,255,0.07);
+    --m-border-strong: rgba(255,255,255,0.13);
+    --m-ink: #dededd;
+    --m-muted: #8b8b8f;
+    --m-faint: #5f5f64;
+    --m-accent: #4aa2e5;
+    --m-warn: #e0a44b;
+    --m-ok: #57b98a;
+    --m-tier2: #2a2a2d;
+    --m-tier3: #313135;
+    --m-chip-bg: rgba(255,255,255,0.09);
+    --m-chip-fg: #dcdcdb;
+    --m-g-open: #dededd; --m-g-open-w: 400;
+    --m-g-done: #dededd; --m-g-done-o: 0.5;
+    --m-g-defer: #dededd;
+    --m-g-cancel: #dededd; --m-g-cancel-o: 0.5;
+    --m-g-arrow: #8b8b8f;
+  }
+  .mock--b .m-tab { border-right-color: transparent; }
+  .mock--b .m-tab.active { border-radius: 6px 6px 0 0; }
+
+  /* ---------- Variant C · full re-skin ---------- */
+  .mock--c {
+    --m-topbar-h: 44px;
+    --m-canvas: hsl(220 14% 10%);
+    --m-chrome: hsl(220 14% 13%);
+    --m-border: hsla(220 20% 90% / 0.08);
+    --m-border-strong: hsla(220 20% 90% / 0.14);
+    --m-ink: hsl(220 12% 90%);
+    --m-muted: hsl(220 9% 58%);
+    --m-faint: hsl(220 9% 40%);
+    --m-accent: #34d399;
+    --m-warn: #f59e0b;
+    --m-ok: #10b981;
+    --m-tier2: hsl(220 14% 17%);
+    --m-tier3: hsl(220 14% 22%);
+    --m-chip-bg: hsl(220 14% 22%);
+    --m-chip-fg: hsl(220 12% 90%);
+    --m-g-open: #7fd4f5; --m-g-open-w: 500;
+    --m-g-done: #10b981; --m-g-done-o: 1;
+    --m-g-defer: #a855f7;
+    --m-g-cancel: hsl(220 9% 52%); --m-g-cancel-o: 1;
+    --m-g-arrow: hsl(220 9% 58%);
+  }
+  .mock--c .m-tab { border-right-color: transparent; }
+  .mock--c .m-tab.active { border-radius: 6px 6px 0 0; box-shadow: inset 0 2px 0 var(--m-accent); }
+
+  /* caption strip under each mock */
+  .mock-note {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 2px;
+    margin-top: 2px;
+    border: 1px solid var(--hair);
+    border-top: none;
+    border-radius: 0 0 var(--radius) var(--radius);
+    overflow: hidden;
+  }
+  .mock-note div { background: var(--panel); padding: 13px 16px; }
+  .mock-note dt {
+    font-family: var(--f-mono);
+    font-size: 10.5px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 4px;
+  }
+  .mock-note dd { margin: 0; font-size: 13.5px; color: var(--ink-soft); }
+
+  /* reference blocks */
+  .ref { margin-top: 84px; }
+  .ref > h2 {
+    font-family: var(--f-display);
+    font-weight: 600;
+    font-size: 26px;
+    letter-spacing: -0.015em;
+    margin: 0 0 6px;
+  }
+  .ref > p { max-width: var(--read); color: var(--ink-soft); margin: 0 0 26px; }
+
+  .tiers { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 14px; }
+  .tier {
+    border: 1px solid var(--hair);
+    border-radius: 12px;
+    overflow: hidden;
+    background: var(--panel);
+  }
+  .tier .chip { height: 72px; border-bottom: 1px solid var(--hair); }
+  .tier .meta { padding: 11px 13px; }
+  .tier .meta b { display: block; font-size: 13.5px; }
+  .tier .meta code { font-family: var(--f-mono); font-size: 11.5px; color: var(--muted); }
+  .tier .meta span { display: block; font-size: 12px; color: var(--ink-soft); margin-top: 3px; }
+
+  .glyphtable { width: 100%; border-collapse: collapse; font-size: 14px; }
+  .glyphtable th {
+    text-align: left;
+    font-family: var(--f-mono);
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+    font-weight: 500;
+    padding: 0 14px 10px 0;
+    border-bottom: 1px solid var(--hair-strong);
+  }
+  .glyphtable td { padding: 13px 14px 13px 0; border-bottom: 1px solid var(--hair); vertical-align: middle; }
+  .glyphtable td:last-child { color: var(--ink-soft); font-size: 13px; }
+  .glyphtable .cell {
+    font-family: var(--f-mono);
+    font-size: 15px;
+    background: var(--gt-canvas, #1e1e1e);
+    color: var(--gt-ink, #d4d4d4);
+    padding: 8px 12px;
+    border-radius: 6px;
+    display: inline-flex;
+    gap: 10px;
+    align-items: center;
+    white-space: pre;
+  }
+  .gt-dark { --gt-canvas: hsl(220 14% 10%); --gt-ink: hsl(220 12% 90%); }
+  .swatch-open   { color: #7fd4f5; font-weight: 500; }
+  .swatch-done   { color: #10b981; }
+  .swatch-defer  { color: #a855f7; font-weight: 700; }
+  .swatch-cancel { color: hsl(220 9% 52%); text-decoration: line-through; }
+  .swatch-g-open { color: #dededd; }
+  .swatch-g-done { color: #dededd; opacity: 0.5; }
+  .swatch-g-defer { color: #dededd; font-weight: 700; }
+  .swatch-g-cancel { color: #dededd; opacity: 0.5; text-decoration: line-through; }
+
+  footer.page {
+    margin-top: 88px;
+    padding-top: 22px;
+    border-top: 1px solid var(--hair);
+    color: var(--muted);
+    font-size: 13px;
+    font-family: var(--f-mono);
+    max-width: var(--read);
+  }
+
+  a { color: var(--accent); text-underline-offset: 3px; }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 3px; }
+
+  @media (max-width: 640px) {
+    .wrap { padding: 40px 16px 72px; }
+    .m-editor { font-size: 12px; }
+    .m-pop { display: none; }
+  }
+</style>
+
+<div class="wrap">
+  <header class="page">
+    <p class="eyebrow">ChronoNote · 0.6 UX pass</p>
+    <h1>Three skins for the same window</h1>
+    <p>
+      The 0.6 review asked for a surface-elevation palette, distinct tab archetypes, a
+      three-zone status bar and an anchored date popover. The structure is settled; the open
+      question is <em>how far the look moves</em>. Same mock window below, three treatments —
+      pick one and Phase&nbsp;1 proceeds against it.
+    </p>
+    <p class="meta">Mock content is illustrative — not your notes. Editor grid, glyph set and status fields match the real app.</p>
+  </header>
+
+  <div class="decisions">
+    <h2>Already decided</h2>
+    <ul>
+      <li><span>✓</span><span><b>Four action states</b> stay (<code>#&nbsp;v&nbsp;&gt;&nbsp;x</code>) — no "in&nbsp;progress" glyph.</span></li>
+      <li><span>✓</span><span><b>Colour axis:</b> the semantic glyph palette refreshes the existing <code>color</code> mode. No new toggle; grayscale is untouched.</span></li>
+      <li><span>✓</span><span><b>One v0.6.0</b> cut after every phase lands and is reviewed together.</span></li>
+      <li><span>✓</span><span><b>This choice</b> (A / B / C) gates the <code>app.css</code> token work in Phase&nbsp;1.</span></li>
+    </ul>
+  </div>
+
+  <!-- ============ VARIANT A ============ -->
+  <section class="variant" id="a">
+    <div class="variant-head">
+      <span class="tag">A</span>
+      <h2>Current — unchanged</h2>
+      <span class="verdict">baseline</span>
+    </div>
+    <p class="lead">
+      Today's build: VS&nbsp;Code charcoal, a single flat <code>#333</code> border on every edge,
+      one accent (the tab underline uses body text colour), 38&nbsp;px top bar. Shown so the
+      other two have something to move away from — the new <em>features</em> (tab icons, status
+      zones, popover) are drawn here too, just on the old surface.
+    </p>
+    <div class="mock mock--a">
+      <div class="m-topbar">
+        <div class="m-tabs">
+          <div class="m-tab daily"><span class="ico">▦</span>2026-09-08<span class="x">✕</span></div>
+          <div class="m-tab daily active"><span class="ico">▦</span>2026-09-09<span class="x">✕</span></div>
+          <span class="m-divider"></span>
+          <div class="m-tab scratch">Scratchpad&nbsp;1<span class="dot"></span><span class="x">✕</span></div>
+        </div>
+        <span class="m-spacer"></span>
+        <span class="m-btn">＋</span>
+        <span class="m-btn">📅</span>
+        <span class="m-btn">📋</span>
+        <span class="m-btn">🔎</span>
+        <span class="m-btn">⚙</span>
+      </div>
+      <div class="m-body">
+        <div class="m-pop">
+          <div class="cal-head"><span>‹</span><b>September 2026</b><span>›</span></div>
+          <div class="cal-grid">
+            <span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span><span>Su</span>
+            <b class="out">1</b><b>2</b><b class="has">3</b><b>4</b><b class="has">5</b><b class="out">6</b><b class="out">7</b>
+            <b>8</b><b class="today has">9</b><b class="has">10</b><b>11</b><b>12</b><b class="out">13</b><b class="out">14</b>
+            <b>15</b><b class="has">16</b><b>17</b><b>18</b><b>19</b><b class="out">20</b><b class="out">21</b>
+          </div>
+          <div class="cal-foot"><span class="now">Today</span><span>Esc</span></div>
+        </div>
+        <div class="m-editor">
+<div class="ln"><span class="sect">Weekly Sync</span></div>
+<div class="ln"><span class="rule">══════════</span></div>
+<div class="ln"> </div>
+<div class="ln"><span class="g g-open">☐</span>Chase the vendor SLA numbers</div>
+<div class="ln"><span class="g g-done">☑</span><span class="t-done">Send Q3 recap to the team</span></div>
+<div class="ln"><span class="g g-defer">»</span>Migrate the staging box</div>
+<div class="ln"><span class="g g-bullet">•</span>follow up on the pen-test scope</div>
+<div class="ln"><span class="g g-arrow">➔</span><span class="assignee">@priya</span> draft the incident comms</div>
+<div class="ln"><span class="g g-cancel">☒</span><span class="t-cancel">Rewrite the config loader</span></div>
+        </div>
+      </div>
+      <div class="m-status">
+        <span class="nums">Ln 7, Col 1&nbsp;&nbsp;·&nbsp;&nbsp;214 words&nbsp;&nbsp;·&nbsp;&nbsp;Open 3</span>
+        <span class="z2"><span class="sdot"></span><span class="save-ok">All changes saved</span></span>
+        <span class="z3"><span>v0.6.0</span><span class="help">?</span></span>
+      </div>
+    </div>
+    <dl class="mock-note">
+      <div><dt>Surfaces</dt><dd>Two (chrome / canvas). Overlays reuse chrome.</dd></div>
+      <div><dt>Borders</dt><dd>One opaque hairline, same weight everywhere.</dd></div>
+      <div><dt>Risk</dt><dd>None — but the new elements sit flat against old chrome.</dd></div>
+    </dl>
+  </section>
+
+  <!-- ============ VARIANT B ============ -->
+  <section class="variant" id="b">
+    <div class="variant-head">
+      <span class="tag">B</span>
+      <h2>Structural — same hues, real elevation</h2>
+      <span class="verdict">recommended</span>
+    </div>
+    <p class="lead">
+      Keeps ChronoNote's charcoal and a familiar blue accent, but adopts the review's
+      <em>structure</em>: four surface tiers, translucent hairlines that read as light on dark,
+      a 44&nbsp;px bar with pill-topped active tabs, and one dedicated overlay surface (tier&nbsp;2)
+      so the popover and modals sit visibly above the page. Everything here is a token swap in
+      <code>app.css</code> — fully reversible, and the light theme keeps working unchanged.
+    </p>
+    <div class="mock mock--b">
+      <div class="m-topbar">
+        <div class="m-tabs">
+          <div class="m-tab daily"><span class="ico">▦</span>2026-09-08<span class="x">✕</span></div>
+          <div class="m-tab daily active"><span class="ico">▦</span>2026-09-09<span class="x">✕</span></div>
+          <span class="m-divider"></span>
+          <div class="m-tab scratch"><span class="ico">✎</span>Scratchpad&nbsp;1<span class="dot"></span><span class="x">✕</span></div>
+        </div>
+        <span class="m-spacer"></span>
+        <span class="m-btn chip">＋</span>
+        <span class="m-btn chip">📅</span>
+        <span class="m-btn chip">📋</span>
+        <span class="m-btn chip">🔎</span>
+        <span class="m-btn chip">⚙</span>
+      </div>
+      <div class="m-body">
+        <div class="m-pop">
+          <div class="cal-head"><span>‹</span><b>September 2026</b><span>›</span></div>
+          <div class="cal-grid">
+            <span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span><span>Su</span>
+            <b class="out">1</b><b>2</b><b class="has">3</b><b>4</b><b class="has">5</b><b class="out">6</b><b class="out">7</b>
+            <b>8</b><b class="today has">9</b><b class="has">10</b><b>11</b><b>12</b><b class="out">13</b><b class="out">14</b>
+            <b>15</b><b class="has">16</b><b>17</b><b>18</b><b>19</b><b class="out">20</b><b class="out">21</b>
+          </div>
+          <div class="cal-foot"><span class="now">Today</span><span>Esc</span></div>
+        </div>
+        <div class="m-editor">
+<div class="ln"><span class="sect">Weekly Sync</span></div>
+<div class="ln"><span class="rule">══════════</span></div>
+<div class="ln"> </div>
+<div class="ln"><span class="g g-open">☐</span>Chase the vendor SLA numbers</div>
+<div class="ln"><span class="g g-done">☑</span><span class="t-done">Send Q3 recap to the team</span></div>
+<div class="ln"><span class="g g-defer">»</span>Migrate the staging box</div>
+<div class="ln"><span class="g g-bullet">•</span>follow up on the pen-test scope</div>
+<div class="ln"><span class="g g-arrow">➔</span><span class="assignee">@priya</span> draft the incident comms</div>
+<div class="ln"><span class="g g-cancel">☒</span><span class="t-cancel">Rewrite the config loader</span></div>
+        </div>
+      </div>
+      <div class="m-status">
+        <span class="nums">Ln 7, Col 1&nbsp;&nbsp;·&nbsp;&nbsp;214 words&nbsp;&nbsp;·&nbsp;&nbsp;Open 3</span>
+        <span class="z2"><span class="sdot"></span><span class="save-ok">All changes saved</span></span>
+        <span class="z3"><span>v0.6.0</span><span class="help">?</span></span>
+      </div>
+    </div>
+    <dl class="mock-note">
+      <div><dt>Surfaces</dt><dd>Four tiers: canvas · chrome · overlay · hover.</dd></div>
+      <div><dt>Borders</dt><dd>Translucent hairlines + one stronger edge for overlays.</dd></div>
+      <div><dt>Risk</dt><dd>Low. Token-only; both themes; nothing structural moves.</dd></div>
+    </dl>
+  </section>
+
+  <!-- ============ VARIANT C ============ -->
+  <section class="variant" id="c">
+    <div class="variant-head">
+      <span class="tag">C</span>
+      <h2>Full re-skin — the review's palette</h2>
+      <span class="verdict">boldest</span>
+    </div>
+    <p class="lead">
+      The document's own spec: bluish-charcoal <code>hsl(220 14% 10–22%)</code>, a teal/emerald
+      accent for active and positive states, amber reserved strictly for unsaved / warning, and
+      the semantic glyph set (cyan open, emerald done, violet deferred, slate cancelled) as the
+      refreshed <code>color</code> mode. A distinct identity — further from "a text editor",
+      closer to a purpose-built tool. Needs a hand-built light counterpart and a settling pass.
+    </p>
+    <div class="mock mock--c">
+      <div class="m-topbar">
+        <div class="m-tabs">
+          <div class="m-tab daily"><span class="ico">▦</span>2026-09-08<span class="x">✕</span></div>
+          <div class="m-tab daily active"><span class="ico">▦</span>2026-09-09<span class="x">✕</span></div>
+          <span class="m-divider"></span>
+          <div class="m-tab scratch"><span class="ico">✎</span>Scratchpad&nbsp;1<span class="dot"></span><span class="x">✕</span></div>
+        </div>
+        <span class="m-spacer"></span>
+        <span class="m-btn chip">＋</span>
+        <span class="m-btn chip">📅</span>
+        <span class="m-btn chip">📋</span>
+        <span class="m-btn chip">🔎</span>
+        <span class="m-btn chip">⚙</span>
+      </div>
+      <div class="m-body">
+        <div class="m-pop">
+          <div class="cal-head"><span>‹</span><b>September 2026</b><span>›</span></div>
+          <div class="cal-grid">
+            <span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span><span>Su</span>
+            <b class="out">1</b><b>2</b><b class="has">3</b><b>4</b><b class="has">5</b><b class="out">6</b><b class="out">7</b>
+            <b>8</b><b class="today has">9</b><b class="has">10</b><b>11</b><b>12</b><b class="out">13</b><b class="out">14</b>
+            <b>15</b><b class="has">16</b><b>17</b><b>18</b><b>19</b><b class="out">20</b><b class="out">21</b>
+          </div>
+          <div class="cal-foot"><span class="now">Today</span><span>Esc</span></div>
+        </div>
+        <div class="m-editor">
+<div class="ln"><span class="sect">Weekly Sync</span></div>
+<div class="ln"><span class="rule">══════════</span></div>
+<div class="ln"> </div>
+<div class="ln"><span class="g g-open">☐</span>Chase the vendor SLA numbers</div>
+<div class="ln"><span class="g g-done">☑</span><span class="t-done">Send Q3 recap to the team</span></div>
+<div class="ln"><span class="g g-defer">»</span>Migrate the staging box</div>
+<div class="ln"><span class="g g-bullet">•</span>follow up on the pen-test scope</div>
+<div class="ln"><span class="g g-arrow">➔</span><span class="assignee">@priya</span> draft the incident comms</div>
+<div class="ln"><span class="g g-cancel">☒</span><span class="t-cancel">Rewrite the config loader</span></div>
+        </div>
+      </div>
+      <div class="m-status">
+        <span class="nums">Ln 7, Col 1&nbsp;&nbsp;·&nbsp;&nbsp;214 words&nbsp;&nbsp;·&nbsp;&nbsp;Open 3</span>
+        <span class="z2"><span class="sdot"></span><span class="save-ok">All changes saved</span></span>
+        <span class="z3"><span>v0.6.0</span><span class="help">?</span></span>
+      </div>
+    </div>
+    <dl class="mock-note">
+      <div><dt>Surfaces</dt><dd>Four tiers on the <code>hsl(220&nbsp;14%&nbsp;·)</code> ramp.</dd></div>
+      <div><dt>Borders</dt><dd>Cool translucent hairlines; teal focus rings.</dd></div>
+      <div><dt>Risk</dt><dd>Medium. New light palette to design; expect a tuning round.</dd></div>
+    </dl>
+  </section>
+
+  <!-- ============ REFERENCE: TIERS ============ -->
+  <div class="ref">
+    <h2>Surface tiers (B &amp; C)</h2>
+    <p>Both proposals replace today's two surfaces with four, so depth is expressed by tone
+      rather than by a border alone. Values shown for C; B uses the same roles on the current charcoal.</p>
+    <div class="tiers">
+      <div class="tier">
+        <div class="chip" style="background: hsl(220 14% 10%)"></div>
+        <div class="meta"><b>Tier 0 · Canvas</b><code>hsl(220 14% 10%)</code><span>Editor background.</span></div>
+      </div>
+      <div class="tier">
+        <div class="chip" style="background: hsl(220 14% 13%)"></div>
+        <div class="meta"><b>Tier 1 · Chrome</b><code>hsl(220 14% 13%)</code><span>Top bar, status bar.</span></div>
+      </div>
+      <div class="tier">
+        <div class="chip" style="background: hsl(220 14% 17%)"></div>
+        <div class="meta"><b>Tier 2 · Overlay</b><code>hsl(220 14% 17%)</code><span>Popovers, modals, drawers.</span></div>
+      </div>
+      <div class="tier">
+        <div class="chip" style="background: hsl(220 14% 22%)"></div>
+        <div class="meta"><b>Tier 3 · Hover</b><code>hsl(220 14% 22%)</code><span>Hovered rows, inputs, chips.</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ REFERENCE: GLYPHS ============ -->
+  <div class="ref">
+    <h2>Action glyphs — shape &amp; colour</h2>
+    <p>The shapes get redrawn as checkbox-style marks inside the existing two-character cell
+      (no gutter, column alignment preserved). Colour only applies in <code>color</code> mode;
+      grayscale keeps distinguishing by weight and opacity.</p>
+    <table class="glyphtable">
+      <thead>
+        <tr><th>Token</th><th>Grayscale (default)</th><th>Colour mode (refreshed)</th><th>Meaning</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>#&nbsp;</code></td>
+          <td><span class="cell"><span class="swatch-g-open">☐</span> open</span></td>
+          <td><span class="cell gt-dark"><span class="swatch-open">☐</span> open</span></td>
+          <td>Unresolved. Blocks tab close, counts in "Open".</td>
+        </tr>
+        <tr>
+          <td><code>v&nbsp;</code></td>
+          <td><span class="cell"><span class="swatch-g-done">☑</span> done</span></td>
+          <td><span class="cell gt-dark"><span class="swatch-done">☑</span> done</span></td>
+          <td>Resolved. Label text dims to ~55%.</td>
+        </tr>
+        <tr>
+          <td><code>&gt;&nbsp;</code></td>
+          <td><span class="cell"><span class="swatch-g-defer">»</span> deferred</span></td>
+          <td><span class="cell gt-dark"><span class="swatch-defer">»</span> deferred</span></td>
+          <td>Pushed to a later day. Counts in "Forwarded".</td>
+        </tr>
+        <tr>
+          <td><code>x&nbsp;</code></td>
+          <td><span class="cell"><span class="swatch-g-cancel">☒</span> won't&nbsp;do</span></td>
+          <td><span class="cell gt-dark"><span class="swatch-cancel">☒</span> won't&nbsp;do</span></td>
+          <td>Closed without doing it. Strikethrough.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ============ WHAT EACH BUYS ============ -->
+  <div class="ref">
+    <h2>How to choose</h2>
+    <p>All three ship the same 0.6 features. The choice is only about the surface they land on.</p>
+    <dl class="mock-note" style="border-radius: 12px; border-top: 1px solid var(--hair);">
+      <div><dt>Pick A if</dt><dd>the look is fine and you'd rather I spend the whole budget on features.</dd></div>
+      <div><dt>Pick B if</dt><dd>you want the window to feel more deliberate and layered without relearning it. <b>My recommendation.</b></dd></div>
+      <div><dt>Pick C if</dt><dd>0.6 is the moment to give ChronoNote its own visual identity and you're up for a tuning round.</dd></div>
+    </dl>
+  </div>
+
+  <footer class="page">
+    ChronoNote 0.6 · surface study · reply A / B / C
+  </footer>
+</div>

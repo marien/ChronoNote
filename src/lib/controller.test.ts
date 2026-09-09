@@ -10,6 +10,7 @@ const apiMock = {
   setNotesDir: vi.fn(),
   setColorMode: vi.fn(),
   setWordWrap: vi.fn(),
+  setReadableLineLength: vi.fn(),
   listNoteFiles: vi.fn(),
   readNote: vi.fn(),
   writeNote: vi.fn(),
@@ -80,12 +81,14 @@ beforeEach(async () => {
     notesDir: "/notes",
     colorMode: "grayscale",
     wordWrap: false,
+    readableLineLength: true,
     recentNotesDirs: [],
   });
   apiMock.setNotesDir.mockResolvedValue({
     notesDir: "/new",
     colorMode: "grayscale",
     wordWrap: false,
+    readableLineLength: true,
     recentNotesDirs: [],
   });
   apiMock.getAppVersion.mockResolvedValue("0.0.0-test");
@@ -695,6 +698,7 @@ describe("directory switching", () => {
       notesDir: "/new-folder",
       colorMode: "grayscale",
       wordWrap: false,
+      readableLineLength: true,
       recentNotesDirs: [],
     });
     await controller.switchToRecentDirectory("/new-folder");
@@ -724,6 +728,7 @@ describe("directory switching", () => {
       notesDir: "/new-folder",
       colorMode: "grayscale",
       wordWrap: false,
+      readableLineLength: true,
       recentNotesDirs: [],
     });
     await controller.switchToRecentDirectory("/new-folder");
@@ -739,6 +744,7 @@ describe("initApp", () => {
       notesDir: "/notes",
       colorMode: "color",
       wordWrap: true,
+      readableLineLength: false,
       recentNotesDirs: ["/old"],
     });
     vi.setSystemTime(new Date(2026, 8, 15));
@@ -746,6 +752,7 @@ describe("initApp", () => {
     expect(get(controller.notesDir)).toBe("/notes");
     expect(get(controller.colorMode)).toBe("color");
     expect(get(controller.wordWrap)).toBe(true);
+    expect(get(controller.readableLineLength)).toBe(false);
     expect(get(controller.recentNotesDirs)).toEqual(["/old"]);
     expect(get(controller.tabs).some((t) => t.filename === "2026-09-15.txt")).toBe(true);
     vi.useRealTimers();
@@ -862,6 +869,18 @@ describe("setWordWrap (§80)", () => {
     await controller.setWordWrap(false);
     expect(get(controller.wordWrap)).toBe(false);
     expect(apiMock.setWordWrap).toHaveBeenLastCalledWith(false);
+  });
+});
+
+describe("setReadableLineLength (§99)", () => {
+  it("updates the store and persists via the API", async () => {
+    await controller.setReadableLineLength(false);
+    expect(get(controller.readableLineLength)).toBe(false);
+    expect(apiMock.setReadableLineLength).toHaveBeenCalledWith(false);
+
+    await controller.setReadableLineLength(true);
+    expect(get(controller.readableLineLength)).toBe(true);
+    expect(apiMock.setReadableLineLength).toHaveBeenLastCalledWith(true);
   });
 });
 

@@ -17,6 +17,7 @@ import {
   markTabClean,
   modal,
   notesDir,
+  readableLineLength,
   recentNotesDirs,
   scratchpadGateContext,
   showToast,
@@ -284,6 +285,7 @@ export async function initApp() {
   colorMode.set(cfg.colorMode);
   applyColorModeToDom(cfg.colorMode);
   wordWrap.set(cfg.wordWrap);
+  readableLineLength.set(cfg.readableLineLength);
   await restoreOrBootstrapTabs();
   tabs.subscribe(() => scheduleTabSessionSave());
   activeTabId.subscribe(() => scheduleTabSessionSave());
@@ -324,5 +326,14 @@ export async function setWordWrap(enabled: boolean) {
     await api.setWordWrap(enabled);
   } catch {
     showToast("Failed to save word-wrap preference");
+  }
+}
+
+export async function setReadableLineLength(enabled: boolean) {
+  readableLineLength.set(enabled);
+  try {
+    await api.setReadableLineLength(enabled);
+  } catch {
+    showToast("Failed to save reading-width preference");
   }
 }

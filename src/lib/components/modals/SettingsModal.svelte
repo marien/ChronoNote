@@ -2,7 +2,7 @@
   import { onMount } from "svelte";
   import * as controller from "../../controller";
   import { focusTrap } from "../../actions/focusTrap";
-  import { colorMode, notesDir, recentNotesDirs, wordWrap } from "../../controller";
+  import { colorMode, notesDir, readableLineLength, recentNotesDirs, wordWrap } from "../../controller";
   import * as api from "../../tauriApi";
   import { closeOnOutsideClick } from "../../actions/closeOnOutsideClick";
 
@@ -60,6 +60,20 @@
         <div class="settings-hint">
           Wrap long lines instead of scrolling horizontally. Off keeps the monospace grid intact for tables and
           aligned columns.
+        </div>
+        <div class="settings-toggle-row" style="margin-top: 12px;">
+          <label class="toggle-switch">
+            <input
+              type="checkbox"
+              checked={$readableLineLength}
+              on:change={(e) => controller.setReadableLineLength(e.currentTarget.checked)}
+            />
+            <span class="toggle-switch-track"></span>
+            Limit line width for readability
+          </label>
+        </div>
+        <div class="settings-hint">
+          Caps the text column to a comfortable measure and centres it. Only applies while lines are wrapped.
         </div>
       </div>
       <div>

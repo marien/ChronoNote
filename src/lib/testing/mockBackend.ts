@@ -40,6 +40,7 @@ export interface MockSeed {
   session?: TabSession | null;
   colorMode?: ColorMode;
   wordWrap?: boolean;
+  readableLineLength?: boolean;
   /** Seeds `recent_notes_dirs` directly (normally only `set_notes_dir`
    * writes it). */
   recentNotesDirs?: string[];
@@ -72,6 +73,7 @@ const MUTATING_COMMANDS = new Set([
   "set_notes_dir",
   "set_color_mode",
   "set_word_wrap",
+  "set_readable_line_length",
   "write_note",
   "write_conflict_copy",
   "write_tab_session",
@@ -125,6 +127,7 @@ export class MockBackend {
   notesDir: string;
   colorMode: ColorMode;
   wordWrap: boolean;
+  readableLineLength: boolean;
   recentNotesDirs: string[];
   appVersion: string;
 
@@ -174,6 +177,7 @@ export class MockBackend {
     this.notesDir = seed.notesDir ?? "/notes";
     this.colorMode = seed.colorMode ?? "grayscale";
     this.wordWrap = seed.wordWrap ?? false;
+    this.readableLineLength = seed.readableLineLength ?? true;
     this.recentNotesDirs = seed.recentNotesDirs ? [...seed.recentNotesDirs] : [];
     this.appVersion = seed.appVersion ?? "0.3.0";
     this.throwOnCommands = new Set(seed.throwOnCommands ?? []);
@@ -207,6 +211,7 @@ export class MockBackend {
       notesDir: this.notesDir,
       colorMode: this.colorMode,
       wordWrap: this.wordWrap,
+      readableLineLength: this.readableLineLength,
       recentNotesDirs: this.recentNotesDirs,
       appVersion: this.appVersion,
       dirs: [...this.dirs].map(([path, d]) => [path, [...d.notes], d.session, [...d.conflictCopies]]),
@@ -234,6 +239,7 @@ export class MockBackend {
         notesDir: string;
         colorMode: ColorMode;
         wordWrap?: boolean;
+        readableLineLength?: boolean;
         recentNotesDirs: string[];
         appVersion: string;
         dirs: [string, [string, string][], TabSession | null, [string, string][]?][];
@@ -242,6 +248,7 @@ export class MockBackend {
       b.notesDir = s.notesDir;
       b.colorMode = s.colorMode;
       b.wordWrap = s.wordWrap ?? false;
+      b.readableLineLength = s.readableLineLength ?? true;
       b.recentNotesDirs = s.recentNotesDirs;
       b.appVersion = s.appVersion;
       b.dirs = new Map(
@@ -270,6 +277,7 @@ export class MockBackend {
       notesDir: this.notesDir,
       colorMode: this.colorMode,
       wordWrap: this.wordWrap,
+      readableLineLength: this.readableLineLength,
       recentNotesDirs: [...this.recentNotesDirs],
     };
   }
@@ -347,6 +355,11 @@ export class MockBackend {
 
     set_word_wrap: ({ enabled }) => {
       this.wordWrap = enabled;
+      return this.config();
+    },
+
+    set_readable_line_length: ({ enabled }) => {
+      this.readableLineLength = enabled;
       return this.config();
     },
 
