@@ -78,6 +78,13 @@ export function getActiveTabId(): string {
   return get(activeTabId);
 }
 
+/** Dismiss whatever modal is open. A one-liner over the `modal` store,
+ * but called from nearly every component and behaviour module, so it
+ * lives next to the store rather than in any one feature file. */
+export function closeAllModals() {
+  modal.set("none");
+}
+
 let toastTimer: ReturnType<typeof setTimeout> | undefined;
 /** Flash a transient message in the status bar; auto-clears after 2.4s. */
 export function showToast(msg: string) {
