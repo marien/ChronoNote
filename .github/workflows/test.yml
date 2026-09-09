@@ -36,7 +36,18 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run check:e2e
-      - run: npx playwright install --with-deps chromium
+      # `--with-deps` runs apt, which intermittently trips over the Chrome
+      # apt repo on the runner image ("Hash Sum mismatch" from
+      # dl.google.com) — a Google-side hiccup that clears on its own.
+      # Retry a few times rather than fail the whole run.
+      - name: Install Playwright chromium (with deps)
+        run: |
+          for i in 1 2 3 4 5; do
+            npx playwright install --with-deps chromium && exit 0
+            echo "::warning::playwright install failed (attempt $i) — retrying in 20s"
+            sleep 20
+          done
+          exit 1
       - run: npm run test:e2e
       - uses: actions/upload-artifact@v4
         if: ${{ !cancelled() }}
