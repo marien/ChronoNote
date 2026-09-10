@@ -79,7 +79,8 @@ file — no database, no front-matter, no injected IDs.
   baked into the glyph — fix a typo in it like any other text, or
   backspace right after the arrow to remove the whole `=> ` glyph in one
   step; it's highlighted wherever it appears on the line, not only right
-  after the arrow. `=> <symbol>` (any of `#`/`v`/`>`/`x`, mutually
+  after the arrow, may contain a hyphen (`@jean-luc`), and may be written
+  parenthesised (`(@name)`). `=> <symbol>` (any of `#`/`v`/`>`/`x`, mutually
   exclusive with `=> @name`) marks a consequence-action — a task that
   follows from the line before it, with its own open/closed/deferred/
   won't-do state, cycled with `Ctrl+Space` the same as a standalone
@@ -100,7 +101,10 @@ file — no database, no front-matter, no injected IDs.
   a fresh bullet using whichever marker the line already has (or exits the
   list from an empty one), `Shift+Enter` adds a plain continuation line
   aligned under the bullet's text (two spaces past the bullet's own
-  indentation) with no new bullet.
+  indentation) with no new bullet. `Enter` on an action line continues it
+  as a fresh open `# ` action; on a `=> ` line it continues as another
+  `=> ` follow-up (a `=> # ` consequence-action continues as `=> # `).
+  With the caret before the leading token, `Enter` is a plain newline.
 - Copying a `# ` line and pasting it into today's note, or any later-dated
   note, marks the original as deferred (`> `) back in its source file/tab
   — copying several lines together defers every open action found in the
