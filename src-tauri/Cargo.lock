@@ -467,7 +467,7 @@ dependencies = [
 
 [[package]]
 name = "chrononote"
-version = "0.6.3"
+version = "0.6.4"
 dependencies = [
  "dunce",
  "serde",
