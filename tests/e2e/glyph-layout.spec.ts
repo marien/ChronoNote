@@ -76,6 +76,46 @@ test.describe("glyph line layout", () => {
     expect(Math.abs(delta)).toBeLessThan(1);
   });
 
+  test("#42: a delegated `@name` / `(topic)` badge doesn't shift text or lengthen the line", async ({ page }) => {
+    await seedApp(page, { seed: "empty" });
+    // Each glyph line paired with its raw equivalent (`== ` and `x ` are
+    // the same character width as `=> ` and `# `).
+    await setEditorText(
+      page,
+      [
+        "=> @dana chase it now",
+        "== @dana chase it now",
+        "# (billing) chase it now",
+        "x (billing) chase it now",
+      ].join("\n"),
+    );
+
+    const { assigneeDelta, topicDelta } = await page.evaluate(() => {
+      const lines = [...document.querySelectorAll<HTMLElement>(".cm-editor .cm-line")];
+      const xOf = (el: HTMLElement, needle: string) => {
+        const w = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+        let n: Node | null;
+        while ((n = w.nextNode())) {
+          const i = n.nodeValue!.indexOf(needle);
+          if (i !== -1) {
+            const r = document.createRange();
+            r.setStart(n, i);
+            r.setEnd(n, i + 1);
+            return r.getBoundingClientRect().left;
+          }
+        }
+        return NaN;
+      };
+      return {
+        assigneeDelta: xOf(lines[0], "chase") - xOf(lines[1], "chase"),
+        topicDelta: xOf(lines[2], "chase") - xOf(lines[3], "chase"),
+      };
+    });
+    // Text after each badge sits on the same column as the un-glyphed line.
+    expect(Math.abs(assigneeDelta)).toBeLessThan(1);
+    expect(Math.abs(topicDelta)).toBeLessThan(1);
+  });
+
   test("the glyph sits at the column its token started at, not centred in the cell (§87 / #16)", async ({ page }) => {
     await seedApp(page, { seed: "empty" });
     await setEditorText(page, "# open action\n  # indented open\nplain line");

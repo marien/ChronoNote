@@ -664,7 +664,12 @@ body {
 .glyph-assignee {
   background: var(--glyph-assignee-bg);
   border-radius: 3px;
-  padding: 0 4px;
+  /* #42: the pill's horizontal inset is drawn but not *spent* — a
+     matching negative margin keeps `@name` and everything after it on the
+     same monospace column it would sit on unglyphed, so a delegated line
+     is exactly as long as its raw text. */
+  padding: 0 3px;
+  margin: 0 -3px;
   color: var(--glyph-assignee-color);
   font-weight: 600;
 }
@@ -679,7 +684,11 @@ body {
 .glyph-topic {
   border: 1px solid var(--edge-strong);
   border-radius: 3px;
-  padding: 0 3px;
+  /* #42: same layout-neutral trick as `.glyph-assignee` — the border
+     (1px) + inset (2px) is compensated by a -3px margin so the tag
+     doesn't lengthen the line. */
+  padding: 0 2px;
+  margin: 0 -3px;
   color: var(--muted);
   font-style: italic;
 }

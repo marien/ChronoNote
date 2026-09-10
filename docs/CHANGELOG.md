@@ -6,15 +6,13 @@ kept for the rationale behind each one — not just *what* changed but
 was still being gathered and confirmed before implementation; renamed once
 everything below was applied, since nothing here is "pending" anymore.
 
-**Status: all sections through §118 implemented, released, and on `main`;
-§119–§122 implemented on `main`, pending the next release bump.**
+**Status: all sections through §122 implemented, released, and on `main`;
+§123 implemented on `main`, pending the next release bump.**
 §99–§110 are the 0.6 UX/UI pass (`docs/design/ux-roadmap-0.6.md`); §111 is
 a small v0.6.1 follow-up (the pre-0.6 glyph palette, back as an option).
 §112 (#28) and §113 (#27) are Section History follow-ups (v0.6.2).
-§114–§118 close #33–#37 (v0.6.3). §119–§122 close #38–#41 — follow-up
-feedback on that batch: status-bar shows lines-not-chars, `(topic)` only
-right after the symbol, `.po-body` scrollbar styling, and a Section
-History list that shows one row per action with follow-up text only.
+§114–§118 close #33–#37 (v0.6.3). §119–§122 close #38–#41 (v0.6.4).
+§123 (#42) fixes the delegated-`@name` badge widening the line.
 Each
 section is verified before merge (`svelte-check`, the Vitest suite,
 `cargo test`, and — from §77 on — the Playwright E2E suite, all green in
@@ -26,7 +24,8 @@ Which sections shipped in which release: §1–55 → v0.2.0, §56–59 → v0.2
 §60–74 → v0.3.0, §75–81 → v0.4.0, §82–83 → v0.4.1, §84–85 → v0.4.2,
 §86–87 → v0.4.3, §88–89 → v0.4.4, §90–91 → v0.4.5, §92 → v0.4.6,
 §refactor + §93–96 → v0.5.0, §97 → v0.5.1, §98 → v0.5.2, §99–110 → v0.6.0,
-§111 → v0.6.1, §112–113 → v0.6.2, §114–118 → v0.6.3, §119–122 → v0.6.4.
+§111 → v0.6.1, §112–113 → v0.6.2, §114–118 → v0.6.3, §119–122 → v0.6.4,
+§123 → v0.6.5.
 
 ---
 
@@ -4356,3 +4355,24 @@ New: `historyActionsForLine` (5 `controller.test.ts` cases) + assertions
 in the `openMeetingHistory` tests; `search-and-history.spec.ts` #41 case.
 `HistoryModal.svelte` drops the now-unused `glyphFor` /
 `innermostActionSymbol` / `stripLeadingToken` imports.
+
+---
+
+## 123. Delegated `@name` / topic badges were widening the line (#42)
+
+**Status: implemented (pending release).** #42 — a `=> @name` line
+rendered longer than its raw text, and `@name` plus everything after it
+no longer lined up with the same column on an un-glyphed line. Cause:
+`.glyph-assignee`'s `padding: 0 4px` (and `.glyph-topic`'s border +
+padding) added real horizontal width to a live-text span sitting in a
+monospace grid — the `➔`/`☐` widgets are fixed-width and were fine, but
+the badges weren't.
+
+**Fix** (`app.css`): the badge inset is now *drawn but not spent* — a
+matching negative margin cancels it. `.glyph-assignee` →
+`padding: 0 3px; margin: 0 -3px`; `.glyph-topic` →
+`padding: 0 2px; margin: 0 -3px` (2px inset + 1px border). The pill still
+looks the same; text after it sits exactly where it would with no glyph,
+and a delegated line is the same length as its plain text. New
+`glyph-layout.spec.ts` case measuring the column of text after each badge
+against its raw-text twin.
