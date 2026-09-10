@@ -239,6 +239,15 @@ describe("stripLeadingToken", () => {
     );
   });
 
+  it("strips BOTH a leading action symbol and a mid-line arrow on the same line (#28)", () => {
+    // #28: a line with a leading `# ` *and* a `=> ` follow-up kept its
+    // raw `#` next to the row glyph — the `=> ` branch matched and
+    // returned before the leading symbol was ever stripped.
+    expect(stripLeadingToken("# Call vendor => get quote")).toBe("Call vendor get quote");
+    expect(stripLeadingToken("  v Reviewed the PR => # ship it")).toBe("  Reviewed the PR ship it");
+    expect(stripLeadingToken("> defer audit => @sam next week")).toBe("defer audit @sam next week");
+  });
+
   it("leaves an ordinary line with no token untouched", () => {
     expect(stripLeadingToken("just a normal line")).toBe("just a normal line");
   });

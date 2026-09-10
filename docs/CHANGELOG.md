@@ -6,9 +6,11 @@ kept for the rationale behind each one — not just *what* changed but
 was still being gathered and confirmed before implementation; renamed once
 everything below was applied, since nothing here is "pending" anymore.
 
-**Status: all sections through §111 implemented, released, and on `main`.**
+**Status: all sections through §111 implemented, released, and on `main`;
+§112–§113 implemented on `main`, pending the next release bump.**
 §99–§110 are the 0.6 UX/UI pass (`docs/design/ux-roadmap-0.6.md`); §111 is
 a small v0.6.1 follow-up (the pre-0.6 glyph palette, back as an option).
+§112 (#28) and §113 (#27) are Section History follow-ups.
 Each
 section is verified before merge (`svelte-check`, the Vitest suite,
 `cargo test`, and — from §77 on — the Playwright E2E suite, all green in
@@ -20,7 +22,7 @@ Which sections shipped in which release: §1–55 → v0.2.0, §56–59 → v0.2
 §60–74 → v0.3.0, §75–81 → v0.4.0, §82–83 → v0.4.1, §84–85 → v0.4.2,
 §86–87 → v0.4.3, §88–89 → v0.4.4, §90–91 → v0.4.5, §92 → v0.4.6,
 §refactor + §93–96 → v0.5.0, §97 → v0.5.1, §98 → v0.5.2, §99–110 → v0.6.0,
-§111 → v0.6.1.
+§111 → v0.6.1, §112–113 → v0.6.2.
 
 ---
 
@@ -4117,3 +4119,73 @@ New tests: `cargo test` `color_mode_legacy_round_trips_through_json` (43);
 `controller.test.ts` legacy `setColorMode` case (213 Vitest);
 `settings.spec.ts` + `command-palette.spec.ts` + `visual.spec.ts` legacy
 cases (125 Playwright). `svelte-check` 243, `npm run build` green.
+
+---
+
+## 112. Section History: strip a leading action symbol even when the line also has a mid-line `=> ` (#28)
+
+**Status: implemented (pending release).** #28 reported that the Section
+History drawer "still shows the symbols after the glyphs" — the exact
+class of bug §45/§70 already fixed twice, resurfacing for a line shape
+those fixes didn't cover: a line with **both** a leading action symbol
+**and** a `=> ` follow-up further along it, e.g. `# chase the vendor =>
+get a quote`.
+
+**Root cause:** `stripLeadingToken()` (`tokens.ts`) tried its three
+`=> `-based branches before the plain-leading-symbol branch. A line like
+the above matched the `followUp` branch (`/^(.*)=>\s(.*)$/`), which
+returned `"chase the vendor get quote"` **with the `#` still on it** and
+never reached the branch that strips a leading symbol. The row then
+rendered `☐ # chase the vendor get quote` — the glyph plus the raw
+character it already stands for.
+
+**Fix:** strip a leading `[#vx>] ` first and unconditionally (it's always
+at the true start of the line), then run the `=> ` handling on the
+result. One line added, the old dedicated plain-symbol branch removed as
+now-redundant. The Action Drawer shares the helper and gets the same fix.
+Three new `tokens.test.ts` cases for the both-tokens-on-one-line shape
+(60 tests in that file).
+
+---
+
+## 113. Section History: a verbatim "last occurrence" panel (#27)
+
+**Status: implemented (pending release).** #27 — "I want to at a glance
+see all the topics/notes discussed during the most recent occurrence
+before today, to refresh my memory." The drawer's list is a
+glyph-stripped, deduped, all-dates aggregate of **action lines** only
+(§34/§37) — good for re-adopting a past task, useless for "what did we
+actually cover last time." §109's preview shows ±2 lines around one
+selected entry, not the whole meeting.
+
+**What was added:** a collapsible **Last occurrence · `<date>`** panel
+above the aggregate list, showing that section's body from its most
+recent prior occurrence **verbatim** — every line as it sits on disk,
+tokens and all, from just after the setext underline to just before the
+next section header (trailing blanks trimmed). Ligatures are disabled in
+this panel (`font-variant-ligatures: none`) so `=>` reads as `=>`, not
+Cascadia Code's `⇒` — the point is fidelity to the file. An **Open file**
+button jumps to that occurrence (cursor on the section's first body
+line) and closes the drawer.
+
+**"Most recent before"** = the newest note whose filename sorts before
+the note the drawer was opened from (string compare orders
+`YYYY-MM-DD.txt` chronologically); when opened from a scratchpad, the
+newest note overall that isn't the active one. `null` (panel hidden) when
+there's no earlier occurrence with any content.
+
+- `history.ts`: `findLastSectionOccurrence()` (exported, unit-tested) +
+  its `extractSectionBody()` helper; `jumpToLastOccurrence()`.
+  `openMeetingHistory()` sets the new `historyLastOccurrence` store
+  alongside `historyItems`.
+- `types.ts`: `LastSectionOccurrence`. `stores.ts`:
+  `historyLastOccurrence`.
+- `HistoryModal.svelte`: the `<details class="history-last">` panel,
+  wrapped with the list in a new `.history-main` column so the
+  right-hand §109 preview column is unaffected. `app.css`:
+  `.history-main` / `.history-last` / `.hl-*`.
+
+Pure frontend — no Rust, no IPC, no mock-backend change. New tests:
+`controller.test.ts` `findLastSectionOccurrence` (3 cases, 95 Vitest in
+that file / 217 total); `search-and-history.spec.ts` verbatim-panel +
+Open-file case (127 Playwright). `svelte-check` 243, all suites green.

@@ -118,17 +118,22 @@ export function cycleActionSymbol(line: string): string | null {
  * Sam => # follow up" (§41/§59) — so whatever precedes it is kept, with
  * only the arrow and its symbol removed. Without this, a line like that
  * fell through every branch below unmodified, showing its raw `=> #`
- * token text right next to the row's glyph instead of being stripped. */
+ * token text right next to the row's glyph instead of being stripped.
+ *
+ * A plain leading action symbol is always at the true start of the line,
+ * so it's stripped first and independently of the `=> ` handling — a
+ * line with *both* ("# Call Sam => get quote", #28) used to keep its
+ * leading `#` because a `=> ` branch matched and returned before the
+ * plain-symbol branch was ever reached. */
 export function stripLeadingToken(line: string): string {
-  const consequence = line.match(/^(.*)=>\s[#vx>]\s(.*)$/);
+  const withoutLeading = line.replace(/^(\s*)[#vx>]\s/, "$1");
+  const consequence = withoutLeading.match(/^(.*)=>\s[#vx>]\s(.*)$/);
   if (consequence) return consequence[1] + consequence[2];
-  const delegated = line.match(/^(.*)=>\s(@\w+\s.*)$/);
+  const delegated = withoutLeading.match(/^(.*)=>\s(@\w+\s.*)$/);
   if (delegated) return delegated[1] + delegated[2];
-  const followUp = line.match(/^(.*)=>\s(.*)$/);
+  const followUp = withoutLeading.match(/^(.*)=>\s(.*)$/);
   if (followUp) return followUp[1] + followUp[2];
-  const plain = line.match(/^(\s*)[#vx>](\s.*)$/);
-  if (plain) return plain[1] + plain[2].slice(1);
-  return line;
+  return withoutLeading;
 }
 
 /** Whitespace-delimited word count for the status bar (§100). Single

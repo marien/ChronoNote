@@ -741,6 +741,33 @@ describe("openMeetingHistory (§70: mid-line consequence-action dedup)", () => {
   });
 });
 
+describe("findLastSectionOccurrence (#27)", () => {
+  const sources = {
+    "2026-09-10.txt": "Weekly Sync\n====\n# today's fresh action",
+    "2026-09-08.txt": "Weekly Sync - 2026-09-08\n====\n# renew the cert\n- talked budget\n\n",
+    "2026-09-01.txt": "Weekly Sync\n====\nolder occurrence\nStandup\n====\nunrelated",
+  };
+
+  it("returns the verbatim body of the most recent occurrence before the current note", () => {
+    const lo = controller.findLastSectionOccurrence(sources, "Weekly Sync", "2026-09-10.txt");
+    expect(lo).not.toBeNull();
+    expect(lo!.filename).toBe("2026-09-08.txt");
+    expect(lo!.lines).toEqual(["# renew the cert", "- talked budget"]); // trailing blank trimmed
+    expect(lo!.startLineIdx).toBe(2);
+  });
+
+  it("stops the body at the next section header and ignores later files", () => {
+    const lo = controller.findLastSectionOccurrence(sources, "Weekly Sync", "2026-09-08.txt");
+    expect(lo!.filename).toBe("2026-09-01.txt");
+    expect(lo!.lines).toEqual(["older occurrence"]);
+  });
+
+  it("returns null when there is no earlier occurrence", () => {
+    expect(controller.findLastSectionOccurrence(sources, "Weekly Sync", "2026-09-01.txt")).toBeNull();
+    expect(controller.findLastSectionOccurrence(sources, "Nonexistent", "2026-09-10.txt")).toBeNull();
+  });
+});
+
 describe("importSectionsIntoActiveTab", () => {
   it("appends imported sections to the active tab", () => {
     controller.tabs.set([tab({ id: "a", content: "" })]);

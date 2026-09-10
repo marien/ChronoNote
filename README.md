@@ -122,9 +122,13 @@ file — no database, no front-matter, no injected IDs.
   The action drawer shows only each line's glyph (not the raw token
   character) alongside its text, and its section-title tag is capped to
   half the row's width, temporarily giving that space back to the action
-  text on hover. If the import drawer is closed without importing, the
-  unsubmitted text is remembered (in memory only, cleared on a notes-folder
-  switch) and offered back — pre-filled and selected — next time it opens.
+  text on hover. Section history, alongside its deduped all-dates list of
+  action lines, shows a collapsible verbatim snapshot of that section's
+  most recent occurrence before the current note — everything discussed
+  last time, exactly as it sits on disk. If the import drawer is closed
+  without importing, the unsubmitted text is remembered (in memory only,
+  cleared on a notes-folder switch) and offered back — pre-filled and
+  selected — next time it opens.
 - `Tab`/`Shift+Tab` indent/dedent inside the editor; `Ctrl+Tab` /
   `Ctrl+Shift+Tab` cycle between open note tabs; `Ctrl+N`/`Ctrl+T` open a
   new scratchpad; `Ctrl+Shift+S` turns the current line into a section

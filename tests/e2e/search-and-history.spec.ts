@@ -87,6 +87,45 @@ test.describe("section history (Ctrl+Shift+H)", () => {
     await expect(list).toContainText("defer the audit");
   });
 
+  test("the 'last occurrence' panel shows that section's most recent prior body, verbatim (#27)", async ({ page }) => {
+    await seedApp(page, {
+      seed: {
+        notes: {
+          [todayFilename()]: "Weekly Sync\n====\n# something new today",
+          "2026-09-05.txt": [
+            "Weekly Sync",
+            "===========",
+            "- reviewed the roadmap",
+            "# chase the vendor => get a quote",
+            "Next section here",
+            "=================",
+            "not part of the sync",
+          ].join("\n"),
+          "2026-09-01.txt": "Weekly Sync\n====\n- older, should be ignored",
+        },
+        session: { openTabs: [todayFilename()], activeTab: todayFilename() },
+      },
+    });
+    await editor(page).click();
+    await page.keyboard.press("Control+Home");
+    await page.keyboard.press("ArrowDown"); // into the "Weekly Sync" section
+    await page.keyboard.press("Control+Shift+H");
+
+    const panel = history(page).locator(".history-last");
+    await expect(panel).toBeVisible();
+    await expect(panel).toContainText("Last occurrence · 2026-09-05");
+    // Verbatim: tokens shown as they sit on disk, stopping at the next header.
+    await expect(panel.locator(".hl-body")).toContainText("- reviewed the roadmap");
+    await expect(panel.locator(".hl-body")).toContainText("# chase the vendor => get a quote");
+    await expect(panel.locator(".hl-body")).not.toContainText("not part of the sync");
+    await expect(panel.locator(".hl-body")).not.toContainText("older, should be ignored");
+
+    // "Open file" jumps to that occurrence and closes the drawer.
+    await panel.getByRole("button", { name: "Open file" }).click();
+    expect(await currentModal(page)).toBe("none");
+    await expect(activeTabLabel(page)).toHaveText("2026-09-05");
+  });
+
   test("the preview pane shows the source context, insert text and target (§109)", async ({ page }) => {
     await seedApp(page, {
       seed: {

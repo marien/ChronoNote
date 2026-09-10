@@ -6,7 +6,7 @@
  * `./controller`. Split out of `controller.ts` in the v0.5.0 refactor so
  * that file is about what happens, not what exists. */
 import { get, writable } from "svelte/store";
-import type { ActionSnapshotItem, ColorMode, HistoryItem, NoteTab, SearchResultItem } from "./types";
+import type { ActionSnapshotItem, ColorMode, HistoryItem, LastSectionOccurrence, NoteTab, SearchResultItem } from "./types";
 
 export type ModalKind =
   | "none"
@@ -99,6 +99,9 @@ export const allNotesCache = writable<Record<string, string>>({});
 export const actionSnapshot = writable<ActionSnapshotItem[]>([]);
 export const historyItems = writable<HistoryItem[]>([]);
 export const historyTargetHeader = writable<string>("");
+/** #27: the most recent prior occurrence of the section, verbatim.
+ * `null` when there is no earlier occurrence to show. */
+export const historyLastOccurrence = writable<LastSectionOccurrence | null>(null);
 export const searchResultsStore = writable<SearchResultItem[]>([]);
 
 export function getActiveTabId(): string {

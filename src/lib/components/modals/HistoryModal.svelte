@@ -2,7 +2,15 @@
   import { onMount } from "svelte";
   import * as controller from "../../controller";
   import { focusTrap } from "../../actions/focusTrap";
-  import { allNotesCache, activeTabId, editorApi, historyItems, historyTargetHeader, tabs } from "../../controller";
+  import {
+    allNotesCache,
+    activeTabId,
+    editorApi,
+    historyItems,
+    historyLastOccurrence,
+    historyTargetHeader,
+    tabs,
+  } from "../../controller";
   import { closeOnOutsideClick } from "../../actions/closeOnOutsideClick";
   import { innermostActionSymbol, stripLeadingToken } from "../../tokens";
   import type { HistoryItem } from "../../types";
@@ -198,6 +206,20 @@
       <span class="modal-counter">{flatList.length} entries</span>
     </div>
     <div class="history-body">
+    <div class="history-main">
+    {#if $historyLastOccurrence}
+      {@const lo = $historyLastOccurrence}
+      <details class="history-last" open>
+        <summary>
+          <span class="hl-title">Last occurrence · {lo.date}</span>
+          <button class="hl-jump" on:click|stopPropagation={() => controller.jumpToLastOccurrence()}>
+            Open file
+          </button>
+        </summary>
+        <pre class="hl-body">{#each lo.lines as l}{l || " "}
+{/each}</pre>
+      </details>
+    {/if}
     <div
       class="modal-list"
       role="listbox"
@@ -243,6 +265,7 @@
           {/if}
         {/each}
       </div>
+    </div>
     </div>
 
     <aside class="history-preview" aria-label="Preview">
