@@ -124,6 +124,50 @@
   }
 }
 
+/* Legacy theme (§111): the pre-0.6 palette, restored on request — red =
+   open, amber = deferred (`> `), green = done, on the old VS-Code-blue
+   chrome accent. Same structural tokens as the other two modes. */
+[data-color-mode="legacy"] {
+  --selected-bg: #007acc;
+  --selected-fg: #ffffff;
+  --highlight: rgba(255, 213, 0, 0.25);
+  --tab-active-border: #007acc;
+
+  --glyph-open-color: #ff6b6b;
+  --glyph-open-weight: bold;
+  --glyph-done-color: #51cf66;
+  --glyph-done-weight: bold;
+  --glyph-done-opacity: 1;
+  --glyph-progress-color: #e5a50a;
+  --glyph-progress-weight: bold;
+  --glyph-cancelled-color: #868e96;
+  --glyph-cancelled-weight: bold;
+  --glyph-cancelled-opacity: 1;
+  --glyph-followup-color: #0098ff;
+  --glyph-followup-weight: bold;
+  --glyph-assignee-bg: rgba(0, 122, 204, 0.15);
+  --glyph-assignee-color: #0098ff;
+  --glyph-emphasis-color: #ffd43b;
+}
+
+@media (prefers-color-scheme: light) {
+  [data-color-mode="legacy"] {
+    --selected-bg: #0066b8;
+    --selected-fg: #ffffff;
+    --highlight: rgba(255, 230, 0, 0.4);
+    --tab-active-border: #0066b8;
+
+    --glyph-open-color: #d9383a;
+    --glyph-done-color: #2b8a3e;
+    --glyph-progress-color: #b25e00;
+    --glyph-cancelled-color: #5c636a;
+    --glyph-followup-color: #0066b8;
+    --glyph-assignee-bg: rgba(0, 102, 184, 0.12);
+    --glyph-assignee-color: #0066b8;
+    --glyph-emphasis-color: #f08c00;
+  }
+}
+
 * {
   box-sizing: border-box;
   margin: 0;
@@ -303,7 +347,9 @@ body {
   padding: 0 8px;
 }
 [data-color-mode="color"] .icon-btn,
-[data-color-mode="color"] .modal-input-wrap > span:first-child {
+[data-color-mode="color"] .modal-input-wrap > span:first-child,
+[data-color-mode="legacy"] .icon-btn,
+[data-color-mode="legacy"] .modal-input-wrap > span:first-child {
   filter: none;
 }
 .icon-btn:hover {

@@ -71,6 +71,13 @@ test.describe("command palette (Ctrl+K, §107)", () => {
     await page.keyboard.press("Enter"); // "Switch to colored glyphs"
     await expect(page.locator("html")).toHaveAttribute("data-color-mode", "color");
 
+    // §111: the palette command cycles grayscale → color → legacy → …
+    await page.keyboard.press("Control+k");
+    await palette(page).locator(".modal-input").fill(">legacy glyphs");
+    await expect(palette(page).locator('.modal-item[role="option"]')).toHaveCount(1);
+    await page.keyboard.press("Enter"); // "Switch to legacy glyphs (…)"
+    await expect(page.locator("html")).toHaveAttribute("data-color-mode", "legacy");
+
     await page.keyboard.press("Control+k");
     await page.keyboard.press("Escape");
     await expect(palette(page)).toBeHidden();

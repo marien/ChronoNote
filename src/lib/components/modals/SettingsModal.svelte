@@ -42,6 +42,15 @@
           >
             Grayscale
           </button>
+          <button
+            class="icon-btn {$colorMode === 'legacy' ? 'active' : ''}"
+            on:click={() => controller.setColorMode("legacy")}
+          >
+            Legacy
+          </button>
+        </div>
+        <div class="settings-hint">
+          Legacy restores the pre-0.6 glyph colours — red open, amber deferred, green done.
         </div>
       </div>
       <div>

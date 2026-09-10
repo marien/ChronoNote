@@ -6,8 +6,10 @@ kept for the rationale behind each one — not just *what* changed but
 was still being gathered and confirmed before implementation; renamed once
 everything below was applied, since nothing here is "pending" anymore.
 
-**Status: all sections through §110 implemented, released, and on `main`.**
-§99–§110 are the 0.6 UX/UI pass (`docs/design/ux-roadmap-0.6.md`). Each
+**Status: all sections through §111 implemented, released, and on `main`.**
+§99–§110 are the 0.6 UX/UI pass (`docs/design/ux-roadmap-0.6.md`); §111 is
+a small v0.6.1 follow-up (the pre-0.6 glyph palette, back as an option).
+Each
 section is verified before merge (`svelte-check`, the Vitest suite,
 `cargo test`, and — from §77 on — the Playwright E2E suite, all green in
 CI). See each section for what it covers and why. §27–31 were small fixes
@@ -17,7 +19,8 @@ folded in here; everything from §32 on was written directly.
 Which sections shipped in which release: §1–55 → v0.2.0, §56–59 → v0.2.1,
 §60–74 → v0.3.0, §75–81 → v0.4.0, §82–83 → v0.4.1, §84–85 → v0.4.2,
 §86–87 → v0.4.3, §88–89 → v0.4.4, §90–91 → v0.4.5, §92 → v0.4.6,
-§refactor + §93–96 → v0.5.0, §97 → v0.5.1, §98 → v0.5.2, §99–110 → v0.6.0.
+§refactor + §93–96 → v0.5.0, §97 → v0.5.1, §98 → v0.5.2, §99–110 → v0.6.0,
+§111 → v0.6.1.
 
 ---
 
@@ -4078,3 +4081,39 @@ dev build.
 all green. `visual.spec.ts` / `drawers.spec.ts` / `navigation.spec.ts` /
 `tab-archetypes.spec.ts` / `status-bar.spec.ts` / `settings.spec.ts`
 updated; `helpers.ts` gains `dateLabel()`.
+
+---
+
+## 111. "Legacy" glyph palette — the pre-0.6 colours as a third option
+
+**Status: implemented (v0.6.1).** Marien preferred the original
+action colouring — red open, amber deferred, green done — over the §105
+semantic palette (cyan/emerald/violet/slate), and asked for it back as an
+opt-in rather than a replacement.
+
+- `ColorMode` (Rust enum, `src-tauri/src/storage.rs`) gains a third
+  variant `Legacy`, serialized as `"legacy"`. ts-rs regenerates
+  `src/lib/generated/tauri-types.ts` → `"color" | "grayscale" | "legacy"`.
+  No migration: an existing config is untouched, and the two prior values
+  still mean what they did.
+- `src/app.css` gains a `[data-color-mode="legacy"]` block (plus its
+  light-scheme variant) that is a **verbatim restore of the pre-0.6
+  `[data-color-mode="color"]` block** — the same `--glyph-*` tokens every
+  mode drives, just the old hues: `--glyph-open-color` `#ff6b6b`,
+  `--glyph-progress-color` (`> `) `#e5a50a`, `--glyph-done-color`
+  `#51cf66`, won't-do `#868e96`, `=>`/assignee `#0098ff`, `! ` emphasis
+  `#ffd43b`, and the old VS-Code-blue `#007acc` chrome accent. The
+  `filter: none` icon rule now also matches `legacy` (it's a hued mode).
+- Settings → Appearance is now a three-way (Color / Grayscale / Legacy)
+  with a one-line hint on what Legacy is.
+- The `Ctrl+K` "switch glyphs" command cycles
+  grayscale → color → legacy → … instead of toggling two.
+
+Nothing else special-cased — `setColorMode`, the store, `boot.ts`
+`applyColorModeToDom`, and the mock backend were already typed on
+`ColorMode` and widened for free.
+
+New tests: `cargo test` `color_mode_legacy_round_trips_through_json` (43);
+`controller.test.ts` legacy `setColorMode` case (213 Vitest);
+`settings.spec.ts` + `command-palette.spec.ts` + `visual.spec.ts` legacy
+cases (125 Playwright). `svelte-check` 243, `npm run build` green.
