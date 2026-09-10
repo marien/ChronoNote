@@ -112,7 +112,7 @@ export function historyActionsForLine(line: string): string[] {
  * different leading context collapses to one row. */
 function normalizeActionText(action: string): string {
   return action
-    .replace(/^([#vx>]\s+|=>\s+(@\w+\s+)?)/, "")
+    .replace(/^([#vx>]\s+|=>\s+(@[\w-]+\s+)?)/, "")
     .trim()
     .toLowerCase();
 }

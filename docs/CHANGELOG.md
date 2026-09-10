@@ -6,13 +6,15 @@ kept for the rationale behind each one — not just *what* changed but
 was still being gathered and confirmed before implementation; renamed once
 everything below was applied, since nothing here is "pending" anymore.
 
-**Status: all sections through §122 implemented, released, and on `main`;
-§123 implemented on `main`, pending the next release bump.**
+**Status: all sections through §123 implemented, released, and on `main`;
+§124–§126 implemented on `main`, pending the next release bump.**
 §99–§110 are the 0.6 UX/UI pass (`docs/design/ux-roadmap-0.6.md`); §111 is
 a small v0.6.1 follow-up (the pre-0.6 glyph palette, back as an option).
 §112 (#28) and §113 (#27) are Section History follow-ups (v0.6.2).
 §114–§118 close #33–#37 (v0.6.3). §119–§122 close #38–#41 (v0.6.4).
-§123 (#42) fixes the delegated-`@name` badge widening the line.
+§123 (#42) fixes the delegated-`@name` badge widening the line (v0.6.5).
+§124–§126 are chat-feedback tweaks: `=>` Enter on a plain follow-up
+adds no `#`, `@name` may contain a hyphen, and `(@name)` is a delegate.
 Each
 section is verified before merge (`svelte-check`, the Vitest suite,
 `cargo test`, and — from §77 on — the Playwright E2E suite, all green in
@@ -25,7 +27,7 @@ Which sections shipped in which release: §1–55 → v0.2.0, §56–59 → v0.2
 §86–87 → v0.4.3, §88–89 → v0.4.4, §90–91 → v0.4.5, §92 → v0.4.6,
 §refactor + §93–96 → v0.5.0, §97 → v0.5.1, §98 → v0.5.2, §99–110 → v0.6.0,
 §111 → v0.6.1, §112–113 → v0.6.2, §114–118 → v0.6.3, §119–122 → v0.6.4,
-§123 → v0.6.5.
+§123 → v0.6.5, §124–126 → v0.6.6.
 
 ---
 
@@ -4376,3 +4378,54 @@ looks the same; text after it sits exactly where it would with no glyph,
 and a delegated line is the same length as its plain text. New
 `glyph-layout.spec.ts` case measuring the column of text after each badge
 against its raw-text twin.
+
+---
+
+## 124. `=>` Enter continuation: no action symbol on a plain follow-up
+
+**Status: implemented (pending release).** Refines §115 (#34). That
+change made `Enter` on *any* leading `=> ` line continue as `=> # ` — a
+fresh open action. Feedback (Marien): a **plain** `=> ` follow-up (or a
+`=> @name` delegation) has no action of its own, so its continuation
+shouldn't sprout a `# ` either.
+
+Now `actionLineEnter()` (`tokens.ts`) checks whether the current line
+carries a consequence-action symbol (`=> # `/`=> v `/`=> > `/`=> x `):
+
+- `=> some note` + Enter → `=> ` (plain follow-up continues, no symbol)
+- `=> @dana owns it` + Enter → `=> `
+- `=> # ship it` + Enter → `=> # ` (consequence-action → fresh open one,
+  unchanged — tasks start open)
+- empty `=> ` / `=> #` still exits.
+
+`tokens.test.ts` + `editor-tokens.spec.ts` cases updated / split.
+
+---
+
+## 125. `@name` may contain a hyphen
+
+**Status: implemented (pending release).** Feedback (Marien): a delegate
+name like `@jean-luc` should be recognised. Every `@name` pattern was
+`@\w+`, which stopped at the hyphen — so `@jean-luc` badged only as
+`@jean`. Widened to `@[\w-]+` in `glyphs.ts` (both the `=> @name` and the
+bare-`@name` alternatives, #35), `glyphLine.ts`, `stripLeadingToken` /
+the Section-History dedup key, and the dataset stats helper.
+`glyphLine.test.ts` / `tokens.test.ts` / `editor-tokens.spec.ts` cases.
+
+---
+
+## 126. `(@name)` is recognised as a delegate
+
+**Status: implemented (pending release).** Feedback (Marien): the
+assignee can be written parenthesised, `(@name)`. Without this, `(@dana)`
+matched the `(topic)` pattern instead (and, right after an action symbol,
+rendered as a topic pill). Now:
+
+- `glyphs.ts` gains a `\(@[\w-]+\)` alternative *before* the generic
+  `(word)` one; the `@name` inside is badged (`.glyph-assignee`), the
+  parens stay plain, on any action-like line.
+- `leadingTopicTag()` (`tokens.ts`) excludes `(@…)` via a negative
+  lookahead, so `# (@dana) …` is a delegate, not a topic.
+- `glyphLine.ts` mirrors both for the read-only viewers.
+
+`glyphLine.test.ts` / `tokens.test.ts` / `editor-tokens.spec.ts` cases.

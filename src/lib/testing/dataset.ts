@@ -234,7 +234,7 @@ export function datasetStats(ds: GeneratedDataset): {
     open += (content.match(/(^\s*#\s)|(=>\s#\s)/gm) || []).length;
     closed += (content.match(/(^\s*[vx]\s)|(=>\s[vx]\s)/gm) || []).length;
     forwarded += (content.match(/(^\s*>\s)|(=>\s>\s)/gm) || []).length;
-    delegated += (content.match(/=>\s@\w+/g) || []).length;
+    delegated += (content.match(/=>\s@[\w-]+/g) || []).length;
   }
   return { files: Object.keys(ds.notes).length, open, closed, forwarded, delegated };
 }

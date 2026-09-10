@@ -1,4 +1,4 @@
-import { leadingTopicTag } from "../tokens";
+import { isActionLikeLine, leadingTopicTag } from "../tokens";
 
 /** One rendered piece of a line: `text` is what to show; `cls` (a
  * `.glyph-*` class) is set when it's a glyph or a styled span, absent for
@@ -28,8 +28,9 @@ function glyphForSymbol(sym: string): GlyphPart {
  * token's trailing space folded into a literal gap after the glyph so
  * columns still line up without the editor's fixed-width CSS.
  *
- * Also applies the inline highlights: every `@name` on a `=> ` line
- * (#35), and a `(topic)` tag immediately after the action symbol (#36/#39). */
+ * Also applies the inline highlights: every `@name` (or parenthesised
+ * `(@name)`, #126) on a `=> ` line (#35), and a `(topic)` tag immediately
+ * after the action symbol (#36/#39). */
 export function parseGlyphLine(line: string): GlyphPart[] {
   // `! ` — bold the whole line, token and all (matches glyphs.ts: the
   // `!` stays visible, it isn't replaced).
@@ -51,12 +52,13 @@ export function parseGlyphLine(line: string): GlyphPart[] {
   }
 
   const delegation = /=>\s/.test(line);
+  const actionLike = isActionLikeLine(line);
   const topic = leadingTopicTag(line);
 
   // One scan for every inline token: a Delegate arrow in any of its forms,
-  // a bare `@name`, or a `(topic)` tag. Text between matches is emitted
-  // verbatim.
-  const re = /=>\s@(\w+)|=>\s([#vx>])\s|=>\s|@(\w+)|\(([^\s()]+)\)/g;
+  // a bare `@name`, a parenthesised `(@name)` delegate (#126), or a
+  // `(topic)` tag. Text between matches is emitted verbatim.
+  const re = /=>\s@([\w-]+)|=>\s([#vx>])\s|=>\s|\(@([\w-]+)\)|@([\w-]+)|\(([^\s()]+)\)/g;
   let last = 0;
   let m: RegExpExecArray | null;
   while ((m = re.exec(rest)) !== null) {
@@ -68,10 +70,16 @@ export function parseGlyphLine(line: string): GlyphPart[] {
     } else if (m[0].startsWith("=>")) {
       parts.push({ text: "➔", cls: "glyph-followup" }, { text: " " });
     } else if (m[3] !== undefined) {
-      parts.push(delegation ? { text: "@" + m[3], cls: "glyph-assignee" } : { text: "@" + m[3] });
+      parts.push(
+        { text: "(" },
+        actionLike ? { text: "@" + m[3], cls: "glyph-assignee" } : { text: "@" + m[3] },
+        { text: ")" },
+      );
     } else if (m[4] !== undefined) {
+      parts.push(delegation ? { text: "@" + m[4], cls: "glyph-assignee" } : { text: "@" + m[4] });
+    } else if (m[5] !== undefined) {
       const isTag = topic !== null && consumed + m.index === topic.from;
-      parts.push(isTag ? { text: "(" + m[4] + ")", cls: "glyph-topic" } : { text: "(" + m[4] + ")" });
+      parts.push(isTag ? { text: "(" + m[5] + ")", cls: "glyph-topic" } : { text: "(" + m[5] + ")" });
     }
     last = re.lastIndex;
   }

@@ -212,11 +212,15 @@ describe("actionLineEnter", () => {
     expect(actionLineEnter("")).toBeNull();
   });
 
-  it("#34: continues a leading `=> ` follow-up line as a fresh `=> # `", () => {
-    expect(actionLineEnter("=> chased the vendor")).toEqual({ insert: "\n=> # " });
-    expect(actionLineEnter("=> @sam owns the recap")).toEqual({ insert: "\n=> # " });
+  it("#34: a plain `=> ` follow-up continues as a bare `=> ` — no action symbol", () => {
+    expect(actionLineEnter("=> chased the vendor")).toEqual({ insert: "\n=> " });
+    expect(actionLineEnter("=> @sam owns the recap")).toEqual({ insert: "\n=> " });
+    expect(actionLineEnter("  => indented follow-up")).toEqual({ insert: "\n  => " });
+  });
+
+  it("#34: a `=> <symbol>` consequence-action continues as a fresh open `=> # `", () => {
     expect(actionLineEnter("=> # already an open consequence")).toEqual({ insert: "\n=> # " });
-    expect(actionLineEnter("  => indented follow-up")).toEqual({ insert: "\n  => # " });
+    expect(actionLineEnter("=> v done consequence")).toEqual({ insert: "\n=> # " });
   });
 
   it("#34: exits an empty `=> ` / `=> # ` follow-up line", () => {
@@ -259,6 +263,9 @@ describe("leadingTopicTag (#36/#39)", () => {
     expect(leadingTopicTag("just prose (aside) here")).toBeNull();
     expect(leadingTopicTag("=> follow up (later)")).toBeNull(); // plain follow-up, no symbol
   });
+  it("#126: `(@name)` right after the symbol is a delegate, not a topic", () => {
+    expect(leadingTopicTag("# (@dana) chase it")).toBeNull();
+  });
 });
 
 describe("stripLeadingToken", () => {
@@ -273,6 +280,7 @@ describe("stripLeadingToken", () => {
 
   it("keeps a delegated @name intact, stripping only the arrow", () => {
     expect(stripLeadingToken("Talked to Sam => @alice")).toBe("Talked to Sam @alice");
+    expect(stripLeadingToken("Talked to Sam => @jean-luc has it")).toBe("Talked to Sam @jean-luc has it"); // #125
   });
 
   it("strips a plain follow-up arrow, keeping its text", () => {

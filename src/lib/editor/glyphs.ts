@@ -7,7 +7,7 @@ import {
   ViewUpdate,
   WidgetType,
 } from "@codemirror/view";
-import { cycleActionSymbol, leadingTopicTag } from "../tokens";
+import { cycleActionSymbol, isActionLikeLine, leadingTopicTag } from "../tokens";
 
 const CYCLE_ORDER = ["#", "v", ">", "x"];
 
@@ -128,7 +128,7 @@ function glyphForSymbol(sym: string): [string, string] {
  * no indent-length arithmetic needed to find where it starts. */
 const renderMatcher = new MatchDecorator({
   regexp:
-    /(^!\s)|((?<=^\s*)#\s)|((?<=^\s*)v\s)|((?<=^\s*)>\s)|((?<=^\s*)x\s)|(=>\s@\w+)|(=>\s[#vx>]\s)|(=>\s)|((?<=^\s*)[-*]\s)|(@\w+)|(\([^\s()]+\))/gm,
+    /(^!\s)|((?<=^\s*)#\s)|((?<=^\s*)v\s)|((?<=^\s*)>\s)|((?<=^\s*)x\s)|(=>\s@[\w-]+)|(=>\s[#vx>]\s)|(=>\s)|((?<=^\s*)[-*]\s)|(\(@[\w-]+\))|(@[\w-]+)|(\([^\s()]+\))/gm,
   decorate(add, from, to, match, view) {
     const text = match[0];
     if (text.startsWith("! ")) {
@@ -153,6 +153,14 @@ const renderMatcher = new MatchDecorator({
     }
     if (text.startsWith("-") || text.startsWith("*")) {
       add(from, to, Decoration.replace({ widget: new InlineGlyphWidget("•", "glyph-bullet") }));
+      return;
+    }
+    if (text.startsWith("(@")) {
+      // #126: `(@name)` — a parenthesised delegate. Badge the `@name`
+      // inside; the parens stay plain text. On an action-like line.
+      if (isActionLikeLine(view.state.doc.lineAt(from).text)) {
+        add(from + 1, to - 1, Decoration.mark({ class: "glyph-assignee" }));
+      }
       return;
     }
     if (text.startsWith("@")) {

@@ -45,7 +45,8 @@ export function isActionLikeLine(line: string): boolean {
  * `null`. Shared by the editor (`glyphs.ts`) and the read-only line
  * renderer (`glyphLine.ts`). */
 export function leadingTopicTag(line: string): { from: number; to: number } | null {
-  const m = line.match(/^(\s*[#vx>]\s+|.*?=>\s+[#vx>]\s+)(\([^\s()]+\))/);
+  // `(@name)` is a parenthesised delegate (#126), not a topic — exclude it.
+  const m = line.match(/^(\s*[#vx>]\s+|.*?=>\s+[#vx>]\s+)(\((?!@)[^\s()]+\))/);
   if (!m) return null;
   const from = m[1].length;
   return { from, to: from + m[2].length };
@@ -86,11 +87,13 @@ export function adjacentOpenActionLine(text: string, fromLineIdx: number, dir: 1
  * a task and tasks start open. An *empty* action line (just the symbol)
  * exits instead, same as an empty bullet.
  *
- * #34: a line that *is* a `=> ` follow-up (leading `=> `, in any of its
- * plain / `=> @name` / `=> <symbol>` forms) continues as a fresh
- * `=> # ` — another follow-up that is itself an open action, so a chain
- * of "led to → led to" notes keeps its thread. An empty `=> ` / `=> # `
- * line exits.
+ * #34: a line that *is* a `=> ` follow-up (leading `=> `) continues as
+ * another `=> ` follow-up, so a chain of "led to → led to" notes keeps
+ * its thread. If the current line carries a consequence-action symbol
+ * (`=> # `/`=> v `/…) the new line is a fresh open `=> # ` (adding a
+ * task, tasks start open); a plain `=> ` or `=> @name` follow-up
+ * continues as a bare `=> ` with **no** action symbol. An empty `=> ` /
+ * `=> # ` line exits.
  *
  * Returns `null` for anything else (plain text, a mid-line `=> `) — the
  * caller then falls through to CodeMirror's default newline.
@@ -109,7 +112,8 @@ export function actionLineEnter(lineText: string): { removeSymbol: true } | { in
   if (follow) {
     const trimmed = lineText.trim();
     if (trimmed === "=>" || trimmed === "=> #") return { removeSymbol: true };
-    return { insert: `\n${follow[1]}=> # ` };
+    const consequenceAction = /^\s*=>\s[#vx>]\s/.test(lineText);
+    return { insert: `\n${follow[1]}=> ${consequenceAction ? "# " : ""}` };
   }
   return null;
 }
@@ -165,7 +169,7 @@ export function stripLeadingToken(line: string): string {
   const withoutLeading = line.replace(/^(\s*)[#vx>]\s/, "$1");
   const consequence = withoutLeading.match(/^(.*)=>\s[#vx>]\s(.*)$/);
   if (consequence) return consequence[1] + consequence[2];
-  const delegated = withoutLeading.match(/^(.*)=>\s(@\w+\s.*)$/);
+  const delegated = withoutLeading.match(/^(.*)=>\s(@[\w-]+\s.*)$/);
   if (delegated) return delegated[1] + delegated[2];
   const followUp = withoutLeading.match(/^(.*)=>\s(.*)$/);
   if (followUp) return followUp[1] + followUp[2];

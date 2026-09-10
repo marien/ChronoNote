@@ -50,6 +50,14 @@ test.describe("editor — token glyphs", () => {
     await expect(editor(page).locator(".cm-line").nth(1).locator(".glyph-assignee")).toHaveCount(0);
   });
 
+  test("#125/#126: a hyphenated @name, and a parenthesised (@name), both badge", async ({ page }) => {
+    await setEditorText(page, "=> @jean-luc owns it\n# review the plan (@mary-jane)");
+    await expect(editor(page).locator(".cm-line").nth(0).locator(".glyph-assignee")).toHaveText("@jean-luc");
+    const paren = editor(page).locator(".cm-line").nth(1);
+    await expect(paren.locator(".glyph-assignee")).toHaveText("@mary-jane");
+    await expect(paren.locator(".glyph-topic")).toHaveCount(0); // (@name) is a delegate, not a topic
+  });
+
   test("#36/#39: a (topic) tag is highlighted only right after the action symbol", async ({ page }) => {
     await setEditorText(
       page,
@@ -164,14 +172,22 @@ test.describe("editor — token glyphs", () => {
     expect(await activeTabContent(page)).toBe("\n# a task");
   });
 
-  test("#34: Enter on a `=> ` follow-up line continues it as `=> # `", async ({ page }) => {
+  test("#34: Enter on a plain `=> ` follow-up continues as `=> ` — no action symbol added", async ({ page }) => {
     await typeInEditor(page, "=> chase the vendor");
     await page.keyboard.press("Enter");
     await page.keyboard.type("call them back");
-    await page.keyboard.press("Enter"); // empty `=> # ` line
+    await page.keyboard.press("Enter"); // empty `=> ` line
     await page.keyboard.press("Enter"); // exits
     await page.keyboard.type("plain");
 
-    expect(await activeTabContent(page)).toBe("=> chase the vendor\n=> # call them back\nplain");
+    expect(await activeTabContent(page)).toBe("=> chase the vendor\n=> call them back\nplain");
+  });
+
+  test("#34: Enter on a `=> # ` consequence-action continues as a fresh open `=> # `", async ({ page }) => {
+    await typeInEditor(page, "=> # ship the docs");
+    await page.keyboard.press("Enter");
+    await page.keyboard.type("write the notes");
+
+    expect(await activeTabContent(page)).toBe("=> # ship the docs\n=> # write the notes");
   });
 });

@@ -55,6 +55,20 @@ describe("parseGlyphLine", () => {
     expect(text("email @dana about it")).toBe("email @dana about it");
   });
 
+  it("#125: a hyphenated @name is one badge", () => {
+    expect(classed("=> @jean-luc owns the migration")).toContainEqual(["glyph-assignee", "@jean-luc"]);
+    expect(classed("=> talk to @mary-jane about it")).toContainEqual(["glyph-assignee", "@mary-jane"]);
+  });
+
+  it("#126: `(@name)` badges the name, keeps the parens, and is not a topic", () => {
+    const cs = classed("# review the doc (@dana) by friday");
+    expect(cs).toContainEqual(["glyph-assignee", "@dana"]);
+    expect(cs.some(([c]) => c === "glyph-topic")).toBe(false);
+    expect(text("# review the doc (@dana) by friday")).toBe("☐ review the doc (@dana) by friday");
+    // right after the symbol, `(@dana)` is still a delegate, not a topic
+    expect(classed("# (@dana) chase it")).toContainEqual(["glyph-assignee", "@dana"]);
+  });
+
   it("#36/#39: highlights a (topic) tag only right after the action symbol", () => {
     expect(classed("# (release) ship the docs")).toContainEqual(["glyph-topic", "(release)"]);
     // not right after the symbol → plain text
