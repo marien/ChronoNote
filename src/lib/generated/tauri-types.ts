@@ -2,7 +2,7 @@
 // in `src-tauri/src/storage.rs` (§98). Do not edit by hand — the Rust
 // definitions are the source of truth, and CI fails if this file is stale.
 
-export type ColorMode = "color" | "grayscale";
+export type ColorMode = "color" | "grayscale" | "legacy";
 
 export type FileMetadata = { exists: boolean, contentHash: string | null, sizeBytes: number | null, modifiedMs: number | null };
 

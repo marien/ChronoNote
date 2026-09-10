@@ -34,16 +34,23 @@ const TOKEN_SAMPLER = [
 ].join("\n");
 
 test.describe("visual — state gallery", () => {
-  test("editor with the full token vocabulary (grayscale + color)", async ({ page }) => {
+  test("editor with the full token vocabulary (grayscale + color + legacy)", async ({ page }) => {
     await seedApp(page, { seed: "empty" });
     await setEditorText(page, TOKEN_SAMPLER);
     await editor(page).click();
     await shot(page, "editor-tokens-grayscale");
 
+    const settings = () => modalCard(page, MODAL_LABELS.settings);
     await page.keyboard.press("Control+Comma");
-    await modalCard(page, MODAL_LABELS.settings).getByRole("button", { name: "Color", exact: true }).click();
+    await settings().getByRole("button", { name: "Color", exact: true }).click();
     await page.keyboard.press("Escape");
     await shot(page, "editor-tokens-color");
+
+    // §111: the restored pre-0.6 palette (red open / amber deferred / green done).
+    await page.keyboard.press("Control+Comma");
+    await settings().getByRole("button", { name: "Legacy", exact: true }).click();
+    await page.keyboard.press("Escape");
+    await shot(page, "editor-tokens-legacy");
   });
 
   test("every modal, opened over a populated workspace", async ({ page }) => {

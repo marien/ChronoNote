@@ -5,17 +5,23 @@ use std::path::{Component, Path, PathBuf};
 use tauri::{AppHandle, Manager};
 use ts_rs::TS;
 
-/// Editor glyph colouring — the accent-hued set (§1's "colour" mode) or
-/// the weight/opacity-only greyscale set. Stored in `config.json`;
-/// deserialization now rejects anything else (an invalid value trips the
-/// §97 corrupt-config recovery instead of silently passing through, as it
-/// did while this was a bare `String`).
+/// Editor glyph colouring. Three sets, all sharing the same structural
+/// `--glyph-*` CSS variables:
+///  - `Grayscale` — weight/opacity only, no hue (the default).
+///  - `Color` — the §105 semantic palette (cyan open · emerald done ·
+///    violet deferred · slate won't-do).
+///  - `Legacy` — the pre-0.6 palette (§111): red open · amber deferred ·
+///    green done, on the old VS-Code-blue chrome accent.
+/// Stored in `config.json`; deserialization rejects anything else (an
+/// invalid value trips the §97 corrupt-config recovery instead of silently
+/// passing through, as it did while this was a bare `String`).
 #[derive(Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Debug, Default, TS)]
 #[serde(rename_all = "lowercase")]
 pub enum ColorMode {
     Color,
     #[default]
     Grayscale,
+    Legacy,
 }
 
 /// Persisted app configuration. Lives outside the notes folder, in the
@@ -755,6 +761,27 @@ mod tests {
         assert!(loaded.word_wrap);
         assert!(!loaded.readable_line_length);
         assert_eq!(loaded.recent_notes_dirs, vec!["/old1", "/old2"]);
+    }
+
+    #[test]
+    fn color_mode_legacy_round_trips_through_json() {
+        // §111: the third palette must serialize as the lowercase
+        // `"legacy"` token and load back unchanged.
+        let dir = tempdir().unwrap();
+        let path = dir.path().join("config.json");
+        let cfg = AppConfig {
+            notes_dir: "/n".to_string(),
+            color_mode: ColorMode::Legacy,
+            word_wrap: false,
+            readable_line_length: false,
+            recent_notes_dirs: vec![],
+        };
+        save_config_at(&path, &cfg).unwrap();
+        let on_disk = fs::read_to_string(&path).unwrap();
+        assert!(on_disk.contains("\"colorMode\""), "colorMode key missing: {on_disk}");
+        assert!(on_disk.contains("\"legacy\""), "legacy token not serialized: {on_disk}");
+        let loaded = load_config_at(&path, &dir.path().join("Notes")).unwrap();
+        assert_eq!(loaded.color_mode, ColorMode::Legacy);
     }
 
     #[test]

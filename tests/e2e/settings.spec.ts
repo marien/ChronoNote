@@ -1,5 +1,16 @@
 import { test, expect, type Page } from "@playwright/test";
-import { seedApp, editor, modalCard, MODAL_LABELS, activeTabLabel, currentModal, toast, tab, tabLabels } from "./helpers";
+import {
+  seedApp,
+  editor,
+  modalCard,
+  MODAL_LABELS,
+  activeTabLabel,
+  currentModal,
+  toast,
+  tab,
+  tabLabels,
+  todayFilename,
+} from "./helpers";
 
 const settings = (page: Page) => modalCard(page, MODAL_LABELS.settings);
 
@@ -24,6 +35,35 @@ test.describe("settings (Ctrl+,)", () => {
     // Survives a reload (config is read on boot).
     await page.reload();
     await expect(page.locator("html")).toHaveAttribute("data-color-mode", "color");
+  });
+
+  test("the Legacy palette is a third option and persists (§111)", async ({ page }) => {
+    await seedApp(page, { seed: { notes: { [todayFilename()]: "# an open action" } } });
+    await openSettings(page);
+
+    // grayscale by default → the open glyph is just --text
+    await settings(page).getByRole("button", { name: "Grayscale", exact: true }).click();
+    const grayOpen = await page
+      .locator(".cm-line .glyph-open")
+      .first()
+      .evaluate((el) => getComputedStyle(el).color);
+
+    await page.keyboard.press("Control+Comma");
+    await settings(page).getByRole("button", { name: "Legacy", exact: true }).click();
+    await expect(page.locator("html")).toHaveAttribute("data-color-mode", "legacy");
+    expect(await page.evaluate(() => window.__CHRONO_MOCK__!.colorMode)).toBe("legacy");
+
+    // The legacy palette drives the same structural --glyph-open-color the
+    // other two modes do — a hue, not grayscale's --text.
+    const legacyOpen = await page
+      .locator(".cm-line .glyph-open")
+      .first()
+      .evaluate((el) => getComputedStyle(el).color);
+    expect(legacyOpen).not.toBe(grayOpen);
+
+    // survives a reload (config is read on boot)
+    await page.reload();
+    await expect(page.locator("html")).toHaveAttribute("data-color-mode", "legacy");
   });
 
   test("Limit line width is off by default; turning it on wraps + caps + persists (§110)", async ({ page }) => {

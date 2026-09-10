@@ -87,9 +87,17 @@ function commandItems(): PaletteItem[] {
     },
     {
       id: "cmd-color",
-      label: color === "color" ? "Switch to grayscale glyphs" : "Switch to colored glyphs",
+      // Cycles grayscale → color → legacy → grayscale. The label names
+      // the *next* palette so it reads as an action.
+      label:
+        color === "grayscale"
+          ? "Switch to colored glyphs"
+          : color === "color"
+            ? "Switch to legacy glyphs (red / amber / green)"
+            : "Switch to grayscale glyphs",
       group: "Settings",
-      run: () => setColorMode(color === "color" ? "grayscale" : "color"),
+      run: () =>
+        setColorMode(color === "grayscale" ? "color" : color === "color" ? "legacy" : "grayscale"),
     },
     { id: "cmd-settings", label: "Settings", hint: "Ctrl+,", group: "Settings", run: openSettings },
     { id: "cmd-shortcuts", label: "Keyboard shortcuts", hint: "Ctrl+/", group: "Help", run: openShortcutsHelp },
