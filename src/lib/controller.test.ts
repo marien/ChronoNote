@@ -10,6 +10,7 @@ const apiMock = {
   setNotesDir: vi.fn(),
   setColorMode: vi.fn(),
   setWordWrap: vi.fn(),
+  setReadableLineLength: vi.fn(),
   listNoteFiles: vi.fn(),
   readNote: vi.fn(),
   writeNote: vi.fn(),
@@ -80,12 +81,14 @@ beforeEach(async () => {
     notesDir: "/notes",
     colorMode: "grayscale",
     wordWrap: false,
+    readableLineLength: false,
     recentNotesDirs: [],
   });
   apiMock.setNotesDir.mockResolvedValue({
     notesDir: "/new",
     colorMode: "grayscale",
     wordWrap: false,
+    readableLineLength: false,
     recentNotesDirs: [],
   });
   apiMock.getAppVersion.mockResolvedValue("0.0.0-test");
@@ -274,6 +277,72 @@ describe("flushAllPendingSaves (§93 exit barrier)", () => {
     controller.activeTabId.set("a");
     controller.updateActiveTabContent("more");
     await expect(controller.flushAllPendingSaves()).resolves.toBeUndefined();
+  });
+});
+
+describe("saveState (§100 / §102 — derived from the active tab)", () => {
+  it("goes saving → saved around a successful write, and to error on failure", async () => {
+    controller.tabs.set([tab({ id: "a", filename: "2026-09-03.txt", content: "start" })]);
+    controller.activeTabId.set("a");
+
+    controller.updateActiveTabContent("edited"); // schedules a save
+    expect(get(controller.saveState)).toBe("saving");
+    await controller.flushAllPendingSaves();
+    expect(get(controller.saveState)).toBe("saved");
+
+    apiMock.writeNote.mockRejectedValueOnce(new Error("disk full"));
+    controller.updateActiveTabContent("edited again");
+    await controller.flushAllPendingSaves();
+    expect(get(controller.saveState)).toBe("error");
+  });
+
+  it("a §94 conflict cancelling the pending write doesn't leave it stuck on 'saving'", async () => {
+    controller.tabs.set([tab({ id: "a", filename: "2026-09-04.txt", content: "x" })]);
+    controller.activeTabId.set("a");
+    controller.updateActiveTabContent("typing");
+    expect(get(controller.saveState)).toBe("saving");
+    controller.cancelScheduledSave("a");
+    expect(get(controller.saveState)).toBe("saved");
+  });
+
+  it("a failed write for one note isn't masked by a concurrent success on another", async () => {
+    controller.tabs.set([
+      tab({ id: "a", filename: "2026-09-05.txt", content: "a" }),
+      tab({ id: "b", filename: "2026-09-06.txt", content: "b" }),
+    ]);
+    controller.activeTabId.set("a");
+    apiMock.writeNote.mockImplementation(async (filename: string) => {
+      if (filename === "2026-09-05.txt") throw new Error("denied");
+      return { exists: true, contentHash: "h", sizeBytes: 0, modifiedMs: 0 };
+    });
+    // both notes get a write; A fails, B succeeds
+    controller.tabs.set(controller.writeTabContent("a", "a-edit", get(controller.tabs)));
+    controller.tabs.set(controller.writeTabContent("b", "b-edit", get(controller.tabs)));
+    await controller.flushAllPendingSaves();
+    // active tab is A → still shows the failure
+    expect(get(controller.saveState)).toBe("error");
+    // switch to B → it saved fine (in the app the activeTabId subscription
+    // re-derives this; here we call it directly)
+    controller.activeTabId.set("b");
+    controller.recomputeSaveState();
+    expect(get(controller.saveState)).toBe("saved");
+    apiMock.writeNote.mockResolvedValue({ exists: true, contentHash: "h", sizeBytes: 0, modifiedMs: 0 });
+  });
+
+  it("a scratchpad reads as 'idle' (memory only)", () => {
+    controller.tabs.set([tab({ id: "s", isScratchpad: true, filename: "Scratchpad 1", content: "note" })]);
+    controller.activeTabId.set("s");
+    controller.recomputeSaveState();
+    expect(get(controller.saveState)).toBe("idle");
+  });
+});
+
+describe("historyInsertText (§109/§110)", () => {
+  it("rewrites a deferred line as a fresh open action, leaves the rest verbatim", () => {
+    expect(controller.historyInsertText("> chase the vendor")).toBe("# chase the vendor");
+    expect(controller.historyInsertText("# already open")).toBe("# already open");
+    expect(controller.historyInsertText("v done")).toBe("v done");
+    expect(controller.historyInsertText("=> # consequence")).toBe("=> # consequence");
   });
 });
 
@@ -642,6 +711,7 @@ describe("openMeetingHistory (§70: mid-line consequence-action dedup)", () => {
       jumpToLine: () => {},
       getCursorLineIdx: () => 2,
       focus: () => {},
+      find: { setQuery: () => {}, next: () => {}, prev: () => {}, clear: () => {} },
     });
     apiMock.readAllNotes.mockResolvedValue([
       ["2026-09-01.txt", "Weekly Sync\n====\nTalked to Sam => # follow up with him"],
@@ -663,6 +733,7 @@ describe("openMeetingHistory (§70: mid-line consequence-action dedup)", () => {
       jumpToLine: () => {},
       getCursorLineIdx: () => 0,
       focus: () => {},
+      find: { setQuery: () => {}, next: () => {}, prev: () => {}, clear: () => {} },
     });
     await controller.openMeetingHistory();
     expect(get(controller.modal)).not.toBe("history");
@@ -695,6 +766,7 @@ describe("directory switching", () => {
       notesDir: "/new-folder",
       colorMode: "grayscale",
       wordWrap: false,
+      readableLineLength: true,
       recentNotesDirs: [],
     });
     await controller.switchToRecentDirectory("/new-folder");
@@ -724,6 +796,7 @@ describe("directory switching", () => {
       notesDir: "/new-folder",
       colorMode: "grayscale",
       wordWrap: false,
+      readableLineLength: true,
       recentNotesDirs: [],
     });
     await controller.switchToRecentDirectory("/new-folder");
@@ -739,6 +812,7 @@ describe("initApp", () => {
       notesDir: "/notes",
       colorMode: "color",
       wordWrap: true,
+      readableLineLength: false,
       recentNotesDirs: ["/old"],
     });
     vi.setSystemTime(new Date(2026, 8, 15));
@@ -746,6 +820,7 @@ describe("initApp", () => {
     expect(get(controller.notesDir)).toBe("/notes");
     expect(get(controller.colorMode)).toBe("color");
     expect(get(controller.wordWrap)).toBe(true);
+    expect(get(controller.readableLineLength)).toBe(false);
     expect(get(controller.recentNotesDirs)).toEqual(["/old"]);
     expect(get(controller.tabs).some((t) => t.filename === "2026-09-15.txt")).toBe(true);
     vi.useRealTimers();
@@ -815,6 +890,21 @@ describe("initApp", () => {
     expect(active?.filename).toBe("2026-09-15.txt");
     vi.useRealTimers();
   });
+
+  it("§100: keeps the status word count in sync with the active tab", async () => {
+    vi.setSystemTime(new Date(2026, 8, 15));
+    apiMock.readTabSession.mockResolvedValue(null);
+    apiMock.readNoteWithMetadata.mockResolvedValue(withMeta("one two three"));
+    await controller.initApp();
+    expect(get(controller.statusWordCount)).toBe(3);
+
+    controller.updateActiveTabContent("now there are five whole words");
+    expect(get(controller.statusWordCount)).toBe(6);
+
+    controller.updateActiveTabContent("   ");
+    expect(get(controller.statusWordCount)).toBe(0);
+    vi.useRealTimers();
+  });
 });
 
 describe("modal open/close helpers", () => {
@@ -825,7 +915,7 @@ describe("modal open/close helpers", () => {
     ["openSectionImport", "sectionImport"],
     ["openSettings", "settings"],
     ["openShortcutsHelp", "shortcuts"],
-    ["openGlyphLegend", "glyphLegend"],
+    ["openGlyphLegend", "shortcuts"], // §110: folded into the combined drawer
     ["openAbout", "about"],
   ] as const)("%s sets modal to %s", (fn, expected) => {
     (controller as any)[fn]();
@@ -862,6 +952,29 @@ describe("setWordWrap (§80)", () => {
     await controller.setWordWrap(false);
     expect(get(controller.wordWrap)).toBe(false);
     expect(apiMock.setWordWrap).toHaveBeenLastCalledWith(false);
+  });
+});
+
+describe("setReadableLineLength (§99 / §110)", () => {
+  it("updates the store and persists via the API", async () => {
+    await controller.setReadableLineLength(false);
+    expect(get(controller.readableLineLength)).toBe(false);
+    expect(apiMock.setReadableLineLength).toHaveBeenCalledWith(false);
+
+    await controller.setReadableLineLength(true);
+    expect(get(controller.readableLineLength)).toBe(true);
+    expect(apiMock.setReadableLineLength).toHaveBeenLastCalledWith(true);
+  });
+
+  it("§110: turning it on force-enables word wrap", async () => {
+    controller.wordWrap.set(false);
+    await controller.setReadableLineLength(true);
+    expect(get(controller.wordWrap)).toBe(true);
+    expect(apiMock.setWordWrap).toHaveBeenCalledWith(true);
+
+    // turning it back off leaves wrap where it is (user owns it again)
+    await controller.setReadableLineLength(false);
+    expect(get(controller.wordWrap)).toBe(true);
   });
 });
 

@@ -86,9 +86,16 @@ export async function jumpToHistoryItem(item: HistoryItem) {
   await jumpToFileLine({ filename: item.filename, lineIdx: item.lineIdx });
 }
 
+/** What a Section-History entry turns into when imported: a deferred
+ * `> ` line comes across as a fresh open `# ` action (you're re-adopting
+ * it), everything else is inserted verbatim. §109's preview and
+ * `importHistoricalItem` both go through this so they can't disagree. */
+export function historyInsertText(rawLine: string): string {
+  return rawLine.startsWith("> ") ? "# " + rawLine.slice(2) : rawLine;
+}
+
 export function importHistoricalItem(rawLine: string) {
-  let toInsert = rawLine;
-  if (toInsert.startsWith("> ")) toInsert = "# " + toInsert.slice(2);
+  const toInsert = historyInsertText(rawLine);
   editorApi?.insertAtCursor(toInsert + "\n");
   showToast(`Imported "${toInsert.slice(0, 30)}..." into note`);
 }

@@ -18,6 +18,7 @@
  *   boot                 startup, session restore, standing subscriptions
  *   directory            notes-directory switching (§39)
  *   drift                external-modification / conflict detection (§94)
+ *   commandPalette       Ctrl+K unified command/nav palette (§107)
  */
 export * from "./stores";
 export * from "./persistence";
@@ -32,3 +33,4 @@ export * from "./sectionImportActions";
 export * from "./menu";
 export * from "./boot";
 export * from "./directory";
+export * from "./commandPalette";

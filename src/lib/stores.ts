@@ -18,10 +18,10 @@ export type ModalKind =
   | "sectionImport"
   | "settings"
   | "shortcuts"
-  | "glyphLegend"
   | "about"
   | "unsavedScratchpads"
-  | "conflict";
+  | "conflict"
+  | "commandPalette";
 
 export const tabs = writable<NoteTab[]>([]);
 export const activeTabId = writable<string>("");
@@ -35,6 +35,11 @@ export const colorMode = writable<ColorMode>("grayscale");
  * `EditorPane` subscribes to it and reconfigures a CodeMirror compartment
  * live, so toggling takes effect without a remount. Off by default. */
 export const wordWrap = writable<boolean>(false);
+/** §99: cap the editor text column to a ~720px reading measure. Mirrors
+ * `AppConfig.readableLineLength`; `EditorPane` reads it (with `wordWrap`)
+ * to toggle a max-width wrapper live. On by default, but only visible
+ * when `wordWrap` is also on. */
+export const readableLineLength = writable<boolean>(true);
 /** Whether the top bar should show icon+label (true) or icon-only (false) —
  * driven by the OS window being maximized or fullscreen. */
 export const chromeExpanded = writable<boolean>(false);
@@ -45,11 +50,6 @@ export const chromeExpanded = writable<boolean>(false);
  * not persisted to disk. Defaults to on at launch. */
 export const actionDrawerShowOnlyOpen = writable<boolean>(true);
 
-/** Date picker's "Open Only" toggle (§43) — same in-memory,
- * remembered-for-the-session treatment as `actionDrawerShowOnlyOpen`
- * above, but defaults to *off* at launch (unlike the Action Drawer's),
- * per what was actually asked for each. */
-export const datePickerOpenOnly = writable<boolean>(false);
 
 export const toastMessage = writable<string>("");
 export const statusPos = writable<{ line: number; col: number }>({ line: 1, col: 1 });
@@ -58,6 +58,27 @@ export const statusCounts = writable<{ open: number; closed: number; forwarded: 
   closed: 0,
   forwarded: 0,
 });
+/** Word count of the active tab's content — status-bar left zone (§100).
+ * Kept in sync by `boot.ts`'s active-status subscription, same as
+ * `statusCounts`. */
+export const statusWordCount = writable<number>(0);
+
+/** §100: ambient autosave state for the status-bar centre zone.
+ *   `idle`   nothing written this session / scratchpad
+ *   `saving` a disk write is in flight
+ *   `saved`  the last disk write succeeded
+ *   `error`  the last disk write failed (a toast also fired)
+ * Driven by `persistence.ts`. Distinct from the per-tab drift baseline
+ * (§94) — this is only about *our* writes reaching disk. */
+export type SaveState = "idle" | "saving" | "saved" | "error";
+export const saveState = writable<SaveState>("idle");
+
+/** §108: the non-modal in-document find bar (Ctrl+F). `findOpen` toggles
+ * the floating widget docked top-right of the editor; `findMatch` mirrors
+ * "N of M" as the editor reports it. The editor stays fully live while
+ * this is open — it's not a modal. */
+export const findOpen = writable<boolean>(false);
+export const findMatch = writable<{ current: number; total: number }>({ current: 0, total: 0 });
 
 export const modal = writable<ModalKind>("none");
 /** Populated once at startup (`initApp`) for the About drawer — read live
@@ -110,6 +131,13 @@ export interface EditorApi {
   jumpToLine: (lineIdx: number) => void;
   getCursorLineIdx: () => number;
   focus: () => void;
+  /** §108: in-document find, driven by the floating `FindBar`. */
+  find: {
+    setQuery: (q: string) => void;
+    next: () => void;
+    prev: () => void;
+    clear: () => void;
+  };
 }
 
 /** The single live editor's imperative handle, or `null` between mounts.

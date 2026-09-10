@@ -25,7 +25,11 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import * as controller from "../controller";
-  import { activeTabId, chromeExpanded, tabs } from "../controller";
+  import { activeTabId, chromeExpanded, saveState, tabs } from "../controller";
+  import type { NoteTab } from "../types";
+
+  /** Dated tabs show just the date; scratchpads keep their given name. */
+  const tabLabel = (t: NoteTab) => (t.isScratchpad ? t.filename : t.filename.replace(/\.txt$/, ""));
 
   let topBarEl: HTMLDivElement;
   let tabBarEl: HTMLDivElement;
@@ -276,17 +280,46 @@
     >
   {/if}
   <div id="tab-bar" bind:this={tabBarEl}>
-    {#each displayTabs as tab (tab.id)}
+    {#each displayTabs as tab, i (tab.id)}
+      {#if i > 0 && tab.isScratchpad && !displayTabs[i - 1].isScratchpad}
+        <!-- §103: hairline between the daily-note group and the scratchpad group -->
+        <div class="tab-group-divider" aria-hidden="true"></div>
+      {/if}
       <div
-        class="tab {tab.id === $activeTabId ? 'active' : ''}"
+        class="tab {tab.id === $activeTabId ? 'active' : ''} {tab.isScratchpad ? 'scratch' : 'daily'}"
         role="tab"
         tabindex="0"
         data-tab-id={tab.id}
         aria-selected={tab.id === $activeTabId}
         on:click={() => controller.switchTab(tab.id)}
+        on:mousedown={(e) => {
+          // Middle-click closes the tab (and suppress the autoscroll cursor).
+          if (e.button === 1) {
+            e.preventDefault();
+            controller.requestTabClose(tab.id);
+          }
+        }}
         on:keydown={(e) => e.key === "Enter" && controller.switchTab(tab.id)}
       >
-        <span>{tab.filename}{tab.isScratchpad ? " *" : ""}</span>
+        <span class="tab-icon" aria-hidden="true">
+          {#if tab.isScratchpad}
+            <svg viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.4">
+              <path d="M4 2.5h5l3 3v8H4z" stroke-linejoin="round" />
+              <path d="M6 8h4M6 10.5h3" stroke-linecap="round" />
+            </svg>
+          {:else}
+            <svg viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.4">
+              <rect x="2.5" y="3.5" width="11" height="10" rx="1.5" />
+              <path d="M2.5 6.5h11M5.5 2v3M10.5 2v3" stroke-linecap="round" />
+            </svg>
+          {/if}
+        </span>
+        <span class="tab-label">{tabLabel(tab)}</span>
+        {#if tab.isScratchpad && tab.content.trim() !== ""}
+          <span class="tab-status-dot mem" title="Kept in memory only (not written to disk)"></span>
+        {:else if tab.id === $activeTabId && $saveState === "error"}
+          <span class="tab-status-dot err" title="The last save of this note failed"></span>
+        {/if}
         <span
           class="tab-close"
           role="button"
@@ -310,7 +343,12 @@
   <button class="icon-btn tab-bar-new-btn" title="New Scratchpad (Ctrl+N)" on:click={controller.createScratchpad}>
     ＋
   </button>
-  <button class="icon-btn" title="Open Date Note (Ctrl+O)" on:click={controller.openDatePicker}>
+  <button
+    class="icon-btn"
+    title="Open Date Note (Ctrl+O)"
+    data-datepicker-trigger
+    on:click={controller.openDatePicker}
+  >
     <span class="icon-glyph">📅</span>{#if showActionLabels}<span class="icon-label"> Date</span>{/if}
   </button>
   <button class="icon-btn" title="Action Drawer (Ctrl+Shift+A)" on:click={controller.openActionDrawer}>

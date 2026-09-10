@@ -1,16 +1,26 @@
 :root {
-  --bg: #1e1e1e;
-  --tab-bg: #252526;
-  --tab-active: #1e1e1e;
+  /* ── Surface elevation (§102) ──────────────────────────────────────
+     Four tiers so depth reads by tone, not by a border alone. Option B
+     from the 0.6 surface study: the existing VS-Code charcoal family,
+     just given real steps. */
+  --surface-canvas: #1e1e1e; /* editor canvas */
+  --surface-chrome: #252526; /* top bar · tab strip · status bar */
+  --surface-overlay: #2d2d2e; /* modals · popovers · drawers */
+  --surface-raised: #37373b; /* hovered rows · inputs · chips · active controls */
+
+  --edge-soft: rgba(255, 255, 255, 0.07); /* internal divisions */
+  --edge-strong: rgba(255, 255, 255, 0.13); /* overlay & input outlines */
+
+  /* Semantic status — deliberately NOT the accent hue, and stable across
+     the colour/grayscale toggle (status *is* chrome, not content). */
+  --state-ok: #4bbf87;
+  --state-warn: #d8a24a;
+  --state-error: #d66b63;
+
   --text: #d4d4d4;
   --muted: #858585;
-  --border: #333333;
   --selected-bg: #4a4a4a;
   --selected-fg: #ffffff;
-  /* Deliberately not themed by the color/grayscale toggle below (like
-     `--editor-selection-bg`) — the status bar reads as chrome, not
-     content, and stays neutral either way. Its background is `--tab-bg`
-     itself (see `#status-bar`), matching the top bar. */
   --status-fg: #f0f0f0;
   --highlight: rgba(255, 255, 255, 0.25);
   --tab-active-border: var(--text);
@@ -21,6 +31,12 @@
      color the way status-driven tokens do. */
   --editor-selection-bg: #454952;
   --font: "Cascadia Code", "JetBrains Mono", "Consolas", monospace;
+
+  /* Back-compat aliases — a lot of rules still read these names. */
+  --bg: var(--surface-canvas);
+  --tab-bg: var(--surface-chrome);
+  --tab-active: var(--surface-canvas);
+  --border: var(--edge-soft);
 
   /* Grayscale glyph theme: distinguished by weight/opacity, not hue. */
   --glyph-open-color: var(--text);
@@ -42,12 +58,18 @@
 
 @media (prefers-color-scheme: light) {
   :root {
-    --bg: #ffffff;
-    --tab-bg: #f3f3f3;
-    --tab-active: #ffffff;
+    --surface-canvas: #ffffff;
+    --surface-chrome: #f3f3f3;
+    --surface-overlay: #ffffff;
+    --surface-raised: #e7e7e7;
+    --edge-soft: rgba(0, 0, 0, 0.09);
+    --edge-strong: rgba(0, 0, 0, 0.16);
+    --state-ok: #2f9e6b;
+    --state-warn: #b5771f;
+    --state-error: #c4463e;
+
     --text: #1b1b1b;
     --muted: #6e6e6e;
-    --border: #e0e0e0;
     --selected-bg: #d6d6d6;
     --selected-fg: #000000;
     --status-fg: #1b1b1b;
@@ -57,46 +79,48 @@
   }
 }
 
-/* Color theme: same structural tokens, real hues instead of grayscale.
-   Declared after :root so it wins on specificity ties via source order. */
+/* Color theme (§105 refresh): the reviews' semantic glyph palette —
+   cyan = open/to-do, emerald = done, violet = deferred, slate = won't-do.
+   Amber is reserved for emphasis / warning only. Chrome accent stays the
+   option-B blue. Declared after :root so it wins on source order. */
 [data-color-mode="color"] {
-  --selected-bg: #007acc;
+  --selected-bg: #0a84d8;
   --selected-fg: #ffffff;
-  --highlight: rgba(255, 213, 0, 0.25);
-  --tab-active-border: #007acc;
+  --highlight: rgba(245, 200, 66, 0.28);
+  --tab-active-border: #38bdf8;
 
-  --glyph-open-color: #ff6b6b;
+  --glyph-open-color: #38bdf8;
   --glyph-open-weight: bold;
-  --glyph-done-color: #51cf66;
+  --glyph-done-color: #10b981;
   --glyph-done-weight: bold;
   --glyph-done-opacity: 1;
-  --glyph-progress-color: #e5a50a;
+  --glyph-progress-color: #a855f7;
   --glyph-progress-weight: bold;
-  --glyph-cancelled-color: #868e96;
+  --glyph-cancelled-color: #7c8794;
   --glyph-cancelled-weight: bold;
   --glyph-cancelled-opacity: 1;
-  --glyph-followup-color: #0098ff;
+  --glyph-followup-color: #38bdf8;
   --glyph-followup-weight: bold;
-  --glyph-assignee-bg: rgba(0, 122, 204, 0.15);
-  --glyph-assignee-color: #0098ff;
-  --glyph-emphasis-color: #ffd43b;
+  --glyph-assignee-bg: rgba(56, 189, 248, 0.16);
+  --glyph-assignee-color: #7fd4f5;
+  --glyph-emphasis-color: #f59e0b;
 }
 
 @media (prefers-color-scheme: light) {
   [data-color-mode="color"] {
-    --selected-bg: #0066b8;
+    --selected-bg: #0a6fc2;
     --selected-fg: #ffffff;
-    --highlight: rgba(255, 230, 0, 0.4);
-    --tab-active-border: #0066b8;
+    --highlight: rgba(245, 200, 66, 0.45);
+    --tab-active-border: #0e7490;
 
-    --glyph-open-color: #d9383a;
-    --glyph-done-color: #2b8a3e;
-    --glyph-progress-color: #b25e00;
-    --glyph-cancelled-color: #5c636a;
-    --glyph-followup-color: #0066b8;
-    --glyph-assignee-bg: rgba(0, 102, 184, 0.12);
-    --glyph-assignee-color: #0066b8;
-    --glyph-emphasis-color: #f08c00;
+    --glyph-open-color: #0e7490;
+    --glyph-done-color: #047857;
+    --glyph-progress-color: #7e22ce;
+    --glyph-cancelled-color: #55606d;
+    --glyph-followup-color: #0e7490;
+    --glyph-assignee-bg: rgba(14, 116, 144, 0.12);
+    --glyph-assignee-color: #0e7490;
+    --glyph-emphasis-color: #b45309;
   }
 }
 
@@ -138,12 +162,12 @@ body {
   font-size: 12px;
 }
 
-/* Top Chrome / Tabs */
+/* Top Chrome / Tabs (§103: 44px bar, daily vs scratchpad archetypes) */
 #top-bar {
   display: flex;
-  background: var(--tab-bg);
-  border-bottom: 1px solid var(--border);
-  height: 38px;
+  background: var(--surface-chrome);
+  border-bottom: 1px solid var(--edge-soft);
+  height: 44px;
   align-items: center;
   padding-right: 8px;
 }
@@ -151,55 +175,110 @@ body {
   display: flex;
   flex: 1;
   height: 100%;
+  /* Tabs sit on the floor of the bar so the active one meets the editor
+     canvas below — the `‹ ›` arrows cover overflow, so the scrollbar
+     itself is hidden (it otherwise ate the 3px the active tab needed to
+     reach the edge). */
+  align-items: flex-end;
   overflow-x: auto;
+  scrollbar-width: none;
 }
 #tab-bar::-webkit-scrollbar {
-  height: 3px;
-}
-#tab-bar::-webkit-scrollbar-thumb {
-  background: var(--border);
+  height: 0;
 }
 
 .tab {
   flex-shrink: 0;
-  padding: 0 12px;
-  height: 100%;
+  padding: 0 10px 0 12px;
+  height: 34px;
+  margin: 0 1px;
+  border-radius: 6px 6px 0 0;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 7px;
   font-size: 12px;
   cursor: pointer;
-  border-right: 1px solid var(--border);
-  background: var(--tab-bg);
+  background: transparent;
   color: var(--muted);
   white-space: nowrap;
 }
+.tab:hover {
+  background: var(--surface-raised);
+  color: var(--text);
+}
+.tab-icon {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  opacity: 0.7;
+}
+.tab.active .tab-icon {
+  opacity: 1;
+  color: var(--tab-active-border);
+}
+.tab.scratch .tab-label {
+  font-style: italic;
+}
+/* A small dot beside the tab label. Deliberately quiet: `mem` (grey) just
+   marks a scratchpad as memory-only, `err` (red) is the only attention-
+   grabbing state — a normal autosave shows nothing at all. */
+.tab-status-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.tab-status-dot.mem {
+  background: var(--muted);
+}
+.tab-status-dot.err {
+  background: var(--state-error);
+}
+.tab-group-divider {
+  width: 1.5px;
+  height: 20px;
+  background: var(--edge-strong);
+  flex-shrink: 0;
+  margin: 0 7px;
+}
 .tab-bar-new-btn {
   flex-shrink: 0;
-  height: 100%;
-  border-radius: 0;
+  height: 28px;
+  margin-left: 4px;
 }
 .tab-scroll-btn {
   flex-shrink: 0;
-  height: 100%;
+  height: 28px;
   padding: 0 6px;
-  border-radius: 0;
 }
 .tab.active {
-  background: var(--tab-active);
+  background: var(--surface-canvas);
   color: var(--text);
-  border-top: 2px solid var(--tab-active-border);
+  box-shadow: inset 0 2px 0 var(--tab-active-border);
   font-weight: 600;
+  /* Bridge the 1px chrome border so the active tab reads as one surface
+     with the editor below it. */
+  position: relative;
+  z-index: 1;
+  margin-bottom: -1px;
 }
 .tab-close {
-  opacity: 0.5;
+  opacity: 0;
   font-size: 11px;
-  padding: 2px 4px;
-  border-radius: 3px;
+  padding: 3px 5px;
+  margin-left: 2px;
+  border-radius: 4px;
+  line-height: 1;
 }
-.tab-close:hover {
-  opacity: 1;
-  background: rgba(128, 128, 128, 0.2);
+.tab:hover .tab-close,
+.tab.active .tab-close,
+.tab-close:focus-visible {
+  opacity: 0.55;
+}
+.tab-close:hover,
+.tab-close:focus-visible {
+  opacity: 1 !important;
+  background: var(--surface-raised);
 }
 
 .icon-btn {
@@ -216,13 +295,20 @@ body {
   gap: 4px;
   filter: grayscale(1);
 }
+/* §103: in the 44px top bar, every control is a ≥28px hit target. */
+#top-bar .icon-btn {
+  height: 30px;
+  min-width: 30px;
+  justify-content: center;
+  padding: 0 8px;
+}
 [data-color-mode="color"] .icon-btn,
 [data-color-mode="color"] .modal-input-wrap > span:first-child {
   filter: none;
 }
 .icon-btn:hover {
-  background: var(--tab-active);
-  border-color: var(--border);
+  background: var(--surface-raised);
+  border-color: var(--edge-strong);
 }
 .icon-btn .icon-label {
   white-space: nowrap;
@@ -260,6 +346,74 @@ body {
   flex: 1;
   overflow: auto;
   position: relative;
+}
+
+/* §108: floating in-document find bar, docked top-right of the editor.
+   Not a modal — the editor stays scrollable and editable underneath. */
+.find-bar {
+  position: absolute;
+  top: 8px;
+  right: 14px;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 4px 4px 8px;
+  background: var(--surface-overlay);
+  border: 1px solid var(--edge-strong);
+  border-radius: 7px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  font-size: 12px;
+}
+.find-input {
+  width: 180px;
+  background: var(--surface-raised);
+  border: 1px solid var(--edge-soft);
+  border-radius: 4px;
+  padding: 4px 7px;
+  font-family: var(--font);
+  font-size: 12px;
+  color: var(--text);
+  outline: none;
+}
+.find-input:focus-visible {
+  border-color: var(--tab-active-border);
+}
+.find-count {
+  min-width: 62px;
+  text-align: right;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+  padding: 0 2px;
+}
+.find-btn {
+  background: transparent;
+  border: none;
+  color: var(--muted);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 13px;
+  width: 22px;
+  height: 22px;
+  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.find-btn:hover {
+  background: var(--surface-raised);
+  color: var(--text);
+}
+
+/* Search-match highlighting from @codemirror/search — its defaults are
+   tuned for a light editor; retheme for ours. */
+.cm-searchMatch {
+  background: var(--highlight);
+  border-radius: 2px;
+}
+.cm-searchMatch-selected {
+  background: var(--selected-bg);
+  color: var(--selected-fg);
 }
 .editor-host {
   height: 100%;
@@ -468,6 +622,16 @@ body {
   color: var(--glyph-emphasis-color);
 }
 
+/* §106: the action-state glyphs cycle on click. Subtle pointer + hover
+   tint so it reads as interactive without adding chrome to every line. */
+.cm-line .glyph-cyclable {
+  cursor: pointer;
+}
+.cm-line .glyph-cyclable:hover {
+  background: var(--surface-raised);
+  border-radius: 3px;
+}
+
 /* §81: a Setext underline row (`====` under a section title) drawn as a
    double rule. `Decoration.mark` over the real `=` characters — they stay
    in the layout (so hit-testing and `posAtCoords` work natively for
@@ -496,20 +660,239 @@ body {
     0 calc(51% + 0.09em);
 }
 
-/* Status Bar */
+/* Status Bar — three zones (§100): cursor/doc metrics · ambient save
+   state · version + help. A 1fr / auto / 1fr grid so the centre zone is
+   optically centred regardless of how wide the side zones get. */
 #status-bar {
-  height: 24px;
+  height: 25px;
   background: var(--tab-bg);
   color: var(--status-fg);
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  padding: 0 12px;
+  font-size: 11px;
+  border-top: 1px solid var(--border);
+  /* Stays lit above a modal's `.overlay` (z-index 200) so the save state
+     and transient messages (§102, e.g. "Sections imported" fired from a
+     drawer that stays open) are always visible. */
+  position: relative;
+  z-index: 250;
+}
+.status-zone {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.status-left {
+  font-variant-numeric: tabular-nums;
+}
+.status-centre {
+  justify-content: center;
+  gap: 6px;
+  color: var(--muted);
+}
+.status-right {
+  justify-content: flex-end;
+  color: var(--muted);
+}
+.status-sep {
+  opacity: 0.4;
+}
+#stat-open,
+#stat-closed,
+#stat-forwarded {
+  color: var(--muted);
+}
+/* §102/§110: transient messages (the former floating toast) — the centre
+   zone is otherwise empty; the ambient save state moved to a quiet dot on
+   the tab itself. */
+#stat-message {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--status-fg);
+  font-weight: 500;
+}
+#stat-message::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--text);
+  flex-shrink: 0;
+  opacity: 0.55;
+}
+.status-help {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--status-fg);
+  border-radius: 3px;
+  width: 16px;
+  height: 16px;
+  line-height: 1;
+  font-family: inherit;
+  font-size: 10px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+.status-help:hover {
+  background: var(--surface-raised);
+  border-color: var(--muted);
+}
+
+/* §104: anchored mini calendar popover (the date picker). Not an
+   overlay — it's positioned under the top-bar 📅 trigger and closed by
+   Esc / an outside click. */
+.datepicker-pop {
+  position: fixed;
+  z-index: 250;
+  width: 248px;
+  background: var(--surface-overlay);
+  border: 1px solid var(--edge-strong);
+  border-radius: 8px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5);
+  padding: 8px;
+  font-size: 12px;
+  color: var(--text);
+  user-select: none;
+}
+.datepicker-jump {
+  width: 100%;
+  background: var(--surface-raised);
+  border: 1px solid var(--edge-soft);
+  border-radius: 5px;
+  padding: 6px 8px;
+  font-family: var(--font);
+  font-size: 12px;
+  color: var(--text);
+  outline: none;
+  margin-bottom: 8px;
+}
+.datepicker-jump:focus-visible {
+  border-color: var(--tab-active-border);
+}
+.cal-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 12px;
-  font-size: 11px;
+  padding: 2px 2px 6px;
 }
-.status-group {
+.cal-title {
+  font-weight: 600;
+}
+.cal-nav {
+  background: transparent;
+  border: none;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 15px;
+  line-height: 1;
+  width: 22px;
+  height: 22px;
+  border-radius: 4px;
+  font-family: inherit;
+}
+.cal-nav:hover {
+  background: var(--surface-raised);
+  color: var(--text);
+}
+.cal-weekdays,
+.cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+}
+.cal-weekdays {
+  margin-bottom: 2px;
+}
+.cal-weekdays span {
+  text-align: center;
+  color: var(--muted);
+  font-size: 10px;
+  padding: 3px 0;
+}
+.cal-day {
+  position: relative;
+  aspect-ratio: 1;
+  background: transparent;
+  border: none;
+  border-radius: 5px;
+  /* Plain dates are quiet; a day you actually wrote a note on reads at
+     full strength (`.hasnote`), and open actions add the dot (`.has`). */
+  color: var(--muted);
+  font-family: inherit;
+  font-size: 11.5px;
+  cursor: pointer;
+  font-variant-numeric: tabular-nums;
+}
+.cal-day.hasnote {
+  color: var(--text);
+  font-weight: 500;
+}
+.cal-day:hover {
+  background: var(--surface-raised);
+  color: var(--text);
+}
+.cal-day.out {
+  color: var(--muted);
+  opacity: 0.45;
+}
+.cal-day.today {
+  box-shadow: inset 0 0 0 1px var(--tab-active-border);
+  font-weight: 700;
+}
+/* Where the typed query / keyboard cursor is pointing. */
+.cal-day.target {
+  background: var(--selected-bg);
+  color: var(--selected-fg);
+}
+.cal-day:focus-visible {
+  outline: 2px solid var(--tab-active-border);
+  outline-offset: -1px;
+}
+.cal-day.has::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: 3px;
+  transform: translateX(-50%);
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: var(--tab-active-border);
+}
+.cal-foot {
   display: flex;
-  gap: 14px;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 8px;
+  padding-top: 7px;
+  border-top: 1px solid var(--edge-soft);
+}
+.cal-today-btn {
+  background: transparent;
+  border: none;
+  color: var(--tab-active-border);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 4px;
+  border-radius: 3px;
+}
+.cal-today-btn:hover {
+  background: var(--surface-raised);
+}
+.cal-hint {
+  color: var(--muted);
+  font-size: 10.5px;
 }
 
 /* Overlays / Dialogs */
@@ -519,7 +902,7 @@ body {
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.55);
+  background: rgba(0, 0, 0, 0.5);
   display: flex;
   justify-content: center;
   align-items: flex-start;
@@ -528,23 +911,23 @@ body {
 }
 
 .modal-card {
-  background: var(--tab-bg);
-  border: 1px solid var(--border);
+  background: var(--surface-overlay);
+  border: 1px solid var(--edge-strong);
   width: 720px;
   max-width: 92vw;
-  border-radius: 6px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  border-radius: 8px;
+  box-shadow: 0 16px 44px rgba(0, 0, 0, 0.5);
   overflow: hidden;
   display: flex;
   flex-direction: column;
 }
 .modal-input-wrap {
   padding: 12px;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--edge-soft);
   display: flex;
   align-items: center;
   gap: 8px;
-  background: var(--tab-active);
+  background: var(--surface-raised);
 }
 .modal-input-wrap > span:first-child {
   filter: grayscale(1);
@@ -678,10 +1061,75 @@ textarea.modal-input.import-textarea {
   justify-content: space-between;
   align-items: center;
   padding: 8px 14px;
-  border-top: 1px solid var(--border);
+  border-top: 1px solid var(--edge-soft);
   font-size: 11px;
   color: var(--muted);
-  background: var(--tab-bg);
+  background: var(--surface-chrome);
+}
+
+/* §109: Section History gets a right-hand preview column. */
+.history-body {
+  display: flex;
+  align-items: stretch;
+  min-height: 0;
+}
+.history-preview {
+  width: 320px;
+  flex-shrink: 0;
+  border-left: 1px solid var(--edge-soft);
+  background: var(--surface-canvas);
+  padding: 14px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.hp-section {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.hp-label {
+  font-size: 10.5px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  font-weight: 600;
+}
+.hp-context,
+.hp-insert {
+  margin: 0;
+  font-family: var(--font);
+  font-size: 11px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
+  color: var(--muted);
+  background: var(--surface-raised);
+  border-radius: 4px;
+  padding: 7px 9px;
+}
+.hp-context .hp-hit {
+  color: var(--text);
+  font-weight: 600;
+}
+.hp-insert {
+  color: var(--text);
+}
+.hp-note {
+  font-size: 11px;
+  color: var(--muted);
+}
+.hp-target {
+  font-size: 11.5px;
+  color: var(--text);
+  line-height: 1.5;
+}
+.hp-empty {
+  color: var(--muted);
+  font-size: 12px;
+  margin: auto;
+  text-align: center;
 }
 kbd {
   background: rgba(128, 128, 128, 0.2);
@@ -723,6 +1171,10 @@ kbd {
   font-size: 12px;
   color: var(--text);
   user-select: none;
+}
+.toggle-switch.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 .toggle-switch input {
   position: absolute;
@@ -795,26 +1247,10 @@ kbd {
   font-family: inherit;
 }
 .settings-recent-dir:hover {
-  background: var(--tab-active);
-  border-color: var(--border);
+  background: var(--surface-raised);
+  border-color: var(--edge-strong);
   color: var(--text);
 }
 
-#toast {
-  position: fixed;
-  bottom: 36px;
-  right: 20px;
-  background: #323232;
-  color: #ffffff;
-  padding: 8px 16px;
-  border-radius: 4px;
-  font-size: 12px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-  z-index: 500;
-  opacity: 0;
-  transition: opacity 0.2s ease-in-out;
-  pointer-events: none;
-}
-#toast.show {
-  opacity: 1;
-}
+/* §102: the floating toast is gone — transient messages now surface in
+   the status bar's centre zone (`#stat-message`, styled above). */

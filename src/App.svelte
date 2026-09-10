@@ -2,11 +2,11 @@
   import { onMount } from "svelte";
   import { get } from "svelte/store";
   import * as controller from "./lib/controller";
-  import { activeTabId, modal, scratchpadGateContext, tabs } from "./lib/controller";
+  import { activeTabId, editorApi, findOpen, modal, scratchpadGateContext, tabs } from "./lib/controller";
   import TopBar from "./lib/components/TopBar.svelte";
   import StatusBar from "./lib/components/StatusBar.svelte";
   import EditorPane from "./lib/components/EditorPane.svelte";
-  import Toast from "./lib/components/Toast.svelte";
+  import FindBar from "./lib/components/FindBar.svelte";
   import DatePickerModal from "./lib/components/modals/DatePickerModal.svelte";
   import ActionDrawerModal from "./lib/components/modals/ActionDrawerModal.svelte";
   import HistoryModal from "./lib/components/modals/HistoryModal.svelte";
@@ -15,10 +15,10 @@
   import SectionImportModal from "./lib/components/modals/SectionImportModal.svelte";
   import SettingsModal from "./lib/components/modals/SettingsModal.svelte";
   import ShortcutsModal from "./lib/components/modals/ShortcutsModal.svelte";
-  import GlyphLegendModal from "./lib/components/modals/GlyphLegendModal.svelte";
   import AboutModal from "./lib/components/modals/AboutModal.svelte";
   import UnsavedScratchpadsModal from "./lib/components/modals/UnsavedScratchpadsModal.svelte";
   import ConflictModal from "./lib/components/modals/ConflictModal.svelte";
+  import CommandPaletteModal from "./lib/components/modals/CommandPaletteModal.svelte";
 
   let ready = false;
   let bootError = "";
@@ -41,6 +41,12 @@
     function onKeydown(e: KeyboardEvent) {
       if (e.key === "Escape") {
         const current = get(modal);
+        if (current === "none" && get(findOpen)) {
+          // §108: close the find bar even if focus has moved back to the editor.
+          editorApi?.find.clear();
+          findOpen.set(false);
+          return;
+        }
         if (current === "safety") controller.cancelSafetyClose();
         else if (current === "conflict") {
           /* a disk-vs-memory conflict needs an explicit choice — Escape is a no-op */
@@ -51,7 +57,24 @@
         else controller.closeAllModals();
         return;
       }
-      if (e.ctrlKey && !e.shiftKey && (e.code === "KeyN" || e.code === "KeyT")) {
+      // Ctrl+K / Ctrl+F are top-level: ignore them while any modal is up
+      // (the find bar would just mount hidden behind the overlay).
+      if ((e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey && e.code === "KeyK") {
+        if (get(modal) !== "none") return;
+        e.preventDefault();
+        controller.openCommandPalette();
+      } else if ((e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey && e.code === "KeyF") {
+        if (get(modal) !== "none") return;
+        // Catches Ctrl/Cmd+F when focus is in the find input or elsewhere
+        // outside the editor (the editor's own keymap covers the rest).
+        e.preventDefault();
+        findOpen.set(true);
+        // The bar isn't mounted in this tick — re-select on the next frame
+        // so a second Ctrl+F re-focuses the query.
+        requestAnimationFrame(() =>
+          document.querySelector<HTMLInputElement>(".find-bar .find-input")?.select(),
+        );
+      } else if (e.ctrlKey && !e.shiftKey && (e.code === "KeyN" || e.code === "KeyT")) {
         e.preventDefault();
         controller.createScratchpad();
       } else if (e.ctrlKey && !e.shiftKey && e.code === "KeyO") {
@@ -97,6 +120,14 @@
   });
 
   $: activeTab = $tabs.find((t) => t.id === $activeTabId);
+
+  // §108: a modal opening over an open find bar leaves the bar stranded
+  // behind the overlay — close it. (`find.clear()` is synchronous, so
+  // this can't retrigger itself the way an awaited `$:` block can.)
+  $: if ($modal !== "none" && $findOpen) {
+    editorApi?.find.clear();
+    findOpen.set(false);
+  }
 </script>
 
 {#if ready}
@@ -107,9 +138,11 @@
         <EditorPane content={activeTab.content} tabId={activeTab.id} />
       {/key}
     {/if}
+    {#if $findOpen}
+      <FindBar />
+    {/if}
   </div>
   <StatusBar />
-  <Toast />
 
   {#if $modal === "date"}
     <DatePickerModal />
@@ -127,14 +160,14 @@
     <SettingsModal />
   {:else if $modal === "shortcuts"}
     <ShortcutsModal />
-  {:else if $modal === "glyphLegend"}
-    <GlyphLegendModal />
   {:else if $modal === "about"}
     <AboutModal />
   {:else if $modal === "unsavedScratchpads"}
     <UnsavedScratchpadsModal />
   {:else if $modal === "conflict"}
     <ConflictModal />
+  {:else if $modal === "commandPalette"}
+    <CommandPaletteModal />
   {/if}
 {:else if bootError}
   <div class="boot-loading" role="alert">

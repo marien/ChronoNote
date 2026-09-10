@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { seedApp, editor, openViaShortcut, modalCard, MODAL_LABELS } from "./helpers";
+import { seedApp, editor, openViaShortcut, modalCard, MODAL_LABELS, datePicker } from "./helpers";
 
 /** §95: every modal traps Tab within its own controls and hands focus
  * back to the editor when it closes. */
@@ -32,6 +32,21 @@ test("closing a modal returns focus to the editor", async ({ page }) => {
   const editorHasFocus = await page.evaluate(() =>
     (document.querySelector(".cm-content") as HTMLElement | null)?.contains(document.activeElement) ||
     document.activeElement?.classList.contains("cm-content"),
+  );
+  expect(editorHasFocus).toBe(true);
+});
+
+test("a modal opened from a top-bar button still hands focus back to the editor", async ({ page }) => {
+  await seedApp(page, { seed: "empty" });
+  await editor(page).click();
+
+  // Open the date picker by clicking its top-bar button, not the shortcut.
+  await page.locator("#top-bar button[title^='Open Date Note']").click();
+  await expect(datePicker(page)).toBeVisible();
+  await page.keyboard.press("Escape");
+
+  const editorHasFocus = await page.evaluate(
+    () => document.activeElement?.classList.contains("cm-content") ?? false,
   );
   expect(editorHasFocus).toBe(true);
 });

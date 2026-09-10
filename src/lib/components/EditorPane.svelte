@@ -1,16 +1,17 @@
 <script lang="ts">
   import { onDestroy, onMount } from "svelte";
   import { get } from "svelte/store";
-  import { Compartment, EditorSelection, EditorState, type StateEffect } from "@codemirror/state";
-  import { drawSelection, EditorView, keymap } from "@codemirror/view";
+  import { Compartment, EditorSelection, EditorState, RangeSetBuilder, type StateEffect } from "@codemirror/state";
+  import { Decoration, drawSelection, EditorView, keymap, ViewPlugin } from "@codemirror/view";
   import { defaultKeymap, history, historyField, historyKeymap, indentWithTab, redo } from "@codemirror/commands";
   import { indentUnit } from "@codemirror/language";
+  import { findNext, findPrevious, search, SearchCursor, SearchQuery, setSearchQuery } from "@codemirror/search";
   import { glyphAtomicRanges, liveGlyphs } from "../editor/glyphs";
   import { setextRule } from "../editor/setextRule";
   import { underlineFor } from "../sectionImport";
   import { actionLineEnter, adjacentOpenActionLine, cycleActionSymbol } from "../tokens";
   import * as controller from "../controller";
-  import { wordWrap } from "../controller";
+  import { findMatch, findOpen, readableLineLength, wordWrap } from "../controller";
 
   // `content` is only used as the initial document for this mount. Tab
   // switches are handled by wrapping this component in a {#key} block
@@ -35,6 +36,53 @@
   const wrapCompartment = new Compartment();
   const wrapExtension = (on: boolean) => (on ? EditorView.lineWrapping : []);
   let unsubscribeWrap: (() => void) | undefined;
+
+  /** §99: cap the text column to a ~720px reading measure, centred. A
+   * compartment like `wrapCompartment` so Settings can flip it live with
+   * no remount. Deliberately only applied when word-wrap is *also* on —
+   * with wrapping off, a narrower `.cm-content` just scrolls wide lines
+   * (tables, aligned columns) horizontally inside a smaller box, which is
+   * the opposite of what wrap-off is for. */
+  const measureCompartment = new Compartment();
+  const measureExtension = (on: boolean) =>
+    on
+      ? EditorView.theme({
+          ".cm-content": { maxWidth: "720px", marginInline: "auto", width: "100%" },
+        })
+      : [];
+  const measureActive = (wrap: boolean, readable: boolean) => wrap && readable;
+  let unsubscribeMeasure: (() => void) | undefined;
+
+  /** §108: highlight every occurrence of the find query. `@codemirror/
+   * search` only paints matches while *its own* panel is open, and we use
+   * a custom floating bar instead — so this is our own case-insensitive
+   * highlighter, swapped in via a compartment as the query changes. */
+  const findHiCompartment = new Compartment();
+  const findMatchMark = Decoration.mark({ class: "cm-searchMatch" });
+  function findHighlight(query: string) {
+    if (!query) return [];
+    const norm = (s: string) => s.toLowerCase();
+    return ViewPlugin.fromClass(
+      class {
+        decorations: ReturnType<RangeSetBuilder<Decoration>["finish"]>;
+        constructor(v: EditorView) {
+          this.decorations = this.build(v);
+        }
+        update(u: { view: EditorView; docChanged: boolean; viewportChanged: boolean }) {
+          if (u.docChanged || u.viewportChanged) this.decorations = this.build(u.view);
+        }
+        build(v: EditorView) {
+          const b = new RangeSetBuilder<Decoration>();
+          for (const { from, to } of v.visibleRanges) {
+            const cur = new SearchCursor(v.state.doc, query, from, to, norm);
+            while (!cur.next().done) b.add(cur.value.from, cur.value.to, findMatchMark);
+          }
+          return b.finish();
+        }
+      },
+      { decorations: (v) => v.decorations },
+    );
+  }
   // Kept up to date on every scroll rather than captured once at destroy
   // time — by the time `onDestroy` runs (this component is torn down via
   // the `{#key}` in App.svelte switching to a new tab), the scroller's raw
@@ -46,6 +94,30 @@
   // offsets) also anchors to a specific line/block, so it stays correct
   // even if line heights shift slightly between the save and the restore.
   let lastScrollEffect: StateEffect<unknown> | null = null;
+
+  /** §108: mirror "N of M" into the `findMatch` store after every query
+   * change or next/prev. Counts case-insensitively, matching the
+   * `SearchQuery({ caseSensitive: false })` the bar sets. */
+  let lastFindQuery = "";
+  function recomputeFindMatch() {
+    if (!view || !lastFindQuery) {
+      findMatch.set({ current: 0, total: 0 });
+      return;
+    }
+    const doc = view.state.doc;
+    const norm = (s: string) => s.toLowerCase();
+    const cursor = new SearchCursor(doc, lastFindQuery, 0, doc.length, norm);
+    const selFrom = view.state.selection.main.from;
+    let total = 0;
+    // The match the caret sits on, or the last one before it (so a click
+    // between matches still shows a sensible "k of N", never "– of N").
+    let atOrBefore = 0;
+    while (!cursor.next().done) {
+      total++;
+      if (cursor.value.from <= selFrom) atOrBefore = total;
+    }
+    findMatch.set({ current: total === 0 ? 0 : Math.max(1, atOrBefore), total });
+  }
 
   function cycleLine(v: EditorView): boolean {
     const pos = v.state.selection.main.head;
@@ -182,7 +254,20 @@
 
   onMount(() => {
     const shortcuts = keymap.of([
+      // §108: Ctrl/Cmd+F opens the floating find bar (not CodeMirror's
+      // own panel). Escape from inside the bar closes it — handled in
+      // FindBar itself.
+      {
+        key: "Mod-f",
+        run: () => {
+          findOpen.set(true);
+          return true;
+        },
+      },
       { key: "Ctrl-Space", run: (v) => cycleLine(v) },
+      // §106: Ctrl/Cmd+Enter is the same action-state cycle as Ctrl+Space
+      // — the combo the UX reviews (and most task apps) reach for.
+      { key: "Mod-Enter", run: (v) => cycleLine(v) },
       { key: "Ctrl-Shift-s", run: (v) => convertLineToSection(v) },
       { key: "F2", run: (v) => jumpToAdjacentOpenAction(v, 1) },
       { key: "Shift-F2", run: (v) => jumpToAdjacentOpenAction(v, -1) },
@@ -253,9 +338,15 @@
       drawSelection(),
       indentUnit.of("  "),
       wrapCompartment.of(wrapExtension(get(wordWrap))),
+      measureCompartment.of(measureExtension(measureActive(get(wordWrap), get(readableLineLength)))),
       liveGlyphs,
       glyphAtomicRanges,
       setextRule,
+      // §108: search state for findNext/findPrevious; its own panel is
+      // never opened — the floating `FindBar` is the UI, and
+      // `findHiCompartment` does the match highlighting.
+      search({ top: true }),
+      findHiCompartment.of([]),
       shortcuts,
       keymap.of([...defaultKeymap, ...historyKeymap, indentWithTab]),
       EditorView.updateListener.of((u) => {
@@ -277,6 +368,9 @@
           const pos = u.state.selection.main.head;
           const line = u.state.doc.lineAt(pos);
           controller.setStatusPosition(line.number, pos - line.from + 1);
+          // §108: the find bar is non-modal, so the caret can move (click,
+          // arrows, an edit) while it's open — keep "N of M" in step.
+          if (get(findOpen) && lastFindQuery) recomputeFindMatch();
         }
       }),
       EditorView.domEventHandlers({
@@ -328,13 +422,31 @@
     // what the initial state already set. Plain store subscription, not a
     // `$:` block — see TopBar.svelte's long note on why that matters near
     // CodeMirror.
-    let first = true;
+    const reconfigureMeasure = () => {
+      view?.dispatch({
+        effects: measureCompartment.reconfigure(
+          measureExtension(measureActive(get(wordWrap), get(readableLineLength))),
+        ),
+      });
+    };
+    let firstWrap = true;
     unsubscribeWrap = wordWrap.subscribe((on) => {
-      if (first) {
-        first = false;
+      if (firstWrap) {
+        firstWrap = false;
         return;
       }
       view?.dispatch({ effects: wrapCompartment.reconfigure(wrapExtension(on)) });
+      // §99: the reading measure only applies with wrap on, so a wrap
+      // toggle can turn it on or off too.
+      reconfigureMeasure();
+    });
+    let firstMeasure = true;
+    unsubscribeMeasure = readableLineLength.subscribe(() => {
+      if (firstMeasure) {
+        firstMeasure = false;
+        return;
+      }
+      reconfigureMeasure();
     });
 
     controller.registerEditorApi({
@@ -359,6 +471,42 @@
         return view.state.doc.lineAt(view.state.selection.main.head).number - 1;
       },
       focus: () => view?.focus(),
+      find: {
+        setQuery: (q: string) => {
+          if (!view) return;
+          lastFindQuery = q;
+          view.dispatch({
+            effects: [
+              setSearchQuery.of(new SearchQuery({ search: q, caseSensitive: false })),
+              findHiCompartment.reconfigure(findHighlight(q)),
+            ],
+          });
+          // Jump to the first match at/after the caret without stealing
+          // focus from the find input.
+          if (q) findNext(view);
+          recomputeFindMatch();
+        },
+        next: () => {
+          if (view) findNext(view);
+          recomputeFindMatch();
+        },
+        prev: () => {
+          if (view) findPrevious(view);
+          recomputeFindMatch();
+        },
+        clear: () => {
+          lastFindQuery = "";
+          if (view) {
+            view.dispatch({
+              effects: [
+                setSearchQuery.of(new SearchQuery({ search: "" })),
+                findHiCompartment.reconfigure([]),
+              ],
+            });
+          }
+          findMatch.set({ current: 0, total: 0 });
+        },
+      },
     });
 
     // The `updateListener` above only fires on a `dispatch()`, not on the
@@ -379,6 +527,11 @@
 
   onDestroy(() => {
     unsubscribeWrap?.();
+    unsubscribeMeasure?.();
+    // §108: the find bar belongs to this editor instance — a tab switch
+    // (which remounts this component) closes it and drops the query.
+    findOpen.set(false);
+    findMatch.set({ current: 0, total: 0 });
     if (view) {
       controller.saveEditorViewState(tabId, {
         selectionJSON: view.state.selection.toJSON(),

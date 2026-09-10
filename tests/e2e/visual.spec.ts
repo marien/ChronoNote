@@ -1,5 +1,5 @@
 import { test, type Page } from "@playwright/test";
-import { seedApp, editor, setEditorText, modalCard, MODAL_LABELS } from "./helpers";
+import { seedApp, editor, setEditorText, modalCard, MODAL_LABELS, datePicker } from "./helpers";
 
 /** Captures key UI states as PNG artifacts for human review — NOT pixel-
  * diff assertions. Per CLAUDE.local.md, layout here is genuinely noisy at
@@ -55,13 +55,14 @@ test.describe("visual — state gallery", () => {
       ["Control+Shift+i", "sectionImport"],
       ["Control+Comma", "settings"],
       ["Control+Slash", "shortcuts"],
-      ["Control+Shift+Slash", "glyphLegend"],
       ["Control+Shift+Comma", "about"],
     ];
     for (const [combo, key] of shots) {
       await editor(page).click();
       await page.keyboard.press(combo);
-      await modalCard(page, MODAL_LABELS[key as keyof typeof MODAL_LABELS]).waitFor();
+      const overlay =
+        key === "date" ? datePicker(page) : modalCard(page, MODAL_LABELS[key as keyof typeof MODAL_LABELS]);
+      await overlay.waitFor();
       await shot(page, `modal-${key}`);
       await page.keyboard.press("Escape");
     }

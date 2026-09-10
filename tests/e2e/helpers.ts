@@ -131,17 +131,28 @@ export function todayFilename(): string {
 
 // --- chrome / tabs --------------------------------------------------
 
+/** §110: dated tabs display the date without the `.txt` extension. */
+export const dateLabel = (filename: string) => filename.replace(/\.txt$/, "");
+
 export function tab(page: Page, filename: string): Locator {
-  // The tab label is `filename` (+ " *" for scratchpads); match on the text span.
-  return page.locator("#tab-bar .tab", { hasText: filename });
+  // §103: the tab shows an icon + `.tab-label` (date, no `.txt`) or an
+  // italic `.tab-label` + a dot (scratchpads); match on the label text.
+  return page.locator("#tab-bar .tab", { hasText: dateLabel(filename) });
 }
 
 export function activeTabLabel(page: Page): Locator {
-  return page.locator("#tab-bar .tab.active span").first();
+  return page.locator("#tab-bar .tab.active .tab-label");
 }
 
+/** Every open tab's visible label text, in display order. */
+export function tabLabels(page: Page): Promise<string[]> {
+  return page.locator("#tab-bar .tab .tab-label").allTextContents();
+}
+
+/** Transient status messages (§102 — formerly the floating `#toast`) now
+ * surface in the status bar's centre zone. */
 export function toast(page: Page): Locator {
-  return page.locator("#toast");
+  return page.locator("#stat-message");
 }
 
 export async function statusCounts(page: Page): Promise<{ open: number; closed: number; forwarded: number }> {
@@ -160,6 +171,12 @@ export function modalCard(page: Page, label: string): Locator {
   return page.locator(`.modal-card[aria-label="${label}"]`);
 }
 
+/** §104: the date picker is an anchored calendar popover, not a
+ * `.modal-card`. */
+export function datePicker(page: Page): Locator {
+  return page.locator(".datepicker-pop");
+}
+
 export const MODAL_LABELS = {
   date: "Jump to date",
   actions: "Action drawer",
@@ -169,10 +186,10 @@ export const MODAL_LABELS = {
   sectionImport: "Import sections",
   settings: "Settings",
   shortcuts: "Keyboard shortcuts",
-  glyphLegend: "Symbols and section formatting",
   about: "About ChronoNote",
   unsavedScratchpads: "Unsaved scratchpad content",
   conflict: "Note changed on disk",
+  commandPalette: "Command palette",
 } as const;
 
 export type ModalKey = keyof typeof MODAL_LABELS;
@@ -194,7 +211,7 @@ export async function openViaShortcut(page: Page, combo: string, modal: ModalKey
   await editor(page).click();
   await parkMouse(page);
   await page.keyboard.press(combo);
-  const card = modalCard(page, MODAL_LABELS[modal]);
+  const card = modal === "date" ? datePicker(page) : modalCard(page, MODAL_LABELS[modal]);
   await expect(card).toBeVisible();
   return card;
 }

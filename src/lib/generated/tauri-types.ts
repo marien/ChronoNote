@@ -6,7 +6,7 @@ export type ColorMode = "color" | "grayscale";
 
 export type FileMetadata = { exists: boolean, contentHash: string | null, sizeBytes: number | null, modifiedMs: number | null };
 
-export type AppConfig = { notesDir: string, colorMode: ColorMode, wordWrap: boolean, recentNotesDirs: Array<string> };
+export type AppConfig = { notesDir: string, colorMode: ColorMode, wordWrap: boolean, readableLineLength: boolean, recentNotesDirs: Array<string> };
 
 export type TabSession = { openTabs: Array<string>, activeTab: string | null, lastOpenedDate?: string | null };
 

@@ -7,6 +7,7 @@ import {
   ViewUpdate,
   WidgetType,
 } from "@codemirror/view";
+import { cycleActionSymbol } from "../tokens";
 
 /** Renders the raw plain-text tokens (spec 2.2) as their visual glyphs
  * without changing a single byte on disk: the underlying document always
@@ -20,19 +21,46 @@ class InlineGlyphWidget extends WidgetType {
   constructor(
     private readonly label: string,
     private readonly className: string,
+    /** §106: the four action-state glyphs (standalone or the inner symbol
+     * of a `=> <symbol>` consequence-action) cycle on click,
+     * `# → v → > → x → #` — same order as `Ctrl+Space` / `Ctrl+Enter`. The
+     * arrow, bullet and assignee glyphs are not cyclable. */
+    private readonly cyclable = false,
   ) {
     super();
   }
 
   eq(other: InlineGlyphWidget): boolean {
-    return other.label === this.label && other.className === this.className;
+    return (
+      other.label === this.label && other.className === this.className && other.cyclable === this.cyclable
+    );
   }
 
-  toDOM(): HTMLElement {
+  toDOM(view: EditorView): HTMLElement {
     const span = document.createElement("span");
     span.textContent = this.label;
     span.className = this.className;
+    if (this.cyclable) {
+      span.classList.add("glyph-cyclable");
+      span.title = "Click to cycle state (open → done → deferred → won't-do)";
+      span.addEventListener("mousedown", (e) => {
+        // Don't let the click place the editor cursor or steal focus.
+        e.preventDefault();
+        const pos = view.posAtDOM(span);
+        const line = view.state.doc.lineAt(pos);
+        const updated = cycleActionSymbol(line.text);
+        if (updated !== null && updated !== line.text) {
+          view.dispatch({ changes: { from: line.from, to: line.to, insert: updated } });
+        }
+      });
+    }
     return span;
+  }
+
+  // Our own `mousedown` handler above does the work — keep CodeMirror from
+  // also treating the click as a cursor placement into the atomic range.
+  ignoreEvent(): boolean {
+    return true;
   }
 }
 
@@ -96,9 +124,10 @@ const renderMatcher = new MatchDecorator({
     if (text.startsWith("=>")) {
       add(from, from + 3, Decoration.replace({ widget: new InlineGlyphWidget("➔", "glyph-followup") }));
       if (to > from + 3) {
-        // "=> <symbol> " — the consequence-action form (§41).
+        // "=> <symbol> " — the consequence-action form (§41). The inner
+        // symbol is a real action state, so it cycles on click too.
         const [char, cls] = glyphForSymbol(text[3]);
-        add(from + 3, to, Decoration.replace({ widget: new InlineGlyphWidget(char, cls) }));
+        add(from + 3, to, Decoration.replace({ widget: new InlineGlyphWidget(char, cls, true) }));
       }
       return;
     }
@@ -110,7 +139,7 @@ const renderMatcher = new MatchDecorator({
     // symbols on its own — the lookbehind already excludes any leading
     // indentation from `text`, so `text[0]` is the symbol itself.
     const [char, cls] = glyphForSymbol(text[0]);
-    add(from, to, Decoration.replace({ widget: new InlineGlyphWidget(char, cls) }));
+    add(from, to, Decoration.replace({ widget: new InlineGlyphWidget(char, cls, true) }));
   },
 });
 

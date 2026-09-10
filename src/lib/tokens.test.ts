@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   countActions,
+  countWords,
   innermostActionSymbol,
   cycleActionSymbol,
   openActionLineIndices,
@@ -50,6 +51,17 @@ describe("countActions", () => {
 
   it("does not miscount a bullet or emphasis line as an action", () => {
     expect(countActions("- a bullet\n* another bullet\n! bold line")).toEqual({ open: 0, closed: 0, forwarded: 0 });
+  });
+});
+
+describe("countWords", () => {
+  it("counts whitespace-delimited runs", () => {
+    expect(countWords("")).toBe(0);
+    expect(countWords("   \n\t ")).toBe(0);
+    expect(countWords("one")).toBe(1);
+    expect(countWords("  leading and trailing  ")).toBe(3);
+    expect(countWords("across\nlines\tand tabs")).toBe(4);
+    expect(countWords("# glyph tokens => count too")).toBe(6);
   });
 });
 

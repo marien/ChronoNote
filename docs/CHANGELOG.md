@@ -6,17 +6,18 @@ kept for the rationale behind each one — not just *what* changed but
 was still being gathered and confirmed before implementation; renamed once
 everything below was applied, since nothing here is "pending" anymore.
 
-**Status: all sections through §98 implemented, released, and on `main`**, each
-verified before merge (`svelte-check`, the Vitest suite, `cargo test`,
-and — from §77 on — the Playwright E2E suite, all green in CI). See each
-section for what it covers and why. §27–31 were small fixes logged
-briefly in a `next-revision-notes.md` scratch file before being folded in
-here; everything from §32 on was written directly.
+**Status: all sections through §110 implemented, released, and on `main`.**
+§99–§110 are the 0.6 UX/UI pass (`docs/design/ux-roadmap-0.6.md`). Each
+section is verified before merge (`svelte-check`, the Vitest suite,
+`cargo test`, and — from §77 on — the Playwright E2E suite, all green in
+CI). See each section for what it covers and why. §27–31 were small fixes
+logged briefly in a `next-revision-notes.md` scratch file before being
+folded in here; everything from §32 on was written directly.
 
 Which sections shipped in which release: §1–55 → v0.2.0, §56–59 → v0.2.1,
 §60–74 → v0.3.0, §75–81 → v0.4.0, §82–83 → v0.4.1, §84–85 → v0.4.2,
 §86–87 → v0.4.3, §88–89 → v0.4.4, §90–91 → v0.4.5, §92 → v0.4.6,
-§refactor + §93–96 → v0.5.0, §97 → v0.5.1, §98 → v0.5.2.
+§refactor + §93–96 → v0.5.0, §97 → v0.5.1, §98 → v0.5.2, §99–110 → v0.6.0.
 
 ---
 
@@ -3684,3 +3685,396 @@ against it:
 No behaviour change for users. `svelte-check` (241 files), Vitest (195),
 Playwright (95), and `cargo test` (42, +1 for the codegen test) all
 green.
+
+---
+
+## 99. Configurable reading measure (0.6 UX pass — Phase 1)
+
+**Status: implemented (v0.6.0).** First slice of
+the 0.6 UX/UI work (`docs/design/ux-roadmap-0.6.md`, reconciled from three
+external reviews). A new **"Limit line width for readability"** toggle in
+Settings → Editor caps the editor's text column to a ~720px measure and
+centres it, instead of spanning the full window.
+
+Deliberately gated: the cap **only takes effect while word wrap is on**.
+With wrapping off (the default), a narrower `.cm-content` would just push
+wide tables and aligned columns into a horizontal scroll inside a smaller
+box — the opposite of what wrap-off is for. So a user on defaults sees no
+change; turning on word wrap now also gives a comfortable measure unless
+they opt out.
+
+New `AppConfig.readable_line_length: bool` (`#[serde(default = …)]` → `true`
+for configs written before it existed) + `set_readable_line_length`
+command; the generated TS binding, `TauriCommands` contract and mock
+handler follow from §98's infrastructure. `EditorPane` applies it through a
+CodeMirror `Compartment` (like §80's word-wrap), reconfigured live from the
+`readableLineLength` store — no remount. 1 new Vitest case, 2 new
+`settings.spec.ts` e2e cases (persist + reload; no-op with wrap off).
+
+---
+
+## 100. Three-zone status bar + ambient save state (0.6 UX pass — Phase 1)
+
+**Status: implemented (v0.6.0).** The status bar
+goes from two loosely-packed groups to a `1fr / auto / 1fr` grid:
+
+- **Left** — `Ln N, Col C · N words · Open N Closed N Fwd N`. Cursor
+  position and the spec's action counts stay; a live **word count** is
+  new (`statusWordCount`, kept in sync by the same `boot.ts` subscription
+  that already tracked the counts). Tabular figures so nothing jitters
+  while typing.
+- **Centre** — an **ambient autosave indicator** (`#stat-save`): a 6px
+  dot + label, `data-state` = `saving` (amber, a real note has unflushed
+  keystrokes or a write is in flight) → `saved` (green, "All changes
+  saved") → `error` (red, "Save failed" — a toast still fires too). A
+  scratchpad shows an honest "In memory only" instead, since it never
+  touches disk. New `saveState` store driven by `persistence.ts`;
+  distinct from the §94 per-tab drift baseline — this is only about
+  *our* writes landing.
+- **Right** — the app version (`v0.6.0`) and a `?` button that opens the
+  shortcuts drawer (was a plain "[Ctrl+/] Shortcuts" text hint).
+
+Toasts are untouched for now — folding the informational ones into the
+centre slot is deferred to the Phase-1 visual pass (it ripples through
+the e2e `toast()` helper). Final colours are placeholders until the
+surface-palette decision (A/B/C) lands. Kept the `#stat-pos` /
+`#stat-open|closed|forwarded` ids so existing e2e selectors still work.
+2 new Vitest cases, 4 new `status-bar.spec.ts` e2e cases.
+
+---
+
+## 101. Focus always returns to the editor after a modal (0.6 UX pass — Phase 1)
+
+**Status: implemented (v0.6.0).** Tightens §95's
+focus-restore. It restored focus to *whatever* held it when the modal
+opened — fine for the keyboard path (the editor), but a modal opened by
+**clicking a top-bar button** left focus stranded on that button after
+close, so the next keystroke did nothing until you clicked back into the
+text.
+
+`focusTrap`'s `destroy` now restores the pre-modal element only when it
+was the editor (`.cm-editor` descendant), `<body>`, or still inside an
+open `.overlay` (a chained modal hand-off); otherwise it focuses
+`.cm-content` directly. CodeMirror keeps its own selection across the
+focus loss, so the caret still lands exactly where it was — the reviews'
+Task 8 without needing to serialise selection offsets (the editor isn't a
+`<textarea>`). 1 extra `focusTrap.test.ts` case, 1 extra
+`modal-a11y.spec.ts` case.
+
+---
+
+## 102. Surface elevation + retire the floating toast (0.6 UX pass — Phase 1)
+
+**Status: implemented (v0.6.0).** Marien picked
+**option B** from the surface study — keep ChronoNote's VS-Code charcoal
+family, give it real depth.
+
+**Four surface tiers** in `app.css`, replacing the old two:
+
+| token | dark | role |
+| --- | --- | --- |
+| `--surface-canvas` | `#1e1e1e` | editor |
+| `--surface-chrome` | `#252526` | top bar · tab strip · status bar |
+| `--surface-overlay` | `#2d2d2e` | modals · popovers · drawers (was reusing chrome) |
+| `--surface-raised` | `#37373b` | hovered rows · inputs · chips |
+
+Borders split into `--edge-soft` (`rgba(255,255,255,.07)`, internal
+divisions) and `--edge-strong` (`.13`, overlay/input outlines) — the old
+opaque `#333` `--border` becomes an alias for the soft one. New
+`--state-ok` / `--state-warn` / `--state-error` semantic tokens (not the
+accent hue) now drive the §100 save dot. Light-theme values defined
+alongside. The old flat names (`--bg`, `--tab-bg`, `--tab-active`,
+`--border`) stay as aliases so no component rule had to be rewritten
+wholesale — only the handful that genuinely wanted a different tier
+(modal card → overlay, hovers → raised, inputs → raised + strong edge).
+
+**The floating `#toast` is gone.** Transient messages ("Sections
+imported", "No open actions in this note", the §94 drift notices) now
+surface in the status bar's centre zone (`#stat-message`), pre-empting
+the save-state readout while shown (still a 2.4s auto-clear via the
+existing `showToast`). `Toast.svelte` deleted; `App.svelte` no longer
+mounts it. `helpers.ts`'s `toast()` locator points at `#stat-message`,
+so the 7 e2e assertions that used it keep working; 1 more updated
+directly.
+
+Visual change is deliberately subtle at rest — the depth reads when a
+modal or (coming in Phase 2) a popover opens over the editor. `svelte-check`
+(240 files, −1 for `Toast.svelte`), Vitest (199), Playwright (102),
+`cargo test` (42) green.
+
+---
+
+## 103. 44px top bar + daily / scratchpad tab archetypes (0.6 UX pass — Phase 2)
+
+**Status: implemented (v0.6.0).** The top bar
+goes to a steady **44px** and tabs become two visibly different kinds:
+
+- **Daily notes** — a small monochrome calendar icon (inline SVG,
+  `currentColor`), the `YYYY-MM-DD` label, normal weight.
+- **Scratchpads** — a draft-page icon, an *italic* label, and a 6px
+  **amber dot** (`--state-warn`) between the label and the close button
+  whenever the buffer has unsaved content (`content.trim() !== ""`). The
+  old ` *` suffix is gone.
+
+A 1.5px vertical **divider** (`--edge-strong`, 20px tall) separates the
+daily-note group from the scratchpad group — rendered in `TopBar.svelte`
+before the first tab whose `isScratchpad` flips true (they're already
+sorted dated-then-scratchpad by `sortedTabsForDisplay`).
+
+Tabs are now pill-topped (`border-radius: 6px 6px 0 0`, `inset` top
+accent on the active one) with no inter-tab borders — hover raises them
+to `--surface-raised`. Close buttons fade in on tab hover / focus / when
+active (the VS Code pattern) and stay ≥24px hit targets; every top-bar
+`.icon-btn` is now a ≥30px chip. Purely presentational — tab behaviour,
+ordering, overflow scrolling and keyboard nav are untouched.
+
+`helpers.ts` gained `tabLabels()` and `activeTabLabel()` now targets
+`.tab-label` (tabs have multiple spans now); 4 specs updated, 1 new
+`tab-archetypes.spec.ts`. Vitest (199), Playwright (103), `cargo test`
+(42), `svelte-check` (240) green.
+
+---
+
+## 104. Anchored mini calendar popover (0.6 UX pass — Phase 2)
+
+**Status: implemented (v0.6.0).** The date
+picker stops being a screen-centred modal with a text-query result list
+and becomes a compact **month-grid popover** anchored under the top-bar
+📅 trigger (`[data-datepicker-trigger]`, measured on mount;
+`position: fixed`, right-aligned, clamped to the viewport).
+
+- **Month grid** — Monday-first, whole weeks, adjacent-month days greyed
+  at the edges. New `date.ts` helpers: `monthGrid(year, month)` →
+  `CalCell[]`, `addMonths`, `MONTH_NAMES` (11 Vitest cases).
+- **Open-action dots** — a cell carries a `.has` dot when
+  `<date>.txt` in the notes cache has `countActions().open > 0` (same
+  signal the old picker's "N open actions" used; cache refreshed once on
+  mount).
+- **Type-to-jump kept** — a text field on top; `Enter` runs the existing
+  `parseDateQuery` grammar (`today`, `-2`, `2026-09-05`, `12-25`) and
+  commits. So the power-user path survives the redesign.
+- **Keyboard** — arrows move a roving-`tabindex` focused day (crossing
+  month boundaries re-pages the grid), `PageUp`/`PageDown` change month,
+  `Enter` opens the focused day, a **Today** button re-centres. `Esc`
+  and an outside `mousedown` close it; §101 then returns focus to the
+  editor.
+- Clicking any day → `commitDatePick` (unchanged: open/switch the tab,
+  close the popover).
+
+`DatePickerModal.svelte` rewritten in place (still `modal === "date"`,
+still Ctrl+O / the 📅 button). The `datePickerOpenOnly` store and the
+virtual-list plumbing it used are no longer imported — the dot replaces
+the "Open Only" filter. `helpers.ts` gains `datePicker()`;
+`navigation.spec.ts` rewritten (9 cases), `modal-a11y` + `visual`
+updated. `svelte-check` (240), Vitest (204), Playwright (108),
+`cargo test` (42) green.
+
+---
+
+## 105. Semantic colour-mode palette refresh (0.6 UX pass — Phase 3)
+
+**Status: implemented (v0.6.0).** `color` mode's
+glyph hues move to the reviews' semantic set (Marien's Q3 call — refresh
+the existing mode, no new flag):
+
+| state | was | now (dark) |
+| --- | --- | --- |
+| open / to-do | red `#ff6b6b` | cyan `#38bdf8` |
+| done | green `#51cf66` | emerald `#10b981` |
+| deferred | amber `#e5a50a` | violet `#a855f7` |
+| won't-do | grey `#868e96` | slate `#7c8794` |
+| follow-up / assignee | blue | cyan |
+| emphasis (`! `) | yellow | amber `#f59e0b` — the one reserved warning hue |
+
+Light-mode equivalents updated to match. **Grayscale mode is untouched.**
+Chrome accent stays the option-B blue family; only the glyph tokens
+changed. The Action Drawer / Section History / glyph-legend glyph columns
+follow automatically (they read the same `--glyph-*` vars).
+
+---
+
+## 106. Click a glyph to cycle its state + Ctrl/Cmd+Enter (0.6 UX pass — Phase 3)
+
+**Status: implemented (v0.6.0).**
+
+- **Click a glyph** — the four action-state glyphs (a standalone `# v > x`
+  or the inner symbol of a `=> <symbol>` consequence-action) now advance
+  `# → v → > → x → #` on click. `InlineGlyphWidget` gained a `cyclable`
+  flag; its `toDOM` adds a `mousedown` handler that `preventDefault`s
+  (no cursor move / focus steal), resolves its own position with
+  `view.posAtDOM`, and dispatches `cycleActionSymbol` on that line.
+  `ignoreEvent()` returns true so CodeMirror doesn't also treat the click
+  as a caret placement into the atomic range. The arrow, bullet and
+  assignee glyphs are not cyclable. `.glyph-cyclable` gets a pointer
+  cursor + a faint hover tint.
+- **`Ctrl/Cmd+Enter`** — `Mod-Enter` in `EditorPane`'s keymap aliases the
+  existing `Ctrl+Space` state cycle (the combo the reviews and most task
+  apps use). Both stay.
+
+Selection and undo/redo are preserved (a plain single CM transaction).
+`ShortcutsModal` updated. 2 new `editor-tokens.spec.ts` cases.
+`svelte-check` (240), Vitest (204), Playwright (110), `cargo test` (42)
+green.
+
+---
+
+## 107. Unified command palette — Ctrl/Cmd+K (0.6 UX pass — Phase 4)
+
+**Status: implemented (v0.6.0).** A fast-path
+layer over everything that already has a shortcut and a drawer — nothing
+here is the *only* way to reach a feature.
+
+New `src/lib/commandPalette.ts` (in the `controller` facade) +
+`CommandPaletteModal.svelte` + `modal` kind `commandPalette`, bound to
+**Ctrl/Cmd+K** in `App.svelte`. Query prefixes route the results:
+
+| prefix | shows |
+| --- | --- |
+| *(none)* | fuzzy-matched commands **+ open-tab titles** |
+| `>` | application commands only (settings toggles, drawers, tab ops) |
+| `!` or `#` | open-action lines across every daily note → jump to the line |
+| `@` | the `parseDateQuery` grammar (`today`, `-2`, `2026-09-05`) + existing dated notes → open that note |
+| `?` | hands off to the keyboard-shortcuts drawer |
+
+Subsequence fuzzy matching; results carry a group header
+(Commands / Settings / Help / Open tabs / Open actions / Dates). Arrow
+keys + Enter, `Esc` / outside-click close (via the shared `focusTrap` /
+`closeOnOutsideClick`), then §101 returns focus to the editor. The
+`!`/`@` modes refresh the notes cache on demand; a `seq` guard drops
+stale async result sets when you keep typing.
+
+Reuses the `.modal-*` styles — no new chrome. `ShortcutsModal` gains the
+`Ctrl+K` row. 6 new `command-palette.spec.ts` e2e cases. `svelte-check`
+(242), Vitest (204), Playwright (116), `cargo test` (42) green.
+
+---
+
+## 108. Non-modal in-document find bar — Ctrl/Cmd+F (0.6 UX pass — Phase 5)
+
+**Status: implemented (v0.6.0).** ChronoNote had
+no in-document find at all (`Ctrl+Shift+F` is a *cross-tab results list*).
+Now `Ctrl/Cmd+F` opens a **floating bar docked top-right of the editor** —
+the editor stays fully scrollable and editable underneath, it's not a
+modal.
+
+- New dep `@codemirror/search` — used for `findNext`/`findPrevious`
+  (wrap + scroll-into-view) and `SearchCursor` (counting). Its own panel
+  is never opened.
+- `FindBar.svelte` (rendered in `#editor-container` when the `findOpen`
+  store is set): query input, live **"N of M"** (`findMatch` store),
+  `‹`/`›`, `✕`. `Enter` / `Shift+Enter` = next / prev, `Esc` closes and
+  clears — also from the global handler when focus has moved back to the
+  editor.
+- Match highlighting is a **custom compartment** highlighter in
+  `EditorPane` (`@codemirror/search` only paints matches while its panel
+  is open, which we don't use) — a `ViewPlugin` that marks
+  case-insensitive `SearchCursor` hits across the visible ranges,
+  swapped in as the query changes.
+- The bar belongs to the editor instance: a tab switch (which remounts
+  `EditorPane`) closes it and drops the query.
+- `EditorApi` gained a `find` sub-object (`setQuery`/`next`/`prev`/
+  `clear`); the two fake editor APIs in `controller.test.ts` updated.
+
+`ShortcutsModal` + prod bundle (+31 kB for `@codemirror/search`). 4 new
+`find-bar.spec.ts` e2e cases. `svelte-check` (244), Vitest (204),
+Playwright (120), `cargo test` (42) green.
+
+---
+
+## 109. Section History gets a side-by-side preview (0.6 UX pass — Phase 5)
+
+**Status: implemented (v0.6.0).** The Section
+History drawer (`Ctrl+Shift+H`) — which aggregates a recurring section's
+action lines across every dated note — used to let you `Shift+Enter` an
+entry into the current note blind. It now has a **right-hand preview
+column** (card widened to 880px) that updates as you arrow/hover through
+the list:
+
+- **From `<file>`** — the entry in its source context (two lines either
+  side; the matched line bolded).
+- **Shift+Enter inserts** — exactly the text that will be inserted, with
+  the `> ` → `# ` "deferred becomes a fresh open action" rewrite already
+  applied, plus a one-line note when that rewrite happens.
+- **Target** — `→ at your cursor in <active note> (line N)`.
+
+Pure presentation over the existing `importHistoricalItem` flow — reads
+`allNotesCache` (already populated) and `editorApi.getCursorLineIdx()`.
+`HistoryModal.svelte` + `app.css` (`.history-body` / `.history-preview` /
+`.hp-*`). 1 new `search-and-history.spec.ts` case; 3 list assertions
+scoped to `.modal-list` now that entry text also appears in the preview.
+`svelte-check` (244), Vitest (204), Playwright (121), `cargo test` (42)
+green.
+
+---
+
+**The 0.6 UX pass (§99–§110) shipped as v0.6.0.** Deferred within the
+pass: the Unicode → SVG glyph-shape redesign (§105 note).
+
+---
+
+## 110. 0.6 review fixes + first round of visual feedback
+
+**Status: implemented (v0.6.0).** An 8-angle
+`/code-review` of the branch, plus Marien's notes from a live run of the
+dev build.
+
+### Review findings fixed (all introduced §99–§109)
+
+- **DatePicker keyboard nav drifted in non-UTC timezones** — `new
+  Date("2026-09-10")` parses as UTC midnight, disagreeing with the
+  local-time grid. New `parseISODateLocal` / `addDaysISO` in `date.ts`
+  (tested); the popover routes every `Date` through them.
+- **`Ctrl+F` / `Ctrl+K` fired while a modal was open** — mounted the find
+  bar invisibly behind the overlay. Both now no-op unless `modal ===
+  "none"`; a reactive guard also closes the bar if a modal opens over it.
+- **Save state masked a failure / stuck on "Saving…"** — `saveState` is
+  now *derived per active tab* (`recomputeSaveState()` off
+  `pendingSaveTabIds` / `inFlightFilenames` / `failedFilenames`), so a
+  background write can't stomp it, a real failure isn't hidden by a
+  concurrent success, and a §94 conflict cancelling the pending write
+  clears it. 4 new Vitest cases.
+- **Clicking the 📅 trigger to close the popover re-opened it** —
+  `onOutsideMousedown` now ignores the trigger element.
+- **Command palette ran a stale command** when you typed a `!`/`@`
+  prefix and hit Enter before the async scan resolved — `commitFromInput`
+  refuses to fire against a superseded query; the `!`/`#`/`@` modes are
+  debounced 120 ms, plain filtering stays instant.
+- **Find "N of M" showed "– of M"** whenever the caret wasn't exactly on
+  a match, and went stale on clicks — `current` is now the match at/before
+  the caret, recomputed on every selection change while the bar is open.
+- **Section History import gave no visible confirmation** — its toast was
+  behind the modal overlay. `#status-bar` now sits at `z-index: 250`
+  (above `.overlay` at 200), so transient messages show with any drawer
+  open. The `> `→`# ` rewrite is deduped into `historyInsertText()`.
+- Deleted the dead `datePickerOpenOnly` store; `countWords` moved to
+  `tokens.ts` as a non-allocating single-pass counter (+ test).
+
+### Feedback
+
+- **Combined help drawer** — the `?` (and `Ctrl+/` / `Ctrl+Shift+/`) now
+  open one **Shortcuts & Symbols** drawer; `GlyphLegendModal` is deleted
+  and its content folded into `ShortcutsModal` under a group header.
+- **Tab / editor connection** — the tab-strip scrollbar (which ate the
+  gap) is hidden; tabs are bottom-anchored so the active one meets the
+  editor canvas.
+- **Quieter save state** — the status-bar centre readout is gone. The
+  active tab shows a small dot only when it matters: **red** for a failed
+  save, **grey** for a memory-only scratchpad (was an amber "unsaved"
+  dot). Nothing during a normal autosave.
+- **Tab labels** drop the `.txt` — dated tabs show just `2026-09-10`.
+- **Middle-click a tab to close it.**
+- **The calendar follows what you type** — the jump input has focus on
+  open (like the other drawers), and as you type a date or `YYYY-MM` the
+  grid jumps to it and marks the target; `↓`/`Tab` hands off into the
+  grid; a day you've written a note on renders at full strength vs a
+  muted plain date.
+- **"Limit line width for readability" now owns word-wrap** — turning it
+  on force-enables wrap and disables the wrap toggle; it's a single
+  prose-reading mode. **Default is now off** (`AppConfig.readable_line_length`
+  → `#[serde(default)]` = false) — the monospace grid stays the
+  out-of-box editor.
+
+`svelte-check` (243), Vitest (212), Playwright (124), `cargo test` (42)
+all green. `visual.spec.ts` / `drawers.spec.ts` / `navigation.spec.ts` /
+`tab-archetypes.spec.ts` / `status-bar.spec.ts` / `settings.spec.ts`
+updated; `helpers.ts` gains `dateLabel()`.

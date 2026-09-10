@@ -2,7 +2,7 @@
   import { onMount } from "svelte";
   import * as controller from "../../controller";
   import { focusTrap } from "../../actions/focusTrap";
-  import { colorMode, notesDir, recentNotesDirs, wordWrap } from "../../controller";
+  import { colorMode, notesDir, readableLineLength, recentNotesDirs, wordWrap } from "../../controller";
   import * as api from "../../tauriApi";
   import { closeOnOutsideClick } from "../../actions/closeOnOutsideClick";
 
@@ -47,10 +47,11 @@
       <div>
         <div class="settings-section-label">Editor</div>
         <div class="settings-toggle-row">
-          <label class="toggle-switch">
+          <label class="toggle-switch" class:disabled={$readableLineLength}>
             <input
               type="checkbox"
-              checked={$wordWrap}
+              checked={$wordWrap || $readableLineLength}
+              disabled={$readableLineLength}
               on:change={(e) => controller.setWordWrap(e.currentTarget.checked)}
             />
             <span class="toggle-switch-track"></span>
@@ -59,7 +60,21 @@
         </div>
         <div class="settings-hint">
           Wrap long lines instead of scrolling horizontally. Off keeps the monospace grid intact for tables and
-          aligned columns.
+          aligned columns.{$readableLineLength ? " (kept on by “Limit line width” below.)" : ""}
+        </div>
+        <div class="settings-toggle-row" style="margin-top: 12px;">
+          <label class="toggle-switch">
+            <input
+              type="checkbox"
+              checked={$readableLineLength}
+              on:change={(e) => controller.setReadableLineLength(e.currentTarget.checked)}
+            />
+            <span class="toggle-switch-track"></span>
+            Limit line width for readability
+          </label>
+        </div>
+        <div class="settings-hint">
+          Wraps lines and caps the text column to a comfortable measure, centred — a single prose-reading mode.
         </div>
       </div>
       <div>

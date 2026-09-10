@@ -1,5 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
-import { seedApp, editor, modalCard, MODAL_LABELS, activeTabLabel, currentModal, toast, tab } from "./helpers";
+import { seedApp, editor, modalCard, MODAL_LABELS, activeTabLabel, currentModal, toast, tab, tabLabels } from "./helpers";
 
 const settings = (page: Page) => modalCard(page, MODAL_LABELS.settings);
 
@@ -26,6 +26,46 @@ test.describe("settings (Ctrl+,)", () => {
     await expect(page.locator("html")).toHaveAttribute("data-color-mode", "color");
   });
 
+  test("Limit line width is off by default; turning it on wraps + caps + persists (§110)", async ({ page }) => {
+    await seedApp(page, { seed: { notes: {} } });
+    await openSettings(page);
+
+    const readableToggle = () => settings(page).getByText("Limit line width for readability", { exact: false });
+    const wrapInput = () => settings(page).locator(".toggle-switch input").first();
+    const contentMaxWidth = () => page.locator(".cm-content").evaluate((el) => getComputedStyle(el).maxWidth);
+
+    // default: off, no cap, word wrap freely toggleable
+    expect(await page.evaluate(() => window.__CHRONO_MOCK__!.readableLineLength)).toBe(false);
+    expect(await contentMaxWidth()).toBe("none");
+    await expect(wrapInput()).toBeEnabled();
+
+    // turn readable on → wrap force-enabled + disabled, column capped
+    await readableToggle().click();
+    expect(await contentMaxWidth()).toBe("720px");
+    expect(await page.evaluate(() => window.__CHRONO_MOCK__!.readableLineLength)).toBe(true);
+    expect(await page.evaluate(() => window.__CHRONO_MOCK__!.wordWrap)).toBe(true);
+    await expect(wrapInput()).toBeDisabled();
+    await expect(wrapInput()).toBeChecked();
+
+    // survives a reload
+    await page.reload();
+    await editor(page).click();
+    expect(await contentMaxWidth()).toBe("720px");
+
+    // turn readable off → cap gone, wrap stays (user owns it again)
+    await page.keyboard.press("Control+Comma");
+    await readableToggle().click();
+    expect(await contentMaxWidth()).toBe("none");
+    await expect(wrapInput()).toBeEnabled();
+  });
+
+  test("word wrap alone doesn't cap the column (§110)", async ({ page }) => {
+    await seedApp(page, { seed: { notes: {}, wordWrap: true } });
+    await editor(page).click();
+    const maxWidth = await page.locator(".cm-content").evaluate((el) => getComputedStyle(el).maxWidth);
+    expect(maxWidth).toBe("none");
+  });
+
   test("shows the current notes folder path", async ({ page }) => {
     await seedApp(page, { seed: "dir-switch" });
     await openSettings(page);
@@ -43,7 +83,7 @@ test.describe("settings (Ctrl+,)", () => {
     await expect(toast(page)).toContainText("/personal-notes");
     expect(await page.evaluate(() => window.__CHRONO_MOCK__!.notesDir)).toBe("/personal-notes");
     // The personal dir's own saved session is restored (its files, not work's).
-    const labels = await page.locator("#tab-bar .tab span").allTextContents();
+    const labels = await tabLabels(page);
     expect(labels.join(" ")).toMatch(/2026-09-07/); // today always present
     // work-notes is now in the recent list.
     await page.keyboard.press("Control+Comma");

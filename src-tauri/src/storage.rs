@@ -34,6 +34,12 @@ pub struct AppConfig {
     /// for a config written before this field existed.
     #[serde(default)]
     pub word_wrap: bool,
+    /// §99/§110: a single opt-in that wraps lines *and* caps the column to
+    /// a comfortable ~720px centred measure. Off by default (the app's
+    /// monospace-grid tenet keeps the editor full-width and unwrapped);
+    /// turning it on force-enables `word_wrap` and takes ownership of it.
+    #[serde(default)]
+    pub readable_line_length: bool,
     /// Up to 5 previously-used notes folders, most-recent-first, excluding
     /// whatever is current — spec §39. Maintained by `set_notes_dir`
     /// alone, so switching folders by hand-editing this file (as this
@@ -248,6 +254,7 @@ fn load_config_at(path: &Path, default_notes_dir: &Path) -> Result<AppConfig, St
         notes_dir: default_notes_dir.to_string_lossy().to_string(),
         color_mode: ColorMode::default(),
         word_wrap: false,
+        readable_line_length: false,
         recent_notes_dirs: Vec::new(),
     };
     save_config_at(path, &cfg)?;
@@ -738,6 +745,7 @@ mod tests {
             notes_dir: "/my/notes".to_string(),
             color_mode: ColorMode::Color,
             word_wrap: true,
+            readable_line_length: false,
             recent_notes_dirs: vec!["/old1".to_string(), "/old2".to_string()],
         };
         save_config_at(&path, &cfg).unwrap();
@@ -745,6 +753,7 @@ mod tests {
         assert_eq!(loaded.notes_dir, "/my/notes");
         assert_eq!(loaded.color_mode, ColorMode::Color);
         assert!(loaded.word_wrap);
+        assert!(!loaded.readable_line_length);
         assert_eq!(loaded.recent_notes_dirs, vec!["/old1", "/old2"]);
     }
 
@@ -759,6 +768,8 @@ mod tests {
         assert_eq!(loaded.notes_dir, "/hand/edited");
         assert_eq!(loaded.color_mode, ColorMode::Grayscale);
         assert!(!loaded.word_wrap);
+        // Omitted from an older config → off (§110: it's an opt-in).
+        assert!(!loaded.readable_line_length);
         assert!(loaded.recent_notes_dirs.is_empty());
     }
 

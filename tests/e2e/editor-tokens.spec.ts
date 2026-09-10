@@ -53,6 +53,24 @@ test.describe("editor — token glyphs", () => {
     expect(await activeTabContent(page)).toBe("# a task");
   });
 
+  test("Ctrl+Enter cycles the action state too (§106)", async ({ page }) => {
+    await typeInEditor(page, "# a task");
+    await page.keyboard.press("Control+Enter");
+    await expect(editor(page).locator(".glyph-done")).toHaveCount(1);
+    expect(await activeTabContent(page)).toBe("v a task");
+  });
+
+  test("clicking a glyph cycles that line's state (§106)", async ({ page }) => {
+    await setEditorText(page, "# first task\n# second task");
+    const secondGlyph = editor(page).locator(".cm-line").nth(1).locator(".glyph-open");
+    await secondGlyph.click();
+    // only the clicked line changed
+    expect(await activeTabContent(page)).toBe("# first task\nv second task");
+    // the cursor/selection wasn't yanked onto the glyph
+    await page.keyboard.type("X");
+    expect(await activeTabContent(page)).toContain("X");
+  });
+
   test("indented action symbols still render and count", async ({ page }) => {
     await typeInEditor(page, "  # indented task");
     await expect(editor(page).locator(".glyph-open")).toHaveCount(1);

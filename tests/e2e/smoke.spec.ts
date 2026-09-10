@@ -8,6 +8,8 @@ import {
   todayFilename,
   mockFiles,
   mockNote,
+  tabLabels,
+  dateLabel,
 } from "./helpers";
 
 test.describe("smoke — mock backend + boot", () => {
@@ -15,7 +17,7 @@ test.describe("smoke — mock backend + boot", () => {
     await seedApp(page, { seed: "empty" });
 
     // Today's dated tab is always force-opened and active.
-    await expect(page.locator("#tab-bar .tab.active")).toHaveText(new RegExp(todayFilename()));
+    await expect(page.locator("#tab-bar .tab.active")).toHaveText(new RegExp(dateLabel(todayFilename())));
     await expect(page.locator(".cm-editor")).toBeVisible();
 
     // Window title reflects the notes folder name.
@@ -27,9 +29,9 @@ test.describe("smoke — mock backend + boot", () => {
   test("boots a generated scenario and restores its session", async ({ page }) => {
     await seedApp(page, { seed: "busy-week" });
 
-    const openTabs = await page.locator("#tab-bar .tab span").allTextContents();
+    const openTabs = await tabLabels(page);
     expect(openTabs.length).toBeGreaterThanOrEqual(4);
-    await expect(page.locator("#tab-bar .tab.active")).toHaveText(new RegExp(todayFilename()));
+    await expect(page.locator("#tab-bar .tab.active")).toHaveText(new RegExp(dateLabel(todayFilename())));
 
     expect((await mockFiles(page)).length).toBeGreaterThan(8);
     expect((await mockNote(page, todayFilename()))!.length).toBeGreaterThan(0);
