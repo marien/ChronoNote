@@ -50,10 +50,17 @@ test.describe("editor — token glyphs", () => {
     await expect(editor(page).locator(".cm-line").nth(1).locator(".glyph-assignee")).toHaveCount(0);
   });
 
-  test("#36: a (topic) tag is highlighted on an action line only", async ({ page }) => {
-    await setEditorText(page, "# ship the docs (release)\njust prose (an aside) here");
-    await expect(editor(page).locator(".cm-line").first().locator(".glyph-topic")).toHaveText("(release)");
+  test("#36/#39: a (topic) tag is highlighted only right after the action symbol", async ({ page }) => {
+    await setEditorText(
+      page,
+      "# (release) ship the docs\n# ship the docs (release)\njust prose (an aside) here",
+    );
+    // right after the symbol → highlighted
+    await expect(editor(page).locator(".cm-line").nth(0).locator(".glyph-topic")).toHaveText("(release)");
+    // elsewhere on an action line → plain
     await expect(editor(page).locator(".cm-line").nth(1).locator(".glyph-topic")).toHaveCount(0);
+    // in prose → plain
+    await expect(editor(page).locator(".cm-line").nth(2).locator(".glyph-topic")).toHaveCount(0);
   });
 
   test("Ctrl+Space cycles the action symbol # -> v -> > -> x -> #", async ({ page }) => {

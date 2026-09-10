@@ -83,8 +83,9 @@ file — no database, no front-matter, no injected IDs.
   exclusive with `=> @name`) marks a consequence-action — a task that
   follows from the line before it, with its own open/closed/deferred/
   won't-do state, cycled with `Ctrl+Space` the same as a standalone
-  action line. A `(topic)` tag on an action line is highlighted too, for
-  grouping actions by subject. Clicking an action glyph cycles its state
+  action line. A `(topic)` tag immediately after the action symbol
+  (`# (billing) …`) is highlighted, for grouping actions by subject.
+  Clicking an action glyph cycles its state
   (`# → v → > → x`); hovering it first previews the next state. All four
   action symbols (standalone or after `=> `) may be indented in two-space
   increments, the same as bulleted lists. Glyphs are theme-driven
@@ -126,10 +127,12 @@ file — no database, no front-matter, no injected IDs.
   The action drawer shows only each line's glyph (not the raw token
   character) alongside its text, and its section-title tag is capped to
   half the row's width, temporarily giving that space back to the action
-  text on hover. Section history, alongside its deduped all-dates list of
-  action lines, shows a "Previous occurrence" pane — the first few lines
-  of that section as it stood at its last occurrence before the current
-  note, glyph-rendered, with a jump to the source. If the import drawer is
+  text on hover. Section history shows a deduped, most-recent-first list
+  of the section's actions and follow-ups across every dated note (one row
+  per action, showing just the text after a mid-line `=>`), plus a
+  "Previous occurrence" pane — the first few lines of that section as it
+  stood at its last occurrence before the current note, glyph-rendered,
+  with a jump to the source. If the import drawer is
   closed without importing, the unsubmitted text is remembered (in memory
   only, cleared on a notes-folder switch) and offered back — pre-filled
   and selected — next time it opens.
@@ -155,8 +158,7 @@ file — no database, no front-matter, no injected IDs.
   switch folders via Settings.
 - Status bar shows cursor line/column, word count, Open / Closed /
   Forwarded action counts (`x`, won't-do, folds into Closed alongside `v`,
-  done), and — while text is selected — how much (characters, and the line
-  span when it's more than one)
+  done), and — while text is selected — how many lines the selection spans
 - Debounced autosave, with immediate flush on tab switch/close
 - Settings panel (`Ctrl+,`, gear icon): toggle between a full-color and a
   grayscale-only UI theme (glyphs, tab/status-bar accents, and search

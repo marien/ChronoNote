@@ -12,7 +12,6 @@
     tabs,
   } from "../../controller";
   import { closeOnOutsideClick } from "../../actions/closeOnOutsideClick";
-  import { innermostActionSymbol, stripLeadingToken } from "../../tokens";
   import { parseGlyphLine } from "../../editor/glyphLine";
   import type { HistoryItem } from "../../types";
   import {
@@ -92,7 +91,7 @@
         });
         isFirst = false;
         for (const it of items) {
-          out.push({ type: "item", key: it.filename + ":" + it.lineIdx, item: it, height: MODAL_ITEM_ROW_HEIGHT });
+          out.push({ type: "item", key: "i" + it.__flatIndex, item: it, height: MODAL_ITEM_ROW_HEIGHT });
         }
       }
       return out;
@@ -113,35 +112,15 @@
 
   function scrollSelectedIntoView() {
     if (!listEl) return;
-    const row = rows.find((r) => r.type === "item" && r.item.__flatIndex === selectedIndex);
-    if (!row) return;
-    const next = scrollToShow(row, listEl.scrollTop, viewportHeight);
+    const i = rows.findIndex((r) => r.type === "item" && r.item.__flatIndex === selectedIndex);
+    if (i === -1) return;
+    // #41: if the selected row is the first item under its date header,
+    // bring the header into view too — otherwise the date/title is hidden
+    // above the fold when you arrow up to the top of a group.
+    const target = i > 0 && rows[i - 1].type === "header" ? rows[i - 1] : rows[i];
+    const next = scrollToShow(target, listEl.scrollTop, viewportHeight);
     if (next !== null) listEl.scrollTop = next;
     scrollTop = listEl.scrollTop;
-  }
-
-  // References the same CSS custom properties the main editor's .glyph-*
-  // classes use, so this list follows the color/grayscale toggle for free.
-  // Uses the *innermost* symbol (§41) for a `=> <symbol>` consequence-
-  // action, same as the Action Drawer — falls through to the plain
-  // follow-up arrow only when there's no action-state symbol at all.
-  function glyphFor(line: string) {
-    const sym = innermostActionSymbol(line);
-    if (sym === "v")
-      return {
-        char: "☑",
-        style: "color:var(--glyph-done-color); font-weight:var(--glyph-done-weight); opacity:var(--glyph-done-opacity);",
-      };
-    if (sym === ">")
-      return { char: "»", style: "color:var(--glyph-progress-color); font-weight:var(--glyph-progress-weight);" };
-    if (sym === "x")
-      return {
-        char: "☒",
-        style:
-          "color:var(--glyph-cancelled-color); font-weight:var(--glyph-cancelled-weight); opacity:var(--glyph-cancelled-opacity);",
-      };
-    if (sym === "#") return { char: "☐", style: "color:var(--glyph-open-color); font-weight:var(--glyph-open-weight);" };
-    return { char: "➔", style: "color:var(--glyph-followup-color); font-weight:var(--glyph-followup-weight);" };
   }
 
   // §109: the right-hand preview for whatever entry is selected — the
@@ -149,8 +128,8 @@
   // and where it lands in the active note.
   $: selectedItem = flatList[selectedIndex] as IndexedItem | undefined;
   $: activeTab = $tabs.find((t) => t.id === $activeTabId);
-  $: insertText = selectedItem ? controller.historyInsertText(selectedItem.line) : "";
-  $: insertRewritten = !!selectedItem && insertText !== selectedItem.line;
+  $: insertText = selectedItem ? controller.historyInsertText(selectedItem.action) : "";
+  $: insertRewritten = !!selectedItem && insertText !== selectedItem.action;
   $: preview = (() => {
     if (!selectedItem) return null;
     const src = $allNotesCache[selectedItem.filename];
@@ -180,7 +159,7 @@
     } else if (e.key === "Enter" && e.shiftKey) {
       e.preventDefault();
       const it = flatList[selectedIndex];
-      if (it) controller.importHistoricalItem(it.line);
+      if (it) controller.importHistoricalItem(it.action);
     } else if (e.key === "Enter") {
       e.preventDefault();
       const it = flatList[selectedIndex];
@@ -259,7 +238,6 @@
           {:else}
             {@const it = row.item}
             {@const idx = it.__flatIndex}
-            {@const g = glyphFor(it.line)}
             <div
               class="modal-item {idx === selectedIndex ? 'selected' : ''}"
               role="option"
@@ -270,9 +248,8 @@
               on:mouseenter={() => (selectedIndex = idx)}
               on:keydown={(e) => e.key === "Enter" && controller.jumpToHistoryItem(it)}
             >
-              <div class="modal-item-main">
-                <span style={g.style}>{g.char}</span>
-                <span>{stripLeadingToken(it.line)}</span>
+              <div class="modal-item-main history-item-line">
+                {#each parseGlyphLine(it.action) as part}<span class={part.cls ?? ""}>{part.text}</span>{/each}
               </div>
               <div class="item-tag">Ln {it.lineIdx + 1}</div>
             </div>

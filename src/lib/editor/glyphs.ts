@@ -7,7 +7,7 @@ import {
   ViewUpdate,
   WidgetType,
 } from "@codemirror/view";
-import { cycleActionSymbol, isActionLikeLine } from "../tokens";
+import { cycleActionSymbol, leadingTopicTag } from "../tokens";
 
 const CYCLE_ORDER = ["#", "v", ">", "x"];
 
@@ -166,10 +166,12 @@ const renderMatcher = new MatchDecorator({
       return;
     }
     if (text.startsWith("(")) {
-      // #36: a `(topic)` tag on an action line — used to group actions by
-      // subject. Styled like an assignee badge, on action lines only so
-      // ordinary parentheticals in prose stay untouched.
-      if (isActionLikeLine(view.state.doc.lineAt(from).text)) {
+      // #36/#39: a `(topic)` tag, but only immediately after the action
+      // symbol (`# (topic) …`, or `… => # (topic) …`). `(word)` anywhere
+      // else, or in prose, stays ordinary text.
+      const line = view.state.doc.lineAt(from);
+      const tag = leadingTopicTag(line.text);
+      if (tag && line.from + tag.from === from) {
         add(from, to, Decoration.mark({ class: "glyph-topic" }));
       }
       return;

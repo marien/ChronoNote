@@ -81,9 +81,9 @@
       </div>
       <div class="modal-item" style="cursor: default;">
         <div class="modal-item-main">
-          <span>Topic tag — group actions by subject. Highlighted on action lines only</span>
+          <span>Topic tag — group actions by subject. Highlighted only right after the action symbol</span>
         </div>
-        <div class="item-tag"><kbd>(topic)</kbd>&nbsp;→&nbsp;<span class="glyph-topic">(topic)</span></div>
+        <div class="item-tag"><kbd># (topic) </kbd>&nbsp;→&nbsp;<span class="glyph-topic">(topic)</span></div>
       </div>
       <div class="modal-item" style="cursor: default;">
         <div class="modal-item-main">

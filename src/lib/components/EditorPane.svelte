@@ -384,15 +384,15 @@
           const pos = u.state.selection.main.head;
           const line = u.state.doc.lineAt(pos);
           controller.setStatusPosition(line.number, pos - line.from + 1);
-          // #37: how much is selected — total chars and the span of
-          // document lines it touches — across every (multi-cursor) range.
-          const chars = u.state.selection.ranges.reduce((n, r) => n + (r.to - r.from), 0);
-          if (chars === 0) {
+          // #37/#38: how many document lines the selection spans (0 chars
+          // selected across every multi-cursor range → nothing selected).
+          const selChars = u.state.selection.ranges.reduce((n, r) => n + (r.to - r.from), 0);
+          if (selChars === 0) {
             controller.setStatusSelection(null);
           } else {
             const main = u.state.selection.main;
             const lines = u.state.doc.lineAt(main.to).number - u.state.doc.lineAt(main.from).number + 1;
-            controller.setStatusSelection({ lines, chars });
+            controller.setStatusSelection({ lines });
           }
           // §108: the find bar is non-modal, so the caret can move (click,
           // arrows, an edit) while it's open — keep "N of M" in step.
@@ -551,7 +551,6 @@
               view.state.doc.lineAt(view.state.selection.main.to).number -
               view.state.doc.lineAt(view.state.selection.main.from).number +
               1,
-            chars: initChars,
           },
     );
 

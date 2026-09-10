@@ -721,6 +721,24 @@ describe("openMeetingHistory (§70: mid-line consequence-action dedup)", () => {
     expect(get(controller.modal)).toBe("history");
     expect(get(controller.historyTargetHeader)).toBe("Weekly Sync");
     expect(get(controller.historyItems)).toHaveLength(1); // deduped, not 2
+    expect(get(controller.historyItems)[0].action).toBe("# follow up with him"); // #41: post-arrow text only
+  });
+
+  it("#41: a line with a leading action AND a mid-line follow-up yields two rows", async () => {
+    controller.tabs.set([tab({ id: "active", filename: "2026-09-10.txt", content: "Sync\n====\nx" })]);
+    controller.activeTabId.set("active");
+    controller.registerEditorApi({
+      getContent: () => "",
+      setContent: () => {},
+      insertAtCursor: () => {},
+      jumpToLine: () => {},
+      getCursorLineIdx: () => 2,
+      focus: () => {},
+      find: { setQuery: () => {}, next: () => {}, prev: () => {}, clear: () => {} },
+    });
+    apiMock.readAllNotes.mockResolvedValue([["2026-09-02.txt", "Sync\n====\n# draft the plan => # send it round"]]);
+    await controller.openMeetingHistory();
+    expect(get(controller.historyItems).map((i) => i.action)).toEqual(["# draft the plan", "# send it round"]);
   });
 
   it("shows a toast and does not open when the cursor isn't inside a named section", async () => {
@@ -738,6 +756,28 @@ describe("openMeetingHistory (§70: mid-line consequence-action dedup)", () => {
     await controller.openMeetingHistory();
     expect(get(controller.modal)).not.toBe("history");
     expect(get(controller.toastMessage)).toMatch(/not on or inside a named section/);
+  });
+});
+
+describe("historyActionsForLine (#41)", () => {
+  const f = (line: string) => controller.historyActionsForLine(line);
+  it("a plain leading action → itself", () => {
+    expect(f("# renew the cert")).toEqual(["# renew the cert"]);
+    expect(f("> book the sessions")).toEqual(["> book the sessions"]);
+  });
+  it("a mid-line follow-up → only the text after it", () => {
+    expect(f("Talked to Sam => # follow up")).toEqual(["# follow up"]);
+    expect(f("chatted => let's regroup")).toEqual(["=> let's regroup"]);
+  });
+  it("multiple follow-ups → only the last", () => {
+    expect(f("a => b => # c")).toEqual(["# c"]);
+  });
+  it("a leading action AND a follow-up → both", () => {
+    expect(f("# do X => # do Y")).toEqual(["# do X", "# do Y"]);
+  });
+  it("neither → nothing", () => {
+    expect(f("just a plain note")).toEqual([]);
+    expect(f("- a bullet")).toEqual([]);
   });
 });
 

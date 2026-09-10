@@ -1,6 +1,8 @@
-/** Section history (Ctrl+Shift+H): aggregate every action line under the
- * cursor's section across all dated notes, deduped, most-recent-first,
- * plus (#27/#33) a glyph-rendered snapshot of the section's previous
+/** Section history (Ctrl+Shift+H): aggregate every action and follow-up
+ * under the cursor's section across all dated notes, deduped,
+ * most-recent-first — one row per action, so a line carrying both a
+ * leading action and a mid-line `=> ` follow-up (#41) contributes two.
+ * Plus (#27/#33) a glyph-rendered snapshot of the section's previous
  * occurrence before the current note. Split out of `controller.ts` in the
  * v0.5.0 refactor. Depends on stores + persistence + tabs
  * (`jumpToFileLine`) + tokens. */
@@ -54,28 +56,14 @@ export async function openMeetingHistory() {
         return;
       }
       if (!inSection) return;
-      // §40/§50: `x` and indentation join the other three action symbols.
-      // §41/§59: `=> ` isn't anchored to the start of the line either —
-      // it can follow other text ("Talked to Sam => # follow up") — so
-      // this checks for it anywhere, not just as the line's first two
-      // characters, the same fix `cycleActionSymbol`/`stripLeadingToken`
-      // needed for the same reason.
-      const isActionOrFollow = /^\s*[#vx>]\s/.test(line) || line.includes("=> ");
-      if (isActionOrFollow) {
-        // Strip a plain leading symbol (still anchored — those are always
-        // at the true start of the line) and, separately, a `=> ` and its
-        // optional assignee/inner symbol wherever *that* falls, so two
-        // occurrences of the same action reworded with different leading
-        // context still dedupe as one.
-        const normalizedBody = line
-          .replace(/^\s*[#vx>]\s+/, "")
-          .replace(/=>\s+(@\w+\s+|[#vx>]\s+)?/, "")
-          .trim()
-          .toLowerCase();
-        if (!seen.has(normalizedBody)) {
-          seen.add(normalizedBody);
-          items.push({ filename, lineIdx: idx, line, date: filename.replace(/\.txt$/, "") });
-        }
+      // #41: one source line can carry more than one action — a leading
+      // `# `/`v `/`> `/`x ` *and* a mid-line `=> <symbol>` follow-up —
+      // and each becomes its own row, showing only that action's text.
+      for (const action of historyActionsForLine(line)) {
+        const key = normalizeActionText(action);
+        if (seen.has(key)) continue;
+        seen.add(key);
+        items.push({ filename, lineIdx: idx, line, action, date: filename.replace(/\.txt$/, "") });
       }
     });
   }
@@ -88,6 +76,45 @@ export async function openMeetingHistory() {
   // relative to the open tab's date, not necessarily "today").
   historyPreviousOccurrence.set(findPreviousSectionOccurrence(allSources, targetHeader, tab.filename));
   modal.set("history");
+}
+
+/** #41: the action(s) a Section-History line contributes to the list.
+ *
+ *  - A leading `# `/`v `/`> `/`x ` line contributes that action, its text
+ *    taken **up to the first ` => `** (so the follow-up part is split off).
+ *  - The **last** `=> ` on the line contributes its follow-up: `=> <symbol>
+ *    text` → the inner action `<symbol> text`; a plain `=> text` (or
+ *    `=> @name text`) → the follow-up itself, `=> text`. Earlier `=> `s on
+ *    the same line are ignored ("take only the last one").
+ *
+ * So `# do X => # do Y` → `["# do X", "# do Y"]`, `a => b => # c` →
+ * `["# c"]`, `Talked to Sam => let's regroup` → `["=> let's regroup"]`,
+ * `# solo task` → `["# solo task"]`. Lines with neither contribute
+ * nothing. */
+export function historyActionsForLine(line: string): string[] {
+  const out: string[] = [];
+
+  const lead = line.match(/^\s*([#vx>])\s+(.+?)(?:\s+=>\s|\s*$)/);
+  if (lead && lead[2].trim()) out.push(`${lead[1]} ${lead[2].trim()}`);
+
+  const li = line.lastIndexOf("=> ");
+  if (li !== -1) {
+    const after = line.slice(li + 3).trim();
+    const sym = after.match(/^([#vx>])\s+(.+)$/);
+    if (sym) out.push(`${sym[1]} ${sym[2].trim()}`);
+    else if (after) out.push(`=> ${after}`);
+  }
+  return out;
+}
+
+/** Dedup key for an action produced by `historyActionsForLine` — drop the
+ * leading symbol / `=> ` / `=> @name` so the same action reworded with
+ * different leading context collapses to one row. */
+function normalizeActionText(action: string): string {
+  return action
+    .replace(/^([#vx>]\s+|=>\s+(@\w+\s+)?)/, "")
+    .trim()
+    .toLowerCase();
 }
 
 const DATED_FILE = /^\d{4}-\d{2}-\d{2}\.txt$/;
@@ -158,15 +185,17 @@ export async function jumpToPreviousOccurrence() {
 }
 
 /** What a Section-History entry turns into when imported: a deferred
- * `> ` line comes across as a fresh open `# ` action (you're re-adopting
+ * `> ` action comes across as a fresh open `# ` action (you're re-adopting
  * it), everything else is inserted verbatim. §109's preview and
- * `importHistoricalItem` both go through this so they can't disagree. */
-export function historyInsertText(rawLine: string): string {
-  return rawLine.startsWith("> ") ? "# " + rawLine.slice(2) : rawLine;
+ * `importHistoricalItem` both go through this so they can't disagree.
+ * #41: operates on the row's `action` (the follow-up/action itself), not
+ * the whole source line. */
+export function historyInsertText(action: string): string {
+  return action.startsWith("> ") ? "# " + action.slice(2) : action;
 }
 
-export function importHistoricalItem(rawLine: string) {
-  const toInsert = historyInsertText(rawLine);
+export function importHistoricalItem(action: string) {
+  const toInsert = historyInsertText(action);
   editorApi?.insertAtCursor(toInsert + "\n");
   showToast(`Imported "${toInsert.slice(0, 30)}..." into note`);
 }

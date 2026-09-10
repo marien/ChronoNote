@@ -32,10 +32,23 @@ export function innermostActionSymbol(line: string): "#" | "v" | ">" | "x" | nul
 /** A line carrying an action or follow-up token — a leading (optionally
  * indented, §50) `# `/`v `/`> `/`x `, or a `=> ` anywhere on the line
  * (§41/§59, which can follow other text). Shared by Section History's
- * collector and the inline assignee (#35) / topic-tag (#36) highlighting,
- * which both only apply on such lines. */
+ * collector and the inline assignee (#35) highlighting. */
 export function isActionLikeLine(line: string): boolean {
   return /^\s*[#vx>]\s/.test(line) || /=>\s/.test(line);
+}
+
+/** #36/#39: a `(topic)` tag used to group actions by subject, but only
+ * when it sits **immediately after the action symbol** — a leading
+ * (optionally indented) `# `/`v `/`> `/`x `, or a `=> <symbol> `
+ * consequence-action. `(word)` anywhere else on the line (or in prose) is
+ * left as ordinary text. Returns the tag's char range within `line`, or
+ * `null`. Shared by the editor (`glyphs.ts`) and the read-only line
+ * renderer (`glyphLine.ts`). */
+export function leadingTopicTag(line: string): { from: number; to: number } | null {
+  const m = line.match(/^(\s*[#vx>]\s+|.*?=>\s+[#vx>]\s+)(\([^\s()]+\))/);
+  if (!m) return null;
+  const from = m[1].length;
+  return { from, to: from + m[2].length };
 }
 
 /** 0-based indices of every line whose governing action symbol is an open

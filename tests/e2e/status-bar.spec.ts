@@ -15,20 +15,20 @@ test.describe("status bar — three zones (§100/§110)", () => {
     await expect(page.locator("#stat-words")).toHaveText("1 word");
   });
 
-  test("#37: left zone shows how much is selected, with the line span when multi-line", async ({ page }) => {
+  test("#37/#38: left zone shows how many lines are selected", async ({ page }) => {
     await seedApp(page, { seed: { notes: { [todayFilename()]: "line one\nline two\nline three" } } });
     await editor(page).click();
     await expect(page.locator("#stat-selection")).toHaveCount(0);
 
     // select the whole document
     await page.keyboard.press("Control+A");
-    await expect(page.locator("#stat-selection")).toHaveText(/3 lines, \d+ selected/);
+    await expect(page.locator("#stat-selection")).toHaveText("3 lines selected");
 
-    // a within-line selection: no line count, just the char count
+    // a within-line selection is still "1 line selected" — no character count
     await page.keyboard.press("Control+Home");
     await page.keyboard.press("Shift+ArrowRight");
     await page.keyboard.press("Shift+ArrowRight");
-    await expect(page.locator("#stat-selection")).toHaveText("2 selected");
+    await expect(page.locator("#stat-selection")).toHaveText("1 line selected");
 
     // clearing the selection removes the readout
     await page.keyboard.press("ArrowRight");

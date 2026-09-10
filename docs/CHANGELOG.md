@@ -6,15 +6,15 @@ kept for the rationale behind each one — not just *what* changed but
 was still being gathered and confirmed before implementation; renamed once
 everything below was applied, since nothing here is "pending" anymore.
 
-**Status: all sections through §113 implemented, released, and on `main`;
-§114–§118 implemented on `main`, pending the next release bump.**
+**Status: all sections through §118 implemented, released, and on `main`;
+§119–§122 implemented on `main`, pending the next release bump.**
 §99–§110 are the 0.6 UX/UI pass (`docs/design/ux-roadmap-0.6.md`); §111 is
 a small v0.6.1 follow-up (the pre-0.6 glyph palette, back as an option).
 §112 (#28) and §113 (#27) are Section History follow-ups (v0.6.2).
-§114–§118 close a batch of five issues (#33–#37): the Section History
-"Previous occurrence" pane refinements, action-glyph hover preview + two
-Enter fixes, `@name`-anywhere and `(topic)` highlighting, and selection
-size in the status bar.
+§114–§118 close #33–#37 (v0.6.3). §119–§122 close #38–#41 — follow-up
+feedback on that batch: status-bar shows lines-not-chars, `(topic)` only
+right after the symbol, `.po-body` scrollbar styling, and a Section
+History list that shows one row per action with follow-up text only.
 Each
 section is verified before merge (`svelte-check`, the Vitest suite,
 `cargo test`, and — from §77 on — the Playwright E2E suite, all green in
@@ -26,7 +26,7 @@ Which sections shipped in which release: §1–55 → v0.2.0, §56–59 → v0.2
 §60–74 → v0.3.0, §75–81 → v0.4.0, §82–83 → v0.4.1, §84–85 → v0.4.2,
 §86–87 → v0.4.3, §88–89 → v0.4.4, §90–91 → v0.4.5, §92 → v0.4.6,
 §refactor + §93–96 → v0.5.0, §97 → v0.5.1, §98 → v0.5.2, §99–110 → v0.6.0,
-§111 → v0.6.1, §112–113 → v0.6.2, §114–118 → v0.6.3.
+§111 → v0.6.1, §112–113 → v0.6.2, §114–118 → v0.6.3, §119–122 → v0.6.4.
 
 ---
 
@@ -4284,3 +4284,75 @@ one document line. Multi-cursor selections sum their characters. New
 `statusSelection` store, set from `EditorPane`'s update listener
 (`selectionSet`), cleared on tab switch / editor teardown. `StatusBar.svelte`
 renders `#stat-selection`. `status-bar.spec.ts` case.
+
+---
+
+## 119. Status bar: lines selected, not characters (#38)
+
+**Status: implemented (pending release).** #38 — the §118 selection
+readout (`"N selected"` / `"N lines, M selected"`) should show **only the
+line count**. Now `"{n} line{s} selected"` whenever a selection is
+non-empty (`1 line selected` for an in-line selection). `statusSelection`
+dropped its `chars` field; `StatusBar.svelte` + `EditorPane` follow.
+`status-bar.spec.ts` updated.
+
+---
+
+## 120. `(topic)` tags only right after the action symbol (#39)
+
+**Status: implemented (pending release).** #39 tightens §117: a `(topic)`
+tag is highlighted **only when it sits immediately after the action
+symbol** — a leading `# `/`v `/`> `/`x `, or a `=> <symbol> `
+consequence-action (`# (billing) chase it`, `Talked to Ana => # (q3)
+follow up`). `(word)` anywhere else on the line, or in prose, is ordinary
+text again. New `leadingTopicTag(line)` in `tokens.ts` (returns the tag's
+char range, or `null`) replaces the old "anywhere on an action-like line"
+rule; `glyphs.ts` and `glyphLine.ts` both gate on it. `isActionLikeLine`
+is no longer used for topics (still used for #35). New `tokens.test.ts` +
+`glyphLine.test.ts` cases; `editor-tokens.spec.ts` updated.
+
+---
+
+## 121. `.po-body` scrollbar matches the rest of the app (#40)
+
+**Status: implemented (pending release).** #40 — the "Previous
+occurrence" pane's scroll area (visible once "Show all N lines" is
+ticked) used the browser-default scrollbar. Added `.po-body` to the
+shared `.cm-scroller` / `.modal-list` / `.import-textarea` scrollbar
+rules in `app.css` (thin, `--border` thumb, transparent track).
+
+---
+
+## 122. Section History: one row per action, follow-up text only (#41)
+
+**Status: implemented (pending release).** A batch of Section History
+list changes from #41:
+
+- **A `HistoryItem` now carries an `action`** — the single action it
+  represents — derived by a new `historyActionsForLine()` in `history.ts`:
+  - a leading `# `/`v `/`> `/`x ` contributes that action, its text taken
+    **up to the first ` => `**;
+  - the **last** `=> ` on the line contributes its follow-up (`=> <symbol>
+    text` → the inner `<symbol> text`; a plain `=> text` / `=> @name text`
+    → `=> text`); earlier `=> `s are ignored.
+  - So `# do X => # do Y` → **two** rows (`# do X`, `# do Y`);
+    `a => b => # c` → one (`# c`); `Talked to Sam => # follow up` → one
+    (`# follow up`, no "Talked to Sam" prefix).
+- **List rows render via `parseGlyphLine(it.action)`** — glyphs, `@name`
+  badges, and `(topic)` pills, same as the Previous-occurrence pane
+  (replaces the old `glyphFor` + `stripLeadingToken` pair). `.modal-item-main`
+  gets a `.history-item-line` variant (plain inline flow, no flex gap).
+- **Shift+Enter / the preview's "inserts" box now use `it.action`**, not
+  the whole source line — `historyInsertText` / `importHistoricalItem`
+  operate on the action.
+- **The "From" context preview and the Previous-occurrence pane still show
+  complete source lines** — unchanged (`selectedItem.lineIdx` +
+  `allNotesCache`).
+- **Keyboard nav keeps the date header visible** when you arrow up to the
+  first item of a group (`scrollSelectedIntoView` targets the preceding
+  header row).
+
+New: `historyActionsForLine` (5 `controller.test.ts` cases) + assertions
+in the `openMeetingHistory` tests; `search-and-history.spec.ts` #41 case.
+`HistoryModal.svelte` drops the now-unused `glyphFor` /
+`innermostActionSymbol` / `stripLeadingToken` imports.

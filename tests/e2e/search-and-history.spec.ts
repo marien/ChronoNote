@@ -87,6 +87,43 @@ test.describe("section history (Ctrl+Shift+H)", () => {
     await expect(list).toContainText("defer the audit");
   });
 
+  test("#41: list rows show the action after a mid-line follow-up, split multi-action lines, format topics", async ({
+    page,
+  }) => {
+    await seedApp(page, {
+      seed: {
+        notes: {
+          [todayFilename()]: "Sync\n====\ntoday",
+          "2026-09-05.txt": [
+            "Sync",
+            "====",
+            "Talked to Ana => # (q3) chase the invoice",
+            "# draft the plan => # send it round",
+          ].join("\n"),
+        },
+        session: { openTabs: [todayFilename()], activeTab: todayFilename() },
+      },
+    });
+    await editor(page).click();
+    await page.keyboard.press("Control+Home");
+    await page.keyboard.press("ArrowDown");
+    await page.keyboard.press("Control+Shift+H");
+
+    const list = history(page).locator(".modal-list");
+    // mid-line follow-up: only the post-arrow text, with its (q3) topic styled
+    const row1 = list.locator(".modal-item", { hasText: "chase the invoice" });
+    await expect(row1).toContainText("☐ (q3) chase the invoice");
+    await expect(row1).not.toContainText("Talked to Ana");
+    await expect(row1.locator(".glyph-topic")).toHaveText("(q3)");
+    // the two-action line becomes two rows
+    await expect(list.locator(".modal-item", { hasText: "draft the plan" })).toHaveCount(1);
+    await expect(list.locator(".modal-item", { hasText: "send it round" })).toHaveCount(1);
+
+    // Shift+Enter inserts the action itself, not the whole source line
+    await list.locator(".modal-item", { hasText: "chase the invoice" }).hover();
+    await expect(history(page).locator(".hp-insert")).toHaveText("# (q3) chase the invoice");
+  });
+
   test("the 'Previous occurrence' pane shows that section's prior body, glyph-rendered (#27/#33)", async ({ page }) => {
     await seedApp(page, {
       seed: {

@@ -28,7 +28,14 @@ export interface ActionSnapshotItem {
 export interface HistoryItem {
   filename: string;
   lineIdx: number;
+  /** The full source line (for the "From" context preview and jump). */
   line: string;
+  /** #41: the single action this row represents — the leading action with
+   * its text taken up to the first ` => `, or a follow-up's inner action
+   * (`# text`) / plain follow-up (`=> text`). One source line can produce
+   * more than one `HistoryItem` when it carries both. This is what the
+   * row renders and what Shift+Enter inserts. */
+  action: string;
   date: string;
 }
 

@@ -55,8 +55,13 @@ describe("parseGlyphLine", () => {
     expect(text("email @dana about it")).toBe("email @dana about it");
   });
 
-  it("#36: highlights a (topic) tag on an action line only", () => {
-    expect(classed("# ship the docs (release)")).toContainEqual(["glyph-topic", "(release)"]);
+  it("#36/#39: highlights a (topic) tag only right after the action symbol", () => {
+    expect(classed("# (release) ship the docs")).toContainEqual(["glyph-topic", "(release)"]);
+    // not right after the symbol → plain text
+    expect(classed("# ship the docs (release)")).toEqual([["glyph-open", "☐"]]);
+    // consequence-action: right after the inner symbol counts too
+    expect(classed("Talked to Sam => # (q3) follow up")).toContainEqual(["glyph-topic", "(q3)"]);
+    // prose parenthetical → untouched
     expect(classed("just prose (aside) here")).toEqual([]);
   });
 

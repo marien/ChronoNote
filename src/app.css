@@ -484,17 +484,20 @@ body {
    color/grayscale without any extra rules. */
 .cm-scroller,
 .modal-list,
+.po-body,
 .import-textarea {
   scrollbar-width: thin;
   scrollbar-color: var(--border) transparent;
 }
 .cm-scroller::-webkit-scrollbar,
 .modal-list::-webkit-scrollbar,
+.po-body::-webkit-scrollbar,
 .import-textarea::-webkit-scrollbar {
   width: 8px;
 }
 .cm-scroller::-webkit-scrollbar-track,
 .modal-list::-webkit-scrollbar-track,
+.po-body::-webkit-scrollbar-track,
 .import-textarea::-webkit-scrollbar-track {
   background: transparent;
 }
@@ -525,12 +528,14 @@ body {
 }
 .cm-scroller::-webkit-scrollbar-thumb,
 .modal-list::-webkit-scrollbar-thumb,
+.po-body::-webkit-scrollbar-thumb,
 .import-textarea::-webkit-scrollbar-thumb {
   background: var(--border);
   border-radius: 4px;
 }
 .cm-scroller::-webkit-scrollbar-thumb:hover,
 .modal-list::-webkit-scrollbar-thumb:hover,
+.po-body::-webkit-scrollbar-thumb:hover,
 .import-textarea::-webkit-scrollbar-thumb:hover {
   background: var(--muted);
 }
@@ -1069,6 +1074,14 @@ textarea.modal-input.import-textarea {
   white-space: nowrap;
   flex: 1;
   margin-right: 12px;
+}
+/* #41: the Section History row renders its action via `parseGlyphLine`
+   spans (glyph + its own literal-space parts + `(topic)` pill), so it
+   wants plain inline flow, not the flex row + gap the shared class gives
+   the two-child (icon, text) layout elsewhere. */
+.history-item-line {
+  display: block;
+  gap: 0;
 }
 /* §54: capped so a long section title can't crowd out the action text it
    shares a row with; on hover, the row reflows to give that space back to

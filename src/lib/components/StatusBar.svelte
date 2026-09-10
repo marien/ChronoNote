@@ -2,11 +2,9 @@
   import { appVersion, statusCounts, statusPos, statusSelection, statusWordCount, toastMessage } from "../controller";
   import * as controller from "../controller";
 
-  // #37: "N selected" (chars), with the line span when it's more than one.
+  // #37/#38: how many lines the selection covers (not a character count).
   $: selectionLabel = $statusSelection
-    ? $statusSelection.lines > 1
-      ? `${$statusSelection.lines} lines, ${$statusSelection.chars} selected`
-      : `${$statusSelection.chars} selected`
+    ? `${$statusSelection.lines} ${$statusSelection.lines === 1 ? "line" : "lines"} selected`
     : "";
 </script>
 

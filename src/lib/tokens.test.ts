@@ -8,6 +8,7 @@ import {
   adjacentOpenActionLine,
   actionLineEnter,
   isActionLikeLine,
+  leadingTopicTag,
   stripLeadingToken,
   isSetextUnderline,
   getSectionHeaderForLine,
@@ -239,6 +240,24 @@ describe("isActionLikeLine", () => {
     expect(isActionLikeLine("just a sentence (with a paren)")).toBe(false);
     expect(isActionLikeLine("- a bullet")).toBe(false);
     expect(isActionLikeLine("Weekly Sync")).toBe(false);
+  });
+});
+
+describe("leadingTopicTag (#36/#39)", () => {
+  it("matches a (topic) right after a leading action symbol", () => {
+    expect(leadingTopicTag("# (auth) fix the login")).toEqual({ from: 2, to: 8 });
+    expect(leadingTopicTag("  x (v2) dropped")).toEqual({ from: 4, to: 8 });
+  });
+  it("matches a (topic) right after a `=> <symbol>` consequence-action", () => {
+    const line = "Talked to Sam => # (q3) follow up";
+    const t = leadingTopicTag(line)!;
+    expect(line.slice(t.from, t.to)).toBe("(q3)");
+  });
+  it("does not match a (topic) elsewhere on the line, or in prose", () => {
+    expect(leadingTopicTag("# fix the login (auth)")).toBeNull();
+    expect(leadingTopicTag("# fix (auth) later")).toBeNull(); // not immediately after the symbol
+    expect(leadingTopicTag("just prose (aside) here")).toBeNull();
+    expect(leadingTopicTag("=> follow up (later)")).toBeNull(); // plain follow-up, no symbol
   });
 });
 

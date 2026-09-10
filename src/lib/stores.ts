@@ -53,10 +53,10 @@ export const actionDrawerShowOnlyOpen = writable<boolean>(true);
 
 export const toastMessage = writable<string>("");
 export const statusPos = writable<{ line: number; col: number }>({ line: 1, col: 1 });
-/** #37: the current editor selection, for the status-bar left zone —
+/** #37/#38: the current editor selection, for the status-bar left zone —
  * `null` when nothing is selected (a bare caret). `lines` counts the
  * document lines the selection touches (1 for an in-line selection). */
-export const statusSelection = writable<{ lines: number; chars: number } | null>(null);
+export const statusSelection = writable<{ lines: number } | null>(null);
 export const statusCounts = writable<{ open: number; closed: number; forwarded: number }>({
   open: 0,
   closed: 0,
@@ -131,7 +131,7 @@ export function setStatusPosition(line: number, col: number) {
   statusPos.set({ line, col });
 }
 
-export function setStatusSelection(sel: { lines: number; chars: number } | null) {
+export function setStatusSelection(sel: { lines: number } | null) {
   statusSelection.set(sel);
 }
 
