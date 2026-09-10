@@ -87,7 +87,7 @@ test.describe("section history (Ctrl+Shift+H)", () => {
     await expect(list).toContainText("defer the audit");
   });
 
-  test("the 'last occurrence' panel shows that section's most recent prior body, verbatim (#27)", async ({ page }) => {
+  test("the 'Previous occurrence' pane shows that section's prior body, glyph-rendered (#27/#33)", async ({ page }) => {
     await seedApp(page, {
       seed: {
         notes: {
@@ -96,7 +96,7 @@ test.describe("section history (Ctrl+Shift+H)", () => {
             "Weekly Sync",
             "===========",
             "- reviewed the roadmap",
-            "# chase the vendor => get a quote",
+            "# chase the vendor (q3)",
             "Next section here",
             "=================",
             "not part of the sync",
@@ -111,19 +111,43 @@ test.describe("section history (Ctrl+Shift+H)", () => {
     await page.keyboard.press("ArrowDown"); // into the "Weekly Sync" section
     await page.keyboard.press("Control+Shift+H");
 
-    const panel = history(page).locator(".history-last");
+    const panel = history(page).locator(".history-prev");
     await expect(panel).toBeVisible();
-    await expect(panel).toContainText("Last occurrence · 2026-09-05");
-    // Verbatim: tokens shown as they sit on disk, stopping at the next header.
-    await expect(panel.locator(".hl-body")).toContainText("- reviewed the roadmap");
-    await expect(panel.locator(".hl-body")).toContainText("# chase the vendor => get a quote");
-    await expect(panel.locator(".hl-body")).not.toContainText("not part of the sync");
-    await expect(panel.locator(".hl-body")).not.toContainText("older, should be ignored");
+    await expect(panel).toContainText("Previous occurrence · 2026-09-05");
+    // Glyph-rendered (#33.1): the `#` shows as ☐, the bullet as •, stopping
+    // at the next section header. The (q3) topic tag (#36) is kept.
+    await expect(panel.locator(".po-body")).toContainText("☐ chase the vendor (q3)");
+    await expect(panel.locator(".po-body")).toContainText("• reviewed the roadmap");
+    await expect(panel.locator(".po-body")).not.toContainText("not part of the sync");
+    await expect(panel.locator(".po-body")).not.toContainText("older, should be ignored");
 
     // "Open file" jumps to that occurrence and closes the drawer.
     await panel.getByRole("button", { name: "Open file" }).click();
     expect(await currentModal(page)).toBe("none");
     await expect(activeTabLabel(page)).toHaveText("2026-09-05");
+  });
+
+  test("the 'Previous occurrence' pane caps at 5 lines with a show-all toggle (#33.2)", async ({ page }) => {
+    await seedApp(page, {
+      seed: {
+        notes: {
+          [todayFilename()]: "Standup\n====\ntoday",
+          "2026-09-05.txt": ["Standup", "=======", "one", "two", "three", "four", "five", "six", "seven"].join("\n"),
+        },
+        session: { openTabs: [todayFilename()], activeTab: todayFilename() },
+      },
+    });
+    await editor(page).click();
+    await page.keyboard.press("Control+Home");
+    await page.keyboard.press("ArrowDown");
+    await page.keyboard.press("Control+Shift+H");
+
+    const pane = history(page).locator(".history-prev");
+    await expect(pane.locator(".po-line")).toHaveCount(5);
+    await pane.getByRole("button", { name: /show all 7 lines/i }).click();
+    await expect(pane.locator(".po-line")).toHaveCount(7);
+    await pane.getByRole("button", { name: /show fewer/i }).click();
+    await expect(pane.locator(".po-line")).toHaveCount(5);
   });
 
   test("the preview pane shows the source context, insert text and target (§109)", async ({ page }) => {

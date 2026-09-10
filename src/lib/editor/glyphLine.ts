@@ -1,0 +1,78 @@
+import { isActionLikeLine } from "../tokens";
+
+/** One rendered piece of a line: `text` is what to show; `cls` (a
+ * `.glyph-*` class) is set when it's a glyph or a styled span, absent for
+ * plain text. */
+export interface GlyphPart {
+  text: string;
+  cls?: string;
+}
+
+function glyphForSymbol(sym: string): GlyphPart {
+  switch (sym) {
+    case "v":
+      return { text: "☑", cls: "glyph-done" };
+    case ">":
+      return { text: "»", cls: "glyph-progress" };
+    case "x":
+      return { text: "☒", cls: "glyph-cancelled" };
+    default:
+      return { text: "☐", cls: "glyph-open" }; // "#"
+  }
+}
+
+/** Turn one plain-text line into the sequence of styled parts a read-only
+ * viewer (the Section History "Previous occurrence" pane, #33) should
+ * render — the same token → glyph mapping the editor's `glyphs.ts` does,
+ * but as plain spans instead of CodeMirror decorations, and with the
+ * token's trailing space folded into a literal gap after the glyph so
+ * columns still line up without the editor's fixed-width CSS.
+ *
+ * Also applies the inline highlights that only make sense on an
+ * action-like line: every `@name` on a `=> ` line (#35), and every
+ * `(topic)` tag on an action line (#36). */
+export function parseGlyphLine(line: string): GlyphPart[] {
+  // `! ` — bold the whole line, token and all (matches glyphs.ts: the
+  // `!` stays visible, it isn't replaced).
+  if (/^!\s/.test(line)) return [{ text: line, cls: "glyph-emphasis-line" }];
+
+  const parts: GlyphPart[] = [];
+  let rest = line;
+
+  const lead = rest.match(/^(\s*)([#vx>]|[-*])\s/);
+  if (lead) {
+    const [full, indent, sym] = lead;
+    if (indent) parts.push({ text: indent });
+    parts.push(sym === "-" || sym === "*" ? { text: "•", cls: "glyph-bullet" } : glyphForSymbol(sym));
+    parts.push({ text: " " });
+    rest = rest.slice(full.length);
+  }
+
+  const delegation = /=>\s/.test(line);
+  const actionLike = isActionLikeLine(line);
+
+  // One scan for every inline token: a Delegate arrow in any of its forms,
+  // a bare `@name`, or a `(topic)` tag. Text between matches is emitted
+  // verbatim.
+  const re = /=>\s@(\w+)|=>\s([#vx>])\s|=>\s|@(\w+)|\(([^\s()]+)\)/g;
+  let last = 0;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(rest)) !== null) {
+    if (m.index > last) parts.push({ text: rest.slice(last, m.index) });
+    if (m[1] !== undefined) {
+      parts.push({ text: "➔", cls: "glyph-followup" }, { text: " " }, { text: "@" + m[1], cls: "glyph-assignee" });
+    } else if (m[2] !== undefined) {
+      parts.push({ text: "➔", cls: "glyph-followup" }, { text: " " }, glyphForSymbol(m[2]), { text: " " });
+    } else if (m[0].startsWith("=>")) {
+      parts.push({ text: "➔", cls: "glyph-followup" }, { text: " " });
+    } else if (m[3] !== undefined) {
+      parts.push(delegation ? { text: "@" + m[3], cls: "glyph-assignee" } : { text: "@" + m[3] });
+    } else if (m[4] !== undefined) {
+      parts.push(actionLike ? { text: "(" + m[4] + ")", cls: "glyph-topic" } : { text: "(" + m[4] + ")" });
+    }
+    last = re.lastIndex;
+  }
+  if (last < rest.length) parts.push({ text: rest.slice(last) });
+
+  return parts.length > 0 ? parts : [{ text: "" }];
+}

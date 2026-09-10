@@ -42,6 +42,20 @@ test.describe("editor — token glyphs", () => {
     expect(await activeTabContent(page)).toContain("=> # follow up");
   });
 
+  test("#35: @name is highlighted anywhere on a `=> ` line, not just after the arrow", async ({ page }) => {
+    await setEditorText(page, "=> ask @dana and cc @sam\nemail @dana about lunch");
+    // both @names on the delegation line are badged
+    await expect(editor(page).locator(".cm-line").first().locator(".glyph-assignee")).toHaveCount(2);
+    // the @name on the plain prose line is left alone
+    await expect(editor(page).locator(".cm-line").nth(1).locator(".glyph-assignee")).toHaveCount(0);
+  });
+
+  test("#36: a (topic) tag is highlighted on an action line only", async ({ page }) => {
+    await setEditorText(page, "# ship the docs (release)\njust prose (an aside) here");
+    await expect(editor(page).locator(".cm-line").first().locator(".glyph-topic")).toHaveText("(release)");
+    await expect(editor(page).locator(".cm-line").nth(1).locator(".glyph-topic")).toHaveCount(0);
+  });
+
   test("Ctrl+Space cycles the action symbol # -> v -> > -> x -> #", async ({ page }) => {
     await typeInEditor(page, "# a task");
     const line = editor(page).locator(".cm-line").first();
@@ -58,6 +72,21 @@ test.describe("editor — token glyphs", () => {
     await page.keyboard.press("Control+Enter");
     await expect(editor(page).locator(".glyph-done")).toHaveCount(1);
     expect(await activeTabContent(page)).toBe("v a task");
+  });
+
+  test("#34: hovering a cyclable glyph previews the next state, then reverts", async ({ page }) => {
+    await setEditorText(page, "# a task\nplain line");
+    const glyph = editor(page).locator(".cm-line").first().locator(".glyph-cyclable");
+    await expect(glyph).toHaveText("☐");
+
+    await glyph.hover();
+    await expect(glyph).toHaveText("☑"); // preview of `# → v`
+    await expect(glyph).toHaveClass(/glyph-cyclable-preview/);
+
+    await editor(page).locator(".cm-line").nth(1).hover(); // move away
+    await expect(glyph).toHaveText("☐");
+    // the document was never touched — preview only
+    expect(await activeTabContent(page)).toBe("# a task\nplain line");
   });
 
   test("clicking a glyph cycles that line's state (§106)", async ({ page }) => {
@@ -119,5 +148,23 @@ test.describe("editor — token glyphs", () => {
     await page.keyboard.type("continued prose");
 
     expect(await activeTabContent(page)).toBe("# a task\ncontinued prose");
+  });
+
+  test("#34: Enter with the caret before the glyph is a plain newline, no duplicated symbol", async ({ page }) => {
+    await typeInEditor(page, "# a task");
+    await page.keyboard.press("Control+Home"); // caret to the very start, before `#`
+    await page.keyboard.press("Enter");
+    expect(await activeTabContent(page)).toBe("\n# a task");
+  });
+
+  test("#34: Enter on a `=> ` follow-up line continues it as `=> # `", async ({ page }) => {
+    await typeInEditor(page, "=> chase the vendor");
+    await page.keyboard.press("Enter");
+    await page.keyboard.type("call them back");
+    await page.keyboard.press("Enter"); // empty `=> # ` line
+    await page.keyboard.press("Enter"); // exits
+    await page.keyboard.type("plain");
+
+    expect(await activeTabContent(page)).toBe("=> chase the vendor\n=> # call them back\nplain");
   });
 });

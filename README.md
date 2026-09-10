@@ -74,14 +74,18 @@ file — no database, no front-matter, no injected IDs.
   glyph occupies *exactly* the character width of the token it replaces
   (2ch, or 3ch for `=> `), forced via CSS rather than trusted to the
   glyph's natural rendered width, since a single Unicode symbol doesn't
-  reliably occupy one monospace cell in every font. `@name` in a delegated
-  follow-up stays real, live, editable text (just styled as a badge), not
+  reliably occupy one monospace cell in every font. `@name` on a `=> `
+  line stays real, live, editable text (just styled as a badge), not
   baked into the glyph — fix a typo in it like any other text, or
   backspace right after the arrow to remove the whole `=> ` glyph in one
-  step. `=> <symbol>` (any of `#`/`v`/`>`/`x`, mutually exclusive with
-  `=> @name`) marks a consequence-action — a task that follows from the
-  line before it, with its own open/closed/deferred/won't-do state,
-  cycled with `Ctrl+Space` the same as a standalone action line. All four
+  step; it's highlighted wherever it appears on the line, not only right
+  after the arrow. `=> <symbol>` (any of `#`/`v`/`>`/`x`, mutually
+  exclusive with `=> @name`) marks a consequence-action — a task that
+  follows from the line before it, with its own open/closed/deferred/
+  won't-do state, cycled with `Ctrl+Space` the same as a standalone
+  action line. A `(topic)` tag on an action line is highlighted too, for
+  grouping actions by subject. Clicking an action glyph cycles its state
+  (`# → v → > → x`); hovering it first previews the next state. All four
   action symbols (standalone or after `=> `) may be indented in two-space
   increments, the same as bulleted lists. Glyphs are theme-driven
   (weight/opacity in grayscale mode, color in color mode) and their
@@ -123,12 +127,12 @@ file — no database, no front-matter, no injected IDs.
   character) alongside its text, and its section-title tag is capped to
   half the row's width, temporarily giving that space back to the action
   text on hover. Section history, alongside its deduped all-dates list of
-  action lines, shows a collapsible verbatim snapshot of that section's
-  most recent occurrence before the current note — everything discussed
-  last time, exactly as it sits on disk. If the import drawer is closed
-  without importing, the unsubmitted text is remembered (in memory only,
-  cleared on a notes-folder switch) and offered back — pre-filled and
-  selected — next time it opens.
+  action lines, shows a "Previous occurrence" pane — the first few lines
+  of that section as it stood at its last occurrence before the current
+  note, glyph-rendered, with a jump to the source. If the import drawer is
+  closed without importing, the unsubmitted text is remembered (in memory
+  only, cleared on a notes-folder switch) and offered back — pre-filled
+  and selected — next time it opens.
 - `Tab`/`Shift+Tab` indent/dedent inside the editor; `Ctrl+Tab` /
   `Ctrl+Shift+Tab` cycle between open note tabs; `Ctrl+N`/`Ctrl+T` open a
   new scratchpad; `Ctrl+Shift+S` turns the current line into a section
@@ -149,8 +153,10 @@ file — no database, no front-matter, no injected IDs.
 - The window title shows the current notes folder's name (just the folder,
   not the full path) — e.g. "ChronoNote - Notes" — updating live if you
   switch folders via Settings.
-- Status bar shows Open / Closed / Forwarded action counts (`x`, won't-do,
-  folds into Closed alongside `v`, done)
+- Status bar shows cursor line/column, word count, Open / Closed /
+  Forwarded action counts (`x`, won't-do, folds into Closed alongside `v`,
+  done), and — while text is selected — how much (characters, and the line
+  span when it's more than one)
 - Debounced autosave, with immediate flush on tab switch/close
 - Settings panel (`Ctrl+,`, gear icon): toggle between a full-color and a
   grayscale-only UI theme (glyphs, tab/status-bar accents, and search

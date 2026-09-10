@@ -201,20 +201,36 @@
   }
 
   /** Enter/Shift+Enter smart continuation for bulleted lines (`- ` or `* `,
-   * §51 — optionally indented — nesting is two spaces per level) and, from
-   * §85 (#12), action lines (`# `/`v `/`> `/`x `). Enter adds a fresh
-   * bullet at the same indentation using the line's own marker — or, on an
-   * action line, a fresh **open** action (`# `) regardless of the current
-   * symbol, since you're adding a task; on an *empty* bullet or action
-   * line it removes the marker instead ("press Enter to exit a list").
-   * Shift+Enter adds a plain continuation line at the same indentation, no
-   * new marker. Off both kinds of line, Enter defers entirely to
-   * CodeMirror's own default newline handling; Shift+Enter isn't bound
-   * anywhere else, so it explicitly inserts a plain newline itself. */
+   * §51 — optionally indented — nesting is two spaces per level), action
+   * lines (`# `/`v `/`> `/`x `, §85/#12) and `=> ` follow-up lines (#34).
+   * Enter adds a fresh bullet at the same indentation using the line's own
+   * marker; on an action line a fresh **open** action (`# `) regardless of
+   * the current symbol, since you're adding a task; on a `=> ` line a
+   * fresh `=> # `. On an *empty* such line it removes the marker instead
+   * ("press Enter to exit a list"). With the caret before the leading
+   * token, Enter is a plain newline (#34). Shift+Enter adds a plain
+   * continuation line at the same indentation, no new marker. Off all
+   * these line kinds, Enter defers to CodeMirror's own default newline;
+   * Shift+Enter isn't bound elsewhere, so it inserts a plain newline. */
   function bulletContinuation(insertBullet: boolean) {
     return (v: EditorView): boolean => {
       const pos = v.state.selection.main.head;
       const line = v.state.doc.lineAt(pos);
+      // #34: Enter with the caret *before* a leading bullet / action / `=> `
+      // token (in the indent, or column 0) is a plain newline — not a list
+      // continuation. Otherwise the token got duplicated onto the pushed-
+      // down line ("# a" → blank line + "# # a").
+      if (insertBullet) {
+        const lead = line.text.match(/^(\s*)(?:[-*]\s|[#vx>]\s|=>\s)/);
+        if (lead && pos - line.from <= lead[1].length) {
+          v.dispatch({
+            changes: { from: pos, to: pos, insert: "\n" },
+            selection: { anchor: pos + 1 },
+            scrollIntoView: true,
+          });
+          return true;
+        }
+      }
       const match = line.text.match(/^(\s*)([-*])\s/);
       if (!match) {
         if (!insertBullet) {
@@ -368,6 +384,16 @@
           const pos = u.state.selection.main.head;
           const line = u.state.doc.lineAt(pos);
           controller.setStatusPosition(line.number, pos - line.from + 1);
+          // #37: how much is selected — total chars and the span of
+          // document lines it touches — across every (multi-cursor) range.
+          const chars = u.state.selection.ranges.reduce((n, r) => n + (r.to - r.from), 0);
+          if (chars === 0) {
+            controller.setStatusSelection(null);
+          } else {
+            const main = u.state.selection.main;
+            const lines = u.state.doc.lineAt(main.to).number - u.state.doc.lineAt(main.from).number + 1;
+            controller.setStatusSelection({ lines, chars });
+          }
           // §108: the find bar is non-modal, so the caret can move (click,
           // arrows, an edit) while it's open — keep "N of M" in step.
           if (get(findOpen) && lastFindQuery) recomputeFindMatch();
@@ -516,6 +542,18 @@
     const initialPos = view.state.selection.main.head;
     const initialLine = view.state.doc.lineAt(initialPos);
     controller.setStatusPosition(initialLine.number, initialPos - initialLine.from + 1);
+    const initChars = view.state.selection.ranges.reduce((n, r) => n + (r.to - r.from), 0);
+    controller.setStatusSelection(
+      initChars === 0
+        ? null
+        : {
+            lines:
+              view.state.doc.lineAt(view.state.selection.main.to).number -
+              view.state.doc.lineAt(view.state.selection.main.from).number +
+              1,
+            chars: initChars,
+          },
+    );
 
     // Plain `view.focus()` (== `contentDOM.focus()` with no options) lets
     // the browser's native "scroll the newly focused element into view"
@@ -532,6 +570,7 @@
     // (which remounts this component) closes it and drops the query.
     findOpen.set(false);
     findMatch.set({ current: 0, total: 0 });
+    controller.setStatusSelection(null);
     if (view) {
       controller.saveEditorViewState(tabId, {
         selectionJSON: view.state.selection.toJSON(),

@@ -23,6 +23,7 @@ import {
   showToast,
   statusCounts,
   statusPos,
+  statusSelection,
   statusWordCount,
   tabs,
   unsavedScratchpadNames,
@@ -50,6 +51,7 @@ function wireStatusBarSync() {
   activeTabId.subscribe(() => {
     syncActiveStatus();
     statusPos.set({ line: 1, col: 1 });
+    statusSelection.set(null); // #37: a fresh tab starts with no selection
   });
 }
 function syncActiveStatus() {

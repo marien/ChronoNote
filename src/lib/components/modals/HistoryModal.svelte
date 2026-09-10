@@ -7,12 +7,13 @@
     activeTabId,
     editorApi,
     historyItems,
-    historyLastOccurrence,
+    historyPreviousOccurrence,
     historyTargetHeader,
     tabs,
   } from "../../controller";
   import { closeOnOutsideClick } from "../../actions/closeOnOutsideClick";
   import { innermostActionSymbol, stripLeadingToken } from "../../tokens";
+  import { parseGlyphLine } from "../../editor/glyphLine";
   import type { HistoryItem } from "../../types";
   import {
     MODAL_HEADER_ROW_HEIGHT,
@@ -28,6 +29,12 @@
 
   let selectedIndex = 0;
   let titleEl: HTMLInputElement;
+
+  // #33: the "Previous occurrence" pane shows the first few lines by
+  // default with a toggle for the rest, so a long section doesn't crowd
+  // out the aggregate list below.
+  const PREV_CAP = 5;
+  let prevExpanded = false;
 
   // §42: open focused on whatever entry belongs to the currently active
   // tab, instead of always starting at the top of the (most-recent-first)
@@ -207,18 +214,25 @@
     </div>
     <div class="history-body">
     <div class="history-main">
-    {#if $historyLastOccurrence}
-      {@const lo = $historyLastOccurrence}
-      <details class="history-last" open>
-        <summary>
-          <span class="hl-title">Last occurrence · {lo.date}</span>
-          <button class="hl-jump" on:click|stopPropagation={() => controller.jumpToLastOccurrence()}>
-            Open file
+    {#if $historyPreviousOccurrence}
+      {@const po = $historyPreviousOccurrence}
+      {@const shown = prevExpanded ? po.lines : po.lines.slice(0, PREV_CAP)}
+      <section class="history-prev" aria-label="Previous occurrence">
+        <div class="po-head">
+          <span class="po-title">Previous occurrence · {po.date}</span>
+          <button class="po-jump" on:click={() => controller.jumpToPreviousOccurrence()}>Open file</button>
+        </div>
+        <div class="po-body">
+          {#each shown as line}
+            <div class="po-line">{#each parseGlyphLine(line) as part}<span class={part.cls ?? ""}>{part.text}</span>{/each}</div>
+          {/each}
+        </div>
+        {#if po.lines.length > PREV_CAP}
+          <button class="po-more" on:click={() => (prevExpanded = !prevExpanded)}>
+            {prevExpanded ? "Show fewer" : `Show all ${po.lines.length} lines`}
           </button>
-        </summary>
-        <pre class="hl-body">{#each lo.lines as l}{l || " "}
-{/each}</pre>
-      </details>
+        {/if}
+      </section>
     {/if}
     <div
       class="modal-list"

@@ -32,16 +32,16 @@ export interface HistoryItem {
   date: string;
 }
 
-/** #27: the verbatim body of a recurring section as it stood at its most
- * recent occurrence before the note Section History was opened from — a
- * literal "what did we cover last time" snapshot, shown as its own panel
- * in the drawer, distinct from the glyph-stripped, deduped, all-dates
- * aggregate in the list. */
-export interface LastSectionOccurrence {
+/** #27/#33: the body of a recurring section as it stood at its previous
+ * occurrence (the last dated note before the one Section History was
+ * opened from) — a "what did we cover last time" snapshot, glyph-rendered
+ * read-only in its own pane, distinct from the deduped all-dates
+ * aggregate in the list below it. */
+export interface PreviousSectionOccurrence {
   filename: string;
   date: string;
-  /** Section body, verbatim, from just after the setext underline to
-   * just before the next section header (trailing blank lines dropped). */
+  /** Section body lines, from just after the setext underline to just
+   * before the next section header (trailing blank lines dropped). */
   lines: string[];
   /** 0-based index of the first body line in the source file. */
   startLineIdx: number;

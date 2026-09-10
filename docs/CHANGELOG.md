@@ -6,11 +6,15 @@ kept for the rationale behind each one — not just *what* changed but
 was still being gathered and confirmed before implementation; renamed once
 everything below was applied, since nothing here is "pending" anymore.
 
-**Status: all sections through §111 implemented, released, and on `main`;
-§112–§113 implemented on `main`, pending the next release bump.**
+**Status: all sections through §113 implemented, released, and on `main`;
+§114–§118 implemented on `main`, pending the next release bump.**
 §99–§110 are the 0.6 UX/UI pass (`docs/design/ux-roadmap-0.6.md`); §111 is
 a small v0.6.1 follow-up (the pre-0.6 glyph palette, back as an option).
-§112 (#28) and §113 (#27) are Section History follow-ups.
+§112 (#28) and §113 (#27) are Section History follow-ups (v0.6.2).
+§114–§118 close a batch of five issues (#33–#37): the Section History
+"Previous occurrence" pane refinements, action-glyph hover preview + two
+Enter fixes, `@name`-anywhere and `(topic)` highlighting, and selection
+size in the status bar.
 Each
 section is verified before merge (`svelte-check`, the Vitest suite,
 `cargo test`, and — from §77 on — the Playwright E2E suite, all green in
@@ -22,7 +26,7 @@ Which sections shipped in which release: §1–55 → v0.2.0, §56–59 → v0.2
 §60–74 → v0.3.0, §75–81 → v0.4.0, §82–83 → v0.4.1, §84–85 → v0.4.2,
 §86–87 → v0.4.3, §88–89 → v0.4.4, §90–91 → v0.4.5, §92 → v0.4.6,
 §refactor + §93–96 → v0.5.0, §97 → v0.5.1, §98 → v0.5.2, §99–110 → v0.6.0,
-§111 → v0.6.1, §112–113 → v0.6.2.
+§111 → v0.6.1, §112–113 → v0.6.2, §114–118 → v0.6.3.
 
 ---
 
@@ -4189,3 +4193,94 @@ Pure frontend — no Rust, no IPC, no mock-backend change. New tests:
 `controller.test.ts` `findLastSectionOccurrence` (3 cases, 95 Vitest in
 that file / 217 total); `search-and-history.spec.ts` verbatim-panel +
 Open-file case (127 Playwright). `svelte-check` 243, all suites green.
+
+---
+
+## 114. Section History "Previous occurrence" pane — glyphs, line cap, rename (#33)
+
+**Status: implemented (pending release).** Three refinements to the pane
+added in §113 (v0.6.2), from #33:
+
+- **Renamed "Last occurrence" → "Previous occurrence".** It shows the
+  occurrence before the *open tab's* date, not necessarily "today" — the
+  old name implied the latter. The store / type / helpers renamed to
+  match (`historyPreviousOccurrence`, `PreviousSectionOccurrence`,
+  `findPreviousSectionOccurrence`, `jumpToPreviousOccurrence`).
+- **Glyph-rendered, not verbatim.** §113 deliberately showed the section
+  body literally (raw tokens, ligatures off). #33 asked for the
+  actionable glyphs instead, so a new pure `parseGlyphLine()`
+  (`src/lib/editor/glyphLine.ts`, unit-tested) turns each line into the
+  same token → glyph parts the editor's `glyphs.ts` produces — `# ` → ☐,
+  `- ` → •, `=> @name` → ➔ + assignee badge, `! ` → bold, etc. — but as
+  plain spans for a read-only viewer. It also applies the #35/#36 inline
+  highlights.
+- **Capped to the first 5 lines** with a "Show all N lines" / "Show
+  fewer" toggle, so a long section can't crowd out the aggregate list.
+  The whole-pane `<details>` collapse is gone (the line cap replaces it).
+
+`HistoryModal.svelte` markup + `app.css` (`.history-prev` / `.po-*`,
+replacing `.history-last` / `.hl-*`). New `glyphLine.test.ts` (9 cases);
+`search-and-history.spec.ts` updated + a line-cap case.
+
+---
+
+## 115. Action-state behaviour: hover preview + two Enter fixes (#34)
+
+**Status: implemented (pending release).** From #34:
+
+- **Hover previews the next state.** A cyclable action glyph (`InlineGlyphWidget`
+  in `glyphs.ts`) now morphs to the *next* state's glyph on `mouseenter`
+  — dashed underline + reduced opacity (`.glyph-cyclable-preview`) so it
+  reads as provisional — and reverts on `mouseleave`. Click still
+  commits, exactly as before. The widget carries its raw symbol now so it
+  can compute the next one.
+- **🐛 Enter before the glyph no longer duplicates the symbol.** Pressing
+  Enter with the caret at column 0 of `# a task` used to insert `\n# `
+  there, producing a blank line then `# # a task`. `bulletContinuation()`
+  now detects a caret at or before the leading token (bullet, action, or
+  `=> `) and inserts a plain newline instead.
+- **Enter on a `=> ` follow-up line continues it.** `actionLineEnter()`
+  (`tokens.ts`) gained a branch: a leading `=> ` line (plain, `=> @name`,
+  or `=> #`) continues as a fresh `=> # ` — a follow-up that is itself an
+  open action, so a "led to → led to" chain keeps its thread. An empty
+  `=> ` / `=> # ` line exits.
+
+New: 4 `tokens.test.ts` cases, 3 `editor-tokens.spec.ts` cases.
+
+---
+
+## 116. `@name` highlighted anywhere on a delegation line (#35)
+
+**Status: implemented (pending release).** The assignee badge used to
+apply only to `@name` immediately after a `=> ` arrow. #35: the person
+can be named anywhere on the line ("`=> ask @dana, cc @sam`"). `glyphs.ts`'s
+`renderMatcher` gained an `@\w+` alternative that badges the name (a
+`Decoration.mark`, still live editable text) when the line also contains a
+`=> ` — a bare `@name` on a non-delegation line stays plain. `parseGlyphLine()`
+does the same for the Previous-occurrence pane. `editor-tokens.spec.ts` +
+`glyphLine.test.ts` cases.
+
+---
+
+## 117. `(topic)` tags on action lines (#36)
+
+**Status: implemented (pending release).** #36: `(word)` on an action
+line — used to group actions by subject — is now highlighted, styled like
+the `@name` badge but outlined + muted + italic (`.glyph-topic`, chrome
+tokens only, so no new per-colour-mode variables). Scoped to action-like
+lines (a leading `# `/`v `/`> `/`x ` or any `=> `) via a shared
+`isActionLikeLine()` in `tokens.ts`, so ordinary parentheticals in prose
+are untouched. `glyphs.ts` `renderMatcher` + `parseGlyphLine()`;
+`editor-tokens.spec.ts` + `glyphLine.test.ts` + `tokens.test.ts` cases.
+
+---
+
+## 118. Selection size in the status bar (#37)
+
+**Status: implemented (pending release).** #37: while text is selected,
+the status-bar left zone shows how much — `"{chars} selected"`, or
+`"{lines} lines, {chars} selected"` when the selection spans more than
+one document line. Multi-cursor selections sum their characters. New
+`statusSelection` store, set from `EditorPane`'s update listener
+(`selectionSet`), cleared on tab switch / editor teardown. `StatusBar.svelte`
+renders `#stat-selection`. `status-bar.spec.ts` case.

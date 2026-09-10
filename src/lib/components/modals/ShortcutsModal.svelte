@@ -14,7 +14,7 @@
     ["Tab / Shift+Tab", "Indent / dedent (in editor)"],
     ["Ctrl+Z / Ctrl+Y / Ctrl+Shift+Z", "Undo / redo (kept per tab)"],
     ["Ctrl+Space / Ctrl+Enter", "Cycle the action state on the current line (open → done → deferred → won't-do)"],
-    ["Click a glyph", "Same cycle, on that line"],
+    ["Click a glyph", "Same cycle, on that line (hover previews the next state)"],
     ["F2 / Shift+F2", "Jump to next / previous open action (in editor, wraps)"],
     ["Ctrl+↑ / Ctrl+↓", "Caret to start of line, then previous line / start of next line (in editor)"],
     ["Ctrl+Shift+S", "Convert current line into a section header"],
@@ -68,13 +68,22 @@
       {/each}
       <div class="modal-item" style="cursor: default;">
         <div class="modal-item-main">
-          <span>Delegated — follow-up assigned to someone (the name stays real, editable text)</span>
+          <span
+            >Delegated — follow-up assigned to someone. The <kbd>@name</kbd> is highlighted wherever it sits on a
+            <kbd>=&gt;</kbd> line, and stays real, editable text</span
+          >
         </div>
         <div class="item-tag">
           <kbd>=&gt; @name </kbd>&nbsp;→&nbsp;<span class="glyph-followup">➔</span>&nbsp;<span class="glyph-assignee"
             >@name</span
           >
         </div>
+      </div>
+      <div class="modal-item" style="cursor: default;">
+        <div class="modal-item-main">
+          <span>Topic tag — group actions by subject. Highlighted on action lines only</span>
+        </div>
+        <div class="item-tag"><kbd>(topic)</kbd>&nbsp;→&nbsp;<span class="glyph-topic">(topic)</span></div>
       </div>
       <div class="modal-item" style="cursor: default;">
         <div class="modal-item-main">

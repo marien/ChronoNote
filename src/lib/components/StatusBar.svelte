@@ -1,11 +1,22 @@
 <script lang="ts">
-  import { appVersion, statusCounts, statusPos, statusWordCount, toastMessage } from "../controller";
+  import { appVersion, statusCounts, statusPos, statusSelection, statusWordCount, toastMessage } from "../controller";
   import * as controller from "../controller";
+
+  // #37: "N selected" (chars), with the line span when it's more than one.
+  $: selectionLabel = $statusSelection
+    ? $statusSelection.lines > 1
+      ? `${$statusSelection.lines} lines, ${$statusSelection.chars} selected`
+      : `${$statusSelection.chars} selected`
+    : "";
 </script>
 
 <div id="status-bar">
   <div class="status-zone status-left">
     <span id="stat-pos">Ln {$statusPos.line}, Col {$statusPos.col}</span>
+    {#if selectionLabel}
+      <span class="status-sep">·</span>
+      <span id="stat-selection">{selectionLabel}</span>
+    {/if}
     <span class="status-sep">·</span>
     <span id="stat-words">{$statusWordCount} {$statusWordCount === 1 ? "word" : "words"}</span>
     <span class="status-sep">·</span>

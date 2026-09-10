@@ -1,16 +1,16 @@
 /** Section history (Ctrl+Shift+H): aggregate every action line under the
  * cursor's section across all dated notes, deduped, most-recent-first,
- * plus (#27) a verbatim snapshot of the section's most recent occurrence
- * before the current note. Split out of `controller.ts` in the v0.5.0
- * refactor. Depends on stores + persistence + tabs (`jumpToFileLine`) +
- * tokens. */
+ * plus (#27/#33) a glyph-rendered snapshot of the section's previous
+ * occurrence before the current note. Split out of `controller.ts` in the
+ * v0.5.0 refactor. Depends on stores + persistence + tabs
+ * (`jumpToFileLine`) + tokens. */
 import { get } from "svelte/store";
 import {
   activeTabId,
   allNotesCache,
   editorApi,
   historyItems,
-  historyLastOccurrence,
+  historyPreviousOccurrence,
   historyTargetHeader,
   modal,
   showToast,
@@ -19,7 +19,7 @@ import {
 import { refreshAllNotesCache } from "./persistence";
 import { jumpToFileLine } from "./tabs";
 import { getSectionHeaderForLine, isSetextUnderline, normalizeHeaderTitle, titleForMatching } from "./tokens";
-import type { HistoryItem, LastSectionOccurrence } from "./types";
+import type { HistoryItem, PreviousSectionOccurrence } from "./types";
 
 export async function openMeetingHistory() {
   const tab = get(tabs).find((t) => t.id === get(activeTabId));
@@ -82,26 +82,28 @@ export async function openMeetingHistory() {
 
   historyTargetHeader.set(targetHeader);
   historyItems.set(items);
-  // #27: alongside the all-dates aggregate, a verbatim snapshot of the
-  // section as it stood at its most recent occurrence before this note.
-  historyLastOccurrence.set(findLastSectionOccurrence(allSources, targetHeader, tab.filename));
+  // #27: alongside the all-dates aggregate, a snapshot of the section's
+  // body as it stood at its previous occurrence — the last dated note
+  // before this one that has this section (#33: "previous", since it's
+  // relative to the open tab's date, not necessarily "today").
+  historyPreviousOccurrence.set(findPreviousSectionOccurrence(allSources, targetHeader, tab.filename));
   modal.set("history");
 }
 
 const DATED_FILE = /^\d{4}-\d{2}-\d{2}\.txt$/;
 
-/** #27: the verbatim body of `targetHeader`'s most recent occurrence in a
- * file that sorts before `fromFilename` (i.e. an earlier day than the one
- * Section History was opened from). Returns `null` when the section has
- * no earlier occurrence with any content. `fromFilename` is compared as a
- * plain string, which orders `YYYY-MM-DD.txt` names chronologically; when
- * it isn't a dated file (a scratchpad) every other file is a candidate
- * and the most recent one wins. */
-export function findLastSectionOccurrence(
+/** #27/#33: the body of `targetHeader`'s previous occurrence — the newest
+ * file that sorts before `fromFilename` (an earlier day than the one
+ * Section History was opened from) and contains the section. Returns
+ * `null` when there's no earlier occurrence with any content.
+ * `fromFilename` is compared as a plain string, which orders
+ * `YYYY-MM-DD.txt` names chronologically; when it isn't a dated file (a
+ * scratchpad) every other file is a candidate and the most recent wins. */
+export function findPreviousSectionOccurrence(
   allSources: Record<string, string>,
   targetHeader: string,
   fromFilename: string,
-): LastSectionOccurrence | null {
+): PreviousSectionOccurrence | null {
   const fromIsDated = DATED_FILE.test(fromFilename);
   const candidates = Object.keys(allSources)
     .filter((f) => f !== fromFilename && (!fromIsDated || f < fromFilename))
@@ -148,11 +150,11 @@ export async function jumpToHistoryItem(item: HistoryItem) {
   await jumpToFileLine({ filename: item.filename, lineIdx: item.lineIdx });
 }
 
-/** #27: open the file behind the "last occurrence" panel, cursor on the
- * section's first body line. */
-export async function jumpToLastOccurrence() {
-  const lo = get(historyLastOccurrence);
-  if (lo) await jumpToFileLine({ filename: lo.filename, lineIdx: lo.startLineIdx });
+/** #27: open the file behind the "Previous occurrence" pane, cursor on
+ * the section's first body line. */
+export async function jumpToPreviousOccurrence() {
+  const po = get(historyPreviousOccurrence);
+  if (po) await jumpToFileLine({ filename: po.filename, lineIdx: po.startLineIdx });
 }
 
 /** What a Section-History entry turns into when imported: a deferred

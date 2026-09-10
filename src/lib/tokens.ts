@@ -29,6 +29,15 @@ export function innermostActionSymbol(line: string): "#" | "v" | ">" | "x" | nul
   return null;
 }
 
+/** A line carrying an action or follow-up token — a leading (optionally
+ * indented, §50) `# `/`v `/`> `/`x `, or a `=> ` anywhere on the line
+ * (§41/§59, which can follow other text). Shared by Section History's
+ * collector and the inline assignee (#35) / topic-tag (#36) highlighting,
+ * which both only apply on such lines. */
+export function isActionLikeLine(line: string): boolean {
+  return /^\s*[#vx>]\s/.test(line) || /=>\s/.test(line);
+}
+
 /** 0-based indices of every line whose governing action symbol is an open
  * `#` — a plain (optionally indented, §50) `# ` line or a `=> #`
  * consequence-action (§41). Exactly the set `countActions().open` counts
@@ -62,20 +71,34 @@ export function adjacentOpenActionLine(text: string, fromLineIdx: number, dir: 1
  * `# `/`v `/`> `/`x ` line continues the way a bullet does — except the
  * new line is always a fresh **open** action (`# `), since you're adding
  * a task and tasks start open. An *empty* action line (just the symbol)
- * exits instead, same as an empty bullet. Returns `null` for anything
- * that isn't a leading-symbol action line (plain text, `=> #`
- * consequence-actions, `=> @name` delegations) — the caller then falls
- * through to CodeMirror's default newline.
+ * exits instead, same as an empty bullet.
  *
- * The insert is `\n<indent># ` placed at the cursor, so pressing Enter
- * mid-line splits the action in two, the tail becoming its own open
- * action — mirroring `bulletContinuation`'s split-anywhere behaviour. */
+ * #34: a line that *is* a `=> ` follow-up (leading `=> `, in any of its
+ * plain / `=> @name` / `=> <symbol>` forms) continues as a fresh
+ * `=> # ` — another follow-up that is itself an open action, so a chain
+ * of "led to → led to" notes keeps its thread. An empty `=> ` / `=> # `
+ * line exits.
+ *
+ * Returns `null` for anything else (plain text, a mid-line `=> `) — the
+ * caller then falls through to CodeMirror's default newline.
+ *
+ * The insert is placed at the cursor, so pressing Enter mid-line splits
+ * the line in two, the tail becoming its own continued action —
+ * mirroring `bulletContinuation`'s split-anywhere behaviour. */
 export function actionLineEnter(lineText: string): { removeSymbol: true } | { insert: string } | null {
-  const match = lineText.match(/^(\s*)([#vx>])\s/);
-  if (!match) return null;
-  const [, indent, symbol] = match;
-  if (lineText.trim() === symbol) return { removeSymbol: true };
-  return { insert: `\n${indent}# ` };
+  const action = lineText.match(/^(\s*)([#vx>])\s/);
+  if (action) {
+    const [, indent, symbol] = action;
+    if (lineText.trim() === symbol) return { removeSymbol: true };
+    return { insert: `\n${indent}# ` };
+  }
+  const follow = lineText.match(/^(\s*)=>\s/);
+  if (follow) {
+    const trimmed = lineText.trim();
+    if (trimmed === "=>" || trimmed === "=> #") return { removeSymbol: true };
+    return { insert: `\n${follow[1]}=> # ` };
+  }
+  return null;
 }
 
 /** `Ctrl+Space`'s cycle (§40: `# → v → > → x → #`), shared between the

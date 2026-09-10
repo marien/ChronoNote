@@ -7,7 +7,9 @@ import {
   ViewUpdate,
   WidgetType,
 } from "@codemirror/view";
-import { cycleActionSymbol } from "../tokens";
+import { cycleActionSymbol, isActionLikeLine } from "../tokens";
+
+const CYCLE_ORDER = ["#", "v", ">", "x"];
 
 /** Renders the raw plain-text tokens (spec 2.2) as their visual glyphs
  * without changing a single byte on disk: the underlying document always
@@ -26,13 +28,20 @@ class InlineGlyphWidget extends WidgetType {
      * `# → v → > → x → #` — same order as `Ctrl+Space` / `Ctrl+Enter`. The
      * arrow, bullet and assignee glyphs are not cyclable. */
     private readonly cyclable = false,
+    /** #34: the raw symbol behind a cyclable glyph (`#`/`v`/`>`/`x`), so
+     * the widget can preview the *next* state on hover before a click
+     * commits it. Only meaningful when `cyclable`. */
+    private readonly symbol = "",
   ) {
     super();
   }
 
   eq(other: InlineGlyphWidget): boolean {
     return (
-      other.label === this.label && other.className === this.className && other.cyclable === this.cyclable
+      other.label === this.label &&
+      other.className === this.className &&
+      other.cyclable === this.cyclable &&
+      other.symbol === this.symbol
     );
   }
 
@@ -42,7 +51,18 @@ class InlineGlyphWidget extends WidgetType {
     span.className = this.className;
     if (this.cyclable) {
       span.classList.add("glyph-cyclable");
-      span.title = "Click to cycle state (open → done → deferred → won't-do)";
+      const [nextChar, nextClass] = glyphForSymbol(CYCLE_ORDER[(CYCLE_ORDER.indexOf(this.symbol) + 1) % 4]);
+      span.title = "Click to cycle state (open → done → deferred → won't-do); hover previews the next state";
+      // #34: on hover, morph into the next state's glyph so you can see
+      // what a click will do; revert on leave.
+      span.addEventListener("mouseenter", () => {
+        span.textContent = nextChar;
+        span.className = `${nextClass} glyph-cyclable glyph-cyclable-preview`;
+      });
+      span.addEventListener("mouseleave", () => {
+        span.textContent = this.label;
+        span.className = `${this.className} glyph-cyclable`;
+      });
       span.addEventListener("mousedown", (e) => {
         // Don't let the click place the editor cursor or steal focus.
         e.preventDefault();
@@ -108,7 +128,7 @@ function glyphForSymbol(sym: string): [string, string] {
  * no indent-length arithmetic needed to find where it starts. */
 const renderMatcher = new MatchDecorator({
   regexp:
-    /(^!\s)|((?<=^\s*)#\s)|((?<=^\s*)v\s)|((?<=^\s*)>\s)|((?<=^\s*)x\s)|(=>\s@\w+)|(=>\s[#vx>]\s)|(=>\s)|((?<=^\s*)[-*]\s)/gm,
+    /(^!\s)|((?<=^\s*)#\s)|((?<=^\s*)v\s)|((?<=^\s*)>\s)|((?<=^\s*)x\s)|(=>\s@\w+)|(=>\s[#vx>]\s)|(=>\s)|((?<=^\s*)[-*]\s)|(@\w+)|(\([^\s()]+\))/gm,
   decorate(add, from, to, match, view) {
     const text = match[0];
     if (text.startsWith("! ")) {
@@ -127,7 +147,7 @@ const renderMatcher = new MatchDecorator({
         // "=> <symbol> " — the consequence-action form (§41). The inner
         // symbol is a real action state, so it cycles on click too.
         const [char, cls] = glyphForSymbol(text[3]);
-        add(from + 3, to, Decoration.replace({ widget: new InlineGlyphWidget(char, cls, true) }));
+        add(from + 3, to, Decoration.replace({ widget: new InlineGlyphWidget(char, cls, true, text[3]) }));
       }
       return;
     }
@@ -135,11 +155,30 @@ const renderMatcher = new MatchDecorator({
       add(from, to, Decoration.replace({ widget: new InlineGlyphWidget("•", "glyph-bullet") }));
       return;
     }
+    if (text.startsWith("@")) {
+      // #35: a bare `@name` anywhere on a line that also has a `=> `
+      // delegate arrow — the assignee can be mentioned mid-sentence, not
+      // just right after the arrow. (A `=> @name` right after the arrow
+      // was already caught by the earlier alternative.)
+      if (/=>\s/.test(view.state.doc.lineAt(from).text)) {
+        add(from, to, Decoration.mark({ class: "glyph-assignee" }));
+      }
+      return;
+    }
+    if (text.startsWith("(")) {
+      // #36: a `(topic)` tag on an action line — used to group actions by
+      // subject. Styled like an assignee badge, on action lines only so
+      // ordinary parentheticals in prose stay untouched.
+      if (isActionLikeLine(view.state.doc.lineAt(from).text)) {
+        add(from, to, Decoration.mark({ class: "glyph-topic" }));
+      }
+      return;
+    }
     // Whatever's left is one of the four (optionally indented) action
     // symbols on its own — the lookbehind already excludes any leading
     // indentation from `text`, so `text[0]` is the symbol itself.
     const [char, cls] = glyphForSymbol(text[0]);
-    add(from, to, Decoration.replace({ widget: new InlineGlyphWidget(char, cls, true) }));
+    add(from, to, Decoration.replace({ widget: new InlineGlyphWidget(char, cls, true, text[0]) }));
   },
 });
 

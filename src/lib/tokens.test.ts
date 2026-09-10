@@ -7,6 +7,7 @@ import {
   openActionLineIndices,
   adjacentOpenActionLine,
   actionLineEnter,
+  isActionLikeLine,
   stripLeadingToken,
   isSetextUnderline,
   getSectionHeaderForLine,
@@ -206,9 +207,38 @@ describe("actionLineEnter", () => {
   it("returns null for non-action lines so the caller falls through", () => {
     expect(actionLineEnter("just prose")).toBeNull();
     expect(actionLineEnter("- a bullet")).toBeNull();
-    expect(actionLineEnter("Talked to Sam => # follow up")).toBeNull();
     expect(actionLineEnter("=== ")).toBeNull();
     expect(actionLineEnter("")).toBeNull();
+  });
+
+  it("#34: continues a leading `=> ` follow-up line as a fresh `=> # `", () => {
+    expect(actionLineEnter("=> chased the vendor")).toEqual({ insert: "\n=> # " });
+    expect(actionLineEnter("=> @sam owns the recap")).toEqual({ insert: "\n=> # " });
+    expect(actionLineEnter("=> # already an open consequence")).toEqual({ insert: "\n=> # " });
+    expect(actionLineEnter("  => indented follow-up")).toEqual({ insert: "\n  => # " });
+  });
+
+  it("#34: exits an empty `=> ` / `=> # ` follow-up line", () => {
+    expect(actionLineEnter("=> ")).toEqual({ removeSymbol: true });
+    expect(actionLineEnter("=> #")).toEqual({ removeSymbol: true });
+  });
+
+  it("#34: a mid-line `=> ` is not a follow-up line — still null", () => {
+    expect(actionLineEnter("Talked to Sam => # follow up")).toBeNull();
+  });
+});
+
+describe("isActionLikeLine", () => {
+  it("is true for a leading action symbol (indented or not) and any `=> `", () => {
+    expect(isActionLikeLine("# do it")).toBe(true);
+    expect(isActionLikeLine("   x dropped")).toBe(true);
+    expect(isActionLikeLine("Talked to Sam => follow up")).toBe(true);
+    expect(isActionLikeLine("=> @alice")).toBe(true);
+  });
+  it("is false for prose, bullets and headers", () => {
+    expect(isActionLikeLine("just a sentence (with a paren)")).toBe(false);
+    expect(isActionLikeLine("- a bullet")).toBe(false);
+    expect(isActionLikeLine("Weekly Sync")).toBe(false);
   });
 });
 

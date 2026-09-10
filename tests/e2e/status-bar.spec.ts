@@ -15,6 +15,26 @@ test.describe("status bar — three zones (§100/§110)", () => {
     await expect(page.locator("#stat-words")).toHaveText("1 word");
   });
 
+  test("#37: left zone shows how much is selected, with the line span when multi-line", async ({ page }) => {
+    await seedApp(page, { seed: { notes: { [todayFilename()]: "line one\nline two\nline three" } } });
+    await editor(page).click();
+    await expect(page.locator("#stat-selection")).toHaveCount(0);
+
+    // select the whole document
+    await page.keyboard.press("Control+A");
+    await expect(page.locator("#stat-selection")).toHaveText(/3 lines, \d+ selected/);
+
+    // a within-line selection: no line count, just the char count
+    await page.keyboard.press("Control+Home");
+    await page.keyboard.press("Shift+ArrowRight");
+    await page.keyboard.press("Shift+ArrowRight");
+    await expect(page.locator("#stat-selection")).toHaveText("2 selected");
+
+    // clearing the selection removes the readout
+    await page.keyboard.press("ArrowRight");
+    await expect(page.locator("#stat-selection")).toHaveCount(0);
+  });
+
   test("centre zone is empty until a transient message appears", async ({ page }) => {
     await seedApp(page, { seed: { notes: { [todayFilename()]: "no actions here" } } });
     await expect(page.locator("#stat-message")).toHaveCount(0);
