@@ -64,6 +64,17 @@ fn set_theme_mode(app: AppHandle, mode: storage::ThemeMode) -> Result<storage::A
     Ok(cfg)
 }
 
+/// #50: called once per launch, right after boot compares the running
+/// version against `AppConfig.last_seen_version` — records the version
+/// so the same launch's update notice (if any) isn't repeated next time.
+#[tauri::command]
+fn set_last_seen_version(app: AppHandle, version: String) -> Result<storage::AppConfig, String> {
+    let mut cfg = storage::load_config(&app)?;
+    cfg.last_seen_version = Some(version);
+    storage::save_config(&app, &cfg)?;
+    Ok(cfg)
+}
+
 #[tauri::command]
 fn list_note_files(app: AppHandle) -> Result<Vec<String>, String> {
     storage::list_note_files(&app)
@@ -180,6 +191,7 @@ pub fn run() {
             set_readable_line_length,
             set_auto_check_updates,
             set_theme_mode,
+            set_last_seen_version,
             list_note_files,
             read_note,
             write_note,

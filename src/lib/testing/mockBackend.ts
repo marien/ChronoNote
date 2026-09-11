@@ -44,6 +44,11 @@ export interface MockSeed {
   wordWrap?: boolean;
   readableLineLength?: boolean;
   autoCheckUpdates?: boolean;
+  /** #50: the version this config last recorded seeing — seed a value
+   * different from `appVersion` to simulate "first launch after an
+   * update" in a test. `undefined`/omitted mirrors a fresh install or a
+   * pre-#50 config (no update notice). */
+  lastSeenVersion?: string | null;
   /** Seeds `recent_notes_dirs` directly (normally only `set_notes_dir`
    * writes it). */
   recentNotesDirs?: string[];
@@ -88,6 +93,7 @@ const MUTATING_COMMANDS = new Set([
   "set_word_wrap",
   "set_readable_line_length",
   "set_auto_check_updates",
+  "set_last_seen_version",
   "write_note",
   "write_conflict_copy",
   "write_tab_session",
@@ -144,6 +150,7 @@ export class MockBackend {
   wordWrap: boolean;
   readableLineLength: boolean;
   autoCheckUpdates: boolean;
+  lastSeenVersion: string | null;
   recentNotesDirs: string[];
   appVersion: string;
   updateCheck: "none" | "available";
@@ -198,6 +205,7 @@ export class MockBackend {
     this.wordWrap = seed.wordWrap ?? false;
     this.readableLineLength = seed.readableLineLength ?? false;
     this.autoCheckUpdates = seed.autoCheckUpdates ?? true;
+    this.lastSeenVersion = seed.lastSeenVersion ?? null;
     this.recentNotesDirs = seed.recentNotesDirs ? [...seed.recentNotesDirs] : [];
     this.appVersion = seed.appVersion ?? "0.3.0";
     this.updateCheck = seed.updateCheck ?? "none";
@@ -236,6 +244,7 @@ export class MockBackend {
       wordWrap: this.wordWrap,
       readableLineLength: this.readableLineLength,
       autoCheckUpdates: this.autoCheckUpdates,
+      lastSeenVersion: this.lastSeenVersion,
       recentNotesDirs: this.recentNotesDirs,
       appVersion: this.appVersion,
       dirs: [...this.dirs].map(([path, d]) => [path, [...d.notes], d.session, [...d.conflictCopies]]),
@@ -266,6 +275,7 @@ export class MockBackend {
         wordWrap?: boolean;
         readableLineLength?: boolean;
         autoCheckUpdates?: boolean;
+        lastSeenVersion?: string | null;
         recentNotesDirs: string[];
         appVersion: string;
         dirs: [string, [string, string][], TabSession | null, [string, string][]?][];
@@ -276,6 +286,7 @@ export class MockBackend {
       b.themeMode = s.themeMode ?? "system";
       b.wordWrap = s.wordWrap ?? false;
       b.autoCheckUpdates = s.autoCheckUpdates ?? true;
+      b.lastSeenVersion = s.lastSeenVersion ?? null;
       b.readableLineLength = s.readableLineLength ?? false;
       b.recentNotesDirs = s.recentNotesDirs;
       b.appVersion = s.appVersion;
@@ -309,6 +320,7 @@ export class MockBackend {
       readableLineLength: this.readableLineLength,
       recentNotesDirs: [...this.recentNotesDirs],
       autoCheckUpdates: this.autoCheckUpdates,
+      lastSeenVersion: this.lastSeenVersion,
     };
   }
 
@@ -385,6 +397,11 @@ export class MockBackend {
 
     set_theme_mode: ({ mode }) => {
       this.themeMode = mode;
+      return this.config();
+    },
+
+    set_last_seen_version: ({ version }) => {
+      this.lastSeenVersion = version;
       return this.config();
     },
 

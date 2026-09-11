@@ -16,6 +16,7 @@ export interface TauriCommands {
   set_readable_line_length: { args: { enabled: boolean }; returns: AppConfig };
   set_auto_check_updates: { args: { enabled: boolean }; returns: AppConfig };
   set_theme_mode: { args: { mode: ThemeMode }; returns: AppConfig };
+  set_last_seen_version: { args: { version: string }; returns: AppConfig };
   list_note_files: { args: NoArgs; returns: string[] };
   read_note: { args: { filename: string }; returns: string | null };
   write_note: {

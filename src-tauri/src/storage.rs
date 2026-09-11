@@ -77,6 +77,16 @@ pub struct AppConfig {
     /// before this field existed opts in rather than silently staying off.
     #[serde(default = "default_true")]
     pub auto_check_updates: bool,
+    /// #50: the app version this installation last recorded actually
+    /// running — compared against the live version on boot to detect a
+    /// first launch after an in-place update, so the frontend can show a
+    /// one-time "Updated to vX.Y.Z" status-bar link to the release notes.
+    /// `None` for a config written before this field existed, or a
+    /// genuinely fresh install — either way there's no prior version to
+    /// say we updated *from*, so nothing is shown; the current version is
+    /// just recorded as seen.
+    #[serde(default)]
+    pub last_seen_version: Option<String>,
 }
 
 fn default_true() -> bool {
@@ -293,6 +303,7 @@ fn load_config_at(path: &Path, default_notes_dir: &Path) -> Result<AppConfig, St
         readable_line_length: false,
         recent_notes_dirs: Vec::new(),
         auto_check_updates: true,
+        last_seen_version: None,
     };
     save_config_at(path, &cfg)?;
     Ok(cfg)
@@ -787,6 +798,7 @@ mod tests {
             readable_line_length: false,
             recent_notes_dirs: vec!["/old1".to_string(), "/old2".to_string()],
             auto_check_updates: false,
+            last_seen_version: Some("0.7.4".to_string()),
         };
         save_config_at(&path, &cfg).unwrap();
         let loaded = load_config_at(&path, &dir.path().join("Notes")).unwrap();
@@ -797,6 +809,7 @@ mod tests {
         assert!(!loaded.readable_line_length);
         assert_eq!(loaded.recent_notes_dirs, vec!["/old1", "/old2"]);
         assert!(!loaded.auto_check_updates);
+        assert_eq!(loaded.last_seen_version, Some("0.7.4".to_string()));
     }
 
     #[test]
@@ -813,6 +826,7 @@ mod tests {
             readable_line_length: false,
             recent_notes_dirs: vec![],
             auto_check_updates: true,
+            last_seen_version: None,
         };
         save_config_at(&path, &cfg).unwrap();
         let on_disk = fs::read_to_string(&path).unwrap();
@@ -841,6 +855,7 @@ mod tests {
                 readable_line_length: false,
                 recent_notes_dirs: vec![],
                 auto_check_updates: true,
+                last_seen_version: None,
             };
             save_config_at(&path, &cfg).unwrap();
             let on_disk = fs::read_to_string(&path).unwrap();
@@ -865,6 +880,7 @@ mod tests {
         // Omitted from an older config → off (§110: it's an opt-in).
         assert!(!loaded.readable_line_length);
         assert!(loaded.recent_notes_dirs.is_empty());
+        assert_eq!(loaded.last_seen_version, None);
         // Unlike the above, this one's omitted-default is *on* (§update-check).
         assert!(loaded.auto_check_updates);
     }

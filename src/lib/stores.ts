@@ -124,6 +124,14 @@ export const updateReleaseNotes = writable<string | null>(null);
 export const updateDownloadProgress = writable<{ doneBytes: number; totalBytes: number } | null>(null);
 export const updateErrorMessage = writable<string | null>(null);
 
+/** #50: set once on boot when this launch is the first after an in-place
+ * update (the running app version differs from `AppConfig.lastSeenVersion`)
+ * — the version just updated *to*, for a status-bar "Updated to vX.Y.Z"
+ * link that opens its GitHub release page. `null` otherwise, and once
+ * dismissed for the session — `boot.ts` persists the new version
+ * immediately, so it's never shown again for that version. */
+export const justUpdatedToVersion = writable<string | null>(null);
+
 export const pendingCloseTabId = writable<string | null>(null);
 export const safetyMessage = writable<string>("");
 export const pendingNotesDirSwitch = writable<string | null>(null);

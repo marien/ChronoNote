@@ -872,6 +872,41 @@ body {
   flex-shrink: 0;
   opacity: 0.55;
 }
+/* #50: the one-time "Updated to vX.Y.Z" notice — same quiet dot-marker
+   look as #stat-message, but its own id since the two are mutually
+   exclusive in the same slot (StatusBar.svelte), not a shared style. */
+#stat-updated {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--status-fg);
+  font-weight: 500;
+}
+#stat-updated::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--text);
+  flex-shrink: 0;
+  opacity: 0.55;
+}
+.status-link {
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  color: var(--status-fg);
+  font-family: inherit;
+  font-size: inherit;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+.status-link:hover {
+  color: var(--text);
+}
 .status-help {
   background: transparent;
   border: 1px solid var(--border);
@@ -891,6 +926,23 @@ body {
 .status-help:hover {
   background: var(--surface-raised);
   border-color: var(--muted);
+}
+/* §update-check: the down-arrow-into-a-tray mark (§127's icon set) next
+   to the version number, only while `updateStatus === "available"` —
+   a quiet, always-visible companion to the one-shot status-bar toast
+   that fired when the check first found it (`checkForUpdatesOnLaunch`),
+   so the fact stays visible even after that toast auto-clears. */
+.status-update-btn {
+  background: transparent;
+  border: none;
+  color: var(--status-fg);
+  display: inline-flex;
+  align-items: center;
+  padding: 0;
+  cursor: pointer;
+}
+.status-update-btn:hover {
+  color: var(--text);
 }
 
 /* §104: anchored mini calendar popover (the date picker). Not an

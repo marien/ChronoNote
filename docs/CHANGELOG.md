@@ -7,6 +7,8 @@ was still being gathered and confirmed before implementation; renamed once
 everything below was applied, since nothing here is "pending" anymore.
 
 **Status: all sections through §135 implemented, released, and on `main`.**
+§136 is implemented and committed to `main` but not yet released, at
+Marien's request (more changes may follow before the next version cut).
 §99–§110 are the 0.6 UX/UI pass (`docs/design/ux-roadmap-0.6.md`); §111 is
 a small v0.6.1 follow-up (the pre-0.6 glyph palette, back as an option).
 §112 (#28) and §113 (#27) are Section History follow-ups (v0.6.2).
@@ -24,7 +26,10 @@ top-bar alignment); §133 is the app-icon redraw the 0.7 roadmap called
 for but deferred out of v0.7.0. §134 is a follow-up correction to §132
 after its fix overcorrected visually. §135 fixes a long-standing
 opener-plugin permission-scope bug (chat feedback, no issue) that made
-the About drawer's external links silently do nothing.
+the About drawer's external links silently do nothing. §136 closes #50
+(a first-run-after-update notice) plus an always-visible status-bar
+update icon (chat feedback, no issue) — implemented but not yet
+released.
 Each
 section is verified before merge (`svelte-check`, the Vitest suite,
 `cargo test`, and — from §77 on — the Playwright E2E suite, all green in
@@ -4970,3 +4975,64 @@ by reading the plugin's own generated schema
 click-through confirmation pending Marien's install of the release this
 ships in. Pure config change — no Rust/frontend logic touched, `cargo
 test` unchanged at 44, `svelte-check`/Vitest/Playwright counts unchanged.
+
+---
+
+## 136. First-run-after-update notice, and an always-visible "update available" status-bar icon
+
+**Status: implemented, not yet released** (held back at Marien's request
+in case more changes land before the next version cut). Closes **#50**: *"At first run after update show
+release notes with a link to release notes on github."* Plus a follow-up
+request the same day: use the existing `update` icon (drawn in §127,
+first put to use in §128's About/Settings UI) next to the version number
+in the status bar whenever an update is available, not just as a
+one-shot toast.
+
+**Design decisions, confirmed with Marien up front:** the first-run
+notice is a quiet status-bar link (matching the existing
+`checkForUpdatesOnLaunch` toast style), not a modal — and it links out to
+the GitHub release page rather than fetching/rendering the release body
+inline, reusing `menu.ts`'s existing `openReleasePage()`.
+
+**#50: detecting "this is the first launch after an update."** New
+`AppConfig.last_seen_version: Option<String>` (Rust, `#[serde(default)]`)
+— the version this installation last recorded actually running. New
+`set_last_seen_version` command, mirroring the other setters exactly.
+`boot.ts`'s `initApp()` compares it against the live `getAppVersion()` on
+every boot: differ → set `justUpdatedToVersion` (new store) for the
+status bar and persist the new version; a `null`/omitted
+`last_seen_version` (a fresh install, or a config from before this field
+existed) means there's no prior version to say "updated from," so
+nothing is shown — the current version is just recorded as seen, ready
+to catch the next real update. `StatusBar.svelte`'s centre zone shows
+`"Updated to vX.Y.Z — What's new"` in that case (mutually exclusive with
+the ordinary `toastMessage` slot); the link both opens the release page
+and dismisses itself (`menu.ts`'s new `openJustUpdatedReleaseNotes()`) —
+there's no separate close button, matching the app's quiet-by-design
+toast conventions elsewhere.
+
+**Status-bar update icon.** `#top-bar`'s toolbar already got an `update`
+icon in §127 (a down-arrow into a tray) but it sat unused until §128 put
+it on the About drawer's "Download & install" button. Now it also
+appears — small, unlabelled, `title="Update available — see About"` —
+immediately left of the version number in the status bar's right zone,
+for as long as `updateStatus === "available"`. Unlike the one-shot
+launch-time toast (which auto-clears), this stays visible the whole
+session so the fact doesn't disappear along with the toast; clicking it
+opens About directly.
+
+New: `stores.ts` `justUpdatedToVersion`; `menu.ts`
+`openJustUpdatedReleaseNotes()`; `tauriApi.ts` `setLastSeenVersion()`;
+`storage.rs`/`lib.rs` the new field + command; `app.css` `#stat-updated`
++ `.status-link` + `.status-update-btn`. Updated: `mockBackend.ts` (new
+seed field, handler, `MUTATING_COMMANDS` entry — mirrors `storage.rs` per
+the project's mock-parity convention), `StatusBar.svelte`. Tests:
+`controller.test.ts` +5 (`initApp`'s three lastSeenVersion branches,
+`openJustUpdatedReleaseNotes`'s two), `storage.rs` — no new `#[test]` fn,
+extended the existing round-trip/defaults tests instead (mirrors how
+§128's `auto_check_updates` was covered, so 44 stays 44),
+`tests/e2e/update-check.spec.ts` +3 (#50's three branches, including
+"persists across a reload"), `tests/e2e/status-bar.spec.ts` +1 (the
+update icon appears, links to About, shows the found version).
+`svelte-check` 256 files 0 errors, Vitest 276 (+5), Playwright 154 (+4),
+`cargo test` 44 (same count, more assertions per test).

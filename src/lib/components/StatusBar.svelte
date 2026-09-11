@@ -1,6 +1,16 @@
 <script lang="ts">
-  import { appVersion, statusCounts, statusPos, statusSelection, statusWordCount, toastMessage } from "../controller";
+  import {
+    appVersion,
+    justUpdatedToVersion,
+    statusCounts,
+    statusPos,
+    statusSelection,
+    statusWordCount,
+    toastMessage,
+    updateStatus,
+  } from "../controller";
   import * as controller from "../controller";
+  import Icon from "../icons/Icon.svelte";
 
   // #37/#38: how many lines the selection covers (not a character count).
   $: selectionLabel = $statusSelection
@@ -26,12 +36,24 @@
   </div>
 
   <div class="status-zone status-centre">
-    {#if $toastMessage}
+    {#if $justUpdatedToVersion}
+      <span id="stat-updated" role="status">
+        Updated to v{$justUpdatedToVersion} —
+        <button type="button" class="status-link" on:click={controller.openJustUpdatedReleaseNotes}>
+          What's new
+        </button>
+      </span>
+    {:else if $toastMessage}
       <span id="stat-message" role="status">{$toastMessage}</span>
     {/if}
   </div>
 
   <div class="status-zone status-right">
+    {#if $updateStatus === "available"}
+      <button type="button" class="status-update-btn" title="Update available — see About" on:click={controller.openAbout}>
+        <Icon name="update" size={12} />
+      </button>
+    {/if}
     {#if $appVersion}<span id="stat-version">v{$appVersion}</span>{/if}
     <button
       type="button"

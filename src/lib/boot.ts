@@ -15,6 +15,7 @@ import {
   autoCheckUpdates,
   chromeExpanded,
   colorMode,
+  justUpdatedToVersion,
   markTabClean,
   modal,
   notesDir,
@@ -316,7 +317,21 @@ export async function initApp() {
   await restoreOrBootstrapTabs();
   tabs.subscribe(() => scheduleTabSessionSave());
   activeTabId.subscribe(() => scheduleTabSessionSave());
-  api.getAppVersion().then((v) => appVersion.set(v));
+  const version = await api.getAppVersion();
+  appVersion.set(version);
+  // #50: a first launch after an in-place update shows a one-time
+  // "Updated to vX.Y.Z" status-bar link (see StatusBar.svelte); a fresh
+  // install or a config from before this field existed has no prior
+  // version to say we updated *from*, so `lastSeenVersion` being unset
+  // just means "record the current version, nothing to announce."
+  if (cfg.lastSeenVersion && cfg.lastSeenVersion !== version) {
+    justUpdatedToVersion.set(version);
+  }
+  if (cfg.lastSeenVersion !== version) {
+    api.setLastSeenVersion(version).catch(() => {
+      // Best-effort bookkeeping — worst case the notice repeats next launch.
+    });
+  }
   // §update-check: a silent background check, never blocking app-ready.
   // Quiet by design — "no update" and a failed check both leave no trace
   // beyond the About drawer; only "an update is available" shows anything

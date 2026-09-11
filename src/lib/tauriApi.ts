@@ -40,6 +40,10 @@ export function setThemeMode(mode: ThemeMode): Promise<AppConfig> {
   return invoke("set_theme_mode", { mode });
 }
 
+export function setLastSeenVersion(version: string): Promise<AppConfig> {
+  return invoke("set_last_seen_version", { version });
+}
+
 export function listNoteFiles(): Promise<string[]> {
   return invoke("list_note_files", {});
 }

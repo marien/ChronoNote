@@ -10,6 +10,7 @@ const apiMock = {
   setNotesDir: vi.fn(),
   setColorMode: vi.fn(),
   setThemeMode: vi.fn(),
+  setLastSeenVersion: vi.fn(),
   setWordWrap: vi.fn(),
   setReadableLineLength: vi.fn(),
   setAutoCheckUpdates: vi.fn(),
@@ -87,6 +88,7 @@ beforeEach(async () => {
   apiMock.readTabSession.mockResolvedValue(null);
   apiMock.writeNote.mockResolvedValue({ exists: true, contentHash: "hash", sizeBytes: 0, modifiedMs: 0 });
   apiMock.writeTabSession.mockResolvedValue(undefined);
+  apiMock.setLastSeenVersion.mockResolvedValue({} as never);
   apiMock.openExternalUrl.mockResolvedValue(undefined);
   // Off by default here (unlike the real Rust default) so the launch-time
   // update check in `initApp()` stays inert for every test that doesn't
@@ -1162,6 +1164,72 @@ describe("initApp — launch-time update check (§update-check)", () => {
     await Promise.resolve();
     expect(updaterMock.check).not.toHaveBeenCalled();
     expect(get(controller.autoCheckUpdates)).toBe(false);
+  });
+});
+
+describe("initApp — first launch after an update (#50)", () => {
+  it("shows a status-bar link when the running version differs from lastSeenVersion, and persists it", async () => {
+    apiMock.getConfig.mockResolvedValue({
+      notesDir: "/notes",
+      colorMode: "grayscale",
+      wordWrap: false,
+      readableLineLength: false,
+      recentNotesDirs: [],
+      autoCheckUpdates: false,
+      lastSeenVersion: "0.7.4",
+    });
+    apiMock.getAppVersion.mockResolvedValue("0.7.5");
+    await controller.initApp();
+    expect(get(controller.justUpdatedToVersion)).toBe("0.7.5");
+    expect(apiMock.setLastSeenVersion).toHaveBeenCalledWith("0.7.5");
+  });
+
+  it("shows nothing on a fresh install — lastSeenVersion omitted", async () => {
+    apiMock.getConfig.mockResolvedValue({
+      notesDir: "/notes",
+      colorMode: "grayscale",
+      wordWrap: false,
+      readableLineLength: false,
+      recentNotesDirs: [],
+      autoCheckUpdates: false,
+      lastSeenVersion: null,
+    });
+    apiMock.getAppVersion.mockResolvedValue("0.7.5");
+    await controller.initApp();
+    expect(get(controller.justUpdatedToVersion)).toBe(null);
+    // Still recorded, so the *next* real update has something to compare against.
+    expect(apiMock.setLastSeenVersion).toHaveBeenCalledWith("0.7.5");
+  });
+
+  it("shows nothing, and doesn't re-persist, when lastSeenVersion already matches", async () => {
+    apiMock.getConfig.mockResolvedValue({
+      notesDir: "/notes",
+      colorMode: "grayscale",
+      wordWrap: false,
+      readableLineLength: false,
+      recentNotesDirs: [],
+      autoCheckUpdates: false,
+      lastSeenVersion: "0.7.5",
+    });
+    apiMock.getAppVersion.mockResolvedValue("0.7.5");
+    await controller.initApp();
+    expect(get(controller.justUpdatedToVersion)).toBe(null);
+    expect(apiMock.setLastSeenVersion).not.toHaveBeenCalled();
+  });
+});
+
+describe("openJustUpdatedReleaseNotes (#50)", () => {
+  it("opens the release page for the version shown, and dismisses the banner", async () => {
+    controller.justUpdatedToVersion.set("0.7.5");
+    controller.openJustUpdatedReleaseNotes();
+    expect(apiMock.openExternalUrl).toHaveBeenCalledWith(expect.stringContaining("/releases/tag/v0.7.5"));
+    expect(get(controller.justUpdatedToVersion)).toBe(null);
+  });
+
+  it("does nothing (no external call) when there's nothing to show", () => {
+    controller.justUpdatedToVersion.set(null);
+    controller.openJustUpdatedReleaseNotes();
+    expect(apiMock.openExternalUrl).not.toHaveBeenCalled();
   });
 });
 

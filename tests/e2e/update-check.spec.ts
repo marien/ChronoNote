@@ -104,3 +104,40 @@ test.describe("update check (§update-check)", () => {
     await expect(about).toContainText("4.5.6");
   });
 });
+
+test.describe("#50: first-launch-after-update notice", () => {
+  test("shows a status-bar link when the version differs from last seen, opens the release page, and only shows once", async ({
+    page,
+  }) => {
+    await seedApp(page, {
+      seed: { notes: {}, appVersion: "9.9.9", lastSeenVersion: "9.9.8", updateCheck: "none" },
+    });
+    const notice = page.locator("#stat-updated");
+    await expect(notice).toContainText("Updated to v9.9.9");
+
+    await notice.getByRole("button", { name: "What's new" }).click();
+    await expect(notice).toHaveCount(0);
+    expect(await page.evaluate(() => window.__CHRONO_MOCK__!.openedUrls)).toContain(
+      "https://github.com/marien/ChronoNote/releases/tag/v9.9.9",
+    );
+    // Persisted — a reload doesn't bring it back.
+    expect(await page.evaluate(() => window.__CHRONO_MOCK__!.lastSeenVersion)).toBe("9.9.9");
+    await page.reload();
+    await expect(page.locator("#top-bar")).toBeVisible();
+    await expect(page.locator("#stat-updated")).toHaveCount(0);
+  });
+
+  test("shows nothing on a fresh install — no prior version to compare against", async ({ page }) => {
+    await seedApp(page, { seed: { notes: {}, appVersion: "9.9.9", updateCheck: "none" } });
+    await expect(page.locator("#stat-updated")).toHaveCount(0);
+    // Still recorded, so a genuine future update has something to compare against.
+    expect(await page.evaluate(() => window.__CHRONO_MOCK__!.lastSeenVersion)).toBe("9.9.9");
+  });
+
+  test("shows nothing when the version matches what was last seen", async ({ page }) => {
+    await seedApp(page, {
+      seed: { notes: {}, appVersion: "9.9.9", lastSeenVersion: "9.9.9", updateCheck: "none" },
+    });
+    await expect(page.locator("#stat-updated")).toHaveCount(0);
+  });
+});

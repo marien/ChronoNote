@@ -66,4 +66,26 @@ test.describe("status bar — three zones (§100/§110)", () => {
     await expect(modalCard(page, MODAL_LABELS.shortcuts)).toBeVisible();
     await expect(modalCard(page, MODAL_LABELS.shortcuts)).toContainText("Symbols → glyphs");
   });
+
+  test("§update-check: the update icon sits next to the version once one is found, and opens About", async ({
+    page,
+  }) => {
+    await seedApp(page, {
+      seed: { notes: {}, updateCheck: "none" },
+    });
+    await expect(page.locator(".status-update-btn")).toHaveCount(0);
+
+    await page.evaluate(() => {
+      window.__CHRONO_MOCK__!.updateCheck = "available";
+      window.__CHRONO_MOCK__!.updateCheckVersion = "9.9.9";
+    });
+    await page.keyboard.press("Control+Comma");
+    await page.getByRole("button", { name: "Check now" }).click();
+    await page.getByRole("button", { name: "Close", exact: true }).click();
+
+    await expect(page.locator(".status-update-btn")).toBeVisible();
+    await page.locator(".status-update-btn").click();
+    await expect(modalCard(page, MODAL_LABELS.about)).toBeVisible();
+    await expect(modalCard(page, MODAL_LABELS.about)).toContainText("9.9.9");
+  });
 });
