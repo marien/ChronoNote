@@ -6,7 +6,7 @@ kept for the rationale behind each one — not just *what* changed but
 was still being gathered and confirmed before implementation; renamed once
 everything below was applied, since nothing here is "pending" anymore.
 
-**Status: all sections through §133 implemented, released, and on `main`.**
+**Status: all sections through §134 implemented, released, and on `main`.**
 §99–§110 are the 0.6 UX/UI pass (`docs/design/ux-roadmap-0.6.md`); §111 is
 a small v0.6.1 follow-up (the pre-0.6 glyph palette, back as an option).
 §112 (#28) and §113 (#27) are Section History follow-ups (v0.6.2).
@@ -21,7 +21,8 @@ the second of its two proposed features, M365 calendar import, is still
 just a design (0.8.0, not started). §129–§131 close three GitHub issues
 filed after the 0.7 pass (#46, #47, #48). §132 closes a fourth (#49,
 top-bar alignment); §133 is the app-icon redraw the 0.7 roadmap called
-for but deferred out of v0.7.0.
+for but deferred out of v0.7.0. §134 is a follow-up correction to §132
+after its fix overcorrected visually.
 Each
 section is verified before merge (`svelte-check`, the Vitest suite,
 `cargo test`, and — from §77 on — the Playwright E2E suite, all green in
@@ -4862,3 +4863,56 @@ Iconography paragraph updated to describe the shipped state instead of
 the prior "picked direction, not yet done." `svelte-check` 256 files 0
 errors, Vitest 271, Playwright 150, `cargo test` 44 (all unchanged — pure
 asset regeneration, no source change).
+
+---
+
+## 134. §132's own fix overcorrected — tabs read as unnaturally tall (#49, take 2)
+
+**Status: implemented.** Marien, after v0.7.3: *"the top bar is too high
+now. the tabs look unnaturally high and there seems to be space above and
+below the toolbar-buttons."*
+
+**§132 matched icon *positions* by stretching `.tab` to the bar's full
+44px height, leaving `#top-bar .icon-btn` at its original 30px, centred.**
+That did land both icon rows on the same pixel (verified numerically at
+the time), but the *visual* effect was wrong: tabs now spanned edge-to-
+edge — touching the very top of the window — while the toolbar buttons
+floated in the middle of that tall bar with visible empty space both
+above and below them. Matching positions by stretching one element to
+meet the other is not the same as the two reading as one coherent row.
+
+**Fix: match *heights*, not positions, and shrink the bar a little.**
+`#top-bar`'s `align-items` changed from `center` to `flex-end` (so every
+direct child — the toolbar buttons, the scroll arrows, "new scratchpad"
+— bottom-anchors the same way `#tab-bar` already made `.tab` do), then
+`.tab` and `#top-bar .icon-btn` were set to the *same* height (32px, down
+from 34px/30px respectively). Two elements sharing one anchor edge and
+one height necessarily share one visual centre — no stretching needed.
+The bar itself shrank from 44px to 40px, and `.tab-group-divider` (the
+daily/scratchpad separator, 20px fixed) got a recomputed `margin-bottom:
+6px` (half of `32 - 20`) to stay centred on the new shared row instead of
+sitting low against the very bottom.
+
+**Also cleaned up:** `.tab-bar-new-btn` and `.tab-scroll-btn` each had
+their own `height: 28px` — already dead code, silently overridden by the
+more specific `#top-bar .icon-btn { height: 30/32px }` rule (confirmed
+via computed style before touching anything, so as not to introduce a
+*second* stale value). Removed rather than left to mislead the next
+reader.
+
+**Chose from three live-rendered options, not a mockup.** Rather than a
+recreated illustration, three real CSS variations were applied directly
+to the running dev app via injected styles and screenshotted for
+comparison: (A) 44px bar / 34px shared height, (B) 44px bar / 30px shared
+height, (C) 40px bar / 32px shared height. Marien picked C.
+
+No test previously asserted the icon rows' vertical alignment (see §132's
+own entry for why — an eyeball check, not a pixel-diff assertion); none
+added here either, for the same reason. Verified via
+`getBoundingClientRect()` in the running app (tab icons, toolbar-button
+icons, and the group divider all land on the same pixel) and the existing
+`tab-archetypes.spec.ts` / `drawers.spec.ts` / `visual.spec.ts` /
+`navigation.spec.ts` / `glyph-layout.spec.ts` / `status-bar.spec.ts` /
+`smoke.spec.ts` suites stayed green. Pure CSS — no Rust/IPC/storage
+change, `cargo test` unchanged at 44. `svelte-check` 256 files 0 errors,
+Vitest 271, Playwright 150 (unchanged counts).

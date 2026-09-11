@@ -272,13 +272,21 @@ body {
   font-size: 12px;
 }
 
-/* Top Chrome / Tabs (§103: 44px bar, daily vs scratchpad archetypes) */
+/* Top Chrome / Tabs (§103: bar, daily vs scratchpad archetypes) */
 #top-bar {
   display: flex;
   background: var(--surface-chrome);
   border-bottom: 1px solid var(--edge-soft);
-  height: 44px;
-  align-items: center;
+  height: 40px;
+  /* #49 (second pass): both the tabs and the toolbar buttons bottom-anchor
+     and share one height (see `.tab` and `#top-bar .icon-btn` below) — a
+     first attempt at fixing their icon misalignment stretched `.tab` to
+     the bar's full height and left `.icon-btn` centred, which fixed the
+     alignment but made tabs look unnaturally tall with the buttons then
+     reading as floating, with empty space above *and* below them. Matching
+     heights (not stretching one side to meet the other's position) is what
+     actually reads as one coherent row. */
+  align-items: flex-end;
   padding-right: 8px;
 }
 #tab-bar {
@@ -300,14 +308,11 @@ body {
 .tab {
   flex-shrink: 0;
   padding: 0 10px 0 12px;
-  /* #49: fills #tab-bar's own height rather than a shorter fixed value —
-     a shorter tab, bottom-anchored (see #tab-bar's `align-items:
-     flex-end` above), left empty space above it that the toolbar
-     buttons' icons (vertically centred in the full 44px bar) didn't
-     share, so the two icon rows sat ~5px out of vertical alignment.
-     Filling the height instead of guessing a px value stays correct if
-     the bar height (or its border) ever changes. */
-  height: 100%;
+  /* #49: matches `#top-bar .icon-btn`'s height exactly. Both are
+     bottom-anchored (`#tab-bar`'s and `#top-bar`'s `align-items:
+     flex-end`), so equal heights are what makes their icons land on the
+     same row — the two need to move together if either ever changes. */
+  height: 32px;
   margin: 0 1px;
   border-radius: 6px 6px 0 0;
   display: flex;
@@ -356,21 +361,21 @@ body {
   height: 20px;
   background: var(--edge-strong);
   flex-shrink: 0;
-  margin: 0 7px;
-  /* #49: #tab-bar bottom-anchors its children (`align-items: flex-end`)
-     for the tabs' sake — a short, fixed-height sibling like this one
-     would inherit that and sit low, off-centre from the now full-height
-     tabs' icon row. Centre it on its own instead. */
-  align-self: center;
+  /* #49: #tab-bar bottom-anchors its children (`align-items: flex-end`),
+     same as the 32px tabs — this fixed-height (20px) sibling inherits
+     that anchor too, so the extra 6px bottom margin (half of 32 - 20)
+     centres it on the shared tab/icon-button row instead of sitting
+     lower, flush with the very bottom. */
+  margin: 0 7px 6px;
 }
 .tab-bar-new-btn {
+  /* height comes from the shared `#top-bar .icon-btn` rule below (higher
+     specificity than a bare class here would be anyway) — not restated. */
   flex-shrink: 0;
-  height: 28px;
   margin-left: 4px;
 }
 .tab-scroll-btn {
   flex-shrink: 0;
-  height: 28px;
   padding: 0 6px;
 }
 .tab.active {
@@ -418,10 +423,12 @@ body {
   align-items: center;
   gap: 6px;
 }
-/* §103: in the 44px top bar, every control is a ≥28px hit target. */
+/* §103/#49: every control is a ≥28px hit target, and matches `.tab`'s
+   height exactly (both bottom-anchor in `#top-bar`/`#tab-bar`) so the
+   tab strip and the toolbar buttons read as one row, not two. */
 #top-bar .icon-btn {
-  height: 30px;
-  min-width: 30px;
+  height: 32px;
+  min-width: 32px;
   justify-content: center;
   padding: 0 8px;
 }
