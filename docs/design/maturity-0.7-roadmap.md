@@ -18,9 +18,15 @@ Status legend: ☐ not started · ◐ in progress · ☑ shipped
 
 This document is the reconciled plan, in the same spirit as
 [`ux-roadmap-0.6.md`](ux-roadmap-0.6.md): the review is **intent**, the
-phases are what actually gets built, and nothing here is committed until
-Marien signs off. Not yet on a branch — the files are uncommitted in
-`docs/design/` for review.
+phases are what actually gets built.
+
+**Decided (2026‑09‑11, all six open questions answered — see the bottom of
+this doc):** Set A ("Ruled") ships as the icon direction; 0.7.0 bundles the
+UX‑consistency fixes and the icon set into one pass; calendar import is
+additive‑only with dedupe; update auto‑check defaults **on**; calendar
+section headers stay subject‑only (no time prefix); the word‑wrap/
+reading‑width toggles collapse into one 3‑way editor‑width control. Nothing
+below is stale from those decisions — each is folded into its section.
 
 ---
 
@@ -213,11 +219,11 @@ Turning on "Limit line width" makes the "Word wrap" toggle
 `checked + disabled` with an inline parenthetical. A checked‑and‑greyed
 switch is a confusing state.
 
-**Recommendation:** make it one 3‑way choice — **Editor width: `Full
-(no wrap)` · `Wrap` · `Reading column`** — as the segmented control from
-finding D. Maps cleanly onto the existing `word_wrap` /
-`readable_line_length` config (no Rust change): Full = both false, Wrap =
-wrap only, Reading column = both. **Effort: S.**
+**Decided:** one 3‑way choice — **Editor width: `Full (no wrap)` · `Wrap`
+· `Reading column`** — as the segmented control from finding D. Maps
+cleanly onto the existing `word_wrap` / `readable_line_length` config (no
+Rust change): Full = both false, Wrap = wrap only, Reading column = both.
+**Effort: S.**
 
 ### L. One anchored surface among eleven centred ones   ○ (note, not a fix)
 
@@ -228,12 +234,13 @@ deciding whether the **command palette** should become the model the
 lighter drawers (History preview, future quick actions) migrate toward.
 No change in 0.7; flagging so it's a conscious hold.
 
-## Part 1 — proposed 0.7.0 scope
+## Part 1 — 0.7.0 scope (decided)
 
-Ship findings **A–H, J, K** together as the "maturity pass" (I and G are
-cheap enough to fold in; L is a hold). One PR, CI green, browser
-walkthrough, visual diff for Marien. New Vitest/e2e coverage for the
-shared `ResultRow`, the `.segmented` control, and the Shortcuts‑drawer
+Ship findings **A–H, J, K** together with the Part 2 icon set, as one
+"maturity pass" (I and G are cheap enough to fold in; L is a hold). One PR,
+CI green, browser walkthrough, visual diff for Marien. New Vitest/e2e
+coverage for the shared `ResultRow`, the `.segmented` control (also used
+for the new editor‑width control, finding K), and the Shortcuts‑drawer
 wrap. `spec.md` §3 (Visual Design & Chrome Layout) gets the icon‑system
 paragraph; `CHANGELOG.md` gets §127+.
 
@@ -312,11 +319,10 @@ header, not a second unrelated emoji.
   relates to (Actions *is* a stack of `☐`; History *is* `»` over a
   timeline). Best one‑to‑one legibility, most character, busiest small.
 
-**Recommendation:** ship **Set A** for the toolbar, modal headers and
-chrome marks; borrow **Set C**'s glyph‑forward treatment only for the
-three reading drawers' empty states (where size is not a constraint and it
-becomes a tiny demo of the vocabulary). Redraw the OS icon as Set A's
-"day" mark.
+**Decided: Set A**, for the toolbar, modal headers, chrome marks, *and*
+the reading‑drawer empty states (no Set‑C mix) — one consistent language
+everywhere rather than two rules to keep straight. Redraw the OS icon as
+Set A's "day" mark.
 
 ## Delivery
 
@@ -341,9 +347,11 @@ becomes a tiny demo of the vocabulary). Redraw the OS icon as Set A's
 
 ### Goal
 
-On launch (opt‑in) and on demand, tell the user a newer ChronoNote
-release exists, and let **them** download and install it. Never silent,
-never forced.
+On launch and on demand, tell the user a newer ChronoNote release exists,
+and let **them** download and install it. Never silent, never forced.
+**Decided: auto‑check defaults on** (normal for a desktop app), shipped
+with a first‑run disclosure line and the Settings toggle right there so
+it's easy to find and turn off.
 
 ### Approach — the official Tauri updater
 
@@ -564,17 +572,16 @@ pub struct CalEvent {
 
 Each selected event becomes a section header appended to the target dated
 note, with the spec‑2.3 two‑blank‑line spacing (reusing `linesToSections`
-/ `underlineFor`). Header text:
+/ `underlineFor`). **Decided: subject‑only**, matching the manual
+importer's existing behaviour exactly — no time prefix:
 
 ```
-09:30–10:00  Weekly Sync
-=========================
+Weekly Sync
+===========
 ```
 
-The old "verbatim, no time parsing" rule (§3) was for *pasted* text that
-wouldn't reliably contain a time range. Calendar events carry structured
-times, so `HH:MM–HH:MM  Subject` is now the right, useful default. (A
-Settings option can drop the time prefix for people who don't want it.)
+(The event's start/end are still shown in the pre‑import checklist — see
+UX below — just not baked into the header text.)
 
 ### "Sync" — the hard part, and why it was cut before
 
@@ -586,11 +593,11 @@ Re‑running for a day that already has imported sections. Three options:
 | **B. Managed block** | One delimited region (`— calendar 2026‑09‑11 —` … `— end —`) the importer owns and rewrites wholesale each run. | Accurate for cancels/reschedules, but the app now owns hidden structure inside a plain‑text file — the exact thing the Zero‑Database tenet resists — and hand‑edits inside the block collide with the rewrite. |
 | **C. One‑shot, no dedupe** | "Import this day's meetings" — appends, done. Simplest. | Re‑running double‑imports. |
 
-**Recommendation: A.** Additive with `subject + start` dedupe, an explicit
+**Decided: A.** Additive with `subject + start` dedupe, an explicit
 **`Refresh from calendar`** that only ever adds. In the UI call it
 **"Calendar import"**, not "sync" — and say plainly in Settings that it
-adds, never removes. If Marien wants true two‑way accuracy, B is the
-fallback, but it costs a tenet — that's a conscious decision, not a
+adds, never removes. B (managed block) stays the documented fallback if
+two‑way accuracy is ever wanted, but it costs a tenet, so it's not the
 default.
 
 ### UX
@@ -659,18 +666,18 @@ plus the one‑time Entra app registration and its consent story. **0.8.0.**
 
 ---
 
-## Open questions for Marien
+## Decisions log
 
-1. **Icon direction** — A (Ruled) / B (Cell) / C (Marks), or a mix? (See
-   `icon-system-0.7.html`.) Recommendation: A for chrome, C's treatment
-   for empty states.
-2. **0.7.0 scope** — ship findings A–H + J + K as one pass, or split the
-   icon set from the consistency fixes?
-3. **Calendar "sync" semantics** — additive‑only (A, recommended) or the
-   managed‑block (B, costs the Zero‑Database tenet)?
-4. **Update auto‑check default** — on (recommended for a desktop app, with
-   first‑run disclosure) or off?
-5. **Time prefix on calendar section headers** — `HH:MM–HH:MM  Subject`
-   default, or subject‑only to match the old §3 decision?
-6. **Editor‑width control** (finding K) — collapse `word_wrap` +
-   `readable_line_length` into one 3‑way `Full / Wrap / Reading column`?
+All six open questions answered by Marien on 2026‑09‑11:
+
+| # | Question | Decision |
+| --- | --- | --- |
+| 1 | Icon direction | **Set A (Ruled)**, everywhere — including the reading‑drawers' empty states (no Set‑C mix) |
+| 2 | 0.7.0 scope | **Ship together** — consistency fixes (A–H, J, K) + the icon set, one pass |
+| 3 | Calendar "sync" semantics | **Additive + dedupe** (option A) |
+| 4 | Update auto‑check default | **On**, with first‑run disclosure |
+| 5 | Calendar section‑header format | **Subject‑only** — no time prefix, matches manual import |
+| 6 | Editor‑width control | **Yes** — collapse into one 3‑way `Full / Wrap / Reading column` |
+
+Nothing else is blocked on Marien's input; the plan above is ready to move
+into implementation as scoped.
