@@ -1,0 +1,487 @@
+<title>ChronoNote Icon System</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500&family=JetBrains+Mono:wght@400;500;700&display=swap">
+<style>
+  :root{
+    --bg:#fbfbf9;
+    --surface:#ffffff;
+    --text:#1b1b1a;
+    --dim:#6c6c68;
+    --faint:#9a9a94;
+    --line:#e7e6e2;
+    --accent:#0066b8;
+    --code-bg:#f3f3f0;
+    /* the app's own chrome, for the in-context mocks */
+    --app-ground:#1e1e1e;
+    --app-chrome:#252526;
+    --app-text:#d4d4d4;
+    --app-muted:#858585;
+    --app-edge:rgba(255,255,255,.13);
+    --app-accent:#38bdf8;
+    --mono:"JetBrains Mono",ui-monospace,"Cascadia Code","Consolas","Segoe UI Symbol",monospace;
+    --sans:"IBM Plex Sans","Segoe UI",system-ui,sans-serif;
+  }
+  @media (prefers-color-scheme:dark){
+    :root:not([data-theme="light"]){
+      --bg:#181817;
+      --surface:#1f1f1e;
+      --text:#e5e4e0;
+      --dim:#9d9d98;
+      --faint:#6f6f6a;
+      --line:#2e2e2c;
+      --accent:#57a6e0;
+      --code-bg:#242422;
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#181817;
+    --surface:#1f1f1e;
+    --text:#e5e4e0;
+    --dim:#9d9d98;
+    --faint:#6f6f6a;
+    --line:#2e2e2c;
+    --accent:#57a6e0;
+    --code-bg:#242422;
+  }
+
+  *{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--text);
+    font-family:var(--sans);
+    font-size:16px;
+    line-height:1.65;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{
+    max-width:min(780px,calc(100% - 40px));
+    margin:0 auto;
+    padding:64px 0 96px;
+  }
+
+  .masthead{margin-bottom:52px}
+  .wordmark{
+    font-family:var(--mono);
+    font-weight:500;
+    font-size:14px;
+    letter-spacing:.14em;
+    margin:0;
+  }
+  .rule{
+    border:0;
+    border-top:1px solid var(--line);
+    border-bottom:1px solid var(--line);
+    height:3px;
+    margin:14px 0 20px;
+  }
+  .lede{
+    font-size:17px;
+    color:var(--dim);
+    max-width:64ch;
+    margin:0;
+  }
+  .lede + .lede{margin-top:14px}
+
+  section{margin-top:60px}
+  .eyebrow{
+    font-family:var(--mono);
+    font-size:11px;
+    letter-spacing:.18em;
+    text-transform:uppercase;
+    color:var(--faint);
+    margin:0 0 18px;
+  }
+
+  .prop-head{display:flex;align-items:baseline;gap:14px;margin-bottom:8px}
+  .tag{
+    font-family:var(--mono);
+    font-weight:700;
+    font-size:13px;
+    color:var(--accent);
+    border:1px solid var(--accent);
+    border-radius:5px;
+    padding:1px 8px;
+    line-height:1.5;
+    flex:none;
+  }
+  h2{
+    font-family:var(--sans);
+    font-weight:500;
+    font-size:21px;
+    letter-spacing:-.01em;
+    margin:0;
+    text-wrap:balance;
+  }
+  .prop-note{color:var(--dim);max-width:64ch;margin:14px 0 0}
+  .prop-note strong{font-weight:500;color:var(--text)}
+  .prop-note + .prop-note{margin-top:10px}
+
+  /* icon grid */
+  .grid{
+    margin-top:24px;
+    border:1px solid var(--line);
+    border-radius:12px;
+    background:var(--surface);
+    overflow:hidden;
+  }
+  .grid-row{
+    display:grid;
+    grid-template-columns:44px 1fr;
+    gap:16px;
+    align-items:center;
+    padding:13px 18px;
+    border-top:1px solid var(--line);
+  }
+  .grid-row:first-child{border-top:0}
+  .grid-row .ic{
+    width:28px;height:28px;
+    color:var(--text);
+    display:flex;align-items:center;justify-content:center;
+    margin:0 auto;
+  }
+  .grid-row .meta{min-width:0}
+  .grid-row .name{font-size:14.5px}
+  .grid-row .was{
+    font-family:var(--mono);
+    font-size:11.5px;
+    color:var(--faint);
+    letter-spacing:.02em;
+  }
+  .grid-row .was b{color:var(--dim);font-weight:400}
+
+  /* size ramp + theme pairs */
+  .board{
+    margin-top:22px;
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:18px;
+  }
+  @media (max-width:560px){ .board{grid-template-columns:1fr} }
+  .mode{
+    border:1px solid var(--line);
+    border-radius:12px;
+    padding:15px 16px 13px;
+  }
+  .mode.dark{background:var(--app-ground);border-color:#333}
+  .mode.light{background:#f3f3f3;border-color:#ddd}
+  .mode h3{
+    font-family:var(--mono);
+    font-size:10.5px;font-weight:500;
+    letter-spacing:.16em;text-transform:uppercase;
+    margin:0 0 12px;
+  }
+  .mode.dark h3{color:#8a8a8a}
+  .mode.light h3{color:#777}
+  .toolbar{display:flex;gap:4px;align-items:center;flex-wrap:wrap}
+  .toolbar .btn{
+    width:30px;height:30px;border-radius:5px;
+    display:flex;align-items:center;justify-content:center;
+  }
+  .toolbar .btn svg{width:16px;height:16px}
+  .mode.dark .toolbar .btn{color:var(--app-text)}
+  .mode.dark .toolbar .btn:nth-child(2){color:var(--app-accent);background:rgba(255,255,255,.06)}
+  .mode.light .toolbar .btn{color:#3c3c3c}
+  .mode.light .toolbar .btn:nth-child(2){color:#0e7490;background:rgba(0,0,0,.05)}
+
+  .ramp{display:flex;align-items:center;gap:22px;margin-top:20px;padding:14px 2px 2px;border-top:1px dashed var(--line)}
+  .ramp .cell{display:flex;flex-direction:column;align-items:center;gap:7px}
+  .ramp .cell .ic{color:var(--text)}
+  .ramp .cell span{font-family:var(--mono);font-size:10px;letter-spacing:.08em;color:var(--faint)}
+  .ramp-label{
+    font-family:var(--mono);font-size:10px;letter-spacing:.14em;
+    text-transform:uppercase;color:var(--faint);
+    margin-left:auto;max-width:16ch;text-align:right;line-height:1.5;
+  }
+
+  .study{
+    margin-top:22px;
+    display:flex;flex-wrap:wrap;gap:26px;
+    border:1px solid var(--line);border-radius:12px;
+    background:var(--surface);
+    padding:22px 20px;
+  }
+  .study .cell{display:flex;flex-direction:column;align-items:center;gap:9px;width:76px}
+  .study .cell .ic{width:30px;height:30px;color:var(--text);display:flex;align-items:center;justify-content:center}
+  .study .cell span{font-family:var(--mono);font-size:10px;letter-spacing:.06em;color:var(--faint);text-align:center}
+
+  .emoji-row{
+    margin-top:16px;display:flex;flex-wrap:wrap;gap:22px;
+    border:1px solid var(--line);border-radius:12px;background:var(--surface);
+    padding:20px;
+  }
+  .emoji-row .cell{display:flex;flex-direction:column;align-items:center;gap:8px;width:74px}
+  .emoji-row .cell .g{font-size:22px;line-height:1}
+  .emoji-row .cell span{font-family:var(--mono);font-size:10px;color:var(--faint);text-align:center}
+
+  .appicon-row{display:flex;align-items:flex-end;gap:26px;margin-top:20px}
+  .appicon-row .cell{display:flex;flex-direction:column;align-items:center;gap:8px}
+  .appicon-row .cell span{font-family:var(--mono);font-size:10px;color:var(--faint)}
+  .appicon-row svg{display:block}
+
+  .setting{
+    font-family:var(--mono);font-size:12.5px;line-height:1.7;color:var(--dim);
+    background:var(--code-bg);border-left:2px solid var(--line);
+    padding:12px 16px;margin:18px 0 0;
+  }
+  .setting b{color:var(--text);font-weight:500}
+
+  .rec{margin-top:28px;border:1px solid var(--accent);border-radius:12px;padding:18px 20px}
+  .rec h3{
+    font-family:var(--mono);font-size:11px;letter-spacing:.16em;
+    text-transform:uppercase;color:var(--accent);margin:0 0 8px;
+  }
+  .rec p{margin:0;font-size:15px}
+  .rec p + p{margin-top:8px;color:var(--dim)}
+
+  .ship dl{margin:20px 0 0;display:grid;grid-template-columns:auto 1fr;gap:6px 20px;font-size:15px}
+  .ship dt{font-family:var(--mono);font-size:12px;letter-spacing:.06em;color:var(--faint);padding-top:5px;white-space:nowrap}
+  .ship dd{margin:0;color:var(--dim)}
+  .ship dd b{color:var(--text);font-weight:500}
+
+  code{font-family:var(--mono);font-size:.86em;background:var(--code-bg);padding:1px 5px;border-radius:4px}
+  a{color:var(--accent)}
+  :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+  footer{
+    margin-top:72px;padding-top:18px;border-top:1px solid var(--line);
+    font-family:var(--mono);font-size:11px;letter-spacing:.1em;color:var(--faint);
+  }
+</style>
+
+<div class="wrap">
+  <header class="masthead">
+    <p class="wordmark">chrononote</p>
+    <hr class="rule">
+    <p class="lede">One icon set for the whole application, drawn from the app&rsquo;s own vocabulary &mdash; the section rule, the dated page, the action box, the forward mark. It replaces the emoji currently used in the top bar and every modal header with a single monoline SVG set that follows the theme the way the editor glyphs do.</p>
+    <p class="lede">Three directions below &mdash; <strong>A&nbsp;Ruled</strong>, <strong>B&nbsp;Cell</strong>, <strong>C&nbsp;Marks</strong> &mdash; shown at the sizes the app renders. Set&nbsp;A is drawn in full; B and C are character studies of the same handful of functions so the direction reads without committing every glyph.</p>
+  </header>
+
+  <section>
+    <p class="eyebrow">Today &mdash; v0.6.6</p>
+    <p class="prop-note">The top bar and modal headers are emoji. They don&rsquo;t follow the light/dark or colour/grayscale setting &mdash; <code>filter: grayscale(1)</code> forces them flat, then <code>color</code> mode removes the filter, so the emoji render in Segoe&nbsp;UI&nbsp;Emoji&rsquo;s own colours against the deliberate cyan/emerald/violet glyph palette. The tab strip, meanwhile, already uses a custom monoline SVG pair. Two systems, 40&nbsp;px apart.</p>
+    <div class="emoji-row" id="today"></div>
+  </section>
+
+  <section id="set-a">
+    <div class="prop-head"><span class="tag">A</span><h2>Ruled</h2></div>
+    <p class="prop-note">Every mark built on the page + section&#8209;rule metaphor: a <code>24&times;24</code> grid, <code>~1.75</code> stroke (≈1.5 optical at 16&nbsp;px), round caps and joins, <code>stroke: currentColor</code>, no fill. This is the tab&#8209;strip language promoted to the whole app, and it sits naturally against the <code>--edge-soft</code> hairlines from the 0.6 surface pass.</p>
+    <p class="prop-note"><strong>Themes for free.</strong> Icons inherit <code>color</code> &mdash; <code>--text</code> in the top bar, <code>--tab-active-border</code> on the active tab, <code>--muted</code> in a modal header. Chrome icons stay neutral in <em>every</em> colour mode; the semantic hue belongs to the glyphs, not the toolbar.</p>
+    <div class="grid" id="grid-a"></div>
+
+    <div class="board">
+      <div class="mode dark"><h3>top bar &mdash; dark shell</h3><div class="toolbar" data-toolbar="A" data-shell="dark"></div></div>
+      <div class="mode light"><h3>top bar &mdash; light shell</h3><div class="toolbar" data-toolbar="A" data-shell="light"></div></div>
+    </div>
+    <div class="ramp" id="ramp-a"></div>
+
+    <p class="setting"><b>Replaces three hacks.</b> the <code>filter: grayscale(1)</code> / <code>filter: none</code> pair, the empty&#8209;<code>&lt;span class="icon-glyph"&gt;</code> wrapper (§73), and the <code>.icon-label&nbsp;{ top: 1px }</code> nudge &mdash; all were emoji&#8209;metric workarounds.</p>
+  </section>
+
+  <section id="set-b">
+    <div class="prop-head"><span class="tag">B</span><h2>Cell</h2></div>
+    <p class="prop-note">Built from monospace grid cells and a caret block &mdash; a direct read of the &ldquo;tabular monospace grid&rdquo; tenet. More geometric, more distinctive, unmistakably <em>a text tool</em>. The cost is legibility at 16&nbsp;px: a cluster of cells can read as noise where a single contour wouldn&rsquo;t, so several icons would need a dedicated small variant.</p>
+    <div class="study" id="study-b"></div>
+    <div class="board">
+      <div class="mode dark"><h3>top bar &mdash; dark shell</h3><div class="toolbar" data-toolbar="B" data-shell="dark"></div></div>
+      <div class="mode light"><h3>top bar &mdash; light shell</h3><div class="toolbar" data-toolbar="B" data-shell="light"></div></div>
+    </div>
+  </section>
+
+  <section id="set-c">
+    <div class="prop-head"><span class="tag">C</span><h2>Marks</h2></div>
+    <p class="prop-note">Each icon foregrounds the literal editor glyph it relates to: <strong>Actions</strong> <em>is</em> a stack of <code>&#9744;</code>; <strong>Section history</strong> <em>is</em> <code>&laquo;</code> over a run of dates; <strong>Search</strong> <em>is</em> a lens over a real <code>====</code> rule. The strongest one&#8209;to&#8209;one mapping and the most character &mdash; and the busiest at small sizes, where the glyph detail collapses.</p>
+    <div class="study" id="study-c"></div>
+    <p class="prop-note"><strong>Best use:</strong> not the toolbar, but the empty states of the three reading drawers &mdash; where there&rsquo;s room, and the mark becomes a small demonstration of the vocabulary itself.</p>
+  </section>
+
+  <section id="chrome">
+    <p class="eyebrow">Shared chrome marks</p>
+    <p class="prop-note">The small repeated marks &mdash; today a mix of <code>&lsaquo; &rsaquo;</code>, <code>&#10005;</code>, <code>&#8963;</code> and a bordered <code>?</code>. One chevron pair and one <code>&times;</code>, shared by the find bar, the date&#8209;picker month nav, and every close affordance. The warning mark (<code>&#9888;</code> today) redrawn to the same grid for the Safety and Conflict modals.</p>
+    <div class="study" id="study-chrome"></div>
+  </section>
+
+  <section id="appicon">
+    <p class="eyebrow">The application icon rejoins the family</p>
+    <p class="prop-note">The current OS icon is the §96 &ldquo;checkbox&#8209;clock&rdquo; &mdash; unrelated to anything drawn inside the app. In Set&nbsp;A it becomes the same <strong>dated page under its rule</strong> that the <em>Open date note</em> toolbar button uses, so the taskbar icon and the button read as one thing. The OS icon stays a single baked variant (regenerated with <code>npx tauri icon</code>); only an in&#8209;app inline SVG can follow the runtime setting.</p>
+    <div class="appicon-row" id="appicon-row"></div>
+    <p class="setting"><b>Neutral tile, accent mark.</b> tile is <code>--surface-chrome</code> (<code>#252526</code> dark / <code>#f3f3f3</code> light) with an <code>--edge-soft</code> hairline; the mark is accent blue in colour mode, ink in grayscale &mdash; exactly how the glyphs behave.</p>
+  </section>
+
+  <section class="ship">
+    <p class="eyebrow">Shipping it</p>
+    <dl>
+      <dt>where they live</dt>
+      <dd>One <code>&lt;Icon name="…" size={16} /&gt;</code> Svelte component over an inline path map in <code>src/lib/icons/</code>. <b>No icon font, no dependency</b> &mdash; the CSP forbids external assets and the app is offline&#8209;first.</dd>
+      <dt>theming</dt>
+      <dd>Every path is <code>stroke: currentColor</code>. The button sets <code>color</code>; light/dark and colour/grayscale fall out of the existing tokens with <b>no per&#8209;icon rules</b>.</dd>
+      <dt>modal headers</dt>
+      <dd>reuse the <em>same</em> path as the matching toolbar action, at 15&nbsp;px in <code>--muted</code> &mdash; opening <em>Actions</em> shows the Actions icon in its header, not a second unrelated emoji.</dd>
+      <dt>new marks</dt>
+      <dd><b>Update available</b> (down&#8209;arrow into a tray, dot badge when active) and <b>Calendar import</b> (dated page + sync arc) are drawn into the set now, for the 0.7.x / 0.8.0 features.</dd>
+      <dt>tests</dt>
+      <dd><code>visual.spec.ts</code>&rsquo;s gallery picks them up automatically; one new assertion that no <code>.icon-btn</code> contains an emoji codepoint.</dd>
+    </dl>
+    <div class="rec">
+      <h3>Recommendation</h3>
+      <p>Ship <b>Set&nbsp;A</b> for the toolbar, modal headers and chrome marks, and redraw the OS icon as its &ldquo;day&rdquo; mark.</p>
+      <p>Hold <b>Set&nbsp;C</b>&rsquo;s glyph&#8209;forward treatment for the reading drawers&rsquo; empty states, where size isn&rsquo;t a constraint and it doubles as a demo of the token vocabulary. <b>Set&nbsp;B</b> is the more radical option if ChronoNote wants a sharper, more proprietary silhouette &mdash; but it needs a full small&#8209;size variant pass.</p>
+    </div>
+  </section>
+
+  <footer>chrononote &mdash; keyboard-driven plain-text daily notes &nbsp;&middot;&nbsp; 0.7 maturity roadmap</footer>
+</div>
+
+<script>
+(function(){
+  const NS = "http://www.w3.org/2000/svg";
+
+  // ---- Set A: one builder per function. Returns inner markup for a
+  //      0 0 24 24 viewBox, stroke via currentColor. ------------------
+  const S = 1.75;
+  const open = `stroke="currentColor" stroke-width="${S}" fill="none" stroke-linecap="round" stroke-linejoin="round"`;
+  const A = {
+    "new-scratchpad": `<path ${open} d="M13 3H7a1 1 0 0 0-1 1v11"/><path ${open} d="M13 3l4 4v6"/><path ${open} d="M17 7h-4V3"/><path ${open} d="M8 19h8M12 15v8"/>`,
+    "date-note": `<rect x="4" y="4" width="16" height="16" rx="2" ${open}/><path ${open} d="M7.5 9h6"/><path ${open} d="M7.5 12h9M7.5 13.6h9"/><path ${open} d="M7.5 17h5"/>`,
+    "actions": `<rect x="3.5" y="4" width="6" height="6" rx="1.4" ${open}/><path ${open} d="M5 7l1.4 1.4L9 5.6"/><path ${open} d="M13 7h7"/><rect x="3.5" y="14" width="6" height="6" rx="1.4" ${open}/><path ${open} d="M13 17h7"/>`,
+    "section-history": `<rect x="8" y="4" width="12" height="12" rx="2" ${open}/><rect x="4" y="8" width="12" height="12" rx="2" ${open} fill="var(--surface,#fff)"/><path ${open} d="M12 12l-2 2 2 2M9 14h5"/>`,
+    "search": `<circle cx="11" cy="11" r="6" ${open}/><path ${open} d="M8 10.5h6M8 12.5h4"/><path ${open} d="M15.5 15.5L20 20"/>`,
+    "import": `<rect x="11" y="4" width="9" height="16" rx="2" ${open}/><path ${open} d="M3.5 8.5h6M3.5 12h6M3.5 15.5h6"/><path ${open} d="M7.5 10l2 2-2 2"/>`,
+    "promote": `<path ${open} d="M14.5 21H7a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h6l4 4v3"/><path ${open} d="M13 5v4h4"/><path ${open} d="M18 21v-8M15 16l3-3 3 3"/>`,
+    "settings": `<path ${open} d="M4 7h16M4 12h16M4 17h16"/><circle cx="9" cy="7" r="2.1" ${open} fill="var(--surface,#fff)"/><circle cx="15" cy="12" r="2.1" ${open} fill="var(--surface,#fff)"/><circle cx="8" cy="17" r="2.1" ${open} fill="var(--surface,#fff)"/>`,
+    "about": `<circle cx="12" cy="12" r="8.2" ${open}/><path ${open} d="M12 11.5v4.5"/><circle cx="12" cy="8" r="0.4" stroke="currentColor" stroke-width="1.6"/>`,
+    "command": `<path ${open} d="M7.5 8l4 4-4 4"/><path ${open} d="M13 16h5"/>`,
+    "update": `<path ${open} d="M5 15v2.5A1.5 1.5 0 0 0 6.5 19h11a1.5 1.5 0 0 0 1.5-1.5V15"/><path ${open} d="M12 4v10M8 10l4 4 4-4"/>`,
+    "calendar-import": `<rect x="3.5" y="4.5" width="14" height="14" rx="2" ${open}/><path ${open} d="M6.5 8h8"/><path ${open} d="M6.5 11h6M6.5 12.4h6"/><path ${open} d="M17 15.5a3.2 3.2 0 1 1-3-3.2" transform="translate(3 4)"/><path ${open} d="M19.6 15.2l.4 2 2-.4" transform="translate(-2.4 1.1)"/>`,
+    "warning": `<path ${open} d="M12 4.5L21 19.5H3z"/><path ${open} d="M12 10.5v4"/><circle cx="12" cy="16.7" r="0.4" stroke="currentColor" stroke-width="1.7"/>`,
+    "chevrons": `<path ${open} d="M13 8l-4 4 4 4"/><path ${open} d="M17 8l-4 4 4 4" opacity="0.45"/>`,
+    "close": `<path ${open} d="M7.5 7.5l9 9M16.5 7.5l-9 9"/>`,
+    "tab-daily": `<rect x="4" y="5" width="16" height="14" rx="2" ${open}/><path ${open} d="M4 9h16M9 4v3M15 4v3"/>`,
+    "tab-scratch": `<path ${open} d="M13 4H7a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V9z"/><path ${open} d="M13 4v5h5"/><path ${open} d="M9 13h6M9 16h4"/>`,
+  };
+
+  const INVENTORY = [
+    ["new-scratchpad","New scratchpad","+"],
+    ["date-note","Open date note","📅"],
+    ["actions","Actions","📋"],
+    ["section-history","Section history","🕒"],
+    ["search","Cross-tab search","🔎"],
+    ["import","Import sections","📥"],
+    ["promote","Promote scratchpad","⬆"],
+    ["settings","Settings","⚙"],
+    ["about","About","ℹ️"],
+    ["command","Command palette","⌘"],
+    ["update","Update available  — new","—"],
+    ["calendar-import","Calendar import  — new","—"],
+    ["warning","Safety / conflict warning","⚠"],
+    ["tab-daily","Tab · daily note","svg"],
+  ];
+
+  const TOOLBAR_KEYS = ["new-scratchpad","date-note","actions","section-history","search","import","command","settings","about"];
+
+  function svg(inner, size){
+    return `<svg viewBox="0 0 24 24" width="${size||24}" height="${size||24}" aria-hidden="true">${inner}</svg>`;
+  }
+  function iconA(name, size){ return svg(A[name]||"", size); }
+
+  // ---- Set B: cell / grid direction (subset) ----
+  const B = `stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"`;
+  const Bf = `fill="currentColor"`;
+  const BUILD_B = {
+    "date-note": `<rect x="4" y="4" width="16" height="16" rx="1" ${B}/><rect x="4" y="4" width="16" height="4" ${Bf}/><path ${B} d="M12 10v10M8 12h8"/>`,
+    "actions": `<rect x="5" y="4" width="5" height="5" ${B}/><path ${B} d="M6 6.5l1.2 1.2L9.2 5.4"/><rect x="5" y="11" width="5" height="5" ${Bf}/><rect x="5" y="11" width="5" height="5" ${B}/><path ${B} d="M13 6.5h6M13 13.5h6M13 20h4"/><rect x="5" y="18" width="5" height="4" ${B}/>`,
+    "section-history": `<rect x="13" y="4" width="7" height="16" ${B} opacity="0.4"/><rect x="8" y="4" width="7" height="16" ${B} opacity="0.7"/><rect x="3" y="4" width="7" height="16" ${B}/><path ${B} d="M7 10l-2 2 2 2"/>`,
+    "search": `<rect x="4" y="4" width="4" height="4" ${B}/><rect x="10" y="4" width="4" height="4" ${B}/><rect x="4" y="10" width="4" height="4" ${B}/><rect x="10" y="10" width="4" height="4" ${Bf}/><path ${B} d="M15 15l5 5"/>`,
+    "import": `<path ${B} d="M15 4h4a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1h-4"/><rect x="3" y="7" width="4" height="3" ${Bf}/><rect x="3" y="14" width="4" height="3" ${Bf}/><path ${B} d="M10 6l3 2.5-3 2.5M10 13l3 2.5-3 2.5"/>`,
+    "command": `<rect x="4" y="5" width="16" height="14" rx="1" ${B}/><path ${B} d="M7 9l3 3-3 3M12 15h5"/>`,
+  };
+  const B_KEYS = ["date-note","actions","section-history","search","import","command"];
+
+  // ---- Set C: glyph-forward (subset) ----
+  const C = `stroke="currentColor" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round"`;
+  const Ct = `fill="currentColor" font-family="JetBrains Mono, monospace" font-weight="700"`;
+  const BUILD_C = {
+    "date-note": `<text x="12" y="12" text-anchor="middle" ${Ct} font-size="11">H</text><path ${C} d="M4 15h16M4 17.5h16"/>`,
+    "actions": `<rect x="4" y="3.5" width="5.5" height="5.5" rx="1" ${C}/><rect x="4" y="10.5" width="5.5" height="5.5" rx="1" ${C}/><path ${C} d="M5.2 12.6l1.4 1.4 2.2-2.6"/><rect x="4" y="17.5" width="5.5" height="5.5" rx="1" ${C}/><path ${C} d="M12.5 6h7M12.5 13h7M12.5 20h7"/>`,
+    "section-history": `<text x="6" y="15" ${Ct} font-size="13">&#171;</text><path ${C} d="M12 12h9"/><path ${C} d="M12 9v6M15.5 9v6M19 9v6"/>`,
+    "search": `<circle cx="10" cy="10" r="6" ${C}/><path ${C} d="M14.2 14.2L20 20"/><path ${C} d="M6.5 9h7M6.5 11h7" stroke-width="2"/>`,
+    "import": `<text x="12" y="9" text-anchor="middle" ${Ct} font-size="8">H</text><path ${C} d="M6.5 11h11M6.5 12.6h11"/><path ${C} d="M12 15v5M9 17.5l3 2.5 3-2.5"/>`,
+    "delegate": `<path ${C} d="M3 12h6M6 9l3 3-3 3"/><circle cx="15" cy="9" r="2.4" ${C}/><path ${C} d="M11.5 18a3.5 3.5 0 0 1 7 0z"/>`,
+  };
+  const C_KEYS = ["date-note","actions","section-history","search","import","delegate"];
+  const C_LABEL = {delegate:"Delegate →@"};
+
+  // ---- today (emoji) ----
+  document.getElementById("today").innerHTML = INVENTORY
+    .filter(r=>r[2]!=="—" && r[2]!=="svg" && r[2]!=="+")
+    .map(r=>`<div class="cell"><span class="g">${r[2]}</span><span>${r[1]}</span></div>`)
+    .join("");
+
+  // ---- Set A full grid ----
+  document.getElementById("grid-a").innerHTML = INVENTORY.map(function(r){
+    const was = r[2]==="svg" ? "<b>custom SVG</b> — restroked"
+      : r[2]==="—" ? "<b>new</b>"
+      : `was <b>${r[2]}</b>`;
+    return `<div class="grid-row"><span class="ic">${iconA(r[0],28)}</span>`+
+      `<span class="meta"><div class="name">${r[1].replace("  — new","")}</div>`+
+      `<div class="was">${was}</div></span></div>`;
+  }).join("");
+
+  // ---- toolbars in context ----
+  document.querySelectorAll("[data-toolbar]").forEach(function(el){
+    const set = el.dataset.toolbar;
+    el.innerHTML = TOOLBAR_KEYS.map(function(k){
+      const g = set==="A" ? iconA(k,16) : (BUILD_B[k]? svg(BUILD_B[k],16) : iconA(k,16));
+      return `<span class="btn">${g}</span>`;
+    }).join("");
+  });
+
+  // ---- size ramp ----
+  document.getElementById("ramp-a").innerHTML =
+    [32,20,16].map(function(sz){
+      return `<div class="cell"><span class="ic" style="width:${sz}px;height:${sz}px;display:flex;align-items:center;justify-content:center">${iconA("section-history",sz)}</span><span>${sz} px</span></div>`;
+    }).join("") +
+    `<span class="ramp-label">Section history &mdash; the busiest Set A mark, at render sizes</span>`;
+
+  document.getElementById("study-b").innerHTML = B_KEYS.map(function(k){
+    const label = INVENTORY.find(r=>r[0]===k)[1];
+    return `<div class="cell"><span class="ic">${svg(BUILD_B[k],30)}</span><span>${label}</span></div>`;
+  }).join("");
+
+  document.getElementById("study-c").innerHTML = C_KEYS.map(function(k){
+    const label = C_LABEL[k] || INVENTORY.find(r=>r[0]===k)[1];
+    return `<div class="cell"><span class="ic">${svg(BUILD_C[k],30)}</span><span>${label}</span></div>`;
+  }).join("");
+
+  // ---- chrome marks ----
+  document.getElementById("study-chrome").innerHTML = [
+    ["chevrons","‹ ›  step"],
+    ["close","×  close"],
+    ["warning","warning"],
+    ["about","help  ?"],
+  ].map(function(r){
+    return `<div class="cell"><span class="ic">${iconA(r[0],28)}</span><span>${r[1]}</span></div>`;
+  }).join("");
+
+  // ---- app icon ----
+  function appTile(mark, size, theme){
+    const tile = theme==="dark"
+      ? {p:"#252526", b:"#3a3a3a"}
+      : {p:"#f3f3f3", b:"#e0e0e0"};
+    const inner =
+      `<rect x="3.5" y="3.5" width="93" height="93" rx="23" fill="${tile.p}" stroke="${tile.b}" stroke-width="1.4"/>`+
+      `<g transform="translate(50 50) scale(2.7) translate(-12 -12)" stroke="${mark}" stroke-width="1.9" fill="none" stroke-linecap="round" stroke-linejoin="round">`+
+        `<rect x="4" y="4" width="16" height="16" rx="2"/>`+
+        `<path d="M7.5 9h6"/><path d="M7.5 12h9M7.5 13.6h9"/><path d="M7.5 17h5"/>`+
+      `</g>`;
+    return `<svg width="${size}" height="${size}" viewBox="0 0 100 100" aria-hidden="true">${inner}</svg>`;
+  }
+  document.getElementById("appicon-row").innerHTML =
+    [[64,"#38bdf8","dark"],[64,"#0e7490","light"],[32,"#38bdf8","dark"],[16,"#38bdf8","dark"]]
+      .map(function(a){
+        return `<div class="cell">${appTile(a[1],a[0],a[2])}<span>${a[0]} px · ${a[2]}${a[0]===64?" · colour":""}</span></div>`;
+      }).join("");
+})();
+</script>
