@@ -1,0 +1,106 @@
+import { test, expect } from "@playwright/test";
+import { editor, modalCard, MODAL_LABELS, openViaShortcut, seedApp, toast, todayFilename } from "./helpers";
+
+/** §update-check (`docs/design/maturity-0.7-roadmap.md`): a GitHub-
+ * releases check via `@tauri-apps/plugin-updater`, mocked in
+ * `mockBackend.ts` (`MockSeed.updateCheck`/`updateCheckVersion`). */
+test.describe("update check (§update-check)", () => {
+  test("About reads 'up to date' when no update is available", async ({ page }) => {
+    await seedApp(page, { seed: { notes: { [todayFilename()]: "hi" }, updateCheck: "none" } });
+    const about = await openViaShortcut(page, "Control+Shift+Comma", "about");
+    await expect(about).toContainText(/up to date/i);
+  });
+
+  test("About shows the available version; Download & install runs it through to ready", async ({ page }) => {
+    await seedApp(page, {
+      seed: {
+        notes: { [todayFilename()]: "hi" },
+        updateCheck: "available",
+        updateCheckVersion: "9.9.9",
+      },
+    });
+    const about = await openViaShortcut(page, "Control+Shift+Comma", "about");
+    await expect(about).toContainText("9.9.9");
+
+    await about.getByRole("button", { name: /Download & install/i }).click();
+    await expect(about).toContainText(/restart/i, { timeout: 5000 });
+  });
+
+  test("a failed check reads as an error, with a way to try again", async ({ page }) => {
+    await seedApp(page, {
+      seed: { notes: { [todayFilename()]: "hi" }, throwOnCommands: ["plugin:updater|check"] },
+    });
+    const about = await openViaShortcut(page, "Control+Shift+Comma", "about");
+    await expect(about).toContainText(/couldn.t check/i);
+    await expect(about.getByRole("button", { name: /Try again/i })).toBeVisible();
+  });
+
+  test("the launch-time check surfaces a quiet status-bar message when it finds an update", async ({ page }) => {
+    await seedApp(page, {
+      seed: {
+        notes: { [todayFilename()]: "hi" },
+        updateCheck: "available",
+        updateCheckVersion: "9.9.9",
+        autoCheckUpdates: true,
+      },
+    });
+    await expect(toast(page)).toContainText(/update available/i, { timeout: 5000 });
+  });
+
+  test("the launch-time check never fires when auto-check is off", async ({ page }) => {
+    await seedApp(page, {
+      seed: {
+        notes: { [todayFilename()]: "hi" },
+        updateCheck: "available",
+        autoCheckUpdates: false,
+      },
+    });
+    await editor(page).click();
+    await page.waitForTimeout(400); // give an errant check a chance to fire
+    await expect(toast(page)).toHaveCount(0);
+    expect(
+      await page.evaluate(() => window.__CHRONO_MOCK__!.invokeLog.some((e) => e.cmd === "plugin:updater|check")),
+    ).toBe(false);
+  });
+
+  test("Settings' toggle persists the preference across a reload", async ({ page }) => {
+    await seedApp(page, { seed: { notes: {} } });
+    await editor(page).click();
+    await page.keyboard.press("Control+Comma");
+    const settings = modalCard(page, MODAL_LABELS.settings);
+    await settings.getByText("Check for updates when ChronoNote starts").click();
+    expect(await page.evaluate(() => window.__CHRONO_MOCK__!.autoCheckUpdates)).toBe(false);
+
+    await page.reload();
+    await expect(page.locator("#top-bar")).toBeVisible();
+    expect(await page.evaluate(() => window.__CHRONO_MOCK__!.autoCheckUpdates)).toBe(false);
+  });
+
+  test("Settings' 'Check now' re-checks; About reflects the result", async ({ page }) => {
+    await seedApp(page, {
+      seed: { notes: {}, updateCheck: "available", updateCheckVersion: "1.2.3", autoCheckUpdates: false },
+    });
+    await editor(page).click();
+    await page.keyboard.press("Control+Comma");
+    const settings = modalCard(page, MODAL_LABELS.settings);
+    await settings.getByRole("button", { name: "Check now" }).click();
+    await page.keyboard.press("Escape");
+
+    const about = await openViaShortcut(page, "Control+Shift+Comma", "about");
+    await expect(about).toContainText("1.2.3");
+  });
+
+  test("the command palette can trigger a check and opens About", async ({ page }) => {
+    await seedApp(page, {
+      seed: { notes: {}, updateCheck: "available", updateCheckVersion: "4.5.6", autoCheckUpdates: false },
+    });
+    await editor(page).click();
+    await page.keyboard.press("Control+k");
+    await page.keyboard.type("check for updates");
+    await page.keyboard.press("Enter");
+
+    const about = modalCard(page, MODAL_LABELS.about);
+    await expect(about).toBeVisible();
+    await expect(about).toContainText("4.5.6");
+  });
+});

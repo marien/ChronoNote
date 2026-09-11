@@ -16,6 +16,11 @@ tauri-build = { version = "2", features = [] }
 tauri = { version = "2", features = [] }
 tauri-plugin-dialog = "2"
 tauri-plugin-opener = "2"
+# GitHub-releases update check (§update-check) — checks a `latest.json`
+# manifest, verifies its minisign signature, downloads + installs, then
+# `tauri-plugin-process` relaunches. See docs/design/maturity-0.7-roadmap.md.
+tauri-plugin-updater = "2"
+tauri-plugin-process = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 # Atomic note writes (§1.2): temp-file + fsync + rename, with an

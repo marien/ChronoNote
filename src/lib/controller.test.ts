@@ -11,6 +11,7 @@ const apiMock = {
   setColorMode: vi.fn(),
   setWordWrap: vi.fn(),
   setReadableLineLength: vi.fn(),
+  setAutoCheckUpdates: vi.fn(),
   listNoteFiles: vi.fn(),
   readNote: vi.fn(),
   writeNote: vi.fn(),
@@ -51,6 +52,15 @@ vi.mock("@tauri-apps/api/window", () => ({
 const dialogMock = { open: vi.fn() };
 vi.mock("@tauri-apps/plugin-dialog", () => dialogMock);
 
+// §update-check: `boot.ts` may fire a launch-time check (gated on
+// `AppConfig.autoCheckUpdates`); mocked here so no test that calls
+// `initApp()` reaches the real plugin (no `window.__TAURI_INTERNALS__`
+// exists under Vitest/jsdom).
+const updaterMock = { check: vi.fn() };
+vi.mock("@tauri-apps/plugin-updater", () => updaterMock);
+const processMock = { relaunch: vi.fn() };
+vi.mock("@tauri-apps/plugin-process", () => processMock);
+
 /** `controller.ts` keeps a few pieces of state as plain module-level
  * variables (the closed-tab history, the "last copied action" for the
  * paste-forward feature, the disk-notes cache) with no exported reset —
@@ -77,12 +87,17 @@ beforeEach(async () => {
   apiMock.writeNote.mockResolvedValue({ exists: true, contentHash: "hash", sizeBytes: 0, modifiedMs: 0 });
   apiMock.writeTabSession.mockResolvedValue(undefined);
   apiMock.openExternalUrl.mockResolvedValue(undefined);
+  // Off by default here (unlike the real Rust default) so the launch-time
+  // update check in `initApp()` stays inert for every test that doesn't
+  // explicitly opt in — `updaterMock.check` still resolves `null` as a
+  // second line of defense for any test that does.
   apiMock.getConfig.mockResolvedValue({
     notesDir: "/notes",
     colorMode: "grayscale",
     wordWrap: false,
     readableLineLength: false,
     recentNotesDirs: [],
+    autoCheckUpdates: false,
   });
   apiMock.setNotesDir.mockResolvedValue({
     notesDir: "/new",
@@ -90,7 +105,10 @@ beforeEach(async () => {
     wordWrap: false,
     readableLineLength: false,
     recentNotesDirs: [],
+    autoCheckUpdates: false,
   });
+  updaterMock.check.mockResolvedValue(null);
+  processMock.relaunch.mockResolvedValue(undefined);
   apiMock.getAppVersion.mockResolvedValue("0.0.0-test");
   tauriWindowMock.setTitle.mockResolvedValue(undefined);
   tauriWindowMock.isFullscreen.mockResolvedValue(false);
@@ -1049,6 +1067,47 @@ describe("setReadableLineLength (§99 / §110)", () => {
     // turning it back off leaves wrap where it is (user owns it again)
     await controller.setReadableLineLength(false);
     expect(get(controller.wordWrap)).toBe(true);
+  });
+});
+
+describe("setAutoCheckUpdates (§update-check)", () => {
+  it("updates the store and persists via the API", async () => {
+    await controller.setAutoCheckUpdates(false);
+    expect(get(controller.autoCheckUpdates)).toBe(false);
+    expect(apiMock.setAutoCheckUpdates).toHaveBeenCalledWith(false);
+
+    await controller.setAutoCheckUpdates(true);
+    expect(get(controller.autoCheckUpdates)).toBe(true);
+    expect(apiMock.setAutoCheckUpdates).toHaveBeenLastCalledWith(true);
+  });
+});
+
+describe("initApp — launch-time update check (§update-check)", () => {
+  it("checks on boot when the config has it enabled", async () => {
+    apiMock.getConfig.mockResolvedValue({
+      notesDir: "/notes",
+      colorMode: "grayscale",
+      wordWrap: false,
+      readableLineLength: false,
+      recentNotesDirs: [],
+      autoCheckUpdates: true,
+    });
+    await controller.initApp();
+    // initApp fires the check without awaiting it — give its promise a
+    // tick to run before asserting.
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(updaterMock.check).toHaveBeenCalledTimes(1);
+    expect(get(controller.autoCheckUpdates)).toBe(true);
+  });
+
+  it("never checks on boot when the config has it disabled", async () => {
+    // The shared beforeEach config already has autoCheckUpdates: false.
+    await controller.initApp();
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(updaterMock.check).not.toHaveBeenCalled();
+    expect(get(controller.autoCheckUpdates)).toBe(false);
   });
 });
 

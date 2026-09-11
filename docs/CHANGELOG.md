@@ -6,7 +6,7 @@ kept for the rationale behind each one — not just *what* changed but
 was still being gathered and confirmed before implementation; renamed once
 everything below was applied, since nothing here is "pending" anymore.
 
-**Status: all sections through §127 implemented, released, and on `main`.**
+**Status: all sections through §128 implemented, released, and on `main`.**
 §99–§110 are the 0.6 UX/UI pass (`docs/design/ux-roadmap-0.6.md`); §111 is
 a small v0.6.1 follow-up (the pre-0.6 glyph palette, back as an option).
 §112 (#28) and §113 (#27) are Section History follow-ups (v0.6.2).
@@ -16,6 +16,9 @@ a small v0.6.1 follow-up (the pre-0.6 glyph palette, back as an option).
 plain follow-up adds no `#`, `@name` may contain a hyphen, and `(@name)`
 is a delegate. §127 is the 0.7 "maturity pass" — the UX/UI consistency
 review plus the new icon set (`docs/design/maturity-0.7-roadmap.md`).
+§128 is the GitHub-releases update check (same roadmap, Feature 3.1) —
+the second of its two proposed features, M365 calendar import, is still
+just a design (0.8.0, not started).
 Each
 section is verified before merge (`svelte-check`, the Vitest suite,
 `cargo test`, and — from §77 on — the Playwright E2E suite, all green in
@@ -28,7 +31,7 @@ Which sections shipped in which release: §1–55 → v0.2.0, §56–59 → v0.2
 §86–87 → v0.4.3, §88–89 → v0.4.4, §90–91 → v0.4.5, §92 → v0.4.6,
 §refactor + §93–96 → v0.5.0, §97 → v0.5.1, §98 → v0.5.2, §99–110 → v0.6.0,
 §111 → v0.6.1, §112–113 → v0.6.2, §114–118 → v0.6.3, §119–122 → v0.6.4,
-§123 → v0.6.5, §124–126 → v0.6.6, §127 → v0.7.0.
+§123 → v0.6.5, §124–126 → v0.6.6, §127 → v0.7.0, §128 → v0.7.1.
 
 ---
 
@@ -4544,5 +4547,100 @@ Updated: `TopBar.svelte`, `FindBar.svelte`, every modal, `StatusBar.svelte`,
 `search-and-history.spec.ts` / `action-drawer.spec.ts` /
 `tab-archetypes.spec.ts` / `visual.spec.ts` updated for the new markup and
 roles. Pure frontend — no Rust/IPC/storage change, `cargo test` unchanged
-at 43. `svelte-check` 250 files 0 errors, Vitest 252 (+8), Playwright 139
+at 43. `svelte-check` 252 files 0 errors, Vitest 252 (+8), Playwright 139
 (+1).
+
+---
+
+## 128. GitHub-releases update check
+
+**Status: implemented, released in v0.7.1.** The second phase of the 0.7
+"maturing the application" plan (`docs/design/maturity-0.7-roadmap.md`,
+§Feature 3.1) — check github.com for a newer release, let the user
+download and install it. Never silent about the *action*: checking can
+run automatically, but a download only ever starts from an explicit
+click.
+
+**Plugins, not a hand-rolled downloader.** `tauri-plugin-updater` polls a
+`latest.json` manifest and verifies its minisign signature before
+installing; `tauri-plugin-process` relaunches where install doesn't
+already exit the app. JS side: `@tauri-apps/plugin-updater` /
+`@tauri-apps/plugin-process`. New Rust deps, new `updater:default` +
+`process:allow-restart` capabilities.
+
+**Config.** `AppConfig.auto_check_updates: bool`, `#[serde(default =
+"default_true")]` — **on by default**, unlike every other boolean flag in
+this file so far (`word_wrap`, `readable_line_length` all default off) —
+a deliberate call for this one, disclosed via the Settings toggle sitting
+right next to it. New `set_auto_check_updates` command, mirroring the
+existing setters.
+
+**Frontend.** `src/lib/updates.ts` — `checkForUpdates()` (the shared
+"run a check and update the stores" path), `checkForUpdatesOnLaunch()`
+(same, plus a quiet, auto-dismissing status-bar message when it finds
+something — "no update" and a failed check both stay silent),
+`downloadAndInstallUpdate()` (tracks progress from the plugin's own
+`Channel` events), `restartToFinishUpdate()`. New stores:
+`autoCheckUpdates`, `updateStatus` (`idle` / `checking` / `upToDate` /
+`available` / `downloading` / `ready` / `error`), `updateAvailableVersion`,
+`updateReleaseNotes`, `updateDownloadProgress`, `updateErrorMessage`.
+`boot.ts`'s `initApp()` fires `checkForUpdatesOnLaunch()` when the config
+flag is on, non-blocking.
+
+**UI.** About drawer grows an "Updates" section covering every state
+(checking / available + What's-changed + Download & install / downloading
+with a byte counter / ready + Restart now / error + Try again). Settings
+grows an "Updates" section: the on/off toggle + a "Check now" button.
+Command palette gained a "Check for updates" entry (opens About, kicks
+off a check). New `update` icon (`src/lib/icons/paths.ts`, drawn in back
+in §127, unused until now) — a down-arrow into a tray.
+
+**Windows install behaviour.** `downloadAndInstall()` exits the app to
+run the installer and (by default, `restartAfterInstall: true`)
+relaunches it automatically — so `downloadAndInstallUpdate()` may simply
+never resolve on a real Windows install. The `"ready"` / "Restart now"
+UI only matters for the case that *doesn't* self-relaunch. `installMode:
+"passive"` in `tauri.conf.json` avoids the fully-silent installer mode.
+
+**Release-workflow change (the real cost of this feature).** A one-time
+minisign keypair was generated (`npx tauri signer generate`), the
+*public* half embedded in `tauri.conf.json`
+(`plugins.updater.pubkey`), the *private* half + its password kept in
+two new gitignored `*.local` files in `src-tauri/` — see
+`CLAUDE.local.md` for exactly which files and where they must be backed
+up (losing them means future releases can't be signed). `bundle.
+createUpdaterArtifacts: true` now makes every `npm run tauri build`
+require `TAURI_SIGNING_PRIVATE_KEY(_PATH)` / `_PASSWORD` in the
+environment, or the build fails outright — a deliberate fail-closed
+choice over silently shipping an unsigned/unupdatable installer.
+`endpoints` points at
+`https://github.com/marien/ChronoNote/releases/latest/download/latest.json`,
+so every future release must attach a `latest.json` (version, pub_date,
+the nsis installer's URL + its `.sig` contents) alongside the installers.
+
+**The updater can't be verified until there's a signed release to update
+*from*.** v0.7.1 ships it "armed" — the *next* release after this one is
+the first the update path can actually be exercised against end-to-end.
+
+**Mock.** `mockBackend.ts` gained `plugin:updater|check` /
+`plugin:updater|download_and_install` / `plugin:resources|close` /
+`plugin:process|restart` handlers. `MockSeed.updateCheck` (`"none"` |
+`"available"`) + `updateCheckVersion` drive the happy path; a failed
+check or install is seeded like any other command failure —
+`throwOnCommands: ["plugin:updater|check"]` — one mechanism for every
+"this command fails" case, nothing update-specific needed. Since
+`check()`'s args pass straight through with no serialization under the
+mock (same JS runtime), `args.onEvent` in the mock's
+`download_and_install` handler is the caller's own live `Channel`
+instance — calling `.onmessage(...)` on it drives the real progress
+callback directly, no `transformCallback` plumbing needed.
+
+New: `src/lib/updates.ts` (+ `.test.ts`), `tests/e2e/update-check.spec.ts`.
+Updated: `storage.rs` (no new `#[test]` fns — extended two existing
+config-round-trip tests with `auto_check_updates` assertions instead, so
+43 stays 43), `lib.rs`, `capabilities/default.json`, `tauri.conf.json`,
+`stores.ts`, `boot.ts`, `menu.ts`, `commandPalette.ts`,
+`AboutModal.svelte`, `SettingsModal.svelte`, `tauriCommands.ts`,
+`tauriApi.ts`, `mockBackend.ts`. `svelte-check` 256 files 0 errors,
+Vitest 265 (+13), Playwright 147 (+8), `cargo test` 43 (same count, more
+assertions per test).

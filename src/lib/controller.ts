@@ -19,6 +19,7 @@
  *   directory            notes-directory switching (§39)
  *   drift                external-modification / conflict detection (§94)
  *   commandPalette       Ctrl+K unified command/nav palette (§107)
+ *   updates              GitHub-releases update check (§update-check)
  */
 export * from "./stores";
 export * from "./persistence";
@@ -34,3 +35,4 @@ export * from "./menu";
 export * from "./boot";
 export * from "./directory";
 export * from "./commandPalette";
+export * from "./updates";

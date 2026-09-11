@@ -49,6 +49,14 @@ fn set_readable_line_length(app: AppHandle, enabled: bool) -> Result<storage::Ap
 }
 
 #[tauri::command]
+fn set_auto_check_updates(app: AppHandle, enabled: bool) -> Result<storage::AppConfig, String> {
+    let mut cfg = storage::load_config(&app)?;
+    cfg.auto_check_updates = enabled;
+    storage::save_config(&app, &cfg)?;
+    Ok(cfg)
+}
+
+#[tauri::command]
 fn list_note_files(app: AppHandle) -> Result<Vec<String>, String> {
     storage::list_note_files(&app)
 }
@@ -137,6 +145,8 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
+        .plugin(tauri_plugin_process::init())
         .setup(|app| {
             show_window_without_flash(app);
             Ok(())
@@ -147,6 +157,7 @@ pub fn run() {
             set_color_mode,
             set_word_wrap,
             set_readable_line_length,
+            set_auto_check_updates,
             list_note_files,
             read_note,
             write_note,

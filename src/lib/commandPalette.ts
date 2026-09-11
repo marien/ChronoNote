@@ -32,6 +32,7 @@ import { openCrossTabSearch } from "./search";
 import { openSectionImport } from "./sectionImportActions";
 import { openAbout, openGlyphLegend, openSettings, openShortcutsHelp } from "./menu";
 import { setColorMode, setReadableLineLength, setWordWrap } from "./boot";
+import { checkForUpdates } from "./updates";
 
 export interface PaletteItem {
   /** Stable key for keyed `{#each}`. */
@@ -103,6 +104,15 @@ function commandItems(): PaletteItem[] {
     { id: "cmd-shortcuts", label: "Keyboard shortcuts", hint: "Ctrl+/", group: "Help", run: openShortcutsHelp },
     { id: "cmd-legend", label: "Symbols & sections legend", hint: "Ctrl+Shift+/", group: "Help", run: openGlyphLegend },
     { id: "cmd-about", label: "About ChronoNote", hint: "Ctrl+Shift+,", group: "Help", run: openAbout },
+    {
+      id: "cmd-check-updates",
+      label: "Check for updates",
+      group: "Help",
+      run: () => {
+        openAbout();
+        void checkForUpdates();
+      },
+    },
   ];
 }
 

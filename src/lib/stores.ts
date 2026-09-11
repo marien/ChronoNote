@@ -89,6 +89,29 @@ export const modal = writable<ModalKind>("none");
  * from Tauri rather than hardcoded, so it can't drift from whatever
  * version is actually running. Empty string until then. */
 export const appVersion = writable<string>("");
+
+/** §update-check: whether ChronoNote silently checks github.com for a
+ * newer release on launch. Mirrors `AppConfig.autoCheckUpdates` — on by
+ * default (disclosed + toggleable in Settings). */
+export const autoCheckUpdates = writable<boolean>(true);
+/**
+ *   `idle`       nothing checked yet this session
+ *   `checking`   a check is in flight
+ *   `upToDate`   the last check found no newer release
+ *   `available`  a newer release exists — `updateAvailableVersion` is set
+ *   `downloading` the user clicked "Download & install"
+ *   `ready`      downloaded and installed; a restart finishes it
+ *   `error`      the last check or download/install failed — see
+ *                `updateErrorMessage`
+ * Driven by `updates.ts`, read by the About drawer and the status-bar
+ * launch-time banner. */
+export type UpdateStatus = "idle" | "checking" | "upToDate" | "available" | "downloading" | "ready" | "error";
+export const updateStatus = writable<UpdateStatus>("idle");
+export const updateAvailableVersion = writable<string | null>(null);
+export const updateReleaseNotes = writable<string | null>(null);
+export const updateDownloadProgress = writable<{ doneBytes: number; totalBytes: number } | null>(null);
+export const updateErrorMessage = writable<string | null>(null);
+
 export const pendingCloseTabId = writable<string | null>(null);
 export const safetyMessage = writable<string>("");
 export const pendingNotesDirSwitch = writable<string | null>(null);

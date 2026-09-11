@@ -34,3 +34,10 @@ export function openAbout() {
 export function openProjectLink() {
   api.openExternalUrl(PROJECT_URL).catch(() => {});
 }
+
+/** §update-check: the About drawer's "What's changed" link, once an
+ * update is found — the release page for the specific version found,
+ * so it always shows the right one even mid-check-for-a-newer-one. */
+export function openReleasePage(version: string) {
+  api.openExternalUrl(`${PROJECT_URL}/releases/tag/v${version}`).catch(() => {});
+}

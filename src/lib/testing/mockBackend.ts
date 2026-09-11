@@ -7,7 +7,8 @@
  * object backed by a `Map` of note files, implementing every command in
  * `src-tauri/src/lib.rs` plus the handful of plugin calls the app makes
  * (`plugin:app|version`, `plugin:dialog|open`, `plugin:opener|open_url`,
- * `plugin:event|*`, `plugin:window|*`).
+ * `plugin:updater|*`, `plugin:process|restart`, `plugin:event|*`,
+ * `plugin:window|*`).
  *
  * Testing-only. `src/main.ts` imports this dynamically behind an
  * `import.meta.env.DEV` check, so the whole `src/lib/testing/` tree is
@@ -41,6 +42,7 @@ export interface MockSeed {
   colorMode?: ColorMode;
   wordWrap?: boolean;
   readableLineLength?: boolean;
+  autoCheckUpdates?: boolean;
   /** Seeds `recent_notes_dirs` directly (normally only `set_notes_dir`
    * writes it). */
   recentNotesDirs?: string[];
@@ -51,8 +53,17 @@ export interface MockSeed {
   /** Reported by `plugin:app|version` / the About drawer. Default `0.3.0`. */
   appVersion?: string;
   /** Invoke commands that should reject with an error, for testing
-   * degraded-boot / failure paths (e.g. `["get_config"]`). */
+   * degraded-boot / failure paths (e.g. `["get_config"]`), or a failed
+   * update check/download (`["plugin:updater|check"]` /
+   * `["plugin:updater|download_and_install"]`). */
   throwOnCommands?: string[];
+  /** §update-check: what `plugin:updater|check` resolves to. `"none"`
+   * (default) = no update; `"available"` = a fake newer release exists,
+   * version `updateCheckVersion`. A failed check is seeded via
+   * `throwOnCommands: ["plugin:updater|check"]` instead of a third value
+   * here — one mechanism for every "this command fails" case. */
+  updateCheck?: "none" | "available";
+  updateCheckVersion?: string;
 }
 
 interface MockDir {
@@ -74,6 +85,7 @@ const MUTATING_COMMANDS = new Set([
   "set_color_mode",
   "set_word_wrap",
   "set_readable_line_length",
+  "set_auto_check_updates",
   "write_note",
   "write_conflict_copy",
   "write_tab_session",
@@ -128,8 +140,11 @@ export class MockBackend {
   colorMode: ColorMode;
   wordWrap: boolean;
   readableLineLength: boolean;
+  autoCheckUpdates: boolean;
   recentNotesDirs: string[];
   appVersion: string;
+  updateCheck: "none" | "available";
+  updateCheckVersion: string;
 
   /** Every `invoke` call, in order — assert on persistence without
    * scraping the DOM. */
@@ -178,8 +193,11 @@ export class MockBackend {
     this.colorMode = seed.colorMode ?? "grayscale";
     this.wordWrap = seed.wordWrap ?? false;
     this.readableLineLength = seed.readableLineLength ?? false;
+    this.autoCheckUpdates = seed.autoCheckUpdates ?? true;
     this.recentNotesDirs = seed.recentNotesDirs ? [...seed.recentNotesDirs] : [];
     this.appVersion = seed.appVersion ?? "0.3.0";
+    this.updateCheck = seed.updateCheck ?? "none";
+    this.updateCheckVersion = seed.updateCheckVersion ?? "9.9.9";
     this.throwOnCommands = new Set(seed.throwOnCommands ?? []);
 
     this.dirs.set(this.notesDir, {
@@ -212,6 +230,7 @@ export class MockBackend {
       colorMode: this.colorMode,
       wordWrap: this.wordWrap,
       readableLineLength: this.readableLineLength,
+      autoCheckUpdates: this.autoCheckUpdates,
       recentNotesDirs: this.recentNotesDirs,
       appVersion: this.appVersion,
       dirs: [...this.dirs].map(([path, d]) => [path, [...d.notes], d.session, [...d.conflictCopies]]),
@@ -240,6 +259,7 @@ export class MockBackend {
         colorMode: ColorMode;
         wordWrap?: boolean;
         readableLineLength?: boolean;
+        autoCheckUpdates?: boolean;
         recentNotesDirs: string[];
         appVersion: string;
         dirs: [string, [string, string][], TabSession | null, [string, string][]?][];
@@ -248,6 +268,7 @@ export class MockBackend {
       b.notesDir = s.notesDir;
       b.colorMode = s.colorMode;
       b.wordWrap = s.wordWrap ?? false;
+      b.autoCheckUpdates = s.autoCheckUpdates ?? true;
       b.readableLineLength = s.readableLineLength ?? false;
       b.recentNotesDirs = s.recentNotesDirs;
       b.appVersion = s.appVersion;
@@ -279,6 +300,7 @@ export class MockBackend {
       wordWrap: this.wordWrap,
       readableLineLength: this.readableLineLength,
       recentNotesDirs: [...this.recentNotesDirs],
+      autoCheckUpdates: this.autoCheckUpdates,
     };
   }
 
@@ -363,6 +385,11 @@ export class MockBackend {
       return this.config();
     },
 
+    set_auto_check_updates: ({ enabled }) => {
+      this.autoCheckUpdates = enabled;
+      return this.config();
+    },
+
     list_note_files: () => this.listFiles(),
 
     read_note: ({ filename }) => {
@@ -442,6 +469,40 @@ export class MockBackend {
         this.nextDialogResult = null;
         return r;
       }
+
+      // --- §update-check: @tauri-apps/plugin-updater / plugin-process ---
+      // `check()`'s IPC args pass straight through with no serialization
+      // under the mock (same JS runtime), so `args.onEvent` here is the
+      // live `Channel` instance the frontend passed to `downloadAndInstall`
+      // — calling `.onmessage(...)` on it drives the caller's own progress
+      // handler directly, no transformCallback plumbing needed.
+      case "plugin:updater|check":
+        if (this.updateCheck === "available") {
+          return {
+            rid: 1,
+            currentVersion: this.appVersion,
+            version: this.updateCheckVersion,
+            date: undefined,
+            body: "Mock release notes for the test suite.",
+            rawJson: {},
+          };
+        }
+        return null;
+
+      case "plugin:updater|download_and_install": {
+        const channel = args.onEvent as { onmessage?: (e: unknown) => void } | undefined;
+        channel?.onmessage?.({ event: "Started", data: { contentLength: 1000 } });
+        channel?.onmessage?.({ event: "Progress", data: { chunkLength: 600 } });
+        channel?.onmessage?.({ event: "Progress", data: { chunkLength: 400 } });
+        channel?.onmessage?.({ event: "Finished" });
+        return null;
+      }
+
+      case "plugin:resources|close":
+        return null;
+
+      case "plugin:process|restart":
+        return null;
 
       case "plugin:event|listen": {
         const eventId = ++this.eventListenerId;
