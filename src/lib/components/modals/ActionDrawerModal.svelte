@@ -5,6 +5,10 @@
   import { actionDrawerShowOnlyOpen, actionSnapshot, activeTabId, tabs } from "../../controller";
   import { closeOnOutsideClick } from "../../actions/closeOnOutsideClick";
   import { innermostActionSymbol, stripLeadingToken } from "../../tokens";
+  import { glyphForSymbol } from "../../editor/glyphLine";
+  import { groupHeaderLabel } from "../../ui/listFormat";
+  import Icon from "../../icons/Icon.svelte";
+  import Segmented from "../Segmented.svelte";
   import type { ActionSnapshotItem } from "../../types";
   import {
     MODAL_HEADER_ROW_HEIGHT,
@@ -151,30 +155,25 @@
     scrollTop = listEl.scrollTop;
   }
 
-  // References the same CSS custom properties the main editor's .glyph-*
-  // classes use, so this list follows the color/grayscale toggle for free.
-  // Uses the *innermost* symbol (§41) — a `=> #`/`=> v`/etc. consequence-
-  // action shows the same state glyph a plain action line would, since
-  // that's the info this column exists to convey; the drawer's own icon
-  // column doesn't also draw the arrow the editor shows for that form.
-  function glyphFor(line: string) {
+  // §127 (finding B): shares `glyphForSymbol` with `glyphLine.ts` (the
+  // Section History / read-only-viewer glyph map) instead of its own
+  // private `--glyph-*` inline-style lookup, so the two agree through one
+  // map. Uses the *innermost* symbol (§41) — a `=> #`/`=> v`/etc.
+  // consequence-action shows the same state glyph a plain action line
+  // would, since that's the info this column exists to convey; the
+  // drawer's own icon column doesn't also draw the arrow the editor shows
+  // for that form.
+  function glyphFor(line: string): { char: string; cls?: string } {
     const sym = innermostActionSymbol(line);
-    if (sym === "v")
-      return {
-        char: "☑",
-        style: "color:var(--glyph-done-color); font-weight:var(--glyph-done-weight); opacity:var(--glyph-done-opacity);",
-      };
-    if (sym === ">")
-      return { char: "»", style: "color:var(--glyph-progress-color); font-weight:var(--glyph-progress-weight);" };
-    if (sym === "x")
-      return {
-        char: "☒",
-        style:
-          "color:var(--glyph-cancelled-color); font-weight:var(--glyph-cancelled-weight); opacity:var(--glyph-cancelled-opacity);",
-      };
-    if (sym === "#") return { char: "☐", style: "color:var(--glyph-open-color); font-weight:var(--glyph-open-weight);" };
+    if (sym) {
+      const g = glyphForSymbol(sym);
+      return { char: g.text, cls: g.cls };
+    }
     // No action-state symbol at all — a plain delegated-to-a-person line.
-    return { char: "➔", style: "color:var(--glyph-assignee-color); font-weight:600;" };
+    // Not one of `glyphForSymbol`'s cases, and deliberately not styled as
+    // a `.glyph-assignee` pill (that class's background/padding is meant
+    // for a *name*, not a bare arrow) — kept as its own small inline style.
+    return { char: "➔" };
   }
 
   function onKeydown(e: KeyboardEvent) {
@@ -205,9 +204,9 @@
 </script>
 
 <div class="overlay" role="presentation" use:closeOnOutsideClick={controller.closeAllModals}>
-  <div class="modal-card" role="dialog" aria-modal="true" use:focusTrap aria-label="Action drawer">
+  <div class="modal-card" role="dialog" aria-modal="true" use:focusTrap aria-label="Actions">
     <div class="modal-input-wrap">
-      <span>📋</span>
+      <Icon name="actions" size={15} />
       <input
         class="modal-input"
         placeholder="Filter my actions (type @ to include delegated)..."
@@ -220,10 +219,14 @@
     </div>
     <div class="modal-input-wrap">
       <div class="settings-toggle-row">
-        <button class="icon-btn {scope === 'open' ? 'active' : ''}" on:click={() => setScope("open")}
-          >Open Tabs</button
-        >
-        <button class="icon-btn {scope === 'all' ? 'active' : ''}" on:click={() => setScope("all")}>All Files</button>
+        <Segmented
+          options={[
+            { value: "open", label: "Open Tabs" },
+            { value: "all", label: "All Files" },
+          ]}
+          value={scope}
+          onChange={(v) => setScope(v as "open" | "all")}
+        />
         <label class="toggle-switch">
           <input type="checkbox" bind:checked={$actionDrawerShowOnlyOpen} />
           <span class="toggle-switch-track"></span>
@@ -239,6 +242,11 @@
       on:scroll={onScroll}
       style="position: relative; overflow-y: auto;"
     >
+      {#if flatList.length === 0}
+        <div class="modal-empty">
+          {filter ? `No actions match “${filter}”.` : "Nothing here — every action is resolved."}
+        </div>
+      {/if}
       <div style="position: relative; height: {totalHeight}px;">
         {#each visibleRows as row (row.key)}
           {#if row.type === "header"}
@@ -248,7 +256,7 @@
                 ? 'none'
                 : '1px solid var(--border)'};"
             >
-              {row.filename} ({row.count})
+              {groupHeaderLabel(row.filename, row.count)}
             </div>
           {:else}
             {@const item = row.item}
@@ -266,7 +274,7 @@
               on:keydown={(e) => e.key === "Enter" && controller.jumpToFileLine(item)}
             >
               <div class="modal-item-main">
-                <span style={g.style}>{g.char}</span>
+                <span class={g.cls ?? ""}>{g.char}</span>
                 <span class={sym === "v" || sym === "x" ? "item-completed" : ""}>{stripLeadingToken(item.line)}</span>
               </div>
               {#if item.header}<span class="item-breadcrumb">· {item.header}</span>{/if}
@@ -278,7 +286,7 @@
     </div>
     <div class="modal-footer">
       <div>
-        <kbd>Enter</kbd> Jump &nbsp;|&nbsp; <kbd>Shift+Enter</kbd> Forward to Today &nbsp;|&nbsp;
+        <kbd>Enter</kbd> Jump · <kbd>Shift+Enter</kbd> Forward to Today ·
         <kbd>Ctrl+Space</kbd> Cycle
       </div>
       <div><kbd>Esc</kbd> Close</div>

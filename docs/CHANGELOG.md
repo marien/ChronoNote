@@ -6,15 +6,18 @@ kept for the rationale behind each one — not just *what* changed but
 was still being gathered and confirmed before implementation; renamed once
 everything below was applied, since nothing here is "pending" anymore.
 
-**Status: all sections through §123 implemented, released, and on `main`;
-§124–§126 implemented on `main`, pending the next release bump.**
+**Status: all sections through §126 implemented, released, and on `main`;
+§127 implemented on `feat/maturity-0.7`, pending review and the v0.7.0
+release bump.**
 §99–§110 are the 0.6 UX/UI pass (`docs/design/ux-roadmap-0.6.md`); §111 is
 a small v0.6.1 follow-up (the pre-0.6 glyph palette, back as an option).
 §112 (#28) and §113 (#27) are Section History follow-ups (v0.6.2).
 §114–§118 close #33–#37 (v0.6.3). §119–§122 close #38–#41 (v0.6.4).
 §123 (#42) fixes the delegated-`@name` badge widening the line (v0.6.5).
-§124–§126 are chat-feedback tweaks: `=>` Enter on a plain follow-up
-adds no `#`, `@name` may contain a hyphen, and `(@name)` is a delegate.
+§124–§126 are chat-feedback tweaks, released in v0.6.6: `=>` Enter on a
+plain follow-up adds no `#`, `@name` may contain a hyphen, and `(@name)`
+is a delegate. §127 is the 0.7 "maturity pass" — the UX/UI consistency
+review plus the new icon set (`docs/design/maturity-0.7-roadmap.md`).
 Each
 section is verified before merge (`svelte-check`, the Vitest suite,
 `cargo test`, and — from §77 on — the Playwright E2E suite, all green in
@@ -27,7 +30,7 @@ Which sections shipped in which release: §1–55 → v0.2.0, §56–59 → v0.2
 §86–87 → v0.4.3, §88–89 → v0.4.4, §90–91 → v0.4.5, §92 → v0.4.6,
 §refactor + §93–96 → v0.5.0, §97 → v0.5.1, §98 → v0.5.2, §99–110 → v0.6.0,
 §111 → v0.6.1, §112–113 → v0.6.2, §114–118 → v0.6.3, §119–122 → v0.6.4,
-§123 → v0.6.5, §124–126 → v0.6.6.
+§123 → v0.6.5, §124–126 → v0.6.6, §127 → v0.7.0 (pending).
 
 ---
 
@@ -4383,7 +4386,7 @@ against its raw-text twin.
 
 ## 124. `=>` Enter continuation: no action symbol on a plain follow-up
 
-**Status: implemented (pending release).** Refines §115 (#34). That
+**Status: implemented, released in v0.6.6.** Refines §115 (#34). That
 change made `Enter` on *any* leading `=> ` line continue as `=> # ` — a
 fresh open action. Feedback (Marien): a **plain** `=> ` follow-up (or a
 `=> @name` delegation) has no action of its own, so its continuation
@@ -4404,7 +4407,7 @@ carries a consequence-action symbol (`=> # `/`=> v `/`=> > `/`=> x `):
 
 ## 125. `@name` may contain a hyphen
 
-**Status: implemented (pending release).** Feedback (Marien): a delegate
+**Status: implemented, released in v0.6.6.** Feedback (Marien): a delegate
 name like `@jean-luc` should be recognised. Every `@name` pattern was
 `@\w+`, which stopped at the hyphen — so `@jean-luc` badged only as
 `@jean`. Widened to `@[\w-]+` in `glyphs.ts` (both the `=> @name` and the
@@ -4416,7 +4419,7 @@ the Section-History dedup key, and the dataset stats helper.
 
 ## 126. `(@name)` is recognised as a delegate
 
-**Status: implemented (pending release).** Feedback (Marien): the
+**Status: implemented, released in v0.6.6.** Feedback (Marien): the
 assignee can be written parenthesised, `(@name)`. Without this, `(@dana)`
 matched the `(topic)` pattern instead (and, right after an action symbol,
 rendered as a topic pill). Now:
@@ -4429,3 +4432,120 @@ rendered as a topic pill). Now:
 - `glyphLine.ts` mirrors both for the read-only viewers.
 
 `glyphLine.test.ts` / `tokens.test.ts` / `editor-tokens.spec.ts` cases.
+
+---
+
+## 127. The 0.7 maturity pass: icon set + UX/UI consistency review
+
+**Status: implemented on `feat/maturity-0.7`, pending review and the
+v0.7.0 release bump.** Marien: "the next version needs to be about
+maturing the application." Planned in
+`docs/design/maturity-0.7-roadmap.md` (a full UX/UI review, findings
+A–L) and `docs/design/icon-system-0.7.html` (three icon-set directions);
+Set A ("Ruled") and "ship the consistency fixes + icon set together"
+were both picked 2026-09-11. This section is the whole pass — findings
+A–H, J, K.
+
+**A — one icon set, no more emoji.** The top bar, every modal header, and
+the small chrome marks (find-bar / date-picker chevrons, the tab close
+`×`) used to be emoji (📅 📋 🕒 🔎 📥 ⬆ ⚙ ℹ️ ⌘ ⚠ ⌨) — full-colour, and
+themed only via a `filter: grayscale(1)` / `filter: none` split that let
+`color` mode's emoji fight the §105 semantic glyph palette. Replaced with
+one monoline SVG set (`src/lib/icons/` — `Icon.svelte` + `paths.ts`, 24×24
+grid, ~1.75 stroke, `stroke: currentColor`), drawn from the app's own
+vocabulary (the section rule, the dated page, the `☐` action box, the `»`
+forward mark) rather than a generic icon-font pick. A modal header reuses
+the exact same icon as the top-bar action that opens it. Removes three
+emoji-only CSS workarounds: the `filter` split, the empty
+`<span class="icon-glyph">` wrapper (§73), and `.icon-label { top: 1px }`.
+Two new icons (`update`, `calendar-import`) are drawn in now, unused
+until the 0.7.x / 0.8.0 features land. The app (OS) icon is unchanged for
+now — `icon-system-0.7.html` documents the eventual replacement, a static
+asset regen is its own step.
+
+**B — result rows glyph-render consistently.** Cross-Tab Search used to
+show the *raw* line (`# `/`=> ` and all) with a `<mark>` highlight —
+the only one of the three result drawers not glyph-rendering its rows.
+New `renderResultLine()` (`src/lib/ui/resultRow.ts`) layers the query
+highlight on top of `parseGlyphLine()`'s output instead, so a search hit
+now reads `☐ chase the vendor` like the Action Drawer and Section History
+do. The Action Drawer's own glyph column dropped its private
+`--glyph-*` inline-style duplicate of the colour map in favour of the
+newly-exported `glyphForSymbol()` (`glyphLine.ts`) — one map, not two
+kept in sync by hand.
+
+**C — one group-header format.** `2026-09-07.TXT (8)`, `2026-09-07.TXT (2
+MATCHES)`, and `📅 2026-09-07 (1)` (Action Drawer / Search / History
+respectively — the first two uppercased via the shared CSS, `.txt` kept)
+collapse to one shared `groupHeaderLabel()` (`src/lib/ui/listFormat.ts`):
+`2026-09-07  ·  8`. No emoji, no `.txt`, one shape.
+
+**D — a real segmented control.** `Open Tabs` / `All Files` and `Color` /
+`Grayscale` / `Legacy` used to be independent `.icon-btn.active` buttons
+sitting side by side with no shared edge — a scope/mode choice rendered
+the same as the unrelated `.toggle-switch` on/off control right next to
+it. New `Segmented.svelte` (`role="radiogroup"`, one bordered container,
+hairline dividers, filled selected segment) replaces both, and is reused
+by finding K's new editor-width control below. Rule going forward:
+**switch = on/off, segmented = pick-one-of-N.**
+
+**E — the Shortcuts & Symbols drawer no longer clips itself.**
+`.modal-item-main`'s `nowrap` + ellipsis (right for a scannable result
+list) was truncating this drawer's own reference text mid-sentence
+("open → done → deferred → won'"). New `.shortcuts-list` override lets
+rows wrap.
+
+**F — a modal's title bar is a title, not a fake search field.** History's
+"Section History: …" heading was a `readonly` `<input>` solely so it
+could hold focus for arrow-key capture. Now a plain `.modal-title`
+heading (shared by Settings/About/Safety/Conflict/Unsaved too, replacing
+each one's own inline `font-weight: bold`); keyboard focus for History's
+arrow-key nav moves to the list itself (a real `role="listbox"`, already
+the right target). Dialog footer "primary" actions (Close Anyway, Discard
+& Quit, Keep my version) drop their inline `style="background: var(--text)…"`
+for a shared `.btn-primary`, layered on `.icon-btn`.
+
+**G — one empty-state style, one footer separator.** New `.modal-empty`
+(centred, muted) replaces History's inline-styled one-off and Search's
+previously-missing empty state (Action Drawer and the command palette
+gained one too). Footer kbd hints were `·`, `|`, and `&nbsp;|&nbsp;`
+across different drawers — all `·` now.
+
+**H — naming.** The Action Drawer is "Actions" everywhere a user reads it
+(top-bar tooltip, modal `aria-label`, the command palette, the Shortcuts
+drawer) — it was "My Actions" in one place and "Action drawer" in others.
+Section History was already consistent. No code-symbol renames (`actions.ts`,
+`openActionDrawer`, `.history-*` etc. are unchanged) — user-facing strings
+only.
+
+**J — the command-palette legend stays visible.** The `>`/`!`/`@`/`?`
+prefix legend used to live only in placeholder text, gone after the first
+keystroke. Now a persistent `.palette-legend` strip under the input;
+placeholder shortened to "Type a command…".
+
+**K — one editor-width control.** `Word wrap` and `Limit line width for
+readability` were two toggles, the second force-enabling *and disabling*
+the first — a checked-and-greyed-out switch. Replaced with one 3-way
+`Segmented`: **Full** (no wrap) / **Wrap** / **Reading column**. No config
+or Rust change — still exactly `word_wrap` + `readable_line_length`
+underneath (Full = both off, Wrap = `word_wrap` only, Reading column =
+both), just one control instead of two coupled ones.
+
+**I** (status-bar `·` separators between Open/Closed/Forwarded, and
+spelling out "Forwarded") **and L** (the date-picker stays the one
+anchored, non-modal surface — a deliberate hold, not a fix) are folded in
+here too. Modal-width tokens (part of finding F's original writeup) were
+scoped out: the six modals in play use five different widths for reasons
+that don't collapse cleanly into three named sizes without an arbitrary
+resize, so it's deferred rather than forced.
+
+New: `src/lib/icons/` (`Icon.svelte`, `paths.ts`), `src/lib/ui/resultRow.ts`
+(+ `.test.ts`), `src/lib/ui/listFormat.ts` (+ `.test.ts`),
+`src/lib/components/Segmented.svelte`, `tests/e2e/icon-system.spec.ts`.
+Updated: `TopBar.svelte`, `FindBar.svelte`, every modal, `StatusBar.svelte`,
+`commandPalette.ts`, `app.css`. `settings.spec.ts` / `word-wrap.spec.ts` /
+`search-and-history.spec.ts` / `action-drawer.spec.ts` /
+`tab-archetypes.spec.ts` / `visual.spec.ts` updated for the new markup and
+roles. Pure frontend — no Rust/IPC/storage change, `cargo test` unchanged
+at 43. `svelte-check` 250 files 0 errors, Vitest 252 (+8), Playwright 139
+(+1).

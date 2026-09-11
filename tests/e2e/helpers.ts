@@ -179,7 +179,7 @@ export function datePicker(page: Page): Locator {
 
 export const MODAL_LABELS = {
   date: "Jump to date",
-  actions: "Action drawer",
+  actions: "Actions",
   history: "Section history",
   search: "Cross-tab search",
   safety: "Unresolved actions warning",

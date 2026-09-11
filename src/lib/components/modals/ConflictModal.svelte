@@ -3,6 +3,7 @@
   import * as controller from "../../controller";
   import { conflictInfo } from "../../controller";
   import { focusTrap } from "../../actions/focusTrap";
+  import Icon from "../../icons/Icon.svelte";
 
   let keepDiskBtn: HTMLButtonElement;
   onMount(() => keepDiskBtn?.focus());
@@ -13,8 +14,8 @@
 {#if info}
   <div class="overlay">
     <div class="modal-card" role="dialog" aria-modal="true" use:focusTrap aria-label="Note changed on disk" style="width: 520px;">
-      <div class="modal-input-wrap" style="font-weight: bold;">
-        <span style="filter: grayscale(1);">⚠</span> "{info.filename}" changed on disk
+      <div class="modal-input-wrap modal-title">
+        <Icon name="warning" size={15} /> "{info.filename}" changed on disk
       </div>
       <div style="padding: 16px; font-size: 13px; line-height: 1.5;">
         This note was modified outside ChronoNote (another editor, or a sync client) while you had unsaved
@@ -26,11 +27,7 @@
           Keep disk version
         </button>
         <button class="icon-btn" on:click={controller.resolveConflictSaveCopy}>Save mine as a copy</button>
-        <button
-          class="icon-btn"
-          style="background: var(--text); color: var(--bg);"
-          on:click={controller.resolveConflictKeepMine}
-        >
+        <button class="icon-btn btn-primary" on:click={controller.resolveConflictKeepMine}>
           Keep my version
         </button>
       </div>

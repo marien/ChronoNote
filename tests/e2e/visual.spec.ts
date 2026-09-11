@@ -42,13 +42,13 @@ test.describe("visual — state gallery", () => {
 
     const settings = () => modalCard(page, MODAL_LABELS.settings);
     await page.keyboard.press("Control+Comma");
-    await settings().getByRole("button", { name: "Color", exact: true }).click();
+    await settings().getByRole("radio", { name: "Color", exact: true }).click();
     await page.keyboard.press("Escape");
     await shot(page, "editor-tokens-color");
 
     // §111: the restored pre-0.6 palette (red open / amber deferred / green done).
     await page.keyboard.press("Control+Comma");
-    await settings().getByRole("button", { name: "Legacy", exact: true }).click();
+    await settings().getByRole("radio", { name: "Legacy", exact: true }).click();
     await page.keyboard.press("Escape");
     await shot(page, "editor-tokens-legacy");
   });

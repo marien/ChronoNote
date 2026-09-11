@@ -8,7 +8,7 @@ test.describe("tab archetypes (§103)", () => {
     // one daily tab to start
     const daily = page.locator("#tab-bar .tab.daily");
     await expect(daily).toHaveCount(1);
-    await expect(daily.locator("svg")).toBeVisible(); // calendar icon
+    await expect(daily.locator(".tab-icon svg")).toBeVisible(); // calendar icon
     await expect(page.locator("#tab-bar .tab-group-divider")).toHaveCount(0);
 
     // add a scratchpad → divider appears between the groups

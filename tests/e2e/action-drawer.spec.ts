@@ -44,7 +44,7 @@ test.describe("action drawer (Ctrl+Shift+A)", () => {
       return Number(t.match(/\/\s*(\d+)\s*listed/)?.[1] ?? 0);
     };
     const openScope = await listed();
-    await d.getByRole("button", { name: "All Files" }).click();
+    await d.getByRole("radio", { name: "All Files" }).click();
     await expect.poll(listed).toBeGreaterThan(openScope);
   });
 

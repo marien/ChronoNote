@@ -3,12 +3,13 @@
   import { appVersion } from "../../controller";
   import { closeOnOutsideClick } from "../../actions/closeOnOutsideClick";
   import { focusTrap } from "../../actions/focusTrap";
+  import Icon from "../../icons/Icon.svelte";
 </script>
 
 <div class="overlay" role="presentation" use:closeOnOutsideClick={controller.closeAllModals}>
   <div class="modal-card" role="dialog" aria-modal="true" use:focusTrap aria-label="About ChronoNote" style="width: 420px;">
-    <div class="modal-input-wrap">
-      <span>ℹ</span> About ChronoNote
+    <div class="modal-input-wrap modal-title">
+      <Icon name="about" size={15} /> About ChronoNote
     </div>
     <div class="settings-section">
       <div>

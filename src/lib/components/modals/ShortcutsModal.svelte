@@ -3,6 +3,7 @@
   import { focusTrap } from "../../actions/focusTrap";
   import { closeOnOutsideClick } from "../../actions/closeOnOutsideClick";
   import { focusScrollableList } from "../../actions/focusScrollableList";
+  import Icon from "../../icons/Icon.svelte";
 
   const shortcuts: [string, string][] = [
     ["Ctrl+K", "Command palette — run any command, jump to a tab, date or action"],
@@ -18,7 +19,7 @@
     ["F2 / Shift+F2", "Jump to next / previous open action (in editor, wraps)"],
     ["Ctrl+↑ / Ctrl+↓", "Caret to start of line, then previous line / start of next line (in editor)"],
     ["Ctrl+Shift+S", "Convert current line into a section header"],
-    ["Ctrl+Shift+A", "Action drawer"],
+    ["Ctrl+Shift+A", "Actions"],
     ["Ctrl+Shift+H", "Section history"],
     ["Ctrl+F", "Find in this note (floating bar; Enter / Shift+Enter to step)"],
     ["Ctrl+Shift+F", "Cross-tab search"],
@@ -44,9 +45,9 @@
 <div class="overlay" role="presentation" use:closeOnOutsideClick={controller.closeAllModals}>
   <div class="modal-card" role="dialog" aria-modal="true" use:focusTrap aria-label="Keyboard shortcuts">
     <div class="modal-input-wrap">
-      <span>⌨</span> Shortcuts &amp; Symbols
+      <Icon name="keyboard" size={15} /> Shortcuts &amp; Symbols
     </div>
-    <div class="modal-list" use:focusScrollableList style="outline: none;">
+    <div class="modal-list shortcuts-list" use:focusScrollableList style="outline: none;">
       <div class="modal-group-header">Keyboard shortcuts</div>
       {#each shortcuts as [keys, label]}
         <div class="modal-item" style="cursor: default;">
@@ -107,8 +108,8 @@
       <div class="modal-item" style="cursor: default; display: block;">
         <div class="settings-hint" style="margin-top: 0;">
           A line of text followed immediately by a line of four or more <kbd>=</kbd> characters becomes that
-          section's title — e.g. <kbd>Weekly Sync</kbd> then <kbd>====</kbd> on the next line. This is what the
-          Action Drawer, Section History and search results tag each item with, and what Section History matches
+          section's title — e.g. <kbd>Weekly Sync</kbd> then <kbd>====</kbd> on the next line. This is what
+          Actions, Section History and search results tag each item with, and what Section History matches
           recurring sections by (ignoring a leading/trailing date).
         </div>
       </div>

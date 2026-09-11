@@ -308,7 +308,9 @@ body {
 }
 .tab-close {
   opacity: 0;
-  font-size: 11px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   padding: 3px 5px;
   margin-left: 2px;
   border-radius: 4px;
@@ -336,8 +338,7 @@ body {
   border-radius: 4px;
   display: flex;
   align-items: center;
-  gap: 4px;
-  filter: grayscale(1);
+  gap: 6px;
 }
 /* §103: in the 44px top bar, every control is a ≥28px hit target. */
 #top-bar .icon-btn {
@@ -346,46 +347,22 @@ body {
   justify-content: center;
   padding: 0 8px;
 }
-[data-color-mode="color"] .icon-btn,
-[data-color-mode="color"] .modal-input-wrap > span:first-child,
-[data-color-mode="legacy"] .icon-btn,
-[data-color-mode="legacy"] .modal-input-wrap > span:first-child {
-  filter: none;
-}
 .icon-btn:hover {
   background: var(--surface-raised);
   border-color: var(--edge-strong);
 }
+/* §127: the icon set (`src/lib/icons/`) is `stroke: currentColor` SVG, so
+   it already themes with the button's own text colour in every light/dark
+   × colour/grayscale combination — no `filter: grayscale(1)` / `filter:
+   none` split needed (that was an emoji-only workaround, removed with the
+   emoji it existed for), and no baseline nudge on the label (§73's
+   `.icon-label { top: 1px }` fix was for an *emoji's* fallback-font
+   metrics sitting higher than plain text; an SVG icon's own box has no
+   such mismatch against `.icon-label`, both centre on the flex row's line
+   the same way). */
 .icon-btn .icon-label {
   white-space: nowrap;
-  /* §73: box-centering the label against `.icon-glyph` (below) landed
-     them on the same measured center pixel, but that's the *box* center,
-     not the visible *ink* center — an emoji glyph's ink typically sits
-     higher within its own em-box than a line of text does in its, so
-     even with matching box centers the label still read as sitting too
-     high next to the icon. Confirmed by eye across a side-by-side
-     comparison of several offsets (0-6px): +1px reads correctly. */
-  position: relative;
-  top: 1px;
 }
-/* §73: `.icon-glyph` (wrapping each button's emoji, in TopBar.svelte) is
-   deliberately unstyled — a plain default-`inline` span. The icon used to
-   be a bare text node instead of an element; inside `.icon-btn`'s flex
-   row, that bare text run and the `.icon-label` span next to it are two
-   separate flex items, and `align-items: center` should have centered
-   both on the same line, but measured in the browser it consistently
-   didn't — the label's box sat 1px higher than the icon's on every
-   button, even though both boxes were the same height (likely some
-   difference in how a bare-text flex item's line box centers vs. an
-   element's, tied to the emoji glyph coming from a fallback font with
-   different ascent/descent metrics than the label's own monospace font).
-   Simply wrapping the icon in an element — any element, no styling
-   needed — was enough to fix it: re-measured afterward, the two items'
-   vertical centers land on the exact same pixel. Giving `.icon-glyph` a
-   `display` of its own (e.g. `inline-flex`) would make it establish a
-   nested flex context for the lone emoji text run inside it, which is
-   exactly the bare-text-flex-item situation being avoided — so it stays
-   empty on purpose. */
 
 /* Editor Canvas */
 #editor-container {
@@ -877,6 +854,9 @@ body {
   height: 22px;
   border-radius: 4px;
   font-family: inherit;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 .cal-nav:hover {
   background: var(--surface-raised);
@@ -1008,8 +988,21 @@ body {
   gap: 8px;
   background: var(--surface-raised);
 }
-.modal-input-wrap > span:first-child {
-  filter: grayscale(1);
+/* §127: the leading icon in a modal's title/search row is muted, same as
+   a modal-header icon elsewhere — no colour-mode filter needed, the SVG
+   set already themes via `currentColor`. */
+.modal-input-wrap .cn-icon {
+  color: var(--muted);
+  flex-shrink: 0;
+}
+/* §127 (finding F): `.modal-input-wrap` used to carry two different
+   meanings — a live search/filter row (palette, search, action drawer,
+   import), and a static heading (Settings, About, Safety, Conflict,
+   Unsaved, History — History faked it with a `readonly` <input>). This
+   marks the heading case explicitly instead of leaning on an inline
+   `font-weight: bold` or an input nobody types into. */
+.modal-title {
+  font-weight: 600;
 }
 .modal-input {
   flex: 1;
@@ -1026,8 +1019,24 @@ textarea.modal-input.import-textarea {
   line-height: 1.5;
   width: 100%;
 }
+/* §127 (finding J): the command palette's prefix legend, kept visible
+   instead of living only in placeholder text that disappears on the
+   first keystroke. */
+.palette-legend {
+  display: flex;
+  gap: 16px;
+  padding: 6px 14px;
+  font-size: 10.5px;
+  color: var(--muted);
+  background: var(--surface-chrome);
+  border-bottom: 1px solid var(--edge-soft);
+}
+.palette-legend kbd {
+  margin-right: 3px;
+}
 .modal-counter {
   font-size: 12px;
+  font-weight: normal;
   color: var(--muted);
 }
 .modal-spinner {
@@ -1152,6 +1161,55 @@ textarea.modal-input.import-textarea {
   font-size: 11px;
   color: var(--muted);
   background: var(--surface-chrome);
+}
+
+/* §127 (finding G): one empty-state treatment for every list that can
+   come up blank (Action Drawer, Search, Section History) — replaces a mix
+   of an inline-styled `<div>` in one drawer and nothing at all in the
+   others. Not used by `.hp-empty` (History's *preview* pane) — that's a
+   "select something" prompt, not a "no results" one, and stays as is. */
+.modal-empty {
+  padding: 32px 16px;
+  text-align: center;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+/* §127 (finding E): the Shortcuts & Symbols drawer is a reference doc,
+   not a scannable result list — its rows must wrap instead of clipping
+   (`.modal-item-main` is `nowrap` + ellipsis everywhere else, which was
+   truncating descriptions mid-sentence here). The keycap/glyph column
+   moves to the top of the row instead of vertically centering against a
+   line that's no longer guaranteed to be one line tall. */
+.shortcuts-list .modal-item {
+  align-items: flex-start;
+  white-space: normal;
+}
+.shortcuts-list .modal-item-main {
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+}
+.shortcuts-list .item-tag {
+  flex-shrink: 0;
+  padding-top: 1px;
+  text-align: right;
+}
+
+/* §127 (finding F): a handful of dialog footer actions need to read as
+   *the* primary action (Close Anyway, Discard & Quit, Keep my version) —
+   previously each carried its own `style="background: var(--text); …"`.
+   `.btn`/`.btn-primary` name that pattern once. `.icon-btn` stays the
+   toolbar/segmented look; a modal's plain "Cancel"/"Close" footer button
+   also keeps using it (it already reads as secondary — no border fill). */
+.btn-primary {
+  background: var(--text);
+  color: var(--bg);
+  border-color: transparent;
+}
+.btn-primary:hover {
+  background: var(--text);
+  opacity: 0.85;
 }
 
 /* §109: Section History gets a right-hand preview column. */
@@ -1320,7 +1378,35 @@ kbd {
   align-items: center;
   gap: 8px;
 }
-.settings-toggle-row .icon-btn.active {
+/* §127 (finding D): a segmented "pick one of N modes" control, distinct
+   from `.toggle-switch` below (a single on/off). One bordered container
+   with hairline dividers between segments and a filled selected one,
+   rather than N independent buttons with no shared edge. */
+.segmented {
+  display: inline-flex;
+  border: 1px solid var(--edge-soft);
+  border-radius: 5px;
+  overflow: hidden;
+}
+.segmented-option {
+  background: transparent;
+  border: none;
+  border-right: 1px solid var(--edge-soft);
+  color: var(--muted);
+  padding: 5px 10px;
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.segmented-option:last-child {
+  border-right: none;
+}
+.segmented-option:hover {
+  background: var(--surface-raised);
+  color: var(--text);
+}
+.segmented-option.active {
   background: var(--selected-bg);
   color: var(--selected-fg);
 }

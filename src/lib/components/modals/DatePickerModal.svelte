@@ -14,6 +14,7 @@
     todayISO,
   } from "../../date";
   import { countActions } from "../../tokens";
+  import Icon from "../../icons/Icon.svelte";
 
   const WEEKDAYS = ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"];
   const today = todayISO();
@@ -184,9 +185,13 @@
   />
 
   <div class="cal-head">
-    <button type="button" class="cal-nav" aria-label="Previous month" on:click={() => shiftMonth(-1)}>‹</button>
+    <button type="button" class="cal-nav" aria-label="Previous month" on:click={() => shiftMonth(-1)}>
+      <Icon name="chevron-left" size={14} />
+    </button>
     <span class="cal-title" aria-live="polite">{MONTH_NAMES[month]} {year}</span>
-    <button type="button" class="cal-nav" aria-label="Next month" on:click={() => shiftMonth(1)}>›</button>
+    <button type="button" class="cal-nav" aria-label="Next month" on:click={() => shiftMonth(1)}>
+      <Icon name="chevron-right" size={14} />
+    </button>
   </div>
 
   <div class="cal-weekdays" aria-hidden="true">

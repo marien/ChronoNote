@@ -26,7 +26,7 @@ test.describe("settings (Ctrl+,)", () => {
     await openSettings(page);
 
     await expect(page.locator("html")).toHaveAttribute("data-color-mode", "grayscale");
-    await settings(page).getByRole("button", { name: "Color", exact: true }).click();
+    await settings(page).getByRole("radio", { name: "Color", exact: true }).click();
     await expect(page.locator("html")).toHaveAttribute("data-color-mode", "color");
 
     const persisted = await page.evaluate(() => window.__CHRONO_MOCK__!.colorMode);
@@ -42,14 +42,14 @@ test.describe("settings (Ctrl+,)", () => {
     await openSettings(page);
 
     // grayscale by default → the open glyph is just --text
-    await settings(page).getByRole("button", { name: "Grayscale", exact: true }).click();
+    await settings(page).getByRole("radio", { name: "Grayscale", exact: true }).click();
     const grayOpen = await page
       .locator(".cm-line .glyph-open")
       .first()
       .evaluate((el) => getComputedStyle(el).color);
 
     await page.keyboard.press("Control+Comma");
-    await settings(page).getByRole("button", { name: "Legacy", exact: true }).click();
+    await settings(page).getByRole("radio", { name: "Legacy", exact: true }).click();
     await expect(page.locator("html")).toHaveAttribute("data-color-mode", "legacy");
     expect(await page.evaluate(() => window.__CHRONO_MOCK__!.colorMode)).toBe("legacy");
 
@@ -66,37 +66,43 @@ test.describe("settings (Ctrl+,)", () => {
     await expect(page.locator("html")).toHaveAttribute("data-color-mode", "legacy");
   });
 
-  test("Limit line width is off by default; turning it on wraps + caps + persists (§110)", async ({ page }) => {
+  test("Editor width: Reading column force-enables wrap + caps + persists (§110/§127)", async ({ page }) => {
     await seedApp(page, { seed: { notes: {} } });
     await openSettings(page);
 
-    const readableToggle = () => settings(page).getByText("Limit line width for readability", { exact: false });
-    const wrapInput = () => settings(page).locator(".toggle-switch input").first();
+    // §127 (finding K): the old two-toggle pair (Word wrap / Limit line
+    // width, the second disabling the first) is now one 3-way segmented
+    // control — Full / Wrap / Reading column.
+    const widthOption = (label: string) => settings(page).getByRole("radio", { name: label });
     const contentMaxWidth = () => page.locator(".cm-content").evaluate((el) => getComputedStyle(el).maxWidth);
 
-    // default: off, no cap, word wrap freely toggleable
+    // default: Full — no wrap, no cap
     expect(await page.evaluate(() => window.__CHRONO_MOCK__!.readableLineLength)).toBe(false);
+    expect(await page.evaluate(() => window.__CHRONO_MOCK__!.wordWrap)).toBe(false);
     expect(await contentMaxWidth()).toBe("none");
-    await expect(wrapInput()).toBeEnabled();
+    await expect(widthOption("Full")).toHaveAttribute("aria-checked", "true");
 
-    // turn readable on → wrap force-enabled + disabled, column capped
-    await readableToggle().click();
+    // Reading column → wrap force-enabled, column capped
+    await widthOption("Reading column").click();
     expect(await contentMaxWidth()).toBe("720px");
     expect(await page.evaluate(() => window.__CHRONO_MOCK__!.readableLineLength)).toBe(true);
     expect(await page.evaluate(() => window.__CHRONO_MOCK__!.wordWrap)).toBe(true);
-    await expect(wrapInput()).toBeDisabled();
-    await expect(wrapInput()).toBeChecked();
 
     // survives a reload
     await page.reload();
     await editor(page).click();
     expect(await contentMaxWidth()).toBe("720px");
 
-    // turn readable off → cap gone, wrap stays (user owns it again)
+    // Wrap → cap gone, wrap stays on
     await page.keyboard.press("Control+Comma");
-    await readableToggle().click();
+    await widthOption("Wrap").click();
     expect(await contentMaxWidth()).toBe("none");
-    await expect(wrapInput()).toBeEnabled();
+    expect(await page.evaluate(() => window.__CHRONO_MOCK__!.wordWrap)).toBe(true);
+    expect(await page.evaluate(() => window.__CHRONO_MOCK__!.readableLineLength)).toBe(false);
+
+    // Full → wrap off too
+    await widthOption("Full").click();
+    expect(await page.evaluate(() => window.__CHRONO_MOCK__!.wordWrap)).toBe(false);
   });
 
   test("word wrap alone doesn't cap the column (§110)", async ({ page }) => {

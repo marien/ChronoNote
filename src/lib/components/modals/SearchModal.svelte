@@ -4,6 +4,10 @@
   import { focusTrap } from "../../actions/focusTrap";
   import { searchResultsStore } from "../../controller";
   import { closeOnOutsideClick } from "../../actions/closeOnOutsideClick";
+  import { renderResultLine } from "../../ui/resultRow";
+  import { groupHeaderLabel } from "../../ui/listFormat";
+  import Icon from "../../icons/Icon.svelte";
+  import Segmented from "../Segmented.svelte";
   import type { SearchResultItem } from "../../types";
   import {
     MODAL_HEADER_ROW_HEIGHT,
@@ -151,17 +155,6 @@
     scrollTop = listEl.scrollTop;
   }
 
-  function highlightParts(line: string, q: string): { text: string; hit: boolean }[] {
-    if (!q) return [{ text: line, hit: false }];
-    const idx = line.toLowerCase().indexOf(q.toLowerCase());
-    if (idx === -1) return [{ text: line, hit: false }];
-    return [
-      { text: line.slice(0, idx), hit: false },
-      { text: line.slice(idx, idx + q.length), hit: true },
-      { text: line.slice(idx + q.length), hit: false },
-    ];
-  }
-
   function onKeydown(e: KeyboardEvent) {
     if (e.key === "ArrowDown") {
       e.preventDefault();
@@ -184,7 +177,7 @@
 <div class="overlay" role="presentation" use:closeOnOutsideClick={controller.closeAllModals}>
   <div class="modal-card" role="dialog" aria-modal="true" use:focusTrap aria-label="Cross-tab search">
     <div class="modal-input-wrap">
-      <span>🔎</span>
+      <Icon name="search" size={15} />
       <input
         class="modal-input"
         placeholder="Search..."
@@ -201,10 +194,14 @@
     </div>
     <div class="modal-input-wrap">
       <div class="settings-toggle-row">
-        <button class="icon-btn {scope === 'open' ? 'active' : ''}" on:click={() => setScope("open")}
-          >Open Tabs</button
-        >
-        <button class="icon-btn {scope === 'all' ? 'active' : ''}" on:click={() => setScope("all")}>All Files</button>
+        <Segmented
+          options={[
+            { value: "open", label: "Open Tabs" },
+            { value: "all", label: "All Files" },
+          ]}
+          value={scope}
+          onChange={(v) => setScope(v as "open" | "all")}
+        />
       </div>
     </div>
     <div
@@ -215,6 +212,9 @@
       on:scroll={onScroll}
       style="position: relative; overflow-y: auto;"
     >
+      {#if flatList.length === 0 && query.trim() && !searching}
+        <div class="modal-empty">No matches for &ldquo;{query}&rdquo;.</div>
+      {/if}
       <div style="position: relative; height: {totalHeight}px;">
         {#each visibleRows as row (row.key)}
           {#if row.type === "header"}
@@ -224,7 +224,7 @@
                 ? 'none'
                 : '1px solid var(--border)'};"
             >
-              {row.filename} ({row.count} matches)
+              {groupHeaderLabel(row.filename, row.count)}
             </div>
           {:else}
             {@const item = row.item}
@@ -243,9 +243,10 @@
             >
               <div class="modal-item-main">
                 <span>
-                  {#each highlightParts(item.line, query) as part}
-                    {#if part.hit}<mark style="background:var(--highlight); color:inherit;">{part.text}</mark
-                      >{:else}{part.text}{/if}
+                  {#each renderResultLine(item.line, query) as part}
+                    {#if part.hit}<mark class={part.cls ?? ""} style="background:var(--highlight); color:inherit;"
+                        >{part.text}</mark
+                      >{:else}<span class={part.cls ?? ""}>{part.text}</span>{/if}
                   {/each}
                 </span>
               </div>

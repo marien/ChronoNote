@@ -38,7 +38,7 @@ test.describe("cross-tab search (Ctrl+Shift+F)", () => {
     await search(page).locator(".modal-input").fill("the");
 
     const openCount = await rows(search(page)).count();
-    await search(page).getByRole("button", { name: "All Files" }).click();
+    await search(page).getByRole("radio", { name: "All Files" }).click();
     await expect.poll(() => rows(search(page)).count()).toBeGreaterThanOrEqual(openCount);
   });
 });
@@ -77,8 +77,9 @@ test.describe("section history (Ctrl+Shift+H)", () => {
     await page.keyboard.press("Control+Shift+H");
 
     await expect(history(page)).toBeVisible();
-    // Title (in the readonly input) names the section being aggregated.
-    await expect(history(page).locator(".modal-input")).toHaveValue(/Weekly Planning/);
+    // Title (§127: a plain heading, not a fake readonly input) names the
+    // section being aggregated.
+    await expect(history(page).locator(".modal-title")).toContainText(/Weekly Planning/);
     // "renew the TLS cert" appears in all three days but dedupes to one row.
     const list = history(page).locator(".modal-list");
     await expect(list.getByText("renew the TLS cert")).toHaveCount(1);
