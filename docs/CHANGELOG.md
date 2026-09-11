@@ -7,6 +7,8 @@ was still being gathered and confirmed before implementation; renamed once
 everything below was applied, since nothing here is "pending" anymore.
 
 **Status: all sections through §137 implemented, released, and on `main`.**
+§138 is implemented but is not a release — it doesn't touch the shipped
+app at all (a new local-only marketing site + a dev-only test scenario).
 §99–§110 are the 0.6 UX/UI pass (`docs/design/ux-roadmap-0.6.md`); §111 is
 a small v0.6.1 follow-up (the pre-0.6 glyph palette, back as an option).
 §112 (#28) and §113 (#27) are Section History follow-ups (v0.6.2).
@@ -28,7 +30,9 @@ the About drawer's external links silently do nothing. §136 closes #50
 (a first-run-after-update notice) plus an always-visible status-bar
 update icon (chat feedback, no issue). §137 (chat feedback, no issue) is
 a date-picker perf/UX pass — fast per-visible-month loading, a loading
-spinner, and opening on the active tab's own date.
+spinner, and opening on the active tab's own date. §138 is a new
+`website/` marketing site (local-only, publishing deferred) plus the
+`"demo"` scenario it embeds live.
 Each
 section is verified before merge (`svelte-check`, the Vitest suite,
 `cargo test`, and — from §77 on — the Playwright E2E suite, all green in
@@ -5100,3 +5104,52 @@ scratchpad, the visible month's dot lands well inside an artificially
 slow `read_all_notes`'s delay and the spinner clears once it resolves).
 Pure frontend — no Rust/IPC/storage change, `cargo test` unchanged at 44.
 `svelte-check` 256 files 0 errors, Vitest 280 (+4), Playwright 157 (+3).
+
+---
+
+## 138. A marketing website, local-only for now — plus a new "demo" mock scenario
+
+**Status: implemented, local only** ("let's start with a local version of
+the website. we'll work on publishing it later"). Not a change to the
+shipped app — nothing here affects `dist/` or any release build.
+
+**`website/`** — a new, separate static site (plain HTML/CSS, no build
+step, no framework) with a landing page, a full usage guide (token
+vocabulary, every keyboard shortcut, a workflow walkthrough), and a live
+interactive demo. `style.css` hand-ports the app's own design tokens
+(the four-tier charcoal surface palette, the monospace font stack, the
+"color" glyph palette as the site's accent) rather than importing
+`src/app.css` directly, so the site has no build-time dependency on the
+app — see `website/README.md` for exactly what's ported and how to keep
+it in sync by eye.
+
+**The demo is the real app, not a recreation.** It embeds ChronoNote's
+actual frontend, running against the existing in-memory mock Tauri
+backend the test suite already uses, via a new iframe pointed at
+`?mock&scenario=demo`. This needs the app's own dev server running
+locally (`npm run dev`) — publishing a real production build of this
+(bundling the dev-only mock intentionally, without weakening the
+existing `build-guard` CI job's guarantee that it never leaks into the
+real desktop app's `dist/`) is explicitly deferred to the publish pass.
+
+**New `"demo"` scenario** (`scenarios.ts`) — hand-authored, not
+generated, so every token form gets a real, readable example and two
+section titles ("Daily Standup", "1:1 — Priya"/"1:1 — Dana") recur across
+weeks for Section History to have something worth aggregating. Unlike
+every other scenario, its dates are computed relative to the *real*
+current date (`todayISO()` + `addDaysISO()`) rather than the fixed
+`REFERENCE_TODAY` every deterministic test scenario pins to — a public
+demo needs to look current on whatever day someone actually loads it,
+not increasingly stale after a fixed date passes. Caught one of my own
+markup mistakes while eyeballing it live: `(topic)` only turns into the
+topic-tag pill *right after* the leading action symbol
+(`# (topic) text`, not `(topic) # text`) — the same rule the app itself
+enforces, worth remembering for any future hand-authored scenario
+content.
+
+No new automated test: `demo` is a hand-verified, human-facing artifact
+(eyeballed live via the Browser pane — Action Drawer, Section History,
+and the date-picker calendar all checked directly), not something an
+automated assertion should pin down the exact prose of. `svelte-check`
+256 files 0 errors, Vitest/Playwright counts unchanged (no test
+references the new scenario).

@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Live demo — ChronoNote</title>
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    body {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      overflow: hidden;
+    }
+    .demo-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 10px 16px;
+      background: var(--surface-chrome);
+      border-bottom: 1px solid var(--edge-soft);
+      font-size: 13px;
+      color: var(--muted);
+      flex-shrink: 0;
+    }
+    .demo-bar a {
+      color: var(--text);
+    }
+    .demo-full-frame {
+      flex: 1;
+      min-height: 0;
+    }
+    .demo-full-frame iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+      display: block;
+      background: var(--surface-canvas);
+    }
+  </style>
+</head>
+<body>
+
+  <div class="demo-bar">
+    <span>🎭 Live demo — fake data, nothing you do here is saved. Runs the real ChronoNote app.</span>
+    <a href="index.html">← Back to chrononote</a>
+  </div>
+  <div class="demo-full-frame">
+    <iframe src="http://localhost:1420/?mock&scenario=demo" title="ChronoNote live demo"></iframe>
+  </div>
+
+</body>
+</html>

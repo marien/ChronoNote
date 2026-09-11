@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ChronoNote — plain-text notes that think in tasks</title>
+  <meta name="description" content="ChronoNote is a minimalist, keyboard-driven desktop app for daily notes, meeting logs, and action items — pure plain text, no database, ever." />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <header class="site-nav">
+    <div class="wrap">
+      <a class="brand" href="index.html">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M7.5 9h6"/><path d="M7.5 12h9M7.5 13.6h9"/><path d="M7.5 17h5"/></svg>
+        ChronoNote
+      </a>
+      <nav>
+        <a class="current" href="index.html">Home</a>
+        <a href="guide.html">Guide</a>
+        <a href="#demo">Demo</a>
+        <a class="cta" href="https://github.com/marien/ChronoNote" target="_blank" rel="noopener">GitHub ↗</a>
+      </nav>
+    </div>
+  </header>
+
+  <section class="hero">
+    <div class="wrap">
+      <h1>Plain-text notes that<br />think in tasks.</h1>
+      <p class="lede">
+        A keyboard-driven daily notes app for meetings, logs, and action items.
+        Every note is a plain <code>.txt</code> file you already own — no database,
+        no proprietary format, nothing to lock you in.
+      </p>
+      <div class="cta-row">
+        <a class="btn btn-primary" href="#demo">Try the live demo</a>
+        <a class="btn" href="guide.html">Read the guide</a>
+      </div>
+    </div>
+  </section>
+
+  <section id="demo">
+    <div class="wrap">
+      <div class="section-head">
+        <span class="eyebrow">See it in action</span>
+        <h2>This is the real app, running live</h2>
+        <p>Seeded with a few weeks of fake meeting notes — nothing you do here is saved anywhere.</p>
+      </div>
+      <div class="app-frame">
+        <div class="frame-bar">
+          <span class="frame-dot"></span><span class="frame-dot"></span><span class="frame-dot"></span>
+          <span class="frame-label">ChronoNote — demo data</span>
+        </div>
+        <iframe
+          id="demo-iframe"
+          src="http://localhost:1420/?mock&scenario=demo"
+          title="ChronoNote live demo"
+          loading="lazy"
+        ></iframe>
+      </div>
+      <p class="demo-note">
+        Try: <kbd>Ctrl+O</kbd> to jump to a date, <kbd>Ctrl+Shift+A</kbd> for open actions,
+        <kbd>Ctrl+Shift+H</kbd> for section history, <kbd>Ctrl+K</kbd> for the command palette.
+        Full reference in the <a href="guide.html#shortcuts">guide</a> · <a href="demo.html">open full-screen ↗</a>
+      </p>
+      <p class="demo-note" id="demo-hint">
+        Demo not loading? It runs the real app locally — start it with <code>npm run dev</code>
+        in the ChronoNote project, then reload this page.
+      </p>
+    </div>
+  </section>
+
+  <section class="alt">
+    <div class="wrap">
+      <div class="section-head">
+        <span class="eyebrow">Why ChronoNote</span>
+        <h2>Built for the way meetings and days actually work</h2>
+        <p>A small, deliberate set of tokens replace themselves with glyphs as you type — the file on disk stays plain text the whole time.</p>
+      </div>
+      <div class="feature-grid">
+        <div class="feature-card">
+          <span class="icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="4" width="6" height="6" rx="1.4"/><path d="M5 7l1.4 1.4L9 5.6"/><path d="M13 7h7"/><rect x="3.5" y="14" width="6" height="6" rx="1.4"/><path d="M13 17h7"/></svg>
+          </span>
+          <h3>Actions that carry forward</h3>
+          <p>Type <code>#&nbsp;</code> and it becomes a checkbox. Tabs can't be closed silently while one's still open — a task never quietly disappears at the end of the day.</p>
+        </div>
+        <div class="feature-card">
+          <span class="icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="4" width="12" height="12" rx="2"/><rect x="4" y="8" width="12" height="12" rx="2"/><path d="M12 12l-2 2 2 2M9 14h5"/></svg>
+          </span>
+          <h3>Section history</h3>
+          <p>Name a section "Daily Standup" or "1:1 — Priya" and ChronoNote aggregates every past occurrence — see what you agreed to last time, instantly.</p>
+        </div>
+        <div class="feature-card">
+          <span class="icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="6"/><path d="M8 10.5h6M8 12.5h4"/><path d="M15.5 15.5L20 20"/></svg>
+          </span>
+          <h3>Cross-tab search</h3>
+          <p>Search every open tab or your entire notes folder at once, with results rendered the same glyph-aware way as the editor itself.</p>
+        </div>
+        <div class="feature-card">
+          <span class="icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M7.5 8l4 4-4 4"/><path d="M13 16h5"/></svg>
+          </span>
+          <h3>Keyboard-first</h3>
+          <p>A command palette (<kbd>Ctrl+K</kbd>), a full shortcut set, and an anchored date picker — the mouse is optional for almost everything.</p>
+        </div>
+        <div class="feature-card">
+          <span class="icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="11" y="4" width="9" height="16" rx="2"/><path d="M3.5 8.5h6M3.5 12h6M3.5 15.5h6"/><path d="M7.5 10l2 2-2 2"/></svg>
+          </span>
+          <h3>Paste an agenda in</h3>
+          <p>Copy lines from an email or calendar invite and import them as section headers in one step — additive only, nothing else is touched.</p>
+        </div>
+        <div class="feature-card">
+          <span class="icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M13 3H7a1 1 0 0 0-1 1v11"/><path d="M13 3l4 4v6"/><path d="M17 7h-4V3"/><path d="M8 19h8M12 15v8"/></svg>
+          </span>
+          <h3>Just plain text, always</h3>
+          <p>One <code>.txt</code> file per day, on your own disk. Open it in Notepad, grep it, sync it however you already sync files — no export step, ever.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="wrap">
+      <div class="section-head">
+        <span class="eyebrow">The token vocabulary</span>
+        <h2>A handful of tokens, replaced live as you type</h2>
+        <p>The file on disk always stays exactly what you typed — this is a display layer, not a hidden format.</p>
+      </div>
+      <table class="token-table" style="max-width: 640px; margin: 0 auto;">
+        <tbody>
+          <tr>
+            <td><code># </code></td>
+            <td><span class="glyph glyph-open">☐︎</span></td>
+            <td>Open action</td>
+          </tr>
+          <tr>
+            <td><code>v </code></td>
+            <td><span class="glyph glyph-done">☑︎</span></td>
+            <td>Done</td>
+          </tr>
+          <tr>
+            <td><code>&gt; </code></td>
+            <td><span class="glyph glyph-progress">»</span></td>
+            <td>Deferred / forwarded</td>
+          </tr>
+          <tr>
+            <td><code>x </code></td>
+            <td><span class="glyph glyph-cancelled">☒︎</span></td>
+            <td>Won't do</td>
+          </tr>
+          <tr>
+            <td><code>=&gt; </code></td>
+            <td><span class="glyph glyph-followup">➔︎</span></td>
+            <td>Follow-up / delegated to <span class="badge-assignee">@name</span></td>
+          </tr>
+          <tr>
+            <td><code>! </code></td>
+            <td><span class="glyph glyph-emphasis">bold text</span></td>
+            <td>Emphasis — worth remembering</td>
+          </tr>
+        </tbody>
+      </table>
+      <p style="text-align: center; margin-top: 24px;">
+        <a href="guide.html#vocabulary">See the full vocabulary and every workflow in the guide →</a>
+      </p>
+    </div>
+  </section>
+
+  <footer>
+    <div class="wrap">
+      <span>ChronoNote — MIT licensed.</span>
+      <span>
+        <a href="guide.html">Guide</a> ·
+        <a href="https://github.com/marien/ChronoNote" target="_blank" rel="noopener">GitHub</a> ·
+        <a href="https://github.com/marien/ChronoNote/releases" target="_blank" rel="noopener">Releases</a>
+      </span>
+    </div>
+  </footer>
+
+</body>
+</html>

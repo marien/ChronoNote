@@ -3,15 +3,17 @@
  * `MockSeed` straight to Playwright via `seedApp()` (see
  * `tests/e2e/helpers.ts`).
  *
- * Every scenario is deterministic — same bytes every run. Testing-only. */
+ * Every scenario but `demo` is deterministic — same bytes every run.
+ * Testing-only. */
 import type { MockSeed } from "./mockBackend";
 import { generateDataset } from "./dataset";
+import { addDaysISO, todayISO } from "../date";
 
 /** The fixed "today" every scenario is generated around. Tests that touch
  * date logic MUST pin their clock to this (helpers do it automatically). */
 export const REFERENCE_TODAY = "2026-09-07";
 
-export type ScenarioName = "empty" | "single-day" | "busy-week" | "heavy" | "delegation" | "dir-switch";
+export type ScenarioName = "empty" | "single-day" | "busy-week" | "heavy" | "delegation" | "dir-switch" | "demo";
 
 function build(name: ScenarioName): MockSeed {
   switch (name) {
@@ -83,6 +85,159 @@ function build(name: ScenarioName): MockSeed {
       };
     }
 
+    case "demo": {
+      // Hand-authored (not generated) for the marketing site's embedded
+      // live demo (`website/`) — every token form gets a real, readable
+      // example, two sections recur across weeks so Section History has
+      // something worth aggregating, and today is left with genuine open
+      // work so the app doesn't look staged. Dates are relative to the
+      // *real* current date (not `REFERENCE_TODAY`, which every other
+      // scenario deliberately pins for deterministic tests) — a public
+      // demo needs to look current on whatever day someone actually
+      // loads it, not increasingly stale after 2026-09-07 passes. Never
+      // used by an automated test, so there's no coupling to keep in
+      // sync beyond this file.
+      const today = todayISO();
+      const d = (offset: number) => `${addDaysISO(today, offset)}.txt`;
+      const notes: Record<string, string> = {
+        [d(-21)]: [
+          "Planning Kickoff",
+          "================",
+          "# scope the Q3 roadmap doc",
+          "- reviewed last quarter's metrics",
+          "- decided to focus on notes-sync reliability",
+          "! Board update is due end of month — don't forget",
+        ].join("\n"),
+        [d(-19)]: [
+          "Daily Standup",
+          "=============",
+          "- yesterday: fixed the sync retry bug",
+          "- today: write the roadmap doc",
+          "# scope the Q3 roadmap doc",
+          "=> @Priya loop in design on the sync UI",
+        ].join("\n"),
+        [d(-17)]: [
+          "Daily Standup",
+          "=============",
+          "- yesterday: roadmap doc first draft",
+          "- today: send it out for review",
+          "v scope the Q3 roadmap doc",
+          "# get feedback from the team by Monday",
+          "> book the user-testing sessions",
+          "",
+          "",
+          "1:1 — Dana",
+          "==========",
+          "Talked to Dana => # follow up on the hiring plan",
+          "=> @Dana share the updated headcount numbers",
+          "v discussed the notes-sync reliability project",
+        ].join("\n"),
+        [d(-14)]: [
+          "Daily Standup",
+          "=============",
+          "- today: read through roadmap feedback",
+          "x drop the analytics rewrite — descoped this quarter",
+          "# get feedback from the team by Monday",
+          "",
+          "",
+          "Hiring",
+          "======",
+          "=> @Dana share the updated headcount numbers",
+          "# follow up on the hiring plan",
+          "# (interviews) schedule two more candidate calls",
+        ].join("\n"),
+        [d(-12)]: [
+          "Daily Standup",
+          "=============",
+          "- yesterday: incorporated feedback into the roadmap",
+          "v get feedback from the team by Monday",
+          "# publish the roadmap doc to the team wiki",
+          "",
+          "",
+          "1:1 — Priya",
+          "===========",
+          "=> @Priya loop in design on the sync UI",
+          "v shared the roadmap draft with Priya",
+          "- Priya flagged the offline-mode edge case",
+          "# write up the offline-mode edge case",
+        ].join("\n"),
+        [d(-10)]: [
+          "Daily Standup",
+          "=============",
+          "- yesterday: published the roadmap doc",
+          "v publish the roadmap doc to the team wiki",
+          "# write up the offline-mode edge case",
+          "",
+          "",
+          "Retro — Sprint 14",
+          "=================",
+          "* good: shipped the sync retry fix ahead of schedule",
+          "* good: roadmap doc landed with no major pushback",
+          "* improve: standups running long — keep to 10 minutes",
+          "! Bring donuts next retro",
+        ].join("\n"),
+        [d(-7)]: [
+          "Daily Standup",
+          "=============",
+          "- today: start the offline-mode write-up",
+          "# write up the offline-mode edge case",
+          "# (sync) decide on the conflict-resolution strategy",
+        ].join("\n"),
+        [d(-5)]: [
+          "Daily Standup",
+          "=============",
+          "- yesterday: drafted the offline-mode doc",
+          "v write up the offline-mode edge case",
+          "# (sync) decide on the conflict-resolution strategy",
+          "",
+          "",
+          "1:1 — Dana",
+          "==========",
+          "v follow up on the hiring plan",
+          "=> @Dana two candidates moving to onsite",
+          "# prep interview questions for the onsite round",
+        ].join("\n"),
+        [d(-3)]: [
+          "Daily Standup",
+          "=============",
+          "- today: interview prep",
+          "# prep interview questions for the onsite round",
+          "# (sync) decide on the conflict-resolution strategy",
+          "=> keep the plain-text guarantee — no hidden metadata",
+          "",
+          "",
+          "Hiring",
+          "======",
+          "=> @Dana two candidates moving to onsite",
+          "# prep interview questions for the onsite round",
+          "v (interviews) schedule two more candidate calls",
+          "=> (@Dana) send the signed offer letter once approved",
+        ].join("\n"),
+        [d(0)]: [
+          "Daily Standup",
+          "=============",
+          "- today: finalize interview questions, sync design review",
+          "# prep interview questions for the onsite round",
+          "# (sync) decide on the conflict-resolution strategy",
+          "! Onsite interviews are this week — confirm the room booking",
+          "",
+          "",
+          "1:1 — Priya",
+          "===========",
+          "- Priya reviewed the offline-mode doc",
+          "=> @Priya sign off on the conflict-resolution approach",
+          "# write up the offline-mode edge case",
+        ].join("\n"),
+      };
+      return {
+        notes,
+        session: {
+          openTabs: [d(-5), d(-3), d(0)],
+          activeTab: d(0),
+        },
+      };
+    }
+
     case "dir-switch": {
       const work = generateDataset({ today: REFERENCE_TODAY, days: 8, seed: 3 });
       const personal = generateDataset({ today: REFERENCE_TODAY, days: 5, seed: 99 });
@@ -118,4 +273,5 @@ export const SCENARIO_NAMES: ScenarioName[] = [
   "heavy",
   "delegation",
   "dir-switch",
+  "demo",
 ];

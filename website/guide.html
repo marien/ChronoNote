@@ -1,0 +1,244 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Guide — ChronoNote</title>
+  <meta name="description" content="How ChronoNote's token vocabulary, keyboard shortcuts, and core workflows work." />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <header class="site-nav">
+    <div class="wrap">
+      <a class="brand" href="index.html">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M7.5 9h6"/><path d="M7.5 12h9M7.5 13.6h9"/><path d="M7.5 17h5"/></svg>
+        ChronoNote
+      </a>
+      <nav>
+        <a href="index.html">Home</a>
+        <a class="current" href="guide.html">Guide</a>
+        <a href="index.html#demo">Demo</a>
+        <a class="cta" href="https://github.com/marien/ChronoNote" target="_blank" rel="noopener">GitHub ↗</a>
+      </nav>
+    </div>
+  </header>
+
+  <section style="padding-top: 48px; padding-bottom: 24px;">
+    <div class="wrap prose">
+      <h2 style="font-size: 32px; margin-bottom: 8px;">The guide</h2>
+      <p>
+        ChronoNote has no hidden format and no settings you're required to learn before
+        it's useful — but a handful of typed tokens do a lot of work once you know them.
+        This page covers all of it: the vocabulary, every shortcut, and the workflows
+        they add up to.
+      </p>
+      <p>
+        The short version: notes are one plain <code>.txt</code> file per day. Type a
+        token at the start of a line and it turns into a glyph on screen while the
+        file on disk keeps the literal characters you typed — always. Nothing here is
+        a special save format; open any note in Notepad and it reads exactly the same.
+      </p>
+    </div>
+  </section>
+
+  <section class="alt" id="vocabulary">
+    <div class="wrap">
+      <div class="section-head">
+        <span class="eyebrow">Vocabulary</span>
+        <h2>Every token, and what it means</h2>
+        <p>Each is at most three characters, typed at the start of a line.</p>
+      </div>
+      <table class="token-table">
+        <thead>
+          <tr>
+            <th>Type this</th>
+            <th>See this</th>
+            <th>Meaning</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code># </code></td>
+            <td><span class="glyph glyph-open">☐︎</span></td>
+            <td><strong>Open action.</strong> Something still to do. A tab can't be closed silently while one of these is unresolved.</td>
+          </tr>
+          <tr>
+            <td><code>v </code></td>
+            <td><span class="glyph glyph-done">☑︎</span></td>
+            <td><strong>Done.</strong> Resolved.</td>
+          </tr>
+          <tr>
+            <td><code>&gt; </code></td>
+            <td><span class="glyph glyph-progress">»</span></td>
+            <td><strong>Deferred.</strong> Resolved for today, but pushed forward to a later note — used when you copy/forward a task to a future day.</td>
+          </tr>
+          <tr>
+            <td><code>x </code></td>
+            <td><span class="glyph glyph-cancelled">☒︎</span></td>
+            <td><strong>Won't do.</strong> Resolved, but distinct from done — this one just isn't happening.</td>
+          </tr>
+          <tr>
+            <td><code>- </code> or <code>* </code></td>
+            <td>•</td>
+            <td><strong>Bulleted list item.</strong> Purely structural — not an action, doesn't block anything. Indent two spaces to nest.</td>
+          </tr>
+          <tr>
+            <td><code>=&gt; </code></td>
+            <td><span class="glyph glyph-followup">➔︎</span></td>
+            <td><strong>Follow-up.</strong> A plain note or outcome leading from the line above.</td>
+          </tr>
+          <tr>
+            <td><code>=&gt; @name</code> or <code>=&gt; (@name)</code></td>
+            <td><span class="glyph glyph-followup">➔︎</span> <span class="badge-assignee">@name</span></td>
+            <td><strong>Delegated.</strong> Owned by someone else — no action-state of its own. <code>@name</code> stays real, editable text (fix a typo directly); names may contain a hyphen.</td>
+          </tr>
+          <tr>
+            <td><code>=&gt; #</code> / <code>v</code> / <code>&gt;</code> / <code>x</code></td>
+            <td><span class="glyph glyph-followup">➔︎</span> <span class="glyph glyph-open">☐︎</span></td>
+            <td><strong>Consequence action.</strong> A follow-up that's itself an action, cycled with <kbd>Ctrl+Space</kbd> like any other. Mutually exclusive with delegating to a person.</td>
+          </tr>
+          <tr>
+            <td><code># (topic)</code></td>
+            <td><span class="badge-topic">(topic)</span></td>
+            <td><strong>Topic tag.</strong> Groups actions by subject — recognised only right after a leading action symbol.</td>
+          </tr>
+          <tr>
+            <td><code>! </code></td>
+            <td><span class="glyph glyph-emphasis">like this</span></td>
+            <td><strong>Emphasis.</strong> The rest of the line renders bold. Informational only, but searchable like any other line.</td>
+          </tr>
+          <tr>
+            <td>A line, then <code>====</code></td>
+            <td><em>underlined heading</em></td>
+            <td><strong>Section header.</strong> What Section History matches recurring sections by, and where Import Sections appends new entries.</td>
+          </tr>
+        </tbody>
+      </table>
+      <p style="margin-top: 20px; color: var(--muted); font-size: 14px;">
+        Click any glyph in the editor to cycle its state (open → done → deferred → won't-do), or place
+        the caret on the line and press <kbd>Ctrl+Space</kbd>.
+      </p>
+    </div>
+  </section>
+
+  <section id="shortcuts">
+    <div class="wrap">
+      <div class="section-head">
+        <span class="eyebrow">Reference</span>
+        <h2>Keyboard shortcuts</h2>
+        <p>Nearly everything has one — the mouse is optional.</p>
+      </div>
+      <div class="shortcut-grid">
+        <div class="shortcut-row"><span>Command palette — run any command, jump to a tab, date or action</span><kbd>Ctrl+K</kbd></div>
+        <div class="shortcut-row"><span>New scratchpad</span><kbd>Ctrl+N</kbd></div>
+        <div class="shortcut-row"><span>Reopen most recently closed tab</span><kbd>Ctrl+Shift+T</kbd></div>
+        <div class="shortcut-row"><span>Open / create a dated note</span><kbd>Ctrl+O</kbd></div>
+        <div class="shortcut-row"><span>Close current tab</span><kbd>Ctrl+W</kbd></div>
+        <div class="shortcut-row"><span>Next / previous tab</span><kbd>Ctrl+Tab</kbd></div>
+        <div class="shortcut-row"><span>Undo / redo (kept per tab)</span><kbd>Ctrl+Z</kbd> / <kbd>Ctrl+Shift+Z</kbd></div>
+        <div class="shortcut-row"><span>Cycle the action state on this line</span><kbd>Ctrl+Space</kbd></div>
+        <div class="shortcut-row"><span>Jump to next / previous open action</span><kbd>F2</kbd> / <kbd>Shift+F2</kbd></div>
+        <div class="shortcut-row"><span>Convert this line into a section header</span><kbd>Ctrl+Shift+S</kbd></div>
+        <div class="shortcut-row"><span>Actions drawer</span><kbd>Ctrl+Shift+A</kbd></div>
+        <div class="shortcut-row"><span>Section history</span><kbd>Ctrl+Shift+H</kbd></div>
+        <div class="shortcut-row"><span>Find in this note</span><kbd>Ctrl+F</kbd></div>
+        <div class="shortcut-row"><span>Cross-tab search</span><kbd>Ctrl+Shift+F</kbd></div>
+        <div class="shortcut-row"><span>Import sections</span><kbd>Ctrl+Shift+I</kbd></div>
+        <div class="shortcut-row"><span>Settings</span><kbd>Ctrl+,</kbd></div>
+        <div class="shortcut-row"><span>About ChronoNote</span><kbd>Ctrl+Shift+,</kbd></div>
+        <div class="shortcut-row"><span>Shortcuts &amp; symbols (this list, in-app)</span><kbd>Ctrl+/</kbd></div>
+        <div class="shortcut-row"><span>Close whatever's open</span><kbd>Escape</kbd></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="alt">
+    <div class="wrap">
+      <div class="section-head">
+        <span class="eyebrow">Putting it together</span>
+        <h2>How a week actually flows</h2>
+      </div>
+      <div class="workflow">
+        <div class="workflow-step">
+          <div class="num">1</div>
+          <div>
+            <h3>Open today, type what's happening</h3>
+            <p>ChronoNote always opens on today's note. Give a meeting a title and underline it to make a
+              section, then log actions as they come up.</p>
+            <div class="snippet">Daily Standup
+=============
+- yesterday: fixed the sync retry bug
+# scope the Q3 roadmap doc</div>
+          </div>
+        </div>
+        <div class="workflow-step">
+          <div class="num">2</div>
+          <div>
+            <h3>Resolve, delegate, or defer</h3>
+            <p>Click a glyph or press <kbd>Ctrl+Space</kbd> to cycle its state. Hand something off with
+              <kbd>=&gt; @name</kbd> — it stays a real, editable name, not a locked-in reference.</p>
+            <div class="snippet">v scope the Q3 roadmap doc
+=> @Priya loop in design on the sync UI</div>
+          </div>
+        </div>
+        <div class="workflow-step">
+          <div class="num">3</div>
+          <div>
+            <h3>Let recurring meetings remember themselves</h3>
+            <p>Reuse the same section title tomorrow — "Daily Standup" again, or "1:1 — Priya" next week —
+              and <kbd>Ctrl+Shift+H</kbd> pulls up every prior occurrence, aggregated, right from wherever
+              your cursor sits in the current one.</p>
+          </div>
+        </div>
+        <div class="workflow-step">
+          <div class="num">4</div>
+          <div>
+            <h3>Paste an agenda in</h3>
+            <p><kbd>Ctrl+Shift+I</kbd> turns freeform lines — copied straight from an email or calendar
+              invite — into section headers, appended to the end of today's note. Purely additive; it never
+              touches what's already there.</p>
+          </div>
+        </div>
+        <div class="workflow-step">
+          <div class="num">5</div>
+          <div>
+            <h3>Find anything, across every day</h3>
+            <p><kbd>Ctrl+Shift+F</kbd> searches every open tab or the whole notes folder at once. Results
+              render the same glyph-aware way the editor does, so a search hit reads exactly like the real
+              line.</p>
+          </div>
+        </div>
+        <div class="workflow-step">
+          <div class="num">6</div>
+          <div>
+            <h3>Jot something that isn't dated yet</h3>
+            <p><kbd>Ctrl+N</kbd> opens a scratchpad — kept in memory only, never written to disk until you
+              promote it into a real dated note. Closing one with real content unsaved asks first; nothing
+              disappears by accident.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="wrap" style="text-align: center;">
+      <h2 style="color: var(--bright); margin-bottom: 16px;">See it for yourself</h2>
+      <a class="btn btn-primary" href="index.html#demo">Open the live demo</a>
+    </div>
+  </section>
+
+  <footer>
+    <div class="wrap">
+      <span>ChronoNote — MIT licensed.</span>
+      <span>
+        <a href="index.html">Home</a> ·
+        <a href="https://github.com/marien/ChronoNote" target="_blank" rel="noopener">GitHub</a> ·
+        <a href="https://github.com/marien/ChronoNote/releases" target="_blank" rel="noopener">Releases</a>
+      </span>
+    </div>
+  </footer>
+
+</body>
+</html>

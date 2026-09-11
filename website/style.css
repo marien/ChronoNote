@@ -1,0 +1,505 @@
+/* ChronoNote marketing site — design tokens hand-ported from src/app.css
+   (the desktop app's own stylesheet) so the site matches without the
+   site depending on the app's build. Keep these two files' *values* in
+   sync by eye if the app's palette ever changes; this file is not
+   generated from that one. */
+
+:root {
+  /* Surface elevation (§102 in the app) — same four charcoal tiers. */
+  --surface-canvas: #1e1e1e;
+  --surface-chrome: #252526;
+  --surface-overlay: #2d2d2e;
+  --surface-raised: #37373b;
+
+  --edge-soft: rgba(255, 255, 255, 0.07);
+  --edge-strong: rgba(255, 255, 255, 0.13);
+
+  --text: #d4d4d4;
+  --muted: #858585;
+  --bright: #ffffff;
+
+  /* The app's opt-in "color" glyph palette (Settings → Appearance →
+     Glyphs) — used here as the site's accent set, since a marketing
+     site benefits from colour even though the app itself defaults to
+     the quieter grayscale mode. */
+  --accent: #38bdf8; /* open / follow-up */
+  --accent-bright: #7fd4f5;
+  --ok: #10b981; /* done */
+  --progress: #a855f7; /* deferred */
+  --cancelled: #7c8794; /* won't-do */
+  --emphasis: #f59e0b; /* "! " lines */
+
+  --font: "Cascadia Code", "JetBrains Mono", "Consolas", monospace;
+
+  --max-width: 920px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  color-scheme: dark;
+}
+
+body {
+  margin: 0;
+  background: var(--surface-canvas);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 16px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+img,
+svg {
+  max-width: 100%;
+}
+
+a {
+  color: var(--accent-bright);
+  text-decoration: none;
+}
+a:hover {
+  text-decoration: underline;
+}
+
+.wrap {
+  max-width: var(--max-width);
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+/* ---- Nav ------------------------------------------------------------- */
+
+.site-nav {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: var(--surface-chrome);
+  border-bottom: 1px solid var(--edge-soft);
+}
+.site-nav .wrap {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 56px;
+}
+.site-nav .brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--bright);
+  font-weight: 700;
+  font-size: 15px;
+}
+.site-nav .brand svg {
+  color: var(--accent);
+}
+.site-nav .brand:hover {
+  text-decoration: none;
+}
+.site-nav nav {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.site-nav nav a {
+  color: var(--text);
+  padding: 6px 12px;
+  border-radius: 4px;
+  font-size: 14px;
+}
+.site-nav nav a:hover {
+  background: var(--surface-raised);
+  text-decoration: none;
+}
+.site-nav nav a.current {
+  color: var(--bright);
+  background: var(--surface-raised);
+}
+.site-nav nav a.cta {
+  border: 1px solid var(--edge-strong);
+}
+
+/* ---- Hero -------------------------------------------------------------- */
+
+.hero {
+  padding: 72px 0 48px;
+  text-align: center;
+}
+.hero h1 {
+  margin: 0 0 16px;
+  font-size: 40px;
+  line-height: 1.25;
+  color: var(--bright);
+  letter-spacing: -0.01em;
+}
+.hero .lede {
+  margin: 0 auto 32px;
+  max-width: 620px;
+  color: var(--muted);
+  font-size: 17px;
+}
+.hero .cta-row {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font);
+  font-size: 14px;
+  padding: 10px 18px;
+  border-radius: 6px;
+  border: 1px solid var(--edge-strong);
+  background: var(--surface-overlay);
+  color: var(--text);
+  cursor: pointer;
+}
+.btn:hover {
+  background: var(--surface-raised);
+  text-decoration: none;
+}
+.btn-primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #05202b;
+  font-weight: 600;
+}
+.btn-primary:hover {
+  background: var(--accent-bright);
+  border-color: var(--accent-bright);
+}
+
+/* ---- Section scaffolding ------------------------------------------------ */
+
+section {
+  padding: 56px 0;
+}
+section.alt {
+  background: var(--surface-chrome);
+  border-top: 1px solid var(--edge-soft);
+  border-bottom: 1px solid var(--edge-soft);
+}
+.section-head {
+  text-align: center;
+  margin: 0 auto 40px;
+  max-width: 620px;
+}
+.section-head .eyebrow {
+  display: block;
+  color: var(--accent);
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-bottom: 10px;
+}
+.section-head h2 {
+  margin: 0 0 12px;
+  font-size: 26px;
+  color: var(--bright);
+}
+.section-head p {
+  margin: 0;
+  color: var(--muted);
+}
+
+/* ---- Feature grid ------------------------------------------------------- */
+
+.feature-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 20px;
+}
+.feature-card {
+  background: var(--surface-overlay);
+  border: 1px solid var(--edge-soft);
+  border-radius: 8px;
+  padding: 22px;
+}
+.feature-card .icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  background: var(--surface-raised);
+  color: var(--accent);
+  margin-bottom: 14px;
+}
+.feature-card h3 {
+  margin: 0 0 8px;
+  font-size: 15px;
+  color: var(--bright);
+}
+.feature-card p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+/* ---- Framed "app window" demo embed ------------------------------------- */
+
+.app-frame {
+  max-width: 960px;
+  margin: 0 auto;
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--surface-chrome);
+  border: 1px solid var(--edge-strong);
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.5);
+}
+.app-frame .frame-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 12px;
+  background: var(--surface-chrome);
+  border-bottom: 1px solid var(--edge-soft);
+}
+.app-frame .frame-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--edge-strong);
+}
+.app-frame .frame-label {
+  margin-left: 8px;
+  color: var(--muted);
+  font-size: 12px;
+}
+.app-frame iframe {
+  display: block;
+  width: 100%;
+  height: 560px;
+  border: none;
+  background: var(--surface-canvas);
+}
+.demo-note {
+  max-width: 960px;
+  margin: 14px auto 0;
+  text-align: center;
+  color: var(--muted);
+  font-size: 13px;
+}
+.demo-fallback {
+  display: none;
+  padding: 60px 24px;
+  text-align: center;
+  color: var(--muted);
+  font-size: 14px;
+}
+.demo-fallback code {
+  color: var(--text);
+}
+
+/* ---- Token vocabulary table (guide page) -------------------------------- */
+
+.token-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+.token-table th {
+  text-align: left;
+  color: var(--muted);
+  font-weight: 600;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--edge-strong);
+}
+.token-table td {
+  padding: 12px;
+  border-bottom: 1px solid var(--edge-soft);
+  vertical-align: top;
+}
+.token-table code {
+  background: var(--surface-raised);
+  padding: 2px 6px;
+  border-radius: 4px;
+  color: var(--accent-bright);
+}
+.glyph {
+  display: inline-block;
+  font-size: 16px;
+  font-weight: 700;
+  /* Some of these codepoints (☐ ☑ ☒ ➔) get a colourful emoji-style
+     rendering in some browser/OS font-fallback combos when no font in
+     the stack has a real glyph for them (the exact problem the app's
+     own chrome icons hit before §127 moved them to SVG). The visible
+     markup also appends U+FE0E (text presentation selector) as the
+     portable per-browser fix; this is the CSS-level one for browsers
+     that support it. */
+  font-variant-emoji: text;
+}
+.glyph-open {
+  color: var(--accent);
+}
+.glyph-done {
+  color: var(--ok);
+}
+.glyph-progress {
+  color: var(--progress);
+}
+.glyph-cancelled {
+  color: var(--cancelled);
+  text-decoration: line-through;
+}
+.glyph-followup {
+  color: var(--accent);
+}
+.glyph-emphasis {
+  color: var(--emphasis);
+  font-weight: 700;
+}
+.badge-assignee {
+  display: inline-block;
+  background: rgba(56, 189, 248, 0.16);
+  color: var(--accent-bright);
+  padding: 0 5px;
+  border-radius: 3px;
+  font-weight: 600;
+}
+.badge-topic {
+  display: inline-block;
+  border: 1px solid var(--edge-strong);
+  color: var(--muted);
+  padding: 0 5px;
+  border-radius: 3px;
+  font-style: italic;
+}
+
+/* ---- Keyboard shortcuts (guide page) ------------------------------------- */
+
+kbd {
+  display: inline-block;
+  font-family: var(--font);
+  font-size: 12px;
+  background: var(--surface-raised);
+  border: 1px solid var(--edge-strong);
+  border-bottom-width: 2px;
+  border-radius: 4px;
+  padding: 2px 6px;
+  color: var(--text);
+}
+.shortcut-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 8px 32px;
+}
+.shortcut-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--edge-soft);
+  font-size: 14px;
+}
+.shortcut-row span {
+  color: var(--muted);
+}
+
+/* ---- Guide workflow steps ------------------------------------------------ */
+
+.workflow {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+.workflow-step {
+  display: grid;
+  grid-template-columns: 40px 1fr;
+  gap: 16px;
+}
+.workflow-step .num {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--surface-raised);
+  color: var(--accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+.workflow-step h3 {
+  margin: 8px 0 8px;
+  color: var(--bright);
+  font-size: 16px;
+}
+.workflow-step p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 14px;
+}
+.snippet {
+  background: var(--surface-overlay);
+  border: 1px solid var(--edge-soft);
+  border-radius: 6px;
+  padding: 12px 14px;
+  margin-top: 10px;
+  font-size: 13.5px;
+  white-space: pre-wrap;
+  color: var(--text);
+}
+
+/* ---- Prose (guide intro, philosophy) ------------------------------------- */
+
+.prose {
+  max-width: 720px;
+  margin: 0 auto;
+  color: var(--text);
+}
+.prose p {
+  color: var(--muted);
+}
+.prose h2 {
+  color: var(--bright);
+}
+
+/* ---- Footer -------------------------------------------------------------- */
+
+footer {
+  padding: 40px 0;
+  border-top: 1px solid var(--edge-soft);
+  color: var(--muted);
+  font-size: 13px;
+}
+footer .wrap {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+footer a {
+  color: var(--muted);
+}
+footer a:hover {
+  color: var(--text);
+}
+
+@media (max-width: 640px) {
+  .hero h1 {
+    font-size: 30px;
+  }
+  .site-nav nav a:not(.cta) {
+    display: none;
+  }
+  footer .wrap {
+    flex-direction: column;
+    text-align: center;
+  }
+}
