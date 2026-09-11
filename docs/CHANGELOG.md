@@ -6,9 +6,7 @@ kept for the rationale behind each one — not just *what* changed but
 was still being gathered and confirmed before implementation; renamed once
 everything below was applied, since nothing here is "pending" anymore.
 
-**Status: all sections through §135 implemented, released, and on `main`.**
-§136 is implemented and committed to `main` but not yet released, at
-Marien's request (more changes may follow before the next version cut).
+**Status: all sections through §136 implemented, released, and on `main`.**
 §99–§110 are the 0.6 UX/UI pass (`docs/design/ux-roadmap-0.6.md`); §111 is
 a small v0.6.1 follow-up (the pre-0.6 glyph palette, back as an option).
 §112 (#28) and §113 (#27) are Section History follow-ups (v0.6.2).
@@ -28,8 +26,7 @@ after its fix overcorrected visually. §135 fixes a long-standing
 opener-plugin permission-scope bug (chat feedback, no issue) that made
 the About drawer's external links silently do nothing. §136 closes #50
 (a first-run-after-update notice) plus an always-visible status-bar
-update icon (chat feedback, no issue) — implemented but not yet
-released.
+update icon (chat feedback, no issue).
 Each
 section is verified before merge (`svelte-check`, the Vitest suite,
 `cargo test`, and — from §77 on — the Playwright E2E suite, all green in
@@ -4980,8 +4977,9 @@ test` unchanged at 44, `svelte-check`/Vitest/Playwright counts unchanged.
 
 ## 136. First-run-after-update notice, and an always-visible "update available" status-bar icon
 
-**Status: implemented, not yet released** (held back at Marien's request
-in case more changes land before the next version cut). Closes **#50**: *"At first run after update show
+**Status: implemented, released in v0.7.6.** Held back briefly at
+Marien's request (in case more changes landed first) before being
+released the same day. Closes **#50**: *"At first run after update show
 release notes with a link to release notes on github."* Plus a follow-up
 request the same day: use the existing `update` icon (drawn in §127,
 first put to use in §128's About/Settings UI) next to the version number
