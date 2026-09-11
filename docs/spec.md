@@ -99,6 +99,7 @@ mode (`--text` in the top bar, `--muted` in a modal header) — never a
 semantic hue, which stays reserved for the editor glyphs (2.2). The
 application (OS) icon is a separate, static baked asset (regenerated from
 a master SVG via `npx tauri icon <master>`, since it can't follow a
-runtime setting) — see `docs/design/icon-system-0.7.html` for the
-direction picked to eventually replace it with the same "dated page under
-its rule" mark the in-app date-note action uses.
+runtime setting) — it's the same "dated page under its rule" mark the
+in-app date-note action uses, white-knocked-out on the accent tile, so
+the taskbar icon and the toolbar button read as one thing
+(`docs/design/icon-A-master.svg`).

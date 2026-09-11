@@ -300,7 +300,14 @@ body {
 .tab {
   flex-shrink: 0;
   padding: 0 10px 0 12px;
-  height: 34px;
+  /* #49: fills #tab-bar's own height rather than a shorter fixed value —
+     a shorter tab, bottom-anchored (see #tab-bar's `align-items:
+     flex-end` above), left empty space above it that the toolbar
+     buttons' icons (vertically centred in the full 44px bar) didn't
+     share, so the two icon rows sat ~5px out of vertical alignment.
+     Filling the height instead of guessing a px value stays correct if
+     the bar height (or its border) ever changes. */
+  height: 100%;
   margin: 0 1px;
   border-radius: 6px 6px 0 0;
   display: flex;
@@ -350,6 +357,11 @@ body {
   background: var(--edge-strong);
   flex-shrink: 0;
   margin: 0 7px;
+  /* #49: #tab-bar bottom-anchors its children (`align-items: flex-end`)
+     for the tabs' sake — a short, fixed-height sibling like this one
+     would inherit that and sit low, off-centre from the now full-height
+     tabs' icon row. Centre it on its own instead. */
+  align-self: center;
 }
 .tab-bar-new-btn {
   flex-shrink: 0;

@@ -6,7 +6,7 @@ kept for the rationale behind each one — not just *what* changed but
 was still being gathered and confirmed before implementation; renamed once
 everything below was applied, since nothing here is "pending" anymore.
 
-**Status: all sections through §131 implemented, released, and on `main`.**
+**Status: all sections through §133 implemented, released, and on `main`.**
 §99–§110 are the 0.6 UX/UI pass (`docs/design/ux-roadmap-0.6.md`); §111 is
 a small v0.6.1 follow-up (the pre-0.6 glyph palette, back as an option).
 §112 (#28) and §113 (#27) are Section History follow-ups (v0.6.2).
@@ -19,7 +19,9 @@ review plus the new icon set (`docs/design/maturity-0.7-roadmap.md`).
 §128 is the GitHub-releases update check (same roadmap, Feature 3.1) —
 the second of its two proposed features, M365 calendar import, is still
 just a design (0.8.0, not started). §129–§131 close three GitHub issues
-filed after the 0.7 pass (#46, #47, #48).
+filed after the 0.7 pass (#46, #47, #48). §132 closes a fourth (#49,
+top-bar alignment); §133 is the app-icon redraw the 0.7 roadmap called
+for but deferred out of v0.7.0.
 Each
 section is verified before merge (`svelte-check`, the Vitest suite,
 `cargo test`, and — from §77 on — the Playwright E2E suite, all green in
@@ -4779,3 +4781,84 @@ attribute, and persistence for all three values),
 `<html>` element, persists across reload, back to System removes the
 attribute). `svelte-check` 256 files 0 errors, Vitest 271 (+1), Playwright
 150 (+1), `cargo test` 44 (+1).
+
+---
+
+## 132. Top bar: tab icons didn't align with toolbar-button icons (#49)
+
+**Status: implemented.** Reported: *"There seems to be a misalignment in
+the top bar between the height and space for the tabs and height and
+space for the buttons. It seems like there is some (unnecessary) empty
+space above the tabs, that could be removed. That way the icons of the
+buttons would align better with the icons on the tabs."*
+
+**Root cause.** `#top-bar` is 44px tall; the toolbar buttons
+(`#top-bar .icon-btn`, 30px) are direct children of it, so `#top-bar`'s
+own `align-items: center` vertically centres them — icon centre 21.7px
+from the top. `.tab` elements, by contrast, live inside `#tab-bar`, which
+bottom-anchors its children (`align-items: flex-end`) so the active tab's
+bottom can meet the editor canvas below with no seam. `.tab` had a fixed
+`height: 34px`, so a bottom-anchored 34px tab in a 44px bar left ~9px of
+empty space above it and nowhere else — pushing the tab's own icon
+(vertically centred *within* the tab) down to 26.3px from the top: a
+~4.7px mismatch against the toolbar icons directly above it.
+
+**Fix.** `.tab { height: 34px }` → `height: 100%` — filling `#tab-bar`
+exactly rather than guessing a shorter fixed value, so there's no gap
+left to misalign anything (and it stays correct if the bar height or its
+border ever changes). That also pushed `.tab-group-divider` (the hairline
+between the daily-note and scratchpad tab groups, §103) out of vertical
+centre — it's a fixed 20px-tall sibling that was inheriting the same
+bottom anchor for the tabs' sake; gave it its own `align-self: center` so
+it centres on the (now taller) tab row regardless.
+
+No test previously asserted the two rows' vertical alignment (a
+sub-pixel-layout claim, the kind `CLAUDE.local.md` already notes this
+app treats as an eyeball check rather than a pixel-diff assertion) — none
+added for the same reason; verified directly via `getBoundingClientRect()`
+in the running app (both icon rows' centres now land on the same pixel)
+and the existing `tab-archetypes.spec.ts` / `visual.spec.ts` /
+`drawers.spec.ts` suites (which exercise the tab strip and the divider)
+stayed green. Pure CSS — no Rust/IPC/storage change, `cargo test`
+unchanged at 44. `svelte-check` 256 files 0 errors, Vitest 271, Playwright
+150 (unchanged counts; no new tests, see above).
+
+---
+
+## 133. App icon redrawn as the "dated page" mark (0.7 iconography pass, part 2)
+
+**Status: implemented.** The 0.7 maturity roadmap
+(`docs/design/maturity-0.7-roadmap.md`) called this out explicitly but
+deferred it out of §127/v0.7.0 ("the app-icon redraw... explicitly
+deferred, not part of 0.7.0"): *"the app icon rejoins the family"* — the
+OS icon becomes the same **dated page under its rule** the in-app "Open
+date note" toolbar button uses (`src/lib/icons/paths.ts`'s `"date-note"`
+path), so the taskbar icon and the toolbar button read as one thing,
+replacing the unrelated §96 "checkbox + clock hands" mark.
+
+**Implementation.** `docs/design/icon-A-master.svg` (the 1024px master,
+regenerated in place — the prior checkbox-clock content is still visible
+in git history) redraws the toolbar's `"date-note"` path (a rounded page
+with a title line, a doubled "section rule" line, and a body line) at the
+same scale and position the old checkbox mark occupied, so the two icon
+generations read as continuous rather than a jarring swap: the page
+rect lands at the exact same `(300,300)`–`(724,724)` bounds the old
+checkbox did, and the stroke width (46.4px) keeps the toolbar icon's own
+stroke-to-viewbox ratio (1.75⁄24) rather than borrowing the old mark's
+chunkier one. Same treatment as before otherwise — white knockout on the
+`#007acc` accent tile, `rx=232` rounded-square tile. Regenerated via
+`npx tauri icon docs/design/icon-A-master.svg` → `src-tauri/icons/
+{32x32,128x128,128x128@2x}.png` + `icon.ico` (the only 4 tracked files;
+the rest of `tauri icon`'s output — `icon.png`, `.icns`, the Windows
+Store/iOS/Android variants — stays gitignored, unchanged since §96, since
+ChronoNote ships Windows-only). Checked legible at every render size down
+to 16px before regenerating (a scratch multi-size preview page, not
+committed).
+
+New: nothing testable — this is a static OS-icon asset with no runtime
+behaviour, so no unit/e2e coverage applies (same as §96's own delivery).
+Docs: `docs/design/README.md`'s app-icon section and `docs/spec.md`'s
+Iconography paragraph updated to describe the shipped state instead of
+the prior "picked direction, not yet done." `svelte-check` 256 files 0
+errors, Vitest 271, Playwright 150, `cargo test` 44 (all unchanged — pure
+asset regeneration, no source change).

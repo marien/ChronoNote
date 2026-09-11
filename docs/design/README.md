@@ -34,10 +34,20 @@ variant; only an in-app inline-SVG icon can follow the runtime setting.
 
 ### Decision (2026-09-08)
 
-Ship **concept A** as the OS icon, landing in **v0.5.0**.
-[`icon-A-master.svg`](icon-A-master.svg) is the 1024&nbsp;px master — a white
-knockout on the accent tile (evolves the current white-clock look rather than
-replacing it wholesale). To regenerate the icon set:
+Ship **concept A** (checkbox + clock hands) as the OS icon, landing in
+**v0.5.0** (§96).
+
+### Redrawn (2026-09-11, v0.7.x)
+
+Per the 0.7 iconography pass (`maturity-0.7-roadmap.md`, "the app icon
+rejoins the family"), the OS icon is no longer its own unrelated mark —
+it's now the same **dated page under its rule** the in-app "Open date
+note" toolbar button uses (`src/lib/icons/paths.ts`, `"date-note"`), so
+the taskbar icon and the toolbar button read as one thing.
+[`icon-A-master.svg`](icon-A-master.svg) is still the 1024&nbsp;px master
+(same file, redrawn in place — the checkbox-clock mark it used to hold is
+still visible in git history) — a white knockout on the same accent tile
+as before, only the mark itself changed. To regenerate the icon set:
 
 ```
 npx tauri icon docs/design/icon-A-master.svg
@@ -45,4 +55,5 @@ npx tauri icon docs/design/icon-A-master.svg
 
 That rewrites `src-tauri/icons/{32x32,128x128,128x128@2x}.png` and `icon.ico`.
 If a neutral-tile / in-app themed variant is wanted too, the geometry is in
-`icon-proposals.html` (concept A, grayscale + colour cells).
+`icon-proposals.html` (concept A, grayscale + colour cells) — that file
+documents the *pre-0.7* mark and is kept for history, not current.

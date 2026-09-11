@@ -1,8 +1,18 @@
 <svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
-  <title>ChronoNote app icon — concept A (checkbox clock)</title>
-  <desc>The open-action glyph as a rounded square, with clock hands set inside it: the action list and the passage of days in one mark. Shipped treatment is a white knockout on the accent-blue tile (evolves the previous white-clock-on-blue icon). For a neutral-tile variant that follows the in-app colour setting, see docs/design/icon-proposals.html concept A.</desc>
+  <title>ChronoNote app icon — "dated page" (0.7 iconography pass)</title>
+  <desc>The same dated-page-under-its-rule mark the in-app "Open date note"
+  toolbar button uses (src/lib/icons/paths.ts, "date-note"), scaled up so
+  the taskbar icon and the toolbar button read as one thing
+  (docs/design/maturity-0.7-roadmap.md, "The app icon rejoins the
+  family"). Replaces the §96 checkbox-clock mark. Shipped treatment is a
+  white knockout on the accent-blue tile, same as before — only the mark
+  itself changed. Regenerate with: npx tauri icon docs/design/icon-A-master.svg</desc>
   <rect x="32" y="32" width="960" height="960" rx="232" fill="#007acc"/>
-  <rect x="300" y="300" width="424" height="424" rx="72" fill="none" stroke="#ffffff" stroke-width="66"/>
-  <path d="M512 524 V400 M512 524 H660" fill="none" stroke="#ffffff" stroke-width="66" stroke-linecap="round"/>
-  <circle cx="512" cy="524" r="33" fill="#ffffff"/>
+  <g fill="none" stroke="#ffffff" stroke-width="46.4" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="300" y="300" width="424" height="424" rx="53"/>
+    <path d="M392.75 432.5H551.75"/>
+    <path d="M392.75 512H631.25"/>
+    <path d="M392.75 554.4H631.25"/>
+    <path d="M392.75 644.5H525.25"/>
+  </g>
 </svg>
