@@ -6,9 +6,7 @@ kept for the rationale behind each one — not just *what* changed but
 was still being gathered and confirmed before implementation; renamed once
 everything below was applied, since nothing here is "pending" anymore.
 
-**Status: all sections through §136 implemented, released, and on `main`.**
-§137 is implemented and committed to `main` but not yet released, at
-Marien's request (more feedback may follow before the next version cut).
+**Status: all sections through §137 implemented, released, and on `main`.**
 §99–§110 are the 0.6 UX/UI pass (`docs/design/ux-roadmap-0.6.md`); §111 is
 a small v0.6.1 follow-up (the pre-0.6 glyph palette, back as an option).
 §112 (#28) and §113 (#27) are Section History follow-ups (v0.6.2).
@@ -5043,8 +5041,9 @@ update icon appears, links to About, shows the found version).
 
 ## 137. Date picker: fast dots for the visible month, a loading spinner, and opens on the active tab's date
 
-**Status: implemented, not yet released** (Marien: "Let me give some more
-feedback to work on. Don't cut a new release yet"). Two pieces of
+**Status: implemented, released in v0.7.7.** Held back briefly at
+Marien's request ("Let me give some more feedback to work on. Don't cut
+a new release yet") before being released once asked to. Two pieces of
 feedback from the same message.
 
 **"It takes a bit of time for the dates to get their dot and be set to
