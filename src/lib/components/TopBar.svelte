@@ -27,6 +27,7 @@
   import * as controller from "../controller";
   import { activeTabId, chromeExpanded, saveState, tabs } from "../controller";
   import type { NoteTab } from "../types";
+  import Icon from "../icons/Icon.svelte";
 
   /** Dated tabs show just the date; scratchpads keep their given name. */
   const tabLabel = (t: NoteTab) => (t.isScratchpad ? t.filename : t.filename.replace(/\.txt$/, ""));
@@ -275,9 +276,9 @@
 
 <div id="top-bar" bind:this={topBarEl}>
   {#if isOverflowing}
-    <button class="icon-btn tab-scroll-btn" aria-label="Scroll tabs left" on:click={() => scrollTabBar(-1)}
-      >‹</button
-    >
+    <button class="icon-btn tab-scroll-btn" aria-label="Scroll tabs left" on:click={() => scrollTabBar(-1)}>
+      <Icon name="chevron-left" size={14} />
+    </button>
   {/if}
   <div id="tab-bar" bind:this={tabBarEl}>
     {#each displayTabs as tab, i (tab.id)}
@@ -302,17 +303,7 @@
         on:keydown={(e) => e.key === "Enter" && controller.switchTab(tab.id)}
       >
         <span class="tab-icon" aria-hidden="true">
-          {#if tab.isScratchpad}
-            <svg viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.4">
-              <path d="M4 2.5h5l3 3v8H4z" stroke-linejoin="round" />
-              <path d="M6 8h4M6 10.5h3" stroke-linecap="round" />
-            </svg>
-          {:else}
-            <svg viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.4">
-              <rect x="2.5" y="3.5" width="11" height="10" rx="1.5" />
-              <path d="M2.5 6.5h11M5.5 2v3M10.5 2v3" stroke-linecap="round" />
-            </svg>
-          {/if}
+          <Icon name={tab.isScratchpad ? "tab-scratch" : "tab-daily"} size={13} />
         </span>
         <span class="tab-label">{tabLabel(tab)}</span>
         {#if tab.isScratchpad && tab.content.trim() !== ""}
@@ -327,21 +318,22 @@
           aria-label="Close tab"
           on:click|stopPropagation={() => controller.requestTabClose(tab.id)}
           on:keydown|stopPropagation={(e) => e.key === "Enter" && controller.requestTabClose(tab.id)}
-          >✕</span
         >
+          <Icon name="close" size={11} />
+        </span>
       </div>
     {/each}
   </div>
   {#if isOverflowing}
-    <button class="icon-btn tab-scroll-btn" aria-label="Scroll tabs right" on:click={() => scrollTabBar(1)}
-      >›</button
-    >
+    <button class="icon-btn tab-scroll-btn" aria-label="Scroll tabs right" on:click={() => scrollTabBar(1)}>
+      <Icon name="chevron-right" size={14} />
+    </button>
   {/if}
   <!-- §53: always visible regardless of tab-bar scroll position — a
        sibling of the scrollable #tab-bar rather than a child of it (the
        same reason the scroll arrows themselves live out here). -->
   <button class="icon-btn tab-bar-new-btn" title="New Scratchpad (Ctrl+N)" on:click={controller.createScratchpad}>
-    ＋
+    <Icon name="new-scratchpad" />
   </button>
   <button
     class="icon-btn"
@@ -349,19 +341,19 @@
     data-datepicker-trigger
     on:click={controller.openDatePicker}
   >
-    <span class="icon-glyph">📅</span>{#if showActionLabels}<span class="icon-label"> Date</span>{/if}
+    <Icon name="date-note" />{#if showActionLabels}<span class="icon-label">Date</span>{/if}
   </button>
-  <button class="icon-btn" title="Action Drawer (Ctrl+Shift+A)" on:click={controller.openActionDrawer}>
-    <span class="icon-glyph">📋</span>{#if showActionLabels}<span class="icon-label"> My Actions</span>{/if}
+  <button class="icon-btn" title="Actions (Ctrl+Shift+A)" on:click={controller.openActionDrawer}>
+    <Icon name="actions" />{#if showActionLabels}<span class="icon-label">Actions</span>{/if}
   </button>
-  <button class="icon-btn" title="Section History (Ctrl+Shift+H)" on:click={controller.openMeetingHistory}>
-    <span class="icon-glyph">🕒</span>{#if showActionLabels}<span class="icon-label"> Section History</span>{/if}
+  <button class="icon-btn" title="Section history (Ctrl+Shift+H)" on:click={controller.openMeetingHistory}>
+    <Icon name="section-history" />{#if showActionLabels}<span class="icon-label">Section history</span>{/if}
   </button>
   <button class="icon-btn" title="Cross-Tab Search (Ctrl+Shift+F)" on:click={controller.openCrossTabSearch}>
-    <span class="icon-glyph">🔎</span>{#if showActionLabels}<span class="icon-label"> Search</span>{/if}
+    <Icon name="search" />{#if showActionLabels}<span class="icon-label">Search</span>{/if}
   </button>
   <button class="icon-btn" title="Import Sections (Ctrl+Shift+I)" on:click={controller.openSectionImport}>
-    <span class="icon-glyph">📥</span>{#if showActionLabels}<span class="icon-label"> Import</span>{/if}
+    <Icon name="import" />{#if showActionLabels}<span class="icon-label">Import</span>{/if}
   </button>
   {#if activeTab?.isScratchpad}
     <button
@@ -369,13 +361,13 @@
       title="Promote scratchpad into today's note"
       on:click={() => controller.promoteScratchpad(activeTab.id)}
     >
-      <span class="icon-glyph">⬆</span>{#if showActionLabels}<span class="icon-label"> Promote</span>{/if}
+      <Icon name="promote" />{#if showActionLabels}<span class="icon-label">Promote</span>{/if}
     </button>
   {/if}
   <button class="icon-btn" title="Settings (Ctrl+,)" on:click={controller.openSettings}>
-    <span class="icon-glyph">⚙</span>{#if showActionLabels}<span class="icon-label"> Settings</span>{/if}
+    <Icon name="settings" />{#if showActionLabels}<span class="icon-label">Settings</span>{/if}
   </button>
   <button class="icon-btn" title="About ChronoNote (Ctrl+Shift+,)" on:click={controller.openAbout}>
-    <span class="icon-glyph">ℹ️</span>{#if showActionLabels}<span class="icon-label"> About</span>{/if}
+    <Icon name="about" />{#if showActionLabels}<span class="icon-label">About</span>{/if}
   </button>
 </div>

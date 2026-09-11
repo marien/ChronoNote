@@ -19,8 +19,10 @@
     <span id="stat-words">{$statusWordCount} {$statusWordCount === 1 ? "word" : "words"}</span>
     <span class="status-sep">·</span>
     <span id="stat-open">Open {$statusCounts.open}</span>
+    <span class="status-sep">·</span>
     <span id="stat-closed">Closed {$statusCounts.closed}</span>
-    <span id="stat-forwarded">Fwd {$statusCounts.forwarded}</span>
+    <span class="status-sep">·</span>
+    <span id="stat-forwarded">Forwarded {$statusCounts.forwarded}</span>
   </div>
 
   <div class="status-zone status-centre">

@@ -3,6 +3,7 @@
   import * as controller from "../../controller";
   import { closeOnOutsideClick } from "../../actions/closeOnOutsideClick";
   import { focusTrap } from "../../actions/focusTrap";
+  import Icon from "../../icons/Icon.svelte";
 
   let text = controller.getImportDraftText();
   const hadDraft = text.length > 0;
@@ -42,7 +43,7 @@
 <div class="overlay" role="presentation" use:closeOnOutsideClick={closeDrawer}>
   <div class="modal-card" role="dialog" aria-modal="true" use:focusTrap aria-label="Import sections">
     <div class="modal-input-wrap" style="align-items: flex-start;">
-      <span>📥</span>
+      <span style="padding-top: 2px;"><Icon name="import" size={15} /></span>
       <textarea
         class="modal-input import-textarea"
         placeholder="Paste lines of text — each non-empty line becomes a new section header in the current note..."

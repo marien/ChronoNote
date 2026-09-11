@@ -3,6 +3,7 @@
   import * as controller from "../../controller";
   import { scratchpadGateContext, unsavedScratchpadNames } from "../../controller";
   import { focusTrap } from "../../actions/focusTrap";
+  import Icon from "../../icons/Icon.svelte";
 
   let cancelBtn: HTMLButtonElement;
   onMount(() => cancelBtn?.focus());
@@ -20,8 +21,8 @@
 
 <div class="overlay">
   <div class="modal-card" role="dialog" aria-modal="true" use:focusTrap aria-label="Unsaved scratchpad content" style="width: 480px;">
-    <div class="modal-input-wrap" style="font-weight: bold;">
-      <span style="filter: grayscale(1);">⚠</span> Unsaved Scratchpad Content
+    <div class="modal-input-wrap modal-title">
+      <Icon name="warning" size={15} /> Unsaved Scratchpad Content
     </div>
     <div style="padding: 16px; font-size: 13px; line-height: 1.5;">
       {lead}
@@ -33,7 +34,7 @@
     </div>
     <div class="modal-footer" style="justify-content: flex-end; gap: 8px;">
       <button class="icon-btn" bind:this={cancelBtn} on:click={cancel}>Cancel</button>
-      <button class="icon-btn" style="background: var(--text); color: var(--bg);" on:click={confirm}>
+      <button class="icon-btn btn-primary" on:click={confirm}>
         {confirmLabel}
       </button>
     </div>

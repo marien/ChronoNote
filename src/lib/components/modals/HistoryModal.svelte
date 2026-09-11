@@ -13,6 +13,8 @@
   } from "../../controller";
   import { closeOnOutsideClick } from "../../actions/closeOnOutsideClick";
   import { parseGlyphLine } from "../../editor/glyphLine";
+  import { groupHeaderLabel } from "../../ui/listFormat";
+  import Icon from "../../icons/Icon.svelte";
   import type { HistoryItem } from "../../types";
   import {
     MODAL_HEADER_ROW_HEIGHT,
@@ -27,7 +29,6 @@
   } from "./virtualList";
 
   let selectedIndex = 0;
-  let titleEl: HTMLInputElement;
 
   // #33: the "Previous occurrence" pane shows the first few lines by
   // default with a toggle for the rest, so a long section doesn't crowd
@@ -38,13 +39,19 @@
   // §42: open focused on whatever entry belongs to the currently active
   // tab, instead of always starting at the top of the (most-recent-first)
   // list. Falls back to 0 if the active tab has no entries here at all.
+  //
+  // §127: focus lands on the list itself (a real `role="listbox"`, so
+  // it's a valid keyboard-nav target on its own) rather than on the title
+  // bar — the title used to be a `readonly` <input> purely so it could
+  // hold focus for arrow-key capture; now it's a plain heading (finding
+  // F) and the listbox is the more natural place for that anyway.
   onMount(() => {
     const active = $tabs.find((t) => t.id === $activeTabId);
     if (active) {
       const idx = flatList.findIndex((it) => it.filename === active.filename);
       if (idx !== -1) selectedIndex = idx;
     }
-    titleEl?.focus();
+    listEl?.focus();
     scrollSelectedIntoView();
   });
 
@@ -179,16 +186,11 @@
     aria-label="Section history"
     style="width: 880px;"
   >
-    <div class="modal-input-wrap">
-      <span>🕒</span>
-      <input
-        class="modal-input"
-        style="font-weight:bold; cursor: default;"
-        readonly
-        value={`Section History: "${$historyTargetHeader}"`}
-        bind:this={titleEl}
-        on:keydown={onKeydown}
-      />
+    <div class="modal-input-wrap modal-title">
+      <Icon name="section-history" size={15} />
+      <!-- §127 (finding F): a plain heading, not a `readonly` <input>
+           faking one — the listbox below is the keyboard-nav target now. -->
+      <div class="modal-input">Section History: "{$historyTargetHeader}"</div>
       <span class="modal-counter">{flatList.length} entries</span>
     </div>
     <div class="history-body">
@@ -216,13 +218,15 @@
     <div
       class="modal-list"
       role="listbox"
+      tabindex="0"
       bind:this={listEl}
       bind:clientHeight={viewportHeight}
       on:scroll={onScroll}
-      style="position: relative; overflow-y: auto; flex: 1;"
+      on:keydown={onKeydown}
+      style="position: relative; overflow-y: auto; flex: 1; outline: none;"
     >
       {#if flatList.length === 0}
-        <div style="padding: 16px; opacity: 0.6;">No prior occurrences found across open or closed notes.</div>
+        <div class="modal-empty">No prior occurrences found across open or closed notes.</div>
       {/if}
       <div style="position: relative; height: {totalHeight}px;">
         {#each visibleRows as row (row.key)}
@@ -233,7 +237,7 @@
                 ? 'none'
                 : '1px solid var(--border)'};"
             >
-              📅 {row.date} ({row.count})
+              {groupHeaderLabel(row.date, row.count)}
             </div>
           {:else}
             {@const it = row.item}
@@ -286,7 +290,7 @@
     </div>
 
     <div class="modal-footer">
-      <div><kbd>Enter</kbd> Jump to source file &nbsp;|&nbsp; <kbd>Shift+Enter</kbd> Import action into note</div>
+      <div><kbd>Enter</kbd> Jump to source file · <kbd>Shift+Enter</kbd> Import action into note</div>
       <div><kbd>Esc</kbd> Close</div>
     </div>
   </div>

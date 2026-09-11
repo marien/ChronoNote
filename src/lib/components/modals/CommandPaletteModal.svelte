@@ -4,6 +4,7 @@
   import type { PaletteItem } from "../../commandPalette";
   import { focusTrap } from "../../actions/focusTrap";
   import { closeOnOutsideClick } from "../../actions/closeOnOutsideClick";
+  import Icon from "../../icons/Icon.svelte";
 
   let query = "";
   let items: PaletteItem[] = [];
@@ -101,14 +102,13 @@
     }
   }
 
-  const PLACEHOLDER =
-    "Type a command… or  >  settings   !  actions   @  dates   ?  shortcuts";
+  const PLACEHOLDER = "Type a command…";
 </script>
 
 <div class="overlay" role="presentation" use:closeOnOutsideClick={controller.closeAllModals}>
   <div class="modal-card" role="dialog" aria-modal="true" use:focusTrap aria-label="Command palette" style="width: 560px;">
     <div class="modal-input-wrap">
-      <span>⌘</span>
+      <Icon name="command" size={15} />
       <input
         class="modal-input"
         placeholder={PLACEHOLDER}
@@ -118,6 +118,15 @@
         autocomplete="off"
         aria-label="Command palette query"
       />
+    </div>
+    <!-- §127 (finding J): the prefix legend used to live only in the
+         placeholder, which vanishes on the first keystroke — kept visible
+         here instead. -->
+    <div class="palette-legend">
+      <span><kbd>&gt;</kbd> commands</span>
+      <span><kbd>!</kbd> actions</span>
+      <span><kbd>@</kbd> dates</span>
+      <span><kbd>?</kbd> shortcuts</span>
     </div>
     <div class="modal-list" bind:this={listEl} role="listbox" aria-label="Results">
       {#each rows as row (("header" in row ? "h:" + row.header : "i:" + row.item.id))}
@@ -140,9 +149,7 @@
         {/if}
       {/each}
       {#if items.length === 0}
-        <div class="modal-item" style="cursor: default; color: var(--muted);">
-          <div class="modal-item-main"><span>No matches</span></div>
-        </div>
+        <div class="modal-empty">No matches.</div>
       {/if}
     </div>
     <div class="modal-footer">

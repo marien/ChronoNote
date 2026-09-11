@@ -32,7 +32,8 @@ test.describe("word wrap (§80)", () => {
     await setEditorText(page, LONG_LINE);
 
     await openSettings(page);
-    await settings(page).getByText("Word wrap", { exact: false }).click();
+    // §127: "Word wrap" is now the "Wrap" segment of the Editor-width control.
+    await settings(page).getByRole("radio", { name: "Wrap" }).click();
     await page.keyboard.press("Escape");
 
     // Wrapped now — no horizontal overflow, and the line occupies several rows.
@@ -67,7 +68,8 @@ test.describe("word wrap (§80)", () => {
     });
 
     await openSettings(page);
-    await settings(page).getByText("Word wrap", { exact: false }).click();
+    // §127: "Word wrap" is now the "Wrap" segment of the Editor-width control.
+    await settings(page).getByRole("radio", { name: "Wrap" }).click();
     await page.keyboard.press("Escape");
 
     // Same node (not remounted), same content.

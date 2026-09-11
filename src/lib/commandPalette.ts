@@ -69,7 +69,7 @@ function commandItems(): PaletteItem[] {
     { id: "cmd-next-tab", label: "Next tab", hint: "Ctrl+Tab", group: "Commands", run: () => cycleTab(1) },
     { id: "cmd-prev-tab", label: "Previous tab", hint: "Ctrl+Shift+Tab", group: "Commands", run: () => cycleTab(-1) },
     { id: "cmd-date", label: "Open a dated note…", hint: "Ctrl+O", group: "Commands", run: openDatePicker },
-    { id: "cmd-actions", label: "Action drawer", hint: "Ctrl+Shift+A", group: "Commands", run: openActionDrawer },
+    { id: "cmd-actions", label: "Actions", hint: "Ctrl+Shift+A", group: "Commands", run: openActionDrawer },
     { id: "cmd-history", label: "Section history", hint: "Ctrl+Shift+H", group: "Commands", run: openMeetingHistory },
     { id: "cmd-search", label: "Cross-tab search", hint: "Ctrl+Shift+F", group: "Commands", run: openCrossTabSearch },
     { id: "cmd-import", label: "Import sections", hint: "Ctrl+Shift+I", group: "Commands", run: openSectionImport },

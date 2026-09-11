@@ -84,3 +84,21 @@ scratchpad or a past-dated note does not trigger this.
 ## 3. Visual Design & Chrome Layout
 
 The visual chrome mirrors the uncluttered footprint of modern system text editors (e.g., Windows 11 Notepad), automatically matching system Light or Dark mode.
+
+### 3.1 Iconography
+
+Every UI icon — the top bar, every modal header, the tab strip, the find
+bar and date-picker's chevrons — is one monoline SVG set
+(`src/lib/icons/`), not emoji: a shared 24×24 grid, one stroke weight,
+`stroke: currentColor`. Each mark is drawn from the app's own vocabulary
+(the section rule, the dated page, the action box, the `»` forward mark)
+rather than a generic icon-font pick, so the set reads as this app's. A
+modal header reuses the exact same icon as the top-bar action that opens
+it. Chrome icons take the surrounding text colour in every glyph-colour
+mode (`--text` in the top bar, `--muted` in a modal header) — never a
+semantic hue, which stays reserved for the editor glyphs (2.2). The
+application (OS) icon is a separate, static baked asset (regenerated from
+a master SVG via `npx tauri icon <master>`, since it can't follow a
+runtime setting) — see `docs/design/icon-system-0.7.html` for the
+direction picked to eventually replace it with the same "dated page under
+its rule" mark the in-app date-note action uses.

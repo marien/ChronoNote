@@ -164,12 +164,15 @@ file — no database, no front-matter, no injected IDs.
   Forwarded action counts (`x`, won't-do, folds into Closed alongside `v`,
   done), and — while text is selected — how many lines the selection spans
 - Debounced autosave, with immediate flush on tab switch/close
-- Settings panel (`Ctrl+,`, gear icon): toggle between a full-color and a
-  grayscale-only UI theme (glyphs, tab/status-bar accents, and search
-  highlight all follow it, including in the action drawer and section
-  history), and change the notes folder via a native "Browse…" dialog —
-  or pick from up to 5 recently-used folders listed right there, no
-  dialog needed. Changing the folder is treated as switching
+- Settings panel (`Ctrl+,`): a three-way glyph palette (Color / Grayscale
+  / Legacy — glyphs, tab/status-bar accents, and search highlight all
+  follow it, including in the action drawer and section history); an
+  editor-width control (Full / Wrap / Reading column — Full keeps every
+  line unwrapped for tables and aligned columns, Wrap breaks long lines to
+  fit the window, Reading column also caps the text to a comfortable
+  centred measure); and the notes folder, changeable via a native
+  "Browse…" dialog or from up to 5 recently-used folders listed right
+  there, no dialog needed. Changing the folder is treated as switching
   projects/scopes: it closes every open tab and reloads everything from
   the new folder, blocking the switch first if any scratchpad has content
   that was never promoted (the only state that would actually be lost)
@@ -180,11 +183,16 @@ file — no database, no front-matter, no injected IDs.
   arrow keys/Page Up/Page Down/Home/End scroll the drawer instead of the
   editor behind it, while every global shortcut (including `Escape`)
   keeps working regardless of where focus sits.
-- An About drawer (the "ℹ" icon, right of the Settings gear) shows the
-  project's GitHub link — opened in the OS's default browser — and the
+- An About drawer (the info icon, right of Settings) shows the project's
+  GitHub link — opened in the OS's default browser — and the
   currently-running version number, read live rather than hardcoded.
 - Top-bar buttons show icon+label when the window is maximized or
-  fullscreen, and collapse to icon-only otherwise
+  fullscreen, and collapse to icon-only otherwise. Every icon — the top
+  bar, every modal header, the tab strip — is one monoline SVG set drawn
+  from the app's own vocabulary (the section rule, the dated page, the
+  action box, the `»` forward mark) rather than emoji, so it themes with
+  `currentColor` exactly like the editor glyphs do instead of rendering in
+  a font's own fixed emoji colours.
 - Launches without the white-flash-before-dark-theme most Tauri apps show:
   the window's native background is set to match the OS theme before it's
   ever shown. Restoring a previous session's tabs (§34) also reads them

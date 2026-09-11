@@ -8,7 +8,11 @@ export interface GlyphPart {
   cls?: string;
 }
 
-function glyphForSymbol(sym: string): GlyphPart {
+/** Exported for `ActionDrawerModal` (§127, finding B) — its row icon used
+ * to duplicate this mapping as a private `--glyph-*` inline-style lookup;
+ * sharing it means both places agree on colour/weight through one map,
+ * not two kept in sync by hand. */
+export function glyphForSymbol(sym: string): GlyphPart {
   switch (sym) {
     case "v":
       return { text: "☑", cls: "glyph-done" };
