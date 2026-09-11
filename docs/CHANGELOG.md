@@ -6,9 +6,7 @@ kept for the rationale behind each one — not just *what* changed but
 was still being gathered and confirmed before implementation; renamed once
 everything below was applied, since nothing here is "pending" anymore.
 
-**Status: all sections through §126 implemented, released, and on `main`;
-§127 implemented on `feat/maturity-0.7`, pending review and the v0.7.0
-release bump.**
+**Status: all sections through §127 implemented, released, and on `main`.**
 §99–§110 are the 0.6 UX/UI pass (`docs/design/ux-roadmap-0.6.md`); §111 is
 a small v0.6.1 follow-up (the pre-0.6 glyph palette, back as an option).
 §112 (#28) and §113 (#27) are Section History follow-ups (v0.6.2).
@@ -30,7 +28,7 @@ Which sections shipped in which release: §1–55 → v0.2.0, §56–59 → v0.2
 §86–87 → v0.4.3, §88–89 → v0.4.4, §90–91 → v0.4.5, §92 → v0.4.6,
 §refactor + §93–96 → v0.5.0, §97 → v0.5.1, §98 → v0.5.2, §99–110 → v0.6.0,
 §111 → v0.6.1, §112–113 → v0.6.2, §114–118 → v0.6.3, §119–122 → v0.6.4,
-§123 → v0.6.5, §124–126 → v0.6.6, §127 → v0.7.0 (pending).
+§123 → v0.6.5, §124–126 → v0.6.6, §127 → v0.7.0.
 
 ---
 
@@ -4437,9 +4435,8 @@ rendered as a topic pill). Now:
 
 ## 127. The 0.7 maturity pass: icon set + UX/UI consistency review
 
-**Status: implemented on `feat/maturity-0.7`, pending review and the
-v0.7.0 release bump.** Marien: "the next version needs to be about
-maturing the application." Planned in
+**Status: implemented, released in v0.7.0.** Marien: "the next version
+needs to be about maturing the application." Planned in
 `docs/design/maturity-0.7-roadmap.md` (a full UX/UI review, findings
 A–L) and `docs/design/icon-system-0.7.html` (three icon-set directions);
 Set A ("Ruled") and "ship the consistency fixes + icon set together"
