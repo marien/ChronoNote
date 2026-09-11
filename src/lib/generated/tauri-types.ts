@@ -4,9 +4,11 @@
 
 export type ColorMode = "color" | "grayscale" | "legacy";
 
+export type ThemeMode = "light" | "dark" | "system";
+
 export type FileMetadata = { exists: boolean, contentHash: string | null, sizeBytes: number | null, modifiedMs: number | null };
 
-export type AppConfig = { notesDir: string, colorMode: ColorMode, wordWrap: boolean, readableLineLength: boolean, recentNotesDirs: Array<string>, autoCheckUpdates: boolean };
+export type AppConfig = { notesDir: string, colorMode: ColorMode, themeMode: ThemeMode, wordWrap: boolean, readableLineLength: boolean, recentNotesDirs: Array<string>, autoCheckUpdates: boolean };
 
 export type TabSession = { openTabs: Array<string>, activeTab: string | null, lastOpenedDate?: string | null };
 

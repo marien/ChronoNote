@@ -1,7 +1,7 @@
 import { invoke as coreInvoke } from "@tauri-apps/api/core";
 import { getVersion } from "@tauri-apps/api/app";
 import { openUrl } from "@tauri-apps/plugin-opener";
-import type { AppConfig, ColorMode, FileMetadata, NoteWithMetadata, TabSession } from "./types";
+import type { AppConfig, ColorMode, FileMetadata, NoteWithMetadata, TabSession, ThemeMode } from "./types";
 import type { CommandArgs, CommandReturn, TauriCommand } from "./tauriCommands";
 
 /** Every Rust IPC call goes through this: the command name is constrained
@@ -34,6 +34,10 @@ export function setReadableLineLength(enabled: boolean): Promise<AppConfig> {
 
 export function setAutoCheckUpdates(enabled: boolean): Promise<AppConfig> {
   return invoke("set_auto_check_updates", { enabled });
+}
+
+export function setThemeMode(mode: ThemeMode): Promise<AppConfig> {
+  return invoke("set_theme_mode", { mode });
 }
 
 export function listNoteFiles(): Promise<string[]> {

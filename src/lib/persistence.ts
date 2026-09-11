@@ -150,6 +150,31 @@ export async function refreshAllNotesCache() {
 export function writeNoteAndInvalidateCache(filename: string, content: string): Promise<void> {
   const hasOpenTab = get(tabs).some((t) => !t.isScratchpad && t.filename === filename);
   if (!hasOpenTab) diskNotesCacheRaw = null;
+  return writeNoteRaw(filename, content);
+}
+
+/** #46: a tab is about to close with content that may not yet be reflected
+ * in the disk-read cache above. `writeNoteAndInvalidateCache` deliberately
+ * skips invalidating while a tab is open — relying on the live-tab overlay
+ * in `refreshAllNotesCache()` instead — but `closeTab()` flushes the save
+ * *before* removing the tab from the `tabs` store, so at that exact moment
+ * `hasOpenTab` is still `true` and no invalidation happens. The live
+ * overlay then disappears the instant the tab is actually gone, and
+ * nothing was ever left to correct the cache: a resolved action's dot
+ * could keep showing on the date picker (or a stale line in the Action
+ * Drawer / Search "All Files" / Section History) indefinitely, until some
+ * unrelated write happened to invalidate the whole cache.
+ *
+ * Patches the cached entry directly with the tab's own last content,
+ * rather than invalidating the whole cache (§38's expensive-full-reread
+ * concern) — that content is exactly what `flushSave` is writing (or just
+ * wrote) to disk. No-op before the cache has ever been populated; the
+ * first real read after that will be correct regardless. */
+export function noteClosingWithContent(filename: string, content: string): void {
+  if (diskNotesCacheRaw !== null) diskNotesCacheRaw[filename] = content;
+}
+
+function writeNoteRaw(filename: string, content: string): Promise<void> {
   const p = api.writeNote(filename, content);
   inFlightWrites.add(p);
   inFlightFilenames.add(filename);

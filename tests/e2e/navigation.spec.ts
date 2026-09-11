@@ -1,5 +1,17 @@
 import { test, expect, type Page } from "@playwright/test";
-import { seedApp, editor, datePicker, MODAL_LABELS, activeTabLabel, tab, currentModal, parkMouse } from "./helpers";
+import {
+  seedApp,
+  editor,
+  datePicker,
+  MODAL_LABELS,
+  activeTabLabel,
+  activeTabContent,
+  tab,
+  currentModal,
+  parkMouse,
+  todayFilename,
+} from "./helpers";
+import { REFERENCE_TODAY } from "../../src/lib/testing/scenarios";
 
 const pop = (page: Page) => datePicker(page);
 
@@ -94,4 +106,33 @@ test.describe("date picker — anchored calendar popover (Ctrl+O, §104)", () =>
 
 test("date picker label is registered for a11y", () => {
   expect(MODAL_LABELS.date).toBe("Jump to date");
+});
+
+test.describe("#46: the date-picker dot reflects a resolved action after its tab closes", () => {
+  test("resolving a note's last open action, then closing its tab, clears the dot", async ({ page }) => {
+    await seedApp(page, { seed: { notes: { [todayFilename()]: "# an open action" } } });
+    const dayIso = `[data-iso="${REFERENCE_TODAY}"]`;
+
+    // Populate the all-notes cache once *while the action is still open* —
+    // mirrors having opened the date picker (or Action Drawer "All Files")
+    // before resolving anything.
+    await editor(page).click();
+    await parkMouse(page);
+    await page.keyboard.press("Control+o");
+    await expect(datePicker(page).locator(dayIso)).toHaveClass(/\bhas\b/);
+    await page.keyboard.press("Escape");
+
+    // Resolve the only action, then close the tab.
+    await editor(page).click();
+    await page.keyboard.press("Control+Space");
+    expect(await activeTabContent(page)).toBe("v an open action");
+    await page.keyboard.press("Control+w");
+
+    // The dot must clear — without #46's fix, the disk-read cache still
+    // held the pre-resolution content (the live-tab overlay that was
+    // covering for it is gone the moment the tab closes).
+    await parkMouse(page);
+    await page.keyboard.press("Control+o");
+    await expect(datePicker(page).locator(dayIso)).not.toHaveClass(/\bhas\b/);
+  });
 });

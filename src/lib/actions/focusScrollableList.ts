@@ -13,10 +13,7 @@
  * here stops propagation: the app's global shortcuts (bound on `window`
  * in App.svelte, Escape included) keep working exactly as if focus were
  * still on the editor. */
-export function focusScrollableList(node: HTMLElement) {
-  node.tabIndex = -1;
-  node.focus();
-
+function attachScrollKeys(node: HTMLElement) {
   function onKeydown(e: KeyboardEvent) {
     switch (e.key) {
       case "ArrowDown":
@@ -50,4 +47,27 @@ export function focusScrollableList(node: HTMLElement) {
       node.removeEventListener("keydown", onKeydown);
     },
   };
+}
+
+/** Focuses `node` immediately (and makes it programmatically focusable —
+ * `tabIndex = -1`, deliberately outside normal Tab order, same reasoning
+ * as `scrollableListKeys` below) so the drawer it's in opens ready for
+ * arrow-key scrolling with no click needed first. Use on whichever pane
+ * should hold focus the moment a drawer opens. */
+export function focusScrollableList(node: HTMLElement) {
+  node.tabIndex = -1;
+  node.focus();
+  return attachScrollKeys(node);
+}
+
+/** #47: for a second (third, …) independently-scrollable pane in the same
+ * drawer (the Shortcuts & Symbols drawer's side-by-side columns) — same
+ * arrow-key handling as `focusScrollableList`, but doesn't steal focus on
+ * mount (only one pane can be focused at a time; `focusScrollableList`
+ * already claims it for the primary one). `tabIndex = -1` still makes
+ * this pane focusable by clicking into it, at which point its own arrow
+ * keys start scrolling it instead. */
+export function scrollableListKeys(node: HTMLElement) {
+  node.tabIndex = -1;
+  return attachScrollKeys(node);
 }

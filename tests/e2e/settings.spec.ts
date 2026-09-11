@@ -21,6 +21,37 @@ async function openSettings(page: Page) {
 }
 
 test.describe("settings (Ctrl+,)", () => {
+  test("#48: light/dark/system theme control flips data-theme and persists to config", async ({ page }) => {
+    await seedApp(page, { seed: "busy-week" });
+    await openSettings(page);
+
+    // system (default): no data-theme attribute — app.css's plain
+    // @media (prefers-color-scheme) rules decide.
+    await expect(settings(page).getByRole("radio", { name: "System", exact: true })).toHaveAttribute(
+      "aria-checked",
+      "true",
+    );
+    await expect(page.locator("html")).not.toHaveAttribute("data-theme");
+
+    await settings(page).getByRole("radio", { name: "Light", exact: true }).click();
+    await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
+    expect(await page.evaluate(() => window.__CHRONO_MOCK__!.themeMode)).toBe("light");
+
+    await settings(page).getByRole("radio", { name: "Dark", exact: true }).click();
+    await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+    expect(await page.evaluate(() => window.__CHRONO_MOCK__!.themeMode)).toBe("dark");
+
+    // Survives a reload (config is read on boot).
+    await page.reload();
+    await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+
+    // Back to System removes the override entirely.
+    await page.keyboard.press("Control+Comma");
+    await settings(page).getByRole("radio", { name: "System", exact: true }).click();
+    await expect(page.locator("html")).not.toHaveAttribute("data-theme");
+    expect(await page.evaluate(() => window.__CHRONO_MOCK__!.themeMode)).toBe("system");
+  });
+
   test("theme toggle flips data-color-mode and persists to config", async ({ page }) => {
     await seedApp(page, { seed: "busy-week" });
     await openSettings(page);

@@ -56,8 +56,20 @@
   --glyph-emphasis-color: var(--text);
 }
 
+/* #48: light/dark is a three-state setting (`themeMode`: light / dark /
+   system) rather than always following the OS. This app is dark-*first*
+   (the bare `:root` above is already the dark palette), so the pattern
+   below is the usual light-first one mirrored: the `system` case (no
+   `data-theme` attribute set) is exactly today's behaviour — the
+   `prefers-color-scheme` query below, guarded so an explicit *dark*
+   choice can't be overridden by a light OS preference; an explicit
+   *light* choice gets its own always-wins block further down, entirely
+   outside any media query. `[data-theme]` is written to `<html>` by
+   `applyThemeModeToDom()` (`boot.ts`), alongside the existing
+   `[data-color-mode]` (a separate, independent setting — the glyph
+   palette, not light/dark). */
 @media (prefers-color-scheme: light) {
-  :root {
+  :root:not([data-theme="dark"]) {
     --surface-canvas: #ffffff;
     --surface-chrome: #f3f3f3;
     --surface-overlay: #ffffff;
@@ -77,6 +89,30 @@
     --caret-color: #000000;
     --editor-selection-bg: #c8d3e0;
   }
+}
+
+/* Explicit "Light" choice — wins over the OS preference in both
+   directions (a light OS + "Dark" chosen stays dark via the `:not()`
+   guard above; a dark OS + "Light" chosen goes light here). */
+:root[data-theme="light"] {
+  --surface-canvas: #ffffff;
+  --surface-chrome: #f3f3f3;
+  --surface-overlay: #ffffff;
+  --surface-raised: #e7e7e7;
+  --edge-soft: rgba(0, 0, 0, 0.09);
+  --edge-strong: rgba(0, 0, 0, 0.16);
+  --state-ok: #2f9e6b;
+  --state-warn: #b5771f;
+  --state-error: #c4463e;
+
+  --text: #1b1b1b;
+  --muted: #6e6e6e;
+  --selected-bg: #d6d6d6;
+  --selected-fg: #000000;
+  --status-fg: #1b1b1b;
+  --highlight: rgba(0, 0, 0, 0.15);
+  --caret-color: #000000;
+  --editor-selection-bg: #c8d3e0;
 }
 
 /* Color theme (§105 refresh): the reviews' semantic glyph palette —
@@ -107,7 +143,7 @@
 }
 
 @media (prefers-color-scheme: light) {
-  [data-color-mode="color"] {
+  [data-color-mode="color"]:not([data-theme="dark"]) {
     --selected-bg: #0a6fc2;
     --selected-fg: #ffffff;
     --highlight: rgba(245, 200, 66, 0.45);
@@ -122,6 +158,21 @@
     --glyph-assignee-color: #0e7490;
     --glyph-emphasis-color: #b45309;
   }
+}
+[data-color-mode="color"][data-theme="light"] {
+  --selected-bg: #0a6fc2;
+  --selected-fg: #ffffff;
+  --highlight: rgba(245, 200, 66, 0.45);
+  --tab-active-border: #0e7490;
+
+  --glyph-open-color: #0e7490;
+  --glyph-done-color: #047857;
+  --glyph-progress-color: #7e22ce;
+  --glyph-cancelled-color: #55606d;
+  --glyph-followup-color: #0e7490;
+  --glyph-assignee-bg: rgba(14, 116, 144, 0.12);
+  --glyph-assignee-color: #0e7490;
+  --glyph-emphasis-color: #b45309;
 }
 
 /* Legacy theme (§111): the pre-0.6 palette, restored on request — red =
@@ -151,7 +202,7 @@
 }
 
 @media (prefers-color-scheme: light) {
-  [data-color-mode="legacy"] {
+  [data-color-mode="legacy"]:not([data-theme="dark"]) {
     --selected-bg: #0066b8;
     --selected-fg: #ffffff;
     --highlight: rgba(255, 230, 0, 0.4);
@@ -166,6 +217,21 @@
     --glyph-assignee-color: #0066b8;
     --glyph-emphasis-color: #f08c00;
   }
+}
+[data-color-mode="legacy"][data-theme="light"] {
+  --selected-bg: #0066b8;
+  --selected-fg: #ffffff;
+  --highlight: rgba(255, 230, 0, 0.4);
+  --tab-active-border: #0066b8;
+
+  --glyph-open-color: #d9383a;
+  --glyph-done-color: #2b8a3e;
+  --glyph-progress-color: #b25e00;
+  --glyph-cancelled-color: #5c636a;
+  --glyph-followup-color: #0066b8;
+  --glyph-assignee-bg: rgba(0, 102, 184, 0.12);
+  --glyph-assignee-color: #0066b8;
+  --glyph-emphasis-color: #f08c00;
 }
 
 * {
@@ -462,6 +528,7 @@ body {
 .cm-scroller,
 .modal-list,
 .po-body,
+.shortcuts-col,
 .import-textarea {
   scrollbar-width: thin;
   scrollbar-color: var(--border) transparent;
@@ -469,12 +536,14 @@ body {
 .cm-scroller::-webkit-scrollbar,
 .modal-list::-webkit-scrollbar,
 .po-body::-webkit-scrollbar,
+.shortcuts-col::-webkit-scrollbar,
 .import-textarea::-webkit-scrollbar {
   width: 8px;
 }
 .cm-scroller::-webkit-scrollbar-track,
 .modal-list::-webkit-scrollbar-track,
 .po-body::-webkit-scrollbar-track,
+.shortcuts-col::-webkit-scrollbar-track,
 .import-textarea::-webkit-scrollbar-track {
   background: transparent;
 }
@@ -506,6 +575,7 @@ body {
 .cm-scroller::-webkit-scrollbar-thumb,
 .modal-list::-webkit-scrollbar-thumb,
 .po-body::-webkit-scrollbar-thumb,
+.shortcuts-col::-webkit-scrollbar-thumb,
 .import-textarea::-webkit-scrollbar-thumb {
   background: var(--border);
   border-radius: 4px;
@@ -513,6 +583,7 @@ body {
 .cm-scroller::-webkit-scrollbar-thumb:hover,
 .modal-list::-webkit-scrollbar-thumb:hover,
 .po-body::-webkit-scrollbar-thumb:hover,
+.shortcuts-col::-webkit-scrollbar-thumb:hover,
 .import-textarea::-webkit-scrollbar-thumb:hover {
   background: var(--muted);
 }
@@ -1196,6 +1267,24 @@ textarea.modal-input.import-textarea {
   text-align: right;
 }
 
+/* #47: the shortcuts and the symbols side by side, each its own
+   independently-scrolling, fixed-height pane, instead of one long list
+   where seeing the symbols meant scrolling past every shortcut first. */
+.shortcuts-body {
+  display: flex;
+  align-items: stretch;
+  height: 460px;
+  min-height: 0;
+}
+.shortcuts-col {
+  flex: 1;
+  min-width: 0;
+  overflow-y: auto;
+}
+.shortcuts-col + .shortcuts-col {
+  border-left: 1px solid var(--edge-soft);
+}
+
 /* §127 (finding F): a handful of dialog footer actions need to read as
    *the* primary action (Close Anyway, Discard & Quit, Keep my version) —
    previously each carried its own `style="background: var(--text); …"`.
@@ -1377,6 +1466,14 @@ kbd {
   display: flex;
   align-items: center;
   gap: 8px;
+}
+/* #48: a settings section with more than one segmented control in it
+   (Appearance: Theme + Glyphs) names each row so they're not mistaken for
+   one one control. */
+.settings-inline-label {
+  font-size: 12px;
+  color: var(--muted);
+  min-width: 50px;
 }
 /* §127 (finding D): a segmented "pick one of N modes" control, distinct
    from `.toggle-switch` below (a single on/off). One bordered container

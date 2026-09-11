@@ -83,7 +83,7 @@ scratchpad or a past-dated note does not trigger this.
 
 ## 3. Visual Design & Chrome Layout
 
-The visual chrome mirrors the uncluttered footprint of modern system text editors (e.g., Windows 11 Notepad), automatically matching system Light or Dark mode.
+The visual chrome mirrors the uncluttered footprint of modern system text editors (e.g., Windows 11 Notepad). It matches the OS's Light or Dark mode by default, or an explicit Light/Dark choice in Settings (`Ctrl+,`) overrides that.
 
 ### 3.1 Iconography
 

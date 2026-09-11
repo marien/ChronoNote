@@ -6,7 +6,7 @@ kept for the rationale behind each one — not just *what* changed but
 was still being gathered and confirmed before implementation; renamed once
 everything below was applied, since nothing here is "pending" anymore.
 
-**Status: all sections through §128 implemented, released, and on `main`.**
+**Status: all sections through §131 implemented, released, and on `main`.**
 §99–§110 are the 0.6 UX/UI pass (`docs/design/ux-roadmap-0.6.md`); §111 is
 a small v0.6.1 follow-up (the pre-0.6 glyph palette, back as an option).
 §112 (#28) and §113 (#27) are Section History follow-ups (v0.6.2).
@@ -18,7 +18,8 @@ is a delegate. §127 is the 0.7 "maturity pass" — the UX/UI consistency
 review plus the new icon set (`docs/design/maturity-0.7-roadmap.md`).
 §128 is the GitHub-releases update check (same roadmap, Feature 3.1) —
 the second of its two proposed features, M365 calendar import, is still
-just a design (0.8.0, not started).
+just a design (0.8.0, not started). §129–§131 close three GitHub issues
+filed after the 0.7 pass (#46, #47, #48).
 Each
 section is verified before merge (`svelte-check`, the Vitest suite,
 `cargo test`, and — from §77 on — the Playwright E2E suite, all green in
@@ -4644,3 +4645,137 @@ config-round-trip tests with `auto_check_updates` assertions instead, so
 `tauriApi.ts`, `mockBackend.ts`. `svelte-check` 256 files 0 errors,
 Vitest 265 (+13), Playwright 147 (+8), `cargo test` 43 (same count, more
 assertions per test).
+
+---
+
+## 129. Date-picker dot goes stale after resolving a tab's last action, then closing it (#46)
+
+**Status: implemented.** Reported: *"when the number of open actions
+changes to zero on an open tab, the dot in the date picker is not
+updated, also not when closing and reopening the date picker, or closing
+and reopening the tab."*
+
+**Root cause.** The §38 three-tier disk-read cache: `allNotesCache` (the
+date picker's data source) is refreshed from a lazily-populated
+`diskNotesCacheRaw`, merged every call with a live-tab overlay so an open
+tab's in-progress edits show up without a disk round trip.
+`writeNoteAndInvalidateCache()` deliberately *skips* invalidating
+`diskNotesCacheRaw` when the written file has an open tab — trusting the
+live overlay instead, to avoid a full re-read on every autosave. That's
+correct while the tab stays open. But closing the tab removes it from the
+overlay, and `diskNotesCacheRaw` was never updated with the resolved
+content in the first place — so the merged cache falls back to *stale*
+disk content with the action still open, and the dot never clears.
+
+**Fix.** `closeTab()` now calls a new `noteClosingWithContent(filename,
+content)` (`persistence.ts`) right before tearing the tab down: it
+patches `diskNotesCacheRaw[filename]` directly with the tab's final
+content, if the cache is already populated. A targeted patch, not a
+blanket invalidation — keeps the §38 optimization's intent (no forced
+full re-read) while fixing the actual staleness.
+`writeNoteAndInvalidateCache()` itself is unchanged in behaviour, just
+extracted so `writeNoteRaw()` is shared between it and nothing else
+needing a name.
+
+New: `persistence.ts` `noteClosingWithContent()`, wired from `tabs.ts`
+`closeTab()`. Tests: `controller.test.ts` +2 (cache patched on close, a
+closed scratchpad never touches the all-notes cache),
+`tests/e2e/navigation.spec.ts` +1 (real repro: type an open action,
+resolve it, close the tab, reopen the date picker, assert the day's `has`
+class is gone). Pure frontend — no Rust/IPC/storage change, `cargo test`
+unchanged at 44 (see §131 below for the count's real mover). `svelte-check`
+256 files 0 errors, Vitest 270 (+5 incl. §130), Playwright 150 (+3 incl.
+§130/§131 below).
+
+---
+
+## 130. Shortcuts & Symbols: side-by-side columns instead of one long scroll (#47)
+
+**Status: implemented.** Reported: *"I want to be able to see the most
+important shortcuts and the symbols without having to scroll down a
+lot."*
+
+**Fix.** `ShortcutsModal.svelte`'s single `.shortcuts-list` column
+(everything stacked: shortcuts, then glyphs, then delegate/topic/emphasis
+rows, then section headers) is now two side-by-side, independently
+scrollable columns — keyboard shortcuts on the left, everything
+symbol-related on the right — inside a new `.shortcuts-body` flex row.
+The modal card widened to 880px (matching the History modal's precedent)
+so neither column feels cramped.
+
+**Two focus-scrollable columns, not one.** The existing `focusScrollableList`
+action auto-focuses its element on mount so arrow/Page/Home/End keys
+scroll it immediately — fine for a single list, but two columns both
+auto-focusing would race (only one can hold real DOM focus). Split the
+shared keydown handler out of `focusScrollableList.ts` into a private
+`attachScrollKeys()`, kept `focusScrollableList` (auto-focus, used by the
+left column) and added `scrollableListKeys` (click-to-focus only, used by
+the right column) — both bind the same arrow/Page/Home/End behaviour.
+
+New: `focusScrollableList.ts` `scrollableListKeys` export (+3
+`focusScrollableList.test.ts` cases). CSS: `.shortcuts-body` /
+`.shortcuts-col` in `app.css`, `.shortcuts-col` added to the shared
+thin-scrollbar rule group. Tests: `tests/e2e/drawers.spec.ts` +1 (two
+columns, side by side, independently scrollable, correct headers). Pure
+frontend — no Rust/IPC/storage change, `cargo test` unchanged at 44.
+`svelte-check` 256 files 0 errors.
+
+---
+
+## 131. Light / Dark / System theme setting (#48)
+
+**Status: implemented.** Reported: *"Make a setting to switch between
+light and dark mode under Appearance. It should also have the option to
+use system settings."*
+
+**Independent of the existing glyph palette.** `ColorMode`
+(`color`/`grayscale`/`legacy`, §111) picks the *token glyph* colours; this
+is a separate `ThemeMode` (`light`/`dark`/`system`, defaulting to
+`system`) controlling the app chrome's own light-vs-dark rendering — the
+two settings compose freely (e.g. Legacy glyphs on a Light chrome).
+Settings → Appearance now has two labelled segmented-control rows,
+"Theme" above "Glyphs".
+
+**Rust/config.** New `ThemeMode` enum (`storage.rs`, `#[serde(rename_all
+= "lowercase")]`, `#[default] System`) + `AppConfig.theme_mode`
+(`#[serde(default)]` — every config written before this field existed
+loads as `System`, unchanged behaviour). New `set_theme_mode` command.
+ts-rs regenerates `ThemeMode` into `tauri-types.ts`. New test:
+`theme_mode_round_trips_through_json_for_every_variant`; two existing
+config round-trip tests extended to assert `theme_mode` too — 44 tests
+(+1 net; §129/§130 above added none, so this is the whole delta since
+§128's 43).
+
+**Anti-flash fix, found in passing.** `show_window_without_flash()`
+(`lib.rs`) pre-paints the window background before the frontend mounts,
+to avoid a flash of the wrong colour — it read `window.theme()`, which
+only reflects the *OS* setting. If a user had explicitly chosen Light
+while their OS was in Dark (or vice versa), the pre-paint would briefly
+show the wrong colour before the frontend corrected it. Fixed to consult
+the persisted `AppConfig.theme_mode` first, falling back to
+`window.theme()` only when it's `System`.
+
+**Frontend.** New `themeMode` store, mirrored from/to `AppConfig` exactly
+like `colorMode`. `boot.ts`'s `applyThemeModeToDom(mode)` sets
+`<html data-theme="light"|"dark">` for an explicit choice, or removes the
+attribute entirely for `system` (letting `prefers-color-scheme` alone
+decide) — called once on boot and again on every `setThemeMode()`.
+
+**CSS: dark-first three-state theming.** This app's baseline (`:root`)
+has always been dark, so the pattern is the inverse of the usual
+light-first one. For every themed selector block (`:root`, and each of
+`[data-color-mode="color"]` / `[data-color-mode="legacy"]`, which already
+had their own light-mode override): the existing `@media
+(prefers-color-scheme: light)` block is now guarded
+`:not([data-theme="dark"])` (so an explicit Dark choice can override a
+light OS), and a new `[data-theme="light"]` block (no media query, so it
+always wins) duplicates the same values for an explicit Light choice on
+a dark OS.
+
+New: `SettingsModal.svelte` "Theme" segmented control, `.settings-inline-label`
+CSS. Tests: `controller.test.ts` +1 (`setThemeMode` — store, DOM
+attribute, and persistence for all three values),
+`tests/e2e/settings.spec.ts` +1 (segmented control, `data-theme` on the
+`<html>` element, persists across reload, back to System removes the
+attribute). `svelte-check` 256 files 0 errors, Vitest 271 (+1), Playwright
+150 (+1), `cargo test` 44 (+1).

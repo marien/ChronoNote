@@ -17,6 +17,29 @@ test.describe("info drawers", () => {
     await expect(drawer).toContainText("Symbols → glyphs");
   });
 
+  test("#47: shortcuts and symbols sit in two side-by-side, independently-scrolling columns", async ({ page }) => {
+    await editor(page).click();
+    await page.keyboard.press("Control+Slash");
+    const drawer = modalCard(page, MODAL_LABELS.shortcuts);
+    const cols = drawer.locator(".shortcuts-col");
+    await expect(cols).toHaveCount(2);
+
+    // Side by side, not stacked: same top, left column strictly left of
+    // the right one — both readable at once, the whole point of #47.
+    const [left, right] = await Promise.all([cols.nth(0).boundingBox(), cols.nth(1).boundingBox()]);
+    expect(left).not.toBeNull();
+    expect(right).not.toBeNull();
+    expect(Math.abs(left!.y - right!.y)).toBeLessThan(2);
+    expect(left!.x + left!.width).toBeLessThanOrEqual(right!.x + 1);
+    await expect(cols.nth(0)).toContainText("Keyboard shortcuts");
+    await expect(cols.nth(1)).toContainText("Symbols → glyphs");
+
+    // Scrolling one column leaves the other's position untouched.
+    await cols.nth(1).evaluate((el) => el.scrollTo({ top: 200 }));
+    const leftScrollBefore = await cols.nth(0).evaluate((el) => el.scrollTop);
+    expect(leftScrollBefore).toBe(0);
+  });
+
   test("Ctrl+Shift+/ opens the same combined drawer (§110)", async ({ page }) => {
     await editor(page).click();
     await page.keyboard.press("Control+Shift+Slash");

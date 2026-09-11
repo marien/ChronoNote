@@ -24,6 +24,20 @@ pub enum ColorMode {
     Legacy,
 }
 
+/// Light/dark mode (#48) — independent of `ColorMode` above (that's the
+/// glyph palette; this is the chrome's own light-vs-dark rendering).
+/// `System` (the default) is today's only behaviour: the CSS follows
+/// `prefers-color-scheme` with no override. `Light`/`Dark` pin it
+/// regardless of the OS setting — see `app.css`'s `[data-theme]` blocks.
+#[derive(Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Debug, Default, TS)]
+#[serde(rename_all = "lowercase")]
+pub enum ThemeMode {
+    Light,
+    Dark,
+    #[default]
+    System,
+}
+
 /// Persisted app configuration. Lives outside the notes folder, in the
 /// OS-appropriate app config directory (e.g. %APPDATA%\com.chrononote.app on
 /// Windows, ~/.config/com.chrononote.app on Linux, ~/Library/Application
@@ -34,6 +48,10 @@ pub struct AppConfig {
     pub notes_dir: String,
     #[serde(default)]
     pub color_mode: ColorMode,
+    /// #48: light / dark / system. Defaults to `System` — unchanged
+    /// behaviour for every config written before this field existed.
+    #[serde(default)]
+    pub theme_mode: ThemeMode,
     /// Soft word-wrap in the editor (§80). Off by default — the app's
     /// tabular-monospace-grid tenet assumes no wrapping; this is an
     /// opt-in for prose-heavy notes. `#[serde(default)]` gives `false`
@@ -270,6 +288,7 @@ fn load_config_at(path: &Path, default_notes_dir: &Path) -> Result<AppConfig, St
     let cfg = AppConfig {
         notes_dir: default_notes_dir.to_string_lossy().to_string(),
         color_mode: ColorMode::default(),
+        theme_mode: ThemeMode::default(),
         word_wrap: false,
         readable_line_length: false,
         recent_notes_dirs: Vec::new(),
@@ -610,6 +629,7 @@ fn generate_typescript_bindings() {
     // Emitted deps-first so intra-file references resolve.
     let decls = [
         ColorMode::decl(&cfg),
+        ThemeMode::decl(&cfg),
         FileMetadata::decl(&cfg),
         AppConfig::decl(&cfg),
         TabSession::decl(&cfg),
@@ -762,6 +782,7 @@ mod tests {
         let cfg = AppConfig {
             notes_dir: "/my/notes".to_string(),
             color_mode: ColorMode::Color,
+            theme_mode: ThemeMode::Dark,
             word_wrap: true,
             readable_line_length: false,
             recent_notes_dirs: vec!["/old1".to_string(), "/old2".to_string()],
@@ -771,6 +792,7 @@ mod tests {
         let loaded = load_config_at(&path, &dir.path().join("Notes")).unwrap();
         assert_eq!(loaded.notes_dir, "/my/notes");
         assert_eq!(loaded.color_mode, ColorMode::Color);
+        assert_eq!(loaded.theme_mode, ThemeMode::Dark);
         assert!(loaded.word_wrap);
         assert!(!loaded.readable_line_length);
         assert_eq!(loaded.recent_notes_dirs, vec!["/old1", "/old2"]);
@@ -786,6 +808,7 @@ mod tests {
         let cfg = AppConfig {
             notes_dir: "/n".to_string(),
             color_mode: ColorMode::Legacy,
+            theme_mode: ThemeMode::default(),
             word_wrap: false,
             readable_line_length: false,
             recent_notes_dirs: vec![],
@@ -800,6 +823,34 @@ mod tests {
     }
 
     #[test]
+    fn theme_mode_round_trips_through_json_for_every_variant() {
+        // #48: each of the three theme-mode tokens serializes lowercase
+        // and loads back unchanged.
+        for (mode, token) in [
+            (ThemeMode::Light, "light"),
+            (ThemeMode::Dark, "dark"),
+            (ThemeMode::System, "system"),
+        ] {
+            let dir = tempdir().unwrap();
+            let path = dir.path().join("config.json");
+            let cfg = AppConfig {
+                notes_dir: "/n".to_string(),
+                color_mode: ColorMode::default(),
+                theme_mode: mode,
+                word_wrap: false,
+                readable_line_length: false,
+                recent_notes_dirs: vec![],
+                auto_check_updates: true,
+            };
+            save_config_at(&path, &cfg).unwrap();
+            let on_disk = fs::read_to_string(&path).unwrap();
+            assert!(on_disk.contains(&format!("\"{token}\"")), "{token} token not serialized: {on_disk}");
+            let loaded = load_config_at(&path, &dir.path().join("Notes")).unwrap();
+            assert_eq!(loaded.theme_mode, mode);
+        }
+    }
+
+    #[test]
     fn load_config_defaults_color_mode_and_recent_dirs_when_omitted() {
         // An older config.json (or one hand-edited down to just
         // `notesDir`) should still load, defaulting the newer fields.
@@ -809,6 +860,7 @@ mod tests {
         let loaded = load_config_at(&path, &dir.path().join("Notes")).unwrap();
         assert_eq!(loaded.notes_dir, "/hand/edited");
         assert_eq!(loaded.color_mode, ColorMode::Grayscale);
+        assert_eq!(loaded.theme_mode, ThemeMode::System);
         assert!(!loaded.word_wrap);
         // Omitted from an older config → off (§110: it's an opt-in).
         assert!(!loaded.readable_line_length);

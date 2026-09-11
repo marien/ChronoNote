@@ -20,7 +20,7 @@ import {
   showToast,
   tabs,
 } from "./stores";
-import { flushSave, writeNoteAndInvalidateCache } from "./persistence";
+import { flushSave, noteClosingWithContent, writeNoteAndInvalidateCache } from "./persistence";
 import { notifyTabClosed } from "./paste";
 import { sha256Hex } from "./drift";
 import { sortedTabsForDisplay } from "./tabSort";
@@ -111,6 +111,12 @@ export function closeTab(tabId: string) {
   const list = get(tabs);
   const idx = list.findIndex((t) => t.id === tabId);
   if (idx === -1) return;
+
+  // #46: this tab's disk-read-cache entry (if any) needs to end up
+  // matching what `flushSave` just wrote, since the live-tab overlay that
+  // was standing in for it disappears the moment it's actually closed —
+  // see `noteClosingWithContent`'s own comment for the full story.
+  if (!list[idx].isScratchpad) noteClosingWithContent(list[idx].filename, list[idx].content);
 
   clearEditorViewState(tabId);
   clearTabCleanHash(tabId); // §94: drop the drift baseline for a gone tab

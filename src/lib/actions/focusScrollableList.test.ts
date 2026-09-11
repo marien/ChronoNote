@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { focusScrollableList } from "./focusScrollableList";
+import { focusScrollableList, scrollableListKeys } from "./focusScrollableList";
 
 /** jsdom implements `Element.scrollBy`/`scrollTo` as no-ops that don't
  * actually move `scrollTop` (it has no real layout engine) — spying on
@@ -74,6 +74,40 @@ describe("focusScrollableList", () => {
     const { node, action } = setup();
     action.destroy();
     keydown(node, "ArrowDown");
+    expect(node.scrollBy).not.toHaveBeenCalled();
+  });
+});
+
+describe("scrollableListKeys (#47: a second independently-scrollable pane)", () => {
+  function setupSecondary() {
+    const node = document.createElement("div");
+    Object.defineProperty(node, "clientHeight", { value: 300, configurable: true });
+    Object.defineProperty(node, "scrollHeight", { value: 900, configurable: true });
+    node.scrollBy = vi.fn();
+    node.scrollTo = vi.fn();
+    const focusSpy = vi.spyOn(node, "focus");
+    document.body.appendChild(node);
+    const action = scrollableListKeys(node);
+    return { node, action, focusSpy };
+  }
+
+  it("makes the node programmatically/click focusable, but doesn't steal focus on setup", () => {
+    const { node, focusSpy } = setupSecondary();
+    expect(node.tabIndex).toBe(-1);
+    expect(focusSpy).not.toHaveBeenCalled();
+  });
+
+  it("scrolls once focused, same as focusScrollableList", () => {
+    const { node } = setupSecondary();
+    node.focus();
+    keydown(node, "ArrowDown");
+    expect(node.scrollBy).toHaveBeenCalledWith({ top: 40 });
+  });
+
+  it("stops handling keys after destroy()", () => {
+    const { node, action } = setupSecondary();
+    action.destroy();
+    keydown(node, "PageDown");
     expect(node.scrollBy).not.toHaveBeenCalled();
   });
 });

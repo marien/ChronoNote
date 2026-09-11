@@ -6,7 +6,15 @@
  * `./controller`. Split out of `controller.ts` in the v0.5.0 refactor so
  * that file is about what happens, not what exists. */
 import { get, writable } from "svelte/store";
-import type { ActionSnapshotItem, ColorMode, HistoryItem, PreviousSectionOccurrence, NoteTab, SearchResultItem } from "./types";
+import type {
+  ActionSnapshotItem,
+  ColorMode,
+  HistoryItem,
+  PreviousSectionOccurrence,
+  NoteTab,
+  SearchResultItem,
+  ThemeMode,
+} from "./types";
 
 export type ModalKind =
   | "none"
@@ -31,6 +39,10 @@ export const notesDir = writable<string>("");
  * mirrors whatever `AppConfig` last reported. */
 export const recentNotesDirs = writable<string[]>([]);
 export const colorMode = writable<ColorMode>("grayscale");
+/** #48: light / dark / system — independent of `colorMode` above (the
+ * glyph palette). Mirrors `AppConfig.themeMode`; `applyThemeModeToDom()`
+ * (`boot.ts`) reflects it onto `<html data-theme>` for `app.css`. */
+export const themeMode = writable<ThemeMode>("system");
 /** Soft word-wrap in the editor (§80). Mirrors `AppConfig.wordWrap`;
  * `EditorPane` subscribes to it and reconfigures a CodeMirror compartment
  * live, so toggling takes effect without a remount. Off by default. */

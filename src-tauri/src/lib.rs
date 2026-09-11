@@ -57,6 +57,14 @@ fn set_auto_check_updates(app: AppHandle, enabled: bool) -> Result<storage::AppC
 }
 
 #[tauri::command]
+fn set_theme_mode(app: AppHandle, mode: storage::ThemeMode) -> Result<storage::AppConfig, String> {
+    let mut cfg = storage::load_config(&app)?;
+    cfg.theme_mode = mode;
+    storage::save_config(&app, &cfg)?;
+    Ok(cfg)
+}
+
+#[tauri::command]
 fn list_note_files(app: AppHandle) -> Result<Vec<String>, String> {
     storage::list_note_files(&app)
 }
@@ -124,13 +132,26 @@ fn write_tab_session(
 /// paint, which is the actual source of the launch-time white flash (the
 /// app's own CSS is already dark by default and paints correctly the
 /// moment the webview does render; the flash happens entirely before
-/// that point). Reading `window.theme()` before showing lets light-mode
-/// users get a matching white background instead of an assumed dark one.
+/// that point).
+///
+/// #48: `window.theme()` only reports the *OS*'s theme — correct for the
+/// `System` setting (still the only thing this read alone can tell us),
+/// but wrong the moment the user has pinned an explicit `Light`/`Dark`
+/// that disagrees with it (a dark-OS user who picked "Light" would still
+/// flash dark, then repaint light once the CSS's `[data-theme]` override
+/// kicks in). Reading the saved config here — before the window is ever
+/// shown — lets the *chosen* theme win the pre-paint colour, same as the
+/// CSS will once it loads.
 fn show_window_without_flash(app: &tauri::App) {
     let Some(window) = app.get_webview_window("main") else {
         return;
     };
-    let is_light = matches!(window.theme(), Ok(tauri::Theme::Light));
+    let configured = storage::load_config(app.handle()).ok().map(|c| c.theme_mode);
+    let is_light = match configured {
+        Some(storage::ThemeMode::Light) => true,
+        Some(storage::ThemeMode::Dark) => false,
+        _ => matches!(window.theme(), Ok(tauri::Theme::Light)),
+    };
     let color = if is_light {
         tauri::window::Color(255, 255, 255, 255)
     } else {
@@ -158,6 +179,7 @@ pub fn run() {
             set_word_wrap,
             set_readable_line_length,
             set_auto_check_updates,
+            set_theme_mode,
             list_note_files,
             read_note,
             write_note,

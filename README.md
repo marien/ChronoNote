@@ -164,11 +164,14 @@ file — no database, no front-matter, no injected IDs.
   Forwarded action counts (`x`, won't-do, folds into Closed alongside `v`,
   done), and — while text is selected — how many lines the selection spans
 - Debounced autosave, with immediate flush on tab switch/close
-- Settings panel (`Ctrl+,`): a three-way glyph palette (Color / Grayscale
-  / Legacy — glyphs, tab/status-bar accents, and search highlight all
-  follow it, including in the action drawer and section history); an
-  editor-width control (Full / Wrap / Reading column — Full keeps every
-  line unwrapped for tables and aligned columns, Wrap breaks long lines to
+- Settings panel (`Ctrl+,`): a Light / Dark / System theme control for
+  the app's own chrome (System follows the OS's light/dark setting, and
+  is the default); independently, a three-way glyph palette (Color /
+  Grayscale / Legacy — glyphs, tab/status-bar accents, and search
+  highlight all follow it, including in the action drawer and section
+  history); an editor-width control (Full / Wrap / Reading column — Full
+  keeps every line unwrapped for tables and aligned columns, Wrap breaks
+  long lines to
   fit the window, Reading column also caps the text to a comfortable
   centred measure); and the notes folder, changeable via a native
   "Browse…" dialog or from up to 5 recently-used folders listed right
@@ -176,13 +179,14 @@ file — no database, no front-matter, no injected IDs.
   projects/scopes: it closes every open tab and reloads everything from
   the new folder, blocking the switch first if any scratchpad has content
   that was never promoted (the only state that would actually be lost)
-- `Ctrl+/` opens a shortcuts help drawer listing every keybinding;
-  `Ctrl+Shift+/` opens a Symbols & Sections legend explaining every
-  token → glyph mapping and how section headers are formatted. Both
-  drawers move keyboard focus into their own scrollable list on open, so
-  arrow keys/Page Up/Page Down/Home/End scroll the drawer instead of the
-  editor behind it, while every global shortcut (including `Escape`)
-  keeps working regardless of where focus sits.
+- `Ctrl+/` (or `Ctrl+Shift+/`) opens a combined Shortcuts & Symbols
+  drawer: keyboard shortcuts and the token → glyph / section-header
+  vocabulary side by side in two independently-scrollable columns, so
+  neither needs much scrolling to see in full. Each column moves keyboard
+  focus into its own scrollable list on open, so arrow keys/Page Up/Page
+  Down/Home/End scroll that column instead of the editor behind it, while
+  every global shortcut (including `Escape`) keeps working regardless of
+  where focus sits.
 - An About drawer (the info icon, right of Settings) shows the project's
   GitHub link — opened in the OS's default browser — and the
   currently-running version number, read live rather than hardcoded.

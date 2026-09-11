@@ -2,12 +2,20 @@
   import { onMount } from "svelte";
   import * as controller from "../../controller";
   import { focusTrap } from "../../actions/focusTrap";
-  import { autoCheckUpdates, colorMode, notesDir, readableLineLength, recentNotesDirs, wordWrap } from "../../controller";
+  import {
+    autoCheckUpdates,
+    colorMode,
+    notesDir,
+    readableLineLength,
+    recentNotesDirs,
+    themeMode,
+    wordWrap,
+  } from "../../controller";
   import * as api from "../../tauriApi";
   import { closeOnOutsideClick } from "../../actions/closeOnOutsideClick";
   import Icon from "../../icons/Icon.svelte";
   import Segmented from "../Segmented.svelte";
-  import type { ColorMode } from "../../types";
+  import type { ColorMode, ThemeMode } from "../../types";
 
   // Filtered at open time (not reactively) — a directory switch closes
   // this modal anyway, so there's no case where the list needs to update
@@ -50,6 +58,20 @@
       <div>
         <div class="settings-section-label">Appearance</div>
         <div class="settings-toggle-row">
+          <span class="settings-inline-label">Theme</span>
+          <Segmented
+            options={[
+              { value: "light", label: "Light" },
+              { value: "dark", label: "Dark" },
+              { value: "system", label: "System" },
+            ]}
+            value={$themeMode}
+            onChange={(v) => controller.setThemeMode(v as ThemeMode)}
+          />
+        </div>
+        <div class="settings-hint">System follows your OS's own light/dark setting.</div>
+        <div class="settings-toggle-row" style="margin-top: 12px;">
+          <span class="settings-inline-label">Glyphs</span>
           <Segmented
             options={[
               { value: "color", label: "Color" },

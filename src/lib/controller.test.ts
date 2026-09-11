@@ -9,6 +9,7 @@ const apiMock = {
   getConfig: vi.fn(),
   setNotesDir: vi.fn(),
   setColorMode: vi.fn(),
+  setThemeMode: vi.fn(),
   setWordWrap: vi.fn(),
   setReadableLineLength: vi.fn(),
   setAutoCheckUpdates: vi.fn(),
@@ -261,6 +262,40 @@ describe("tab lifecycle", () => {
 
   it("reopenLastClosedTab is a no-op with nothing to reopen", () => {
     expect(() => controller.reopenLastClosedTab()).not.toThrow();
+  });
+
+  it("#46: closing a tab right after resolving its last action updates the all-notes cache, not just disk", async () => {
+    // Populate the disk-read cache *while the action is still open* —
+    // mirrors opening the date picker (or Action Drawer "All Files") once
+    // before resolving anything.
+    apiMock.readAllNotes.mockResolvedValue([["2026-09-11.txt", "# open action"]]);
+    controller.tabs.set([tab({ id: "a", filename: "2026-09-11.txt", content: "# open action" })]);
+    controller.activeTabId.set("a");
+    await controller.refreshAllNotesCache();
+    expect(get(controller.allNotesCache)["2026-09-11.txt"]).toBe("# open action");
+
+    // Resolve it, then close the tab — while it was open,
+    // `writeNoteAndInvalidateCache` alone wouldn't touch the cache (the
+    // live-tab overlay was covering for it); closing is the moment that
+    // overlay disappears.
+    controller.tabs.set([tab({ id: "a", filename: "2026-09-11.txt", content: "v open action" })]);
+    controller.closeTab("a");
+
+    // Without #46's fix, this would still read the stale "# open action"
+    // — the disk-cache entry from the first read, now with no live tab
+    // left to override it (a date-picker dot, or an Action-Drawer/Search/
+    // Section-History row, that never clears).
+    await controller.refreshAllNotesCache();
+    expect(get(controller.allNotesCache)["2026-09-11.txt"]).toBe("v open action");
+  });
+
+  it("#46: a closed scratchpad's content never touches the all-notes cache (it was never on disk)", async () => {
+    apiMock.readAllNotes.mockResolvedValue([]);
+    controller.tabs.set([tab({ id: "a", isScratchpad: true, filename: "Scratchpad 1", content: "# an idea" })]);
+    await controller.refreshAllNotesCache();
+    controller.closeTab("a");
+    await controller.refreshAllNotesCache();
+    expect(get(controller.allNotesCache)["Scratchpad 1"]).toBeUndefined();
   });
 });
 
@@ -1067,6 +1102,25 @@ describe("setReadableLineLength (§99 / §110)", () => {
     // turning it back off leaves wrap where it is (user owns it again)
     await controller.setReadableLineLength(false);
     expect(get(controller.wordWrap)).toBe(true);
+  });
+});
+
+describe("setThemeMode (#48)", () => {
+  it("updates the store, reflects it onto the DOM, and persists via the API", async () => {
+    await controller.setThemeMode("light");
+    expect(get(controller.themeMode)).toBe("light");
+    expect(document.documentElement.dataset.theme).toBe("light");
+    expect(apiMock.setThemeMode).toHaveBeenCalledWith("light");
+
+    await controller.setThemeMode("dark");
+    expect(get(controller.themeMode)).toBe("dark");
+    expect(document.documentElement.dataset.theme).toBe("dark");
+    expect(apiMock.setThemeMode).toHaveBeenLastCalledWith("dark");
+
+    await controller.setThemeMode("system");
+    expect(get(controller.themeMode)).toBe("system");
+    expect(document.documentElement.dataset.theme).toBeUndefined();
+    expect(apiMock.setThemeMode).toHaveBeenLastCalledWith("system");
   });
 });
 

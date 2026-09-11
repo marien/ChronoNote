@@ -27,13 +27,14 @@ import {
   statusSelection,
   statusWordCount,
   tabs,
+  themeMode,
   unsavedScratchpadNames,
   wordWrap,
 } from "./stores";
 import { flushAllPendingSaves, recomputeSaveState } from "./persistence";
 import { checkActiveTabForDrift } from "./drift";
 import { checkForUpdatesOnLaunch } from "./updates";
-import type { ColorMode, NoteTab } from "./types";
+import type { ColorMode, NoteTab, ThemeMode } from "./types";
 
 // --- Standing subscriptions (wired once, from initApp) -----------------
 
@@ -174,6 +175,16 @@ export function applyColorModeToDom(mode: ColorMode) {
   document.documentElement.dataset.colorMode = mode;
 }
 
+/** #48: `system` means "no override" — `app.css`'s `prefers-color-scheme`
+ * query alone decides, exactly like before this setting existed — so the
+ * `data-theme` attribute is removed rather than set to `"system"` (no CSS
+ * selector matches that value; the attribute's mere *absence* is what the
+ * bare `:root` / media-query blocks are written against). */
+export function applyThemeModeToDom(mode: ThemeMode) {
+  if (mode === "system") delete document.documentElement.dataset.theme;
+  else document.documentElement.dataset.theme = mode;
+}
+
 /** Set while a session restore (or a directory switch's fresh restore) is
  * rebuilding the `tabs`/`activeTabId` stores step by step, so the
  * persistence subscribers below don't write a half-built intermediate
@@ -295,6 +306,8 @@ export async function initApp() {
   recentNotesDirs.set(cfg.recentNotesDirs);
   colorMode.set(cfg.colorMode);
   applyColorModeToDom(cfg.colorMode);
+  themeMode.set(cfg.themeMode);
+  applyThemeModeToDom(cfg.themeMode);
   // §110: "limit line width" implies word-wrap. Reconcile a stale config
   // (from the version where the two were gated the other way round).
   readableLineLength.set(cfg.readableLineLength);
@@ -336,6 +349,18 @@ export async function setColorMode(mode: ColorMode) {
     await api.setColorMode(mode);
   } catch {
     showToast("Failed to save theme preference");
+  }
+}
+
+/** #48 — light / dark / system. Distinct from `setColorMode` above (the
+ * glyph palette); this is the chrome's own light-vs-dark rendering. */
+export async function setThemeMode(mode: ThemeMode) {
+  themeMode.set(mode);
+  applyThemeModeToDom(mode);
+  try {
+    await api.setThemeMode(mode);
+  } catch {
+    showToast("Failed to save light/dark preference");
   }
 }
 

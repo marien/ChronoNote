@@ -29,7 +29,7 @@
  *   - the session file lives *inside* the notes dir and is never returned
  *     by `list_note_files` / `read_all_notes`.
  */
-import type { AppConfig, ColorMode, FileMetadata, TabSession } from "../types";
+import type { AppConfig, ColorMode, FileMetadata, TabSession, ThemeMode } from "../types";
 import type { CommandArgs, CommandReturn, TauriCommand, TauriCommands } from "../tauriCommands";
 
 export interface MockSeed {
@@ -40,6 +40,7 @@ export interface MockSeed {
   /** Saved tab session for the active directory, or `null` for none. */
   session?: TabSession | null;
   colorMode?: ColorMode;
+  themeMode?: ThemeMode;
   wordWrap?: boolean;
   readableLineLength?: boolean;
   autoCheckUpdates?: boolean;
@@ -83,6 +84,7 @@ const CONFLICTS_DIRNAME = ".chrononote-conflicts";
 const MUTATING_COMMANDS = new Set([
   "set_notes_dir",
   "set_color_mode",
+  "set_theme_mode",
   "set_word_wrap",
   "set_readable_line_length",
   "set_auto_check_updates",
@@ -138,6 +140,7 @@ export class MockBackend {
   dirs = new Map<string, MockDir>();
   notesDir: string;
   colorMode: ColorMode;
+  themeMode: ThemeMode;
   wordWrap: boolean;
   readableLineLength: boolean;
   autoCheckUpdates: boolean;
@@ -191,6 +194,7 @@ export class MockBackend {
   constructor(seed: MockSeed = {}) {
     this.notesDir = seed.notesDir ?? "/notes";
     this.colorMode = seed.colorMode ?? "grayscale";
+    this.themeMode = seed.themeMode ?? "system";
     this.wordWrap = seed.wordWrap ?? false;
     this.readableLineLength = seed.readableLineLength ?? false;
     this.autoCheckUpdates = seed.autoCheckUpdates ?? true;
@@ -228,6 +232,7 @@ export class MockBackend {
     return JSON.stringify({
       notesDir: this.notesDir,
       colorMode: this.colorMode,
+      themeMode: this.themeMode,
       wordWrap: this.wordWrap,
       readableLineLength: this.readableLineLength,
       autoCheckUpdates: this.autoCheckUpdates,
@@ -257,6 +262,7 @@ export class MockBackend {
       const s = JSON.parse(raw) as {
         notesDir: string;
         colorMode: ColorMode;
+        themeMode?: ThemeMode;
         wordWrap?: boolean;
         readableLineLength?: boolean;
         autoCheckUpdates?: boolean;
@@ -267,6 +273,7 @@ export class MockBackend {
       const b = new MockBackend();
       b.notesDir = s.notesDir;
       b.colorMode = s.colorMode;
+      b.themeMode = s.themeMode ?? "system";
       b.wordWrap = s.wordWrap ?? false;
       b.autoCheckUpdates = s.autoCheckUpdates ?? true;
       b.readableLineLength = s.readableLineLength ?? false;
@@ -297,6 +304,7 @@ export class MockBackend {
     return {
       notesDir: this.notesDir,
       colorMode: this.colorMode,
+      themeMode: this.themeMode,
       wordWrap: this.wordWrap,
       readableLineLength: this.readableLineLength,
       recentNotesDirs: [...this.recentNotesDirs],
@@ -372,6 +380,11 @@ export class MockBackend {
 
     set_color_mode: ({ mode }) => {
       this.colorMode = mode;
+      return this.config();
+    },
+
+    set_theme_mode: ({ mode }) => {
+      this.themeMode = mode;
       return this.config();
     },
 
