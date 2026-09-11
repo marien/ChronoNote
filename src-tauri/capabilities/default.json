@@ -8,7 +8,7 @@
     "dialog:allow-open",
     "core:window:allow-set-title",
     "core:window:allow-destroy",
-    "opener:allow-open-url",
+    "opener:default",
     "updater:default",
     "process:allow-restart"
   ]

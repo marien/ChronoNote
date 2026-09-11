@@ -6,7 +6,7 @@ kept for the rationale behind each one — not just *what* changed but
 was still being gathered and confirmed before implementation; renamed once
 everything below was applied, since nothing here is "pending" anymore.
 
-**Status: all sections through §134 implemented, released, and on `main`.**
+**Status: all sections through §135 implemented, released, and on `main`.**
 §99–§110 are the 0.6 UX/UI pass (`docs/design/ux-roadmap-0.6.md`); §111 is
 a small v0.6.1 follow-up (the pre-0.6 glyph palette, back as an option).
 §112 (#28) and §113 (#27) are Section History follow-ups (v0.6.2).
@@ -22,7 +22,9 @@ just a design (0.8.0, not started). §129–§131 close three GitHub issues
 filed after the 0.7 pass (#46, #47, #48). §132 closes a fourth (#49,
 top-bar alignment); §133 is the app-icon redraw the 0.7 roadmap called
 for but deferred out of v0.7.0. §134 is a follow-up correction to §132
-after its fix overcorrected visually.
+after its fix overcorrected visually. §135 fixes a long-standing
+opener-plugin permission-scope bug (chat feedback, no issue) that made
+the About drawer's external links silently do nothing.
 Each
 section is verified before merge (`svelte-check`, the Vitest suite,
 `cargo test`, and — from §77 on — the Playwright E2E suite, all green in
@@ -4916,3 +4918,55 @@ icons, and the group divider all land on the same pixel) and the existing
 `smoke.spec.ts` suites stayed green. Pure CSS — no Rust/IPC/storage
 change, `cargo test` unchanged at 44. `svelte-check` 256 files 0 errors,
 Vitest 271, Playwright 150 (unchanged counts).
+
+---
+
+## 135. About drawer's "What's changed" and project links silently did nothing
+
+**Status: implemented.** Marien: *"I just saw the button on About that
+says What's changed but it does not seem to do anything when I press it.
+same for the project link."*
+
+**Root cause: a permission granted the command but not the URLs.**
+`capabilities/default.json` has had `"opener:allow-open-url"` since the
+opener plugin was first added (the link-opening feature, long before
+this session) — but per `tauri-plugin-opener`'s own generated permission
+schema, that specific permission "enables the `open_url` command
+**without any pre-configured scope**." An empty scope means every actual
+URL is rejected by Tauri's runtime permission check, regardless of what
+it is — the command itself runs, but the open attempt fails immediately.
+The scope that actually authorizes `https://` (plus `http://`/`mailto:`/
+`tel:`) is a *separate* permission, `opener:allow-default-urls`, which
+was never granted. Both `openProjectLink()` and `openReleasePage()`
+(`menu.ts`) swallow the resulting error (`.catch(() => {})`) rather than
+surfacing it — a deliberate call at the time ("worst case a click does
+nothing, which isn't worth a toast/modal of its own") that, combined with
+the missing scope, made the failure completely silent instead of merely
+low-key.
+
+**Why nothing caught this sooner.** The mock backend's `plugin:opener|
+open_url` handler (`mockBackend.ts`) just records the URL in
+`openedUrls` — it has no concept of Tauri's capability/scope system at
+all, so `drawers.spec.ts`'s "the project link opens externally via the
+opener plugin" test can only ever prove the frontend *invoked* the
+command with the right URL, never that a real OS call would actually
+succeed. This class of bug — permission/capability misconfiguration — is
+invisible to the entire mock-backed test suite by construction; only
+running the packaged app and clicking the button surfaces it, which is
+exactly how Marien found it.
+
+**Fix.** `capabilities/default.json`: `"opener:allow-open-url"` →
+`"opener:default"` — the plugin's own documented bundle for exactly this
+use case (`allow-open-url` + `allow-default-urls` + `allow-
+reveal-item-in-dir`), rather than hand-picking the fine-grained
+permissions and getting the pairing wrong a second time.
+
+No new test: this is a capability/scope bug categorically outside what
+the mock can exercise (see above) — the existing `drawers.spec.ts`
+coverage already asserts everything it's capable of asserting. Verified
+by reading the plugin's own generated schema
+(`src-tauri/gen/schemas/desktop-schema.json`) rather than guessing, and
+`cargo check` confirming the new permission string is valid; real-app
+click-through confirmation pending Marien's install of the release this
+ships in. Pure config change — no Rust/frontend logic touched, `cargo
+test` unchanged at 44, `svelte-check`/Vitest/Playwright counts unchanged.
