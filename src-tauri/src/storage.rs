@@ -52,6 +52,17 @@ pub struct AppConfig {
     /// project's own stress testing did) never adds spurious entries.
     #[serde(default)]
     pub recent_notes_dirs: Vec<String>,
+    /// §update-check: silently check github.com for a newer release on
+    /// launch. On by default (normal for a desktop app) — disclosed +
+    /// toggleable in Settings. `#[serde(default = "default_true")]` (not
+    /// the derived `Default`, which would be `false`) so a config written
+    /// before this field existed opts in rather than silently staying off.
+    #[serde(default = "default_true")]
+    pub auto_check_updates: bool,
+}
+
+fn default_true() -> bool {
+    true
 }
 
 const MAX_RECENT_NOTES_DIRS: usize = 5;
@@ -262,6 +273,7 @@ fn load_config_at(path: &Path, default_notes_dir: &Path) -> Result<AppConfig, St
         word_wrap: false,
         readable_line_length: false,
         recent_notes_dirs: Vec::new(),
+        auto_check_updates: true,
     };
     save_config_at(path, &cfg)?;
     Ok(cfg)
@@ -753,6 +765,7 @@ mod tests {
             word_wrap: true,
             readable_line_length: false,
             recent_notes_dirs: vec!["/old1".to_string(), "/old2".to_string()],
+            auto_check_updates: false,
         };
         save_config_at(&path, &cfg).unwrap();
         let loaded = load_config_at(&path, &dir.path().join("Notes")).unwrap();
@@ -761,6 +774,7 @@ mod tests {
         assert!(loaded.word_wrap);
         assert!(!loaded.readable_line_length);
         assert_eq!(loaded.recent_notes_dirs, vec!["/old1", "/old2"]);
+        assert!(!loaded.auto_check_updates);
     }
 
     #[test]
@@ -775,6 +789,7 @@ mod tests {
             word_wrap: false,
             readable_line_length: false,
             recent_notes_dirs: vec![],
+            auto_check_updates: true,
         };
         save_config_at(&path, &cfg).unwrap();
         let on_disk = fs::read_to_string(&path).unwrap();
@@ -798,6 +813,8 @@ mod tests {
         // Omitted from an older config → off (§110: it's an opt-in).
         assert!(!loaded.readable_line_length);
         assert!(loaded.recent_notes_dirs.is_empty());
+        // Unlike the above, this one's omitted-default is *on* (§update-check).
+        assert!(loaded.auto_check_updates);
     }
 
     #[test]

@@ -14,6 +14,7 @@ export interface TauriCommands {
   set_color_mode: { args: { mode: ColorMode }; returns: AppConfig };
   set_word_wrap: { args: { enabled: boolean }; returns: AppConfig };
   set_readable_line_length: { args: { enabled: boolean }; returns: AppConfig };
+  set_auto_check_updates: { args: { enabled: boolean }; returns: AppConfig };
   list_note_files: { args: NoArgs; returns: string[] };
   read_note: { args: { filename: string }; returns: string | null };
   write_note: {

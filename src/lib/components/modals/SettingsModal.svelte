@@ -2,7 +2,7 @@
   import { onMount } from "svelte";
   import * as controller from "../../controller";
   import { focusTrap } from "../../actions/focusTrap";
-  import { colorMode, notesDir, readableLineLength, recentNotesDirs, wordWrap } from "../../controller";
+  import { autoCheckUpdates, colorMode, notesDir, readableLineLength, recentNotesDirs, wordWrap } from "../../controller";
   import * as api from "../../tauriApi";
   import { closeOnOutsideClick } from "../../actions/closeOnOutsideClick";
   import Icon from "../../icons/Icon.svelte";
@@ -81,6 +81,26 @@
           Full keeps every line unwrapped — the monospace grid stays intact for tables and aligned columns. Wrap
           breaks long lines to fit the window. Reading column also caps the text to a comfortable centred measure,
           for a single prose-reading mode.
+        </div>
+      </div>
+      <div>
+        <div class="settings-section-label">Updates</div>
+        <div class="settings-toggle-row">
+          <label class="toggle-switch">
+            <input
+              type="checkbox"
+              checked={$autoCheckUpdates}
+              on:change={(e) => controller.setAutoCheckUpdates(e.currentTarget.checked)}
+            />
+            <span class="toggle-switch-track"></span>
+            Check for updates when ChronoNote starts
+          </label>
+        </div>
+        <div class="settings-hint">
+          A quiet check against github.com — never downloads or installs anything without your say.
+          <button class="icon-btn" style="margin-left: 4px; padding: 1px 8px;" on:click={() => controller.checkForUpdates()}>
+            Check now
+          </button>
         </div>
       </div>
       <div>

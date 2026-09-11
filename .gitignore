@@ -33,5 +33,14 @@ src-tauri/icons/icon.icns
 # "output path is not a writable directory" (see CLAUDE.local.md).
 src-tauri/.cargo/config.toml
 
+# Updater signing keypair (§update-check) — the *private* half only; the
+# public half is embedded in tauri.conf.json (plugins.updater.pubkey) and
+# tracked there. Losing this file + its password means future releases
+# can no longer be signed, so back both up somewhere durable (a password
+# manager) — see CLAUDE.local.md. Already covered by `*.local` above;
+# named explicitly so this isn't ever mistaken for a stray build file.
+src-tauri/updater-signing-key.local
+src-tauri/updater-signing-key-password.local
+
 .DS_Store
 Thumbs.db

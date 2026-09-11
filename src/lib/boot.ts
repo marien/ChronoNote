@@ -12,6 +12,7 @@ import { todayISO } from "./date";
 import {
   activeTabId,
   appVersion,
+  autoCheckUpdates,
   chromeExpanded,
   colorMode,
   markTabClean,
@@ -31,6 +32,7 @@ import {
 } from "./stores";
 import { flushAllPendingSaves, recomputeSaveState } from "./persistence";
 import { checkActiveTabForDrift } from "./drift";
+import { checkForUpdatesOnLaunch } from "./updates";
 import type { ColorMode, NoteTab } from "./types";
 
 // --- Standing subscriptions (wired once, from initApp) -----------------
@@ -297,10 +299,16 @@ export async function initApp() {
   // (from the version where the two were gated the other way round).
   readableLineLength.set(cfg.readableLineLength);
   wordWrap.set(cfg.wordWrap || cfg.readableLineLength);
+  autoCheckUpdates.set(cfg.autoCheckUpdates);
   await restoreOrBootstrapTabs();
   tabs.subscribe(() => scheduleTabSessionSave());
   activeTabId.subscribe(() => scheduleTabSessionSave());
   api.getAppVersion().then((v) => appVersion.set(v));
+  // §update-check: a silent background check, never blocking app-ready.
+  // Quiet by design — "no update" and a failed check both leave no trace
+  // beyond the About drawer; only "an update is available" shows anything
+  // (a status-bar message), and only the user's own click ever downloads.
+  if (cfg.autoCheckUpdates) void checkForUpdatesOnLaunch();
 }
 
 /** Tracks whether the OS window is maximized or fullscreen, so the top bar
@@ -349,5 +357,14 @@ export async function setReadableLineLength(enabled: boolean) {
     await api.setReadableLineLength(enabled);
   } catch {
     showToast("Failed to save reading-width preference");
+  }
+}
+
+export async function setAutoCheckUpdates(enabled: boolean) {
+  autoCheckUpdates.set(enabled);
+  try {
+    await api.setAutoCheckUpdates(enabled);
+  } catch {
+    showToast("Failed to save update-check preference");
   }
 }

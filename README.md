@@ -186,6 +186,13 @@ file — no database, no front-matter, no injected IDs.
 - An About drawer (the info icon, right of Settings) shows the project's
   GitHub link — opened in the OS's default browser — and the
   currently-running version number, read live rather than hardcoded.
+- Checks GitHub for a newer release on launch (a Settings toggle, on by
+  default) and on demand ("Check now" in Settings or About, or the
+  command palette). Checking is quiet — a status-bar message only when it
+  actually finds something newer, silence otherwise — and downloading is
+  never automatic: About shows the version found, its release notes, and
+  a "Download & install" button you click yourself. The downloaded
+  installer's signature is verified before it runs.
 - Top-bar buttons show icon+label when the window is maximized or
   fullscreen, and collapse to icon-only otherwise. Every icon — the top
   bar, every modal header, the tab strip — is one monoline SVG set drawn
