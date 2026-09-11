@@ -7,6 +7,8 @@ was still being gathered and confirmed before implementation; renamed once
 everything below was applied, since nothing here is "pending" anymore.
 
 **Status: all sections through §136 implemented, released, and on `main`.**
+§137 is implemented and committed to `main` but not yet released, at
+Marien's request (more feedback may follow before the next version cut).
 §99–§110 are the 0.6 UX/UI pass (`docs/design/ux-roadmap-0.6.md`); §111 is
 a small v0.6.1 follow-up (the pre-0.6 glyph palette, back as an option).
 §112 (#28) and §113 (#27) are Section History follow-ups (v0.6.2).
@@ -26,7 +28,9 @@ after its fix overcorrected visually. §135 fixes a long-standing
 opener-plugin permission-scope bug (chat feedback, no issue) that made
 the About drawer's external links silently do nothing. §136 closes #50
 (a first-run-after-update notice) plus an always-visible status-bar
-update icon (chat feedback, no issue).
+update icon (chat feedback, no issue). §137 (chat feedback, no issue) is
+a date-picker perf/UX pass — fast per-visible-month loading, a loading
+spinner, and opening on the active tab's own date.
 Each
 section is verified before merge (`svelte-check`, the Vitest suite,
 `cargo test`, and — from §77 on — the Playwright E2E suite, all green in
@@ -5034,3 +5038,66 @@ extended the existing round-trip/defaults tests instead (mirrors how
 update icon appears, links to About, shows the found version).
 `svelte-check` 256 files 0 errors, Vitest 276 (+5), Playwright 154 (+4),
 `cargo test` 44 (same count, more assertions per test).
+
+---
+
+## 137. Date picker: fast dots for the visible month, a loading spinner, and opens on the active tab's date
+
+**Status: implemented, not yet released** (Marien: "Let me give some more
+feedback to work on. Don't cut a new release yet"). Two pieces of
+feedback from the same message.
+
+**"It takes a bit of time for the dates to get their dot and be set to
+bold... probably because the files need to be read."** Exactly right —
+opening the date picker calls `refreshAllNotesCache()`
+(`persistence.ts`), which the *first* time anything asks for it each
+session reads every note file in the folder (`read_all_notes`) before
+the dots/bold can render at all. Months (or years) of daily notes make
+that read genuinely slow; every date picker open after the first is
+instant only because the disk layer stays cached in memory.
+
+**Fix: read the visible month first, individually and in parallel; let
+the full read catch up in the background.** New
+`persistence.ts::prefetchNotesForDates(filenames)` reads a small batch
+of specific filenames via individual `readNote` calls (`Promise.all`,
+not the bulk `read_all_notes`) and merges them into the same
+`allNotesCache` store the full read populates — so whichever finishes
+first is what renders, and the other's result (identical, same files on
+disk) is a harmless no-op once it lands. `DatePickerModal.svelte` calls
+it with the current month grid's ~42 filenames every time the visible
+month changes, but only until the one-time full read finishes
+(`loadingAll` flag) — no point re-fetching days the complete cache
+already has. **Respects the same rule §129/#46 established for the full
+read:** an open, non-scratchpad tab's live (possibly unsaved) content
+always wins over whatever's on disk for it, so this fast path can't
+reintroduce that bug for a day that also happens to be open right now.
+
+**A quiet spinner while the rest of the history is still loading.**
+Reuses the existing `.modal-spinner` (the rotating "⟳" already used for
+"Checking for updates…" in About) next to the month title, shown only
+while the background full read (`loadingAll`) is in flight — which, after
+the first time each session, is instant, so it won't normally be seen
+again. New `.cal-title-wrap` keeps the nav-button spacing
+(`.cal-head`'s `space-between`) stable whether or not it's showing.
+
+**"Open it on the month of the day of the tab I was on, and highlight
+that day."** The grid used to always default to today, focused on
+today. New `activeTabIso()` reads the active tab's own filename (when
+it's a dated tab — a scratchpad has no date of its own, so falls back to
+today same as before) and seeds `year`/`month`/`focusedIso` from it
+instead. `focusedIso` already drives the `.cal-day.target` highlight (the
+same one keyboard navigation and type-to-jump use), so no new styling
+was needed — just changing what it starts as.
+
+New: `persistence.ts` `prefetchNotesForDates()`; `mockBackend.ts`
+`MockSeed.delayCommands` (artificially delays a named command — used to
+deterministically test the loading-spinner window, otherwise too fast to
+observe against the mock's instant in-memory reads). Tests:
+`controller.test.ts` +4 (`prefetchNotesForDates`'s merge rules — fetches
+missing, skips already-cached, prefers an open tab's live content, never
+touches a scratchpad), `tests/e2e/navigation.spec.ts` +3 (opens on the
+active tab's month and highlights it, falls back to today for a
+scratchpad, the visible month's dot lands well inside an artificially
+slow `read_all_notes`'s delay and the spinner clears once it resolves).
+Pure frontend — no Rust/IPC/storage change, `cargo test` unchanged at 44.
+`svelte-check` 256 files 0 errors, Vitest 280 (+4), Playwright 157 (+3).

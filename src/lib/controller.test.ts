@@ -301,6 +301,40 @@ describe("tab lifecycle", () => {
   });
 });
 
+describe("prefetchNotesForDates (date-picker perf)", () => {
+  it("fetches missing filenames individually and merges them into the cache", async () => {
+    apiMock.readNote.mockImplementation(async (fn: string) => (fn === "2026-01-05.txt" ? "# open" : null));
+    await controller.prefetchNotesForDates(["2026-01-05.txt", "2026-01-06.txt"]);
+    expect(apiMock.readNote).toHaveBeenCalledWith("2026-01-05.txt");
+    expect(apiMock.readNote).toHaveBeenCalledWith("2026-01-06.txt");
+    expect(get(controller.allNotesCache)["2026-01-05.txt"]).toBe("# open");
+    // A missing file (readNote resolves null) never gets a cache entry.
+    expect(get(controller.allNotesCache)["2026-01-06.txt"]).toBeUndefined();
+  });
+
+  it("skips a filename already in the cache — nothing left to gain re-reading it", async () => {
+    controller.allNotesCache.set({ "2026-01-05.txt": "already cached" });
+    await controller.prefetchNotesForDates(["2026-01-05.txt"]);
+    expect(apiMock.readNote).not.toHaveBeenCalled();
+    expect(get(controller.allNotesCache)["2026-01-05.txt"]).toBe("already cached");
+  });
+
+  it("uses an open tab's live content instead of reading it from disk", async () => {
+    controller.tabs.set([tab({ id: "a", filename: "2026-01-05.txt", content: "unsaved edit" })]);
+    await controller.prefetchNotesForDates(["2026-01-05.txt"]);
+    expect(apiMock.readNote).not.toHaveBeenCalledWith("2026-01-05.txt");
+    expect(get(controller.allNotesCache)["2026-01-05.txt"]).toBe("unsaved edit");
+  });
+
+  it("never uses a scratchpad's content — it isn't a dated filename to begin with", async () => {
+    controller.tabs.set([tab({ id: "a", isScratchpad: true, filename: "Scratchpad 1", content: "an idea" })]);
+    apiMock.readNote.mockResolvedValue("on-disk content");
+    await controller.prefetchNotesForDates(["2026-01-05.txt"]);
+    expect(get(controller.allNotesCache)["2026-01-05.txt"]).toBe("on-disk content");
+    expect(get(controller.allNotesCache)["Scratchpad 1"]).toBeUndefined();
+  });
+});
+
 describe("updateActiveTabContent", () => {
   it("updates the active tab's content in place", () => {
     controller.tabs.set([tab({ id: "a", content: "old" })]);

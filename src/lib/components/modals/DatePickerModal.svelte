@@ -1,7 +1,8 @@
 <script lang="ts">
+  import { get } from "svelte/store";
   import { onMount, tick } from "svelte";
   import * as controller from "../../controller";
-  import { allNotesCache } from "../../controller";
+  import { activeTabId, allNotesCache, tabs } from "../../controller";
   import { focusTrap } from "../../actions/focusTrap";
   import {
     addDaysISO,
@@ -25,13 +26,38 @@
   let jumpQuery = "";
   let anchorStyle = "visibility:hidden"; // until measured against the trigger
 
+  /** Opens on the active tab's own date (and highlights it, via
+   * `focusedIso` below) rather than always today's — a scratchpad, or no
+   * active tab, falls back to today since there's no date to prefer. */
+  function activeTabIso(): string {
+    const tab = get(tabs).find((t) => t.id === get(activeTabId));
+    if (tab && !tab.isScratchpad) {
+      const iso = tab.filename.replace(/\.txt$/, "");
+      if (/^\d{4}-\d{2}-\d{2}$/.test(iso)) return iso;
+    }
+    return today;
+  }
+
   // Which month the grid is showing, and which day has keyboard focus.
-  const t0 = new Date();
+  const initialIso = activeTabIso();
+  const t0 = parseISODateLocal(initialIso);
   let year = t0.getFullYear();
   let month = t0.getMonth(); // 0-indexed
-  let focusedIso = today;
+  let focusedIso = initialIso;
 
   $: cells = monthGrid(year, month);
+
+  /** #46/§129's lesson applies here too: never guess at note content when
+   * an open tab already has the true, possibly-unsaved version in memory
+   * — `prefetchNotesForDates` already respects that. This just decides
+   * *when* to bother fetching: while the full background read (`onMount`
+   * below) is still in flight, so a handful of small reads make the
+   * visible month's dots/bold appear immediately instead of waiting on
+   * however much note history exists. Stops re-firing once that full
+   * read lands (`loadingAll` flips false) — nothing left to gain by
+   * re-fetching days `allNotesCache` already has. */
+  let loadingAll = true;
+  $: if (loadingAll) void controller.prefetchNotesForDates(cells.map((c) => `${c.iso}.txt`));
 
   // Follow the query live: as you type a date (or a `YYYY-MM` prefix) the
   // grid jumps to it and marks the target — Enter then commits it.
@@ -76,6 +102,7 @@
     await tick();
     inputEl?.focus(); // type-to-jump is the default, same as the other drawers
     await controller.refreshAllNotesCache();
+    loadingAll = false;
   });
 
   function positionUnderTrigger() {
@@ -188,7 +215,12 @@
     <button type="button" class="cal-nav" aria-label="Previous month" on:click={() => shiftMonth(-1)}>
       <Icon name="chevron-left" size={14} />
     </button>
-    <span class="cal-title" aria-live="polite">{MONTH_NAMES[month]} {year}</span>
+    <span class="cal-title-wrap">
+      <span class="cal-title" aria-live="polite">{MONTH_NAMES[month]} {year}</span>
+      {#if loadingAll}
+        <span class="modal-spinner" title="Loading older notes…" aria-label="Loading older notes">⟳</span>
+      {/if}
+    </span>
     <button type="button" class="cal-nav" aria-label="Next month" on:click={() => shiftMonth(1)}>
       <Icon name="chevron-right" size={14} />
     </button>

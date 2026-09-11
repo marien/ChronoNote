@@ -137,6 +137,40 @@ export async function refreshAllNotesCache() {
   allNotesCache.set(map);
 }
 
+/** A fast, small-batch alternative to the full read above — reads just
+ * the given filenames (the date picker's currently visible ~42-cell
+ * month grid, typically) via individual `readNote` calls in parallel,
+ * so a handful of days' dots/bold show immediately instead of waiting
+ * on `refreshAllNotesCache()`'s full read of however much history lives
+ * in the notes folder (only slow the very first time anything asks for
+ * it each session — `diskNotesCacheRaw` is cached after that). Skips
+ * anything already in `allNotesCache` (nothing to gain re-reading it) or
+ * belonging to an open, non-scratchpad tab — that tab's live (possibly
+ * unsaved) content always wins over whatever's on disk for it, the same
+ * rule `refreshAllNotesCache()` follows, so this can't reintroduce the
+ * stale-dot bug #46/§129 fixed for the full-cache path. Merges into the
+ * same `allNotesCache` store, so it's superseded harmlessly once the
+ * full background read (always kicked off alongside this) catches up. */
+export async function prefetchNotesForDates(filenames: string[]): Promise<void> {
+  const known = get(allNotesCache);
+  const openContent = new Map(
+    get(tabs)
+      .filter((t) => !t.isScratchpad)
+      .map((t) => [t.filename, t.content] as const),
+  );
+  const toFetch = filenames.filter((fn) => !(fn in known) && !openContent.has(fn));
+  const fetched = toFetch.length
+    ? await Promise.all(toFetch.map(async (fn) => [fn, await api.readNote(fn)] as const))
+    : [];
+  if (openContent.size === 0 && fetched.length === 0) return;
+  allNotesCache.update((map) => {
+    const next = { ...map };
+    for (const [fn, content] of openContent) next[fn] = content;
+    for (const [fn, content] of fetched) if (content !== null) next[fn] = content;
+    return next;
+  });
+}
+
 /** All disk writes should go through this rather than calling
  * `api.writeNote()` directly, so the disk-read cache above knows when it
  * might be stale. Skips invalidation when the written filename already

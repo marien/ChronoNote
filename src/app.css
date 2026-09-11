@@ -982,8 +982,19 @@ body {
   justify-content: space-between;
   padding: 2px 2px 6px;
 }
+.cal-title-wrap {
+  /* One flex item for .cal-head's `space-between` (prev / this / next),
+     so the optional loading spinner next to the title doesn't throw off
+     the nav buttons' spacing. */
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
 .cal-title {
   font-weight: 600;
+}
+.cal-title-wrap .modal-spinner {
+  font-size: 11px;
 }
 .cal-nav {
   background: transparent;

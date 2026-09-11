@@ -63,6 +63,13 @@ export interface MockSeed {
    * update check/download (`["plugin:updater|check"]` /
    * `["plugin:updater|download_and_install"]`). */
   throwOnCommands?: string[];
+  /** Artificially delay specific commands by N ms before they resolve —
+   * for deterministically testing a loading state that's otherwise too
+   * fast to observe under the mock's instant in-memory reads (e.g.
+   * `read_all_notes`, so a test can assert on the date picker's loading
+   * spinner and its fast-path prefetch actually landing before the full
+   * read does). */
+  delayCommands?: Record<string, number>;
   /** §update-check: what `plugin:updater|check` resolves to. `"none"`
    * (default) = no update; `"available"` = a fake newer release exists,
    * version `updateCheckVersion`. A failed check is seeded via
@@ -197,6 +204,8 @@ export class MockBackend {
 
   /** Commands seeded to reject (`MockSeed.throwOnCommands`). */
   throwOnCommands: Set<string>;
+  /** Commands seeded to artificially delay (`MockSeed.delayCommands`). */
+  delayCommands: Map<string, number>;
 
   constructor(seed: MockSeed = {}) {
     this.notesDir = seed.notesDir ?? "/notes";
@@ -211,6 +220,7 @@ export class MockBackend {
     this.updateCheck = seed.updateCheck ?? "none";
     this.updateCheckVersion = seed.updateCheckVersion ?? "9.9.9";
     this.throwOnCommands = new Set(seed.throwOnCommands ?? []);
+    this.delayCommands = new Map(Object.entries(seed.delayCommands ?? {}));
 
     this.dirs.set(this.notesDir, {
       notes: new Map(Object.entries(seed.notes ?? {})),
@@ -370,6 +380,8 @@ export class MockBackend {
     if (this.throwOnCommands.has(cmd)) {
       throw new Error(`mock: ${cmd} failed (seeded via throwOnCommands)`);
     }
+    const delayMs = this.delayCommands.get(cmd);
+    if (delayMs) await new Promise((resolve) => setTimeout(resolve, delayMs));
     const out = await this.dispatch(cmd, args);
     if (MUTATING_COMMANDS.has(cmd)) this.persist();
     return out;

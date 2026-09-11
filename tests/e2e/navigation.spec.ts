@@ -136,3 +136,60 @@ test.describe("#46: the date-picker dot reflects a resolved action after its tab
     await expect(datePicker(page).locator(dayIso)).not.toHaveClass(/\bhas\b/);
   });
 });
+
+test.describe("date picker opens on the active tab's own date", () => {
+  test("shows that month and highlights that day, instead of always today's", async ({ page }) => {
+    await seedApp(page, {
+      seed: {
+        notes: { "2026-06-20.txt": "an earlier note", [todayFilename()]: "today's note" },
+        session: { openTabs: ["2026-06-20.txt", todayFilename()], activeTab: "2026-06-20.txt" },
+      },
+    });
+    await editor(page).click();
+    await parkMouse(page);
+    await page.keyboard.press("Control+o");
+    await expect(pop(page).locator(".cal-title")).toHaveText("June 2026");
+    await expect(pop(page).locator('.cal-day[data-iso="2026-06-20"]')).toHaveClass(/\btarget\b/);
+  });
+
+  test("a scratchpad has no date of its own — falls back to today's month", async ({ page }) => {
+    // Scratchpads are memory-only and never session-restored, so the
+    // realistic way to have one active is to create it fresh, in-session.
+    await seedApp(page, {
+      seed: { notes: { "2026-06-20.txt": "an earlier note" }, session: { openTabs: ["2026-06-20.txt"], activeTab: "2026-06-20.txt" } },
+    });
+    await editor(page).click();
+    await page.keyboard.press("Control+n");
+    await parkMouse(page);
+    await page.keyboard.press("Control+o");
+    await expect(pop(page).locator(".cal-title")).toHaveText("September 2026");
+    await expect(pop(page).locator(`.cal-day[data-iso="${REFERENCE_TODAY}"]`)).toHaveClass(/\btarget\b/);
+  });
+});
+
+test.describe("date picker: visible-month dots load fast, a spinner covers the rest (perf)", () => {
+  test("today's dot appears well before a slow full history read finishes, and the spinner clears once it does", async ({
+    page,
+  }) => {
+    await seedApp(page, {
+      seed: {
+        notes: { [todayFilename()]: "# an open action" },
+        delayCommands: { read_all_notes: 1000 },
+      },
+    });
+    await editor(page).click();
+    await parkMouse(page);
+    await page.keyboard.press("Control+o");
+
+    // Fast path: the individually-fetched visible month lands well inside
+    // the artificially slow full read's 1000ms delay.
+    await expect(pop(page).locator(`.cal-day[data-iso="${REFERENCE_TODAY}"]`)).toHaveClass(/\bhas\b/, {
+      timeout: 500,
+    });
+    // The spinner marks that the full background read (other months'
+    // history) is still in flight...
+    await expect(pop(page).locator(".modal-spinner")).toBeVisible();
+    // ...and disappears once it lands.
+    await expect(pop(page).locator(".modal-spinner")).toHaveCount(0, { timeout: 2000 });
+  });
+});
