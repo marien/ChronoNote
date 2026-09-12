@@ -53,7 +53,7 @@ test("a non-empty scratchpad blocks the close with the unsaved-scratchpads gate"
   await seedApp(page, today);
 
   // Make a scratchpad with real content.
-  await page.keyboard.press("Control+n");
+  await page.keyboard.press("ControlOrMeta+n");
   await typeInEditor(page, "unpromoted scratch thoughts");
 
   await requestClose(page);

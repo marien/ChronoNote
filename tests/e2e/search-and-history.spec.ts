@@ -19,7 +19,7 @@ test.describe("cross-tab search (Ctrl+Shift+F)", () => {
     await seedApp(page, { seed: "delegation" });
 
     await editor(page).click();
-    await page.keyboard.press("Control+Shift+F");
+    await page.keyboard.press("ControlOrMeta+Shift+F");
     await expect(search(page)).toBeVisible();
 
     await search(page).locator(".modal-input").fill("migration plan");
@@ -34,7 +34,7 @@ test.describe("cross-tab search (Ctrl+Shift+F)", () => {
   test("'All Files' scope widens the result set beyond open tabs", async ({ page }) => {
     await seedApp(page, { seed: "busy-week" });
     await editor(page).click();
-    await page.keyboard.press("Control+Shift+F");
+    await page.keyboard.press("ControlOrMeta+Shift+F");
     await search(page).locator(".modal-input").fill("the");
 
     const openCount = await rows(search(page)).count();
@@ -71,10 +71,10 @@ test.describe("section history (Ctrl+Shift+H)", () => {
 
     // Put the cursor inside the recurring section.
     await editor(page).click();
-    await page.keyboard.press("Control+Home");
+    await page.keyboard.press("ControlOrMeta+Home");
     await page.keyboard.press("ArrowDown");
     await page.keyboard.press("ArrowDown"); // onto "# renew the TLS cert"
-    await page.keyboard.press("Control+Shift+H");
+    await page.keyboard.press("ControlOrMeta+Shift+H");
 
     await expect(history(page)).toBeVisible();
     // Title (§127: a plain heading, not a fake readonly input) names the
@@ -106,9 +106,9 @@ test.describe("section history (Ctrl+Shift+H)", () => {
       },
     });
     await editor(page).click();
-    await page.keyboard.press("Control+Home");
+    await page.keyboard.press("ControlOrMeta+Home");
     await page.keyboard.press("ArrowDown");
-    await page.keyboard.press("Control+Shift+H");
+    await page.keyboard.press("ControlOrMeta+Shift+H");
 
     const list = history(page).locator(".modal-list");
     // mid-line follow-up: only the post-arrow text, with its (q3) topic styled
@@ -145,9 +145,9 @@ test.describe("section history (Ctrl+Shift+H)", () => {
       },
     });
     await editor(page).click();
-    await page.keyboard.press("Control+Home");
+    await page.keyboard.press("ControlOrMeta+Home");
     await page.keyboard.press("ArrowDown"); // into the "Weekly Sync" section
-    await page.keyboard.press("Control+Shift+H");
+    await page.keyboard.press("ControlOrMeta+Shift+H");
 
     const panel = history(page).locator(".history-prev");
     await expect(panel).toBeVisible();
@@ -176,9 +176,9 @@ test.describe("section history (Ctrl+Shift+H)", () => {
       },
     });
     await editor(page).click();
-    await page.keyboard.press("Control+Home");
+    await page.keyboard.press("ControlOrMeta+Home");
     await page.keyboard.press("ArrowDown");
-    await page.keyboard.press("Control+Shift+H");
+    await page.keyboard.press("ControlOrMeta+Shift+H");
 
     const pane = history(page).locator(".history-prev");
     await expect(pane.locator(".po-line")).toHaveCount(5);
@@ -198,9 +198,9 @@ test.describe("section history (Ctrl+Shift+H)", () => {
       },
     });
     await editor(page).click();
-    await page.keyboard.press("Control+Home");
+    await page.keyboard.press("ControlOrMeta+Home");
     await page.keyboard.press("ArrowDown"); // into the "Standup" section
-    await page.keyboard.press("Control+Shift+H");
+    await page.keyboard.press("ControlOrMeta+Shift+H");
 
     const preview = history(page).locator(".history-preview");
     await expect(preview).toBeVisible();
@@ -220,7 +220,7 @@ test.describe("section history (Ctrl+Shift+H)", () => {
     await seedApp(page, { seed: "empty" });
     await setEditorText(page, "just a floating line, no header");
     await editor(page).click();
-    await page.keyboard.press("Control+Shift+H");
+    await page.keyboard.press("ControlOrMeta+Shift+H");
 
     await expect(history(page)).toBeHidden();
     await expect(page.locator("#stat-message")).toContainText(/section/i);

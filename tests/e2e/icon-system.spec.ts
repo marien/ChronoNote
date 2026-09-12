@@ -17,13 +17,13 @@ test.describe("icon system (§127)", () => {
     expect(topBarText).not.toMatch(EMOJI_RE);
 
     const modals: Array<[string, keyof typeof MODAL_LABELS]> = [
-      ["Control+Shift+a", "actions"],
-      ["Control+Shift+f", "search"],
-      ["Control+Shift+i", "sectionImport"],
-      ["Control+Comma", "settings"],
-      ["Control+Slash", "shortcuts"],
-      ["Control+Shift+Comma", "about"],
-      ["Control+k", "commandPalette"],
+      ["ControlOrMeta+Shift+a", "actions"],
+      ["ControlOrMeta+Shift+f", "search"],
+      ["ControlOrMeta+Shift+i", "sectionImport"],
+      ["ControlOrMeta+Comma", "settings"],
+      ["ControlOrMeta+Slash", "shortcuts"],
+      ["ControlOrMeta+Shift+Comma", "about"],
+      ["ControlOrMeta+k", "commandPalette"],
     ];
     for (const [combo, key] of modals) {
       await editor(page).click();
@@ -43,7 +43,7 @@ test.describe("icon system (§127)", () => {
 
     const beforeColor = await iconColor();
     await editor(page).click();
-    await page.keyboard.press("Control+Comma");
+    await page.keyboard.press("ControlOrMeta+Comma");
     await modalCard(page, MODAL_LABELS.settings).getByRole("radio", { name: "Grayscale", exact: true }).click();
     await page.keyboard.press("Escape");
     const afterColor = await iconColor();

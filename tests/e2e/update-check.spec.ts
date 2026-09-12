@@ -7,7 +7,7 @@ import { editor, modalCard, MODAL_LABELS, openViaShortcut, seedApp, toast, today
 test.describe("update check (§update-check)", () => {
   test("About reads 'up to date' when no update is available", async ({ page }) => {
     await seedApp(page, { seed: { notes: { [todayFilename()]: "hi" }, updateCheck: "none" } });
-    const about = await openViaShortcut(page, "Control+Shift+Comma", "about");
+    const about = await openViaShortcut(page, "ControlOrMeta+Shift+Comma", "about");
     await expect(about).toContainText(/up to date/i);
   });
 
@@ -19,7 +19,7 @@ test.describe("update check (§update-check)", () => {
         updateCheckVersion: "9.9.9",
       },
     });
-    const about = await openViaShortcut(page, "Control+Shift+Comma", "about");
+    const about = await openViaShortcut(page, "ControlOrMeta+Shift+Comma", "about");
     await expect(about).toContainText("9.9.9");
 
     await about.getByRole("button", { name: /Download & install/i }).click();
@@ -30,7 +30,7 @@ test.describe("update check (§update-check)", () => {
     await seedApp(page, {
       seed: { notes: { [todayFilename()]: "hi" }, throwOnCommands: ["plugin:updater|check"] },
     });
-    const about = await openViaShortcut(page, "Control+Shift+Comma", "about");
+    const about = await openViaShortcut(page, "ControlOrMeta+Shift+Comma", "about");
     await expect(about).toContainText(/couldn.t check/i);
     await expect(about.getByRole("button", { name: /Try again/i })).toBeVisible();
   });
@@ -66,7 +66,7 @@ test.describe("update check (§update-check)", () => {
   test("Settings' toggle persists the preference across a reload", async ({ page }) => {
     await seedApp(page, { seed: { notes: {} } });
     await editor(page).click();
-    await page.keyboard.press("Control+Comma");
+    await page.keyboard.press("ControlOrMeta+Comma");
     const settings = modalCard(page, MODAL_LABELS.settings);
     await settings.getByText("Check for updates when ChronoNote starts").click();
     expect(await page.evaluate(() => window.__CHRONO_MOCK__!.autoCheckUpdates)).toBe(false);
@@ -81,12 +81,12 @@ test.describe("update check (§update-check)", () => {
       seed: { notes: {}, updateCheck: "available", updateCheckVersion: "1.2.3", autoCheckUpdates: false },
     });
     await editor(page).click();
-    await page.keyboard.press("Control+Comma");
+    await page.keyboard.press("ControlOrMeta+Comma");
     const settings = modalCard(page, MODAL_LABELS.settings);
     await settings.getByRole("button", { name: "Check now" }).click();
     await page.keyboard.press("Escape");
 
-    const about = await openViaShortcut(page, "Control+Shift+Comma", "about");
+    const about = await openViaShortcut(page, "ControlOrMeta+Shift+Comma", "about");
     await expect(about).toContainText("1.2.3");
   });
 
@@ -95,7 +95,7 @@ test.describe("update check (§update-check)", () => {
       seed: { notes: {}, updateCheck: "available", updateCheckVersion: "4.5.6", autoCheckUpdates: false },
     });
     await editor(page).click();
-    await page.keyboard.press("Control+k");
+    await page.keyboard.press("ControlOrMeta+k");
     await page.keyboard.type("check for updates");
     await page.keyboard.press("Enter");
 

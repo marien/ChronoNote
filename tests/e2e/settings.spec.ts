@@ -17,7 +17,7 @@ const settings = (page: Page) => modalCard(page, MODAL_LABELS.settings);
 
 async function openSettings(page: Page) {
   await editor(page).click();
-  await page.keyboard.press("Control+Comma");
+  await page.keyboard.press("ControlOrMeta+Comma");
   await expect(settings(page)).toBeVisible();
 }
 
@@ -47,7 +47,7 @@ test.describe("settings (Ctrl+,)", () => {
     await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
 
     // Back to System removes the override entirely.
-    await page.keyboard.press("Control+Comma");
+    await page.keyboard.press("ControlOrMeta+Comma");
     await settings(page).getByRole("radio", { name: "System", exact: true }).click();
     await expect(page.locator("html")).not.toHaveAttribute("data-theme");
     expect(await page.evaluate(() => window.__CHRONO_MOCK__!.themeMode)).toBe("system");
@@ -83,7 +83,7 @@ test.describe("settings (Ctrl+,)", () => {
       .first()
       .evaluate((el) => getComputedStyle(el).color);
 
-    await page.keyboard.press("Control+Comma");
+    await page.keyboard.press("ControlOrMeta+Comma");
     await settings(page).getByRole("radio", { name: "Legacy", exact: true }).click();
     await expect(page.locator("html")).toHaveAttribute("data-color-mode", "legacy");
     expect(await page.evaluate(() => window.__CHRONO_MOCK__!.colorMode)).toBe("legacy");
@@ -129,7 +129,7 @@ test.describe("settings (Ctrl+,)", () => {
     expect(await contentMaxWidth()).toBe("720px");
 
     // Wrap → cap gone, wrap stays on
-    await page.keyboard.press("Control+Comma");
+    await page.keyboard.press("ControlOrMeta+Comma");
     await widthOption("Wrap").click();
     expect(await contentMaxWidth()).toBe("none");
     expect(await page.evaluate(() => window.__CHRONO_MOCK__!.wordWrap)).toBe(true);
@@ -167,7 +167,7 @@ test.describe("settings (Ctrl+,)", () => {
     const labels = await tabLabels(page);
     expect(labels.join(" ")).toMatch(/2026-09-07/); // today always present
     // work-notes is now in the recent list.
-    await page.keyboard.press("Control+Comma");
+    await page.keyboard.press("ControlOrMeta+Comma");
     await expect(settings(page)).toContainText("/work-notes");
   });
 
@@ -188,11 +188,11 @@ test.describe("settings (Ctrl+,)", () => {
   test("a non-empty scratchpad blocks a directory switch until confirmed", async ({ page }) => {
     await seedApp(page, { seed: "dir-switch" });
     await editor(page).click();
-    await page.keyboard.press("Control+n");
+    await page.keyboard.press("ControlOrMeta+n");
     await editor(page).click();
     await page.keyboard.type("unpromoted thoughts");
 
-    await page.keyboard.press("Control+Comma");
+    await page.keyboard.press("ControlOrMeta+Comma");
     await settings(page).getByRole("button", { name: "/personal-notes" }).click();
 
     const warn = modalCard(page, MODAL_LABELS.unsavedScratchpads);
@@ -206,7 +206,7 @@ test.describe("settings (Ctrl+,)", () => {
     expect(await page.evaluate(() => window.__CHRONO_MOCK__!.notesDir)).toBe("/work-notes");
 
     // Try again, this time discard.
-    await page.keyboard.press("Control+Comma");
+    await page.keyboard.press("ControlOrMeta+Comma");
     await settings(page).getByRole("button", { name: "/personal-notes" }).click();
     await modalCard(page, MODAL_LABELS.unsavedScratchpads)
       .getByRole("button", { name: /Discard/ })

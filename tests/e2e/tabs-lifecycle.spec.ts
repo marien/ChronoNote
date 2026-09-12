@@ -19,10 +19,10 @@ test.describe("tabs — lifecycle & safe close", () => {
     await seedApp(page, { seed: "empty" });
 
     await editor(page).click();
-    await page.keyboard.press("Control+n");
+    await page.keyboard.press("ControlOrMeta+n");
     await expect(activeTabLabel(page)).toHaveText("Scratchpad 1");
 
-    await page.keyboard.press("Control+w");
+    await page.keyboard.press("ControlOrMeta+w");
     await expect(tab(page, "Scratchpad 1")).toHaveCount(0);
     await expect(activeTabLabel(page)).toHaveText(new RegExp(dateLabel(todayFilename())));
   });
@@ -32,7 +32,7 @@ test.describe("tabs — lifecycle & safe close", () => {
     await typeInEditor(page, "# an unresolved task");
 
     await editor(page).click();
-    await page.keyboard.press("Control+w");
+    await page.keyboard.press("ControlOrMeta+w");
 
     const warn = modalCard(page, MODAL_LABELS.safety);
     await expect(warn).toBeVisible();
@@ -45,11 +45,11 @@ test.describe("tabs — lifecycle & safe close", () => {
 
   test("'Close Anyway' on the warning actually closes the tab", async ({ page }) => {
     await seedApp(page, { seed: "empty" });
-    await page.keyboard.press("Control+n");
+    await page.keyboard.press("ControlOrMeta+n");
     await typeInEditor(page, "scratch content that would be lost");
 
     await editor(page).click();
-    await page.keyboard.press("Control+w");
+    await page.keyboard.press("ControlOrMeta+w");
     const warn = modalCard(page, MODAL_LABELS.safety);
     await expect(warn).toContainText("permanently discard");
     await warn.getByRole("button", { name: "Close Anyway" }).click();
@@ -72,7 +72,7 @@ test.describe("tabs — lifecycle & safe close", () => {
     await expect(tab(page, victim)).toHaveCount(0);
 
     await editor(page).click();
-    await page.keyboard.press("Control+Shift+T");
+    await page.keyboard.press("ControlOrMeta+Shift+T");
     await expect(tab(page, victim)).toHaveCount(1);
   });
 
@@ -81,11 +81,11 @@ test.describe("tabs — lifecycle & safe close", () => {
     const first = await activeTabLabel(page).textContent();
 
     await editor(page).click();
-    await page.keyboard.press("Control+Tab");
+    await page.keyboard.press("ControlOrMeta+Tab");
     const second = await activeTabLabel(page).textContent();
     expect(second).not.toBe(first);
 
-    await page.keyboard.press("Control+Shift+Tab");
+    await page.keyboard.press("ControlOrMeta+Shift+Tab");
     await expect(activeTabLabel(page)).toHaveText(first!);
   });
 

@@ -57,6 +57,14 @@ file — no database, no front-matter, no injected IDs.
 
 ## What's implemented
 
+Every shortcut below is written the Windows/Linux way (`Ctrl+...`) — on
+macOS, use `Cmd` in place of `Ctrl` throughout (the app, demo, and web
+app all detect this automatically and show the right one; a couple of
+combos differ slightly there too, e.g. cycling an action's state is
+`Cmd+Enter` rather than `Ctrl+Space`, which collides with macOS's own
+input-source-switcher shortcut — see the in-app Shortcuts & Symbols
+drawer, `Ctrl`/`Cmd`+`/`, for the exact platform-correct list).
+
 - Daily note tabs backed by real files, plus in-memory scratchpad tabs that
   are never written to disk until explicitly promoted (spec 1.3)
 - Session restore, remembered per notes folder: reopening the app (or

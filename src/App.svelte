@@ -3,6 +3,7 @@
   import { get } from "svelte/store";
   import * as controller from "./lib/controller";
   import { activeTabId, editorApi, findOpen, modal, scratchpadGateContext, tabs } from "./lib/controller";
+  import { matchesShortcut } from "./lib/shortcuts";
   import TopBar from "./lib/components/TopBar.svelte";
   import StatusBar from "./lib/components/StatusBar.svelte";
   import EditorPane from "./lib/components/EditorPane.svelte";
@@ -38,6 +39,28 @@
     );
     controller.initWindowChromeWatcher();
 
+    // One entry per `shortcuts.ts` id that's a real window-level action
+    // (as opposed to a CodeMirror-internal or display-only entry, e.g.
+    // `undoRedo`/`indentDedent`/`jumpAction` — those live in EditorPane's
+    // own keymap instead). Order doesn't matter: every combo across every
+    // entry is disjoint by construction, so at most one ever matches a
+    // given keypress. `matchesShortcut` resolves Ctrl-vs-Cmd per platform
+    // (`platform.ts`) — this is the one place that logic needs to live.
+    const shortcutActions: Record<string, (e: KeyboardEvent) => void> = {
+      newScratchpad: () => controller.createScratchpad(),
+      openDateNote: () => controller.openDatePicker(),
+      closeTab: () => controller.requestTabClose(controller.getActiveTabId()),
+      cycleTab: (e) => controller.cycleTab(e.shiftKey ? -1 : 1),
+      reopenClosedTab: () => controller.reopenLastClosedTab(),
+      openActions: () => controller.openActionDrawer(),
+      openHistory: () => controller.openMeetingHistory(),
+      crossTabSearch: () => controller.openCrossTabSearch(),
+      importSections: () => controller.openSectionImport(),
+      openSettings: () => controller.openSettings(),
+      openAbout: () => controller.openAbout(),
+      openShortcutsHelp: () => controller.openShortcutsHelp(),
+    };
+
     function onKeydown(e: KeyboardEvent) {
       if (e.key === "Escape") {
         const current = get(modal);
@@ -57,62 +80,42 @@
         else controller.closeAllModals();
         return;
       }
-      // Ctrl+K / Ctrl+F are top-level: ignore them while any modal is up
-      // (the find bar would just mount hidden behind the overlay).
-      if ((e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey && e.code === "KeyK") {
+
+      // Ctrl/Cmd+K and Ctrl/Cmd+F are top-level but ignored while any
+      // modal is up (the find bar would just mount hidden behind the
+      // overlay) — the one bit of behavior too bespoke for the generic
+      // table below.
+      if (matchesShortcut(e, "commandPalette")) {
         if (get(modal) !== "none") return;
         e.preventDefault();
         controller.openCommandPalette();
-      } else if ((e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey && e.code === "KeyF") {
+        return;
+      }
+      if (matchesShortcut(e, "findInNote")) {
         if (get(modal) !== "none") return;
         // Catches Ctrl/Cmd+F when focus is in the find input or elsewhere
         // outside the editor (the editor's own keymap covers the rest).
         e.preventDefault();
         findOpen.set(true);
         // The bar isn't mounted in this tick — re-select on the next frame
-        // so a second Ctrl+F re-focuses the query.
+        // so a second Ctrl/Cmd+F re-focuses the query.
         requestAnimationFrame(() =>
           document.querySelector<HTMLInputElement>(".find-bar .find-input")?.select(),
         );
-      } else if (e.ctrlKey && !e.shiftKey && (e.code === "KeyN" || e.code === "KeyT")) {
-        e.preventDefault();
-        controller.createScratchpad();
-      } else if (e.ctrlKey && !e.shiftKey && e.code === "KeyO") {
-        e.preventDefault();
-        controller.openDatePicker();
-      } else if (e.ctrlKey && !e.shiftKey && e.code === "KeyW") {
-        e.preventDefault();
-        controller.requestTabClose(controller.getActiveTabId());
-      } else if (e.ctrlKey && e.code === "Tab") {
-        e.preventDefault();
-        controller.cycleTab(e.shiftKey ? -1 : 1);
-      } else if (e.ctrlKey && e.shiftKey && (e.code === "KeyT" || e.code === "KeyN")) {
-        e.preventDefault();
-        controller.reopenLastClosedTab();
-      } else if (e.ctrlKey && e.shiftKey && e.code === "KeyA") {
-        e.preventDefault();
-        controller.openActionDrawer();
-      } else if (e.ctrlKey && e.shiftKey && e.code === "KeyH") {
-        e.preventDefault();
-        controller.openMeetingHistory();
-      } else if (e.ctrlKey && e.shiftKey && e.code === "KeyF") {
-        e.preventDefault();
-        controller.openCrossTabSearch();
-      } else if (e.ctrlKey && e.shiftKey && e.code === "KeyI") {
-        e.preventDefault();
-        controller.openSectionImport();
-      } else if (e.ctrlKey && !e.shiftKey && e.code === "Comma") {
-        e.preventDefault();
-        controller.openSettings();
-      } else if (e.ctrlKey && e.shiftKey && e.code === "Comma") {
-        e.preventDefault();
-        controller.openAbout();
-      } else if (e.ctrlKey && !e.shiftKey && e.code === "Slash") {
-        e.preventDefault();
-        controller.openShortcutsHelp();
-      } else if (e.ctrlKey && e.shiftKey && e.code === "Slash") {
-        e.preventDefault();
-        controller.openGlyphLegend();
+        return;
+      }
+
+      // `openShortcutsHelp`'s two combos (Ctrl/Cmd+/ and +Shift+/) both
+      // land here — `openGlyphLegend` and `openShortcutsHelp` are the
+      // same `modal.set("shortcuts")` today (the combined Shortcuts &
+      // Symbols drawer), so there's nothing for Shift to actually pick
+      // between; kept as one action rather than two identical branches.
+      for (const id in shortcutActions) {
+        if (matchesShortcut(e, id)) {
+          e.preventDefault();
+          shortcutActions[id](e);
+          return;
+        }
       }
     }
     window.addEventListener("keydown", onKeydown);

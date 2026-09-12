@@ -21,11 +21,11 @@ test.describe("status bar — three zones (§100/§110)", () => {
     await expect(page.locator("#stat-selection")).toHaveCount(0);
 
     // select the whole document
-    await page.keyboard.press("Control+A");
+    await page.keyboard.press("ControlOrMeta+A");
     await expect(page.locator("#stat-selection")).toHaveText("3 lines selected");
 
     // a within-line selection is still "1 line selected" — no character count
-    await page.keyboard.press("Control+Home");
+    await page.keyboard.press("ControlOrMeta+Home");
     await page.keyboard.press("Shift+ArrowRight");
     await page.keyboard.press("Shift+ArrowRight");
     await expect(page.locator("#stat-selection")).toHaveText("1 line selected");
@@ -79,7 +79,7 @@ test.describe("status bar — three zones (§100/§110)", () => {
       window.__CHRONO_MOCK__!.updateCheck = "available";
       window.__CHRONO_MOCK__!.updateCheckVersion = "9.9.9";
     });
-    await page.keyboard.press("Control+Comma");
+    await page.keyboard.press("ControlOrMeta+Comma");
     await page.getByRole("button", { name: "Check now" }).click();
     await page.getByRole("button", { name: "Close", exact: true }).click();
 

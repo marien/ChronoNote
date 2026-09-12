@@ -6,11 +6,12 @@ kept for the rationale behind each one — not just *what* changed but
 was still being gathered and confirmed before implementation; renamed once
 everything below was applied, since nothing here is "pending" anymore.
 
-**Status: all sections through §142 implemented and on `main`.** §141's
-new desktop-app Import feature shipped as v0.7.9; §141–§142's web-app
-pieces are deployed live at `app.chrononote.mariendegelder.nl` and
-needed no version bump of their own — that's strictly a desktop-app
-concept.
+**Status: all sections through §143 implemented and on `main`.** §141's
+new desktop-app Import feature shipped as v0.7.9; §141–§143's web-app
+and cross-platform-shortcut pieces are deployed live (the shortcut work
+in §143 also touches the shipped desktop app's source, but is pure
+frontend behavior — no new release needed for it on its own) at
+`app.chrononote.mariendegelder.nl` and `chrononote.mariendegelder.nl`.
 §138–§139 are implemented but were never themselves a release — they
 don't touch the shipped app at all (a new marketing site + a dev-only
 test scenario).
@@ -48,7 +49,11 @@ export/import shared between the desktop app and the web app, and the
 new `vite.webapp.config.ts` build target. §142 deploys it live to
 `app.chrononote.mariendegelder.nl` (sharing the main site's existing
 Plesk checkout, no second Git repo needed), adds landing-page CTAs
-linking to it, and adds PWA/offline install.
+linking to it, and adds PWA/offline install. §143 makes every keyboard
+shortcut platform-correct — Ctrl on Windows/Linux, Cmd on Mac — across
+the app, demo, web app, and website, via one new shared registry
+(`shortcuts.ts`/`platform.ts`) that six previously-separate display
+surfaces and the window-level matcher all now read from.
 Each
 section is verified before merge (`svelte-check`, the Vitest suite,
 `cargo test`, and — from §77 on — the Playwright E2E suite, all green in
@@ -5467,3 +5472,140 @@ both icon files and `sw.js` itself resolve with `200`.
 JSON, and one small addition to `main-webapp.ts` with no new types),
 Vitest 289 (unchanged), Playwright 157 (unchanged — none of this touches
 anything the desktop-app suite exercises).
+
+---
+
+## 143. Ctrl on Windows/Linux, Cmd on Mac — everywhere: app, demo, web app, website
+
+**Status: implemented.** Marien: *"Now that there is a webapp and demo,
+the application is not Windows only anymore, and people with Mac can use
+it. Can you work out a way that for people on Windows or Linux shortcuts
+work and are shown as Ctrl, and on Mac work and are shown as Cmd? This
+applies application (Windows only for now), demo, webapp and website."*
+Recommendations shared and two decisions confirmed before writing any
+code: Mac shortcuts display as the word "Cmd" (not the `⌘` glyph), and
+matching is **strict** — a shortcut only fires with the
+platform-correct modifier, never either, so the displayed label is
+always a complete, accurate description of what actually works.
+
+**Investigated first, before designing anything:** a background research
+pass mapped every place a shortcut is matched or displayed. Findings that
+shaped the design:
+- **No central keybindings module existed.** Matching lived in a
+  16-branch `if`/`else if` chain in `App.svelte`'s window-level listener
+  (14 of 16 branches were `e.ctrlKey`-only — Cmd would have done
+  nothing), plus a CodeMirror keymap in `EditorPane.svelte` (3 of 5
+  custom bindings already Mac-safe via CodeMirror's own `Mod-` syntax,
+  2 using literal `Ctrl-`).
+- **Six separately-maintained copies of the same ~20 shortcuts** were
+  already displayed independently — the Shortcuts & Symbols drawer, the
+  command palette's hints, TopBar tooltips, StatusBar's tooltip, and two
+  `<kbd>` references in About/Action Drawer — a drift risk that existed
+  before Mac support and was going to need fixing regardless of
+  platform, once every one of those six needed to become platform-aware
+  at once anyway.
+- **Zero platform detection anywhere** — no `navigator.platform`, no
+  Rust `cfg!(target_os)`, and no native Tauri app menu at all (so no
+  accelerator strings to update either — nothing there to touch).
+- **Two real OS conflicts, not just relabeling**: `Ctrl+Space` (cycle an
+  action line's state) collides with macOS's own input-source-switcher
+  shortcut; `Ctrl+Y`-as-redo isn't bound at all on Mac in CodeMirror's
+  own `historyKeymap` (Mac gets `Cmd+Shift+Z` there natively instead).
+
+**Architecture: one shared registry.** New `src/lib/platform.ts` (a
+single `isMac` boolean, from `navigator.userAgentData?.platform ??
+navigator.platform` — a browser API, not Tauri IPC, so identical across
+the desktop app's webview, the demo, and the web app, all three sharing
+this `src/` tree) and `src/lib/shortcuts.ts` (`SHORTCUTS`: id → combo(s)
++ label). Every one of the six display surfaces now reads from this one
+table via `formatShortcut`/`formatCombo` instead of a hand-written copy;
+`App.svelte`'s window-level dispatcher matches against it via
+`matchesShortcut`/`matchesCombo` instead of the old `if`/`else if`
+chain. A combo can be restricted to specific platforms (`platforms:
+["other"]` / `["mac"]`) — used for the Ctrl+Y-on-Mac non-binding, for
+`Ctrl+Space` (Mac shows `Cmd+Enter` instead — the reliable universal
+alias that already existed right next to it), and for the existing
+`Ctrl+↑`/`Ctrl+↓` caret-navigation pair, which stays Win/Linux-only by
+design (§90/#24 — Mac keeps CodeMirror's own default page-scroll there)
+and is now simply dropped from the Shortcuts drawer entirely on Mac
+rather than shown with a combo that wouldn't work.
+
+**What changed where:**
+- `App.svelte` — the 16-branch chain replaced by a `shortcutActions`
+  lookup table + a loop over `matchesShortcut`; Ctrl/Cmd+K and Ctrl/Cmd+F
+  keep their bespoke "ignore while a modal is open" guard (the one bit of
+  behavior too special-cased for the generic table).
+- `EditorPane.svelte` — `Ctrl-Space` scoped `win:`/`linux:`-only (Mac
+  relies on `Mod-Enter`, already bound); `Ctrl-Shift-s` → `Mod-Shift-s`
+  (safe conversion, no OS conflict there).
+- `ShortcutsModal.svelte`, `commandPalette.ts`, `TopBar.svelte`,
+  `StatusBar.svelte`, `AboutModal.svelte` — all six display surfaces
+  now render from the registry. The Shortcuts drawer keeps its exact
+  original row order (an explicit ordered list of ids + two literal
+  non-combo rows — "click a glyph", "Escape" — that were never real
+  key combos and don't belong in the registry's shape).
+- **Deliberately left untouched**: `ActionDrawerModal.svelte`'s own
+  local `Ctrl+Space` handler (toggle an action's state from within the
+  drawer). Its existing bare `e.key === "Enter"` branch already claims
+  Enter for a different action (jump to that item) — adding a
+  `Cmd+Enter` alias here the way the editor gets one would collide with
+  that, so this one specific binding stays a known, documented
+  Mac limitation (unreliable if the input-source shortcut is active for
+  that user's locale; a mouse click always works regardless) rather than
+  risk a real regression to force it into the new system.
+
+**Website** (`chrononote.mariendegelder.nl`, `guide.html`'s 18-row
+shortcut table + `index.html`): new `website/shortcuts.js`, loaded on
+both pages — the same detection logic as `platform.ts`, ported
+standalone since the site has no shared build with the app. Every
+shortcut mention was already wrapped in `<kbd>` tags; the script swaps a
+leading "Ctrl" to "Cmd" for a Mac visitor (and specifically
+`Ctrl+Space` → `Cmd+Enter`, matching the app's own exception). No
+framework, no build step — matches the site's existing approach.
+
+**Tests**: a new `tests/e2e/mac-shortcuts.spec.ts` — the first real,
+automated Mac-behavior coverage this project has had. CI runs headless
+Chromium on Windows/Linux, so "being on Mac" is emulated by overriding
+`navigator.platform` **and** `navigator.userAgentData.platform` before
+the app's scripts run (`isMac` is computed once at module-import time,
+and Chromium's newer `userAgentData` API reports the *real* host OS,
+silently overriding a `navigator.platform`-only fake — caught by a
+failing first run of this exact test, not assumed). Playwright's own
+`Meta+`/`Control+` key tokens set real `metaKey`/`ctrlKey` on the
+synthetic event regardless of host OS, so this genuinely exercises the
+platform-branching logic: Cmd+K opens the command palette and Ctrl+K
+does nothing (and the same paired assertion for Cmd+, and Cmd+Shift+A);
+Cmd+Enter cycles an action's state at the CodeMirror level while
+Ctrl+Space does nothing; the Shortcuts drawer shows "Cmd", never "Ctrl",
+and drops the Win/Linux-only caret-nav row entirely. Also migrated the
+existing suite's 131 literal `"Control+..."` key-press strings (22 spec
+files) to Playwright's own cross-platform `"ControlOrMeta+..."` token
+(already used inconsistently in 25 places before this) — mechanical,
+zero effect on today's Windows/Linux CI runs, but stops the suite from
+hard-coding a Windows-only assumption.
+
+**A verification-tooling note, not a code issue**: manually re-testing
+in the Browser pane's own real (non-headless) browser tab, Ctrl+K
+appeared to do nothing — traced to Chrome's own reserved "focus the
+address bar for search" shortcut on that exact combo, intercepting it
+before the page's JS ever saw it (confirmed by testing an unreserved
+combo, Ctrl+Shift+A, which also silently failed to open Actions via the
+pane's synthetic key-press tool but worked instantly via a plain mouse
+click on the same button) — a limitation of that specific manual
+verification method in a real browser chrome, not a regression. The
+Playwright suite's headless Chromium has no address-bar UI to collide
+with, which is exactly why its 162 passing assertions (157 existing +
+5 new) are the real, authoritative confirmation here, not the manual
+spot-check.
+
+`svelte-check` 212 files 0 errors, Vitest 289 (unchanged — nothing here
+has unit-level pure logic beyond what `EditorPane`'s existing structure
+already covers), Playwright 162 (+5, all passing), `cargo test` 47
+(unchanged — no Rust changes; there's no native app menu to update).
+
+**Deferred, not part of this pass**: updating the ~33 code comments
+that mention "Ctrl" (cosmetic, no behavior implication) and the ~29
+Playwright test *titles* that say "Ctrl" in prose (test names only,
+no assertion depends on them) — both accurate enough to leave as
+Windows-first phrasing for now, revisit if they start reading
+confusingly stale.

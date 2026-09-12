@@ -4,31 +4,43 @@
   import { closeOnOutsideClick } from "../../actions/closeOnOutsideClick";
   import { focusScrollableList, scrollableListKeys } from "../../actions/focusScrollableList";
   import Icon from "../../icons/Icon.svelte";
+  import { shortcutById, formatShortcut } from "../../shortcuts";
 
-  const shortcuts: [string, string][] = [
-    ["Ctrl+K", "Command palette — run any command, jump to a tab, date or action"],
-    ["Ctrl+N / Ctrl+T", "New scratchpad"],
-    ["Ctrl+Shift+T / Ctrl+Shift+N", "Reopen most recently closed tab"],
-    ["Ctrl+O", "Open/create a dated note"],
-    ["Ctrl+W / middle-click", "Close current tab / close a tab"],
-    ["Ctrl+Tab / Ctrl+Shift+Tab", "Next / previous tab"],
-    ["Tab / Shift+Tab", "Indent / dedent (in editor)"],
-    ["Ctrl+Z / Ctrl+Y / Ctrl+Shift+Z", "Undo / redo (kept per tab)"],
-    ["Ctrl+Space / Ctrl+Enter", "Cycle the action state on the current line (open → done → deferred → won't-do)"],
+  // Built from the shared registry (`shortcuts.ts`), in the same order
+  // this list has always read in — a plain id pulls that entry's label
+  // and platform-correct combo text; a literal `[string, string]` tuple
+  // is one of the two rows that aren't modifier-bearing key combos at
+  // all ("click a glyph" is a mouse action, "Escape" has no modifier),
+  // so there's nothing for the registry to add for either. An id with no
+  // combo on this platform (`caretLineNav` on Mac — see that entry's
+  // comment) is dropped rather than shown as an empty row.
+  const rows: (string | [string, string])[] = [
+    "commandPalette",
+    "newScratchpad",
+    "reopenClosedTab",
+    "openDateNote",
+    "closeTab",
+    "cycleTab",
+    "indentDedent",
+    "undoRedo",
+    "cycleLineState",
     ["Click a glyph", "Same cycle, on that line (hover previews the next state)"],
-    ["F2 / Shift+F2", "Jump to next / previous open action (in editor, wraps)"],
-    ["Ctrl+↑ / Ctrl+↓", "Caret to start of line, then previous line / start of next line (in editor)"],
-    ["Ctrl+Shift+S", "Convert current line into a section header"],
-    ["Ctrl+Shift+A", "Actions"],
-    ["Ctrl+Shift+H", "Section history"],
-    ["Ctrl+F", "Find in this note (floating bar; Enter / Shift+Enter to step)"],
-    ["Ctrl+Shift+F", "Cross-tab search"],
-    ["Ctrl+Shift+I", "Import sections"],
-    ["Ctrl+,", "Settings"],
-    ["Ctrl+Shift+,", "About ChronoNote"],
-    ["Ctrl+/ / Ctrl+Shift+/", "This drawer"],
+    "jumpAction",
+    "caretLineNav",
+    "convertToSection",
+    "openActions",
+    "openHistory",
+    "findInNote",
+    "crossTabSearch",
+    "importSections",
+    "openSettings",
+    "openAbout",
+    "openShortcutsHelp",
     ["Escape", "Close whatever modal is open"],
   ];
+  const shortcuts: [string, string][] = rows
+    .map((row): [string, string] => (Array.isArray(row) ? row : [formatShortcut(row), shortcutById(row).label]))
+    .filter(([keys]) => keys !== "");
 
   // Same `.glyph-*` classes the editor uses, so this follows the
   // colour/grayscale toggle for free.
@@ -105,7 +117,7 @@
           <div class="modal-item-main">
             <span
               >Consequence-action — a follow-up with its own open/done/deferred/won't-do state, cycled with
-              Ctrl+Space</span
+              {formatShortcut("cycleLineState")}</span
             >
           </div>
           <div class="item-tag">

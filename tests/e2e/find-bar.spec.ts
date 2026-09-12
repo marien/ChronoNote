@@ -7,7 +7,7 @@ test.describe("in-document find bar (Ctrl+F, §108)", () => {
   test("opens on Ctrl+F, counts matches, and navigates with Enter / Shift+Enter", async ({ page }) => {
     await seedApp(page, { seed: { notes: { [todayFilename()]: NOTE } } });
     await editor(page).click();
-    await page.keyboard.press("Control+f");
+    await page.keyboard.press("ControlOrMeta+f");
 
     const bar = page.locator(".find-bar");
     await expect(bar).toBeVisible();
@@ -28,7 +28,7 @@ test.describe("in-document find bar (Ctrl+F, §108)", () => {
   test("the editor stays live while the bar is open", async ({ page }) => {
     await seedApp(page, { seed: { notes: { [todayFilename()]: "editable text" } } });
     await editor(page).click();
-    await page.keyboard.press("Control+f");
+    await page.keyboard.press("ControlOrMeta+f");
     await page.locator(".find-input").fill("text");
 
     // click back into the document and type — no modal is blocking it
@@ -41,7 +41,7 @@ test.describe("in-document find bar (Ctrl+F, §108)", () => {
   test("no results reads clearly; Escape closes and clears the highlights", async ({ page }) => {
     await seedApp(page, { seed: { notes: { [todayFilename()]: NOTE } } });
     await editor(page).click();
-    await page.keyboard.press("Control+f");
+    await page.keyboard.press("ControlOrMeta+f");
     await page.locator(".find-input").fill("zzznope");
     await expect(page.locator(".find-count")).toHaveText("No results");
 
@@ -55,10 +55,10 @@ test.describe("in-document find bar (Ctrl+F, §108)", () => {
   test("switching tabs closes the bar", async ({ page }) => {
     await seedApp(page, { seed: { notes: { [todayFilename()]: NOTE } } });
     await editor(page).click();
-    await page.keyboard.press("Control+f");
+    await page.keyboard.press("ControlOrMeta+f");
     await expect(page.locator(".find-bar")).toBeVisible();
 
-    await page.keyboard.press("Control+n"); // new scratchpad
+    await page.keyboard.press("ControlOrMeta+n"); // new scratchpad
     await expect(page.locator(".find-bar")).toBeHidden();
   });
 });

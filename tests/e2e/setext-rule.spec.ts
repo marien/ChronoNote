@@ -74,8 +74,8 @@ test.describe("setext underline rule (§81)", () => {
   test("Ctrl+Shift+S makes a section whose underline then renders as a rule", async ({ page }) => {
     await setEditorText(page, "Project kickoff");
     await editor(page).click();
-    await page.keyboard.press("Control+Home");
-    await page.keyboard.press("Control+Shift+S");
+    await page.keyboard.press("ControlOrMeta+Home");
+    await page.keyboard.press("ControlOrMeta+Shift+S");
     await parkMouse(page);
 
     // Underline was inserted on line 2; cursor ended up on line 3, so line 2 rules.

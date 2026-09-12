@@ -28,6 +28,7 @@
   import { activeTabId, chromeExpanded, saveState, tabs } from "../controller";
   import type { NoteTab } from "../types";
   import Icon from "../icons/Icon.svelte";
+  import { formatCombo, formatShortcut, shortcutById } from "../shortcuts";
 
   /** Dated tabs show just the date; scratchpads keep their given name. */
   const tabLabel = (t: NoteTab) => (t.isScratchpad ? t.filename : t.filename.replace(/\.txt$/, ""));
@@ -332,27 +333,43 @@
   <!-- §53: always visible regardless of tab-bar scroll position — a
        sibling of the scrollable #tab-bar rather than a child of it (the
        same reason the scroll arrows themselves live out here). -->
-  <button class="icon-btn tab-bar-new-btn" title="New Scratchpad (Ctrl+N)" on:click={controller.createScratchpad}>
+  <button
+    class="icon-btn tab-bar-new-btn"
+    title="New Scratchpad ({formatCombo(shortcutById('newScratchpad').combos[0])})"
+    on:click={controller.createScratchpad}
+  >
     <Icon name="new-scratchpad" />
   </button>
   <button
     class="icon-btn"
-    title="Open Date Note (Ctrl+O)"
+    title="Open Date Note ({formatShortcut('openDateNote')})"
     data-datepicker-trigger
     on:click={controller.openDatePicker}
   >
     <Icon name="date-note" />{#if showActionLabels}<span class="icon-label">Date</span>{/if}
   </button>
-  <button class="icon-btn" title="Actions (Ctrl+Shift+A)" on:click={controller.openActionDrawer}>
+  <button class="icon-btn" title="Actions ({formatShortcut('openActions')})" on:click={controller.openActionDrawer}>
     <Icon name="actions" />{#if showActionLabels}<span class="icon-label">Actions</span>{/if}
   </button>
-  <button class="icon-btn" title="Section history (Ctrl+Shift+H)" on:click={controller.openMeetingHistory}>
+  <button
+    class="icon-btn"
+    title="Section history ({formatShortcut('openHistory')})"
+    on:click={controller.openMeetingHistory}
+  >
     <Icon name="section-history" />{#if showActionLabels}<span class="icon-label">Section history</span>{/if}
   </button>
-  <button class="icon-btn" title="Cross-Tab Search (Ctrl+Shift+F)" on:click={controller.openCrossTabSearch}>
+  <button
+    class="icon-btn"
+    title="Cross-Tab Search ({formatShortcut('crossTabSearch')})"
+    on:click={controller.openCrossTabSearch}
+  >
     <Icon name="search" />{#if showActionLabels}<span class="icon-label">Search</span>{/if}
   </button>
-  <button class="icon-btn" title="Import Sections (Ctrl+Shift+I)" on:click={controller.openSectionImport}>
+  <button
+    class="icon-btn"
+    title="Import Sections ({formatShortcut('importSections')})"
+    on:click={controller.openSectionImport}
+  >
     <Icon name="import" />{#if showActionLabels}<span class="icon-label">Import</span>{/if}
   </button>
   {#if activeTab?.isScratchpad}
@@ -364,10 +381,10 @@
       <Icon name="promote" />{#if showActionLabels}<span class="icon-label">Promote</span>{/if}
     </button>
   {/if}
-  <button class="icon-btn" title="Settings (Ctrl+,)" on:click={controller.openSettings}>
+  <button class="icon-btn" title="Settings ({formatShortcut('openSettings')})" on:click={controller.openSettings}>
     <Icon name="settings" />{#if showActionLabels}<span class="icon-label">Settings</span>{/if}
   </button>
-  <button class="icon-btn" title="About ChronoNote (Ctrl+Shift+,)" on:click={controller.openAbout}>
+  <button class="icon-btn" title="About ChronoNote ({formatShortcut('openAbout')})" on:click={controller.openAbout}>
     <Icon name="about" />{#if showActionLabels}<span class="icon-label">About</span>{/if}
   </button>
 </div>

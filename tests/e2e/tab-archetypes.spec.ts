@@ -13,7 +13,7 @@ test.describe("tab archetypes (§103)", () => {
 
     // add a scratchpad → divider appears between the groups
     await editor(page).click();
-    await page.keyboard.press("Control+n");
+    await page.keyboard.press("ControlOrMeta+n");
 
     const scratch = page.locator("#tab-bar .tab.scratch");
     await expect(scratch).toHaveCount(1);

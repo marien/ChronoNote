@@ -43,13 +43,13 @@ test.describe("visual — state gallery", () => {
     await shot(page, "editor-tokens-grayscale");
 
     const settings = () => modalCard(page, MODAL_LABELS.settings);
-    await page.keyboard.press("Control+Comma");
+    await page.keyboard.press("ControlOrMeta+Comma");
     await settings().getByRole("radio", { name: "Color", exact: true }).click();
     await page.keyboard.press("Escape");
     await shot(page, "editor-tokens-color");
 
     // §111: the restored pre-0.6 palette (red open / amber deferred / green done).
-    await page.keyboard.press("Control+Comma");
+    await page.keyboard.press("ControlOrMeta+Comma");
     await settings().getByRole("radio", { name: "Legacy", exact: true }).click();
     await page.keyboard.press("Escape");
     await shot(page, "editor-tokens-legacy");
@@ -58,13 +58,13 @@ test.describe("visual — state gallery", () => {
   test("every modal, opened over a populated workspace", async ({ page }) => {
     await seedApp(page, { seed: "busy-week" });
     const shots: Array<[string, string]> = [
-      ["Control+o", "date"],
-      ["Control+Shift+a", "actions"],
-      ["Control+Shift+f", "search"],
-      ["Control+Shift+i", "sectionImport"],
-      ["Control+Comma", "settings"],
-      ["Control+Slash", "shortcuts"],
-      ["Control+Shift+Comma", "about"],
+      ["ControlOrMeta+o", "date"],
+      ["ControlOrMeta+Shift+a", "actions"],
+      ["ControlOrMeta+Shift+f", "search"],
+      ["ControlOrMeta+Shift+i", "sectionImport"],
+      ["ControlOrMeta+Comma", "settings"],
+      ["ControlOrMeta+Slash", "shortcuts"],
+      ["ControlOrMeta+Shift+Comma", "about"],
     ];
     for (const [combo, key] of shots) {
       await editor(page).click();
@@ -81,7 +81,7 @@ test.describe("visual — state gallery", () => {
     await seedApp(page, { seed: "empty" });
     await setEditorText(page, "# an unresolved action");
     await editor(page).click();
-    await page.keyboard.press("Control+w");
+    await page.keyboard.press("ControlOrMeta+w");
     await modalCard(page, MODAL_LABELS.safety).waitFor();
     await shot(page, "modal-safety");
   });

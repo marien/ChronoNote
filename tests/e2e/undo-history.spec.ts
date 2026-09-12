@@ -77,7 +77,7 @@ test.describe("per-tab undo history (§86 / #9)", () => {
 
     // Copy the open action from the old tab.
     await editor(page).click();
-    await page.keyboard.press("Control+Home");
+    await page.keyboard.press("ControlOrMeta+Home");
     for (let i = 0; i < 2; i++) await page.keyboard.press("ArrowDown");
     await page.keyboard.press("Home");
     await page.keyboard.press("Shift+End");
@@ -86,7 +86,7 @@ test.describe("per-tab undo history (§86 / #9)", () => {
     // Paste into today — defers the old tab's "# " to "> " while it's inactive.
     await tab(page, "2026-09-07.txt").click();
     await editor(page).click();
-    await page.keyboard.press("Control+End");
+    await page.keyboard.press("ControlOrMeta+End");
     await page.keyboard.press("ControlOrMeta+V");
     await expect.poll(() => mockNote(page, "2026-09-03.txt")).toContain("> ship the thing");
 
@@ -114,7 +114,7 @@ test.describe("undo a paste-forward un-defers the source (§86 / #9)", () => {
 
   async function copyTheActionThenPasteIntoToday(page: Page) {
     await editor(page).click();
-    await page.keyboard.press("Control+Home");
+    await page.keyboard.press("ControlOrMeta+Home");
     for (let i = 0; i < 2; i++) await page.keyboard.press("ArrowDown");
     await page.keyboard.press("Home");
     await page.keyboard.press("Shift+End");
@@ -122,7 +122,7 @@ test.describe("undo a paste-forward un-defers the source (§86 / #9)", () => {
 
     await tab(page, "2026-09-07.txt").click();
     await editor(page).click();
-    await page.keyboard.press("Control+End");
+    await page.keyboard.press("ControlOrMeta+End");
     await page.keyboard.press("ControlOrMeta+V");
   }
 
@@ -160,7 +160,7 @@ test.describe("undo a paste-forward un-defers the source (§86 / #9)", () => {
     await seedApp(page, seed);
     await copyTheActionThenPasteIntoToday(page);
     await editor(page).click();
-    await page.keyboard.press("Control+End");
+    await page.keyboard.press("ControlOrMeta+End");
     await typeInEditor(page, "\ntrailing note");
 
     // First undo: removes "trailing note", source stays deferred.

@@ -280,11 +280,15 @@
           return true;
         },
       },
-      { key: "Ctrl-Space", run: (v) => cycleLine(v) },
+      // Win/Linux only (see `shortcuts.ts`'s `cycleLineState` entry) —
+      // Ctrl+Space collides with macOS's own input-source-switcher
+      // shortcut, so it's not offered there at all; Mod-Enter below is
+      // the one reliable binding on every platform including Mac.
+      { win: "Ctrl-Space", linux: "Ctrl-Space", run: (v) => cycleLine(v) },
       // §106: Ctrl/Cmd+Enter is the same action-state cycle as Ctrl+Space
       // — the combo the UX reviews (and most task apps) reach for.
       { key: "Mod-Enter", run: (v) => cycleLine(v) },
-      { key: "Ctrl-Shift-s", run: (v) => convertLineToSection(v) },
+      { key: "Mod-Shift-s", run: (v) => convertLineToSection(v) },
       { key: "F2", run: (v) => jumpToAdjacentOpenAction(v, 1) },
       { key: "Shift-F2", run: (v) => jumpToAdjacentOpenAction(v, -1) },
       {

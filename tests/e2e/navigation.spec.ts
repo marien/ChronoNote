@@ -20,7 +20,7 @@ test.describe("date picker — anchored calendar popover (Ctrl+O, §104)", () =>
     await seedApp(page, { seed: "busy-week" });
     await editor(page).click();
     await parkMouse(page);
-    await page.keyboard.press("Control+o");
+    await page.keyboard.press("ControlOrMeta+o");
     await expect(pop(page)).toBeVisible();
   });
 
@@ -118,21 +118,21 @@ test.describe("#46: the date-picker dot reflects a resolved action after its tab
     // before resolving anything.
     await editor(page).click();
     await parkMouse(page);
-    await page.keyboard.press("Control+o");
+    await page.keyboard.press("ControlOrMeta+o");
     await expect(datePicker(page).locator(dayIso)).toHaveClass(/\bhas\b/);
     await page.keyboard.press("Escape");
 
     // Resolve the only action, then close the tab.
     await editor(page).click();
-    await page.keyboard.press("Control+Space");
+    await page.keyboard.press("ControlOrMeta+Space");
     expect(await activeTabContent(page)).toBe("v an open action");
-    await page.keyboard.press("Control+w");
+    await page.keyboard.press("ControlOrMeta+w");
 
     // The dot must clear — without #46's fix, the disk-read cache still
     // held the pre-resolution content (the live-tab overlay that was
     // covering for it is gone the moment the tab closes).
     await parkMouse(page);
-    await page.keyboard.press("Control+o");
+    await page.keyboard.press("ControlOrMeta+o");
     await expect(datePicker(page).locator(dayIso)).not.toHaveClass(/\bhas\b/);
   });
 });
@@ -147,7 +147,7 @@ test.describe("date picker opens on the active tab's own date", () => {
     });
     await editor(page).click();
     await parkMouse(page);
-    await page.keyboard.press("Control+o");
+    await page.keyboard.press("ControlOrMeta+o");
     await expect(pop(page).locator(".cal-title")).toHaveText("June 2026");
     await expect(pop(page).locator('.cal-day[data-iso="2026-06-20"]')).toHaveClass(/\btarget\b/);
   });
@@ -159,9 +159,9 @@ test.describe("date picker opens on the active tab's own date", () => {
       seed: { notes: { "2026-06-20.txt": "an earlier note" }, session: { openTabs: ["2026-06-20.txt"], activeTab: "2026-06-20.txt" } },
     });
     await editor(page).click();
-    await page.keyboard.press("Control+n");
+    await page.keyboard.press("ControlOrMeta+n");
     await parkMouse(page);
-    await page.keyboard.press("Control+o");
+    await page.keyboard.press("ControlOrMeta+o");
     await expect(pop(page).locator(".cal-title")).toHaveText("September 2026");
     await expect(pop(page).locator(`.cal-day[data-iso="${REFERENCE_TODAY}"]`)).toHaveClass(/\btarget\b/);
   });
@@ -179,7 +179,7 @@ test.describe("date picker: visible-month dots load fast, a spinner covers the r
     });
     await editor(page).click();
     await parkMouse(page);
-    await page.keyboard.press("Control+o");
+    await page.keyboard.press("ControlOrMeta+o");
 
     // Fast path: the individually-fetched visible month lands well inside
     // the artificially slow full read's 1000ms delay.

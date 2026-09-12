@@ -27,7 +27,7 @@ test.describe("copy/paste deferral", () => {
 
     // In the source tab, put the cursor on the "# call the vendor back" line and copy it.
     await editor(page).click();
-    await page.keyboard.press("Control+Home");
+    await page.keyboard.press("ControlOrMeta+Home");
     for (let i = 0; i < 2; i++) await page.keyboard.press("ArrowDown");
     await page.keyboard.press("Home");
     await page.keyboard.press("Shift+End");
@@ -36,7 +36,7 @@ test.describe("copy/paste deferral", () => {
     // Switch to today and paste.
     await tab(page, "2026-09-07.txt").click();
     await editor(page).click();
-    await page.keyboard.press("Control+End");
+    await page.keyboard.press("ControlOrMeta+End");
     await page.keyboard.press("ControlOrMeta+V");
 
     await expect.poll(() => mockNote(page, "2026-09-03.txt")).toContain("> call the vendor back");
@@ -55,7 +55,7 @@ test.describe("copy/paste deferral", () => {
     });
 
     await editor(page).click();
-    await page.keyboard.press("Control+Home");
+    await page.keyboard.press("ControlOrMeta+Home");
     await page.keyboard.press("ArrowDown");
     await page.keyboard.press("ArrowDown");
     await page.keyboard.press("Home");
@@ -64,7 +64,7 @@ test.describe("copy/paste deferral", () => {
 
     await tab(page, "2026-09-01.txt").click();
     await editor(page).click();
-    await page.keyboard.press("Control+End");
+    await page.keyboard.press("ControlOrMeta+End");
     await page.keyboard.press("ControlOrMeta+V");
 
     // Source stays open, not deferred.
@@ -85,7 +85,7 @@ test.describe("copy/paste deferral", () => {
 
     // In the old tab: select the whole action block and copy it (as if to paste elsewhere).
     await editor(page).click();
-    await page.keyboard.press("Control+Home");
+    await page.keyboard.press("ControlOrMeta+Home");
     for (let i = 0; i < 2; i++) await page.keyboard.press("ArrowDown"); // onto "# chase the invoice"
     await page.keyboard.press("Home");
     await page.keyboard.press("Shift+ArrowDown");
@@ -95,7 +95,7 @@ test.describe("copy/paste deferral", () => {
     // Switch to today, copy a plain line there, paste it into today.
     await tab(page, "2026-09-07.txt").click();
     await editor(page).click();
-    await page.keyboard.press("Control+End");
+    await page.keyboard.press("ControlOrMeta+End");
     await page.keyboard.press("Home");
     await page.keyboard.press("Shift+End"); // "some plain notes"
     await page.keyboard.press("ControlOrMeta+C");

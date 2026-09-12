@@ -76,7 +76,7 @@ test.describe("editor — token glyphs", () => {
     const line = editor(page).locator(".cm-line").first();
 
     for (const cls of ["glyph-done", "glyph-progress", "glyph-cancelled", "glyph-open"]) {
-      await page.keyboard.press("Control+Space");
+      await page.keyboard.press("ControlOrMeta+Space");
       await expect(line.locator(`.${cls}`)).toHaveCount(1);
     }
     expect(await activeTabContent(page)).toBe("# a task");
@@ -84,7 +84,7 @@ test.describe("editor — token glyphs", () => {
 
   test("Ctrl+Enter cycles the action state too (§106)", async ({ page }) => {
     await typeInEditor(page, "# a task");
-    await page.keyboard.press("Control+Enter");
+    await page.keyboard.press("ControlOrMeta+Enter");
     await expect(editor(page).locator(".glyph-done")).toHaveCount(1);
     expect(await activeTabContent(page)).toBe("v a task");
   });
@@ -167,7 +167,7 @@ test.describe("editor — token glyphs", () => {
 
   test("#34: Enter with the caret before the glyph is a plain newline, no duplicated symbol", async ({ page }) => {
     await typeInEditor(page, "# a task");
-    await page.keyboard.press("Control+Home"); // caret to the very start, before `#`
+    await page.keyboard.press("ControlOrMeta+Home"); // caret to the very start, before `#`
     await page.keyboard.press("Enter");
     expect(await activeTabContent(page)).toBe("\n# a task");
   });

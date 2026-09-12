@@ -12,6 +12,7 @@
   } from "../controller";
   import * as controller from "../controller";
   import Icon from "../icons/Icon.svelte";
+  import { formatCombo, shortcutById } from "../shortcuts";
 
   // #37/#38: how many lines the selection covers (not a character count).
   $: selectionLabel = $statusSelection
@@ -68,7 +69,7 @@
     <button
       type="button"
       class="status-help"
-      title="Shortcuts & symbols (Ctrl+/)"
+      title="Shortcuts & symbols ({formatCombo(shortcutById('openShortcutsHelp').combos[0])})"
       on:click={controller.openShortcutsHelp}
     >
       ?

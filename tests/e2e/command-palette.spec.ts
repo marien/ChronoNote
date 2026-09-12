@@ -8,7 +8,7 @@ test.describe("command palette (Ctrl+K, §107)", () => {
   test("opens on Ctrl+K and runs a command by fuzzy match", async ({ page }) => {
     await seedApp(page, { seed: "busy-week" });
     await editor(page).click();
-    await page.keyboard.press("Control+k");
+    await page.keyboard.press("ControlOrMeta+k");
     await expect(palette(page)).toBeVisible();
 
     await palette(page).locator(".modal-input").fill("wrap");
@@ -23,7 +23,7 @@ test.describe("command palette (Ctrl+K, §107)", () => {
   test("default results include open tabs; picking one switches to it", async ({ page }) => {
     await seedApp(page, { seed: "busy-week" });
     await editor(page).click();
-    await page.keyboard.press("Control+k");
+    await page.keyboard.press("ControlOrMeta+k");
     await palette(page).locator(".modal-input").fill("2026-09-04");
     const row = palette(page).locator('.modal-item[role="option"]', { hasText: "2026-09-04" }).first();
     await expect(row).toBeVisible();
@@ -34,7 +34,7 @@ test.describe("command palette (Ctrl+K, §107)", () => {
   test("the > prefix filters to commands only", async ({ page }) => {
     await seedApp(page, { seed: "busy-week" });
     await editor(page).click();
-    await page.keyboard.press("Control+k");
+    await page.keyboard.press("ControlOrMeta+k");
     await palette(page).locator(".modal-input").fill(">settings");
     await expect(palette(page).locator('.modal-item[role="option"]')).toHaveCount(1);
     await expect(palette(page).locator('.modal-item[role="option"]')).toContainText("Settings");
@@ -43,7 +43,7 @@ test.describe("command palette (Ctrl+K, §107)", () => {
   test("the @ prefix jumps to a date via the query grammar", async ({ page }) => {
     await seedApp(page, { seed: "busy-week" });
     await editor(page).click();
-    await page.keyboard.press("Control+k");
+    await page.keyboard.press("ControlOrMeta+k");
     await palette(page).locator(".modal-input").fill("@2026-12-25");
     await palette(page).locator('.modal-item[role="option"]', { hasText: /Jump to 2026-12-25/ }).click();
     await expect(activeTabLabel(page)).toHaveText(/2026-12-25/);
@@ -54,7 +54,7 @@ test.describe("command palette (Ctrl+K, §107)", () => {
       seed: { notes: { [todayFilename()]: "notes\n# chase the vendor\nv done" } },
     });
     await editor(page).click();
-    await page.keyboard.press("Control+k");
+    await page.keyboard.press("ControlOrMeta+k");
     await palette(page).locator(".modal-input").fill("!vendor");
     const row = palette(page).locator('.modal-item[role="option"]', { hasText: /chase the vendor/ });
     await expect(row).toBeVisible();
@@ -69,7 +69,7 @@ test.describe("command palette (Ctrl+K, §107)", () => {
     // from grayscale regardless of the app's own default.
     await seedApp(page, { seed: { ...scenario("busy-week"), colorMode: "grayscale" } });
     await editor(page).click();
-    await page.keyboard.press("Control+k");
+    await page.keyboard.press("ControlOrMeta+k");
     await palette(page).locator(".modal-input").fill(">colored");
     // wait for the (debounced) filter to actually narrow before Enter
     await expect(palette(page).locator('.modal-item[role="option"]')).toHaveCount(1);
@@ -77,13 +77,13 @@ test.describe("command palette (Ctrl+K, §107)", () => {
     await expect(page.locator("html")).toHaveAttribute("data-color-mode", "color");
 
     // §111: the palette command cycles grayscale → color → legacy → …
-    await page.keyboard.press("Control+k");
+    await page.keyboard.press("ControlOrMeta+k");
     await palette(page).locator(".modal-input").fill(">legacy glyphs");
     await expect(palette(page).locator('.modal-item[role="option"]')).toHaveCount(1);
     await page.keyboard.press("Enter"); // "Switch to legacy glyphs (…)"
     await expect(page.locator("html")).toHaveAttribute("data-color-mode", "legacy");
 
-    await page.keyboard.press("Control+k");
+    await page.keyboard.press("ControlOrMeta+k");
     await page.keyboard.press("Escape");
     await expect(palette(page)).toBeHidden();
   });

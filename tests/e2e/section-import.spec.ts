@@ -5,7 +5,7 @@ const importModal = (page: import("@playwright/test").Page) => modalCard(page, M
 
 async function openImport(page: import("@playwright/test").Page) {
   await editor(page).click();
-  await page.keyboard.press("Control+Shift+I");
+  await page.keyboard.press("ControlOrMeta+Shift+I");
   await expect(importModal(page)).toBeVisible();
 }
 

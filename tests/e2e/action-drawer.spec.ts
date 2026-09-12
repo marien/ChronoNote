@@ -17,7 +17,7 @@ const filterInput = (page: Page) => drawer(page).locator(".modal-input");
 test.describe("action drawer (Ctrl+Shift+A)", () => {
   test("opens and lists actions from the open tabs", async ({ page }) => {
     await seedApp(page, { seed: "delegation" });
-    await openViaShortcut(page, "Control+Shift+A", "actions");
+    await openViaShortcut(page, "ControlOrMeta+Shift+A", "actions");
 
     await expect(rows(page).first()).toBeVisible();
     await expect(drawer(page)).toContainText("send the recap email");
@@ -25,7 +25,7 @@ test.describe("action drawer (Ctrl+Shift+A)", () => {
 
   test("'Only Open' narrows to # / => # ; toggling it off reveals resolved lines", async ({ page }) => {
     await seedApp(page, { seed: "delegation" });
-    const d = await openViaShortcut(page, "Control+Shift+A", "actions");
+    const d = await openViaShortcut(page, "ControlOrMeta+Shift+A", "actions");
 
     await expect(d).not.toContainText("agreed on the rollout order"); // a `v ` line
     await d.getByText("Only Open", { exact: false }).click();
@@ -35,7 +35,7 @@ test.describe("action drawer (Ctrl+Shift+A)", () => {
 
   test("'All Files' scope pulls actions from notes that aren't open tabs", async ({ page }) => {
     await seedApp(page, { seed: "busy-week" });
-    const d = await openViaShortcut(page, "Control+Shift+A", "actions");
+    const d = await openViaShortcut(page, "ControlOrMeta+Shift+A", "actions");
 
     // The list is virtualized (only ~10 rows in the DOM at once) — read the
     // "N open / M listed" counter rather than counting elements.
@@ -50,7 +50,7 @@ test.describe("action drawer (Ctrl+Shift+A)", () => {
 
   test("typing '@' in the filter reveals delegated lines", async ({ page }) => {
     await seedApp(page, { seed: "delegation" });
-    const d = await openViaShortcut(page, "Control+Shift+A", "actions");
+    const d = await openViaShortcut(page, "ControlOrMeta+Shift+A", "actions");
 
     // Delegated `=> @name` lines have no action-state of their own, so
     // they're out of scope for "Only Open" — turn it off first.
@@ -63,7 +63,7 @@ test.describe("action drawer (Ctrl+Shift+A)", () => {
 
   test("Ctrl+Space on a row cycles that action's state and persists it to the source note", async ({ page }) => {
     await seedApp(page, { seed: "delegation" });
-    const d = await openViaShortcut(page, "Control+Shift+A", "actions");
+    const d = await openViaShortcut(page, "ControlOrMeta+Shift+A", "actions");
 
     // Turn Only Open off so the row survives being marked done and we can
     // watch the glyph change in place.
@@ -74,7 +74,7 @@ test.describe("action drawer (Ctrl+Shift+A)", () => {
     await expect(row.locator("span").first()).toHaveText("☐");
 
     await filterInput(page).focus();
-    await page.keyboard.press("Control+Space");
+    await page.keyboard.press("ControlOrMeta+Space");
 
     await expect(row.locator("span").first()).toHaveText("☑");
     await expect.poll(() => mockNote(page, "2026-09-07.txt")).toContain("=> v send the recap email");
@@ -82,7 +82,7 @@ test.describe("action drawer (Ctrl+Shift+A)", () => {
 
   test("Shift+Enter forwards an action to today: source -> '>', today gets '#' on top", async ({ page }) => {
     await seedApp(page, { seed: "delegation" });
-    await openViaShortcut(page, "Control+Shift+A", "actions");
+    await openViaShortcut(page, "ControlOrMeta+Shift+A", "actions");
 
     await filterInput(page).fill("signing cert");
     await expect(rows(page).first()).toContainText("chase the signing cert renewal");
@@ -95,7 +95,7 @@ test.describe("action drawer (Ctrl+Shift+A)", () => {
 
   test("Enter jumps to the line: modal closes, the file opens, cursor lands on it", async ({ page }) => {
     await seedApp(page, { seed: "delegation" });
-    await openViaShortcut(page, "Control+Shift+A", "actions");
+    await openViaShortcut(page, "ControlOrMeta+Shift+A", "actions");
 
     await filterInput(page).fill("cert renewal");
     await expect(rows(page).first()).toContainText("chase the signing cert renewal");

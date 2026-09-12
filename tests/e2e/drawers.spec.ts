@@ -8,7 +8,7 @@ test.describe("info drawers", () => {
 
   test("Ctrl+/ opens the combined Shortcuts & Symbols drawer", async ({ page }) => {
     await editor(page).click();
-    await page.keyboard.press("Control+Slash");
+    await page.keyboard.press("ControlOrMeta+Slash");
     const drawer = modalCard(page, MODAL_LABELS.shortcuts);
     await expect(drawer).toBeVisible();
     expect(await currentModal(page)).toBe("shortcuts");
@@ -19,7 +19,7 @@ test.describe("info drawers", () => {
 
   test("#47: shortcuts and symbols sit in two side-by-side, independently-scrolling columns", async ({ page }) => {
     await editor(page).click();
-    await page.keyboard.press("Control+Slash");
+    await page.keyboard.press("ControlOrMeta+Slash");
     const drawer = modalCard(page, MODAL_LABELS.shortcuts);
     const cols = drawer.locator(".shortcuts-col");
     await expect(cols).toHaveCount(2);
@@ -42,14 +42,14 @@ test.describe("info drawers", () => {
 
   test("Ctrl+Shift+/ opens the same combined drawer (§110)", async ({ page }) => {
     await editor(page).click();
-    await page.keyboard.press("Control+Shift+Slash");
+    await page.keyboard.press("ControlOrMeta+Shift+Slash");
     await expect(modalCard(page, MODAL_LABELS.shortcuts)).toBeVisible();
     expect(await currentModal(page)).toBe("shortcuts");
   });
 
   test("legend glyphs render as plain inline text, aligned with the row (§88 / #19)", async ({ page }) => {
     await editor(page).click();
-    await page.keyboard.press("Control+Shift+Slash");
+    await page.keyboard.press("ControlOrMeta+Shift+Slash");
     await expect(modalCard(page, MODAL_LABELS.shortcuts)).toBeVisible();
 
     const info = await page.evaluate(() => {
@@ -77,7 +77,7 @@ test.describe("info drawers", () => {
 
   test("Ctrl+Shift+, opens About and shows the version from the backend", async ({ page }) => {
     await editor(page).click();
-    await page.keyboard.press("Control+Shift+Comma");
+    await page.keyboard.press("ControlOrMeta+Shift+Comma");
     const about = modalCard(page, MODAL_LABELS.about);
     await expect(about).toBeVisible();
     await expect(about).toContainText("0.3.0"); // mock's default appVersion
@@ -86,7 +86,7 @@ test.describe("info drawers", () => {
 
   test("the project link opens externally via the opener plugin, not the webview", async ({ page }) => {
     await editor(page).click();
-    await page.keyboard.press("Control+Shift+Comma");
+    await page.keyboard.press("ControlOrMeta+Shift+Comma");
     await modalCard(page, MODAL_LABELS.about).getByRole("button", { name: /github\.com/ }).click();
 
     const opened = await page.evaluate(() => window.__CHRONO_MOCK__!.openedUrls);
@@ -95,7 +95,7 @@ test.describe("info drawers", () => {
 
   test("drawers capture keyboard focus — typing does not leak to the editor behind", async ({ page }) => {
     await editor(page).click();
-    await page.keyboard.press("Control+Slash");
+    await page.keyboard.press("ControlOrMeta+Slash");
     await expect(modalCard(page, MODAL_LABELS.shortcuts)).toBeVisible();
 
     await page.keyboard.type("xxxxx");
@@ -108,9 +108,9 @@ test.describe("info drawers", () => {
 
   test("Escape closes whichever drawer is open", async ({ page }) => {
     for (const [combo, key] of [
-      ["Control+Slash", "shortcuts"],
-      ["Control+Shift+Slash", "shortcuts"],
-      ["Control+Shift+Comma", "about"],
+      ["ControlOrMeta+Slash", "shortcuts"],
+      ["ControlOrMeta+Shift+Slash", "shortcuts"],
+      ["ControlOrMeta+Shift+Comma", "about"],
     ] as const) {
       await editor(page).click();
       await page.keyboard.press(combo);

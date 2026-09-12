@@ -11,6 +11,7 @@
   import { closeOnOutsideClick } from "../../actions/closeOnOutsideClick";
   import { focusTrap } from "../../actions/focusTrap";
   import Icon from "../../icons/Icon.svelte";
+  import { formatCombo, formatShortcut, shortcutById } from "../../shortcuts";
 
   // §update-check: kick off a check the moment About is opened if nothing
   // has run yet this session (the launch check may have been skipped —
@@ -102,9 +103,9 @@
       <div>
         <div class="settings-section-label">Learn more</div>
         <div class="settings-hint" style="margin-top: 0;">
-          <kbd>Ctrl+/</kbd> opens the Shortcuts &amp; Symbols drawer &mdash; every
-          keyboard shortcut plus what each editor glyph means. <kbd>Ctrl+K</kbd> is
-          the command palette.
+          <kbd>{formatCombo(shortcutById("openShortcutsHelp").combos[0])}</kbd> opens the Shortcuts &amp; Symbols
+          drawer &mdash; every keyboard shortcut plus what each editor glyph means.
+          <kbd>{formatShortcut("commandPalette")}</kbd> is the command palette.
         </div>
       </div>
     </div>

@@ -7,7 +7,7 @@ const LONG_LINE =
 
 async function openSettings(page: Page) {
   await editor(page).click();
-  await page.keyboard.press("Control+Comma");
+  await page.keyboard.press("ControlOrMeta+Comma");
   await expect(settings(page)).toBeVisible();
 }
 

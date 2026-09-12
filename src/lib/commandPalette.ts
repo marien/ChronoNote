@@ -33,6 +33,7 @@ import { openSectionImport } from "./sectionImportActions";
 import { openAbout, openGlyphLegend, openSettings, openShortcutsHelp } from "./menu";
 import { setColorMode, setReadableLineLength, setWordWrap } from "./boot";
 import { checkForUpdates } from "./updates";
+import { formatCombo, formatShortcut, shortcutById } from "./shortcuts";
 
 export interface PaletteItem {
   /** Stable key for keyed `{#each}`. */
@@ -58,22 +59,65 @@ function commandItems(): PaletteItem[] {
   const readable = get(readableLineLength);
   const color = get(colorMode);
   return [
-    { id: "cmd-scratch", label: "New scratchpad", hint: "Ctrl+N", group: "Commands", run: createScratchpad },
-    { id: "cmd-reopen", label: "Reopen last closed tab", hint: "Ctrl+Shift+T", group: "Commands", run: reopenLastClosedTab },
+    { id: "cmd-scratch", label: "New scratchpad", hint: formatShortcut("newScratchpad"), group: "Commands", run: createScratchpad },
+    {
+      id: "cmd-reopen",
+      label: "Reopen last closed tab",
+      hint: formatShortcut("reopenClosedTab"),
+      group: "Commands",
+      run: reopenLastClosedTab,
+    },
     {
       id: "cmd-close",
       label: "Close current tab",
-      hint: "Ctrl+W",
+      // Just the key combo here, not `formatShortcut`'s "/ middle-click"
+      // — that's the Shortcuts drawer's fuller description; a palette
+      // hint tag wants to stay terse.
+      hint: formatCombo(shortcutById("closeTab").combos[0]),
       group: "Commands",
       run: () => requestTabClose(get(activeTabId)),
     },
-    { id: "cmd-next-tab", label: "Next tab", hint: "Ctrl+Tab", group: "Commands", run: () => cycleTab(1) },
-    { id: "cmd-prev-tab", label: "Previous tab", hint: "Ctrl+Shift+Tab", group: "Commands", run: () => cycleTab(-1) },
-    { id: "cmd-date", label: "Open a dated note…", hint: "Ctrl+O", group: "Commands", run: openDatePicker },
-    { id: "cmd-actions", label: "Actions", hint: "Ctrl+Shift+A", group: "Commands", run: openActionDrawer },
-    { id: "cmd-history", label: "Section history", hint: "Ctrl+Shift+H", group: "Commands", run: openMeetingHistory },
-    { id: "cmd-search", label: "Cross-tab search", hint: "Ctrl+Shift+F", group: "Commands", run: openCrossTabSearch },
-    { id: "cmd-import", label: "Import sections", hint: "Ctrl+Shift+I", group: "Commands", run: openSectionImport },
+    // `cycleTab`'s two combos (plain / Shift, next / previous) each need
+    // their own hint here — `formatShortcut` joins both together for the
+    // Shortcuts drawer's one combined row, which isn't what either of
+    // these two separate palette rows wants.
+    {
+      id: "cmd-next-tab",
+      label: "Next tab",
+      hint: formatCombo(shortcutById("cycleTab").combos[0]),
+      group: "Commands",
+      run: () => cycleTab(1),
+    },
+    {
+      id: "cmd-prev-tab",
+      label: "Previous tab",
+      hint: formatCombo(shortcutById("cycleTab").combos[1]),
+      group: "Commands",
+      run: () => cycleTab(-1),
+    },
+    { id: "cmd-date", label: "Open a dated note…", hint: formatShortcut("openDateNote"), group: "Commands", run: openDatePicker },
+    { id: "cmd-actions", label: "Actions", hint: formatShortcut("openActions"), group: "Commands", run: openActionDrawer },
+    {
+      id: "cmd-history",
+      label: "Section history",
+      hint: formatShortcut("openHistory"),
+      group: "Commands",
+      run: openMeetingHistory,
+    },
+    {
+      id: "cmd-search",
+      label: "Cross-tab search",
+      hint: formatShortcut("crossTabSearch"),
+      group: "Commands",
+      run: openCrossTabSearch,
+    },
+    {
+      id: "cmd-import",
+      label: "Import sections",
+      hint: formatShortcut("importSections"),
+      group: "Commands",
+      run: openSectionImport,
+    },
     {
       id: "cmd-wrap",
       label: `${wrap ? "Disable" : "Enable"} word wrap`,
@@ -100,10 +144,23 @@ function commandItems(): PaletteItem[] {
       run: () =>
         setColorMode(color === "grayscale" ? "color" : color === "color" ? "legacy" : "grayscale"),
     },
-    { id: "cmd-settings", label: "Settings", hint: "Ctrl+,", group: "Settings", run: openSettings },
-    { id: "cmd-shortcuts", label: "Keyboard shortcuts", hint: "Ctrl+/", group: "Help", run: openShortcutsHelp },
-    { id: "cmd-legend", label: "Symbols & sections legend", hint: "Ctrl+Shift+/", group: "Help", run: openGlyphLegend },
-    { id: "cmd-about", label: "About ChronoNote", hint: "Ctrl+Shift+,", group: "Help", run: openAbout },
+    { id: "cmd-settings", label: "Settings", hint: formatShortcut("openSettings"), group: "Settings", run: openSettings },
+    // Same "two combos, one id" situation as cycleTab above.
+    {
+      id: "cmd-shortcuts",
+      label: "Keyboard shortcuts",
+      hint: formatCombo(shortcutById("openShortcutsHelp").combos[0]),
+      group: "Help",
+      run: openShortcutsHelp,
+    },
+    {
+      id: "cmd-legend",
+      label: "Symbols & sections legend",
+      hint: formatCombo(shortcutById("openShortcutsHelp").combos[1]),
+      group: "Help",
+      run: openGlyphLegend,
+    },
+    { id: "cmd-about", label: "About ChronoNote", hint: formatShortcut("openAbout"), group: "Help", run: openAbout },
     {
       id: "cmd-check-updates",
       label: "Check for updates",

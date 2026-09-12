@@ -6,7 +6,7 @@ import { seedApp, editor, openViaShortcut, modalCard, MODAL_LABELS, datePicker }
 
 test("Tab stays inside the Settings modal and never lands on the editor behind it", async ({ page }) => {
   await seedApp(page, { seed: "empty" });
-  const card = await openViaShortcut(page, "Control+Comma", "settings");
+  const card = await openViaShortcut(page, "ControlOrMeta+Comma", "settings");
 
   // Tab around a bunch — focus must always be inside the modal card.
   for (let i = 0; i < 8; i++) {
@@ -25,7 +25,7 @@ test("Tab stays inside the Settings modal and never lands on the editor behind i
 test("closing a modal returns focus to the editor", async ({ page }) => {
   await seedApp(page, { seed: "empty" });
   await editor(page).click();
-  await openViaShortcut(page, "Control+/", "shortcuts");
+  await openViaShortcut(page, "ControlOrMeta+/", "shortcuts");
   await page.keyboard.press("Escape");
   await expect(modalCard(page, MODAL_LABELS.shortcuts)).toBeHidden();
 
