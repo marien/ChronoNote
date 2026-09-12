@@ -5907,3 +5907,30 @@ bar matching the design exactly.
 `svelte-check` 213/0, Vitest 292 (unchanged — pure CSS/markup, no new
 unit-testable logic), Playwright 173 (+1), `cargo test` 47 (unchanged).
 `website/demo-app/` and `website/webapp/` both rebuilt to pick this up.
+
+## 148. §146's Guide-page rendered examples were too faint to actually see
+
+**Status: implemented, website-only (no version bump — nothing in the
+shipped app changed).** Marien, from the live site: *"the `-` does not
+render as a dot under what you see. And the `=` do not show as a double
+line."* Both elements were genuinely in the DOM with the right
+`content`/`border-bottom` computed values (confirmed live via
+`getComputedStyle` before touching anything) — this wasn't a markup or
+selector bug, it was a color/weight choice bad enough to read as "not
+there" once compressed into a phone screenshot.
+
+Root cause: `.rendered-title`'s double rule used `--edge-strong`
+(`rgba(255,255,255,0.13)` — a subtle *divider* color meant for
+low-emphasis UI chrome borders, not a meaningful rule) at only 3px,
+which left the double-border style's two hairlines too close together
+to read as two lines at all; `.rendered-bullet::before`'s `•` used
+`--muted` (`#858585`). Neither actually matches how the real editor
+renders either of these — `.cm-setext-rule` (`src/app.css`) draws its
+double rule in `--muted` at a clearly visible weight, and `.glyph-bullet`
+renders in full-strength `--text`, not a dimmed color. Fixed by matching
+the app's own choices instead of guessing at new ones: title's
+border-bottom → `6px double var(--muted)`, bullet's `•` →
+`var(--text)`. Verified via a live screenshot this time (not just
+computed styles) — both are now clearly visible.
+
+Pure `website/style.css` change, nothing else touched.

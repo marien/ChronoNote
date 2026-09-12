@@ -480,13 +480,22 @@ kbd {
   display: inline-block;
   font-weight: 700;
   color: var(--bright);
-  border-bottom: 3px double var(--edge-strong);
+  /* Matches the editor's own Setext-underline rendering, which uses
+     --muted at a clearly visible weight (`.cm-setext-rule` in the app's
+     app.css) — the fainter --edge-strong (a 13%-opacity divider color,
+     meant for subtle UI chrome, not a meaningful rule) read as barely
+     there at 3px, especially compressed into a phone screenshot. 6px
+     gives the "double" border-style two clearly distinct hairlines
+     instead of blurring into one thin line. */
+  border-bottom: 6px double var(--muted);
   padding-bottom: 3px;
   margin-bottom: 2px;
 }
 .snippet-rendered .rendered-bullet::before {
   content: "•  ";
-  color: var(--muted);
+  /* The editor's own `.glyph-bullet` renders in --text (full strength),
+     not --muted — matching that instead of guessing at a dimmer color. */
+  color: var(--text);
 }
 @media (max-width: 640px) {
   .snippet-pair {
