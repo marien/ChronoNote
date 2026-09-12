@@ -6,8 +6,11 @@ kept for the rationale behind each one — not just *what* changed but
 was still being gathered and confirmed before implementation; renamed once
 everything below was applied, since nothing here is "pending" anymore.
 
-**Status: all sections through §141 implemented and on `main`; §141 is
-not yet released as a version bump or deployed.**
+**Status: all sections through §142 implemented and on `main`.** §141's
+new desktop-app Import feature is about to become v0.7.9 (see that
+section); §141–§142's web-app pieces are deployed live at
+`app.chrononote.mariendegelder.nl` and need no version bump of their own
+— that's strictly a desktop-app concept.
 §138–§139 are implemented but were never themselves a release — they
 don't touch the shipped app at all (a new marketing site + a dev-only
 test scenario).
@@ -42,9 +45,10 @@ repo directly). §140 flips the default glyph palette from `Grayscale` to
 placeholder version number. §141 is Phase 1 of the browser-storage web
 app (`docs/design/webapp-roadmap.md`) — a new `WebBackend` (IndexedDB),
 export/import shared between the desktop app and the web app, and the
-new `vite.webapp.config.ts` build target; implemented but not yet
-deployed (the `app.chrononote.mariendegelder.nl` subdomain doesn't exist
-yet).
+new `vite.webapp.config.ts` build target. §142 deploys it live to
+`app.chrononote.mariendegelder.nl` (sharing the main site's existing
+Plesk checkout, no second Git repo needed), adds landing-page CTAs
+linking to it, and adds PWA/offline install.
 Each
 section is verified before merge (`svelte-check`, the Vitest suite,
 `cargo test`, and — from §77 on — the Playwright E2E suite, all green in
@@ -5376,12 +5380,88 @@ see above). `svelte-check` 210 files 0 errors, Vitest 289 (+9), Playwright
 `"desktop"` default, so none of this gating changes their behaviour),
 `cargo test` 47 (+3).
 
-**Not yet deployed** — `website/webapp/` is committed but not yet
-promoted to the `website-live` deploy branch, and the
-`app.chrononote.mariendegelder.nl` subdomain doesn't exist in Plesk yet
-(Marien's own step, same shape as the original site's setup). See the
-`webapp-phase-1-sept-2026` memory for the exact remaining checklist.
+**Deployed the same day** — `website-live` promoted, and Marien set up
+`app.chrononote.mariendegelder.nl` in Plesk pointing at the existing
+`chrononote.mariendegelder.nl` checkout's `website/webapp/` folder (no
+second Git repository or webhook needed — one shared checkout, decided
+after Marien asked whether that was possible; see §142 and the
+`webapp-phase-1-sept-2026` memory). Verified live: a note typed at
+`app.chrononote.mariendegelder.nl` survived a real reload.
 
-**What's still Phase 2, per the design doc's own scoping, not started:**
-demo/landing-page CTAs actually linking to the new web app; the OPFS
-storage engine revisit; PWA/offline install.
+**What was Phase 2 at the time this section was written — see §142**,
+done the same day: demo/landing-page CTAs linking to the web app, and
+PWA/offline install. The OPFS storage engine revisit remains
+not started, held back deliberately per Marien's own instruction.
+
+---
+
+## 142. Web app deployed; landing-page CTAs; PWA install
+
+**Status: implemented and deployed the same day as §141.** Marien
+verified the Plesk setup and asked to go ahead with deployment
+verification, the landing-page CTAs, and PWA install — explicitly
+holding off on the OPFS storage-engine revisit.
+
+**Simpler hosting than §141 assumed.** The design doc's own hosting
+section had recommended a subdomain but implied a second Plesk Git
+checkout; Marien asked whether `app.chrononote.mariendegelder.nl` could
+instead just reuse the existing `chrononote.mariendegelder.nl` checkout.
+It can — a Plesk (sub)domain's Document Root is independent of where any
+Git repository is checked out, so the new subdomain points its document
+root at the *existing* checkout's `website/webapp/` folder directly. No
+second Git repository, no second webhook: the one existing webhook's
+`git pull` already refreshes `website/` and `website/webapp/` together
+in the same pull, so both subdomains update simultaneously for free.
+Each (sub)domain still gets its own web-server config context (and its
+own SSL certificate) even while sharing files, so the per-subdomain
+cache-header independence the design doc wanted is unaffected.
+`docs/design/webapp-roadmap.md`'s hosting section and the
+`webapp-phase-1-sept-2026` memory were updated to match before Marien
+did the Plesk-side setup, so the actual steps taken matched the doc.
+
+**Deployment verified for real**, not just assumed: `curl` against
+`https://app.chrononote.mariendegelder.nl/` (200 OK, LiteSpeed), then a
+full round-trip in the browser against the live deployment itself — typed
+a note, reloaded the real page, confirmed it survived (genuine
+production IndexedDB, not a local build).
+
+**Landing-page CTAs** (`website/index.html`, `website/demo.html`) — a new
+`cta-row` under the embedded demo: "Start using it — free, in your
+browser" (primary, → the web app) and "Or install the desktop app"
+(secondary, → GitHub Releases), plus a line of copy distinguishing the
+three tiers explicitly (demo vs. web app vs. desktop). `demo.html`'s
+full-screen demo bar gets the same web-app link alongside its existing
+"back to chrononote" one. No new CSS — reuses the site's existing
+`.btn`/`.btn-primary`/`.cta-row` classes.
+
+**PWA / offline install**, per the design doc's own dedicated section —
+built essentially as scoped there, no surprises:
+- `webapp-src/public/manifest.webmanifest` — name, two icon sizes
+  (256×256 and 512×512, reused from `src-tauri/icons/`, meeting Chrome's
+  installability minimums), `display: "standalone"`.
+- `webapp-src/public/sw.js` — a small, **network-first** service worker
+  (fetch fresh when online and cache it; fall back to cache only when
+  offline), not a build-time precache list — the bundle's hashed
+  filenames change every rebuild, and there's nothing else to
+  precompute since all real data already lives in IndexedDB, not
+  anything the service worker manages. Network-first specifically
+  (not cache-first) to keep the same freshness posture the
+  `website-live` branch strategy (§ website deploy branch note,
+  `CLAUDE.local.md`) already established: an online visitor should
+  always see what's currently deployed, not a stale cached shell.
+  Registered from `main-webapp.ts`, best-effort (a registration
+  failure or an unsupported browser just means no offline capability —
+  never a broken app).
+- No custom "Install" button — the design doc called this a
+  nice-to-have, not required; the browser's own install UI (Chromium's
+  address-bar icon, Safari/iOS's manual "Add to Home Screen") is enough
+  for v1.
+
+Verified in the browser: manifest fetches and parses correctly at its
+served path, the service worker registers with the correct scope, and
+both icon files and `sw.js` itself resolve with `200`.
+
+`svelte-check` 210 files 0 errors (unchanged — this section is markup,
+JSON, and one small addition to `main-webapp.ts` with no new types),
+Vitest 289 (unchanged), Playwright 157 (unchanged — none of this touches
+anything the desktop-app suite exercises).

@@ -26,6 +26,17 @@ declare const __WEBAPP_VERSION__: string;
 backendKind.set("web");
 installWebBackend(__WEBAPP_VERSION__);
 
+// PWA install (design doc, "PWA / offline install") — registered here
+// rather than left to a build plugin, matching this bundle's existing
+// "as few dependencies as the job needs" approach. Best-effort: an
+// unsupported browser or a registration failure just means no offline
+// capability / install prompt, never a broken app.
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("./sw.js").catch((err) => {
+    console.warn("[ChronoNote] service worker registration failed:", err);
+  });
+}
+
 const app = mount(App, { target: document.getElementById("app")! });
 
 export default app;
