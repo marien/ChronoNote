@@ -1,8 +1,11 @@
 # ChronoNote: Master Technical & Product Specification
 
-**Document Version:** 1.0.0 (amended — see note below)  
-**Target Environment:** Cross-Platform Native Desktop (Windows 11 / macOS / Linux)  
-**Reference Architecture:** Tauri v2 (Rust) + Svelte 5 / TypeScript + CodeMirror 6  
+**Document Version:** 1.1.0 (amended — reflects the state through
+`CHANGELOG.md` §145 / v0.7.10)
+**Target Environment:** Cross-platform native desktop (Windows / macOS /
+Linux), plus a browser-storage web app and a zero-retention public demo
+**Reference Architecture:** Tauri v2 (Rust) + Svelte 5 / TypeScript +
+CodeMirror 6
 
 > This document has been amended in place to reflect changes agreed after
 > the first working build. See [`CHANGELOG.md`](CHANGELOG.md) for the full
@@ -13,22 +16,25 @@
 
 ## 1. Intent & Architectural Principles
 
-ChronoNote is a minimalist, keyboard-driven plain-text desktop application engineered to replace Microsoft Notepad for tracking meetings, daily logs, and action items.
+ChronoNote is a minimalist, keyboard-driven plain-text application engineered to replace Microsoft Notepad for tracking meetings, daily logs, and action items.
 
 ### Core Tenets
-1. **Zero Database / Pure Plain Text:** Persistence is 100% human-readable ASCII/UTF-8 `.txt` files. No SQLite layer, no proprietary syntax markers, no YAML front-matter, and no persistent UUIDs injected into note bodies.
+1. **Zero Database / Pure Plain Text:** Persistence is 100% human-readable ASCII/UTF-8 `.txt` files (desktop) or an equivalent plain-record store (the web app's IndexedDB tier — see §7). No SQLite layer, no proprietary syntax markers, no YAML front-matter, and no persistent UUIDs injected into note bodies.
 2. **Tabular Monospace Grid Preservation:** Specialized tokens (`# `, `v `, `> `, `x `, `- `/`* `, `=> `, `! `) are visually replaced on screen using virtual presentation masking. Characters in memory match file bytes on disk; visual overlays occupy *exactly* the same typographic character width as the token they replace — forced via explicit CSS sizing rather than trusted to a glyph's natural rendered width, since a single Unicode symbol doesn't reliably occupy exactly one monospace cell in every font — so column alignments never break.
 3. **Fail-Safe Task Protection:** Tabs cannot be closed silently if unresolved tasks (`# `) exist, or if a scratchpad holds content that was never promoted — since scratchpads are never written to disk, closing one unwarned would destroy that content permanently. A multi-level "reopen closed tab" history is a second layer of recovery on top of that warning.
-4. **Manual Section Import:** Rather than an automated calendar sync, the user pastes freeform lines of text (e.g. copied from an email or agenda) into an import dialog (`Ctrl+Shift+I`); each non-empty line becomes a new section header, appended to the end of the current note. Purely additive — it never touches or reconciles existing sections.
+4. **Manual Section Import:** Rather than an automated calendar sync, the user pastes freeform lines of text (e.g. copied from an email or agenda) into an import dialog (`Ctrl/Cmd+Shift+I`); each non-empty line becomes a new section header, appended to the end of the current note. Purely additive — it never touches or reconciles existing sections.
+5. **One Frontend, Three Backends:** The entire UI above the storage layer is backend-agnostic — every interaction goes through one typed command surface (`TauriCommands`), never a direct Rust/IPC call. Three implementations of that surface exist (real Tauri IPC, an IndexedDB-backed web app, and an in-memory mock for the demo and test suite), so the same Svelte components, editor, and controller logic run unmodified across all of them — see §7.
+6. **Platform-Correct Shortcuts, Not Platform-Specific Code:** Every keyboard shortcut is `Ctrl` on Windows/Linux and `Cmd` on macOS, resolved from one shared registry rather than duplicated per platform — see §4.
 
 ---
 
 ## 2. Storage & Syntax Specification
 
 ### 2.1 Storage Structure
-* **Root Storage Directory:** Configurable via `config.json` (defaults to `~/Documents/Notes/`).
+* **Root Storage Directory (desktop):** Configurable via `config.json` (defaults to `~/Documents/Notes/`).
+* **Root Storage (web app):** A single IndexedDB database in the browser's own per-origin storage — no folder concept; see §7.3.
 * **Daily File Naming Scheme:** ISO 8601 strict format: `YYYY-MM-DD.txt`.
-* **Session State:** Which tabs were open and which was active is remembered per notes folder in a `.chrononote-session.json` file written inside that folder (not in the global `config.json`), so it travels with the folder rather than accumulating in a global list, and restores automatically both on app launch and when switching back to a previously-used folder. It is excluded from every note-scanning path by the same strict `YYYY-MM-DD.txt` filename check that governs daily files.
+* **Session State:** Which tabs were open and which was active is remembered per notes folder in a `.chrononote-session.json` file written inside that folder (not in the global `config.json`), so it travels with the folder rather than accumulating in a global list, and restores automatically both on app launch and when switching back to a previously-used folder. It is excluded from every note-scanning path by the same strict `YYYY-MM-DD.txt` filename check that governs daily files. The web app keeps the equivalent session record as its own IndexedDB entry.
 
 ### 2.2 Token Semantics & Dynamic Glyph Replacement
 
@@ -37,8 +43,8 @@ exceeding — the character width of the token it replaces, forced via
 explicit CSS `ch`-unit sizing on each glyph so column alignment holds
 regardless of how a given symbol naturally renders in the active font.
 Glyphs are theme-driven — weight/opacity distinguish them in grayscale
-mode, color in color mode (Settings, `Ctrl+,`) — and each *replaced* span
-is an atomic unit for text selection, so selecting or copying a line
+mode, color in color mode (Settings, `Ctrl/Cmd+,`) — and each *replaced*
+span is an atomic unit for text selection, so selecting or copying a line
 always includes the glyph's full underlying token. `@name` in a delegated
 follow-up is the one exception: it's styled as a badge but stays real,
 live, editable text, not part of the replaced/atomic span — fix a typo in
@@ -61,7 +67,9 @@ whole `=> ` token in one step, as if un-delegating the line.
 
 All four action symbols (`# `/`v `/`> `/`x `) may be indented in two-space
 increments, the same as bulleted list items — the indentation is real,
-untouched whitespace; only the symbol itself is replaced.
+untouched whitespace; only the symbol itself is replaced. Clicking an
+action glyph cycles its state (`# → v → > → x → #`); hovering it first
+previews the next state without committing it.
 
 **Copy/paste deferral:** copying a `# ` line and pasting it into today's
 note, or into any *later*-dated note, marks the original line as `> `
@@ -70,20 +78,22 @@ without manually editing the original. Copying several lines together
 defers every open-action line found anywhere in the copied block, not
 just one at its start — other lines in the same copy (plain text,
 bullets, already-resolved actions) are left as they were. Pasting into a
-scratchpad or a past-dated note does not trigger this.
+scratchpad or a past-dated note does not trigger this. Undoing or
+redoing the paste correctly un-defers or re-defers the source line in
+its own tab, even if the source tab isn't the active one.
 
 ### 2.3 Structural Spacing Rules
 * **Inter-Section Spacing:** All automated insertions (section import, templating) must enforce **two blank lines** (`\n\n\n`) between the end of a section body and the subsequent Setext heading line.
 
 ### 2.4 List Nesting
 * **Bulleted Lists:** A `- ` or `* ` at the start of a line (optionally indented) renders as `•`; the leading whitespace itself is untouched, real, visible indentation — only the marker is replaced. Nesting is two spaces per level, which is also exactly what pressing `Tab` on a bullet line already produces (the editor's indent unit is fixed at two spaces for this reason), so no bullet-specific indent handling is needed beyond that. Continuing a list with `Enter` reuses whichever marker character (`-` or `*`) the current line already has.
-* **List Continuation:** Inside a bulleted line, `Enter` continues the list with a fresh bullet at the same indentation (or exits the list if the current bullet is empty); `Shift+Enter` adds a plain continuation line indented two spaces *past* the bullet's own indentation — aligned under the bullet's text, not the marker — with no new bullet.
+* **List Continuation:** Inside a bulleted line, `Enter` continues the list with a fresh bullet at the same indentation (or exits the list if the current bullet is empty); `Shift+Enter` adds a plain continuation line indented two spaces *past* the bullet's own indentation — aligned under the bullet's text, not the marker — with no new bullet. `Enter` on a leading-symbol action line continues it as a fresh open `# ` action at the same indent (empty line + `Enter` exits); `Enter` on a `=> ` follow-up continues as another plain `=> `, or as `=> # ` if the line was itself a `=> <symbol>` consequence-action.
 
 ---
 
 ## 3. Visual Design & Chrome Layout
 
-The visual chrome mirrors the uncluttered footprint of modern system text editors (e.g., Windows 11 Notepad). It matches the OS's Light or Dark mode by default, or an explicit Light/Dark choice in Settings (`Ctrl+,`) overrides that.
+The visual chrome mirrors the uncluttered footprint of modern system text editors (e.g., Windows 11 Notepad). It matches the OS's Light or Dark mode by default, or an explicit Light/Dark choice in Settings (`Ctrl/Cmd+,`) overrides that.
 
 ### 3.1 Iconography
 
@@ -103,3 +113,331 @@ runtime setting) — it's the same "dated page under its rule" mark the
 in-app date-note action uses, white-knocked-out on the accent tile, so
 the taskbar icon and the toolbar button read as one thing
 (`docs/design/icon-A-master.svg`).
+
+### 3.2 Top Bar & Tab Strip
+
+The top bar hosts the tab strip and a row of action buttons (New
+Scratchpad, Open Date Note, Actions, Section History, Cross-Tab Search,
+Import Sections, Promote-scratchpad when applicable, Settings, About) as
+fixed-width siblings of the scrollable tab strip, not inside it. Tabs
+stay ordered chronologically (earliest to latest, left to right), with
+scratchpads always after every dated tab; the strip auto-scrolls to keep
+the active tab in view on every switch. Tab labels drop the `.txt`
+extension; middle-click closes a tab.
+
+A four-tier, measurement-driven responsive system keeps the bar usable
+as the window narrows, each tier only engaging once the previous one
+still doesn't leave enough room (re-evaluated on resize via a
+`ResizeObserver`, with an anti-flicker discipline — decide from the
+current state, require clearing a margin before flipping back):
+1. Full width: every button shows icon + label.
+2. Labels collapse to icon-only.
+3. If tabs still overflow, the scroll-arrow (`←`/`→`) pair appears at
+   the ends of the tab strip — clicking either at an edge wraps around
+   to the other end, the same cyclic behavior as cycling tabs by
+   keyboard.
+4. If icon-only buttons still leave the tab strip overflowing, every
+   secondary action button (Actions/History/Search/Import/Promote/
+   Settings/About) collapses into one "More actions" button, opening an
+   anchored, non-modal popover listing them with their shortcuts. New
+   Scratchpad and Open Date Note are never collapsed — they stay pinned
+   and visible at every tier.
+
+### 3.3 Status Bar
+
+Three zones, left to right: cursor line/column and word count on the
+left (plus, while text is selected, how many lines the selection spans);
+a centre zone reserved for transient status messages (autosave
+confirmations, "nothing to import," etc.), empty otherwise; and a right
+zone showing Open / Closed / Forwarded action counts for the active
+note (`x`, won't-do, folds into Closed alongside `v`, done), the
+currently-running version number, an update-available icon when
+relevant, and the `?` Shortcuts & Symbols trigger.
+
+### 3.4 Settings
+
+Settings (`Ctrl/Cmd+,`) groups independent controls:
+- **Theme:** Light / Dark / System for the app's own chrome (System
+  follows the OS setting and is the default).
+- **Glyph palette:** Color / Grayscale / Legacy — a three-way choice
+  independent of the chrome theme above. Glyphs, tab/status-bar accents,
+  and search highlighting all follow it, including inside the action
+  drawer and section history. Color is the default for a fresh install;
+  Legacy restores the pre-0.6 per-action colour scheme (red open, amber
+  deferred, green done, grey won't-do, blue follow-up, yellow emphasis)
+  for anyone who prefers it.
+- **Editor width:** Full / Wrap / Reading column — Full keeps every line
+  unwrapped (for tables and aligned columns), Wrap breaks long lines to
+  fit the window, Reading column additionally caps the text to a
+  comfortable centred measure.
+- **Notes folder** (desktop only): changeable via a native "Browse…"
+  dialog, or from up to 5 recently-used folders listed inline with no
+  dialog needed. Switching folders is treated as switching
+  projects/scopes — it closes every open tab and reloads from the new
+  folder, blocking the switch first if any scratchpad holds content
+  that was never promoted (the only state that would actually be lost).
+- **Data (export/import)**, shown identically on the desktop app and the
+  web app: exports every note as a single bundle file, and imports one
+  back in with merge-skip-duplicates semantics — see §7.3.
+- **Updates** (desktop only — nothing to check for in the web app, where
+  a page reload always serves the latest deployed version): an
+  auto-check-on-launch toggle (on by default) and a "Check now" button.
+
+### 3.5 Launch Behavior
+
+The app launches without the white-flash-before-dark-theme most Tauri
+apps show — the window's native background is set to match the OS/app
+theme before the window is ever shown. Restoring a previous session's
+tabs reads them all in parallel rather than one at a time, for a faster
+time-to-typable. Scrollbars throughout (editor, modal lists, the import
+textarea) are thin and theme-matched rather than the OS default.
+
+---
+
+## 4. Keyboard Shortcuts & Platform Awareness
+
+Every shortcut resolves to `Ctrl` on Windows/Linux and `Cmd` on macOS
+from one shared registry (`src/lib/shortcuts.ts`), read by the
+window-level key handler and by every place a shortcut is *displayed*
+(the Shortcuts & Symbols drawer, the command palette's hints, tooltips)
+— there is exactly one definition per shortcut, not independently
+hand-maintained copies. Matching is strict: a binding fires only with
+the platform-correct modifier, never either, so the displayed label is
+always an accurate description of what actually works. The in-app
+Shortcuts & Symbols drawer (`Ctrl/Cmd+/` or `Ctrl/Cmd+Shift+/`) always
+shows the exact, current, platform-correct list — the table below is a
+snapshot for reference, not the source of truth.
+
+| Action | Windows / Linux | macOS |
+| :--- | :--- | :--- |
+| Command palette | `Ctrl+K` | `Cmd+K` |
+| New scratchpad | `Ctrl+N` / `Ctrl+T` | `Cmd+N` / `Cmd+T` |
+| Reopen closed tab | `Ctrl+Shift+T` / `Ctrl+Shift+N` | `Cmd+Shift+T` / `Cmd+Shift+N` |
+| Open/create a dated note | `Ctrl+O` | `Cmd+O` |
+| Close tab (or middle-click) | `Ctrl+W` | `Cmd+W` |
+| Next / previous tab | `Ctrl+Tab` / `Ctrl+Shift+Tab` | `Cmd+Tab` / `Cmd+Shift+Tab` |
+| Undo / redo (per tab) | `Ctrl+Z` / `Ctrl+Y` / `Ctrl+Shift+Z` | `Cmd+Z` / `Cmd+Shift+Z` |
+| Cycle action state on the current line | `Ctrl+Space` or `Ctrl+Enter` | `Cmd+Enter` only |
+| Jump to next / previous open action | `F2` / `Shift+F2` | `F2` / `Shift+F2` |
+| Caret to line start, then previous/next line start | `Ctrl+↑` / `Ctrl+↓` | *(not offered — Mac keeps the OS's own page-scroll on these keys)* |
+| Convert current line to a section header | `Ctrl+Shift+S` | `Cmd+Shift+S` |
+| Actions (cross-tab action drawer) | `Ctrl+Shift+A` | `Cmd+Shift+A` |
+| Section history | `Ctrl+Shift+H` | `Cmd+Shift+H` |
+| Find in this note | `Ctrl+F` | `Cmd+F` |
+| Cross-tab search | `Ctrl+Shift+F` | `Cmd+Shift+F` |
+| Import sections | `Ctrl+Shift+I` | `Cmd+Shift+I` |
+| Settings | `Ctrl+,` | `Cmd+,` |
+| About ChronoNote | `Ctrl+Shift+,` | `Cmd+Shift+,` |
+| Shortcuts & Symbols drawer | `Ctrl+/` / `Ctrl+Shift+/` | `Cmd+/` / `Cmd+Shift+/` |
+| Indent / dedent (in editor) | `Tab` / `Shift+Tab` | `Tab` / `Shift+Tab` |
+
+Three combos are deliberately **not** made Mac-aware, each for a
+specific reason recorded alongside its binding:
+- **`Ctrl+Space`** (action-state cycle) collides with macOS's own
+  input-source-switcher shortcut — `Cmd+Enter` is the reliable Mac
+  binding for the same action instead.
+- **`Ctrl+Y`-as-redo** isn't how CodeMirror's own history keymap binds
+  Mac at all (`Cmd+Shift+Z` is the native Mac redo there already), so
+  no Mac alias is offered for `Ctrl+Y` specifically.
+- **`Ctrl+↑` / `Ctrl+↓`** (caret-to-line-start navigation) is
+  Windows/Linux-only by design — macOS keeps CodeMirror's own default
+  page-scroll behavior on those keys instead, and the Shortcuts drawer
+  drops the row entirely on Mac rather than show a non-working combo.
+
+The Action Drawer's own local `Ctrl+Space` (cycle the focused row's
+action state without leaving the drawer) is a fourth, narrower case:
+its `Enter` key already means "jump to that line," so a `Cmd+Enter`
+alias would collide with that existing binding — left as a known,
+documented Mac limitation (a mouse click on the row's glyph always
+works there instead).
+
+---
+
+## 5. Navigation & Bulk-Action Drawers
+
+Six drawers, all opened as a focused, non-blocking modal or anchored
+popover, all dismissed with `Escape` or an outside click, and all
+reachable from the top bar, a shortcut, or the command palette:
+
+- **Command Palette** (`Ctrl/Cmd+K`) — fuzzy-searches and runs any
+  command, jumps to an open tab, or opens a dated note, from one input.
+- **Date Picker** (`Ctrl/Cmd+O`) — an anchored month-grid calendar
+  popover; a toggle (remembered for the session, off by default) shows
+  only dates with open actions. Opens on the active tab's own month
+  with that day highlighted (falling back to today for a scratchpad,
+  which has no date of its own), rather than always defaulting to today.
+- **Action Drawer** (`Ctrl/Cmd+Shift+A`) — lists actions across either
+  just the open tabs or every file in the notes folder (a per-session
+  toggle), most-recent-first either way. A second toggle (remembered for
+  the session, on by default) switches between showing every open/
+  deferred/delegated/done/won't-do line or strictly open ones only.
+  `Ctrl+Space` on a focused row cycles its state in place; `Enter` jumps
+  to it; `Shift+Enter` forwards it to today (source becomes `> `,
+  today's note gets a fresh `# ` copy on top). Opens focused on whatever
+  entry belongs to the tab that was active when it was opened.
+- **Section History** (`Ctrl/Cmd+Shift+H`) — a deduped, most-recent-first
+  list of a section's actions and follow-ups across every dated note
+  (one row per action, showing just the text after a mid-line `=>`),
+  plus a "Previous occurrence" pane: the first few lines of that section
+  as it stood at its last occurrence before the current note,
+  glyph-rendered, with a jump to the source.
+- **Cross-Tab Search** (`Ctrl/Cmd+Shift+F`) — full-text search across
+  either the open tabs or every file, same open-tabs/all-files toggle as
+  the Action Drawer, results glyph-rendered like the drawer's own rows.
+- **Import Sections** (`Ctrl/Cmd+Shift+I`) — paste freeform lines; each
+  becomes a new Setext-header section, appended to the active note (see
+  tenet 1.4). If the drawer is closed without importing, the unsubmitted
+  text is remembered in memory (cleared on a notes-folder switch) and
+  offered back, pre-filled and selected, next time it opens.
+- **Shortcuts & Symbols** (`Ctrl/Cmd+/` or `Ctrl/Cmd+Shift+/`) — the
+  keyboard shortcut table (§4) and the token→glyph vocabulary (§2.2)
+  side by side in two independently-scrollable columns. Each column
+  takes keyboard focus on open, so arrow keys/Page Up/Down/Home/End
+  scroll that column rather than the editor behind it, while every
+  global shortcut (including `Escape`) keeps working regardless of
+  where focus sits.
+- **About** (the info icon, right of Settings) — the project's GitHub
+  link (opened in the OS's default browser) and the currently-running
+  version, read live; also where an available update is reviewed and
+  installed (§7.5).
+
+Also reachable inline in the editor rather than as a drawer: the
+in-document **Find bar** (`Ctrl/Cmd+F`), a floating, non-modal bar that
+counts matches and steps through them with `Enter`/`Shift+Enter`.
+
+---
+
+## 6. Session, Persistence & Safety
+
+### 6.1 Tabs & Session Restore
+Reopening the app (or switching back to a previously-used notes folder)
+reopens the tabs that were open last time, with the same tab active;
+files deleted in the meantime are silently skipped. Today's dated tab is
+always opened too, and becomes active if the previously-active one
+couldn't be restored — including on the first launch of a new day, so
+the app always lands on today rather than wherever it was left. Cursor
+position and scroll offset are remembered per tab for the rest of the
+session (not persisted across restarts); per-tab undo/redo history is
+also preserved across a tab switch within the same session.
+
+### 6.2 Safety-Close Gate & Reopen History
+A tab cannot be closed silently for two independent reasons: unresolved
+open actions, or a non-empty scratchpad (whose content would otherwise
+be permanently lost, since scratchpads are never written to disk). The
+safety modal focuses Cancel on open, with `Escape` also cancelling. On
+top of that warning, a multi-level "reopen most recently closed tab"
+history (`Ctrl/Cmd+Shift+T` / `Ctrl/Cmd+Shift+N`) is a second recovery
+layer — a real dated note is reread fresh from disk rather than trusting
+a cached snapshot; a scratchpad's cached content is restored verbatim,
+since it has no disk copy to fall back on.
+
+### 6.3 Autosave & Atomic Writes
+Edits are debounced-autosaved, with an immediate flush on tab switch or
+close, and a zero-loss exit barrier that flushes every pending save
+before the window is allowed to actually close. Every write to disk
+(desktop backend) goes through an atomic write (temp file + fsync +
+atomic rename) serialized behind a process-wide lock, so two writes to
+the same note racing (autosave vs. a drawer edit, for instance) can
+never interleave or corrupt the file.
+
+### 6.4 External-Change / Conflict Detection
+Switching to a tab, or the app regaining OS focus, checks whether that
+tab's file changed on disk since it was last read (via a content-hash
+baseline) — if it has, the file is re-read and any local unsaved changes
+are written instead to a timestamped copy in a hidden
+`.chrononote-conflicts/` subfolder rather than silently overwritten or
+silently discarded, and the user is shown a conflict modal to resolve it
+by hand.
+
+---
+
+## 7. Distribution, Backends & the Update Mechanism
+
+### 7.1 One Frontend, Three Build Targets
+The same `src/` tree builds three independent bundles, each with its own
+Vite config and entry point, gated by a `backendKind` store
+(`"desktop" | "demo" | "web"`) that the UI reads to hide backend-specific
+affordances (e.g. the web app hides Notes Location and the Updates
+section, since a page reload always serves the latest deployed version):
+
+| Target | Build config | Storage backend | Where it lives |
+| :--- | :--- | :--- | :--- |
+| **Desktop app** | `vite.config.ts` → `dist/` | Real files via Tauri IPC | Installed `.msi`/`.exe` |
+| **Public demo** | `vite.demo.config.ts` → `website/demo-app/` | In-memory mock, resets every load | `chrononote.mariendegelder.nl` (embedded + full-screen) |
+| **Web app** | `vite.webapp.config.ts` → `website/webapp/` | IndexedDB, persists across reloads | `app.chrononote.mariendegelder.nl` |
+
+All three share one typed command surface (`TauriCommands`,
+`src/lib/tauriCommands.ts`) — the UI, editor, and controller logic never
+know or care which backend is answering a given call.
+
+### 7.2 Desktop Storage Backend
+Plain `.txt` files under a configurable root folder (§2.1), read and
+written through Tauri's Rust core (atomic writes, §6.3). The only tier
+with a real filesystem and native OS integration (native folder picker,
+native window chrome, the signed auto-updater below).
+
+### 7.3 Web App Backend
+An `IndexedDB`-backed implementation of the same command surface —
+same editor, same drawers, same shortcuts, zero frontend changes needed
+above the storage layer. A shared "Data" section in Settings (identical
+on desktop and web) exports every note as one bundle file and imports
+one back in with merge-skip-duplicates semantics, so a user's data can
+move between the web app and the desktop app deliberately, by hand.
+Installable as a PWA (offline-capable, launches in its own window) for
+anyone who wants an app-like feel without leaving the browser-storage
+tier.
+
+### 7.4 Demo Backend
+The same in-memory mock backend the Playwright test suite runs against
+(`src/lib/testing/mockBackend.ts`), seeded with a hand-authored,
+always-current dataset (dates computed relative to today, not pinned) —
+zero retention, resets on every page load, no server or Tauri host
+required. Deliberately never ships inside the real desktop build (a CI
+job greps the production `dist/` to guarantee it).
+
+### 7.5 GitHub Releases Update Check (Desktop Only)
+The desktop app checks GitHub for a newer release on launch (a Settings
+toggle, on by default) and on demand. Checking is quiet — a status-bar
+message only when it actually finds something newer, silence otherwise.
+Downloading is never automatic: About shows the version found and a
+"Download & install" button the user clicks themselves. Every release
+artifact is signed (`tauri-plugin-updater`'s own keypair), and the
+downloaded installer's signature is verified before it runs. A one-time
+status-bar notice also appears the first launch after an update actually
+lands, linking to that release's GitHub page.
+
+---
+
+## 8. Testing Strategy
+
+Three automated layers, run on every push/PR via GitHub Actions
+(`.github/workflows/test.yml`), plus manual verification for anything
+purely visual/layout-shaped that none of them can reach:
+
+1. **Vitest** — pure business logic: token/glyph parsing, date handling,
+   section import, the bulk of the controller (tab lifecycle, the
+   safety-close gate, copy/paste deferral, history dedup, directory
+   switching, session restore).
+2. **`cargo test`** — the Rust storage layer: config load/save, note
+   CRUD, atomic writes, path-traversal rejection, conflict detection.
+3. **Playwright** — the real Svelte + CodeMirror frontend in headless
+   Chromium against the in-memory mock backend (§7.4): every keyboard
+   shortcut (including the Mac-emulated variants), every drawer, tab
+   lifecycle, both safety gates, theme/palette persistence, and the
+   responsive top-bar behavior (§3.2).
+
+Full detail on running and extending each layer lives in the project's
+`CLAUDE.local.md` (machine-local dev notes) and `tests/e2e/README.md`.
+
+---
+
+## Out of Scope / Not Yet Built
+
+- **Microsoft 365 calendar import** — proposed for a future 0.8.0
+  release (`docs/design/webapp-roadmap.md`'s sibling roadmap document);
+  additive-only per the current design intent, not started.
+- **`rainbow` colour mode** — an early proposal superseded by the
+  shipped Color/Grayscale/Legacy three-way palette (§3.4).
+- **Native (`tauri-driver`) end-to-end tests** — the Playwright suite
+  against the mock backend (§8) covers interaction behavior; a real
+  native-window E2E pass was considered and deferred, no concrete plan.
