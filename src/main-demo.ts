@@ -1,6 +1,7 @@
 import { mount } from "svelte";
 import App from "./App.svelte";
 import "./app.css";
+import { backendKind } from "./lib/stores";
 
 /** Entry point for the public marketing-site demo (`demo-src/index.html`,
  * built by `npm run build:demo` into `website/demo-app/`) — a separate
@@ -12,6 +13,8 @@ import "./app.css";
  * here, unlike `main.ts`'s dev-only `?mock` branch — defaulting to the
  * `"demo"` scenario (`scenarios.ts`) when no `?scenario=` is given, so a
  * bare link to this page still shows something. */
+backendKind.set("demo");
+
 const params = new URLSearchParams(location.search);
 if (!params.has("scenario")) params.set("scenario", "demo");
 

@@ -20,6 +20,7 @@
  *   drift                external-modification / conflict detection (§94)
  *   commandPalette       Ctrl+K unified command/nav palette (§107)
  *   updates              GitHub-releases update check (§update-check)
+ *   exportImport         export/import (web-app design doc, Phase 1)
  */
 export * from "./stores";
 export * from "./persistence";
@@ -36,3 +37,4 @@ export * from "./boot";
 export * from "./directory";
 export * from "./commandPalette";
 export * from "./updates";
+export * from "./exportImport";

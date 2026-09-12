@@ -1,7 +1,16 @@
 import { invoke as coreInvoke } from "@tauri-apps/api/core";
 import { getVersion } from "@tauri-apps/api/app";
 import { openUrl } from "@tauri-apps/plugin-opener";
-import type { AppConfig, ColorMode, FileMetadata, NoteWithMetadata, TabSession, ThemeMode } from "./types";
+import type {
+  AppConfig,
+  ColorMode,
+  FileMetadata,
+  ImportMode,
+  ImportResult,
+  NoteWithMetadata,
+  TabSession,
+  ThemeMode,
+} from "./types";
 import type { CommandArgs, CommandReturn, TauriCommand } from "./tauriCommands";
 
 /** Every Rust IPC call goes through this: the command name is constrained
@@ -99,6 +108,15 @@ export function writeTabSession(
 
 export function pathExists(path: string): Promise<boolean> {
   return invoke("path_exists", { path });
+}
+
+/** Writes `notes` (filename -> content, parsed frontend-side from an
+ * export file) straight into storage. `"merge"` skips any filename that
+ * already exists; `"replace"` clears every existing note first. Shared by
+ * the desktop app's "Import notes from a file" Settings entry and the web
+ * app's importer. */
+export function importNotesBundle(notes: Record<string, string>, mode: ImportMode): Promise<ImportResult> {
+  return invoke("import_notes_bundle", { notes, mode });
 }
 
 /** The app's own version (from `tauri.conf.json`, kept in sync with

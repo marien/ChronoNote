@@ -8,6 +8,7 @@
     "dev": "vite",
     "build": "vite build",
     "build:demo": "vite build --config vite.demo.config.ts",
+    "build:webapp": "vite build --config vite.webapp.config.ts",
     "preview": "vite preview",
     "check": "svelte-check --tsconfig ./tsconfig.json",
     "test": "vitest run",

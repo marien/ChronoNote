@@ -31,6 +31,7 @@
  */
 import type { AppConfig, ColorMode, FileMetadata, TabSession, ThemeMode } from "../types";
 import type { CommandArgs, CommandReturn, TauriCommand, TauriCommands } from "../tauriCommands";
+import { isValidNoteFilename } from "../noteFilename";
 
 export interface MockSeed {
   /** Path used as the active notes directory. Default `/notes`. */
@@ -88,7 +89,6 @@ interface MockDir {
 }
 
 const MAX_RECENT = 5;
-const NOTE_FILENAME_RE = /^\d{4}-\d{2}-\d{2}\.txt$/;
 const CONFLICTS_DIRNAME = ".chrononote-conflicts";
 
 /** Commands that change persisted state — after these, snapshot to
@@ -104,13 +104,8 @@ const MUTATING_COMMANDS = new Set([
   "write_note",
   "write_conflict_copy",
   "write_tab_session",
+  "import_notes_bundle",
 ]);
-
-function isValidNoteFilename(name: string): boolean {
-  // Mirrors storage.rs::is_valid_note_filename — length + shape check,
-  // which is also what stops `../` and absolute paths.
-  return name.length === 14 && NOTE_FILENAME_RE.test(name);
-}
 
 /** SHA-256 hex — the exact digest `storage.rs`'s `sha2` produces and
  * `drift.ts`'s `sha256Hex` computes in-memory, so mock metadata hashes
@@ -490,6 +485,30 @@ export class MockBackend {
     },
 
     path_exists: ({ path }) => this.dirs.has(path),
+
+    import_notes_bundle: ({ notes, mode }) => {
+      const d = this.dir();
+      if (mode === "replace") {
+        for (const name of [...d.notes.keys()]) {
+          if (isValidNoteFilename(name)) d.notes.delete(name);
+        }
+      }
+      let imported = 0;
+      let skipped = 0;
+      for (const [filename, content] of Object.entries(notes)) {
+        if (!isValidNoteFilename(filename)) {
+          skipped++;
+          continue;
+        }
+        if (mode === "merge" && d.notes.has(filename)) {
+          skipped++;
+          continue;
+        }
+        d.notes.set(filename, content);
+        imported++;
+      }
+      return { imported, skipped };
+    },
   };
 
   private async dispatch(cmd: string, args: Record<string, unknown>): Promise<unknown> {

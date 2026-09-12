@@ -6,7 +6,8 @@ kept for the rationale behind each one — not just *what* changed but
 was still being gathered and confirmed before implementation; renamed once
 everything below was applied, since nothing here is "pending" anymore.
 
-**Status: all sections through §140 implemented, released, and on `main`.**
+**Status: all sections through §141 implemented and on `main`; §141 is
+not yet released as a version bump or deployed.**
 §138–§139 are implemented but were never themselves a release — they
 don't touch the shipped app at all (a new marketing site + a dev-only
 test scenario).
@@ -38,7 +39,12 @@ bundle and publishes the site to `chrononote.mariendegelder.nl` via
 Plesk's own Git-pull (no credentials anywhere — Plesk clones the public
 repo directly). §140 flips the default glyph palette from `Grayscale` to
 `Color` (chat feedback, no issue), and fixes the demo's hardcoded
-placeholder version number.
+placeholder version number. §141 is Phase 1 of the browser-storage web
+app (`docs/design/webapp-roadmap.md`) — a new `WebBackend` (IndexedDB),
+export/import shared between the desktop app and the web app, and the
+new `vite.webapp.config.ts` build target; implemented but not yet
+deployed (the `app.chrononote.mariendegelder.nl` subdomain doesn't exist
+yet).
 Each
 section is verified before merge (`svelte-check`, the Vitest suite,
 `cargo test`, and — from §77 on — the Playwright E2E suite, all green in
@@ -5266,3 +5272,116 @@ enum-default behaviour is already what `#[derive(Default)]` covers),
 `svelte-check` 257 files 0 errors, Vitest 280 (unchanged — no test
 asserted on the default specifically), Playwright 157 (unchanged),
 `cargo test` 44 (unchanged, 2 assertions updated in place).
+
+---
+
+## 141. Web app Phase 1: a browser-storage tier, plus a shared import feature for the desktop app
+
+**Status: implemented, not yet deployed.** Marien: *"Work out a function
+and technical design for a web-app version of ChronoNote that stores its
+data in the browser... The journey: someone lands on the website and
+uses the demo (no data retention), then starts using the web app (data
+retention in browser), then installs the application locally (data
+retention on disk)."* Full design: `docs/design/webapp-roadmap.md`. This
+section is that doc's Phase 1, built the same day the design was agreed.
+
+**The whole thing rests on one existing fact about this codebase:** the
+frontend never talks to Rust directly — every interaction goes through
+the typed `TauriCommands` contract (`tauriCommands.ts`) via `invoke()`,
+and two implementations of it already existed (the real IPC bridge,
+`tauriApi.ts`; the in-memory test/demo mock, `testing/mockBackend.ts`).
+**`WebBackend`** (new, `src/lib/webapp/webBackend.ts`) is a third —
+backed by IndexedDB instead of a `Map` or real files — and the entire
+frontend above the command layer (every Svelte component, `controller.ts`,
+every store) runs against it completely unmodified. Schema: one database
+(`chrononote-webapp`), three object stores (`notes`, `conflicts`,
+`meta` — holding the single `config` and `session` rows), via a small
+hand-written promise wrapper (`webapp/idb.ts`) rather than a dependency.
+`notesDir`/`recentNotesDirs`/`set_notes_dir`/`path_exists` have no
+browser-storage analogue (v1 is one implicit workspace per origin, per
+the design doc) — filled with an unused placeholder / no-ops
+respectively; the Settings UI hides the whole Notes Location section
+rather than ever showing them.
+
+**A new build target**, `vite.webapp.config.ts` → `webapp-src/index.html`
+→ `src/main-webapp.ts`, exactly mirroring the demo's existing
+`vite.demo.config.ts` pattern (isolated `root`, `base: "./"`, its own
+`__WEBAPP_VERSION__` build-time constant read from `package.json`) —
+committed static output in `website/webapp/`, deployed the same
+Plesk-Git-pull way as the demo. `npm run build:webapp`.
+
+**Export / import**, the design doc's chosen format — a single JSON file
+(`{chrononoteExport, notes: {filename: content}, config}`), pure
+parse/build logic in `webapp/exportBundle.ts` (own Vitest coverage,
+`exportBundle.test.ts`), triggered via a plain `Blob` + temporary
+`<a download>` (a real webpage, not a sandboxed context — no special
+handling needed). New shared primitive, **`import_notes_bundle`**
+(`storage.rs` + the Tauri command + `tauriCommands.ts` + both mocks),
+implemented identically in spirit by all three backends: desktop writes
+through the existing atomic `write_note_at` in a loop, `WebBackend`
+writes into IndexedDB, the mock writes into its `Map` — `merge` skips
+any filename that already exists (the default), `replace` clears
+everything first. **One shared "Data" section in `SettingsModal.svelte`**
+does the picking (a plain hidden `<input type="file">` — Tauri's webview
+supports the File API exactly like a real browser, so no OS dialog or
+native fs-read command was needed even for the desktop side) and the
+merge/replace confirmation, shown identically on the desktop app and the
+web app — this is the design doc's "closing the loop" decision (built in
+Phase 1, not deferred): the journey's last step is a real one-click
+import on the desktop app, not a manual file operation.
+
+**UI gating**, all keyed off a new `backendKind` store (`"desktop" |
+"demo" | "web"`, set explicitly by each of the three `main*.ts` entry
+points — *not* inferred from which backend engine is running, since the
+mock backend itself powers both `main.ts`'s dev/test path, which wants
+`"desktop"`, and `main-demo.ts`, which wants `"demo"`): the web app
+hides Notes Location and the whole Updates story (Settings' toggle,
+About's section, the status-bar update icon, `boot.ts`'s launch-time
+check — there's no installer to update to; refreshing the page always
+serves the latest deployed build) and shows a status-bar "Browser
+storage" badge instead; the Data section itself shows on both the
+desktop app and the web app, hidden only in the demo (nothing real to
+export there, and the design doc keeps the demo's fake data clearly
+separate from anything real).
+
+**A real, if small, bug found and fixed along the way:** adding the Data
+section made Settings tall enough that, on the test viewport, the
+modal's footer ("Close") ended up sitting under the status bar — which
+is deliberately `z-index: 250`, *above* a modal's overlay (§102), so its
+save-state/toast messages stay visible even while a modal is open. That
+same deliberate choice meant the status bar intercepted the Close click
+once the modal grew past it. Fixed the general case, not just this
+instance: `.settings-section` (shared by Settings and About) now caps at
+`max-height: 380px; overflow-y: auto` — the same bound `.modal-list`
+already uses elsewhere — so neither modal can grow tall enough to
+collide with the status bar again, however many sections either gains
+later.
+
+**Verified live in the browser**, not just via the test suite: built
+`website/webapp/`, served it, typed a real note, reloaded the page and
+confirmed it survived (real IndexedDB persistence), exported, and
+imported a hand-built bundle via a dispatched `change` event on the file
+input (exercising the real code path end-to-end) — confirmed by reading
+IndexedDB directly afterward that the new note landed and the existing
+one's content was untouched, matching merge semantics exactly.
+
+New tests: `storage.rs` +3 (`import_merge_writes_new_notes_and_skips_
+existing_filenames`, `import_replace_clears_existing_notes_first`,
+`import_skips_invalid_filenames_rather_than_erroring`), `exportBundle
+.test.ts` (9, pure parse/build logic — `WebBackend`'s own IndexedDB code
+isn't automated, jsdom has no IndexedDB implementation and none was
+added as a dependency for it; verified manually in the browser instead,
+see above). `svelte-check` 210 files 0 errors, Vitest 289 (+9), Playwright
+157 (unchanged — every existing spec runs with `backendKind` at its
+`"desktop"` default, so none of this gating changes their behaviour),
+`cargo test` 47 (+3).
+
+**Not yet deployed** — `website/webapp/` is committed but not yet
+promoted to the `website-live` deploy branch, and the
+`app.chrononote.mariendegelder.nl` subdomain doesn't exist in Plesk yet
+(Marien's own step, same shape as the original site's setup). See the
+`webapp-phase-1-sept-2026` memory for the exact remaining checklist.
+
+**What's still Phase 2, per the design doc's own scoping, not started:**
+demo/landing-page CTAs actually linking to the new web app; the OPFS
+storage engine revisit; PWA/offline install.

@@ -1,6 +1,13 @@
 <script lang="ts">
   import * as controller from "../../controller";
-  import { appVersion, updateAvailableVersion, updateDownloadProgress, updateErrorMessage, updateStatus } from "../../controller";
+  import {
+    appVersion,
+    backendKind,
+    updateAvailableVersion,
+    updateDownloadProgress,
+    updateErrorMessage,
+    updateStatus,
+  } from "../../controller";
   import { closeOnOutsideClick } from "../../actions/closeOnOutsideClick";
   import { focusTrap } from "../../actions/focusTrap";
   import Icon from "../../icons/Icon.svelte";
@@ -8,8 +15,10 @@
   // §update-check: kick off a check the moment About is opened if nothing
   // has run yet this session (the launch check may have been skipped —
   // auto-check off, or it hasn't resolved yet) — About is the one place a
-  // stale "idle" reading would actually be visible to the user.
-  if ($updateStatus === "idle") controller.checkForUpdates();
+  // stale "idle" reading would actually be visible to the user. Meaningless
+  // in the web app (no installer to update to — refreshing the page always
+  // serves the latest deployed build), so skipped there.
+  if ($backendKind !== "web" && $updateStatus === "idle") controller.checkForUpdates();
 
   $: progressLabel = (() => {
     const p = $updateDownloadProgress;
@@ -33,7 +42,12 @@
       </div>
       <div>
         <div class="settings-section-label">Updates</div>
-        {#if $updateStatus === "checking"}
+        {#if $backendKind === "web"}
+          <div class="settings-hint" style="margin-top: 0;">
+            This is the browser version — it always runs whatever's currently deployed. Refresh the page to get the
+            latest.
+          </div>
+        {:else if $updateStatus === "checking"}
           <div class="settings-hint" style="margin-top: 0;">
             <span class="modal-spinner" aria-label="Checking">⟳</span> Checking for updates…
           </div>

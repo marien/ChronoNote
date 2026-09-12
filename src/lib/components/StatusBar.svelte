@@ -1,6 +1,7 @@
 <script lang="ts">
   import {
     appVersion,
+    backendKind,
     justUpdatedToVersion,
     statusCounts,
     statusPos,
@@ -49,10 +50,19 @@
   </div>
 
   <div class="status-zone status-right">
-    {#if $updateStatus === "available"}
+    {#if $updateStatus === "available" && $backendKind !== "web"}
       <button type="button" class="status-update-btn" title="Update available — see About" on:click={controller.openAbout}>
         <Icon name="update" size={12} />
       </button>
+    {/if}
+    {#if $backendKind === "web"}
+      <span
+        id="stat-storage-tier"
+        title="Your notes are stored in this browser only. Export a backup, or install the desktop app for notes that live on your disk."
+      >
+        Browser storage
+      </span>
+      <span class="status-sep">·</span>
     {/if}
     {#if $appVersion}<span id="stat-version">v{$appVersion}</span>{/if}
     <button

@@ -516,6 +516,65 @@ fn read_all_notes_at(root: &Path) -> Result<Vec<(String, String)>, String> {
     Ok(out)
 }
 
+// --- Bundle import (web-app design doc, "Closing the loop") --------------
+//
+// Shared by the desktop app's own "Import notes from a file" Settings
+// entry and the web app's IndexedDB-backed importer — both hand this the
+// same `{filename -> content}` map parsed frontend-side from an export
+// JSON file (`docs/design/webapp-roadmap.md`'s export format). Desktop
+// writes through the existing atomic `write_note_at`; nothing here is new
+// storage logic, just a loop over it.
+
+/// `merge` never touches an existing filename; `replace` clears every
+/// existing note first. Mirrors the two choices the export/import design
+/// doc settled on — merge is the safe default, replace is the explicit,
+/// more clearly destructive "restore a backup" path.
+#[derive(Deserialize, Clone, Copy, PartialEq, Eq, Debug, TS)]
+#[serde(rename_all = "lowercase")]
+pub enum ImportMode {
+    Merge,
+    Replace,
+}
+
+#[derive(Serialize, TS)]
+#[serde(rename_all = "camelCase")]
+pub struct ImportResult {
+    pub imported: u32,
+    pub skipped: u32,
+}
+
+/// An entry is skipped (not an error) when its filename isn't a valid
+/// `YYYY-MM-DD.txt` note name, or (in `Merge` mode) a note with that name
+/// already exists — an import file is trusted no more than any other
+/// input, since it could have been hand-edited or come from a future
+/// schema version.
+fn import_notes_bundle_at(
+    root: &Path,
+    notes: &std::collections::HashMap<String, String>,
+    mode: ImportMode,
+) -> Result<ImportResult, String> {
+    if mode == ImportMode::Replace {
+        for f in list_note_files_at(root)? {
+            fs::remove_file(root.join(f)).map_err(|e| e.to_string())?;
+        }
+    }
+    let mut imported = 0u32;
+    let mut skipped = 0u32;
+    for (filename, content) in notes {
+        if !is_valid_note_filename(filename) {
+            skipped += 1;
+            continue;
+        }
+        if mode == ImportMode::Merge && root.join(filename).exists() {
+            skipped += 1;
+            continue;
+        }
+        write_note_at(root, filename, content, None)?;
+        imported += 1;
+    }
+    Ok(ImportResult { imported, skipped })
+}
+
 /// Which tabs were open, and which was active, last time this specific
 /// notes folder was used — spec §34. Deliberately stored *inside* the
 /// notes folder itself (rather than alongside `notes_dir`/`color_mode` in
@@ -624,6 +683,14 @@ pub fn write_tab_session(app: &AppHandle, session: &TabSession) -> Result<(), St
     write_tab_session_at(&notes_root(app)?, session)
 }
 
+pub fn import_notes_bundle(
+    app: &AppHandle,
+    notes: &std::collections::HashMap<String, String>,
+    mode: ImportMode,
+) -> Result<ImportResult, String> {
+    import_notes_bundle_at(&notes_root(app)?, notes, mode)
+}
+
 // --- TS binding generation (§98) ---------------------------------------
 //
 // The Rust payload structs are the single source of truth for their
@@ -647,6 +714,8 @@ fn generate_typescript_bindings() {
         AppConfig::decl(&cfg),
         TabSession::decl(&cfg),
         NoteWithMetadata::decl(&cfg),
+        ImportMode::decl(&cfg),
+        ImportResult::decl(&cfg),
     ];
     // ts-rs inlines each Rust doc comment as a `/* … */` block mid-decl,
     // which reads badly on one line. Strip those and collapse whitespace
@@ -1265,5 +1334,50 @@ mod tests {
         write_note_at(dir.path(), "2026-09-01.txt", "note", None).unwrap();
         write_tab_session_at(dir.path(), &TabSession::default()).unwrap();
         assert_eq!(list_note_files_at(dir.path()).unwrap(), vec!["2026-09-01.txt"]);
+    }
+
+    // --- import_notes_bundle (web-app design doc) ---
+
+    use std::collections::HashMap;
+
+    #[test]
+    fn import_merge_writes_new_notes_and_skips_existing_filenames() {
+        let dir = tempdir().unwrap();
+        write_note_at(dir.path(), "2026-09-01.txt", "original", None).unwrap();
+        let mut notes = HashMap::new();
+        notes.insert("2026-09-01.txt".to_string(), "would overwrite".to_string());
+        notes.insert("2026-09-02.txt".to_string(), "new note".to_string());
+        let result = import_notes_bundle_at(dir.path(), &notes, ImportMode::Merge).unwrap();
+        assert_eq!(result.imported, 1);
+        assert_eq!(result.skipped, 1);
+        assert_eq!(read_note_at(dir.path(), "2026-09-01.txt").unwrap(), Some("original".to_string()));
+        assert_eq!(read_note_at(dir.path(), "2026-09-02.txt").unwrap(), Some("new note".to_string()));
+    }
+
+    #[test]
+    fn import_replace_clears_existing_notes_first() {
+        let dir = tempdir().unwrap();
+        write_note_at(dir.path(), "2026-08-15.txt", "stale, not in the import", None).unwrap();
+        write_note_at(dir.path(), "2026-09-01.txt", "will be overwritten", None).unwrap();
+        let mut notes = HashMap::new();
+        notes.insert("2026-09-01.txt".to_string(), "restored".to_string());
+        let result = import_notes_bundle_at(dir.path(), &notes, ImportMode::Replace).unwrap();
+        assert_eq!(result.imported, 1);
+        assert_eq!(result.skipped, 0);
+        assert_eq!(read_note_at(dir.path(), "2026-09-01.txt").unwrap(), Some("restored".to_string()));
+        assert_eq!(list_note_files_at(dir.path()).unwrap(), vec!["2026-09-01.txt"]);
+    }
+
+    #[test]
+    fn import_skips_invalid_filenames_rather_than_erroring() {
+        let dir = tempdir().unwrap();
+        let mut notes = HashMap::new();
+        notes.insert("not-a-date.txt".to_string(), "x".to_string());
+        notes.insert("../escape.txt".to_string(), "x".to_string());
+        notes.insert("2026-09-03.txt".to_string(), "valid".to_string());
+        let result = import_notes_bundle_at(dir.path(), &notes, ImportMode::Merge).unwrap();
+        assert_eq!(result.imported, 1);
+        assert_eq!(result.skipped, 2);
+        assert_eq!(list_note_files_at(dir.path()).unwrap(), vec!["2026-09-03.txt"]);
     }
 }

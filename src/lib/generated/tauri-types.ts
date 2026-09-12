@@ -13,3 +13,7 @@ export type AppConfig = { notesDir: string, colorMode: ColorMode, themeMode: The
 export type TabSession = { openTabs: Array<string>, activeTab: string | null, lastOpenedDate?: string | null };
 
 export type NoteWithMetadata = { content: string | null, metadata: FileMetadata };
+
+export type ImportMode = "merge" | "replace";
+
+export type ImportResult = { imported: number, skipped: number };

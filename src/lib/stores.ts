@@ -102,6 +102,19 @@ export const modal = writable<ModalKind>("none");
  * version is actually running. Empty string until then. */
 export const appVersion = writable<string>("");
 
+/** Which of the three entry points booted this frontend — set explicitly
+ * by each `main*.ts` (never inferred from which backend engine happens to
+ * be installed, since the mock backend itself powers *two* of these:
+ * `main.ts`'s dev-only `?mock` branch pretends to be `"desktop"` for
+ * Playwright, while `main-demo.ts` uses the exact same `MockBackend`
+ * engine but declares `"demo"`). Defaults to `"desktop"`, correct for
+ * both the real Tauri build and that dev/test mock path. Gates the UI
+ * differences the web-app design doc calls for: `"web"` hides the Notes
+ * Location and Updates settings sections and shows the browser-storage
+ * status-bar badge; anything other than `"demo"` shows the Data
+ * (export/import) section. */
+export const backendKind = writable<"desktop" | "demo" | "web">("desktop");
+
 /** §update-check: whether ChronoNote silently checks github.com for a
  * newer release on launch. Mirrors `AppConfig.autoCheckUpdates` — on by
  * default (disclosed + toggleable in Settings). */

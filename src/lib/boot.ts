@@ -13,6 +13,7 @@ import {
   activeTabId,
   appVersion,
   autoCheckUpdates,
+  backendKind,
   chromeExpanded,
   colorMode,
   justUpdatedToVersion,
@@ -336,7 +337,8 @@ export async function initApp() {
   // Quiet by design — "no update" and a failed check both leave no trace
   // beyond the About drawer; only "an update is available" shows anything
   // (a status-bar message), and only the user's own click ever downloads.
-  if (cfg.autoCheckUpdates) void checkForUpdatesOnLaunch();
+  // Meaningless in the web app (see AboutModal.svelte's same gate).
+  if (cfg.autoCheckUpdates && get(backendKind) !== "web") void checkForUpdatesOnLaunch();
 }
 
 /** Tracks whether the OS window is maximized or fullscreen, so the top bar

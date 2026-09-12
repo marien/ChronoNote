@@ -123,6 +123,19 @@ fn read_tab_session(app: AppHandle) -> Result<Option<storage::TabSession>, Strin
     storage::read_tab_session(&app)
 }
 
+/// Shared by the desktop app's "Import notes from a file" Settings entry
+/// and the web app's importer — both parse an export JSON frontend-side
+/// and hand over just the `{filename -> content}` map. See
+/// `docs/design/webapp-roadmap.md`.
+#[tauri::command]
+fn import_notes_bundle(
+    app: AppHandle,
+    notes: std::collections::HashMap<String, String>,
+    mode: storage::ImportMode,
+) -> Result<storage::ImportResult, String> {
+    storage::import_notes_bundle(&app, &notes, mode)
+}
+
 #[tauri::command]
 fn write_tab_session(
     app: AppHandle,
@@ -201,6 +214,7 @@ pub fn run() {
             read_all_notes,
             read_tab_session,
             write_tab_session,
+            import_notes_bundle,
             path_exists
         ])
         .run(tauri::generate_context!())

@@ -1,4 +1,13 @@
-import type { AppConfig, ColorMode, FileMetadata, NoteWithMetadata, TabSession, ThemeMode } from "./types";
+import type {
+  AppConfig,
+  ColorMode,
+  FileMetadata,
+  ImportMode,
+  ImportResult,
+  NoteWithMetadata,
+  TabSession,
+  ThemeMode,
+} from "./types";
 
 type NoArgs = Record<string, never>;
 
@@ -33,6 +42,12 @@ export interface TauriCommands {
     returns: void;
   };
   path_exists: { args: { path: string }; returns: boolean };
+  /** Shared by the desktop app's "Import notes from a file" Settings
+   * entry and the web app's importer — see `docs/design/webapp-roadmap.md`. */
+  import_notes_bundle: {
+    args: { notes: Record<string, string>; mode: ImportMode };
+    returns: ImportResult;
+  };
 }
 
 export type TauriCommand = keyof TauriCommands;

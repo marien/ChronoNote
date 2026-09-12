@@ -1543,6 +1543,13 @@ kbd {
   display: flex;
   flex-direction: column;
   gap: 20px;
+  /* Same cap as `.modal-list` — Settings/About grew a section too many
+     (the web-app design doc's Data section) to keep assuming its content
+     always fits above the footer; scrolls internally instead of letting
+     the modal-card grow tall enough to sit under the status bar's
+     deliberately-higher z-index (§102) and swallow the Close click. */
+  max-height: 380px;
+  overflow-y: auto;
 }
 .settings-toggle-row {
   display: flex;
