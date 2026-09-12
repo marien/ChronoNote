@@ -5934,3 +5934,45 @@ border-bottom → `6px double var(--muted)`, bullet's `•` →
 computed styles) — both are now clearly visible.
 
 Pure `website/style.css` change, nothing else touched.
+
+## 149. The web app's icon was still the pre-0.4 stock clock, not the current mark
+
+**Status: implemented, no version bump — the desktop app's own build
+references none of the files this touched.** Marien: *"Can you check if
+the webapp already uses the correct icon?"* It didn't, and the same bug
+had just been carried into three files added in §146's favicon work too.
+
+**Root cause:** `src-tauri/icons/256x256.png` is a file `npx tauri icon`
+does not produce and has apparently never regenerated — confirmed by
+running it fresh here and diffing (every file the tool actually
+outputs, `icon.png`/`128x128@2x.png`/`32x32.png`/`128x128.png`/
+`icon.ico`/the iOS and Android sets, came back byte-identical to what
+was already committed; `256x256.png` wasn't touched at all and isn't
+even in the tool's output list). It's a true orphan, still holding the
+generic pre-v0.4 "stock white clock" mark from before ChronoNote had
+its own iconography at all — confirmed by actually opening the file and
+looking at it, not just comparing filenames. §146 trusted it as "the
+biggest available correct asset" without checking, and copied it into
+`website/assets/apple-touch-icon.png`, `demo-src/public/apple-touch-icon.png`,
+and (via that) `website/demo-app/apple-touch-icon.png`. Separately,
+unrelated to this session, `webapp-src/public/icons/icon-256.png` (used
+for both the web app's `<link rel="icon">` favicon *and* its
+`manifest.webmanifest` PWA icon at that size — i.e. the actual browser
+tab and home-screen icon a phone user would see) turned out to be
+sourced from the same stale file, predating this session entirely.
+`icon-512.png`/`og-image.png` were already correct — sourced from
+`icon.png`, which was fine.
+
+**Fix:** `src-tauri/icons/256x256.png` overwritten with
+`128x128@2x.png` — same 256×256 pixel dimensions, a native (not
+upscaled) export from the current master SVG at that exact resolution,
+already visually identical in treatment to `icon.png`. Re-copied the
+now-correct file to all four downstream consumers listed above, rebuilt
+`website/demo-app/` and `website/webapp/`, and reverted the rebuild's
+otherwise-unrelated output-file churn (`git diff --ignore-space-at-eol`
+showed it was all CRLF/LF noise, not real content) so the commit is
+just the six corrected PNGs.
+
+`svelte-check` 213/0, Vitest 292/292 (unchanged — binary asset fix, no
+logic touched), `cargo test` 47/47 (unchanged; re-run since `npx tauri
+icon` touches files under `src-tauri/`).
