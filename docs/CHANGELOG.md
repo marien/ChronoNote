@@ -5217,10 +5217,11 @@ Vitest/Playwright counts unchanged.
 
 ## 140. Default glyph palette: `Color`, not `Grayscale`
 
-**Status: implemented.** Marien, after noticing the published demo opened
-in grayscale: *"Is that the case for the application as well? I prefer
-to have it launch in color mode."* It was — `ColorMode`'s Rust
-`#[default]` has been `Grayscale` since the mode existed (§98). Flipped
+**Status: implemented, released in v0.7.8.** Marien, after noticing the
+published demo opened in grayscale: *"Is that the case for the
+application as well? I prefer to have it launch in color mode."* It
+was — `ColorMode`'s Rust `#[default]` has been `Grayscale` since the
+mode existed (§98). Flipped
 to `Color`: `storage.rs`'s `#[default]` attribute moved to the `Color`
 variant, `stores.ts`'s pre-boot placeholder and `mockBackend.ts`'s
 constructor fallback updated to match (the mock mirrors `storage.rs` by
