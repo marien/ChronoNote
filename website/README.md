@@ -4,6 +4,7 @@ Plain static HTML/CSS — no build step for the site itself, no framework.
 Three pages:
 
 - `index.html` — landing page, with the live demo embedded partway down
+  and a CTA linking to the web app
 - `guide.html` — full token vocabulary, keyboard shortcuts, workflow walkthrough
 - `demo.html` — the same live demo, full-screen, no marketing chrome around it
 
@@ -13,16 +14,21 @@ palette used as the site's accent) — it does not import the app's
 stylesheet directly, so keep the two in sync by eye if the app's palette
 ever changes.
 
+This folder also holds two **built** bundles of the real ChronoNote
+frontend, each its own Vite target sharing the same `src/` tree as the
+desktop app — see "The live demo" and "The web app" below.
+
 ## The live demo — self-contained, checked in
 
 `demo-app/` is a **built, static bundle** of the real ChronoNote
 frontend running against a fake, hand-authored dataset (`scenarios.ts`'s
 `"demo"` scenario) via the same in-memory mock Tauri backend the test
 suite uses. It's entirely client-side — no dev server, no backend, no
-Tauri host required. It's built by a dedicated Vite config
-(`vite.demo.config.ts`, entry `demo-src/index.html` → `src/main-demo.ts`)
-that's completely separate from the real app's own build, so it can
-never end up in the real desktop app's `dist/` (see `build-guard` in
+Tauri host required, and it never retains anything (a reload resets it).
+It's built by a dedicated Vite config (`vite.demo.config.ts`, entry
+`demo-src/index.html` → `src/main-demo.ts`) that's completely separate
+from the real app's own build, so it can never end up in the real
+desktop app's `dist/` (see `build-guard` in
 `.github/workflows/test.yml`, which only ever inspects that folder).
 
 **`demo-app/` is committed to git.** Historically it got rebuilt and
@@ -51,6 +57,41 @@ which then breaks the bundle's relative asset paths. `index.html` and
 `demo.html` already do this correctly; keep it that way if you touch
 either.
 
+## The web app — the real thing, persisted in the browser
+
+`webapp/` is a second **built, static bundle** of the same frontend, one
+step up from the demo: instead of the zero-retention mock backend, it
+runs against `WebBackend` — a real `IndexedDB`-backed implementation of
+the same `TauriCommands` surface — so notes actually persist across
+reloads, entirely in the visitor's own browser (nothing is sent
+anywhere). Built by its own Vite config (`vite.webapp.config.ts`, entry
+`webapp-src/index.html` → `src/main-webapp.ts`), and — like the demo —
+reads the app's real version out of `package.json` at build time
+(injected as `__WEBAPP_VERSION__`) rather than hardcoding one. It's also
+installable as a PWA — `manifest.webmanifest` and `sw.js`, hand-written
+in `webapp-src/public/` and carried through to the built output by
+Vite's normal public-dir passthrough — for anyone who wants it to launch
+in its own window.
+
+**`webapp/` is committed to git**, same discipline as `demo-app/` — a
+rebuild sits on `main` until deliberately promoted to `website-live`:
+
+```bash
+# from the project root
+npm run build:webapp
+git add website/webapp
+git commit -m "rebuild web app bundle"
+```
+
+Deployed at `app.chrononote.mariendegelder.nl` — a **separate Plesk
+subdomain whose document root just points at this same checkout's
+`website/webapp/` folder**. No second Git repository, no second webhook:
+a Plesk (sub)domain's document root is independent of where any Git
+checkout lives, so pointing a new subdomain at an existing folder is a
+one-time Plesk-side setting, not a deploy pipeline of its own. Once
+`website-live` moves, both `demo-app/` and `webapp/` are live at their
+respective subdomains together.
+
 ## Previewing the site locally
 
 Any static file server works — there's no backend dependency anymore:
@@ -61,16 +102,18 @@ npx serve website
 # or: open website/index.html directly in a browser
 ```
 
-## Publishing (Plesk, `chrononote.mariendegelder.nl`)
+## Publishing (Plesk)
 
 Deploy method: **Plesk's own Git extension, pulling the public GitHub
 repo directly** — no credentials anywhere (the repo is public, so a plain
-HTTPS clone needs no auth), nothing to leak. See the root-level deploy
-notes for the exact Plesk-side steps (subdomain creation, Git setup,
-document root) — those have to be done by Marien directly in Plesk;
-nothing about them can be scripted from here.
+HTTPS clone needs no auth), nothing to leak. Two subdomains share the
+one checkout: `chrononote.mariendegelder.nl` (document root = `website/`,
+the marketing site + demo) and `app.chrononote.mariendegelder.nl`
+(document root = `website/webapp/`, the installable web app). Subdomain
+creation, DNS, and both document-root settings have to be done directly
+in Plesk — nothing about them can be scripted from here.
 
-A GitHub webhook now triggers Plesk to pull on every push — but **Plesk
+A GitHub webhook triggers Plesk to pull on every push — but **Plesk
 tracks a dedicated `website-live` branch, not `main`**. Regular app
 development happens on `main` as always and never touches the live site,
 even though the webhook itself fires on every push to any branch (Plesk
@@ -91,15 +134,34 @@ which is always a deliberate, separate step:
   at any point for backup/review — `website-live` isn't watching that
   branch, so nothing goes live until it's deliberately merged into `main`
   and then promoted to `website-live` with the same three commands above.
-- **A new app release**: rebuild the demo bundle
-  (`npm run build:demo` — it reads the just-bumped version from
+- **A new app release**: rebuild both bundles (`npm run build:demo` and
+  `npm run build:webapp` — each reads the just-bumped version from
   `package.json` automatically) and commit that to `main` as part of the
   release, then promote to `website-live` the same way. See the root
   `CLAUDE.local.md`'s release workflow for exactly where this step sits.
 
-## Not done yet
+## Follow-ups noted, not started
 
+- **Guide page — show plain text *and* rendered output side by side.**
+  The "Putting it together" section's `.snippet` blocks (`guide.html`,
+  steps 1 and 2) currently show only the raw plain-text example someone
+  would type — there's no glyph-rendered counterpart next to it, so a
+  visitor has to picture (or go try the live demo) what `# scope the Q3
+  roadmap doc` actually looks like once ChronoNote renders it. Add a
+  rendered view alongside each `.snippet`, styled to match the editor's
+  own glyph presentation (§2.2 in `docs/spec.md`), so the token → glyph
+  mapping is visible on the page itself.
+- **(App feature idea, not website-specific) A backward action-state
+  cycle.** Today's cycle is one direction only, `# → v → > → x → #`
+  (open → done → deferred → won't-do → open), bound to `Ctrl+Space` /
+  `Ctrl/Cmd+Enter`. Idea: `Ctrl+Shift+Space` walks the same chain in
+  reverse (`# → x → > → v → #`), for undoing an overshoot without
+  cycling all the way around. This is an editor change first
+  (`src/lib/shortcuts.ts`, `tokens.ts`'s `cycleActionSymbol`) — noted
+  here because once it ships, this Guide page's shortcut cheat-sheet and
+  "Putting it together" step 2 both need the new binding added.
 - A favicon / social-preview (`og:image`) — using the app's own
-  "dated page" icon would be the natural choice.
+  "dated page" icon would be the natural choice. Also missing on
+  `app.chrononote.mariendegelder.nl`.
 - Screenshots/GIFs of the native desktop app, for anyone who skips the
   live demo.
