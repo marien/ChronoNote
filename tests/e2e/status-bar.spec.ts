@@ -67,6 +67,49 @@ test.describe("status bar — three zones (§100/§110)", () => {
     await expect(modalCard(page, MODAL_LABELS.shortcuts)).toContainText("Symbols → glyphs");
   });
 
+  test("§147: narrow-width collapse drops least-useful info first, keeps counts + help pinned", async ({ page }) => {
+    await seedApp(page, { seed: { notes: { [todayFilename()]: "# one\nv two\n> three" } } });
+    const leftZone = page.locator(".status-left");
+    const rightZone = page.locator(".status-right");
+
+    // Full width: everything shown, compact forms hidden.
+    await page.setViewportSize({ width: 1000, height: 700 });
+    await expect(page.locator("#stat-pos")).toBeVisible();
+    await expect(page.locator("#stat-words")).toBeVisible();
+    await expect(leftZone).toContainText("Open 1");
+    await expect(leftZone.locator(".stat-compact").first()).toBeHidden();
+
+    // Tier 1 (<=680px): word count drops first; position stays.
+    await page.setViewportSize({ width: 650, height: 700 });
+    await expect(page.locator("#stat-pos")).toBeVisible();
+    await expect(page.locator("#stat-words")).toBeHidden();
+
+    // Tier 2 (<=520px): position drops too — counts read with no orphan
+    // leading separator. `toHaveText` checks raw textContent (includes
+    // hidden siblings), so read `innerText` directly to see what's
+    // actually rendered.
+    await page.setViewportSize({ width: 500, height: 700 });
+    await expect(page.locator("#stat-pos")).toBeHidden();
+    expect(await leftZone.evaluate((el) => (el as HTMLElement).innerText.replace(/\s+/g, " ").trim())).toBe(
+      "Open 1 · Closed 1 · Forwarded 1",
+    );
+
+    // Tier 3 (<=420px, phone width): counts switch to compact glyph form,
+    // the version number disappears, and nothing overflows — the exact
+    // scenario reported from a phone-width web app screenshot.
+    await page.setViewportSize({ width: 390, height: 700 });
+    await expect(page.locator("#stat-open")).toBeHidden();
+    await expect(leftZone.locator(".stat-compact").first()).toBeVisible();
+    await expect(leftZone).toContainText("☐ 1");
+    await expect(page.locator("#stat-version")).toBeHidden();
+    const overflowing = await page
+      .locator("#status-bar")
+      .evaluate((el) => el.scrollWidth > el.clientWidth);
+    expect(overflowing).toBe(false);
+
+    await expect(rightZone.locator(".status-help")).toBeVisible();
+  });
+
   test("§update-check: the update icon sits next to the version once one is found, and opens About", async ({
     page,
   }) => {

@@ -123,6 +123,16 @@ export const SHORTCUTS: ShortcutDef[] = [
     ],
   },
   {
+    id: "cycleLineStateReverse",
+    label: "Cycle the action state backwards (open → won't-do → deferred → done)",
+    combos: [
+      // Same Space-avoided-on-Mac reasoning as `cycleLineState` above —
+      // no Mac binding involving Space, Cmd+Shift+Enter instead.
+      { mod: true, shift: true, code: "Space", platforms: ["other"] },
+      { mod: true, shift: true, code: "Enter" },
+    ],
+  },
+  {
     id: "jumpAction",
     label: "Jump to next / previous open action (in editor, wraps)",
     combos: [{ code: "F2" }, { shift: true, code: "F2" }],

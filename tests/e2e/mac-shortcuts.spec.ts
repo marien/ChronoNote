@@ -80,6 +80,20 @@ test.describe("Mac keyboard shortcuts — Cmd works, Ctrl doesn't", () => {
     await expect(editor(page).locator(".glyph-done")).toHaveCount(1);
   });
 
+  test("§145: Cmd+Shift+Enter cycles backwards; Ctrl+Shift+Space does nothing on Mac", async ({ page }) => {
+    await emulateMac(page);
+    await seedApp(page, { seed: { notes: {}, session: null } });
+    await editor(page).click();
+    await page.keyboard.type("# a task");
+    await page.keyboard.press("Home");
+
+    await page.keyboard.press("Control+Shift+Space");
+    await expect(editor(page).locator(".glyph-open")).toHaveCount(1); // unchanged
+
+    await page.keyboard.press("Meta+Shift+Enter");
+    await expect(editor(page).locator(".glyph-cancelled")).toHaveCount(1); // # -> x, the reverse step
+  });
+
   test("Shortcuts drawer shows Cmd, not Ctrl, and drops the Windows/Linux-only caret-nav row", async ({ page }) => {
     await emulateMac(page);
     await seedApp(page, { seed: "busy-week" });

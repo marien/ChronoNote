@@ -119,10 +119,12 @@ export function actionLineEnter(lineText: string): { removeSymbol: true } | { in
   return null;
 }
 
-/** The action-cycle logic (§40: `# → v → > → x → #`) behind `Ctrl+Space`/
- * `Ctrl/Cmd+Enter` in the editor and `Ctrl+Space` in the Action Drawer,
+/** The action-cycle logic (§40: `# → v → > → x → #`, or reversed with
+ * `direction: -1`, §145) behind `Ctrl+Space`/`Ctrl/Cmd+Enter` (and their
+ * `Ctrl/Cmd+Shift+Space`/`Ctrl/Cmd+Shift+Enter` reverse counterparts) in
+ * the editor, and `Ctrl+Space`/`Ctrl+Shift+Space` in the Action Drawer,
  * shared between the two (`EditorPane.svelte` and `toggleActionLine` in
- * `controller.ts`) so they can't drift apart.
+ * `actions.ts`) so they can't drift apart.
  * Handles both a plain (optionally indented, §50) action line and a
  * `=> <symbol>` consequence-action (§41), cycling only the symbol itself
  * and preserving everything else (indentation, the `=> ` prefix, the rest
@@ -134,16 +136,20 @@ export function actionLineEnter(lineText: string): { removeSymbol: true } | { in
  * "Talked to Sam => # follow up", and cycling needs to work there too, not
  * just when the arrow happens to open the line. */
 const ACTION_CYCLE_ORDER = ["#", "v", ">", "x"];
-export function cycleActionSymbol(line: string): string | null {
+function nextCycleSymbol(sym: string, direction: 1 | -1): string {
+  const len = ACTION_CYCLE_ORDER.length;
+  return ACTION_CYCLE_ORDER[(ACTION_CYCLE_ORDER.indexOf(sym) + direction + len) % len];
+}
+export function cycleActionSymbol(line: string, direction: 1 | -1 = 1): string | null {
   const delegateMatch = line.match(/^(.*=>\s)([#vx>])(\s.*)$/);
   if (delegateMatch) {
     const [, prefix, sym, rest] = delegateMatch;
-    return prefix + ACTION_CYCLE_ORDER[(ACTION_CYCLE_ORDER.indexOf(sym) + 1) % ACTION_CYCLE_ORDER.length] + rest;
+    return prefix + nextCycleSymbol(sym, direction) + rest;
   }
   const plainMatch = line.match(/^(\s*)([#vx>])(\s.*)$/);
   if (plainMatch) {
     const [, indent, sym, rest] = plainMatch;
-    return indent + ACTION_CYCLE_ORDER[(ACTION_CYCLE_ORDER.indexOf(sym) + 1) % ACTION_CYCLE_ORDER.length] + rest;
+    return indent + nextCycleSymbol(sym, direction) + rest;
   }
   return null;
 }

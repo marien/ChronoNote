@@ -22,19 +22,22 @@
 
 <div id="status-bar">
   <div class="status-zone status-left">
-    <span id="stat-pos">Ln {$statusPos.line}, Col {$statusPos.col}</span>
+    <span id="stat-pos" class="stat-tier2">Ln {$statusPos.line}, Col {$statusPos.col}</span>
     {#if selectionLabel}
-      <span class="status-sep">·</span>
-      <span id="stat-selection">{selectionLabel}</span>
+      <span class="status-sep stat-tier2">·</span>
+      <span id="stat-selection" class="stat-tier2">{selectionLabel}</span>
     {/if}
+    <span class="status-sep stat-tier1">·</span>
+    <span id="stat-words" class="stat-tier1">{$statusWordCount} {$statusWordCount === 1 ? "word" : "words"}</span>
+    <span class="status-sep stat-tier2">·</span>
+    <span id="stat-open" class="stat-full">Open {$statusCounts.open}</span>
+    <span class="stat-compact">☐ {$statusCounts.open}</span>
     <span class="status-sep">·</span>
-    <span id="stat-words">{$statusWordCount} {$statusWordCount === 1 ? "word" : "words"}</span>
+    <span id="stat-closed" class="stat-full">Closed {$statusCounts.closed}</span>
+    <span class="stat-compact">☑ {$statusCounts.closed}</span>
     <span class="status-sep">·</span>
-    <span id="stat-open">Open {$statusCounts.open}</span>
-    <span class="status-sep">·</span>
-    <span id="stat-closed">Closed {$statusCounts.closed}</span>
-    <span class="status-sep">·</span>
-    <span id="stat-forwarded">Forwarded {$statusCounts.forwarded}</span>
+    <span id="stat-forwarded" class="stat-full">Forwarded {$statusCounts.forwarded}</span>
+    <span class="stat-compact">» {$statusCounts.forwarded}</span>
   </div>
 
   <div class="status-zone status-centre">
@@ -59,10 +62,15 @@
     {#if $backendKind === "web"}
       <span
         id="stat-storage-tier"
+        class="stat-full"
         title="Your notes are stored in this browser only. Export a backup, or install the desktop app for notes that live on your disk."
       >
         Browser storage
       </span>
+      <span
+        class="status-storage-dot"
+        title="Your notes are stored in this browser only. Export a backup, or install the desktop app for notes that live on your disk."
+      ></span>
       <span class="status-sep">·</span>
     {/if}
     {#if $appVersion}<span id="stat-version">v{$appVersion}</span>{/if}

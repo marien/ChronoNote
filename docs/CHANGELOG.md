@@ -6,11 +6,16 @@ kept for the rationale behind each one — not just *what* changed but
 was still being gathered and confirmed before implementation; renamed once
 everything below was applied, since nothing here is "pending" anymore.
 
-**Status: all sections through §145 implemented, released, and on
-`main`.** §141's desktop-app Import feature shipped as v0.7.9; §143's
-cross-platform shortcuts and §144's top-bar collapse shipped together as
-v0.7.10. §145 is a same-release cleanup pass over §143's deferred
-comment/test-title wording — no version bump of its own. §141–§144's
+**Status: all sections through §147 implemented; §1–145 released, §146
+and §147 not yet in a version bump.** §141's desktop-app Import feature
+shipped as v0.7.9; §143's cross-platform shortcuts and §144's top-bar
+collapse shipped together as v0.7.10. §145 is a same-release cleanup
+pass over §143's deferred comment/test-title wording — no version bump
+of its own. §146 adds a reverse action-state cycle shortcut plus three
+website follow-ups (Guide-page rendered examples, favicon/social-preview
+tags). §147 collapses the status bar's content on narrow windows/
+screens, fixing an overlap reported from the web app on a phone. Both
+pending their own release. §141–§144's
 web-app pieces are separately deployed live at
 `app.chrononote.mariendegelder.nl` and `chrononote.mariendegelder.nl` —
 that side needs no version bump of its own, a website deploy is
@@ -65,7 +70,13 @@ after a tab was added while the window was already narrow. §145 is a
 cleanup pass over §143's deferred comment/test-title wording, which also
 caught and fixed a real Playwright bug: 15 key-presses that §143's
 migration had wrongly turned Mac-aware even though the bindings they
-test are deliberately Windows/Linux-only.
+test are deliberately Windows/Linux-only. §146 adds a backward
+action-state cycle (`Ctrl+Shift+Space`/`Ctrl/Cmd+Shift+Enter`) plus three
+website follow-ups (Guide-page rendered examples, favicon/social-preview
+tags — screenshots/GIFs left undone, a real tooling blocker). §147
+collapses the status bar's own content on narrow windows/screens, fixing
+an "Open" count running straight into the web app's "Browser storage"
+badge with no gap, reported from a phone.
 Each
 section is verified before merge (`svelte-check`, the Vitest suite,
 `cargo test`, and — from §77 on — the Playwright E2E suite, all green in
@@ -5753,3 +5764,146 @@ is Mac-aware.
 `svelte-check` 213/0, Vitest 289/289, `cargo test` 47/47, Playwright
 168/168 — all unchanged in count (pure comment/title rewording plus one
 test-correctness fix that doesn't add or remove a case), all green.
+
+## 146. Reverse action-state cycle, plus three website follow-ups
+
+**Status: implemented, no version bump yet (pending the next release).**
+Marien flagged four items noted for later in `website/README.md`'s
+"Follow-ups" section and asked to build all four.
+
+**A backward action-state cycle.** The existing cycle is one direction
+only, `# → v → > → x → #` (`tokens.ts`'s `cycleActionSymbol`, bound to
+`Ctrl+Space`/`Ctrl/Cmd+Enter` in the editor and `Ctrl+Space` in the
+Action Drawer). Added the reverse (`# → x → > → v → #`) as a new
+`direction: 1 | -1` parameter on the same function — one shared
+implementation, not a duplicate — defaulting to `1` so every existing
+call site is unaffected. Wired up as `Ctrl+Shift+Space` /
+`Ctrl/Cmd+Shift+Enter` in the editor (`EditorPane.svelte`'s CodeMirror
+keymap) and `Ctrl+Shift+Space` in the Action Drawer
+(`toggleActionLine`/`toggleActionLineItem` gained the same `direction`
+parameter). Follows the exact precedent the forward cycle already set
+for Mac: no binding involving `Space` at all there (mod-resolved
+`Space` combos have no safe Mac equivalent), so Mac gets
+`Cmd/Shift+Enter` instead — a new `cycleLineStateReverse` entry in the
+shared `shortcuts.ts` registry, shown in the Shortcuts & Symbols drawer
+right below the forward entry. New tests: `tokens.test.ts` (+2),
+`controller.test.ts` (+1), `editor-tokens.spec.ts` (+2),
+`action-drawer.spec.ts` (+1), `mac-shortcuts.spec.ts` (+1, confirming
+`Ctrl+Shift+Space` is a no-op on Mac and `Cmd+Shift+Enter` is the real
+binding there, mirroring the existing forward-cycle Mac test).
+
+**Guide page — plain text and rendered output side by side.** The
+"Putting it together" section's two `.snippet` examples (`guide.html`)
+used to show only the raw text someone would type. Each now sits in a
+`.snippet-pair` next to a second panel rendering the same lines with
+the site's existing `.glyph`/`.badge-assignee` classes (already used by
+the token-vocabulary table higher on the page) — a section title gets
+the app's own double-rule treatment (`border-bottom: 3px double`,
+mirroring the editor's real Setext-underline rendering) via a new
+`.rendered-title` class, and a bullet gets a `.rendered-bullet` `•`
+prefix. Stacks to one column under 640px. Verified via the DOM (page
+text, computed styles, element geometry) rather than a screenshot — the
+Browser pane's screenshot capture was unreliable for this page
+throughout this session regardless of scroll position (blank captures
+even at `scrollY: 0` on a fresh navigation); this reads as a pane/CDP
+timing issue, not a page bug, given `get_page_text` and computed-style
+checks all came back exactly as expected.
+
+**Favicon and social-preview meta tags.** The marketing site
+(`index.html`, `guide.html`, `demo.html`) and the demo bundle
+(`demo-src/index.html`) had no favicon and no Open Graph/Twitter Card
+tags at all — reusing existing baked assets rather than commissioning
+anything new, since `src-tauri/icons/` already has the "dated page"
+mark (the same one `app.chrononote.mariendegelder.nl`'s `webapp/`
+already used for its own favicon, which turned out to already be
+covered — the "also missing on the web app" note from the previous
+README pass was wrong and is corrected there). Copied `icon.ico` →
+`favicon.ico`, `32x32.png` → `favicon-32.png`, `256x256.png` →
+`apple-touch-icon.png`, and `icon.png` (512×512) → `og-image.png`, into
+`website/assets/` (static pages) and a new `demo-src/public/` (picked
+up automatically by Vite's public-dir passthrough into
+`website/demo-app/`, the same mechanism `webapp-src/public/` already
+used). Each static page's `<head>` gained matching `<link rel="icon">`/
+`apple-touch-icon` tags plus `og:title`/`og:description`/`og:image`/
+`twitter:*` tags using that page's own existing title and description.
+
+**Screenshots/GIFs of the desktop app — not completed, real tooling
+blocker.** The Browser pane's screenshot tool returns an image inline
+for viewing but has no way to persist it to a file, and no other tool
+available this session can save a browser-rendered frame to disk
+either — so there's no way to turn "here's a screenshot" into a
+committed website asset without either a different tool or Marien
+supplying image files directly. Left this one for Marien to decide how
+to proceed rather than fabricating placeholder images.
+
+`svelte-check` 213/0, Vitest 292 (+3), Playwright 172 (+4), `cargo
+test` 47 (unchanged — no Rust touched). `website/demo-app/` rebuilt
+(`npm run build:demo`) to pick up both the favicon and the reverse-cycle
+behavior.
+
+## 147. Status bar collapses its content on narrow windows/screens
+
+**Status: implemented, no version bump yet.** Marien sent a screenshot
+of the web app on a phone: the right zone's "Browser storage" badge was
+rendering directly against the left zone's clipped, mid-word-cut "Open"
+count with no gap at all between them ("OpBrowser storage"). Asked for
+a proposal before implementing — two decisions confirmed
+(AskUserQuestion, both recommended options): pure CSS breakpoints
+rather than a `settleLayout`-style JS/`ResizeObserver` measurement
+system (this bar's content is a fixed, known set of text spans, not an
+unbounded tab list, so nothing here actually needs measuring); and a
+priority order where word count drops first, then cursor position, then
+the `Open`/`Closed`/`Forwarded` counts and the storage badge switch to
+compact glyph/dot form — the counts and the `?` help button never
+disappear, pinned the same way New Scratchpad/Open Date are in the top
+bar's own collapse (§144).
+
+**Root cause, not just the symptom.** `#status-bar` is a
+`1fr auto 1fr` grid so the centre (transient-message) zone stays
+optically centred — but with no message showing, that centre column
+collapses to 0 width, and with no `column-gap` set, the left and right
+zones' clipped text runs straight into each other. Added
+`column-gap: 16px` as an unconditional floor fix (helps even before any
+breakpoint engages), then three width tiers on top of it:
+- **≤680px:** word count (`#stat-words`) hides first — least useful at
+  a glance.
+- **≤520px:** cursor position (`#stat-pos`, plus the selection-lines
+  readout when present) hides too. The separator that used to sit
+  between word-count and the counts is hidden at this same tier
+  (`stat-tier2`, on both the position group and that specific
+  separator) so `Open`/`Closed`/`Forwarded` never show an orphan
+  leading `·` once they become the first thing in the zone.
+- **≤420px** (phone width — the exact case reported): `Open 2` /
+  `Closed 0` / `Forwarded 0` switch to `☐ 2` / `☑ 0` / `» 0`, the
+  version number hides, and the web app's "Browser storage" text badge
+  becomes a small static dot (same quiet-dot visual language as
+  `#stat-message`/`#stat-updated`'s markers) — the full text moves into
+  its `title` tooltip instead of disappearing outright.
+
+**Implementation note:** `#stat-open`/`#stat-closed`/`#stat-forwarded`
+(and `#stat-storage-tier`) keep their *own* text exactly as before —
+the compact glyph/dot form is a separate sibling span, not a nested
+child. Nesting both forms inside the same id'd element seemed simpler
+at first, but Playwright's `toHaveText`/`textContent` don't respect
+`display: none` (unlike `toBeVisible`/`innerText`), so a naive nested
+version would have silently broken every existing exact-text assertion
+on those ids (e.g. `#stat-open` reading `"Open 1 ☐ 1"`) and the
+`statusCounts()` test helper (which strips non-digits and would have
+read `11` instead of `1`). Caught before it shipped by re-running
+`status-bar.spec.ts`, not by inspection.
+
+New test: `status-bar.spec.ts` (+1), using `page.setViewportSize()` at
+each tier boundary — same reliable, non-flaky technique
+`topbar-collapse.spec.ts` already established over pixel-perfect layout
+assertions — checking both `toBeVisible`/`toBeHidden` (rendering-aware)
+and a manual `innerText` read (since `toHaveText` isn't) for the exact
+narrowest-tier text, plus a `scrollWidth`/`clientWidth` check confirming
+no overflow at 390px, the width from the reported screenshot. Manually
+re-verified live too, against the real built `webapp/` bundle served
+locally, at 1000px/650px/500px/390px — DOM/computed-style checks plus
+one successful screenshot at 390px confirmed a clean, non-overlapping
+bar matching the design exactly.
+
+`svelte-check` 213/0, Vitest 292 (unchanged — pure CSS/markup, no new
+unit-testable logic), Playwright 173 (+1), `cargo test` 47 (unchanged).
+`website/demo-app/` and `website/webapp/` both rebuilt to pick this up.

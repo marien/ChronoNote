@@ -81,22 +81,23 @@ async function ensureFileOpenAndGetTabId(filename: string): Promise<string> {
   return opened!.id;
 }
 
-/** Ctrl+Space inside the action drawer — deliberately Ctrl-only, no Mac
- * alias (§143's `shortcuts.ts` design note on `ActionDrawerModal.svelte`
- * explains why: this modal's own `Enter` handler already claims that key
- * for a different action, so a `Cmd+Enter` alias here would collide with
- * it the way the editor's own cycle-state binding doesn't). Deliberately
+/** Ctrl+Space / Ctrl+Shift+Space (§145 adds the reverse direction) inside
+ * the action drawer — deliberately Ctrl-only, no Mac alias (§143's
+ * `shortcuts.ts` design note on `ActionDrawerModal.svelte` explains why:
+ * this modal's own `Enter` handler already claims that key for a
+ * different action, so a `Cmd+Enter` alias here would collide with it
+ * the way the editor's own cycle-state binding doesn't). Deliberately
  * does NOT rebuild
  * `actionSnapshot` afterward: the drawer's item list is captured once when
  * it opens, so a completed item keeps its row (shown with the "done"
  * style) for as long as the drawer stays open, and only drops out on the
  * next fresh `openActionDrawer()` call. */
-export function toggleActionLine(tabId: string, lineIdx: number) {
+export function toggleActionLine(tabId: string, lineIdx: number, direction: 1 | -1 = 1) {
   const list = get(tabs);
   const tab = list.find((t) => t.id === tabId);
   if (!tab) return;
   const lines = tab.content.split("\n");
-  const updated = cycleActionSymbol(lines[lineIdx]);
+  const updated = cycleActionSymbol(lines[lineIdx], direction);
   if (updated === null) return;
   lines[lineIdx] = updated;
   tabs.set(writeTabContent(tabId, lines.join("\n"), list));
@@ -139,9 +140,12 @@ export function forwardActionToToday(tabId: string, lineIdx: number) {
 
 /** Toggle/forward for an Action Drawer item that may come from "All Files"
  * mode and not have an open tab yet — opens it first if needed. */
-export async function toggleActionLineItem(item: { tabId?: string; filename: string; lineIdx: number }) {
+export async function toggleActionLineItem(
+  item: { tabId?: string; filename: string; lineIdx: number },
+  direction: 1 | -1 = 1,
+) {
   const tabId = item.tabId ?? (await ensureFileOpenAndGetTabId(item.filename));
-  toggleActionLine(tabId, item.lineIdx);
+  toggleActionLine(tabId, item.lineIdx, direction);
 }
 
 export async function forwardActionToTodayItem(item: { tabId?: string; filename: string; lineIdx: number }) {

@@ -556,6 +556,12 @@ describe("toggleActionLine / forwardActionToToday", () => {
     expect(get(controller.tabs)[0].content).toBe("plain text");
   });
 
+  it("cycles backwards when given direction -1 (§145)", () => {
+    controller.tabs.set([tab({ id: "a", content: "# do the thing" })]);
+    controller.toggleActionLine("a", 0, -1);
+    expect(get(controller.tabs)[0].content).toBe("x do the thing");
+  });
+
   it("forwards an open action to today, marking the source deferred", () => {
     controller.tabs.set([
       tab({ id: "src", filename: "2026-08-01.txt", content: "# call the client" }),

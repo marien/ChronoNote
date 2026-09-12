@@ -30,6 +30,9 @@ It's built by a dedicated Vite config (`vite.demo.config.ts`, entry
 from the real app's own build, so it can never end up in the real
 desktop app's `dist/` (see `build-guard` in
 `.github/workflows/test.yml`, which only ever inspects that folder).
+Static assets (favicon, `apple-touch-icon.png`) live in `demo-src/public/`
+and are carried straight through to `website/demo-app/` by Vite's
+public-dir passthrough — same mechanism `webapp-src/public/` uses below.
 
 **`demo-app/` is committed to git.** Historically it got rebuilt and
 committed to `main` alongside whatever frontend change prompted it. As
@@ -140,28 +143,32 @@ which is always a deliberate, separate step:
   release, then promote to `website-live` the same way. See the root
   `CLAUDE.local.md`'s release workflow for exactly where this step sits.
 
-## Follow-ups noted, not started
+## Follow-ups
 
-- **Guide page — show plain text *and* rendered output side by side.**
-  The "Putting it together" section's `.snippet` blocks (`guide.html`,
-  steps 1 and 2) currently show only the raw plain-text example someone
-  would type — there's no glyph-rendered counterpart next to it, so a
-  visitor has to picture (or go try the live demo) what `# scope the Q3
-  roadmap doc` actually looks like once ChronoNote renders it. Add a
-  rendered view alongside each `.snippet`, styled to match the editor's
-  own glyph presentation (§2.2 in `docs/spec.md`), so the token → glyph
-  mapping is visible on the page itself.
-- **(App feature idea, not website-specific) A backward action-state
-  cycle.** Today's cycle is one direction only, `# → v → > → x → #`
-  (open → done → deferred → won't-do → open), bound to `Ctrl+Space` /
-  `Ctrl/Cmd+Enter`. Idea: `Ctrl+Shift+Space` walks the same chain in
-  reverse (`# → x → > → v → #`), for undoing an overshoot without
-  cycling all the way around. This is an editor change first
-  (`src/lib/shortcuts.ts`, `tokens.ts`'s `cycleActionSymbol`) — noted
-  here because once it ships, this Guide page's shortcut cheat-sheet and
-  "Putting it together" step 2 both need the new binding added.
-- A favicon / social-preview (`og:image`) — using the app's own
-  "dated page" icon would be the natural choice. Also missing on
-  `app.chrononote.mariendegelder.nl`.
-- Screenshots/GIFs of the native desktop app, for anyone who skips the
-  live demo.
+Done (§146, `docs/CHANGELOG.md`):
+- **Guide page shows plain text *and* rendered output side by side.**
+  The "Putting it together" section's two `.snippet` examples
+  (`guide.html`) now each sit next to a `.snippet-rendered` panel using
+  the same `.glyph`/`.badge-assignee` classes the token-vocabulary table
+  above it already uses, so the token → glyph mapping is visible on the
+  page itself without needing the live demo. Stacks to one column under
+  640px (`.snippet-pair` in `style.css`).
+- **A backward action-state cycle shipped** — `Ctrl+Shift+Space` /
+  `Ctrl/Cmd+Shift+Enter` walks the existing `# → v → > → x → #` chain in
+  reverse, in both the editor and the Action Drawer. This was an editor
+  change, not a website one (`src/lib/shortcuts.ts`, `tokens.ts`'s
+  `cycleActionSymbol`) — mentioned here because the Guide page's
+  shortcut cheat-sheet has been updated with the new binding to match.
+- **Favicon and social-preview tags added** to the marketing site and
+  the demo, reusing the app's own existing baked "dated page" icon
+  assets (`src-tauri/icons/`) rather than commissioning new ones — see
+  `<head>` in `index.html`/`guide.html`/`demo.html`/`demo-src/index.html`.
+  (The web app already had its own favicon via `webapp-src/public/` —
+  an earlier note here claiming otherwise was wrong.)
+
+Not done — real tooling blocker, not a priority call:
+- **Screenshots/GIFs of the native desktop app.** Attempted this session:
+  the Browser pane can render and display a screenshot inline, but
+  nothing available could *save* one to a file for committing as a site
+  asset. Needs either a different capture tool or Marien supplying image
+  files directly.

@@ -860,6 +860,11 @@ body {
   color: var(--status-fg);
   display: grid;
   grid-template-columns: 1fr auto 1fr;
+  /* §147: keeps the left/right zones from ever visually touching — the
+     centre column collapses to 0 width whenever there's no transient
+     message, and without a floor gap here the two side zones' clipped
+     text runs straight into each other with no separation at all. */
+  column-gap: 16px;
   align-items: center;
   padding: 0 12px;
   font-size: 11px;
@@ -897,6 +902,40 @@ body {
 #stat-closed,
 #stat-forwarded {
   color: var(--muted);
+}
+
+/* §147: narrow-window collapse, least-useful info first. Pure CSS
+   breakpoints rather than a settleLayout-style measurement system (like
+   §144's top-bar collapse) — this bar's content is a fixed, known set
+   of text spans, not an unbounded tab list, so there's nothing here
+   that actually needs JS-driven measurement. The Open/Closed/Forwarded
+   counts and the help button never disappear — they stay pinned the
+   same way New Scratchpad/Open Date do in the top bar's own collapse —
+   they just switch to compact glyph/dot form at the narrowest tier
+   instead of vanishing. */
+@media (max-width: 680px) {
+  .stat-tier1 {
+    display: none;
+  }
+}
+@media (max-width: 520px) {
+  .stat-tier2 {
+    display: none;
+  }
+}
+.stat-compact {
+  display: none;
+}
+@media (max-width: 420px) {
+  .stat-full {
+    display: none;
+  }
+  .stat-compact {
+    display: inline;
+  }
+  #stat-version {
+    display: none;
+  }
 }
 /* §102/§110: transient messages (the former floating toast) — the centre
    zone is otherwise empty; the ambient save state moved to a quiet dot on
@@ -988,6 +1027,28 @@ body {
 }
 .status-update-btn:hover {
   color: var(--text);
+}
+/* §147: the phone-width stand-in for the "Browser storage" text badge —
+   same quiet-dot language as #stat-message/#stat-updated above, just a
+   static (not conditionally-rendered) accent dot; the full text stays
+   available via the parent span's title attribute. Hidden by default
+   and revealed at the same breakpoint as `.stat-compact` (kept as its
+   own rule + media block, not the shared `.stat-compact` class, so its
+   `display: inline-flex` — needed for width/height/border-radius to
+   apply at all — can't lose a source-order tie against that class). */
+.status-storage-dot {
+  display: none;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--text);
+  opacity: 0.55;
+  flex-shrink: 0;
+}
+@media (max-width: 420px) {
+  .status-storage-dot {
+    display: inline-flex;
+  }
 }
 
 /* §104: anchored mini calendar popover (the date picker). Not an

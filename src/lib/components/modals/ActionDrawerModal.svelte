@@ -193,6 +193,12 @@
       e.preventDefault();
       const it = flatList[selectedIndex];
       if (it) controller.jumpToFileLine(it);
+    } else if (e.ctrlKey && e.shiftKey && e.code === "Space") {
+      // §145: the reverse of the plain Ctrl+Space cycle below — checked
+      // first since it would otherwise also match that broader condition.
+      e.preventDefault();
+      const it = flatList[selectedIndex];
+      if (it) controller.toggleActionLineItem(it, -1);
     } else if (e.ctrlKey && e.code === "Space") {
       e.preventDefault();
       const it = flatList[selectedIndex];
@@ -287,7 +293,7 @@
     <div class="modal-footer">
       <div>
         <kbd>Enter</kbd> Jump · <kbd>Shift+Enter</kbd> Forward to Today ·
-        <kbd>Ctrl+Space</kbd> Cycle
+        <kbd>Ctrl+Space</kbd> Cycle · <kbd>Ctrl+Shift+Space</kbd> Cycle back
       </div>
       <div><kbd>Esc</kbd> Close</div>
     </div>

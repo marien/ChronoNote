@@ -5,6 +5,18 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Guide — ChronoNote</title>
   <meta name="description" content="How ChronoNote's token vocabulary, keyboard shortcuts, and core workflows work." />
+  <link rel="icon" href="assets/favicon.ico" sizes="any" />
+  <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png" />
+  <link rel="apple-touch-icon" href="assets/apple-touch-icon.png" />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://chrononote.mariendegelder.nl/guide.html" />
+  <meta property="og:title" content="Guide — ChronoNote" />
+  <meta property="og:description" content="How ChronoNote's token vocabulary, keyboard shortcuts, and core workflows work." />
+  <meta property="og:image" content="https://chrononote.mariendegelder.nl/assets/og-image.png" />
+  <meta name="twitter:card" content="summary" />
+  <meta name="twitter:title" content="Guide — ChronoNote" />
+  <meta name="twitter:description" content="How ChronoNote's token vocabulary, keyboard shortcuts, and core workflows work." />
+  <meta name="twitter:image" content="https://chrononote.mariendegelder.nl/assets/og-image.png" />
   <link rel="stylesheet" href="style.css" />
   <script src="shortcuts.js" defer></script>
 </head>
@@ -139,6 +151,7 @@
         <div class="shortcut-row"><span>Next / previous tab</span><kbd>Ctrl+Tab</kbd></div>
         <div class="shortcut-row"><span>Undo / redo (kept per tab)</span><kbd>Ctrl+Z</kbd> / <kbd>Ctrl+Shift+Z</kbd></div>
         <div class="shortcut-row"><span>Cycle the action state on this line</span><kbd>Ctrl+Space</kbd></div>
+        <div class="shortcut-row"><span>Cycle it backwards</span><kbd>Ctrl+Shift+Space</kbd></div>
         <div class="shortcut-row"><span>Jump to next / previous open action</span><kbd>F2</kbd> / <kbd>Shift+F2</kbd></div>
         <div class="shortcut-row"><span>Convert this line into a section header</span><kbd>Ctrl+Shift+S</kbd></div>
         <div class="shortcut-row"><span>Actions drawer</span><kbd>Ctrl+Shift+A</kbd></div>
@@ -167,10 +180,21 @@
             <h3>Open today, type what's happening</h3>
             <p>ChronoNote always opens on today's note. Give a meeting a title and underline it to make a
               section, then log actions as they come up.</p>
-            <div class="snippet">Daily Standup
+            <div class="snippet-pair">
+              <div>
+                <div class="snippet-pair-label">What you type</div>
+                <div class="snippet">Daily Standup
 =============
 - yesterday: fixed the sync retry bug
 # scope the Q3 roadmap doc</div>
+              </div>
+              <div>
+                <div class="snippet-pair-label">What you see</div>
+                <div class="snippet snippet-rendered"><span class="rendered-title">Daily Standup</span><br>
+<span class="rendered-bullet">yesterday: fixed the sync retry bug</span><br>
+<span class="glyph glyph-open">☐︎</span> scope the Q3 roadmap doc</div>
+              </div>
+            </div>
           </div>
         </div>
         <div class="workflow-step">
@@ -179,8 +203,18 @@
             <h3>Resolve, delegate, or defer</h3>
             <p>Click a glyph or press <kbd>Ctrl+Space</kbd> to cycle its state. Hand something off with
               <kbd>=&gt; @name</kbd> — it stays a real, editable name, not a locked-in reference.</p>
-            <div class="snippet">v scope the Q3 roadmap doc
+            <div class="snippet-pair">
+              <div>
+                <div class="snippet-pair-label">What you type</div>
+                <div class="snippet">v scope the Q3 roadmap doc
 => @Priya loop in design on the sync UI</div>
+              </div>
+              <div>
+                <div class="snippet-pair-label">What you see</div>
+                <div class="snippet snippet-rendered"><span class="glyph glyph-done">☑︎</span> scope the Q3 roadmap doc<br>
+<span class="glyph glyph-followup">➔︎</span> <span class="badge-assignee">@Priya</span> loop in design on the sync UI</div>
+              </div>
+            </div>
           </div>
         </div>
         <div class="workflow-step">

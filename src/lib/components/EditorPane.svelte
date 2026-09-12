@@ -119,10 +119,10 @@
     findMatch.set({ current: total === 0 ? 0 : Math.max(1, atOrBefore), total });
   }
 
-  function cycleLine(v: EditorView): boolean {
+  function cycleLine(v: EditorView, direction: 1 | -1 = 1): boolean {
     const pos = v.state.selection.main.head;
     const line = v.state.doc.lineAt(pos);
-    const updated = cycleActionSymbol(line.text);
+    const updated = cycleActionSymbol(line.text, direction);
     if (updated === null) return false;
     v.dispatch({ changes: { from: line.from, to: line.to, insert: updated } });
     return true;
@@ -288,6 +288,11 @@
       // §106: Ctrl/Cmd+Enter is the same action-state cycle as Ctrl+Space
       // — the combo the UX reviews (and most task apps) reach for.
       { key: "Mod-Enter", run: (v) => cycleLine(v) },
+      // §145: the reverse of the two bindings above — same Space-avoided-
+      // on-Mac reasoning as `cycleLineState` (see `shortcuts.ts`'s
+      // `cycleLineStateReverse` entry), so Mac only gets the Enter form.
+      { win: "Ctrl-Shift-Space", linux: "Ctrl-Shift-Space", run: (v) => cycleLine(v, -1) },
+      { key: "Mod-Shift-Enter", run: (v) => cycleLine(v, -1) },
       { key: "Mod-Shift-s", run: (v) => convertLineToSection(v) },
       { key: "F2", run: (v) => jumpToAdjacentOpenAction(v, 1) },
       { key: "Shift-F2", run: (v) => jumpToAdjacentOpenAction(v, -1) },

@@ -80,6 +80,23 @@ test.describe("action drawer (Ctrl/Cmd+Shift+A)", () => {
     await expect.poll(() => mockNote(page, "2026-09-07.txt")).toContain("=> v send the recap email");
   });
 
+  test("Ctrl+Shift+Space on a row cycles backwards (§145)", async ({ page }) => {
+    await seedApp(page, { seed: "delegation" });
+    const d = await openViaShortcut(page, "ControlOrMeta+Shift+A", "actions");
+
+    await d.getByText("Only Open", { exact: false }).click();
+    await filterInput(page).fill("recap email");
+    const row = rows(page).first();
+    await expect(row).toContainText("send the recap email");
+    await expect(row.locator("span").first()).toHaveText("☐");
+
+    await filterInput(page).focus();
+    await page.keyboard.press("Control+Shift+Space");
+
+    await expect(row.locator("span").first()).toHaveText("☒");
+    await expect.poll(() => mockNote(page, "2026-09-07.txt")).toContain("=> x send the recap email");
+  });
+
   test("Shift+Enter forwards an action to today: source -> '>', today gets '#' on top", async ({ page }) => {
     await seedApp(page, { seed: "delegation" });
     await openViaShortcut(page, "ControlOrMeta+Shift+A", "actions");

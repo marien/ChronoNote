@@ -89,6 +89,24 @@ test.describe("editor — token glyphs", () => {
     expect(await activeTabContent(page)).toBe("v a task");
   });
 
+  test("Ctrl+Shift+Space cycles backwards: # -> x -> > -> v -> # (§145)", async ({ page }) => {
+    await typeInEditor(page, "# a task");
+    const line = editor(page).locator(".cm-line").first();
+
+    for (const cls of ["glyph-cancelled", "glyph-progress", "glyph-done", "glyph-open"]) {
+      await page.keyboard.press("Control+Shift+Space");
+      await expect(line.locator(`.${cls}`)).toHaveCount(1);
+    }
+    expect(await activeTabContent(page)).toBe("# a task");
+  });
+
+  test("Ctrl/Cmd+Shift+Enter cycles backwards too (§145)", async ({ page }) => {
+    await typeInEditor(page, "# a task");
+    await page.keyboard.press("ControlOrMeta+Shift+Enter");
+    await expect(editor(page).locator(".glyph-cancelled")).toHaveCount(1);
+    expect(await activeTabContent(page)).toBe("x a task");
+  });
+
   test("#34: hovering a cyclable glyph previews the next state, then reverts", async ({ page }) => {
     await setEditorText(page, "# a task\nplain line");
     const glyph = editor(page).locator(".cm-line").first().locator(".glyph-cyclable");

@@ -185,6 +185,22 @@ describe("cycleActionSymbol", () => {
     expect(cycleActionSymbol("Talked to Sam => @alice")).toBeNull();
     expect(cycleActionSymbol("just prose")).toBeNull();
   });
+
+  it("cycles backwards with direction -1: # -> x -> > -> v -> # (§145)", () => {
+    let line = "# Buy milk";
+    line = cycleActionSymbol(line, -1)!;
+    expect(line).toBe("x Buy milk");
+    line = cycleActionSymbol(line, -1)!;
+    expect(line).toBe("> Buy milk");
+    line = cycleActionSymbol(line, -1)!;
+    expect(line).toBe("v Buy milk");
+    line = cycleActionSymbol(line, -1)!;
+    expect(line).toBe("# Buy milk");
+  });
+
+  it("cycles a consequence-action's symbol backwards too (§145)", () => {
+    expect(cycleActionSymbol("Talked to Sam => # follow up", -1)).toBe("Talked to Sam => x follow up");
+  });
 });
 
 describe("actionLineEnter", () => {

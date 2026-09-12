@@ -24,6 +24,7 @@
     "indentDedent",
     "undoRedo",
     "cycleLineState",
+    "cycleLineStateReverse",
     ["Click a glyph", "Same cycle, on that line (hover previews the next state)"],
     "jumpAction",
     "caretLineNav",
