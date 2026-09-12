@@ -209,7 +209,7 @@ export class MockBackend {
 
   constructor(seed: MockSeed = {}) {
     this.notesDir = seed.notesDir ?? "/notes";
-    this.colorMode = seed.colorMode ?? "grayscale";
+    this.colorMode = seed.colorMode ?? "color"; // mirrors storage.rs's ColorMode::default()
     this.themeMode = seed.themeMode ?? "system";
     this.wordWrap = seed.wordWrap ?? false;
     this.readableLineLength = seed.readableLineLength ?? false;

@@ -7,9 +7,11 @@ use ts_rs::TS;
 
 /// Editor glyph colouring. Three sets, all sharing the same structural
 /// `--glyph-*` CSS variables:
-///  - `Grayscale` — weight/opacity only, no hue (the default).
 ///  - `Color` — the §105 semantic palette (cyan open · emerald done ·
-///    violet deferred · slate won't-do).
+///    violet deferred · slate won't-do). The default (changed from
+///    `Grayscale` 2026-09-13 — Marien preferred launching in colour after
+///    noticing the demo's grayscale-by-default start).
+///  - `Grayscale` — weight/opacity only, no hue.
 ///  - `Legacy` — the pre-0.6 palette (§111): red open · amber deferred ·
 ///    green done, on the old VS-Code-blue chrome accent.
 /// Stored in `config.json`; deserialization rejects anything else (an
@@ -18,8 +20,8 @@ use ts_rs::TS;
 #[derive(Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Debug, Default, TS)]
 #[serde(rename_all = "lowercase")]
 pub enum ColorMode {
-    Color,
     #[default]
+    Color,
     Grayscale,
     Legacy,
 }
@@ -780,7 +782,7 @@ mod tests {
         let default_dir = dir.path().join("Notes");
         let cfg = load_config_at(&path, &default_dir).unwrap();
         assert_eq!(cfg.notes_dir, default_dir.to_string_lossy());
-        assert_eq!(cfg.color_mode, ColorMode::Grayscale);
+        assert_eq!(cfg.color_mode, ColorMode::Color);
         assert!(cfg.recent_notes_dirs.is_empty());
         // The default is also persisted, not just returned in memory.
         assert!(path.exists());
@@ -874,7 +876,7 @@ mod tests {
         fs::write(&path, r#"{"notesDir": "/hand/edited"}"#).unwrap();
         let loaded = load_config_at(&path, &dir.path().join("Notes")).unwrap();
         assert_eq!(loaded.notes_dir, "/hand/edited");
-        assert_eq!(loaded.color_mode, ColorMode::Grayscale);
+        assert_eq!(loaded.color_mode, ColorMode::Color);
         assert_eq!(loaded.theme_mode, ThemeMode::System);
         assert!(!loaded.word_wrap);
         // Omitted from an older config → off (§110: it's an opt-in).

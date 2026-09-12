@@ -35,7 +35,9 @@ const TOKEN_SAMPLER = [
 
 test.describe("visual — state gallery", () => {
   test("editor with the full token vocabulary (grayscale + color + legacy)", async ({ page }) => {
-    await seedApp(page, { seed: "empty" });
+    // Explicit — the app's own default is "color" now, but this gallery
+    // wants a genuine grayscale shot first, not two color ones in a row.
+    await seedApp(page, { seed: { notes: {}, colorMode: "grayscale" } });
     await setEditorText(page, TOKEN_SAMPLER);
     await editor(page).click();
     await shot(page, "editor-tokens-grayscale");

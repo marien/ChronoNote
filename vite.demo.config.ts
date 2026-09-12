@@ -1,5 +1,14 @@
+import { readFileSync } from "node:fs";
 import { defineConfig } from "vite";
 import { svelte } from "@sveltejs/vite-plugin-svelte";
+
+// Read directly via fs rather than `import pkg from "./package.json"` —
+// this file always runs in a real Node process (Vite's own config
+// loader), so there's no ESM-import-attribute restriction to work around
+// here; it's specifically a bare JSON *module* import reaching Playwright's
+// separate Node-based spec loader (via scenarios.ts) that doesn't work
+// (see the comment on `__DEMO_APP_VERSION__` in scenarios.ts).
+const appVersion = JSON.parse(readFileSync("./package.json", "utf-8")).version as string;
 
 /** Builds the public marketing-site demo — a separate target from the
  * real app's `vite.config.ts`/`index.html`. Entirely static output (the
@@ -21,6 +30,9 @@ export default defineConfig({
   root: "demo-src",
   base: "./",
   plugins: [svelte()],
+  define: {
+    __DEMO_APP_VERSION__: JSON.stringify(appVersion),
+  },
   build: {
     outDir: "../website/demo-app",
     emptyOutDir: true,

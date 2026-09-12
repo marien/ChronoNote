@@ -41,18 +41,20 @@ test.describe("icon system (§127)", () => {
     const dateBtn = page.locator('[data-datepicker-trigger]');
     const iconColor = () => dateBtn.locator("svg.cn-icon").evaluate((el) => getComputedStyle(el).color);
 
-    const grayscale = await iconColor();
+    const beforeColor = await iconColor();
     await editor(page).click();
     await page.keyboard.press("Control+Comma");
-    await modalCard(page, MODAL_LABELS.settings).getByRole("radio", { name: "Color", exact: true }).click();
+    await modalCard(page, MODAL_LABELS.settings).getByRole("radio", { name: "Grayscale", exact: true }).click();
     await page.keyboard.press("Escape");
-    const colorMode = await iconColor();
+    const afterColor = await iconColor();
 
     // Chrome icons stay `--text` in every colour mode (finding A) — the
     // toolbar's own text colour, not a semantic hue, and not a fixed
-    // emoji-rendered colour either.
+    // emoji-rendered colour either. Switching modes here (rather than
+    // asserting on whichever mode the app happens to default to) is what
+    // actually proves it doesn't change.
     const textColor = await page.evaluate(() => getComputedStyle(document.body).color);
-    expect(grayscale).toBe(textColor);
-    expect(colorMode).toBe(textColor);
+    expect(beforeColor).toBe(textColor);
+    expect(afterColor).toBe(textColor);
   });
 });

@@ -9,6 +9,18 @@ import type { MockSeed } from "./mockBackend";
 import { generateDataset } from "./dataset";
 import { addDaysISO, todayISO } from "../date";
 
+/** Set only by `vite.demo.config.ts`'s `define` — the website's demo
+ * bundle is rebuilt from this same source tree (see
+ * `website/README.md`), so its "demo" scenario reports the real version
+ * it was built from rather than a hand-maintained literal. A plain
+ * `import pkg from "../../../package.json"` would do this more simply,
+ * but breaks Playwright's Node-based spec loader (a different module
+ * resolution path than Vite/Vitest, which both handle a bare JSON import
+ * fine) with "needs an import attribute of type: json" — this constant
+ * is undefined outside the demo build (dev mock, Vitest, Playwright), so
+ * every other scenario's/consumer's behaviour is unaffected. */
+declare const __DEMO_APP_VERSION__: string | undefined;
+
 /** The fixed "today" every scenario is generated around. Tests that touch
  * date logic MUST pin their clock to this (helpers do it automatically). */
 export const REFERENCE_TODAY = "2026-09-07";
@@ -235,6 +247,10 @@ function build(name: ScenarioName): MockSeed {
           openTabs: [d(-5), d(-3), d(0)],
           activeTab: d(0),
         },
+        // See the module doc-comment on __DEMO_APP_VERSION__ above —
+        // `undefined` here (every context but the built demo bundle)
+        // just falls through to the mock's own default ("0.3.0").
+        appVersion: __DEMO_APP_VERSION__,
       };
     }
 

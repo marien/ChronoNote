@@ -6,9 +6,10 @@ kept for the rationale behind each one — not just *what* changed but
 was still being gathered and confirmed before implementation; renamed once
 everything below was applied, since nothing here is "pending" anymore.
 
-**Status: all sections through §137 implemented, released, and on `main`.**
-§138 is implemented but is not a release — it doesn't touch the shipped
-app at all (a new local-only marketing site + a dev-only test scenario).
+**Status: all sections through §140 implemented, released, and on `main`.**
+§138–§139 are implemented but were never themselves a release — they
+don't touch the shipped app at all (a new marketing site + a dev-only
+test scenario).
 §99–§110 are the 0.6 UX/UI pass (`docs/design/ux-roadmap-0.6.md`); §111 is
 a small v0.6.1 follow-up (the pre-0.6 glyph palette, back as an option).
 §112 (#28) and §113 (#27) are Section History follow-ups (v0.6.2).
@@ -31,8 +32,13 @@ the About drawer's external links silently do nothing. §136 closes #50
 update icon (chat feedback, no issue). §137 (chat feedback, no issue) is
 a date-picker perf/UX pass — fast per-visible-month loading, a loading
 spinner, and opening on the active tab's own date. §138 is a new
-`website/` marketing site (local-only, publishing deferred) plus the
-`"demo"` scenario it embeds live.
+`website/` marketing site, local-only at first, plus the `"demo"`
+scenario it embeds. §139 turns that demo into a self-contained static
+bundle and publishes the site to `chrononote.mariendegelder.nl` via
+Plesk's own Git-pull (no credentials anywhere — Plesk clones the public
+repo directly). §140 flips the default glyph palette from `Grayscale` to
+`Color` (chat feedback, no issue), and fixes the demo's hardcoded
+placeholder version number.
 Each
 section is verified before merge (`svelte-check`, the Vitest suite,
 `cargo test`, and — from §77 on — the Playwright E2E suite, all green in
@@ -5109,9 +5115,10 @@ Pure frontend — no Rust/IPC/storage change, `cargo test` unchanged at 44.
 
 ## 138. A marketing website, local-only for now — plus a new "demo" mock scenario
 
-**Status: implemented, local only** ("let's start with a local version of
-the website. we'll work on publishing it later"). Not a change to the
-shipped app — nothing here affects `dist/` or any release build.
+**Status: implemented, then published the same day (see §139).** ("let's
+start with a local version of the website. we'll work on publishing it
+later.") Not a change to the shipped app — nothing here affects `dist/`
+or any release build.
 
 **`website/`** — a new, separate static site (plain HTML/CSS, no build
 step, no framework) with a landing page, a full usage guide (token
@@ -5125,12 +5132,9 @@ it in sync by eye.
 
 **The demo is the real app, not a recreation.** It embeds ChronoNote's
 actual frontend, running against the existing in-memory mock Tauri
-backend the test suite already uses, via a new iframe pointed at
-`?mock&scenario=demo`. This needs the app's own dev server running
-locally (`npm run dev`) — publishing a real production build of this
-(bundling the dev-only mock intentionally, without weakening the
-existing `build-guard` CI job's guarantee that it never leaks into the
-real desktop app's `dist/`) is explicitly deferred to the publish pass.
+backend the test suite already uses. Originally an iframe pointed at
+`?mock&scenario=demo` on the app's own local dev server — turned into a
+real, self-contained static bundle the same day; see §139.
 
 **New `"demo"` scenario** (`scenarios.ts`) — hand-authored, not
 generated, so every token form gets a real, readable example and two
@@ -5153,3 +5157,111 @@ and the date-picker calendar all checked directly), not something an
 automated assertion should pin down the exact prose of. `svelte-check`
 256 files 0 errors, Vitest/Playwright counts unchanged (no test
 references the new scenario).
+
+---
+
+## 139. The website goes live: a self-contained demo bundle, published via Plesk
+
+**Status: implemented, published** at `chrononote.mariendegelder.nl`.
+Marien: *"Let's work on publishing the website... I want to use
+[cloud86.io/Plesk] for the first versions... credentials cannot [be in
+git], I don't want to leak any sensitive data."*
+
+**Deploy mechanism, decided up front (AskUserQuestion): Plesk's own Git
+extension, pulling the public GitHub repo directly — zero credentials
+anywhere**, since a public repo needs no auth to clone. The declined
+alternative was a GitHub Actions workflow pushing over SFTP/SSH on every
+commit — more automatic, but a real deploy credential living somewhere
+(even as a GitHub secret I'd never see) versus nowhere. Plesk just serves
+static files with no build step, which meant §138's demo — an iframe
+pointed at a locally-running dev server — had to become an actual static
+artifact first.
+
+**New build target, entirely separate from the real app's own.**
+`vite.demo.config.ts` (`root: "demo-src"`, its own entry
+`demo-src/index.html` → `src/main-demo.ts`) builds a self-contained
+bundle — the mock backend always on, no Tauri host, no dev server —
+written straight into `website/demo-app/` and **committed to git**, so
+Plesk's pull needs no server-side build step at all. Confirmed by hand
+this can never end up in the real desktop app's `dist/`: `build-guard`
+(`.github/workflows/test.yml`) only ever inspects that folder, which this
+config never writes to — ran both builds, grepped `dist/`, clean.
+`website/index.html`/`demo.html` now iframe `demo-app/` instead of
+`localhost:1420`. `npm run build:demo` is the one new maintenance step —
+rebuild and commit after any frontend change that should show up in the
+demo (documented in `website/README.md`).
+
+**Gotcha hit and fixed, worth remembering for any future static bundle:**
+always reference a built bundle's directory with a **trailing slash**
+(`demo-app/`, never `demo-app/index.html`). `npx serve`'s default "clean
+URLs" redirect strips the explicit filename *and* the trailing slash
+together, which then resolves the bundle's relative asset paths against
+the wrong parent directory (a real, reproduced bug — the demo rendered
+blank until this was traced via `read_network_requests` and fixed). Real
+production servers may behave differently, but the trailing-slash form
+is the safe habit regardless of host.
+
+**What I can't and didn't do:** create the subdomain, touch DNS, or
+access Plesk itself — that's Marien's own hosting account and credentials,
+handed over as a step-by-step checklist in chat instead (subdomain
+creation, Git repository setup pointed at the public repo, setting the
+subdomain's document root to the repo's `website/` subfolder specifically
+so the rest of the cloned repo stays unserved, SSL, and a note about
+`.git` never ending up inside a public document root).
+
+No new automated test — this is deployment plumbing and a manual Plesk
+checklist, not app behaviour. `svelte-check` 257 files 0 errors,
+Vitest/Playwright counts unchanged.
+
+---
+
+## 140. Default glyph palette: `Color`, not `Grayscale`
+
+**Status: implemented.** Marien, after noticing the published demo opened
+in grayscale: *"Is that the case for the application as well? I prefer
+to have it launch in color mode."* It was — `ColorMode`'s Rust
+`#[default]` has been `Grayscale` since the mode existed (§98). Flipped
+to `Color`: `storage.rs`'s `#[default]` attribute moved to the `Color`
+variant, `stores.ts`'s pre-boot placeholder and `mockBackend.ts`'s
+constructor fallback updated to match (the mock mirrors `storage.rs` by
+convention — see `CLAUDE.local.md`).
+
+**Only matters for a genuinely fresh install** (no `config.json` yet, or
+one from before the `colorMode` field existed) — every config already on
+disk keeps whatever it explicitly saved, `#[serde(default)]` only ever
+fires for a config with the field truly absent. Existing users, including
+Marien's own dev machine, are unaffected unless they reset their config.
+
+**Test fallout, all from the same root cause:** several e2e tests
+implicitly relied on "grayscale" being whatever a freshly-seeded mock
+defaults to — `settings.spec.ts`'s toggle test, `command-palette.spec.ts`'s
+`>colored` search (the palette's colour command's label names the *next*
+mode in the cycle, so searching "colored" finds nothing once the app is
+already in colour mode), and one `visual.spec.ts` gallery shot literally
+named "editor-tokens-grayscale". Fixed by seeding `colorMode: "grayscale"`
+explicitly wherever a test's actual point is the grayscale state or the
+transition away from it — more robust than depending on whatever the
+implicit default happens to be, and clearer about each test's intent.
+`icon-system.spec.ts`'s theming test didn't depend on the default at all
+(it now explicitly switches modes rather than reading whichever one is
+current) but had a stale variable name from when it did; renamed while in
+there.
+
+Also fixed the website's demo showing a hardcoded `v0.3.0` (the mock's
+own placeholder) instead of the version it was actually built from — new
+`vite.demo.config.ts` `define: { __DEMO_APP_VERSION__ }`, read from
+`package.json` via `fs.readFileSync` at config-load time (a plain
+`import pkg from "./package.json"` in `scenarios.ts` itself broke
+Playwright's separate Node-based spec loader with an import-attribute
+error, even though Vite/Vitest both handle a bare JSON import fine —
+worth remembering if any other file shared across those three loaders
+ever wants build-time JSON data again).
+
+Updated: `storage.rs` (2 existing test assertions flipped from
+`ColorMode::Grayscale` to `ColorMode::Color` — no new test, the
+enum-default behaviour is already what `#[derive(Default)]` covers),
+`stores.ts`, `mockBackend.ts`, `scenarios.ts`, `vite.demo.config.ts`,
+`tests/e2e/{settings,command-palette,icon-system,visual}.spec.ts`.
+`svelte-check` 257 files 0 errors, Vitest 280 (unchanged — no test
+asserted on the default specifically), Playwright 157 (unchanged),
+`cargo test` 44 (unchanged, 2 assertions updated in place).

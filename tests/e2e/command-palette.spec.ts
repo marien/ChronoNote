@@ -1,5 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { seedApp, editor, modalCard, MODAL_LABELS, currentModal, activeTabLabel, todayFilename } from "./helpers";
+import { scenario } from "../../src/lib/testing/scenarios";
 
 const palette = (page: import("@playwright/test").Page) => modalCard(page, MODAL_LABELS.commandPalette);
 
@@ -62,7 +63,11 @@ test.describe("command palette (Ctrl+K, §107)", () => {
   });
 
   test("Escape closes it and Arrow/Enter drive it from the keyboard", async ({ page }) => {
-    await seedApp(page, { seed: "busy-week" });
+    // Explicit starting mode — the palette's colour command's label names
+    // the *next* mode in the grayscale → color → legacy cycle, so this
+    // test (which searches for "colored" specifically) needs to start
+    // from grayscale regardless of the app's own default.
+    await seedApp(page, { seed: { ...scenario("busy-week"), colorMode: "grayscale" } });
     await editor(page).click();
     await page.keyboard.press("Control+k");
     await palette(page).locator(".modal-input").fill(">colored");

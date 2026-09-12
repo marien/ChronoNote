@@ -11,6 +11,7 @@ import {
   tabLabels,
   todayFilename,
 } from "./helpers";
+import { scenario } from "../../src/lib/testing/scenarios";
 
 const settings = (page: Page) => modalCard(page, MODAL_LABELS.settings);
 
@@ -53,7 +54,10 @@ test.describe("settings (Ctrl+,)", () => {
   });
 
   test("theme toggle flips data-color-mode and persists to config", async ({ page }) => {
-    await seedApp(page, { seed: "busy-week" });
+    // Explicit starting mode (rather than relying on whatever the app's
+    // own default happens to be) — this test is about the toggle
+    // mechanism, not about pinning down the default.
+    await seedApp(page, { seed: { ...scenario("busy-week"), colorMode: "grayscale" } });
     await openSettings(page);
 
     await expect(page.locator("html")).toHaveAttribute("data-color-mode", "grayscale");

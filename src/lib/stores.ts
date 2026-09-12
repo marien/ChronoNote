@@ -38,7 +38,7 @@ export const notesDir = writable<string>("");
  * Maintained server-side (Rust) in `set_notes_dir`; this store just
  * mirrors whatever `AppConfig` last reported. */
 export const recentNotesDirs = writable<string[]>([]);
-export const colorMode = writable<ColorMode>("grayscale");
+export const colorMode = writable<ColorMode>("color");
 /** #48: light / dark / system — independent of `colorMode` above (the
  * glyph palette). Mirrors `AppConfig.themeMode`; `applyThemeModeToDom()`
  * (`boot.ts`) reflects it onto `<html data-theme>` for `app.css`. */
