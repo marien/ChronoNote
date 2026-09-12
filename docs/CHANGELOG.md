@@ -6,12 +6,12 @@ kept for the rationale behind each one — not just *what* changed but
 was still being gathered and confirmed before implementation; renamed once
 everything below was applied, since nothing here is "pending" anymore.
 
-**Status: all sections through §143 implemented and on `main`.** §141's
-new desktop-app Import feature shipped as v0.7.9; §141–§143's web-app
-and cross-platform-shortcut pieces are deployed live (the shortcut work
-in §143 also touches the shipped desktop app's source, but is pure
-frontend behavior — no new release needed for it on its own) at
-`app.chrononote.mariendegelder.nl` and `chrononote.mariendegelder.nl`.
+**Status: all sections through §144 implemented and on `main`.** §141's
+new desktop-app Import feature shipped as v0.7.9; §141–§144's web-app,
+cross-platform-shortcut, and top-bar-collapse pieces are deployed live
+(all pure frontend behavior — no new release needed for any of them on
+their own) at `app.chrononote.mariendegelder.nl` and
+`chrononote.mariendegelder.nl`.
 §138–§139 are implemented but were never themselves a release — they
 don't touch the shipped app at all (a new marketing site + a dev-only
 test scenario).
@@ -53,7 +53,12 @@ linking to it, and adds PWA/offline install. §143 makes every keyboard
 shortcut platform-correct — Ctrl on Windows/Linux, Cmd on Mac — across
 the app, demo, web app, and website, via one new shared registry
 (`shortcuts.ts`/`platform.ts`) that six previously-separate display
-surfaces and the window-level matcher all now read from.
+surfaces and the window-level matcher all now read from. §144 (#56)
+collapses the top bar's secondary action buttons into a "More actions"
+popover on a narrow window, freeing that space back to the tab strip —
+and along the way fixes a real pre-existing timing bug where the
+responsive layout system could permanently miss its own recalculation
+after a tab was added while the window was already narrow.
 Each
 section is verified before merge (`svelte-check`, the Vitest suite,
 `cargo test`, and — from §77 on — the Playwright E2E suite, all green in
@@ -5609,3 +5614,78 @@ Playwright test *titles* that say "Ctrl" in prose (test names only,
 no assertion depends on them) — both accurate enough to leave as
 Windows-first phrasing for now, revisit if they start reading
 confusingly stale.
+
+---
+
+## 144. Top bar collapses its secondary buttons on a narrow window (#56)
+
+**Status: implemented, closes #56.** Marien: *"Improvement: collapse
+buttons in top bar to have more space for tabs, especially useful for
+small screens."* Recommendations shared first, three decisions
+confirmed before writing code: extend the existing measurement-based
+`settleLayout` system (rather than an independent CSS breakpoint); keep
+New Scratchpad and Open Date Note always visible, collapsing everything
+else; and build a small anchored popover for the overflow rather than
+repurposing the command palette.
+
+**The mechanism.** `TopBar.svelte`'s action buttons (New Scratchpad,
+Open Date, Actions, Section History, Cross-Tab Search, Import Sections,
+Promote, Settings, About) sit as fixed-width siblings of the scrollable
+`#tab-bar`, not inside it — on a narrow window they were claiming
+~270px+ regardless of how little room was left for tabs, and the
+existing responsive system (§55/56/60/61's `settleLayout` — labels on,
+labels off, tab-strip scroll arrows as a last resort) never went further
+than icon-only. Added a fourth tier, using the same "decide from the
+current state, require clearing a margin before flipping" discipline
+that system already earned the hard way: once icon-only buttons still
+leave the tab strip overflowing, collapse Actions/History/Search/
+Import/Promote/Settings/About into one "More actions" button —
+`MoreActionsModal.svelte` (new), anchored the same way `DatePickerModal`
+anchors to its own trigger (`data-more-trigger`, positioned under it,
+closes on outside click/Escape, no `.overlay` backdrop — a toolbar
+overflow menu, not a dialog). New Scratchpad and Open Date Note are
+never touched by any of this. Tab-strip scroll arrows remain the true
+last resort, now only appearing if tabs still don't fit even with the
+buttons collapsed.
+
+**A real, pre-existing timing bug found and fixed while building this,**
+not just new code: `settleLayout` is invoked from `tabs.subscribe(() =>
+settleLayout())`, which fires *synchronously* the moment the `tabs`
+store updates — but Svelte's own DOM patch for whatever just changed (a
+new tab's `{#each}` entry) lands on a separately scheduled pass, not
+necessarily before that callback runs. Measuring immediately read stale
+layout (the *previous* tab count's width) — confirmed by direct tracing,
+not assumed — and since the component's `ResizeObserver` deliberately
+watches `#top-bar` rather than `#tab-bar` (a `§`-documented choice, so
+toggling the buttons/labels doesn't retrigger itself), *nothing* else
+ever re-ran the measurement afterward: a tab created while the window
+was already narrow could permanently miss the collapse decision until a
+real window resize happened. Fixed generally, not just for the new
+tier — `settleLayout` now awaits one animation frame before its very
+first measurement on every invocation, regardless of what triggered it,
+the same "let the DOM catch up" wait already used everywhere else in
+this function. This bug pre-dates this section entirely (the labels
+tier has the identical trigger path) but had never been caught — there
+was no test coverage of this responsive behavior at all before now.
+
+**New icon**: `more` (`src/lib/icons/paths.ts`) — three filled dots,
+the same small-circle-accent language `settings`/`about` already use.
+New `ModalKind` value `"topBarMore"`, and `menu.ts`'s `openMoreActions()`
+alongside the module's other one-line "open a modal" functions.
+
+**Tests**: new `tests/e2e/topbar-collapse.spec.ts` (6 cases) using
+`page.setViewportSize()` — reliable and non-flaky for "is this button
+hidden at this width," unlike pixel-perfect layout assertions. Covers:
+wide-window baseline (nothing collapsed); narrow-window collapse (pinned
+buttons stay, the rest don't render individually); the popover's full
+content and that running an item closes it; the conditional Promote
+entry; outside-click/Escape dismissal; and re-widening un-collapsing.
+Each case re-run 8× back to back during development specifically to
+confirm the timing bug above was actually fixed, not just usually
+avoided.
+
+`svelte-check` 213 files 0 errors, Vitest 289 (unchanged — this is
+layout/DOM behavior, not unit-testable pure logic), Playwright 168
+(+6, all passing, re-verified stable under repetition), `cargo test` 47
+(unchanged — pure frontend). Closed **#56** on GitHub with a comment
+pointing at this section.

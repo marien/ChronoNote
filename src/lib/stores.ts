@@ -29,7 +29,10 @@ export type ModalKind =
   | "about"
   | "unsavedScratchpads"
   | "conflict"
-  | "commandPalette";
+  | "commandPalette"
+  // #56: the top bar's collapsed-action overflow popover — same
+  // anchored-popover shape as "date", not a centred `.overlay` card.
+  | "topBarMore";
 
 export const tabs = writable<NoteTab[]>([]);
 export const activeTabId = writable<string>("");

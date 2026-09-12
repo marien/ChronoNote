@@ -15,6 +15,13 @@ export function openShortcutsHelp() {
   modal.set("shortcuts");
 }
 
+/** #56: the top bar's "More" button, shown once the window is too narrow
+ * for every action button to stay visible (`TopBar.svelte`'s
+ * `settleLayout`). */
+export function openMoreActions() {
+  modal.set("topBarMore");
+}
+
 /** Kept as its own entry point (Ctrl+Shift+/, the command palette, the
  * About drawer's link) but the symbols legend now lives in the same
  * combined Shortcuts & Symbols drawer. */

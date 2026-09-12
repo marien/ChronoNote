@@ -36,6 +36,12 @@
   let topBarEl: HTMLDivElement;
   let tabBarEl: HTMLDivElement;
   let showActionLabels = false;
+  // #56: once even icon-only action buttons leave the tab strip too
+  // little room, collapse the secondary ones (Actions/History/Search/
+  // Import/Promote/Settings/About) into a single "More" button —
+  // `MoreActionsModal`. New Scratchpad and Open Date Note stay pinned
+  // regardless; see `settleLayout` for how this is decided.
+  let buttonsCollapsed = false;
   // §52: whether the tab bar is overflowing at all — drives whether the
   // scroll arrows show. Deliberately *not* derived from scroll position
   // (the way `canScrollLeft`/`canScrollRight` used to work) — that made
@@ -71,8 +77,11 @@
   /** Priority order when space is tight: (1) full screen + everything fits
    * → show action-button labels; (2) doesn't fit with labels shown → drop
    * back to icon-only first, reclaiming the space the labels used; (3)
-   * still doesn't fit even icon-only → that's when the scroll arrows are
-   * for. Re-run whenever the window resizes or the tab list changes.
+   * still doesn't fit icon-only → collapse the secondary action buttons
+   * into "More" (#56), reclaiming *their* space for the tab strip; (4)
+   * still doesn't fit even then (many, many tabs) → that's when the
+   * scroll arrows are for. Re-run whenever the window resizes or the tab
+   * list changes.
    *
    * §56 fixed one cause of the labels flickering on/off forever (Svelte
    * re-rendering on every assignment even when reassigning the exact same
@@ -127,6 +136,19 @@
     }
     settling = true;
     try {
+      // `tabs.subscribe`/`chromeExpanded.subscribe` fire synchronously on
+      // `.set()` — Svelte's own DOM patch for whatever just changed (a new
+      // tab's `{#each}` entry, say) lands on a separate scheduled pass,
+      // not necessarily before this callback runs. Measuring immediately
+      // here read stale layout (the *previous* tab count's width) often
+      // enough to matter: nothing else re-triggers a settle afterward
+      // (the `ResizeObserver` below deliberately watches `#top-bar`, not
+      // `#tab-bar`, so a tab being added — which doesn't change `#top-bar`'s
+      // own width — never fires it), so a stale first read stayed stale
+      // until the next real window resize. One frame is enough for
+      // Svelte's patch to land, the same wait already used everywhere
+      // else in this function for the same "let the DOM catch up" reason.
+      await nextFrame();
       do {
         settlePending = false;
         if (!$chromeExpanded) {
@@ -151,6 +173,32 @@
             await nextFrame();
           }
         }
+
+        // #56: same decide-from-current-state + margin discipline as
+        // the labels decision above, one rung further down the priority
+        // order — collapsing/uncollapsing the secondary action buttons
+        // changes `tabBarEl`'s own width the same way toggling labels
+        // does, so this has to run *after* the labels decision above has
+        // settled, not before.
+        if (!buttonsCollapsed) {
+          if (tabBarEl.scrollWidth > tabBarEl.clientWidth + FIT_MARGIN) {
+            buttonsCollapsed = true;
+            await nextFrame();
+          }
+        } else {
+          // Collapsed currently — only bring the buttons back if there's
+          // clearly enough spare room once they're shown, not just
+          // barely (the same `tabsContentWidth` reasoning as the labels
+          // branch: `scrollWidth` can't tell "how much room to spare"
+          // once content already fits, only "is it overflowing").
+          buttonsCollapsed = false;
+          await nextFrame();
+          if (tabsContentWidth() > tabBarEl.clientWidth - FIT_MARGIN) {
+            buttonsCollapsed = true;
+            await nextFrame();
+          }
+        }
+
         const nowOverflowing = tabBarEl.scrollWidth > tabBarEl.clientWidth;
         if (nowOverflowing !== isOverflowing) isOverflowing = nowOverflowing;
         // If another call came in while the above was awaiting a frame,
@@ -348,43 +396,53 @@
   >
     <Icon name="date-note" />{#if showActionLabels}<span class="icon-label">Date</span>{/if}
   </button>
-  <button class="icon-btn" title="Actions ({formatShortcut('openActions')})" on:click={controller.openActionDrawer}>
-    <Icon name="actions" />{#if showActionLabels}<span class="icon-label">Actions</span>{/if}
-  </button>
-  <button
-    class="icon-btn"
-    title="Section history ({formatShortcut('openHistory')})"
-    on:click={controller.openMeetingHistory}
-  >
-    <Icon name="section-history" />{#if showActionLabels}<span class="icon-label">Section history</span>{/if}
-  </button>
-  <button
-    class="icon-btn"
-    title="Cross-Tab Search ({formatShortcut('crossTabSearch')})"
-    on:click={controller.openCrossTabSearch}
-  >
-    <Icon name="search" />{#if showActionLabels}<span class="icon-label">Search</span>{/if}
-  </button>
-  <button
-    class="icon-btn"
-    title="Import Sections ({formatShortcut('importSections')})"
-    on:click={controller.openSectionImport}
-  >
-    <Icon name="import" />{#if showActionLabels}<span class="icon-label">Import</span>{/if}
-  </button>
-  {#if activeTab?.isScratchpad}
+  {#if buttonsCollapsed}
+    <!-- #56: everything below this button collapses into it once the
+         window is too narrow — MoreActionsModal, anchored to
+         data-more-trigger the same way DatePickerModal anchors to
+         data-datepicker-trigger. -->
+    <button class="icon-btn" title="More actions" data-more-trigger on:click={controller.openMoreActions}>
+      <Icon name="more" />
+    </button>
+  {:else}
+    <button class="icon-btn" title="Actions ({formatShortcut('openActions')})" on:click={controller.openActionDrawer}>
+      <Icon name="actions" />{#if showActionLabels}<span class="icon-label">Actions</span>{/if}
+    </button>
     <button
       class="icon-btn"
-      title="Promote scratchpad into today's note"
-      on:click={() => controller.promoteScratchpad(activeTab.id)}
+      title="Section history ({formatShortcut('openHistory')})"
+      on:click={controller.openMeetingHistory}
     >
-      <Icon name="promote" />{#if showActionLabels}<span class="icon-label">Promote</span>{/if}
+      <Icon name="section-history" />{#if showActionLabels}<span class="icon-label">Section history</span>{/if}
+    </button>
+    <button
+      class="icon-btn"
+      title="Cross-Tab Search ({formatShortcut('crossTabSearch')})"
+      on:click={controller.openCrossTabSearch}
+    >
+      <Icon name="search" />{#if showActionLabels}<span class="icon-label">Search</span>{/if}
+    </button>
+    <button
+      class="icon-btn"
+      title="Import Sections ({formatShortcut('importSections')})"
+      on:click={controller.openSectionImport}
+    >
+      <Icon name="import" />{#if showActionLabels}<span class="icon-label">Import</span>{/if}
+    </button>
+    {#if activeTab?.isScratchpad}
+      <button
+        class="icon-btn"
+        title="Promote scratchpad into today's note"
+        on:click={() => controller.promoteScratchpad(activeTab.id)}
+      >
+        <Icon name="promote" />{#if showActionLabels}<span class="icon-label">Promote</span>{/if}
+      </button>
+    {/if}
+    <button class="icon-btn" title="Settings ({formatShortcut('openSettings')})" on:click={controller.openSettings}>
+      <Icon name="settings" />{#if showActionLabels}<span class="icon-label">Settings</span>{/if}
+    </button>
+    <button class="icon-btn" title="About ChronoNote ({formatShortcut('openAbout')})" on:click={controller.openAbout}>
+      <Icon name="about" />{#if showActionLabels}<span class="icon-label">About</span>{/if}
     </button>
   {/if}
-  <button class="icon-btn" title="Settings ({formatShortcut('openSettings')})" on:click={controller.openSettings}>
-    <Icon name="settings" />{#if showActionLabels}<span class="icon-label">Settings</span>{/if}
-  </button>
-  <button class="icon-btn" title="About ChronoNote ({formatShortcut('openAbout')})" on:click={controller.openAbout}>
-    <Icon name="about" />{#if showActionLabels}<span class="icon-label">About</span>{/if}
-  </button>
 </div>
