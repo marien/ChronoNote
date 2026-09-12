@@ -333,9 +333,19 @@ pattern (`root`, dedicated entry, isolated from the real app's
 - **Hosting: decided — a subdomain, `app.chrononote.mariendegelder.nl`**,
   for independent cache headers from the marketing site/demo and to read
   clearly as "the actual application" rather than a page on the site.
-  Needs the same one-time Plesk subdomain setup as the main site did
-  (Marien's own step, same shape as the original `chrononote.
-  mariendegelder.nl` setup).
+  **Simpler than a second Git checkout, and this is the actual setup**:
+  a Plesk (sub)domain's Document Root is independent of where any Git
+  repository is checked out, so `app.chrononote.mariendegelder.nl` just
+  points its document root at the *existing*
+  `chrononote.mariendegelder.nl` checkout's `website/webapp/` folder —
+  no second Git repository, no second webhook. The one existing webhook's
+  `git pull` already refreshes `website/` and `website/webapp/` together
+  in the same pull, so both subdomains update simultaneously for free.
+  Each (sub)domain still gets its own Plesk web-server config context
+  (and its own SSL certificate, issued separately) even while sharing
+  the underlying files, so the "independent cache headers" reasoning
+  above still holds. Marien's own step in Plesk; nothing here can be
+  scripted from this side.
 
 ---
 
