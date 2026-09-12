@@ -34,7 +34,7 @@ export function switchTab(id: string) {
   activeTabId.set(id);
 }
 
-/** Ctrl+Tab / Ctrl+Shift+Tab: cycle to the next/previous open tab (in
+/** Ctrl/Cmd+Tab / Ctrl/Cmd+Shift+Tab: cycle to the next/previous open tab (in
  * visual/display order), wrapping around. Plain Tab stays reserved for
  * indentation inside the editor. */
 export function cycleTab(direction: 1 | -1) {
@@ -147,7 +147,7 @@ export function closeTab(tabId: string) {
   }
 }
 
-/** Ctrl+Shift+T / Ctrl+Shift+N: reopen the most recently closed tab, with a
+/** Ctrl/Cmd+Shift+T / Ctrl/Cmd+Shift+N: reopen the most recently closed tab, with a
  * multi-level history so repeated presses walk further back. A real dated
  * note is reopened by rereading it from disk (via the existing open-or-
  * switch path) rather than trusting the cached snapshot, since that's

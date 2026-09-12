@@ -25,7 +25,8 @@ class InlineGlyphWidget extends WidgetType {
     private readonly className: string,
     /** §106: the four action-state glyphs (standalone or the inner symbol
      * of a `=> <symbol>` consequence-action) cycle on click,
-     * `# → v → > → x → #` — same order as `Ctrl+Space` / `Ctrl+Enter`. The
+     * `# → v → > → x → #` — same order as `Ctrl+Space` (Win/Linux) /
+     * `Ctrl/Cmd+Enter`. The
      * arrow, bullet and assignee glyphs are not cyclable. */
     private readonly cyclable = false,
     /** #34: the raw symbol behind a cyclable glyph (`#`/`v`/`>`/`x`), so

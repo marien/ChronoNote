@@ -14,7 +14,7 @@ const drawer = (page: Page) => modalCard(page, MODAL_LABELS.actions);
 const rows = (page: Page) => drawer(page).locator('.modal-item[role="option"]');
 const filterInput = (page: Page) => drawer(page).locator(".modal-input");
 
-test.describe("action drawer (Ctrl+Shift+A)", () => {
+test.describe("action drawer (Ctrl/Cmd+Shift+A)", () => {
   test("opens and lists actions from the open tabs", async ({ page }) => {
     await seedApp(page, { seed: "delegation" });
     await openViaShortcut(page, "ControlOrMeta+Shift+A", "actions");
@@ -74,7 +74,7 @@ test.describe("action drawer (Ctrl+Shift+A)", () => {
     await expect(row.locator("span").first()).toHaveText("☐");
 
     await filterInput(page).focus();
-    await page.keyboard.press("ControlOrMeta+Space");
+    await page.keyboard.press("Control+Space");
 
     await expect(row.locator("span").first()).toHaveText("☑");
     await expect.poll(() => mockNote(page, "2026-09-07.txt")).toContain("=> v send the recap email");

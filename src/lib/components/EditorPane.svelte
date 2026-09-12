@@ -180,7 +180,7 @@
     return true;
   }
 
-  /** Ctrl+Shift+S: turns the current line into a section header by
+  /** Ctrl/Cmd+Shift+S: turns the current line into a section header by
    * inserting a matching-length `=` underline right below it, then a fresh
    * line with the cursor on it so you can start typing the section body
    * immediately. Doesn't try to enforce the two-blank-line spacing rule

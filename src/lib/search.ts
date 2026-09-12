@@ -1,4 +1,4 @@
-/** Cross-tab search (Ctrl+Shift+F). Split out of `controller.ts` in the
+/** Cross-tab search (Ctrl/Cmd+Shift+F). Split out of `controller.ts` in the
  * v0.5.0 refactor. "Open" scope scans the live tab contents; "all" scope
  * scans `allNotesCache` (populated by whichever drawer last refreshed it —
  * the Search modal refreshes it before switching scope). */

@@ -22,7 +22,7 @@ export function openMoreActions() {
   modal.set("topBarMore");
 }
 
-/** Kept as its own entry point (Ctrl+Shift+/, the command palette, the
+/** Kept as its own entry point (Ctrl/Cmd+Shift+/, the command palette, the
  * About drawer's link) but the symbols legend now lives in the same
  * combined Shortcuts & Symbols drawer. */
 export function openGlyphLegend() {

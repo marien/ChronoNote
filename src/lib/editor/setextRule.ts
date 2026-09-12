@@ -16,7 +16,7 @@
  *
  * Length: the rule spans exactly the `=` characters that are in the file
  * — no silent auto-editing of the document to match the title. The
- * editor's own "convert line to section" (`Ctrl+Shift+S`) and the
+ * editor's own "convert line to section" (`Ctrl/Cmd+Shift+S`) and the
  * section-import path already write `max(3, title.length)` `=`, so for
  * anything this app created the rule already matches the title width;
  * a hand-typed short/long underline renders at whatever length it is. */

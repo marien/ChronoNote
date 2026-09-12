@@ -10,15 +10,15 @@
  *   tabSort              pure tab / filename ordering helpers
  *   paste                copy/paste deferral (§64, §82) + §86 undo link
  *   tabs                 tab lifecycle, date picker, jumpToFileLine
- *   actions              the Action Drawer (Ctrl+Shift+A)
- *   history              section history (Ctrl+Shift+H)
- *   search               cross-tab search (Ctrl+Shift+F)
- *   sectionImportActions section import (Ctrl+Shift+I) + its draft
+ *   actions              the Action Drawer (Ctrl/Cmd+Shift+A)
+ *   history              section history (Ctrl/Cmd+Shift+H)
+ *   search               cross-tab search (Ctrl/Cmd+Shift+F)
+ *   sectionImportActions section import (Ctrl/Cmd+Shift+I) + its draft
  *   menu                 static-modal openers (Settings / Shortcuts / …)
  *   boot                 startup, session restore, standing subscriptions
  *   directory            notes-directory switching (§39)
  *   drift                external-modification / conflict detection (§94)
- *   commandPalette       Ctrl+K unified command/nav palette (§107)
+ *   commandPalette       Ctrl/Cmd+K unified command/nav palette (§107)
  *   updates              GitHub-releases update check (§update-check)
  *   exportImport         export/import (web-app design doc, Phase 1)
  */

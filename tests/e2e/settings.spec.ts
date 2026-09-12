@@ -21,7 +21,7 @@ async function openSettings(page: Page) {
   await expect(settings(page)).toBeVisible();
 }
 
-test.describe("settings (Ctrl+,)", () => {
+test.describe("settings (Ctrl/Cmd+,)", () => {
   test("#48: light/dark/system theme control flips data-theme and persists to config", async ({ page }) => {
     await seedApp(page, { seed: "busy-week" });
     await openSettings(page);

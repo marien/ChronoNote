@@ -1,4 +1,4 @@
-/** Section history (Ctrl+Shift+H): aggregate every action and follow-up
+/** Section history (Ctrl/Cmd+Shift+H): aggregate every action and follow-up
  * under the cursor's section across all dated notes, deduped,
  * most-recent-first — one row per action, so a line carrying both a
  * leading action and a mid-line `=> ` follow-up (#41) contributes two.

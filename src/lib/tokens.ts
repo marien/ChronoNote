@@ -69,7 +69,8 @@ export function openActionLineIndices(text: string): number[] {
  * (`dir` -1) relative to `fromLineIdx`, wrapping around at the ends.
  * `null` when the note has no open actions at all. When the cursor is
  * already on the only open action, returns that same line (nothing else
- * to move to). Shared by `EditorPane`'s `Ctrl+↓`/`Ctrl+↑` (§78). */
+ * to move to). Shared by `EditorPane`'s `F2`/`Shift+F2` (§78, rebound off
+ * `Ctrl+↓`/`Ctrl+↑` by §83 — see that binding's own comment for why). */
 export function adjacentOpenActionLine(text: string, fromLineIdx: number, dir: 1 | -1): number | null {
   const idxs = openActionLineIndices(text);
   if (idxs.length === 0) return null;
@@ -118,9 +119,10 @@ export function actionLineEnter(lineText: string): { removeSymbol: true } | { in
   return null;
 }
 
-/** `Ctrl+Space`'s cycle (§40: `# → v → > → x → #`), shared between the
- * editor (`EditorPane.svelte`) and the Action Drawer's own `Ctrl+Space`
- * (`toggleActionLine` in `controller.ts`) so the two can't drift apart.
+/** The action-cycle logic (§40: `# → v → > → x → #`) behind `Ctrl+Space`/
+ * `Ctrl/Cmd+Enter` in the editor and `Ctrl+Space` in the Action Drawer,
+ * shared between the two (`EditorPane.svelte` and `toggleActionLine` in
+ * `controller.ts`) so they can't drift apart.
  * Handles both a plain (optionally indented, §50) action line and a
  * `=> <symbol>` consequence-action (§41), cycling only the symbol itself
  * and preserving everything else (indentation, the `=> ` prefix, the rest

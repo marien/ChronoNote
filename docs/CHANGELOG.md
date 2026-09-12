@@ -6,10 +6,12 @@ kept for the rationale behind each one — not just *what* changed but
 was still being gathered and confirmed before implementation; renamed once
 everything below was applied, since nothing here is "pending" anymore.
 
-**Status: all sections through §144 implemented, released, and on
+**Status: all sections through §145 implemented, released, and on
 `main`.** §141's desktop-app Import feature shipped as v0.7.9; §143's
 cross-platform shortcuts and §144's top-bar collapse shipped together as
-v0.7.10. §141–§144's web-app pieces are separately deployed live at
+v0.7.10. §145 is a same-release cleanup pass over §143's deferred
+comment/test-title wording — no version bump of its own. §141–§144's
+web-app pieces are separately deployed live at
 `app.chrononote.mariendegelder.nl` and `chrononote.mariendegelder.nl` —
 that side needs no version bump of its own, a website deploy is
 independent of a desktop-app release.
@@ -59,7 +61,11 @@ collapses the top bar's secondary action buttons into a "More actions"
 popover on a narrow window, freeing that space back to the tab strip —
 and along the way fixes a real pre-existing timing bug where the
 responsive layout system could permanently miss its own recalculation
-after a tab was added while the window was already narrow.
+after a tab was added while the window was already narrow. §145 is a
+cleanup pass over §143's deferred comment/test-title wording, which also
+caught and fixed a real Playwright bug: 15 key-presses that §143's
+migration had wrongly turned Mac-aware even though the bindings they
+test are deliberately Windows/Linux-only.
 Each
 section is verified before merge (`svelte-check`, the Vitest suite,
 `cargo test`, and — from §77 on — the Playwright E2E suite, all green in
@@ -5692,3 +5698,58 @@ layout/DOM behavior, not unit-testable pure logic), Playwright 168
 (+6, all passing, re-verified stable under repetition), `cargo test` 47
 (unchanged — pure frontend). Closed **#56** on GitHub with a comment
 pointing at this section.
+
+## 145. §143 cleanup — stale "Ctrl" wording, plus a real Playwright bug it surfaced
+
+**Status: implemented, released in v0.7.10 (no new version bump —
+test/comment-only, no shipped-app behavior change).** Marien: *"Start
+doing the cleanup,"* referring back to the two low-priority items §143
+deliberately deferred: source comments and Playwright test titles still
+saying bare "Ctrl" now that shortcuts are Mac-aware.
+
+**Source comments** (~15 files: `EditorPane.svelte`, `actions.ts`,
+`TopBar.svelte`, `controller.ts`, `glyphs.ts`, `setextRule.ts`,
+`history.ts`, `menu.ts`, `search.ts`, `sectionImportActions.ts`,
+`stores.ts`, `tabs.ts`, `tokens.ts`) — every doc comment describing a
+binding that `shortcuts.ts` makes Mac-aware (unrestricted `mod: true`)
+now says "Ctrl/Cmd"; comments describing a genuinely Windows/Linux-only
+binding (`platforms: ["other"]` — the editor's `Ctrl-Space` cycle, the
+`Ctrl+↓`/`Ctrl+↑` caret nav, `Ctrl+Y`-as-redo) were left as literal
+"Ctrl", since that's accurate, not stale. `tokens.ts` had one comment
+that turned out to be stale for an unrelated reason (referenced a §78
+binding that §83 had already rebound to `F2`/`Shift+F2`, well before
+this session) — fixed in passing.
+
+**Playwright test titles** — same "Ctrl/Cmd" vs. literal-"Ctrl" judgment
+call, applied per test by checking what each one actually presses, not
+a blanket rename: `command-palette.spec.ts`, `drawers.spec.ts`,
+`action-drawer.spec.ts`, `find-bar.spec.ts`, `navigation.spec.ts`,
+`section-import.spec.ts`, `search-and-history.spec.ts`,
+`settings.spec.ts`, `setext-rule.spec.ts`, `tabs-lifecycle.spec.ts`, and
+`undo-history.spec.ts` all got title updates for combos that are
+Mac-aware. `editor-tokens.spec.ts`, `open-action-nav.spec.ts`, and
+`mac-shortcuts.spec.ts` (the file whose entire point is the Ctrl-vs-Cmd
+distinction) keep their literal "Ctrl" titles where that's genuinely
+what the binding is restricted to.
+
+**A real bug found along the way, not just cosmetic:** §143's original
+blanket `"Control+..."` → `"ControlOrMeta+..."` migration of Playwright
+key-presses had incorrectly touched three combos that are deliberately
+Windows/Linux-only by design — the editor's and Action Drawer's
+`Ctrl+Space` (action-state cycle) and the `Ctrl+↑`/`Ctrl+↓` caret-nav
+pair (§89/§90) — 15 occurrences across `action-drawer.spec.ts`,
+`editor-tokens.spec.ts`, `navigation.spec.ts`, and `open-action-nav.spec.ts`.
+`"ControlOrMeta+Space"` resolves to `Cmd+Space` on a real Mac, which
+`shortcuts.ts` never binds there (it's OS-reserved for the input-source
+switcher) — the test would have silently exercised a no-op key instead
+of the feature it claims to test, on any future macOS CI run. Harmless
+today only because CI is Windows/Linux-only, where `ControlOrMeta`
+happens to resolve to `Control` anyway. Reverted all 15 to literal
+`Control+Space`/`Control+ArrowUp`/`Control+ArrowDown` — the one
+`"ControlOrMeta+Enter"` press in `editor-tokens.spec.ts` (the editor's
+`Cmd+Enter` cycle-state alias) was left untouched since that one really
+is Mac-aware.
+
+`svelte-check` 213/0, Vitest 289/289, `cargo test` 47/47, Playwright
+168/168 — all unchanged in count (pure comment/title rewording plus one
+test-correctness fix that doesn't add or remove a case), all green.

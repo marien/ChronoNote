@@ -15,7 +15,7 @@ import {
 } from "./helpers";
 
 test.describe("tabs — lifecycle & safe close", () => {
-  test("Ctrl+N creates a scratchpad, Ctrl+W closes an empty one with no prompt", async ({ page }) => {
+  test("Ctrl/Cmd+N creates a scratchpad, Ctrl/Cmd+W closes an empty one with no prompt", async ({ page }) => {
     await seedApp(page, { seed: "empty" });
 
     await editor(page).click();
@@ -57,7 +57,7 @@ test.describe("tabs — lifecycle & safe close", () => {
     await expect(tab(page, "Scratchpad 1")).toHaveCount(0);
   });
 
-  test("Ctrl+Shift+T reopens the last closed tab", async ({ page }) => {
+  test("Ctrl/Cmd+Shift+T reopens the last closed tab", async ({ page }) => {
     await seedApp(page, { seed: "busy-week" });
 
     const labels = await tabLabels(page);
@@ -76,7 +76,7 @@ test.describe("tabs — lifecycle & safe close", () => {
     await expect(tab(page, victim)).toHaveCount(1);
   });
 
-  test("Ctrl+Tab cycles tabs in display order", async ({ page }) => {
+  test("Ctrl/Cmd+Tab cycles tabs in display order", async ({ page }) => {
     await seedApp(page, { seed: "busy-week" });
     const first = await activeTabLabel(page).textContent();
 

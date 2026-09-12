@@ -92,7 +92,7 @@ export const statusWordCount = writable<number>(0);
 export type SaveState = "idle" | "saving" | "saved" | "error";
 export const saveState = writable<SaveState>("idle");
 
-/** §108: the non-modal in-document find bar (Ctrl+F). `findOpen` toggles
+/** §108: the non-modal in-document find bar (Ctrl/Cmd+F). `findOpen` toggles
  * the floating widget docked top-right of the editor; `findMatch` mirrors
  * "N of M" as the editor reports it. The editor stays fully live while
  * this is open — it's not a modal. */

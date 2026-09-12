@@ -76,13 +76,13 @@ test.describe("editor — token glyphs", () => {
     const line = editor(page).locator(".cm-line").first();
 
     for (const cls of ["glyph-done", "glyph-progress", "glyph-cancelled", "glyph-open"]) {
-      await page.keyboard.press("ControlOrMeta+Space");
+      await page.keyboard.press("Control+Space");
       await expect(line.locator(`.${cls}`)).toHaveCount(1);
     }
     expect(await activeTabContent(page)).toBe("# a task");
   });
 
-  test("Ctrl+Enter cycles the action state too (§106)", async ({ page }) => {
+  test("Ctrl/Cmd+Enter cycles the action state too (§106)", async ({ page }) => {
     await typeInEditor(page, "# a task");
     await page.keyboard.press("ControlOrMeta+Enter");
     await expect(editor(page).locator(".glyph-done")).toHaveCount(1);

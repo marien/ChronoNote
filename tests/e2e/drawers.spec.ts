@@ -6,7 +6,7 @@ test.describe("info drawers", () => {
     await seedApp(page, { seed: "empty" });
   });
 
-  test("Ctrl+/ opens the combined Shortcuts & Symbols drawer", async ({ page }) => {
+  test("Ctrl/Cmd+/ opens the combined Shortcuts & Symbols drawer", async ({ page }) => {
     await editor(page).click();
     await page.keyboard.press("ControlOrMeta+Slash");
     const drawer = modalCard(page, MODAL_LABELS.shortcuts);
@@ -40,7 +40,7 @@ test.describe("info drawers", () => {
     expect(leftScrollBefore).toBe(0);
   });
 
-  test("Ctrl+Shift+/ opens the same combined drawer (§110)", async ({ page }) => {
+  test("Ctrl/Cmd+Shift+/ opens the same combined drawer (§110)", async ({ page }) => {
     await editor(page).click();
     await page.keyboard.press("ControlOrMeta+Shift+Slash");
     await expect(modalCard(page, MODAL_LABELS.shortcuts)).toBeVisible();
@@ -75,7 +75,7 @@ test.describe("info drawers", () => {
     expect(info!.vDelta).toBeLessThan(4);
   });
 
-  test("Ctrl+Shift+, opens About and shows the version from the backend", async ({ page }) => {
+  test("Ctrl/Cmd+Shift+, opens About and shows the version from the backend", async ({ page }) => {
     await editor(page).click();
     await page.keyboard.press("ControlOrMeta+Shift+Comma");
     const about = modalCard(page, MODAL_LABELS.about);

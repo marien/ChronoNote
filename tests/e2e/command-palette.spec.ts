@@ -4,8 +4,8 @@ import { scenario } from "../../src/lib/testing/scenarios";
 
 const palette = (page: import("@playwright/test").Page) => modalCard(page, MODAL_LABELS.commandPalette);
 
-test.describe("command palette (Ctrl+K, §107)", () => {
-  test("opens on Ctrl+K and runs a command by fuzzy match", async ({ page }) => {
+test.describe("command palette (Ctrl/Cmd+K, §107)", () => {
+  test("opens on Ctrl/Cmd+K and runs a command by fuzzy match", async ({ page }) => {
     await seedApp(page, { seed: "busy-week" });
     await editor(page).click();
     await page.keyboard.press("ControlOrMeta+k");

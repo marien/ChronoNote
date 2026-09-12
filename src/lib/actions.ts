@@ -1,4 +1,4 @@
-/** The Action Drawer (Ctrl+Shift+A): snapshot every action line across
+/** The Action Drawer (Ctrl/Cmd+Shift+A): snapshot every action line across
  * open tabs or all files, toggle an action's state, or forward it to
  * today's top priorities. Split out of `controller.ts` in the v0.5.0
  * refactor. Depends on stores + persistence + tabs + tabSort + tokens. */
@@ -81,7 +81,12 @@ async function ensureFileOpenAndGetTabId(filename: string): Promise<string> {
   return opened!.id;
 }
 
-/** Ctrl+Space inside the action drawer. Deliberately does NOT rebuild
+/** Ctrl+Space inside the action drawer — deliberately Ctrl-only, no Mac
+ * alias (§143's `shortcuts.ts` design note on `ActionDrawerModal.svelte`
+ * explains why: this modal's own `Enter` handler already claims that key
+ * for a different action, so a `Cmd+Enter` alias here would collide with
+ * it the way the editor's own cycle-state binding doesn't). Deliberately
+ * does NOT rebuild
  * `actionSnapshot` afterward: the drawer's item list is captured once when
  * it opens, so a completed item keeps its row (shown with the "done"
  * style) for as long as the drawer stays open, and only drops out on the

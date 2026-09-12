@@ -9,7 +9,7 @@ async function openImport(page: import("@playwright/test").Page) {
   await expect(importModal(page)).toBeVisible();
 }
 
-test.describe("section import (Ctrl+Shift+I)", () => {
+test.describe("section import (Ctrl/Cmd+Shift+I)", () => {
   test("each pasted line becomes a setext header, appended with 2 blank lines", async ({ page }) => {
     await seedApp(page, { seed: "empty" });
     await setEditorText(page, "Existing note body.");

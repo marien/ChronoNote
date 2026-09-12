@@ -14,7 +14,7 @@ const search = (page: Page) => modalCard(page, MODAL_LABELS.search);
 const history = (page: Page) => modalCard(page, MODAL_LABELS.history);
 const rows = (m: ReturnType<typeof search>) => m.locator('.modal-item[role="option"]');
 
-test.describe("cross-tab search (Ctrl+Shift+F)", () => {
+test.describe("cross-tab search (Ctrl/Cmd+Shift+F)", () => {
   test("matches lines across open tabs and jumps on Enter", async ({ page }) => {
     await seedApp(page, { seed: "delegation" });
 
@@ -43,7 +43,7 @@ test.describe("cross-tab search (Ctrl+Shift+F)", () => {
   });
 });
 
-test.describe("section history (Ctrl+Shift+H)", () => {
+test.describe("section history (Ctrl/Cmd+Shift+H)", () => {
   test("aggregates a recurring section's actions across days, deduped", async ({ page }) => {
     // Hand-built so the recurring section + its repeated line are exact.
     await seedApp(page, {

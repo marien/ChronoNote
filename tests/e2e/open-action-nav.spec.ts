@@ -68,10 +68,10 @@ test.describe("open-action navigation (F2 / Shift+F2)", () => {
   test("Ctrl+↓ / Ctrl+↑ move the caret to line starts, not between open actions (§89 / #20)", async ({ page }) => {
     // §78's old binding did the open-action jump 1 → 3 → 6 → 8 here.
     // Ctrl+↓ now just steps to the start of the next line.
-    await page.keyboard.press("ControlOrMeta+ArrowDown");
+    await page.keyboard.press("Control+ArrowDown");
     expect(await cursorLine(page)).toBe(2);
-    await page.keyboard.press("ControlOrMeta+ArrowDown");
-    await page.keyboard.press("ControlOrMeta+ArrowDown");
+    await page.keyboard.press("Control+ArrowDown");
+    await page.keyboard.press("Control+ArrowDown");
     expect(await cursorLine(page)).toBe(4);
     // Col 1 — it lands on the start of the line, not wherever the column was.
     const pos = (await page.locator("#stat-pos").textContent()) ?? "";
@@ -79,31 +79,31 @@ test.describe("open-action navigation (F2 / Shift+F2)", () => {
     // Ctrl+↑ from mid-line goes to the start of the current line first.
     await page.keyboard.press("ArrowRight");
     await page.keyboard.press("ArrowRight");
-    await page.keyboard.press("ControlOrMeta+ArrowUp");
+    await page.keyboard.press("Control+ArrowUp");
     expect(await cursorLine(page)).toBe(4);
     expect((await page.locator("#stat-pos").textContent()) ?? "").toMatch(/Col\s+1\b/);
   });
 
   test("§90 (#24): Ctrl+↑ at the start of a line steps up to the previous line's start", async ({ page }) => {
     // Land on line 4, column 1.
-    await page.keyboard.press("ControlOrMeta+ArrowDown");
-    await page.keyboard.press("ControlOrMeta+ArrowDown");
-    await page.keyboard.press("ControlOrMeta+ArrowDown");
+    await page.keyboard.press("Control+ArrowDown");
+    await page.keyboard.press("Control+ArrowDown");
+    await page.keyboard.press("Control+ArrowDown");
     expect(await cursorLine(page)).toBe(4);
     expect((await page.locator("#stat-pos").textContent()) ?? "").toMatch(/Col\s+1\b/);
     // Already at line start → Ctrl+↑ climbs one line, still column 1.
-    await page.keyboard.press("ControlOrMeta+ArrowUp");
+    await page.keyboard.press("Control+ArrowUp");
     expect(await cursorLine(page)).toBe(3);
     expect((await page.locator("#stat-pos").textContent()) ?? "").toMatch(/Col\s+1\b/);
     // Keeps climbing on repeat presses.
-    await page.keyboard.press("ControlOrMeta+ArrowUp");
-    await page.keyboard.press("ControlOrMeta+ArrowUp");
+    await page.keyboard.press("Control+ArrowUp");
+    await page.keyboard.press("Control+ArrowUp");
     expect(await cursorLine(page)).toBe(1);
     // Clamps at the first line — no throw, stays put.
-    await page.keyboard.press("ControlOrMeta+ArrowUp");
+    await page.keyboard.press("Control+ArrowUp");
     expect(await cursorLine(page)).toBe(1);
     // Shift+Ctrl+↑ from a line start still extends up a line (shares the target).
-    await page.keyboard.press("ControlOrMeta+ArrowDown");
+    await page.keyboard.press("Control+ArrowDown");
     expect(await cursorLine(page)).toBe(2);
     await page.keyboard.press("Shift+Control+ArrowUp");
     expect(await cursorLine(page)).toBe(1);

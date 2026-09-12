@@ -71,7 +71,7 @@ test.describe("setext underline rule (§81)", () => {
     await expect(cmLine(page, 2).locator(".cm-setext-rule")).toHaveCount(1);
   });
 
-  test("Ctrl+Shift+S makes a section whose underline then renders as a rule", async ({ page }) => {
+  test("Ctrl/Cmd+Shift+S makes a section whose underline then renders as a rule", async ({ page }) => {
     await setEditorText(page, "Project kickoff");
     await editor(page).click();
     await page.keyboard.press("ControlOrMeta+Home");

@@ -15,7 +15,7 @@ import { REFERENCE_TODAY } from "../../src/lib/testing/scenarios";
 
 const pop = (page: Page) => datePicker(page);
 
-test.describe("date picker — anchored calendar popover (Ctrl+O, §104)", () => {
+test.describe("date picker — anchored calendar popover (Ctrl/Cmd+O, §104)", () => {
   test.beforeEach(async ({ page }) => {
     await seedApp(page, { seed: "busy-week" });
     await editor(page).click();
@@ -124,7 +124,7 @@ test.describe("#46: the date-picker dot reflects a resolved action after its tab
 
     // Resolve the only action, then close the tab.
     await editor(page).click();
-    await page.keyboard.press("ControlOrMeta+Space");
+    await page.keyboard.press("Control+Space");
     expect(await activeTabContent(page)).toBe("v an open action");
     await page.keyboard.press("ControlOrMeta+w");
 

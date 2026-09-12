@@ -1,4 +1,4 @@
-/** Section import (Ctrl+Shift+I): paste a block of lines, each becomes a
+/** Section import (Ctrl/Cmd+Shift+I): paste a block of lines, each becomes a
  * new section in the active note. The pure text transform is in
  * `./sectionImport` (`linesToSections`); this is the controller side —
  * the modal trigger, the in-memory unsubmitted-draft (§33), and applying

@@ -3,8 +3,8 @@ import { seedApp, editor, setEditorText, todayFilename, activeTabContent } from 
 
 const NOTE = "alpha beta alpha\ngamma alpha delta\nalpha omega";
 
-test.describe("in-document find bar (Ctrl+F, §108)", () => {
-  test("opens on Ctrl+F, counts matches, and navigates with Enter / Shift+Enter", async ({ page }) => {
+test.describe("in-document find bar (Ctrl/Cmd+F, §108)", () => {
+  test("opens on Ctrl/Cmd+F, counts matches, and navigates with Enter / Shift+Enter", async ({ page }) => {
     await seedApp(page, { seed: { notes: { [todayFilename()]: NOTE } } });
     await editor(page).click();
     await page.keyboard.press("ControlOrMeta+f");

@@ -126,7 +126,7 @@ test.describe("undo a paste-forward un-defers the source (§86 / #9)", () => {
     await page.keyboard.press("ControlOrMeta+V");
   }
 
-  test("Ctrl+Z in the target tab removes the paste AND restores the source to '# '", async ({ page }) => {
+  test("Ctrl/Cmd+Z in the target tab removes the paste AND restores the source to '# '", async ({ page }) => {
     await seedApp(page, seed);
     await copyTheActionThenPasteIntoToday(page);
 

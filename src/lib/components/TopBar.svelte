@@ -211,7 +211,7 @@
   }
 
   /** §52: once overflowing, scrolling past an edge wraps to the other end
-   * — the same cyclic behavior `Ctrl+Tab`/`Ctrl+Shift+Tab` already has for
+   * — the same cyclic behavior `Ctrl/Cmd+Tab`/`Ctrl/Cmd+Shift+Tab` already has for
    * switching tabs, just applied to scroll position. */
   function scrollTabBar(direction: 1 | -1) {
     if (!tabBarEl) return;
@@ -238,7 +238,7 @@
     const targetTabId = $activeTabId;
     await nextFrame();
     // Bail if another call started (or the active tab changed again) while
-    // this one was waiting — holding Ctrl+Tab fires this on every repeat
+    // this one was waiting — holding Ctrl/Cmd+Tab fires this on every repeat
     // keystroke, and without this guard the stale calls still run to
     // completion afterwards and can yank the scroll position back.
     if (token !== scrollIntoViewToken || $activeTabId !== targetTabId) return;
