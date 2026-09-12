@@ -6,12 +6,13 @@ kept for the rationale behind each one — not just *what* changed but
 was still being gathered and confirmed before implementation; renamed once
 everything below was applied, since nothing here is "pending" anymore.
 
-**Status: all sections through §144 implemented and on `main`.** §141's
-new desktop-app Import feature shipped as v0.7.9; §141–§144's web-app,
-cross-platform-shortcut, and top-bar-collapse pieces are deployed live
-(all pure frontend behavior — no new release needed for any of them on
-their own) at `app.chrononote.mariendegelder.nl` and
-`chrononote.mariendegelder.nl`.
+**Status: all sections through §144 implemented, released, and on
+`main`.** §141's desktop-app Import feature shipped as v0.7.9; §143's
+cross-platform shortcuts and §144's top-bar collapse shipped together as
+v0.7.10. §141–§144's web-app pieces are separately deployed live at
+`app.chrononote.mariendegelder.nl` and `chrononote.mariendegelder.nl` —
+that side needs no version bump of its own, a website deploy is
+independent of a desktop-app release.
 §138–§139 are implemented but were never themselves a release — they
 don't touch the shipped app at all (a new marketing site + a dev-only
 test scenario).
@@ -5482,9 +5483,10 @@ anything the desktop-app suite exercises).
 
 ## 143. Ctrl on Windows/Linux, Cmd on Mac — everywhere: app, demo, web app, website
 
-**Status: implemented.** Marien: *"Now that there is a webapp and demo,
-the application is not Windows only anymore, and people with Mac can use
-it. Can you work out a way that for people on Windows or Linux shortcuts
+**Status: implemented, released in v0.7.10.** Marien: *"Now that there
+is a webapp and demo, the application is not Windows only anymore, and
+people with Mac can use it. Can you work out a way that for people on
+Windows or Linux shortcuts
 work and are shown as Ctrl, and on Mac work and are shown as Cmd? This
 applies application (Windows only for now), demo, webapp and website."*
 Recommendations shared and two decisions confirmed before writing any
@@ -5619,8 +5621,9 @@ confusingly stale.
 
 ## 144. Top bar collapses its secondary buttons on a narrow window (#56)
 
-**Status: implemented, closes #56.** Marien: *"Improvement: collapse
-buttons in top bar to have more space for tabs, especially useful for
+**Status: implemented, closes #56, released in v0.7.10.** Marien:
+*"Improvement: collapse buttons in top bar to have more space for tabs,
+especially useful for
 small screens."* Recommendations shared first, three decisions
 confirmed before writing code: extend the existing measurement-based
 `settleLayout` system (rather than an independent CSS breakpoint); keep
