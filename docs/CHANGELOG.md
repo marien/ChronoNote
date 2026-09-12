@@ -7,10 +7,10 @@ was still being gathered and confirmed before implementation; renamed once
 everything below was applied, since nothing here is "pending" anymore.
 
 **Status: all sections through §142 implemented and on `main`.** §141's
-new desktop-app Import feature is about to become v0.7.9 (see that
-section); §141–§142's web-app pieces are deployed live at
-`app.chrononote.mariendegelder.nl` and need no version bump of their own
-— that's strictly a desktop-app concept.
+new desktop-app Import feature shipped as v0.7.9; §141–§142's web-app
+pieces are deployed live at `app.chrononote.mariendegelder.nl` and
+needed no version bump of their own — that's strictly a desktop-app
+concept.
 §138–§139 are implemented but were never themselves a release — they
 don't touch the shipped app at all (a new marketing site + a dev-only
 test scenario).
@@ -5281,8 +5281,10 @@ asserted on the default specifically), Playwright 157 (unchanged),
 
 ## 141. Web app Phase 1: a browser-storage tier, plus a shared import feature for the desktop app
 
-**Status: implemented, not yet deployed.** Marien: *"Work out a function
-and technical design for a web-app version of ChronoNote that stores its
+**Status: implemented; the web app deployed the same day (§142); the
+desktop-side Import feature released in v0.7.9.** Marien: *"Work out a
+function and technical design for a web-app version of ChronoNote that
+stores its
 data in the browser... The journey: someone lands on the website and
 uses the demo (no data retention), then starts using the web app (data
 retention in browser), then installs the application locally (data
