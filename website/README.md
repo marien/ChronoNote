@@ -25,8 +25,12 @@ that's completely separate from the real app's own build, so it can
 never end up in the real desktop app's `dist/` (see `build-guard` in
 `.github/workflows/test.yml`, which only ever inspects that folder).
 
-**`demo-app/` is committed to git.** Rebuild it after any change to the
-app's frontend that should show up in the demo:
+**`demo-app/` is committed to git.** Historically it got rebuilt and
+committed to `main` alongside whatever frontend change prompted it. As
+of the `website-live` deploy branch (see "Publishing" below), **that no
+longer ships automatically** — a rebuild on `main` sits there until it's
+deliberately promoted to `website-live`, normally as part of cutting a
+new app release:
 
 ```bash
 # from the project root
@@ -66,14 +70,35 @@ notes for the exact Plesk-side steps (subdomain creation, Git setup,
 document root) — those have to be done by Marien directly in Plesk;
 nothing about them can be scripted from here.
 
-Once deployed, updating the live site after a `git push` is a manual
-"Pull Updates" click in Plesk's Git tab, unless a webhook is set up
-later for auto-pull.
+A GitHub webhook now triggers Plesk to pull on every push — but **Plesk
+tracks a dedicated `website-live` branch, not `main`**. Regular app
+development happens on `main` as always and never touches the live site,
+even though the webhook itself fires on every push to any branch (Plesk
+just re-pulls `website-live`, which hasn't moved — a harmless no-op).
+The live site only changes when `website-live` itself is moved forward,
+which is always a deliberate, separate step:
+
+- **A small, direct website tweak** (copy, a wording fix): commit to
+  `main` as usual, then publish it:
+  ```bash
+  git checkout website-live
+  git merge --ff-only main
+  git push origin website-live
+  git checkout main
+  ```
+- **A larger website project** (redesign, new pages): do the work on its
+  own branch (e.g. `website/new-guide-layout`), push it to GitHub freely
+  at any point for backup/review — `website-live` isn't watching that
+  branch, so nothing goes live until it's deliberately merged into `main`
+  and then promoted to `website-live` with the same three commands above.
+- **A new app release**: rebuild the demo bundle
+  (`npm run build:demo` — it reads the just-bumped version from
+  `package.json` automatically) and commit that to `main` as part of the
+  release, then promote to `website-live` the same way. See the root
+  `CLAUDE.local.md`'s release workflow for exactly where this step sits.
 
 ## Not done yet
 
-- Automatic redeploy (a webhook from GitHub to Plesk's pull endpoint) —
-  manual pull is fine to start with.
 - A favicon / social-preview (`og:image`) — using the app's own
   "dated page" icon would be the natural choice.
 - Screenshots/GIFs of the native desktop app, for anyone who skips the
