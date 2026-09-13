@@ -473,23 +473,64 @@ kbd {
   letter-spacing: 0.05em;
   color: var(--muted);
 }
-.snippet-rendered {
-  line-height: 1.7;
+/* §follow-up: the real editor renders a section title as a completely
+   plain line — no bold, no color change — with the underline's `=`
+   characters on their *own* line right below it, redrawn as a rule
+   (`.cm-setext-rule` in the app's app.css, `setextRule.ts`). The title
+   used to be bolted together with the rule via a `border-bottom` on the
+   title itself, which read fine on its own but meant "what you see" had
+   one fewer row than "what you type" — the two panels no longer lined
+   up line for line. `.rendered-rule` now wraps the literal `=` run (kept
+   in the markup, same length as "what you type"'s) on its own line,
+   same double-gradient-background technique as `.cm-setext-rule` so the
+   rule sits through the character's own ink line rather than at the
+   text box's bottom edge.
+
+   Pixel-perfect row alignment against the plain `.snippet` next to it
+   depends on *every* row sharing one exact line height — no more, no
+   less than the plain-text rows get from the inherited body
+   `line-height: 1.6`. Two things broke that before: this block used to
+   set its own `line-height: 1.7` (now removed — it inherits 1.6 like
+   any other `.snippet`), and `.glyph` draws at a deliberately larger
+   16px elsewhere (the standalone token-vocabulary table) — inlined here
+   at that size, an unitless inherited line-height recomputes against
+   *its own* font-size (1.6 × 16px = 25.6px), taller than the 13.5px
+   text's 21.6px, inflating just the rows that happen to contain one.
+   `font-size: inherit` drops it back to the snippet's own 13.5px so the
+   ratio resolves to the same 21.6px as every other row.
+
+   The base `.glyph`/`.badge-assignee` rules (used standalone elsewhere —
+   the vocabulary table, badges in running prose) are `display:
+   inline-block`, which measurably breaks row-for-row alignment here: an
+   inline-block's baseline is its *own* content's baseline, not the
+   surrounding line's font metrics, so on a row that mixes one with
+   plain text (or, for the setext rule below, has nothing else to align
+   against at all) it lands a couple of px off from where a plain text
+   line sits — confirmed directly against "what you type"'s rows via
+   `Range.getClientRects()`. Forcing plain `display: inline` for both
+   inside `.snippet-rendered` puts them in the exact same box model as
+   the surrounding text, which is what actually made every row's `top`
+   match "what you type" pixel-for-pixel; `.rendered-rule` gets the same
+   treatment, and as a side benefit now spans only its own `=` run's
+   width rather than needing an explicit `width: 100%` — matching
+   `.cm-setext-rule` spanning only the file's actual `=` characters, not
+   the container. */
+.snippet-rendered .glyph,
+.snippet-rendered .badge-assignee {
+  display: inline;
+  font-size: inherit;
 }
-.snippet-rendered .rendered-title {
-  display: inline-block;
-  font-weight: 700;
-  color: var(--bright);
-  /* Matches the editor's own Setext-underline rendering, which uses
-     --muted at a clearly visible weight (`.cm-setext-rule` in the app's
-     app.css) — the fainter --edge-strong (a 13%-opacity divider color,
-     meant for subtle UI chrome, not a meaningful rule) read as barely
-     there at 3px, especially compressed into a phone screenshot. 6px
-     gives the "double" border-style two clearly distinct hairlines
-     instead of blurring into one thin line. */
-  border-bottom: 6px double var(--muted);
-  padding-bottom: 3px;
-  margin-bottom: 2px;
+.snippet-rendered .rendered-rule {
+  font-size: inherit;
+  color: transparent;
+  background-image:
+    linear-gradient(var(--muted), var(--muted)),
+    linear-gradient(var(--muted), var(--muted));
+  background-size: 100% 1px;
+  background-repeat: no-repeat;
+  background-position:
+    0 calc(51% - 0.09em),
+    0 calc(51% + 0.09em);
 }
 .snippet-rendered .rendered-bullet::before {
   content: "•  ";

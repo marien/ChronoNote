@@ -6,8 +6,10 @@ kept for the rationale behind each one — not just *what* changed but
 was still being gathered and confirmed before implementation; renamed once
 everything below was applied, since nothing here is "pending" anymore.
 
-**Status: all sections through §152 implemented and released; §1–152
-released or otherwise live.** §141's desktop-app
+**Status: all sections through §153 implemented and released or live;
+§1–153 released or otherwise live.** §153 is a website-only Guide-page
+fix (found live right after §150–§152 shipped as v0.7.12) — no version
+bump, nothing in the shipped app changed. §141's desktop-app
 Import feature shipped as v0.7.9; §143's cross-platform shortcuts and
 §144's top-bar collapse shipped together as v0.7.10. §145 is a
 same-release cleanup pass over §143's deferred comment/test-title
@@ -6215,3 +6217,58 @@ same "open in the OS's default browser, swallow errors" shape.
 
 `svelte-check` 213/0, Vitest 297/297 (+1), Playwright 181/181 (+1),
 `cargo test` 47/47 (unchanged — pure frontend).
+
+## 153. Guide page: the "what you see" panel had a duplicate line break, then wasn't pixel-aligned to "what you type"
+
+**Status: implemented, website-only (no version bump — nothing in the
+shipped app changed).** Marien, from a screenshot of the live Guide
+page: "It shows an extra enter in the what you see of 1 and 2," then,
+once that was fixed, "the lines need to line up perfectly between what
+you type and what you see" — followed by "The alignment needs to be
+pixel perfect... Make sure the boxes are the same size and the lines
+are the same height."
+
+**The extra blank line** was a real markup bug: `.snippet`/`.snippet-
+rendered` render with `white-space: pre-wrap`, so a literal newline in
+the HTML source is itself a line break — the same as a `<br>`. The
+"what you see" markup had both, back to back (`<span>…</span><br>` then
+a newline before the next `<span>`), so every row broke twice. Fixed by
+dropping the `<br>` tags entirely and writing it the same way "what you
+type" already was: plain newlines, no `<br>`, relying on `pre-wrap`
+alone.
+
+**Fixing that surfaced a real structural mismatch**, not just the
+duplicate break: "what you type"'s 4-line section header (title, `=`
+underline, two body lines) was being rendered as only 3 rows, because
+the title and its underline were merged into one row via a `border-
+bottom` on the title itself. The real editor never does this —
+`setextRule.ts`/`.cm-setext-rule` (`src/app.css`) draw the underline as
+a rule on the underline's *own* line, leaving the title line completely
+plain (no bold, no color change) on the line above it. Split into two
+lines to match: the title now renders as plain text, and a new
+`.rendered-rule` span (wrapping the actual `=` run from "what you
+type", not an invented width) sits on its own line below it, using the
+same double-gradient-background technique as `.cm-setext-rule`.
+
+**Getting genuinely pixel-perfect took another pass past "looks close
+enough."** Two independent things were each pushing rows out of exact
+alignment by a few px: (1) `.snippet-rendered` set its own `line-height:
+1.7` against `.snippet`'s inherited `1.6` — removed, now both inherit
+the same value. (2) `.glyph`/`.badge-assignee` are `display: inline-
+block` everywhere else on the site (the vocabulary table, badges in
+running prose) — inlined into a row of plain text here, an inline-
+block's baseline is *its own* content's baseline, not the surrounding
+line's font metrics, so any row containing one (or, for the setext
+rule, a row with nothing else to align against at all) landed a couple
+of px off from a plain-text row, confirmed directly via
+`Range.getClientRects()` on both panels. `.glyph`, `.badge-assignee`,
+and the new `.rendered-rule` are now forced to plain `display: inline`
+specifically inside `.snippet-rendered` (plus `font-size: inherit`,
+since `.glyph` also draws at a deliberately larger 16px elsewhere, which
+alone would have inflated just the rows that contain one). After both
+fixes, every row's `top` matches "what you type" to the sub-pixel value
+measured, and both boxes are the exact same height (verified: 111.71px
+and 68.52px, identical to two decimal places) — not just visually
+close.
+
+Pure `website/guide.html` + `website/style.css`, nothing else touched.
