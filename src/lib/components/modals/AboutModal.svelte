@@ -33,14 +33,9 @@
   <div class="modal-card" role="dialog" aria-modal="true" use:focusTrap aria-label="About ChronoNote" style="width: 420px;">
     <div class="modal-input-wrap modal-title">
       <Icon name="about" size={15} /> About ChronoNote
+      <span class="modal-counter" style="margin-left: auto;">v{$appVersion || "…"}</span>
     </div>
     <div class="settings-section">
-      <div>
-        <div class="settings-section-label">Version</div>
-        <div class="settings-hint" style="margin-top: 0; font-size: 12px;">
-          {$appVersion || "…"}
-        </div>
-      </div>
       <div>
         <div class="settings-section-label">Updates</div>
         {#if $backendKind === "web"}
@@ -86,14 +81,21 @@
         {/if}
       </div>
       <div>
-        <div class="settings-section-label">Project</div>
-        <button
-          class="icon-btn"
-          style="text-align: left;"
-          on:click={controller.openProjectLink}
-        >
-          {controller.PROJECT_URL}
-        </button>
+        <div class="settings-section-label">Links</div>
+        <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 8px;">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span class="settings-inline-label">Website:</span>
+            <button class="icon-btn" style="text-align: left; flex: 1;" on:click={controller.openWebsiteLink}>
+              {controller.WEBSITE_URL}
+            </button>
+          </div>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span class="settings-inline-label">Project:</span>
+            <button class="icon-btn" style="text-align: left; flex: 1;" on:click={controller.openProjectLink}>
+              {controller.PROJECT_URL}
+            </button>
+          </div>
+        </div>
       </div>
       <div>
         <div class="settings-section-label">Learn more</div>

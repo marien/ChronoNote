@@ -6,8 +6,8 @@ kept for the rationale behind each one — not just *what* changed but
 was still being gathered and confirmed before implementation; renamed once
 everything below was applied, since nothing here is "pending" anymore.
 
-**Status: all sections through §151 implemented; §1–149 released or
-otherwise live, §150–§151 not yet in a version bump.** §141's desktop-app
+**Status: all sections through §152 implemented and released; §1–152
+released or otherwise live.** §141's desktop-app
 Import feature shipped as v0.7.9; §143's cross-platform shortcuts and
 §144's top-bar collapse shipped together as v0.7.10. §145 is a
 same-release cleanup pass over §143's deferred comment/test-title
@@ -25,7 +25,9 @@ desktop-app change. §151 is four small chat-feedback follow-ups (release
 links open the full releases list instead of one tag, the status-bar
 version number and update message are both clickable shortcuts to
 About, and the date picker only bolds a day once it actually has
-content) — both §150 and §151 are pending their own release. §141–§144's
+content). §152 adds the marketing website to About's links (alongside
+GitHub, both now labeled) and folds the standalone "Version" section
+into the title row. §150–§152 shipped together as v0.7.12. §141–§144's
 web-app pieces are separately deployed live at
 `app.chrononote.mariendegelder.nl` and `chrononote.mariendegelder.nl` —
 that side needs no version bump of its own, a website deploy is
@@ -5990,7 +5992,7 @@ icon` touches files under `src-tauri/`).
 
 ## 150. Section History overhaul — browse every occurrence without leaving the drawer
 
-**Status: implemented, not yet released.** Marien, reflecting on how the
+**Status: implemented, released in v0.7.12.** Marien, reflecting on how the
 `# (topic)` weekly-grouping habit and top-of-day reminders interact with
 the tooling that's grown up around them, asked to improve Section
 History directly: make "Previous occurrence" always anchor to today,
@@ -6126,7 +6128,7 @@ toggle live-filtering both rows and headers.
 
 ## 151. Four "for later" chat-feedback items: releases-list links, clickable update affordances, date-picker bold fix
 
-**Status: implemented, not yet released.** Four small items Marien flagged
+**Status: implemented, released in v0.7.12.** Four small items Marien flagged
 mid-conversation while reviewing §150, explicitly deferred ("for
 later") rather than acted on immediately, then addressed together once
 §150 was committed.
@@ -6189,4 +6191,27 @@ type-to-jump, confirms it's *not* bold, types into it, confirms it then
 *is*.
 
 `svelte-check` 213/0, Vitest 296/296 (+1), Playwright 180/180 (+4),
+`cargo test` 47/47 (unchanged — pure frontend).
+
+## 152. About screen: the website link, and a reorganization
+
+**Status: implemented, released in v0.7.12.** Marien: "On the about
+screen, show the website as well. And reorganize the about screen,"
+then a follow-up once the reorganized layout was reviewed: "Can you add
+Website: before the first link, and Project: before the second link?"
+
+**Reorganized from four sections to three.** The standalone "Version"
+section (just the version string on its own) is gone — folded into the
+title row instead (`About ChronoNote` … `v0.7.11`, right-aligned via the
+same `.modal-counter` style History/Search already use for their entry
+counts). "Project" (a single GitHub-link row) became "Links", now
+holding both `WEBSITE_URL` (`https://chrononote.mariendegelder.nl`,
+new — §138/§139's marketing site had never been linked from the desktop
+app before) and `PROJECT_URL`, each labeled (`Website:` / `Project:`,
+`.settings-inline-label`, the same class #48's Theme/Glyphs rows use)
+so the two aren't visually ambiguous. `openReleasePage`/`openProjectLink`
+already existed in `menu.ts`; added `openWebsiteLink()` alongside them,
+same "open in the OS's default browser, swallow errors" shape.
+
+`svelte-check` 213/0, Vitest 297/297 (+1), Playwright 181/181 (+1),
 `cargo test` 47/47 (unchanged — pure frontend).

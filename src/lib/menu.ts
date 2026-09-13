@@ -30,17 +30,27 @@ export function openGlyphLegend() {
 }
 
 export const PROJECT_URL = "https://github.com/marien/ChronoNote";
+/** The marketing site (landing page, guide, live demo) — §138/§139.
+ * Distinct from `PROJECT_URL` (the GitHub repo itself): most people
+ * looking for docs or "what is this" want the website, not the source. */
+export const WEBSITE_URL = "https://chrononote.mariendegelder.nl";
 
 export function openAbout() {
   modal.set("about");
 }
 
 /** Opens a link in the OS's default browser rather than inside the app's
- * own webview — used by the About drawer's project link. Errors are
+ * own webview — used by the About drawer's Links section. Errors are
  * swallowed rather than surfaced: worst case a click does nothing, which
  * isn't worth a toast/modal of its own. */
 export function openProjectLink() {
   api.openExternalUrl(PROJECT_URL).catch(() => {});
+}
+
+/** §follow-up: About's "show the website too" — the marketing site
+ * alongside the existing GitHub link. */
+export function openWebsiteLink() {
+  api.openExternalUrl(WEBSITE_URL).catch(() => {});
 }
 
 /** §update-check follow-up: the About drawer's "What's changed" link and

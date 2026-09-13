@@ -1,7 +1,7 @@
 # ChronoNote: Master Technical & Product Specification
 
 **Document Version:** 1.1.0 (amended — reflects the state through
-`CHANGELOG.md` §151)
+`CHANGELOG.md` §152)
 **Target Environment:** Cross-platform native desktop (Windows / macOS /
 Linux), plus a browser-storage web app and a zero-retention public demo
 **Reference Architecture:** Tauri v2 (Rust) + Svelte 5 / TypeScript +
@@ -308,10 +308,12 @@ reachable from the top bar, a shortcut, or the command palette:
   scroll that column rather than the editor behind it, while every
   global shortcut (including `Escape`) keeps working regardless of
   where focus sits.
-- **About** (the info icon, right of Settings) — the project's GitHub
-  link (opened in the OS's default browser) and the currently-running
-  version, read live; also where an available update is reviewed and
-  installed (§7.5).
+- **About** (the info icon, right of Settings) — the currently-running
+  version (in the title row, read live), an Updates section (where an
+  available update is reviewed and installed, §7.5), a Links section
+  (the marketing website and the GitHub repo, each labeled and opened in
+  the OS's default browser), and a Learn More section pointing at the
+  Shortcuts drawer and command palette.
 
 Also reachable inline in the editor rather than as a drawer: the
 in-document **Find bar** (`Ctrl/Cmd+F`), a floating, non-modal bar that

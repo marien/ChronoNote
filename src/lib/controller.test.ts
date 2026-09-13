@@ -1150,6 +1150,11 @@ describe("modal open/close helpers", () => {
     controller.openProjectLink();
     expect(apiMock.openExternalUrl).toHaveBeenCalledWith(controller.PROJECT_URL);
   });
+
+  it("openWebsiteLink opens the marketing site externally (§follow-up)", () => {
+    controller.openWebsiteLink();
+    expect(apiMock.openExternalUrl).toHaveBeenCalledWith(controller.WEBSITE_URL);
+  });
 });
 
 describe("setColorMode", () => {
