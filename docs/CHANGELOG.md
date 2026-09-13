@@ -6436,3 +6436,17 @@ the same 32px-tall box and letting it inherit `#top-bar`'s
 confirmed pixel-exact via `getBoundingClientRect()` (both the app icon's
 and a tab icon's own `<svg>` now centre at the identical y-coordinate,
 where they previously differed by several px).
+
+**Follow-up: the icon's top and left margins didn't match.** Marien,
+after confirming the vertical fix above: "the space on the top of the
+icon is more than on the left. What would you recommend as a UI/UX
+designer?" Measured before recommending anything: the 32px-box-in-a-
+40px-bar treatment above already gives the icon ~15.3px of room above
+it (the bar's own 8px bottom-anchor gap plus ~8px from centring 16px of
+icon in a 32px box) — the left margin was still `10px`, an old value
+from before that box existed, unrelated to the new vertical rhythm.
+Recommended (over enlarging the icon or shrinking the whole bar, both
+higher-blast-radius changes that don't directly address an asymmetric
+margin) matching the left margin to the same value instead: `10px` →
+`16px`, confirmed via `getBoundingClientRect()` landing at 16px left vs.
+15.3px top — visually equal, no other property touched.

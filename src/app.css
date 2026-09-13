@@ -305,7 +305,15 @@ body {
   justify-content: center;
   height: 32px;
   flex-shrink: 0;
-  margin: 0 8px 0 10px;
+  /* §merged-titlebar follow-up: the vertical centring above already gives
+     the icon ~16px of breathing room above it (8px from the bar's own
+     bottom-anchor gap, 8px from centring the 16px icon in its 32px box)
+     — the left margin was still the old, smaller value from before that
+     box existed, so the icon read closer to the bar's left edge than to
+     its top. Matched to the same ~16px so the icon sits with roughly
+     equal room on both its free sides, confirmed via
+     `getBoundingClientRect()` (15.3px top vs. 10px left before this). */
+  margin: 0 8px 0 16px;
 }
 /* §merged-titlebar: a fixed, always-present drag territory between the
    toolbar cluster and the window controls — #tab-bar's own empty
