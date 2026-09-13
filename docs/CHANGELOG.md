@@ -6,8 +6,7 @@ kept for the rationale behind each one — not just *what* changed but
 was still being gathered and confirmed before implementation; renamed once
 everything below was applied, since nothing here is "pending" anymore.
 
-**Status: all sections through §155 implemented; §1–154 released, §155
-committed, not yet released.** §153 is a
+**Status: all sections through §155 implemented and released.** §153 is a
 website-only Guide-page fix (found live right after §150–§152 shipped
 as v0.7.12) — no version bump, nothing in the shipped app changed. §154
 merges the OS title bar into the top bar (Notepad-style: icon, tabs,
@@ -17,7 +16,8 @@ v0.8.0 (a minor bump rather than another v0.7.x, since v0.7 had already
 reached 12 patch releases and this is a genuine UI change, not a patch).
 §155 is a same-day bug fix found right after v0.8.0 shipped: Section
 History's modal could grow past the window when the "From" occurrence
-was long, instead of scrolling internally. §141's desktop-app
+was long, instead of scrolling internally — fixed and shipped as
+v0.8.1. §141's desktop-app
 Import feature shipped as v0.7.9; §143's cross-platform shortcuts and
 §144's top-bar collapse shipped together as v0.7.10. §145 is a
 same-release cleanup pass over §143's deferred comment/test-title
@@ -6534,7 +6534,7 @@ Playwright 189/189 (+3).
 
 ## 155. Section History modal capped at 80% of window height
 
-**Status: fixed, committed, not yet released.** Marien, right after
+**Status: released as v0.8.1.** Marien, right after
 testing the just-shipped v0.8.0 title-bar merge: *"the section history
 takes up too much space if the From: section text is too long. The
 modal should not take up more than the height of 80% of the window or
