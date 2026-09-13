@@ -317,4 +317,29 @@ test.describe("section history (Ctrl/Cmd+Shift+H)", () => {
     await expect(history(page)).toBeHidden();
     await expect(page.locator("#stat-message")).toContainText(/section/i);
   });
+
+  test("a long 'From' occurrence scrolls internally instead of growing the modal past 80% of the window (§154 follow-up)", async ({
+    page,
+  }) => {
+    const longBody = Array.from({ length: 80 }, (_, i) => `line ${i + 1}`).join("\n");
+    await seedApp(page, {
+      seed: {
+        notes: { [todayFilename()]: `Standup\n=======\n${longBody}` },
+      },
+    });
+    await editor(page).click();
+    await page.keyboard.press("ControlOrMeta+Home");
+    await page.keyboard.press("ArrowDown"); // into the "Standup" section
+    await page.keyboard.press("ControlOrMeta+Shift+H");
+
+    const card = history(page);
+    await expect(card).toBeVisible();
+    const cardBox = await card.boundingBox();
+    const viewportSize = page.viewportSize()!;
+    expect(cardBox!.height).toBeLessThanOrEqual(viewportSize.height * 0.8 + 1);
+
+    const fromBody = card.locator(".hp-context");
+    const [scrollHeight, clientHeight] = await fromBody.evaluate((el) => [el.scrollHeight, el.clientHeight]);
+    expect(scrollHeight).toBeGreaterThan(clientHeight);
+  });
 });

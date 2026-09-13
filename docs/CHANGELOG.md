@@ -6,7 +6,8 @@ kept for the rationale behind each one — not just *what* changed but
 was still being gathered and confirmed before implementation; renamed once
 everything below was applied, since nothing here is "pending" anymore.
 
-**Status: all sections through §154 implemented and released.** §153 is a
+**Status: all sections through §155 implemented; §1–154 released, §155
+committed, not yet released.** §153 is a
 website-only Guide-page fix (found live right after §150–§152 shipped
 as v0.7.12) — no version bump, nothing in the shipped app changed. §154
 merges the OS title bar into the top bar (Notepad-style: icon, tabs,
@@ -14,7 +15,9 @@ minimize/maximize/close) — a real, user-visible native-window change,
 held for Marien's own hands-on test before release, then shipped as
 v0.8.0 (a minor bump rather than another v0.7.x, since v0.7 had already
 reached 12 patch releases and this is a genuine UI change, not a patch).
-§141's desktop-app
+§155 is a same-day bug fix found right after v0.8.0 shipped: Section
+History's modal could grow past the window when the "From" occurrence
+was long, instead of scrolling internally. §141's desktop-app
 Import feature shipped as v0.7.9; §143's cross-platform shortcuts and
 §144's top-bar collapse shipped together as v0.7.10. §145 is a
 same-release cleanup pass over §143's deferred comment/test-title
@@ -6528,3 +6531,45 @@ characters. Dropped, keeping only the opacity dimming.
 `svelte-check` 215/0, Vitest 303/303 (unchanged — pure frontend
 interaction logic, already covered by the new Playwright cases above),
 Playwright 189/189 (+3).
+
+## 155. Section History modal capped at 80% of window height
+
+**Status: fixed, committed, not yet released.** Marien, right after
+testing the just-shipped v0.8.0 title-bar merge: *"the section history
+takes up too much space if the From: section text is too long. The
+modal should not take up more than the height of 80% of the window or
+so. If it does, a scrollbar needs to be shown for the From: section, so
+the rest of the text is always visible."*
+
+Root cause: nothing capped `.modal-card`'s overall height. The "From"
+panel (`.hp-context`, §150) already had `flex: 1 1 auto; overflow-y:
+auto` from when it was built, but that only does anything once an
+ancestor actually has a *bounded* height to divide up — with the card
+itself free to grow to fit its content, `.history-body` (and everything
+inside it) just took its natural content size instead of competing for
+a fixed budget, so a long occurrence grew the whole card past the
+viewport rather than triggering its own scrollbar.
+
+Fix, scoped to this modal (`app.css`) rather than the shared
+`.modal-card` rule every other drawer also uses, to avoid touching
+modals that already fit comfortably within 80vh: a new
+`.history-modal-card { max-height: 80vh; }`, applied via a second class
+on `HistoryModal.svelte`'s root card alongside `.modal-card`. `
+.history-body` gained `flex: 1` (it previously had no flex-grow of its
+own, only `min-height: 0`) so it actually claims the space the now-capped
+card leaves after the header, the "Previous occurrence" panel, and the
+footer — which is what lets `.hp-context`'s pre-existing `flex: 1 1
+auto` and `overflow-y: auto` finally do their job.
+
+Verified live in the running mock-backend dev app: typed an 80-line
+block into a section, confirmed via `getBoundingClientRect()` that the
+card holds to exactly 80% of the viewport height at both 720px and
+600px window heights, and that `.hp-context`'s `scrollHeight` exceeds
+its `clientHeight` (i.e. it's genuinely scrolling, not just clipping).
+New Playwright case in `search-and-history.spec.ts` seeds an 80-line
+section and asserts both of those facts directly, so a future regression
+that removes the cap or the flex chain fails a real assertion instead of
+only showing up in manual testing.
+
+`svelte-check` 215/0, Vitest 303/303 (unchanged — pure CSS/layout fix),
+Playwright 190/190 (+1), `cargo test` 47/47 (unchanged — pure frontend).

@@ -210,7 +210,7 @@
 
 <div class="overlay" role="presentation" use:closeOnOutsideClick={controller.closeAllModals}>
   <div
-    class="modal-card"
+    class="modal-card history-modal-card"
     role="dialog"
     aria-modal="true"
     use:focusTrap

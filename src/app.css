@@ -1623,7 +1623,18 @@ textarea.modal-input.import-textarea {
 .history-body {
   display: flex;
   align-items: stretch;
+  flex: 1;
   min-height: 0;
+}
+/* §154 bug: nothing capped the modal's overall height, so a long "From"
+ * occurrence (`.hp-context`, itself already scrollable) just grew the
+ * whole card past the viewport instead of scrolling internally — its
+ * `flex: 1 1 auto` sizing only kicks in once an ancestor actually has a
+ * bounded height to divide up. Capping the card here gives `.history-body`
+ * (now `flex: 1`) a real budget, which `.hp-context` and `.modal-list`
+ * then share via their own `overflow-y: auto`. */
+.history-modal-card {
+  max-height: 80vh;
 }
 .history-main {
   display: flex;
