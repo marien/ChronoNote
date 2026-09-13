@@ -17,6 +17,8 @@ import {
   clearAllTabCleanHashes,
   conflictInfo,
   historyItems,
+  historyOccurrences,
+  historyPreviousOccurrence,
   historyTargetHeader,
   modal,
   notesDir,
@@ -88,6 +90,8 @@ async function performDirectorySwitch(path: string) {
   allNotesCache.set({});
   actionSnapshot.set([]);
   historyItems.set([]);
+  historyOccurrences.set([]);
+  historyPreviousOccurrence.set(null);
   historyTargetHeader.set("");
   searchResultsStore.set([]);
   conflictInfo.set(null);

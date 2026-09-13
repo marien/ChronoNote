@@ -6,16 +6,22 @@ kept for the rationale behind each one — not just *what* changed but
 was still being gathered and confirmed before implementation; renamed once
 everything below was applied, since nothing here is "pending" anymore.
 
-**Status: all sections through §147 implemented; §1–145 released, §146
-and §147 not yet in a version bump.** §141's desktop-app Import feature
-shipped as v0.7.9; §143's cross-platform shortcuts and §144's top-bar
-collapse shipped together as v0.7.10. §145 is a same-release cleanup
-pass over §143's deferred comment/test-title wording — no version bump
-of its own. §146 adds a reverse action-state cycle shortcut plus three
-website follow-ups (Guide-page rendered examples, favicon/social-preview
-tags). §147 collapses the status bar's content on narrow windows/
-screens, fixing an overlap reported from the web app on a phone. Both
-pending their own release. §141–§144's
+**Status: all sections through §150 implemented; §1–149 released or
+otherwise live, §150 not yet in a version bump.** §141's desktop-app
+Import feature shipped as v0.7.9; §143's cross-platform shortcuts and
+§144's top-bar collapse shipped together as v0.7.10. §145 is a
+same-release cleanup pass over §143's deferred comment/test-title
+wording — no version bump of its own. §146 (a reverse action-state cycle
+shortcut plus three website follow-ups) and §147 (the status bar's
+narrow-window collapse) shipped together as v0.7.11. §148 and §149 are
+website/asset-only fixes found live right after that release (no
+shipped-app change, so no version bump of their own): the Guide page's
+rendered examples were too faint to see, and the web app's icon was a
+stale pre-0.4 mark. §150 is a Section History overhaul (browsable
+headers for every occurrence — past, empty, and future — a full-width
+"Previous occurrence" pane always anchored to today, an "Only Open"
+filter, and a glyph-rendered, scrollable "From" panel) — a real
+desktop-app change, pending its own release. §141–§144's
 web-app pieces are separately deployed live at
 `app.chrononote.mariendegelder.nl` and `chrononote.mariendegelder.nl` —
 that side needs no version bump of its own, a website deploy is
@@ -5767,7 +5773,7 @@ test-correctness fix that doesn't add or remove a case), all green.
 
 ## 146. Reverse action-state cycle, plus three website follow-ups
 
-**Status: implemented, no version bump yet (pending the next release).**
+**Status: implemented, released in v0.7.11 (together with §147).**
 Marien flagged four items noted for later in `website/README.md`'s
 "Follow-ups" section and asked to build all four.
 
@@ -5843,7 +5849,8 @@ behavior.
 
 ## 147. Status bar collapses its content on narrow windows/screens
 
-**Status: implemented, no version bump yet.** Marien sent a screenshot
+**Status: implemented, released in v0.7.11 (together with §146).**
+Marien sent a screenshot
 of the web app on a phone: the right zone's "Browser storage" badge was
 rendering directly against the left zone's clipped, mid-word-cut "Open"
 count with no gap at all between them ("OpBrowser storage"). Asked for
@@ -5976,3 +5983,139 @@ just the six corrected PNGs.
 `svelte-check` 213/0, Vitest 292/292 (unchanged — binary asset fix, no
 logic touched), `cargo test` 47/47 (unchanged; re-run since `npx tauri
 icon` touches files under `src-tauri/`).
+
+## 150. Section History overhaul — browse every occurrence without leaving the drawer
+
+**Status: implemented, not yet released.** Marien, reflecting on how the
+`# (topic)` weekly-grouping habit and top-of-day reminders interact with
+the tooling that's grown up around them, asked to improve Section
+History directly: make "Previous occurrence" always anchor to today,
+give it the full modal width, glyph-render the "From" panel without line
+numbers, show a date header for every occurrence (including ones with no
+actions, and future ones), make those headers themselves selectable and
+able to drive the "From" panel, add an "Only Open" filter, and give the
+"From" panel its own scrollbar so a whole section can be reviewed in
+place — the point being to review notes and actions from every past and
+future occurrence "without having to jump to the individual files/tabs."
+
+**Previous occurrence, always before today.** `findPreviousSectionOccurrence`
+used to take the note the drawer was opened from (`fromFilename`) and
+look for the newest dated file sorting before *that* — so a drawer
+opened from an old note could show something that isn't actually the
+most recent prior occurrence relative to today, and a future-dated seed
+file was silently invisible regardless of where it stood relative to the
+note the drawer was opened from. Now it takes no `fromFilename` at all
+and filters strictly on `todayISO()` — "previous" always means "before
+today," full stop. Also now spans the full 880px modal width (its own
+section, sibling to the list+preview split below it, not confined to the
+list's column) — it lost its `45%`-of-parent-height cap in the process
+(that only ever worked because it was a flex sibling being stretched to
+another column's height) in favor of a fixed 220px, so a long expanded
+section scrolls internally instead of pushing the rest of the drawer
+around.
+
+**One occurrence per dated file, not just one row per action.** The
+aggregation loop used to be a hand-rolled state machine that only ever
+noticed a date if it contributed at least one action row; a section with
+notes but no `#`/`v`/`>`/`x`/`=>` lines, or one whose only action was
+already shown at a more recent occurrence (the existing dedup), left
+nothing behind at all — the date silently didn't exist as far as the
+drawer could see. Refactored the loop to call the same `extractSectionBody`
+helper "Previous occurrence" already used, once per file, building a new
+`SectionOccurrence` (`filename`/`date`/full `lines`/`startLineIdx`/this
+occurrence's own deduped `items`) for *every* file that has the section
+at all — the existing deduped `historyItems` flat list is still produced
+alongside it (unit tests + the dedup behavior are unchanged), but the new
+`historyOccurrences` store is what the drawer now renders from. Since the
+underlying `allNotesCache` already includes every note file on disk
+regardless of date, a future-dated file with the section just falls out
+of this for free — no separate "look ahead" logic needed.
+
+**Headers are selectable rows now, not just visual separators.** The
+list's virtualized row model gained a third row type (a header carries
+its own `selIndex` right alongside item rows in one shared keyboard-nav
+order) plus a new placeholder row for a zero-action occurrence
+(`.modal-empty-inline`, "No actions in this section" — dimmed, no glyph,
+not selectable, distinct from both a header and a real row). Clicking or
+hovering a header selects it and updates the "From" panel — deliberately
+*not* jumping to the file the way clicking an action row does, since
+browsing dates without leaving the drawer was the whole point; `Enter`
+still jumps to the occurrence's first body line for when you're done
+browsing and want to act (`jumpToHistoryOccurrence`, mirroring
+`jumpToHistoryItem`). `groupHeaderLabel`'s existing `date · count` format
+already reads fine at zero, so the header itself doubles as the "no
+actions" indicator's date/count half.
+
+**"From" renders the whole occurrence, glyph-rendered, no line
+numbers.** Used to be a raw `±2/+3`-line text window with a padded line
+number per row (`hp-context`/`hp-hit`); now shows `fromOcc.lines` in
+full via the same `parseGlyphLine` the "Previous occurrence" pane and
+the list rows already use, each line a `.hp-line` div carrying
+`data-line-idx` so a reactive helper (`scrollFromBodyToHit`, `tick()`
+then `querySelector` + `scrollIntoView({block: "center"})`) can focus the
+selected action's line — or scroll to the top for a header-only
+selection — after Svelte actually paints the new occurrence. `.hp-context`
+is its own scrollable region (added to the shared custom-scrollbar
+selector list alongside `.modal-list`/`.po-body`) so scrolling a long
+section doesn't also scroll the "Shift+Enter inserts"/"Target" sections
+below it out of view; those two sections only render at all when an
+actual item (not just a header) is selected, since there's nothing to
+import or a target line to name otherwise.
+
+**Follow-up (same session, before commit): "From" claims free space
+instead of a fixed cap.** First pass gave `.hp-context` a flat
+`max-height: 260px`, which Marien asked about directly: does it clip to
+a line count like "Previous occurrence" does, or can it use whatever
+room is actually free above "Target"? It should, and now does — the
+270px number was arbitrary and either wasted space (a header-only
+selection, with no Insert/Target below it at all, still capped at 260px
+with empty space beneath) or capped a mid-length section that had more
+real room available. Reworked as a flex layout instead: `.history-preview`
+no longer scrolls itself (`overflow: hidden`, not `auto`); its first
+`.hp-section` (always "From" when anything's selected) gets a new
+`.hp-section-grow` (`flex: 1 1 auto; min-height: 0`), and `.hp-context`
+itself is `flex: 1 1 auto; min-height: 0; overflow-y: auto` — it now
+fills whatever the fixed-size Insert/Target sections (when present)
+don't need, scrolling internally only once genuinely out of room, and
+fills nearly the whole aside when they're absent (a header-only
+selection).
+
+**Follow-up (same session, before commit): "Only Open" moved next to the
+list it filters.** Marien: it was "taking up too much space at the top"
+in its own full-width row under the title, and "out of context" up
+there since it only ever changes what's in the list below. Moved from a
+dedicated `.modal-input-wrap` row (removed) to a new, compact
+`.history-list-toolbar` strip directly above `.modal-list`, scoped to
+the list column's width rather than the full 880px modal, right-aligned,
+with a thin bottom border separating it from the rows it filters.
+
+**"Only Open" (§150, unobtrusive by design).** A single `.toggle-switch`
+— the same component and visual language as the Action Drawer's own
+"Only Open" (§44) — off by default (`historyShowOnlyOpen`, session-only
+like `actionDrawerShowOnlyOpen`; History defaults to showing everything
+since it's a browse-everything review surface, not a worklist). On, it
+filters every occurrence's `items` down to `isOpenHistoryAction` (a
+leading `# `) and drops any occurrence left with zero remaining items
+entirely — not just emptying it, since "only dates with open actions are
+shown, not all dates" was explicit.
+
+Test additions: `controller.test.ts` — `findPreviousSectionOccurrence`
+cases re-pointed at `vi.setSystemTime` instead of a `fromFilename`
+argument, plus a new case proving a future-dated file is ignored
+regardless of which note the drawer is opened from; a new case building
+`historyOccurrences` across a future/today-empty/past spread; a new
+`isOpenHistoryAction` describe block. `search-and-history.spec.ts` (e2e)
+— a new case proving "previous" is anchored to today (not the
+opened-from note) and asserting the panel's rendered width; a new case
+covering selectable headers (a future occurrence, a zero-action one with
+its placeholder, and that clicking a header selects without closing the
+drawer); a new case for the "Only Open" toggle hiding a fully-resolved
+date while keeping one with a surviving open action. Also verified live
+against the running mock-backend dev app (not just the automated suite):
+a genuinely future-dated note's occurrence appearing above today's,
+selecting a zero-action date's header updating the "From" panel to that
+file's real content while leaving the drawer open, and the "Only Open"
+toggle live-filtering both rows and headers.
+
+`svelte-check` 213/0, Vitest 295/295 (+3), Playwright 176/176 (+3),
+`cargo test` 47/47 (unchanged — pure frontend).

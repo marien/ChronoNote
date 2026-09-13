@@ -49,10 +49,10 @@ export interface HistoryItem {
 }
 
 /** #27/#33: the body of a recurring section as it stood at its previous
- * occurrence (the last dated note before the one Section History was
- * opened from) — a "what did we cover last time" snapshot, glyph-rendered
- * read-only in its own pane, distinct from the deduped all-dates
- * aggregate in the list below it. */
+ * occurrence (the most recent dated note before *today*, §150) — a "what
+ * did we cover last time" snapshot, glyph-rendered read-only in its own
+ * pane, distinct from the deduped all-dates aggregate in the list below
+ * it. */
 export interface PreviousSectionOccurrence {
   filename: string;
   date: string;
@@ -61,6 +61,27 @@ export interface PreviousSectionOccurrence {
   lines: string[];
   /** 0-based index of the first body line in the source file. */
   startLineIdx: number;
+}
+
+/** §150: one dated note's rendition of a recurring section — every file
+ * that has the section at all becomes one of these, whether or not it
+ * carries any actions, so Section History's list can show a header (and,
+ * for an empty one, a visual placeholder) for every occurrence, past or
+ * future, not just the ones that happened to contribute a row. */
+export interface SectionOccurrence {
+  filename: string;
+  date: string;
+  /** Full section body, from just after the setext underline to just
+   * before the next section header (trailing blank lines dropped) — used
+   * to glyph-render the "From" preview in full, scrollable, regardless of
+   * which line (if any) is focused. */
+  lines: string[];
+  /** 0-based index of the first body line in the source file. */
+  startLineIdx: number;
+  /** This occurrence's own deduped action rows (a subset of the same
+   * global dedup `historyItems` applies — an action already shown at a
+   * more recent occurrence doesn't repeat here). May be empty. */
+  items: HistoryItem[];
 }
 
 export interface SearchResultItem {

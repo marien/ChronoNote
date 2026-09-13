@@ -1,7 +1,7 @@
 # ChronoNote: Master Technical & Product Specification
 
 **Document Version:** 1.1.0 (amended — reflects the state through
-`CHANGELOG.md` §145 / v0.7.10)
+`CHANGELOG.md` §150)
 **Target Environment:** Cross-platform native desktop (Windows / macOS /
 Linux), plus a browser-storage web app and a zero-retention public demo
 **Reference Architecture:** Tauri v2 (Rust) + Svelte 5 / TypeScript +
@@ -275,11 +275,20 @@ reachable from the top bar, a shortcut, or the command palette:
   to it; `Shift+Enter` forwards it to today (source becomes `> `,
   today's note gets a fresh `# ` copy on top). Opens focused on whatever
   entry belongs to the tab that was active when it was opened.
-- **Section History** (`Ctrl/Cmd+Shift+H`) — a deduped, most-recent-first
-  list of a section's actions and follow-ups across every dated note
-  (one row per action, showing just the text after a mid-line `=>`),
-  plus a "Previous occurrence" pane: the first few lines of that section
-  as it stood at its last occurrence before the current note,
+- **Section History** (`Ctrl/Cmd+Shift+H`) — every dated note that has the
+  section at all, past and future, most-recent-first; each date's header
+  is itself selectable (not just its action rows) and switches the "From"
+  panel to that occurrence's full body, glyph-rendered and scrollable, so
+  the whole history can be reviewed without jumping to individual files.
+  A date with no actions shows a header with a zero count and a dimmed
+  placeholder instead of any rows. Under each header, a deduped,
+  one-row-per-action list of that occurrence's actions and follow-ups
+  (showing just the text after a mid-line `=>`) — an action already shown
+  at a more recent occurrence doesn't repeat at an older one. An
+  unobtrusive "Only Open" toggle (off by default) narrows the list to
+  open actions only, dropping any date left with none. Plus a full-width
+  "Previous occurrence" pane above the list: the first few lines of that
+  section as it stood at its most recent occurrence before *today*,
   glyph-rendered, with a jump to the source.
 - **Cross-Tab Search** (`Ctrl/Cmd+Shift+F`) — full-text search across
   either the open tabs or every file, same open-tabs/all-files toggle as

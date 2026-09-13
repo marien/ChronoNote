@@ -592,6 +592,7 @@ body {
 .cm-scroller,
 .modal-list,
 .po-body,
+.hp-context,
 .shortcuts-col,
 .import-textarea {
   scrollbar-width: thin;
@@ -600,6 +601,7 @@ body {
 .cm-scroller::-webkit-scrollbar,
 .modal-list::-webkit-scrollbar,
 .po-body::-webkit-scrollbar,
+.hp-context::-webkit-scrollbar,
 .shortcuts-col::-webkit-scrollbar,
 .import-textarea::-webkit-scrollbar {
   width: 8px;
@@ -607,6 +609,7 @@ body {
 .cm-scroller::-webkit-scrollbar-track,
 .modal-list::-webkit-scrollbar-track,
 .po-body::-webkit-scrollbar-track,
+.hp-context::-webkit-scrollbar-track,
 .shortcuts-col::-webkit-scrollbar-track,
 .import-textarea::-webkit-scrollbar-track {
   background: transparent;
@@ -639,6 +642,7 @@ body {
 .cm-scroller::-webkit-scrollbar-thumb,
 .modal-list::-webkit-scrollbar-thumb,
 .po-body::-webkit-scrollbar-thumb,
+.hp-context::-webkit-scrollbar-thumb,
 .shortcuts-col::-webkit-scrollbar-thumb,
 .import-textarea::-webkit-scrollbar-thumb {
   background: var(--border);
@@ -647,6 +651,7 @@ body {
 .cm-scroller::-webkit-scrollbar-thumb:hover,
 .modal-list::-webkit-scrollbar-thumb:hover,
 .po-body::-webkit-scrollbar-thumb:hover,
+.hp-context::-webkit-scrollbar-thumb:hover,
 .shortcuts-col::-webkit-scrollbar-thumb:hover,
 .import-textarea::-webkit-scrollbar-thumb:hover {
   background: var(--muted);
@@ -1410,6 +1415,32 @@ textarea.modal-input.import-textarea {
 .modal-group-header:first-child {
   border-top: none;
 }
+/* §150: Section History's date headers are themselves selectable (not
+   just the action rows under them) — opt-in via this modifier so the
+   Action Drawer / Search headers, which share the base class, stay
+   inert. */
+.modal-group-header.selectable {
+  cursor: pointer;
+}
+.modal-group-header.selectable:hover {
+  background: var(--surface-raised);
+}
+.modal-group-header.selected {
+  background: var(--selected-bg);
+  color: var(--selected-fg);
+}
+
+/* §150: an occurrence with nothing to show in the action list — visually
+   distinct from both a header and a real row so it can't be mistaken for
+   either (no glyph, no pointer, dimmed italic). */
+.modal-empty-inline {
+  display: flex;
+  align-items: center;
+  padding: 2px 14px;
+  font-size: 11px;
+  font-style: italic;
+  color: var(--muted);
+}
 
 .modal-footer {
   display: flex;
@@ -1502,14 +1533,32 @@ textarea.modal-input.import-textarea {
   min-width: 0;
   min-height: 0;
 }
+/* §150: the "Only Open" filter sits right above the list it filters —
+   compact (not a full `.modal-input-wrap` row) and scoped to the list's
+   own column width, not the full modal. */
+.history-list-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  padding: 4px 14px;
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--edge-soft);
+  background: var(--surface-chrome);
+}
+.history-list-toolbar .toggle-switch {
+  margin-left: 0;
+}
 
-/* #27/#33: glyph-rendered read-only snapshot of the section's previous
- * occurrence, above the all-dates aggregate list. Capped to the first few
- * lines (JS) with a "show all" toggle, and to ~45% of the drawer height,
- * so it never crowds out the list. */
+/* #27/#33/§150: glyph-rendered read-only snapshot of the section's
+ * previous occurrence — a full-width section of its own (not confined to
+ * `.history-main`'s column) sitting above the list+preview split, since
+ * it's the "what did we cover last time" headline, not part of either
+ * column. Capped to the first few lines (JS) with a "show all" toggle,
+ * and to a fixed height (not a percentage — it no longer has a stretched
+ * flex sibling to size itself against) so a long expanded section scrolls
+ * internally instead of pushing the rest of the drawer around. */
 .history-prev {
   flex-shrink: 0;
-  max-height: 45%;
+  max-height: 220px;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -1578,7 +1627,10 @@ textarea.modal-input.import-textarea {
   border-left: 1px solid var(--edge-soft);
   background: var(--surface-canvas);
   padding: 14px;
-  overflow-y: auto;
+  /* §150: the aside itself no longer scrolls — the "From" section below
+     grows to fill whatever room the (fixed-size) insert/target sections
+     don't need, and scrolls internally once it runs out of that. */
+  overflow: hidden;
   display: flex;
   flex-direction: column;
   gap: 16px;
@@ -1587,6 +1639,15 @@ textarea.modal-input.import-textarea {
   display: flex;
   flex-direction: column;
   gap: 5px;
+}
+/* §150: the "From" section (always first when anything's selected) — the
+ * one section that should claim any space the other two don't need,
+ * rather than being capped to an arbitrary fixed height regardless of
+ * how much room is actually free. `min-height: 0` is what lets a flex
+ * child shrink for its own internal scrollbar instead of overflowing. */
+.hp-section-grow {
+  flex: 1 1 auto;
+  min-height: 0;
 }
 .hp-label {
   font-size: 10.5px;
@@ -1601,19 +1662,44 @@ textarea.modal-input.import-textarea {
   font-family: var(--font);
   font-size: 11px;
   line-height: 1.5;
-  white-space: pre-wrap;
-  word-break: break-word;
   color: var(--muted);
   background: var(--surface-raised);
   border-radius: 4px;
   padding: 7px 9px;
 }
-.hp-context .hp-hit {
+/* §150: the "From" block now renders the whole occurrence (glyphs, no
+ * line numbers), not just a ±2-line window — its own scrollbar so
+ * reviewing a long section doesn't scroll the rest of the preview pane
+ * (the insert/target sections below it) out of view. It uses as much
+ * height as `.hp-section-grow` gives it (all the aside's free space when
+ * only "From" is showing, less when Insert/Target are also present) —
+ * not a fixed cap or a line-count limit like "Previous occurrence"'s. */
+.hp-context {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+}
+.hp-line {
+  white-space: pre-wrap;
+  word-break: break-word;
+  min-height: 1.5em;
+}
+.hp-line.hp-hit {
   color: var(--text);
   font-weight: 600;
+  background: rgba(128, 128, 128, 0.14);
+  border-radius: 3px;
+  margin: 0 -4px;
+  padding: 0 4px;
+}
+.hp-line.hp-muted {
+  color: var(--muted);
+  font-style: italic;
 }
 .hp-insert {
   color: var(--text);
+  white-space: pre-wrap;
+  word-break: break-word;
 }
 .hp-note {
   font-size: 11px;

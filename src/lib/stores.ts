@@ -13,6 +13,7 @@ import type {
   PreviousSectionOccurrence,
   NoteTab,
   SearchResultItem,
+  SectionOccurrence,
   ThemeMode,
 } from "./types";
 
@@ -161,10 +162,21 @@ export const scratchpadGateContext = writable<"switch" | "close" | null>(null);
 export const allNotesCache = writable<Record<string, string>>({});
 export const actionSnapshot = writable<ActionSnapshotItem[]>([]);
 export const historyItems = writable<HistoryItem[]>([]);
+/** §150: every dated occurrence of the section being aggregated — past,
+ * today, and future — each carrying its own (possibly empty) slice of the
+ * same deduped `historyItems`. Drives Section History's list, where a
+ * header is now selectable per occurrence, not just per action row. */
+export const historyOccurrences = writable<SectionOccurrence[]>([]);
 export const historyTargetHeader = writable<string>("");
 /** #27/#33: the section's previous occurrence (see `PreviousSectionOccurrence`).
  * `null` when there is no earlier occurrence to show. */
 export const historyPreviousOccurrence = writable<PreviousSectionOccurrence | null>(null);
+/** §150: Section History's "Only Open" toggle, remembered across drawer
+ * opens/closes for the rest of the session — in-memory only, same
+ * treatment as `actionDrawerShowOnlyOpen` above. Defaults to off: History
+ * is a browse-everything review surface first, unlike the Action Drawer's
+ * default worklist view. */
+export const historyShowOnlyOpen = writable<boolean>(false);
 export const searchResultsStore = writable<SearchResultItem[]>([]);
 
 export function getActiveTabId(): string {

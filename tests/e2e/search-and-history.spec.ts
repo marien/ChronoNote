@@ -188,6 +188,98 @@ test.describe("section history (Ctrl/Cmd+Shift+H)", () => {
     await expect(pane.locator(".po-line")).toHaveCount(5);
   });
 
+  test("the 'Previous occurrence' pane is always anchored to today, not the note it was opened from (§150)", async ({
+    page,
+  }) => {
+    await seedApp(page, {
+      seed: {
+        notes: {
+          [todayFilename()]: "Weekly Sync\n====\ntoday's note",
+          "2026-09-05.txt": ["Weekly Sync", "===========", "# opened from here"].join("\n"),
+          "2026-09-03.txt": ["Weekly Sync", "===========", "# the pre-§150 answer"].join("\n"),
+        },
+        // Opened from 2026-09-05 — an earlier note than today. Before §150,
+        // "previous" meant "before the opened-from note", which would land
+        // on 2026-09-03. Relative to *today* (2026-09-07), the most recent
+        // earlier occurrence is 2026-09-05 itself — the very note the
+        // drawer was opened from.
+        session: { openTabs: ["2026-09-05.txt"], activeTab: "2026-09-05.txt" },
+      },
+    });
+    await editor(page).click();
+    await page.keyboard.press("ControlOrMeta+Home");
+    await page.keyboard.press("ControlOrMeta+Shift+H");
+
+    const panel = history(page).locator(".history-prev");
+    await expect(panel).toContainText("Previous occurrence · 2026-09-05");
+    await expect(panel).not.toContainText("2026-09-03");
+
+    // §150: the panel spans the full modal width now, not a left column
+    // shared with the list+preview split below it.
+    const panelBox = await panel.boundingBox();
+    const cardBox = await history(page).boundingBox();
+    expect(panelBox!.width).toBeGreaterThan(cardBox!.width * 0.9);
+  });
+
+  test("date headers are selectable — including a future occurrence and one with no actions — and update the From block (§150)", async ({
+    page,
+  }) => {
+    await seedApp(page, {
+      seed: {
+        notes: {
+          "2026-09-10.txt": ["Weekly Sync", "===========", "# a future item"].join("\n"),
+          [todayFilename()]: ["Weekly Sync", "===========", "nothing actionable yet"].join("\n"),
+          "2026-09-05.txt": ["Weekly Sync", "===========", "# an older item"].join("\n"),
+        },
+        session: { openTabs: [todayFilename()], activeTab: todayFilename() },
+      },
+    });
+    await editor(page).click();
+    await page.keyboard.press("ControlOrMeta+Home");
+    await page.keyboard.press("ControlOrMeta+Shift+H");
+
+    const list = history(page).locator(".modal-list");
+    // The future-dated occurrence is listed alongside past ones.
+    await expect(list).toContainText("2026-09-10");
+
+    // Today's occurrence has no actions of its own — a header showing a
+    // zero count, and a dimmed placeholder row instead of any item rows.
+    const todayHeader = list.locator(".modal-group-header", { hasText: "2026-09-07" });
+    await expect(todayHeader).toContainText("· 0");
+    await expect(list.locator(".modal-empty-inline")).toHaveText("No actions in this section");
+
+    // Clicking the header selects it — updating the From block — without
+    // jumping away or closing the drawer (unlike clicking an action row).
+    await todayHeader.click();
+    expect(await currentModal(page)).toBe("history");
+    const preview = history(page).locator(".history-preview");
+    await expect(preview).toContainText(`From ${todayFilename()}`);
+    await expect(preview.locator(".hp-context")).toContainText("nothing actionable yet");
+  });
+
+  test("the 'Only Open' toggle hides occurrences with no remaining open actions (§150)", async ({ page }) => {
+    await seedApp(page, {
+      seed: {
+        notes: {
+          [todayFilename()]: ["Standup", "=======", "# still open"].join("\n"),
+          "2026-09-05.txt": ["Standup", "=======", "v already done"].join("\n"),
+        },
+        session: { openTabs: [todayFilename()], activeTab: todayFilename() },
+      },
+    });
+    await editor(page).click();
+    await page.keyboard.press("ControlOrMeta+Home");
+    await page.keyboard.press("ControlOrMeta+Shift+H");
+
+    const list = history(page).locator(".modal-list");
+    await expect(list).toContainText("already done");
+
+    await history(page).getByText("Only Open", { exact: false }).click();
+    await expect(list).not.toContainText("2026-09-05");
+    await expect(list).not.toContainText("already done");
+    await expect(list).toContainText("still open");
+  });
+
   test("the preview pane shows the source context, insert text and target (§109)", async ({ page }) => {
     await seedApp(page, {
       seed: {

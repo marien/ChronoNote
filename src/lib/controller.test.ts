@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { get } from "svelte/store";
 import type { NoteTab } from "./types";
 
@@ -852,6 +852,45 @@ describe("openMeetingHistory (§70: mid-line consequence-action dedup)", () => {
     expect(get(controller.modal)).not.toBe("history");
     expect(get(controller.toastMessage)).toMatch(/not on or inside a named section/);
   });
+
+  it("§150: builds one occurrence per dated file with the section — including empty ones and future dates", async () => {
+    controller.tabs.set([tab({ id: "active", filename: "2026-09-10.txt", content: "Sync\n====\ntoday, nothing yet" })]);
+    controller.activeTabId.set("active");
+    controller.registerEditorApi({
+      getContent: () => "",
+      setContent: () => {},
+      insertAtCursor: () => {},
+      jumpToLine: () => {},
+      getCursorLineIdx: () => 2,
+      focus: () => {},
+      find: { setQuery: () => {}, next: () => {}, prev: () => {}, clear: () => {} },
+    });
+    apiMock.readAllNotes.mockResolvedValue([
+      ["2026-09-15.txt", "Sync\n====\n# a future action already on the books"], // future
+      ["2026-09-10.txt", "Sync\n====\ntoday, nothing yet"], // today, no actions
+      ["2026-09-05.txt", "Sync\n====\n# an older action"],
+    ]);
+    await controller.openMeetingHistory();
+
+    const occurrences = get(controller.historyOccurrences);
+    // Most-recent-first, future included, and every dated occurrence
+    // present even when it contributes zero action rows.
+    expect(occurrences.map((o) => o.filename)).toEqual(["2026-09-15.txt", "2026-09-10.txt", "2026-09-05.txt"]);
+    expect(occurrences[0].items.map((i) => i.action)).toEqual(["# a future action already on the books"]);
+    expect(occurrences[1].items).toEqual([]);
+    expect(occurrences[1].lines).toEqual(["today, nothing yet"]);
+    expect(occurrences[2].items.map((i) => i.action)).toEqual(["# an older action"]);
+  });
+});
+
+describe("isOpenHistoryAction (§150)", () => {
+  it("only a leading '# ' action counts as open", () => {
+    expect(controller.isOpenHistoryAction("# do the thing")).toBe(true);
+    expect(controller.isOpenHistoryAction("v done already")).toBe(false);
+    expect(controller.isOpenHistoryAction("> deferred")).toBe(false);
+    expect(controller.isOpenHistoryAction("x won't do")).toBe(false);
+    expect(controller.isOpenHistoryAction("=> a plain follow-up")).toBe(false);
+  });
 });
 
 describe("historyActionsForLine (#41)", () => {
@@ -876,15 +915,20 @@ describe("historyActionsForLine (#41)", () => {
   });
 });
 
-describe("findPreviousSectionOccurrence (#27)", () => {
+describe("findPreviousSectionOccurrence (#27, §150: always before today)", () => {
   const sources = {
     "2026-09-10.txt": "Weekly Sync\n====\n# today's fresh action",
     "2026-09-08.txt": "Weekly Sync - 2026-09-08\n====\n# renew the cert\n- talked budget\n\n",
     "2026-09-01.txt": "Weekly Sync\n====\nolder occurrence\nStandup\n====\nunrelated",
   };
 
-  it("returns the verbatim body of the most recent occurrence before the current note", () => {
-    const lo = controller.findPreviousSectionOccurrence(sources, "Weekly Sync", "2026-09-10.txt");
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("returns the verbatim body of the most recent occurrence before today", () => {
+    vi.setSystemTime(new Date(2026, 8, 10));
+    const lo = controller.findPreviousSectionOccurrence(sources, "Weekly Sync");
     expect(lo).not.toBeNull();
     expect(lo!.filename).toBe("2026-09-08.txt");
     expect(lo!.lines).toEqual(["# renew the cert", "- talked budget"]); // trailing blank trimmed
@@ -892,14 +936,26 @@ describe("findPreviousSectionOccurrence (#27)", () => {
   });
 
   it("stops the body at the next section header and ignores later files", () => {
-    const lo = controller.findPreviousSectionOccurrence(sources, "Weekly Sync", "2026-09-08.txt");
+    vi.setSystemTime(new Date(2026, 8, 8));
+    const lo = controller.findPreviousSectionOccurrence(sources, "Weekly Sync");
     expect(lo!.filename).toBe("2026-09-01.txt");
     expect(lo!.lines).toEqual(["older occurrence"]);
   });
 
   it("returns null when there is no earlier occurrence", () => {
-    expect(controller.findPreviousSectionOccurrence(sources, "Weekly Sync", "2026-09-01.txt")).toBeNull();
-    expect(controller.findPreviousSectionOccurrence(sources, "Nonexistent", "2026-09-10.txt")).toBeNull();
+    vi.setSystemTime(new Date(2026, 8, 1));
+    expect(controller.findPreviousSectionOccurrence(sources, "Weekly Sync")).toBeNull();
+    vi.setSystemTime(new Date(2026, 8, 10));
+    expect(controller.findPreviousSectionOccurrence(sources, "Nonexistent")).toBeNull();
+  });
+
+  it("ignores a future-dated file even when opened from an earlier one (§150)", () => {
+    // Today is 2026-09-05: the 09-10 file is in the future and must never
+    // be picked as "previous", regardless of which note the drawer is
+    // opened from — this used to be keyed off the opened-from filename.
+    vi.setSystemTime(new Date(2026, 8, 5));
+    const lo = controller.findPreviousSectionOccurrence(sources, "Weekly Sync");
+    expect(lo!.filename).toBe("2026-09-01.txt");
   });
 });
 

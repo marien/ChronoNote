@@ -3,15 +3,20 @@
  * most-recent-first — one row per action, so a line carrying both a
  * leading action and a mid-line `=> ` follow-up (#41) contributes two.
  * Plus (#27/#33) a glyph-rendered snapshot of the section's previous
- * occurrence before the current note. Split out of `controller.ts` in the
- * v0.5.0 refactor. Depends on stores + persistence + tabs
- * (`jumpToFileLine`) + tokens. */
+ * occurrence before today. §150 also builds `historyOccurrences` — one
+ * entry per dated note that has the section at all, whether or not it
+ * contributed any rows to the flat `historyItems` list, so the drawer can
+ * show (and let you browse into) every occurrence, empty or not, past or
+ * future. Split out of `controller.ts` in the v0.5.0 refactor. Depends on
+ * stores + persistence + tabs (`jumpToFileLine`) + tokens. */
 import { get } from "svelte/store";
+import { todayISO } from "./date";
 import {
   activeTabId,
   allNotesCache,
   editorApi,
   historyItems,
+  historyOccurrences,
   historyPreviousOccurrence,
   historyTargetHeader,
   modal,
@@ -21,7 +26,7 @@ import {
 import { refreshAllNotesCache } from "./persistence";
 import { jumpToFileLine } from "./tabs";
 import { getSectionHeaderForLine, isSetextUnderline, normalizeHeaderTitle, titleForMatching } from "./tokens";
-import type { HistoryItem, PreviousSectionOccurrence } from "./types";
+import type { HistoryItem, PreviousSectionOccurrence, SectionOccurrence } from "./types";
 
 export async function openMeetingHistory() {
   const tab = get(tabs).find((t) => t.id === get(activeTabId));
@@ -44,18 +49,17 @@ export async function openMeetingHistory() {
   const allSources = get(allNotesCache);
   const sortedFiles = Object.keys(allSources).sort().reverse();
   const items: HistoryItem[] = [];
+  const occurrences: SectionOccurrence[] = [];
   const seen = new Set<string>();
 
   for (const filename of sortedFiles) {
     const flines = allSources[filename].split("\n");
-    let inSection = false;
-    flines.forEach((line, idx) => {
-      if (idx + 1 < flines.length && isSetextUnderline(flines[idx + 1])) {
-        const h = titleForMatching(normalizeHeaderTitle(flines[idx].trim()));
-        inSection = h.toLowerCase() === targetHeader.toLowerCase();
-        return;
-      }
-      if (!inSection) return;
+    const body = extractSectionBody(flines, targetHeader);
+    if (!body) continue;
+    const date = filename.replace(/\.txt$/, "");
+    const occurrenceItems: HistoryItem[] = [];
+    body.lines.forEach((line, i) => {
+      const idx = body.startLineIdx + i;
       // #41: one source line can carry more than one action — a leading
       // `# `/`v `/`> `/`x ` *and* a mid-line `=> <symbol>` follow-up —
       // and each becomes its own row, showing only that action's text.
@@ -63,19 +67,33 @@ export async function openMeetingHistory() {
         const key = normalizeActionText(action);
         if (seen.has(key)) continue;
         seen.add(key);
-        items.push({ filename, lineIdx: idx, line, action, date: filename.replace(/\.txt$/, "") });
+        const item: HistoryItem = { filename, lineIdx: idx, line, action, date };
+        items.push(item);
+        occurrenceItems.push(item);
       }
     });
+    occurrences.push({ filename, date, lines: body.lines, startLineIdx: body.startLineIdx, items: occurrenceItems });
   }
 
   historyTargetHeader.set(targetHeader);
   historyItems.set(items);
-  // #27: alongside the all-dates aggregate, a snapshot of the section's
-  // body as it stood at its previous occurrence — the last dated note
-  // before this one that has this section (#33: "previous", since it's
-  // relative to the open tab's date, not necessarily "today").
-  historyPreviousOccurrence.set(findPreviousSectionOccurrence(allSources, targetHeader, tab.filename));
+  historyOccurrences.set(occurrences);
+  // #27: alongside the all-dates list, a snapshot of the section's body
+  // as it stood at its previous occurrence — the most recent dated note
+  // *before today* that has this section (§150: always today, not the
+  // date of whichever note the drawer happened to be opened from).
+  historyPreviousOccurrence.set(findPreviousSectionOccurrence(allSources, targetHeader));
   modal.set("history");
+}
+
+/** §150: is this action row "open" — a leading `# ` action, or a `=> #`
+ * consequence-action's inner `# text` (already flattened to that form by
+ * `historyActionsForLine`)? Everything else (`v`/`>`/`x`/a plain `=> `
+ * follow-up) is not. Used by the drawer's "Only Open" toggle to filter
+ * both individual rows and, when an occurrence's rows are filtered down
+ * to none, the occurrence's header itself. */
+export function isOpenHistoryAction(action: string): boolean {
+  return action.startsWith("# ");
 }
 
 /** #41: the action(s) a Section-History line contributes to the list.
@@ -119,21 +137,20 @@ function normalizeActionText(action: string): string {
 
 const DATED_FILE = /^\d{4}-\d{2}-\d{2}\.txt$/;
 
-/** #27/#33: the body of `targetHeader`'s previous occurrence — the newest
- * file that sorts before `fromFilename` (an earlier day than the one
- * Section History was opened from) and contains the section. Returns
- * `null` when there's no earlier occurrence with any content.
- * `fromFilename` is compared as a plain string, which orders
- * `YYYY-MM-DD.txt` names chronologically; when it isn't a dated file (a
- * scratchpad) every other file is a candidate and the most recent wins. */
+/** #27/#33/§150: the body of `targetHeader`'s previous occurrence — the
+ * newest dated file strictly before *today* (not the note Section History
+ * happened to be opened from — a scratchpad, or a future-dated note,
+ * shouldn't change what "previous" means) that contains the section.
+ * Returns `null` when there's no such occurrence with any content.
+ * Filenames are compared as plain strings, which orders `YYYY-MM-DD.txt`
+ * names chronologically. */
 export function findPreviousSectionOccurrence(
   allSources: Record<string, string>,
   targetHeader: string,
-  fromFilename: string,
 ): PreviousSectionOccurrence | null {
-  const fromIsDated = DATED_FILE.test(fromFilename);
+  const cutoff = `${todayISO()}.txt`;
   const candidates = Object.keys(allSources)
-    .filter((f) => f !== fromFilename && (!fromIsDated || f < fromFilename))
+    .filter((f) => DATED_FILE.test(f) && f < cutoff)
     .sort()
     .reverse();
   for (const filename of candidates) {
@@ -175,6 +192,14 @@ function extractSectionBody(
 
 export async function jumpToHistoryItem(item: HistoryItem) {
   await jumpToFileLine({ filename: item.filename, lineIdx: item.lineIdx });
+}
+
+/** §150: open the file behind a selected occurrence's *header* row (no
+ * specific action selected), cursor on the section's first body line —
+ * the same jump `jumpToPreviousOccurrence` does for its own pane, now
+ * available for any occurrence in the main list. */
+export async function jumpToHistoryOccurrence(occurrence: SectionOccurrence) {
+  await jumpToFileLine({ filename: occurrence.filename, lineIdx: occurrence.startLineIdx });
 }
 
 /** #27: open the file behind the "Previous occurrence" pane, cursor on
