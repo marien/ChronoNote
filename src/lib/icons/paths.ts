@@ -36,4 +36,11 @@ export const ICONS = {
   // #56: the top bar's overflow trigger — three filled dots, the same
   // small-circle-accent language `settings`/`about` already use.
   more: `<circle cx="6" cy="12" r="1.6" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.6" fill="currentColor" stroke="none"/><circle cx="18" cy="12" r="1.6" fill="currentColor" stroke="none"/>`,
+  // §merged-titlebar: the three window-control buttons, Windows/Linux
+  // convention (a plain line lower in the box, a square, an overlapping
+  // pair of squares for restore — `close` above is reused as-is, same
+  // mark the tab/modal close buttons already draw).
+  minimize: `<path d="M6 17h12"/>`,
+  maximize: `<rect x="6" y="6" width="12" height="12" rx="1"/>`,
+  restore: `<path d="M9 6h9v9h-3"/><rect x="6" y="9" width="9" height="9" rx="1"/>`,
 } as const;

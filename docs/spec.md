@@ -1,7 +1,7 @@
 # ChronoNote: Master Technical & Product Specification
 
 **Document Version:** 1.1.0 (amended — reflects the state through
-`CHANGELOG.md` §152)
+`CHANGELOG.md` §154)
 **Target Environment:** Cross-platform native desktop (Windows / macOS /
 Linux), plus a browser-storage web app and a zero-retention public demo
 **Reference Architecture:** Tauri v2 (Rust) + Svelte 5 / TypeScript +
@@ -116,6 +116,20 @@ the taskbar icon and the toolbar button read as one thing
 
 ### 3.2 Top Bar & Tab Strip
 
+On the desktop app, the top bar *is* the window's title bar — the native
+OS title bar is disabled (`decorations: false`) and this one bar replaces
+it entirely: the app icon at the leading edge, then the tab strip and
+action buttons (unchanged from before), then minimize/maximize/close at
+the trailing edge. No window title text renders anywhere in-window (the
+OS still tracks one — `ChronoNote - <folder>` — for the taskbar and
+Alt+Tab, just nothing draws it inside the window). The bar's own
+background (outside the tabs/buttons) and the empty space in the tab
+strip past the last tab are both drag regions for moving the window;
+double-clicking either toggles maximize. This only applies to the real
+desktop build — the demo and web app have no OS window at all (an
+iframe / a browser tab) and keep a plain top bar with no icon, no window
+controls, no drag regions.
+
 The top bar hosts the tab strip and a row of action buttons (New
 Scratchpad, Open Date Note, Actions, Section History, Cross-Tab Search,
 Import Sections, Promote-scratchpad when applicable, Settings, About) as
@@ -145,8 +159,12 @@ current state, require clearing a margin before flipping back):
 
 ### 3.3 Status Bar
 
-Three zones, left to right: cursor line/column and word count on the
-left (plus, while text is selected, how many lines the selection spans);
+Three zones, left to right: the active notes folder's name, cursor
+line/column, and word count on the left (plus, while text is selected,
+how many lines the selection spans) — the folder name is the
+lowest-priority item here, first to hide as the window narrows, and
+shows the full path on hover; it moved here (from Settings-only) once
+the merged title bar stopped rendering a visible window title anywhere;
 a centre zone reserved for transient status messages (autosave
 confirmations, "nothing to import," etc.), empty otherwise; and a right
 zone showing Open / Closed / Forwarded action counts for the active

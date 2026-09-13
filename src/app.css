@@ -289,6 +289,59 @@ body {
   align-items: flex-end;
   padding-right: 8px;
 }
+/* §merged-titlebar: the app icon at the bar's leading edge, replacing the
+   native OS title bar's own icon — vertically centred (not bottom-
+   anchored like the tabs/buttons; a title bar icon reads as centred in
+   real window chrome, not floor-aligned). */
+.app-icon {
+  display: flex;
+  align-items: center;
+  align-self: center;
+  flex-shrink: 0;
+  margin: 0 8px 0 10px;
+}
+/* §merged-titlebar: a fixed, always-present drag territory between the
+   toolbar cluster and the window controls — #tab-bar's own empty
+   trailing space (also `data-tauri-drag-region`, see #tab-bar below) can
+   shrink to nothing once tabs overflow, so the window still needs
+   somewhere guaranteed to grab regardless of tab count. Stretches to the
+   bar's full height like the window controls next to it, not bottom-
+   anchored like tabs/buttons. */
+.titlebar-drag-gutter {
+  flex: 0 0 20px;
+  align-self: stretch;
+}
+/* §merged-titlebar: minimize/maximize/close — Windows/Linux convention:
+   square-ish, wider than tall, right-aligned, filling the bar's full
+   height edge-to-edge (a real title bar's buttons never float with a gap
+   above/below them the way the bottom-anchored tabs/toolbar buttons do,
+   hence `align-self: stretch` overriding `#top-bar`'s own
+   `align-items: flex-end`). */
+.window-controls {
+  display: flex;
+  align-self: stretch;
+  flex-shrink: 0;
+  margin-left: auto;
+}
+.win-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  background: transparent;
+  border: none;
+  color: var(--muted);
+  cursor: pointer;
+  padding: 0;
+}
+.win-btn:hover {
+  background: var(--surface-raised);
+  color: var(--text);
+}
+.win-btn.win-close:hover {
+  background: var(--state-error);
+  color: #ffffff;
+}
 #tab-bar {
   display: flex;
   flex: 1;
@@ -903,6 +956,15 @@ body {
 .status-sep {
   opacity: 0.4;
 }
+/* §merged-titlebar: the folder name shouldn't be able to crowd out
+   everything else on a merely-medium-width window if it's a long one —
+   the full name is always still one hover away via the `title` attribute. */
+#stat-folder {
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 #stat-open,
 #stat-closed,
 #stat-forwarded {
@@ -918,6 +980,14 @@ body {
    same way New Scratchpad/Open Date do in the top bar's own collapse —
    they just switch to compact glyph/dot form at the narrowest tier
    instead of vanishing. */
+/* §merged-titlebar: the notes folder name — lowest priority of everything
+   in the left zone (it's supplementary context, not working info), so it
+   drops before word count does. */
+@media (max-width: 860px) {
+  .stat-tier0 {
+    display: none;
+  }
+}
 @media (max-width: 680px) {
   .stat-tier1 {
     display: none;

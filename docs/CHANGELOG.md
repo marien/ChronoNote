@@ -6,10 +6,14 @@ kept for the rationale behind each one — not just *what* changed but
 was still being gathered and confirmed before implementation; renamed once
 everything below was applied, since nothing here is "pending" anymore.
 
-**Status: all sections through §153 implemented and released or live;
-§1–153 released or otherwise live.** §153 is a website-only Guide-page
-fix (found live right after §150–§152 shipped as v0.7.12) — no version
-bump, nothing in the shipped app changed. §141's desktop-app
+**Status: all sections through §154 implemented; §1–153 released or
+otherwise live, §154 implemented but held pending Marien's own hands-on
+test of the new native window behavior before a release.** §153 is a
+website-only Guide-page fix (found live right after §150–§152 shipped
+as v0.7.12) — no version bump, nothing in the shipped app changed. §154
+merges the OS title bar into the top bar (Notepad-style: icon, tabs,
+minimize/maximize/close) — a real, user-visible native-window change,
+deliberately not released yet. §141's desktop-app
 Import feature shipped as v0.7.9; §143's cross-platform shortcuts and
 §144's top-bar collapse shipped together as v0.7.10. §145 is a
 same-release cleanup pass over §143's deferred comment/test-title
@@ -6272,3 +6276,93 @@ and 68.52px, identical to two decimal places) — not just visually
 close.
 
 Pure `website/guide.html` + `website/style.css`, nothing else touched.
+
+## 154. Merged title bar — the top bar replaces the native OS title bar
+
+**Status: implemented, awaiting Marien's hands-on test before a release.**
+Marien: *"the next bigger thing I want you to work on in merging the
+title bar and top bar, like I see on many other applications. Notepad
+for example has the application icon on the left, then the tabs, and
+then the window chrome for minimize, maximize and close... You can lose
+the application title. The folder name should move to the status bar."*
+Design proposal written and reviewed first
+(`docs/design/titlebar-merge-roadmap.md`) — four decisions confirmed via
+AskUserQuestion before building: one merged row (not a second toolbar
+row); accept losing Windows 11's Snap-Layouts hover flyout (Win+arrow
+snapping still works — that's the OS window manager, unaffected); the
+folder name in the status bar's left zone, lowest priority; keep
+`ChronoNote - <folder>` as the OS-level taskbar/Alt+Tab title even
+though nothing renders it in-window anymore.
+
+**`tauri.conf.json`**: `"decorations": false` on the main window — removes
+the native title bar and its min/max/close entirely. New capabilities
+(`core:window:allow-close`/`allow-minimize`/`allow-toggle-maximize`/
+`allow-start-dragging`) confirmed against Tauri's own docs before
+adding, not guessed — `core:default` already covered the read-only
+introspection calls (`isMaximized`/`isFullscreen`) already in use.
+
+**`TopBar.svelte`** gains, gated on `$backendKind === "desktop"` (real
+app *and* the `?mock` Playwright/dev harness — the demo and web app
+have no OS window at all and keep the plain top bar unchanged): a new
+`AppIcon.svelte` (the real "dated page" logo mark, copied verbatim from
+`docs/design/icon-A-master.svg` — deliberately its own component, not
+an entry in `icons/paths.ts`'s `currentColor` set, since a title bar
+icon is a fixed brand mark that shouldn't re-theme itself, unlike every
+other icon in the app); three new window-control buttons (new
+`windowChrome.ts` — `minimizeWindow`/`toggleMaximizeWindow`/
+`closeWindow`, thin wrappers over `getCurrentWindow()`, new icon paths
+`minimize`/`maximize`/`restore` alongside the existing `close`); and
+`data-tauri-drag-region` on `#top-bar` and `#tab-bar` themselves (not on
+a new child element — confirmed via Tauri's own docs that the attribute
+is exact-element-only, doesn't propagate to or interfere with children
+lacking it, so tabs/buttons inside stay fully clickable) plus one new
+always-present fixed-width `.titlebar-drag-gutter`, so the window stays
+draggable even when tabs fill the whole strip with no empty space left.
+Double-click-to-maximize is a small explicit `on:dblclick` handler (not
+automatic from the drag-region attribute alone, per Tauri's docs),
+guarded by `e.target === e.currentTarget` so a double-click that bubbles
+up from a tab or button is never mistaken for one on the bar's own
+empty background. `settleLayout()`'s existing DOM-measurement-based fit
+logic needed no changes at all — it already measures `#tab-bar`'s live
+`clientWidth`, which automatically shrinks correctly once the new
+fixed-width siblings (icon, gutter, window controls) take their share of
+the row.
+
+**`closeWindow()` calls `.close()`, not `.destroy()`** — deliberately:
+`.close()` emits the same `tauri://close-requested` event a native close
+button, Alt+F4, or the OS "X" already did, so it's routed through the
+exact existing §93 exit-barrier logic (flush pending saves, gate on
+unsaved scratchpads) with zero behavior change. `mockBackend.ts` gained
+one new case (`plugin:window|close` → `emitEvent("tauri://close-requested")`)
+so a test clicking the real button exercises the identical path
+`exit-barrier.spec.ts` already covers by driving that event directly —
+confirmed this was necessary by finding that the mock's existing
+catch-all window-command handler was a silent no-op for `close`, which
+would have made the safety gate untestable (and, until this fix,
+literally inert) for anyone using the new button instead of the OS's own.
+
+**Status bar**: the notes folder name (`folderNameFromPath`, exported
+from `boot.ts` rather than reimplemented — the status bar and the
+still-kept taskbar title can never disagree about what "the folder
+name" means) is now the leading item in the left zone, full path on
+`title`-attribute hover, a new lowest-priority `.stat-tier0` CSS tier
+(hidden below 860px, before word count's existing 680px tier).
+
+Caught one real naming collision while testing: the new close button's
+initial `aria-label="Close"` collided with `getByRole('button', {name:
+"Close"})` already in use for Settings' own footer Close button (now
+present on *every* page instead of only when a modal happens to be
+open) — renamed to `"Close window"`/`"Minimize window"`/`"Maximize
+window"`/`"Restore window"`, all now unambiguous.
+
+Verified beyond the automated suite: `npm run tauri dev` launches and
+runs cleanly with `decorations: false` and the new capabilities (no
+panic, no capability-denied error) — actually dragging the window,
+resizing from the edges, and the double-click-maximize/visual
+shadow-and-corners questions the design doc flagged are Marien's own
+hands-on pass before a release, not reachable from this environment.
+
+`svelte-check` 215/0, Vitest 303/303 (+6), Playwright 186/186 (+5),
+`cargo test` 47/47 (unchanged — `decorations`/capabilities are config,
+not Rust logic). **Not released** — held per explicit instruction until
+Marien has tested it in the real app.

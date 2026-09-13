@@ -70,12 +70,13 @@ function syncActiveStatus() {
   recomputeSaveState();
 }
 
-/** Shows which notes folder (project/scope, see §6.3) is currently active
- * right in the window title, without needing to open Settings — just the
- * folder's own name, not the full path. Fires on every `notesDir` change
- * regardless of which code path caused it (initial boot, or a directory
- * switch), rather than needing a call at each call site. */
-function folderNameFromPath(path: string): string {
+/** The folder's own last path segment, not the full path — shared by the
+ * window-title sync below and (§merged-titlebar) the status bar's own
+ * folder-name display, so the two can never disagree about what "the
+ * folder name" means. Fires on every `notesDir` change regardless of
+ * which code path caused it (initial boot, or a directory switch),
+ * rather than needing a call at each call site. */
+export function folderNameFromPath(path: string): string {
   const segments = path.split(/[\\/]/).filter(Boolean);
   return segments.length > 0 ? segments[segments.length - 1] : path;
 }

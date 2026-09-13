@@ -21,6 +21,7 @@
  *   commandPalette       Ctrl/Cmd+K unified command/nav palette (§107)
  *   updates              GitHub-releases update check (§update-check)
  *   exportImport         export/import (web-app design doc, Phase 1)
+ *   windowChrome         merged-titlebar window controls (minimize/maximize/close)
  */
 export * from "./stores";
 export * from "./persistence";
@@ -38,3 +39,4 @@ export * from "./directory";
 export * from "./commandPalette";
 export * from "./updates";
 export * from "./exportImport";
+export * from "./windowChrome";

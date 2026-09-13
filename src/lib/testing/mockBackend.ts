@@ -579,6 +579,19 @@ export class MockBackend {
         return null;
       }
 
+      // §merged-titlebar: the custom close button calls `.close()` (not
+      // `.destroy()`) precisely so it goes through the same §93 exit
+      // barrier a real OS close button/Alt+F4 already did — a real Tauri
+      // window's `.close()` emits `tauri://close-requested` and leaves
+      // the frontend's own listener (`wireCloseBarrier`, `boot.ts`) to
+      // decide whether/when to actually `.destroy()` it. Mirrored here
+      // via the same `emitEvent` mechanism `exit-barrier.spec.ts` already
+      // drives directly, so a test clicking the real close button
+      // exercises the identical path.
+      case "plugin:window|close":
+        this.emitEvent("tauri://close-requested");
+        return null;
+
       case "plugin:window|set_title":
         // A real Tauri app sets the OS window title here; in a browser the
         // frontend expects `document.title` to follow (the app relies on

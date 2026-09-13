@@ -25,10 +25,23 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import * as controller from "../controller";
-  import { activeTabId, chromeExpanded, saveState, tabs } from "../controller";
+  import { activeTabId, backendKind, chromeExpanded, saveState, tabs } from "../controller";
   import type { NoteTab } from "../types";
   import Icon from "../icons/Icon.svelte";
+  import AppIcon from "./AppIcon.svelte";
   import { formatCombo, formatShortcut, shortcutById } from "../shortcuts";
+
+  // §merged-titlebar: the app icon, drag regions, and window-control
+  // buttons only make sense when this frontend is actually running inside
+  // a real (decorationless) Tauri window — the demo and web app have no
+  // OS window at all (an iframe / a browser tab), so they keep the plain
+  // top bar. `backendKind === "desktop"` also covers the `?mock` dev/test
+  // harness, which *does* run against a real (decorated) browser tab, not
+  // a Tauri window — but rendering this chrome there is harmless (the
+  // buttons just call mocked Tauri APIs, same as every other
+  // `getCurrentWindow()` call already exercised under the mock) and lets
+  // the whole thing be covered by the existing Playwright suite.
+  $: isMergedTitlebar = $backendKind === "desktop";
 
   /** Dated tabs show just the date; scratchpads keep their given name. */
   const tabLabel = (t: NoteTab) => (t.isScratchpad ? t.filename : t.filename.replace(/\.txt$/, ""));
@@ -227,6 +240,22 @@
     }
   }
 
+  /** §merged-titlebar: double-click-to-maximize on the bar's own draggable
+   * background — `data-tauri-drag-region` alone (used on `#top-bar`/
+   * `#tab-bar`/the drag gutter below) only gives plain window dragging;
+   * Tauri's own docs cover double-click-maximize as a *separate*, manual
+   * addition, not something the attribute includes automatically. Guarded
+   * by `e.target === e.currentTarget` so a double-click that lands on a
+   * tab or a button (which bubbles up to whichever of these elements it's
+   * inside) is never mistaken for one on the bar's own empty background —
+   * `data-tauri-drag-region` itself is already exact-element-only per
+   * Tauri's docs (doesn't propagate to children lacking it), but a plain
+   * DOM `dblclick` listener on the parent has no such protection built in. */
+  function onTitlebarDblClick(e: MouseEvent) {
+    if (e.target !== e.currentTarget) return;
+    void controller.toggleMaximizeWindow();
+  }
+
   /** §48: switching tabs (keyboard, Date picker, Search, etc.) can move
    * the active tab off-screen with nothing but the (now-invisible)
    * highlight to show it happened — scroll it into view whenever it
@@ -323,13 +352,28 @@
   });
 </script>
 
-<div id="top-bar" bind:this={topBarEl}>
+<div
+  id="top-bar"
+  role="presentation"
+  bind:this={topBarEl}
+  data-tauri-drag-region={isMergedTitlebar ? true : undefined}
+  on:dblclick={isMergedTitlebar ? onTitlebarDblClick : undefined}
+>
+  {#if isMergedTitlebar}
+    <span class="app-icon" aria-hidden="true"><AppIcon size={16} /></span>
+  {/if}
   {#if isOverflowing}
     <button class="icon-btn tab-scroll-btn" aria-label="Scroll tabs left" on:click={() => scrollTabBar(-1)}>
       <Icon name="chevron-left" size={14} />
     </button>
   {/if}
-  <div id="tab-bar" bind:this={tabBarEl}>
+  <div
+    id="tab-bar"
+    role="presentation"
+    bind:this={tabBarEl}
+    data-tauri-drag-region={isMergedTitlebar ? true : undefined}
+    on:dblclick={isMergedTitlebar ? onTitlebarDblClick : undefined}
+  >
     {#each displayTabs as tab, i (tab.id)}
       {#if i > 0 && tab.isScratchpad && !displayTabs[i - 1].isScratchpad}
         <!-- §103: hairline between the daily-note group and the scratchpad group -->
@@ -444,5 +488,32 @@
     <button class="icon-btn" title="About ChronoNote ({formatShortcut('openAbout')})" on:click={controller.openAbout}>
       <Icon name="about" />{#if showActionLabels}<span class="icon-label">About</span>{/if}
     </button>
+  {/if}
+  {#if isMergedTitlebar}
+    <!-- §merged-titlebar: a fixed drag territory that's always present
+         regardless of tab count — #tab-bar's own empty trailing space
+         (also draggable, above) shrinks to nothing once tabs overflow,
+         so the window still needs somewhere to grab. -->
+    <div
+      class="titlebar-drag-gutter"
+      data-tauri-drag-region
+      on:dblclick={onTitlebarDblClick}
+      aria-hidden="true"
+    ></div>
+    <div class="window-controls">
+      <button class="win-btn" aria-label="Minimize window" on:click={() => controller.minimizeWindow()}>
+        <Icon name="minimize" size={12} />
+      </button>
+      <button
+        class="win-btn"
+        aria-label={$chromeExpanded ? "Restore window" : "Maximize window"}
+        on:click={() => controller.toggleMaximizeWindow()}
+      >
+        <Icon name={$chromeExpanded ? "restore" : "maximize"} size={12} />
+      </button>
+      <button class="win-btn win-close" aria-label="Close window" on:click={() => controller.closeWindow()}>
+        <Icon name="close" size={12} />
+      </button>
+    </div>
   {/if}
 </div>

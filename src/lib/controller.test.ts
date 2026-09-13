@@ -46,6 +46,9 @@ const tauriWindowMock = {
   onCloseRequested: vi.fn(),
   onFocusChanged: vi.fn(),
   destroy: vi.fn(),
+  minimize: vi.fn(),
+  toggleMaximize: vi.fn(),
+  close: vi.fn(),
 };
 vi.mock("@tauri-apps/api/window", () => ({
   getCurrentWindow: () => tauriWindowMock,
@@ -1236,6 +1239,39 @@ describe("setAutoCheckUpdates (§update-check)", () => {
     await controller.setAutoCheckUpdates(true);
     expect(get(controller.autoCheckUpdates)).toBe(true);
     expect(apiMock.setAutoCheckUpdates).toHaveBeenLastCalledWith(true);
+  });
+});
+
+describe("folderNameFromPath (§merged-titlebar)", () => {
+  it("returns the last path segment, either separator", () => {
+    expect(controller.folderNameFromPath("C:\\Users\\marien\\Notes")).toBe("Notes");
+    expect(controller.folderNameFromPath("/home/marien/notes")).toBe("notes");
+  });
+
+  it("falls back to the whole string when there's no separator", () => {
+    expect(controller.folderNameFromPath("Notes")).toBe("Notes");
+  });
+
+  it("tolerates a trailing slash", () => {
+    expect(controller.folderNameFromPath("/home/marien/notes/")).toBe("notes");
+  });
+});
+
+describe("windowChrome (§merged-titlebar)", () => {
+  it("minimizeWindow calls the window's minimize()", async () => {
+    await controller.minimizeWindow();
+    expect(tauriWindowMock.minimize).toHaveBeenCalledTimes(1);
+  });
+
+  it("toggleMaximizeWindow calls the window's toggleMaximize()", async () => {
+    await controller.toggleMaximizeWindow();
+    expect(tauriWindowMock.toggleMaximize).toHaveBeenCalledTimes(1);
+  });
+
+  it("closeWindow calls .close(), not .destroy() — routes through the same exit barrier a native close button already did", async () => {
+    await controller.closeWindow();
+    expect(tauriWindowMock.close).toHaveBeenCalledTimes(1);
+    expect(tauriWindowMock.destroy).not.toHaveBeenCalled();
   });
 });
 

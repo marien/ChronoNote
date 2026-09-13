@@ -2,7 +2,9 @@
   import {
     appVersion,
     backendKind,
+    folderNameFromPath,
     justUpdatedToVersion,
+    notesDir,
     statusCounts,
     statusPos,
     statusSelection,
@@ -19,10 +21,21 @@
   $: selectionLabel = $statusSelection
     ? `${$statusSelection.lines} ${$statusSelection.lines === 1 ? "line" : "lines"} selected`
     : "";
+
+  // §merged-titlebar: which notes folder is active — moved here from
+  // "Settings-only" now that the window title itself no longer renders
+  // visibly (the merged title bar has no title text). Meaningless for the
+  // web backend (no `notesDir`, IndexedDB-backed instead — the "Browser
+  // storage" badge in the right zone already covers that case).
+  $: folderName = $notesDir ? folderNameFromPath($notesDir) : "";
 </script>
 
 <div id="status-bar">
   <div class="status-zone status-left">
+    {#if folderName}
+      <span id="stat-folder" class="stat-tier0" title={$notesDir}>{folderName}</span>
+      <span class="status-sep stat-tier0">·</span>
+    {/if}
     <span id="stat-pos" class="stat-tier2">Ln {$statusPos.line}, Col {$statusPos.col}</span>
     {#if selectionLabel}
       <span class="status-sep stat-tier2">·</span>

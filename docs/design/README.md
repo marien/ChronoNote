@@ -1,5 +1,21 @@
 # Design notes
 
+## Merged title bar + top bar
+
+**[`titlebar-merge-roadmap.md`](titlebar-merge-roadmap.md)** — pitched
+2026-09-13: replace the native OS title bar and the app's own `#top-bar`
+with one merged bar (app icon, tabs, then custom minimize/maximize/close),
+Notepad-style. The notes folder name moves to the status bar. Four key
+decisions confirmed up front (one merged row; accept losing Windows 11's
+Snap-Layouts hover flyout; folder name in the status bar's left zone,
+lowest priority; keep "ChronoNote - `<folder>`" as the OS-level taskbar
+title). Desktop-only — the demo and web app keep today's plain top bar.
+
+**Implemented (2026-09-13, §154 in `docs/CHANGELOG.md`)** — held out of
+a release until Marien has tested the real native-window behavior
+(dragging, edge-resizing, the visual shadow/rounded-corners question)
+firsthand; nothing here is reachable from the automated test suite.
+
 ## 0.7 maturity roadmap
 
 **[`maturity-0.7-roadmap.md`](maturity-0.7-roadmap.md)** — the plan for the
