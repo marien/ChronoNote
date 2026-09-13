@@ -103,3 +103,91 @@ test.describe("status bar — notes folder name (§merged-titlebar)", () => {
     await expect(page.locator("#stat-words")).toBeVisible();
   });
 });
+
+test.describe("tab strip follows the active tab on resize (§merged-titlebar follow-up)", () => {
+  // Enough tabs to overflow even a comfortably-wide window — a middle one,
+  // and the two ends, are all exercised below. Widths throughout stay at
+  // or above the app's own `minWidth: 640` (`tauri.conf.json`) — the real
+  // window can never get narrower than that, so a test width below it
+  // would be exercising a layout state (`#tab-bar` squeezed to a 0
+  // `clientWidth`) the shipped app can never actually reach.
+  const DATES = [
+    "2026-08-28", "2026-08-29", "2026-08-30", "2026-08-31",
+    "2026-09-01", "2026-09-02", "2026-09-03", "2026-09-04",
+  ];
+  const WIDE = 1100;
+  const NARROW = 700;
+
+  async function seedManyTabs(page: import("@playwright/test").Page, activeDate: string) {
+    const notes = Object.fromEntries(DATES.map((d) => [`${d}.txt`, `${d}\n${"=".repeat(10)}\n`]));
+    await seedApp(page, {
+      seed: {
+        notes,
+        session: { openTabs: DATES.map((d) => `${d}.txt`), activeTab: `${activeDate}.txt` },
+      },
+    });
+  }
+
+  function tabRect(page: import("@playwright/test").Page, date: string) {
+    return page.locator(`[data-tab-id]`, { hasText: date }).boundingBox();
+  }
+
+  test("restoring from maximized (a resize with no activeTabId change) scrolls the active tab back into view", async ({
+    page,
+  }) => {
+    await seedManyTabs(page, "2026-09-04"); // near the end of the strip
+    await page.setViewportSize({ width: WIDE, height: 700 });
+    await expect(page.locator("#top-bar")).toBeVisible();
+
+    // Confirm the premise: at WIDE, every tab fits with room to spare, so
+    // the active tab starts out visible with no scrolling needed.
+    const barWide = (await page.locator("#tab-bar").boundingBox())!;
+    const tabWide = (await tabRect(page, "2026-09-04"))!;
+    expect(tabWide.x).toBeGreaterThanOrEqual(barWide.x);
+    expect(tabWide.x + tabWide.width).toBeLessThanOrEqual(barWide.x + barWide.width + 1);
+
+    // Simulate "restore from maximized" — a resize with `activeTabId`
+    // never changing. The reported bug: nothing re-scrolled just because
+    // the bar got smaller, leaving the (still-active) tab off-screen.
+    await page.setViewportSize({ width: NARROW, height: 700 });
+    await expect
+      .poll(async () => {
+        const bar = (await page.locator("#tab-bar").boundingBox())!;
+        const t = (await tabRect(page, "2026-09-04"))!;
+        return t.x >= bar.x - 1 && t.x + t.width <= bar.x + bar.width + 1;
+      })
+      .toBe(true);
+  });
+
+  test("a middle tab gets a peek of its neighbor on both sides, not scrolled flush to an edge", async ({ page }) => {
+    await seedManyTabs(page, "2026-09-01"); // a tab with neighbors on both sides
+    await page.setViewportSize({ width: NARROW, height: 700 });
+    await page.reload();
+    await expect(page.locator("#top-bar")).toBeVisible();
+
+    const bar = (await page.locator("#tab-bar").boundingBox())!;
+    const active = (await tabRect(page, "2026-09-01"))!;
+    const prev = (await tabRect(page, "2026-08-31"))!;
+    const next = (await tabRect(page, "2026-09-02"))!;
+
+    // The active tab itself is fully in view...
+    expect(active.x).toBeGreaterThanOrEqual(bar.x - 1);
+    expect(active.x + active.width).toBeLessThanOrEqual(bar.x + bar.width + 1);
+    // ...and a sliver of each neighbor is too — neither sits flush against
+    // the strip's edge with nothing beyond it.
+    expect(prev.x + prev.width).toBeGreaterThan(bar.x);
+    expect(next.x).toBeLessThan(bar.x + bar.width);
+  });
+
+  test("the actual first tab doesn't reserve dead peek space with no neighbor to show", async ({ page }) => {
+    await seedManyTabs(page, "2026-08-28"); // the very first tab, no predecessor
+    await page.setViewportSize({ width: NARROW, height: 700 });
+    await page.reload();
+    await expect(page.locator("#top-bar")).toBeVisible();
+
+    // No neighbor exists to the left, so the strip scrolls flush to 0 —
+    // not held back by a phantom left-side peek margin.
+    const scrollLeft = await page.locator("#tab-bar").evaluate((el) => el.scrollLeft);
+    expect(scrollLeft).toBe(0);
+  });
+});

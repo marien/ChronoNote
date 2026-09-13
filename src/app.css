@@ -888,12 +888,11 @@ body {
   border-radius: 3px;
 }
 /* #34: while hovering a cyclable glyph it shows the *next* state's glyph.
-   Dashed underline + reduced opacity so the preview reads as provisional,
-   not as the line's real current state. */
+   Reduced opacity alone reads as provisional, not as the line's real
+   current state — a dashed underline was also tried but read as noisy
+   cutting through a small glyph character, dropped per Marien's request. */
 .cm-line .glyph-cyclable-preview {
   opacity: 0.6;
-  text-decoration: underline dashed;
-  text-underline-offset: 2px;
 }
 
 /* §81: a Setext underline row (`====` under a section title) drawn as a

@@ -141,6 +141,9 @@
   }
 
   const FIT_MARGIN = 8;
+  // §merged-titlebar follow-up: how much of a neighboring tab to leave
+  // peeking in when scrolling the active tab into view at an edge.
+  const TAB_EDGE_PEEK = 24;
   async function settleLayout() {
     if (!tabBarEl) return;
     if (settling) {
@@ -250,6 +253,20 @@
     const token = ++scrollIntoViewToken;
     const targetTabId = $activeTabId;
     await nextFrame();
+    // §merged-titlebar follow-up: `settleLayout` can take several frames
+    // to converge (it decides labels, then buttons-collapsed, then
+    // overflow, each gated behind its own `await nextFrame()`) — a single
+    // frame here isn't necessarily enough to know `tabBarEl.clientWidth`
+    // has reached its *final* value, not a mid-sequence intermediate one.
+    // Confirmed as a real, reproducible wrong-scroll-position bug (not
+    // just theoretical) while testing the maximize/restore fix above:
+    // measuring against an intermediate width before overflow/collapse
+    // had finished settling left the newly-scrolled-to tab only partly
+    // visible. Waiting out `settling` — already set for the exact
+    // duration `settleLayout` is mid-convergence — means this always
+    // measures the settled state, whether or not this particular call
+    // happened to coincide with one.
+    while (settling) await nextFrame();
     // Bail if another call started (or the active tab changed again) while
     // this one was waiting — holding Ctrl/Cmd+Tab fires this on every repeat
     // keystroke, and without this guard the stale calls still run to
@@ -271,10 +288,20 @@
     const elRect = el.getBoundingClientRect();
     const elLeft = elRect.left - tabBarRect.left + tabBarEl.scrollLeft;
     const elRight = elRect.right - tabBarRect.left + tabBarEl.scrollLeft;
+    // §merged-titlebar follow-up: don't scroll the active tab exactly
+    // flush with the edge — if there's a neighbor on that side, leave a
+    // sliver of it peeking in too, so the active tab never looks like the
+    // first/last one in the strip when it isn't. No peek on a side with
+    // no neighbor (the active tab genuinely is the first/last tab) —
+    // there's nothing there to reveal, and reserving dead space for it
+    // would just under-use the strip.
+    const idx = displayTabs.findIndex((t) => t.id === targetTabId);
+    const hasPrev = idx > 0;
+    const hasNext = idx !== -1 && idx < displayTabs.length - 1;
     if (elLeft < tabBarEl.scrollLeft) {
-      tabBarEl.scrollLeft = elLeft;
+      tabBarEl.scrollLeft = elLeft - (hasPrev ? TAB_EDGE_PEEK : 0);
     } else if (elRight > tabBarEl.scrollLeft + tabBarEl.clientWidth) {
-      tabBarEl.scrollLeft = elRight - tabBarEl.clientWidth;
+      tabBarEl.scrollLeft = elRight - tabBarEl.clientWidth + (hasNext ? TAB_EDGE_PEEK : 0);
     }
   }
 
@@ -316,7 +343,34 @@
     // `#top-bar` instead avoids retriggering this observer as a side effect
     // of its own layout decisions. `#top-bar`'s width is driven only by the
     // window, never by its own children's reflow.
-    resizeObserver = new ResizeObserver(() => settleLayout());
+    // §merged-titlebar follow-up: a resize (most visibly maximize/restore,
+    // now that those are one click away in the same window) can leave the
+    // active tab scrolled out of view without its own id ever changing —
+    // `settleLayout` alone only decides label/collapse state, it never
+    // re-checks scroll position, so the active tab stayed exactly where
+    // it happened to be until something else (Ctrl+Tab, clicking a
+    // visible tab) touched `activeTabId` and triggered the *other*
+    // subscription below.
+    // A `ResizeObserver` delivers once immediately upon `.observe()`, even
+    // though nothing has actually resized yet — that initial delivery
+    // raced against `activeTabId.subscribe()`'s own immediate fire below
+    // (both un-awaited, both landing at mount), and whichever happened to
+    // finish last won, sometimes with a scroll computed against
+    // `settleLayout`'s still-mid-adjustment DOM rather than its settled
+    // one (confirmed as a real, reproducible wrong-scroll-position bug
+    // while testing this fix, not just a theoretical race). Skipping the
+    // observer's first delivery for the scroll (not for `settleLayout`,
+    // which already tolerates being called twice at mount via its own
+    // `settling`/`settlePending` guard) leaves exactly one source of
+    // truth for the *initial* position — the `activeTabId` subscription —
+    // and the observer only ever fires the scroll for a genuine
+    // *subsequent* resize, which is the only case this follow-up is for.
+    let resizeObserverPrimed = false;
+    resizeObserver = new ResizeObserver(() => {
+      settleLayout();
+      if (resizeObserverPrimed) scrollActiveTabIntoView();
+      resizeObserverPrimed = true;
+    });
     resizeObserver.observe(topBarEl);
 
     // `.subscribe()` fires immediately with the current value, so this

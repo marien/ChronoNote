@@ -6449,4 +6449,77 @@ Recommended (over enlarging the icon or shrinking the whole bar, both
 higher-blast-radius changes that don't directly address an asymmetric
 margin) matching the left margin to the same value instead: `10px` →
 `16px`, confirmed via `getBoundingClientRect()` landing at 16px left vs.
-15.3px top — visually equal, no other property touched.
+15.3px top — visually equal, no other property touched. Marien: "Looks
+good. Let's keep it like this."
+
+**Follow-up: the active tab didn't follow a maximize→restore.** Marien:
+"When I have a tab selected in maximized view and restore the window,
+the tab bar does not follow and show the tab. It only changes when I
+use the TAB keys or I click [a] visible tab." Root cause: the
+`ResizeObserver` added for `settleLayout` (§144/#56) never called
+`scrollActiveTabIntoView` — a resize only ever adjusted labels/collapse
+state, never re-checked whether the (unchanged) active tab was still
+actually visible. Not a regression introduced by this pass specifically
+— the gap already existed for any resize — but the new one-click
+maximize/restore made it trivial to trigger where before it needed an
+actual window drag-resize to notice. Fixed by calling
+`scrollActiveTabIntoView()` from the same `ResizeObserver` callback.
+
+Fixing this surfaced a second, genuinely pre-existing bug while writing
+the regression test for it: a `ResizeObserver` delivers once
+immediately upon `.observe()`, before anything has actually resized —
+that initial delivery now also called `scrollActiveTabIntoView`,
+racing at mount against `activeTabId.subscribe()`'s own immediate
+call. Guarded with a `resizeObserverPrimed` flag so the observer's
+first delivery only ever runs `settleLayout` (which already tolerates
+being invoked twice via its own `settling`/`settlePending` guard),
+leaving the `activeTabId` subscription as the sole source of the
+*initial* scroll position.
+
+That still weren't enough on its own — the actual reproducible failure
+while testing (not theoretical) was `scrollActiveTabIntoView` reading
+`tabBarEl.clientWidth` after waiting only one frame, while
+`settleLayout` can take *several* frames to converge through its own
+labels → buttons-collapsed → overflow decision sequence; measuring
+mid-sequence landed the newly-scrolled-to tab only partly visible.
+Fixed by having `scrollActiveTabIntoView` wait out `settleLayout`'s own
+`settling` flag (`while (settling) await nextFrame();`) before taking
+its measurement, so it always reads the settled width regardless of
+whether the two happened to be triggered together.
+
+**Follow-up (same pass): the active tab now peeks its neighbors instead
+of scrolling flush to an edge.** Marien, unprompted while the above was
+being fixed: "also evaluate that if there is another tab next to the
+selected one, to show that one as well, so the selected tab is not the
+most left or right tab in view if it is not the most left or most right
+tab." `scrollActiveTabIntoView` used to scroll the *minimum* distance
+needed — the active tab's edge landing exactly flush with the strip's
+visible boundary, indistinguishable from actually being the first/last
+tab. New `TAB_EDGE_PEEK` (24px) added to the target scroll position on
+whichever side has a real neighbor (checked via the active tab's index
+in `displayTabs`, `0`/`length - 1` for "no neighbor to show") — a tab
+that genuinely is first/last still scrolls flush, since there's nothing
+there to peek.
+
+New coverage for all of the above in `merged-titlebar.spec.ts` (a
+previously-fully-uncovered area — no test anywhere had ever exercised
+`scrollActiveTabIntoView` before this): resize-without-activeTabId-
+change re-scrolls; a middle tab shows a sliver of both neighbors; the
+genuine first tab scrolls to `scrollLeft: 0` exactly, no phantom peek.
+Test widths deliberately stay at or above the app's own real
+`minWidth: 640` (`tauri.conf.json`) — an earlier draft of these tests
+used narrower widths and hit a degenerate `#tab-bar` `clientWidth: 0`
+layout state the shipped app (which enforces that minimum) can never
+actually reach.
+
+**Follow-up (for later, addressed in the same pass): the action-cycle
+hover preview no longer underlines.** Marien: "when I hover over an
+action in the editor, the preview of the next action shows an
+underline. Can you change that?" `.glyph-cyclable-preview` (§34) used
+to combine reduced opacity with a dashed underline to read as
+provisional; the underline cut visibly through the small glyph
+characters. Dropped, keeping only the opacity dimming.
+
+`svelte-check` 215/0, Vitest 303/303 (unchanged — pure frontend
+interaction logic, already covered by the new Playwright cases above),
+Playwright 189/189 (+3).
