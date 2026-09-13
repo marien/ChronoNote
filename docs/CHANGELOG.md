@@ -6393,3 +6393,33 @@ the `dblclick`-needs-an-ARIA-role a11y lint rule) came out with it.
 `cargo test` 47/47 (unchanged — `decorations`/capabilities are config,
 not Rust logic). **Not released** — held per explicit instruction until
 Marien has tested it in the real app.
+
+**Follow-up: reordered the drag gutter.** Marien: "switch the order of
+the top bar buttons and the empty bar space." The fixed-width drag
+gutter used to sit between the toolbar cluster and the window controls;
+moved to sit between the tab strip and New Scratchpad/Open Date/the
+toolbar cluster instead, so New Scratchpad, Open Date, the toolbar (or
+"More"), and minimize/maximize/close now read as one clustered group at
+the trailing edge — mirroring how the app icon reads as one thing with
+the tabs at the leading edge — with the draggable gap sitting between
+the two clusters rather than inside the trailing one. Pure markup
+reorder in `TopBar.svelte` (the gutter element and its CSS are
+unchanged); `settleLayout()`'s DOM-measurement-based fit logic is
+unaffected by element order.
+
+**Follow-up: the "restores with a single click soon after maximizing"
+report is native OS behavior, not a bug.** Marien noticed that
+double-clicking to maximize, then single-clicking the empty bar again
+within roughly a second, restores it — but waiting longer needs a full
+double-click again. Investigated and explained rather than "fixed":
+Windows' own caption-double-click detection treats any two clicks on a
+title-bar-equivalent region within the system's double-click time
+window as a double-click, regardless of whether the earlier of the two
+already completed a *previous* double-click — a real native Windows
+title bar exhibits the identical behavior under the same click pattern,
+since `data-tauri-drag-region` relies on that same native mechanism
+(not a JS click-timer of the app's own). Confirmed with Marien
+(AskUserQuestion) to leave this as native behavior rather than replace
+it with a hand-rolled JS timing implementation, which would reopen the
+door to the same class of race the previous double-toggle fix just
+closed.

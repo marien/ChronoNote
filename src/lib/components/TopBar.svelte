@@ -402,6 +402,22 @@
       <Icon name="chevron-right" size={14} />
     </button>
   {/if}
+  {#if isMergedTitlebar}
+    <!-- §merged-titlebar: a fixed drag territory that's always present
+         regardless of tab count — #tab-bar's own empty trailing space
+         (also draggable, above) shrinks to nothing once tabs overflow,
+         so the window still needs somewhere to grab. Sits between the
+         tab strip and the button cluster (not between the buttons and
+         the window controls) so New Scratchpad/Open Date/the toolbar/
+         window controls all read as one clustered group at the trailing
+         edge, the same way the app icon reads as one thing with the
+         tabs at the leading edge. -->
+    <div
+      class="titlebar-drag-gutter"
+      data-tauri-drag-region
+      aria-hidden="true"
+    ></div>
+  {/if}
   <!-- §53: always visible regardless of tab-bar scroll position — a
        sibling of the scrollable #tab-bar rather than a child of it (the
        same reason the scroll arrows themselves live out here). -->
@@ -470,15 +486,6 @@
     </button>
   {/if}
   {#if isMergedTitlebar}
-    <!-- §merged-titlebar: a fixed drag territory that's always present
-         regardless of tab count — #tab-bar's own empty trailing space
-         (also draggable, above) shrinks to nothing once tabs overflow,
-         so the window still needs somewhere to grab. -->
-    <div
-      class="titlebar-drag-gutter"
-      data-tauri-drag-region
-      aria-hidden="true"
-    ></div>
     <div class="window-controls">
       <button class="win-btn" aria-label="Minimize window" on:click={() => controller.minimizeWindow()}>
         <Icon name="minimize" size={12} />
