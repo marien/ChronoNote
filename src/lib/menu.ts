@@ -43,19 +43,25 @@ export function openProjectLink() {
   api.openExternalUrl(PROJECT_URL).catch(() => {});
 }
 
-/** §update-check: the About drawer's "What's changed" link, once an
- * update is found — the release page for the specific version found,
- * so it always shows the right one even mid-check-for-a-newer-one. */
-export function openReleasePage(version: string) {
-  api.openExternalUrl(`${PROJECT_URL}/releases/tag/v${version}`).catch(() => {});
+/** §update-check follow-up: the About drawer's "What's changed" link and
+ * the "Updated to vX.Y.Z" launch banner's "What's new" link both open
+ * here — the repo's full releases list, newest first, rather than a
+ * single version's tag page. Marien: checking in after a few missed
+ * releases meant "What's changed" only showed the *latest* one, and
+ * seeing what changed in between meant clicking through each
+ * intermediate tag by hand. GitHub's releases list already shows every
+ * release's full notes stacked in order, so opening it once does the
+ * same job with no extra tooling — the reader just keeps scrolling past
+ * however many versions they missed instead of re-navigating per tag. */
+export function openReleasesPage() {
+  api.openExternalUrl(`${PROJECT_URL}/releases`).catch(() => {});
 }
 
-/** #50: the status-bar "Updated to vX.Y.Z" link — opens that version's
- * release page and dismisses the banner in one action (there's no
- * separate close button; this is the app's only way to act on it, and it
- * only ever shows once per version anyway). */
+/** #50: the status-bar "Updated to vX.Y.Z" link — opens the releases list
+ * and dismisses the banner in one action (there's no separate close
+ * button; this is the app's only way to act on it, and it only ever
+ * shows once per version anyway). */
 export function openJustUpdatedReleaseNotes() {
-  const version = get(justUpdatedToVersion);
-  if (version) openReleasePage(version);
+  if (get(justUpdatedToVersion)) openReleasesPage();
   justUpdatedToVersion.set(null);
 }

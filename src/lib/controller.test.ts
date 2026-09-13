@@ -1314,11 +1314,12 @@ describe("initApp — first launch after an update (#50)", () => {
   });
 });
 
-describe("openJustUpdatedReleaseNotes (#50)", () => {
-  it("opens the release page for the version shown, and dismisses the banner", async () => {
+describe("openJustUpdatedReleaseNotes (#50, §follow-up: opens the releases list, not one tag)", () => {
+  it("opens the releases list (so a version gap doesn't need per-tag navigation), and dismisses the banner", async () => {
     controller.justUpdatedToVersion.set("0.7.5");
     controller.openJustUpdatedReleaseNotes();
-    expect(apiMock.openExternalUrl).toHaveBeenCalledWith(expect.stringContaining("/releases/tag/v0.7.5"));
+    expect(apiMock.openExternalUrl).toHaveBeenCalledWith(expect.stringContaining("/releases"));
+    expect(apiMock.openExternalUrl).not.toHaveBeenCalledWith(expect.stringContaining("/releases/tag/"));
     expect(get(controller.justUpdatedToVersion)).toBe(null);
   });
 
@@ -1326,6 +1327,13 @@ describe("openJustUpdatedReleaseNotes (#50)", () => {
     controller.justUpdatedToVersion.set(null);
     controller.openJustUpdatedReleaseNotes();
     expect(apiMock.openExternalUrl).not.toHaveBeenCalled();
+  });
+});
+
+describe("openReleasesPage (§update-check follow-up)", () => {
+  it("opens the repo's releases list, not a specific tag", () => {
+    controller.openReleasesPage();
+    expect(apiMock.openExternalUrl).toHaveBeenCalledWith("https://github.com/marien/ChronoNote/releases");
   });
 });
 

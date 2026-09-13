@@ -24,6 +24,12 @@ import {
 
 let pendingUpdate: Update | null = null;
 
+/** §update-check follow-up: the exact text of the launch-time "found an
+ * update" toast, exported so `StatusBar.svelte` can recognize *this*
+ * toast specifically (and render it as a click-to-About link) without
+ * making every other transient status message clickable too. */
+export const UPDATE_AVAILABLE_TOAST = "Update available — see About";
+
 function errorMessage(e: unknown): string {
   return e instanceof Error ? e.message : String(e);
 }
@@ -64,7 +70,7 @@ export async function checkForUpdates(): Promise<void> {
 export async function checkForUpdatesOnLaunch(): Promise<void> {
   await checkForUpdates();
   if (get(updateStatus) === "available") {
-    showToast("Update available — see About");
+    showToast(UPDATE_AVAILABLE_TOAST);
   }
 }
 

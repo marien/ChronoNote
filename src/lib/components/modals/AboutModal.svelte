@@ -57,12 +57,7 @@
             <strong style="color: var(--text);">v{$updateAvailableVersion}</strong> is available.
           </div>
           <div class="settings-toggle-row" style="margin-top: 8px; gap: 8px;">
-            <button
-              class="icon-btn"
-              on:click={() => controller.openReleasePage($updateAvailableVersion ?? "")}
-            >
-              What's changed
-            </button>
+            <button class="icon-btn" on:click={controller.openReleasesPage}> What's changed </button>
             <button class="icon-btn btn-primary" on:click={() => controller.downloadAndInstallUpdate()}>
               <Icon name="update" size={14} /> Download &amp; install
             </button>

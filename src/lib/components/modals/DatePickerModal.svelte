@@ -80,17 +80,20 @@
     }
   }
 
-  /** One pass over the notes cache: `noteByIso` = every day that has a
-   * dated note at all, `openByIso` = the subset with ≥1 open action. The
-   * grid shows the first as a brighter day number and the second as a
-   * dot, so "I wrote something that day" and "I still have work there"
-   * read differently. */
+  /** One pass over the notes cache: `noteByIso` = every day whose dated
+   * note actually has content (an empty file — e.g. a date note created
+   * just by visiting it, then never typed into — doesn't count as
+   * "wrote something that day"), `openByIso` = the subset with ≥1 open
+   * action. The grid shows the first as a brighter day number and the
+   * second as a dot, so "I wrote something that day" and "I still have
+   * work there" read differently. */
   $: ({ noteByIso, openByIso } = (() => {
     const noteByIso = new Set<string>();
     const openByIso = new Set<string>();
     for (const [fn, content] of Object.entries($allNotesCache)) {
       const d = fn.replace(/\.txt$/, "");
       if (!/^\d{4}-\d{2}-\d{2}$/.test(d)) continue;
+      if (content.trim() === "") continue;
       noteByIso.add(d);
       if (countActions(content).open > 0) openByIso.add(d);
     }

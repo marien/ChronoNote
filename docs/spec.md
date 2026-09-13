@@ -1,7 +1,7 @@
 # ChronoNote: Master Technical & Product Specification
 
 **Document Version:** 1.1.0 (amended — reflects the state through
-`CHANGELOG.md` §150)
+`CHANGELOG.md` §151)
 **Target Environment:** Cross-platform native desktop (Windows / macOS /
 Linux), plus a browser-storage web app and a zero-retention public demo
 **Reference Architecture:** Tauri v2 (Rust) + Svelte 5 / TypeScript +
@@ -151,8 +151,9 @@ a centre zone reserved for transient status messages (autosave
 confirmations, "nothing to import," etc.), empty otherwise; and a right
 zone showing Open / Closed / Forwarded action counts for the active
 note (`x`, won't-do, folds into Closed alongside `v`, done), the
-currently-running version number, an update-available icon when
-relevant, and the `?` Shortcuts & Symbols trigger.
+currently-running version number (clicking it opens About), an
+update-available icon when relevant (also opens About), and the `?`
+Shortcuts & Symbols trigger.
 
 ### 3.4 Settings
 
@@ -263,7 +264,9 @@ reachable from the top bar, a shortcut, or the command palette:
   command, jumps to an open tab, or opens a dated note, from one input.
 - **Date Picker** (`Ctrl/Cmd+O`) — an anchored month-grid calendar
   popover; a toggle (remembered for the session, off by default) shows
-  only dates with open actions. Opens on the active tab's own month
+  only dates with open actions. A day reads brighter/bold once its note
+  actually has content — merely visiting a date (creating its tab, never
+  typing into it) doesn't count. Opens on the active tab's own month
   with that day highlighted (falling back to today for a scratchpad,
   which has no date of its own), rather than always defaulting to today.
 - **Action Drawer** (`Ctrl/Cmd+Shift+A`) — lists actions across either
@@ -407,13 +410,17 @@ job greps the production `dist/` to guarantee it).
 ### 7.5 GitHub Releases Update Check (Desktop Only)
 The desktop app checks GitHub for a newer release on launch (a Settings
 toggle, on by default) and on demand. Checking is quiet — a status-bar
-message only when it actually finds something newer, silence otherwise.
-Downloading is never automatic: About shows the version found and a
-"Download & install" button the user clicks themselves. Every release
-artifact is signed (`tauri-plugin-updater`'s own keypair), and the
-downloaded installer's signature is verified before it runs. A one-time
-status-bar notice also appears the first launch after an update actually
-lands, linking to that release's GitHub page.
+message only when it actually finds something newer, silence otherwise;
+that message, the version number, and the update icon next to it are all
+clickable shortcuts straight to About. Downloading is never automatic:
+About shows the version found and a "Download & install" button the
+user clicks themselves; its "What's changed" link (like the one-time
+"first launch after an update" status-bar notice) opens the project's
+full releases list rather than a single tag, so checking in after
+several missed releases means scrolling past what changed instead of
+navigating tag-by-tag. Every release artifact is signed
+(`tauri-plugin-updater`'s own keypair), and the downloaded installer's
+signature is verified before it runs.
 
 ---
 

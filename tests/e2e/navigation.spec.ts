@@ -62,6 +62,32 @@ test.describe("date picker — anchored calendar popover (Ctrl/Cmd+O, §104)", (
     await expect(pop(page).locator('.cal-day[data-iso="2026-09-20"]')).not.toHaveClass(/\bhas\b/);
   });
 
+  test("§follow-up: a day only counts as 'has a note' once its file actually has content", async ({ page }) => {
+    // A day with real content (today, from the busy-week seed) is bold.
+    await expect(pop(page).locator(`.cal-day[data-iso="${REFERENCE_TODAY}"]`)).toHaveClass(/\bhasnote\b/);
+
+    // Jumping to a brand-new future date creates a tab — but merely
+    // *visiting* it (never typing anything) must not mark it "has a
+    // note": before this fix, the fresh empty tab's live content still
+    // overlaid the read-cache as `""`, which was still enough to count.
+    await pop(page).locator(".datepicker-jump").fill("2026-12-25");
+    await page.keyboard.press("Enter");
+    await expect(tab(page, "2026-12-25.txt")).toHaveCount(1);
+
+    await parkMouse(page);
+    await page.keyboard.press("ControlOrMeta+o");
+    await expect(pop(page).locator(".cal-title")).toHaveText("December 2026");
+    await expect(pop(page).locator('.cal-day[data-iso="2026-12-25"]')).not.toHaveClass(/\bhasnote\b/);
+
+    // Typing something into it does make it count.
+    await page.keyboard.press("Escape");
+    await editor(page).click();
+    await page.keyboard.type("a real note now");
+    await parkMouse(page);
+    await page.keyboard.press("ControlOrMeta+o");
+    await expect(pop(page).locator('.cal-day[data-iso="2026-12-25"]')).toHaveClass(/\bhasnote\b/);
+  });
+
   test("month navigation and Today", async ({ page }) => {
     await pop(page).getByRole("button", { name: "Next month" }).click();
     await expect(pop(page).locator(".cal-title")).toHaveText("October 2026");

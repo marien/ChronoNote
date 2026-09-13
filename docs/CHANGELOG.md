@@ -6,8 +6,8 @@ kept for the rationale behind each one — not just *what* changed but
 was still being gathered and confirmed before implementation; renamed once
 everything below was applied, since nothing here is "pending" anymore.
 
-**Status: all sections through §150 implemented; §1–149 released or
-otherwise live, §150 not yet in a version bump.** §141's desktop-app
+**Status: all sections through §151 implemented; §1–149 released or
+otherwise live, §150–§151 not yet in a version bump.** §141's desktop-app
 Import feature shipped as v0.7.9; §143's cross-platform shortcuts and
 §144's top-bar collapse shipped together as v0.7.10. §145 is a
 same-release cleanup pass over §143's deferred comment/test-title
@@ -21,7 +21,11 @@ stale pre-0.4 mark. §150 is a Section History overhaul (browsable
 headers for every occurrence — past, empty, and future — a full-width
 "Previous occurrence" pane always anchored to today, an "Only Open"
 filter, and a glyph-rendered, scrollable "From" panel) — a real
-desktop-app change, pending its own release. §141–§144's
+desktop-app change. §151 is four small chat-feedback follow-ups (release
+links open the full releases list instead of one tag, the status-bar
+version number and update message are both clickable shortcuts to
+About, and the date picker only bolds a day once it actually has
+content) — both §150 and §151 are pending their own release. §141–§144's
 web-app pieces are separately deployed live at
 `app.chrononote.mariendegelder.nl` and `chrononote.mariendegelder.nl` —
 that side needs no version bump of its own, a website deploy is
@@ -6118,4 +6122,71 @@ file's real content while leaving the drawer open, and the "Only Open"
 toggle live-filtering both rows and headers.
 
 `svelte-check` 213/0, Vitest 295/295 (+3), Playwright 176/176 (+3),
+`cargo test` 47/47 (unchanged — pure frontend).
+
+## 151. Four "for later" chat-feedback items: releases-list links, clickable update affordances, date-picker bold fix
+
+**Status: implemented, not yet released.** Four small items Marien flagged
+mid-conversation while reviewing §150, explicitly deferred ("for
+later") rather than acted on immediately, then addressed together once
+§150 was committed.
+
+**"What's changed" (and the "Updated to vX.Y.Z" banner) now open the
+full releases list, not one tag.** Marien: About's "What's changed" link
+"brings me to the latest version, but I need to then step to 0.7.10 and
+0.7.9 to see what else changed" after checking in on an install that was
+several releases behind. `openReleasePage(version)` (`menu.ts`) always
+opened `.../releases/tag/v{version}` for whichever single version was
+found — exactly one release's notes, regardless of how many were
+actually missed. Replaced with `openReleasesPage()` (no version
+argument), which opens `.../releases` — GitHub's own releases index,
+newest first, every release's full notes already stacked inline. Both
+call sites (`AboutModal.svelte`'s "What's changed" and the #50 "Updated
+to vX.Y.Z" launch banner's "What's new") now point here; a version gap
+just means scrolling further down one page instead of re-navigating
+per tag. No new UI, no in-app fetching/rendering of notes — stays
+consistent with §136's original decision to link out to GitHub rather
+than embed release-notes text.
+
+**The version number is now itself a shortcut to About.** Marien: "in
+the same pass: clicking on the version number in the bottom right,
+should bring me to the about screen as well" — matching the existing
+update-available icon right next to it, which already did this.
+`#stat-version` changed from a plain `<span>` to a `<button>` (reset to
+plain-text styling — no visible border/background — so it doesn't read
+as a bigger control than it is) calling `controller.openAbout`.
+
+**The "update available" status message is clickable too.** Marien: "I
+get a message in the status bar that there is a new version and I need
+to go to the About screen. Would be nice if I can click on that message
+[to open About]." `#stat-message` is a generic transient-toast slot
+shared by dozens of unrelated messages app-wide, so making the *whole*
+slot clickable would have turned every other toast into a misleading
+dead link. Instead, `checkForUpdatesOnLaunch`'s toast text is now a
+named export (`UPDATE_AVAILABLE_TOAST`, `updates.ts`) and
+`StatusBar.svelte` renders `#stat-message` as a `.status-link` button
+(same component `#stat-updated`'s "What's new" already uses) only when
+the current toast is *exactly* that text **and** `updateStatus ===
+"available"` — the second check matters because `updateStatus` stays
+`"available"` long after the toast itself auto-clears (2.4s), so
+matching on status alone would make an unrelated toast that happens to
+fire later, while the update icon is still showing, also render as a
+false link.
+
+**Date picker: a day only counts as "has a note" once it has content.**
+Marien: "only mark days as having a note (bold) when the file has
+content, meaning it is not empty." `DatePickerModal.svelte`'s
+`noteByIso` set was built from every key in `allNotesCache` regardless
+of content — and since `refreshAllNotesCache()`'s live-tab overlay
+writes an open tab's content (including a brand-new, never-typed-into
+tab's `""`) directly into that cache, merely *jumping to* a future date
+was enough to bold it on the calendar, no typing required. Fixed with
+one added `if (content.trim() === "") continue;` before adding to
+`noteByIso`. Confirmed as a genuine, previously-uncovered gap: no test
+anywhere referenced `.hasnote` before this — new
+`tests/e2e/navigation.spec.ts` case creates a fresh future tab via
+type-to-jump, confirms it's *not* bold, types into it, confirms it then
+*is*.
+
+`svelte-check` 213/0, Vitest 296/296 (+1), Playwright 180/180 (+4),
 `cargo test` 47/47 (unchanged — pure frontend).

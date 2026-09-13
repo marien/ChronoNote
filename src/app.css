@@ -1033,6 +1033,21 @@ body {
 .status-update-btn:hover {
   color: var(--text);
 }
+/* §update-check follow-up: the version number opens About too, same as
+   the update icon next to it — a plain-text look (no border/background)
+   so it doesn't read as a bigger control than it is. */
+#stat-version {
+  background: transparent;
+  border: none;
+  color: inherit;
+  font: inherit;
+  padding: 0;
+  margin: 0;
+  cursor: pointer;
+}
+#stat-version:hover {
+  color: var(--text);
+}
 /* §147: the phone-width stand-in for the "Browser storage" text badge —
    same quiet-dot language as #stat-message/#stat-updated above, just a
    static (not conditionally-rendered) accent dot; the full text stays

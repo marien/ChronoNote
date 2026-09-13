@@ -8,6 +8,7 @@
     statusSelection,
     statusWordCount,
     toastMessage,
+    UPDATE_AVAILABLE_TOAST,
     updateStatus,
   } from "../controller";
   import * as controller from "../controller";
@@ -48,6 +49,16 @@
           What's new
         </button>
       </span>
+    {:else if $toastMessage === UPDATE_AVAILABLE_TOAST && $updateStatus === "available"}
+      <!-- §update-check follow-up: this specific toast is a shortcut to
+           About, not the generic "read and forget" toast — matched by
+           exact text (not just `updateStatus === "available"`, which
+           persists long after the toast itself fades) so an unrelated
+           toast firing while an update happens to be available doesn't
+           also render as a misleading link. -->
+      <button type="button" id="stat-message" class="status-link" on:click={controller.openAbout}>
+        {$toastMessage}
+      </button>
     {:else if $toastMessage}
       <span id="stat-message" role="status">{$toastMessage}</span>
     {/if}
@@ -73,7 +84,11 @@
       ></span>
       <span class="status-sep">·</span>
     {/if}
-    {#if $appVersion}<span id="stat-version">v{$appVersion}</span>{/if}
+    {#if $appVersion}
+      <button type="button" id="stat-version" title="About ChronoNote" on:click={controller.openAbout}>
+        v{$appVersion}
+      </button>
+    {/if}
     <button
       type="button"
       class="status-help"

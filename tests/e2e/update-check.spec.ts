@@ -26,6 +26,19 @@ test.describe("update check (§update-check)", () => {
     await expect(about).toContainText(/restart/i, { timeout: 5000 });
   });
 
+  test("About's 'What's changed' opens the releases list, not just the latest tag (§update-check follow-up)", async ({
+    page,
+  }) => {
+    await seedApp(page, {
+      seed: { notes: { [todayFilename()]: "hi" }, updateCheck: "available", updateCheckVersion: "9.9.9" },
+    });
+    const about = await openViaShortcut(page, "ControlOrMeta+Shift+Comma", "about");
+    await about.getByRole("button", { name: "What's changed" }).click();
+    expect(await page.evaluate(() => window.__CHRONO_MOCK__!.openedUrls)).toContain(
+      "https://github.com/marien/ChronoNote/releases",
+    );
+  });
+
   test("a failed check reads as an error, with a way to try again", async ({ page }) => {
     await seedApp(page, {
       seed: { notes: { [todayFilename()]: "hi" }, throwOnCommands: ["plugin:updater|check"] },
@@ -106,7 +119,7 @@ test.describe("update check (§update-check)", () => {
 });
 
 test.describe("#50: first-launch-after-update notice", () => {
-  test("shows a status-bar link when the version differs from last seen, opens the release page, and only shows once", async ({
+  test("shows a status-bar link when the version differs from last seen, opens the releases list, and only shows once", async ({
     page,
   }) => {
     await seedApp(page, {
@@ -117,8 +130,11 @@ test.describe("#50: first-launch-after-update notice", () => {
 
     await notice.getByRole("button", { name: "What's new" }).click();
     await expect(notice).toHaveCount(0);
+    // §update-check follow-up: the full releases list, not a single tag —
+    // a version gap (skipped a few releases) shouldn't need per-tag
+    // navigation to see everything that changed.
     expect(await page.evaluate(() => window.__CHRONO_MOCK__!.openedUrls)).toContain(
-      "https://github.com/marien/ChronoNote/releases/tag/v9.9.9",
+      "https://github.com/marien/ChronoNote/releases",
     );
     // Persisted — a reload doesn't bring it back.
     expect(await page.evaluate(() => window.__CHRONO_MOCK__!.lastSeenVersion)).toBe("9.9.9");
