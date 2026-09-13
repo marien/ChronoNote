@@ -6,14 +6,15 @@ kept for the rationale behind each one — not just *what* changed but
 was still being gathered and confirmed before implementation; renamed once
 everything below was applied, since nothing here is "pending" anymore.
 
-**Status: all sections through §154 implemented; §1–153 released or
-otherwise live, §154 implemented but held pending Marien's own hands-on
-test of the new native window behavior before a release.** §153 is a
+**Status: all sections through §154 implemented and released.** §153 is a
 website-only Guide-page fix (found live right after §150–§152 shipped
 as v0.7.12) — no version bump, nothing in the shipped app changed. §154
 merges the OS title bar into the top bar (Notepad-style: icon, tabs,
 minimize/maximize/close) — a real, user-visible native-window change,
-deliberately not released yet. §141's desktop-app
+held for Marien's own hands-on test before release, then shipped as
+v0.8.0 (a minor bump rather than another v0.7.x, since v0.7 had already
+reached 12 patch releases and this is a genuine UI change, not a patch).
+§141's desktop-app
 Import feature shipped as v0.7.9; §143's cross-platform shortcuts and
 §144's top-bar collapse shipped together as v0.7.10. §145 is a
 same-release cleanup pass over §143's deferred comment/test-title
@@ -6279,7 +6280,11 @@ Pure `website/guide.html` + `website/style.css`, nothing else touched.
 
 ## 154. Merged title bar — the top bar replaces the native OS title bar
 
-**Status: implemented, awaiting Marien's hands-on test before a release.**
+**Status: released as v0.8.0** (a minor bump, not another v0.7.x patch —
+v0.7 had already reached 12 releases and this is a genuine user-visible
+UI change). Held back from release until Marien's own hands-on test in
+the running native window, which surfaced four follow-up fixes (see
+below) before sign-off.
 Marien: *"the next bigger thing I want you to work on in merging the
 title bar and top bar, like I see on many other applications. Notepad
 for example has the application icon on the left, then the tabs, and
