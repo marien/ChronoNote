@@ -240,22 +240,6 @@
     }
   }
 
-  /** §merged-titlebar: double-click-to-maximize on the bar's own draggable
-   * background — `data-tauri-drag-region` alone (used on `#top-bar`/
-   * `#tab-bar`/the drag gutter below) only gives plain window dragging;
-   * Tauri's own docs cover double-click-maximize as a *separate*, manual
-   * addition, not something the attribute includes automatically. Guarded
-   * by `e.target === e.currentTarget` so a double-click that lands on a
-   * tab or a button (which bubbles up to whichever of these elements it's
-   * inside) is never mistaken for one on the bar's own empty background —
-   * `data-tauri-drag-region` itself is already exact-element-only per
-   * Tauri's docs (doesn't propagate to children lacking it), but a plain
-   * DOM `dblclick` listener on the parent has no such protection built in. */
-  function onTitlebarDblClick(e: MouseEvent) {
-    if (e.target !== e.currentTarget) return;
-    void controller.toggleMaximizeWindow();
-  }
-
   /** §48: switching tabs (keyboard, Date picker, Search, etc.) can move
    * the active tab off-screen with nothing but the (now-invisible)
    * highlight to show it happened — scroll it into view whenever it
@@ -354,10 +338,8 @@
 
 <div
   id="top-bar"
-  role="presentation"
   bind:this={topBarEl}
   data-tauri-drag-region={isMergedTitlebar ? true : undefined}
-  on:dblclick={isMergedTitlebar ? onTitlebarDblClick : undefined}
 >
   {#if isMergedTitlebar}
     <span class="app-icon" aria-hidden="true"><AppIcon size={16} /></span>
@@ -369,10 +351,8 @@
   {/if}
   <div
     id="tab-bar"
-    role="presentation"
     bind:this={tabBarEl}
     data-tauri-drag-region={isMergedTitlebar ? true : undefined}
-    on:dblclick={isMergedTitlebar ? onTitlebarDblClick : undefined}
   >
     {#each displayTabs as tab, i (tab.id)}
       {#if i > 0 && tab.isScratchpad && !displayTabs[i - 1].isScratchpad}
@@ -497,7 +477,6 @@
     <div
       class="titlebar-drag-gutter"
       data-tauri-drag-region
-      on:dblclick={onTitlebarDblClick}
       aria-hidden="true"
     ></div>
     <div class="window-controls">

@@ -204,10 +204,28 @@ The drag-region attribute goes only on these two dedicated elements,
 never on the bar as a whole — putting it on a container that also holds
 real buttons is what breaks click-through on some Tauri versions, and
 several existing Tauri app write-ups call this out as the standard
-pattern. Double-click-to-maximize on the drag region is expected to come
-for free from `data-tauri-drag-region` itself (Tauri's own drag-region
-handling includes it) — another "verify empirically" item, with a
-manual `on:dblclick` → `toggleMaximize()` fallback ready if it doesn't.
+pattern.
+
+**Implementation update:** confirmed via Tauri's own docs before
+building that the attribute is exact-element-only (doesn't propagate to
+or interfere with children lacking it), so it ended up applied directly
+to `#top-bar` and `#tab-bar` themselves rather than a new spacer child
+— simpler, and avoids the flexible spacer's `offsetWidth` corrupting
+`TopBar.svelte`'s existing `settleLayout()` width measurements. The
+fixed gutter (2) was still added as its own element, unchanged from the
+proposal below.
+
+**Implementation update:** double-click-to-maximize *does* come for free
+from `data-tauri-drag-region` alone on Windows — confirmed the hard way.
+An extra manual `on:dblclick` handler was added anyway as a "belt and
+suspenders" measure and caused a real bug (every double-click toggled
+maximize twice, maximizing then immediately restoring) — removed
+entirely once Marien's hands-on test caught it. Superseded text, kept
+for history: *"Double-click-to-maximize on the drag region is expected
+to come for free from `data-tauri-drag-region` itself (Tauri's own
+drag-region handling includes it) — another 'verify empirically' item,
+with a manual `on:dblclick` → `toggleMaximize()` fallback ready if it
+doesn't."*
 
 ### 4.4 Window control buttons
 
@@ -354,7 +372,7 @@ existing `{#if $notesDir}`.
 | --- | --- |
 | Windows 11 Snap-Layouts hover flyout lost | Accepted per the decision above; Win+arrow-key snapping still works (OS-level, independent of title bar). |
 | Native drop-shadow/rounded corners may disappear with `decorations: false` on some Windows builds | Empirical check during implementation; `shadow: true` is the documented fallback if needed. |
-| Double-click-to-maximize on the drag region might not come for free | Manual `on:dblclick` → `toggleMaximizeWindow()` as a fallback, cheap to add either way. |
+| Double-click-to-maximize on the drag region might not come for free | **Resolved the other way** — Marien's hands-on test found it toggled *twice* per double-click (maximize then immediately restore) once a belt-and-suspenders manual `on:dblclick` handler was added on top of `data-tauri-drag-region`: on Windows the plain attribute already provides native double-click-to-maximize by itself, and the extra handler fired a redundant second toggle. The manual handler was removed entirely — `data-tauri-drag-region` alone handles both dragging and double-click-maximize. |
 | Many open tabs leave zero flexible drag space | The fixed-width drag gutter (§4.3) guarantees a minimum draggable area regardless of tab count. |
 | `settleLayout()`'s width math needs a new fixed term (window controls' width) | Same function already sums several fixed terms today — additive, not a rewrite. |
 | Mock backend (`mockBackend.ts`) has no stubs for `minimize`/`toggleMaximize`/`isMaximized`/`close`/drag | New no-op-ish stubs needed, same shape as the existing `getCurrentWindow()` stubs already there for `setTitle`/`destroy`/`onFocusChanged`. |

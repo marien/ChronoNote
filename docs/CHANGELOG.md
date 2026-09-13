@@ -6362,6 +6362,33 @@ resizing from the edges, and the double-click-maximize/visual
 shadow-and-corners questions the design doc flagged are Marien's own
 hands-on pass before a release, not reachable from this environment.
 
+**Follow-up (same day, before release): double-click-to-maximize was
+firing twice.** Marien's hands-on test: "double-clicking the empty bar
+space to maximize/restore is inconsistent. Sometimes maximizes briefly
+and then [restores] right away." The original build added an explicit
+`on:dblclick` handler (calling `toggleMaximizeWindow()`, guarded by
+`e.target === e.currentTarget`) *alongside* the declarative
+`data-tauri-drag-region` attribute already on the same elements — belt
+and suspenders, since Tauri's docs describe manual `dblclick` handling
+as a separate addition on top of the plain attribute. On Windows,
+though, `data-tauri-drag-region` already provides native double-click-
+to-maximize by itself (almost certainly via the same OS-level
+"treat this region as the caption/title bar" mechanism real title bars
+use, which the Windows window manager natively double-click-maximizes
+regardless of any app-level JS) — so every double-click was toggling
+maximize *twice*: once from Windows' own native handling of the drag
+region, once more from the app's own redundant listener, landing back
+where it started (or, per the report, restoring right after maximizing,
+depending on ordering). Fixed by deleting `onTitlebarDblClick` and its
+three `on:dblclick` bindings entirely (`#top-bar`, `#tab-bar`, the drag
+gutter) — the plain `data-tauri-drag-region` attribute alone now
+handles both dragging and double-click-maximize, matching what the
+design doc's own "verify empirically" note anticipated might be the
+case, just resolved the other direction (turned out the manual fallback
+was never needed, and actively harmful to add pre-emptively). The
+now-unnecessary `role="presentation"` (added earlier only to satisfy
+the `dblclick`-needs-an-ARIA-role a11y lint rule) came out with it.
+
 `svelte-check` 215/0, Vitest 303/303 (+6), Playwright 186/186 (+5),
 `cargo test` 47/47 (unchanged — `decorations`/capabilities are config,
 not Rust logic). **Not released** — held per explicit instruction until
