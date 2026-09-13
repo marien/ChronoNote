@@ -290,13 +290,20 @@ body {
   padding-right: 8px;
 }
 /* §merged-titlebar: the app icon at the bar's leading edge, replacing the
-   native OS title bar's own icon — vertically centred (not bottom-
-   anchored like the tabs/buttons; a title bar icon reads as centred in
-   real window chrome, not floor-aligned). */
+   native OS title bar's own icon. Same "32px box, bottom-anchored"
+   treatment as `.tab`/`.icon-btn` (§49) rather than its own vertical
+   alignment — an earlier `align-self: center` centred the icon in the
+   full 40px bar, which reads visibly higher than the tabs/buttons next
+   to it: those bottom-anchor a 32px box (an 8px gap only at the *top*),
+   so their own icons' visual centre sits lower than a plain
+   full-height centre would. Matching the same box height and letting it
+   inherit `#top-bar`'s `align-items: flex-end` puts the icon on the
+   same row the rest of the bar's icons sit on. */
 .app-icon {
   display: flex;
   align-items: center;
-  align-self: center;
+  justify-content: center;
+  height: 32px;
   flex-shrink: 0;
   margin: 0 8px 0 10px;
 }

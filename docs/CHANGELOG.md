@@ -6423,3 +6423,16 @@ since `data-tauri-drag-region` relies on that same native mechanism
 it with a hand-rolled JS timing implementation, which would reopen the
 door to the same class of race the previous double-toggle fix just
 closed.
+
+**Follow-up: the app icon sat visibly higher than every other icon in the
+bar.** Marien: "It looks more placed to the top than the other icons on
+the top bar." Root cause: `.app-icon` used `align-self: center`,
+centering it in the full 40px bar — but `.tab`/`#top-bar .icon-btn`
+bottom-anchor a 32px box (§49) inside that same 40px bar, so their own
+icons' visual centre sits *lower* than a plain full-height centre would
+(an 8px gap only above them, none below). Fixed by giving `.app-icon`
+the same 32px-tall box and letting it inherit `#top-bar`'s
+`align-items: flex-end` instead of overriding its own alignment —
+confirmed pixel-exact via `getBoundingClientRect()` (both the app icon's
+and a tab icon's own `<svg>` now centre at the identical y-coordinate,
+where they previously differed by several px).
