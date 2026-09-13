@@ -64,6 +64,14 @@ IDs. `config.json` lives in the OS-appropriate app config directory
 equivalent data in the browser's own storage instead — see
 [`docs/spec.md`](docs/spec.md#7-distribution-backends--the-update-mechanism).
 
+## Migrating existing notes
+
+Already have notes somewhere else? See
+[`docs/migration-guide.md`](docs/migration-guide.md) for the exact file
+format to convert them into and how to bring them in via Settings → Data
+→ "Import notes from a file…" — precise enough to hand to a conversion
+script or an AI agent.
+
 ## Other build targets
 
 The same `src/` tree also builds the public demo and the web app —
