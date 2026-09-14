@@ -9,7 +9,7 @@
  * bar (#58) and is no longer part of this top-bar collapse group at
  * all — see `status-bar.spec.ts` for its coverage. */
 import { test, expect } from "@playwright/test";
-import { seedApp, modalCard, MODAL_LABELS, typeInEditor } from "./helpers";
+import { seedApp, modalCard, MODAL_LABELS, typeInEditor, editor } from "./helpers";
 
 test.describe("top bar: collapsing secondary buttons on a narrow window (#56)", () => {
   test("wide window: every action button is visible individually, no More button", async ({ page }) => {
@@ -182,5 +182,75 @@ test.describe("top bar: label/collapse state doesn't depend on window-maximized 
     await expect(page.locator(".icon-label")).not.toHaveCount(0);
 
     expect(await countTopBarMutationsWhileTyping(page)).toBe(0);
+  });
+});
+
+/** #61: two independent bugs reported together against `settleLayout`'s
+ * tiering, both traced to real causes rather than the same mechanism as
+ * #57/#56 above.
+ *
+ * (1) Every tab id used to be a bare `tab-${Date.now()}` (`tabs.ts`) —
+ * `Date.now()`'s 1ms resolution (coarser still under some Windows timer
+ * configurations) means creating several tabs in quick succession (a fast
+ * click, a key-repeat, an OS-driven coarser clock) can hand two of them the
+ * *identical* id. `{#each displayTabs as tab (tab.id)}` keys on exactly
+ * this — two tabs sharing an id collapse into one shared DOM node, so the
+ * tab strip silently under-renders relative to how many tabs actually
+ * exist, and every width/overflow measurement `settleLayout` makes from
+ * then on is wrong. Fixed with `crypto.randomUUID()`, which can't collide
+ * the way a timestamp can.
+ *
+ * (2) Even with correct measurements, an "upgrade" attempt (icon-only ->
+ * labels, collapsed -> uncollapsed) works by unconditionally flipping the
+ * state to measure it, reverting if it turns out not to fit — the only way
+ * to measure a tier that isn't currently rendered. Doing that on *every*
+ * settle call, including ones triggered by the window getting narrower,
+ * flashed the wider tier on screen for a frame before reverting it, for as
+ * long as a drag kept making things tighter — reported as "the top bar is
+ * flickering constantly ... trying to show content and then hide it again."
+ * Fixed by only attempting an upgrade when there's an actual reason to
+ * think a wider tier might now fit — the resize observer, unlike the
+ * tab-list subscription, gates on `#top-bar` actually having gotten wider. */
+test.describe("top bar: tab-id collisions and resize flicker (#61)", () => {
+  test("every tab created in quick succession gets its own id and renders its own DOM node", async ({ page }) => {
+    await seedApp(page, { seed: "empty" });
+    await page.setViewportSize({ width: 1920, height: 1080 });
+    await editor(page).click();
+
+    const newScratchpad = page.getByTitle(/^New Scratchpad/);
+    for (let i = 0; i < 9; i++) await newScratchpad.click();
+
+    const [domCount, storeCount] = await page.evaluate(() => [
+      document.getElementById("tab-bar")!.querySelectorAll(".tab").length,
+      (window as unknown as { __CHRONO_MOCK__: { debug: { tabs: () => unknown[] } } }).__CHRONO_MOCK__.debug.tabs()
+        .length,
+    ]);
+    expect(domCount).toBe(storeCount);
+    expect(domCount).toBe(10); // the seed's own tab, plus the 9 new scratchpads
+  });
+
+  test("collapse state never reverses direction while continuously narrowing the window", async ({ page }) => {
+    await seedApp(page, { seed: "empty" });
+    await page.setViewportSize({ width: 2200, height: 700 });
+    await editor(page).click();
+
+    const newScratchpad = page.getByTitle(/^New Scratchpad/);
+    for (let i = 0; i < 9; i++) await newScratchpad.click();
+    await page.waitForTimeout(200);
+
+    const states: boolean[] = [];
+    for (let width = 2200; width >= 700; width -= 20) {
+      await page.setViewportSize({ width, height: 700 });
+      states.push(await page.getByTitle("More actions").isVisible());
+    }
+
+    // Once narrower, never briefly "recovers" to uncollapsed before
+    // narrowing further collapses it again — that back-and-forth within a
+    // single, monotonically-narrowing drag is exactly the reported flicker.
+    let reversions = 0;
+    for (let i = 1; i < states.length; i++) {
+      if (states[i] === false && states[i - 1] === true) reversions++;
+    }
+    expect(reversions).toBe(0);
   });
 });

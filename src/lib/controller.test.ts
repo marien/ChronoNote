@@ -163,6 +163,22 @@ describe("tab lifecycle", () => {
     expect(get(controller.activeTabId)).toBe(list[1].id);
   });
 
+  it("#61: gives every tab a unique id even when created within the same millisecond", () => {
+    // The original bug: ids were a bare `tab-${Date.now()}` — two tabs
+    // created faster than the clock's resolution (trivially reproduced by
+    // freezing it, as a fast click or a coarse OS timer can in practice)
+    // got the *identical* id. `{#each displayTabs as tab (tab.id)}` in
+    // TopBar.svelte keys on this id, so a collision collapses every tab
+    // after the first duplicate into one shared DOM node — under-rendering
+    // the tab strip and feeding `settleLayout` a wrong width for as long
+    // as those tabs stay open.
+    vi.setSystemTime(new Date(2026, 8, 14));
+    for (let i = 0; i < 5; i++) controller.createScratchpad();
+    const ids = get(controller.tabs).map((t) => t.id);
+    expect(new Set(ids).size).toBe(ids.length);
+    vi.useRealTimers();
+  });
+
   it("cycleTab wraps around in both directions", () => {
     controller.tabs.set([tab({ id: "a", filename: "2026-09-01.txt" }), tab({ id: "b", filename: "2026-09-02.txt" })]);
     controller.activeTabId.set("a");

@@ -28,6 +28,24 @@ import { countActions } from "./tokens";
 import { todayISO } from "./date";
 import type { NoteTab } from "./types";
 
+/** #61: every tab id here used to be a bare `tab-${Date.now()}` — fine in
+ * isolation, but `Date.now()`'s 1ms resolution (coarser still on some
+ * Windows setups, which round it to their own timer-interrupt granularity)
+ * means two tabs created close together — clicking "New Scratchpad" or the
+ * reopen-closed-tab shortcut a few times in a row is enough — can get the
+ * *identical* id. `{#each displayTabs as tab (tab.id)}` in `TopBar.svelte`
+ * keys on exactly this id: two tabs sharing one collapse every rendered tab
+ * after the first duplicate into a single DOM node, which then makes every
+ * downstream width/overflow measurement `settleLayout` does wrong for that
+ * tab count for as long as those tabs stay open — a plausible root cause of
+ * #61's "top bar buttons behave inconsistently." `crypto.randomUUID()`
+ * can't collide the way a timestamp can. (`boot.ts`'s own two id sites
+ * already salt with the tab's filename, which is genuinely unique
+ * per dated note, so they don't have this problem.) */
+function generateTabId(): string {
+  return `tab-${crypto.randomUUID()}`;
+}
+
 export function switchTab(id: string) {
   const prev = get(activeTabId);
   if (prev && prev !== id) flushSave(prev);
@@ -48,7 +66,7 @@ export function cycleTab(direction: 1 | -1) {
 export function createScratchpad() {
   const list = get(tabs);
   const n = list.filter((t) => t.isScratchpad).length + 1;
-  const newTab: NoteTab = { id: `tab-${Date.now()}`, filename: `Scratchpad ${n}`, isScratchpad: true, content: "" };
+  const newTab: NoteTab = { id: generateTabId(), filename: `Scratchpad ${n}`, isScratchpad: true, content: "" };
   tabs.set([...list, newTab]);
   activeTabId.set(newTab.id);
 }
@@ -62,7 +80,7 @@ export async function openOrCreateDatedFile(dateStr: string) {
     return;
   }
   const { content, metadata } = await api.readNoteWithMetadata(filename);
-  const newTab: NoteTab = { id: `tab-${Date.now()}`, filename, isScratchpad: false, content: content ?? "" };
+  const newTab: NoteTab = { id: generateTabId(), filename, isScratchpad: false, content: content ?? "" };
   tabs.set([...list, newTab]);
   markTabClean(newTab.id, metadata.contentHash); // §94 baseline
   activeTabId.set(newTab.id);
@@ -164,7 +182,7 @@ export async function reopenLastClosedTab() {
   if (snapshot.isScratchpad) {
     const list = get(tabs);
     const newTab: NoteTab = {
-      id: `tab-${Date.now()}`,
+      id: generateTabId(),
       filename: snapshot.filename,
       isScratchpad: true,
       content: snapshot.content,
@@ -209,7 +227,7 @@ export async function promoteScratchpad(tabId: string) {
   if (todayTab) {
     todayTab.content = merged;
   } else {
-    todayTab = { id: `tab-${Date.now()}`, filename: todayFilename, isScratchpad: false, content: merged };
+    todayTab = { id: generateTabId(), filename: todayFilename, isScratchpad: false, content: merged };
     remaining.push(todayTab);
   }
   tabs.set(remaining);

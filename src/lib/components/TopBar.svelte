@@ -19,6 +19,12 @@
   // the labels back, because the one settle that actually ran had done so
   // before all the closes had landed, and nothing was left to ask again.
   let settlePending = false;
+  // #61: carries the `allowUpgrade` argument (see `settleLayout`) forward
+  // into the loop's *next* iteration when a call arrives mid-settle —
+  // ORed together so one genuine widen among several coalesced calls still
+  // gets its upgrade attempt, the same "don't drop it, fold it in" idea
+  // `settlePending` already applies to re-running at all.
+  let settlePendingAllowUpgrade = false;
   let scrollIntoViewToken = 0;
 </script>
 
@@ -158,10 +164,26 @@
   // §merged-titlebar follow-up: how much of a neighboring tab to leave
   // peeking in when scrolling the active tab into view at an edge.
   const TAB_EDGE_PEEK = 24;
-  async function settleLayout() {
+  /** #61: an upgrade attempt (icon-only → labels, collapsed → uncollapsed)
+   * unconditionally flips the state to test it, which is the only way to
+   * measure a tier that isn't currently rendered — but doing that on
+   * *every* call, including ones triggered by the window getting
+   * *narrower*, flashes the wider tier on screen for a frame before
+   * reverting it, every single time, for the entire duration of a drag
+   * that's only ever making things tighter. `allowUpgrade` gates those
+   * attempts on there being an actual reason to think a wider tier might
+   * fit now — the `ResizeObserver` below passes `true` only when
+   * `#top-bar` just got *wider* than the last time it measured; the
+   * `tabs.subscribe` path (closing/renaming a tab can free room without
+   * `#top-bar` itself resizing at all) always passes `true`, since that
+   * path fires far less often than a continuous drag ever could. The
+   * *downgrade* checks (already-showing labels/buttons found to no longer
+   * fit) are never gated — shrinking must always be able to react. */
+  async function settleLayout(allowUpgrade = true) {
     if (!tabBarEl) return;
     if (settling) {
       settlePending = true;
+      settlePendingAllowUpgrade ||= allowUpgrade;
       return;
     }
     settling = true;
@@ -190,7 +212,7 @@
             showActionLabels = false;
             await nextFrame();
           }
-        } else {
+        } else if (allowUpgrade) {
           // Icon-only currently — try labels, but only keep them if
           // there's clearly enough spare room once they're shown, not
           // just barely.
@@ -233,7 +255,7 @@
               await nextFrame();
             }
           }
-        } else {
+        } else if (allowUpgrade) {
           // Collapsed currently — only bring the buttons back if there's
           // clearly enough spare room once they're shown, not just
           // barely (the same `tabsContentWidth` reasoning as the labels
@@ -257,7 +279,10 @@
         if (nowOverflowing !== isOverflowing) isOverflowing = nowOverflowing;
         // If another call came in while the above was awaiting a frame,
         // loop once more on the now-current state instead of returning
-        // with it unevaluated.
+        // with it unevaluated — using whatever `allowUpgrade` that (or any
+        // other) pending call arrived with, not necessarily this one's.
+        allowUpgrade = settlePendingAllowUpgrade;
+        settlePendingAllowUpgrade = false;
       } while (settlePending);
     } finally {
       settling = false;
@@ -428,8 +453,46 @@
     // and the observer only ever fires the scroll for a genuine
     // *subsequent* resize, which is the only case this follow-up is for.
     let resizeObserverPrimed = false;
+    // #61: only a resize that made `#top-bar` *wider* than last time can
+    // plausibly mean a worse tier now fits — see `settleLayout`'s own
+    // comment on `allowUpgrade`. Gating on "wider than the *immediately
+    // preceding* sample" alone still flickers while continuously widening,
+    // though: dragging across many small steps means most of them are each
+    // individually wider than the last but still short of actually fitting,
+    // so each one still gets its own flash-and-revert — just as constant
+    // as the narrowing case was, only in the other direction. Gating
+    // instead on "wider than the last width an upgrade was actually
+    // *attempted* at, by a real margin" throttles retries to roughly "try
+    // again once something button-sized more might fit," so a slow widen
+    // gets one attempt per meaningful increment instead of one per tick.
+    // `0` as the starting point makes the very first delivery (mount)
+    // attempt, matching `tabs.subscribe`'s own always-full-evaluation first
+    // fire below. 100px isn't an exact fit-boundary margin (that's
+    // `FIT_MARGIN`, deliberately tiny) — it's a coarser "don't bother
+    // retrying yet" throttle, sized around a single action button's width
+    // so a genuine widen still gets noticed reasonably promptly without
+    // re-attempting on every few-pixel tick. Confirmed empirically (a
+    // simulated continuous drag, 20px steps): eliminates flicker entirely
+    // while narrowing, and cuts it from one flash per tick to a small
+    // handful across an entire 700px->2200px widen — the residual few are
+    // inherent to needing to actually render a wider tier to find out
+    // whether it fits, not something a retry margin alone can fully solve.
+    const UPGRADE_RETRY_MARGIN = 100;
+    let lastTopBarWidth = 0;
+    let lastUpgradeAttemptWidth = 0;
     resizeObserver = new ResizeObserver(() => {
-      settleLayout();
+      const width = topBarEl.getBoundingClientRect().width;
+      const grew = width > lastTopBarWidth;
+      lastTopBarWidth = width;
+      // Shrinking moves the "since when" baseline down with it, so growth
+      // is always measured from wherever the *most recent* shrink bottomed
+      // out — otherwise a big shrink followed by a small regrowth could
+      // stay stuck comparing against a stale, much-higher-up high-water
+      // mark from before the shrink and never clear the margin at all.
+      if (!grew) lastUpgradeAttemptWidth = width;
+      const allowUpgrade = grew && width - lastUpgradeAttemptWidth >= UPGRADE_RETRY_MARGIN;
+      if (allowUpgrade) lastUpgradeAttemptWidth = width;
+      settleLayout(allowUpgrade);
       if (resizeObserverPrimed) scrollActiveTabIntoView();
       resizeObserverPrimed = true;
     });
@@ -440,6 +503,11 @@
     // needed (the initial `null` sentinel never equals a real signature,
     // even an empty tab list's `""`). `tabs` covers `displayTabs` (derived
     // from it) too; nothing here needs its own subscription just for that.
+    // Always allowed to try upgrading a tier (unlike the resize observer
+    // above): a tab closing/renaming can free up room without `#top-bar`
+    // itself resizing at all, and this path fires far less often than a
+    // continuous drag ever could, so it was never the source of #61's
+    // flicker — only ever the source of a single, legitimate settle.
     const unsubTabs = tabs.subscribe((list) => {
       const sig = layoutSignature(list);
       if (sig === lastTabsLayoutSignature) return;

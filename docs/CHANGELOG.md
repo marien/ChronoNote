@@ -6,7 +6,8 @@ kept for the rationale behind each one — not just *what* changed but
 was still being gathered and confirmed before implementation; renamed once
 everything below was applied, since nothing here is "pending" anymore.
 
-**Status: all sections through §159 implemented and released.** §153 is a
+**Status: all sections through §159 implemented and released; §160 fixed,
+not yet released.** §153 is a
 website-only Guide-page fix (found live right after §150–§152 shipped
 as v0.7.12) — no version bump, nothing in the shipped app changed. §154
 merges the OS title bar into the top bar (Notepad-style: icon, tabs,
@@ -6803,3 +6804,78 @@ of the status bar, and Close still closes the modal.
 
 `svelte-check` 215/0, Vitest 303/303 (unchanged — pure CSS), Playwright
 198/198 (+2), `cargo test` 47/47 (unchanged — pure frontend).
+
+## 160. Top-bar tab-id collisions and resize flicker (#61)
+
+**Status: fixed.** Marien filed #61 after testing v0.8.2's #57 fix:
+"I have tried the top bar buttons in different sizes, resizing, etc. The
+behavior is still inconsistent (read buggy). When dragging the right
+side of the window to resize, the top bar is flickering constantly as it
+is trying to show content and then hide it again. Also opening and
+closing tabs, leads to inconsistent behavior where sometimes the buttons
+stay collapsed while there is enough room," with a precise repro: 10
+tabs restored → collapsed; maximize → stays collapsed; close one tab →
+uncollapses; restore → collapses; maximize → uncollapses; reopen the
+closed tab → *stays* uncollapsed, unlike the very first step with the
+same 10-tabs-maximized combination.
+
+Two independent bugs, found by instrumenting `settleLayout` and
+reproducing both live rather than guessing from the code:
+
+**Bug 1 — tab ids could collide, silently under-rendering the tab
+strip.** Every tab id was a bare `` `tab-${Date.now()}` `` (`tabs.ts`) —
+`Date.now()`'s 1ms resolution (coarser still under some Windows timer
+configurations) means two tabs created close enough together get the
+*identical* id. `TopBar.svelte`'s `{#each displayTabs as tab (tab.id)}`
+keys on exactly this id: two tabs sharing one collapse into a single
+shared DOM node, so the tab strip renders *fewer tabs than actually
+exist* — confirmed directly (10 tabs in the store, only 2 `.tab`
+elements in the DOM, all nine scratchpads carrying the exact same id).
+Every width/overflow measurement `settleLayout` makes is then wrong for
+as long as those tabs stay open, which explains #61's reported
+inconsistency far better than anything in the tiering logic itself: the
+*same* nominal state (10 tabs, maximized) produced different results
+depending on exactly which of those tabs happened to collide and when.
+Fixed with a shared `generateTabId()` using `crypto.randomUUID()`
+instead of a timestamp, applied at all four call sites that lacked a
+uniqueness salt (`createScratchpad`, `openOrCreateDatedFile`,
+`reopenLastClosedTab`'s scratchpad path, `promoteScratchpad`'s new-today-
+tab path). `boot.ts`'s own two id sites were already safe — they salt
+with the tab's filename, which is genuinely unique per dated note.
+
+**Bug 2 — upgrading a tier always flashed it first, even while only
+ever getting narrower.** The "try a better tier, revert if it doesn't
+fit" pattern (§156) is the only way to measure a tier that isn't
+currently rendered, but it ran unconditionally on *every* settle call —
+including ones triggered by the window getting narrower, where trying a
+wider tier can never succeed. Confirmed with a simulated continuous
+narrowing drag (a `MutationObserver`-adjacent state-sampling test):
+every single step flashed labels or the full button row on for a frame
+before reverting, the entire way down — "flickering constantly," exactly
+as reported. Fixed by gating upgrade attempts on `allowUpgrade`, computed
+per caller: the `ResizeObserver` only allows one when `#top-bar` has
+actually gotten *wider* since the last attempt (by a real margin, not
+just any amount — retrying on every few-pixel tick during a slow widen
+flickered almost as badly, just in the other direction), carried through
+`settleLayout`'s own re-entrancy coalescing so a genuine widen among
+several coalesced calls doesn't get dropped; the `tabs.subscribe` path
+(closing/renaming a tab can free room with `#top-bar`'s own width
+unchanged) always allows one, since it fires far less often than a
+drag ever could and was never the source of the flicker. The *downgrade*
+checks are never gated — shrinking must always be free to react.
+Narrowing is now flicker-free entirely (confirmed: zero direction
+reversals across a full-range simulated drag); widening is greatly
+reduced but not perfectly zero — actually rendering a wider tier to find
+out whether it fits is an inherent constraint no retry margin fully
+removes, and the residual few flashes are bounded to right around the
+actual fit boundary rather than constant throughout the drag.
+
+New coverage: a Vitest test creates several scratchpads under a frozen
+clock and asserts every resulting id is unique (directly reproducing
+Bug 1's exact trigger); two Playwright tests in `topbar-collapse.spec.ts`
+assert the DOM tab count matches the store's after rapid creation, and
+that simulating a continuous narrowing drag never shows a collapse-state
+reversal.
+
+`svelte-check` 215/0, Vitest 304/304 (+1), Playwright 200/200 (+2),
+`cargo test` 47/47 (unchanged — pure frontend).
