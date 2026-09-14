@@ -1665,6 +1665,19 @@ textarea.modal-input.import-textarea {
   min-width: 0;
   min-height: 0;
 }
+/* #59: the shared `.modal-list` rule caps at 380px — right for Action
+ * Drawer/Search, whose `.modal-card` has no height cap of its own, so
+ * that 380px is the only thing stopping their list from growing
+ * unbounded. Section History is different: its card is already capped
+ * at 80vh (`.history-modal-card`, §155), so its list can safely fill
+ * whatever `.history-main` actually has instead of stopping short at a
+ * fixed height — which, once the "From" column on the right (already
+ * unbounded via `.hp-section-grow`/`.hp-context`) grew past 380px, made
+ * the list look cut off rather than genuinely finished. Scoped to this
+ * modal only — Action Drawer and Search keep the shared cap. */
+.history-main .modal-list {
+  max-height: none;
+}
 /* §150: the "Only Open" filter sits right above the list it filters —
    compact (not a full `.modal-input-wrap` row) and scoped to the list's
    own column width, not the full modal. */

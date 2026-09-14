@@ -342,4 +342,40 @@ test.describe("section history (Ctrl/Cmd+Shift+H)", () => {
     const [scrollHeight, clientHeight] = await fromBody.evaluate((el) => [el.scrollHeight, el.clientHeight]);
     expect(scrollHeight).toBeGreaterThan(clientHeight);
   });
+
+  test("the action list fills its column height instead of stopping at a fixed size while the From column grows (#59)", async ({
+    page,
+  }) => {
+    // Enough recurring occurrences that the list is a real, busy one —
+    // the shared `.modal-list` rule (used by Action Drawer/Search too)
+    // caps at 380px, which used to apply here as well even though this
+    // modal's own card can grow much taller (§155's 80vh cap), making
+    // the list look cut short next to the "From" column beside it.
+    const notes: Record<string, string> = {};
+    for (let i = 1; i <= 20; i++) {
+      const d = `2026-08-${String(i).padStart(2, "0")}`;
+      notes[`${d}.txt`] = `Standup\n=======\n# task from ${d}\n`;
+    }
+    await seedApp(page, {
+      seed: { notes, session: { openTabs: ["2026-08-20.txt"], activeTab: "2026-08-20.txt" } },
+    });
+    await page.setViewportSize({ width: 1100, height: 900 });
+    await editor(page).click();
+    await page.keyboard.press("ControlOrMeta+Home");
+    await page.keyboard.press("ArrowDown"); // into the "Standup" section
+    await page.keyboard.press("ControlOrMeta+Shift+H");
+
+    const card = history(page);
+    await expect(card).toBeVisible();
+    const [mainBox, previewBox, listBox] = await Promise.all([
+      card.locator(".history-main").boundingBox(),
+      card.locator(".history-preview").boundingBox(),
+      card.locator(".modal-list").boundingBox(),
+    ]);
+    // Same height as the "From" column right next to it...
+    expect(Math.abs(mainBox!.height - previewBox!.height)).toBeLessThanOrEqual(1);
+    // ...which the list itself (inside its own toolbar-topped column)
+    // only achieves by no longer being capped at 380px.
+    expect(listBox!.height).toBeGreaterThan(380);
+  });
 });

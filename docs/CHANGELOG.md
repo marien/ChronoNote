@@ -6,7 +6,7 @@ kept for the rationale behind each one — not just *what* changed but
 was still being gathered and confirmed before implementation; renamed once
 everything below was applied, since nothing here is "pending" anymore.
 
-**Status: all sections through §157 implemented; §1–155 released, §156–§157
+**Status: all sections through §158 implemented; §1–155 released, §156–§158
 committed, not yet released.** §153 is a
 website-only Guide-page fix (found live right after §150–§152 shipped
 as v0.7.12) — no version bump, nothing in the shipped app changed. §154
@@ -6715,3 +6715,49 @@ Verified via computed geometry, not by eye: the About and `?` boxes
 came out pixel-identical (16×16, matching top/bottom edges), their
 shared vertical center exactly matches the version text's own center,
 and the icon sits with an equal 2px margin on all four sides of its box.
+
+## 158. Section History's action list fills its column height (#59)
+
+**Status: fixed, committed, not yet released.** Marien filed #59: "The
+list of actions in the left column sticks to a fixed size, while the
+right column is growing larger. This makes it look like the list of
+actions is incomplete. Can you make it fill the space it can have?"
+
+Root cause: the shared `.modal-list` CSS rule caps at `max-height: 380px`
+— correct for Action Drawer and Cross-Tab Search, whose `.modal-card` has
+no height cap of its own, so that 380px is the *only* thing stopping
+their list from growing unbounded with a long enough result set. Section
+History is different since §155: its card is already capped at 80vh
+(`.history-modal-card`), and its "From" column (`.hp-context`/
+`.hp-section-grow`) already fills whatever room that leaves via `flex: 1
+1 auto` with no fixed cap. The action list on the left never got the same
+treatment — it kept the shared 380px ceiling regardless of how much
+taller the card (and the column next to it) actually was, so on anything
+but a short window the list visibly stopped well short of the "From"
+column's height, reading as truncated rather than simply short on
+content.
+
+Fixed with a scoped override, `.history-main .modal-list { max-height:
+none; }` — the list already had `flex: 1` (inline, from the virtualized-
+list markup shared with Action Drawer/Search), so removing just the
+`max-height` for this modal specifically lets it fill `.history-main`'s
+real available height the same way `.hp-context` already does, bounded
+by the same 80vh card cap. Action Drawer and Search keep the shared
+380px cap untouched — verified directly (not just by reading the CSS):
+opened both after the fix, at the same tall window that made History's
+list grow past 380px, and confirmed their own lists still measured
+exactly 380px.
+
+Verified the fix scales correctly across window heights, not just at one
+size: at a 1000px-tall window, `.history-main`/`.history-preview` (the
+two columns) grew to 637.5px each, and the list's own box grew to
+612.9px within that (the remaining ~25px going to the "Only Open" toolbar
+strip above the list) — matching column heights at every size tried, not
+a coincidence at one viewport.
+
+New Playwright case seeds 20 recurring occurrences of one section at a
+900px-tall window and asserts `.history-main` and `.history-preview`
+measure the same height, and the list itself exceeds the old 380px cap.
+
+`svelte-check` 215/0, Vitest 303/303 (unchanged — pure CSS), Playwright
+196/196 (+1), `cargo test` 47/47 (unchanged — pure frontend).
