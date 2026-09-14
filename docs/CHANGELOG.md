@@ -6,7 +6,7 @@ kept for the rationale behind each one — not just *what* changed but
 was still being gathered and confirmed before implementation; renamed once
 everything below was applied, since nothing here is "pending" anymore.
 
-**Status: all sections through §158 implemented; §1–155 released, §156–§158
+**Status: all sections through §159 implemented; §1–155 released, §156–§159
 committed, not yet released.** §153 is a
 website-only Guide-page fix (found live right after §150–§152 shipped
 as v0.7.12) — no version bump, nothing in the shipped app changed. §154
@@ -6761,3 +6761,46 @@ measure the same height, and the list itself exceeds the old 380px cap.
 
 `svelte-check` 215/0, Vitest 303/303 (unchanged — pure CSS), Playwright
 196/196 (+1), `cargo test` 47/47 (unchanged — pure frontend).
+
+## 159. Settings modal can grow, and its scrollbar matches the rest of the app (#60)
+
+**Status: fixed, committed, not yet released.** Marien filed #60: "Allow
+the Settings Modal to be bigger if there is enough size. Style the
+scrollbar the same as the main content window."
+
+Two independent fixes, same modal:
+
+**Size.** `.settings-section` capped at a fixed `max-height: 380px`
+(added in §141 when the web-app "Data" section made the modal tall
+enough to slide under the status bar's higher z-index, §102, and swallow
+the Close button's click). That fixed cap meant Settings always scrolled
+internally past five sections regardless of how much taller the window
+actually was — the same class of bug as #59's Section History list, and
+fixed the same way (§155/§158's pattern): `.settings-modal-card` now
+caps the whole card at 80vh, well clear of the status bar at any window
+size, and `.settings-section` fills whatever that leaves via `flex: 1;
+min-height: 0` instead of a fixed ceiling. On a tall window all five
+sections (Appearance, Editor, Updates, Notes Location, Data) now show
+without any scrolling at all; on a short one, the card still caps at 80%
+of the window and the section scrolls internally exactly as before —
+verified both ways, not just the tall case, including confirming the
+Close button stays reachable and clear of the status bar at a 500px-tall
+window.
+
+**Scrollbar.** `.settings-section` was never added to the shared thin-
+scrollbar rule set (`.cm-scroller`, `.modal-list`, `.hp-context`, etc.)
+when it became scrollable in §141 — it's been using the OS-default
+scrollbar ever since, the literal second half of Marien's report. Added
+to all five shared selector groups (base `scrollbar-width`/`-color`, and
+the `::-webkit-scrollbar`/`-track`/`-thumb`/`-thumb:hover` pairs), no new
+rules needed since it already uses the same design tokens as everything
+else.
+
+New Playwright coverage: one case confirms every section is visible with
+`scrollHeight <= clientHeight` at a tall window and that `scrollbar-width:
+thin` is applied; another confirms the card still caps at 80% of a short
+window, scrolls internally (`scrollHeight > clientHeight`), stays clear
+of the status bar, and Close still closes the modal.
+
+`svelte-check` 215/0, Vitest 303/303 (unchanged — pure CSS), Playwright
+198/198 (+2), `cargo test` 47/47 (unchanged — pure frontend).

@@ -662,7 +662,8 @@ body {
 .po-body,
 .hp-context,
 .shortcuts-col,
-.import-textarea {
+.import-textarea,
+.settings-section {
   scrollbar-width: thin;
   scrollbar-color: var(--border) transparent;
 }
@@ -671,7 +672,8 @@ body {
 .po-body::-webkit-scrollbar,
 .hp-context::-webkit-scrollbar,
 .shortcuts-col::-webkit-scrollbar,
-.import-textarea::-webkit-scrollbar {
+.import-textarea::-webkit-scrollbar,
+.settings-section::-webkit-scrollbar {
   width: 8px;
 }
 .cm-scroller::-webkit-scrollbar-track,
@@ -679,7 +681,8 @@ body {
 .po-body::-webkit-scrollbar-track,
 .hp-context::-webkit-scrollbar-track,
 .shortcuts-col::-webkit-scrollbar-track,
-.import-textarea::-webkit-scrollbar-track {
+.import-textarea::-webkit-scrollbar-track,
+.settings-section::-webkit-scrollbar-track {
   background: transparent;
 }
 /* The bottom-right corner (the gap where scrollbars would meet) is its
@@ -712,7 +715,8 @@ body {
 .po-body::-webkit-scrollbar-thumb,
 .hp-context::-webkit-scrollbar-thumb,
 .shortcuts-col::-webkit-scrollbar-thumb,
-.import-textarea::-webkit-scrollbar-thumb {
+.import-textarea::-webkit-scrollbar-thumb,
+.settings-section::-webkit-scrollbar-thumb {
   background: var(--border);
   border-radius: 4px;
 }
@@ -721,7 +725,8 @@ body {
 .po-body::-webkit-scrollbar-thumb:hover,
 .hp-context::-webkit-scrollbar-thumb:hover,
 .shortcuts-col::-webkit-scrollbar-thumb:hover,
-.import-textarea::-webkit-scrollbar-thumb:hover {
+.import-textarea::-webkit-scrollbar-thumb:hover,
+.settings-section::-webkit-scrollbar-thumb:hover {
   background: var(--muted);
 }
 
@@ -1875,17 +1880,25 @@ kbd {
   text-transform: uppercase;
   font-weight: bold;
 }
+/* #60: capped the same way Section History's card is (§155/§158) —
+   `.settings-modal-card` bounds the whole card at 80vh (well clear of
+   the status bar's higher z-index, §102, which is what a taller-than-
+   the-viewport Settings card used to slide under and swallow the Close
+   click on), and `.settings-section` fills whatever that leaves via
+   `flex: 1` instead of stopping at a fixed height regardless of how
+   much room is actually available. Scrolls internally only once content
+   genuinely exceeds that — same as before, just no longer a fixed
+   380px ceiling on a short window's worth of room. */
+.settings-modal-card {
+  max-height: 80vh;
+}
 .settings-section {
   padding: 16px;
   display: flex;
   flex-direction: column;
   gap: 20px;
-  /* Same cap as `.modal-list` — Settings/About grew a section too many
-     (the web-app design doc's Data section) to keep assuming its content
-     always fits above the footer; scrolls internally instead of letting
-     the modal-card grow tall enough to sit under the status bar's
-     deliberately-higher z-index (§102) and swallow the Close click. */
-  max-height: 380px;
+  flex: 1;
+  min-height: 0;
   overflow-y: auto;
 }
 .settings-toggle-row {

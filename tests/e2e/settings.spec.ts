@@ -213,4 +213,48 @@ test.describe("settings (Ctrl/Cmd+,)", () => {
       .click();
     expect(await page.evaluate(() => window.__CHRONO_MOCK__!.notesDir)).toBe("/personal-notes");
   });
+
+  test("#60: grows to show every section without scrolling on a tall window, styled with the app's own thin scrollbar", async ({
+    page,
+  }) => {
+    await seedApp(page, { seed: "busy-week" });
+    await page.setViewportSize({ width: 1024, height: 1000 });
+    await openSettings(page);
+
+    const section = settings(page).locator(".settings-section");
+    const [clientHeight, scrollHeight, scrollbarWidth] = await section.evaluate((el) => [
+      el.clientHeight,
+      el.scrollHeight,
+      getComputedStyle(el).scrollbarWidth,
+    ]);
+    // Every section (Appearance/Editor/Updates/Notes Location/Data) fits
+    // without needing to scroll — the old fixed 380px cap would have
+    // forced scrolling here regardless of how much room the window has.
+    expect(scrollHeight).toBeLessThanOrEqual(clientHeight + 1);
+    expect(scrollbarWidth).toBe("thin"); // same treatment as .cm-scroller/.modal-list, not the OS default
+    await expect(settings(page).getByText("Data", { exact: true })).toBeVisible();
+  });
+
+  test("#60: still caps well clear of the status bar on a short window, scrolling internally instead", async ({
+    page,
+  }) => {
+    await seedApp(page, { seed: "busy-week" });
+    await page.setViewportSize({ width: 1024, height: 500 });
+    await openSettings(page);
+
+    const cardBox = (await settings(page).boundingBox())!;
+    const statusBarBox = (await page.locator("#status-bar").boundingBox())!;
+    expect(cardBox.height).toBeLessThanOrEqual(500 * 0.8 + 1);
+    expect(cardBox.y + cardBox.height).toBeLessThanOrEqual(statusBarBox.y + 1);
+
+    // Content overflows the (now bounded) section, so it scrolls
+    // internally rather than growing the card past its cap.
+    const section = settings(page).locator(".settings-section");
+    const [clientHeight, scrollHeight] = await section.evaluate((el) => [el.clientHeight, el.scrollHeight]);
+    expect(scrollHeight).toBeGreaterThan(clientHeight);
+
+    // Close stays reachable — the original bug this cap guards against.
+    await settings(page).getByRole("button", { name: "Close" }).click();
+    expect(await currentModal(page)).toBe("none");
+  });
 });

@@ -111,7 +111,14 @@
 </script>
 
 <div class="overlay" role="presentation" use:closeOnOutsideClick={controller.closeAllModals}>
-  <div class="modal-card" role="dialog" aria-modal="true" use:focusTrap aria-label="Settings" style="width: 520px;">
+  <div
+    class="modal-card settings-modal-card"
+    role="dialog"
+    aria-modal="true"
+    use:focusTrap
+    aria-label="Settings"
+    style="width: 520px;"
+  >
     <div class="modal-input-wrap modal-title">
       <Icon name="settings" size={15} /> Settings
     </div>
