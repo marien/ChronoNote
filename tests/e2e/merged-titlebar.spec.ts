@@ -141,10 +141,18 @@ test.describe("tab strip follows the active tab on resize (§merged-titlebar fol
 
     // Confirm the premise: at WIDE, every tab fits with room to spare, so
     // the active tab starts out visible with no scrolling needed.
-    const barWide = (await page.locator("#tab-bar").boundingBox())!;
-    const tabWide = (await tabRect(page, "2026-09-04"))!;
-    expect(tabWide.x).toBeGreaterThanOrEqual(barWide.x);
-    expect(tabWide.x + tabWide.width).toBeLessThanOrEqual(barWide.x + barWide.width + 1);
+    // Polled (#57), not a one-shot read: `settleLayout` can take a few
+    // more frames to converge than it used to now that it correctly
+    // retries the buttons-collapse decision with labels forced off
+    // before giving up — real, and worth the extra frames, but slower
+    // than a one-shot `boundingBox()` right after `setViewportSize`.
+    await expect
+      .poll(async () => {
+        const bar = (await page.locator("#tab-bar").boundingBox())!;
+        const t = (await tabRect(page, "2026-09-04"))!;
+        return t.x >= bar.x - 1 && t.x + t.width <= bar.x + bar.width + 1;
+      })
+      .toBe(true);
 
     // Simulate "restore from maximized" — a resize with `activeTabId`
     // never changing. The reported bug: nothing re-scrolled just because
@@ -164,6 +172,17 @@ test.describe("tab strip follows the active tab on resize (§merged-titlebar fol
     await page.setViewportSize({ width: NARROW, height: 700 });
     await page.reload();
     await expect(page.locator("#top-bar")).toBeVisible();
+
+    // Polled (#57, same reasoning as the test above): wait for the active
+    // tab to actually be in view before reading positions — `settleLayout`
+    // may still be converging right after a reload.
+    await expect
+      .poll(async () => {
+        const bar = (await page.locator("#tab-bar").boundingBox())!;
+        const t = (await tabRect(page, "2026-09-01"))!;
+        return t.x >= bar.x - 1 && t.x + t.width <= bar.x + bar.width + 1;
+      })
+      .toBe(true);
 
     const bar = (await page.locator("#tab-bar").boundingBox())!;
     const active = (await tabRect(page, "2026-09-01"))!;

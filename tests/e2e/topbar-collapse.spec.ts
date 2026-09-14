@@ -7,7 +7,7 @@
  * popover, anchored to the "More actions" button the same way
  * `DatePickerModal` anchors to its own trigger. */
 import { test, expect } from "@playwright/test";
-import { seedApp, modalCard, MODAL_LABELS } from "./helpers";
+import { seedApp, modalCard, MODAL_LABELS, typeInEditor } from "./helpers";
 
 test.describe("top bar: collapsing secondary buttons on a narrow window (#56)", () => {
   test("wide window: every action button is visible individually, no More button", async ({ page }) => {
@@ -94,5 +94,93 @@ test.describe("top bar: collapsing secondary buttons on a narrow window (#56)", 
     await expect(page.getByTitle("More actions")).toHaveCount(0);
     await expect(page.getByTitle(/^Actions /)).toBeVisible();
     await expect(page.getByTitle(/^About ChronoNote /)).toBeVisible();
+  });
+});
+
+/** #57: two bugs reported together, both in `settleLayout`'s tiering.
+ *
+ * (1) Labels used to require the window be maximized/fullscreen
+ * (`chromeExpanded`) on top of having room — a restored window, however
+ * wide, could never show them at all. Purely width-driven now, matching
+ * `docs/spec.md`'s description (which never mentioned a maximize
+ * requirement) — a sufficiently wide *restored* window shows labels.
+ *
+ * (2) Typing visibly flickered the labeled/collapsed state on and off.
+ * Root cause: every keystroke calls `updateActiveTabContent()`, which is
+ * a `tabs.set()` on every content change — not just a tab being added,
+ * removed, or renamed — and `TopBar.svelte` re-ran its *entire* layout
+ * decision on every `tabs` update. Re-running unconditionally tries the
+ * next-better tier and measures again even when nothing about available
+ * width could have changed, so a burst of keystrokes flashed labels/
+ * buttons on and off for no reason. Fixed by reducing a tab list to only
+ * the fields that can actually affect rendered width
+ * (`layoutSignature`) before deciding whether to re-settle at all — a
+ * keystroke changes a tab's `content`, never its identity/filename/
+ * scratchpad-ness, so the signature is unchanged and `settleLayout()` is
+ * never even called. Verified below via a `MutationObserver` on
+ * `#top-bar`'s subtree: zero DOM mutations there while typing, in both
+ * the icon-only/collapsed tier and the labeled tier. */
+test.describe("top bar: label/collapse state doesn't depend on window-maximized state, and doesn't flicker while typing (#57)", () => {
+  test("a wide-enough restored window shows action-button labels, purely from available width", async ({ page }) => {
+    await seedApp(page, { seed: "busy-week" });
+    await page.setViewportSize({ width: 1600, height: 720 });
+
+    await expect(page.locator(".icon-label")).not.toHaveCount(0);
+    await expect(page.getByTitle(/^Actions /)).toContainText("Actions");
+    await expect(page.getByTitle("More actions")).toHaveCount(0);
+  });
+
+  // `settleLayout` converges over several `requestAnimationFrame` waits
+  // (labels, then buttons, each potentially retried) — an assertion like
+  // `toBeVisible()` can pass on an *intermediate* frame of that
+  // convergence, not its final settled state. Waiting out a generous
+  // number of real frames (not a wall-clock timeout, which would be
+  // flaky under load) before attaching the mutation observer ensures
+  // it only ever sees mutations caused by the *typing* that follows, not
+  // the tail of the initial settle still resolving.
+  async function waitForFrames(page: import("@playwright/test").Page, n = 15): Promise<void> {
+    await page.evaluate(
+      (count) =>
+        new Promise<void>((resolve) => {
+          let remaining = count;
+          const step = () => (--remaining <= 0 ? resolve() : requestAnimationFrame(step));
+          requestAnimationFrame(step);
+        }),
+      n,
+    );
+  }
+
+  async function countTopBarMutationsWhileTyping(page: import("@playwright/test").Page): Promise<number> {
+    await waitForFrames(page);
+    await page.evaluate(() => {
+      const w = window as unknown as { __topBarMutations: number; __topBarObserver: MutationObserver };
+      w.__topBarMutations = 0;
+      w.__topBarObserver = new MutationObserver((muts) => {
+        w.__topBarMutations += muts.length;
+      });
+      w.__topBarObserver.observe(document.getElementById("top-bar")!, { childList: true, subtree: true });
+    });
+    await typeInEditor(page, "the quick brown fox jumps over the lazy dog");
+    return page.evaluate(() => {
+      const w = window as unknown as { __topBarMutations: number; __topBarObserver: MutationObserver };
+      w.__topBarObserver.disconnect();
+      return w.__topBarMutations;
+    });
+  }
+
+  test("typing doesn't touch the top bar at all, in the icon-only/collapsed tier", async ({ page }) => {
+    await seedApp(page, { seed: "busy-week" });
+    await page.setViewportSize({ width: 480, height: 720 });
+    await expect(page.getByTitle("More actions")).toBeVisible();
+
+    expect(await countTopBarMutationsWhileTyping(page)).toBe(0);
+  });
+
+  test("typing doesn't touch the top bar at all, in the labeled tier", async ({ page }) => {
+    await seedApp(page, { seed: "busy-week" });
+    await page.setViewportSize({ width: 1600, height: 720 });
+    await expect(page.locator(".icon-label")).not.toHaveCount(0);
+
+    expect(await countTopBarMutationsWhileTyping(page)).toBe(0);
   });
 });

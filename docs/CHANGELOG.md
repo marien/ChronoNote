@@ -6,7 +6,8 @@ kept for the rationale behind each one — not just *what* changed but
 was still being gathered and confirmed before implementation; renamed once
 everything below was applied, since nothing here is "pending" anymore.
 
-**Status: all sections through §155 implemented and released.** §153 is a
+**Status: all sections through §156 implemented; §1–155 released, §156
+committed, not yet released.** §153 is a
 website-only Guide-page fix (found live right after §150–§152 shipped
 as v0.7.12) — no version bump, nothing in the shipped app changed. §154
 merges the OS title bar into the top bar (Notepad-style: icon, tabs,
@@ -6573,3 +6574,89 @@ only showing up in manual testing.
 
 `svelte-check` 215/0, Vitest 303/303 (unchanged — pure CSS/layout fix),
 Playwright 190/190 (+1), `cargo test` 47/47 (unchanged — pure frontend).
+
+## 156. Top-bar label/collapse tiering refactored (#57)
+
+**Status: fixed, committed, not yet released.** Marien filed #57: "Whenever
+I type something in the main input, the top bar buttons expand and
+collapse very quickly. When making the windows smaller and larger, same
+thing happens. When the window is maximized either all buttons with
+labels are shown, or only the collapsed buttons are shown, and never all
+buttons without labels. When the window is restored, either all buttons
+without labels are shown, or only the collapsed buttons are shown, and
+never all buttons with labels. ... This functionality needs to be
+refactored and fully tested out for the next release."
+
+Two independent bugs in `TopBar.svelte`'s `settleLayout`, both now fixed,
+plus one design mismatch corrected per Marien's explicit choice
+(AskUserQuestion) once it surfaced during investigation:
+
+**Bug 1 — typing flickered the top bar.** Every keystroke calls
+`updateActiveTabContent()`, which is a `tabs.set()` on every content
+change, not just a tab being added/removed/renamed. `TopBar.svelte`
+subscribed to `tabs` directly to decide when to re-run its layout
+settling, so every keystroke re-ran the *entire* decision — and
+`settleLayout`'s "try a better tier" branches unconditionally flip state
+and measure again even when nothing about available width could
+possibly have changed (that's what "decide from current state" means:
+try harder, then revert if it doesn't fit). The result: a burst of
+keystrokes visibly flashed labels/buttons on and off, over and over, for
+no reason. Fixed with `layoutSignature()` — reduces a tab list to only
+the fields that can actually affect the tab bar's rendered width
+(id/isScratchpad/filename, and the scratchpad "unsaved" dot's on/off
+state) before deciding whether to call `settleLayout()` at all. A
+keystroke changes a tab's `content`, never any of those, so the
+signature comes out identical and `settleLayout()` is never invoked.
+
+**Design mismatch — labels were maximize-gated.** Action-button labels
+required the window be maximized/fullscreen (`chromeExpanded`) on top of
+having room — a restored window, however wide, could never show them at
+all. This was §26's original design, predating the merged title bar; by
+the time `docs/spec.md` was rewritten to describe the tiering as purely
+width-driven, the code never caught up. Marien's bug report ("when
+restored... never all buttons with labels") matches this exactly.
+Presented as a choice (AskUserQuestion): keep the maximize gate and only
+fix the flicker, or make labels purely width-driven to match spec.md.
+Marien chose the latter. The `chromeExpanded` check in `settleLayout` is
+gone entirely — a maximize/restore still re-triggers layout correctly
+via the existing `ResizeObserver` (maximizing genuinely changes
+`#top-bar`'s width), so nothing was lost by dropping the explicit
+`chromeExpanded.subscribe`.
+
+**Bug 2 — buttons could stay collapsed for no reason, found while fixing
+the above.** Once labels stopped being maximize-gated, a new, previously
+unreachable interaction surfaced: widening a window from a narrow,
+collapsed state could leave the secondary action buttons collapsed into
+"More" even at a width where they'd fit fine *without* labels — because
+the buttons-collapse fit-check ran immediately after the labels decision
+committed, measuring against a DOM where labels had *just* turned on
+moments earlier in the same pass, understating how much room the buttons
+actually had. The documented priority order says labels are the first
+thing to drop, buttons collapsing is the last resort — but the code
+didn't actually enforce that ordering when both decisions changed within
+one settle pass. Fixed by having the buttons-collapse check retry once
+with labels forced off before concluding a collapse is truly necessary —
+skipped entirely when labels are already off, so this adds no extra
+measurement or flicker risk to the common case. Found via a real,
+reproducible Playwright failure (an existing #56 test — "widening the
+window back un-collapses the buttons" — started failing once labels
+were reachable at that width), not by inspection alone; confirmed against
+the *unmodified* code first (same result) to rule out a pre-existing
+flaw versus something the fix introduced, before concluding the ordering
+bug was newly *reachable*, not newly *created*.
+
+Verified: a Playwright `MutationObserver` on `#top-bar`'s subtree records
+zero mutations while typing a full sentence, in both the icon-only/
+collapsed tier and the (now-reachable) labeled tier — confirming
+`settleLayout` genuinely never runs, not just that its result happens to
+look stable. A companion test confirms a wide-enough restored window now
+shows labels at all. Two pre-existing tests in `merged-titlebar.spec.ts`
+needed hardening from one-shot `boundingBox()` reads to `expect.poll()`
+— `settleLayout` now legitimately takes a couple more frames to converge
+in the specific case Bug 2's retry covers, and those tests' immediate
+reads occasionally caught an intermediate frame rather than the (still
+correct) final settled state.
+
+`svelte-check` 215/0, Vitest 303/303 (unchanged — pure frontend
+interaction logic), Playwright 193/193 (+3), `cargo test` 47/47
+(unchanged — pure frontend).

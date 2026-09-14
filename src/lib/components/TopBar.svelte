@@ -87,14 +87,26 @@
     return new Promise((resolve) => requestAnimationFrame(() => resolve()));
   }
 
-  /** Priority order when space is tight: (1) full screen + everything fits
-   * → show action-button labels; (2) doesn't fit with labels shown → drop
-   * back to icon-only first, reclaiming the space the labels used; (3)
-   * still doesn't fit icon-only → collapse the secondary action buttons
-   * into "More" (#56), reclaiming *their* space for the tab strip; (4)
-   * still doesn't fit even then (many, many tabs) → that's when the
-   * scroll arrows are for. Re-run whenever the window resizes or the tab
-   * list changes.
+  /** Priority order when space is tight: (1) everything fits → show
+   * action-button labels; (2) doesn't fit with labels shown → drop back
+   * to icon-only first, reclaiming the space the labels used; (3) still
+   * doesn't fit icon-only → collapse the secondary action buttons into
+   * "More" (#56), reclaiming *their* space for the tab strip; (4) still
+   * doesn't fit even then (many, many tabs) → that's when the scroll
+   * arrows are for. Re-run whenever the window resizes or the tab list
+   * changes (in a way that can actually affect this — see
+   * `layoutSignature` below).
+   *
+   * #57: labels used to also require the window be maximized/fullscreen
+   * (`chromeExpanded`) — a leftover from §26's original spec, before
+   * `docs/spec.md` was rewritten to describe this as purely width-driven.
+   * A normal restored window could never show labels at all, however
+   * wide, which read as a bug once the merged title bar (§154) made
+   * window-state changes something users trigger constantly. Dropped
+   * entirely — a resize from maximizing/restoring still re-triggers this
+   * via the `ResizeObserver` below (maximizing genuinely changes
+   * `#top-bar`'s width), so nothing here needs `chromeExpanded` at all
+   * any more; it's still read elsewhere for the maximize/restore icon.
    *
    * §56 fixed one cause of the labels flickering on/off forever (Svelte
    * re-rendering on every assignment even when reassigning the exact same
@@ -152,24 +164,22 @@
     }
     settling = true;
     try {
-      // `tabs.subscribe`/`chromeExpanded.subscribe` fire synchronously on
-      // `.set()` — Svelte's own DOM patch for whatever just changed (a new
-      // tab's `{#each}` entry, say) lands on a separate scheduled pass,
-      // not necessarily before this callback runs. Measuring immediately
-      // here read stale layout (the *previous* tab count's width) often
-      // enough to matter: nothing else re-triggers a settle afterward
-      // (the `ResizeObserver` below deliberately watches `#top-bar`, not
-      // `#tab-bar`, so a tab being added — which doesn't change `#top-bar`'s
-      // own width — never fires it), so a stale first read stayed stale
-      // until the next real window resize. One frame is enough for
-      // Svelte's patch to land, the same wait already used everywhere
-      // else in this function for the same "let the DOM catch up" reason.
+      // `tabs.subscribe` fires synchronously on `.set()` — Svelte's own DOM
+      // patch for whatever just changed (a new tab's `{#each}` entry, say)
+      // lands on a separate scheduled pass, not necessarily before this
+      // callback runs. Measuring immediately here read stale layout (the
+      // *previous* tab count's width) often enough to matter: nothing else
+      // re-triggers a settle afterward (the `ResizeObserver` below
+      // deliberately watches `#top-bar`, not `#tab-bar`, so a tab being
+      // added — which doesn't change `#top-bar`'s own width — never fires
+      // it), so a stale first read stayed stale until the next real window
+      // resize. One frame is enough for Svelte's patch to land, the same
+      // wait already used everywhere else in this function for the same
+      // "let the DOM catch up" reason.
       await nextFrame();
       do {
         settlePending = false;
-        if (!$chromeExpanded) {
-          if (showActionLabels) showActionLabels = false;
-        } else if (showActionLabels) {
+        if (showActionLabels) {
           // Labels are currently showing — only hide them if clearly too
           // tight, not just a hair over the line. Overflow (unlike "does
           // it comfortably fit") is exactly what `scrollWidth` answers
@@ -196,10 +206,30 @@
         // changes `tabBarEl`'s own width the same way toggling labels
         // does, so this has to run *after* the labels decision above has
         // settled, not before.
+        //
+        // #57: labels must never be the reason buttons end up collapsed
+        // — the priority order above says labels are dropped *first*,
+        // buttons collapse only as a last resort. But by the time this
+        // runs, the labels decision above may have *just* turned labels
+        // on this same pass (they were off going in, e.g. a window
+        // widened from a narrow, collapsed state) — measuring "does it
+        // fit" here then means "does it fit with labels," understating
+        // how much room buttons actually have and collapsing them
+        // needlessly. If a fit check below fails while labels are on,
+        // retry it once with labels forced off before concluding buttons
+        // really do need to collapse — skipped entirely when labels are
+        // already off (the common case), so this adds no extra
+        // measurement/flicker there.
         if (!buttonsCollapsed) {
           if (tabBarEl.scrollWidth > tabBarEl.clientWidth + FIT_MARGIN) {
-            buttonsCollapsed = true;
-            await nextFrame();
+            if (showActionLabels) {
+              showActionLabels = false;
+              await nextFrame();
+            }
+            if (tabBarEl.scrollWidth > tabBarEl.clientWidth + FIT_MARGIN) {
+              buttonsCollapsed = true;
+              await nextFrame();
+            }
           }
         } else {
           // Collapsed currently — only bring the buttons back if there's
@@ -210,8 +240,14 @@
           buttonsCollapsed = false;
           await nextFrame();
           if (tabsContentWidth() > tabBarEl.clientWidth - FIT_MARGIN) {
-            buttonsCollapsed = true;
-            await nextFrame();
+            if (showActionLabels) {
+              showActionLabels = false;
+              await nextFrame();
+            }
+            if (tabsContentWidth() > tabBarEl.clientWidth - FIT_MARGIN) {
+              buttonsCollapsed = true;
+              await nextFrame();
+            }
           }
         }
 
@@ -330,10 +366,34 @@
   // plain callback-based pub/sub, predating and unrelated to the signals
   // engine — so a write inside a subscription callback (or inside
   // something it awaits) has no reactive statement to ever be attributed
-  // back to. Using `tabs.subscribe`/`chromeExpanded.subscribe`/
-  // `activeTabId.subscribe` directly here, instead of `$:` blocks that
-  // call these same functions, removes the retrigger channel entirely
-  // rather than papering over wherever it was last observed.
+  // back to. Using `tabs.subscribe`/`activeTabId.subscribe` directly here,
+  // instead of `$:` blocks that call these same functions, removes the
+  // retrigger channel entirely rather than papering over wherever it was
+  // last observed.
+  //
+  // #57: `tabs.subscribe` on its own over-fires, though — every keystroke
+  // calls `updateActiveTabContent()`, which is a `tabs.set()` on every
+  // single content change, not just a tab being added/removed/renamed.
+  // `settleLayout()`'s "try a better tier" branches unconditionally flip
+  // state and measure again even when nothing about the available width
+  // could possibly have changed, so a plain `tabs.subscribe(() =>
+  // settleLayout())` visibly flashed labels/buttons on and off on every
+  // keystroke while typing — the exact bug reported. `layoutSignature`
+  // below reduces a tab list to just the fields that can actually change
+  // rendered width (identity, scratchpad-ness, filename, and the
+  // scratchpad "unsaved" dot's on/off state) — a keystroke changes a
+  // tab's `content` but never any of those, so the signature comes out
+  // identical and `settleLayout()` is never even called.
+  function layoutSignature(list: NoteTab[]): string {
+    return list
+      .map(
+        (t) =>
+          `${t.id}:${t.isScratchpad ? "s" : "d"}:${t.filename}:${t.isScratchpad && t.content.trim() !== "" ? 1 : 0}`,
+      )
+      .join("|");
+  }
+  let lastTabsLayoutSignature: string | null = null;
+
   onMount(() => {
     // Observe the outer row, not `tabBarEl` itself: `settleLayout()` (which
     // this observer calls) toggles the action-button labels, the scroll
@@ -375,16 +435,20 @@
 
     // `.subscribe()` fires immediately with the current value, so this
     // also covers the very first settle/scroll — no separate initial call
-    // needed. `tabs` covers `displayTabs` (derived from it) too; nothing
-    // here needs its own subscription just for that.
-    const unsubTabs = tabs.subscribe(() => settleLayout());
-    const unsubChrome = chromeExpanded.subscribe(() => settleLayout());
+    // needed (the initial `null` sentinel never equals a real signature,
+    // even an empty tab list's `""`). `tabs` covers `displayTabs` (derived
+    // from it) too; nothing here needs its own subscription just for that.
+    const unsubTabs = tabs.subscribe((list) => {
+      const sig = layoutSignature(list);
+      if (sig === lastTabsLayoutSignature) return;
+      lastTabsLayoutSignature = sig;
+      settleLayout();
+    });
     const unsubActive = activeTabId.subscribe(() => scrollActiveTabIntoView());
 
     return () => {
       resizeObserver?.disconnect();
       unsubTabs();
-      unsubChrome();
       unsubActive();
     };
   });
