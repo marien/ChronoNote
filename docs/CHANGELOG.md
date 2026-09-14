@@ -6696,3 +6696,22 @@ narrow width where the old top-bar button would have collapsed.
 
 `svelte-check` 215/0, Vitest 303/303 (unchanged — pure frontend), Playwright
 195/195 (+2), `cargo test` 47/47 (unchanged — pure frontend).
+
+**Follow-up (same day): the icon's own styling didn't match its new
+neighbor.** Marien, after testing: "match the design of the about icon
+with '?' icon, which has a button-like outline. The about icon looks
+slightly miscentered as well looking at the '?' icon and the version
+number." `.status-about-btn` had borrowed `.status-update-btn`'s
+borderless treatment (its nearer sibling in the source, but the wrong
+visual reference — that button reads as a quiet inline glyph, not a
+button). Restyled to match `.status-help`'s actual box instead: the
+same 16px square, 1px border, 3px radius, and hover fill. Fixed the
+centering as a side effect, not a separate tweak — `.status-update-btn`
+had no fixed box at all, so the icon's own rendered size was the only
+thing holding its position; matching `.status-help`'s square (and
+`justify-content: center` alongside its existing `align-items: center`)
+centers the icon within a real box the same way `?` sits in its own.
+Verified via computed geometry, not by eye: the About and `?` boxes
+came out pixel-identical (16×16, matching top/bottom edges), their
+shared vertical center exactly matches the version text's own center,
+and the icon sits with an equal 2px margin on all four sides of its box.
