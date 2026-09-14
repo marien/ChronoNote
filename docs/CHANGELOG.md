@@ -6,8 +6,7 @@ kept for the rationale behind each one — not just *what* changed but
 was still being gathered and confirmed before implementation; renamed once
 everything below was applied, since nothing here is "pending" anymore.
 
-**Status: all sections through §159 implemented; §1–155 released, §156–§159
-committed, not yet released.** §153 is a
+**Status: all sections through §159 implemented and released.** §153 is a
 website-only Guide-page fix (found live right after §150–§152 shipped
 as v0.7.12) — no version bump, nothing in the shipped app changed. §154
 merges the OS title bar into the top bar (Notepad-style: icon, tabs,
@@ -6577,7 +6576,7 @@ Playwright 190/190 (+1), `cargo test` 47/47 (unchanged — pure frontend).
 
 ## 156. Top-bar label/collapse tiering refactored (#57)
 
-**Status: fixed, committed, not yet released.** Marien filed #57: "Whenever
+**Status: released as v0.8.2.** Marien filed #57: "Whenever
 I type something in the main input, the top bar buttons expand and
 collapse very quickly. When making the windows smaller and larger, same
 thing happens. When the window is maximized either all buttons with
@@ -6663,7 +6662,7 @@ interaction logic), Playwright 193/193 (+3), `cargo test` 47/47
 
 ## 157. About moved from the top bar to the status bar (#58)
 
-**Status: fixed, committed, not yet released.** Marien filed #58: "Remove
+**Status: released as v0.8.2.** Marien filed #58: "Remove
 the about button from the top bar, and add it's icon to the bottom bar
 between the version number and the Shortcuts & symbols ? button."
 
@@ -6718,7 +6717,7 @@ and the icon sits with an equal 2px margin on all four sides of its box.
 
 ## 158. Section History's action list fills its column height (#59)
 
-**Status: fixed, committed, not yet released.** Marien filed #59: "The
+**Status: released as v0.8.2.** Marien filed #59: "The
 list of actions in the left column sticks to a fixed size, while the
 right column is growing larger. This makes it look like the list of
 actions is incomplete. Can you make it fill the space it can have?"
@@ -6764,7 +6763,7 @@ measure the same height, and the list itself exceeds the old 380px cap.
 
 ## 159. Settings modal can grow, and its scrollbar matches the rest of the app (#60)
 
-**Status: fixed, committed, not yet released.** Marien filed #60: "Allow
+**Status: released as v0.8.2.** Marien filed #60: "Allow
 the Settings Modal to be bigger if there is enough size. Style the
 scrollbar the same as the main content window."
 
