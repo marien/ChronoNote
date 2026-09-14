@@ -1117,19 +1117,27 @@ body {
 .status-update-btn:hover {
   color: var(--text);
 }
-/* #58: About moved here from the top bar — same quiet, unlabelled icon
-   treatment as `.status-update-btn` right above it. */
+/* #58: About moved here from the top bar. Matches `.status-help`'s
+   boxed/outlined treatment (same 16px square, border, radius, hover
+   fill) right next to it, rather than `.status-update-btn`'s borderless
+   icon above — the two sit side by side reading as one pair of icon
+   buttons, not two different button styles. */
 .status-about-btn {
   background: transparent;
-  border: none;
+  border: 1px solid var(--border);
   color: var(--status-fg);
-  display: inline-flex;
-  align-items: center;
+  border-radius: 3px;
+  width: 16px;
+  height: 16px;
   padding: 0;
   cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 .status-about-btn:hover {
-  color: var(--text);
+  background: var(--surface-raised);
+  border-color: var(--muted);
 }
 /* §update-check follow-up: the version number opens About too, same as
    the update icon next to it — a plain-text look (no border/background)
