@@ -1,11 +1,13 @@
 /** #56: on a narrow window, the top bar's secondary action buttons
- * (Actions/History/Search/Import/Promote/Settings/About) collapse into a
+ * (Actions/History/Search/Import/Promote/Settings) collapse into a
  * single "More actions" button — `TopBar.svelte`'s `settleLayout`,
  * extended one tier past its existing label-collapse logic — freeing that
  * space back to the tab strip. New Scratchpad and Open Date Note stay
  * pinned regardless of width. `MoreActionsModal` is the resulting
  * popover, anchored to the "More actions" button the same way
- * `DatePickerModal` anchors to its own trigger. */
+ * `DatePickerModal` anchors to its own trigger. About moved to the status
+ * bar (#58) and is no longer part of this top-bar collapse group at
+ * all — see `status-bar.spec.ts` for its coverage. */
 import { test, expect } from "@playwright/test";
 import { seedApp, modalCard, MODAL_LABELS, typeInEditor } from "./helpers";
 
@@ -14,7 +16,6 @@ test.describe("top bar: collapsing secondary buttons on a narrow window (#56)", 
     await seedApp(page, { seed: "busy-week" });
     await expect(page.getByTitle(/^Actions /)).toBeVisible();
     await expect(page.getByTitle(/^Settings /)).toBeVisible();
-    await expect(page.getByTitle(/^About ChronoNote /)).toBeVisible();
     await expect(page.getByTitle("More actions")).toHaveCount(0);
   });
 
@@ -35,7 +36,6 @@ test.describe("top bar: collapsing secondary buttons on a narrow window (#56)", 
     await expect(page.getByTitle(/^Cross-Tab Search /)).toHaveCount(0);
     await expect(page.getByTitle(/^Import Sections /)).toHaveCount(0);
     await expect(page.getByTitle(/^Settings /)).toHaveCount(0);
-    await expect(page.getByTitle(/^About ChronoNote /)).toHaveCount(0);
   });
 
   test("More actions lists every collapsed action with its shortcut, and running one closes the popover", async ({
@@ -52,7 +52,7 @@ test.describe("top bar: collapsing secondary buttons on a narrow window (#56)", 
     await expect(menu.getByRole("menuitem", { name: /Cross-tab search.*Ctrl\+Shift\+F/s })).toBeVisible();
     await expect(menu.getByRole("menuitem", { name: /Import sections.*Ctrl\+Shift\+I/s })).toBeVisible();
     await expect(menu.getByRole("menuitem", { name: /^Settings/ })).toBeVisible();
-    await expect(menu.getByRole("menuitem", { name: /About ChronoNote/ })).toBeVisible();
+    await expect(menu.getByRole("menuitem", { name: /About ChronoNote/ })).toHaveCount(0);
 
     await menu.getByRole("menuitem", { name: /^Settings/ }).click();
     await expect(modalCard(page, MODAL_LABELS.settings)).toBeVisible();
@@ -93,7 +93,7 @@ test.describe("top bar: collapsing secondary buttons on a narrow window (#56)", 
     await page.setViewportSize({ width: 1280, height: 800 });
     await expect(page.getByTitle("More actions")).toHaveCount(0);
     await expect(page.getByTitle(/^Actions /)).toBeVisible();
-    await expect(page.getByTitle(/^About ChronoNote /)).toBeVisible();
+    await expect(page.getByTitle(/^Settings /)).toBeVisible();
   });
 });
 

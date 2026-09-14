@@ -15,7 +15,7 @@
   } from "../controller";
   import * as controller from "../controller";
   import Icon from "../icons/Icon.svelte";
-  import { formatCombo, shortcutById } from "../shortcuts";
+  import { formatCombo, formatShortcut, shortcutById } from "../shortcuts";
 
   // #37/#38: how many lines the selection covers (not a character count).
   $: selectionLabel = $statusSelection
@@ -102,6 +102,17 @@
         v{$appVersion}
       </button>
     {/if}
+    <!-- #58: moved from the top bar — always reachable here regardless of
+         window width, instead of competing for room with the tab strip
+         and folding into "More" once things got tight. -->
+    <button
+      type="button"
+      class="status-about-btn"
+      title="About ChronoNote ({formatShortcut('openAbout')})"
+      on:click={controller.openAbout}
+    >
+      <Icon name="about" size={12} />
+    </button>
     <button
       type="button"
       class="status-help"

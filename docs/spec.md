@@ -132,7 +132,7 @@ controls, no drag regions.
 
 The top bar hosts the tab strip and a row of action buttons (New
 Scratchpad, Open Date Note, Actions, Section History, Cross-Tab Search,
-Import Sections, Promote-scratchpad when applicable, Settings, About) as
+Import Sections, Promote-scratchpad when applicable, Settings) as
 fixed-width siblings of the scrollable tab strip, not inside it. Tabs
 stay ordered chronologically (earliest to latest, left to right), with
 scratchpads always after every dated tab; the strip auto-scrolls to keep
@@ -152,7 +152,7 @@ current state, require clearing a margin before flipping back):
    keyboard.
 4. If icon-only buttons still leave the tab strip overflowing, every
    secondary action button (Actions/History/Search/Import/Promote/
-   Settings/About) collapses into one "More actions" button, opening an
+   Settings) collapses into one "More actions" button, opening an
    anchored, non-modal popover listing them with their shortcuts. New
    Scratchpad and Open Date Note are never collapsed — they stay pinned
    and visible at every tier.
@@ -170,8 +170,10 @@ confirmations, "nothing to import," etc.), empty otherwise; and a right
 zone showing Open / Closed / Forwarded action counts for the active
 note (`x`, won't-do, folds into Closed alongside `v`, done), the
 currently-running version number (clicking it opens About), an
-update-available icon when relevant (also opens About), and the `?`
-Shortcuts & Symbols trigger.
+update-available icon when relevant (also opens About), an About icon
+(moved here from the top bar, #58 — always reachable regardless of
+window width instead of competing with the tab strip for room), and the
+`?` Shortcuts & Symbols trigger.
 
 ### 3.4 Settings
 
@@ -326,12 +328,13 @@ reachable from the top bar, a shortcut, or the command palette:
   scroll that column rather than the editor behind it, while every
   global shortcut (including `Escape`) keeps working regardless of
   where focus sits.
-- **About** (the info icon, right of Settings) — the currently-running
-  version (in the title row, read live), an Updates section (where an
-  available update is reviewed and installed, §7.5), a Links section
-  (the marketing website and the GitHub repo, each labeled and opened in
-  the OS's default browser), and a Learn More section pointing at the
-  Shortcuts drawer and command palette.
+- **About** (its icon lives in the status bar, §3.3, not the top bar —
+  #58 moved it there so it stays reachable regardless of window width) —
+  the currently-running version (in the title row, read live), an
+  Updates section (where an available update is reviewed and installed,
+  §7.5), a Links section (the marketing website and the GitHub repo,
+  each labeled and opened in the OS's default browser), and a Learn More
+  section pointing at the Shortcuts drawer and command palette.
 
 Also reachable inline in the editor rather than as a drawer: the
 in-document **Find bar** (`Ctrl/Cmd+F`), a floating, non-modal bar that

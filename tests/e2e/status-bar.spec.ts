@@ -73,6 +73,30 @@ test.describe("status bar — three zones (§100/§110)", () => {
     await expect(modalCard(page, MODAL_LABELS.about)).toBeVisible();
   });
 
+  test("#58: an About icon sits between the version number and the shortcuts trigger, and opens About", async ({
+    page,
+  }) => {
+    await seedApp(page, { seed: { notes: {}, appVersion: "9.9.9", updateCheck: "none" } });
+
+    const order = await page.locator(".status-right").evaluate((el) =>
+      [...el.querySelectorAll("#stat-version, .status-about-btn, .status-help")].map((n) => n.id || n.className),
+    );
+    expect(order).toEqual(["stat-version", "status-about-btn", "status-help"]);
+
+    await page.locator(".status-about-btn").click();
+    await expect(modalCard(page, MODAL_LABELS.about)).toBeVisible();
+  });
+
+  test("#58: the status-bar About icon stays reachable even on a narrow window, unlike the old top-bar button", async ({
+    page,
+  }) => {
+    await seedApp(page, { seed: "busy-week" });
+    await page.setViewportSize({ width: 480, height: 720 });
+
+    await page.locator(".status-about-btn").click();
+    await expect(modalCard(page, MODAL_LABELS.about)).toBeVisible();
+  });
+
   test("§update-check follow-up: clicking the 'update available' status message opens About; other messages stay plain text", async ({
     page,
   }) => {

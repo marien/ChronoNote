@@ -81,8 +81,4 @@
     <Icon name="settings" size={14} /><span>Settings</span>
     <kbd>{formatShortcut("openSettings")}</kbd>
   </button>
-  <button type="button" class="more-actions-item" role="menuitem" on:click={controller.openAbout}>
-    <Icon name="about" size={14} /><span>About ChronoNote</span>
-    <kbd>{formatShortcut("openAbout")}</kbd>
-  </button>
 </div>

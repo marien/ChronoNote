@@ -51,9 +51,11 @@
   let showActionLabels = false;
   // #56: once even icon-only action buttons leave the tab strip too
   // little room, collapse the secondary ones (Actions/History/Search/
-  // Import/Promote/Settings/About) into a single "More" button —
+  // Import/Promote/Settings) into a single "More" button —
   // `MoreActionsModal`. New Scratchpad and Open Date Note stay pinned
-  // regardless; see `settleLayout` for how this is decided.
+  // regardless; see `settleLayout` for how this is decided. About moved
+  // to the status bar (#58) — it's always reachable there regardless of
+  // window width, so it no longer needs a place in this collapse group.
   let buttonsCollapsed = false;
   // §52: whether the tab bar is overflowing at all — drives whether the
   // scroll arrows show. Deliberately *not* derived from scroll position
@@ -598,9 +600,6 @@
     {/if}
     <button class="icon-btn" title="Settings ({formatShortcut('openSettings')})" on:click={controller.openSettings}>
       <Icon name="settings" />{#if showActionLabels}<span class="icon-label">Settings</span>{/if}
-    </button>
-    <button class="icon-btn" title="About ChronoNote ({formatShortcut('openAbout')})" on:click={controller.openAbout}>
-      <Icon name="about" />{#if showActionLabels}<span class="icon-label">About</span>{/if}
     </button>
   {/if}
   {#if isMergedTitlebar}

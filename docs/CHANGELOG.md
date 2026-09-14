@@ -6,7 +6,7 @@ kept for the rationale behind each one — not just *what* changed but
 was still being gathered and confirmed before implementation; renamed once
 everything below was applied, since nothing here is "pending" anymore.
 
-**Status: all sections through §156 implemented; §1–155 released, §156
+**Status: all sections through §157 implemented; §1–155 released, §156–§157
 committed, not yet released.** §153 is a
 website-only Guide-page fix (found live right after §150–§152 shipped
 as v0.7.12) — no version bump, nothing in the shipped app changed. §154
@@ -6660,3 +6660,39 @@ correct) final settled state.
 `svelte-check` 215/0, Vitest 303/303 (unchanged — pure frontend
 interaction logic), Playwright 193/193 (+3), `cargo test` 47/47
 (unchanged — pure frontend).
+
+## 157. About moved from the top bar to the status bar (#58)
+
+**Status: fixed, committed, not yet released.** Marien filed #58: "Remove
+the about button from the top bar, and add it's icon to the bottom bar
+between the version number and the Shortcuts & symbols ? button."
+
+`TopBar.svelte`'s individual About button (and its entry in the
+collapsed "More actions" popover, `MoreActionsModal.svelte`) removed
+outright — About no longer competes with the tab strip for room or folds
+into "More" on a narrow window, since it's leaving the collapse group
+entirely, not just moving within it. A new `.status-about-btn` icon
+button added to `StatusBar.svelte`'s right zone, between `#stat-version`
+and the `?` Shortcuts & Symbols trigger, reusing the same quiet
+unlabelled-icon treatment `.status-update-btn` (the update-available
+icon right next to it) already established. The status bar's zones don't
+collapse the way the top bar's action row does, so About is now reachable
+at any window width — the actual point of the move, not just a cosmetic
+relocation.
+
+`docs/spec.md` updated in three places: the top bar's action-button list
+(§3.2, both the full list and the "collapses into More" tier), and a new
+mention alongside the version number and update icon in the status bar's
+right zone (§3.3); §5's drawer list now notes About's icon lives in the
+status bar, not the top bar.
+
+New/updated Playwright coverage: `topbar-collapse.spec.ts`'s existing
+#56 tests no longer assert About's top-bar presence (asserting `Settings`
+in the "widening the window back" test instead, to keep that test
+meaningful) and gained one asserting About is *absent* from "More
+actions"; `status-bar.spec.ts` gained two cases — the new button sits in
+the correct DOM order and opens About, and it stays clickable at a
+narrow width where the old top-bar button would have collapsed.
+
+`svelte-check` 215/0, Vitest 303/303 (unchanged — pure frontend), Playwright
+195/195 (+2), `cargo test` 47/47 (unchanged — pure frontend).
