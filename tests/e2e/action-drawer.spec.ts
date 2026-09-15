@@ -48,6 +48,22 @@ test.describe("action drawer (Ctrl/Cmd+Shift+A)", () => {
     await expect.poll(listed).toBeGreaterThan(openScope);
   });
 
+  test("#62: switching to 'All Files' shows a spinner while the disk read is slow", async ({ page }) => {
+    await seedApp(page, {
+      seed: {
+        notes: { "2026-09-07.txt": "# an open action", "2026-08-01.txt": "# an older action" },
+        session: { openTabs: ["2026-09-07.txt"], activeTab: "2026-09-07.txt" },
+        delayCommands: { read_all_notes: 1000 },
+      },
+    });
+    const d = await openViaShortcut(page, "ControlOrMeta+Shift+A", "actions");
+
+    await d.getByRole("radio", { name: "All Files" }).click();
+    await expect(d.locator(".modal-spinner")).toBeVisible();
+    await expect(d.locator(".modal-spinner")).toHaveCount(0, { timeout: 2000 });
+    await expect(d).toContainText("an older action");
+  });
+
   test("typing '@' in the filter reveals delegated lines", async ({ page }) => {
     await seedApp(page, { seed: "delegation" });
     const d = await openViaShortcut(page, "ControlOrMeta+Shift+A", "actions");

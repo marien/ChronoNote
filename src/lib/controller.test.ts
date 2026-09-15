@@ -320,6 +320,22 @@ describe("tab lifecycle", () => {
     await controller.refreshAllNotesCache();
     expect(get(controller.allNotesCache)["Scratchpad 1"]).toBeUndefined();
   });
+
+  it("#62: two concurrent refreshAllNotesCache() calls on a cold cache only read disk once", async () => {
+    let resolveRead!: (v: [string, string][]) => void;
+    apiMock.readAllNotes.mockReturnValue(new Promise((resolve) => (resolveRead = resolve)));
+
+    // Mirrors boot.ts's background warm racing a fast drawer-open before it
+    // resolves — without the in-flight dedup, each sees the cache as still
+    // null and fires its own disk read.
+    const first = controller.refreshAllNotesCache();
+    const second = controller.refreshAllNotesCache();
+    resolveRead([["2026-09-11.txt", "hello"]]);
+    await Promise.all([first, second]);
+
+    expect(apiMock.readAllNotes).toHaveBeenCalledTimes(1);
+    expect(get(controller.allNotesCache)["2026-09-11.txt"]).toBe("hello");
+  });
 });
 
 describe("prefetchNotesForDates (date-picker perf)", () => {
@@ -874,6 +890,40 @@ describe("openMeetingHistory (§70: mid-line consequence-action dedup)", () => {
     expect(get(controller.toastMessage)).toMatch(/not on or inside a named section/);
   });
 
+  it("#62: opens the drawer immediately and flags historyLoading, rather than waiting for the disk read first", async () => {
+    controller.tabs.set([tab({ id: "active", filename: "2026-09-10.txt", content: "Sync\n====\nnotes" })]);
+    controller.activeTabId.set("active");
+    controller.registerEditorApi({
+      getContent: () => "",
+      setContent: () => {},
+      insertAtCursor: () => {},
+      jumpToLine: () => {},
+      getCursorLineIdx: () => 2,
+      focus: () => {},
+      find: { setQuery: () => {}, next: () => {}, prev: () => {}, clear: () => {} },
+    });
+    let resolveRead!: (v: [string, string][]) => void;
+    apiMock.readAllNotes.mockReturnValue(new Promise((resolve) => (resolveRead = resolve)));
+
+    const opening = controller.openMeetingHistory();
+    // The drawer is open and flagged as loading before the read resolves —
+    // this is the exact fix for #62 ("it takes a bit of time for the
+    // drawer to open"): the modal no longer waits on the read at all.
+    await Promise.resolve(); // let the synchronous prefix of openMeetingHistory run
+    expect(get(controller.modal)).toBe("history");
+    expect(get(controller.historyLoading)).toBe(true);
+    expect(get(controller.historyOccurrences)).toEqual([]);
+
+    resolveRead([["2026-09-05.txt", "Sync\n====\n# an older action"]]);
+    await opening;
+    expect(get(controller.historyLoading)).toBe(false);
+    // The active tab's own occurrence, plus the seeded older one.
+    expect(get(controller.historyOccurrences).map((o) => o.filename).sort()).toEqual([
+      "2026-09-05.txt",
+      "2026-09-10.txt",
+    ]);
+  });
+
   it("§150: builds one occurrence per dated file with the section — including empty ones and future dates", async () => {
     controller.tabs.set([tab({ id: "active", filename: "2026-09-10.txt", content: "Sync\n====\ntoday, nothing yet" })]);
     controller.activeTabId.set("active");
@@ -1307,6 +1357,19 @@ describe("initApp", () => {
 
     controller.updateActiveTabContent("   ");
     expect(get(controller.statusWordCount)).toBe(0);
+    vi.useRealTimers();
+  });
+
+  it("#62: warms the all-notes cache in the background without waiting for it", async () => {
+    vi.setSystemTime(new Date(2026, 8, 15));
+    apiMock.readTabSession.mockResolvedValue(null);
+    // Never resolves — if `initApp()` awaited this, the test itself would
+    // hang/time out. It doesn't: `initApp()` resolving at all, well before
+    // this promise ever does, is the assertion.
+    apiMock.readAllNotes.mockReturnValue(new Promise(() => {}));
+    await controller.initApp();
+    expect(get(controller.tabs).length).toBeGreaterThan(0); // boot completed normally
+    expect(apiMock.readAllNotes).toHaveBeenCalled(); // the background warm was still kicked off
     vi.useRealTimers();
   });
 });

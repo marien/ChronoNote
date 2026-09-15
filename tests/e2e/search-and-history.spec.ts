@@ -41,6 +41,26 @@ test.describe("cross-tab search (Ctrl/Cmd+Shift+F)", () => {
     await search(page).getByRole("radio", { name: "All Files" }).click();
     await expect.poll(() => rows(search(page)).count()).toBeGreaterThanOrEqual(openCount);
   });
+
+  test("#62: switching to 'All Files' shows a spinner while the disk read is slow", async ({ page }) => {
+    await seedApp(page, {
+      seed: {
+        notes: { "2026-09-07.txt": "the migration plan", "2026-08-01.txt": "the older migration plan" },
+        session: { openTabs: ["2026-09-07.txt"], activeTab: "2026-09-07.txt" },
+        delayCommands: { read_all_notes: 1000 },
+      },
+    });
+    await editor(page).click();
+    await page.keyboard.press("ControlOrMeta+Shift+F");
+    await expect(search(page)).toBeVisible();
+
+    await search(page).getByRole("radio", { name: "All Files" }).click();
+    await expect(search(page).locator(".modal-spinner")).toBeVisible();
+    await expect(search(page).locator(".modal-spinner")).toHaveCount(0, { timeout: 2000 });
+
+    await search(page).locator(".modal-input").fill("migration plan");
+    await expect(rows(search(page))).toHaveCount(2);
+  });
 });
 
 test.describe("section history (Ctrl/Cmd+Shift+H)", () => {
@@ -306,6 +326,34 @@ test.describe("section history (Ctrl/Cmd+Shift+H)", () => {
     // Shift+Enter rewrites a deferred `>` as a fresh open `#`
     await expect(preview.locator(".hp-insert")).toHaveText("# chase the flaky test");
     await expect(preview).toContainText(todayFilename());
+  });
+
+  test("#62: opens immediately with a spinner while the disk read is slow, then fills in", async ({ page }) => {
+    await seedApp(page, {
+      seed: {
+        notes: {
+          [todayFilename()]: "Standup\n====\n# something today",
+          "2026-09-05.txt": "Standup\n====\n# an older action",
+        },
+        session: { openTabs: [todayFilename()], activeTab: todayFilename() },
+        delayCommands: { read_all_notes: 1000 },
+      },
+    });
+    await editor(page).click();
+    await page.keyboard.press("ControlOrMeta+Home");
+    await page.keyboard.press("ArrowDown");
+    await page.keyboard.press("ControlOrMeta+Shift+H");
+
+    // The drawer is open right away — no waiting on the disk read at all
+    // (the fix for #62: "it takes a bit of time for the drawer to open").
+    // Both the header counter and the empty-list placeholder show their own
+    // spinner while loading.
+    await expect(history(page)).toBeVisible({ timeout: 500 });
+    await expect(history(page).locator(".modal-spinner")).toHaveCount(2);
+    await expect(history(page).locator(".modal-empty")).toContainText("Loading history");
+
+    await expect(history(page).locator(".modal-spinner")).toHaveCount(0, { timeout: 2000 });
+    await expect(history(page).locator(".modal-list")).toContainText("an older action");
   });
 
   test("cursor outside any named section shows a toast, no drawer", async ({ page }) => {

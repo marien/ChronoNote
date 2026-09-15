@@ -31,7 +31,15 @@
 
   async function setScope(next: "open" | "all") {
     if (scope === next) return;
-    if (next === "all") await controller.refreshAllNotesCache();
+    if (next === "all") {
+      // #62: shares the same one-time-per-session disk-read cost as
+      // Section History/Action Drawer's "All Files" — usually already
+      // warm (`boot.ts`'s background prefetch), but reuse the existing
+      // "searching" spinner for whenever it genuinely isn't.
+      searching = true;
+      await controller.refreshAllNotesCache();
+      searching = false;
+    }
     scope = next; // triggers the reactive search below
     // Clicking the toggle button moves focus to the button — bring it
     // straight back to the input, with the current query selected, so

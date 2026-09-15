@@ -119,6 +119,13 @@ export async function flushAllPendingSaves(): Promise<void> {
  * single Action Drawer / Search / Date-picker / History open.) */
 let diskNotesCacheRaw: Record<string, string> | null = null;
 
+/** #62: `boot.ts` now fires a background `refreshAllNotesCache()` right at
+ * startup, which can race a user opening History/Action Drawer/Search
+ * before it resolves — without this, both callers would see the cache
+ * still `null` and each kick off their own `api.readAllNotes()`, doubling
+ * the disk read the background warm exists to avoid paying twice. */
+let diskReadInFlight: Promise<void> | null = null;
+
 /** Force the next `refreshAllNotesCache()` to re-read from disk — used on
  * a notes-directory switch, where the whole disk layer is a different
  * folder. */
@@ -128,9 +135,16 @@ export function invalidateDiskNotesCache() {
 
 export async function refreshAllNotesCache() {
   if (diskNotesCacheRaw === null) {
-    const entries = await api.readAllNotes();
-    diskNotesCacheRaw = {};
-    for (const [fn, content] of entries) diskNotesCacheRaw[fn] = content;
+    if (!diskReadInFlight) {
+      diskReadInFlight = (async () => {
+        const entries = await api.readAllNotes();
+        diskNotesCacheRaw = {};
+        for (const [fn, content] of entries) diskNotesCacheRaw[fn] = content;
+      })().finally(() => {
+        diskReadInFlight = null;
+      });
+    }
+    await diskReadInFlight;
   }
   const map: Record<string, string> = { ...diskNotesCacheRaw };
   for (const t of get(tabs)) if (!t.isScratchpad) map[t.filename] = t.content;

@@ -6,7 +6,8 @@ kept for the rationale behind each one — not just *what* changed but
 was still being gathered and confirmed before implementation; renamed once
 everything below was applied, since nothing here is "pending" anymore.
 
-**Status: all sections through §163 implemented and released.** §153 is a
+**Status: all sections through §163 implemented and released; §164 fixed,
+not yet released.** §153 is a
 website-only Guide-page fix (found live right after §150–§152 shipped
 as v0.7.12) — no version bump, nothing in the shipped app changed. §154
 merges the OS title bar into the top bar (Notepad-style: icon, tabs,
@@ -7081,3 +7082,81 @@ single unscrolled list.
 
 `svelte-check` 217/0, Vitest 318/318, Playwright 207/207, `cargo test`
 57/57 (unchanged — pure frontend).
+
+## 164. Section History (and Action Drawer / Search's "All Files") opens instantly, with a spinner while the disk read is still catching up
+
+**Status: fixed, not yet released.**
+
+Issue #62: "When I am opening Section History for the first time after
+start of the application it takes a bit of time for the drawer to open,
+making me wonder if I pressed the correct key. I assume this is because
+of reading all the files." Marien's own two suggestions — a loading
+indicator, and starting the read in the background right after launch,
+without delaying becoming interactive — are exactly what's implemented
+here.
+
+Root cause: `openMeetingHistory()` (`history.ts`) awaited
+`refreshAllNotesCache()` — which reads every note file from disk the
+first time anything asks for it each session (§38's shared
+`diskNotesCacheRaw`) — *before* setting `modal.set("history")`. Nothing
+was on screen to show progress on, and the whole drawer simply didn't
+appear until the read finished. Asked whether the "open immediately +
+spinner" half should also cover Action Drawer's and Cross-Tab Search's
+own "All Files" toggles, since they share the identical cold-start cost
+against the same cache — confirmed: "Apply to all four." (Export was
+checked too: `SettingsModal.svelte`'s existing `exporting` flag + button-
+text change already covers it, so it needed no change.)
+
+Two independent pieces, matching Marien's own two-part suggestion:
+
+1. **Open immediately, show a spinner while the read is in flight.**
+   `openMeetingHistory()` now opens the modal (with empty stores) *before*
+   awaiting the cache, gated by a new `historyLoading` store
+   (`stores.ts`). `HistoryModal.svelte` shows the existing `.modal-spinner`
+   (reused from About/date-picker/Search, not reinvented) in the header
+   counter and as an empty-list placeholder while `historyLoading` is
+   true. Action Drawer's `setScope` gained a `loadingAllFiles` flag with
+   its own spinner next to the scope toggle; Search's `setScope` reuses
+   its existing `searching` flag (previously scoped to the debounced
+   per-keystroke "All Files" rescan) around the initial cache-population
+   await too — the two code paths run at non-overlapping times, so
+   nothing about `searching`'s original behavior changes.
+2. **Warm the cache in the background at boot, so the above is usually a
+   no-op.** `boot.ts`'s `initApp()` now fires `void refreshAllNotesCache()`
+   right after tab restore — the same fire-and-forget pattern already
+   used for `checkForUpdatesOnLaunch()` — so the disk read starts as soon
+   as the app has something to show, without ever delaying becoming
+   interactive. By the time any of the four drawers is actually opened,
+   the read has usually already finished; the loading indicators above
+   are the fallback for whenever it hasn't (a very large notes folder, or
+   a very fast keypress right after launch).
+
+Fixing this surfaced a real (if narrow) latent race that #1 made far more
+likely to actually happen: `refreshAllNotesCache()`'s "read from disk only
+if the cache is still null" guard assumed only one caller would ever hit
+a cold cache per session. With boot now *always* kicking off a read, a
+user opening a drawer before it resolves would see the same null cache
+and fire a second, redundant `api.readAllNotes()` of its own — doubling
+the very disk read this fix exists to only pay once. Fixed with an
+in-flight promise (`diskReadInFlight` in `persistence.ts`): every
+concurrent caller awaits the one real read instead of starting another.
+
+`HistoryModal.svelte`'s existing `onMount`-time "select the active tab's
+own row" convenience only runs once, at mount — if history data now
+finishes loading asynchronously *after* that (the cold-cache case), that
+selection doesn't retry. Left as-is: rare in practice once the boot warm
+has had a chance to run, and not worth the reactive-retrigger risk this
+codebase has been bitten by before (§55/§56/§60/§61) for a minor,
+easily-dismissed edge case.
+
+New tests: `controller.test.ts` gains a case asserting `openMeetingHistory`
+opens the drawer and sets `historyLoading` before the disk read resolves
+(not just after), a case asserting `initApp()` doesn't wait on the
+background warm, and a case asserting two concurrent
+`refreshAllNotesCache()` calls on a cold cache only read disk once. New
+Playwright cases (`search-and-history.spec.ts` ×2, `action-drawer.spec.ts`
+×1) seed `delayCommands: { read_all_notes: 1000 }` (§137's pattern) and
+assert the spinner appears then clears in each of the three drawers.
+
+`svelte-check` 217/0, Vitest 321/321 (+3), Playwright 210/210 (+3),
+`cargo test` 57/57 (unchanged — pure frontend).

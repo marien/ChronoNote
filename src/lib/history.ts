@@ -16,6 +16,7 @@ import {
   allNotesCache,
   editorApi,
   historyItems,
+  historyLoading,
   historyOccurrences,
   historyPreviousOccurrence,
   historyTargetHeader,
@@ -28,6 +29,15 @@ import { jumpToFileLine } from "./tabs";
 import { getSectionHeaderForLine, isSetextUnderline, normalizeHeaderTitle, titleForMatching } from "./tokens";
 import type { HistoryItem, PreviousSectionOccurrence, SectionOccurrence } from "./types";
 
+/** #62: opens the drawer immediately (right after the fast, synchronous
+ * "is the cursor on a section" check — no disk read needed for that part
+ * at all), rather than blocking on `refreshAllNotesCache()`'s full read
+ * of the notes folder first. That read is usually already warm by now
+ * (`boot.ts` kicks it off in the background right after startup), but on
+ * a large notes folder — or a very fast keypress right after launch — it
+ * can still be genuinely in flight; `historyLoading` lets the drawer show
+ * a spinner for that window instead of the app appearing to not have
+ * responded to the shortcut at all. */
 export async function openMeetingHistory() {
   const tab = get(tabs).find((t) => t.id === get(activeTabId));
   if (!tab) return;
@@ -44,6 +54,13 @@ export async function openMeetingHistory() {
     showToast("Cursor is not on or inside a named section.");
     return;
   }
+
+  historyTargetHeader.set(targetHeader);
+  historyItems.set([]);
+  historyOccurrences.set([]);
+  historyPreviousOccurrence.set(null);
+  historyLoading.set(true);
+  modal.set("history");
 
   await refreshAllNotesCache();
   const allSources = get(allNotesCache);
@@ -75,7 +92,6 @@ export async function openMeetingHistory() {
     occurrences.push({ filename, date, lines: body.lines, startLineIdx: body.startLineIdx, items: occurrenceItems });
   }
 
-  historyTargetHeader.set(targetHeader);
   historyItems.set(items);
   historyOccurrences.set(occurrences);
   // #27: alongside the all-dates list, a snapshot of the section's body
@@ -83,7 +99,7 @@ export async function openMeetingHistory() {
   // *before today* that has this section (§150: always today, not the
   // date of whichever note the drawer happened to be opened from).
   historyPreviousOccurrence.set(findPreviousSectionOccurrence(allSources, targetHeader));
-  modal.set("history");
+  historyLoading.set(false);
 }
 
 /** §150: is this action row "open" — a leading `# ` action, or a `=> #`

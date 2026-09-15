@@ -26,6 +26,12 @@
   let selectedIndex = 0;
   let scope: "open" | "all" = "open";
   let inputEl: HTMLInputElement;
+  // #62: "All Files" shares the same one-time-per-session disk-read cost
+  // as Section History's drawer — usually already warm (`boot.ts` kicks
+  // it off in the background at startup), but switching to it can still
+  // genuinely take a moment on a large notes folder, with nothing to show
+  // that anything's happening otherwise (the toggle just sits there).
+  let loadingAllFiles = false;
 
   // §42: open focused on whatever entry belongs to the currently active
   // tab, instead of always starting at the top of the (most-recent-first)
@@ -43,9 +49,11 @@
   async function setScope(next: "open" | "all") {
     if (scope === next) return;
     scope = next;
+    if (scope === "all") loadingAllFiles = true;
     actionSnapshot.set(
       scope === "all" ? await controller.buildActionSnapshotAllFiles() : controller.buildActionSnapshotOpenTabs(),
     );
+    loadingAllFiles = false;
     // Clicking the toggle button moves focus to the button — bring it
     // straight back to the filter input, with its current text selected,
     // so typing immediately starts a fresh filter instead of needing an
@@ -233,6 +241,9 @@
           value={scope}
           onChange={(v) => setScope(v as "open" | "all")}
         />
+        {#if loadingAllFiles}
+          <span class="modal-spinner" aria-label="Loading">⟳</span>
+        {/if}
         <label class="toggle-switch">
           <input type="checkbox" bind:checked={$actionDrawerShowOnlyOpen} />
           <span class="toggle-switch-track"></span>

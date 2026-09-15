@@ -34,7 +34,7 @@ import {
   unsavedScratchpadNames,
   wordWrap,
 } from "./stores";
-import { flushAllPendingSaves, recomputeSaveState } from "./persistence";
+import { flushAllPendingSaves, recomputeSaveState, refreshAllNotesCache } from "./persistence";
 import { checkActiveTabForDrift } from "./drift";
 import { refreshAgendaFileExists } from "./calendarSyncActions";
 import { checkForUpdatesOnLaunch } from "./updates";
@@ -328,6 +328,16 @@ export async function initApp() {
   calendarSyncEnabled.set(cfg.calendarSyncEnabled);
   if (cfg.calendarSyncEnabled && get(backendKind) !== "web") void refreshAgendaFileExists();
   await restoreOrBootstrapTabs();
+  // #62: warm the "all notes" disk-read cache in the background, right
+  // after the app has something to show — never awaited, so it can't
+  // delay becoming interactive. Section History/Actions Drawer's "All
+  // Files"/Cross-Tab Search's "All Files" all share this one cache
+  // (`persistence.ts`'s `diskNotesCacheRaw`) and used to each pay its
+  // full one-time disk-read cost themselves, whichever happened to be
+  // opened first — usually finished by the time any of them are actually
+  // opened now; each still has its own loading indicator for whenever
+  // it isn't (a very large notes folder, or a very fast keypress).
+  void refreshAllNotesCache();
   tabs.subscribe(() => scheduleTabSessionSave());
   activeTabId.subscribe(() => scheduleTabSessionSave());
   const version = await api.getAppVersion();

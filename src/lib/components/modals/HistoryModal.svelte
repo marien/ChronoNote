@@ -5,6 +5,7 @@
   import {
     activeTabId,
     editorApi,
+    historyLoading,
     historyOccurrences,
     historyPreviousOccurrence,
     historyShowOnlyOpen,
@@ -222,10 +223,14 @@
       <!-- §127 (finding F): a plain heading, not a `readonly` <input>
            faking one — the listbox below is the keyboard-nav target now. -->
       <div class="modal-input">Section History: "{$historyTargetHeader}"</div>
-      <span class="modal-counter"
-        >{totalActionCount} {totalActionCount === 1 ? "action" : "actions"} · {filteredOccurrences.length}
-        {filteredOccurrences.length === 1 ? "date" : "dates"}</span
-      >
+      {#if $historyLoading}
+        <span class="modal-counter"><span class="modal-spinner" aria-label="Loading">⟳</span> Loading…</span>
+      {:else}
+        <span class="modal-counter"
+          >{totalActionCount} {totalActionCount === 1 ? "action" : "actions"} · {filteredOccurrences.length}
+          {filteredOccurrences.length === 1 ? "date" : "dates"}</span
+        >
+      {/if}
     </div>
     {#if $historyPreviousOccurrence}
       {@const po = $historyPreviousOccurrence}
@@ -272,7 +277,9 @@
           on:keydown={onKeydown}
           style="position: relative; overflow-y: auto; flex: 1; outline: none;"
         >
-          {#if filteredOccurrences.length === 0}
+          {#if $historyLoading}
+            <div class="modal-empty"><span class="modal-spinner" aria-label="Loading">⟳</span> Loading history…</div>
+          {:else if filteredOccurrences.length === 0}
             <div class="modal-empty">
               {$historyShowOnlyOpen
                 ? "No open actions in any occurrence."

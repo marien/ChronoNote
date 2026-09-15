@@ -180,6 +180,13 @@ export const historyItems = writable<HistoryItem[]>([]);
  * same deduped `historyItems`. Drives Section History's list, where a
  * header is now selectable per occurrence, not just per action row. */
 export const historyOccurrences = writable<SectionOccurrence[]>([]);
+/** #62: whether `openMeetingHistory()`'s disk read is still in flight —
+ * the drawer opens immediately rather than waiting for it, so it needs
+ * something to show meanwhile. Almost always false in practice once
+ * `boot.ts`'s background cache warm has had a chance to finish; this is
+ * the fallback for whenever it hasn't (a very fast keypress, or a large
+ * notes folder). */
+export const historyLoading = writable<boolean>(false);
 export const historyTargetHeader = writable<string>("");
 /** #27/#33: the section's previous occurrence (see `PreviousSectionOccurrence`).
  * `null` when there is no earlier occurrence to show. */
