@@ -174,9 +174,9 @@ export const SHORTCUTS: ShortcutDef[] = [
     combos: [{ mod: true, shift: true, code: "KeyF" }],
   },
   {
-    id: "importSections",
-    label: "Import sections",
-    combos: [{ mod: true, shift: true, code: "KeyI" }],
+    id: "syncCalendar",
+    label: "Sync calendar for this day",
+    combos: [{ mod: true, shift: true, code: "KeyC" }],
   },
   {
     id: "openSettings",

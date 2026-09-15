@@ -21,6 +21,13 @@ async function openSettings(page: Page) {
   await expect(settings(page)).toBeVisible();
 }
 
+/** Settings is tabbed (Appearance & Editor / Calendar, Notes & Data /
+ * Updates) — always reopens on the first tab, so anything under the other
+ * two needs an explicit switch first. */
+async function openSettingsTab(page: Page, label: "Appearance & Editor" | "Calendar, Notes & Data" | "Updates") {
+  await settings(page).getByRole("radio", { name: label, exact: true }).click();
+}
+
 test.describe("settings (Ctrl/Cmd+,)", () => {
   test("#48: light/dark/system theme control flips data-theme and persists to config", async ({ page }) => {
     await seedApp(page, { seed: "busy-week" });
@@ -150,12 +157,14 @@ test.describe("settings (Ctrl/Cmd+,)", () => {
   test("shows the current notes folder path", async ({ page }) => {
     await seedApp(page, { seed: "dir-switch" });
     await openSettings(page);
+    await openSettingsTab(page, "Calendar, Notes & Data");
     await expect(settings(page)).toContainText("/work-notes");
   });
 
   test("switching directory via a recent folder resets the workspace", async ({ page }) => {
     await seedApp(page, { seed: "dir-switch" });
     await openSettings(page);
+    await openSettingsTab(page, "Calendar, Notes & Data");
 
     // The recent-folders list offers the personal notes dir.
     await settings(page).getByRole("button", { name: "/personal-notes" }).click();
@@ -168,6 +177,7 @@ test.describe("settings (Ctrl/Cmd+,)", () => {
     expect(labels.join(" ")).toMatch(/2026-09-07/); // today always present
     // work-notes is now in the recent list.
     await page.keyboard.press("ControlOrMeta+Comma");
+    await openSettingsTab(page, "Calendar, Notes & Data");
     await expect(settings(page)).toContainText("/work-notes");
   });
 
@@ -179,6 +189,7 @@ test.describe("settings (Ctrl/Cmd+,)", () => {
       m.nextDialogResult = "/archive-2025";
     });
     await openSettings(page);
+    await openSettingsTab(page, "Calendar, Notes & Data");
     await settings(page).getByRole("button", { name: "Browse…" }).click();
 
     await expect(toast(page)).toContainText("/archive-2025");
@@ -193,6 +204,7 @@ test.describe("settings (Ctrl/Cmd+,)", () => {
     await page.keyboard.type("unpromoted thoughts");
 
     await page.keyboard.press("ControlOrMeta+Comma");
+    await openSettingsTab(page, "Calendar, Notes & Data");
     await settings(page).getByRole("button", { name: "/personal-notes" }).click();
 
     const warn = modalCard(page, MODAL_LABELS.unsavedScratchpads);
@@ -207,6 +219,7 @@ test.describe("settings (Ctrl/Cmd+,)", () => {
 
     // Try again, this time discard.
     await page.keyboard.press("ControlOrMeta+Comma");
+    await openSettingsTab(page, "Calendar, Notes & Data");
     await settings(page).getByRole("button", { name: "/personal-notes" }).click();
     await modalCard(page, MODAL_LABELS.unsavedScratchpads)
       .getByRole("button", { name: /Discard/ })
@@ -214,12 +227,15 @@ test.describe("settings (Ctrl/Cmd+,)", () => {
     expect(await page.evaluate(() => window.__CHRONO_MOCK__!.notesDir)).toBe("/personal-notes");
   });
 
-  test("#60: grows to show every section without scrolling on a tall window, styled with the app's own thin scrollbar", async ({
+  test("#60: grows to show every section in a tab without scrolling on a tall window, styled with the app's own thin scrollbar", async ({
     page,
   }) => {
     await seedApp(page, { seed: "busy-week" });
-    await page.setViewportSize({ width: 1024, height: 1000 });
+    await page.setViewportSize({ width: 1024, height: 1100 });
     await openSettings(page);
+    // "Calendar, Notes & Data" has the most sections of any one tab
+    // (Calendar/Notes Location/Data) — the tallest case to prove against.
+    await openSettingsTab(page, "Calendar, Notes & Data");
 
     const section = settings(page).locator(".settings-section");
     const [clientHeight, scrollHeight, scrollbarWidth] = await section.evaluate((el) => [
@@ -227,9 +243,9 @@ test.describe("settings (Ctrl/Cmd+,)", () => {
       el.scrollHeight,
       getComputedStyle(el).scrollbarWidth,
     ]);
-    // Every section (Appearance/Editor/Updates/Notes Location/Data) fits
-    // without needing to scroll — the old fixed 380px cap would have
-    // forced scrolling here regardless of how much room the window has.
+    // Every section in this tab fits without needing to scroll — the old
+    // fixed 380px cap would have forced scrolling here regardless of how
+    // much room the window has.
     expect(scrollHeight).toBeLessThanOrEqual(clientHeight + 1);
     expect(scrollbarWidth).toBe("thin"); // same treatment as .cm-scroller/.modal-list, not the OS default
     await expect(settings(page).getByText("Data", { exact: true })).toBeVisible();
@@ -241,6 +257,7 @@ test.describe("settings (Ctrl/Cmd+,)", () => {
     await seedApp(page, { seed: "busy-week" });
     await page.setViewportSize({ width: 1024, height: 500 });
     await openSettings(page);
+    await openSettingsTab(page, "Calendar, Notes & Data");
 
     const cardBox = (await settings(page).boundingBox())!;
     const statusBarBox = (await page.locator("#status-bar").boundingBox())!;

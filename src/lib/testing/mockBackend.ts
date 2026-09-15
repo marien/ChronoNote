@@ -50,6 +50,9 @@ export interface MockSeed {
    * update" in a test. `undefined`/omitted mirrors a fresh install or a
    * pre-#50 config (no update notice). */
   lastSeenVersion?: string | null;
+  /** Whether the opt-in "Sync calendar for this day" button is shown at
+   * all — mirrors `AppConfig.calendarSyncEnabled`, off by default. */
+  calendarSyncEnabled?: boolean;
   /** Seeds `recent_notes_dirs` directly (normally only `set_notes_dir`
    * writes it). */
   recentNotesDirs?: string[];
@@ -78,6 +81,14 @@ export interface MockSeed {
    * here — one mechanism for every "this command fails" case. */
   updateCheck?: "none" | "available";
   updateCheckVersion?: string;
+  /** Raw `.agenda.json` file content for the active notes directory —
+   * mirrors `src-tauri/src/agenda.rs`'s `read_agenda_for_date` exactly
+   * (see `titlesForDate` below): missing/omitted, blank, `"[]"`, or
+   * malformed content all reject with the same error rather than
+   * resolving to an empty calendar — none of those states are ever
+   * produced by a genuine successful sync, so none can be trusted as "no
+   * meetings today." */
+  agendaJson?: string;
 }
 
 interface MockDir {
@@ -133,6 +144,62 @@ export interface InvokeLogEntry {
   at: number;
 }
 
+interface AgendaMeeting {
+  date: string;
+  start: string;
+  end: string;
+  title: string;
+}
+
+function isAgendaMeeting(x: unknown): x is AgendaMeeting {
+  const m = x as Record<string, unknown> | null;
+  return (
+    !!m &&
+    typeof m === "object" &&
+    typeof m.date === "string" &&
+    typeof m.start === "string" &&
+    typeof m.end === "string" &&
+    typeof m.title === "string"
+  );
+}
+
+const AGENDA_ERROR = "The calendar file (.agenda.json) is missing, empty, or invalid — check whatever syncs it.";
+
+/** Mirrors `src-tauri/src/agenda.rs`'s `parse_agenda` + `titles_for_date`
+ * exactly: scoped to `date`, sorted by (start, end, title), de-duplicated
+ * on the exact (start, end, title) tuple. Throws — rather than resolving
+ * to an empty list — for anything that isn't a genuine, non-empty array of
+ * well-formed meetings: missing/blank content, unparseable JSON, a bare
+ * `[]`, or an array with even one malformed element. Rust's `serde_json`
+ * deserialization of `Vec<AgendaMeeting>` fails the *whole* array if even
+ * one element doesn't match the struct shape (not just that element) —
+ * `isAgendaMeeting` validated with `.every()`, not `.filter()`, mirrors
+ * that all-or-nothing behavior. A day with no matching entries in an
+ * otherwise-valid, non-empty file is a legitimate empty result, not an
+ * error — only the whole file being empty/invalid is. */
+function titlesForDate(raw: string | undefined, date: string): string[] {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse((raw ?? "").trim());
+  } catch {
+    throw new Error(AGENDA_ERROR);
+  }
+  if (!Array.isArray(parsed) || parsed.length === 0 || !parsed.every(isAgendaMeeting)) {
+    throw new Error(AGENDA_ERROR);
+  }
+  const day = (parsed as AgendaMeeting[]).filter((m) => m.date === date);
+  day.sort((a, b) => a.start.localeCompare(b.start) || a.end.localeCompare(b.end) || a.title.localeCompare(b.title));
+  const seen = new Set<string>();
+  return day
+    .filter((m) => {
+      const key = `${m.start}|${m.end}|${m.title}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    })
+    .map((m) => m.title);
+}
+
 /** One handler per Tauri command, its args and resolved value both bound
  * to the `TauriCommands` contract (the same one `tauriApi.ts` checks the
  * real IPC wrapper against). Adding or reshaping a Rust command breaks
@@ -153,10 +220,12 @@ export class MockBackend {
   readableLineLength: boolean;
   autoCheckUpdates: boolean;
   lastSeenVersion: string | null;
+  calendarSyncEnabled: boolean;
   recentNotesDirs: string[];
   appVersion: string;
   updateCheck: "none" | "available";
   updateCheckVersion: string;
+  agendaJson: string | undefined;
 
   /** Every `invoke` call, in order — assert on persistence without
    * scraping the DOM. */
@@ -210,10 +279,12 @@ export class MockBackend {
     this.readableLineLength = seed.readableLineLength ?? false;
     this.autoCheckUpdates = seed.autoCheckUpdates ?? true;
     this.lastSeenVersion = seed.lastSeenVersion ?? null;
+    this.calendarSyncEnabled = seed.calendarSyncEnabled ?? false;
     this.recentNotesDirs = seed.recentNotesDirs ? [...seed.recentNotesDirs] : [];
     this.appVersion = seed.appVersion ?? "0.3.0";
     this.updateCheck = seed.updateCheck ?? "none";
     this.updateCheckVersion = seed.updateCheckVersion ?? "9.9.9";
+    this.agendaJson = seed.agendaJson;
     this.throwOnCommands = new Set(seed.throwOnCommands ?? []);
     this.delayCommands = new Map(Object.entries(seed.delayCommands ?? {}));
 
@@ -250,8 +321,10 @@ export class MockBackend {
       readableLineLength: this.readableLineLength,
       autoCheckUpdates: this.autoCheckUpdates,
       lastSeenVersion: this.lastSeenVersion,
+      calendarSyncEnabled: this.calendarSyncEnabled,
       recentNotesDirs: this.recentNotesDirs,
       appVersion: this.appVersion,
+      agendaJson: this.agendaJson,
       dirs: [...this.dirs].map(([path, d]) => [path, [...d.notes], d.session, [...d.conflictCopies]]),
     });
   }
@@ -281,8 +354,10 @@ export class MockBackend {
         readableLineLength?: boolean;
         autoCheckUpdates?: boolean;
         lastSeenVersion?: string | null;
+        calendarSyncEnabled?: boolean;
         recentNotesDirs: string[];
         appVersion: string;
+        agendaJson?: string;
         dirs: [string, [string, string][], TabSession | null, [string, string][]?][];
       };
       const b = new MockBackend();
@@ -292,9 +367,11 @@ export class MockBackend {
       b.wordWrap = s.wordWrap ?? false;
       b.autoCheckUpdates = s.autoCheckUpdates ?? true;
       b.lastSeenVersion = s.lastSeenVersion ?? null;
+      b.calendarSyncEnabled = s.calendarSyncEnabled ?? false;
       b.readableLineLength = s.readableLineLength ?? false;
       b.recentNotesDirs = s.recentNotesDirs;
       b.appVersion = s.appVersion;
+      b.agendaJson = s.agendaJson;
       b.dirs = new Map(
         s.dirs.map(([path, notes, session, conflicts]) => [
           path,
@@ -326,6 +403,7 @@ export class MockBackend {
       recentNotesDirs: [...this.recentNotesDirs],
       autoCheckUpdates: this.autoCheckUpdates,
       lastSeenVersion: this.lastSeenVersion,
+      calendarSyncEnabled: this.calendarSyncEnabled,
     };
   }
 
@@ -404,6 +482,11 @@ export class MockBackend {
 
     set_theme_mode: ({ mode }) => {
       this.themeMode = mode;
+      return this.config();
+    },
+
+    set_calendar_sync_enabled: ({ enabled }) => {
+      this.calendarSyncEnabled = enabled;
       return this.config();
     },
 
@@ -509,6 +592,14 @@ export class MockBackend {
       }
       return { imported, skipped };
     },
+
+    read_agenda_for_date: ({ date }) => titlesForDate(this.agendaJson, date),
+
+    // Mirrors `agenda.rs::agenda_file_exists` — a cheap existence check,
+    // deliberately not the fuller `titlesForDate` validation (an
+    // existing-but-invalid file still greys the button *in* rather than
+    // out, so its own real error surfaces on click).
+    agenda_file_exists: () => this.agendaJson !== undefined,
   };
 
   private async dispatch(cmd: string, args: Record<string, unknown>): Promise<unknown> {

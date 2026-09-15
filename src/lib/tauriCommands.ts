@@ -25,6 +25,7 @@ export interface TauriCommands {
   set_readable_line_length: { args: { enabled: boolean }; returns: AppConfig };
   set_auto_check_updates: { args: { enabled: boolean }; returns: AppConfig };
   set_theme_mode: { args: { mode: ThemeMode }; returns: AppConfig };
+  set_calendar_sync_enabled: { args: { enabled: boolean }; returns: AppConfig };
   set_last_seen_version: { args: { version: string }; returns: AppConfig };
   list_note_files: { args: NoArgs; returns: string[] };
   read_note: { args: { filename: string }; returns: string | null };
@@ -48,6 +49,14 @@ export interface TauriCommands {
     args: { notes: Record<string, string>; mode: ImportMode };
     returns: ImportResult;
   };
+  /** Calendar sync: reads `.agenda.json` from the
+   * root of the notes folder, already scoped to `date`, sorted, and
+   * de-duplicated — see `src-tauri/src/agenda.rs`. Desktop-only, like the
+   * notes folder itself; the web app has no local file to read. */
+  read_agenda_for_date: { args: { date: string }; returns: string[] };
+  /** Cheap existence check for the "gray out the sync button" UI state —
+   * see `src-tauri/src/agenda.rs::agenda_file_exists`. */
+  agenda_file_exists: { args: NoArgs; returns: boolean };
 }
 
 export type TauriCommand = keyof TauriCommands;

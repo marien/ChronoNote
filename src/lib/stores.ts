@@ -24,7 +24,6 @@ export type ModalKind =
   | "history"
   | "search"
   | "safety"
-  | "sectionImport"
   | "settings"
   | "shortcuts"
   | "about"
@@ -33,7 +32,9 @@ export type ModalKind =
   | "commandPalette"
   // #56: the top bar's collapsed-action overflow popover — same
   // anchored-popover shape as "date", not a centred `.overlay` card.
-  | "topBarMore";
+  | "topBarMore"
+  // Calendar sync (v0.9.0) review step, after "Sync calendar for this day".
+  | "syncReview";
 
 export const tabs = writable<NoteTab[]>([]);
 export const activeTabId = writable<string>("");
@@ -123,6 +124,18 @@ export const backendKind = writable<"desktop" | "demo" | "web">("desktop");
  * newer release on launch. Mirrors `AppConfig.autoCheckUpdates` — on by
  * default (disclosed + toggleable in Settings). */
 export const autoCheckUpdates = writable<boolean>(true);
+
+/** Calendar sync's "Sync calendar for this day" button is opt-in — hidden
+ * from the top bar/More actions/command palette entirely until turned on
+ * in Settings. Mirrors `AppConfig.calendarSyncEnabled`, off by default. */
+export const calendarSyncEnabled = writable<boolean>(false);
+/** Whether `.agenda.json` currently exists in the notes folder — drives
+ * graying out the sync button rather than hiding it (that's what
+ * `calendarSyncEnabled` is for). Refreshed at boot, on window focus, and
+ * after switching notes folders (`calendarSyncActions.ts::refreshAgendaFileExists`)
+ * — never polled continuously, since the file is expected to change only
+ * while ChronoNote is unfocused (an external process wrote it). */
+export const agendaFileExists = writable<boolean>(false);
 /**
  *   `idle`       nothing checked yet this session
  *   `checking`   a check is in flight
@@ -178,6 +191,36 @@ export const historyPreviousOccurrence = writable<PreviousSectionOccurrence | nu
  * default worklist view. */
 export const historyShowOnlyOpen = writable<boolean>(false);
 export const searchResultsStore = writable<SearchResultItem[]>([]);
+
+/** Calendar sync review — the state of one pending "Sync from a list…" (or
+ * the file-based "Sync calendar for this day") review, from submit to
+ * confirm. `null` when no review is in progress. */
+export type CalendarSyncRemovalChoice = "flag" | "discard" | "move";
+
+export interface CalendarSyncRemoval {
+  header: string;
+  lines: string[];
+  choice: CalendarSyncRemovalChoice;
+  /** Only used when `choice === "move"`; an ISO date string. */
+  moveDate: string;
+}
+
+export interface CalendarSyncNewItem {
+  title: string;
+  checked: boolean;
+}
+
+export interface CalendarSyncReviewState {
+  tabId: string;
+  originalContent: string;
+  agendaTitles: string[];
+  newItems: CalendarSyncNewItem[];
+  reorderedTitles: string[];
+  removedEmpty: string[];
+  removals: CalendarSyncRemoval[];
+}
+
+export const calendarSyncReview = writable<CalendarSyncReviewState | null>(null);
 
 export function getActiveTabId(): string {
   return get(activeTabId);

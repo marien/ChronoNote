@@ -3,8 +3,10 @@
   import * as controller from "../../controller";
   import { focusTrap } from "../../actions/focusTrap";
   import {
+    agendaFileExists,
     autoCheckUpdates,
     backendKind,
+    calendarSyncEnabled,
     colorMode,
     notesDir,
     readableLineLength,
@@ -18,6 +20,20 @@
   import Segmented from "../Segmented.svelte";
   import type { ColorMode, ThemeMode } from "../../types";
   import { ExportBundleError, type ExportBundle } from "../../exportImport";
+
+  // Three tabs group what used to be one long scrolling list: Appearance/
+  // Editor are the "how it looks and feels while typing" settings; Calendar/
+  // Notes Location/Data are the "where things come from and go" settings;
+  // Updates stands alone since it's neither. Not persisted across opens —
+  // always starts on the first tab, same as any other freshly-opened modal.
+  // "Updates" is dropped from the list entirely on the web app (nothing
+  // inside it applies there — same gate the section itself already used).
+  $: settingsTabs = [
+    { value: "appearance", label: "Appearance & Editor" },
+    { value: "calendar", label: "Calendar, Notes & Data" },
+    ...($backendKind !== "web" ? [{ value: "updates", label: "Updates" }] : []),
+  ];
+  let activeSettingsTab: string = "appearance";
 
   // Filtered at open time (not reactively) — a directory switch closes
   // this modal anyway, so there's no case where the list needs to update
@@ -122,58 +138,175 @@
     <div class="modal-input-wrap modal-title">
       <Icon name="settings" size={15} /> Settings
     </div>
+    <div class="settings-tabs">
+      <Segmented options={settingsTabs} value={activeSettingsTab} onChange={(v) => (activeSettingsTab = v)} />
+    </div>
     <div class="settings-section">
-      <div>
-        <div class="settings-section-label">Appearance</div>
-        <div class="settings-toggle-row">
-          <span class="settings-inline-label">Theme</span>
-          <Segmented
-            options={[
-              { value: "light", label: "Light" },
-              { value: "dark", label: "Dark" },
-              { value: "system", label: "System" },
-            ]}
-            value={$themeMode}
-            onChange={(v) => controller.setThemeMode(v as ThemeMode)}
-          />
+      {#if activeSettingsTab === "appearance"}
+        <div>
+          <div class="settings-section-label">Appearance</div>
+          <div class="settings-toggle-row">
+            <span class="settings-inline-label">Theme</span>
+            <Segmented
+              options={[
+                { value: "light", label: "Light" },
+                { value: "dark", label: "Dark" },
+                { value: "system", label: "System" },
+              ]}
+              value={$themeMode}
+              onChange={(v) => controller.setThemeMode(v as ThemeMode)}
+            />
+          </div>
+          <div class="settings-hint">System follows your OS's own light/dark setting.</div>
+          <div class="settings-toggle-row" style="margin-top: 12px;">
+            <span class="settings-inline-label">Glyphs</span>
+            <Segmented
+              options={[
+                { value: "color", label: "Color" },
+                { value: "grayscale", label: "Grayscale" },
+                { value: "legacy", label: "Legacy" },
+              ]}
+              value={$colorMode}
+              onChange={(v) => controller.setColorMode(v as ColorMode)}
+            />
+          </div>
+          <div class="settings-hint">
+            Legacy restores the pre-0.6 glyph colours — red open, amber deferred, green done.
+          </div>
         </div>
-        <div class="settings-hint">System follows your OS's own light/dark setting.</div>
-        <div class="settings-toggle-row" style="margin-top: 12px;">
-          <span class="settings-inline-label">Glyphs</span>
-          <Segmented
-            options={[
-              { value: "color", label: "Color" },
-              { value: "grayscale", label: "Grayscale" },
-              { value: "legacy", label: "Legacy" },
-            ]}
-            value={$colorMode}
-            onChange={(v) => controller.setColorMode(v as ColorMode)}
-          />
+        <div>
+          <div class="settings-section-label">Editor</div>
+          <div class="settings-toggle-row">
+            <Segmented
+              options={[
+                { value: "full", label: "Full" },
+                { value: "wrap", label: "Wrap" },
+                { value: "reading", label: "Reading column" },
+              ]}
+              value={editorWidthMode}
+              onChange={setEditorWidth}
+            />
+          </div>
+          <div class="settings-hint">
+            Full keeps every line unwrapped — the monospace grid stays intact for tables and aligned columns. Wrap
+            breaks long lines to fit the window. Reading column also caps the text to a comfortable centred measure,
+            for a single prose-reading mode.
+          </div>
         </div>
-        <div class="settings-hint">
-          Legacy restores the pre-0.6 glyph colours — red open, amber deferred, green done.
-        </div>
-      </div>
-      <div>
-        <div class="settings-section-label">Editor</div>
-        <div class="settings-toggle-row">
-          <Segmented
-            options={[
-              { value: "full", label: "Full" },
-              { value: "wrap", label: "Wrap" },
-              { value: "reading", label: "Reading column" },
-            ]}
-            value={editorWidthMode}
-            onChange={setEditorWidth}
-          />
-        </div>
-        <div class="settings-hint">
-          Full keeps every line unwrapped — the monospace grid stays intact for tables and aligned columns. Wrap
-          breaks long lines to fit the window. Reading column also caps the text to a comfortable centred measure,
-          for a single prose-reading mode.
-        </div>
-      </div>
-      {#if $backendKind !== "web"}
+      {:else if activeSettingsTab === "calendar"}
+        {#if $backendKind !== "web"}
+          <div>
+            <div class="settings-section-label">Calendar</div>
+            <div class="settings-toggle-row">
+              <label class="toggle-switch">
+                <input
+                  type="checkbox"
+                  checked={$calendarSyncEnabled}
+                  on:change={(e) => controller.setCalendarSyncEnabled(e.currentTarget.checked)}
+                />
+                <span class="toggle-switch-track"></span>
+                Show "Sync calendar for this day"
+              </label>
+            </div>
+            <div class="settings-hint">
+              Reads meetings from a <code>.agenda.json</code> file in your notes folder — kept up to date by whatever
+              process you use to sync it, not by ChronoNote itself. Meetings are matched to sections by title — keep
+              section titles matching your calendar if you want re-syncing to find them. Two meetings with the exact
+              same title on the same day can't be told apart.
+            </div>
+            {#if $calendarSyncEnabled && !$agendaFileExists}
+              <div class="settings-hint" style="color: var(--state-error);">
+                No <code>.agenda.json</code> file found in this notes folder yet — the sync button stays grayed out
+                until one exists.
+              </div>
+            {/if}
+          </div>
+          <div>
+            <div class="settings-section-label">Notes Location</div>
+            <div class="settings-dir-row">
+              <div class="settings-dir-path">{$notesDir}</div>
+              <button class="icon-btn" on:click={controller.pickAndSwitchNotesDirectory}>Browse…</button>
+            </div>
+            <div class="settings-hint">
+              Changing this switches your whole workspace — open tabs close and everything reloads from the new
+              folder. Existing files are not moved.
+            </div>
+            {#if visibleRecentDirs.length > 0}
+              <div class="settings-recent-dirs">
+                {#each visibleRecentDirs as dir (dir)}
+                  <button class="settings-recent-dir" on:click={() => controller.switchToRecentDirectory(dir)}>
+                    {dir}
+                  </button>
+                {/each}
+              </div>
+            {/if}
+          </div>
+        {/if}
+        {#if $backendKind !== "demo"}
+          <div>
+            <div class="settings-section-label">Data</div>
+            <input
+              bind:this={fileInput}
+              type="file"
+              accept="application/json,.json"
+              style="display: none;"
+              on:change={onFileChosen}
+            />
+            <div class="settings-toggle-row" style="gap: 8px;">
+              <button class="icon-btn" disabled={exporting} on:click={handleExport}>
+                {exporting ? "Exporting…" : "Export all notes…"}
+              </button>
+              <button class="icon-btn" disabled={importing} on:click={pickImportFile}>
+                Import notes from a file…
+              </button>
+            </div>
+            {#if $backendKind === "web"}
+              <div class="settings-hint">
+                Your notes live in this browser only — clearing site data, a private window, or Safari's storage
+                limits can lose them. Export a backup now and then, or install the desktop app for notes that live on
+                your disk.
+              </div>
+            {:else}
+              <div class="settings-hint">
+                Import reads a ChronoNote export file (from the web app, or another install) and writes its notes in
+                here.
+              </div>
+            {/if}
+            {#if importError}
+              <div class="settings-hint" style="color: var(--state-error);">{importError}</div>
+            {/if}
+            {#if importPreview}
+              <div
+                class="settings-toggle-row"
+                style="margin-top: 8px; flex-direction: column; align-items: flex-start; gap: 8px;"
+              >
+                <span class="settings-inline-label">
+                  {importPreview.noteCount} note{importPreview.noteCount === 1 ? "" : "s"} in this file.
+                </span>
+                <Segmented
+                  options={[
+                    { value: "merge", label: "Merge (skip duplicates)" },
+                    { value: "replace", label: "Replace everything" },
+                  ]}
+                  value={importMode}
+                  onChange={(v) => (importMode = v as "merge" | "replace")}
+                />
+                {#if importMode === "replace"}
+                  <div class="settings-hint" style="color: var(--state-error); margin-top: 0;">
+                    This deletes every note currently here first — not reversible.
+                  </div>
+                {/if}
+                <div style="display: flex; gap: 8px;">
+                  <button class="icon-btn btn-primary" disabled={importing} on:click={confirmImport}>
+                    {importing ? "Importing…" : "Import"}
+                  </button>
+                  <button class="icon-btn" disabled={importing} on:click={cancelImport}>Cancel</button>
+                </div>
+              </div>
+            {/if}
+          </div>
+        {/if}
+      {:else if activeSettingsTab === "updates" && $backendKind !== "web"}
         <div>
           <div class="settings-section-label">Updates</div>
           <div class="settings-toggle-row">
@@ -193,87 +326,6 @@
               Check now
             </button>
           </div>
-        </div>
-        <div>
-          <div class="settings-section-label">Notes Location</div>
-          <div class="settings-dir-row">
-            <div class="settings-dir-path">{$notesDir}</div>
-            <button class="icon-btn" on:click={controller.pickAndSwitchNotesDirectory}>Browse…</button>
-          </div>
-          <div class="settings-hint">
-            Changing this switches your whole workspace — open tabs close and everything reloads from the new folder.
-            Existing files are not moved.
-          </div>
-          {#if visibleRecentDirs.length > 0}
-            <div class="settings-recent-dirs">
-              {#each visibleRecentDirs as dir (dir)}
-                <button class="settings-recent-dir" on:click={() => controller.switchToRecentDirectory(dir)}>
-                  {dir}
-                </button>
-              {/each}
-            </div>
-          {/if}
-        </div>
-      {/if}
-      {#if $backendKind !== "demo"}
-        <div>
-          <div class="settings-section-label">Data</div>
-          <input
-            bind:this={fileInput}
-            type="file"
-            accept="application/json,.json"
-            style="display: none;"
-            on:change={onFileChosen}
-          />
-          <div class="settings-toggle-row" style="gap: 8px;">
-            <button class="icon-btn" disabled={exporting} on:click={handleExport}>
-              {exporting ? "Exporting…" : "Export all notes…"}
-            </button>
-            <button class="icon-btn" disabled={importing} on:click={pickImportFile}>
-              Import notes from a file…
-            </button>
-          </div>
-          {#if $backendKind === "web"}
-            <div class="settings-hint">
-              Your notes live in this browser only — clearing site data, a private window, or Safari's storage
-              limits can lose them. Export a backup now and then, or install the desktop app for notes that live on
-              your disk.
-            </div>
-          {:else}
-            <div class="settings-hint">
-              Import reads a ChronoNote export file (from the web app, or another install) and writes its notes in
-              here.
-            </div>
-          {/if}
-          {#if importError}
-            <div class="settings-hint" style="color: var(--state-error);">{importError}</div>
-          {/if}
-          {#if importPreview}
-            <div class="settings-toggle-row" style="margin-top: 8px; flex-direction: column; align-items: flex-start; gap: 8px;">
-              <span class="settings-inline-label">
-                {importPreview.noteCount} note{importPreview.noteCount === 1 ? "" : "s"} in this file.
-              </span>
-              <Segmented
-                options={[
-                  { value: "merge", label: "Merge (skip duplicates)" },
-                  { value: "replace", label: "Replace everything" },
-                ]}
-                value={importMode}
-                onChange={(v) => (importMode = v as "merge" | "replace")}
-              />
-              {#if importMode === "replace"}
-                <div class="settings-hint" style="color: var(--state-error); margin-top: 0;">
-                  This deletes every note currently here first — not reversible.
-                </div>
-              {/if}
-              <div style="display: flex; gap: 8px;">
-                <button class="icon-btn btn-primary" disabled={importing} on:click={confirmImport}>
-                  {importing ? "Importing…" : "Import"}
-                </button>
-                <button class="icon-btn" disabled={importing} on:click={cancelImport}>Cancel</button>
-              </div>
-            </div>
-          {/if}
         </div>
       {/if}
     </div>

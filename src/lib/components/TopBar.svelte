@@ -31,11 +31,12 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import * as controller from "../controller";
-  import { activeTabId, backendKind, chromeExpanded, saveState, tabs } from "../controller";
+  import { activeTabId, agendaFileExists, backendKind, calendarSyncEnabled, chromeExpanded, saveState, tabs } from "../controller";
   import type { NoteTab } from "../types";
   import Icon from "../icons/Icon.svelte";
   import AppIcon from "./AppIcon.svelte";
   import { formatCombo, formatShortcut, shortcutById } from "../shortcuts";
+  import { todayISO } from "../date";
 
   // §merged-titlebar: the app icon, drag regions, and window-control
   // buttons only make sense when this frontend is actually running inside
@@ -57,7 +58,8 @@
   let showActionLabels = false;
   // #56: once even icon-only action buttons leave the tab strip too
   // little room, collapse the secondary ones (Actions/History/Search/
-  // Import/Promote/Settings) into a single "More" button —
+  // Sync calendar/Promote/Settings) into a single
+  // "More" button —
   // `MoreActionsModal`. New Scratchpad and Open Date Note stay pinned
   // regardless; see `settleLayout` for how this is decided. About moved
   // to the status bar (#58) — it's always reachable there regardless of
@@ -80,18 +82,30 @@
   let labelActionsEl: HTMLElement;
   let labelHistoryEl: HTMLElement;
   let labelSearchEl: HTMLElement;
-  let labelImportEl: HTMLElement;
+  let labelCalendarSyncEl: HTMLElement;
   let labelPromoteEl: HTMLElement;
   let labelSettingsEl: HTMLElement;
   let cloneActionsEl: HTMLElement;
   let cloneHistoryEl: HTMLElement;
   let cloneSearchEl: HTMLElement;
-  let cloneImportEl: HTMLElement;
+  let cloneCalendarSyncEl: HTMLElement;
   let clonePromoteEl: HTMLElement;
   let cloneSettingsEl: HTMLElement;
   let moreBtnEl: HTMLElement;
 
   $: activeTab = $tabs.find((t) => t.id === $activeTabId);
+  // The button itself only ever appears once turned on in Settings — an
+  // opt-in feature that reads an external file, not something to dangle
+  // in front of everyone by default. `.agenda.json` is a file in the
+  // desktop notes folder — the web app has no such folder (IndexedDB-
+  // backed, no filesystem) to read one from, so it's excluded regardless
+  // of the setting.
+  $: calendarSyncVisible = $calendarSyncEnabled && $backendKind !== "web";
+  // Grayed out (not hidden) rather than gated on visibility: today-or-
+  // later, same restriction every dated action shares, and the agenda
+  // file has to actually exist to be worth trying.
+  $: calendarSyncReady =
+    !!activeTab && !activeTab.isScratchpad && activeTab.filename.slice(0, 10) >= todayISO() && $agendaFileExists;
   $: displayTabs = controller.sortedTabsForDisplay($tabs);
 
   /** Waits for the next paint frame — used instead of Svelte's own `tick()`
@@ -219,9 +233,9 @@
         rectWidth(labelActionsEl) +
         rectWidth(labelHistoryEl) +
         rectWidth(labelSearchEl) +
-        rectWidth(labelImportEl) +
         rectWidth(labelSettingsEl) +
-        4 * ICON_LABEL_GAP;
+        3 * ICON_LABEL_GAP;
+      if (calendarSyncVisible) delta += rectWidth(labelCalendarSyncEl) + ICON_LABEL_GAP;
       if (activeTab?.isScratchpad) delta += rectWidth(labelPromoteEl) + ICON_LABEL_GAP;
     }
     return tabsContentWidth() <= tabBarEl.clientWidth - delta - FIT_MARGIN;
@@ -249,9 +263,9 @@
       [cloneActionsEl, labelActionsEl],
       [cloneHistoryEl, labelHistoryEl],
       [cloneSearchEl, labelSearchEl],
-      [cloneImportEl, labelImportEl],
       [cloneSettingsEl, labelSettingsEl],
     ];
+    if (calendarSyncVisible) rows.push([cloneCalendarSyncEl, labelCalendarSyncEl]);
     if (activeTab?.isScratchpad) rows.push([clonePromoteEl, labelPromoteEl]);
     let uncollapsedWidth = 0;
     for (const [clone, label] of rows) {
@@ -768,13 +782,20 @@
     >
       <Icon name="search" />{#if showActionLabels}<span class="icon-label">Search</span>{/if}
     </button>
-    <button
-      class="icon-btn"
-      title="Import Sections ({formatShortcut('importSections')})"
-      on:click={controller.openSectionImport}
-    >
-      <Icon name="import" />{#if showActionLabels}<span class="icon-label">Import</span>{/if}
-    </button>
+    {#if calendarSyncVisible}
+      <button
+        class="icon-btn"
+        title={calendarSyncReady
+          ? `Sync calendar for this day (${formatShortcut('syncCalendar')})`
+          : !$agendaFileExists
+            ? "No .agenda.json file found in your notes folder"
+            : "Only available for a note dated today or later"}
+        disabled={!calendarSyncReady}
+        on:click={controller.syncCalendarFromFile}
+      >
+        <Icon name="calendar-import" />{#if showActionLabels}<span class="icon-label">Sync calendar</span>{/if}
+      </button>
+    {/if}
     {#if activeTab?.isScratchpad}
       <button
         class="icon-btn"
@@ -830,7 +851,7 @@
     <span class="icon-label" bind:this={labelActionsEl}>Actions</span>
     <span class="icon-label" bind:this={labelHistoryEl}>Section history</span>
     <span class="icon-label" bind:this={labelSearchEl}>Search</span>
-    <span class="icon-label" bind:this={labelImportEl}>Import</span>
+    <span class="icon-label" bind:this={labelCalendarSyncEl}>Sync calendar</span>
     <span class="icon-label" bind:this={labelPromoteEl}>Promote</span>
     <span class="icon-label" bind:this={labelSettingsEl}>Settings</span>
   </div>
@@ -844,9 +865,11 @@
     <button class="icon-btn" bind:this={cloneSearchEl} tabindex="-1">
       <Icon name="search" />{#if showActionLabels}<span class="icon-label">Search</span>{/if}
     </button>
-    <button class="icon-btn" bind:this={cloneImportEl} tabindex="-1">
-      <Icon name="import" />{#if showActionLabels}<span class="icon-label">Import</span>{/if}
-    </button>
+    {#if calendarSyncVisible}
+      <button class="icon-btn" bind:this={cloneCalendarSyncEl} tabindex="-1">
+        <Icon name="calendar-import" />{#if showActionLabels}<span class="icon-label">Sync calendar</span>{/if}
+      </button>
+    {/if}
     {#if activeTab?.isScratchpad}
       <button class="icon-btn" bind:this={clonePromoteEl} tabindex="-1">
         <Icon name="promote" />{#if showActionLabels}<span class="icon-label">Promote</span>{/if}

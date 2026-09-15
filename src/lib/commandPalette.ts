@@ -11,7 +11,18 @@
  *   ?       hand off to the keyboard-shortcuts drawer
  */
 import { get } from "svelte/store";
-import { activeTabId, allNotesCache, colorMode, modal, readableLineLength, tabs, wordWrap } from "./stores";
+import {
+  activeTabId,
+  agendaFileExists,
+  allNotesCache,
+  backendKind,
+  calendarSyncEnabled,
+  colorMode,
+  modal,
+  readableLineLength,
+  tabs,
+  wordWrap,
+} from "./stores";
 import { sortFilenamesByRecency } from "./tabSort";
 import { refreshAllNotesCache } from "./persistence";
 import { openActionLineIndices, stripLeadingToken } from "./tokens";
@@ -29,7 +40,7 @@ import {
 import { openActionDrawer } from "./actions";
 import { openMeetingHistory } from "./history";
 import { openCrossTabSearch } from "./search";
-import { openSectionImport } from "./sectionImportActions";
+import { canSyncCalendarForActiveTab, syncCalendarFromFile } from "./calendarSyncActions";
 import { openAbout, openGlyphLegend, openSettings, openShortcutsHelp } from "./menu";
 import { setColorMode, setReadableLineLength, setWordWrap } from "./boot";
 import { checkForUpdates } from "./updates";
@@ -111,13 +122,20 @@ function commandItems(): PaletteItem[] {
       group: "Commands",
       run: openCrossTabSearch,
     },
-    {
-      id: "cmd-import",
-      label: "Import sections",
-      hint: formatShortcut("importSections"),
-      group: "Commands",
-      run: openSectionImport,
-    },
+    // Only listed at all once the feature's turned on in Settings, not
+    // available in the web app (no local file to read), and only runnable
+    // once the date and agenda-file-existence gates both pass.
+    ...(get(calendarSyncEnabled) && get(backendKind) !== "web" && canSyncCalendarForActiveTab() && get(agendaFileExists)
+      ? [
+          {
+            id: "cmd-sync-calendar",
+            label: "Sync calendar for this day",
+            hint: formatShortcut("syncCalendar"),
+            group: "Commands",
+            run: syncCalendarFromFile,
+          },
+        ]
+      : []),
     {
       id: "cmd-wrap",
       label: `${wrap ? "Disable" : "Enable"} word wrap`,

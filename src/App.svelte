@@ -13,7 +13,6 @@
   import HistoryModal from "./lib/components/modals/HistoryModal.svelte";
   import SearchModal from "./lib/components/modals/SearchModal.svelte";
   import SafetyModal from "./lib/components/modals/SafetyModal.svelte";
-  import SectionImportModal from "./lib/components/modals/SectionImportModal.svelte";
   import SettingsModal from "./lib/components/modals/SettingsModal.svelte";
   import ShortcutsModal from "./lib/components/modals/ShortcutsModal.svelte";
   import AboutModal from "./lib/components/modals/AboutModal.svelte";
@@ -21,6 +20,7 @@
   import ConflictModal from "./lib/components/modals/ConflictModal.svelte";
   import CommandPaletteModal from "./lib/components/modals/CommandPaletteModal.svelte";
   import MoreActionsModal from "./lib/components/modals/MoreActionsModal.svelte";
+  import CalendarSyncReviewModal from "./lib/components/modals/CalendarSyncReviewModal.svelte";
 
   let ready = false;
   let bootError = "";
@@ -56,7 +56,7 @@
       openActions: () => controller.openActionDrawer(),
       openHistory: () => controller.openMeetingHistory(),
       crossTabSearch: () => controller.openCrossTabSearch(),
-      importSections: () => controller.openSectionImport(),
+      syncCalendar: () => controller.syncCalendarFromFile(),
       openSettings: () => controller.openSettings(),
       openAbout: () => controller.openAbout(),
       openShortcutsHelp: () => controller.openShortcutsHelp(),
@@ -158,8 +158,6 @@
     <SearchModal />
   {:else if $modal === "safety"}
     <SafetyModal />
-  {:else if $modal === "sectionImport"}
-    <SectionImportModal />
   {:else if $modal === "settings"}
     <SettingsModal />
   {:else if $modal === "shortcuts"}
@@ -174,6 +172,8 @@
     <CommandPaletteModal />
   {:else if $modal === "topBarMore"}
     <MoreActionsModal />
+  {:else if $modal === "syncReview"}
+    <CalendarSyncReviewModal />
   {/if}
 {:else if bootError}
   <div class="boot-loading" role="alert">

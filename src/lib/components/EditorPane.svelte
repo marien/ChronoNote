@@ -8,7 +8,7 @@
   import { findNext, findPrevious, search, SearchCursor, SearchQuery, setSearchQuery } from "@codemirror/search";
   import { glyphAtomicRanges, liveGlyphs } from "../editor/glyphs";
   import { setextRule } from "../editor/setextRule";
-  import { underlineFor } from "../sectionImport";
+  import { underlineFor } from "../sectionFormat";
   import { actionLineEnter, adjacentOpenActionLine, cycleActionSymbol } from "../tokens";
   import * as controller from "../controller";
   import { findMatch, findOpen, readableLineLength, wordWrap } from "../controller";

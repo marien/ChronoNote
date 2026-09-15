@@ -1,6 +1,18 @@
 # Microsoft 365 calendar import — design
 
-Status: **design only, not yet implemented.** Written 2026-09-14 at
+Status: **superseded, 2026-09-15 — see `docs/CHANGELOG.md` §162.** The
+OAuth/Graph approach documented below was fully implemented on the
+`m365-reconciliation-engine` branch, then parked (an org's Entra admin
+consent requirement turned out to be a people problem, not a code one —
+see the branch's own commit history). Marien then asked to drop M365
+entirely in favor of reading a `.agenda.json` file from the notes folder,
+kept up to date by an external process — no OAuth, no Settings
+connection state, no network call. The reconciliation engine itself
+(§2.4 below) is unchanged and still the actual mechanism; only §2.1-§2.3's
+"where do the events come from" layer was replaced. Kept here for the
+history of why the reconciliation design looks the way it does.
+
+Status (original): **design only, not yet implemented.** Written 2026-09-14 at
 Marien's request, superseding the "Feature 3.2" sketch in
 `docs/design/maturity-0.7-roadmap.md` (that doc is closed/historical —
 its M365 section is kept for the auth/fetch groundwork, which this

@@ -1,3 +1,4 @@
+mod agenda;
 mod storage;
 
 use tauri::{AppHandle, Manager};
@@ -60,6 +61,14 @@ fn set_auto_check_updates(app: AppHandle, enabled: bool) -> Result<storage::AppC
 fn set_theme_mode(app: AppHandle, mode: storage::ThemeMode) -> Result<storage::AppConfig, String> {
     let mut cfg = storage::load_config(&app)?;
     cfg.theme_mode = mode;
+    storage::save_config(&app, &cfg)?;
+    Ok(cfg)
+}
+
+#[tauri::command]
+fn set_calendar_sync_enabled(app: AppHandle, enabled: bool) -> Result<storage::AppConfig, String> {
+    let mut cfg = storage::load_config(&app)?;
+    cfg.calendar_sync_enabled = enabled;
     storage::save_config(&app, &cfg)?;
     Ok(cfg)
 }
@@ -204,6 +213,7 @@ pub fn run() {
             set_readable_line_length,
             set_auto_check_updates,
             set_theme_mode,
+            set_calendar_sync_enabled,
             set_last_seen_version,
             list_note_files,
             read_note,
@@ -215,7 +225,9 @@ pub fn run() {
             read_tab_session,
             write_tab_session,
             import_notes_bundle,
-            path_exists
+            path_exists,
+            agenda::read_agenda_for_date,
+            agenda::agenda_file_exists
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -49,6 +49,10 @@ export function setThemeMode(mode: ThemeMode): Promise<AppConfig> {
   return invoke("set_theme_mode", { mode });
 }
 
+export function setCalendarSyncEnabled(enabled: boolean): Promise<AppConfig> {
+  return invoke("set_calendar_sync_enabled", { enabled });
+}
+
 export function setLastSeenVersion(version: string): Promise<AppConfig> {
   return invoke("set_last_seen_version", { version });
 }
@@ -131,4 +135,15 @@ export function getAppVersion(): Promise<string> {
  * rather than navigating the app's own webview to it. */
 export function openExternalUrl(url: string): Promise<void> {
   return openUrl(url);
+}
+
+/** Calendar sync (`.agenda.json`, see `src-tauri/src/agenda.rs`): already date-scoped, sorted, and
+ * de-duplicated titles from `.agenda.json` in the notes folder — see
+ * `src-tauri/src/agenda.rs`. */
+export function readAgendaForDate(date: string): Promise<string[]> {
+  return invoke("read_agenda_for_date", { date });
+}
+
+export function agendaFileExists(): Promise<boolean> {
+  return invoke("agenda_file_exists", {});
 }

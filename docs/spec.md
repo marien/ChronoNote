@@ -22,7 +22,7 @@ ChronoNote is a minimalist, keyboard-driven plain-text application engineered to
 1. **Zero Database / Pure Plain Text:** Persistence is 100% human-readable ASCII/UTF-8 `.txt` files (desktop) or an equivalent plain-record store (the web app's IndexedDB tier — see §7). No SQLite layer, no proprietary syntax markers, no YAML front-matter, and no persistent UUIDs injected into note bodies.
 2. **Tabular Monospace Grid Preservation:** Specialized tokens (`# `, `v `, `> `, `x `, `- `/`* `, `=> `, `! `) are visually replaced on screen using virtual presentation masking. Characters in memory match file bytes on disk; visual overlays occupy *exactly* the same typographic character width as the token they replace — forced via explicit CSS sizing rather than trusted to a glyph's natural rendered width, since a single Unicode symbol doesn't reliably occupy exactly one monospace cell in every font — so column alignments never break.
 3. **Fail-Safe Task Protection:** Tabs cannot be closed silently if unresolved tasks (`# `) exist, or if a scratchpad holds content that was never promoted — since scratchpads are never written to disk, closing one unwarned would destroy that content permanently. A multi-level "reopen closed tab" history is a second layer of recovery on top of that warning.
-4. **Manual Section Import:** Rather than an automated calendar sync, the user pastes freeform lines of text (e.g. copied from an email or agenda) into an import dialog (`Ctrl/Cmd+Shift+I`); each non-empty line becomes a new section header, appended to the end of the current note. Purely additive — it never touches or reconciles existing sections.
+4. **Calendar-Aware Sections:** A day's meetings become note sections automatically, from a `.agenda.json` file in the notes folder kept up to date by whatever external process the user syncs their real calendar with ("Sync calendar for this day," opt-in — see §3.4) — a reconciliation engine matches existing sections to the day's agenda by title, reorders/creates sections to match, and reviews (rather than silently drops) any section whose meeting is no longer on the agenda. An earlier manual "Sync from a list…" paste entry point into the same engine was dropped once the automatic file-based sync covered the case it existed for.
 5. **One Frontend, Three Backends:** The entire UI above the storage layer is backend-agnostic — every interaction goes through one typed command surface (`TauriCommands`), never a direct Rust/IPC call. Three implementations of that surface exist (real Tauri IPC, an IndexedDB-backed web app, and an in-memory mock for the demo and test suite), so the same Svelte components, editor, and controller logic run unmodified across all of them — see §7.
 6. **Platform-Correct Shortcuts, Not Platform-Specific Code:** Every keyboard shortcut is `Ctrl` on Windows/Linux and `Cmd` on macOS, resolved from one shared registry rather than duplicated per platform — see §4.
 
@@ -132,7 +132,8 @@ controls, no drag regions.
 
 The top bar hosts the tab strip and a row of action buttons (New
 Scratchpad, Open Date Note, Actions, Section History, Cross-Tab Search,
-Import Sections, Promote-scratchpad when applicable, Settings) as
+Sync Calendar for This Day (only once turned on in Settings — see §3.4),
+Promote-scratchpad when applicable, Settings) as
 fixed-width siblings of the scrollable tab strip, not inside it. Tabs
 stay ordered chronologically (earliest to latest, left to right), with
 scratchpads always after every dated tab; the strip auto-scrolls to keep
@@ -177,7 +178,11 @@ window width instead of competing with the tab strip for room), and the
 
 ### 3.4 Settings
 
-Settings (`Ctrl/Cmd+,`) groups independent controls:
+Settings (`Ctrl/Cmd+,`) is a tabbed dialog — Appearance & Editor /
+Calendar, Notes & Data / Updates (the last dropped entirely in the web
+app, where nothing in it applies) — grouping independent controls:
+
+**Appearance & Editor**
 - **Theme:** Light / Dark / System for the app's own chrome (System
   follows the OS setting and is the default).
 - **Glyph palette:** Color / Grayscale / Legacy — a three-way choice
@@ -191,6 +196,15 @@ Settings (`Ctrl/Cmd+,`) groups independent controls:
   unwrapped (for tables and aligned columns), Wrap breaks long lines to
   fit the window, Reading column additionally caps the text to a
   comfortable centred measure.
+
+**Calendar, Notes & Data**
+- **Calendar** (desktop only): a single opt-in toggle, "Show 'Sync
+  calendar for this day'" (off by default) — the top-bar/More-actions/
+  command-palette button for it doesn't exist at all until turned on.
+  Once shown, the button is grayed out (not hidden) rather than removed
+  whenever `.agenda.json` doesn't exist in the notes folder yet, or the
+  active tab isn't dated today or later. See §5 for what it does once
+  enabled and ready.
 - **Notes folder** (desktop only): changeable via a native "Browse…"
   dialog, or from up to 5 recently-used folders listed inline with no
   dialog needed. Switching folders is treated as switching
@@ -200,9 +214,10 @@ Settings (`Ctrl/Cmd+,`) groups independent controls:
 - **Data (export/import)**, shown identically on the desktop app and the
   web app: exports every note as a single bundle file, and imports one
   back in with merge-skip-duplicates semantics — see §7.3.
-- **Updates** (desktop only — nothing to check for in the web app, where
-  a page reload always serves the latest deployed version): an
-  auto-check-on-launch toggle (on by default) and a "Check now" button.
+
+**Updates** (desktop only — nothing to check for in the web app, where
+a page reload always serves the latest deployed version): an
+auto-check-on-launch toggle (on by default) and a "Check now" button.
 
 ### 3.5 Launch Behavior
 
@@ -246,7 +261,7 @@ snapshot for reference, not the source of truth.
 | Section history | `Ctrl+Shift+H` | `Cmd+Shift+H` |
 | Find in this note | `Ctrl+F` | `Cmd+F` |
 | Cross-tab search | `Ctrl+Shift+F` | `Cmd+Shift+F` |
-| Import sections | `Ctrl+Shift+I` | `Cmd+Shift+I` |
+| Sync calendar for this day | `Ctrl+Shift+C` | `Cmd+Shift+C` |
 | Settings | `Ctrl+,` | `Cmd+,` |
 | About ChronoNote | `Ctrl+Shift+,` | `Cmd+Shift+,` |
 | Shortcuts & Symbols drawer | `Ctrl+/` / `Ctrl+Shift+/` | `Cmd+/` / `Cmd+Shift+/` |
@@ -316,11 +331,18 @@ reachable from the top bar, a shortcut, or the command palette:
 - **Cross-Tab Search** (`Ctrl/Cmd+Shift+F`) — full-text search across
   either the open tabs or every file, same open-tabs/all-files toggle as
   the Action Drawer, results glyph-rendered like the drawer's own rows.
-- **Import Sections** (`Ctrl/Cmd+Shift+I`) — paste freeform lines; each
-  becomes a new Setext-header section, appended to the active note (see
-  tenet 1.4). If the drawer is closed without importing, the unsubmitted
-  text is remembered in memory (cleared on a notes-folder switch) and
-  offered back, pre-filled and selected, next time it opens.
+- **Sync Calendar for This Day** (`Ctrl/Cmd+Shift+C`, see tenet 4) — an
+  opt-in feature (Settings → Calendar, §3.4; hidden entirely until turned
+  on) that reads a `.agenda.json` file in the notes folder (desktop only —
+  kept up to date by whatever external process syncs the user's real
+  calendar, not by ChronoNote) and reconciles it against the active tab's
+  note. Only offered on a dated tab whose date is today or later, and
+  grayed out until `.agenda.json` actually exists. The result goes to a
+  review step —
+  a checklist for new meetings, and a Leave-flagged/Discard/Move-to-
+  another-day choice for any existing section whose meeting is no
+  longer on the agenda but still has content — before anything is
+  written.
 - **Shortcuts & Symbols** (`Ctrl/Cmd+/` or `Ctrl/Cmd+Shift+/`) — the
   keyboard shortcut table (§4) and the token→glyph vocabulary (§2.2)
   side by side in two independently-scrollable columns. Each column
@@ -472,9 +494,6 @@ Full detail on running and extending each layer lives in the project's
 
 ## Out of Scope / Not Yet Built
 
-- **Microsoft 365 calendar import** — proposed for a future 0.8.0
-  release (`docs/design/webapp-roadmap.md`'s sibling roadmap document);
-  additive-only per the current design intent, not started.
 - **`rainbow` colour mode** — an early proposal superseded by the
   shipped Color/Grayscale/Legacy three-way palette (§3.4).
 - **Native (`tauri-driver`) end-to-end tests** — the Playwright suite

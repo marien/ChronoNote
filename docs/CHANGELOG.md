@@ -6,7 +6,7 @@ kept for the rationale behind each one — not just *what* changed but
 was still being gathered and confirmed before implementation; renamed once
 everything below was applied, since nothing here is "pending" anymore.
 
-**Status: all sections through §161 implemented and released.** §153 is a
+**Status: all sections through §163 implemented and released.** §153 is a
 website-only Guide-page fix (found live right after §150–§152 shipped
 as v0.7.12) — no version bump, nothing in the shipped app changed. §154
 merges the OS title bar into the top bar (Notepad-style: icon, tabs,
@@ -6963,3 +6963,121 @@ across the whole range.
 `svelte-check` 215/0, Vitest 304/304 (unchanged — pure frontend/CSS,
 no unit-testable logic beyond what §160's tests already cover), Playwright
 201/201 (+1), `cargo test` 47/47 (unchanged).
+
+## 162. Calendar sync via a local `.agenda.json` file (v0.9.0)
+
+**Status: fixed, released in v0.9.0.**
+
+Marien: "I want to start working on updating sections based on my
+Microsoft 365 calendar... Can you come up with a design?" — the full
+design (`docs/design/m365-calendar-import-roadmap.md`) specified Entra
+ID OAuth2+PKCE via the system browser, a Graph `calendarView` fetch, and
+a reconciliation mechanism worked out directly with Marien: a section
+"belongs" to an agenda item if its title matches; the calendar block is
+the contiguous span of sections currently matching *some* item in the
+day's agenda, re-derived fresh on every sync with no persisted memory
+of past syncs. Matched sections keep their content and get reordered to
+the agenda's current order; unmatched agenda items become new empty
+sections; sections that no longer match are removed outright if empty,
+or — if they have content — surfaced in a review step for move-to-
+another-day / discard / leave-flagged (reusing the `[CANCELED]` prefix
+`normalizeHeaderTitle()` already strips).
+
+The OAuth side was fully built (Entra OAuth2+PKCE, a `tiny_http`
+loopback listener, refresh token in the OS keychain, Settings UI for a
+client-ID/tenant override) and tested against a real beta build, but
+hit a real, unresolvable blocker: Marien's organization requires Entra
+admin consent for the app's requested Graph scopes, which Marien
+decided not to request. Rather than abandon the reconciliation work —
+the genuinely novel, hard part — Marien proposed a different source:
+"I have thought of a different approach for syncing with a calendar.
+Let's drop all the support and references to M365. The calendar
+information will instead come for a file called .agenda.json that is
+located in the Notes folder," with the exact JSON schema and rules
+specified directly (an array of `{date, start, end, title}` objects;
+sort by date/start; de-duplicate exact-duplicate entries but keep
+same-title entries at different times as separate meetings; on a typo
+in the original spec, corrected the same day — a missing, blank, or
+`[]` agenda file is an error, not a valid empty calendar, since none of
+those states are ever produced by a genuine successful sync).
+
+This replaced only the "where do the events come from" layer — the
+reconciliation engine and its review UI (`calendarReconcile.ts`,
+`CalendarSyncReviewModal.svelte`) are exactly the design above,
+unchanged, since they only ever consumed a plain `string[]` of agenda
+titles. Removed entirely: `src-tauri/src/m365.rs` and 7 Cargo
+dependencies (`reqwest`, `keyring`, `tiny_http`, `base64`, `rand`,
+`url`, `iana-time-zone`). Added: `src-tauri/src/agenda.rs::
+read_agenda_for_date`, which reads `.agenda.json` from the notes
+folder, scopes to the requested date, sorts, de-duplicates, and errors
+on anything that isn't a genuine non-empty array of well-formed
+meetings — a day within a *valid* file that simply has no entries is a
+legitimate empty result, not an error; only the whole file being empty
+or invalid is rejected. A separate `agenda_file_exists` command (a
+cheap existence check, deliberately not the fuller validation) backs
+the button's gray-out state.
+
+The originally-paired manual "Sync from a list…" paste entry point was
+dropped once the file-based sync covered the case it existed for
+("Marien: I am not sure this will work right away on my organization,
+so I want a way to enter the sync flow... by providing a list" — the
+de-risking that motivated it in the first place). "Sync calendar for
+this day" is opt-in (a new `AppConfig.calendarSyncEnabled`, off by
+default — Marien: "make having that sync button a Setting that only
+shows up when turned on"), grayed out rather than removed when
+`.agenda.json` doesn't exist yet or the active tab isn't dated today or
+later, and bound to a new `Ctrl/Cmd+Shift+C` shortcut through the
+shared `shortcuts.ts` registry.
+
+Two real bugs found via hands-on testing on Marien's real agenda data,
+neither caught by the original test suite: (1) unchecking a meeting in
+the review step silently did nothing when its title had stray
+whitespace — `confirmCalendarSync`'s exclusion filter compared the
+*trimmed* checkbox title against the *raw, untrimmed* stored title, so
+the match never fired; fixed by trimming once, at the source, in
+`openCalendarSyncReview`. (2) a disabled `.icon-btn`/`.more-actions-item`
+never actually looked disabled — neither class had ever had a
+`:disabled` rule, and the toolbar icons theme with `currentColor`, so a
+grayed-out button was pixel-identical to an enabled one; fixed with an
+explicit dimmed `:disabled` style, which also fixed the same
+long-standing gap on Settings' Export/Import buttons.
+
+Also fixed a regression the "Sync from a list" removal itself
+introduced: the #61-era top-bar collapse-width prediction functions
+(`predictLabelsWouldFit`/`predictUncollapseWouldFit`) had that now-
+deleted button hardcoded into their off-screen measurement clones —
+caught by re-running the existing Playwright suite, not by inspection.
+
+Desktop/demo only — the web app has no local notes folder to read
+`.agenda.json` from, so the button (and the Settings toggle for it)
+never appear there.
+
+`svelte-check` 217/0, Vitest 318/318, Playwright 207/207, `cargo test`
+57/57.
+
+## 163. Settings modal is now tabbed
+
+**Status: fixed, released in v0.9.0.**
+
+Marien, while asking for the calendar-sync changes above: "While you
+are modifying the Settings drawer, look into making it a tabbed
+interface for 1) Appearance and Editor, and 2) Calendar, Notes and
+Data, and 3) Updates." Settings had grown into one long scrolling list
+(Appearance, Editor, Updates, Calendar, Notes Location, Data) across
+several earlier sections (§99–§110, §141, §159); split into three tabs
+matching Marien's own grouping, using the existing `Segmented` component
+as the tab switcher rather than inventing new tab UI. "Updates" is
+dropped from the tab list entirely on the web app, where nothing in it
+applies (same gate the section itself already used). Not persisted
+across opens — always starts on "Appearance & Editor," same as any
+other freshly-opened modal.
+
+Six existing Playwright specs needed updates for controls that moved
+behind a tab that isn't the default one (`settings.spec.ts`'s directory-
+switching and height-cap tests, `status-bar.spec.ts`'s and
+`update-check.spec.ts`'s "Check now" interactions) — each now clicks the
+relevant tab before touching a control it used to find directly on the
+single unscrolled list.
+
+`svelte-check` 217/0, Vitest 318/318, Playwright 207/207, `cargo test`
+57/57 (unchanged — pure frontend).

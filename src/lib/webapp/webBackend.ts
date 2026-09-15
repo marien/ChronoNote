@@ -59,6 +59,7 @@ interface StoredConfig {
   readableLineLength: boolean;
   autoCheckUpdates: boolean;
   lastSeenVersion: string | null;
+  calendarSyncEnabled: boolean;
 }
 
 async function sha256Hex(text: string): Promise<string> {
@@ -122,6 +123,7 @@ export class WebBackend {
         readableLineLength: false,
         autoCheckUpdates: true,
         lastSeenVersion: null,
+        calendarSyncEnabled: false,
       }
     );
   }
@@ -141,6 +143,7 @@ export class WebBackend {
       recentNotesDirs: [],
       autoCheckUpdates: cfg.autoCheckUpdates,
       lastSeenVersion: cfg.lastSeenVersion,
+      calendarSyncEnabled: cfg.calendarSyncEnabled,
     };
   }
 
@@ -170,6 +173,17 @@ export class WebBackend {
     set_theme_mode: async ({ mode }) => {
       const cfg = await this.loadConfig();
       cfg.themeMode = mode;
+      await this.saveConfig(cfg);
+      return this.toAppConfig(cfg);
+    },
+
+    // Calendar sync is desktop/demo-only (no local filesystem to read
+    // `.agenda.json` from in the browser) — the Settings Calendar section
+    // is already hidden on web, so this is never actually called, but
+    // kept fully functional rather than a no-op/throw for consistency.
+    set_calendar_sync_enabled: async ({ enabled }) => {
+      const cfg = await this.loadConfig();
+      cfg.calendarSyncEnabled = enabled;
       await this.saveConfig(cfg);
       return this.toAppConfig(cfg);
     },
@@ -298,6 +312,16 @@ export class WebBackend {
       }
       return { imported, skipped };
     },
+
+    // `.agenda.json` is a file in the desktop app's notes folder — the web
+    // app has no such folder (IndexedDB-backed, no filesystem), so the
+    // "Sync calendar for this day" action is hidden there entirely
+    // (`TopBar.svelte`/`MoreActionsModal.svelte` gate on `backendKind !==
+    // "web"`). This is never actually called from the UI as a result;
+    // an empty calendar rather than a thrown error just in case, matching
+    // how a desktop install with no `.agenda.json` file yet behaves.
+    read_agenda_for_date: () => [],
+    agenda_file_exists: () => false,
   };
 
   /** Erases everything (`notes`, `conflicts`, `config`, `session`) — the

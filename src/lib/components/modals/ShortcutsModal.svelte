@@ -33,7 +33,7 @@
     "openHistory",
     "findInNote",
     "crossTabSearch",
-    "importSections",
+    "syncCalendar",
     "openSettings",
     "openAbout",
     "openShortcutsHelp",

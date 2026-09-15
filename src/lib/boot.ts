@@ -14,6 +14,7 @@ import {
   appVersion,
   autoCheckUpdates,
   backendKind,
+  calendarSyncEnabled,
   chromeExpanded,
   colorMode,
   justUpdatedToVersion,
@@ -35,6 +36,7 @@ import {
 } from "./stores";
 import { flushAllPendingSaves, recomputeSaveState } from "./persistence";
 import { checkActiveTabForDrift } from "./drift";
+import { refreshAgendaFileExists } from "./calendarSyncActions";
 import { checkForUpdatesOnLaunch } from "./updates";
 import type { ColorMode, NoteTab, ThemeMode } from "./types";
 
@@ -149,7 +151,14 @@ function wireDriftDetection() {
   });
   getCurrentWindow()
     .onFocusChanged(({ payload: focused }) => {
-      if (focused) void checkActiveTabForDrift();
+      if (!focused) return;
+      void checkActiveTabForDrift();
+      // Same "regained focus" moment covers the sync button's gray-out
+      // state too — `.agenda.json` is written by an external process,
+      // which realistically only happens while ChronoNote itself is
+      // unfocused. Skip the check entirely when the feature's off or
+      // unavailable, rather than a wasted read every single focus.
+      if (get(calendarSyncEnabled) && get(backendKind) !== "web") void refreshAgendaFileExists();
     })
     .catch(() => {
       // No window handle — focus trigger just isn't active here.
@@ -316,6 +325,8 @@ export async function initApp() {
   readableLineLength.set(cfg.readableLineLength);
   wordWrap.set(cfg.wordWrap || cfg.readableLineLength);
   autoCheckUpdates.set(cfg.autoCheckUpdates);
+  calendarSyncEnabled.set(cfg.calendarSyncEnabled);
+  if (cfg.calendarSyncEnabled && get(backendKind) !== "web") void refreshAgendaFileExists();
   await restoreOrBootstrapTabs();
   tabs.subscribe(() => scheduleTabSessionSave());
   activeTabId.subscribe(() => scheduleTabSessionSave());
@@ -409,5 +420,17 @@ export async function setAutoCheckUpdates(enabled: boolean) {
     await api.setAutoCheckUpdates(enabled);
   } catch {
     showToast("Failed to save update-check preference");
+  }
+}
+
+export async function setCalendarSyncEnabled(enabled: boolean) {
+  calendarSyncEnabled.set(enabled);
+  // Turning it on shouldn't show a stale/default "gray" state until the
+  // next window-focus check happens to fire — check right away.
+  if (enabled) void refreshAgendaFileExists();
+  try {
+    await api.setCalendarSyncEnabled(enabled);
+  } catch {
+    showToast("Failed to save calendar-sync preference");
   }
 }

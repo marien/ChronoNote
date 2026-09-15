@@ -183,13 +183,13 @@ export const MODAL_LABELS = {
   history: "Section history",
   search: "Cross-tab search",
   safety: "Unresolved actions warning",
-  sectionImport: "Import sections",
   settings: "Settings",
   shortcuts: "Keyboard shortcuts",
   about: "About ChronoNote",
   unsavedScratchpads: "Unsaved scratchpad content",
   conflict: "Note changed on disk",
   commandPalette: "Command palette",
+  syncReview: "Sync review",
 } as const;
 
 export type ModalKey = keyof typeof MODAL_LABELS;

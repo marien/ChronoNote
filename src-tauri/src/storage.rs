@@ -89,6 +89,14 @@ pub struct AppConfig {
     /// just recorded as seen.
     #[serde(default)]
     pub last_seen_version: Option<String>,
+    /// Calendar sync's "Sync calendar for this day" button is opt-in and
+    /// hidden entirely until turned on here — the feature reads an
+    /// external file (`.agenda.json`) the user has to set up a separate
+    /// process to maintain, so showing it unconditionally would just be a
+    /// dead button for anyone who hasn't done that. `#[serde(default)]`
+    /// (`false`) for every config written before this field existed.
+    #[serde(default)]
+    pub calendar_sync_enabled: bool,
 }
 
 fn default_true() -> bool {
@@ -306,6 +314,7 @@ fn load_config_at(path: &Path, default_notes_dir: &Path) -> Result<AppConfig, St
         recent_notes_dirs: Vec::new(),
         auto_check_updates: true,
         last_seen_version: None,
+        calendar_sync_enabled: false,
     };
     save_config_at(path, &cfg)?;
     Ok(cfg)
@@ -870,6 +879,7 @@ mod tests {
             recent_notes_dirs: vec!["/old1".to_string(), "/old2".to_string()],
             auto_check_updates: false,
             last_seen_version: Some("0.7.4".to_string()),
+            calendar_sync_enabled: false,
         };
         save_config_at(&path, &cfg).unwrap();
         let loaded = load_config_at(&path, &dir.path().join("Notes")).unwrap();
@@ -898,6 +908,7 @@ mod tests {
             recent_notes_dirs: vec![],
             auto_check_updates: true,
             last_seen_version: None,
+            calendar_sync_enabled: false,
         };
         save_config_at(&path, &cfg).unwrap();
         let on_disk = fs::read_to_string(&path).unwrap();
@@ -927,6 +938,7 @@ mod tests {
                 recent_notes_dirs: vec![],
                 auto_check_updates: true,
                 last_seen_version: None,
+                calendar_sync_enabled: false,
             };
             save_config_at(&path, &cfg).unwrap();
             let on_disk = fs::read_to_string(&path).unwrap();

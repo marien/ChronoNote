@@ -2,10 +2,11 @@
   import { get } from "svelte/store";
   import { onMount } from "svelte";
   import * as controller from "../../controller";
-  import { activeTabId, tabs } from "../../controller";
+  import { activeTabId, agendaFileExists, backendKind, calendarSyncEnabled, tabs } from "../../controller";
   import { focusTrap } from "../../actions/focusTrap";
   import Icon from "../../icons/Icon.svelte";
   import { formatShortcut } from "../../shortcuts";
+  import { todayISO } from "../../date";
 
   /** #56: the top bar collapses its secondary action buttons into this
    * popover once the window is too narrow for all of them (see
@@ -20,6 +21,9 @@
   let anchorStyle = "visibility:hidden"; // until measured against the trigger
 
   $: activeTab = $tabs.find((t) => t.id === $activeTabId);
+  $: calendarSyncVisible = $calendarSyncEnabled && $backendKind !== "web";
+  $: calendarSyncReady =
+    !!activeTab && !activeTab.isScratchpad && activeTab.filename.slice(0, 10) >= todayISO() && $agendaFileExists;
 
   function positionUnderTrigger() {
     const trigger = document.querySelector<HTMLElement>("[data-more-trigger]");
@@ -67,10 +71,23 @@
     <Icon name="search" size={14} /><span>Cross-tab search</span>
     <kbd>{formatShortcut("crossTabSearch")}</kbd>
   </button>
-  <button type="button" class="more-actions-item" role="menuitem" on:click={controller.openSectionImport}>
-    <Icon name="import" size={14} /><span>Import sections</span>
-    <kbd>{formatShortcut("importSections")}</kbd>
-  </button>
+  {#if calendarSyncVisible}
+    <button
+      type="button"
+      class="more-actions-item"
+      role="menuitem"
+      disabled={!calendarSyncReady}
+      title={calendarSyncReady
+        ? ""
+        : !$agendaFileExists
+          ? "No .agenda.json file found in your notes folder"
+          : "Only available for a note dated today or later"}
+      on:click={controller.syncCalendarFromFile}
+    >
+      <Icon name="calendar-import" size={14} /><span>Sync calendar for this day</span>
+      <kbd>{formatShortcut("syncCalendar")}</kbd>
+    </button>
+  {/if}
   {#if activeTab?.isScratchpad}
     <button type="button" class="more-actions-item" role="menuitem" on:click={promote}>
       <Icon name="promote" size={14} /><span>Promote into today's note</span>

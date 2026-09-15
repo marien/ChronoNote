@@ -10,6 +10,7 @@
  * all — see `status-bar.spec.ts` for its coverage. */
 import { test, expect } from "@playwright/test";
 import { seedApp, modalCard, MODAL_LABELS, typeInEditor, editor } from "./helpers";
+import { scenario } from "../../src/lib/testing/scenarios";
 
 test.describe("top bar: collapsing secondary buttons on a narrow window (#56)", () => {
   test("wide window: every action button is visible individually, no More button", async ({ page }) => {
@@ -41,7 +42,7 @@ test.describe("top bar: collapsing secondary buttons on a narrow window (#56)", 
   test("More actions lists every collapsed action with its shortcut, and running one closes the popover", async ({
     page,
   }) => {
-    await seedApp(page, { seed: "busy-week" });
+    await seedApp(page, { seed: { ...scenario("busy-week"), calendarSyncEnabled: true } });
     await page.setViewportSize({ width: 480, height: 720 });
     await page.getByTitle("More actions").click();
 
@@ -50,7 +51,7 @@ test.describe("top bar: collapsing secondary buttons on a narrow window (#56)", 
     await expect(menu.getByRole("menuitem", { name: /Actions.*Ctrl\+Shift\+A/s })).toBeVisible();
     await expect(menu.getByRole("menuitem", { name: /Section history.*Ctrl\+Shift\+H/s })).toBeVisible();
     await expect(menu.getByRole("menuitem", { name: /Cross-tab search.*Ctrl\+Shift\+F/s })).toBeVisible();
-    await expect(menu.getByRole("menuitem", { name: /Import sections.*Ctrl\+Shift\+I/s })).toBeVisible();
+    await expect(menu.getByRole("menuitem", { name: /Sync calendar for this day.*Ctrl\+Shift\+C/s })).toBeVisible();
     await expect(menu.getByRole("menuitem", { name: /^Settings/ })).toBeVisible();
     await expect(menu.getByRole("menuitem", { name: /About ChronoNote/ })).toHaveCount(0);
 
@@ -123,7 +124,7 @@ test.describe("top bar: collapsing secondary buttons on a narrow window (#56)", 
 test.describe("top bar: label/collapse state doesn't depend on window-maximized state, and doesn't flicker while typing (#57)", () => {
   test("a wide-enough restored window shows action-button labels, purely from available width", async ({ page }) => {
     await seedApp(page, { seed: "busy-week" });
-    await page.setViewportSize({ width: 1600, height: 720 });
+    await page.setViewportSize({ width: 2000, height: 720 });
 
     await expect(page.locator(".icon-label")).not.toHaveCount(0);
     await expect(page.getByTitle(/^Actions /)).toContainText("Actions");
@@ -178,7 +179,7 @@ test.describe("top bar: label/collapse state doesn't depend on window-maximized 
 
   test("typing doesn't touch the top bar at all, in the labeled tier", async ({ page }) => {
     await seedApp(page, { seed: "busy-week" });
-    await page.setViewportSize({ width: 1600, height: 720 });
+    await page.setViewportSize({ width: 2000, height: 720 });
     await expect(page.locator(".icon-label")).not.toHaveCount(0);
 
     expect(await countTopBarMutationsWhileTyping(page)).toBe(0);

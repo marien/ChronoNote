@@ -61,7 +61,6 @@ test.describe("visual — state gallery", () => {
       ["ControlOrMeta+o", "date"],
       ["ControlOrMeta+Shift+a", "actions"],
       ["ControlOrMeta+Shift+f", "search"],
-      ["ControlOrMeta+Shift+i", "sectionImport"],
       ["ControlOrMeta+Comma", "settings"],
       ["ControlOrMeta+Slash", "shortcuts"],
       ["ControlOrMeta+Shift+Comma", "about"],

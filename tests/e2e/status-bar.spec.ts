@@ -180,6 +180,7 @@ test.describe("status bar — three zones (§100/§110)", () => {
       window.__CHRONO_MOCK__!.updateCheckVersion = "9.9.9";
     });
     await page.keyboard.press("ControlOrMeta+Comma");
+    await page.getByRole("radio", { name: "Updates", exact: true }).click();
     await page.getByRole("button", { name: "Check now" }).click();
     await page.getByRole("button", { name: "Close", exact: true }).click();
 

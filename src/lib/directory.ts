@@ -13,6 +13,7 @@ import {
   actionSnapshot,
   activeTabId,
   allNotesCache,
+  calendarSyncEnabled,
   clearAllEditorViewState,
   clearAllTabCleanHashes,
   conflictInfo,
@@ -32,7 +33,7 @@ import {
 } from "./stores";
 import { flushSave, invalidateDiskNotesCache } from "./persistence";
 import { restoreOrBootstrapTabs } from "./boot";
-import { clearImportDraft } from "./sectionImportActions";
+import { refreshAgendaFileExists } from "./calendarSyncActions";
 
 /** Shared by the Browse dialog and by picking a recent folder directly
  * (§39) — both need the same unsaved-scratchpad safety gate before a
@@ -85,7 +86,6 @@ async function performDirectorySwitch(path: string) {
   notesDir.set(cfg.notesDir);
   recentNotesDirs.set(cfg.recentNotesDirs);
 
-  clearImportDraft();
   invalidateDiskNotesCache();
   allNotesCache.set({});
   actionSnapshot.set([]);
@@ -101,6 +101,9 @@ async function performDirectorySwitch(path: string) {
   clearAllTabCleanHashes();
 
   await restoreOrBootstrapTabs();
+  // `.agenda.json` lives in the notes folder itself — a switch can move
+  // from a folder that has one to one that doesn't (or vice versa).
+  if (get(calendarSyncEnabled)) void refreshAgendaFileExists();
   modal.set("none");
   showToast(`Switched notes directory to ${path}`);
 }

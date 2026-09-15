@@ -21,14 +21,38 @@ firsthand; nothing here is reachable from the automated test suite.
 **[`maturity-0.7-roadmap.md`](maturity-0.7-roadmap.md)** — the plan for the
 maturity release: a full UX/UI consistency review (findings A–L), the
 iconography direction, and design specs for two proposed features (GitHub
-update check; Microsoft 365 calendar import). Pitched 2026‑09‑11, awaiting
-Marien's sign‑off — nothing here is committed to a release yet.
+update check; Microsoft 365 calendar import). Pitched 2026‑09‑11.
+
+**Implemented and released, 2026-09-11 to 2026-09-15.** The UX/UI review
+and icon set shipped as v0.7.0 (§127); the GitHub update check as v0.7.1
+(§128). The Microsoft 365 calendar import sketched here was superseded
+by a completely different design before it shipped — see the next entry.
 
 **[`icon-system-0.7.html`](icon-system-0.7.html)** — the icon proposals
 that go with it: three directions (A Ruled / B Cell / C Marks) for one
 monoline SVG set replacing the emoji toolbar and modal headers, shown at
 real render sizes in both glyph colour modes. Open in a browser. Distinct
 from `icon-proposals.html` below, which is the older *app‑icon* study.
+
+## Calendar sync
+
+**[`m365-calendar-import-roadmap.md`](m365-calendar-import-roadmap.md)** —
+pitched 2026-09-14: a Microsoft 365 calendar import via Entra OAuth2+PKCE
+and Microsoft Graph. The reconciliation mechanism (§2.4 — title-matched
+sections, reordered/created/removed-or-flagged, no sidecar file or ID) was
+worked out directly with Marien and is the genuinely novel, load-bearing
+part of the design.
+
+**Superseded, 2026-09-15 (§162 in `docs/CHANGELOG.md`)** — the OAuth side
+was fully built and beta-tested, then hit a real, unresolvable blocker
+(the org's Entra admin consent requirement) and was parked. Marien then
+asked for a completely different event source: a `.agenda.json` file in
+the notes folder, kept up to date by an external process, with no OAuth,
+no network call, and no Settings connection state at all. The
+reconciliation engine described here carried over unchanged — only
+§2.1–§2.3's "where do the events come from" layer was replaced. Shipped
+as part of v0.9.0. The OAuth implementation itself never merged to
+`main`; it lived and died on the `m365-reconciliation-engine` branch.
 
 ## App icon
 

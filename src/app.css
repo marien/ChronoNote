@@ -504,6 +504,21 @@ body {
   background: var(--surface-raised);
   border-color: var(--edge-strong);
 }
+/* A disabled `.icon-btn` (the calendar-sync button waiting on
+   `.agenda.json`/a qualifying date, Settings' Export/Import mid-flight)
+   otherwise looks completely indistinguishable from an enabled one —
+   `color`/`background` never respond to `:disabled` on their own, and
+   the SVG icons theme with `currentColor` so they'd stay full-strength
+   too. Dimmed + no pointer/hover feedback, so "grayed out" actually
+   reads as grayed out. */
+.icon-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.icon-btn:disabled:hover {
+  background: transparent;
+  border-color: transparent;
+}
 /* §127: the icon set (`src/lib/icons/`) is `stroke: currentColor` SVG, so
    it already themes with the button's own text colour in every light/dark
    × colour/grayscale combination — no `filter: grayscale(1)` / `filter:
@@ -568,6 +583,13 @@ body {
 }
 .more-actions-item:hover {
   background: var(--surface-raised);
+}
+.more-actions-item:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.more-actions-item:disabled:hover {
+  background: transparent;
 }
 .more-actions-sep {
   height: 1px;
@@ -1592,6 +1614,32 @@ textarea.modal-input.import-textarea {
   background: var(--surface-chrome);
 }
 
+/* Calendar sync review — a per-item checkbox for new meetings, and a
+   Segmented choice + optional date for each removed-with-content section. */
+.sync-review-check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-family: var(--font);
+  cursor: pointer;
+}
+.sync-review-removal-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.sync-review-date {
+  font-family: var(--font);
+  font-size: 11px;
+  background: var(--surface-raised);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 2px 4px;
+}
+
 /* §127 (finding G): one empty-state treatment for every list that can
    come up blank (Action Drawer, Search, Section History) — replaces a mix
    of an inline-styled `<div>` in one drawer and nothing at all in the
@@ -1904,6 +1952,18 @@ kbd {
    380px ceiling on a short window's worth of room. */
 .settings-modal-card {
   max-height: 80vh;
+}
+/* Tabbed Settings: the tab switcher sits between the title and the
+   scrollable section below, never itself part of what scrolls. */
+.settings-tabs {
+  padding: 0 16px;
+  flex-shrink: 0;
+}
+.settings-tabs .segmented {
+  width: 100%;
+}
+.settings-tabs .segmented-option {
+  flex: 1;
 }
 .settings-section {
   padding: 16px;

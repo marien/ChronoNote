@@ -81,6 +81,7 @@ test.describe("update check (§update-check)", () => {
     await editor(page).click();
     await page.keyboard.press("ControlOrMeta+Comma");
     const settings = modalCard(page, MODAL_LABELS.settings);
+    await settings.getByRole("radio", { name: "Updates", exact: true }).click();
     await settings.getByText("Check for updates when ChronoNote starts").click();
     expect(await page.evaluate(() => window.__CHRONO_MOCK__!.autoCheckUpdates)).toBe(false);
 
@@ -96,6 +97,7 @@ test.describe("update check (§update-check)", () => {
     await editor(page).click();
     await page.keyboard.press("ControlOrMeta+Comma");
     const settings = modalCard(page, MODAL_LABELS.settings);
+    await settings.getByRole("radio", { name: "Updates", exact: true }).click();
     await settings.getByRole("button", { name: "Check now" }).click();
     await page.keyboard.press("Escape");
 

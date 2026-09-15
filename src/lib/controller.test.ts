@@ -26,6 +26,7 @@ const apiMock = {
   pathExists: vi.fn(),
   getAppVersion: vi.fn(),
   openExternalUrl: vi.fn(),
+  readAgendaForDate: vi.fn(),
 };
 
 const NO_META = { exists: false, contentHash: null, sizeBytes: null, modifiedMs: null };
@@ -93,6 +94,7 @@ beforeEach(async () => {
   apiMock.writeTabSession.mockResolvedValue(undefined);
   apiMock.setLastSeenVersion.mockResolvedValue({} as never);
   apiMock.openExternalUrl.mockResolvedValue(undefined);
+  apiMock.readAgendaForDate.mockResolvedValue([]);
   // Off by default here (unlike the real Rust default) so the launch-time
   // update check in `initApp()` stays inert for every test that doesn't
   // explicitly opt in — `updaterMock.check` still resolves `null` as a
@@ -978,21 +980,186 @@ describe("findPreviousSectionOccurrence (#27, §150: always before today)", () =
   });
 });
 
-describe("importSectionsIntoActiveTab", () => {
-  it("appends imported sections to the active tab", () => {
-    controller.tabs.set([tab({ id: "a", content: "" })]);
-    controller.activeTabId.set("a");
-    controller.importSectionsIntoActiveTab("Standup");
-    expect(get(controller.tabs)[0].content).toContain("Standup");
-    expect(get(controller.toastMessage)).toBe("Sections imported.");
+describe("calendarSyncActions (.agenda.json)", () => {
+  beforeEach(() => {
+    vi.setSystemTime(new Date(2026, 8, 14)); // "today" = 2026-09-14
+    controller.calendarSyncEnabled.set(true);
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+    controller.calendarSyncEnabled.set(false);
   });
 
-  it("shows a toast instead of a no-op change", () => {
-    controller.tabs.set([tab({ id: "a", content: "unchanged" })]);
+  it("gates on a dated tab whose date is today or later", () => {
+    controller.tabs.set([
+      tab({ id: "past", filename: "2026-09-13.txt" }),
+      tab({ id: "today", filename: "2026-09-14.txt" }),
+      tab({ id: "future", filename: "2026-09-15.txt" }),
+      tab({ id: "scratch", isScratchpad: true, filename: "Scratchpad 1" }),
+    ]);
+    controller.activeTabId.set("past");
+    expect(controller.canSyncCalendarForActiveTab()).toBe(false);
+    controller.activeTabId.set("today");
+    expect(controller.canSyncCalendarForActiveTab()).toBe(true);
+    controller.activeTabId.set("future");
+    expect(controller.canSyncCalendarForActiveTab()).toBe(true);
+    controller.activeTabId.set("scratch");
+    expect(controller.canSyncCalendarForActiveTab()).toBe(false);
+  });
+
+  it("no-ops (never reads the file) when the setting is turned off", async () => {
+    controller.calendarSyncEnabled.set(false);
+    controller.tabs.set([tab({ id: "a", filename: "2026-09-14.txt" })]);
     controller.activeTabId.set("a");
-    controller.importSectionsIntoActiveTab("");
-    expect(get(controller.tabs)[0].content).toBe("unchanged");
-    expect(get(controller.toastMessage)).toBe("Nothing to import.");
+    await controller.syncCalendarFromFile();
+    expect(apiMock.readAgendaForDate).not.toHaveBeenCalled();
+    expect(get(controller.modal)).toBe("none");
+  });
+
+  it("reads the agenda file for the tab's date and opens the review step", async () => {
+    controller.tabs.set([tab({ id: "a", filename: "2026-09-14.txt", content: "Standup\n=======\nnotes\n" })]);
+    controller.activeTabId.set("a");
+    apiMock.readAgendaForDate.mockResolvedValue(["Standup", "Design Review"]);
+    await controller.syncCalendarFromFile();
+    expect(get(controller.modal)).toBe("syncReview");
+    const review = get(controller.calendarSyncReview)!;
+    expect(review.newItems).toEqual([{ title: "Design Review", checked: true }]);
+    expect(review.removedEmpty).toEqual([]);
+    expect(review.removals).toEqual([]);
+  });
+
+  it("confirm applies kept/new/removed-empty sections and drops an unchecked new item", async () => {
+    controller.tabs.set([
+      tab({ id: "a", filename: "2026-09-14.txt", content: "Standup\n=======\nnotes\n\n1:1 with Priya\n==============\n" }),
+    ]);
+    controller.activeTabId.set("a");
+    apiMock.readAgendaForDate.mockResolvedValue(["Standup", "Design Review"]);
+    await controller.syncCalendarFromFile();
+    controller.toggleSyncNewItem(0); // uncheck "Design Review"
+    await controller.confirmCalendarSync();
+    expect(get(controller.tabs)[0].content).toBe("Standup\n=======\nnotes\n");
+    expect(get(controller.modal)).toBe("none");
+    expect(get(controller.calendarSyncReview)).toBe(null);
+  });
+
+  it("confirm flags a removed-with-content section with [CANCELED] by default", async () => {
+    controller.tabs.set([
+      tab({
+        id: "a",
+        filename: "2026-09-14.txt",
+        content: "Standup\n=======\nnotes\n\n1:1 with Priya\n==============\nAsked about the roadmap\n",
+      }),
+    ]);
+    controller.activeTabId.set("a");
+    apiMock.readAgendaForDate.mockResolvedValue(["Standup"]);
+    await controller.syncCalendarFromFile();
+    await controller.confirmCalendarSync();
+    expect(get(controller.tabs)[0].content).toBe(
+      "Standup\n=======\nnotes\n\n\n[CANCELED] 1:1 with Priya\n=========================\nAsked about the roadmap\n",
+    );
+  });
+
+  it("confirm discards a removed-with-content section when chosen", async () => {
+    controller.tabs.set([
+      tab({
+        id: "a",
+        filename: "2026-09-14.txt",
+        content: "Standup\n=======\nnotes\n\n1:1 with Priya\n==============\nAsked about the roadmap\n",
+      }),
+    ]);
+    controller.activeTabId.set("a");
+    apiMock.readAgendaForDate.mockResolvedValue(["Standup"]);
+    await controller.syncCalendarFromFile();
+    controller.setSyncRemovalChoice(0, "discard");
+    await controller.confirmCalendarSync();
+    expect(get(controller.tabs)[0].content).toBe("Standup\n=======\nnotes\n");
+  });
+
+  it("confirm moves a removed-with-content section to another open tab", async () => {
+    controller.tabs.set([
+      tab({
+        id: "a",
+        filename: "2026-09-14.txt",
+        content: "Standup\n=======\nnotes\n\n1:1 with Priya\n==============\nAsked about the roadmap\n",
+      }),
+      tab({ id: "b", filename: "2026-09-15.txt", content: "" }),
+    ]);
+    controller.activeTabId.set("a");
+    apiMock.readAgendaForDate.mockResolvedValue(["Standup"]);
+    await controller.syncCalendarFromFile();
+    controller.setSyncRemovalChoice(0, "move");
+    controller.setSyncRemovalMoveDate(0, "2026-09-15");
+    await controller.confirmCalendarSync();
+    expect(get(controller.tabs).find((t) => t.id === "a")!.content).toBe("Standup\n=======\nnotes\n");
+    expect(get(controller.tabs).find((t) => t.id === "b")!.content).toBe(
+      "1:1 with Priya\n==============\nAsked about the roadmap\n",
+    );
+  });
+
+  it("confirm moves a removed-with-content section to a day with no open tab, via disk", async () => {
+    controller.tabs.set([
+      tab({
+        id: "a",
+        filename: "2026-09-14.txt",
+        content: "Standup\n=======\nnotes\n\n1:1 with Priya\n==============\nAsked about the roadmap\n",
+      }),
+    ]);
+    controller.activeTabId.set("a");
+    apiMock.readNote.mockResolvedValue("Existing note\n=============\n");
+    apiMock.readAgendaForDate.mockResolvedValue(["Standup"]);
+    await controller.syncCalendarFromFile();
+    controller.setSyncRemovalChoice(0, "move");
+    controller.setSyncRemovalMoveDate(0, "2026-09-20");
+    await controller.confirmCalendarSync();
+    expect(apiMock.readNote).toHaveBeenCalledWith("2026-09-20.txt");
+    expect(apiMock.writeNote).toHaveBeenCalledWith(
+      "2026-09-20.txt",
+      "Existing note\n=============\n\n\n1:1 with Priya\n==============\nAsked about the roadmap\n",
+    );
+  });
+
+  it("toasts instead of opening a review when the agenda file has no meetings that day", async () => {
+    controller.tabs.set([tab({ id: "a", filename: "2026-09-14.txt" })]);
+    controller.activeTabId.set("a");
+    apiMock.readAgendaForDate.mockResolvedValue([]);
+    await controller.syncCalendarFromFile();
+    expect(get(controller.modal)).toBe("none");
+    expect(get(controller.toastMessage)).toBe("No meetings on 2026-09-14.");
+  });
+
+  it("toasts the error message when the read fails", async () => {
+    controller.tabs.set([tab({ id: "a", filename: "2026-09-14.txt" })]);
+    controller.activeTabId.set("a");
+    apiMock.readAgendaForDate.mockRejectedValue(new Error("Couldn't read the calendar."));
+    await controller.syncCalendarFromFile();
+    expect(get(controller.modal)).toBe("none");
+    expect(get(controller.toastMessage)).toBe("Couldn't read the calendar.");
+  });
+
+  it("unchecking a new item still excludes it when the agenda title has stray whitespace", async () => {
+    // Real bug report: a title with trailing whitespace (plausible from a
+    // real calendar export) made unchecking it a no-op — `newItems` held
+    // the trimmed title (`computeCalendarSync` trims internally) while
+    // `review.agendaTitles` kept the raw, untrimmed one, so
+    // `confirmCalendarSync`'s exact-string exclusion match silently never
+    // fired. `openCalendarSyncReview` now trims/filters once at the
+    // source so both always agree.
+    controller.tabs.set([tab({ id: "a", filename: "2026-09-14.txt", content: "" })]);
+    controller.activeTabId.set("a");
+    apiMock.readAgendaForDate.mockResolvedValue(["Standup ", "Design Review"]); // trailing space
+    await controller.syncCalendarFromFile();
+    controller.toggleSyncNewItem(0); // uncheck "Standup"
+    await controller.confirmCalendarSync();
+    expect(get(controller.tabs)[0].content).not.toContain("Standup");
+    expect(get(controller.tabs)[0].content).toContain("Design Review");
+  });
+
+  it("no-ops on a gated tab (a date before today)", async () => {
+    controller.tabs.set([tab({ id: "a", filename: "2026-09-13.txt" })]); // yesterday
+    controller.activeTabId.set("a");
+    await controller.syncCalendarFromFile();
+    expect(apiMock.readAgendaForDate).not.toHaveBeenCalled();
+    expect(get(controller.modal)).toBe("none");
   });
 });
 
@@ -1149,7 +1316,6 @@ describe("modal open/close helpers", () => {
     ["openDatePicker", "date"],
     ["openActionDrawer", "actions"],
     ["openCrossTabSearch", "search"],
-    ["openSectionImport", "sectionImport"],
     ["openSettings", "settings"],
     ["openShortcutsHelp", "shortcuts"],
     ["openGlyphLegend", "shortcuts"], // §110: folded into the combined drawer
@@ -1391,20 +1557,5 @@ describe("openReleasesPage (§update-check follow-up)", () => {
   it("opens the repo's releases list, not a specific tag", () => {
     controller.openReleasesPage();
     expect(apiMock.openExternalUrl).toHaveBeenCalledWith("https://github.com/marien/ChronoNote/releases");
-  });
-});
-
-describe("import draft (§33)", () => {
-  it("remembers unsubmitted text and can be cleared", () => {
-    controller.saveImportDraft("draft text");
-    expect(controller.getImportDraftText()).toBe("draft text");
-    controller.clearImportDraft();
-    expect(controller.getImportDraftText()).toBe("");
-  });
-
-  it("clears a draft that was left empty", () => {
-    controller.saveImportDraft("something");
-    controller.saveImportDraft("   ");
-    expect(controller.getImportDraftText()).toBe("");
   });
 });

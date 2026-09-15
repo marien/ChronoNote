@@ -13,7 +13,7 @@
  *   actions              the Action Drawer (Ctrl/Cmd+Shift+A)
  *   history              section history (Ctrl/Cmd+Shift+H)
  *   search               cross-tab search (Ctrl/Cmd+Shift+F)
- *   sectionImportActions section import (Ctrl/Cmd+Shift+I) + its draft
+ *   calendarSyncActions  Calendar sync — both agenda sources (paste + .agenda.json) + review
  *   menu                 static-modal openers (Settings / Shortcuts / …)
  *   boot                 startup, session restore, standing subscriptions
  *   directory            notes-directory switching (§39)
@@ -32,7 +32,7 @@ export * from "./tabs";
 export * from "./actions";
 export * from "./history";
 export * from "./search";
-export * from "./sectionImportActions";
+export * from "./calendarSyncActions";
 export * from "./menu";
 export * from "./boot";
 export * from "./directory";
