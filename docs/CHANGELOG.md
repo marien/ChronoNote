@@ -6,8 +6,8 @@ kept for the rationale behind each one — not just *what* changed but
 was still being gathered and confirmed before implementation; renamed once
 everything below was applied, since nothing here is "pending" anymore.
 
-**Status: all sections through §159 implemented and released; §160 fixed,
-not yet released.** §153 is a
+**Status: all sections through §159 implemented and released; §160-§161
+fixed, not yet released.** §153 is a
 website-only Guide-page fix (found live right after §150–§152 shipped
 as v0.7.12) — no version bump, nothing in the shipped app changed. §154
 merges the OS title bar into the top bar (Notepad-style: icon, tabs,
@@ -6879,3 +6879,88 @@ reversal.
 
 `svelte-check` 215/0, Vitest 304/304 (+1), Playwright 200/200 (+2),
 `cargo test` 47/47 (unchanged — pure frontend).
+
+## 161. Eliminating the residual widen-direction top-bar flicker (#61 follow-up)
+
+**Status: fixed, not yet released.**
+
+Marien, after testing §160's fix: "I tested it. There is still a small
+flicker when increasing the window size that is not visible when
+decreasing the window size." Exactly the residual §160 disclosed as an
+inherent limit of its own approach — narrowing was provably flicker-free,
+but every upgrade attempt (icon-only → labels, collapsed → uncollapsed)
+still worked by flipping the live, visible state first and reverting if
+it turned out not to fit, which is the only way to measure a tier that
+isn't currently rendered. Traced precisely: Svelte's DOM patch for a
+state write lands via a microtask, which always resolves *before* the
+next `requestAnimationFrame` `settleLayout` awaits — so the browser
+paints the trial tier for at least one real frame whenever a revert
+happens, guaranteed, not just as a theoretical race. `allowUpgrade`
+(§160) only reduced how *often* an attempt fired; it did nothing about
+each attempt that still did.
+
+Given the choice between leaving this as documented, reducing frequency
+further (a bigger retry margin), or eliminating it outright, Marien chose
+elimination despite the larger surface area. Fixed by predicting the
+outcome *before* ever touching the live state, using off-screen
+measurement clones that are never part of the visible layout at all:
+
+- `predictLabelsWouldFit()` computes the width a label would add to a
+  button that's currently icon-only (a fixed off-screen `<span
+  class="icon-label">` per label text, whose `getBoundingClientRect()`
+  width plus `.icon-btn`'s own 6px flex `gap` — which only manifests once
+  a label exists as a second flex child — gives the exact marginal cost),
+  sums the applicable ones (Date always; the rest only if buttons aren't
+  currently collapsed), and checks whether the tab strip's actual content
+  width would still fit the tab bar's projected width after that delta is
+  subtracted. `#tab-bar` is the flex layout's only `flex: 1` child (every
+  sibling — the app icon, the button cluster, the drag gutter, the window
+  controls — is fixed-width), so "current tab-bar width minus the
+  cluster's width increase" is an exact, not approximate, prediction.
+- `predictUncollapseWouldFit(labelsOn)` does the same for the "More"
+  button expanding back into the full secondary-action row, using
+  off-screen full-button clones (icon + conditional label, mirroring
+  `showActionLabels`) compared against the live "More" button's own
+  current width. Takes a hypothetical `labelsOn` rather than just reading
+  the current value: the real uncollapse logic (§57) has its own embedded
+  fallback — try with labels as they currently are, and only if that
+  overflows, retry with labels forced off — and an initial version of
+  this fix that predicted only the "as-is" case wrongly refused an
+  uncollapse the live fallback would actually have found room for,
+  caught by the pre-existing `topbar-collapse.spec.ts` regression test
+  for exactly this scenario (a large single jump from 480px to 1280px,
+  which needs the labels-off combination to fit) — not a new bug so
+  much as an incomplete first draft of the prediction, found by running
+  the existing suite before considering this done.
+
+Both predictions gate the *upgrade* branches only (`else if (allowUpgrade
+&& predict...())`) — the existing flip-measure-revert code stays in
+place as a safety net for the rare case a prediction is off by a pixel,
+rather than as the routine path. The *downgrade* checks (§156/§57) are
+untouched; they were never gated at all, by design, since shrinking must
+always be free to react immediately.
+
+The off-screen clones are deliberately *not* full copies of the live
+buttons: no `data-*-trigger` attributes, so `DatePickerModal`'s/
+`MoreActionsModal`'s anchor-lookup queries can never accidentally match a
+hidden clone instead of the real, visible trigger (confirmed by checking
+those queries before adding the clones — this was the actual risk that
+made "just clone the live markup" unsafe); no click handlers; `aria-hidden`
++ `inert` keep them out of the accessibility tree and unreachable by
+keyboard. Positioned via a new `.topbar-measure` CSS class (`position:
+fixed; visibility: hidden`) so they're genuinely laid out by the browser
+(real, accurate `getBoundingClientRect()` widths) but never part of
+`#top-bar`'s own flex flow and never painted to the screen. Same
+"keep two things in sync" caveat as `mockBackend.ts` mirroring
+`storage.rs`: a future icon/label change to a button has to be mirrored
+into its measurement clone too.
+
+New Playwright coverage: `topbar-collapse.spec.ts` gains a widening
+counterpart to §160's narrowing-reversal test — the exact same
+continuous-drag methodology, direction reversed (700px → 2200px,
+20px steps), asserting zero collapse→uncollapsed→collapsed reversals
+across the whole range.
+
+`svelte-check` 215/0, Vitest 304/304 (unchanged — pure frontend/CSS,
+no unit-testable logic beyond what §160's tests already cover), Playwright
+201/201 (+1), `cargo test` 47/47 (unchanged).

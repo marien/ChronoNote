@@ -210,7 +210,15 @@ test.describe("top bar: label/collapse state doesn't depend on window-maximized 
  * flickering constantly ... trying to show content and then hide it again."
  * Fixed by only attempting an upgrade when there's an actual reason to
  * think a wider tier might now fit — the resize observer, unlike the
- * tab-list subscription, gates on `#top-bar` actually having gotten wider. */
+ * tab-list subscription, gates on `#top-bar` actually having gotten wider.
+ *
+ * Follow-up, reported after the above shipped: widening still flashed
+ * occasionally, since (2)'s fix only reduced how *often* an upgrade was
+ * attempted — every attempt that did fire still flipped the live, visible
+ * state first and reverted if wrong, painting one real frame of the wider
+ * tier. Fixed by predicting the outcome off-screen before ever touching
+ * the visible state (`predictLabelsWouldFit`/`predictUncollapseWouldFit`
+ * in TopBar.svelte) — see the widening test below. */
 test.describe("top bar: tab-id collisions and resize flicker (#61)", () => {
   test("every tab created in quick succession gets its own id and renders its own DOM node", async ({ page }) => {
     await seedApp(page, { seed: "empty" });
@@ -250,6 +258,41 @@ test.describe("top bar: tab-id collisions and resize flicker (#61)", () => {
     let reversions = 0;
     for (let i = 1; i < states.length; i++) {
       if (states[i] === false && states[i - 1] === true) reversions++;
+    }
+    expect(reversions).toBe(0);
+  });
+
+  // #61 follow-up, reported after the fix above shipped: narrowing was
+  // fixed, but widening still flashed briefly — `allowUpgrade` cut how
+  // *often* an upgrade was attempted, but every attempt that still fired
+  // unconditionally flipped the live, visible state to measure a tier that
+  // isn't currently rendered, painting one real frame of it before
+  // reverting if it turned out not to fit. Fixed by predicting the
+  // outcome first, off-screen (`predictLabelsWouldFit`/
+  // `predictUncollapseWouldFit` in TopBar.svelte, using hidden clones that
+  // are never part of the visible layout at all) — the live flip only
+  // ever runs once a fit is already known, so the flip-and-maybe-revert
+  // code stays as a pixel-rounding safety net rather than the routine path.
+  test("collapse state never reverses direction while continuously widening the window", async ({ page }) => {
+    await seedApp(page, { seed: "empty" });
+    await page.setViewportSize({ width: 700, height: 700 });
+    await editor(page).click();
+
+    const newScratchpad = page.getByTitle(/^New Scratchpad/);
+    for (let i = 0; i < 9; i++) await newScratchpad.click();
+    await page.waitForTimeout(200);
+
+    const states: boolean[] = [];
+    for (let width = 700; width <= 2200; width += 20) {
+      await page.setViewportSize({ width, height: 700 });
+      states.push(await page.getByTitle("More actions").isVisible());
+    }
+
+    // Once uncollapsed, never briefly "reverts" to collapsed before
+    // widening further uncollapses it again.
+    let reversions = 0;
+    for (let i = 1; i < states.length; i++) {
+      if (states[i] === true && states[i - 1] === false) reversions++;
     }
     expect(reversions).toBe(0);
   });

@@ -73,6 +73,24 @@
   let isOverflowing = false;
   let resizeObserver: ResizeObserver | null = null;
 
+  // #61 follow-up: refs into the off-screen measurement clones below —
+  // see the big comment on that markup, and on `predictLabelsWouldFit`/
+  // `predictUncollapseWouldFit`, for why these exist at all.
+  let labelDateEl: HTMLElement;
+  let labelActionsEl: HTMLElement;
+  let labelHistoryEl: HTMLElement;
+  let labelSearchEl: HTMLElement;
+  let labelImportEl: HTMLElement;
+  let labelPromoteEl: HTMLElement;
+  let labelSettingsEl: HTMLElement;
+  let cloneActionsEl: HTMLElement;
+  let cloneHistoryEl: HTMLElement;
+  let cloneSearchEl: HTMLElement;
+  let cloneImportEl: HTMLElement;
+  let clonePromoteEl: HTMLElement;
+  let cloneSettingsEl: HTMLElement;
+  let moreBtnEl: HTMLElement;
+
   $: activeTab = $tabs.find((t) => t.id === $activeTabId);
   $: displayTabs = controller.sortedTabsForDisplay($tabs);
 
@@ -164,6 +182,86 @@
   // §merged-titlebar follow-up: how much of a neighboring tab to leave
   // peeking in when scrolling the active tab into view at an edge.
   const TAB_EDGE_PEEK = 24;
+
+  // #61 follow-up: matches `.icon-btn`'s own CSS `gap: 6px` — that gap
+  // only manifests once a label span exists as a second flex child inside
+  // the button, so a button's real width-with-label is its current
+  // (icon-only) width plus exactly (label width + this gap). Duplicated
+  // here rather than read from computed style since it's cheap, stable,
+  // and already how `FIT_MARGIN` itself is handled in this file.
+  const ICON_LABEL_GAP = 6;
+
+  function rectWidth(el: HTMLElement | undefined): number {
+    return el ? el.getBoundingClientRect().width : 0;
+  }
+
+  /** #61 follow-up: `settleLayout`'s upgrade attempts used to unconditionally
+   * flip `showActionLabels`/`buttonsCollapsed` to measure a tier that isn't
+   * currently rendered, then revert if it turned out not to fit — the
+   * `allowUpgrade` gate above cut how *often* that ran, but every attempt
+   * that still fired painted one real frame of the wider tier before
+   * reverting (Svelte's DOM patch for the trial value lands via a
+   * microtask, which always resolves *before* the next `requestAnimationFrame`
+   * this function awaits — so the browser paints the trial state at least
+   * once, guaranteed, whenever a revert happens). Predicting the outcome
+   * first — using off-screen clones that are never part of the visible
+   * layout at all — means the live state only ever gets set to values
+   * already known to fit, so the flip-and-measure-and-maybe-revert code
+   * below stays as a safety net (kept, in case a prediction is ever off by
+   * a pixel) rather than the routine path. This function answers "if
+   * labels turned on right now, would the tab strip still fit?" without
+   * ever touching `showActionLabels`. */
+  function predictLabelsWouldFit(): boolean {
+    if (!tabBarEl) return false;
+    let delta = rectWidth(labelDateEl) + ICON_LABEL_GAP;
+    if (!buttonsCollapsed) {
+      delta +=
+        rectWidth(labelActionsEl) +
+        rectWidth(labelHistoryEl) +
+        rectWidth(labelSearchEl) +
+        rectWidth(labelImportEl) +
+        rectWidth(labelSettingsEl) +
+        4 * ICON_LABEL_GAP;
+      if (activeTab?.isScratchpad) delta += rectWidth(labelPromoteEl) + ICON_LABEL_GAP;
+    }
+    return tabsContentWidth() <= tabBarEl.clientWidth - delta - FIT_MARGIN;
+  }
+
+  /** #61 follow-up: same idea as `predictLabelsWouldFit`, for the "More"
+   * button expanding back into the full secondary-action row (#56). Only
+   * meaningful (and only ever called) while `buttonsCollapsed` is true,
+   * since that's the only state where the real row doesn't exist in the
+   * DOM to measure directly — `cloneActionsEl` etc. are off-screen clones
+   * of that row. They mirror the *current* `showActionLabels` value (like
+   * the live row would), so `labelsOn` here is a hypothetical, not
+   * necessarily what's currently showing — each clone's label width
+   * (already known from the Block-A spans above) is added or subtracted
+   * from its measured width to get the width under the state actually
+   * being asked about. This mirrors the live fallback below it: uncollapsing
+   * is tried with labels in their current state first, and only with labels
+   * forced off if that alone doesn't fit — a real, previously-untested case
+   * (turning both buttonsCollapsed and showActionLabels off in the very
+   * same widen) needs both predicted, or the gate wrongly refuses an
+   * uncollapse that the live fallback would actually have found room for. */
+  function predictUncollapseWouldFit(labelsOn: boolean): boolean {
+    if (!tabBarEl || !moreBtnEl) return false;
+    const rows: [HTMLElement, HTMLElement][] = [
+      [cloneActionsEl, labelActionsEl],
+      [cloneHistoryEl, labelHistoryEl],
+      [cloneSearchEl, labelSearchEl],
+      [cloneImportEl, labelImportEl],
+      [cloneSettingsEl, labelSettingsEl],
+    ];
+    if (activeTab?.isScratchpad) rows.push([clonePromoteEl, labelPromoteEl]);
+    let uncollapsedWidth = 0;
+    for (const [clone, label] of rows) {
+      const cloneWidth = rectWidth(clone);
+      const iconOnlyWidth = showActionLabels ? cloneWidth - rectWidth(label) - ICON_LABEL_GAP : cloneWidth;
+      uncollapsedWidth += labelsOn ? iconOnlyWidth + rectWidth(label) + ICON_LABEL_GAP : iconOnlyWidth;
+    }
+    const delta = uncollapsedWidth - rectWidth(moreBtnEl);
+    return tabsContentWidth() <= tabBarEl.clientWidth - delta - FIT_MARGIN;
+  }
   /** #61: an upgrade attempt (icon-only → labels, collapsed → uncollapsed)
    * unconditionally flips the state to test it, which is the only way to
    * measure a tier that isn't currently rendered — but doing that on
@@ -212,10 +310,13 @@
             showActionLabels = false;
             await nextFrame();
           }
-        } else if (allowUpgrade) {
+        } else if (allowUpgrade && predictLabelsWouldFit()) {
           // Icon-only currently — try labels, but only keep them if
           // there's clearly enough spare room once they're shown, not
-          // just barely.
+          // just barely. `predictLabelsWouldFit()` already checked this
+          // off-screen, so this flip is expected to stick — the
+          // measure-and-revert below is a safety net, not the routine
+          // path (see its own comment for why that matters for flicker).
           showActionLabels = true;
           await nextFrame();
           if (tabsContentWidth() > tabBarEl.clientWidth - FIT_MARGIN) {
@@ -260,17 +361,34 @@
           // clearly enough spare room once they're shown, not just
           // barely (the same `tabsContentWidth` reasoning as the labels
           // branch: `scrollWidth` can't tell "how much room to spare"
-          // once content already fits, only "is it overflowing").
-          buttonsCollapsed = false;
-          await nextFrame();
-          if (tabsContentWidth() > tabBarEl.clientWidth - FIT_MARGIN) {
-            if (showActionLabels) {
+          // once content already fits, only "is it overflowing"). Predict
+          // both the "uncollapse with labels as they are" and "uncollapse
+          // with labels forced off" outcomes off-screen first — the same
+          // two configurations the live fallback below would otherwise
+          // try one at a time — so labels only get turned off *before*
+          // the flip when that's actually the combination that works,
+          // instead of live-flashing "uncollapsed + still overflowing"
+          // for a frame first.
+          const fitsAsIs = predictUncollapseWouldFit(showActionLabels);
+          const fitsLabelsOff = !fitsAsIs && showActionLabels && predictUncollapseWouldFit(false);
+          if (fitsAsIs || fitsLabelsOff) {
+            if (fitsLabelsOff) {
               showActionLabels = false;
               await nextFrame();
             }
+            buttonsCollapsed = false;
+            await nextFrame();
+            // Safety net in case a prediction was ever off by a pixel —
+            // not the routine path, see `predictUncollapseWouldFit`.
             if (tabsContentWidth() > tabBarEl.clientWidth - FIT_MARGIN) {
-              buttonsCollapsed = true;
-              await nextFrame();
+              if (showActionLabels) {
+                showActionLabels = false;
+                await nextFrame();
+              }
+              if (tabsContentWidth() > tabBarEl.clientWidth - FIT_MARGIN) {
+                buttonsCollapsed = true;
+                await nextFrame();
+              }
             }
           }
         }
@@ -629,7 +747,7 @@
          window is too narrow — MoreActionsModal, anchored to
          data-more-trigger the same way DatePickerModal anchors to
          data-datepicker-trigger. -->
-    <button class="icon-btn" title="More actions" data-more-trigger on:click={controller.openMoreActions}>
+    <button class="icon-btn" title="More actions" data-more-trigger on:click={controller.openMoreActions} bind:this={moreBtnEl}>
       <Icon name="more" />
     </button>
   {:else}
@@ -687,4 +805,55 @@
       </button>
     </div>
   {/if}
+  <!-- #61 follow-up: off-screen measurement clones for `predictLabelsWouldFit`/
+       `predictUncollapseWouldFit` above — never painted (`.topbar-measure`
+       is `position: fixed` + `visibility: hidden`, so it's fully out of
+       `#top-bar`'s own layout and never reaches the screen), but still real
+       DOM the browser lays out, so `getBoundingClientRect()` on them is
+       accurate. `aria-hidden` + `inert` keep them out of the accessibility
+       tree and unreachable by keyboard/click even though they're
+       plain <button>/<span> markup. Deliberately NOT full copies of the
+       live buttons: no `data-*-trigger` attributes (so DatePickerModal's/
+       MoreActionsModal's anchor lookups can never match one of these
+       instead of the real, visible trigger) and no click handlers. If a
+       button's icon or label text changes, this has to change with it —
+       the same "keep two things in sync" caveat as `mockBackend.ts`
+       mirroring `storage.rs`.
+       Two groups: the bare label spans measure just the marginal width a
+       label would add to a button that's currently icon-only (used when
+       `showActionLabels` is off); the button clones measure the full
+       secondary-action row's width in the *current* labels state (used
+       only while `buttonsCollapsed` is true, since that's the only state
+       where the real row isn't in the DOM at all to measure directly). -->
+  <div class="icon-btn topbar-measure" aria-hidden="true" inert>
+    <span class="icon-label" bind:this={labelDateEl}>Date</span>
+    <span class="icon-label" bind:this={labelActionsEl}>Actions</span>
+    <span class="icon-label" bind:this={labelHistoryEl}>Section history</span>
+    <span class="icon-label" bind:this={labelSearchEl}>Search</span>
+    <span class="icon-label" bind:this={labelImportEl}>Import</span>
+    <span class="icon-label" bind:this={labelPromoteEl}>Promote</span>
+    <span class="icon-label" bind:this={labelSettingsEl}>Settings</span>
+  </div>
+  <div class="topbar-measure" aria-hidden="true" inert>
+    <button class="icon-btn" bind:this={cloneActionsEl} tabindex="-1">
+      <Icon name="actions" />{#if showActionLabels}<span class="icon-label">Actions</span>{/if}
+    </button>
+    <button class="icon-btn" bind:this={cloneHistoryEl} tabindex="-1">
+      <Icon name="section-history" />{#if showActionLabels}<span class="icon-label">Section history</span>{/if}
+    </button>
+    <button class="icon-btn" bind:this={cloneSearchEl} tabindex="-1">
+      <Icon name="search" />{#if showActionLabels}<span class="icon-label">Search</span>{/if}
+    </button>
+    <button class="icon-btn" bind:this={cloneImportEl} tabindex="-1">
+      <Icon name="import" />{#if showActionLabels}<span class="icon-label">Import</span>{/if}
+    </button>
+    {#if activeTab?.isScratchpad}
+      <button class="icon-btn" bind:this={clonePromoteEl} tabindex="-1">
+        <Icon name="promote" />{#if showActionLabels}<span class="icon-label">Promote</span>{/if}
+      </button>
+    {/if}
+    <button class="icon-btn" bind:this={cloneSettingsEl} tabindex="-1">
+      <Icon name="settings" />{#if showActionLabels}<span class="icon-label">Settings</span>{/if}
+    </button>
+  </div>
 </div>

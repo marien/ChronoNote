@@ -516,6 +516,19 @@ body {
 .icon-btn .icon-label {
   white-space: nowrap;
 }
+/* #61 follow-up: off-screen measurement clones (see TopBar.svelte) —
+   `position: fixed` removes them from #top-bar's own flex flow entirely,
+   `visibility: hidden` keeps them off the screen even though the browser
+   still lays them out (the whole point: `getBoundingClientRect()` needs
+   real layout to measure against). */
+.topbar-measure {
+  position: fixed;
+  top: -9999px;
+  left: -9999px;
+  visibility: hidden;
+  pointer-events: none;
+  white-space: nowrap;
+}
 
 /* #56: the top bar's overflow popover — same anchored-non-modal shape as
    `.datepicker-pop` (fixed position, measured against its trigger in JS,
