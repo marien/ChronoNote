@@ -6,8 +6,7 @@ kept for the rationale behind each one — not just *what* changed but
 was still being gathered and confirmed before implementation; renamed once
 everything below was applied, since nothing here is "pending" anymore.
 
-**Status: all sections through §159 implemented and released; §160-§161
-fixed, not yet released.** §153 is a
+**Status: all sections through §161 implemented and released.** §153 is a
 website-only Guide-page fix (found live right after §150–§152 shipped
 as v0.7.12) — no version bump, nothing in the shipped app changed. §154
 merges the OS title bar into the top bar (Notepad-style: icon, tabs,
@@ -6882,7 +6881,7 @@ reversal.
 
 ## 161. Eliminating the residual widen-direction top-bar flicker (#61 follow-up)
 
-**Status: fixed, not yet released.**
+**Status: fixed.**
 
 Marien, after testing §160's fix: "I tested it. There is still a small
 flicker when increasing the window size that is not visible when
