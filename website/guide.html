@@ -124,7 +124,7 @@
           <tr>
             <td>A line, then <code>====</code></td>
             <td><em>underlined heading</em></td>
-            <td><strong>Section header.</strong> What Section History matches recurring sections by, and where Import Sections appends new entries.</td>
+            <td><strong>Section header.</strong> What Section History matches recurring sections by, and what a calendar sync matches meeting titles against.</td>
           </tr>
         </tbody>
       </table>
@@ -158,7 +158,7 @@
         <div class="shortcut-row"><span>Section history</span><kbd>Ctrl+Shift+H</kbd></div>
         <div class="shortcut-row"><span>Find in this note</span><kbd>Ctrl+F</kbd></div>
         <div class="shortcut-row"><span>Cross-tab search</span><kbd>Ctrl+Shift+F</kbd></div>
-        <div class="shortcut-row"><span>Import sections</span><kbd>Ctrl+Shift+I</kbd></div>
+        <div class="shortcut-row"><span>Sync calendar for this day (opt-in, desktop only)</span><kbd>Ctrl+Shift+C</kbd></div>
         <div class="shortcut-row"><span>Settings</span><kbd>Ctrl+,</kbd></div>
         <div class="shortcut-row"><span>About ChronoNote</span><kbd>Ctrl+Shift+,</kbd></div>
         <div class="shortcut-row"><span>Shortcuts &amp; symbols (this list, in-app)</span><kbd>Ctrl+/</kbd></div>
@@ -230,10 +230,12 @@
         <div class="workflow-step">
           <div class="num">4</div>
           <div>
-            <h3>Paste an agenda in</h3>
-            <p><kbd>Ctrl+Shift+I</kbd> turns freeform lines — copied straight from an email or calendar
-              invite — into section headers, appended to the end of today's note. Purely additive; it never
-              touches what's already there.</p>
+            <h3>Let your calendar fill itself in</h3>
+            <p>Turn on "Sync calendar for this day" in Settings (off by default), and <kbd>Ctrl+Shift+C</kbd>
+              reads a <code>.agenda.json</code> file kept up to date by whatever already syncs your real
+              calendar, matches meeting titles against today's sections, and shows a review step before
+              writing anything — new meetings are a checklist, and any section no longer on the agenda gets
+              flagged for you to leave, discard, or move rather than silently dropped.</p>
           </div>
         </div>
         <div class="workflow-step">
