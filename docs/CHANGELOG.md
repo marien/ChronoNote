@@ -6,8 +6,7 @@ kept for the rationale behind each one — not just *what* changed but
 was still being gathered and confirmed before implementation; renamed once
 everything below was applied, since nothing here is "pending" anymore.
 
-**Status: all sections through §163 implemented and released; §164 fixed,
-not yet released.** §153 is a
+**Status: all sections through §164 implemented and released.** §153 is a
 website-only Guide-page fix (found live right after §150–§152 shipped
 as v0.7.12) — no version bump, nothing in the shipped app changed. §154
 merges the OS title bar into the top bar (Notepad-style: icon, tabs,
@@ -7085,7 +7084,7 @@ single unscrolled list.
 
 ## 164. Section History (and Action Drawer / Search's "All Files") opens instantly, with a spinner while the disk read is still catching up
 
-**Status: fixed, not yet released.**
+**Status: fixed, released in v0.9.1.**
 
 Issue #62: "When I am opening Section History for the first time after
 start of the application it takes a bit of time for the drawer to open,
