@@ -515,6 +515,26 @@ fn write_note_at(
     })
 }
 
+/// #63: deletes a note file from disk — used when a dated tab closes
+/// with empty content, so ChronoNote doesn't leave an empty file behind
+/// forever just because a day's note was opened and never actually
+/// written into. A missing file is **not** an error (idempotent): the
+/// common case is a tab that was never edited at all, so no file was
+/// ever written for it in the first place — deleting it "succeeds"
+/// trivially rather than surfacing a spurious failure toast for what is,
+/// from the caller's point of view, already the desired end state.
+fn delete_note_at(root: &Path, filename: &str) -> Result<(), String> {
+    if !is_valid_note_filename(filename) {
+        return Err(format!("Invalid note filename: {filename}"));
+    }
+    let target = resolve_workspace_path(root, Path::new(filename)).map_err(String::from)?;
+    match fs::remove_file(&target) {
+        Ok(()) => Ok(()),
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(()),
+        Err(e) => Err(e.to_string()),
+    }
+}
+
 fn read_all_notes_at(root: &Path) -> Result<Vec<(String, String)>, String> {
     let files = list_note_files_at(root)?;
     let mut out = vec![];
@@ -666,6 +686,10 @@ pub fn write_note(
     expected_hash: Option<&str>,
 ) -> Result<FileMetadata, String> {
     write_note_at(&notes_root(app)?, filename, content, expected_hash)
+}
+
+pub fn delete_note(app: &AppHandle, filename: &str) -> Result<(), String> {
+    delete_note_at(&notes_root(app)?, filename)
 }
 
 pub fn get_file_metadata(app: &AppHandle, filename: &str) -> Result<FileMetadata, String> {
@@ -1018,6 +1042,29 @@ mod tests {
         write_note_at(dir.path(), "2026-09-07.txt", "hello world", None).unwrap();
         let content = read_note_at(dir.path(), "2026-09-07.txt").unwrap();
         assert_eq!(content, Some("hello world".to_string()));
+    }
+
+    #[test]
+    fn delete_note_at_removes_an_existing_file() {
+        let dir = tempdir().unwrap();
+        write_note_at(dir.path(), "2026-09-07.txt", "content", None).unwrap();
+        assert!(dir.path().join("2026-09-07.txt").exists());
+        delete_note_at(dir.path(), "2026-09-07.txt").unwrap();
+        assert!(!dir.path().join("2026-09-07.txt").exists());
+    }
+
+    #[test]
+    fn delete_note_at_a_missing_file_succeeds_rather_than_erroring() {
+        // #63: the common case — a tab that was opened but never actually
+        // written to, so no file exists for it in the first place.
+        let dir = tempdir().unwrap();
+        assert!(delete_note_at(dir.path(), "2026-09-07.txt").is_ok());
+    }
+
+    #[test]
+    fn delete_note_at_rejects_an_invalid_filename() {
+        let dir = tempdir().unwrap();
+        assert!(delete_note_at(dir.path(), "../escape.txt").is_err());
     }
 
     #[test]

@@ -201,6 +201,21 @@ export function writeNoteAndInvalidateCache(filename: string, content: string): 
   return writeNoteRaw(filename, content);
 }
 
+/** #63: called instead of `flushSave` when a dated tab closes with empty
+ * (`trim() === ""`) content — deletes the file from disk rather than
+ * persisting (or leaving behind) an empty note nobody ever wrote
+ * anything into. Fire-and-forget like `flushSave`'s own write; a missing
+ * file isn't an error (the common case — a tab that was opened but never
+ * actually edited never had a file to begin with), and any genuine
+ * failure is rare enough, and low-enough-stakes (an empty file, at
+ * worst, lingers), not to interrupt the close with a toast the way a
+ * real content-loss failure would. */
+export function deleteNoteAndInvalidateCache(filename: string): void {
+  const hasOpenTab = get(tabs).some((t) => !t.isScratchpad && t.filename === filename);
+  if (!hasOpenTab) diskNotesCacheRaw = null;
+  api.deleteNote(filename).catch(() => {});
+}
+
 /** #46: a tab is about to close with content that may not yet be reflected
  * in the disk-read cache above. `writeNoteAndInvalidateCache` deliberately
  * skips invalidating while a tab is open — relying on the live-tab overlay

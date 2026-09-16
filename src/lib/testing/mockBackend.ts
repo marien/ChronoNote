@@ -535,6 +535,15 @@ export class MockBackend {
       return fileMetadata(content);
     },
 
+    // #63: a missing file is not an error — mirrors
+    // `storage.rs::delete_note_at`'s own idempotent behavior.
+    delete_note: ({ filename }) => {
+      if (!isValidNoteFilename(filename)) {
+        throw new Error(`Invalid note filename: ${filename}`);
+      }
+      this.dir().notes.delete(filename);
+    },
+
     get_file_metadata: ({ filename }) => {
       if (!isValidNoteFilename(filename)) throw new Error(`Invalid note filename: ${filename}`);
       return fileMetadata(this.dir().notes.get(filename));

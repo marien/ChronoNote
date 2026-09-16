@@ -12,6 +12,8 @@ import {
   activeTabContent,
   tabLabels,
   dateLabel,
+  mockFiles,
+  mockNote,
 } from "./helpers";
 
 test.describe("tabs — lifecycle & safe close", () => {
@@ -25,6 +27,41 @@ test.describe("tabs — lifecycle & safe close", () => {
     await page.keyboard.press("ControlOrMeta+w");
     await expect(tab(page, "Scratchpad 1")).toHaveCount(0);
     await expect(activeTabLabel(page)).toHaveText(new RegExp(dateLabel(todayFilename())));
+  });
+
+  test("#63: closing a dated tab that was never actually written into deletes nothing new (no file existed)", async ({
+    page,
+  }) => {
+    await seedApp(page, { seed: "empty" });
+    await editor(page).click();
+    // Ctrl+O to a date that has no note yet — the tab is opened, empty,
+    // but nothing has ever been saved for it.
+    await page.keyboard.press("ControlOrMeta+o");
+    await page.locator(".datepicker-jump").fill("2026-09-20");
+    await page.keyboard.press("Enter");
+    await expect(activeTabLabel(page)).toHaveText("2026-09-20");
+
+    await page.keyboard.press("ControlOrMeta+w");
+    expect(await mockFiles(page)).not.toContain("2026-09-20.txt");
+  });
+
+  test("#63: fully clearing a note's content, then closing the tab, deletes the file from disk", async ({ page }) => {
+    await seedApp(page, { seed: { notes: { "2026-09-01.txt": "some real content" } } });
+    await editor(page).click();
+    await page.keyboard.press("ControlOrMeta+o");
+    await page.locator(".datepicker-jump").fill("2026-09-01");
+    await page.keyboard.press("Enter");
+    await expect(activeTabLabel(page)).toHaveText("2026-09-01");
+    expect(await mockNote(page, "2026-09-01.txt")).toBe("some real content");
+
+    await editor(page).click();
+    await page.keyboard.press("ControlOrMeta+a");
+    await page.keyboard.press("Delete");
+    expect(await activeTabContent(page)).toBe("");
+
+    await page.keyboard.press("ControlOrMeta+w");
+    expect(await mockNote(page, "2026-09-01.txt")).toBeNull();
+    expect(await mockFiles(page)).not.toContain("2026-09-01.txt");
   });
 
   test("closing a tab with unresolved open actions prompts, and Cancel keeps it", async ({ page }) => {

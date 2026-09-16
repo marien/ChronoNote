@@ -33,6 +33,9 @@ export interface TauriCommands {
     args: { filename: string; content: string; expectedHash: string | null };
     returns: FileMetadata;
   };
+  /** #63: removes a note file from disk. A missing file is not an error —
+   * see `storage.rs::delete_note_at`'s own doc comment for why. */
+  delete_note: { args: { filename: string }; returns: void };
   get_file_metadata: { args: { filename: string }; returns: FileMetadata };
   read_note_with_metadata: { args: { filename: string }; returns: NoteWithMetadata };
   write_conflict_copy: { args: { name: string; content: string }; returns: string };

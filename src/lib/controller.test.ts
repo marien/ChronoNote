@@ -17,6 +17,7 @@ const apiMock = {
   listNoteFiles: vi.fn(),
   readNote: vi.fn(),
   writeNote: vi.fn(),
+  deleteNote: vi.fn(),
   readNoteWithMetadata: vi.fn(),
   getFileMetadata: vi.fn(),
   writeConflictCopy: vi.fn(),
@@ -91,6 +92,7 @@ beforeEach(async () => {
   apiMock.readAllNotes.mockResolvedValue([]);
   apiMock.readTabSession.mockResolvedValue(null);
   apiMock.writeNote.mockResolvedValue({ exists: true, contentHash: "hash", sizeBytes: 0, modifiedMs: 0 });
+  apiMock.deleteNote.mockResolvedValue(undefined);
   apiMock.writeTabSession.mockResolvedValue(undefined);
   apiMock.setLastSeenVersion.mockResolvedValue({} as never);
   apiMock.openExternalUrl.mockResolvedValue(undefined);
@@ -319,6 +321,50 @@ describe("tab lifecycle", () => {
     controller.closeTab("a");
     await controller.refreshAllNotesCache();
     expect(get(controller.allNotesCache)["Scratchpad 1"]).toBeUndefined();
+  });
+
+  it("#63: closing a dated tab with empty content deletes its file instead of saving it", () => {
+    controller.tabs.set([tab({ id: "a", filename: "2026-09-11.txt", content: "" })]);
+    controller.closeTab("a");
+    expect(apiMock.deleteNote).toHaveBeenCalledWith("2026-09-11.txt");
+    expect(apiMock.writeNote).not.toHaveBeenCalled();
+  });
+
+  it("#63: also deletes when the content is whitespace-only, not just the literal empty string", () => {
+    controller.tabs.set([tab({ id: "a", filename: "2026-09-11.txt", content: "   \n  " })]);
+    controller.closeTab("a");
+    expect(apiMock.deleteNote).toHaveBeenCalledWith("2026-09-11.txt");
+  });
+
+  it("#63: also deletes a note that previously had real content, now fully cleared (Marien's confirmed scope)", () => {
+    controller.tabs.set([tab({ id: "a", filename: "2026-09-11.txt", content: "" })]);
+    // No distinction is made between "always empty" and "had content,
+    // then cleared" — simplest behavior, confirmed with Marien rather
+    // than assumed.
+    controller.closeTab("a");
+    expect(apiMock.deleteNote).toHaveBeenCalledWith("2026-09-11.txt");
+  });
+
+  it("#63: a pending debounced autosave for an emptied tab is cancelled, not flushed, on close", () => {
+    vi.useFakeTimers();
+    controller.tabs.set([tab({ id: "a", filename: "2026-09-11.txt", content: "something" })]);
+    controller.activeTabId.set("a");
+    controller.updateActiveTabContent(""); // schedules a debounced save of ""
+    controller.closeTab("a");
+    vi.advanceTimersByTime(1000); // past the 400ms debounce, if it were still pending
+    expect(apiMock.writeNote).not.toHaveBeenCalled();
+    expect(apiMock.deleteNote).toHaveBeenCalledWith("2026-09-11.txt");
+    vi.useRealTimers();
+  });
+
+  it("#63: never deletes a non-empty dated tab's file, or touches a scratchpad's (never on disk anyway)", () => {
+    controller.tabs.set([
+      tab({ id: "a", filename: "2026-09-11.txt", content: "real content" }),
+      tab({ id: "b", isScratchpad: true, filename: "Scratchpad 1", content: "" }),
+    ]);
+    controller.closeTab("a");
+    controller.closeTab("b");
+    expect(apiMock.deleteNote).not.toHaveBeenCalled();
   });
 
   it("#62: two concurrent refreshAllNotesCache() calls on a cold cache only read disk once", async () => {

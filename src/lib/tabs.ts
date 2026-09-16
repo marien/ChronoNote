@@ -20,7 +20,13 @@ import {
   showToast,
   tabs,
 } from "./stores";
-import { flushSave, noteClosingWithContent, writeNoteAndInvalidateCache } from "./persistence";
+import {
+  cancelScheduledSave,
+  deleteNoteAndInvalidateCache,
+  flushSave,
+  noteClosingWithContent,
+  writeNoteAndInvalidateCache,
+} from "./persistence";
 import { notifyTabClosed } from "./paste";
 import { sha256Hex } from "./drift";
 import { sortedTabsForDisplay } from "./tabSort";
@@ -125,7 +131,21 @@ const closedTabHistory: ClosedTabSnapshot[] = [];
 const MAX_CLOSED_HISTORY = 20;
 
 export function closeTab(tabId: string) {
-  flushSave(tabId);
+  const preCloseList = get(tabs);
+  const preCloseIdx = preCloseList.findIndex((t) => t.id === tabId);
+  const closingTab = preCloseIdx === -1 ? undefined : preCloseList[preCloseIdx];
+  // #63: an empty dated note gets deleted rather than saved — there's
+  // nothing in it worth persisting, and leaving an empty file behind
+  // just because the day was opened (or typed into, then fully cleared
+  // again) isn't useful. `cancelScheduledSave` drops any pending
+  // debounced autosave first, so it can't resurrect the file moments
+  // after this deletes it.
+  if (closingTab && !closingTab.isScratchpad && closingTab.content.trim() === "") {
+    cancelScheduledSave(tabId);
+    deleteNoteAndInvalidateCache(closingTab.filename);
+  } else {
+    flushSave(tabId);
+  }
   const list = get(tabs);
   const idx = list.findIndex((t) => t.id === tabId);
   if (idx === -1) return;

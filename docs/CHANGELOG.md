@@ -6,7 +6,7 @@ kept for the rationale behind each one — not just *what* changed but
 was still being gathered and confirmed before implementation; renamed once
 everything below was applied, since nothing here is "pending" anymore.
 
-**Status: all sections through §164 implemented and released; §165–§168
+**Status: all sections through §164 implemented and released; §165–§169
 fixed, not yet released.** §153 is a
 website-only Guide-page fix (found live right after §150–§152 shipped
 as v0.7.12) — no version bump, nothing in the shipped app changed. §154
@@ -7298,3 +7298,67 @@ from an undifferentiated rest").
 
 `svelte-check` 217/0, Vitest 328/328 (unchanged — pure CSS/markup),
 Playwright 214/214 (+1), `cargo test` 57/57 (unchanged — pure frontend).
+
+## 169. Closing an empty dated tab deletes its file instead of leaving it behind (#63)
+
+**Status: fixed, not yet released.**
+
+Marien filed #63: "When a new day is opened or selected, right now an
+empty file is created. If the user closed the tab again, that empty
+file is retained. What if the file is only created when the first
+content is added, and removed if there is no content when the tab is
+closed? That would clean up the disk a bit, especially when a user
+opens ChronoNote during the weekend with no intention of making notes
+for that day, just to check what was left and what is new."
+
+Investigated first: merely opening/selecting a dated tab doesn't
+actually write anything to disk today — `openOrCreateDatedFile` only
+reads (`api.readNoteWithMetadata`); the debounced autosave
+(`scheduleSave`/`flushSave` in `persistence.ts`) is the only path to a
+real write, and it only fires after an actual edit. So the precise
+mechanism is "a tab left with empty content — whether truly untouched,
+or typed into and then fully cleared again — still gets that empty
+content persisted (or left on disk) when the tab closes," not quite
+what the issue's own wording described, though the fix wanted is the
+same either way.
+
+Asked one clarifying question before implementing: should this also
+apply to a note that *previously had real content* which the user then
+fully cleared, or only to a tab that was empty for the entire time it
+was open (the latter needing new per-tab state to tell the two cases
+apart, since nothing currently tracks a tab's on-open disk state)?
+Marien confirmed the simpler always-delete-when-empty behavior.
+
+New `delete_note`/`delete_note_at` (mirroring `write_note`/
+`write_note_at`'s existing pattern, including `resolve_workspace_path`'s
+path-traversal guard) in `storage.rs` + `lib.rs`, and matching mock
+handlers in `mockBackend.ts` and the web app's `webBackend.ts`
+(`idbDelete`, already existed as a helper, just unused until now). A
+missing file is **not** an error in any of the three — the common case
+is a tab that was opened but never actually edited, so no file ever
+existed for it, and deleting it should read as "already at the desired
+state," not a failure.
+
+`tabs.ts`'s `closeTab()` now branches: a non-scratchpad tab whose
+content is `trim() === ""` calls the new `cancelScheduledSave()` +
+`deleteNoteAndInvalidateCache()` (persistence.ts) instead of the usual
+`flushSave()` — cancelling first so a pending debounced autosave can't
+resurrect the file moments after it's deleted. Everything else about
+close (the disk-cache patch, closed-tab history for reopening, the
+safety-close gate for unresolved actions) is unchanged; the empty-close
+path is purely about which disk operation runs, not the rest of the
+lifecycle.
+
+New tests: three Rust `storage.rs` cases (removes an existing file,
+succeeds — doesn't error — on a missing one, rejects an invalid
+filename same as `write_note_at`); five `controller.test.ts` cases
+(deletes on close for empty content, for whitespace-only content, for a
+previously-real note now cleared, cancels rather than flushes a pending
+debounced save, never deletes a non-empty note or touches a
+scratchpad); two `tabs-lifecycle.spec.ts` Playwright cases (a tab that
+was never written into closes with nothing new to delete; a real note
+fully cleared then closed is actually gone from the mock backend, not
+just emptied).
+
+`svelte-check` 217/0, Vitest 333/333 (+5), Playwright 216/216 (+2),
+`cargo test` 60/60 (+3).

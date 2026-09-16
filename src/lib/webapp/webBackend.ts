@@ -240,6 +240,14 @@ export class WebBackend {
       return metadataOf(note);
     },
 
+    // #63: a missing entry is not an error — mirrors storage.rs's own
+    // idempotent `delete_note_at`.
+    delete_note: async ({ filename }) => {
+      if (!isValidNoteFilename(filename)) throw new Error(`Invalid note filename: ${filename}`);
+      const db = await this.db();
+      await idbDelete(db, STORE_NOTES, filename);
+    },
+
     get_file_metadata: async ({ filename }) => {
       if (!isValidNoteFilename(filename)) throw new Error(`Invalid note filename: ${filename}`);
       const db = await this.db();

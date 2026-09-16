@@ -105,6 +105,11 @@ fn write_note(
 }
 
 #[tauri::command]
+fn delete_note(app: AppHandle, filename: String) -> Result<(), String> {
+    storage::delete_note(&app, &filename)
+}
+
+#[tauri::command]
 fn get_file_metadata(app: AppHandle, filename: String) -> Result<storage::FileMetadata, String> {
     storage::get_file_metadata(&app, &filename)
 }
@@ -218,6 +223,7 @@ pub fn run() {
             list_note_files,
             read_note,
             write_note,
+            delete_note,
             get_file_metadata,
             read_note_with_metadata,
             write_conflict_copy,
