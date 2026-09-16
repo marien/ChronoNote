@@ -201,6 +201,11 @@ export const SHORTCUTS: ShortcutDef[] = [
       { mod: true, shift: true, code: "Slash" },
     ],
   },
+  {
+    id: "copyToNextOccurrence",
+    label: "Copy the selection (or current line) to the next occurrence of this section",
+    combos: [{ mod: true, shift: true, code: "Period" }],
+  },
 ];
 
 const BY_ID = new Map(SHORTCUTS.map((s) => [s.id, s]));
@@ -223,6 +228,7 @@ export function combosForPlatform(def: ShortcutDef): ComboSpec[] {
 const KEY_LABELS: Record<string, string> = {
   Comma: ",",
   Slash: "/",
+  Period: ".",
   ArrowUp: "↑",
   ArrowDown: "↓",
 };

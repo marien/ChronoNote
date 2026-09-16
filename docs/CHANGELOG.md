@@ -6,7 +6,7 @@ kept for the rationale behind each one — not just *what* changed but
 was still being gathered and confirmed before implementation; renamed once
 everything below was applied, since nothing here is "pending" anymore.
 
-**Status: all sections through §164 implemented and released; §165–§169
+**Status: all sections through §164 implemented and released; §165–§170
 fixed, not yet released.** §153 is a
 website-only Guide-page fix (found live right after §150–§152 shipped
 as v0.7.12) — no version bump, nothing in the shipped app changed. §154
@@ -7362,3 +7362,112 @@ just emptied).
 
 `svelte-check` 217/0, Vitest 333/333 (+5), Playwright 216/216 (+2),
 `cargo test` 60/60 (+3).
+
+## 170. "Copy to next occurrence" — a shortcut to forward the selection to the next time this section comes up (#66)
+
+**Status: fixed, not yet released.**
+
+Marien filed #66: "Have a shortcut that copies selected text to the next
+occurrence of a meeting/section. If there is a next occurrence on file,
+copy the content there, marking open actions a deferred. If there is no
+next occurrence on file, and Sync to calendar is available, find the
+next occurrence there, create the file if not yet created, add the
+section, and copy the content there, marking open actions a deferred.
+If there is no next occurrence on file, and Sync to calendar is not
+available, ask the user for a date, create the file if not yet created,
+add the section, and copy the content there, marking open actions a
+deferred."
+
+The largest of a batch of six issues filed the same day (#63–#68) —
+design was proposed and confirmed in two rounds before implementing,
+unlike the other five: Marien corrected the search priority once the
+initial design was on the table — **"on calendar should always be
+leading, in case calendar is not used disk is leading. In both cases,
+if nothing found, prompt the user."** — swapping the original issue
+text's "disk always first, calendar as fallback" for "whichever source
+is actually in use leads, and is the *only* one tried" before falling
+back to a prompt.
+
+New `Ctrl/Cmd+Shift+.`, dispatched at the same window-level as every
+other modal-opening shortcut (`App.svelte`), reading the live editor
+selection via a new `EditorApi.getSelection()` (extends to whole lines;
+a bare caret counts as just its own line, same convention #65's
+`markSelectionOpen` already established). New `src/lib/copyForward.ts`
+holds the whole flow:
+
+1. **Which section.** The same `getSectionHeaderForLine`/
+   `normalizeHeaderTitle`/`titleForMatching` chain Section History
+   already matches sections by (§150/§37) — a date embedded in the
+   title, like "Weekly Sync - 2026-09-01", is ignored for matching the
+   same way it already is there.
+2. **Search, whichever source is in use.** Calendar sync leads when
+   it's actually on (the identical three-part gate the "Sync calendar
+   for this day" button already grays itself out on: the Settings
+   toggle, desktop only, `.agenda.json` actually exists) — new
+   `read_agenda_after`/`read_agenda_after_date` (`agenda.rs`/`lib.rs`)
+   returns every `(date, title)` pair after a given date (title
+   *matching* stays a frontend concern, same division of labor as the
+   reconciliation engine and Section History already use — Rust just
+   filters by date range). Otherwise on-disk notes lead: new
+   `findNextSectionOccurrenceOnDisk` in `history.ts` (exported
+   alongside the now-also-exported `extractSectionBody`), mirroring
+   `findPreviousSectionOccurrence`'s descending search but ascending,
+   and — deliberately unlike it — counting an empty-but-present section
+   as a match, since there's somewhere to put the copy either way.
+   Neither source is tried after the other comes up empty; nothing found
+   either way goes straight to a prompt.
+3. **Nothing found → reuse the date picker.** Rather than build a
+   second date-picking UI, a new `copyForwardPending` store
+   (`stores.ts`) records what's waiting; `DatePickerModal.svelte`'s own
+   `commit(iso)` checks it first and resolves the pending copy instead
+   of its normal "jump to this date" behavior when one is set —
+   `closeAllModals()` clears it too, so cancelling the picker (Escape,
+   outside click) abandons the copy rather than leaving it to hijack
+   some later, unrelated use of the same picker. `commitDatePick`
+   (`tabs.ts`) itself is untouched — branching lives in the component
+   instead, specifically to avoid a real circular-import risk
+   (`tabs.ts` → `copyForward.ts` → `history.ts` → `tabs.ts`) that would
+   have broken this codebase's own maintained dependency DAG
+   (`controller.ts`'s header comment).
+4. **Apply the copy.** The selection is written verbatim into the
+   target's section (its existing body if the section is already
+   there — appended at the end, past a blank-line-artifact-stripping
+   fix `insertIntoSection` needed for a section sitting at the very end
+   of a file with its own trailing newline — or a brand-new section,
+   header + underline, appended at the end of the file otherwise). The
+   *source* selection gets whatever was open in it marked deferred —
+   `# ` → `> `, and (thanks to #67, fixed earlier the same session) a
+   `=> #` consequence-action too — via `paste.ts`'s own
+   `deferOpenActionsInText`/`countOpenActionsInText`, newly exported and
+   shared rather than reimplemented, exactly mirroring the existing
+   copy/paste-forward rule (§64/§82/#67): the copy lands open, the
+   original gets marked deferred, never the other way round.
+
+Two judgment calls, neither specified by the request, both flagged
+rather than assumed silently: "next" is relative to the *active tab's
+own date*, not today, so catching up on an old note's backlog threads
+forward from where you actually are instead of jumping straight to
+"next after today" and skipping occurrences not yet caught up on; and
+a brand-new section's header text is the calendar's own title when the
+target came from a calendar match (matching how the reconciliation
+engine already always uses the calendar's own title for a new section),
+or the source note's own header text when it came from a prompted date
+(no more-authoritative title available there).
+
+New tests: three Rust `agenda.rs` cases for `read_agenda_after`'s pure
+`titles_after_date` (excludes the boundary date itself, sorts by date
+then start time, drops an exact duplicate, an empty range is a result
+not an error); three `controller.test.ts` cases for
+`findNextSectionOccurrenceOnDisk`; eleven more for
+`copySelectionToNextOccurrence`/`resolveCopyForwardPending` (disk-
+leading, calendar-leading into both a new and an existing section,
+the prompt fallback, resolving and abandoning a pending prompt, a
+consequence-action and a multi-line selection each deferring correctly,
+and the three "can't do this" toasts — empty selection, no section,
+scratchpad); four `copy-to-next-occurrence.spec.ts` Playwright cases
+driving the real shortcut and the real date picker end to end. Verified
+live in the browser too, including watching the source line's glyph
+flip from open to deferred in the running editor.
+
+`svelte-check` 218/0 (+1 file — the new `copyForward.ts`), Vitest
+347/347 (+14), Playwright 220/220 (+4), `cargo test` 64/64 (+4).

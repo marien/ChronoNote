@@ -178,11 +178,35 @@ export function findPreviousSectionOccurrence(
   return null;
 }
 
+/** #66: the earliest dated file strictly after `afterFilename` that has a
+ * section matching `targetHeader` at all — unlike
+ * `findPreviousSectionOccurrence`, an empty-but-present section still
+ * counts here: "copy to next occurrence" wants somewhere to put the
+ * copied content, not evidence it already has some. Ascending order,
+ * mirroring `findPreviousSectionOccurrence`'s descending search over the
+ * same plain-string-sorts-`YYYY-MM-DD.txt`-chronologically property. */
+export function findNextSectionOccurrenceOnDisk(
+  allSources: Record<string, string>,
+  targetHeader: string,
+  afterFilename: string,
+): { filename: string; date: string; startLineIdx: number } | null {
+  const candidates = Object.keys(allSources)
+    .filter((f) => DATED_FILE.test(f) && f > afterFilename)
+    .sort();
+  for (const filename of candidates) {
+    const body = extractSectionBody(allSources[filename].split("\n"), targetHeader);
+    if (body) {
+      return { filename, date: filename.replace(/\.txt$/, ""), startLineIdx: body.startLineIdx };
+    }
+  }
+  return null;
+}
+
 /** The lines between a section's setext underline and the next section
  * header (or end of file), trailing blanks trimmed. `null` if the file
  * has no section whose title matches `targetHeader` (via the same
  * date-insensitive comparison `openMeetingHistory` matches on). */
-function extractSectionBody(
+export function extractSectionBody(
   fileLines: string[],
   targetHeader: string,
 ): { lines: string[]; startLineIdx: number } | null {

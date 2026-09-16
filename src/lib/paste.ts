@@ -29,6 +29,22 @@ let lastCopiedAction: { text: string; sourceTabId: string } | null = null;
  * `=> `); group 2 is the trailing space, also preserved. */
 const OPEN_ACTION_LINE = /(^\s*|=>\s)#(\s)/;
 
+/** Flips every open action within `text` (a leading `# `, or a `=> #`
+ * consequence-action, #67) to deferred `> ` / `=> > `, leaving everything
+ * else byte-for-byte unchanged. Shared by `handlePasteIntoTab` below and
+ * #66's "copy to next occurrence" — both need the exact same "defer
+ * whatever was open in this block" transform, just triggered by a
+ * different action (a paste vs. a dedicated shortcut). */
+export function deferOpenActionsInText(text: string): string {
+  return text.replace(new RegExp(OPEN_ACTION_LINE, "gm"), "$1>$2");
+}
+
+/** How many open actions `deferOpenActionsInText` would flip in `text` —
+ * used for the "N tasks deferred" vs. singular toast wording. */
+export function countOpenActionsInText(text: string): number {
+  return (text.match(new RegExp(OPEN_ACTION_LINE, "gm")) ?? []).length;
+}
+
 /** Called on every `copy` inside the editor. `lastCopiedAction` is only
  * ever meaningful for the *very next* paste, so any fresh copy must
  * replace it — a copy that carries an open action becomes the new record,
@@ -75,7 +91,7 @@ export function notifyTabClosed(tabId: string) {
 }
 
 function deferRestoredToast(sourceFilename: string, blockText: string) {
-  const n = (blockText.match(new RegExp(OPEN_ACTION_LINE, "gm")) ?? []).length;
+  const n = countOpenActionsInText(blockText);
   showToast(
     n > 1
       ? `${n} deferred tasks on ${sourceFilename} restored to open`
@@ -116,7 +132,7 @@ export function onEditorRedo(activeTabId: string, before: string, after: string)
   const src = list.find((t) => t.id === link.sourceTabId);
   if (src && src.content.includes(link.openBlock)) {
     tabs.set(writeTabContent(src.id, src.content.replace(link.openBlock, link.deferredBlock), list));
-    const n = (link.openBlock.match(new RegExp(OPEN_ACTION_LINE, "gm")) ?? []).length;
+    const n = countOpenActionsInText(link.openBlock);
     showToast(
       n > 1 ? `${n} tasks on ${src.filename} deferred again` : `Task on ${src.filename} deferred again`,
     );
@@ -154,7 +170,7 @@ export function handlePasteIntoTab(targetTabId: string) {
     // its start — pasting a multi-line copy that happens to carry several
     // "# " lines (or one indented past the block's first line) should
     // forward all of them, the same as pasting just one always has.
-    const deferredBlock = copied.text.replace(new RegExp(OPEN_ACTION_LINE, "gm"), "$1>$2");
+    const deferredBlock = deferOpenActionsInText(copied.text);
     const newSrcContent = srcTab.content.replace(copied.text, deferredBlock);
     tabs.set(writeTabContent(srcTab.id, newSrcContent, list));
     // §86 (#9): remember this defer so an undo of the paste in the target
@@ -166,7 +182,7 @@ export function handlePasteIntoTab(targetTabId: string) {
       deferredBlock,
       reverted: false,
     };
-    const count = (copied.text.match(new RegExp(OPEN_ACTION_LINE, "gm")) ?? []).length;
+    const count = countOpenActionsInText(copied.text);
     showToast(
       count > 1
         ? `${count} original tasks on ${srcTab.filename} marked deferred`

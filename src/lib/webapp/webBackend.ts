@@ -329,6 +329,7 @@ export class WebBackend {
     // an empty calendar rather than a thrown error just in case, matching
     // how a desktop install with no `.agenda.json` file yet behaves.
     read_agenda_for_date: () => [],
+    read_agenda_after: () => [],
     agenda_file_exists: () => false,
   };
 

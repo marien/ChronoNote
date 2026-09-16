@@ -2,7 +2,7 @@
   import { get } from "svelte/store";
   import { onMount, tick } from "svelte";
   import * as controller from "../../controller";
-  import { activeTabId, allNotesCache, tabs } from "../../controller";
+  import { activeTabId, allNotesCache, copyForwardPending, tabs } from "../../controller";
   import { focusTrap } from "../../actions/focusTrap";
   import {
     addDaysISO,
@@ -152,7 +152,14 @@
   }
 
   function commit(iso: string) {
-    controller.commitDatePick(iso);
+    // #66: "copy to next occurrence" reuses this same picker when its own
+    // search finds nothing — resolve that instead of the picker's normal
+    // "jump to this date" behavior when one is waiting.
+    if (get(copyForwardPending)) {
+      controller.resolveCopyForwardPending(iso);
+    } else {
+      controller.commitDatePick(iso);
+    }
   }
 
   function onJumpKeydown(e: KeyboardEvent) {

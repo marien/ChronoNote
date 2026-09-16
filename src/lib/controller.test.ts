@@ -28,6 +28,7 @@ const apiMock = {
   getAppVersion: vi.fn(),
   openExternalUrl: vi.fn(),
   readAgendaForDate: vi.fn(),
+  readAgendaAfter: vi.fn(),
 };
 
 const NO_META = { exists: false, contentHash: null, sizeBytes: null, modifiedMs: null };
@@ -97,6 +98,7 @@ beforeEach(async () => {
   apiMock.setLastSeenVersion.mockResolvedValue({} as never);
   apiMock.openExternalUrl.mockResolvedValue(undefined);
   apiMock.readAgendaForDate.mockResolvedValue([]);
+  apiMock.readAgendaAfter.mockResolvedValue([]);
   // Off by default here (unlike the real Rust default) so the launch-time
   // update check in `initApp()` stays inert for every test that doesn't
   // explicitly opt in — `updaterMock.check` still resolves `null` as a
@@ -914,6 +916,7 @@ describe("openMeetingHistory (§70: mid-line consequence-action dedup)", () => {
       insertAtCursor: () => {},
       jumpToLine: () => {},
       getCursorLineIdx: () => 2,
+      getSelection: () => ({ text: "", fromLine: 0, toLine: 0 }),
       focus: () => {},
       find: { setQuery: () => {}, next: () => {}, prev: () => {}, clear: () => {} },
     });
@@ -937,6 +940,7 @@ describe("openMeetingHistory (§70: mid-line consequence-action dedup)", () => {
       insertAtCursor: () => {},
       jumpToLine: () => {},
       getCursorLineIdx: () => 2,
+      getSelection: () => ({ text: "", fromLine: 0, toLine: 0 }),
       focus: () => {},
       find: { setQuery: () => {}, next: () => {}, prev: () => {}, clear: () => {} },
     });
@@ -954,6 +958,7 @@ describe("openMeetingHistory (§70: mid-line consequence-action dedup)", () => {
       insertAtCursor: () => {},
       jumpToLine: () => {},
       getCursorLineIdx: () => 0,
+      getSelection: () => ({ text: "", fromLine: 0, toLine: 0 }),
       focus: () => {},
       find: { setQuery: () => {}, next: () => {}, prev: () => {}, clear: () => {} },
     });
@@ -971,6 +976,7 @@ describe("openMeetingHistory (§70: mid-line consequence-action dedup)", () => {
       insertAtCursor: () => {},
       jumpToLine: () => {},
       getCursorLineIdx: () => 2,
+      getSelection: () => ({ text: "", fromLine: 0, toLine: 0 }),
       focus: () => {},
       find: { setQuery: () => {}, next: () => {}, prev: () => {}, clear: () => {} },
     });
@@ -1005,6 +1011,7 @@ describe("openMeetingHistory (§70: mid-line consequence-action dedup)", () => {
       insertAtCursor: () => {},
       jumpToLine: () => {},
       getCursorLineIdx: () => 2,
+      getSelection: () => ({ text: "", fromLine: 0, toLine: 0 }),
       focus: () => {},
       find: { setQuery: () => {}, next: () => {}, prev: () => {}, clear: () => {} },
     });
@@ -1099,6 +1106,210 @@ describe("findPreviousSectionOccurrence (#27, §150: always before today)", () =
     vi.setSystemTime(new Date(2026, 8, 5));
     const lo = controller.findPreviousSectionOccurrence(sources, "Weekly Sync");
     expect(lo!.filename).toBe("2026-09-01.txt");
+  });
+});
+
+describe("findNextSectionOccurrenceOnDisk (#66)", () => {
+  const sources = {
+    "2026-09-01.txt": "Weekly Sync\n====\nolder occurrence",
+    "2026-09-08.txt": "Weekly Sync - 2026-09-08\n====\n# renew the cert",
+    "2026-09-10.txt": "Weekly Sync\n====\n",
+    "2026-09-15.txt": "Standup\n====\nunrelated",
+  };
+
+  it("returns the earliest matching file strictly after the anchor", () => {
+    const next = controller.findNextSectionOccurrenceOnDisk(sources, "Weekly Sync", "2026-09-01.txt");
+    expect(next).not.toBeNull();
+    expect(next!.filename).toBe("2026-09-08.txt");
+  });
+
+  it("counts an empty (but present) section as a valid next occurrence, unlike findPreviousSectionOccurrence", () => {
+    const next = controller.findNextSectionOccurrenceOnDisk(sources, "Weekly Sync", "2026-09-08.txt");
+    expect(next!.filename).toBe("2026-09-10.txt");
+  });
+
+  it("returns null when no later file has the section at all", () => {
+    expect(controller.findNextSectionOccurrenceOnDisk(sources, "Nonexistent Section", "2026-09-01.txt")).toBeNull();
+    expect(controller.findNextSectionOccurrenceOnDisk(sources, "Weekly Sync", "2026-09-10.txt")).toBeNull();
+  });
+});
+
+describe("copySelectionToNextOccurrence (#66)", () => {
+  function selectFrom(text: string, fromLine: number, toLine: number) {
+    controller.registerEditorApi({
+      getContent: () => "",
+      setContent: () => {},
+      insertAtCursor: () => {},
+      jumpToLine: () => {},
+      getCursorLineIdx: () => fromLine,
+      getSelection: () => ({ text, fromLine, toLine }),
+      focus: () => {},
+      find: { setQuery: () => {}, next: () => {}, prev: () => {}, clear: () => {} },
+    });
+  }
+
+  afterEach(() => {
+    controller.calendarSyncEnabled.set(false);
+  });
+
+  it("disk-leading (calendar off): finds the next occurrence on disk, copies verbatim, defers the source", async () => {
+    controller.tabs.set([
+      tab({ id: "src", filename: "2026-09-01.txt", content: "Weekly Sync\n====\n# renew the cert" }),
+      tab({ id: "future", filename: "2026-09-08.txt", content: "Weekly Sync\n====\n- prior notes" }),
+    ]);
+    controller.activeTabId.set("src");
+    selectFrom("# renew the cert", 2, 2);
+
+    await controller.copySelectionToNextOccurrence();
+
+    expect(get(controller.tabs).find((t) => t.id === "src")!.content).toBe("Weekly Sync\n====\n> renew the cert");
+    expect(get(controller.tabs).find((t) => t.id === "future")!.content).toBe(
+      "Weekly Sync\n====\n- prior notes\n\n# renew the cert",
+    );
+    expect(apiMock.readAgendaAfter).not.toHaveBeenCalled();
+  });
+
+  it("calendar-leading (enabled + available): searches .agenda.json instead of disk, using the calendar's own title for a new section", async () => {
+    controller.calendarSyncEnabled.set(true);
+    controller.agendaFileExists.set(true);
+    controller.tabs.set([tab({ id: "src", filename: "2026-09-01.txt", content: "Weekly Sync\n====\n# renew the cert" })]);
+    controller.activeTabId.set("src");
+    selectFrom("# renew the cert", 2, 2);
+    apiMock.readAgendaAfter.mockResolvedValue([
+      ["2026-09-03", "Unrelated Meeting"],
+      ["2026-09-08", "Weekly Sync"],
+    ]);
+
+    await controller.copySelectionToNextOccurrence();
+
+    expect(apiMock.readAgendaAfter).toHaveBeenCalledWith("2026-09-01");
+    expect(get(controller.tabs).find((t) => t.id === "src")!.content).toBe("Weekly Sync\n====\n> renew the cert");
+    // No open tab and nothing on disk for 2026-09-08.txt — written straight
+    // to disk as a brand-new section, underlined to the header's own length.
+    expect(apiMock.writeNote).toHaveBeenCalledWith(
+      "2026-09-08.txt",
+      "Weekly Sync\n===========\n# renew the cert\n",
+    );
+    controller.agendaFileExists.set(false);
+  });
+
+  it("a real Rust-style agenda match still finds the on-disk file instead of always creating a new section", async () => {
+    controller.calendarSyncEnabled.set(true);
+    controller.agendaFileExists.set(true);
+    controller.tabs.set([
+      tab({ id: "src", filename: "2026-09-01.txt", content: "Weekly Sync\n====\n# renew the cert" }),
+      tab({ id: "future", filename: "2026-09-08.txt", content: "Weekly Sync\n====\n- prior notes" }),
+    ]);
+    controller.activeTabId.set("src");
+    selectFrom("# renew the cert", 2, 2);
+    apiMock.readAgendaAfter.mockResolvedValue([["2026-09-08", "Weekly Sync"]]);
+
+    await controller.copySelectionToNextOccurrence();
+
+    expect(get(controller.tabs).find((t) => t.id === "future")!.content).toBe(
+      "Weekly Sync\n====\n- prior notes\n\n# renew the cert",
+    );
+    controller.agendaFileExists.set(false);
+  });
+
+  it("nothing found (either leading source) prompts for a date instead of silently doing nothing", async () => {
+    controller.tabs.set([tab({ id: "src", filename: "2026-09-01.txt", content: "Weekly Sync\n====\n# renew the cert" })]);
+    controller.activeTabId.set("src");
+    selectFrom("# renew the cert", 2, 2);
+
+    await controller.copySelectionToNextOccurrence();
+
+    expect(get(controller.modal)).toBe("date");
+    expect(get(controller.tabs).find((t) => t.id === "src")!.content).toBe("Weekly Sync\n====\n# renew the cert"); // untouched
+  });
+
+  it("resolveCopyForwardPending completes the copy once a date is picked, creating the file if needed", async () => {
+    controller.tabs.set([tab({ id: "src", filename: "2026-09-01.txt", content: "Weekly Sync\n====\n# renew the cert" })]);
+    controller.activeTabId.set("src");
+    selectFrom("# renew the cert", 2, 2);
+    await controller.copySelectionToNextOccurrence();
+    expect(get(controller.modal)).toBe("date");
+
+    await controller.resolveCopyForwardPending("2026-09-20");
+
+    expect(get(controller.tabs).find((t) => t.id === "src")!.content).toBe("Weekly Sync\n====\n> renew the cert");
+    expect(apiMock.writeNote).toHaveBeenCalledWith(
+      "2026-09-20.txt",
+      "Weekly Sync\n===========\n# renew the cert\n",
+    );
+  });
+
+  it("closeAllModals abandons a pending copy instead of leaving it to resolve later", async () => {
+    controller.tabs.set([tab({ id: "src", filename: "2026-09-01.txt", content: "Weekly Sync\n====\n# renew the cert" })]);
+    controller.activeTabId.set("src");
+    selectFrom("# renew the cert", 2, 2);
+    await controller.copySelectionToNextOccurrence();
+    expect(get(controller.modal)).toBe("date");
+
+    controller.closeAllModals();
+    await controller.resolveCopyForwardPending("2026-09-20"); // should now be a no-op
+
+    expect(apiMock.writeNote).not.toHaveBeenCalled();
+  });
+
+  it("also defers a consequence-action within the copied selection (#67)", async () => {
+    controller.tabs.set([
+      tab({ id: "src", filename: "2026-09-01.txt", content: "Weekly Sync\n====\nTalked to Sam => # follow up" }),
+      tab({ id: "future", filename: "2026-09-08.txt", content: "Weekly Sync\n====\n" }),
+    ]);
+    controller.activeTabId.set("src");
+    selectFrom("Talked to Sam => # follow up", 2, 2);
+
+    await controller.copySelectionToNextOccurrence();
+
+    expect(get(controller.tabs).find((t) => t.id === "src")!.content).toBe(
+      "Weekly Sync\n====\nTalked to Sam => > follow up",
+    );
+    expect(get(controller.tabs).find((t) => t.id === "future")!.content).toBe(
+      "Weekly Sync\n====\nTalked to Sam => # follow up",
+    );
+  });
+
+  it("multi-line selection copies and defers every open action within it, not just the first", async () => {
+    controller.tabs.set([
+      tab({ id: "src", filename: "2026-09-01.txt", content: "Weekly Sync\n====\n# first\nplain\n# second" }),
+      tab({ id: "future", filename: "2026-09-08.txt", content: "Weekly Sync\n====\n" }),
+    ]);
+    controller.activeTabId.set("src");
+    selectFrom("# first\nplain\n# second", 2, 4);
+
+    await controller.copySelectionToNextOccurrence();
+
+    expect(get(controller.tabs).find((t) => t.id === "src")!.content).toBe(
+      "Weekly Sync\n====\n> first\nplain\n> second",
+    );
+    expect(get(controller.tabs).find((t) => t.id === "future")!.content).toBe(
+      "Weekly Sync\n====\n# first\nplain\n# second",
+    );
+  });
+
+  it("shows a toast and does nothing when the selection is empty", async () => {
+    controller.tabs.set([tab({ id: "src", filename: "2026-09-01.txt", content: "Weekly Sync\n====\n" })]);
+    controller.activeTabId.set("src");
+    selectFrom("   ", 2, 2);
+    await controller.copySelectionToNextOccurrence();
+    expect(get(controller.toastMessage)).toMatch(/nothing to copy/i);
+  });
+
+  it("shows a toast and does nothing when not inside a named section", async () => {
+    controller.tabs.set([tab({ id: "src", filename: "2026-09-01.txt", content: "no header here" })]);
+    controller.activeTabId.set("src");
+    selectFrom("no header here", 0, 0);
+    await controller.copySelectionToNextOccurrence();
+    expect(get(controller.toastMessage)).toMatch(/isn.t inside a named section/i);
+  });
+
+  it("is not available in a scratchpad", async () => {
+    controller.tabs.set([tab({ id: "src", isScratchpad: true, filename: "Scratchpad 1", content: "# a task" })]);
+    controller.activeTabId.set("src");
+    selectFrom("# a task", 0, 0);
+    await controller.copySelectionToNextOccurrence();
+    expect(get(controller.toastMessage)).toMatch(/scratchpad/i);
   });
 });
 

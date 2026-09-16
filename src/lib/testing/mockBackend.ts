@@ -177,7 +177,7 @@ const AGENDA_ERROR = "The calendar file (.agenda.json) is missing, empty, or inv
  * that all-or-nothing behavior. A day with no matching entries in an
  * otherwise-valid, non-empty file is a legitimate empty result, not an
  * error — only the whole file being empty/invalid is. */
-function titlesForDate(raw: string | undefined, date: string): string[] {
+function parseAgendaMeetings(raw: string | undefined): AgendaMeeting[] {
   let parsed: unknown;
   try {
     parsed = JSON.parse((raw ?? "").trim());
@@ -187,7 +187,11 @@ function titlesForDate(raw: string | undefined, date: string): string[] {
   if (!Array.isArray(parsed) || parsed.length === 0 || !parsed.every(isAgendaMeeting)) {
     throw new Error(AGENDA_ERROR);
   }
-  const day = (parsed as AgendaMeeting[]).filter((m) => m.date === date);
+  return parsed as AgendaMeeting[];
+}
+
+function titlesForDate(raw: string | undefined, date: string): string[] {
+  const day = parseAgendaMeetings(raw).filter((m) => m.date === date);
   day.sort((a, b) => a.start.localeCompare(b.start) || a.end.localeCompare(b.end) || a.title.localeCompare(b.title));
   const seen = new Set<string>();
   return day
@@ -198,6 +202,29 @@ function titlesForDate(raw: string | undefined, date: string): string[] {
       return true;
     })
     .map((m) => m.title);
+}
+
+/** #66: mirrors `agenda.rs`'s `titles_after_date` — every `(date, title)`
+ * pair for a date strictly after `afterDate`, sorted/de-duplicated the
+ * same way `titlesForDate` is but scoped to a range instead of one day. */
+function titlesAfterDate(raw: string | undefined, afterDate: string): [string, string][] {
+  const future = parseAgendaMeetings(raw).filter((m) => m.date > afterDate);
+  future.sort(
+    (a, b) =>
+      a.date.localeCompare(b.date) ||
+      a.start.localeCompare(b.start) ||
+      a.end.localeCompare(b.end) ||
+      a.title.localeCompare(b.title),
+  );
+  const seen = new Set<string>();
+  return future
+    .filter((m) => {
+      const key = `${m.date}|${m.start}|${m.end}|${m.title}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    })
+    .map((m) => [m.date, m.title] as [string, string]);
 }
 
 /** One handler per Tauri command, its args and resolved value both bound
@@ -603,6 +630,8 @@ export class MockBackend {
     },
 
     read_agenda_for_date: ({ date }) => titlesForDate(this.agendaJson, date),
+
+    read_agenda_after: ({ afterDate }) => titlesAfterDate(this.agendaJson, afterDate),
 
     // Mirrors `agenda.rs::agenda_file_exists` — a cheap existence check,
     // deliberately not the fuller `titlesForDate` validation (an

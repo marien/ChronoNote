@@ -530,6 +530,17 @@
         if (!view) return 0;
         return view.state.doc.lineAt(view.state.selection.main.head).number - 1;
       },
+      getSelection: () => {
+        if (!view) return { text: "", fromLine: 0, toLine: 0 };
+        const { from, to } = view.state.selection.main;
+        const firstLine = view.state.doc.lineAt(from);
+        const lastLine = view.state.doc.lineAt(to);
+        return {
+          text: view.state.doc.sliceString(firstLine.from, lastLine.to),
+          fromLine: firstLine.number - 1,
+          toLine: lastLine.number - 1,
+        };
+      },
       focus: () => view?.focus(),
       find: {
         setQuery: (q: string) => {

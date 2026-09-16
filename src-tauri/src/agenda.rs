@@ -87,6 +87,30 @@ pub fn read_agenda_for_date(app: tauri::AppHandle, date: String) -> Result<Vec<S
     Ok(titles_for_date(meetings, &date))
 }
 
+/// #66: every `(date, title)` pair for a date strictly after `after_date`,
+/// sorted and de-duplicated the same way `titles_for_date` is (just scoped
+/// to a range instead of one day) — title *matching* against a section
+/// header (`normalizeHeaderTitle`/`titleForMatching`) stays a frontend
+/// concern, same division of labor as the reconciliation engine
+/// (`calendarReconcile.ts`) and Section History already use, so this
+/// just filters by date and hands back raw titles for the caller to match.
+fn titles_after_date(meetings: Vec<AgendaMeeting>, after_date: &str) -> Vec<(String, String)> {
+    let mut future: Vec<AgendaMeeting> = meetings.into_iter().filter(|m| m.date.as_str() > after_date).collect();
+    future.sort_by(|a, b| (&a.date, &a.start, &a.end, &a.title).cmp(&(&b.date, &b.start, &b.end, &b.title)));
+    let mut seen = std::collections::HashSet::new();
+    future.retain(|m| seen.insert((m.date.clone(), m.start.clone(), m.end.clone(), m.title.clone())));
+    future.into_iter().map(|m| (m.date, m.title)).collect()
+}
+
+#[tauri::command]
+pub fn read_agenda_after(app: tauri::AppHandle, after_date: String) -> Result<Vec<(String, String)>, String> {
+    let cfg = storage::load_config(&app)?;
+    let path = std::path::Path::new(&cfg.notes_dir).join(".agenda.json");
+    let raw = std::fs::read_to_string(&path).unwrap_or_default();
+    let meetings = parse_agenda(&raw).map_err(|_| AGENDA_ERROR.to_string())?;
+    Ok(titles_after_date(meetings, &after_date))
+}
+
 /// A cheap existence check the frontend uses to gray out the "Sync
 /// calendar for this day" button before the user ever clicks it —
 /// deliberately just `Path::exists`, not the fuller `parse_agenda`
@@ -185,5 +209,56 @@ mod tests {
         // calling `parse_agenda` — covered at that boundary instead of
         // here, since `parse_agenda` itself has no notion of "missing".
         assert_eq!(parse_agenda(""), Err(()));
+    }
+
+    fn read_after(raw: &str, after_date: &str) -> Result<Vec<(String, String)>, ()> {
+        parse_agenda(raw).map(|meetings| titles_after_date(meetings, after_date))
+    }
+
+    #[test]
+    fn read_agenda_after_excludes_the_boundary_date_itself() {
+        let json = r#"[
+            {"date":"2026-09-14","start":"09:00","end":"09:30","title":"Standup"},
+            {"date":"2026-09-15","start":"09:00","end":"09:30","title":"Standup"}
+        ]"#;
+        assert_eq!(
+            read_after(json, "2026-09-14"),
+            Ok(vec![("2026-09-15".to_string(), "Standup".to_string())])
+        );
+    }
+
+    #[test]
+    fn read_agenda_after_sorts_by_date_first_then_start_time() {
+        let json = r#"[
+            {"date":"2026-09-20","start":"09:00","end":"09:30","title":"Later"},
+            {"date":"2026-09-16","start":"11:00","end":"11:30","title":"Design Review"},
+            {"date":"2026-09-16","start":"09:00","end":"09:30","title":"Standup"}
+        ]"#;
+        assert_eq!(
+            read_after(json, "2026-09-15"),
+            Ok(vec![
+                ("2026-09-16".to_string(), "Standup".to_string()),
+                ("2026-09-16".to_string(), "Design Review".to_string()),
+                ("2026-09-20".to_string(), "Later".to_string()),
+            ])
+        );
+    }
+
+    #[test]
+    fn read_agenda_after_drops_an_exact_duplicate_entry() {
+        let json = r#"[
+            {"date":"2026-09-16","start":"09:00","end":"09:30","title":"Standup"},
+            {"date":"2026-09-16","start":"09:00","end":"09:30","title":"Standup"}
+        ]"#;
+        assert_eq!(
+            read_after(json, "2026-09-15"),
+            Ok(vec![("2026-09-16".to_string(), "Standup".to_string())])
+        );
+    }
+
+    #[test]
+    fn read_agenda_after_with_nothing_in_range_is_an_empty_result_not_an_error() {
+        let json = r#"[{"date":"2026-09-01","start":"09:00","end":"09:30","title":"Old"}]"#;
+        assert_eq!(read_after(json, "2026-09-15"), Ok(vec![]));
     }
 }

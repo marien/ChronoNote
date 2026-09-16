@@ -172,6 +172,26 @@ export const unsavedScratchpadNames = writable<string[]>([]);
  * call. */
 export const scratchpadGateContext = writable<"switch" | "close" | null>(null);
 
+/** #66: "copy to next occurrence" couldn't find a target via search, so
+ * the date picker is reused to ask for one — this is what's waiting to
+ * be resolved once a date is picked (`commitDatePick` in `tabs.ts`
+ * checks this before falling back to its normal "jump to this date"
+ * behavior). `closeAllModals()` clears it too, so cancelling the picker
+ * (Escape, outside click) abandons the copy rather than leaving it to
+ * hijack some later, unrelated use of the same picker. */
+export interface CopyForwardPending {
+  sourceTabId: string;
+  fromLine: number;
+  toLine: number;
+  /** The matching-normalized section title being searched for. */
+  targetHeader: string;
+  /** What a brand-new section's header should read, if the picked date's
+   * note doesn't have one yet — the source note's own header text (no
+   * calendar title is available in this fallback path). */
+  newSectionHeaderText: string;
+}
+export const copyForwardPending = writable<CopyForwardPending | null>(null);
+
 export const allNotesCache = writable<Record<string, string>>({});
 export const actionSnapshot = writable<ActionSnapshotItem[]>([]);
 export const historyItems = writable<HistoryItem[]>([]);
@@ -238,6 +258,9 @@ export function getActiveTabId(): string {
  * lives next to the store rather than in any one feature file. */
 export function closeAllModals() {
   modal.set("none");
+  // #66: a copy-forward waiting on a picked date is abandoned, not
+  // resolved, if the picker closes any other way (Escape, outside click).
+  copyForwardPending.set(null);
 }
 
 let toastTimer: ReturnType<typeof setTimeout> | undefined;
@@ -262,6 +285,10 @@ export interface EditorApi {
   insertAtCursor: (text: string) => void;
   jumpToLine: (lineIdx: number) => void;
   getCursorLineIdx: () => number;
+  /** #66: the current selection, extended to whole lines (a bare caret
+   * counts as just its own line) — `text` is exactly those lines
+   * verbatim, `fromLine`/`toLine` are 0-based and inclusive. */
+  getSelection: () => { text: string; fromLine: number; toLine: number };
   focus: () => void;
   /** §108: in-document find, driven by the floating `FindBar`. */
   find: {

@@ -14,6 +14,7 @@
  *   history              section history (Ctrl/Cmd+Shift+H)
  *   search               cross-tab search (Ctrl/Cmd+Shift+F)
  *   calendarSyncActions  Calendar sync — both agenda sources (paste + .agenda.json) + review
+ *   copyForward          "Copy to next occurrence" (#66)
  *   menu                 static-modal openers (Settings / Shortcuts / …)
  *   boot                 startup, session restore, standing subscriptions
  *   directory            notes-directory switching (§39)
@@ -33,6 +34,7 @@ export * from "./actions";
 export * from "./history";
 export * from "./search";
 export * from "./calendarSyncActions";
+export * from "./copyForward";
 export * from "./menu";
 export * from "./boot";
 export * from "./directory";

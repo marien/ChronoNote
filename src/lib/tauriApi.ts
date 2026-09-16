@@ -150,6 +150,12 @@ export function readAgendaForDate(date: string): Promise<string[]> {
   return invoke("read_agenda_for_date", { date });
 }
 
+/** #66: every `(date, title)` pair after `afterDate` — see
+ * `src-tauri/src/agenda.rs::read_agenda_after`. */
+export function readAgendaAfter(afterDate: string): Promise<[string, string][]> {
+  return invoke("read_agenda_after", { afterDate });
+}
+
 export function agendaFileExists(): Promise<boolean> {
   return invoke("agenda_file_exists", {});
 }

@@ -233,6 +233,7 @@ pub fn run() {
             import_notes_bundle,
             path_exists,
             agenda::read_agenda_for_date,
+            agenda::read_agenda_after,
             agenda::agenda_file_exists
         ])
         .run(tauri::generate_context!())

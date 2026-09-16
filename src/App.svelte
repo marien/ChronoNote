@@ -57,6 +57,7 @@
       openHistory: () => controller.openMeetingHistory(),
       crossTabSearch: () => controller.openCrossTabSearch(),
       syncCalendar: () => controller.syncCalendarFromFile(),
+      copyToNextOccurrence: () => controller.copySelectionToNextOccurrence(),
       openSettings: () => controller.openSettings(),
       openAbout: () => controller.openAbout(),
       openShortcutsHelp: () => controller.openShortcutsHelp(),

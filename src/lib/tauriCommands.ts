@@ -57,6 +57,11 @@ export interface TauriCommands {
    * de-duplicated — see `src-tauri/src/agenda.rs`. Desktop-only, like the
    * notes folder itself; the web app has no local file to read. */
   read_agenda_for_date: { args: { date: string }; returns: string[] };
+  /** #66: every `(date, title)` pair after `afterDate` — used to find the
+   * next occurrence of a recurring meeting when "copy to next occurrence"
+   * has calendar sync leading the search. See
+   * `src-tauri/src/agenda.rs::read_agenda_after`. */
+  read_agenda_after: { args: { afterDate: string }; returns: [string, string][] };
   /** Cheap existence check for the "gray out the sync button" UI state —
    * see `src-tauri/src/agenda.rs::agenda_file_exists`. */
   agenda_file_exists: { args: NoArgs; returns: boolean };
