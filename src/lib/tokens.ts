@@ -144,28 +144,70 @@ export function cycleActionSymbol(line: string, direction: 1 | -1 = 1): string |
   return replaceActionSymbol(line, (sym) => nextCycleSymbol(sym, direction));
 }
 
-/** #65: forces a line's action symbol straight to open (`#`), instead of
- * stepping through the cycle — the "mark all actions in a selection as
- * open" shortcut applies this per line rather than `cycleActionSymbol`,
- * since a multi-line selection can start from any state (or a mix of
- * them) and the point is to land on one state deterministically, not to
- * advance each line by one step. Same line-shape contract as
- * `cycleActionSymbol` (plain leading symbol or `=> <symbol>`
- * consequence-action, §41); `null` for a line with no action symbol at
- * all. Already-open lines pass through unchanged (a no-op replacement),
- * which callers rely on to distinguish "nothing to do" from "did work"
- * only via *some* line in a selection changing, not this one specifically. */
-export function setActionSymbolOpen(line: string): string | null {
-  return replaceActionSymbol(line, () => "#");
+/** #69: like `cycleActionSymbol`, but a line with no action symbol at all
+ * still cycles — into a fresh open action, the same "tasks start open"
+ * rule `actionLineEnter` already follows, regardless of which direction
+ * was pressed (there's no real "previous state" to land on when there
+ * wasn't a state at all yet). A separate function rather than changed
+ * default behavior: only the editor's own `Ctrl+Space`/`Ctrl+Enter`
+ * (`EditorPane.svelte`'s `cycleLine`) uses this — the Action Drawer's
+ * identically-shaped `Ctrl+Space` (`toggleActionLine` in `actions.ts`)
+ * keeps calling plain `cycleActionSymbol`, since it only ever operates
+ * on a line already known to be an action from its own snapshot;
+ * promoting arbitrary text there wouldn't correspond to anything the
+ * user could see or have asked for. */
+export function cycleActionSymbolOrCreate(line: string, direction: 1 | -1 = 1): string | null {
+  return replaceActionSymbol(line, (sym) => nextCycleSymbol(sym, direction), "#");
 }
 
-/** Shared line-matching for both symbol transforms above — a plain
+/** #65/#70: forces a line's action symbol straight to `symbol`, instead
+ * of stepping through the cycle — used by the "mark selection as <state>"
+ * shortcuts (`Ctrl/Cmd+Shift+O` for open, `Ctrl/Cmd+1`-`4` for each
+ * state directly), which apply this per line rather than
+ * `cycleActionSymbol` since a multi-line selection can start from any
+ * state (or a mix of them) and the point is to land on one state
+ * deterministically, not to advance each line by one step. Same line-
+ * shape contract as `cycleActionSymbol` (plain leading symbol or
+ * `=> <symbol>` consequence-action, §41) — including #69's promotion of
+ * a line with no action symbol yet into one, now created directly at
+ * `symbol` rather than always at open. Already-matching lines pass
+ * through unchanged (a no-op replacement), which callers rely on to
+ * distinguish "nothing to do" from "did work" only via *some* line in a
+ * selection changing, not this one specifically. */
+export function setActionSymbolTo(line: string, symbol: "#" | "v" | ">" | "x"): string | null {
+  return replaceActionSymbol(line, () => symbol, symbol);
+}
+
+/** #65: kept as its own name for the shortcut that shipped under it —
+ * equivalent to `setActionSymbolTo(line, "#")`. */
+export function setActionSymbolOpen(line: string): string | null {
+  return setActionSymbolTo(line, "#");
+}
+
+/** Shared line-matching for the symbol transforms above — a plain
  * (optionally indented, §50) leading action symbol, or a `=> <symbol>`
  * consequence-action (§41) anywhere on the line (not anchored to the
- * start — "Talked to Sam => # follow up" must still match). `null` when
- * neither shape is present, including plain `=> text` / `=> @name text`
- * follow-ups, which have no action-state symbol of their own. */
-function replaceActionSymbol(line: string, next: (sym: string) => string): string | null {
+ * start — "Talked to Sam => # follow up" must still match).
+ *
+ * #69: when neither shape is present, `createAs` (if given) promotes the
+ * line into an action instead of leaving it alone — "Ctrl+Space (or a
+ * direct state shortcut) converts a non-action line into an action
+ * line." Two promotable shapes: a `=> text` follow-up with no state of
+ * its own gets `createAs` inserted right after the arrow (`=> text` →
+ * `=> # text`); anything else with no recognized token at all (no
+ * bullet, no emphasis, no follow-up/delegate) gets `createAs` prepended
+ * as a fresh leading symbol. Left alone regardless of `createAs`: a
+ * bullet (`- `/`* `) or emphasis (`! `) line — their own, equally
+ * deliberate structural tokens, not "actions waiting to happen" — and a
+ * `=> @name` delegated line, whose whole point is having no state of its
+ * own (§41's "mutually exclusive with delegating to a person") — and the
+ * setext `====` underline itself. A section-header *title* line (the one
+ * above the underline) has no way to be recognized from a single line in
+ * isolation — callers with document context (`EditorPane.svelte`) check
+ * that themselves and skip the line entirely before ever calling this.
+ * Omitting `createAs` restores the original "leave it alone" behavior,
+ * for any future caller that shouldn't promote plain lines. */
+function replaceActionSymbol(line: string, next: (sym: string) => string, createAs?: string): string | null {
   const delegateMatch = line.match(/^(.*=>\s)([#vx>])(\s.*)$/);
   if (delegateMatch) {
     const [, prefix, sym, rest] = delegateMatch;
@@ -176,7 +218,17 @@ function replaceActionSymbol(line: string, next: (sym: string) => string): strin
     const [, indent, sym, rest] = plainMatch;
     return indent + next(sym) + rest;
   }
-  return null;
+  if (createAs === undefined) return null;
+  const followMatch = line.match(/^(.*=>\s)(?!@)(\S.*)$/);
+  if (followMatch) {
+    const [, prefix, rest] = followMatch;
+    return `${prefix}${createAs} ${rest}`;
+  }
+  if (/=>/.test(line)) return null; // a delegated (`=> @name`) or empty (`=> `) follow-up — leave alone
+  if (/^\s*[-*!]\s/.test(line)) return null; // a bullet or emphasis line — leave alone
+  if (isSetextUnderline(line)) return null; // the `====` itself, not just the title line above it — leave alone
+  const [, indent, rest] = line.match(/^(\s*)(.*)$/s)!;
+  return `${indent}${createAs} ${rest}`;
 }
 
 /** Strips a line's leading token(s) for display in the Action Drawer/

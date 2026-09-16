@@ -1027,10 +1027,31 @@ body {
 .status-sep {
   opacity: 0.4;
 }
+/* #71: a plain-text-look button (`#stat-version`'s own pattern), so the
+   folder name/icon doesn't read as a bigger control than it is — opens
+   Settings landed on the notes-folder control. The icon (`.cn-icon`,
+   `currentColor`) isn't itself gated by `stat-tier0`, so it survives the
+   folder-name collapse below and stays a click target even at the
+   narrowest width the name is shown at all. */
+#stat-folder {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: transparent;
+  border: none;
+  color: inherit;
+  font: inherit;
+  padding: 0;
+  margin: 0;
+  cursor: pointer;
+}
+#stat-folder:hover {
+  color: var(--text);
+}
 /* §merged-titlebar: the folder name shouldn't be able to crowd out
    everything else on a merely-medium-width window if it's a long one —
    the full name is always still one hover away via the `title` attribute. */
-#stat-folder {
+.status-folder-name {
   max-width: 160px;
   overflow: hidden;
   text-overflow: ellipsis;

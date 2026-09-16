@@ -89,6 +89,7 @@ test.describe("status bar — notes folder name (§merged-titlebar)", () => {
     await seedApp(page, { seed: { notes: {}, notesDir: "/Users/marien/Documents/Notes" } });
 
     const folder = page.locator("#stat-folder");
+    const folderName = page.locator(".status-folder-name");
     await expect(folder).toHaveText("Notes");
     await expect(folder).toHaveAttribute("title", "/Users/marien/Documents/Notes");
 
@@ -97,10 +98,43 @@ test.describe("status bar — notes folder name (§merged-titlebar)", () => {
     await expect(folder).toBeVisible();
     await expect(page.locator("#stat-words")).toBeVisible();
 
-    // Drops before word count as the window narrows further.
+    // #71: the name text drops before word count as the window narrows
+    // further, same as before — but the folder icon (and the button
+    // around it) stays, unlike before when the whole thing vanished.
     await page.setViewportSize({ width: 800, height: 700 });
-    await expect(folder).toBeHidden();
+    await expect(folderName).toBeHidden();
+    await expect(folder).toBeVisible();
+    await expect(folder.locator(".cn-icon")).toBeVisible();
     await expect(page.locator("#stat-words")).toBeVisible();
+  });
+
+  test("#71: clicking the folder icon/name opens Settings on the notes-folder tab, focused on Browse…", async ({
+    page,
+  }) => {
+    await seedApp(page, { seed: { notes: {}, notesDir: "/Users/marien/Documents/Notes" } });
+
+    await page.locator("#stat-folder").click();
+
+    const settings = modalCard(page, MODAL_LABELS.settings);
+    await expect(settings).toBeVisible();
+    await expect(settings.getByRole("radio", { name: "Calendar, Notes & Data", exact: true })).toHaveAttribute(
+      "aria-checked",
+      "true",
+    );
+    await expect(settings.getByRole("button", { name: "Browse…" })).toBeFocused();
+  });
+
+  test("#71: a plain Ctrl+, open still starts on the default first tab", async ({ page }) => {
+    await seedApp(page, { seed: { notes: {} } });
+    await editor(page).click();
+    await page.keyboard.press("ControlOrMeta+Comma");
+
+    const settings = modalCard(page, MODAL_LABELS.settings);
+    await expect(settings).toBeVisible();
+    await expect(settings.getByRole("radio", { name: "Appearance & Editor", exact: true })).toHaveAttribute(
+      "aria-checked",
+      "true",
+    );
   });
 });
 

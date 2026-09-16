@@ -5,9 +5,17 @@
  * `controller.ts` in the v0.5.0 refactor. */
 import { get } from "svelte/store";
 import * as api from "./tauriApi";
-import { justUpdatedToVersion, modal } from "./stores";
+import { justUpdatedToVersion, modal, settingsInitialTab } from "./stores";
 
 export function openSettings() {
+  modal.set("settings");
+}
+
+/** #71: the status bar's folder icon/name — opens Settings landed
+ * directly on the "Calendar, Notes & Data" tab (where the notes-folder
+ * "Browse…" control lives) instead of the usual default first tab. */
+export function openSettingsOnNotesFolder() {
+  settingsInitialTab.set("calendar");
   modal.set("settings");
 }
 

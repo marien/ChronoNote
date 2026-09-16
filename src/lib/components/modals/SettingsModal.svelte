@@ -1,5 +1,6 @@
 <script lang="ts">
-  import { onMount } from "svelte";
+  import { onMount, tick } from "svelte";
+  import { get } from "svelte/store";
   import * as controller from "../../controller";
   import { focusTrap } from "../../actions/focusTrap";
   import {
@@ -11,6 +12,7 @@
     notesDir,
     readableLineLength,
     recentNotesDirs,
+    settingsInitialTab,
     themeMode,
     updateAvailableVersion,
     updateDownloadProgress,
@@ -37,7 +39,13 @@
     { value: "calendar", label: "Calendar, Notes & Data" },
     ...($backendKind !== "web" ? [{ value: "updates", label: "Updates" }] : []),
   ];
-  let activeSettingsTab: string = "appearance";
+  // #71: the status bar's folder icon/name opens Settings landed
+  // directly on this tab (`openSettingsOnNotesFolder`, `menu.ts`) —
+  // consumed once here so a later plain Settings open still starts on
+  // the default first tab, same as any other freshly-opened modal.
+  const openedOnNotesFolder = get(settingsInitialTab) !== null;
+  let activeSettingsTab: string = get(settingsInitialTab) ?? "appearance";
+  settingsInitialTab.set(null);
 
   // Filtered at open time (not reactively) — a directory switch closes
   // this modal anyway, so there's no case where the list needs to update
@@ -47,11 +55,18 @@
   // reappears later (e.g. a drive remounted) isn't permanently lost from
   // the list.
   let visibleRecentDirs: string[] = [];
+  let browseButtonEl: HTMLButtonElement;
   onMount(async () => {
     if ($backendKind === "web") return; // no directory concept — see the Data section below
     const candidates = $recentNotesDirs.filter((p) => p !== $notesDir);
     const exists = await Promise.all(candidates.map((p) => api.pathExists(p)));
     visibleRecentDirs = candidates.filter((_, i) => exists[i]);
+    // #71: "focus on changing the folder" — land keyboard focus on the
+    // control itself, not just the right tab.
+    if (openedOnNotesFolder) {
+      await tick();
+      browseButtonEl?.focus();
+    }
   });
 
   // #64: the Updates tab's own status block mirrors About's — shares the
@@ -239,7 +254,9 @@
             <div class="settings-section-label">Notes Location</div>
             <div class="settings-dir-row">
               <div class="settings-dir-path">{$notesDir}</div>
-              <button class="icon-btn" on:click={controller.pickAndSwitchNotesDirectory}>Browse…</button>
+              <button class="icon-btn" bind:this={browseButtonEl} on:click={controller.pickAndSwitchNotesDirectory}>
+                Browse…
+              </button>
             </div>
             <div class="settings-hint">
               Changing this switches your whole workspace — open tabs close and everything reloads from the new

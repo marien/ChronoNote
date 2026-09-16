@@ -4,7 +4,9 @@ import {
   countWords,
   innermostActionSymbol,
   cycleActionSymbol,
+  cycleActionSymbolOrCreate,
   setActionSymbolOpen,
+  setActionSymbolTo,
   openActionLineIndices,
   adjacentOpenActionLine,
   actionLineEnter,
@@ -224,10 +226,56 @@ describe("setActionSymbolOpen (#65)", () => {
     expect(setActionSymbolOpen("Some prose first => > then this")).toBe("Some prose first => # then this");
   });
 
-  it("returns null for a plain follow-up, a delegated line, or plain text", () => {
-    expect(setActionSymbolOpen("Talked to Sam => let's regroup")).toBeNull();
+  it("#69: promotes a plain follow-up or plain text into an open action", () => {
+    expect(setActionSymbolOpen("Talked to Sam => let's regroup")).toBe("Talked to Sam => # let's regroup");
+    expect(setActionSymbolOpen("just prose")).toBe("# just prose");
+    expect(setActionSymbolOpen("  indented prose")).toBe("  # indented prose");
+  });
+
+  it("#69: still returns null for a delegated line, a bullet, or emphasis — never promoted", () => {
     expect(setActionSymbolOpen("Talked to Sam => @alice")).toBeNull();
-    expect(setActionSymbolOpen("just prose")).toBeNull();
+    expect(setActionSymbolOpen("- a bullet")).toBeNull();
+    expect(setActionSymbolOpen("* a bullet")).toBeNull();
+    expect(setActionSymbolOpen("! remember this")).toBeNull();
+    expect(setActionSymbolOpen("=> ")).toBeNull(); // empty follow-up, nothing to promote
+  });
+
+  it("#69: a bare setext underline is never promoted either, not just the title line above it", () => {
+    expect(setActionSymbolOpen("====")).toBeNull();
+    expect(setActionSymbolOpen("===========")).toBeNull();
+  });
+});
+
+describe("setActionSymbolTo (#70)", () => {
+  it("sets straight to the given state, from any prior state", () => {
+    expect(setActionSymbolTo("# Buy milk", "v")).toBe("v Buy milk");
+    expect(setActionSymbolTo("v Buy milk", ">")).toBe("> Buy milk");
+    expect(setActionSymbolTo("> Buy milk", "x")).toBe("x Buy milk");
+    expect(setActionSymbolTo("x Buy milk", "#")).toBe("# Buy milk");
+  });
+
+  it("#69: promotes a plain line directly to the given state, not always to open", () => {
+    expect(setActionSymbolTo("just prose", "v")).toBe("v just prose");
+    expect(setActionSymbolTo("Talked to Sam => let's regroup", "x")).toBe("Talked to Sam => x let's regroup");
+  });
+});
+
+describe("cycleActionSymbolOrCreate (#69)", () => {
+  it("cycles an existing action symbol exactly like cycleActionSymbol", () => {
+    expect(cycleActionSymbolOrCreate("# Buy milk")).toBe("v Buy milk");
+    expect(cycleActionSymbolOrCreate("x Buy milk", -1)).toBe("> Buy milk");
+  });
+
+  it("promotes a plain line or bare follow-up into a fresh open action, regardless of direction", () => {
+    expect(cycleActionSymbolOrCreate("just prose")).toBe("# just prose");
+    expect(cycleActionSymbolOrCreate("just prose", -1)).toBe("# just prose");
+    expect(cycleActionSymbolOrCreate("Talked to Sam => let's regroup")).toBe("Talked to Sam => # let's regroup");
+  });
+
+  it("still leaves a delegated line, a bullet, or emphasis alone", () => {
+    expect(cycleActionSymbolOrCreate("Talked to Sam => @alice")).toBeNull();
+    expect(cycleActionSymbolOrCreate("- a bullet")).toBeNull();
+    expect(cycleActionSymbolOrCreate("! remember this")).toBeNull();
   });
 });
 

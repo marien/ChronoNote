@@ -102,6 +102,15 @@ export const findOpen = writable<boolean>(false);
 export const findMatch = writable<{ current: number; total: number }>({ current: 0, total: 0 });
 
 export const modal = writable<ModalKind>("none");
+/** #71: which Settings tab to land on when Settings is opened next —
+ * read once by `SettingsModal.svelte` as its initial `activeSettingsTab`
+ * (falling back to the usual "appearance" default when unset), then
+ * cleared, so an ordinary Settings open right after still starts on the
+ * first tab as always. Set by `openSettingsOnNotesFolder` (the status
+ * bar's folder icon/name, §71) — a generic "which tab" store rather than
+ * a single-purpose boolean, in case a future entry point needs the same
+ * mechanism for a different tab. */
+export const settingsInitialTab = writable<string | null>(null);
 /** Populated once at startup (`initApp`) for the About drawer — read live
  * from Tauri rather than hardcoded, so it can't drift from whatever
  * version is actually running. Empty string until then. */

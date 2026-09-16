@@ -9,7 +9,13 @@
   import { glyphAtomicRanges, liveGlyphs } from "../editor/glyphs";
   import { setextRule } from "../editor/setextRule";
   import { underlineFor } from "../sectionFormat";
-  import { actionLineEnter, adjacentOpenActionLine, cycleActionSymbol, setActionSymbolOpen } from "../tokens";
+  import {
+    actionLineEnter,
+    adjacentOpenActionLine,
+    cycleActionSymbolOrCreate,
+    isSetextUnderline,
+    setActionSymbolTo,
+  } from "../tokens";
   import * as controller from "../controller";
   import { findMatch, findOpen, readableLineLength, wordWrap } from "../controller";
 
@@ -119,23 +125,38 @@
     findMatch.set({ current: total === 0 ? 0 : Math.max(1, atOrBefore), total });
   }
 
+  /** True if `lineNumber` (1-based) is a section's title line — the line
+   * directly above a setext `====` underline. `cycleActionSymbolOrCreate`
+   * and `setActionSymbolTo` have no way to recognize this from a single line
+   * in isolation (§69's own doc comment on `replaceActionSymbol`), so
+   * every caller here checks it first and skips the line entirely rather
+   * than ever promoting a section header into an action line by mistake. */
+  function isHeaderLine(v: EditorView, lineNumber: number): boolean {
+    return lineNumber < v.state.doc.lines && isSetextUnderline(v.state.doc.line(lineNumber + 1).text);
+  }
+
   function cycleLine(v: EditorView, direction: 1 | -1 = 1): boolean {
     const pos = v.state.selection.main.head;
     const line = v.state.doc.lineAt(pos);
-    const updated = cycleActionSymbol(line.text, direction);
+    if (isHeaderLine(v, line.number)) return false;
+    const updated = cycleActionSymbolOrCreate(line.text, direction);
     if (updated === null) return false;
     v.dispatch({ changes: { from: line.from, to: line.to, insert: updated } });
     return true;
   }
 
-  /** #65: `Ctrl/Cmd+Shift+O` — every line touched by the selection (the
-   * current line alone, if the selection is just a caret) that carries an
-   * action symbol gets forced to open, regardless of what state it was in
-   * before; lines with no action symbol at all (plain text, bullets,
-   * section headers) are left untouched. One transaction for the whole
-   * span, so it undoes as a single step. A no-op (returns `false`) when
-   * nothing in the span had an action symbol to begin with. */
-  function markSelectionOpen(v: EditorView): boolean {
+  /** #65/#70: `Ctrl/Cmd+Shift+O` (open) and `Ctrl/Cmd+1`-`4` (open/done/
+   * deferred/won't-do directly) — every line touched by the selection
+   * (the current line alone, if the selection is just a caret) gets
+   * forced to `symbol`, regardless of what state it was in before. #69:
+   * a line with no action symbol at all is promoted into one rather than
+   * left untouched — see `setActionSymbolTo`'s own doc comment for
+   * exactly which lines that does and doesn't apply to; a section-header
+   * title line is always skipped, checked here rather than there since
+   * only this caller has the document context (the *next* line) to tell.
+   * One transaction for the whole span, so it undoes as a single step. A
+   * no-op (returns `false`) when nothing in the span changed at all. */
+  function applyActionStateToSelection(v: EditorView, symbol: "#" | "v" | ">" | "x"): boolean {
     const { from, to } = v.state.selection.main;
     const firstLine = v.state.doc.lineAt(from);
     const lastLine = v.state.doc.lineAt(to);
@@ -143,7 +164,7 @@
     const lines: string[] = [];
     for (let n = firstLine.number; n <= lastLine.number; n++) {
       const text = v.state.doc.line(n).text;
-      const updated = setActionSymbolOpen(text);
+      const updated = isHeaderLine(v, n) ? null : setActionSymbolTo(text, symbol);
       if (updated !== null) changed = true;
       lines.push(updated ?? text);
     }
@@ -318,7 +339,14 @@
       { win: "Ctrl-Shift-Space", linux: "Ctrl-Shift-Space", run: (v) => cycleLine(v, -1) },
       { key: "Mod-Shift-Enter", run: (v) => cycleLine(v, -1) },
       { key: "Mod-Shift-s", run: (v) => convertLineToSection(v) },
-      { key: "Mod-Shift-o", run: (v) => markSelectionOpen(v) },
+      { key: "Mod-Shift-o", run: (v) => applyActionStateToSelection(v, "#") },
+      // #70: Ctrl+1-4 set every action in the selection directly to
+      // open/done/deferred/won't-do, matching `ACTION_CYCLE_ORDER`
+      // (tokens.ts) — the same order Ctrl+Space cycles through.
+      { key: "Mod-1", run: (v) => applyActionStateToSelection(v, "#") },
+      { key: "Mod-2", run: (v) => applyActionStateToSelection(v, "v") },
+      { key: "Mod-3", run: (v) => applyActionStateToSelection(v, ">") },
+      { key: "Mod-4", run: (v) => applyActionStateToSelection(v, "x") },
       { key: "F2", run: (v) => jumpToAdjacentOpenAction(v, 1) },
       { key: "Shift-F2", run: (v) => jumpToAdjacentOpenAction(v, -1) },
       {

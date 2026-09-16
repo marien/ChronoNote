@@ -33,6 +33,10 @@ export const ICONS = {
   close: `<path d="M7 7l10 10M17 7L7 17"/>`,
   "tab-daily": `<rect x="4" y="5" width="16" height="14" rx="2"/><path d="M4 9h16M9 4v3M15 4v3"/>`,
   "tab-scratch": `<path d="M13 4H7a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V9z"/><path d="M13 4v5h5"/><path d="M9 13h6M9 16h4"/>`,
+  // #71: the status bar's notes-folder indicator — a plain manila-folder
+  // outline, the same "no fill, single path" language as the other marks
+  // here rather than a filled/two-tone folder glyph.
+  folder: `<path d="M4 7a1 1 0 0 1 1-1h4.2l1.8 2H19a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1z"/>`,
   // #56: the top bar's overflow trigger — three filled dots, the same
   // small-circle-accent language `settings`/`about` already use.
   more: `<circle cx="6" cy="12" r="1.6" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.6" fill="currentColor" stroke="none"/><circle cx="18" cy="12" r="1.6" fill="currentColor" stroke="none"/>`,

@@ -33,7 +33,16 @@
 <div id="status-bar">
   <div class="status-zone status-left">
     {#if folderName}
-      <span id="stat-folder" class="stat-tier0" title={$notesDir}>{folderName}</span>
+      <button
+        id="stat-folder"
+        class="status-folder-btn"
+        title={$notesDir}
+        aria-label="Change notes folder"
+        on:click={controller.openSettingsOnNotesFolder}
+      >
+        <Icon name="folder" size={12} />
+        <span class="stat-tier0 status-folder-name">{folderName}</span>
+      </button>
       <span class="status-sep stat-tier0">·</span>
     {/if}
     <span id="stat-pos" class="stat-tier2">Ln {$statusPos.line}, Col {$statusPos.col}</span>
