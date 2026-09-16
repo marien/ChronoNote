@@ -409,6 +409,23 @@ body {
 .tab.scratch .tab-label {
   font-style: italic;
 }
+/* #68: past/today/future get a distinct look, independent of which tab
+   is active — so today's tab (the one most work happens in) is easy to
+   spot among a restored session's leftover past tabs and any
+   pre-created future ones, even while looking at a different tab.
+   Deliberately just the icon's color/opacity, not the label — quiet
+   enough not to fight the existing active/hover treatment. */
+.tab.past .tab-icon {
+  opacity: 0.45;
+}
+.tab.today .tab-icon {
+  opacity: 1;
+  color: var(--tab-active-border);
+}
+.tab.future .tab-icon {
+  opacity: 1;
+  color: var(--state-ok);
+}
 /* A small dot beside the tab label. Deliberately quiet: `mem` (grey) just
    marks a scratchpad as memory-only, `err` (red) is the only attention-
    grabbing state — a normal autosave shows nothing at all. */

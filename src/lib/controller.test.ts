@@ -638,6 +638,32 @@ describe("recordCopiedAction / handlePasteIntoTab (§64)", () => {
     vi.useRealTimers();
   });
 
+  it("#67: also defers an open consequence-action (`=> #`), not just a leading `# `", () => {
+    controller.tabs.set([
+      tab({ id: "src", filename: "2026-08-01.txt", content: "Talked to Sam => # follow up\nplain\n# also this" }),
+      tab({ id: "today", filename: "2026-09-15.txt", content: "" }),
+    ]);
+    vi.setSystemTime(new Date(2026, 8, 15));
+    controller.recordCopiedAction("Talked to Sam => # follow up\nplain\n# also this", "src");
+    controller.handlePasteIntoTab("today");
+    expect(get(controller.tabs).find((t) => t.id === "src")!.content).toBe(
+      "Talked to Sam => > follow up\nplain\n> also this",
+    );
+    vi.useRealTimers();
+  });
+
+  it("#67: a copy that carries only an open consequence-action still records (no leading `# ` needed)", () => {
+    controller.tabs.set([
+      tab({ id: "src", filename: "2026-08-01.txt", content: "Talked to Sam => # follow up" }),
+      tab({ id: "today", filename: "2026-09-15.txt", content: "" }),
+    ]);
+    vi.setSystemTime(new Date(2026, 8, 15));
+    controller.recordCopiedAction("Talked to Sam => # follow up", "src");
+    controller.handlePasteIntoTab("today");
+    expect(get(controller.tabs).find((t) => t.id === "src")!.content).toBe("Talked to Sam => > follow up");
+    vi.useRealTimers();
+  });
+
   it("does not defer when pasted into an earlier-dated note (§49: today-or-later only)", () => {
     controller.tabs.set([
       tab({ id: "src", filename: "2026-09-10.txt", content: "# do the thing" }),

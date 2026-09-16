@@ -105,6 +105,25 @@ test.describe("update check (§update-check)", () => {
     await expect(about).toContainText("1.2.3");
   });
 
+  test("#64: Settings' own Updates tab shows the result of 'Check now', not just the status-bar icon", async ({
+    page,
+  }) => {
+    await seedApp(page, {
+      seed: { notes: {}, updateCheck: "available", updateCheckVersion: "7.8.9", autoCheckUpdates: false },
+    });
+    await editor(page).click();
+    await page.keyboard.press("ControlOrMeta+Comma");
+    const settings = modalCard(page, MODAL_LABELS.settings);
+    await settings.getByRole("radio", { name: "Updates", exact: true }).click();
+    await expect(settings).toContainText(/not checked yet/i);
+
+    await settings.getByRole("button", { name: "Check now" }).click();
+    // Previously nothing in the Settings modal itself reflected the
+    // result — only the status-bar's small update icon did.
+    await expect(settings).toContainText("7.8.9");
+    await expect(settings.getByRole("button", { name: /Download & install/i })).toBeVisible();
+  });
+
   test("the command palette can trigger a check and opens About", async ({ page }) => {
     await seedApp(page, {
       seed: { notes: {}, updateCheck: "available", updateCheckVersion: "4.5.6", autoCheckUpdates: false },

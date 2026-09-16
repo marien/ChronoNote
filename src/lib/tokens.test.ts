@@ -4,6 +4,7 @@ import {
   countWords,
   innermostActionSymbol,
   cycleActionSymbol,
+  setActionSymbolOpen,
   openActionLineIndices,
   adjacentOpenActionLine,
   actionLineEnter,
@@ -200,6 +201,33 @@ describe("cycleActionSymbol", () => {
 
   it("cycles a consequence-action's symbol backwards too (§145)", () => {
     expect(cycleActionSymbol("Talked to Sam => # follow up", -1)).toBe("Talked to Sam => x follow up");
+  });
+});
+
+describe("setActionSymbolOpen (#65)", () => {
+  it("forces v / > / x straight to # without cycling through the order", () => {
+    expect(setActionSymbolOpen("v Buy milk")).toBe("# Buy milk");
+    expect(setActionSymbolOpen("> Buy milk")).toBe("# Buy milk");
+    expect(setActionSymbolOpen("x Buy milk")).toBe("# Buy milk");
+  });
+
+  it("is a no-op replacement (still returns the same text) for an already-open line", () => {
+    expect(setActionSymbolOpen("# Buy milk")).toBe("# Buy milk");
+  });
+
+  it("preserves indentation (§50)", () => {
+    expect(setActionSymbolOpen("  v Nested")).toBe("  # Nested");
+  });
+
+  it("forces a consequence-action's symbol without touching the arrow or prefix text (§41)", () => {
+    expect(setActionSymbolOpen("Talked to Sam => v follow up")).toBe("Talked to Sam => # follow up");
+    expect(setActionSymbolOpen("Some prose first => > then this")).toBe("Some prose first => # then this");
+  });
+
+  it("returns null for a plain follow-up, a delegated line, or plain text", () => {
+    expect(setActionSymbolOpen("Talked to Sam => let's regroup")).toBeNull();
+    expect(setActionSymbolOpen("Talked to Sam => @alice")).toBeNull();
+    expect(setActionSymbolOpen("just prose")).toBeNull();
   });
 });
 

@@ -6,7 +6,8 @@ kept for the rationale behind each one — not just *what* changed but
 was still being gathered and confirmed before implementation; renamed once
 everything below was applied, since nothing here is "pending" anymore.
 
-**Status: all sections through §164 implemented and released.** §153 is a
+**Status: all sections through §164 implemented and released; §165–§168
+fixed, not yet released.** §153 is a
 website-only Guide-page fix (found live right after §150–§152 shipped
 as v0.7.12) — no version bump, nothing in the shipped app changed. §154
 merges the OS title bar into the top bar (Notepad-style: icon, tabs,
@@ -7159,3 +7160,141 @@ assert the spinner appears then clears in each of the three drawers.
 
 `svelte-check` 217/0, Vitest 321/321 (+3), Playwright 210/210 (+3),
 `cargo test` 57/57 (unchanged — pure frontend).
+
+## 165. Settings' own "Check now" showed no result — only the status-bar icon did (#64)
+
+**Status: fixed, not yet released.**
+
+Marien filed #64: "When you click the button is does the update check
+and show the icon in the bottom bar but in the Settings window itself,
+there is no response. Make it work like checking for updates under
+About."
+
+Root cause: `AboutModal.svelte`'s Updates section renders a full status
+block reactively off the shared `updateStatus`/`updateAvailableVersion`/
+`updateErrorMessage`/`updateDownloadProgress` stores (checking… /
+available, with a Download & Install button / downloading / ready /
+error, with a retry button); `SettingsModal.svelte`'s own Updates tab
+never read any of that — its "Check now" button just called
+`controller.checkForUpdates()` and rendered nothing else. The call
+itself worked fine (which is why the status-bar's small update icon
+still appeared, since that reads the same store directly) — Settings
+just never displayed the result.
+
+Fixed by porting the same status block into `SettingsModal.svelte`
+verbatim, sharing the identical stores so both places always agree by
+construction rather than by two independently-maintained copies staying
+in sync. Extended the existing "Settings' 'Check now' re-checks; About
+reflects the result" Playwright test to also assert the version now
+shows inside Settings itself (not just after reopening About), plus a
+new dedicated case.
+
+`svelte-check` 217/0, Vitest 321/321 (unchanged — pure UI), Playwright
+211/211 (+1), `cargo test` 57/57 (unchanged — pure frontend).
+
+## 166. Copy/paste deferral didn't recognize an open consequence-action, only a leading `# ` (#67)
+
+**Status: fixed, not yet released.**
+
+Marien filed #67: "Marking actions as deferred after copying needs to
+work on open consequence actions as well" — copying a line like "Talked
+to Sam => # follow up" and pasting it into today's (or a later) note
+should defer the original the same way copying a plain `# ` line already
+does (§64/§82), but didn't.
+
+Root cause: `paste.ts`'s `OPEN_ACTION_LINE` regex
+(`/^(\s*)#(\s)/`) only recognized a leading `#` at the very start of a
+line (optionally indented) — it had no notion of the `=> <symbol>`
+consequence-action form (§41) that `innermostActionSymbol()`
+(`tokens.ts`) and the rest of the app (the Action Drawer's "Only Open"
+toggle, `openActionLineIndices`) already treat as equally "open." A
+copied block whose only open item was a mid-line `=> #` never got
+recorded as carrying an open action at all, so nothing about it was
+ever deferred on paste.
+
+Fixed by widening the regex to `/(^\s*|=>\s)#(\s)/` — matches a leading
+`#` exactly as before, or a literal `=> ` immediately before the `#`
+anywhere on the line, leaving a bare `#` elsewhere (with neither prefix)
+unmatched either way. The existing replace-based defer
+(`# ` → `> `) and detection logic in `recordCopiedAction`/
+`handlePasteIntoTab` needed no other changes — both already operate
+generically on whatever `OPEN_ACTION_LINE` matches.
+
+New `controller.test.ts` cases: a multi-line copy mixing a leading `# `
+and a mid-line `=> #` defers both; a copy carrying *only* a consequence-
+action (no leading `# ` at all) still gets recorded and deferred.
+
+`svelte-check` 217/0, Vitest 323/323 (+2), Playwright 211/211
+(unchanged — this fix has no UI-observable surface, just the underlying
+copy/paste data logic; covered at the unit level instead), `cargo test`
+57/57 (unchanged — pure frontend).
+
+## 167. New shortcut: mark every action in a selection as open (#65)
+
+**Status: fixed, not yet released.**
+
+Marien filed #65: "Add shortcut to mark all actions in a selection as
+open." New `Ctrl/Cmd+Shift+O`, bound in `EditorPane.svelte`'s CodeMirror
+keymap: every line touched by the current selection (just the line the
+caret's on, if the selection is a bare caret) whose action symbol is
+`v`/`>`/`x` gets forced straight to `#`, in one place per line — a
+leading (optionally indented, §50) symbol or a `=> <symbol>`
+consequence-action (§41), same line shapes `cycleActionSymbol` already
+recognizes. Lines with no action symbol at all (plain text, bullets,
+section headers) are left untouched. One CodeMirror transaction for the
+whole span, so it undoes as a single step; a selection with nothing to
+change is a genuine no-op (returns `false`, letting the keymap fall
+through) rather than an empty transaction.
+
+New `setActionSymbolOpen()` in `tokens.ts`, sharing its line-matching
+with `cycleActionSymbol()` via an extracted `replaceActionSymbol()`
+helper (both now just supply a different "what's the new symbol"
+function) rather than a second hand-copied set of regexes that could
+drift from the first. Registered in `shortcuts.ts` so the Shortcuts &
+Symbols drawer and tooltips pick it up automatically, same as every
+other shortcut. Deliberately not added to the command palette — like
+`cycleLineState`/`convertToSection`, it needs a live editor selection
+the palette doesn't have a natural way to supply.
+
+New tests: `tokens.test.ts` for `setActionSymbolOpen` (forces `v`/`>`/`x`
+straight to `#`, passes an already-open line through unchanged, handles
+indentation and consequence-actions, returns `null` for a line with no
+action symbol); two `editor-tokens.spec.ts` cases exercising the real
+keymap binding over a multi-line selection (mixed states all become `#`,
+non-action lines untouched; a selection with nothing to change leaves
+the document byte-for-byte the same).
+
+`svelte-check` 217/0, Vitest 328/328 (+5), Playwright 213/213 (+2),
+`cargo test` 57/57 (unchanged — pure frontend).
+
+## 168. Visual distinction between past/today/future daily tabs (#68)
+
+**Status: fixed, not yet released.**
+
+Marien filed #68: "Create a visual distinction between past, today, and
+future open tabs to make it easy to find the tab of today, which is the
+one most of the works happens in during the day."
+
+New `tabDateClass()` in `TopBar.svelte` compares a daily tab's filename
+date against `todayISO()` and adds a `past`/`today`/`future` class
+alongside the existing `daily`/`scratch` one (a scratchpad has no date
+of its own, so it's excluded — `""`, no extra class). Deliberately just
+the tab's icon color/opacity, not the label or the tab's own background —
+quiet enough not to fight the existing active/hover treatment, and it
+reads correctly regardless of which tab happens to be active: a past
+tab's icon dims (`opacity: 0.45`) even while active, today's tab keeps
+its accent-colored icon (the same `--tab-active-border` hue `.tab.active`
+already uses) even while a *different* tab is active — the actual point
+of the request — and a future tab's icon is tinted `--state-ok` (a calm
+green, distinct from both). Verified live in the browser across all
+three states at once (a restored multi-day session plus a freshly
+opened future date via the date-picker) via computed styles, not just
+by eye.
+
+New Playwright case in `tab-archetypes.spec.ts`: seeds one past, one
+today, and one future dated tab and asserts all three pairwise computed
+icon color/opacity comparisons differ (not just "today looks different
+from an undifferentiated rest").
+
+`svelte-check` 217/0, Vitest 328/328 (unchanged — pure CSS/markup),
+Playwright 214/214 (+1), `cargo test` 57/57 (unchanged — pure frontend).

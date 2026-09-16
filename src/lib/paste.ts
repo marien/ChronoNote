@@ -16,8 +16,18 @@ let lastCopiedAction: { text: string; sourceTabId: string } | null = null;
  * line to be an open action, not the whole selection to start with one —
  * copying a few lines together (a mix of open actions and plain text, or
  * several open actions at once) is exactly the case this needs to keep
- * working for. */
-const OPEN_ACTION_LINE = /^(\s*)#(\s)/;
+ * working for.
+ *
+ * #67: also matches a `=> #` open *consequence*-action (§41) — not just a
+ * leading `# ` — since `innermostActionSymbol()` (`tokens.ts`) already
+ * treats those as equally "open," and the rest of the app (the Action
+ * Drawer's "Only Open" toggle, `openActionLineIndices`) agrees. The first
+ * alternative anchors to line-start (optionally indented) the same as
+ * before; the second requires the literal `=> ` prefix immediately before
+ * the `#`, so a bare `#` elsewhere on the line never matches either way.
+ * Capture group 1 is the prefix to preserve as-is (indentation, or the
+ * `=> `); group 2 is the trailing space, also preserved. */
+const OPEN_ACTION_LINE = /(^\s*|=>\s)#(\s)/;
 
 /** Called on every `copy` inside the editor. `lastCopiedAction` is only
  * ever meaningful for the *very next* paste, so any fresh copy must

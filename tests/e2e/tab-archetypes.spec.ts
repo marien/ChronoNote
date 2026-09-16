@@ -35,6 +35,37 @@ test.describe("tab archetypes (§103)", () => {
     await expect(page.locator("#tab-bar .tab.daily .tab-label")).toHaveText(todayFilename().replace(/\.txt$/, ""));
   });
 
+  test("#68: past/today/future daily tabs are visually distinct from each other", async ({ page }) => {
+    // 2026-09-05/10 sit either side of REFERENCE_TODAY (2026-09-07, the
+    // "empty" seed's default day).
+    const past = "2026-09-05.txt";
+    const future = "2026-09-10.txt";
+    await seedApp(page, {
+      seed: {
+        notes: { [past]: "old", [todayFilename()]: "today", [future]: "later" },
+        session: { openTabs: [past, todayFilename(), future], activeTab: todayFilename() },
+      },
+    });
+
+    const pastTab = page.locator("#tab-bar .tab.daily.past");
+    const todayTab = page.locator("#tab-bar .tab.daily.today");
+    const futureTab = page.locator("#tab-bar .tab.daily.future");
+    await expect(pastTab).toHaveCount(1);
+    await expect(todayTab).toHaveCount(1);
+    await expect(futureTab).toHaveCount(1);
+
+    const iconColor = (loc: ReturnType<typeof page.locator>) =>
+      loc.locator(".tab-icon").evaluate((el) => getComputedStyle(el).color);
+    const iconOpacity = (loc: ReturnType<typeof page.locator>) =>
+      loc.locator(".tab-icon").evaluate((el) => getComputedStyle(el).opacity);
+
+    // All three read as genuinely different treatments, not just "today"
+    // standing out from an undifferentiated rest.
+    expect(await iconOpacity(pastTab)).not.toBe(await iconOpacity(todayTab));
+    expect(await iconColor(todayTab)).not.toBe(await iconColor(futureTab));
+    expect(await iconColor(pastTab)).not.toBe(await iconColor(futureTab));
+  });
+
   test("middle-click closes a tab (§110)", async ({ page }) => {
     await seedApp(page, { seed: "busy-week" });
     const before = await page.locator("#tab-bar .tab").count();

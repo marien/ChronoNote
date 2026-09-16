@@ -107,6 +107,31 @@ test.describe("editor — token glyphs", () => {
     expect(await activeTabContent(page)).toBe("x a task");
   });
 
+  test("#65: Ctrl/Cmd+Shift+O marks every action in the selection as open, leaving non-action lines alone", async ({
+    page,
+  }) => {
+    await setEditorText(
+      page,
+      "v done\nplain text\nTalked to Sam => x follow up\n> deferred\nSection\n========",
+    );
+    await editor(page).click();
+    await page.keyboard.press("ControlOrMeta+A");
+    await page.keyboard.press("ControlOrMeta+Shift+O");
+
+    expect(await activeTabContent(page)).toBe(
+      "# done\nplain text\nTalked to Sam => # follow up\n# deferred\nSection\n========",
+    );
+  });
+
+  test("#65: a no-op selection (no action lines) leaves the document untouched", async ({ page }) => {
+    await setEditorText(page, "just some\nplain lines");
+    await editor(page).click();
+    await page.keyboard.press("ControlOrMeta+A");
+    await page.keyboard.press("ControlOrMeta+Shift+O");
+
+    expect(await activeTabContent(page)).toBe("just some\nplain lines");
+  });
+
   test("#34: hovering a cyclable glyph previews the next state, then reverts", async ({ page }) => {
     await setEditorText(page, "# a task\nplain line");
     const glyph = editor(page).locator(".cm-line").first().locator(".glyph-cyclable");

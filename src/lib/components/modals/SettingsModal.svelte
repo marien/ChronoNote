@@ -12,6 +12,10 @@
     readableLineLength,
     recentNotesDirs,
     themeMode,
+    updateAvailableVersion,
+    updateDownloadProgress,
+    updateErrorMessage,
+    updateStatus,
     wordWrap,
   } from "../../controller";
   import * as api from "../../tauriApi";
@@ -49,6 +53,16 @@
     const exists = await Promise.all(candidates.map((p) => api.pathExists(p)));
     visibleRecentDirs = candidates.filter((_, i) => exists[i]);
   });
+
+  // #64: the Updates tab's own status block mirrors About's — shares the
+  // same `updateStatus`/etc. stores (a click here updates the exact same
+  // state About reads), so both places always agree.
+  $: progressLabel = (() => {
+    const p = $updateDownloadProgress;
+    if (!p || !p.totalBytes) return "";
+    const mb = (n: number) => (n / (1024 * 1024)).toFixed(1);
+    return ` ${mb(p.doneBytes)} / ${mb(p.totalBytes)} MB`;
+  })();
 
   // --- Data: export / import (web-app design doc, Phase 1) --------------
   //
@@ -322,10 +336,43 @@
           </div>
           <div class="settings-hint">
             A quiet check against github.com — never downloads or installs anything without your say.
-            <button class="icon-btn" style="margin-left: 4px; padding: 1px 8px;" on:click={() => controller.checkForUpdates()}>
+          </div>
+          {#if $updateStatus === "checking"}
+            <div class="settings-hint" style="margin-top: 8px;">
+              <span class="modal-spinner" aria-label="Checking">⟳</span> Checking for updates…
+            </div>
+          {:else if $updateStatus === "available"}
+            <div class="settings-hint" style="margin-top: 8px;">
+              <strong style="color: var(--text);">v{$updateAvailableVersion}</strong> is available.
+            </div>
+            <div class="settings-toggle-row" style="margin-top: 8px; gap: 8px;">
+              <button class="icon-btn" on:click={controller.openReleasesPage}> What's changed </button>
+              <button class="icon-btn btn-primary" on:click={() => controller.downloadAndInstallUpdate()}>
+                <Icon name="update" size={14} /> Download &amp; install
+              </button>
+            </div>
+          {:else if $updateStatus === "downloading"}
+            <div class="settings-hint" style="margin-top: 8px;">Downloading update…{progressLabel}</div>
+          {:else if $updateStatus === "ready"}
+            <div class="settings-hint" style="margin-top: 8px;">Installed — restart to finish.</div>
+            <button class="icon-btn btn-primary" style="margin-top: 8px;" on:click={() => controller.restartToFinishUpdate()}>
+              Restart now
+            </button>
+          {:else if $updateStatus === "error"}
+            <div class="settings-hint" style="margin-top: 8px; color: var(--state-error);">
+              Couldn't check for updates. {$updateErrorMessage ?? ""}
+            </div>
+            <button class="icon-btn" style="margin-top: 8px;" on:click={() => controller.checkForUpdates()}>
+              Try again
+            </button>
+          {:else}
+            <div class="settings-hint" style="margin-top: 8px;">
+              {$updateStatus === "upToDate" ? "You're up to date." : "Not checked yet."}
+            </div>
+            <button class="icon-btn" style="margin-top: 8px;" on:click={() => controller.checkForUpdates()}>
               Check now
             </button>
-          </div>
+          {/if}
         </div>
       {/if}
     </div>

@@ -133,6 +133,11 @@ export const SHORTCUTS: ShortcutDef[] = [
     ],
   },
   {
+    id: "markSelectionOpen",
+    label: "Mark every action in the selection as open (in editor)",
+    combos: [{ mod: true, shift: true, code: "KeyO" }],
+  },
+  {
     id: "jumpAction",
     label: "Jump to next / previous open action (in editor, wraps)",
     combos: [{ code: "F2" }, { shift: true, code: "F2" }],

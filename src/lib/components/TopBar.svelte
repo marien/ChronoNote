@@ -53,6 +53,18 @@
   /** Dated tabs show just the date; scratchpads keep their given name. */
   const tabLabel = (t: NoteTab) => (t.isScratchpad ? t.filename : t.filename.replace(/\.txt$/, ""));
 
+  /** #68: a daily tab's date relative to today — past/today/future get a
+   * distinct look (§68's own CSS) so today's tab, the one most work
+   * happens in, stands out from yesterday's leftovers and next week's
+   * placeholders without having to read every label. A scratchpad has no
+   * date of its own, so it's excluded (`""`, no extra class). */
+  const tabDateClass = (t: NoteTab): string => {
+    if (t.isScratchpad) return "";
+    const date = t.filename.slice(0, 10);
+    const today = todayISO();
+    return date < today ? "past" : date > today ? "future" : "today";
+  };
+
   let topBarEl: HTMLDivElement;
   let tabBarEl: HTMLDivElement;
   let showActionLabels = false;
@@ -680,7 +692,9 @@
         <div class="tab-group-divider" aria-hidden="true"></div>
       {/if}
       <div
-        class="tab {tab.id === $activeTabId ? 'active' : ''} {tab.isScratchpad ? 'scratch' : 'daily'}"
+        class="tab {tab.id === $activeTabId ? 'active' : ''} {tab.isScratchpad
+          ? 'scratch'
+          : 'daily'} {tabDateClass(tab)}"
         role="tab"
         tabindex="0"
         data-tab-id={tab.id}

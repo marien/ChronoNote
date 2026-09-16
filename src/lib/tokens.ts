@@ -141,15 +141,40 @@ function nextCycleSymbol(sym: string, direction: 1 | -1): string {
   return ACTION_CYCLE_ORDER[(ACTION_CYCLE_ORDER.indexOf(sym) + direction + len) % len];
 }
 export function cycleActionSymbol(line: string, direction: 1 | -1 = 1): string | null {
+  return replaceActionSymbol(line, (sym) => nextCycleSymbol(sym, direction));
+}
+
+/** #65: forces a line's action symbol straight to open (`#`), instead of
+ * stepping through the cycle — the "mark all actions in a selection as
+ * open" shortcut applies this per line rather than `cycleActionSymbol`,
+ * since a multi-line selection can start from any state (or a mix of
+ * them) and the point is to land on one state deterministically, not to
+ * advance each line by one step. Same line-shape contract as
+ * `cycleActionSymbol` (plain leading symbol or `=> <symbol>`
+ * consequence-action, §41); `null` for a line with no action symbol at
+ * all. Already-open lines pass through unchanged (a no-op replacement),
+ * which callers rely on to distinguish "nothing to do" from "did work"
+ * only via *some* line in a selection changing, not this one specifically. */
+export function setActionSymbolOpen(line: string): string | null {
+  return replaceActionSymbol(line, () => "#");
+}
+
+/** Shared line-matching for both symbol transforms above — a plain
+ * (optionally indented, §50) leading action symbol, or a `=> <symbol>`
+ * consequence-action (§41) anywhere on the line (not anchored to the
+ * start — "Talked to Sam => # follow up" must still match). `null` when
+ * neither shape is present, including plain `=> text` / `=> @name text`
+ * follow-ups, which have no action-state symbol of their own. */
+function replaceActionSymbol(line: string, next: (sym: string) => string): string | null {
   const delegateMatch = line.match(/^(.*=>\s)([#vx>])(\s.*)$/);
   if (delegateMatch) {
     const [, prefix, sym, rest] = delegateMatch;
-    return prefix + nextCycleSymbol(sym, direction) + rest;
+    return prefix + next(sym) + rest;
   }
   const plainMatch = line.match(/^(\s*)([#vx>])(\s.*)$/);
   if (plainMatch) {
     const [, indent, sym, rest] = plainMatch;
-    return indent + nextCycleSymbol(sym, direction) + rest;
+    return indent + next(sym) + rest;
   }
   return null;
 }

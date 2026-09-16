@@ -9,7 +9,7 @@
   import { glyphAtomicRanges, liveGlyphs } from "../editor/glyphs";
   import { setextRule } from "../editor/setextRule";
   import { underlineFor } from "../sectionFormat";
-  import { actionLineEnter, adjacentOpenActionLine, cycleActionSymbol } from "../tokens";
+  import { actionLineEnter, adjacentOpenActionLine, cycleActionSymbol, setActionSymbolOpen } from "../tokens";
   import * as controller from "../controller";
   import { findMatch, findOpen, readableLineLength, wordWrap } from "../controller";
 
@@ -125,6 +125,30 @@
     const updated = cycleActionSymbol(line.text, direction);
     if (updated === null) return false;
     v.dispatch({ changes: { from: line.from, to: line.to, insert: updated } });
+    return true;
+  }
+
+  /** #65: `Ctrl/Cmd+Shift+O` — every line touched by the selection (the
+   * current line alone, if the selection is just a caret) that carries an
+   * action symbol gets forced to open, regardless of what state it was in
+   * before; lines with no action symbol at all (plain text, bullets,
+   * section headers) are left untouched. One transaction for the whole
+   * span, so it undoes as a single step. A no-op (returns `false`) when
+   * nothing in the span had an action symbol to begin with. */
+  function markSelectionOpen(v: EditorView): boolean {
+    const { from, to } = v.state.selection.main;
+    const firstLine = v.state.doc.lineAt(from);
+    const lastLine = v.state.doc.lineAt(to);
+    let changed = false;
+    const lines: string[] = [];
+    for (let n = firstLine.number; n <= lastLine.number; n++) {
+      const text = v.state.doc.line(n).text;
+      const updated = setActionSymbolOpen(text);
+      if (updated !== null) changed = true;
+      lines.push(updated ?? text);
+    }
+    if (!changed) return false;
+    v.dispatch({ changes: { from: firstLine.from, to: lastLine.to, insert: lines.join("\n") } });
     return true;
   }
 
@@ -294,6 +318,7 @@
       { win: "Ctrl-Shift-Space", linux: "Ctrl-Shift-Space", run: (v) => cycleLine(v, -1) },
       { key: "Mod-Shift-Enter", run: (v) => cycleLine(v, -1) },
       { key: "Mod-Shift-s", run: (v) => convertLineToSection(v) },
+      { key: "Mod-Shift-o", run: (v) => markSelectionOpen(v) },
       { key: "F2", run: (v) => jumpToAdjacentOpenAction(v, 1) },
       { key: "Shift-F2", run: (v) => jumpToAdjacentOpenAction(v, -1) },
       {
