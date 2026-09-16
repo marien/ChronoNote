@@ -6,8 +6,7 @@ kept for the rationale behind each one — not just *what* changed but
 was still being gathered and confirmed before implementation; renamed once
 everything below was applied, since nothing here is "pending" anymore.
 
-**Status: all sections through §170 implemented and released; §171–§173
-fixed, not yet released.** §153 is a
+**Status: all sections through §173 implemented and released.** §153 is a
 website-only Guide-page fix (found live right after §150–§152 shipped
 as v0.7.12) — no version bump, nothing in the shipped app changed. §154
 merges the OS title bar into the top bar (Notepad-style: icon, tabs,
@@ -7474,7 +7473,7 @@ flip from open to deferred in the running editor.
 
 ## 171. Ctrl+Space (and the whole action-state family) now converts a plain line into an action, instead of doing nothing (#69)
 
-**Status: fixed, not yet released.**
+**Status: fixed, released in v0.9.3.**
 
 Marien filed #69: "ctrl+space converts a non-action line into an action
 line" — pressing it on a line with no `#`/`v`/`>`/`x` symbol did nothing
@@ -7542,7 +7541,7 @@ two files — 5 new plus 2 updated in place), `cargo test` 64/64
 
 ## 172. Direct action-state shortcuts: Ctrl+1 through Ctrl+4 (#70)
 
-**Status: fixed, not yet released.**
+**Status: fixed, released in v0.9.3.**
 
 Marien filed #70: "shortcuts for each action state, starting from
 Ctrl+1" — a way to set a line straight to a specific state without
@@ -7574,7 +7573,7 @@ count with §171), `cargo test` 64/64 (unchanged — pure frontend).
 
 ## 173. Status bar: a folder icon that survives the folder-name collapse, and opens Settings on the right tab (#71)
 
-**Status: fixed, not yet released.**
+**Status: fixed, released in v0.9.3.**
 
 Marien filed #71: "show folder icon in bottom bar before folder name,
 that stays visible when folder name is collapsed, has label with folder
