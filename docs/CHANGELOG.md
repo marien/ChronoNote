@@ -6,8 +6,7 @@ kept for the rationale behind each one — not just *what* changed but
 was still being gathered and confirmed before implementation; renamed once
 everything below was applied, since nothing here is "pending" anymore.
 
-**Status: all sections through §164 implemented and released; §165–§170
-fixed, not yet released.** §153 is a
+**Status: all sections through §170 implemented and released.** §153 is a
 website-only Guide-page fix (found live right after §150–§152 shipped
 as v0.7.12) — no version bump, nothing in the shipped app changed. §154
 merges the OS title bar into the top bar (Notepad-style: icon, tabs,
@@ -7163,7 +7162,7 @@ assert the spinner appears then clears in each of the three drawers.
 
 ## 165. Settings' own "Check now" showed no result — only the status-bar icon did (#64)
 
-**Status: fixed, not yet released.**
+**Status: fixed, released in v0.9.2.**
 
 Marien filed #64: "When you click the button is does the update check
 and show the icon in the bottom bar but in the Settings window itself,
@@ -7194,7 +7193,7 @@ new dedicated case.
 
 ## 166. Copy/paste deferral didn't recognize an open consequence-action, only a leading `# ` (#67)
 
-**Status: fixed, not yet released.**
+**Status: fixed, released in v0.9.2.**
 
 Marien filed #67: "Marking actions as deferred after copying needs to
 work on open consequence actions as well" — copying a line like "Talked
@@ -7231,7 +7230,7 @@ copy/paste data logic; covered at the unit level instead), `cargo test`
 
 ## 167. New shortcut: mark every action in a selection as open (#65)
 
-**Status: fixed, not yet released.**
+**Status: fixed, released in v0.9.2.**
 
 Marien filed #65: "Add shortcut to mark all actions in a selection as
 open." New `Ctrl/Cmd+Shift+O`, bound in `EditorPane.svelte`'s CodeMirror
@@ -7269,7 +7268,7 @@ the document byte-for-byte the same).
 
 ## 168. Visual distinction between past/today/future daily tabs (#68)
 
-**Status: fixed, not yet released.**
+**Status: fixed, released in v0.9.2.**
 
 Marien filed #68: "Create a visual distinction between past, today, and
 future open tabs to make it easy to find the tab of today, which is the
@@ -7301,7 +7300,7 @@ Playwright 214/214 (+1), `cargo test` 57/57 (unchanged — pure frontend).
 
 ## 169. Closing an empty dated tab deletes its file instead of leaving it behind (#63)
 
-**Status: fixed, not yet released.**
+**Status: fixed, released in v0.9.2.**
 
 Marien filed #63: "When a new day is opened or selected, right now an
 empty file is created. If the user closed the tab again, that empty
@@ -7365,7 +7364,7 @@ just emptied).
 
 ## 170. "Copy to next occurrence" — a shortcut to forward the selection to the next time this section comes up (#66)
 
-**Status: fixed, not yet released.**
+**Status: fixed, released in v0.9.2.**
 
 Marien filed #66: "Have a shortcut that copies selected text to the next
 occurrence of a meeting/section. If there is a next occurrence on file,
