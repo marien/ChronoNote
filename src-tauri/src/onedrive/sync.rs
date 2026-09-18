@@ -476,13 +476,29 @@ impl OneDriveManager {
         }
     }
 
+    /// Runs the sync and — crucially — persists whatever progress the cache
+    /// made even when the sync itself fails partway (a dropped connection is
+    /// routine on a phone). The cache used to be saved only on full success,
+    /// so an interrupted sync left files already written to disk with a
+    /// stale cache entry, and the next run mistook them for local edits.
     async fn execute_sync(&self, data_dir: &Path, notes_dir: &Path) -> Result<(), String> {
+        let mut cache = self.load_cache(data_dir);
+        let result = self.sync_inner(data_dir, notes_dir, &mut cache).await;
+        let saved = self.save_cache(data_dir, &cache);
+        result.and(saved)
+    }
+
+    async fn sync_inner(
+        &self,
+        data_dir: &Path,
+        notes_dir: &Path,
+        cache: &mut SyncCache,
+    ) -> Result<(), String> {
         let folder_cfg = self
             .get_folder(data_dir)
             .ok_or_else(|| "No OneDrive folder configured".to_string())?;
 
         let token = self.get_valid_access_token(data_dir).await?;
-        let mut cache = self.load_cache(data_dir);
 
         fs::create_dir_all(notes_dir).map_err(|e| e.to_string())?;
 
@@ -497,59 +513,20 @@ impl OneDriveManager {
                 continue;
             }
 
-            let local_path = notes_dir.join(&item.name);
-
             if item.is_deleted {
-                if local_path.exists() {
-                    let _ = fs::remove_file(&local_path);
-                }
-                cache.files.remove(&item.name);
+                apply_remote_delete(notes_dir, &item.name, cache)?;
                 continue;
             }
 
-            // Remote file created or updated
-            let current_local_hash = if local_path.exists() {
-                Some(hash_file(&local_path)?)
-            } else {
-                None
-            };
-
-            let cached_entry = cache.files.get(&item.name);
-
-            // Check if local file was modified independently (Conflict!)
-            let has_local_modification = match (current_local_hash.as_deref(), cached_entry) {
-                (Some(curr), Some(cached)) => curr != cached.local_hash,
-                (Some(_), None) => true,
-                (None, _) => false,
-            };
-
             let remote_content = self.client.download_file_content(&token, &item.id).await?;
-            let remote_hash = compute_hash(remote_content.as_bytes());
-
-            if has_local_modification {
-                // Write remote copy to conflict file to ensure 100% zero data loss
-                let conflict_name = format!(
-                    ".chrononote-conflicts/{}.remote-{}",
-                    item.name,
-                    chrono_timestamp()
-                );
-                let conflict_path = notes_dir.join(&conflict_name);
-                if let Some(parent) = conflict_path.parent() {
-                    let _ = fs::create_dir_all(parent);
-                }
-                let _ = fs::write(conflict_path, remote_content);
-            } else {
-                // Update local file cleanly
-                fs::write(&local_path, remote_content.as_bytes()).map_err(|e| e.to_string())?;
-                cache.files.insert(
-                    item.name.clone(),
-                    FileCacheEntry {
-                        id: item.id.clone(),
-                        etag: item.etag.unwrap_or_default(),
-                        local_hash: remote_hash,
-                    },
-                );
-            }
+            apply_remote_change(
+                notes_dir,
+                &item.name,
+                &item.id,
+                item.etag.as_deref().unwrap_or_default(),
+                &remote_content,
+                cache,
+            )?;
         }
 
         if let Some(link) = delta_res.delta_link {
@@ -612,7 +589,6 @@ impl OneDriveManager {
             }
         }
 
-        self.save_cache(data_dir, &cache)?;
         Ok(())
     }
 
@@ -741,6 +717,125 @@ fn extract_code_from_string(input: &str) -> String {
         return code;
     }
     trimmed.to_string()
+}
+
+/// What to do with a remote create/update for a file we may also have
+/// locally. Decided purely from content hashes so it can be unit-tested
+/// without a network — the network-touching code only feeds it inputs.
+#[derive(Debug, PartialEq, Eq)]
+enum RemoteChangeAction {
+    /// Local file is absent, or unchanged since the last sync: take remote.
+    WriteLocal,
+    /// Local already holds exactly the remote bytes (typically a sync that
+    /// was interrupted after writing the file but before saving the cache):
+    /// nothing to write, just record it. Treating this as a conflict used to
+    /// spawn a spurious conflict copy plus a pointless upload.
+    AdoptRemote,
+    /// Local was edited since the last sync *and* differs from remote. The
+    /// local file stays canonical, the remote version is preserved in
+    /// `.chrononote-conflicts/`, and the cache is rebased onto the remote's
+    /// etag so the following push deliberately overwrites remote with local.
+    KeepLocalAsConflict,
+}
+
+fn classify_remote_change(
+    local_hash: Option<&str>,
+    cached: Option<&FileCacheEntry>,
+    remote_hash: &str,
+) -> RemoteChangeAction {
+    match local_hash {
+        None => RemoteChangeAction::WriteLocal,
+        Some(local) if local == remote_hash => RemoteChangeAction::AdoptRemote,
+        Some(local) => match cached {
+            Some(c) if c.local_hash == local => RemoteChangeAction::WriteLocal,
+            _ => RemoteChangeAction::KeepLocalAsConflict,
+        },
+    }
+}
+
+fn write_conflict_copy(notes_dir: &Path, name: &str, kind: &str, content: &str) -> Result<(), String> {
+    let path = notes_dir.join(format!(".chrononote-conflicts/{name}.{kind}-{}", chrono_timestamp()));
+    if let Some(parent) = path.parent() {
+        fs::create_dir_all(parent).map_err(|e| e.to_string())?;
+    }
+    fs::write(path, content).map_err(|e| e.to_string())
+}
+
+fn apply_remote_change(
+    notes_dir: &Path,
+    name: &str,
+    id: &str,
+    etag: &str,
+    remote_content: &str,
+    cache: &mut SyncCache,
+) -> Result<RemoteChangeAction, String> {
+    let local_path = notes_dir.join(name);
+    let local_hash = if local_path.exists() {
+        Some(hash_file(&local_path)?)
+    } else {
+        None
+    };
+    let remote_hash = compute_hash(remote_content.as_bytes());
+    let action = classify_remote_change(local_hash.as_deref(), cache.files.get(name), &remote_hash);
+
+    match action {
+        RemoteChangeAction::WriteLocal => {
+            fs::write(&local_path, remote_content.as_bytes()).map_err(|e| e.to_string())?;
+        }
+        RemoteChangeAction::AdoptRemote => {}
+        // Must succeed before the cache is rebased below — this copy is the
+        // only safety net for the remote version, so a failure aborts the
+        // sync rather than being ignored.
+        RemoteChangeAction::KeepLocalAsConflict => {
+            write_conflict_copy(notes_dir, name, "remote", remote_content)?;
+        }
+    }
+
+    cache.files.insert(
+        name.to_string(),
+        FileCacheEntry {
+            id: id.to_string(),
+            etag: etag.to_string(),
+            local_hash: remote_hash,
+        },
+    );
+    Ok(action)
+}
+
+#[derive(Debug, PartialEq, Eq)]
+enum RemoteDeleteAction {
+    DeleteLocal,
+    /// Local was edited since the last sync (or never synced): a remote
+    /// deletion must not destroy unsynced work. The file stays, and losing
+    /// its cache entry makes the push re-upload it as a new file.
+    KeepLocal,
+}
+
+fn classify_remote_delete(local_hash: Option<&str>, cached: Option<&FileCacheEntry>) -> RemoteDeleteAction {
+    match (local_hash, cached) {
+        (None, _) => RemoteDeleteAction::DeleteLocal,
+        (Some(local), Some(c)) if c.local_hash == local => RemoteDeleteAction::DeleteLocal,
+        _ => RemoteDeleteAction::KeepLocal,
+    }
+}
+
+fn apply_remote_delete(
+    notes_dir: &Path,
+    name: &str,
+    cache: &mut SyncCache,
+) -> Result<RemoteDeleteAction, String> {
+    let local_path = notes_dir.join(name);
+    let local_hash = if local_path.exists() {
+        Some(hash_file(&local_path)?)
+    } else {
+        None
+    };
+    let action = classify_remote_delete(local_hash.as_deref(), cache.files.get(name));
+    if action == RemoteDeleteAction::DeleteLocal && local_path.exists() {
+        fs::remove_file(&local_path).map_err(|e| e.to_string())?;
+    }
+    cache.files.remove(name);
+    Ok(action)
 }
 
 fn is_syncable_file(name: &str) -> bool {
@@ -910,5 +1005,165 @@ mod tests {
         // (percent-encoded) contain a raw `=`.
         let req = "GET /auth?code=abc=def HTTP/1.1\r\nHost: localhost:8765\r\n\r\n";
         assert_eq!(extract_code_from_http_request(req), Some("abc=def".to_string()));
+    }
+
+    // --- sync decision logic (pure filesystem, no network) ----------------
+
+    const NOTE: &str = "2026-09-18.txt";
+
+    fn cache_with(name: &str, content: &str, etag: &str) -> SyncCache {
+        let mut cache = SyncCache::default();
+        cache.files.insert(
+            name.to_string(),
+            FileCacheEntry {
+                id: "id-1".to_string(),
+                etag: etag.to_string(),
+                local_hash: compute_hash(content.as_bytes()),
+            },
+        );
+        cache
+    }
+
+    fn conflict_files(dir: &Path) -> Vec<String> {
+        let cdir = dir.join(".chrononote-conflicts");
+        if !cdir.exists() {
+            return vec![];
+        }
+        fs::read_dir(cdir)
+            .unwrap()
+            .flatten()
+            .map(|e| e.file_name().into_string().unwrap())
+            .collect()
+    }
+
+    #[test]
+    fn a_new_remote_file_is_written_locally_and_cached() {
+        let dir = tempfile::tempdir().unwrap();
+        let mut cache = SyncCache::default();
+        let action = apply_remote_change(dir.path(), NOTE, "id-1", "e1", "from phone", &mut cache).unwrap();
+        assert_eq!(action, RemoteChangeAction::WriteLocal);
+        assert_eq!(fs::read_to_string(dir.path().join(NOTE)).unwrap(), "from phone");
+        assert_eq!(cache.files[NOTE].etag, "e1");
+        assert_eq!(cache.files[NOTE].local_hash, compute_hash(b"from phone"));
+    }
+
+    #[test]
+    fn a_remote_update_overwrites_a_local_file_that_has_not_changed_since_the_last_sync() {
+        let dir = tempfile::tempdir().unwrap();
+        fs::write(dir.path().join(NOTE), "v1").unwrap();
+        let mut cache = cache_with(NOTE, "v1", "e1");
+        let action = apply_remote_change(dir.path(), NOTE, "id-1", "e2", "v2", &mut cache).unwrap();
+        assert_eq!(action, RemoteChangeAction::WriteLocal);
+        assert_eq!(fs::read_to_string(dir.path().join(NOTE)).unwrap(), "v2");
+        assert!(conflict_files(dir.path()).is_empty());
+    }
+
+    #[test]
+    fn a_remote_update_never_overwrites_a_local_edit_and_keeps_the_remote_copy() {
+        let dir = tempfile::tempdir().unwrap();
+        fs::write(dir.path().join(NOTE), "v1 + my offline edit").unwrap();
+        let mut cache = cache_with(NOTE, "v1", "e1");
+
+        let action = apply_remote_change(dir.path(), NOTE, "id-1", "e2", "v2 from PC", &mut cache).unwrap();
+
+        assert_eq!(action, RemoteChangeAction::KeepLocalAsConflict);
+        // Local edit untouched; remote version preserved next to it.
+        assert_eq!(fs::read_to_string(dir.path().join(NOTE)).unwrap(), "v1 + my offline edit");
+        let copies = conflict_files(dir.path());
+        assert_eq!(copies.len(), 1);
+        assert!(copies[0].starts_with(&format!("{NOTE}.remote-")));
+        let saved = fs::read_to_string(dir.path().join(".chrononote-conflicts").join(&copies[0])).unwrap();
+        assert_eq!(saved, "v2 from PC");
+        // Cache rebased onto the remote: the next push sees local != cached
+        // and uploads with the *current* etag (so it can't 412 forever).
+        assert_eq!(cache.files[NOTE].etag, "e2");
+        assert_ne!(cache.files[NOTE].local_hash, compute_hash(b"v1 + my offline edit"));
+    }
+
+    #[test]
+    fn identical_content_is_not_a_conflict_even_with_a_stale_cache() {
+        // An earlier sync wrote this file, then died before saving the cache.
+        let dir = tempfile::tempdir().unwrap();
+        fs::write(dir.path().join(NOTE), "v2").unwrap();
+        let mut cache = cache_with(NOTE, "v1", "e1");
+
+        let action = apply_remote_change(dir.path(), NOTE, "id-1", "e2", "v2", &mut cache).unwrap();
+
+        assert_eq!(action, RemoteChangeAction::AdoptRemote);
+        assert!(conflict_files(dir.path()).is_empty());
+        assert_eq!(cache.files[NOTE].etag, "e2");
+        assert_eq!(cache.files[NOTE].local_hash, compute_hash(b"v2"));
+    }
+
+    #[test]
+    fn a_never_synced_local_file_that_differs_from_remote_is_a_conflict_not_an_overwrite() {
+        let dir = tempfile::tempdir().unwrap();
+        fs::write(dir.path().join(NOTE), "local only").unwrap();
+        let mut cache = SyncCache::default();
+        let action = apply_remote_change(dir.path(), NOTE, "id-1", "e1", "remote", &mut cache).unwrap();
+        assert_eq!(action, RemoteChangeAction::KeepLocalAsConflict);
+        assert_eq!(fs::read_to_string(dir.path().join(NOTE)).unwrap(), "local only");
+        assert_eq!(conflict_files(dir.path()).len(), 1);
+    }
+
+    #[test]
+    fn a_remote_delete_removes_an_unchanged_local_file() {
+        let dir = tempfile::tempdir().unwrap();
+        fs::write(dir.path().join(NOTE), "v1").unwrap();
+        let mut cache = cache_with(NOTE, "v1", "e1");
+        let action = apply_remote_delete(dir.path(), NOTE, &mut cache).unwrap();
+        assert_eq!(action, RemoteDeleteAction::DeleteLocal);
+        assert!(!dir.path().join(NOTE).exists());
+        assert!(!cache.files.contains_key(NOTE));
+    }
+
+    #[test]
+    fn a_remote_delete_never_destroys_unsynced_local_edits() {
+        let dir = tempfile::tempdir().unwrap();
+        fs::write(dir.path().join(NOTE), "v1 + edits made offline").unwrap();
+        let mut cache = cache_with(NOTE, "v1", "e1");
+        let action = apply_remote_delete(dir.path(), NOTE, &mut cache).unwrap();
+        assert_eq!(action, RemoteDeleteAction::KeepLocal);
+        assert_eq!(fs::read_to_string(dir.path().join(NOTE)).unwrap(), "v1 + edits made offline");
+        // No cache entry left, so the push re-uploads it as a new file.
+        assert!(!cache.files.contains_key(NOTE));
+    }
+
+    #[test]
+    fn a_remote_delete_keeps_a_local_file_that_was_never_synced() {
+        let dir = tempfile::tempdir().unwrap();
+        fs::write(dir.path().join(NOTE), "brand new").unwrap();
+        let mut cache = SyncCache::default();
+        assert_eq!(
+            apply_remote_delete(dir.path(), NOTE, &mut cache).unwrap(),
+            RemoteDeleteAction::KeepLocal
+        );
+        assert!(dir.path().join(NOTE).exists());
+    }
+
+    #[test]
+    fn a_remote_delete_for_a_file_we_do_not_have_is_a_harmless_no_op() {
+        let dir = tempfile::tempdir().unwrap();
+        let mut cache = cache_with(NOTE, "v1", "e1");
+        assert_eq!(
+            apply_remote_delete(dir.path(), NOTE, &mut cache).unwrap(),
+            RemoteDeleteAction::DeleteLocal
+        );
+        assert!(!cache.files.contains_key(NOTE));
+    }
+
+    #[test]
+    fn an_interrupted_pull_can_simply_be_replayed_without_creating_conflicts() {
+        // Sync #1 applies the change, then the connection drops (cache lost
+        // in the old code). Sync #2 receives the same delta item again.
+        let dir = tempfile::tempdir().unwrap();
+        let mut first = SyncCache::default();
+        apply_remote_change(dir.path(), NOTE, "id-1", "e1", "shared", &mut first).unwrap();
+
+        let mut replay = SyncCache::default(); // progress was lost
+        let action = apply_remote_change(dir.path(), NOTE, "id-1", "e1", "shared", &mut replay).unwrap();
+
+        assert_eq!(action, RemoteChangeAction::AdoptRemote);
+        assert!(conflict_files(dir.path()).is_empty());
     }
 }
