@@ -378,11 +378,6 @@ body {
 .tab-bar-spacer {
   flex: 1;
 }
-@media (max-width: 599px) {
-  #tab-bar {
-    display: none !important;
-  }
-}
 
 .tab {
   flex-shrink: 0;
@@ -2194,12 +2189,16 @@ kbd {
    Mobile & Touch Ergonomics
    ========================================================================== */
 
-/* Safe area support for notched phones / navigation bars */
+/* Safe area support for notched phones / navigation bars. On Android the
+   WebView reports env(safe-area-inset-*) as 0, so the native shell pushes
+   the real insets (status/nav bar, cutout, on-screen keyboard) into the
+   --inset-* variables (see src/lib/androidChrome.ts); env() remains the
+   fallback everywhere else. */
 body {
-  padding-top: env(safe-area-inset-top, 0);
-  padding-bottom: env(safe-area-inset-bottom, 0);
-  padding-left: env(safe-area-inset-left, 0);
-  padding-right: env(safe-area-inset-right, 0);
+  padding-top: var(--inset-top, env(safe-area-inset-top, 0px));
+  padding-bottom: var(--inset-bottom, env(safe-area-inset-bottom, 0px));
+  padding-left: var(--inset-left, env(safe-area-inset-left, 0px));
+  padding-right: var(--inset-right, env(safe-area-inset-right, 0px));
 }
 
 /* Expanded touch targets for cyclable checklist glyphs */

@@ -121,11 +121,10 @@
   let cloneSettingsEl: HTMLElement;
   let moreBtnEl: HTMLElement;
 
-  let windowWidth = typeof window !== "undefined" ? window.innerWidth : 1024;
-  function updateWidth() {
-    windowWidth = typeof window !== "undefined" ? window.innerWidth : 1024;
-  }
-  $: showHorizontalTabs = windowWidth >= 600;
+  // The horizontal tab strip is replaced by the tabs-drawer button on
+  // touch-first devices only — NOT by window width: a narrow desktop/web
+  // window keeps the strip (#56's collapse-into-More logic measures it).
+  $: showHorizontalTabs = !$isMobile;
   $: showOpenTabsBtn = !showHorizontalTabs || $isMobile || isOverflowing;
 
   $: activeTab = $tabs.find((t) => t.id === $activeTabId);
@@ -674,7 +673,6 @@
   });
 </script>
 
-<svelte:window on:resize={updateWidth} on:orientationchange={updateWidth} />
 
 <div
   id="top-bar"

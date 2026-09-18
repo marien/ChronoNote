@@ -122,10 +122,16 @@
         }
       }
     }
-    const mediaQuery = window.matchMedia("(max-width: 680px), (pointer: coarse)");
+    // Touch-first devices only (Android, or any browser whose primary input
+    // is coarse — phones/tablets hitting the web app or demo). Deliberately
+    // NOT width-based: the desktop window's minimum width (640px) is below
+    // any sensible width threshold, and a narrow desktop window has its own
+    // designed behaviour (the top bar collapses into "More actions", #56)
+    // that the mobile layout would otherwise replace.
+    const mediaQuery = window.matchMedia("(pointer: coarse)");
     const updateMobile = () => {
       const isAndroidEnv = get(backendKind) === "android" || /android/i.test(navigator.userAgent);
-      isMobile.set(isAndroidEnv || mediaQuery.matches || window.innerWidth < 680);
+      isMobile.set(isAndroidEnv || mediaQuery.matches);
     };
     updateMobile();
     mediaQuery.addEventListener("change", updateMobile);

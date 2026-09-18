@@ -703,7 +703,7 @@
         const { from, to } = view.state.selection.main;
         const firstLine = view.state.doc.lineAt(from);
         const lastLine = view.state.doc.lineAt(to);
-        const changes = [];
+        const changes: { from: number; to: number; insert: string }[] = [];
         for (let l = firstLine.number; l <= lastLine.number; l++) {
           const line = view.state.doc.line(l);
           let updated: string | null = null;
@@ -742,7 +742,37 @@
             changes.push({ from: line.from, to: line.to, insert: updated });
           }
         }
-        if (changes.length) view.dispatch({ changes, scrollIntoView: true });
+        if (changes.length) {
+          // Replacing a whole line with no explicit selection makes
+          // CodeMirror collapse the caret to the line's start, so typing
+          // right after tapping e.g. the ☐ button put the text *before*
+          // the inserted token (`x#` instead of `# x`). Carry the caret
+          // across each edit: prefix edits shift it by the length delta
+          // (never before the line start); the `=>` append moves it to
+          // the end of the line.
+          const mapPos = (pos: number): number => {
+            let shift = 0;
+            for (const c of changes) {
+              const delta = c.insert.length - (c.to - c.from);
+              if (pos > c.to) {
+                shift += delta;
+              } else if (pos >= c.from) {
+                const base = c.from + shift;
+                if (token === "=>") return base + c.insert.length;
+                return base + Math.min(c.insert.length, Math.max(0, pos - c.from + delta));
+              } else {
+                break;
+              }
+            }
+            return pos + shift;
+          };
+          const sel = view.state.selection.main;
+          view.dispatch({
+            changes,
+            selection: { anchor: mapPos(sel.anchor), head: mapPos(sel.head) },
+            scrollIntoView: true,
+          });
+        }
       },
     });
 
