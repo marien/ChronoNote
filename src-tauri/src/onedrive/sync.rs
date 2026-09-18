@@ -577,22 +577,63 @@ impl OneDriveManager {
     }
 }
 
+/// Decodes `%XX` escapes in a query-string value. Deliberately does NOT
+/// treat `+` as a space (that's the `application/x-www-form-urlencoded`
+/// body convention, not how a URL query component is defined — an auth
+/// code is opaque and may itself contain a literal `+`, which must be
+/// left alone). Operates on raw bytes throughout so a malformed `%`
+/// sequence can never panic on a UTF-8 char-boundary.
+fn percent_decode(s: &str) -> String {
+    let bytes = s.as_bytes();
+    let mut out = Vec::with_capacity(bytes.len());
+    let mut i = 0;
+    while i < bytes.len() {
+        if bytes[i] == b'%' && i + 3 <= bytes.len() {
+            let hi = (bytes[i + 1] as char).to_digit(16);
+            let lo = (bytes[i + 2] as char).to_digit(16);
+            if let (Some(hi), Some(lo)) = (hi, lo) {
+                out.push((hi * 16 + lo) as u8);
+                i += 3;
+                continue;
+            }
+        }
+        out.push(bytes[i]);
+        i += 1;
+    }
+    String::from_utf8_lossy(&out).into_owned()
+}
+
+/// Finds the `code` param in a query string (everything after the first
+/// `?`, or the whole string if there's no `?`) and percent-decodes it —
+/// the value came off the wire (an HTTP request line or a browser
+/// address bar) still URL-encoded, and Microsoft's token endpoint needs
+/// the exact original bytes, not the encoded form. A real code observed
+/// in testing ended in a literal `$$`, transmitted as `%24%24`; sending
+/// that percent-encoded form verbatim as the `code` parameter produces
+/// Microsoft's AADSTS9002313 "malformed request" every time, since it
+/// no longer matches the code actually issued. `splitn(2, '=')` (not a
+/// bare `split`) so a code that happens to contain its own `=` isn't
+/// truncated at the first one.
+fn find_code_param(s: &str) -> Option<String> {
+    let query = s.find('?').map(|i| &s[i + 1..]).unwrap_or(s);
+    for param in query.split('&') {
+        let mut kv = param.splitn(2, '=');
+        if let (Some(k), Some(v)) = (kv.next(), kv.next()) {
+            if k == "code" {
+                return Some(percent_decode(v));
+            }
+        }
+    }
+    None
+}
+
 fn extract_code_from_http_request(req: &str) -> Option<String> {
     for line in req.lines() {
         if line.starts_with("GET ") {
             let parts: Vec<&str> = line.split_whitespace().collect();
             if parts.len() >= 2 {
-                let path = parts[1];
-                if let Some(query_idx) = path.find('?') {
-                    let query = &path[query_idx + 1..];
-                    for param in query.split('&') {
-                        let mut kv = param.split('=');
-                        if let (Some(k), Some(v)) = (kv.next(), kv.next()) {
-                            if k == "code" {
-                                return Some(v.to_string());
-                            }
-                        }
-                    }
+                if let Some(code) = find_code_param(parts[1]) {
+                    return Some(code);
                 }
             }
         }
@@ -600,18 +641,20 @@ fn extract_code_from_http_request(req: &str) -> Option<String> {
     None
 }
 
+/// Pulls a `code` value out of whatever the user pasted into the manual
+/// auth-code field: a full redirect URL (`...?code=X&state=Y`), a bare
+/// query fragment with no leading `?` (`code=X&state=Y` — what a browser's
+/// address bar shows once it's stripped the scheme/host after a failed
+/// loopback redirect), or just the raw code itself. Only falls back to
+/// treating the whole input as the code when no `code=` key is found at
+/// all, so a pasted `code=...` fragment never gets sent to Microsoft with
+/// the literal `code=` prefix still attached (that previously produced a
+/// real, reproduced AADSTS9002313 "malformed request" — the prefix isn't
+/// part of the opaque code value).
 fn extract_code_from_string(input: &str) -> String {
     let trimmed = input.trim();
-    if let Some(query_idx) = trimmed.find('?') {
-        let query = &trimmed[query_idx + 1..];
-        for param in query.split('&') {
-            let mut kv = param.split('=');
-            if let (Some(k), Some(v)) = (kv.next(), kv.next()) {
-                if k == "code" {
-                    return v.to_string();
-                }
-            }
-        }
+    if let Some(code) = find_code_param(trimmed) {
+        return code;
     }
     trimmed.to_string()
 }
@@ -706,5 +749,80 @@ mod tests {
         fs::write(dir.path().join(ADVANCED_CONFIG_FILENAME), "not json").unwrap();
         let mgr = OneDriveManager::new();
         assert_eq!(mgr.get_advanced_config(dir.path()), OneDriveAdvancedConfig::default());
+    }
+
+    #[test]
+    fn extract_code_from_string_handles_a_full_redirect_url() {
+        assert_eq!(
+            extract_code_from_string("http://localhost:8765/auth?code=abc123&state=xyz"),
+            "abc123"
+        );
+    }
+
+    #[test]
+    fn extract_code_from_string_handles_a_bare_query_fragment_with_no_leading_question_mark() {
+        // Reproduces a real AADSTS9002313 "malformed request" report: a browser
+        // that couldn't complete the loopback redirect shows the attempted URL
+        // in its address bar, and copying just the query portion of it (no `?`)
+        // used to be sent to Microsoft with the literal `code=` prefix still
+        // attached to the value.
+        assert_eq!(extract_code_from_string("code=M.C554_BAY.2.U.MsaArtifacts."), "M.C554_BAY.2.U.MsaArtifacts.");
+        assert_eq!(extract_code_from_string("code=abc123&state=xyz"), "abc123");
+    }
+
+    #[test]
+    fn extract_code_from_string_handles_a_bare_code_with_no_key_at_all() {
+        assert_eq!(extract_code_from_string("M.C554_BAY.2.U.MsaArtifacts."), "M.C554_BAY.2.U.MsaArtifacts.");
+    }
+
+    #[test]
+    fn extract_code_from_string_handles_surrounding_whitespace() {
+        assert_eq!(extract_code_from_string("  code=abc123  "), "abc123");
+    }
+
+    #[test]
+    fn percent_decode_decodes_percent_escapes_without_touching_plus() {
+        assert_eq!(percent_decode("abc%24%24"), "abc$$");
+        // A literal `+` must survive as-is — it's the form-encoding (not
+        // URL-query) convention that treats `+` as a space, and an auth
+        // code is opaque data, not a form field.
+        assert_eq!(percent_decode("a+b"), "a+b");
+        assert_eq!(percent_decode("no-escapes-here"), "no-escapes-here");
+    }
+
+    #[test]
+    fn percent_decode_leaves_a_malformed_percent_sequence_alone_rather_than_panicking() {
+        assert_eq!(percent_decode("100% done"), "100% done");
+        assert_eq!(percent_decode("trailing%"), "trailing%");
+        assert_eq!(percent_decode("trailing%2"), "trailing%2");
+    }
+
+    #[test]
+    fn extract_code_from_string_percent_decodes_the_code_value() {
+        // Reproduces a second real failure, found after the first fix: a
+        // genuine MSA authorization code ending in a literal `$$` arrives
+        // percent-encoded as `%24%24` in the redirect URL. Sending that
+        // encoded form verbatim to Microsoft's token endpoint doesn't match
+        // the code it actually issued — AADSTS9002313 again, even with the
+        // `code=` prefix already stripped correctly.
+        let encoded = "http://localhost:8765/auth?code=M.C554_SN1.2.U.MsaArtifacts.Dpn66%24%24&state=xyz";
+        assert_eq!(extract_code_from_string(encoded), "M.C554_SN1.2.U.MsaArtifacts.Dpn66$$");
+    }
+
+    #[test]
+    fn extract_code_from_http_request_percent_decodes_the_code_value() {
+        let req = "GET /auth?code=abc%24%24 HTTP/1.1\r\nHost: localhost:8765\r\n\r\n";
+        assert_eq!(extract_code_from_http_request(req), Some("abc$$".to_string()));
+    }
+
+    #[test]
+    fn extract_code_from_http_request_does_not_truncate_a_code_containing_an_equals_sign() {
+        // The original `split('=')` (not `splitn(2, '=')`) would have cut
+        // the value off at the first internal `=`, silently truncating any
+        // code containing one — checked here so a future refactor can't
+        // reintroduce it even though today's real-world codes don't
+        // (percent-encoded) contain a raw `=`.
+        let req = "GET /auth?code=abc=def HTTP/1.1\r\nHost: localhost:8765\r\n\r\n";
+        assert_eq!(extract_code_from_http_request(req), Some("abc=def".to_string()));
     }
 }
