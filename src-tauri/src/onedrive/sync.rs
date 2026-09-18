@@ -586,6 +586,14 @@ impl OneDriveManager {
             }
             seen_in_listing.insert(name.clone());
 
+            // Our own upload (or a version we already pulled) comes back in
+            // the change list too. Treating it as news would re-download it
+            // and, if the note was deleted locally in the meantime, restore
+            // it — undoing the delete.
+            if already_have_version(cache, data_dir, &name, item.etag.as_deref()) {
+                continue;
+            }
+
             let remote_content = self.client.download_file_content(&token, &item.id).await?;
             apply_remote_change(
                 notes_dir,
@@ -1065,6 +1073,17 @@ fn resolve_conflict_files(
     );
     cache.conflicts.remove(name);
     Ok(())
+}
+
+/// True when this delta entry is a version we already hold: same etag as the
+/// cache, and a stored base so nothing is lost by not looking at it. (A note
+/// synced before bases were kept still goes through the normal path once, so
+/// it gets one.)
+fn already_have_version(cache: &SyncCache, data_dir: &Path, name: &str, etag: Option<&str>) -> bool {
+    match (cache.files.get(name), etag) {
+        (Some(entry), Some(etag)) => entry.etag == etag && !cache.conflicts.contains_key(name) && load_base(data_dir, name).is_some(),
+        _ => false,
+    }
 }
 
 // --- local deletions (tombstones) ---------------------------------------
@@ -1624,6 +1643,30 @@ mod tests {
 
     fn tombs(names: &[&str]) -> std::collections::BTreeSet<String> {
         names.iter().map(|n| n.to_string()).collect()
+    }
+
+    #[test]
+    fn our_own_upload_coming_back_in_the_change_list_is_not_treated_as_news() {
+        let (_notes, data) = dirs();
+        let cache = cache_with(NOTE, "v1", "e1");
+        // No base stored yet: still goes through the normal path (to get one).
+        assert!(!already_have_version(&cache, data.path(), NOTE, Some("e1")));
+        save_base(data.path(), NOTE, "v1").unwrap();
+        assert!(already_have_version(&cache, data.path(), NOTE, Some("e1")));
+        assert!(!already_have_version(&cache, data.path(), NOTE, Some("e2"))); // a newer version
+        assert!(!already_have_version(&cache, data.path(), "2026-02-02.txt", Some("e1"))); // unknown note
+        assert!(!already_have_version(&cache, data.path(), NOTE, None));
+    }
+
+    #[test]
+    fn a_held_conflict_never_skips_a_delta_entry() {
+        let (notes, data) = dirs();
+        fs::write(notes.path().join(NOTE), "local").unwrap();
+        let mut cache = SyncCache::default();
+        apply(notes.path(), data.path(), "e1", "remote", &mut cache); // held (first contact)
+        save_base(data.path(), NOTE, "remote").unwrap();
+        cache.files.insert(NOTE.into(), FileCacheEntry { id: "i".into(), etag: "e1".into(), local_hash: "h".into() });
+        assert!(!already_have_version(&cache, data.path(), NOTE, Some("e1")));
     }
 
     #[test]
