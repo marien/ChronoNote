@@ -283,6 +283,34 @@ impl OneDriveClient {
 
     /// Uploads content to a file in the OneDrive folder using Compare-And-Swap (CAS).
     /// If `etag` is provided, sends `If-Match: "{etag}"`.
+    /// Deletes an item, but only while it still has the version we last
+    /// saw (`If-Match`): a note someone else edited in the meantime is left
+    /// alone and reported as `Changed`.
+    pub async fn delete_item(
+        &self,
+        access_token: &str,
+        item_id: &str,
+        etag: Option<&str>,
+    ) -> Result<DeleteResult, String> {
+        let url = format!("{GRAPH_BASE_URL}/me/drive/items/{item_id}");
+        let mut req = self.client.delete(&url).headers(Self::auth_headers(access_token));
+        if let Some(e) = etag {
+            if let Ok(v) = HeaderValue::from_str(e) {
+                req = req.header(IF_MATCH, v);
+            }
+        }
+        let resp = req.send().await.map_err(|e| format!("Graph delete failed: {e}"))?;
+        let status = resp.status();
+        if status == StatusCode::PRECONDITION_FAILED {
+            return Ok(DeleteResult::Changed);
+        }
+        if status == StatusCode::NOT_FOUND || status.is_success() {
+            return Ok(DeleteResult::Deleted);
+        }
+        let err = resp.text().await.unwrap_or_default();
+        Err(format!("Graph delete error ({status}): {err}"))
+    }
+
     pub async fn upload_file_content(
         &self,
         access_token: &str,
@@ -353,6 +381,13 @@ pub struct DeltaItem {
     pub name: Option<String>,
     pub etag: Option<String>,
     pub is_deleted: bool,
+}
+
+pub enum DeleteResult {
+    /// Gone from OneDrive (including "was already gone").
+    Deleted,
+    /// The item changed after the etag we hold: nothing was deleted.
+    Changed,
 }
 
 pub enum UploadResult {

@@ -3,7 +3,7 @@ use super::auth::{
     load_refresh_token, load_stored_auth, refresh_access_token, resolve_client_id, resolve_tenant,
     save_refresh_token, save_stored_auth, TokenExchange,
 };
-use super::client::{OneDriveClient, UploadResult};
+use super::client::{DeleteResult, OneDriveClient, UploadResult};
 use super::{
     OneDriveAccount, OneDriveAdvancedConfig, OneDriveFolderConfig, OneDriveFolderItem,
     OneDriveLoginResult, OneDriveSyncResult, SyncConflict, SyncStatus,
@@ -96,6 +96,20 @@ impl OneDriveManager {
         // to overwrite newer cloud edits. Changing folder already resets it.
         self.set_status(SyncStatus::Idle);
         Ok(())
+    }
+
+    /// The app deleted this note locally (an empty dated note whose tab was
+    /// closed). Remembers it so the next sync can delete the cloud copy too.
+    /// A no-op unless OneDrive sync is set up, and for non-note files.
+    pub fn record_local_delete(&self, data_dir: &Path, name: &str) {
+        if !is_syncable_file(name) || self.get_folder(data_dir).is_none() {
+            return;
+        }
+        let _guard = TOMBSTONE_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+        let mut set = read_tombstones_unlocked(data_dir);
+        if set.insert(name.to_string()) {
+            let _ = write_tombstones_unlocked(data_dir, &set);
+        }
     }
 
     /// Loads Settings' Advanced client-ID/tenant overrides, if any —
@@ -602,6 +616,33 @@ impl OneDriveManager {
         // failure, keep going, and report it once the pass is done.
         let mut first_error: Option<String> = None;
 
+        // Notes the app deleted locally (an empty dated note whose tab was
+        // closed): remove the cloud copy too, but only while it's still the
+        // version we last synced. Runs after the pull, so a note that
+        // someone edited elsewhere has already been restored by then and is
+        // left alone.
+        let tombstones = read_tombstones(data_dir);
+        if !tombstones.is_empty() {
+            let (plans, mut settled) = plan_remote_deletes(notes_dir, cache, &tombstones);
+            for plan in plans {
+                match self.client.delete_item(&token, &plan.id, Some(&plan.etag)).await {
+                    Ok(DeleteResult::Deleted) => {
+                        cache.files.remove(&plan.name);
+                        let _ = fs::remove_file(base_path(data_dir, &plan.name));
+                        settled.push(plan.name);
+                    }
+                    // Changed elsewhere: keep it. The next pull brings the
+                    // newer version back, since the local file is gone.
+                    Ok(DeleteResult::Changed) => settled.push(plan.name),
+                    // Transient failure: keep the tombstone and retry next sync.
+                    Err(e) => {
+                        first_error.get_or_insert(format!("{}: {e}", plan.name));
+                    }
+                }
+            }
+            clear_tombstones(data_dir, &settled);
+        }
+
         for filename in local_files {
             // Waiting on the user to resolve a conflict: uploading now would
             // overwrite the cloud version they haven't seen.
@@ -1024,6 +1065,74 @@ fn resolve_conflict_files(
     );
     cache.conflicts.remove(name);
     Ok(())
+}
+
+// --- local deletions (tombstones) ---------------------------------------
+
+const TOMBSTONES_FILENAME: &str = ".onedrive-deleted.json";
+/// `delete_note` (a command thread) and the sync both touch the file.
+static TOMBSTONE_LOCK: Mutex<()> = Mutex::new(());
+
+fn read_tombstones(data_dir: &Path) -> std::collections::BTreeSet<String> {
+    let _guard = TOMBSTONE_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+    read_tombstones_unlocked(data_dir)
+}
+
+fn read_tombstones_unlocked(data_dir: &Path) -> std::collections::BTreeSet<String> {
+    fs::read_to_string(data_dir.join(TOMBSTONES_FILENAME))
+        .ok()
+        .and_then(|s| serde_json::from_str(&s).ok())
+        .unwrap_or_default()
+}
+
+fn write_tombstones_unlocked(data_dir: &Path, set: &std::collections::BTreeSet<String>) -> Result<(), String> {
+    fs::create_dir_all(data_dir).map_err(|e| e.to_string())?;
+    let raw = serde_json::to_string(set).map_err(|e| e.to_string())?;
+    fs::write(data_dir.join(TOMBSTONES_FILENAME), raw).map_err(|e| e.to_string())
+}
+
+/// Forgets tombstones that have been dealt with. Re-reads the file so a note
+/// deleted while the sync was running isn't lost.
+fn clear_tombstones(data_dir: &Path, names: &[String]) {
+    let _guard = TOMBSTONE_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+    let mut set = read_tombstones_unlocked(data_dir);
+    let before = set.len();
+    for n in names {
+        set.remove(n);
+    }
+    if set.len() != before {
+        let _ = write_tombstones_unlocked(data_dir, &set);
+    }
+}
+
+struct RemoteDeletePlan {
+    name: String,
+    id: String,
+    etag: String,
+}
+
+/// Which tombstoned notes need a cloud delete, and which are already moot
+/// (`settled`) and just need forgetting: the file is back locally (the pull
+/// restored a newer cloud version, or it was recreated), the note is held in
+/// a conflict, or it was never synced so there's nothing in the cloud.
+fn plan_remote_deletes(
+    notes_dir: &Path,
+    cache: &SyncCache,
+    tombstones: &std::collections::BTreeSet<String>,
+) -> (Vec<RemoteDeletePlan>, Vec<String>) {
+    let mut plans = Vec::new();
+    let mut settled = Vec::new();
+    for name in tombstones {
+        if notes_dir.join(name).exists() || cache.conflicts.contains_key(name) {
+            settled.push(name.clone());
+            continue;
+        }
+        match cache.files.get(name) {
+            Some(entry) => plans.push(RemoteDeletePlan { name: name.clone(), id: entry.id.clone(), etag: entry.etag.clone() }),
+            None => settled.push(name.clone()),
+        }
+    }
+    (plans, settled)
 }
 
 /// The note a delta "deleted" entry refers to: its own name when OneDrive
@@ -1509,6 +1618,85 @@ mod tests {
             RemoteDeleteAction::DeleteLocal
         );
         assert!(!cache.files.contains_key(NOTE));
+    }
+
+    // --- deleting an emptied note in the cloud too --------------------------
+
+    fn tombs(names: &[&str]) -> std::collections::BTreeSet<String> {
+        names.iter().map(|n| n.to_string()).collect()
+    }
+
+    #[test]
+    fn a_synced_note_deleted_locally_is_planned_for_a_cloud_delete_with_its_last_etag() {
+        let (notes, _data) = dirs();
+        let cache = cache_with(NOTE, "", "e5"); // file is absent locally
+        let (plans, settled) = plan_remote_deletes(notes.path(), &cache, &tombs(&[NOTE]));
+        assert!(settled.is_empty());
+        assert_eq!(plans.len(), 1);
+        assert_eq!((plans[0].name.as_str(), plans[0].id.as_str(), plans[0].etag.as_str()), (NOTE, "id-1", "e5"));
+    }
+
+    #[test]
+    fn a_note_that_is_back_on_disk_is_not_deleted_from_the_cloud() {
+        // The pull restored a newer cloud version, or the note was recreated.
+        let (notes, _data) = dirs();
+        fs::write(notes.path().join(NOTE), "back again").unwrap();
+        let cache = cache_with(NOTE, "old", "e5");
+        let (plans, settled) = plan_remote_deletes(notes.path(), &cache, &tombs(&[NOTE]));
+        assert!(plans.is_empty());
+        assert_eq!(settled, vec![NOTE.to_string()]);
+    }
+
+    #[test]
+    fn a_never_synced_or_conflicted_note_needs_no_cloud_delete() {
+        let (notes, data) = dirs();
+        let empty = SyncCache::default();
+        let (plans, settled) = plan_remote_deletes(notes.path(), &empty, &tombs(&[NOTE]));
+        assert!(plans.is_empty());
+        assert_eq!(settled, vec![NOTE.to_string()]);
+
+        let mut held = SyncCache::default();
+        fs::write(notes.path().join("2026-01-05.txt"), "phone").unwrap();
+        apply(notes.path(), data.path(), "e1", "cloud", &mut held); // held conflict on NOTE? (different name)
+        held.conflicts.insert(
+            NOTE.to_string(),
+            PendingConflict { remote_content: "c".into(), remote_id: "i".into(), remote_etag: "e".into() },
+        );
+        held.files.insert(NOTE.to_string(), FileCacheEntry { id: "i".into(), etag: "e".into(), local_hash: "h".into() });
+        let (plans, settled) = plan_remote_deletes(notes.path(), &held, &tombs(&[NOTE]));
+        assert!(plans.is_empty());
+        assert_eq!(settled, vec![NOTE.to_string()]);
+    }
+
+    #[test]
+    fn deletions_are_only_remembered_when_onedrive_is_set_up_and_only_for_notes() {
+        let data = tempfile::tempdir().unwrap();
+        let mgr = OneDriveManager::new();
+
+        mgr.record_local_delete(data.path(), NOTE); // no folder configured yet
+        assert!(read_tombstones(data.path()).is_empty());
+
+        mgr.set_folder(data.path(), &OneDriveFolderConfig { folder_id: "f".into(), folder_path: "/Notes".into() })
+            .unwrap();
+        mgr.record_local_delete(data.path(), NOTE);
+        mgr.record_local_delete(data.path(), "notes.md"); // not a synced file
+        assert_eq!(read_tombstones(data.path()), tombs(&[NOTE]));
+
+        mgr.record_local_delete(data.path(), "2026-01-06.txt");
+        clear_tombstones(data.path(), &[NOTE.to_string()]);
+        assert_eq!(read_tombstones(data.path()), tombs(&["2026-01-06.txt"]));
+    }
+
+    #[test]
+    fn a_deletion_recorded_during_a_sync_survives_the_sync_clearing_its_own() {
+        let data = tempfile::tempdir().unwrap();
+        let mgr = OneDriveManager::new();
+        mgr.set_folder(data.path(), &OneDriveFolderConfig { folder_id: "f".into(), folder_path: "/N".into() }).unwrap();
+        mgr.record_local_delete(data.path(), NOTE);
+        let seen_by_sync = read_tombstones(data.path());
+        mgr.record_local_delete(data.path(), "2026-01-07.txt"); // arrives mid-sync
+        clear_tombstones(data.path(), &seen_by_sync.into_iter().collect::<Vec<_>>());
+        assert_eq!(read_tombstones(data.path()), tombs(&["2026-01-07.txt"]));
     }
 
     #[test]

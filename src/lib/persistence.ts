@@ -252,7 +252,12 @@ export function writeNoteAndInvalidateCache(filename: string, content: string): 
 export function deleteNoteAndInvalidateCache(filename: string): void {
   const hasOpenTab = get(tabs).some((t) => !t.isScratchpad && t.filename === filename);
   if (!hasOpenTab) diskNotesCacheRaw = null;
-  api.deleteNote(filename).catch(() => {});
+  // With OneDrive sync on, Rust has just queued the cloud copy for deletion;
+  // a sync soon after carries it out.
+  api
+    .deleteNote(filename)
+    .then(() => scheduleCloudPush())
+    .catch(() => {});
 }
 
 /** #46: a tab is about to close with content that may not yet be reflected

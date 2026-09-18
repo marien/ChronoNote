@@ -106,8 +106,17 @@ fn write_note(
 }
 
 #[tauri::command]
-fn delete_note(app: AppHandle, filename: String) -> Result<(), String> {
-    storage::delete_note(&app, &filename)
+fn delete_note(
+    app: AppHandle,
+    mgr: tauri::State<'_, std::sync::Arc<onedrive::sync::OneDriveManager>>,
+    filename: String,
+) -> Result<(), String> {
+    storage::delete_note(&app, &filename)?;
+    // With OneDrive sync on, the cloud copy of an emptied note goes too.
+    if let Ok(data_dir) = app.path().app_data_dir() {
+        mgr.record_local_delete(&data_dir, &filename);
+    }
+    Ok(())
 }
 
 #[tauri::command]
