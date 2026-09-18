@@ -24,6 +24,7 @@ import {
   cancelScheduledSave,
   deleteNoteAndInvalidateCache,
   flushSave,
+  flushScratchpadDrafts,
   noteClosingWithContent,
   writeNoteAndInvalidateCache,
 } from "./persistence";
@@ -175,9 +176,11 @@ export function closeTab(tabId: string) {
   if (remaining.length === 0) {
     tabs.set([]);
     createScratchpad();
+    flushScratchpadDrafts();
     return;
   }
   tabs.set(remaining);
+  flushScratchpadDrafts();
   if (wasActive) {
     const sortedAfter = sortedTabsForDisplay(remaining);
     const nextIdx = Math.max(0, Math.min(sortedIdx - 1, sortedAfter.length - 1));

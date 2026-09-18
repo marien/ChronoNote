@@ -22,6 +22,9 @@ import {
   markTabClean,
   modal,
   notesDir,
+  oneDriveAccount,
+  oneDriveFolder,
+  oneDriveSyncStatus,
   readableLineLength,
   recentNotesDirs,
   scratchpadGateContext,
@@ -294,6 +297,26 @@ export async function restoreOrBootstrapTabs() {
     restored.push(todayTab);
     cleanHashes.push([todayId, todayRead.metadata.contentHash]);
 
+    // Restore preserved scratchpad drafts (e.g. mobile process termination survival)
+    try {
+      const drafts = await api.loadScratchpadDrafts();
+      if (drafts && typeof drafts === "object") {
+        for (const [name, draftContent] of Object.entries(drafts)) {
+          if (typeof draftContent === "string" && draftContent.trim().length > 0) {
+            const scratchId = `tab-${Date.now()}-${name}`;
+            restored.push({
+              id: scratchId,
+              filename: name,
+              isScratchpad: true,
+              content: draftContent,
+            });
+          }
+        }
+      }
+    } catch {
+      // Backend may not support scratchpad draft persistence (e.g. demo mock)
+    }
+
     tabs.set(restored);
     for (const [id, hash] of cleanHashes) markTabClean(id, hash);
     // #23: on the first launch of a new day (and the very first launch
@@ -400,6 +423,55 @@ export async function initApp() {
   // (a status-bar message), and only the user's own click ever downloads.
   // Meaningless in the web app (see AboutModal.svelte's same gate).
   if (cfg.autoCheckUpdates && get(backendKind) !== "web") void checkForUpdatesOnLaunch();
+  void initOneDriveSync();
+}
+
+let oneDriveSyncWired = false;
+let lastAutoSyncTime = 0;
+
+export async function initOneDriveSync() {
+  if (get(backendKind) !== "android") return;
+  if (oneDriveSyncWired) return;
+  oneDriveSyncWired = true;
+
+  try {
+    const account = await api.oneDriveGetAccount();
+    if (account) {
+      oneDriveAccount.set(account);
+      const folder = await api.oneDriveGetFolder();
+      if (folder) oneDriveFolder.set(folder);
+      void api.oneDriveSyncNow().catch(() => {});
+    }
+  } catch {
+    // Fail silently
+  }
+
+  // Periodic status polling (every 6 seconds)
+  setInterval(async () => {
+    if (get(oneDriveAccount)) {
+      try {
+        const status = await api.oneDriveGetSyncStatus();
+        oneDriveSyncStatus.set(status);
+      } catch {}
+    }
+  }, 6000);
+
+  const triggerResumeSync = () => {
+    if (!get(oneDriveAccount)) return;
+    const now = Date.now();
+    if (now - lastAutoSyncTime < 15000) return;
+    lastAutoSyncTime = now;
+    void api.oneDriveSyncNow().catch(() => {});
+  };
+
+  if (typeof document !== "undefined") {
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "visible") triggerResumeSync();
+    });
+  }
+  if (typeof window !== "undefined") {
+    window.addEventListener("focus", triggerResumeSync);
+  }
 }
 
 /** Tracks whether the OS window is maximized or fullscreen, so the top bar

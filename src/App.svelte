@@ -2,12 +2,14 @@
   import { onMount } from "svelte";
   import { get } from "svelte/store";
   import * as controller from "./lib/controller";
-  import { activeTabId, editorApi, findOpen, modal, scratchpadGateContext, tabs } from "./lib/controller";
+  import { activeTabId, backendKind, editorApi, findOpen, isMobile, modal, mobileTabDrawerOpen, scratchpadGateContext, tabs } from "./lib/controller";
   import { matchesShortcut } from "./lib/shortcuts";
   import TopBar from "./lib/components/TopBar.svelte";
   import StatusBar from "./lib/components/StatusBar.svelte";
   import EditorPane from "./lib/components/EditorPane.svelte";
   import FindBar from "./lib/components/FindBar.svelte";
+  import MobileAccessoryBar from "./lib/components/mobile/MobileAccessoryBar.svelte";
+  import MobileTabDrawer from "./lib/components/mobile/MobileTabDrawer.svelte";
   import DatePickerModal from "./lib/components/modals/DatePickerModal.svelte";
   import ActionDrawerModal from "./lib/components/modals/ActionDrawerModal.svelte";
   import HistoryModal from "./lib/components/modals/HistoryModal.svelte";
@@ -120,8 +122,23 @@
         }
       }
     }
+    const mediaQuery = window.matchMedia("(max-width: 680px), (pointer: coarse)");
+    const updateMobile = () => {
+      const isAndroidEnv = get(backendKind) === "android" || /android/i.test(navigator.userAgent);
+      isMobile.set(isAndroidEnv || mediaQuery.matches || window.innerWidth < 680);
+    };
+    updateMobile();
+    mediaQuery.addEventListener("change", updateMobile);
+    window.addEventListener("resize", updateMobile);
+    window.addEventListener("orientationchange", updateMobile);
+
     window.addEventListener("keydown", onKeydown);
-    return () => window.removeEventListener("keydown", onKeydown);
+    return () => {
+      window.removeEventListener("keydown", onKeydown);
+      mediaQuery.removeEventListener("change", updateMobile);
+      window.removeEventListener("resize", updateMobile);
+      window.removeEventListener("orientationchange", updateMobile);
+    };
   });
 
   $: activeTab = $tabs.find((t) => t.id === $activeTabId);
@@ -133,11 +150,44 @@
     editorApi?.find.clear();
     findOpen.set(false);
   }
+
+  let touchStartX = 0;
+  let touchStartY = 0;
+  let touchStartTime = 0;
+
+  function handleTouchStart(e: TouchEvent) {
+    if (!$isMobile || e.touches.length !== 1) return;
+    touchStartX = e.touches[0].clientX;
+    touchStartY = e.touches[0].clientY;
+    touchStartTime = Date.now();
+  }
+
+  function handleTouchEnd(e: TouchEvent) {
+    if (!$isMobile || e.changedTouches.length !== 1) return;
+    const dx = e.changedTouches[0].clientX - touchStartX;
+    const dy = e.changedTouches[0].clientY - touchStartY;
+    const dt = Date.now() - touchStartTime;
+
+    // Fast horizontal swipe: > 60px, primarily horizontal (1.6x vertical), < 450ms
+    if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.6 && dt < 450) {
+      if (dx < 0) {
+        controller.cycleTab(1);
+      } else {
+        controller.cycleTab(-1);
+      }
+    }
+  }
 </script>
 
 {#if ready}
   <TopBar />
-  <div id="editor-container">
+  <div
+    id="editor-container"
+    role="region"
+    aria-label="Editor notes area"
+    on:touchstart={handleTouchStart}
+    on:touchend={handleTouchEnd}
+  >
     {#if activeTab}
       {#key activeTab.id}
         <EditorPane content={activeTab.content} tabId={activeTab.id} />
@@ -147,7 +197,15 @@
       <FindBar />
     {/if}
   </div>
+  {#if $isMobile}
+    <MobileAccessoryBar />
+  {/if}
   <StatusBar />
+
+  {#if $mobileTabDrawerOpen}
+    <MobileTabDrawer />
+  {/if}
+
 
   {#if $modal === "date"}
     <DatePickerModal />

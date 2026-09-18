@@ -159,3 +159,52 @@ export function readAgendaAfter(afterDate: string): Promise<[string, string][]> 
 export function agendaFileExists(): Promise<boolean> {
   return invoke("agenda_file_exists", {});
 }
+
+export function oneDriveLogin(): Promise<{ success: boolean; account?: { email: string; displayName: string }; error?: string }> {
+  return invoke("onedrive_login", {});
+}
+
+export function oneDriveLogout(): Promise<void> {
+  return invoke("onedrive_logout", {});
+}
+
+export function oneDriveGetAccount(): Promise<{ email: string; displayName: string } | null> {
+  return invoke("onedrive_get_account", {});
+}
+
+export function oneDriveListFolders(parentId?: string | null): Promise<Array<{ id: string; name: string }>> {
+  return invoke("onedrive_list_folders", { parentId: parentId ?? null });
+}
+
+export function oneDriveCreateFolder(name: string, parentId?: string | null): Promise<{ id: string; name: string }> {
+  return invoke("onedrive_create_folder", { parentId: parentId ?? null, name });
+}
+
+export function oneDriveSetFolder(folderId: string, folderPath: string): Promise<void> {
+  return invoke("onedrive_set_folder", { folderId, folderPath });
+}
+
+export function oneDriveGetFolder(): Promise<{ folderId: string; folderPath: string } | null> {
+  return invoke("onedrive_get_folder", {});
+}
+
+export function oneDriveExchangeCode(code: string): Promise<{ success: boolean; account?: { email: string; displayName: string }; error?: string }> {
+  return invoke("onedrive_exchange_code", { code });
+}
+
+export function oneDriveSyncNow(): Promise<{ success: boolean; message?: string }> {
+  return invoke("onedrive_sync_now", {});
+}
+
+export function oneDriveGetSyncStatus(): Promise<"idle" | "syncing" | "offline" | "error"> {
+  return invoke("onedrive_get_sync_status", {});
+}
+
+export function saveScratchpadDrafts(drafts: Record<string, string>): Promise<void> {
+  return invoke("save_scratchpad_drafts", { drafts });
+}
+
+export function loadScratchpadDrafts(): Promise<Record<string, string>> {
+  return invoke("load_scratchpad_drafts", {});
+}
+

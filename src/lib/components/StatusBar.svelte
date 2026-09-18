@@ -5,6 +5,9 @@
     folderNameFromPath,
     justUpdatedToVersion,
     notesDir,
+    oneDriveAccount,
+    oneDriveFolder,
+    oneDriveSyncStatus,
     statusCounts,
     statusPos,
     statusSelection,
@@ -32,7 +35,25 @@
 
 <div id="status-bar">
   <div class="status-zone status-left">
-    {#if folderName}
+    {#if $backendKind === "android"}
+      <button
+        id="stat-cloud"
+        class="status-folder-btn"
+        title={$oneDriveAccount ? `OneDrive: ${$oneDriveFolder?.folderPath ?? "/"} (${$oneDriveSyncStatus})` : "Connect OneDrive in Settings"}
+        aria-label="OneDrive cloud sync"
+        on:click={controller.openSettingsOnNotesFolder}
+      >
+        <Icon name="cloud" size={12} />
+        <span class="stat-tier0 status-folder-name">
+          {#if $oneDriveAccount}
+            {$oneDriveSyncStatus === "syncing" ? "Syncing…" : $oneDriveSyncStatus === "error" ? "Sync error" : $oneDriveSyncStatus === "offline" ? "Offline" : ($oneDriveFolder?.folderPath?.split("/").filter(Boolean).pop() ?? "Notes")}
+          {:else}
+            OneDrive
+          {/if}
+        </span>
+      </button>
+      <span class="status-sep stat-tier0">·</span>
+    {:else if folderName}
       <button
         id="stat-folder"
         class="status-folder-btn"

@@ -97,3 +97,20 @@ That rewrites `src-tauri/icons/{32x32,128x128,128x128@2x}.png` and `icon.ico`.
 If a neutral-tile / in-app themed variant is wanted too, the geometry is in
 `icon-proposals.html` (concept A, grayscale + colour cells) — that file
 documents the *pre-0.7* mark and is kept for history, not current.
+
+## Web app
+
+**[`webapp-roadmap.md`](webapp-roadmap.md)** — pitched 2026-09-12: a browser-storage
+tier using IndexedDB as the third backend target (`WebBackend`, `main-webapp.ts`).
+Allows testing and using ChronoNote directly from a browser without installation,
+with manual export/import to bridge to the desktop app. Shipped as part of v0.8.0.
+
+## Android app & OneDrive sync
+
+**[`android-onedrive-roadmap.md`](android-onedrive-roadmap.md)** — pitched 2026-09-17:
+the fourth target, bringing the same Svelte 5 + CodeMirror 6 frontend to Android via
+Tauri 2 Mobile. Uses Microsoft Graph API for offline-first OneDrive cloud sync with
+SHA-256 CAS conflict protection, paired with mobile touch ergonomics (Mobile Accessory Bar,
+expanded 40px touch targets, scratchpad draft persistence, and a mobile tab drawer).
+Includes multi-agent architectural invariants and contributor guidelines.
+

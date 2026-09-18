@@ -111,6 +111,14 @@ fn config_path(app: &AppHandle) -> Result<PathBuf, String> {
     Ok(dir.join("config.json"))
 }
 
+const SCRATCHPAD_DRAFTS_FILENAME: &str = ".scratchpads-drafts.json";
+
+fn scratchpad_drafts_path(app: &AppHandle) -> Result<PathBuf, String> {
+    let dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
+    fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
+    Ok(dir.join(SCRATCHPAD_DRAFTS_FILENAME))
+}
+
 fn default_notes_dir(app: &AppHandle) -> Result<PathBuf, String> {
     let doc_dir = app.path().document_dir().map_err(|e| e.to_string())?;
     Ok(doc_dir.join("Notes"))
@@ -653,6 +661,33 @@ fn write_tab_session_at(root: &Path, session: &TabSession) -> Result<(), String>
     atomic_write(&root.join(SESSION_FILENAME), raw.as_bytes()).map_err(|e| e.to_string())
 }
 
+fn read_scratchpad_drafts_at(
+    path: &Path,
+) -> Result<std::collections::HashMap<String, String>, String> {
+    if !path.exists() {
+        return Ok(std::collections::HashMap::new());
+    }
+    let raw = fs::read_to_string(path).map_err(|e| e.to_string())?;
+    match serde_json::from_str(&raw) {
+        Ok(drafts) => Ok(drafts),
+        Err(_) => {
+            quarantine_corrupt_file(path);
+            Ok(std::collections::HashMap::new())
+        }
+    }
+}
+
+fn write_scratchpad_drafts_at(
+    path: &Path,
+    drafts: &std::collections::HashMap<String, String>,
+) -> Result<(), String> {
+    if let Some(parent) = path.parent() {
+        fs::create_dir_all(parent).map_err(|e| e.to_string())?;
+    }
+    let raw = serde_json::to_string_pretty(drafts).map_err(|e| e.to_string())?;
+    atomic_write(path, raw.as_bytes()).map_err(|e| e.to_string())
+}
+
 // --- Public, Tauri-command-facing functions --------------------------------
 // Each just resolves the real path via `AppHandle`, then delegates to the
 // path-parameterized core above. Behavior is unchanged from before this was
@@ -722,6 +757,19 @@ pub fn import_notes_bundle(
     mode: ImportMode,
 ) -> Result<ImportResult, String> {
     import_notes_bundle_at(&notes_root(app)?, notes, mode)
+}
+
+pub fn load_scratchpad_drafts(
+    app: &AppHandle,
+) -> Result<std::collections::HashMap<String, String>, String> {
+    read_scratchpad_drafts_at(&scratchpad_drafts_path(app)?)
+}
+
+pub fn save_scratchpad_drafts(
+    app: &AppHandle,
+    drafts: &std::collections::HashMap<String, String>,
+) -> Result<(), String> {
+    write_scratchpad_drafts_at(&scratchpad_drafts_path(app)?, drafts)
 }
 
 // --- TS binding generation (§98) ---------------------------------------
@@ -1438,5 +1486,20 @@ mod tests {
         assert_eq!(result.imported, 1);
         assert_eq!(result.skipped, 2);
         assert_eq!(list_note_files_at(dir.path()).unwrap(), vec!["2026-09-03.txt"]);
+    }
+
+    #[test]
+    fn scratchpad_drafts_roundtrip_and_missing_file_handling() {
+        let dir = tempdir().unwrap();
+        let file = dir.path().join(SCRATCHPAD_DRAFTS_FILENAME);
+        let empty = read_scratchpad_drafts_at(&file).unwrap();
+        assert!(empty.is_empty());
+
+        let mut drafts = HashMap::new();
+        drafts.insert("scratchpad-1".to_string(), "hello mobile".to_string());
+        write_scratchpad_drafts_at(&file, &drafts).unwrap();
+
+        let loaded = read_scratchpad_drafts_at(&file).unwrap();
+        assert_eq!(loaded.get("scratchpad-1").map(String::as_str), Some("hello mobile"));
     }
 }

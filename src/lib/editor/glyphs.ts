@@ -53,10 +53,10 @@ class InlineGlyphWidget extends WidgetType {
     if (this.cyclable) {
       span.classList.add("glyph-cyclable");
       const [nextChar, nextClass] = glyphForSymbol(CYCLE_ORDER[(CYCLE_ORDER.indexOf(this.symbol) + 1) % 4]);
-      span.title = "Click to cycle state (open → done → deferred → won't-do); hover previews the next state";
       // #34: on hover, morph into the next state's glyph so you can see
-      // what a click will do; revert on leave.
+      // what a click will do; revert on leave. Bypassed on touchscreens.
       span.addEventListener("mouseenter", () => {
+        if (window.matchMedia?.("(pointer: coarse)").matches) return;
         span.textContent = nextChar;
         span.className = `${nextClass} glyph-cyclable glyph-cyclable-preview`;
       });
@@ -64,7 +64,7 @@ class InlineGlyphWidget extends WidgetType {
         span.textContent = this.label;
         span.className = `${this.className} glyph-cyclable`;
       });
-      span.addEventListener("mousedown", (e) => {
+      const handleCycle = (e: Event) => {
         // Don't let the click place the editor cursor or steal focus.
         e.preventDefault();
         const pos = view.posAtDOM(span);
@@ -73,10 +73,13 @@ class InlineGlyphWidget extends WidgetType {
         if (updated !== null && updated !== line.text) {
           view.dispatch({ changes: { from: line.from, to: line.to, insert: updated } });
         }
-      });
+      };
+      span.addEventListener("mousedown", handleCycle);
+      span.addEventListener("touchend", handleCycle);
     }
     return span;
   }
+
 
   // Our own `mousedown` handler above does the work — keep CodeMirror from
   // also treating the click as a cursor placement into the atomic range.

@@ -38,9 +38,12 @@
     calendarSyncEnabled,
     chromeExpanded,
     currentDateISO,
+    isMobile,
+    mobileTabDrawerOpen,
     saveState,
     tabs,
   } from "../controller";
+
   import type { NoteTab } from "../types";
   import Icon from "../icons/Icon.svelte";
   import AppIcon from "./AppIcon.svelte";
@@ -117,6 +120,13 @@
   let clonePromoteEl: HTMLElement;
   let cloneSettingsEl: HTMLElement;
   let moreBtnEl: HTMLElement;
+
+  let windowWidth = typeof window !== "undefined" ? window.innerWidth : 1024;
+  function updateWidth() {
+    windowWidth = typeof window !== "undefined" ? window.innerWidth : 1024;
+  }
+  $: showHorizontalTabs = windowWidth >= 600;
+  $: showOpenTabsBtn = !showHorizontalTabs || $isMobile || isOverflowing;
 
   $: activeTab = $tabs.find((t) => t.id === $activeTabId);
   // The button itself only ever appears once turned on in Settings — an
@@ -446,23 +456,6 @@
     }
   }
 
-  /** §52: once overflowing, scrolling past an edge wraps to the other end
-   * — the same cyclic behavior `Ctrl/Cmd+Tab`/`Ctrl/Cmd+Shift+Tab` already has for
-   * switching tabs, just applied to scroll position. */
-  function scrollTabBar(direction: 1 | -1) {
-    if (!tabBarEl) return;
-    const maxScroll = tabBarEl.scrollWidth - tabBarEl.clientWidth;
-    const atLeftEdge = tabBarEl.scrollLeft <= 0;
-    const atRightEdge = tabBarEl.scrollLeft >= maxScroll - 1;
-    if (direction === -1 && atLeftEdge) {
-      tabBarEl.scrollTo({ left: maxScroll, behavior: "smooth" });
-    } else if (direction === 1 && atRightEdge) {
-      tabBarEl.scrollTo({ left: 0, behavior: "smooth" });
-    } else {
-      tabBarEl.scrollBy({ left: direction * 160, behavior: "smooth" });
-    }
-  }
-
   /** §48: switching tabs (keyboard, Date picker, Search, etc.) can move
    * the active tab off-screen with nothing but the (now-invisible)
    * highlight to show it happened — scroll it into view whenever it
@@ -681,6 +674,8 @@
   });
 </script>
 
+<svelte:window on:resize={updateWidth} on:orientationchange={updateWidth} />
+
 <div
   id="top-bar"
   bind:this={topBarEl}
@@ -689,65 +684,71 @@
   {#if isMergedTitlebar}
     <span class="app-icon" aria-hidden="true"><AppIcon size={16} /></span>
   {/if}
-  {#if isOverflowing}
-    <button class="icon-btn tab-scroll-btn" aria-label="Scroll tabs left" on:click={() => scrollTabBar(-1)}>
-      <Icon name="chevron-left" size={14} />
-    </button>
-  {/if}
-  <div
-    id="tab-bar"
-    bind:this={tabBarEl}
-    data-tauri-drag-region={isMergedTitlebar ? true : undefined}
-  >
-    {#each displayTabs as tab, i (tab.id)}
-      {#if i > 0 && tab.isScratchpad && !displayTabs[i - 1].isScratchpad}
-        <!-- §103: hairline between the daily-note group and the scratchpad group -->
-        <div class="tab-group-divider" aria-hidden="true"></div>
-      {/if}
-      <div
-        class="tab {tab.id === $activeTabId ? 'active' : ''} {tab.isScratchpad
-          ? 'scratch'
-          : 'daily'} {tabDateClass(tab, $currentDateISO)}"
-        role="tab"
-        tabindex="0"
-        data-tab-id={tab.id}
-        aria-selected={tab.id === $activeTabId}
-        on:click={() => controller.switchTab(tab.id)}
-        on:mousedown={(e) => {
-          // Middle-click closes the tab (and suppress the autoscroll cursor).
-          if (e.button === 1) {
-            e.preventDefault();
-            controller.requestTabClose(tab.id);
-          }
-        }}
-        on:keydown={(e) => e.key === "Enter" && controller.switchTab(tab.id)}
+  {#if !showHorizontalTabs}
+    {#if showOpenTabsBtn}
+      <button
+        class="icon-btn mobile-tab-drawer-btn"
+        title="Open tabs list"
+        aria-label="Open tabs list ({$tabs.length} open)"
+        on:click={() => mobileTabDrawerOpen.set(true)}
       >
-        <span class="tab-icon" aria-hidden="true">
-          <Icon name={tab.isScratchpad ? "tab-scratch" : "tab-daily"} size={13} />
-        </span>
-        <span class="tab-label">{tabLabel(tab)}</span>
-        {#if tab.isScratchpad && tab.content.trim() !== ""}
-          <span class="tab-status-dot mem" title="Kept in memory only (not written to disk)"></span>
-        {:else if tab.id === $activeTabId && $saveState === "error"}
-          <span class="tab-status-dot err" title="The last save of this note failed"></span>
+        <Icon name="tabs" size={16} />
+        <span class="mobile-tab-count">{$tabs.length}</span>
+      </button>
+    {/if}
+    <div class="tab-bar-spacer"></div>
+  {:else}
+    <div
+      id="tab-bar"
+      bind:this={tabBarEl}
+      data-tauri-drag-region={isMergedTitlebar ? true : undefined}
+    >
+      {#each displayTabs as tab, i (tab.id)}
+        {#if i > 0 && tab.isScratchpad && !displayTabs[i - 1].isScratchpad}
+          <!-- §103: hairline between the daily-note group and the scratchpad group -->
+          <div class="tab-group-divider" aria-hidden="true"></div>
         {/if}
-        <span
-          class="tab-close"
-          role="button"
+        <div
+          class="tab {tab.id === $activeTabId ? 'active' : ''} {tab.isScratchpad
+            ? 'scratch'
+            : 'daily'} {tabDateClass(tab, $currentDateISO)}"
+          role="tab"
           tabindex="0"
-          aria-label="Close tab"
-          on:click|stopPropagation={() => controller.requestTabClose(tab.id)}
-          on:keydown|stopPropagation={(e) => e.key === "Enter" && controller.requestTabClose(tab.id)}
+          data-tab-id={tab.id}
+          aria-selected={tab.id === $activeTabId}
+          on:click={() => controller.switchTab(tab.id)}
+          on:mousedown={(e) => {
+            // Middle-click closes the tab (and suppress the autoscroll cursor).
+            if (e.button === 1) {
+              e.preventDefault();
+              controller.requestTabClose(tab.id);
+            }
+          }}
+          on:keydown={(e) => e.key === "Enter" && controller.switchTab(tab.id)}
         >
-          <Icon name="close" size={11} />
-        </span>
-      </div>
-    {/each}
-  </div>
-  {#if isOverflowing}
-    <button class="icon-btn tab-scroll-btn" aria-label="Scroll tabs right" on:click={() => scrollTabBar(1)}>
-      <Icon name="chevron-right" size={14} />
-    </button>
+
+          <span class="tab-icon" aria-hidden="true">
+            <Icon name={tab.isScratchpad ? "tab-scratch" : "tab-daily"} size={13} />
+          </span>
+          <span class="tab-label">{tabLabel(tab)}</span>
+          {#if tab.isScratchpad && tab.content.trim() !== ""}
+            <span class="tab-status-dot mem" title="Kept in memory only (not written to disk)"></span>
+          {:else if tab.id === $activeTabId && $saveState === "error"}
+            <span class="tab-status-dot err" title="The last save of this note failed"></span>
+          {/if}
+          <span
+            class="tab-close"
+            role="button"
+            tabindex="0"
+            aria-label="Close tab"
+            on:click|stopPropagation={() => controller.requestTabClose(tab.id)}
+            on:keydown|stopPropagation={(e) => e.key === "Enter" && controller.requestTabClose(tab.id)}
+          >
+            <Icon name="close" size={11} />
+          </span>
+        </div>
+      {/each}
+    </div>
   {/if}
   {#if isMergedTitlebar}
     <!-- §merged-titlebar: a fixed drag territory that's always present
@@ -766,10 +767,21 @@
     ></div>
   {/if}
   <!-- §53: always visible regardless of tab-bar scroll position — a
-       sibling of the scrollable #tab-bar rather than a child of it (the
-       same reason the scroll arrows themselves live out here). -->
+       sibling of the scrollable #tab-bar rather than a child of it. -->
+  {#if showHorizontalTabs && showOpenTabsBtn}
+    <button
+      class="icon-btn mobile-tab-drawer-btn"
+      title="Open tabs list"
+      aria-label="Open tabs list ({$tabs.length} open)"
+      on:click={() => mobileTabDrawerOpen.set(true)}
+    >
+      <Icon name="tabs" size={16} />
+      <span class="mobile-tab-count">{$tabs.length}</span>
+    </button>
+  {/if}
   <button
     class="icon-btn tab-bar-new-btn"
+
     title="New Scratchpad ({formatCombo(shortcutById('newScratchpad').combos[0])})"
     on:click={controller.createScratchpad}
   >

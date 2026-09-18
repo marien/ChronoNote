@@ -261,6 +261,7 @@ export class MockBackend {
   updateCheck: "none" | "available";
   updateCheckVersion: string;
   agendaJson: string | undefined;
+  scratchpadDrafts: Record<string, string> = {};
 
   /** Every `invoke` call, in order — assert on persistence without
    * scraping the DOM. */
@@ -646,6 +647,26 @@ export class MockBackend {
     // existing-but-invalid file still greys the button *in* rather than
     // out, so its own real error surfaces on click).
     agenda_file_exists: () => this.agendaJson !== undefined,
+    onedrive_login: () => ({ success: true, account: { email: "test@example.com", displayName: "Test User" } }),
+    onedrive_logout: () => {},
+    onedrive_get_account: () => ({ email: "test@example.com", displayName: "Test User" }),
+    onedrive_list_folders: () => [
+      { id: "folder-1", name: "Documents" },
+      { id: "folder-2", name: "Notes" },
+    ],
+    onedrive_create_folder: ({ name }) => ({ id: `folder-${Date.now()}`, name }),
+    onedrive_set_folder: () => {},
+    onedrive_get_folder: () => ({ folderId: "folder-2", folderPath: "/Notes" }),
+    onedrive_exchange_code: () => ({
+      success: true,
+      account: { email: "test@example.com", displayName: "Test User" },
+    }),
+    onedrive_sync_now: () => ({ success: true, message: "Synced" }),
+    onedrive_get_sync_status: () => "idle",
+    save_scratchpad_drafts: ({ drafts }) => {
+      this.scratchpadDrafts = { ...drafts };
+    },
+    load_scratchpad_drafts: () => ({ ...this.scratchpadDrafts }),
   };
 
   private async dispatch(cmd: string, args: Record<string, unknown>): Promise<unknown> {

@@ -47,4 +47,11 @@ export const ICONS = {
   minimize: `<path d="M6 17h12"/>`,
   maximize: `<rect x="6" y="6" width="12" height="12" rx="1"/>`,
   restore: `<path d="M9 6h9v9h-3"/><rect x="6" y="9" width="9" height="9" rx="1"/>`,
+  undo: `<path d="M9 14L4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5v1"/>`,
+  redo: `<path d="M15 14l5-5-5-5"/><path d="M20 9H9.5A5.5 5.5 0 0 0 4 14.5v1"/>`,
+  indent: `<path d="M4 6h16M4 12h10M4 18h16M17 9l3 3-3 3"/>`,
+  dedent: `<path d="M4 6h16M10 12h10M4 18h16M7 9l-3 3 3 3"/>`,
+  cloud: `<path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/>`,
+  tabs: `<rect x="4" y="6" width="16" height="12" rx="2"/><path d="M9 6v12M4 10h5"/>`,
 } as const;
+

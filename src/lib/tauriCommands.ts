@@ -65,6 +65,53 @@ export interface TauriCommands {
   /** Cheap existence check for the "gray out the sync button" UI state —
    * see `src-tauri/src/agenda.rs::agenda_file_exists`. */
   agenda_file_exists: { args: NoArgs; returns: boolean };
+  /** OneDrive cloud sync commands (RFC 7636 PKCE auth + Graph API). */
+  onedrive_login: {
+    args: NoArgs;
+    returns: { success: boolean; account?: { email: string; displayName: string }; error?: string };
+  };
+  onedrive_logout: { args: NoArgs; returns: void };
+  onedrive_get_account: {
+    args: NoArgs;
+    returns: { email: string; displayName: string } | null;
+  };
+  onedrive_list_folders: {
+    args: { parentId?: string | null };
+    returns: Array<{ id: string; name: string }>;
+  };
+  onedrive_create_folder: {
+    args: { parentId?: string | null; name: string };
+    returns: { id: string; name: string };
+  };
+  onedrive_set_folder: {
+    args: { folderId: string; folderPath: string };
+    returns: void;
+  };
+  onedrive_get_folder: {
+    args: NoArgs;
+    returns: { folderId: string; folderPath: string } | null;
+  };
+  onedrive_exchange_code: {
+    args: { code: string };
+    returns: { success: boolean; account?: { email: string; displayName: string }; error?: string };
+  };
+  onedrive_sync_now: {
+    args: NoArgs;
+    returns: { success: boolean; message?: string };
+  };
+  onedrive_get_sync_status: {
+    args: NoArgs;
+    returns: "idle" | "syncing" | "offline" | "error";
+  };
+  /** Mobile process-death scratchpad draft preservation. */
+  save_scratchpad_drafts: {
+    args: { drafts: Record<string, string> };
+    returns: void;
+  };
+  load_scratchpad_drafts: {
+    args: NoArgs;
+    returns: Record<string, string>;
+  };
 }
 
 export type TauriCommand = keyof TauriCommands;

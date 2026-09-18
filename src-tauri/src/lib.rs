@@ -1,4 +1,5 @@
 mod agenda;
+mod onedrive;
 mod storage;
 
 use tauri::{AppHandle, Manager};
@@ -163,6 +164,117 @@ fn write_tab_session(
     )
 }
 
+#[tauri::command]
+fn save_scratchpad_drafts(
+    app: AppHandle,
+    drafts: std::collections::HashMap<String, String>,
+) -> Result<(), String> {
+    storage::save_scratchpad_drafts(&app, &drafts)
+}
+
+#[tauri::command]
+fn load_scratchpad_drafts(
+    app: AppHandle,
+) -> Result<std::collections::HashMap<String, String>, String> {
+    storage::load_scratchpad_drafts(&app)
+}
+
+#[tauri::command]
+async fn onedrive_login(
+    app: AppHandle,
+    mgr: tauri::State<'_, std::sync::Arc<onedrive::sync::OneDriveManager>>,
+) -> Result<onedrive::OneDriveLoginResult, String> {
+    let data_dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
+    Ok(mgr.login_interactive(&app, &data_dir).await)
+}
+
+#[tauri::command]
+fn onedrive_logout(
+    app: AppHandle,
+    mgr: tauri::State<'_, std::sync::Arc<onedrive::sync::OneDriveManager>>,
+) -> Result<(), String> {
+    let data_dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
+    mgr.logout(&data_dir)
+}
+
+#[tauri::command]
+fn onedrive_get_account(
+    app: AppHandle,
+    mgr: tauri::State<'_, std::sync::Arc<onedrive::sync::OneDriveManager>>,
+) -> Result<Option<onedrive::OneDriveAccount>, String> {
+    let data_dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
+    Ok(mgr.get_account(&data_dir))
+}
+
+#[tauri::command]
+async fn onedrive_list_folders(
+    app: AppHandle,
+    mgr: tauri::State<'_, std::sync::Arc<onedrive::sync::OneDriveManager>>,
+    parent_id: Option<String>,
+) -> Result<Vec<onedrive::OneDriveFolderItem>, String> {
+    let data_dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
+    mgr.list_folders(&data_dir, parent_id.as_deref()).await
+}
+
+#[tauri::command]
+fn onedrive_set_folder(
+    app: AppHandle,
+    mgr: tauri::State<'_, std::sync::Arc<onedrive::sync::OneDriveManager>>,
+    folder_id: String,
+    folder_path: String,
+) -> Result<(), String> {
+    let data_dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
+    mgr.set_folder(&data_dir, &onedrive::OneDriveFolderConfig { folder_id, folder_path })
+}
+
+#[tauri::command]
+fn onedrive_get_folder(
+    app: AppHandle,
+    mgr: tauri::State<'_, std::sync::Arc<onedrive::sync::OneDriveManager>>,
+) -> Result<Option<onedrive::OneDriveFolderConfig>, String> {
+    let data_dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
+    Ok(mgr.get_folder(&data_dir))
+}
+
+#[tauri::command]
+async fn onedrive_sync_now(
+    app: AppHandle,
+    mgr: tauri::State<'_, std::sync::Arc<onedrive::sync::OneDriveManager>>,
+) -> Result<onedrive::OneDriveSyncResult, String> {
+    let data_dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
+    let cfg = storage::load_config(&app)?;
+    let notes_dir = std::path::PathBuf::from(cfg.notes_dir);
+    Ok(mgr.sync_now(&data_dir, &notes_dir).await)
+}
+
+#[tauri::command]
+async fn onedrive_create_folder(
+    app: AppHandle,
+    mgr: tauri::State<'_, std::sync::Arc<onedrive::sync::OneDriveManager>>,
+    parent_id: Option<String>,
+    name: String,
+) -> Result<onedrive::OneDriveFolderItem, String> {
+    let data_dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
+    mgr.create_folder(&data_dir, parent_id.as_deref(), &name).await
+}
+
+#[tauri::command]
+async fn onedrive_exchange_code(
+    app: AppHandle,
+    mgr: tauri::State<'_, std::sync::Arc<onedrive::sync::OneDriveManager>>,
+    code: String,
+) -> Result<onedrive::OneDriveLoginResult, String> {
+    let data_dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
+    Ok(mgr.exchange_code_direct(&data_dir, &code).await)
+}
+
+#[tauri::command]
+fn onedrive_get_sync_status(
+    mgr: tauri::State<'_, std::sync::Arc<onedrive::sync::OneDriveManager>>,
+) -> Result<onedrive::SyncStatus, String> {
+    Ok(mgr.get_status())
+}
+
 /// Window starts hidden (see `tauri.conf.json`) so it can be shown only
 /// once its background already matches the theme it's about to render —
 /// otherwise the OS paints the window's own default (white) canvas for
@@ -201,11 +313,18 @@ fn show_window_without_flash(app: &tauri::App) {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    tauri::Builder::default()
+    let onedrive_mgr = std::sync::Arc::new(onedrive::sync::OneDriveManager::new());
+
+    let builder = tauri::Builder::default()
+        .manage(onedrive_mgr)
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
-        .plugin(tauri_plugin_updater::Builder::new().build())
-        .plugin(tauri_plugin_process::init())
+        .plugin(tauri_plugin_process::init());
+
+    #[cfg(desktop)]
+    let builder = builder.plugin(tauri_plugin_updater::Builder::new().build());
+
+    builder
         .setup(|app| {
             show_window_without_flash(app);
             Ok(())
@@ -234,7 +353,19 @@ pub fn run() {
             path_exists,
             agenda::read_agenda_for_date,
             agenda::read_agenda_after,
-            agenda::agenda_file_exists
+            agenda::agenda_file_exists,
+            save_scratchpad_drafts,
+            load_scratchpad_drafts,
+            onedrive_login,
+            onedrive_logout,
+            onedrive_get_account,
+            onedrive_list_folders,
+            onedrive_create_folder,
+            onedrive_set_folder,
+            onedrive_get_folder,
+            onedrive_sync_now,
+            onedrive_get_sync_status,
+            onedrive_exchange_code
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

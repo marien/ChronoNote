@@ -9,7 +9,11 @@
     backendKind,
     calendarSyncEnabled,
     colorMode,
+    isMobile,
     notesDir,
+    oneDriveAccount,
+    oneDriveFolder,
+    oneDriveSyncStatus,
     readableLineLength,
     recentNotesDirs,
     settingsInitialTab,
@@ -20,24 +24,24 @@
     updateStatus,
     wordWrap,
   } from "../../controller";
+
   import * as api from "../../tauriApi";
   import { closeOnOutsideClick } from "../../actions/closeOnOutsideClick";
   import Icon from "../../icons/Icon.svelte";
   import Segmented from "../Segmented.svelte";
   import type { ColorMode, ThemeMode } from "../../types";
   import { ExportBundleError, type ExportBundle } from "../../exportImport";
+  import OneDriveFolderPickerModal from "./OneDriveFolderPickerModal.svelte";
 
   // Three tabs group what used to be one long scrolling list: Appearance/
   // Editor are the "how it looks and feels while typing" settings; Calendar/
   // Notes Location/Data are the "where things come from and go" settings;
-  // Updates stands alone since it's neither. Not persisted across opens —
-  // always starts on the first tab, same as any other freshly-opened modal.
-  // "Updates" is dropped from the list entirely on the web app (nothing
-  // inside it applies there — same gate the section itself already used).
+  // Updates stands alone since it's neither. On mobile, shorter labels ensure
+  // every tab fits without truncation.
   $: settingsTabs = [
-    { value: "appearance", label: "Appearance & Editor" },
-    { value: "calendar", label: "Calendar, Notes & Data" },
-    ...($backendKind !== "web" ? [{ value: "updates", label: "Updates" }] : []),
+    { value: "appearance", label: $isMobile ? "Appearance" : "Appearance & Editor" },
+    { value: "calendar", label: $isMobile ? "Notes & Sync" : "Calendar, Notes & Data" },
+    ...($backendKind === "desktop" ? [{ value: "updates", label: "Updates" }] : []),
   ];
   // #71: the status bar's folder icon/name opens Settings landed
   // directly on this tab (`openSettingsOnNotesFolder`, `menu.ts`) —
@@ -57,7 +61,8 @@
   let visibleRecentDirs: string[] = [];
   let browseButtonEl: HTMLButtonElement;
   onMount(async () => {
-    if ($backendKind === "web") return; // no directory concept — see the Data section below
+    if ($backendKind === "web" || $backendKind === "android") return; // no local directory browsing
+
     const candidates = $recentNotesDirs.filter((p) => p !== $notesDir);
     const exists = await Promise.all(candidates.map((p) => api.pathExists(p)));
     visibleRecentDirs = candidates.filter((_, i) => exists[i]);
@@ -93,6 +98,69 @@
   let importMode: "merge" | "replace" = "merge";
   let importing = false;
   let exporting = false;
+
+  let loggingIn = false;
+  let syncingOneDrive = false;
+
+  let showFolderPicker = false;
+  let showManualAuthInput = false;
+  let manualAuthCode = "";
+  let exchangingCode = false;
+  let authError: string | null = null;
+
+  async function handleOneDriveLogin() {
+    loggingIn = true;
+    authError = null;
+    try {
+      const res = await api.oneDriveLogin();
+      if (res.success && res.account) {
+        oneDriveAccount.set(res.account);
+      } else if (res.error) {
+        authError = res.error;
+        showManualAuthInput = true;
+      }
+    } catch (err) {
+      authError = err instanceof Error ? err.message : String(err);
+      showManualAuthInput = true;
+    } finally {
+      loggingIn = false;
+    }
+  }
+
+  async function handleManualAuthSubmit() {
+    if (!manualAuthCode.trim()) return;
+    exchangingCode = true;
+    authError = null;
+    try {
+      const res = await api.oneDriveExchangeCode(manualAuthCode.trim());
+      if (res.success && res.account) {
+        oneDriveAccount.set(res.account);
+        showManualAuthInput = false;
+        manualAuthCode = "";
+      } else {
+        authError = res.error ?? "Failed to authenticate code.";
+      }
+    } catch (e) {
+      authError = e instanceof Error ? e.message : String(e);
+    } finally {
+      exchangingCode = false;
+    }
+  }
+
+  async function handleOneDriveLogout() {
+    await api.oneDriveLogout();
+    oneDriveAccount.set(null);
+    oneDriveFolder.set(null);
+  }
+
+  async function handleOneDriveSyncNow() {
+    syncingOneDrive = true;
+    try {
+      await api.oneDriveSyncNow();
+    } finally {
+      syncingOneDrive = false;
+    }
+  }
 
   async function handleExport() {
     exporting = true;
@@ -250,29 +318,99 @@
               </div>
             {/if}
           </div>
-          <div>
-            <div class="settings-section-label">Notes Location</div>
-            <div class="settings-dir-row">
-              <div class="settings-dir-path">{$notesDir}</div>
-              <button class="icon-btn" bind:this={browseButtonEl} on:click={controller.pickAndSwitchNotesDirectory}>
-                Browse…
-              </button>
-            </div>
-            <div class="settings-hint">
-              Changing this switches your whole workspace — open tabs close and everything reloads from the new
-              folder. Existing files are not moved.
-            </div>
-            {#if visibleRecentDirs.length > 0}
-              <div class="settings-recent-dirs">
-                {#each visibleRecentDirs as dir (dir)}
-                  <button class="settings-recent-dir" on:click={() => controller.switchToRecentDirectory(dir)}>
-                    {dir}
+          {#if $backendKind === "android"}
+            <div>
+              <div class="settings-section-label">OneDrive Cloud Sync</div>
+              {#if $oneDriveAccount}
+                <div class="settings-hint" style="margin-bottom: 8px;">
+                  Connected as <strong>{$oneDriveAccount.displayName}</strong> ({$oneDriveAccount.email})
+                </div>
+                <div class="settings-dir-row">
+                  <div class="settings-dir-path">{$oneDriveFolder?.folderPath ?? "/Documents/Notes"}</div>
+                  <button class="icon-btn" on:click={() => (showFolderPicker = true)}>
+                    Browse…
                   </button>
-                {/each}
+                </div>
+                <div style="display: flex; gap: 8px; margin-top: 8px;">
+                  <button class="icon-btn" on:click={handleOneDriveSyncNow} disabled={syncingOneDrive}>
+                    {syncingOneDrive ? "Syncing…" : "Sync now"}
+                  </button>
+                  <button class="icon-btn" on:click={handleOneDriveLogout}>Sign out</button>
+                </div>
+              {:else}
+                <div class="settings-hint">
+                  Connect your Microsoft account to use a OneDrive folder as your Notes folder. Notes stay synchronized across all your devices.
+                </div>
+                <div style="margin-top: 8px;">
+                  <button class="icon-btn btn-primary" on:click={handleOneDriveLogin} disabled={loggingIn}>
+                    <Icon name="cloud" size={16} />
+                    <span>{loggingIn ? "Connecting…" : "Connect Microsoft Account"}</span>
+                  </button>
+                </div>
+                <div style="margin-top: 10px;">
+                  {#if showManualAuthInput}
+                    <form on:submit|preventDefault={handleManualAuthSubmit} style="display: flex; flex-direction: column; gap: 6px; margin-top: 6px;">
+                      <div class="settings-hint">
+                        Paste the redirect URL or authorization code from your browser:
+                      </div>
+                      <input
+                        type="text"
+                        class="find-input"
+                        style="width: 100%; height: 32px;"
+                        placeholder="chrononote://auth?code=... or code"
+                        bind:value={manualAuthCode}
+                      />
+                      {#if authError}
+                        <div class="settings-hint" style="color: var(--state-error);">{authError}</div>
+                      {/if}
+                      <div style="display: flex; gap: 8px;">
+                        <button type="submit" class="icon-btn btn-primary" disabled={exchangingCode || !manualAuthCode.trim()}>
+                          {exchangingCode ? "Exchanging…" : "Submit code"}
+                        </button>
+                        <button type="button" class="icon-btn" on:click={() => (showManualAuthInput = false)}>
+                          Cancel
+                        </button>
+                      </div>
+                    </form>
+                  {:else}
+                    <button
+                      type="button"
+                      class="status-link"
+                      style="font-size: 11px; color: var(--muted); cursor: pointer;"
+                      on:click={() => (showManualAuthInput = true)}
+                    >
+                      Enter authorization code manually
+                    </button>
+                  {/if}
+                </div>
+              {/if}
+            </div>
+          {:else}
+            <div>
+              <div class="settings-section-label">Notes Location</div>
+              <div class="settings-dir-row">
+                <div class="settings-dir-path">{$notesDir}</div>
+                <button class="icon-btn" bind:this={browseButtonEl} on:click={controller.pickAndSwitchNotesDirectory}>
+                  Browse…
+                </button>
               </div>
-            {/if}
-          </div>
+              <div class="settings-hint">
+                Changing this switches your whole workspace — open tabs close and everything reloads from the new
+                folder. Existing files are not moved.
+              </div>
+              {#if visibleRecentDirs.length > 0}
+                <div class="settings-recent-dirs">
+                  {#each visibleRecentDirs as dir (dir)}
+                    <button class="settings-recent-dir" on:click={() => controller.switchToRecentDirectory(dir)}>
+                      {dir}
+                    </button>
+                  {/each}
+                </div>
+              {/if}
+            </div>
+          {/if}
         {/if}
+
         {#if $backendKind !== "demo"}
           <div>
             <div class="settings-section-label">Data</div>
@@ -398,3 +536,7 @@
     </div>
   </div>
 </div>
+
+{#if showFolderPicker}
+  <OneDriveFolderPickerModal onClose={() => (showFolderPicker = false)} />
+{/if}

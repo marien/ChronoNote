@@ -331,6 +331,24 @@ export class WebBackend {
     read_agenda_for_date: () => [],
     read_agenda_after: () => [],
     agenda_file_exists: () => false,
+    onedrive_login: () => ({ success: false, error: "OneDrive sync is available in the desktop and mobile apps." }),
+    onedrive_logout: () => {},
+    onedrive_get_account: () => null,
+    onedrive_list_folders: () => [],
+    onedrive_create_folder: ({ name }) => ({ id: `folder-${Date.now()}`, name }),
+    onedrive_set_folder: () => {},
+    onedrive_get_folder: () => null,
+    onedrive_exchange_code: () => ({ success: false, error: "Not supported in web backend" }),
+    onedrive_sync_now: () => ({ success: false, message: "Not supported in web backend" }),
+    onedrive_get_sync_status: () => "offline",
+    save_scratchpad_drafts: async ({ drafts }) => {
+      const db = await this.db();
+      await idbPut(db, STORE_META, "scratchpad_drafts", drafts);
+    },
+    load_scratchpad_drafts: async () => {
+      const db = await this.db();
+      return (await idbGet<Record<string, string>>(db, STORE_META, "scratchpad_drafts")) ?? {};
+    },
   };
 
   /** Erases everything (`notes`, `conflicts`, `config`, `session`) — the

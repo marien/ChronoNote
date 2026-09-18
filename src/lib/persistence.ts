@@ -6,9 +6,11 @@ import { get } from "svelte/store";
 import * as api from "./tauriApi";
 import {
   allNotesCache,
+  backendKind,
   editorApi,
   activeTabId,
   markTabClean,
+  oneDriveAccount,
   saveState,
   showToast,
   tabs,
@@ -50,10 +52,46 @@ export function recomputeSaveState() {
  * window is destroyed. */
 const inFlightWrites = new Set<Promise<unknown>>();
 
+let scratchpadDraftTimer: ReturnType<typeof setTimeout> | null = null;
+
+export function scheduleScratchpadDraftSave() {
+  if (scratchpadDraftTimer) clearTimeout(scratchpadDraftTimer);
+  scratchpadDraftTimer = setTimeout(() => {
+    scratchpadDraftTimer = null;
+    flushScratchpadDrafts();
+  }, 400);
+}
+
+export function flushScratchpadDrafts() {
+  const currentTabs = get(tabs);
+  const drafts: Record<string, string> = {};
+  for (const t of currentTabs) {
+    if (t.isScratchpad && t.content.trim().length > 0) {
+      drafts[t.filename] = t.content;
+    }
+  }
+  api.saveScratchpadDrafts(drafts).catch(() => {});
+}
+
+let cloudPushTimer: ReturnType<typeof setTimeout> | null = null;
+
+export function scheduleCloudPush() {
+  if (get(backendKind) !== "android") return;
+  if (!get(oneDriveAccount)) return;
+  if (cloudPushTimer) clearTimeout(cloudPushTimer);
+  cloudPushTimer = setTimeout(() => {
+    cloudPushTimer = null;
+    api.oneDriveSyncNow().catch(() => {});
+  }, 2000);
+}
+
 /** Queue a disk write for `tab` 400ms out, replacing any pending write
- * for the same tab. Scratchpads never touch disk. */
+ * for the same tab. Scratchpads never touch disk, but save local drafts. */
 export function scheduleSave(tab: NoteTab) {
-  if (tab.isScratchpad) return;
+  if (tab.isScratchpad) {
+    scheduleScratchpadDraftSave();
+    return;
+  }
   pendingSaveTabIds.add(tab.id); // §100: reads as "Saving…" until the write lands
   recomputeSaveState();
   clearTimeout(saveTimers[tab.id]);
@@ -104,6 +142,7 @@ export function cancelScheduledSave(tabId: string) {
  * keystrokes. Never rejects (individual write failures already surface a
  * toast); a quit shouldn't hang on a failing disk. */
 export async function flushAllPendingSaves(): Promise<void> {
+  flushScratchpadDrafts();
   for (const tabId of Object.keys(saveTimers)) flushSave(tabId);
   await Promise.allSettled([...inFlightWrites]);
 }
@@ -253,6 +292,7 @@ function writeNoteRaw(filename: string, content: string): Promise<void> {
       // actually last wrote, not a stale hash.
       const tab = get(tabs).find((t) => !t.isScratchpad && t.filename === filename);
       if (tab) markTabClean(tab.id, meta?.contentHash);
+      scheduleCloudPush();
     },
     (err) => {
       inFlightWrites.delete(p);

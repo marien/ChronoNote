@@ -29,6 +29,18 @@ const apiMock = {
   openExternalUrl: vi.fn(),
   readAgendaForDate: vi.fn(),
   readAgendaAfter: vi.fn(),
+  saveScratchpadDrafts: vi.fn(),
+  loadScratchpadDrafts: vi.fn(),
+  oneDriveLogin: vi.fn(),
+  oneDriveLogout: vi.fn(),
+  oneDriveGetAccount: vi.fn(),
+  oneDriveListFolders: vi.fn(),
+  oneDriveCreateFolder: vi.fn(),
+  oneDriveSetFolder: vi.fn(),
+  oneDriveGetFolder: vi.fn(),
+  oneDriveExchangeCode: vi.fn(),
+  oneDriveSyncNow: vi.fn(),
+  oneDriveGetSyncStatus: vi.fn(),
 };
 
 const NO_META = { exists: false, contentHash: null, sizeBytes: null, modifiedMs: null };
@@ -99,6 +111,9 @@ beforeEach(async () => {
   apiMock.openExternalUrl.mockResolvedValue(undefined);
   apiMock.readAgendaForDate.mockResolvedValue([]);
   apiMock.readAgendaAfter.mockResolvedValue([]);
+  apiMock.saveScratchpadDrafts.mockResolvedValue(undefined);
+  apiMock.loadScratchpadDrafts.mockResolvedValue({});
+  apiMock.oneDriveGetSyncStatus.mockResolvedValue("idle");
   // Off by default here (unlike the real Rust default) so the launch-time
   // update check in `initApp()` stays inert for every test that doesn't
   // explicitly opt in — `updaterMock.check` still resolves `null` as a

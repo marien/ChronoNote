@@ -35,6 +35,12 @@ sha2 = "0.10"
 # from the `#[derive(TS)]` types (§98). Only the derive macro is used at
 # compile time; nothing ts-rs ships in the release binary.
 ts-rs = "12"
+# OneDrive cloud sync (§2.1-2.3): Microsoft Graph REST API + PKCE auth.
+reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "json"] }
+url = "2"
+base64 = "0.22"
+rand = "0.8"
+tokio = { version = "1", features = ["time", "sync"] }
 
 [profile.release]
 panic = "abort"

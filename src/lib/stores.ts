@@ -17,6 +17,7 @@ import type {
   SectionOccurrence,
   ThemeMode,
 } from "./types";
+import { isAndroid } from "./platform";
 
 export type ModalKind =
   | "none"
@@ -139,7 +140,24 @@ export const appVersion = writable<string>("");
  * Location and Updates settings sections and shows the browser-storage
  * status-bar badge; anything other than `"demo"` shows the Data
  * (export/import) section. */
-export const backendKind = writable<"desktop" | "demo" | "web">("desktop");
+export const backendKind = writable<"desktop" | "demo" | "web" | "android">(isAndroid ? "android" : "desktop");
+
+/** Form-factor detection: whether the current viewport or device is
+ * touch/mobile-oriented (< 600px or pointer: coarse). Drives the Mobile
+ * Accessory Bar and compact header with the Tab Drawer. */
+export const isMobile = writable<boolean>(isAndroid);
+
+/** Whether the mobile tab drawer (bottom sheet) is currently open. */
+export const mobileTabDrawerOpen = writable<boolean>(false);
+
+/** Connected Microsoft account info for OneDrive sync. */
+export const oneDriveAccount = writable<{ email: string; displayName: string } | null>(null);
+
+/** Chosen notes folder in OneDrive. */
+export const oneDriveFolder = writable<{ folderId: string; folderPath: string } | null>(null);
+
+/** OneDrive synchronization status. */
+export const oneDriveSyncStatus = writable<"idle" | "syncing" | "offline" | "error">("idle");
 
 /** §update-check: whether ChronoNote silently checks github.com for a
  * newer release on launch. Mirrors `AppConfig.autoCheckUpdates` — on by
@@ -318,7 +336,12 @@ export interface EditorApi {
     prev: () => void;
     clear: () => void;
   };
+  applyToken?: (token: "#" | "v" | ">" | "x" | "-" | "=>" | "!") => void;
+  indent?: (dedent?: boolean) => void;
+  undo?: () => void;
+  redo?: () => void;
 }
+
 
 /** The single live editor's imperative handle, or `null` between mounts.
  * `EditorPane` registers/clears it; everything else reaches the editor

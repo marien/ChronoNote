@@ -244,6 +244,7 @@ html,
 body,
 #app {
   height: 100%;
+  height: 100dvh;
 }
 
 body {
@@ -252,7 +253,8 @@ body {
   color: var(--text);
   display: flex;
   flex-direction: column;
-  height: 100vh;
+  height: 100%;
+  height: 100dvh;
   overflow: hidden;
   user-select: none;
 }
@@ -261,6 +263,9 @@ body {
   display: flex;
   flex-direction: column;
   width: 100%;
+  height: 100%;
+  height: 100dvh;
+  overflow: hidden;
 }
 
 .boot-loading {
@@ -362,15 +367,21 @@ body {
   flex: 1;
   height: 100%;
   /* Tabs sit on the floor of the bar so the active one meets the editor
-     canvas below — the `‹ ›` arrows cover overflow, so the scrollbar
-     itself is hidden (it otherwise ate the 3px the active tab needed to
-     reach the edge). */
+     canvas below — the scrollbar is hidden and tabs scroll smoothly. */
   align-items: flex-end;
   overflow-x: auto;
   scrollbar-width: none;
 }
 #tab-bar::-webkit-scrollbar {
   height: 0;
+}
+.tab-bar-spacer {
+  flex: 1;
+}
+@media (max-width: 599px) {
+  #tab-bar {
+    display: none !important;
+  }
 }
 
 .tab {
@@ -894,6 +905,28 @@ body {
   color: var(--glyph-cancelled-color);
   font-weight: var(--glyph-cancelled-weight);
   opacity: var(--glyph-cancelled-opacity);
+}
+.glyph-cyclable {
+  cursor: pointer;
+  user-select: none;
+}
+@media (pointer: coarse) {
+  .cm-line .glyph-cyclable {
+    overflow: visible !important;
+    position: relative;
+  }
+  .cm-line .glyph-cyclable::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    min-height: 44px;
+    z-index: 5;
+  }
 }
 .glyph-followup {
   color: var(--glyph-followup-color);
@@ -1996,12 +2029,17 @@ kbd {
 .settings-tabs {
   padding: 0 16px;
   flex-shrink: 0;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 .settings-tabs .segmented {
   width: 100%;
 }
 .settings-tabs .segmented-option {
   flex: 1;
+  min-width: 0;
+  padding: 6px 10px;
+  text-align: center;
 }
 .settings-section {
   padding: 16px;
@@ -2151,3 +2189,276 @@ kbd {
 
 /* §102: the floating toast is gone — transient messages now surface in
    the status bar's centre zone (`#stat-message`, styled above). */
+
+/* ==========================================================================
+   Mobile & Touch Ergonomics
+   ========================================================================== */
+
+/* Safe area support for notched phones / navigation bars */
+body {
+  padding-top: env(safe-area-inset-top, 0);
+  padding-bottom: env(safe-area-inset-bottom, 0);
+  padding-left: env(safe-area-inset-left, 0);
+  padding-right: env(safe-area-inset-right, 0);
+}
+
+/* Expanded touch targets for cyclable checklist glyphs */
+@media (pointer: coarse) {
+  .glyph-cyclable {
+    position: relative;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .glyph-cyclable::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 44px;
+    height: 44px;
+    z-index: 1;
+  }
+}
+
+/* Top bar mobile tab drawer button */
+.mobile-tab-drawer-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  background: var(--surface-raised);
+  border: 1px solid var(--edge-strong);
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.mobile-tab-drawer-btn:active {
+  background: var(--surface-hover);
+}
+.mobile-tab-count {
+  font-size: 10px;
+  opacity: 0.85;
+}
+
+/* Mobile Quick Action Accessory Bar (docked above keyboard / status bar) */
+.mobile-accessory-bar {
+  flex-shrink: 0;
+  width: 100%;
+  z-index: 40;
+  background: var(--surface-overlay);
+  border-top: 1px solid var(--edge-strong);
+  padding: 4px 6px;
+  display: flex;
+  align-items: center;
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.2);
+}
+.accessory-scroll {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+  width: 100%;
+}
+.accessory-scroll::-webkit-scrollbar {
+  display: none;
+}
+.accessory-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 36px;
+  height: 36px;
+  padding: 0 6px;
+  background: var(--surface-raised);
+  border: 1px solid var(--edge-strong);
+  border-radius: 6px;
+  color: var(--text);
+  font-family: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  flex-shrink: 0;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+.accessory-btn:active {
+  background: var(--surface-hover);
+  transform: translateY(1px);
+}
+.accessory-btn.token-btn {
+  font-family: var(--font-mono, monospace);
+  font-size: 15px;
+  font-weight: 600;
+}
+.accessory-separator {
+  width: 1px;
+  height: 20px;
+  background: var(--edge-strong);
+  margin: 0 2px;
+  flex-shrink: 0;
+}
+
+/* Mobile Tab Drawer (Modal Card in Overlay) */
+.mobile-drawer-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 300;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(2px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+.mobile-drawer-card {
+  background: var(--surface-overlay);
+  border: 1px solid var(--edge-strong);
+  border-radius: 12px;
+  width: 100%;
+  max-width: 480px;
+  max-height: 85vh;
+  max-height: 85dvh;
+  display: flex;
+  flex-direction: column;
+  padding: 16px;
+  box-shadow: 0 16px 44px rgba(0, 0, 0, 0.5);
+}
+.drawer-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--edge-strong);
+}
+.drawer-title-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.drawer-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+}
+.drawer-count {
+  font-size: 12px;
+  font-weight: 600;
+  background: var(--surface-raised);
+  padding: 2px 6px;
+  border-radius: 10px;
+  color: var(--muted);
+}
+.drawer-close-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background: transparent;
+  border: none;
+  border-radius: 50%;
+  color: var(--muted);
+  cursor: pointer;
+}
+.drawer-close-btn:active {
+  background: var(--surface-raised);
+}
+.drawer-tab-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  overflow-y: auto;
+  max-height: 50vh;
+  max-height: 50dvh;
+  margin-bottom: 14px;
+  padding-right: 2px;
+}
+.drawer-tab-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  min-height: 44px;
+  background: var(--surface-raised);
+  border: 1px solid transparent;
+  border-radius: 8px;
+  color: var(--text);
+  font-size: 13px;
+  cursor: pointer;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+.drawer-tab-item.active {
+  background: var(--selected-bg);
+  color: var(--selected-fg);
+  font-weight: 600;
+}
+.drawer-tab-item:active {
+  opacity: 0.85;
+}
+.drawer-tab-icon {
+  display: flex;
+  align-items: center;
+  opacity: 0.8;
+}
+.drawer-tab-name {
+  flex: 1;
+  font-family: var(--font-mono, monospace);
+  font-size: 13px;
+}
+.drawer-today-tag {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: var(--surface-overlay);
+  color: var(--text);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.drawer-tab-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  background: transparent;
+  border: none;
+  border-radius: 4px;
+  color: var(--muted);
+  cursor: pointer;
+}
+.drawer-tab-close:active {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text);
+}
+.drawer-actions {
+  display: flex;
+  gap: 8px;
+}
+.drawer-action-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px;
+  min-height: 44px;
+  background: var(--surface-raised);
+  border: 1px solid var(--edge-strong);
+  border-radius: 8px;
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+}
+.drawer-action-btn:active {
+  background: var(--surface-hover);
+}
+

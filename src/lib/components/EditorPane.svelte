@@ -3,7 +3,7 @@
   import { get } from "svelte/store";
   import { Compartment, EditorSelection, EditorState, RangeSetBuilder, type StateEffect } from "@codemirror/state";
   import { Decoration, drawSelection, EditorView, keymap, ViewPlugin } from "@codemirror/view";
-  import { defaultKeymap, history, historyField, historyKeymap, indentWithTab, redo } from "@codemirror/commands";
+  import { defaultKeymap, history, historyField, historyKeymap, indentWithTab, redo, undo } from "@codemirror/commands";
   import { indentUnit } from "@codemirror/language";
   import { findNext, findPrevious, search, SearchCursor, SearchQuery, setSearchQuery } from "@codemirror/search";
   import { glyphAtomicRanges, liveGlyphs } from "../editor/glyphs";
@@ -35,6 +35,7 @@
 
   let container: HTMLDivElement;
   let view: EditorView | null = null;
+  let activeTouchLine: number | null = null;
 
   /** §80: soft word-wrap, toggled live from Settings. A CodeMirror
    * compartment so flipping it reconfigures just this one extension in
@@ -478,6 +479,44 @@
         }
       }),
       EditorView.domEventHandlers({
+        pointerdown: (e: PointerEvent, v: EditorView) => {
+          if (!get(controller.isMobile) || e.pointerType === "mouse") return;
+          if ((e.target as HTMLElement)?.closest?.(".glyph-cyclable")) return;
+
+          const pos = v.posAtCoords({ x: e.clientX, y: e.clientY });
+          if (pos === null) return;
+          const lineNum = v.state.doc.lineAt(pos).number;
+
+          if (activeTouchLine === lineNum) {
+            // Second tap on the same line: allow keyboard to open
+            v.contentDOM.setAttribute("inputmode", "text");
+          } else {
+            // First tap on this line: position caret, keep keyboard hidden so bottom buttons are usable
+            activeTouchLine = lineNum;
+            const hadKeyboard = v.contentDOM.getAttribute("inputmode") === "text";
+            v.contentDOM.setAttribute("inputmode", "none");
+            v.dispatch({ selection: { anchor: pos } });
+            if (hadKeyboard) {
+              v.contentDOM.blur();
+              v.contentDOM.focus();
+            }
+          }
+        },
+        pointerup: (_e: PointerEvent, v: EditorView) => {
+          if (!get(controller.isMobile)) return;
+          // After the first tap settles without keyboard, enable text mode so a subsequent second tap opens keyboard
+          if (activeTouchLine !== null) {
+            setTimeout(() => {
+              v.contentDOM.setAttribute("inputmode", "text");
+            }, 50);
+          }
+        },
+        blur: (_e, v) => {
+          if (get(controller.isMobile)) {
+            v.contentDOM.setAttribute("inputmode", "none");
+            activeTouchLine = null;
+          }
+        },
         copy: (_event, v) => {
           const sel = v.state.sliceDoc(v.state.selection.main.from, v.state.selection.main.to);
           controller.recordCopiedAction(sel, controller.getActiveTabId());
@@ -516,6 +555,10 @@
       parent: container,
       scrollTo: saved?.scrollEffect as StateEffect<unknown> | undefined,
     });
+
+    if (get(controller.isMobile)) {
+      view.contentDOM.setAttribute("inputmode", "none");
+    }
 
     view.scrollDOM.addEventListener("scroll", () => {
       if (view) lastScrollEffect = view.scrollSnapshot();
@@ -585,7 +628,14 @@
           toLine: lastLine.number - 1,
         };
       },
-      focus: () => view?.focus(),
+      focus: () => {
+        if (!view) return;
+        const prevMode = view.contentDOM.getAttribute("inputmode");
+        view.focus();
+        if (prevMode === "none") {
+          view.contentDOM.setAttribute("inputmode", "none");
+        }
+      },
       find: {
         setQuery: (q: string) => {
           if (!view) return;
@@ -622,7 +672,80 @@
           findMatch.set({ current: 0, total: 0 });
         },
       },
+      undo: () => {
+        if (view) undo(view);
+      },
+      redo: () => {
+        if (view) redo(view);
+      },
+      indent: (dedent = false) => {
+        if (!view) return;
+        const { from, to } = view.state.selection.main;
+        const firstLine = view.state.doc.lineAt(from);
+        const lastLine = view.state.doc.lineAt(to);
+        const changes = [];
+        for (let l = firstLine.number; l <= lastLine.number; l++) {
+          const line = view.state.doc.line(l);
+          if (dedent) {
+            if (line.text.startsWith("  ")) {
+              changes.push({ from: line.from, to: line.from + 2, insert: "" });
+            } else if (line.text.startsWith(" ")) {
+              changes.push({ from: line.from, to: line.from + 1, insert: "" });
+            }
+          } else {
+            changes.push({ from: line.from, to: line.from, insert: "  " });
+          }
+        }
+        if (changes.length) view.dispatch({ changes, scrollIntoView: true });
+      },
+      applyToken: (token) => {
+        if (!view) return;
+        const { from, to } = view.state.selection.main;
+        const firstLine = view.state.doc.lineAt(from);
+        const lastLine = view.state.doc.lineAt(to);
+        const changes = [];
+        for (let l = firstLine.number; l <= lastLine.number; l++) {
+          const line = view.state.doc.line(l);
+          let updated: string | null = null;
+          if (token === "#" || token === "v" || token === ">" || token === "x") {
+            if (/^\s*[-*!]\s/.test(line.text)) {
+              const indent = line.text.match(/^(\s*)/)?.[1] ?? "";
+              const stripped = line.text.replace(/^(\s*)([#vx>]|[-*]|!)\s/, "");
+              updated = `${indent}${token} ${stripped}`;
+            } else {
+              updated = setActionSymbolTo(line.text, token);
+            }
+          } else if (token === "-") {
+            if (/^\s*[-*]\s/.test(line.text)) {
+              updated = line.text.replace(/^(\s*)[-*]\s/, "$1");
+            } else {
+              const indent = line.text.match(/^(\s*)/)?.[1] ?? "";
+              const stripped = line.text.replace(/^(\s*)([#vx>]|[-*]|!)\s/, "");
+              updated = `${indent}- ${stripped}`;
+            }
+          } else if (token === "!") {
+            if (/^\s*!\s/.test(line.text)) {
+              updated = line.text.replace(/^(\s*)!\s/, "$1");
+            } else {
+              const indent = line.text.match(/^(\s*)/)?.[1] ?? "";
+              const stripped = line.text.replace(/^(\s*)([#vx>]|[-*]|!)\s/, "");
+              updated = `${indent}! ${stripped}`;
+            }
+          } else if (token === "=>") {
+            if (line.text.includes("=> ")) {
+              updated = line.text.replace(/=>\s/, "");
+            } else {
+              updated = `${line.text} => `;
+            }
+          }
+          if (updated !== null && updated !== line.text) {
+            changes.push({ from: line.from, to: line.to, insert: updated });
+          }
+        }
+        if (changes.length) view.dispatch({ changes, scrollIntoView: true });
+      },
     });
+
 
     // The `updateListener` above only fires on a `dispatch()`, not on the
     // initial state a view is constructed with — so it never ran for the

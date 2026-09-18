@@ -31,6 +31,7 @@ src-tauri/icons/icon.icns
 # Machine-specific Cargo target-dir override (OneDrive-sync workaround) —
 # personal to whichever machine needs it; recreate locally if you hit
 # "output path is not a writable directory" (see CLAUDE.local.md).
+.cargo/
 src-tauri/.cargo/config.toml
 
 # Updater signing keypair (§update-check) — the *private* half only; the
