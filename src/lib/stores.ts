@@ -159,6 +159,15 @@ export const oneDriveFolder = writable<{ folderId: string; folderPath: string } 
 /** OneDrive synchronization status. */
 export const oneDriveSyncStatus = writable<"idle" | "syncing" | "offline" | "error">("idle");
 
+/** Android only: true from the moment the system browser opens for a
+ * `chrononote://auth` sign-in until the `onedrive-login-result` event
+ * resolves it (see `boot.ts`'s `initOneDriveSync`) — the real outcome
+ * arrives asynchronously, possibly long after the user switches back to
+ * the app, so this can't just be local state in the Settings modal
+ * (which may not even be open when it resolves). Always stays `false`
+ * on desktop, which already blocks until it has a real result. */
+export const oneDriveConnecting = writable<boolean>(false);
+
 /** §update-check: whether ChronoNote silently checks github.com for a
  * newer release on launch. Mirrors `AppConfig.autoCheckUpdates` — on by
  * default (disclosed + toggleable in Settings). */

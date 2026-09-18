@@ -330,6 +330,45 @@ fn show_window_without_flash(app: &tauri::App) {
     let _ = window.show();
 }
 
+/// Completes the Android OAuth flow when `chrononote://auth?code=...`
+/// arrives — either while the app is already running (`on_open_url`) or
+/// as the reason it just launched, if Android had to restart it from
+/// scratch while the user was off in the browser (`get_current`). Both
+/// route through the exact same `exchange_code_direct` the manual-paste
+/// fallback UI already uses, then emit `onedrive-login-result` so the
+/// frontend — which got `pending: true` back immediately when the user
+/// tapped "Connect" — can pick up the real outcome whenever it arrives.
+/// A no-op on desktop: no scheme is configured there, so neither hook
+/// ever fires.
+fn wire_onedrive_deep_link(app: &AppHandle) {
+    use tauri::Emitter;
+    use tauri_plugin_deep_link::DeepLinkExt;
+
+    fn handle_deep_link_url(app: AppHandle, url: String) {
+        tauri::async_runtime::spawn(async move {
+            let mgr = app.state::<std::sync::Arc<onedrive::sync::OneDriveManager>>();
+            let Ok(data_dir) = app.path().app_data_dir() else {
+                return;
+            };
+            let result = mgr.exchange_code_direct(&data_dir, &url).await;
+            let _ = app.emit("onedrive-login-result", result);
+        });
+    }
+
+    if let Ok(Some(urls)) = app.deep_link().get_current() {
+        if let Some(url) = urls.first() {
+            handle_deep_link_url(app.clone(), url.to_string());
+        }
+    }
+
+    let app_for_listener = app.clone();
+    app.deep_link().on_open_url(move |event| {
+        if let Some(url) = event.urls().first() {
+            handle_deep_link_url(app_for_listener.clone(), url.to_string());
+        }
+    });
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let onedrive_mgr = std::sync::Arc::new(onedrive::sync::OneDriveManager::new());
@@ -338,7 +377,12 @@ pub fn run() {
         .manage(onedrive_mgr)
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
-        .plugin(tauri_plugin_process::init());
+        .plugin(tauri_plugin_process::init())
+        // Android-only in practice — no desktop scheme is configured in
+        // tauri.conf.json, so this is inert there. See onedrive/sync.rs's
+        // Android `login_interactive` for why the OAuth redirect needs a
+        // real deep link instead of desktop's loopback-listener trick.
+        .plugin(tauri_plugin_deep_link::init());
 
     #[cfg(desktop)]
     let builder = builder.plugin(tauri_plugin_updater::Builder::new().build());
@@ -346,6 +390,7 @@ pub fn run() {
     builder
         .setup(|app| {
             show_window_without_flash(app);
+            wire_onedrive_deep_link(app.handle());
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![

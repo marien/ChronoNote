@@ -19,6 +19,19 @@ export interface OneDriveAdvancedConfig {
   tenantIdOverride?: string;
 }
 
+/** Mirrors Rust's `onedrive::OneDriveLoginResult`. On Android, opening
+ * the browser for a `chrononote://auth` sign-in returns immediately with
+ * `pending: true` — `success`/`account`/`error` are meaningless until
+ * the real outcome arrives later via the `onedrive-login-result` Tauri
+ * event (see `boot.ts`'s `initOneDriveSync`). Always `false` on desktop,
+ * which already blocks until it has a real result. */
+export interface OneDriveLoginResult {
+  success: boolean;
+  account?: { email: string; displayName: string };
+  error?: string;
+  pending: boolean;
+}
+
 /** The full Tauri command surface — one entry per `#[tauri::command]` in
  * `src-tauri/src/lib.rs`'s `generate_handler!`. Both the real IPC wrapper
  * (`tauriApi.ts`) and the in-memory mock (`testing/mockBackend.ts`) are
@@ -76,7 +89,7 @@ export interface TauriCommands {
   /** OneDrive cloud sync commands (RFC 7636 PKCE auth + Graph API). */
   onedrive_login: {
     args: NoArgs;
-    returns: { success: boolean; account?: { email: string; displayName: string }; error?: string };
+    returns: OneDriveLoginResult;
   };
   onedrive_logout: { args: NoArgs; returns: void };
   onedrive_get_account: {
@@ -101,7 +114,7 @@ export interface TauriCommands {
   };
   onedrive_exchange_code: {
     args: { code: string };
-    returns: { success: boolean; account?: { email: string; displayName: string }; error?: string };
+    returns: OneDriveLoginResult;
   };
   onedrive_sync_now: {
     args: NoArgs;

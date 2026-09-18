@@ -6,9 +6,11 @@
  * `restoreOrBootstrapTabs` for the workspace re-load on a folder switch. */
 import { get } from "svelte/store";
 import { getCurrentWindow } from "@tauri-apps/api/window";
+import { listen } from "@tauri-apps/api/event";
 import * as api from "./tauriApi";
 import { countActions, countWords } from "./tokens";
 import { todayISO } from "./date";
+import type { OneDriveLoginResult } from "./tauriCommands";
 import {
   activeTabId,
   appVersion,
@@ -23,6 +25,7 @@ import {
   modal,
   notesDir,
   oneDriveAccount,
+  oneDriveConnecting,
   oneDriveFolder,
   oneDriveSyncStatus,
   readableLineLength,
@@ -433,6 +436,26 @@ export async function initOneDriveSync() {
   if (get(backendKind) !== "android") return;
   if (oneDriveSyncWired) return;
   oneDriveSyncWired = true;
+
+  // Completes the deep-link OAuth flow: "Connect Microsoft Account"
+  // returns immediately with `pending: true` once it's opened the
+  // browser (see SettingsModal.svelte's `handleOneDriveLogin`), and the
+  // real outcome arrives here whenever Android delivers the
+  // `chrononote://auth` redirect back to the app — Rust's
+  // `wire_onedrive_deep_link` (lib.rs) does the token exchange and
+  // emits this event. Wired globally, not just while Settings happens
+  // to be open, since the user may well have switched back to the
+  // editor by the time it resolves.
+  void listen<OneDriveLoginResult>("onedrive-login-result", (event) => {
+    oneDriveConnecting.set(false);
+    const result = event.payload;
+    if (result.success && result.account) {
+      oneDriveAccount.set(result.account);
+      showToast("Connected to OneDrive");
+    } else if (result.error) {
+      showToast(`OneDrive sign-in failed: ${result.error}`);
+    }
+  });
 
   try {
     const account = await api.oneDriveGetAccount();

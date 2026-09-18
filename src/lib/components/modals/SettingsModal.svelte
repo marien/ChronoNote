@@ -12,6 +12,7 @@
     isMobile,
     notesDir,
     oneDriveAccount,
+    oneDriveConnecting,
     oneDriveFolder,
     oneDriveSyncStatus,
     readableLineLength,
@@ -147,6 +148,12 @@
       const res = await api.oneDriveLogin();
       if (res.success && res.account) {
         oneDriveAccount.set(res.account);
+      } else if (res.pending) {
+        // Android: the browser is open and the real outcome arrives
+        // later via the onedrive-login-result event (boot.ts) — driven
+        // by the store rather than local state since Settings may well
+        // be closed again before it resolves.
+        oneDriveConnecting.set(true);
       } else if (res.error) {
         authError = res.error;
         showManualAuthInput = true;
@@ -167,6 +174,7 @@
       const res = await api.oneDriveExchangeCode(manualAuthCode.trim());
       if (res.success && res.account) {
         oneDriveAccount.set(res.account);
+        oneDriveConnecting.set(false);
         showManualAuthInput = false;
         manualAuthCode = "";
       } else {
@@ -374,10 +382,15 @@
                   Connect your Microsoft account to use a OneDrive folder as your Notes folder. Notes stay synchronized across all your devices.
                 </div>
                 <div style="margin-top: 8px;">
-                  <button class="icon-btn btn-primary" on:click={handleOneDriveLogin} disabled={loggingIn}>
+                  <button class="icon-btn btn-primary" on:click={handleOneDriveLogin} disabled={loggingIn || $oneDriveConnecting}>
                     <Icon name="cloud" size={16} />
-                    <span>{loggingIn ? "Connecting…" : "Connect Microsoft Account"}</span>
+                    <span>{loggingIn || $oneDriveConnecting ? "Connecting…" : "Connect Microsoft Account"}</span>
                   </button>
+                  {#if $oneDriveConnecting}
+                    <div class="settings-hint" style="margin-top: 6px;">
+                      Waiting for you to finish signing in in your browser…
+                    </div>
+                  {/if}
                 </div>
                 <div style="margin-top: 10px;">
                   {#if showManualAuthInput}

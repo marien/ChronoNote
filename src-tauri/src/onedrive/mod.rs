@@ -19,6 +19,14 @@ pub struct OneDriveLoginResult {
     pub account: Option<OneDriveAccount>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub error: Option<String>,
+    /// Android only: true means the system browser was opened and the
+    /// real outcome will arrive later via the `onedrive-login-result`
+    /// event, once Android delivers the `chrononote://auth` deep link
+    /// back to the app — `success`/`account`/`error` above are all
+    /// meaningless while this is true. Always `false` on desktop, where
+    /// `login_interactive` already blocks until it has a real result.
+    #[serde(default)]
+    pub pending: bool,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]

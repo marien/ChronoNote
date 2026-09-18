@@ -648,7 +648,7 @@ export class MockBackend {
     // existing-but-invalid file still greys the button *in* rather than
     // out, so its own real error surfaces on click).
     agenda_file_exists: () => this.agendaJson !== undefined,
-    onedrive_login: () => ({ success: true, account: { email: "test@example.com", displayName: "Test User" } }),
+    onedrive_login: () => ({ success: true, account: { email: "test@example.com", displayName: "Test User" }, pending: false }),
     onedrive_logout: () => {},
     onedrive_get_account: () => ({ email: "test@example.com", displayName: "Test User" }),
     onedrive_list_folders: () => [
@@ -661,6 +661,7 @@ export class MockBackend {
     onedrive_exchange_code: () => ({
       success: true,
       account: { email: "test@example.com", displayName: "Test User" },
+      pending: false,
     }),
     onedrive_sync_now: () => ({ success: true, message: "Synced" }),
     onedrive_get_sync_status: () => "idle",

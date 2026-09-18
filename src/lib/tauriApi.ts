@@ -11,7 +11,7 @@ import type {
   TabSession,
   ThemeMode,
 } from "./types";
-import type { CommandArgs, CommandReturn, OneDriveAdvancedConfig, TauriCommand } from "./tauriCommands";
+import type { CommandArgs, CommandReturn, OneDriveAdvancedConfig, OneDriveLoginResult, TauriCommand } from "./tauriCommands";
 
 /** Every Rust IPC call goes through this: the command name is constrained
  * to `TauriCommands`, and the arg shape + resolved type are checked
@@ -160,7 +160,7 @@ export function agendaFileExists(): Promise<boolean> {
   return invoke("agenda_file_exists", {});
 }
 
-export function oneDriveLogin(): Promise<{ success: boolean; account?: { email: string; displayName: string }; error?: string }> {
+export function oneDriveLogin(): Promise<OneDriveLoginResult> {
   return invoke("onedrive_login", {});
 }
 
@@ -188,7 +188,7 @@ export function oneDriveGetFolder(): Promise<{ folderId: string; folderPath: str
   return invoke("onedrive_get_folder", {});
 }
 
-export function oneDriveExchangeCode(code: string): Promise<{ success: boolean; account?: { email: string; displayName: string }; error?: string }> {
+export function oneDriveExchangeCode(code: string): Promise<OneDriveLoginResult> {
   return invoke("onedrive_exchange_code", { code });
 }
 
