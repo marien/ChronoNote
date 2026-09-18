@@ -1,5 +1,6 @@
 pub mod auth;
 pub mod client;
+pub mod merge;
 pub mod sync;
 
 use serde::{Deserialize, Serialize};
@@ -49,6 +50,16 @@ pub struct OneDriveSyncResult {
     pub success: bool,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub message: Option<String>,
+}
+
+/// A note whose local and cloud versions diverged in a way that couldn't be
+/// merged automatically. Both texts are included for the resolve screen.
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct SyncConflict {
+    pub name: String,
+    pub local: String,
+    pub remote: String,
 }
 
 #[derive(Serialize, Deserialize, Clone, Copy, Debug, PartialEq, Eq, Default)]

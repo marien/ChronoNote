@@ -6,7 +6,7 @@ use super::auth::{
 use super::client::{OneDriveClient, UploadResult};
 use super::{
     OneDriveAccount, OneDriveAdvancedConfig, OneDriveFolderConfig, OneDriveFolderItem,
-    OneDriveLoginResult, OneDriveSyncResult, SyncStatus,
+    OneDriveLoginResult, OneDriveSyncResult, SyncConflict, SyncStatus,
 };
 use sha2::{Digest, Sha256};
 use std::collections::HashMap;
@@ -39,10 +39,21 @@ pub struct FileCacheEntry {
     pub local_hash: String,
 }
 
+/// The cloud's version of a note the user still has to reconcile with their
+/// local one. While an entry exists the file is never uploaded or touched.
+#[derive(serde::Serialize, serde::Deserialize, Clone, Debug, Default, PartialEq, Eq)]
+pub struct PendingConflict {
+    pub remote_content: String,
+    pub remote_id: String,
+    pub remote_etag: String,
+}
+
 #[derive(serde::Serialize, serde::Deserialize, Clone, Debug, Default)]
 pub struct SyncCache {
     pub delta_link: Option<String>,
     pub files: HashMap<String, FileCacheEntry>,
+    #[serde(default)]
+    pub conflicts: std::collections::BTreeMap<String, PendingConflict>,
 }
 
 pub struct OneDriveManager {
@@ -480,6 +491,32 @@ impl OneDriveManager {
         }
     }
 
+    /// Notes whose local and cloud versions couldn't be merged automatically.
+    pub fn conflicts(&self, data_dir: &Path, notes_dir: &Path) -> Vec<SyncConflict> {
+        list_conflicts(notes_dir, &self.load_cache(data_dir))
+    }
+
+    /// Applies the user's choice (`mine` / `theirs` / `both`) to a held
+    /// conflict. The caller triggers a sync afterwards to upload the result.
+    pub fn resolve_conflict(
+        &self,
+        data_dir: &Path,
+        notes_dir: &Path,
+        name: &str,
+        resolution: &str,
+    ) -> Result<(), String> {
+        // A sync in flight holds its own copy of the cache and would write it
+        // back over this resolution.
+        if self.is_syncing.swap(true, Ordering::SeqCst) {
+            return Err("A sync is running — try again in a moment".to_string());
+        }
+        let mut cache = self.load_cache(data_dir);
+        let result = resolve_conflict_files(notes_dir, data_dir, name, resolution, &mut cache)
+            .and_then(|_| self.save_cache(data_dir, &cache));
+        self.is_syncing.store(false, Ordering::SeqCst);
+        result
+    }
+
     /// Runs the sync and — crucially — persists whatever progress the cache
     /// made even when the sync itself fails partway (a dropped connection is
     /// routine on a phone). The cache used to be saved only on full success,
@@ -525,6 +562,7 @@ impl OneDriveManager {
             let remote_content = self.client.download_file_content(&token, &item.id).await?;
             apply_remote_change(
                 notes_dir,
+                data_dir,
                 &item.name,
                 &item.id,
                 item.etag.as_deref().unwrap_or_default(),
@@ -541,6 +579,11 @@ impl OneDriveManager {
         let local_files = list_syncable_local_files(notes_dir)?;
 
         for filename in local_files {
+            // Waiting on the user to resolve a conflict: uploading now would
+            // overwrite the cloud version they haven't seen.
+            if cache.conflicts.contains_key(&filename) {
+                continue;
+            }
             let file_path = notes_dir.join(&filename);
             let content = fs::read_to_string(&file_path).map_err(|e| e.to_string())?;
             let local_hash = compute_hash(content.as_bytes());
@@ -568,6 +611,7 @@ impl OneDriveManager {
                 .await?
             {
                 UploadResult::Success { id, etag } => {
+                    save_base(data_dir, &filename, &content)?;
                     cache.files.insert(
                         filename,
                         FileCacheEntry {
@@ -577,19 +621,11 @@ impl OneDriveManager {
                         },
                     );
                 }
-                UploadResult::Conflict => {
-                    // CAS failed: another device touched this file on OneDrive
-                    let conflict_name = format!(
-                        ".chrononote-conflicts/{}.local-{}",
-                        filename,
-                        chrono_timestamp()
-                    );
-                    let conflict_path = notes_dir.join(&conflict_name);
-                    if let Some(parent) = conflict_path.parent() {
-                        let _ = fs::create_dir_all(parent);
-                    }
-                    let _ = fs::write(conflict_path, content.as_bytes());
-                }
+                // Precondition failed: another device changed the file on
+                // OneDrive after this sync's pull. Nothing is lost — the
+                // local file is untouched, and the next sync's pull sees the
+                // newer remote version and merges or holds it properly.
+                UploadResult::Conflict => {}
             }
         }
 
@@ -735,17 +771,26 @@ enum RemoteChangeAction {
     /// nothing to write, just record it. Treating this as a conflict used to
     /// spawn a spurious conflict copy plus a pointless upload.
     AdoptRemote,
-    /// Local was edited since the last sync *and* differs from remote. The
-    /// local file stays canonical, the remote version is preserved in
-    /// `.chrononote-conflicts/`, and the cache is rebased onto the remote's
-    /// etag so the following push deliberately overwrites remote with local.
-    KeepLocalAsConflict,
-    /// First contact: this device has never synced the file, yet a different
-    /// version already exists in the cloud (e.g. after reconnecting, or a
-    /// fresh install). Nothing here proves the local copy is newer, and the
-    /// push would otherwise overwrite the cloud version, so the cloud wins
-    /// and the local text is preserved in `.chrononote-conflicts/`.
-    TakeRemoteKeepLocalCopy,
+    /// Both sides changed the file (or this device never synced it but a
+    /// different version exists in the cloud). Resolved by a three-way merge
+    /// when there's a stored base version, else held for the user.
+    Divergent,
+}
+
+/// What `apply_remote_change` actually did.
+#[derive(Debug, PartialEq, Eq)]
+enum ChangeOutcome {
+    /// Remote content is now the local file.
+    TookRemote,
+    /// Local already equalled remote.
+    Adopted,
+    /// Both sides' edits were combined into the local file; the push
+    /// uploads the result.
+    Merged,
+    /// Genuine conflict: the local file is untouched, the remote version is
+    /// stored in `SyncCache::conflicts`, and the push skips this file until
+    /// the user resolves it.
+    Held,
 }
 
 fn classify_remote_change(
@@ -758,28 +803,41 @@ fn classify_remote_change(
         Some(local) if local == remote_hash => RemoteChangeAction::AdoptRemote,
         Some(local) => match cached {
             Some(c) if c.local_hash == local => RemoteChangeAction::WriteLocal,
-            Some(_) => RemoteChangeAction::KeepLocalAsConflict,
-            None => RemoteChangeAction::TakeRemoteKeepLocalCopy,
+            _ => RemoteChangeAction::Divergent,
         },
     }
 }
 
-fn write_conflict_copy(notes_dir: &Path, name: &str, kind: &str, content: &str) -> Result<(), String> {
-    let path = notes_dir.join(format!(".chrononote-conflicts/{name}.{kind}-{}", chrono_timestamp()));
+const BASES_DIRNAME: &str = ".onedrive-bases";
+
+/// The last version of `name` both sides agreed on — the common ancestor a
+/// three-way merge needs. Kept beside the sync cache (never in the notes
+/// folder), one file per note.
+fn base_path(data_dir: &Path, name: &str) -> std::path::PathBuf {
+    data_dir.join(BASES_DIRNAME).join(name)
+}
+
+fn save_base(data_dir: &Path, name: &str, content: &str) -> Result<(), String> {
+    let path = base_path(data_dir, name);
     if let Some(parent) = path.parent() {
         fs::create_dir_all(parent).map_err(|e| e.to_string())?;
     }
     fs::write(path, content).map_err(|e| e.to_string())
 }
 
+fn load_base(data_dir: &Path, name: &str) -> Option<String> {
+    fs::read_to_string(base_path(data_dir, name)).ok()
+}
+
 fn apply_remote_change(
     notes_dir: &Path,
+    data_dir: &Path,
     name: &str,
     id: &str,
     etag: &str,
     remote_content: &str,
     cache: &mut SyncCache,
-) -> Result<RemoteChangeAction, String> {
+) -> Result<ChangeOutcome, String> {
     let local_path = notes_dir.join(name);
     let local_hash = if local_path.exists() {
         Some(hash_file(&local_path)?)
@@ -787,35 +845,139 @@ fn apply_remote_change(
         None
     };
     let remote_hash = compute_hash(remote_content.as_bytes());
-    let action = classify_remote_change(local_hash.as_deref(), cache.files.get(name), &remote_hash);
+    let rebased = FileCacheEntry {
+        id: id.to_string(),
+        etag: etag.to_string(),
+        local_hash: remote_hash.clone(),
+    };
 
-    match action {
-        RemoteChangeAction::WriteLocal => {
-            fs::write(&local_path, remote_content.as_bytes()).map_err(|e| e.to_string())?;
-        }
-        RemoteChangeAction::AdoptRemote => {}
-        // Must succeed before the cache is rebased below — this copy is the
-        // only safety net for the remote version, so a failure aborts the
-        // sync rather than being ignored.
-        RemoteChangeAction::KeepLocalAsConflict => {
-            write_conflict_copy(notes_dir, name, "remote", remote_content)?;
-        }
-        RemoteChangeAction::TakeRemoteKeepLocalCopy => {
-            let local_content = fs::read_to_string(&local_path).map_err(|e| e.to_string())?;
-            write_conflict_copy(notes_dir, name, "local", &local_content)?;
-            fs::write(&local_path, remote_content.as_bytes()).map_err(|e| e.to_string())?;
-        }
+    // The user already made the two sides identical (or the remote moved on
+    // to match): whatever was held is moot.
+    if local_hash.as_deref() == Some(remote_hash.as_str()) {
+        cache.conflicts.remove(name);
+        save_base(data_dir, name, remote_content)?;
+        cache.files.insert(name.to_string(), rebased);
+        return Ok(ChangeOutcome::Adopted);
     }
 
+    // A conflict is already waiting on the user: never touch the local file
+    // again, just remember the newest remote version for them to see.
+    if cache.conflicts.contains_key(name) {
+        cache.conflicts.insert(
+            name.to_string(),
+            PendingConflict { remote_content: remote_content.to_string(), remote_id: id.to_string(), remote_etag: etag.to_string() },
+        );
+        return Ok(ChangeOutcome::Held);
+    }
+
+    let outcome = match classify_remote_change(local_hash.as_deref(), cache.files.get(name), &remote_hash) {
+        RemoteChangeAction::WriteLocal => {
+            fs::write(&local_path, remote_content.as_bytes()).map_err(|e| e.to_string())?;
+            ChangeOutcome::TookRemote
+        }
+        RemoteChangeAction::AdoptRemote => ChangeOutcome::Adopted,
+        RemoteChangeAction::Divergent => {
+            let local_content = fs::read_to_string(&local_path).map_err(|e| e.to_string())?;
+            // Merging needs the version both sides started from; a file with
+            // no recorded ancestor (first contact, or synced before bases
+            // were kept) can't be merged safely.
+            let merged = match (cache.files.contains_key(name), load_base(data_dir, name)) {
+                (true, Some(base)) => super::merge::merge3(&base, &local_content, remote_content),
+                _ => super::merge::Merge::Conflict,
+            };
+            match merged {
+                super::merge::Merge::Clean(text) => {
+                    fs::write(&local_path, text.as_bytes()).map_err(|e| e.to_string())?;
+                    // Rebase onto the remote version: local now differs from
+                    // the cached hash, so the push uploads the merged text
+                    // with If-Match = the remote etag.
+                    save_base(data_dir, name, remote_content)?;
+                    cache.files.insert(name.to_string(), rebased);
+                    return Ok(ChangeOutcome::Merged);
+                }
+                super::merge::Merge::Conflict => {
+                    cache.conflicts.insert(
+                        name.to_string(),
+                        PendingConflict {
+                            remote_content: remote_content.to_string(),
+                            remote_id: id.to_string(),
+                            remote_etag: etag.to_string(),
+                        },
+                    );
+                    return Ok(ChangeOutcome::Held);
+                }
+            }
+        }
+    };
+
+    save_base(data_dir, name, remote_content)?;
+    cache.files.insert(name.to_string(), rebased);
+    Ok(outcome)
+}
+
+/// A note the user has to resolve, for the UI: both full texts side by side.
+pub fn list_conflicts(notes_dir: &Path, cache: &SyncCache) -> Vec<SyncConflict> {
+    cache
+        .conflicts
+        .iter()
+        .map(|(name, pending)| SyncConflict {
+            name: name.clone(),
+            local: fs::read_to_string(notes_dir.join(name)).unwrap_or_default(),
+            remote: pending.remote_content.clone(),
+        })
+        .collect()
+}
+
+/// Applies the user's choice for a held conflict.
+///  - `mine`:   keep the local text; the next push overwrites the cloud copy.
+///  - `theirs`: take the cloud text; the local text is discarded.
+///  - `both`:   keep the local text and append the cloud text under a marker.
+fn resolve_conflict_files(
+    notes_dir: &Path,
+    data_dir: &Path,
+    name: &str,
+    resolution: &str,
+    cache: &mut SyncCache,
+) -> Result<(), String> {
+    let pending = cache
+        .conflicts
+        .get(name)
+        .cloned()
+        .ok_or_else(|| format!("{name} has no sync conflict to resolve"))?;
+    let local_path = notes_dir.join(name);
+
+    match resolution {
+        "mine" => {}
+        "theirs" => {
+            fs::write(&local_path, pending.remote_content.as_bytes()).map_err(|e| e.to_string())?;
+        }
+        "both" => {
+            let local = fs::read_to_string(&local_path).unwrap_or_default();
+            let combined = format!(
+                "{}\n\n--- other version (sync conflict) ---\n{}",
+                local.trim_end(),
+                pending.remote_content
+            );
+            fs::write(&local_path, combined.as_bytes()).map_err(|e| e.to_string())?;
+        }
+        other => return Err(format!("Unknown resolution: {other}")),
+    }
+
+    // Rebase onto the remote version. For "mine"/"both" the local text now
+    // differs from the cached hash, so the push uploads it with
+    // If-Match = the remote etag — a deliberate overwrite. For "theirs" the
+    // hashes match and nothing is uploaded.
+    save_base(data_dir, name, &pending.remote_content)?;
     cache.files.insert(
         name.to_string(),
         FileCacheEntry {
-            id: id.to_string(),
-            etag: etag.to_string(),
-            local_hash: remote_hash,
+            id: pending.remote_id,
+            etag: pending.remote_etag,
+            local_hash: compute_hash(pending.remote_content.as_bytes()),
         },
     );
-    Ok(action)
+    cache.conflicts.remove(name);
+    Ok(())
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -851,6 +1013,9 @@ fn apply_remote_delete(
         fs::remove_file(&local_path).map_err(|e| e.to_string())?;
     }
     cache.files.remove(name);
+    // Whatever was waiting on the user is moot: the cloud version is gone,
+    // and a kept local file is simply re-uploaded as a new file.
+    cache.conflicts.remove(name);
     Ok(action)
 }
 
@@ -889,12 +1054,6 @@ fn hash_file(path: &Path) -> Result<String, String> {
     Ok(compute_hash(&content))
 }
 
-fn chrono_timestamp() -> u64 {
-    std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
-        .map(|d| d.as_secs())
-        .unwrap_or(0)
-}
 
 #[cfg(test)]
 mod tests {
@@ -1040,93 +1199,201 @@ mod tests {
         cache
     }
 
-    fn conflict_files(dir: &Path) -> Vec<String> {
-        let cdir = dir.join(".chrononote-conflicts");
-        if !cdir.exists() {
-            return vec![];
-        }
-        fs::read_dir(cdir)
-            .unwrap()
-            .flatten()
-            .map(|e| e.file_name().into_string().unwrap())
-            .collect()
+    /// (notes folder, app data folder) — separate, like on a device.
+    fn dirs() -> (tempfile::TempDir, tempfile::TempDir) {
+        (tempfile::tempdir().unwrap(), tempfile::tempdir().unwrap())
+    }
+
+    fn apply(
+        notes: &Path,
+        data: &Path,
+        etag: &str,
+        remote: &str,
+        cache: &mut SyncCache,
+    ) -> ChangeOutcome {
+        apply_remote_change(notes, data, NOTE, "id-1", etag, remote, cache).unwrap()
     }
 
     #[test]
-    fn a_new_remote_file_is_written_locally_and_cached() {
-        let dir = tempfile::tempdir().unwrap();
+    fn a_new_remote_file_is_written_locally_cached_and_kept_as_the_base() {
+        let (notes, data) = dirs();
         let mut cache = SyncCache::default();
-        let action = apply_remote_change(dir.path(), NOTE, "id-1", "e1", "from phone", &mut cache).unwrap();
-        assert_eq!(action, RemoteChangeAction::WriteLocal);
-        assert_eq!(fs::read_to_string(dir.path().join(NOTE)).unwrap(), "from phone");
+        assert_eq!(apply(notes.path(), data.path(), "e1", "from phone", &mut cache), ChangeOutcome::TookRemote);
+        assert_eq!(fs::read_to_string(notes.path().join(NOTE)).unwrap(), "from phone");
         assert_eq!(cache.files[NOTE].etag, "e1");
         assert_eq!(cache.files[NOTE].local_hash, compute_hash(b"from phone"));
+        assert_eq!(load_base(data.path(), NOTE).as_deref(), Some("from phone"));
     }
 
     #[test]
     fn a_remote_update_overwrites_a_local_file_that_has_not_changed_since_the_last_sync() {
-        let dir = tempfile::tempdir().unwrap();
-        fs::write(dir.path().join(NOTE), "v1").unwrap();
+        let (notes, data) = dirs();
+        fs::write(notes.path().join(NOTE), "v1").unwrap();
         let mut cache = cache_with(NOTE, "v1", "e1");
-        let action = apply_remote_change(dir.path(), NOTE, "id-1", "e2", "v2", &mut cache).unwrap();
-        assert_eq!(action, RemoteChangeAction::WriteLocal);
-        assert_eq!(fs::read_to_string(dir.path().join(NOTE)).unwrap(), "v2");
-        assert!(conflict_files(dir.path()).is_empty());
+        assert_eq!(apply(notes.path(), data.path(), "e2", "v2", &mut cache), ChangeOutcome::TookRemote);
+        assert_eq!(fs::read_to_string(notes.path().join(NOTE)).unwrap(), "v2");
+        assert!(cache.conflicts.is_empty());
     }
 
     #[test]
-    fn a_remote_update_never_overwrites_a_local_edit_and_keeps_the_remote_copy() {
-        let dir = tempfile::tempdir().unwrap();
-        fs::write(dir.path().join(NOTE), "v1 + my offline edit").unwrap();
-        let mut cache = cache_with(NOTE, "v1", "e1");
+    fn edits_to_different_lines_on_both_sides_are_merged_and_queued_for_upload() {
+        let (notes, data) = dirs();
+        fs::write(notes.path().join(NOTE), "ONE\ntwo\nthree\n").unwrap(); // local edit
+        let mut cache = cache_with(NOTE, "one\ntwo\nthree\n", "e1");
+        save_base(data.path(), NOTE, "one\ntwo\nthree\n").unwrap();
 
-        let action = apply_remote_change(dir.path(), NOTE, "id-1", "e2", "v2 from PC", &mut cache).unwrap();
+        let outcome = apply(notes.path(), data.path(), "e2", "one\ntwo\nTHREE\n", &mut cache);
 
-        assert_eq!(action, RemoteChangeAction::KeepLocalAsConflict);
-        // Local edit untouched; remote version preserved next to it.
-        assert_eq!(fs::read_to_string(dir.path().join(NOTE)).unwrap(), "v1 + my offline edit");
-        let copies = conflict_files(dir.path());
-        assert_eq!(copies.len(), 1);
-        assert!(copies[0].starts_with(&format!("{NOTE}.remote-")));
-        let saved = fs::read_to_string(dir.path().join(".chrononote-conflicts").join(&copies[0])).unwrap();
-        assert_eq!(saved, "v2 from PC");
-        // Cache rebased onto the remote: the next push sees local != cached
-        // and uploads with the *current* etag (so it can't 412 forever).
+        assert_eq!(outcome, ChangeOutcome::Merged);
+        assert_eq!(fs::read_to_string(notes.path().join(NOTE)).unwrap(), "ONE\ntwo\nTHREE\n");
+        assert!(cache.conflicts.is_empty());
+        // Rebased onto the remote: local != cached hash, so the push uploads
+        // the merged text with the current etag.
         assert_eq!(cache.files[NOTE].etag, "e2");
-        assert_ne!(cache.files[NOTE].local_hash, compute_hash(b"v1 + my offline edit"));
+        assert_ne!(cache.files[NOTE].local_hash, compute_hash(b"ONE\ntwo\nTHREE\n"));
+        assert_eq!(load_base(data.path(), NOTE).as_deref(), Some("one\ntwo\nTHREE\n"));
+    }
+
+    #[test]
+    fn both_sides_appending_a_line_keeps_both_lines() {
+        let (notes, data) = dirs();
+        fs::write(notes.path().join(NOTE), "a\nb\nCONFLICT phone edit\n").unwrap();
+        let mut cache = cache_with(NOTE, "a\nb\n", "e1");
+        save_base(data.path(), NOTE, "a\nb\n").unwrap();
+
+        let outcome = apply(notes.path(), data.path(), "e2", "a\nb\nCONFLICT pc edit\n", &mut cache);
+
+        assert_eq!(outcome, ChangeOutcome::Merged);
+        assert_eq!(
+            fs::read_to_string(notes.path().join(NOTE)).unwrap(),
+            "a\nb\nCONFLICT pc edit\nCONFLICT phone edit\n"
+        );
+    }
+
+    #[test]
+    fn editing_the_same_line_on_both_sides_is_held_and_leaves_the_local_file_alone() {
+        let (notes, data) = dirs();
+        fs::write(notes.path().join(NOTE), "one\nphone\n").unwrap();
+        let mut cache = cache_with(NOTE, "one\ntwo\n", "e1");
+        save_base(data.path(), NOTE, "one\ntwo\n").unwrap();
+
+        let outcome = apply(notes.path(), data.path(), "e2", "one\npc\n", &mut cache);
+
+        assert_eq!(outcome, ChangeOutcome::Held);
+        assert_eq!(fs::read_to_string(notes.path().join(NOTE)).unwrap(), "one\nphone\n");
+        assert_eq!(cache.conflicts[NOTE].remote_content, "one\npc\n");
+        // Cache untouched: nothing may look like it needs uploading over the cloud copy.
+        assert_eq!(cache.files[NOTE].etag, "e1");
+        let listed = list_conflicts(notes.path(), &cache);
+        assert_eq!(listed.len(), 1);
+        assert_eq!((listed[0].local.as_str(), listed[0].remote.as_str()), ("one\nphone\n", "one\npc\n"));
+    }
+
+    #[test]
+    fn a_never_synced_local_file_that_differs_from_remote_is_held_not_overwritten() {
+        let (notes, data) = dirs();
+        fs::write(notes.path().join(NOTE), "local only").unwrap();
+        let mut cache = SyncCache::default();
+        assert_eq!(apply(notes.path(), data.path(), "e1", "remote", &mut cache), ChangeOutcome::Held);
+        assert_eq!(fs::read_to_string(notes.path().join(NOTE)).unwrap(), "local only");
+        assert!(cache.conflicts.contains_key(NOTE));
+        assert!(!cache.files.contains_key(NOTE));
+    }
+
+    #[test]
+    fn a_synced_file_with_no_recorded_base_cannot_be_merged_and_is_held() {
+        // Synced by an older build, before bases were kept.
+        let (notes, data) = dirs();
+        fs::write(notes.path().join(NOTE), "a\nb\nphone\n").unwrap();
+        let mut cache = cache_with(NOTE, "a\nb\n", "e1");
+        assert_eq!(apply(notes.path(), data.path(), "e2", "a\nb\npc\n", &mut cache), ChangeOutcome::Held);
+    }
+
+    #[test]
+    fn a_newer_remote_version_of_a_held_file_updates_what_the_user_will_see() {
+        let (notes, data) = dirs();
+        fs::write(notes.path().join(NOTE), "local edit").unwrap();
+        let mut cache = SyncCache::default();
+        apply(notes.path(), data.path(), "e1", "remote v1", &mut cache);
+        assert_eq!(apply(notes.path(), data.path(), "e2", "remote v2", &mut cache), ChangeOutcome::Held);
+        assert_eq!(cache.conflicts[NOTE].remote_content, "remote v2");
+        assert_eq!(cache.conflicts[NOTE].remote_etag, "e2");
+        assert_eq!(fs::read_to_string(notes.path().join(NOTE)).unwrap(), "local edit");
+    }
+
+    #[test]
+    fn making_both_sides_identical_dissolves_a_held_conflict() {
+        let (notes, data) = dirs();
+        fs::write(notes.path().join(NOTE), "local edit").unwrap();
+        let mut cache = SyncCache::default();
+        apply(notes.path(), data.path(), "e1", "remote", &mut cache);
+        fs::write(notes.path().join(NOTE), "remote").unwrap(); // user made them match
+        assert_eq!(apply(notes.path(), data.path(), "e1", "remote", &mut cache), ChangeOutcome::Adopted);
+        assert!(cache.conflicts.is_empty());
     }
 
     #[test]
     fn identical_content_is_not_a_conflict_even_with_a_stale_cache() {
         // An earlier sync wrote this file, then died before saving the cache.
-        let dir = tempfile::tempdir().unwrap();
-        fs::write(dir.path().join(NOTE), "v2").unwrap();
+        let (notes, data) = dirs();
+        fs::write(notes.path().join(NOTE), "v2").unwrap();
         let mut cache = cache_with(NOTE, "v1", "e1");
-
-        let action = apply_remote_change(dir.path(), NOTE, "id-1", "e2", "v2", &mut cache).unwrap();
-
-        assert_eq!(action, RemoteChangeAction::AdoptRemote);
-        assert!(conflict_files(dir.path()).is_empty());
+        assert_eq!(apply(notes.path(), data.path(), "e2", "v2", &mut cache), ChangeOutcome::Adopted);
+        assert!(cache.conflicts.is_empty());
         assert_eq!(cache.files[NOTE].etag, "e2");
         assert_eq!(cache.files[NOTE].local_hash, compute_hash(b"v2"));
     }
 
-    #[test]
-    fn a_never_synced_local_file_that_differs_from_remote_never_overwrites_the_cloud() {
-        let dir = tempfile::tempdir().unwrap();
-        fs::write(dir.path().join(NOTE), "local only").unwrap();
+    // --- resolving a held conflict -----------------------------------------
+
+    fn held(notes: &Path, data: &Path) -> SyncCache {
+        fs::write(notes.join(NOTE), "phone version\n").unwrap();
         let mut cache = SyncCache::default();
-        let action = apply_remote_change(dir.path(), NOTE, "id-1", "e1", "remote", &mut cache).unwrap();
-        assert_eq!(action, RemoteChangeAction::TakeRemoteKeepLocalCopy);
-        // Cloud wins on first contact; the local text is kept as a conflict copy.
-        assert_eq!(fs::read_to_string(dir.path().join(NOTE)).unwrap(), "remote");
-        let copies = conflict_files(dir.path());
-        assert_eq!(copies.len(), 1);
-        assert!(copies[0].contains(".local-"));
-        let copy_path = dir.path().join(".chrononote-conflicts").join(&copies[0]);
-        assert_eq!(fs::read_to_string(copy_path).unwrap(), "local only");
-        // Cache matches the file now, so the push has nothing to upload.
-        assert_eq!(cache.files[NOTE].local_hash, compute_hash(b"remote"));
+        assert_eq!(apply(notes, data, "e7", "pc version\n", &mut cache), ChangeOutcome::Held);
+        cache
+    }
+
+    #[test]
+    fn resolving_with_mine_keeps_local_and_queues_an_overwrite_with_the_current_etag() {
+        let (notes, data) = dirs();
+        let mut cache = held(notes.path(), data.path());
+        resolve_conflict_files(notes.path(), data.path(), NOTE, "mine", &mut cache).unwrap();
+        assert_eq!(fs::read_to_string(notes.path().join(NOTE)).unwrap(), "phone version\n");
+        assert!(cache.conflicts.is_empty());
+        assert_eq!(cache.files[NOTE].etag, "e7");
+        assert_ne!(cache.files[NOTE].local_hash, compute_hash(b"phone version\n")); // -> uploads
+        assert_eq!(load_base(data.path(), NOTE).as_deref(), Some("pc version\n"));
+    }
+
+    #[test]
+    fn resolving_with_theirs_takes_the_cloud_text_and_uploads_nothing() {
+        let (notes, data) = dirs();
+        let mut cache = held(notes.path(), data.path());
+        resolve_conflict_files(notes.path(), data.path(), NOTE, "theirs", &mut cache).unwrap();
+        assert_eq!(fs::read_to_string(notes.path().join(NOTE)).unwrap(), "pc version\n");
+        assert_eq!(cache.files[NOTE].local_hash, compute_hash(b"pc version\n"));
+        assert!(cache.conflicts.is_empty());
+    }
+
+    #[test]
+    fn resolving_with_both_keeps_both_texts_and_uploads_the_result() {
+        let (notes, data) = dirs();
+        let mut cache = held(notes.path(), data.path());
+        resolve_conflict_files(notes.path(), data.path(), NOTE, "both", &mut cache).unwrap();
+        let text = fs::read_to_string(notes.path().join(NOTE)).unwrap();
+        assert!(text.starts_with("phone version\n"));
+        assert!(text.contains("--- other version (sync conflict) ---"));
+        assert!(text.ends_with("pc version\n"));
+        assert_ne!(cache.files[NOTE].local_hash, compute_hash(text.as_bytes())); // -> uploads
+    }
+
+    #[test]
+    fn resolving_rejects_an_unknown_choice_and_a_note_without_a_conflict() {
+        let (notes, data) = dirs();
+        let mut cache = held(notes.path(), data.path());
+        assert!(resolve_conflict_files(notes.path(), data.path(), NOTE, "shrug", &mut cache).is_err());
+        assert!(cache.conflicts.contains_key(NOTE)); // still waiting
+        assert!(resolve_conflict_files(notes.path(), data.path(), "2000-01-01.txt", "mine", &mut cache).is_err());
     }
 
     #[test]
@@ -1176,17 +1443,24 @@ mod tests {
     }
 
     #[test]
+    fn a_remote_delete_clears_a_held_conflict_for_that_note() {
+        let (notes, data) = dirs();
+        let mut cache = held(notes.path(), data.path());
+        apply_remote_delete(notes.path(), NOTE, &mut cache).unwrap();
+        assert!(cache.conflicts.is_empty());
+        assert!(notes.path().join(NOTE).exists()); // local edit kept, re-uploaded as new
+    }
+
+    #[test]
     fn an_interrupted_pull_can_simply_be_replayed_without_creating_conflicts() {
         // Sync #1 applies the change, then the connection drops (cache lost
         // in the old code). Sync #2 receives the same delta item again.
-        let dir = tempfile::tempdir().unwrap();
+        let (notes, data) = dirs();
         let mut first = SyncCache::default();
-        apply_remote_change(dir.path(), NOTE, "id-1", "e1", "shared", &mut first).unwrap();
+        apply(notes.path(), data.path(), "e1", "shared", &mut first);
 
         let mut replay = SyncCache::default(); // progress was lost
-        let action = apply_remote_change(dir.path(), NOTE, "id-1", "e1", "shared", &mut replay).unwrap();
-
-        assert_eq!(action, RemoteChangeAction::AdoptRemote);
-        assert!(conflict_files(dir.path()).is_empty());
+        assert_eq!(apply(notes.path(), data.path(), "e1", "shared", &mut replay), ChangeOutcome::Adopted);
+        assert!(replay.conflicts.is_empty());
     }
 }

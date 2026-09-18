@@ -344,6 +344,8 @@ export class WebBackend {
     onedrive_get_folder: () => null,
     onedrive_exchange_code: () => ({ success: false, error: "Not supported in web backend", pending: false }),
     onedrive_sync_now: () => ({ success: false, message: "Not supported in web backend" }),
+    onedrive_get_conflicts: () => [],
+    onedrive_resolve_conflict: () => {},
     onedrive_get_sync_status: () => "offline",
     onedrive_get_advanced_config: () => ({}),
     onedrive_set_advanced_config: () => {},

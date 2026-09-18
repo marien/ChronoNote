@@ -1061,7 +1061,9 @@ body {
    `currentColor`) isn't itself gated by `stat-tier0`, so it survives the
    folder-name collapse below and stays a click target even at the
    narrowest width the name is shown at all. */
-#stat-folder {
+#stat-folder,
+#stat-cloud,
+#stat-conflicts {
   display: inline-flex;
   align-items: center;
   gap: 4px;
@@ -1073,8 +1075,54 @@ body {
   margin: 0;
   cursor: pointer;
 }
-#stat-folder:hover {
+#stat-folder:hover,
+#stat-cloud:hover,
+#stat-conflicts:hover {
   color: var(--text);
+}
+/* Android OneDrive sync: a held conflict needs the user, so it's the one
+   status-bar item that draws the eye. */
+#stat-conflicts {
+  color: var(--state-warn);
+  white-space: nowrap;
+}
+
+/* Sync-conflict resolve screen (SyncConflictsModal.svelte). */
+.conflict-versions {
+  display: flex;
+  gap: 10px;
+  padding: 0 12px;
+  flex-wrap: wrap;
+}
+.conflict-version {
+  flex: 1 1 200px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.conflict-version-label {
+  font-size: 12px;
+  color: var(--text-muted, var(--text));
+}
+.conflict-text {
+  margin: 0;
+  padding: 8px;
+  max-height: 32vh;
+  overflow: auto;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  background: var(--surface-base, transparent);
+  border: 1px solid var(--edge-soft);
+  border-radius: 6px;
+  font: inherit;
+  font-size: 13px;
+}
+.conflict-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 12px;
 }
 /* §merged-titlebar: the folder name shouldn't be able to crowd out
    everything else on a merely-medium-width window if it's a long one —

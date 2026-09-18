@@ -23,6 +23,7 @@
   import CommandPaletteModal from "./lib/components/modals/CommandPaletteModal.svelte";
   import MoreActionsModal from "./lib/components/modals/MoreActionsModal.svelte";
   import CalendarSyncReviewModal from "./lib/components/modals/CalendarSyncReviewModal.svelte";
+  import SyncConflictsModal from "./lib/components/modals/SyncConflictsModal.svelte";
 
   let ready = false;
   let bootError = "";
@@ -239,6 +240,8 @@
     <MoreActionsModal />
   {:else if $modal === "syncReview"}
     <CalendarSyncReviewModal />
+  {:else if $modal === "syncConflicts"}
+    <SyncConflictsModal />
   {/if}
 {:else if bootError}
   <div class="boot-loading" role="alert">

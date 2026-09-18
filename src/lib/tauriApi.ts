@@ -11,7 +11,15 @@ import type {
   TabSession,
   ThemeMode,
 } from "./types";
-import type { CommandArgs, CommandReturn, OneDriveAdvancedConfig, OneDriveLoginResult, TauriCommand } from "./tauriCommands";
+import type {
+  CommandArgs,
+  CommandReturn,
+  OneDriveAdvancedConfig,
+  OneDriveLoginResult,
+  SyncConflict,
+  SyncConflictResolution,
+  TauriCommand,
+} from "./tauriCommands";
 
 /** Every Rust IPC call goes through this: the command name is constrained
  * to `TauriCommands`, and the arg shape + resolved type are checked
@@ -194,6 +202,14 @@ export function oneDriveExchangeCode(code: string): Promise<OneDriveLoginResult>
 
 export function oneDriveSyncNow(): Promise<{ success: boolean; message?: string }> {
   return invoke("onedrive_sync_now", {});
+}
+
+export function oneDriveGetConflicts(): Promise<SyncConflict[]> {
+  return invoke("onedrive_get_conflicts", {});
+}
+
+export function oneDriveResolveConflict(name: string, resolution: SyncConflictResolution): Promise<void> {
+  return invoke("onedrive_resolve_conflict", { name, resolution });
 }
 
 export function oneDriveGetSyncStatus(): Promise<"idle" | "syncing" | "offline" | "error"> {

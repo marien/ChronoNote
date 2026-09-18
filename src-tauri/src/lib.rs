@@ -248,6 +248,28 @@ async fn onedrive_sync_now(
 }
 
 #[tauri::command]
+fn onedrive_get_conflicts(
+    app: AppHandle,
+    mgr: tauri::State<'_, std::sync::Arc<onedrive::sync::OneDriveManager>>,
+) -> Result<Vec<onedrive::SyncConflict>, String> {
+    let data_dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
+    let cfg = storage::load_config(&app)?;
+    Ok(mgr.conflicts(&data_dir, &std::path::PathBuf::from(cfg.notes_dir)))
+}
+
+#[tauri::command]
+fn onedrive_resolve_conflict(
+    app: AppHandle,
+    mgr: tauri::State<'_, std::sync::Arc<onedrive::sync::OneDriveManager>>,
+    name: String,
+    resolution: String,
+) -> Result<(), String> {
+    let data_dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
+    let cfg = storage::load_config(&app)?;
+    mgr.resolve_conflict(&data_dir, &std::path::PathBuf::from(cfg.notes_dir), &name, &resolution)
+}
+
+#[tauri::command]
 async fn onedrive_create_folder(
     app: AppHandle,
     mgr: tauri::State<'_, std::sync::Arc<onedrive::sync::OneDriveManager>>,
@@ -432,6 +454,8 @@ pub fn run() {
             onedrive_set_folder,
             onedrive_get_folder,
             onedrive_sync_now,
+            onedrive_get_conflicts,
+            onedrive_resolve_conflict,
             onedrive_get_sync_status,
             onedrive_exchange_code,
             onedrive_get_advanced_config,

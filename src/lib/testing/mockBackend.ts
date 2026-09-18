@@ -89,6 +89,9 @@ export interface MockSeed {
    * produced by a genuine successful sync, so none can be trusted as "no
    * meetings today." */
   agendaJson?: string;
+  /** OneDrive sync conflicts waiting on the user: the note's name plus the
+   * cloud's version of it (the "local" side is whatever the note holds). */
+  oneDriveConflicts?: { name: string; remote: string }[];
 }
 
 interface MockDir {
@@ -263,6 +266,8 @@ export class MockBackend {
   agendaJson: string | undefined;
   scratchpadDrafts: Record<string, string> = {};
   oneDriveAdvancedConfig: OneDriveAdvancedConfig = {};
+  /** note name -> the cloud's version, for `onedrive_get_conflicts`. */
+  oneDriveConflicts = new Map<string, string>();
 
   /** Every `invoke` call, in order — assert on persistence without
    * scraping the DOM. */
@@ -322,6 +327,7 @@ export class MockBackend {
     this.updateCheck = seed.updateCheck ?? "none";
     this.updateCheckVersion = seed.updateCheckVersion ?? "9.9.9";
     this.agendaJson = seed.agendaJson;
+    for (const c of seed.oneDriveConflicts ?? []) this.oneDriveConflicts.set(c.name, c.remote);
     this.throwOnCommands = new Set(seed.throwOnCommands ?? []);
     this.delayCommands = new Map(Object.entries(seed.delayCommands ?? {}));
 
@@ -664,6 +670,24 @@ export class MockBackend {
       pending: false,
     }),
     onedrive_sync_now: () => ({ success: true, message: "Synced" }),
+    // Mirrors `sync.rs::list_conflicts` / `resolve_conflict_files`.
+    onedrive_get_conflicts: () =>
+      [...this.oneDriveConflicts].map(([name, remote]) => ({
+        name,
+        local: this.dir().notes.get(name) ?? "",
+        remote,
+      })),
+    onedrive_resolve_conflict: ({ name, resolution }) => {
+      const remote = this.oneDriveConflicts.get(name);
+      if (remote === undefined) throw new Error(`${name} has no sync conflict to resolve`);
+      const notes = this.dir().notes;
+      if (resolution === "theirs") notes.set(name, remote);
+      else if (resolution === "both") {
+        notes.set(name, `${(notes.get(name) ?? "").trimEnd()}\n\n--- other version (sync conflict) ---\n${remote}`);
+      } else if (resolution !== "mine") throw new Error(`Unknown resolution: ${resolution}`);
+      this.oneDriveConflicts.delete(name);
+      this.persist();
+    },
     onedrive_get_sync_status: () => "idle",
     onedrive_get_advanced_config: () => ({ ...this.oneDriveAdvancedConfig }),
     onedrive_set_advanced_config: ({ config }) => {

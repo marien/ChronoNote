@@ -196,7 +196,11 @@
   async function handleOneDriveSyncNow() {
     syncingOneDrive = true;
     try {
-      await api.oneDriveSyncNow();
+      const result = await api.oneDriveSyncNow();
+      await controller.refreshSyncConflicts();
+      controller.showToast(result.success ? "OneDrive sync finished" : `OneDrive sync failed: ${result.message ?? "unknown error"}`);
+    } catch (e) {
+      controller.showToast(`OneDrive sync failed: ${e instanceof Error ? e.message : String(e)}`);
     } finally {
       syncingOneDrive = false;
     }

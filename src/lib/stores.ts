@@ -18,6 +18,7 @@ import type {
   ThemeMode,
 } from "./types";
 import { isAndroid } from "./platform";
+import type { SyncConflict } from "./tauriCommands";
 
 export type ModalKind =
   | "none"
@@ -36,7 +37,10 @@ export type ModalKind =
   // anchored-popover shape as "date", not a centred `.overlay` card.
   | "topBarMore"
   // Calendar sync (v0.9.0) review step, after "Sync calendar for this day".
-  | "syncReview";
+  | "syncReview"
+  // Android OneDrive sync: notes whose phone and cloud versions couldn't be
+  // merged automatically, waiting on the user's choice.
+  | "syncConflicts";
 
 export const tabs = writable<NoteTab[]>([]);
 export const activeTabId = writable<string>("");
@@ -158,6 +162,9 @@ export const oneDriveFolder = writable<{ folderId: string; folderPath: string } 
 
 /** OneDrive synchronization status. */
 export const oneDriveSyncStatus = writable<"idle" | "syncing" | "offline" | "error">("idle");
+/** Notes the OneDrive sync engine is holding back because the phone and
+ * cloud versions diverged in a way it couldn't merge (see `syncConflicts.ts`). */
+export const syncConflicts = writable<SyncConflict[]>([]);
 
 /** Android only: true from the moment the system browser opens for a
  * `chrononote://auth` sign-in until the `onedrive-login-result` event

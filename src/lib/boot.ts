@@ -44,6 +44,7 @@ import {
 import { flushAllPendingSaves, recomputeSaveState, refreshAllNotesCache } from "./persistence";
 import { checkActiveTabForDrift } from "./drift";
 import { refreshAgendaFileExists } from "./calendarSyncActions";
+import { refreshSyncConflicts } from "./syncConflicts";
 import { checkForUpdatesOnLaunch } from "./updates";
 import type { ColorMode, NoteTab, ThemeMode } from "./types";
 
@@ -463,19 +464,24 @@ export async function initOneDriveSync() {
       oneDriveAccount.set(account);
       const folder = await api.oneDriveGetFolder();
       if (folder) oneDriveFolder.set(folder);
-      void api.oneDriveSyncNow().catch(() => {});
+      void api
+        .oneDriveSyncNow()
+        .catch(() => {})
+        .finally(() => void refreshSyncConflicts());
     }
   } catch {
     // Fail silently
   }
 
-  // Periodic status polling (every 6 seconds)
+  // Periodic status polling (every 6 seconds). Also picks up sync conflicts
+  // the engine has just held back, since the sync itself is fire-and-forget.
   setInterval(async () => {
     if (get(oneDriveAccount)) {
       try {
         const status = await api.oneDriveGetSyncStatus();
         oneDriveSyncStatus.set(status);
       } catch {}
+      void refreshSyncConflicts();
     }
   }, 6000);
 

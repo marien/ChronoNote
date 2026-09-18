@@ -19,6 +19,16 @@ export interface OneDriveAdvancedConfig {
   tenantIdOverride?: string;
 }
 
+/** Mirrors Rust's `onedrive::SyncConflict`: a note whose phone and cloud
+ * versions couldn't be merged automatically. */
+export interface SyncConflict {
+  name: string;
+  local: string;
+  remote: string;
+}
+
+export type SyncConflictResolution = "mine" | "theirs" | "both";
+
 /** Mirrors Rust's `onedrive::OneDriveLoginResult`. On Android, opening
  * the browser for a `chrononote://auth` sign-in returns immediately with
  * `pending: true` — `success`/`account`/`error` are meaningless until
@@ -119,6 +129,14 @@ export interface TauriCommands {
   onedrive_sync_now: {
     args: NoArgs;
     returns: { success: boolean; message?: string };
+  };
+  onedrive_get_conflicts: {
+    args: NoArgs;
+    returns: SyncConflict[];
+  };
+  onedrive_resolve_conflict: {
+    args: { name: string; resolution: SyncConflictResolution };
+    returns: void;
   };
   onedrive_get_sync_status: {
     args: NoArgs;

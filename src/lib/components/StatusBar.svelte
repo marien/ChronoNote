@@ -12,6 +12,7 @@
     statusPos,
     statusSelection,
     statusWordCount,
+    syncConflicts,
     toastMessage,
     UPDATE_AVAILABLE_TOAST,
     updateStatus,
@@ -53,6 +54,17 @@
         </span>
       </button>
       <span class="status-sep stat-tier0">·</span>
+      {#if $syncConflicts.length > 0}
+        <button
+          id="stat-conflicts"
+          class="status-folder-btn stat-conflicts"
+          title="Some notes changed on this device and in OneDrive — tap to choose"
+          on:click={controller.openSyncConflicts}
+        >
+          ⚠ {$syncConflicts.length === 1 ? "1 sync conflict" : `${$syncConflicts.length} sync conflicts`}
+        </button>
+        <span class="status-sep">·</span>
+      {/if}
     {:else if folderName}
       <button
         id="stat-folder"
