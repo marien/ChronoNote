@@ -31,12 +31,20 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import * as controller from "../controller";
-  import { activeTabId, agendaFileExists, backendKind, calendarSyncEnabled, chromeExpanded, saveState, tabs } from "../controller";
+  import {
+    activeTabId,
+    agendaFileExists,
+    backendKind,
+    calendarSyncEnabled,
+    chromeExpanded,
+    currentDateISO,
+    saveState,
+    tabs,
+  } from "../controller";
   import type { NoteTab } from "../types";
   import Icon from "../icons/Icon.svelte";
   import AppIcon from "./AppIcon.svelte";
   import { formatCombo, formatShortcut, shortcutById } from "../shortcuts";
-  import { todayISO } from "../date";
 
   // §merged-titlebar: the app icon, drag regions, and window-control
   // buttons only make sense when this frontend is actually running inside
@@ -53,15 +61,20 @@
   /** Dated tabs show just the date; scratchpads keep their given name. */
   const tabLabel = (t: NoteTab) => (t.isScratchpad ? t.filename : t.filename.replace(/\.txt$/, ""));
 
-  /** #68: a daily tab's date relative to today — past/today/future get a
-   * distinct look (§68's own CSS) so today's tab, the one most work
+  /** #68/#72: a daily tab's date relative to today — past/today/future get
+   * a distinct look (§68's own CSS) so today's tab, the one most work
    * happens in, stands out from yesterday's leftovers and next week's
    * placeholders without having to read every label. A scratchpad has no
-   * date of its own, so it's excluded (`""`, no extra class). */
-  const tabDateClass = (t: NoteTab): string => {
+   * date of its own, so it's excluded (`""`, no extra class). Takes
+   * `today` as a parameter rather than reading `todayISO()` itself —
+   * called from the template on every render, so it needs `$currentDateISO`
+   * (a real reactive dependency, kept live by `boot.ts`'s
+   * `wireDateRollover`) to actually refresh at midnight, rather than a
+   * plain function call that only happens to re-run when something else
+   * Svelte is already watching triggers a re-render. */
+  const tabDateClass = (t: NoteTab, today: string): string => {
     if (t.isScratchpad) return "";
     const date = t.filename.slice(0, 10);
-    const today = todayISO();
     return date < today ? "past" : date > today ? "future" : "today";
   };
 
@@ -117,7 +130,7 @@
   // later, same restriction every dated action shares, and the agenda
   // file has to actually exist to be worth trying.
   $: calendarSyncReady =
-    !!activeTab && !activeTab.isScratchpad && activeTab.filename.slice(0, 10) >= todayISO() && $agendaFileExists;
+    !!activeTab && !activeTab.isScratchpad && activeTab.filename.slice(0, 10) >= $currentDateISO && $agendaFileExists;
   $: displayTabs = controller.sortedTabsForDisplay($tabs);
 
   /** Waits for the next paint frame — used instead of Svelte's own `tick()`
@@ -694,7 +707,7 @@
       <div
         class="tab {tab.id === $activeTabId ? 'active' : ''} {tab.isScratchpad
           ? 'scratch'
-          : 'daily'} {tabDateClass(tab)}"
+          : 'daily'} {tabDateClass(tab, $currentDateISO)}"
         role="tab"
         tabindex="0"
         data-tab-id={tab.id}

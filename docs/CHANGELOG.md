@@ -6,7 +6,8 @@ kept for the rationale behind each one — not just *what* changed but
 was still being gathered and confirmed before implementation; renamed once
 everything below was applied, since nothing here is "pending" anymore.
 
-**Status: all sections through §173 implemented and released.** §153 is a
+**Status: all sections through §173 implemented and released; §174–§177
+fixed, not yet released.** §153 is a
 website-only Guide-page fix (found live right after §150–§152 shipped
 as v0.7.12) — no version bump, nothing in the shipped app changed. §154
 merges the OS title bar into the top bar (Notepad-style: icon, tabs,
@@ -7611,3 +7612,237 @@ live in the browser: the icon click opens Settings on "Calendar, Notes
 `svelte-check` 218/0, Vitest 354/354 (unchanged — pure UI), Playwright
 228/228 (+2 net — 2 new cases, 1 existing case extended in place),
 `cargo test` 64/64 (unchanged — pure frontend).
+
+## 174. Tab past/today/future colours went stale across a midnight rollover (#72)
+
+**Status: fixed, not yet released.**
+
+Marien: "When are colors of tabs changed? When I opened the app this
+morning, yesterday was still colored blue and today was green. When I
+looked later it was changed." (§68's colouring: today's tab gets the
+accent border colour, a future-dated tab is tinted `--state-ok` green,
+a past one is dimmed.)
+
+Root cause: `TopBar.svelte`'s `tabDateClass(tab)` called `todayISO()`
+directly inside the template's class-attribute expression. That's a
+plain function call, not a reactive dependency Svelte tracks — the
+class only actually gets *recomputed* when the surrounding template
+re-renders for some other reason (the `tabs`/`activeTabId` stores
+changing, a resize, etc.), which usually has nothing to do with the
+clock ticking past midnight. A tab left open overnight kept showing
+yesterday's colours until some unrelated interaction (switching tabs,
+typing, resizing) happened to force a re-render and pick up the new
+date — explaining exactly what Marien saw: stale on first look this
+morning, correct "when I looked later" (once *something* had
+re-rendered the bar in the meantime).
+
+Fixed with a new reactive `currentDateISO` store (`stores.ts`),
+seeded from `todayISO()` at boot and kept live by a new
+`wireDateRollover()` in `boot.ts`: a cheap 30-second interval compares
+`todayISO()` against the store's current value and updates it on a
+genuine change, and the existing §94 window-focus hook (already
+checking for drift/agenda-file changes on focus regain) now also
+re-syncs it immediately, so reopening the app after being away doesn't
+even wait out the interval. `tabDateClass(tab, today)` now takes
+`today` as a parameter instead of reading the clock itself, and the
+template passes `$currentDateISO` — a real Svelte dependency, so the
+class genuinely re-evaluates the moment the store changes. The same
+staleness bug existed one line down in the same file
+(`calendarSyncReady`'s own `>= todayISO()` gate) — fixed the same way,
+since it's the identical root cause in the identical component.
+
+New `controller.test.ts` coverage: one test drives `vi.useFakeTimers()`
+across a simulated midnight rollover and confirms the interval alone
+catches it; a second confirms the window-focus hook refreshes it
+immediately without waiting for the interval. `svelte-check` 218/0,
+Vitest 356/356 (+2), Playwright 228/228 (unchanged — the underlying
+`past`/`today`/`future` class logic itself didn't change, only when it
+re-evaluates, which a real clock rollover in a headless test run isn't
+practical to simulate through the browser), `cargo test` 64/64
+(unchanged — pure frontend). Verified live in the mock-backend dev app
+(today's tab correctly classed on load).
+
+## 175. Three shortcut-behavior fixes: Ctrl+Shift+O no longer promotes plain lines, Ctrl+Space narrowed to close/reopen only, and the Shortcuts drawer catches up (#73)
+
+**Status: fixed, not yet released.**
+
+Marien filed #73 with three related pieces of feedback on last
+release's #69/#70 work:
+
+> Ctrl+Shift+O should not convert empty lines into action. right now it
+> looks wired to Ctrl+1, which should do that, but Ctrl+Shift+O should
+> not.
+> The latest shortcuts that have been added and changed are not
+> reflected on the Shortcuts & Symbols drawer.
+> Use Ctrl+Space just for closing an open item. The other states can be
+> done via Ctrl+1/2/3/4.
+
+**Part 1 — Ctrl+Shift+O.** Confirmed exactly as described:
+`EditorPane.svelte`'s `Mod-Shift-o` binding called the very same
+`applyActionStateToSelection(v, "#")` as `Mod-1`, so it inherited
+#69/#70's plain-line promotion even though that was never the point of
+#65 (which predates #69 entirely). Un-shared: `tokens.ts`'s
+`setActionSymbolOpen` — previously just a thin `setActionSymbolTo(line,
+"#")` wrapper that inherited the promotion — now calls
+`replaceActionSymbol` directly with no `createAs`, restoring #65's
+original "only touch lines that already have a state" contract.
+`applyActionStateToSelection` was generalized to take a per-line
+transform function instead of a fixed target symbol, so `Ctrl+Shift+O`
+passes `setActionSymbolOpen` (no promotion) while `Ctrl+1`-`4` keep
+passing `(line) => setActionSymbolTo(line, symbol)` (promotes, as
+before).
+
+**Part 2 — Shortcuts drawer.** `ShortcutsModal.svelte`'s `rows` array
+is a hand-maintained list of ids into the shared `shortcuts.ts`
+registry — and it had simply never been updated for `markSelectionOpen`
+(#65), `setActionOpen`/`setActionDone`/`setActionDeferred`/
+`setActionWontDo` (#70), or `copyToNextOccurrence` (#66), even though
+all five were already correctly registered in `shortcuts.ts` itself (so
+`Ctrl+Shift+O`'s tooltip and the command palette already knew about it
+— only this one drawer's static list had drifted). Added all five in
+sensible positions, and reworded the "Click a glyph" row and the
+consequence-action glyph-legend entry (both of which referenced
+`cycleLineState`'s shortcut text) since that shortcut's own meaning
+changed in Part 3 below.
+
+**Part 3 — Ctrl+Space.** Confirmed the redesign with Marien
+(AskUserQuestion) before implementing, since it's a real behavior
+change to an already-shipped shortcut: Ctrl+Space (and its Mac-only
+`Ctrl+Enter` twin) drops the four-state cycle and the #69 plain-line
+promotion entirely, narrowing to one single job — close an *open* line
+to done (`# → v`); everything else (a deferred/won't-do/already-done/
+plain line) is now a no-op. The reverse binding (`Ctrl+Shift+Space` /
+`Ctrl+Shift+Enter`) mirrors it: reopen a *done* line to open (`v → #`),
+also a no-op on anything else. Every other state transition (including
+reopening any line, from any state) already has a dedicated shortcut in
+Ctrl+1-4, so there's no gap left by dropping the cycle — the point,
+per Marien's own framing, was narrowing scope, not removing
+capability. New `tokens.ts` functions `closeOpenAction`/
+`reopenDoneAction`, sharing a new `matchActionSymbol` helper (extracted
+from `replaceActionSymbol`, which every existing transform still uses)
+that both `cycleActionSymbol`/`setActionSymbolTo`/`setActionSymbolOpen`
+and these two new functions build on. `cycleActionSymbolOrCreate`
+(the #69 function `EditorPane.svelte`'s old `cycleLine` used) is gone
+entirely — nothing calls it once `cycleLine` was rewritten into a
+generic `applyToCurrentLine(v, transform)` taking `closeOpenAction`/
+`reopenDoneAction` directly. The Action Drawer's own, separate
+`Ctrl+Space` (`toggleActionLine` in `actions.ts`) is untouched — it has
+no direct-state shortcuts of its own and only ever operates on a line
+already known to be an action from its own snapshot, so the full cycle
+is still the only way to reach every state there.
+
+Updated tests throughout: `tokens.test.ts` (`setActionSymbolOpen`'s
+promotion tests flipped to "does NOT promote", new `closeOpenAction`/
+`reopenDoneAction` describe blocks replacing the old
+`cycleActionSymbolOrCreate` one), `editor-tokens.spec.ts` (Ctrl+Space/
+Ctrl+Shift+Space cases rewritten for close/reopen-only semantics, a new
+no-op case for deferred/won't-do/plain lines, the Ctrl+Shift+O case
+updated to confirm plain lines stay untouched), `mac-shortcuts.spec.ts`
+(the §145 Mac case rewritten around reopening a done line instead of
+"cycling backwards to won't-do"). `svelte-check` 218/0, Vitest 358/358
+(+2 net over §174's 356 — `cycleActionSymbolOrCreate`'s 3 tests
+replaced by `closeOpenAction`/`reopenDoneAction`'s 6, `setActionSymbolOpen`'s
+own block trimmed by 1), Playwright 226/226 (-2 net — several Ctrl+Space/
+Ctrl+Shift+Space cases collapsed into fewer, broader no-op cases now
+that there's less behavior to cover), `cargo test` 64/64 (unchanged —
+pure frontend). Verified live in the mock-backend dev app: Ctrl+Space closes
+an open line and is a no-op on a second press; Ctrl+Shift+Space
+reopens; Ctrl+Shift+O opens an already-done line but leaves a plain
+line alone; Ctrl+1 promotes a plain line to open; the Shortcuts drawer
+lists every current binding correctly.
+
+Also updated `website/guide.html`'s three mentions of Ctrl+Space's old
+"cycle" behavior to match (the shortcut table row, the token-legend
+row, and the workflow-step copy) — a real inaccuracy directly caused by
+this change, not a broader website audit. The guide's shortcut table
+was already missing rows for `Ctrl+Shift+O`/`Ctrl+1`-`4`/
+`Ctrl+Shift+.` *before* this session (never added when #65/#66/#70
+shipped) — flagged as a separate follow-up rather than folded into this
+fix, since that gap predates and is unrelated to #73 itself.
+
+## 176. Calendar sync excludes declined, cancelled, and forwarded meetings (#74)
+
+**Status: fixed, not yet released.**
+
+Marien: "Don't Sync meetings starting with 'Declined:', 'Cancelled:',
+or 'Following:'." — an external calendar syncer commonly stamps one of
+these prefixes onto a meeting's own title (in `.agenda.json`) to signal
+it isn't a real, attending occurrence: a declined invite, a cancelled
+meeting, or a forwarded copy of someone else's invite ("Following:" is
+Outlook's own wording for that last case). None of these should ever
+create or match a section during calendar sync.
+
+Fixed at the source, in `agenda.rs`, so both call sites that ever
+surface a title to the frontend inherit it for free: a new
+`is_excluded_title`/`EXCLUDED_TITLE_PREFIXES` filters these out inside
+`titles_for_date` (used by "Sync calendar for this day") and
+`titles_after_date` (used by #66's "copy to next occurrence" calendar
+search) — right after date-scoping, before sorting/de-duplication, so
+an excluded meeting is treated exactly as if it had never been in the
+file at all. Deliberately *not* filtered inside `parse_agenda` itself:
+that function's "is this file's raw content confirmed-good data"
+error-vs-empty distinction (§171's own module doc) is orthogonal to
+which *individual* meetings within a valid file count — filtering
+there would have also silently changed what counts as "a bare empty
+array" for a file containing only excluded meetings, which isn't what
+was asked. Match is case-sensitive and prefix-only (`title.starts_with(...)`),
+not a substring search — these are fixed, consistently-capitalized
+syncer-generated prefixes, not something a real meeting title would
+incidentally contain mid-sentence; a title like "Re: Declined: 1:1"
+(the prefix showing up after other text) is correctly left alone.
+
+`mockBackend.ts`'s `titlesForDate`/`titlesAfterDate` mirror updated
+identically, per the established "mock moves with agenda.rs" rule.
+New Rust tests (`excludes_declined_cancelled_and_following_titles_74`,
+`only_matches_the_excluded_prefixes_at_the_start_of_the_title`,
+`read_agenda_after_excludes_declined_cancelled_and_following_titles_74`)
+and a new `calendar-sync.spec.ts` e2e case confirming all three prefixes
+are excluded from the sync review step. `svelte-check` 218/0, Vitest
+358/358 (unchanged — pure Rust + mock), Playwright 227/227 (+1),
+`cargo test` 67/67 (+3).
+
+## 177. "Copy to next occurrence" no longer jumps the cursor to the top of the document (#75)
+
+**Status: fixed, not yet released.**
+
+Marien: "When doing Copy to next occurrence keep the focus on the line
+being deferred. Now it jumps to the top." — after #66's `Ctrl+Shift+.`
+copies a selection forward and marks the source's open action deferred,
+the cursor (and scroll position) landed at line 1 instead of staying on
+the line that had just changed.
+
+Root cause: `commitCopyForward()` (`copyForward.ts`) rewrites the
+source tab's content via `writeTabContent()`, which — for the active
+tab — pushes the new text into the live CodeMirror view through
+`EditorApi.setContent()`. That function dispatches a single transaction
+replacing the *entire* document (`from: 0, to: doc.length`) with no
+explicit `selection` — CodeMirror's default selection mapping for a
+change spanning the whole document collapses any prior cursor position
+to the very start of the newly-inserted content, since the whole old
+range (wherever the cursor was inside it) maps to the start of its
+one-piece replacement. This is true of every caller of `setContent`
+(also used by drift/conflict resolution, which is the correct behavior
+there — content genuinely changed out from under the user), but for
+`copySelectionToNextOccurrence`'s own case the source tab is the one
+the user is actively looking at and typing in, so losing cursor
+position there is jarring in a way it isn't for an out-of-band external
+change.
+
+Fixed narrowly in `commitCopyForward()` rather than changing
+`setContent`'s general behavior: right after the content rewrite, if
+the source tab is still the active one, `editorApi.jumpToLine(fromLine)`
+re-places the cursor at the start of the line that was just deferred.
+Safe because `deferOpenActionsInText` (§64/§82/#67) only ever swaps a
+symbol character in place — it never adds or removes lines — so
+`fromLine` (captured before the edit) still points at exactly the right
+line afterward. Both dispatches happen synchronously in the same tick,
+so there's no visible flicker between "jumped to top" and "corrected."
+
+New e2e coverage in `copy-to-next-occurrence.spec.ts`: after the copy,
+types a character and asserts it lands on the (now-deferred) third
+line rather than at the very top of the document — a black-box check
+that doesn't depend on reading CodeMirror's internal selection state
+directly. `svelte-check` 218/0, Vitest 358/358 (unchanged — pure
+editor-focus behavior, not practical to unit-test without a real
+CodeMirror view), Playwright 228/228 (+1), `cargo test` 67/67
+(unchanged — pure frontend).

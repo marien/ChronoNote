@@ -113,8 +113,11 @@ export const SHORTCUTS: ShortcutDef[] = [
   },
   {
     id: "cycleLineState",
-    label:
-      "Cycle the action state on the current line (open → done → deferred → won't-do), converting a plain line into an open action first",
+    // #73: narrowed from a full four-state cycle to just "close an open
+    // line" — every state is directly reachable via Ctrl+1-4 now, so
+    // there's no need for Ctrl+Space to cycle through (or promote a plain
+    // line into) all of them.
+    label: "Close the current line's open action (# → v, in editor)",
     combos: [
       // Ctrl+Space collides with macOS's own input-source-switcher
       // shortcut — not offered as a Mac binding at all; Cmd+Enter (below)
@@ -125,8 +128,7 @@ export const SHORTCUTS: ShortcutDef[] = [
   },
   {
     id: "cycleLineStateReverse",
-    label:
-      "Cycle the action state backwards (open → won't-do → deferred → done), converting a plain line into an open action first",
+    label: "Reopen the current line's done action (v → #, in editor)",
     combos: [
       // Same Space-avoided-on-Mac reasoning as `cycleLineState` above —
       // no Mac binding involving Space, Cmd+Shift+Enter instead.
@@ -136,7 +138,7 @@ export const SHORTCUTS: ShortcutDef[] = [
   },
   {
     id: "markSelectionOpen",
-    label: "Set every line in the selection to open, including plain lines (in editor)",
+    label: "Set every line in the selection to open (in editor)",
     combos: [{ mod: true, shift: true, code: "KeyO" }],
   },
   // #70: the same idea as markSelectionOpen, direct to each of the other

@@ -6,6 +6,7 @@
  * `./controller`. Split out of `controller.ts` in the v0.5.0 refactor so
  * that file is about what happens, not what exists. */
 import { get, writable } from "svelte/store";
+import { todayISO } from "./date";
 import type {
   ActionSnapshotItem,
   ColorMode,
@@ -38,6 +39,17 @@ export type ModalKind =
 
 export const tabs = writable<NoteTab[]>([]);
 export const activeTabId = writable<string>("");
+/** #72: today's date, kept live via `boot.ts`'s `wireDateRollover()` — a
+ * plain `todayISO()` call inside a template expression (as the top bar's
+ * past/today/future tab colouring used to do) only ever re-evaluates when
+ * *something else* Svelte is already watching changes, which usually
+ * isn't true across a midnight rollover (nothing else about the UI
+ * necessarily changes right then). Reading `$currentDateISO` instead
+ * makes "today changed" a real reactive dependency, so tab colours (and
+ * anything else date-relative) actually refresh at midnight instead of
+ * waiting for an unrelated re-render (switching tabs, resizing, typing)
+ * to happen to pick up the new date. */
+export const currentDateISO = writable<string>(todayISO());
 export const notesDir = writable<string>("");
 /** Up to 5 previously-used notes folders, most-recent-first — spec §39.
  * Maintained server-side (Rust) in `set_notes_dir`; this store just

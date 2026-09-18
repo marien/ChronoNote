@@ -190,8 +190,16 @@ function parseAgendaMeetings(raw: string | undefined): AgendaMeeting[] {
   return parsed as AgendaMeeting[];
 }
 
+/** #74: mirrors `agenda.rs`'s `EXCLUDED_TITLE_PREFIXES`/`is_excluded_title`
+ * — a declined, cancelled, or forwarded ("Following:") meeting never
+ * creates or matches a section. Case-sensitive, exact-prefix match. */
+const EXCLUDED_TITLE_PREFIXES = ["Declined:", "Cancelled:", "Following:"];
+function isExcludedTitle(title: string): boolean {
+  return EXCLUDED_TITLE_PREFIXES.some((p) => title.startsWith(p));
+}
+
 function titlesForDate(raw: string | undefined, date: string): string[] {
-  const day = parseAgendaMeetings(raw).filter((m) => m.date === date);
+  const day = parseAgendaMeetings(raw).filter((m) => m.date === date && !isExcludedTitle(m.title));
   day.sort((a, b) => a.start.localeCompare(b.start) || a.end.localeCompare(b.end) || a.title.localeCompare(b.title));
   const seen = new Set<string>();
   return day
@@ -208,7 +216,7 @@ function titlesForDate(raw: string | undefined, date: string): string[] {
  * pair for a date strictly after `afterDate`, sorted/de-duplicated the
  * same way `titlesForDate` is but scoped to a range instead of one day. */
 function titlesAfterDate(raw: string | undefined, afterDate: string): [string, string][] {
-  const future = parseAgendaMeetings(raw).filter((m) => m.date > afterDate);
+  const future = parseAgendaMeetings(raw).filter((m) => m.date > afterDate && !isExcludedTitle(m.title));
   future.sort(
     (a, b) =>
       a.date.localeCompare(b.date) ||

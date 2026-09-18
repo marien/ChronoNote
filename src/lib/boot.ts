@@ -17,6 +17,7 @@ import {
   calendarSyncEnabled,
   chromeExpanded,
   colorMode,
+  currentDateISO,
   justUpdatedToVersion,
   markTabClean,
   modal,
@@ -159,10 +160,47 @@ function wireDriftDetection() {
       // unfocused. Skip the check entirely when the feature's off or
       // unavailable, rather than a wasted read every single focus.
       if (get(calendarSyncEnabled) && get(backendKind) !== "web") void refreshAgendaFileExists();
+      // #72: also the fastest way to notice a midnight rollover that
+      // happened while the app sat unfocused — no need to wait out the
+      // rollover interval's own delay once the app is actually looked at
+      // again.
+      refreshCurrentDate();
     })
     .catch(() => {
       // No window handle — focus trigger just isn't active here.
     });
+}
+
+// --- #72: keep `currentDateISO` live across a midnight rollover --------
+//
+// A plain `todayISO()` call inside a template expression (the top bar's
+// past/today/future tab colouring, before this fix) only re-evaluates
+// when something else Svelte is already watching changes — usually not
+// true right at midnight, so a tab left open overnight kept showing
+// yesterday's colours until some unrelated interaction (switching tabs,
+// resizing) happened to force a re-render. A cheap interval catches the
+// rollover on its own; a window-focus check (piggybacking on the same
+// hook §94's drift detection already uses) also catches it the moment the
+// app is looked at again after being away, without waiting up to the
+// interval's own delay.
+
+const DATE_ROLLOVER_CHECK_MS = 30_000;
+let dateRolloverWired = false;
+
+function refreshCurrentDate() {
+  const today = todayISO();
+  if (get(currentDateISO) !== today) currentDateISO.set(today);
+}
+
+function wireDateRollover() {
+  if (dateRolloverWired) return;
+  dateRolloverWired = true;
+  // `currentDateISO`'s initial value (`stores.ts`) is only as fresh as
+  // whenever that module happened to load — normally the same instant as
+  // boot, but re-syncing explicitly here means `initApp()` never depends
+  // on that coincidence.
+  refreshCurrentDate();
+  setInterval(refreshCurrentDate, DATE_ROLLOVER_CHECK_MS);
 }
 
 /** Unsaved-scratchpads gate, "close" context: Cancel — stay in the app. */
@@ -313,6 +351,7 @@ export async function initApp() {
   wireWindowTitleSync();
   wireCloseBarrier();
   wireDriftDetection();
+  wireDateRollover();
   const cfg = await api.getConfig();
   notesDir.set(cfg.notesDir);
   recentNotesDirs.set(cfg.recentNotesDirs);

@@ -4,7 +4,8 @@ import {
   countWords,
   innermostActionSymbol,
   cycleActionSymbol,
-  cycleActionSymbolOrCreate,
+  closeOpenAction,
+  reopenDoneAction,
   setActionSymbolOpen,
   setActionSymbolTo,
   openActionLineIndices,
@@ -206,7 +207,7 @@ describe("cycleActionSymbol", () => {
   });
 });
 
-describe("setActionSymbolOpen (#65)", () => {
+describe("setActionSymbolOpen (#65/#73)", () => {
   it("forces v / > / x straight to # without cycling through the order", () => {
     expect(setActionSymbolOpen("v Buy milk")).toBe("# Buy milk");
     expect(setActionSymbolOpen("> Buy milk")).toBe("# Buy milk");
@@ -226,23 +227,19 @@ describe("setActionSymbolOpen (#65)", () => {
     expect(setActionSymbolOpen("Some prose first => > then this")).toBe("Some prose first => # then this");
   });
 
-  it("#69: promotes a plain follow-up or plain text into an open action", () => {
-    expect(setActionSymbolOpen("Talked to Sam => let's regroup")).toBe("Talked to Sam => # let's regroup");
-    expect(setActionSymbolOpen("just prose")).toBe("# just prose");
-    expect(setActionSymbolOpen("  indented prose")).toBe("  # indented prose");
+  it("#73: does NOT promote a plain follow-up or plain text — Ctrl+Shift+O drifted into sharing Ctrl+1's promotion and this un-shares it", () => {
+    expect(setActionSymbolOpen("Talked to Sam => let's regroup")).toBeNull();
+    expect(setActionSymbolOpen("just prose")).toBeNull();
+    expect(setActionSymbolOpen("  indented prose")).toBeNull();
   });
 
-  it("#69: still returns null for a delegated line, a bullet, or emphasis — never promoted", () => {
+  it("returns null for a delegated line, a bullet, emphasis, or a bare setext underline", () => {
     expect(setActionSymbolOpen("Talked to Sam => @alice")).toBeNull();
     expect(setActionSymbolOpen("- a bullet")).toBeNull();
     expect(setActionSymbolOpen("* a bullet")).toBeNull();
     expect(setActionSymbolOpen("! remember this")).toBeNull();
-    expect(setActionSymbolOpen("=> ")).toBeNull(); // empty follow-up, nothing to promote
-  });
-
-  it("#69: a bare setext underline is never promoted either, not just the title line above it", () => {
+    expect(setActionSymbolOpen("=> ")).toBeNull();
     expect(setActionSymbolOpen("====")).toBeNull();
-    expect(setActionSymbolOpen("===========")).toBeNull();
   });
 });
 
@@ -260,22 +257,40 @@ describe("setActionSymbolTo (#70)", () => {
   });
 });
 
-describe("cycleActionSymbolOrCreate (#69)", () => {
-  it("cycles an existing action symbol exactly like cycleActionSymbol", () => {
-    expect(cycleActionSymbolOrCreate("# Buy milk")).toBe("v Buy milk");
-    expect(cycleActionSymbolOrCreate("x Buy milk", -1)).toBe("> Buy milk");
+describe("closeOpenAction (#73)", () => {
+  it("closes an open line to done", () => {
+    expect(closeOpenAction("# Buy milk")).toBe("v Buy milk");
   });
 
-  it("promotes a plain line or bare follow-up into a fresh open action, regardless of direction", () => {
-    expect(cycleActionSymbolOrCreate("just prose")).toBe("# just prose");
-    expect(cycleActionSymbolOrCreate("just prose", -1)).toBe("# just prose");
-    expect(cycleActionSymbolOrCreate("Talked to Sam => let's regroup")).toBe("Talked to Sam => # let's regroup");
+  it("preserves indentation and a consequence-action's prefix", () => {
+    expect(closeOpenAction("  # Nested")).toBe("  v Nested");
+    expect(closeOpenAction("Talked to Sam => # follow up")).toBe("Talked to Sam => v follow up");
   });
 
-  it("still leaves a delegated line, a bullet, or emphasis alone", () => {
-    expect(cycleActionSymbolOrCreate("Talked to Sam => @alice")).toBeNull();
-    expect(cycleActionSymbolOrCreate("- a bullet")).toBeNull();
-    expect(cycleActionSymbolOrCreate("! remember this")).toBeNull();
+  it("is a no-op for anything not currently open: done, deferred, won't-do, or plain text", () => {
+    expect(closeOpenAction("v Buy milk")).toBeNull();
+    expect(closeOpenAction("> Buy milk")).toBeNull();
+    expect(closeOpenAction("x Buy milk")).toBeNull();
+    expect(closeOpenAction("just prose")).toBeNull();
+    expect(closeOpenAction("Talked to Sam => let's regroup")).toBeNull();
+  });
+});
+
+describe("reopenDoneAction (#73)", () => {
+  it("reopens a done line to open", () => {
+    expect(reopenDoneAction("v Buy milk")).toBe("# Buy milk");
+  });
+
+  it("preserves indentation and a consequence-action's prefix", () => {
+    expect(reopenDoneAction("  v Nested")).toBe("  # Nested");
+    expect(reopenDoneAction("Talked to Sam => v follow up")).toBe("Talked to Sam => # follow up");
+  });
+
+  it("is a no-op for anything not currently done: open, deferred, won't-do, or plain text", () => {
+    expect(reopenDoneAction("# Buy milk")).toBeNull();
+    expect(reopenDoneAction("> Buy milk")).toBeNull();
+    expect(reopenDoneAction("x Buy milk")).toBeNull();
+    expect(reopenDoneAction("just prose")).toBeNull();
   });
 });
 

@@ -25,10 +25,16 @@
     "undoRedo",
     "cycleLineState",
     "cycleLineStateReverse",
-    ["Click a glyph", "Same cycle, on that line (hover previews the next state)"],
+    ["Click a glyph", "Cycle that line's full action state (open → done → deferred → won't-do); hover previews the next state"],
+    "markSelectionOpen",
+    "setActionOpen",
+    "setActionDone",
+    "setActionDeferred",
+    "setActionWontDo",
     "jumpAction",
     "caretLineNav",
     "convertToSection",
+    "copyToNextOccurrence",
     "openActions",
     "openHistory",
     "findInNote",
@@ -117,8 +123,9 @@
         <div class="modal-item" style="cursor: default;">
           <div class="modal-item-main">
             <span
-              >Consequence-action — a follow-up with its own open/done/deferred/won't-do state, cycled with
-              {formatShortcut("cycleLineState")}</span
+              >Consequence-action — a follow-up with its own open/done/deferred/won't-do state, changed the same
+              way as any action line (click its glyph to cycle, or
+              {formatShortcut("setActionOpen").replace(/1$/, "1-4")} to set it directly)</span
             >
           </div>
           <div class="item-tag">

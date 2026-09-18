@@ -133,6 +133,22 @@ async function commitCopyForward(
   list = writeTabContent(sourceTabId, newSrcLines.join("\n"), list);
   tabs.set(list);
 
+  // #75: `writeTabContent` pushes the new text into the live editor via a
+  // full-document replace (`EditorApi.setContent`) — CodeMirror's default
+  // selection mapping for a change spanning the *entire* document
+  // collapses the old cursor to the very start of the new content, so
+  // without this the cursor (and the scroll position with it) jumped to
+  // line 1 instead of staying on the line that just got marked deferred.
+  // `deferOpenActionsInText` only ever swaps a symbol character, never
+  // adds/removes lines, so `fromLine` is still exactly where the deferred
+  // content landed. Only matters when the source is the active tab
+  // (always true from `copySelectionToNextOccurrence`'s own entry point,
+  // but `resolveCopyForwardPending` could in principle run after the user
+  // switched tabs while the date picker was open).
+  if (sourceTabId === get(activeTabId) && editorApi) {
+    editorApi.jumpToLine(fromLine);
+  }
+
   const n = countOpenActionsInText(selectedText);
   showToast(
     n > 0

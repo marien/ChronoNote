@@ -1655,6 +1655,32 @@ describe("initApp", () => {
     expect(apiMock.readAllNotes).toHaveBeenCalled(); // the background warm was still kicked off
     vi.useRealTimers();
   });
+
+  it("#72: currentDateISO refreshes on its own interval, catching a midnight rollover while the window stays open", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(2026, 8, 15, 23, 59, 50));
+    apiMock.readTabSession.mockResolvedValue(null);
+    await controller.initApp();
+    expect(get(controller.currentDateISO)).toBe("2026-09-15");
+
+    vi.setSystemTime(new Date(2026, 8, 16, 0, 0, 5)); // rolled over to the next day
+    vi.advanceTimersByTime(30_000);
+    expect(get(controller.currentDateISO)).toBe("2026-09-16");
+    vi.useRealTimers();
+  });
+
+  it("#72: currentDateISO also refreshes the instant the window regains focus, without waiting for the interval", async () => {
+    vi.setSystemTime(new Date(2026, 8, 15));
+    apiMock.readTabSession.mockResolvedValue(null);
+    await controller.initApp();
+    expect(get(controller.currentDateISO)).toBe("2026-09-15");
+
+    vi.setSystemTime(new Date(2026, 8, 16));
+    const onFocusChanged = tauriWindowMock.onFocusChanged.mock.calls[0][0];
+    onFocusChanged({ payload: true });
+    expect(get(controller.currentDateISO)).toBe("2026-09-16");
+    vi.useRealTimers();
+  });
 });
 
 describe("modal open/close helpers", () => {

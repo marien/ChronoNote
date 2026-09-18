@@ -71,73 +71,51 @@ test.describe("editor — token glyphs", () => {
     await expect(editor(page).locator(".cm-line").nth(2).locator(".glyph-topic")).toHaveCount(0);
   });
 
-  test("Ctrl+Space cycles the action symbol # -> v -> > -> x -> #", async ({ page }) => {
+  test("#73: Ctrl+Space closes an open line to done, and does nothing more (no cycling)", async ({ page }) => {
     await typeInEditor(page, "# a task");
-    const line = editor(page).locator(".cm-line").first();
-
-    for (const cls of ["glyph-done", "glyph-progress", "glyph-cancelled", "glyph-open"]) {
-      await page.keyboard.press("Control+Space");
-      await expect(line.locator(`.${cls}`)).toHaveCount(1);
-    }
-    expect(await activeTabContent(page)).toBe("# a task");
+    await page.keyboard.press("Control+Space");
+    await expect(editor(page).locator(".glyph-done")).toHaveCount(1);
+    expect(await activeTabContent(page)).toBe("v a task");
+    // pressing it again on an already-done line is a no-op
+    await page.keyboard.press("Control+Space");
+    expect(await activeTabContent(page)).toBe("v a task");
   });
 
-  test("Ctrl/Cmd+Enter cycles the action state too (§106)", async ({ page }) => {
+  test("#73: Ctrl/Cmd+Enter is the same close action as Ctrl+Space (§106)", async ({ page }) => {
     await typeInEditor(page, "# a task");
     await page.keyboard.press("ControlOrMeta+Enter");
     await expect(editor(page).locator(".glyph-done")).toHaveCount(1);
     expect(await activeTabContent(page)).toBe("v a task");
   });
 
-  test("Ctrl+Shift+Space cycles backwards: # -> x -> > -> v -> # (§145)", async ({ page }) => {
-    await typeInEditor(page, "# a task");
-    const line = editor(page).locator(".cm-line").first();
-
-    for (const cls of ["glyph-cancelled", "glyph-progress", "glyph-done", "glyph-open"]) {
-      await page.keyboard.press("Control+Shift+Space");
-      await expect(line.locator(`.${cls}`)).toHaveCount(1);
-    }
+  test("#73: Ctrl+Shift+Space reopens a done line, and does nothing more (§145)", async ({ page }) => {
+    await typeInEditor(page, "v a task");
+    await page.keyboard.press("Control+Shift+Space");
+    await expect(editor(page).locator(".glyph-open")).toHaveCount(1);
+    expect(await activeTabContent(page)).toBe("# a task");
+    // pressing it again on an already-open line is a no-op
+    await page.keyboard.press("Control+Shift+Space");
     expect(await activeTabContent(page)).toBe("# a task");
   });
 
-  test("Ctrl/Cmd+Shift+Enter cycles backwards too (§145)", async ({ page }) => {
-    await typeInEditor(page, "# a task");
+  test("#73: Ctrl/Cmd+Shift+Enter is the same reopen action as Ctrl+Shift+Space (§145)", async ({ page }) => {
+    await typeInEditor(page, "v a task");
     await page.keyboard.press("ControlOrMeta+Shift+Enter");
-    await expect(editor(page).locator(".glyph-cancelled")).toHaveCount(1);
-    expect(await activeTabContent(page)).toBe("x a task");
-  });
-
-  test("#69: Ctrl+Space converts a plain line into an open action instead of doing nothing", async ({ page }) => {
-    await typeInEditor(page, "just a plain note");
-    await page.keyboard.press("Home");
-    await page.keyboard.press("Control+Space");
     await expect(editor(page).locator(".glyph-open")).toHaveCount(1);
-    expect(await activeTabContent(page)).toBe("# just a plain note");
+    expect(await activeTabContent(page)).toBe("# a task");
   });
 
-  test("#69: Ctrl+Space converts a plain follow-up into an open consequence-action", async ({ page }) => {
-    await typeInEditor(page, "Talked to Sam => let's regroup");
-    await page.keyboard.press("Home");
-    await page.keyboard.press("Control+Space");
-    await expect(editor(page).locator(".glyph-open")).toHaveCount(1);
-    expect(await activeTabContent(page)).toBe("Talked to Sam => # let's regroup");
-  });
-
-  test("#69: Ctrl+Space leaves a bullet, emphasis, delegated line, or section header alone", async ({ page }) => {
-    await setEditorText(
-      page,
-      "- a bullet\n! remember this\n=> @dana do the thing\nWeekly Sync\n===========",
-    );
-    for (let i = 0; i < 4; i++) {
+  test("#73: Ctrl+Space and Ctrl+Shift+Space are no-ops on deferred, won't-do, or plain lines", async ({ page }) => {
+    await setEditorText(page, "> deferred\nx wont do\njust prose");
+    for (let i = 0; i < 3; i++) {
       await editor(page).click();
       await page.keyboard.press("ControlOrMeta+Home");
       for (let j = 0; j < i; j++) await page.keyboard.press("ArrowDown");
       await page.keyboard.press("Home");
       await page.keyboard.press("Control+Space");
+      await page.keyboard.press("Control+Shift+Space");
     }
-    expect(await activeTabContent(page)).toBe(
-      "- a bullet\n! remember this\n=> @dana do the thing\nWeekly Sync\n===========",
-    );
+    expect(await activeTabContent(page)).toBe("> deferred\nx wont do\njust prose");
   });
 
   test("#70: Ctrl+1/2/3/4 set the current line directly to open/done/deferred/won't-do", async ({ page }) => {
@@ -168,7 +146,7 @@ test.describe("editor — token glyphs", () => {
     expect(await activeTabContent(page)).toBe("> first\n> plain\n> second");
   });
 
-  test("#65/#69: Ctrl/Cmd+Shift+O marks every line as open, including plain ones, but leaves a section header alone", async ({
+  test("#65/#73: Ctrl/Cmd+Shift+O marks every already-actioned line as open, but does NOT promote plain lines or a section header", async ({
     page,
   }) => {
     await setEditorText(
@@ -180,19 +158,19 @@ test.describe("editor — token glyphs", () => {
     await page.keyboard.press("ControlOrMeta+Shift+O");
 
     expect(await activeTabContent(page)).toBe(
-      "# done\n# plain text\nTalked to Sam => # follow up\n# deferred\nSection\n========",
+      "# done\nplain text\nTalked to Sam => # follow up\n# deferred\nSection\n========",
     );
   });
 
-  test("#65: a true no-op selection (only bullets, emphasis, and a section header) leaves the document untouched", async ({
+  test("#65: a true no-op selection (bullets, emphasis, plain text, and a section header) leaves the document untouched", async ({
     page,
   }) => {
-    await setEditorText(page, "- a bullet\n! remember this\nSection\n========");
+    await setEditorText(page, "- a bullet\n! remember this\nplain text\nSection\n========");
     await editor(page).click();
     await page.keyboard.press("ControlOrMeta+A");
     await page.keyboard.press("ControlOrMeta+Shift+O");
 
-    expect(await activeTabContent(page)).toBe("- a bullet\n! remember this\nSection\n========");
+    expect(await activeTabContent(page)).toBe("- a bullet\n! remember this\nplain text\nSection\n========");
   });
 
   test("#34: hovering a cyclable glyph previews the next state, then reverts", async ({ page }) => {

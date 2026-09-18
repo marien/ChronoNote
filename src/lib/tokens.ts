@@ -119,12 +119,16 @@ export function actionLineEnter(lineText: string): { removeSymbol: true } | { in
   return null;
 }
 
-/** The action-cycle logic (§40: `# → v → > → x → #`, or reversed with
- * `direction: -1`, §145) behind `Ctrl+Space`/`Ctrl/Cmd+Enter` (and their
- * `Ctrl/Cmd+Shift+Space`/`Ctrl/Cmd+Shift+Enter` reverse counterparts) in
- * the editor, and `Ctrl+Space`/`Ctrl+Shift+Space` in the Action Drawer,
- * shared between the two (`EditorPane.svelte` and `toggleActionLine` in
- * `actions.ts`) so they can't drift apart.
+/** The action-cycle logic (§40: `# → v → > → x → #`) behind `Ctrl+Space`/
+ * `Ctrl+Shift+Space` in the Action Drawer (`toggleActionLine` in
+ * `actions.ts`) — the editor's own `Ctrl+Space`/`Ctrl+Enter` used to share
+ * this too, but #73 narrowed those to `closeOpenAction`/`reopenDoneAction`
+ * below (a plain two-state close/reopen, not a four-state cycle), since
+ * every state is now directly reachable via `Ctrl+1`-`4`. The Action
+ * Drawer keeps the full cycle — it has no direct-state shortcuts of its
+ * own, and only ever operates on a line already known to be an action
+ * from its own snapshot, so cycling through all four states is still the
+ * only way to reach won't-do/deferred there.
  * Handles both a plain (optionally indented, §50) action line and a
  * `=> <symbol>` consequence-action (§41), cycling only the symbol itself
  * and preserving everything else (indentation, the `=> ` prefix, the rest
@@ -144,28 +148,11 @@ export function cycleActionSymbol(line: string, direction: 1 | -1 = 1): string |
   return replaceActionSymbol(line, (sym) => nextCycleSymbol(sym, direction));
 }
 
-/** #69: like `cycleActionSymbol`, but a line with no action symbol at all
- * still cycles — into a fresh open action, the same "tasks start open"
- * rule `actionLineEnter` already follows, regardless of which direction
- * was pressed (there's no real "previous state" to land on when there
- * wasn't a state at all yet). A separate function rather than changed
- * default behavior: only the editor's own `Ctrl+Space`/`Ctrl+Enter`
- * (`EditorPane.svelte`'s `cycleLine`) uses this — the Action Drawer's
- * identically-shaped `Ctrl+Space` (`toggleActionLine` in `actions.ts`)
- * keeps calling plain `cycleActionSymbol`, since it only ever operates
- * on a line already known to be an action from its own snapshot;
- * promoting arbitrary text there wouldn't correspond to anything the
- * user could see or have asked for. */
-export function cycleActionSymbolOrCreate(line: string, direction: 1 | -1 = 1): string | null {
-  return replaceActionSymbol(line, (sym) => nextCycleSymbol(sym, direction), "#");
-}
-
 /** #65/#70: forces a line's action symbol straight to `symbol`, instead
  * of stepping through the cycle — used by the "mark selection as <state>"
- * shortcuts (`Ctrl/Cmd+Shift+O` for open, `Ctrl/Cmd+1`-`4` for each
- * state directly), which apply this per line rather than
- * `cycleActionSymbol` since a multi-line selection can start from any
- * state (or a mix of them) and the point is to land on one state
+ * shortcuts (`Ctrl/Cmd+1`-`4`, one per state), which apply this per line
+ * rather than `cycleActionSymbol` since a multi-line selection can start
+ * from any state (or a mix of them) and the point is to land on one state
  * deterministically, not to advance each line by one step. Same line-
  * shape contract as `cycleActionSymbol` (plain leading symbol or
  * `=> <symbol>` consequence-action, §41) — including #69's promotion of
@@ -178,46 +165,89 @@ export function setActionSymbolTo(line: string, symbol: "#" | "v" | ">" | "x"): 
   return replaceActionSymbol(line, () => symbol, symbol);
 }
 
-/** #65: kept as its own name for the shortcut that shipped under it —
- * equivalent to `setActionSymbolTo(line, "#")`. */
+/** #65/#73: `Ctrl/Cmd+Shift+O` — sets every line in the selection to open,
+ * *without* #69's promotion of a plain line into a new action (unlike
+ * `Ctrl+1`, which shares the exact same target state but does promote).
+ * Marien: Ctrl+Shift+O had drifted into being wired identically to
+ * Ctrl+1, including that promotion, which wasn't the point of either
+ * #65 (predates #69) or of having two separate shortcuts at all — this
+ * restores #65's original "only touch lines that already have a state"
+ * contract. Same line-shape matching as `cycleActionSymbol` (no
+ * `createAs`), so a plain line, bullet, emphasis, delegated follow-up, or
+ * the setext underline itself all correctly return `null`. */
 export function setActionSymbolOpen(line: string): string | null {
-  return setActionSymbolTo(line, "#");
+  return replaceActionSymbol(line, () => "#");
+}
+
+/** #73: Ctrl+Space's sole remaining job now that Ctrl+1-4 cover every
+ * state directly — close an *open* action (`# → v`). No-op (`null`) for
+ * anything else: a deferred/won't-do/already-done line, a plain line, a
+ * bullet, emphasis, or a delegated follow-up. No more cycling through all
+ * four states, and no more promoting a plain line into a new action —
+ * that's `Ctrl+1`'s job now (`setActionSymbolTo`). */
+export function closeOpenAction(line: string): string | null {
+  const m = matchActionSymbol(line);
+  return m && m.sym === "#" ? m.rebuild("v") : null;
+}
+
+/** #73: the reverse binding's sole job — reopen a *done* action
+ * (`v → #`), the mirror of `closeOpenAction`. No-op for anything else,
+ * including a deferred/won't-do/open/plain line — `Ctrl+1` already
+ * reopens any line directly, so this only needs to handle its one literal
+ * inverse. */
+export function reopenDoneAction(line: string): string | null {
+  const m = matchActionSymbol(line);
+  return m && m.sym === "v" ? m.rebuild("#") : null;
 }
 
 /** Shared line-matching for the symbol transforms above — a plain
  * (optionally indented, §50) leading action symbol, or a `=> <symbol>`
  * consequence-action (§41) anywhere on the line (not anchored to the
- * start — "Talked to Sam => # follow up" must still match).
- *
- * #69: when neither shape is present, `createAs` (if given) promotes the
- * line into an action instead of leaving it alone — "Ctrl+Space (or a
- * direct state shortcut) converts a non-action line into an action
- * line." Two promotable shapes: a `=> text` follow-up with no state of
- * its own gets `createAs` inserted right after the arrow (`=> text` →
- * `=> # text`); anything else with no recognized token at all (no
- * bullet, no emphasis, no follow-up/delegate) gets `createAs` prepended
- * as a fresh leading symbol. Left alone regardless of `createAs`: a
- * bullet (`- `/`* `) or emphasis (`! `) line — their own, equally
- * deliberate structural tokens, not "actions waiting to happen" — and a
- * `=> @name` delegated line, whose whole point is having no state of its
- * own (§41's "mutually exclusive with delegating to a person") — and the
- * setext `====` underline itself. A section-header *title* line (the one
- * above the underline) has no way to be recognized from a single line in
- * isolation — callers with document context (`EditorPane.svelte`) check
- * that themselves and skip the line entirely before ever calling this.
- * Omitting `createAs` restores the original "leave it alone" behavior,
- * for any future caller that shouldn't promote plain lines. */
-function replaceActionSymbol(line: string, next: (sym: string) => string, createAs?: string): string | null {
+ * start — "Talked to Sam => # follow up" must still match). Returns the
+ * matched symbol plus a `rebuild` closure that swaps in a new one while
+ * preserving everything else (indentation, the `=> ` prefix, the rest of
+ * the line) — shared by every caller that needs to *inspect* the current
+ * symbol before deciding whether/how to change it (`closeOpenAction`/
+ * `reopenDoneAction`), not just blindly transform it the way
+ * `replaceActionSymbol` below does. */
+function matchActionSymbol(line: string): { sym: string; rebuild: (newSym: string) => string } | null {
   const delegateMatch = line.match(/^(.*=>\s)([#vx>])(\s.*)$/);
   if (delegateMatch) {
     const [, prefix, sym, rest] = delegateMatch;
-    return prefix + next(sym) + rest;
+    return { sym, rebuild: (newSym) => prefix + newSym + rest };
   }
   const plainMatch = line.match(/^(\s*)([#vx>])(\s.*)$/);
   if (plainMatch) {
     const [, indent, sym, rest] = plainMatch;
-    return indent + next(sym) + rest;
+    return { sym, rebuild: (newSym) => indent + newSym + rest };
   }
+  return null;
+}
+
+/** #69: when neither shape `matchActionSymbol` recognizes is present,
+ * `createAs` (if given) promotes the line into an action instead of
+ * leaving it alone — "a direct state shortcut converts a non-action line
+ * into an action line." Two promotable shapes: a `=> text` follow-up with
+ * no state of its own gets `createAs` inserted right after the arrow
+ * (`=> text` → `=> # text`); anything else with no recognized token at
+ * all (no bullet, no emphasis, no follow-up/delegate) gets `createAs`
+ * prepended as a fresh leading symbol. Left alone regardless of
+ * `createAs`: a bullet (`- `/`* `) or emphasis (`! `) line — their own,
+ * equally deliberate structural tokens, not "actions waiting to happen"
+ * — and a `=> @name` delegated line, whose whole point is having no
+ * state of its own (§41's "mutually exclusive with delegating to a
+ * person") — and the setext `====` underline itself. A section-header
+ * *title* line (the one above the underline) has no way to be recognized
+ * from a single line in isolation — callers with document context
+ * (`EditorPane.svelte`) check that themselves and skip the line entirely
+ * before ever calling this. Omitting `createAs` restores the original
+ * "leave it alone" behavior, for any caller that shouldn't promote plain
+ * lines (`cycleActionSymbol`, `setActionSymbolOpen`,
+ * `closeOpenAction`/`reopenDoneAction`, all via `matchActionSymbol`
+ * directly instead of this function). */
+function replaceActionSymbol(line: string, next: (sym: string) => string, createAs?: string): string | null {
+  const m = matchActionSymbol(line);
+  if (m) return m.rebuild(next(m.sym));
   if (createAs === undefined) return null;
   const followMatch = line.match(/^(.*=>\s)(?!@)(\S.*)$/);
   if (followMatch) {

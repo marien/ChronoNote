@@ -36,6 +36,39 @@ test.describe("copy to next occurrence (#66)", () => {
       .toBe("Weekly Sync\n============\n- prior notes\n\n# renew the TLS cert");
   });
 
+  test("#75: keeps the cursor on the line just marked deferred, instead of jumping to the top of the document", async ({
+    page,
+  }) => {
+    await seedApp(page, {
+      seed: {
+        notes: {
+          "2026-09-01.txt": "Weekly Sync\n============\n# renew the TLS cert",
+          "2026-09-08.txt": "Weekly Sync\n============\n- prior notes",
+        },
+        session: { openTabs: ["2026-09-01.txt", "2026-09-08.txt"], activeTab: "2026-09-01.txt" },
+      },
+    });
+
+    await editor(page).click();
+    await page.keyboard.press("ControlOrMeta+Home");
+    await page.keyboard.press("ArrowDown");
+    await page.keyboard.press("ArrowDown"); // onto "# renew the TLS cert"
+    await page.keyboard.press("Home");
+    await page.keyboard.press("Shift+End");
+    await page.keyboard.press("ControlOrMeta+Shift+Period");
+
+    await expect.poll(() => mockNote(page, "2026-09-01.txt")).toBe("Weekly Sync\n============\n> renew the TLS cert");
+
+    // Typing right after the copy should land on the (now-deferred) third
+    // line — before the fix, the full-document content push reset the
+    // cursor to the very start of the document, so this would have landed
+    // in front of "Weekly Sync" instead.
+    await page.keyboard.type("X");
+    await expect
+      .poll(() => mockNote(page, "2026-09-01.txt"))
+      .toBe("Weekly Sync\n============\nX> renew the TLS cert");
+  });
+
   test("nothing found (no calendar, nothing on disk) prompts for a date; picking one creates the file and section", async ({
     page,
   }) => {

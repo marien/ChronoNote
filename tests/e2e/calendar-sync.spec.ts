@@ -137,6 +137,30 @@ test.describe("calendar sync: file-based agenda", () => {
     await expect(page.locator("#stat-message")).toContainText("missing, empty, or invalid");
   });
 
+  // #74: an external syncer stamps these prefixes onto a meeting's own
+  // title to mean "not a real, attending occurrence" — a declined invite,
+  // a cancelled meeting, or a forwarded copy of someone else's invite.
+  // None of them should ever reach the review step at all.
+  test("#74: declined, cancelled, and forwarded meetings are excluded from the sync review", async ({ page }) => {
+    await seedApp(page, {
+      seed: {
+        ...scenario("empty"),
+        calendarSyncEnabled: true,
+        agendaJson: JSON.stringify([
+          { date: today, start: "09:00", end: "09:30", title: "Standup" },
+          { date: today, start: "10:00", end: "10:30", title: "Declined: 1:1" },
+          { date: today, start: "11:00", end: "11:30", title: "Cancelled: All Hands" },
+          { date: today, start: "12:00", end: "12:30", title: "Following: Design Review" },
+        ]),
+      },
+    });
+    await page.getByTitle("Sync calendar for this day", { exact: false }).click();
+    await expect(page.getByText("Standup", { exact: true })).toBeVisible();
+    await expect(page.getByText(/Declined:/)).not.toBeVisible();
+    await expect(page.getByText(/Cancelled:/)).not.toBeVisible();
+    await expect(page.getByText(/Following:/)).not.toBeVisible();
+  });
+
   // Real bug report, 2026-09-15: unchecking a meeting in the review step
   // silently did nothing when its agenda-file title had stray whitespace
   // (plausible from a real calendar export) — `confirmCalendarSync`

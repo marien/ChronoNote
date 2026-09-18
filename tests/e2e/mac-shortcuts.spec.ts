@@ -63,7 +63,7 @@ test.describe("Mac keyboard shortcuts — Cmd works, Ctrl doesn't", () => {
     await expect(modalCard(page, MODAL_LABELS.actions)).toBeVisible();
   });
 
-  test("editor-level Cmd+Enter cycles the action state; Ctrl+Space does nothing (OS-reserved on Mac)", async ({
+  test("editor-level Cmd+Enter closes an open action; Ctrl+Space does nothing (OS-reserved on Mac)", async ({
     page,
   }) => {
     await emulateMac(page);
@@ -80,18 +80,18 @@ test.describe("Mac keyboard shortcuts — Cmd works, Ctrl doesn't", () => {
     await expect(editor(page).locator(".glyph-done")).toHaveCount(1);
   });
 
-  test("§145: Cmd+Shift+Enter cycles backwards; Ctrl+Shift+Space does nothing on Mac", async ({ page }) => {
+  test("§145/#73: Cmd+Shift+Enter reopens a done line; Ctrl+Shift+Space does nothing on Mac", async ({ page }) => {
     await emulateMac(page);
     await seedApp(page, { seed: { notes: {}, session: null } });
     await editor(page).click();
-    await page.keyboard.type("# a task");
+    await page.keyboard.type("v a task");
     await page.keyboard.press("Home");
 
     await page.keyboard.press("Control+Shift+Space");
-    await expect(editor(page).locator(".glyph-open")).toHaveCount(1); // unchanged
+    await expect(editor(page).locator(".glyph-done")).toHaveCount(1); // unchanged — not bound on Mac
 
     await page.keyboard.press("Meta+Shift+Enter");
-    await expect(editor(page).locator(".glyph-cancelled")).toHaveCount(1); // # -> x, the reverse step
+    await expect(editor(page).locator(".glyph-open")).toHaveCount(1); // v -> #, reopened
   });
 
   test("Shortcuts drawer shows Cmd, not Ctrl, and drops the Windows/Linux-only caret-nav row", async ({ page }) => {

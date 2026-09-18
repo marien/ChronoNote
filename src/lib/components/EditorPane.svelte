@@ -12,8 +12,10 @@
   import {
     actionLineEnter,
     adjacentOpenActionLine,
-    cycleActionSymbolOrCreate,
+    closeOpenAction,
     isSetextUnderline,
+    reopenDoneAction,
+    setActionSymbolOpen,
     setActionSymbolTo,
   } from "../tokens";
   import * as controller from "../controller";
@@ -135,28 +137,35 @@
     return lineNumber < v.state.doc.lines && isSetextUnderline(v.state.doc.line(lineNumber + 1).text);
   }
 
-  function cycleLine(v: EditorView, direction: 1 | -1 = 1): boolean {
+  /** #73: applies `transform` to the current line only — used for
+   * Ctrl+Space's close/reopen pair, which (unlike `applyActionStateToSelection`
+   * below) never touches more than one line at a time and never promotes
+   * a plain line into a new action. */
+  function applyToCurrentLine(v: EditorView, transform: (line: string) => string | null): boolean {
     const pos = v.state.selection.main.head;
     const line = v.state.doc.lineAt(pos);
     if (isHeaderLine(v, line.number)) return false;
-    const updated = cycleActionSymbolOrCreate(line.text, direction);
+    const updated = transform(line.text);
     if (updated === null) return false;
     v.dispatch({ changes: { from: line.from, to: line.to, insert: updated } });
     return true;
   }
 
-  /** #65/#70: `Ctrl/Cmd+Shift+O` (open) and `Ctrl/Cmd+1`-`4` (open/done/
-   * deferred/won't-do directly) — every line touched by the selection
-   * (the current line alone, if the selection is just a caret) gets
-   * forced to `symbol`, regardless of what state it was in before. #69:
-   * a line with no action symbol at all is promoted into one rather than
-   * left untouched — see `setActionSymbolTo`'s own doc comment for
-   * exactly which lines that does and doesn't apply to; a section-header
-   * title line is always skipped, checked here rather than there since
-   * only this caller has the document context (the *next* line) to tell.
-   * One transaction for the whole span, so it undoes as a single step. A
+  /** #65/#70/#73: `Ctrl/Cmd+Shift+O` (open, via `setActionSymbolOpen`) and
+   * `Ctrl/Cmd+1`-`4` (open/done/deferred/won't-do directly, via
+   * `setActionSymbolTo`) — every line touched by the selection (the
+   * current line alone, if the selection is just a caret) is passed
+   * through `transform`. #69: `Ctrl+1`-`4`'s own `transform` promotes a
+   * line with no action symbol at all into one — see `setActionSymbolTo`'s
+   * own doc comment for exactly which lines that does and doesn't apply
+   * to — but `Ctrl+Shift+O`'s `setActionSymbolOpen` deliberately does not
+   * (#73: it drifted into sharing `Ctrl+1`'s promotion, which wasn't the
+   * point of either shortcut). A section-header title line is always
+   * skipped, checked here rather than in `tokens.ts` since only this
+   * caller has the document context (the *next* line) to tell. One
+   * transaction for the whole span, so it undoes as a single step. A
    * no-op (returns `false`) when nothing in the span changed at all. */
-  function applyActionStateToSelection(v: EditorView, symbol: "#" | "v" | ">" | "x"): boolean {
+  function applyActionStateToSelection(v: EditorView, transform: (line: string) => string | null): boolean {
     const { from, to } = v.state.selection.main;
     const firstLine = v.state.doc.lineAt(from);
     const lastLine = v.state.doc.lineAt(to);
@@ -164,7 +173,7 @@
     const lines: string[] = [];
     for (let n = firstLine.number; n <= lastLine.number; n++) {
       const text = v.state.doc.line(n).text;
-      const updated = isHeaderLine(v, n) ? null : setActionSymbolTo(text, symbol);
+      const updated = isHeaderLine(v, n) ? null : transform(text);
       if (updated !== null) changed = true;
       lines.push(updated ?? text);
     }
@@ -325,28 +334,35 @@
           return true;
         },
       },
-      // Win/Linux only (see `shortcuts.ts`'s `cycleLineState` entry) —
-      // Ctrl+Space collides with macOS's own input-source-switcher
+      // #73: Win/Linux only (see `shortcuts.ts`'s `cycleLineState` entry)
+      // — Ctrl+Space collides with macOS's own input-source-switcher
       // shortcut, so it's not offered there at all; Mod-Enter below is
-      // the one reliable binding on every platform including Mac.
-      { win: "Ctrl-Space", linux: "Ctrl-Space", run: (v) => cycleLine(v) },
-      // §106: Ctrl/Cmd+Enter is the same action-state cycle as Ctrl+Space
-      // — the combo the UX reviews (and most task apps) reach for.
-      { key: "Mod-Enter", run: (v) => cycleLine(v) },
-      // §145: the reverse of the two bindings above — same Space-avoided-
-      // on-Mac reasoning as `cycleLineState` (see `shortcuts.ts`'s
+      // the one reliable binding on every platform including Mac. Closes
+      // an *open* line only (# → v) — no more cycling through all four
+      // states or promoting a plain line, now that Ctrl+1-4 cover every
+      // state directly.
+      { win: "Ctrl-Space", linux: "Ctrl-Space", run: (v) => applyToCurrentLine(v, closeOpenAction) },
+      // §106: Ctrl/Cmd+Enter is the same close action as Ctrl+Space — the
+      // combo the UX reviews (and most task apps) reach for.
+      { key: "Mod-Enter", run: (v) => applyToCurrentLine(v, closeOpenAction) },
+      // §145/#73: the reverse of the two bindings above — reopens a
+      // *done* line only (v → #), the mirror of closing. Same Space-
+      // avoided-on-Mac reasoning as `cycleLineState` (see `shortcuts.ts`'s
       // `cycleLineStateReverse` entry), so Mac only gets the Enter form.
-      { win: "Ctrl-Shift-Space", linux: "Ctrl-Shift-Space", run: (v) => cycleLine(v, -1) },
-      { key: "Mod-Shift-Enter", run: (v) => cycleLine(v, -1) },
+      { win: "Ctrl-Shift-Space", linux: "Ctrl-Shift-Space", run: (v) => applyToCurrentLine(v, reopenDoneAction) },
+      { key: "Mod-Shift-Enter", run: (v) => applyToCurrentLine(v, reopenDoneAction) },
       { key: "Mod-Shift-s", run: (v) => convertLineToSection(v) },
-      { key: "Mod-Shift-o", run: (v) => applyActionStateToSelection(v, "#") },
+      // #73: Ctrl+Shift+O sets every line in the selection to open
+      // without #69's plain-line promotion — `setActionSymbolOpen`, not
+      // `setActionSymbolTo`, is what keeps it distinct from Ctrl+1 below.
+      { key: "Mod-Shift-o", run: (v) => applyActionStateToSelection(v, setActionSymbolOpen) },
       // #70: Ctrl+1-4 set every action in the selection directly to
       // open/done/deferred/won't-do, matching `ACTION_CYCLE_ORDER`
-      // (tokens.ts) — the same order Ctrl+Space cycles through.
-      { key: "Mod-1", run: (v) => applyActionStateToSelection(v, "#") },
-      { key: "Mod-2", run: (v) => applyActionStateToSelection(v, "v") },
-      { key: "Mod-3", run: (v) => applyActionStateToSelection(v, ">") },
-      { key: "Mod-4", run: (v) => applyActionStateToSelection(v, "x") },
+      // (tokens.ts).
+      { key: "Mod-1", run: (v) => applyActionStateToSelection(v, (line) => setActionSymbolTo(line, "#")) },
+      { key: "Mod-2", run: (v) => applyActionStateToSelection(v, (line) => setActionSymbolTo(line, "v")) },
+      { key: "Mod-3", run: (v) => applyActionStateToSelection(v, (line) => setActionSymbolTo(line, ">")) },
+      { key: "Mod-4", run: (v) => applyActionStateToSelection(v, (line) => setActionSymbolTo(line, "x")) },
       { key: "F2", run: (v) => jumpToAdjacentOpenAction(v, 1) },
       { key: "Shift-F2", run: (v) => jumpToAdjacentOpenAction(v, -1) },
       {

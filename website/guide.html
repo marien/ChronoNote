@@ -109,7 +109,7 @@
           <tr>
             <td><code>=&gt; #</code> / <code>v</code> / <code>&gt;</code> / <code>x</code></td>
             <td><span class="glyph glyph-followup">➔︎</span> <span class="glyph glyph-open">☐︎</span></td>
-            <td><strong>Consequence action.</strong> A follow-up that's itself an action, cycled with <kbd>Ctrl+Space</kbd> like any other. Mutually exclusive with delegating to a person.</td>
+            <td><strong>Consequence action.</strong> A follow-up that's itself an action, cycled by clicking its glyph like any other. Mutually exclusive with delegating to a person.</td>
           </tr>
           <tr>
             <td><code># (topic)</code></td>
@@ -129,8 +129,8 @@
         </tbody>
       </table>
       <p style="margin-top: 20px; color: var(--muted); font-size: 14px;">
-        Click any glyph in the editor to cycle its state (open → done → deferred → won't-do), or place
-        the caret on the line and press <kbd>Ctrl+Space</kbd>.
+        Click any glyph in the editor to cycle its state (open → done → deferred → won't-do). Or place
+        the caret on an open line and press <kbd>Ctrl+Space</kbd> to mark it done directly.
       </p>
     </div>
   </section>
@@ -150,8 +150,8 @@
         <div class="shortcut-row"><span>Close current tab</span><kbd>Ctrl+W</kbd></div>
         <div class="shortcut-row"><span>Next / previous tab</span><kbd>Ctrl+Tab</kbd></div>
         <div class="shortcut-row"><span>Undo / redo (kept per tab)</span><kbd>Ctrl+Z</kbd> / <kbd>Ctrl+Shift+Z</kbd></div>
-        <div class="shortcut-row"><span>Cycle the action state on this line</span><kbd>Ctrl+Space</kbd></div>
-        <div class="shortcut-row"><span>Cycle it backwards</span><kbd>Ctrl+Shift+Space</kbd></div>
+        <div class="shortcut-row"><span>Close the current line's open action</span><kbd>Ctrl+Space</kbd></div>
+        <div class="shortcut-row"><span>Reopen a done action</span><kbd>Ctrl+Shift+Space</kbd></div>
         <div class="shortcut-row"><span>Jump to next / previous open action</span><kbd>F2</kbd> / <kbd>Shift+F2</kbd></div>
         <div class="shortcut-row"><span>Convert this line into a section header</span><kbd>Ctrl+Shift+S</kbd></div>
         <div class="shortcut-row"><span>Actions drawer</span><kbd>Ctrl+Shift+A</kbd></div>
@@ -202,7 +202,7 @@
           <div class="num">2</div>
           <div>
             <h3>Resolve, delegate, or defer</h3>
-            <p>Click a glyph or press <kbd>Ctrl+Space</kbd> to cycle its state. Hand something off with
+            <p>Click a glyph to cycle its state, or press <kbd>Ctrl+Space</kbd> to close it directly. Hand something off with
               <kbd>=&gt; @name</kbd> — it stays a real, editable name, not a locked-in reference.</p>
             <div class="snippet-pair">
               <div>
