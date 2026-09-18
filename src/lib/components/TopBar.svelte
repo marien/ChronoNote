@@ -125,7 +125,8 @@
   // touch-first devices only — NOT by window width: a narrow desktop/web
   // window keeps the strip (#56's collapse-into-More logic measures it).
   $: showHorizontalTabs = !$isMobile;
-  $: showOpenTabsBtn = !showHorizontalTabs || $isMobile || isOverflowing;
+  // Touch-first only: desktop scrolls its strip with the §52 arrows instead.
+  $: showOpenTabsBtn = !showHorizontalTabs;
 
   $: activeTab = $tabs.find((t) => t.id === $activeTabId);
   // The button itself only ever appears once turned on in Settings — an
@@ -455,6 +456,23 @@
     }
   }
 
+  /** §52: once overflowing, scrolling past an edge wraps to the other end
+   * — the same cyclic behavior `Ctrl/Cmd+Tab`/`Ctrl/Cmd+Shift+Tab` already has for
+   * switching tabs, just applied to scroll position. */
+  function scrollTabBar(direction: 1 | -1) {
+    if (!tabBarEl) return;
+    const maxScroll = tabBarEl.scrollWidth - tabBarEl.clientWidth;
+    const atLeftEdge = tabBarEl.scrollLeft <= 0;
+    const atRightEdge = tabBarEl.scrollLeft >= maxScroll - 1;
+    if (direction === -1 && atLeftEdge) {
+      tabBarEl.scrollTo({ left: maxScroll, behavior: "smooth" });
+    } else if (direction === 1 && atRightEdge) {
+      tabBarEl.scrollTo({ left: 0, behavior: "smooth" });
+    } else {
+      tabBarEl.scrollBy({ left: direction * 160, behavior: "smooth" });
+    }
+  }
+
   /** §48: switching tabs (keyboard, Date picker, Search, etc.) can move
    * the active tab off-screen with nothing but the (now-invisible)
    * highlight to show it happened — scroll it into view whenever it
@@ -696,6 +714,11 @@
     {/if}
     <div class="tab-bar-spacer"></div>
   {:else}
+    {#if isOverflowing}
+      <button class="icon-btn tab-scroll-btn" aria-label="Scroll tabs left" on:click={() => scrollTabBar(-1)}>
+        <Icon name="chevron-left" size={14} />
+      </button>
+    {/if}
     <div
       id="tab-bar"
       bind:this={tabBarEl}
@@ -747,6 +770,11 @@
         </div>
       {/each}
     </div>
+    {#if isOverflowing}
+      <button class="icon-btn tab-scroll-btn" aria-label="Scroll tabs right" on:click={() => scrollTabBar(1)}>
+        <Icon name="chevron-right" size={14} />
+      </button>
+    {/if}
   {/if}
   {#if isMergedTitlebar}
     <!-- §merged-titlebar: a fixed drag territory that's always present
@@ -766,17 +794,6 @@
   {/if}
   <!-- §53: always visible regardless of tab-bar scroll position — a
        sibling of the scrollable #tab-bar rather than a child of it. -->
-  {#if showHorizontalTabs && showOpenTabsBtn}
-    <button
-      class="icon-btn mobile-tab-drawer-btn"
-      title="Open tabs list"
-      aria-label="Open tabs list ({$tabs.length} open)"
-      on:click={() => mobileTabDrawerOpen.set(true)}
-    >
-      <Icon name="tabs" size={16} />
-      <span class="mobile-tab-count">{$tabs.length}</span>
-    </button>
-  {/if}
   <button
     class="icon-btn tab-bar-new-btn"
 
