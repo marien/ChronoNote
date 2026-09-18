@@ -61,7 +61,13 @@
   let visibleRecentDirs: string[] = [];
   let browseButtonEl: HTMLButtonElement;
   onMount(async () => {
-    if ($backendKind === "web" || $backendKind === "android") return; // no local directory browsing
+    if ($backendKind === "android") {
+      const advanced = await api.oneDriveGetAdvancedConfig();
+      clientIdOverride = advanced.clientIdOverride ?? "";
+      tenantIdOverride = advanced.tenantIdOverride ?? "";
+      return;
+    }
+    if ($backendKind === "web") return; // no local directory browsing
 
     const candidates = $recentNotesDirs.filter((p) => p !== $notesDir);
     const exists = await Promise.all(candidates.map((p) => api.pathExists(p)));
@@ -107,6 +113,32 @@
   let manualAuthCode = "";
   let exchangingCode = false;
   let authError: string | null = null;
+
+  // Advanced overrides for work/school Entra tenants that reject the
+  // default multi-tenant client ID and/or the generic `/common` endpoint
+  // — the same escape hatch the earlier M365 calendar-import effort
+  // needed for the identical reason. Blank means "use the built-in
+  // defaults." Set these *before* connecting; changing them afterward
+  // only takes effect on the next sign-in.
+  let showAdvanced = false;
+  let clientIdOverride = "";
+  let tenantIdOverride = "";
+  let savingAdvanced = false;
+  let advancedSaved = false;
+
+  async function handleSaveAdvanced() {
+    savingAdvanced = true;
+    advancedSaved = false;
+    try {
+      await api.oneDriveSetAdvancedConfig({
+        clientIdOverride: clientIdOverride.trim() || undefined,
+        tenantIdOverride: tenantIdOverride.trim() || undefined,
+      });
+      advancedSaved = true;
+    } finally {
+      savingAdvanced = false;
+    }
+  }
 
   async function handleOneDriveLogin() {
     loggingIn = true;
@@ -384,6 +416,54 @@
                   {/if}
                 </div>
               {/if}
+              <div style="margin-top: 12px;">
+                <button
+                  type="button"
+                  class="status-link"
+                  style="font-size: 11px; color: var(--muted); cursor: pointer;"
+                  on:click={() => (showAdvanced = !showAdvanced)}
+                >
+                  {showAdvanced ? "Hide advanced" : "Advanced (work/school accounts)"}
+                </button>
+                {#if showAdvanced}
+                  <div style="display: flex; flex-direction: column; gap: 6px; margin-top: 8px;">
+                    <div class="settings-hint">
+                      A locked-down corporate Entra tenant may reject the generic sign-in endpoint and require its
+                      own app registration. Leave both blank for a personal Microsoft account.
+                    </div>
+                    <label class="settings-hint" for="onedrive-client-id-override">Client ID override</label>
+                    <input
+                      id="onedrive-client-id-override"
+                      type="text"
+                      class="find-input"
+                      style="width: 100%; height: 32px;"
+                      placeholder="(default) personal accounts"
+                      bind:value={clientIdOverride}
+                    />
+                    <label class="settings-hint" for="onedrive-tenant-id-override">
+                      Tenant ID or domain override
+                    </label>
+                    <input
+                      id="onedrive-tenant-id-override"
+                      type="text"
+                      class="find-input"
+                      style="width: 100%; height: 32px;"
+                      placeholder="common"
+                      bind:value={tenantIdOverride}
+                    />
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                      <button class="icon-btn" on:click={handleSaveAdvanced} disabled={savingAdvanced}>
+                        {savingAdvanced ? "Saving…" : "Save"}
+                      </button>
+                      {#if advancedSaved}
+                        <span class="settings-hint">
+                          Saved — sign out and reconnect for this to take effect.
+                        </span>
+                      {/if}
+                    </div>
+                  </div>
+                {/if}
+              </div>
             </div>
           {:else}
             <div>

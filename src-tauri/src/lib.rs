@@ -275,6 +275,25 @@ fn onedrive_get_sync_status(
     Ok(mgr.get_status())
 }
 
+#[tauri::command]
+fn onedrive_get_advanced_config(
+    app: AppHandle,
+    mgr: tauri::State<'_, std::sync::Arc<onedrive::sync::OneDriveManager>>,
+) -> Result<onedrive::OneDriveAdvancedConfig, String> {
+    let data_dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
+    Ok(mgr.get_advanced_config(&data_dir))
+}
+
+#[tauri::command]
+fn onedrive_set_advanced_config(
+    app: AppHandle,
+    mgr: tauri::State<'_, std::sync::Arc<onedrive::sync::OneDriveManager>>,
+    config: onedrive::OneDriveAdvancedConfig,
+) -> Result<(), String> {
+    let data_dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
+    mgr.set_advanced_config(&data_dir, &config)
+}
+
 /// Window starts hidden (see `tauri.conf.json`) so it can be shown only
 /// once its background already matches the theme it's about to render —
 /// otherwise the OS paints the window's own default (white) canvas for
@@ -365,7 +384,9 @@ pub fn run() {
             onedrive_get_folder,
             onedrive_sync_now,
             onedrive_get_sync_status,
-            onedrive_exchange_code
+            onedrive_exchange_code,
+            onedrive_get_advanced_config,
+            onedrive_set_advanced_config
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

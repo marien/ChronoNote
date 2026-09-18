@@ -11,6 +11,14 @@ import type {
 
 type NoArgs = Record<string, never>;
 
+/** Mirrors Rust's `onedrive::OneDriveAdvancedConfig` — both fields blank
+ * means "use the built-in personal-account defaults" (see
+ * `src-tauri/src/onedrive/auth.rs`'s `resolve_client_id`/`resolve_tenant`). */
+export interface OneDriveAdvancedConfig {
+  clientIdOverride?: string;
+  tenantIdOverride?: string;
+}
+
 /** The full Tauri command surface — one entry per `#[tauri::command]` in
  * `src-tauri/src/lib.rs`'s `generate_handler!`. Both the real IPC wrapper
  * (`tauriApi.ts`) and the in-memory mock (`testing/mockBackend.ts`) are
@@ -102,6 +110,17 @@ export interface TauriCommands {
   onedrive_get_sync_status: {
     args: NoArgs;
     returns: "idle" | "syncing" | "offline" | "error";
+  };
+  /** Settings' Advanced overrides for work/school Entra tenants that
+   * can't use the default multi-tenant client ID and/or the generic
+   * `/common` endpoint. Both blank means "use the built-in defaults." */
+  onedrive_get_advanced_config: {
+    args: NoArgs;
+    returns: OneDriveAdvancedConfig;
+  };
+  onedrive_set_advanced_config: {
+    args: { config: OneDriveAdvancedConfig };
+    returns: void;
   };
   /** Mobile process-death scratchpad draft preservation. */
   save_scratchpad_drafts: {

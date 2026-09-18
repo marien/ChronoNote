@@ -1,11 +1,12 @@
 use super::auth::{
-    build_authorize_url, clear_stored_auth, exchange_code, generate_pkce, load_stored_auth,
-    refresh_access_token, save_stored_auth, DEFAULT_CLIENT_ID,
+    build_authorize_url, clear_refresh_token, clear_stored_auth, exchange_code, generate_pkce,
+    load_refresh_token, load_stored_auth, refresh_access_token, resolve_client_id, resolve_tenant,
+    save_refresh_token, save_stored_auth, TokenExchange,
 };
 use super::client::{OneDriveClient, UploadResult};
 use super::{
-    OneDriveAccount, OneDriveFolderConfig, OneDriveFolderItem, OneDriveLoginResult,
-    OneDriveSyncResult, SyncStatus,
+    OneDriveAccount, OneDriveAdvancedConfig, OneDriveFolderConfig, OneDriveFolderItem,
+    OneDriveLoginResult, OneDriveSyncResult, SyncStatus,
 };
 use sha2::{Digest, Sha256};
 use std::collections::HashMap;
@@ -20,6 +21,7 @@ use std::time::Duration;
 pub const FOLDER_CONFIG_FILENAME: &str = ".onedrive-folder.json";
 pub const SYNC_CACHE_FILENAME: &str = ".onedrive-cache.json";
 pub const PENDING_PKCE_FILENAME: &str = ".onedrive-pending-pkce.json";
+pub const ADVANCED_CONFIG_FILENAME: &str = ".onedrive-advanced.json";
 
 #[derive(serde::Serialize, serde::Deserialize, Clone, Debug)]
 pub struct PendingPkce {
@@ -69,15 +71,38 @@ impl OneDriveManager {
         load_stored_auth(data_dir).ok().flatten().and_then(|a| a.account)
     }
 
-    /// Removes authentication tokens and resets sync cache.
+    /// Removes authentication tokens (including the keychain refresh
+    /// token) and resets sync cache.
     pub fn logout(&self, data_dir: &Path) -> Result<(), String> {
         clear_stored_auth(data_dir)?;
+        clear_refresh_token();
         let cache_file = data_dir.join(SYNC_CACHE_FILENAME);
         if cache_file.exists() {
             let _ = fs::remove_file(cache_file);
         }
         self.set_status(SyncStatus::Idle);
         Ok(())
+    }
+
+    /// Loads Settings' Advanced client-ID/tenant overrides, if any —
+    /// defaults (both blank) when the file doesn't exist or is corrupt.
+    pub fn get_advanced_config(&self, data_dir: &Path) -> OneDriveAdvancedConfig {
+        let path = data_dir.join(ADVANCED_CONFIG_FILENAME);
+        if !path.exists() {
+            return OneDriveAdvancedConfig::default();
+        }
+        fs::read_to_string(&path)
+            .ok()
+            .and_then(|s| serde_json::from_str::<OneDriveAdvancedConfig>(&s).ok())
+            .unwrap_or_default()
+    }
+
+    /// Saves Settings' Advanced client-ID/tenant overrides.
+    pub fn set_advanced_config(&self, data_dir: &Path, config: &OneDriveAdvancedConfig) -> Result<(), String> {
+        fs::create_dir_all(data_dir).map_err(|e| e.to_string())?;
+        let path = data_dir.join(ADVANCED_CONFIG_FILENAME);
+        let raw = serde_json::to_string_pretty(config).map_err(|e| e.to_string())?;
+        fs::write(path, raw).map_err(|e| e.to_string())
     }
 
     /// Loads the active OneDrive folder configuration.
@@ -134,6 +159,10 @@ impl OneDriveManager {
     ) -> OneDriveLoginResult {
         use tauri_plugin_opener::OpenerExt;
 
+        let advanced = self.get_advanced_config(data_dir);
+        let client_id = resolve_client_id(&advanced);
+        let tenant = resolve_tenant(&advanced);
+
         let (verifier, challenge) = generate_pkce();
 
         let redirect_uri = "http://localhost:8765/auth";
@@ -163,7 +192,7 @@ impl OneDriveManager {
         // Set non-blocking with timeout
         let _ = listener.set_nonblocking(true);
 
-        let auth_url = build_authorize_url(DEFAULT_CLIENT_ID, redirect_uri, &challenge);
+        let auth_url = build_authorize_url(&tenant, &client_id, redirect_uri, &challenge);
 
         // Open in user's default browser (cross-platform via tauri-plugin-opener)
         if let Err(e) = app.opener().open_url(&auth_url, None::<&str>) {
@@ -217,16 +246,9 @@ impl OneDriveManager {
         };
 
         // Exchange code for tokens
-        let mut stored = match exchange_code(
-            &self.client.client,
-            DEFAULT_CLIENT_ID,
-            redirect_uri,
-            &code,
-            &verifier,
-        )
-        .await
+        let exchange = match exchange_code(&self.client.client, &tenant, &client_id, redirect_uri, &code, &verifier).await
         {
-            Ok(s) => s,
+            Ok(e) => e,
             Err(e) => {
                 return OneDriveLoginResult {
                     success: false,
@@ -236,29 +258,7 @@ impl OneDriveManager {
             }
         };
 
-        // Fetch user profile
-        match self.client.get_user_profile(&stored.access_token).await {
-            Ok(account) => {
-                stored.account = Some(account.clone());
-                if let Err(e) = save_stored_auth(data_dir, &stored) {
-                    return OneDriveLoginResult {
-                        success: false,
-                        account: None,
-                        error: Some(format!("Failed to save auth state: {e}")),
-                    };
-                }
-                OneDriveLoginResult {
-                    success: true,
-                    account: Some(account),
-                    error: None,
-                }
-            }
-            Err(e) => OneDriveLoginResult {
-                success: false,
-                account: None,
-                error: Some(format!("Failed to fetch user profile: {e}")),
-            },
-        }
+        self.finish_login(data_dir, exchange).await
     }
 
     /// Exchange an authorization code or full redirect URL directly.
@@ -291,16 +291,21 @@ impl OneDriveManager {
             }
         };
 
-        let mut stored = match exchange_code(
+        let advanced = self.get_advanced_config(data_dir);
+        let client_id = resolve_client_id(&advanced);
+        let tenant = resolve_tenant(&advanced);
+
+        let exchange = match exchange_code(
             &self.client.client,
-            DEFAULT_CLIENT_ID,
+            &tenant,
+            &client_id,
             &pending.redirect_uri,
             &code,
             &pending.verifier,
         )
         .await
         {
-            Ok(s) => s,
+            Ok(e) => e,
             Err(e) => {
                 return OneDriveLoginResult {
                     success: false,
@@ -312,9 +317,25 @@ impl OneDriveManager {
 
         let _ = fs::remove_file(&pending_path);
 
+        self.finish_login(data_dir, exchange).await
+    }
+
+    /// Shared tail of both login paths: fetches the user profile, puts
+    /// the refresh token in the keychain (never on disk), and persists
+    /// the non-sensitive `StoredAuth` remainder.
+    async fn finish_login(&self, data_dir: &Path, exchange: TokenExchange) -> OneDriveLoginResult {
+        let TokenExchange { mut stored, refresh_token } = exchange;
+
         match self.client.get_user_profile(&stored.access_token).await {
             Ok(account) => {
                 stored.account = Some(account.clone());
+                if let Err(e) = save_refresh_token(&refresh_token) {
+                    return OneDriveLoginResult {
+                        success: false,
+                        account: None,
+                        error: Some(format!("Failed to save credentials to the OS keychain: {e}")),
+                    };
+                }
                 if let Err(e) = save_stored_auth(data_dir, &stored) {
                     return OneDriveLoginResult {
                         success: false,
@@ -520,15 +541,21 @@ impl OneDriveManager {
             return Ok(auth.access_token);
         }
 
-        let refresh = auth
-            .refresh_token
-            .as_deref()
+        let refresh = load_refresh_token()
             .ok_or_else(|| "No refresh token available, please re-authenticate".to_string())?;
 
-        let mut refreshed = refresh_access_token(&self.client.client, DEFAULT_CLIENT_ID, refresh).await?;
-        refreshed.account = auth.account;
-        save_stored_auth(data_dir, &refreshed)?;
-        Ok(refreshed.access_token)
+        let advanced = self.get_advanced_config(data_dir);
+        let client_id = resolve_client_id(&advanced);
+        let tenant = resolve_tenant(&advanced);
+
+        let TokenExchange { mut stored, refresh_token } =
+            refresh_access_token(&self.client.client, &tenant, &client_id, &refresh).await?;
+        stored.account = auth.account;
+        if refresh_token != refresh {
+            save_refresh_token(&refresh_token)?;
+        }
+        save_stored_auth(data_dir, &stored)?;
+        Ok(stored.access_token)
     }
 
     fn load_cache(&self, data_dir: &Path) -> SyncCache {
@@ -651,5 +678,33 @@ mod tests {
         assert!(!is_syncable_file("2026-09-17.txt.bak"));
         assert!(!is_syncable_file(".DS_Store"));
         assert!(!is_syncable_file("config.json"));
+    }
+
+    #[test]
+    fn advanced_config_defaults_when_no_file_exists_yet() {
+        let dir = tempfile::tempdir().unwrap();
+        let mgr = OneDriveManager::new();
+        let cfg = mgr.get_advanced_config(dir.path());
+        assert_eq!(cfg, OneDriveAdvancedConfig::default());
+    }
+
+    #[test]
+    fn advanced_config_round_trips_through_disk() {
+        let dir = tempfile::tempdir().unwrap();
+        let mgr = OneDriveManager::new();
+        let cfg = OneDriveAdvancedConfig {
+            client_id_override: Some("my-app-id".to_string()),
+            tenant_id_override: Some("contoso.onmicrosoft.com".to_string()),
+        };
+        mgr.set_advanced_config(dir.path(), &cfg).unwrap();
+        assert_eq!(mgr.get_advanced_config(dir.path()), cfg);
+    }
+
+    #[test]
+    fn advanced_config_falls_back_to_default_for_corrupt_json() {
+        let dir = tempfile::tempdir().unwrap();
+        fs::write(dir.path().join(ADVANCED_CONFIG_FILENAME), "not json").unwrap();
+        let mgr = OneDriveManager::new();
+        assert_eq!(mgr.get_advanced_config(dir.path()), OneDriveAdvancedConfig::default());
     }
 }

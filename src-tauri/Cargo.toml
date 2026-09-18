@@ -41,6 +41,12 @@ url = "2"
 base64 = "0.22"
 rand = "0.8"
 tokio = { version = "1", features = ["time", "sync"] }
+# The OneDrive refresh token (offline_access + Files.ReadWrite — standing
+# access to the whole drive) lives in the OS keychain, never in a plain
+# file; "windows-native" since this project is Windows-only so far
+# (matches the same choice the parked M365 calendar-import branch made
+# for the identical problem).
+keyring = { version = "3", features = ["windows-native"] }
 
 [profile.release]
 panic = "abort"

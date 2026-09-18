@@ -30,7 +30,7 @@
  *     by `list_note_files` / `read_all_notes`.
  */
 import type { AppConfig, ColorMode, FileMetadata, TabSession, ThemeMode } from "../types";
-import type { CommandArgs, CommandReturn, TauriCommand, TauriCommands } from "../tauriCommands";
+import type { CommandArgs, CommandReturn, OneDriveAdvancedConfig, TauriCommand, TauriCommands } from "../tauriCommands";
 import { isValidNoteFilename } from "../noteFilename";
 
 export interface MockSeed {
@@ -262,6 +262,7 @@ export class MockBackend {
   updateCheckVersion: string;
   agendaJson: string | undefined;
   scratchpadDrafts: Record<string, string> = {};
+  oneDriveAdvancedConfig: OneDriveAdvancedConfig = {};
 
   /** Every `invoke` call, in order — assert on persistence without
    * scraping the DOM. */
@@ -663,6 +664,10 @@ export class MockBackend {
     }),
     onedrive_sync_now: () => ({ success: true, message: "Synced" }),
     onedrive_get_sync_status: () => "idle",
+    onedrive_get_advanced_config: () => ({ ...this.oneDriveAdvancedConfig }),
+    onedrive_set_advanced_config: ({ config }) => {
+      this.oneDriveAdvancedConfig = { ...config };
+    },
     save_scratchpad_drafts: ({ drafts }) => {
       this.scratchpadDrafts = { ...drafts };
     },

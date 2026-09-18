@@ -52,3 +52,18 @@ pub enum SyncStatus {
     Offline,
     Error,
 }
+
+/// Settings' Advanced overrides for work/school Entra tenants that can't
+/// use the default multi-tenant client ID and/or the generic `/common`
+/// endpoint (a locked-down corporate tenant may require its own app
+/// registration and reject `/common` outright — see `auth::resolve_client_id`/
+/// `resolve_tenant`). Both blank by default, meaning "use the built-in
+/// personal-account defaults."
+#[derive(Serialize, Deserialize, Clone, Debug, Default, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct OneDriveAdvancedConfig {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub client_id_override: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub tenant_id_override: Option<String>,
+}

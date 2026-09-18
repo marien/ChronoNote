@@ -341,6 +341,8 @@ export class WebBackend {
     onedrive_exchange_code: () => ({ success: false, error: "Not supported in web backend" }),
     onedrive_sync_now: () => ({ success: false, message: "Not supported in web backend" }),
     onedrive_get_sync_status: () => "offline",
+    onedrive_get_advanced_config: () => ({}),
+    onedrive_set_advanced_config: () => {},
     save_scratchpad_drafts: async ({ drafts }) => {
       const db = await this.db();
       await idbPut(db, STORE_META, "scratchpad_drafts", drafts);
