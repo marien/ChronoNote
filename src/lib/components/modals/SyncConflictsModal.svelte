@@ -5,11 +5,15 @@
   import { focusTrap } from "../../actions/focusTrap";
   import Icon from "../../icons/Icon.svelte";
   import type { SyncConflictResolution } from "../../tauriCommands";
+  import { diffLines } from "../../lineDiff";
 
   // The note being shown; falls back to the first when the selected one has
   // just been resolved and dropped out of the list.
   let selectedName = "";
   $: current = $syncConflicts.find((c) => c.name === selectedName) ?? $syncConflicts[0];
+
+  $: diff = current ? diffLines(current.local, current.remote) : { left: [], right: [] };
+  $: changedCount = diff.left.filter((r) => r.changed).length + diff.right.filter((r) => r.changed).length;
 
   let busy = false;
   async function choose(resolution: SyncConflictResolution) {
@@ -52,13 +56,16 @@
       <div class="conflict-versions">
         <div class="conflict-version">
           <div class="conflict-version-label">This device</div>
-          <pre class="conflict-text" data-testid="conflict-local">{current.local}</pre>
+          <div class="conflict-text" data-testid="conflict-local">{#each diff.left as row}<div class="conflict-line" class:changed={row.changed}>{row.text}</div>{/each}</div>
         </div>
         <div class="conflict-version">
           <div class="conflict-version-label">OneDrive</div>
-          <pre class="conflict-text" data-testid="conflict-remote">{current.remote}</pre>
+          <div class="conflict-text" data-testid="conflict-remote">{#each diff.right as row}<div class="conflict-line" class:changed={row.changed}>{row.text}</div>{/each}</div>
         </div>
       </div>
+      {#if changedCount > 0}
+        <div class="settings-hint" style="padding: 6px 12px 0; margin: 0;">Highlighted lines are the ones that differ.</div>
+      {/if}
 
       <div class="conflict-actions">
         <button class="icon-btn btn-primary" disabled={busy} on:click={() => choose("mine")}>

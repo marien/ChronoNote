@@ -32,8 +32,19 @@ test.describe("OneDrive sync conflicts (Android)", () => {
     await expect(page.locator("#stat-conflicts")).toContainText("1 sync conflict");
 
     await page.locator("#stat-conflicts").click();
-    await expect(page.getByTestId("conflict-local")).toHaveText("one\nphone edit\n");
-    await expect(page.getByTestId("conflict-remote")).toHaveText("one\npc edit\n");
+    await expect(page.getByTestId("conflict-local").locator(".conflict-line")).toHaveText(["one", "phone edit"]);
+    await expect(page.getByTestId("conflict-remote").locator(".conflict-line")).toHaveText(["one", "pc edit"]);
+  });
+
+  test("only the lines that differ are highlighted, on each side", async ({ page }) => {
+    await seedApp(page, { seed });
+    await page.locator("#stat-conflicts").click();
+
+    const local = page.getByTestId("conflict-local").locator(".conflict-line.changed");
+    const remote = page.getByTestId("conflict-remote").locator(".conflict-line.changed");
+    await expect(local).toHaveText(["phone edit"]);
+    await expect(remote).toHaveText(["pc edit"]);
+    await expect(page.getByText("Highlighted lines are the ones that differ.")).toBeVisible();
   });
 
   test("Keep this device's leaves the phone text and clears the conflict", async ({ page }) => {

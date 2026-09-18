@@ -1107,16 +1107,27 @@ body {
 }
 .conflict-text {
   margin: 0;
-  padding: 8px;
+  padding: 8px 0;
   max-height: 32vh;
   overflow: auto;
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
   background: var(--surface-base, transparent);
   border: 1px solid var(--edge-soft);
   border-radius: 6px;
   font: inherit;
   font-size: 13px;
+}
+/* One block per line so a differing line can be highlighted edge to edge;
+   min-height keeps blank lines visible. */
+.conflict-line {
+  padding: 1px 8px;
+  min-height: 1.5em;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  border-left: 3px solid transparent;
+}
+.conflict-line.changed {
+  background: color-mix(in srgb, var(--state-warn) 22%, transparent);
+  border-left-color: var(--state-warn);
 }
 .conflict-actions {
   display: flex;
