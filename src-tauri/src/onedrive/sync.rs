@@ -79,10 +79,10 @@ impl OneDriveManager {
     pub fn logout(&self, data_dir: &Path) -> Result<(), String> {
         clear_stored_auth(data_dir)?;
         clear_refresh_token();
-        let cache_file = data_dir.join(SYNC_CACHE_FILENAME);
-        if cache_file.exists() {
-            let _ = fs::remove_file(cache_file);
-        }
+        // The sync cache is deliberately kept: it records which version of
+        // each file was last synced. Wiping it made every local file look
+        // "never synced" after signing back in, which is how a reconnect used
+        // to overwrite newer cloud edits. Changing folder already resets it.
         self.set_status(SyncStatus::Idle);
         Ok(())
     }
@@ -122,12 +122,16 @@ impl OneDriveManager {
     /// Saves the active OneDrive folder configuration.
     pub fn set_folder(&self, data_dir: &Path, config: &OneDriveFolderConfig) -> Result<(), String> {
         fs::create_dir_all(data_dir).map_err(|e| e.to_string())?;
+        let same_folder = self.get_folder(data_dir).is_some_and(|old| old.folder_id == config.folder_id);
         let path = data_dir.join(FOLDER_CONFIG_FILENAME);
         let raw = serde_json::to_string_pretty(config).map_err(|e| e.to_string())?;
         fs::write(path, raw).map_err(|e| e.to_string())?;
 
-        // Reset delta query link when folder changes
-        let mut cache = self.load_cache(data_dir);
+        // A different folder means different remote items: the delta link
+        // and every cached id/etag belong to the old one. Re-picking the
+        // same folder keeps its cache (the delta link is just reset, which
+        // costs one full listing but loses nothing).
+        let mut cache = if same_folder { self.load_cache(data_dir) } else { SyncCache::default() };
         cache.delta_link = None;
         self.save_cache(data_dir, &cache)?;
         Ok(())
@@ -736,6 +740,12 @@ enum RemoteChangeAction {
     /// `.chrononote-conflicts/`, and the cache is rebased onto the remote's
     /// etag so the following push deliberately overwrites remote with local.
     KeepLocalAsConflict,
+    /// First contact: this device has never synced the file, yet a different
+    /// version already exists in the cloud (e.g. after reconnecting, or a
+    /// fresh install). Nothing here proves the local copy is newer, and the
+    /// push would otherwise overwrite the cloud version, so the cloud wins
+    /// and the local text is preserved in `.chrononote-conflicts/`.
+    TakeRemoteKeepLocalCopy,
 }
 
 fn classify_remote_change(
@@ -748,7 +758,8 @@ fn classify_remote_change(
         Some(local) if local == remote_hash => RemoteChangeAction::AdoptRemote,
         Some(local) => match cached {
             Some(c) if c.local_hash == local => RemoteChangeAction::WriteLocal,
-            _ => RemoteChangeAction::KeepLocalAsConflict,
+            Some(_) => RemoteChangeAction::KeepLocalAsConflict,
+            None => RemoteChangeAction::TakeRemoteKeepLocalCopy,
         },
     }
 }
@@ -788,6 +799,11 @@ fn apply_remote_change(
         // sync rather than being ignored.
         RemoteChangeAction::KeepLocalAsConflict => {
             write_conflict_copy(notes_dir, name, "remote", remote_content)?;
+        }
+        RemoteChangeAction::TakeRemoteKeepLocalCopy => {
+            let local_content = fs::read_to_string(&local_path).map_err(|e| e.to_string())?;
+            write_conflict_copy(notes_dir, name, "local", &local_content)?;
+            fs::write(&local_path, remote_content.as_bytes()).map_err(|e| e.to_string())?;
         }
     }
 
@@ -1096,14 +1112,21 @@ mod tests {
     }
 
     #[test]
-    fn a_never_synced_local_file_that_differs_from_remote_is_a_conflict_not_an_overwrite() {
+    fn a_never_synced_local_file_that_differs_from_remote_never_overwrites_the_cloud() {
         let dir = tempfile::tempdir().unwrap();
         fs::write(dir.path().join(NOTE), "local only").unwrap();
         let mut cache = SyncCache::default();
         let action = apply_remote_change(dir.path(), NOTE, "id-1", "e1", "remote", &mut cache).unwrap();
-        assert_eq!(action, RemoteChangeAction::KeepLocalAsConflict);
-        assert_eq!(fs::read_to_string(dir.path().join(NOTE)).unwrap(), "local only");
-        assert_eq!(conflict_files(dir.path()).len(), 1);
+        assert_eq!(action, RemoteChangeAction::TakeRemoteKeepLocalCopy);
+        // Cloud wins on first contact; the local text is kept as a conflict copy.
+        assert_eq!(fs::read_to_string(dir.path().join(NOTE)).unwrap(), "remote");
+        let copies = conflict_files(dir.path());
+        assert_eq!(copies.len(), 1);
+        assert!(copies[0].contains(".local-"));
+        let copy_path = dir.path().join(".chrononote-conflicts").join(&copies[0]);
+        assert_eq!(fs::read_to_string(copy_path).unwrap(), "local only");
+        // Cache matches the file now, so the push has nothing to upload.
+        assert_eq!(cache.files[NOTE].local_hash, compute_hash(b"remote"));
     }
 
     #[test]

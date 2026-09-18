@@ -390,6 +390,10 @@ pub fn run() {
     builder
         .setup(|app| {
             show_window_without_flash(app);
+            #[cfg(target_os = "android")]
+            if let Ok(dir) = app.path().app_data_dir() {
+                onedrive::auth::init_secret_dir(dir);
+            }
             wire_onedrive_deep_link(app.handle());
             Ok(())
         })
