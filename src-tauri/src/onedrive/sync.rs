@@ -578,6 +578,11 @@ impl OneDriveManager {
         // 2. PUSH: Scan local files and upload new/modified ones
         let local_files = list_syncable_local_files(notes_dir)?;
 
+        // One file that can't be uploaded (unreadable, rejected by OneDrive)
+        // must not stop every other note from syncing: remember the first
+        // failure, keep going, and report it once the pass is done.
+        let mut first_error: Option<String> = None;
+
         for filename in local_files {
             // Waiting on the user to resolve a conflict: uploading now would
             // overwrite the cloud version they haven't seen.
@@ -585,8 +590,20 @@ impl OneDriveManager {
                 continue;
             }
             let file_path = notes_dir.join(&filename);
-            let content = fs::read_to_string(&file_path).map_err(|e| e.to_string())?;
+            let content = match fs::read_to_string(&file_path) {
+                Ok(c) => c,
+                Err(e) => {
+                    first_error.get_or_insert(format!("Couldn't read {filename}: {e}"));
+                    continue;
+                }
+            };
             let local_hash = compute_hash(content.as_bytes());
+
+            // An empty note that was never synced isn't worth a cloud file
+            // (the app makes plenty by just opening a date).
+            if content.is_empty() && !cache.files.contains_key(&filename) {
+                continue;
+            }
 
             let needs_upload = match cache.files.get(&filename) {
                 Some(cached) => cached.local_hash != local_hash,
@@ -599,7 +616,7 @@ impl OneDriveManager {
 
             let cached_etag = cache.files.get(&filename).map(|f| f.etag.as_str());
 
-            match self
+            let uploaded = match self
                 .client
                 .upload_file_content(
                     &token,
@@ -608,8 +625,15 @@ impl OneDriveManager {
                     &content,
                     cached_etag,
                 )
-                .await?
+                .await
             {
+                Ok(u) => u,
+                Err(e) => {
+                    first_error.get_or_insert(format!("{filename}: {e}"));
+                    continue;
+                }
+            };
+            match uploaded {
                 UploadResult::Success { id, etag } => {
                     save_base(data_dir, &filename, &content)?;
                     cache.files.insert(
@@ -629,7 +653,10 @@ impl OneDriveManager {
             }
         }
 
-        Ok(())
+        match first_error {
+            Some(e) => Err(e),
+            None => Ok(()),
+        }
     }
 
     async fn get_valid_access_token(&self, data_dir: &Path) -> Result<String, String> {

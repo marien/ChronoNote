@@ -296,6 +296,9 @@ impl OneDriveClient {
             .client
             .put(&url)
             .headers(Self::auth_headers(access_token))
+            // Explicit: without it an empty body goes out with no
+            // Content-Length at all and OneDrive answers 411.
+            .header(reqwest::header::CONTENT_LENGTH, content.len())
             .body(content.to_string());
 
         if let Some(e) = etag {
