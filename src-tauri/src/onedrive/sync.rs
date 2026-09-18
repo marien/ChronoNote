@@ -549,26 +549,45 @@ impl OneDriveManager {
             .get_folder_delta(&token, &folder_cfg.folder_id, cache.delta_link.as_deref())
             .await?;
 
+        // A listing that starts from scratch (no saved delta link) contains
+        // every file that exists, but says nothing about the ones that are
+        // gone — those are found below by what's missing from it.
+        let full_listing = cache.delta_link.as_deref().map_or(true, str::is_empty);
+        let mut seen_in_listing = std::collections::HashSet::new();
+
         for item in delta_res.changes {
-            if !is_syncable_file(&item.name) {
+            if item.is_deleted {
+                // OneDrive may report a deletion by id alone.
+                if let Some(name) = name_for_deleted_item(cache, &item.id, item.name.as_deref()) {
+                    if is_syncable_file(&name) {
+                        apply_remote_delete(notes_dir, &name, cache)?;
+                    }
+                }
                 continue;
             }
 
-            if item.is_deleted {
-                apply_remote_delete(notes_dir, &item.name, cache)?;
+            let Some(name) = item.name else { continue };
+            if !is_syncable_file(&name) {
                 continue;
             }
+            seen_in_listing.insert(name.clone());
 
             let remote_content = self.client.download_file_content(&token, &item.id).await?;
             apply_remote_change(
                 notes_dir,
                 data_dir,
-                &item.name,
+                &name,
                 &item.id,
                 item.etag.as_deref().unwrap_or_default(),
                 &remote_content,
                 cache,
             )?;
+        }
+
+        if full_listing {
+            for name in missed_remote_deletes(cache, &seen_in_listing) {
+                apply_remote_delete(notes_dir, &name, cache)?;
+            }
         }
 
         if let Some(link) = delta_res.delta_link {
@@ -1005,6 +1024,29 @@ fn resolve_conflict_files(
     );
     cache.conflicts.remove(name);
     Ok(())
+}
+
+/// The note a delta "deleted" entry refers to: its own name when OneDrive
+/// sent one, otherwise the cached note with that item id.
+fn name_for_deleted_item(cache: &SyncCache, id: &str, name: Option<&str>) -> Option<String> {
+    match name {
+        Some(n) => Some(n.to_string()),
+        None => cache.files.iter().find(|(_, e)| e.id == id).map(|(n, _)| n.clone()),
+    }
+}
+
+/// After a from-scratch listing: cached notes the cloud no longer has.
+/// (Only meaningful for a *complete* listing — never call it for an
+/// incremental delta, which lists just what changed.)
+fn missed_remote_deletes(cache: &SyncCache, seen: &std::collections::HashSet<String>) -> Vec<String> {
+    let mut gone: Vec<String> = cache
+        .files
+        .keys()
+        .filter(|n| is_syncable_file(n) && !seen.contains(*n))
+        .cloned()
+        .collect();
+    gone.sort();
+    gone
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -1467,6 +1509,44 @@ mod tests {
             RemoteDeleteAction::DeleteLocal
         );
         assert!(!cache.files.contains_key(NOTE));
+    }
+
+    #[test]
+    fn a_deletion_reported_by_id_alone_is_mapped_back_to_the_cached_note() {
+        let cache = cache_with(NOTE, "v1", "e1"); // cached under id "id-1"
+        assert_eq!(name_for_deleted_item(&cache, "id-1", None).as_deref(), Some(NOTE));
+        assert_eq!(name_for_deleted_item(&cache, "id-1", Some("x.txt")).as_deref(), Some("x.txt"));
+        assert_eq!(name_for_deleted_item(&cache, "other-id", None), None);
+    }
+
+    #[test]
+    fn a_full_listing_reveals_deletions_that_were_missed() {
+        let mut cache = cache_with("2026-01-01.txt", "a", "e1");
+        cache.files.insert("2026-01-02.txt".to_string(), cache.files["2026-01-01.txt"].clone());
+        let seen: std::collections::HashSet<String> = ["2026-01-01.txt".to_string()].into_iter().collect();
+        assert_eq!(missed_remote_deletes(&cache, &seen), vec!["2026-01-02.txt".to_string()]);
+    }
+
+    #[test]
+    fn a_missed_delete_removes_an_unchanged_local_note_but_keeps_an_edited_one() {
+        let (notes, _data) = dirs();
+        // Unchanged since last sync -> removed.
+        fs::write(notes.path().join("2026-01-01.txt"), "same").unwrap();
+        let mut cache = cache_with("2026-01-01.txt", "same", "e1");
+        // Edited since last sync -> kept, and no cache entry so it re-uploads.
+        fs::write(notes.path().join("2026-01-02.txt"), "edited offline").unwrap();
+        cache.files.insert(
+            "2026-01-02.txt".to_string(),
+            FileCacheEntry { id: "id-2".into(), etag: "e1".into(), local_hash: compute_hash(b"original") },
+        );
+
+        for name in missed_remote_deletes(&cache.clone(), &std::collections::HashSet::new()) {
+            apply_remote_delete(notes.path(), &name, &mut cache).unwrap();
+        }
+
+        assert!(!notes.path().join("2026-01-01.txt").exists());
+        assert!(notes.path().join("2026-01-02.txt").exists());
+        assert!(cache.files.is_empty());
     }
 
     #[test]

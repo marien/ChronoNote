@@ -228,15 +228,15 @@ impl OneDriveClient {
             for item in page.value {
                 let is_deleted = item.deleted.is_some();
                 let is_file = item.file.is_some();
-                if let Some(name) = item.name {
-                    if is_file || is_deleted {
-                        changes.push(DeltaItem {
-                            id: item.id,
-                            name,
-                            etag: item.etag,
-                            is_deleted,
-                        });
-                    }
+                // A deletion is kept even without a name; a live item is
+                // only useful when it's a file with one.
+                if is_deleted || (is_file && item.name.is_some()) {
+                    changes.push(DeltaItem {
+                        id: item.id,
+                        name: item.name,
+                        etag: item.etag,
+                        is_deleted,
+                    });
                 }
             }
 
@@ -348,7 +348,9 @@ pub struct DeltaQueryResult {
 
 pub struct DeltaItem {
     pub id: String,
-    pub name: String,
+    /// Absent for some deleted items: OneDrive may report a deletion by id
+    /// alone, so the caller has to map it back to a name itself.
+    pub name: Option<String>,
     pub etag: Option<String>,
     pub is_deleted: bool,
 }
