@@ -6,8 +6,7 @@ kept for the rationale behind each one — not just *what* changed but
 was still being gathered and confirmed before implementation; renamed once
 everything below was applied, since nothing here is "pending" anymore.
 
-**Status: all sections through §173 implemented and released; §174–§177
-fixed, not yet released.** §153 is a
+**Status: all sections through §177 implemented and released.** §153 is a
 website-only Guide-page fix (found live right after §150–§152 shipped
 as v0.7.12) — no version bump, nothing in the shipped app changed. §154
 merges the OS title bar into the top bar (Notepad-style: icon, tabs,
@@ -7615,7 +7614,7 @@ live in the browser: the icon click opens Settings on "Calendar, Notes
 
 ## 174. Tab past/today/future colours went stale across a midnight rollover (#72)
 
-**Status: fixed, not yet released.**
+**Status: fixed, released in v0.9.4.**
 
 Marien: "When are colors of tabs changed? When I opened the app this
 morning, yesterday was still colored blue and today was green. When I
@@ -7664,7 +7663,7 @@ practical to simulate through the browser), `cargo test` 64/64
 
 ## 175. Three shortcut-behavior fixes: Ctrl+Shift+O no longer promotes plain lines, Ctrl+Space narrowed to close/reopen only, and the Shortcuts drawer catches up (#73)
 
-**Status: fixed, not yet released.**
+**Status: fixed, released in v0.9.4.**
 
 Marien filed #73 with three related pieces of feedback on last
 release's #69/#70 work:
@@ -7762,7 +7761,7 @@ fix, since that gap predates and is unrelated to #73 itself.
 
 ## 176. Calendar sync excludes declined, cancelled, and forwarded meetings (#74)
 
-**Status: fixed, not yet released.**
+**Status: fixed, released in v0.9.4.**
 
 Marien: "Don't Sync meetings starting with 'Declined:', 'Cancelled:',
 or 'Following:'." — an external calendar syncer commonly stamps one of
@@ -7803,7 +7802,7 @@ are excluded from the sync review step. `svelte-check` 218/0, Vitest
 
 ## 177. "Copy to next occurrence" no longer jumps the cursor to the top of the document (#75)
 
-**Status: fixed, not yet released.**
+**Status: fixed, released in v0.9.4.**
 
 Marien: "When doing Copy to next occurrence keep the focus on the line
 being deferred. Now it jumps to the top." — after #66's `Ctrl+Shift+.`
