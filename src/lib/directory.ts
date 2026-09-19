@@ -31,7 +31,7 @@ import {
   tabs,
   unsavedScratchpadNames,
 } from "./stores";
-import { flushSave, invalidateDiskNotesCache } from "./persistence";
+import { flushSave, flushScratchpadDrafts, invalidateDiskNotesCache } from "./persistence";
 import { restoreOrBootstrapTabs } from "./boot";
 import { createScratchpadWith } from "./tabs";
 import { refreshAgendaFileExists } from "./calendarSyncActions";
@@ -87,7 +87,9 @@ export async function confirmDiscardAndSwitch() {
 export function beginFolderSwitch(folderName: string): FolderSwitchPad {
   modal.set("none");
   conflictInfo.set(null);
-  tabs.set([]);
+  // Notes belong to the old workspace and close; scratchpads with something in them
+  // don't belong to any folder, so they stay (their drafts are what gets restored).
+  tabs.set(get(tabs).filter((t) => t.isScratchpad && t.content.trim().length > 0));
   activeTabId.set("");
   clearAllEditorViewState();
   clearAllTabCleanHashes();
@@ -117,9 +119,13 @@ export interface FolderSwitchPad {
  * folder's own notes, and drop the scratchpad unless the user wrote in it. */
 export async function finishFolderSwitch(path: string, pad: FolderSwitchPad) {
   const current = get(tabs).find((t) => t.id === pad.id);
-  const keep = current && current.content !== pad.initial ? current : null;
+  if (current && current.content === pad.initial) {
+    tabs.update((list) => list.filter((t) => t.id !== pad.id));
+  }
+  // Scratchpads live on as drafts across the switch (`performDirectorySwitch` restores
+  // them from there) - so write the drafts now, without the greeting if it was left alone.
+  flushScratchpadDrafts();
   await performDirectorySwitch(path);
-  if (keep) tabs.update((list) => [...list, keep]);
 }
 
 export async function performDirectorySwitch(path: string) {

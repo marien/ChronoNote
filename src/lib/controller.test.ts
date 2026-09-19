@@ -2035,8 +2035,19 @@ describe("beginFolderSwitch", () => {
   });
 
   describe("finishFolderSwitch", () => {
+    // The app keeps scratchpads across a switch as drafts: what gets saved is what comes back.
+    function persistDrafts() {
+      let saved: Record<string, string> = {};
+      apiMock.saveScratchpadDrafts.mockImplementation(async (d: Record<string, string>) => {
+        saved = d;
+      });
+      apiMock.loadScratchpadDrafts.mockImplementation(async () => saved);
+    }
+
     it("closes the scratchpad if it was left alone, and opens today's note", async () => {
+      persistDrafts();
       const pad = controller.beginFolderSwitch("Notes");
+      controller.flushScratchpadDrafts(); // e.g. the sync's own save-everything step
       await controller.finishFolderSwitch("/Notes", pad);
       const list = get(controller.tabs);
       expect(list.some((t) => t.isScratchpad)).toBe(false);
@@ -2044,13 +2055,25 @@ describe("beginFolderSwitch", () => {
     });
 
     it("keeps the scratchpad next to today's note if the user wrote in it", async () => {
+      persistDrafts();
       const pad = controller.beginFolderSwitch("Notes");
       controller.tabs.update((l) => l.map((t) => (t.id === pad.id ? { ...t, content: pad.initial + "my own thought" } : t)));
       await controller.finishFolderSwitch("/Notes", pad);
       const list = get(controller.tabs);
-      const kept = list.find((t) => t.isScratchpad);
-      expect(kept?.content).toContain("my own thought");
+      expect(list.filter((t) => t.isScratchpad)).toHaveLength(1);
+      expect(list.find((t) => t.isScratchpad)?.content).toContain("my own thought");
       expect(list.some((t) => !t.isScratchpad)).toBe(true);
+    });
+
+    it("does not lose a scratchpad the user already had open before the switch", async () => {
+      persistDrafts();
+      controller.tabs.set([tab({ id: "s", filename: "Scratchpad 1", isScratchpad: true, content: "my earlier draft" })]);
+      controller.activeTabId.set("s");
+      const pad = controller.beginFolderSwitch("Notes");
+      controller.flushScratchpadDrafts();
+      await controller.finishFolderSwitch("/Notes", pad);
+      const pads = get(controller.tabs).filter((t) => t.isScratchpad);
+      expect(pads.map((t) => t.content)).toEqual(["my earlier draft"]);
     });
   });
 });
