@@ -6,10 +6,7 @@ kept for the rationale behind each one — not just *what* changed but
 was still being gathered and confirmed before implementation; renamed once
 everything below was applied, since nothing here is "pending" anymore.
 
-**Status: all sections through §180 implemented and released** (§178–§180 in v0.9.5: a save-only-when-changed fix and two GitHub issues, #76/#77). §181–§186
-(the Android target, OneDrive sync and the sideloadable release build) are implemented on the
-`feat/android-onedrive` branch and live-tested on a real phone, but not yet
-released. §153 is a
+**Status: all sections through §186 implemented and released** (§178–§180 in v0.9.5: a save-only-when-changed fix and two GitHub issues, #76/#77; §181–§186 in v0.10.0: the Android app and OneDrive sync). §153 is a
 website-only Guide-page fix (found live right after §150–§152 shipped
 as v0.7.12) — no version bump, nothing in the shipped app changed. §154
 merges the OS title bar into the top bar (Notepad-style: icon, tabs,
@@ -7938,8 +7935,7 @@ write-only-when-changed rule.
 
 ## 181. Android as a fourth build target, and the mobile chrome around it
 
-**Status: implemented on `feat/android-onedrive`; not yet merged to
-`main` or released.**
+**Status: implemented and live-tested (real phone, real OneDrive); released in v0.10.0.**
 
 Marien pushed a large branch (authored 2026-09-17) adding Android next
 to the desktop app, the demo and the web app, plus a Rust OneDrive sync
@@ -8010,8 +8006,7 @@ matrix in §183–§184.
 
 ## 182. OneDrive sign-in and the sync engine (Android)
 
-**Status: implemented on `feat/android-onedrive`; live-tested against a
-real OneDrive; not yet merged or released.**
+**Status: implemented and live-tested (real phone, real OneDrive); released in v0.10.0.**
 
 The branch added Microsoft sign-in (OAuth2 PKCE) and a sync of the notes
 folder through the Graph API (delta queries, eTag `If-Match` uploads,
@@ -8069,8 +8064,7 @@ tests; each has unit tests):
 
 ## 183. Conflicts are merged, or held for the user (no conflict files)
 
-**Status: implemented on `feat/android-onedrive`; live-tested; not yet
-merged or released.**
+**Status: implemented and live-tested (real phone, real OneDrive); released in v0.10.0.**
 
 The first design wrote a copy of the other version into
 `.chrononote-conflicts/` and let one side silently overwrite the cloud.
@@ -8121,8 +8115,7 @@ conflicts ✔.
 
 ## 184. Deleting an emptied note on the phone deletes it in the cloud; OneDrive state stays out of backups
 
-**Status: implemented on `feat/android-onedrive`; live-tested; not yet
-merged or released.**
+**Status: implemented and live-tested (real phone, real OneDrive); released in v0.10.0.**
 
 **Deletes.** #63 made closing an empty dated tab delete its file
 (`delete_note`), but with sync on the cloud copy lingered and reappeared on
@@ -8157,9 +8150,7 @@ the OneDrive Rust structs onto the `ts-rs` generated types.
 
 ## 185. A signed, sideloadable Android release build
 
-**Status: implemented on `feat/android-onedrive`; the arm64 APK was built
-and its release variant verified on the emulator; not yet tried on a real
-phone; not merged or released.**
+**Status: implemented and live-tested (real phone, real OneDrive); released in v0.10.0.**
 
 Marien wants to sideload before deciding on a store. `scripts/android-release.sh`
 builds a release APK for 64-bit ARM phones (every current Samsung and Pixel),
@@ -8202,11 +8193,7 @@ Verification: `cargo test` 137/137, Vitest 368/368, Playwright 241/241,
 
 ## 186. First-connect clarity, and notes are only written when they changed (see also §178)
 
-**Status: implemented on `feat/android-onedrive`; the first item was found
-sideloading v0.9.4 on a real phone, the second on that phone plus a PC; not
-yet released. The second was also a bug in the shipped desktop app: it was
-ported to `main` and released as v0.9.5 (§178), and this branch merged that
-version in.**
+**Status: implemented and live-tested on a real phone, released in v0.10.0. The first item was found sideloading v0.9.4, the second on that phone plus a PC; the second was also a bug in the shipped desktop app, so it went out earlier as v0.9.5 (§178).**
 
 **First connect (Android).** Signing in to OneDrive doesn't choose a folder,
 but Settings displayed a hardcoded `/Documents/Notes` as if one were chosen;

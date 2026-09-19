@@ -78,6 +78,17 @@ The same `src/` tree also builds the public demo and the web app —
 see [`website/README.md`](website/README.md) for how those are built,
 previewed locally, and deployed.
 
+### Android (v0.10.0)
+
+The desktop frontend also runs as an Android app (Tauri v2 mobile), with a
+touch accessory bar and OneDrive sync so the same notes folder is available on
+phone and PC (three-way merge; a note edited on both sides is merged, or held
+for you to resolve in-app — no loose conflict files). Not on a store yet: build
+a signed sideloadable APK with `scripts/android-release.sh` (setup, signing and
+the pinned Rust 1.95.0 toolchain are described in that script and in
+`src-tauri/android-overrides/README.md`), then `adb install -r` it or copy it to
+the phone. See spec §7.6 and CHANGELOG §181–§186.
+
 ## License
 
 [MIT](LICENSE)

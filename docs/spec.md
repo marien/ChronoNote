@@ -2,7 +2,7 @@
 
 **Document Version:** 1.2.0 (amended — reflects the state through
 `CHANGELOG.md` §186; the Android target and OneDrive sync described in §7.6
-live on the `feat/android-onedrive` branch and are not yet released)
+are released as of v0.10.0)
 **Target Environment:** Cross-platform native desktop (Windows / macOS /
 Linux), an Android app, plus a browser-storage web app and a
 zero-retention public demo
@@ -504,7 +504,7 @@ navigating tag-by-tag. Every release artifact is signed
 (`tauri-plugin-updater`'s own keypair), and the downloaded installer's
 signature is verified before it runs.
 
-### 7.6 Android App & OneDrive Sync (unreleased — `feat/android-onedrive`)
+### 7.6 Android App & OneDrive Sync (v0.10.0)
 
 **The app.** The same frontend runs in Tauri's Android WebView, edge to
 edge: the native code feeds the real status-bar, navigation-bar, display-cutout
