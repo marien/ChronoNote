@@ -10,3 +10,13 @@ src/lib/generated/*.ts text eol=lf
 # The Tauri CLI rewrites this file with LF on every build (it syncs feature
 # flags); pin it so it never shows as modified under core.autocrlf=true.
 src-tauri/Cargo.toml text eol=lf
+
+# The web app and demo bundles are generated. On Windows the build writes index.html
+# with mixed line endings, which CI (Linux) never reproduces - the "bundle is up to
+# date" check then fails. Store the text files LF-only (never the icons).
+website/webapp/**/*.html text eol=lf
+website/webapp/*.html text eol=lf
+website/demo-app/**/*.html text eol=lf
+website/demo-app/*.html text eol=lf
+webapp-src/*.html text eol=lf
+demo-src/*.html text eol=lf
