@@ -6,7 +6,7 @@ kept for the rationale behind each one — not just *what* changed but
 was still being gathered and confirmed before implementation; renamed once
 everything below was applied, since nothing here is "pending" anymore.
 
-**Status: all sections through §186 implemented and released** (§178–§180 in v0.9.5: a save-only-when-changed fix and two GitHub issues, #76/#77; §181–§186 in v0.10.0: the Android app and OneDrive sync). §153 is a
+**Status: all sections through §187 implemented** (§178–§180 in v0.9.5: a save-only-when-changed fix and two GitHub issues, #76/#77; §181–§186 in v0.10.0: the Android app and OneDrive sync; §187 in feat/webapp-onedrive: Web App OneDrive sync, workspace isolation, migration flow, and offline PWA). §153 is a
 website-only Guide-page fix (found live right after §150–§152 shipped
 as v0.7.12) — no version bump, nothing in the shipped app changed. §154
 merges the OS title bar into the top bar (Notepad-style: icon, tabs,
@@ -8233,3 +8233,39 @@ nothing; an edit is still saved once; a newer version synced in is not
 overwritten and is picked up on return — all three fail without the fix) and
 `onedrive-first-connect.spec.ts`. `svelte-check` 0 errors, Vitest 368/368,
 Playwright 247/247, `cargo test` 137/137.
+
+## 187. Web App & PWA OneDrive Cloud Sync, Workspace Isolation, Migration Flow, and Offline PWA
+
+**Status: implemented and tested, prepared on branch `feat/webapp-onedrive` for merge into `main`.**
+
+Extends Microsoft OneDrive cloud synchronization directly into the ChronoNote Web App and Progressive Web App (PWA):
+
+1. **Pure Client-Side OneDrive Sync Engine (`webOneDriveSync.ts`)**:
+   - Runs OAuth 2.0 PKCE with Microsoft Entra ID directly in the browser (`webOneDriveAuth.ts`) with zero intermediary backend servers.
+   - Microsoft Graph REST client (`oneDriveClient.ts`) supports delta sync queries, chunked uploads, and personal/corporate endpoints.
+   - Expands CSP to authorize direct communication with Microsoft Graph, login, personal content, and SharePoint domains.
+   - Flushes in-memory pending saves before starting sync, and triggers active-tab drift checks upon sync completion.
+
+2. **Workspace Isolation (`notes_browser` vs `notes_cloud`)**:
+   - IndexedDB schema upgraded with dedicated object stores: `notes_browser` for local offline notes and `notes_cloud` for OneDrive synchronized notes.
+   - Tab sessions isolated per workspace (`session_browser` vs `session_cloud`), ensuring open workspaces on browser storage and OneDrive remain completely independent.
+   - Safety backup store `notes_archive` preserves browser snapshots prior to migration.
+   - Signing out of OneDrive cleanly transitions back to Browser storage via `performDirectorySwitch("Browser storage")`, restoring the browser tabs and notes exactly as they were before connecting.
+
+3. **Seamless Migration Flow with Conflict Handling**:
+   - When connecting to OneDrive, if notes exist in Browser storage, `MigrateNotesModal.svelte` prompts the user to either move them to OneDrive or keep Browser storage separate.
+   - Clean notes merge directly; notes with divergent non-empty cloud versions are registered into `cache.conflicts` for visual resolution via `ConflictModal`.
+
+4. **Calendar Sync (`.agenda.json`) Un-gated on Web**:
+   - When connected to OneDrive on the Web App, Calendar Sync is un-gated across Settings, Top Bar, More Actions menu, Command Palette, and Copy Forward.
+   - `webOneDriveSync` syncs `.agenda.json` alongside note files and immediately refreshes meeting detection.
+
+5. **Offline-First PWA & Instant Launch**:
+   - Enhanced `sw.js` precaches the application shell on install.
+   - Serves immutable hashed assets (`/assets/`) Cache-First for instant 0ms launch.
+   - Fast 1.5s network timeout on navigation with automatic offline cached fallback.
+   - Added Apple mobile and PWA installability meta tags.
+   - Added CI/CD build guard in `test.yml` to ensure `website/webapp/` builds cleanly and stays in sync.
+
+Verification: Vitest 414/414 passing, `svelte-check` 0 errors/0 warnings, production bundle built and live-tested.
+
