@@ -18,7 +18,7 @@ import {
   type SaveState,
 } from "./stores";
 import type { NoteTab } from "./types";
-import { syncOneDriveNow } from "./oneDriveSync";
+import { registerSyncHooks, syncOneDriveNow } from "./oneDriveSync";
 import { sha256Hex } from "./hash";
 
 // --- Debounced autosave on typing, immediate on deliberate actions ---
@@ -204,6 +204,11 @@ let diskReadInFlight: Promise<void> | null = null;
 export function invalidateDiskNotesCache() {
   diskNotesCacheRaw = null;
 }
+
+registerSyncHooks({
+  flushPendingSaves: flushAllPendingSaves,
+  invalidateCache: invalidateDiskNotesCache,
+});
 
 export async function refreshAllNotesCache() {
   if (diskNotesCacheRaw === null) {

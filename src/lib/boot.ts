@@ -157,6 +157,12 @@ function wireDriftDetection() {
   activeTabId.subscribe(() => {
     void checkActiveTabForDrift();
   });
+  if (typeof window !== "undefined") {
+    window.addEventListener("focus", () => {
+      void checkActiveTabForDrift();
+      refreshCurrentDate();
+    });
+  }
   getCurrentWindow()
     .onFocusChanged(({ payload: focused }) => {
       if (!focused) return;

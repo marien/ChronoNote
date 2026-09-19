@@ -9,6 +9,18 @@
 import { get } from "svelte/store";
 import * as api from "./tauriApi";
 import { oneDriveFolder, oneDriveSyncing, showToast, syncConflicts } from "./stores";
+import { checkActiveTabForDrift } from "./drift";
+
+export type SyncHooks = {
+  flushPendingSaves?: () => Promise<void>;
+  invalidateCache?: () => void;
+};
+
+let syncHooks: SyncHooks = {};
+
+export function registerSyncHooks(hooks: SyncHooks) {
+  syncHooks = { ...syncHooks, ...hooks };
+}
 
 /** Re-reads the held conflicts. Cheap (one small JSON read), so it's safe to
  * call after every sync and on the status poll. Never throws. */
@@ -41,8 +53,13 @@ export function syncOneDriveNow(opts: { notify?: boolean } = {}): Promise<void> 
   oneDriveSyncing.set(true);
   inFlight = (async () => {
     try {
+      if (syncHooks.flushPendingSaves) {
+        await syncHooks.flushPendingSaves();
+      }
       const result = await api.oneDriveSyncNow();
       await refreshSyncConflicts();
+      syncHooks.invalidateCache?.();
+      void checkActiveTabForDrift();
       if (announce) {
         showToast(result.success ? "OneDrive sync finished" : `OneDrive sync failed: ${result.message ?? "unknown error"}`);
       }
