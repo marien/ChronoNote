@@ -214,4 +214,64 @@ describe("WebBackend", () => {
     expect(conflicts).toHaveLength(1);
     expect(conflicts[0].name).toBe("2026-09-19.txt");
   });
+
+  describe("migrate, then choose the folder, then first sync (the order the picker uses)", () => {
+    function stubClient(remote: Record<string, string>) {
+      const uploads: string[] = [];
+      const client = {
+        getFolderDelta: vi.fn().mockResolvedValue({
+          changes: Object.keys(remote).map((name) => ({ id: `id-${name}`, name, etag: `etag-${name}`, isDeleted: false })),
+          deltaLink: "delta-1",
+        }),
+        downloadFileContent: vi.fn(async (_t: string, id: string) => remote[id.replace(/^id-/, "")]),
+        uploadFileContent: vi.fn(async (_t: string, _f: string, name: string) => {
+          uploads.push(name);
+          return { type: "success", id: `id-${name}`, etag: "etag-new" };
+        }),
+        deleteItem: vi.fn().mockResolvedValue("deleted"),
+      };
+      (backend.syncEngine as any).client = client;
+      return { client, uploads };
+    }
+
+    async function connect() {
+      mockStores.meta.set("onedrive_auth", {
+        accessToken: "tok",
+        refreshToken: "ref",
+        expiresAt: Math.floor(Date.now() / 1000) + 3600,
+        account: { email: "a@b.c", displayName: "A" },
+      });
+    }
+
+    it("keeps both versions of a note that exists in the browser and on OneDrive - nothing is overwritten", async () => {
+      await connect();
+      await backend.invoke("write_note", { filename: "2026-09-19.txt", content: "browser version\n" });
+      const { uploads } = stubClient({ "2026-09-19.txt": "OneDrive version\n" });
+
+      await backend.invoke("web_migrate_browser_notes");
+      await backend.invoke("onedrive_set_folder", { folderId: "f", folderPath: "/Notes" });
+      const res = (await backend.invoke("onedrive_sync_now")) as { success: boolean };
+      expect(res.success).toBe(true);
+
+      // The OneDrive copy was never replaced...
+      expect(uploads).not.toContain("2026-09-19.txt");
+      // ...and the disagreement is held for the user, with both sides intact.
+      const conflicts = await backend.syncEngine.listConflicts();
+      expect(conflicts).toEqual([{ name: "2026-09-19.txt", local: "browser version\n", remote: "OneDrive version\n" }]);
+    });
+
+    it("a blank browser note never displaces the OneDrive version", async () => {
+      await connect();
+      await backend.invoke("write_note", { filename: "2026-09-19.txt", content: "" });
+      await backend.invoke("write_note", { filename: "2026-09-18.txt", content: "only in browser\n" });
+      const { uploads } = stubClient({ "2026-09-19.txt": "OneDrive version\n" });
+
+      await backend.invoke("web_migrate_browser_notes");
+      await backend.invoke("onedrive_set_folder", { folderId: "f", folderPath: "/Notes" });
+      await backend.invoke("onedrive_sync_now");
+
+      expect(await backend.invoke("read_note", { filename: "2026-09-19.txt" })).toBe("OneDrive version\n");
+      expect(uploads).toEqual(["2026-09-18.txt"]);
+    });
+  });
 });
