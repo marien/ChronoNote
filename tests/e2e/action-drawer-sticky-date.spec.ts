@@ -45,8 +45,10 @@ test.describe("Actions drawer keeps the date in view (#77)", () => {
     for (const scrollTo of [HEADER + ROW * 5, perGroup + HEADER + ROW * 3, perGroup * 2 + HEADER + ROW * 8]) {
       await list(page).evaluate((el, y) => (el.scrollTop = y), scrollTo);
       await expect(sticky(page)).toBeVisible();
+      // The list is virtualized: the rows for the new scroll position render a frame or
+      // two after the scroll, so wait for them (a bare read raced that on the CI runner).
+      await expect.poll(() => dateOfTopVisibleAction(page)).not.toBe("");
       const date = await dateOfTopVisibleAction(page);
-      expect(date).not.toBe("");
       // The pinned heading names the same day as the action beneath it.
       await expect(sticky(page)).toContainText(date);
     }
