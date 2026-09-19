@@ -797,6 +797,15 @@ fn generate_typescript_bindings() {
         NoteWithMetadata::decl(&cfg),
         ImportMode::decl(&cfg),
         ImportResult::decl(&cfg),
+        // OneDrive wire types (Settings, folder picker, sync + conflict screen).
+        crate::onedrive::OneDriveAccount::decl(&cfg),
+        crate::onedrive::OneDriveLoginResult::decl(&cfg),
+        crate::onedrive::OneDriveFolderItem::decl(&cfg),
+        crate::onedrive::OneDriveFolderConfig::decl(&cfg),
+        crate::onedrive::OneDriveSyncResult::decl(&cfg),
+        crate::onedrive::SyncConflict::decl(&cfg),
+        crate::onedrive::SyncStatus::decl(&cfg),
+        crate::onedrive::OneDriveAdvancedConfig::decl(&cfg),
     ];
     // ts-rs inlines each Rust doc comment as a `/* … */` block mid-decl,
     // which reads badly on one line. Strip those and collapse whitespace

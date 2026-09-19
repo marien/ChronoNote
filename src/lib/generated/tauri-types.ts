@@ -17,3 +17,19 @@ export type NoteWithMetadata = { content: string | null, metadata: FileMetadata 
 export type ImportMode = "merge" | "replace";
 
 export type ImportResult = { imported: number, skipped: number };
+
+export type OneDriveAccount = { email: string, displayName: string };
+
+export type OneDriveLoginResult = { success: boolean, account?: OneDriveAccount, error?: string, pending: boolean };
+
+export type OneDriveFolderItem = { id: string, name: string };
+
+export type OneDriveFolderConfig = { folderId: string, folderPath: string };
+
+export type OneDriveSyncResult = { success: boolean, message?: string };
+
+export type SyncConflict = { name: string, local: string, remote: string };
+
+export type SyncStatus = "idle" | "syncing" | "offline" | "error";
+
+export type OneDriveAdvancedConfig = { clientIdOverride?: string, tenantIdOverride?: string };

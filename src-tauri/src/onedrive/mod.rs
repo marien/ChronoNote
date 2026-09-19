@@ -4,21 +4,24 @@ pub mod merge;
 pub mod sync;
 
 use serde::{Deserialize, Serialize};
+use ts_rs::TS;
 
-#[derive(Serialize, Deserialize, Clone, Debug, Default, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Clone, Debug, Default, PartialEq, Eq, TS)]
 #[serde(rename_all = "camelCase")]
 pub struct OneDriveAccount {
     pub email: String,
     pub display_name: String,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug, TS)]
 #[serde(rename_all = "camelCase")]
 pub struct OneDriveLoginResult {
     pub success: bool,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
     pub account: Option<OneDriveAccount>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
     pub error: Option<String>,
     /// Android only: true means the system browser was opened and the
     /// real outcome will arrive later via the `onedrive-login-result`
@@ -30,31 +33,32 @@ pub struct OneDriveLoginResult {
     pub pending: bool,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, TS)]
 #[serde(rename_all = "camelCase")]
 pub struct OneDriveFolderItem {
     pub id: String,
     pub name: String,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, TS)]
 #[serde(rename_all = "camelCase")]
 pub struct OneDriveFolderConfig {
     pub folder_id: String,
     pub folder_path: String,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug, TS)]
 #[serde(rename_all = "camelCase")]
 pub struct OneDriveSyncResult {
     pub success: bool,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
     pub message: Option<String>,
 }
 
 /// A note whose local and cloud versions diverged in a way that couldn't be
 /// merged automatically. Both texts are included for the resolve screen.
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, TS)]
 #[serde(rename_all = "camelCase")]
 pub struct SyncConflict {
     pub name: String,
@@ -62,7 +66,7 @@ pub struct SyncConflict {
     pub remote: String,
 }
 
-#[derive(Serialize, Deserialize, Clone, Copy, Debug, PartialEq, Eq, Default)]
+#[derive(Serialize, Deserialize, Clone, Copy, Debug, PartialEq, Eq, Default, TS)]
 #[serde(rename_all = "lowercase")]
 pub enum SyncStatus {
     #[default]
@@ -78,11 +82,13 @@ pub enum SyncStatus {
 /// registration and reject `/common` outright — see `auth::resolve_client_id`/
 /// `resolve_tenant`). Both blank by default, meaning "use the built-in
 /// personal-account defaults."
-#[derive(Serialize, Deserialize, Clone, Debug, Default, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Clone, Debug, Default, PartialEq, Eq, TS)]
 #[serde(rename_all = "camelCase")]
 pub struct OneDriveAdvancedConfig {
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
     pub client_id_override: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
     pub tenant_id_override: Option<String>,
 }

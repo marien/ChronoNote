@@ -5,42 +5,24 @@ import type {
   ImportMode,
   ImportResult,
   NoteWithMetadata,
+  OneDriveAccount,
+  OneDriveAdvancedConfig,
+  OneDriveFolderConfig,
+  OneDriveFolderItem,
+  OneDriveLoginResult,
+  OneDriveSyncResult,
+  SyncConflict,
+  SyncStatus,
   TabSession,
   ThemeMode,
 } from "./types";
 
+export type { OneDriveAdvancedConfig, OneDriveLoginResult, SyncConflict };
+
 type NoArgs = Record<string, never>;
-
-/** Mirrors Rust's `onedrive::OneDriveAdvancedConfig` — both fields blank
- * means "use the built-in personal-account defaults" (see
- * `src-tauri/src/onedrive/auth.rs`'s `resolve_client_id`/`resolve_tenant`). */
-export interface OneDriveAdvancedConfig {
-  clientIdOverride?: string;
-  tenantIdOverride?: string;
-}
-
-/** Mirrors Rust's `onedrive::SyncConflict`: a note whose phone and cloud
- * versions couldn't be merged automatically. */
-export interface SyncConflict {
-  name: string;
-  local: string;
-  remote: string;
-}
 
 export type SyncConflictResolution = "mine" | "theirs" | "both";
 
-/** Mirrors Rust's `onedrive::OneDriveLoginResult`. On Android, opening
- * the browser for a `chrononote://auth` sign-in returns immediately with
- * `pending: true` — `success`/`account`/`error` are meaningless until
- * the real outcome arrives later via the `onedrive-login-result` Tauri
- * event (see `boot.ts`'s `initOneDriveSync`). Always `false` on desktop,
- * which already blocks until it has a real result. */
-export interface OneDriveLoginResult {
-  success: boolean;
-  account?: { email: string; displayName: string };
-  error?: string;
-  pending: boolean;
-}
 
 /** The full Tauri command surface — one entry per `#[tauri::command]` in
  * `src-tauri/src/lib.rs`'s `generate_handler!`. Both the real IPC wrapper
@@ -104,15 +86,15 @@ export interface TauriCommands {
   onedrive_logout: { args: NoArgs; returns: void };
   onedrive_get_account: {
     args: NoArgs;
-    returns: { email: string; displayName: string } | null;
+    returns: OneDriveAccount | null;
   };
   onedrive_list_folders: {
     args: { parentId?: string | null };
-    returns: Array<{ id: string; name: string }>;
+    returns: OneDriveFolderItem[];
   };
   onedrive_create_folder: {
     args: { parentId?: string | null; name: string };
-    returns: { id: string; name: string };
+    returns: OneDriveFolderItem;
   };
   onedrive_set_folder: {
     args: { folderId: string; folderPath: string };
@@ -120,7 +102,7 @@ export interface TauriCommands {
   };
   onedrive_get_folder: {
     args: NoArgs;
-    returns: { folderId: string; folderPath: string } | null;
+    returns: OneDriveFolderConfig | null;
   };
   onedrive_exchange_code: {
     args: { code: string };
@@ -128,7 +110,7 @@ export interface TauriCommands {
   };
   onedrive_sync_now: {
     args: NoArgs;
-    returns: { success: boolean; message?: string };
+    returns: OneDriveSyncResult;
   };
   onedrive_get_conflicts: {
     args: NoArgs;
@@ -140,7 +122,7 @@ export interface TauriCommands {
   };
   onedrive_get_sync_status: {
     args: NoArgs;
-    returns: "idle" | "syncing" | "offline" | "error";
+    returns: SyncStatus;
   };
   /** Settings' Advanced overrides for work/school Entra tenants that
    * can't use the default multi-tenant client ID and/or the generic
