@@ -4,6 +4,16 @@ export const DEFAULT_CLIENT_ID = "9b008168-6c13-4f0f-9531-2313e7613ccb";
 export const DEFAULT_TENANT = "common";
 export const SCOPES = "Files.ReadWrite offline_access User.Read";
 
+export const SIGN_IN_EXPIRED_MESSAGE =
+  "Your OneDrive sign-in expired. Open Settings and choose Connect Microsoft Account to sign in again.";
+
+export class SignInExpiredError extends Error {
+  constructor() {
+    super(SIGN_IN_EXPIRED_MESSAGE);
+    this.name = "SignInExpiredError";
+  }
+}
+
 export interface StoredAuth {
   accessToken: string;
   refreshToken: string;
@@ -287,6 +297,11 @@ export async function refreshAccessToken(params: {
 
   if (!resp.ok) {
     const errText = await resp.text().catch(() => "");
+    // invalid_grant / interaction_required: the refresh token is expired or revoked
+    // (SPA refresh tokens last ~24h), so only a fresh sign-in helps.
+    if ((resp.status === 400 || resp.status === 401) && /invalid_grant|interaction_required/.test(errText)) {
+      throw new SignInExpiredError();
+    }
     throw new Error(`OAuth token refresh failed (${resp.status}): ${errText}`);
   }
 

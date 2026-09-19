@@ -11,6 +11,7 @@ import {
   loadPkceSession,
   exchangeCode,
   refreshAccessToken,
+  SignInExpiredError,
   fetchUserProfile,
   DEFAULT_CLIENT_ID,
   DEFAULT_TENANT,
@@ -167,6 +168,20 @@ describe("webOneDriveAuth", () => {
 
     expect(res.accessToken).toBe("new-access-token");
     expect(res.refreshToken).toBe("existing-refresh-token");
+  });
+
+  it("refreshAccessToken throws SignInExpiredError on invalid_grant", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: false,
+        status: 400,
+        text: async () => '{"error":"invalid_grant","error_description":"AADSTS700084: refresh token expired"}',
+      }),
+    );
+    await expect(
+      refreshAccessToken({ tenant: "common", clientId: "c", refreshToken: "old" }),
+    ).rejects.toBeInstanceOf(SignInExpiredError);
   });
 
   it("fetchUserProfile retrieves display name and email", async () => {
