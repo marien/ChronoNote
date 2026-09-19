@@ -172,8 +172,8 @@ export function oneDriveLogin(): Promise<OneDriveLoginResult> {
   return invoke("onedrive_login", {});
 }
 
-export function oneDriveLogout(): Promise<void> {
-  return invoke("onedrive_logout", {});
+export function oneDriveLogout(removeLocalData = false): Promise<void> {
+  return invoke("onedrive_logout", removeLocalData ? { removeLocalData } : {});
 }
 
 export function oneDriveGetAccount(): Promise<{ email: string; displayName: string } | null> {
@@ -196,8 +196,8 @@ export function oneDriveGetFolder(): Promise<{ folderId: string; folderPath: str
   return invoke("onedrive_get_folder", {});
 }
 
-export function oneDriveExchangeCode(code: string): Promise<OneDriveLoginResult> {
-  return invoke("onedrive_exchange_code", { code });
+export function oneDriveExchangeCode(code: string, state?: string): Promise<OneDriveLoginResult> {
+  return invoke("onedrive_exchange_code", state === undefined ? { code } : { code, state });
 }
 
 export function oneDriveSyncNow(): Promise<{ success: boolean; message?: string }> {
@@ -230,5 +230,19 @@ export function saveScratchpadDrafts(drafts: Record<string, string>): Promise<vo
 
 export function loadScratchpadDrafts(): Promise<Record<string, string>> {
   return invoke("load_scratchpad_drafts", {});
+}
+
+export function webCheckBrowserNotes(): Promise<{ count: number; filenames: string[] }> {
+  return invoke("web_check_browser_notes", {});
+}
+
+export function webMigrateBrowserNotes(): Promise<{ migratedCount: number; conflictCount: number }> {
+  return invoke("web_migrate_browser_notes", {});
+}
+
+export function webPrepareFolderSwitch(
+  newFolderId: string,
+): Promise<{ ready: boolean; switched: boolean; archivedCount: number; message?: string }> {
+  return invoke("web_prepare_folder_switch", { newFolderId });
 }
 

@@ -31,8 +31,9 @@ import {
   tabs,
   unsavedScratchpadNames,
 } from "./stores";
-import { flushSave, invalidateDiskNotesCache } from "./persistence";
+import { flushSave, flushScratchpadDrafts, invalidateDiskNotesCache } from "./persistence";
 import { restoreOrBootstrapTabs } from "./boot";
+import { createScratchpadWith } from "./tabs";
 import { refreshAgendaFileExists } from "./calendarSyncActions";
 
 /** Shared by the Browse dialog and by picking a recent folder directly
@@ -78,7 +79,56 @@ export async function confirmDiscardAndSwitch() {
   if (path) await performDirectorySwitch(path);
 }
 
-async function performDirectorySwitch(path: string) {
+/** Web app, while pointing at a new OneDrive folder: close every open note and
+ * show an empty scratchpad, so nothing from the old workspace can be written into
+ * the new one and it's plain that a switch is under way. Callers flush pending
+ * saves first (while the old workspace is still the active one); the notes of the
+ * new folder are opened by `performDirectorySwitch` once its first sync is done. */
+export function beginFolderSwitch(folderName: string): FolderSwitchPad {
+  modal.set("none");
+  conflictInfo.set(null);
+  // Notes belong to the old workspace and close; scratchpads with something in them
+  // don't belong to any folder, so they stay (their drafts are what gets restored).
+  tabs.set(get(tabs).filter((t) => t.isScratchpad && t.content.trim().length > 0));
+  activeTabId.set("");
+  clearAllEditorViewState();
+  clearAllTabCleanHashes();
+  const initial = folderSwitchNote(folderName);
+  const pad = createScratchpadWith(initial);
+  return { id: pad.id, initial };
+}
+
+/** What the scratchpad shown during a folder switch says. */
+export function folderSwitchNote(folderName: string): string {
+  return (
+    `While I sync ${folderName}, feel free to use this scratchpad.
+
+` +
+    `If you leave it alone, it closes when the sync is done and today's note opens. ` +
+    `If you type something here, it stays open next to today's note.
+`
+  );
+}
+
+export interface FolderSwitchPad {
+  id: string;
+  initial: string;
+}
+
+/** Second half of a folder switch, once its first sync has finished: open the
+ * folder's own notes, and drop the scratchpad unless the user wrote in it. */
+export async function finishFolderSwitch(path: string, pad: FolderSwitchPad) {
+  const current = get(tabs).find((t) => t.id === pad.id);
+  if (current && current.content === pad.initial) {
+    tabs.update((list) => list.filter((t) => t.id !== pad.id));
+  }
+  // Scratchpads live on as drafts across the switch (`performDirectorySwitch` restores
+  // them from there) - so write the drafts now, without the greeting if it was left alone.
+  flushScratchpadDrafts();
+  await performDirectorySwitch(path);
+}
+
+export async function performDirectorySwitch(path: string) {
   for (const t of get(tabs)) {
     if (!t.isScratchpad) flushSave(t.id);
   }

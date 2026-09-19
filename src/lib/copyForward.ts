@@ -36,6 +36,8 @@ import {
   copyForwardPending,
   editorApi,
   modal,
+  oneDriveAccount,
+  oneDriveFolder,
   showToast,
   tabs,
   type CopyForwardPending,
@@ -57,7 +59,11 @@ function matchKey(title: string): string {
  * actually exists), so "calendar is in use" means the same thing
  * everywhere in the app. */
 function calendarLeadsSearch(): boolean {
-  return get(calendarSyncEnabled) && get(backendKind) !== "web" && get(agendaFileExists);
+  return (
+    get(calendarSyncEnabled) &&
+    (get(backendKind) !== "web" || (!!get(oneDriveAccount) && !!get(oneDriveFolder))) &&
+    get(agendaFileExists)
+  );
 }
 
 /** Inserts `newLines` into `content`'s `targetHeader` section: at the end

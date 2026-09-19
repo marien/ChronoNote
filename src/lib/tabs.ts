@@ -5,6 +5,7 @@
  * the v0.5.0 refactor. Depends on stores + persistence + tabSort + paste
  * (the close hook); the drawer / search / history modules depend on this
  * one for `openOrCreateDatedFile` / `jumpToFileLine`, never the reverse. */
+import { loadBaseline } from "./hash";
 import { get } from "svelte/store";
 import { tick } from "svelte";
 import * as api from "./tauriApi";
@@ -71,11 +72,17 @@ export function cycleTab(direction: 1 | -1) {
 }
 
 export function createScratchpad() {
+  createScratchpadWith("");
+}
+
+/** A new scratchpad tab, made active, starting with `content`. */
+export function createScratchpadWith(content: string): NoteTab {
   const list = get(tabs);
   const n = list.filter((t) => t.isScratchpad).length + 1;
-  const newTab: NoteTab = { id: generateTabId(), filename: `Scratchpad ${n}`, isScratchpad: true, content: "" };
+  const newTab: NoteTab = { id: generateTabId(), filename: `Scratchpad ${n}`, isScratchpad: true, content };
   tabs.set([...list, newTab]);
   activeTabId.set(newTab.id);
+  return newTab;
 }
 
 export async function openOrCreateDatedFile(dateStr: string) {
@@ -89,7 +96,7 @@ export async function openOrCreateDatedFile(dateStr: string) {
   const { content, metadata } = await api.readNoteWithMetadata(filename);
   const newTab: NoteTab = { id: generateTabId(), filename, isScratchpad: false, content: content ?? "" };
   tabs.set([...list, newTab]);
-  markTabClean(newTab.id, metadata.contentHash); // §94 baseline
+  markTabClean(newTab.id, loadBaseline(metadata)); // §94 baseline
   activeTabId.set(newTab.id);
 }
 

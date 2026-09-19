@@ -83,7 +83,7 @@ export interface TauriCommands {
     args: NoArgs;
     returns: OneDriveLoginResult;
   };
-  onedrive_logout: { args: NoArgs; returns: void };
+  onedrive_logout: { args: { removeLocalData?: boolean }; returns: void };
   onedrive_get_account: {
     args: NoArgs;
     returns: OneDriveAccount | null;
@@ -105,7 +105,7 @@ export interface TauriCommands {
     returns: OneDriveFolderConfig | null;
   };
   onedrive_exchange_code: {
-    args: { code: string };
+    args: { code: string; state?: string };
     returns: OneDriveLoginResult;
   };
   onedrive_sync_now: {
@@ -143,6 +143,18 @@ export interface TauriCommands {
   load_scratchpad_drafts: {
     args: NoArgs;
     returns: Record<string, string>;
+  };
+  web_check_browser_notes: {
+    args: NoArgs;
+    returns: { count: number; filenames: string[] };
+  };
+  web_migrate_browser_notes: {
+    args: NoArgs;
+    returns: { migratedCount: number; conflictCount: number };
+  };
+  web_prepare_folder_switch: {
+    args: { newFolderId: string };
+    returns: { ready: boolean; switched: boolean; archivedCount: number; message?: string };
   };
 }
 

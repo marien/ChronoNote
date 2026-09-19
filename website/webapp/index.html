@@ -3,13 +3,23 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' https://graph.microsoft.com https://login.microsoftonline.com https://*.files.1drv.com https://*.microsoftpersonalcontent.com https://*.sharepoint.com;"
+    />
     <title>ChronoNote</title>
     <link rel="manifest" href="manifest.webmanifest" />
     <link rel="icon" href="icons/icon-256.png" />
-    <link rel="apple-touch-icon" href="icons/icon-256.png" />
+    <link rel="apple-touch-icon" sizes="256x256" href="icons/icon-256.png" />
+    <link rel="apple-touch-icon" sizes="512x512" href="icons/icon-512.png" />
     <meta name="theme-color" content="#1e1e1e" />
-    <script type="module" crossorigin src="./assets/index-MeTDvdj6.js"></script>
-    <link rel="stylesheet" crossorigin href="./assets/index-Cp96wTv7.css">
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="ChronoNote" />
+    <meta name="application-name" content="ChronoNote" />
+    <script type="module" crossorigin src="./assets/index-CFUOMlGZ.js"></script>
+    <link rel="stylesheet" crossorigin href="./assets/index-YJjJoh51.css">
   </head>
   <body>
     <div id="app"></div>

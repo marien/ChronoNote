@@ -1,3 +1,4 @@
+import { loadBaseline } from "./hash";
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { get } from "svelte/store";
 import type { NoteTab } from "./types";
@@ -608,6 +609,45 @@ describe("checkActiveTabForDrift (§94)", () => {
     await controller.checkActiveTabForDrift();
     expect(get(controller.modal)).toBe("conflict");
     expect(get(controller.conflictInfo)?.diskContent).toBe("v2 external");
+  });
+
+  describe("a tab opened for a note that doesn't exist yet", () => {
+    async function openMissing() {
+      controller.tabs.set([tab({ id: "a", filename: FILE, content: "" })]);
+      controller.activeTabId.set("a");
+      controller.markTabClean("a", loadBaseline(await metaFor(null)));
+    }
+
+    it("stays put while the file still doesn't exist (not a 'deleted on disk')", async () => {
+      await openMissing();
+      apiMock.getFileMetadata.mockResolvedValue(await metaFor(null));
+      await controller.checkActiveTabForDrift();
+      expect(get(controller.modal)).toBe("none");
+      expect(get(controller.tabs)[0].content).toBe("");
+    });
+
+    it("silently loads a version that synced in from another device before any edit", async () => {
+      await openMissing();
+      apiMock.getFileMetadata.mockResolvedValue(await metaFor("written on the phone"));
+      apiMock.readNoteWithMetadata.mockResolvedValue({
+        content: "written on the phone",
+        metadata: await metaFor("written on the phone"),
+      });
+      await controller.checkActiveTabForDrift();
+      expect(get(controller.tabs)[0].content).toBe("written on the phone");
+    });
+
+    it("asks instead of overwriting when there are local edits and the file appeared", async () => {
+      await openMissing();
+      controller.tabs.update((list) => list.map((t) => ({ ...t, content: "typed here" })));
+      apiMock.getFileMetadata.mockResolvedValue(await metaFor("written on the phone"));
+      apiMock.readNoteWithMetadata.mockResolvedValue({
+        content: "written on the phone",
+        metadata: await metaFor("written on the phone"),
+      });
+      await controller.checkActiveTabForDrift();
+      expect(get(controller.modal)).toBe("conflict");
+    });
   });
 
   it("Case C then 'keep my version' writes with a compare-and-swap hash", async () => {
@@ -1969,5 +2009,71 @@ describe("openReleasesPage (§update-check follow-up)", () => {
   it("opens the repo's releases list, not a specific tag", () => {
     controller.openReleasesPage();
     expect(apiMock.openExternalUrl).toHaveBeenCalledWith("https://github.com/marien/ChronoNote/releases");
+  });
+});
+
+describe("beginFolderSwitch", () => {
+  it("closes every open note and shows one empty scratchpad, with no baselines left over", () => {
+    controller.tabs.set([
+      tab({ id: "a", filename: "2026-09-01.txt", content: "old folder note" }),
+      tab({ id: "b", filename: "2026-09-02.txt", content: "another" }),
+    ]);
+    controller.activeTabId.set("a");
+    controller.markTabClean("a", "hash-a");
+    controller.modal.set("settings");
+
+    const pad = controller.beginFolderSwitch("Notes");
+
+    const list = get(controller.tabs);
+    expect(list).toHaveLength(1);
+    expect(list[0].isScratchpad).toBe(true);
+    expect(list[0].content).toBe(pad.initial);
+    expect(list[0].content).toContain("While I sync Notes");
+    expect(get(controller.activeTabId)).toBe(list[0].id);
+    expect(controller.getTabCleanHash("a")).toBeUndefined();
+    expect(get(controller.modal)).toBe("none");
+  });
+
+  describe("finishFolderSwitch", () => {
+    // The app keeps scratchpads across a switch as drafts: what gets saved is what comes back.
+    function persistDrafts() {
+      let saved: Record<string, string> = {};
+      apiMock.saveScratchpadDrafts.mockImplementation(async (d: Record<string, string>) => {
+        saved = d;
+      });
+      apiMock.loadScratchpadDrafts.mockImplementation(async () => saved);
+    }
+
+    it("closes the scratchpad if it was left alone, and opens today's note", async () => {
+      persistDrafts();
+      const pad = controller.beginFolderSwitch("Notes");
+      controller.flushScratchpadDrafts(); // e.g. the sync's own save-everything step
+      await controller.finishFolderSwitch("/Notes", pad);
+      const list = get(controller.tabs);
+      expect(list.some((t) => t.isScratchpad)).toBe(false);
+      expect(list.some((t) => t.filename.endsWith(".txt"))).toBe(true);
+    });
+
+    it("keeps the scratchpad next to today's note if the user wrote in it", async () => {
+      persistDrafts();
+      const pad = controller.beginFolderSwitch("Notes");
+      controller.tabs.update((l) => l.map((t) => (t.id === pad.id ? { ...t, content: pad.initial + "my own thought" } : t)));
+      await controller.finishFolderSwitch("/Notes", pad);
+      const list = get(controller.tabs);
+      expect(list.filter((t) => t.isScratchpad)).toHaveLength(1);
+      expect(list.find((t) => t.isScratchpad)?.content).toContain("my own thought");
+      expect(list.some((t) => !t.isScratchpad)).toBe(true);
+    });
+
+    it("does not lose a scratchpad the user already had open before the switch", async () => {
+      persistDrafts();
+      controller.tabs.set([tab({ id: "s", filename: "Scratchpad 1", isScratchpad: true, content: "my earlier draft" })]);
+      controller.activeTabId.set("s");
+      const pad = controller.beginFolderSwitch("Notes");
+      controller.flushScratchpadDrafts();
+      await controller.finishFolderSwitch("/Notes", pad);
+      const pads = get(controller.tabs).filter((t) => t.isScratchpad);
+      expect(pads.map((t) => t.content)).toEqual(["my earlier draft"]);
+    });
   });
 });

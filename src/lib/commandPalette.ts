@@ -19,6 +19,8 @@ import {
   calendarSyncEnabled,
   colorMode,
   modal,
+  oneDriveAccount,
+  oneDriveFolder,
   readableLineLength,
   tabs,
   wordWrap,
@@ -125,7 +127,10 @@ function commandItems(): PaletteItem[] {
     // Only listed at all once the feature's turned on in Settings, not
     // available in the web app (no local file to read), and only runnable
     // once the date and agenda-file-existence gates both pass.
-    ...(get(calendarSyncEnabled) && get(backendKind) !== "web" && canSyncCalendarForActiveTab() && get(agendaFileExists)
+    ...(get(calendarSyncEnabled) &&
+    (get(backendKind) !== "web" || (!!get(oneDriveAccount) && !!get(oneDriveFolder))) &&
+    canSyncCalendarForActiveTab() &&
+    get(agendaFileExists)
       ? [
           {
             id: "cmd-sync-calendar",

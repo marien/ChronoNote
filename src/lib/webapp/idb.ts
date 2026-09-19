@@ -5,6 +5,32 @@
  * rather than pulling in a dependency for what amounts to a handful of
  * get/put/delete calls. */
 
+export const IDB_STORES = {
+  NOTES: "notes",
+  NOTES_BROWSER: "notes_browser",
+  NOTES_CLOUD: "notes_cloud",
+  NOTES_ARCHIVE: "notes_archive",
+  CONFLICTS: "conflicts",
+  META: "meta",
+} as const;
+
+export const IDB_META_KEYS = {
+  CONFIG: "config",
+  SESSION: "session",
+  SESSION_BROWSER: "session_browser",
+  SESSION_CLOUD: "session_cloud",
+  ACTIVE_WORKSPACE: "active_workspace",
+  SCRATCHPAD_DRAFTS: "scratchpad_drafts",
+  ONEDRIVE_AUTH: "onedrive_auth",
+  ONEDRIVE_FOLDER: "onedrive_folder",
+  ONEDRIVE_LAST_FOLDER: "onedrive_last_folder",
+  ONEDRIVE_CACHE: "onedrive_cache",
+  ONEDRIVE_BASES: "onedrive_bases",
+  ONEDRIVE_TOMBSTONES: "onedrive_tombstones",
+  ONEDRIVE_ADVANCED: "onedrive_advanced",
+  ONEDRIVE_STATUS: "onedrive_status",
+} as const;
+
 export function openDb(name: string, version: number, storeNames: string[]): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
     const req = indexedDB.open(name, version);

@@ -24,7 +24,7 @@ import {
   tabs,
 } from "./stores";
 import { cancelScheduledSave } from "./persistence";
-import { sha256Hex } from "./hash";
+import { EMPTY_CONTENT_HASH, sha256Hex } from "./hash";
 
 // Re-exported: callers (and the controller facade) have always imported it from here.
 export { sha256Hex };
@@ -90,6 +90,10 @@ export async function checkActiveTabForDrift(): Promise<void> {
     if (!now || now.id !== start.id || now.clean !== start.clean) return;
 
     if (diskHash === now.clean) return; // Case A — disk matches our baseline
+
+    // A tab for a note that never existed carries the empty-content baseline;
+    // the file still not existing is "nothing changed", not a deletion.
+    if (diskHash === null && now.clean === EMPTY_CONTENT_HASH) return;
 
     if (diskHash === null) {
       // File deleted on disk. Either way — local edits or not — keep the

@@ -14,6 +14,7 @@
     oneDriveAccount,
     oneDriveConnecting,
     oneDriveFolder,
+    oneDriveFolderPickerOpen,
     oneDriveSyncing,
     oneDriveSyncStatus,
     readableLineLength,
@@ -62,14 +63,24 @@
   // the list.
   let visibleRecentDirs: string[] = [];
   let browseButtonEl: HTMLButtonElement;
+  let isSafariBrowser = false;
+  if (typeof window !== "undefined") {
+    const ua = window.navigator.userAgent;
+    const isIOS = /iPad|iPhone|iPod/.test(ua);
+    const isSafari = /^((?!chrome|android).)*safari/i.test(ua);
+    const isStandalone =
+      (window.navigator as unknown as { standalone?: boolean }).standalone ||
+      window.matchMedia("(display-mode: standalone)").matches;
+    isSafariBrowser = (isIOS || isSafari) && !isStandalone;
+  }
+
   onMount(async () => {
-    if ($backendKind === "android") {
+    if ($backendKind === "android" || $backendKind === "web") {
       const advanced = await api.oneDriveGetAdvancedConfig();
       clientIdOverride = advanced.clientIdOverride ?? "";
       tenantIdOverride = advanced.tenantIdOverride ?? "";
-      return;
+      if ($backendKind === "web") return; // no local directory browsing
     }
-    if ($backendKind === "web") return; // no local directory browsing
 
     const candidates = $recentNotesDirs.filter((p) => p !== $notesDir);
     const exists = await Promise.all(candidates.map((p) => api.pathExists(p)));
@@ -188,10 +199,16 @@
   }
 
   async function handleOneDriveLogout() {
-    await api.oneDriveLogout();
+    await api.oneDriveLogout($backendKind === "web" && removeLocalOnSignOut);
+    removeLocalOnSignOut = false;
     oneDriveAccount.set(null);
     oneDriveFolder.set(null);
+    if ($backendKind === "web") {
+      await controller.performDirectorySwitch("Browser storage");
+    }
   }
+
+  let removeLocalOnSignOut = false;
 
   function handleOneDriveSyncNow() {
     void controller.syncOneDriveNow({ notify: true });
@@ -202,7 +219,7 @@
   // open the folder picker instead of leaving the user to find it. Once per
   // Settings visit, so closing the picker without choosing isn't nagged.
   let autoOpenedFolderPicker = false;
-  $: if ($oneDriveAccount && !$oneDriveFolder && !autoOpenedFolderPicker && $backendKind === "android") {
+  $: if ($oneDriveAccount && !$oneDriveFolder && !$oneDriveFolderPickerOpen && !autoOpenedFolderPicker && ($backendKind === "android" || $backendKind === "web")) {
     autoOpenedFolderPicker = true;
     showFolderPicker = true;
   }
@@ -336,7 +353,7 @@
           </div>
         </div>
       {:else if activeSettingsTab === "calendar"}
-        {#if $backendKind !== "web"}
+        {#if $backendKind !== "web" || $oneDriveAccount}
           <div>
             <div class="settings-section-label">Calendar</div>
             <div class="settings-toggle-row">
@@ -363,9 +380,15 @@
               </div>
             {/if}
           </div>
-          {#if $backendKind === "android"}
+        {/if}
+        {#if $backendKind === "android" || $backendKind === "web"}
             <div>
               <div class="settings-section-label">OneDrive Cloud Sync</div>
+              {#if isSafariBrowser}
+                <div class="settings-hint" style="color: var(--state-warn); margin-bottom: 8px; border-left: 2px solid var(--state-warn); padding-left: 8px;">
+                  <strong>Safari Tip:</strong> Add ChronoNote to your Home Screen to prevent Apple from purging offline notes after 7 days of inactivity.
+                </div>
+              {/if}
               {#if $oneDriveAccount}
                 <div class="settings-hint" style="margin-bottom: 8px;">
                   Connected as <strong>{$oneDriveAccount.displayName}</strong> ({$oneDriveAccount.email})
@@ -394,6 +417,15 @@
                   </button>
                   <button class="icon-btn" on:click={handleOneDriveLogout} disabled={$oneDriveSyncing}>Sign out</button>
                 </div>
+                {#if $backendKind === "web"}
+                  <div class="settings-hint" style="margin-top: 6px;">
+                    Signing out will switch back to Browser storage, loading notes that are stored there and have not been migrated.
+                  </div>
+                  <label class="settings-hint" style="display: flex; gap: 6px; align-items: flex-start; margin-top: 6px;">
+                    <input type="checkbox" bind:checked={removeLocalOnSignOut} />
+                    <span>Also remove the OneDrive notes from this browser. Edits that have not synced yet will be lost. Your notes on OneDrive are not touched.</span>
+                  </label>
+                {/if}
                 {#if !$oneDriveFolder}
                   <div class="settings-hint" style="margin-top: 6px;">
                     Choose the OneDrive folder your notes should sync with. Nothing syncs until you do.
@@ -401,7 +433,7 @@
                 {/if}
               {:else}
                 <div class="settings-hint">
-                  Connect your Microsoft account to use a OneDrive folder as your Notes folder. Notes stay synchronized across all your devices.
+                  Connect your Microsoft account to use a OneDrive folder as your Notes folder. Notes stay synchronized across all your devices.{#if $backendKind === "web"} After connecting, notes can be moved from Browser storage to OneDrive.{/if}
                 </div>
                 <div style="margin-top: 8px;">
                   <button class="icon-btn btn-primary" on:click={handleOneDriveLogin} disabled={loggingIn || $oneDriveConnecting}>
@@ -450,55 +482,56 @@
                     </button>
                   {/if}
                 </div>
+
+                <div style="margin-top: 12px;">
+                  <button
+                    type="button"
+                    class="status-link"
+                    style="font-size: 11px; color: var(--muted); cursor: pointer;"
+                    on:click={() => (showAdvanced = !showAdvanced)}
+                  >
+                    {showAdvanced ? "Hide advanced" : "Advanced (work/school accounts)"}
+                  </button>
+                  {#if showAdvanced}
+                    <div style="display: flex; flex-direction: column; gap: 6px; margin-top: 8px;">
+                      <div class="settings-hint">
+                        A locked-down corporate Entra tenant may reject the generic sign-in endpoint and require its
+                        own app registration. Leave both blank for a personal Microsoft account.
+                      </div>
+                      <label class="settings-hint" for="onedrive-client-id-override">Client ID override</label>
+                      <input
+                        id="onedrive-client-id-override"
+                        type="text"
+                        class="find-input"
+                        style="width: 100%; height: 32px;"
+                        placeholder="(default) personal accounts"
+                        bind:value={clientIdOverride}
+                      />
+                      <label class="settings-hint" for="onedrive-tenant-id-override">
+                        Tenant ID or domain override
+                      </label>
+                      <input
+                        id="onedrive-tenant-id-override"
+                        type="text"
+                        class="find-input"
+                        style="width: 100%; height: 32px;"
+                        placeholder="common"
+                        bind:value={tenantIdOverride}
+                      />
+                      <div style="display: flex; align-items: center; gap: 8px;">
+                        <button class="icon-btn" on:click={handleSaveAdvanced} disabled={savingAdvanced}>
+                          {savingAdvanced ? "Saving…" : "Save"}
+                        </button>
+                        {#if advancedSaved}
+                          <span class="settings-hint">
+                            Saved — sign out and reconnect for this to take effect.
+                          </span>
+                        {/if}
+                      </div>
+                    </div>
+                  {/if}
+                </div>
               {/if}
-              <div style="margin-top: 12px;">
-                <button
-                  type="button"
-                  class="status-link"
-                  style="font-size: 11px; color: var(--muted); cursor: pointer;"
-                  on:click={() => (showAdvanced = !showAdvanced)}
-                >
-                  {showAdvanced ? "Hide advanced" : "Advanced (work/school accounts)"}
-                </button>
-                {#if showAdvanced}
-                  <div style="display: flex; flex-direction: column; gap: 6px; margin-top: 8px;">
-                    <div class="settings-hint">
-                      A locked-down corporate Entra tenant may reject the generic sign-in endpoint and require its
-                      own app registration. Leave both blank for a personal Microsoft account.
-                    </div>
-                    <label class="settings-hint" for="onedrive-client-id-override">Client ID override</label>
-                    <input
-                      id="onedrive-client-id-override"
-                      type="text"
-                      class="find-input"
-                      style="width: 100%; height: 32px;"
-                      placeholder="(default) personal accounts"
-                      bind:value={clientIdOverride}
-                    />
-                    <label class="settings-hint" for="onedrive-tenant-id-override">
-                      Tenant ID or domain override
-                    </label>
-                    <input
-                      id="onedrive-tenant-id-override"
-                      type="text"
-                      class="find-input"
-                      style="width: 100%; height: 32px;"
-                      placeholder="common"
-                      bind:value={tenantIdOverride}
-                    />
-                    <div style="display: flex; align-items: center; gap: 8px;">
-                      <button class="icon-btn" on:click={handleSaveAdvanced} disabled={savingAdvanced}>
-                        {savingAdvanced ? "Saving…" : "Save"}
-                      </button>
-                      {#if advancedSaved}
-                        <span class="settings-hint">
-                          Saved — sign out and reconnect for this to take effect.
-                        </span>
-                      {/if}
-                    </div>
-                  </div>
-                {/if}
-              </div>
             </div>
           {:else}
             <div>
@@ -524,7 +557,6 @@
               {/if}
             </div>
           {/if}
-        {/if}
 
         {#if $backendKind !== "demo"}
           <div>
