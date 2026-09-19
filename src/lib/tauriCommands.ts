@@ -144,6 +144,14 @@ export interface TauriCommands {
     args: NoArgs;
     returns: Record<string, string>;
   };
+  web_check_browser_notes: {
+    args: NoArgs;
+    returns: { count: number; filenames: string[] };
+  };
+  web_migrate_browser_notes: {
+    args: NoArgs;
+    returns: { migratedCount: number; conflictCount: number };
+  };
 }
 
 export type TauriCommand = keyof TauriCommands;

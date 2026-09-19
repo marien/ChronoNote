@@ -7,6 +7,8 @@ vi.mock("../../tauriApi", () => ({
   oneDriveListFolders: vi.fn(),
   oneDriveCreateFolder: vi.fn(),
   oneDriveSetFolder: vi.fn(),
+  webCheckBrowserNotes: vi.fn(),
+  webMigrateBrowserNotes: vi.fn(),
 }));
 
 describe("OneDriveFolderPickerModal logic", () => {
@@ -60,5 +62,19 @@ describe("OneDriveFolderPickerModal logic", () => {
 
     oneDriveFolder.set({ folderId: "f2", folderPath: "/Notes" });
     expect(get(oneDriveFolder)).toEqual({ folderId: "f2", folderPath: "/Notes" });
+  });
+
+  it("checks browser notes count on web", async () => {
+    vi.mocked(api.webCheckBrowserNotes).mockResolvedValueOnce({ count: 3, filenames: ["2026-09-17.txt", "2026-09-18.txt", "2026-09-19.txt"] });
+    const res = await api.webCheckBrowserNotes();
+    expect(res.count).toBe(3);
+    expect(res.filenames).toHaveLength(3);
+  });
+
+  it("migrates browser notes to cloud on web", async () => {
+    vi.mocked(api.webMigrateBrowserNotes).mockResolvedValueOnce({ migratedCount: 3, conflictCount: 0 });
+    const res = await api.webMigrateBrowserNotes();
+    expect(res.migratedCount).toBe(3);
+    expect(res.conflictCount).toBe(0);
   });
 });

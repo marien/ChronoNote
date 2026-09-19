@@ -128,6 +128,7 @@ export class WebOneDriveSyncEngine {
     const sameFolder = current && current.folderId === config.folderId;
 
     await idbPut(db, IDB_STORES.META, IDB_META_KEYS.ONEDRIVE_FOLDER, config);
+    await idbPut(db, IDB_STORES.META, IDB_META_KEYS.ACTIVE_WORKSPACE, "onedrive");
 
     let cache = sameFolder ? await this.loadCache() : this.defaultCache();
     cache.deltaLink = undefined;
@@ -147,6 +148,9 @@ export class WebOneDriveSyncEngine {
 
   async logout(): Promise<void> {
     await this.clearStoredAuth();
+    const db = await this.getDb();
+    await idbDelete(db, IDB_STORES.META, IDB_META_KEYS.ONEDRIVE_FOLDER);
+    await idbPut(db, IDB_STORES.META, IDB_META_KEYS.ACTIVE_WORKSPACE, "browser");
     this.setStatus("offline");
   }
 
@@ -307,7 +311,7 @@ export class WebOneDriveSyncEngine {
     const result: SyncConflict[] = [];
 
     for (const [name, pending] of Object.entries(cache.conflicts)) {
-      const note = await idbGet<StoredNote>(db, IDB_STORES.NOTES, name);
+      const note = await idbGet<StoredNote>(db, IDB_STORES.NOTES_CLOUD, name);
       result.push({
         name,
         local: note?.content ?? "",
@@ -330,7 +334,7 @@ export class WebOneDriveSyncEngine {
       throw new Error(`${name} has no sync conflict to resolve`);
     }
 
-    const localNote = await idbGet<StoredNote>(db, IDB_STORES.NOTES, name);
+    const localNote = await idbGet<StoredNote>(db, IDB_STORES.NOTES_CLOUD, name);
     const localContent = localNote?.content ?? "";
     const bases = await this.loadBases();
 
@@ -338,7 +342,7 @@ export class WebOneDriveSyncEngine {
       delete cache.conflicts[name];
     } else if (resolution === "theirs") {
       const hash = await computeSha256Hex(pending.remoteContent);
-      await idbPut(db, IDB_STORES.NOTES, name, {
+      await idbPut(db, IDB_STORES.NOTES_CLOUD, name, {
         content: pending.remoteContent,
         contentHash: hash,
         modifiedMs: Date.now(),
@@ -353,7 +357,7 @@ export class WebOneDriveSyncEngine {
     } else if (resolution === "both") {
       const both = `${localContent}\n\n---\n# OneDrive version\n\n${pending.remoteContent}`;
       const hash = await computeSha256Hex(both);
-      await idbPut(db, IDB_STORES.NOTES, name, {
+      await idbPut(db, IDB_STORES.NOTES_CLOUD, name, {
         content: both,
         contentHash: hash,
         modifiedMs: Date.now(),
@@ -455,10 +459,10 @@ export class WebOneDriveSyncEngine {
             }
           }
           if (name && isSyncableFile(name)) {
-            const localNote = await idbGet<StoredNote>(db, IDB_STORES.NOTES, name);
+            const localNote = await idbGet<StoredNote>(db, IDB_STORES.NOTES_CLOUD, name);
             const cached = cache.files[name];
             if (!localNote || (cached && cached.localHash === localNote.contentHash)) {
-              await idbDelete(db, IDB_STORES.NOTES, name);
+              await idbDelete(db, IDB_STORES.NOTES_CLOUD, name);
               delete cache.files[name];
               delete bases[name];
             } else {
@@ -479,7 +483,7 @@ export class WebOneDriveSyncEngine {
 
         const remoteContent = await this.client.downloadFileContent(token, item.id);
         const remoteHash = await computeSha256Hex(remoteContent);
-        const localNote = await idbGet<StoredNote>(db, IDB_STORES.NOTES, filename);
+        const localNote = await idbGet<StoredNote>(db, IDB_STORES.NOTES_CLOUD, filename);
         const localHash = localNote?.contentHash;
 
         const rebased: FileCacheEntry = {
@@ -507,7 +511,7 @@ export class WebOneDriveSyncEngine {
         const action = classifyRemoteChange(localHash, cached, remoteHash);
 
         if (action === "writeLocal") {
-          await idbPut(db, IDB_STORES.NOTES, filename, {
+          await idbPut(db, IDB_STORES.NOTES_CLOUD, filename, {
             content: remoteContent,
             contentHash: remoteHash,
             modifiedMs: Date.now(),
@@ -523,7 +527,7 @@ export class WebOneDriveSyncEngine {
           // Divergent
           const localText = localNote?.content ?? "";
           if (localText.trim() === "") {
-            await idbPut(db, IDB_STORES.NOTES, filename, {
+            await idbPut(db, IDB_STORES.NOTES_CLOUD, filename, {
               content: remoteContent,
               contentHash: remoteHash,
               modifiedMs: Date.now(),
@@ -540,7 +544,7 @@ export class WebOneDriveSyncEngine {
 
             if (mergeResult.type === "clean") {
               const mergedHash = await computeSha256Hex(mergeResult.content);
-              await idbPut(db, IDB_STORES.NOTES, filename, {
+              await idbPut(db, IDB_STORES.NOTES_CLOUD, filename, {
                 content: mergeResult.content,
                 contentHash: mergedHash,
                 modifiedMs: Date.now(),
@@ -562,9 +566,9 @@ export class WebOneDriveSyncEngine {
       if (isFullListing) {
         for (const [filename, cached] of Object.entries(cache.files)) {
           if (!seenInListing.has(filename)) {
-            const localNote = await idbGet<StoredNote>(db, IDB_STORES.NOTES, filename);
+            const localNote = await idbGet<StoredNote>(db, IDB_STORES.NOTES_CLOUD, filename);
             if (!localNote || localNote.contentHash === cached.localHash) {
-              await idbDelete(db, IDB_STORES.NOTES, filename);
+              await idbDelete(db, IDB_STORES.NOTES_CLOUD, filename);
               delete cache.files[filename];
               delete bases[filename];
             } else {
@@ -579,7 +583,7 @@ export class WebOneDriveSyncEngine {
       }
 
       // Phase 3: Push Local Modifications
-      const allNotes = await idbGetAllEntries<StoredNote>(db, IDB_STORES.NOTES);
+      const allNotes = await idbGetAllEntries<StoredNote>(db, IDB_STORES.NOTES_CLOUD);
       let firstPushError: string | null = null;
 
       for (const [key, note] of allNotes) {

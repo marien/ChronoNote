@@ -32,20 +32,24 @@
 import type { AppConfig, ColorMode, FileMetadata, TabSession, ThemeMode } from "../types";
 import type { CommandArgs, CommandReturn, TauriCommand, TauriCommands } from "../tauriCommands";
 import { isValidNoteFilename } from "../noteFilename";
-import { idbClear, idbDelete, idbGet, idbGetAllEntries, idbGetAllKeys, idbPut, openDb } from "./idb";
-import { WebOneDriveSyncEngine } from "./webOneDriveSync";
+import { IDB_META_KEYS, IDB_STORES, idbClear, idbDelete, idbGet, idbGetAllEntries, idbGetAllKeys, idbPut, openDb } from "./idb";
+import { WebOneDriveSyncEngine, type SyncCache } from "./webOneDriveSync";
+import { merge3 } from "./lineMerge";
 
 const DB_NAME = "chrononote-webapp";
-const DB_VERSION = 1;
-const STORE_NOTES = "notes";
-const STORE_CONFLICTS = "conflicts";
-const STORE_META = "meta";
-const CONFIG_KEY = "config";
-const SESSION_KEY = "session";
+const DB_VERSION = 2;
+const STORE_NOTES = IDB_STORES.NOTES;
+const STORE_NOTES_BROWSER = IDB_STORES.NOTES_BROWSER;
+const STORE_NOTES_CLOUD = IDB_STORES.NOTES_CLOUD;
+const STORE_NOTES_ARCHIVE = IDB_STORES.NOTES_ARCHIVE;
+const STORE_CONFLICTS = IDB_STORES.CONFLICTS;
+const STORE_META = IDB_STORES.META;
+const CONFIG_KEY = IDB_META_KEYS.CONFIG;
+const SESSION_KEY = IDB_META_KEYS.SESSION;
 
 /** Shown in place of a real path — nothing in the web-app UI reads this
  * as an actual filesystem location (see the module doc above). */
-const NOTES_DIR_PLACEHOLDER = "(browser storage)";
+const NOTES_DIR_PLACEHOLDER = "Browser storage";
 
 interface StoredNote {
   content: string;
@@ -94,12 +98,120 @@ export class WebBackend {
 
   constructor(appVersion: string) {
     this.appVersion = appVersion;
-    this.dbPromise = openDb(DB_NAME, DB_VERSION, [STORE_NOTES, STORE_CONFLICTS, STORE_META]);
+    this.dbPromise = openDb(DB_NAME, DB_VERSION, [
+      STORE_NOTES,
+      STORE_NOTES_BROWSER,
+      STORE_NOTES_CLOUD,
+      STORE_NOTES_ARCHIVE,
+      STORE_CONFLICTS,
+      STORE_META,
+    ]);
     this.syncEngine = new WebOneDriveSyncEngine(() => this.db());
   }
 
   private async db(): Promise<IDBDatabase> {
     return this.dbPromise;
+  }
+
+  private migrationPromise: Promise<void> | null = null;
+  private ensureMigrated(): Promise<void> {
+    if (!this.migrationPromise) {
+      this.migrationPromise = (async () => {
+        const db = await this.db();
+        const hasStoreNotes =
+          db.objectStoreNames &&
+          (typeof db.objectStoreNames.contains === "function"
+            ? db.objectStoreNames.contains(STORE_NOTES)
+            : Array.from(db.objectStoreNames).includes(STORE_NOTES));
+        if (hasStoreNotes) {
+          const legacyNotes = await idbGetAllEntries<StoredNote>(db, STORE_NOTES);
+          if (legacyNotes.length > 0) {
+            const browserKeys = await idbGetAllKeys(db, STORE_NOTES_BROWSER);
+            const cloudKeys = await idbGetAllKeys(db, STORE_NOTES_CLOUD);
+            if (browserKeys.length === 0 && cloudKeys.length === 0) {
+              const auth = await idbGet(db, STORE_META, IDB_META_KEYS.ONEDRIVE_AUTH);
+              const folder = await idbGet(db, STORE_META, IDB_META_KEYS.ONEDRIVE_FOLDER);
+              const target = auth && folder ? STORE_NOTES_CLOUD : STORE_NOTES_BROWSER;
+              for (const [k, v] of legacyNotes) {
+                await idbPut(db, target, k, v);
+              }
+              await idbPut(db, STORE_META, IDB_META_KEYS.ACTIVE_WORKSPACE, auth && folder ? "onedrive" : "browser");
+            }
+          }
+        }
+      })();
+    }
+    return this.migrationPromise;
+  }
+
+  async getActiveWorkspace(): Promise<"browser" | "onedrive"> {
+    await this.ensureMigrated();
+    const db = await this.db();
+    const ws = await idbGet<string>(db, STORE_META, IDB_META_KEYS.ACTIVE_WORKSPACE);
+    if (ws === "onedrive" || ws === "browser") return ws;
+    const auth = await idbGet(db, STORE_META, IDB_META_KEYS.ONEDRIVE_AUTH);
+    const folder = await idbGet(db, STORE_META, IDB_META_KEYS.ONEDRIVE_FOLDER);
+    return auth && folder ? "onedrive" : "browser";
+  }
+
+  async getActiveNotesStore(): Promise<string> {
+    const ws = await this.getActiveWorkspace();
+    return ws === "onedrive" ? STORE_NOTES_CLOUD : STORE_NOTES_BROWSER;
+  }
+
+  async getActiveSessionKey(): Promise<string> {
+    const ws = await this.getActiveWorkspace();
+    return ws === "onedrive" ? IDB_META_KEYS.SESSION_CLOUD : IDB_META_KEYS.SESSION_BROWSER;
+  }
+
+  async migrateBrowserNotesToCloud(): Promise<{ migratedCount: number; conflictCount: number }> {
+    await this.ensureMigrated();
+    const db = await this.db();
+    const browserEntries = await idbGetAllEntries<StoredNote>(db, STORE_NOTES_BROWSER);
+    const validEntries = browserEntries.filter(([k]) => isValidNoteFilename(String(k)));
+    if (validEntries.length === 0) return { migratedCount: 0, conflictCount: 0 };
+
+    for (const [k, note] of validEntries) {
+      await idbPut(db, STORE_NOTES_ARCHIVE, k, note);
+    }
+
+    const cache = (await idbGet<SyncCache>(db, STORE_META, IDB_META_KEYS.ONEDRIVE_CACHE)) ?? { files: {}, conflicts: {} };
+    let migratedCount = 0;
+    let conflictCount = 0;
+
+    for (const [k, note] of validEntries) {
+      const filename = String(k);
+      const existingCloud = await idbGet<StoredNote>(db, STORE_NOTES_CLOUD, filename);
+
+      if (!existingCloud || existingCloud.content.trim() === "") {
+        await idbPut(db, STORE_NOTES_CLOUD, filename, note);
+        migratedCount++;
+      } else if (existingCloud.contentHash === note.contentHash || note.content.trim() === "") {
+        migratedCount++;
+      } else {
+        // Both exist with different non-empty content: flag as conflict
+        await idbPut(db, STORE_NOTES_CLOUD, filename, note);
+        const cloudCached = cache.files[filename];
+        cache.conflicts[filename] = {
+          remoteContent: existingCloud.content,
+          remoteId: cloudCached?.id ?? "",
+          remoteEtag: cloudCached?.etag ?? "",
+        };
+        conflictCount++;
+        migratedCount++;
+      }
+    }
+
+    await idbPut(db, STORE_META, IDB_META_KEYS.ONEDRIVE_CACHE, cache);
+    const browserSession = await idbGet(db, STORE_META, IDB_META_KEYS.SESSION_BROWSER);
+    const cloudSession = await idbGet(db, STORE_META, IDB_META_KEYS.SESSION_CLOUD);
+    if (browserSession && !cloudSession) {
+      await idbPut(db, STORE_META, IDB_META_KEYS.SESSION_CLOUD, browserSession);
+    }
+    await idbClear(db, STORE_NOTES_BROWSER);
+    await idbDelete(db, STORE_META, IDB_META_KEYS.SESSION_BROWSER);
+
+    return { migratedCount, conflictCount };
   }
 
   /** Requests the browser not evict this origin's storage under
@@ -137,8 +249,15 @@ export class WebBackend {
   }
 
   private async toAppConfig(cfg: StoredConfig): Promise<AppConfig> {
+    const ws = await this.getActiveWorkspace();
+    let dir = "Browser storage";
+    if (ws === "onedrive") {
+      const db = await this.db();
+      const folder = await idbGet<{ folderPath?: string }>(db, STORE_META, IDB_META_KEYS.ONEDRIVE_FOLDER);
+      dir = folder?.folderPath || "OneDrive";
+    }
     return {
-      notesDir: NOTES_DIR_PLACEHOLDER,
+      notesDir: dir,
       colorMode: cfg.colorMode,
       themeMode: cfg.themeMode,
       wordWrap: cfg.wordWrap,
@@ -152,18 +271,21 @@ export class WebBackend {
 
   private async listValidFilenames(): Promise<string[]> {
     const db = await this.db();
-    const keys = await idbGetAllKeys(db, STORE_NOTES);
+    const store = await this.getActiveNotesStore();
+    const keys = await idbGetAllKeys(db, store);
     return (keys as string[]).filter(isValidNoteFilename).sort();
   }
 
   private readonly core: CommandHandlers = {
     get_config: async () => this.toAppConfig(await this.loadConfig()),
 
-    // No multi-workspace concept in the web app (design doc, "what's
-    // deferred") — the Settings UI never surfaces a control that would
-    // call either of these, but a no-op keeps the contract total rather
-    // than throwing if something ever does.
-    set_notes_dir: async () => this.toAppConfig(await this.loadConfig()),
+    set_notes_dir: async ({ path }) => {
+      const db = await this.db();
+      const ws = path === "Browser storage" || path === "browser" ? "browser" : "onedrive";
+      await idbPut(db, STORE_META, IDB_META_KEYS.ACTIVE_WORKSPACE, ws);
+      const cfg = await this.loadConfig();
+      return this.toAppConfig(cfg);
+    },
     path_exists: () => false,
 
     set_color_mode: async ({ mode }) => {
@@ -224,22 +346,24 @@ export class WebBackend {
     read_note: async ({ filename }) => {
       if (!isValidNoteFilename(filename)) throw new Error(`Invalid note filename: ${filename}`);
       const db = await this.db();
-      const note = await idbGet<StoredNote>(db, STORE_NOTES, filename);
+      const store = await this.getActiveNotesStore();
+      const note = await idbGet<StoredNote>(db, store, filename);
       return note?.content ?? null;
     },
 
     write_note: async ({ filename, content, expectedHash }) => {
       if (!isValidNoteFilename(filename)) throw new Error(`Invalid note filename: ${filename}`);
       const db = await this.db();
+      const store = await this.getActiveNotesStore();
       // §94: compare-and-swap, same contract as storage.rs's write_note_at.
       if (typeof expectedHash === "string") {
-        const current = await idbGet<StoredNote>(db, STORE_NOTES, filename);
+        const current = await idbGet<StoredNote>(db, store, filename);
         if ((current?.contentHash ?? null) !== expectedHash) {
           throw new Error(`conflict: note changed on disk: ${filename}`);
         }
       }
       const note: StoredNote = { content, contentHash: await sha256Hex(content), modifiedMs: Date.now() };
-      await idbPut(db, STORE_NOTES, filename, note);
+      await idbPut(db, store, filename, note);
       return metadataOf(note);
     },
 
@@ -248,20 +372,25 @@ export class WebBackend {
     delete_note: async ({ filename }) => {
       if (!isValidNoteFilename(filename)) throw new Error(`Invalid note filename: ${filename}`);
       const db = await this.db();
-      await idbDelete(db, STORE_NOTES, filename);
-      await this.syncEngine.recordLocalDelete(filename);
+      const store = await this.getActiveNotesStore();
+      await idbDelete(db, store, filename);
+      if (store === STORE_NOTES_CLOUD) {
+        await this.syncEngine.recordLocalDelete(filename);
+      }
     },
 
     get_file_metadata: async ({ filename }) => {
       if (!isValidNoteFilename(filename)) throw new Error(`Invalid note filename: ${filename}`);
       const db = await this.db();
-      return metadataOf(await idbGet<StoredNote>(db, STORE_NOTES, filename));
+      const store = await this.getActiveNotesStore();
+      return metadataOf(await idbGet<StoredNote>(db, store, filename));
     },
 
     read_note_with_metadata: async ({ filename }) => {
       if (!isValidNoteFilename(filename)) throw new Error(`Invalid note filename: ${filename}`);
       const db = await this.db();
-      const note = await idbGet<StoredNote>(db, STORE_NOTES, filename);
+      const store = await this.getActiveNotesStore();
+      const note = await idbGet<StoredNote>(db, store, filename);
       return { content: note?.content ?? null, metadata: metadataOf(note) };
     },
 
@@ -271,12 +400,15 @@ export class WebBackend {
       }
       const db = await this.db();
       await idbPut(db, STORE_CONFLICTS, name, content);
-      return `${NOTES_DIR_PLACEHOLDER}/.chrononote-conflicts/${name}`;
+      const ws = await this.getActiveWorkspace();
+      const prefix = ws === "onedrive" ? "OneDrive" : NOTES_DIR_PLACEHOLDER;
+      return `${prefix}/.chrononote-conflicts/${name}`;
     },
 
     read_all_notes: async () => {
       const db = await this.db();
-      const entries = await idbGetAllEntries<StoredNote>(db, STORE_NOTES);
+      const store = await this.getActiveNotesStore();
+      const entries = await idbGetAllEntries<StoredNote>(db, store);
       return entries
         .filter(([key]) => isValidNoteFilename(String(key)))
         .map(([key, note]) => [String(key), note.content] as [string, string])
@@ -285,12 +417,14 @@ export class WebBackend {
 
     read_tab_session: async () => {
       const db = await this.db();
-      return (await idbGet<TabSession>(db, STORE_META, SESSION_KEY)) ?? null;
+      const key = await this.getActiveSessionKey();
+      return (await idbGet<TabSession>(db, STORE_META, key)) ?? null;
     },
 
     write_tab_session: async ({ openTabs, activeTab, lastOpenedDate }) => {
       const db = await this.db();
-      await idbPut(db, STORE_META, SESSION_KEY, {
+      const key = await this.getActiveSessionKey();
+      await idbPut(db, STORE_META, key, {
         openTabs: openTabs ?? [],
         activeTab: activeTab ?? null,
         lastOpenedDate: lastOpenedDate ?? null,
@@ -299,9 +433,10 @@ export class WebBackend {
 
     import_notes_bundle: async ({ notes, mode }) => {
       const db = await this.db();
+      const store = await this.getActiveNotesStore();
       if (mode === "replace") {
         for (const key of await this.listValidFilenames()) {
-          await idbDelete(db, STORE_NOTES, key);
+          await idbDelete(db, store, key);
         }
       }
       let imported = 0;
@@ -311,11 +446,11 @@ export class WebBackend {
           skipped++;
           continue;
         }
-        if (mode === "merge" && (await idbGet(db, STORE_NOTES, filename)) !== undefined) {
+        if (mode === "merge" && (await idbGet(db, store, filename)) !== undefined) {
           skipped++;
           continue;
         }
-        await idbPut(db, STORE_NOTES, filename, {
+        await idbPut(db, store, filename, {
           content,
           contentHash: await sha256Hex(content),
           modifiedMs: Date.now(),
@@ -334,7 +469,8 @@ export class WebBackend {
     // how a desktop install with no `.agenda.json` file yet behaves.
     read_agenda_for_date: async ({ date }) => {
       const db = await this.db();
-      const note = await idbGet<StoredNote>(db, STORE_NOTES, ".agenda.json");
+      const store = await this.getActiveNotesStore();
+      const note = await idbGet<StoredNote>(db, store, ".agenda.json");
       if (!note || !note.content.trim()) {
         throw new Error("The calendar file (.agenda.json) is missing, empty, or invalid — check whatever syncs it.");
       }
@@ -365,7 +501,8 @@ export class WebBackend {
 
     read_agenda_after: async ({ afterDate }) => {
       const db = await this.db();
-      const note = await idbGet<StoredNote>(db, STORE_NOTES, ".agenda.json");
+      const store = await this.getActiveNotesStore();
+      const note = await idbGet<StoredNote>(db, store, ".agenda.json");
       if (!note || !note.content.trim()) {
         throw new Error("The calendar file (.agenda.json) is missing, empty, or invalid — check whatever syncs it.");
       }
@@ -396,7 +533,8 @@ export class WebBackend {
 
     agenda_file_exists: async () => {
       const db = await this.db();
-      const note = await idbGet<StoredNote>(db, STORE_NOTES, ".agenda.json");
+      const store = await this.getActiveNotesStore();
+      const note = await idbGet<StoredNote>(db, store, ".agenda.json");
       return note !== undefined;
     },
 
@@ -422,6 +560,16 @@ export class WebBackend {
       const db = await this.db();
       return (await idbGet<Record<string, string>>(db, STORE_META, "scratchpad_drafts")) ?? {};
     },
+    web_check_browser_notes: async () => {
+      await this.ensureMigrated();
+      const db = await this.db();
+      const keys = await idbGetAllKeys(db, STORE_NOTES_BROWSER);
+      const filenames = (keys as string[]).filter(isValidNoteFilename);
+      return { count: filenames.length, filenames };
+    },
+    web_migrate_browser_notes: async () => {
+      return this.migrateBrowserNotesToCloud();
+    },
   };
 
   /** Erases everything (`notes`, `conflicts`, `config`, `session`) — the
@@ -431,7 +579,14 @@ export class WebBackend {
    * currently wired to any UI. */
   async clearAll(): Promise<void> {
     const db = await this.db();
-    await Promise.all([idbClear(db, STORE_NOTES), idbClear(db, STORE_CONFLICTS), idbClear(db, STORE_META)]);
+    await Promise.all([
+      idbClear(db, STORE_NOTES),
+      idbClear(db, STORE_NOTES_BROWSER),
+      idbClear(db, STORE_NOTES_CLOUD),
+      idbClear(db, STORE_NOTES_ARCHIVE),
+      idbClear(db, STORE_CONFLICTS),
+      idbClear(db, STORE_META),
+    ]);
   }
 
   async invoke(cmd: string, args: Record<string, unknown> = {}): Promise<unknown> {

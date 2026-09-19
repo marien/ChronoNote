@@ -201,6 +201,9 @@
     await api.oneDriveLogout();
     oneDriveAccount.set(null);
     oneDriveFolder.set(null);
+    if ($backendKind === "web") {
+      await controller.performDirectorySwitch("Browser storage");
+    }
   }
 
   function handleOneDriveSyncNow() {

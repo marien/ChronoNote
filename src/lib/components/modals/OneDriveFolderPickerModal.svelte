@@ -2,11 +2,12 @@
   import { onMount } from "svelte";
   import * as api from "../../tauriApi";
   import * as controller from "../../controller";
-  import { oneDriveFolder, showToast } from "../../stores";
+  import { backendKind, oneDriveFolder, showToast } from "../../stores";
   import { syncOneDriveNow } from "../../oneDriveSync";
   import Icon from "../../icons/Icon.svelte";
   import { closeOnOutsideClick } from "../../actions/closeOnOutsideClick";
   import { focusTrap } from "../../actions/focusTrap";
+  import MigrateNotesModal from "./MigrateNotesModal.svelte";
 
   export let onClose: () => void;
 
@@ -81,12 +82,15 @@
     }
   }
 
-  async function handleSelectCurrentFolder() {
-    const folderId = currentFolderId ?? "root";
-    const folderPath = currentFolderPath;
+  let pendingMigration: { folderId: string; folderPath: string; noteCount: number } | null = null;
+
+  async function finalizeFolderSelection(folderId: string, folderPath: string) {
     try {
       await api.oneDriveSetFolder(folderId, folderPath);
       oneDriveFolder.set({ folderId, folderPath });
+      if ($backendKind === "web") {
+        await controller.performDirectorySwitch(folderPath);
+      }
       showToast(`Notes folder set to OneDrive: ${folderPath}`);
       // The first sync of a new folder can be a big download — start it
       // visibly (status-bar spinner) and report how it ended.
@@ -97,9 +101,55 @@
     }
   }
 
+  async function handleSelectCurrentFolder() {
+    const folderId = currentFolderId ?? "root";
+    const folderPath = currentFolderPath;
+    if ($backendKind === "web") {
+      try {
+        await controller.flushAllPendingSaves();
+        const check = await api.webCheckBrowserNotes();
+        if (check.count > 0) {
+          pendingMigration = { folderId, folderPath, noteCount: check.count };
+          return;
+        }
+      } catch (err) {
+        console.error("Error checking browser notes:", err);
+      }
+    }
+    await finalizeFolderSelection(folderId, folderPath);
+  }
+
+  async function handleConfirmMigration() {
+    if (!pendingMigration) return;
+    const { folderId, folderPath } = pendingMigration;
+    try {
+      const res = await api.webMigrateBrowserNotes();
+      if (res.conflictCount > 0) {
+        showToast(`Moved notes with ${res.conflictCount} conflict(s) to review.`);
+      }
+      await finalizeFolderSelection(folderId, folderPath);
+    } catch (e) {
+      showToast(`Migration failed: ${e instanceof Error ? e.message : String(e)}`);
+    }
+  }
+
+  async function handleSkipMigration() {
+    if (!pendingMigration) return;
+    const { folderId, folderPath } = pendingMigration;
+    await finalizeFolderSelection(folderId, folderPath);
+  }
+
+  function handleCancelMigration() {
+    pendingMigration = null;
+  }
+
   function handleKeydown(e: KeyboardEvent) {
     if (e.key === "Escape") {
-      onClose();
+      if (pendingMigration) {
+        pendingMigration = null;
+      } else {
+        onClose();
+      }
     }
   }
 </script>
@@ -253,6 +303,16 @@
     </div>
   </div>
 </div>
+
+{#if pendingMigration}
+  <MigrateNotesModal
+    noteCount={pendingMigration.noteCount}
+    targetFolder={pendingMigration.folderPath}
+    onMigrate={handleConfirmMigration}
+    onSkip={handleSkipMigration}
+    onCancel={handleCancelMigration}
+  />
+{/if}
 
 <style>
   .onedrive-picker-card {

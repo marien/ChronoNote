@@ -78,7 +78,7 @@ export async function confirmDiscardAndSwitch() {
   if (path) await performDirectorySwitch(path);
 }
 
-async function performDirectorySwitch(path: string) {
+export async function performDirectorySwitch(path: string) {
   for (const t of get(tabs)) {
     if (!t.isScratchpad) flushSave(t.id);
   }

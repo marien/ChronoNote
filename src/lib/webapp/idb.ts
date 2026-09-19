@@ -7,6 +7,9 @@
 
 export const IDB_STORES = {
   NOTES: "notes",
+  NOTES_BROWSER: "notes_browser",
+  NOTES_CLOUD: "notes_cloud",
+  NOTES_ARCHIVE: "notes_archive",
   CONFLICTS: "conflicts",
   META: "meta",
 } as const;
@@ -14,6 +17,9 @@ export const IDB_STORES = {
 export const IDB_META_KEYS = {
   CONFIG: "config",
   SESSION: "session",
+  SESSION_BROWSER: "session_browser",
+  SESSION_CLOUD: "session_cloud",
+  ACTIVE_WORKSPACE: "active_workspace",
   SCRATCHPAD_DRAFTS: "scratchpad_drafts",
   ONEDRIVE_AUTH: "onedrive_auth",
   ONEDRIVE_FOLDER: "onedrive_folder",

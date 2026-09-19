@@ -50,6 +50,9 @@ describe("WebOneDriveSyncEngine lifecycle & sync", () => {
   beforeEach(() => {
     mockStores = {
       notes: new Map(),
+      notes_browser: new Map(),
+      notes_cloud: new Map(),
+      notes_archive: new Map(),
       conflicts: new Map(),
       meta: new Map(),
     };
@@ -146,7 +149,7 @@ describe("WebOneDriveSyncEngine lifecycle & sync", () => {
 
   it("resolves conflicts using mine, theirs, both", async () => {
     // Setup initial conflict
-    mockStores.notes.set("2026-09-19.txt", {
+    mockStores.notes_cloud.set("2026-09-19.txt", {
       content: "local text",
       contentHash: "local-hash",
       modifiedMs: 1000,
@@ -172,7 +175,7 @@ describe("WebOneDriveSyncEngine lifecycle & sync", () => {
 
     // Test 'theirs' resolution
     await engine.resolveConflict("2026-09-19.txt", "theirs");
-    const updatedNote = mockStores.notes.get("2026-09-19.txt");
+    const updatedNote = mockStores.notes_cloud.get("2026-09-19.txt");
     expect(updatedNote.content).toBe("remote text");
 
     const remainingConflicts = await engine.listConflicts();
@@ -191,7 +194,7 @@ describe("WebOneDriveSyncEngine lifecycle & sync", () => {
       folderPath: "/Notes",
     });
 
-    mockStores.notes.set("2026-09-19.txt", {
+    mockStores.notes_cloud.set("2026-09-19.txt", {
       content: "Hello Cloud",
       contentHash: "hash-123",
       modifiedMs: 2000,

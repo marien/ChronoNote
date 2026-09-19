@@ -232,3 +232,11 @@ export function loadScratchpadDrafts(): Promise<Record<string, string>> {
   return invoke("load_scratchpad_drafts", {});
 }
 
+export function webCheckBrowserNotes(): Promise<{ count: number; filenames: string[] }> {
+  return invoke("web_check_browser_notes", {});
+}
+
+export function webMigrateBrowserNotes(): Promise<{ migratedCount: number; conflictCount: number }> {
+  return invoke("web_migrate_browser_notes", {});
+}
+
