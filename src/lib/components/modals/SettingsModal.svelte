@@ -413,6 +413,11 @@
                   </button>
                   <button class="icon-btn" on:click={handleOneDriveLogout} disabled={$oneDriveSyncing}>Sign out</button>
                 </div>
+                {#if $backendKind === "web"}
+                  <div class="settings-hint" style="margin-top: 6px;">
+                    Signing out will switch back to Browser storage, loading notes that are stored there and have not been migrated.
+                  </div>
+                {/if}
                 {#if !$oneDriveFolder}
                   <div class="settings-hint" style="margin-top: 6px;">
                     Choose the OneDrive folder your notes should sync with. Nothing syncs until you do.
@@ -420,7 +425,7 @@
                 {/if}
               {:else}
                 <div class="settings-hint">
-                  Connect your Microsoft account to use a OneDrive folder as your Notes folder. Notes stay synchronized across all your devices.
+                  Connect your Microsoft account to use a OneDrive folder as your Notes folder. Notes stay synchronized across all your devices.{#if $backendKind === "web"} After connecting, notes can be moved from Browser storage to OneDrive.{/if}
                 </div>
                 <div style="margin-top: 8px;">
                   <button class="icon-btn btn-primary" on:click={handleOneDriveLogin} disabled={loggingIn || $oneDriveConnecting}>
@@ -469,55 +474,56 @@
                     </button>
                   {/if}
                 </div>
+
+                <div style="margin-top: 12px;">
+                  <button
+                    type="button"
+                    class="status-link"
+                    style="font-size: 11px; color: var(--muted); cursor: pointer;"
+                    on:click={() => (showAdvanced = !showAdvanced)}
+                  >
+                    {showAdvanced ? "Hide advanced" : "Advanced (work/school accounts)"}
+                  </button>
+                  {#if showAdvanced}
+                    <div style="display: flex; flex-direction: column; gap: 6px; margin-top: 8px;">
+                      <div class="settings-hint">
+                        A locked-down corporate Entra tenant may reject the generic sign-in endpoint and require its
+                        own app registration. Leave both blank for a personal Microsoft account.
+                      </div>
+                      <label class="settings-hint" for="onedrive-client-id-override">Client ID override</label>
+                      <input
+                        id="onedrive-client-id-override"
+                        type="text"
+                        class="find-input"
+                        style="width: 100%; height: 32px;"
+                        placeholder="(default) personal accounts"
+                        bind:value={clientIdOverride}
+                      />
+                      <label class="settings-hint" for="onedrive-tenant-id-override">
+                        Tenant ID or domain override
+                      </label>
+                      <input
+                        id="onedrive-tenant-id-override"
+                        type="text"
+                        class="find-input"
+                        style="width: 100%; height: 32px;"
+                        placeholder="common"
+                        bind:value={tenantIdOverride}
+                      />
+                      <div style="display: flex; align-items: center; gap: 8px;">
+                        <button class="icon-btn" on:click={handleSaveAdvanced} disabled={savingAdvanced}>
+                          {savingAdvanced ? "Saving…" : "Save"}
+                        </button>
+                        {#if advancedSaved}
+                          <span class="settings-hint">
+                            Saved — sign out and reconnect for this to take effect.
+                          </span>
+                        {/if}
+                      </div>
+                    </div>
+                  {/if}
+                </div>
               {/if}
-              <div style="margin-top: 12px;">
-                <button
-                  type="button"
-                  class="status-link"
-                  style="font-size: 11px; color: var(--muted); cursor: pointer;"
-                  on:click={() => (showAdvanced = !showAdvanced)}
-                >
-                  {showAdvanced ? "Hide advanced" : "Advanced (work/school accounts)"}
-                </button>
-                {#if showAdvanced}
-                  <div style="display: flex; flex-direction: column; gap: 6px; margin-top: 8px;">
-                    <div class="settings-hint">
-                      A locked-down corporate Entra tenant may reject the generic sign-in endpoint and require its
-                      own app registration. Leave both blank for a personal Microsoft account.
-                    </div>
-                    <label class="settings-hint" for="onedrive-client-id-override">Client ID override</label>
-                    <input
-                      id="onedrive-client-id-override"
-                      type="text"
-                      class="find-input"
-                      style="width: 100%; height: 32px;"
-                      placeholder="(default) personal accounts"
-                      bind:value={clientIdOverride}
-                    />
-                    <label class="settings-hint" for="onedrive-tenant-id-override">
-                      Tenant ID or domain override
-                    </label>
-                    <input
-                      id="onedrive-tenant-id-override"
-                      type="text"
-                      class="find-input"
-                      style="width: 100%; height: 32px;"
-                      placeholder="common"
-                      bind:value={tenantIdOverride}
-                    />
-                    <div style="display: flex; align-items: center; gap: 8px;">
-                      <button class="icon-btn" on:click={handleSaveAdvanced} disabled={savingAdvanced}>
-                        {savingAdvanced ? "Saving…" : "Save"}
-                      </button>
-                      {#if advancedSaved}
-                        <span class="settings-hint">
-                          Saved — sign out and reconnect for this to take effect.
-                        </span>
-                      {/if}
-                    </div>
-                  </div>
-                {/if}
-              </div>
             </div>
           {:else}
             <div>
