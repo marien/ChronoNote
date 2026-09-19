@@ -196,8 +196,8 @@ export function oneDriveGetFolder(): Promise<{ folderId: string; folderPath: str
   return invoke("onedrive_get_folder", {});
 }
 
-export function oneDriveExchangeCode(code: string): Promise<OneDriveLoginResult> {
-  return invoke("onedrive_exchange_code", { code });
+export function oneDriveExchangeCode(code: string, state?: string): Promise<OneDriveLoginResult> {
+  return invoke("onedrive_exchange_code", state === undefined ? { code } : { code, state });
 }
 
 export function oneDriveSyncNow(): Promise<{ success: boolean; message?: string }> {

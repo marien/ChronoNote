@@ -105,7 +105,7 @@ export interface TauriCommands {
     returns: OneDriveFolderConfig | null;
   };
   onedrive_exchange_code: {
-    args: { code: string };
+    args: { code: string; state?: string };
     returns: OneDriveLoginResult;
   };
   onedrive_sync_now: {

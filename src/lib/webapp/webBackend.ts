@@ -545,7 +545,7 @@ export class WebBackend {
     onedrive_create_folder: ({ parentId, name }) => this.syncEngine.createFolder(parentId, name),
     onedrive_set_folder: ({ folderId, folderPath }) => this.syncEngine.setFolder({ folderId, folderPath }),
     onedrive_get_folder: () => this.syncEngine.getFolder(),
-    onedrive_exchange_code: ({ code }) => this.syncEngine.exchangeCodeDirect(code),
+    onedrive_exchange_code: ({ code, state }) => this.syncEngine.exchangeCodeDirect(code, state),
     onedrive_sync_now: () => this.syncEngine.syncNow(),
     onedrive_get_conflicts: () => this.syncEngine.listConflicts(),
     onedrive_resolve_conflict: ({ name, resolution }) => this.syncEngine.resolveConflict(name, resolution),

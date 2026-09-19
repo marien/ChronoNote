@@ -72,7 +72,8 @@ self.addEventListener("fetch", (event) => {
           );
           const response = await Promise.race([networkPromise, timeoutPromise]);
           if (response.ok) {
-            cache.put(event.request, response.clone());
+            // Never cache a URL carrying query params (the OAuth redirect has ?code=&state=).
+            if (!url.search) cache.put(event.request, response.clone());
             return response;
           }
         } catch {

@@ -477,6 +477,7 @@ export async function initOneDriveSync() {
   } else if (get(backendKind) === "web" && typeof window !== "undefined") {
     const urlParams = new URLSearchParams(window.location.search);
     const code = urlParams.get("code");
+    const returnedState = urlParams.get("state") ?? undefined;
     const error = urlParams.get("error");
     const errorDescription = urlParams.get("error_description");
 
@@ -486,7 +487,7 @@ export async function initOneDriveSync() {
 
       oneDriveConnecting.set(true);
       void api
-        .oneDriveExchangeCode(code)
+        .oneDriveExchangeCode(code, returnedState)
         .then(async (result) => {
           oneDriveConnecting.set(false);
           if (result.success && result.account) {

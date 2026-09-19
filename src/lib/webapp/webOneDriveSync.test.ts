@@ -182,6 +182,41 @@ describe("WebOneDriveSyncEngine lifecycle & sync", () => {
     expect(remainingConflicts).toHaveLength(0);
   });
 
+  it("rebases the cache onto the held remote so 'mine' and 'both' push with its etag", async () => {
+    for (const resolution of ["mine", "both"] as const) {
+      mockStores.notes_cloud.set("2026-09-19.txt", {
+        content: "local text",
+        contentHash: "local-hash",
+        modifiedMs: 1000,
+      });
+      mockStores.meta.set(IDB_META_KEYS.ONEDRIVE_CACHE, {
+        files: { "2026-09-19.txt": { id: "rem-1", etag: "etag-old", localHash: "base-hash" } },
+        conflicts: {
+          "2026-09-19.txt": { remoteContent: "remote text", remoteId: "rem-1", remoteEtag: "etag-new" },
+        },
+      });
+
+      await engine.resolveConflict("2026-09-19.txt", resolution);
+
+      const cache = mockStores.meta.get(IDB_META_KEYS.ONEDRIVE_CACHE);
+      expect(cache.files["2026-09-19.txt"].etag).toBe("etag-new");
+      expect(cache.conflicts["2026-09-19.txt"]).toBeUndefined();
+      // Still differs from the note's hash, so the next sync uploads it.
+      const note = mockStores.notes_cloud.get("2026-09-19.txt");
+      expect(cache.files["2026-09-19.txt"].localHash).not.toBe(note.contentHash);
+    }
+  });
+
+  it("rejects a sign-in redirect whose state does not match the saved request", async () => {
+    sessionStorage.setItem(
+      "chrononote_pkce_session",
+      JSON.stringify({ verifier: "v", state: "expected", redirectUri: "http://x/", clientId: "c", tenant: "common", timestamp: 1 }),
+    );
+    const res = await engine.exchangeCodeDirect("code", "forged");
+    expect(res.success).toBe(false);
+    expect(res.error).toMatch(/did not match/);
+  });
+
   it("pushes local modified notes in Phase 3 of syncNow", async () => {
     mockStores.meta.set(IDB_META_KEYS.ONEDRIVE_AUTH, {
       accessToken: "valid-tok",

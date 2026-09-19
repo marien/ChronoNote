@@ -168,9 +168,16 @@ export class WebOneDriveSyncEngine {
     }
   }
 
-  async exchangeCodeDirect(code: string): Promise<OneDriveLoginResult> {
+  async exchangeCodeDirect(code: string, state?: string): Promise<OneDriveLoginResult> {
     try {
       const pkce = loadPkceSession();
+      if (pkce && pkce.state !== state) {
+        return {
+          success: false,
+          pending: false,
+          error: "Sign-in response did not match this browser's request. Please sign in again.",
+        };
+      }
       const advanced = await this.getAdvancedConfig();
       const clientId = pkce?.clientId || resolveClientId(advanced);
       const tenant = pkce?.tenant || resolveTenant(advanced);
@@ -339,6 +346,15 @@ export class WebOneDriveSyncEngine {
     const bases = await this.loadBases();
 
     if (resolution === "mine") {
+      // Rebase onto the remote version we held the conflict against, so the
+      // next push carries its etag (If-Match). Left stale, the upload gets a
+      // 412 that the delta feed never re-reports and the choice never lands.
+      cache.files[name] = {
+        id: pending.remoteId,
+        etag: pending.remoteEtag,
+        localHash: cache.files[name]?.localHash ?? "",
+      };
+      bases[name] = pending.remoteContent;
       delete cache.conflicts[name];
     } else if (resolution === "theirs") {
       const hash = await computeSha256Hex(pending.remoteContent);
@@ -363,6 +379,11 @@ export class WebOneDriveSyncEngine {
         modifiedMs: Date.now(),
       });
       bases[name] = pending.remoteContent;
+      cache.files[name] = {
+        id: pending.remoteId,
+        etag: pending.remoteEtag,
+        localHash: cache.files[name]?.localHash ?? "",
+      };
       delete cache.conflicts[name];
     }
 
