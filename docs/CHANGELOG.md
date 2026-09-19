@@ -6,7 +6,7 @@ kept for the rationale behind each one — not just *what* changed but
 was still being gathered and confirmed before implementation; renamed once
 everything below was applied, since nothing here is "pending" anymore.
 
-**Status: all sections through §177 implemented and released.** §178–§182
+**Status: all sections through §177 implemented and released.** §178–§183
 (the Android target, OneDrive sync and the sideloadable release build) are implemented on the
 `feat/android-onedrive` branch and live-tested, but not yet merged to
 `main` or released. §153 is a
@@ -8112,3 +8112,49 @@ so the cloud version simply wins instead of raising a sync conflict.
 
 Verification: `cargo test` 137/137, Vitest 368/368, Playwright 241/241,
 `svelte-check` 0 errors.
+
+## 183. First-connect clarity, and notes are only written when they changed
+
+**Status: implemented on `feat/android-onedrive`; the first item was found
+sideloading v0.9.4 on a real phone, the second on that phone plus a PC; not
+yet merged or released. The second is a bug in the shipped desktop app too
+(v0.9.4 on `main`) and should be ported to `main` as a patch release.**
+
+**First connect (Android).** Signing in to OneDrive doesn't choose a folder,
+but Settings displayed a hardcoded `/Documents/Notes` as if one were chosen;
+"Sync now" then failed with "No OneDrive folder configured", and picking a
+folder afterwards started a sync with no sign of it. Now: with no folder chosen
+Settings says "No folder selected yet" with a "Choose folder…" button and a
+disabled "Sync now", the folder picker opens by itself once the account is
+connected (once per Settings visit), and the status bar says "Choose a folder".
+Every sync — launch, returning to the app, saving a note, "Sync now", and
+choosing a folder — now goes through one helper (`oneDriveSync.ts`,
+`oneDriveSyncing` store): a spinner in the status bar cloud item, a greyed-out
+spinning "Sync now" button, and — when the user asked for it — a status-bar
+message saying how it ended. Background syncs stay quiet unless they fail. The
+Rust error for "no folder" is friendlier too.
+
+**Notes are only written when they changed.** `flushSave` (switching tabs,
+closing a tab, the exit barrier) and the debounced autosave wrote the tab's
+text unconditionally, with no `expectedHash`. Symptoms with OneDrive on both a
+phone and a PC: every tab switch touched the file's timestamp, which a
+cloud-sync client treats as an edit, and — worse — if another device had synced
+a *newer* version in while a tab sat open and unedited, switching away wrote the
+tab's stale text over it. That undid the other device's edit locally and made
+the PC's OneDrive client create conflict copies, even though nothing had been
+edited on the PC. Each tab already recorded a SHA-256 of what disk held when it
+was loaded or last written (the §94 clean baseline); `persistence.ts` now
+compares the tab's text with that (`matchesDisk`) and skips the write when they
+are equal. With no baseline yet it still writes (the safe answer). The
+check-and-write is registered as in flight so the §93 exit barrier still waits
+for it, and `sha256Hex` moved to `hash.ts` (re-exported from `drift.ts`) to
+avoid an import cycle. A stale-but-unedited tab is now picked up by the existing
+drift check (a silent reload) the next time it is activated. Not addressed: a
+tab with real edits and a stale baseline still overwrites — that is a genuine
+two-sided edit, which the drift check's conflict prompt is for.
+
+New coverage: `no-idle-writes.spec.ts` (switching without editing writes
+nothing; an edit is still saved once; a newer version synced in is not
+overwritten and is picked up on return — all three fail without the fix) and
+`onedrive-first-connect.spec.ts`. `svelte-check` 0 errors, Vitest 368/368,
+Playwright 247/247, `cargo test` 137/137.
