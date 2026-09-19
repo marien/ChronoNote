@@ -73,6 +73,14 @@ jobs:
             exit 1
           fi
           echo "clean — no mock/testing code in dist/"
+      - name: build webapp bundle
+        run: npm run build:webapp
+      - name: assert webapp bundle is up to date
+        run: |
+          if ! git diff --exit-code -- website/webapp/; then
+            echo "::error::website/webapp/ bundle is stale — run 'npm run build:webapp' and commit the result"
+            exit 1
+          fi
 
   rust:
     name: Rust (cargo test)
