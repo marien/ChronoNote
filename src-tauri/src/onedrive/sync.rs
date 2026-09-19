@@ -973,6 +973,15 @@ fn apply_remote_change(
         RemoteChangeAction::AdoptRemote => ChangeOutcome::Adopted,
         RemoteChangeAction::Divergent => {
             let local_content = fs::read_to_string(&local_path).map_err(|e| e.to_string())?;
+            // A blank local note has nothing to lose or conflict with (a fresh
+            // install, or a day opened but never typed in): the cloud version
+            // simply wins, instead of asking the user to "resolve" it.
+            if local_content.trim().is_empty() {
+                fs::write(&local_path, remote_content.as_bytes()).map_err(|e| e.to_string())?;
+                save_base(data_dir, name, remote_content)?;
+                cache.files.insert(name.to_string(), rebased);
+                return Ok(ChangeOutcome::TookRemote);
+            }
             // Merging needs the version both sides started from; a file with
             // no recorded ancestor (first contact, or synced before bases
             // were kept) can't be merged safely.
@@ -1495,6 +1504,19 @@ mod tests {
         assert_eq!(fs::read_to_string(notes.path().join(NOTE)).unwrap(), "local only");
         assert!(cache.conflicts.contains_key(NOTE));
         assert!(!cache.files.contains_key(NOTE));
+    }
+
+    #[test]
+    fn a_blank_local_note_never_conflicts_the_cloud_version_just_wins() {
+        // Fresh install: the phone has an empty note with the same name as a
+        // real one in OneDrive. Nothing to lose, so no conflict prompt.
+        let (notes, data) = dirs();
+        fs::write(notes.path().join(NOTE), "  \n").unwrap();
+        let mut cache = SyncCache::default();
+        assert_eq!(apply(notes.path(), data.path(), "e1", "real note\n", &mut cache), ChangeOutcome::TookRemote);
+        assert_eq!(fs::read_to_string(notes.path().join(NOTE)).unwrap(), "real note\n");
+        assert!(cache.conflicts.is_empty());
+        assert_eq!(load_base(data.path(), NOTE).as_deref(), Some("real note\n"));
     }
 
     #[test]

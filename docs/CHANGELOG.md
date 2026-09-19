@@ -6,8 +6,8 @@ kept for the rationale behind each one — not just *what* changed but
 was still being gathered and confirmed before implementation; renamed once
 everything below was applied, since nothing here is "pending" anymore.
 
-**Status: all sections through §177 implemented and released.** §178–§181
-(the Android target and OneDrive sync) are implemented on the
+**Status: all sections through §177 implemented and released.** §178–§182
+(the Android target, OneDrive sync and the sideloadable release build) are implemented on the
 `feat/android-onedrive` branch and live-tested, but not yet merged to
 `main` or released. §153 is a
 website-only Guide-page fix (found live right after §150–§152 shipped
@@ -8067,3 +8067,48 @@ testing; release signing (keystore, AAB, `versionCode`); the
 `rust-toolchain.toml` decision; Play Console work (privacy policy, Data
 safety form, closed testing, Microsoft publisher verification); moving
 the OneDrive Rust structs onto the `ts-rs` generated types.
+
+## 182. A signed, sideloadable Android release build
+
+**Status: implemented on `feat/android-onedrive`; the arm64 APK was built
+and its release variant verified on the emulator; not yet tried on a real
+phone; not merged or released.**
+
+Marien wants to sideload before deciding on a store. `scripts/android-release.sh`
+builds a release APK for 64-bit ARM phones (every current Samsung and Pixel),
+zipaligns and signs it, and verifies the result (signature schemes, the
+signing certificate, package/versionCode/versionName, and that the native code
+is `arm64-v8a`). Output: `~/.chrononote-android-release/ChronoNote_<version>_arm64.apk`
+(about 12 MB); `CHRONONOTE_ABI=x86_64` builds the emulator variant, and
+`CHRONONOTE_SKIP_BUILD=1` signs the newest existing build.
+
+**The signing key is the app's identity.** It lives in `~/.chrononote-signing/`
+(`chrononote-release.jks` plus `release.properties`) — deliberately outside the
+repo and outside OneDrive, and never committed (a check confirms no keystore or
+properties file is tracked). Every future update of an app installed from this
+build, and any store listing, must be signed with the same key; it cannot be
+recreated. **It has to be backed up somewhere durable** (the same warning as the
+updater key). The `versionCode` is derived from the app version (0.9.4 → 9004),
+so it rises with every release.
+
+**Release builds shrink and rename code (R8), which broke nothing but needed one
+rule:** the WebView calls the `ChronoNoteAndroid` bridge by name, so
+`android-overrides/proguard-rules.pro` keeps it (tracked with the other
+overrides; a renamed bridge would have silently lost the status-bar theming
+and inset padding). The signed x86_64 release variant was installed on the
+emulator to check this — it started with no crash, the insets and bar icons
+were right, the Rust side answered, and `chrononote://auth` resolved to the app.
+
+**Found by running the real release build:** About showed "Couldn't check for
+updates. plugin updater not found" — the updater plugin is desktop-only
+(`#[cfg(desktop)]`), but only the web app skipped the check. Android now skips
+the launch check and the status-bar update icon, and About explains that
+updates arrive the way the app was installed (with a "What's changed" link).
+Covered by a new Playwright case with an Android user agent.
+
+**First-run safeguard:** on a fresh install the phone can hold a blank note with
+the same name as a real one in OneDrive; a blank local note has nothing to lose,
+so the cloud version simply wins instead of raising a sync conflict.
+
+Verification: `cargo test` 137/137, Vitest 368/368, Playwright 241/241,
+`svelte-check` 0 errors.
