@@ -72,11 +72,17 @@ export function cycleTab(direction: 1 | -1) {
 }
 
 export function createScratchpad() {
+  createScratchpadWith("");
+}
+
+/** A new scratchpad tab, made active, starting with `content`. */
+export function createScratchpadWith(content: string): NoteTab {
   const list = get(tabs);
   const n = list.filter((t) => t.isScratchpad).length + 1;
-  const newTab: NoteTab = { id: generateTabId(), filename: `Scratchpad ${n}`, isScratchpad: true, content: "" };
+  const newTab: NoteTab = { id: generateTabId(), filename: `Scratchpad ${n}`, isScratchpad: true, content };
   tabs.set([...list, newTab]);
   activeTabId.set(newTab.id);
+  return newTab;
 }
 
 export async function openOrCreateDatedFile(dateStr: string) {

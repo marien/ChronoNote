@@ -33,7 +33,7 @@ import {
 } from "./stores";
 import { flushSave, invalidateDiskNotesCache } from "./persistence";
 import { restoreOrBootstrapTabs } from "./boot";
-import { createScratchpad } from "./tabs";
+import { createScratchpadWith } from "./tabs";
 import { refreshAgendaFileExists } from "./calendarSyncActions";
 
 /** Shared by the Browse dialog and by picking a recent folder directly
@@ -84,14 +84,42 @@ export async function confirmDiscardAndSwitch() {
  * the new one and it's plain that a switch is under way. Callers flush pending
  * saves first (while the old workspace is still the active one); the notes of the
  * new folder are opened by `performDirectorySwitch` once its first sync is done. */
-export function beginFolderSwitch() {
+export function beginFolderSwitch(folderName: string): FolderSwitchPad {
   modal.set("none");
   conflictInfo.set(null);
   tabs.set([]);
   activeTabId.set("");
   clearAllEditorViewState();
   clearAllTabCleanHashes();
-  createScratchpad();
+  const initial = folderSwitchNote(folderName);
+  const pad = createScratchpadWith(initial);
+  return { id: pad.id, initial };
+}
+
+/** What the scratchpad shown during a folder switch says. */
+export function folderSwitchNote(folderName: string): string {
+  return (
+    `While I sync ${folderName}, feel free to use this scratchpad.
+
+` +
+    `If you leave it alone, it closes when the sync is done and today's note opens. ` +
+    `If you type something here, it stays open next to today's note.
+`
+  );
+}
+
+export interface FolderSwitchPad {
+  id: string;
+  initial: string;
+}
+
+/** Second half of a folder switch, once its first sync has finished: open the
+ * folder's own notes, and drop the scratchpad unless the user wrote in it. */
+export async function finishFolderSwitch(path: string, pad: FolderSwitchPad) {
+  const current = get(tabs).find((t) => t.id === pad.id);
+  const keep = current && current.content !== pad.initial ? current : null;
+  await performDirectorySwitch(path);
+  if (keep) tabs.update((list) => [...list, keep]);
 }
 
 export async function performDirectorySwitch(path: string) {

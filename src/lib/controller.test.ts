@@ -2022,14 +2022,35 @@ describe("beginFolderSwitch", () => {
     controller.markTabClean("a", "hash-a");
     controller.modal.set("settings");
 
-    controller.beginFolderSwitch();
+    const pad = controller.beginFolderSwitch("Notes");
 
     const list = get(controller.tabs);
     expect(list).toHaveLength(1);
     expect(list[0].isScratchpad).toBe(true);
-    expect(list[0].content).toBe("");
+    expect(list[0].content).toBe(pad.initial);
+    expect(list[0].content).toContain("While I sync Notes");
     expect(get(controller.activeTabId)).toBe(list[0].id);
     expect(controller.getTabCleanHash("a")).toBeUndefined();
     expect(get(controller.modal)).toBe("none");
+  });
+
+  describe("finishFolderSwitch", () => {
+    it("closes the scratchpad if it was left alone, and opens today's note", async () => {
+      const pad = controller.beginFolderSwitch("Notes");
+      await controller.finishFolderSwitch("/Notes", pad);
+      const list = get(controller.tabs);
+      expect(list.some((t) => t.isScratchpad)).toBe(false);
+      expect(list.some((t) => t.filename.endsWith(".txt"))).toBe(true);
+    });
+
+    it("keeps the scratchpad next to today's note if the user wrote in it", async () => {
+      const pad = controller.beginFolderSwitch("Notes");
+      controller.tabs.update((l) => l.map((t) => (t.id === pad.id ? { ...t, content: pad.initial + "my own thought" } : t)));
+      await controller.finishFolderSwitch("/Notes", pad);
+      const list = get(controller.tabs);
+      const kept = list.find((t) => t.isScratchpad);
+      expect(kept?.content).toContain("my own thought");
+      expect(list.some((t) => !t.isScratchpad)).toBe(true);
+    });
   });
 });

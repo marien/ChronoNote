@@ -93,10 +93,11 @@
         // Close the old notes and show a scratchpad while the first sync runs, then
         // open the folder's own notes - a tab opened before the sync would sit on a
         // stale copy of a note the sync is about to download.
-        controller.beginFolderSwitch();
+        const folderName = folderPath.split("/").filter(Boolean).pop() ?? "your OneDrive";
+        const pad = controller.beginFolderSwitch(folderName);
         onClose();
         await syncOneDriveNow({ notify: true });
-        await controller.performDirectorySwitch(folderPath);
+        await controller.finishFolderSwitch(folderPath, pad);
       } else {
         // The first sync of a new folder can be a big download - start it
         // visibly (status-bar spinner) and report how it ended.
