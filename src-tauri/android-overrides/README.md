@@ -26,3 +26,11 @@ tracked copies — after (re)running `npx tauri android init`, copy them back:
 - `proguard-rules.pro` -> `gen/android/app/proguard-rules.pro` — keeps the
   `ChronoNoteAndroid` JavaScript bridge from being renamed/stripped by R8 in
   release builds (debug builds don't minify, so this only bites in release).
+
+## Building
+
+Use `scripts/android-release.sh` for release APKs. It pins Rust to 1.95.0 for
+the build (Rust 1.98.1 can't cross-compile for Android from Windows — build
+scripts fail to link with `os error 5`) and stops with the fix-it command if
+that toolchain or the `aarch64-linux-android` target is missing. For manual
+`npx tauri android dev/build`, use a directory-scoped `rustup override set 1.95.0`.

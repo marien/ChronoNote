@@ -13,7 +13,7 @@
 # (default dir: ~/.chrononote-android-release). Install with
 #   adb install -r <apk>      or copy it to the phone and open it.
 #
-# Usage:  scripts/android-release.sh
+# Usage:  scripts/android-release.sh   (pins Rust to 1.95.0 itself; override with CHRONONOTE_RUST_TOOLCHAIN)
 # Needs:  Node, Rust (with the aarch64-linux-android target — for the pinned
 #         1.95.0 toolchain: `rustup +1.95.0 target add aarch64-linux-android`),
 #         the Android SDK (ANDROID_HOME, NDK_HOME) and a JDK (JAVA_HOME).
@@ -40,6 +40,20 @@ AAPT="$BUILD_TOOLS/aapt"
 # plugin ignores src-tauri/.cargo/config.toml, so without this every build
 # writes GBs into src-tauri/target.
 export CARGO_TARGET_DIR="${CARGO_TARGET_DIR:-$HOME/.cargo-target/chrononote-android-1950}"
+
+# Rust 1.98.1 cannot cross-compile for Android from a Windows host (build
+# scripts fail to link with "os error 5"); 1.95.0 can. Pin the toolchain for
+# this build only — desktop work stays on whatever `stable` is. RUSTUP_TOOLCHAIN
+# is honoured by every rustup shim Gradle's Rust plugin spawns. Drop this pin
+# once a newer stable has been shown to build (see CLAUDE.local.md).
+RUST_TC="${CHRONONOTE_RUST_TOOLCHAIN:-1.95.0}"
+if ! rustup toolchain list | grep -q "^$RUST_TC"; then
+  echo "Rust toolchain $RUST_TC isn't installed. Run: rustup toolchain install $RUST_TC" >&2; exit 1
+fi
+if ! rustup +"$RUST_TC" target list --installed | grep -q "^aarch64-linux-android$"; then
+  echo "Missing Android target. Run: rustup +$RUST_TC target add aarch64-linux-android" >&2; exit 1
+fi
+export RUSTUP_TOOLCHAIN="$RUST_TC"
 
 if [ "${CHRONONOTE_SKIP_BUILD:-}" = "1" ]; then
   echo "==> Skipping the build (CHRONONOTE_SKIP_BUILD=1) — signing the newest existing release APK."
