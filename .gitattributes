@@ -6,3 +6,7 @@ src/lib/generated/*.ts text eol=lf
 
 # Shell scripts must keep LF line endings (bash chokes on CRLF).
 *.sh text eol=lf
+
+# The Tauri CLI rewrites this file with LF on every build (it syncs feature
+# flags); pin it so it never shows as modified under core.autocrlf=true.
+src-tauri/Cargo.toml text eol=lf
