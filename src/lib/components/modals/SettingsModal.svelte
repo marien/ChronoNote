@@ -14,6 +14,7 @@
     oneDriveAccount,
     oneDriveConnecting,
     oneDriveFolder,
+    oneDriveSyncing,
     oneDriveSyncStatus,
     readableLineLength,
     recentNotesDirs,
@@ -107,7 +108,6 @@
   let exporting = false;
 
   let loggingIn = false;
-  let syncingOneDrive = false;
 
   let showFolderPicker = false;
   let showManualAuthInput = false;
@@ -193,17 +193,18 @@
     oneDriveFolder.set(null);
   }
 
-  async function handleOneDriveSyncNow() {
-    syncingOneDrive = true;
-    try {
-      const result = await api.oneDriveSyncNow();
-      await controller.refreshSyncConflicts();
-      controller.showToast(result.success ? "OneDrive sync finished" : `OneDrive sync failed: ${result.message ?? "unknown error"}`);
-    } catch (e) {
-      controller.showToast(`OneDrive sync failed: ${e instanceof Error ? e.message : String(e)}`);
-    } finally {
-      syncingOneDrive = false;
-    }
+  function handleOneDriveSyncNow() {
+    void controller.syncOneDriveNow({ notify: true });
+  }
+
+  // Signing in doesn't choose a folder, and "Sync now" can't do anything
+  // without one — so the moment the account is connected with no folder yet,
+  // open the folder picker instead of leaving the user to find it. Once per
+  // Settings visit, so closing the picker without choosing isn't nagged.
+  let autoOpenedFolderPicker = false;
+  $: if ($oneDriveAccount && !$oneDriveFolder && !autoOpenedFolderPicker && $backendKind === "android") {
+    autoOpenedFolderPicker = true;
+    showFolderPicker = true;
   }
 
   async function handleExport() {
@@ -370,17 +371,34 @@
                   Connected as <strong>{$oneDriveAccount.displayName}</strong> ({$oneDriveAccount.email})
                 </div>
                 <div class="settings-dir-row">
-                  <div class="settings-dir-path">{$oneDriveFolder?.folderPath ?? "/Documents/Notes"}</div>
-                  <button class="icon-btn" on:click={() => (showFolderPicker = true)}>
-                    Browse…
-                  </button>
+                  {#if $oneDriveFolder}
+                    <div class="settings-dir-path">{$oneDriveFolder.folderPath}</div>
+                    <button class="icon-btn" on:click={() => (showFolderPicker = true)}>Browse…</button>
+                  {:else}
+                    <div class="settings-dir-path" style="color: var(--state-warn);">No folder selected yet</div>
+                    <button class="icon-btn btn-primary" on:click={() => (showFolderPicker = true)}>Choose folder…</button>
+                  {/if}
                 </div>
                 <div style="display: flex; gap: 8px; margin-top: 8px;">
-                  <button class="icon-btn" on:click={handleOneDriveSyncNow} disabled={syncingOneDrive}>
-                    {syncingOneDrive ? "Syncing…" : "Sync now"}
+                  <button
+                    class="icon-btn"
+                    on:click={handleOneDriveSyncNow}
+                    disabled={$oneDriveSyncing || !$oneDriveFolder}
+                    title={$oneDriveFolder ? "" : "Choose a OneDrive folder first"}
+                  >
+                    {#if $oneDriveSyncing}
+                      <span class="modal-spinner" aria-hidden="true">⟳</span> Syncing…
+                    {:else}
+                      Sync now
+                    {/if}
                   </button>
-                  <button class="icon-btn" on:click={handleOneDriveLogout}>Sign out</button>
+                  <button class="icon-btn" on:click={handleOneDriveLogout} disabled={$oneDriveSyncing}>Sign out</button>
                 </div>
+                {#if !$oneDriveFolder}
+                  <div class="settings-hint" style="margin-top: 6px;">
+                    Choose the OneDrive folder your notes should sync with. Nothing syncs until you do.
+                  </div>
+                {/if}
               {:else}
                 <div class="settings-hint">
                   Connect your Microsoft account to use a OneDrive folder as your Notes folder. Notes stay synchronized across all your devices.

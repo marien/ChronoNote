@@ -551,7 +551,7 @@ impl OneDriveManager {
     ) -> Result<(), String> {
         let folder_cfg = self
             .get_folder(data_dir)
-            .ok_or_else(|| "No OneDrive folder configured".to_string())?;
+            .ok_or_else(|| "No OneDrive folder chosen yet — pick one in Settings".to_string())?;
 
         let token = self.get_valid_access_token(data_dir).await?;
 

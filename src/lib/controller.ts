@@ -34,6 +34,7 @@ export * from "./actions";
 export * from "./history";
 export * from "./search";
 export * from "./calendarSyncActions";
+export * from "./oneDriveSync";
 export * from "./syncConflicts";
 export * from "./copyForward";
 export * from "./menu";

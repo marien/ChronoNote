@@ -7,20 +7,8 @@ import { get } from "svelte/store";
 import * as api from "./tauriApi";
 import { checkActiveTabForDrift } from "./drift";
 import { modal, showToast, syncConflicts } from "./stores";
+import { refreshSyncConflicts, syncOneDriveNow } from "./oneDriveSync";
 import type { SyncConflictResolution } from "./tauriCommands";
-
-/** Re-reads the held conflicts. Cheap (one small JSON read), so it's safe to
- * call after every sync and on the status poll. Never throws. */
-export async function refreshSyncConflicts(): Promise<void> {
-  try {
-    const next = await api.oneDriveGetConflicts();
-    const prev = get(syncConflicts);
-    // Skip identical results so the status chip doesn't re-render every poll.
-    if (JSON.stringify(prev) !== JSON.stringify(next)) syncConflicts.set(next);
-  } catch {
-    /* not on a backend that has this (or transient) — leave as is */
-  }
-}
 
 export async function openSyncConflicts(): Promise<void> {
   await refreshSyncConflicts();
@@ -47,6 +35,6 @@ export async function resolveSyncConflict(name: string, resolution: SyncConflict
   );
   // "mine"/"both" now need uploading; "theirs" changed the file on disk, so
   // the open tab must pick that up (silent reload if it has no unsaved edits).
-  void api.oneDriveSyncNow().then(() => refreshSyncConflicts()).catch(() => {});
+  void syncOneDriveNow();
   void checkActiveTabForDrift();
 }

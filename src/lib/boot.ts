@@ -44,7 +44,7 @@ import {
 import { flushAllPendingSaves, recomputeSaveState, refreshAllNotesCache } from "./persistence";
 import { checkActiveTabForDrift } from "./drift";
 import { refreshAgendaFileExists } from "./calendarSyncActions";
-import { refreshSyncConflicts } from "./syncConflicts";
+import { refreshSyncConflicts, syncOneDriveNow } from "./oneDriveSync";
 import { checkForUpdatesOnLaunch } from "./updates";
 import type { ColorMode, NoteTab, ThemeMode } from "./types";
 
@@ -456,7 +456,9 @@ export async function initOneDriveSync() {
     const result = event.payload;
     if (result.success && result.account) {
       oneDriveAccount.set(result.account);
-      showToast("Connected to OneDrive");
+      // Signing in doesn't pick a folder — say what's still needed rather
+      // than leaving the user to discover it when "Sync now" fails.
+      showToast(get(oneDriveFolder) ? "Connected to OneDrive" : "Connected to OneDrive — now choose a folder to sync");
     } else if (result.error) {
       showToast(`OneDrive sign-in failed: ${result.error}`);
     }
@@ -468,10 +470,7 @@ export async function initOneDriveSync() {
       oneDriveAccount.set(account);
       const folder = await api.oneDriveGetFolder();
       if (folder) oneDriveFolder.set(folder);
-      void api
-        .oneDriveSyncNow()
-        .catch(() => {})
-        .finally(() => void refreshSyncConflicts());
+      void syncOneDriveNow();
     }
   } catch {
     // Fail silently
@@ -494,7 +493,7 @@ export async function initOneDriveSync() {
     const now = Date.now();
     if (now - lastAutoSyncTime < 15000) return;
     lastAutoSyncTime = now;
-    void api.oneDriveSyncNow().catch(() => {});
+    void syncOneDriveNow();
   };
 
   if (typeof document !== "undefined") {

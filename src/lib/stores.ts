@@ -165,6 +165,9 @@ export const oneDriveSyncStatus = writable<"idle" | "syncing" | "offline" | "err
 /** Notes the OneDrive sync engine is holding back because the phone and
  * cloud versions diverged in a way it couldn't merge (see `syncConflicts.ts`). */
 export const syncConflicts = writable<SyncConflict[]>([]);
+/** True while a OneDrive sync is running (see `oneDriveSync.ts`) — drives the
+ * spinner in the status bar and the disabled "Sync now" button. */
+export const oneDriveSyncing = writable(false);
 
 /** Android only: true from the moment the system browser opens for a
  * `chrononote://auth` sign-in until the `onedrive-login-result` event

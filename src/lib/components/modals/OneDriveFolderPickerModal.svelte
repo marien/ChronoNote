@@ -3,6 +3,7 @@
   import * as api from "../../tauriApi";
   import * as controller from "../../controller";
   import { oneDriveFolder, showToast } from "../../stores";
+  import { syncOneDriveNow } from "../../oneDriveSync";
   import Icon from "../../icons/Icon.svelte";
   import { closeOnOutsideClick } from "../../actions/closeOnOutsideClick";
   import { focusTrap } from "../../actions/focusTrap";
@@ -87,7 +88,9 @@
       await api.oneDriveSetFolder(folderId, folderPath);
       oneDriveFolder.set({ folderId, folderPath });
       showToast(`Notes folder set to OneDrive: ${folderPath}`);
-      api.oneDriveSyncNow().catch(() => {});
+      // The first sync of a new folder can be a big download — start it
+      // visibly (status-bar spinner) and report how it ended.
+      void syncOneDriveNow({ notify: true });
       onClose();
     } catch (e) {
       showToast(`Failed to set folder: ${e instanceof Error ? e.message : String(e)}`);

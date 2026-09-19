@@ -7,6 +7,7 @@
     notesDir,
     oneDriveAccount,
     oneDriveFolder,
+    oneDriveSyncing,
     oneDriveSyncStatus,
     statusCounts,
     statusPos,
@@ -44,10 +45,15 @@
         aria-label="OneDrive cloud sync"
         on:click={controller.openSettingsOnNotesFolder}
       >
-        <Icon name="cloud" size={12} />
+        {#if $oneDriveSyncing || $oneDriveSyncStatus === "syncing"}
+          <!-- Not gated by stat-tier0 like the label, so a narrow screen still shows *something is happening*. -->
+          <span class="modal-spinner" aria-label="Syncing">⟳</span>
+        {:else}
+          <Icon name="cloud" size={12} />
+        {/if}
         <span class="stat-tier0 status-folder-name">
           {#if $oneDriveAccount}
-            {$oneDriveSyncStatus === "syncing" ? "Syncing…" : $oneDriveSyncStatus === "error" ? "Sync error" : $oneDriveSyncStatus === "offline" ? "Offline" : ($oneDriveFolder?.folderPath?.split("/").filter(Boolean).pop() ?? "Notes")}
+            {$oneDriveSyncing || $oneDriveSyncStatus === "syncing" ? "Syncing…" : !$oneDriveFolder ? "Choose a folder" : $oneDriveSyncStatus === "error" ? "Sync error" : $oneDriveSyncStatus === "offline" ? "Offline" : ($oneDriveFolder.folderPath.split("/").filter(Boolean).pop() ?? "Notes")}
           {:else}
             OneDrive
           {/if}

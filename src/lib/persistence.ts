@@ -17,6 +17,7 @@ import {
   type SaveState,
 } from "./stores";
 import type { NoteTab } from "./types";
+import { syncOneDriveNow } from "./oneDriveSync";
 
 // --- Debounced autosave on typing, immediate on deliberate actions ---
 
@@ -81,7 +82,7 @@ export function scheduleCloudPush() {
   if (cloudPushTimer) clearTimeout(cloudPushTimer);
   cloudPushTimer = setTimeout(() => {
     cloudPushTimer = null;
-    api.oneDriveSyncNow().catch(() => {});
+    void syncOneDriveNow();
   }, 2000);
 }
 
