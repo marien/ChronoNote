@@ -2,18 +2,29 @@
 
 A minimalist, keyboard-driven plain-text app for daily notes, meeting
 logs, and action items. Tauri v2 (Rust) + Svelte 5 / TypeScript +
-CodeMirror 6, with the same frontend also shipping as a public demo and
-a browser-storage web app.
+CodeMirror 6. One frontend ships four ways: a desktop app, an Android
+app, a browser-storage web app, and a public demo.
+
+Notes are plain `.txt` files, one per day — no database, no
+front-matter, no hidden IDs.
 
 See [`docs/spec.md`](docs/spec.md) for the full product/technical spec —
 tokens & glyphs, keyboard shortcuts, drawers, session/safety behavior,
-and the three build targets. See [`docs/CHANGELOG.md`](docs/CHANGELOG.md)
+and the four build targets. See [`docs/CHANGELOG.md`](docs/CHANGELOG.md)
 for the complete history of *why* each part is built the way it is.
 
-Try it live: [chrononote.mariendegelder.nl](https://chrononote.mariendegelder.nl)
-(demo, no data retention) or
-[app.chrononote.mariendegelder.nl](https://app.chrononote.mariendegelder.nl)
-(web app, saves to your browser).
+## Get it
+
+- **Windows:** the installers (`.msi` / `-setup.exe`) are on the
+  [Releases page](https://github.com/marien/ChronoNote/releases/latest).
+  The app checks GitHub for new versions and can install them for you.
+- **Android:** the signed `_arm64.apk` on the same page (64-bit ARM,
+  Android 7+). There is no store listing yet, so you install it yourself
+  and update by installing a newer APK over it. See [Android](#android).
+- **In a browser:** [chrononote.mariendegelder.nl](https://chrononote.mariendegelder.nl)
+  is the demo (no data retention);
+  [app.chrononote.mariendegelder.nl](https://app.chrononote.mariendegelder.nl)
+  is the web app (saves to your browser).
 
 ## Prerequisites
 
@@ -22,6 +33,8 @@ Try it live: [chrononote.mariendegelder.nl](https://chrononote.mariendegelder.nl
 - Windows: the "Desktop development with C++" workload (MSVC Build Tools)
 - macOS: Xcode Command Line Tools
 - Linux: see the [Tauri Linux prerequisites](https://tauri.app/start/prerequisites/)
+- Android builds only: the Android SDK and NDK (`ANDROID_HOME`,
+  `NDK_HOME`), a JDK, and the Rust Android target — see [Android](#android)
 
 ## Development
 
@@ -45,7 +58,7 @@ npm run tauri build
 ```bash
 npm run check                    # svelte-check — TypeScript/Svelte type errors
 npm test                         # Vitest — frontend business-logic unit tests
-cd src-tauri && cargo test       # Rust storage-layer unit tests
+cd src-tauri && cargo test       # Rust unit tests (storage, OneDrive sync and merge)
 npm run test:e2e                 # Playwright — full frontend against a mock backend
 ```
 
@@ -58,11 +71,13 @@ covers, and `tests/e2e/README.md` for the Playwright harness in detail.
 Daily notes are plain `.txt` files named `YYYY-MM-DD.txt`, stored in a
 configurable root folder (`notes_dir` in the app's `config.json`,
 defaulting to `~/Documents/Notes`). Nothing but UTF-8 text ever gets
-written into a note file — no database, no front-matter, no injected
-IDs. `config.json` lives in the OS-appropriate app config directory
-(e.g. `%APPDATA%\com.chrononote.app` on Windows). The web app keeps the
-equivalent data in the browser's own storage instead — see
+written into a note file. `config.json` lives in the OS-appropriate app
+config directory (e.g. `%APPDATA%\com.chrononote.app` on Windows).
+
+The web app keeps the equivalent data in the browser's own storage — see
 [`docs/spec.md`](docs/spec.md#7-distribution-backends--the-update-mechanism).
+On Android the notes live in the app's own storage and sync with a
+OneDrive folder you choose.
 
 ## Migrating existing notes
 
@@ -72,22 +87,42 @@ format to convert them into and how to bring them in via Settings → Data
 → "Import notes from a file…" — precise enough to hand to a conversion
 script or an AI agent.
 
-## Other build targets
+## Web app and demo
 
 The same `src/` tree also builds the public demo and the web app —
 see [`website/README.md`](website/README.md) for how those are built,
 previewed locally, and deployed.
 
-### Android (v0.10.0)
+## Android
 
-The desktop frontend also runs as an Android app (Tauri v2 mobile), with a
-touch accessory bar and OneDrive sync so the same notes folder is available on
-phone and PC (three-way merge; a note edited on both sides is merged, or held
-for you to resolve in-app — no loose conflict files). Not on a store yet: build
-a signed sideloadable APK with `scripts/android-release.sh` (setup, signing and
-the pinned Rust 1.95.0 toolchain are described in that script and in
-`src-tauri/android-overrides/README.md`), then `adb install -r` it or copy it to
-the phone. See spec §7.6 and CHANGELOG §181–§186.
+The frontend runs as an Android app (Tauri v2 mobile), with a touch
+accessory bar and OneDrive sync so the same notes are on your phone and
+your PC. A note edited on both sides is merged line by line, or held for
+you to resolve inside the app — there are no loose conflict files. See
+[`docs/spec.md`](docs/spec.md) §7.6 for the design and
+[CHANGELOG](docs/CHANGELOG.md) §181–§186 for how it got here.
+
+**Installing** (no store listing yet): download the `_arm64.apk` from the
+[latest release](https://github.com/marien/ChronoNote/releases/latest),
+open it on the phone and allow the install; or `adb install -r <apk>`.
+The [guide](https://chrononote.mariendegelder.nl/guide.html#android) has
+the OneDrive setup.
+
+**Building it yourself:** `scripts/android-release.sh` builds, aligns,
+signs and verifies an arm64 release APK (output in
+`~/.chrononote-android-release/`). You need:
+
+- the Android SDK/NDK and a JDK (see Prerequisites);
+- Rust **1.95.0** with the Android target — Rust 1.98.1 can't
+  cross-compile for Android from a Windows host, so the script pins the
+  toolchain itself:
+  `rustup toolchain install 1.95.0 && rustup +1.95.0 target add aarch64-linux-android`;
+- a release keystore outside the repo — the header of the script says
+  where it goes and what it contains.
+
+The Android project under `src-tauri/gen/` is generated and gitignored;
+the hand-maintained pieces live in `src-tauri/android-overrides/` — see
+its README for the steps after regenerating it.
 
 ## License
 
