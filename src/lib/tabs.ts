@@ -93,23 +93,35 @@ export async function openOrCreateDatedFile(dateStr: string) {
   activeTabId.set(newTab.id);
 }
 
+/** #76: open actions only warrant the close warning once they've come due —
+ * a note dated today or earlier. A future-dated note's actions are still
+ * ahead of you (you're planning, not forgetting), so it closes silently.
+ * Scratchpads have no date and keep the warning. */
+function hasDueOpenActions(tab: NoteTab, open: number): boolean {
+  if (open === 0) return false;
+  if (tab.isScratchpad) return true;
+  return tab.filename.slice(0, 10) <= todayISO();
+}
+
 /** Blocks close with the safety modal for two independent reasons: unresolved
- * open actions (the original check), or a scratchpad with real content —
- * since scratchpads are never written to disk, closing one with content
- * still in it would destroy that content permanently with zero warning. */
+ * open actions on a note that's due (today or past — see #76), or a
+ * scratchpad with real content — since scratchpads are never written to disk,
+ * closing one with content still in it would destroy that content
+ * permanently with zero warning. */
 export function requestTabClose(tabId: string) {
   const tab = get(tabs).find((t) => t.id === tabId);
   if (!tab) return;
   const counts = countActions(tab.content);
+  const dueOpen = hasDueOpenActions(tab, counts.open);
   const isNonEmptyScratchpad = tab.isScratchpad && tab.content.trim() !== "";
 
-  if (counts.open === 0 && !isNonEmptyScratchpad) {
+  if (!dueOpen && !isNonEmptyScratchpad) {
     closeTab(tabId);
     return;
   }
 
   const reasons: string[] = [];
-  if (counts.open > 0) {
+  if (dueOpen) {
     reasons.push(`has ${counts.open} unresolved open action(s)`);
   }
   if (isNonEmptyScratchpad) {

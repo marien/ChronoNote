@@ -6,10 +6,10 @@ kept for the rationale behind each one — not just *what* changed but
 was still being gathered and confirmed before implementation; renamed once
 everything below was applied, since nothing here is "pending" anymore.
 
-**Status: all sections through §177 implemented and released.** §178–§183
+**Status: all sections through §180 implemented and released** (§178–§180 in v0.9.5: a save-only-when-changed fix and two GitHub issues, #76/#77). §181–§186
 (the Android target, OneDrive sync and the sideloadable release build) are implemented on the
-`feat/android-onedrive` branch and live-tested, but not yet merged to
-`main` or released. §153 is a
+`feat/android-onedrive` branch and live-tested on a real phone, but not yet
+released. §153 is a
 website-only Guide-page fix (found live right after §150–§152 shipped
 as v0.7.12) — no version bump, nothing in the shipped app changed. §154
 merges the OS title bar into the top bar (Notepad-style: icon, tabs,
@@ -7849,14 +7849,101 @@ editor-focus behavior, not practical to unit-test without a real
 CodeMirror view), Playwright 228/228 (+1), `cargo test` 67/67
 (unchanged — pure frontend).
 
-## 178. Android as a fourth build target, and the mobile chrome around it
+## 178. A note is only written when it changed — tab switches no longer clobber synced versions
+
+**Status: fixed, released in v0.9.5.**
+
+Marien, testing the app on a phone and a PC with the notes folder in OneDrive:
+"it seems that the application is writing to disk whenever tabs are changed,
+regardless if the content has changed… even without doing edits on the PC,
+OneDrive on the PC still generates conflict files."
+
+Root cause: `flushSave` (called when switching away from a tab, closing one,
+and by the §93 exit barrier) and the 400ms autosave timer both wrote the tab's
+in-memory text unconditionally — `writeNoteRaw` calls `api.writeNote(filename,
+content)` with no `expectedHash`, so it is a blind overwrite. Two consequences:
+1. Every tab switch rewrote the file, changing its timestamp. A cloud-sync
+   client (the OneDrive client on the PC) treats that as an edit.
+2. **Worse, a stale tab clobbered newer content.** If another device synced a
+   newer version of a note in while its tab sat open and unedited here,
+   switching away wrote the tab's old text back over it — undoing the other
+   device's edit locally and making the sync client create conflict copies,
+   even though nothing had been edited on this machine. The §94 drift check
+   only runs for the tab being *activated* (and on window focus), so it never
+   got the chance to reload the stale tab before `flushSave` wrote it.
+
+Fix: every tab already records a SHA-256 of what disk held when it was loaded
+or last written (the §94 clean baseline, `markTabClean`). `persistence.ts`'s new
+`persistTab` compares the tab's text with that (`matchesDisk`) and skips the
+write when they are equal; with no baseline yet it still writes (the safe
+answer). The check-and-write is registered in `inFlightWrites` for its whole
+duration so the exit barrier still waits for it, and the "Saving…" mark is held
+until the decision so the status readout doesn't flicker. `sha256Hex` moved to
+its own `hash.ts` (re-exported from `drift.ts`) to avoid a persistence ↔ drift
+import cycle. A stale-but-unedited tab is picked up by the existing drift check
+(a silent reload) the next time it is activated. Deliberately not changed: a tab
+with real edits and a stale baseline still overwrites on flush — that is a
+genuine two-sided edit, which the drift check's conflict prompt exists for.
+
+New `no-idle-writes.spec.ts` (three cases; all three fail without the fix):
+switching tabs without editing writes nothing; an edit is still saved and
+switching afterwards adds no more writes; a newer version synced in while a tab
+is open is neither overwritten nor missed on return. `svelte-check` 0 errors,
+Vitest 363/363, Playwright 235/235, `cargo test` 67/67 (unchanged).
+
+## 179. Closing a future-dated note doesn't ask about open actions (#76)
+
+**Status: fixed, released in v0.9.5.**
+
+#76: "Show unresolved actions warning only for today and dates in the past.
+Close silently for dates in the future." A note dated in the future is a plan,
+not a backlog — its open actions haven't come due, so the "are you sure you want
+to close it?" prompt was just noise. `tabs.ts`'s new `hasDueOpenActions(tab,
+open)` gates `requestTabClose`'s open-action reason on `filename date <=
+todayISO()` (ISO date strings compare correctly as text). Scratchpads have no
+date, so they keep the warning — and the other reason for the prompt, a
+non-empty scratchpad about to be discarded, is untouched. The date picker's
+"has open actions" dot and the status-bar counts are unchanged: future notes'
+actions are still counted and shown, they just don't gate closing.
+
+Vitest (+3: today still warns, a future note closes silently, a scratchpad with
+open actions still warns) and Playwright (+2: a future-dated note closes with no
+modal, a past one still asks).
+
+## 180. The Actions drawer keeps the date of the actions in view (#77)
+
+**Status: fixed, released in v0.9.5.**
+
+#77: "On the actions drawer, keep showing the date row for the actions in view.
+Without date it makes it hard to remember which date the action belongs to." The
+drawer is a virtualized list of group-header rows and action rows; a group's
+header scrolls out of view (and is unmounted) long before its last action, so
+deep in a long group nothing said which day an action was from. The header of the
+group at the top of the viewport is now pinned over it (`stickyHeader` in
+`ActionDrawerModal.svelte`: the last header whose `top < scrollTop`, rendered as
+a `position: sticky` element with an equal negative bottom margin so the scroll
+extent is unchanged, and an opaque background — the normal header is a
+translucent tint). It only appears once the group's real header has scrolled
+past, and the next group's header takes over as you reach it. `scrollToShow`
+gained an optional `topInset` so keyboard navigation snaps the selected row to
+just below the pinned heading instead of leaving it hidden underneath (default
+0, so Section History and Search are unaffected).
+
+Vitest (+2 for `topInset`) and Playwright (`action-drawer-sticky-date.spec.ts`:
+no pinned heading at the very top; at three scroll positions across three groups
+the pinned heading names the same day as the action beneath it; arrow-key
+navigation never leaves the selected row under it). The spec and the Guide page
+(`website/guide.html`) were updated for #76's close rule and §6.3's
+write-only-when-changed rule.
+
+## 181. Android as a fourth build target, and the mobile chrome around it
 
 **Status: implemented on `feat/android-onedrive`; not yet merged to
 `main` or released.**
 
 Marien pushed a large branch (authored 2026-09-17) adding Android next
 to the desktop app, the demo and the web app, plus a Rust OneDrive sync
-engine (§179–§181). This section covers the target itself; §179–§181
+engine (§182–§184). This section covers the target itself; §182–§184
 cover sync. The branch was reviewed by actually running its gates, then
 brought to a state that builds, installs and runs on the emulator, and
 tested end to end.
@@ -7917,11 +8004,11 @@ regenerated from `docs/design/icon-A-master.svg` for every density), and
 the mobile touch ergonomics that came with the branch (accessory bar,
 tabs drawer, swipe between tabs), unchanged.
 
-Verification for §178–§181 together: `svelte-check` 0 errors, Vitest
+Verification for §181–§184 together: `svelte-check` 0 errors, Vitest
 368/368, Playwright 240/240, `cargo test` 136/136, plus the live test
-matrix in §180–§181.
+matrix in §183–§184.
 
-## 179. OneDrive sign-in and the sync engine (Android)
+## 182. OneDrive sign-in and the sync engine (Android)
 
 **Status: implemented on `feat/android-onedrive`; live-tested against a
 real OneDrive; not yet merged or released.**
@@ -7980,7 +8067,7 @@ tests; each has unit tests):
   used to swallow the result, which is why the token bug looked like
   nothing happening.
 
-## 180. Conflicts are merged, or held for the user (no conflict files)
+## 183. Conflicts are merged, or held for the user (no conflict files)
 
 **Status: implemented on `feat/android-onedrive`; live-tested; not yet
 merged or released.**
@@ -8032,7 +8119,7 @@ deletes a note the phone edited → kept and re-uploaded ✔; edit offline
 killed mid-sync with 25 new notes → recovered with no duplicates or
 conflicts ✔.
 
-## 181. Deleting an emptied note on the phone deletes it in the cloud; OneDrive state stays out of backups
+## 184. Deleting an emptied note on the phone deletes it in the cloud; OneDrive state stays out of backups
 
 **Status: implemented on `feat/android-onedrive`; live-tested; not yet
 merged or released.**
@@ -8048,7 +8135,7 @@ forgotten; a transient failure keeps the tombstone for the next sync. Only
 notes the app itself deletes are propagated — not any file that happens
 to go missing. Verified live by calling the real command through the
 WebView devtools: delete → cloud 404; cloud edited after the delete → note
-restored. (This is also what exposed the echoed-upload bug in §179.)
+restored. (This is also what exposed the echoed-upload bug in §182.)
 
 **Backup.** Android Auto Backup and device-to-device transfer would have
 copied the sign-in files off the device, and restored them on a new phone
@@ -8068,7 +8155,7 @@ testing; release signing (keystore, AAB, `versionCode`); the
 safety form, closed testing, Microsoft publisher verification); moving
 the OneDrive Rust structs onto the `ts-rs` generated types.
 
-## 182. A signed, sideloadable Android release build
+## 185. A signed, sideloadable Android release build
 
 **Status: implemented on `feat/android-onedrive`; the arm64 APK was built
 and its release variant verified on the emulator; not yet tried on a real
@@ -8113,12 +8200,13 @@ so the cloud version simply wins instead of raising a sync conflict.
 Verification: `cargo test` 137/137, Vitest 368/368, Playwright 241/241,
 `svelte-check` 0 errors.
 
-## 183. First-connect clarity, and notes are only written when they changed
+## 186. First-connect clarity, and notes are only written when they changed (see also §178)
 
 **Status: implemented on `feat/android-onedrive`; the first item was found
 sideloading v0.9.4 on a real phone, the second on that phone plus a PC; not
-yet merged or released. The second is a bug in the shipped desktop app too
-(v0.9.4 on `main`) and should be ported to `main` as a patch release.**
+yet released. The second was also a bug in the shipped desktop app: it was
+ported to `main` and released as v0.9.5 (§178), and this branch merged that
+version in.**
 
 **First connect (Android).** Signing in to OneDrive doesn't choose a folder,
 but Settings displayed a hardcoded `/Documents/Notes` as if one were chosen;

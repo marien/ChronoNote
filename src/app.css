@@ -1701,6 +1701,19 @@ textarea.modal-input.import-textarea {
 .modal-group-header:first-child {
   border-top: none;
 }
+/* #77: the Action Drawer's pinned date heading. Opaque (the normal header is
+   a translucent tint over the card) so rows scrolling underneath don't show
+   through, and layered above them. */
+.modal-group-header-sticky {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  box-sizing: border-box;
+  border-top: none;
+  background:
+    linear-gradient(rgba(128, 128, 128, 0.06), rgba(128, 128, 128, 0.06)),
+    var(--surface-overlay);
+}
 /* §150: Section History's date headers are themselves selectable (not
    just the action rows under them) — opt-in via this modifier so the
    Action Drawer / Search headers, which share the base class, stay

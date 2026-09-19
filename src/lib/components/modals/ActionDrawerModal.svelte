@@ -154,11 +154,30 @@
     if (listEl) scrollTop = listEl.scrollTop;
   }
 
+  // #77: keep the date of the actions in view on screen. Only the rows near
+  // the viewport are mounted, so a group's own header is usually scrolled
+  // away (and unmounted) long before you reach its last action — without
+  // it there's nothing to say which day an action belongs to. This is the
+  // header of the group at the top of the viewport, pinned over it once the
+  // group's real header has scrolled past.
+  type HeaderRow = Row & { type: "header" };
+  $: headerRows = rows.filter((r): r is HeaderRow => r.type === "header");
+  $: stickyHeader = ((): HeaderRow | null => {
+    let current: HeaderRow | null = null;
+    for (const h of headerRows) {
+      if (h.top < scrollTop) current = h;
+      else break;
+    }
+    return current;
+  })();
+
   function scrollSelectedIntoView() {
     if (!listEl) return;
     const row = rows.find((r) => r.type === "item" && r.item.__flatIndex === selectedIndex);
     if (!row) return;
-    const next = scrollToShow(row, listEl.scrollTop, viewportHeight);
+    // The pinned heading covers the top `MODAL_HEADER_ROW_HEIGHT` px, so a
+    // row scrolled to the very top would sit hidden underneath it.
+    const next = scrollToShow(row, listEl.scrollTop, viewportHeight, MODAL_HEADER_ROW_HEIGHT);
     if (next !== null) listEl.scrollTop = next;
     scrollTop = listEl.scrollTop;
   }
@@ -262,6 +281,17 @@
       {#if flatList.length === 0}
         <div class="modal-empty">
           {filter ? `No actions match “${filter}”.` : "Nothing here — every action is resolved."}
+        </div>
+      {/if}
+      {#if stickyHeader}
+        <!-- Zero net height (negative margin) so the scroll extent is unchanged. -->
+        <div
+          class="modal-group-header modal-group-header-sticky"
+          aria-hidden="true"
+          data-testid="sticky-date-header"
+          style="height: {MODAL_HEADER_ROW_HEIGHT}px; margin-bottom: -{MODAL_HEADER_ROW_HEIGHT}px;"
+        >
+          {groupHeaderLabel(stickyHeader.filename, stickyHeader.count)}
         </div>
       {/if}
       <div style="position: relative; height: {totalHeight}px;">

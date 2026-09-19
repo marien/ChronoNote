@@ -96,9 +96,18 @@ export function visibleWindow(
  * edge to the viewport top when it's above, or its bottom edge to the
  * viewport bottom when it's below. `null` when the row is already fully
  * visible, so the caller can skip a redundant scroll write (which would
- * otherwise fight a deliberate manual scroll). */
-export function scrollToShow(row: PlacedRow, scrollTop: number, viewportHeight: number): number | null {
-  if (row.top < scrollTop) return row.top;
+ * otherwise fight a deliberate manual scroll).
+ *
+ * `topInset` is the height of anything pinned over the top of the viewport
+ * (the Action Drawer's sticky date heading, #77): a row that would land
+ * underneath it counts as not fully visible, and is snapped to just below it. */
+export function scrollToShow(
+  row: PlacedRow,
+  scrollTop: number,
+  viewportHeight: number,
+  topInset: number = 0,
+): number | null {
+  if (row.top < scrollTop + topInset) return Math.max(0, row.top - topInset);
   if (row.top + row.height > scrollTop + viewportHeight) {
     return row.top + row.height - viewportHeight;
   }
