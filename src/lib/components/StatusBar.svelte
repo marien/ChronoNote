@@ -37,7 +37,7 @@
 
 <div id="status-bar">
   <div class="status-zone status-left">
-    {#if $backendKind === "android"}
+    {#if $backendKind === "android" || $backendKind === "web"}
       <button
         id="stat-cloud"
         class="status-folder-btn"
@@ -131,7 +131,7 @@
         <Icon name="update" size={12} />
       </button>
     {/if}
-    {#if $backendKind === "web"}
+    {#if $backendKind === "web" && !$oneDriveAccount}
       <span
         id="stat-storage-tier"
         class="stat-full"

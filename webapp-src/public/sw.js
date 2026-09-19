@@ -30,6 +30,17 @@ self.addEventListener("activate", (event) => {
 });
 
 self.addEventListener("fetch", (event) => {
+  const url = new URL(event.request.url);
+
+  // CRITICAL: Bypass service worker for Microsoft OAuth and Graph API calls
+  if (
+    url.hostname === "login.microsoftonline.com" ||
+    url.hostname === "graph.microsoft.com" ||
+    url.origin !== self.location.origin
+  ) {
+    return; // Allow standard network fetch without cache interception
+  }
+
   if (event.request.method !== "GET") return;
   event.respondWith(
     (async () => {

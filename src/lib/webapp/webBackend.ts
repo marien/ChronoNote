@@ -33,6 +33,7 @@ import type { AppConfig, ColorMode, FileMetadata, TabSession, ThemeMode } from "
 import type { CommandArgs, CommandReturn, TauriCommand, TauriCommands } from "../tauriCommands";
 import { isValidNoteFilename } from "../noteFilename";
 import { idbClear, idbDelete, idbGet, idbGetAllEntries, idbGetAllKeys, idbPut, openDb } from "./idb";
+import { WebOneDriveSyncEngine } from "./webOneDriveSync";
 
 const DB_NAME = "chrononote-webapp";
 const DB_VERSION = 1;
@@ -89,10 +90,12 @@ export class WebBackend {
   appVersion: string;
 
   private dbPromise: Promise<IDBDatabase>;
+  readonly syncEngine: WebOneDriveSyncEngine;
 
   constructor(appVersion: string) {
     this.appVersion = appVersion;
     this.dbPromise = openDb(DB_NAME, DB_VERSION, [STORE_NOTES, STORE_CONFLICTS, STORE_META]);
+    this.syncEngine = new WebOneDriveSyncEngine(() => this.db());
   }
 
   private async db(): Promise<IDBDatabase> {
@@ -246,6 +249,7 @@ export class WebBackend {
       if (!isValidNoteFilename(filename)) throw new Error(`Invalid note filename: ${filename}`);
       const db = await this.db();
       await idbDelete(db, STORE_NOTES, filename);
+      await this.syncEngine.recordLocalDelete(filename);
     },
 
     get_file_metadata: async ({ filename }) => {
@@ -328,27 +332,88 @@ export class WebBackend {
     // "web"`). This is never actually called from the UI as a result;
     // an empty calendar rather than a thrown error just in case, matching
     // how a desktop install with no `.agenda.json` file yet behaves.
-    read_agenda_for_date: () => [],
-    read_agenda_after: () => [],
-    agenda_file_exists: () => false,
-    onedrive_login: () => ({
-      success: false,
-      error: "OneDrive sync is available in the desktop and mobile apps.",
-      pending: false,
-    }),
-    onedrive_logout: () => {},
-    onedrive_get_account: () => null,
-    onedrive_list_folders: () => [],
-    onedrive_create_folder: ({ name }) => ({ id: `folder-${Date.now()}`, name }),
-    onedrive_set_folder: () => {},
-    onedrive_get_folder: () => null,
-    onedrive_exchange_code: () => ({ success: false, error: "Not supported in web backend", pending: false }),
-    onedrive_sync_now: () => ({ success: false, message: "Not supported in web backend" }),
-    onedrive_get_conflicts: () => [],
-    onedrive_resolve_conflict: () => {},
-    onedrive_get_sync_status: () => "offline",
-    onedrive_get_advanced_config: () => ({}),
-    onedrive_set_advanced_config: () => {},
+    read_agenda_for_date: async ({ date }) => {
+      const db = await this.db();
+      const note = await idbGet<StoredNote>(db, STORE_NOTES, ".agenda.json");
+      if (!note || !note.content.trim()) {
+        throw new Error("The calendar file (.agenda.json) is missing, empty, or invalid — check whatever syncs it.");
+      }
+      try {
+        const meetings: Array<{ date: string; start: string; end: string; title: string }> = JSON.parse(note.content.trim());
+        if (!Array.isArray(meetings) || meetings.length === 0) {
+          throw new Error("Invalid");
+        }
+        const excludedPrefixes = ["Declined:", "Cancelled:", "Following:"];
+        const day = meetings.filter(
+          (m) => m.date === date && !excludedPrefixes.some((p) => m.title?.startsWith(p)),
+        );
+        day.sort((a, b) => (a.start + a.end + a.title).localeCompare(b.start + b.end + b.title));
+        const seen = new Set<string>();
+        const deduped: string[] = [];
+        for (const m of day) {
+          const key = `${m.start}|${m.end}|${m.title}`;
+          if (!seen.has(key)) {
+            seen.add(key);
+            deduped.push(m.title);
+          }
+        }
+        return deduped;
+      } catch {
+        throw new Error("The calendar file (.agenda.json) is missing, empty, or invalid — check whatever syncs it.");
+      }
+    },
+
+    read_agenda_after: async ({ afterDate }) => {
+      const db = await this.db();
+      const note = await idbGet<StoredNote>(db, STORE_NOTES, ".agenda.json");
+      if (!note || !note.content.trim()) {
+        throw new Error("The calendar file (.agenda.json) is missing, empty, or invalid — check whatever syncs it.");
+      }
+      try {
+        const meetings: Array<{ date: string; start: string; end: string; title: string }> = JSON.parse(note.content.trim());
+        if (!Array.isArray(meetings) || meetings.length === 0) {
+          throw new Error("Invalid");
+        }
+        const excludedPrefixes = ["Declined:", "Cancelled:", "Following:"];
+        const future = meetings.filter(
+          (m) => m.date > afterDate && !excludedPrefixes.some((p) => m.title?.startsWith(p)),
+        );
+        future.sort((a, b) => (a.date + a.start + a.end + a.title).localeCompare(b.date + b.start + b.end + b.title));
+        const seen = new Set<string>();
+        const deduped: [string, string][] = [];
+        for (const m of future) {
+          const key = `${m.date}|${m.start}|${m.end}|${m.title}`;
+          if (!seen.has(key)) {
+            seen.add(key);
+            deduped.push([m.date, m.title]);
+          }
+        }
+        return deduped;
+      } catch {
+        throw new Error("The calendar file (.agenda.json) is missing, empty, or invalid — check whatever syncs it.");
+      }
+    },
+
+    agenda_file_exists: async () => {
+      const db = await this.db();
+      const note = await idbGet<StoredNote>(db, STORE_NOTES, ".agenda.json");
+      return note !== undefined;
+    },
+
+    onedrive_login: () => this.syncEngine.login(),
+    onedrive_logout: () => this.syncEngine.logout(),
+    onedrive_get_account: () => this.syncEngine.getAccount(),
+    onedrive_list_folders: ({ parentId }) => this.syncEngine.listFolders(parentId),
+    onedrive_create_folder: ({ parentId, name }) => this.syncEngine.createFolder(parentId, name),
+    onedrive_set_folder: ({ folderId, folderPath }) => this.syncEngine.setFolder({ folderId, folderPath }),
+    onedrive_get_folder: () => this.syncEngine.getFolder(),
+    onedrive_exchange_code: ({ code }) => this.syncEngine.exchangeCodeDirect(code),
+    onedrive_sync_now: () => this.syncEngine.syncNow(),
+    onedrive_get_conflicts: () => this.syncEngine.listConflicts(),
+    onedrive_resolve_conflict: ({ name, resolution }) => this.syncEngine.resolveConflict(name, resolution),
+    onedrive_get_sync_status: () => this.syncEngine.getStatus(),
+    onedrive_get_advanced_config: () => this.syncEngine.getAdvancedConfig(),
+    onedrive_set_advanced_config: ({ config }) => this.syncEngine.setAdvancedConfig(config),
     save_scratchpad_drafts: async ({ drafts }) => {
       const db = await this.db();
       await idbPut(db, STORE_META, "scratchpad_drafts", drafts);

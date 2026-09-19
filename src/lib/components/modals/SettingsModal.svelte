@@ -62,14 +62,24 @@
   // the list.
   let visibleRecentDirs: string[] = [];
   let browseButtonEl: HTMLButtonElement;
+  let isSafariBrowser = false;
+  if (typeof window !== "undefined") {
+    const ua = window.navigator.userAgent;
+    const isIOS = /iPad|iPhone|iPod/.test(ua);
+    const isSafari = /^((?!chrome|android).)*safari/i.test(ua);
+    const isStandalone =
+      (window.navigator as unknown as { standalone?: boolean }).standalone ||
+      window.matchMedia("(display-mode: standalone)").matches;
+    isSafariBrowser = (isIOS || isSafari) && !isStandalone;
+  }
+
   onMount(async () => {
-    if ($backendKind === "android") {
+    if ($backendKind === "android" || $backendKind === "web") {
       const advanced = await api.oneDriveGetAdvancedConfig();
       clientIdOverride = advanced.clientIdOverride ?? "";
       tenantIdOverride = advanced.tenantIdOverride ?? "";
-      return;
+      if ($backendKind === "web") return; // no local directory browsing
     }
-    if ($backendKind === "web") return; // no local directory browsing
 
     const candidates = $recentNotesDirs.filter((p) => p !== $notesDir);
     const exists = await Promise.all(candidates.map((p) => api.pathExists(p)));
@@ -202,7 +212,7 @@
   // open the folder picker instead of leaving the user to find it. Once per
   // Settings visit, so closing the picker without choosing isn't nagged.
   let autoOpenedFolderPicker = false;
-  $: if ($oneDriveAccount && !$oneDriveFolder && !autoOpenedFolderPicker && $backendKind === "android") {
+  $: if ($oneDriveAccount && !$oneDriveFolder && !autoOpenedFolderPicker && ($backendKind === "android" || $backendKind === "web")) {
     autoOpenedFolderPicker = true;
     showFolderPicker = true;
   }
@@ -363,9 +373,15 @@
               </div>
             {/if}
           </div>
-          {#if $backendKind === "android"}
+        {/if}
+        {#if $backendKind === "android" || $backendKind === "web"}
             <div>
               <div class="settings-section-label">OneDrive Cloud Sync</div>
+              {#if isSafariBrowser}
+                <div class="settings-hint" style="color: var(--state-warn); margin-bottom: 8px; border-left: 2px solid var(--state-warn); padding-left: 8px;">
+                  <strong>Safari Tip:</strong> Add ChronoNote to your Home Screen to prevent Apple from purging offline notes after 7 days of inactivity.
+                </div>
+              {/if}
               {#if $oneDriveAccount}
                 <div class="settings-hint" style="margin-bottom: 8px;">
                   Connected as <strong>{$oneDriveAccount.displayName}</strong> ({$oneDriveAccount.email})
@@ -524,7 +540,6 @@
               {/if}
             </div>
           {/if}
-        {/if}
 
         {#if $backendKind !== "demo"}
           <div>

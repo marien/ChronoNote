@@ -79,7 +79,7 @@ export function flushScratchpadDrafts() {
 let cloudPushTimer: ReturnType<typeof setTimeout> | null = null;
 
 export function scheduleCloudPush() {
-  if (get(backendKind) !== "android") return;
+  if (get(backendKind) !== "android" && get(backendKind) !== "web") return;
   if (!get(oneDriveAccount)) return;
   if (cloudPushTimer) clearTimeout(cloudPushTimer);
   cloudPushTimer = setTimeout(() => {

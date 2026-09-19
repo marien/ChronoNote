@@ -438,31 +438,69 @@ let oneDriveSyncWired = false;
 let lastAutoSyncTime = 0;
 
 export async function initOneDriveSync() {
-  if (get(backendKind) !== "android") return;
+  if (get(backendKind) !== "android" && get(backendKind) !== "web") return;
   if (oneDriveSyncWired) return;
   oneDriveSyncWired = true;
 
-  // Completes the deep-link OAuth flow: "Connect Microsoft Account"
-  // returns immediately with `pending: true` once it's opened the
-  // browser (see SettingsModal.svelte's `handleOneDriveLogin`), and the
-  // real outcome arrives here whenever Android delivers the
-  // `chrononote://auth` redirect back to the app — Rust's
-  // `wire_onedrive_deep_link` (lib.rs) does the token exchange and
-  // emits this event. Wired globally, not just while Settings happens
-  // to be open, since the user may well have switched back to the
-  // editor by the time it resolves.
-  void listen<OneDriveLoginResult>("onedrive-login-result", (event) => {
-    oneDriveConnecting.set(false);
-    const result = event.payload;
-    if (result.success && result.account) {
-      oneDriveAccount.set(result.account);
-      // Signing in doesn't pick a folder — say what's still needed rather
-      // than leaving the user to discover it when "Sync now" fails.
-      showToast(get(oneDriveFolder) ? "Connected to OneDrive" : "Connected to OneDrive — now choose a folder to sync");
-    } else if (result.error) {
-      showToast(`OneDrive sign-in failed: ${result.error}`);
+  if (get(backendKind) === "android") {
+    // Completes the deep-link OAuth flow: "Connect Microsoft Account"
+    // returns immediately with `pending: true` once it's opened the
+    // browser (see SettingsModal.svelte's `handleOneDriveLogin`), and the
+    // real outcome arrives here whenever Android delivers the
+    // `chrononote://auth` redirect back to the app — Rust's
+    // `wire_onedrive_deep_link` (lib.rs) does the token exchange and
+    // emits this event. Wired globally, not just while Settings happens
+    // to be open, since the user may well have switched back to the
+    // editor by the time it resolves.
+    void listen<OneDriveLoginResult>("onedrive-login-result", (event) => {
+      oneDriveConnecting.set(false);
+      const result = event.payload;
+      if (result.success && result.account) {
+        oneDriveAccount.set(result.account);
+        // Signing in doesn't pick a folder — say what's still needed rather
+        // than leaving the user to discover it when "Sync now" fails.
+        showToast(get(oneDriveFolder) ? "Connected to OneDrive" : "Connected to OneDrive — now choose a folder to sync");
+      } else if (result.error) {
+        showToast(`OneDrive sign-in failed: ${result.error}`);
+      }
+    });
+  } else if (get(backendKind) === "web" && typeof window !== "undefined") {
+    const urlParams = new URLSearchParams(window.location.search);
+    const code = urlParams.get("code");
+    const error = urlParams.get("error");
+    const errorDescription = urlParams.get("error_description");
+
+    if (code) {
+      const cleanUrl = `${window.location.origin}${window.location.pathname}${window.location.hash}`;
+      window.history.replaceState({}, document.title, cleanUrl);
+
+      oneDriveConnecting.set(true);
+      void api
+        .oneDriveExchangeCode(code)
+        .then(async (result) => {
+          oneDriveConnecting.set(false);
+          if (result.success && result.account) {
+            oneDriveAccount.set(result.account);
+            const folder = await api.oneDriveGetFolder();
+            if (folder) {
+              oneDriveFolder.set(folder);
+              void syncOneDriveNow();
+            }
+            showToast(folder ? "Connected to OneDrive" : "Connected to OneDrive — now choose a folder to sync");
+          } else if (result.error) {
+            showToast(`OneDrive sign-in failed: ${result.error}`);
+          }
+        })
+        .catch((err) => {
+          oneDriveConnecting.set(false);
+          showToast(`OneDrive sign-in failed: ${err instanceof Error ? err.message : String(err)}`);
+        });
+    } else if (error) {
+      const cleanUrl = `${window.location.origin}${window.location.pathname}${window.location.hash}`;
+      window.history.replaceState({}, document.title, cleanUrl);
+      showToast(`OneDrive sign-in error: ${errorDescription || error}`);
     }
-  });
+  }
 
   try {
     const account = await api.oneDriveGetAccount();
@@ -503,6 +541,7 @@ export async function initOneDriveSync() {
   }
   if (typeof window !== "undefined") {
     window.addEventListener("focus", triggerResumeSync);
+    window.addEventListener("online", triggerResumeSync);
   }
 }
 
