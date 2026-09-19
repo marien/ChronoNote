@@ -8,6 +8,7 @@ import {
   allNotesCache,
   editorApi,
   activeTabId,
+  getTabCleanHash,
   markTabClean,
   saveState,
   showToast,
@@ -15,6 +16,7 @@ import {
   type SaveState,
 } from "./stores";
 import type { NoteTab } from "./types";
+import { sha256Hex } from "./hash";
 
 // --- Debounced autosave on typing, immediate on deliberate actions ---
 
@@ -59,11 +61,41 @@ export function scheduleSave(tab: NoteTab) {
   clearTimeout(saveTimers[tab.id]);
   saveTimers[tab.id] = setTimeout(() => {
     delete saveTimers[tab.id];
-    pendingSaveTabIds.delete(tab.id);
-    // `writeNoteAndInvalidateCache` synchronously moves this filename into
-    // `inFlightFilenames`, so there's no "saved" flicker in between.
-    writeNoteAndInvalidateCache(tab.filename, tab.content).catch(() => showToast("Failed to save note"));
+    void persistTab(tab);
   }, 400);
+}
+
+/** True when the tab's text is byte-for-byte what the file held when it was
+ * last loaded or written (the §94 clean baseline). Writing it would change
+ * nothing but the file's timestamp — which a cloud-sync client treats as an
+ * edit — and, if the file has changed on disk since (another device synced a
+ * newer version in), would overwrite that newer version with this stale
+ * text. With no baseline yet the answer is "don't know", i.e. write. */
+async function matchesDisk(tab: NoteTab): Promise<boolean> {
+  const clean = getTabCleanHash(tab.id);
+  return !!clean && (await sha256Hex(tab.content)) === clean;
+}
+
+/** Write a tab's note to disk unless it's unchanged (see `matchesDisk`).
+ * Registered as in flight for the whole check-and-write, so the app-close
+ * barrier (§93) still waits for it. */
+function persistTab(tab: NoteTab): Promise<void> {
+  const p: Promise<void> = (async () => {
+    const unchanged = await matchesDisk(tab);
+    // Settled either way from here: the "Saving…" mark goes now, and a real
+    // write moves the filename into `inFlightFilenames` synchronously, so
+    // there's no "saved" flicker in between.
+    pendingSaveTabIds.delete(tab.id);
+    if (unchanged) {
+      recomputeSaveState();
+      return;
+    }
+    await writeNoteAndInvalidateCache(tab.filename, tab.content);
+  })()
+    .catch(() => showToast("Failed to save note"))
+    .finally(() => inFlightWrites.delete(p));
+  inFlightWrites.add(p);
+  return p;
 }
 
 /** Cancel any pending debounced write for `tabId` and write its current
@@ -75,11 +107,11 @@ export function flushSave(tabId: string) {
     clearTimeout(timer);
     delete saveTimers[tabId];
   }
-  pendingSaveTabIds.delete(tabId);
   const tab = get(tabs).find((t) => t.id === tabId);
   if (tab && !tab.isScratchpad) {
-    writeNoteAndInvalidateCache(tab.filename, tab.content).catch(() => showToast("Failed to save note"));
+    void persistTab(tab);
   } else {
+    pendingSaveTabIds.delete(tabId);
     recomputeSaveState();
   }
 }

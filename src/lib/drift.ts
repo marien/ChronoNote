@@ -24,15 +24,10 @@ import {
   tabs,
 } from "./stores";
 import { cancelScheduledSave } from "./persistence";
+import { sha256Hex } from "./hash";
 
-/** SHA-256 hex of a string — same digest Rust's `sha2` produces, so an
- * in-memory hash is directly comparable to a `FileMetadata.contentHash`
- * from disk. */
-export async function sha256Hex(text: string): Promise<string> {
-  const bytes = new TextEncoder().encode(text);
-  const digest = await crypto.subtle.digest("SHA-256", bytes);
-  return [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, "0")).join("");
-}
+// Re-exported: callers (and the controller facade) have always imported it from here.
+export { sha256Hex };
 
 /** Replace a tab's content with what's on disk and re-baseline it. Pushes
  * into the live editor when it's the active tab. */
