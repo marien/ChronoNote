@@ -1,8 +1,8 @@
 # ChronoNote: Master Technical & Product Specification
 
 **Document Version:** 1.2.0 (amended — reflects the state through
-`CHANGELOG.md` §186; the Android target and OneDrive sync described in §7.6
-are released as of v0.10.0)
+`CHANGELOG.md` §188; the Android target and OneDrive sync described in §7.6
+are released as of v0.10.0, and OneDrive sync in the web app (§7.3) as of v0.11.0)
 **Target Environment:** Cross-platform native desktop (Windows / macOS /
 Linux), an Android app, plus a browser-storage web app and a
 zero-retention public demo
@@ -480,6 +480,16 @@ move between the web app and the desktop app deliberately, by hand.
 Installable as a PWA (offline-capable, launches in its own window) for
 anyone who wants an app-like feel without leaving the browser-storage
 tier.
+
+**OneDrive sync (v0.11.0).** The web app can connect a Microsoft account
+(OAuth 2.0 PKCE in the browser, no server of ours) and sync a chosen OneDrive
+folder with the same three-way line merge and held-conflict model as Android
+(§7.6). Browser storage and the OneDrive workspace are separate IndexedDB
+stores with separate tab sessions; existing browser notes can be moved across
+(with a backup), and a note that differs on both sides is held for the user
+rather than overwritten. Choosing a different folder syncs the old one first
+and clears the local mirror. Requires a "Single-page application" redirect URI
+in the Entra app registration. See `CHANGELOG.md` §187-§188.
 
 ### 7.4 Demo Backend
 The same in-memory mock backend the Playwright test suite runs against

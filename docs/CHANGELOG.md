@@ -6,7 +6,7 @@ kept for the rationale behind each one — not just *what* changed but
 was still being gathered and confirmed before implementation; renamed once
 everything below was applied, since nothing here is "pending" anymore.
 
-**Status: all sections through §187 implemented** (§178–§180 in v0.9.5: a save-only-when-changed fix and two GitHub issues, #76/#77; §181–§186 in v0.10.0: the Android app and OneDrive sync; §187 in feat/webapp-onedrive: Web App OneDrive sync, workspace isolation, migration flow, and offline PWA). §153 is a
+**Status: all sections through §188 implemented** (§178–§180 in v0.9.5: a save-only-when-changed fix and two GitHub issues, #76/#77; §181–§186 in v0.10.0: the Android app and OneDrive sync; §187–§188 in v0.11.0: OneDrive sync for the web app, and the fixes found reviewing and testing it). §153 is a
 website-only Guide-page fix (found live right after §150–§152 shipped
 as v0.7.12) — no version bump, nothing in the shipped app changed. §154
 merges the OS title bar into the top bar (Notepad-style: icon, tabs,
@@ -8267,5 +8267,55 @@ Extends Microsoft OneDrive cloud synchronization directly into the ChronoNote We
    - Added Apple mobile and PWA installability meta tags.
    - Added CI/CD build guard in `test.yml` to ensure `website/webapp/` builds cleanly and stays in sync.
 
-Verification: Vitest 414/414 passing, `svelte-check` 0 errors/0 warnings, production bundle built and live-tested.
+Verification: Vitest 414/414 passing, `svelte-check` 0 errors/0 warnings, production bundle built. (Follow-up review and live testing: §188.)
 
+## 188. Web OneDrive sync: fixes from review and live testing (v0.11.0)
+
+Reviewing §187 and testing it against a real OneDrive found the following;
+all are fixed before release.
+
+1. **Conflict resolution never uploaded ("Keep this device's" / "Keep both").**
+   `resolveConflict` cleared the held conflict but left the cached etag stale,
+   so the next push was rejected with a 412 that the delta feed never
+   re-reports - the choice silently never reached OneDrive. It now rebases the
+   cache entry (id, etag, base) onto the version the conflict was held against.
+2. **Sign-in `state` is checked** on the OAuth redirect (`exchangeCodeDirect`).
+3. **A stale empty tab overwrote a note that synced in from OneDrive - the note
+   was lost after connecting.** A tab for a note that doesn't exist yet had no
+   clean baseline (no file, so no hash): the drift check skipped it and any
+   save wrote unconditionally. After connecting, the first sync downloaded
+   today's note, the open empty tab never reloaded, and the next save/flush
+   wrote `""` over it, which the following sync uploaded. Tabs for
+   not-yet-existing notes now carry the empty-content baseline
+   (`loadBaseline` / `EMPTY_CONTENT_HASH`): a version that syncs in silently
+   reloads, local edits raise the conflict prompt, an unedited empty tab is
+   never written. Applies to the desktop app too.
+4. **Choosing a different OneDrive folder copied the old folder's notes into
+   the new one** (the local notes mirror one folder; choosing only reset the
+   sync bookkeeping). `web_prepare_folder_switch` runs at the picker's commit
+   point: it syncs the old folder first, blocks the switch (changing nothing)
+   if that fails or leaves conflicts, then clears the mirror. After a sign-out,
+   where the old folder may be unreachable, what can't be synced is archived
+   (`cloud-<ts>/<name>` in `notes_archive`) before clearing. The last folder is
+   remembered across sign-out.
+5. **While switching**, open notes close and a scratchpad explains what is
+   happening; the new folder's notes open only after its first sync. The
+   scratchpad closes by itself unless the user wrote in it. Scratchpads that
+   already had content stay open across the switch (their drafts are what the
+   switch restores).
+6. **Sign-out can remove the local copy** ("Also remove the OneDrive notes from
+   this browser", off by default) - shared-browser hygiene.
+7. **Sign-in expired** (refresh token rejected, ~24 h for SPA tokens) reads as
+   "sign in again" instead of a raw OAuth 400.
+8. **CSP `connect-src` narrowed** to Graph, the token endpoint and the download
+   hosts (`*.files.1drv.com`, `*.microsoftpersonalcontent.com`,
+   `*.sharepoint.com`). The service worker no longer caches navigations with a
+   query string (the `?code=&state=` redirect). The folder picker opens by
+   itself right after a web sign-in with no folder chosen.
+
+Known and left alone: the migrate dialog says existing notes are "merged", but
+a note that differs on both sides becomes a held conflict (no shared base to
+merge against); the Android engine was not checked for the folder-switch
+leftover problem in item 4.
+
+Verification: Vitest 433, `svelte-check` 0, Playwright 251, `cargo test` 137.

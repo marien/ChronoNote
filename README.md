@@ -24,7 +24,7 @@ for the complete history of *why* each part is built the way it is.
 - **In a browser:** [chrononote.mariendegelder.nl](https://chrononote.mariendegelder.nl)
   is the demo (no data retention);
   [app.chrononote.mariendegelder.nl](https://app.chrononote.mariendegelder.nl)
-  is the web app (saves to your browser).
+  is the web app (saves to your browser, and can sync with a OneDrive folder).
 
 ## Prerequisites
 
