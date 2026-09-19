@@ -498,8 +498,14 @@ self.addEventListener("fetch", (event) => {
 ### 2.7.2 Content Security Policy (CSP) Requirements
 For the Web App to function securely while communicating with Microsoft endpoints, the deployment `Content-Security-Policy` must explicitly whitelist the necessary domains for API and authentication traffic.
 The `connect-src` directive must be updated to include:
-`connect-src 'self' https://graph.microsoft.com https://login.microsoftonline.com https://*.microsoft.com https://*.microsoftonline.com https://*.microsoftpersonalcontent.com https://*.sharepoint.com https://*.sharepointonline.com https://*.1drv.ms https://*.onedrive.com https://*.live.com;`
+`connect-src 'self' https://graph.microsoft.com https://login.microsoftonline.com https://*.files.1drv.com https://*.microsoftpersonalcontent.com https://*.sharepoint.com;`
 This guarantees the browser allows outbound `fetch()` requests and token negotiations without raising CSP violations.
+
+The list is deliberately narrow (review, 2026-09-19): Graph and the token endpoint, plus only the hosts Graph
+redirects `/content` downloads to - `*.files.1drv.com` and `*.microsoftpersonalcontent.com` (personal accounts)
+and `*.sharepoint.com` (work/school accounts; CSP can't wildcard `*-my`, so the whole domain is allowed).
+Broader wildcards such as `*.microsoft.com` or `*.live.com` would let injected script exfiltrate to any tenant.
+If a download fails with a CSP violation in the console, add that one host rather than a wildcard.
 
 ### 2.7.3 Safari ITP Storage Eviction Mitigation
 Apple Safari enforces Intelligent Tracking Prevention (ITP), which purges all script-writable storage (including IndexedDB) after 7 days if the user does not interact with the website in Safari.
