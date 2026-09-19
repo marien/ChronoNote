@@ -6,7 +6,10 @@ kept for the rationale behind each one — not just *what* changed but
 was still being gathered and confirmed before implementation; renamed once
 everything below was applied, since nothing here is "pending" anymore.
 
-**Status: all sections through §177 implemented and released.** §153 is a
+**Status: all sections through §177 implemented and released.** §178–§181
+(the Android target and OneDrive sync) are implemented on the
+`feat/android-onedrive` branch and live-tested, but not yet merged to
+`main` or released. §153 is a
 website-only Guide-page fix (found live right after §150–§152 shipped
 as v0.7.12) — no version bump, nothing in the shipped app changed. §154
 merges the OS title bar into the top bar (Notepad-style: icon, tabs,
@@ -7845,3 +7848,222 @@ directly. `svelte-check` 218/0, Vitest 358/358 (unchanged — pure
 editor-focus behavior, not practical to unit-test without a real
 CodeMirror view), Playwright 228/228 (+1), `cargo test` 67/67
 (unchanged — pure frontend).
+
+## 178. Android as a fourth build target, and the mobile chrome around it
+
+**Status: implemented on `feat/android-onedrive`; not yet merged to
+`main` or released.**
+
+Marien pushed a large branch (authored 2026-09-17) adding Android next
+to the desktop app, the demo and the web app, plus a Rust OneDrive sync
+engine (§179–§181). This section covers the target itself; §179–§181
+cover sync. The branch was reviewed by actually running its gates, then
+brought to a state that builds, installs and runs on the emulator, and
+tested end to end.
+
+**Getting it to build.** `npx tauri android init` generates
+`src-tauri/gen/android/`, which is gitignored, so native tweaks live as
+tracked copies in `src-tauri/android-overrides/` (with a README listing
+what to copy back after a re-init). Two environment findings, both
+recorded in `CLAUDE.local.md`:
+- Rust 1.98.1 cannot cross-compile for Android on Windows (a build-script
+  link step fails with `os error 5`). Confirmed not an antivirus issue —
+  a bare `cargo build --target x86_64-linux-android` reproduces it — and
+  fixed by pinning the Android-building checkout to 1.95.0 with a
+  directory-scoped `rustup override`. Whether to make that durable with a
+  repo-tracked `rust-toolchain.toml` (which would also pin desktop
+  builds) is still undecided.
+- The checkout lives in OneDrive, which syncs and locks build output.
+  Gradle's Rust plugin runs cargo from a folder where
+  `src-tauri/.cargo/config.toml`'s target-dir override does not apply, so
+  every Android build wrote 2–5 GB into `src-tauri/target`. Android
+  builds now set `CARGO_TARGET_DIR` explicitly, and Gradle's own output is
+  redirected outside OneDrive by a machine-local init script
+  (`~/.gradle/init.d/`). A junction into OneDrive was tried and was wrong:
+  OneDrive follows links and synced the target. Nothing Android builds
+  produce may live inside the synced folder.
+
+**Edge-to-edge insets and themed system bars.** The generated
+`MainActivity` calls `enableEdgeToEdge()`, so the WebView is drawn under
+the status and navigation bars, and this WebView reports
+`env(safe-area-inset-*)` as 0 — the top bar sat under the status bar and
+taps there were swallowed. Fixed natively: `MainActivity` computes the
+real system-bar, cutout and keyboard insets and pushes them to CSS
+variables (`--inset-top/right/bottom/left`, `androidChrome.ts`) that
+`app.css` pads the body with, and a small JavaScript bridge switches the
+status/navigation bar icons between light and dark to follow the app
+theme. The on-screen keyboard and the gesture bar were checked the same
+way.
+
+**Mobile mode is touch-first, not width-based.** The branch triggered the
+mobile layout at 600px wide and hid the horizontal tab strip below that,
+which broke narrow *desktop* windows (the #56 collapse-into-More logic
+measures that strip; the window's minimum width is 640px). Three
+width-based triggers were replaced by `(pointer: coarse)` / an Android
+user agent. Playwright had never been run on the branch; after the fix
+the full suite passed, with a new spec guarding it. **The desktop
+tab-scroll arrows (§52), which the branch had also removed in favour of a
+tabs-drawer button, are restored exactly as on `main`** (Marien chose
+this); the drawer button is touch-first only, and a new spec covers both.
+
+**Accessory bar caret bug.** Tapping ☐ and then typing put the text
+*before* the inserted `# ` — `applyToken` replaced the whole line with no
+explicit selection, which makes CodeMirror collapse the caret to the line
+start (the same class as #75). `applyToken` now maps the caret across the
+replacement.
+
+**Also:** a real launcher icon (the app's own "dated page" mark,
+regenerated from `docs/design/icon-A-master.svg` for every density), and
+the mobile touch ergonomics that came with the branch (accessory bar,
+tabs drawer, swipe between tabs), unchanged.
+
+Verification for §178–§181 together: `svelte-check` 0 errors, Vitest
+368/368, Playwright 240/240, `cargo test` 136/136, plus the live test
+matrix in §180–§181.
+
+## 179. OneDrive sign-in and the sync engine (Android)
+
+**Status: implemented on `feat/android-onedrive`; live-tested against a
+real OneDrive; not yet merged or released.**
+
+The branch added Microsoft sign-in (OAuth2 PKCE) and a sync of the notes
+folder through the Graph API (delta queries, eTag `If-Match` uploads,
+SHA-256 content hashes, a `.onedrive-cache.json` remembering what was
+last synced). It is deliberately **Android-only for now** — the Rust engine
+is cross-platform and compiles into the desktop binary, but only two UI
+gates (`SettingsModal`, `boot.ts`) expose it, and desktop users can
+already point ChronoNote's notes folder at a folder the OneDrive client
+syncs. The web app cannot use it (no Rust runtime).
+
+**Sign-in.**
+- Review found the refresh token (effectively standing access to the whole
+  drive) stored in plain text; it now lives in the OS keychain on desktop
+  (`keyring`). On Android `keyring` has no backend and silently used an
+  in-memory store, so **the token vanished on every app restart and every
+  sync failed once the one-hour access token expired** — found by the live
+  test, since the first sync had worked. Android now keeps it in a mode-0600
+  file in the app's private data folder.
+- Settings → Advanced adds a client-ID and tenant override (built via
+  `url`'s path-segment API so a malformed value cannot panic), for
+  locked-down work/school tenants; the same wall the parked M365 effort hit.
+- Android sign-in uses a `chrononote://auth` deep link
+  (`tauri-plugin-deep-link`) instead of the desktop loopback listener, which
+  is unsafe on a phone (Android can kill the app while the user is in the
+  browser). `login_interactive` returns immediately with `pending: true`;
+  the outcome arrives as an `onedrive-login-result` event. The redirect URI
+  must be registered on the Entra app. Two bugs found live while testing
+  it: a pasted `code=…` fragment kept its `code=` prefix, and the code was
+  never percent-decoded (a real one ended in `$$`, sent as `%24%24`) —
+  both made Microsoft answer AADSTS9002313.
+
+**Sync-engine hardening** (all from reading the engine and then from live
+tests; each has unit tests):
+- The cache is saved even when a sync fails partway, so an interrupted sync
+  no longer leaves files written to disk with a stale entry.
+- **Sign-out no longer wipes the cache.** Wiping it made every local file
+  look "never synced" after signing back in, which let a reconnect
+  overwrite newer cloud edits. Switching to a *different* OneDrive folder
+  does reset it; re-picking the same folder keeps it.
+- A remote delete never destroys a local note that was edited since the
+  last sync (it is kept and re-uploaded). A delta entry for a deleted item
+  may carry only its id, so the note is matched by id; and a from-scratch
+  listing detects deletions that were missed.
+- OneDrive's change list echoes our own uploads back. Treating that as
+  news re-downloaded the note and restored a note the app had just
+  deleted; an entry whose etag we already hold is now skipped.
+- An empty, never-synced note is not uploaded, uploads send an explicit
+  `Content-Length` (an empty body made OneDrive answer 411), and the push
+  loop records the first per-file failure and carries on instead of one bad
+  file blocking every note after it. A 412 on upload writes nothing; the
+  next pull deals with the newer cloud version.
+- Settings' "Sync now" now reports success or the reason for failure — it
+  used to swallow the result, which is why the token bug looked like
+  nothing happening.
+
+## 180. Conflicts are merged, or held for the user (no conflict files)
+
+**Status: implemented on `feat/android-onedrive`; live-tested; not yet
+merged or released.**
+
+The first design wrote a copy of the other version into
+`.chrononote-conflicts/` and let one side silently overwrite the cloud.
+Live testing showed why that is wrong: after a PC/phone divergence the PC
+user saw their line vanish with no hint a copy existed on the phone.
+Marien asked for conflicts to be resolved inside ChronoNote, with nothing
+extra left in OneDrive, and the PC never seeing a conflict file.
+
+**Merge.** The last-synced text of each note is kept in
+`<app data>/.onedrive-bases/` as the common ancestor.
+`onedrive/merge.rs` does a line-based three-way merge (an LCS diff of each
+side against the base): both sides *appending* keeps both sets of lines
+(the cloud's first), edits to different lines combine, an identical edit is
+applied once, and anything where both sides touched the same existing
+lines is a conflict. Trailing newlines are normalised first — appending to
+a file without one would otherwise edit the same last line on both sides.
+A clean merge is written locally, the cache is rebased onto the cloud
+version, and the push uploads the result with `If-Match`.
+
+**Held conflicts.** For a real conflict (or a note with no known base —
+first contact after a reconnect, or synced by an older build) the sync
+leaves both sides untouched: the local file is not modified, the cloud copy
+is not overwritten, and the note is not uploaded until the user chooses.
+The cloud's version is stored in `SyncCache.conflicts`; later cloud edits
+update it. If the two sides become identical the conflict dissolves; a
+remote delete clears it.
+
+**Resolve screen.** The status bar shows "⚠ N sync conflict(s)" (the one
+amber item there); tapping it opens `SyncConflictsModal` with the phone
+and OneDrive versions side by side and **only the differing lines
+highlighted** (`lineDiff.ts`, a line LCS with a set-comparison fallback for
+very long notes), and three choices — *Keep this device's*, *Use
+OneDrive's*, *Keep both* (the cloud text appended under a
+`--- other version (sync conflict) ---` marker). The choice is applied,
+the result uploaded, and the open tab reloaded through the existing
+drift check. Commands: `onedrive_get_conflicts`,
+`onedrive_resolve_conflict`; mirrored in both mock backends
+(`MockSeed.oneDriveConflicts`).
+
+**Live-test matrix** (real OneDrive, throwaway notes): phone edit → PC ✔;
+PC edit → phone ✔; both append → merged automatically ✔; both edit one
+line → held, warning, highlighted resolve screen, *Keep both* round trip ✔;
+PC deletes a note the phone hasn't touched → removed on the phone ✔; PC
+deletes a note the phone edited → kept and re-uploaded ✔; edit offline
+(airplane mode) while the PC edits → merged after reconnecting ✔; app
+killed mid-sync with 25 new notes → recovered with no duplicates or
+conflicts ✔.
+
+## 181. Deleting an emptied note on the phone deletes it in the cloud; OneDrive state stays out of backups
+
+**Status: implemented on `feat/android-onedrive`; live-tested; not yet
+merged or released.**
+
+**Deletes.** #63 made closing an empty dated tab delete its file
+(`delete_note`), but with sync on the cloud copy lingered and reappeared on
+other devices. `delete_note` now records a tombstone
+(`.onedrive-deleted.json`) when OneDrive sync is set up, and the next sync
+sends `DELETE` with `If-Match` = the last synced etag. If the note changed
+elsewhere the delete is skipped and the pull restores the newer version;
+a note that is back on disk, never synced, or held in a conflict is just
+forgotten; a transient failure keeps the tombstone for the next sync. Only
+notes the app itself deletes are propagated — not any file that happens
+to go missing. Verified live by calling the real command through the
+WebView devtools: delete → cloud 404; cloud edited after the delete → note
+restored. (This is also what exposed the echoed-upload bug in §179.)
+
+**Backup.** Android Auto Backup and device-to-device transfer would have
+copied the sign-in files off the device, and restored them on a new phone
+as "connected" with a dead token. Backup rules
+(`android-overrides/res/xml/backup_rules.xml` for Android ≤ 11,
+`data_extraction_rules.xml` for 12+, referenced from the manifest) exclude
+every OneDrive state file: the tokens, folder link, sync cache and base
+copies. A Rust test fails if the code gains a state file that is not
+listed. Verified with a real `bmgr` local-transport backup on the
+emulator: the data folder held six OneDrive entries and the archive
+contained none. Notes themselves are not secrets and are synced through
+OneDrive, not backup.
+
+**Still to do before this branch can merge:** arm64 and real-device
+testing; release signing (keystore, AAB, `versionCode`); the
+`rust-toolchain.toml` decision; Play Console work (privacy policy, Data
+safety form, closed testing, Microsoft publisher verification); moving
+the OneDrive Rust structs onto the `ts-rs` generated types.
