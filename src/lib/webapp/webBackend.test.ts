@@ -273,5 +273,81 @@ describe("WebBackend", () => {
       expect(await backend.invoke("read_note", { filename: "2026-09-19.txt" })).toBe("OneDrive version\n");
       expect(uploads).toEqual(["2026-09-18.txt"]);
     });
+
+    describe("choosing a different folder", () => {
+      async function connectedTo(folderId: string) {
+        await connect();
+        await backend.invoke("onedrive_set_folder", { folderId, folderPath: `/${folderId}` });
+      }
+
+      it("syncs the old folder first, then clears the mirror so its notes don't reach the new folder", async () => {
+        const { uploads, client } = stubClient({});
+        await connectedTo("A");
+        await backend.invoke("write_note", { filename: "2026-09-10.txt", content: "from folder A\n" });
+
+        const prep = (await backend.invoke("web_prepare_folder_switch", { newFolderId: "B" })) as { ready: boolean; switched: boolean };
+        expect(prep).toMatchObject({ ready: true, switched: true });
+        expect(client.uploadFileContent).toHaveBeenCalledWith("tok", "A", "2026-09-10.txt", "from folder A\n", undefined);
+        expect(mockStores.notes_cloud.size).toBe(0);
+
+        uploads.length = 0;
+        await backend.invoke("onedrive_set_folder", { folderId: "B", folderPath: "/B" });
+        await backend.invoke("onedrive_sync_now");
+        expect(uploads).toEqual([]);
+      });
+
+      it("blocks the switch and changes nothing when the old folder can't be synced", async () => {
+        const { client } = stubClient({});
+        await connectedTo("A");
+        await backend.invoke("write_note", { filename: "2026-09-10.txt", content: "unsynced\n" });
+        client.uploadFileContent.mockRejectedValue(new Error("network down"));
+
+        const prep = (await backend.invoke("web_prepare_folder_switch", { newFolderId: "B" })) as { ready: boolean; message?: string };
+        expect(prep.ready).toBe(false);
+        expect(prep.message).toMatch(/Nothing was changed/);
+        expect(mockStores.notes_cloud.get("2026-09-10.txt").content).toBe("unsynced\n");
+      });
+
+      it("blocks the switch while a sync conflict is held", async () => {
+        stubClient({ "2026-09-10.txt": "remote\n" });
+        await connectedTo("A");
+        await backend.invoke("write_note", { filename: "2026-09-10.txt", content: "local\n" });
+
+        const prep = (await backend.invoke("web_prepare_folder_switch", { newFolderId: "B" })) as { ready: boolean; message?: string };
+        expect(prep.ready).toBe(false);
+        expect(prep.message).toMatch(/conflict/);
+        expect(mockStores.notes_cloud.has("2026-09-10.txt")).toBe(true);
+      });
+
+      it("after a sign-out, archives what can't be synced instead of uploading or dropping it", async () => {
+        const { client } = stubClient({});
+        await connectedTo("A");
+        await backend.invoke("write_note", { filename: "2026-09-10.txt", content: "left behind\n" });
+        await backend.invoke("onedrive_logout", {}); // keeps the mirror, remembers folder A
+        await connect();
+        client.uploadFileContent.mockRejectedValue(new Error("not this account's folder"));
+
+        const prep = (await backend.invoke("web_prepare_folder_switch", { newFolderId: "B" })) as { ready: boolean; archivedCount: number };
+        expect(prep).toMatchObject({ ready: true, archivedCount: 1 });
+        expect(mockStores.notes_cloud.size).toBe(0);
+        const archived = [...mockStores.notes_archive.entries()];
+        expect(archived).toHaveLength(1);
+        expect(archived[0][0]).toMatch(/^cloud-\d+\/2026-09-10\.txt$/);
+        expect(archived[0][1].content).toBe("left behind\n");
+        expect(mockStores.meta.has("onedrive_folder")).toBe(false); // the temporary folder is gone again
+      });
+
+      it("leaves everything alone for the same folder or a first connection", async () => {
+        stubClient({});
+        await connectedTo("A");
+        await backend.invoke("write_note", { filename: "2026-09-10.txt", content: "keep\n" });
+        expect(await backend.invoke("web_prepare_folder_switch", { newFolderId: "A" })).toMatchObject({ switched: false });
+        expect(mockStores.notes_cloud.size).toBe(1);
+
+        await backend.invoke("onedrive_logout", { removeLocalData: true });
+        await backend.invoke("write_note", { filename: "2026-09-11.txt", content: "browser\n" });
+        expect(await backend.invoke("web_prepare_folder_switch", { newFolderId: "B" })).toMatchObject({ switched: false });
+      });
+    });
   });
 });

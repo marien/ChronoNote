@@ -240,3 +240,9 @@ export function webMigrateBrowserNotes(): Promise<{ migratedCount: number; confl
   return invoke("web_migrate_browser_notes", {});
 }
 
+export function webPrepareFolderSwitch(
+  newFolderId: string,
+): Promise<{ ready: boolean; switched: boolean; archivedCount: number; message?: string }> {
+  return invoke("web_prepare_folder_switch", { newFolderId });
+}
+

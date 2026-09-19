@@ -152,6 +152,10 @@ export interface TauriCommands {
     args: NoArgs;
     returns: { migratedCount: number; conflictCount: number };
   };
+  web_prepare_folder_switch: {
+    args: { newFolderId: string };
+    returns: { ready: boolean; switched: boolean; archivedCount: number; message?: string };
+  };
 }
 
 export type TauriCommand = keyof TauriCommands;

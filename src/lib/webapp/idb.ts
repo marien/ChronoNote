@@ -23,6 +23,7 @@ export const IDB_META_KEYS = {
   SCRATCHPAD_DRAFTS: "scratchpad_drafts",
   ONEDRIVE_AUTH: "onedrive_auth",
   ONEDRIVE_FOLDER: "onedrive_folder",
+  ONEDRIVE_LAST_FOLDER: "onedrive_last_folder",
   ONEDRIVE_CACHE: "onedrive_cache",
   ONEDRIVE_BASES: "onedrive_bases",
   ONEDRIVE_TOMBSTONES: "onedrive_tombstones",

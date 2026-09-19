@@ -2011,3 +2011,25 @@ describe("openReleasesPage (§update-check follow-up)", () => {
     expect(apiMock.openExternalUrl).toHaveBeenCalledWith("https://github.com/marien/ChronoNote/releases");
   });
 });
+
+describe("beginFolderSwitch", () => {
+  it("closes every open note and shows one empty scratchpad, with no baselines left over", () => {
+    controller.tabs.set([
+      tab({ id: "a", filename: "2026-09-01.txt", content: "old folder note" }),
+      tab({ id: "b", filename: "2026-09-02.txt", content: "another" }),
+    ]);
+    controller.activeTabId.set("a");
+    controller.markTabClean("a", "hash-a");
+    controller.modal.set("settings");
+
+    controller.beginFolderSwitch();
+
+    const list = get(controller.tabs);
+    expect(list).toHaveLength(1);
+    expect(list[0].isScratchpad).toBe(true);
+    expect(list[0].content).toBe("");
+    expect(get(controller.activeTabId)).toBe(list[0].id);
+    expect(controller.getTabCleanHash("a")).toBeUndefined();
+    expect(get(controller.modal)).toBe("none");
+  });
+});

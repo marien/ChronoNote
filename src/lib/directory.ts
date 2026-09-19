@@ -33,6 +33,7 @@ import {
 } from "./stores";
 import { flushSave, invalidateDiskNotesCache } from "./persistence";
 import { restoreOrBootstrapTabs } from "./boot";
+import { createScratchpad } from "./tabs";
 import { refreshAgendaFileExists } from "./calendarSyncActions";
 
 /** Shared by the Browse dialog and by picking a recent folder directly
@@ -76,6 +77,21 @@ export async function confirmDiscardAndSwitch() {
   unsavedScratchpadNames.set([]);
   scratchpadGateContext.set(null);
   if (path) await performDirectorySwitch(path);
+}
+
+/** Web app, while pointing at a new OneDrive folder: close every open note and
+ * show an empty scratchpad, so nothing from the old workspace can be written into
+ * the new one and it's plain that a switch is under way. Callers flush pending
+ * saves first (while the old workspace is still the active one); the notes of the
+ * new folder are opened by `performDirectorySwitch` once its first sync is done. */
+export function beginFolderSwitch() {
+  modal.set("none");
+  conflictInfo.set(null);
+  tabs.set([]);
+  activeTabId.set("");
+  clearAllEditorViewState();
+  clearAllTabCleanHashes();
+  createScratchpad();
 }
 
 export async function performDirectorySwitch(path: string) {

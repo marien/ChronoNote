@@ -567,6 +567,7 @@ export class WebBackend {
       const filenames = (keys as string[]).filter(isValidNoteFilename);
       return { count: filenames.length, filenames };
     },
+    web_prepare_folder_switch: ({ newFolderId }) => this.syncEngine.prepareFolderSwitch(newFolderId),
     web_migrate_browser_notes: async () => {
       return this.migrateBrowserNotesToCloud();
     },

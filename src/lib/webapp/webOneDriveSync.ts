@@ -25,6 +25,15 @@ import {
 import { OneDriveClient } from "./oneDriveClient";
 import { merge3 } from "./lineMerge";
 
+export interface FolderSwitchResult {
+  ready: boolean;
+  /** The mirror belonged to a different folder, so it was cleared (or there was nothing in it). */
+  switched: boolean;
+  /** Notes copied to the archive because the old folder couldn't be synced. */
+  archivedCount: number;
+  message?: string;
+}
+
 export interface FileCacheEntry {
   id: string;
   etag: string;
@@ -128,6 +137,7 @@ export class WebOneDriveSyncEngine {
     const sameFolder = current && current.folderId === config.folderId;
 
     await idbPut(db, IDB_STORES.META, IDB_META_KEYS.ONEDRIVE_FOLDER, config);
+    await idbPut(db, IDB_STORES.META, IDB_META_KEYS.ONEDRIVE_LAST_FOLDER, config);
     await idbPut(db, IDB_STORES.META, IDB_META_KEYS.ACTIVE_WORKSPACE, "onedrive");
 
     let cache = sameFolder ? await this.loadCache() : this.defaultCache();
@@ -146,6 +156,82 @@ export class WebOneDriveSyncEngine {
     await idbPut(db, IDB_STORES.META, IDB_META_KEYS.ONEDRIVE_ADVANCED, config);
   }
 
+  /**
+   * Call before pointing the app at `newFolderId`. The local copy of the notes
+   * is a mirror of ONE OneDrive folder, and choosing a folder only resets the
+   * sync bookkeeping - so without this, the previous folder's notes would be
+   * uploaded into the new one. When the new folder differs from the one the
+   * mirror belongs to: sync the old folder first, then clear the mirror.
+   *
+   * - Still connected to the old folder: a failed sync or held conflicts block
+   *   the switch (nothing is cleared) so no unsynced edit is lost.
+   * - Signed out since (the old folder is only remembered): try one last sync
+   *   against it; if that can't be done, archive the notes into the
+   *   `notes_archive` store before clearing, and say how many.
+   */
+  async prepareFolderSwitch(newFolderId: string): Promise<FolderSwitchResult> {
+    const db = await this.getDb();
+    const current = await this.getFolder();
+    const last =
+      current ?? (await idbGet<OneDriveFolderConfig>(db, IDB_STORES.META, IDB_META_KEYS.ONEDRIVE_LAST_FOLDER)) ?? null;
+    if (!last || last.folderId === newFolderId) return { ready: true, switched: false, archivedCount: 0 };
+
+    const entries = (await idbGetAllEntries<StoredNote>(db, IDB_STORES.NOTES_CLOUD)).filter(([k]) =>
+      isSyncableFile(String(k)),
+    );
+    const cache = await this.loadCache();
+    const tombstones = (await idbGet<string[]>(db, IDB_STORES.META, IDB_META_KEYS.ONEDRIVE_TOMBSTONES)) ?? [];
+    if (entries.length === 0 && Object.keys(cache.files).length === 0 && tombstones.length === 0) {
+      return { ready: true, switched: true, archivedCount: 0 };
+    }
+
+    // One last sync against the folder the mirror belongs to.
+    if (!current) await idbPut(db, IDB_STORES.META, IDB_META_KEYS.ONEDRIVE_FOLDER, last);
+    let synced = false;
+    let detail = "";
+    try {
+      const res = await this.syncNow();
+      const held = await this.listConflicts();
+      synced = res.success && held.length === 0;
+      detail = !res.success
+        ? (res.message ?? "the sync failed")
+        : held.length > 0
+          ? `${held.length} note${held.length === 1 ? " has" : "s have"} a sync conflict to resolve first`
+          : "";
+    } finally {
+      if (!current) await idbDelete(db, IDB_STORES.META, IDB_META_KEYS.ONEDRIVE_FOLDER);
+    }
+
+    let archivedCount = 0;
+    if (!synced) {
+      if (current) {
+        return {
+          ready: false,
+          switched: true,
+          archivedCount: 0,
+          message: `Couldn't sync ${current.folderPath} before switching (${detail}). Nothing was changed.`,
+        };
+      }
+      // Signed out earlier and the old folder can't be synced now: keep a copy.
+      const stamp = Date.now();
+      for (const [k, note] of entries) {
+        await idbPut(db, IDB_STORES.NOTES_ARCHIVE, `cloud-${stamp}/${String(k)}`, note);
+        archivedCount++;
+      }
+    }
+
+    await idbClear(db, IDB_STORES.NOTES_CLOUD);
+    for (const key of [
+      IDB_META_KEYS.ONEDRIVE_CACHE,
+      IDB_META_KEYS.ONEDRIVE_BASES,
+      IDB_META_KEYS.ONEDRIVE_TOMBSTONES,
+      IDB_META_KEYS.SESSION_CLOUD,
+    ]) {
+      await idbDelete(db, IDB_STORES.META, key);
+    }
+    return { ready: true, switched: true, archivedCount };
+  }
+
   async logout(removeLocalData = false): Promise<void> {
     await this.clearStoredAuth();
     const db = await this.getDb();
@@ -155,6 +241,7 @@ export class WebOneDriveSyncEngine {
       // Drop this browser's copy of the OneDrive notes and all sync state (shared-browser
       // hygiene). Browser-storage notes are a separate store and are left alone.
       await idbClear(db, IDB_STORES.NOTES_CLOUD);
+      await idbDelete(db, IDB_STORES.META, IDB_META_KEYS.ONEDRIVE_LAST_FOLDER);
       for (const key of [
         IDB_META_KEYS.ONEDRIVE_CACHE,
         IDB_META_KEYS.ONEDRIVE_BASES,
