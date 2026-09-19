@@ -7,6 +7,7 @@
     notesDir,
     oneDriveAccount,
     oneDriveFolder,
+    oneDriveFolderPickerOpen,
     oneDriveSyncing,
     oneDriveSyncStatus,
     statusCounts,
@@ -43,7 +44,7 @@
         class="status-folder-btn"
         title={$oneDriveAccount ? `OneDrive: ${$oneDriveFolder?.folderPath ?? "/"} (${$oneDriveSyncStatus})` : "Connect OneDrive in Settings"}
         aria-label="OneDrive cloud sync"
-        on:click={controller.openSettingsOnNotesFolder}
+        on:click={() => ($oneDriveAccount && !$oneDriveFolder ? oneDriveFolderPickerOpen.set(true) : controller.openSettingsOnNotesFolder())}
       >
         {#if $oneDriveSyncing || $oneDriveSyncStatus === "syncing"}
           <!-- Not gated by stat-tier0 like the label, so a narrow screen still shows *something is happening*. -->

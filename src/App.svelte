@@ -24,6 +24,8 @@
   import MoreActionsModal from "./lib/components/modals/MoreActionsModal.svelte";
   import CalendarSyncReviewModal from "./lib/components/modals/CalendarSyncReviewModal.svelte";
   import SyncConflictsModal from "./lib/components/modals/SyncConflictsModal.svelte";
+  import OneDriveFolderPickerModal from "./lib/components/modals/OneDriveFolderPickerModal.svelte";
+  import { oneDriveFolderPickerOpen } from "./lib/stores";
 
   let ready = false;
   let bootError = "";
@@ -211,6 +213,10 @@
 
   {#if $mobileTabDrawerOpen}
     <MobileTabDrawer />
+  {/if}
+
+  {#if $oneDriveFolderPickerOpen}
+    <OneDriveFolderPickerModal onClose={() => oneDriveFolderPickerOpen.set(false)} />
   {/if}
 
 

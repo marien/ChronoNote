@@ -27,6 +27,7 @@ import {
   oneDriveAccount,
   oneDriveConnecting,
   oneDriveFolder,
+  oneDriveFolderPickerOpen,
   oneDriveSyncStatus,
   readableLineLength,
   recentNotesDirs,
@@ -496,6 +497,10 @@ export async function initOneDriveSync() {
             if (folder) {
               oneDriveFolder.set(folder);
               void syncOneDriveNow();
+            } else {
+              // Signed in but no folder yet: ask for it right away rather than
+              // leaving a "Choose a folder" label for the user to find.
+              oneDriveFolderPickerOpen.set(true);
             }
             showToast(folder ? "Connected to OneDrive" : "Connected to OneDrive — now choose a folder to sync");
           } else if (result.error) {

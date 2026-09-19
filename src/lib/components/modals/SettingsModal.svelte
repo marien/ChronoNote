@@ -14,6 +14,7 @@
     oneDriveAccount,
     oneDriveConnecting,
     oneDriveFolder,
+    oneDriveFolderPickerOpen,
     oneDriveSyncing,
     oneDriveSyncStatus,
     readableLineLength,
@@ -218,7 +219,7 @@
   // open the folder picker instead of leaving the user to find it. Once per
   // Settings visit, so closing the picker without choosing isn't nagged.
   let autoOpenedFolderPicker = false;
-  $: if ($oneDriveAccount && !$oneDriveFolder && !autoOpenedFolderPicker && ($backendKind === "android" || $backendKind === "web")) {
+  $: if ($oneDriveAccount && !$oneDriveFolder && !$oneDriveFolderPickerOpen && !autoOpenedFolderPicker && ($backendKind === "android" || $backendKind === "web")) {
     autoOpenedFolderPicker = true;
     showFolderPicker = true;
   }

@@ -160,6 +160,10 @@ export const oneDriveAccount = writable<{ email: string; displayName: string } |
 /** Chosen notes folder in OneDrive. */
 export const oneDriveFolder = writable<{ folderId: string; folderPath: string } | null>(null);
 
+/** Whether the OneDrive folder picker is open outside Settings - right after a web
+ * sign-in with no folder chosen yet, or from the status bar's "Choose a folder". */
+export const oneDriveFolderPickerOpen = writable(false);
+
 /** OneDrive synchronization status. */
 export const oneDriveSyncStatus = writable<"idle" | "syncing" | "offline" | "error">("idle");
 /** Notes the OneDrive sync engine is holding back because the phone and
