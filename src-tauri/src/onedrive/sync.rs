@@ -1639,6 +1639,38 @@ mod tests {
         assert!(!cache.files.contains_key(NOTE));
     }
 
+    // --- Android backup exclusion ------------------------------------------
+
+    /// Everything OneDrive keeps in the app data folder must stay out of
+    /// Google Auto Backup (tokens are credentials; the rest is meaningless
+    /// without them). This fails when a new state file is added to the code
+    /// but not to the rules in `android-overrides/res/xml/`.
+    #[test]
+    fn every_onedrive_state_file_is_excluded_from_android_backup() {
+        let rules = [
+            include_str!("../../android-overrides/res/xml/backup_rules.xml"),
+            include_str!("../../android-overrides/res/xml/data_extraction_rules.xml"),
+        ];
+        let state = [
+            super::super::auth::AUTH_FILENAME,
+            super::super::auth::REFRESH_TOKEN_FILENAME,
+            FOLDER_CONFIG_FILENAME,
+            SYNC_CACHE_FILENAME,
+            PENDING_PKCE_FILENAME,
+            ADVANCED_CONFIG_FILENAME,
+            TOMBSTONES_FILENAME,
+            BASES_DIRNAME,
+        ];
+        for file in rules {
+            for name in state {
+                assert!(
+                    file.contains(&format!("domain=\"root\" path=\"{name}\"")),
+                    "{name} is missing from a backup exclusion file"
+                );
+            }
+        }
+    }
+
     // --- deleting an emptied note in the cloud too --------------------------
 
     fn tombs(names: &[&str]) -> std::collections::BTreeSet<String> {

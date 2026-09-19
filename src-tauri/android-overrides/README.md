@@ -8,3 +8,18 @@ tracked copies — after (re)running `npx tauri android init`, copy them back:
   (pads the WebView by the real system-bar/cutout insets so the app's top bar
   isn't drawn under the Android status bar — `env(safe-area-inset-*)` reports 0
   in this WebView).
+- `res/xml/backup_rules.xml` and `res/xml/data_extraction_rules.xml` ->
+  `gen/android/app/src/main/res/xml/` — keep every OneDrive state file (sign-in
+  tokens, folder link, sync cache, stored base copies) out of Google Auto Backup
+  and device-to-device transfer, so a restore on a new phone starts signed out
+  instead of "connected" with a dead token. **Also add these two attributes to
+  the `<application>` element of `gen/android/app/src/main/AndroidManifest.xml`**
+  (the manifest itself isn't tracked — the deep-link plugin rewrites parts of it):
+
+  ```xml
+  android:fullBackupContent="@xml/backup_rules"
+  android:dataExtractionRules="@xml/data_extraction_rules"
+  ```
+
+  A Rust test (`every_onedrive_state_file_is_excluded_from_android_backup`)
+  fails if the OneDrive code gains a state file that isn't listed in both XML files.

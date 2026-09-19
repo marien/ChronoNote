@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Android 12+: the same exclusions for cloud backup and device-to-device
+     transfer (android:dataExtractionRules). See backup_rules.xml for why. -->
+<data-extraction-rules>
+  <cloud-backup>
+    <exclude domain="root" path=".onedrive-refresh-token" />
+    <exclude domain="root" path=".onedrive-auth.json" />
+    <exclude domain="root" path=".onedrive-pending-pkce.json" />
+    <exclude domain="root" path=".onedrive-cache.json" />
+    <exclude domain="root" path=".onedrive-folder.json" />
+    <exclude domain="root" path=".onedrive-advanced.json" />
+    <exclude domain="root" path=".onedrive-deleted.json" />
+    <exclude domain="root" path=".onedrive-bases" />
+  </cloud-backup>
+  <device-transfer>
+    <exclude domain="root" path=".onedrive-refresh-token" />
+    <exclude domain="root" path=".onedrive-auth.json" />
+    <exclude domain="root" path=".onedrive-pending-pkce.json" />
+    <exclude domain="root" path=".onedrive-cache.json" />
+    <exclude domain="root" path=".onedrive-folder.json" />
+    <exclude domain="root" path=".onedrive-advanced.json" />
+    <exclude domain="root" path=".onedrive-deleted.json" />
+    <exclude domain="root" path=".onedrive-bases" />
+  </device-transfer>
+</data-extraction-rules>

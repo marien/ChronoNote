@@ -20,6 +20,9 @@ pub const SCOPES: &str = "Files.ReadWrite offline_access User.Read";
 #[allow(dead_code)]
 pub const REDIRECT_URI_MOBILE: &str = "chrononote://auth";
 pub const AUTH_FILENAME: &str = ".onedrive-auth.json";
+/// Android only (see `save_refresh_token`): the file holding the refresh token.
+#[cfg_attr(not(any(target_os = "android", test)), allow(dead_code))]
+pub const REFRESH_TOKEN_FILENAME: &str = ".onedrive-refresh-token";
 
 #[cfg(not(target_os = "android"))]
 const KEYRING_SERVICE: &str = "chrononote";
@@ -322,7 +325,7 @@ pub fn init_secret_dir(dir: std::path::PathBuf) {
 
 #[cfg(target_os = "android")]
 fn refresh_token_path() -> Option<std::path::PathBuf> {
-    SECRET_DIR.get().map(|d| d.join(".onedrive-refresh-token"))
+    SECRET_DIR.get().map(|d| d.join(REFRESH_TOKEN_FILENAME))
 }
 
 #[cfg(target_os = "android")]
