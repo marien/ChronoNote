@@ -557,6 +557,22 @@ kbd {
 .prose h2 {
   color: var(--bright);
 }
+.prose h3 {
+  color: var(--bright);
+  font-size: 18px;
+  margin: 28px 0 8px;
+}
+.prose ol {
+  color: var(--muted);
+  padding-left: 22px;
+  margin: 0 0 16px;
+}
+.prose li {
+  margin-bottom: 8px;
+}
+.prose strong {
+  color: var(--text);
+}
 
 /* ---- Footer -------------------------------------------------------------- */
 
