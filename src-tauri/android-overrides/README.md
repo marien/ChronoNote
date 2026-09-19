@@ -23,3 +23,6 @@ tracked copies — after (re)running `npx tauri android init`, copy them back:
 
   A Rust test (`every_onedrive_state_file_is_excluded_from_android_backup`)
   fails if the OneDrive code gains a state file that isn't listed in both XML files.
+- `proguard-rules.pro` -> `gen/android/app/proguard-rules.pro` — keeps the
+  `ChronoNoteAndroid` JavaScript bridge from being renamed/stripped by R8 in
+  release builds (debug builds don't minify, so this only bites in release).
