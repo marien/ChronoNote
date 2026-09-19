@@ -53,7 +53,7 @@ whole `=> ` token in one step, as if un-delegating the line.
 
 | Raw Plain Text | Visual Presentation | Semantic Meaning | Lifecycle & Closing Impact |
 | :--- | :--- | :--- | :--- |
-| `# ` | `☐` | **Open Action (Self)** | **Unresolved.** Blocks tab closure with a safety modal. Counted in status bar (Open). |
+| `# ` | `☐` | **Open Action (Self)** | **Unresolved.** Blocks tab closure with a safety modal (for a note dated today or earlier; a future-dated note closes silently — #76). Counted in status bar (Open). |
 | `v ` | `☑` | **Completed Action (Self)** | **Resolved.** Counted in status bar (Closed). |
 | `> ` | `»` | **Deferred Action (Self)** | **Resolved for origin day.** Represents a task forwarded to another day (typically today). Does not block tab close. Counted in status bar (Forwarded). |
 | `x ` | `☒` | **Won't-Do Action (Self)** | **Resolved.** Distinct from `v ` (was done) — this one won't happen at all. Folds into the same status-bar bucket as `v ` (Closed). |
@@ -312,7 +312,10 @@ reachable from the top bar, a shortcut, or the command palette:
   `Ctrl+Space` on a focused row cycles its state in place; `Enter` jumps
   to it; `Shift+Enter` forwards it to today (source becomes `> `,
   today's note gets a fresh `# ` copy on top). Opens focused on whatever
-  entry belongs to the tab that was active when it was opened.
+  entry belongs to the tab that was active when it was opened. The date
+  heading of the group at the top of the list stays pinned while you
+  scroll (#77), so an action deep in a long group never loses its date;
+  keyboard navigation keeps the selected row clear of the pinned heading.
 - **Section History** (`Ctrl/Cmd+Shift+H`) — every dated note that has the
   section at all, past and future, most-recent-first; each date's header
   is itself selectable (not just its action rows) and switches the "From"
@@ -379,8 +382,12 @@ also preserved across a tab switch within the same session.
 
 ### 6.2 Safety-Close Gate & Reopen History
 A tab cannot be closed silently for two independent reasons: unresolved
-open actions, or a non-empty scratchpad (whose content would otherwise
-be permanently lost, since scratchpads are never written to disk). The
+open actions on a note that is due — dated today or earlier; a
+future-dated note's actions haven't come due yet, so it closes without a
+warning (#76) — or a non-empty scratchpad (whose content would otherwise
+be permanently lost, since scratchpads are never written to disk; a
+scratchpad also keeps the open-actions warning, having no date to judge
+by). The
 safety modal focuses Cancel on open, with `Escape` also cancelling. On
 top of that warning, a multi-level "reopen most recently closed tab"
 history (`Ctrl/Cmd+Shift+T` / `Ctrl/Cmd+Shift+N`) is a second recovery
@@ -391,7 +398,12 @@ since it has no disk copy to fall back on.
 ### 6.3 Autosave & Atomic Writes
 Edits are debounced-autosaved, with an immediate flush on tab switch or
 close, and a zero-loss exit barrier that flushes every pending save
-before the window is allowed to actually close. Every write to disk
+before the window is allowed to actually close. A note is only written
+when its text differs from what the file held when it was last loaded or
+written (the §6.4 baseline hash): a flush of an unedited tab writes
+nothing. Otherwise every tab switch would touch the file's timestamp —
+which a cloud-sync client sees as an edit — and could overwrite a newer
+version another device had synced in with the tab's stale text. Every write to disk
 (desktop backend) goes through an atomic write (temp file + fsync +
 atomic rename) serialized behind a process-wide lock, so two writes to
 the same note racing (autosave vs. a drawer edit, for instance) can
