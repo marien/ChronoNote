@@ -349,7 +349,7 @@
           </div>
         </div>
       {:else if activeSettingsTab === "calendar"}
-        {#if $backendKind !== "web"}
+        {#if $backendKind !== "web" || $oneDriveAccount}
           <div>
             <div class="settings-section-label">Calendar</div>
             <div class="settings-toggle-row">

@@ -172,7 +172,9 @@ function wireDriftDetection() {
       // which realistically only happens while ChronoNote itself is
       // unfocused. Skip the check entirely when the feature's off or
       // unavailable, rather than a wasted read every single focus.
-      if (get(calendarSyncEnabled) && get(backendKind) !== "web") void refreshAgendaFileExists();
+      if (get(calendarSyncEnabled) && (get(backendKind) !== "web" || !!get(oneDriveAccount))) {
+        void refreshAgendaFileExists();
+      }
       // #72: also the fastest way to notice a midnight rollover that
       // happened while the app sat unfocused — no need to wait out the
       // rollover interval's own delay once the app is actually looked at
@@ -398,7 +400,9 @@ export async function initApp() {
   wordWrap.set(cfg.wordWrap || cfg.readableLineLength);
   autoCheckUpdates.set(cfg.autoCheckUpdates);
   calendarSyncEnabled.set(cfg.calendarSyncEnabled);
-  if (cfg.calendarSyncEnabled && get(backendKind) !== "web") void refreshAgendaFileExists();
+  if (cfg.calendarSyncEnabled && (get(backendKind) !== "web" || !!get(oneDriveAccount))) {
+    void refreshAgendaFileExists();
+  }
   await restoreOrBootstrapTabs();
   // #62: warm the "all notes" disk-read cache in the background, right
   // after the app has something to show — never awaited, so it can't

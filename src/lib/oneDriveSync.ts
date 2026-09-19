@@ -10,6 +10,7 @@ import { get } from "svelte/store";
 import * as api from "./tauriApi";
 import { oneDriveFolder, oneDriveSyncing, showToast, syncConflicts } from "./stores";
 import { checkActiveTabForDrift } from "./drift";
+import { refreshAgendaFileExists } from "./calendarSyncActions";
 
 export type SyncHooks = {
   flushPendingSaves?: () => Promise<void>;
@@ -60,6 +61,7 @@ export function syncOneDriveNow(opts: { notify?: boolean } = {}): Promise<void> 
       await refreshSyncConflicts();
       syncHooks.invalidateCache?.();
       void checkActiveTabForDrift();
+      void refreshAgendaFileExists();
       if (announce) {
         showToast(result.success ? "OneDrive sync finished" : `OneDrive sync failed: ${result.message ?? "unknown error"}`);
       }

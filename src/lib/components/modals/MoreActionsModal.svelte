@@ -2,7 +2,15 @@
   import { get } from "svelte/store";
   import { onMount } from "svelte";
   import * as controller from "../../controller";
-  import { activeTabId, agendaFileExists, backendKind, calendarSyncEnabled, tabs } from "../../controller";
+  import {
+    activeTabId,
+    agendaFileExists,
+    backendKind,
+    calendarSyncEnabled,
+    oneDriveAccount,
+    oneDriveFolder,
+    tabs,
+  } from "../../controller";
   import { focusTrap } from "../../actions/focusTrap";
   import Icon from "../../icons/Icon.svelte";
   import { formatShortcut } from "../../shortcuts";
@@ -21,7 +29,8 @@
   let anchorStyle = "visibility:hidden"; // until measured against the trigger
 
   $: activeTab = $tabs.find((t) => t.id === $activeTabId);
-  $: calendarSyncVisible = $calendarSyncEnabled && $backendKind !== "web";
+  $: calendarSyncVisible =
+    $calendarSyncEnabled && ($backendKind !== "web" || (!!$oneDriveAccount && !!$oneDriveFolder));
   $: calendarSyncReady =
     !!activeTab && !activeTab.isScratchpad && activeTab.filename.slice(0, 10) >= todayISO() && $agendaFileExists;
 

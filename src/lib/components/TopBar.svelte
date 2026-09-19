@@ -40,6 +40,8 @@
     currentDateISO,
     isMobile,
     mobileTabDrawerOpen,
+    oneDriveAccount,
+    oneDriveFolder,
     saveState,
     tabs,
   } from "../controller";
@@ -135,7 +137,8 @@
   // desktop notes folder — the web app has no such folder (IndexedDB-
   // backed, no filesystem) to read one from, so it's excluded regardless
   // of the setting.
-  $: calendarSyncVisible = $calendarSyncEnabled && $backendKind !== "web";
+  $: calendarSyncVisible =
+    $calendarSyncEnabled && ($backendKind !== "web" || (!!$oneDriveAccount && !!$oneDriveFolder));
   // Grayed out (not hidden) rather than gated on visibility: today-or-
   // later, same restriction every dated action shares, and the agenda
   // file has to actually exist to be worth trying.
