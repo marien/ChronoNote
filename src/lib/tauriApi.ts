@@ -172,8 +172,8 @@ export function oneDriveLogin(): Promise<OneDriveLoginResult> {
   return invoke("onedrive_login", {});
 }
 
-export function oneDriveLogout(): Promise<void> {
-  return invoke("onedrive_logout", {});
+export function oneDriveLogout(removeLocalData = false): Promise<void> {
+  return invoke("onedrive_logout", removeLocalData ? { removeLocalData } : {});
 }
 
 export function oneDriveGetAccount(): Promise<{ email: string; displayName: string } | null> {

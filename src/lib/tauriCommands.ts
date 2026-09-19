@@ -83,7 +83,7 @@ export interface TauriCommands {
     args: NoArgs;
     returns: OneDriveLoginResult;
   };
-  onedrive_logout: { args: NoArgs; returns: void };
+  onedrive_logout: { args: { removeLocalData?: boolean }; returns: void };
   onedrive_get_account: {
     args: NoArgs;
     returns: OneDriveAccount | null;

@@ -539,7 +539,7 @@ export class WebBackend {
     },
 
     onedrive_login: () => this.syncEngine.login(),
-    onedrive_logout: () => this.syncEngine.logout(),
+    onedrive_logout: ({ removeLocalData }) => this.syncEngine.logout(removeLocalData === true),
     onedrive_get_account: () => this.syncEngine.getAccount(),
     onedrive_list_folders: ({ parentId }) => this.syncEngine.listFolders(parentId),
     onedrive_create_folder: ({ parentId, name }) => this.syncEngine.createFolder(parentId, name),

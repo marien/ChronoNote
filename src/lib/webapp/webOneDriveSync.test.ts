@@ -217,6 +217,28 @@ describe("WebOneDriveSyncEngine lifecycle & sync", () => {
     expect(res.error).toMatch(/did not match/);
   });
 
+  it("logout(true) wipes the cloud notes and sync state but keeps browser notes", async () => {
+    mockStores.notes_cloud.set("2026-09-19.txt", { content: "x", contentHash: "h", modifiedMs: 1 });
+    mockStores.notes_browser.set("2026-09-18.txt", { content: "keep", contentHash: "k", modifiedMs: 1 });
+    mockStores.meta.set(IDB_META_KEYS.ONEDRIVE_AUTH, { accessToken: "t", refreshToken: "r", expiresAt: 1 });
+    mockStores.meta.set(IDB_META_KEYS.ONEDRIVE_CACHE, { files: {}, conflicts: {} });
+    mockStores.meta.set(IDB_META_KEYS.ONEDRIVE_BASES, { "2026-09-19.txt": "x" });
+
+    await engine.logout(true);
+
+    expect(mockStores.notes_cloud.size).toBe(0);
+    expect(mockStores.notes_browser.size).toBe(1);
+    expect(mockStores.meta.has(IDB_META_KEYS.ONEDRIVE_AUTH)).toBe(false);
+    expect(mockStores.meta.has(IDB_META_KEYS.ONEDRIVE_CACHE)).toBe(false);
+    expect(mockStores.meta.has(IDB_META_KEYS.ONEDRIVE_BASES)).toBe(false);
+  });
+
+  it("logout() without the option leaves the cloud notes in place", async () => {
+    mockStores.notes_cloud.set("2026-09-19.txt", { content: "x", contentHash: "h", modifiedMs: 1 });
+    await engine.logout();
+    expect(mockStores.notes_cloud.size).toBe(1);
+  });
+
   it("pushes local modified notes in Phase 3 of syncNow", async () => {
     mockStores.meta.set(IDB_META_KEYS.ONEDRIVE_AUTH, {
       accessToken: "valid-tok",

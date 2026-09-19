@@ -198,13 +198,16 @@
   }
 
   async function handleOneDriveLogout() {
-    await api.oneDriveLogout();
+    await api.oneDriveLogout($backendKind === "web" && removeLocalOnSignOut);
+    removeLocalOnSignOut = false;
     oneDriveAccount.set(null);
     oneDriveFolder.set(null);
     if ($backendKind === "web") {
       await controller.performDirectorySwitch("Browser storage");
     }
   }
+
+  let removeLocalOnSignOut = false;
 
   function handleOneDriveSyncNow() {
     void controller.syncOneDriveNow({ notify: true });
@@ -417,6 +420,10 @@
                   <div class="settings-hint" style="margin-top: 6px;">
                     Signing out will switch back to Browser storage, loading notes that are stored there and have not been migrated.
                   </div>
+                  <label class="settings-hint" style="display: flex; gap: 6px; align-items: flex-start; margin-top: 6px;">
+                    <input type="checkbox" bind:checked={removeLocalOnSignOut} />
+                    <span>Also remove the OneDrive notes from this browser. Edits that have not synced yet will be lost. Your notes on OneDrive are not touched.</span>
+                  </label>
                 {/if}
                 {#if !$oneDriveFolder}
                   <div class="settings-hint" style="margin-top: 6px;">

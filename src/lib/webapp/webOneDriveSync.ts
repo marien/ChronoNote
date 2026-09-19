@@ -9,7 +9,7 @@ import type {
   SyncStatus,
 } from "../types";
 import type { SyncConflictResolution } from "../tauriCommands";
-import { IDB_META_KEYS, IDB_STORES, idbDelete, idbGet, idbGetAllEntries, idbPut } from "./idb";
+import { IDB_META_KEYS, IDB_STORES, idbClear, idbDelete, idbGet, idbGetAllEntries, idbPut } from "./idb";
 import {
   DEFAULT_CLIENT_ID,
   DEFAULT_TENANT,
@@ -146,11 +146,24 @@ export class WebOneDriveSyncEngine {
     await idbPut(db, IDB_STORES.META, IDB_META_KEYS.ONEDRIVE_ADVANCED, config);
   }
 
-  async logout(): Promise<void> {
+  async logout(removeLocalData = false): Promise<void> {
     await this.clearStoredAuth();
     const db = await this.getDb();
     await idbDelete(db, IDB_STORES.META, IDB_META_KEYS.ONEDRIVE_FOLDER);
     await idbPut(db, IDB_STORES.META, IDB_META_KEYS.ACTIVE_WORKSPACE, "browser");
+    if (removeLocalData) {
+      // Drop this browser's copy of the OneDrive notes and all sync state (shared-browser
+      // hygiene). Browser-storage notes are a separate store and are left alone.
+      await idbClear(db, IDB_STORES.NOTES_CLOUD);
+      for (const key of [
+        IDB_META_KEYS.ONEDRIVE_CACHE,
+        IDB_META_KEYS.ONEDRIVE_BASES,
+        IDB_META_KEYS.ONEDRIVE_TOMBSTONES,
+        IDB_META_KEYS.SESSION_CLOUD,
+      ]) {
+        await idbDelete(db, IDB_STORES.META, key);
+      }
+    }
     this.setStatus("offline");
   }
 
