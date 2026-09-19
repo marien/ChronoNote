@@ -37,7 +37,7 @@
 
 <div id="status-bar">
   <div class="status-zone status-left">
-    {#if $backendKind === "android" || $backendKind === "web"}
+    {#if $backendKind === "android" || ($backendKind === "web" && $oneDriveAccount)}
       <button
         id="stat-cloud"
         class="status-folder-btn"
@@ -71,6 +71,18 @@
         </button>
         <span class="status-sep">·</span>
       {/if}
+    {:else if $backendKind === "web"}
+      <button
+        id="stat-storage"
+        class="status-folder-btn"
+        title="Notes are stored in browser storage. Click to open Settings."
+        aria-label="Browser storage"
+        on:click={controller.openSettingsOnNotesFolder}
+      >
+        <span class="status-storage-dot" style="margin-right: 4px;"></span>
+        <span class="stat-tier0 status-folder-name">Browser storage</span>
+      </button>
+      <span class="status-sep stat-tier0">·</span>
     {:else if folderName}
       <button
         id="stat-folder"
@@ -130,20 +142,6 @@
       <button type="button" class="status-update-btn" title="Update available — see About" on:click={controller.openAbout}>
         <Icon name="update" size={12} />
       </button>
-    {/if}
-    {#if $backendKind === "web" && !$oneDriveAccount}
-      <span
-        id="stat-storage-tier"
-        class="stat-full"
-        title="Your notes are stored in this browser only. Export a backup, or install the desktop app for notes that live on your disk."
-      >
-        Browser storage
-      </span>
-      <span
-        class="status-storage-dot"
-        title="Your notes are stored in this browser only. Export a backup, or install the desktop app for notes that live on your disk."
-      ></span>
-      <span class="status-sep">·</span>
     {/if}
     {#if $appVersion}
       <button type="button" id="stat-version" title="About ChronoNote" on:click={controller.openAbout}>
