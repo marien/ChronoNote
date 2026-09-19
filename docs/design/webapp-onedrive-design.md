@@ -498,7 +498,7 @@ self.addEventListener("fetch", (event) => {
 ### 2.7.2 Content Security Policy (CSP) Requirements
 For the Web App to function securely while communicating with Microsoft endpoints, the deployment `Content-Security-Policy` must explicitly whitelist the necessary domains for API and authentication traffic.
 The `connect-src` directive must be updated to include:
-`connect-src 'self' https://graph.microsoft.com https://login.microsoftonline.com;`
+`connect-src 'self' https://graph.microsoft.com https://login.microsoftonline.com https://*.microsoft.com https://*.microsoftonline.com https://*.microsoftpersonalcontent.com https://*.sharepoint.com https://*.sharepointonline.com https://*.1drv.ms https://*.onedrive.com https://*.live.com;`
 This guarantees the browser allows outbound `fetch()` requests and token negotiations without raising CSP violations.
 
 ### 2.7.3 Safari ITP Storage Eviction Mitigation
