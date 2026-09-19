@@ -3,3 +3,6 @@
 # (`git diff --exit-code src/lib/generated/` on the Windows runner)
 # compares like-for-like regardless of core.autocrlf.
 src/lib/generated/*.ts text eol=lf
+
+# Shell scripts must keep LF line endings (bash chokes on CRLF).
+*.sh text eol=lf
