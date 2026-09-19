@@ -1,3 +1,4 @@
+import { loadBaseline } from "./hash";
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { get } from "svelte/store";
 import type { NoteTab } from "./types";
@@ -608,6 +609,45 @@ describe("checkActiveTabForDrift (§94)", () => {
     await controller.checkActiveTabForDrift();
     expect(get(controller.modal)).toBe("conflict");
     expect(get(controller.conflictInfo)?.diskContent).toBe("v2 external");
+  });
+
+  describe("a tab opened for a note that doesn't exist yet", () => {
+    async function openMissing() {
+      controller.tabs.set([tab({ id: "a", filename: FILE, content: "" })]);
+      controller.activeTabId.set("a");
+      controller.markTabClean("a", loadBaseline(await metaFor(null)));
+    }
+
+    it("stays put while the file still doesn't exist (not a 'deleted on disk')", async () => {
+      await openMissing();
+      apiMock.getFileMetadata.mockResolvedValue(await metaFor(null));
+      await controller.checkActiveTabForDrift();
+      expect(get(controller.modal)).toBe("none");
+      expect(get(controller.tabs)[0].content).toBe("");
+    });
+
+    it("silently loads a version that synced in from another device before any edit", async () => {
+      await openMissing();
+      apiMock.getFileMetadata.mockResolvedValue(await metaFor("written on the phone"));
+      apiMock.readNoteWithMetadata.mockResolvedValue({
+        content: "written on the phone",
+        metadata: await metaFor("written on the phone"),
+      });
+      await controller.checkActiveTabForDrift();
+      expect(get(controller.tabs)[0].content).toBe("written on the phone");
+    });
+
+    it("asks instead of overwriting when there are local edits and the file appeared", async () => {
+      await openMissing();
+      controller.tabs.update((list) => list.map((t) => ({ ...t, content: "typed here" })));
+      apiMock.getFileMetadata.mockResolvedValue(await metaFor("written on the phone"));
+      apiMock.readNoteWithMetadata.mockResolvedValue({
+        content: "written on the phone",
+        metadata: await metaFor("written on the phone"),
+      });
+      await controller.checkActiveTabForDrift();
+      expect(get(controller.modal)).toBe("conflict");
+    });
   });
 
   it("Case C then 'keep my version' writes with a compare-and-swap hash", async () => {

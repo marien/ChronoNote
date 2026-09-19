@@ -5,6 +5,7 @@
  * the v0.5.0 refactor. Depends on stores + persistence + tabSort + paste
  * (the close hook); the drawer / search / history modules depend on this
  * one for `openOrCreateDatedFile` / `jumpToFileLine`, never the reverse. */
+import { loadBaseline } from "./hash";
 import { get } from "svelte/store";
 import { tick } from "svelte";
 import * as api from "./tauriApi";
@@ -89,7 +90,7 @@ export async function openOrCreateDatedFile(dateStr: string) {
   const { content, metadata } = await api.readNoteWithMetadata(filename);
   const newTab: NoteTab = { id: generateTabId(), filename, isScratchpad: false, content: content ?? "" };
   tabs.set([...list, newTab]);
-  markTabClean(newTab.id, metadata.contentHash); // §94 baseline
+  markTabClean(newTab.id, loadBaseline(metadata)); // §94 baseline
   activeTabId.set(newTab.id);
 }
 

@@ -4,6 +4,7 @@
  * `setWordWrap`) and the maximize/fullscreen chrome watcher. Split out of
  * `controller.ts` in the v0.5.0 refactor. `directory.ts` reuses
  * `restoreOrBootstrapTabs` for the workspace re-load on a folder switch. */
+import { loadBaseline } from "./hash";
 import { get } from "svelte/store";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { listen } from "@tauri-apps/api/event";
@@ -297,7 +298,7 @@ export async function restoreOrBootstrapTabs() {
       if (content === null) return; // file no longer exists — silently skip
       const id = `tab-${Date.now()}-${filename}`;
       restored.push({ id, filename, isScratchpad: false, content });
-      cleanHashes.push([id, metadata.contentHash]);
+      cleanHashes.push([id, loadBaseline(metadata)]);
     });
 
     const todayId = `tab-${Date.now()}-${todayFilename}`;
@@ -308,7 +309,7 @@ export async function restoreOrBootstrapTabs() {
       content: todayRead.content ?? "",
     };
     restored.push(todayTab);
-    cleanHashes.push([todayId, todayRead.metadata.contentHash]);
+    cleanHashes.push([todayId, loadBaseline(todayRead.metadata)]);
 
     // Restore preserved scratchpad drafts (e.g. mobile process termination survival)
     try {
