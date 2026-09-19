@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { get } from "svelte/store";
 import type { NoteTab } from "./types";
+import { todayISO } from "./date";
 
 /** Every mock function lives here, outside the `vi.mock` factories, so
  * `beforeEach` can reset them directly without depending on the factory
@@ -214,6 +215,30 @@ describe("tab lifecycle", () => {
     expect(get(controller.safetyMessage)).toMatch(/unresolved open action/);
     // The tab is untouched until the user actually confirms.
     expect(get(controller.tabs)).toHaveLength(1);
+  });
+
+  // #76: unresolved open actions only warrant the warning once they're due.
+  it("requestTabClose warns for a note dated today", () => {
+    controller.tabs.set([tab({ id: "a", filename: `${todayISO()}.txt`, content: "# due today" })]);
+    controller.requestTabClose("a");
+    expect(get(controller.modal)).toBe("safety");
+  });
+
+  it("requestTabClose closes a future-dated note with open actions silently (#76)", () => {
+    controller.tabs.set([
+      tab({ id: "a", filename: "2099-12-31.txt", content: "# plan this\n# and this" }),
+      tab({ id: "b", filename: "2026-09-02.txt" }),
+    ]);
+    controller.requestTabClose("a");
+    expect(get(controller.modal)).toBe("none");
+    expect(get(controller.tabs).map((t) => t.id)).toEqual(["b"]);
+  });
+
+  it("requestTabClose still warns for a scratchpad with open actions (no date to judge by)", () => {
+    controller.tabs.set([tab({ id: "a", isScratchpad: true, filename: "Scratchpad 1", content: "# todo" })]);
+    controller.requestTabClose("a");
+    expect(get(controller.modal)).toBe("safety");
+    expect(get(controller.safetyMessage)).toMatch(/unresolved open action/);
   });
 
   it("requestTabClose blocks on a non-empty scratchpad (content would be lost forever)", () => {

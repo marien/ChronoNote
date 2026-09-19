@@ -146,3 +146,30 @@ test.describe("tabs — lifecycle & safe close", () => {
     expect(await activeTabContent(page)).toBe("");
   });
 });
+
+/** #76: the unresolved-actions warning is for notes that are due — today and
+ * earlier. A future-dated note's actions are still ahead of you, so it
+ * closes silently. (The e2e clock is pinned to 2026-09-07.) */
+test.describe("close warning by date (#76)", () => {
+  const note = (filename: string) => ({
+    seed: {
+      notes: { [filename]: "# something to do" },
+      session: { openTabs: [filename], activeTab: filename },
+    },
+  });
+
+  test("a future-dated note with open actions closes without asking", async ({ page }) => {
+    await seedApp(page, note("2026-12-01.txt"));
+    await editor(page).click();
+    await page.keyboard.press("ControlOrMeta+w");
+    expect(await currentModal(page)).toBe("none");
+    await expect(tab(page, "2026-12-01")).toHaveCount(0);
+  });
+
+  test("a note from the past with open actions still asks", async ({ page }) => {
+    await seedApp(page, note("2026-08-01.txt"));
+    await editor(page).click();
+    await page.keyboard.press("ControlOrMeta+w");
+    await expect(modalCard(page, MODAL_LABELS.safety)).toContainText("unresolved open action");
+  });
+});

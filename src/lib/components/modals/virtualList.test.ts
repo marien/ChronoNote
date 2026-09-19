@@ -118,6 +118,15 @@ describe("scrollToShow", () => {
   it("returns null when the row is already fully visible", () => {
     expect(scrollToShow({ top: 200, height: 36 }, 100, 380)).toBeNull();
   });
+  it("with a pinned heading (topInset), a row hidden under it is snapped to just below it (#77)", () => {
+    // Row top 110 is inside the viewport (scrollTop 100) but under a 29px heading.
+    expect(scrollToShow({ top: 110, height: 36 }, 100, 380, 29)).toBe(81);
+    // Clear of the heading: nothing to do.
+    expect(scrollToShow({ top: 140, height: 36 }, 100, 380, 29)).toBeNull();
+  });
+  it("never scrolls to a negative position", () => {
+    expect(scrollToShow({ top: 10, height: 36 }, 20, 380, 29)).toBe(0);
+  });
 });
 
 describe("wrapIndex", () => {
