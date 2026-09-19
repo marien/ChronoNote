@@ -120,7 +120,7 @@
   </div>
 
   <div class="status-zone status-right">
-    {#if $updateStatus === "available" && $backendKind !== "web"}
+    {#if $updateStatus === "available" && $backendKind !== "web" && $backendKind !== "android"}
       <button type="button" class="status-update-btn" title="Update available — see About" on:click={controller.openAbout}>
         <Icon name="update" size={12} />
       </button>

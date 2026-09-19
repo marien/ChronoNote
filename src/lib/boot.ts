@@ -426,7 +426,11 @@ export async function initApp() {
   // beyond the About drawer; only "an update is available" shows anything
   // (a status-bar message), and only the user's own click ever downloads.
   // Meaningless in the web app (see AboutModal.svelte's same gate).
-  if (cfg.autoCheckUpdates && get(backendKind) !== "web") void checkForUpdatesOnLaunch();
+  // The desktop updater plugin doesn't exist on Android (updates arrive
+  // through however the app was installed), and is meaningless on the web.
+  if (cfg.autoCheckUpdates && get(backendKind) !== "web" && get(backendKind) !== "android") {
+    void checkForUpdatesOnLaunch();
+  }
   void initOneDriveSync();
 }
 

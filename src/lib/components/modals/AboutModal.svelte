@@ -19,7 +19,7 @@
   // stale "idle" reading would actually be visible to the user. Meaningless
   // in the web app (no installer to update to — refreshing the page always
   // serves the latest deployed build), so skipped there.
-  if ($backendKind !== "web" && $updateStatus === "idle") controller.checkForUpdates();
+  if ($backendKind !== "web" && $backendKind !== "android" && $updateStatus === "idle") controller.checkForUpdates();
 
   $: progressLabel = (() => {
     const p = $updateDownloadProgress;
@@ -42,6 +42,13 @@
           <div class="settings-hint" style="margin-top: 0;">
             This is the browser version — it always runs whatever's currently deployed. Refresh the page to get the
             latest.
+          </div>
+        {:else if $backendKind === "android"}
+          <div class="settings-hint" style="margin-top: 0;">
+            This app doesn't check for updates itself — install a newer version the same way you installed this one.
+          </div>
+          <div class="settings-toggle-row" style="margin-top: 8px; gap: 8px;">
+            <button class="icon-btn" on:click={controller.openReleasesPage}> What's changed </button>
           </div>
         {:else if $updateStatus === "checking"}
           <div class="settings-hint" style="margin-top: 0;">

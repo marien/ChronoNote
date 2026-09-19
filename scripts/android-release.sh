@@ -41,20 +41,27 @@ AAPT="$BUILD_TOOLS/aapt"
 # writes GBs into src-tauri/target.
 export CARGO_TARGET_DIR="${CARGO_TARGET_DIR:-$HOME/.cargo-target/chrononote-android-1950}"
 
-echo "==> Building the release APK ($ABI_TARGET)…"
-(cd "$ROOT" && npx tauri android build --apk --target "$ABI_TARGET")
+if [ "${CHRONONOTE_SKIP_BUILD:-}" = "1" ]; then
+  echo "==> Skipping the build (CHRONONOTE_SKIP_BUILD=1) — signing the newest existing release APK."
+else
+  echo "==> Building the release APK ($ABI_TARGET)…"
+  (cd "$ROOT" && npx tauri android build --apk --target "$ABI_TARGET")
+fi
 
 # Gradle output is redirected outside the repo by ~/.gradle/init.d on the
 # maintainer's machine; fall back to the in-repo location elsewhere.
-UNSIGNED="$(find "$HOME/.gradle-build" "$ROOT/src-tauri/gen/android/app/build" \
-  -name '*release-unsigned.apk' -printf '%T@ %p\n' 2>/dev/null | sort -n | tail -1 | cut -d' ' -f2-)"
+# (`|| true`: find exits nonzero when one of the two folders doesn't exist,
+# which `set -e` + `pipefail` would otherwise turn into a silent abort.)
+UNSIGNED="$( { find "$HOME/.gradle-build" "$ROOT/src-tauri/gen/android/app/build" \
+  -name '*release-unsigned.apk' -printf '%T@ %p\n' 2>/dev/null || true; } | sort -n | tail -1 | cut -d' ' -f2-)"
 [ -n "$UNSIGNED" ] || { echo "Couldn't find the unsigned release APK." >&2; exit 1; }
 echo "==> Unsigned APK: $UNSIGNED"
 
-VERSION="$(node -p "require('$ROOT/package.json').version")"
+VERSION="$(grep -m1 '"version"' "$ROOT/package.json" | sed -E 's/.*"version": *"([^"]+)".*/\1/')"
 mkdir -p "$OUT_DIR"
 ALIGNED="$OUT_DIR/.aligned.apk"
-FINAL="$OUT_DIR/ChronoNote_${VERSION}_arm64.apk"
+case "$ABI_TARGET" in aarch64) ABI_NAME=arm64 ;; *) ABI_NAME="$ABI_TARGET" ;; esac
+FINAL="$OUT_DIR/ChronoNote_${VERSION}_${ABI_NAME}.apk"
 rm -f "$ALIGNED" "$FINAL"
 
 echo "==> Aligning and signing…"
