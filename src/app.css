@@ -1062,6 +1062,7 @@ body {
    folder-name collapse below and stays a click target even at the
    narrowest width the name is shown at all. */
 #stat-folder,
+#stat-storage,
 #stat-cloud,
 #stat-conflicts {
   display: inline-flex;
@@ -1076,6 +1077,7 @@ body {
   cursor: pointer;
 }
 #stat-folder:hover,
+#stat-storage:hover,
 #stat-cloud:hover,
 #stat-conflicts:hover {
   color: var(--text);

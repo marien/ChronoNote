@@ -79,7 +79,7 @@
         aria-label="Browser storage"
         on:click={controller.openSettingsOnNotesFolder}
       >
-        <span class="status-storage-dot" style="margin-right: 4px;"></span>
+        <Icon name="folder" size={12} />
         <span class="stat-tier0 status-folder-name">Browser storage</span>
       </button>
       <span class="status-sep stat-tier0">·</span>
