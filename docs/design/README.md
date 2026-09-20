@@ -129,6 +129,8 @@ interactive palette legend filter chips), cross-platform UX polish (dynamic floa
 and dark mode surface luminance), calendar date completion heatmap (green/amber/muted dots), cross-file search
 3-line context expansion & in-editor jump pulse, cloud sync health & telemetry popover dashboard, and canvas
 typography sliders with pure black OLED dark mode.
+Reviewed 2026-09-20: see the roadmap's §13 (corrections already applied, plus the decisions still open
+before any implementation; recommended split into three releases).
 
 **[`ui-ux-refinements-v0.12-mockup.html`](ui-ux-refinements-v0.12-mockup.html)** — companion
 standalone interactive HTML mockup demonstrating the proposed v0.12 design system: monoline SVG icons,

@@ -3,6 +3,8 @@
 **Document Type:** Design Specification & Implementation Roadmap  
 **Target Release:** ChronoNote v0.12.0 (compared against baseline v0.11.1)  
 **Supported Targets:** Desktop (Tauri 2 Rust), Android (Tauri 2 Mobile), Web App & PWA (IndexedDB + Web OneDrive), Public Demo  
+**Status:** Design proposal, reviewed 2026-09-20 (see §13: review findings, open decisions and the amendments already folded into this document). No implementation started.  
+**Baseline note:** `main` now also carries unreleased §191/§192 (Android folder switch, short Settings tab labels, About last in the status bar); this roadmap's Settings references ("Notes & Sync" tab) already match that.  
 **Companion Interactive Mockup:** [`docs/design/ui-ux-refinements-v0.12-mockup.html`](ui-ux-refinements-v0.12-mockup.html)  
 
 ---
@@ -118,9 +120,9 @@ In v0.11.1, [`src/lib/commandPalette.ts`](../../src/lib/commandPalette.ts) provi
      *(Uses semantic token `var(--glyph-open-color)`, resolving to `#0e7490` in light mode and `#38bdf8` in dark mode, maintaining WCAG AA contrast across all themes without hardcoded hex colors).*
 
 #### 1.2 Line-Level Editor Commands
-* **Files:** [`src/lib/controller.ts`](../../src/lib/controller.ts), [`src/lib/commandPalette.ts`](../../src/lib/commandPalette.ts), [`src/lib/components/EditorPane.svelte`](../../src/lib/components/EditorPane.svelte)
+* **Files:** [`src/lib/stores.ts`](../../src/lib/stores.ts) (where `EditorApi` lives; `controller.ts` only re-exports it), [`src/lib/commandPalette.ts`](../../src/lib/commandPalette.ts), [`src/lib/components/EditorPane.svelte`](../../src/lib/components/EditorPane.svelte)
 * **Design Specification:**
-  1. In v0.11.1, editor operations are scoped locally inside `EditorPane.svelte`. Extend `EditorApi` in `src/lib/controller.ts` so the palette can dispatch actions to the active editor view:
+  1. In v0.11.1, editor operations are scoped locally inside `EditorPane.svelte`. Extend `EditorApi` in `src/lib/stores.ts` so the palette can dispatch actions to the active editor view:
      ```typescript
      export interface EditorApi {
        // ... existing methods
@@ -144,7 +146,7 @@ In v0.11.1, [`src/lib/commandPalette.ts`](../../src/lib/commandPalette.ts) provi
      - `"Jump to previous open action"` (Hint: `Shift+F2`)
 
 #### 1.3 Data Export Command
-* **Files:** [`src/lib/commandPalette.ts`](../../src/lib/commandPalette.ts), [`src/lib/exportImport.ts`](../../src/lib/exportImport.ts)
+* **Files:** [`src/lib/commandPalette.ts`](../../src/lib/commandPalette.ts), [`src/lib/exportImport.ts`](../../src/lib/exportImport.ts) (`exportAllNotesToFile` already exists, so this is only a palette entry; confirm it behaves on the desktop and Android shells, not just as a browser download)
 * **Design Specification:**
   - Add to `commandItems()` under group `"Commands"`:
     ```typescript
@@ -214,7 +216,7 @@ In v0.11.1, [`src/lib/commandPalette.ts`](../../src/lib/commandPalette.ts) provi
        opacity: 1;
      }
      ```
-  3. Tenet Safeguards:
+  3. Tenet Safeguards (review §13 R4: reuse the token rules in `tokens.ts`/`glyphs.ts` instead of a second hand-written regex, so a `v `/`x ` inside a setext underline, bullet or prose can never be muted differently from how it renders as a glyph. Also verify contrast: 0.72 on the line stacks with grayscale mode's own `--glyph-done-opacity`):
      - Deferred lines (`> `) remain at `1.0` opacity, as forwarded items remain active context for the day.
      - Consequence actions (`=> v `) and indented items (`  v `) are recognized by `RESOLVED_LINE_REGEX`.
      - In Grayscale mode (`[data-color-mode="grayscale"]`), where `.glyph-done` has `--glyph-done-opacity: 0.55`, ensure the line opacity does not degrade below WCAG AA contrast (`.cm-line-resolved .glyph-done { opacity: 1; }` when muted).
@@ -223,6 +225,7 @@ In v0.11.1, [`src/lib/commandPalette.ts`](../../src/lib/commandPalette.ts) provi
 * **Files:** [`src/lib/editor/glyphs.ts`](../../src/lib/editor/glyphs.ts), [`src/app.css`](../../src/app.css)
 * **Objective:** Replace the italicized outlined tag from v0.11.1 with a sleek, upright rounded pill, hiding the enclosing `()` parentheses when the line is inactive while preserving exact monospace alignment.
 * **Design Specification:**
+  0. **Layout-neutrality is mandatory (review §13 R3):** §123 (#42) fixed exactly this class of bug: a border/padding on a live-text span lengthens the line, so the text after it falls off the monospace column. The CSS below as first drafted (`display: inline-block` + a 1px border) reintroduces it (+2px per pill). Keep the existing cancelling `padding` + negative `margin` (border 1px + inset = margin), do not use `inline-block` (it also stops the pill wrapping with the line), and extend `glyph-layout.spec.ts`'s badge-column measurement to the new pill in both the active and inactive states.
   1. **Aesthetics:**
      - **No Italics:** Upright text (`font-style: normal; font-weight: 500;`).
      - **Rounded Pill Shape:** `border-radius: 4px; border: 1px solid var(--edge-strong);`
@@ -290,7 +293,7 @@ In v0.11.1, [`src/lib/commandPalette.ts`](../../src/lib/commandPalette.ts) provi
 * **Objective:** Provide a single-key toggle to hide secondary application chrome for distraction-free note writing across all targets.
 * **Design Specification:**
   1. Global State: Add `isZenMode = writable<boolean>(false)` in `src/lib/stores.ts`.
-  2. Shortcut Registry: Register `"toggleZenMode"` in `src/lib/shortcuts.ts` bound to `F11`.
+  2. Shortcut Registry: Register `"toggleZenMode"` in `src/lib/shortcuts.ts`. **Do not bind `F11` on web (review §13 R5):** browsers reserve F11 for their own fullscreen and mostly never deliver it to the page. Pick a free chord (check the registry) for all targets; F11 may stay as an extra desktop-only alias. Android has no keyboard chord: it needs a visible entry point (More actions / accessory bar) as well as the palette command.
   3. Command Palette: Add `"Toggle Zen mode (distraction-free canvas)"` under `"Commands"`.
   4. Platform-Specific Target Behavior:
      - **Web App / PWA & Public Demo:**
@@ -338,7 +341,7 @@ In v0.11.1, [`src/lib/commandPalette.ts`](../../src/lib/commandPalette.ts) provi
        `getCurrentWindow().setFullscreen(true)`. The OS manages the full-screen canvas, and pressing `Escape` or `F11` restores normal windowed chrome.
      - **Android Mobile:**
        Hides `#top-bar` and `#status-bar` while **preserving the Mobile Accessory Bar** above the virtual keyboard so touch users can indent, toggle tokens, and dismiss the soft keyboard.
-  5. Exit Guarantee: Pressing `Escape` or `F11` anywhere in the app immediately exits Zen Mode (`isZenMode.set(false)`).
+  5. Exit Guarantee: `Escape` exits Zen Mode **only when nothing else claims it**: a modal, the find bar and the date picker close first (`App.svelte`'s Escape handler and `FindBar` already consume it), so the order is modal/find bar, then Zen. The floating exit banner and the palette command are the guaranteed exits. Desktop also needs `core:window:allow-set-fullscreen` (and `allow-is-fullscreen`) in `src-tauri/capabilities/default.json`, which has neither today; without it the call is denied silently (the same invisible failure class as §93 `allow-destroy` and §135 opener scope, and no mock-backed test can catch it). Also restore the window on exit paths that bypass the toggle (close barrier, OS leaving fullscreen).
 
 ---
 
@@ -349,7 +352,7 @@ In v0.11.1, [`src/lib/commandPalette.ts`](../../src/lib/commandPalette.ts) provi
 * **Objective:** Intercept accidental file drops that cause web browsers to navigate away from the app, routing dropped notes directly into ChronoNote's safe import engine.
 * **Design Specification:**
   1. Active only in Web App and Demo (`$backendKind === "web" || $backendKind === "demo"`).
-  2. Window-Level Event Interception: Handle `dragenter`, `dragover`, `dragleave`, and `drop` with `e.preventDefault()`. Use a depth counter to prevent flicker over child DOM nodes:
+  2. Window-Level Event Interception (review §13 R6: only intercept drags whose `dataTransfer.types` includes `Files`, in `dragover` and `drop` too. As drafted, an unconditional `preventDefault()` breaks CodeMirror's own text drag-and-drop inside the editor. `handleDroppedBundle` and `handleDroppedNotes` are new functions, and the toast is `showToast` from `stores.ts`, not `controller.showToast`): Handle `dragenter`, `dragover`, `dragleave`, and `drop` with `e.preventDefault()`. Use a depth counter to prevent flicker over child DOM nodes:
      ```typescript
      let dragDepth = 0;
      let isDraggingFile = false;
@@ -583,6 +586,8 @@ An exhaustive audit of all 16 modals in [`src/lib/components/modals/`](../../src
 ### Area 6: Additional Cross-Platform UX Polish
 
 #### 6.1 Viewport-Aware Dynamic Floating Toast
+
+> Review note (§13 R10): a fixed top of 48px collides with the phone top bar (active-tab chip + drawer button, §189). Anchor below the top bar's real height, and keep `aria-live` semantics. Key it on `$isMobile`, like the rest of the mobile code, not on `pointer: coarse` alone.
 * **Problem:** In v0.11.1, transient toast messages reside in the bottom status bar (`#stat-message`). On mobile devices, the status bar is frequently occluded by virtual keyboards, resting hands, or browser navigation bars.
 * **Design Specification:**
   - On desktop, keep `#stat-message` in the status bar (preserving clean workspace design).
@@ -610,6 +615,8 @@ An exhaustive audit of all 16 modals in [`src/lib/components/modals/`](../../src
     ```
 
 #### 6.2 Fitts's Law Hit-Area Expansion for Touch Targets
+
+> Review note (§13 R10): `app.css` already has two `(pointer: coarse)` blocks that enlarge targets. Audit those first; `inset: -8px` pseudo-elements on adjacent 40px buttons overlap each other's hit areas, and the later one in paint order wins.
 * **Problem:** Interactive elements like tab close buttons (`13px`), calendar day cells, and icon buttons (`24px`) can cause touch misses on high-DPI phone screens.
 * **Design Specification:**
   - Apply WCAG 2.5.5 / 2.5.8 compliant pseudo-element hit expansions under `@media (pointer: coarse)`:
@@ -654,8 +661,8 @@ An exhaustive audit of all 16 modals in [`src/lib/components/modals/`](../../src
 * **Problem:** In v0.11.1, the date picker only displays binary indicators: whether a note exists (`.hasnote`), and whether it has open actions (`.has`). It cannot distinguish between a day where all planned tasks were completed versus a day with zero tasks (pure journal log), nor does it provide a sense of achievement across the month.
 * **Design Specification:**
   1. Upgrade cell action status resolution into 3 distinct semantic tiers:
-     - **`.cal-status-done` (Green dot / `var(--glyph-done-color)`):** Note exists, contains $\ge 1$ action items, and 100% of actions are resolved (`v ` or `x `).
-     - **`.cal-status-pending` (Amber dot / `var(--state-warn)`):** Note exists and contains at least 1 open (`# `) or deferred (`> `) action.
+     - **`.cal-status-done` (Green dot / `var(--glyph-done-color)`):** Note exists, contains at least 1 action and none is open (`v `, `x `, and forwarded `> ` all count as resolved for this day).
+     - **`.cal-status-pending` (Amber dot / `var(--state-warn)`):** Note exists and contains at least 1 open (`# `) action. *(Review §13 R7: the draft also counted deferred `> ` here. Today's `.has` dot (`countActions().open`) and this roadmap's own muting rationale treat deferred as forwarded, not outstanding; keep it out unless you decide otherwise.)*
      - **`.cal-status-log` (Dim muted dot / `var(--muted)`):** Note exists but contains 0 action items (pure meeting notes or reference logs).
   2. Visual Layout in `src/app.css`:
      ```css
@@ -682,6 +689,8 @@ An exhaustive audit of all 16 modals in [`src/lib/components/modals/`](../../src
 ---
 
 ### Area 8: Cross-File Search Context & Query Filters
+
+> Review note: `Editor.svelte` (8.3) does not exist; the editor is `EditorPane.svelte`. Search runs over `allNotesCache`, so the operators are cheap; put them in `search.ts` as a pure, unit-tested parser rather than inside `SearchModal.svelte`.
 
 #### 8.1 Contextual 3-Line Expansion in Search Results
 * **Files:** [`src/lib/components/modals/SearchModal.svelte`](../../src/lib/components/modals/SearchModal.svelte), [`src/app.css`](../../src/app.css)
@@ -724,6 +733,8 @@ An exhaustive audit of all 16 modals in [`src/lib/components/modals/`](../../src
 ### Area 9: Cloud Sync Health & Telemetry Dashboard
 
 #### 9.1 Interactive Sync Health Popover on `#stat-cloud`
+
+> Review note (§13 R9): the proposal reads as frontend-only, but "last successful sync", "pending uploads", "offline" and "quota" are not exposed by either engine today (web `webOneDriveSync.ts`, Rust `onedrive/sync.rs`); only the `oneDriveAccount`/`oneDriveFolder` stores exist. This needs a small shared status shape (ts-rs from Rust, the same in the web engine, mock updated). Drop quota unless a Graph `drive` call is added. There is no need to mask the user's own e-mail in their own UI.
 * **Files:** [`src/lib/components/StatusBar.svelte`](../../src/lib/components/StatusBar.svelte), [`src/lib/components/modals/SyncHealthPopover.svelte`](../../src/lib/components/modals/SyncHealthPopover.svelte), [`src/app.css`](../../src/app.css)
 * **Problem:** Cloud synchronization in the Web App/PWA and Android builds runs entirely quietly in the background. Users have no direct way to check when the last synchronization succeeded, how many notes are mirrored in IndexedDB, or if background uploads are queued.
 * **Design Specification:**
@@ -748,13 +759,13 @@ An exhaustive audit of all 16 modals in [`src/lib/components/modals/`](../../src
 * **Problem:** Monospace font size is currently hardcoded to 13px with fixed line spacing. High-DPI laptop screens, external desktop monitors, and mobile phone displays require customizable density for optimal reading comfort.
 * **Design Specification:**
   1. Add two continuous range sliders in `SettingsModal.svelte` under the **Editor** section:
-     - **Base Font Size:** Range `12px` to `18px` in 0.5px increments (default `13px`).
-     - **Line Spacing:** Range `1.30` to `1.80` in 0.05 increments (default `1.55`).
+     - **Base Font Size:** Range `12px` to `18px` in 0.5px increments (default `13px`; today's `.cm-editor` rule is `font-size: 13px !important`, which must be replaced, not merely overridden. New `AppConfig` fields also mean `storage.rs` + ts-rs regeneration + `mockBackend.ts` + `webBackend.ts` in lock-step, not only `controller.ts`).
+     - **Line Spacing:** Range `1.30` to `1.80` in 0.05 increments (default: **the current `1.6`**, not 1.55. `.cm-line` is 1.6 today and the §79 glyph box is pinned to a `1.6em` line ratio, so a different default silently changes every existing user's layout).
   2. Reactive CSS Variables:
      ```css
      .cm-editor {
        font-size: var(--editor-font-size, 13px);
-       line-height: var(--editor-line-height, 1.55);
+       line-height: var(--editor-line-height, 1.6); /* keep the glyph box (§79) in step with this value */
      }
      ```
   3. Real-time preview: Adjusting sliders immediately reflows the canvas beneath the modal without requiring a restart.
@@ -763,10 +774,10 @@ An exhaustive audit of all 16 modals in [`src/lib/components/modals/`](../../src
 * **Files:** [`src/lib/types.ts`](../../src/lib/types.ts), [`src/app.css`](../../src/app.css)
 * **Problem:** Modern smartphones and tablets utilize OLED screens where absolute black (`#000000`) turns off individual pixels, saving battery and maximizing contrast in low-light environments. ChronoNote’s default dark canvas is `#1e1e1e`.
 * **Design Specification:**
-  1. Extend `ThemeMode` with an optional `"oled"` variant or an Appearance toggle: `Pure Black (OLED)`.
-  2. Tokens for `[data-theme="oled"]`:
+  1. **Model it as a separate Appearance toggle (`pure_black`, only effective in dark), not a fourth `ThemeMode` value (review §13 R8).** The token blocks are keyed on `[data-theme="dark"]` and `:root:not([data-theme="dark"])` (the system default), and each colour mode repeats that pairing; a new `data-theme="oled"` value falls through all of them, and through `show_window_without_flash` in `lib.rs`, which reads the persisted theme. A `data-pure-black` attribute layered on top of dark only overrides the surface tokens.
+  2. Tokens (selector becomes `[data-theme="dark"][data-pure-black]`, plus the system-dark equivalent):
      ```css
-     [data-theme="oled"] {
+     /* selector: see above */ {
        --surface-canvas: #000000;
        --surface-chrome: #0a0a0a;
        --surface-overlay: #121212;
@@ -828,3 +839,45 @@ The following high-value ideas were evaluated during the UX audit and are docume
 - **Interactive Companion Mockup:** [`docs/design/ui-ux-refinements-v0.12-mockup.html`](ui-ux-refinements-v0.12-mockup.html)
 - **Design Index:** [`docs/design/README.md`](README.md)
 
+---
+
+## 13. Review Findings (2026-09-20)
+
+Reviewed against `main` at `b8b933d` by checking each claim in the code, not only reading the prose. Amendments that are unambiguous corrections are already folded into the sections above (marked "review §13 Rn"); the items under "Decisions needed" are for you to settle before any implementation.
+
+### Overall
+
+The direction is sound and mostly consistent with the tenets: plain-text files stay untouched, no new storage format, icons stay monoline SVG. The strongest items are 1.1 (match highlighting), 2.1 (resolved muting), 5.x (modal audit: the multi-column collapse on phones is real and worth fixing) and 7.1 (heatmap, once its tiers are corrected). It is a large scope for one release (12 areas). Recommendation: split into three releases so each stays testable and a regression is easy to bisect: **A** palette + editor styling + heatmap + search (Areas 1, 2, 7, 8), **B** modals and mobile ergonomics (Areas 5, 6), **C** Zen, drag and drop, sync popover, typography, pure black (Areas 3, 4, 9, 10).
+
+### Corrections already applied
+
+| # | Finding |
+|---|---|
+| R1 | `EditorApi` lives in `stores.ts`, not `controller.ts`; `Editor.svelte` is `EditorPane.svelte`; `controller.showToast` is `stores.ts`'s `showToast`. |
+| R2 | Line-spacing default is 1.6 today (not 1.55); the §79 glyph box is pinned to that ratio; `.cm-editor` font size is `13px !important`. |
+| R3 | Topic pill as drafted (`inline-block` + border) reintroduces the §123/#42 column-drift bug. Keep the cancelling negative margin; measure in `glyph-layout.spec.ts`. |
+| R4 | Resolved-line muting should reuse the token rules, not a second regex; check contrast against grayscale mode's own done opacity. |
+| R5 | `F11` is reserved by browsers; desktop fullscreen needs `core:window:allow-set-fullscreen` (absent from `capabilities/default.json`), and no mock-backed test would catch a missing permission. Android has no way to enter Zen as specified. |
+| R6 | The window-level drop handler must only intercept drags carrying `Files`; otherwise it breaks in-editor text drag and drop. |
+| R7 | Heatmap "pending" included deferred `>` actions, contradicting the existing open-dot semantics and the roadmap's own muting rationale. |
+| R8 | Pure black as a fourth `ThemeMode` value would fall through every `[data-theme="dark"]`-keyed token block and the native anti-flash code. Model it as a toggle layered on dark. |
+| R9 | The sync health popover needs new engine state (last sync, pending, offline), so it is not frontend-only. |
+| R10 | Mobile toast position collides with the phone top bar; hit-area pseudo-elements collide with the existing coarse-pointer sizing and with each other. |
+
+### Decisions needed (conflicts and judgement calls)
+
+1. **Scope split.** One release or three (see Overall)?
+2. **Palette "Current line" commands (1.2).** These are the same operations as the direct shortcuts. Useful on phones (no chords), but it needs the editor to hold focus/selection while the palette is open, and the palette steals focus. Confirm the palette restores the editor selection before running (a stale selection would change the wrong line).
+3. **Deferred in the heatmap** (R7): counted as resolved (recommended) or pending?
+4. **Zen chord** (R5): which key, and should Escape-to-exit be secondary to modals (recommended)?
+5. **Pure black** (R8): toggle over dark (recommended) or a fourth theme value?
+6. **Drag and drop of `.txt` (4.1).** Existing-note collision needs a real choice (skip / replace / keep both as a conflict copy), not just "check before import". Recommend reusing the migrate dialog's "held as conflicts" behaviour rather than a new one.
+7. **Search operators (8.2).** `since:`/`before:` and `has:@name` are cheap; confirm you want the operators at all, since the plain search box is currently forgiving and a mistyped operator would silently narrow results to nothing (show the active filter as a chip).
+
+### Parked list and other notes
+
+- The proposal's parked concepts (Area 11) do not conflict with anything already parked in the project.
+- "438 tests passing" is now 439 Vitest, 261 Playwright, 141 cargo; the quality-gate list omits Playwright (`npm run test:e2e`), which is where most of these UI changes are actually verified. Add it, and add the web app bundle rebuild (`npm run build:webapp`) since CI checks that it is fresh.
+- Every new user-facing behaviour needs the mock backend and web backend kept in step (`TauriCommands` parity is a `svelte-check` error).
+- The mockup still shows F11, the `oled` theme value, deferred-as-pending dots and the inline-block pill; it needs updating once the decisions above are made, and should be read as a visual reference rather than a spec until then.
+- **Repository hygiene (not a design point):** the branch adds `AGENTS.md` and `docs/PROJECT_CONTEXT.md`. They are session-continuity notes for another AI tool and contain a local Windows path, a conversation id and a transcript path. They have no place on a public repo's `main`; recommend removing them from this branch before it is merged.
