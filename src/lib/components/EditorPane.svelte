@@ -630,8 +630,9 @@
       },
       scrollCaretIntoView: () => {
         if (!view) return;
+        view.requestMeasure();
         view.dispatch({
-          effects: EditorView.scrollIntoView(view.state.selection.main.head, { y: "nearest", yMargin: 32 }),
+          effects: EditorView.scrollIntoView(view.state.selection.main.head, { y: "nearest", yMargin: 40 }),
         });
       },
       focus: () => {

@@ -8337,7 +8337,13 @@ Marien used the web app on a phone and reported four things.
    app's viewport meta now has `interactive-widget=resizes-content` (Chrome on
    Android shrinks the layout with the keyboard). iOS Safari ignores that, so
    `mobileViewport.ts` sizes the app to the visual viewport (`--app-vvh`) while a
-   keyboard is up and scrolls the caret into view. **Untested on a real phone**
-   (no keyboard in the test browser); the threshold logic is unit-tested.
+   keyboard is up. First attempt only moved the bottom bar: CodeMirror scrolls the
+   caret into view when the *selection* changes, not when the editor's box shrinks
+   under it, and the caret-into-view call was tied to a keyboard detector that
+   never fires on Chrome (the layout viewport itself shrinks there). It now keeps
+   the caret in view (nearest, with a margin) on every viewport/window resize
+   while the editor is focused, and shortly after focusing it, re-checking as the
+   keyboard animates in. A Playwright test shrinks the viewport under the caret.
+   Still not tried with a real keyboard.
 
 Verification: Vitest 436, `svelte-check` 0, Playwright 255.

@@ -77,4 +77,25 @@ test.describe("mobile tabs drawer", () => {
     // The buttons that no longer fit are still reachable.
     await expect(page.getByRole("button", { name: /More actions/ })).toBeVisible();
   });
+
+  test("when the keyboard shrinks the layout, the line being edited stays in view", async ({ page }) => {
+    const lines = Array.from({ length: 120 }, (_, i) => `line ${i + 1}`).join("\n");
+    await seedApp(page, { seed: { notes: { "2026-09-02.txt": lines }, session: { openTabs: ["2026-09-02.txt"], activeTab: "2026-09-02.txt" } } });
+    // Put the caret on the last line and bring it into view, as a tap there would.
+    const content = page.locator(".cm-content");
+    await content.click();
+    await page.keyboard.press("Control+End");
+    const visible = () =>
+      page.evaluate(() => {
+        const line = document.querySelector(".cm-cursor")!.getBoundingClientRect();
+        const box = document.querySelector(".cm-scroller")!.getBoundingClientRect();
+        return line.top >= box.top - 1 && line.bottom <= box.bottom + 1;
+      });
+    await expect.poll(visible).toBe(true);
+
+    // The keyboard opens: the layout loses ~40% of its height (what
+    // interactive-widget=resizes-content does).
+    await page.setViewportSize({ width: 400, height: 460 });
+    await expect.poll(visible, { timeout: 3000 }).toBe(true);
+  });
 });

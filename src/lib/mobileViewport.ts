@@ -23,12 +23,26 @@ export function wireMobileViewport(): () => void {
   if (!vv) return () => {};
 
   const root = document.documentElement;
-  let wasOpen = false;
+
+  // CodeMirror only scrolls the caret into view when the selection changes, not
+  // when the editor's box shrinks under it - so once the keyboard has resized the
+  // layout the caret line can sit below the visible part of the editor. The
+  // keyboard animates in over a few hundred ms and fires several resizes, so keep
+  // re-checking until things have settled.
+  let caretTimers: ReturnType<typeof setTimeout>[] = [];
+  const editorFocused = () => !!(document.activeElement as HTMLElement | null)?.closest?.(".cm-editor");
+  const keepCaretVisible = () => {
+    for (const t of caretTimers) clearTimeout(t);
+    caretTimers = [60, 250, 500].map((ms) =>
+      setTimeout(() => {
+        if (get(isMobile) && editorFocused()) editorApi?.scrollCaretIntoView?.();
+      }, ms),
+    );
+  };
 
   const update = () => {
     if (!get(isMobile)) {
       root.style.removeProperty("--app-vvh");
-      wasOpen = false;
       return;
     }
     const open = keyboardHeight(window.innerHeight, vv.height) > 0;
@@ -40,19 +54,26 @@ export function wireMobileViewport(): () => void {
     } else {
       root.style.removeProperty("--app-vvh");
     }
-    if (open !== wasOpen) {
-      wasOpen = open;
-      // The layout just changed height under the caret: bring it back into view.
-      requestAnimationFrame(() => editorApi?.scrollCaretIntoView?.());
-    }
   };
 
-  vv.addEventListener("resize", update);
+  const onViewportChange = () => {
+    update();
+    keepCaretVisible();
+  };
+  vv.addEventListener("resize", onViewportChange);
   vv.addEventListener("scroll", update);
+  // Chrome (interactive-widget=resizes-content) resizes the layout itself, which
+  // shows up as a plain window resize.
+  window.addEventListener("resize", onViewportChange);
+  // Tapping into the editor is what raises the keyboard; it arrives a moment later.
+  document.addEventListener("focusin", keepCaretVisible);
   update();
   return () => {
-    vv.removeEventListener("resize", update);
+    vv.removeEventListener("resize", onViewportChange);
     vv.removeEventListener("scroll", update);
+    window.removeEventListener("resize", onViewportChange);
+    document.removeEventListener("focusin", keepCaretVisible);
+    for (const t of caretTimers) clearTimeout(t);
     root.style.removeProperty("--app-vvh");
   };
 }
