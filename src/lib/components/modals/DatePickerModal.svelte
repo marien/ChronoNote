@@ -7,6 +7,8 @@
   import {
     addDaysISO,
     addMonths,
+    computeDayHeat,
+    type DayHeatState,
     formatISO,
     monthGrid,
     MONTH_NAMES,
@@ -91,20 +93,23 @@
    * note actually has content (an empty file — e.g. a date note created
    * just by visiting it, then never typed into — doesn't count as
    * "wrote something that day"), `openByIso` = the subset with ≥1 open
-   * action. The grid shows the first as a brighter day number and the
-   * second as a dot, so "I wrote something that day" and "I still have
-   * work there" read differently. */
-  $: ({ noteByIso, openByIso } = (() => {
+   * action, `heatByIso` = 3-tier completion heatmap state ("done", "pending", "log"). */
+  $: ({ noteByIso, openByIso, heatByIso } = (() => {
     const noteByIso = new Set<string>();
     const openByIso = new Set<string>();
+    const heatByIso = new Map<string, DayHeatState>();
     for (const [fn, content] of Object.entries($allNotesCache)) {
       const d = fn.replace(/\.txt$/, "");
       if (!/^\d{4}-\d{2}-\d{2}$/.test(d)) continue;
       if (content.trim() === "") continue;
       noteByIso.add(d);
-      if (countActions(content).open > 0) openByIso.add(d);
+      const heat = computeDayHeat(content);
+      if (heat) {
+        heatByIso.set(d, heat);
+        if (heat === "pending") openByIso.add(d);
+      }
     }
-    return { noteByIso, openByIso };
+    return { noteByIso, openByIso, heatByIso };
   })());
 
   onMount(async () => {
@@ -258,10 +263,21 @@
         class:target={showTarget && cell.iso === focusedIso}
         class:hasnote={noteByIso.has(cell.iso)}
         class:has={openByIso.has(cell.iso)}
+        class:has-done={heatByIso.get(cell.iso) === "done"}
+        class:has-pending={heatByIso.get(cell.iso) === "pending"}
+        class:has-log={heatByIso.get(cell.iso) === "log"}
         data-iso={cell.iso}
         tabindex={cell.iso === focusedIso ? 0 : -1}
         aria-label={`${cell.iso}${
-          openByIso.has(cell.iso) ? ", has open actions" : noteByIso.has(cell.iso) ? ", has a note" : ""
+          heatByIso.get(cell.iso) === "done"
+            ? ", all tasks completed"
+            : heatByIso.get(cell.iso) === "pending"
+              ? ", open actions pending"
+              : heatByIso.get(cell.iso) === "log"
+                ? ", note log with no tasks"
+                : noteByIso.has(cell.iso)
+                  ? ", has a note"
+                  : ""
         }`}
         aria-current={cell.iso === today ? "date" : undefined}
         on:click={() => commit(cell.iso)}

@@ -372,6 +372,14 @@ export interface EditorApi {
   indent?: (dedent?: boolean) => void;
   undo?: () => void;
   redo?: () => void;
+  getSelectionRange?: () => { anchor: number; head: number };
+  setSelectionRange?: (range: { anchor: number; head: number }) => void;
+  closeCurrentOpenAction?: () => boolean;
+  reopenCurrentDoneAction?: () => boolean;
+  convertCurrentLineToSection?: () => boolean;
+  setActionStateOnSelection?: (symbol: "#" | "v" | ">" | "x") => boolean;
+  jumpAdjacentOpenAction?: (direction: 1 | -1) => boolean;
+  pulseLine?: (lineIdx: number) => void;
 }
 
 

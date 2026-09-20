@@ -18,6 +18,9 @@ import {
   backendKind,
   calendarSyncEnabled,
   colorMode,
+  closeAllModals,
+  editorApi,
+  type EditorApi,
   modal,
   oneDriveAccount,
   oneDriveFolder,
@@ -47,6 +50,7 @@ import { openAbout, openGlyphLegend, openSettings, openShortcutsHelp } from "./m
 import { setColorMode, setReadableLineLength, setWordWrap } from "./boot";
 import { checkForUpdates } from "./updates";
 import { formatCombo, formatShortcut, shortcutById } from "./shortcuts";
+import { exportAllNotesToFile } from "./exportImport";
 
 export interface PaletteItem {
   /** Stable key for keyed `{#each}`. */
@@ -57,12 +61,79 @@ export interface PaletteItem {
   hint?: string;
   /** Grouping header this item sits under. */
   group: string;
+  /** Matched character indices within `label` for highlight rendering. */
+  matchedIndices?: number[];
   /** Run it. The palette closes first. */
   run: () => void | Promise<void>;
 }
 
+export interface FuzzyMatchResult {
+  matches: boolean;
+  score: number;
+  indices: number[];
+}
+
+export function fuzzyMatchWithIndices(haystack: string, needle: string): FuzzyMatchResult | null {
+  if (!needle) return { matches: true, score: 0, indices: [] };
+  const h = haystack.toLowerCase();
+  const n = needle.toLowerCase();
+  const indices: number[] = [];
+  let i = 0;
+  for (let j = 0; j < h.length; j++) {
+    if (h[j] === n[i]) {
+      indices.push(j);
+      i++;
+      if (i === n.length) break;
+    }
+  }
+  if (i < n.length) return null;
+  return { matches: true, score: indices.length, indices };
+}
+
+export function splitHighlighted(
+  text: string,
+  indices?: number[],
+): Array<{ text: string; highlight: boolean }> {
+  if (!text) return [];
+  if (!indices || indices.length === 0) return [{ text, highlight: false }];
+
+  const indexSet = new Set(indices.filter((idx) => idx >= 0 && idx < text.length));
+  if (indexSet.size === 0) return [{ text, highlight: false }];
+
+  const segments: Array<{ text: string; highlight: boolean }> = [];
+  let currentHighlight = indexSet.has(0);
+  let currentText = text[0];
+
+  for (let i = 1; i < text.length; i++) {
+    const isHi = indexSet.has(i);
+    if (isHi === currentHighlight) {
+      currentText += text[i];
+    } else {
+      segments.push({ text: currentText, highlight: currentHighlight });
+      currentHighlight = isHi;
+      currentText = text[i];
+    }
+  }
+  segments.push({ text: currentText, highlight: currentHighlight });
+  return segments;
+}
+
+export let paletteSelectionSnapshot: { anchor: number; head: number } | null = null;
+
 export function openCommandPalette() {
+  paletteSelectionSnapshot = editorApi?.getSelectionRange ? editorApi.getSelectionRange() : null;
   modal.set("commandPalette");
+}
+
+export function runPaletteLineAction(actionFn: (api: EditorApi) => boolean | void): boolean {
+  closeAllModals();
+  const api = editorApi;
+  if (!api) return false;
+  api.focus();
+  if (paletteSelectionSnapshot && api.setSelectionRange) {
+    api.setSelectionRange(paletteSelectionSnapshot);
+  }
+  return !!actionFn(api);
 }
 
 /** Every static "do a thing" command. Rebuilt on each call so the
@@ -142,6 +213,78 @@ function commandItems(): PaletteItem[] {
         ]
       : []),
     {
+      id: "cmd-export-notes",
+      label: "Export all notes to file (.json)",
+      hint: "Export",
+      group: "Commands",
+      run: async () => {
+        await exportAllNotesToFile();
+      },
+    },
+    {
+      id: "cmd-line-close-open",
+      label: "Close open action on current line",
+      hint: formatCombo(shortcutById("cycleLineState").combos[0]),
+      group: "Current line",
+      run: () => runPaletteLineAction((api) => api.closeCurrentOpenAction?.()),
+    },
+    {
+      id: "cmd-line-reopen-done",
+      label: "Reopen done action on current line",
+      hint: formatCombo(shortcutById("cycleLineStateReverse").combos[0]),
+      group: "Current line",
+      run: () => runPaletteLineAction((api) => api.reopenCurrentDoneAction?.()),
+    },
+    {
+      id: "cmd-line-section",
+      label: "Convert line to section header",
+      hint: formatShortcut("convertToSection"),
+      group: "Current line",
+      run: () => runPaletteLineAction((api) => api.convertCurrentLineToSection?.()),
+    },
+    {
+      id: "cmd-line-set-open",
+      label: "Set line/selection to Open",
+      hint: formatShortcut("setActionOpen"),
+      group: "Current line",
+      run: () => runPaletteLineAction((api) => api.setActionStateOnSelection?.("#")),
+    },
+    {
+      id: "cmd-line-set-done",
+      label: "Set line/selection to Done",
+      hint: formatShortcut("setActionDone"),
+      group: "Current line",
+      run: () => runPaletteLineAction((api) => api.setActionStateOnSelection?.("v")),
+    },
+    {
+      id: "cmd-line-set-deferred",
+      label: "Set line/selection to Deferred",
+      hint: formatShortcut("setActionDeferred"),
+      group: "Current line",
+      run: () => runPaletteLineAction((api) => api.setActionStateOnSelection?.(">")),
+    },
+    {
+      id: "cmd-line-set-wontdo",
+      label: "Set line/selection to Won't-Do",
+      hint: formatShortcut("setActionWontDo"),
+      group: "Current line",
+      run: () => runPaletteLineAction((api) => api.setActionStateOnSelection?.("x")),
+    },
+    {
+      id: "cmd-line-jump-next",
+      label: "Jump to next open action",
+      hint: formatCombo(shortcutById("jumpAction").combos[0]),
+      group: "Current line",
+      run: () => runPaletteLineAction((api) => api.jumpAdjacentOpenAction?.(1)),
+    },
+    {
+      id: "cmd-line-jump-prev",
+      label: "Jump to previous open action",
+      hint: formatCombo(shortcutById("jumpAction").combos[1]),
+      group: "Current line",
+      run: () => runPaletteLineAction((api) => api.jumpAdjacentOpenAction?.(-1)),
+    },
+    {
       id: "cmd-wrap",
       label: `${wrap ? "Disable" : "Enable"} word wrap`,
       group: "Settings",
@@ -206,16 +349,8 @@ function openTabItems(): PaletteItem[] {
   }));
 }
 
-function fuzzyMatch(haystack: string, needle: string): boolean {
-  if (!needle) return true;
-  const h = haystack.toLowerCase();
-  const n = needle.toLowerCase();
-  let i = 0;
-  for (const ch of h) {
-    if (ch === n[i]) i++;
-    if (i === n.length) return true;
-  }
-  return n.length === 0;
+export function fuzzyMatch(haystack: string, needle: string): boolean {
+  return fuzzyMatchWithIndices(haystack, needle) !== null;
 }
 
 /** Build the visible result list for `query`. Async because the `!`/`#`
@@ -243,12 +378,15 @@ export async function buildPaletteResults(query: string): Promise<PaletteItem[]>
       const lines = cache[filename].split("\n");
       for (const lineIdx of openActionLineIndices(cache[filename])) {
         const text = stripLeadingToken(lines[lineIdx]).trim();
-        if (!fuzzyMatch(text, term)) continue;
+        const label = text || "(empty action)";
+        const match = fuzzyMatchWithIndices(label, term);
+        if (!match) continue;
         out.push({
           id: `act-${filename}-${lineIdx}`,
-          label: text || "(empty action)",
+          label,
           hint: filename.replace(/\.txt$/, ""),
           group: "Open actions",
+          matchedIndices: match.indices,
           run: () => jumpToFileLine({ filename, lineIdx }),
         });
       }
@@ -261,11 +399,14 @@ export async function buildPaletteResults(query: string): Promise<PaletteItem[]>
     const out: PaletteItem[] = [];
     const parsed = parseDateQuery(term);
     if (parsed) {
+      const label = `Jump to ${parsed}`;
+      const match = fuzzyMatchWithIndices(label, term);
       out.push({
         id: `date-${parsed}`,
-        label: `Jump to ${parsed}`,
+        label,
         hint: "date",
         group: "Dates",
+        matchedIndices: match ? match.indices : [],
         run: () => commitDatePick(parsed),
       });
     }
@@ -274,12 +415,14 @@ export async function buildPaletteResults(query: string): Promise<PaletteItem[]>
       const d = filename.replace(/\.txt$/, "");
       if (!/^\d{4}-\d{2}-\d{2}$/.test(d)) continue;
       if (out.some((i) => i.id === `date-${d}`)) continue;
-      if (term && !d.includes(term)) continue;
+      const match = fuzzyMatchWithIndices(d, term);
+      if (!match) continue;
       out.push({
         id: `date-${d}`,
         label: d,
         hint: "existing note",
         group: "Dates",
+        matchedIndices: match.indices,
         run: () => commitDatePick(d),
       });
     }
@@ -289,5 +432,17 @@ export async function buildPaletteResults(query: string): Promise<PaletteItem[]>
   const commandsOnly = q.startsWith(">");
   const term = commandsOnly ? q.slice(1).trim() : q;
   const pool = commandsOnly ? commandItems() : [...commandItems(), ...openTabItems()];
-  return pool.filter((it) => fuzzyMatch(`${it.label} ${it.hint ?? ""}`, term));
+  const out: PaletteItem[] = [];
+  for (const it of pool) {
+    const labelMatch = fuzzyMatchWithIndices(it.label, term);
+    if (labelMatch) {
+      out.push({ ...it, matchedIndices: labelMatch.indices });
+    } else {
+      const fullMatch = fuzzyMatchWithIndices(`${it.label} ${it.hint ?? ""}`, term);
+      if (fullMatch) {
+        out.push({ ...it, matchedIndices: [] });
+      }
+    }
+  }
+  return out;
 }
