@@ -33,7 +33,13 @@
   $: queryTerm = parsed.term;
 
   function removeChip(chip: SearchFilterChip) {
-    query = query.replace(chip.raw, "").replace(/\s{2,}/g, " ").trim();
+    if (chip.startIndex !== undefined && chip.endIndex !== undefined) {
+      query = (query.slice(0, chip.startIndex) + " " + query.slice(chip.endIndex))
+        .replace(/\s{2,}/g, " ")
+        .trim();
+    } else {
+      query = query.replace(chip.raw, "").replace(/\s{2,}/g, " ").trim();
+    }
     inputEl?.focus();
   }
 
@@ -212,7 +218,7 @@
     </div>
     {#if chips.length > 0}
       <div class="search-chips-row">
-        {#each chips as chip (chip.id)}
+        {#each chips as chip, idx (chip.id ?? idx)}
           <span class="search-chip">
             <span class="chip-label">{chip.label}</span>
             <button

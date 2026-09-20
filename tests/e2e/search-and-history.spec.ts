@@ -61,6 +61,66 @@ test.describe("cross-tab search (Ctrl/Cmd+Shift+F)", () => {
     await search(page).locator(".modal-input").fill("migration plan");
     await expect(rows(search(page))).toHaveCount(2);
   });
+
+  test("renders search operator chips and allows removing them (Area 8.2)", async ({ page }) => {
+    await seedApp(page, {
+      seed: {
+        notes: {
+          [todayFilename()]: "# (ui) Build search chips\nv (ui) Done task\n# (backend) Api work",
+        },
+      },
+    });
+    await editor(page).click();
+    await page.keyboard.press("ControlOrMeta+Shift+F");
+    await expect(search(page)).toBeVisible();
+
+    // Type query with operators
+    await search(page).locator(".modal-input").fill("is:open tag:ui");
+    const chips = search(page).locator(".search-chip");
+    await expect(chips).toHaveCount(2);
+    await expect(chips.first()).toContainText("is:open");
+    await expect(chips.nth(1)).toContainText("tag:ui");
+
+    // Only 1 result matching open + tag:ui
+    await expect(rows(search(page))).toHaveCount(1);
+    await expect(search(page)).toContainText("Build search chips");
+
+    // Click remove button on tag:ui chip
+    const removeBtn = chips.nth(1).locator(".chip-remove-btn");
+    await removeBtn.click();
+
+    // Now tag:ui chip is gone, is:open remains
+    await expect(chips).toHaveCount(1);
+    await expect(chips.first()).toContainText("is:open");
+    expect(await search(page).locator(".modal-input").inputValue()).toBe("is:open");
+
+    // Now matches both open items (Build search chips & Api work)
+    await expect(rows(search(page))).toHaveCount(2);
+  });
+
+  test("jumping to a search match applies .cm-line-hit-pulse animation to target line (Area 8.3)", async ({ page }) => {
+    await seedApp(page, {
+      seed: {
+        notes: {
+          [todayFilename()]: "Line 1\nLine 2\n# Target pulse action\nLine 4",
+        },
+      },
+    });
+    await editor(page).click();
+    await page.keyboard.press("ControlOrMeta+Shift+F");
+    await expect(search(page)).toBeVisible();
+
+    await search(page).locator(".modal-input").fill("pulse");
+    await expect(rows(search(page))).toHaveCount(1);
+
+    await page.keyboard.press("Enter");
+    expect(await currentModal(page)).toBe("none");
+
+    // Target line in editor should have .cm-line-hit-pulse class
+    const pulsedLine = editor(page).locator(".cm-line.cm-line-hit-pulse");
+    await expect(pulsedLine).toBeVisible();
+    await expect(pulsedLine).toContainText("Target pulse action");
+  });
 });
 
 test.describe("section history (Ctrl/Cmd+Shift+H)", () => {

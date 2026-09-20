@@ -14,6 +14,15 @@ function isHeaderLine(view: EditorView, lineNumber: number): boolean {
   return lineNumber < view.state.doc.lines && isSetextUnderline(view.state.doc.line(lineNumber + 1).text);
 }
 
+function isLineTouchedBySelection(view: EditorView, lineFrom: number, lineTo: number): boolean {
+  for (const range of view.state.selection.ranges) {
+    if (range.from <= lineTo && range.to >= lineFrom) {
+      return true;
+    }
+  }
+  return false;
+}
+
 export function buildResolvedLineDecorations(view: EditorView): DecorationSet {
   const builder = new RangeSetBuilder<Decoration>();
   for (const { from, to } of view.visibleRanges) {
@@ -23,7 +32,14 @@ export function buildResolvedLineDecorations(view: EditorView): DecorationSet {
       if (!isHeaderLine(view, line.number)) {
         const sym = innermostActionSymbol(line.text);
         if (sym === "v" || sym === "x") {
-          builder.add(line.from, line.from, Decoration.line({ class: "cm-line-resolved" }));
+          const isTouched = isLineTouchedBySelection(view, line.from, line.to);
+          builder.add(
+            line.from,
+            line.from,
+            Decoration.line({
+              class: isTouched ? "cm-line-resolved cm-line-resolved-active" : "cm-line-resolved",
+            }),
+          );
         }
       }
       pos = line.to + 1;
@@ -39,7 +55,7 @@ export const resolvedLinesPlugin = ViewPlugin.fromClass(
       this.decorations = buildResolvedLineDecorations(view);
     }
     update(update: ViewUpdate) {
-      if (update.docChanged || update.viewportChanged) {
+      if (update.docChanged || update.viewportChanged || update.selectionSet || update.focusChanged) {
         this.decorations = buildResolvedLineDecorations(update.view);
       }
     }

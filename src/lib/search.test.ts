@@ -20,7 +20,7 @@ describe("parseSearchQuery operator parser (Decision 7 / Area 8.2)", () => {
     expect(res1.term).toBe("project");
     expect(res1.operators.isOpen).toBe(true);
     expect(res1.chips).toHaveLength(1);
-    expect(res1.chips[0]).toEqual({
+    expect(res1.chips[0]).toMatchObject({
       id: "op-is-open",
       raw: "is:open",
       label: "is:open",
@@ -38,7 +38,7 @@ describe("parseSearchQuery operator parser (Decision 7 / Area 8.2)", () => {
     const res = parseSearchQuery("tag:ui bug fix");
     expect(res.term).toBe("bug fix");
     expect(res.operators.tag).toBe("ui");
-    expect(res.chips[0]).toEqual({
+    expect(res.chips[0]).toMatchObject({
       id: "op-tag-ui",
       raw: "tag:ui",
       label: "tag:ui",
@@ -156,5 +156,44 @@ describe("runSearch 3-line context extraction and operator filtering", () => {
 
     // Only note from 2026-09-15 should match
     expect(results.every((r) => r.tabFilename === "2026-09-15.txt")).toBe(true);
+  });
+
+  it("handles repeated identical operators without crashing or producing duplicate chips", () => {
+    const parsed = parseSearchQuery("is:open is:open tag:ui tag:ui");
+    expect(parsed.chips).toHaveLength(2);
+    expect(parsed.chips.map((c) => c.label)).toEqual(["is:open", "tag:ui"]);
+    expect(parsed.operators.isOpen).toBe(true);
+    expect(parsed.operators.tags).toEqual(["ui"]);
+  });
+
+  it("resolves conflicting single-valued operators where last one wins (is:open is:done, two since:)", () => {
+    const parsed = parseSearchQuery("is:open is:done since:2026-09-01 since:2026-09-10");
+    // is:done overrides is:open, second since overrides first
+    expect(parsed.operators.isOpen).toBeUndefined();
+    expect(parsed.operators.isDone).toBe(true);
+    expect(parsed.operators.since).toBe("2026-09-10");
+    expect(parsed.chips).toHaveLength(2);
+    expect(parsed.chips.find((c) => c.kind === "is")?.value).toBe("done");
+    expect(parsed.chips.find((c) => c.kind === "since")?.value).toBe("2026-09-10");
+  });
+
+  it("handles two different tag: operators by matching all of them", () => {
+    const parsed = parseSearchQuery("tag:ui tag:backend");
+    expect(parsed.operators.tags).toEqual(["ui", "backend"]);
+    expect(parsed.chips).toHaveLength(2);
+    expect(parsed.chips[0].label).toBe("tag:ui");
+    expect(parsed.chips[1].label).toBe("tag:backend");
+  });
+
+  it("records exact token start/end indices on chips for precise removal", () => {
+    const q = "is:open palette tag:ui";
+    const parsed = parseSearchQuery(q);
+    const chip = parsed.chips.find((c) => c.label === "tag:ui");
+    expect(chip?.startIndex).toBe(16);
+    expect(chip?.endIndex).toBe(22);
+    const removed = (q.slice(0, chip!.startIndex) + " " + q.slice(chip!.endIndex))
+      .replace(/\s{2,}/g, " ")
+      .trim();
+    expect(removed).toBe("is:open palette");
   });
 });

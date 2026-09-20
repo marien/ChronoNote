@@ -62,6 +62,7 @@ test.describe("date picker — anchored calendar popover (Ctrl/Cmd+O, §104)", (
     await expect(pop(page).locator('.cal-day[data-iso="2026-09-20"]')).not.toHaveClass(/\bhas\b/);
   });
 
+
   test("§follow-up: a day only counts as 'has a note' once its file actually has content", async ({ page }) => {
     // A day with real content (today, from the busy-week seed) is bold.
     await expect(pop(page).locator(`.cal-day[data-iso="${REFERENCE_TODAY}"]`)).toHaveClass(/\bhasnote\b/);
@@ -145,7 +146,7 @@ test.describe("#46: the date-picker dot reflects a resolved action after its tab
     await editor(page).click();
     await parkMouse(page);
     await page.keyboard.press("ControlOrMeta+o");
-    await expect(datePicker(page).locator(dayIso)).toHaveClass(/\bhas\b/);
+    await expect(datePicker(page).locator(dayIso)).toHaveClass(/\bhas-pending\b/);
     await page.keyboard.press("Escape");
 
     // Resolve the only action, then close the tab.
@@ -154,12 +155,13 @@ test.describe("#46: the date-picker dot reflects a resolved action after its tab
     expect(await activeTabContent(page)).toBe("v an open action");
     await page.keyboard.press("ControlOrMeta+w");
 
-    // The dot must clear — without #46's fix, the disk-read cache still
+    // The dot must reflect the resolved state (has-done, not has-pending) — without #46's fix, the disk-read cache still
     // held the pre-resolution content (the live-tab overlay that was
     // covering for it is gone the moment the tab closes).
     await parkMouse(page);
     await page.keyboard.press("ControlOrMeta+o");
-    await expect(datePicker(page).locator(dayIso)).not.toHaveClass(/\bhas\b/);
+    await expect(datePicker(page).locator(dayIso)).not.toHaveClass(/\bhas-pending\b/);
+    await expect(datePicker(page).locator(dayIso)).toHaveClass(/\bhas-done\b/);
   });
 });
 
@@ -219,3 +221,34 @@ test.describe("date picker: visible-month dots load fast, a spinner covers the r
     await expect(pop(page).locator(".modal-spinner")).toHaveCount(0, { timeout: 2000 });
   });
 });
+
+test.describe("date picker heatmap (Area 7 / R7)", () => {
+  test("heatmap renders done, pending, and log states with accessible aria-labels", async ({ page }) => {
+    await seedApp(page, {
+      seed: {
+        notes: {
+          "2026-09-01.txt": "# open task",
+          "2026-09-02.txt": "v completed task\n> deferred task",
+          "2026-09-03.txt": "Just a plain journal log with no actions",
+        },
+      },
+    });
+    await editor(page).click();
+    await parkMouse(page);
+    await page.keyboard.press("ControlOrMeta+o");
+
+    const pendingDay = pop(page).locator('.cal-day[data-iso="2026-09-01"]');
+    const doneDay = pop(page).locator('.cal-day[data-iso="2026-09-02"]');
+    const logDay = pop(page).locator('.cal-day[data-iso="2026-09-03"]');
+
+    await expect(pendingDay).toHaveClass(/\bhas-pending\b/);
+    await expect(pendingDay).toHaveAttribute("aria-label", /open actions pending/);
+
+    await expect(doneDay).toHaveClass(/\bhas-done\b/);
+    await expect(doneDay).toHaveAttribute("aria-label", /all tasks completed/);
+
+    await expect(logDay).toHaveClass(/\bhas-log\b/);
+    await expect(logDay).toHaveAttribute("aria-label", /note log with no tasks/);
+  });
+});
+

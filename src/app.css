@@ -987,6 +987,7 @@ body {
 }
 
 .cm-line.cm-line-resolved:hover,
+.cm-line.cm-line-resolved.cm-line-resolved-active,
 .cm-line.cm-line-resolved:focus-within {
   opacity: 1;
 }

@@ -23,6 +23,8 @@ export interface SearchFilterChip {
   label: string;
   kind: "is" | "tag" | "has" | "since" | "before";
   value: string;
+  startIndex?: number;
+  endIndex?: number;
 }
 
 export interface ParsedSearchQuery {
@@ -31,6 +33,7 @@ export interface ParsedSearchQuery {
     isOpen?: boolean;
     isDone?: boolean;
     tag?: string;
+    tags?: string[];
     hasAssignee?: string;
     since?: string;
     before?: string;
@@ -43,21 +46,75 @@ export function parseSearchQuery(query: string): ParsedSearchQuery {
   const operators: ParsedSearchQuery["operators"] = {};
   const remainingTokens: string[] = [];
 
-  const tokens = query.trim().split(/\s+/).filter(Boolean);
+  const tokenRegex = /\S+/g;
+  let match: RegExpExecArray | null;
 
-  for (const token of tokens) {
+  while ((match = tokenRegex.exec(query)) !== null) {
+    const token = match[0];
+    const startIndex = match.index;
+    const endIndex = startIndex + token.length;
     const lower = token.toLowerCase();
+
     if (lower === "is:open") {
+      delete operators.isDone;
       operators.isOpen = true;
-      chips.push({ id: "op-is-open", raw: token, label: "is:open", kind: "is", value: "open" });
+      const existingIdx = chips.findIndex((c) => c.kind === "is");
+      const chip: SearchFilterChip = {
+        id: "op-is-open",
+        raw: token,
+        label: "is:open",
+        kind: "is",
+        value: "open",
+        startIndex,
+        endIndex,
+      };
+      if (existingIdx !== -1) {
+        chips[existingIdx] = chip;
+      } else {
+        chips.push(chip);
+      }
     } else if (lower === "is:done") {
+      delete operators.isOpen;
       operators.isDone = true;
-      chips.push({ id: "op-is-done", raw: token, label: "is:done", kind: "is", value: "done" });
+      const existingIdx = chips.findIndex((c) => c.kind === "is");
+      const chip: SearchFilterChip = {
+        id: "op-is-done",
+        raw: token,
+        label: "is:done",
+        kind: "is",
+        value: "done",
+        startIndex,
+        endIndex,
+      };
+      if (existingIdx !== -1) {
+        chips[existingIdx] = chip;
+      } else {
+        chips.push(chip);
+      }
     } else if (lower.startsWith("tag:")) {
       const val = token.slice(4).trim();
       if (val) {
+        if (!operators.tags) operators.tags = [];
+        if (!operators.tags.includes(val)) {
+          operators.tags.push(val);
+        }
         operators.tag = val;
-        chips.push({ id: `op-tag-${val}`, raw: token, label: `tag:${val}`, kind: "tag", value: val });
+
+        const existingIdx = chips.findIndex((c) => c.kind === "tag" && c.value === val);
+        const chip: SearchFilterChip = {
+          id: `op-tag-${val}`,
+          raw: token,
+          label: `tag:${val}`,
+          kind: "tag",
+          value: val,
+          startIndex,
+          endIndex,
+        };
+        if (existingIdx !== -1) {
+          chips[existingIdx] = chip;
+        } else {
+          chips.push(chip);
+        }
       } else {
         remainingTokens.push(token);
       }
@@ -66,7 +123,21 @@ export function parseSearchQuery(query: string): ParsedSearchQuery {
       if (val.startsWith("@")) val = val.slice(1);
       if (val) {
         operators.hasAssignee = val;
-        chips.push({ id: `op-has-${val}`, raw: token, label: `has:@${val}`, kind: "has", value: val });
+        const existingIdx = chips.findIndex((c) => c.kind === "has");
+        const chip: SearchFilterChip = {
+          id: `op-has-${val}`,
+          raw: token,
+          label: `has:@${val}`,
+          kind: "has",
+          value: val,
+          startIndex,
+          endIndex,
+        };
+        if (existingIdx !== -1) {
+          chips[existingIdx] = chip;
+        } else {
+          chips.push(chip);
+        }
       } else {
         remainingTokens.push(token);
       }
@@ -74,7 +145,21 @@ export function parseSearchQuery(query: string): ParsedSearchQuery {
       const val = token.slice(6).trim();
       if (/^\d{4}-\d{2}-\d{2}$/.test(val)) {
         operators.since = val;
-        chips.push({ id: `op-since-${val}`, raw: token, label: `since:${val}`, kind: "since", value: val });
+        const existingIdx = chips.findIndex((c) => c.kind === "since");
+        const chip: SearchFilterChip = {
+          id: `op-since-${val}`,
+          raw: token,
+          label: `since:${val}`,
+          kind: "since",
+          value: val,
+          startIndex,
+          endIndex,
+        };
+        if (existingIdx !== -1) {
+          chips[existingIdx] = chip;
+        } else {
+          chips.push(chip);
+        }
       } else {
         remainingTokens.push(token);
       }
@@ -82,7 +167,21 @@ export function parseSearchQuery(query: string): ParsedSearchQuery {
       const val = token.slice(7).trim();
       if (/^\d{4}-\d{2}-\d{2}$/.test(val)) {
         operators.before = val;
-        chips.push({ id: `op-before-${val}`, raw: token, label: `before:${val}`, kind: "before", value: val });
+        const existingIdx = chips.findIndex((c) => c.kind === "before");
+        const chip: SearchFilterChip = {
+          id: `op-before-${val}`,
+          raw: token,
+          label: `before:${val}`,
+          kind: "before",
+          value: val,
+          startIndex,
+          endIndex,
+        };
+        if (existingIdx !== -1) {
+          chips[existingIdx] = chip;
+        } else {
+          chips.push(chip);
+        }
       } else {
         remainingTokens.push(token);
       }
@@ -117,9 +216,13 @@ export function runSearch(query: string, scope: "open" | "all" = "open") {
   }
 
   const { term, operators } = parsed;
-  const termLower = term.toLowerCase();
-  const tagTarget = operators.tag ? `(${operators.tag.toLowerCase()})` : null;
-  const assigneeRegex = operators.hasAssignee ? new RegExp(`@${operators.hasAssignee}\\b`, "i") : null;
+  const termLower = term.trim().toLowerCase();
+  const tagsTarget = (operators.tags ?? (operators.tag ? [operators.tag] : [])).map(
+    (t) => `(${t.toLowerCase()})`,
+  );
+  const assigneeRegex = operators.hasAssignee
+    ? new RegExp(`@${operators.hasAssignee.toLowerCase()}\\b`, "i")
+    : null;
 
   function matchesLine(filename: string, line: string): boolean {
     const iso = filename.replace(/\.txt$/, "");
@@ -132,7 +235,9 @@ export function runSearch(query: string, scope: "open" | "all" = "open") {
     }
     if (operators.isOpen && innermostActionSymbol(line) !== "#") return false;
     if (operators.isDone && innermostActionSymbol(line) !== "v") return false;
-    if (tagTarget && !line.toLowerCase().includes(tagTarget)) return false;
+    for (const target of tagsTarget) {
+      if (!line.toLowerCase().includes(target)) return false;
+    }
     if (assigneeRegex && !assigneeRegex.test(line)) return false;
     if (termLower && !line.toLowerCase().includes(termLower)) return false;
     return true;

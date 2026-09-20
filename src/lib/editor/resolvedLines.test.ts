@@ -68,14 +68,26 @@ describe("resolvedLinesPlugin", () => {
     expect(indices).toEqual([]);
   });
 
-  it("instantiates ViewPlugin successfully", () => {
+  it("marks active resolved line with cm-line-resolved-active when cursor is on it", () => {
+    const doc = ["# Task 1", "v Done task", "x Cancelled task"].join("\n");
+    // Place caret on line 1 ("v Done task", pos 12)
     const state = EditorState.create({
-      doc: "v Done",
-      extensions: [resolvedLinesPlugin],
+      doc,
+      selection: { anchor: 12 },
     });
     const view = new EditorView({ state });
-    const plugin = view.plugin(resolvedLinesPlugin);
-    expect(plugin).toBeDefined();
+    const decos = buildResolvedLineDecorations(view);
+    const classes: { line: number; cls: string }[] = [];
+    decos.between(0, state.doc.length, (from, to, value) => {
+      const line = state.doc.lineAt(from);
+      classes.push({ line: line.number - 1, cls: (value.spec as any).class });
+    });
     view.destroy();
+
+    // Line 1 is active (caret on it), Line 2 is inactive
+    expect(classes).toEqual([
+      { line: 1, cls: "cm-line-resolved cm-line-resolved-active" },
+      { line: 2, cls: "cm-line-resolved" },
+    ]);
   });
 });

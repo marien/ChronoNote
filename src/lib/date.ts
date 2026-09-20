@@ -1,3 +1,5 @@
+import { countActions } from "./tokens";
+
 export function formatISO(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(
     d.getDate(),
@@ -104,8 +106,6 @@ export const MONTH_NAMES = [
   "November",
   "December",
 ];
-
-import { countActions } from "./tokens";
 
 export type DayHeatState = "done" | "pending" | "log";
 

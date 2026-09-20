@@ -274,4 +274,31 @@ test.describe("editor — token glyphs", () => {
 
     expect(await activeTabContent(page)).toBe("=> # ship the docs\n=> # write the notes");
   });
+
+  test("resolved lines (v, x) are dimmed (opacity 0.72) and restore full opacity (1) when caret is on the line", async ({ page }) => {
+    await setEditorText(page, "# open line\nv done line");
+
+    const lines = editor(page).locator(".cm-line");
+    await expect(lines).toHaveCount(2);
+
+    // Click on first line so caret is on line 1 (# open line)
+    await lines.first().click();
+
+    // Line 2 should have cm-line-resolved with opacity 0.72
+    await expect(lines.nth(1)).toHaveClass(/\bcm-line-resolved\b/);
+    const dimmedOpacity = await lines.nth(1).evaluate((el) => window.getComputedStyle(el).opacity);
+    expect(parseFloat(dimmedOpacity)).toBeCloseTo(0.72, 2);
+
+    // Move caret to line 2 (v done line)
+    await page.keyboard.press("ArrowDown");
+
+    // Line 2 should now receive cm-line-resolved-active and restore opacity 1
+    await expect(lines.nth(1)).toHaveClass(/\bcm-line-resolved-active\b/);
+    await expect
+      .poll(async () => {
+        const op = await lines.nth(1).evaluate((el) => window.getComputedStyle(el).opacity);
+        return parseFloat(op);
+      })
+      .toBeCloseTo(1.0, 2);
+  });
 });

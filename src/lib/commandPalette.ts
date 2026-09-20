@@ -415,14 +415,16 @@ export async function buildPaletteResults(query: string): Promise<PaletteItem[]>
       const d = filename.replace(/\.txt$/, "");
       if (!/^\d{4}-\d{2}-\d{2}$/.test(d)) continue;
       if (out.some((i) => i.id === `date-${d}`)) continue;
-      const match = fuzzyMatchWithIndices(d, term);
-      if (!match) continue;
+      // Date query (@) maintains strict substring matching rather than fuzzy matching
+      if (term && !d.includes(term)) continue;
+      const idx = term ? d.indexOf(term) : -1;
+      const matchedIndices = idx >= 0 ? Array.from({ length: term.length }, (_, k) => idx + k) : [];
       out.push({
         id: `date-${d}`,
         label: d,
         hint: "existing note",
         group: "Dates",
-        matchedIndices: match.indices,
+        matchedIndices,
         run: () => commitDatePick(d),
       });
     }
@@ -438,6 +440,9 @@ export async function buildPaletteResults(query: string): Promise<PaletteItem[]>
     if (labelMatch) {
       out.push({ ...it, matchedIndices: labelMatch.indices });
     } else {
+      // Pre-existing behaviour: items also match when the query appears across `label + hint`.
+      // When matched solely via the hint text, `matchedIndices` is deliberately kept empty so
+      // spurious character underlines are not rendered across the label text.
       const fullMatch = fuzzyMatchWithIndices(`${it.label} ${it.hint ?? ""}`, term);
       if (fullMatch) {
         out.push({ ...it, matchedIndices: [] });

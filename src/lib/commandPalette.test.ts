@@ -83,12 +83,17 @@ describe("buildPaletteResults prefix query modes", () => {
     expect(items2[0].matchedIndices).toBeDefined();
   });
 
-  it("handles '@' prefix for date navigation with match highlighting", async () => {
+  it("handles '@' prefix for date navigation with substring match highlighting", async () => {
     const items = await buildPaletteResults("@2026-09-20");
     expect(items.length).toBeGreaterThan(0);
     const dateItem = items.find((i) => i.id === "date-2026-09-20");
     expect(dateItem).toBeDefined();
-    expect(dateItem?.matchedIndices).toBeDefined();
+    expect(dateItem?.matchedIndices).toEqual([8, 9, 10, 11, 12, 13, 14, 15, 16, 17]);
+
+    // Substring matching: non-substring should not match existing note (e.g. 0919 does not match 2026-09-20)
+    const nonSub = await buildPaletteResults("@0919");
+    const nonSubMatch = nonSub.find((i) => i.id === "date-2026-09-20");
+    expect(nonSubMatch).toBeUndefined();
   });
 
   it("registers Current line commands and export command", async () => {
