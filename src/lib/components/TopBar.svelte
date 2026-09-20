@@ -129,6 +129,10 @@
   $: showHorizontalTabs = !$isMobile;
   // Touch-first only: desktop scrolls its strip with the §52 arrows instead.
   $: showOpenTabsBtn = !showHorizontalTabs;
+  $: mobileActiveTab = $tabs.find((t) => t.id === $activeTabId) ?? null;
+  // On a phone the top bar carries the drawer button and the active tab's date, so
+  // there's no room for the whole button row: the secondary buttons live in "More".
+  $: if (!showHorizontalTabs) buttonsCollapsed = true;
 
   $: activeTab = $tabs.find((t) => t.id === $activeTabId);
   // The button itself only ever appears once turned on in Settings — an
@@ -714,6 +718,18 @@
         <Icon name="tabs" size={16} />
         <span class="mobile-tab-count">{$tabs.length}</span>
       </button>
+      {#if mobileActiveTab}
+        <button
+          class="tab active mobile-active-tab {mobileActiveTab.isScratchpad ? 'scratch' : 'daily'} {tabDateClass(mobileActiveTab, $currentDateISO)}"
+          aria-label="Active tab: {tabLabel(mobileActiveTab)} (opens the tab list)"
+          on:click={() => mobileTabDrawerOpen.set(true)}
+        >
+          <span class="tab-icon" aria-hidden="true">
+            <Icon name={mobileActiveTab.isScratchpad ? "tab-scratch" : "tab-daily"} size={13} />
+          </span>
+          <span class="tab-label">{tabLabel(mobileActiveTab)}</span>
+        </button>
+      {/if}
     {/if}
     <div class="tab-bar-spacer"></div>
   {:else}

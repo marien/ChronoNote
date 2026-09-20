@@ -352,6 +352,9 @@ export interface EditorApi {
    * verbatim, `fromLine`/`toLine` are 0-based and inclusive. */
   getSelection: () => { text: string; fromLine: number; toLine: number };
   focus: () => void;
+  /** Scrolls the caret into view (the layout changed height under it, e.g. the
+   * on-screen keyboard opened). */
+  scrollCaretIntoView?: () => void;
   /** §108: in-document find, driven by the floating `FindBar`. */
   find: {
     setQuery: (q: string) => void;

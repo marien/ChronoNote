@@ -6,7 +6,7 @@ kept for the rationale behind each one — not just *what* changed but
 was still being gathered and confirmed before implementation; renamed once
 everything below was applied, since nothing here is "pending" anymore.
 
-**Status: all sections through §188 implemented** (§178–§180 in v0.9.5: a save-only-when-changed fix and two GitHub issues, #76/#77; §181–§186 in v0.10.0: the Android app and OneDrive sync; §187–§188 in v0.11.0: OneDrive sync for the web app, and the fixes found reviewing and testing it). §153 is a
+**Status: all sections through §189 implemented** (§178–§180 in v0.9.5: a save-only-when-changed fix and two GitHub issues, #76/#77; §181–§186 in v0.10.0: the Android app and OneDrive sync; §187–§188 in v0.11.0: OneDrive sync for the web app, and the fixes found reviewing and testing it). §153 is a
 website-only Guide-page fix (found live right after §150–§152 shipped
 as v0.7.12) — no version bump, nothing in the shipped app changed. §154
 merges the OS title bar into the top bar (Notepad-style: icon, tabs,
@@ -8319,3 +8319,25 @@ merge against); the Android engine was not checked for the folder-switch
 leftover problem in item 4.
 
 Verification: Vitest 433, `svelte-check` 0, Playwright 251, `cargo test` 137.
+
+## 189. Phone feedback on the web app: tabs drawer, active tab, keyboard (after v0.11.0)
+
+Marien used the web app on a phone and reported four things.
+
+1. **The tabs drawer was unsorted.** It listed tabs in open order; it now uses the
+   tab bar's order (dated notes by date, then scratchpads, with a divider).
+2. **The drawer didn't use the tab bar's colours.** The active row is now the
+   canvas surface with the accent edge, and past/today/future tint the icon the
+   same way as the tab bar (§68).
+3. **Only the drawer button was visible, not which date was open.** The active
+   tab is now shown next to the drawer button (tap it to open the drawer). To
+   make room, a phone's top bar always keeps the secondary buttons (Actions,
+   History, Search, Settings) inside "More".
+4. **The on-screen keyboard covered the bottom bar and the last lines.** The web
+   app's viewport meta now has `interactive-widget=resizes-content` (Chrome on
+   Android shrinks the layout with the keyboard). iOS Safari ignores that, so
+   `mobileViewport.ts` sizes the app to the visual viewport (`--app-vvh`) while a
+   keyboard is up and scrolls the caret into view. **Untested on a real phone**
+   (no keyboard in the test browser); the threshold logic is unit-tested.
+
+Verification: Vitest 436, `svelte-check` 0, Playwright 255.

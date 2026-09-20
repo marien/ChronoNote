@@ -244,7 +244,7 @@ html,
 body,
 #app {
   height: 100%;
-  height: 100dvh;
+  height: var(--app-vvh, 100dvh);
 }
 
 body {
@@ -254,7 +254,7 @@ body {
   display: flex;
   flex-direction: column;
   height: 100%;
-  height: 100dvh;
+  height: var(--app-vvh, 100dvh);
   overflow: hidden;
   user-select: none;
 }
@@ -264,7 +264,7 @@ body {
   flex-direction: column;
   width: 100%;
   height: 100%;
-  height: 100dvh;
+  height: var(--app-vvh, 100dvh);
   overflow: hidden;
 }
 
@@ -2312,6 +2312,19 @@ body {
 .mobile-tab-drawer-btn:active {
   background: var(--surface-hover);
 }
+/* The active tab, shown next to the drawer button so the date being edited is always visible. */
+.tab.mobile-active-tab {
+  flex: 0 1 auto;
+  min-width: 0;
+  border: none;
+  font: inherit;
+  font-size: 12px;
+  margin: 0 0 0 4px;
+}
+.tab.mobile-active-tab .tab-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 .mobile-tab-count {
   font-size: 10px;
   opacity: 0.85;
@@ -2467,10 +2480,36 @@ body {
   user-select: none;
   -webkit-tap-highlight-color: transparent;
 }
+/* Same scheme as the tab bar (.tab): the active tab is the canvas surface with the
+   accent edge, and past/today/future tint the icon the same way (#68). */
 .drawer-tab-item.active {
-  background: var(--selected-bg);
-  color: var(--selected-fg);
+  background: var(--surface-canvas);
+  color: var(--text);
   font-weight: 600;
+  box-shadow: inset 3px 0 0 var(--tab-active-border);
+}
+.drawer-tab-item.scratch .drawer-tab-name {
+  font-style: italic;
+}
+.drawer-tab-item.active .drawer-tab-icon {
+  opacity: 1;
+  color: var(--tab-active-border);
+}
+.drawer-tab-item.past .drawer-tab-icon {
+  opacity: 0.45;
+}
+.drawer-tab-item.today .drawer-tab-icon {
+  opacity: 1;
+  color: var(--tab-active-border);
+}
+.drawer-tab-item.future .drawer-tab-icon {
+  opacity: 1;
+  color: var(--state-ok);
+}
+.drawer-group-divider {
+  height: 1px;
+  margin: 2px 4px;
+  background: var(--edge-strong);
 }
 .drawer-tab-item:active {
   opacity: 0.85;

@@ -4,6 +4,7 @@
   import * as controller from "./lib/controller";
   import { activeTabId, backendKind, editorApi, findOpen, isMobile, modal, mobileTabDrawerOpen, scratchpadGateContext, tabs } from "./lib/controller";
   import { matchesShortcut } from "./lib/shortcuts";
+  import { wireMobileViewport } from "./lib/mobileViewport";
   import TopBar from "./lib/components/TopBar.svelte";
   import StatusBar from "./lib/components/StatusBar.svelte";
   import EditorPane from "./lib/components/EditorPane.svelte";
@@ -141,8 +142,11 @@
     window.addEventListener("resize", updateMobile);
     window.addEventListener("orientationchange", updateMobile);
 
+    const unwireViewport = wireMobileViewport();
+
     window.addEventListener("keydown", onKeydown);
     return () => {
+      unwireViewport();
       window.removeEventListener("keydown", onKeydown);
       mediaQuery.removeEventListener("change", updateMobile);
       window.removeEventListener("resize", updateMobile);

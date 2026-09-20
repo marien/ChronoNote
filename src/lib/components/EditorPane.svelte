@@ -628,6 +628,12 @@
           toLine: lastLine.number - 1,
         };
       },
+      scrollCaretIntoView: () => {
+        if (!view) return;
+        view.dispatch({
+          effects: EditorView.scrollIntoView(view.state.selection.main.head, { y: "nearest", yMargin: 32 }),
+        });
+      },
       focus: () => {
         if (!view) return;
         const prevMode = view.contentDOM.getAttribute("inputmode");

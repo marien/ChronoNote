@@ -7,6 +7,9 @@
   import { closeOnOutsideClick } from "../../actions/closeOnOutsideClick";
   import { focusTrap } from "../../actions/focusTrap";
 
+  // Same order as the desktop tab bar: dated notes by date, then scratchpads.
+  $: sortedTabs = controller.sortedTabsForDisplay($tabs);
+
   const tabLabel = (t: NoteTab) => (t.isScratchpad ? t.filename : t.filename.replace(/\.txt$/, ""));
 
   const tabDateClass = (t: NoteTab): string => {
@@ -70,9 +73,12 @@
     </div>
 
     <div class="drawer-tab-list" role="tablist">
-      {#each $tabs as tab (tab.id)}
+      {#each sortedTabs as tab, i (tab.id)}
+        {#if i > 0 && tab.isScratchpad && !sortedTabs[i - 1].isScratchpad}
+          <div class="drawer-group-divider" aria-hidden="true"></div>
+        {/if}
         <div
-          class="drawer-tab-item {tabDateClass(tab)}"
+          class="drawer-tab-item {tab.isScratchpad ? 'scratch' : 'daily'} {tabDateClass(tab)}"
           class:active={tab.id === $activeTabId}
           role="tab"
           tabindex="0"
