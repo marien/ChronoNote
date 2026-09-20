@@ -285,7 +285,7 @@ describe("WebBackend", () => {
         await connectedTo("A");
         await backend.invoke("write_note", { filename: "2026-09-10.txt", content: "from folder A\n" });
 
-        const prep = (await backend.invoke("web_prepare_folder_switch", { newFolderId: "B" })) as { ready: boolean; switched: boolean };
+        const prep = (await backend.invoke("onedrive_prepare_folder_switch", { newFolderId: "B" })) as { ready: boolean; switched: boolean };
         expect(prep).toMatchObject({ ready: true, switched: true });
         expect(client.uploadFileContent).toHaveBeenCalledWith("tok", "A", "2026-09-10.txt", "from folder A\n", undefined);
         expect(mockStores.notes_cloud.size).toBe(0);
@@ -302,7 +302,7 @@ describe("WebBackend", () => {
         await backend.invoke("write_note", { filename: "2026-09-10.txt", content: "unsynced\n" });
         client.uploadFileContent.mockRejectedValue(new Error("network down"));
 
-        const prep = (await backend.invoke("web_prepare_folder_switch", { newFolderId: "B" })) as { ready: boolean; message?: string };
+        const prep = (await backend.invoke("onedrive_prepare_folder_switch", { newFolderId: "B" })) as { ready: boolean; message?: string };
         expect(prep.ready).toBe(false);
         expect(prep.message).toMatch(/Nothing was changed/);
         expect(mockStores.notes_cloud.get("2026-09-10.txt").content).toBe("unsynced\n");
@@ -313,7 +313,7 @@ describe("WebBackend", () => {
         await connectedTo("A");
         await backend.invoke("write_note", { filename: "2026-09-10.txt", content: "local\n" });
 
-        const prep = (await backend.invoke("web_prepare_folder_switch", { newFolderId: "B" })) as { ready: boolean; message?: string };
+        const prep = (await backend.invoke("onedrive_prepare_folder_switch", { newFolderId: "B" })) as { ready: boolean; message?: string };
         expect(prep.ready).toBe(false);
         expect(prep.message).toMatch(/conflict/);
         expect(mockStores.notes_cloud.has("2026-09-10.txt")).toBe(true);
@@ -327,7 +327,7 @@ describe("WebBackend", () => {
         await connect();
         client.uploadFileContent.mockRejectedValue(new Error("not this account's folder"));
 
-        const prep = (await backend.invoke("web_prepare_folder_switch", { newFolderId: "B" })) as { ready: boolean; archivedCount: number };
+        const prep = (await backend.invoke("onedrive_prepare_folder_switch", { newFolderId: "B" })) as { ready: boolean; archivedCount: number };
         expect(prep).toMatchObject({ ready: true, archivedCount: 1 });
         expect(mockStores.notes_cloud.size).toBe(0);
         const archived = [...mockStores.notes_archive.entries()];
@@ -341,12 +341,12 @@ describe("WebBackend", () => {
         stubClient({});
         await connectedTo("A");
         await backend.invoke("write_note", { filename: "2026-09-10.txt", content: "keep\n" });
-        expect(await backend.invoke("web_prepare_folder_switch", { newFolderId: "A" })).toMatchObject({ switched: false });
+        expect(await backend.invoke("onedrive_prepare_folder_switch", { newFolderId: "A" })).toMatchObject({ switched: false });
         expect(mockStores.notes_cloud.size).toBe(1);
 
         await backend.invoke("onedrive_logout", { removeLocalData: true });
         await backend.invoke("write_note", { filename: "2026-09-11.txt", content: "browser\n" });
-        expect(await backend.invoke("web_prepare_folder_switch", { newFolderId: "B" })).toMatchObject({ switched: false });
+        expect(await backend.invoke("onedrive_prepare_folder_switch", { newFolderId: "B" })).toMatchObject({ switched: false });
       });
     });
   });

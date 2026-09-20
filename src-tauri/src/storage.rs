@@ -802,6 +802,7 @@ fn generate_typescript_bindings() {
         crate::onedrive::OneDriveLoginResult::decl(&cfg),
         crate::onedrive::OneDriveFolderItem::decl(&cfg),
         crate::onedrive::OneDriveFolderConfig::decl(&cfg),
+        crate::onedrive::FolderSwitchResult::decl(&cfg),
         crate::onedrive::OneDriveSyncResult::decl(&cfg),
         crate::onedrive::SyncConflict::decl(&cfg),
         crate::onedrive::SyncStatus::decl(&cfg),

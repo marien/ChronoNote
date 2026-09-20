@@ -238,6 +238,18 @@ fn onedrive_set_folder(
 }
 
 #[tauri::command]
+async fn onedrive_prepare_folder_switch(
+    app: AppHandle,
+    mgr: tauri::State<'_, std::sync::Arc<onedrive::sync::OneDriveManager>>,
+    new_folder_id: String,
+) -> Result<onedrive::FolderSwitchResult, String> {
+    let data_dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
+    let cfg = storage::load_config(&app)?;
+    let notes_dir = std::path::PathBuf::from(cfg.notes_dir);
+    mgr.prepare_folder_switch(&data_dir, &notes_dir, &new_folder_id).await
+}
+
+#[tauri::command]
 fn onedrive_get_folder(
     app: AppHandle,
     mgr: tauri::State<'_, std::sync::Arc<onedrive::sync::OneDriveManager>>,
@@ -463,6 +475,7 @@ pub fn run() {
             onedrive_list_folders,
             onedrive_create_folder,
             onedrive_set_folder,
+            onedrive_prepare_folder_switch,
             onedrive_get_folder,
             onedrive_sync_now,
             onedrive_get_conflicts,

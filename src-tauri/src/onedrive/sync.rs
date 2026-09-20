@@ -5,7 +5,7 @@ use super::auth::{
 };
 use super::client::{DeleteResult, OneDriveClient, UploadResult};
 use super::{
-    OneDriveAccount, OneDriveAdvancedConfig, OneDriveFolderConfig, OneDriveFolderItem,
+    FolderSwitchResult, OneDriveAccount, OneDriveAdvancedConfig, OneDriveFolderConfig, OneDriveFolderItem,
     OneDriveLoginResult, OneDriveSyncResult, SyncConflict, SyncStatus,
 };
 use sha2::{Digest, Sha256};
@@ -160,6 +160,71 @@ impl OneDriveManager {
         cache.delta_link = None;
         self.save_cache(data_dir, &cache)?;
         Ok(())
+    }
+
+    /// Call before pointing the app at `new_folder_id`. The local notes mirror ONE
+    /// OneDrive folder, and choosing a folder only resets the sync bookkeeping - so
+    /// without this the previous folder's notes would be uploaded into the new one.
+    /// When the new folder differs from the one the notes belong to: sync the old
+    /// folder first, then clear the local copy.
+    ///
+    /// - Still signed in: a failed sync or held conflicts block the switch and
+    ///   nothing is cleared, so no unsynced edit is lost.
+    /// - Signed out since (the old folder can't be reached): what can't be synced is
+    ///   archived under `data_dir/onedrive-archive/cloud-<ts>/` before clearing.
+    pub async fn prepare_folder_switch(
+        &self,
+        data_dir: &Path,
+        notes_dir: &Path,
+        new_folder_id: &str,
+    ) -> Result<FolderSwitchResult, String> {
+        let ready = |switched: bool, archived_count: usize| FolderSwitchResult {
+            ready: true,
+            switched,
+            archived_count,
+            message: None,
+        };
+        let Some(current) = self.get_folder(data_dir) else {
+            return Ok(ready(false, 0));
+        };
+        if current.folder_id == new_folder_id {
+            return Ok(ready(false, 0));
+        }
+
+        let files = list_syncable_local_files(notes_dir)?;
+        let cache = self.load_cache(data_dir);
+        if files.is_empty() && cache.files.is_empty() && read_tombstones(data_dir).is_empty() {
+            return Ok(ready(true, 0));
+        }
+
+        let connected = self.get_account(data_dir).is_some();
+        let result = self.sync_now(data_dir, notes_dir).await;
+        let held = list_conflicts(notes_dir, &self.load_cache(data_dir)).len();
+        let synced = result.success && held == 0;
+
+        let mut archived = 0;
+        if !synced {
+            if connected {
+                let why = if !result.success {
+                    result.message.unwrap_or_else(|| "the sync failed".to_string())
+                } else {
+                    format!("{held} note(s) have a sync conflict to resolve first")
+                };
+                return Ok(FolderSwitchResult {
+                    ready: false,
+                    switched: true,
+                    archived_count: 0,
+                    message: Some(format!(
+                        "Couldn't sync {} before switching ({why}). Nothing was changed.",
+                        current.folder_path
+                    )),
+                });
+            }
+            archived = archive_local_notes(data_dir, notes_dir, &files)?;
+        }
+
+        clear_local_mirror(data_dir, notes_dir, &files)?;
+        Ok(ready(true, archived))
     }
 
     /// Lists folders under a parent item (or root if None).
@@ -1250,6 +1315,44 @@ fn list_syncable_local_files(notes_dir: &Path) -> Result<Vec<String>, String> {
     Ok(files)
 }
 
+const ARCHIVE_DIRNAME: &str = "onedrive-archive";
+
+/// Copies `files` (names inside `notes_dir`) into a fresh
+/// `data_dir/onedrive-archive/cloud-<unix-secs>/` and returns how many were copied.
+fn archive_local_notes(data_dir: &Path, notes_dir: &Path, files: &[String]) -> Result<usize, String> {
+    let stamp = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_secs())
+        .unwrap_or(0);
+    let dest = data_dir.join(ARCHIVE_DIRNAME).join(format!("cloud-{stamp}"));
+    fs::create_dir_all(&dest).map_err(|e| e.to_string())?;
+    let mut copied = 0;
+    for name in files {
+        fs::copy(notes_dir.join(name), dest.join(name)).map_err(|e| format!("couldn't back up {name}: {e}"))?;
+        copied += 1;
+    }
+    Ok(copied)
+}
+
+/// Removes the local mirror of a OneDrive folder: the synced note files, and the
+/// sync bookkeeping (cache, saved base versions, pending deletes). Everything else
+/// in `notes_dir` (the tab session, ...) is left alone.
+fn clear_local_mirror(data_dir: &Path, notes_dir: &Path, files: &[String]) -> Result<(), String> {
+    for name in files {
+        match fs::remove_file(notes_dir.join(name)) {
+            Ok(()) => {}
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
+            Err(e) => return Err(format!("couldn't remove {name}: {e}")),
+        }
+    }
+    let _guard = TOMBSTONE_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+    for file in [SYNC_CACHE_FILENAME, TOMBSTONES_FILENAME] {
+        let _ = fs::remove_file(data_dir.join(file));
+    }
+    let _ = fs::remove_dir_all(data_dir.join(BASES_DIRNAME));
+    Ok(())
+}
+
 fn compute_hash(bytes: &[u8]) -> String {
     let hash = Sha256::digest(bytes);
     format!("{hash:x}")
@@ -1667,6 +1770,51 @@ mod tests {
     /// Google Auto Backup (tokens are credentials; the rest is meaningless
     /// without them). This fails when a new state file is added to the code
     /// but not to the rules in `android-overrides/res/xml/`.
+    #[test]
+    fn switching_folders_clears_only_the_synced_notes_and_their_bookkeeping() {
+        let (data, notes) = dirs();
+        for f in ["2026-09-01.txt", "2026-09-02.txt", ".agenda.json", ".chrononote-session.json", "readme.md"] {
+            fs::write(notes.path().join(f), "x").unwrap();
+        }
+        fs::write(data.path().join(SYNC_CACHE_FILENAME), "{}").unwrap();
+        fs::write(data.path().join(TOMBSTONES_FILENAME), "[]").unwrap();
+        fs::create_dir_all(data.path().join(BASES_DIRNAME)).unwrap();
+        fs::write(data.path().join(BASES_DIRNAME).join("2026-09-01.txt"), "base").unwrap();
+        fs::write(data.path().join(FOLDER_CONFIG_FILENAME), "{}").unwrap();
+
+        let files = list_syncable_local_files(notes.path()).unwrap();
+        assert_eq!(files.len(), 3); // the two notes and .agenda.json
+        clear_local_mirror(data.path(), notes.path(), &files).unwrap();
+
+        assert!(!notes.path().join("2026-09-01.txt").exists());
+        assert!(!notes.path().join(".agenda.json").exists());
+        assert!(notes.path().join(".chrononote-session.json").exists());
+        assert!(notes.path().join("readme.md").exists());
+        assert!(!data.path().join(SYNC_CACHE_FILENAME).exists());
+        assert!(!data.path().join(TOMBSTONES_FILENAME).exists());
+        assert!(!data.path().join(BASES_DIRNAME).exists());
+        // The folder choice itself is set separately, by set_folder.
+        assert!(data.path().join(FOLDER_CONFIG_FILENAME).exists());
+    }
+
+    #[test]
+    fn clearing_tolerates_files_that_are_already_gone() {
+        let (data, notes) = dirs();
+        clear_local_mirror(data.path(), notes.path(), &["2026-09-01.txt".to_string()]).unwrap();
+    }
+
+    #[test]
+    fn archiving_copies_the_notes_before_they_are_cleared() {
+        let (data, notes) = dirs();
+        fs::write(notes.path().join("2026-09-01.txt"), "left behind").unwrap();
+        let files = vec!["2026-09-01.txt".to_string()];
+        assert_eq!(archive_local_notes(data.path(), notes.path(), &files).unwrap(), 1);
+
+        let archive = fs::read_dir(data.path().join(ARCHIVE_DIRNAME)).unwrap().next().unwrap().unwrap().path();
+        assert!(archive.file_name().unwrap().to_string_lossy().starts_with("cloud-"));
+        assert_eq!(fs::read_to_string(archive.join("2026-09-01.txt")).unwrap(), "left behind");
+    }
+
     #[test]
     fn every_onedrive_state_file_is_excluded_from_android_backup() {
         let rules = [

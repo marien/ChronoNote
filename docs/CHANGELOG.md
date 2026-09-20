@@ -6,7 +6,7 @@ kept for the rationale behind each one — not just *what* changed but
 was still being gathered and confirmed before implementation; renamed once
 everything below was applied, since nothing here is "pending" anymore.
 
-**Status: all sections through §190 implemented** (§178–§180 in v0.9.5: a save-only-when-changed fix and two GitHub issues, #76/#77; §181–§186 in v0.10.0: the Android app and OneDrive sync; §187–§188 in v0.11.0: OneDrive sync for the web app, and the fixes found reviewing and testing it). §153 is a
+**Status: all sections through §191 implemented** (§178–§180 in v0.9.5: a save-only-when-changed fix and two GitHub issues, #76/#77; §181–§186 in v0.10.0: the Android app and OneDrive sync; §187–§188 in v0.11.0: OneDrive sync for the web app, and the fixes found reviewing and testing it). §153 is a
 website-only Guide-page fix (found live right after §150–§152 shipped
 as v0.7.12) — no version bump, nothing in the shipped app changed. §154
 merges the OS title bar into the top bar (Notepad-style: icon, tabs,
@@ -8389,3 +8389,31 @@ inferred, not proven - the new log should settle it next time.
   code signing (not done).
 
 Verification: Vitest 438, `svelte-check` 0, Playwright 261, `cargo test` 138.
+
+## 191. Android gets the folder-switch fix; the migrate dialog stops promising a merge (unreleased)
+
+Two follow-ups left over from §188.
+
+1. **Android had the same "old folder's notes end up in the new folder" problem**
+   (§188 item 4): `set_folder` reset the sync cache but left the notes in the app's
+   storage, so choosing a different OneDrive folder uploaded the previous folder's
+   notes into it. `OneDriveManager::prepare_folder_switch` (`onedrive/sync.rs`) now
+   does what the web app does: when the new folder differs from the one the notes
+   belong to it syncs the old folder first, blocks the switch (changing nothing) if
+   that fails or leaves conflicts, then clears the synced notes and the bookkeeping
+   (cache, saved base versions, pending deletes; the tab session is left alone).
+   After a sign-out, where the old folder may be unreachable, the notes are copied to
+   `onedrive-archive/cloud-<ts>/` in the app's data folder first. The command is now
+   `onedrive_prepare_folder_switch` for both targets (it replaced the web-only
+   `web_prepare_folder_switch`), with its result type generated from Rust
+   (`FolderSwitchResult`). In the picker the same close-tabs-and-scratchpad flow now
+   also runs on Android when the folder actually changes (`finishFolderSwitch(...,
+   { keepNotesDir: true })`, since Android's notes folder never moves).
+2. **The migrate dialog said existing OneDrive notes "will be safely merged".** A note
+   that differs on both sides has no shared base to merge against, so it is held as a
+   conflict for the user to resolve (nothing is overwritten - see the §188 tests). The
+   text now says exactly that.
+
+Verification: Vitest 439, `svelte-check` 0, Playwright 261, `cargo test` 141 (+3:
+clearing, tolerance of missing files, archiving). The orchestration that calls the
+live OneDrive API (sync first, then clear) has no automated test on the Rust side.

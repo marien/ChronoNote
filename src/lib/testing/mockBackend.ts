@@ -707,7 +707,7 @@ export class MockBackend {
     load_scratchpad_drafts: () => ({ ...this.scratchpadDrafts }),
     web_check_browser_notes: () => ({ count: 0, filenames: [] }),
     web_migrate_browser_notes: () => ({ migratedCount: 0, conflictCount: 0 }),
-    web_prepare_folder_switch: () => ({ ready: true, switched: false, archivedCount: 0 }),
+    onedrive_prepare_folder_switch: () => ({ ready: true, switched: false, archivedCount: 0 }),
   };
 
   private async dispatch(cmd: string, args: Record<string, unknown>): Promise<unknown> {

@@ -64,7 +64,7 @@
     </div>
 
     <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 20px; line-height: 1.4;">
-      Existing notes in OneDrive with the same name will be safely merged. If there are conflicting edits, you will be able to review them. A safety backup of your browser notes will be saved.
+      If a note with the same name already exists in OneDrive and the text differs, both versions are kept and you choose which to keep - nothing is overwritten. A safety backup of your browser notes will be saved.
     </div>
 
     <div style="display: flex; flex-direction: column; gap: 10px;">
