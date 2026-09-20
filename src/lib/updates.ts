@@ -13,11 +13,15 @@
 import { get } from "svelte/store";
 import { check, type Update } from "@tauri-apps/plugin-updater";
 import { relaunch } from "@tauri-apps/plugin-process";
+import { Channel, invoke } from "@tauri-apps/api/core";
+import { flushAllPendingSaves } from "./persistence";
 import {
   showToast,
   updateAvailableVersion,
   updateDownloadProgress,
+  updateErrorDuring,
   updateErrorMessage,
+  updateInstalling,
   updateReleaseNotes,
   updateStatus,
 } from "./stores";
@@ -42,6 +46,7 @@ function errorMessage(e: unknown): string {
 export async function checkForUpdates(): Promise<void> {
   updateStatus.set("checking");
   updateErrorMessage.set(null);
+  updateErrorDuring.set("check");
   try {
     const result = await check();
     await pendingUpdate?.close();
@@ -74,32 +79,75 @@ export async function checkForUpdatesOnLaunch(): Promise<void> {
   }
 }
 
+/** How long the installer gets to start once it's been launched. On Windows the
+ * app exits the moment it has started, so still being here a minute later
+ * means it never did (typically security software holding or blocking it). */
+const LAUNCH_TIMEOUT_MS = 60_000;
+
+type InstallEvent =
+  | { event: "started"; data: { contentLength: number | null } }
+  | { event: "progress"; data: { chunkLength: number } }
+  | { event: "finished" }
+  | { event: "launching" };
+
 /** Downloads and installs the update found by the last `checkForUpdates`
  * call. Only ever called from an explicit "Download & install" click.
  *
- * Platform note: on Windows, a successful install exits the app to run
- * the installer and (by default) relaunches it automatically — this
- * function may simply never resolve because the process ends first. The
- * `"ready"` status below only matters when that *doesn't* happen (a
- * platform, or an install option, where install doesn't self-relaunch). */
+ * Runs Rust's `install_update` (`update_install.rs`) rather than the plugin's
+ * own `downloadAndInstall`: the plugin closes every window before it launches
+ * the Windows installer, so when that launch fails the error has nowhere to
+ * show and the app is left running without a window (seen on a laptop with
+ * F-Secure). Here the window stays until the installer is really running.
+ *
+ * Platform note: on Windows a successful install exits the app to run the
+ * installer and (by default) relaunches it automatically - this function may
+ * simply never resolve because the process ends first. The `"ready"` status
+ * only matters where install doesn't self-relaunch. */
 export async function downloadAndInstallUpdate(): Promise<void> {
   if (!pendingUpdate) return;
   updateStatus.set("downloading");
+  updateInstalling.set(false);
+  updateErrorMessage.set(null);
   updateDownloadProgress.set({ doneBytes: 0, totalBytes: 0 });
   let doneBytes = 0;
+  let launchTimer: ReturnType<typeof setTimeout> | undefined;
   try {
-    await pendingUpdate.downloadAndInstall((event) => {
-      if (event.event === "Started") {
-        updateDownloadProgress.set({ doneBytes: 0, totalBytes: event.data.contentLength ?? 0 });
-      } else if (event.event === "Progress") {
-        doneBytes += event.data.chunkLength;
-        updateDownloadProgress.update((p) => ({ doneBytes, totalBytes: p?.totalBytes ?? 0 }));
-      }
+    // The process exits without the window-close barrier once the installer
+    // starts, so write out anything still waiting on its autosave first.
+    await flushAllPendingSaves();
+    await new Promise<void>((resolve, reject) => {
+      const channel = new Channel<InstallEvent>();
+      channel.onmessage = (e) => {
+        if (e.event === "started") {
+          updateDownloadProgress.set({ doneBytes: 0, totalBytes: e.data.contentLength ?? 0 });
+        } else if (e.event === "progress") {
+          doneBytes += e.data.chunkLength;
+          updateDownloadProgress.update((p) => ({ doneBytes, totalBytes: p?.totalBytes ?? 0 }));
+        } else if (e.event === "launching") {
+          updateInstalling.set(true);
+          launchTimer = setTimeout(
+            () =>
+              reject(
+                new Error(
+                  "The installer didn't start within a minute. Security software may be blocking it - " +
+                    "download the installer from GitHub instead.",
+                ),
+              ),
+            LAUNCH_TIMEOUT_MS,
+          );
+        }
+      };
+      invoke("install_update", { onEvent: channel }).then(() => resolve(), reject);
     });
+    updateInstalling.set(false);
     updateStatus.set("ready");
   } catch (e) {
+    updateInstalling.set(false);
     updateStatus.set("error");
+    updateErrorDuring.set("install");
     updateErrorMessage.set(errorMessage(e));
+  } finally {
+    if (launchTimer) clearTimeout(launchTimer);
   }
 }
 

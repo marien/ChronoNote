@@ -1,6 +1,7 @@
 mod agenda;
 mod onedrive;
 mod storage;
+mod update_install;
 
 use tauri::{AppHandle, Manager};
 
@@ -429,6 +430,7 @@ pub fn run() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
+            update_install::install_update,
             get_config,
             set_notes_dir,
             set_color_mode,

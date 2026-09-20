@@ -48,6 +48,27 @@ test.describe("update check (§update-check)", () => {
     await expect(about.getByRole("button", { name: /Try again/i })).toBeVisible();
   });
 
+  test("a failed install says so (not 'couldn't check'), and offers the GitHub download", async ({ page }) => {
+    await seedApp(page, {
+      seed: {
+        notes: { [todayFilename()]: "hi" },
+        updateCheck: "available",
+        updateCheckVersion: "9.9.9",
+        throwOnCommands: ["install_update"],
+      },
+    });
+    const about = await openViaShortcut(page, "ControlOrMeta+Shift+Comma", "about");
+    await about.getByRole("button", { name: /Download & install/i }).click();
+    await expect(about).toContainText(/couldn.t install the update/i);
+    await expect(about).not.toContainText(/couldn.t check/i);
+    await expect(about.getByRole("button", { name: "Try again" })).toBeVisible();
+
+    await about.getByRole("button", { name: "Download from GitHub" }).click();
+    expect(await page.evaluate(() => window.__CHRONO_MOCK__!.openedUrls)).toContain(
+      "https://github.com/marien/ChronoNote/releases",
+    );
+  });
+
   test("the launch-time check surfaces a quiet status-bar message when it finds an update", async ({ page }) => {
     await seedApp(page, {
       seed: {

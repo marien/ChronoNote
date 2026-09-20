@@ -5,7 +5,9 @@
     backendKind,
     updateAvailableVersion,
     updateDownloadProgress,
+    updateErrorDuring,
     updateErrorMessage,
+    updateInstalling,
     updateStatus,
   } from "../../controller";
   import { closeOnOutsideClick } from "../../actions/closeOnOutsideClick";
@@ -65,19 +67,31 @@
             </button>
           </div>
         {:else if $updateStatus === "downloading"}
-          <div class="settings-hint" style="margin-top: 0;">Downloading update…{progressLabel}</div>
+          <div class="settings-hint" style="margin-top: 0;">
+            {#if $updateInstalling}Starting the installer…{:else}Downloading update…{progressLabel}{/if}
+          </div>
         {:else if $updateStatus === "ready"}
           <div class="settings-hint" style="margin-top: 0;">Installed — restart to finish.</div>
           <button class="icon-btn btn-primary" style="margin-top: 8px;" on:click={() => controller.restartToFinishUpdate()}>
             Restart now
           </button>
         {:else if $updateStatus === "error"}
-          <div class="settings-hint" style="margin-top: 0; color: var(--state-error);">
-            Couldn't check for updates. {$updateErrorMessage ?? ""}
-          </div>
-          <button class="icon-btn" style="margin-top: 8px;" on:click={() => controller.checkForUpdates()}>
-            Try again
-          </button>
+          {#if $updateErrorDuring === "install"}
+            <div class="settings-hint" style="margin-top: 0; color: var(--state-error);">
+              Couldn't install the update. {$updateErrorMessage ?? ""}
+            </div>
+            <div class="settings-toggle-row" style="margin-top: 8px; gap: 8px;">
+              <button class="icon-btn" on:click={() => controller.downloadAndInstallUpdate()}>Try again</button>
+              <button class="icon-btn btn-primary" on:click={controller.openReleasesPage}>Download from GitHub</button>
+            </div>
+          {:else}
+            <div class="settings-hint" style="margin-top: 0; color: var(--state-error);">
+              Couldn't check for updates. {$updateErrorMessage ?? ""}
+            </div>
+            <button class="icon-btn" style="margin-top: 8px;" on:click={() => controller.checkForUpdates()}>
+              Try again
+            </button>
+          {/if}
         {:else}
           <div class="settings-hint" style="margin-top: 0;">
             {$updateStatus === "upToDate" ? "You're up to date." : "Not checked yet."}

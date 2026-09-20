@@ -758,6 +758,18 @@ export class MockBackend {
         return null;
       }
 
+      // Rust's `install_update` (update_install.rs): same idea as the plugin's
+      // download_and_install above, with its own (camelCase) event names.
+      case "install_update": {
+        const channel = args.onEvent as { onmessage?: (e: unknown) => void } | undefined;
+        channel?.onmessage?.({ event: "started", data: { contentLength: 1000 } });
+        channel?.onmessage?.({ event: "progress", data: { chunkLength: 600 } });
+        channel?.onmessage?.({ event: "progress", data: { chunkLength: 400 } });
+        channel?.onmessage?.({ event: "finished" });
+        channel?.onmessage?.({ event: "launching" });
+        return null;
+      }
+
       case "plugin:resources|close":
         return null;
 

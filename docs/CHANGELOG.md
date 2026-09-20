@@ -6,7 +6,7 @@ kept for the rationale behind each one — not just *what* changed but
 was still being gathered and confirmed before implementation; renamed once
 everything below was applied, since nothing here is "pending" anymore.
 
-**Status: all sections through §189 implemented** (§178–§180 in v0.9.5: a save-only-when-changed fix and two GitHub issues, #76/#77; §181–§186 in v0.10.0: the Android app and OneDrive sync; §187–§188 in v0.11.0: OneDrive sync for the web app, and the fixes found reviewing and testing it). §153 is a
+**Status: all sections through §190 implemented** (§178–§180 in v0.9.5: a save-only-when-changed fix and two GitHub issues, #76/#77; §181–§186 in v0.10.0: the Android app and OneDrive sync; §187–§188 in v0.11.0: OneDrive sync for the web app, and the fixes found reviewing and testing it). §153 is a
 website-only Guide-page fix (found live right after §150–§152 shipped
 as v0.7.12) — no version bump, nothing in the shipped app changed. §154
 merges the OS title bar into the top bar (Notepad-style: icon, tabs,
@@ -8320,7 +8320,7 @@ leftover problem in item 4.
 
 Verification: Vitest 433, `svelte-check` 0, Playwright 251, `cargo test` 137.
 
-## 189. Phone feedback on the web app: tabs drawer, active tab, keyboard (after v0.11.0)
+## 189. Phone feedback on the web app: tabs drawer, active tab, keyboard, date picker (v0.11.1)
 
 Marien used the web app on a phone and reported these.
 
@@ -8352,3 +8352,40 @@ Marien used the web app on a phone and reported these.
    (arrows, PageUp/PageDown, typing a date). Desktop is unchanged.
 
 Verification: Vitest 436, `svelte-check` 0, Playwright 260.
+
+## 190. A failed update install no longer leaves a windowless app (v0.11.1)
+
+**Symptom** (a second laptop, 0.9.1 -> 0.11.0): the update downloaded, nothing
+happened, and the app kept running with no window; every retry left another
+windowless instance, and the `%TEMP%\ChronoNote-0.11.0-updater-*` folders were empty
+(a successful update leaves `ChronoNote-<version>-installer.exe` behind).
+
+**Cause.** `tauri-plugin-updater` 2.11.0 on Windows closes every window
+(`cleanup_before_exit`) *before* it launches the extracted installer, and only
+then `process::exit(0)`s. If the launch fails, it returns the error to a webview
+that no longer exists and leaves the process running, and its cleanup deletes the
+extracted installer. So the failure was real but invisible. The version number
+(0.9 -> 0.11) was not involved: same plugin version in both, the signature and
+manifest on the release were fine, and the check/download had worked. The likely
+reason the launch itself failed on that laptop is F-Secure Device Protection
+(DeepGuard) blocking a new, unsigned executable started from `%TEMP%`; nothing
+showed in Defender/AppLocker/CodeIntegrity or F-Secure's history, so this is
+inferred, not proven - the new log should settle it next time.
+
+**Fix.**
+- `update_install.rs`: a Rust `install_update` command replaces the plugin's
+  `downloadAndInstall`. It uses a no-op before-exit hook, so the window stays until
+  the installer is really running (on Windows the process exits right after the
+  launch anyway). Errors carry the OS reason and the log path.
+- `update.log` in the app's log folder records each step (check, found version,
+  bytes downloaded, launching, any failure) with UTC timestamps.
+- `updates.ts`: pending saves are flushed first (the exit skips the window-close
+  barrier), progress comes over a `Channel`, and if the installer was launched
+  but the app is still there a minute later it gives up with a message.
+- About/Settings: an install failure now reads "Couldn't install the update. <reason>"
+  (not "couldn't check"), with **Try again** and **Download from GitHub**; while the
+  installer starts it says "Starting the installer...".
+- The long-term fix for security software blocking the installer is Authenticode
+  code signing (not done).
+
+Verification: Vitest 438, `svelte-check` 0, Playwright 261, `cargo test` 138.

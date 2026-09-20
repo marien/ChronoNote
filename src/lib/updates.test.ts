@@ -7,6 +7,14 @@ vi.mock("@tauri-apps/plugin-updater", () => updaterMock);
 const processMock = { relaunch: vi.fn() };
 vi.mock("@tauri-apps/plugin-process", () => processMock);
 
+// The install itself is Rust's `install_update`, driven over a Channel.
+class FakeChannel {
+  onmessage: (e: unknown) => void = () => {};
+}
+const coreMock = { Channel: FakeChannel, invoke: vi.fn() };
+vi.mock("@tauri-apps/api/core", () => coreMock);
+vi.mock("./persistence", () => ({ flushAllPendingSaves: vi.fn().mockResolvedValue(undefined) }));
+
 let updates: typeof import("./updates");
 let stores: typeof import("./stores");
 
@@ -88,29 +96,65 @@ describe("downloadAndInstallUpdate", () => {
     expect(get(stores.updateStatus)).toBe("idle");
   });
 
-  it("tracks progress from the update's own events and lands on 'ready'", async () => {
-    const update = fakeUpdate({
-      downloadAndInstall: vi.fn(async (onEvent: (e: unknown) => void) => {
-        onEvent({ event: "Started", data: { contentLength: 100 } });
-        onEvent({ event: "Progress", data: { chunkLength: 60 } });
-        onEvent({ event: "Progress", data: { chunkLength: 40 } });
-        onEvent({ event: "Finished" });
-      }),
-    });
-    updaterMock.check.mockResolvedValue(update);
+  async function withPendingUpdate() {
+    updaterMock.check.mockResolvedValue(fakeUpdate());
     await updates.checkForUpdates();
+  }
+
+  it("tracks progress from the install command's events and lands on 'ready'", async () => {
+    coreMock.invoke.mockImplementation(async (_cmd: string, args: { onEvent: FakeChannel }) => {
+      args.onEvent.onmessage({ event: "started", data: { contentLength: 100 } });
+      args.onEvent.onmessage({ event: "progress", data: { chunkLength: 60 } });
+      args.onEvent.onmessage({ event: "progress", data: { chunkLength: 40 } });
+      args.onEvent.onmessage({ event: "finished" });
+      args.onEvent.onmessage({ event: "launching" });
+    });
+    await withPendingUpdate();
     await updates.downloadAndInstallUpdate();
+    expect(coreMock.invoke).toHaveBeenCalledWith("install_update", expect.anything());
     expect(get(stores.updateStatus)).toBe("ready");
     expect(get(stores.updateDownloadProgress)).toEqual({ doneBytes: 100, totalBytes: 100 });
+    expect(get(stores.updateInstalling)).toBe(false);
   });
 
-  it("a failed install lands on 'error' with a message", async () => {
-    const update = fakeUpdate({ downloadAndInstall: vi.fn().mockRejectedValue(new Error("disk full")) });
-    updaterMock.check.mockResolvedValue(update);
-    await updates.checkForUpdates();
+  it("a failed install lands on 'error', marked as an install error, with the reason", async () => {
+    coreMock.invoke.mockRejectedValue("couldn't start the installer: Access is denied. (os error 5)");
+    await withPendingUpdate();
     await updates.downloadAndInstallUpdate();
     expect(get(stores.updateStatus)).toBe("error");
-    expect(get(stores.updateErrorMessage)).toBe("disk full");
+    expect(get(stores.updateErrorDuring)).toBe("install");
+    expect(get(stores.updateErrorMessage)).toContain("Access is denied");
+  });
+
+  it("a new check clears the install-error marker", async () => {
+    coreMock.invoke.mockRejectedValue("nope");
+    await withPendingUpdate();
+    await updates.downloadAndInstallUpdate();
+    expect(get(stores.updateErrorDuring)).toBe("install");
+    updaterMock.check.mockResolvedValue(null);
+    await updates.checkForUpdates();
+    expect(get(stores.updateErrorDuring)).toBe("check");
+  });
+
+  it("gives up if the installer is launched but the app is still here a minute later", async () => {
+    vi.useFakeTimers();
+    try {
+      coreMock.invoke.mockImplementation(
+        (_cmd: string, args: { onEvent: FakeChannel }) =>
+          new Promise<void>(() => {
+            args.onEvent.onmessage({ event: "launching" }); // ...and then nothing, ever
+          }),
+      );
+      await withPendingUpdate();
+      const run = updates.downloadAndInstallUpdate();
+      await vi.advanceTimersByTimeAsync(60_000);
+      await run;
+      expect(get(stores.updateStatus)).toBe("error");
+      expect(get(stores.updateErrorDuring)).toBe("install");
+      expect(get(stores.updateErrorMessage)).toMatch(/didn't start within a minute/);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
 

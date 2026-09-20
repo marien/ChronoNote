@@ -215,6 +215,12 @@ export const updateAvailableVersion = writable<string | null>(null);
 export const updateReleaseNotes = writable<string | null>(null);
 export const updateDownloadProgress = writable<{ doneBytes: number; totalBytes: number } | null>(null);
 export const updateErrorMessage = writable<string | null>(null);
+/** Whether the error in `updateErrorMessage` came from the check or from the
+ * download/install - the install failing wants a different message and a
+ * "download it from GitHub instead" way out. */
+export const updateErrorDuring = writable<"check" | "install">("check");
+/** The update is downloaded and the installer is being started. */
+export const updateInstalling = writable(false);
 
 /** #50: set once on boot when this launch is the first after an in-place
  * update (the running app version differs from `AppConfig.lastSeenVersion`)
