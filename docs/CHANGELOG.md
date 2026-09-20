@@ -6,7 +6,7 @@ kept for the rationale behind each one — not just *what* changed but
 was still being gathered and confirmed before implementation; renamed once
 everything below was applied, since nothing here is "pending" anymore.
 
-**Status: all sections through §193 implemented** (§178–§180 in v0.9.5: a save-only-when-changed fix and two GitHub issues, #76/#77; §181–§186 in v0.10.0: the Android app and OneDrive sync; §187–§188 in v0.11.0: OneDrive sync for the web app, and the fixes found reviewing and testing it). §153 is a
+**Status: all sections through §194 implemented** (§178–§180 in v0.9.5: a save-only-when-changed fix and two GitHub issues, #76/#77; §181–§186 in v0.10.0: the Android app and OneDrive sync; §187–§188 in v0.11.0: OneDrive sync for the web app, and the fixes found reviewing and testing it; §191–§194 are unreleased: Android folder switch, short Settings labels, and v0.12 Releases A and B). §153 is a
 website-only Guide-page fix (found live right after §150–§152 shipped
 as v0.7.12) — no version bump, nothing in the shipped app changed. §154
 merges the OS title bar into the top bar (Notepad-style: icon, tabs,
@@ -8464,3 +8464,39 @@ popover, typography, pure black) are not started.
 
 Verification: Vitest 478, `svelte-check` 0, Playwright 269 (the "#62 spinner" test is the known timing flake and passes
 alone), `cargo test` 141 (no Rust changed). Not verified on a phone; the demo bundle is rebuilt only at release time.
+
+## 194. v0.12 "Release B": modal modernization, mobile reflow, touch ergonomics (unreleased)
+
+The second stage of the UI/UX refinements roadmap (`docs/design/ui-ux-refinements-v0.12-roadmap.md`, sections 5 and 6).
+
+1. **Standardized 4-tier modal dialog sizing scale.** All 14 dialogs now declare semantic tier sizing classes (`.modal-sm` 440px, `.modal-md` 560px, `.modal-lg` 720px, `.modal-xl` 880px) replacing inline hardcoded width attributes:
+   - Small (`.modal-sm`): `AboutModal`, `SafetyModal`, `UnsavedScratchpadsModal`, `MigrateNotesModal`.
+   - Medium (`.modal-md`): `SettingsModal`, `ConflictModal`, `SyncConflictsModal`, `CommandPaletteModal`.
+   - Large (`.modal-lg`): `ActionDrawerModal`, `SearchModal`, `CalendarSyncReviewModal`, `OneDriveFolderPickerModal`.
+   - Extra-large (`.modal-xl`): `HistoryModal`, `ShortcutsModal`.
+   Fluid grid containment (`min(100%, var(--modal-width))`) prevents horizontal viewport overflow.
+2. **Universal dismiss affordance (`.modal-close-btn`).** Standardized top-right `✕` icon button across dialogs (`AboutModal`, `CommandPaletteModal`, `ActionDrawerModal`, `SearchModal`, `SettingsModal`, `ShortcutsModal`, `SafetyModal`, `HistoryModal`, etc.) with 44×44px hit-box under coarse pointers for effortless touch dismissal without hunting for Escape keys.
+3. **Command palette tap chips & mobile legend.**
+   - Converted `.palette-legend` prefix markers into interactive tap-chips (`<button type="button" class="palette-chip">`) for `>`, `!`, `@`, `?`. Tapping inserts the prefix and focuses input; tapping the active prefix chip toggles it off.
+   - Desktop-only keyboard navigation footers (`.modal-footer:not(:has(button))`) and shortcut hint tags (`.item-tag.is-shortcut`) are suppressed under mobile viewports and coarse pointers to maximize vertical content area.
+4. **Mobile multi-column layout transformations.**
+   - `ShortcutsModal`: on viewports ≤ 680px, side-by-side columns reflow to a top segmented switcher (`[ Shortcuts ] [ Glyphs & Symbols ]`), each column rendering at 100% width with 36px touch-friendly rows.
+   - `HistoryModal`: on viewports ≤ 680px, columns reflow to an adaptive tab switcher (`[ History List ] [ Occurrence Preview ]`). Selecting an item or occurrence header automatically switches to Preview, with touch-accessible action buttons for "Import Action" and "Open Note".
+   - `SyncConflictsModal`: on viewports ≤ 520px, columns reflow to a segmented view switcher (`[ Side-by-Side ] [ This Device ] [ OneDrive ]`) with status badges.
+   - `CalendarSyncReviewModal`: on viewports ≤ 520px, `.sync-review-removal` reflows into a stacked two-row layout (meeting title on top, Segmented action choice underneath).
+5. **Mobile ergonomics & floating toast.**
+   - Dynamic floating toast pill (`.mobile-toast`) rendered when `$isMobile` is active, anchored 12px below the top bar (`role="status"`, `aria-live="polite"`), preventing hidden toasts on mobile keyboards while retaining status bar center zone for desktop.
+   - Consolidated coarse-pointer touch targets (`.glyph-cyclable`, `.drawer-tab-close`, `.cal-day`, `.icon-btn`) into a single non-colliding pseudo-element rule.
+   - Surface elevation & dark mode luminance borders: added subtle inset highlight border and deep shadow (`box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 16px 44px rgba(0, 0, 0, 0.5)`) across `.modal-card`, `.datepicker-pop`, and `.more-actions-pop`.
+
+6. **Behaviour change worth knowing:** in the History dialog at 680px wide or less, tapping a row now opens the
+   preview tab (with "Import Action" and "Open Note" buttons) instead of jumping straight to the note. Wider windows are
+   unchanged.
+7. **Not everything has a close button:** the disk-vs-memory conflict dialog (`ConflictModal`) deliberately has none,
+   because it needs an explicit choice (Escape is a no-op there too).
+8. **Deferred:** roadmap 6.4 (expressive empty states) was not implemented and stays parked.
+
+Verification: Vitest 478, `svelte-check` 0, Playwright 278 (two new width-based specs cover the Sync conflicts and
+Calendar review reflows), `cargo test` 141 (no Rust changed). Checked by hand at 375px: palette (chips, close button,
+hidden hints) and the Shortcuts tab switcher.
+

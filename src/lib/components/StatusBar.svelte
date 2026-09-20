@@ -9,6 +9,7 @@
     oneDriveFolder,
     oneDriveSyncing,
     oneDriveSyncStatus,
+    isMobile,
     statusCounts,
     statusPos,
     statusSelection,
@@ -132,7 +133,7 @@
       <button type="button" id="stat-message" class="status-link" on:click={controller.openAbout}>
         {$toastMessage}
       </button>
-    {:else if $toastMessage}
+    {:else if $toastMessage && !$isMobile}
       <span id="stat-message" role="status">{$toastMessage}</span>
     {/if}
   </div>

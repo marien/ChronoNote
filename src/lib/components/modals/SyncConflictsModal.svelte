@@ -16,6 +16,7 @@
   $: changedCount = diff.left.filter((r) => r.changed).length + diff.right.filter((r) => r.changed).length;
 
   let busy = false;
+  let viewMode: "both" | "mine" | "theirs" = "both";
   async function choose(resolution: SyncConflictResolution) {
     if (!current || busy) return;
     busy = true;
@@ -30,9 +31,18 @@
 </script>
 
 <div class="overlay" role="presentation" use:closeOnOutsideClick={controller.closeAllModals}>
-  <div class="modal-card" role="dialog" aria-modal="true" use:focusTrap aria-label="Sync conflicts" style="width: 560px;">
+  <div class="modal-card modal-md" role="dialog" aria-modal="true" use:focusTrap aria-label="Sync conflicts">
     <div class="modal-input-wrap modal-title">
-      <Icon name="cloud" size={15} /> Sync conflicts
+      <Icon name="cloud" size={15} />
+      <span>Sync conflicts</span>
+      <button
+        type="button"
+        class="icon-btn modal-close-btn"
+        aria-label="Close dialog"
+        on:click={controller.closeAllModals}
+      >
+        <Icon name="close" size={14} />
+      </button>
     </div>
 
     {#if current}
@@ -53,13 +63,41 @@
         </div>
       {/if}
 
-      <div class="conflict-versions">
+      <!-- §194: Responsive view switcher for viewports <= 520px -->
+      <div class="conflict-view-tabs">
+        <button
+          type="button"
+          class="conflict-view-btn"
+          class:active={viewMode === "both"}
+          on:click={() => (viewMode = "both")}
+        >
+          Side-by-Side
+        </button>
+        <button
+          type="button"
+          class="conflict-view-btn"
+          class:active={viewMode === "mine"}
+          on:click={() => (viewMode = "mine")}
+        >
+          This Device
+        </button>
+        <button
+          type="button"
+          class="conflict-view-btn"
+          class:active={viewMode === "theirs"}
+          on:click={() => (viewMode = "theirs")}
+        >
+          OneDrive
+        </button>
+      </div>
+
+      <div class="conflict-versions" class:show-both={viewMode === "both"} class:show-mine={viewMode === "mine"} class:show-theirs={viewMode === "theirs"}>
         <div class="conflict-version">
-          <div class="conflict-version-label">This device</div>
+          <div class="conflict-version-label"><span class="conflict-badge">This device</span></div>
           <div class="conflict-text" data-testid="conflict-local">{#each diff.left as row}<div class="conflict-line" class:changed={row.changed}>{row.text}</div>{/each}</div>
         </div>
         <div class="conflict-version">
-          <div class="conflict-version-label">OneDrive</div>
+          <div class="conflict-version-label"><span class="conflict-badge">OneDrive</span></div>
           <div class="conflict-text" data-testid="conflict-remote">{#each diff.right as row}<div class="conflict-line" class:changed={row.changed}>{row.text}</div>{/each}</div>
         </div>
       </div>

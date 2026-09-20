@@ -20,9 +20,18 @@
 </script>
 
 <div class="overlay">
-  <div class="modal-card" role="dialog" aria-modal="true" use:focusTrap aria-label="Unsaved scratchpad content" style="width: 480px;">
+  <div class="modal-card modal-sm" role="dialog" aria-modal="true" use:focusTrap aria-label="Unsaved scratchpad content">
     <div class="modal-input-wrap modal-title">
-      <Icon name="warning" size={15} /> Unsaved Scratchpad Content
+      <Icon name="warning" size={15} />
+      <span>Unsaved Scratchpad Content</span>
+      <button
+        type="button"
+        class="icon-btn modal-close-btn"
+        aria-label="Close dialog"
+        on:click={cancel}
+      >
+        <Icon name="close" size={14} />
+      </button>
     </div>
     <div style="padding: 16px; font-size: 13px; line-height: 1.5;">
       {lead}

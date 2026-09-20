@@ -237,7 +237,7 @@
 </script>
 
 <div class="overlay" role="presentation" use:closeOnOutsideClick={controller.closeAllModals}>
-  <div class="modal-card" role="dialog" aria-modal="true" use:focusTrap aria-label="Actions">
+  <div class="modal-card modal-lg" role="dialog" aria-modal="true" use:focusTrap aria-label="Actions">
     <div class="modal-input-wrap">
       <Icon name="actions" size={15} />
       <input
@@ -249,6 +249,14 @@
         autocomplete="off"
       />
       <span class="modal-counter">{uncompletedCount} open / {flatList.length} listed</span>
+      <button
+        type="button"
+        class="icon-btn modal-close-btn"
+        aria-label="Close dialog"
+        on:click={controller.closeAllModals}
+      >
+        <Icon name="close" size={14} />
+      </button>
     </div>
     <div class="modal-input-wrap">
       <div class="settings-toggle-row">

@@ -581,7 +581,7 @@ body {
   background: var(--surface-overlay);
   border: 1px solid var(--edge-strong);
   border-radius: 8px;
-  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 16px 44px rgba(0, 0, 0, 0.5);
   padding: 4px;
   font-size: 12px;
   color: var(--text);
@@ -906,11 +906,15 @@ body {
   user-select: none;
 }
 @media (pointer: coarse) {
-  .cm-line .glyph-cyclable {
+  .cm-line .glyph-cyclable,
+  .glyph-cyclable {
     overflow: visible !important;
     position: relative;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
   }
-  .cm-line .glyph-cyclable::after {
+  .cm-line .glyph-cyclable::after,
+  .glyph-cyclable::after {
     content: "";
     position: absolute;
     top: 50%;
@@ -1116,11 +1120,55 @@ body {
 }
 
 /* Sync-conflict resolve screen (SyncConflictsModal.svelte). */
+.conflict-view-tabs {
+  display: none;
+  padding: 0 12px 8px;
+  gap: 6px;
+}
+.conflict-view-btn {
+  flex: 1;
+  font-family: inherit;
+  font-size: 11px;
+  padding: 5px 8px;
+  border-radius: 6px;
+  background: var(--surface-raised);
+  border: 1px solid var(--edge-soft);
+  color: var(--muted);
+  cursor: pointer;
+  transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease;
+}
+.conflict-view-btn.active {
+  background: var(--surface-active, rgba(255, 255, 255, 0.1));
+  border-color: var(--edge-strong);
+  color: var(--text);
+  font-weight: 500;
+}
+.conflict-badge {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
 .conflict-versions {
   display: flex;
   gap: 10px;
   padding: 0 12px;
   flex-wrap: wrap;
+}
+@media (max-width: 520px) {
+  .conflict-view-tabs {
+    display: flex;
+  }
+  .conflict-versions {
+    flex-direction: column;
+  }
+  .conflict-versions.show-mine .conflict-version:nth-child(2) {
+    display: none;
+  }
+  .conflict-versions.show-theirs .conflict-version:nth-child(1) {
+    display: none;
+  }
 }
 .conflict-version {
   flex: 1 1 200px;
@@ -1380,7 +1428,7 @@ body {
   background: var(--surface-overlay);
   border: 1px solid var(--edge-strong);
   border-radius: 8px;
-  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 16px 44px rgba(0, 0, 0, 0.5);
   padding: 8px;
   font-size: 12px;
   color: var(--text);
@@ -1572,13 +1620,70 @@ body {
 .modal-card {
   background: var(--surface-overlay);
   border: 1px solid var(--edge-strong);
-  width: 720px;
-  max-width: 92vw;
   border-radius: 8px;
-  box-shadow: 0 16px 44px rgba(0, 0, 0, 0.5);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 16px 44px rgba(0, 0, 0, 0.5);
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  width: min(100%, var(--modal-width, 720px));
+  max-width: calc(100vw - 24px);
+}
+
+.modal-card.modal-sm { --modal-width: 440px; }
+.modal-card.modal-md { --modal-width: 560px; }
+.modal-card.modal-lg { --modal-width: 720px; }
+.modal-card.modal-xl { --modal-width: 880px; }
+
+@media (max-width: 600px) {
+  .overlay {
+    padding: env(safe-area-inset-top, 12px) 12px env(safe-area-inset-bottom, 12px) 12px;
+    align-items: center;
+    justify-content: center;
+  }
+  .modal-card {
+    border-radius: 12px;
+    max-height: min(90dvh, 85vh);
+    max-width: calc(100vw - 16px);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.65);
+  }
+  .modal-list {
+    max-height: min(340px, 50dvh);
+  }
+}
+
+.modal-close-btn {
+  width: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  border-radius: 4px;
+  cursor: pointer;
+  flex-shrink: 0;
+  margin-left: auto;
+  transition: background 120ms ease, color 120ms ease;
+}
+.modal-close-btn:hover {
+  background: var(--surface-hover);
+  color: var(--text);
+}
+@media (pointer: coarse) {
+  .modal-close-btn {
+    position: relative;
+  }
+  .modal-close-btn::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    min-width: 44px;
+    min-height: 44px;
+  }
 }
 .modal-input-wrap {
   padding: 12px;
@@ -1624,15 +1729,41 @@ textarea.modal-input.import-textarea {
    first keystroke. */
 .palette-legend {
   display: flex;
-  gap: 16px;
+  flex-wrap: wrap;
+  gap: 8px;
   padding: 6px 14px;
-  font-size: 10.5px;
+  font-size: 11px;
   color: var(--muted);
   background: var(--surface-chrome);
   border-bottom: 1px solid var(--edge-soft);
 }
-.palette-legend kbd {
-  margin-right: 3px;
+.palette-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-family: inherit;
+  font-size: inherit;
+  color: var(--muted);
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease;
+}
+.palette-chip:hover {
+  background: var(--surface-hover);
+  color: var(--text);
+}
+.palette-chip.active {
+  background: var(--surface-raised);
+  border-color: var(--edge-strong);
+  color: var(--text);
+  font-weight: 500;
+}
+.palette-chip kbd {
+  margin-right: 0;
 }
 .modal-counter {
   font-size: 12px;
@@ -1883,6 +2014,12 @@ textarea.modal-input.import-textarea {
   color: var(--muted);
   background: var(--surface-chrome);
 }
+@media (pointer: coarse), (max-width: 600px) {
+  /* Suppress pure keyboard navigation hint footers on mobile/touch */
+  .modal-footer:not(:has(button)) {
+    display: none;
+  }
+}
 
 /* Calendar sync review — a per-item checkbox for new meetings, and a
    Segmented choice + optional date for each removed-with-content section. */
@@ -1893,6 +2030,24 @@ textarea.modal-input.import-textarea {
   font-size: 12px;
   font-family: var(--font);
   cursor: pointer;
+}
+.sync-review-removal {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+@media (max-width: 520px) {
+  .sync-review-removal {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+    padding: 10px 12px;
+  }
+  .sync-review-removal-controls {
+    justify-content: space-between;
+    width: 100%;
+  }
 }
 .sync-review-removal-controls {
   display: flex;
@@ -1946,6 +2101,32 @@ textarea.modal-input.import-textarea {
 /* #47: the shortcuts and the symbols side by side, each its own
    independently-scrolling, fixed-height pane, instead of one long list
    where seeing the symbols meant scrolling past every shortcut first. */
+.shortcuts-mobile-tabs {
+  display: none;
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--edge-soft);
+  background: var(--surface-chrome);
+  padding: 6px 12px;
+  gap: 8px;
+}
+.shortcuts-tab-btn {
+  flex: 1;
+  font-family: inherit;
+  font-size: 11px;
+  padding: 6px 12px;
+  border-radius: 6px;
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--muted);
+  cursor: pointer;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+.shortcuts-tab-btn.active {
+  background: var(--surface-raised);
+  border-color: var(--edge-soft);
+  color: var(--text);
+  font-weight: 500;
+}
 .shortcuts-body {
   display: flex;
   align-items: stretch;
@@ -1959,6 +2140,29 @@ textarea.modal-input.import-textarea {
 }
 .shortcuts-col + .shortcuts-col {
   border-left: 1px solid var(--edge-soft);
+}
+@media (max-width: 680px) {
+  .shortcuts-mobile-tabs {
+    display: flex;
+  }
+  .shortcuts-body {
+    height: auto;
+    max-height: min(60dvh, 440px);
+    flex-direction: column;
+  }
+  .shortcuts-body.show-shortcuts .shortcuts-col:nth-child(2) {
+    display: none;
+  }
+  .shortcuts-body.show-glyphs .shortcuts-col:nth-child(1) {
+    display: none;
+  }
+  .shortcuts-col + .shortcuts-col {
+    border-left: none;
+  }
+  .shortcuts-list .modal-item {
+    min-height: 36px;
+    padding: 6px 12px;
+  }
 }
 
 /* §127 (finding F): a handful of dialog footer actions need to read as
@@ -2197,6 +2401,104 @@ textarea.modal-input.import-textarea {
   margin: auto;
   text-align: center;
 }
+.hp-actions-row {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+}
+.hp-action-btn {
+  flex: 1;
+  justify-content: center;
+  padding: 6px 10px;
+}
+
+.history-mobile-tabs {
+  display: none;
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--edge-soft);
+  background: var(--surface-chrome);
+  padding: 6px 12px;
+  gap: 8px;
+}
+.history-tab-btn {
+  flex: 1;
+  font-family: inherit;
+  font-size: 11px;
+  padding: 6px 12px;
+  border-radius: 6px;
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--muted);
+  cursor: pointer;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+.history-tab-btn.active {
+  background: var(--surface-raised);
+  border-color: var(--edge-soft);
+  color: var(--text);
+  font-weight: 500;
+}
+@media (max-width: 680px) {
+  .history-mobile-tabs {
+    display: flex;
+  }
+  .history-body {
+    flex-direction: column;
+  }
+  .history-body.show-list .history-preview {
+    display: none;
+  }
+  .history-body.show-preview .history-main {
+    display: none;
+  }
+  .history-preview {
+    width: 100%;
+    border-left: none;
+    flex: 1;
+    min-height: 200px;
+  }
+}
+
+/* §194 Area 6.1: Dynamic floating toast for mobile */
+.mobile-toast {
+  position: fixed;
+  top: calc(var(--top-bar-height, 40px) + var(--inset-top, env(safe-area-inset-top, 0px)) + 12px);
+  left: 50%;
+  transform: translateX(-50%);
+  max-width: calc(100vw - 32px);
+  padding: 8px 16px;
+  background: var(--surface-raised);
+  border: 1px solid var(--edge-strong);
+  border-radius: 20px;
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 12px;
+  font-weight: 500;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(8px);
+  z-index: 1000;
+  pointer-events: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  animation: mobile-toast-in 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+@keyframes mobile-toast-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -8px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0) scale(1);
+  }
+}
+
+@media (pointer: coarse), (max-width: 600px) {
+  .item-tag.is-shortcut {
+    display: none;
+  }
+}
 kbd {
   background: rgba(128, 128, 128, 0.2);
   padding: 1px 5px;
@@ -2405,22 +2707,32 @@ body {
   padding-right: var(--inset-right, env(safe-area-inset-right, 0px));
 }
 
-/* Expanded touch targets for cyclable checklist glyphs */
+/* §194 Area 6.2: Consolidated coarse pointer hit-target ergonomics */
 @media (pointer: coarse) {
-  .glyph-cyclable {
+  .drawer-tab-close {
     position: relative;
-    cursor: pointer;
-    -webkit-tap-highlight-color: transparent;
   }
-  .glyph-cyclable::after {
+  .drawer-tab-close::after {
     content: "";
     position: absolute;
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    width: 44px;
-    height: 44px;
-    z-index: 1;
+    min-width: 44px;
+    min-height: 44px;
+  }
+  .cal-day::before {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    min-width: 36px;
+    min-height: 36px;
+  }
+  #top-bar .icon-btn {
+    min-width: 38px;
+    height: 38px;
   }
 }
 

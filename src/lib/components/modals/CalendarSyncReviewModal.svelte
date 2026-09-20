@@ -18,9 +18,18 @@
 
 {#if review}
   <div class="overlay" role="presentation" use:closeOnOutsideClick={cancel}>
-    <div class="modal-card" role="dialog" aria-modal="true" use:focusTrap aria-label="Sync review">
+    <div class="modal-card modal-lg" role="dialog" aria-modal="true" use:focusTrap aria-label="Sync review">
       <div class="modal-input-wrap modal-title">
-        <Icon name="import" size={15} /> Sync Review
+        <Icon name="import" size={15} />
+        <span>Sync Review</span>
+        <button
+          type="button"
+          class="icon-btn modal-close-btn"
+          aria-label="Close dialog"
+          on:click={cancel}
+        >
+          <Icon name="close" size={14} />
+        </button>
       </div>
       <div class="modal-list">
         {#if review.newItems.length}

@@ -271,7 +271,7 @@ test.describe("settings (Ctrl/Cmd+,)", () => {
     expect(scrollHeight).toBeGreaterThan(clientHeight);
 
     // Close stays reachable — the original bug this cap guards against.
-    await settings(page).getByRole("button", { name: "Close" }).click();
+    await settings(page).getByRole("button", { name: "Close", exact: true }).click();
     expect(await currentModal(page)).toBe("none");
   });
 });

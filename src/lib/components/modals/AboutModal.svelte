@@ -32,10 +32,19 @@
 </script>
 
 <div class="overlay" role="presentation" use:closeOnOutsideClick={controller.closeAllModals}>
-  <div class="modal-card" role="dialog" aria-modal="true" use:focusTrap aria-label="About ChronoNote" style="width: 420px;">
+  <div class="modal-card modal-sm" role="dialog" aria-modal="true" use:focusTrap aria-label="About ChronoNote">
     <div class="modal-input-wrap modal-title">
-      <Icon name="about" size={15} /> About ChronoNote
-      <span class="modal-counter" style="margin-left: auto;">v{$appVersion || "…"}</span>
+      <Icon name="about" size={15} />
+      <span>About ChronoNote</span>
+      <span class="modal-counter">v{$appVersion || "…"}</span>
+      <button
+        type="button"
+        class="icon-btn modal-close-btn"
+        aria-label="Close dialog"
+        on:click={controller.closeAllModals}
+      >
+        <Icon name="close" size={14} />
+      </button>
     </div>
     <div class="settings-section">
       <div>

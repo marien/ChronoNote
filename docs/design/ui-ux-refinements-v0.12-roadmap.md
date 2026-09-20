@@ -4,7 +4,7 @@
 **Target Release:** ChronoNote v0.12.0 (compared against baseline v0.11.1)  
 **Supported Targets:** Desktop (Tauri 2 Rust), Android (Tauri 2 Mobile), Web App & PWA (IndexedDB + Web OneDrive), Public Demo  
 **Status:** Design proposal, reviewed 2026-09-20 (see §13: review findings, open decisions and the amendments already folded into this document). No implementation started.  
-**Implementation:** Release A is implemented and merged to `main` as unreleased (CHANGELOG §193); Releases B and C are not started.  
+**Implementation:** Releases A and B are implemented and merged to `main` as unreleased (CHANGELOG §193, §194); Release C is not started. Of Release B, area 6.4 (expressive empty states) was deferred.  
 **Baseline note:** `main` now also carries unreleased §191/§192 (Android folder switch, short Settings tab labels, About last in the status bar); this roadmap's Settings references ("Notes & Sync" tab) already match that.  
 **Companion Interactive Mockup:** [`docs/design/ui-ux-refinements-v0.12-mockup.html`](ui-ux-refinements-v0.12-mockup.html)  
 

@@ -59,6 +59,8 @@
     ["- / * ", "•", "glyph-bullet", "Bulleted list item (nest with two-space indents)"],
     ["=> ", "➔", "glyph-followup", "Follow-up — a plain note leading from this line"],
   ];
+
+  let shortcutsTab: "shortcuts" | "glyphs" = "shortcuts";
 </script>
 
 <!-- #47: side-by-side columns instead of one long scrolling list, so the
@@ -68,17 +70,44 @@
      half. -->
 <div class="overlay" role="presentation" use:closeOnOutsideClick={controller.closeAllModals}>
   <div
-    class="modal-card"
+    class="modal-card modal-xl"
     role="dialog"
     aria-modal="true"
     use:focusTrap
     aria-label="Keyboard shortcuts"
-    style="width: 880px;"
   >
     <div class="modal-input-wrap modal-title">
-      <Icon name="keyboard" size={15} /> Shortcuts &amp; Symbols
+      <Icon name="keyboard" size={15} />
+      <span>Shortcuts &amp; Symbols</span>
+      <button
+        type="button"
+        class="icon-btn modal-close-btn"
+        aria-label="Close dialog"
+        on:click={controller.closeAllModals}
+      >
+        <Icon name="close" size={14} />
+      </button>
     </div>
-    <div class="shortcuts-body">
+    <!-- §194: Mobile tab switcher for viewports <= 680px -->
+    <div class="shortcuts-mobile-tabs">
+      <button
+        type="button"
+        class="shortcuts-tab-btn"
+        class:active={shortcutsTab === "shortcuts"}
+        on:click={() => (shortcutsTab = "shortcuts")}
+      >
+        Shortcuts
+      </button>
+      <button
+        type="button"
+        class="shortcuts-tab-btn"
+        class:active={shortcutsTab === "glyphs"}
+        on:click={() => (shortcutsTab = "glyphs")}
+      >
+        Glyphs &amp; Symbols
+      </button>
+    </div>
+    <div class="shortcuts-body" class:show-shortcuts={shortcutsTab === "shortcuts"} class:show-glyphs={shortcutsTab === "glyphs"}>
       <div class="shortcuts-col shortcuts-list" use:focusScrollableList style="outline: none;">
         <div class="modal-group-header">Keyboard shortcuts</div>
         {#each shortcuts as [keys, label]}
