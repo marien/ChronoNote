@@ -117,7 +117,7 @@ test.describe("status bar — notes folder name (§merged-titlebar)", () => {
 
     const settings = modalCard(page, MODAL_LABELS.settings);
     await expect(settings).toBeVisible();
-    await expect(settings.getByRole("radio", { name: "Calendar, Notes & Data", exact: true })).toHaveAttribute(
+    await expect(settings.getByRole("radio", { name: "Notes & Sync", exact: true })).toHaveAttribute(
       "aria-checked",
       "true",
     );
@@ -131,7 +131,7 @@ test.describe("status bar — notes folder name (§merged-titlebar)", () => {
 
     const settings = modalCard(page, MODAL_LABELS.settings);
     await expect(settings).toBeVisible();
-    await expect(settings.getByRole("radio", { name: "Appearance & Editor", exact: true })).toHaveAttribute(
+    await expect(settings.getByRole("radio", { name: "Appearance", exact: true })).toHaveAttribute(
       "aria-checked",
       "true",
     );

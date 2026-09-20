@@ -6,7 +6,7 @@ kept for the rationale behind each one — not just *what* changed but
 was still being gathered and confirmed before implementation; renamed once
 everything below was applied, since nothing here is "pending" anymore.
 
-**Status: all sections through §191 implemented** (§178–§180 in v0.9.5: a save-only-when-changed fix and two GitHub issues, #76/#77; §181–§186 in v0.10.0: the Android app and OneDrive sync; §187–§188 in v0.11.0: OneDrive sync for the web app, and the fixes found reviewing and testing it). §153 is a
+**Status: all sections through §192 implemented** (§178–§180 in v0.9.5: a save-only-when-changed fix and two GitHub issues, #76/#77; §181–§186 in v0.10.0: the Android app and OneDrive sync; §187–§188 in v0.11.0: OneDrive sync for the web app, and the fixes found reviewing and testing it). §153 is a
 website-only Guide-page fix (found live right after §150–§152 shipped
 as v0.7.12) — no version bump, nothing in the shipped app changed. §154
 merges the OS title bar into the top bar (Notepad-style: icon, tabs,
@@ -8417,3 +8417,16 @@ Two follow-ups left over from §188.
 Verification: Vitest 439, `svelte-check` 0, Playwright 261, `cargo test` 141 (+3:
 clearing, tolerance of missing files, archiving). The orchestration that calls the
 live OneDrive API (sync first, then clear) has no automated test on the Rust side.
+
+## 192. Shorter Settings tab labels everywhere; About last in the status bar (unreleased)
+
+1. **Settings tabs use the short labels on every platform:** "Appearance" and
+   "Notes & Sync" (plus "Updates" on the desktop app). They were shortened on
+   mobile first so all tabs fit; the desktop's longer "Appearance & Editor" and
+   "Calendar, Notes & Data" are gone. Spec §3.4, the affected e2e specs and the
+   `menu.ts` comment follow.
+2. **Status bar, right zone:** the `?` Shortcuts & Symbols trigger now comes before
+   the About icon, so About is last (version, update icon when relevant, `?`,
+   About). Spec §3.3 and the order test follow.
+
+Verification: Vitest 439, `svelte-check` 0, Playwright 261, `cargo test` 141.

@@ -173,10 +173,10 @@ confirmations, "nothing to import," etc.), empty otherwise; and a right
 zone showing Open / Closed / Forwarded action counts for the active
 note (`x`, won't-do, folds into Closed alongside `v`, done), the
 currently-running version number (clicking it opens About), an
-update-available icon when relevant (also opens About), an About icon
-(moved here from the top bar, #58 — always reachable regardless of
-window width instead of competing with the tab strip for room), and the
-`?` Shortcuts & Symbols trigger.
+update-available icon when relevant (also opens About), the `?`
+Shortcuts & Symbols trigger, and — last — an About icon (moved here from
+the top bar, #58 — always reachable regardless of window width instead
+of competing with the tab strip for room).
 
 On Android (§7.6) the left zone also carries a cloud item showing the
 OneDrive sync state (folder name, "Syncing…", "Offline" or "Sync error";
@@ -186,11 +186,12 @@ Sync conflicts drawer (§5).
 
 ### 3.4 Settings
 
-Settings (`Ctrl/Cmd+,`) is a tabbed dialog — Appearance & Editor /
-Calendar, Notes & Data / Updates (the last dropped entirely in the web
-app, where nothing in it applies) — grouping independent controls:
+Settings (`Ctrl/Cmd+,`) is a tabbed dialog — Appearance / Notes & Sync /
+Updates (the last dropped entirely in the web app, where nothing in it
+applies; the tab labels are the same on every platform) — grouping
+independent controls:
 
-**Appearance & Editor**
+**Appearance** (theme, glyph palette and editor)
 - **Theme:** Light / Dark / System for the app's own chrome (System
   follows the OS setting and is the default).
 - **Glyph palette:** Color / Grayscale / Legacy — a three-way choice
@@ -205,7 +206,7 @@ app, where nothing in it applies) — grouping independent controls:
   fit the window, Reading column additionally caps the text to a
   comfortable centred measure.
 
-**Calendar, Notes & Data**
+**Notes & Sync** (calendar, notes location and data)
 - **Calendar** (desktop only): a single opt-in toggle, "Show 'Sync
   calendar for this day'" (off by default) — the top-bar/More-actions/
   command-palette button for it doesn't exist at all until turned on.
@@ -222,8 +223,8 @@ app, where nothing in it applies) — grouping independent controls:
 - **Data (export/import)**, shown identically on the desktop app and the
   web app: exports every note as a single bundle file, and imports one
   back in with merge-skip-duplicates semantics — see §7.3.
-- **OneDrive cloud sync** (Android only — on that build this tab is
-  labelled "Notes & Sync" and there is no Updates tab): connect a Microsoft
+- **OneDrive cloud sync** (Android and the web app; neither has an
+  Updates tab): connect a Microsoft
   account, browse to or create the OneDrive folder to sync the notes folder
   with, "Sync now" (which reports success or the reason for failure), sign
   out, and an "Advanced" disclosure for a client-ID and tenant override

@@ -148,7 +148,15 @@
         v{$appVersion}
       </button>
     {/if}
-    <!-- #58: moved from the top bar — always reachable here regardless of
+    <button
+      type="button"
+      class="status-help"
+      title="Shortcuts & symbols ({formatCombo(shortcutById('openShortcutsHelp').combos[0])})"
+      on:click={controller.openShortcutsHelp}
+    >
+      ?
+    </button>
+    <!-- #58: moved from the top bar (last, after Shortcuts & symbols) — always reachable here regardless of
          window width, instead of competing for room with the tab strip
          and folding into "More" once things got tight. -->
     <button
@@ -158,14 +166,6 @@
       on:click={controller.openAbout}
     >
       <Icon name="about" size={12} />
-    </button>
-    <button
-      type="button"
-      class="status-help"
-      title="Shortcuts & symbols ({formatCombo(shortcutById('openShortcutsHelp').combos[0])})"
-      on:click={controller.openShortcutsHelp}
-    >
-      ?
     </button>
   </div>
 </div>

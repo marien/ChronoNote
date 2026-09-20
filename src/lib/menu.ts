@@ -12,7 +12,7 @@ export function openSettings() {
 }
 
 /** #71: the status bar's folder icon/name — opens Settings landed
- * directly on the "Calendar, Notes & Data" tab (where the notes-folder
+ * directly on the "Notes & Sync" tab (where the notes-folder
  * "Browse…" control lives) instead of the usual default first tab. */
 export function openSettingsOnNotesFolder() {
   settingsInitialTab.set("calendar");

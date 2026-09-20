@@ -73,7 +73,7 @@ test.describe("status bar — three zones (§100/§110)", () => {
     await expect(modalCard(page, MODAL_LABELS.about)).toBeVisible();
   });
 
-  test("#58: an About icon sits between the version number and the shortcuts trigger, and opens About", async ({
+  test("#58: the About icon comes last - after the version number and the shortcuts trigger - and opens About", async ({
     page,
   }) => {
     await seedApp(page, { seed: { notes: {}, appVersion: "9.9.9", updateCheck: "none" } });
@@ -81,7 +81,7 @@ test.describe("status bar — three zones (§100/§110)", () => {
     const order = await page.locator(".status-right").evaluate((el) =>
       [...el.querySelectorAll("#stat-version, .status-about-btn, .status-help")].map((n) => n.id || n.className),
     );
-    expect(order).toEqual(["stat-version", "status-about-btn", "status-help"]);
+    expect(order).toEqual(["stat-version", "status-help", "status-about-btn"]);
 
     await page.locator(".status-about-btn").click();
     await expect(modalCard(page, MODAL_LABELS.about)).toBeVisible();
