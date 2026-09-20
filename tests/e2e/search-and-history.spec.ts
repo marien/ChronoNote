@@ -98,6 +98,29 @@ test.describe("cross-tab search (Ctrl/Cmd+Shift+F)", () => {
     await expect(rows(search(page))).toHaveCount(2);
   });
 
+  test("a repeated operator shows one chip and one click removes it; regex characters in a value never break the modal", async ({ page }) => {
+    const errors: string[] = [];
+    page.on("pageerror", (e) => errors.push(e.message));
+    await seedApp(page, { seed: { notes: { [todayFilename()]: "# open one\nv done one" } } });
+    await editor(page).click();
+    await page.keyboard.press("ControlOrMeta+Shift+F");
+    const input = search(page).locator(".modal-input");
+
+    await input.fill("is:open is:open");
+    const chips = search(page).locator(".search-chip");
+    await expect(chips).toHaveCount(1);
+    await chips.first().locator(".chip-remove-btn").click();
+    await expect(chips).toHaveCount(0);
+    expect(await input.inputValue()).toBe("");
+
+    await input.fill("has:@a(b");
+    await expect(chips).toHaveCount(1);
+    await input.fill("has:@a.b*+?[");
+    await expect(chips).toHaveCount(1);
+    await expect(search(page)).toBeVisible();
+    expect(errors).toEqual([]);
+  });
+
   test("jumping to a search match applies .cm-line-hit-pulse animation to target line (Area 8.3)", async ({ page }) => {
     await seedApp(page, {
       seed: {

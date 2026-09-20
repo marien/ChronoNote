@@ -1,5 +1,5 @@
 import { describe, expect, it, beforeEach } from "vitest";
-import { parseSearchQuery, runSearch } from "./search";
+import { escapeRegExp, parseSearchQuery, removeChipFromQuery, runSearch } from "./search";
 import { allNotesCache, searchResultsStore, tabs } from "./stores";
 import type { NoteTab } from "./types";
 
@@ -195,5 +195,33 @@ describe("runSearch 3-line context extraction and operator filtering", () => {
       .replace(/\s{2,}/g, " ")
       .trim();
     expect(removed).toBe("is:open palette");
+  });
+});
+
+describe("regex-safe operators and chip removal", () => {
+  it("escapeRegExp neutralises every metacharacter", () => {
+    const raw = "a(b)[c].*+?^$|{}\\";
+    expect(new RegExp(escapeRegExp(raw)).test(raw)).toBe(true);
+  });
+
+  it("an assignee value with regex metacharacters never throws", () => {
+    expect(() => runSearch("has:@a(b", "open")).not.toThrow();
+    expect(() => runSearch("has:@a.b*", "open")).not.toThrow();
+  });
+
+  it("removing a chip drops every occurrence of that operator", () => {
+    const q = "is:open deploy is:open";
+    expect(removeChipFromQuery(q, parseSearchQuery(q).chips[0])).toBe("deploy");
+  });
+
+  it("removing an is: chip also drops a superseded is: token", () => {
+    const q = "is:open is:done x";
+    expect(removeChipFromQuery(q, parseSearchQuery(q).chips[0])).toBe("x");
+  });
+
+  it("removing a tag chip only drops that tag", () => {
+    const q = "tag:ui tag:api foo";
+    const chip = parseSearchQuery(q).chips.find((c) => c.value === "ui")!;
+    expect(removeChipFromQuery(q, chip)).toBe("tag:api foo");
   });
 });

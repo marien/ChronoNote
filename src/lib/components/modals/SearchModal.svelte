@@ -9,7 +9,7 @@
   import Icon from "../../icons/Icon.svelte";
   import Segmented from "../Segmented.svelte";
   import type { SearchResultItem } from "../../types";
-  import { parseSearchQuery, type SearchFilterChip } from "../../search";
+  import { parseSearchQuery, removeChipFromQuery, type SearchFilterChip } from "../../search";
   import {
     MODAL_HEADER_ROW_HEIGHT,
     SEARCH_ITEM_ROW_HEIGHT,
@@ -33,13 +33,7 @@
   $: queryTerm = parsed.term;
 
   function removeChip(chip: SearchFilterChip) {
-    if (chip.startIndex !== undefined && chip.endIndex !== undefined) {
-      query = (query.slice(0, chip.startIndex) + " " + query.slice(chip.endIndex))
-        .replace(/\s{2,}/g, " ")
-        .trim();
-    } else {
-      query = query.replace(chip.raw, "").replace(/\s{2,}/g, " ").trim();
-    }
+    query = removeChipFromQuery(query, chip);
     inputEl?.focus();
   }
 

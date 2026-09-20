@@ -197,6 +197,24 @@ export function parseSearchQuery(query: string): ParsedSearchQuery {
   };
 }
 
+/** Escapes regex metacharacters so a user-typed operator value (e.g. `has:@a(b`) is matched
+ * literally and can never make `new RegExp` throw. */
+export function escapeRegExp(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+/** Removes a filter chip's operator from the raw query. Every token that parses to the same
+ * operator is removed: a repeated or superseded operator would otherwise leave the chip behind. */
+export function removeChipFromQuery(query: string, chip: SearchFilterChip): string {
+  const kept: string[] = [];
+  for (const token of query.split(/\s+/).filter(Boolean)) {
+    const c = parseSearchQuery(token).chips[0];
+    const same = c && c.kind === chip.kind && (chip.kind !== "tag" || c.value === chip.value);
+    if (!same) kept.push(token);
+  }
+  return kept.join(" ");
+}
+
 export function openCrossTabSearch() {
   searchResultsStore.set([]);
   modal.set("search");
@@ -221,7 +239,7 @@ export function runSearch(query: string, scope: "open" | "all" = "open") {
     (t) => `(${t.toLowerCase()})`,
   );
   const assigneeRegex = operators.hasAssignee
-    ? new RegExp(`@${operators.hasAssignee.toLowerCase()}\\b`, "i")
+    ? new RegExp(`@${escapeRegExp(operators.hasAssignee)}\\b`, "i")
     : null;
 
   function matchesLine(filename: string, line: string): boolean {
