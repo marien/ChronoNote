@@ -893,5 +893,76 @@ Mockup updated (2026-09-20) to match all decisions (`Ctrl+Alt+Z` universal chord
 - The proposal's parked concepts (Area 11) do not conflict with anything already parked in the project.
 - "438 tests passing" is now 439 Vitest, 261 Playwright, 141 cargo; the quality-gate list omits Playwright (`npm run test:e2e`), which is where most of these UI changes are actually verified. Add it, and add the web app bundle rebuild (`npm run build:webapp`) since CI checks that it is fresh.
 - Every new user-facing behaviour needs the mock backend and web backend kept in step (`TauriCommands` parity is a `svelte-check` error).
-- The mockup still shows F11, the `oled` theme value, deferred-as-pending dots and the inline-block pill; it needs updating once the decisions above are made, and should be read as a visual reference rather than a spec until then.
-- **Repository hygiene (not a design point):** the branch adds `AGENTS.md` and `docs/PROJECT_CONTEXT.md`. They are session-continuity notes for another AI tool and contain a local Windows path, a conversation id and a transcript path. They have no place on a public repo's `main`; recommend removing them from this branch before it is merged.
+- The mockup has been updated to match all binding decisions (Ctrl+Alt+Z, data-pure-black toggle, deferred dots counted as resolved, layout-neutral topic pill, search chips).
+
+---
+
+## 14. Release A Implementation Task Breakdown (v0.12.0)
+
+Scope: **Areas 1, 2, 7, 8** (Palette match highlighting & direct line actions, resolved line muting, calendar completion heatmap, search 3-line context & jump pulse).
+
+### Work Stream 1: Command Palette Refinements (Area 1)
+- [ ] **Task 1.1: Match Highlighting Algorithm (`src/lib/commandPalette.ts`)**
+  - Implement `fuzzyMatchWithIndices(haystack: string, needle: string): { matches: boolean; indices: number[] } | null`.
+  - Add character indices to `PaletteItem` model (`matchedIndices?: number[]`).
+  - Unit tests in `src/lib/commandPalette.test.ts` covering sequential matching, case insensitivity, prefix query modes (`>`, `!`, `#`, `@`), and empty needle fallbacks.
+- [ ] **Task 1.2: Palette Highlight UI (`CommandPaletteModal.svelte`, `src/app.css`)**
+  - Wrap matched characters in `<span class="palette-match">` in rendered item labels.
+  - Define `.palette-match` in `src/app.css` (`color: var(--glyph-open-color); font-weight: 700; text-decoration: underline; text-underline-offset: 2px`).
+- [ ] **Task 1.3: Selection Snapshotting & Focus Restoration (Decision 2)**
+  - Snapshot active editor line/cursor selection upon `openCommandPalette()`.
+  - Implement `runPaletteLineAction(actionFn)` that closes the palette, restores editor focus and selection, and then runs the line action.
+  - Unit test verifying that editor selection is restored before line action execution.
+- [ ] **Task 1.4: Direct Line Actions & Export Command (`src/lib/commandPalette.ts`)**
+  - Register `"Current line"` commands in `commandItems()`: Close open (`#` → `v`), Reopen done (`v` → `#`), Direct states 1–4, Convert to section header, Jump to next open action.
+  - Register `"Export all notes to file (.json)"` under `"Commands"`.
+
+### Work Stream 2: Subtle Resolved Line Muting (Area 2)
+- [ ] **Task 2.1: CodeMirror Resolved Line Plugin (`src/lib/editor/resolvedLines.ts`)**
+  - Create CodeMirror 6 `ViewPlugin` evaluating `innermostActionSymbol(line.text)` from `src/lib/tokens.ts` (reusing canonical token rules per R4).
+  - Matches lines where `innermostActionSymbol` returns `"v"` or `"x"` (including indented and consequence actions `=> v`, `=> x`), applying `Decoration.line({ class: "cm-line-resolved" })`.
+  - Leaves deferred lines (`> `), open lines (`# `), and non-action text at full opacity.
+- [ ] **Task 2.2: Line Muting CSS & Grayscale Contrast Safeguard (`src/app.css`)**
+  - Add `.cm-line.cm-line-resolved { opacity: 0.72; transition: opacity 150ms ease; }`.
+  - Add hover and focus restoration: `.cm-line.cm-line-resolved:hover, .cm-line.cm-line-resolved:focus-within { opacity: 1; }`.
+  - Add grayscale mode safeguard: `[data-color-mode="grayscale"] .cm-line-resolved .glyph-done { opacity: 1; }` ensuring WCAG AA contrast.
+- [ ] **Task 2.3: Integration & Unit Tests (`src/lib/components/EditorPane.svelte`, `src/lib/editor/resolvedLines.test.ts`)**
+  - Mount `resolvedLinesPlugin` in `EditorPane.svelte` extensions.
+  - Unit tests verifying that resolved lines receive the class while open/deferred/plain lines do not.
+
+### Work Stream 3: Calendar Navigation & Completion Heatmap (Area 7)
+- [ ] **Task 3.1: 3-Tier Completion Heatmap Math (Decision 3 / R7, `DatePickerModal.svelte`)**
+  - Extend the reactive calculation over `$allNotesCache` to map each ISO date to its 3-tier completion state (`heatByIso = Map<string, "done" | "pending" | "log">`):
+    - Note with content and 0 action items: `"log"`.
+    - Note with ≥1 open `#` item (`open > 0`): `"pending"`.
+    - Note with ≥1 action item and `open === 0` (`closed > 0 || forwarded > 0`): `"done"` (deferred counts as resolved per Decision 3).
+  - Update `aria-label` for screen reader accessibility.
+- [ ] **Task 3.2: Semantic Dot CSS (`src/app.css`)**
+  - Add `.cal-day.has-done::after` (`var(--glyph-done-color)`).
+  - Add `.cal-day.has-pending::after` (`var(--state-warn)`).
+  - Add `.cal-day.has-log::after` (`var(--muted)`, 0.45 opacity).
+- [ ] **Task 3.3: Unit & Accessibility Tests (`DatePickerModal.test.ts`)**
+  - Unit tests verifying classification: note with done and deferred yields `"done"`; note with open yields `"pending"`; plain entry yields `"log"`.
+
+### Work Stream 4: Cross-File Search Context, Operators & Match Pulse (Area 8)
+- [ ] **Task 4.1: 3-Line Context Extraction (`src/lib/types.ts`, `src/lib/search.ts`)**
+  - Extend `SearchResultItem` with `contextBefore?: string` and `contextAfter?: string`.
+  - Populate context lines in `runSearch()` for both open tabs and cached files.
+- [ ] **Task 4.2: Search Query Operator Parser & Chip State (Decision 7, `src/lib/search.ts`)**
+  - Implement `parseSearchQuery(query: string)` to extract operators: `is:open`, `is:done`, `tag:`, `has:@`, `since:`, `before:`.
+  - Expose parsed operators for UI chip binding and unit-test in `src/lib/search.test.ts`.
+- [ ] **Task 4.3: Search UI: 3-Line Rendering & Dismissible Chips (`SearchModal.svelte`, `virtualList.ts`)**
+  - Render active operators as dismissible filter chips with `✕` remove button.
+  - Render 3-line contextual expansion for each hit with dimmed context before/after.
+  - Adjust virtual list row height constant for search items.
+- [ ] **Task 4.4: In-Editor Jump Pulse Animation (`EditorPane.svelte`, `src/app.css`)**
+  - Define `@keyframes searchHitPulse` and `.cm-line-hit-pulse` in `src/app.css`.
+  - Expose `pulseLine(lineIdx: number)` on `EditorApi` to pulse the target line for 1400ms when jumping from search.
+
+### Work Stream 5: Release A Verification & Quality Gates
+- [ ] **Task 5.1: Backend Parity & Type Checking**: `npm run check` (0 errors, full `TauriCommands` parity).
+- [ ] **Task 5.2: Unit Tests**: `npm test` (all 439+ Vitest tests passing).
+- [ ] **Task 5.3: E2E Tests**: `npm run test:e2e` (all 261+ Playwright tests passing).
+- [ ] **Task 5.4: Rust Tests**: `cargo test` (all 141+ tests passing).
+- [ ] **Task 5.5: Webapp Bundle**: `npm run build:webapp` clean build.
+
