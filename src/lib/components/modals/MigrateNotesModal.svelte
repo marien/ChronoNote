@@ -41,19 +41,18 @@
 
 <div class="overlay" role="presentation" use:closeOnOutsideClick={onCancel}>
   <div
-    class="modal-card settings-modal-card"
+    class="modal-card settings-modal-card modal-sm"
     role="dialog"
     aria-modal="true"
     use:focusTrap
     aria-label="Move Notes to OneDrive"
-    style="max-width: 440px;"
   >
     <div class="modal-input-wrap modal-title" style="justify-content: space-between;">
       <div style="display: flex; align-items: center; gap: 8px;">
         <Icon name="cloud" size={16} />
         <span>Move Notes to OneDrive?</span>
       </div>
-      <button class="icon-btn" aria-label="Close" on:click={onCancel} style="padding: 2px;" disabled={migrating || skipping}>
+      <button type="button" class="icon-btn modal-close-btn" aria-label="Close dialog" on:click={onCancel} disabled={migrating || skipping}>
         <Icon name="close" size={14} />
       </button>
     </div>

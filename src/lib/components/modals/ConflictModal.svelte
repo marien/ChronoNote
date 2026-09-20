@@ -13,9 +13,9 @@
 
 {#if info}
   <div class="overlay">
-    <div class="modal-card" role="dialog" aria-modal="true" use:focusTrap aria-label="Note changed on disk" style="width: 520px;">
+    <div class="modal-card modal-md" role="dialog" aria-modal="true" use:focusTrap aria-label="Note changed on disk">
       <div class="modal-input-wrap modal-title">
-        <Icon name="warning" size={15} /> "{info.filename}" changed on disk
+        <Icon name="warning" size={15} /> <span>"{info.filename}" changed on disk</span>
       </div>
       <div style="padding: 16px; font-size: 13px; line-height: 1.5;">
         This note was modified outside ChronoNote (another editor, or a sync client) while you had unsaved

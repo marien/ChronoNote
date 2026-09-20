@@ -2,7 +2,7 @@
   import { onMount } from "svelte";
   import { get } from "svelte/store";
   import * as controller from "./lib/controller";
-  import { activeTabId, backendKind, editorApi, findOpen, isMobile, modal, mobileTabDrawerOpen, scratchpadGateContext, tabs } from "./lib/controller";
+  import { activeTabId, backendKind, editorApi, findOpen, isMobile, modal, mobileTabDrawerOpen, scratchpadGateContext, tabs, toastMessage } from "./lib/controller";
   import { matchesShortcut } from "./lib/shortcuts";
   import { wireMobileViewport } from "./lib/mobileViewport";
   import TopBar from "./lib/components/TopBar.svelte";
@@ -194,6 +194,11 @@
 
 {#if ready}
   <TopBar />
+  {#if $isMobile && $toastMessage}
+    <div class="mobile-toast" role="status" aria-live="polite">
+      {$toastMessage}
+    </div>
+  {/if}
   <div
     id="editor-container"
     role="region"

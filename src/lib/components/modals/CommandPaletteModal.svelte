@@ -103,11 +103,23 @@
     }
   }
 
+  function setPrefix(p: string) {
+    const trimmed = query.trim();
+    if (trimmed.startsWith(p)) {
+      query = trimmed.slice(p.length).trimStart();
+    } else {
+      const existing = [">", "!", "#", "@", "?"].find((x) => trimmed.startsWith(x));
+      const rest = existing ? trimmed.slice(existing.length).trimStart() : trimmed;
+      query = rest ? `${p} ${rest}` : p;
+    }
+    inputEl?.focus();
+  }
+
   const PLACEHOLDER = "Type a command…";
 </script>
 
 <div class="overlay" role="presentation" use:closeOnOutsideClick={controller.closeAllModals}>
-  <div class="modal-card" role="dialog" aria-modal="true" use:focusTrap aria-label="Command palette" style="width: 560px;">
+  <div class="modal-card modal-md" role="dialog" aria-modal="true" use:focusTrap aria-label="Command palette">
     <div class="modal-input-wrap">
       <Icon name="command" size={15} />
       <input
@@ -119,15 +131,43 @@
         autocomplete="off"
         aria-label="Command palette query"
       />
+      <button
+        type="button"
+        class="icon-btn modal-close-btn"
+        aria-label="Close dialog"
+        on:click={controller.closeAllModals}
+      >
+        <Icon name="close" size={14} />
+      </button>
     </div>
     <!-- §127 (finding J): the prefix legend used to live only in the
          placeholder, which vanishes on the first keystroke — kept visible
-         here instead. -->
+         here instead. §194: interactive tap-chips for mobile & touch. -->
     <div class="palette-legend">
-      <span><kbd>&gt;</kbd> commands</span>
-      <span><kbd>!</kbd> actions</span>
-      <span><kbd>@</kbd> dates</span>
-      <span><kbd>?</kbd> shortcuts</span>
+      <button
+        type="button"
+        class="palette-chip"
+        class:active={query.trim().startsWith(">")}
+        on:click={() => setPrefix(">")}
+      ><kbd>&gt;</kbd> commands</button>
+      <button
+        type="button"
+        class="palette-chip"
+        class:active={query.trim().startsWith("!") || query.trim().startsWith("#")}
+        on:click={() => setPrefix("!")}
+      ><kbd>!</kbd> actions</button>
+      <button
+        type="button"
+        class="palette-chip"
+        class:active={query.trim().startsWith("@")}
+        on:click={() => setPrefix("@")}
+      ><kbd>@</kbd> dates</button>
+      <button
+        type="button"
+        class="palette-chip"
+        class:active={query.trim().startsWith("?")}
+        on:click={() => setPrefix("?")}
+      ><kbd>?</kbd> shortcuts</button>
     </div>
     <div class="modal-list" bind:this={listEl} role="listbox" aria-label="Results">
       {#each rows as row (("header" in row ? "h:" + row.header : "i:" + row.item.id))}
@@ -159,7 +199,7 @@
                 <span>{row.item.label}</span>
               {/if}
             </div>
-            {#if row.item.hint}<div class="item-tag">{row.item.hint}</div>{/if}
+            {#if row.item.hint}<div class="item-tag" class:is-shortcut={row.item.group === "Commands" || row.item.group === "Current line" || row.item.group === "Help"}>{row.item.hint}</div>{/if}
           </div>
         {/if}
       {/each}

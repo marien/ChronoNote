@@ -40,6 +40,7 @@
   // out the aggregate list below.
   const PREV_CAP = 5;
   let prevExpanded = false;
+  let mobileTab: "list" | "preview" = "list";
 
   // §150: one row per occurrence (a dated note that has the section at
   // all) *and* one row per action within it — a header is now just as
@@ -211,12 +212,11 @@
 
 <div class="overlay" role="presentation" use:closeOnOutsideClick={controller.closeAllModals}>
   <div
-    class="modal-card history-modal-card"
+    class="modal-card history-modal-card modal-xl"
     role="dialog"
     aria-modal="true"
     use:focusTrap
     aria-label="Section history"
-    style="width: 880px;"
   >
     <div class="modal-input-wrap modal-title">
       <Icon name="section-history" size={15} />
@@ -231,6 +231,14 @@
           {filteredOccurrences.length === 1 ? "date" : "dates"}</span
         >
       {/if}
+      <button
+        type="button"
+        class="icon-btn modal-close-btn"
+        aria-label="Close dialog"
+        on:click={controller.closeAllModals}
+      >
+        <Icon name="close" size={14} />
+      </button>
     </div>
     {#if $historyPreviousOccurrence}
       {@const po = $historyPreviousOccurrence}
@@ -254,7 +262,27 @@
         {/if}
       </section>
     {/if}
-    <div class="history-body">
+    <!-- §194: Mobile tab switcher for viewports <= 680px -->
+    <div class="history-mobile-tabs">
+      <button
+        type="button"
+        class="history-tab-btn"
+        class:active={mobileTab === "list"}
+        on:click={() => (mobileTab = "list")}
+      >
+        History ({filteredOccurrences.length})
+      </button>
+      <button
+        type="button"
+        class="history-tab-btn"
+        class:active={mobileTab === "preview"}
+        on:click={() => (mobileTab = "preview")}
+      >
+        Preview
+      </button>
+    </div>
+
+    <div class="history-body" class:show-list={mobileTab === "list"} class:show-preview={mobileTab === "preview"}>
       <div class="history-main">
         <div class="history-list-toolbar">
           <!-- §150: attached directly to the list it filters (not up in
@@ -297,7 +325,10 @@
                   style="position: absolute; top: {row.top}px; left: 0; right: 0; height: {row.height}px; border-top: {row.isFirst
                     ? 'none'
                     : '1px solid var(--border)'};"
-                  on:click={() => (selectedIndex = row.selIndex)}
+                  on:click={() => {
+                    selectedIndex = row.selIndex;
+                    mobileTab = "preview";
+                  }}
                   on:mouseenter={() => (selectedIndex = row.selIndex)}
                   on:keydown={(e) => e.key === "Enter" && controller.jumpToHistoryOccurrence(row.occ)}
                 >
@@ -311,7 +342,14 @@
                   aria-selected={row.selIndex === selectedIndex}
                   tabindex="0"
                   style="position: absolute; top: {row.top}px; left: 0; right: 0; height: {row.height}px;"
-                  on:click={() => controller.jumpToHistoryItem(it)}
+                  on:click={() => {
+                    selectedIndex = row.selIndex;
+                    if (typeof window !== "undefined" && window.innerWidth <= 680) {
+                      mobileTab = "preview";
+                    } else {
+                      controller.jumpToHistoryItem(it);
+                    }
+                  }}
                   on:mouseenter={() => (selectedIndex = row.selIndex)}
                   on:keydown={(e) => e.key === "Enter" && controller.jumpToHistoryItem(it)}
                 >
@@ -363,6 +401,32 @@
               <div class="hp-target">
                 → at your cursor in <strong>{activeTab?.filename ?? "the active note"}</strong> (line {cursorLineNo})
               </div>
+            </div>
+            <div class="hp-actions-row">
+              <button
+                type="button"
+                class="icon-btn btn-primary hp-action-btn"
+                on:click={() => controller.importHistoricalItem(fromItem.action)}
+              >
+                Import Action
+              </button>
+              <button
+                type="button"
+                class="icon-btn hp-action-btn"
+                on:click={() => controller.jumpToHistoryItem(fromItem)}
+              >
+                Open Note
+              </button>
+            </div>
+          {:else if fromOcc}
+            <div class="hp-actions-row">
+              <button
+                type="button"
+                class="icon-btn btn-primary hp-action-btn"
+                on:click={() => controller.jumpToHistoryOccurrence(fromOcc)}
+              >
+                Open Note
+              </button>
             </div>
           {/if}
         {:else}

@@ -53,6 +53,9 @@ export function bootMockBackend(params: URLSearchParams): MockBackend {
     // demand — the deterministic stand-in for a real tab-activate /
     // window-focus trigger in exit-barrier-free e2e specs.
     checkDrift: () => controller.checkActiveTabForDrift(),
+    setMobile: (val: boolean) => controller.isMobile.set(val),
+    isMobile: () => get(controller.isMobile),
+    showToast: (msg: string) => controller.showToast(msg),
   };
 
   console.info(

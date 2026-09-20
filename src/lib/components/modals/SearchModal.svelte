@@ -193,7 +193,7 @@
 </script>
 
 <div class="overlay" role="presentation" use:closeOnOutsideClick={controller.closeAllModals}>
-  <div class="modal-card" role="dialog" aria-modal="true" use:focusTrap aria-label="Cross-tab search">
+  <div class="modal-card modal-lg" role="dialog" aria-modal="true" use:focusTrap aria-label="Cross-tab search">
     <div class="modal-input-wrap">
       <Icon name="search" size={15} />
       <input
@@ -209,6 +209,14 @@
       {:else}
         <span class="modal-counter">{flatList.length} match(es)</span>
       {/if}
+      <button
+        type="button"
+        class="icon-btn modal-close-btn"
+        aria-label="Close dialog"
+        on:click={controller.closeAllModals}
+      >
+        <Icon name="close" size={14} />
+      </button>
     </div>
     {#if chips.length > 0}
       <div class="search-chips-row">

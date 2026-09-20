@@ -205,7 +205,7 @@
 
 <div class="overlay" role="presentation" use:closeOnOutsideClick={onClose}>
   <div
-    class="modal-card settings-modal-card onedrive-picker-card"
+    class="modal-card settings-modal-card onedrive-picker-card modal-lg"
     role="dialog"
     aria-modal="true"
     use:focusTrap
@@ -216,7 +216,7 @@
         <Icon name="cloud" size={16} />
         <span>Select OneDrive Notes Folder</span>
       </div>
-      <button class="icon-btn" aria-label="Close" on:click={onClose} style="padding: 2px;">
+      <button type="button" class="icon-btn modal-close-btn" aria-label="Close dialog" on:click={onClose}>
         <Icon name="close" size={14} />
       </button>
     </div>

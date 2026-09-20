@@ -295,6 +295,9 @@ export class MockBackend {
     setEditorContent: (text: string) => void;
     getEditorContent: () => string;
     checkDrift: () => Promise<void>;
+    setMobile: (val: boolean) => void;
+    isMobile: () => boolean;
+    showToast: (msg: string) => void;
   };
 
   private eventListenerId = 0;
