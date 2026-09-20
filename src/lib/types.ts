@@ -100,4 +100,8 @@ export interface SearchResultItem {
   tabFilename: string;
   lineIdx: number;
   line: string;
+  /** One line of context before the matched line, if within document bounds. */
+  contextBefore?: string;
+  /** One line of context after the matched line, if within document bounds. */
+  contextAfter?: string;
 }

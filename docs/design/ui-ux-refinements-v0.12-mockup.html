@@ -1,0 +1,2014 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark" data-color-mode="color">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ChronoNote v0.12 — UI/UX Refinements Interactive Mockup</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+  <style>
+    /* ── ChronoNote Design System & Elevation Tokens (§102, app.css) ───── */
+    :root {
+      --surface-canvas: #1e1e1e;
+      --surface-chrome: #252526;
+      --surface-overlay: #2d2d2e;
+      --surface-raised: #37373b;
+
+      --edge-soft: rgba(255, 255, 255, 0.07);
+      --edge-strong: rgba(255, 255, 255, 0.13);
+
+      --state-ok: #4bbf87;
+      --state-warn: #d8a24a;
+      --state-error: #d66b63;
+
+      --text: #d4d4d4;
+      --muted: #858585;
+      --selected-bg: #4a4a4a;
+      --selected-fg: #ffffff;
+      --status-fg: #f0f0f0;
+      --highlight: rgba(255, 255, 255, 0.25);
+      --tab-active-border: var(--text);
+      --caret-color: #ffffff;
+      --editor-selection-bg: #454952;
+      --font: "JetBrains Mono", "Cascadia Code", "Consolas", monospace;
+
+      /* Color mode tokens */
+      --glyph-open-color: #38bdf8;
+      --glyph-open-weight: bold;
+      --glyph-done-color: #10b981;
+      --glyph-done-weight: bold;
+      --glyph-done-opacity: 1;
+      --glyph-progress-color: #a855f7;
+      --glyph-progress-weight: bold;
+      --glyph-cancelled-color: #7c8794;
+      --glyph-cancelled-weight: bold;
+      --glyph-cancelled-opacity: 1;
+      --glyph-followup-color: #38bdf8;
+      --glyph-followup-weight: bold;
+      --glyph-assignee-bg: rgba(56, 189, 248, 0.16);
+      --glyph-assignee-color: #7fd4f5;
+      --glyph-emphasis-color: #f59e0b;
+    }
+
+    [data-theme="light"] {
+      --surface-canvas: #ffffff;
+      --surface-chrome: #f3f3f3;
+      --surface-overlay: #ffffff;
+      --surface-raised: #e7e7e7;
+      --edge-soft: rgba(0, 0, 0, 0.09);
+      --edge-strong: rgba(0, 0, 0, 0.16);
+      --state-ok: #2f9e6b;
+      --state-warn: #b5771f;
+      --state-error: #c4463e;
+      --text: #1b1b1b;
+      --muted: #6e6e6e;
+      --selected-bg: #d6d6d6;
+      --selected-fg: #000000;
+      --status-fg: #1b1b1b;
+      --highlight: rgba(0, 0, 0, 0.15);
+      --caret-color: #000000;
+      --editor-selection-bg: #c8d3e0;
+      --tab-active-border: #0e7490;
+
+      --glyph-open-color: #0e7490;
+      --glyph-done-color: #047857;
+      --glyph-progress-color: #7e22ce;
+      --glyph-cancelled-color: #55606d;
+      --glyph-assignee-bg: rgba(14, 116, 144, 0.12);
+      --glyph-assignee-color: #0e7490;
+      --glyph-emphasis-color: #b45309;
+    }
+
+    /* Pure Black OLED appearance toggle layered on dark mode (Decision 5 / R8) */
+    [data-theme="dark"][data-pure-black] {
+      --surface-canvas: #000000;
+      --surface-chrome: #09090b;
+      --surface-overlay: #121214;
+      --surface-raised: #1c1c1f;
+      --edge-soft: rgba(255, 255, 255, 0.10);
+      --edge-strong: rgba(255, 255, 255, 0.20);
+      --text: #e4e4e7;
+      --muted: #8e8e93;
+      --selected-bg: #27272a;
+      --selected-fg: #ffffff;
+      --status-fg: #e4e4e7;
+      --highlight: rgba(255, 255, 255, 0.25);
+      --caret-color: #ffffff;
+      --editor-selection-bg: #3f3f46;
+      --tab-active-border: var(--text);
+    }
+
+    [data-color-mode="grayscale"] {
+      --glyph-open-color: var(--text);
+      --glyph-open-weight: normal;
+      --glyph-done-color: var(--text);
+      --glyph-done-weight: normal;
+      --glyph-done-opacity: 0.55;
+      --glyph-progress-color: var(--text);
+      --glyph-progress-weight: bold;
+      --glyph-cancelled-color: var(--text);
+      --glyph-cancelled-weight: normal;
+      --glyph-cancelled-opacity: 0.55;
+      --glyph-followup-color: var(--muted);
+      --glyph-followup-weight: normal;
+      --glyph-assignee-bg: rgba(128, 128, 128, 0.18);
+      --glyph-assignee-color: var(--text);
+      --glyph-emphasis-color: var(--text);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background-color: var(--surface-canvas);
+      color: var(--text);
+      font-family: var(--font);
+      font-size: 13px;
+      line-height: 1.5;
+      height: 100vh;
+      height: 100dvh;
+      width: 100vw;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      user-select: none;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── Tabular Monospace Glyph Replacements (Spec §2.2) ────────────── */
+    .glyph-2 {
+      display: inline-block;
+      width: 2ch;
+      text-align: left;
+      user-select: none;
+      transition: color 150ms ease, opacity 150ms ease;
+    }
+    .glyph-3 {
+      display: inline-block;
+      width: 3ch;
+      text-align: left;
+      user-select: none;
+    }
+    .glyph-open { color: var(--glyph-open-color); font-weight: var(--glyph-open-weight); }
+    .glyph-done { color: var(--glyph-done-color); font-weight: var(--glyph-done-weight); opacity: var(--glyph-done-opacity); }
+    .glyph-progress { color: var(--glyph-progress-color); font-weight: var(--glyph-progress-weight); }
+    .glyph-cancelled { color: var(--glyph-cancelled-color); font-weight: var(--glyph-cancelled-weight); opacity: var(--glyph-cancelled-opacity); }
+    .glyph-bullet { color: var(--text); }
+    .glyph-followup { color: var(--glyph-followup-color); font-weight: var(--glyph-followup-weight); }
+    .glyph-emphasis { color: var(--glyph-emphasis-color); font-weight: bold; }
+
+    /* Interactive hover preview on cyclable glyphs (#34) */
+    .glyph-cyclable {
+      cursor: pointer;
+    }
+    .glyph-cyclable:hover {
+      background: var(--surface-raised);
+      border-radius: 2px;
+    }
+    .glyph-cyclable-preview {
+      opacity: 0.6;
+    }
+
+    /* Layout-neutral badges & topic pills (#42) */
+    .glyph-assignee {
+      background: var(--glyph-assignee-bg);
+      border-radius: 3px;
+      padding: 0 3px;
+      margin: 0 -3px; /* Compensates padding so column width is unchanged */
+      color: var(--glyph-assignee-color);
+      font-weight: 600;
+    }
+
+    /* ── Redesigned Topic Pill (Decision 2.2 / R3 column-drift protected) ── */
+    .glyph-topic {
+      border: 1px solid var(--edge-strong);
+      border-radius: 4px;
+      /* #42 / §123 layout-neutral rule: 1px border + 1px padding compensated by -2px margin */
+      padding: 0 1px;
+      margin: 0 -2px;
+      color: var(--text);
+      font-style: normal;
+      font-weight: 500;
+      line-height: normal;
+      vertical-align: baseline;
+      cursor: text;
+      transition: border-color 150ms ease, background-color 150ms ease;
+      background: rgba(255, 255, 255, 0.05);
+    }
+    [data-theme="light"] .glyph-topic {
+      background: rgba(0, 0, 0, 0.04);
+    }
+    /* Inactive line: parentheses are transparent while preserving exact 1ch monospace width */
+    .glyph-topic .glyph-topic-paren {
+      color: transparent;
+      user-select: none;
+      transition: color 150ms ease, opacity 150ms ease;
+    }
+    /* Line hover, pill hover, or line focus reveals raw (topic) parentheses */
+    .cm-line:hover .glyph-topic .glyph-topic-paren,
+    .cm-line:focus-within .glyph-topic .glyph-topic-paren,
+    .glyph-topic-active .glyph-topic-paren,
+    .glyph-topic:hover .glyph-topic-paren {
+      color: var(--muted);
+      opacity: 0.75;
+    }
+    .cm-line:focus-within .glyph-topic,
+    .glyph-topic-active {
+      border-color: var(--tab-active-border);
+    }
+
+    /* ── Setext double rule (§81, app.css line 983) ───────────────────── */
+    .cm-setext-title { font-weight: 700; color: var(--text); }
+    .cm-setext-rule {
+      color: transparent;
+      background-image:
+        linear-gradient(var(--muted), var(--muted)),
+        linear-gradient(var(--muted), var(--muted));
+      background-size: 100% 1px;
+      background-repeat: no-repeat;
+      background-position:
+        0 calc(51% - 0.09em),
+        0 calc(51% + 0.09em);
+      user-select: text;
+    }
+    /* Hover or cursor focus restores the literal '=' characters with 0 layout shift */
+    .cm-line:hover .cm-setext-rule,
+    .cm-line:focus-within .cm-setext-rule {
+      color: var(--muted);
+      background-image: none;
+    }
+
+    /* ── Area 2: Subtle Resolved Line Muting (.cm-line-resolved) ──────── */
+    .cm-line {
+      min-height: calc(var(--editor-font-size, 13px) * var(--editor-line-height, 1.55));
+      line-height: calc(var(--editor-font-size, 13px) * var(--editor-line-height, 1.55));
+      font-size: var(--editor-font-size, 13px);
+      white-space: pre;
+      font-variant-ligatures: none;
+      position: relative;
+      transition: background-color 200ms ease;
+    }
+    .cm-line-resolved {
+      opacity: 0.72;
+      transition: opacity 150ms ease;
+    }
+    /* Restores full opacity when hovering or clicking inside the line */
+    .cm-line-resolved:hover,
+    .cm-line-resolved:focus-within {
+      opacity: 1;
+    }
+    .cm-line-emphasis {
+      color: var(--glyph-emphasis-color);
+      font-weight: bold;
+    }
+
+    /* Persistent in-editor search jump pulse animation (Area 8.3) */
+    @keyframes searchHitPulse {
+      0% { background: color-mix(in srgb, var(--glyph-open-color) 45%, transparent); }
+      100% { background: transparent; }
+    }
+    .cm-line-hit-pulse {
+      animation: searchHitPulse 1400ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    /* ── TopBar & Tabs (Monoline SVG Iconography §127) ───────────────── */
+    #top-bar {
+      height: 40px;
+      background: var(--surface-chrome);
+      border-bottom: 1px solid var(--edge-soft);
+      display: flex;
+      align-items: stretch;
+      justify-content: space-between;
+      padding: 0 8px;
+      z-index: 20;
+      transition: transform 180ms ease, opacity 180ms ease;
+    }
+    .topbar-left {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex: 1;
+      overflow: hidden;
+    }
+    .app-icon {
+      width: 18px;
+      height: 18px;
+      margin: 0 4px 0 2px;
+      opacity: 0.85;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text);
+    }
+    .tab-strip {
+      display: flex;
+      align-items: flex-end;
+      height: 100%;
+      gap: 2px;
+      overflow-x: auto;
+    }
+    .tab {
+      height: 32px;
+      padding: 0 10px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      color: var(--muted);
+      background: transparent;
+      border: 1px solid transparent;
+      border-bottom: none;
+      border-radius: 6px 6px 0 0;
+      cursor: pointer;
+      user-select: none;
+      transition: background 120ms ease, color 120ms ease;
+    }
+    .tab:hover {
+      background: var(--surface-raised);
+      color: var(--text);
+    }
+    .tab.active {
+      background: var(--surface-canvas);
+      color: var(--text);
+      border-color: var(--edge-soft);
+      border-bottom: 1px solid var(--surface-canvas);
+      position: relative;
+    }
+    .tab.active::after {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 6px;
+      right: 6px;
+      height: 2px;
+      background: var(--tab-active-border);
+      border-radius: 2px;
+    }
+    .tab-close {
+      width: 14px;
+      height: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 2px;
+      font-size: 10px;
+      opacity: 0;
+      transition: opacity 100ms ease;
+    }
+    .tab:hover .tab-close { opacity: 0.6; }
+    .tab-close:hover { background: rgba(255, 255, 255, 0.15); opacity: 1; }
+
+    .topbar-actions {
+      display: flex;
+      align-items: center;
+      gap: 3px;
+    }
+    .topbar-btn {
+      height: 28px;
+      padding: 0 8px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: transparent;
+      border: 1px solid transparent;
+      border-radius: 4px;
+      color: var(--muted);
+      font-family: inherit;
+      font-size: 11px;
+      cursor: pointer;
+      transition: background 120ms ease, color 120ms ease, border-color 120ms ease;
+    }
+    .topbar-btn:hover {
+      background: var(--surface-raised);
+      color: var(--text);
+      border-color: var(--edge-soft);
+    }
+    .topbar-btn svg {
+      display: block;
+      color: currentColor;
+    }
+
+    /* ── Editor Canvas ────────────────────────────────────────────────── */
+    #editor-container {
+      flex: 1;
+      overflow-y: auto;
+      padding: 32px 48px;
+      position: relative;
+      user-select: text;
+    }
+    .cm-content {
+      max-width: 720px;
+      margin: 0 auto;
+      outline: none;
+    }
+
+    /* ── StatusBar (3-Zone Design §3.3) ──────────────────────────────── */
+    #status-bar {
+      height: 26px;
+      background: var(--surface-chrome);
+      border-top: 1px solid var(--edge-soft);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 12px;
+      font-size: 11px;
+      color: var(--muted);
+      z-index: 20;
+      transition: transform 180ms ease, opacity 180ms ease;
+    }
+    .status-zone { display: flex; align-items: center; gap: 8px; }
+    .status-sep { opacity: 0.4; }
+    .status-folder-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      background: none;
+      border: none;
+      color: inherit;
+      font-family: inherit;
+      font-size: inherit;
+      cursor: pointer;
+      padding: 1px 4px;
+      border-radius: 3px;
+    }
+    .status-folder-btn:hover {
+      background: var(--surface-raised);
+      color: var(--text);
+    }
+    .status-dot-ok {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--state-ok);
+    }
+    #stat-message {
+      color: var(--text);
+      font-weight: 500;
+      animation: fadeIn 150ms ease;
+    }
+    .status-link-btn {
+      background: none;
+      border: none;
+      color: inherit;
+      font-family: inherit;
+      font-size: inherit;
+      cursor: pointer;
+    }
+    .status-link-btn:hover {
+      color: var(--text);
+    }
+
+    /* ── Command Palette Modal (Area 1) ───────────────────────────────── */
+    #palette-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.55);
+      backdrop-filter: blur(2px);
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      padding-top: 14vh;
+      z-index: 100;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 120ms ease;
+    }
+    #palette-overlay.open {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    .palette-modal {
+      width: 580px;
+      background: var(--surface-overlay);
+      border: 1px solid var(--edge-strong);
+      border-radius: 8px;
+      box-shadow: 0 16px 36px rgba(0, 0, 0, 0.4);
+      overflow: hidden;
+      transform: translateY(-8px) scale(0.98);
+      transition: transform 120ms ease;
+    }
+    #palette-overlay.open .palette-modal {
+      transform: translateY(0) scale(1);
+    }
+    .palette-input-wrap {
+      display: flex;
+      align-items: center;
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--edge-soft);
+      gap: 10px;
+    }
+    .palette-input {
+      flex: 1;
+      background: transparent;
+      border: none;
+      outline: none;
+      font-family: inherit;
+      font-size: 14px;
+      color: var(--text);
+    }
+    .palette-legend {
+      display: flex;
+      gap: 12px;
+      padding: 6px 14px;
+      font-size: 11px;
+      color: var(--muted);
+      background: var(--surface-chrome);
+      border-bottom: 1px solid var(--edge-soft);
+    }
+    .palette-legend kbd {
+      background: var(--surface-raised);
+      border: 1px solid var(--edge-strong);
+      padding: 1px 4px;
+      border-radius: 3px;
+      color: var(--text);
+    }
+    .palette-list {
+      max-height: 320px;
+      overflow-y: auto;
+      padding: 4px 0;
+    }
+    .palette-group {
+      padding: 6px 14px 2px;
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--muted);
+      font-weight: 600;
+    }
+    .palette-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 7px 14px;
+      font-size: 12px;
+      color: var(--text);
+      cursor: pointer;
+      user-select: none;
+    }
+    .palette-item:hover, .palette-item.selected {
+      background: var(--selected-bg);
+      color: var(--selected-fg);
+    }
+    .palette-hint {
+      font-size: 11px;
+      color: var(--muted);
+      background: var(--surface-canvas);
+      padding: 1px 5px;
+      border-radius: 3px;
+      border: 1px solid var(--edge-soft);
+    }
+    .palette-item:hover .palette-hint,
+    .palette-item.selected .palette-hint {
+      color: var(--selected-fg);
+      background: rgba(255, 255, 255, 0.1);
+      border-color: transparent;
+    }
+    /* Dynamic match highlighting token */
+    .palette-match {
+      color: var(--glyph-open-color);
+      font-weight: 700;
+      text-decoration: underline;
+      text-underline-offset: 2px;
+    }
+
+    /* ── Drag & Drop Backdrop Overlay (Area 4) ────────────────────────── */
+    #drop-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(14, 116, 144, 0.18);
+      backdrop-filter: blur(4px);
+      border: 3px dashed var(--glyph-open-color);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 120;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 150ms ease;
+    }
+    #drop-overlay.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    .drop-banner {
+      background: var(--surface-overlay);
+      border: 1px solid var(--edge-strong);
+      border-radius: 8px;
+      padding: 22px 36px;
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text);
+      box-shadow: 0 16px 36px rgba(0, 0, 0, 0.45);
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+    .drop-banner svg {
+      color: var(--glyph-open-color);
+    }
+
+    /* ── Zen Mode Banner (Area 3) ─────────────────────────────────────── */
+    #zen-banner {
+      position: fixed;
+      top: 12px;
+      right: 16px;
+      background: var(--surface-overlay);
+      border: 1px solid var(--edge-strong);
+      border-radius: 4px;
+      padding: 4px 10px;
+      font-size: 11px;
+      color: var(--muted);
+      z-index: 50;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 200ms ease;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+    }
+    #zen-banner kbd {
+      background: var(--surface-raised);
+      border: 1px solid var(--edge-strong);
+      padding: 1px 4px;
+      border-radius: 3px;
+      color: var(--text);
+    }
+    .zen-exit-btn {
+      background: none;
+      border: none;
+      color: var(--text);
+      text-decoration: underline;
+      cursor: pointer;
+      font-family: inherit;
+      font-size: inherit;
+    }
+    body.zen-mode #top-bar { transform: translateY(-100%); opacity: 0; pointer-events: none; }
+    body.zen-mode #status-bar { transform: translateY(100%); opacity: 0; pointer-events: none; }
+    /* ── Interactive Palette Legend Chips (Area 5.5) ─────────────────── */
+    .palette-chip {
+      background: var(--surface-raised);
+      border: 1px solid var(--edge-soft);
+      color: var(--muted);
+      border-radius: 4px;
+      padding: 2px 7px;
+      font-size: 10.5px;
+      cursor: pointer;
+      font-family: inherit;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      transition: all 120ms ease;
+    }
+    .palette-chip:hover {
+      background: var(--selected-bg);
+      color: var(--selected-fg);
+      border-color: var(--edge-strong);
+    }
+    .palette-chip kbd {
+      background: var(--surface-canvas);
+      border: 1px solid var(--edge-strong);
+      padding: 0 3px;
+      border-radius: 3px;
+    }
+
+    /* ── Modal Dialog System & Sizing Tiers (Area 5) ──────────────────── */
+    #modal-studio-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.72);
+      backdrop-filter: blur(3px);
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding-top: 60px;
+      padding-bottom: 24px;
+      z-index: 150;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 160ms ease;
+    }
+    #modal-studio-overlay.open {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    #modal-studio-overlay.sim-mobile {
+      padding: 16px;
+      align-items: center;
+    }
+
+    .studio-dock {
+      position: fixed;
+      top: 12px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--surface-overlay);
+      border: 1px solid var(--edge-strong);
+      border-radius: 24px;
+      padding: 5px 14px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+      z-index: 160;
+      font-size: 11px;
+      color: var(--muted);
+    }
+    .studio-pill-btn {
+      background: var(--surface-raised);
+      border: 1px solid var(--edge-soft);
+      color: var(--text);
+      padding: 3px 9px;
+      border-radius: 12px;
+      font-size: 11px;
+      cursor: pointer;
+      font-family: inherit;
+      transition: all 120ms ease;
+    }
+    .studio-pill-btn:hover {
+      background: var(--selected-bg);
+      color: var(--selected-fg);
+    }
+    .studio-pill-btn.active {
+      background: var(--glyph-open-color);
+      color: #ffffff;
+      border-color: transparent;
+      font-weight: 600;
+    }
+    .studio-pill-btn.sim-toggle {
+      background: var(--surface-canvas);
+      border-color: var(--edge-strong);
+    }
+    .studio-pill-btn.sim-toggle.on {
+      background: var(--glyph-progress-color);
+      color: #ffffff;
+      border-color: transparent;
+    }
+
+    /* Modal Card & Sizing Tiers */
+    .modal-card {
+      background: var(--surface-overlay);
+      border: 1px solid var(--edge-strong);
+      border-radius: 8px;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 16px 44px rgba(0, 0, 0, 0.55);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      width: min(100%, var(--modal-width, 720px));
+      max-width: calc(100vw - 24px);
+      max-height: min(85vh, 640px);
+      animation: modalPop 180ms cubic-bezier(0.16, 1, 0.3, 1);
+      transition: width 220ms ease, max-width 220ms ease;
+    }
+    .modal-card.modal-sm { --modal-width: 440px; }
+    .modal-card.modal-md { --modal-width: 560px; }
+    .modal-card.modal-lg { --modal-width: 720px; }
+    .modal-card.modal-xl { --modal-width: 880px; }
+
+    #modal-studio-overlay.sim-mobile .modal-card {
+      width: 375px !important;
+      max-width: 375px !important;
+      border-radius: 12px;
+      max-height: min(88dvh, 600px);
+      box-shadow: 0 0 0 2px var(--edge-strong), 0 20px 50px rgba(0, 0, 0, 0.7);
+    }
+
+    @keyframes modalPop {
+      from { transform: scale(0.97) translateY(-8px); opacity: 0; }
+      to { transform: scale(1) translateY(0); opacity: 1; }
+    }
+
+    /* Universal Header Pattern */
+    .modal-hdr {
+      padding: 11px 14px;
+      border-bottom: 1px solid var(--edge-soft);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: var(--surface-raised);
+      flex-shrink: 0;
+    }
+    .modal-hdr-lead {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+    }
+    .modal-hdr-lead svg {
+      color: var(--muted);
+      flex-shrink: 0;
+    }
+    .modal-hdr-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text);
+    }
+    .modal-hdr-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .modal-counter-chip {
+      font-size: 11px;
+      color: var(--muted);
+      background: var(--surface-canvas);
+      padding: 2px 7px;
+      border-radius: 10px;
+      border: 1px solid var(--edge-soft);
+    }
+    .modal-close-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 28px;
+      height: 28px;
+      border-radius: 4px;
+      background: transparent;
+      border: none;
+      color: var(--muted);
+      cursor: pointer;
+      position: relative;
+    }
+    .modal-close-btn:hover {
+      background: var(--selected-bg);
+      color: var(--selected-fg);
+    }
+
+    /* Studio Modal Internal Layouts */
+    .m-tabs-row {
+      display: flex;
+      background: var(--surface-chrome);
+      border-bottom: 1px solid var(--edge-soft);
+      padding: 4px 10px;
+      gap: 6px;
+      flex-shrink: 0;
+    }
+    .m-tab-btn {
+      background: transparent;
+      border: none;
+      padding: 5px 12px;
+      font-size: 11.5px;
+      color: var(--muted);
+      cursor: pointer;
+      border-radius: 4px;
+      font-family: inherit;
+    }
+    .m-tab-btn.active {
+      background: var(--surface-overlay);
+      color: var(--text);
+      font-weight: 600;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+    }
+
+    /* History Modal 2-Column vs Tabbed Layout */
+    .m-history-split {
+      display: flex;
+      flex: 1;
+      min-height: 0;
+      overflow: hidden;
+    }
+    .m-history-list-pane {
+      flex: 1;
+      overflow-y: auto;
+      min-width: 0;
+    }
+    .m-history-prev-pane {
+      width: 320px;
+      flex-shrink: 0;
+      border-left: 1px solid var(--edge-soft);
+      background: var(--surface-canvas);
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      overflow-y: auto;
+    }
+    /* Mobile simulated History collapses preview to tabs */
+    #modal-studio-overlay.sim-mobile .m-history-split.mobile-mode .m-history-prev-pane {
+      display: none;
+    }
+    #modal-studio-overlay.sim-mobile .m-history-split.mobile-mode.show-prev .m-history-prev-pane {
+      display: flex;
+      width: 100%;
+      border-left: none;
+    }
+    #modal-studio-overlay.sim-mobile .m-history-split.mobile-mode.show-prev .m-history-list-pane {
+      display: none;
+    }
+
+    /* Shortcuts 2-Col vs Tabbed Layout */
+    .m-shortcuts-split {
+      display: flex;
+      flex: 1;
+      min-height: 0;
+      overflow: hidden;
+    }
+    .m-shortcuts-col {
+      flex: 1;
+      overflow-y: auto;
+      min-width: 0;
+    }
+    .m-shortcuts-col + .m-shortcuts-col {
+      border-left: 1px solid var(--edge-soft);
+    }
+    #modal-studio-overlay.sim-mobile .m-shortcuts-split.mobile-mode .m-shortcuts-col:nth-child(2) {
+      display: none;
+    }
+    #modal-studio-overlay.sim-mobile .m-shortcuts-split.mobile-mode.show-sym .m-shortcuts-col:nth-child(1) {
+      display: none;
+    }
+    #modal-studio-overlay.sim-mobile .m-shortcuts-split.mobile-mode.show-sym .m-shortcuts-col:nth-child(2) {
+      display: block;
+      border-left: none;
+    }
+
+    /* Sync Conflicts Layout */
+    .m-conflict-wrap {
+      display: flex;
+      gap: 10px;
+      padding: 12px;
+      flex: 1;
+      overflow-y: auto;
+    }
+    .m-conflict-col {
+      flex: 1;
+      min-width: 0;
+      background: var(--surface-canvas);
+      border: 1px solid var(--edge-soft);
+      border-radius: 6px;
+      padding: 8px 10px;
+      font-size: 12px;
+    }
+    #modal-studio-overlay.sim-mobile .m-conflict-wrap.mobile-mode {
+      flex-direction: column;
+    }
+
+    /* Modal list items */
+    .m-list-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 14px;
+      font-size: 12px;
+      border-bottom: 1px solid var(--edge-soft);
+      cursor: pointer;
+    }
+    .m-list-row:hover, .m-list-row.selected {
+      background: var(--selected-bg);
+      color: var(--selected-fg);
+    }
+    .m-hdr-row {
+      padding: 6px 14px;
+      font-size: 10.5px;
+      font-weight: 700;
+      text-transform: uppercase;
+      background: rgba(128, 128, 128, 0.08);
+      color: var(--muted);
+      border-bottom: 1px solid var(--edge-soft);
+    }
+    .m-footer-actions {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 14px;
+      background: var(--surface-chrome);
+      border-top: 1px solid var(--edge-soft);
+      font-size: 11px;
+      color: var(--muted);
+      flex-shrink: 0;
+    }
+
+    /* ── Area 7: Calendar Completion Heatmap Popover ─────────────────── */
+    #cal-popover {
+      position: fixed;
+      top: 44px;
+      right: 175px;
+      background: var(--surface-overlay);
+      border: 1px solid var(--edge-strong);
+      border-radius: 8px;
+      box-shadow: 0 12px 36px rgba(0, 0, 0, 0.55);
+      width: 260px;
+      padding: 12px;
+      z-index: 100;
+      display: none;
+      flex-direction: column;
+      gap: 10px;
+      animation: modalPop 150ms ease;
+    }
+    #cal-popover.open { display: flex; }
+    .cal-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 3px;
+      text-align: center;
+      font-size: 11px;
+    }
+    .cal-cell {
+      padding: 5px 0;
+      border-radius: 4px;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      position: relative;
+    }
+    .cal-cell:hover { background: var(--surface-raised); }
+    .cal-cell.today { font-weight: bold; color: var(--glyph-open-color); border: 1px solid var(--edge-strong); }
+    .cal-dot {
+      width: 4px;
+      height: 4px;
+      border-radius: 50%;
+      margin-top: 2px;
+    }
+    .cal-dot.done { background: var(--glyph-done-color); }
+    .cal-dot.pending { background: var(--state-warn); }
+    .cal-dot.log { background: var(--muted); opacity: 0.45; }
+
+    /* ── Area 9: Cloud Sync Telemetry Popover ──────────────────────────── */
+    #telemetry-popover {
+      position: fixed;
+      bottom: 32px;
+      left: 12px;
+      background: var(--surface-overlay);
+      border: 1px solid var(--edge-strong);
+      border-radius: 8px;
+      box-shadow: 0 12px 36px rgba(0, 0, 0, 0.55);
+      width: 290px;
+      padding: 12px;
+      z-index: 100;
+      display: none;
+      flex-direction: column;
+      gap: 10px;
+      font-size: 11.5px;
+      animation: modalPop 150ms ease;
+    }
+    #telemetry-popover.open { display: flex; }
+
+    /* Typography Range Slider Styling */
+    .typography-slider-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+    .typography-slider-row label {
+      font-size: 12px;
+      color: var(--text);
+      min-width: 90px;
+    }
+    .typography-slider-row input[type="range"] {
+      flex: 1;
+      accent-color: var(--glyph-open-color);
+      cursor: pointer;
+    }
+    .typography-slider-val {
+      font-size: 11px;
+      color: var(--muted);
+      min-width: 40px;
+      text-align: right;
+    }
+
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  </style>
+</head>
+<body ondragover="onDragOver(event)" ondragleave="onDragLeave(event)" ondrop="onDrop(event)">
+
+  <!-- Area 4: Drag-and-Drop Import Overlay -->
+  <div id="drop-overlay">
+    <div class="drop-banner">
+      <!-- Monoline Import SVG -->
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      <span>Drop .json export bundle or .txt notes to import</span>
+    </div>
+  </div>
+
+  <!-- Area 3: Zen Mode Exit Banner -->
+  <div id="zen-banner">
+    <span>Zen Mode active — Press <kbd>Esc</kbd>, <kbd>Ctrl+Alt+Z</kbd> (or <kbd>F11</kbd>), or</span>
+    <button type="button" class="zen-exit-btn" onclick="toggleZenMode(event)">Exit</button>
+  </div>
+
+  <!-- TopBar & Tabs (Strict Monoline SVG Iconography §127) -->
+  <div id="top-bar">
+    <div class="topbar-left">
+      <div class="app-icon" title="ChronoNote v0.12">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+      </div>
+      <div class="tab-strip">
+        <div class="tab active" onclick="switchTab(this, '2026-09-20')">
+          <span>2026-09-20</span>
+          <span class="tab-close" onclick="closeTab(event, '2026-09-20')">✕</span>
+        </div>
+        <div class="tab" onclick="switchTab(this, '2026-09-19')">
+          <span>2026-09-19</span>
+          <span class="tab-close" onclick="closeTab(event, '2026-09-19')">✕</span>
+        </div>
+        <div class="tab" onclick="switchTab(this, 'scratchpad 1')">
+          <span style="font-style:italic;">scratchpad 1</span>
+          <span class="tab-close" onclick="closeTab(event, 'scratchpad 1')">✕</span>
+        </div>
+      </div>
+    </div>
+    <div class="topbar-actions">
+      <!-- Pinned Action Buttons with Monoline SVG Icons -->
+      <button class="topbar-btn" title="New scratchpad (Ctrl/Cmd+N)" onclick="showStatus('Created new scratchpad')">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        <span>Scratchpad</span>
+      </button>
+      <button class="topbar-btn" id="btn-date" title="Open date note (Ctrl/Cmd+O)" onclick="toggleCalPopover(event)">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        <span>Date</span>
+      </button>
+      <button class="topbar-btn" title="Command palette (Ctrl/Cmd+K)" onclick="openPalette()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <span>Search</span>
+      </button>
+      <button class="topbar-btn" title="Toggle Light / Dark theme" onclick="cycleTheme()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+        <span>Theme</span>
+      </button>
+      <button class="topbar-btn" title="Toggle Color / Grayscale glyphs" onclick="cycleColorMode()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a10 10 0 0 0 0 20z"/></svg>
+        <span>Palette</span>
+      </button>
+      <button class="topbar-btn" title="Inspect Modal Dialog System & Mobile Responsiveness" onclick="openModalStudio()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="9" y1="3" x2="9" y2="21"/><line x1="9" y1="9" x2="21" y2="9"/></svg>
+        <span>Modals</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Area 7: Date Picker Popover with Completion Heatmap -->
+  <div id="cal-popover">
+    <div style="display:flex; align-items:center; justify-content:space-between; font-weight:600; font-size:12px;">
+      <span>September 2026</span>
+      <button class="modal-close-btn" style="width:20px; height:20px;" onclick="toggleCalPopover()">✕</button>
+    </div>
+    <div class="cal-grid" style="color:var(--muted); font-weight:600; font-size:10px;">
+      <span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span><span>Su</span>
+    </div>
+    <div class="cal-grid">
+      <div class="cal-cell" onclick="jumpToDate('2026-09-14')"><span>14</span><span class="cal-dot log" title="Note log (no actions)"></span></div>
+      <div class="cal-cell" onclick="jumpToDate('2026-09-15')"><span>15</span><span class="cal-dot log" title="Note log (no actions)"></span></div>
+      <div class="cal-cell" onclick="jumpToDate('2026-09-16')"><span>16</span><span class="cal-dot pending" title="Tasks open (#)"></span></div>
+      <div class="cal-cell" onclick="jumpToDate('2026-09-17')"><span>17</span><span class="cal-dot log" title="Note log (no actions)"></span></div>
+      <div class="cal-cell" onclick="jumpToDate('2026-09-18')"><span>18</span><span class="cal-dot done" title="All actions completed"></span></div>
+      <div class="cal-cell" onclick="jumpToDate('2026-09-19')"><span>19</span><span class="cal-dot done" title="All actions resolved (completed / deferred)"></span></div>
+      <div class="cal-cell today" onclick="jumpToDate('2026-09-20')"><span>20</span><span class="cal-dot pending" title="Today · open tasks (#)"></span></div>
+    </div>
+    <div style="font-size:10px; color:var(--muted); display:flex; gap:8px; border-top:1px solid var(--edge-soft); padding-top:6px; margin-top:2px;">
+      <span><span style="color:var(--glyph-done-color);">●</span> Done / Deferred</span>
+      <span><span style="color:var(--state-warn);">●</span> Open (#)</span>
+      <span><span style="color:var(--muted);">●</span> Log</span>
+    </div>
+  </div>
+
+  <!-- Area 9: Cloud Sync & Telemetry Popover -->
+  <div id="telemetry-popover">
+    <div style="display:flex; align-items:center; justify-content:space-between; font-weight:600; font-size:12px;">
+      <div style="display:flex; align-items:center; gap:6px;">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/></svg>
+        <span>OneDrive Cloud Sync</span>
+      </div>
+      <button class="modal-close-btn" style="width:20px; height:20px;" onclick="toggleTelemetryPopover()">✕</button>
+    </div>
+    <div style="display:flex; flex-direction:column; gap:6px; font-size:11px;">
+      <div style="display:flex; justify-content:space-between;">
+        <span style="color:var(--muted);">Status:</span>
+        <span style="color:var(--state-ok); font-weight:600;">● In sync</span>
+      </div>
+      <div style="display:flex; justify-content:space-between;">
+        <span style="color:var(--muted);">Last synced:</span>
+        <span>Just now (<span id="telemetry-time">16:45</span>)</span>
+      </div>
+      <div style="display:flex; justify-content:space-between;">
+        <span style="color:var(--muted);">Local mirror:</span>
+        <span>52 notes (IndexedDB)</span>
+      </div>
+      <div style="display:flex; justify-content:space-between;">
+        <span style="color:var(--muted);">Target folder:</span>
+        <span style="font-family:var(--font);">/Documents/ChronoNote</span>
+      </div>
+    </div>
+    <div style="display:flex; gap:6px; margin-top:4px;">
+      <button type="button" class="studio-pill-btn active" style="flex:1;" onclick="triggerForceSync()">⟳ Sync Now</button>
+      <button type="button" class="studio-pill-btn" style="flex:1;" onclick="toggleTelemetryPopover(); openModalStudio(); switchStudioModal('conflicts');">Conflicts</button>
+    </div>
+  </div>
+
+  <!-- Editor Canvas (Preserving Monospace Grid & Displaying Resolved Line Muting) -->
+  <div id="editor-container">
+    <div class="cm-content" contenteditable="true" spellcheck="false" oninput="onEditorInput()">
+      <div class="cm-line"><span class="cm-setext-title">Weekly Planning & Sprint Alignment</span></div>
+      <div class="cm-line"><span class="cm-setext-rule">==================================</span></div>
+      <div class="cm-line"><span class="glyph-2 glyph-bullet">•</span>Review web app persistence and export bundle format.</div>
+      <div class="cm-line">  <span class="glyph-3 glyph-followup">➔</span><span class="glyph-assignee">@marien</span> Confirm single .json bundle format is ready.</div>
+      <div class="cm-line cm-line-emphasis"><span class="glyph-2 glyph-emphasis">!</span>Data must remain zero-lock-in UTF-8 plain text.</div>
+      <div class="cm-line"></div>
+      <div class="cm-line"><span class="cm-setext-title">Action Items</span></div>
+      <div class="cm-line"><span class="cm-setext-rule">============</span></div>
+      <div class="cm-line" data-state="#"><span class="glyph-2 glyph-open glyph-cyclable" title="Click to cycle state (hover previews next)" onclick="cycleGlyph(this)">☐</span><span class="glyph-topic" title="Topic tag: (ui/ux)"><span class="glyph-topic-paren">(</span>ui/ux<span class="glyph-topic-paren">)</span></span> Implement dynamic fuzzy-search highlighting in Command Palette.</div>
+      <div class="cm-line" data-state="#"><span class="glyph-2 glyph-open glyph-cyclable" title="Click to cycle state (hover previews next)" onclick="cycleGlyph(this)">☐</span>Silently verify navigator.storage.persisted() on boot.</div>
+      <div class="cm-line cm-line-resolved" data-state="v"><span class="glyph-2 glyph-done glyph-cyclable" title="Click to cycle state (hover previews next)" onclick="cycleGlyph(this)">☑</span><span class="glyph-topic" title="Topic tag: (export)"><span class="glyph-topic-paren">(</span>export<span class="glyph-topic-paren">)</span></span> Reconcile single JSON export bundle format.</div>
+      <div class="cm-line cm-line-resolved" data-state="x"><span class="glyph-2 glyph-cancelled glyph-cyclable" title="Click to cycle state (hover previews next)" onclick="cycleGlyph(this)">☒</span>Avoid adding heavy third-party search dependencies (Fuse.js).</div>
+      <div class="cm-line" data-state=">"><span class="glyph-2 glyph-progress glyph-cyclable" title="Click to cycle state (hover previews next)" onclick="cycleGlyph(this)">»</span><span class="glyph-assignee">@jean-luc</span> Test offline Service Worker caching with OneDrive.</div>
+      <div class="cm-line">  <span class="glyph-3 glyph-followup">➔</span><span class="glyph-2 glyph-done glyph-cyclable" title="Consequence action done" onclick="cycleGlyph(this)">☑</span>Check refresh token expiration handler.</div>
+      <div class="cm-line"></div>
+    </div>
+  </div>
+
+  <!-- StatusBar (3-Zone Design §3.3 & Interactive Folder Button) -->
+  <div id="status-bar">
+    <div class="status-zone">
+      <!-- Interactive storage button matching ChronoNote #stat-storage (retained unchanged) -->
+      <button class="status-folder-btn" id="stat-storage" title="Notes are stored in browser storage. Click to inspect sync &amp; telemetry." onclick="toggleTelemetryPopover(event)">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+        <span>Browser storage</span>
+      </button>
+      <button class="status-folder-btn" id="stat-cloud" title="OneDrive: /Documents/ChronoNote (In sync). Click to inspect sync telemetry." onclick="toggleTelemetryPopover(event)">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/></svg>
+        <span>OneDrive (Synced)</span>
+      </button>
+      <span class="status-sep">·</span>
+      <span id="stat-pos">Ln 9, Col 1</span>
+      <span class="status-sep">·</span>
+      <span id="stat-words">72 words</span>
+      <span class="status-sep">·</span>
+      <span id="stat-counts">Open 2 · Closed 3 · Forwarded 1</span>
+    </div>
+
+    <!-- Center Zone: Transient Message Target (§100/§102) -->
+    <div class="status-zone">
+      <span id="stat-message"></span>
+    </div>
+
+    <!-- Right Zone: Version & Help -->
+    <div class="status-zone">
+      <button class="status-link-btn" title="About ChronoNote" onclick="showStatus('ChronoNote v0.12')">v0.12.0</button>
+      <span class="status-sep">·</span>
+      <button class="status-link-btn" title="Shortcuts help (?)" onclick="openPalette('?')">?</button>
+    </div>
+  </div>
+
+  <!-- Command Palette Modal (Area 1: Highlighting & Reconciled Line Operations) -->
+  <div id="palette-overlay" onclick="onPaletteOverlayClick(event)">
+    <div class="palette-modal">
+      <div class="palette-input-wrap">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input type="text" id="palette-input" class="palette-input" placeholder="Type a command or search…" oninput="filterPalette(this.value)" onkeydown="onPaletteKey(event)">
+      </div>
+      <div class="palette-legend">
+        <button type="button" class="palette-chip" onclick="openPalette('>')"><kbd>&gt;</kbd> commands</button>
+        <button type="button" class="palette-chip" onclick="openPalette('!')"><kbd>!</kbd> actions</button>
+        <button type="button" class="palette-chip" onclick="openPalette('@')"><kbd>@</kbd> dates</button>
+        <button type="button" class="palette-chip" onclick="openPalette('?')"><kbd>?</kbd> shortcuts</button>
+      </div>
+      <div class="palette-list" id="palette-list">
+        <!-- Rendered dynamically with fuzzy-match highlighting -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Area 5: Modal Dialog System Studio (Interactive Sizing Tiers & Mobile Responsiveness) -->
+  <div id="modal-studio-overlay" onclick="onStudioOverlayClick(event)">
+    <!-- Floating Studio Toolbar Dock -->
+    <div class="studio-dock">
+      <span style="font-weight:600; color:var(--text);">Modal Studio:</span>
+      <button type="button" class="studio-pill-btn active" id="btn-m-history" onclick="switchStudioModal('history')">Section History (xl)</button>
+      <button type="button" class="studio-pill-btn" id="btn-m-shortcuts" onclick="switchStudioModal('shortcuts')">Shortcuts &amp; Symbols (xl)</button>
+      <button type="button" class="studio-pill-btn" id="btn-m-conflicts" onclick="switchStudioModal('conflicts')">Sync Conflicts (md)</button>
+      <button type="button" class="studio-pill-btn" id="btn-m-search" onclick="switchStudioModal('search')">Search &amp; 3-Line (lg)</button>
+      <button type="button" class="studio-pill-btn" id="btn-m-typography" onclick="switchStudioModal('typography')">Typography &amp; OLED (md)</button>
+      <button type="button" class="studio-pill-btn" id="btn-m-safety" onclick="switchStudioModal('safety')">Confirm Safety (sm)</button>
+      <span style="color:var(--edge-strong);">|</span>
+      <button type="button" class="studio-pill-btn sim-toggle" id="btn-sim-mobile" onclick="toggleSimMobile()">📱 Simulate Mobile (375px)</button>
+    </div>
+
+    <!-- 1. Section History Modal Preview (xl, 880px / mobile responsive tabbed) -->
+    <div class="modal-card modal-xl" id="m-card-history" style="display: flex;">
+      <div class="modal-hdr">
+        <div class="modal-hdr-lead">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          <span class="modal-hdr-title">Section History: "Weekly Planning"</span>
+        </div>
+        <div class="modal-hdr-actions">
+          <span class="modal-counter-chip">4 actions · 2 dates</span>
+          <button type="button" class="modal-close-btn" title="Close dialog (Esc)" onclick="closeModalStudio()">✕</button>
+        </div>
+      </div>
+      <!-- Mobile-only Tab Switcher (Visible when simulated mobile is active) -->
+      <div class="m-tabs-row" id="m-history-mobile-tabs" style="display: none;">
+        <button type="button" class="m-tab-btn active" id="btn-htab-list" onclick="setHistoryMobileTab('list')">Occurrences List (2)</button>
+        <button type="button" class="m-tab-btn" id="btn-htab-prev" onclick="setHistoryMobileTab('prev')">Occurrence Preview</button>
+      </div>
+      <div class="m-history-split mobile-mode" id="m-history-split">
+        <div class="m-history-list-pane">
+          <div class="m-hdr-row">2026-09-19 · 2 actions</div>
+          <div class="m-list-row selected" onclick="selectHistoryItem(this, '2026-09-19')">
+            <span><span class="glyph-2 glyph-open">☐</span> Implement match highlighting in palette</span>
+            <span style="font-size:11px; color:var(--muted);">Ln 14</span>
+          </div>
+          <div class="m-list-row" onclick="selectHistoryItem(this, '2026-09-19')">
+            <span><span class="glyph-2 glyph-done">☑</span> Reconcile single JSON export bundle format</span>
+            <span style="font-size:11px; color:var(--muted);">Ln 16</span>
+          </div>
+          <div class="m-hdr-row">2026-09-18 · 2 actions</div>
+          <div class="m-list-row" onclick="selectHistoryItem(this, '2026-09-18')">
+            <span><span class="glyph-2 glyph-progress">»</span> Review OneDrive CAS conflict resolver</span>
+            <span style="font-size:11px; color:var(--muted);">Ln 8</span>
+          </div>
+          <div class="m-list-row" onclick="selectHistoryItem(this, '2026-09-18')">
+            <span><span class="glyph-2 glyph-done">☑</span> Draft initial design roadmap for v0.12</span>
+            <span style="font-size:11px; color:var(--muted);">Ln 12</span>
+          </div>
+        </div>
+        <div class="m-history-prev-pane">
+          <div style="font-size:11px; text-transform:uppercase; color:var(--muted); font-weight:600;">From 2026-09-19.txt</div>
+          <div style="background:var(--surface-overlay); padding:8px; border-radius:4px; border:1px solid var(--edge-soft); font-family:var(--font); font-size:11.5px; line-height:1.6;">
+            <div>Weekly Planning</div>
+            <div>===============</div>
+            <div style="background:rgba(56, 189, 248, 0.15); border-left:2px solid var(--glyph-open-color); padding-left:4px;"><span class="glyph-2 glyph-open">☐</span> Implement match highlighting in palette</div>
+            <div><span class="glyph-2 glyph-done">☑</span> Reconcile single JSON export bundle format</div>
+          </div>
+          <div style="font-size:11px; color:var(--muted);">
+            <div><strong>Enter</strong> jump to file · <strong>Shift+Enter</strong> insert into active note</div>
+          </div>
+        </div>
+      </div>
+      <div class="m-footer-actions">
+        <div class="m-desktop-hints"><kbd>Enter</kbd> Jump to source · <kbd>Shift+Enter</kbd> Import action</div>
+        <div class="m-mobile-hints" style="display:none; font-size:11.5px;">Tap row to preview &amp; import</div>
+        <div><kbd>Esc</kbd> Close</div>
+      </div>
+    </div>
+
+    <!-- 2. Shortcuts & Symbols Modal Preview (xl, 880px / mobile responsive tabbed) -->
+    <div class="modal-card modal-xl" id="m-card-shortcuts" style="display: none;">
+      <div class="modal-hdr">
+        <div class="modal-hdr-lead">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><line x1="6" y1="8" x2="6" y2="8"/><line x1="10" y1="8" x2="10" y2="8"/><line x1="14" y1="8" x2="14" y2="8"/><line x1="18" y1="8" x2="18" y2="8"/><line x1="6" y1="12" x2="18" y2="12"/><line x1="6" y1="16" x2="18" y2="16"/></svg>
+          <span class="modal-hdr-title">Shortcuts &amp; Symbols</span>
+        </div>
+        <div class="modal-hdr-actions">
+          <button type="button" class="modal-close-btn" title="Close dialog (Esc)" onclick="closeModalStudio()">✕</button>
+        </div>
+      </div>
+      <!-- Mobile-only Tab Switcher -->
+      <div class="m-tabs-row" id="m-shortcuts-mobile-tabs" style="display: none;">
+        <button type="button" class="m-tab-btn active" id="btn-stab-keys" onclick="setShortcutsMobileTab('keys')">Keyboard Shortcuts</button>
+        <button type="button" class="m-tab-btn" id="btn-stab-sym" onclick="setShortcutsMobileTab('sym')">Glyphs &amp; Symbols</button>
+      </div>
+      <div class="m-shortcuts-split mobile-mode" id="m-shortcuts-split">
+        <div class="m-shortcuts-col">
+          <div class="m-hdr-row">Navigation &amp; Editor</div>
+          <div class="m-list-row"><span>Command palette</span><kbd>Cmd+K</kbd></div>
+          <div class="m-list-row"><span>Close open action</span><kbd>Cmd+Enter</kbd></div>
+          <div class="m-list-row"><span>Reopen done action</span><kbd>Cmd+Shift+Enter</kbd></div>
+          <div class="m-list-row"><span>Direct action state 1-4</span><kbd>Cmd+1..4</kbd></div>
+          <div class="m-list-row"><span>Toggle Zen mode</span><kbd>Cmd+Alt+Z / F11</kbd></div>
+        </div>
+        <div class="m-shortcuts-col">
+          <div class="m-hdr-row">Symbols &rarr; Glyphs</div>
+          <div class="m-list-row"><span>Open action</span><span><kbd># </kbd> &rarr; <span class="glyph-open">☐</span></span></div>
+          <div class="m-list-row"><span>Done action</span><span><kbd>v </kbd> &rarr; <span class="glyph-done">☑</span></span></div>
+          <div class="m-list-row"><span>Deferred action</span><span><kbd>&gt; </kbd> &rarr; <span class="glyph-progress">»</span></span></div>
+          <div class="m-list-row"><span>Won't-do action</span><span><kbd>x </kbd> &rarr; <span class="glyph-cancelled">☒</span></span></div>
+          <div class="m-list-row"><span>Topic pill</span><span><kbd># (topic) </kbd> &rarr; <span class="glyph-topic">(topic)</span></span></div>
+        </div>
+      </div>
+      <div class="m-footer-actions">
+        <span>Reference document</span>
+        <button type="button" class="studio-pill-btn" onclick="closeModalStudio()">Close</button>
+      </div>
+    </div>
+
+    <!-- 3. Sync Conflicts Modal Preview (md, 560px / mobile responsive stacked) -->
+    <div class="modal-card modal-md" id="m-card-conflicts" style="display: none;">
+      <div class="modal-hdr">
+        <div class="modal-hdr-lead">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/></svg>
+          <span class="modal-hdr-title">Sync Conflicts (1 note)</span>
+        </div>
+        <div class="modal-hdr-actions">
+          <button type="button" class="modal-close-btn" title="Close dialog (Esc)" onclick="closeModalStudio()">✕</button>
+        </div>
+      </div>
+      <div style="padding: 10px 14px 4px; font-size:12px; color:var(--muted);">
+        <strong style="color:var(--text);">2026-09-20.txt</strong> was edited on this device and OneDrive concurrently. Pick what to keep:
+      </div>
+      <div class="m-conflict-wrap mobile-mode">
+        <div class="m-conflict-col">
+          <div style="font-size:11px; font-weight:600; color:var(--text); margin-bottom:6px;">This Device (Local)</div>
+          <div style="line-height:1.5; font-family:var(--font); font-size:11.5px;">
+            <div>Weekly Planning</div>
+            <div style="background:rgba(216, 162, 74, 0.2); border-left:2px solid var(--state-warn); padding-left:4px;"><span class="glyph-2 glyph-open">☐</span> Implement fuzzy highlight in palette</div>
+          </div>
+        </div>
+        <div class="m-conflict-col">
+          <div style="font-size:11px; font-weight:600; color:var(--muted); margin-bottom:6px;">OneDrive (Remote)</div>
+          <div style="line-height:1.5; font-family:var(--font); font-size:11.5px;">
+            <div>Weekly Planning</div>
+            <div style="background:rgba(56, 189, 248, 0.2); border-left:2px solid var(--glyph-open-color); padding-left:4px;"><span class="glyph-2 glyph-done">☑</span> Palette dynamic highlighting completed</div>
+          </div>
+        </div>
+      </div>
+      <div style="padding: 0 14px 10px; display:flex; gap:8px; flex-wrap:wrap;">
+        <button type="button" class="studio-pill-btn active" onclick="showStatus('Conflict resolved: Kept this device')">Keep This Device</button>
+        <button type="button" class="studio-pill-btn" onclick="showStatus('Conflict resolved: Kept OneDrive')">Use OneDrive</button>
+        <button type="button" class="studio-pill-btn" onclick="showStatus('Conflict resolved: Kept both')">Keep Both</button>
+      </div>
+      <div class="m-footer-actions">
+        <span>Nothing is overwritten until you choose</span>
+        <button type="button" class="studio-pill-btn" onclick="closeModalStudio()">Close</button>
+      </div>
+    </div>
+
+    <!-- 4. Safety Warning Modal Preview (sm, 440px compact) -->
+    <div class="modal-card modal-sm" id="m-card-safety" style="display: none;">
+      <div class="modal-hdr">
+        <div class="modal-hdr-lead">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--state-warn);"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          <span class="modal-hdr-title">Unresolved Actions Warning</span>
+        </div>
+        <div class="modal-hdr-actions">
+          <button type="button" class="modal-close-btn" title="Close dialog (Esc)" onclick="closeModalStudio()">✕</button>
+        </div>
+      </div>
+      <div class="modal-body-content">
+        You still have <strong>2 open actions</strong> in this note. Closing it will leave them unattended until the note is reopened.
+      </div>
+      <div class="m-footer-actions" style="justify-content: flex-end; gap:8px;">
+        <button type="button" class="studio-pill-btn" onclick="closeModalStudio()">Cancel</button>
+        <button type="button" class="studio-pill-btn active" onclick="closeModalStudio(); showStatus('Closed note anyway');">Close Anyway</button>
+      </div>
+    </div>
+
+    <!-- 5. Search Modal Preview (lg, 720px / 3-Line Context & Dismissible Chips) -->
+    <div class="modal-card modal-lg" id="m-card-search" style="display: none;">
+      <div class="modal-hdr">
+        <div class="modal-hdr-lead">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <span class="modal-hdr-title">Search Notes (3-Line Context &amp; Syntax Operators)</span>
+        </div>
+        <div class="modal-hdr-actions">
+          <span class="modal-counter-chip">1 match in 1 file</span>
+          <button type="button" class="modal-close-btn" title="Close dialog (Esc)" onclick="closeModalStudio()">✕</button>
+        </div>
+      </div>
+      <div style="background:var(--surface-raised); padding:8px 14px; border-bottom:1px solid var(--edge-soft);">
+        <input type="text" style="background:none; border:none; color:var(--text); font-family:var(--font); font-size:12px; width:100%; outline:none;" value="export" placeholder="Search... (try is:open, tag:ui, has:@marien)">
+      </div>
+      <div style="display:flex; gap:6px; padding:6px 14px; background:var(--surface-chrome); border-bottom:1px solid var(--edge-soft); font-size:10.5px; color:var(--muted); align-items:center; flex-wrap:wrap;">
+        <span style="font-weight:600;">Active filters:</span>
+        <span class="palette-chip" style="background:var(--selected-bg); color:var(--selected-fg); gap:6px;">is:done <span style="cursor:pointer; opacity:0.8;" onclick="this.parentElement.remove(); showStatus('Removed filter: is:done');">✕</span></span>
+        <span class="palette-chip" style="background:var(--selected-bg); color:var(--selected-fg); gap:6px;">tag:export <span style="cursor:pointer; opacity:0.8;" onclick="this.parentElement.remove(); showStatus('Removed filter: tag:export');">✕</span></span>
+        <span style="margin-left:auto; opacity:0.65;">Syntax: is:open · is:done · tag: · has:@ · since: · before:</span>
+      </div>
+      <div style="flex:1; overflow-y:auto; padding:10px 14px;">
+        <div class="m-hdr-row">2026-09-20.txt · Line 11</div>
+        <div style="background:var(--surface-canvas); border:1px solid var(--edge-strong); border-radius:6px; padding:10px 12px; margin-top:8px; cursor:pointer;" onclick="jumpSearchHitAndPulse()">
+          <div style="font-size:11px; color:var(--muted); opacity:0.6; margin-bottom:4px; font-family:var(--font);">  ➔ @marien Confirm single .json bundle format is ready.</div>
+          <div style="font-size:12px; color:var(--text); font-weight:600; padding:3px 0; background:rgba(56, 189, 248, 0.15); border-left:3px solid var(--glyph-open-color); padding-left:6px; font-family:var(--font);"><span class="glyph-2 glyph-done">☑</span> <span class="glyph-topic">(export)</span> Reconcile single JSON <span class="palette-match">export</span> bundle format.</div>
+          <div style="font-size:11px; color:var(--muted); opacity:0.6; margin-top:4px; font-family:var(--font);">☒ Avoid adding heavy third-party search dependencies (Fuse.js).</div>
+        </div>
+      </div>
+      <div class="m-footer-actions">
+        <span>Click result to jump &amp; pulse highlight line in editor</span>
+        <button type="button" class="studio-pill-btn" onclick="closeModalStudio()">Close</button>
+      </div>
+    </div>
+
+    <!-- 6. Typography & OLED Modal Preview (md, 560px) -->
+    <div class="modal-card modal-md" id="m-card-typography" style="display: none;">
+      <div class="modal-hdr">
+        <div class="modal-hdr-lead">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 7 4 4 20 4 20 7"/><line x1="9" y1="20" x2="15" y2="20"/><line x1="12" y1="4" x2="12" y2="20"/></svg>
+          <span class="modal-hdr-title">Editor Typography, Density &amp; OLED</span>
+        </div>
+        <div class="modal-hdr-actions">
+          <button type="button" class="modal-close-btn" title="Close dialog (Esc)" onclick="closeModalStudio()">✕</button>
+        </div>
+      </div>
+      <div class="modal-body-content">
+        <div class="typography-slider-row">
+          <label for="font-size-slider">Font Size:</label>
+          <input type="range" id="font-size-slider" min="12" max="18" step="0.5" value="13" oninput="updateFontSize(this.value)">
+          <span class="typography-slider-val" id="font-size-val">13px</span>
+        </div>
+        <div class="typography-slider-row">
+          <label for="line-height-slider">Line Spacing:</label>
+          <input type="range" id="line-height-slider" min="1.30" max="1.80" step="0.05" value="1.60" oninput="updateLineHeight(this.value)">
+          <span class="typography-slider-val" id="line-height-val">1.60</span>
+        </div>
+        <div style="border-top:1px solid var(--edge-soft); padding-top:14px; margin-top:10px;">
+          <div style="font-size:12px; font-weight:600; margin-bottom:8px;">Theme Mode</div>
+          <div style="display:flex; gap:8px; margin-bottom:12px;">
+            <button type="button" class="studio-pill-btn" id="btn-theme-light" onclick="setSpecificTheme('light')">Light</button>
+            <button type="button" class="studio-pill-btn active" id="btn-theme-dark" onclick="setSpecificTheme('dark')">Dark</button>
+          </div>
+          <div style="font-size:12px; font-weight:600; margin-bottom:8px;">Appearance Options</div>
+          <label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-size:12px; user-select:none;">
+            <input type="checkbox" id="chk-pure-black" onchange="togglePureBlack(this.checked)">
+            <span>Pure Black (OLED canvas #000000, dark mode only)</span>
+          </label>
+        </div>
+      </div>
+      <div class="m-footer-actions" style="justify-content:flex-end;">
+        <button type="button" class="studio-pill-btn" onclick="closeModalStudio()">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ── Command Items (Reconciled with #70, #73 & v0.12 registry) ────────
+    const COMMAND_ITEMS = [
+      // Line operations (Restores editor selection and focus before executing - Decision 2)
+      { id: "close-action", label: "Close open action on current line (restores editor)", hint: "Cmd+Enter", group: "Current line", run: () => runLineAction("Action closed (# → v)") },
+      { id: "reopen-action", label: "Reopen done action on current line (restores editor)", hint: "Cmd+Shift+Enter", group: "Current line", run: () => runLineAction("Action reopened (v → #)") },
+      { id: "set-open", label: "Set line/selection to Open", hint: "Cmd+1", group: "Current line", run: () => runLineAction("Set to Open (#)") },
+      { id: "set-done", label: "Set line/selection to Done", hint: "Cmd+2", group: "Current line", run: () => runLineAction("Set to Done (v)") },
+      { id: "set-def", label: "Set line/selection to Deferred", hint: "Cmd+3", group: "Current line", run: () => runLineAction("Set to Deferred (>)") },
+      { id: "set-wont", label: "Set line/selection to Won't-Do", hint: "Cmd+4", group: "Current line", run: () => runLineAction("Set to Won't-Do (x)") },
+      { id: "sec-hdr", label: "Convert line to section header", hint: "Cmd+Shift+S", group: "Current line", run: () => runLineAction("Converted to Setext section header") },
+      { id: "jump-act", label: "Jump to next open action", hint: "F2", group: "Current line", run: () => runLineAction("Jumped to next open action") },
+
+      // Global application commands
+      { id: "modals", label: "Inspect Modal Dialog System & Mobile Studio", hint: "Modals", group: "Commands", run: openModalStudio },
+      { id: "export", label: "Export all notes to file (.json)", hint: "Export", group: "Commands", run: () => showStatus("Exported notes to chrononote-export-2026-09-20.json") },
+      { id: "zen", label: "Toggle Zen mode (distraction-free canvas)", hint: "Cmd+Alt+Z", group: "Commands", run: toggleZenMode },
+      { id: "theme", label: "Toggle theme (Light / Dark)", hint: "Cmd+,", group: "Settings", run: cycleTheme },
+      { id: "colormode", label: "Toggle glyph palette (Color / Grayscale)", hint: "Palette", group: "Settings", run: cycleColorMode },
+
+      // Tabs
+      { id: "tab1", label: "2026-09-20", hint: "today", group: "Open tabs", run: () => showStatus("Switched to 2026-09-20") },
+      { id: "tab2", label: "2026-09-19", hint: "open tab", group: "Open tabs", run: () => showStatus("Switched to 2026-09-19") },
+      { id: "tab3", label: "scratchpad 1", hint: "scratchpad", group: "Open tabs", run: () => showStatus("Switched to scratchpad 1") },
+    ];
+
+    let statusTimeout;
+    function showStatus(msg) {
+      const el = document.getElementById("stat-message");
+      el.textContent = msg;
+      clearTimeout(statusTimeout);
+      statusTimeout = setTimeout(() => { el.textContent = ""; }, 3000);
+    }
+
+    // ── Monospace Interactive Action State Cycling (§106) ───────────────
+    const STATE_CYCLE = ["#", "v", ">", "x"];
+    const GLYPH_MAP = {
+      "#": { char: "☐", cls: "glyph-open", resolved: false },
+      "v": { char: "☑", cls: "glyph-done", resolved: true },
+      ">": { char: "»", cls: "glyph-progress", resolved: false },
+      "x": { char: "☒", cls: "glyph-cancelled", resolved: true }
+    };
+
+    function cycleGlyph(span) {
+      const line = span.closest(".cm-line");
+      const curState = line.getAttribute("data-state") || "#";
+      const nextState = STATE_CYCLE[(STATE_CYCLE.indexOf(curState) + 1) % STATE_CYCLE.length];
+      line.setAttribute("data-state", nextState);
+
+      const info = GLYPH_MAP[nextState];
+      span.textContent = info.char;
+      span.className = `glyph-2 ${info.cls} glyph-cyclable`;
+
+      // Visual muting on resolved states (Area 2)
+      if (info.resolved) {
+        line.classList.add("cm-line-resolved");
+      } else {
+        line.classList.remove("cm-line-resolved");
+      }
+
+      updateCounts();
+      showStatus(`Line state → ${nextState === '#' ? 'open' : nextState === 'v' ? 'done' : nextState === '>' ? 'deferred' : 'won\'t-do'}`);
+    }
+
+    function updateCounts() {
+      let open = 0, closed = 0, forwarded = 0;
+      document.querySelectorAll(".cm-line[data-state]").forEach(line => {
+        const s = line.getAttribute("data-state");
+        if (s === "#") open++;
+        else if (s === "v" || s === "x") closed++;
+        else if (s === ">") forwarded++;
+      });
+      document.getElementById("stat-counts").textContent = `Open ${open} · Closed ${closed} · Forwarded ${forwarded}`;
+    }
+
+    // ── Dynamic Fuzzy-Search Match Highlighting (Area 1) ────────────────
+    function fuzzyMatchWithIndices(haystack, needle) {
+      if (!needle) return { matches: true, indices: [] };
+      const h = haystack.toLowerCase();
+      const n = needle.toLowerCase();
+      const indices = [];
+      let i = 0;
+      for (let j = 0; j < h.length; j++) {
+        if (h[j] === n[i]) {
+          indices.push(j);
+          i++;
+          if (i === n.length) break;
+        }
+      }
+      if (i < n.length) return null;
+      return { matches: true, indices };
+    }
+
+    function highlightText(text, indices) {
+      if (!indices || indices.length === 0) return text;
+      let out = "";
+      const set = new Set(indices);
+      for (let i = 0; i < text.length; i++) {
+        if (set.has(i)) {
+          out += `<span class="palette-match">${escapeHtml(text[i])}</span>`;
+        } else {
+          out += escapeHtml(text[i]);
+        }
+      }
+      return out;
+    }
+
+    function escapeHtml(str) {
+      return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    }
+
+    function renderPalette(filter = "") {
+      const listEl = document.getElementById("palette-list");
+      listEl.innerHTML = "";
+
+      let lastGroup = "";
+      let count = 0;
+
+      // Handle prefix queries (> commands, ! actions, @ dates, ? shortcuts)
+      let needle = filter.trim();
+      let commandsOnly = false;
+      if (needle.startsWith(">")) {
+        commandsOnly = true;
+        needle = needle.slice(1).trim();
+      }
+
+      COMMAND_ITEMS.forEach((item) => {
+        if (commandsOnly && item.group !== "Commands" && item.group !== "Current line" && item.group !== "Settings") {
+          return;
+        }
+        const res = fuzzyMatchWithIndices(item.label, needle);
+        if (!res) return;
+
+        if (item.group !== lastGroup) {
+          const grp = document.createElement("div");
+          grp.className = "palette-group";
+          grp.textContent = item.group;
+          listEl.appendChild(grp);
+          lastGroup = item.group;
+        }
+
+        const div = document.createElement("div");
+        div.className = `palette-item ${count === 0 ? "selected" : ""}`;
+        div.innerHTML = `
+          <span>${highlightText(item.label, res.indices)}</span>
+          ${item.hint ? `<span class="palette-hint">${escapeHtml(item.hint)}</span>` : ""}
+        `;
+        div.onclick = () => {
+          closePalette();
+          item.run();
+        };
+        listEl.appendChild(div);
+        count++;
+      });
+    }
+
+    let savedEditorRange = null;
+    function openPalette(prefix = "") {
+      // Decision 2: snapshot active editor selection before palette steals focus
+      const sel = window.getSelection();
+      if (sel && sel.rangeCount > 0) {
+        savedEditorRange = sel.getRangeAt(0).cloneRange();
+      }
+      const overlay = document.getElementById("palette-overlay");
+      const input = document.getElementById("palette-input");
+      overlay.classList.add("open");
+      input.value = prefix;
+      renderPalette(prefix);
+      input.focus();
+    }
+
+    function runLineAction(statusMsg) {
+      closePalette();
+      // Decision 2: restore saved editor selection and focus before running line action
+      const editor = document.querySelector(".cm-content");
+      if (editor) {
+        editor.focus();
+        if (savedEditorRange) {
+          const sel = window.getSelection();
+          sel.removeAllRanges();
+          sel.addRange(savedEditorRange);
+        }
+      }
+      showStatus(statusMsg + " · editor focus restored");
+    }
+
+    function closePalette() {
+      document.getElementById("palette-overlay").classList.remove("open");
+    }
+
+    function onPaletteOverlayClick(e) {
+      if (e.target.id === "palette-overlay") closePalette();
+    }
+
+    function filterPalette(val) {
+      renderPalette(val);
+    }
+
+    function onPaletteKey(e) {
+      if (e.key === "Escape") closePalette();
+      if (e.key === "Enter") {
+        const selected = document.querySelector(".palette-item.selected") || document.querySelector(".palette-item");
+        if (selected) selected.click();
+      }
+    }
+
+    // ── Distraction-Free Zen Mode (Area 3 & Decision 4) ──────────────────
+    let isZen = false;
+    function toggleZenMode(e) {
+      if (e) e.preventDefault();
+      isZen = !isZen;
+      document.body.classList.toggle("zen-mode", isZen);
+      showStatus(isZen ? "Zen Mode active (Esc, Ctrl+Alt+Z or F11 to exit)" : "Zen Mode exited");
+    }
+
+    // ── Theme & Color Mode Switchers ────────────────────────────────────
+    function cycleTheme() {
+      const current = document.documentElement.getAttribute("data-theme");
+      const next = current === "dark" ? "light" : "dark";
+      setSpecificTheme(next);
+    }
+
+    function cycleColorMode() {
+      const current = document.documentElement.getAttribute("data-color-mode");
+      const next = current === "color" ? "grayscale" : "color";
+      document.documentElement.setAttribute("data-color-mode", next);
+      showStatus(`Glyph palette switched to ${next}`);
+    }
+
+    // ── Full-Screen Drag & Drop Import (Area 4 & R6) ─────────────────────
+    let dragCounter = 0;
+    function onDragOver(e) {
+      // R6: only intercept drags containing actual Files, preserving in-editor text dragging
+      if (e.dataTransfer && e.dataTransfer.types && Array.from(e.dataTransfer.types).includes("Files")) {
+        e.preventDefault();
+        dragCounter++;
+        document.getElementById("drop-overlay").classList.add("active");
+      }
+    }
+    function onDragLeave(e) {
+      e.preventDefault();
+      dragCounter--;
+      if (dragCounter <= 0) {
+        dragCounter = 0;
+        document.getElementById("drop-overlay").classList.remove("active");
+      }
+    }
+    function onDrop(e) {
+      e.preventDefault();
+      dragCounter = 0;
+      document.getElementById("drop-overlay").classList.remove("active");
+      const files = e.dataTransfer.files;
+      if (files.length > 0) {
+        const names = Array.from(files).map(f => f.name).join(", ");
+        showStatus(`Dropped ${files.length} file(s) [${names}] — routing to safe merge preview`);
+      }
+    }
+
+    // ── Keyboard Shortcuts Dispatcher (Decision 4 & R5) ─────────────────
+    document.addEventListener("keydown", (e) => {
+      const isMac = navigator.platform.toUpperCase().indexOf("MAC") >= 0;
+      const mod = isMac ? e.metaKey : e.ctrlKey;
+
+      if (mod && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        openPalette();
+      } else if (e.key === "F11" || (mod && e.altKey && e.key.toLowerCase() === "z")) {
+        e.preventDefault();
+        toggleZenMode();
+      } else if (e.key === "Escape") {
+        // Esc priority order: Modals > Palette > Date Picker > Telemetry > Zen Mode
+        if (document.getElementById("modal-studio-overlay").classList.contains("open")) {
+          closeModalStudio();
+        } else if (document.getElementById("palette-overlay").classList.contains("open")) {
+          closePalette();
+        } else if (document.getElementById("cal-popover")?.classList.contains("open")) {
+          toggleCalPopover();
+        } else if (document.getElementById("telemetry-popover")?.classList.contains("open")) {
+          toggleTelemetryPopover();
+        } else if (isZen) {
+          toggleZenMode();
+        }
+      }
+    });
+
+    // ── Modal Dialog Studio & Sizing Tiers (Area 5) ─────────────────────
+    let currentStudioModal = "history";
+    let isSimMobile = false;
+
+    function openModalStudio() {
+      const overlay = document.getElementById("modal-studio-overlay");
+      overlay.classList.add("open");
+      showStatus("Opened Modal System Studio — inspect tiers & mobile responsiveness");
+    }
+
+    function closeModalStudio() {
+      document.getElementById("modal-studio-overlay").classList.remove("open");
+    }
+
+    function onStudioOverlayClick(e) {
+      if (e.target.id === "modal-studio-overlay") closeModalStudio();
+    }
+
+    function switchStudioModal(type) {
+      currentStudioModal = type;
+      document.querySelectorAll(".studio-dock .studio-pill-btn[id^='btn-m-']").forEach(b => b.classList.remove("active"));
+      const targetBtn = document.getElementById(`btn-m-${type}`);
+      if (targetBtn) targetBtn.classList.add("active");
+
+      document.querySelectorAll(".modal-card[id^='m-card-']").forEach(c => c.style.display = "none");
+      const targetCard = document.getElementById(`m-card-${type}`);
+      if (targetCard) targetCard.style.display = "flex";
+    }
+
+    function toggleSimMobile() {
+      isSimMobile = !isSimMobile;
+      const overlay = document.getElementById("modal-studio-overlay");
+      const btn = document.getElementById("btn-sim-mobile");
+      overlay.classList.toggle("sim-mobile", isSimMobile);
+      btn.classList.toggle("on", isSimMobile);
+
+      // Show or hide mobile tab switchers
+      const hTabs = document.getElementById("m-history-mobile-tabs");
+      const sTabs = document.getElementById("m-shortcuts-mobile-tabs");
+      if (hTabs) hTabs.style.display = isSimMobile ? "flex" : "none";
+      if (sTabs) sTabs.style.display = isSimMobile ? "flex" : "none";
+
+      document.querySelectorAll(".m-desktop-hints").forEach(el => el.style.display = isSimMobile ? "none" : "block");
+      document.querySelectorAll(".m-mobile-hints").forEach(el => el.style.display = isSimMobile ? "block" : "none");
+
+      showStatus(isSimMobile ? "Simulating mobile phone viewport (375px)" : "Returned to standard responsive desktop view");
+    }
+
+    function setHistoryMobileTab(tab) {
+      const split = document.getElementById("m-history-split");
+      const btnList = document.getElementById("btn-htab-list");
+      const btnPrev = document.getElementById("btn-htab-prev");
+      if (tab === "prev") {
+        split.classList.add("show-prev");
+        btnList.classList.remove("active");
+        btnPrev.classList.add("active");
+      } else {
+        split.classList.remove("show-prev");
+        btnList.classList.add("active");
+        btnPrev.classList.remove("active");
+      }
+    }
+
+    function setShortcutsMobileTab(tab) {
+      const split = document.getElementById("m-shortcuts-split");
+      const btnKeys = document.getElementById("btn-stab-keys");
+      const btnSym = document.getElementById("btn-stab-sym");
+      if (tab === "sym") {
+        split.classList.add("show-sym");
+        btnKeys.classList.remove("active");
+        btnSym.classList.add("active");
+      } else {
+        split.classList.remove("show-sym");
+        btnKeys.classList.add("active");
+        btnSym.classList.remove("active");
+      }
+    }
+
+    function selectHistoryItem(row, date) {
+      document.querySelectorAll(".m-history-list-pane .m-list-row").forEach(r => r.classList.remove("selected"));
+      row.classList.add("selected");
+      if (isSimMobile) {
+        setHistoryMobileTab("prev");
+      }
+      showStatus(`Selected occurrence from ${date}`);
+    }
+
+    // ── Area 7 & 9: Popovers (Date Picker Heatmap & Sync Telemetry) ──────
+    function toggleCalPopover(e) {
+      if (e) e.stopPropagation();
+      const pop = document.getElementById("cal-popover");
+      const wasOpen = pop.classList.contains("open");
+      document.getElementById("telemetry-popover")?.classList.remove("open");
+      pop.classList.toggle("open", !wasOpen);
+      if (!wasOpen) {
+        showStatus("Calendar: 3-tier completion heatmap indicators visible");
+      }
+    }
+
+    function jumpToDate(date) {
+      document.getElementById("cal-popover").classList.remove("open");
+      showStatus(`Jumped to date: ${date}`);
+    }
+
+    function toggleTelemetryPopover(e) {
+      if (e) e.stopPropagation();
+      const pop = document.getElementById("telemetry-popover");
+      const wasOpen = pop.classList.contains("open");
+      document.getElementById("cal-popover")?.classList.remove("open");
+      pop.classList.toggle("open", !wasOpen);
+      if (!wasOpen) {
+        showStatus("Sync Telemetry: Inspected OneDrive background status");
+      }
+    }
+
+    // Close popovers when clicking outside
+    document.addEventListener("pointerdown", (e) => {
+      const cal = document.getElementById("cal-popover");
+      const calBtn = document.getElementById("btn-date");
+      if (cal && cal.classList.contains("open") && !cal.contains(e.target) && !calBtn?.contains(e.target)) {
+        cal.classList.remove("open");
+      }
+
+      const telem = document.getElementById("telemetry-popover");
+      const telemBtn1 = document.getElementById("stat-storage");
+      const telemBtn2 = document.getElementById("stat-cloud");
+      if (telem && telem.classList.contains("open") && !telem.contains(e.target) && !telemBtn1?.contains(e.target) && !telemBtn2?.contains(e.target)) {
+        telem.classList.remove("open");
+      }
+    });
+
+    function triggerForceSync() {
+      const timeEl = document.getElementById("telemetry-time");
+      const d = new Date();
+      timeEl.textContent = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}:${String(d.getSeconds()).padStart(2, '0')}`;
+      showStatus("Syncing changes with OneDrive cloud mirror… In sync!");
+    }
+
+    // ── Area 8.3: Search Result Jump & In-Editor Pulse ───────────────────
+    function jumpSearchHitAndPulse() {
+      closeModalStudio();
+      // Target line 11 (Reconcile single JSON export bundle format)
+      const lines = document.querySelectorAll(".cm-content .cm-line");
+      if (lines[10]) {
+        lines[10].scrollIntoView({ behavior: "smooth", block: "center" });
+        lines[10].classList.remove("cm-line-hit-pulse");
+        void lines[10].offsetWidth; // trigger reflow
+        lines[10].classList.add("cm-line-hit-pulse");
+        showStatus("Jumped to search hit · pulsing target line");
+      }
+    }
+
+    // ── Area 10: Canvas Typography Sliders & OLED Dark Mode ─────────────
+    function updateFontSize(val) {
+      document.documentElement.style.setProperty("--editor-font-size", `${val}px`);
+      document.getElementById("font-size-val").textContent = `${val}px`;
+      showStatus(`Editor font size set to ${val}px`);
+    }
+
+    function updateLineHeight(val) {
+      document.documentElement.style.setProperty("--editor-line-height", val);
+      document.getElementById("line-height-val").textContent = val;
+      showStatus(`Editor line spacing set to ${val}`);
+    }
+
+    function setSpecificTheme(theme) {
+      document.documentElement.setAttribute("data-theme", theme);
+      document.getElementById("btn-theme-light")?.classList.toggle("active", theme === "light");
+      document.getElementById("btn-theme-dark")?.classList.toggle("active", theme === "dark");
+      const chk = document.getElementById("chk-pure-black");
+      if (chk) {
+        chk.disabled = (theme === "light");
+        chk.parentElement.style.opacity = (theme === "light" ? "0.45" : "1");
+      }
+      showStatus(`Theme switched to ${theme}`);
+    }
+
+    function togglePureBlack(enabled) {
+      if (enabled) {
+        document.documentElement.setAttribute("data-pure-black", "");
+        showStatus("Pure Black OLED canvas enabled (#000000)");
+      } else {
+        document.documentElement.removeAttribute("data-pure-black");
+        showStatus("Pure Black OLED canvas disabled (standard dark #1e1e1e)");
+      }
+    }
+
+    function onEditorInput() {
+      const text = document.querySelector(".cm-content").innerText;
+      const words = text.trim().split(/\s+/).filter(Boolean).length;
+      document.getElementById("stat-words").textContent = `${words} words`;
+    }
+
+    function switchTab(el, id) {
+      document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+      el.classList.add("active");
+      showStatus(`Switched to tab ${id}`);
+    }
+
+    function closeTab(e, id) {
+      e.stopPropagation();
+      showStatus(`Closed tab ${id}`);
+    }
+
+    // Initial render
+    renderPalette();
+  </script>
+</body>
+</html>

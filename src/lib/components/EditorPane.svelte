@@ -1,13 +1,14 @@
 <script lang="ts">
   import { onDestroy, onMount } from "svelte";
   import { get } from "svelte/store";
-  import { Compartment, EditorSelection, EditorState, RangeSetBuilder, type StateEffect } from "@codemirror/state";
-  import { Decoration, drawSelection, EditorView, keymap, ViewPlugin } from "@codemirror/view";
+  import { Compartment, EditorSelection, EditorState, RangeSetBuilder, StateEffect, StateField } from "@codemirror/state";
+  import { Decoration, type DecorationSet, drawSelection, EditorView, keymap, ViewPlugin } from "@codemirror/view";
   import { defaultKeymap, history, historyField, historyKeymap, indentWithTab, redo, undo } from "@codemirror/commands";
   import { indentUnit } from "@codemirror/language";
   import { findNext, findPrevious, search, SearchCursor, SearchQuery, setSearchQuery } from "@codemirror/search";
   import { glyphAtomicRanges, liveGlyphs } from "../editor/glyphs";
   import { setextRule } from "../editor/setextRule";
+  import { resolvedLinesPlugin } from "../editor/resolvedLines";
   import { underlineFor } from "../sectionFormat";
   import {
     actionLineEnter,
@@ -92,6 +93,45 @@
       { decorations: (v) => v.decorations },
     );
   }
+
+  const addPulseEffect = StateEffect.define<number>();
+  const clearPulseEffect = StateEffect.define<void>();
+
+  const pulseField = StateField.define<DecorationSet>({
+    create() {
+      return Decoration.none;
+    },
+    update(decorations, tr) {
+      decorations = decorations.map(tr.changes);
+      for (const effect of tr.effects) {
+        if (effect.is(clearPulseEffect)) {
+          decorations = Decoration.none;
+        } else if (effect.is(addPulseEffect)) {
+          const lineIdx = effect.value;
+          if (lineIdx >= 0 && lineIdx < tr.state.doc.lines) {
+            const line = tr.state.doc.line(lineIdx + 1);
+            decorations = Decoration.set([
+              Decoration.line({ class: "cm-line-hit-pulse" }).range(line.from, line.from),
+            ]);
+          }
+        }
+      }
+      return decorations;
+    },
+    provide: (f) => EditorView.decorations.from(f),
+  });
+
+  let pulseTimer: ReturnType<typeof setTimeout> | null = null;
+  function triggerLinePulse(lineIdx: number) {
+    if (!view) return;
+    if (pulseTimer) clearTimeout(pulseTimer);
+    view.dispatch({ effects: addPulseEffect.of(lineIdx) });
+    pulseTimer = setTimeout(() => {
+      view?.dispatch({ effects: clearPulseEffect.of() });
+      pulseTimer = null;
+    }, 1400);
+  }
+
   // Kept up to date on every scroll rather than captured once at destroy
   // time — by the time `onDestroy` runs (this component is torn down via
   // the `{#key}` in App.svelte switching to a new tab), the scroller's raw
@@ -437,6 +477,8 @@
       liveGlyphs,
       glyphAtomicRanges,
       setextRule,
+      resolvedLinesPlugin,
+      pulseField,
       // §108: search state for findNext/findPrevious; its own panel is
       // never opened — the floating `FindBar` is the UI, and
       // `findHiCompartment` does the match highlighting.
@@ -628,6 +670,26 @@
           toLine: lastLine.number - 1,
         };
       },
+      getSelectionRange: () => {
+        if (!view) return { anchor: 0, head: 0 };
+        return { anchor: view.state.selection.main.anchor, head: view.state.selection.main.head };
+      },
+      setSelectionRange: (range: { anchor: number; head: number }) => {
+        if (!view) return;
+        const max = view.state.doc.length;
+        const anchor = Math.min(Math.max(0, range.anchor), max);
+        const head = Math.min(Math.max(0, range.head), max);
+        view.dispatch({ selection: { anchor, head }, scrollIntoView: true });
+      },
+      closeCurrentOpenAction: () => (view ? applyToCurrentLine(view, closeOpenAction) : false),
+      reopenCurrentDoneAction: () => (view ? applyToCurrentLine(view, reopenDoneAction) : false),
+      convertCurrentLineToSection: () => (view ? convertLineToSection(view) : false),
+      setActionStateOnSelection: (symbol: "#" | "v" | ">" | "x") =>
+        view ? applyActionStateToSelection(view, (line) => setActionSymbolTo(line, symbol)) : false,
+      jumpAdjacentOpenAction: (direction: 1 | -1) => (view ? jumpToAdjacentOpenAction(view, direction) : false),
+      pulseLine: (lineIdx: number) => {
+        triggerLinePulse(lineIdx);
+      },
       scrollCaretIntoView: () => {
         if (!view) return;
         view.requestMeasure();
@@ -812,6 +874,7 @@
   });
 
   onDestroy(() => {
+    if (pulseTimer) clearTimeout(pulseTimer);
     unsubscribeWrap?.();
     unsubscribeMeasure?.();
     // §108: the find bar belongs to this editor instance — a tab switch

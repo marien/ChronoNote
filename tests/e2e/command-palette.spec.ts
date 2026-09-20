@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { seedApp, editor, modalCard, MODAL_LABELS, currentModal, activeTabLabel, todayFilename } from "./helpers";
+import { seedApp, editor, modalCard, MODAL_LABELS, currentModal, activeTabLabel, todayFilename, activeTabContent } from "./helpers";
 import { scenario } from "../../src/lib/testing/scenarios";
 
 const palette = (page: import("@playwright/test").Page) => modalCard(page, MODAL_LABELS.commandPalette);
@@ -86,5 +86,60 @@ test.describe("command palette (Ctrl/Cmd+K, §107)", () => {
     await page.keyboard.press("ControlOrMeta+k");
     await page.keyboard.press("Escape");
     await expect(palette(page)).toBeHidden();
+  });
+
+  test("renders .palette-match elements for matched query characters", async ({ page }) => {
+    await seedApp(page, { seed: "busy-week" });
+    await editor(page).click();
+    await page.keyboard.press("ControlOrMeta+k");
+    await palette(page).locator(".modal-input").fill(">wrap");
+
+    const matchEl = palette(page).locator(".palette-match").first();
+    await expect(matchEl).toBeVisible();
+    await expect(matchEl).toHaveText(/w|r|a|p/i);
+  });
+
+  test("Current line commands act on pre-palette selection and restore focus (Decision 2)", async ({ page }) => {
+    await seedApp(page, {
+      seed: { notes: { [todayFilename()]: "First line\n# Action on second line\nThird line" } },
+    });
+    await editor(page).click();
+    await page.keyboard.press("ControlOrMeta+Home");
+    // Navigate caret to second line
+    await page.keyboard.press("ArrowDown");
+
+    // Open palette with Ctrl+K
+    await page.keyboard.press("ControlOrMeta+k");
+    await expect(palette(page)).toBeVisible();
+
+    // Palette first item is NOT the line command — filter for it
+    await palette(page).locator(".modal-input").fill(">close open action");
+    const option = palette(page).locator('.modal-item[role="option"]', { hasText: /Close open action on current line/ });
+    await expect(option).toBeVisible();
+    await option.click();
+
+    // Second line should now be closed 'v', first and third untouched
+    expect(await currentModal(page)).toBe("none");
+    const text = await activeTabContent(page);
+    expect(text).toBe("First line\nv Action on second line\nThird line");
+  });
+
+  test("Current line command applies to a multi-line selection", async ({ page }) => {
+    await seedApp(page, {
+      seed: { notes: { [todayFilename()]: "# Item 1\n# Item 2\n# Item 3" } },
+    });
+    await editor(page).click();
+    await page.keyboard.press("ControlOrMeta+Home");
+    // Select first two lines using Shift+Down
+    await page.keyboard.press("Shift+ArrowDown");
+
+    // Open palette and run Won't-Do
+    await page.keyboard.press("ControlOrMeta+k");
+    await palette(page).locator(".modal-input").fill(">won't-do");
+    await palette(page).locator('.modal-item[role="option"]', { hasText: /Won't-Do/ }).click();
+
+    expect(await currentModal(page)).toBe("none");
+    const text = await activeTabContent(page);
+    expect(text).toBe("x Item 1\nx Item 2\n# Item 3");
   });
 });

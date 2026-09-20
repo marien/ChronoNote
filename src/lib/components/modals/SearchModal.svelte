@@ -9,9 +9,10 @@
   import Icon from "../../icons/Icon.svelte";
   import Segmented from "../Segmented.svelte";
   import type { SearchResultItem } from "../../types";
+  import { parseSearchQuery, removeChipFromQuery, type SearchFilterChip } from "../../search";
   import {
     MODAL_HEADER_ROW_HEIGHT,
-    MODAL_ITEM_ROW_HEIGHT,
+    SEARCH_ITEM_ROW_HEIGHT,
     clampIndex,
     scrollToShow,
     stackHeight,
@@ -26,6 +27,15 @@
   let scope: "open" | "all" = "open";
   let inputEl: HTMLInputElement;
   let searching = false;
+
+  $: parsed = parseSearchQuery(query);
+  $: chips = parsed.chips;
+  $: queryTerm = parsed.term;
+
+  function removeChip(chip: SearchFilterChip) {
+    query = removeChipFromQuery(query, chip);
+    inputEl?.focus();
+  }
 
   onMount(() => inputEl?.focus());
 
@@ -130,7 +140,7 @@
             type: "item",
             key: item.tabFilename + ":" + item.lineIdx,
             item,
-            height: MODAL_ITEM_ROW_HEIGHT,
+            height: SEARCH_ITEM_ROW_HEIGHT,
           });
         }
       }
@@ -200,6 +210,23 @@
         <span class="modal-counter">{flatList.length} match(es)</span>
       {/if}
     </div>
+    {#if chips.length > 0}
+      <div class="search-chips-row">
+        {#each chips as chip, idx (chip.id ?? idx)}
+          <span class="search-chip">
+            <span class="chip-label">{chip.label}</span>
+            <button
+              type="button"
+              class="chip-remove-btn"
+              aria-label="Remove filter {chip.label}"
+              on:click={() => removeChip(chip)}
+            >
+              ✕
+            </button>
+          </span>
+        {/each}
+      </div>
+    {/if}
     <div class="modal-input-wrap">
       <div class="settings-toggle-row">
         <Segmented
@@ -238,7 +265,7 @@
             {@const item = row.item}
             {@const idx = item.__flatIndex}
             <div
-              class="modal-item {idx === selectedIndex ? 'selected' : ''}"
+              class="modal-item search-result-item {idx === selectedIndex ? 'selected' : ''}"
               role="option"
               aria-selected={idx === selectedIndex}
               tabindex="0"
@@ -249,14 +276,46 @@
                 e.key === "Enter" &&
                 controller.jumpToFileLine({ tabId: item.tabId, filename: item.tabFilename, lineIdx: item.lineIdx })}
             >
-              <div class="modal-item-main">
-                <span>
-                  {#each renderResultLine(item.line, query) as part}
-                    {#if part.hit}<mark class={part.cls ?? ""} style="background:var(--highlight); color:inherit;"
-                        >{part.text}</mark
-                      >{:else}<span class={part.cls ?? ""}>{part.text}</span>{/if}
-                  {/each}
-                </span>
+              <div class="modal-item-main search-item-main">
+                <div class="search-context-block">
+                  {#if item.contextBefore !== undefined}
+                    <div class="search-context-line dimmed">
+                      {#if !item.contextBefore}
+                        {"\u00A0"}
+                      {:else}
+                        {#each renderResultLine(item.contextBefore, queryTerm) as part}
+                          {#if part.hit}<mark class={part.cls ?? ""} style="background:var(--highlight); color:inherit;"
+                              >{part.text}</mark
+                            >{:else}<span class={part.cls ?? ""}>{part.text}</span>{/if}
+                        {/each}
+                      {/if}
+                    </div>
+                  {/if}
+                  <div class="search-match-line">
+                    {#if !item.line}
+                      {"\u00A0"}
+                    {:else}
+                      {#each renderResultLine(item.line, queryTerm) as part}
+                        {#if part.hit}<mark class={part.cls ?? ""} style="background:var(--highlight); color:inherit;"
+                            >{part.text}</mark
+                          >{:else}<span class={part.cls ?? ""}>{part.text}</span>{/if}
+                      {/each}
+                    {/if}
+                  </div>
+                  {#if item.contextAfter !== undefined}
+                    <div class="search-context-line dimmed">
+                      {#if !item.contextAfter}
+                        {"\u00A0"}
+                      {:else}
+                        {#each renderResultLine(item.contextAfter, queryTerm) as part}
+                          {#if part.hit}<mark class={part.cls ?? ""} style="background:var(--highlight); color:inherit;"
+                              >{part.text}</mark
+                            >{:else}<span class={part.cls ?? ""}>{part.text}</span>{/if}
+                        {/each}
+                      {/if}
+                    </div>
+                  {/if}
+                </div>
               </div>
               <div class="item-tag">Ln {item.lineIdx + 1}</div>
             </div>

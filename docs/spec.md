@@ -67,6 +67,10 @@ whole `=> ` token in one step, as if un-delegating the line.
 | `! ` | rest of line rendered bold, in an emphasis color | **Emphasis / Remember** | Purely informational — not an action, not counted anywhere, doesn't block tab close. Searchable like any other line via Cross-Tab Search; no dedicated drawer. |
 | `Heading\n====` | Setext H1 Display | **Section / Meeting Header** | Section delimiter for manual section import and meeting action history. |
 
+A resolved line (`v `, `x `, or a `=> v `/`=> x ` follow-up) is drawn slightly dimmed so open work stands out;
+it returns to full strength on hover and while the caret or selection is on the line. Deferred (`> `) lines and
+section titles are never dimmed.
+
 All four action symbols (`# `/`v `/`> `/`x `) may be indented in two-space
 increments, the same as bulleted list items — the indentation is real,
 untouched whitespace; only the symbol itself is replaced. Clicking an
@@ -311,7 +315,12 @@ popover, all dismissed with `Escape` or an outside click, and all
 reachable from the top bar, a shortcut, or the command palette:
 
 - **Command Palette** (`Ctrl/Cmd+K`) — fuzzy-searches and runs any
-  command, jumps to an open tab, or opens a dated note, from one input.
+  command, jumps to an open tab, or opens a dated note, from one input,
+  highlighting the matched characters. A "Current line" group runs the
+  line operations (close/reopen, set to open/done/deferred/won't-do,
+  convert to section, jump to next/previous open action) on the selection
+  the editor had when the palette opened, and a command exports all notes
+  to a `.json` file.
 - **Date Picker** (`Ctrl/Cmd+O`) — an anchored month-grid calendar
   popover; a toggle (remembered for the session, off by default) shows
   only dates with open actions. A day reads brighter/bold once its note
@@ -319,6 +328,8 @@ reachable from the top bar, a shortcut, or the command palette:
   typing into it) doesn't count. Opens on the active tab's own month
   with that day highlighted (falling back to today for a scratchpad,
   which has no date of its own), rather than always defaulting to today.
+  A dot under a day shows its state: green (has actions, none open),
+  amber (has open actions), dim (a note with no actions).
 - **Action Drawer** (`Ctrl/Cmd+Shift+A`) — lists actions across either
   just the open tabs or every file in the notes folder (a per-session
   toggle), most-recent-first either way. A second toggle (remembered for
@@ -348,7 +359,11 @@ reachable from the top bar, a shortcut, or the command palette:
   glyph-rendered, with a jump to the source.
 - **Cross-Tab Search** (`Ctrl/Cmd+Shift+F`) — full-text search across
   either the open tabs or every file, same open-tabs/all-files toggle as
-  the Action Drawer, results glyph-rendered like the drawer's own rows.
+  the Action Drawer, results glyph-rendered like the drawer's own rows,
+  each with the line before and after the match. Operators narrow the
+  results and appear as removable chips: `is:open`, `is:done`, `tag:<topic>`,
+  `has:@<name>`, `since:YYYY-MM-DD`, `before:YYYY-MM-DD`. Opening a result
+  briefly pulses the target line.
 - **Sync Calendar for This Day** (`Ctrl/Cmd+Shift+C`, see tenet 4) — an
   opt-in feature (Settings → Calendar, §3.4; hidden entirely until turned
   on) that reads a `.agenda.json` file in the notes folder (desktop only —

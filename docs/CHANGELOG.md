@@ -6,7 +6,7 @@ kept for the rationale behind each one — not just *what* changed but
 was still being gathered and confirmed before implementation; renamed once
 everything below was applied, since nothing here is "pending" anymore.
 
-**Status: all sections through §192 implemented** (§178–§180 in v0.9.5: a save-only-when-changed fix and two GitHub issues, #76/#77; §181–§186 in v0.10.0: the Android app and OneDrive sync; §187–§188 in v0.11.0: OneDrive sync for the web app, and the fixes found reviewing and testing it). §153 is a
+**Status: all sections through §193 implemented** (§178–§180 in v0.9.5: a save-only-when-changed fix and two GitHub issues, #76/#77; §181–§186 in v0.10.0: the Android app and OneDrive sync; §187–§188 in v0.11.0: OneDrive sync for the web app, and the fixes found reviewing and testing it). §153 is a
 website-only Guide-page fix (found live right after §150–§152 shipped
 as v0.7.12) — no version bump, nothing in the shipped app changed. §154
 merges the OS title bar into the top bar (Notepad-style: icon, tabs,
@@ -8430,3 +8430,37 @@ live OneDrive API (sync first, then clear) has no automated test on the Rust sid
    About). Spec §3.3 and the order test follow.
 
 Verification: Vitest 439, `svelte-check` 0, Playwright 261, `cargo test` 141.
+
+## 193. v0.12 "Release A": palette, resolved lines, heatmap, search (unreleased)
+
+The first stage of the UI/UX refinements roadmap (`docs/design/ui-ux-refinements-v0.12-roadmap.md`, decisions in its
+section 13, task list in section 14). Designed and first implemented by another agent, reviewed and tested here
+(findings in roadmap section 15). Release B (modals, mobile ergonomics) and Release C (Zen, drag and drop, sync
+popover, typography, pure black) are not started.
+
+1. **Command palette.** Matched characters are highlighted in every result (`fuzzyMatchWithIndices`,
+   `splitHighlighted`, `.palette-match`; rendered as text segments, never `{@html}`). A new "Current line" group runs
+   the direct action-state operations from the palette (close open / reopen done, convert to section, set to
+   open/done/deferred/won't-do, jump to next/previous open action), each showing its real shortcut. The palette
+   remembers the editor selection when it opens and restores it and focus before running, so a command can never hit a
+   stale line (`getSelectionRange`/`setSelectionRange` on `EditorApi`). New "Export all notes to file (.json)" command
+   (`exportAllNotesToFile` already existed). The `@` date search stays a substring match.
+2. **Resolved lines are dimmed.** Lines whose action is done or won't-do (`v `/`x `, including `=> v `) get
+   `cm-line-resolved` (opacity 0.72), full opacity on hover or while the caret/selection touches the line
+   (`cm-line-resolved-active`; `:focus-within` never matches inside CodeMirror). Setext title lines and deferred `> `
+   lines are never dimmed. It reuses `innermostActionSymbol`, not a second regex.
+3. **Calendar completion dots.** `computeDayHeat` (`date.ts`): green = at least one action and none open (done,
+   won't-do and deferred all count as resolved), amber = at least one open `# `, dim = a note with no actions. The
+   `aria-label` says which. The old "has open actions" dot is now the amber one.
+4. **Search.** Operators `is:open`, `is:done`, `tag:<topic>`, `has:@<name>`, `since:YYYY-MM-DD`,
+   `before:YYYY-MM-DD`, parsed in `search.ts` and shown as removable chips (a repeated operator collapses into one
+   chip, the last of conflicting single-valued ones wins, removing a chip removes every occurrence).
+   Each result shows the line before and after the match, dimmed. Jumping to a result from Search or an Action Drawer /
+   palette action pulses the target line for 1.4 s (`cm-line-hit-pulse`).
+5. **Found while reviewing (fixed before merging):** dimmed lines did not restore on caret; a repeated operator threw
+   Svelte `each_key_duplicate` and froze the modal; `has:@a(b` threw an uncaught regex `SyntaxError` (the value is now
+   escaped); the #46 date-picker e2e test matched `has` against the new `has-done` class (hyphen is a word
+   boundary).
+
+Verification: Vitest 478, `svelte-check` 0, Playwright 269 (the "#62 spinner" test is the known timing flake and passes
+alone), `cargo test` 141 (no Rust changed). Not verified on a phone; the demo bundle is rebuilt only at release time.

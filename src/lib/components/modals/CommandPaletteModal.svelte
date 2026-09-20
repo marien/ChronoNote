@@ -2,6 +2,7 @@
   import { onMount, tick } from "svelte";
   import * as controller from "../../controller";
   import type { PaletteItem } from "../../commandPalette";
+  import { splitHighlighted } from "../../commandPalette";
   import { focusTrap } from "../../actions/focusTrap";
   import { closeOnOutsideClick } from "../../actions/closeOnOutsideClick";
   import Icon from "../../icons/Icon.svelte";
@@ -143,7 +144,21 @@
             on:mouseenter={() => (selected = row.idx)}
             on:keydown={(e) => e.key === "Enter" && commit(row.idx)}
           >
-            <div class="modal-item-main"><span>{row.item.label}</span></div>
+            <div class="modal-item-main">
+              {#if row.item.matchedIndices && row.item.matchedIndices.length > 0}
+                <span class="modal-item-text">
+                  {#each splitHighlighted(row.item.label, row.item.matchedIndices) as segment}
+                    {#if segment.highlight}
+                      <span class="palette-match">{segment.text}</span>
+                    {:else}
+                      {segment.text}
+                    {/if}
+                  {/each}
+                </span>
+              {:else}
+                <span>{row.item.label}</span>
+              {/if}
+            </div>
             {#if row.item.hint}<div class="item-tag">{row.item.hint}</div>{/if}
           </div>
         {/if}

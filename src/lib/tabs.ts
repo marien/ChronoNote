@@ -303,5 +303,6 @@ export async function jumpToFileLine(item: { tabId?: string; filename: string; l
   }
   await tick();
   editorApi?.jumpToLine(item.lineIdx);
+  editorApi?.pulseLine?.(item.lineIdx);
   editorApi?.focus();
 }

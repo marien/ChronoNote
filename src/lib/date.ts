@@ -1,3 +1,5 @@
+import { countActions } from "./tokens";
+
 export function formatISO(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(
     d.getDate(),
@@ -104,3 +106,19 @@ export const MONTH_NAMES = [
   "November",
   "December",
 ];
+
+export type DayHeatState = "done" | "pending" | "log";
+
+/** Evaluates the 3-tier completion heatmap state for a note body (Decision 3 / R7).
+ * - Empty string or whitespace only: `null` (no content written)
+ * - Has content and 0 action items: `"log"` (journal entry / reference notes)
+ * - Has ≥1 open `#` item (`open > 0`): `"pending"` (outstanding tasks)
+ * - Has ≥1 action item and `open === 0` (`closed > 0 || forwarded > 0`): `"done"` (deferred counts as resolved)
+ */
+export function computeDayHeat(content: string): DayHeatState | null {
+  if (content.trim() === "") return null;
+  const counts = countActions(content);
+  if (counts.open > 0) return "pending";
+  if (counts.closed > 0 || counts.forwarded > 0) return "done";
+  return "log";
+}

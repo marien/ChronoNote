@@ -21,6 +21,7 @@ export const ROW_OVERSCAN_PX = 200;
  * across the four modals. */
 export const MODAL_ITEM_ROW_HEIGHT = 36;
 export const MODAL_HEADER_ROW_HEIGHT = 29;
+export const SEARCH_ITEM_ROW_HEIGHT = 68;
 
 /** A row placed in the virtual stack: its top edge and its height, in
  * px. The modals build these from their own richer row models (group

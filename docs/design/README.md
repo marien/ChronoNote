@@ -114,3 +114,30 @@ SHA-256 CAS conflict protection, paired with mobile touch ergonomics (Mobile Acc
 expanded 40px touch targets, scratchpad draft persistence, and a mobile tab drawer).
 Includes multi-agent architectural invariants and contributor guidelines.
 
+## UI & UX refinements (v0.12 roadmap)
+
+**[`ui-ux-refinements-v0.12-roadmap.md`](ui-ux-refinements-v0.12-roadmap.md)** — pitched 2026-09-20:
+consolidated UI & UX design specifications for ChronoNote v0.12 compared to baseline v0.11.1.
+Specifies dynamic fuzzy-search match highlighting in the Command Palette (`Ctrl/Cmd+K`), line-level editor
+actions aligned with the #73 direct action state model, palette note data export, gentle visual muting for
+resolved action lines (`.cm-line-resolved`), redesigned non-italic topic pills (`.glyph-topic`) with zero-shift
+adaptive parentheses hiding, cross-platform distraction-free Zen Mode (desktop native fullscreen, web CSS transitions,
+and mobile accessory bar preservation), full-screen drag-and-drop import for browser storage, comprehensive
+modal dialog system modernization (4 standardized sizing tiers, responsive mobile overlay & sheet transitions,
+universal touch close affordance `✕`, responsive multi-column layout reflow for History/Shortcuts/Conflicts, and
+interactive palette legend filter chips), cross-platform UX polish (dynamic floating toast, Fitts's law hit-target expansion,
+and dark mode surface luminance), calendar date completion heatmap (green/amber/muted dots), cross-file search
+3-line context expansion & in-editor jump pulse, cloud sync health & telemetry popover dashboard, and canvas
+typography sliders with pure black OLED dark mode.
+Reviewed 2026-09-20: see the roadmap's §13 (corrections already applied, plus the decisions still open
+before any implementation; recommended split into three releases).
+
+**[`ui-ux-refinements-v0.12-mockup.html`](ui-ux-refinements-v0.12-mockup.html)** — companion
+standalone interactive HTML mockup demonstrating the proposed v0.12 design system: monoline SVG icons,
+resolved line muting, redesigned topic pills with interactive parentheses reveal, dynamic match highlighting,
+Zen mode, drag-and-drop overlay, interactive calendar completion heatmap popover, anchored OneDrive sync
+telemetry dashboard, dynamic editor typography sliders, pure black OLED mode, and an interactive Modal Dialog Studio
+allowing live testing of modal size tiers, universal touch close headers, and mobile viewport responsive transformations.
+Open in a browser.
+
+
