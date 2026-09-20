@@ -5,6 +5,7 @@ import type {
   AppConfig,
   ColorMode,
   FileMetadata,
+  FolderSwitchResult,
   ImportMode,
   ImportResult,
   NoteWithMetadata,
@@ -192,6 +193,10 @@ export function oneDriveSetFolder(folderId: string, folderPath: string): Promise
   return invoke("onedrive_set_folder", { folderId, folderPath });
 }
 
+export function oneDrivePrepareFolderSwitch(newFolderId: string): Promise<FolderSwitchResult> {
+  return invoke("onedrive_prepare_folder_switch", { newFolderId });
+}
+
 export function oneDriveGetFolder(): Promise<{ folderId: string; folderPath: string } | null> {
   return invoke("onedrive_get_folder", {});
 }
@@ -238,11 +243,5 @@ export function webCheckBrowserNotes(): Promise<{ count: number; filenames: stri
 
 export function webMigrateBrowserNotes(): Promise<{ migratedCount: number; conflictCount: number }> {
   return invoke("web_migrate_browser_notes", {});
-}
-
-export function webPrepareFolderSwitch(
-  newFolderId: string,
-): Promise<{ ready: boolean; switched: boolean; archivedCount: number; message?: string }> {
-  return invoke("web_prepare_folder_switch", { newFolderId });
 }
 

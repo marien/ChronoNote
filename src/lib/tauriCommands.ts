@@ -7,6 +7,7 @@ import type {
   NoteWithMetadata,
   OneDriveAccount,
   OneDriveAdvancedConfig,
+  FolderSwitchResult,
   OneDriveFolderConfig,
   OneDriveFolderItem,
   OneDriveLoginResult,
@@ -100,6 +101,10 @@ export interface TauriCommands {
     args: { folderId: string; folderPath: string };
     returns: void;
   };
+  onedrive_prepare_folder_switch: {
+    args: { newFolderId: string };
+    returns: FolderSwitchResult;
+  };
   onedrive_get_folder: {
     args: NoArgs;
     returns: OneDriveFolderConfig | null;
@@ -151,10 +156,6 @@ export interface TauriCommands {
   web_migrate_browser_notes: {
     args: NoArgs;
     returns: { migratedCount: number; conflictCount: number };
-  };
-  web_prepare_folder_switch: {
-    args: { newFolderId: string };
-    returns: { ready: boolean; switched: boolean; archivedCount: number; message?: string };
   };
 }
 

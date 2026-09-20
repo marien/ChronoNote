@@ -12,6 +12,7 @@ export type {
   NoteWithMetadata,
   OneDriveAccount,
   OneDriveAdvancedConfig,
+  FolderSwitchResult,
   OneDriveFolderConfig,
   OneDriveFolderItem,
   OneDriveLoginResult,

@@ -26,6 +26,8 @@ export type OneDriveFolderItem = { id: string, name: string };
 
 export type OneDriveFolderConfig = { folderId: string, folderPath: string };
 
+export type FolderSwitchResult = { ready: boolean, switched: boolean, archivedCount: number, message?: string };
+
 export type OneDriveSyncResult = { success: boolean, message?: string };
 
 export type SyncConflict = { name: string, local: string, remote: string };

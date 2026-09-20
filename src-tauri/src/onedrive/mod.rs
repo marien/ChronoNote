@@ -56,6 +56,23 @@ pub struct OneDriveSyncResult {
     pub message: Option<String>,
 }
 
+/// The outcome of `prepare_folder_switch` (see sync.rs): whether choosing the
+/// new OneDrive folder may go ahead, and what happened to the local notes.
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, TS)]
+#[serde(rename_all = "camelCase")]
+pub struct FolderSwitchResult {
+    pub ready: bool,
+    /// The local notes belonged to a different folder, so they were cleared
+    /// (or there was nothing in them).
+    pub switched: bool,
+    /// Notes copied to the archive because the old folder couldn't be synced.
+    #[ts(type = "number")]
+    pub archived_count: usize,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
+    pub message: Option<String>,
+}
+
 /// A note whose local and cloud versions diverged in a way that couldn't be
 /// merged automatically. Both texts are included for the resolve screen.
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, TS)]

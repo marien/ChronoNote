@@ -41,11 +41,11 @@
   // Three tabs group what used to be one long scrolling list: Appearance/
   // Editor are the "how it looks and feels while typing" settings; Calendar/
   // Notes Location/Data are the "where things come from and go" settings;
-  // Updates stands alone since it's neither. On mobile, shorter labels ensure
-  // every tab fits without truncation.
+  // Updates stands alone since it's neither. The same short labels on every
+  // platform (they were shortened on mobile first so every tab fits).
   $: settingsTabs = [
-    { value: "appearance", label: $isMobile ? "Appearance" : "Appearance & Editor" },
-    { value: "calendar", label: $isMobile ? "Notes & Sync" : "Calendar, Notes & Data" },
+    { value: "appearance", label: "Appearance" },
+    { value: "calendar", label: "Notes & Sync" },
     ...($backendKind === "desktop" ? [{ value: "updates", label: "Updates" }] : []),
   ];
   // #71: the status bar's folder icon/name opens Settings landed
