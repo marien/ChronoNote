@@ -8322,7 +8322,7 @@ Verification: Vitest 433, `svelte-check` 0, Playwright 251, `cargo test` 137.
 
 ## 189. Phone feedback on the web app: tabs drawer, active tab, keyboard (after v0.11.0)
 
-Marien used the web app on a phone and reported four things.
+Marien used the web app on a phone and reported these.
 
 1. **The tabs drawer was unsorted.** It listed tabs in open order; it now uses the
    tab bar's order (dated notes by date, then scratchpads, with a divider).
@@ -8346,4 +8346,9 @@ Marien used the web app on a phone and reported four things.
    keyboard animates in. A Playwright test shrinks the viewport under the caret.
    Still not tried with a real keyboard.
 
-Verification: Vitest 436, `svelte-check` 0, Playwright 255.
+5. **The date picker marked the day it opened on as selected.** On a touch device
+   that isn't a selection (you tap the day you want), and the mark made flipping
+   between months confusing. It is now only marked once the keyboard moves it
+   (arrows, PageUp/PageDown, typing a date). Desktop is unchanged.
+
+Verification: Vitest 436, `svelte-check` 0, Playwright 260.

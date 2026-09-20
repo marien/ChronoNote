@@ -2,7 +2,7 @@
   import { get } from "svelte/store";
   import { onMount, tick } from "svelte";
   import * as controller from "../../controller";
-  import { activeTabId, allNotesCache, copyForwardPending, tabs } from "../../controller";
+  import { activeTabId, allNotesCache, copyForwardPending, isMobile, tabs } from "../../controller";
   import { focusTrap } from "../../actions/focusTrap";
   import {
     addDaysISO,
@@ -44,6 +44,12 @@
   let year = t0.getFullYear();
   let month = t0.getMonth(); // 0-indexed
   let focusedIso = initialIso;
+  // On a touch device the day the picker opened on isn't a selection - you pick by
+  // tapping - so marking it (and re-marking it as you flip between months) only
+  // confuses. The mark appears once the keyboard moves it: arrows/PageUp/PageDown in
+  // the grid, or typing a date.
+  let movedByKeyboard = false;
+  $: showTarget = !$isMobile || movedByKeyboard;
 
   $: cells = monthGrid(year, month);
 
@@ -63,6 +69,7 @@
   // grid jumps to it and marks the target — Enter then commits it.
   $: followQuery(jumpQuery);
   function followQuery(q: string) {
+    if (q.trim() !== "") movedByKeyboard = true;
     const parsed = parseDateQuery(q);
     if (parsed) {
       focusedIso = parsed;
@@ -177,6 +184,7 @@
 
   function onGridKeydown(e: KeyboardEvent) {
     const step: Record<string, number> = { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -7, ArrowDown: 7 };
+    if (e.key in step || e.key === "PageUp" || e.key === "PageDown") movedByKeyboard = true;
     if (e.key in step) {
       e.preventDefault();
       moveFocus(addDaysISO(focusedIso, step[e.key]));
@@ -247,7 +255,7 @@
         class="cal-day"
         class:out={!cell.inMonth}
         class:today={cell.iso === today}
-        class:target={cell.iso === focusedIso}
+        class:target={showTarget && cell.iso === focusedIso}
         class:hasnote={noteByIso.has(cell.iso)}
         class:has={openByIso.has(cell.iso)}
         data-iso={cell.iso}
