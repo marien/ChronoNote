@@ -864,7 +864,21 @@ The direction is sound and mostly consistent with the tenets: plain-text files s
 | R9 | The sync health popover needs new engine state (last sync, pending, offline), so it is not frontend-only. |
 | R10 | Mobile toast position collides with the phone top bar; hit-area pseudo-elements collide with the existing coarse-pointer sizing and with each other. |
 
-### Decisions needed (conflicts and judgement calls)
+### Decisions taken (2026-09-20, Marien)
+
+All seven open points were settled in favour of the recommendation. These are now binding for implementation:
+
+1. **Scope: three releases.** A = Areas 1, 2, 7, 8 (palette, editor styling, heatmap, search). B = Areas 5, 6 (modals, mobile ergonomics). C = Areas 3, 4, 9, 10 (Zen, drag and drop, sync popover, typography, pure black). Each release is cut only when Marien asks.
+2. **Palette line commands:** the palette records the editor selection when it opens and restores it (and focus) before running a "Current line" command, so it can never act on a stale line. A unit test covers the restore.
+3. **Heatmap:** deferred `> ` counts as resolved. Green = at least one action and none open; amber = at least one open `# `; muted = no actions.
+4. **Zen chord:** one chord on all targets, chosen from the shortcut registry after checking for collisions (F11 only as a desktop alias). Escape exits only after modals, the find bar and the date picker have had it. Android gets a visible entry (More actions) plus the palette command. Desktop adds the two fullscreen permissions to `capabilities/default.json`.
+5. **Pure black:** a separate Appearance toggle layered on dark (`data-pure-black`), not a `ThemeMode` value. The config field goes through `storage.rs`, ts-rs, the mock and the web backend together.
+6. **Dropped `.txt` collisions:** reuse the OneDrive migrate dialog's behaviour: identical notes are skipped, differing notes are held as conflicts and Marien chooses; nothing is overwritten silently.
+7. **Search operators:** all of `is:open`, `is:done`, `tag:`, `has:@`, `since:`, `before:`, parsed in `search.ts` and unit-tested, with the active operators shown as removable chips so a mistyped one cannot silently return nothing.
+
+Still to do before any implementation: update the mockup to match these decisions (F11, `oled`, deferred dots, pill layout), and write the per-release task lists.
+
+### Decisions that were open (kept for the record)
 
 1. **Scope split.** One release or three (see Overall)?
 2. **Palette "Current line" commands (1.2).** These are the same operations as the direct shortcuts. Useful on phones (no chords), but it needs the editor to hold focus/selection while the palette is open, and the palette steals focus. Confirm the palette restores the editor selection before running (a stale selection would change the wrong line).
