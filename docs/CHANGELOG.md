@@ -6,7 +6,7 @@ kept for the rationale behind each one — not just *what* changed but
 was still being gathered and confirmed before implementation; renamed once
 everything below was applied, since nothing here is "pending" anymore.
 
-**Status: all sections through §194 implemented** (§178–§180 in v0.9.5: a save-only-when-changed fix and two GitHub issues, #76/#77; §181–§186 in v0.10.0: the Android app and OneDrive sync; §187–§188 in v0.11.0: OneDrive sync for the web app, and the fixes found reviewing and testing it; §193 in v0.12.0: Release A; §194 in v0.12.1: Release B). §153 is a
+**Status: all sections through §194 implemented** (§178–§180 in v0.9.5: a save-only-when-changed fix and two GitHub issues, #76/#77; §181–§186 in v0.10.0: the Android app and OneDrive sync; §187–§188 in v0.11.0: OneDrive sync for the web app, and the fixes found reviewing and testing it; §191–§194 are unreleased: Android folder switch, short Settings labels, and v0.12 Releases A and B). §153 is a
 website-only Guide-page fix (found live right after §150–§152 shipped
 as v0.7.12) — no version bump, nothing in the shipped app changed. §154
 merges the OS title bar into the top bar (Notepad-style: icon, tabs,
@@ -8489,5 +8489,14 @@ The second stage of the UI/UX refinements roadmap (`docs/design/ui-ux-refinement
    - Consolidated coarse-pointer touch targets (`.glyph-cyclable`, `.drawer-tab-close`, `.cal-day`, `.icon-btn`) into a single non-colliding pseudo-element rule.
    - Surface elevation & dark mode luminance borders: added subtle inset highlight border and deep shadow (`box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 16px 44px rgba(0, 0, 0, 0.5)`) across `.modal-card`, `.datepicker-pop`, and `.more-actions-pop`.
 
-Verification: Vitest 478, `svelte-check` 0, Playwright e2e suites 273, `cargo test` 141 (no Rust changed).
+6. **Behaviour change worth knowing:** in the History dialog at 680px wide or less, tapping a row now opens the
+   preview tab (with "Import Action" and "Open Note" buttons) instead of jumping straight to the note. Wider windows are
+   unchanged.
+7. **Not everything has a close button:** the disk-vs-memory conflict dialog (`ConflictModal`) deliberately has none,
+   because it needs an explicit choice (Escape is a no-op there too).
+8. **Deferred:** roadmap 6.4 (expressive empty states) was not implemented and stays parked.
+
+Verification: Vitest 478, `svelte-check` 0, Playwright 278 (two new width-based specs cover the Sync conflicts and
+Calendar review reflows), `cargo test` 141 (no Rust changed). Checked by hand at 375px: palette (chips, close button,
+hidden hints) and the Shortcuts tab switcher.
 

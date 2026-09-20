@@ -247,7 +247,7 @@ tabs reads them all in parallel rather than one at a time, for a faster
 time-to-typable. Scrollbars throughout (editor, modal lists, the import
 textarea) are thin and theme-matched rather than the OS default.
 
-### 3.6 Modal Dialog System & Mobile Ergonomics (v0.12.1 / Release B)
+### 3.6 Modal Dialog System & Mobile Ergonomics
 
 Every modal dialog conforms to a standardized 4-tier sizing scale, universal dismiss affordance, and responsive layout reflow:
 
@@ -256,7 +256,7 @@ Every modal dialog conforms to a standardized 4-tier sizing scale, universal dis
    * `.modal-md` (560px): Standard single-column settings and form views (`SettingsModal`, `ConflictModal`, `SyncConflictsModal`, `CommandPaletteModal`).
    * `.modal-lg` (720px): Multi-column list views and table searches (`ActionDrawerModal`, `SearchModal`, `CalendarSyncReviewModal`, `OneDriveFolderPickerModal`).
    * `.modal-xl` (880px): Deep data inspectors and dual-column browsers (`HistoryModal`, `ShortcutsModal`).
-2. **Universal Dismiss Affordance:** Every modal card provides a monoline `✕` icon button (`.modal-close-btn`, 32×32px, expanded to 44×44px hit-box under coarse pointers) in the top-right corner, ensuring clear, accessible exit affordance for mouse and touch users alike.
+2. **Universal Dismiss Affordance:** Every dialog except the disk-conflict one (which needs an explicit choice) provides a monoline `✕` icon button (`.modal-close-btn`, 32×32px, expanded to 44×44px hit-box under coarse pointers) in the top-right corner, ensuring clear, accessible exit affordance for mouse and touch users alike.
 3. **Command Palette Mobile Chips:** Prefix filter indicators (`>`, `!`, `@`, `?`) render as interactive tap-chips (`.palette-chip`) allowing quick mode changes on touch screens. Under mobile viewports and coarse pointers, desktop keyboard navigation footers and shortcut hint tags are suppressed.
 4. **Adaptive Multi-Column Layouts (≤ 680px / ≤ 520px):**
    * `ShortcutsModal`: Reflows side-by-side columns into a top segmented switcher (`[ Shortcuts ] [ Glyphs & Symbols ]`) with touch-friendly row heights.

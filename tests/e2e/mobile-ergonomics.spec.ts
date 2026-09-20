@@ -4,7 +4,9 @@ import {
   editor,
   openViaShortcut,
   todayFilename,
+  REFERENCE_INSTANT,
 } from "./helpers";
+import { scenario } from "../../src/lib/testing/scenarios";
 
 test.describe("mobile ergonomics & modal reflow (Area 5.4, 5.5, 6)", () => {
   test.beforeEach(async ({ page }) => {
@@ -140,5 +142,74 @@ test.describe("mobile ergonomics & modal reflow (Area 5.4, 5.5, 6)", () => {
 
     // Status bar stat-message should not be visible when mobile is active
     await expect(statMessage).toHaveCount(0);
+  });
+});
+
+/** Narrow-width reflows for the two dialogs that only ever show up in specific flows
+ * (Android sync conflicts, calendar-sync review). */
+test.describe("narrow reflow: sync conflicts and calendar review (Area 5.4)", () => {
+  test.use({
+    viewport: { width: 400, height: 800 },
+    isMobile: true,
+    hasTouch: true,
+    userAgent:
+      "Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Mobile Safari/537.36",
+  });
+
+  test("sync conflicts: a view switcher shows one version at a time, both by default", async ({ page }) => {
+    await seedApp(page, {
+      seed: {
+        notes: { "2030-01-01.txt": "one\nphone edit\n" },
+        oneDriveConflicts: [{ name: "2030-01-01.txt", remote: "one\npc edit\n" }],
+      },
+    });
+    await page.locator("#stat-conflicts").click();
+    const dialog = page.getByRole("dialog", { name: "Sync conflicts" });
+    await expect(dialog).toBeVisible();
+    await expect(dialog.locator(".conflict-view-tabs")).toBeVisible();
+
+    const local = page.getByTestId("conflict-local");
+    const remote = page.getByTestId("conflict-remote");
+    await expect(local).toBeVisible();
+    await expect(remote).toBeVisible();
+
+    await dialog.locator(".conflict-view-btn", { hasText: "This Device" }).click();
+    await expect(local).toBeVisible();
+    await expect(remote).toBeHidden();
+
+    await dialog.locator(".conflict-view-btn", { hasText: "OneDrive" }).click();
+    await expect(remote).toBeVisible();
+    await expect(local).toBeHidden();
+
+    await dialog.locator(".conflict-view-btn", { hasText: "Side-by-Side" }).click();
+    await expect(local).toBeVisible();
+    await expect(remote).toBeVisible();
+  });
+
+  test("calendar review: a removed section's controls stack under its title and stay inside the card", async ({ page }) => {
+    const today = REFERENCE_INSTANT.toISOString().slice(0, 10);
+    await seedApp(page, {
+      seed: {
+        ...scenario("empty"),
+        calendarSyncEnabled: true,
+        agendaJson: JSON.stringify([{ date: today, start: "09:00", end: "09:30", title: "Standup" }]),
+        notes: { [todayFilename()]: "Standup\n=======\nnotes\nOld Meeting\n===========\nimportant content\n" },
+        session: { openTabs: [todayFilename()], activeTab: todayFilename() },
+      },
+    });
+    // On a phone-width top bar the button is folded into More actions; the shortcut is the direct route.
+    await editor(page).click();
+    await page.keyboard.press("ControlOrMeta+Shift+C");
+    const dialog = page.getByRole("dialog", { name: "Sync review" });
+    await expect(dialog).toBeVisible();
+
+    const removal = dialog.locator(".sync-review-removal").first();
+    await expect(removal).toBeVisible();
+    expect(await removal.evaluate((el) => getComputedStyle(el).flexDirection)).toBe("column");
+
+    const card = (await dialog.boundingBox())!;
+    const controls = (await removal.locator(".sync-review-removal-controls").boundingBox())!;
+    expect(controls.x).toBeGreaterThanOrEqual(card.x - 1);
+    expect(controls.x + controls.width).toBeLessThanOrEqual(card.x + card.width + 1);
   });
 });
