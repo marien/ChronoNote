@@ -966,3 +966,29 @@ Scope: **Areas 1, 2, 7, 8** (Palette match highlighting & direct line actions, r
 - [ ] **Task 5.4: Rust Tests**: `cargo test` (all 141+ tests passing).
 - [ ] **Task 5.5: Webapp Bundle**: `npm run build:webapp` clean build.
 
+---
+
+## 15. Release A Review Findings (2026-09-20, against `9bcae88`)
+
+Reviewed by running the gates and driving the feature in a browser. **Not ready to merge until items 1 to 3 are fixed.** Gates on the branch as reviewed: `svelte-check` 0 errors, Vitest 468/468, Playwright 260/261 (the failure is item 3). `cargo test` not run (no Rust changes).
+
+Works as specified: palette match highlighting; the "Current line" commands (verified live: palette restores focus and the caret, and "Reopen done action on current line" changed the correct line); heatmap classes and `aria-label`s (unit-tested; green "done" not seen live because the demo scenario has only pending days).
+
+### Must fix
+
+1. **Resolved lines stay dimmed while being edited.** `.cm-line.cm-line-resolved:focus-within` never matches: focus is on `.cm-content` (an ancestor of the lines), not inside the line. Measured with the caret on a `v ` line: computed opacity 0.72. Design (§2.1) says full opacity on hover **or when the cursor is on the line**. Hover works. Add an active-line decoration (a `cm-line-resolved-active` class from a selection-aware plugin, or drop the resolved class from lines the selection touches) and a Playwright test that the caret line reads opacity 1.
+2. **Duplicate search operators crash the Search modal.** Typing `is:open is:open` or `tag:ui tag:ui` throws `each_key_duplicate` (Svelte, `SearchModal.svelte`) because chip `id` is `op-is-open` / `op-tag-<val>` for each occurrence; no chips or results render afterwards. Fix in `parseSearchQuery` (de-duplicate identical operators, last one wins for single-valued ones, and/or key the `{#each}` by index) and add unit tests for repeated and conflicting operators (`is:open is:done`, two `since:`, two `tag:`). `removeChip` should remove the exact occurrence clicked.
+3. **`tests/e2e/navigation.spec.ts:138` (#46) fails.** The behaviour is right (the day now has `has-done`), but the test asserts `not.toHaveClass(/\bhas\b/)` and `\b` treats the hyphen in `has-done` as a word boundary, so it sees a match. Update the test to assert `has-pending` is absent and `has-done` is present after resolving the last action, and check the earlier `toHaveClass(/\bhas\b/)` in the same test does not pass by accident (`has-pending`).
+
+### Should fix
+
+4. **No Playwright coverage for Release A.** Only unit tests were added. The project rule is that a user-facing interaction needs an e2e test. Add specs for: palette highlight (`.palette-match` present for a fuzzy query); each "Current line" command acting on the pre-palette selection (including a multi-line selection and the caret on a different line than the palette's first result); the three heatmap states and their `aria-label`s; the resolved-line opacity (0.72 off the line, 1 with the caret on it); search operators and chip removal; and the jump pulse class appearing after Search-to-line.
+5. **Date query in the palette (`@`) changed from substring to fuzzy matching** (`d.includes(term)` became `fuzzyMatchWithIndices`). Not in the spec, and it loosens results (`0919` matches more dates). Keep substring matching for dates, or say so in the roadmap if it is intended.
+6. Move the `import { countActions } from "./tokens"` in `src/lib/date.ts` to the top of the file with the other imports.
+7. The palette's mixed list also matches on the hint text (`label + hint`, pre-existing) and then shows no highlight; acceptable, but note it in the code comment so it is not mistaken for a bug.
+
+### Before merging
+
+- The branch is based on `58d9412` (v0.11.1). `main` now has the staged §191 and §192. A dry-run merge conflicts only in the generated bundle (`website/webapp/index.html` and the hashed asset in `website/webapp/assets/`). Merge `main` into the branch, take either side of those two files, then run `npm run build:webapp` so CI's "bundle is up to date" check passes (mind the LF rule in `.gitattributes`).
+- After the fixes re-run all four suites, including `npm run test:e2e`, on the merged result.
+- Do not cut a release; Marien asks for releases separately.
