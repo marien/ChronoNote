@@ -80,7 +80,8 @@
       --glyph-emphasis-color: #b45309;
     }
 
-    [data-theme="oled"] {
+    /* Pure Black OLED appearance toggle layered on dark mode (Decision 5 / R8) */
+    [data-theme="dark"][data-pure-black] {
       --surface-canvas: #000000;
       --surface-chrome: #09090b;
       --surface-overlay: #121214;
@@ -96,22 +97,6 @@
       --caret-color: #ffffff;
       --editor-selection-bg: #3f3f46;
       --tab-active-border: var(--text);
-
-      --glyph-open-color: #38bdf8;
-      --glyph-open-weight: bold;
-      --glyph-done-color: #10b981;
-      --glyph-done-weight: bold;
-      --glyph-done-opacity: 1;
-      --glyph-progress-color: #a855f7;
-      --glyph-progress-weight: bold;
-      --glyph-cancelled-color: #7c8794;
-      --glyph-cancelled-weight: bold;
-      --glyph-cancelled-opacity: 1;
-      --glyph-followup-color: #38bdf8;
-      --glyph-followup-weight: bold;
-      --glyph-assignee-bg: rgba(56, 189, 248, 0.22);
-      --glyph-assignee-color: #7fd4f5;
-      --glyph-emphasis-color: #f59e0b;
     }
 
     [data-color-mode="grayscale"] {
@@ -193,12 +178,13 @@
       font-weight: 600;
     }
 
-    /* ── Redesigned Topic Pill (§189 / v0.12) ─────────────────────────── */
+    /* ── Redesigned Topic Pill (Decision 2.2 / R3 column-drift protected) ── */
     .glyph-topic {
-      display: inline-block;
-      background: rgba(255, 255, 255, 0.05);
       border: 1px solid var(--edge-strong);
       border-radius: 4px;
+      /* #42 / §123 layout-neutral rule: 1px border + 1px padding compensated by -2px margin */
+      padding: 0 1px;
+      margin: 0 -2px;
       color: var(--text);
       font-style: normal;
       font-weight: 500;
@@ -206,6 +192,7 @@
       vertical-align: baseline;
       cursor: text;
       transition: border-color 150ms ease, background-color 150ms ease;
+      background: rgba(255, 255, 255, 0.05);
     }
     [data-theme="light"] .glyph-topic {
       background: rgba(0, 0, 0, 0.04);
@@ -1096,7 +1083,7 @@
 
   <!-- Area 3: Zen Mode Exit Banner -->
   <div id="zen-banner">
-    <span>Zen Mode active — Press <kbd>Esc</kbd> or</span>
+    <span>Zen Mode active — Press <kbd>Esc</kbd>, <kbd>Ctrl+Alt+Z</kbd> (or <kbd>F11</kbd>), or</span>
     <button type="button" class="zen-exit-btn" onclick="toggleZenMode(event)">Exit</button>
   </div>
 
@@ -1160,17 +1147,17 @@
       <span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span><span>Su</span>
     </div>
     <div class="cal-grid">
-      <div class="cal-cell" onclick="jumpToDate('2026-09-14')"><span>14</span><span class="cal-dot log" title="Note log"></span></div>
-      <div class="cal-cell" onclick="jumpToDate('2026-09-15')"><span>15</span><span class="cal-dot log" title="Note log"></span></div>
-      <div class="cal-cell" onclick="jumpToDate('2026-09-16')"><span>16</span><span class="cal-dot pending" title="Tasks pending"></span></div>
-      <div class="cal-cell" onclick="jumpToDate('2026-09-17')"><span>17</span><span class="cal-dot log" title="Note log"></span></div>
-      <div class="cal-cell" onclick="jumpToDate('2026-09-18')"><span>18</span><span class="cal-dot done" title="100% tasks completed"></span></div>
-      <div class="cal-cell" onclick="jumpToDate('2026-09-19')"><span>19</span><span class="cal-dot pending" title="Tasks pending"></span></div>
-      <div class="cal-cell today" onclick="jumpToDate('2026-09-20')"><span>20</span><span class="cal-dot pending" title="Today · tasks pending"></span></div>
+      <div class="cal-cell" onclick="jumpToDate('2026-09-14')"><span>14</span><span class="cal-dot log" title="Note log (no actions)"></span></div>
+      <div class="cal-cell" onclick="jumpToDate('2026-09-15')"><span>15</span><span class="cal-dot log" title="Note log (no actions)"></span></div>
+      <div class="cal-cell" onclick="jumpToDate('2026-09-16')"><span>16</span><span class="cal-dot pending" title="Tasks open (#)"></span></div>
+      <div class="cal-cell" onclick="jumpToDate('2026-09-17')"><span>17</span><span class="cal-dot log" title="Note log (no actions)"></span></div>
+      <div class="cal-cell" onclick="jumpToDate('2026-09-18')"><span>18</span><span class="cal-dot done" title="All actions completed"></span></div>
+      <div class="cal-cell" onclick="jumpToDate('2026-09-19')"><span>19</span><span class="cal-dot done" title="All actions resolved (completed / deferred)"></span></div>
+      <div class="cal-cell today" onclick="jumpToDate('2026-09-20')"><span>20</span><span class="cal-dot pending" title="Today · open tasks (#)"></span></div>
     </div>
     <div style="font-size:10px; color:var(--muted); display:flex; gap:8px; border-top:1px solid var(--edge-soft); padding-top:6px; margin-top:2px;">
-      <span><span style="color:var(--glyph-done-color);">●</span> Done</span>
-      <span><span style="color:var(--state-warn);">●</span> Pending</span>
+      <span><span style="color:var(--glyph-done-color);">●</span> Done / Deferred</span>
+      <span><span style="color:var(--state-warn);">●</span> Open (#)</span>
       <span><span style="color:var(--muted);">●</span> Log</span>
     </div>
   </div>
@@ -1377,7 +1364,7 @@
           <div class="m-list-row"><span>Close open action</span><kbd>Cmd+Enter</kbd></div>
           <div class="m-list-row"><span>Reopen done action</span><kbd>Cmd+Shift+Enter</kbd></div>
           <div class="m-list-row"><span>Direct action state 1-4</span><kbd>Cmd+1..4</kbd></div>
-          <div class="m-list-row"><span>Toggle Zen mode</span><kbd>F11</kbd></div>
+          <div class="m-list-row"><span>Toggle Zen mode</span><kbd>Cmd+Alt+Z / F11</kbd></div>
         </div>
         <div class="m-shortcuts-col">
           <div class="m-hdr-row">Symbols &rarr; Glyphs</div>
@@ -1455,7 +1442,7 @@
       </div>
     </div>
 
-    <!-- 5. Search Modal Preview (lg, 720px / 3-Line Context & Operators) -->
+    <!-- 5. Search Modal Preview (lg, 720px / 3-Line Context & Dismissible Chips) -->
     <div class="modal-card modal-lg" id="m-card-search" style="display: none;">
       <div class="modal-hdr">
         <div class="modal-hdr-lead">
@@ -1468,14 +1455,13 @@
         </div>
       </div>
       <div style="background:var(--surface-raised); padding:8px 14px; border-bottom:1px solid var(--edge-soft);">
-        <input type="text" style="background:none; border:none; color:var(--text); font-family:var(--font); font-size:12px; width:100%; outline:none;" value="export is:done" placeholder="Search... (try is:open, tag:ui, has:@marien)">
+        <input type="text" style="background:none; border:none; color:var(--text); font-family:var(--font); font-size:12px; width:100%; outline:none;" value="export" placeholder="Search... (try is:open, tag:ui, has:@marien)">
       </div>
-      <div style="display:flex; gap:6px; padding:6px 14px; background:var(--surface-chrome); border-bottom:1px solid var(--edge-soft); font-size:10.5px; color:var(--muted); align-items:center;">
-        <span style="font-weight:600;">Operators:</span>
-        <button type="button" class="palette-chip">is:open</button>
-        <button type="button" class="palette-chip" style="background:var(--selected-bg); color:var(--selected-fg);">is:done</button>
-        <button type="button" class="palette-chip">tag:export</button>
-        <button type="button" class="palette-chip">has:@marien</button>
+      <div style="display:flex; gap:6px; padding:6px 14px; background:var(--surface-chrome); border-bottom:1px solid var(--edge-soft); font-size:10.5px; color:var(--muted); align-items:center; flex-wrap:wrap;">
+        <span style="font-weight:600;">Active filters:</span>
+        <span class="palette-chip" style="background:var(--selected-bg); color:var(--selected-fg); gap:6px;">is:done <span style="cursor:pointer; opacity:0.8;" onclick="this.parentElement.remove(); showStatus('Removed filter: is:done');">✕</span></span>
+        <span class="palette-chip" style="background:var(--selected-bg); color:var(--selected-fg); gap:6px;">tag:export <span style="cursor:pointer; opacity:0.8;" onclick="this.parentElement.remove(); showStatus('Removed filter: tag:export');">✕</span></span>
+        <span style="margin-left:auto; opacity:0.65;">Syntax: is:open · is:done · tag: · has:@ · since: · before:</span>
       </div>
       <div style="flex:1; overflow-y:auto; padding:10px 14px;">
         <div class="m-hdr-row">2026-09-20.txt · Line 11</div>
@@ -1510,16 +1496,20 @@
         </div>
         <div class="typography-slider-row">
           <label for="line-height-slider">Line Spacing:</label>
-          <input type="range" id="line-height-slider" min="1.30" max="1.80" step="0.05" value="1.55" oninput="updateLineHeight(this.value)">
-          <span class="typography-slider-val" id="line-height-val">1.55</span>
+          <input type="range" id="line-height-slider" min="1.30" max="1.80" step="0.05" value="1.60" oninput="updateLineHeight(this.value)">
+          <span class="typography-slider-val" id="line-height-val">1.60</span>
         </div>
         <div style="border-top:1px solid var(--edge-soft); padding-top:14px; margin-top:10px;">
-          <div style="font-size:12px; font-weight:600; margin-bottom:8px;">Theme Variant</div>
-          <div style="display:flex; gap:8px;">
-            <button type="button" class="studio-pill-btn" onclick="setSpecificTheme('light')">Light</button>
-            <button type="button" class="studio-pill-btn" onclick="setSpecificTheme('dark')">Standard Dark</button>
-            <button type="button" class="studio-pill-btn active" id="btn-theme-oled" onclick="setSpecificTheme('oled')">Pure Black OLED (#000000)</button>
+          <div style="font-size:12px; font-weight:600; margin-bottom:8px;">Theme Mode</div>
+          <div style="display:flex; gap:8px; margin-bottom:12px;">
+            <button type="button" class="studio-pill-btn" id="btn-theme-light" onclick="setSpecificTheme('light')">Light</button>
+            <button type="button" class="studio-pill-btn active" id="btn-theme-dark" onclick="setSpecificTheme('dark')">Dark</button>
           </div>
+          <div style="font-size:12px; font-weight:600; margin-bottom:8px;">Appearance Options</div>
+          <label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-size:12px; user-select:none;">
+            <input type="checkbox" id="chk-pure-black" onchange="togglePureBlack(this.checked)">
+            <span>Pure Black (OLED canvas #000000, dark mode only)</span>
+          </label>
         </div>
       </div>
       <div class="m-footer-actions" style="justify-content:flex-end;">
@@ -1529,22 +1519,22 @@
   </div>
 
   <script>
-    // ── Command Items (Reconciled with #70, #73 & v0.11.0 registry) ──────
+    // ── Command Items (Reconciled with #70, #73 & v0.12 registry) ────────
     const COMMAND_ITEMS = [
-      // Line operations (Reconciled: Close open vs Reopen done, direct state setters)
-      { id: "close-action", label: "Close open action on current line", hint: "Cmd+Enter", group: "Current line", run: () => showStatus("Action closed (# → v)") },
-      { id: "reopen-action", label: "Reopen done action on current line", hint: "Cmd+Shift+Enter", group: "Current line", run: () => showStatus("Action reopened (v → #)") },
-      { id: "set-open", label: "Set line/selection to Open", hint: "Cmd+1", group: "Current line", run: () => showStatus("Set to Open (#)") },
-      { id: "set-done", label: "Set line/selection to Done", hint: "Cmd+2", group: "Current line", run: () => showStatus("Set to Done (v)") },
-      { id: "set-def", label: "Set line/selection to Deferred", hint: "Cmd+3", group: "Current line", run: () => showStatus("Set to Deferred (>)") },
-      { id: "set-wont", label: "Set line/selection to Won't-Do", hint: "Cmd+4", group: "Current line", run: () => showStatus("Set to Won't-Do (x)") },
-      { id: "sec-hdr", label: "Convert line to section header", hint: "Cmd+Shift+S", group: "Current line", run: () => showStatus("Converted to Setext section header") },
-      { id: "jump-act", label: "Jump to next open action", hint: "F2", group: "Current line", run: () => showStatus("Jumped to next open action") },
+      // Line operations (Restores editor selection and focus before executing - Decision 2)
+      { id: "close-action", label: "Close open action on current line (restores editor)", hint: "Cmd+Enter", group: "Current line", run: () => runLineAction("Action closed (# → v)") },
+      { id: "reopen-action", label: "Reopen done action on current line (restores editor)", hint: "Cmd+Shift+Enter", group: "Current line", run: () => runLineAction("Action reopened (v → #)") },
+      { id: "set-open", label: "Set line/selection to Open", hint: "Cmd+1", group: "Current line", run: () => runLineAction("Set to Open (#)") },
+      { id: "set-done", label: "Set line/selection to Done", hint: "Cmd+2", group: "Current line", run: () => runLineAction("Set to Done (v)") },
+      { id: "set-def", label: "Set line/selection to Deferred", hint: "Cmd+3", group: "Current line", run: () => runLineAction("Set to Deferred (>)") },
+      { id: "set-wont", label: "Set line/selection to Won't-Do", hint: "Cmd+4", group: "Current line", run: () => runLineAction("Set to Won't-Do (x)") },
+      { id: "sec-hdr", label: "Convert line to section header", hint: "Cmd+Shift+S", group: "Current line", run: () => runLineAction("Converted to Setext section header") },
+      { id: "jump-act", label: "Jump to next open action", hint: "F2", group: "Current line", run: () => runLineAction("Jumped to next open action") },
 
       // Global application commands
       { id: "modals", label: "Inspect Modal Dialog System & Mobile Studio", hint: "Modals", group: "Commands", run: openModalStudio },
       { id: "export", label: "Export all notes to file (.json)", hint: "Export", group: "Commands", run: () => showStatus("Exported notes to chrononote-export-2026-09-20.json") },
-      { id: "zen", label: "Toggle Zen mode (distraction-free canvas)", hint: "F11", group: "Commands", run: toggleZenMode },
+      { id: "zen", label: "Toggle Zen mode (distraction-free canvas)", hint: "Cmd+Alt+Z", group: "Commands", run: toggleZenMode },
       { id: "theme", label: "Toggle theme (Light / Dark)", hint: "Cmd+,", group: "Settings", run: cycleTheme },
       { id: "colormode", label: "Toggle glyph palette (Color / Grayscale)", hint: "Palette", group: "Settings", run: cycleColorMode },
 
@@ -1684,13 +1674,34 @@
       });
     }
 
+    let savedEditorRange = null;
     function openPalette(prefix = "") {
+      // Decision 2: snapshot active editor selection before palette steals focus
+      const sel = window.getSelection();
+      if (sel && sel.rangeCount > 0) {
+        savedEditorRange = sel.getRangeAt(0).cloneRange();
+      }
       const overlay = document.getElementById("palette-overlay");
       const input = document.getElementById("palette-input");
       overlay.classList.add("open");
       input.value = prefix;
       renderPalette(prefix);
       input.focus();
+    }
+
+    function runLineAction(statusMsg) {
+      closePalette();
+      // Decision 2: restore saved editor selection and focus before running line action
+      const editor = document.querySelector(".cm-content");
+      if (editor) {
+        editor.focus();
+        if (savedEditorRange) {
+          const sel = window.getSelection();
+          sel.removeAllRanges();
+          sel.addRange(savedEditorRange);
+        }
+      }
+      showStatus(statusMsg + " · editor focus restored");
     }
 
     function closePalette() {
@@ -1713,21 +1724,20 @@
       }
     }
 
-    // ── Distraction-Free Zen Mode (Area 3) ───────────────────────────────
+    // ── Distraction-Free Zen Mode (Area 3 & Decision 4) ──────────────────
     let isZen = false;
     function toggleZenMode(e) {
       if (e) e.preventDefault();
       isZen = !isZen;
       document.body.classList.toggle("zen-mode", isZen);
-      showStatus(isZen ? "Zen Mode active (Esc or F11 to exit)" : "Zen Mode exited");
+      showStatus(isZen ? "Zen Mode active (Esc, Ctrl+Alt+Z or F11 to exit)" : "Zen Mode exited");
     }
 
     // ── Theme & Color Mode Switchers ────────────────────────────────────
     function cycleTheme() {
       const current = document.documentElement.getAttribute("data-theme");
       const next = current === "dark" ? "light" : "dark";
-      document.documentElement.setAttribute("data-theme", next);
-      showStatus(`Theme switched to ${next}`);
+      setSpecificTheme(next);
     }
 
     function cycleColorMode() {
@@ -1737,12 +1747,15 @@
       showStatus(`Glyph palette switched to ${next}`);
     }
 
-    // ── Full-Screen Drag & Drop Import (Area 4) ─────────────────────────
+    // ── Full-Screen Drag & Drop Import (Area 4 & R6) ─────────────────────
     let dragCounter = 0;
     function onDragOver(e) {
-      e.preventDefault();
-      dragCounter++;
-      document.getElementById("drop-overlay").classList.add("active");
+      // R6: only intercept drags containing actual Files, preserving in-editor text dragging
+      if (e.dataTransfer && e.dataTransfer.types && Array.from(e.dataTransfer.types).includes("Files")) {
+        e.preventDefault();
+        dragCounter++;
+        document.getElementById("drop-overlay").classList.add("active");
+      }
     }
     function onDragLeave(e) {
       e.preventDefault();
@@ -1763,7 +1776,7 @@
       }
     }
 
-    // ── Keyboard Shortcuts Dispatcher ───────────────────────────────────
+    // ── Keyboard Shortcuts Dispatcher (Decision 4 & R5) ─────────────────
     document.addEventListener("keydown", (e) => {
       const isMac = navigator.platform.toUpperCase().indexOf("MAC") >= 0;
       const mod = isMac ? e.metaKey : e.ctrlKey;
@@ -1771,10 +1784,11 @@
       if (mod && e.key.toLowerCase() === "k") {
         e.preventDefault();
         openPalette();
-      } else if (e.key === "F11") {
+      } else if (e.key === "F11" || (mod && e.altKey && e.key.toLowerCase() === "z")) {
         e.preventDefault();
         toggleZenMode();
       } else if (e.key === "Escape") {
+        // Esc priority order: Modals > Palette > Date Picker > Telemetry > Zen Mode
         if (document.getElementById("modal-studio-overlay").classList.contains("open")) {
           closeModalStudio();
         } else if (document.getElementById("palette-overlay").classList.contains("open")) {
@@ -1956,12 +1970,23 @@
 
     function setSpecificTheme(theme) {
       document.documentElement.setAttribute("data-theme", theme);
-      document.querySelectorAll("#m-card-typography .studio-pill-btn").forEach(b => b.classList.remove("active"));
-      if (theme === "oled") {
-        document.getElementById("btn-theme-oled")?.classList.add("active");
-        showStatus("Pure Black OLED theme active (#000000 canvas)");
+      document.getElementById("btn-theme-light")?.classList.toggle("active", theme === "light");
+      document.getElementById("btn-theme-dark")?.classList.toggle("active", theme === "dark");
+      const chk = document.getElementById("chk-pure-black");
+      if (chk) {
+        chk.disabled = (theme === "light");
+        chk.parentElement.style.opacity = (theme === "light" ? "0.45" : "1");
+      }
+      showStatus(`Theme switched to ${theme}`);
+    }
+
+    function togglePureBlack(enabled) {
+      if (enabled) {
+        document.documentElement.setAttribute("data-pure-black", "");
+        showStatus("Pure Black OLED canvas enabled (#000000)");
       } else {
-        showStatus(`Theme switched to ${theme}`);
+        document.documentElement.removeAttribute("data-pure-black");
+        showStatus("Pure Black OLED canvas disabled (standard dark #1e1e1e)");
       }
     }
 

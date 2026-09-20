@@ -876,7 +876,7 @@ All seven open points were settled in favour of the recommendation. These are no
 6. **Dropped `.txt` collisions:** reuse the OneDrive migrate dialog's behaviour: identical notes are skipped, differing notes are held as conflicts and Marien chooses; nothing is overwritten silently.
 7. **Search operators:** all of `is:open`, `is:done`, `tag:`, `has:@`, `since:`, `before:`, parsed in `search.ts` and unit-tested, with the active operators shown as removable chips so a mistyped one cannot silently return nothing.
 
-Still to do before any implementation: update the mockup to match these decisions (F11, `oled`, deferred dots, pill layout), and write the per-release task lists.
+Mockup updated (2026-09-20) to match all decisions (`Ctrl+Alt+Z` universal chord with `F11` alias, `data-pure-black` appearance toggle layered on dark, deferred actions counted as resolved in heatmap, layout-neutral column-drift protected topic pill, active search operator chips). Next step before implementation: write the per-release task lists.
 
 ### Decisions that were open (kept for the record)
 
