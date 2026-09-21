@@ -30,6 +30,7 @@
       isMaximized: () => w.isMaximized(),
       setFullscreen: (on: boolean) => w.setFullscreen(on),
       coverMonitor: () => invoke<void>("zen_cover_monitor"),
+      prepareLeave: () => invoke<void>("zen_prepare_leave"),
     };
   };
   import Icon from "./lib/icons/Icon.svelte";

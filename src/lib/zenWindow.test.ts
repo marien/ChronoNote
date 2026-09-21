@@ -16,18 +16,19 @@ function fakeWindow(opts: { maximized: boolean; failOn?: string; delayMs?: numbe
     },
     setFullscreen: (on) => step(`setFullscreen(${on})`),
     coverMonitor: () => step("coverMonitor"),
+    prepareLeave: () => step("prepareLeave"),
   };
   return { win, calls };
 }
 
 describe("Zen mode's native fullscreen", () => {
-  it("a maximized window goes fullscreen, then is made to cover the whole monitor; leaving is a plain un-fullscreen", async () => {
+  it("a maximized window goes fullscreen, then covers the whole monitor; leaving first restores its maximized geometry, then un-fullscreens", async () => {
     const f = fakeWindow({ maximized: true });
     const zen = createZenWindowController(f.win);
     await zen.set(true);
     expect(f.calls).toEqual(["isMaximized", "setFullscreen(true)", "coverMonitor"]);
     await zen.set(false);
-    expect(f.calls).toEqual(["isMaximized", "setFullscreen(true)", "coverMonitor", "setFullscreen(false)"]);
+    expect(f.calls).toEqual(["isMaximized", "setFullscreen(true)", "coverMonitor", "prepareLeave", "setFullscreen(false)"]);
   });
 
   it("the window is never restored, maximized or hidden by hand (that was the flicker)", async () => {
@@ -53,13 +54,14 @@ describe("Zen mode's native fullscreen", () => {
       isMaximized: async () => maximized,
       setFullscreen: async (on) => void calls.push(`fs(${on})`),
       coverMonitor: async () => void calls.push("cover"),
+      prepareLeave: async () => void calls.push("prep"),
     };
     const zen = createZenWindowController(win);
     await zen.set(true);
     await zen.set(false);
     maximized = false;
     await zen.set(true);
-    expect(calls).toEqual(["fs(true)", "cover", "fs(false)", "fs(true)"]);
+    expect(calls).toEqual(["fs(true)", "cover", "prep", "fs(false)", "fs(true)"]);
   });
 
   it("calls are serialized: a quick on/off never interleaves the two sequences", async () => {
@@ -67,7 +69,15 @@ describe("Zen mode's native fullscreen", () => {
     const zen = createZenWindowController(f.win);
     void zen.set(true);
     await zen.set(false);
-    expect(f.calls).toEqual(["isMaximized", "setFullscreen(true)", "coverMonitor", "setFullscreen(false)"]);
+    expect(f.calls).toEqual(["isMaximized", "setFullscreen(true)", "coverMonitor", "prepareLeave", "setFullscreen(false)"]);
+  });
+
+  it("a failing prepare-leave still leaves fullscreen", async () => {
+    const f = fakeWindow({ maximized: true, failOn: "prepareLeave" });
+    const zen = createZenWindowController(f.win);
+    await zen.set(true);
+    await zen.set(false);
+    expect(f.calls).toContain("setFullscreen(false)");
   });
 
   it("a failing native cover never rejects and does not wedge later toggles", async () => {

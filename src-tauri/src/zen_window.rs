@@ -9,7 +9,10 @@
 //! maximized placement, so leaving fullscreen puts the window back to maximized by itself.
 
 #[cfg(windows)]
-fn cover_monitor(hwnd: isize) -> Result<(), String> {
+/// `cover` = true: clear WS_MAXIMIZE and fill the whole monitor (entering Zen). false: set WS_MAXIMIZE again and
+/// fill the work area (just before leaving Zen), so the window is already at its maximized geometry when tao
+/// switches the frame back and no intermediate state is ever painted.
+fn place(hwnd: isize, cover: bool) -> Result<(), String> {
     use windows::Win32::Foundation::{HWND, RECT};
     use windows::Win32::Graphics::Gdi::{
         GetMonitorInfoW, MonitorFromWindow, MONITORINFO, MONITOR_DEFAULTTONEAREST,
@@ -29,10 +32,11 @@ fn cover_monitor(hwnd: isize) -> Result<(), String> {
         if !GetMonitorInfoW(monitor, &mut info).as_bool() {
             return Err("GetMonitorInfoW failed".into());
         }
-        let RECT { left, top, right, bottom } = info.rcMonitor;
+        let RECT { left, top, right, bottom } = if cover { info.rcMonitor } else { info.rcWork };
 
         let style = GetWindowLongPtrW(hwnd, GWL_STYLE);
-        SetWindowLongPtrW(hwnd, GWL_STYLE, style & !(WS_MAXIMIZE.0 as isize));
+        let style = if cover { style & !(WS_MAXIMIZE.0 as isize) } else { style | WS_MAXIMIZE.0 as isize };
+        SetWindowLongPtrW(hwnd, GWL_STYLE, style);
         SetWindowPos(
             hwnd,
             Some(HWND_TOP),
@@ -46,21 +50,36 @@ fn cover_monitor(hwnd: isize) -> Result<(), String> {
     }
 }
 
-/// Makes a fullscreen window cover its whole monitor, including the taskbar area. Only needed (and only does
-/// anything) on Windows; a no-op elsewhere.
+#[cfg(windows)]
+fn on_main_thread(window: &tauri::WebviewWindow, cover: bool) -> Result<(), String> {
+    let hwnd = window.hwnd().map_err(|e| e.to_string())?.0 as isize;
+    let (tx, rx) = std::sync::mpsc::channel();
+    window
+        .run_on_main_thread(move || {
+            let _ = tx.send(place(hwnd, cover));
+        })
+        .map_err(|e| e.to_string())?;
+    rx.recv().map_err(|e| e.to_string())?
+}
+
+/// Makes a fullscreen window cover its whole monitor, including the taskbar area. Windows only; no-op elsewhere.
 #[tauri::command]
 pub async fn zen_cover_monitor(window: tauri::WebviewWindow) -> Result<(), String> {
     #[cfg(windows)]
+    return on_main_thread(&window, true);
+    #[cfg(not(windows))]
     {
-        let hwnd = window.hwnd().map_err(|e| e.to_string())?.0 as isize;
-        let (tx, rx) = std::sync::mpsc::channel();
-        window
-            .run_on_main_thread(move || {
-                let _ = tx.send(cover_monitor(hwnd));
-            })
-            .map_err(|e| e.to_string())?;
-        return rx.recv().map_err(|e| e.to_string())?;
+        let _ = window;
+        Ok(())
     }
+}
+
+/// Called just before a maximized window leaves Zen: puts it at its maximized geometry (work area, WS_MAXIMIZE
+/// set) while it is still fullscreen, so the switch back shows no intermediate window.
+#[tauri::command]
+pub async fn zen_prepare_leave(window: tauri::WebviewWindow) -> Result<(), String> {
+    #[cfg(windows)]
+    return on_main_thread(&window, false);
     #[cfg(not(windows))]
     {
         let _ = window;

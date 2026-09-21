@@ -479,6 +479,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             update_install::install_update,
             zen_window::zen_cover_monitor,
+            zen_window::zen_prepare_leave,
             get_config,
             set_notes_dir,
             set_color_mode,

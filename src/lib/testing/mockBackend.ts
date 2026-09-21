@@ -808,6 +808,7 @@ export class MockBackend {
 
       // Rust `zen_window.rs`: no windowing in the mock.
       case "zen_cover_monitor":
+      case "zen_prepare_leave":
         return null;
 
       case "plugin:resources|close":

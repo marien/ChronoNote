@@ -13,18 +13,23 @@ export interface ZenWindow {
   setFullscreen(fullscreen: boolean): Promise<void>;
   /** Rust `zen_cover_monitor`: make a fullscreen window cover its whole monitor. */
   coverMonitor(): Promise<void>;
+  /** Rust `zen_prepare_leave`: put a maximized window at its maximized geometry before leaving fullscreen. */
+  prepareLeave(): Promise<void>;
 }
 
 export function createZenWindowController(win: ZenWindow) {
   let queue: Promise<void> = Promise.resolve();
+  let wasMaximized = false;
 
   const enter = async () => {
-    const maximized = await win.isMaximized().catch(() => false);
+    wasMaximized = await win.isMaximized().catch(() => false);
     await win.setFullscreen(true);
-    if (maximized) await win.coverMonitor();
+    if (wasMaximized) await win.coverMonitor();
   };
 
   const leave = async () => {
+    if (wasMaximized) await win.prepareLeave().catch(() => {});
+    wasMaximized = false;
     await win.setFullscreen(false);
   };
 
