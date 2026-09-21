@@ -128,3 +128,51 @@ describe("appendRemovedSectionTo", () => {
     expect(result).toBe("1:1 with Priya\n==============\n");
   });
 });
+
+describe("removed meetings (#78)", () => {
+  const note = (...parts: string[]) => parts.join("\n");
+
+  it("a section for a cancelled meeting is reported as removed even above the calendar block", () => {
+    const content = note("Old sync", "========", "some notes", "", "", "Budget review", "=============", "");
+    const r = computeCalendarSync(content, ["Budget review"], ["Old sync"]);
+    expect(r.removedWithContent.map((x) => x.header)).toEqual(["Old sync"]);
+    expect(r.removedWithContent[0].lines.join("\n")).toContain("some notes");
+    expect(r.content).not.toContain("Old sync");
+    expect(r.content).toContain("Budget review");
+  });
+
+  it("an empty section for a cancelled meeting is just noted as removed", () => {
+    const content = note("Old sync", "========", "", "Budget review", "=============", "");
+    const r = computeCalendarSync(content, ["Budget review"], ["Old sync"]);
+    expect(r.removedEmpty).toEqual(["Old sync"]);
+    expect(r.removedWithContent).toEqual([]);
+  });
+
+  it("a live meeting with the same title keeps its section (the live one wins)", () => {
+    const content = note("Standup", "=======", "notes", "");
+    const r = computeCalendarSync(content, ["Standup"], ["Standup"]);
+    expect(r.removedWithContent).toEqual([]);
+    expect(r.removedEmpty).toEqual([]);
+    expect(r.content).toContain("notes");
+  });
+
+  it("a section already flagged [CANCELED] is left alone, so a sync never flags it twice", () => {
+    const content = note("[CANCELED] Old sync", "===================", "kept notes", "", "", "Budget review", "=============", "");
+    const r = computeCalendarSync(content, ["Budget review"], ["Old sync"]);
+    expect(r.removedWithContent).toEqual([]);
+    expect(r.removedEmpty).toEqual([]);
+    expect(r.content).toContain("[CANCELED] Old sync");
+  });
+
+  it("with nothing live on the day, cancelled meetings are still reported", () => {
+    const content = note("Old sync", "========", "notes", "");
+    const r = computeCalendarSync(content, [], ["Old sync"]);
+    expect(r.removedWithContent.map((x) => x.header)).toEqual(["Old sync"]);
+  });
+
+  it("matches titles the way section titles are matched (case-insensitive)", () => {
+    const content = note("old SYNC", "=========", "notes", "");
+    const r = computeCalendarSync(content, [], ["Old sync"]);
+    expect(r.removedWithContent.length + r.removedEmpty.length).toBe(1);
+  });
+});

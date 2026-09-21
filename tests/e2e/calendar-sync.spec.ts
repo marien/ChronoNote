@@ -188,3 +188,97 @@ test.describe("calendar sync: file-based agenda", () => {
     await expect(editor(page)).not.toContainText("Standup");
   });
 });
+
+// #78: Sync Review keyboard use, and the calendar's status prefixes.
+test.describe("sync review improvements (#78)", () => {
+  const today = REFERENCE_INSTANT.toISOString().slice(0, 10);
+  const meeting = (start: string, title: string) => ({ date: today, start, end: "23:59", title });
+  const reviewDialog = (page: import("@playwright/test").Page) => page.getByRole("dialog", { name: "Sync review" });
+  const openReview = async (page: import("@playwright/test").Page) => {
+    await editor(page).click();
+    await page.keyboard.press("ControlOrMeta+Shift+C");
+    await expect(reviewDialog(page)).toBeVisible();
+  };
+
+  test("opens with focus on Sync; Up/Down move between the checkboxes; Tab keeps cycling", async ({ page }) => {
+    await seedApp(page, {
+      seed: {
+        ...scenario("empty"),
+        calendarSyncEnabled: true,
+        agendaJson: JSON.stringify([meeting("09:00", "Alpha"), meeting("10:00", "Bravo"), meeting("11:00", "Charlie")]),
+      },
+    });
+    await openReview(page);
+    const dialog = reviewDialog(page);
+    const boxes = dialog.locator(".sync-review-check input[type=checkbox]");
+    await expect(boxes).toHaveCount(3);
+    await expect(dialog.getByRole("button", { name: "Sync", exact: true })).toBeFocused();
+
+    await page.keyboard.press("ArrowDown");
+    await expect(boxes.nth(0)).toBeFocused();
+    await page.keyboard.press("ArrowDown");
+    await expect(boxes.nth(1)).toBeFocused();
+    await page.keyboard.press("ArrowUp");
+    await expect(boxes.nth(0)).toBeFocused();
+    await page.keyboard.press("ArrowUp"); // wraps to the last
+    await expect(boxes.nth(2)).toBeFocused();
+    await page.keyboard.press("ArrowDown"); // and back to the first
+    await expect(boxes.nth(0)).toBeFocused();
+
+    // Space toggles the focused one, as for any checkbox.
+    await page.keyboard.press("Space");
+    await expect(boxes.nth(0)).not.toBeChecked();
+
+    // Tab still moves on through the ordinary controls.
+    await page.keyboard.press("Tab");
+    await expect(boxes.nth(1)).toBeFocused();
+
+    // From the Sync button, Up goes to the LAST checkbox.
+    await dialog.getByRole("button", { name: "Sync", exact: true }).focus();
+    await page.keyboard.press("ArrowUp");
+    await expect(boxes.nth(2)).toBeFocused();
+  });
+
+  test("Enter on the initially focused Sync button accepts the review", async ({ page }) => {
+    await seedApp(page, {
+      seed: { ...scenario("empty"), calendarSyncEnabled: true, agendaJson: JSON.stringify([meeting("09:00", "Alpha")]) },
+    });
+    await openReview(page);
+    await page.keyboard.press("Enter");
+    await expect(reviewDialog(page)).toHaveCount(0);
+    await expect(editor(page)).toContainText("Alpha");
+  });
+
+  test("Placeholder / Confirmed prefixes are dropped; Canceled / Followed / Declined meetings are treated as removed", async ({ page }) => {
+    await seedApp(page, {
+      seed: {
+        ...scenario("empty"),
+        calendarSyncEnabled: true,
+        agendaJson: JSON.stringify([
+          meeting("09:00", "Placeholder - Budget review"),
+          meeting("10:00", "Confirmed: Design sync"),
+          meeting("11:00", "Canceled: Old sync"),
+          meeting("12:00", "Followed: Vendor call"),
+          meeting("13:00", "Declined: Offsite"),
+        ]),
+        // The cancelled meeting's section sits ABOVE the part of the note the calendar owns.
+        notes: {
+          [`${today}.txt`]: "Old sync\n========\nnotes I took\n\n\nBudget review\n=============\n",
+        },
+        session: { openTabs: [`${today}.txt`], activeTab: `${today}.txt` },
+      },
+    });
+    await openReview(page);
+    const dialog = reviewDialog(page);
+
+    // The real titles, without the status words; nothing removed is offered as new.
+    await expect(dialog.locator(".sync-review-check")).toHaveText([/Design sync/]);
+    await expect(dialog).not.toContainText("Placeholder");
+    await expect(dialog).not.toContainText("Confirmed");
+    await expect(dialog.locator(".sync-review-check")).not.toContainText(["Old sync", "Vendor call", "Offsite"]);
+
+    // Its section (with content) is offered for review as no longer on the calendar.
+    await expect(dialog).toContainText("No longer on the calendar");
+    await expect(dialog.locator(".sync-review-removal")).toContainText("Old sync");
+  });
+});

@@ -339,6 +339,8 @@ export interface CalendarSyncReviewState {
   tabId: string;
   originalContent: string;
   agendaTitles: string[];
+  /** #78: titles of the day's cancelled/declined/forwarded meetings (see `computeCalendarSync`). */
+  removedTitles: string[];
   newItems: CalendarSyncNewItem[];
   reorderedTitles: string[];
   removedEmpty: string[];

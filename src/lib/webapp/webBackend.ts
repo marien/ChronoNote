@@ -29,6 +29,7 @@
  * Location" section entirely when `backendKind` is `"web"`, so this
  * placeholder is never actually shown.
  */
+import { activeTitlesAfterDate, activeTitlesForDate, removedTitlesForDate } from "../agendaTitles";
 import type { AppConfig, ColorMode, FileMetadata, TabSession, ThemeMode } from "../types";
 import type { CommandArgs, CommandReturn, TauriCommand, TauriCommands } from "../tauriCommands";
 import { isValidNoteFilename } from "../noteFilename";
@@ -509,21 +510,26 @@ export class WebBackend {
         if (!Array.isArray(meetings) || meetings.length === 0) {
           throw new Error("Invalid");
         }
-        const excludedPrefixes = ["Declined:", "Cancelled:", "Following:"];
-        const day = meetings.filter(
-          (m) => m.date === date && !excludedPrefixes.some((p) => m.title?.startsWith(p)),
-        );
-        day.sort((a, b) => (a.start + a.end + a.title).localeCompare(b.start + b.end + b.title));
-        const seen = new Set<string>();
-        const deduped: string[] = [];
-        for (const m of day) {
-          const key = `${m.start}|${m.end}|${m.title}`;
-          if (!seen.has(key)) {
-            seen.add(key);
-            deduped.push(m.title);
-          }
+        return activeTitlesForDate(meetings, date);
+      } catch {
+        throw new Error("The calendar file (.agenda.json) is missing, empty, or invalid — check whatever syncs it.");
+      }
+    },
+
+    // #78: the real titles of the day's cancelled/declined/forwarded meetings.
+    read_agenda_removed_for_date: async ({ date }) => {
+      const db = await this.db();
+      const store = await this.getActiveNotesStore();
+      const note = await idbGet<StoredNote>(db, store, ".agenda.json");
+      if (!note || !note.content.trim()) {
+        throw new Error("The calendar file (.agenda.json) is missing, empty, or invalid — check whatever syncs it.");
+      }
+      try {
+        const meetings: Array<{ date: string; start: string; end: string; title: string }> = JSON.parse(note.content.trim());
+        if (!Array.isArray(meetings) || meetings.length === 0) {
+          throw new Error("Invalid");
         }
-        return deduped;
+        return removedTitlesForDate(meetings, date);
       } catch {
         throw new Error("The calendar file (.agenda.json) is missing, empty, or invalid — check whatever syncs it.");
       }
@@ -541,21 +547,7 @@ export class WebBackend {
         if (!Array.isArray(meetings) || meetings.length === 0) {
           throw new Error("Invalid");
         }
-        const excludedPrefixes = ["Declined:", "Cancelled:", "Following:"];
-        const future = meetings.filter(
-          (m) => m.date > afterDate && !excludedPrefixes.some((p) => m.title?.startsWith(p)),
-        );
-        future.sort((a, b) => (a.date + a.start + a.end + a.title).localeCompare(b.date + b.start + b.end + b.title));
-        const seen = new Set<string>();
-        const deduped: [string, string][] = [];
-        for (const m of future) {
-          const key = `${m.date}|${m.start}|${m.end}|${m.title}`;
-          if (!seen.has(key)) {
-            seen.add(key);
-            deduped.push([m.date, m.title]);
-          }
-        }
-        return deduped;
+        return activeTitlesAfterDate(meetings, afterDate);
       } catch {
         throw new Error("The calendar file (.agenda.json) is missing, empty, or invalid — check whatever syncs it.");
       }

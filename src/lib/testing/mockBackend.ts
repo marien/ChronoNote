@@ -29,6 +29,7 @@
  *   - the session file lives *inside* the notes dir and is never returned
  *     by `list_note_files` / `read_all_notes`.
  */
+import { activeTitlesAfterDate, activeTitlesForDate, removedTitlesForDate as removedTitlesForDateShared } from "../agendaTitles";
 import type { AppConfig, ColorMode, FileMetadata, TabSession, ThemeMode } from "../types";
 import type { CommandArgs, CommandReturn, OneDriveAdvancedConfig, TauriCommand, TauriCommands } from "../tauriCommands";
 import { isValidNoteFilename } from "../noteFilename";
@@ -207,49 +208,19 @@ function parseAgendaMeetings(raw: string | undefined): AgendaMeeting[] {
   return parsed as AgendaMeeting[];
 }
 
-/** #74: mirrors `agenda.rs`'s `EXCLUDED_TITLE_PREFIXES`/`is_excluded_title`
- * — a declined, cancelled, or forwarded ("Following:") meeting never
- * creates or matches a section. Case-sensitive, exact-prefix match. */
-const EXCLUDED_TITLE_PREFIXES = ["Declined:", "Cancelled:", "Following:"];
-function isExcludedTitle(title: string): boolean {
-  return EXCLUDED_TITLE_PREFIXES.some((p) => title.startsWith(p));
-}
-
+/** #74/#78: the title rules (removed prefixes, "Placeholder"/"Confirmed" stamps) live in the shared
+ * `agendaTitles.ts`, mirroring `agenda.rs`. The mock adds only the file-level validation. */
 function titlesForDate(raw: string | undefined, date: string): string[] {
-  const day = parseAgendaMeetings(raw).filter((m) => m.date === date && !isExcludedTitle(m.title));
-  day.sort((a, b) => a.start.localeCompare(b.start) || a.end.localeCompare(b.end) || a.title.localeCompare(b.title));
-  const seen = new Set<string>();
-  return day
-    .filter((m) => {
-      const key = `${m.start}|${m.end}|${m.title}`;
-      if (seen.has(key)) return false;
-      seen.add(key);
-      return true;
-    })
-    .map((m) => m.title);
+  return activeTitlesForDate(parseAgendaMeetings(raw), date);
 }
 
-/** #66: mirrors `agenda.rs`'s `titles_after_date` — every `(date, title)`
- * pair for a date strictly after `afterDate`, sorted/de-duplicated the
- * same way `titlesForDate` is but scoped to a range instead of one day. */
+function removedTitlesForDate(raw: string | undefined, date: string): string[] {
+  return removedTitlesForDateShared(parseAgendaMeetings(raw), date);
+}
+
+/** #66: mirrors `agenda.rs`'s `titles_after_date`. */
 function titlesAfterDate(raw: string | undefined, afterDate: string): [string, string][] {
-  const future = parseAgendaMeetings(raw).filter((m) => m.date > afterDate && !isExcludedTitle(m.title));
-  future.sort(
-    (a, b) =>
-      a.date.localeCompare(b.date) ||
-      a.start.localeCompare(b.start) ||
-      a.end.localeCompare(b.end) ||
-      a.title.localeCompare(b.title),
-  );
-  const seen = new Set<string>();
-  return future
-    .filter((m) => {
-      const key = `${m.date}|${m.start}|${m.end}|${m.title}`;
-      if (seen.has(key)) return false;
-      seen.add(key);
-      return true;
-    })
-    .map((m) => [m.date, m.title] as [string, string]);
+  return activeTitlesAfterDate(parseAgendaMeetings(raw), afterDate);
 }
 
 /** One handler per Tauri command, its args and resolved value both bound
@@ -703,6 +674,7 @@ export class MockBackend {
     },
 
     read_agenda_for_date: ({ date }) => titlesForDate(this.agendaJson, date),
+    read_agenda_removed_for_date: ({ date }) => removedTitlesForDate(this.agendaJson, date),
 
     read_agenda_after: ({ afterDate }) => titlesAfterDate(this.agendaJson, afterDate),
 

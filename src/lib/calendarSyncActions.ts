@@ -58,13 +58,15 @@ export async function refreshAgendaFileExists(): Promise<void> {
  * of a real report: unchecking a meeting did nothing) would never match,
  * so the uncheck would silently have no effect. Cleaning here once makes
  * this safe by construction regardless of what `.agenda.json` contains. */
-function openCalendarSyncReview(tab: NoteTab, agendaTitles: string[]) {
+function openCalendarSyncReview(tab: NoteTab, agendaTitles: string[], removedTitles: string[] = []) {
   const cleaned = agendaTitles.map((t) => t.trim()).filter((t) => t.length > 0);
-  const result = computeCalendarSync(tab.content, cleaned);
+  const removed = removedTitles.map((t) => t.trim()).filter((t) => t.length > 0);
+  const result = computeCalendarSync(tab.content, cleaned, removed);
   calendarSyncReview.set({
     tabId: tab.id,
     originalContent: tab.content,
     agendaTitles: cleaned,
+    removedTitles: removed,
     newItems: result.newTitles.map((title) => ({ title, checked: true })),
     reorderedTitles: result.reorderedTitles,
     removedEmpty: result.removedEmpty,
@@ -83,18 +85,20 @@ export async function syncCalendarFromFile(): Promise<void> {
   const tab = get(tabs).find((t) => t.id === get(activeTabId));
   if (!tab) return;
   const date = tab.filename.slice(0, 10);
-  let agendaTitles;
+  let agendaTitles: string[];
+  let removedTitles: string[];
   try {
     agendaTitles = await api.readAgendaForDate(date);
+    removedTitles = await api.readAgendaRemovedForDate(date);
   } catch (e) {
     showToast(e instanceof Error ? e.message : "Couldn't read the calendar.");
     return;
   }
-  if (agendaTitles.length === 0) {
+  if (agendaTitles.length === 0 && removedTitles.length === 0) {
     showToast(`No meetings on ${date}.`);
     return;
   }
-  openCalendarSyncReview(tab, agendaTitles);
+  openCalendarSyncReview(tab, agendaTitles, removedTitles);
 }
 
 export function toggleSyncNewItem(index: number) {
@@ -148,7 +152,7 @@ export async function confirmCalendarSync(): Promise<void> {
     return true;
   });
 
-  const result = computeCalendarSync(review.originalContent, finalAgenda);
+  const result = computeCalendarSync(review.originalContent, finalAgenda, review.removedTitles);
   let content = result.content;
   const moves: { targetDate: string; removal: CalendarSyncRemoval }[] = [];
   for (const removal of review.removals) {

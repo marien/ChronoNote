@@ -30,6 +30,7 @@ const apiMock = {
   getAppVersion: vi.fn(),
   openExternalUrl: vi.fn(),
   readAgendaForDate: vi.fn(),
+  readAgendaRemovedForDate: vi.fn(),
   readAgendaAfter: vi.fn(),
   saveScratchpadDrafts: vi.fn(),
   loadScratchpadDrafts: vi.fn(),
@@ -112,6 +113,7 @@ beforeEach(async () => {
   apiMock.setLastSeenVersion.mockResolvedValue({} as never);
   apiMock.openExternalUrl.mockResolvedValue(undefined);
   apiMock.readAgendaForDate.mockResolvedValue([]);
+  apiMock.readAgendaRemovedForDate.mockResolvedValue([]);
   apiMock.readAgendaAfter.mockResolvedValue([]);
   apiMock.saveScratchpadDrafts.mockResolvedValue(undefined);
   apiMock.loadScratchpadDrafts.mockResolvedValue({});

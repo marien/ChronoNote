@@ -168,6 +168,10 @@ export function openExternalUrl(url: string): Promise<void> {
 /** Calendar sync (`.agenda.json`, see `src-tauri/src/agenda.rs`): already date-scoped, sorted, and
  * de-duplicated titles from `.agenda.json` in the notes folder — see
  * `src-tauri/src/agenda.rs`. */
+export function readAgendaRemovedForDate(date: string): Promise<string[]> {
+  return invoke("read_agenda_removed_for_date", { date });
+}
+
 export function readAgendaForDate(date: string): Promise<string[]> {
   return invoke("read_agenda_for_date", { date });
 }

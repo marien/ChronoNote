@@ -75,13 +75,27 @@ function joinBlocks(preamble: string[], blocks: string[][]): string {
  * one match) and still gets removed, which only happens if the block extends
  * to EOF rather than stopping at the last match.
  */
-export function computeCalendarSync(content: string, agendaTitles: string[]): CalendarSyncResult {
-  const { preamble, sections } = parseSections(content);
+export function computeCalendarSync(
+  content: string,
+  agendaTitles: string[],
+  /** #78: titles of meetings the calendar marks cancelled/declined/forwarded. A section with one of
+   * these titles is treated as a removed meeting wherever it sits in the note (not only inside the
+   * calendar block), unless the day also has a live meeting with the same title. */
+  removedTitles: string[] = [],
+): CalendarSyncResult {
+  const { preamble, sections: allSections } = parseSections(content);
   const agenda = agendaTitles
     .map((t) => t.trim())
     .filter((t) => t.length > 0)
     .map((title) => ({ title, key: matchKey(title) }));
   const agendaKeys = new Set(agenda.map((a) => a.key));
+
+  // Sections for a removed meeting, wherever they sit. One already flagged "[CANCELED] ..." by an
+  // earlier "Leave it" is left alone, so a sync never flags the same meeting twice.
+  const removedKeys = new Set(removedTitles.map((x) => x.trim()).filter(Boolean).map(matchKey));
+  const isRemovedSection = (s: ParsedSection) =>
+    removedKeys.has(s.matchKey) && !agendaKeys.has(s.matchKey) && !/^\[CANCELED\]/i.test(s.header);
+  const sections = allSections.filter((s) => !isRemovedSection(s));
 
   const matchedIdxs: number[] = [];
   sections.forEach((s, i) => {
@@ -116,14 +130,18 @@ export function computeCalendarSync(content: string, agendaTitles: string[]): Ca
 
   const removedEmpty: string[] = [];
   const removedWithContent: RemovedSection[] = [];
-  blockSections.forEach((s, i) => {
-    if (consumed.has(i)) return;
+  const noteRemoved = (s: ParsedSection) => {
     const body = s.lines.slice(2);
     if (body.some((l) => l.trim() !== "")) {
       removedWithContent.push({ header: s.header, lines: body });
     } else {
       removedEmpty.push(s.header);
     }
+  };
+  // A cancelled meeting's section may sit above the calendar block; report it first, in note order.
+  allSections.filter(isRemovedSection).forEach(noteRemoved);
+  blockSections.forEach((s, i) => {
+    if (!consumed.has(i)) noteRemoved(s);
   });
 
   const newContent = joinBlocks(preamble, [...before.map((s) => s.lines), ...finalBlockLines]);

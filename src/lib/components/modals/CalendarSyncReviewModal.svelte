@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { onMount } from "svelte";
   import * as controller from "../../controller";
   import { calendarSyncReview } from "../../controller";
   import { closeOnOutsideClick } from "../../actions/closeOnOutsideClick";
@@ -8,6 +9,31 @@
 
   $: review = $calendarSyncReview;
 
+  let syncBtn: HTMLButtonElement | undefined;
+  let listEl: HTMLDivElement | undefined;
+
+  // #78: opening the review puts focus on the Sync button, so Enter accepts the review as it stands.
+  onMount(() => {
+    const id = requestAnimationFrame(() => syncBtn?.focus());
+    return () => cancelAnimationFrame(id);
+  });
+
+  // #78: Up/Down move between the meeting checkboxes (wrapping); from anywhere else, Down goes to the
+  // first and Up to the last. Tab still cycles through every control as usual, and the arrows are left
+  // alone inside the date field and the Leave/Discard/Move choice, which use them themselves.
+  function onKeydown(e: KeyboardEvent) {
+    if (e.key !== "ArrowDown" && e.key !== "ArrowUp") return;
+    const target = e.target as HTMLElement;
+    if (target.matches('input[type="date"], [role="radio"], select')) return;
+    const boxes = [...(listEl?.querySelectorAll<HTMLInputElement>('input[type="checkbox"]') ?? [])];
+    if (boxes.length === 0) return;
+    e.preventDefault();
+    const down = e.key === "ArrowDown";
+    const at = boxes.indexOf(target as HTMLInputElement);
+    const next = at < 0 ? (down ? 0 : boxes.length - 1) : (at + (down ? 1 : -1) + boxes.length) % boxes.length;
+    boxes[next].focus();
+  }
+
   function cancel() {
     controller.cancelCalendarSync();
   }
@@ -15,6 +41,8 @@
     void controller.confirmCalendarSync();
   }
 </script>
+
+<svelte:window on:keydown={onKeydown} />
 
 {#if review}
   <div class="overlay" role="presentation" use:closeOnOutsideClick={cancel}>
@@ -31,7 +59,7 @@
           <Icon name="close" size={14} />
         </button>
       </div>
-      <div class="modal-list">
+      <div class="modal-list" bind:this={listEl}>
         {#if review.newItems.length}
           <div class="modal-group-header">New meetings</div>
           {#each review.newItems as item, i (item.title + i)}
@@ -92,7 +120,7 @@
       </div>
       <div class="modal-footer" style="justify-content: flex-end; gap: 8px;">
         <button class="icon-btn" on:click={cancel}>Cancel</button>
-        <button class="icon-btn btn-primary" on:click={confirm}>Sync</button>
+        <button class="icon-btn btn-primary" bind:this={syncBtn} on:click={confirm}>Sync</button>
       </div>
     </div>
   </div>

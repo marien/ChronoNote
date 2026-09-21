@@ -410,7 +410,11 @@ reachable from the top bar, a shortcut, or the command palette:
   kept up to date by whatever external process syncs the user's real
   calendar, not by ChronoNote) and reconciles it against the active tab's
   note. Only offered on a dated tab whose date is today or later, and
-  grayed out until `.agenda.json` actually exists. The result goes to a
+  grayed out until `.agenda.json` actually exists. A title starting with
+  `Canceled:`/`Cancelled:`/`Declined:`/`Followed:`/`Following:` is a removed
+  meeting (its rest is the real title; the note's section for it is offered
+  for Leave/Discard/Move wherever it sits), and `Placeholder`/`Confirmed`
+  followed by `:`, `-` or `--` is dropped from a title. The result goes to a
   review step —
   a checklist for new meetings, and a Leave-flagged/Discard/Move-to-
   another-day choice for any existing section whose meeting is no

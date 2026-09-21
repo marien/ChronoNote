@@ -58,24 +58,60 @@ fn parse_agenda(raw: &str) -> Result<Vec<AgendaMeeting>, ()> {
     Ok(meetings)
 }
 
-/// #74: prefixes an external calendar syncer commonly stamps onto a
-/// meeting's own title to signal it's not a real, attending occurrence —
-/// a declined invite, a cancelled meeting, or a forwarded copy of someone
-/// else's invite ("Following:" — Outlook's own wording for that). None of
-/// these should ever create or match a section, so they're dropped before
-/// sorting/de-duplication, the same as if they'd never been in the file at
-/// all. Case-sensitive, exact-prefix match — these are fixed, consistently
-/// capitalized syncer-generated prefixes, not free text a real meeting
-/// title would incidentally start with.
-const EXCLUDED_TITLE_PREFIXES: [&str; 3] = ["Declined:", "Cancelled:", "Following:"];
-fn is_excluded_title(title: &str) -> bool {
-    EXCLUDED_TITLE_PREFIXES.iter().any(|p| title.starts_with(p))
+/// #74 / #78: prefixes an external calendar syncer stamps onto a meeting's own title to say it is
+/// not a real, attending occurrence: a cancelled meeting (US "Canceled:" and UK "Cancelled:"), a
+/// declined invite, or a forwarded copy of someone else's invite ("Following:", and "Followed:").
+/// Such an entry is a *removed* meeting: the prefix is stripped, the rest is its real title, and it
+/// never creates or matches a section (see `removed_titles_for_date`, which lets the sync review flag
+/// the note's section for it). Case-sensitive, exact prefix at the very start: fixed,
+/// syncer-generated text, not something a real title incidentally starts with.
+const REMOVED_TITLE_PREFIXES: [&str; 5] = ["Canceled:", "Cancelled:", "Declined:", "Followed:", "Following:"];
+
+/// #78: status words a calendar stamps in front of a meeting's real title, followed by a separator
+/// (":", "-" or "--"). "Placeholder - Budget review" and "Confirmed: Budget review" are both the
+/// meeting "Budget review". Without a separator the word is part of the title and is kept.
+const STATUS_TITLE_WORDS: [&str; 2] = ["Placeholder", "Confirmed"];
+
+fn strip_status_word(title: &str) -> String {
+    for word in STATUS_TITLE_WORDS {
+        if let Some(rest) = title.strip_prefix(word) {
+            let rest = rest.trim_start();
+            let rest = rest
+                .strip_prefix("--")
+                .or_else(|| rest.strip_prefix(':'))
+                .or_else(|| rest.strip_prefix('-'));
+            if let Some(rest) = rest {
+                let rest = rest.trim();
+                if !rest.is_empty() {
+                    return rest.to_string();
+                }
+            }
+        }
+    }
+    title.to_string()
+}
+
+/// A meeting title read from the agenda: its real title, and whether the calendar marks it as
+/// removed (cancelled / declined / forwarded). `None` for a removed marker with no title left.
+struct ClassifiedTitle {
+    title: String,
+    removed: bool,
+}
+
+fn classify_title(raw: &str) -> Option<ClassifiedTitle> {
+    for prefix in REMOVED_TITLE_PREFIXES {
+        if let Some(rest) = raw.strip_prefix(prefix) {
+            let title = strip_status_word(rest.trim());
+            return if title.is_empty() { None } else { Some(ClassifiedTitle { title, removed: true }) };
+        }
+    }
+    Some(ClassifiedTitle { title: strip_status_word(raw.trim()), removed: false })
 }
 
 /// Every rule the file format's own contract calls for, given meetings
 /// already known to come from a valid, non-empty agenda file: scoped to
-/// `date`, excluding declined/cancelled/forwarded titles (#74), sorted by
-/// start (then end, then title, for total determinism when two meetings
+/// `date`, removed (declined/cancelled/forwarded) entries dropped and status words stripped
+/// (#74/#78), sorted by start (then end, then title, for total determinism when two meetings
 /// start at the same minute), de-duplicated on the exact
 /// `(start, end, title)` tuple — a genuine repeated entry, not two distinct
 /// meetings that happen to share a title at different times, which are
@@ -83,14 +119,27 @@ fn is_excluded_title(title: &str) -> bool {
 /// otherwise-valid file legitimately has no meetings — that's a normal,
 /// non-error empty result, unlike the whole file being empty/invalid.
 fn titles_for_date(meetings: Vec<AgendaMeeting>, date: &str) -> Vec<String> {
-    let mut day: Vec<AgendaMeeting> = meetings
+    let mut day: Vec<(String, String, String)> = meetings
         .into_iter()
-        .filter(|m| m.date == date && !is_excluded_title(&m.title))
+        .filter(|m| m.date == date)
+        .filter_map(|m| classify_title(&m.title).filter(|c| !c.removed).map(|c| (m.start, m.end, c.title)))
         .collect();
-    day.sort_by(|a, b| (&a.start, &a.end, &a.title).cmp(&(&b.start, &b.end, &b.title)));
-    let mut seen = std::collections::HashSet::new();
-    day.retain(|m| seen.insert((m.start.clone(), m.end.clone(), m.title.clone())));
-    day.into_iter().map(|m| m.title).collect()
+    day.sort();
+    day.dedup();
+    day.into_iter().map(|(_, _, title)| title).collect()
+}
+
+/// #78: the real titles of the day's *removed* meetings (cancelled, declined, forwarded), sorted and
+/// de-duplicated. The sync review treats a section with one of these titles as a meeting that is gone.
+fn removed_titles_for_date(meetings: Vec<AgendaMeeting>, date: &str) -> Vec<String> {
+    let mut removed: Vec<String> = meetings
+        .into_iter()
+        .filter(|m| m.date == date)
+        .filter_map(|m| classify_title(&m.title).filter(|c| c.removed).map(|c| c.title))
+        .collect();
+    removed.sort();
+    removed.dedup();
+    removed
 }
 
 #[tauri::command]
@@ -105,6 +154,15 @@ pub fn read_agenda_for_date(app: tauri::AppHandle, date: String) -> Result<Vec<S
     Ok(titles_for_date(meetings, &date))
 }
 
+#[tauri::command]
+pub fn read_agenda_removed_for_date(app: tauri::AppHandle, date: String) -> Result<Vec<String>, String> {
+    let cfg = storage::load_config(&app)?;
+    let path = std::path::Path::new(&cfg.notes_dir).join(".agenda.json");
+    let raw = std::fs::read_to_string(&path).unwrap_or_default();
+    let meetings = parse_agenda(&raw).map_err(|_| AGENDA_ERROR.to_string())?;
+    Ok(removed_titles_for_date(meetings, &date))
+}
+
 /// #66: every `(date, title)` pair for a date strictly after `after_date`,
 /// sorted and de-duplicated the same way `titles_for_date` is (just scoped
 /// to a range instead of one day) — title *matching* against a section
@@ -113,14 +171,14 @@ pub fn read_agenda_for_date(app: tauri::AppHandle, date: String) -> Result<Vec<S
 /// (`calendarReconcile.ts`) and Section History already use, so this
 /// just filters by date and hands back raw titles for the caller to match.
 fn titles_after_date(meetings: Vec<AgendaMeeting>, after_date: &str) -> Vec<(String, String)> {
-    let mut future: Vec<AgendaMeeting> = meetings
+    let mut future: Vec<(String, String, String, String)> = meetings
         .into_iter()
-        .filter(|m| m.date.as_str() > after_date && !is_excluded_title(&m.title))
+        .filter(|m| m.date.as_str() > after_date)
+        .filter_map(|m| classify_title(&m.title).filter(|c| !c.removed).map(|c| (m.date, m.start, m.end, c.title)))
         .collect();
-    future.sort_by(|a, b| (&a.date, &a.start, &a.end, &a.title).cmp(&(&b.date, &b.start, &b.end, &b.title)));
-    let mut seen = std::collections::HashSet::new();
-    future.retain(|m| seen.insert((m.date.clone(), m.start.clone(), m.end.clone(), m.title.clone())));
-    future.into_iter().map(|m| (m.date, m.title)).collect()
+    future.sort();
+    future.dedup();
+    future.into_iter().map(|(date, _, _, title)| (date, title)).collect()
 }
 
 #[tauri::command]
@@ -301,6 +359,89 @@ mod tests {
         let json = r#"[
             {"date":"2026-09-16","start":"09:00","end":"09:30","title":"Standup"},
             {"date":"2026-09-16","start":"10:00","end":"10:30","title":"Declined: 1:1"}
+        ]"#;
+        assert_eq!(
+            read_after(json, "2026-09-15"),
+            Ok(vec![("2026-09-16".to_string(), "Standup".to_string())])
+        );
+    }
+
+    fn removed(raw: &str, date: &str) -> Result<Vec<String>, ()> {
+        parse_agenda(raw).map(|meetings| removed_titles_for_date(meetings, date))
+    }
+
+    #[test]
+    fn canceled_followed_and_declined_prefixes_are_removed_meetings_with_the_rest_as_their_title_78() {
+        let json = r#"[
+            {"date":"2026-09-14","start":"09:00","end":"09:30","title":"Standup"},
+            {"date":"2026-09-14","start":"10:00","end":"10:30","title":"Canceled: 1:1 with Sam"},
+            {"date":"2026-09-14","start":"11:00","end":"11:30","title":"Cancelled: All Hands"},
+            {"date":"2026-09-14","start":"12:00","end":"12:30","title":"Followed: Design Review"},
+            {"date":"2026-09-14","start":"13:00","end":"13:30","title":"Declined: Budget"}
+        ]"#;
+        assert_eq!(read(json, "2026-09-14"), Ok(vec!["Standup".to_string()]));
+        assert_eq!(
+            removed(json, "2026-09-14"),
+            Ok(vec![
+                "1:1 with Sam".to_string(),
+                "All Hands".to_string(),
+                "Budget".to_string(),
+                "Design Review".to_string()
+            ])
+        );
+    }
+
+    #[test]
+    fn placeholder_and_confirmed_are_stripped_after_a_separator_78() {
+        let json = r#"[
+            {"date":"2026-09-14","start":"09:00","end":"09:30","title":"Placeholder: Budget review"},
+            {"date":"2026-09-14","start":"10:00","end":"10:30","title":"Confirmed - Design sync"},
+            {"date":"2026-09-14","start":"11:00","end":"11:30","title":"Placeholder -- Offsite"},
+            {"date":"2026-09-14","start":"12:00","end":"12:30","title":"Confirmed attendees review"},
+            {"date":"2026-09-14","start":"13:00","end":"13:30","title":"Placeholder"},
+            {"date":"2026-09-14","start":"14:00","end":"14:30","title":"Confirmed:"}
+        ]"#;
+        assert_eq!(
+            read(json, "2026-09-14"),
+            Ok(vec![
+                "Budget review".to_string(),
+                "Design sync".to_string(),
+                "Offsite".to_string(),
+                "Confirmed attendees review".to_string(),
+                "Placeholder".to_string(),
+                "Confirmed:".to_string(),
+            ])
+        );
+    }
+
+    #[test]
+    fn a_removed_meeting_can_also_carry_a_status_word_78() {
+        let json = r#"[{"date":"2026-09-14","start":"09:00","end":"09:30","title":"Canceled: Placeholder - Offsite"}]"#;
+        assert_eq!(read(json, "2026-09-14"), Ok(vec![]));
+        assert_eq!(removed(json, "2026-09-14"), Ok(vec!["Offsite".to_string()]));
+    }
+
+    #[test]
+    fn a_placeholder_and_a_plain_entry_with_the_same_title_and_time_are_one_meeting_78() {
+        let json = r#"[
+            {"date":"2026-09-14","start":"09:00","end":"09:30","title":"Placeholder: Budget"},
+            {"date":"2026-09-14","start":"09:00","end":"09:30","title":"Budget"}
+        ]"#;
+        assert_eq!(read(json, "2026-09-14"), Ok(vec!["Budget".to_string()]));
+    }
+
+    #[test]
+    fn a_removed_marker_with_no_title_left_is_ignored_78() {
+        let json = r#"[{"date":"2026-09-14","start":"09:00","end":"09:30","title":"Declined:   "}]"#;
+        assert_eq!(read(json, "2026-09-14"), Ok(vec![]));
+        assert_eq!(removed(json, "2026-09-14"), Ok(vec![]));
+    }
+
+    #[test]
+    fn read_agenda_after_strips_status_words_and_skips_removed_meetings_78() {
+        let json = r#"[
+            {"date":"2026-09-16","start":"09:00","end":"09:30","title":"Confirmed: Standup"},
+            {"date":"2026-09-16","start":"10:00","end":"10:30","title":"Canceled: 1:1"}
         ]"#;
         assert_eq!(
             read_after(json, "2026-09-15"),
