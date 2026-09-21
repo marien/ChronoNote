@@ -84,7 +84,7 @@
           <tr>
             <td><code>&gt; </code></td>
             <td><span class="glyph glyph-progress">»</span></td>
-            <td><strong>Deferred.</strong> Resolved for today, but pushed forward to a later note — used when you copy/forward a task to a future day.</td>
+            <td><strong>Deferred.</strong> Resolved for today, but pushed forward to a later note — used when you copy/forward a task to a future day. Like done and won't-do lines it is drawn dimmed, so open work stands out.</td>
           </tr>
           <tr>
             <td><code>x </code></td>
@@ -95,6 +95,11 @@
             <td><code>- </code> or <code>* </code></td>
             <td>•</td>
             <td><strong>Bulleted list item.</strong> Purely structural — not an action, doesn't block anything. Indent two spaces to nest.</td>
+          </tr>
+          <tr>
+            <td><code>1. </code> <code>2) </code> <code>1.1. </code></td>
+            <td>1.</td>
+            <td><strong>Numbered list item.</strong> Plain text, no glyph, and not an action. <kbd>Enter</kbd> continues with the next number (<code>1.</code> → <code>2.</code>, <code>1.1.</code> → <code>1.2.</code>), an empty item ends the list, <kbd>Tab</kbd> nests it by two spaces. Start anywhere — <code>7.</code> works — and numbers are never rewritten. It must be the first thing on the line: <code>3.5 hours</code> is just text.</td>
           </tr>
           <tr>
             <td><code>=&gt; </code></td>
@@ -114,7 +119,7 @@
           <tr>
             <td><code># (topic)</code></td>
             <td><span class="badge-topic">(topic)</span></td>
-            <td><strong>Topic tag.</strong> Groups actions by subject — recognised only right after a leading action symbol.</td>
+            <td><strong>Topic tag.</strong> Groups actions by subject — recognised only right after a leading action symbol. The parentheses fade away until you edit the line.</td>
           </tr>
           <tr>
             <td><code>! </code></td>
@@ -129,8 +134,10 @@
         </tbody>
       </table>
       <p style="margin-top: 20px; color: var(--muted); font-size: 14px;">
-        Click any glyph in the editor to cycle its state (open → done → deferred → won't-do). Or place
-        the caret on an open line and press <kbd>Ctrl+Space</kbd> to mark it done directly.
+        Click a glyph to close an open action, or to reopen one that is done, deferred or won't-do. On a line
+        with several actions (<code># call Sam =&gt; # book a room</code>) a click changes exactly the glyph you clicked.
+        From the keyboard the action nearest to the left of the caret is the one that changes (or, with none on the
+        left, the nearest to its right), and on a line with none <kbd>Ctrl+1</kbd>–<kbd>4</kbd> turn the whole line into that action.
       </p>
     </div>
   </section>
@@ -149,14 +156,15 @@
         <div class="shortcut-row"><span>Open / create a dated note</span><kbd>Ctrl+O</kbd></div>
         <div class="shortcut-row"><span>Close current tab</span><kbd>Ctrl+W</kbd></div>
         <div class="shortcut-row"><span>Next / previous tab</span><kbd>Ctrl+Tab</kbd></div>
+        <div class="shortcut-row"><span>Indent / dedent a line or selection (two spaces)</span><kbd>Tab</kbd> / <kbd>Shift+Tab</kbd></div>
         <div class="shortcut-row"><span>Undo / redo (kept per tab)</span><kbd>Ctrl+Z</kbd> / <kbd>Ctrl+Shift+Z</kbd></div>
-        <div class="shortcut-row"><span>Close the current line's open action</span><kbd>Ctrl+Space</kbd></div>
-        <div class="shortcut-row"><span>Reopen a done action</span><kbd>Ctrl+Shift+Space</kbd></div>
-        <div class="shortcut-row"><span>Set the selection to open</span><kbd>Ctrl+Shift+O</kbd></div>
-        <div class="shortcut-row"><span>Set the selection to open — even plain lines</span><kbd>Ctrl+1</kbd></div>
-        <div class="shortcut-row"><span>Set the selection to done — even plain lines</span><kbd>Ctrl+2</kbd></div>
-        <div class="shortcut-row"><span>Set the selection to deferred — even plain lines</span><kbd>Ctrl+3</kbd></div>
-        <div class="shortcut-row"><span>Set the selection to won't-do — even plain lines</span><kbd>Ctrl+4</kbd></div>
+        <div class="shortcut-row"><span>Close the open action at the caret</span><kbd>Ctrl+Space</kbd></div>
+        <div class="shortcut-row"><span>Reopen the done action at the caret</span><kbd>Ctrl+Shift+Space</kbd></div>
+        <div class="shortcut-row"><span>Open the action at the caret, or in each selected line</span><kbd>Ctrl+Shift+O</kbd></div>
+        <div class="shortcut-row"><span>Set the action at the caret to open — a plain line becomes one</span><kbd>Ctrl+1</kbd></div>
+        <div class="shortcut-row"><span>Set the action at the caret to done — a plain line becomes one</span><kbd>Ctrl+2</kbd></div>
+        <div class="shortcut-row"><span>Set the action at the caret to deferred — a plain line becomes one</span><kbd>Ctrl+3</kbd></div>
+        <div class="shortcut-row"><span>Set the action at the caret to won't-do — a plain line becomes one</span><kbd>Ctrl+4</kbd></div>
         <div class="shortcut-row"><span>Jump to next / previous open action</span><kbd>F2</kbd> / <kbd>Shift+F2</kbd></div>
         <div class="shortcut-row"><span>Convert this line into a section header</span><kbd>Ctrl+Shift+S</kbd></div>
         <div class="shortcut-row"><span>Copy this section to its next occurrence</span><kbd>Ctrl+Shift+.</kbd></div>
@@ -209,7 +217,7 @@
           <div class="num">2</div>
           <div>
             <h3>Resolve, delegate, or defer</h3>
-            <p>Click a glyph to close an open action (or reopen a closed one), press <kbd>Ctrl+Space</kbd> to close it from the keyboard, or <kbd>Ctrl+1</kbd>-<kbd>4</kbd> to set any state directly. Hand something off with
+            <p>Click a glyph to close an open action (or reopen a closed one), press <kbd>Ctrl+Space</kbd> to close the one at the caret, or <kbd>Ctrl+1</kbd>-<kbd>4</kbd> to set any state directly. Hand something off with
               <kbd>=&gt; @name</kbd> — it stays a real, editable name, not a locked-in reference.</p>
             <div class="snippet-pair">
               <div>
@@ -242,7 +250,11 @@
               reads a <code>.agenda.json</code> file kept up to date by whatever already syncs your real
               calendar, matches meeting titles against today's sections, and shows a review step before
               writing anything — new meetings are a checklist, and any section no longer on the agenda gets
-              flagged for you to leave, discard, or move rather than silently dropped.</p>
+              flagged for you to leave, discard, or move rather than silently dropped. A meeting the calendar
+              marks as cancelled, declined or forwarded (a title starting with <code>Canceled:</code>, <code>Declined:</code>,
+              <code>Followed:</code> and so on) counts as removed, named by the rest of its title, and
+              <code>Placeholder:</code> or <code>Confirmed -</code> in front of a title is dropped. The review opens with
+              focus on Sync; <kbd>↑</kbd> and <kbd>↓</kbd> move between the checkboxes.</p>
           </div>
         </div>
         <div class="workflow-step">
@@ -263,6 +275,26 @@
             <p><kbd>Ctrl+N</kbd> opens a scratchpad — kept in memory only, never written to disk until you
               promote it into a real dated note. Closing one with real content unsaved asks first; nothing
               disappears by accident.</p>
+          </div>
+        </div>
+        <div class="workflow-step">
+          <div class="num">7</div>
+          <div>
+            <h3>Keep lists as lists</h3>
+            <p>Start a line with <code>- </code> for a bullet or <code>1. </code> (or <code>2) </code>, or
+              <code>1.1. </code> for a sub-item) for a numbered list, and <kbd>Enter</kbd> carries it on. An empty
+              item ends the list; <kbd>Tab</kbd> nests it. Numbers are plain text and never rewritten, so
+              nothing shifts under you when you rearrange a list.</p>
+          </div>
+        </div>
+        <div class="workflow-step">
+          <div class="num">8</div>
+          <div>
+            <h3>Write without distraction, your way</h3>
+            <p><kbd>Shift+F11</kbd> hides the bars for Zen mode (<kbd>Esc</kbd> brings them back). In Settings, set the
+              editor's font size and line spacing, and switch on pure black in dark mode for OLED screens. The
+              calendar dots in <kbd>Ctrl+O</kbd> show at a glance which days are all done (green), have open
+              actions (amber) or are only notes.</p>
           </div>
         </div>
       </div>
@@ -286,6 +318,13 @@
         on GitHub spells out the exact file format a conversion script (or an AI agent) needs
         to produce, down to the token syntax and how recurring section titles get matched —
         precise enough to hand off directly rather than reverse-engineer from this page.
+      </p>
+      <p>
+        In the web app you can also drag a backup file or a day's <code>.txt</code> note onto the window. A note whose
+        date already exists is never overwritten: if the text differs, you are shown both versions and choose to keep
+        yours, use the dropped file, or keep both. If the web app's OneDrive sign-in expires (it can only be renewed for
+        about a day), it says so and offers <strong>Sign in again</strong> — nothing is signed out and your unsynced
+        edits are kept.
       </p>
     </div>
   </section>

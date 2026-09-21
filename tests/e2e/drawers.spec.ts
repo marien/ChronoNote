@@ -135,3 +135,23 @@ test.describe("info drawers", () => {
     }
   });
 });
+
+test.describe("Shortcuts & Symbols drawer is current", () => {
+  test("lists Zen mode with its chord, the click behaviour, numbered lists and dimmed closed lines", async ({ page }) => {
+    await seedApp(page);
+    await editor(page).click();
+    await page.keyboard.press("ControlOrMeta+/");
+    const drawer = modalCard(page, MODAL_LABELS.shortcuts);
+    await expect(drawer).toBeVisible();
+    await expect(drawer).toContainText("Zen mode");
+    await expect(drawer).toContainText("Shift+F11");
+    await expect(drawer).toContainText("Click a glyph");
+    await expect(drawer).toContainText("exactly that glyph");
+    await expect(drawer).not.toContainText("Cycle that line");
+    await expect(drawer).toContainText("Numbered list item");
+    await expect(drawer).toContainText("(@ana, @ben)");
+    await expect(drawer).toContainText("dimmed");
+    // the old wording is gone
+    await expect(drawer).not.toContainText("click its glyph to cycle");
+  });
+});

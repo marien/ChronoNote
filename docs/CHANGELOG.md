@@ -6,7 +6,7 @@ kept for the rationale behind each one — not just *what* changed but
 was still being gathered and confirmed before implementation; renamed once
 everything below was applied, since nothing here is "pending" anymore.
 
-**Status: all sections through §201 implemented** (§178–§180 in v0.9.5: a save-only-when-changed fix and two GitHub issues, #76/#77; §181–§186 in v0.10.0: the Android app and OneDrive sync; §187–§188 in v0.11.0: OneDrive sync for the web app, and the fixes found reviewing and testing it; §191–§195 in v0.12.0: the Android folder-switch fix, shorter Settings labels, and the v0.12 UI/UX refinements in three stages (§193 palette, resolved lines, calendar dots and search; §194 modal system and phone layouts; §195 Zen mode, drag-and-drop import, sync health popover, typography and pure black; §196 in v0.12.1: renewable web sign-in, wrapping long messages, the Shift+F11 Zen chord and a full-window Zen mode, the topic pill and multi-name delegates; §197 in v0.12.2: Sync Review keyboard use and calendar status prefixes (#78))). §153 is a
+**Status: all sections through §202 implemented** (§178–§180 in v0.9.5: a save-only-when-changed fix and two GitHub issues, #76/#77; §181–§186 in v0.10.0: the Android app and OneDrive sync; §187–§188 in v0.11.0: OneDrive sync for the web app, and the fixes found reviewing and testing it; §191–§195 in v0.12.0: the Android folder-switch fix, shorter Settings labels, and the v0.12 UI/UX refinements in three stages (§193 palette, resolved lines, calendar dots and search; §194 modal system and phone layouts; §195 Zen mode, drag-and-drop import, sync health popover, typography and pure black; §196 in v0.12.1: renewable web sign-in, wrapping long messages, the Shift+F11 Zen chord and a full-window Zen mode, the topic pill and multi-name delegates; §197 in v0.12.2: Sync Review keyboard use and calendar status prefixes (#78))). §153 is a
 website-only Guide-page fix (found live right after §150–§152 shipped
 as v0.7.12) — no version bump, nothing in the shipped app changed. §154
 merges the OS title bar into the top bar (Notepad-style: icon, tabs,
@@ -8729,3 +8729,24 @@ inside the marker, Shift+Enter, one-step undo, sub-lists, Tab and Shift+Tab on o
 mixes, ten lookalikes that stay prose, no glyph and no action count, Ctrl+1, a numbered title, a neighbouring action).
 
 Verification: Vitest 557, `svelte-check` 0, Playwright 374, `cargo test` unchanged.
+
+## 202. The Shortcuts & Symbols drawer and the website catch up (unreleased)
+
+Item 8 of Marien's next-version list: the drawer's shortcuts were stale, and the website lagged the 0.12 line and this batch.
+
+**Shortcuts & Symbols drawer.** Its rows now live in `DRAWER_ROWS` (`shortcuts.ts`), next to the registry, so a Vitest test
+(`drawerRows.test.ts`) fails when a registered shortcut has no row, a row names an unknown id, or a row is listed twice. It had quietly
+lost Zen mode (`Shift+F11`), which is back. Labels follow the caret rules of §199 ("Close the open action at the caret", "Set the action at
+the caret to done, or in every selected line; a plain line becomes an action", ...), the "Click a glyph" row says a click closes or reopens
+exactly that glyph, and the symbols column gained a numbered-list row (`1.` `2)` `1.1.`, with what Enter and Tab do), the several-delegates
+form `(@ana, @ben)`, the topic pill wording, and a note that done, deferred and won't-do lines are dimmed; the consequence-action row no
+longer says "click to cycle". A Playwright test checks the drawer's content.
+
+**Website.** `guide.html`: token table rows for numbered lists and a refreshed deferred and topic-tag wording; the paragraph under it now
+explains clicks and the symbol-at-the-caret rule; shortcut rows reworded for the caret rule plus `Tab`/`Shift+Tab`; the calendar step covers
+cancelled/declined/forwarded meetings, Placeholder/Confirmed and the Sync Review keyboard; two new workflow steps, "Keep lists as lists" and
+"Write without distraction, your way" (Zen mode, font size and line spacing, pure black, the calendar dots); "Bringing notes in" now mentions
+dropping files on the web app and the "Sign in again" flow. `index.html`: three new feature cards (lists, distraction-free writing, the
+web app). The live site only changes when `website-live` is promoted with the release.
+
+Verification: Vitest 561, `svelte-check` 0, Playwright 375, `cargo test` unchanged.

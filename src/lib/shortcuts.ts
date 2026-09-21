@@ -16,9 +16,8 @@
  * actually works.
  *
  * What's deliberately NOT in this table:
- *   - `Escape` and "click a glyph" (`ShortcutsModal.svelte`'s own two
- *     extra rows) — not modifier-bearing combos, nothing to make
- *     Mac-aware.
+ *   - `Escape` and "click a glyph" (two literal rows in `DRAWER_ROWS`,
+ *     below) — not modifier-bearing combos, nothing to make Mac-aware.
  *   - The Action Drawer's own local `Ctrl+Space` (`ActionDrawerModal
  *     .svelte`) — its handler already treats a bare `Enter` specially
  *     (jump to that action), so adding a Cmd+Enter alias the way the
@@ -117,7 +116,7 @@ export const SHORTCUTS: ShortcutDef[] = [
     // line" — every state is directly reachable via Ctrl+1-4 now, so
     // there's no need for Ctrl+Space to cycle through (or promote a plain
     // line into) all of them.
-    label: "Close the current line's open action (# → v, in editor)",
+    label: "Close the open action at the caret (# → v, in editor)",
     combos: [
       // Ctrl+Space collides with macOS's own input-source-switcher
       // shortcut — not offered as a Mac binding at all; Cmd+Enter (below)
@@ -128,7 +127,7 @@ export const SHORTCUTS: ShortcutDef[] = [
   },
   {
     id: "cycleLineStateReverse",
-    label: "Reopen the current line's done action (v → #, in editor)",
+    label: "Reopen the done action at the caret (v → #, in editor)",
     combos: [
       // Same Space-avoided-on-Mac reasoning as `cycleLineState` above —
       // no Mac binding involving Space, Cmd+Shift+Enter instead.
@@ -138,7 +137,7 @@ export const SHORTCUTS: ShortcutDef[] = [
   },
   {
     id: "markSelectionOpen",
-    label: "Set every line in the selection to open (in editor)",
+    label: "Open the action at the caret, or in every selected line (never turns a plain line into one)",
     combos: [{ mod: true, shift: true, code: "KeyO" }],
   },
   // #70: the same idea as markSelectionOpen, direct to each of the other
@@ -146,22 +145,22 @@ export const SHORTCUTS: ShortcutDef[] = [
   // order cycleLineState steps through.
   {
     id: "setActionOpen",
-    label: "Set every line in the selection to open, including plain lines (in editor)",
+    label: "Set the action at the caret to open, or in every selected line; a plain line becomes an action",
     combos: [{ mod: true, code: "Digit1" }],
   },
   {
     id: "setActionDone",
-    label: "Set every line in the selection to done, including plain lines (in editor)",
+    label: "Set the action at the caret to done, or in every selected line; a plain line becomes an action",
     combos: [{ mod: true, code: "Digit2" }],
   },
   {
     id: "setActionDeferred",
-    label: "Set every line in the selection to deferred, including plain lines (in editor)",
+    label: "Set the action at the caret to deferred, or in every selected line; a plain line becomes an action",
     combos: [{ mod: true, code: "Digit3" }],
   },
   {
     id: "setActionWontDo",
-    label: "Set every line in the selection to won't-do, including plain lines (in editor)",
+    label: "Set the action at the caret to won't-do, or in every selected line; a plain line becomes an action",
     combos: [{ mod: true, code: "Digit4" }],
   },
   {
@@ -317,3 +316,40 @@ export function matchesCombo(e: KeyboardEvent, combo: ComboSpec): boolean {
 export function matchesShortcut(e: KeyboardEvent, id: string): boolean {
   return combosForPlatform(shortcutById(id)).some((c) => matchesCombo(e, c));
 }
+
+/** The rows of the Shortcuts & Symbols drawer, in reading order: a registry id pulls that entry's label and
+ * platform-correct combo text; a literal `[keys, description]` tuple is one of the rows that are not key
+ * combinations in the registry (a mouse action, or a key with no modifier). Lives here, next to the registry,
+ * so a test can prove every shortcut in the registry has a row (the drawer had quietly lost Zen mode). */
+export const DRAWER_ROWS: (string | [string, string])[] = [
+  "commandPalette",
+  "newScratchpad",
+  "reopenClosedTab",
+  "openDateNote",
+  "closeTab",
+  "cycleTab",
+  "indentDedent",
+  "undoRedo",
+  "cycleLineState",
+  "cycleLineStateReverse",
+  ["Click a glyph", "Close the glyph's action, or reopen it if it is done, deferred or won't-do (exactly that glyph); hover previews the result"],
+  "markSelectionOpen",
+  "setActionOpen",
+  "setActionDone",
+  "setActionDeferred",
+  "setActionWontDo",
+  "jumpAction",
+  "caretLineNav",
+  "convertToSection",
+  "copyToNextOccurrence",
+  "openActions",
+  "openHistory",
+  "findInNote",
+  "crossTabSearch",
+  "syncCalendar",
+  "toggleZenMode",
+  "openSettings",
+  "openAbout",
+  "openShortcutsHelp",
+  ["Escape", "Close whatever modal is open"],
+];

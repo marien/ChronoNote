@@ -4,7 +4,7 @@
   import { closeOnOutsideClick } from "../../actions/closeOnOutsideClick";
   import { focusScrollableList, scrollableListKeys } from "../../actions/focusScrollableList";
   import Icon from "../../icons/Icon.svelte";
-  import { shortcutById, formatShortcut } from "../../shortcuts";
+  import { DRAWER_ROWS, shortcutById, formatShortcut } from "../../shortcuts";
 
   // Built from the shared registry (`shortcuts.ts`), in the same order
   // this list has always read in — a plain id pulls that entry's label
@@ -14,37 +14,7 @@
   // so there's nothing for the registry to add for either. An id with no
   // combo on this platform (`caretLineNav` on Mac — see that entry's
   // comment) is dropped rather than shown as an empty row.
-  const rows: (string | [string, string])[] = [
-    "commandPalette",
-    "newScratchpad",
-    "reopenClosedTab",
-    "openDateNote",
-    "closeTab",
-    "cycleTab",
-    "indentDedent",
-    "undoRedo",
-    "cycleLineState",
-    "cycleLineStateReverse",
-    ["Click a glyph", "Close an open action, or reopen one that is done, deferred or won't-do; hover previews the result"],
-    "markSelectionOpen",
-    "setActionOpen",
-    "setActionDone",
-    "setActionDeferred",
-    "setActionWontDo",
-    "jumpAction",
-    "caretLineNav",
-    "convertToSection",
-    "copyToNextOccurrence",
-    "openActions",
-    "openHistory",
-    "findInNote",
-    "crossTabSearch",
-    "syncCalendar",
-    "openSettings",
-    "openAbout",
-    "openShortcutsHelp",
-    ["Escape", "Close whatever modal is open"],
-  ];
+  const rows = DRAWER_ROWS;
   const shortcuts: [string, string][] = rows
     .map((row): [string, string] => (Array.isArray(row) ? row : [formatShortcut(row), shortcutById(row).label]))
     .filter(([keys]) => keys !== "");
@@ -56,7 +26,7 @@
     ["v ", "☑", "glyph-done", "Done"],
     ["> ", "»", "glyph-progress", "Deferred — pushed forward to a later note"],
     ["x ", "☒", "glyph-cancelled", "Won't do — closed without doing it"],
-    ["- / * ", "•", "glyph-bullet", "Bulleted list item (nest with two-space indents)"],
+    ["- / * ", "•", "glyph-bullet", "Bulleted list item (Enter continues it, an empty one ends it, Tab nests by two spaces)"],
     ["=> ", "➔", "glyph-followup", "Follow-up — a plain note leading from this line"],
   ];
 
@@ -133,8 +103,17 @@
         <div class="modal-item" style="cursor: default;">
           <div class="modal-item-main">
             <span
+              >Numbered list item — plain text, no glyph. Enter continues with the next number, an empty item ends the
+              list, Tab nests by two spaces; numbers are never rewritten. Sub-items: <kbd>1.1.</kbd>, <kbd>1.2.</kbd></span
+            >
+          </div>
+          <div class="item-tag"><kbd>1. </kbd>&nbsp;/&nbsp;<kbd>2) </kbd>&nbsp;/&nbsp;<kbd>1.1. </kbd></div>
+        </div>
+        <div class="modal-item" style="cursor: default;">
+          <div class="modal-item-main">
+            <span
               >Delegated — follow-up assigned to someone. The <kbd>@name</kbd> is highlighted wherever it sits on a
-              <kbd>=&gt;</kbd> line, and stays real, editable text</span
+              <kbd>=&gt;</kbd> line, and stays real, editable text. Several people: <kbd>(@ana, @ben)</kbd></span
             >
           </div>
           <div class="item-tag">
@@ -145,7 +124,7 @@
         </div>
         <div class="modal-item" style="cursor: default;">
           <div class="modal-item-main">
-            <span>Topic tag — group actions by subject. Highlighted only right after the action symbol</span>
+            <span>Topic tag — group actions by subject, drawn as a pill only right after the action symbol; the parentheses show while you edit the line</span>
           </div>
           <div class="item-tag"><kbd># (topic) </kbd>&nbsp;→&nbsp;<span class="glyph-topic">(topic)</span></div>
         </div>
@@ -153,7 +132,7 @@
           <div class="modal-item-main">
             <span
               >Consequence-action — a follow-up with its own open/done/deferred/won't-do state, changed the same
-              way as any action line (click its glyph to cycle, or
+              way as any action line (click its glyph to close or reopen it, or
               {formatShortcut("setActionOpen").replace(/1$/, "1-4")} to set it directly)</span
             >
           </div>
@@ -162,6 +141,12 @@
               class="glyph-open">☐</span
             >
           </div>
+        </div>
+        <div class="modal-item" style="cursor: default;">
+          <div class="modal-item-main">
+            <span>Done, deferred and won't-do lines are drawn dimmed; open ones stay at full strength</span>
+          </div>
+          <div class="item-tag"><span class="glyph-done">☑</span>&nbsp;<span class="glyph-progress">»</span>&nbsp;<span class="glyph-cancelled">☒</span></div>
         </div>
         <div class="modal-item" style="cursor: default;">
           <div class="modal-item-main"><span>Bold emphasis for the rest of the line</span></div>
