@@ -6,7 +6,7 @@ kept for the rationale behind each one — not just *what* changed but
 was still being gathered and confirmed before implementation; renamed once
 everything below was applied, since nothing here is "pending" anymore.
 
-**Status: all sections through §197 implemented** (§178–§180 in v0.9.5: a save-only-when-changed fix and two GitHub issues, #76/#77; §181–§186 in v0.10.0: the Android app and OneDrive sync; §187–§188 in v0.11.0: OneDrive sync for the web app, and the fixes found reviewing and testing it; §191–§195 in v0.12.0: the Android folder-switch fix, shorter Settings labels, and the v0.12 UI/UX refinements in three stages (§193 palette, resolved lines, calendar dots and search; §194 modal system and phone layouts; §195 Zen mode, drag-and-drop import, sync health popover, typography and pure black; §196 in v0.12.1: renewable web sign-in, wrapping long messages, the Shift+F11 Zen chord and a full-window Zen mode, the topic pill and multi-name delegates; §197 in v0.12.2: Sync Review keyboard use and calendar status prefixes (#78))). §153 is a
+**Status: all sections through §198 implemented** (§178–§180 in v0.9.5: a save-only-when-changed fix and two GitHub issues, #76/#77; §181–§186 in v0.10.0: the Android app and OneDrive sync; §187–§188 in v0.11.0: OneDrive sync for the web app, and the fixes found reviewing and testing it; §191–§195 in v0.12.0: the Android folder-switch fix, shorter Settings labels, and the v0.12 UI/UX refinements in three stages (§193 palette, resolved lines, calendar dots and search; §194 modal system and phone layouts; §195 Zen mode, drag-and-drop import, sync health popover, typography and pure black; §196 in v0.12.1: renewable web sign-in, wrapping long messages, the Shift+F11 Zen chord and a full-window Zen mode, the topic pill and multi-name delegates; §197 in v0.12.2: Sync Review keyboard use and calendar status prefixes (#78))). §153 is a
 website-only Guide-page fix (found live right after §150–§152 shipped
 as v0.7.12) — no version bump, nothing in the shipped app changed. §154
 merges the OS title bar into the top bar (Notepad-style: icon, tabs,
@@ -8602,3 +8602,23 @@ implementation (`agendaTitles.ts`). Case-sensitive on purpose, like #74: fixed, 
 
 Verification: Vitest 494 (agenda title rules, the reconcile changes), `svelte-check` 0, `cargo test` 150 (+6), Playwright (the
 keyboard flow, Enter on Sync, and the prefixes end to end) — see the release notes for the full-suite count.
+
+## 198. Polish batch 1 for the next version (unreleased)
+
+Four small items from Marien's list for the next intermediate version (`next-version-backlog`); the rest of that list
+(glyph click, About dialog, numbered lists, Shortcuts modal, website) follows in later sections and one release.
+
+1. **The topic pill has no accent border on the focused line.** The v0.12.1 pill turned its border accent-blue while the caret
+   was on the line; that rule is gone, so the pill looks the same idle and being edited (only its hidden parentheses appear). The
+   layout test asserts the border colour is unchanged.
+2. **Deferred (`> `) lines are dimmed like done and won't-do lines.** `cm-line-resolved` now covers `v`, `>` and `x` (opacity 0.72,
+   full strength on hover and on the line the caret or selection is on). This reverses the roadmap's earlier "deferred stays at
+   full strength"; open (`# `) lines are the only ones left at full strength.
+3. **The sync spinner is a real circle.** `.modal-spinner` (OneDrive sync in the status bar and Settings, the loading indicators in
+   Search, the drawers and the date picker) was the "⟳" character, whose glyph box is off-centre, so it wobbled as it turned. It is now a
+   square box with a 50% radius, drawn as a ring with one gap that turns about its own centre (the character inside is clipped
+   out). A test checks the box is square and round.
+4. **The "Updated to vX — What's new" message goes when another message replaces it.** It shares the status bar's message slot and
+   used to hide every later message until clicked or the app restarted. `showToast` now clears it.
+
+Verification: Vitest 495, `svelte-check` 0, Playwright 306, `cargo test` unchanged (no Rust touched).

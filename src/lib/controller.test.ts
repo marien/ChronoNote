@@ -2000,6 +2000,13 @@ describe("openJustUpdatedReleaseNotes (#50, §follow-up: opens the releases list
     expect(get(controller.justUpdatedToVersion)).toBe(null);
   });
 
+  it("any other message replaces the banner instead of hiding behind it", () => {
+    controller.justUpdatedToVersion.set("0.7.5");
+    controller.showToast("Saved.");
+    expect(get(controller.justUpdatedToVersion)).toBe(null);
+    expect(get(controller.toastMessage)).toBe("Saved.");
+  });
+
   it("does nothing (no external call) when there's nothing to show", () => {
     controller.justUpdatedToVersion.set(null);
     controller.openJustUpdatedReleaseNotes();

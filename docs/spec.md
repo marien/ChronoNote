@@ -67,9 +67,9 @@ whole `=> ` token in one step, as if un-delegating the line.
 | `! ` | rest of line rendered bold, in an emphasis color | **Emphasis / Remember** | Purely informational — not an action, not counted anywhere, doesn't block tab close. Searchable like any other line via Cross-Tab Search; no dedicated drawer. |
 | `Heading\n====` | Setext H1 Display | **Section / Meeting Header** | Section delimiter for manual section import and meeting action history. |
 
-A resolved line (`v `, `x `, or a `=> v `/`=> x ` follow-up) is drawn slightly dimmed so open work stands out;
-it returns to full strength on hover and while the caret or selection is on the line. Deferred (`> `) lines and
-section titles are never dimmed.
+A line that is no longer open (done `v `, deferred `> `, won't-do `x `, or a `=> v `/`=> > `/`=> x ` follow-up) is drawn slightly
+dimmed so open work stands out; it returns to full strength on hover and while the caret or selection is on the line.
+Section titles are never dimmed.
 
 All four action symbols (`# `/`v `/`> `/`x `) may be indented in two-space
 increments, the same as bulleted list items — the indentation is real,

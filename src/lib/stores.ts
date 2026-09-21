@@ -370,6 +370,9 @@ let toastTimer: ReturnType<typeof setTimeout> | undefined;
 export const LONG_TOAST_CHARS = 60;
 
 export function showToast(msg: string) {
+  // The one-time "Updated to vX - What's new" banner shares the status bar's message slot and used to
+  // stay put (hiding every later message) until clicked or the app restarted: a new message replaces it.
+  justUpdatedToVersion.set(null);
   toastMessage.set(msg);
   clearTimeout(toastTimer);
   const ms = msg.length > LONG_TOAST_CHARS ? Math.min(12000, 3000 + msg.length * 60) : 2400;

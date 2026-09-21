@@ -42,6 +42,30 @@ test.describe("cross-tab search (Ctrl/Cmd+Shift+F)", () => {
     await expect.poll(() => rows(search(page)).count()).toBeGreaterThanOrEqual(openCount);
   });
 
+  test("the loading spinner is a true circle: square box, round, ring only, no character inside it", async ({ page }) => {
+    await seedApp(page, {
+      seed: {
+        notes: { "2026-09-07.txt": "the migration plan" },
+        session: { openTabs: ["2026-09-07.txt"], activeTab: "2026-09-07.txt" },
+        delayCommands: { read_all_notes: 1500 },
+      },
+    });
+    await editor(page).click();
+    await page.keyboard.press("ControlOrMeta+Shift+F");
+    await search(page).getByRole("radio", { name: "All Files" }).click();
+    const spinner = search(page).locator(".modal-spinner");
+    await expect(spinner).toBeVisible();
+    const box = (await spinner.boundingBox())!;
+    expect(Math.abs(box.width - box.height)).toBeLessThan(0.5);
+    const style = await spinner.evaluate((el) => {
+      const s = getComputedStyle(el);
+      return { radius: s.borderTopLeftRadius, overflow: s.overflow, animation: s.animationName };
+    });
+    expect(style.radius).not.toBe("0px");
+    expect(style.overflow).toBe("hidden");
+    expect(style.animation).toContain("spin");
+  });
+
   test("#62: switching to 'All Files' shows a spinner while the disk read is slow", async ({ page }) => {
     await seedApp(page, {
       seed: {

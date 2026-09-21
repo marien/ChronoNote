@@ -283,7 +283,7 @@ test.describe("editor — token glyphs", () => {
     expect(await activeTabContent(page)).toBe("=> # ship the docs\n=> # write the notes");
   });
 
-  test("resolved lines (v, x) are dimmed (opacity 0.72) and restore full opacity (1) when caret is on the line", async ({ page }) => {
+  test("resolved lines (v, >, x) are dimmed (opacity 0.72) and restore full opacity (1) when caret is on the line", async ({ page }) => {
     await setEditorText(page, "# open line\nv done line");
 
     const lines = editor(page).locator(".cm-line");

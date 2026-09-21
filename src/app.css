@@ -1006,9 +1006,6 @@ body {
 .cm-line:hover .glyph-topic .glyph-topic-paren {
   color: var(--muted);
 }
-.cm-line-touched .glyph-topic {
-  border-color: var(--tab-active-border);
-}
 
 /* §106: the action-state glyphs cycle on click. Subtle pointer + hover
    tint so it reads as interactive without adding chrome to every line. */
@@ -1813,10 +1810,24 @@ textarea.modal-input.import-textarea {
   font-weight: normal;
   color: var(--muted);
 }
+/* A true circle (square box, 50% radius, a ring with one gap) that turns about its own centre. It used
+   to be the "⟳" character, whose glyph box is not centred, so it wobbled as it turned. The text inside
+   the element is only kept for the markup that has it; it is pushed out of the box and clipped. */
 .modal-spinner {
   display: inline-block;
+  flex-shrink: 0;
+  box-sizing: border-box;
+  width: 1em;
+  height: 1em;
   font-size: 14px;
+  border: 0.14em solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
   color: var(--muted);
+  vertical-align: -0.15em;
+  overflow: hidden;
+  text-indent: 100%;
+  white-space: nowrap;
   animation: modal-spinner-spin 0.8s linear infinite;
 }
 @keyframes modal-spinner-spin {

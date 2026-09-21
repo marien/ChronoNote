@@ -31,7 +31,7 @@ export function buildResolvedLineDecorations(view: EditorView): DecorationSet {
       const line = view.state.doc.lineAt(pos);
       if (!isHeaderLine(view, line.number)) {
         const sym = innermostActionSymbol(line.text);
-        if (sym === "v" || sym === "x") {
+        if (sym === "v" || sym === "x" || sym === ">") {
           const isTouched = isLineTouchedBySelection(view, line.from, line.to);
           builder.add(
             line.from,

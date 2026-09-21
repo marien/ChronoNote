@@ -143,6 +143,7 @@ test.describe("glyph line layout", () => {
           delta: xOf(lines[1], "chase") - xOf(lines[0], "chase"),
           parenColor: paren ? getComputedStyle(paren).color : "",
           italic: pill ? getComputedStyle(pill).fontStyle : "",
+          border: pill ? getComputedStyle(pill).borderTopColor : "",
           radius: pill ? getComputedStyle(pill).borderTopLeftRadius : "",
           touched: lines[1].classList.contains("cm-line-touched"),
         };
@@ -164,6 +165,8 @@ test.describe("glyph line layout", () => {
     const editing = await measure();
     expect(Math.abs(editing.delta)).toBeLessThan(1);
     expect(editing.parenColor).not.toBe("rgba(0, 0, 0, 0)");
+    // No accent border on the focused line: the pill looks the same, apart from the parentheses.
+    expect(editing.border).toBe(idle.border);
   });
 
   test("the glyph sits at the column its token started at, not centred in the cell (§87 / #16)", async ({ page }) => {

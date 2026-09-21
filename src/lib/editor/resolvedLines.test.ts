@@ -17,7 +17,7 @@ function getResolvedLineIndices(doc: string): number[] {
 }
 
 describe("resolvedLinesPlugin", () => {
-  it("decorates completed 'v' and won't-do 'x' lines with cm-line-resolved", () => {
+  it("decorates done 'v', deferred '>' and won't-do 'x' lines with cm-line-resolved", () => {
     const doc = [
       "# Open action",
       "v Done action",
@@ -27,8 +27,8 @@ describe("resolvedLinesPlugin", () => {
     ].join("\n");
 
     const indices = getResolvedLineIndices(doc);
-    // Line 1 is "v Done action", Line 3 is "x Cancelled action" (0-indexed)
-    expect(indices).toEqual([1, 3]);
+    // Lines 1, 2 and 3 (0-indexed): done, deferred and won't-do all read as "not open"
+    expect(indices).toEqual([1, 2, 3]);
   });
 
   it("decorates indented and consequence resolved actions", () => {
@@ -40,8 +40,8 @@ describe("resolvedLinesPlugin", () => {
     ].join("\n");
 
     const indices = getResolvedLineIndices(doc);
-    // Line 0 is "  v Indented done", Line 1 is "  => x Consequence cancelled"
-    expect(indices).toEqual([0, 1]);
+    // Line 0 done, line 1 won't-do consequence, line 3 deferred; line 2 (an open consequence) stays
+    expect(indices).toEqual([0, 1, 3]);
   });
 
   it("does not decorate section header titles that start with v or x", () => {
@@ -56,10 +56,9 @@ describe("resolvedLinesPlugin", () => {
     expect(indices).toEqual([2]);
   });
 
-  it("leaves deferred (>), open (#), bullets (-), and prose alone", () => {
+  it("leaves open (#), bullets (-), and prose alone", () => {
     const doc = [
       "# Open task",
-      "> Deferred task",
       "- Bullet item",
       "Normal prose mentioning v and x in middle",
     ].join("\n");
