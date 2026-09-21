@@ -8768,3 +8768,7 @@ backend has no windowing). If the taskbar strip is still there, or the brief res
 toggling the window's decorations around the fullscreen call or sizing the window to the monitor by hand; Marien to confirm on his machine.
 
 Verification: Vitest 568, `svelte-check` 0, Playwright 375, `cargo check` accepts the capabilities.
+
+## 204. Zen from a maximized window: no visible restore flicker (unreleased, NOT verified on a real window)
+
+Marien confirmed §203 covers the taskbar in v0.12.3 but the restore-then-fullscreen (and back) flickers. `zenWindow.ts` now hides the window for the maximized path (`hide`, `unmaximize`, `setFullscreen(true)`, `show`, `setFocus`; and the reverse on leaving) and always shows it again, even if a step fails. A normal window is never hidden. New capabilities `core:window:allow-hide`, `allow-show`, `allow-set-focus`. Unit tests cover both orders, the never-left-hidden guarantee and the normal-window case. Unverified natively; a hide/show can itself blink or drop focus. Fallback if so: size the window to the monitor by hand instead of unmaximizing.

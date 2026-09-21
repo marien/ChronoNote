@@ -19,6 +19,9 @@ function fakeWindow(opts: { maximized: boolean; failOn?: string; delayMs?: numbe
     maximize: () => step("maximize", () => (maximized = true)),
     unmaximize: () => step("unmaximize", () => (maximized = false)),
     setFullscreen: (on) => step(`setFullscreen(${on})`),
+    hide: () => step("hide"),
+    show: () => step("show"),
+    setFocus: () => step("setFocus"),
   };
   return { win, calls, isMaximized: () => maximized };
 }
@@ -28,10 +31,18 @@ describe("Zen mode's native fullscreen", () => {
     const f = fakeWindow({ maximized: true });
     const zen = createZenWindowController(f.win);
     await zen.set(true);
-    expect(f.calls).toEqual(["isMaximized", "unmaximize", "setFullscreen(true)"]);
+    expect(f.calls).toEqual(["isMaximized", "hide", "unmaximize", "setFullscreen(true)", "show", "setFocus"]);
     await zen.set(false);
-    expect(f.calls).toEqual(["isMaximized", "unmaximize", "setFullscreen(true)", "setFullscreen(false)", "maximize"]);
+    expect(f.calls).toEqual(["isMaximized", "hide", "unmaximize", "setFullscreen(true)", "show", "setFocus", "hide", "setFullscreen(false)", "maximize", "show", "setFocus"]);
     expect(f.isMaximized()).toBe(true);
+  });
+
+  it("a normal window is never hidden (no flicker to hide there)", async () => {
+    const f = fakeWindow({ maximized: false });
+    const zen = createZenWindowController(f.win);
+    await zen.set(true);
+    await zen.set(false);
+    expect(f.calls).not.toContain("hide");
   });
 
   it("a normal window just goes fullscreen and back, and is never maximized", async () => {
@@ -68,7 +79,7 @@ describe("Zen mode's native fullscreen", () => {
     const zen = createZenWindowController(f.win);
     void zen.set(true);
     await zen.set(false);
-    expect(f.calls).toEqual(["isMaximized", "unmaximize", "setFullscreen(true)", "setFullscreen(false)", "maximize"]);
+    expect(f.calls).toEqual(["isMaximized", "hide", "unmaximize", "setFullscreen(true)", "show", "setFocus", "hide", "setFullscreen(false)", "maximize", "show", "setFocus"]);
   });
 
   it("a failing window call never rejects and does not wedge later toggles", async () => {
@@ -77,6 +88,8 @@ describe("Zen mode's native fullscreen", () => {
     await expect(zen.set(true)).resolves.toBeUndefined();
     await expect(zen.set(false)).resolves.toBeUndefined();
     expect(f.calls).toContain("setFullscreen(false)");
+    // the window is never left hidden, even when a step failed
+    expect(f.calls.filter((c) => c === "show").length).toBe(f.calls.filter((c) => c === "hide").length);
   });
 
   it("if the maximized state cannot be read, it is treated as a normal window", async () => {
