@@ -6,7 +6,7 @@ kept for the rationale behind each one — not just *what* changed but
 was still being gathered and confirmed before implementation; renamed once
 everything below was applied, since nothing here is "pending" anymore.
 
-**Status: all sections through §203 implemented** (§178–§180 in v0.9.5: a save-only-when-changed fix and two GitHub issues, #76/#77; §181–§186 in v0.10.0: the Android app and OneDrive sync; §187–§188 in v0.11.0: OneDrive sync for the web app, and the fixes found reviewing and testing it; §191–§195 in v0.12.0: the Android folder-switch fix, shorter Settings labels, and the v0.12 UI/UX refinements in three stages (§193 palette, resolved lines, calendar dots and search; §194 modal system and phone layouts; §195 Zen mode, drag-and-drop import, sync health popover, typography and pure black; §196 in v0.12.1: renewable web sign-in, wrapping long messages, the Shift+F11 Zen chord and a full-window Zen mode, the topic pill and multi-name delegates; §197 in v0.12.2: Sync Review keyboard use and calendar status prefixes (#78))). §153 is a
+**Status: all sections through §203 implemented** (§178–§180 in v0.9.5: a save-only-when-changed fix and two GitHub issues, #76/#77; §181–§186 in v0.10.0: the Android app and OneDrive sync; §187–§188 in v0.11.0: OneDrive sync for the web app, and the fixes found reviewing and testing it; §191–§195 in v0.12.0: the Android folder-switch fix, shorter Settings labels, and the v0.12 UI/UX refinements in three stages (§193 palette, resolved lines, calendar dots and search; §194 modal system and phone layouts; §195 Zen mode, drag-and-drop import, sync health popover, typography and pure black; §196 in v0.12.1: renewable web sign-in, wrapping long messages, the Shift+F11 Zen chord and a full-window Zen mode, the topic pill and multi-name delegates; §197 in v0.12.2: Sync Review keyboard use and calendar status prefixes (#78; §198–§203 in v0.12.3: polish (topic pill border, dimmed deferred lines, round spinner, the Updated-to message), glyph click toggles open and closed with position-aware targeting, the About version card, numbered lists and sub-lists, the Shortcuts drawer and website catch-up, and Zen mode from a maximized window))). §153 is a
 website-only Guide-page fix (found live right after §150–§152 shipped
 as v0.7.12) — no version bump, nothing in the shipped app changed. §154
 merges the OS title bar into the top bar (Notepad-style: icon, tabs,
@@ -8603,7 +8603,7 @@ implementation (`agendaTitles.ts`). Case-sensitive on purpose, like #74: fixed, 
 Verification: Vitest 494 (agenda title rules, the reconcile changes), `svelte-check` 0, `cargo test` 150 (+6), Playwright (the
 keyboard flow, Enter on Sync, and the prefixes end to end) — see the release notes for the full-suite count.
 
-## 198. Polish batch 1 for the next version (unreleased)
+## 198. Polish batch 1 for the next version (v0.12.3)
 
 Four small items from Marien's list for the next intermediate version (`next-version-backlog`); the rest of that list
 (glyph click, About dialog, numbered lists, Shortcuts modal, website) follows in later sections and one release.
@@ -8623,7 +8623,7 @@ Four small items from Marien's list for the next intermediate version (`next-ver
 
 Verification: Vitest 495, `svelte-check` 0, Playwright 306, `cargo test` unchanged (no Rust touched).
 
-## 199. Clicking an action glyph toggles open and closed (unreleased)
+## 199. Clicking an action glyph toggles open and closed (v0.12.3)
 
 Item 5 of Marien's next-version list: cycling through all four states on click "is not useful". A click on an action glyph (the
 editor, standalone or the symbol of a `=> <symbol>` consequence action, mouse and touch) now toggles between two states: an open
@@ -8664,7 +8664,7 @@ selection, the palette, the phone buttons).
 
 Verification: Vitest 528, `svelte-check` 0, Playwright 323, `cargo test` unchanged.
 
-## 200. About: a version card in the Updates section (unreleased)
+## 200. About: a version card in the Updates section (v0.12.3)
 
 Item 6 of Marien's next-version list. The running version sat in the dialog's title bar, misaligned next to the close button, and
 there was nowhere to read up on what this version contains. Now:
@@ -8689,7 +8689,7 @@ chip, the web app, and the card fitting a phone-width dialog).
 
 Verification: Vitest 528, `svelte-check` 0, Playwright 331, `cargo test` unchanged.
 
-## 201. Numbered lists, and numbered sub-lists (unreleased)
+## 201. Numbered lists, and numbered sub-lists (v0.12.3)
 
 Item 7 of Marien's next-version list, plus numbered sub-lists (`1.1.`). Plain text, no styling, no rewriting of numbers: the
 editor just understands the marker, the way it understands a bullet's indentation.
@@ -8730,7 +8730,7 @@ mixes, ten lookalikes that stay prose, no glyph and no action count, Ctrl+1, a n
 
 Verification: Vitest 557, `svelte-check` 0, Playwright 374, `cargo test` unchanged.
 
-## 202. The Shortcuts & Symbols drawer and the website catch up (unreleased)
+## 202. The Shortcuts & Symbols drawer and the website catch up (v0.12.3)
 
 Item 8 of Marien's next-version list: the drawer's shortcuts were stale, and the website lagged the 0.12 line and this batch.
 
@@ -8751,7 +8751,7 @@ web app). The live site only changes when `website-live` is promoted with the re
 
 Verification: Vitest 561, `svelte-check` 0, Playwright 375, `cargo test` unchanged.
 
-## 203. Zen mode from a maximized window covers the taskbar (unreleased, NOT verified on a real window)
+## 203. Zen mode from a maximized window covers the taskbar (v0.12.3)
 
 Marien, on Windows 11: pressing F11 from a *maximized* window hid the top bar, the bottom bar and the taskbar and grew the content, but
 the content did not reach the strip where the taskbar had been; from a normal-size window it worked. `setFullscreen(true)` on a window
