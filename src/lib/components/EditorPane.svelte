@@ -9,6 +9,7 @@
   import { glyphAtomicRanges, liveGlyphs } from "../editor/glyphs";
   import { setextRule } from "../editor/setextRule";
   import { resolvedLinesPlugin } from "../editor/resolvedLines";
+  import { activeLinesPlugin } from "../editor/activeLines";
   import { underlineFor } from "../sectionFormat";
   import {
     actionLineEnter,
@@ -478,6 +479,7 @@
       glyphAtomicRanges,
       setextRule,
       resolvedLinesPlugin,
+      activeLinesPlugin,
       pulseField,
       // §108: search state for findNext/findPrevious; its own panel is
       // never opened — the floating `FindBar` is the UI, and

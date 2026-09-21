@@ -979,20 +979,35 @@ body {
   font-weight: bold;
   color: var(--glyph-emphasis-color);
 }
-/* #36: a `(topic)` tag on an action line. Related to the `@name` badge —
-   same padded-pill shape — but outlined rather than filled, and muted, so
-   the two tag kinds read as distinct at a glance. Uses only chrome tokens
-   (already light/dark aware), so no new per-colour-mode variables. */
+/* #36 / v0.12 (2.2): a `(topic)` tag on an action line, drawn as an upright rounded pill.
+   Layout-neutral (#42): the two parentheses stay real text, each 1ch, and are drawn transparent
+   while the line is idle, so they ARE the pill's inner padding; the 1px border is cancelled by a
+   -1px side margin. So the line is exactly as long as its raw text, and the text after the pill
+   never moves when the caret enters or leaves the line. Chrome tokens only (already light/dark
+   aware). Read-only renderings (history rows, the shortcuts legend) get the same look with the
+   parentheses simply left visible. */
 .glyph-topic {
   border: 1px solid var(--edge-strong);
-  border-radius: 3px;
-  /* #42: same layout-neutral trick as `.glyph-assignee` — the border
-     (1px) + inset (2px) is compensated by a -3px margin so the tag
-     doesn't lengthen the line. */
-  padding: 0 2px;
-  margin: 0 -3px;
+  border-radius: 4px;
+  margin: 0 -1px;
+  padding: 0;
+  background: color-mix(in srgb, var(--text) 6%, transparent);
+  color: var(--text);
+  font-style: normal;
+  font-weight: 500;
+  transition: border-color 150ms ease, background-color 150ms ease;
+}
+.glyph-topic .glyph-topic-paren {
+  color: transparent;
+  transition: color 150ms ease;
+}
+/* The line being edited (caret or selection on it), or hovered: show the literal `(topic)`. */
+.cm-line-touched .glyph-topic .glyph-topic-paren,
+.cm-line:hover .glyph-topic .glyph-topic-paren {
   color: var(--muted);
-  font-style: italic;
+}
+.cm-line-touched .glyph-topic {
+  border-color: var(--tab-active-border);
 }
 
 /* §106: the action-state glyphs cycle on click. Subtle pointer + hover

@@ -8533,7 +8533,7 @@ The third stage of the UI/UX refinements roadmap (`docs/design/ui-ux-refinements
 
 Verification: Vitest 478, `svelte-check` 0, Playwright 297 (new specs: `zen-mode.spec.ts`, `drag-drop-import.spec.ts` including the review dialog and a dropped `.json` bundle, `sync-health-popover.spec.ts`, and extended `settings.spec.ts`), `cargo test` 144 (+3: sync-health counts, missing-folder health, and a config written before the typography fields loads with the old look), `npm run build:webapp` fresh. Reviewed and fixed here before merging (roadmap section 15 style): the web bundle had not been rebuilt, Android had no `get_sync_health`, dropped-note conflicts had no review path, F11 was bound on every platform.
 
-## 196. After v0.12.0: expired web sign-in can be renewed, long messages are readable, Zen mode fixes (unreleased)
+## 196. After v0.12.0: expired web sign-in can be renewed, long messages are readable, Zen mode fixes, the topic pill, several delegates (unreleased)
 
 Found by Marien using v0.12.0.
 
@@ -8557,7 +8557,18 @@ Found by Marien using v0.12.0.
    been. They now give their space back (height 0), so the editor fills the window; a test checks the editor's box equals the
    viewport in Zen and returns on exit. (The native fullscreen call itself is unchanged; if a maximized desktop window still
    looks short of the screen after this, that is a window-manager issue to look at separately.)
+5. **The redesigned topic pill (roadmap 2.2) had not been built.** It was part of "Release A" in the roadmap but missing from the
+   implementation task list, so §193 shipped without it (and the review of it did not catch that). Now: `(topic)` after an action
+   symbol is an upright, rounded pill (`font-style: normal`, weight 500, 4px radius, faint fill). The parentheses stay real text at
+   1ch each but are drawn transparent while the line is idle, so they *are* the pill's inner padding; the 1px border is cancelled by
+   a -1px margin. The line is therefore exactly as long as its raw text and nothing shifts. They fade in (muted, with an accent
+   border) on the line the caret or selection is on (`cm-line-touched` from `activeLines.ts`) and on hover. Read-only renderings
+   (history rows, the shortcuts legend) get the same look with the parentheses left visible. A new layout test measures the text
+   after the pill against a raw twin while idle and while being edited.
+6. **`(@name1, @name2, @name3)` highlighted only a single name.** A parenthesised delegate now accepts a list
+   separated by commas and/or spaces; every `@name` in it gets its own badge and the commas and parentheses stay plain text (editor
+   and the read-only renderings). Still only on an action-like line, like a single `(@name)`.
 
-Verification: Vitest 478, `svelte-check` 0, Playwright 300 (an expired-sign-in flow across cloud button, popover and Settings; a long
+Verification: Vitest 479, `svelte-check` 0, Playwright 302 (an expired-sign-in flow across cloud button, popover and Settings; a long
 toast wraps and a short one stays in the bar; Zen uses the full window; the Zen chord). The v0.12.0 release notes still name
 the old chord.

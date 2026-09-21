@@ -60,6 +60,16 @@ describe("parseGlyphLine", () => {
     expect(classed("=> talk to @mary-jane about it")).toContainEqual(["glyph-assignee", "@mary-jane"]);
   });
 
+  it("a list of delegates, (@a, @b, @c), badges every name and keeps the commas and parens", () => {
+    const line = "# review the doc (@dana, @sam-jay, @lee) by friday";
+    const names = classed(line).filter(([cls]) => cls === "glyph-assignee").map(([, txt]) => txt);
+    expect(names).toEqual(["@dana", "@sam-jay", "@lee"]);
+    expect(text(line)).toBe("☐ review the doc (@dana, @sam-jay, @lee) by friday");
+    // space-separated works too, and on a prose line nothing is badged
+    expect(classed("# x (@a @b)").filter(([cls]) => cls === "glyph-assignee").map(([, txt]) => txt)).toEqual(["@a", "@b"]);
+    expect(classed("just prose (@a, @b)").filter(([cls]) => cls === "glyph-assignee")).toEqual([]);
+  });
+
   it("#126: `(@name)` badges the name, keeps the parens, and is not a topic", () => {
     const cs = classed("# review the doc (@dana) by friday");
     expect(cs).toContainEqual(["glyph-assignee", "@dana"]);

@@ -116,6 +116,56 @@ test.describe("glyph line layout", () => {
     expect(Math.abs(topicDelta)).toBeLessThan(1);
   });
 
+  test("v0.12 topic pill: hidden parentheses are the padding, so the text after it never moves — idle or being edited", async ({ page }) => {
+    await seedApp(page, { seed: "empty" });
+    // Line 0 is the raw twin ("= " is as wide as the "# " glyph and is not an action, so no pill).
+    await setEditorText(page, ["= (billing) chase it now", "# (billing) chase it now"].join("\n"));
+    const measure = () =>
+      page.evaluate(() => {
+        const lines = [...document.querySelectorAll<HTMLElement>(".cm-editor .cm-line")];
+        const xOf = (el: HTMLElement, needle: string) => {
+          const w = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+          let n: Node | null;
+          while ((n = w.nextNode())) {
+            const i = n.nodeValue!.indexOf(needle);
+            if (i !== -1) {
+              const r = document.createRange();
+              r.setStart(n, i);
+              r.setEnd(n, i + 1);
+              return r.getBoundingClientRect().left;
+            }
+          }
+          return NaN;
+        };
+        const paren = lines[1].querySelector<HTMLElement>(".glyph-topic-paren");
+        const pill = lines[1].querySelector<HTMLElement>(".glyph-topic");
+        return {
+          delta: xOf(lines[1], "chase") - xOf(lines[0], "chase"),
+          parenColor: paren ? getComputedStyle(paren).color : "",
+          italic: pill ? getComputedStyle(pill).fontStyle : "",
+          radius: pill ? getComputedStyle(pill).borderTopLeftRadius : "",
+          touched: lines[1].classList.contains("cm-line-touched"),
+        };
+      });
+
+    // Caret on the raw line: the pill's line is idle.
+    await page.keyboard.press("ControlOrMeta+Home");
+    await expect.poll(async () => (await measure()).touched).toBe(false);
+    const idle = await measure();
+    expect(Math.abs(idle.delta)).toBeLessThan(1);
+    expect(idle.parenColor).toBe("rgba(0, 0, 0, 0)"); // transparent
+    expect(idle.italic).toBe("normal");
+    expect(idle.radius).toBe("4px");
+
+    // Caret on the pill's line: the parentheses show, and nothing moved.
+    await page.keyboard.press("ControlOrMeta+End");
+    await expect.poll(async () => (await measure()).touched).toBe(true);
+    await page.waitForTimeout(250); // the colour transition
+    const editing = await measure();
+    expect(Math.abs(editing.delta)).toBeLessThan(1);
+    expect(editing.parenColor).not.toBe("rgba(0, 0, 0, 0)");
+  });
+
   test("the glyph sits at the column its token started at, not centred in the cell (§87 / #16)", async ({ page }) => {
     await seedApp(page, { seed: "empty" });
     await setEditorText(page, "# open action\n  # indented open\nplain line");

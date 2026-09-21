@@ -223,6 +223,8 @@ In v0.11.1, [`src/lib/commandPalette.ts`](../../src/lib/commandPalette.ts) provi
      - In Grayscale mode (`[data-color-mode="grayscale"]`), where `.glyph-done` has `--glyph-done-opacity: 0.55`, ensure the line opacity does not degrade below WCAG AA contrast (`.cm-line-resolved .glyph-done { opacity: 1; }` when muted).
 
 #### 2.2 Topic Pill Redesign (`.glyph-topic`)
+
+> Status: implemented after v0.12.0 (CHANGELOG §196). It was missing from Release A's task list and from the first implementation.
 * **Files:** [`src/lib/editor/glyphs.ts`](../../src/lib/editor/glyphs.ts), [`src/app.css`](../../src/app.css)
 * **Objective:** Replace the italicized outlined tag from v0.11.1 with a sleek, upright rounded pill, hiding the enclosing `()` parentheses when the line is inactive while preserving exact monospace alignment.
 * **Design Specification:**

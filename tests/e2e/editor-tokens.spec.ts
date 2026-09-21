@@ -50,6 +50,14 @@ test.describe("editor — token glyphs", () => {
     await expect(editor(page).locator(".cm-line").nth(1).locator(".glyph-assignee")).toHaveCount(0);
   });
 
+  test("a parenthesised list of delegates, (@a, @b, @c), badges every name", async ({ page }) => {
+    await setEditorText(page, "# review the plan (@mary-jane, @dana, @sam)\nnotes (@dana, @sam) on a prose line");
+    await expect(editor(page).locator(".cm-line").nth(0).locator(".glyph-assignee")).toHaveText(["@mary-jane", "@dana", "@sam"]);
+    await expect(editor(page).locator(".cm-line").nth(0).locator(".glyph-topic")).toHaveCount(0);
+    // not an action-like line: left as plain text, like a single (@name)
+    await expect(editor(page).locator(".cm-line").nth(1).locator(".glyph-assignee")).toHaveCount(0);
+  });
+
   test("#125/#126: a hyphenated @name, and a parenthesised (@name), both badge", async ({ page }) => {
     await setEditorText(page, "=> @jean-luc owns it\n# review the plan (@mary-jane)");
     await expect(editor(page).locator(".cm-line").nth(0).locator(".glyph-assignee")).toHaveText("@jean-luc");

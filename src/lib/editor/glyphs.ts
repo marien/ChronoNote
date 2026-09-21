@@ -132,7 +132,7 @@ function glyphForSymbol(sym: string): [string, string] {
  * no indent-length arithmetic needed to find where it starts. */
 const renderMatcher = new MatchDecorator({
   regexp:
-    /(^!\s)|((?<=^\s*)#\s)|((?<=^\s*)v\s)|((?<=^\s*)>\s)|((?<=^\s*)x\s)|(=>\s@[\w-]+)|(=>\s[#vx>]\s)|(=>\s)|((?<=^\s*)[-*]\s)|(\(@[\w-]+\))|(@[\w-]+)|(\([^\s()]+\))/gm,
+    /(^!\s)|((?<=^\s*)#\s)|((?<=^\s*)v\s)|((?<=^\s*)>\s)|((?<=^\s*)x\s)|(=>\s@[\w-]+)|(=>\s[#vx>]\s)|(=>\s)|((?<=^\s*)[-*]\s)|(\(@[\w-]+(?:[\s,]+@[\w-]+)*\))|(@[\w-]+)|(\([^\s()]+\))/gm,
   decorate(add, from, to, match, view) {
     const text = match[0];
     if (text.startsWith("! ")) {
@@ -160,10 +160,12 @@ const renderMatcher = new MatchDecorator({
       return;
     }
     if (text.startsWith("(@")) {
-      // #126: `(@name)` — a parenthesised delegate. Badge the `@name`
-      // inside; the parens stay plain text. On an action-like line.
+      // #126: `(@name)` — a parenthesised delegate; also a list, `(@a, @b, @c)` (each name gets
+      // its own badge, the commas and parens stay plain text). On an action-like line.
       if (isActionLikeLine(view.state.doc.lineAt(from).text)) {
-        add(from + 1, to - 1, Decoration.mark({ class: "glyph-assignee" }));
+        for (const n of text.matchAll(/@[\w-]+/g)) {
+          add(from + n.index!, from + n.index! + n[0].length, Decoration.mark({ class: "glyph-assignee" }));
+        }
       }
       return;
     }
@@ -185,6 +187,11 @@ const renderMatcher = new MatchDecorator({
       const tag = leadingTopicTag(line.text);
       if (tag && line.from + tag.from === from) {
         add(from, to, Decoration.mark({ class: "glyph-topic" }));
+        // The parentheses stay real text (each exactly 1ch) but are drawn transparent, so they act as
+        // the pill's inner padding: hidden pill = same width as the raw text, zero column shift. CSS
+        // shows them again on the line being edited or hovered.
+        add(from, from + 1, Decoration.mark({ class: "glyph-topic-paren" }));
+        add(to - 1, to, Decoration.mark({ class: "glyph-topic-paren" }));
       }
       return;
     }
