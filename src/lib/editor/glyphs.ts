@@ -7,7 +7,7 @@ import {
   ViewUpdate,
   WidgetType,
 } from "@codemirror/view";
-import { isActionLikeLine, leadingTopicTag, symbolAfterClick, toggleOpenClosed } from "../tokens";
+import { isActionLikeLine, leadingTopicTag, symbolAfterClick, toggleOpenClosedAtIndex } from "../tokens";
 
 
 /** Renders the raw plain-text tokens (spec 2.2) as their visual glyphs
@@ -67,7 +67,8 @@ class InlineGlyphWidget extends WidgetType {
         e.preventDefault();
         const pos = view.posAtDOM(span);
         const line = view.state.doc.lineAt(pos);
-        const updated = toggleOpenClosed(line.text);
+        // Exactly the glyph that was hit: its position in the line is where its symbol sits.
+        const updated = toggleOpenClosedAtIndex(line.text, pos - line.from);
         if (updated !== null && updated !== line.text) {
           view.dispatch({ changes: { from: line.from, to: line.to, insert: updated } });
         }

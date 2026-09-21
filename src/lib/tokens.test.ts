@@ -5,6 +5,10 @@ import {
   innermostActionSymbol,
   cycleActionSymbol,
   closeOpenAction,
+  findActionSymbols,
+  pickActionSymbol,
+  referenceColumn,
+  toggleOpenClosedAtIndex,
   symbolAfterClick,
   toggleOpenClosed,
   reopenDoneAction,
@@ -558,5 +562,193 @@ describe("toggleOpenClosed (click on a glyph)", () => {
   it("symbolAfterClick previews the same result", () => {
     expect(symbolAfterClick("#")).toBe("v");
     for (const s of ["v", ">", "x"]) expect(symbolAfterClick(s)).toBe("#");
+  });
+});
+
+describe("findActionSymbols: every action symbol on a line, left to right", () => {
+  const at = (line: string) => findActionSymbols(line).map((s) => [s.index, s.sym]);
+
+  it("finds the leading symbol, with or without indentation", () => {
+    expect(at("# a")).toEqual([[0, "#"]]);
+    expect(at("  v a")).toEqual([[2, "v"]]);
+    expect(at("    > a")).toEqual([[4, ">"]]);
+    expect(at("x a")).toEqual([[0, "x"]]);
+    expect(at("# ")).toEqual([[0, "#"]]);
+  });
+
+  it("finds consequence actions anywhere on the line", () => {
+    expect(at("=> # a")).toEqual([[3, "#"]]);
+    expect(at("=> > a")).toEqual([[3, ">"]]);
+    expect(at("Talked to Sam => v follow up")).toEqual([[17, "v"]]);
+    expect(at("# do X => # wait")).toEqual([[0, "#"], [10, "#"]]);
+    expect(at("> => x y")).toEqual([[0, ">"], [5, "x"]]);
+    expect(at("# a => v b => x c")).toEqual([[0, "#"], [7, "v"], [14, "x"]]);
+  });
+
+  it("finds nothing on lines that are not actions", () => {
+    for (const line of ["", "plain", "- bullet", "* bullet", "! note", "=> @sam do it", "=> follow-up text", "#nospace", "#", "=> #", "Title", "====="]) {
+      expect(at(line)).toEqual([]);
+    }
+  });
+
+  it("a delegate or a plain follow-up does not hide a leading action", () => {
+    expect(at("# ask => @sam")).toEqual([[0, "#"]]);
+    expect(at("v done => a plain note")).toEqual([[0, "v"]]);
+  });
+});
+
+describe("pickActionSymbol: left of the caret first, then right", () => {
+  const line = "# do X => # wait";
+  const syms = findActionSymbols(line); // indexes 0 and 10
+  const pick = (col: number) => pickActionSymbol(syms, col)?.index;
+
+  it("a caret at the very start, before the leading symbol, finds it on the right", () => {
+    expect(pick(0)).toBe(0);
+  });
+  it("a caret anywhere after the leading symbol and up to the second one means the leading one", () => {
+    for (const col of [1, 2, 5, 9, 10]) expect(pick(col)).toBe(0);
+  });
+  it("a caret after the second symbol (even before the space that follows it) means the second one", () => {
+    for (const col of [11, 12, 14, line.length]) expect(pick(col)).toBe(10);
+  });
+
+  it("with only symbols to the right, the nearest one on the right is used", () => {
+    const s = findActionSymbols("    text => # a"); // the leading part is prose, only one symbol
+    expect(pickActionSymbol(s, 0)?.index).toBe(12);
+    expect(pickActionSymbol(s, 12)?.index).toBe(12);
+    expect(pickActionSymbol(s, 13)?.index).toBe(12);
+  });
+
+  it("with a caret in the indentation of an indented action, the symbol on the right is found", () => {
+    const s = findActionSymbols("  # x");
+    expect(pickActionSymbol(s, 0)?.index).toBe(2);
+    expect(pickActionSymbol(s, 2)?.index).toBe(2);
+    expect(pickActionSymbol(s, 3)?.index).toBe(2);
+  });
+
+  it("no symbols, no result, at every column", () => {
+    for (let c = 0; c <= 6; c++) expect(pickActionSymbol([], c)).toBeNull();
+  });
+
+  it("property: the nearest symbol before the caret wins; only when none, the first at or after it", () => {
+    const l = "# a => v b => x c";
+    const ss = findActionSymbols(l);
+    for (let col = 0; col <= l.length; col++) {
+      const before = ss.filter((s) => s.index < col);
+      const expected = before.length ? before[before.length - 1] : ss.find((s) => s.index >= col);
+      expect(pickActionSymbol(ss, col)).toEqual(expected);
+    }
+  });
+});
+
+describe("caret-aware transforms", () => {
+  const L = "# do X => # wait";
+
+  it("close (# -> v) acts on the symbol at the caret only", () => {
+    expect(closeOpenAction(L, 5)).toBe("v do X => # wait");
+    expect(closeOpenAction(L, 16)).toBe("# do X => v wait");
+    expect(closeOpenAction(L, 0)).toBe("v do X => # wait");
+    expect(closeOpenAction("  # a => # b", 1)).toBe("  v a => # b");
+  });
+
+  it("close does nothing when the symbol at the caret is not open (it does not hunt for another)", () => {
+    expect(closeOpenAction("v a => # b", 3)).toBeNull();
+    expect(closeOpenAction("> a", 2)).toBeNull();
+    expect(closeOpenAction("plain", 2)).toBeNull();
+  });
+
+  it("reopen (v -> #) acts on the symbol at the caret only", () => {
+    expect(reopenDoneAction("v a => v b", 2)).toBe("# a => v b");
+    expect(reopenDoneAction("v a => v b", 12)).toBe("v a => # b");
+    expect(reopenDoneAction("# a => v b", 3)).toBeNull();
+    expect(reopenDoneAction("x a", 1)).toBeNull();
+  });
+
+  it("set-to-state changes the symbol at the caret, keeping everything else", () => {
+    expect(setActionSymbolTo(L, ">", 1)).toBe("> do X => # wait");
+    expect(setActionSymbolTo(L, "x", 15)).toBe("# do X => x wait");
+    expect(setActionSymbolTo("  v a => # b", "#", 4)).toBe("  # a => # b");
+    expect(setActionSymbolTo("=> # follow up", "v", 0)).toBe("=> v follow up");
+    // already that state: an unchanged line, not null (the caller counts changes)
+    expect(setActionSymbolTo("# a", "#", 1)).toBe("# a");
+  });
+
+  it("set-to-state with no symbol on the line turns the whole line into that action, as before", () => {
+    expect(setActionSymbolTo("plain text", "v", 3)).toBe("v plain text");
+    expect(setActionSymbolTo("  indented text", "#", 5)).toBe("  # indented text");
+    expect(setActionSymbolTo("=> a follow-up", "x", 6)).toBe("=> x a follow-up");
+    expect(setActionSymbolTo("Talked to Sam => a follow-up", ">", 2)).toBe("Talked to Sam => > a follow-up");
+    expect(setActionSymbolTo("- bullet", "#", 2)).toBeNull();
+    expect(setActionSymbolTo("! remember", "#", 2)).toBeNull();
+    expect(setActionSymbolTo("=> @sam do it", "#", 2)).toBeNull();
+    expect(setActionSymbolTo("=====", "#", 2)).toBeNull();
+  });
+
+  it("Ctrl+Shift+O (open) acts on the caret's symbol and never promotes a plain line", () => {
+    expect(setActionSymbolOpen("v a => x b", 1)).toBe("# a => x b");
+    expect(setActionSymbolOpen("v a => x b", 12)).toBe("v a => # b");
+    expect(setActionSymbolOpen("plain", 2)).toBeNull();
+  });
+
+  it("toggle (open <-> closed) at a caret column", () => {
+    expect(toggleOpenClosed("# a => > b", 1)).toBe("v a => > b");
+    expect(toggleOpenClosed("# a => > b", 12)).toBe("# a => # b");
+    expect(toggleOpenClosed("plain", 1)).toBeNull();
+  });
+
+  it("without a column every transform still means the innermost symbol (the Action Drawer's rule)", () => {
+    expect(closeOpenAction(L)).toBe("# do X => v wait");
+    expect(setActionSymbolTo("# a => # b", "v")).toBe("# a => v b");
+    expect(toggleOpenClosed("# a => # b")).toBe("# a => v b");
+    expect(cycleActionSymbol("# a => # b")).toBe("# a => v b");
+  });
+});
+
+describe("toggleOpenClosedAtIndex: a click affects exactly the glyph that was hit", () => {
+  const L = "# do X => > wait";
+
+  it("the leading glyph toggles the leading symbol, whatever else is on the line", () => {
+    expect(toggleOpenClosedAtIndex(L, 0)).toBe("v do X => > wait");
+  });
+  it("the follow-up's glyph toggles the follow-up's symbol", () => {
+    expect(toggleOpenClosedAtIndex(L, 10)).toBe("# do X => # wait");
+  });
+  it("an index that is not an action symbol does nothing", () => {
+    for (const i of [1, 3, 7, 8, 9, 11, 99]) expect(toggleOpenClosedAtIndex(L, i)).toBeNull();
+    expect(toggleOpenClosedAtIndex("plain", 0)).toBeNull();
+  });
+  it("indented lines and three symbols", () => {
+    expect(toggleOpenClosedAtIndex("  x a", 2)).toBe("  # a");
+    expect(toggleOpenClosedAtIndex("# a => v b => x c", 7)).toBe("# a => # b => x c");
+    expect(toggleOpenClosedAtIndex("# a => v b => x c", 14)).toBe("# a => v b => # c");
+  });
+});
+
+describe("referenceColumn: which column each selected line is judged by", () => {
+  // three lines of 10 characters at [0,10], [11,21], [22,32]
+  const A = { from: 0, to: 10 }, B = { from: 11, to: 21 }, C = { from: 22, to: 32 };
+
+  it("a caret: its own column on its own line", () => {
+    const sel = { from: 15, to: 15, head: 15 };
+    expect(referenceColumn(sel, B)).toBe(4);
+  });
+  it("a selection inside one line uses the caret end (head)", () => {
+    expect(referenceColumn({ from: 12, to: 18, head: 18 }, B)).toBe(7);
+    expect(referenceColumn({ from: 12, to: 18, head: 12 }, B)).toBe(1);
+  });
+  it("a forward multi-line selection: the caret line uses the caret, the start line its start, the middle line column 0", () => {
+    const sel = { from: 5, to: 25, head: 25 };
+    expect(referenceColumn(sel, A)).toBe(5);
+    expect(referenceColumn(sel, B)).toBe(0);
+    expect(referenceColumn(sel, C)).toBe(3);
+  });
+  it("a backward multi-line selection gives the same columns", () => {
+    const sel = { from: 5, to: 25, head: 5 };
+    expect(referenceColumn(sel, A)).toBe(5);
+    expect(referenceColumn(sel, B)).toBe(0);
+    expect(referenceColumn(sel, C)).toBe(3);
+  });
+  it("a caret at the very end of a line belongs to that line", () => {
+    expect(referenceColumn({ from: 10, to: 10, head: 10 }, A)).toBe(10);
   });
 });

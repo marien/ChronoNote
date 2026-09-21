@@ -8630,9 +8630,36 @@ editor, standalone or the symbol of a `=> <symbol>` consequence action, mouse an
 `#` becomes done `v`, and a done, deferred or won't-do line reopens to `#`. Indentation, the arrow and the rest of the line are untouched. The
 hover preview (`#34`) shows the glyph a click will produce (☑ over an open one, ☐ over any closed one). The other states stay one
 keystroke away: `Ctrl/Cmd+1`-`4`, and `Ctrl+Space` / `Ctrl+Shift+Space` for close/reopen; the Action Drawer's own `Ctrl+Space` still
-cycles the focused row. With two action symbols on one line the innermost (the consequence) is the one that toggles, as before.
+cycles the focused row (line-wide, innermost symbol).
 New `toggleOpenClosed` and `symbolAfterClick` in `tokens.ts`. The Shortcuts & Symbols "Click a glyph" row, the spec and the guide
 say so. Tests: unit tests for both functions (states, indentation, consequence actions, non-actions, a true two-state toggle) and
 Playwright for clicking every state, indentation and consequence actions, and hover previews of closed glyphs.
 
-Verification: Vitest 500, `svelte-check` 0, Playwright 308, `cargo test` unchanged.
+**Which symbol, when a line holds several (`# do X => # wait`) — follow-up spec from Marien.** Before, every command took the
+innermost (last) symbol on the line, so clicking the leading glyph could change the follow-up. Now:
+
+- **Mouse or touch:** exactly the glyph that was clicked (its position in the line is where its symbol sits), whatever else is on the
+  line and wherever the caret is.
+- **Keyboard, command palette and the phone action buttons** (`Ctrl+Space`, `Ctrl+Shift+Space`, `Ctrl/Cmd+Enter`, `Ctrl/Cmd+1`-`4`,
+  `Ctrl/Cmd+Shift+O`, the palette's "Current line" commands, the ☐ ☑ » ☒ buttons): the symbol nearest to the **left** of the caret; if there is
+  none on the left, the nearest to the **right**; that one symbol changes. A caret right after a symbol (even before the space that
+  follows it) means that symbol; a caret right before a symbol only finds it when nothing lies to its left, so on
+  `# do X |=> # wait` the leading symbol is the one on the left.
+- **No action symbol on the line:** `Ctrl/Cmd+1`-`4` and the phone buttons turn the whole line into that action, exactly as before (plain
+  line, `=> follow-up` becomes `=> # follow-up`; bullets, emphasis, `=> @name` delegates and the `=====` underline are left alone).
+  `Ctrl+Space`, `Ctrl+Shift+Space` and `Ctrl+Shift+O` still do nothing on a line without one.
+- **Close / reopen only act on the chosen symbol:** `Ctrl+Space` on a caret whose symbol is already done does nothing; it does not hunt for a
+  different, open symbol.
+- **A multi-line selection:** each line is judged by its own reference column: on the line holding the caret, the caret; on the line
+  holding the other end of the selection, that end; on every line in between, the start of the line (so its leftmost symbol).
+- **Unchanged:** the Action Drawer's own `Ctrl+Space` and Section History act on a whole line (the innermost symbol), since a row there is a
+  line, not a caret.
+
+Implementation: `findActionSymbols`, `pickActionSymbol`, `referenceColumn`, `toggleOpenClosedAtIndex` in `tokens.ts`, and an optional column on
+`toggleOpenClosed`/`closeOpenAction`/`reopenDoneAction`/`setActionSymbolTo`/`setActionSymbolOpen`; `EditorPane` passes each line's reference column. Tests: 28
+new unit tests (symbol finding for every line shape, caret picking at every column plus a property test, each transform with a column, the
+no-symbol fallbacks, click-at-index, reference columns for forward/backward/multi-line selections) and a Playwright spec (`action-target.spec.ts`, 15
+tests: clicks on two and three symbols, caret at start/middle/end, reopen, "not open" no-op, Ctrl+1-4, Ctrl+Shift+O, plain-line promotion, multi-line
+selection, the palette, the phone buttons).
+
+Verification: Vitest 528, `svelte-check` 0, Playwright 323, `cargo test` unchanged.

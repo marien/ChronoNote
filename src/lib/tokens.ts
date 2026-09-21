@@ -153,9 +153,16 @@ export function cycleActionSymbol(line: string, direction: 1 | -1 = 1): string |
  * four, which never landed where you wanted; the direct shortcuts (`Ctrl/Cmd+1`-`4`, `Ctrl+Space`) reach
  * the others. Same line shapes as `cycleActionSymbol` (a plain leading symbol, or a `=> <symbol>`
  * consequence action); `null` when the line has no action symbol. */
-export function toggleOpenClosed(line: string): string | null {
-  const m = matchActionSymbol(line);
+export function toggleOpenClosed(line: string, col?: number): string | null {
+  const m = matchActionSymbol(line, col);
   return m ? m.rebuild(m.sym === "#" ? "v" : "#") : null;
+}
+
+/** A click or tap on a glyph: toggles exactly the symbol whose character sits at `index` in the line (the
+ * position of the glyph that was hit), whatever else the line holds. `null` if no action symbol is there. */
+export function toggleOpenClosedAtIndex(line: string, index: number): string | null {
+  const s = findActionSymbols(line).find((x) => x.index === index);
+  return s ? setSymbolAt(line, s.index, s.sym === "#" ? "v" : "#") : null;
 }
 
 /** The symbol a click on a glyph showing `sym` produces (`toggleOpenClosed`'s target), for the hover preview. */
@@ -176,8 +183,8 @@ export function symbolAfterClick(sym: string): string {
  * through unchanged (a no-op replacement), which callers rely on to
  * distinguish "nothing to do" from "did work" only via *some* line in a
  * selection changing, not this one specifically. */
-export function setActionSymbolTo(line: string, symbol: "#" | "v" | ">" | "x"): string | null {
-  return replaceActionSymbol(line, () => symbol, symbol);
+export function setActionSymbolTo(line: string, symbol: "#" | "v" | ">" | "x", col?: number): string | null {
+  return replaceActionSymbol(line, () => symbol, symbol, col);
 }
 
 /** #65/#73: `Ctrl/Cmd+Shift+O` — sets every line in the selection to open,
@@ -190,8 +197,8 @@ export function setActionSymbolTo(line: string, symbol: "#" | "v" | ">" | "x"): 
  * contract. Same line-shape matching as `cycleActionSymbol` (no
  * `createAs`), so a plain line, bullet, emphasis, delegated follow-up, or
  * the setext underline itself all correctly return `null`. */
-export function setActionSymbolOpen(line: string): string | null {
-  return replaceActionSymbol(line, () => "#");
+export function setActionSymbolOpen(line: string, col?: number): string | null {
+  return replaceActionSymbol(line, () => "#", undefined, col);
 }
 
 /** #73: Ctrl+Space's sole remaining job now that Ctrl+1-4 cover every
@@ -200,8 +207,8 @@ export function setActionSymbolOpen(line: string): string | null {
  * bullet, emphasis, or a delegated follow-up. No more cycling through all
  * four states, and no more promoting a plain line into a new action —
  * that's `Ctrl+1`'s job now (`setActionSymbolTo`). */
-export function closeOpenAction(line: string): string | null {
-  const m = matchActionSymbol(line);
+export function closeOpenAction(line: string, col?: number): string | null {
+  const m = matchActionSymbol(line, col);
   return m && m.sym === "#" ? m.rebuild("v") : null;
 }
 
@@ -210,8 +217,8 @@ export function closeOpenAction(line: string): string | null {
  * including a deferred/won't-do/open/plain line — `Ctrl+1` already
  * reopens any line directly, so this only needs to handle its one literal
  * inverse. */
-export function reopenDoneAction(line: string): string | null {
-  const m = matchActionSymbol(line);
+export function reopenDoneAction(line: string, col?: number): string | null {
+  const m = matchActionSymbol(line, col);
   return m && m.sym === "v" ? m.rebuild("#") : null;
 }
 
@@ -225,18 +232,58 @@ export function reopenDoneAction(line: string): string | null {
  * symbol before deciding whether/how to change it (`closeOpenAction`/
  * `reopenDoneAction`), not just blindly transform it the way
  * `replaceActionSymbol` below does. */
-function matchActionSymbol(line: string): { sym: string; rebuild: (newSym: string) => string } | null {
-  const delegateMatch = line.match(/^(.*=>\s)([#vx>])(\s.*)$/);
-  if (delegateMatch) {
-    const [, prefix, sym, rest] = delegateMatch;
-    return { sym, rebuild: (newSym) => prefix + newSym + rest };
-  }
-  const plainMatch = line.match(/^(\s*)([#vx>])(\s.*)$/);
-  if (plainMatch) {
-    const [, indent, sym, rest] = plainMatch;
-    return { sym, rebuild: (newSym) => indent + newSym + rest };
-  }
-  return null;
+/** One action symbol on a line: the index of its character (`#`/`v`/`>`/`x`) and which one it is. */
+export interface ActionSymbolRef {
+  index: number;
+  sym: string;
+}
+
+/** Every action symbol on a line, left to right: the leading one (the first non-blank character, followed by
+ * whitespace; indentation allowed, §50) and every `=> <symbol>` consequence action (§41), wherever on the line
+ * it sits. A line can hold several (`# do X => # wait`). Delegates (`=> @name`), plain `=> ` follow-ups,
+ * bullets, emphasis and prose have none. */
+export function findActionSymbols(line: string): ActionSymbolRef[] {
+  const out: ActionSymbolRef[] = [];
+  const lead = line.match(/^(\s*)([#vx>])(?=\s)/);
+  if (lead) out.push({ index: lead[1].length, sym: lead[2] });
+  for (const m of line.matchAll(/=>\s([#vx>])(?=\s)/g)) out.push({ index: m.index! + m[0].length - 1, sym: m[1] });
+  return out;
+}
+
+/** Which symbol a caret at column `col` (between the characters `col - 1` and `col`) means: the nearest one to
+ * its LEFT (its character before the caret); when there is none on the left, the nearest to the RIGHT. `null` when
+ * the line has no action symbol. With the caret right after a symbol (even before the space that follows it) that
+ * symbol is the left one; with the caret right before it, the symbol is to the right. */
+export function pickActionSymbol(symbols: ActionSymbolRef[], col: number): ActionSymbolRef | null {
+  let left: ActionSymbolRef | null = null;
+  for (const s of symbols) if (s.index < col) left = s;
+  return left ?? symbols.find((s) => s.index >= col) ?? null;
+}
+
+function setSymbolAt(line: string, index: number, sym: string): string {
+  return line.slice(0, index) + sym + line.slice(index + 1);
+}
+
+/** The reference column for a line when a command (keyboard shortcut, palette entry, phone button) applies to
+ * a selection. A caret or a selection inside one line: the caret (`head`). A multi-line selection: on the line
+ * holding the caret, the caret; on the line holding the other end, that end; on every line in between, the start
+ * of the line, so the leftmost symbol there is the one found. `line` gives the line's document span. */
+export function referenceColumn(sel: { from: number; to: number; head: number }, line: { from: number; to: number }): number {
+  const inside = (pos: number) => pos >= line.from && pos <= line.to;
+  if (inside(sel.head)) return sel.head - line.from;
+  if (inside(sel.from)) return sel.from - line.from;
+  if (inside(sel.to)) return sel.to - line.from;
+  return 0;
+}
+
+/** Shared line-matching for the symbol transforms above. Without `col` it is the line-wide rule the Action Drawer
+ * still uses: the innermost (last) symbol on the line. With `col` (a caret column) it is the symbol the caret
+ * means (`pickActionSymbol`). Returns the symbol plus a `rebuild` closure that swaps in a new one, leaving
+ * everything else (indentation, the arrow, the rest of the line) as it was. */
+function matchActionSymbol(line: string, col?: number): { sym: string; rebuild: (newSym: string) => string } | null {
+  const symbols = findActionSymbols(line);
+  const pick = col === undefined ? (symbols[symbols.length - 1] ?? null) : pickActionSymbol(symbols, col);
+  return pick ? { sym: pick.sym, rebuild: (newSym) => setSymbolAt(line, pick.index, newSym) } : null;
 }
 
 /** #69: when neither shape `matchActionSymbol` recognizes is present,
@@ -260,8 +307,8 @@ function matchActionSymbol(line: string): { sym: string; rebuild: (newSym: strin
  * lines (`cycleActionSymbol`, `setActionSymbolOpen`,
  * `closeOpenAction`/`reopenDoneAction`, all via `matchActionSymbol`
  * directly instead of this function). */
-function replaceActionSymbol(line: string, next: (sym: string) => string, createAs?: string): string | null {
-  const m = matchActionSymbol(line);
+function replaceActionSymbol(line: string, next: (sym: string) => string, createAs?: string, col?: number): string | null {
+  const m = matchActionSymbol(line, col);
   if (m) return m.rebuild(next(m.sym));
   if (createAs === undefined) return null;
   const followMatch = line.match(/^(.*=>\s)(?!@)(\S.*)$/);

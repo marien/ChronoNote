@@ -78,6 +78,15 @@ action glyph toggles it between open and closed (`# → v`; a done, deferred or
 won't-do line reopens to `#`); hovering it first previews the result without
 committing it. The other states are reached with `Ctrl/Cmd+1`-`4`.
 
+**Which symbol** when a line holds several (`# do X => # wait`): a click or tap
+changes exactly the glyph clicked. Keyboard shortcuts, palette commands and the
+phone buttons change the symbol nearest to the left of the caret, or, with none
+on the left, the nearest to the right; with no action symbol on the line,
+`Ctrl/Cmd+1`-`4` and the buttons turn the whole line into that action. For a
+multi-line selection each line is judged by its own reference column (the caret
+or selection end on the lines that hold them, the line start in between). The
+Action Drawer acts on whole lines (the last symbol).
+
 **Copy/paste deferral:** copying a `# ` line and pasting it into today's
 note, or into any *later*-dated note, marks the original line as `> `
 (deferred) back in its source file/tab — a quick way to forward a task

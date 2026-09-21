@@ -16,6 +16,7 @@
     adjacentOpenActionLine,
     closeOpenAction,
     isSetextUnderline,
+    referenceColumn,
     reopenDoneAction,
     setActionSymbolOpen,
     setActionSymbolTo,
@@ -183,11 +184,11 @@
    * Ctrl+Space's close/reopen pair, which (unlike `applyActionStateToSelection`
    * below) never touches more than one line at a time and never promotes
    * a plain line into a new action. */
-  function applyToCurrentLine(v: EditorView, transform: (line: string) => string | null): boolean {
+  function applyToCurrentLine(v: EditorView, transform: (line: string, col: number) => string | null): boolean {
     const pos = v.state.selection.main.head;
     const line = v.state.doc.lineAt(pos);
     if (isHeaderLine(v, line.number)) return false;
-    const updated = transform(line.text);
+    const updated = transform(line.text, pos - line.from);
     if (updated === null) return false;
     v.dispatch({ changes: { from: line.from, to: line.to, insert: updated } });
     return true;
@@ -207,15 +208,17 @@
    * caller has the document context (the *next* line) to tell. One
    * transaction for the whole span, so it undoes as a single step. A
    * no-op (returns `false`) when nothing in the span changed at all. */
-  function applyActionStateToSelection(v: EditorView, transform: (line: string) => string | null): boolean {
-    const { from, to } = v.state.selection.main;
+  function applyActionStateToSelection(v: EditorView, transform: (line: string, col: number) => string | null): boolean {
+    const sel = v.state.selection.main;
+    const { from, to } = sel;
     const firstLine = v.state.doc.lineAt(from);
     const lastLine = v.state.doc.lineAt(to);
     let changed = false;
     const lines: string[] = [];
     for (let n = firstLine.number; n <= lastLine.number; n++) {
-      const text = v.state.doc.line(n).text;
-      const updated = isHeaderLine(v, n) ? null : transform(text);
+      const docLine = v.state.doc.line(n);
+      const text = docLine.text;
+      const updated = isHeaderLine(v, n) ? null : transform(text, referenceColumn(sel, docLine));
       if (updated !== null) changed = true;
       lines.push(updated ?? text);
     }
@@ -401,10 +404,10 @@
       // #70: Ctrl+1-4 set every action in the selection directly to
       // open/done/deferred/won't-do, matching `ACTION_CYCLE_ORDER`
       // (tokens.ts).
-      { key: "Mod-1", run: (v) => applyActionStateToSelection(v, (line) => setActionSymbolTo(line, "#")) },
-      { key: "Mod-2", run: (v) => applyActionStateToSelection(v, (line) => setActionSymbolTo(line, "v")) },
-      { key: "Mod-3", run: (v) => applyActionStateToSelection(v, (line) => setActionSymbolTo(line, ">")) },
-      { key: "Mod-4", run: (v) => applyActionStateToSelection(v, (line) => setActionSymbolTo(line, "x")) },
+      { key: "Mod-1", run: (v) => applyActionStateToSelection(v, (line, col) => setActionSymbolTo(line, "#", col)) },
+      { key: "Mod-2", run: (v) => applyActionStateToSelection(v, (line, col) => setActionSymbolTo(line, "v", col)) },
+      { key: "Mod-3", run: (v) => applyActionStateToSelection(v, (line, col) => setActionSymbolTo(line, ">", col)) },
+      { key: "Mod-4", run: (v) => applyActionStateToSelection(v, (line, col) => setActionSymbolTo(line, "x", col)) },
       { key: "F2", run: (v) => jumpToAdjacentOpenAction(v, 1) },
       { key: "Shift-F2", run: (v) => jumpToAdjacentOpenAction(v, -1) },
       {
@@ -687,7 +690,7 @@
       reopenCurrentDoneAction: () => (view ? applyToCurrentLine(view, reopenDoneAction) : false),
       convertCurrentLineToSection: () => (view ? convertLineToSection(view) : false),
       setActionStateOnSelection: (symbol: "#" | "v" | ">" | "x") =>
-        view ? applyActionStateToSelection(view, (line) => setActionSymbolTo(line, symbol)) : false,
+        view ? applyActionStateToSelection(view, (line, col) => setActionSymbolTo(line, symbol, col)) : false,
       jumpAdjacentOpenAction: (direction: 1 | -1) => (view ? jumpToAdjacentOpenAction(view, direction) : false),
       pulseLine: (lineIdx: number) => {
         triggerLinePulse(lineIdx);
@@ -771,7 +774,8 @@
       },
       applyToken: (token) => {
         if (!view) return;
-        const { from, to } = view.state.selection.main;
+        const sel = view.state.selection.main;
+        const { from, to } = sel;
         const firstLine = view.state.doc.lineAt(from);
         const lastLine = view.state.doc.lineAt(to);
         const changes: { from: number; to: number; insert: string }[] = [];
@@ -784,7 +788,7 @@
               const stripped = line.text.replace(/^(\s*)([#vx>]|[-*]|!)\s/, "");
               updated = `${indent}${token} ${stripped}`;
             } else {
-              updated = setActionSymbolTo(line.text, token);
+              updated = setActionSymbolTo(line.text, token, referenceColumn(sel, line));
             }
           } else if (token === "-") {
             if (/^\s*[-*]\s/.test(line.text)) {
