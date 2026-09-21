@@ -6,7 +6,7 @@ kept for the rationale behind each one — not just *what* changed but
 was still being gathered and confirmed before implementation; renamed once
 everything below was applied, since nothing here is "pending" anymore.
 
-**Status: all sections through §202 implemented** (§178–§180 in v0.9.5: a save-only-when-changed fix and two GitHub issues, #76/#77; §181–§186 in v0.10.0: the Android app and OneDrive sync; §187–§188 in v0.11.0: OneDrive sync for the web app, and the fixes found reviewing and testing it; §191–§195 in v0.12.0: the Android folder-switch fix, shorter Settings labels, and the v0.12 UI/UX refinements in three stages (§193 palette, resolved lines, calendar dots and search; §194 modal system and phone layouts; §195 Zen mode, drag-and-drop import, sync health popover, typography and pure black; §196 in v0.12.1: renewable web sign-in, wrapping long messages, the Shift+F11 Zen chord and a full-window Zen mode, the topic pill and multi-name delegates; §197 in v0.12.2: Sync Review keyboard use and calendar status prefixes (#78))). §153 is a
+**Status: all sections through §203 implemented** (§178–§180 in v0.9.5: a save-only-when-changed fix and two GitHub issues, #76/#77; §181–§186 in v0.10.0: the Android app and OneDrive sync; §187–§188 in v0.11.0: OneDrive sync for the web app, and the fixes found reviewing and testing it; §191–§195 in v0.12.0: the Android folder-switch fix, shorter Settings labels, and the v0.12 UI/UX refinements in three stages (§193 palette, resolved lines, calendar dots and search; §194 modal system and phone layouts; §195 Zen mode, drag-and-drop import, sync health popover, typography and pure black; §196 in v0.12.1: renewable web sign-in, wrapping long messages, the Shift+F11 Zen chord and a full-window Zen mode, the topic pill and multi-name delegates; §197 in v0.12.2: Sync Review keyboard use and calendar status prefixes (#78))). §153 is a
 website-only Guide-page fix (found live right after §150–§152 shipped
 as v0.7.12) — no version bump, nothing in the shipped app changed. §154
 merges the OS title bar into the top bar (Notepad-style: icon, tabs,
@@ -8750,3 +8750,21 @@ dropping files on the web app and the "Sign in again" flow. `index.html`: three 
 web app). The live site only changes when `website-live` is promoted with the release.
 
 Verification: Vitest 561, `svelte-check` 0, Playwright 375, `cargo test` unchanged.
+
+## 203. Zen mode from a maximized window covers the taskbar (unreleased, NOT verified on a real window)
+
+Marien, on Windows 11: pressing F11 from a *maximized* window hid the top bar, the bottom bar and the taskbar and grew the content, but
+the content did not reach the strip where the taskbar had been; from a normal-size window it worked. `setFullscreen(true)` on a window
+without a native title bar (`decorations: false`) that is maximized leaves it at its maximized size on Windows. §196 had only made the bars
+give their space back; this is the other half.
+
+Fix (`zenWindow.ts`, used by `App.svelte`): when Zen starts the window's maximized state is read; a maximized window is restored
+(`unmaximize`), then made fullscreen; when Zen ends it leaves fullscreen and is maximized again. A normal window is untouched (fullscreen
+and back, as before). The steps run one after another (a quick double toggle cannot interleave them) and never throw. New capabilities:
+`core:window:allow-is-maximized`, `allow-maximize`, `allow-unmaximize` (without them the calls are refused silently, the same failure class
+as §93 and §135). Tests: 7 unit tests against a fake window (order of calls for maximized and normal windows, the state remembered per
+session, a stray leave, serialization, failures, an unreadable state). **What no test can show:** the real window on Windows 11 (the mock
+backend has no windowing). If the taskbar strip is still there, or the brief restore before fullscreen is too visible, the fallbacks are
+toggling the window's decorations around the fullscreen call or sizing the window to the monitor by hand; Marien to confirm on his machine.
+
+Verification: Vitest 568, `svelte-check` 0, Playwright 375, `cargo check` accepts the capabilities.

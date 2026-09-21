@@ -21,6 +21,7 @@
   } from "./lib/controller";
   import { matchesShortcut } from "./lib/shortcuts";
   import { wireMobileViewport } from "./lib/mobileViewport";
+  import { createZenWindowController } from "./lib/zenWindow";
   import Icon from "./lib/icons/Icon.svelte";
   import TopBar from "./lib/components/TopBar.svelte";
   import StatusBar from "./lib/components/StatusBar.svelte";
@@ -255,11 +256,13 @@
   // Only touch the native window when Zen actually flips: on startup the value is already
   // false and there is nothing to undo (this used to force "leave fullscreen" on every launch).
   let zenFullscreenApplied = false;
+  let zenWindow: ReturnType<typeof createZenWindowController> | undefined;
   $: if (typeof document !== "undefined") {
     document.body.classList.toggle("zen-mode", $isZenMode);
     if ($backendKind === "desktop" && $isZenMode !== zenFullscreenApplied) {
       zenFullscreenApplied = $isZenMode;
-      getCurrentWindow().setFullscreen($isZenMode).catch(() => {});
+      zenWindow ??= createZenWindowController(getCurrentWindow());
+      void zenWindow.set($isZenMode);
     }
   }
 
