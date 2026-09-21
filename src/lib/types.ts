@@ -18,19 +18,13 @@ export type {
   OneDriveLoginResult,
   OneDriveSyncResult,
   SyncConflict,
+  SyncHealth,
   SyncStatus,
   TabSession,
   ThemeMode,
 } from "./generated/tauri-types";
 
 // --- Frontend-only shapes (no Rust counterpart) -----------------------
-
-export interface SyncHealth {
-  status: "idle" | "syncing" | "offline" | "error";
-  lastSyncSuccessMs: number | null;
-  localNoteCount: number;
-  pendingUploadCount: number;
-}
 
 export interface NoteTab {
   id: string;

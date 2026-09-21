@@ -8505,20 +8505,20 @@ hidden hints) and the Shortcuts tab switcher.
 The third stage of the UI/UX refinements roadmap (`docs/design/ui-ux-refinements-v0.12-roadmap.md`, areas 3, 4, 9, 10).
 
 1. **Zen mode (distraction-free canvas, Area 3).**
-   - Toggle with `Ctrl+Alt+Z` (`Cmd+Option+Z` on macOS) or `F11` as desktop alias, or via Command Palette (`>Toggle Zen mode`).
+   - Toggle with `Ctrl+Alt+Z` (`Cmd+Option+Z` on macOS) or via the Command Palette (`>Toggle Zen mode`). `F11` is an extra alias in the desktop app only (not registered in the shortcut list, because browsers keep F11 for their own fullscreen).
    - Hides top bar (`translateY(-100%)`) and status bar (`translateY(100%)`) with smooth 200ms ease transitions.
    - Fixed indicator banner in top-right with "Zen mode" status and an "Exit" button.
    - Desktop window enters native fullscreen (`setFullscreen(true)` enabled via `allow-set-fullscreen` and `allow-is-fullscreen` permissions in `capabilities/default.json`).
    - Escape priority order: open modal dialogs and non-modal in-document find bar (`Ctrl+F`) close first on Escape; only when no dialog or find bar is active does Escape exit Zen mode.
-   - Skipped for Android devices (guarded in shortcut dispatch and command palette).
+   - **Not available on Android, by decision** (guarded in shortcut dispatch and the palette). The window is only switched to or from fullscreen when Zen actually flips, not on every launch.
 2. **Web drag-and-drop file import (Area 4).**
    - Active on web app and demo builds (`$backendKind === "web"` or `"demo"`).
    - Dragging files over the window displays a full-screen frosted overlay (`#drop-overlay`) with icon and instruction banner.
    - Dropping a `.json` backup bundle opens Settings on the Data section pre-loaded with the bundle preview for confirmation.
-   - Dropping one or more dated `.txt` notes (`YYYY-MM-DD.txt`) merges them into storage: identical notes are skipped, differing notes write conflict copies (`YYYY-MM-DD (conflict YYYY-MM-DD HHMMSS).txt`) using the OneDrive migration conflict behavior.
+   - Dropping one or more dated `.txt` notes (`YYYY-MM-DD.txt`) imports them: new notes are written, identical ones skipped. A note whose date already has *different* text is never written: a "Dropped notes differ" dialog (`DroppedNotesModal`) shows both versions with the differing lines highlighted and offers *Keep my note*, *Use the dropped file* or *Keep both* (the dropped text appended under a `# Dropped copy` marker), per note. Closing the dialog keeps every note as it is. (The first version of this wrote hidden conflict copies nobody could open; that was replaced.)
    - Dropping unrecognised files displays an informative toast notification.
 3. **Cloud sync health & telemetry dashboard (Area 9).**
-   - Clicking `#stat-cloud` in the status bar (when OneDrive is configured on Web or Android) opens an anchored telemetry popover (`#telemetry-popover`) docked above the status bar.
+   - Works on web and on Android: Android's Rust engine now has the `get_sync_health` command (`OneDriveManager::health`; the shared `SyncHealth` type is generated from Rust). "Last synced" is remembered for the session only on Android. Clicking `#stat-cloud` in the status bar (when OneDrive is configured on Web or Android) opens an anchored telemetry popover (`#telemetry-popover`) docked above the status bar.
    - Displays real-time sync status (`● In sync`, `⟳ Syncing changes…`, `▲ Offline (cached)`, or `✕ Sync error`), humanized relative time since last successful sync (`Just now (HH:MM)`, `N minutes ago`, or `Never`), local cached note count (`IndexedDB` or local mirror), pending upload count, connected account email, and target OneDrive folder path.
    - "Sync Now" action button triggers immediate background sync with live spinner feedback.
    - "Open Settings" action button navigates directly to the Notes & Sync tab in `SettingsModal`.
@@ -8531,6 +8531,6 @@ The third stage of the UI/UX refinements roadmap (`docs/design/ui-ux-refinements
      - Layers `data-pure-black` attribute on `<html>` over the dark theme, mapping `--surface-canvas` to absolute `#000000`, `--surface-chrome` to `#0a0a0a`, and `--surface-overlay` to `#121212` for OLED power savings and contrast.
      - Persisted across `storage.rs` AppConfig, `tauri-types.ts`, `mockBackend.ts`, and `webBackend.ts`.
 
-Verification: Vitest 478 passed (all 26 test files), `svelte-check` 0 errors / 0 warnings, Playwright 289 passed (new specs: `zen-mode.spec.ts`, `drag-drop-import.spec.ts`, `sync-health-popover.spec.ts`, and extended `settings.spec.ts`), `check:e2e` passed, `cargo test` 141 passed, `npm run build:webapp` passed.
+Verification: Vitest 478, `svelte-check` 0, Playwright 297 (new specs: `zen-mode.spec.ts`, `drag-drop-import.spec.ts` including the review dialog and a dropped `.json` bundle, `sync-health-popover.spec.ts`, and extended `settings.spec.ts`), `cargo test` 144 (+3: sync-health counts, missing-folder health, and a config written before the typography fields loads with the old look), `npm run build:webapp` fresh. Reviewed and fixed here before merging (roadmap section 15 style): the web bundle had not been rebuilt, Android had no `get_sync_health`, dropped-note conflicts had no review path, F11 was bound on every platform.
 
 

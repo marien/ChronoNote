@@ -236,10 +236,9 @@ export const SHORTCUTS: ShortcutDef[] = [
   {
     id: "toggleZenMode",
     label: "Zen mode (distraction-free canvas)",
-    combos: [
-      { mod: true, alt: true, code: "KeyZ" },
-      { code: "F11" },
-    ],
+    // F11 is deliberately not registered: browsers keep it for their own fullscreen, so it
+    // works only in the desktop app, wired in `App.svelte` (and so isn't listed on the web).
+    combos: [{ mod: true, alt: true, code: "KeyZ" }],
   },
 ];
 

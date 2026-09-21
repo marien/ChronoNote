@@ -15,6 +15,7 @@ import type {
   NoteTab,
   SearchResultItem,
   SectionOccurrence,
+  SyncHealth,
   ThemeMode,
 } from "./types";
 import { isAndroid } from "./platform";
@@ -40,7 +41,9 @@ export type ModalKind =
   | "syncReview"
   // Android OneDrive sync: notes whose phone and cloud versions couldn't be
   // merged automatically, waiting on the user's choice.
-  | "syncConflicts";
+  | "syncConflicts"
+  // A dropped YYYY-MM-DD.txt that differs from the note already there: the user picks what to keep.
+  | "droppedNotes";
 
 export const tabs = writable<NoteTab[]>([]);
 export const activeTabId = writable<string>("");
@@ -83,13 +86,16 @@ export const pureBlack = writable<boolean>(false);
 /** §v0.12.2: distraction-free Zen mode canvas. */
 export const isZenMode = writable<boolean>(false);
 
-export interface SyncHealth {
-  status: "idle" | "syncing" | "offline" | "error";
-  lastSyncSuccessMs: number | null;
-  localNoteCount: number;
-  pendingUploadCount: number;
-}
 export const syncHealth = writable<SyncHealth | null>(null);
+
+/** Dropped notes whose name already exists with different text, waiting on the user
+ * (`DroppedNotesModal`). Held in memory only: nothing is written until a choice is made. */
+export interface DroppedNoteConflict {
+  name: string;
+  existing: string;
+  dropped: string;
+}
+export const droppedConflicts = writable<DroppedNoteConflict[]>([]);
 export const syncHealthPopoverOpen = writable<boolean>(false);
 
 /** Whether the top bar should show icon+label (true) or icon-only (false) —

@@ -40,6 +40,7 @@
   import CommandPaletteModal from "./lib/components/modals/CommandPaletteModal.svelte";
   import MoreActionsModal from "./lib/components/modals/MoreActionsModal.svelte";
   import CalendarSyncReviewModal from "./lib/components/modals/CalendarSyncReviewModal.svelte";
+  import DroppedNotesModal from "./lib/components/modals/DroppedNotesModal.svelte";
   import SyncConflictsModal from "./lib/components/modals/SyncConflictsModal.svelte";
   import OneDriveFolderPickerModal from "./lib/components/modals/OneDriveFolderPickerModal.svelte";
   import { oneDriveFolderPickerOpen } from "./lib/stores";
@@ -89,6 +90,12 @@
     };
 
     function onKeydown(e: KeyboardEvent) {
+      // Desktop app only: F11 as an alias for the Zen mode chord (see `shortcuts.ts`).
+      if (e.key === "F11" && get(backendKind) === "desktop") {
+        e.preventDefault();
+        isZenMode.update((v) => !v);
+        return;
+      }
       if (e.key === "Escape") {
         const current = get(modal);
         if (current === "none" && get(findOpen)) {
@@ -244,17 +251,14 @@
     document.documentElement.style.setProperty("--editor-line-height", `${$lineHeight}`);
   }
 
+  // Only touch the native window when Zen actually flips: on startup the value is already
+  // false and there is nothing to undo (this used to force "leave fullscreen" on every launch).
+  let zenFullscreenApplied = false;
   $: if (typeof document !== "undefined") {
-    if ($isZenMode) {
-      document.body.classList.add("zen-mode");
-      if ($backendKind === "desktop") {
-        getCurrentWindow().setFullscreen(true).catch(() => {});
-      }
-    } else {
-      document.body.classList.remove("zen-mode");
-      if ($backendKind === "desktop") {
-        getCurrentWindow().setFullscreen(false).catch(() => {});
-      }
+    document.body.classList.toggle("zen-mode", $isZenMode);
+    if ($backendKind === "desktop" && $isZenMode !== zenFullscreenApplied) {
+      zenFullscreenApplied = $isZenMode;
+      getCurrentWindow().setFullscreen($isZenMode).catch(() => {});
     }
   }
 
@@ -375,6 +379,8 @@
     <CalendarSyncReviewModal />
   {:else if $modal === "syncConflicts"}
     <SyncConflictsModal />
+  {:else if $modal === "droppedNotes"}
+    <DroppedNotesModal />
   {/if}
 {:else if bootError}
   <div class="boot-loading" role="alert">

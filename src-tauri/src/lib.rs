@@ -294,6 +294,16 @@ async fn onedrive_sync_now(
 }
 
 #[tauri::command]
+fn get_sync_health(
+    app: AppHandle,
+    mgr: tauri::State<'_, std::sync::Arc<onedrive::sync::OneDriveManager>>,
+) -> Result<onedrive::SyncHealth, String> {
+    let data_dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
+    let cfg = storage::load_config(&app)?;
+    Ok(mgr.health(&data_dir, &std::path::PathBuf::from(cfg.notes_dir)))
+}
+
+#[tauri::command]
 fn onedrive_get_conflicts(
     app: AppHandle,
     mgr: tauri::State<'_, std::sync::Arc<onedrive::sync::OneDriveManager>>,
@@ -505,6 +515,7 @@ pub fn run() {
             onedrive_prepare_folder_switch,
             onedrive_get_folder,
             onedrive_sync_now,
+            get_sync_health,
             onedrive_get_conflicts,
             onedrive_resolve_conflict,
             onedrive_get_sync_status,

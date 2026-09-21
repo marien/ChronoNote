@@ -835,6 +835,7 @@ fn generate_typescript_bindings() {
         crate::onedrive::FolderSwitchResult::decl(&cfg),
         crate::onedrive::OneDriveSyncResult::decl(&cfg),
         crate::onedrive::SyncConflict::decl(&cfg),
+        crate::onedrive::SyncHealth::decl(&cfg),
         crate::onedrive::SyncStatus::decl(&cfg),
         crate::onedrive::OneDriveAdvancedConfig::decl(&cfg),
     ];
@@ -976,6 +977,30 @@ mod tests {
         assert!(cfg.recent_notes_dirs.is_empty());
         // The default is also persisted, not just returned in memory.
         assert!(path.exists());
+    }
+
+    #[test]
+    fn a_config_written_before_the_typography_fields_loads_with_the_old_look() {
+        let dir = tempdir().unwrap();
+        let path = dir.path().join("config.json");
+        // Write a current config, then remove the three new keys: exactly what an older release wrote.
+        let base = load_config_at(&path, &dir.path().join("Notes")).unwrap();
+        save_config_at(&path, &AppConfig { notes_dir: "/my/notes".to_string(), font_size: 17.0, line_height: 1.7, pure_black: true, ..base }).unwrap();
+        let mut json: serde_json::Value = serde_json::from_str(&fs::read_to_string(&path).unwrap()).unwrap();
+        for key in ["font_size", "fontSize", "line_height", "lineHeight", "pure_black", "pureBlack"] {
+            json.as_object_mut().unwrap().remove(key);
+        }
+        fs::write(&path, json.to_string()).unwrap();
+        let cfg = load_config_at(&path, &dir.path().join("Notes")).unwrap();
+        assert_eq!(cfg.notes_dir, "/my/notes");
+        assert_eq!(cfg.font_size, 13.0);
+        assert_eq!(cfg.line_height, 1.6);
+        assert!(!cfg.pure_black);
+        // ...and the file wasn't quarantined as corrupt.
+        assert!(!fs::read_dir(dir.path())
+            .unwrap()
+            .flatten()
+            .any(|e| e.file_name().to_string_lossy().contains(".corrupt-")));
     }
 
     #[test]

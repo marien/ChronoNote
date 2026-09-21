@@ -83,6 +83,23 @@ pub struct SyncConflict {
     pub remote: String,
 }
 
+/// What the status bar's sync-health popover shows (v0.12 Area 9): the engine's
+/// status, when it last finished a sync successfully, and how many synced notes
+/// the device holds / are still waiting to be uploaded. Same shape as the web
+/// app's `WebOneDriveSyncEngine::getSyncHealth`.
+#[derive(Serialize, Deserialize, Clone, Copy, Debug, PartialEq, Eq, TS)]
+#[serde(rename_all = "camelCase")]
+pub struct SyncHealth {
+    pub status: SyncStatus,
+    /// Unix milliseconds of the last successful sync this session, or `null` if none yet.
+    #[ts(type = "number | null")]
+    pub last_sync_success_ms: Option<i64>,
+    #[ts(type = "number")]
+    pub local_note_count: usize,
+    #[ts(type = "number")]
+    pub pending_upload_count: usize,
+}
+
 #[derive(Serialize, Deserialize, Clone, Copy, Debug, PartialEq, Eq, Default, TS)]
 #[serde(rename_all = "lowercase")]
 pub enum SyncStatus {

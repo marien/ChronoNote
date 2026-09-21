@@ -65,3 +65,22 @@ test.describe("Zen mode (Area 3)", () => {
     await expect(page.locator("body")).not.toHaveClass(/zen-mode/);
   });
 });
+
+test.describe("Zen mode: F11 is a desktop-only alias", () => {
+  test("F11 toggles Zen mode in the desktop app", async ({ page }) => {
+    await seedApp(page);
+    await page.keyboard.press("F11");
+    await expect(page.locator("body")).toHaveClass(/zen-mode/);
+    await page.keyboard.press("F11");
+    await expect(page.locator("body")).not.toHaveClass(/zen-mode/);
+  });
+
+  test("F11 does nothing in the web app (browsers keep it for their own fullscreen)", async ({ page }) => {
+    await seedApp(page, { seed: { backendKind: "web" } });
+    await page.keyboard.press("F11");
+    await expect(page.locator("body")).not.toHaveClass(/zen-mode/);
+    // The chord itself still works there.
+    await page.keyboard.press("Control+Alt+KeyZ");
+    await expect(page.locator("body")).toHaveClass(/zen-mode/);
+  });
+});

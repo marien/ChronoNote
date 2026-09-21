@@ -32,6 +32,8 @@ export type OneDriveSyncResult = { success: boolean, message?: string };
 
 export type SyncConflict = { name: string, local: string, remote: string };
 
+export type SyncHealth = { status: SyncStatus, lastSyncSuccessMs: number | null, localNoteCount: number, pendingUploadCount: number };
+
 export type SyncStatus = "idle" | "syncing" | "offline" | "error";
 
 export type OneDriveAdvancedConfig = { clientIdOverride?: string, tenantIdOverride?: string };

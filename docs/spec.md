@@ -268,17 +268,17 @@ Every modal dialog conforms to a standardized 4-tier sizing scale, universal dis
 ### 3.7 Zen Mode, Drag-and-Drop Import, Sync Telemetry & Canvas Typography
 
 1. **Zen Mode (Distraction-Free Canvas):**
-   * Toggled via `Ctrl+Alt+Z` (`Cmd+Option+Z` on macOS, `F11` on desktop) or via Command Palette (`>Toggle Zen mode`).
+   * Toggled via `Ctrl+Alt+Z` (`Cmd+Option+Z` on macOS; `F11` also works in the desktop app only) or via Command Palette (`>Toggle Zen mode`).
    * Smoothly transitions chrome out of view (`#top-bar` via `translateY(-100%)`, `#status-bar` via `translateY(100%)`).
    * Displays an unobtrusive, floating `#zen-banner` in the upper-right corner with status indicator and an explicit "Exit" button.
    * On desktop, enters true native OS fullscreen via Tauri's window API (`setFullscreen(true)`).
    * Strict Escape priority hierarchy: active modal dialogs, search overlays, and find bars (`Ctrl+F`) handle Escape first; only once all foreground chrome is closed does Escape exit Zen mode.
-   * Skipped on Android devices.
+   * Not available on Android.
 2. **Web Drag-and-Drop File Import:**
    * Active on web app and demo builds (`$backendKind === "web"` or `"demo"`).
    * Dragging files over the browser window triggers a full-screen frosted glass drop target (`#drop-overlay`) with instructional banner.
    * Dropping a `.json` backup bundle opens Settings directly to the import preview screen.
-   * Dropping one or more dated notes (`YYYY-MM-DD.txt`) automatically merges them into local storage: identical notes are skipped, and differing notes write safe conflict copies (`YYYY-MM-DD (conflict YYYY-MM-DD HHMMSS).txt`) to avoid data loss.
+   * Dropping one or more dated notes (`YYYY-MM-DD.txt`) imports new ones and skips identical ones. A note whose date already has different text is not written: a review dialog shows both versions and the user keeps theirs, uses the dropped file, or keeps both (dropped text appended under a `# Dropped copy` marker). Closing the dialog keeps every note as it is.
 3. **Cloud Sync Health & Telemetry Dashboard:**
    * Clicking `#stat-cloud` in the status bar (when OneDrive is connected on Web or Android) opens an anchored telemetry popover (`#telemetry-popover`) docked above the status bar.
    * Displays real-time sync engine status (`● In sync`, `⟳ Syncing changes…`, `▲ Offline (cached)`, or `✕ Sync error`), humanized relative time since last sync, local cached note count, pending upload count, connected Microsoft account email, and target OneDrive folder path.
