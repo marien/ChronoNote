@@ -74,8 +74,9 @@ Section titles are never dimmed.
 All four action symbols (`# `/`v `/`> `/`x `) may be indented in two-space
 increments, the same as bulleted list items — the indentation is real,
 untouched whitespace; only the symbol itself is replaced. Clicking an
-action glyph cycles its state (`# → v → > → x → #`); hovering it first
-previews the next state without committing it.
+action glyph toggles it between open and closed (`# → v`; a done, deferred or
+won't-do line reopens to `#`); hovering it first previews the result without
+committing it. The other states are reached with `Ctrl/Cmd+1`-`4`.
 
 **Copy/paste deferral:** copying a `# ` line and pasting it into today's
 note, or into any *later*-dated note, marks the original line as `> `

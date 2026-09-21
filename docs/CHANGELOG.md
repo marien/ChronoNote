@@ -6,7 +6,7 @@ kept for the rationale behind each one — not just *what* changed but
 was still being gathered and confirmed before implementation; renamed once
 everything below was applied, since nothing here is "pending" anymore.
 
-**Status: all sections through §198 implemented** (§178–§180 in v0.9.5: a save-only-when-changed fix and two GitHub issues, #76/#77; §181–§186 in v0.10.0: the Android app and OneDrive sync; §187–§188 in v0.11.0: OneDrive sync for the web app, and the fixes found reviewing and testing it; §191–§195 in v0.12.0: the Android folder-switch fix, shorter Settings labels, and the v0.12 UI/UX refinements in three stages (§193 palette, resolved lines, calendar dots and search; §194 modal system and phone layouts; §195 Zen mode, drag-and-drop import, sync health popover, typography and pure black; §196 in v0.12.1: renewable web sign-in, wrapping long messages, the Shift+F11 Zen chord and a full-window Zen mode, the topic pill and multi-name delegates; §197 in v0.12.2: Sync Review keyboard use and calendar status prefixes (#78))). §153 is a
+**Status: all sections through §199 implemented** (§178–§180 in v0.9.5: a save-only-when-changed fix and two GitHub issues, #76/#77; §181–§186 in v0.10.0: the Android app and OneDrive sync; §187–§188 in v0.11.0: OneDrive sync for the web app, and the fixes found reviewing and testing it; §191–§195 in v0.12.0: the Android folder-switch fix, shorter Settings labels, and the v0.12 UI/UX refinements in three stages (§193 palette, resolved lines, calendar dots and search; §194 modal system and phone layouts; §195 Zen mode, drag-and-drop import, sync health popover, typography and pure black; §196 in v0.12.1: renewable web sign-in, wrapping long messages, the Shift+F11 Zen chord and a full-window Zen mode, the topic pill and multi-name delegates; §197 in v0.12.2: Sync Review keyboard use and calendar status prefixes (#78))). §153 is a
 website-only Guide-page fix (found live right after §150–§152 shipped
 as v0.7.12) — no version bump, nothing in the shipped app changed. §154
 merges the OS title bar into the top bar (Notepad-style: icon, tabs,
@@ -8622,3 +8622,17 @@ Four small items from Marien's list for the next intermediate version (`next-ver
    used to hide every later message until clicked or the app restarted. `showToast` now clears it.
 
 Verification: Vitest 495, `svelte-check` 0, Playwright 306, `cargo test` unchanged (no Rust touched).
+
+## 199. Clicking an action glyph toggles open and closed (unreleased)
+
+Item 5 of Marien's next-version list: cycling through all four states on click "is not useful". A click on an action glyph (the
+editor, standalone or the symbol of a `=> <symbol>` consequence action, mouse and touch) now toggles between two states: an open
+`#` becomes done `v`, and a done, deferred or won't-do line reopens to `#`. Indentation, the arrow and the rest of the line are untouched. The
+hover preview (`#34`) shows the glyph a click will produce (☑ over an open one, ☐ over any closed one). The other states stay one
+keystroke away: `Ctrl/Cmd+1`-`4`, and `Ctrl+Space` / `Ctrl+Shift+Space` for close/reopen; the Action Drawer's own `Ctrl+Space` still
+cycles the focused row. With two action symbols on one line the innermost (the consequence) is the one that toggles, as before.
+New `toggleOpenClosed` and `symbolAfterClick` in `tokens.ts`. The Shortcuts & Symbols "Click a glyph" row, the spec and the guide
+say so. Tests: unit tests for both functions (states, indentation, consequence actions, non-actions, a true two-state toggle) and
+Playwright for clicking every state, indentation and consequence actions, and hover previews of closed glyphs.
+
+Verification: Vitest 500, `svelte-check` 0, Playwright 308, `cargo test` unchanged.

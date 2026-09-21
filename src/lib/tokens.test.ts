@@ -5,6 +5,8 @@ import {
   innermostActionSymbol,
   cycleActionSymbol,
   closeOpenAction,
+  symbolAfterClick,
+  toggleOpenClosed,
   reopenDoneAction,
   setActionSymbolOpen,
   setActionSymbolTo,
@@ -516,5 +518,45 @@ describe("titleForMatching", () => {
 
   it("does not touch a date-shaped word that isn't actually YYYY-MM-DD", () => {
     expect(titleForMatching("Q3-2026 Planning")).toBe("Q3-2026 Planning");
+  });
+});
+
+describe("toggleOpenClosed (click on a glyph)", () => {
+  it("closes an open action and reopens every closed one", () => {
+    expect(toggleOpenClosed("# Buy milk")).toBe("v Buy milk");
+    expect(toggleOpenClosed("v Buy milk")).toBe("# Buy milk");
+    expect(toggleOpenClosed("> Buy milk")).toBe("# Buy milk");
+    expect(toggleOpenClosed("x Buy milk")).toBe("# Buy milk");
+  });
+
+  it("is a true toggle: two clicks return to the start, from open and from closed", () => {
+    for (const start of ["# a", "v a", "> a", "x a"]) {
+      const once = toggleOpenClosed(start)!;
+      const twice = toggleOpenClosed(once)!;
+      // open -> done -> open, and any closed state -> open -> done (always one of two states)
+      expect(["# a", "v a"]).toContain(once);
+      expect(["# a", "v a"]).toContain(twice);
+      expect(twice).not.toBe(once);
+    }
+  });
+
+  it("keeps indentation, the rest of the line and the arrow of a consequence action", () => {
+    expect(toggleOpenClosed("  # Nested")).toBe("  v Nested");
+    expect(toggleOpenClosed("    x Deep")).toBe("    # Deep");
+    expect(toggleOpenClosed("=> # follow up")).toBe("=> v follow up");
+    expect(toggleOpenClosed("Talked to Sam => v follow up")).toBe("Talked to Sam => # follow up");
+    // with two action symbols on a line, the innermost (the consequence action) is the one that toggles
+    expect(toggleOpenClosed("# do X => > wait")).toBe("# do X => # wait");
+  });
+
+  it("does nothing to lines that are not actions", () => {
+    for (const line of ["plain", "- bullet", "! important", "=> just a follow-up", "=> @sam do it", "Title", "====="]) {
+      expect(toggleOpenClosed(line)).toBeNull();
+    }
+  });
+
+  it("symbolAfterClick previews the same result", () => {
+    expect(symbolAfterClick("#")).toBe("v");
+    for (const s of ["v", ">", "x"]) expect(symbolAfterClick(s)).toBe("#");
   });
 });

@@ -148,6 +148,21 @@ export function cycleActionSymbol(line: string, direction: 1 | -1 = 1): string |
   return replaceActionSymbol(line, (sym) => nextCycleSymbol(sym, direction));
 }
 
+/** What clicking an action glyph does: an open action (`#`) is closed (`v`); anything that is no longer
+ * open (done, deferred or won't-do) is reopened (`#`). Two states only: click used to walk through all
+ * four, which never landed where you wanted; the direct shortcuts (`Ctrl/Cmd+1`-`4`, `Ctrl+Space`) reach
+ * the others. Same line shapes as `cycleActionSymbol` (a plain leading symbol, or a `=> <symbol>`
+ * consequence action); `null` when the line has no action symbol. */
+export function toggleOpenClosed(line: string): string | null {
+  const m = matchActionSymbol(line);
+  return m ? m.rebuild(m.sym === "#" ? "v" : "#") : null;
+}
+
+/** The symbol a click on a glyph showing `sym` produces (`toggleOpenClosed`'s target), for the hover preview. */
+export function symbolAfterClick(sym: string): string {
+  return sym === "#" ? "v" : "#";
+}
+
 /** #65/#70: forces a line's action symbol straight to `symbol`, instead
  * of stepping through the cycle — used by the "mark selection as <state>"
  * shortcuts (`Ctrl/Cmd+1`-`4`, one per state), which apply this per line

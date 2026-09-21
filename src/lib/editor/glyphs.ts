@@ -7,9 +7,8 @@ import {
   ViewUpdate,
   WidgetType,
 } from "@codemirror/view";
-import { cycleActionSymbol, isActionLikeLine, leadingTopicTag } from "../tokens";
+import { isActionLikeLine, leadingTopicTag, symbolAfterClick, toggleOpenClosed } from "../tokens";
 
-const CYCLE_ORDER = ["#", "v", ">", "x"];
 
 /** Renders the raw plain-text tokens (spec 2.2) as their visual glyphs
  * without changing a single byte on disk: the underlying document always
@@ -24,14 +23,13 @@ class InlineGlyphWidget extends WidgetType {
     private readonly label: string,
     private readonly className: string,
     /** §106: the four action-state glyphs (standalone or the inner symbol
-     * of a `=> <symbol>` consequence-action) cycle on click,
-     * `# → v → > → x → #` — same order as `Ctrl+Space` (Win/Linux) /
-     * `Ctrl/Cmd+Enter`. The
-     * arrow, bullet and assignee glyphs are not cyclable. */
+     * of a `=> <symbol>` consequence-action) toggle on click between open
+     * and closed: `#` becomes `v`, and `v`/`>`/`x` reopen to `#`. The
+     * arrow, bullet and assignee glyphs are not clickable. */
     private readonly cyclable = false,
-    /** #34: the raw symbol behind a cyclable glyph (`#`/`v`/`>`/`x`), so
-     * the widget can preview the *next* state on hover before a click
-     * commits it. Only meaningful when `cyclable`. */
+    /** #34: the raw symbol behind a clickable glyph (`#`/`v`/`>`/`x`), so
+     * the widget can preview what a click will do on hover before it
+     * commits. Only meaningful when `cyclable`. */
     private readonly symbol = "",
   ) {
     super();
@@ -52,9 +50,9 @@ class InlineGlyphWidget extends WidgetType {
     span.className = this.className;
     if (this.cyclable) {
       span.classList.add("glyph-cyclable");
-      const [nextChar, nextClass] = glyphForSymbol(CYCLE_ORDER[(CYCLE_ORDER.indexOf(this.symbol) + 1) % 4]);
-      // #34: on hover, morph into the next state's glyph so you can see
-      // what a click will do; revert on leave. Bypassed on touchscreens.
+      const [nextChar, nextClass] = glyphForSymbol(symbolAfterClick(this.symbol));
+      // #34: on hover, morph into the glyph a click will produce so you can
+      // see what it will do; revert on leave. Bypassed on touchscreens.
       span.addEventListener("mouseenter", () => {
         if (window.matchMedia?.("(pointer: coarse)").matches) return;
         span.textContent = nextChar;
@@ -69,7 +67,7 @@ class InlineGlyphWidget extends WidgetType {
         e.preventDefault();
         const pos = view.posAtDOM(span);
         const line = view.state.doc.lineAt(pos);
-        const updated = cycleActionSymbol(line.text);
+        const updated = toggleOpenClosed(line.text);
         if (updated !== null && updated !== line.text) {
           view.dispatch({ changes: { from: line.from, to: line.to, insert: updated } });
         }

@@ -25,7 +25,7 @@
     "undoRedo",
     "cycleLineState",
     "cycleLineStateReverse",
-    ["Click a glyph", "Cycle that line's full action state (open → done → deferred → won't-do); hover previews the next state"],
+    ["Click a glyph", "Close an open action, or reopen one that is done, deferred or won't-do; hover previews the result"],
     "markSelectionOpen",
     "setActionOpen",
     "setActionDone",

@@ -181,7 +181,7 @@ test.describe("editor — token glyphs", () => {
     expect(await activeTabContent(page)).toBe("- a bullet\n! remember this\nplain text\nSection\n========");
   });
 
-  test("#34: hovering a cyclable glyph previews the next state, then reverts", async ({ page }) => {
+  test("#34: hovering a clickable glyph previews what a click will do, then reverts", async ({ page }) => {
     await setEditorText(page, "# a task\nplain line");
     const glyph = editor(page).locator(".cm-line").first().locator(".glyph-cyclable");
     await expect(glyph).toHaveText("☐");
@@ -196,7 +196,38 @@ test.describe("editor — token glyphs", () => {
     expect(await activeTabContent(page)).toBe("# a task\nplain line");
   });
 
-  test("clicking a glyph cycles that line's state (§106)", async ({ page }) => {
+  test("hovering a closed glyph (done, deferred, won't-do) previews the open glyph", async ({ page }) => {
+    await setEditorText(page, "v done\n> deferred\nx wontdo\nplain");
+    for (const i of [0, 1, 2]) {
+      const glyph = editor(page).locator(".cm-line").nth(i).locator(".glyph-cyclable");
+      await glyph.hover();
+      await expect(glyph).toHaveText("☐");
+      await editor(page).locator(".cm-line").nth(3).hover();
+    }
+    expect(await activeTabContent(page)).toBe("v done\n> deferred\nx wontdo\nplain");
+  });
+
+  test("clicking a glyph toggles open and closed, never a third state; deferred and won't-do reopen", async ({ page }) => {
+    await setEditorText(page, "# open\nv done\n> deferred\nx wontdo\n=> # follow up\n  # indented");
+    const line = (i: number) => editor(page).locator(".cm-line").nth(i);
+    // open -> done (and only the clicked line changes)
+    await line(0).locator(".glyph-cyclable").click();
+    expect(await activeTabContent(page)).toBe("v open\nv done\n> deferred\nx wontdo\n=> # follow up\n  # indented");
+    // done -> open again: two states, not four
+    await line(0).locator(".glyph-cyclable").click();
+    expect((await activeTabContent(page)).split("\n")[0]).toBe("# open");
+    // done, deferred and won't-do all reopen
+    await line(1).locator(".glyph-cyclable").click();
+    await line(2).locator(".glyph-cyclable").click();
+    await line(3).locator(".glyph-cyclable").click();
+    expect(await activeTabContent(page)).toBe("# open\n# done\n# deferred\n# wontdo\n=> # follow up\n  # indented");
+    // a consequence action and an indented one toggle too, keeping the arrow and the indentation
+    await line(4).locator(".glyph-cyclable").last().click();
+    await line(5).locator(".glyph-cyclable").click();
+    expect(await activeTabContent(page)).toBe("# open\n# done\n# deferred\n# wontdo\n=> v follow up\n  v indented");
+  });
+
+  test("clicking a glyph changes only that line and keeps the caret out of the glyph (§106)", async ({ page }) => {
     await setEditorText(page, "# first task\n# second task");
     const secondGlyph = editor(page).locator(".cm-line").nth(1).locator(".glyph-open");
     await secondGlyph.click();
