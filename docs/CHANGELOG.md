@@ -6,7 +6,7 @@ kept for the rationale behind each one — not just *what* changed but
 was still being gathered and confirmed before implementation; renamed once
 everything below was applied, since nothing here is "pending" anymore.
 
-**Status: all sections through §195 implemented** (§178–§180 in v0.9.5: a save-only-when-changed fix and two GitHub issues, #76/#77; §181–§186 in v0.10.0: the Android app and OneDrive sync; §187–§188 in v0.11.0: OneDrive sync for the web app, and the fixes found reviewing and testing it; §191–§195 are unreleased: Android folder switch, short Settings labels, and v0.12 Releases A, B, and C). §153 is a
+**Status: all sections through §195 implemented** (§178–§180 in v0.9.5: a save-only-when-changed fix and two GitHub issues, #76/#77; §181–§186 in v0.10.0: the Android app and OneDrive sync; §187–§188 in v0.11.0: OneDrive sync for the web app, and the fixes found reviewing and testing it; §191–§195 in v0.12.0: the Android folder-switch fix, shorter Settings labels, and the v0.12 UI/UX refinements in three stages (§193 palette, resolved lines, calendar dots and search; §194 modal system and phone layouts; §195 Zen mode, drag-and-drop import, sync health popover, typography and pure black)). §153 is a
 website-only Guide-page fix (found live right after §150–§152 shipped
 as v0.7.12) — no version bump, nothing in the shipped app changed. §154
 merges the OS title bar into the top bar (Notepad-style: icon, tabs,
@@ -8390,7 +8390,7 @@ inferred, not proven - the new log should settle it next time.
 
 Verification: Vitest 438, `svelte-check` 0, Playwright 261, `cargo test` 138.
 
-## 191. Android gets the folder-switch fix; the migrate dialog stops promising a merge (unreleased)
+## 191. Android gets the folder-switch fix; the migrate dialog stops promising a merge (v0.12.0)
 
 Two follow-ups left over from §188.
 
@@ -8418,7 +8418,7 @@ Verification: Vitest 439, `svelte-check` 0, Playwright 261, `cargo test` 141 (+3
 clearing, tolerance of missing files, archiving). The orchestration that calls the
 live OneDrive API (sync first, then clear) has no automated test on the Rust side.
 
-## 192. Shorter Settings tab labels everywhere; About last in the status bar (unreleased)
+## 192. Shorter Settings tab labels everywhere; About last in the status bar (v0.12.0)
 
 1. **Settings tabs use the short labels on every platform:** "Appearance" and
    "Notes & Sync" (plus "Updates" on the desktop app). They were shortened on
@@ -8431,7 +8431,7 @@ live OneDrive API (sync first, then clear) has no automated test on the Rust sid
 
 Verification: Vitest 439, `svelte-check` 0, Playwright 261, `cargo test` 141.
 
-## 193. v0.12 "Release A": palette, resolved lines, heatmap, search (unreleased)
+## 193. v0.12 "Release A": palette, resolved lines, heatmap, search (v0.12.0)
 
 The first stage of the UI/UX refinements roadmap (`docs/design/ui-ux-refinements-v0.12-roadmap.md`, decisions in its
 section 13, task list in section 14). Designed and first implemented by another agent, reviewed and tested here
@@ -8465,7 +8465,7 @@ popover, typography, pure black) are not started.
 Verification: Vitest 478, `svelte-check` 0, Playwright 269 (the "#62 spinner" test is the known timing flake and passes
 alone), `cargo test` 141 (no Rust changed). Not verified on a phone; the demo bundle is rebuilt only at release time.
 
-## 194. v0.12 "Release B": modal modernization, mobile reflow, touch ergonomics (unreleased)
+## 194. v0.12 "Release B": modal modernization, mobile reflow, touch ergonomics (v0.12.0)
 
 The second stage of the UI/UX refinements roadmap (`docs/design/ui-ux-refinements-v0.12-roadmap.md`, sections 5 and 6).
 
@@ -8500,7 +8500,7 @@ Verification: Vitest 478, `svelte-check` 0, Playwright 278 (two new width-based 
 Calendar review reflows), `cargo test` 141 (no Rust changed). Checked by hand at 375px: palette (chips, close button,
 hidden hints) and the Shortcuts tab switcher.
 
-## 195. v0.12 "Release C": Zen mode, drag-and-drop import, sync telemetry, typography & OLED mode (unreleased)
+## 195. v0.12 "Release C": Zen mode, drag-and-drop import, sync telemetry, typography & OLED mode (v0.12.0)
 
 The third stage of the UI/UX refinements roadmap (`docs/design/ui-ux-refinements-v0.12-roadmap.md`, areas 3, 4, 9, 10).
 
