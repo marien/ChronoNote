@@ -8,7 +8,7 @@ export type ThemeMode = "light" | "dark" | "system";
 
 export type FileMetadata = { exists: boolean, contentHash: string | null, sizeBytes: number | null, modifiedMs: number | null };
 
-export type AppConfig = { notesDir: string, colorMode: ColorMode, themeMode: ThemeMode, wordWrap: boolean, readableLineLength: boolean, recentNotesDirs: Array<string>, autoCheckUpdates: boolean, lastSeenVersion: string | null, calendarSyncEnabled: boolean };
+export type AppConfig = { notesDir: string, colorMode: ColorMode, themeMode: ThemeMode, wordWrap: boolean, readableLineLength: boolean, recentNotesDirs: Array<string>, autoCheckUpdates: boolean, lastSeenVersion: string | null, calendarSyncEnabled: boolean, fontSize: number, lineHeight: number, pureBlack: boolean };
 
 export type TabSession = { openTabs: Array<string>, activeTab: string | null, lastOpenedDate?: string | null };
 
@@ -31,6 +31,8 @@ export type FolderSwitchResult = { ready: boolean, switched: boolean, archivedCo
 export type OneDriveSyncResult = { success: boolean, message?: string };
 
 export type SyncConflict = { name: string, local: string, remote: string };
+
+export type SyncHealth = { status: SyncStatus, lastSyncSuccessMs: number | null, localNoteCount: number, pendingUploadCount: number };
 
 export type SyncStatus = "idle" | "syncing" | "offline" | "error";
 

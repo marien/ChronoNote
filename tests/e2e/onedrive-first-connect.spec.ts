@@ -57,6 +57,9 @@ test.describe("OneDrive first connect (Android)", () => {
     await expect(page.locator("#stat-cloud .modal-spinner")).toHaveCount(0, { timeout: 5000 });
 
     await page.locator("#stat-cloud").click();
+    if (await page.locator("#telemetry-popover").isVisible()) {
+      await page.locator("#telemetry-popover").getByRole("button", { name: "Open Settings" }).click();
+    }
     const dialog = settings(page);
     const sync = dialog.getByRole("button", { name: /Sync now/ });
     await expect(sync).toBeEnabled();

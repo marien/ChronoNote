@@ -8,13 +8,17 @@
  * `docs/design/webapp-roadmap.md`. */
 import { get } from "svelte/store";
 import * as api from "./tauriApi";
-import { colorMode, showToast, themeMode } from "./stores";
+import { colorMode, droppedConflicts, modal, pendingImportPreview, settingsInitialTab, showToast, themeMode } from "./stores";
+import { checkActiveTabForDrift } from "./drift";
+import type { DroppedNoteConflict } from "./stores";
 import { invalidateDiskNotesCache, refreshAllNotesCache } from "./persistence";
 import { todayISO } from "./date";
+import { isValidNoteFilename } from "./noteFilename";
 import {
   buildExportBundle,
   downloadExportBundle,
   parseExportBundle,
+  ExportBundleError,
   type ExportBundle,
 } from "./webapp/exportBundle";
 
@@ -63,4 +67,88 @@ export async function applyImport(bundle: ExportBundle, mode: "merge" | "replace
   const parts = [`Imported ${result.imported} note${result.imported === 1 ? "" : "s"}`];
   if (result.skipped > 0) parts.push(`skipped ${result.skipped}`);
   showToast(`${parts.join(", ")}.`);
+}
+
+/** §v0.12.2 (Area 4.1): routes a dropped .json file to the safe import preview dialog. */
+export async function handleDroppedBundle(file: File): Promise<void> {
+  try {
+    const preview = await readImportFile(file);
+    pendingImportPreview.set(preview);
+    settingsInitialTab.set("calendar");
+    modal.set("settings");
+  } catch (err) {
+    showToast(err instanceof ExportBundleError ? err.message : "Couldn't read that export file.");
+  }
+}
+
+/** §v0.12.2 (Area 4.1): imports dropped YYYY-MM-DD.txt daily notes with collision protection.
+ * Identical notes are skipped; a differing note is never written: it goes to the review dialog
+ * (`DroppedNotesModal`), where the user keeps theirs, takes the dropped text, or keeps both. */
+export async function handleDroppedNotes(files: File[]): Promise<void> {
+  let imported = 0;
+  let skipped = 0;
+  let conflicts = 0;
+  const held: DroppedNoteConflict[] = [];
+
+  for (const file of files) {
+    if (!isValidNoteFilename(file.name)) {
+      skipped++;
+      continue;
+    }
+    const content = await file.text();
+    const existing = await api.readNote(file.name);
+    if (existing === null) {
+      await api.writeNote(file.name, content, undefined);
+      imported++;
+    } else if (existing === content) {
+      skipped++;
+    } else {
+      held.push({ name: file.name, existing, dropped: content });
+      conflicts++;
+    }
+  }
+
+  invalidateDiskNotesCache();
+  await refreshAllNotesCache();
+
+  const parts: string[] = [];
+  if (imported > 0) parts.push(`Imported ${imported} note${imported === 1 ? "" : "s"}`);
+  if (skipped > 0) parts.push(`skipped ${skipped}`);
+  if (conflicts > 0) parts.push(`${conflicts} differ${conflicts === 1 ? "s" : ""} from what you have`);
+  showToast(parts.length > 0 ? `${parts.join(", ")}.` : "No notes imported.");
+  if (held.length > 0) {
+    droppedConflicts.set(held);
+    modal.set("droppedNotes");
+  }
+}
+
+export type DroppedResolution = "keep" | "replace" | "both";
+
+/** Applies the user's choice for one dropped note that differs from the existing one. */
+export async function resolveDroppedNote(name: string, resolution: DroppedResolution): Promise<void> {
+  const item = get(droppedConflicts).find((c) => c.name === name);
+  if (!item) return;
+  try {
+    if (resolution === "replace") {
+      await api.writeNote(name, item.dropped, undefined);
+    } else if (resolution === "both") {
+      await api.writeNote(name, `${item.existing}
+
+---
+# Dropped copy
+
+${item.dropped}`, undefined);
+    }
+  } catch (e) {
+    showToast(`Couldn't save ${name}: ${e instanceof Error ? e.message : String(e)}`);
+    return;
+  }
+  droppedConflicts.update((list) => list.filter((c) => c.name !== name));
+  if (resolution !== "keep") {
+    invalidateDiskNotesCache();
+    await refreshAllNotesCache();
+    // The note may be open in a tab: pick the new text up (silent reload if it has no unsaved edits).
+    void checkActiveTabForDrift();
+  }
+  if (get(droppedConflicts).length === 0 && get(modal) === "droppedNotes") modal.set("none");
 }

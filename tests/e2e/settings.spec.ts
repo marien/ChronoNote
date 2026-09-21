@@ -274,4 +274,67 @@ test.describe("settings (Ctrl/Cmd+,)", () => {
     await settings(page).getByRole("button", { name: "Close", exact: true }).click();
     expect(await currentModal(page)).toBe("none");
   });
+
+  test("typography sliders adjust font size and line height (Area 10.1)", async ({ page }) => {
+    await seedApp(page);
+    await openSettings(page);
+
+    const fontSizeSlider = settings(page).getByRole("slider", { name: "Editor font size" });
+    await expect(fontSizeSlider).toBeVisible();
+    await fontSizeSlider.fill("15");
+    await fontSizeSlider.dispatchEvent("input");
+
+    // CSS custom property is set on root
+    const rootFontSize = await page.evaluate(() =>
+      document.documentElement.style.getPropertyValue("--editor-font-size")
+    );
+    expect(rootFontSize).toBe("15px");
+
+    const lineHeightSlider = settings(page).getByRole("slider", { name: "Editor line spacing" });
+    await expect(lineHeightSlider).toBeVisible();
+    await lineHeightSlider.fill("1.7");
+    await lineHeightSlider.dispatchEvent("input");
+
+    const rootLineHeight = await page.evaluate(() =>
+      document.documentElement.style.getPropertyValue("--editor-line-height")
+    );
+    expect(rootLineHeight).toBe("1.7");
+
+    // Persisted in mock backend
+    expect(await page.evaluate(() => window.__CHRONO_MOCK__!.fontSize)).toBe(15);
+    expect(await page.evaluate(() => window.__CHRONO_MOCK__!.lineHeight)).toBe(1.7);
+  });
+
+  test("pure black OLED toggle is only visible in dark mode and layers data-pure-black (Area 10.2)", async ({
+    page,
+  }) => {
+    await seedApp(page, { seed: { themeMode: "light" } });
+    await openSettings(page);
+
+    // In light mode, pure black toggle is not rendered
+    await expect(settings(page).getByText("Pure black (OLED)")).toHaveCount(0);
+
+    // Switch to dark theme
+    await settings(page).getByRole("radio", { name: "Dark", exact: true }).click();
+    await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+
+    // Pure black toggle is now visible
+    const pureBlackToggle = settings(page).locator(".toggle-switch", { hasText: "Pure black (OLED)" });
+    await expect(pureBlackToggle).toBeVisible();
+    const pureBlackInput = pureBlackToggle.locator("input");
+    await expect(pureBlackInput).not.toBeChecked();
+    await expect(page.locator("html")).not.toHaveAttribute("data-pure-black");
+
+    // Toggle on
+    await pureBlackToggle.click();
+    await expect(pureBlackInput).toBeChecked();
+    await expect(page.locator("html")).toHaveAttribute("data-pure-black", "");
+    expect(await page.evaluate(() => window.__CHRONO_MOCK__!.pureBlack)).toBe(true);
+
+    // Toggle off
+    await pureBlackToggle.click();
+    await expect(pureBlackInput).not.toBeChecked();
+    await expect(page.locator("html")).not.toHaveAttribute("data-pure-black");
+    expect(await page.evaluate(() => window.__CHRONO_MOCK__!.pureBlack)).toBe(false);
+  });
 });

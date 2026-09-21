@@ -6,7 +6,7 @@ kept for the rationale behind each one — not just *what* changed but
 was still being gathered and confirmed before implementation; renamed once
 everything below was applied, since nothing here is "pending" anymore.
 
-**Status: all sections through §194 implemented** (§178–§180 in v0.9.5: a save-only-when-changed fix and two GitHub issues, #76/#77; §181–§186 in v0.10.0: the Android app and OneDrive sync; §187–§188 in v0.11.0: OneDrive sync for the web app, and the fixes found reviewing and testing it; §191–§194 are unreleased: Android folder switch, short Settings labels, and v0.12 Releases A and B). §153 is a
+**Status: all sections through §195 implemented** (§178–§180 in v0.9.5: a save-only-when-changed fix and two GitHub issues, #76/#77; §181–§186 in v0.10.0: the Android app and OneDrive sync; §187–§188 in v0.11.0: OneDrive sync for the web app, and the fixes found reviewing and testing it; §191–§195 are unreleased: Android folder switch, short Settings labels, and v0.12 Releases A, B, and C). §153 is a
 website-only Guide-page fix (found live right after §150–§152 shipped
 as v0.7.12) — no version bump, nothing in the shipped app changed. §154
 merges the OS title bar into the top bar (Notepad-style: icon, tabs,
@@ -8499,4 +8499,38 @@ The second stage of the UI/UX refinements roadmap (`docs/design/ui-ux-refinement
 Verification: Vitest 478, `svelte-check` 0, Playwright 278 (two new width-based specs cover the Sync conflicts and
 Calendar review reflows), `cargo test` 141 (no Rust changed). Checked by hand at 375px: palette (chips, close button,
 hidden hints) and the Shortcuts tab switcher.
+
+## 195. v0.12 "Release C": Zen mode, drag-and-drop import, sync telemetry, typography & OLED mode (unreleased)
+
+The third stage of the UI/UX refinements roadmap (`docs/design/ui-ux-refinements-v0.12-roadmap.md`, areas 3, 4, 9, 10).
+
+1. **Zen mode (distraction-free canvas, Area 3).**
+   - Toggle with `Ctrl+Alt+Z` (`Cmd+Option+Z` on macOS) or via the Command Palette (`>Toggle Zen mode`). `F11` is an extra alias in the desktop app only (not registered in the shortcut list, because browsers keep F11 for their own fullscreen).
+   - Hides top bar (`translateY(-100%)`) and status bar (`translateY(100%)`) with smooth 200ms ease transitions.
+   - Fixed indicator banner in top-right with "Zen mode" status and an "Exit" button.
+   - Desktop window enters native fullscreen (`setFullscreen(true)` enabled via `allow-set-fullscreen` and `allow-is-fullscreen` permissions in `capabilities/default.json`).
+   - Escape priority order: open modal dialogs and non-modal in-document find bar (`Ctrl+F`) close first on Escape; only when no dialog or find bar is active does Escape exit Zen mode.
+   - **Not available on Android, by decision** (guarded in shortcut dispatch and the palette). The window is only switched to or from fullscreen when Zen actually flips, not on every launch.
+2. **Web drag-and-drop file import (Area 4).**
+   - Active on web app and demo builds (`$backendKind === "web"` or `"demo"`).
+   - Dragging files over the window displays a full-screen frosted overlay (`#drop-overlay`) with icon and instruction banner.
+   - Dropping a `.json` backup bundle opens Settings on the Data section pre-loaded with the bundle preview for confirmation.
+   - Dropping one or more dated `.txt` notes (`YYYY-MM-DD.txt`) imports them: new notes are written, identical ones skipped. A note whose date already has *different* text is never written: a "Dropped notes differ" dialog (`DroppedNotesModal`) shows both versions with the differing lines highlighted and offers *Keep my note*, *Use the dropped file* or *Keep both* (the dropped text appended under a `# Dropped copy` marker), per note. Closing the dialog keeps every note as it is. (The first version of this wrote hidden conflict copies nobody could open; that was replaced.)
+   - Dropping unrecognised files displays an informative toast notification.
+3. **Cloud sync health & telemetry dashboard (Area 9).**
+   - Works on web and on Android: Android's Rust engine now has the `get_sync_health` command (`OneDriveManager::health`; the shared `SyncHealth` type is generated from Rust). "Last synced" is remembered for the session only on Android. Clicking `#stat-cloud` in the status bar (when OneDrive is configured on Web or Android) opens an anchored telemetry popover (`#telemetry-popover`) docked above the status bar.
+   - Displays real-time sync status (`● In sync`, `⟳ Syncing changes…`, `▲ Offline (cached)`, or `✕ Sync error`), humanized relative time since last successful sync (`Just now (HH:MM)`, `N minutes ago`, or `Never`), local cached note count (`IndexedDB` or local mirror), pending upload count, connected account email, and target OneDrive folder path.
+   - "Sync Now" action button triggers immediate background sync with live spinner feedback.
+   - "Open Settings" action button navigates directly to the Notes & Sync tab in `SettingsModal`.
+   - Dismissible via top-right `✕` close button, Escape key, or outside clicks.
+4. **Editor typography sliders & pure black OLED theme (Area 10).**
+   - Added continuous range sliders in `SettingsModal.svelte` under the Editor section:
+     - Base font size: 12px to 18px in 0.5px increments (default 13.0px), applied reactively via `--editor-font-size` CSS custom property.
+     - Line spacing: 1.30 to 1.80 in 0.05 increments (default 1.60), applied reactively via `--editor-line-height` CSS custom property.
+   - Added pure black OLED toggle (`pure_black: bool`) in Appearance settings, visible when dark theme is resolved:
+     - Layers `data-pure-black` attribute on `<html>` over the dark theme, mapping `--surface-canvas` to absolute `#000000`, `--surface-chrome` to `#0a0a0a`, and `--surface-overlay` to `#121212` for OLED power savings and contrast.
+     - Persisted across `storage.rs` AppConfig, `tauri-types.ts`, `mockBackend.ts`, and `webBackend.ts`.
+
+Verification: Vitest 478, `svelte-check` 0, Playwright 297 (new specs: `zen-mode.spec.ts`, `drag-drop-import.spec.ts` including the review dialog and a dropped `.json` bundle, `sync-health-popover.spec.ts`, and extended `settings.spec.ts`), `cargo test` 144 (+3: sync-health counts, missing-folder health, and a config written before the typography fields loads with the old look), `npm run build:webapp` fresh. Reviewed and fixed here before merging (roadmap section 15 style): the web bundle had not been rebuilt, Android had no `get_sync_health`, dropped-note conflicts had no review path, F11 was bound on every platform.
+
 

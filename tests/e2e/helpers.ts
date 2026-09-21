@@ -191,6 +191,7 @@ export const MODAL_LABELS = {
   commandPalette: "Command palette",
   syncReview: "Sync review",
   syncConflicts: "Sync conflicts",
+  droppedNotes: "Dropped notes differ",
 } as const;
 
 export type ModalKey = keyof typeof MODAL_LABELS;

@@ -25,6 +25,7 @@
   function onKeydown(e: KeyboardEvent) {
     if (e.key === "Escape") {
       e.preventDefault();
+      e.stopPropagation();
       close();
     } else if (e.key === "Enter") {
       e.preventDefault();

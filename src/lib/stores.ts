@@ -15,6 +15,7 @@ import type {
   NoteTab,
   SearchResultItem,
   SectionOccurrence,
+  SyncHealth,
   ThemeMode,
 } from "./types";
 import { isAndroid } from "./platform";
@@ -40,7 +41,9 @@ export type ModalKind =
   | "syncReview"
   // Android OneDrive sync: notes whose phone and cloud versions couldn't be
   // merged automatically, waiting on the user's choice.
-  | "syncConflicts";
+  | "syncConflicts"
+  // A dropped YYYY-MM-DD.txt that differs from the note already there: the user picks what to keep.
+  | "droppedNotes";
 
 export const tabs = writable<NoteTab[]>([]);
 export const activeTabId = writable<string>("");
@@ -74,6 +77,27 @@ export const wordWrap = writable<boolean>(false);
  * to toggle a max-width wrapper live. On by default, but only visible
  * when `wordWrap` is also on. */
 export const readableLineLength = writable<boolean>(true);
+/** §v0.12.2: user-configurable editor canvas font size in pixels (12–18). Defaults to 13. */
+export const fontSize = writable<number>(13);
+/** §v0.12.2: user-configurable editor line height ratio (1.30–1.80). Defaults to 1.6. */
+export const lineHeight = writable<number>(1.6);
+/** §v0.12.2: pure black (#000000) OLED canvas mode toggle. Layered on dark theme. */
+export const pureBlack = writable<boolean>(false);
+/** §v0.12.2: distraction-free Zen mode canvas. */
+export const isZenMode = writable<boolean>(false);
+
+export const syncHealth = writable<SyncHealth | null>(null);
+
+/** Dropped notes whose name already exists with different text, waiting on the user
+ * (`DroppedNotesModal`). Held in memory only: nothing is written until a choice is made. */
+export interface DroppedNoteConflict {
+  name: string;
+  existing: string;
+  dropped: string;
+}
+export const droppedConflicts = writable<DroppedNoteConflict[]>([]);
+export const syncHealthPopoverOpen = writable<boolean>(false);
+
 /** Whether the top bar should show icon+label (true) or icon-only (false) —
  * driven by the OS window being maximized or fullscreen. */
 export const chromeExpanded = writable<boolean>(false);
@@ -128,6 +152,8 @@ export const modal = writable<ModalKind>("none");
  * a single-purpose boolean, in case a future entry point needs the same
  * mechanism for a different tab. */
 export const settingsInitialTab = writable<string | null>(null);
+/** §v0.12.2: file import preview passed from drag-and-drop into SettingsModal. */
+export const pendingImportPreview = writable<{ bundle: any; noteCount: number } | null>(null);
 /** Populated once at startup (`initApp`) for the About drawer — read live
  * from Tauri rather than hardcoded, so it can't drift from whatever
  * version is actually running. Empty string until then. */

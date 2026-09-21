@@ -21,6 +21,9 @@ import {
   chromeExpanded,
   colorMode,
   currentDateISO,
+  fontSize,
+  lineHeight,
+  pureBlack,
   justUpdatedToVersion,
   markTabClean,
   modal,
@@ -38,6 +41,7 @@ import {
   statusPos,
   statusSelection,
   statusWordCount,
+  syncHealth,
   tabs,
   themeMode,
   unsavedScratchpadNames,
@@ -252,6 +256,11 @@ export function applyThemeModeToDom(mode: ThemeMode) {
   else document.documentElement.dataset.theme = mode;
 }
 
+export function applyPureBlackToDom(pureBlack: boolean) {
+  if (pureBlack) document.documentElement.setAttribute("data-pure-black", "");
+  else document.documentElement.removeAttribute("data-pure-black");
+}
+
 /** Set while a session restore (or a directory switch's fresh restore) is
  * rebuilding the `tabs`/`activeTabId` stores step by step, so the
  * persistence subscribers below don't write a half-built intermediate
@@ -402,6 +411,10 @@ export async function initApp() {
   wordWrap.set(cfg.wordWrap || cfg.readableLineLength);
   autoCheckUpdates.set(cfg.autoCheckUpdates);
   calendarSyncEnabled.set(cfg.calendarSyncEnabled);
+  fontSize.set(cfg.fontSize ?? 13);
+  lineHeight.set(cfg.lineHeight ?? 1.6);
+  pureBlack.set(cfg.pureBlack ?? false);
+  applyPureBlackToDom(cfg.pureBlack ?? false);
   if (cfg.calendarSyncEnabled && (get(backendKind) !== "web" || !!get(oneDriveAccount))) {
     void refreshAgendaFileExists();
   }
@@ -540,6 +553,7 @@ export async function initOneDriveSync() {
         oneDriveSyncStatus.set(status);
       } catch {}
       void refreshSyncConflicts();
+      void refreshSyncHealth();
     }
   }, 6000);
 
@@ -559,6 +573,17 @@ export async function initOneDriveSync() {
   if (typeof window !== "undefined") {
     window.addEventListener("focus", triggerResumeSync);
     window.addEventListener("online", triggerResumeSync);
+  }
+}
+
+export async function refreshSyncHealth(): Promise<void> {
+  const kind = get(backendKind);
+  if (kind !== "web" && kind !== "android") return;
+  try {
+    const health = await api.getSyncHealth();
+    syncHealth.set(health);
+  } catch (err) {
+    console.error("Failed to fetch sync health:", err);
   }
 }
 
@@ -641,5 +666,35 @@ export async function setCalendarSyncEnabled(enabled: boolean) {
     await api.setCalendarSyncEnabled(enabled);
   } catch {
     showToast("Failed to save calendar-sync preference");
+  }
+}
+
+export async function setFontSize(size: number) {
+  const clamped = Math.min(18, Math.max(12, size));
+  fontSize.set(clamped);
+  try {
+    await api.setFontSize(clamped);
+  } catch {
+    showToast("Failed to save font size preference");
+  }
+}
+
+export async function setLineHeight(height: number) {
+  const clamped = Math.min(1.8, Math.max(1.3, height));
+  lineHeight.set(clamped);
+  try {
+    await api.setLineHeight(clamped);
+  } catch {
+    showToast("Failed to save line height preference");
+  }
+}
+
+export async function setPureBlack(enabled: boolean) {
+  pureBlack.set(enabled);
+  applyPureBlackToDom(enabled);
+  try {
+    await api.setPureBlack(enabled);
+  } catch {
+    showToast("Failed to save pure black preference");
   }
 }

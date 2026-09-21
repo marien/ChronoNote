@@ -18,6 +18,7 @@ export type {
   OneDriveLoginResult,
   OneDriveSyncResult,
   SyncConflict,
+  SyncHealth,
   SyncStatus,
   TabSession,
   ThemeMode,

@@ -97,10 +97,37 @@ pub struct AppConfig {
     /// (`false`) for every config written before this field existed.
     #[serde(default)]
     pub calendar_sync_enabled: bool,
+    /// §v0.12.2: user-configurable editor canvas font size. Range 12–18px,
+    /// 0.5px steps. Defaults to 13.0 — exactly matches the previous hardcoded
+    /// `font-size: 13px !important` so existing users see no change.
+    /// `#[serde(default = "default_font_size")]` so a config written before
+    /// this field existed gets the same 13px value as the old hardcode.
+    #[serde(default = "default_font_size")]
+    pub font_size: f32,
+    /// §v0.12.2: user-configurable line spacing. Range 1.30–1.80, 0.05 steps.
+    /// Default 1.6 — the current `.cm-line` value (§79 glyph box is pinned to
+    /// this ratio; a different default would silently re-layout every user).
+    #[serde(default = "default_line_height")]
+    pub line_height: f32,
+    /// §v0.12.2: pure black (#000000) OLED canvas mode. Only effective when
+    /// the resolved theme is dark. Modelled as a toggle layered on dark
+    /// (`data-pure-black` attribute on `<html>`), not a fourth `ThemeMode`
+    /// value — avoids falling through every `[data-theme="dark"]`-keyed token
+    /// block and the native anti-flash code in `show_window_without_flash`.
+    #[serde(default)]
+    pub pure_black: bool,
 }
 
 fn default_true() -> bool {
     true
+}
+
+fn default_font_size() -> f32 {
+    13.0
+}
+
+fn default_line_height() -> f32 {
+    1.6
 }
 
 const MAX_RECENT_NOTES_DIRS: usize = 5;
@@ -323,6 +350,9 @@ fn load_config_at(path: &Path, default_notes_dir: &Path) -> Result<AppConfig, St
         auto_check_updates: true,
         last_seen_version: None,
         calendar_sync_enabled: false,
+        font_size: default_font_size(),
+        line_height: default_line_height(),
+        pure_black: false,
     };
     save_config_at(path, &cfg)?;
     Ok(cfg)
@@ -805,6 +835,7 @@ fn generate_typescript_bindings() {
         crate::onedrive::FolderSwitchResult::decl(&cfg),
         crate::onedrive::OneDriveSyncResult::decl(&cfg),
         crate::onedrive::SyncConflict::decl(&cfg),
+        crate::onedrive::SyncHealth::decl(&cfg),
         crate::onedrive::SyncStatus::decl(&cfg),
         crate::onedrive::OneDriveAdvancedConfig::decl(&cfg),
     ];
@@ -949,6 +980,30 @@ mod tests {
     }
 
     #[test]
+    fn a_config_written_before_the_typography_fields_loads_with_the_old_look() {
+        let dir = tempdir().unwrap();
+        let path = dir.path().join("config.json");
+        // Write a current config, then remove the three new keys: exactly what an older release wrote.
+        let base = load_config_at(&path, &dir.path().join("Notes")).unwrap();
+        save_config_at(&path, &AppConfig { notes_dir: "/my/notes".to_string(), font_size: 17.0, line_height: 1.7, pure_black: true, ..base }).unwrap();
+        let mut json: serde_json::Value = serde_json::from_str(&fs::read_to_string(&path).unwrap()).unwrap();
+        for key in ["font_size", "fontSize", "line_height", "lineHeight", "pure_black", "pureBlack"] {
+            json.as_object_mut().unwrap().remove(key);
+        }
+        fs::write(&path, json.to_string()).unwrap();
+        let cfg = load_config_at(&path, &dir.path().join("Notes")).unwrap();
+        assert_eq!(cfg.notes_dir, "/my/notes");
+        assert_eq!(cfg.font_size, 13.0);
+        assert_eq!(cfg.line_height, 1.6);
+        assert!(!cfg.pure_black);
+        // ...and the file wasn't quarantined as corrupt.
+        assert!(!fs::read_dir(dir.path())
+            .unwrap()
+            .flatten()
+            .any(|e| e.file_name().to_string_lossy().contains(".corrupt-")));
+    }
+
+    #[test]
     fn load_config_round_trips_a_saved_config() {
         let dir = tempdir().unwrap();
         let path = dir.path().join("config.json");
@@ -962,6 +1017,9 @@ mod tests {
             auto_check_updates: false,
             last_seen_version: Some("0.7.4".to_string()),
             calendar_sync_enabled: false,
+            font_size: 14.5,
+            line_height: 1.7,
+            pure_black: true,
         };
         save_config_at(&path, &cfg).unwrap();
         let loaded = load_config_at(&path, &dir.path().join("Notes")).unwrap();
@@ -973,6 +1031,9 @@ mod tests {
         assert_eq!(loaded.recent_notes_dirs, vec!["/old1", "/old2"]);
         assert!(!loaded.auto_check_updates);
         assert_eq!(loaded.last_seen_version, Some("0.7.4".to_string()));
+        assert_eq!(loaded.font_size, 14.5);
+        assert_eq!(loaded.line_height, 1.7);
+        assert!(loaded.pure_black);
     }
 
     #[test]
@@ -991,6 +1052,9 @@ mod tests {
             auto_check_updates: true,
             last_seen_version: None,
             calendar_sync_enabled: false,
+            font_size: default_font_size(),
+            line_height: default_line_height(),
+            pure_black: false,
         };
         save_config_at(&path, &cfg).unwrap();
         let on_disk = fs::read_to_string(&path).unwrap();
@@ -1021,6 +1085,9 @@ mod tests {
                 auto_check_updates: true,
                 last_seen_version: None,
                 calendar_sync_enabled: false,
+                font_size: default_font_size(),
+                line_height: default_line_height(),
+                pure_black: false,
             };
             save_config_at(&path, &cfg).unwrap();
             let on_disk = fs::read_to_string(&path).unwrap();

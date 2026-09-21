@@ -6,7 +6,7 @@ use super::auth::{
 use super::client::{DeleteResult, OneDriveClient, UploadResult};
 use super::{
     FolderSwitchResult, OneDriveAccount, OneDriveAdvancedConfig, OneDriveFolderConfig, OneDriveFolderItem,
-    OneDriveLoginResult, OneDriveSyncResult, SyncConflict, SyncStatus,
+    OneDriveLoginResult, OneDriveSyncResult, SyncConflict, SyncHealth, SyncStatus,
 };
 use sha2::{Digest, Sha256};
 use std::collections::HashMap;
@@ -60,6 +60,8 @@ pub struct OneDriveManager {
     client: OneDriveClient,
     status: Arc<Mutex<SyncStatus>>,
     is_syncing: Arc<AtomicBool>,
+    /// Unix ms of the last sync that finished without an error (this session only).
+    last_sync_success_ms: Arc<Mutex<Option<i64>>>,
 }
 
 impl OneDriveManager {
@@ -68,6 +70,7 @@ impl OneDriveManager {
             client: OneDriveClient::new(),
             status: Arc::new(Mutex::new(SyncStatus::Idle)),
             is_syncing: Arc::new(AtomicBool::new(false)),
+            last_sync_success_ms: Arc::new(Mutex::new(None)),
         }
     }
 
@@ -550,6 +553,11 @@ impl OneDriveManager {
         match result {
             Ok(_) => {
                 self.set_status(SyncStatus::Idle);
+                let now_ms = std::time::SystemTime::now()
+                    .duration_since(std::time::UNIX_EPOCH)
+                    .map(|d| d.as_millis() as i64)
+                    .ok();
+                *self.last_sync_success_ms.lock().unwrap() = now_ms;
                 OneDriveSyncResult {
                     success: true,
                     message: None,
@@ -567,6 +575,17 @@ impl OneDriveManager {
                     message: Some(err),
                 }
             }
+        }
+    }
+
+    /// Snapshot for the sync-health popover (see `SyncHealth`).
+    pub fn health(&self, data_dir: &Path, notes_dir: &Path) -> SyncHealth {
+        let (local_note_count, pending_upload_count) = count_local_and_pending(notes_dir, &self.load_cache(data_dir));
+        SyncHealth {
+            status: self.get_status(),
+            last_sync_success_ms: *self.last_sync_success_ms.lock().unwrap(),
+            local_note_count,
+            pending_upload_count,
         }
     }
 
@@ -1299,6 +1318,29 @@ fn is_syncable_file(name: &str) -> bool {
         || name == ".agenda.json"
 }
 
+/// How many synced notes are on the device, and how many of them the next sync
+/// would upload: new since the last sync, or changed since then. A note held as
+/// a conflict is never uploaded, and a never-synced empty note is ignored (the
+/// same rules as the web engine's `getSyncHealth`).
+fn count_local_and_pending(notes_dir: &Path, cache: &SyncCache) -> (usize, usize) {
+    let files = list_syncable_local_files(notes_dir).unwrap_or_default();
+    let mut pending = 0;
+    for name in &files {
+        if cache.conflicts.contains_key(name) {
+            continue;
+        }
+        let path = notes_dir.join(name);
+        let Ok(bytes) = fs::read(&path) else { continue };
+        match cache.files.get(name) {
+            None if bytes.is_empty() => {}
+            None => pending += 1,
+            Some(entry) if entry.local_hash != compute_hash(&bytes) => pending += 1,
+            Some(_) => {}
+        }
+    }
+    (files.len(), pending)
+}
+
 fn list_syncable_local_files(notes_dir: &Path) -> Result<Vec<String>, String> {
     let mut files = Vec::new();
     if !notes_dir.exists() {
@@ -1521,6 +1563,39 @@ mod tests {
         cache: &mut SyncCache,
     ) -> ChangeOutcome {
         apply_remote_change(notes, data, NOTE, "id-1", etag, remote, cache).unwrap()
+    }
+
+    #[test]
+    fn health_counts_synced_notes_and_the_ones_still_to_upload() {
+        let (notes, _data) = dirs();
+        // synced and unchanged
+        fs::write(notes.path().join("2026-09-01.txt"), "same").unwrap();
+        // synced, then edited
+        fs::write(notes.path().join("2026-09-02.txt"), "edited").unwrap();
+        // never synced
+        fs::write(notes.path().join("2026-09-03.txt"), "new").unwrap();
+        // never synced but empty: ignored
+        fs::write(notes.path().join("2026-09-04.txt"), "").unwrap();
+        // held as a conflict: never uploaded
+        fs::write(notes.path().join("2026-09-05.txt"), "local").unwrap();
+        // not a synced file at all
+        fs::write(notes.path().join(".chrononote-session.json"), "{}").unwrap();
+
+        let mut cache = cache_with("2026-09-01.txt", "same", "e1");
+        cache.files.insert(
+            "2026-09-02.txt".to_string(),
+            FileCacheEntry { id: "id-2".into(), etag: "e2".into(), local_hash: compute_hash(b"before") },
+        );
+        cache.conflicts.insert("2026-09-05.txt".to_string(), PendingConflict::default());
+
+        assert_eq!(count_local_and_pending(notes.path(), &cache), (5, 2));
+    }
+
+    #[test]
+    fn health_of_a_missing_notes_folder_is_empty() {
+        let (notes, _data) = dirs();
+        let gone = notes.path().join("nope");
+        assert_eq!(count_local_and_pending(&gone, &SyncCache::default()), (0, 0));
     }
 
     #[test]

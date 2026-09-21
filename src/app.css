@@ -115,6 +115,34 @@
   --editor-selection-bg: #c8d3e0;
 }
 
+/* §v0.12.2: Pure Black OLED Dark Theme (Area 10.2)
+   Layered on dark theme via [data-pure-black] attribute on <html>.
+   Absolute #000000 canvas for OLED power savings and contrast. */
+:root[data-theme="dark"][data-pure-black] {
+  --surface-canvas: #000000;
+  --surface-chrome: #0a0a0a;
+  --surface-overlay: #121212;
+  --surface-raised: #1e1e1e;
+  --edge-soft: rgba(255, 255, 255, 0.10);
+  --edge-strong: rgba(255, 255, 255, 0.18);
+  --text: #e0e0e0;
+  --muted: #8e8e8e;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme])[data-pure-black],
+  :root[data-theme="system"][data-pure-black] {
+    --surface-canvas: #000000;
+    --surface-chrome: #0a0a0a;
+    --surface-overlay: #121212;
+    --surface-raised: #1e1e1e;
+    --edge-soft: rgba(255, 255, 255, 0.10);
+    --edge-strong: rgba(255, 255, 255, 0.18);
+    --text: #e0e0e0;
+    --muted: #8e8e8e;
+  }
+}
+
 /* Color theme (§105 refresh): the reviews' semantic glyph palette —
    cyan = open/to-do, emerald = done, violet = deferred, slate = won't-do.
    Amber is reserved for emphasis / warning only. Chrome accent stays the
@@ -700,13 +728,13 @@ body {
 .cm-editor {
   height: 100%;
   font-family: var(--font) !important;
-  font-size: 13px !important;
+  font-size: var(--editor-font-size, 13px) !important;
 }
 .cm-scroller {
   padding: 16px 20px !important;
 }
 .cm-line {
-  line-height: 1.6;
+  line-height: var(--editor-line-height, 1.6);
 }
 
 /* Thin, theme-matched scrollbar (Notepad/Claude-style) in place of the
@@ -2564,6 +2592,26 @@ kbd {
   color: var(--muted);
   min-width: 50px;
 }
+.settings-slider-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.settings-slider-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.settings-slider-val {
+  font-size: 12px;
+  font-family: var(--font);
+  color: var(--muted);
+}
+.settings-range-slider {
+  width: 100%;
+  accent-color: var(--glyph-open-color);
+  cursor: pointer;
+}
 /* §127 (finding D): a segmented "pick one of N modes" control, distinct
    from `.toggle-switch` below (a single on/off). One bordered container
    with hairline dividers between segments and a filled selected one,
@@ -3015,4 +3063,206 @@ body {
 .drawer-action-btn:active {
   background: var(--surface-hover);
 }
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* §v0.12.2: Zen Mode (Area 3) — distraction-free canvas */
+body.zen-mode #top-bar {
+  transform: translateY(-100%);
+  opacity: 0;
+  pointer-events: none;
+}
+body.zen-mode #status-bar {
+  transform: translateY(100%);
+  opacity: 0;
+  pointer-events: none;
+}
+#top-bar,
+#status-bar {
+  transition: transform 200ms ease, opacity 200ms ease;
+}
+
+#zen-banner {
+  position: fixed;
+  top: 12px;
+  right: 16px;
+  background: var(--surface-overlay);
+  border: 1px solid var(--edge-strong);
+  border-radius: 4px;
+  padding: 4px 10px;
+  font-size: 11px;
+  color: var(--muted);
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+  animation: fadeIn 200ms ease;
+}
+
+.zen-exit-btn {
+  background: none;
+  border: none;
+  color: var(--text);
+  text-decoration: underline;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: inherit;
+  padding: 0;
+}
+
+/* §v0.12.2: Full-screen Drag-and-Drop file import overlay (Area 4) */
+#drop-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(14, 116, 144, 0.18);
+  backdrop-filter: blur(4px);
+  border: 3px dashed var(--glyph-open-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 200;
+  pointer-events: none;
+  animation: fadeIn 120ms ease;
+}
+
+.drop-banner {
+  background: var(--surface-overlay);
+  border: 1px solid var(--edge-strong);
+  border-radius: 8px;
+  padding: 24px 36px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+/* §v0.12.2: Cloud Sync Telemetry Popover (Area 9) */
+#telemetry-popover {
+  position: fixed;
+  background: var(--surface-overlay);
+  border: 1px solid var(--edge-strong);
+  border-radius: 8px;
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.55);
+  width: 290px;
+  padding: 12px;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  font-size: 11.5px;
+  animation: fadeIn 150ms ease;
+}
+
+.telemetry-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-weight: 600;
+  font-size: 12px;
+  color: var(--text);
+}
+
+.telemetry-header-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.telemetry-details {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 11px;
+}
+
+.telemetry-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.telemetry-label {
+  color: var(--muted);
+  flex-shrink: 0;
+}
+
+.telemetry-value {
+  color: var(--text);
+  text-align: right;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.telemetry-code {
+  font-family: var(--font);
+}
+
+.telemetry-status {
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.telemetry-status.in-sync {
+  color: var(--state-ok);
+}
+
+.telemetry-status.syncing {
+  color: var(--glyph-open-color);
+}
+
+.telemetry-status.offline {
+  color: var(--state-warn);
+}
+
+.telemetry-status.error {
+  color: var(--state-danger, #ef4444);
+}
+
+.telemetry-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.telemetry-btn {
+  flex: 1;
+  padding: 6px 10px;
+  border-radius: 4px;
+  border: 1px solid var(--edge-strong);
+  background: var(--surface-chrome);
+  color: var(--text);
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  transition: background 120ms ease;
+}
+
+.telemetry-btn:hover:not(:disabled) {
+  background: var(--surface-hover);
+}
+
+.telemetry-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.telemetry-sync-btn {
+  background: var(--surface-hover);
+}
+
 

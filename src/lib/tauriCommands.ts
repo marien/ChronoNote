@@ -13,6 +13,7 @@ import type {
   OneDriveLoginResult,
   OneDriveSyncResult,
   SyncConflict,
+  SyncHealth,
   SyncStatus,
   TabSession,
   ThemeMode,
@@ -40,6 +41,9 @@ export interface TauriCommands {
   set_auto_check_updates: { args: { enabled: boolean }; returns: AppConfig };
   set_theme_mode: { args: { mode: ThemeMode }; returns: AppConfig };
   set_calendar_sync_enabled: { args: { enabled: boolean }; returns: AppConfig };
+  set_font_size: { args: { fontSize: number }; returns: AppConfig };
+  set_line_height: { args: { lineHeight: number }; returns: AppConfig };
+  set_pure_black: { args: { pureBlack: boolean }; returns: AppConfig };
   set_last_seen_version: { args: { version: string }; returns: AppConfig };
   list_note_files: { args: NoArgs; returns: string[] };
   read_note: { args: { filename: string }; returns: string | null };
@@ -156,6 +160,10 @@ export interface TauriCommands {
   web_migrate_browser_notes: {
     args: NoArgs;
     returns: { migratedCount: number; conflictCount: number };
+  };
+  get_sync_health: {
+    args: NoArgs;
+    returns: SyncHealth;
   };
 }
 

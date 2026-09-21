@@ -75,6 +75,30 @@ fn set_calendar_sync_enabled(app: AppHandle, enabled: bool) -> Result<storage::A
     Ok(cfg)
 }
 
+#[tauri::command]
+fn set_font_size(app: AppHandle, font_size: f32) -> Result<storage::AppConfig, String> {
+    let mut cfg = storage::load_config(&app)?;
+    cfg.font_size = font_size.clamp(12.0, 18.0);
+    storage::save_config(&app, &cfg)?;
+    Ok(cfg)
+}
+
+#[tauri::command]
+fn set_line_height(app: AppHandle, line_height: f32) -> Result<storage::AppConfig, String> {
+    let mut cfg = storage::load_config(&app)?;
+    cfg.line_height = line_height.clamp(1.3, 1.8);
+    storage::save_config(&app, &cfg)?;
+    Ok(cfg)
+}
+
+#[tauri::command]
+fn set_pure_black(app: AppHandle, pure_black: bool) -> Result<storage::AppConfig, String> {
+    let mut cfg = storage::load_config(&app)?;
+    cfg.pure_black = pure_black;
+    storage::save_config(&app, &cfg)?;
+    Ok(cfg)
+}
+
 /// #50: called once per launch, right after boot compares the running
 /// version against `AppConfig.last_seen_version` — records the version
 /// so the same launch's update notice (if any) isn't repeated next time.
@@ -270,6 +294,16 @@ async fn onedrive_sync_now(
 }
 
 #[tauri::command]
+fn get_sync_health(
+    app: AppHandle,
+    mgr: tauri::State<'_, std::sync::Arc<onedrive::sync::OneDriveManager>>,
+) -> Result<onedrive::SyncHealth, String> {
+    let data_dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
+    let cfg = storage::load_config(&app)?;
+    Ok(mgr.health(&data_dir, &std::path::PathBuf::from(cfg.notes_dir)))
+}
+
+#[tauri::command]
 fn onedrive_get_conflicts(
     app: AppHandle,
     mgr: tauri::State<'_, std::sync::Arc<onedrive::sync::OneDriveManager>>,
@@ -451,6 +485,9 @@ pub fn run() {
             set_auto_check_updates,
             set_theme_mode,
             set_calendar_sync_enabled,
+            set_font_size,
+            set_line_height,
+            set_pure_black,
             set_last_seen_version,
             list_note_files,
             read_note,
@@ -478,6 +515,7 @@ pub fn run() {
             onedrive_prepare_folder_switch,
             onedrive_get_folder,
             onedrive_sync_now,
+            get_sync_health,
             onedrive_get_conflicts,
             onedrive_resolve_conflict,
             onedrive_get_sync_status,

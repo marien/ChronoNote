@@ -233,6 +233,13 @@ export const SHORTCUTS: ShortcutDef[] = [
     label: "Copy the selection (or current line) to the next occurrence of this section",
     combos: [{ mod: true, shift: true, code: "Period" }],
   },
+  {
+    id: "toggleZenMode",
+    label: "Zen mode (distraction-free canvas)",
+    // F11 is deliberately not registered: browsers keep it for their own fullscreen, so it
+    // works only in the desktop app, wired in `App.svelte` (and so isn't listed on the web).
+    combos: [{ mod: true, alt: true, code: "KeyZ" }],
+  },
 ];
 
 const BY_ID = new Map(SHORTCUTS.map((s) => [s.id, s]));
