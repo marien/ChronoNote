@@ -29,6 +29,7 @@ import {
   modal,
   notesDir,
   oneDriveAccount,
+  oneDriveSignInExpired,
   oneDriveConnecting,
   oneDriveFolder,
   oneDriveFolderPickerOpen,
@@ -482,6 +483,7 @@ export async function initOneDriveSync() {
       const result = event.payload;
       if (result.success && result.account) {
         oneDriveAccount.set(result.account);
+        oneDriveSignInExpired.set(false);
         // Signing in doesn't pick a folder — say what's still needed rather
         // than leaving the user to discover it when "Sync now" fails.
         showToast(get(oneDriveFolder) ? "Connected to OneDrive" : "Connected to OneDrive — now choose a folder to sync");
@@ -507,6 +509,7 @@ export async function initOneDriveSync() {
           oneDriveConnecting.set(false);
           if (result.success && result.account) {
             oneDriveAccount.set(result.account);
+        oneDriveSignInExpired.set(false);
             const folder = await api.oneDriveGetFolder();
             if (folder) {
               oneDriveFolder.set(folder);

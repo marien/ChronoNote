@@ -6,7 +6,7 @@ kept for the rationale behind each one — not just *what* changed but
 was still being gathered and confirmed before implementation; renamed once
 everything below was applied, since nothing here is "pending" anymore.
 
-**Status: all sections through §195 implemented** (§178–§180 in v0.9.5: a save-only-when-changed fix and two GitHub issues, #76/#77; §181–§186 in v0.10.0: the Android app and OneDrive sync; §187–§188 in v0.11.0: OneDrive sync for the web app, and the fixes found reviewing and testing it; §191–§195 in v0.12.0: the Android folder-switch fix, shorter Settings labels, and the v0.12 UI/UX refinements in three stages (§193 palette, resolved lines, calendar dots and search; §194 modal system and phone layouts; §195 Zen mode, drag-and-drop import, sync health popover, typography and pure black)). §153 is a
+**Status: all sections through §196 implemented** (§178–§180 in v0.9.5: a save-only-when-changed fix and two GitHub issues, #76/#77; §181–§186 in v0.10.0: the Android app and OneDrive sync; §187–§188 in v0.11.0: OneDrive sync for the web app, and the fixes found reviewing and testing it; §191–§195 in v0.12.0: the Android folder-switch fix, shorter Settings labels, and the v0.12 UI/UX refinements in three stages (§193 palette, resolved lines, calendar dots and search; §194 modal system and phone layouts; §195 Zen mode, drag-and-drop import, sync health popover, typography and pure black)). §153 is a
 website-only Guide-page fix (found live right after §150–§152 shipped
 as v0.7.12) — no version bump, nothing in the shipped app changed. §154
 merges the OS title bar into the top bar (Notepad-style: icon, tabs,
@@ -8533,4 +8533,31 @@ The third stage of the UI/UX refinements roadmap (`docs/design/ui-ux-refinements
 
 Verification: Vitest 478, `svelte-check` 0, Playwright 297 (new specs: `zen-mode.spec.ts`, `drag-drop-import.spec.ts` including the review dialog and a dropped `.json` bundle, `sync-health-popover.spec.ts`, and extended `settings.spec.ts`), `cargo test` 144 (+3: sync-health counts, missing-folder health, and a config written before the typography fields loads with the old look), `npm run build:webapp` fresh. Reviewed and fixed here before merging (roadmap section 15 style): the web bundle had not been rebuilt, Android had no `get_sync_health`, dropped-note conflicts had no review path, F11 was bound on every platform.
 
+## 196. After v0.12.0: expired web sign-in can be renewed, long messages are readable, Zen mode fixes (unreleased)
 
+Found by Marien using v0.12.0.
+
+1. **"Your OneDrive sign-in expired", with no way to renew it.** The web app's Microsoft sign-in can only be renewed for
+   about a day (a browser-app rule). The old message told the user to "choose Connect Microsoft Account in Settings", but
+   that button only exists when signed out, and Settings kept saying "Connected as ...". Now, when a sync reports the
+   expiry (`signInExpired.ts` holds the exact text, `oneDriveSignInExpired` store): the status bar's cloud button reads
+   "Sign in again", the cloud popover shows "Sign-in expired" with a **Sign in again** button (and Sync Now is disabled),
+   and Settings shows a warning with the same button next to the account. Signing in again does **not** sign out: the
+   folder, the local copy of the notes and the sync bookkeeping are untouched, pending edits are saved first (the web app
+   leaves the page to sign in), and the next sync uploads whatever changed meanwhile. A successful sync or sign-in clears the
+   state. (Signing out and back in is the wrong route: it forgets the sync bookkeeping, so every note that differs
+   becomes a conflict to resolve.)
+2. **Long messages could not be read.** Toasts live in the status bar's one-line slot and vanished after 2.4 s. A message
+   over 60 characters (`LONG_TOAST_CHARS`) now appears in a wrapping toast above the status bar (`.long-toast`; the phone
+   toast wraps too) and stays up in proportion to its length (3 s plus 60 ms per character, at most 12 s).
+3. **Zen mode chord: `Shift+F11`** (was Ctrl+Alt+Z). Ctrl+Alt is AltGr on many European layouts, so the old chord fired while
+   typing letters that use AltGr. Shift+F11 is Sublime Text's Distraction Free Mode chord; plain `F11` still works in the
+   desktop app only; Mac also gets `Cmd+Option+Z`.
+4. **Zen mode did not use the whole window.** The two bars were only slid out of sight, so a blank strip stayed where each had
+   been. They now give their space back (height 0), so the editor fills the window; a test checks the editor's box equals the
+   viewport in Zen and returns on exit. (The native fullscreen call itself is unchanged; if a maximized desktop window still
+   looks short of the screen after this, that is a window-manager issue to look at separately.)
+
+Verification: Vitest 478, `svelte-check` 0, Playwright 300 (an expired-sign-in flow across cloud button, popover and Settings; a long
+toast wraps and a short one stays in the bar; Zen uses the full window; the Zen chord). The v0.12.0 release notes still name
+the old chord.

@@ -14,6 +14,7 @@
     lineHeight,
     notesDir,
     oneDriveAccount,
+    oneDriveSignInExpired,
     oneDriveConnecting,
     oneDriveFolder,
     oneDriveFolderPickerOpen,
@@ -174,9 +175,12 @@
     loggingIn = true;
     authError = null;
     try {
+      // The web app leaves the page to sign in: get pending edits safely stored first.
+      await controller.flushAllPendingSaves().catch(() => {});
       const res = await api.oneDriveLogin();
       if (res.success && res.account) {
         oneDriveAccount.set(res.account);
+        oneDriveSignInExpired.set(false);
       } else if (res.pending) {
         // Android: the browser is open and the real outcome arrives
         // later via the onedrive-login-result event (boot.ts) — driven
@@ -220,6 +224,7 @@
     await api.oneDriveLogout($backendKind === "web" && removeLocalOnSignOut);
     removeLocalOnSignOut = false;
     oneDriveAccount.set(null);
+    oneDriveSignInExpired.set(false);
     oneDriveFolder.set(null);
     if ($backendKind === "web") {
       await controller.performDirectorySwitch("Browser storage");
@@ -467,6 +472,19 @@
                 <div class="settings-hint" style="margin-bottom: 8px;">
                   Connected as <strong>{$oneDriveAccount.displayName}</strong> ({$oneDriveAccount.email})
                 </div>
+                {#if $oneDriveSignInExpired}
+                  <div class="settings-hint signin-expired" role="alert">
+                    <strong>Your OneDrive sign-in has expired.</strong> Your notes are safe on this device and nothing has
+                    been signed out. Sign in again to keep syncing; edits you made since the last sync are kept and will
+                    upload afterwards.
+                    <div style="margin-top: 8px;">
+                      <button class="icon-btn btn-primary" on:click={handleOneDriveLogin} disabled={loggingIn || $oneDriveConnecting}>
+                        <Icon name="cloud" size={16} />
+                        <span>{loggingIn || $oneDriveConnecting ? "Connecting…" : "Sign in again"}</span>
+                      </button>
+                    </div>
+                  </div>
+                {/if}
                 <div class="settings-dir-row">
                   {#if $oneDriveFolder}
                     <div class="settings-dir-path">{$oneDriveFolder.folderPath}</div>

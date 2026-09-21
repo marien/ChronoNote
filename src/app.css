@@ -2506,9 +2506,10 @@ textarea.modal-input.import-textarea {
   backdrop-filter: blur(8px);
   z-index: 1000;
   pointer-events: none;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  white-space: normal;
+  text-align: center;
+  line-height: 1.4;
+  border-radius: 16px;
   animation: mobile-toast-in 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 @keyframes mobile-toast-in {
@@ -3070,19 +3071,22 @@ body {
 }
 
 /* §v0.12.2: Zen Mode (Area 3) — distraction-free canvas */
-body.zen-mode #top-bar {
-  transform: translateY(-100%);
-  opacity: 0;
-  pointer-events: none;
-}
+/* The bars must give their space back, not just slide out of sight (a transform leaves a blank
+   strip where each one was and the editor never uses the full screen). */
+body.zen-mode #top-bar,
 body.zen-mode #status-bar {
-  transform: translateY(100%);
+  height: 0;
+  min-height: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+  border-width: 0;
+  overflow: hidden;
   opacity: 0;
   pointer-events: none;
 }
 #top-bar,
 #status-bar {
-  transition: transform 200ms ease, opacity 200ms ease;
+  transition: height 200ms ease, opacity 200ms ease;
 }
 
 #zen-banner {
@@ -3266,3 +3270,29 @@ body.zen-mode #status-bar {
 }
 
 
+
+/* A message too long for the status bar's one-line slot (`LONG_TOAST_CHARS`): wraps, stays up long enough to read. */
+.long-toast {
+  position: fixed;
+  left: 50%;
+  bottom: calc(25px + var(--inset-bottom, 0px) + 12px);
+  transform: translateX(-50%);
+  max-width: min(560px, calc(100vw - 32px));
+  padding: 10px 16px;
+  background: var(--surface-raised);
+  border: 1px solid var(--edge-strong);
+  border-radius: 8px;
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 12px;
+  line-height: 1.45;
+  text-align: center;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+  z-index: 1000;
+  pointer-events: none;
+}
+.signin-expired {
+  border-left: 2px solid var(--state-warn);
+  padding-left: 8px;
+  color: var(--text);
+}

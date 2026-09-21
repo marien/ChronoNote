@@ -7,7 +7,9 @@
     notesDir,
     oneDriveAccount,
     oneDriveFolder,
+    oneDriveSignInExpired,
     oneDriveSyncing,
+    LONG_TOAST_CHARS,
     oneDriveSyncStatus,
     isMobile,
     statusCounts,
@@ -52,7 +54,7 @@
       <button
         id="stat-cloud"
         class="status-folder-btn"
-        title={$oneDriveAccount ? `OneDrive: ${$oneDriveFolder?.folderPath ?? "/"} (${$oneDriveSyncStatus})` : "Connect OneDrive in Settings"}
+        title={$oneDriveSignInExpired ? "Your OneDrive sign-in has expired. Click to sign in again." : $oneDriveAccount ? `OneDrive: ${$oneDriveFolder?.folderPath ?? "/"} (${$oneDriveSyncStatus})` : "Connect OneDrive in Settings"}
         aria-label="OneDrive cloud sync"
         on:click={onCloudClick}
       >
@@ -64,7 +66,7 @@
         {/if}
         <span class="stat-tier0 status-folder-name">
           {#if $oneDriveAccount}
-            {$oneDriveSyncing || $oneDriveSyncStatus === "syncing" ? "Syncing…" : !$oneDriveFolder ? "Choose a folder" : $oneDriveSyncStatus === "error" ? "Sync error" : $oneDriveSyncStatus === "offline" ? "Offline" : ($oneDriveFolder.folderPath.split("/").filter(Boolean).pop() ?? "Notes")}
+            {$oneDriveSyncing || $oneDriveSyncStatus === "syncing" ? "Syncing…" : !$oneDriveFolder ? "Choose a folder" : $oneDriveSignInExpired ? "Sign in again" : $oneDriveSyncStatus === "error" ? "Sync error" : $oneDriveSyncStatus === "offline" ? "Offline" : ($oneDriveFolder.folderPath.split("/").filter(Boolean).pop() ?? "Notes")}
           {:else}
             OneDrive
           {/if}
@@ -143,7 +145,7 @@
       <button type="button" id="stat-message" class="status-link" on:click={controller.openAbout}>
         {$toastMessage}
       </button>
-    {:else if $toastMessage && !$isMobile}
+    {:else if $toastMessage && !$isMobile && $toastMessage.length <= LONG_TOAST_CHARS}
       <span id="stat-message" role="status">{$toastMessage}</span>
     {/if}
   </div>

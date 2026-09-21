@@ -4,8 +4,8 @@ export const DEFAULT_CLIENT_ID = "9b008168-6c13-4f0f-9531-2313e7613ccb";
 export const DEFAULT_TENANT = "common";
 export const SCOPES = "Files.ReadWrite offline_access User.Read";
 
-export const SIGN_IN_EXPIRED_MESSAGE =
-  "Your OneDrive sign-in expired. Open Settings and choose Connect Microsoft Account to sign in again.";
+import { SIGN_IN_EXPIRED_MESSAGE } from "../signInExpired";
+export { SIGN_IN_EXPIRED_MESSAGE };
 
 export class SignInExpiredError extends Error {
   constructor() {

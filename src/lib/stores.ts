@@ -207,6 +207,10 @@ export const oneDriveSyncing = writable(false);
  * (which may not even be open when it resolves). Always stays `false`
  * on desktop, which already blocks until it has a real result. */
 export const oneDriveConnecting = writable<boolean>(false);
+/** The last sync said the stored OneDrive sign-in has expired (see `signInExpired.ts`). The notes
+ * on this device are untouched; Settings and the cloud popover offer "Sign in again". Cleared by
+ * a successful sync or a new sign-in. */
+export const oneDriveSignInExpired = writable<boolean>(false);
 
 /** §update-check: whether ChronoNote silently checks github.com for a
  * newer release on launch. Mirrors `AppConfig.autoCheckUpdates` — on by
@@ -359,10 +363,15 @@ export function closeAllModals() {
 
 let toastTimer: ReturnType<typeof setTimeout> | undefined;
 /** Flash a transient message in the status bar; auto-clears after 2.4s. */
+/** Messages longer than this don't fit the status bar's one-line message slot: they are shown
+ * in a wrapping toast instead (`App.svelte`), and stay up long enough to read. */
+export const LONG_TOAST_CHARS = 60;
+
 export function showToast(msg: string) {
   toastMessage.set(msg);
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => toastMessage.set(""), 2400);
+  const ms = msg.length > LONG_TOAST_CHARS ? Math.min(12000, 3000 + msg.length * 60) : 2400;
+  toastTimer = setTimeout(() => toastMessage.set(""), ms);
 }
 
 export function setStatusPosition(line: number, col: number) {

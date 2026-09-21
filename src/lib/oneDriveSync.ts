@@ -8,7 +8,8 @@
  * (which is itself a caller). */
 import { get } from "svelte/store";
 import * as api from "./tauriApi";
-import { oneDriveFolder, oneDriveSyncing, showToast, syncConflicts } from "./stores";
+import { oneDriveAccount, oneDriveConnecting, oneDriveFolder, oneDriveSignInExpired, oneDriveSyncing, showToast, syncConflicts } from "./stores";
+import { SIGN_IN_EXPIRED_MESSAGE } from "./signInExpired";
 import { checkActiveTabForDrift } from "./drift";
 import { refreshAgendaFileExists } from "./calendarSyncActions";
 
@@ -58,6 +59,8 @@ export function syncOneDriveNow(opts: { notify?: boolean } = {}): Promise<void> 
         await syncHooks.flushPendingSaves();
       }
       const result = await api.oneDriveSyncNow();
+      if (result.success) oneDriveSignInExpired.set(false);
+      else if (result.message === SIGN_IN_EXPIRED_MESSAGE) oneDriveSignInExpired.set(true);
       await refreshSyncConflicts();
       syncHooks.invalidateCache?.();
       void checkActiveTabForDrift();
@@ -74,4 +77,29 @@ export function syncOneDriveNow(opts: { notify?: boolean } = {}): Promise<void> 
     }
   })();
   return inFlight;
+}
+
+/** Starts a new sign-in for an account whose sign-in expired. Nothing is signed out and no notes or
+ * settings are touched: the folder, the local copy and the sync bookkeeping all stay, so the next sync
+ * simply continues. Pending edits are saved first because the web app leaves the page to sign in. */
+export async function signInAgain(): Promise<void> {
+  try {
+    await syncHooks.flushPendingSaves?.();
+  } catch {
+    /* saving is best effort here; the notes are already in local storage */
+  }
+  try {
+    const res = await api.oneDriveLogin();
+    if (res.success && res.account) {
+      oneDriveAccount.set(res.account);
+      oneDriveSignInExpired.set(false);
+      void syncOneDriveNow({ notify: true });
+    } else if (res.pending) {
+      oneDriveConnecting.set(true); // the browser (or, on the web, this page) is going to Microsoft
+    } else if (res.error) {
+      showToast(`Couldn't start sign-in: ${res.error}`);
+    }
+  } catch (e) {
+    showToast(`Couldn't start sign-in: ${e instanceof Error ? e.message : String(e)}`);
+  }
 }

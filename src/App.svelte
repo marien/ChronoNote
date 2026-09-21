@@ -17,6 +17,7 @@
     scratchpadGateContext,
     tabs,
     toastMessage,
+    LONG_TOAST_CHARS,
   } from "./lib/controller";
   import { matchesShortcut } from "./lib/shortcuts";
   import { wireMobileViewport } from "./lib/mobileViewport";
@@ -315,6 +316,9 @@
         <span>Drop .json export bundle or .txt notes to import</span>
       </div>
     </div>
+  {/if}
+  {#if !$isMobile && $toastMessage.length > LONG_TOAST_CHARS}
+    <div class="long-toast" role="status" aria-live="polite">{$toastMessage}</div>
   {/if}
   {#if $isMobile && $toastMessage}
     <div class="mobile-toast" role="status" aria-live="polite">

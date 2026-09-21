@@ -236,9 +236,12 @@ export const SHORTCUTS: ShortcutDef[] = [
   {
     id: "toggleZenMode",
     label: "Zen mode (distraction-free canvas)",
-    // F11 is deliberately not registered: browsers keep it for their own fullscreen, so it
+    // Shift+F11 is Sublime Text's "Distraction Free Mode" chord, and needs no Ctrl+Alt (which is
+    // AltGr on many European layouts and would fire while typing letters like a-with-diaeresis).
+    // Plain F11 is deliberately not registered: browsers keep it for their own fullscreen, so it
     // works only in the desktop app, wired in `App.svelte` (and so isn't listed on the web).
-    combos: [{ mod: true, alt: true, code: "KeyZ" }],
+    // Mac gets Cmd+Option+Z too (Option is not AltGr there, and F-keys need fn on many Macs).
+    combos: [{ shift: true, code: "F11" }, { mod: true, alt: true, code: "KeyZ", platforms: ["mac"] }],
   },
 ];
 

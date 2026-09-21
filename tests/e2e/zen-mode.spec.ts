@@ -9,8 +9,8 @@ test.describe("Zen mode (Area 3)", () => {
     await expect(page.locator("body")).not.toHaveClass(/zen-mode/);
     await expect(page.locator("#zen-banner")).toHaveCount(0);
 
-    // Press Ctrl+Alt+Z
-    await page.keyboard.press("Control+Alt+KeyZ");
+    // Press Shift+F11
+    await page.keyboard.press("Shift+F11");
     await expect(page.locator("body")).toHaveClass(/zen-mode/);
     await expect(page.locator("#zen-banner")).toBeVisible();
 
@@ -47,7 +47,7 @@ test.describe("Zen mode (Area 3)", () => {
     await seedApp(page);
 
     // Enter zen mode
-    await page.keyboard.press("Control+Alt+KeyZ");
+    await page.keyboard.press("Shift+F11");
     await expect(page.locator("body")).toHaveClass(/zen-mode/);
 
     // Open find bar
@@ -80,7 +80,28 @@ test.describe("Zen mode: F11 is a desktop-only alias", () => {
     await page.keyboard.press("F11");
     await expect(page.locator("body")).not.toHaveClass(/zen-mode/);
     // The chord itself still works there.
-    await page.keyboard.press("Control+Alt+KeyZ");
+    await page.keyboard.press("Shift+F11");
     await expect(page.locator("body")).toHaveClass(/zen-mode/);
+  });
+});
+
+test.describe("Zen mode uses the whole window", () => {
+  test("the bars give their space back: the editor grows to fill the viewport, and shrinks back on exit", async ({ page }) => {
+    await seedApp(page);
+    const editorBox = async () => (await page.locator("#editor-container").boundingBox())!;
+    const before = await editorBox();
+    expect(before.y).toBeGreaterThan(20); // the top bar sits above it
+
+    await page.keyboard.press("Shift+F11");
+    const vp = page.viewportSize()!;
+    await expect
+      .poll(async () => {
+        const b = await editorBox();
+        return Math.round(b.y) === 0 && Math.round(b.height) === vp.height;
+      })
+      .toBe(true);
+
+    await page.keyboard.press("Shift+F11");
+    await expect.poll(async () => Math.round((await editorBox()).y)).toBe(Math.round(before.y));
   });
 });

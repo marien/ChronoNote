@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { seedApp, editor, REFERENCE_INSTANT } from "./helpers";
+import { seedApp, editor, REFERENCE_INSTANT, toast } from "./helpers";
 import { scenario } from "../../src/lib/testing/scenarios";
 
 /** "Sync calendar for this day" reads `.agenda.json` from the notes folder
@@ -134,7 +134,7 @@ test.describe("calendar sync: file-based agenda", () => {
     const btn = page.getByTitle("Sync calendar for this day", { exact: false });
     await expect(btn).toBeEnabled(); // the file exists — only a missing file grays the button out
     await btn.click();
-    await expect(page.locator("#stat-message")).toContainText("missing, empty, or invalid");
+    await expect(toast(page)).toContainText("missing, empty, or invalid");
   });
 
   // #74: an external syncer stamps these prefixes onto a meeting's own

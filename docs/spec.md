@@ -268,7 +268,7 @@ Every modal dialog conforms to a standardized 4-tier sizing scale, universal dis
 ### 3.7 Zen Mode, Drag-and-Drop Import, Sync Telemetry & Canvas Typography
 
 1. **Zen Mode (Distraction-Free Canvas):**
-   * Toggled via `Ctrl+Alt+Z` (`Cmd+Option+Z` on macOS; `F11` also works in the desktop app only) or via Command Palette (`>Toggle Zen mode`).
+   * Toggled via `Shift+F11` (`Cmd+Option+Z` also on macOS; plain `F11` also works in the desktop app only) or via Command Palette (`>Toggle Zen mode`). The bars give their space back, so the editor fills the window.
    * Smoothly transitions chrome out of view (`#top-bar` via `translateY(-100%)`, `#status-bar` via `translateY(100%)`).
    * Displays an unobtrusive, floating `#zen-banner` in the upper-right corner with status indicator and an explicit "Exit" button.
    * On desktop, enters true native OS fullscreen via Tauri's window API (`setFullscreen(true)`).

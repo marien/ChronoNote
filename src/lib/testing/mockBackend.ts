@@ -97,6 +97,8 @@ export interface MockSeed {
   /** OneDrive sync conflicts waiting on the user: the note's name plus the
    * cloud's version of it (the "local" side is whatever the note holds). */
   oneDriveConflicts?: { name: string; remote: string }[];
+  /** Makes every `onedrive_sync_now` fail with this message until a new sign-in (`onedrive_login`). */
+  oneDriveSyncError?: string;
   /** The chosen OneDrive folder. Omitted = a folder is already chosen
    * (`/Notes`); `null` = signed in but no folder chosen yet (the state right
    * after "Connect Microsoft Account" on a fresh install). */
@@ -284,6 +286,7 @@ export class MockBackend {
   oneDriveAdvancedConfig: OneDriveAdvancedConfig = {};
   /** note name -> the cloud's version, for `onedrive_get_conflicts`. */
   oneDriveConflicts = new Map<string, string>();
+  oneDriveSyncError: string | undefined;
   oneDriveFolder: { folderId: string; folderPath: string } | null = { folderId: "folder-2", folderPath: "/Notes" };
 
   /** Every `invoke` call, in order — assert on persistence without
@@ -353,6 +356,7 @@ export class MockBackend {
     this.updateCheckVersion = seed.updateCheckVersion ?? "9.9.9";
     this.agendaJson = seed.agendaJson;
     for (const c of seed.oneDriveConflicts ?? []) this.oneDriveConflicts.set(c.name, c.remote);
+    this.oneDriveSyncError = seed.oneDriveSyncError;
     if (seed.oneDriveFolder !== undefined) this.oneDriveFolder = seed.oneDriveFolder;
     this.throwOnCommands = new Set(seed.throwOnCommands ?? []);
     this.delayCommands = new Map(Object.entries(seed.delayCommands ?? {}));
@@ -707,7 +711,10 @@ export class MockBackend {
     // existing-but-invalid file still greys the button *in* rather than
     // out, so its own real error surfaces on click).
     agenda_file_exists: () => this.agendaJson !== undefined,
-    onedrive_login: () => ({ success: true, account: { email: "test@example.com", displayName: "Test User" }, pending: false }),
+    onedrive_login: () => {
+      this.oneDriveSyncError = undefined; // a fresh sign-in renews an expired one
+      return { success: true, account: { email: "test@example.com", displayName: "Test User" }, pending: false };
+    },
     onedrive_logout: () => {},
     onedrive_get_account: () => ({ email: "test@example.com", displayName: "Test User" }),
     onedrive_list_folders: () => [
@@ -725,6 +732,7 @@ export class MockBackend {
       pending: false,
     }),
     onedrive_sync_now: () => {
+      if (this.oneDriveSyncError) return { success: false, message: this.oneDriveSyncError };
       this.lastSyncSuccessMs = Date.now();
       return { success: true, message: "Synced" };
     },

@@ -190,3 +190,24 @@ test.describe("status bar — three zones (§100/§110)", () => {
     await expect(modalCard(page, MODAL_LABELS.about)).toContainText("9.9.9");
   });
 });
+
+test.describe("long messages", () => {
+  test("a message too long for the status bar wraps in a toast that stays readable; short ones stay in the bar", async ({ page }) => {
+    await seedApp(page);
+    const long =
+      "OneDrive sync failed: this is a deliberately long message that would never fit on the single line of the status bar at any window width.";
+    await page.evaluate((m) => window.__CHRONO_MOCK__!.debug!.showToast(m), long);
+    const toast = page.locator(".long-toast");
+    await expect(toast).toContainText("deliberately long message");
+    await expect(page.locator("#stat-message")).toHaveCount(0);
+    const box = (await toast.boundingBox())!;
+    expect(box.height).toBeGreaterThan(30); // more than one line
+    const vp = page.viewportSize()!;
+    expect(box.x).toBeGreaterThanOrEqual(0);
+    expect(box.x + box.width).toBeLessThanOrEqual(vp.width);
+
+    await page.evaluate(() => window.__CHRONO_MOCK__!.debug!.showToast("Saved."));
+    await expect(page.locator("#stat-message")).toContainText("Saved.");
+    await expect(page.locator(".long-toast")).toHaveCount(0);
+  });
+});

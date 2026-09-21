@@ -5,6 +5,7 @@
     backendKind,
     oneDriveAccount,
     oneDriveFolder,
+    oneDriveSignInExpired,
     oneDriveSyncing,
     oneDriveSyncStatus,
     syncHealth,
@@ -77,9 +78,11 @@
 
   $: isSyncing = $oneDriveSyncing || $oneDriveSyncStatus === "syncing" || $syncHealth?.status === "syncing";
   $: isOffline = $oneDriveSyncStatus === "offline" || $syncHealth?.status === "offline";
-  $: isError = $oneDriveSyncStatus === "error" || $syncHealth?.status === "error";
+  $: isError = $oneDriveSignInExpired || $oneDriveSyncStatus === "error" || $syncHealth?.status === "error";
 
-  $: statusLabel = isSyncing
+  $: statusLabel = $oneDriveSignInExpired
+    ? "Sign-in expired"
+    : isSyncing
     ? "Syncing changes…"
     : isOffline
       ? "Offline (cached)"
@@ -163,11 +166,22 @@
     </div>
   </div>
 
+  {#if $oneDriveSignInExpired}
+    <div class="settings-hint signin-expired" role="alert" style="margin: 0 12px 8px;">
+      Your notes are safe on this device. Sign in again to keep syncing; nothing is signed out and your unsynced edits are kept.
+    </div>
+  {/if}
+
   <div class="telemetry-actions">
+    {#if $oneDriveSignInExpired}
+      <button type="button" class="telemetry-btn telemetry-sync-btn" on:click={() => controller.signInAgain()}>
+        Sign in again
+      </button>
+    {/if}
     <button
       type="button"
       class="telemetry-btn telemetry-sync-btn"
-      disabled={isSyncing}
+      disabled={isSyncing || $oneDriveSignInExpired}
       on:click={handleSyncNow}
     >
       {#if isSyncing}
