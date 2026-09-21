@@ -439,9 +439,12 @@ reachable from the top bar, a shortcut, or the command palette:
   where focus sits.
 - **About** (its icon lives in the status bar, §3.3, not the top bar —
   #58 moved it there so it stays reachable regardless of window width) —
-  the currently-running version (in the title row, read live), an
-  Updates section (where an available update is reviewed and installed,
-  §7.5), a Links section (the marketing website and the GitHub repo,
+  an
+  Updates section that opens with a version card (the currently-running
+  version, read live, and a chip saying what the update check makes of it;
+  up to date it links to this version's own release notes and shows when it
+  was last checked) and is where an available update is reviewed and
+  installed (§7.5), a Links section (the marketing website and the GitHub repo,
   each labeled and opened in the OS's default browser), and a Learn More
   section pointing at the Shortcuts drawer and command palette.
 

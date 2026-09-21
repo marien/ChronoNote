@@ -227,3 +227,102 @@ test.describe("update check on Android", () => {
     ).toBe(false);
   });
 });
+
+/** The About dialog's version card: the running version moved out of the title bar into the Updates
+ * section, next to a chip saying what the update check makes of it, and up to date it links to this
+ * version's own release notes. */
+test.describe("About: the version card", () => {
+  const seed = (extra: Record<string, unknown> = {}) => ({ seed: { notes: { [todayFilename()]: "hi" }, ...extra } });
+
+  test("the title bar no longer carries the version; the Updates section does", async ({ page }) => {
+    await seedApp(page, seed({ updateCheck: "none" }));
+    const about = await openViaShortcut(page, "ControlOrMeta+Shift+Comma", "about");
+    await expect(about.locator(".modal-title .modal-counter")).toHaveCount(0);
+    await expect(about.locator(".modal-title")).not.toContainText("v0.3.0");
+    const card = about.locator(".about-version-card");
+    await expect(card).toContainText("v0.3.0"); // the mock's default appVersion
+    await expect(card).toContainText("Version");
+    // it sits inside the Updates section, not above it
+    await expect(about.locator(".settings-section-label", { hasText: "Updates" }).locator("xpath=..").locator(".about-version-card")).toHaveCount(1);
+  });
+
+  test("up to date: an ok chip, when it was checked, and a link to THIS version's release notes", async ({ page }) => {
+    await seedApp(page, seed({ updateCheck: "none" }));
+    const about = await openViaShortcut(page, "ControlOrMeta+Shift+Comma", "about");
+    await expect(about.locator(".about-status-chip")).toContainText("Up to date");
+    await expect(about.locator(".about-version-card")).toHaveAttribute("data-tone", "ok");
+    await expect(about).toContainText(/checked just now/i);
+
+    await about.getByRole("button", { name: /Release notes/ }).click();
+    expect(await page.evaluate(() => window.__CHRONO_MOCK__!.openedUrls)).toContain(
+      "https://github.com/marien/ChronoNote/releases/tag/v0.3.0",
+    );
+  });
+
+  test("Check again runs another check", async ({ page }) => {
+    await seedApp(page, seed({ updateCheck: "none" }));
+    const about = await openViaShortcut(page, "ControlOrMeta+Shift+Comma", "about");
+    await expect(about.locator(".about-status-chip")).toContainText("Up to date");
+    const before = await page.evaluate(() => window.__CHRONO_MOCK__!.invokeLog.filter((e) => e.cmd === "plugin:updater|check").length);
+    await about.getByRole("button", { name: "Check again" }).click();
+    await expect
+      .poll(() => page.evaluate(() => window.__CHRONO_MOCK__!.invokeLog.filter((e) => e.cmd === "plugin:updater|check").length))
+      .toBeGreaterThan(before);
+  });
+
+  test("an available update: an accent chip, the current version stays visible, no current-release link", async ({ page }) => {
+    await seedApp(page, seed({ updateCheck: "available", updateCheckVersion: "9.9.9" }));
+    const about = await openViaShortcut(page, "ControlOrMeta+Shift+Comma", "about");
+    await expect(about.locator(".about-status-chip")).toContainText("Update available");
+    await expect(about.locator(".about-version-card")).toHaveAttribute("data-tone", "accent");
+    await expect(about.locator(".about-version-card")).toContainText("v0.3.0");
+    await expect(about).toContainText("v9.9.9");
+    await expect(about.getByRole("button", { name: "What's changed" })).toBeVisible();
+    await expect(about.getByRole("button", { name: /Release notes/ })).toHaveCount(0);
+  });
+
+  test("a failed check: a warn chip, Try again, and still a way to this version's notes", async ({ page }) => {
+    await seedApp(page, seed({ throwOnCommands: ["plugin:updater|check"] }));
+    const about = await openViaShortcut(page, "ControlOrMeta+Shift+Comma", "about");
+    await expect(about.locator(".about-version-card")).toHaveAttribute("data-tone", "warn");
+    await expect(about.getByRole("button", { name: /Try again/ })).toBeVisible();
+    await expect(about.getByRole("button", { name: /Release notes/ })).toBeVisible();
+  });
+
+  test("the web app: always current, with the version and its release notes", async ({ page }) => {
+    await seedApp(page, seed({ backendKind: "web" }));
+    const about = await openViaShortcut(page, "ControlOrMeta+Shift+Comma", "about");
+    await expect(about.locator(".about-status-chip")).toContainText("Always current");
+    await expect(about.locator(".about-version-card")).toContainText("v0.3.0");
+    await about.getByRole("button", { name: /Release notes/ }).click();
+    expect(await page.evaluate(() => window.__CHRONO_MOCK__!.openedUrls)).toContain(
+      "https://github.com/marien/ChronoNote/releases/tag/v0.3.0",
+    );
+    // nothing to check or install there
+    await expect(about.getByRole("button", { name: /Check/ })).toHaveCount(0);
+  });
+
+  test("the card fits the dialog on a phone-width screen", async ({ page }) => {
+    await page.setViewportSize({ width: 360, height: 700 });
+    await seedApp(page, seed({ updateCheck: "none" }));
+    const about = await openViaShortcut(page, "ControlOrMeta+Shift+Comma", "about");
+    const dialog = (await about.boundingBox())!;
+    const card = (await about.locator(".about-version-card").boundingBox())!;
+    expect(card.x).toBeGreaterThanOrEqual(dialog.x);
+    expect(card.x + card.width).toBeLessThanOrEqual(dialog.x + dialog.width + 1);
+  });
+});
+
+test("About: a failed install says 'Install failed' on the chip, not 'Couldn't check'", async ({ page }) => {
+  await seedApp(page, {
+    seed: {
+      notes: { [todayFilename()]: "hi" },
+      updateCheck: "available",
+      updateCheckVersion: "9.9.9",
+      throwOnCommands: ["install_update"],
+    },
+  });
+  const about = await openViaShortcut(page, "ControlOrMeta+Shift+Comma", "about");
+  await about.getByRole("button", { name: /Download & install/i }).click();
+  await expect(about.locator(".about-status-chip")).toContainText("Install failed");
+});

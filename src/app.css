@@ -3322,3 +3322,64 @@ body.zen-mode #status-bar {
   padding-left: 8px;
   color: var(--text);
 }
+
+/* About: the version card at the top of the Updates section. The running version, big, and a chip saying
+   what the update check makes of it; the chip's dot and outline take the tone (ok / accent / busy / warn). */
+.about-version-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 8px;
+  padding: 10px 12px;
+  background: var(--surface-raised);
+  border: 1px solid var(--edge-soft);
+  border-radius: 8px;
+}
+.about-version-main {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.about-version-label {
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.about-version-num {
+  font-family: var(--font-mono, monospace);
+  font-size: 20px;
+  font-weight: 600;
+  line-height: 1.1;
+  color: var(--text);
+}
+.about-status-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  padding: 3px 10px;
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--tone, var(--muted));
+  border: 1px solid color-mix(in srgb, var(--tone, var(--muted)) 45%, transparent);
+  border-radius: 999px;
+}
+.about-status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+}
+.about-status-chip .modal-spinner {
+  font-size: 11px;
+}
+.about-version-card[data-tone="ok"] { --tone: var(--state-ok); }
+.about-version-card[data-tone="accent"] { --tone: var(--tab-active-border); }
+.about-version-card[data-tone="warn"] { --tone: var(--state-warn); }
+.about-version-card[data-tone="busy"] { --tone: var(--muted); }
+.about-checked {
+  color: var(--muted);
+}

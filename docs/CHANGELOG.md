@@ -6,7 +6,7 @@ kept for the rationale behind each one — not just *what* changed but
 was still being gathered and confirmed before implementation; renamed once
 everything below was applied, since nothing here is "pending" anymore.
 
-**Status: all sections through §199 implemented** (§178–§180 in v0.9.5: a save-only-when-changed fix and two GitHub issues, #76/#77; §181–§186 in v0.10.0: the Android app and OneDrive sync; §187–§188 in v0.11.0: OneDrive sync for the web app, and the fixes found reviewing and testing it; §191–§195 in v0.12.0: the Android folder-switch fix, shorter Settings labels, and the v0.12 UI/UX refinements in three stages (§193 palette, resolved lines, calendar dots and search; §194 modal system and phone layouts; §195 Zen mode, drag-and-drop import, sync health popover, typography and pure black; §196 in v0.12.1: renewable web sign-in, wrapping long messages, the Shift+F11 Zen chord and a full-window Zen mode, the topic pill and multi-name delegates; §197 in v0.12.2: Sync Review keyboard use and calendar status prefixes (#78))). §153 is a
+**Status: all sections through §200 implemented** (§178–§180 in v0.9.5: a save-only-when-changed fix and two GitHub issues, #76/#77; §181–§186 in v0.10.0: the Android app and OneDrive sync; §187–§188 in v0.11.0: OneDrive sync for the web app, and the fixes found reviewing and testing it; §191–§195 in v0.12.0: the Android folder-switch fix, shorter Settings labels, and the v0.12 UI/UX refinements in three stages (§193 palette, resolved lines, calendar dots and search; §194 modal system and phone layouts; §195 Zen mode, drag-and-drop import, sync health popover, typography and pure black; §196 in v0.12.1: renewable web sign-in, wrapping long messages, the Shift+F11 Zen chord and a full-window Zen mode, the topic pill and multi-name delegates; §197 in v0.12.2: Sync Review keyboard use and calendar status prefixes (#78))). §153 is a
 website-only Guide-page fix (found live right after §150–§152 shipped
 as v0.7.12) — no version bump, nothing in the shipped app changed. §154
 merges the OS title bar into the top bar (Notepad-style: icon, tabs,
@@ -8663,3 +8663,28 @@ tests: clicks on two and three symbols, caret at start/middle/end, reopen, "not 
 selection, the palette, the phone buttons).
 
 Verification: Vitest 528, `svelte-check` 0, Playwright 323, `cargo test` unchanged.
+
+## 200. About: a version card in the Updates section (unreleased)
+
+Item 6 of Marien's next-version list. The running version sat in the dialog's title bar, misaligned next to the close button, and
+there was nowhere to read up on what this version contains. Now:
+
+- **The title bar is just "About ChronoNote" and the close button.** The version moved into the Updates section, into a **version
+  card**: the small label "Version", the number large in the monospace face (`v0.12.2`), and on the right a status **chip** whose dot
+  and outline take a tone. Up to date: green "Up to date". Update available: accent "Update available". Checking: a spinner and
+  "Checking…". Downloading / starting the installer: busy. Ready: accent "Restart to finish". A failed check: amber "Couldn't check"; a
+  failed install: amber "Install failed" (it used to read as a failed check). The web app: green "Always current". Android:
+  neutral "Installed".
+- **Up to date, the useful link is this version's own release notes.** Under the card: "You're running the latest version. Checked just now
+  / 3 minutes ago / 2 hours ago." (`updateLastChecked`, set by every completed check), then **Release notes** (opens
+  `/releases/tag/vX.Y.Z` for the running version via `openCurrentReleaseNotes`) and **Check again**. The same link is offered on the
+  web app, on Android (next to "What's changed") and after a failed check. With an update available the buttons are still
+  "What's changed" (the releases list, so a version gap needs no per-tag hunting) and "Download & install", and the card keeps the current
+  version visible so "v0.12.2 -> v0.12.3" reads at a glance.
+- New `external` icon (the small arrow-out-of-box on the link buttons).
+
+Tests: Playwright for the card (version out of the title and inside the Updates section, the ok tone, "Checked just now", Release notes opens the
+current tag, Check again reruns the check, the available state without the current-release link, a failed check, a failed install's
+chip, the web app, and the card fitting a phone-width dialog).
+
+Verification: Vitest 528, `svelte-check` 0, Playwright 331, `cargo test` unchanged.

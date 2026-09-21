@@ -5,7 +5,7 @@
  * `controller.ts` in the v0.5.0 refactor. */
 import { get } from "svelte/store";
 import * as api from "./tauriApi";
-import { justUpdatedToVersion, modal, settingsInitialTab } from "./stores";
+import { appVersion, justUpdatedToVersion, modal, settingsInitialTab } from "./stores";
 
 export function openSettings() {
   modal.set("settings");
@@ -73,6 +73,13 @@ export function openWebsiteLink() {
  * however many versions they missed instead of re-navigating per tag. */
 export function openReleasesPage() {
   api.openExternalUrl(`${PROJECT_URL}/releases`).catch(() => {});
+}
+
+/** About's "Release notes" link when the app is up to date: the release page of the version that is
+ * running (`/releases/tag/vX.Y.Z`), not the whole list. Falls back to the list until the version is known. */
+export function openCurrentReleaseNotes() {
+  const v = get(appVersion);
+  api.openExternalUrl(v ? `${PROJECT_URL}/releases/tag/v${v}` : `${PROJECT_URL}/releases`).catch(() => {});
 }
 
 /** #50: the status-bar "Updated to vX.Y.Z" link — opens the releases list

@@ -52,6 +52,7 @@ export const ICONS = {
   indent: `<path d="M4 6h16M4 12h10M4 18h16M17 9l3 3-3 3"/>`,
   dedent: `<path d="M4 6h16M10 12h10M4 18h16M7 9l-3 3 3 3"/>`,
   cloud: `<path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/>`,
+  external: `<path d="M14 5h5v5"/><path d="M19 5l-8 8"/><path d="M17 14v4a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V8a1 1 0 0 1 1-1h4"/>`,
   tabs: `<rect x="4" y="6" width="16" height="12" rx="2"/><path d="M9 6v12M4 10h5"/>`,
 } as const;
 

@@ -22,6 +22,7 @@ import {
   updateErrorDuring,
   updateErrorMessage,
   updateInstalling,
+  updateLastChecked,
   updateReleaseNotes,
   updateStatus,
 } from "./stores";
@@ -54,10 +55,12 @@ export async function checkForUpdates(): Promise<void> {
     if (result) {
       updateAvailableVersion.set(result.version);
       updateReleaseNotes.set(result.body ?? null);
+      updateLastChecked.set(Date.now());
       updateStatus.set("available");
     } else {
       updateAvailableVersion.set(null);
       updateReleaseNotes.set(null);
+      updateLastChecked.set(Date.now());
       updateStatus.set("upToDate");
     }
   } catch (e) {

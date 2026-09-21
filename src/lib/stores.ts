@@ -243,6 +243,8 @@ export type UpdateStatus = "idle" | "checking" | "upToDate" | "available" | "dow
 export const updateStatus = writable<UpdateStatus>("idle");
 export const updateAvailableVersion = writable<string | null>(null);
 export const updateReleaseNotes = writable<string | null>(null);
+/** Unix ms of the last update check that completed (found an update or not), for About's "Checked 3 minutes ago". */
+export const updateLastChecked = writable<number | null>(null);
 export const updateDownloadProgress = writable<{ doneBytes: number; totalBytes: number } | null>(null);
 export const updateErrorMessage = writable<string | null>(null);
 /** Whether the error in `updateErrorMessage` came from the check or from the
