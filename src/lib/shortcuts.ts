@@ -233,6 +233,14 @@ export const SHORTCUTS: ShortcutDef[] = [
     label: "Copy the selection (or current line) to the next occurrence of this section",
     combos: [{ mod: true, shift: true, code: "Period" }],
   },
+  {
+    id: "toggleZenMode",
+    label: "Zen mode (distraction-free canvas)",
+    combos: [
+      { mod: true, alt: true, code: "KeyZ" },
+      { code: "F11" },
+    ],
+  },
 ];
 
 const BY_ID = new Map(SHORTCUTS.map((s) => [s.id, s]));

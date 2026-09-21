@@ -32,6 +32,10 @@ export function bootMockBackend(params: URLSearchParams): MockBackend {
 
   const backend = installMockTauri(seed);
 
+  if (seed?.backendKind) {
+    controller.backendKind.set(seed.backendKind);
+  }
+
   // Live app-state snapshots for assertions the DOM can't cleanly express
   // (a scratchpad's raw text — scratchpads never hit the backend; the
   // exact modal kind; a tab's unsaved content). Dev/mock-only.
@@ -55,6 +59,7 @@ export function bootMockBackend(params: URLSearchParams): MockBackend {
     checkDrift: () => controller.checkActiveTabForDrift(),
     setMobile: (val: boolean) => controller.isMobile.set(val),
     isMobile: () => get(controller.isMobile),
+    setBackendKind: (val: "desktop" | "demo" | "web" | "android") => controller.backendKind.set(val),
     showToast: (msg: string) => controller.showToast(msg),
   };
 

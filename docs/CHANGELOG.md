@@ -6,7 +6,7 @@ kept for the rationale behind each one — not just *what* changed but
 was still being gathered and confirmed before implementation; renamed once
 everything below was applied, since nothing here is "pending" anymore.
 
-**Status: all sections through §194 implemented** (§178–§180 in v0.9.5: a save-only-when-changed fix and two GitHub issues, #76/#77; §181–§186 in v0.10.0: the Android app and OneDrive sync; §187–§188 in v0.11.0: OneDrive sync for the web app, and the fixes found reviewing and testing it; §191–§194 are unreleased: Android folder switch, short Settings labels, and v0.12 Releases A and B). §153 is a
+**Status: all sections through §195 implemented** (§178–§180 in v0.9.5: a save-only-when-changed fix and two GitHub issues, #76/#77; §181–§186 in v0.10.0: the Android app and OneDrive sync; §187–§188 in v0.11.0: OneDrive sync for the web app, and the fixes found reviewing and testing it; §191–§195 are unreleased: Android folder switch, short Settings labels, and v0.12 Releases A, B, and C). §153 is a
 website-only Guide-page fix (found live right after §150–§152 shipped
 as v0.7.12) — no version bump, nothing in the shipped app changed. §154
 merges the OS title bar into the top bar (Notepad-style: icon, tabs,
@@ -8499,4 +8499,38 @@ The second stage of the UI/UX refinements roadmap (`docs/design/ui-ux-refinement
 Verification: Vitest 478, `svelte-check` 0, Playwright 278 (two new width-based specs cover the Sync conflicts and
 Calendar review reflows), `cargo test` 141 (no Rust changed). Checked by hand at 375px: palette (chips, close button,
 hidden hints) and the Shortcuts tab switcher.
+
+## 195. v0.12 "Release C": Zen mode, drag-and-drop import, sync telemetry, typography & OLED mode (unreleased)
+
+The third stage of the UI/UX refinements roadmap (`docs/design/ui-ux-refinements-v0.12-roadmap.md`, areas 3, 4, 9, 10).
+
+1. **Zen mode (distraction-free canvas, Area 3).**
+   - Toggle with `Ctrl+Alt+Z` (`Cmd+Option+Z` on macOS) or `F11` as desktop alias, or via Command Palette (`>Toggle Zen mode`).
+   - Hides top bar (`translateY(-100%)`) and status bar (`translateY(100%)`) with smooth 200ms ease transitions.
+   - Fixed indicator banner in top-right with "Zen mode" status and an "Exit" button.
+   - Desktop window enters native fullscreen (`setFullscreen(true)` enabled via `allow-set-fullscreen` and `allow-is-fullscreen` permissions in `capabilities/default.json`).
+   - Escape priority order: open modal dialogs and non-modal in-document find bar (`Ctrl+F`) close first on Escape; only when no dialog or find bar is active does Escape exit Zen mode.
+   - Skipped for Android devices (guarded in shortcut dispatch and command palette).
+2. **Web drag-and-drop file import (Area 4).**
+   - Active on web app and demo builds (`$backendKind === "web"` or `"demo"`).
+   - Dragging files over the window displays a full-screen frosted overlay (`#drop-overlay`) with icon and instruction banner.
+   - Dropping a `.json` backup bundle opens Settings on the Data section pre-loaded with the bundle preview for confirmation.
+   - Dropping one or more dated `.txt` notes (`YYYY-MM-DD.txt`) merges them into storage: identical notes are skipped, differing notes write conflict copies (`YYYY-MM-DD (conflict YYYY-MM-DD HHMMSS).txt`) using the OneDrive migration conflict behavior.
+   - Dropping unrecognised files displays an informative toast notification.
+3. **Cloud sync health & telemetry dashboard (Area 9).**
+   - Clicking `#stat-cloud` in the status bar (when OneDrive is configured on Web or Android) opens an anchored telemetry popover (`#telemetry-popover`) docked above the status bar.
+   - Displays real-time sync status (`● In sync`, `⟳ Syncing changes…`, `▲ Offline (cached)`, or `✕ Sync error`), humanized relative time since last successful sync (`Just now (HH:MM)`, `N minutes ago`, or `Never`), local cached note count (`IndexedDB` or local mirror), pending upload count, connected account email, and target OneDrive folder path.
+   - "Sync Now" action button triggers immediate background sync with live spinner feedback.
+   - "Open Settings" action button navigates directly to the Notes & Sync tab in `SettingsModal`.
+   - Dismissible via top-right `✕` close button, Escape key, or outside clicks.
+4. **Editor typography sliders & pure black OLED theme (Area 10).**
+   - Added continuous range sliders in `SettingsModal.svelte` under the Editor section:
+     - Base font size: 12px to 18px in 0.5px increments (default 13.0px), applied reactively via `--editor-font-size` CSS custom property.
+     - Line spacing: 1.30 to 1.80 in 0.05 increments (default 1.60), applied reactively via `--editor-line-height` CSS custom property.
+   - Added pure black OLED toggle (`pure_black: bool`) in Appearance settings, visible when dark theme is resolved:
+     - Layers `data-pure-black` attribute on `<html>` over the dark theme, mapping `--surface-canvas` to absolute `#000000`, `--surface-chrome` to `#0a0a0a`, and `--surface-overlay` to `#121212` for OLED power savings and contrast.
+     - Persisted across `storage.rs` AppConfig, `tauri-types.ts`, `mockBackend.ts`, and `webBackend.ts`.
+
+Verification: Vitest 478 passed (all 26 test files), `svelte-check` 0 errors / 0 warnings, Playwright 289 passed (new specs: `zen-mode.spec.ts`, `drag-drop-import.spec.ts`, `sync-health-popover.spec.ts`, and extended `settings.spec.ts`), `check:e2e` passed, `cargo test` 141 passed, `npm run build:webapp` passed.
+
 

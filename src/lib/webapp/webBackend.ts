@@ -65,6 +65,9 @@ interface StoredConfig {
   autoCheckUpdates: boolean;
   lastSeenVersion: string | null;
   calendarSyncEnabled: boolean;
+  fontSize?: number;
+  lineHeight?: number;
+  pureBlack?: boolean;
 }
 
 async function sha256Hex(text: string): Promise<string> {
@@ -239,6 +242,9 @@ export class WebBackend {
         autoCheckUpdates: true,
         lastSeenVersion: null,
         calendarSyncEnabled: false,
+        fontSize: 13,
+        lineHeight: 1.6,
+        pureBlack: false,
       }
     );
   }
@@ -266,6 +272,9 @@ export class WebBackend {
       autoCheckUpdates: cfg.autoCheckUpdates,
       lastSeenVersion: cfg.lastSeenVersion,
       calendarSyncEnabled: cfg.calendarSyncEnabled,
+      fontSize: cfg.fontSize ?? 13,
+      lineHeight: cfg.lineHeight ?? 1.6,
+      pureBlack: cfg.pureBlack ?? false,
     };
   }
 
@@ -330,6 +339,27 @@ export class WebBackend {
     set_auto_check_updates: async ({ enabled }) => {
       const cfg = await this.loadConfig();
       cfg.autoCheckUpdates = enabled;
+      await this.saveConfig(cfg);
+      return this.toAppConfig(cfg);
+    },
+
+    set_font_size: async ({ fontSize }) => {
+      const cfg = await this.loadConfig();
+      cfg.fontSize = Math.min(18, Math.max(12, fontSize));
+      await this.saveConfig(cfg);
+      return this.toAppConfig(cfg);
+    },
+
+    set_line_height: async ({ lineHeight }) => {
+      const cfg = await this.loadConfig();
+      cfg.lineHeight = Math.min(1.8, Math.max(1.3, lineHeight));
+      await this.saveConfig(cfg);
+      return this.toAppConfig(cfg);
+    },
+
+    set_pure_black: async ({ pureBlack }) => {
+      const cfg = await this.loadConfig();
+      cfg.pureBlack = pureBlack;
       await this.saveConfig(cfg);
       return this.toAppConfig(cfg);
     },
@@ -571,6 +601,7 @@ export class WebBackend {
     web_migrate_browser_notes: async () => {
       return this.migrateBrowserNotesToCloud();
     },
+    get_sync_health: () => this.syncEngine.getSyncHealth(),
   };
 
   /** Erases everything (`notes`, `conflicts`, `config`, `session`) — the

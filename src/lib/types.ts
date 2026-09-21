@@ -25,6 +25,13 @@ export type {
 
 // --- Frontend-only shapes (no Rust counterpart) -----------------------
 
+export interface SyncHealth {
+  status: "idle" | "syncing" | "offline" | "error";
+  lastSyncSuccessMs: number | null;
+  localNoteCount: number;
+  pendingUploadCount: number;
+}
+
 export interface NoteTab {
   id: string;
   filename: string;

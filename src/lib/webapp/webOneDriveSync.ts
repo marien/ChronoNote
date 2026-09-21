@@ -6,6 +6,7 @@ import type {
   OneDriveLoginResult,
   OneDriveSyncResult,
   SyncConflict,
+  SyncHealth,
   SyncStatus,
 } from "../types";
 import type { SyncConflictResolution } from "../tauriCommands";
@@ -87,6 +88,7 @@ export class WebOneDriveSyncEngine {
   private client: OneDriveClient;
   private currentStatus: SyncStatus = "offline";
   private isSyncing = false;
+  private lastSyncSuccessMs: number | null = null;
 
   constructor(getDb: () => Promise<IDBDatabase>, client?: OneDriveClient) {
     this.getDb = getDb;
@@ -100,6 +102,38 @@ export class WebOneDriveSyncEngine {
       return "offline";
     }
     return this.currentStatus;
+  }
+
+  async getSyncHealth(): Promise<SyncHealth> {
+    const status = await this.getStatus();
+    const db = await this.getDb();
+    const allNotes = await idbGetAllEntries<StoredNote>(db, IDB_STORES.NOTES_CLOUD);
+    const validNotes = allNotes.filter(([k]) => isSyncableFile(String(k)));
+    const localNoteCount = validNotes.length;
+
+    const cache = await this.loadCache();
+    let pendingUploadCount = 0;
+    for (const [key, note] of validNotes) {
+      const filename = String(key);
+      if (cache.conflicts[filename]) continue;
+      if (note.content === "" && !cache.files[filename]) continue;
+      const cached = cache.files[filename];
+      if (!cached || cached.localHash !== note.contentHash) {
+        pendingUploadCount++;
+      }
+    }
+
+    if (this.lastSyncSuccessMs === null) {
+      const saved = await idbGet<number>(db, IDB_STORES.META, "onedrive_last_sync_success");
+      if (saved) this.lastSyncSuccessMs = saved;
+    }
+
+    return {
+      status,
+      lastSyncSuccessMs: this.lastSyncSuccessMs,
+      localNoteCount,
+      pendingUploadCount,
+    };
   }
 
   setStatus(status: SyncStatus): void {
@@ -751,6 +785,9 @@ export class WebOneDriveSyncEngine {
       if (firstPushError) {
         throw new Error(firstPushError);
       }
+
+      this.lastSyncSuccessMs = Date.now();
+      await idbPut(db, IDB_STORES.META, "onedrive_last_sync_success", this.lastSyncSuccessMs);
 
       this.setStatus("idle");
       return { success: true };

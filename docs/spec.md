@@ -265,6 +265,28 @@ Every modal dialog conforms to a standardized 4-tier sizing scale, universal dis
    * `CalendarSyncReviewModal`: Reflows removal rows into a stacked two-row card.
 5. **Mobile Ergonomics & Dynamic Floating Toast:** On mobile form factors (`$isMobile`), transient messages float below the top bar in a pill banner (`.mobile-toast`, `role="status"`, `aria-live="polite"`), avoiding interference from on-screen keyboards. Modals and popovers feature dark mode luminance borders with inset highlights (`box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 16px 44px rgba(0, 0, 0, 0.5)`).
 
+### 3.7 Zen Mode, Drag-and-Drop Import, Sync Telemetry & Canvas Typography
+
+1. **Zen Mode (Distraction-Free Canvas):**
+   * Toggled via `Ctrl+Alt+Z` (`Cmd+Option+Z` on macOS, `F11` on desktop) or via Command Palette (`>Toggle Zen mode`).
+   * Smoothly transitions chrome out of view (`#top-bar` via `translateY(-100%)`, `#status-bar` via `translateY(100%)`).
+   * Displays an unobtrusive, floating `#zen-banner` in the upper-right corner with status indicator and an explicit "Exit" button.
+   * On desktop, enters true native OS fullscreen via Tauri's window API (`setFullscreen(true)`).
+   * Strict Escape priority hierarchy: active modal dialogs, search overlays, and find bars (`Ctrl+F`) handle Escape first; only once all foreground chrome is closed does Escape exit Zen mode.
+   * Skipped on Android devices.
+2. **Web Drag-and-Drop File Import:**
+   * Active on web app and demo builds (`$backendKind === "web"` or `"demo"`).
+   * Dragging files over the browser window triggers a full-screen frosted glass drop target (`#drop-overlay`) with instructional banner.
+   * Dropping a `.json` backup bundle opens Settings directly to the import preview screen.
+   * Dropping one or more dated notes (`YYYY-MM-DD.txt`) automatically merges them into local storage: identical notes are skipped, and differing notes write safe conflict copies (`YYYY-MM-DD (conflict YYYY-MM-DD HHMMSS).txt`) to avoid data loss.
+3. **Cloud Sync Health & Telemetry Dashboard:**
+   * Clicking `#stat-cloud` in the status bar (when OneDrive is connected on Web or Android) opens an anchored telemetry popover (`#telemetry-popover`) docked above the status bar.
+   * Displays real-time sync engine status (`● In sync`, `⟳ Syncing changes…`, `▲ Offline (cached)`, or `✕ Sync error`), humanized relative time since last sync, local cached note count, pending upload count, connected Microsoft account email, and target OneDrive folder path.
+   * Provides immediate "Sync Now" button and an "Open Settings" link.
+4. **Canvas Density, Typography & Pure Black OLED Mode:**
+   * Customizable monospace font size slider (12px to 18px in 0.5px steps, default 13px) and line spacing slider (1.30 to 1.80 in 0.05 steps, default 1.60) in Settings, updating live via `--editor-font-size` and `--editor-line-height` CSS custom properties.
+   * Pure black OLED dark theme toggle (`pure_black: bool`) layers `data-pure-black` on top of the dark theme, mapping the canvas to absolute `#000000` for OLED battery savings and true zero-luminance black backgrounds.
+
 ---
 
 ## 4. Keyboard Shortcuts & Platform Awareness

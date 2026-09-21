@@ -9,6 +9,7 @@ import type {
   ImportMode,
   ImportResult,
   NoteWithMetadata,
+  SyncHealth,
   TabSession,
   ThemeMode,
 } from "./types";
@@ -60,6 +61,18 @@ export function setThemeMode(mode: ThemeMode): Promise<AppConfig> {
 
 export function setCalendarSyncEnabled(enabled: boolean): Promise<AppConfig> {
   return invoke("set_calendar_sync_enabled", { enabled });
+}
+
+export function setFontSize(fontSize: number): Promise<AppConfig> {
+  return invoke("set_font_size", { fontSize });
+}
+
+export function setLineHeight(lineHeight: number): Promise<AppConfig> {
+  return invoke("set_line_height", { lineHeight });
+}
+
+export function setPureBlack(pureBlack: boolean): Promise<AppConfig> {
+  return invoke("set_pure_black", { pureBlack });
 }
 
 export function setLastSeenVersion(version: string): Promise<AppConfig> {
@@ -243,5 +256,9 @@ export function webCheckBrowserNotes(): Promise<{ count: number; filenames: stri
 
 export function webMigrateBrowserNotes(): Promise<{ migratedCount: number; conflictCount: number }> {
   return invoke("web_migrate_browser_notes", {});
+}
+
+export function getSyncHealth(): Promise<SyncHealth> {
+  return invoke("get_sync_health", {});
 }
 

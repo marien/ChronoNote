@@ -15,13 +15,23 @@
     statusSelection,
     statusWordCount,
     syncConflicts,
+    syncHealthPopoverOpen,
     toastMessage,
     UPDATE_AVAILABLE_TOAST,
     updateStatus,
   } from "../controller";
   import * as controller from "../controller";
   import Icon from "../icons/Icon.svelte";
+  import SyncHealthPopover from "./SyncHealthPopover.svelte";
   import { formatCombo, formatShortcut, shortcutById } from "../shortcuts";
+
+  function onCloudClick() {
+    if (!$oneDriveFolder) {
+      controller.openSettingsOnNotesFolder();
+      return;
+    }
+    syncHealthPopoverOpen.update((v) => !v);
+  }
 
   // #37/#38: how many lines the selection covers (not a character count).
   $: selectionLabel = $statusSelection
@@ -44,7 +54,7 @@
         class="status-folder-btn"
         title={$oneDriveAccount ? `OneDrive: ${$oneDriveFolder?.folderPath ?? "/"} (${$oneDriveSyncStatus})` : "Connect OneDrive in Settings"}
         aria-label="OneDrive cloud sync"
-        on:click={controller.openSettingsOnNotesFolder}
+        on:click={onCloudClick}
       >
         {#if $oneDriveSyncing || $oneDriveSyncStatus === "syncing"}
           <!-- Not gated by stat-tier0 like the label, so a narrow screen still shows *something is happening*. -->
@@ -169,4 +179,8 @@
       <Icon name="about" size={12} />
     </button>
   </div>
+
+  {#if $syncHealthPopoverOpen}
+    <SyncHealthPopover />
+  {/if}
 </div>

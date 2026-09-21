@@ -53,6 +53,11 @@ export interface MockSeed {
   /** Whether the opt-in "Sync calendar for this day" button is shown at
    * all — mirrors `AppConfig.calendarSyncEnabled`, off by default. */
   calendarSyncEnabled?: boolean;
+  fontSize?: number;
+  lineHeight?: number;
+  pureBlack?: boolean;
+  lastSyncSuccessMs?: number | null;
+  backendKind?: "desktop" | "demo" | "web" | "android";
   /** Seeds `recent_notes_dirs` directly (normally only `set_notes_dir`
    * writes it). */
   recentNotesDirs?: string[];
@@ -119,6 +124,9 @@ const MUTATING_COMMANDS = new Set([
   "set_readable_line_length",
   "set_auto_check_updates",
   "set_last_seen_version",
+  "set_font_size",
+  "set_line_height",
+  "set_pure_black",
   "write_note",
   "write_conflict_copy",
   "write_tab_session",
@@ -263,6 +271,10 @@ export class MockBackend {
   autoCheckUpdates: boolean;
   lastSeenVersion: string | null;
   calendarSyncEnabled: boolean;
+  fontSize: number;
+  lineHeight: number;
+  pureBlack: boolean;
+  lastSyncSuccessMs: number | null = null;
   recentNotesDirs: string[];
   appVersion: string;
   updateCheck: "none" | "available";
@@ -297,6 +309,7 @@ export class MockBackend {
     checkDrift: () => Promise<void>;
     setMobile: (val: boolean) => void;
     isMobile: () => boolean;
+    setBackendKind: (val: "desktop" | "demo" | "web" | "android") => void;
     showToast: (msg: string) => void;
   };
 
@@ -330,6 +343,10 @@ export class MockBackend {
     this.autoCheckUpdates = seed.autoCheckUpdates ?? true;
     this.lastSeenVersion = seed.lastSeenVersion ?? null;
     this.calendarSyncEnabled = seed.calendarSyncEnabled ?? false;
+    this.fontSize = seed.fontSize ?? 13;
+    this.lineHeight = seed.lineHeight ?? 1.6;
+    this.pureBlack = seed.pureBlack ?? false;
+    this.lastSyncSuccessMs = seed.lastSyncSuccessMs ?? null;
     this.recentNotesDirs = seed.recentNotesDirs ? [...seed.recentNotesDirs] : [];
     this.appVersion = seed.appVersion ?? "0.3.0";
     this.updateCheck = seed.updateCheck ?? "none";
@@ -374,6 +391,9 @@ export class MockBackend {
       autoCheckUpdates: this.autoCheckUpdates,
       lastSeenVersion: this.lastSeenVersion,
       calendarSyncEnabled: this.calendarSyncEnabled,
+      fontSize: this.fontSize,
+      lineHeight: this.lineHeight,
+      pureBlack: this.pureBlack,
       recentNotesDirs: this.recentNotesDirs,
       appVersion: this.appVersion,
       agendaJson: this.agendaJson,
@@ -407,6 +427,9 @@ export class MockBackend {
         autoCheckUpdates?: boolean;
         lastSeenVersion?: string | null;
         calendarSyncEnabled?: boolean;
+        fontSize?: number;
+        lineHeight?: number;
+        pureBlack?: boolean;
         recentNotesDirs: string[];
         appVersion: string;
         agendaJson?: string;
@@ -421,6 +444,9 @@ export class MockBackend {
       b.lastSeenVersion = s.lastSeenVersion ?? null;
       b.calendarSyncEnabled = s.calendarSyncEnabled ?? false;
       b.readableLineLength = s.readableLineLength ?? false;
+      b.fontSize = s.fontSize ?? 13;
+      b.lineHeight = s.lineHeight ?? 1.6;
+      b.pureBlack = s.pureBlack ?? false;
       b.recentNotesDirs = s.recentNotesDirs;
       b.appVersion = s.appVersion;
       b.agendaJson = s.agendaJson;
@@ -456,6 +482,9 @@ export class MockBackend {
       autoCheckUpdates: this.autoCheckUpdates,
       lastSeenVersion: this.lastSeenVersion,
       calendarSyncEnabled: this.calendarSyncEnabled,
+      fontSize: this.fontSize,
+      lineHeight: this.lineHeight,
+      pureBlack: this.pureBlack,
     };
   }
 
@@ -559,6 +588,21 @@ export class MockBackend {
 
     set_auto_check_updates: ({ enabled }) => {
       this.autoCheckUpdates = enabled;
+      return this.config();
+    },
+
+    set_font_size: ({ fontSize }) => {
+      this.fontSize = Math.min(18, Math.max(12, fontSize));
+      return this.config();
+    },
+
+    set_line_height: ({ lineHeight }) => {
+      this.lineHeight = Math.min(1.8, Math.max(1.3, lineHeight));
+      return this.config();
+    },
+
+    set_pure_black: ({ pureBlack }) => {
+      this.pureBlack = pureBlack;
       return this.config();
     },
 
@@ -680,7 +724,10 @@ export class MockBackend {
       account: { email: "test@example.com", displayName: "Test User" },
       pending: false,
     }),
-    onedrive_sync_now: () => ({ success: true, message: "Synced" }),
+    onedrive_sync_now: () => {
+      this.lastSyncSuccessMs = Date.now();
+      return { success: true, message: "Synced" };
+    },
     // Mirrors `sync.rs::list_conflicts` / `resolve_conflict_files`.
     onedrive_get_conflicts: () =>
       [...this.oneDriveConflicts].map(([name, remote]) => ({
@@ -711,6 +758,12 @@ export class MockBackend {
     web_check_browser_notes: () => ({ count: 0, filenames: [] }),
     web_migrate_browser_notes: () => ({ migratedCount: 0, conflictCount: 0 }),
     onedrive_prepare_folder_switch: () => ({ ready: true, switched: false, archivedCount: 0 }),
+    get_sync_health: () => ({
+      status: "idle",
+      lastSyncSuccessMs: this.lastSyncSuccessMs,
+      localNoteCount: this.listFiles().length,
+      pendingUploadCount: 0,
+    }),
   };
 
   private async dispatch(cmd: string, args: Record<string, unknown>): Promise<unknown> {

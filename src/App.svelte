@@ -1,10 +1,26 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import { get } from "svelte/store";
+  import { getCurrentWindow } from "@tauri-apps/api/window";
   import * as controller from "./lib/controller";
-  import { activeTabId, backendKind, editorApi, findOpen, isMobile, modal, mobileTabDrawerOpen, scratchpadGateContext, tabs, toastMessage } from "./lib/controller";
+  import {
+    activeTabId,
+    backendKind,
+    editorApi,
+    findOpen,
+    fontSize,
+    isMobile,
+    isZenMode,
+    lineHeight,
+    modal,
+    mobileTabDrawerOpen,
+    scratchpadGateContext,
+    tabs,
+    toastMessage,
+  } from "./lib/controller";
   import { matchesShortcut } from "./lib/shortcuts";
   import { wireMobileViewport } from "./lib/mobileViewport";
+  import Icon from "./lib/icons/Icon.svelte";
   import TopBar from "./lib/components/TopBar.svelte";
   import StatusBar from "./lib/components/StatusBar.svelte";
   import EditorPane from "./lib/components/EditorPane.svelte";
@@ -67,6 +83,9 @@
       openSettings: () => controller.openSettings(),
       openAbout: () => controller.openAbout(),
       openShortcutsHelp: () => controller.openShortcutsHelp(),
+      toggleZenMode: () => {
+        if (get(backendKind) !== "android") isZenMode.update((v) => !v);
+      },
     };
 
     function onKeydown(e: KeyboardEvent) {
@@ -85,7 +104,11 @@
           get(scratchpadGateContext) === "close"
             ? controller.cancelAppClose()
             : controller.cancelDirectorySwitch();
-        else controller.closeAllModals();
+        else if (current !== "none") controller.closeAllModals();
+        else if (get(isZenMode)) {
+          isZenMode.set(false);
+          e.preventDefault();
+        }
         return;
       }
 
@@ -144,15 +167,96 @@
 
     const unwireViewport = wireMobileViewport();
 
+    // §v0.12.2: Full-screen Drag and Drop file import (Area 4)
+    let dragDepth = 0;
+    function onWindowDragEnter(e: DragEvent) {
+      if (get(backendKind) !== "web" && get(backendKind) !== "demo") return;
+      if (e.dataTransfer?.types?.includes("Files")) {
+        e.preventDefault();
+        dragDepth++;
+        isDraggingFile = true;
+      }
+    }
+    function onWindowDragLeave(e: DragEvent) {
+      if (get(backendKind) !== "web" && get(backendKind) !== "demo") return;
+      if (e.dataTransfer?.types?.includes("Files")) {
+        e.preventDefault();
+        dragDepth--;
+        if (dragDepth <= 0) {
+          dragDepth = 0;
+          isDraggingFile = false;
+        }
+      }
+    }
+    function onWindowDragOver(e: DragEvent) {
+      if (get(backendKind) !== "web" && get(backendKind) !== "demo") return;
+      if (e.dataTransfer?.types?.includes("Files")) {
+        e.preventDefault();
+      }
+    }
+    async function onWindowDrop(e: DragEvent) {
+      if (get(backendKind) !== "web" && get(backendKind) !== "demo") return;
+      if (!e.dataTransfer?.types?.includes("Files")) return;
+      e.preventDefault();
+      dragDepth = 0;
+      isDraggingFile = false;
+      const files = Array.from(e.dataTransfer?.files ?? []);
+      if (files.length === 0) return;
+
+      const jsonFile = files.find((f) => f.name.endsWith(".json"));
+      if (jsonFile) {
+        await controller.handleDroppedBundle(jsonFile);
+        return;
+      }
+
+      const txtFiles = files.filter((f) => /^\d{4}-\d{2}-\d{2}\.txt$/.test(f.name));
+      if (txtFiles.length > 0) {
+        await controller.handleDroppedNotes(txtFiles);
+        return;
+      }
+
+      controller.showToast("Unsupported file. Drop a .json export bundle or YYYY-MM-DD.txt note.");
+    }
+
     window.addEventListener("keydown", onKeydown);
+    window.addEventListener("dragenter", onWindowDragEnter);
+    window.addEventListener("dragleave", onWindowDragLeave);
+    window.addEventListener("dragover", onWindowDragOver);
+    window.addEventListener("drop", onWindowDrop);
+
     return () => {
       unwireViewport();
       window.removeEventListener("keydown", onKeydown);
+      window.removeEventListener("dragenter", onWindowDragEnter);
+      window.removeEventListener("dragleave", onWindowDragLeave);
+      window.removeEventListener("dragover", onWindowDragOver);
+      window.removeEventListener("drop", onWindowDrop);
       mediaQuery.removeEventListener("change", updateMobile);
       window.removeEventListener("resize", updateMobile);
       window.removeEventListener("orientationchange", updateMobile);
     };
   });
+
+  let isDraggingFile = false;
+
+  $: if (typeof document !== "undefined") {
+    document.documentElement.style.setProperty("--editor-font-size", `${$fontSize}px`);
+    document.documentElement.style.setProperty("--editor-line-height", `${$lineHeight}`);
+  }
+
+  $: if (typeof document !== "undefined") {
+    if ($isZenMode) {
+      document.body.classList.add("zen-mode");
+      if ($backendKind === "desktop") {
+        getCurrentWindow().setFullscreen(true).catch(() => {});
+      }
+    } else {
+      document.body.classList.remove("zen-mode");
+      if ($backendKind === "desktop") {
+        getCurrentWindow().setFullscreen(false).catch(() => {});
+      }
+    }
+  }
 
   $: activeTab = $tabs.find((t) => t.id === $activeTabId);
 
@@ -194,6 +298,20 @@
 
 {#if ready}
   <TopBar />
+  {#if $isZenMode}
+    <div id="zen-banner" role="status" aria-live="polite">
+      <span>Zen mode</span>
+      <button class="zen-exit-btn" on:click={() => isZenMode.set(false)}>Exit</button>
+    </div>
+  {/if}
+  {#if isDraggingFile && ($backendKind === "web" || $backendKind === "demo")}
+    <div id="drop-overlay" aria-hidden="true">
+      <div class="drop-banner">
+        <Icon name="import" size={24} />
+        <span>Drop .json export bundle or .txt notes to import</span>
+      </div>
+    </div>
+  {/if}
   {#if $isMobile && $toastMessage}
     <div class="mobile-toast" role="status" aria-live="polite">
       {$toastMessage}

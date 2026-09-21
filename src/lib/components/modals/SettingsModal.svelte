@@ -9,7 +9,9 @@
     backendKind,
     calendarSyncEnabled,
     colorMode,
+    fontSize,
     isMobile,
+    lineHeight,
     notesDir,
     oneDriveAccount,
     oneDriveConnecting,
@@ -17,6 +19,7 @@
     oneDriveFolderPickerOpen,
     oneDriveSyncing,
     oneDriveSyncStatus,
+    pureBlack,
     readableLineLength,
     recentNotesDirs,
     settingsInitialTab,
@@ -76,6 +79,12 @@
     isSafariBrowser = (isIOS || isSafari) && !isStandalone;
   }
 
+  let prefersDark = false;
+  if (typeof window !== "undefined") {
+    prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+  }
+  $: isDarkResolved = $themeMode === "dark" || ($themeMode === "system" && prefersDark);
+
   onMount(async () => {
     if ($backendKind === "android" || $backendKind === "web") {
       const advanced = await api.oneDriveGetAdvancedConfig();
@@ -92,6 +101,13 @@
     if (openedOnNotesFolder) {
       await tick();
       browseButtonEl?.focus();
+    }
+
+    const pending = get(controller.pendingImportPreview);
+    if (pending) {
+      importPreview = pending;
+      importMode = "merge";
+      controller.pendingImportPreview.set(null);
     }
   });
 
@@ -342,6 +358,22 @@
           <div class="settings-hint">
             Legacy restores the pre-0.6 glyph colours — red open, amber deferred, green done.
           </div>
+          {#if isDarkResolved}
+            <div class="settings-toggle-row" style="margin-top: 12px;">
+              <label class="toggle-switch">
+                <input
+                  type="checkbox"
+                  checked={$pureBlack}
+                  on:change={(e) => controller.setPureBlack(e.currentTarget.checked)}
+                />
+                <span class="toggle-switch-track"></span>
+                Pure black (OLED)
+              </label>
+            </div>
+            <div class="settings-hint">
+              Absolute #000000 canvas for OLED displays and battery savings. Only active in dark mode.
+            </div>
+          {/if}
         </div>
         <div>
           <div class="settings-section-label">Editor</div>
@@ -360,6 +392,38 @@
             Full keeps every line unwrapped — the monospace grid stays intact for tables and aligned columns. Wrap
             breaks long lines to fit the window. Reading column also caps the text to a comfortable centred measure,
             for a single prose-reading mode.
+          </div>
+          <div class="settings-slider-row" style="margin-top: 14px;">
+            <div class="settings-slider-header">
+              <span class="settings-inline-label">Font size</span>
+              <span class="settings-slider-val">{$fontSize}px</span>
+            </div>
+            <input
+              type="range"
+              class="settings-range-slider"
+              min="12"
+              max="18"
+              step="0.5"
+              value={$fontSize}
+              aria-label="Editor font size"
+              on:input={(e) => controller.setFontSize(parseFloat(e.currentTarget.value))}
+            />
+          </div>
+          <div class="settings-slider-row" style="margin-top: 12px;">
+            <div class="settings-slider-header">
+              <span class="settings-inline-label">Line spacing</span>
+              <span class="settings-slider-val">{$lineHeight.toFixed(2)}</span>
+            </div>
+            <input
+              type="range"
+              class="settings-range-slider"
+              min="1.3"
+              max="1.8"
+              step="0.05"
+              value={$lineHeight}
+              aria-label="Editor line spacing"
+              on:input={(e) => controller.setLineHeight(parseFloat(e.currentTarget.value))}
+            />
           </div>
         </div>
       {:else if activeSettingsTab === "calendar"}

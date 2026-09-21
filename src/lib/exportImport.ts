@@ -8,13 +8,15 @@
  * `docs/design/webapp-roadmap.md`. */
 import { get } from "svelte/store";
 import * as api from "./tauriApi";
-import { colorMode, showToast, themeMode } from "./stores";
+import { colorMode, modal, pendingImportPreview, settingsInitialTab, showToast, themeMode } from "./stores";
 import { invalidateDiskNotesCache, refreshAllNotesCache } from "./persistence";
 import { todayISO } from "./date";
+import { isValidNoteFilename } from "./noteFilename";
 import {
   buildExportBundle,
   downloadExportBundle,
   parseExportBundle,
+  ExportBundleError,
   type ExportBundle,
 } from "./webapp/exportBundle";
 
@@ -63,4 +65,52 @@ export async function applyImport(bundle: ExportBundle, mode: "merge" | "replace
   const parts = [`Imported ${result.imported} note${result.imported === 1 ? "" : "s"}`];
   if (result.skipped > 0) parts.push(`skipped ${result.skipped}`);
   showToast(`${parts.join(", ")}.`);
+}
+
+/** §v0.12.2 (Area 4.1): routes a dropped .json file to the safe import preview dialog. */
+export async function handleDroppedBundle(file: File): Promise<void> {
+  try {
+    const preview = await readImportFile(file);
+    pendingImportPreview.set(preview);
+    settingsInitialTab.set("calendar");
+    modal.set("settings");
+  } catch (err) {
+    showToast(err instanceof ExportBundleError ? err.message : "Couldn't read that export file.");
+  }
+}
+
+/** §v0.12.2 (Area 4.1): imports dropped YYYY-MM-DD.txt daily notes with collision protection.
+ * Identical notes are skipped; differing notes are held as conflict copies for user choice. */
+export async function handleDroppedNotes(files: File[]): Promise<void> {
+  let imported = 0;
+  let skipped = 0;
+  let conflicts = 0;
+
+  for (const file of files) {
+    if (!isValidNoteFilename(file.name)) {
+      skipped++;
+      continue;
+    }
+    const content = await file.text();
+    const existing = await api.readNote(file.name);
+    if (existing === null) {
+      await api.writeNote(file.name, content, undefined);
+      imported++;
+    } else if (existing === content) {
+      skipped++;
+    } else {
+      // Differing note held as conflict (Decision 6 from roadmap)
+      await api.writeConflictCopy(file.name, content);
+      conflicts++;
+    }
+  }
+
+  invalidateDiskNotesCache();
+  await refreshAllNotesCache();
+
+  const parts: string[] = [];
+  if (imported > 0) parts.push(`Imported ${imported} note${imported === 1 ? "" : "s"}`);
+  if (skipped > 0) parts.push(`skipped ${skipped}`);
+  if (conflicts > 0) parts.push(`${conflicts} conflict${conflicts === 1 ? "" : "s"} held for review`);
+  showToast(parts.length > 0 ? `${parts.join(", ")}.` : "No notes imported.");
 }

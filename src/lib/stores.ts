@@ -74,6 +74,24 @@ export const wordWrap = writable<boolean>(false);
  * to toggle a max-width wrapper live. On by default, but only visible
  * when `wordWrap` is also on. */
 export const readableLineLength = writable<boolean>(true);
+/** §v0.12.2: user-configurable editor canvas font size in pixels (12–18). Defaults to 13. */
+export const fontSize = writable<number>(13);
+/** §v0.12.2: user-configurable editor line height ratio (1.30–1.80). Defaults to 1.6. */
+export const lineHeight = writable<number>(1.6);
+/** §v0.12.2: pure black (#000000) OLED canvas mode toggle. Layered on dark theme. */
+export const pureBlack = writable<boolean>(false);
+/** §v0.12.2: distraction-free Zen mode canvas. */
+export const isZenMode = writable<boolean>(false);
+
+export interface SyncHealth {
+  status: "idle" | "syncing" | "offline" | "error";
+  lastSyncSuccessMs: number | null;
+  localNoteCount: number;
+  pendingUploadCount: number;
+}
+export const syncHealth = writable<SyncHealth | null>(null);
+export const syncHealthPopoverOpen = writable<boolean>(false);
+
 /** Whether the top bar should show icon+label (true) or icon-only (false) —
  * driven by the OS window being maximized or fullscreen. */
 export const chromeExpanded = writable<boolean>(false);
@@ -128,6 +146,8 @@ export const modal = writable<ModalKind>("none");
  * a single-purpose boolean, in case a future entry point needs the same
  * mechanism for a different tab. */
 export const settingsInitialTab = writable<string | null>(null);
+/** §v0.12.2: file import preview passed from drag-and-drop into SettingsModal. */
+export const pendingImportPreview = writable<{ bundle: any; noteCount: number } | null>(null);
 /** Populated once at startup (`initApp`) for the About drawer — read live
  * from Tauri rather than hardcoded, so it can't drift from whatever
  * version is actually running. Empty string until then. */
