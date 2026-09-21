@@ -21,7 +21,17 @@
   } from "./lib/controller";
   import { matchesShortcut } from "./lib/shortcuts";
   import { wireMobileViewport } from "./lib/mobileViewport";
+  import { invoke } from "@tauri-apps/api/core";
   import { createZenWindowController } from "./lib/zenWindow";
+
+  const nativeZenWindow = () => {
+    const w = getCurrentWindow();
+    return {
+      isMaximized: () => w.isMaximized(),
+      setFullscreen: (on: boolean) => w.setFullscreen(on),
+      coverMonitor: () => invoke<void>("zen_cover_monitor"),
+    };
+  };
   import Icon from "./lib/icons/Icon.svelte";
   import TopBar from "./lib/components/TopBar.svelte";
   import StatusBar from "./lib/components/StatusBar.svelte";
@@ -261,7 +271,7 @@
     document.body.classList.toggle("zen-mode", $isZenMode);
     if ($backendKind === "desktop" && $isZenMode !== zenFullscreenApplied) {
       zenFullscreenApplied = $isZenMode;
-      zenWindow ??= createZenWindowController(getCurrentWindow());
+      zenWindow ??= createZenWindowController(nativeZenWindow());
       void zenWindow.set($isZenMode);
     }
   }

@@ -4,74 +4,62 @@ import { createZenWindowController, type ZenWindow } from "./zenWindow";
 /** A fake window that records the calls made on it, in order. */
 function fakeWindow(opts: { maximized: boolean; failOn?: string; delayMs?: number }) {
   const calls: string[] = [];
-  let maximized = opts.maximized;
-  const step = async (name: string, fn?: () => void) => {
+  const step = async (name: string) => {
     calls.push(name);
     if (opts.delayMs) await new Promise((r) => setTimeout(r, opts.delayMs));
     if (opts.failOn === name) throw new Error(`${name} failed`);
-    fn?.();
   };
   const win: ZenWindow = {
     isMaximized: async () => {
       await step("isMaximized");
-      return maximized;
+      return opts.maximized;
     },
-    maximize: () => step("maximize", () => (maximized = true)),
-    unmaximize: () => step("unmaximize", () => (maximized = false)),
     setFullscreen: (on) => step(`setFullscreen(${on})`),
-    hide: () => step("hide"),
-    show: () => step("show"),
-    setFocus: () => step("setFocus"),
+    coverMonitor: () => step("coverMonitor"),
   };
-  return { win, calls, isMaximized: () => maximized };
+  return { win, calls };
 }
 
 describe("Zen mode's native fullscreen", () => {
-  it("a maximized window is restored first, made fullscreen, and maximized again afterwards", async () => {
+  it("a maximized window goes fullscreen, then is made to cover the whole monitor; leaving is a plain un-fullscreen", async () => {
     const f = fakeWindow({ maximized: true });
     const zen = createZenWindowController(f.win);
     await zen.set(true);
-    expect(f.calls).toEqual(["isMaximized", "hide", "unmaximize", "setFullscreen(true)", "show", "setFocus"]);
+    expect(f.calls).toEqual(["isMaximized", "setFullscreen(true)", "coverMonitor"]);
     await zen.set(false);
-    expect(f.calls).toEqual(["isMaximized", "hide", "unmaximize", "setFullscreen(true)", "show", "setFocus", "hide", "setFullscreen(false)", "maximize", "show", "setFocus"]);
-    expect(f.isMaximized()).toBe(true);
+    expect(f.calls).toEqual(["isMaximized", "setFullscreen(true)", "coverMonitor", "setFullscreen(false)"]);
   });
 
-  it("a normal window is never hidden (no flicker to hide there)", async () => {
-    const f = fakeWindow({ maximized: false });
+  it("the window is never restored, maximized or hidden by hand (that was the flicker)", async () => {
+    const f = fakeWindow({ maximized: true });
     const zen = createZenWindowController(f.win);
     await zen.set(true);
     await zen.set(false);
-    expect(f.calls).not.toContain("hide");
+    expect(f.calls.some((c) => /unmaximize|^maximize|hide|show/.test(c))).toBe(false);
   });
 
-  it("a normal window just goes fullscreen and back, and is never maximized", async () => {
+  it("a normal window just goes fullscreen and back, with no native cover step", async () => {
     const f = fakeWindow({ maximized: false });
     const zen = createZenWindowController(f.win);
     await zen.set(true);
     await zen.set(false);
     expect(f.calls).toEqual(["isMaximized", "setFullscreen(true)", "setFullscreen(false)"]);
-    expect(f.isMaximized()).toBe(false);
   });
 
-  it("remembers the window's state each time: maximized in the first Zen, normal in the second", async () => {
-    const f = fakeWindow({ maximized: true });
-    const zen = createZenWindowController(f.win);
-    await zen.set(true);
-    await zen.set(false); // maximized again
-    // the user restores the window by hand between the two sessions
-    await f.win.unmaximize();
-    f.calls.length = 0;
+  it("the window's state is read fresh at each start of Zen", async () => {
+    let maximized = true;
+    const calls: string[] = [];
+    const win: ZenWindow = {
+      isMaximized: async () => maximized,
+      setFullscreen: async (on) => void calls.push(`fs(${on})`),
+      coverMonitor: async () => void calls.push("cover"),
+    };
+    const zen = createZenWindowController(win);
     await zen.set(true);
     await zen.set(false);
-    expect(f.calls).toEqual(["isMaximized", "setFullscreen(true)", "setFullscreen(false)"]);
-    expect(f.isMaximized()).toBe(false);
-  });
-
-  it("leaving Zen without having entered it (a stray call) does not maximize anything", async () => {
-    const f = fakeWindow({ maximized: false });
-    await createZenWindowController(f.win).set(false);
-    expect(f.calls).toEqual(["setFullscreen(false)"]);
+    maximized = false;
+    await zen.set(true);
+    expect(calls).toEqual(["fs(true)", "cover", "fs(false)", "fs(true)"]);
   });
 
   it("calls are serialized: a quick on/off never interleaves the two sequences", async () => {
@@ -79,17 +67,15 @@ describe("Zen mode's native fullscreen", () => {
     const zen = createZenWindowController(f.win);
     void zen.set(true);
     await zen.set(false);
-    expect(f.calls).toEqual(["isMaximized", "hide", "unmaximize", "setFullscreen(true)", "show", "setFocus", "hide", "setFullscreen(false)", "maximize", "show", "setFocus"]);
+    expect(f.calls).toEqual(["isMaximized", "setFullscreen(true)", "coverMonitor", "setFullscreen(false)"]);
   });
 
-  it("a failing window call never rejects and does not wedge later toggles", async () => {
-    const f = fakeWindow({ maximized: true, failOn: "unmaximize" });
+  it("a failing native cover never rejects and does not wedge later toggles", async () => {
+    const f = fakeWindow({ maximized: true, failOn: "coverMonitor" });
     const zen = createZenWindowController(f.win);
     await expect(zen.set(true)).resolves.toBeUndefined();
     await expect(zen.set(false)).resolves.toBeUndefined();
     expect(f.calls).toContain("setFullscreen(false)");
-    // the window is never left hidden, even when a step failed
-    expect(f.calls.filter((c) => c === "show").length).toBe(f.calls.filter((c) => c === "hide").length);
   });
 
   it("if the maximized state cannot be read, it is treated as a normal window", async () => {

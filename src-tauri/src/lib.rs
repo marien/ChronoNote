@@ -2,6 +2,7 @@ mod agenda;
 mod onedrive;
 mod storage;
 mod update_install;
+mod zen_window;
 
 use tauri::{AppHandle, Manager};
 
@@ -477,6 +478,7 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             update_install::install_update,
+            zen_window::zen_cover_monitor,
             get_config,
             set_notes_dir,
             set_color_mode,
