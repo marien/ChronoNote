@@ -6,7 +6,7 @@ kept for the rationale behind each one — not just *what* changed but
 was still being gathered and confirmed before implementation; renamed once
 everything below was applied, since nothing here is "pending" anymore.
 
-**Status: all sections through §196 implemented** (§178–§180 in v0.9.5: a save-only-when-changed fix and two GitHub issues, #76/#77; §181–§186 in v0.10.0: the Android app and OneDrive sync; §187–§188 in v0.11.0: OneDrive sync for the web app, and the fixes found reviewing and testing it; §191–§195 in v0.12.0: the Android folder-switch fix, shorter Settings labels, and the v0.12 UI/UX refinements in three stages (§193 palette, resolved lines, calendar dots and search; §194 modal system and phone layouts; §195 Zen mode, drag-and-drop import, sync health popover, typography and pure black)). §153 is a
+**Status: all sections through §196 implemented** (§178–§180 in v0.9.5: a save-only-when-changed fix and two GitHub issues, #76/#77; §181–§186 in v0.10.0: the Android app and OneDrive sync; §187–§188 in v0.11.0: OneDrive sync for the web app, and the fixes found reviewing and testing it; §191–§195 in v0.12.0: the Android folder-switch fix, shorter Settings labels, and the v0.12 UI/UX refinements in three stages (§193 palette, resolved lines, calendar dots and search; §194 modal system and phone layouts; §195 Zen mode, drag-and-drop import, sync health popover, typography and pure black; §196 in v0.12.1: renewable web sign-in, wrapping long messages, the Shift+F11 Zen chord and a full-window Zen mode, the topic pill and multi-name delegates)). §153 is a
 website-only Guide-page fix (found live right after §150–§152 shipped
 as v0.7.12) — no version bump, nothing in the shipped app changed. §154
 merges the OS title bar into the top bar (Notepad-style: icon, tabs,
@@ -8533,7 +8533,7 @@ The third stage of the UI/UX refinements roadmap (`docs/design/ui-ux-refinements
 
 Verification: Vitest 478, `svelte-check` 0, Playwright 297 (new specs: `zen-mode.spec.ts`, `drag-drop-import.spec.ts` including the review dialog and a dropped `.json` bundle, `sync-health-popover.spec.ts`, and extended `settings.spec.ts`), `cargo test` 144 (+3: sync-health counts, missing-folder health, and a config written before the typography fields loads with the old look), `npm run build:webapp` fresh. Reviewed and fixed here before merging (roadmap section 15 style): the web bundle had not been rebuilt, Android had no `get_sync_health`, dropped-note conflicts had no review path, F11 was bound on every platform.
 
-## 196. After v0.12.0: expired web sign-in can be renewed, long messages are readable, Zen mode fixes, the topic pill, several delegates (unreleased)
+## 196. After v0.12.0: expired web sign-in can be renewed, long messages are readable, Zen mode fixes, the topic pill, several delegates (v0.12.1)
 
 Found by Marien using v0.12.0.
 
