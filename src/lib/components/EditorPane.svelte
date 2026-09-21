@@ -17,6 +17,9 @@
     closeOpenAction,
     isSetextUnderline,
     referenceColumn,
+    numberedContinuationIndent,
+    numberedListEnter,
+    parseNumberedItem,
     reopenDoneAction,
     setActionSymbolOpen,
     setActionSymbolTo,
@@ -332,6 +335,34 @@
       }
       const match = line.text.match(/^(\s*)([-*])\s/);
       if (!match) {
+        // Numbered items (`1.`, `2)`, `1.1.`): Enter continues with the next number, an empty item exits, Shift+Enter
+        // aligns under the item's text. The marker is the first non-blank character, so this never overlaps a bullet.
+        const numbered = parseNumberedItem(line.text);
+        if (numbered) {
+          if (!insertBullet) {
+            const pad = numberedContinuationIndent(line.text)!;
+            v.dispatch({
+              changes: { from: pos, to: pos, insert: "\n" + pad },
+              selection: { anchor: pos + 1 + pad.length },
+              scrollIntoView: true,
+            });
+            return true;
+          }
+          const nextLine = line.number < v.state.doc.lines ? v.state.doc.line(line.number + 1).text : undefined;
+          const step = numberedListEnter(line.text, pos - line.from, nextLine);
+          if (step && "exit" in step) {
+            v.dispatch({ changes: { from: line.from, to: line.to, insert: "" }, selection: { anchor: line.from } });
+          } else if (step && "insert" in step) {
+            v.dispatch({
+              changes: { from: pos, to: pos, insert: step.insert },
+              selection: { anchor: pos + step.insert.length },
+              scrollIntoView: true,
+            });
+          } else {
+            v.dispatch({ changes: { from: pos, to: pos, insert: "\n" }, selection: { anchor: pos + 1 }, scrollIntoView: true });
+          }
+          return true;
+        }
         if (!insertBullet) {
           v.dispatch({ changes: { from: pos, to: pos, insert: "\n" }, selection: { anchor: pos + 1 }, scrollIntoView: true });
           return true;

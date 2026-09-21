@@ -119,6 +119,80 @@ export function actionLineEnter(lineText: string): { removeSymbol: true } | { in
   return null;
 }
 
+/** A numbered list item (`1. text`, `2) text`, and numbered sub-items `1.1. text`, `2.3.1) text`). The marker
+ * must be the first non-blank character of the line, be a run of positive whole numbers (`1`-`999999999`, no
+ * leading zero) separated by dots, and END in `.` or `)`, followed by whitespace (or nothing but the end of the line
+ * once the space has been typed). So `3.5 hours` and `1.5` are prose; `2019. A year` is an item (any positive
+ * number may start a list). Deliberately no styling and no automatic renumbering: it is plain text that Enter
+ * and Tab understand, like a bullet's indentation. */
+export interface NumberedItem {
+  /** Leading whitespace, kept verbatim. */
+  indent: string;
+  /** The whole marker, e.g. `1.`, `12)`, `1.2.`. */
+  marker: string;
+  /** The numbers in it: `1.2.` is [1, 2]. */
+  numbers: number[];
+  /** The character that ends it: `.` or `)`. */
+  delimiter: "." | ")";
+  /** The text after the marker and its whitespace (may be empty). */
+  text: string;
+  /** Column where the marker ends (just after its delimiter). */
+  markerEnd: number;
+}
+
+export function parseNumberedItem(line: string): NumberedItem | null {
+  // The marker has to be followed by whitespace (a space typed after it) — "1." alone is not yet an item.
+  const m = line.match(/^(\s*)((?:[1-9]\d{0,8})(?:\.[1-9]\d{0,8})*)([.)])(\s|$)/);
+  if (!m) return null;
+  if (m[4] === "") return null;
+  const marker = m[2] + m[3];
+  const indent = m[1];
+  return {
+    indent,
+    marker,
+    numbers: m[2].split(".").map(Number),
+    delimiter: m[3] as "." | ")",
+    text: line.slice(indent.length + marker.length).trim(),
+    markerEnd: indent.length + marker.length,
+  };
+}
+
+/** The marker of the item that follows `item`: the last number plus one, everything else (the parent numbers,
+ * the delimiter) kept: `1.` gives `2.`, `9)` gives `10)`, `1.2.` gives `1.3.`. */
+export function nextNumberedMarker(item: NumberedItem): string {
+  const numbers = [...item.numbers];
+  numbers[numbers.length - 1] += 1;
+  return numbers.join(".") + item.delimiter;
+}
+
+/** What Enter does on a numbered item, mirroring bullets:
+ *  - an empty item (marker only) exits the list: `{ exit: true }` (the caller clears the line);
+ *  - with the caret at or before the marker's end (in the indent or inside the marker), or on a section title
+ *    (the next line is its `====` underline, so a new item would land between them): `{ plain: true }`, a
+ *    plain newline;
+ *  - otherwise `{ insert }`: a newline, the same indent and the next marker, at the caret (so Enter mid-item
+ *    splits it and the tail becomes the next item).
+ * `null` when the line is not a numbered item. */
+export function numberedListEnter(
+  line: string,
+  col: number,
+  nextLine?: string,
+): { exit: true } | { plain: true } | { insert: string } | null {
+  const item = parseNumberedItem(line);
+  if (!item) return null;
+  if (item.text === "") return { exit: true };
+  if (col <= item.markerEnd) return { plain: true };
+  if (nextLine !== undefined && isSetextUnderline(nextLine)) return { plain: true };
+  return { insert: `\n${item.indent}${nextNumberedMarker(item)} ` };
+}
+
+/** Shift+Enter on a numbered item: a plain continuation line aligned under the item's text (the indent, then
+ * as many spaces as the marker and its space take). `null` when the line is not a numbered item. */
+export function numberedContinuationIndent(line: string): string | null {
+  const item = parseNumberedItem(line);
+  return item ? item.indent + " ".repeat(item.marker.length + 1) : null;
+}
+
 /** The action-cycle logic (§40: `# → v → > → x → #`) behind `Ctrl+Space`/
  * `Ctrl+Shift+Space` in the Action Drawer (`toggleActionLine` in
  * `actions.ts`) — the editor's own `Ctrl+Space`/`Ctrl+Enter` used to share
@@ -318,6 +392,7 @@ function replaceActionSymbol(line: string, next: (sym: string) => string, create
   }
   if (/=>/.test(line)) return null; // a delegated (`=> @name`) or empty (`=> `) follow-up — leave alone
   if (/^\s*[-*!]\s/.test(line)) return null; // a bullet or emphasis line — leave alone
+  if (parseNumberedItem(line) !== null) return null; // a numbered item is structure too — leave alone
   if (isSetextUnderline(line)) return null; // the `====` itself, not just the title line above it — leave alone
   const [, indent, rest] = line.match(/^(\s*)(.*)$/s)!;
   return `${indent}${createAs} ${rest}`;

@@ -6,7 +6,7 @@ kept for the rationale behind each one — not just *what* changed but
 was still being gathered and confirmed before implementation; renamed once
 everything below was applied, since nothing here is "pending" anymore.
 
-**Status: all sections through §200 implemented** (§178–§180 in v0.9.5: a save-only-when-changed fix and two GitHub issues, #76/#77; §181–§186 in v0.10.0: the Android app and OneDrive sync; §187–§188 in v0.11.0: OneDrive sync for the web app, and the fixes found reviewing and testing it; §191–§195 in v0.12.0: the Android folder-switch fix, shorter Settings labels, and the v0.12 UI/UX refinements in three stages (§193 palette, resolved lines, calendar dots and search; §194 modal system and phone layouts; §195 Zen mode, drag-and-drop import, sync health popover, typography and pure black; §196 in v0.12.1: renewable web sign-in, wrapping long messages, the Shift+F11 Zen chord and a full-window Zen mode, the topic pill and multi-name delegates; §197 in v0.12.2: Sync Review keyboard use and calendar status prefixes (#78))). §153 is a
+**Status: all sections through §201 implemented** (§178–§180 in v0.9.5: a save-only-when-changed fix and two GitHub issues, #76/#77; §181–§186 in v0.10.0: the Android app and OneDrive sync; §187–§188 in v0.11.0: OneDrive sync for the web app, and the fixes found reviewing and testing it; §191–§195 in v0.12.0: the Android folder-switch fix, shorter Settings labels, and the v0.12 UI/UX refinements in three stages (§193 palette, resolved lines, calendar dots and search; §194 modal system and phone layouts; §195 Zen mode, drag-and-drop import, sync health popover, typography and pure black; §196 in v0.12.1: renewable web sign-in, wrapping long messages, the Shift+F11 Zen chord and a full-window Zen mode, the topic pill and multi-name delegates; §197 in v0.12.2: Sync Review keyboard use and calendar status prefixes (#78))). §153 is a
 website-only Guide-page fix (found live right after §150–§152 shipped
 as v0.7.12) — no version bump, nothing in the shipped app changed. §154
 merges the OS title bar into the top bar (Notepad-style: icon, tabs,
@@ -8688,3 +8688,44 @@ current tag, Check again reruns the check, the available state without the curre
 chip, the web app, and the card fitting a phone-width dialog).
 
 Verification: Vitest 528, `svelte-check` 0, Playwright 331, `cargo test` unchanged.
+
+## 201. Numbered lists, and numbered sub-lists (unreleased)
+
+Item 7 of Marien's next-version list, plus numbered sub-lists (`1.1.`). Plain text, no styling, no rewriting of numbers: the
+editor just understands the marker, the way it understands a bullet's indentation.
+
+**What is a numbered item** (`parseNumberedItem`). A marker that is the **first non-blank character of the line**, followed by
+whitespace: one or more positive whole numbers (`1` to `999999999`, no leading zero, no zero) joined by dots, ending in `.` or
+`)`. So `1.`, `2)`, `10.`, `1.1.`, `1.2.3)`, `2019.` are items (a list may start at any number); `3.5 hours`, `1.5`,
+`1.1 not a sublist`, `12 monkeys`, `0.`, `01.`, `a.`, `1:`, `1.` alone (no space typed yet), and anything with text, a bullet or an
+action symbol before the number (`- 1. x`, `# 1. x`, `see 1. here`) are not. A marker needs its trailing dot or parenthesis so decimals stay prose.
+
+**Enter** (like a bullet):
+- at the end of an item, or with the caret past its marker and space (so mid-item too): a new line with the same indentation
+  (spaces or tabs) and the next marker: the LAST number plus one, parents and delimiter kept: `1.` gives `2.`, `9.` gives `10.`,
+  `3)` gives `4)`, `1.2.` gives `1.3.`, `1.9.` gives `1.10.`. Mid-item, the tail moves into the new item;
+- on an **empty** item (marker only): the list ends, the line is cleared (at any indentation or depth);
+- with the caret in the indent or inside the marker: a plain newline (the marker is not duplicated or split);
+- on a numbered **section title** (the next line is its `====`): a plain newline, so no number lands between title and underline.
+- **Shift+Enter**: a plain continuation line aligned under the item's text (indent plus the marker's width plus one space), no number.
+
+**Tab / Shift+Tab**: the usual two-space indent and outdent; **numbers are never rewritten**, so indenting `2.` under `1.` leaves it `2.`
+(type `1.1.` yourself for a sub-list; Enter then continues `1.2.`, `1.3.`). No automatic renumbering anywhere.
+
+**Mixed with bullets and actions.** The marker being the first non-blank character makes the kinds exclusive per line: Enter on a
+numbered item continues the numbers whatever bullet lines sit before or after it, Enter on a bullet continues the bullet, a bullet
+whose text starts with a number (`- 1. x`) is a bullet, a numbered item whose text starts with a bullet (`1. - x`) is numbered, an empty
+bullet and an empty numbered item each exit on their own, and both keep their indentation when nested in the other. A numbered
+item is structure like a bullet: `Ctrl/Cmd+1`-`4` leave it alone (prose that only starts with a number, like `3.5 hours`, is still promoted).
+It counts as no action and gets no glyph.
+
+Not supported: letters and roman numerals (`a.`, `iv.`), a sub-number without its final dot or parenthesis (`1.1`), automatic renumbering, and a
+new marker past nine digits.
+
+Tests: 29 unit tests (`numberedList.test.ts`: every accepted and rejected shape, next markers across digit boundaries and levels, each Enter
+outcome including the caret positions and the section-title guard, the Shift+Enter alignment, the promotion exclusion) and 43 Playwright tests
+(`numbered-lists.spec.ts`: continuing at any start number and with `)`, 9 to 10 and 99 to 100, exiting at any depth, splitting, the caret before or
+inside the marker, Shift+Enter, one-step undo, sub-lists, Tab and Shift+Tab on one line and on a selection, tab indentation, eight bullet/number
+mixes, ten lookalikes that stay prose, no glyph and no action count, Ctrl+1, a numbered title, a neighbouring action).
+
+Verification: Vitest 557, `svelte-check` 0, Playwright 374, `cargo test` unchanged.
