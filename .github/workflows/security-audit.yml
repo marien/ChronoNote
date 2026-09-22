@@ -28,7 +28,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: rustsec/audit-check@69366f33c96575abad1ee0dba8212993eecbe998 # v2.0.0
+      - uses: taiki-e/install-action@94c31af3204a9f15ab40b35ad084410b905bbc73 # v2.87.17
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          working-directory: src-tauri
+          tool: cargo-audit
+      - name: Run cargo audit
+        working-directory: src-tauri
+        # RUSTSEC-2024-0429 is a Linux-only glib VariantStrIter issue from Tauri's GTK dependencies
+        run: cargo audit --ignore RUSTSEC-2024-0429
