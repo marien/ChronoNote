@@ -15,7 +15,7 @@ export type IconName = keyof typeof ICONS;
 
 export const ICONS = {
   "new-scratchpad": `<path d="M13 3H7a1 1 0 0 0-1 1v11"/><path d="M13 3l4 4v6"/><path d="M17 7h-4V3"/><path d="M8 19h8M12 15v8"/>`,
-  "date-note": `<rect x="4" y="4" width="16" height="16" rx="2"/><path d="M7.5 9h6"/><path d="M7.5 12h9M7.5 13.6h9"/><path d="M7.5 17h5"/>`,
+  "date-note": `<rect x="4" y="4.5" width="16" height="15" rx="2.5"/><path d="M4 9.5h16M8 2.5v3.5M16 2.5v3.5"/><circle cx="8" cy="13" r="1" fill="currentColor" stroke="none"/><circle cx="12" cy="13" r="1" fill="currentColor" stroke="none"/><circle cx="16" cy="13" r="1" fill="currentColor" stroke="none"/><circle cx="8" cy="16.5" r="1" fill="currentColor" stroke="none"/><rect x="10.5" y="15" width="3" height="3" rx="0.8"/><circle cx="16" cy="16.5" r="1" fill="currentColor" stroke="none"/>`,
   actions: `<rect x="3.5" y="4" width="6" height="6" rx="1.4"/><path d="M5 7l1.4 1.4L9 5.6"/><path d="M13 7h7"/><rect x="3.5" y="14" width="6" height="6" rx="1.4"/><path d="M13 17h7"/>`,
   "section-history": `<rect x="8" y="4" width="12" height="12" rx="2"/><rect x="4" y="8" width="12" height="12" rx="2"/><path d="M12 12l-2 2 2 2M9 14h5"/>`,
   search: `<circle cx="11" cy="11" r="6"/><path d="M8 10.5h6M8 12.5h4"/><path d="M15.5 15.5L20 20"/>`,

@@ -1,18 +1,14 @@
 <svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
-  <title>ChronoNote app icon — "dated page" (0.7 iconography pass)</title>
-  <desc>The same dated-page-under-its-rule mark the in-app "Open date note"
-  toolbar button uses (src/lib/icons/paths.ts, "date-note"), scaled up so
-  the taskbar icon and the toolbar button read as one thing
-  (docs/design/maturity-0.7-roadmap.md, "The app icon rejoins the
-  family"). Replaces the §96 checkbox-clock mark. Shipped treatment is a
-  white knockout on the accent-blue tile, same as before — only the mark
-  itself changed. Regenerate with: npx tauri icon docs/design/icon-A-master.svg</desc>
-  <rect x="32" y="32" width="960" height="960" rx="232" fill="#007acc"/>
-  <g fill="none" stroke="#ffffff" stroke-width="46.4" stroke-linecap="round" stroke-linejoin="round">
-    <rect x="300" y="300" width="424" height="424" rx="53"/>
-    <path d="M392.75 432.5H551.75"/>
-    <path d="M392.75 512H631.25"/>
-    <path d="M392.75 554.4H631.25"/>
-    <path d="M392.75 644.5H525.25"/>
+  <title>ChronoNote app icon — "daily agenda" (Obsidian Slate)</title>
+  <desc>Direction 1 Daily Agenda: tear-sheet with twin binder pins, header rule,
+  and daily action checkmark. Rendered on Obsidian Slate (#18181b) with high-contrast
+  ivory stroke (#fafafa) and scaled optical footprint (~74%) for Windows taskbar clarity.
+  Regenerate with: npx.cmd tauri icon docs/design/icon-A-master.svg</desc>
+  <rect x="32" y="32" width="960" height="960" rx="232" fill="#18181b" stroke="#27272a" stroke-width="16"/>
+  <g fill="none" stroke="#fafafa" stroke-width="68" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="182" y="210" width="660" height="630" rx="130"/>
+    <path d="M182 390H842"/>
+    <path d="M350 135V275M674 135V275"/>
+    <path d="M330 600L450 720L700 470"/>
   </g>
 </svg>

@@ -1,0 +1,954 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ChronoNote Icon Design Proposals v0.12</title>
+  <script src="https://www.gstatic.com/antigravity/web/dev/tailwindcss.min.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
+    :root {
+      --font-mono: 'JetBrains Mono', monospace;
+      --font-sans: 'Plus Jakarta Sans', system-ui, sans-serif;
+    }
+    body {
+      font-family: var(--font-sans);
+    }
+    .mono {
+      font-family: var(--font-mono);
+    }
+    .taskbar-glass {
+      background: rgba(30, 30, 30, 0.85);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .taskbar-glass-light {
+      background: rgba(243, 243, 243, 0.88);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-top: 1px solid rgba(0, 0, 0, 0.08);
+    }
+  </style>
+</head>
+<body class="bg-[#0f1115] text-[#e2e8f0] min-h-screen p-4 md:p-8">
+
+  <!-- Header -->
+  <div class="max-w-6xl mx-auto mb-10">
+    <div class="flex items-center gap-3 mb-2">
+      <span class="px-2.5 py-1 rounded text-xs font-mono font-semibold bg-amber-500/10 text-amber-400 border border-amber-500/20">Design RFC</span>
+      <span class="text-xs font-mono text-slate-400">ChronoNote UI/UX Evolution v0.12</span>
+    </div>
+    <h1 class="text-3xl md:text-4xl font-bold tracking-tight text-white mb-3">Icon Design Proposals: Agenda, App Mark & Palette</h1>
+    <p class="text-slate-400 text-base max-w-3xl leading-relaxed">
+      Resolving the three key pain points: (1) making the <strong>agenda / date-note icon</strong> instantly identifiable, (2) fixing the <strong>shrunken taskbar presence</strong> through optical scale balancing, and (3) offering <strong>curated non-VSCode colorways</strong>.
+    </p>
+  </div>
+
+  <!-- Main interactive controls -->
+  <div class="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-4 gap-6 mb-12">
+    
+    <!-- Colorway Selector Sidebar -->
+    <div class="lg:col-span-1 bg-[#161a22] border border-slate-800 rounded-2xl p-5 flex flex-col gap-4">
+      <div>
+        <h3 class="text-sm font-semibold text-white uppercase tracking-wider font-mono mb-1">Color Palette</h3>
+        <p class="text-xs text-slate-400">Replaces the generic VS Code blue (<code class="text-sky-400">#007acc</code>)</p>
+      </div>
+
+      <div class="flex flex-col gap-2.5" id="color-selector">
+        <!-- Palette 1: Amber Warmth -->
+        <button onclick="setColor('amber')" class="palette-btn w-full text-left p-3 rounded-xl border border-amber-500/40 bg-amber-500/10 flex items-center gap-3 transition-all" data-color="amber">
+          <span class="w-6 h-6 rounded-lg bg-amber-600 shadow-sm flex-shrink-0"></span>
+          <div>
+            <div class="text-xs font-semibold text-white">Warm Amber / Honey</div>
+            <div class="text-[10px] text-slate-400 font-mono">#d97706 · Stationery / Deferred</div>
+          </div>
+        </button>
+
+        <!-- Palette 2: Obsidian Craft -->
+        <button onclick="setColor('obsidian')" class="palette-btn w-full text-left p-3 rounded-xl border border-slate-800 hover:border-slate-700 bg-slate-900/60 flex items-center gap-3 transition-all" data-color="obsidian">
+          <span class="w-6 h-6 rounded-lg bg-[#18181b] border border-slate-700 flex-shrink-0 shadow-sm"></span>
+          <div>
+            <div class="text-xs font-semibold text-white">Obsidian Slate</div>
+            <div class="text-[10px] text-slate-400 font-mono">#18181b · Minimalist Monochrome</div>
+          </div>
+        </button>
+
+        <!-- Palette 3: Forest Sage -->
+        <button onclick="setColor('forest')" class="palette-btn w-full text-left p-3 rounded-xl border border-slate-800 hover:border-slate-700 bg-slate-900/60 flex items-center gap-3 transition-all" data-color="forest">
+          <span class="w-6 h-6 rounded-lg bg-teal-700 shadow-sm flex-shrink-0"></span>
+          <div>
+            <div class="text-xs font-semibold text-white">Spruce / Deep Teal</div>
+            <div class="text-[10px] text-slate-400 font-mono">#0f766e · Calm & Focused</div>
+          </div>
+        </button>
+
+        <!-- Palette 4: Deep Royal Indigo -->
+        <button onclick="setColor('indigo')" class="palette-btn w-full text-left p-3 rounded-xl border border-slate-800 hover:border-slate-700 bg-slate-900/60 flex items-center gap-3 transition-all" data-color="indigo">
+          <span class="w-6 h-6 rounded-lg bg-indigo-700 shadow-sm flex-shrink-0"></span>
+          <div>
+            <div class="text-xs font-semibold text-white">Royal Indigo</div>
+            <div class="text-[10px] text-slate-400 font-mono">#3730a3 · Executive Polish</div>
+          </div>
+        </button>
+
+        <!-- Palette 5: Terracotta / Clay -->
+        <button onclick="setColor('terracotta')" class="palette-btn w-full text-left p-3 rounded-xl border border-slate-800 hover:border-slate-700 bg-slate-900/60 flex items-center gap-3 transition-all" data-color="terracotta">
+          <span class="w-6 h-6 rounded-lg bg-orange-700 shadow-sm flex-shrink-0"></span>
+          <div>
+            <div class="text-xs font-semibold text-white">Terracotta / Rust</div>
+            <div class="text-[10px] text-slate-400 font-mono">#c2410c · Leather Notebook</div>
+          </div>
+        </button>
+
+        <!-- Baseline: Current Blue -->
+        <button onclick="setColor('current')" class="palette-btn w-full text-left p-3 rounded-xl border border-slate-800 hover:border-slate-700 bg-slate-900/40 flex items-center gap-3 transition-all opacity-75" data-color="current">
+          <span class="w-6 h-6 rounded-lg bg-[#007acc] shadow-sm flex-shrink-0"></span>
+          <div>
+            <div class="text-xs font-semibold text-slate-300">Current (Baseline)</div>
+            <div class="text-[10px] text-slate-500 font-mono">#007acc · VS Code Blue</div>
+          </div>
+        </button>
+      </div>
+
+      <div class="mt-auto pt-4 border-t border-slate-800/80">
+        <label class="text-xs font-mono text-slate-400 block mb-2">Windows Taskbar Mode</label>
+        <div class="grid grid-cols-2 gap-2">
+          <button onclick="setTaskbarTheme('dark')" id="tb-dark-btn" class="py-1.5 px-3 rounded-lg text-xs font-medium bg-slate-800 text-white border border-slate-700">Dark</button>
+          <button onclick="setTaskbarTheme('light')" id="tb-light-btn" class="py-1.5 px-3 rounded-lg text-xs font-medium bg-slate-900 text-slate-400 border border-slate-800">Light</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Active Icon Preview & Diagnostics -->
+    <div class="lg:col-span-3 flex flex-col gap-6">
+      
+      <!-- Diagnostic comparison: Why current icon fails in taskbar -->
+      <div class="bg-[#161a22] border border-slate-800 rounded-2xl p-6">
+        <div class="flex items-center justify-between mb-4">
+          <div>
+            <h3 class="text-sm font-semibold text-white uppercase tracking-wider font-mono">Diagnostic: The Taskbar Sizing Issue</h3>
+            <p class="text-xs text-slate-400">Why the current icon feels small and unreadable in Windows</p>
+          </div>
+          <span class="px-2 py-0.5 rounded text-[10px] font-mono bg-rose-500/10 text-rose-400 border border-rose-500/20">The Root Cause</span>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div class="p-4 rounded-xl bg-slate-900/60 border border-rose-900/30 flex items-center gap-4">
+            <div class="relative w-16 h-16 rounded-xl bg-[#007acc] flex items-center justify-center flex-shrink-0 shadow-lg">
+              <!-- Current Glyph: 424px in 1024 box = 41% width -->
+              <svg width="28" height="28" viewBox="0 0 1024 1024" fill="none" stroke="#fff" stroke-width="48" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="300" y="300" width="424" height="424" rx="53" />
+                <path d="M392.75 432.5H551.75" />
+                <path d="M392.75 512H631.25" />
+                <path d="M392.75 554.4H631.25" />
+                <path d="M392.75 644.5H525.25" />
+              </svg>
+              <!-- 30% border padding warning ring -->
+              <div class="absolute inset-1.5 border border-dashed border-rose-400/40 rounded-lg pointer-events-none"></div>
+            </div>
+            <div class="text-xs">
+              <div class="font-semibold text-rose-300 mb-1">Current: 41% Canvas Area</div>
+              <p class="text-slate-400 text-[11px] leading-relaxed">
+                The mark is only 424px wide inside a 1024px canvas with huge 300px outer margins. Plus, the 4 horizontal lines look like an anonymous code snippet or equalizer, not a calendar.
+              </p>
+            </div>
+          </div>
+
+          <div class="p-4 rounded-xl bg-slate-900/60 border border-emerald-900/30 flex items-center gap-4">
+            <div class="w-16 h-16 rounded-xl flex items-center justify-center flex-shrink-0 shadow-lg transition-colors duration-200 active-tile-bg">
+              <!-- Proposed: 74% Canvas Area with bold optical stroke -->
+              <svg width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="4" width="18" height="17" rx="3" />
+                <path d="M3 9h18" stroke-width="2" />
+                <path d="M8 2v3M16 2v3" stroke-width="2.2" />
+                <!-- Clear agenda action check / day marker -->
+                <path d="M7.5 14.5l2 2 4.5-4.5" stroke-width="2.2" />
+              </svg>
+            </div>
+            <div class="text-xs">
+              <div class="font-semibold text-emerald-300 mb-1">Proposed: 74% Optical Weight</div>
+              <p class="text-slate-400 text-[11px] leading-relaxed">
+                Tightly bounded silhouette matching Windows 11 Fluent guidelines. Instantly recognized as an agenda tear-sheet with binder pins, scaled perfectly for 24px and 40px taskbars.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Windows 11 Taskbar Simulation -->
+      <div class="bg-[#161a22] border border-slate-800 rounded-2xl p-6">
+        <div class="flex items-center justify-between mb-4">
+          <div>
+            <h3 class="text-sm font-semibold text-white uppercase tracking-wider font-mono">Live Windows 11 Taskbar Preview</h3>
+            <p class="text-xs text-slate-400">Real 40px icon rendering in Windows taskbar environment</p>
+          </div>
+          <span class="text-xs font-mono text-slate-400">100% DPI & 150% DPI fidelity</span>
+        </div>
+
+        <!-- Taskbar bar preview -->
+        <div id="taskbar-container" class="taskbar-glass rounded-xl p-2 px-6 flex items-center justify-center gap-3 transition-colors duration-200 border border-slate-700/50 shadow-2xl">
+          <!-- Start button -->
+          <div class="w-9 h-9 rounded-lg flex items-center justify-center hover:bg-white/10 transition-colors">
+            <svg width="18" height="18" viewBox="0 0 16 16" fill="none">
+              <rect x="1" y="1" width="6.5" height="6.5" rx="0.5" fill="#00adef" />
+              <rect x="8.5" y="1" width="6.5" height="6.5" rx="0.5" fill="#00adef" />
+              <rect x="1" y="8.5" width="6.5" height="6.5" rx="0.5" fill="#00adef" />
+              <rect x="8.5" y="8.5" width="6.5" height="6.5" rx="0.5" fill="#00adef" />
+            </svg>
+          </div>
+
+          <!-- Search / Widgets -->
+          <div class="w-9 h-9 rounded-lg flex items-center justify-center hover:bg-white/10 transition-colors">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2.2">
+              <circle cx="11" cy="11" r="7" />
+              <path d="M21 21l-4.35-4.35" />
+            </svg>
+          </div>
+
+          <!-- Separator dot -->
+          <div class="w-1 h-1 rounded-full bg-slate-600/50"></div>
+
+          <!-- File Explorer -->
+          <div class="w-9 h-9 rounded-lg flex items-center justify-center hover:bg-white/10 transition-colors">
+            <svg width="22" height="22" viewBox="0 0 32 32">
+              <path d="M3 8a2 2 0 0 1 2-2h7l3 3h12a2 2 0 0 1 2 2v13a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" fill="#f59e0b" />
+              <path d="M3 13a2 2 0 0 1 2-2h22a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" fill="#fbbf24" opacity="0.9" />
+            </svg>
+          </div>
+
+          <!-- Chrome/Edge -->
+          <div class="w-9 h-9 rounded-lg flex items-center justify-center hover:bg-white/10 transition-colors">
+            <svg width="20" height="20" viewBox="0 0 24 24">
+              <circle cx="12" cy="12" r="10" fill="#3b82f6" />
+              <circle cx="12" cy="12" r="4.5" fill="#ffffff" />
+            </svg>
+          </div>
+
+          <!-- CURRENT ChronoNote Icon (Small, Blue) -->
+          <div class="relative group cursor-pointer flex flex-col items-center">
+            <div class="w-9 h-9 rounded-lg flex items-center justify-center bg-white/5 border border-white/10">
+              <div class="w-6 h-6 rounded-[5px] bg-[#007acc] flex items-center justify-center shadow">
+                <svg width="12" height="12" viewBox="0 0 1024 1024" fill="none" stroke="#fff" stroke-width="60" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="300" y="300" width="424" height="424" rx="53" />
+                  <path d="M392.75 432.5H551.75" />
+                  <path d="M392.75 512H631.25" />
+                  <path d="M392.75 554.4H631.25" />
+                  <path d="M392.75 644.5H525.25" />
+                </svg>
+              </div>
+            </div>
+            <span class="absolute -bottom-6 px-1.5 py-0.5 text-[9px] font-mono rounded bg-rose-900/80 text-rose-200 border border-rose-700/50 whitespace-nowrap">Old (Tiny)</span>
+          </div>
+
+          <!-- VS Code -->
+          <div class="w-9 h-9 rounded-lg flex items-center justify-center hover:bg-white/10 transition-colors">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="#0284c7">
+              <path d="M17.5 2.5L7 11.5l10.5 9L21 19V4.5zM7 11.5L3.5 8.5 2 9.5l3.5 3L2 15.5l1.5 1 3.5-3z"/>
+            </svg>
+          </div>
+
+          <!-- PROPOSED ChronoNote Icon (Active Direction + Palette) -->
+          <div class="relative group cursor-pointer flex flex-col items-center">
+            <div class="w-10 h-10 rounded-lg flex items-center justify-center bg-white/15 border border-white/20 shadow-md">
+              <div id="taskbar-proposed-tile" class="w-7 h-7 rounded-[7px] flex items-center justify-center shadow transition-colors duration-200 active-tile-bg">
+                <div id="taskbar-proposed-glyph">
+                  <!-- Injected via JS based on selected direction -->
+                </div>
+              </div>
+            </div>
+            <span class="absolute -bottom-6 px-1.5 py-0.5 text-[9px] font-mono rounded bg-emerald-900/80 text-emerald-200 border border-emerald-700/50 whitespace-nowrap font-semibold">New Proposed ★</span>
+          </div>
+
+          <!-- Terminal -->
+          <div class="w-9 h-9 rounded-lg flex items-center justify-center hover:bg-white/10 transition-colors">
+            <div class="w-6 h-6 rounded bg-slate-900 border border-slate-700 flex items-center justify-center">
+              <span class="text-[10px] font-mono text-emerald-400 font-bold">&gt;_</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="mt-8 text-center text-xs text-slate-400">
+          Notice how the <span class="text-rose-400 font-medium">Old</span> icon vanishes into a blue square, while the <span class="text-emerald-400 font-medium">New</span> proposal maintains clear glyph presence and tactile personality.
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- THE 4 DESIGN DIRECTIONS -->
+  <div class="max-w-6xl mx-auto mb-16">
+    <div class="border-b border-slate-800 pb-4 mb-8">
+      <div class="flex items-center gap-2 mb-1">
+        <span class="text-xs font-mono uppercase tracking-wider text-amber-400 font-semibold">The 4 Directions</span>
+      </div>
+      <h2 class="text-2xl font-bold text-white">Choose Your Preferred Agenda & App Icon Direction</h2>
+      <p class="text-slate-400 text-sm mt-1">Each direction uniquely answers the "Agenda / Date Note" metaphor while scaling gracefully from 16px to 512px.</p>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+      
+      <!-- DIRECTION 1: The Daily Agenda Tear-Sheet -->
+      <div onclick="selectDirection(1)" id="dir-card-1" class="direction-card relative bg-[#161a22] border-2 border-amber-500/80 rounded-2xl p-6 cursor-pointer transition-all hover:shadow-xl hover:border-amber-400 flex flex-col justify-between">
+        <div class="absolute top-4 right-4">
+          <span class="status-badge px-2.5 py-1 rounded-full text-[11px] font-mono font-semibold bg-amber-500/20 text-amber-300 border border-amber-500/30">Recommended</span>
+        </div>
+
+        <div>
+          <div class="flex items-center gap-4 mb-5">
+            <!-- Large App Icon Tile -->
+            <div class="w-20 h-20 rounded-2xl flex items-center justify-center shadow-lg active-tile-bg transition-colors duration-200">
+              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3.5" y="4" width="17" height="16.5" rx="3.5" stroke-width="1.8" />
+                <path d="M3.5 9h17" stroke-width="1.8" />
+                <path d="M8 2.5v3M16 2.5v3" stroke-width="2.2" />
+                <!-- Distinct daily action check + bullet -->
+                <path d="M7.5 14.5l2 2 4.5-4.5" stroke-width="2.2" />
+              </svg>
+            </div>
+            
+            <div>
+              <div class="text-xs font-mono text-slate-400">Direction 1</div>
+              <h3 class="text-lg font-bold text-white">The Daily Agenda ("Tear-Sheet")</h3>
+              <p class="text-xs text-slate-400 mt-1">Twin binder pins, header bar, and daily action checkmark.</p>
+            </div>
+          </div>
+
+          <p class="text-xs text-slate-300 leading-relaxed mb-4">
+            <strong>The Metaphor:</strong> Instantly recognizable as a date/agenda pad worldwide. The twin binder pins and horizontal tear-off line scream "calendar", while the crisp inner checkmark/date marks it as ChronoNote's daily task loop.
+          </p>
+
+          <!-- Size ramp preview -->
+          <div class="bg-slate-900/60 rounded-xl p-3 border border-slate-800 flex items-center justify-between gap-3">
+            <span class="text-[10px] font-mono text-slate-500 uppercase">Scale Ramp</span>
+            <div class="flex items-end gap-4">
+              <!-- 16px Toolbar icon -->
+              <div class="flex flex-col items-center gap-1">
+                <div class="w-5 h-5 flex items-center justify-center text-slate-300">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3.5" y="4" width="17" height="16.5" rx="3.5" />
+                    <path d="M3.5 9h17" />
+                    <path d="M8 2v3.5M16 2v3.5" />
+                    <path d="M7.5 14.5l2 2 4.5-4.5" stroke-width="2.2" />
+                  </svg>
+                </div>
+                <span class="text-[9px] font-mono text-slate-500">16px</span>
+              </div>
+
+              <!-- 24px Topbar button -->
+              <div class="flex flex-col items-center gap-1">
+                <div class="w-7 h-7 flex items-center justify-center text-slate-200">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3.5" y="4" width="17" height="16.5" rx="3.5" />
+                    <path d="M3.5 9h17" />
+                    <path d="M8 2.5v3M16 2.5v3" stroke-width="2.2" />
+                    <path d="M7.5 14.5l2 2 4.5-4.5" stroke-width="2.2" />
+                  </svg>
+                </div>
+                <span class="text-[9px] font-mono text-slate-500">24px</span>
+              </div>
+
+              <!-- 32px Taskbar tile -->
+              <div class="flex flex-col items-center gap-1">
+                <div class="w-8 h-8 rounded-lg active-tile-bg flex items-center justify-center shadow transition-colors duration-200">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3.5" y="4" width="17" height="16.5" rx="3.5" />
+                    <path d="M3.5 9h17" />
+                    <path d="M8 2.5v3M16 2.5v3" stroke-width="2.2" />
+                    <path d="M7.5 14.5l2 2 4.5-4.5" stroke-width="2.2" />
+                  </svg>
+                </div>
+                <span class="text-[9px] font-mono text-slate-500">32px</span>
+              </div>
+
+              <!-- 48px Desktop tile -->
+              <div class="flex flex-col items-center gap-1">
+                <div class="w-12 h-12 rounded-xl active-tile-bg flex items-center justify-center shadow-md transition-colors duration-200">
+                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3.5" y="4" width="17" height="16.5" rx="3.5" />
+                    <path d="M3.5 9h17" />
+                    <path d="M8 2.5v3M16 2.5v3" stroke-width="2.2" />
+                    <path d="M7.5 14.5l2 2 4.5-4.5" stroke-width="2.2" />
+                  </svg>
+                </div>
+                <span class="text-[9px] font-mono text-slate-500">48px</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="mt-4 pt-3 border-t border-slate-800 text-[11px] text-slate-400 flex items-center justify-between">
+          <span>In-app SVG: <code class="text-amber-400">date-note</code> drop-in replacement</span>
+          <span class="text-amber-400 font-semibold flex items-center gap-1">Click to Select &rarr;</span>
+        </div>
+      </div>
+
+      <!-- DIRECTION 2: The Chrono Dial (Time + Monospace Chevron) -->
+      <div onclick="selectDirection(2)" id="dir-card-2" class="direction-card relative bg-[#161a22] border-2 border-slate-800 rounded-2xl p-6 cursor-pointer transition-all hover:shadow-xl hover:border-slate-700 flex flex-col justify-between">
+        <div>
+          <div class="flex items-center gap-4 mb-5">
+            <!-- Large App Icon Tile -->
+            <div class="w-20 h-20 rounded-2xl flex items-center justify-center shadow-lg active-tile-bg transition-colors duration-200">
+              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="9" stroke-width="1.8" />
+                <!-- 12, 3, 6, 9 tick marks -->
+                <path d="M12 4.5v2M12 17.5v2M4.5 12h2M17.5 12h2" stroke-width="1.8" opacity="0.6" />
+                <!-- Monospace forward mark '»' at center (deferred/progress) -->
+                <path d="M10 9l3 3-3 3" stroke-width="2.4" />
+                <path d="M14 9l3 3-3 3" stroke-width="2.4" />
+              </svg>
+            </div>
+            
+            <div>
+              <div class="text-xs font-mono text-slate-400">Direction 2</div>
+              <h3 class="text-lg font-bold text-white">The Chrono Dial ("Time & Forward")</h3>
+              <p class="text-xs text-slate-400 mt-1">Clock dial with ChronoNote's iconic deferred chevron <code>&raquo;</code>.</p>
+            </div>
+          </div>
+
+          <p class="text-xs text-slate-300 leading-relaxed mb-4">
+            <strong>The Metaphor:</strong> Focuses heavily on the <em>Chrono</em> (Time) aspect. The outer dial represents the 24-hour cycle, while the central chevron represents forward motion and carrying tasks into the new day.
+          </p>
+
+          <!-- Size ramp preview -->
+          <div class="bg-slate-900/60 rounded-xl p-3 border border-slate-800 flex items-center justify-between gap-3">
+            <span class="text-[10px] font-mono text-slate-500 uppercase">Scale Ramp</span>
+            <div class="flex items-end gap-4">
+              <!-- 16px Toolbar icon -->
+              <div class="flex flex-col items-center gap-1">
+                <div class="w-5 h-5 flex items-center justify-center text-slate-300">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="9" />
+                    <path d="M10 9l3 3-3 3" stroke-width="2.4" />
+                    <path d="M14 9l3 3-3 3" stroke-width="2.4" />
+                  </svg>
+                </div>
+                <span class="text-[9px] font-mono text-slate-500">16px</span>
+              </div>
+
+              <!-- 24px Topbar button -->
+              <div class="flex flex-col items-center gap-1">
+                <div class="w-7 h-7 flex items-center justify-center text-slate-200">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="9" />
+                    <path d="M12 4.5v1.5M12 18v1.5M4.5 12h1.5M18 12h1.5" opacity="0.6" />
+                    <path d="M10 9l3 3-3 3" stroke-width="2.2" />
+                    <path d="M14 9l3 3-3 3" stroke-width="2.2" />
+                  </svg>
+                </div>
+                <span class="text-[9px] font-mono text-slate-500">24px</span>
+              </div>
+
+              <!-- 32px Taskbar tile -->
+              <div class="flex flex-col items-center gap-1">
+                <div class="w-8 h-8 rounded-lg active-tile-bg flex items-center justify-center shadow transition-colors duration-200">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="9" />
+                    <path d="M10 9l3 3-3 3" stroke-width="2.4" />
+                    <path d="M14 9l3 3-3 3" stroke-width="2.4" />
+                  </svg>
+                </div>
+                <span class="text-[9px] font-mono text-slate-500">32px</span>
+              </div>
+
+              <!-- 48px Desktop tile -->
+              <div class="flex flex-col items-center gap-1">
+                <div class="w-12 h-12 rounded-xl active-tile-bg flex items-center justify-center shadow-md transition-colors duration-200">
+                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="9" />
+                    <path d="M12 4.5v2M12 17.5v2M4.5 12h2M17.5 12h2" stroke-width="1.8" opacity="0.6" />
+                    <path d="M10 9l3 3-3 3" stroke-width="2.4" />
+                    <path d="M14 9l3 3-3 3" stroke-width="2.4" />
+                  </svg>
+                </div>
+                <span class="text-[9px] font-mono text-slate-500">48px</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="mt-4 pt-3 border-t border-slate-800 text-[11px] text-slate-400 flex items-center justify-between">
+          <span>Distinct bold circular mark</span>
+          <span class="text-slate-400 font-semibold flex items-center gap-1">Click to Select &rarr;</span>
+        </div>
+      </div>
+
+      <!-- DIRECTION 3: The Daily Journal / Spiral Notebook -->
+      <div onclick="selectDirection(3)" id="dir-card-3" class="direction-card relative bg-[#161a22] border-2 border-slate-800 rounded-2xl p-6 cursor-pointer transition-all hover:shadow-xl hover:border-slate-700 flex flex-col justify-between">
+        <div>
+          <div class="flex items-center gap-4 mb-5">
+            <!-- Large App Icon Tile -->
+            <div class="w-20 h-20 rounded-2xl flex items-center justify-center shadow-lg active-tile-bg transition-colors duration-200">
+              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="5" y="4" width="15" height="16.5" rx="2.5" stroke-width="1.8" />
+                <!-- Spine wire rings on left -->
+                <path d="M3.5 7h3M3.5 11h3M3.5 15h3M3.5 19h3" stroke-width="2" />
+                <!-- Ruled entry lines with task marker -->
+                <path d="M10.5 8h6M10.5 12h6M10.5 16h4" stroke-width="1.8" />
+              </svg>
+            </div>
+            
+            <div>
+              <div class="text-xs font-mono text-slate-400">Direction 3</div>
+              <h3 class="text-lg font-bold text-white">The Daily Journal ("Field Notebook")</h3>
+              <p class="text-xs text-slate-400 mt-1">Wirebound notebook spine with ruled plain-text entries.</p>
+            </div>
+          </div>
+
+          <p class="text-xs text-slate-300 leading-relaxed mb-4">
+            <strong>The Metaphor:</strong> Honors the tactile spirit of daily plain-text journaling. The ringed left spine immediately tells the brain "this is my notebook / personal journal", contrasting clearly with generic file folders.
+          </p>
+
+          <!-- Size ramp preview -->
+          <div class="bg-slate-900/60 rounded-xl p-3 border border-slate-800 flex items-center justify-between gap-3">
+            <span class="text-[10px] font-mono text-slate-500 uppercase">Scale Ramp</span>
+            <div class="flex items-end gap-4">
+              <!-- 16px Toolbar icon -->
+              <div class="flex flex-col items-center gap-1">
+                <div class="w-5 h-5 flex items-center justify-center text-slate-300">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="5" y="4" width="15" height="16.5" rx="2" />
+                    <path d="M3.5 7.5h3M3.5 12h3M3.5 16.5h3" stroke-width="2.2" />
+                    <path d="M11 9h5M11 15h3" stroke-width="2" />
+                  </svg>
+                </div>
+                <span class="text-[9px] font-mono text-slate-500">16px</span>
+              </div>
+
+              <!-- 24px Topbar button -->
+              <div class="flex flex-col items-center gap-1">
+                <div class="w-7 h-7 flex items-center justify-center text-slate-200">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="5" y="4" width="15" height="16.5" rx="2.5" />
+                    <path d="M3.5 7h3M3.5 11h3M3.5 15h3M3.5 19h3" stroke-width="2" />
+                    <path d="M10.5 8h6M10.5 12h6M10.5 16h4" />
+                  </svg>
+                </div>
+                <span class="text-[9px] font-mono text-slate-500">24px</span>
+              </div>
+
+              <!-- 32px Taskbar tile -->
+              <div class="flex flex-col items-center gap-1">
+                <div class="w-8 h-8 rounded-lg active-tile-bg flex items-center justify-center shadow transition-colors duration-200">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="5" y="4" width="15" height="16.5" rx="2.5" />
+                    <path d="M3.5 7.5h3M3.5 12h3M3.5 16.5h3" stroke-width="2.2" />
+                    <path d="M11 9h5M11 15h4" stroke-width="2" />
+                  </svg>
+                </div>
+                <span class="text-[9px] font-mono text-slate-500">32px</span>
+              </div>
+
+              <!-- 48px Desktop tile -->
+              <div class="flex flex-col items-center gap-1">
+                <div class="w-12 h-12 rounded-xl active-tile-bg flex items-center justify-center shadow-md transition-colors duration-200">
+                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="5" y="4" width="15" height="16.5" rx="2.5" />
+                    <path d="M3.5 7h3M3.5 11h3M3.5 15h3M3.5 19h3" stroke-width="2" />
+                    <path d="M10.5 8h6M10.5 12h6M10.5 16h4" />
+                  </svg>
+                </div>
+                <span class="text-[9px] font-mono text-slate-500">48px</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="mt-4 pt-3 border-t border-slate-800 text-[11px] text-slate-400 flex items-center justify-between">
+          <span>Evokes Field Notes and analog paper</span>
+          <span class="text-slate-400 font-semibold flex items-center gap-1">Click to Select &rarr;</span>
+        </div>
+      </div>
+
+      <!-- DIRECTION 4: The Monospace Calendar Grid ("24 / Today") -->
+      <div onclick="selectDirection(4)" id="dir-card-4" class="direction-card relative bg-[#161a22] border-2 border-slate-800 rounded-2xl p-6 cursor-pointer transition-all hover:shadow-xl hover:border-slate-700 flex flex-col justify-between">
+        <div>
+          <div class="flex items-center gap-4 mb-5">
+            <!-- Large App Icon Tile -->
+            <div class="w-20 h-20 rounded-2xl flex items-center justify-center shadow-lg active-tile-bg transition-colors duration-200">
+              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3.5" y="4" width="17" height="16.5" rx="3.5" stroke-width="1.8" />
+                <path d="M3.5 9h17" stroke-width="1.8" />
+                <path d="M8 2.5v3M16 2.5v3" stroke-width="2.2" />
+                <!-- 2x2 monospace date matrix with active day highlight -->
+                <circle cx="8" cy="13" r="1.3" fill="#fff" stroke="none" />
+                <circle cx="12" cy="13" r="1.3" fill="#fff" stroke="none" />
+                <circle cx="16" cy="13" r="1.3" fill="#fff" stroke="none" />
+                <circle cx="8" cy="16.5" r="1.3" fill="#fff" stroke="none" />
+                <rect x="10.5" y="15" width="3" height="3" rx="0.8" fill="none" stroke="#fff" stroke-width="1.4" />
+                <circle cx="16" cy="16.5" r="1.3" fill="#fff" stroke="none" />
+              </svg>
+            </div>
+            
+            <div>
+              <div class="text-xs font-mono text-slate-400">Direction 4</div>
+              <h3 class="text-lg font-bold text-white">The Monospace Grid ("Active Day")</h3>
+              <p class="text-xs text-slate-400 mt-1">Calendar date matrix with the active daily note marked.</p>
+            </div>
+          </div>
+
+          <p class="text-xs text-slate-300 leading-relaxed mb-4">
+            <strong>The Metaphor:</strong> Directly depicts ChronoNote's calendar picker and daily date jumping. A clean month header with the current day highlighted inside a monospace grid.
+          </p>
+
+          <!-- Size ramp preview -->
+          <div class="bg-slate-900/60 rounded-xl p-3 border border-slate-800 flex items-center justify-between gap-3">
+            <span class="text-[10px] font-mono text-slate-500 uppercase">Scale Ramp</span>
+            <div class="flex items-end gap-4">
+              <!-- 16px Toolbar icon -->
+              <div class="flex flex-col items-center gap-1">
+                <div class="w-5 h-5 flex items-center justify-center text-slate-300">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3.5" y="4" width="17" height="16.5" rx="3.5" />
+                    <path d="M3.5 9h17" />
+                    <path d="M8 2v3M16 2v3" stroke-width="2" />
+                    <circle cx="8" cy="14" r="1" fill="currentColor" />
+                    <circle cx="12" cy="14" r="1" fill="currentColor" />
+                    <circle cx="16" cy="14" r="1" fill="currentColor" />
+                  </svg>
+                </div>
+                <span class="text-[9px] font-mono text-slate-500">16px</span>
+              </div>
+
+              <!-- 24px Topbar button -->
+              <div class="flex flex-col items-center gap-1">
+                <div class="w-7 h-7 flex items-center justify-center text-slate-200">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3.5" y="4" width="17" height="16.5" rx="3.5" />
+                    <path d="M3.5 9h17" />
+                    <path d="M8 2.5v3M16 2.5v3" stroke-width="2.2" />
+                    <circle cx="8.5" cy="13.5" r="1.2" fill="currentColor" />
+                    <circle cx="12" cy="13.5" r="1.2" fill="currentColor" />
+                    <circle cx="15.5" cy="13.5" r="1.2" fill="currentColor" />
+                    <circle cx="8.5" cy="16.5" r="1.2" fill="currentColor" />
+                    <circle cx="12" cy="16.5" r="1.2" fill="currentColor" />
+                  </svg>
+                </div>
+                <span class="text-[9px] font-mono text-slate-500">24px</span>
+              </div>
+
+              <!-- 32px Taskbar tile -->
+              <div class="flex flex-col items-center gap-1">
+                <div class="w-8 h-8 rounded-lg active-tile-bg flex items-center justify-center shadow transition-colors duration-200">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3.5" y="4" width="17" height="16.5" rx="3.5" />
+                    <path d="M3.5 9h17" />
+                    <path d="M8 2.5v3M16 2.5v3" stroke-width="2.2" />
+                    <circle cx="8.5" cy="14" r="1.2" fill="#fff" />
+                    <circle cx="12" cy="14" r="1.2" fill="#fff" />
+                    <circle cx="15.5" cy="14" r="1.2" fill="#fff" />
+                  </svg>
+                </div>
+                <span class="text-[9px] font-mono text-slate-500">32px</span>
+              </div>
+
+              <!-- 48px Desktop tile -->
+              <div class="flex flex-col items-center gap-1">
+                <div class="w-12 h-12 rounded-xl active-tile-bg flex items-center justify-center shadow-md transition-colors duration-200">
+                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3.5" y="4" width="17" height="16.5" rx="3.5" />
+                    <path d="M3.5 9h17" />
+                    <path d="M8 2.5v3M16 2.5v3" stroke-width="2.2" />
+                    <circle cx="8" cy="13" r="1.3" fill="#fff" stroke="none" />
+                    <circle cx="12" cy="13" r="1.3" fill="#fff" stroke="none" />
+                    <circle cx="16" cy="13" r="1.3" fill="#fff" stroke="none" />
+                    <circle cx="8" cy="16.5" r="1.3" fill="#fff" stroke="none" />
+                    <rect x="10.5" y="15" width="3" height="3" rx="0.8" fill="none" stroke="#fff" stroke-width="1.4" />
+                    <circle cx="16" cy="16.5" r="1.3" fill="#fff" stroke="none" />
+                  </svg>
+                </div>
+                <span class="text-[9px] font-mono text-slate-500">48px</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="mt-4 pt-3 border-t border-slate-800 text-[11px] text-slate-400 flex items-center justify-between">
+          <span>Grid view matching calendar modal</span>
+          <span class="text-slate-400 font-semibold flex items-center gap-1">Click to Select &rarr;</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- IN-APP TOOLBAR CONTEXT -->
+  <div class="max-w-6xl mx-auto mb-16 bg-[#161a22] border border-slate-800 rounded-2xl p-6">
+    <div class="flex items-center justify-between mb-4">
+      <div>
+        <h3 class="text-sm font-semibold text-white uppercase tracking-wider font-mono">In-App Toolbar Harmony</h3>
+        <p class="text-xs text-slate-400">How the proposed Agenda mark sits alongside existing ChronoNote toolbar icons</p>
+      </div>
+      <span class="text-xs font-mono px-2 py-1 rounded bg-slate-800 text-slate-300">src/lib/icons/paths.ts</span>
+    </div>
+
+    <!-- Mock ChronoNote Title & Top Bar -->
+    <div class="bg-[#1e1e1e] border border-[#333] rounded-xl p-3 shadow-inner">
+      <div class="flex items-center justify-between gap-4">
+        
+        <!-- Left: App Icon + Tabs -->
+        <div class="flex items-center gap-2">
+          <!-- App Icon in Title Bar -->
+          <div id="toolbar-appicon" class="w-5 h-5 rounded-[4px] active-tile-bg flex items-center justify-center shadow-sm">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3.5" y="4" width="17" height="16.5" rx="3.5" />
+              <path d="M3.5 9h17" />
+              <path d="M8 2.5v3M16 2.5v3" />
+              <path d="M7.5 14.5l2 2 4.5-4.5" />
+            </svg>
+          </div>
+
+          <!-- Active Date Tab -->
+          <div class="flex items-center gap-1.5 px-2.5 py-1 rounded bg-[#2d2d2d] border border-white/10 text-xs font-mono text-white">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-slate-400">
+              <rect x="4" y="5" width="16" height="14" rx="2"/><path d="M4 9h16M9 4v3M15 4v3"/>
+            </svg>
+            <span>2026-09-22</span>
+          </div>
+
+          <!-- Scratchpad Tab -->
+          <div class="flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-mono text-slate-400 hover:text-slate-200">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M13 4H7a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V9z"/><path d="M13 4v5h5"/><path d="M9 13h6M9 16h4"/>
+            </svg>
+            <span>scratchpad</span>
+          </div>
+        </div>
+
+        <!-- Right: Action Buttons -->
+        <div class="flex items-center gap-1">
+          <!-- Scratchpad (+) -->
+          <button class="w-7 h-7 rounded flex items-center justify-center text-slate-300 hover:bg-white/10" title="New scratchpad">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M13 3H7a1 1 0 0 0-1 1v11"/><path d="M13 3l4 4v6"/><path d="M17 7h-4V3"/><path d="M8 19h8M12 15v8"/></svg>
+          </button>
+
+          <!-- PROPOSED AGENDA BUTTON (Highlighted) -->
+          <button id="toolbar-agenda-btn" class="px-2 h-7 rounded bg-amber-500/10 border border-amber-500/30 text-amber-300 flex items-center gap-1.5 text-xs font-mono" title="Open date note (Ctrl+G)">
+            <span id="toolbar-agenda-icon">
+              <!-- Replaced via JS based on selected direction -->
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3.5" y="4" width="17" height="16.5" rx="3.5" />
+                <path d="M3.5 9h17" />
+                <path d="M8 2.5v3M16 2.5v3" stroke-width="2.2" />
+                <path d="M7.5 14.5l2 2 4.5-4.5" stroke-width="2.2" />
+              </svg>
+            </span>
+            <span>Date</span>
+          </button>
+
+          <!-- Actions -->
+          <button class="w-7 h-7 rounded flex items-center justify-center text-slate-300 hover:bg-white/10" title="Actions drawer">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="3.5" y="4" width="6" height="6" rx="1.4"/><path d="M5 7l1.4 1.4L9 5.6"/><path d="M13 7h7"/><rect x="3.5" y="14" width="6" height="6" rx="1.4"/><path d="M13 17h7"/></svg>
+          </button>
+
+          <!-- Section History -->
+          <button class="w-7 h-7 rounded flex items-center justify-center text-slate-300 hover:bg-white/10" title="Section history">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="8" y="4" width="12" height="12" rx="2"/><rect x="4" y="8" width="12" height="12" rx="2"/><path d="M12 12l-2 2 2 2M9 14h5"/></svg>
+          </button>
+
+          <!-- Search -->
+          <button class="w-7 h-7 rounded flex items-center justify-center text-slate-300 hover:bg-white/10" title="Search">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="11" r="6"/><path d="M8 10.5h6M8 12.5h4"/><path d="M15.5 15.5L20 20"/></svg>
+          </button>
+
+          <!-- Settings -->
+          <button class="w-7 h-7 rounded flex items-center justify-center text-slate-300 hover:bg-white/10" title="Settings">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 7h16M4 12h16M4 17h16"/><circle cx="9" cy="7" r="1.6" fill="currentColor"/><circle cx="15" cy="12" r="1.6" fill="currentColor"/><circle cx="8" cy="17" r="1.6" fill="currentColor"/></svg>
+          </button>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Palettes config
+    const PALETTES = {
+      amber: {
+        bg: '#d97706',
+        hover: '#b45309',
+        border: 'rgba(245, 158, 11, 0.4)',
+        activeBg: 'rgba(245, 158, 11, 0.15)',
+        text: '#f59e0b',
+        name: 'Warm Amber / Honey'
+      },
+      obsidian: {
+        bg: '#18181b',
+        hover: '#27272a',
+        border: 'rgba(161, 161, 170, 0.4)',
+        activeBg: 'rgba(161, 161, 170, 0.15)',
+        text: '#f4f4f5',
+        name: 'Obsidian Slate'
+      },
+      forest: {
+        bg: '#0f766e',
+        hover: '#115e59',
+        border: 'rgba(20, 184, 166, 0.4)',
+        activeBg: 'rgba(20, 184, 166, 0.15)',
+        text: '#14b8a6',
+        name: 'Spruce / Deep Teal'
+      },
+      indigo: {
+        bg: '#3730a3',
+        hover: '#312e81',
+        border: 'rgba(99, 102, 241, 0.4)',
+        activeBg: 'rgba(99, 102, 241, 0.15)',
+        text: '#818cf8',
+        name: 'Royal Indigo'
+      },
+      terracotta: {
+        bg: '#c2410c',
+        hover: '#9a3412',
+        border: 'rgba(249, 115, 22, 0.4)',
+        activeBg: 'rgba(249, 115, 22, 0.15)',
+        text: '#fb923c',
+        name: 'Terracotta'
+      },
+      current: {
+        bg: '#007acc',
+        hover: '#0062a3',
+        border: 'rgba(0, 122, 204, 0.4)',
+        activeBg: 'rgba(0, 122, 204, 0.15)',
+        text: '#38bdf8',
+        name: 'Current Blue'
+      }
+    };
+
+    // Glyph templates for each direction
+    const GLYPHS = {
+      1: {
+        taskbar: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3.5" y="4" width="17" height="16.5" rx="3.5" />
+          <path d="M3.5 9h17" />
+          <path d="M8 2.5v3M16 2.5v3" stroke-width="2.2" />
+          <path d="M7.5 14.5l2 2 4.5-4.5" stroke-width="2.2" />
+        </svg>`,
+        toolbar: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3.5" y="4" width="17" height="16.5" rx="3.5" />
+          <path d="M3.5 9h17" />
+          <path d="M8 2.5v3M16 2.5v3" stroke-width="2.2" />
+          <path d="M7.5 14.5l2 2 4.5-4.5" stroke-width="2.2" />
+        </svg>`
+      },
+      2: {
+        taskbar: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="9" />
+          <path d="M10 9l3 3-3 3" stroke-width="2.4" />
+          <path d="M14 9l3 3-3 3" stroke-width="2.4" />
+        </svg>`,
+        toolbar: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="9" />
+          <path d="M10 9l3 3-3 3" stroke-width="2.4" />
+          <path d="M14 9l3 3-3 3" stroke-width="2.4" />
+        </svg>`
+      },
+      3: {
+        taskbar: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="5" y="4" width="15" height="16.5" rx="2.5" />
+          <path d="M3.5 7.5h3M3.5 12h3M3.5 16.5h3" stroke-width="2.2" />
+          <path d="M11 9h5M11 15h4" stroke-width="2" />
+        </svg>`,
+        toolbar: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="5" y="4" width="15" height="16.5" rx="2.5" />
+          <path d="M3.5 7.5h3M3.5 12h3M3.5 16.5h3" stroke-width="2.2" />
+          <path d="M11 9h5M11 15h4" stroke-width="2" />
+        </svg>`
+      },
+      4: {
+        taskbar: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3.5" y="4" width="17" height="16.5" rx="3.5" />
+          <path d="M3.5 9h17" />
+          <path d="M8 2.5v3M16 2.5v3" stroke-width="2.2" />
+          <circle cx="8.5" cy="14" r="1.2" fill="#fff" />
+          <circle cx="12" cy="14" r="1.2" fill="#fff" />
+          <circle cx="15.5" cy="14" r="1.2" fill="#fff" />
+        </svg>`,
+        toolbar: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3.5" y="4" width="17" height="16.5" rx="3.5" />
+          <path d="M3.5 9h17" />
+          <path d="M8 2.5v3M16 2.5v3" stroke-width="2.2" />
+          <circle cx="8.5" cy="14" r="1.2" fill="currentColor" />
+          <circle cx="12" cy="14" r="1.2" fill="currentColor" />
+          <circle cx="15.5" cy="14" r="1.2" fill="currentColor" />
+        </svg>`
+      }
+    };
+
+    let currentColor = 'amber';
+    let currentDirection = 1;
+
+    function applyActiveStyle() {
+      const pal = PALETTES[currentColor];
+      document.querySelectorAll('.active-tile-bg').forEach(el => {
+        el.style.backgroundColor = pal.bg;
+      });
+
+      // Update toolbar highlighted button
+      const agendaBtn = document.getElementById('toolbar-agenda-btn');
+      if (agendaBtn) {
+        agendaBtn.style.color = pal.text;
+        agendaBtn.style.borderColor = pal.border;
+        agendaBtn.style.backgroundColor = pal.activeBg;
+      }
+    }
+
+    function setColor(colorKey) {
+      currentColor = colorKey;
+      document.querySelectorAll('.palette-btn').forEach(btn => {
+        if (btn.dataset.color === colorKey) {
+          btn.classList.add('border-amber-500/40', 'bg-amber-500/10');
+          btn.classList.remove('border-slate-800', 'bg-slate-900/60', 'bg-slate-900/40');
+        } else {
+          btn.classList.remove('border-amber-500/40', 'bg-amber-500/10');
+          btn.classList.add('border-slate-800', 'bg-slate-900/60');
+        }
+      });
+      applyActiveStyle();
+    }
+
+    function selectDirection(dir) {
+      currentDirection = dir;
+      // Update cards border
+      for (let i = 1; i <= 4; i++) {
+        const card = document.getElementById('dir-card-' + i);
+        if (card) {
+          if (i === dir) {
+            card.classList.add('border-amber-500/80');
+            card.classList.remove('border-slate-800');
+          } else {
+            card.classList.remove('border-amber-500/80');
+            card.classList.add('border-slate-800');
+          }
+        }
+      }
+
+      // Update taskbar proposed glyph
+      const tbGlyph = document.getElementById('taskbar-proposed-glyph');
+      if (tbGlyph) tbGlyph.innerHTML = GLYPHS[dir].taskbar;
+
+      // Update toolbar agenda icon
+      const tbAgendaIcon = document.getElementById('toolbar-agenda-icon');
+      if (tbAgendaIcon) tbAgendaIcon.innerHTML = GLYPHS[dir].toolbar;
+    }
+
+    function setTaskbarTheme(theme) {
+      const tb = document.getElementById('taskbar-container');
+      const darkBtn = document.getElementById('tb-dark-btn');
+      const lightBtn = document.getElementById('tb-light-btn');
+      if (theme === 'light') {
+        tb.className = 'taskbar-glass-light rounded-xl p-2 px-6 flex items-center justify-center gap-3 transition-colors duration-200 border border-slate-300/80 shadow-2xl';
+        lightBtn.className = 'py-1.5 px-3 rounded-lg text-xs font-medium bg-slate-800 text-white border border-slate-700';
+        darkBtn.className = 'py-1.5 px-3 rounded-lg text-xs font-medium bg-slate-900 text-slate-400 border border-slate-800';
+      } else {
+        tb.className = 'taskbar-glass rounded-xl p-2 px-6 flex items-center justify-center gap-3 transition-colors duration-200 border border-slate-700/50 shadow-2xl';
+        darkBtn.className = 'py-1.5 px-3 rounded-lg text-xs font-medium bg-slate-800 text-white border border-slate-700';
+        lightBtn.className = 'py-1.5 px-3 rounded-lg text-xs font-medium bg-slate-900 text-slate-400 border border-slate-800';
+      }
+    }
+
+    // Init
+    selectDirection(1);
+    setColor('amber');
+  </script>
+</body>
+</html>
