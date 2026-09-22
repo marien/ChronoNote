@@ -10,6 +10,7 @@
   import { setextRule } from "../editor/setextRule";
   import { resolvedLinesPlugin } from "../editor/resolvedLines";
   import { activeLinesPlugin } from "../editor/activeLines";
+  import { clickableLinksPlugin } from "../editor/clickableLinks";
   import { underlineFor } from "../sectionFormat";
   import {
     actionLineEnter,
@@ -514,6 +515,7 @@
       setextRule,
       resolvedLinesPlugin,
       activeLinesPlugin,
+      clickableLinksPlugin,
       pulseField,
       // §108: search state for findNext/findPrevious; its own panel is
       // never opened — the floating `FindBar` is the UI, and

@@ -1024,6 +1024,19 @@ body {
   opacity: 0.6;
 }
 
+/* Clickable links in editor content (Issue #79) */
+.cm-line .cm-link {
+  color: var(--text);
+  text-decoration: underline;
+  text-decoration-color: var(--edge-strong);
+  text-underline-offset: 3px;
+  cursor: pointer;
+  transition: color 100ms ease, text-decoration-color 100ms ease;
+}
+.cm-line .cm-link:hover {
+  text-decoration-color: var(--text);
+}
+
 /* Area 2: Subtle resolved line muting */
 .cm-line.cm-line-resolved {
   opacity: 0.72;

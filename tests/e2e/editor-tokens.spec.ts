@@ -340,4 +340,29 @@ test.describe("editor — token glyphs", () => {
       })
       .toBeCloseTo(1.0, 2);
   });
+
+  test("URLs in content are decorated as clickable links and open via Ctrl+Click or middle-click", async ({ page }) => {
+    await setEditorText(page, "# Check https://github.com/marien/ChronoNote for updates");
+
+    const link = editor(page).locator(".cm-link");
+    await expect(link).toHaveCount(1);
+    await expect(link).toHaveText("https://github.com/marien/ChronoNote");
+    await expect(link).toHaveAttribute("data-url", "https://github.com/marien/ChronoNote");
+
+    // Regular click places caret without opening external browser
+    await link.click();
+    let opened = await page.evaluate(() => window.__CHRONO_MOCK__!.openedUrls);
+    expect(opened).toEqual([]);
+
+    // Ctrl+Click (or Cmd+Click) opens the URL externally
+    await link.click({ modifiers: ["ControlOrMeta"] });
+    opened = await page.evaluate(() => window.__CHRONO_MOCK__!.openedUrls);
+    expect(opened).toEqual(["https://github.com/marien/ChronoNote"]);
+
+    // Middle-click also opens the URL externally
+    await link.click({ button: "middle" });
+    opened = await page.evaluate(() => window.__CHRONO_MOCK__!.openedUrls);
+    expect(opened).toEqual(["https://github.com/marien/ChronoNote", "https://github.com/marien/ChronoNote"]);
+  });
 });
+
