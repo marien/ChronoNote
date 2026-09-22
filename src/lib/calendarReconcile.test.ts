@@ -176,3 +176,51 @@ describe("removed meetings (#78)", () => {
     expect(r.removedWithContent.length + r.removedEmpty.length).toBe(1);
   });
 });
+
+describe("#92: a [CANCELED] section that flagRemovedSection actually produces (appended after the block, not before it)", () => {
+  const note = (...parts: string[]) => parts.join("\n");
+
+  it("a repeat sync while still cancelled does not re-report or re-flag it", () => {
+    // The real position flagRemovedSection leaves it in: after the live
+    // meeting, at the tail — unlike the "before the block" fixture the
+    // #78 tests use, this actually lands the section inside blockSections.
+    const content = note(
+      "Budget review",
+      "=============",
+      "notes",
+      "",
+      "",
+      "[CANCELED] Old sync",
+      "===================",
+      "kept notes",
+      "",
+    );
+    const r = computeCalendarSync(content, ["Budget review"], ["Old sync"]);
+    expect(r.removedWithContent).toEqual([]);
+    expect(r.removedEmpty).toEqual([]);
+    // Still there, once, not doubled up.
+    expect(r.content.match(/\[CANCELED\]/gi)?.length).toBe(1);
+    expect(r.content).toContain("[CANCELED] Old sync");
+    expect(r.content).toContain("kept notes");
+  });
+
+  it("the meeting reappearing on the agenda un-cancels its section instead of keeping the stale marker", () => {
+    const content = note(
+      "Budget review",
+      "=============",
+      "notes",
+      "",
+      "",
+      "[CANCELED] Old sync",
+      "===================",
+      "kept notes",
+      "",
+    );
+    const r = computeCalendarSync(content, ["Budget review", "Old sync"], []);
+    expect(r.content).not.toContain("[CANCELED]");
+    expect(r.content).toContain("Old sync");
+    expect(r.content).toContain("kept notes");
+    // The underline is recomputed for the now-shorter (unprefixed) title.
+    expect(r.content).toContain("Old sync\n========");
+  });
+});

@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { seedApp, editor, setEditorText } from "./helpers";
+import { seedApp, editor, setEditorText, typeInEditor } from "./helpers";
 
 /** §79 — a line carrying a token glyph must be exactly as tall as a plain
  * line. The geometric glyph characters (☐ ☑ ☒ » ➔ •) fall back to a
@@ -194,5 +194,28 @@ test.describe("glyph line layout", () => {
     // Indented glyph starts exactly two spaces in — the indentation is
     // real, untouched whitespace.
     expect(Math.abs(indented - 2 * oneCh)).toBeLessThan(1.5);
+  });
+
+  test("#93: the caret after an open glyph with no following text sits past the trailing space, not against the shrunk checkbox", async ({ page }) => {
+    await seedApp(page, { seed: "empty" });
+    // A reference x for "end of a real 2-character cell": two plain
+    // characters, measured independent of any glyph/transform. This is
+    // where the caret *should* land after `# ` — comparing against the
+    // glyph's own (possibly transformed) box would be circular, since
+    // CodeMirror measures the caret off that same widget node.
+    await setEditorText(page, "AA");
+    const refRight = await page.evaluate(() => {
+      const t = document.querySelector(".cm-line")!.firstChild!;
+      const r = document.createRange();
+      r.setStart(t, 0);
+      r.setEnd(t, 2);
+      return r.getBoundingClientRect().right;
+    });
+
+    await typeInEditor(page, "# ", { clear: true });
+    const cursorLeft = await page.evaluate(
+      () => document.querySelector<HTMLElement>(".cm-cursor-primary")!.getBoundingClientRect().left,
+    );
+    expect(Math.abs(cursorLeft - refRight)).toBeLessThan(1.5);
   });
 });

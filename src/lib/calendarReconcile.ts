@@ -34,6 +34,16 @@ function matchKey(title: string): string {
   return titleForMatching(normalizeHeaderTitle(title.trim())).toLowerCase();
 }
 
+const CANCELED_PREFIX = /^\[CANCELED\]\s*/i;
+
+function isCancelledHeader(header: string): boolean {
+  return CANCELED_PREFIX.test(header);
+}
+
+function stripCancelledPrefix(header: string): string {
+  return header.replace(CANCELED_PREFIX, "");
+}
+
 function parseSections(content: string): { preamble: string[]; sections: ParsedSection[] } {
   const allLines = content.split("\n");
   const headerIdxs: number[] = [];
@@ -94,7 +104,7 @@ export function computeCalendarSync(
   // earlier "Leave it" is left alone, so a sync never flags the same meeting twice.
   const removedKeys = new Set(removedTitles.map((x) => x.trim()).filter(Boolean).map(matchKey));
   const isRemovedSection = (s: ParsedSection) =>
-    removedKeys.has(s.matchKey) && !agendaKeys.has(s.matchKey) && !/^\[CANCELED\]/i.test(s.header);
+    removedKeys.has(s.matchKey) && !agendaKeys.has(s.matchKey) && !isCancelledHeader(s.header);
   const sections = allSections.filter((s) => !isRemovedSection(s));
 
   const matchedIdxs: number[] = [];
@@ -116,7 +126,18 @@ export function computeCalendarSync(
     if (foundIdx >= 0) {
       consumed.add(foundIdx);
       keptEntries.push({ title: a.title, origIdx: foundIdx });
-      finalBlockLines.push(blockSections[foundIdx].lines);
+      const found = blockSections[foundIdx];
+      // #92: the meeting is back on the calendar — if this section still
+      // carries a `[CANCELED]` prefix from an earlier "Leave it", it's
+      // effectively un-cancelled itself; drop the marker (and recompute the
+      // underline for the now-shorter title) instead of carrying stale
+      // cancellation state forward forever.
+      if (isCancelledHeader(found.header)) {
+        const header = stripCancelledPrefix(found.header);
+        finalBlockLines.push([header, underlineFor(header), ...found.lines.slice(2)]);
+      } else {
+        finalBlockLines.push(found.lines);
+      }
     } else {
       newTitles.push(a.title);
       finalBlockLines.push([a.title, underlineFor(a.title)]);
@@ -141,7 +162,16 @@ export function computeCalendarSync(
   // A cancelled meeting's section may sit above the calendar block; report it first, in note order.
   allSections.filter(isRemovedSection).forEach(noteRemoved);
   blockSections.forEach((s, i) => {
-    if (!consumed.has(i)) noteRemoved(s);
+    if (consumed.has(i)) return;
+    if (isCancelledHeader(s.header)) {
+      // #92: still not back on the calendar, but this section was already
+      // resolved by an earlier "Leave it" (flagRemovedSection). Carry it
+      // through unchanged instead of surfacing it as newly removed again —
+      // that's what produced the doubled "[CANCELED] [CANCELED] …" prefix.
+      finalBlockLines.push(s.lines);
+      return;
+    }
+    noteRemoved(s);
   });
 
   const newContent = joinBlocks(preamble, [...before.map((s) => s.lines), ...finalBlockLines]);

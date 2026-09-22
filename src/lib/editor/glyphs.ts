@@ -46,8 +46,16 @@ class InlineGlyphWidget extends WidgetType {
 
   toDOM(view: EditorView): HTMLElement {
     const span = document.createElement("span");
-    span.textContent = this.label;
     span.className = this.className;
+    // #93: the drawn character lives in its own nested span so a shrinking
+    // transform (app.css's `.glyph-ink` rule) never touches this outer
+    // span's own box — CodeMirror measures THIS node to place the cursor
+    // right after the glyph, so its box must stay the full, untransformed
+    // cell width.
+    const ink = document.createElement("span");
+    ink.className = "glyph-ink";
+    ink.textContent = this.label;
+    span.appendChild(ink);
     if (this.cyclable) {
       span.classList.add("glyph-cyclable");
       const [nextChar, nextClass] = glyphForSymbol(symbolAfterClick(this.symbol));
@@ -55,11 +63,11 @@ class InlineGlyphWidget extends WidgetType {
       // see what it will do; revert on leave. Bypassed on touchscreens.
       span.addEventListener("mouseenter", () => {
         if (window.matchMedia?.("(pointer: coarse)").matches) return;
-        span.textContent = nextChar;
+        ink.textContent = nextChar;
         span.className = `${nextClass} glyph-cyclable glyph-cyclable-preview`;
       });
       span.addEventListener("mouseleave", () => {
-        span.textContent = this.label;
+        ink.textContent = this.label;
         span.className = `${this.className} glyph-cyclable`;
       });
       const handleCycle = (e: Event) => {

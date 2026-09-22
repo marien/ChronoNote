@@ -891,15 +891,32 @@ body {
    the cell's left edge (keeping the glyph on column 0), and `translateY`
    drops it ~0.05em — against lowercase text the checkboxes and the
    follow-up arrow read a touch high, their ink reaching well above the
-   x-height while sharing the baseline. */
+   x-height while sharing the baseline.
+
+   #93: `scale()` moved off the outer `.glyph-open`/`.glyph-done`/
+   `.glyph-cancelled` cell and onto a nested `.glyph-ink` span instead. The
+   outer span is the exact DOM node CodeMirror measures to place the
+   cursor right after the glyph — when the scale lived there, its own
+   `getBoundingClientRect()` shrank along with the drawn mark, so a cursor
+   at end-of-line (no text after the glyph) landed hugging the visually
+   shrunk checkbox instead of at the true right edge of the 2ch cell,
+   making the trailing space look absent. `translateY` stays on the outer
+   cell (vertical-only, doesn't affect its width) so §87's baseline fix is
+   unchanged; only the horizontal shrink moves inward. */
 .cm-line .glyph-open,
 .cm-line .glyph-done,
 .cm-line .glyph-cancelled {
-  transform: translateY(0.05em) scale(0.85);
-  transform-origin: left center;
+  transform: translateY(0.05em);
 }
 .cm-line .glyph-followup {
   transform: translateY(0.05em);
+}
+.cm-line .glyph-open .glyph-ink,
+.cm-line .glyph-done .glyph-ink,
+.cm-line .glyph-cancelled .glyph-ink {
+  display: inline-block;
+  transform: scale(0.85);
+  transform-origin: left center;
 }
 .cm-line .glyph-open,
 .cm-line .glyph-done,
