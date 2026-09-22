@@ -39,7 +39,7 @@ ts-rs = "12"
 reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "json"] }
 url = "2"
 base64 = "0.23"
-rand = "0.8"
+rand = "0.10"
 tokio = { version = "1", features = ["time", "sync"] }
 # The OneDrive refresh token (offline_access + Files.ReadWrite — standing
 # access to the whole drive) lives in the OS keychain, never in a plain
