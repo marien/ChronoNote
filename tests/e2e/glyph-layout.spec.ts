@@ -213,6 +213,22 @@ test.describe("glyph line layout", () => {
     });
 
     await typeInEditor(page, "# ", { clear: true });
+    const diag = await page.evaluate(() => {
+      const outer = document.querySelector<HTMLElement>(".glyph-open")!;
+      const inner = outer.querySelector<HTMLElement>(".glyph-ink")!;
+      const cursor = document.querySelector<HTMLElement>(".cm-cursor-primary")!;
+      return {
+        lineHTML: outer.closest(".cm-line")!.outerHTML,
+        outerRect: outer.getBoundingClientRect().toJSON(),
+        innerRect: inner.getBoundingClientRect().toJSON(),
+        outerTransform: getComputedStyle(outer).transform,
+        innerTransform: getComputedStyle(inner).transform,
+        outerWidth: getComputedStyle(outer).width,
+        cursorStyle: cursor.getAttribute("style"),
+        fontFamily: getComputedStyle(outer).fontFamily,
+      };
+    });
+    console.log("DIAG_93", JSON.stringify(diag));
     const cursorLeft = await page.evaluate(
       () => document.querySelector<HTMLElement>(".cm-cursor-primary")!.getBoundingClientRect().left,
     );
