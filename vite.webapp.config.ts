@@ -1,11 +1,34 @@
-import { readFileSync } from "node:fs";
-import { defineConfig } from "vite";
+import { readFileSync, writeFileSync } from "node:fs";
+import { resolve } from "node:path";
+import { defineConfig, type Plugin, type ResolvedConfig } from "vite";
 import { svelte } from "@sveltejs/vite-plugin-svelte";
 
 // Same rationale as vite.demo.config.ts's identical read: this file only
 // ever runs in a real Node process (Vite's own config loader), so a plain
 // JSON read has no ESM-import-attribute restriction to work around here.
 const appVersion = JSON.parse(readFileSync("./package.json", "utf-8")).version as string;
+
+/** `public/sw.js` is copied verbatim by Vite (no `define` substitution runs
+ * over static `public/` files, only over processed JS/TS modules) — so its
+ * own `__WEBAPP_VERSION__` cache-name placeholder needs a manual patch after
+ * the copy. Ties the service worker's cache generation to the app version
+ * (see sw.js's own comment for why a hand-bumped literal isn't enough).
+ * Reads the resolved `root`/`build.outDir` from `configResolved` rather than
+ * a hand-typed relative path, so this works regardless of the cwd `vite
+ * build` was invoked from. */
+function injectSwVersion(): Plugin {
+  let config: ResolvedConfig;
+  return {
+    name: "inject-sw-version",
+    configResolved(resolved) {
+      config = resolved;
+    },
+    closeBundle() {
+      const path = resolve(config.root, config.build.outDir, "sw.js");
+      writeFileSync(path, readFileSync(path, "utf-8").replaceAll("__WEBAPP_VERSION__", appVersion));
+    },
+  };
+}
 
 /** Builds the persisted browser web app — the design doc's third tier,
  * between the ephemeral demo (`vite.demo.config.ts`) and the real desktop
@@ -26,7 +49,7 @@ const appVersion = JSON.parse(readFileSync("./package.json", "utf-8")).version a
 export default defineConfig({
   root: "webapp-src",
   base: "./",
-  plugins: [svelte()],
+  plugins: [svelte(), injectSwVersion()],
   define: {
     __WEBAPP_VERSION__: JSON.stringify(appVersion),
   },

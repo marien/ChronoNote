@@ -8,7 +8,15 @@
  * - Completely bypasses caching for Microsoft OAuth, Entra ID, and Graph API endpoints.
  */
 
-const CACHE_NAME = "chrononote-webapp-shell-v2";
+// Tied to the app version (substituted at build time by vite.webapp.config.ts's
+// `injectSwVersion` plugin) so every release — not just ones that happen to
+// touch sw.js's own logic — gets a genuinely new cache generation. A hand-
+// maintained "v2"-style literal here silently stopped protecting anything the
+// moment nobody remembered to bump it: the v0.12.5 icon redesign shipped with
+// this cache name unchanged, so `activate`'s cleanup below never saw a name
+// mismatch, never deleted the old cache, and the precached icons stayed
+// stale indefinitely — the exact bug this scheme now prevents by construction.
+const CACHE_NAME = "chrononote-webapp-shell-0.12.5";
 
 const PRECACHE_URLS = [
   "./",
@@ -22,7 +30,15 @@ self.addEventListener("install", (event) => {
   event.waitUntil(
     caches
       .open(CACHE_NAME)
-      .then((cache) => cache.addAll(PRECACHE_URLS))
+      .then((cache) =>
+        // `cache: "reload"` bypasses the browser's own HTTP cache for these
+        // fetches — without it, a long-lived Cache-Control on the static
+        // host could hand back stale bytes even into a brand-new Cache
+        // Storage bucket, defeating the versioned CACHE_NAME above.
+        Promise.all(
+          PRECACHE_URLS.map((url) => fetch(url, { cache: "reload" }).then((res) => cache.put(url, res))),
+        ),
+      )
       .catch((err) => {
         console.warn("[SW] Precache failed:", err);
       }),

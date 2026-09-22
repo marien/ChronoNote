@@ -213,9 +213,17 @@ test.describe("glyph line layout", () => {
     });
 
     await typeInEditor(page, "# ", { clear: true });
-    const cursorLeft = await page.evaluate(
-      () => document.querySelector<HTMLElement>(".cm-cursor-primary")!.getBoundingClientRect().left,
-    );
-    expect(Math.abs(cursorLeft - refRight)).toBeLessThan(1.5);
+    // CodeMirror's cursor overlay can briefly report a stale position (still
+    // at column 0) right after the last keystroke before it settles — a real
+    // race caught in CI, not a rendering difference; poll instead of a
+    // single read.
+    await expect
+      .poll(async () => {
+        const cursorLeft = await page.evaluate(
+          () => document.querySelector<HTMLElement>(".cm-cursor-primary")!.getBoundingClientRect().left,
+        );
+        return Math.abs(cursorLeft - refRight);
+      })
+      .toBeLessThan(1.5);
   });
 });
