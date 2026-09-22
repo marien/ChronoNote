@@ -38,7 +38,7 @@ ts-rs = "12"
 # OneDrive cloud sync (§2.1-2.3): Microsoft Graph REST API + PKCE auth.
 reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "json"] }
 url = "2"
-base64 = "0.22"
+base64 = "0.23"
 rand = "0.8"
 tokio = { version = "1", features = ["time", "sync"] }
 # The OneDrive refresh token (offline_access + Files.ReadWrite — standing
