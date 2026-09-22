@@ -91,7 +91,7 @@ test.describe("info drawers", () => {
   test("the project link opens externally via the opener plugin, not the webview", async ({ page }) => {
     await editor(page).click();
     await page.keyboard.press("ControlOrMeta+Shift+Comma");
-    await modalCard(page, MODAL_LABELS.about).getByRole("button", { name: /github\.com/ }).click();
+    await modalCard(page, MODAL_LABELS.about).getByRole("button", { name: "github.com/marien/ChronoNote" }).click();
 
     const opened = await page.evaluate(() => window.__CHRONO_MOCK__!.openedUrls);
     expect(opened).toEqual(["https://github.com/marien/ChronoNote"]);
@@ -101,7 +101,7 @@ test.describe("info drawers", () => {
     await editor(page).click();
     await page.keyboard.press("ControlOrMeta+Shift+Comma");
     await modalCard(page, MODAL_LABELS.about)
-      .getByRole("button", { name: /chrononote\.mariendegelder\.nl/ })
+      .getByRole("button", { name: "chrononote.mariendegelder.nl" })
       .click();
 
     const opened = await page.evaluate(() => window.__CHRONO_MOCK__!.openedUrls);
