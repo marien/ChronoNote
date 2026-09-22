@@ -417,11 +417,15 @@ reachable from the top bar, a shortcut, or the command palette:
   briefly pulses the target line.
 - **Sync Calendar for This Day** (`Ctrl/Cmd+Shift+C`, see tenet 4) — an
   opt-in feature (Settings → Calendar, §3.4; hidden entirely until turned
-  on) that reads a `.agenda.json` file in the notes folder (desktop only —
-  kept up to date by whatever external process syncs the user's real
-  calendar, not by ChronoNote) and reconciles it against the active tab's
-  note. Only offered on a dated tab whose date is today or later, and
-  grayed out until `.agenda.json` actually exists. A title starting with
+  on) that reads a `.agenda.json` file from the root of the notes folder
+  (kept up to date by whatever external process syncs the user's real
+  calendar, not by ChronoNote — full schema and rules in
+  `docs/agenda-file-guide.md`) and reconciles it against the active tab's
+  note. Always available on desktop; on the web app, only once a OneDrive
+  account and folder are connected (the web app has no local notes folder
+  of its own to read the file from otherwise). Only offered on a dated tab
+  whose date is today or later, and grayed out until `.agenda.json`
+  actually exists. A title starting with
   `Canceled:`/`Cancelled:`/`Declined:`/`Followed:`/`Following:` is a removed
   meeting (its rest is the real title; the note's section for it is offered
   for Leave/Discard/Move wherever it sits), and `Placeholder`/`Confirmed`

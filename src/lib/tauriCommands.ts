@@ -72,8 +72,12 @@ export interface TauriCommands {
   };
   /** Calendar sync: reads `.agenda.json` from the
    * root of the notes folder, already scoped to `date`, sorted, and
-   * de-duplicated — see `src-tauri/src/agenda.rs`. Desktop-only, like the
-   * notes folder itself; the web app has no local file to read. */
+   * de-duplicated — see `src-tauri/src/agenda.rs` and
+   * `docs/agenda-file-guide.md` for the full file format. Always available
+   * on desktop; the web app has no local notes folder of its own, so it
+   * only works there once a OneDrive account/folder is connected and this
+   * file has synced down into the browser's own storage (`webBackend.ts`
+   * implements the same contract by reading it from IndexedDB instead). */
   read_agenda_for_date: { args: { date: string }; returns: string[] };
   /** #78: the real titles of that day's cancelled/declined/forwarded meetings. */
   read_agenda_removed_for_date: { args: { date: string }; returns: string[] };

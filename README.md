@@ -87,6 +87,16 @@ format to convert them into and how to bring them in via Settings → Data
 → "Import notes from a file…" — precise enough to hand to a conversion
 script or an AI agent.
 
+## Calendar sync
+
+"Sync calendar for this day" (opt-in, Settings → Calendar) turns a real
+meeting calendar into note sections automatically. ChronoNote never talks
+to a calendar API directly — it reads a `.agenda.json` file that whatever
+you already use to sync your calendar needs to keep up to date, at the
+root of your notes folder. See
+[`docs/agenda-file-guide.md`](docs/agenda-file-guide.md) for the exact
+schema.
+
 ## Web app and demo
 
 The same `src/` tree also builds the public demo and the web app —

@@ -11,6 +11,11 @@ If you're the one writing the converter: read sections 1–4 to know exactly
 what to produce, then look at the worked example (§5) before writing any
 code. Section 6 is the human step — using the result once it's produced.
 
+Looking for the **ongoing calendar-sync file** instead (`.agenda.json`, fed
+in continuously by an external process rather than imported once)? That's a
+different feature with its own format — see
+[`docs/agenda-file-guide.md`](agenda-file-guide.md).
+
 ---
 
 ## 1. The big picture
@@ -159,6 +164,7 @@ exception: it is **only** recognized at true column 0, never indented.
 | `=> text` (anywhere on a line, not just at the start) | ➔ text | **Follow-up / consequence** — an informational note, no action-state of its own. |
 | `=> @name text` | ➔ **@name** text | **Delegated to `@name`.** The name may contain a hyphen (`@jean-luc`). Can also be written parenthesised: `=> (@name) text`. |
 | `=> # text` (or `v`/`>`/`x` in place of `#`) | ➔ ☐ text | **Consequence action** — a task that resulted from the line, with its own open/done/deferred/won't-do state. Mutually exclusive with `=> @name` — a line is either delegated to a person, or is itself an actionable consequence, never both. |
+| `(@name)` or `(@name1, @name2, ...)`, anywhere on a line that already has a leading `#`/`v`/`>`/`x` or a `=> ` somewhere in it | a badged `(@name)` | **Assignee tag(s)** on an existing action — who it's for, without making the whole line a `=> @name` delegate. Independent of `=> @name`: a line can have both (delegate the follow-up *and* tag who it's assigned to), since they answer different questions. Each `@name` inside the parentheses gets its own badge; the parentheses and commas stay plain text. Not recognized on a plain line with no action symbol and no `=> ` anywhere on it. |
 | `(topic)` **immediately after** a leading `#`/`v`/`>`/`x`, or after a `=> #`/`=> v`/`=> >`/`=> x` | a muted `(topic)` pill | Group actions by subject. A parenthesised word anywhere else on a line, or in plain prose, is left as ordinary text — it only means something right after an action symbol. |
 | `! text` (column 0 only, never indented) | **text** (bold) | Emphasis — "remember this." Purely informational. |
 
@@ -174,16 +180,44 @@ x skip the redesign, deprioritized
 => decided to push the launch a week
 => @sam send the updated contract
 => (@sam) send the updated contract
+# renegotiate the vendor contract (@sam, @priya)
 => # file a follow-up ticket
 Talked to Priya => # write up the incident report
 ! Renewal deadline is the 30th, don't forget
 ```
 
-The last example shows a `=> ` consequence appearing **mid-line**, after
-other prose — this is explicitly supported and common in real converted
-notes ("discussed X, which led to Y").
+Two of these are easy to mix up: `=> (@sam) ...` is a `=> ` line — *the
+whole line* is a follow-up delegated to Sam, with no action state of its
+own. `# renegotiate ... (@sam, @priya)` is a completely different thing:
+an **open action**, assigned to two people via the parenthesised tag,
+with no `=> ` involved at all — its own open/done/deferred/won't-do state
+is what's tracked, and the tag is just metadata on top of it. The
+`Talked to Priya => # ...` example shows a `=> ` consequence appearing
+**mid-line**, after other prose — this is explicitly supported and
+common in real converted notes ("discussed X, which led to Y").
 
-### 4.4 Recurring section titles (for Section History to actually work)
+### 4.4 Numbered lists (cosmetic — safe to ignore for a migration)
+
+A line starting with a number followed by `.` or `)` and a space (`1. `,
+`2) `, `1.1. ` for a sub-item) is understood by the editor as a numbered
+list item — Enter continues the list with the next number, Tab/Shift+Tab
+indents/outdents without renumbering. **This has no effect on the stored
+text or on any ChronoNote feature** — no glyph substitution, nothing
+tracked or aggregated, unlike every row in the §4.3 table. There is
+nothing to *produce* here: if your source has a numbered list, just write
+`1. `, `2. `, etc. as plain text and it imports correctly either way.
+
+The only reason to know about it at all: a converted line that happens to
+start with a number-then-punctuation pattern (`1. First quarter targets`,
+a heading numbered by the source tool) will behave as a list item if
+someone edits it afterward in ChronoNote — harmless, but worth knowing so
+it isn't mistaken for a bug. Rules, for completeness: the number(s) must
+be positive with no leading zero (`1.`-`999999999.`, dot-joined for a
+sub-item like `1.2.3)`), and must be the very first non-blank thing on the
+line — `- 1. text` (after a bullet) or `# 1. text` (after an action
+symbol) is not a numbered item, just literal text.
+
+### 4.5 Recurring section titles (for Section History to actually work)
 
 ChronoNote's Section History feature aggregates a section across every day
 it recurs under **the same title**. To get a useful history out of a
@@ -215,7 +249,7 @@ If recurrence grouping doesn't matter for your migration (e.g. you're
 converting one-off notes, not recurring meetings), none of this matters —
 just give each section a sensible title and move on.
 
-### 4.5 What to leave alone
+### 4.6 What to leave alone
 
 Don't try to reproduce ChronoNote's on-screen glyphs (☐, ☑, ➔, etc.)
 directly — always write the plain-ASCII token (`# `, `=> `, …) and let the
