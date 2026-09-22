@@ -8,24 +8,33 @@ import { svelte } from "@sveltejs/vite-plugin-svelte";
 // JSON read has no ESM-import-attribute restriction to work around here.
 const appVersion = JSON.parse(readFileSync("./package.json", "utf-8")).version as string;
 
-/** `public/sw.js` is copied verbatim by Vite (no `define` substitution runs
- * over static `public/` files, only over processed JS/TS modules) — so its
- * own `__WEBAPP_VERSION__` cache-name placeholder needs a manual patch after
- * the copy. Ties the service worker's cache generation to the app version
- * (see sw.js's own comment for why a hand-bumped literal isn't enough).
- * Reads the resolved `root`/`build.outDir` from `configResolved` rather than
- * a hand-typed relative path, so this works regardless of the cwd `vite
- * build` was invoked from. */
-function injectSwVersion(): Plugin {
+/** `public/sw.js` and `public/manifest.webmanifest` are copied verbatim by
+ * Vite (no `define` substitution runs over static `public/` files, only over
+ * processed JS/TS modules), and `index.html`'s icon `<link>` hrefs point
+ * into `public/icons/` — a path Vite's HTML transform deliberately leaves
+ * untouched rather than hashing, so a literal `__WEBAPP_VERSION__` query
+ * placeholder survives the build unchanged too. All three need the same
+ * manual patch after the build: ties the service worker's cache name *and*
+ * every icon reference's cache-busting query param to the app version, so a
+ * release that only changes an icon still forces every caching layer
+ * (service worker Cache Storage, the browser's own favicon/manifest-icon
+ * cache, any HTTP cache) to treat it as a new URL. See sw.js's own comment
+ * for why a hand-bumped literal isn't enough. Reads the resolved
+ * `root`/`build.outDir` from `configResolved` rather than a hand-typed
+ * relative path, so this works regardless of the cwd `vite build` was
+ * invoked from. */
+function injectVersionPlaceholders(): Plugin {
   let config: ResolvedConfig;
   return {
-    name: "inject-sw-version",
+    name: "inject-version-placeholders",
     configResolved(resolved) {
       config = resolved;
     },
     closeBundle() {
-      const path = resolve(config.root, config.build.outDir, "sw.js");
-      writeFileSync(path, readFileSync(path, "utf-8").replaceAll("__WEBAPP_VERSION__", appVersion));
+      for (const file of ["sw.js", "manifest.webmanifest", "index.html"]) {
+        const path = resolve(config.root, config.build.outDir, file);
+        writeFileSync(path, readFileSync(path, "utf-8").replaceAll("__WEBAPP_VERSION__", appVersion));
+      }
     },
   };
 }
@@ -49,7 +58,7 @@ function injectSwVersion(): Plugin {
 export default defineConfig({
   root: "webapp-src",
   base: "./",
-  plugins: [svelte(), injectSwVersion()],
+  plugins: [svelte(), injectVersionPlaceholders()],
   define: {
     __WEBAPP_VERSION__: JSON.stringify(appVersion),
   },

@@ -9,21 +9,27 @@
  */
 
 // Tied to the app version (substituted at build time by vite.webapp.config.ts's
-// `injectSwVersion` plugin) so every release — not just ones that happen to
-// touch sw.js's own logic — gets a genuinely new cache generation. A hand-
-// maintained "v2"-style literal here silently stopped protecting anything the
-// moment nobody remembered to bump it: the v0.12.5 icon redesign shipped with
-// this cache name unchanged, so `activate`'s cleanup below never saw a name
-// mismatch, never deleted the old cache, and the precached icons stayed
+// `injectVersionPlaceholders` plugin) so every release — not just ones that
+// happen to touch sw.js's own logic — gets a genuinely new cache generation. A
+// hand-maintained "v2"-style literal here silently stopped protecting anything
+// the moment nobody remembered to bump it: the v0.12.5 icon redesign shipped
+// with this cache name unchanged, so `activate`'s cleanup below never saw a
+// name mismatch, never deleted the old cache, and the precached icons stayed
 // stale indefinitely — the exact bug this scheme now prevents by construction.
 const CACHE_NAME = "chrononote-webapp-shell-__WEBAPP_VERSION__";
 
+// The icon URLs carry the same `?v=` placeholder as index.html's own
+// `<link>` hrefs and manifest.webmanifest's `icons[].src` (same plugin,
+// same substitution) — precaching under the *exact* URL the page actually
+// requests, versioned query string included, so a fetch for the current
+// version always hits this cache directly instead of falling through to the
+// slower stale-while-revalidate path further down.
 const PRECACHE_URLS = [
   "./",
   "./index.html",
   "./manifest.webmanifest",
-  "./icons/icon-256.png",
-  "./icons/icon-512.png",
+  "./icons/icon-256.png?v=__WEBAPP_VERSION__",
+  "./icons/icon-512.png?v=__WEBAPP_VERSION__",
 ];
 
 self.addEventListener("install", (event) => {
