@@ -1,10 +1,9 @@
 # ChronoNote — Agent & Contributor Guidelines
 
-This document establishes critical architectural invariants, code patterns, and verification standards for any AI agent or human contributor working on ChronoNote across its four targets: **Desktop**, **Android**, **Web App**, and **Public Demo**.
+This document establishes critical architectural invariants, code patterns, and verification standards for any AI agent or human contributor working on ChronoNote across its three targets: **Desktop**, **Web App**, and **Public Demo**.
 
 For the full design specifications, see:
 - [`docs/spec.md`](docs/spec.md) — Master Technical & Product Specification
-- [`docs/design/android-onedrive-roadmap.md`](docs/design/android-onedrive-roadmap.md) — Android & OneDrive Sync Design
 - [`docs/design/webapp-roadmap.md`](docs/design/webapp-roadmap.md) — Web App (IndexedDB) Design
 - [`docs/CHANGELOG.md`](docs/CHANGELOG.md) — Historical Log of Architectural Decisions
 
@@ -31,7 +30,7 @@ For the full design specifications, see:
 
 ### 1.4 Safe Scratchpad Invariant
 - Scratchpads are intentionally **never** written as `.txt` files to the user's notes folder or synced to OneDrive.
-- On Android, scratchpad drafts are cached locally in sandboxed app-private storage (`.scratchpads-drafts.json`) solely to survive OS background process termination, and must never be uploaded to OneDrive.
+- In the web app, scratchpad drafts are cached locally in IndexedDB solely to survive a page reload, and must never be uploaded to OneDrive.
 
 ---
 
@@ -55,9 +54,7 @@ For the full design specifications, see:
 ## 3. Rust & Tauri Multi-Platform Guidelines
 
 ### 3.1 Target Conditional Compilation (`#[cfg]`)
-- Gate Android-specific native code with `#[cfg(target_os = "android")]` or `#[cfg(mobile)]`.
 - Gate desktop-only code (e.g. `tauri-plugin-updater` or native window dragging) with `#[cfg(desktop)]`.
-- Android changes must **NEVER** break Windows, macOS, or Linux builds.
 
 ### 3.2 Compare-and-Swap (CAS) & Non-Blocking Sync
 - All cloud sync operations with Microsoft Graph API must be asynchronous (`tokio`) and non-blocking. Local typing and debounced autosaves must never freeze waiting on network I/O.

@@ -50,7 +50,7 @@
 
 <div id="status-bar">
   <div class="status-zone status-left">
-    {#if $backendKind === "android" || ($backendKind === "web" && $oneDriveAccount)}
+    {#if $backendKind === "web" && $oneDriveAccount}
       <button
         id="stat-cloud"
         class="status-folder-btn"
@@ -151,7 +151,7 @@
   </div>
 
   <div class="status-zone status-right">
-    {#if $updateStatus === "available" && $backendKind !== "web" && $backendKind !== "android"}
+    {#if $updateStatus === "available" && $backendKind !== "web"}
       <button type="button" class="status-update-btn" title="Update available — see About" on:click={controller.openAbout}>
         <Icon name="update" size={12} />
       </button>

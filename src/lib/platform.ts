@@ -21,10 +21,3 @@ function detectIsMac(): boolean {
 }
 
 export const isMac = detectIsMac();
-
-function detectIsAndroid(): boolean {
-  if (typeof navigator === "undefined") return false;
-  return /android/i.test(navigator.userAgent);
-}
-
-export const isAndroid = detectIsAndroid();

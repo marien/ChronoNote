@@ -1,7 +1,6 @@
 import { mount } from "svelte";
 import App from "./App.svelte";
 import "./app.css";
-import { initAndroidChrome } from "./lib/androidChrome";
 
 // Dev-only: `?mock` (or running in a standalone browser outside Tauri)
 // swaps the Tauri IPC layer for an in-memory backend so the real frontend
@@ -12,8 +11,6 @@ if (import.meta.env.DEV && (new URLSearchParams(location.search).has("mock") || 
   const { bootMockBackend } = await import("./lib/testing/bootMock");
   bootMockBackend(new URLSearchParams(location.search));
 }
-
-initAndroidChrome();
 
 const app = mount(App, { target: document.getElementById("app")! });
 

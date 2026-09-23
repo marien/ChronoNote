@@ -1,10 +1,10 @@
 import { test, expect } from "@playwright/test";
 import { seedApp, mockNote, activeTabContent } from "./helpers";
 
-/** Android OneDrive sync holds back a note whose phone and cloud versions
+/** OneDrive sync holds back a note whose local and cloud versions
  * diverged in the same place (see `sync.rs`). The status bar flags it and a
  * resolve screen lets the user pick a side — nothing is overwritten first. */
-test.describe("OneDrive sync conflicts (Android)", () => {
+test.describe("OneDrive sync conflicts", () => {
   test.use({
     viewport: { width: 400, height: 800 },
     isMobile: true,
@@ -15,6 +15,7 @@ test.describe("OneDrive sync conflicts (Android)", () => {
 
   const NOTE = "2030-01-01.txt";
   const seed = {
+    backendKind: "web" as const,
     notes: { [NOTE]: "one\nphone edit\n" },
     oneDriveConflicts: [{ name: NOTE, remote: "one\npc edit\n" }],
   };
@@ -75,7 +76,7 @@ test.describe("OneDrive sync conflicts (Android)", () => {
   });
 
   test("no conflicts means no status-bar warning", async ({ page }) => {
-    await seedApp(page, { seed: { notes: { [NOTE]: "fine\n" } } });
+    await seedApp(page, { seed: { backendKind: "web", notes: { [NOTE]: "fine\n" } } });
     await expect(page.locator("#stat-conflicts")).toHaveCount(0);
     expect(await activeTabContent(page)).not.toContain("conflict");
   });

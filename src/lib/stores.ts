@@ -18,7 +18,6 @@ import type {
   SyncHealth,
   ThemeMode,
 } from "./types";
-import { isAndroid } from "./platform";
 import type { SyncConflict } from "./tauriCommands";
 
 export type ModalKind =
@@ -39,7 +38,7 @@ export type ModalKind =
   | "topBarMore"
   // Calendar sync (v0.9.0) review step, after "Sync calendar for this day".
   | "syncReview"
-  // Android OneDrive sync: notes whose phone and cloud versions couldn't be
+  // OneDrive sync: notes whose local and cloud versions couldn't be
   // merged automatically, waiting on the user's choice.
   | "syncConflicts"
   // A dropped YYYY-MM-DD.txt that differs from the note already there: the user picks what to keep.
@@ -170,12 +169,13 @@ export const appVersion = writable<string>("");
  * Location and Updates settings sections and shows the browser-storage
  * status-bar badge; anything other than `"demo"` shows the Data
  * (export/import) section. */
-export const backendKind = writable<"desktop" | "demo" | "web" | "android">(isAndroid ? "android" : "desktop");
+export const backendKind = writable<"desktop" | "demo" | "web">("desktop");
 
 /** Form-factor detection: whether the current viewport or device is
  * touch/mobile-oriented (< 600px or pointer: coarse). Drives the Mobile
- * Accessory Bar and compact header with the Tab Drawer. */
-export const isMobile = writable<boolean>(isAndroid);
+ * Accessory Bar and compact header with the Tab Drawer. Set for real in
+ * `App.svelte`'s `pointer: coarse` media-query listener on mount. */
+export const isMobile = writable<boolean>(false);
 
 /** Whether the mobile tab drawer (bottom sheet) is currently open. */
 export const mobileTabDrawerOpen = writable<boolean>(false);
@@ -199,13 +199,12 @@ export const syncConflicts = writable<SyncConflict[]>([]);
  * spinner in the status bar and the disabled "Sync now" button. */
 export const oneDriveSyncing = writable(false);
 
-/** Android only: true from the moment the system browser opens for a
- * `chrononote://auth` sign-in until the `onedrive-login-result` event
- * resolves it (see `boot.ts`'s `initOneDriveSync`) — the real outcome
- * arrives asynchronously, possibly long after the user switches back to
- * the app, so this can't just be local state in the Settings modal
- * (which may not even be open when it resolves). Always stays `false`
- * on desktop, which already blocks until it has a real result. */
+/** Web only: true from the moment the page redirects to Microsoft's
+ * sign-in page until the `?code=` it comes back with has been exchanged
+ * (see `boot.ts`'s `initOneDriveSync`) — the real outcome arrives only
+ * after a full page reload, possibly with the Settings modal not even
+ * open anymore, so this can't just be local state there. Always stays
+ * `false` on desktop, which already blocks until it has a real result. */
 export const oneDriveConnecting = writable<boolean>(false);
 /** The last sync said the stored OneDrive sign-in has expired (see `signInExpired.ts`). The notes
  * on this device are untouched; Settings and the cloud popover offer "Sign in again". Cleared by

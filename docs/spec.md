@@ -1,11 +1,12 @@
 # ChronoNote: Master Technical & Product Specification
 
-**Document Version:** 1.2.0 (amended — reflects the state through
-`CHANGELOG.md` §188; the Android target and OneDrive sync described in §7.6
-are released as of v0.10.0, and OneDrive sync in the web app (§7.3) as of v0.11.0)
+**Document Version:** 1.3.0 (amended — the Android target (formerly §7.6,
+released as of v0.10.0) was dropped in favor of the PWA-installable web
+app; OneDrive sync continues as a web app feature (§7.3, shipped
+independently as of v0.11.0))
 **Target Environment:** Cross-platform native desktop (Windows / macOS /
-Linux), an Android app, plus a browser-storage web app and a
-zero-retention public demo
+Linux), plus a browser-storage web app (installable as a PWA on a phone)
+and a zero-retention public demo
 **Reference Architecture:** Tauri v2 (Rust) + Svelte 5 / TypeScript +
 CodeMirror 6
 
@@ -25,7 +26,7 @@ ChronoNote is a minimalist, keyboard-driven plain-text application engineered to
 2. **Tabular Monospace Grid Preservation:** Specialized tokens (`# `, `v `, `> `, `x `, `- `/`* `, `=> `, `! `) are visually replaced on screen using virtual presentation masking. Characters in memory match file bytes on disk; visual overlays occupy *exactly* the same typographic character width as the token they replace — forced via explicit CSS sizing rather than trusted to a glyph's natural rendered width, since a single Unicode symbol doesn't reliably occupy exactly one monospace cell in every font — so column alignments never break.
 3. **Fail-Safe Task Protection:** Tabs cannot be closed silently if unresolved tasks (`# `) exist, or if a scratchpad holds content that was never promoted — since scratchpads are never written to disk, closing one unwarned would destroy that content permanently. A multi-level "reopen closed tab" history is a second layer of recovery on top of that warning.
 4. **Calendar-Aware Sections:** A day's meetings become note sections automatically, from a `.agenda.json` file in the notes folder kept up to date by whatever external process the user syncs their real calendar with ("Sync calendar for this day," opt-in — see §3.4) — a reconciliation engine matches existing sections to the day's agenda by title, reorders/creates sections to match, and reviews (rather than silently drops) any section whose meeting is no longer on the agenda. An earlier manual "Sync from a list…" paste entry point into the same engine was dropped once the automatic file-based sync covered the case it existed for.
-5. **One Frontend, Three Backends:** The entire UI above the storage layer is backend-agnostic — every interaction goes through one typed command surface (`TauriCommands`), never a direct Rust/IPC call. Three implementations of that surface exist (real Tauri IPC — desktop and Android alike — an IndexedDB-backed web app, and an in-memory mock for the demo and test suite), so the same Svelte components, editor, and controller logic run unmodified across all of them — see §7.
+5. **One Frontend, Two Backends:** The entire UI above the storage layer is backend-agnostic — every interaction goes through one typed command surface (`TauriCommands`), never a direct Rust/IPC call. Two implementations of that surface exist (real Tauri IPC for desktop, and an IndexedDB-backed web app), plus an in-memory mock for the demo and test suite, so the same Svelte components, editor, and controller logic run unmodified across all of them — see §7.
 6. **Platform-Correct Shortcuts, Not Platform-Specific Code:** Every keyboard shortcut is `Ctrl` on Windows/Linux and `Cmd` on macOS, resolved from one shared registry rather than duplicated per platform — see §4.
 
 ---
@@ -193,11 +194,11 @@ Shortcuts & Symbols trigger, and — last — an About icon (moved here from
 the top bar, #58 — always reachable regardless of window width instead
 of competing with the tab strip for room).
 
-On Android (§7.6) the left zone also carries a cloud item showing the
-OneDrive sync state (folder name, "Syncing…", "Offline" or "Sync error";
-tapping it opens Settings), and — only while the sync is holding a note
-back for the user — an amber "⚠ N sync conflict(s)" item that opens the
-Sync conflicts drawer (§5).
+In the web app (§7.3), when OneDrive is connected, the left zone also
+carries a cloud item showing the sync state (folder name, "Syncing…",
+"Offline" or "Sync error"; tapping it opens Settings), and — only while
+the sync is holding a note back for the user — an amber "⚠ N sync
+conflict(s)" item that opens the Sync conflicts drawer (§5).
 
 ### 3.4 Settings
 
@@ -238,12 +239,14 @@ independent controls:
 - **Data (export/import)**, shown identically on the desktop app and the
   web app: exports every note as a single bundle file, and imports one
   back in with merge-skip-duplicates semantics — see §7.3.
-- **OneDrive cloud sync** (Android and the web app; neither has an
-  Updates tab): connect a Microsoft
-  account, browse to or create the OneDrive folder to sync the notes folder
-  with, "Sync now" (which reports success or the reason for failure), sign
-  out, and an "Advanced" disclosure for a client-ID and tenant override
-  for work/school accounts. See §7.6.
+- **OneDrive cloud sync** (the web app only — desktop users can just point
+  their notes folder at a real, OS-synced OneDrive folder instead; the web
+  app has no filesystem access, so this is its own in-app substitute; no
+  Updates tab there either): connect a Microsoft account, browse to or
+  create the OneDrive folder to sync the notes folder with, "Sync now"
+  (which reports success or the reason for failure), sign out, and an
+  "Advanced" disclosure for a client-ID and tenant override for work/school
+  accounts. See §7.3.
 
 **Updates** (desktop only — nothing to check for in the web app, where
 a page reload always serves the latest deployed version): an
@@ -284,14 +287,13 @@ Every modal dialog conforms to a standardized 4-tier sizing scale, universal dis
    * Displays an unobtrusive, floating `#zen-banner` in the upper-right corner with status indicator and an explicit "Exit" button.
    * On desktop, enters true native OS fullscreen via Tauri's window API (`setFullscreen(true)`).
    * Strict Escape priority hierarchy: active modal dialogs, search overlays, and find bars (`Ctrl+F`) handle Escape first; only once all foreground chrome is closed does Escape exit Zen mode.
-   * Not available on Android.
 2. **Web Drag-and-Drop File Import:**
    * Active on web app and demo builds (`$backendKind === "web"` or `"demo"`).
    * Dragging files over the browser window triggers a full-screen frosted glass drop target (`#drop-overlay`) with instructional banner.
    * Dropping a `.json` backup bundle opens Settings directly to the import preview screen.
    * Dropping one or more dated notes (`YYYY-MM-DD.txt`) imports new ones and skips identical ones. A note whose date already has different text is not written: a review dialog shows both versions and the user keeps theirs, uses the dropped file, or keeps both (dropped text appended under a `# Dropped copy` marker). Closing the dialog keeps every note as it is.
 3. **Cloud Sync Health & Telemetry Dashboard:**
-   * Clicking `#stat-cloud` in the status bar (when OneDrive is connected on Web or Android) opens an anchored telemetry popover (`#telemetry-popover`) docked above the status bar.
+   * Clicking `#stat-cloud` in the status bar (when OneDrive is connected on the web app) opens an anchored telemetry popover (`#telemetry-popover`) docked above the status bar.
    * Displays real-time sync engine status (`● In sync`, `⟳ Syncing changes…`, `▲ Offline (cached)`, or `✕ Sync error`), humanized relative time since last sync, local cached note count, pending upload count, connected Microsoft account email, and target OneDrive folder path.
    * Provides immediate "Sync Now" button and an "Open Settings" link.
 4. **Canvas Density, Typography & Pure Black OLED Mode:**
@@ -453,14 +455,14 @@ reachable from the top bar, a shortcut, or the command palette:
   each labeled and opened in the OS's default browser), and a Learn More
   section pointing at the Shortcuts drawer and command palette.
 
-- **Sync conflicts** (Android; opened from the status bar's "⚠ N sync
-  conflict(s)" item, §3.3) — for a note whose phone and OneDrive versions
+- **Sync conflicts** (the web app; opened from the status bar's "⚠ N sync
+  conflict(s)" item, §3.3) — for a note whose local and OneDrive versions
   were both changed in the same place and couldn't be merged
   automatically. Shows the two versions side by side with only the
   differing lines highlighted, and three choices: *Keep this device's*,
   *Use OneDrive's*, or *Keep both* (the OneDrive text appended under a
   marker line). Nothing has been overwritten or uploaded while it waits.
-  See §7.6.
+  See §7.3.
 
 Also reachable inline in the editor rather than as a drawer: the
 in-document **Find bar** (`Ctrl/Cmd+F`), a floating, non-modal bar that
@@ -523,10 +525,10 @@ by hand.
 
 ## 7. Distribution, Backends & the Update Mechanism
 
-### 7.1 One Frontend, Four Build Targets
+### 7.1 One Frontend, Three Build Targets
 The same `src/` tree builds independent bundles, each with its own
 Vite config and entry point, gated by a `backendKind` store
-(`"desktop" | "demo" | "web" | "android"`) that the UI reads to hide
+(`"desktop" | "demo" | "web"`) that the UI reads to hide
 backend-specific affordances (e.g. the web app hides Notes Location and the
 Updates section, since a page reload always serves the latest deployed
 version):
@@ -534,7 +536,6 @@ version):
 | Target | Build config | Storage backend | Where it lives |
 | :--- | :--- | :--- | :--- |
 | **Desktop app** | `vite.config.ts` → `dist/` | Real files via Tauri IPC | Installed `.msi`/`.exe` |
-| **Android app** | `npx tauri android build` (same `dist/`) | Real files via Tauri IPC, in the app's own storage, synced through OneDrive (§7.6) | An APK/AAB (not yet released) |
 | **Public demo** | `vite.demo.config.ts` → `website/demo-app/` | In-memory mock, resets every load | `chrononote.mariendegelder.nl` (embedded + full-screen) |
 | **Web app** | `vite.webapp.config.ts` → `website/webapp/` | IndexedDB, persists across reloads | `app.chrononote.mariendegelder.nl` |
 
@@ -561,8 +562,8 @@ tier.
 
 **OneDrive sync (v0.11.0).** The web app can connect a Microsoft account
 (OAuth 2.0 PKCE in the browser, no server of ours) and sync a chosen OneDrive
-folder with the same three-way line merge and held-conflict model as Android
-(§7.6). Browser storage and the OneDrive workspace are separate IndexedDB
+folder with a three-way line merge and held-conflict model. Browser storage
+and the OneDrive workspace are separate IndexedDB
 stores with separate tab sessions; existing browser notes can be moved across
 (with a backup), and a note that differs on both sides is held for the user
 rather than overwritten. Choosing a different folder syncs the old one first
@@ -592,71 +593,6 @@ navigating tag-by-tag. Every release artifact is signed
 (`tauri-plugin-updater`'s own keypair), and the downloaded installer's
 signature is verified before it runs.
 
-### 7.6 Android App & OneDrive Sync (v0.10.0)
-
-**The app.** The same frontend runs in Tauri's Android WebView, edge to
-edge: the native code feeds the real status-bar, navigation-bar, display-cutout
-and keyboard insets to the page as CSS variables, and switches the system
-bar icons between light and dark with the app theme. Mobile behaviour is
-**touch-first, never width-based** — it applies on a coarse-pointer device
-(an Android user agent, or a phone/tablet hitting the web app), so a narrow
-*desktop* window keeps the desktop layout and its own responsive rules
-(§3.2). On a touch device the tab strip is replaced by a tabs-drawer
-button, a bottom accessory bar inserts the tokens (☐ ☑ » • ➔ !, indent,
-undo/redo) with the caret left after the inserted token, and a fast
-horizontal swipe moves between tabs. Desktop keeps the tab strip and its
-wrapping scroll arrows. Notes live in the app's own storage folder; there is
-no OS folder picker.
-
-**Sign-in.** Microsoft OAuth2 with PKCE, through the system browser and a
-`chrononote://auth` deep link (the app may be suspended while the user is in
-the browser, so a loopback listener isn't used). The redirect URI must be
-registered on the Entra app registration. The refresh token is stored in a
-file readable only by the app in its private data folder (Android has no
-OS keychain backend for the crate the desktop build uses); the access token,
-its expiry and the account name are kept beside it. Settings → Advanced can
-override the client ID and tenant for work/school accounts.
-
-**What syncs.** Daily notes (`YYYY-MM-DD.txt`) and `.agenda.json`, between
-the notes folder and one chosen OneDrive folder, through the Microsoft Graph
-API. Session state, scratchpads and conflict data stay on the device. A sync
-runs on launch, when the app returns to the foreground (at most every 15
-seconds), shortly after an edit is saved, and on demand. A sync *pulls* first
-(a delta query for what changed in the cloud), then *pushes* local changes
-with `If-Match` on the last synced version. The engine remembers, per note,
-the last synced OneDrive version and content hash, plus the last synced text
-(the "base"). It is safe to interrupt: what has been done is saved even if a
-sync fails partway, and re-running it never creates duplicates.
-
-**Divergence.** When both sides changed a note since the last sync:
-- Edits that don't touch the same lines are **merged automatically**, and
-  when both sides only *added* lines both are kept (the OneDrive lines
-  first). The merged text is uploaded.
-- If both sides changed the same existing lines — or there is no base to
-  merge against — the note is **held**: neither the local file nor the
-  cloud copy is touched and the note is not uploaded until the user picks a
-  side in the Sync conflicts drawer (§5). No conflict files are ever created
-  in OneDrive or the notes folder.
-- A note deleted in the cloud is deleted locally only if it hasn't been
-  edited since the last sync; an edited note is kept and re-uploaded.
-- First contact (a note that was never synced but already exists in the
-  cloud with different text) is held, not overwritten in either direction.
-
-**Deleting.** Closing an empty dated tab deletes its file (§6.1); with sync
-on, the OneDrive copy is deleted at the next sync too — but only if the cloud
-version is still the one last synced (otherwise the newer cloud version comes
-back). Only notes the app itself deletes are propagated. An empty note that
-was never synced is never uploaded.
-
-**Privacy.** Every file the sync keeps in the app's data folder (tokens,
-folder link, sync cache, base copies) is excluded from Android Auto Backup
-and device-to-device transfer, so a restored phone starts signed out.
-
-**Scope.** OneDrive sync is Android-only for now. The Rust engine also
-compiles into the desktop build, but no desktop UI exposes it; desktop
-users can already point the notes folder at a folder the OneDrive client
-syncs. The web app cannot use it.
-
 ---
 
 ## 8. Testing Strategy
@@ -671,22 +607,21 @@ purely visual/layout-shaped that none of them can reach:
    switching, session restore).
 2. **`cargo test`** — the Rust storage layer: config load/save, note
    CRUD, atomic writes, path-traversal rejection, conflict detection; and
-   the OneDrive sync's decision logic (§7.6), which is pure filesystem and
-   hashing so it needs no network: the three-way merge, held conflicts and
-   their resolution, remote-delete and local-delete handling, and a guard
-   that every OneDrive state file is excluded from Android backup.
+   the desktop OneDrive engine's decision logic (pure filesystem and
+   hashing, needing no network): the three-way merge, held conflicts and
+   their resolution, and remote-delete and local-delete handling. The web
+   app's own OneDrive engine (§7.3) is a separate TypeScript
+   implementation, covered by Vitest instead.
 3. **Playwright** — the real Svelte + CodeMirror frontend in headless
    Chromium against the in-memory mock backend (§7.4): every keyboard
    shortcut (including the Mac-emulated variants), every drawer, tab
    lifecycle, both safety gates, theme/palette persistence, and the
-   responsive top-bar behavior (§3.2) — plus, with a touch/Android user
-   agent, the mobile accessory bar and the Sync conflicts drawer (§7.6).
+   responsive top-bar behavior (§3.2) — plus, on a coarse-pointer/touch
+   device, the mobile accessory bar and the Sync conflicts drawer (§7.3).
 
-What none of them can reach is the real network and the real device: the
-OneDrive sync was verified by hand against a live OneDrive (both directions,
-merges, held conflicts, deletes both ways, an offline edit, an app killed
-mid-sync) on an emulator, driving the real Rust commands through the
-WebView's devtools. arm64 and a physical phone are still untested.
+What none of them can reach is the real network: the web app's OneDrive
+sync was verified by hand against a live OneDrive (both directions, merges,
+held conflicts, deletes both ways, an offline edit) in a real browser.
 
 Full detail on running and extending each layer lives in the project's
 `CLAUDE.local.md` (machine-local dev notes) and `tests/e2e/README.md`.
@@ -700,13 +635,12 @@ Full detail on running and extending each layer lives in the project's
 - **Native (`tauri-driver`) end-to-end tests** — the Playwright suite
   against the mock backend (§8) covers interaction behavior; a real
   native-window E2E pass was considered and deferred, no concrete plan.
-- **OneDrive sync on desktop or the web app** — the sync engine (§7.6) is
-  Android-only by decision. It already compiles into the desktop build, so
-  surfacing it there is two UI gates; the web app cannot use it at all (no
-  Rust runtime).
+- **OneDrive sync on desktop** — the native Rust engine still compiles into
+  the desktop build, but no desktop UI exposes it; desktop users can
+  already point the notes folder at a folder the OS's own OneDrive client
+  syncs.
 - **Propagating every local deletion** — only notes the app itself deletes
   (an emptied dated note on tab close) are deleted in the cloud; a file that
-  merely goes missing on the phone is not.
-- **A released Android build** — release signing, the Play Console listing
-  (privacy policy, Data safety form, closed testing), and arm64 / real-device
-  testing are still to do.
+  merely goes missing elsewhere is not.
+- **The Android app** — dropped (§7.1); the PWA-installable web app covers
+  phone use instead.

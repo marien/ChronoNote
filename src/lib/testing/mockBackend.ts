@@ -58,7 +58,7 @@ export interface MockSeed {
   lineHeight?: number;
   pureBlack?: boolean;
   lastSyncSuccessMs?: number | null;
-  backendKind?: "desktop" | "demo" | "web" | "android";
+  backendKind?: "desktop" | "demo" | "web";
   /** Seeds `recent_notes_dirs` directly (normally only `set_notes_dir`
    * writes it). */
   recentNotesDirs?: string[];
@@ -283,7 +283,7 @@ export class MockBackend {
     checkDrift: () => Promise<void>;
     setMobile: (val: boolean) => void;
     isMobile: () => boolean;
-    setBackendKind: (val: "desktop" | "demo" | "web" | "android") => void;
+    setBackendKind: (val: "desktop" | "demo" | "web") => void;
     showToast: (msg: string) => void;
   };
 

@@ -146,7 +146,7 @@ test.describe("mobile ergonomics & modal reflow (Area 5.4, 5.5, 6)", () => {
 });
 
 /** Narrow-width reflows for the two dialogs that only ever show up in specific flows
- * (Android sync conflicts, calendar-sync review). */
+ * (OneDrive sync conflicts, calendar-sync review). */
 test.describe("narrow reflow: sync conflicts and calendar review (Area 5.4)", () => {
   test.use({
     viewport: { width: 400, height: 800 },
@@ -159,6 +159,7 @@ test.describe("narrow reflow: sync conflicts and calendar review (Area 5.4)", ()
   test("sync conflicts: a view switcher shows one version at a time, both by default", async ({ page }) => {
     await seedApp(page, {
       seed: {
+        backendKind: "web",
         notes: { "2030-01-01.txt": "one\nphone edit\n" },
         oneDriveConflicts: [{ name: "2030-01-01.txt", remote: "one\npc edit\n" }],
       },

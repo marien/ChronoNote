@@ -222,19 +222,15 @@ function commandItems(): PaletteItem[] {
         await exportAllNotesToFile();
       },
     },
-    ...(get(backendKind) !== "android"
-      ? [
-          {
-            id: "cmd-toggle-zen",
-            label: "Toggle Zen mode (distraction-free canvas)",
-            hint: formatShortcut("toggleZenMode"),
-            group: "Commands",
-            run: () => {
-              isZenMode.update((v) => !v);
-            },
-          },
-        ]
-      : []),
+    {
+      id: "cmd-toggle-zen",
+      label: "Toggle Zen mode (distraction-free canvas)",
+      hint: formatShortcut("toggleZenMode"),
+      group: "Commands",
+      run: () => {
+        isZenMode.update((v) => !v);
+      },
+    },
     {
       id: "cmd-line-close-open",
       label: "Close open action on current line",

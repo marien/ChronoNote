@@ -23,12 +23,13 @@ pub struct OneDriveLoginResult {
     #[serde(skip_serializing_if = "Option::is_none")]
     #[ts(optional)]
     pub error: Option<String>,
-    /// Android only: true means the system browser was opened and the
-    /// real outcome will arrive later via the `onedrive-login-result`
-    /// event, once Android delivers the `chrononote://auth` deep link
-    /// back to the app — `success`/`account`/`error` above are all
-    /// meaningless while this is true. Always `false` on desktop, where
-    /// `login_interactive` already blocks until it has a real result.
+    /// True when the sign-in flow has been handed off to a real page
+    /// redirect and the actual outcome will only be known later, once the
+    /// redirect comes back — `success`/`account`/`error` above are all
+    /// meaningless while this is true. Desktop's `login_interactive`
+    /// blocks until it has a real result, so this is always `false` on
+    /// the Rust side; the web app's own TypeScript login (which reloads
+    /// the page to sign in) sets it `true` for exactly the same reason.
     #[serde(default)]
     pub pending: bool,
 }

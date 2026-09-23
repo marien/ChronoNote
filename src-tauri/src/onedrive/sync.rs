@@ -11,14 +11,11 @@ use super::{
 use sha2::{Digest, Sha256};
 use std::collections::HashMap;
 use std::fs;
-#[cfg(not(target_os = "android"))]
 use std::io::{Read, Write};
-#[cfg(not(target_os = "android"))]
 use std::net::TcpListener;
 use std::path::Path;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
-#[cfg(not(target_os = "android"))]
 use std::time::Duration;
 
 pub const FOLDER_CONFIG_FILENAME: &str = ".onedrive-folder.json";
@@ -252,9 +249,7 @@ impl OneDriveManager {
     }
 
     /// Performs interactive OAuth 2.0 PKCE login using a local loopback
-    /// listener. Desktop only — see the Android variant below for why a
-    /// bare loopback isn't safe to rely on there.
-    #[cfg(not(target_os = "android"))]
+    /// listener.
     pub async fn login_interactive(
         &self,
         app: &tauri::AppHandle,
@@ -285,10 +280,10 @@ impl OneDriveManager {
             Ok(l) => l,
             Err(e) => {
                 return OneDriveLoginResult {
+                    pending: false,
                     success: false,
                     account: None,
                     error: Some(format!("Could not bind local OAuth port 8765: {e}")),
-                    pending: false,
                 }
             }
         };
@@ -301,10 +296,10 @@ impl OneDriveManager {
         // Open in user's default browser (cross-platform via tauri-plugin-opener)
         if let Err(e) = app.opener().open_url(&auth_url, None::<&str>) {
             return OneDriveLoginResult {
+                pending: false,
                 success: false,
                 account: None,
                 error: Some(format!("Failed to open system browser: {e}")),
-                pending: false,
             };
         }
 
@@ -331,10 +326,10 @@ impl OneDriveManager {
                 }
                 Err(e) => {
                     return OneDriveLoginResult {
+                        pending: false,
                         success: false,
                         account: None,
                         error: Some(format!("Error accepting OAuth callback: {e}")),
-                        pending: false,
                     };
                 }
             }
@@ -344,10 +339,10 @@ impl OneDriveManager {
             Some(c) => c,
             None => {
                 return OneDriveLoginResult {
+                    pending: false,
                     success: false,
                     account: None,
                     error: Some("Authentication timed out waiting for user approval".to_string()),
-                    pending: false,
                 }
             }
         };
@@ -358,10 +353,10 @@ impl OneDriveManager {
             Ok(e) => e,
             Err(e) => {
                 return OneDriveLoginResult {
+                    pending: false,
                     success: false,
                     account: None,
                     error: Some(e),
-                    pending: false,
                 }
             }
         };
@@ -369,72 +364,8 @@ impl OneDriveManager {
         self.finish_login(data_dir, exchange).await
     }
 
-    /// Android variant: a bare loopback socket can't be relied on here —
-    /// the OS can suspend or kill the app while the user is off in the
-    /// system browser signing in, so blocking on `TcpListener::accept`
-    /// the way desktop does would just time out in practice. Opens the
-    /// browser against a `chrononote://auth` deep link instead (see the
-    /// `deep-link` plugin config in `tauri.conf.json`) and returns
-    /// immediately with `pending: true` — the real result arrives later
-    /// via the `onedrive-login-result` event, emitted from `lib.rs`'s
-    /// `on_open_url` handler once Android routes the redirect back to
-    /// the app and it calls `exchange_code_direct` (the exact same
-    /// function the manual-paste fallback UI already uses).
-    #[cfg(target_os = "android")]
-    pub async fn login_interactive(
-        &self,
-        app: &tauri::AppHandle,
-        data_dir: &Path,
-    ) -> OneDriveLoginResult {
-        use tauri_plugin_opener::OpenerExt;
-
-        let advanced = self.get_advanced_config(data_dir);
-        let client_id = resolve_client_id(&advanced);
-        let tenant = resolve_tenant(&advanced);
-
-        let (verifier, challenge) = generate_pkce();
-        let redirect_uri = super::auth::REDIRECT_URI_MOBILE;
-
-        let pending = PendingPkce {
-            verifier,
-            redirect_uri: redirect_uri.to_string(),
-        };
-        if let Err(e) = fs::create_dir_all(data_dir).and_then(|_| {
-            fs::write(
-                data_dir.join(PENDING_PKCE_FILENAME),
-                serde_json::to_string(&pending).unwrap_or_default(),
-            )
-        }) {
-            return OneDriveLoginResult {
-                success: false,
-                account: None,
-                error: Some(format!("Failed to save sign-in state: {e}")),
-                pending: false,
-            };
-        }
-
-        let auth_url = build_authorize_url(&tenant, &client_id, redirect_uri, &challenge);
-
-        if let Err(e) = app.opener().open_url(&auth_url, None::<&str>) {
-            return OneDriveLoginResult {
-                success: false,
-                account: None,
-                error: Some(format!("Failed to open system browser: {e}")),
-                pending: false,
-            };
-        }
-
-        OneDriveLoginResult {
-            success: false,
-            account: None,
-            error: None,
-            pending: true,
-        }
-    }
-
     /// Exchange an authorization code or full redirect URL directly —
-    /// the manual-paste fallback UI, and (on Android) the automatic
-    /// deep-link handler in `lib.rs` both call this.
+    /// used by the manual-paste fallback UI.
     pub async fn exchange_code_direct(
         &self,
         data_dir: &Path,
@@ -443,10 +374,10 @@ impl OneDriveManager {
         let code = extract_code_from_string(code_or_url);
         if code.is_empty() {
             return OneDriveLoginResult {
+                pending: false,
                 success: false,
                 account: None,
                 error: Some("No authorization code provided".to_string()),
-                pending: false,
             };
         }
 
@@ -458,10 +389,10 @@ impl OneDriveManager {
             Some(p) => p,
             None => {
                 return OneDriveLoginResult {
+                    pending: false,
                     success: false,
                     account: None,
                     error: Some("No pending login session found. Please tap 'Connect Microsoft Account' first.".to_string()),
-                    pending: false,
                 };
             }
         };
@@ -483,10 +414,10 @@ impl OneDriveManager {
             Ok(e) => e,
             Err(e) => {
                 return OneDriveLoginResult {
+                    pending: false,
                     success: false,
                     account: None,
                     error: Some(e),
-                    pending: false,
                 };
             }
         };
@@ -507,32 +438,32 @@ impl OneDriveManager {
                 stored.account = Some(account.clone());
                 if let Err(e) = save_refresh_token(&refresh_token) {
                     return OneDriveLoginResult {
+                        pending: false,
                         success: false,
                         account: None,
                         error: Some(format!("Failed to save credentials to the OS keychain: {e}")),
-                        pending: false,
                     };
                 }
                 if let Err(e) = save_stored_auth(data_dir, &stored) {
                     return OneDriveLoginResult {
+                        pending: false,
                         success: false,
                         account: None,
                         error: Some(format!("Failed to save auth state: {e}")),
-                        pending: false,
                     };
                 }
                 OneDriveLoginResult {
+                    pending: false,
                     success: true,
                     account: Some(account),
                     error: None,
-                    pending: false,
                 }
             }
             Err(e) => OneDriveLoginResult {
+                pending: false,
                 success: false,
                 account: None,
                 error: Some(format!("Failed to fetch user profile: {e}")),
-                pending: false,
             },
         }
     }
@@ -905,7 +836,6 @@ fn find_code_param(s: &str) -> Option<String> {
     None
 }
 
-#[cfg(not(target_os = "android"))]
 fn extract_code_from_http_request(req: &str) -> Option<String> {
     for line in req.lines() {
         if line.starts_with("GET ") {
@@ -1515,14 +1445,12 @@ mod tests {
     }
 
     #[test]
-    #[cfg(not(target_os = "android"))]
     fn extract_code_from_http_request_percent_decodes_the_code_value() {
         let req = "GET /auth?code=abc%24%24 HTTP/1.1\r\nHost: localhost:8765\r\n\r\n";
         assert_eq!(extract_code_from_http_request(req), Some("abc$$".to_string()));
     }
 
     #[test]
-    #[cfg(not(target_os = "android"))]
     fn extract_code_from_http_request_does_not_truncate_a_code_containing_an_equals_sign() {
         // The original `split('=')` (not `splitn(2, '=')`) would have cut
         // the value off at the first internal `=`, silently truncating any
@@ -1839,12 +1767,6 @@ mod tests {
         assert!(!cache.files.contains_key(NOTE));
     }
 
-    // --- Android backup exclusion ------------------------------------------
-
-    /// Everything OneDrive keeps in the app data folder must stay out of
-    /// Google Auto Backup (tokens are credentials; the rest is meaningless
-    /// without them). This fails when a new state file is added to the code
-    /// but not to the rules in `android-overrides/res/xml/`.
     #[test]
     fn switching_folders_clears_only_the_synced_notes_and_their_bookkeeping() {
         let (data, notes) = dirs();
@@ -1888,32 +1810,6 @@ mod tests {
         let archive = fs::read_dir(data.path().join(ARCHIVE_DIRNAME)).unwrap().next().unwrap().unwrap().path();
         assert!(archive.file_name().unwrap().to_string_lossy().starts_with("cloud-"));
         assert_eq!(fs::read_to_string(archive.join("2026-09-01.txt")).unwrap(), "left behind");
-    }
-
-    #[test]
-    fn every_onedrive_state_file_is_excluded_from_android_backup() {
-        let rules = [
-            include_str!("../../android-overrides/res/xml/backup_rules.xml"),
-            include_str!("../../android-overrides/res/xml/data_extraction_rules.xml"),
-        ];
-        let state = [
-            super::super::auth::AUTH_FILENAME,
-            super::super::auth::REFRESH_TOKEN_FILENAME,
-            FOLDER_CONFIG_FILENAME,
-            SYNC_CACHE_FILENAME,
-            PENDING_PKCE_FILENAME,
-            ADVANCED_CONFIG_FILENAME,
-            TOMBSTONES_FILENAME,
-            BASES_DIRNAME,
-        ];
-        for file in rules {
-            for name in state {
-                assert!(
-                    file.contains(&format!("domain=\"root\" path=\"{name}\"")),
-                    "{name} is missing from a backup exclusion file"
-                );
-            }
-        }
     }
 
     // --- deleting an emptied note in the cloud too --------------------------

@@ -87,11 +87,11 @@
   $: isDarkResolved = $themeMode === "dark" || ($themeMode === "system" && prefersDark);
 
   onMount(async () => {
-    if ($backendKind === "android" || $backendKind === "web") {
+    if ($backendKind === "web") {
       const advanced = await api.oneDriveGetAdvancedConfig();
       clientIdOverride = advanced.clientIdOverride ?? "";
       tenantIdOverride = advanced.tenantIdOverride ?? "";
-      if ($backendKind === "web") return; // no local directory browsing
+      return; // no local directory browsing
     }
 
     const candidates = $recentNotesDirs.filter((p) => p !== $notesDir);
@@ -182,10 +182,9 @@
         oneDriveAccount.set(res.account);
         oneDriveSignInExpired.set(false);
       } else if (res.pending) {
-        // Android: the browser is open and the real outcome arrives
-        // later via the onedrive-login-result event (boot.ts) — driven
-        // by the store rather than local state since Settings may well
-        // be closed again before it resolves.
+        // The web app just redirected to Microsoft — the real outcome
+        // arrives after the page comes back, possibly with Settings
+        // closed again by then, hence the store rather than local state.
         oneDriveConnecting.set(true);
       } else if (res.error) {
         authError = res.error;
@@ -242,7 +241,7 @@
   // open the folder picker instead of leaving the user to find it. Once per
   // Settings visit, so closing the picker without choosing isn't nagged.
   let autoOpenedFolderPicker = false;
-  $: if ($oneDriveAccount && !$oneDriveFolder && !$oneDriveFolderPickerOpen && !autoOpenedFolderPicker && ($backendKind === "android" || $backendKind === "web")) {
+  $: if ($oneDriveAccount && !$oneDriveFolder && !$oneDriveFolderPickerOpen && !autoOpenedFolderPicker && $backendKind === "web") {
     autoOpenedFolderPicker = true;
     showFolderPicker = true;
   }
@@ -460,7 +459,7 @@
             {/if}
           </div>
         {/if}
-        {#if $backendKind === "android" || $backendKind === "web"}
+        {#if $backendKind === "web"}
             <div>
               <div class="settings-section-label">OneDrive Cloud Sync</div>
               {#if isSafariBrowser}

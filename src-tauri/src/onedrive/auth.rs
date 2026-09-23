@@ -17,16 +17,9 @@ pub const DEFAULT_CLIENT_ID: &str = "9b008168-6c13-4f0f-9531-2313e7613ccb";
 /// the exact same reason.
 pub const DEFAULT_TENANT: &str = "common";
 pub const SCOPES: &str = "Files.ReadWrite offline_access User.Read";
-#[allow(dead_code)]
-pub const REDIRECT_URI_MOBILE: &str = "chrononote://auth";
 pub const AUTH_FILENAME: &str = ".onedrive-auth.json";
-/// Android only (see `save_refresh_token`): the file holding the refresh token.
-#[cfg_attr(not(any(target_os = "android", test)), allow(dead_code))]
-pub const REFRESH_TOKEN_FILENAME: &str = ".onedrive-refresh-token";
 
-#[cfg(not(target_os = "android"))]
 const KEYRING_SERVICE: &str = "chrononote";
-#[cfg(not(target_os = "android"))]
 const KEYRING_USER: &str = "onedrive-refresh-token";
 
 /// The refresh token (long-lived, `offline_access` + `Files.ReadWrite`
@@ -282,71 +275,25 @@ pub fn clear_stored_auth(data_dir: &Path) -> Result<(), String> {
     Ok(())
 }
 
-#[cfg(not(target_os = "android"))]
 fn keyring_entry() -> Result<keyring::Entry, String> {
     keyring::Entry::new(KEYRING_SERVICE, KEYRING_USER).map_err(|e| e.to_string())
 }
 
 /// Stores the refresh token in the OS keychain (Windows Credential
 /// Manager). Never persisted to a file — see `StoredAuth`'s own comment.
-#[cfg(not(target_os = "android"))]
 pub fn save_refresh_token(token: &str) -> Result<(), String> {
     keyring_entry()?.set_password(token).map_err(|e| e.to_string())
 }
 
-#[cfg(not(target_os = "android"))]
 pub fn load_refresh_token() -> Option<String> {
     keyring_entry().ok()?.get_password().ok()
 }
 
 /// Best-effort: an already-missing keychain entry isn't an error here —
 /// the goal is "not signed in afterward" either way.
-#[cfg(not(target_os = "android"))]
 pub fn clear_refresh_token() {
     if let Ok(entry) = keyring_entry() {
         let _ = entry.delete_credential();
-    }
-}
-
-// Android has no `keyring` backend (the crate is built with only
-// `windows-native`), and without one it silently falls back to an
-// in-memory store — the refresh token then vanished on every app restart,
-// so once the 1-hour access token expired every sync failed. Store it in a
-// mode-0600 file inside the app's private data dir instead: Android's
-// per-app sandbox keeps other apps out of it.
-#[cfg(target_os = "android")]
-static SECRET_DIR: std::sync::OnceLock<std::path::PathBuf> = std::sync::OnceLock::new();
-
-/// Called once at startup (lib.rs) with the app's private data dir.
-#[cfg(target_os = "android")]
-pub fn init_secret_dir(dir: std::path::PathBuf) {
-    let _ = SECRET_DIR.set(dir);
-}
-
-#[cfg(target_os = "android")]
-fn refresh_token_path() -> Option<std::path::PathBuf> {
-    SECRET_DIR.get().map(|d| d.join(REFRESH_TOKEN_FILENAME))
-}
-
-#[cfg(target_os = "android")]
-pub fn save_refresh_token(token: &str) -> Result<(), String> {
-    use std::os::unix::fs::PermissionsExt;
-    let path = refresh_token_path().ok_or("Secret storage not initialised")?;
-    fs::write(&path, token).map_err(|e| e.to_string())?;
-    fs::set_permissions(&path, fs::Permissions::from_mode(0o600)).map_err(|e| e.to_string())
-}
-
-#[cfg(target_os = "android")]
-pub fn load_refresh_token() -> Option<String> {
-    let token = fs::read_to_string(refresh_token_path()?).ok()?;
-    let token = token.trim();
-    (!token.is_empty()).then(|| token.to_string())
-}
-
-#[cfg(target_os = "android")]
-pub fn clear_refresh_token() {
-    if let Some(path) = refresh_token_path() {
-        let _ = fs::remove_file(path);
     }
 }
 

@@ -333,45 +333,43 @@
     </div>
   </section>
 
-  <section class="alt" id="android">
+  <section class="alt" id="mobile">
     <div class="wrap prose">
       <div class="section-head">
         <span class="eyebrow">On your phone</span>
-        <h2>ChronoNote on Android</h2>
+        <h2>ChronoNote on your phone</h2>
       </div>
       <p>
-        The Android app is the same editor with the same tokens and the same plain
+        The web app is the same editor with the same tokens and the same plain
         <code>.txt</code> files, with a touch accessory bar above the keyboard for the
-        symbols and actions. It syncs with a OneDrive folder, so your phone and your PC
-        share the same notes.
+        symbols and actions. Installed to your home screen, it opens full-screen like
+        a native app — no store, no APK.
       </p>
 
       <h3>Installing it</h3>
       <p>
-        There's no store listing yet, so you install the APK yourself. It needs a 64-bit ARM
-        phone (nearly every current phone) running Android 7 or newer.
+        Open <a href="https://app.chrononote.mariendegelder.nl/" target="_blank" rel="noopener">app.chrononote.mariendegelder.nl</a>
+        in your phone's browser, then use the browser's own "Add to Home Screen" (or
+        "Install app") option — in Chrome on Android that's the menu (⋮) →
+        <strong>Add to Home screen</strong>; in Safari on iOS it's the Share button →
+        <strong>Add to Home Screen</strong>. From then on, the home-screen icon opens
+        it directly, and updates arrive automatically the next time you open it.
       </p>
-      <ol>
-        <li>On the phone, open the <a href="https://github.com/marien/ChronoNote/releases/latest" target="_blank" rel="noopener">latest release</a> and download the file ending in <code>_arm64.apk</code>.</li>
-        <li>Open the downloaded file. Android will ask you to allow installing apps from your browser or file manager — allow it, then install.</li>
-        <li>To update later, download the newer APK and install it over the old one. Your notes and your OneDrive connection stay.</li>
-      </ol>
 
       <h3>Connecting OneDrive</h3>
       <ol>
-        <li>Open Settings, go to the <strong>Notes &amp; Sync</strong> tab, and under OneDrive Cloud Sync tap <strong>Connect Microsoft Account</strong>. Sign in in the browser that opens; you're returned to ChronoNote.</li>
+        <li>Open Settings, go to the <strong>Notes &amp; Sync</strong> tab, and under OneDrive Cloud Sync tap <strong>Connect Microsoft Account</strong>. Sign in in the page that opens; you're returned to ChronoNote.</li>
         <li>Pick the OneDrive folder that holds your notes — the one your PC's OneDrive client syncs. The folder picker opens by itself once you're connected; <strong>Choose folder…</strong> reopens it.</li>
         <li>That's it. A spinner in the status bar shows a sync running, and <strong>Sync now</strong> in Settings starts one whenever you like.</li>
       </ol>
       <p>
         ChronoNote syncs when you open the app, when you come back to it, and after you save
-        a note. Notes are plain text on your phone and in OneDrive; the sign-in stays on
-        the phone and is kept out of Android's cloud backup.
+        a note. Notes are plain text on your phone and in OneDrive.
       </p>
 
       <h3>When the same note changed in two places</h3>
       <p>
-        If you edited a note on the phone and it also changed in OneDrive, the two versions
+        If you edited a note on your phone and it also changed in OneDrive, the two versions
         are merged line by line — additions from both sides are kept. Only when both sides
         changed the same lines does ChronoNote hold the note back instead of guessing. The
         status bar then shows <strong>⚠ 1 sync conflict</strong>; tap it to see both
@@ -383,9 +381,9 @@
 
       <h3>Deleting notes</h3>
       <p>
-        Like on the desktop, closing a daily note you've emptied deletes it — and on Android
-        that deletion syncs, so the empty file doesn't linger in OneDrive. A note deleted in
-        OneDrive (for instance from your PC) disappears from the phone on the next sync.
+        Like on the desktop, closing a daily note you've emptied deletes it, and that
+        deletion syncs so the empty file doesn't linger in OneDrive. A note deleted in
+        OneDrive (for instance from your PC) disappears from your phone on the next sync.
       </p>
     </div>
   </section>

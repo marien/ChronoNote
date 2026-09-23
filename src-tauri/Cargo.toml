@@ -47,14 +47,6 @@ tokio = { version = "1", features = ["time", "sync"] }
 # (matches the same choice the parked M365 calendar-import branch made
 # for the identical problem).
 keyring = { version = "3", features = ["windows-native"] }
-# Android OAuth redirect (§2.2): the desktop loopback-listener trick
-# (`http://localhost:<port>/auth`) isn't reliable on a real device, since
-# Android can suspend or kill the app while the user is off in the system
-# browser signing in — a `chrononote://auth` custom-scheme deep link is
-# the standard, robust pattern instead. Registered unconditionally (like
-# `tauri-plugin-updater` above); only actually configured for mobile in
-# `tauri.conf.json`, and desktop's own login flow is untouched.
-tauri-plugin-deep-link = "2"
 
 [profile.release]
 panic = "abort"

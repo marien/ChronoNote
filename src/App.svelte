@@ -97,9 +97,7 @@
       openSettings: () => controller.openSettings(),
       openAbout: () => controller.openAbout(),
       openShortcutsHelp: () => controller.openShortcutsHelp(),
-      toggleZenMode: () => {
-        if (get(backendKind) !== "android") isZenMode.update((v) => !v);
-      },
+      toggleZenMode: () => isZenMode.update((v) => !v),
     };
 
     function onKeydown(e: KeyboardEvent) {
@@ -169,17 +167,14 @@
         }
       }
     }
-    // Touch-first devices only (Android, or any browser whose primary input
-    // is coarse — phones/tablets hitting the web app or demo). Deliberately
-    // NOT width-based: the desktop window's minimum width (640px) is below
-    // any sensible width threshold, and a narrow desktop window has its own
+    // Touch-first devices only (any browser whose primary input is coarse —
+    // phones/tablets hitting the web app or demo). Deliberately NOT
+    // width-based: the desktop window's minimum width (640px) is below any
+    // sensible width threshold, and a narrow desktop window has its own
     // designed behaviour (the top bar collapses into "More actions", #56)
     // that the mobile layout would otherwise replace.
     const mediaQuery = window.matchMedia("(pointer: coarse)");
-    const updateMobile = () => {
-      const isAndroidEnv = get(backendKind) === "android" || /android/i.test(navigator.userAgent);
-      isMobile.set(isAndroidEnv || mediaQuery.matches);
-    };
+    const updateMobile = () => isMobile.set(mediaQuery.matches);
     updateMobile();
     mediaQuery.addEventListener("change", updateMobile);
     window.addEventListener("resize", updateMobile);

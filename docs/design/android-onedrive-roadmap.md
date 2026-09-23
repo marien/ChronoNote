@@ -1,5 +1,10 @@
 # ChronoNote Android app & OneDrive sync — functional & technical design
 
+**Superseded, 2026-09-23 — the Android app was dropped.** The
+PWA-installable web app now covers phone use, with its own independent
+OneDrive engine (see `webapp-roadmap.md` and `docs/spec.md` §7.3). Kept here
+for design history; nothing below describes a currently shipping target.
+
 Origin: Marien's brief (2026-09-17) — *"I want you to start designing an
 Android app for ChronoNote using the same frontend. The app needs to be able
 to use folders on OneDrive as the Notes folder."*

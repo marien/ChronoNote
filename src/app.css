@@ -1182,7 +1182,7 @@ body {
 #stat-conflicts:hover {
   color: var(--text);
 }
-/* Android OneDrive sync: a held conflict needs the user, so it's the one
+/* OneDrive sync: a held conflict needs the user, so it's the one
    status-bar item that draws the eye. */
 #stat-conflicts {
   color: var(--state-warn);
@@ -2546,7 +2546,7 @@ textarea.modal-input.import-textarea {
 /* §194 Area 6.1: Dynamic floating toast for mobile */
 .mobile-toast {
   position: fixed;
-  top: calc(var(--top-bar-height, 40px) + var(--inset-top, env(safe-area-inset-top, 0px)) + 12px);
+  top: calc(var(--top-bar-height, 40px) + env(safe-area-inset-top, 0px) + 12px);
   left: 50%;
   transform: translateX(-50%);
   max-width: calc(100vw - 32px);
@@ -2800,16 +2800,14 @@ kbd {
    Mobile & Touch Ergonomics
    ========================================================================== */
 
-/* Safe area support for notched phones / navigation bars. On Android the
-   WebView reports env(safe-area-inset-*) as 0, so the native shell pushes
-   the real insets (status/nav bar, cutout, on-screen keyboard) into the
-   --inset-* variables (see src/lib/androidChrome.ts); env() remains the
-   fallback everywhere else. */
+/* Safe area support for notched phones / browser chrome — a mobile
+   browser (including one running the installed PWA) reports these
+   correctly, so a plain env() read is all that's needed. */
 body {
-  padding-top: var(--inset-top, env(safe-area-inset-top, 0px));
-  padding-bottom: var(--inset-bottom, env(safe-area-inset-bottom, 0px));
-  padding-left: var(--inset-left, env(safe-area-inset-left, 0px));
-  padding-right: var(--inset-right, env(safe-area-inset-right, 0px));
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  padding-left: env(safe-area-inset-left, 0px);
+  padding-right: env(safe-area-inset-right, 0px);
 }
 
 /* §194 Area 6.2: Consolidated coarse pointer hit-target ergonomics */
@@ -3331,7 +3329,7 @@ body.zen-mode #status-bar {
 .long-toast {
   position: fixed;
   left: 50%;
-  bottom: calc(25px + var(--inset-bottom, 0px) + 12px);
+  bottom: calc(25px + env(safe-area-inset-bottom, 0px) + 12px);
   transform: translateX(-50%);
   max-width: min(560px, calc(100vw - 32px));
   padding: 10px 16px;

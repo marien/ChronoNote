@@ -17,10 +17,9 @@ tauri-build.log
 src-tauri/target
 src-tauri/gen
 
-# `tauri icon` also emits iOS / Android / Windows-Store / macOS variants.
-# ChronoNote ships Windows-only; only the four in tauri.conf.json's `icon`
-# array are tracked. Regenerate all with `npx tauri icon docs/design/icon-A-master.svg`.
-src-tauri/icons/android/
+# `tauri icon` also emits iOS / Windows-Store / macOS variants. ChronoNote
+# ships Windows-only; only the four in tauri.conf.json's `icon` array are
+# tracked. Regenerate all with `npx tauri icon docs/design/icon-A-master.svg`.
 src-tauri/icons/ios/
 src-tauri/icons/Square*Logo.png
 src-tauri/icons/StoreLogo.png

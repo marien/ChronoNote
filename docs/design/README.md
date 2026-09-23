@@ -108,11 +108,18 @@ with manual export/import to bridge to the desktop app. Shipped as part of v0.8.
 ## Android app & OneDrive sync
 
 **[`android-onedrive-roadmap.md`](android-onedrive-roadmap.md)** — pitched 2026-09-17:
-the fourth target, bringing the same Svelte 5 + CodeMirror 6 frontend to Android via
+a fourth target, bringing the same Svelte 5 + CodeMirror 6 frontend to Android via
 Tauri 2 Mobile. Uses Microsoft Graph API for offline-first OneDrive cloud sync with
 SHA-256 CAS conflict protection, paired with mobile touch ergonomics (Mobile Accessory Bar,
 expanded 40px touch targets, scratchpad draft persistence, and a mobile tab drawer).
 Includes multi-agent architectural invariants and contributor guidelines.
+
+**Superseded, 2026-09-23** — the Android app itself was dropped in favor of
+the PWA-installable web app, which already covers phone use with an
+independent OneDrive engine (`webapp-roadmap.md`, §7.3 in `docs/spec.md`).
+The mobile touch ergonomics (Mobile Accessory Bar, expanded touch targets,
+mobile tab drawer) carried over unchanged, since they were always plain
+Svelte components gated on `pointer: coarse`, not Android-specific.
 
 ## UI & UX refinements (v0.12 roadmap)
 

@@ -117,7 +117,7 @@ export interface FolderSwitchPad {
 
 /** Second half of a folder switch, once its first sync has finished: open the
  * folder's own notes, and drop the scratchpad unless the user wrote in it. */
-export async function finishFolderSwitch(path: string, pad: FolderSwitchPad, opts: SwitchOptions = {}) {
+export async function finishFolderSwitch(path: string, pad: FolderSwitchPad) {
   const current = get(tabs).find((t) => t.id === pad.id);
   if (current && current.content === pad.initial) {
     tabs.update((list) => list.filter((t) => t.id !== pad.id));
@@ -125,24 +125,16 @@ export async function finishFolderSwitch(path: string, pad: FolderSwitchPad, opt
   // Scratchpads live on as drafts across the switch (`performDirectorySwitch` restores
   // them from there) - so write the drafts now, without the greeting if it was left alone.
   flushScratchpadDrafts();
-  await performDirectorySwitch(path, opts);
+  await performDirectorySwitch(path);
 }
 
-export interface SwitchOptions {
-  /** Android: the notes folder is the app's own storage and never changes - only its
-   * contents (a different OneDrive folder's notes) do. Skip `set_notes_dir`. */
-  keepNotesDir?: boolean;
-}
-
-export async function performDirectorySwitch(path: string, opts: SwitchOptions = {}) {
+export async function performDirectorySwitch(path: string) {
   for (const t of get(tabs)) {
     if (!t.isScratchpad) flushSave(t.id);
   }
-  if (!opts.keepNotesDir) {
-    const cfg = await api.setNotesDir(path);
-    notesDir.set(cfg.notesDir);
-    recentNotesDirs.set(cfg.recentNotesDirs);
-  }
+  const cfg = await api.setNotesDir(path);
+  notesDir.set(cfg.notesDir);
+  recentNotesDirs.set(cfg.recentNotesDirs);
 
   invalidateDiskNotesCache();
   allNotesCache.set({});
@@ -163,5 +155,5 @@ export async function performDirectorySwitch(path: string, opts: SwitchOptions =
   // from a folder that has one to one that doesn't (or vice versa).
   if (get(calendarSyncEnabled)) void refreshAgendaFileExists();
   modal.set("none");
-  if (!opts.keepNotesDir) showToast(`Switched notes directory to ${path}`);
+  showToast(`Switched notes directory to ${path}`);
 }

@@ -1,4 +1,4 @@
-/** Android OneDrive sync, from the UI's side: one place that starts a sync,
+/** OneDrive sync, from the UI's side: one place that starts a sync,
  * tracks that one is running (`oneDriveSyncing` drives the spinner in the
  * status bar and Settings), reports the outcome when the user asked for it,
  * and refreshes the list of held conflicts afterwards. Every caller —

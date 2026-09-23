@@ -200,34 +200,6 @@ test.describe("#50: first-launch-after-update notice", () => {
   });
 });
 
-/** The desktop updater plugin doesn't exist on Android (found on a real
- * release build: About showed "plugin updater not found"). Updates come
- * through however the app was installed, so nothing checks — and nothing
- * shows an error. */
-test.describe("update check on Android", () => {
-  test.use({
-    viewport: { width: 400, height: 800 },
-    isMobile: true,
-    hasTouch: true,
-    userAgent:
-      "Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Mobile Safari/537.36",
-  });
-
-  test("About explains how updates work instead of erroring, and no check runs", async ({ page }) => {
-    await seedApp(page, {
-      // A real Android build has no updater plugin: the call would reject.
-      seed: { notes: { [todayFilename()]: "hi" }, throwOnCommands: ["plugin:updater|check"] },
-    });
-    await page.locator(".status-about-btn").click();
-    const about = page.getByRole("dialog", { name: "About ChronoNote" });
-    await expect(about).toContainText("doesn't check for updates itself");
-    await expect(about).not.toContainText("Couldn't check");
-    expect(
-      await page.evaluate(() => window.__CHRONO_MOCK__!.invokeLog.some((e) => e.cmd === "plugin:updater|check")),
-    ).toBe(false);
-  });
-});
-
 /** The About dialog's version card: the running version moved out of the title bar into the Updates
  * section, next to a chip saying what the update check makes of it, and up to date it links to this
  * version's own release notes. */

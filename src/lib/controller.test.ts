@@ -2074,14 +2074,6 @@ describe("beginFolderSwitch", () => {
       expect(list.some((t) => !t.isScratchpad)).toBe(true);
     });
 
-    it("on Android (keepNotesDir) the notes folder is left alone - only the notes are reopened", async () => {
-      persistDrafts();
-      const pad = controller.beginFolderSwitch("Notes");
-      await controller.finishFolderSwitch("/Notes", pad, { keepNotesDir: true });
-      expect(apiMock.setNotesDir).not.toHaveBeenCalled();
-      expect(get(controller.tabs).some((t) => t.filename.endsWith(".txt"))).toBe(true);
-    });
-
     it("does not lose a scratchpad the user already had open before the switch", async () => {
       persistDrafts();
       controller.tabs.set([tab({ id: "s", filename: "Scratchpad 1", isScratchpad: true, content: "my earlier draft" })]);

@@ -98,14 +98,6 @@
         onClose();
         await syncOneDriveNow({ notify: true });
         await controller.finishFolderSwitch(folderPath, pad);
-      } else if (folderSwitched) {
-        // Android, and the notes belonged to another folder: same as the web flow, but
-        // the notes folder itself (the app's own storage) stays where it is.
-        const folderName = folderPath.split("/").filter(Boolean).pop() ?? "your OneDrive";
-        const pad = controller.beginFolderSwitch(folderName);
-        onClose();
-        await syncOneDriveNow({ notify: true });
-        await controller.finishFolderSwitch(folderPath, pad, { keepNotesDir: true });
       } else {
         // The first sync of a new folder can be a big download - start it
         // visibly (status-bar spinner) and report how it ended.
@@ -117,20 +109,15 @@
     }
   }
 
-  // Set by `prepareFolderSwitchOrAbort`: the local notes belonged to another folder and were cleared.
-  let folderSwitched = false;
-
-  /** Web and Android. Choosing a different folder than the one the local notes belong to:
+  /** Web only. Choosing a different folder than the one the local notes belong to:
    * sync the old folder first, then clear them, so its notes don't end up in this
    * folder. Returns false (after saying why) when the switch must not go ahead.
    * Runs only once the user has committed - not while they can still cancel. */
   async function prepareFolderSwitchOrAbort(folderId: string): Promise<boolean> {
-    if ($backendKind !== "web" && $backendKind !== "android") return true;
-    folderSwitched = false;
+    if ($backendKind !== "web") return true;
     try {
       await controller.flushAllPendingSaves();
       const prep = await api.oneDrivePrepareFolderSwitch(folderId);
-      folderSwitched = prep.switched;
       if (!prep.ready) {
         showToast(prep.message ?? "Couldn't switch folders");
         return false;

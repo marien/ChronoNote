@@ -1,4 +1,4 @@
-/** Android OneDrive sync: notes whose phone and cloud versions diverged in a
+/** OneDrive sync: notes whose local and cloud versions diverged in a
  * way the engine couldn't merge (`sync.rs` holds them back — the file is
  * neither uploaded nor overwritten until the user picks a side). The Rust
  * side owns the truth; this module just mirrors it into a store and applies

@@ -11,7 +11,7 @@ test.describe("Sync health popover (Area 9)", () => {
   });
 
   test("clicking #stat-cloud opens the telemetry popover with status details", async ({ page }) => {
-    await seedApp(page);
+    await seedApp(page, { seed: { backendKind: "web" } });
 
     const cloudBtn = page.locator("#stat-cloud");
     await expect(cloudBtn).toBeVisible();
@@ -33,7 +33,7 @@ test.describe("Sync health popover (Area 9)", () => {
   });
 
   test("Escape key and outside click close the telemetry popover", async ({ page }) => {
-    await seedApp(page);
+    await seedApp(page, { seed: { backendKind: "web" } });
 
     const cloudBtn = page.locator("#stat-cloud");
     await cloudBtn.click();
@@ -52,7 +52,7 @@ test.describe("Sync health popover (Area 9)", () => {
   });
 
   test("actions: Open Settings navigates to Settings modal", async ({ page }) => {
-    await seedApp(page);
+    await seedApp(page, { seed: { backendKind: "web" } });
 
     const cloudBtn = page.locator("#stat-cloud");
     await cloudBtn.click();
@@ -82,7 +82,7 @@ test.describe("Expired OneDrive sign-in", () => {
     "Your OneDrive sign-in has expired. Your notes are safe on this device. Choose Sign in again (in Settings or the cloud menu) to keep syncing.";
 
   test("the cloud button, the popover and Settings all offer Sign in again, and one click renews it", async ({ page }) => {
-    await seedApp(page, { seed: { oneDriveSyncError: EXPIRED } });
+    await seedApp(page, { seed: { backendKind: "web", oneDriveSyncError: EXPIRED } });
 
     // The launch sync fails with the expiry message: the status bar says what to do.
     await expect(page.locator("#stat-cloud")).toContainText("Sign in again");

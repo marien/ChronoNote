@@ -4,18 +4,18 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>ChronoNote — plain-text notes that think in tasks</title>
-  <meta name="description" content="ChronoNote is a minimalist, keyboard-driven desktop and Android app for daily notes, meeting logs, and action items — pure plain text, no database, ever." />
+  <meta name="description" content="ChronoNote is a minimalist, keyboard-driven desktop app and web app for daily notes, meeting logs, and action items — pure plain text, no database, ever." />
   <link rel="icon" href="assets/favicon.ico?v=0.12.5" sizes="any" />
   <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png?v=0.12.5" />
   <link rel="apple-touch-icon" href="assets/apple-touch-icon.png?v=0.12.5" />
   <meta property="og:type" content="website" />
   <meta property="og:url" content="https://chrononote.mariendegelder.nl/" />
   <meta property="og:title" content="ChronoNote — plain-text notes that think in tasks" />
-  <meta property="og:description" content="A minimalist, keyboard-driven desktop and Android app for daily notes, meeting logs, and action items — pure plain text, no database, ever." />
+  <meta property="og:description" content="A minimalist, keyboard-driven desktop app and web app for daily notes, meeting logs, and action items — pure plain text, no database, ever." />
   <meta property="og:image" content="https://chrononote.mariendegelder.nl/assets/og-image.png" />
   <meta name="twitter:card" content="summary" />
   <meta name="twitter:title" content="ChronoNote — plain-text notes that think in tasks" />
-  <meta name="twitter:description" content="A minimalist, keyboard-driven desktop and Android app for daily notes, meeting logs, and action items — pure plain text, no database, ever." />
+  <meta name="twitter:description" content="A minimalist, keyboard-driven desktop app and web app for daily notes, meeting logs, and action items — pure plain text, no database, ever." />
   <meta name="twitter:image" content="https://chrononote.mariendegelder.nl/assets/og-image.png" />
   <link rel="stylesheet" href="style.css" />
   <script src="shortcuts.js" defer></script>
@@ -213,39 +213,39 @@
     </div>
   </section>
 
-  <section class="alt" id="android">
+  <section class="alt" id="mobile">
     <div class="wrap">
       <div class="section-head">
         <span class="eyebrow">On your phone</span>
-        <h2>The same notes on Android</h2>
-        <p>ChronoNote also runs on Android, with a touch-friendly editor and OneDrive sync — the same plain <code>.txt</code> files as on your PC.</p>
+        <h2>Install the web app to your home screen</h2>
+        <p>The web app is a full Progressive Web App — open it once in your phone's browser, add it to your home screen, and it behaves like a native app from then on.</p>
       </div>
       <div class="feature-grid">
+        <div class="feature-card">
+          <span class="icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="3" width="10" height="18" rx="2"/><path d="M11 18h2"/></svg>
+          </span>
+          <h3>Launches full-screen</h3>
+          <p>No browser chrome, no address bar — a home-screen icon that opens straight into the editor, with a touch-friendly accessory bar for the token vocabulary.</p>
+        </div>
         <div class="feature-card">
           <span class="icon">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M7 18h10a4 4 0 0 0 .6-7.95A5.5 5.5 0 0 0 7.2 9 4.5 4.5 0 0 0 7 18z"/></svg>
           </span>
           <h3>Syncs through OneDrive</h3>
-          <p>Pick a OneDrive folder and your daily notes are on your phone and your PC. It syncs when you open the app, after you save, and on demand.</p>
+          <p>Pick a OneDrive folder and your daily notes are on your phone and your PC. It syncs when you open the app, after you save, and on demand — with the same held-conflict handling as the desktop app.</p>
         </div>
         <div class="feature-card">
           <span class="icon">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4v6a4 4 0 0 0 4 4h4"/><path d="M18 4v6a4 4 0 0 1-4 4"/><path d="M12 14v6"/></svg>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg>
           </span>
-          <h3>No conflict files</h3>
-          <p>Edited the same note on both? The changes are merged line by line. If you changed the same spot, ChronoNote holds the note and asks which version to keep — inside the app, never as a stray copy.</p>
-        </div>
-        <div class="feature-card">
-          <span class="icon">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="3" width="10" height="18" rx="2"/><path d="M11 18h2"/></svg>
-          </span>
-          <h3>Install it directly</h3>
-          <p>There's no store listing yet. Download the APK from the Releases page (64-bit ARM phones, Android 7 or newer) and install it — <a href="guide.html#android">the guide</a> has the steps.</p>
+          <h3>Nothing to install from a store</h3>
+          <p>No APK, no store listing, no app-store review — it's the same web app you can already try above, just pinned to your home screen.</p>
         </div>
       </div>
       <div class="cta-row" style="margin-top: 28px;">
-        <a class="btn btn-primary" href="https://github.com/marien/ChronoNote/releases/latest" target="_blank" rel="noopener">
-          Get the Android APK ↗
+        <a class="btn btn-primary" href="https://app.chrononote.mariendegelder.nl/" target="_blank" rel="noopener">
+          Open the web app on your phone ↗
         </a>
       </div>
     </div>

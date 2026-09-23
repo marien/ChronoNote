@@ -59,7 +59,7 @@ export function bootMockBackend(params: URLSearchParams): MockBackend {
     checkDrift: () => controller.checkActiveTabForDrift(),
     setMobile: (val: boolean) => controller.isMobile.set(val),
     isMobile: () => get(controller.isMobile),
-    setBackendKind: (val: "desktop" | "demo" | "web" | "android") => controller.backendKind.set(val),
+    setBackendKind: (val: "desktop" | "demo" | "web") => controller.backendKind.set(val),
     showToast: (msg: string) => controller.showToast(msg),
   };
 

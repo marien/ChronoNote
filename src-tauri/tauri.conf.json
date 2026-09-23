@@ -38,14 +38,6 @@
     "createUpdaterArtifacts": true
   },
   "plugins": {
-    "deep-link": {
-      "mobile": [
-        {
-          "scheme": ["chrononote"],
-          "appLink": false
-        }
-      ]
-    },
     "updater": {
       "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDQzRDJCOUI5NzNDQUM4QzMKUldURHlNcHp1Ym5TUTF6Nm9tRnhPUUh2V29GYmZFbms3K1JBTWpBNnpSVXhhZU0vdWFYK0pNekcK",
       "endpoints": [

@@ -7,11 +7,9 @@
 import { loadBaseline } from "./hash";
 import { get } from "svelte/store";
 import { getCurrentWindow } from "@tauri-apps/api/window";
-import { listen } from "@tauri-apps/api/event";
 import * as api from "./tauriApi";
 import { countActions, countWords } from "./tokens";
 import { todayISO } from "./date";
-import type { OneDriveLoginResult } from "./tauriCommands";
 import {
   activeTabId,
   appVersion,
@@ -452,9 +450,7 @@ export async function initApp() {
   // beyond the About drawer; only "an update is available" shows anything
   // (a status-bar message), and only the user's own click ever downloads.
   // Meaningless in the web app (see AboutModal.svelte's same gate).
-  // The desktop updater plugin doesn't exist on Android (updates arrive
-  // through however the app was installed), and is meaningless on the web.
-  if (cfg.autoCheckUpdates && get(backendKind) !== "web" && get(backendKind) !== "android") {
+  if (cfg.autoCheckUpdates && get(backendKind) !== "web") {
     void checkForUpdatesOnLaunch();
   }
   void initOneDriveSync();
@@ -464,34 +460,11 @@ let oneDriveSyncWired = false;
 let lastAutoSyncTime = 0;
 
 export async function initOneDriveSync() {
-  if (get(backendKind) !== "android" && get(backendKind) !== "web") return;
+  if (get(backendKind) !== "web") return;
   if (oneDriveSyncWired) return;
   oneDriveSyncWired = true;
 
-  if (get(backendKind) === "android") {
-    // Completes the deep-link OAuth flow: "Connect Microsoft Account"
-    // returns immediately with `pending: true` once it's opened the
-    // browser (see SettingsModal.svelte's `handleOneDriveLogin`), and the
-    // real outcome arrives here whenever Android delivers the
-    // `chrononote://auth` redirect back to the app — Rust's
-    // `wire_onedrive_deep_link` (lib.rs) does the token exchange and
-    // emits this event. Wired globally, not just while Settings happens
-    // to be open, since the user may well have switched back to the
-    // editor by the time it resolves.
-    void listen<OneDriveLoginResult>("onedrive-login-result", (event) => {
-      oneDriveConnecting.set(false);
-      const result = event.payload;
-      if (result.success && result.account) {
-        oneDriveAccount.set(result.account);
-        oneDriveSignInExpired.set(false);
-        // Signing in doesn't pick a folder — say what's still needed rather
-        // than leaving the user to discover it when "Sync now" fails.
-        showToast(get(oneDriveFolder) ? "Connected to OneDrive" : "Connected to OneDrive — now choose a folder to sync");
-      } else if (result.error) {
-        showToast(`OneDrive sign-in failed: ${result.error}`);
-      }
-    });
-  } else if (get(backendKind) === "web" && typeof window !== "undefined") {
+  if (typeof window !== "undefined") {
     const urlParams = new URLSearchParams(window.location.search);
     const code = urlParams.get("code");
     const returnedState = urlParams.get("state") ?? undefined;
@@ -580,8 +553,7 @@ export async function initOneDriveSync() {
 }
 
 export async function refreshSyncHealth(): Promise<void> {
-  const kind = get(backendKind);
-  if (kind !== "web" && kind !== "android") return;
+  if (get(backendKind) !== "web") return;
   try {
     const health = await api.getSyncHealth();
     syncHealth.set(health);
