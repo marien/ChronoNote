@@ -7,7 +7,7 @@
    * Reading column). One bordered container with hairline dividers and a
    * filled selected segment, rather than N independent `.icon-btn.active`
    * buttons sitting side by side with no shared edge. */
-  export let options: { value: string; label: string }[];
+  export let options: { value: string; label: string; title?: string }[];
   export let value: string;
   export let onChange: (value: string) => void;
 </script>
@@ -19,6 +19,7 @@
       class="segmented-option {opt.value === value ? 'active' : ''}"
       role="radio"
       aria-checked={opt.value === value}
+      title={opt.title}
       on:click={() => opt.value !== value && onChange(opt.value)}
     >
       {opt.label}

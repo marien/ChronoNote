@@ -48,6 +48,21 @@ test.describe("action drawer (Ctrl/Cmd+Shift+A)", () => {
     await expect.poll(listed).toBeGreaterThan(openScope);
   });
 
+  test("#96: 'Other Notes' scope shows only notes without an open tab", async ({ page }) => {
+    await seedApp(page, {
+      seed: {
+        notes: { "2026-09-07.txt": "# an action in an open tab", "2026-08-01.txt": "# an action in a closed note" },
+        session: { openTabs: ["2026-09-07.txt"], activeTab: "2026-09-07.txt" },
+      },
+    });
+    const d = await openViaShortcut(page, "ControlOrMeta+Shift+A", "actions");
+    await expect(d).toContainText("an action in an open tab");
+
+    await d.getByRole("radio", { name: "Other Notes" }).click();
+    await expect(d).toContainText("an action in a closed note");
+    await expect(d).not.toContainText("an action in an open tab");
+  });
+
   test("#62: switching to 'All Files' shows a spinner while the disk read is slow", async ({ page }) => {
     await seedApp(page, {
       seed: {

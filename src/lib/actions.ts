@@ -66,6 +66,15 @@ export async function buildActionSnapshotAllFiles(): Promise<ActionSnapshotItem[
   return snapshot;
 }
 
+/** #96: everything "All Files" has, minus whatever's already visible in
+ * "Open Tabs" — the notes you'd otherwise have to remember to reopen one by
+ * one to check for leftover actions. Built by filtering the same snapshot
+ * "All Files" already computes rather than a separate disk read, so the two
+ * always agree on what counts as open. */
+export async function buildActionSnapshotOtherNotes(): Promise<ActionSnapshotItem[]> {
+  return (await buildActionSnapshotAllFiles()).filter((item) => item.tabId === undefined);
+}
+
 export function openActionDrawer() {
   actionSnapshot.set(buildActionSnapshotOpenTabs());
   modal.set("actions");

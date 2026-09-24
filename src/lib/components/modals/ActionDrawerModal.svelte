@@ -24,13 +24,14 @@
 
   let filter = "";
   let selectedIndex = 0;
-  let scope: "open" | "all" = "open";
+  let scope: "open" | "other" | "all" = "open";
   let inputEl: HTMLInputElement;
-  // #62: "All Files" shares the same one-time-per-session disk-read cost
-  // as Section History's drawer — usually already warm (`boot.ts` kicks
-  // it off in the background at startup), but switching to it can still
-  // genuinely take a moment on a large notes folder, with nothing to show
-  // that anything's happening otherwise (the toggle just sits there).
+  // #62: "All Files"/"Other Notes" share the same one-time-per-session
+  // disk-read cost as Section History's drawer — usually already warm
+  // (`boot.ts` kicks it off in the background at startup), but switching to
+  // either can still genuinely take a moment on a large notes folder, with
+  // nothing to show that anything's happening otherwise (the toggle just
+  // sits there).
   let loadingAllFiles = false;
 
   // §42: open focused on whatever entry belongs to the currently active
@@ -46,12 +47,16 @@
     scrollSelectedIntoView();
   });
 
-  async function setScope(next: "open" | "all") {
+  async function setScope(next: "open" | "other" | "all") {
     if (scope === next) return;
     scope = next;
-    if (scope === "all") loadingAllFiles = true;
+    if (scope !== "open") loadingAllFiles = true;
     actionSnapshot.set(
-      scope === "all" ? await controller.buildActionSnapshotAllFiles() : controller.buildActionSnapshotOpenTabs(),
+      scope === "all"
+        ? await controller.buildActionSnapshotAllFiles()
+        : scope === "other"
+          ? await controller.buildActionSnapshotOtherNotes()
+          : controller.buildActionSnapshotOpenTabs(),
     );
     loadingAllFiles = false;
     // Clicking the toggle button moves focus to the button — bring it
@@ -262,16 +267,17 @@
       <div class="settings-toggle-row">
         <Segmented
           options={[
-            { value: "open", label: "Open Tabs" },
-            { value: "all", label: "All Files" },
+            { value: "open", label: "Open Tabs", title: "Notes currently open as a tab" },
+            { value: "other", label: "Other Notes", title: "Notes on disk that aren't open in a tab" },
+            { value: "all", label: "All Files", title: "Every note, whether or not it's open in a tab" },
           ]}
           value={scope}
-          onChange={(v) => setScope(v as "open" | "all")}
+          onChange={(v) => setScope(v as "open" | "other" | "all")}
         />
         {#if loadingAllFiles}
           <span class="modal-spinner" aria-label="Loading">⟳</span>
         {/if}
-        <label class="toggle-switch">
+        <label class="toggle-switch" title="Show only unresolved (open) actions — hide done, deferred, and won't-do lines">
           <input type="checkbox" bind:checked={$actionDrawerShowOnlyOpen} />
           <span class="toggle-switch-track"></span>
           Only Open
