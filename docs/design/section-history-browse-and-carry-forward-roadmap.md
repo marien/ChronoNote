@@ -1,10 +1,11 @@
 # Section History: browse occurrences in context, carry lines forward — design
 
-Status: **design only, not yet implemented.** Written 2026-09-24 at Marien's
-request, after using the current (§150-era) Section History drawer for a
-while: "What I realize when using it, is that I don't use the action list
-itself, I use it to move between occurrences, and check the actual notes,
-including actions, so I can see actions and follow-ups in context."
+Status: **design approved, ready for implementation.** Written 2026-09-24
+at Marien's request, after using the current (§150-era) Section History
+drawer for a while: "What I realize when using it, is that I don't use the
+action list itself, I use it to move between occurrences, and check the
+actual notes, including actions, so I can see actions and follow-ups in
+context." All three open decisions (§8) confirmed the same day.
 
 ## 1. What's changing, in one sentence
 
@@ -119,35 +120,31 @@ needs no change at all.
 
 One real difference from today's `commitCopyForward` call sites: the
 *source* of a History take-over is a **note that likely isn't an open
-tab** (you're reading history, not necessarily the note itself). Deferring
-its open actions means writing to that file directly
-(`writeNoteAndInvalidateCache`) rather than through `writeTabContent` when
-there's no live tab for it — the same fallback `toggleActionLineItem`
-already uses in `actions.ts` (open the file first if needed, then act on
-it) is the precedent to follow, or write to disk without opening a tab at
-all if opening one isn't otherwise wanted. Flagging as an implementation
-detail to settle, not a design fork — either is consistent with existing
-patterns.
+tab** (you're reading history, not necessarily the note itself). **Confirmed
+2026-09-24: write to disk directly** (`writeNoteAndInvalidateCache`),
+deferring the source's open actions without ever opening it as a tab —
+`commitCopyForward` needs a source-tab-or-source-file variant rather than
+always assuming a `sourceTabId`, since browsing history shouldn't leave a
+trail of newly-opened tabs behind it.
 
 ## 6. What this removes or changes from today's behavior
 
 Being explicit about the trade-offs, since this is a real behavior change
 Marien should sign off on before implementation, not just an addition:
 
-- **The flat, deduped, cross-occurrence action list is gone.** Today's
-  "see every open action under this heading, across all time, in one
-  scannable list" use case goes away in favor of "browse occurrence by
-  occurrence." If that flat view is still sometimes wanted (e.g., "how many
-  times has this recurring blocker come up"), it doesn't have a home in
-  this redesign — worth confirming that's an acceptable loss, or whether a
-  trimmed version of it survives as a secondary view.
-- **The "Only Open" toggle loses its purpose** — there's no longer a flat
+- **The flat, deduped, cross-occurrence action list is gone. Confirmed
+  2026-09-24: remove it outright**, no secondary mode kept alongside the
+  new browse view. Today's "see every open action under this heading,
+  across all time, in one scannable list" use case goes away in favor of
+  "browse occurrence by occurrence." If a "how many times has this
+  recurring blocker come up" overview is missed later, that's a smaller,
+  separate follow-up, not a reason to keep the old list around unused in
+  the meantime.
+- **The "Only Open" toggle is removed with it** — there's no longer a flat
   list to filter down. A resolved (`v`/`x`) line reads the same dimmed way
   it already does in the main editor (existing "resolved-line dimming"
-  CSS) rather than being hidden outright. If Marien wants a way to jump
-  straight to "the nearest occurrence that still has an open action,"
-  that's a distinct, smaller feature (a "find" step through the occurrence
-  list) rather than a per-line filter, and isn't assumed here.
+  CSS) rather than being hidden outright, and — confirmed 2026-09-24 — is
+  still selectable for take-over (§8 below).
 - **The dedicated "Previous occurrence" special-casing goes away** — every
   occurrence gets the same treatment, and "previous" is just wherever the
   occurrence list's selection starts by default (recommend: keep today's
@@ -167,26 +164,17 @@ Marien should sign off on before implementation, not just an addition:
 Build this as described above: occurrence list (left) drives a full
 glyph-rendered read pane (right); line/range selection surfaces a
 destination action bar computed once from where the drawer was opened;
-take-over reuses `commitCopyForward` unchanged. Explicitly drop the flat
-action list and "Only Open" toggle rather than trying to keep both
-alongside the new browse view — maintaining two mental models in one
-drawer (browse-in-context vs. scan-a-flat-list) is more confusing than
-either alone, and Marien's own description of actual usage ("I don't use
-the action list itself") is a strong signal the flat list isn't pulling
-its weight. If a "how many times has this come up" style overview turns
-out to be missed after living with the new drawer, that's a smaller,
-separable follow-up rather than a reason to keep the old list around
-unused in the meantime.
+take-over reuses `commitCopyForward`'s logic (adapted per §8.2 below).
 
-**Decisions to confirm before implementation:**
+## 8. Decisions — all confirmed 2026-09-24
 
-1. OK to fully remove the flat action list and "Only Open" toggle (§6),
-   rather than keeping either as a secondary mode?
-2. For a History-sourced take-over whose source note has no open tab,
-   should the source note be silently opened first (a new background tab),
-   or updated on disk without ever becoming a tab? (§5)
-3. Should a resolved-but-visible line (dimmed) still be selectable/
-   take-over-able, or only open/unresolved ones? (Recommend: selectable —
-   "take over an already-done item as a fresh open one today" is a
-   legitimate re-adoption case, exactly what today's `historyInsertText`
-   already does for a deferred `>` line by turning it back into `#`.)
+1. **Remove the flat action list and "Only Open" toggle outright**, no
+   secondary mode kept alongside the new browse view (§6).
+2. **A History take-over's source note is updated on disk directly**
+   (`writeNoteAndInvalidateCache`), never opened as a tab just to defer its
+   line(s) — `commitCopyForward` needs a disk-write path for a sourceless-tab
+   case rather than always assuming a `sourceTabId` (§5).
+3. **A resolved (dimmed) line is selectable for take-over**, same as an
+   open one — re-adopting a done/deferred item as a fresh open action
+   today is a legitimate case, matching what `historyInsertText` already
+   does for a deferred `>` line (turns it back into `#`).
