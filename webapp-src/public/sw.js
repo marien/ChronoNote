@@ -30,6 +30,8 @@ const PRECACHE_URLS = [
   "./manifest.webmanifest",
   "./icons/icon-256.png?v=__WEBAPP_VERSION__",
   "./icons/icon-512.png?v=__WEBAPP_VERSION__",
+  "./icons/icon-256-maskable.png?v=__WEBAPP_VERSION__",
+  "./icons/icon-512-maskable.png?v=__WEBAPP_VERSION__",
 ];
 
 self.addEventListener("install", (event) => {
