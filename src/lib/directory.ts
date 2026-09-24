@@ -17,9 +17,9 @@ import {
   clearAllEditorViewState,
   clearAllTabCleanHashes,
   conflictInfo,
-  historyItems,
+  historyDestinations,
   historyOccurrences,
-  historyPreviousOccurrence,
+  historyOpenedFromTabId,
   historyTargetHeader,
   modal,
   notesDir,
@@ -139,9 +139,9 @@ export async function performDirectorySwitch(path: string) {
   invalidateDiskNotesCache();
   allNotesCache.set({});
   actionSnapshot.set([]);
-  historyItems.set([]);
   historyOccurrences.set([]);
-  historyPreviousOccurrence.set(null);
+  historyDestinations.set([]);
+  historyOpenedFromTabId.set("");
   historyTargetHeader.set("");
   searchResultsStore.set([]);
   conflictInfo.set(null);

@@ -1,24 +1,23 @@
-/** Section history (Ctrl/Cmd+Shift+H): aggregate every action and follow-up
- * under the cursor's section across all dated notes, deduped,
- * most-recent-first — one row per action, so a line carrying both a
- * leading action and a mid-line `=> ` follow-up (#41) contributes two.
- * Plus (#27/#33) a glyph-rendered snapshot of the section's previous
- * occurrence before today. §150 also builds `historyOccurrences` — one
- * entry per dated note that has the section at all, whether or not it
- * contributed any rows to the flat `historyItems` list, so the drawer can
- * show (and let you browse into) every occurrence, empty or not, past or
- * future. Split out of `controller.ts` in the v0.5.0 refactor. Depends on
- * stores + persistence + tabs (`jumpToFileLine`) + tokens. */
+/** Section history (Ctrl/Cmd+Shift+H) — 2026-09-24 redesign
+ * (docs/design/section-history-browse-and-carry-forward-roadmap.md):
+ * browse every occurrence of the section under the cursor, glyph-rendered
+ * exactly like the editor, and carry one or more lines from whatever
+ * you're reading forward to a destination fixed by where the drawer was
+ * opened from. Replaces the earlier flat, deduped action list — this file
+ * no longer extracts individual action fragments out of context, it hands
+ * the drawer full section bodies to render as-is. Split out of
+ * `controller.ts` in the v0.5.0 refactor. Depends on stores + persistence +
+ * tabs (`jumpToFileLine`) + tokens + copyForward. */
 import { get } from "svelte/store";
 import { todayISO } from "./date";
 import {
   activeTabId,
   allNotesCache,
   editorApi,
-  historyItems,
+  historyDestinations,
   historyLoading,
   historyOccurrences,
-  historyPreviousOccurrence,
+  historyOpenedFromTabId,
   historyTargetHeader,
   modal,
   showToast,
@@ -26,8 +25,56 @@ import {
 } from "./stores";
 import { refreshAllNotesCache } from "./persistence";
 import { jumpToFileLine } from "./tabs";
-import { getSectionHeaderForLine, isSetextUnderline, normalizeHeaderTitle, titleForMatching } from "./tokens";
-import type { HistoryItem, PreviousSectionOccurrence, SectionOccurrence } from "./types";
+import { findNextOccurrenceTarget } from "./copyForward";
+import { getSectionHeaderForLine, isSetextUnderline, normalizeHeaderTitle, reopenDeferredAction, titleForMatching } from "./tokens";
+import type { HistoryDestination, NoteTab, SectionOccurrence } from "./types";
+
+const DATED_FILE = /^\d{4}-\d{2}-\d{2}\.txt$/;
+
+async function buildOccurrences(targetHeader: string): Promise<SectionOccurrence[]> {
+  await refreshAllNotesCache();
+  const allSources = get(allNotesCache);
+  const sortedFiles = Object.keys(allSources).sort().reverse();
+  const occurrences: SectionOccurrence[] = [];
+  for (const filename of sortedFiles) {
+    const flines = allSources[filename].split("\n");
+    const body = extractSectionBody(flines, targetHeader);
+    if (!body) continue;
+    occurrences.push({ filename, date: filename.replace(/\.txt$/, ""), lines: body.lines, startLineIdx: body.startLineIdx });
+  }
+  return occurrences;
+}
+
+/** Where a take-over from this drawer session can land (`HistoryDestination`
+ * in `types.ts`) — computed once, from the opened-from tab's own date, not
+ * re-decided per occurrence browsed. A scratchpad has no date of its own,
+ * so it's treated the same as "today or later": there's nowhere else
+ * sensible to thread a next-occurrence search from. */
+async function computeHistoryDestinations(
+  openedFromTab: NoteTab,
+  targetHeader: string,
+  sourceHeaderDisplay: string,
+): Promise<HistoryDestination[]> {
+  const today = todayISO();
+  const openedFromDate = openedFromTab.isScratchpad ? null : openedFromTab.filename.replace(/\.txt$/, "");
+  if (openedFromDate === null || openedFromDate >= today) {
+    return [{ kind: "here", tabId: openedFromTab.id, label: "Insert here" }];
+  }
+
+  const destinations: HistoryDestination[] = [
+    { kind: "today", date: today, headerText: sourceHeaderDisplay, label: "→ Today" },
+  ];
+  try {
+    const next = await findNextOccurrenceTarget(openedFromTab.filename, targetHeader, sourceHeaderDisplay);
+    if (next && next.date !== today) {
+      destinations.push({ kind: "next", date: next.date, headerText: next.headerText, label: `→ Next occurrence (${next.date})` });
+    }
+  } catch {
+    // No calendar available, or a read failure — "Today" alone still works;
+    // this is a quiet degrade, not worth a toast while just browsing.
+  }
+  return destinations;
+}
 
 /** #62: opens the drawer immediately (right after the fast, synchronous
  * "is the cursor on a section" check — no disk read needed for that part
@@ -49,142 +96,77 @@ export async function openMeetingHistory() {
   // the same recurring section (§37) — the drawer's own heading shows
   // this canonical form too, since it now aggregates entries from many
   // different dates under one topic.
-  const targetHeader = titleForMatching(normalizeHeaderTitle(rawHeader));
+  const sourceHeaderDisplay = normalizeHeaderTitle(rawHeader);
+  const targetHeader = titleForMatching(sourceHeaderDisplay);
   if (!targetHeader) {
     showToast("Cursor is not on or inside a named section.");
     return;
   }
 
   historyTargetHeader.set(targetHeader);
-  historyItems.set([]);
+  historyOpenedFromTabId.set(tab.id);
   historyOccurrences.set([]);
-  historyPreviousOccurrence.set(null);
+  historyDestinations.set([]);
   historyLoading.set(true);
   modal.set("history");
 
-  await refreshAllNotesCache();
-  const allSources = get(allNotesCache);
-  const sortedFiles = Object.keys(allSources).sort().reverse();
-  const items: HistoryItem[] = [];
-  const occurrences: SectionOccurrence[] = [];
-  const seen = new Set<string>();
-
-  for (const filename of sortedFiles) {
-    const flines = allSources[filename].split("\n");
-    const body = extractSectionBody(flines, targetHeader);
-    if (!body) continue;
-    const date = filename.replace(/\.txt$/, "");
-    const occurrenceItems: HistoryItem[] = [];
-    body.lines.forEach((line, i) => {
-      const idx = body.startLineIdx + i;
-      // #41: one source line can carry more than one action — a leading
-      // `# `/`v `/`> `/`x ` *and* a mid-line `=> <symbol>` follow-up —
-      // and each becomes its own row, showing only that action's text.
-      for (const action of historyActionsForLine(line)) {
-        const key = normalizeActionText(action);
-        if (seen.has(key)) continue;
-        seen.add(key);
-        const item: HistoryItem = { filename, lineIdx: idx, line, action, date };
-        items.push(item);
-        occurrenceItems.push(item);
-      }
-    });
-    occurrences.push({ filename, date, lines: body.lines, startLineIdx: body.startLineIdx, items: occurrenceItems });
-  }
-
-  historyItems.set(items);
-  historyOccurrences.set(occurrences);
-  // #27: alongside the all-dates list, a snapshot of the section's body
-  // as it stood at its previous occurrence — the most recent dated note
-  // *before today* that has this section (§150: always today, not the
-  // date of whichever note the drawer happened to be opened from).
-  historyPreviousOccurrence.set(findPreviousSectionOccurrence(allSources, targetHeader));
+  historyOccurrences.set(await buildOccurrences(targetHeader));
+  historyDestinations.set(await computeHistoryDestinations(tab, targetHeader, sourceHeaderDisplay));
   historyLoading.set(false);
 }
 
-/** §150: is this action row "open" — a leading `# ` action, or a `=> #`
- * consequence-action's inner `# text` (already flattened to that form by
- * `historyActionsForLine`)? Everything else (`v`/`>`/`x`/a plain `=> `
- * follow-up) is not. Used by the drawer's "Only Open" toggle to filter
- * both individual rows and, when an occurrence's rows are filtered down
- * to none, the occurrence's header itself. */
-export function isOpenHistoryAction(action: string): boolean {
-  return action.startsWith("# ");
+/** Re-scans every note for the current `historyTargetHeader` — called
+ * after a successful take-over so the drawer (kept open for continued
+ * browsing) reflects the source line's new deferred state and any newly
+ * created target section, without needing to close and reopen it. Costs a
+ * full disk re-read, same as opening the drawer in the first place — an
+ * acceptable, infrequent cost (once per deliberate take-over, not a
+ * per-keystroke concern). Destinations are untouched: where a take-over
+ * can land doesn't change within one drawer session. */
+export async function refreshHistoryOccurrences(): Promise<void> {
+  const targetHeader = get(historyTargetHeader);
+  if (!targetHeader) return;
+  historyOccurrences.set(await buildOccurrences(targetHeader));
 }
 
-/** #41: the action(s) a Section-History line contributes to the list.
- *
- *  - A leading `# `/`v `/`> `/`x ` line contributes that action, its text
- *    taken **up to the first ` => `** (so the follow-up part is split off).
- *  - The **last** `=> ` on the line contributes its follow-up: `=> <symbol>
- *    text` → the inner action `<symbol> text`; a plain `=> text` (or
- *    `=> @name text`) → the follow-up itself, `=> text`. Earlier `=> `s on
- *    the same line are ignored ("take only the last one").
- *
- * So `# do X => # do Y` → `["# do X", "# do Y"]`, `a => b => # c` →
- * `["# c"]`, `Talked to Sam => let's regroup` → `["=> let's regroup"]`,
- * `# solo task` → `["# solo task"]`. Lines with neither contribute
- * nothing. */
-export function historyActionsForLine(line: string): string[] {
-  const out: string[] = [];
-
-  const lead = line.match(/^\s*([#vx>])\s+(.+?)(?:\s+=>\s|\s*$)/);
-  if (lead && lead[2].trim()) out.push(`${lead[1]} ${lead[2].trim()}`);
-
+/** #4 of the design doc: the action/follow-up fragment of a single line
+ * with a "prose => action" shape (`Talked to Sam => # follow up` → `# follow
+ * up`), for the take-over's "Action only" choice. `null` when there's
+ * nothing to strip — no `=> ` at all, or nothing before it — since then
+ * "whole line" and "action only" would be identical and the choice isn't
+ * offered. */
+export function historyActionOnlyText(line: string): string | null {
   const li = line.lastIndexOf("=> ");
-  if (li !== -1) {
-    const after = line.slice(li + 3).trim();
-    const sym = after.match(/^([#vx>])\s+(.+)$/);
-    if (sym) out.push(`${sym[1]} ${sym[2].trim()}`);
-    else if (after) out.push(`=> ${after}`);
-  }
-  return out;
+  if (li === -1) return null;
+  const prose = line.slice(0, li).trim();
+  if (!prose) return null;
+  const after = line.slice(li + 3).trim();
+  const m = after.match(/^([#vx>])\s+(.+)$/);
+  return m ? `${m[1]} ${m[2].trim()}` : null;
 }
 
-/** Dedup key for an action produced by `historyActionsForLine` — drop the
- * leading symbol / `=> ` / `=> @name` so the same action reworded with
- * different leading context collapses to one row. */
-function normalizeActionText(action: string): string {
-  return action
-    .replace(/^([#vx>]\s+|=>\s+(@[\w-]+\s+)?)/, "")
-    .trim()
-    .toLowerCase();
-}
-
-const DATED_FILE = /^\d{4}-\d{2}-\d{2}\.txt$/;
-
-/** #27/#33/§150: the body of `targetHeader`'s previous occurrence — the
- * newest dated file strictly before *today* (not the note Section History
- * happened to be opened from — a scratchpad, or a future-dated note,
- * shouldn't change what "previous" means) that contains the section.
- * Returns `null` when there's no such occurrence with any content.
- * Filenames are compared as plain strings, which orders `YYYY-MM-DD.txt`
- * names chronologically. */
-export function findPreviousSectionOccurrence(
-  allSources: Record<string, string>,
-  targetHeader: string,
-): PreviousSectionOccurrence | null {
-  const cutoff = `${todayISO()}.txt`;
-  const candidates = Object.keys(allSources)
-    .filter((f) => DATED_FILE.test(f) && f < cutoff)
-    .sort()
-    .reverse();
-  for (const filename of candidates) {
-    const body = extractSectionBody(allSources[filename].split("\n"), targetHeader);
-    if (body && body.lines.some((l) => l.trim() !== "")) {
-      return { filename, date: filename.replace(/\.txt$/, ""), lines: body.lines, startLineIdx: body.startLineIdx };
-    }
+/** What actually lands in the target for a take-over — the selected
+ * source lines verbatim, or (a single line with a "prose => action"
+ * shape, "Action only" chosen) just the extracted action — with any
+ * deferred (`>`) line re-adopted as a fresh open one, decision #3 of the
+ * design doc: matches the old `historyInsertText`'s rewrite, done/won't-do/
+ * already-open lines are untouched. */
+export function historyTakeOverLines(sourceLines: string[], mode: "whole" | "action-only"): string[] {
+  if (mode === "action-only" && sourceLines.length === 1) {
+    const only = historyActionOnlyText(sourceLines[0]);
+    if (only) return [reopenDeferredAction(only) ?? only];
   }
-  return null;
+  return sourceLines.map((l) => reopenDeferredAction(l) ?? l);
 }
 
 /** #66: the earliest dated file strictly after `afterFilename` that has a
- * section matching `targetHeader` at all — unlike
- * `findPreviousSectionOccurrence`, an empty-but-present section still
- * counts here: "copy to next occurrence" wants somewhere to put the
- * copied content, not evidence it already has some. Ascending order,
- * mirroring `findPreviousSectionOccurrence`'s descending search over the
- * same plain-string-sorts-`YYYY-MM-DD.txt`-chronologically property. */
+ * section matching `targetHeader` at all — unlike a "previous occurrence"
+ * search, an empty-but-present section still counts here: "copy to next
+ * occurrence" wants somewhere to put the copied content, not evidence it
+ * already has some. Ascending order. Shared by the live editor's
+ * `Ctrl+Shift+.` (via `copyForward.ts`) and Section History's own
+ * destination computation above, so both agree on what "next occurrence"
+ * means for the same section/anchor. */
 export function findNextSectionOccurrenceOnDisk(
   allSources: Record<string, string>,
   targetHeader: string,
@@ -230,37 +212,9 @@ export function extractSectionBody(
   return null;
 }
 
-export async function jumpToHistoryItem(item: HistoryItem) {
-  await jumpToFileLine({ filename: item.filename, lineIdx: item.lineIdx });
-}
-
-/** §150: open the file behind a selected occurrence's *header* row (no
- * specific action selected), cursor on the section's first body line —
- * the same jump `jumpToPreviousOccurrence` does for its own pane, now
- * available for any occurrence in the main list. */
-export async function jumpToHistoryOccurrence(occurrence: SectionOccurrence) {
-  await jumpToFileLine({ filename: occurrence.filename, lineIdx: occurrence.startLineIdx });
-}
-
-/** #27: open the file behind the "Previous occurrence" pane, cursor on
- * the section's first body line. */
-export async function jumpToPreviousOccurrence() {
-  const po = get(historyPreviousOccurrence);
-  if (po) await jumpToFileLine({ filename: po.filename, lineIdx: po.startLineIdx });
-}
-
-/** What a Section-History entry turns into when imported: a deferred
- * `> ` action comes across as a fresh open `# ` action (you're re-adopting
- * it), everything else is inserted verbatim. §109's preview and
- * `importHistoricalItem` both go through this so they can't disagree.
- * #41: operates on the row's `action` (the follow-up/action itself), not
- * the whole source line. */
-export function historyInsertText(action: string): string {
-  return action.startsWith("> ") ? "# " + action.slice(2) : action;
-}
-
-export function importHistoricalItem(action: string) {
-  const toInsert = historyInsertText(action);
-  editorApi?.insertAtCursor(toInsert + "\n");
-  showToast(`Imported "${toInsert.slice(0, 30)}..." into note`);
+/** Open the file behind a browsed occurrence, cursor on a specific line —
+ * its first body line by default (`Enter` with nothing selected), or a
+ * line within it the user had selected for take-over. */
+export async function jumpToHistoryLine(occurrence: SectionOccurrence, lineIdx?: number) {
+  await jumpToFileLine({ filename: occurrence.filename, lineIdx: lineIdx ?? occurrence.startLineIdx });
 }

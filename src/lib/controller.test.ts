@@ -554,12 +554,47 @@ describe("saveState (§100 / §102 — derived from the active tab)", () => {
   });
 });
 
-describe("historyInsertText (§109/§110)", () => {
-  it("rewrites a deferred line as a fresh open action, leaves the rest verbatim", () => {
-    expect(controller.historyInsertText("> chase the vendor")).toBe("# chase the vendor");
-    expect(controller.historyInsertText("# already open")).toBe("# already open");
-    expect(controller.historyInsertText("v done")).toBe("v done");
-    expect(controller.historyInsertText("=> # consequence")).toBe("=> # consequence");
+describe("historyTakeOverLines (2026-09-24 redesign, decision #3)", () => {
+  it("re-adopts a deferred line as a fresh open one, leaves other states verbatim", () => {
+    expect(controller.historyTakeOverLines(["> chase the vendor"], "whole")).toEqual(["# chase the vendor"]);
+    expect(controller.historyTakeOverLines(["# already open"], "whole")).toEqual(["# already open"]);
+    expect(controller.historyTakeOverLines(["v done"], "whole")).toEqual(["v done"]);
+    expect(controller.historyTakeOverLines(["x won't do"], "whole")).toEqual(["x won't do"]);
+  });
+
+  it("applies the re-adoption per line across a multi-line take-over", () => {
+    expect(controller.historyTakeOverLines(["> first", "plain", "> second"], "whole")).toEqual([
+      "# first",
+      "plain",
+      "# second",
+    ]);
+  });
+
+  it("action-only mode extracts just the action, still re-adopting a deferred one", () => {
+    expect(controller.historyTakeOverLines(["Talked to Sam => # follow up"], "action-only")).toEqual(["# follow up"]);
+    expect(controller.historyTakeOverLines(["Talked to Sam => > follow up"], "action-only")).toEqual(["# follow up"]);
+  });
+
+  it("action-only mode falls back to the whole line when there's nothing to extract", () => {
+    expect(controller.historyTakeOverLines(["# a plain action, no arrow"], "action-only")).toEqual([
+      "# a plain action, no arrow",
+    ]);
+  });
+});
+
+describe("historyActionOnlyText (§4 of the design doc)", () => {
+  const f = (line: string) => controller.historyActionOnlyText(line);
+  it("a prose lead-in with a trailing action → just the action", () => {
+    expect(f("Talked to Sam => # follow up")).toBe("# follow up");
+  });
+  it("no '=> ' at all → null", () => {
+    expect(f("# renew the cert")).toBeNull();
+  });
+  it("'=> ' with nothing before it → null (nothing to strip)", () => {
+    expect(f("=> # a task")).toBeNull();
+  });
+  it("a plain follow-up with no action state → null", () => {
+    expect(f("chatted => let's regroup")).toBeNull();
   });
 });
 
@@ -988,8 +1023,13 @@ describe("runSearch", () => {
   });
 });
 
-describe("openMeetingHistory (§70: mid-line consequence-action dedup)", () => {
-  it("aggregates matching sections across dates, deduping a mid-line consequence-action", async () => {
+describe("openMeetingHistory (2026-09-24 redesign: browse occurrences, no more flat list)", () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("opens the drawer on the target header and remembers which tab it was opened from", async () => {
+    vi.setSystemTime(new Date(2026, 8, 12)); // "today" = 2026-09-12
     controller.tabs.set([tab({ id: "active", filename: "2026-09-10.txt", content: "Weekly Sync\n====\nsome note" })]);
     controller.activeTabId.set("active");
     controller.registerEditorApi({
@@ -1004,31 +1044,11 @@ describe("openMeetingHistory (§70: mid-line consequence-action dedup)", () => {
     });
     apiMock.readAllNotes.mockResolvedValue([
       ["2026-09-01.txt", "Weekly Sync\n====\nTalked to Sam => # follow up with him"],
-      ["2026-09-08.txt", "Weekly Sync\n====\nTalked to Sam => # follow up with him"], // same action, reworded context
     ]);
     await controller.openMeetingHistory();
     expect(get(controller.modal)).toBe("history");
     expect(get(controller.historyTargetHeader)).toBe("Weekly Sync");
-    expect(get(controller.historyItems)).toHaveLength(1); // deduped, not 2
-    expect(get(controller.historyItems)[0].action).toBe("# follow up with him"); // #41: post-arrow text only
-  });
-
-  it("#41: a line with a leading action AND a mid-line follow-up yields two rows", async () => {
-    controller.tabs.set([tab({ id: "active", filename: "2026-09-10.txt", content: "Sync\n====\nx" })]);
-    controller.activeTabId.set("active");
-    controller.registerEditorApi({
-      getContent: () => "",
-      setContent: () => {},
-      insertAtCursor: () => {},
-      jumpToLine: () => {},
-      getCursorLineIdx: () => 2,
-      getSelection: () => ({ text: "", fromLine: 0, toLine: 0 }),
-      focus: () => {},
-      find: { setQuery: () => {}, next: () => {}, prev: () => {}, clear: () => {} },
-    });
-    apiMock.readAllNotes.mockResolvedValue([["2026-09-02.txt", "Sync\n====\n# draft the plan => # send it round"]]);
-    await controller.openMeetingHistory();
-    expect(get(controller.historyItems).map((i) => i.action)).toEqual(["# draft the plan", "# send it round"]);
+    expect(get(controller.historyOpenedFromTabId)).toBe("active");
   });
 
   it("shows a toast and does not open when the cursor isn't inside a named section", async () => {
@@ -1050,6 +1070,7 @@ describe("openMeetingHistory (§70: mid-line consequence-action dedup)", () => {
   });
 
   it("#62: opens the drawer immediately and flags historyLoading, rather than waiting for the disk read first", async () => {
+    vi.setSystemTime(new Date(2026, 8, 12)); // "today" = 2026-09-12
     controller.tabs.set([tab({ id: "active", filename: "2026-09-10.txt", content: "Sync\n====\nnotes" })]);
     controller.activeTabId.set("active");
     controller.registerEditorApi({
@@ -1084,7 +1105,8 @@ describe("openMeetingHistory (§70: mid-line consequence-action dedup)", () => {
     ]);
   });
 
-  it("§150: builds one occurrence per dated file with the section — including empty ones and future dates", async () => {
+  it("builds one occurrence per dated file with the section — including empty ones and future dates", async () => {
+    vi.setSystemTime(new Date(2026, 8, 12)); // "today" = 2026-09-12
     controller.tabs.set([tab({ id: "active", filename: "2026-09-10.txt", content: "Sync\n====\ntoday, nothing yet" })]);
     controller.activeTabId.set("active");
     controller.registerEditorApi({
@@ -1099,95 +1121,102 @@ describe("openMeetingHistory (§70: mid-line consequence-action dedup)", () => {
     });
     apiMock.readAllNotes.mockResolvedValue([
       ["2026-09-15.txt", "Sync\n====\n# a future action already on the books"], // future
-      ["2026-09-10.txt", "Sync\n====\ntoday, nothing yet"], // today, no actions
+      ["2026-09-10.txt", "Sync\n====\ntoday, nothing yet"], // the active tab, no actions
       ["2026-09-05.txt", "Sync\n====\n# an older action"],
     ]);
     await controller.openMeetingHistory();
 
     const occurrences = get(controller.historyOccurrences);
     // Most-recent-first, future included, and every dated occurrence
-    // present even when it contributes zero action rows.
+    // present even when it has no content at all.
     expect(occurrences.map((o) => o.filename)).toEqual(["2026-09-15.txt", "2026-09-10.txt", "2026-09-05.txt"]);
-    expect(occurrences[0].items.map((i) => i.action)).toEqual(["# a future action already on the books"]);
-    expect(occurrences[1].items).toEqual([]);
+    expect(occurrences[0].lines).toEqual(["# a future action already on the books"]);
     expect(occurrences[1].lines).toEqual(["today, nothing yet"]);
-    expect(occurrences[2].items.map((i) => i.action)).toEqual(["# an older action"]);
-  });
-});
-
-describe("isOpenHistoryAction (§150)", () => {
-  it("only a leading '# ' action counts as open", () => {
-    expect(controller.isOpenHistoryAction("# do the thing")).toBe(true);
-    expect(controller.isOpenHistoryAction("v done already")).toBe(false);
-    expect(controller.isOpenHistoryAction("> deferred")).toBe(false);
-    expect(controller.isOpenHistoryAction("x won't do")).toBe(false);
-    expect(controller.isOpenHistoryAction("=> a plain follow-up")).toBe(false);
-  });
-});
-
-describe("historyActionsForLine (#41)", () => {
-  const f = (line: string) => controller.historyActionsForLine(line);
-  it("a plain leading action → itself", () => {
-    expect(f("# renew the cert")).toEqual(["# renew the cert"]);
-    expect(f("> book the sessions")).toEqual(["> book the sessions"]);
-  });
-  it("a mid-line follow-up → only the text after it", () => {
-    expect(f("Talked to Sam => # follow up")).toEqual(["# follow up"]);
-    expect(f("chatted => let's regroup")).toEqual(["=> let's regroup"]);
-  });
-  it("multiple follow-ups → only the last", () => {
-    expect(f("a => b => # c")).toEqual(["# c"]);
-  });
-  it("a leading action AND a follow-up → both", () => {
-    expect(f("# do X => # do Y")).toEqual(["# do X", "# do Y"]);
-  });
-  it("neither → nothing", () => {
-    expect(f("just a plain note")).toEqual([]);
-    expect(f("- a bullet")).toEqual([]);
-  });
-});
-
-describe("findPreviousSectionOccurrence (#27, §150: always before today)", () => {
-  const sources = {
-    "2026-09-10.txt": "Weekly Sync\n====\n# today's fresh action",
-    "2026-09-08.txt": "Weekly Sync - 2026-09-08\n====\n# renew the cert\n- talked budget\n\n",
-    "2026-09-01.txt": "Weekly Sync\n====\nolder occurrence\nStandup\n====\nunrelated",
-  };
-
-  afterEach(() => {
-    vi.useRealTimers();
+    expect(occurrences[2].lines).toEqual(["# an older action"]);
   });
 
-  it("returns the verbatim body of the most recent occurrence before today", () => {
-    vi.setSystemTime(new Date(2026, 8, 10));
-    const lo = controller.findPreviousSectionOccurrence(sources, "Weekly Sync");
-    expect(lo).not.toBeNull();
-    expect(lo!.filename).toBe("2026-09-08.txt");
-    expect(lo!.lines).toEqual(["# renew the cert", "- talked budget"]); // trailing blank trimmed
-    expect(lo!.startLineIdx).toBe(2);
+  it("opened from today or later: the only destination is 'here', the opened-from tab itself", async () => {
+    vi.setSystemTime(new Date(2026, 8, 10)); // "today" = 2026-09-10, same as the active tab
+    controller.tabs.set([tab({ id: "active", filename: "2026-09-10.txt", content: "Sync\n====\nnotes" })]);
+    controller.activeTabId.set("active");
+    controller.registerEditorApi({
+      getContent: () => "",
+      setContent: () => {},
+      insertAtCursor: () => {},
+      jumpToLine: () => {},
+      getCursorLineIdx: () => 2,
+      getSelection: () => ({ text: "", fromLine: 0, toLine: 0 }),
+      focus: () => {},
+      find: { setQuery: () => {}, next: () => {}, prev: () => {}, clear: () => {} },
+    });
+    apiMock.readAllNotes.mockResolvedValue([["2026-09-10.txt", "Sync\n====\nnotes"]]);
+    await controller.openMeetingHistory();
+    expect(get(controller.historyDestinations)).toEqual([{ kind: "here", tabId: "active", label: "Insert here" }]);
   });
 
-  it("stops the body at the next section header and ignores later files", () => {
-    vi.setSystemTime(new Date(2026, 8, 8));
-    const lo = controller.findPreviousSectionOccurrence(sources, "Weekly Sync");
-    expect(lo!.filename).toBe("2026-09-01.txt");
-    expect(lo!.lines).toEqual(["older occurrence"]);
+  it("opened from a past note with a next occurrence on disk: 'Today' and 'Next occurrence'", async () => {
+    vi.setSystemTime(new Date(2026, 8, 12)); // "today" = 2026-09-12
+    controller.tabs.set([tab({ id: "active", filename: "2026-09-05.txt", content: "Sync\n====\nold notes" })]);
+    controller.activeTabId.set("active");
+    controller.registerEditorApi({
+      getContent: () => "",
+      setContent: () => {},
+      insertAtCursor: () => {},
+      jumpToLine: () => {},
+      getCursorLineIdx: () => 2,
+      getSelection: () => ({ text: "", fromLine: 0, toLine: 0 }),
+      focus: () => {},
+      find: { setQuery: () => {}, next: () => {}, prev: () => {}, clear: () => {} },
+    });
+    apiMock.readAllNotes.mockResolvedValue([
+      ["2026-09-05.txt", "Sync\n====\nold notes"],
+      ["2026-09-20.txt", "Sync\n====\n"], // the next occurrence already on disk
+    ]);
+    await controller.openMeetingHistory();
+    const destinations = get(controller.historyDestinations);
+    expect(destinations).toHaveLength(2);
+    expect(destinations[0]).toEqual({ kind: "today", date: "2026-09-12", headerText: "Sync", label: "→ Today" });
+    expect(destinations[1]).toMatchObject({ kind: "next", date: "2026-09-20" });
   });
 
-  it("returns null when there is no earlier occurrence", () => {
-    vi.setSystemTime(new Date(2026, 8, 1));
-    expect(controller.findPreviousSectionOccurrence(sources, "Weekly Sync")).toBeNull();
-    vi.setSystemTime(new Date(2026, 8, 10));
-    expect(controller.findPreviousSectionOccurrence(sources, "Nonexistent")).toBeNull();
+  it("opened from a past note with no next occurrence anywhere: 'Today' alone", async () => {
+    vi.setSystemTime(new Date(2026, 8, 12)); // "today" = 2026-09-12
+    controller.tabs.set([tab({ id: "active", filename: "2026-09-05.txt", content: "Sync\n====\nold notes" })]);
+    controller.activeTabId.set("active");
+    controller.registerEditorApi({
+      getContent: () => "",
+      setContent: () => {},
+      insertAtCursor: () => {},
+      jumpToLine: () => {},
+      getCursorLineIdx: () => 2,
+      getSelection: () => ({ text: "", fromLine: 0, toLine: 0 }),
+      focus: () => {},
+      find: { setQuery: () => {}, next: () => {}, prev: () => {}, clear: () => {} },
+    });
+    apiMock.readAllNotes.mockResolvedValue([["2026-09-05.txt", "Sync\n====\nold notes"]]);
+    await controller.openMeetingHistory();
+    expect(get(controller.historyDestinations)).toEqual([
+      { kind: "today", date: "2026-09-12", headerText: "Sync", label: "→ Today" },
+    ]);
   });
 
-  it("ignores a future-dated file even when opened from an earlier one (§150)", () => {
-    // Today is 2026-09-05: the 09-10 file is in the future and must never
-    // be picked as "previous", regardless of which note the drawer is
-    // opened from — this used to be keyed off the opened-from filename.
-    vi.setSystemTime(new Date(2026, 8, 5));
-    const lo = controller.findPreviousSectionOccurrence(sources, "Weekly Sync");
-    expect(lo!.filename).toBe("2026-09-01.txt");
+  it("opened from a scratchpad: treated like today/later — 'here' is the only destination", async () => {
+    vi.setSystemTime(new Date(2026, 8, 12));
+    controller.tabs.set([tab({ id: "active", isScratchpad: true, filename: "Scratchpad 1", content: "Sync\n====\nnotes" })]);
+    controller.activeTabId.set("active");
+    controller.registerEditorApi({
+      getContent: () => "",
+      setContent: () => {},
+      insertAtCursor: () => {},
+      jumpToLine: () => {},
+      getCursorLineIdx: () => 2,
+      getSelection: () => ({ text: "", fromLine: 0, toLine: 0 }),
+      focus: () => {},
+      find: { setQuery: () => {}, next: () => {}, prev: () => {}, clear: () => {} },
+    });
+    apiMock.readAllNotes.mockResolvedValue([]);
+    await controller.openMeetingHistory();
+    expect(get(controller.historyDestinations)).toEqual([{ kind: "here", tabId: "active", label: "Insert here" }]);
   });
 });
 
@@ -1392,6 +1421,65 @@ describe("copySelectionToNextOccurrence (#66)", () => {
     selectFrom("# a task", 0, 0);
     await controller.copySelectionToNextOccurrence();
     expect(get(controller.toastMessage)).toMatch(/scratchpad/i);
+  });
+});
+
+describe("carryHistorySelectionForward (2026-09-24 redesign, Section History take-over)", () => {
+  it("'here': inserts into the given open tab and defers the source, which is a different open tab", async () => {
+    controller.tabs.set([
+      tab({ id: "src", filename: "2026-09-01.txt", content: "Sync\n====\n# renew the cert" }),
+      tab({ id: "here", filename: "2026-09-10.txt", content: "Sync\n====\n- prior notes" }),
+    ]);
+    await controller.carryHistorySelectionForward(
+      "2026-09-01.txt",
+      2,
+      2,
+      "sync",
+      { kind: "here", tabId: "here" },
+      ["# renew the cert"],
+    );
+    expect(get(controller.tabs).find((t) => t.id === "src")!.content).toBe("Sync\n====\n> renew the cert");
+    expect(get(controller.tabs).find((t) => t.id === "here")!.content).toBe(
+      "Sync\n====\n- prior notes\n\n# renew the cert",
+    );
+  });
+
+  it("'today'/'next': writes straight to disk when the source isn't an open tab at all", async () => {
+    controller.tabs.set([]); // the browsed occurrence isn't open as a tab
+    apiMock.readNote.mockImplementation(async (filename: string) =>
+      filename === "2026-08-01.txt" ? "Sync\n====\n# an old action" : null,
+    );
+    await controller.carryHistorySelectionForward(
+      "2026-08-01.txt",
+      2,
+      2,
+      "sync",
+      { kind: "today", date: "2026-09-12", headerText: "Sync" },
+      ["# an old action"],
+    );
+    expect(apiMock.writeNote).toHaveBeenCalledWith("2026-08-01.txt", "Sync\n====\n> an old action");
+    expect(apiMock.writeNote).toHaveBeenCalledWith("2026-09-12.txt", "Sync\n====\n# an old action\n");
+  });
+
+  it("uses insertLinesOverride (e.g. 'action only') instead of the verbatim source lines", async () => {
+    controller.tabs.set([
+      tab({ id: "src", filename: "2026-09-01.txt", content: "Sync\n====\nTalked to Sam => # follow up" }),
+      tab({ id: "here", filename: "2026-09-10.txt", content: "Sync\n====\n" }),
+    ]);
+    await controller.carryHistorySelectionForward(
+      "2026-09-01.txt",
+      2,
+      2,
+      "sync",
+      { kind: "here", tabId: "here" },
+      controller.historyTakeOverLines(["Talked to Sam => # follow up"], "action-only"),
+    );
+    // The source's whole line is what gets deferred (still has the prose)...
+    expect(get(controller.tabs).find((t) => t.id === "src")!.content).toBe(
+      "Sync\n====\nTalked to Sam => > follow up",
+    );
+    // ...but only the extracted action lands in the target.
+    expect(get(controller.tabs).find((t) => t.id === "here")!.content).toBe("Sync\n====\n# follow up");
   });
 });
 

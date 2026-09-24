@@ -10,8 +10,7 @@ import { todayISO } from "./date";
 import type {
   ActionSnapshotItem,
   ColorMode,
-  HistoryItem,
-  PreviousSectionOccurrence,
+  HistoryDestination,
   NoteTab,
   SearchResultItem,
   SectionOccurrence,
@@ -279,7 +278,10 @@ export const scratchpadGateContext = writable<"switch" | "close" | null>(null);
  * (Escape, outside click) abandons the copy rather than leaving it to
  * hijack some later, unrelated use of the same picker. */
 export interface CopyForwardPending {
-  sourceTabId: string;
+  /** The source note's filename — not necessarily an open tab (2026-09-24:
+   * a Section History take-over's source is often a note you're only
+   * browsing, not one you have open). */
+  sourceFilename: string;
   fromLine: number;
   toLine: number;
   /** The matching-normalized section title being searched for. */
@@ -293,11 +295,11 @@ export const copyForwardPending = writable<CopyForwardPending | null>(null);
 
 export const allNotesCache = writable<Record<string, string>>({});
 export const actionSnapshot = writable<ActionSnapshotItem[]>([]);
-export const historyItems = writable<HistoryItem[]>([]);
-/** §150: every dated occurrence of the section being aggregated — past,
- * today, and future — each carrying its own (possibly empty) slice of the
- * same deduped `historyItems`. Drives Section History's list, where a
- * header is now selectable per occurrence, not just per action row. */
+/** One entry per dated note that has the section at all — past, today, and
+ * future, whether or not it has any content — so Section History's
+ * occurrence list can show (and let you browse into) every occurrence the
+ * same way. 2026-09-24 redesign: this is now the drawer's only data model —
+ * see docs/design/section-history-browse-and-carry-forward-roadmap.md. */
 export const historyOccurrences = writable<SectionOccurrence[]>([]);
 /** #62: whether `openMeetingHistory()`'s disk read is still in flight —
  * the drawer opens immediately rather than waiting for it, so it needs
@@ -307,15 +309,17 @@ export const historyOccurrences = writable<SectionOccurrence[]>([]);
  * notes folder). */
 export const historyLoading = writable<boolean>(false);
 export const historyTargetHeader = writable<string>("");
-/** #27/#33: the section's previous occurrence (see `PreviousSectionOccurrence`).
- * `null` when there is no earlier occurrence to show. */
-export const historyPreviousOccurrence = writable<PreviousSectionOccurrence | null>(null);
-/** §150: Section History's "Only Open" toggle, remembered across drawer
- * opens/closes for the rest of the session — in-memory only, same
- * treatment as `actionDrawerShowOnlyOpen` above. Defaults to off: History
- * is a browse-everything review surface first, unlike the Action Drawer's
- * default worklist view. */
-export const historyShowOnlyOpen = writable<boolean>(false);
+/** The tab History was opened from — a snapshot taken once at open time,
+ * since where a "take it over" can land (`historyDestinations` below) is
+ * fixed for the whole drawer session, not re-decided per occurrence
+ * browsed. */
+export const historyOpenedFromTabId = writable<string>("");
+/** Where a take-over can land, computed once when the drawer opens (see
+ * `HistoryDestination`'s own doc comment in `types.ts`) — one entry
+ * (`"here"`) when the opened-from note is today/future/a scratchpad, or
+ * one or two (`"today"`, always; `"next"` when a next occurrence exists)
+ * when it's in the past. Empty only transiently, while `historyLoading`. */
+export const historyDestinations = writable<HistoryDestination[]>([]);
 export const searchResultsStore = writable<SearchResultItem[]>([]);
 
 /** Calendar sync review — the state of one pending "Sync from a list…" (or

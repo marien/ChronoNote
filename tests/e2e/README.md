@@ -118,7 +118,7 @@ Scenarios: `empty`, `single-day`, `busy-week`, `heavy` (~10 weeks),
 | `action-drawer` | open/all scope, Only-Open, filter, `@`, cycle, forward-to-today, jump |
 | `navigation` | date-picker grammar, Open-Only, create-on-open |
 | `section-import` | setext + spacing rules, blank-line handling, draft persistence |
-| `search-and-history` | cross-tab + all-files search, recurring-section aggregation & dedup |
+| `search-and-history` | cross-tab + all-files search; Section History occurrence browsing, line selection, take-over destinations |
 | `settings` | theme persist + reload, directory switch (recent + Browse), scratchpad gate |
 | `drawers` | shortcuts / legend / about, external link, focus capture, Escape |
 | `paste-deferral` | copy `# ` → paste into today defers source to `> ` |

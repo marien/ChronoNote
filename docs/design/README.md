@@ -3,15 +3,12 @@
 ## Section History: browse occurrences in context, carry lines forward
 
 **[`section-history-browse-and-carry-forward-roadmap.md`](section-history-browse-and-carry-forward-roadmap.md)**
-— pitched 2026-09-24: replaces the drawer's flat, de-contextualized action
-list with full glyph-rendered occurrence browsing (every occurrence gets
-the "Previous occurrence" pane's treatment, not just the nearest one), plus
-selecting one or more lines to carry them forward — to today, the next
-occurrence, or wherever the drawer was opened from — by reusing the
-existing `commitCopyForward` machinery (#66). **Design approved
-2026-09-24, ready for implementation** — all three decisions confirmed
-(drop the flat list/"Only Open" toggle entirely; a take-over's source note
-is updated on disk without opening a tab; resolved lines stay selectable).
+— pitched and **implemented 2026-09-24 (§211)**: replaces the drawer's flat,
+de-contextualized action list with full glyph-rendered occurrence browsing
+(every occurrence gets the old "Previous occurrence" pane's treatment, not
+just the nearest one), plus selecting one or more lines to carry them
+forward — to today, the next occurrence, or wherever the drawer was opened
+from — by reusing (and generalizing) `commitCopyForward` (#66).
 
 ## Merged title bar + top bar
 

@@ -296,6 +296,17 @@ export function reopenDoneAction(line: string, col?: number): string | null {
   return m && m.sym === "v" ? m.rebuild("#") : null;
 }
 
+/** Section History's take-over (2026-09-24): re-adopting a deferred (`>`)
+ * line elsewhere turns it back into a fresh open action, the same rewrite
+ * `historyInsertText` used to apply to its own single extracted action
+ * string — done/won't-do/already-open lines land verbatim, only a
+ * deferral is undone by moving the content. No-op for anything else,
+ * including a plain line with no action state at all. */
+export function reopenDeferredAction(line: string, col?: number): string | null {
+  const m = matchActionSymbol(line, col);
+  return m && m.sym === ">" ? m.rebuild("#") : null;
+}
+
 /** Shared line-matching for the symbol transforms above — a plain
  * (optionally indented, §50) leading action symbol, or a `=> <symbol>`
  * consequence-action (§41) anywhere on the line (not anchored to the

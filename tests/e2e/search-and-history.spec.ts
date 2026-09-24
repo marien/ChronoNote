@@ -7,6 +7,7 @@ import {
   MODAL_LABELS,
   activeTabLabel,
   currentModal,
+  mockNote,
   todayFilename,
 } from "./helpers";
 
@@ -170,93 +171,23 @@ test.describe("cross-tab search (Ctrl/Cmd+Shift+F)", () => {
   });
 });
 
+// 2026-09-24 redesign (docs/design/section-history-browse-and-carry-forward-
+// roadmap.md): the drawer browses full occurrences glyph-rendered in place,
+// rather than aggregating a flat, de-contextualized action list — these
+// tests replace the pre-redesign suite entirely.
 test.describe("section history (Ctrl/Cmd+Shift+H)", () => {
-  test("aggregates a recurring section's actions across days, deduped", async ({ page }) => {
-    // Hand-built so the recurring section + its repeated line are exact.
-    await seedApp(page, {
-      seed: {
-        notes: {
-          "2026-09-07.txt": ["Weekly Planning — 2026-09-07", "===========================", "# renew the TLS cert", "- notes for today"].join(
-            "\n",
-          ),
-          "2026-09-01.txt": [
-            "Weekly Planning — 2026-09-01",
-            "===========================",
-            "# renew the TLS cert",
-            "v shipped the docs",
-          ].join("\n"),
-          "2026-08-25.txt": [
-            "Weekly Planning — 2026-08-25",
-            "===========================",
-            "# renew the TLS cert",
-            "> defer the audit",
-          ].join("\n"),
-        },
-        session: { openTabs: ["2026-09-07.txt"], activeTab: "2026-09-07.txt" },
-      },
-    });
+  const occRow = (page: Page, date: string) => history(page).locator(".modal-group-header", { hasText: date });
+  const detailLine = (page: Page, text: string) => history(page).locator(".history-select-line", { hasText: text });
 
-    // Put the cursor inside the recurring section.
-    await editor(page).click();
-    await page.keyboard.press("ControlOrMeta+Home");
-    await page.keyboard.press("ArrowDown");
-    await page.keyboard.press("ArrowDown"); // onto "# renew the TLS cert"
-    await page.keyboard.press("ControlOrMeta+Shift+H");
-
-    await expect(history(page)).toBeVisible();
-    // Title (§127: a plain heading, not a fake readonly input) names the
-    // section being aggregated.
-    await expect(history(page).locator(".modal-title")).toContainText(/Weekly Planning/);
-    // "renew the TLS cert" appears in all three days but dedupes to one row.
-    const list = history(page).locator(".modal-list");
-    await expect(list.getByText("renew the TLS cert")).toHaveCount(1);
-    // The other, distinct lines from earlier days are listed.
-    await expect(list).toContainText("shipped the docs");
-    await expect(list).toContainText("defer the audit");
-  });
-
-  test("#41: list rows show the action after a mid-line follow-up, split multi-action lines, format topics", async ({
+  test("lists every occurrence — past, today (empty), and future — and browsing one shows its full glyph-rendered body", async ({
     page,
   }) => {
     await seedApp(page, {
       seed: {
         notes: {
-          [todayFilename()]: "Sync\n====\ntoday",
-          "2026-09-05.txt": [
-            "Sync",
-            "====",
-            "Talked to Ana => # (q3) chase the invoice",
-            "# draft the plan => # send it round",
-          ].join("\n"),
-        },
-        session: { openTabs: [todayFilename()], activeTab: todayFilename() },
-      },
-    });
-    await editor(page).click();
-    await page.keyboard.press("ControlOrMeta+Home");
-    await page.keyboard.press("ArrowDown");
-    await page.keyboard.press("ControlOrMeta+Shift+H");
-
-    const list = history(page).locator(".modal-list");
-    // mid-line follow-up: only the post-arrow text, with its (q3) topic styled
-    const row1 = list.locator(".modal-item", { hasText: "chase the invoice" });
-    await expect(row1).toContainText("☐ (q3) chase the invoice");
-    await expect(row1).not.toContainText("Talked to Ana");
-    await expect(row1.locator(".glyph-topic")).toHaveText("(q3)");
-    // the two-action line becomes two rows
-    await expect(list.locator(".modal-item", { hasText: "draft the plan" })).toHaveCount(1);
-    await expect(list.locator(".modal-item", { hasText: "send it round" })).toHaveCount(1);
-
-    // Shift+Enter inserts the action itself, not the whole source line
-    await list.locator(".modal-item", { hasText: "chase the invoice" }).hover();
-    await expect(history(page).locator(".hp-insert")).toHaveText("# (q3) chase the invoice");
-  });
-
-  test("the 'Previous occurrence' pane shows that section's prior body, glyph-rendered (#27/#33)", async ({ page }) => {
-    await seedApp(page, {
-      seed: {
-        notes: {
-          [todayFilename()]: "Weekly Sync\n====\n# something new today",
+          "2026-09-10.txt": ["Weekly Sync", "===========", "# a future item"].join("\n"),
+          [todayFilename()]: ["Weekly Sync", "===========", "nothing actionable yet"].join("\n"),
+          "2026-08-20.txt": ["Weekly Sync", "===========", ""].join("\n"),
           "2026-09-05.txt": [
             "Weekly Sync",
             "===========",
@@ -266,173 +197,209 @@ test.describe("section history (Ctrl/Cmd+Shift+H)", () => {
             "=================",
             "not part of the sync",
           ].join("\n"),
-          "2026-09-01.txt": "Weekly Sync\n====\n- older, should be ignored",
         },
         session: { openTabs: [todayFilename()], activeTab: todayFilename() },
       },
     });
     await editor(page).click();
     await page.keyboard.press("ControlOrMeta+Home");
-    await page.keyboard.press("ArrowDown"); // into the "Weekly Sync" section
     await page.keyboard.press("ControlOrMeta+Shift+H");
 
-    const panel = history(page).locator(".history-prev");
-    await expect(panel).toBeVisible();
-    await expect(panel).toContainText("Previous occurrence · 2026-09-05");
-    // Glyph-rendered (#33.1): the `#` shows as ☐, the bullet as •, stopping
-    // at the next section header. The (q3) topic tag (#36) is kept.
-    await expect(panel.locator(".po-body")).toContainText("☐ chase the vendor (q3)");
-    await expect(panel.locator(".po-body")).toContainText("• reviewed the roadmap");
-    await expect(panel.locator(".po-body")).not.toContainText("not part of the sync");
-    await expect(panel.locator(".po-body")).not.toContainText("older, should be ignored");
+    await expect(history(page)).toBeVisible();
+    await expect(history(page).locator(".modal-title")).toContainText(/Weekly Sync/);
+    const list = history(page).locator(".modal-list");
+    await expect(list).toContainText("2026-09-10");
+    await expect(list).toContainText(todayFilename().replace(".txt", ""));
+    await expect(list).toContainText("2026-09-05");
+    await expect(occRow(page, "2026-08-20")).toContainText("no content yet");
 
-    // "Open file" jumps to that occurrence and closes the drawer.
-    await panel.getByRole("button", { name: "Open file" }).click();
+    // Browsing the 2026-09-05 occurrence shows its whole body, glyph-
+    // rendered (the `#` as ☐, the bullet as •), stopping at the next
+    // section header — not just the action lines out of context.
+    await occRow(page, "2026-09-05").click();
+    const detail = history(page).locator(".history-detail");
+    await expect(detail).toContainText("2026-09-05.txt");
+    await expect(detail.locator(".hp-context")).toContainText("☐ chase the vendor (q3)");
+    await expect(detail.locator(".hp-context")).toContainText("• reviewed the roadmap");
+    await expect(detail.locator(".hp-context")).not.toContainText("not part of the sync");
+
+    // Browsing the genuinely empty occurrence shows the placeholder text.
+    await occRow(page, "2026-08-20").click();
+    await expect(detail.locator(".hp-context")).toContainText("nothing in this section yet");
+
+    // Browsing today's occurrence shows its own prose, and "Open file"
+    // jumps there and closes the drawer.
+    await occRow(page, todayFilename().replace(".txt", "")).click();
+    await expect(detail.locator(".hp-context")).toContainText("nothing actionable yet");
+    await detail.getByRole("button", { name: "Open file" }).click();
     expect(await currentModal(page)).toBe("none");
-    await expect(activeTabLabel(page)).toHaveText("2026-09-05");
+    await expect(activeTabLabel(page)).toHaveText(todayFilename().replace(".txt", ""));
   });
 
-  test("the 'Previous occurrence' pane caps at 5 lines with a show-all toggle (#33.2)", async ({ page }) => {
+  test("opened from today: selecting a line offers only 'Insert here', and takes it over into this same note", async ({
+    page,
+  }) => {
     await seedApp(page, {
       seed: {
         notes: {
-          [todayFilename()]: "Standup\n====\ntoday",
-          "2026-09-05.txt": ["Standup", "=======", "one", "two", "three", "four", "five", "six", "seven"].join("\n"),
+          [todayFilename()]: "Standup\n====\n- prior notes",
+          "2026-09-05.txt": "Standup\n====\n# renew the cert",
         },
         session: { openTabs: [todayFilename()], activeTab: todayFilename() },
       },
+    });
+    await editor(page).click();
+    await page.keyboard.press("ControlOrMeta+Home");
+    await page.keyboard.press("ControlOrMeta+Shift+H");
+
+    await occRow(page, "2026-09-05").click();
+    await detailLine(page, "renew the cert").click();
+
+    const bar = history(page).locator(".history-takeover-bar");
+    await expect(bar).toBeVisible();
+    await expect(bar.getByRole("button")).toHaveCount(1);
+    await expect(bar.getByRole("button", { name: "Insert here" })).toBeVisible();
+
+    await bar.getByRole("button", { name: "Insert here" }).click();
+    // Source deferred, target (today's own note — opened from here) updated,
+    // drawer stays open with the source's new state reflected.
+    await expect(detailLine(page, "renew the cert")).toContainText("»"); // deferred glyph
+    await expect.poll(() => mockNote(page, "2026-09-05.txt")).toContain("> renew the cert");
+    await expect.poll(() => mockNote(page, todayFilename())).toBe("Standup\n====\n- prior notes\n\n# renew the cert");
+  });
+
+  test("opened from a past note: selecting a line offers 'Today' and 'Next occurrence'", async ({ page }) => {
+    await seedApp(page, {
+      seed: {
+        notes: {
+          // Opened from here — browsing a *different*, earlier occurrence
+          // below is what should offer destinations at all (browsing the
+          // opened-from note itself never does — nothing to carry it to).
+          "2026-09-01.txt": "Standup\n====\nsomething from today's own past note",
+          "2026-08-25.txt": "Standup\n====\n# an old item",
+          "2026-09-10.txt": "Standup\n====\n", // the next occurrence, already on disk
+        },
+        session: { openTabs: ["2026-09-01.txt"], activeTab: "2026-09-01.txt" },
+      },
+    });
+    await editor(page).click();
+    await page.keyboard.press("ControlOrMeta+Home");
+    await page.keyboard.press("ControlOrMeta+Shift+H");
+
+    await occRow(page, "2026-08-25").click();
+    await detailLine(page, "an old item").click();
+    const bar = history(page).locator(".history-takeover-bar");
+    await expect(bar.getByRole("button", { name: "→ Today" })).toBeVisible();
+    await expect(bar.getByRole("button", { name: /→ Next occurrence/ })).toBeVisible();
+
+    await bar.getByRole("button", { name: "→ Today" }).click();
+    await expect.poll(() => mockNote(page, todayFilename())).toContain("# an old item");
+    await expect.poll(() => mockNote(page, "2026-08-25.txt")).toContain("> an old item");
+  });
+
+  test("Shift+click extends the selection to a range; the whole range is taken over together", async ({ page }) => {
+    await seedApp(page, {
+      seed: {
+        notes: {
+          [todayFilename()]: "Standup\n====\n",
+          "2026-09-05.txt": "Standup\n====\n# first\nplain middle line\n# second",
+        },
+        session: { openTabs: [todayFilename()], activeTab: todayFilename() },
+      },
+    });
+    await editor(page).click();
+    await page.keyboard.press("ControlOrMeta+Home");
+    await page.keyboard.press("ControlOrMeta+Shift+H");
+
+    await occRow(page, "2026-09-05").click();
+    await detailLine(page, "first").click();
+    await detailLine(page, "second").click({ modifiers: ["Shift"] });
+    await expect(history(page).locator(".history-line-selected")).toHaveCount(3);
+
+    await history(page).getByRole("button", { name: "Insert here" }).click();
+    await expect.poll(() => mockNote(page, todayFilename())).toBe(
+      "Standup\n====\n# first\nplain middle line\n# second",
+    );
+  });
+
+  test("a single 'prose => action' line offers Whole line / Action only; only the action lands with 'Action only'", async ({
+    page,
+  }) => {
+    await seedApp(page, {
+      seed: {
+        notes: {
+          [todayFilename()]: "Standup\n====\n",
+          "2026-09-05.txt": "Standup\n====\nTalked to Ana => # chase the invoice",
+        },
+        session: { openTabs: [todayFilename()], activeTab: todayFilename() },
+      },
+    });
+    await editor(page).click();
+    await page.keyboard.press("ControlOrMeta+Home");
+    await page.keyboard.press("ControlOrMeta+Shift+H");
+
+    await occRow(page, "2026-09-05").click();
+    await detailLine(page, "chase the invoice").click();
+
+    const bar = history(page).locator(".history-takeover-bar");
+    await expect(bar.getByRole("radio", { name: "Whole line" })).toBeVisible();
+    await bar.getByRole("radio", { name: "Action only" }).click();
+    await bar.getByRole("button", { name: "Insert here" }).click();
+
+    await expect.poll(() => mockNote(page, todayFilename())).toBe("Standup\n====\n# chase the invoice");
+  });
+
+  test("a plain leading action line has no Whole line / Action only choice — nothing to strip", async ({ page }) => {
+    await seedApp(page, {
+      seed: {
+        notes: {
+          [todayFilename()]: "Standup\n====\n",
+          "2026-09-05.txt": "Standup\n====\n# renew the cert",
+        },
+        session: { openTabs: [todayFilename()], activeTab: todayFilename() },
+      },
+    });
+    await editor(page).click();
+    await page.keyboard.press("ControlOrMeta+Home");
+    await page.keyboard.press("ControlOrMeta+Shift+H");
+
+    await occRow(page, "2026-09-05").click();
+    await detailLine(page, "renew the cert").click();
+    await expect(history(page).locator(".history-takeover-bar").getByRole("radio")).toHaveCount(0);
+  });
+
+  test("re-adopts a deferred line as a fresh open action when taken over (decision #3)", async ({ page }) => {
+    await seedApp(page, {
+      seed: {
+        notes: {
+          [todayFilename()]: "Standup\n====\n",
+          "2026-09-05.txt": "Standup\n====\n> chase the flaky test",
+        },
+        session: { openTabs: [todayFilename()], activeTab: todayFilename() },
+      },
+    });
+    await editor(page).click();
+    await page.keyboard.press("ControlOrMeta+Home");
+    await page.keyboard.press("ControlOrMeta+Shift+H");
+
+    await occRow(page, "2026-09-05").click();
+    await detailLine(page, "chase the flaky test").click();
+    await history(page).getByRole("button", { name: "Insert here" }).click();
+    await expect.poll(() => mockNote(page, todayFilename())).toBe("Standup\n====\n# chase the flaky test");
+  });
+
+  test("browsing the note History was opened from offers no take-over — nowhere to carry it to", async ({ page }) => {
+    await seedApp(page, {
+      seed: { notes: { [todayFilename()]: "Standup\n====\n# today's own item" } },
     });
     await editor(page).click();
     await page.keyboard.press("ControlOrMeta+Home");
     await page.keyboard.press("ArrowDown");
     await page.keyboard.press("ControlOrMeta+Shift+H");
 
-    const pane = history(page).locator(".history-prev");
-    await expect(pane.locator(".po-line")).toHaveCount(5);
-    await pane.getByRole("button", { name: /show all 7 lines/i }).click();
-    await expect(pane.locator(".po-line")).toHaveCount(7);
-    await pane.getByRole("button", { name: /show fewer/i }).click();
-    await expect(pane.locator(".po-line")).toHaveCount(5);
-  });
-
-  test("the 'Previous occurrence' pane is always anchored to today, not the note it was opened from (§150)", async ({
-    page,
-  }) => {
-    await seedApp(page, {
-      seed: {
-        notes: {
-          [todayFilename()]: "Weekly Sync\n====\ntoday's note",
-          "2026-09-05.txt": ["Weekly Sync", "===========", "# opened from here"].join("\n"),
-          "2026-09-03.txt": ["Weekly Sync", "===========", "# the pre-§150 answer"].join("\n"),
-        },
-        // Opened from 2026-09-05 — an earlier note than today. Before §150,
-        // "previous" meant "before the opened-from note", which would land
-        // on 2026-09-03. Relative to *today* (2026-09-07), the most recent
-        // earlier occurrence is 2026-09-05 itself — the very note the
-        // drawer was opened from.
-        session: { openTabs: ["2026-09-05.txt"], activeTab: "2026-09-05.txt" },
-      },
-    });
-    await editor(page).click();
-    await page.keyboard.press("ControlOrMeta+Home");
-    await page.keyboard.press("ControlOrMeta+Shift+H");
-
-    const panel = history(page).locator(".history-prev");
-    await expect(panel).toContainText("Previous occurrence · 2026-09-05");
-    await expect(panel).not.toContainText("2026-09-03");
-
-    // §150: the panel spans the full modal width now, not a left column
-    // shared with the list+preview split below it.
-    const panelBox = await panel.boundingBox();
-    const cardBox = await history(page).boundingBox();
-    expect(panelBox!.width).toBeGreaterThan(cardBox!.width * 0.9);
-  });
-
-  test("date headers are selectable — including a future occurrence and one with no actions — and update the From block (§150)", async ({
-    page,
-  }) => {
-    await seedApp(page, {
-      seed: {
-        notes: {
-          "2026-09-10.txt": ["Weekly Sync", "===========", "# a future item"].join("\n"),
-          [todayFilename()]: ["Weekly Sync", "===========", "nothing actionable yet"].join("\n"),
-          "2026-09-05.txt": ["Weekly Sync", "===========", "# an older item"].join("\n"),
-        },
-        session: { openTabs: [todayFilename()], activeTab: todayFilename() },
-      },
-    });
-    await editor(page).click();
-    await page.keyboard.press("ControlOrMeta+Home");
-    await page.keyboard.press("ControlOrMeta+Shift+H");
-
-    const list = history(page).locator(".modal-list");
-    // The future-dated occurrence is listed alongside past ones.
-    await expect(list).toContainText("2026-09-10");
-
-    // Today's occurrence has no actions of its own — a header showing a
-    // zero count, and a dimmed placeholder row instead of any item rows.
-    const todayHeader = list.locator(".modal-group-header", { hasText: "2026-09-07" });
-    await expect(todayHeader).toContainText("· 0");
-    await expect(list.locator(".modal-empty-inline")).toHaveText("No actions in this section");
-
-    // Clicking the header selects it — updating the From block — without
-    // jumping away or closing the drawer (unlike clicking an action row).
-    await todayHeader.click();
-    expect(await currentModal(page)).toBe("history");
-    const preview = history(page).locator(".history-preview");
-    await expect(preview).toContainText(`From ${todayFilename()}`);
-    await expect(preview.locator(".hp-context")).toContainText("nothing actionable yet");
-  });
-
-  test("the 'Only Open' toggle hides occurrences with no remaining open actions (§150)", async ({ page }) => {
-    await seedApp(page, {
-      seed: {
-        notes: {
-          [todayFilename()]: ["Standup", "=======", "# still open"].join("\n"),
-          "2026-09-05.txt": ["Standup", "=======", "v already done"].join("\n"),
-        },
-        session: { openTabs: [todayFilename()], activeTab: todayFilename() },
-      },
-    });
-    await editor(page).click();
-    await page.keyboard.press("ControlOrMeta+Home");
-    await page.keyboard.press("ControlOrMeta+Shift+H");
-
-    const list = history(page).locator(".modal-list");
-    await expect(list).toContainText("already done");
-
-    await history(page).getByText("Only Open", { exact: false }).click();
-    await expect(list).not.toContainText("2026-09-05");
-    await expect(list).not.toContainText("already done");
-    await expect(list).toContainText("still open");
-  });
-
-  test("the preview pane shows the source context, insert text and target (§109)", async ({ page }) => {
-    await seedApp(page, {
-      seed: {
-        notes: {
-          [todayFilename()]: "Standup\n====\nnothing here yet",
-          "2026-09-05.txt": "Standup\n====\n> chase the flaky test\nplain follow-up line",
-        },
-      },
-    });
-    await editor(page).click();
-    await page.keyboard.press("ControlOrMeta+Home");
-    await page.keyboard.press("ArrowDown"); // into the "Standup" section
-    await page.keyboard.press("ControlOrMeta+Shift+H");
-
-    const preview = history(page).locator(".history-preview");
-    await expect(preview).toBeVisible();
-
-    // hover the deferred action from the older note to select it (a click
-    // would jump to the source file instead)
-    await history(page).locator('.modal-item[role="option"]', { hasText: "chase the flaky test" }).hover();
-
-    await expect(preview).toContainText("From 2026-09-05.txt");
-    await expect(preview.locator(".hp-context")).toContainText("chase the flaky test");
-    // Shift+Enter rewrites a deferred `>` as a fresh open `#`
-    await expect(preview.locator(".hp-insert")).toHaveText("# chase the flaky test");
-    await expect(preview).toContainText(todayFilename());
+    await detailLine(page, "today's own item").click();
+    await expect(history(page).locator(".history-takeover-bar")).toHaveCount(0);
+    await expect(history(page)).toContainText("nothing to carry it over to");
   });
 
   test("#62: opens immediately with a spinner while the disk read is slow, then fills in", async ({ page }) => {
@@ -453,14 +420,12 @@ test.describe("section history (Ctrl/Cmd+Shift+H)", () => {
 
     // The drawer is open right away — no waiting on the disk read at all
     // (the fix for #62: "it takes a bit of time for the drawer to open").
-    // Both the header counter and the empty-list placeholder show their own
-    // spinner while loading.
     await expect(history(page)).toBeVisible({ timeout: 500 });
     await expect(history(page).locator(".modal-spinner")).toHaveCount(2);
     await expect(history(page).locator(".modal-empty")).toContainText("Loading history");
 
     await expect(history(page).locator(".modal-spinner")).toHaveCount(0, { timeout: 2000 });
-    await expect(history(page).locator(".modal-list")).toContainText("an older action");
+    await expect(history(page).locator(".modal-list")).toContainText("2026-09-05");
   });
 
   test("cursor outside any named section shows a toast, no drawer", async ({ page }) => {
@@ -473,7 +438,7 @@ test.describe("section history (Ctrl/Cmd+Shift+H)", () => {
     await expect(page.locator("#stat-message")).toContainText(/section/i);
   });
 
-  test("a long 'From' occurrence scrolls internally instead of growing the modal past 80% of the window (§154 follow-up)", async ({
+  test("a long occurrence body scrolls internally instead of growing the modal past 80% of the window (§154 follow-up)", async ({
     page,
   }) => {
     const longBody = Array.from({ length: 80 }, (_, i) => `line ${i + 1}`).join("\n");
@@ -493,19 +458,19 @@ test.describe("section history (Ctrl/Cmd+Shift+H)", () => {
     const viewportSize = page.viewportSize()!;
     expect(cardBox!.height).toBeLessThanOrEqual(viewportSize.height * 0.8 + 1);
 
-    const fromBody = card.locator(".hp-context");
-    const [scrollHeight, clientHeight] = await fromBody.evaluate((el) => [el.scrollHeight, el.clientHeight]);
+    const detailBody = card.locator(".hp-context");
+    const [scrollHeight, clientHeight] = await detailBody.evaluate((el) => [el.scrollHeight, el.clientHeight]);
     expect(scrollHeight).toBeGreaterThan(clientHeight);
   });
 
-  test("the action list fills its column height instead of stopping at a fixed size while the From column grows (#59)", async ({
+  test("the occurrence list fills its column height instead of stopping at a fixed size while the detail column grows (#59)", async ({
     page,
   }) => {
     // Enough recurring occurrences that the list is a real, busy one —
     // the shared `.modal-list` rule (used by Action Drawer/Search too)
     // caps at 380px, which used to apply here as well even though this
     // modal's own card can grow much taller (§155's 80vh cap), making
-    // the list look cut short next to the "From" column beside it.
+    // the list look cut short next to the detail column beside it.
     const notes: Record<string, string> = {};
     for (let i = 1; i <= 20; i++) {
       const d = `2026-08-${String(i).padStart(2, "0")}`;
@@ -522,15 +487,14 @@ test.describe("section history (Ctrl/Cmd+Shift+H)", () => {
 
     const card = history(page);
     await expect(card).toBeVisible();
-    const [mainBox, previewBox, listBox] = await Promise.all([
+    const [mainBox, detailBox, listBox] = await Promise.all([
       card.locator(".history-main").boundingBox(),
-      card.locator(".history-preview").boundingBox(),
+      card.locator(".history-detail").boundingBox(),
       card.locator(".modal-list").boundingBox(),
     ]);
-    // Same height as the "From" column right next to it...
-    expect(Math.abs(mainBox!.height - previewBox!.height)).toBeLessThanOrEqual(1);
-    // ...which the list itself (inside its own toolbar-topped column)
-    // only achieves by no longer being capped at 380px.
+    // Same height as the detail column right next to it...
+    expect(Math.abs(mainBox!.height - detailBox!.height)).toBeLessThanOrEqual(1);
+    // ...which the list itself only achieves by no longer being capped at 380px.
     expect(listBox!.height).toBeGreaterThan(380);
   });
 });

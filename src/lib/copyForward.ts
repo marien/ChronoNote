@@ -53,6 +53,35 @@ function matchKey(title: string): string {
   return titleForMatching(normalizeHeaderTitle(title.trim())).toLowerCase();
 }
 
+/** Where a copy-forward lands: a specific already-open tab (Section
+ * History's "here" destination, 2026-09-24 — always the tab the drawer was
+ * opened from, so it's never looked up by filename), or a dated file that
+ * may or may not be open yet (#66's original "next occurrence", and
+ * History's "Today"/"Next occurrence" destinations). */
+export type CopyTarget = { kind: "tab"; tabId: string } | { kind: "date"; dateIso: string };
+
+/** Whichever source is actually in use leads the "find the next occurrence"
+ * search, and is the *only* one tried (see this module's own top-of-file
+ * doc comment) — shared by `copySelectionToNextOccurrence` and Section
+ * History's own destination computation (`history.ts`), so both agree on
+ * what "next occurrence" means for the same section/anchor. Throws on a
+ * calendar read failure so each caller can decide how to surface it. */
+export async function findNextOccurrenceTarget(
+  anchorFilename: string,
+  targetHeader: string,
+  sourceHeaderDisplay: string,
+): Promise<{ date: string; headerText: string } | null> {
+  if (calendarLeadsSearch()) {
+    const anchorDate = anchorFilename.replace(/\.txt$/, "");
+    const pairs = await api.readAgendaAfter(anchorDate);
+    const match = pairs.find(([, title]) => matchKey(title) === targetHeader.toLowerCase());
+    return match ? { date: match[0], headerText: match[1] } : null; // the calendar's own title, verbatim
+  }
+  await refreshAllNotesCache();
+  const found = findNextSectionOccurrenceOnDisk(get(allNotesCache), targetHeader, anchorFilename);
+  return found ? { date: found.date, headerText: sourceHeaderDisplay } : null;
+}
+
 /** Whether calendar sync should lead the search for the active tab —
  * the same three-part gate the "Sync calendar for this day" button
  * already grays itself out on (Settings toggle, desktop only, the file
@@ -98,68 +127,86 @@ function insertIntoSection(content: string, targetHeader: string, newSectionHead
   return (trimmed ? trimmed + "\n\n\n" + block.join("\n") : block.join("\n")) + "\n";
 }
 
-/** Applies the actual copy once a target date is known — write the
- * (verbatim) selection into the target's section, and defer whatever
- * was open in the *source* selection (§64/§82/#67's exact rule: the
- * copy landing elsewhere stays open, the original gets marked deferred).
- * Never partially applies: the source defer and the target write happen
- * from the same known-good state, so a failure to read the (not yet
- * open) target file leaves the source untouched too. */
+/** Applies the actual copy once a target is known — write into the
+ * target's section (verbatim source lines, unless `insertLinesOverride`
+ * gives something else — Section History's "action only" choice, §4 of
+ * the design doc), and defer whatever was open in the *source* range
+ * (§64/§82/#67's exact rule: the copy landing elsewhere stays open, the
+ * original gets marked deferred). Never partially applies: the source
+ * defer and the target write happen from the same known-good state, so a
+ * failure to read the (not yet open) target file leaves the source
+ * untouched too.
+ *
+ * `sourceFilename` is looked up among open tabs first — if it's the active
+ * tab (or any open tab), the defer goes through the live editor exactly as
+ * before; if it isn't open at all (2026-09-24: a Section History
+ * take-over's source is often a note you're only browsing), it's read and
+ * written straight from/to disk instead, without opening a tab for it. */
 async function commitCopyForward(
-  sourceTabId: string,
+  sourceFilename: string,
   fromLine: number,
   toLine: number,
+  target: CopyTarget,
   targetHeader: string,
   newSectionHeaderText: string,
-  targetDateIso: string,
+  insertLinesOverride?: string[],
 ): Promise<void> {
   const list0 = get(tabs);
-  const srcTab = list0.find((t) => t.id === sourceTabId);
-  if (!srcTab) return;
+  const srcTab = list0.find((t) => t.filename === sourceFilename);
+  const srcContent = srcTab ? srcTab.content : await api.readNote(sourceFilename);
+  if (srcContent === null || srcContent === undefined) return;
 
-  const srcLines = srcTab.content.split("\n");
+  const srcLines = srcContent.split("\n");
   const selectedLines = srcLines.slice(fromLine, toLine + 1);
   const selectedText = selectedLines.join("\n");
   const deferredLines = deferOpenActionsInText(selectedText).split("\n");
+  const insertLines = insertLinesOverride ?? selectedLines;
 
-  const targetFilename = `${targetDateIso}.txt`;
   let list = list0;
-  const targetTab = list.find((t) => t.filename === targetFilename);
-  if (targetTab) {
-    const updated = insertIntoSection(targetTab.content, targetHeader, newSectionHeaderText, selectedLines);
+  if (target.kind === "tab") {
+    const targetTab = list.find((t) => t.id === target.tabId);
+    if (!targetTab) return;
+    const updated = insertIntoSection(targetTab.content, targetHeader, newSectionHeaderText, insertLines);
     list = writeTabContent(targetTab.id, updated, list);
   } else {
-    const existing = (await api.readNote(targetFilename)) ?? "";
-    const updated = insertIntoSection(existing, targetHeader, newSectionHeaderText, selectedLines);
-    await writeNoteAndInvalidateCache(targetFilename, updated);
+    const targetFilename = `${target.dateIso}.txt`;
+    const targetTab = list.find((t) => t.filename === targetFilename);
+    if (targetTab) {
+      const updated = insertIntoSection(targetTab.content, targetHeader, newSectionHeaderText, insertLines);
+      list = writeTabContent(targetTab.id, updated, list);
+    } else {
+      const existing = (await api.readNote(targetFilename)) ?? "";
+      const updated = insertIntoSection(existing, targetHeader, newSectionHeaderText, insertLines);
+      await writeNoteAndInvalidateCache(targetFilename, updated);
+    }
   }
 
   const newSrcLines = [...srcLines];
   newSrcLines.splice(fromLine, toLine - fromLine + 1, ...deferredLines);
-  list = writeTabContent(sourceTabId, newSrcLines.join("\n"), list);
-  tabs.set(list);
-
-  // #75: `writeTabContent` pushes the new text into the live editor via a
-  // full-document replace (`EditorApi.setContent`) — CodeMirror's default
-  // selection mapping for a change spanning the *entire* document
-  // collapses the old cursor to the very start of the new content, so
-  // without this the cursor (and the scroll position with it) jumped to
-  // line 1 instead of staying on the line that just got marked deferred.
-  // `deferOpenActionsInText` only ever swaps a symbol character, never
-  // adds/removes lines, so `fromLine` is still exactly where the deferred
-  // content landed. Only matters when the source is the active tab
-  // (always true from `copySelectionToNextOccurrence`'s own entry point,
-  // but `resolveCopyForwardPending` could in principle run after the user
-  // switched tabs while the date picker was open).
-  if (sourceTabId === get(activeTabId) && editorApi) {
-    editorApi.jumpToLine(fromLine);
+  if (srcTab) {
+    list = writeTabContent(srcTab.id, newSrcLines.join("\n"), list);
+    tabs.set(list);
+    // #75: `writeTabContent` pushes the new text into the live editor via a
+    // full-document replace (`EditorApi.setContent`) — CodeMirror's default
+    // selection mapping for a change spanning the *entire* document
+    // collapses the old cursor to the very start of the new content, so
+    // without this the cursor (and the scroll position with it) jumped to
+    // line 1 instead of staying on the line that just got marked deferred.
+    // `deferOpenActionsInText` only ever swaps a symbol character, never
+    // adds/removes lines, so `fromLine` is still exactly where the deferred
+    // content landed. Only matters when the source is the active tab.
+    if (srcTab.id === get(activeTabId) && editorApi) {
+      editorApi.jumpToLine(fromLine);
+    }
+  } else {
+    tabs.set(list);
+    await writeNoteAndInvalidateCache(sourceFilename, newSrcLines.join("\n"));
   }
 
   const n = countOpenActionsInText(selectedText);
+  const dest = target.kind === "tab" ? "here" : `to ${target.dateIso}`;
   showToast(
-    n > 0
-      ? `Copied to ${targetDateIso} — ${n} open ${n === 1 ? "action" : "actions"} marked deferred here.`
-      : `Copied to ${targetDateIso}.`,
+    n > 0 ? `Copied ${dest} — ${n} open ${n === 1 ? "action" : "actions"} marked deferred here.` : `Copied ${dest}.`,
   );
 }
 
@@ -189,41 +236,32 @@ export async function copySelectionToNextOccurrence(): Promise<void> {
     return;
   }
 
-  const anchorFilename = tab.filename;
-  const anchorDate = anchorFilename.replace(/\.txt$/, "");
-
-  let targetDate: string | null = null;
-  let newSectionHeaderText = sourceHeaderDisplay;
-  if (calendarLeadsSearch()) {
-    let pairs: [string, string][];
-    try {
-      pairs = await api.readAgendaAfter(anchorDate);
-    } catch (e) {
-      showToast(e instanceof Error ? e.message : "Couldn't read the calendar.");
-      return;
-    }
-    const match = pairs.find(([, title]) => matchKey(title) === targetHeader.toLowerCase());
-    if (match) {
-      targetDate = match[0];
-      newSectionHeaderText = match[1]; // the calendar's own title, verbatim
-    }
-  } else {
-    await refreshAllNotesCache();
-    const found = findNextSectionOccurrenceOnDisk(get(allNotesCache), targetHeader, anchorFilename);
-    targetDate = found?.date ?? null;
+  let found: { date: string; headerText: string } | null;
+  try {
+    found = await findNextOccurrenceTarget(tab.filename, targetHeader, sourceHeaderDisplay);
+  } catch (e) {
+    showToast(e instanceof Error ? e.message : "Couldn't read the calendar.");
+    return;
   }
 
-  if (targetDate) {
-    await commitCopyForward(tab.id, sel.fromLine, sel.toLine, targetHeader, newSectionHeaderText, targetDate);
+  if (found) {
+    await commitCopyForward(
+      tab.filename,
+      sel.fromLine,
+      sel.toLine,
+      { kind: "date", dateIso: found.date },
+      targetHeader,
+      found.headerText,
+    );
     return;
   }
 
   const pending: CopyForwardPending = {
-    sourceTabId: tab.id,
+    sourceFilename: tab.filename,
     fromLine: sel.fromLine,
     toLine: sel.toLine,
     targetHeader,
-    newSectionHeaderText,
+    newSectionHeaderText: sourceHeaderDisplay,
   };
   copyForwardPending.set(pending);
   modal.set("date");
@@ -238,11 +276,33 @@ export async function resolveCopyForwardPending(dateIso: string): Promise<void> 
   if (!pending) return;
   copyForwardPending.set(null);
   await commitCopyForward(
-    pending.sourceTabId,
+    pending.sourceFilename,
     pending.fromLine,
     pending.toLine,
+    { kind: "date", dateIso },
     pending.targetHeader,
     pending.newSectionHeaderText,
-    dateIso,
   );
+}
+
+/** Section History's "take it over" (2026-09-24 redesign,
+ * docs/design/section-history-browse-and-carry-forward-roadmap.md) —
+ * carries one or more lines from a browsed occurrence to a destination
+ * computed once when the drawer opened (`historyDestinations`). Unlike
+ * `copySelectionToNextOccurrence`, the source is a specific occurrence
+ * already in hand (no header/anchor lookup needed) and the target is
+ * already resolved (no search) — this only ever calls `commitCopyForward`
+ * directly, never falls back to the date picker. */
+export async function carryHistorySelectionForward(
+  sourceFilename: string,
+  fromLine: number,
+  toLine: number,
+  targetHeader: string,
+  destination: { kind: "here"; tabId: string } | { kind: "today" | "next"; date: string; headerText: string },
+  insertLinesOverride?: string[],
+): Promise<void> {
+  const target: CopyTarget =
+    destination.kind === "here" ? { kind: "tab", tabId: destination.tabId } : { kind: "date", dateIso: destination.date };
+  const newSectionHeaderText = destination.kind === "here" ? targetHeader : destination.headerText;
+  await commitCopyForward(sourceFilename, fromLine, toLine, target, targetHeader, newSectionHeaderText, insertLinesOverride);
 }

@@ -44,55 +44,33 @@ export interface ActionSnapshotItem {
   header: string;
 }
 
-export interface HistoryItem {
-  filename: string;
-  lineIdx: number;
-  /** The full source line (for the "From" context preview and jump). */
-  line: string;
-  /** #41: the single action this row represents — the leading action with
-   * its text taken up to the first ` => `, or a follow-up's inner action
-   * (`# text`) / plain follow-up (`=> text`). One source line can produce
-   * more than one `HistoryItem` when it carries both. This is what the
-   * row renders and what Shift+Enter inserts. */
-  action: string;
-  date: string;
-}
-
-/** #27/#33: the body of a recurring section as it stood at its previous
- * occurrence (the most recent dated note before *today*, §150) — a "what
- * did we cover last time" snapshot, glyph-rendered read-only in its own
- * pane, distinct from the deduped all-dates aggregate in the list below
- * it. */
-export interface PreviousSectionOccurrence {
-  filename: string;
-  date: string;
-  /** Section body lines, from just after the setext underline to just
-   * before the next section header (trailing blank lines dropped). */
-  lines: string[];
-  /** 0-based index of the first body line in the source file. */
-  startLineIdx: number;
-}
-
-/** §150: one dated note's rendition of a recurring section — every file
- * that has the section at all becomes one of these, whether or not it
- * carries any actions, so Section History's list can show a header (and,
- * for an empty one, a visual placeholder) for every occurrence, past or
- * future, not just the ones that happened to contribute a row. */
+/** One dated note's rendition of a recurring section — every file that has
+ * the section at all becomes one of these, whether or not it has any
+ * content, so Section History's occurrence list can show every occurrence,
+ * past or future, browsable the same way (2026-09-24 redesign: browsing full
+ * occurrences replaced the earlier flat, deduped action list). */
 export interface SectionOccurrence {
   filename: string;
   date: string;
   /** Full section body, from just after the setext underline to just
    * before the next section header (trailing blank lines dropped) — used
-   * to glyph-render the "From" preview in full, scrollable, regardless of
-   * which line (if any) is focused. */
+   * to glyph-render the occurrence in full, scrollable, in the drawer's
+   * preview pane. */
   lines: string[];
   /** 0-based index of the first body line in the source file. */
   startLineIdx: number;
-  /** This occurrence's own deduped action rows (a subset of the same
-   * global dedup `historyItems` applies — an action already shown at a
-   * more recent occurrence doesn't repeat here). May be empty. */
-  items: HistoryItem[];
 }
+
+/** Where a Section History "take it over" can land — computed once when
+ * the drawer opens, from the opened-from tab's own date (2026-09-24
+ * redesign, docs/design/section-history-browse-and-carry-forward-roadmap.md).
+ * `"here"` when the opened-from tab is today, in the future, or a
+ * scratchpad (no date to compare); otherwise `"today"` and, if one exists,
+ * `"next"` — never both `"here"` and `"today"/"next"` at once. */
+export type HistoryDestination =
+  | { kind: "here"; tabId: string; label: string }
+  | { kind: "today"; date: string; headerText: string; label: string }
+  | { kind: "next"; date: string; headerText: string; label: string };
 
 export interface SearchResultItem {
   /** Present when the source file is already open as a tab; absent for

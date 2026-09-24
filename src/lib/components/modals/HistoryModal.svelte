@@ -2,23 +2,13 @@
   import { onMount, tick } from "svelte";
   import * as controller from "../../controller";
   import { focusTrap } from "../../actions/focusTrap";
-  import {
-    activeTabId,
-    editorApi,
-    historyLoading,
-    historyOccurrences,
-    historyPreviousOccurrence,
-    historyShowOnlyOpen,
-    historyTargetHeader,
-    tabs,
-  } from "../../controller";
+  import { historyDestinations, historyLoading, historyOccurrences, historyOpenedFromTabId, historyTargetHeader, tabs } from "../../controller";
   import { closeOnOutsideClick } from "../../actions/closeOnOutsideClick";
   import { parseGlyphLine } from "../../editor/glyphLine";
-  import { groupHeaderLabel } from "../../ui/listFormat";
   import Icon from "../../icons/Icon.svelte";
-  import type { HistoryItem, SectionOccurrence } from "../../types";
+  import Segmented from "../Segmented.svelte";
+  import type { HistoryDestination, SectionOccurrence } from "../../types";
   import {
-    MODAL_HEADER_ROW_HEIGHT,
     MODAL_ITEM_ROW_HEIGHT,
     clampIndex,
     scrollToShow,
@@ -29,109 +19,105 @@
     type PlacedRow,
   } from "./virtualList";
 
-  // §150: a "no actions here" placeholder row is shorter than a real item
-  // row — just enough for one dimmed line, not a full action-row height.
-  const EMPTY_ROW_HEIGHT = 24;
-
   let selectedIndex = 0;
-
-  // #33: the "Previous occurrence" pane shows the first few lines by
-  // default with a toggle for the rest, so a long section doesn't crowd
-  // out the aggregate list below.
-  const PREV_CAP = 5;
-  let prevExpanded = false;
   let mobileTab: "list" | "preview" = "list";
 
-  // §150: one row per occurrence (a dated note that has the section at
-  // all) *and* one row per action within it — a header is now just as
-  // selectable as an action row, so browsing dates and reviewing specific
-  // actions share the same up/down navigation. "Only Open" (unobtrusive
-  // toggle, §150) filters both: an occurrence with zero remaining open
-  // actions drops out of the list entirely rather than showing empty.
-  $: filteredOccurrences = $historyOccurrences
-    .map((occ) =>
-      $historyShowOnlyOpen ? { ...occ, items: occ.items.filter((i) => controller.isOpenHistoryAction(i.action)) } : occ,
-    )
-    .filter((occ) => !$historyShowOnlyOpen || occ.items.length > 0);
+  // A contiguous line-range selection within the browsed occurrence, for
+  // "take it over" (§4 of the design doc) — absolute file line indices
+  // (`occ.startLineIdx`-relative), so they line up directly with
+  // `carryHistorySelectionForward`'s own `fromLine`/`toLine`. `selAnchor`
+  // is the line the selection started from, kept separate from the
+  // resulting range so a second Shift+click extends from where the
+  // selection *began*, not from wherever it currently ends.
+  let selAnchor: number | null = null;
+  let lineSelection: { from: number; to: number } | null = null;
+  let takeOverMode: "whole" | "action-only" = "whole";
 
-  $: totalActionCount = filteredOccurrences.reduce((n, occ) => n + occ.items.length, 0);
+  $: occurrences = $historyOccurrences;
+  $: selectedIndex = clampIndex(selectedIndex, occurrences.length);
+  $: selectedOcc = occurrences[selectedIndex] as SectionOccurrence | undefined;
+  $: openedFromFilename = $tabs.find((t) => t.id === $historyOpenedFromTabId)?.filename;
 
-  interface SelRow {
-    occ: SectionOccurrence;
-    item?: HistoryItem;
-  }
+  // A take-over from an occurrence into itself is a no-op at best (and, if
+  // it's the exact tab a "here" destination would write to, a real bug —
+  // the write order would clobber whichever of the two happened last) —
+  // simplest correct answer is to not offer it: there's nowhere meaningful
+  // to carry a line from this note to when this note is where it would land.
+  $: isOwnOccurrence = !!selectedOcc && selectedOcc.filename === openedFromFilename;
 
-  // The flat, keyboard-navigable selection order: a header stop for every
-  // occurrence, then one stop per action inside it.
-  $: selectableRows = ((): SelRow[] => {
-    const out: SelRow[] = [];
-    for (const occ of filteredOccurrences) {
-      out.push({ occ });
-      for (const item of occ.items) out.push({ occ, item });
-    }
-    return out;
-  })();
-  $: selectedIndex = clampIndex(selectedIndex, selectableRows.length);
-
-  // §42: open focused on whatever entry belongs to the currently active
-  // tab, instead of always starting at the top of the (most-recent-first)
-  // list — prefers a specific action row from that tab's occurrence, and
-  // falls back to the occurrence's own header when it has none (e.g.
-  // today's note already has the section but nothing in it yet).
-  //
-  // §127: focus lands on the list itself (a real `role="listbox"`, so
-  // it's a valid keyboard-nav target on its own) rather than on the title
-  // bar — the title used to be a `readonly` <input> purely so it could
-  // hold focus for arrow-key capture; now it's a plain heading (finding
-  // F) and the listbox is the more natural place for that anyway.
-  onMount(() => {
-    const active = $tabs.find((t) => t.id === $activeTabId);
-    if (active) {
-      let idx = selectableRows.findIndex((s) => s.item && s.occ.filename === active.filename);
-      if (idx === -1) idx = selectableRows.findIndex((s) => !s.item && s.occ.filename === active.filename);
-      if (idx !== -1) selectedIndex = idx;
-    }
+  onMount(async () => {
+    // §42 precedent: focus the occurrence that belongs to wherever the
+    // drawer was opened from, instead of always starting at the top of
+    // the (most-recent-first) list. `openMeetingHistory()` may still be
+    // filling `historyOccurrences` in when this mounts (§62) — wait one
+    // tick, which is enough for the synchronous part of that to have run;
+    // if the disk read is still genuinely in flight, this just falls back
+    // to the top of the list once it resolves, same as before §42 existed.
+    await tick();
+    const idx = occurrences.findIndex((o) => o.filename === openedFromFilename);
+    if (idx !== -1) selectedIndex = idx;
     listEl?.focus();
     scrollSelectedIntoView();
   });
 
-  // --- Virtualized rendering (§38) --- the row model this component owns
-  // is richer than Search / Action Drawer's (a header can itself be
-  // selected, and an actionless occurrence gets a placeholder row instead
-  // of items); the window math is still the shared `./virtualList`.
-  type RawRow =
-    | { type: "header"; key: string; occ: SectionOccurrence; selIndex: number; height: number; isFirst: boolean }
-    | { type: "item"; key: string; occ: SectionOccurrence; item: HistoryItem; selIndex: number; height: number }
-    | { type: "empty"; key: string; height: number };
-  type Row = RawRow & PlacedRow;
+  // Reset the line selection whenever the browsed occurrence changes —
+  // it's meaningless carried over to a different occurrence's lines.
+  let lastSelectedFilename: string | undefined;
+  $: if (selectedOcc?.filename !== lastSelectedFilename) {
+    lastSelectedFilename = selectedOcc?.filename;
+    selAnchor = null;
+    lineSelection = null;
+    takeOverMode = "whole";
+  }
 
+  $: singleLineActionOnly =
+    selectedOcc && lineSelection && lineSelection.from === lineSelection.to
+      ? controller.historyActionOnlyText(selectedOcc.lines[lineSelection.from - selectedOcc.startLineIdx])
+      : null;
+  $: if (!singleLineActionOnly && takeOverMode === "action-only") takeOverMode = "whole";
+
+  function clickLine(abs: number, shiftKey: boolean) {
+    if (shiftKey && selAnchor !== null) {
+      lineSelection = { from: Math.min(selAnchor, abs), to: Math.max(selAnchor, abs) };
+    } else {
+      selAnchor = abs;
+      lineSelection = { from: abs, to: abs };
+    }
+  }
+
+  async function takeOver(dest: HistoryDestination) {
+    if (!selectedOcc || !lineSelection) return;
+    const sourceLines = selectedOcc.lines.slice(
+      lineSelection.from - selectedOcc.startLineIdx,
+      lineSelection.to - selectedOcc.startLineIdx + 1,
+    );
+    const insertLines = controller.historyTakeOverLines(sourceLines, takeOverMode);
+    const destArg =
+      dest.kind === "here"
+        ? ({ kind: "here", tabId: dest.tabId } as const)
+        : ({ kind: dest.kind, date: dest.date, headerText: dest.headerText } as const);
+    await controller.carryHistorySelectionForward(
+      selectedOcc.filename,
+      lineSelection.from,
+      lineSelection.to,
+      $historyTargetHeader,
+      destArg,
+      insertLines,
+    );
+    selAnchor = null;
+    lineSelection = null;
+    await controller.refreshHistoryOccurrences();
+  }
+
+  // --- Virtualized rendering (§38) — the left list is now one row per
+  // occurrence (no more per-action sub-rows), so the shared row model from
+  // `./virtualList` is simpler here than Action Drawer/Search's own use of
+  // it, but kept for consistency in case a long-running daily section ever
+  // makes the occurrence count itself worth virtualizing.
+  type RawRow = { key: string; occ: SectionOccurrence; index: number; height: number };
+  type Row = RawRow & PlacedRow;
   $: rows = withTops<RawRow>(
-    ((): RawRow[] => {
-      const out: RawRow[] = [];
-      let isFirst = true;
-      let selIdx = 0;
-      for (const occ of filteredOccurrences) {
-        out.push({ type: "header", key: `h-${occ.filename}`, occ, selIndex: selIdx, height: MODAL_HEADER_ROW_HEIGHT, isFirst });
-        selIdx++;
-        isFirst = false;
-        if (occ.items.length === 0) {
-          out.push({ type: "empty", key: `e-${occ.filename}`, height: EMPTY_ROW_HEIGHT });
-        } else {
-          for (const item of occ.items) {
-            out.push({
-              type: "item",
-              key: `i-${occ.filename}-${item.lineIdx}-${item.action}`,
-              occ,
-              item,
-              selIndex: selIdx,
-              height: MODAL_ITEM_ROW_HEIGHT,
-            });
-            selIdx++;
-          }
-        }
-      }
-      return out;
-    })(),
+    occurrences.map((occ, index) => ({ key: occ.filename, occ, index, height: MODAL_ITEM_ROW_HEIGHT })),
   ) as Row[];
   $: totalHeight = stackHeight(rows);
 
@@ -148,62 +134,34 @@
 
   function scrollSelectedIntoView() {
     if (!listEl) return;
-    const row = rows.find((r) => (r.type === "header" || r.type === "item") && r.selIndex === selectedIndex);
+    const row = rows.find((r) => r.index === selectedIndex);
     if (!row) return;
     const next = scrollToShow(row, listEl.scrollTop, viewportHeight);
     if (next !== null) listEl.scrollTop = next;
     scrollTop = listEl.scrollTop;
   }
 
-  // §109/§150: the right-hand "From" preview for whatever's selected —
-  // header or item both resolve to an occurrence, so the block always has
-  // something to show; only an item selection also has a specific line to
-  // focus and an action to offer for import.
-  $: selected = selectableRows[selectedIndex] as SelRow | undefined;
-  $: fromOcc = selected?.occ;
-  $: fromItem = selected?.item;
-  $: activeTab = $tabs.find((t) => t.id === $activeTabId);
-  $: insertText = fromItem ? controller.historyInsertText(fromItem.action) : "";
-  $: insertRewritten = !!fromItem && insertText !== fromItem.action;
-  $: cursorLineNo = (editorApi?.getCursorLineIdx() ?? 0) + 1;
-
-  // §150: the From block shows the *entire* occurrence body (glyph-
-  // rendered, scrollable) rather than a fixed ±2-line window, so it keeps
-  // its own focus-then-scroll step — jump straight to the selected
-  // action's line when there is one, back to the top for a header-only
-  // selection. `tick()` first since the lines for a newly selected
-  // occurrence haven't painted yet when this reactive block runs.
-  let fromBodyEl: HTMLDivElement;
-  $: scrollFromBodyToHit(fromOcc, fromItem);
-  async function scrollFromBodyToHit(occ: SectionOccurrence | undefined, item: HistoryItem | undefined) {
+  let bodyEl: HTMLDivElement;
+  $: scrollBodyToTop(selectedOcc);
+  async function scrollBodyToTop(_occ: SectionOccurrence | undefined) {
     await tick();
-    if (!fromBodyEl) return;
-    if (!item) {
-      fromBodyEl.scrollTop = 0;
-      return;
-    }
-    const el = fromBodyEl.querySelector(`[data-line-idx="${item.lineIdx}"]`);
-    el?.scrollIntoView({ block: "center" });
+    if (bodyEl) bodyEl.scrollTop = 0;
   }
 
   function onKeydown(e: KeyboardEvent) {
     if (e.key === "ArrowDown") {
       e.preventDefault();
-      selectedIndex = wrapIndex(selectedIndex, selectableRows.length, 1);
+      selectedIndex = wrapIndex(selectedIndex, occurrences.length, 1);
       scrollSelectedIntoView();
     } else if (e.key === "ArrowUp") {
       e.preventDefault();
-      selectedIndex = wrapIndex(selectedIndex, selectableRows.length, -1);
+      selectedIndex = wrapIndex(selectedIndex, occurrences.length, -1);
       scrollSelectedIntoView();
-    } else if (e.key === "Enter" && e.shiftKey) {
-      e.preventDefault();
-      const sel = selectableRows[selectedIndex];
-      if (sel?.item) controller.importHistoricalItem(sel.item.action);
     } else if (e.key === "Enter") {
       e.preventDefault();
-      const sel = selectableRows[selectedIndex];
-      if (sel?.item) controller.jumpToHistoryItem(sel.item);
-      else if (sel) controller.jumpToHistoryOccurrence(sel.occ);
+      if (selectedOcc) {
+        controller.jumpToHistoryLine(selectedOcc, lineSelection ? lineSelection.from : undefined);
+      }
     } else if (e.key === "Escape") {
       controller.closeAllModals();
     }
@@ -220,16 +178,11 @@
   >
     <div class="modal-input-wrap modal-title">
       <Icon name="section-history" size={15} />
-      <!-- §127 (finding F): a plain heading, not a `readonly` <input>
-           faking one — the listbox below is the keyboard-nav target now. -->
       <div class="modal-input">Section History: "{$historyTargetHeader}"</div>
       {#if $historyLoading}
         <span class="modal-counter"><span class="modal-spinner" aria-label="Loading">⟳</span> Loading…</span>
       {:else}
-        <span class="modal-counter"
-          >{totalActionCount} {totalActionCount === 1 ? "action" : "actions"} · {filteredOccurrences.length}
-          {filteredOccurrences.length === 1 ? "date" : "dates"}</span
-        >
+        <span class="modal-counter">{occurrences.length} {occurrences.length === 1 ? "date" : "dates"}</span>
       {/if}
       <button
         type="button"
@@ -240,61 +193,19 @@
         <Icon name="close" size={14} />
       </button>
     </div>
-    {#if $historyPreviousOccurrence}
-      {@const po = $historyPreviousOccurrence}
-      {@const shown = prevExpanded ? po.lines : po.lines.slice(0, PREV_CAP)}
-      <!-- §150: full modal width — this is the headline "what did we
-           cover last time" snapshot, not part of either column below. -->
-      <section class="history-prev" aria-label="Previous occurrence">
-        <div class="po-head">
-          <span class="po-title">Previous occurrence · {po.date}</span>
-          <button class="po-jump" on:click={() => controller.jumpToPreviousOccurrence()}>Open file</button>
-        </div>
-        <div class="po-body">
-          {#each shown as line}
-            <div class="po-line">{#each parseGlyphLine(line) as part}<span class={part.cls ?? ""}>{part.text}</span>{/each}</div>
-          {/each}
-        </div>
-        {#if po.lines.length > PREV_CAP}
-          <button class="po-more" on:click={() => (prevExpanded = !prevExpanded)}>
-            {prevExpanded ? "Show fewer" : `Show all ${po.lines.length} lines`}
-          </button>
-        {/if}
-      </section>
-    {/if}
+
     <!-- §194: Mobile tab switcher for viewports <= 680px -->
     <div class="history-mobile-tabs">
-      <button
-        type="button"
-        class="history-tab-btn"
-        class:active={mobileTab === "list"}
-        on:click={() => (mobileTab = "list")}
-      >
-        History ({filteredOccurrences.length})
+      <button type="button" class="history-tab-btn" class:active={mobileTab === "list"} on:click={() => (mobileTab = "list")}>
+        Occurrences ({occurrences.length})
       </button>
-      <button
-        type="button"
-        class="history-tab-btn"
-        class:active={mobileTab === "preview"}
-        on:click={() => (mobileTab = "preview")}
-      >
+      <button type="button" class="history-tab-btn" class:active={mobileTab === "preview"} on:click={() => (mobileTab = "preview")}>
         Preview
       </button>
     </div>
 
     <div class="history-body" class:show-list={mobileTab === "list"} class:show-preview={mobileTab === "preview"}>
       <div class="history-main">
-        <div class="history-list-toolbar">
-          <!-- §150: attached directly to the list it filters (not up in
-               the drawer's title row) — a single small switch, off by
-               default (this drawer is for browsing everything, unlike
-               the Action Drawer's worklist). -->
-          <label class="toggle-switch">
-            <input type="checkbox" bind:checked={$historyShowOnlyOpen} />
-            <span class="toggle-switch-track"></span>
-            Only Open
-          </label>
-        </div>
         <div
           class="modal-list"
           role="listbox"
@@ -307,136 +218,87 @@
         >
           {#if $historyLoading}
             <div class="modal-empty"><span class="modal-spinner" aria-label="Loading">⟳</span> Loading history…</div>
-          {:else if filteredOccurrences.length === 0}
-            <div class="modal-empty">
-              {$historyShowOnlyOpen
-                ? "No open actions in any occurrence."
-                : "No prior occurrences found across open or closed notes."}
-            </div>
+          {:else if occurrences.length === 0}
+            <div class="modal-empty">No prior occurrences found across open or closed notes.</div>
           {/if}
           <div style="position: relative; height: {totalHeight}px;">
             {#each visibleRows as row (row.key)}
-              {#if row.type === "header"}
-                <div
-                  class="modal-group-header selectable {row.selIndex === selectedIndex ? 'selected' : ''}"
-                  role="option"
-                  aria-selected={row.selIndex === selectedIndex}
-                  tabindex="0"
-                  style="position: absolute; top: {row.top}px; left: 0; right: 0; height: {row.height}px; border-top: {row.isFirst
-                    ? 'none'
-                    : '1px solid var(--border)'};"
-                  on:click={() => {
-                    selectedIndex = row.selIndex;
-                    mobileTab = "preview";
-                  }}
-                  on:mouseenter={() => (selectedIndex = row.selIndex)}
-                  on:keydown={(e) => e.key === "Enter" && controller.jumpToHistoryOccurrence(row.occ)}
-                >
-                  {groupHeaderLabel(row.occ.date, row.occ.items.length)}
-                </div>
-              {:else if row.type === "item"}
-                {@const it = row.item}
-                <div
-                  class="modal-item {row.selIndex === selectedIndex ? 'selected' : ''}"
-                  role="option"
-                  aria-selected={row.selIndex === selectedIndex}
-                  tabindex="0"
-                  style="position: absolute; top: {row.top}px; left: 0; right: 0; height: {row.height}px;"
-                  on:click={() => {
-                    selectedIndex = row.selIndex;
-                    if (typeof window !== "undefined" && window.innerWidth <= 680) {
-                      mobileTab = "preview";
-                    } else {
-                      controller.jumpToHistoryItem(it);
-                    }
-                  }}
-                  on:mouseenter={() => (selectedIndex = row.selIndex)}
-                  on:keydown={(e) => e.key === "Enter" && controller.jumpToHistoryItem(it)}
-                >
-                  <div class="modal-item-main history-item-line">
-                    {#each parseGlyphLine(it.action) as part}<span class={part.cls ?? ""}>{part.text}</span>{/each}
-                  </div>
-                  <div class="item-tag">Ln {it.lineIdx + 1}</div>
-                </div>
-              {:else}
-                <div
-                  class="modal-empty-inline"
-                  style="position: absolute; top: {row.top}px; left: 0; right: 0; height: {row.height}px;"
-                >
-                  No actions in this section
-                </div>
-              {/if}
+              <div
+                class="modal-group-header selectable {row.index === selectedIndex ? 'selected' : ''}"
+                role="option"
+                aria-selected={row.index === selectedIndex}
+                tabindex="0"
+                style="position: absolute; top: {row.top}px; left: 0; right: 0; height: {row.height}px;"
+                on:click={() => {
+                  selectedIndex = row.index;
+                  mobileTab = "preview";
+                }}
+                on:mouseenter={() => (selectedIndex = row.index)}
+                on:keydown={(e) => e.key === "Enter" && controller.jumpToHistoryLine(row.occ)}
+              >
+                <span>{row.occ.date}</span>
+                {#if row.occ.lines.filter((l) => l.trim() !== "").length === 0}
+                  <span class="history-occ-empty">no content yet</span>
+                {/if}
+              </div>
             {/each}
           </div>
         </div>
       </div>
 
-      <aside class="history-preview" aria-label="Preview">
-        {#if fromOcc}
-          <div class="hp-section hp-section-grow">
-            <div class="hp-label">From {fromOcc.filename}</div>
-            <div class="hp-context" bind:this={fromBodyEl}>
-              {#if fromOcc.lines.length === 0}
-                <div class="hp-line hp-muted">(nothing in this section yet)</div>
-              {:else}
-                {#each fromOcc.lines as line, i}
-                  {@const lineIdx = fromOcc.startLineIdx + i}
-                  <div class="hp-line" class:hp-hit={fromItem?.lineIdx === lineIdx} data-line-idx={lineIdx}>
-                    {#each parseGlyphLine(line) as part}<span class={part.cls ?? ""}>{part.text}</span>{/each}
-                  </div>
-                {/each}
-              {/if}
-            </div>
+      <div class="history-detail">
+        {#if selectedOcc}
+          <div class="history-detail-head">
+            <span class="hp-label">{selectedOcc.filename}</span>
+            <button class="po-jump" on:click={() => controller.jumpToHistoryLine(selectedOcc, lineSelection?.from)}>Open file</button>
           </div>
-          {#if fromItem}
-            <div class="hp-section">
-              <div class="hp-label">Shift+Enter inserts</div>
-              <pre class="hp-insert">{insertText}</pre>
-              {#if insertRewritten}
-                <div class="hp-note">Deferred <kbd>&gt;</kbd> becomes a fresh open <kbd>#</kbd> in this note.</div>
+          <div class="hp-context history-select-body" bind:this={bodyEl}>
+            {#if selectedOcc.lines.length === 0}
+              <div class="hp-line hp-muted">(nothing in this section yet)</div>
+            {:else}
+              {#each selectedOcc.lines as line, i}
+                {@const abs = selectedOcc.startLineIdx + i}
+                {@const inSel = !!lineSelection && abs >= lineSelection.from && abs <= lineSelection.to}
+                <div
+                  class="hp-line history-select-line {inSel ? 'history-line-selected' : ''}"
+                  role="option"
+                  aria-selected={inSel}
+                  tabindex="0"
+                  on:click={(e) => clickLine(abs, e.shiftKey)}
+                  on:keydown={(e) => e.key === "Enter" && clickLine(abs, e.shiftKey)}
+                >
+                  {#each parseGlyphLine(line) as part}<span class={part.cls ?? ""}>{part.text}</span>{/each}
+                </div>
+              {/each}
+            {/if}
+          </div>
+          {#if lineSelection && !isOwnOccurrence}
+            <div class="history-takeover-bar">
+              {#if singleLineActionOnly}
+                <Segmented
+                  options={[
+                    { value: "whole", label: "Whole line" },
+                    { value: "action-only", label: "Action only" },
+                  ]}
+                  value={takeOverMode}
+                  onChange={(v) => (takeOverMode = v as "whole" | "action-only")}
+                />
               {/if}
+              {#each $historyDestinations as dest}
+                <button type="button" class="icon-btn btn-primary" on:click={() => takeOver(dest)}>{dest.label}</button>
+              {/each}
             </div>
-            <div class="hp-section">
-              <div class="hp-label">Target</div>
-              <div class="hp-target">
-                → at your cursor in <strong>{activeTab?.filename ?? "the active note"}</strong> (line {cursorLineNo})
-              </div>
-            </div>
-            <div class="hp-actions-row">
-              <button
-                type="button"
-                class="icon-btn btn-primary hp-action-btn"
-                on:click={() => controller.importHistoricalItem(fromItem.action)}
-              >
-                Import Action
-              </button>
-              <button
-                type="button"
-                class="icon-btn hp-action-btn"
-                on:click={() => controller.jumpToHistoryItem(fromItem)}
-              >
-                Open Note
-              </button>
-            </div>
-          {:else if fromOcc}
-            <div class="hp-actions-row">
-              <button
-                type="button"
-                class="icon-btn btn-primary hp-action-btn"
-                on:click={() => controller.jumpToHistoryOccurrence(fromOcc)}
-              >
-                Open Note
-              </button>
-            </div>
+          {:else if isOwnOccurrence}
+            <div class="hp-note">This is the note you opened History from — nothing to carry it over to.</div>
           {/if}
         {:else}
-          <div class="hp-empty">Select an entry to preview it.</div>
+          <div class="hp-empty">Select an occurrence to browse it.</div>
         {/if}
-      </aside>
+      </div>
     </div>
 
     <div class="modal-footer">
-      <div><kbd>Enter</kbd> Jump to source file · <kbd>Shift+Enter</kbd> Import action into note</div>
+      <div><kbd>Enter</kbd> Jump to source file · Click a line, or Shift+click to extend, then pick a destination</div>
       <div><kbd>Esc</kbd> Close</div>
     </div>
   </div>

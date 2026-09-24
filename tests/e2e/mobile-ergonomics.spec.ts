@@ -102,15 +102,15 @@ test.describe("mobile ergonomics & modal reflow (Area 5.4, 5.5, 6)", () => {
 
     await expect(listTabBtn).toHaveClass(/\bactive\b/);
     const historyMain = modal.locator(".history-main");
-    const historyPreview = modal.locator(".history-preview");
+    const historyDetail = modal.locator(".history-detail");
 
     await expect(historyMain).toBeVisible();
-    await expect(historyPreview).toBeHidden();
+    await expect(historyDetail).toBeHidden();
 
     // Switch to Preview
     await previewTabBtn.click();
     await expect(previewTabBtn).toHaveClass(/\bactive\b/);
-    await expect(historyPreview).toBeVisible();
+    await expect(historyDetail).toBeVisible();
     await expect(historyMain).toBeHidden();
 
     await page.keyboard.press("Escape");

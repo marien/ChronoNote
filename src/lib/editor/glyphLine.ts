@@ -26,7 +26,7 @@ export function glyphForSymbol(sym: string): GlyphPart {
 }
 
 /** Turn one plain-text line into the sequence of styled parts a read-only
- * viewer (the Section History "Previous occurrence" pane, #33) should
+ * viewer (Section History's occurrence body, #33) should
  * render — the same token → glyph mapping the editor's `glyphs.ts` does,
  * but as plain spans instead of CodeMirror decorations, and with the
  * token's trailing space folded into a literal gap after the glyph so

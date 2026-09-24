@@ -1,11 +1,11 @@
 # Section History: browse occurrences in context, carry lines forward — design
 
-Status: **design approved, ready for implementation.** Written 2026-09-24
-at Marien's request, after using the current (§150-era) Section History
-drawer for a while: "What I realize when using it, is that I don't use the
-action list itself, I use it to move between occurrences, and check the
-actual notes, including actions, so I can see actions and follow-ups in
-context." All three open decisions (§8) confirmed the same day.
+Status: **implemented, 2026-09-24 (`docs/CHANGELOG.md` §211).** Written the
+same day at Marien's request, after using the current (§150-era) Section
+History drawer for a while: "What I realize when using it, is that I don't
+use the action list itself, I use it to move between occurrences, and check
+the actual notes, including actions, so I can see actions and follow-ups in
+context." All three open decisions (§8) confirmed and built the same day.
 
 ## 1. What's changing, in one sentence
 
