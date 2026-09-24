@@ -66,6 +66,40 @@ test.describe("tab archetypes (§103)", () => {
     expect(await iconColor(pastTab)).not.toBe(await iconColor(futureTab));
   });
 
+  test("#96: the selected tab's top border follows its own past/today/future color, not a fixed accent", async ({
+    page,
+  }) => {
+    const past = "2026-09-05.txt";
+    const future = "2026-09-10.txt";
+    await seedApp(page, {
+      seed: {
+        notes: { [past]: "old", [todayFilename()]: "today", [future]: "later" },
+        session: { openTabs: [past, todayFilename(), future], activeTab: past },
+      },
+    });
+
+    const pastTab = page.locator("#tab-bar .tab.daily.past");
+    const todayTab = page.locator("#tab-bar .tab.daily.today");
+    const futureTab = page.locator("#tab-bar .tab.daily.future");
+    const borderColor = (loc: typeof pastTab) => loc.evaluate((el) => getComputedStyle(el).boxShadow);
+
+    // Past is active first: its own border, not the "today" accent color.
+    await expect(pastTab).toHaveClass(/active/);
+    const pastActiveBorder = await borderColor(pastTab);
+
+    await todayTab.click();
+    await expect(todayTab).toHaveClass(/active/);
+    const todayActiveBorder = await borderColor(todayTab);
+
+    await futureTab.click();
+    await expect(futureTab).toHaveClass(/active/);
+    const futureActiveBorder = await borderColor(futureTab);
+
+    expect(pastActiveBorder).not.toBe(todayActiveBorder);
+    expect(todayActiveBorder).not.toBe(futureActiveBorder);
+    expect(pastActiveBorder).not.toBe(futureActiveBorder);
+  });
+
   test("middle-click closes a tab (§110)", async ({ page }) => {
     await seedApp(page, { seed: "busy-week" });
     const before = await page.locator("#tab-bar .tab").count();

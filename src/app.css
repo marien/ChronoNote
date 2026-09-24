@@ -460,6 +460,17 @@ body {
   opacity: 1;
   color: var(--state-ok);
 }
+/* #96: `.tab.active`'s top border (below) defaults to `--tab-active-border`,
+   the same color `.tab.today .tab-icon` already uses — so a selected
+   today-tab needs no override. A selected past/future tab's border is
+   brought in line with its own icon's color above, instead of always
+   showing the "today" accent regardless of which tab is actually active. */
+.tab.active.past {
+  box-shadow: inset 0 2px 0 color-mix(in srgb, var(--muted) 45%, transparent);
+}
+.tab.active.future {
+  box-shadow: inset 0 2px 0 var(--state-ok);
+}
 /* A small dot beside the tab label. Deliberately quiet: `mem` (grey) just
    marks a scratchpad as memory-only, `err` (red) is the only attention-
    grabbing state — a normal autosave shows nothing at all. */
