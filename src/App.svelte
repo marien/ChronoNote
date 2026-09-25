@@ -154,6 +154,14 @@
         return;
       }
 
+      // A modal owns the keyboard while it's open — none of these should
+      // reach the app underneath (found via a real bug report: Ctrl+Tab
+      // switched the active tab while Section History was open, and the
+      // arrow keys then acted on that now-stale editor instead of the
+      // modal). `commandPalette`/`findInNote` above already gate the same
+      // way; this closes the same hole for every other entry in the table.
+      if (get(modal) !== "none") return;
+
       // `openShortcutsHelp`'s two combos (Ctrl/Cmd+/ and +Shift+/) both
       // land here — `openGlyphLegend` and `openShortcutsHelp` are the
       // same `modal.set("shortcuts")` today (the combined Shortcuts &
