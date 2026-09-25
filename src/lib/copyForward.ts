@@ -162,45 +162,78 @@ async function commitCopyForward(
   const deferredLines = deferOpenActionsInText(selectedText).split("\n");
   const insertLines = insertLinesOverride ?? selectedLines;
 
+  if (target.kind === "tab" && !list0.find((t) => t.id === target.tabId)) return;
+  const targetFilename =
+    target.kind === "tab" ? list0.find((t) => t.id === target.tabId)!.filename : `${target.dateIso}.txt`;
+
   let list = list0;
-  if (target.kind === "tab") {
-    const targetTab = list.find((t) => t.id === target.tabId);
-    if (!targetTab) return;
-    const updated = insertIntoSection(targetTab.content, targetHeader, newSectionHeaderText, insertLines);
-    list = writeTabContent(targetTab.id, updated, list);
+
+  // 2026-09-26: a real bug, found via Section History — the target can be
+  // the very file the source range is being deferred in (e.g. browsing
+  // today's own occurrence while "Today" is offered as a destination, or
+  // opened from today with the "here" destination browsing that same
+  // note). Handling it as two independent read-modify-writes below would
+  // have each one start from the *same* pre-edit content and write back
+  // over the same file — whichever finished last would win outright,
+  // silently discarding the other's edit (the reported symptom was the
+  // insertion vanishing, keeping only the source's own deferred-line
+  // change). One combined edit on one piece of content instead: the
+  // insertion always lands after the source range (it's appended at the
+  // end of the section, and the source range is always lines *within*
+  // that section), so the original `fromLine`/`toLine` are still valid
+  // once applied to the already-inserted content.
+  if (targetFilename === sourceFilename) {
+    const withInsertion = insertIntoSection(srcContent, targetHeader, newSectionHeaderText, insertLines);
+    const finalLines = withInsertion.split("\n");
+    finalLines.splice(fromLine, toLine - fromLine + 1, ...deferredLines);
+    const finalContent = finalLines.join("\n");
+    if (srcTab) {
+      list = writeTabContent(srcTab.id, finalContent, list);
+      tabs.set(list);
+      if (srcTab.id === get(activeTabId) && editorApi) {
+        editorApi.jumpToLine(fromLine);
+      }
+    } else {
+      await writeNoteAndInvalidateCache(sourceFilename, finalContent);
+    }
   } else {
-    const targetFilename = `${target.dateIso}.txt`;
-    const targetTab = list.find((t) => t.filename === targetFilename);
-    if (targetTab) {
+    if (target.kind === "tab") {
+      const targetTab = list.find((t) => t.id === target.tabId)!;
       const updated = insertIntoSection(targetTab.content, targetHeader, newSectionHeaderText, insertLines);
       list = writeTabContent(targetTab.id, updated, list);
     } else {
-      const existing = (await api.readNote(targetFilename)) ?? "";
-      const updated = insertIntoSection(existing, targetHeader, newSectionHeaderText, insertLines);
-      await writeNoteAndInvalidateCache(targetFilename, updated);
+      const targetTab = list.find((t) => t.filename === targetFilename);
+      if (targetTab) {
+        const updated = insertIntoSection(targetTab.content, targetHeader, newSectionHeaderText, insertLines);
+        list = writeTabContent(targetTab.id, updated, list);
+      } else {
+        const existing = (await api.readNote(targetFilename)) ?? "";
+        const updated = insertIntoSection(existing, targetHeader, newSectionHeaderText, insertLines);
+        await writeNoteAndInvalidateCache(targetFilename, updated);
+      }
     }
-  }
 
-  const newSrcLines = [...srcLines];
-  newSrcLines.splice(fromLine, toLine - fromLine + 1, ...deferredLines);
-  if (srcTab) {
-    list = writeTabContent(srcTab.id, newSrcLines.join("\n"), list);
-    tabs.set(list);
-    // #75: `writeTabContent` pushes the new text into the live editor via a
-    // full-document replace (`EditorApi.setContent`) — CodeMirror's default
-    // selection mapping for a change spanning the *entire* document
-    // collapses the old cursor to the very start of the new content, so
-    // without this the cursor (and the scroll position with it) jumped to
-    // line 1 instead of staying on the line that just got marked deferred.
-    // `deferOpenActionsInText` only ever swaps a symbol character, never
-    // adds/removes lines, so `fromLine` is still exactly where the deferred
-    // content landed. Only matters when the source is the active tab.
-    if (srcTab.id === get(activeTabId) && editorApi) {
-      editorApi.jumpToLine(fromLine);
+    const newSrcLines = [...srcLines];
+    newSrcLines.splice(fromLine, toLine - fromLine + 1, ...deferredLines);
+    if (srcTab) {
+      list = writeTabContent(srcTab.id, newSrcLines.join("\n"), list);
+      tabs.set(list);
+      // #75: `writeTabContent` pushes the new text into the live editor via a
+      // full-document replace (`EditorApi.setContent`) — CodeMirror's default
+      // selection mapping for a change spanning the *entire* document
+      // collapses the old cursor to the very start of the new content, so
+      // without this the cursor (and the scroll position with it) jumped to
+      // line 1 instead of staying on the line that just got marked deferred.
+      // `deferOpenActionsInText` only ever swaps a symbol character, never
+      // adds/removes lines, so `fromLine` is still exactly where the deferred
+      // content landed. Only matters when the source is the active tab.
+      if (srcTab.id === get(activeTabId) && editorApi) {
+        editorApi.jumpToLine(fromLine);
+      }
+    } else {
+      tabs.set(list);
+      await writeNoteAndInvalidateCache(sourceFilename, newSrcLines.join("\n"));
     }
-  } else {
-    tabs.set(list);
-    await writeNoteAndInvalidateCache(sourceFilename, newSrcLines.join("\n"));
   }
 
   const n = countOpenActionsInText(selectedText);

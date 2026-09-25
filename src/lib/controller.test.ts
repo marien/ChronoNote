@@ -1501,6 +1501,50 @@ describe("carryHistorySelectionForward (2026-09-24 redesign, Section History tak
     // ...but only the extracted action lands in the target.
     expect(get(controller.tabs).find((t) => t.id === "here")!.content).toBe("Sync\n====\n# follow up");
   });
+
+  // 2026-09-26: a real bug, found in chat — opened from a past note,
+  // browsing *today's own* occurrence while "Today" is offered as a
+  // destination writes source and target to the very same file. Two
+  // independent read-modify-writes (defer the source; insert into the
+  // target) would each start from the same pre-edit content and race to
+  // write it back — whichever finished last would silently discard the
+  // other's edit. Confirmed as the exact reported symptom before the fix:
+  // the insertion never landed, only the source's own deferred-line edit
+  // did.
+  it("target and source are the same open tab: one combined edit, not a clobber", async () => {
+    controller.tabs.set([tab({ id: "today", filename: "2026-09-12.txt", content: "Sync\n====\n# renew the cert" })]);
+    await controller.carryHistorySelectionForward(
+      "2026-09-12.txt",
+      2,
+      2,
+      "sync",
+      { kind: "today", date: "2026-09-12", headerText: "Sync" },
+      ["# renew the cert"],
+    );
+    expect(get(controller.tabs).find((t) => t.id === "today")!.content).toBe(
+      "Sync\n====\n> renew the cert\n\n# renew the cert",
+    );
+  });
+
+  it("target and source are the same file, neither open as a tab: a single write, not two", async () => {
+    controller.tabs.set([]);
+    apiMock.readNote.mockImplementation(async (filename: string) =>
+      filename === "2026-08-01.txt" ? "Sync\n====\n# an old action" : null,
+    );
+    await controller.carryHistorySelectionForward(
+      "2026-08-01.txt",
+      2,
+      2,
+      "sync",
+      { kind: "next", date: "2026-08-01", headerText: "Sync" },
+      ["# an old action"],
+    );
+    expect(apiMock.writeNote).toHaveBeenCalledTimes(1);
+    expect(apiMock.writeNote).toHaveBeenCalledWith(
+      "2026-08-01.txt",
+      "Sync\n====\n> an old action\n\n# an old action",
+    );
+  });
 });
 
 describe("calendarSyncActions (.agenda.json)", () => {

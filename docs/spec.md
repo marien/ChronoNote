@@ -269,12 +269,12 @@ Every modal dialog conforms to a standardized 4-tier sizing scale, universal dis
    * `.modal-sm` (440px): Compact single-choice prompts (`AboutModal`, `SafetyModal`, `UnsavedScratchpadsModal`, `MigrateNotesModal`).
    * `.modal-md` (560px): Standard single-column settings and form views (`SettingsModal`, `ConflictModal`, `SyncConflictsModal`, `CommandPaletteModal`).
    * `.modal-lg` (720px): Multi-column list views and table searches (`ActionDrawerModal`, `SearchModal`, `CalendarSyncReviewModal`, `OneDriveFolderPickerModal`).
-   * `.modal-xl` (880px): Deep data inspectors and dual-column browsers (`HistoryModal`, `ShortcutsModal`).
-2. **Universal Dismiss Affordance:** Every dialog except the disk-conflict one (which needs an explicit choice) provides a monoline `✕` icon button (`.modal-close-btn`, 32×32px, expanded to 44×44px hit-box under coarse pointers) in the top-right corner, ensuring clear, accessible exit affordance for mouse and touch users alike.
+   * `.modal-xl` (880px): Deep data inspectors and wide single-column browsers (`HistoryModal`, `ShortcutsModal`).
+2. **Universal Dismiss Affordance:** Every dialog except the disk-conflict one (which needs an explicit choice) provides a monoline `✕` icon button (`.modal-close-btn`, 26×26px, expanded to 44×44px hit-box under coarse pointers) in the top-right corner, ensuring clear, accessible exit affordance for mouse and touch users alike. The title/search row itself (`.modal-input-wrap`) is a tight ~42px regardless of which modal it belongs to.
 3. **Command Palette Mobile Chips:** Prefix filter indicators (`>`, `!`, `@`, `?`) render as interactive tap-chips (`.palette-chip`) allowing quick mode changes on touch screens. Under mobile viewports and coarse pointers, desktop keyboard navigation footers and shortcut hint tags are suppressed.
 4. **Adaptive Multi-Column Layouts (≤ 680px / ≤ 520px):**
    * `ShortcutsModal`: Reflows side-by-side columns into a top segmented switcher (`[ Shortcuts ] [ Glyphs & Symbols ]`) with touch-friendly row heights.
-   * `HistoryModal`: Reflows into an adaptive tab switcher (`[ History List ] [ Occurrence Preview ]`) where selecting an item immediately activates the preview pane with quick action buttons ("Import Action", "Open Note").
+   * `HistoryModal`: its occurrence strip and note body are already a single column (a horizontal tab strip above a full-width body, §213) — nothing to reflow at any width.
    * `SyncConflictsModal`: Replaces side-by-side split on small screens with a segmented view switcher (`[ Side-by-Side ] [ This Device ] [ OneDrive ]`).
    * `CalendarSyncReviewModal`: Reflows removal rows into a stacked two-row card.
 5. **Mobile Ergonomics & Dynamic Floating Toast:** On mobile form factors (`$isMobile`), transient messages float below the top bar in a pill banner (`.mobile-toast`, `role="status"`, `aria-live="polite"`), avoiding interference from on-screen keyboards. Modals and popovers feature dark mode luminance borders with inset highlights (`box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 16px 44px rgba(0, 0, 0, 0.5)`).
@@ -426,9 +426,15 @@ reachable from the top bar, a shortcut, or the command palette:
   source, the same rule copy/paste forwarding and `Ctrl/Cmd+Shift+.`
   already use; a deferred line taken over is re-adopted as a fresh open
   action. A single line shaped `prose => action` also offers "Whole line"
-  vs. "Action only" (just the action, dropping the prose). Browsing the
-  note the drawer was opened from offers no take-over — nothing to carry it
-  to. Like every modal, it owns the keyboard while open — no shortcut
+  vs. "Action only" (just the action, dropping the prose). A destination is
+  hidden whenever it would just write back to the file already being
+  browsed — not only the note History was opened from (browsing *that* is
+  fine when the destinations are elsewhere, e.g. opened from a past note
+  offering "Today"), but also, symmetrically, browsing today's own
+  occurrence while "Today" is offered, or a future occurrence that happens
+  to be the computed "next occurrence." If every computed destination is
+  hidden this way, nothing is offered at all. Like every modal, it owns the
+  keyboard while open — no shortcut
   (Ctrl/Cmd+Tab included) reaches the app underneath until it's closed.
 - **Cross-Tab Search** (`Ctrl/Cmd+Shift+F`) — full-text search across
   either the open tabs or every file, same open-tabs/all-files toggle as

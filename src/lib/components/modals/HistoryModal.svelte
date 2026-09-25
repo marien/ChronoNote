@@ -40,12 +40,31 @@
   $: selectedOcc = occurrences[selectedIndex] as SectionOccurrence | undefined;
   $: openedFromFilename = $tabs.find((t) => t.id === $historyOpenedFromTabId)?.filename;
 
-  // A take-over from an occurrence into itself is a no-op at best (and, if
-  // it's the exact tab a "here" destination would write to, a real bug —
-  // the write order would clobber whichever of the two happened last) —
-  // simplest correct answer is to not offer it: there's nowhere meaningful
-  // to carry a line from this note to when this note is where it would land.
-  $: isOwnOccurrence = !!selectedOcc && selectedOcc.filename === openedFromFilename;
+  /** The file a destination would actually write to — "here" always
+   * targets the tab History was opened from, "today"/"next" a specific
+   * date. Used to filter `$historyDestinations` down to ones that aren't
+   * just pointing back at the occurrence currently being browsed. */
+  function destinationFilename(dest: HistoryDestination): string | undefined {
+    return dest.kind === "here" ? openedFromFilename : `${dest.date}.txt`;
+  }
+
+  // 2026-09-26: replaces a blanket "no take-over at all when browsing the
+  // note History was opened from" rule with a per-destination check — that
+  // rule was both too broad and, in one shape, silently wrong. Too broad:
+  // opened from a *past* note, its own occurrence is a perfectly good
+  // source to forward from — "Today"/"Next occurrence" are different files
+  // entirely, so there's something real to carry it to. Wrong the other
+  // way: browsing *today's own* occurrence while "Today" is offered as a
+  // destination is exactly as self-referential as the case the old rule
+  // caught, but the old rule only compared against the opened-from
+  // filename, not each destination's own target — so it let that one
+  // through, and writing a take-over's source and target to the very same
+  // file raced two separate read-modify-write passes against each other,
+  // silently dropping the insertion and keeping only the source's own
+  // deferred-line edit (a real, reported bug, not just a UX rough edge).
+  $: usableDestinations = selectedOcc
+    ? $historyDestinations.filter((d) => destinationFilename(d) !== selectedOcc!.filename)
+    : [];
 
   /** #68/#96 precedent, applied to the occurrence strip: a date's own
    * relationship to today, independent of whether it's the one currently
@@ -241,14 +260,14 @@
       // The keyboard equivalent of clicking the primary take-over button
       // (chat feedback: "move to a line with the arrows, select multiple
       // lines if needed, press shortcut to insert into section on main
-      // tab") — always the *first* destination `$historyDestinations`
-      // offers, which is always the nearest one (the note History was
-      // opened from, or "Today" when browsing from further in the past).
-      // A no-op with nothing selected or on the drawer's own opened-from
-      // occurrence, same as the button itself being absent then.
+      // tab") — always the *first* of `usableDestinations`, which is
+      // always the nearest one (the note History was opened from, or
+      // "Today" when browsing from further in the past). A no-op with
+      // nothing selected or no usable destination for this occurrence,
+      // same as the button itself being absent then.
       e.preventDefault();
-      if (lineSelection && !isOwnOccurrence && $historyDestinations[0]) {
-        takeOver($historyDestinations[0]);
+      if (lineSelection && usableDestinations[0]) {
+        takeOver(usableDestinations[0]);
       }
     } else if (e.key === "Enter") {
       e.preventDefault();
@@ -350,7 +369,7 @@
               {/each}
             {/if}
           </div>
-          {#if lineSelection && !isOwnOccurrence}
+          {#if lineSelection && usableDestinations.length > 0}
             <div class="history-takeover-bar">
               {#if singleLineActionOnly}
                 <Segmented
@@ -362,7 +381,7 @@
                   onChange={(v) => (takeOverMode = v as "whole" | "action-only")}
                 />
               {/if}
-              {#each $historyDestinations as dest}
+              {#each usableDestinations as dest}
                 <button type="button" class="icon-btn btn-primary" on:click={() => takeOver(dest)}>{dest.label}</button>
               {/each}
               <span class="history-takeover-hint">
@@ -370,8 +389,8 @@
                 occurrence, not deleted.
               </span>
             </div>
-          {:else if isOwnOccurrence}
-            <div class="hp-note">This is the note you opened History from — nothing to carry it over to.</div>
+          {:else if usableDestinations.length === 0}
+            <div class="hp-note">There's nowhere else to carry this over to from this occurrence.</div>
           {/if}
         {:else}
           <div class="hp-empty">Select an occurrence to browse it.</div>
@@ -383,8 +402,8 @@
       <div>
         <kbd>↑/↓</kbd> Select line · <kbd>Shift+↑/↓</kbd> Extend · <kbd>←/→</kbd> Switch date ·
         <kbd>Enter</kbd> Jump to source · <kbd>Dbl-click</kbd> a date to jump there
-        {#if lineSelection && !isOwnOccurrence && $historyDestinations[0]}
-          · <kbd>Shift+Enter</kbd> {$historyDestinations[0].label}
+        {#if lineSelection && usableDestinations[0]}
+          · <kbd>Shift+Enter</kbd> {usableDestinations[0].label}
         {/if}
       </div>
       <div><kbd>Esc</kbd> Close</div>

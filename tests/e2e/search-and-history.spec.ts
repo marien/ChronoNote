@@ -273,9 +273,10 @@ test.describe("section history (Ctrl/Cmd+Shift+H)", () => {
     await seedApp(page, {
       seed: {
         notes: {
-          // Opened from here — browsing a *different*, earlier occurrence
-          // below is what should offer destinations at all (browsing the
-          // opened-from note itself never does — nothing to carry it to).
+          // Opened from here — a different, earlier occurrence below also
+          // offers both destinations (they're different files from either
+          // one), and so does this note itself (see the dedicated
+          // "opened from a past note: browsing that same note" test below).
           "2026-09-01.txt": "Standup\n====\nsomething from today's own past note",
           "2026-08-25.txt": "Standup\n====\n# an old item",
           "2026-09-10.txt": "Standup\n====\n", // the next occurrence, already on disk
@@ -296,6 +297,115 @@ test.describe("section history (Ctrl/Cmd+Shift+H)", () => {
     await bar.getByRole("button", { name: "Add to today" }).click();
     await expect.poll(() => mockNote(page, todayFilename())).toContain("# an old item");
     await expect.poll(() => mockNote(page, "2026-08-25.txt")).toContain("> an old item");
+  });
+
+  // 2026-09-26 bug fix: the old rule disabled *all* take-over whenever the
+  // browsed occurrence was the one History was opened from — right when
+  // "here" is also that occurrence (opened from today/future/scratchpad),
+  // wrong when opened from the past, where "Today"/"Next occurrence" are
+  // different files entirely and there's something real to forward to. It
+  // also missed the mirror-image bug: browsing *today's own* occurrence
+  // while "Today" is offered is exactly as self-referential, but wasn't
+  // caught at all — reported as "selecting lines on today... does not copy
+  // them but does mark an open action as deferred" (the self-write raced
+  // two edits against the same file and silently dropped the insertion).
+  test("bug fix: opened from a past note — that note's own lines can be forwarded to today; today's own lines get no self-referential button", async ({
+    page,
+  }) => {
+    await seedApp(page, {
+      seed: {
+        notes: {
+          "2026-09-01.txt": "Standup\n====\n# old item",
+          [todayFilename()]: "Standup\n====\n# today item",
+        },
+        session: { openTabs: ["2026-09-01.txt"], activeTab: "2026-09-01.txt" },
+      },
+    });
+    await editor(page).click();
+    await page.keyboard.press("ControlOrMeta+Home");
+    await page.keyboard.press("ControlOrMeta+Shift+H");
+
+    // Browsing the very note History was opened from: "Add to today" is a
+    // different file, so it's offered and actually copies the line.
+    await detailLine(page, "old item").click();
+    await expect(history(page).getByRole("button", { name: "Add to today" })).toBeVisible();
+    await history(page).getByRole("button", { name: "Add to today" }).click();
+    await expect.poll(() => mockNote(page, "2026-09-01.txt")).toContain("> old item");
+    await expect.poll(() => mockNote(page, todayFilename())).toContain("# old item");
+
+    // Browsing today's own occurrence: "Add to today" would write source
+    // and target to the same file, so it's not offered at all (the only
+    // destination here, so the bar disappears entirely).
+    await occRow(page, todayFilename().replace(".txt", "")).click();
+    await detailLine(page, "today item").click();
+    await expect(history(page).locator(".history-takeover-bar")).toHaveCount(0);
+    await expect(history(page)).toContainText("nowhere else to carry this over to");
+  });
+
+  test("opened from a past note, a section already exists today: 'Add to next occurrence' is never offered (Today already covers it)", async ({
+    page,
+  }) => {
+    await seedApp(page, {
+      seed: {
+        notes: {
+          "2026-09-01.txt": "Standup\n====\nold prose",
+          [todayFilename()]: "Standup\n====\n# today item",
+          "2026-09-20.txt": "Standup\n====\n# future item",
+        },
+        session: { openTabs: ["2026-09-01.txt"], activeTab: "2026-09-01.txt" },
+      },
+    });
+    await editor(page).click();
+    await page.keyboard.press("ControlOrMeta+Home");
+    await page.keyboard.press("ControlOrMeta+Shift+H");
+
+    // Browsing the opened-from note: Today is a different file, offered;
+    // Next occurrence was never computed at all (the search stops at the
+    // first match after the anchor, which is today).
+    await detailLine(page, "old prose").click();
+    let bar = history(page).locator(".history-takeover-bar");
+    await expect(bar.getByRole("button", { name: "Add to today" })).toBeVisible();
+    await expect(bar.getByRole("button", { name: /Add to next occurrence/ })).toHaveCount(0);
+
+    // Browsing today's own occurrence: the only destination there ever was
+    // is "Today" itself, so nothing is left to offer.
+    await occRow(page, todayFilename().replace(".txt", "")).click();
+    await detailLine(page, "today item").click();
+    await expect(history(page).locator(".history-takeover-bar")).toHaveCount(0);
+    await expect(history(page)).toContainText("nowhere else to carry this over to");
+
+    // Browsing the future occurrence: Today is still a different file.
+    await occRow(page, "2026-09-20").click();
+    await detailLine(page, "future item").click();
+    bar = history(page).locator(".history-takeover-bar");
+    await expect(bar.getByRole("button", { name: "Add to today" })).toBeVisible();
+  });
+
+  test("opened from a past note, only a future occurrence exists (no section today yet): browsing it hides 'Add to next occurrence' but keeps 'Add to today'", async ({
+    page,
+  }) => {
+    await seedApp(page, {
+      seed: {
+        notes: {
+          "2026-09-01.txt": "Standup\n====\nold prose",
+          "2026-09-20.txt": "Standup\n====\n# future item",
+        },
+        session: { openTabs: ["2026-09-01.txt"], activeTab: "2026-09-01.txt" },
+      },
+    });
+    await editor(page).click();
+    await page.keyboard.press("ControlOrMeta+Home");
+    await page.keyboard.press("ControlOrMeta+Shift+H");
+
+    // Today has no section yet, so it isn't in the strip at all — only the
+    // opened-from date and the future one are.
+    await expect(history(page).locator(".history-occ-tab")).toHaveCount(2);
+
+    await occRow(page, "2026-09-20").click();
+    await detailLine(page, "future item").click();
+    const bar = history(page).locator(".history-takeover-bar");
+    await expect(bar.getByRole("button", { name: "Add to today" })).toBeVisible();
+    await expect(bar.getByRole("button", { name: /Add to next occurrence/ })).toHaveCount(0);
   });
 
   test("Shift+click extends the selection to a range; the whole range is taken over together", async ({ page }) => {
@@ -400,7 +510,7 @@ test.describe("section history (Ctrl/Cmd+Shift+H)", () => {
 
     await detailLine(page, "today's own item").click();
     await expect(history(page).locator(".history-takeover-bar")).toHaveCount(0);
-    await expect(history(page)).toContainText("nothing to carry it over to");
+    await expect(history(page)).toContainText("nowhere else to carry this over to");
   });
 
   test("#62: opens immediately with a spinner while the disk read is slow, then fills in", async ({ page }) => {

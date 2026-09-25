@@ -1,7 +1,15 @@
 # Section History: browse occurrences in context, carry lines forward — design
 
 Status: **implemented, 2026-09-24 (`docs/CHANGELOG.md` §211), then revised
-2026-09-25 (§212), then again 2026-09-25 (§213)** after real use. §212: the
+2026-09-25 (§212), then again 2026-09-25 (§213), then a real bug fix
+2026-09-26 (§214)** after real use. §214: `isOwnOccurrence` (a blanket
+"no take-over from the note History was opened from" rule) is gone,
+replaced with `usableDestinations` — a per-destination check against
+whatever file the browsed occurrence itself is, which is both more
+permissive where the old rule was wrong (opened from a past note, its own
+occurrence has real destinations to forward to) and catches a case the old
+rule missed entirely (browsing today's own occurrence while "Today" is
+offered), which had been silently corrupting the target write. §212: the
 vertical occurrence list became a compact horizontal tab strip (dots
 included), line selection gained a full keyboard model
 (arrows/Shift+arrows/Left+Right) and mouse click-drag, and a general
