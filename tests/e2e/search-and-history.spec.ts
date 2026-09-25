@@ -15,6 +15,12 @@ const search = (page: Page) => modalCard(page, MODAL_LABELS.search);
 const history = (page: Page) => modalCard(page, MODAL_LABELS.history);
 const rows = (m: ReturnType<typeof search>) => m.locator('.modal-item[role="option"]');
 
+/** Status bar reads "Ln N, Col C" (1-based) — see open-action-nav.spec.ts. */
+async function cursorLine(page: Page): Promise<number> {
+  const t = (await page.locator("#stat-pos").textContent()) ?? "";
+  return Number(t.match(/Ln\s+(\d+)/)?.[1] ?? 0);
+}
+
 test.describe("cross-tab search (Ctrl/Cmd+Shift+F)", () => {
   test("matches lines across open tabs and jumps on Enter", async ({ page }) => {
     await seedApp(page, { seed: "delegation" });
@@ -271,6 +277,12 @@ test.describe("section history (Ctrl/Cmd+Shift+H)", () => {
     await expect(detailLine(page, "renew the cert")).toContainText("»"); // deferred glyph
     await expect.poll(() => mockNote(page, "2026-09-05.txt")).toContain("> renew the cert");
     await expect.poll(() => mockNote(page, todayFilename())).toBe("Standup\n====\n- prior notes\n\n# renew the cert");
+    // 2026-09-28 bug fix: the target tab (today, active here) is a *different*
+    // file from the source, so `writeTabContent`'s full-document replace has
+    // nothing else to restore the caret from — it used to collapse to line 1
+    // instead of landing on the line the content actually landed on (line 5:
+    // Standup/====/prior notes/blank/renew the cert).
+    await expect.poll(() => cursorLine(page)).toBe(5);
   });
 
   test("opened from a past note: selecting a line offers 'Add to today' and 'Add to next occurrence'", async ({ page }) => {

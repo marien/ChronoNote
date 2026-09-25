@@ -2428,8 +2428,19 @@ textarea.modal-input.import-textarea {
  * occurrence a slot duplicates, purely for styling/testing — an
  * occurrence that's both (opened from today) gets one merged slot with
  * both classes, not two overlapping duplicates. */
+/* `.history-occ-strip-row`'s `align-items: stretch` only centers a child
+ * that has no explicit cross-size of its own — `.history-occ-tab`'s fixed
+ * `height: 26px` overrides that stretch and falls back to `flex-start`
+ * (per the flexbox spec), which pinned this duplicate to the *top* of the
+ * row instead of level with the rest of the tab strip (the real in-strip
+ * tabs look right only because `.history-occ-strip` itself stretches full
+ * height and re-centers *its own* children with `align-items: center`,
+ * a step a `.pinned-slot` — a direct sibling of that strip, not a child of
+ * it — never goes through). `align-self: center` puts it back on the same
+ * row as everything else. */
 .history-occ-tab.pinned-slot {
   border: 1px solid var(--edge-soft);
+  align-self: center;
 }
 /* Mirrors the date picker's own `.cal-day` completion dots exactly
  * (`computeDayHeat`/`occurrenceHeat`) — the same colors mean the same

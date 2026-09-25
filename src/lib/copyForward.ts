@@ -101,7 +101,17 @@ function calendarLeadsSearch(): boolean {
  * otherwise — `newSectionHeaderText` is what that new header reads (see
  * this module's own doc comment for which text that is, depending on
  * where the target date came from). */
-function insertIntoSection(content: string, targetHeader: string, newSectionHeaderText: string, newLines: string[]): string {
+/** Returns the new content plus `insertedAtLine` — the line index (into
+ * the returned content) where the first *pasted* line actually landed, so
+ * a caller inserting into the currently active tab can restore the caret
+ * there instead of leaving it wherever `EditorApi.setContent`'s default
+ * full-document-replace selection mapping collapses it to (line 0). */
+function insertIntoSection(
+  content: string,
+  targetHeader: string,
+  newSectionHeaderText: string,
+  newLines: string[],
+): { content: string; insertedAtLine: number } {
   const fileLines = content.split("\n");
   const body = extractSectionBody(fileLines, targetHeader);
   if (body) {
@@ -120,11 +130,18 @@ function insertIntoSection(content: string, targetHeader: string, newSectionHead
     // that's the existing separator before that section, not ours to
     // touch.
     const afterIsPurelyTrailing = after.every((l) => l.trim() === "");
-    return [...fileLines.slice(0, insertAt), ...insertion, ...(afterIsPurelyTrailing ? [] : after)].join("\n");
+    return {
+      content: [...fileLines.slice(0, insertAt), ...insertion, ...(afterIsPurelyTrailing ? [] : after)].join("\n"),
+      insertedAtLine: insertAt + (hasExistingContent ? 1 : 0),
+    };
   }
   const block = [newSectionHeaderText, underlineFor(newSectionHeaderText), ...newLines];
   const trimmed = content.replace(/\s+$/, "");
-  return (trimmed ? trimmed + "\n\n\n" + block.join("\n") : block.join("\n")) + "\n";
+  const lead = trimmed ? trimmed + "\n\n\n" : "";
+  return {
+    content: lead + block.join("\n") + "\n",
+    insertedAtLine: lead.split("\n").length - 1 + 2, // + header + underline
+  };
 }
 
 /** Applies the actual copy once a target is known — write into the
@@ -184,7 +201,7 @@ async function commitCopyForward(
   // once applied to the already-inserted content.
   if (targetFilename === sourceFilename) {
     const withInsertion = insertIntoSection(srcContent, targetHeader, newSectionHeaderText, insertLines);
-    const finalLines = withInsertion.split("\n");
+    const finalLines = withInsertion.content.split("\n");
     finalLines.splice(fromLine, toLine - fromLine + 1, ...deferredLines);
     const finalContent = finalLines.join("\n");
     if (srcTab) {
@@ -200,16 +217,28 @@ async function commitCopyForward(
     if (target.kind === "tab") {
       const targetTab = list.find((t) => t.id === target.tabId)!;
       const updated = insertIntoSection(targetTab.content, targetHeader, newSectionHeaderText, insertLines);
-      list = writeTabContent(targetTab.id, updated, list);
+      list = writeTabContent(targetTab.id, updated.content, list);
+      // The target and source are different tabs here, so unlike the
+      // same-file branch above, `writeTabContent`'s full-document replace
+      // has nothing else to restore the caret from — without this it
+      // collapses to line 0 whenever the *target* (not just the source)
+      // happens to be the currently active tab, e.g. taking over into
+      // "here" while History was opened from that very note.
+      if (targetTab.id === get(activeTabId) && editorApi) {
+        editorApi.jumpToLine(updated.insertedAtLine);
+      }
     } else {
       const targetTab = list.find((t) => t.filename === targetFilename);
       if (targetTab) {
         const updated = insertIntoSection(targetTab.content, targetHeader, newSectionHeaderText, insertLines);
-        list = writeTabContent(targetTab.id, updated, list);
+        list = writeTabContent(targetTab.id, updated.content, list);
+        if (targetTab.id === get(activeTabId) && editorApi) {
+          editorApi.jumpToLine(updated.insertedAtLine);
+        }
       } else {
         const existing = (await api.readNote(targetFilename)) ?? "";
         const updated = insertIntoSection(existing, targetHeader, newSectionHeaderText, insertLines);
-        await writeNoteAndInvalidateCache(targetFilename, updated);
+        await writeNoteAndInvalidateCache(targetFilename, updated.content);
       }
     }
 
