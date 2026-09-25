@@ -3,7 +3,15 @@
 Status: **implemented, 2026-09-24 (`docs/CHANGELOG.md` §211), then revised
 2026-09-25 (§212), then again 2026-09-25 (§213), then a real bug fix
 2026-09-26 (§214), then more real-use fixes 2026-09-27 (§215), then a
-same-day correction to one of those fixes (§216)** after real use. §216:
+same-day correction to one of those fixes (§216), then a follow-up
+replacing §215's pinning mechanism entirely (§217)** after real use. §217:
+Marien rejected §215's `position: sticky` pinned tabs outright — "should
+not hover over the tab bar. Shrink the tab bar instead" — so the pinned
+today/opened-from tabs are now a genuine layout reflow: a small duplicate
+"pinned slot" renders as an ordinary flex sibling of the scrollable strip,
+appearing only once the real tab has scrolled out of view and narrowing
+the strip's own available width to make room for itself, rather than a
+`z-index`ed overlay floating above whatever's scrolling underneath. §216:
 §215's "visually connect the active tab to the content" turned out to make
 an active-but-past tab nearly unreadable ("gray on gray") — the matched
 background (`--surface-canvas`) is actually *darker* than the strip's own

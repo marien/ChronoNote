@@ -412,9 +412,11 @@ reachable from the top bar, a shortcut, or the command palette:
   never reads as harder to see than an unselected one. The selected tab's
   bottom corners square off, connecting it visually to the note body below
   without depending on a background color match; the occurrence dated
-  today and the one History was opened from each stay pinned in view
-  (`position: sticky`) no matter how far you browse away from them in
-  either direction. No filename is shown anywhere (the
+  today and the one History was opened from each stay pinned in view no
+  matter how far you browse away from them in either direction — a small
+  duplicate "pinned slot" reflows into the strip's own row (narrowing the
+  scrollable strip to make room) once the real tab scrolls out of view,
+  rather than floating over it. No filename is shown anywhere (the
   selected tab already names the date); double-clicking a tab jumps
   straight to that section and closes the drawer. The selected occurrence's
   *entire* body renders below,

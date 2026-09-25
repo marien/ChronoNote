@@ -42,11 +42,9 @@
 
   // Chat feedback: "keep today's tab button and destination section tab
   // button always in view in the tab bar, even when moving to earlier or
-  // later dates" — these two indices drive `.pinned-today`/`.pinned-source`
-  // (sticky-positioned to the strip's left/right edge in `app.css`) so
-  // browsing far away from either one never scrolls it out of reach. `-1`
-  // (no match) is a legitimate, common case — e.g. no section exists today
-  // yet — and simply means nothing gets that treatment.
+  // later dates" — these two indices identify which occurrence (if any)
+  // each one is. `-1` (no match) is a legitimate, common case — e.g. no
+  // section exists today yet — and simply means nothing gets pinned.
   $: todayOccIndex = occurrences.findIndex((o) => o.date === $currentDateISO);
   $: openedFromOccIndex = occurrences.findIndex((o) => o.filename === openedFromFilename);
 
@@ -107,9 +105,31 @@
     focusOpenedFromOccurrence();
   }
 
+  /** Waits until the strip's own tab buttons actually match `occurrences`
+   * — found by tracing a real bug: a single `await tick()` isn't always
+   * enough here. `openMeetingHistory()` sets `historyOccurrences` (which
+   * this component reacts to) *before* `historyLoading` flips back to
+   * `false` — a fast mock can settle both within the same handful of
+   * microtasks, so a fixed one- or two-tick wait sometimes ran with the
+   * loading-spinner branch of the template still mounted (zero tabs in
+   * the DOM), leaving `selectedIndex` set correctly but nothing to
+   * scroll to yet. Polling for the real tab count is robust regardless of
+   * how many Svelte update cycles it actually takes to land. */
+  async function waitForStripRendered() {
+    for (let i = 0; i < 5; i++) {
+      if (stripEl && stripEl.querySelectorAll("[data-occ-index]").length === occurrences.length) return;
+      await tick();
+    }
+  }
+
   async function focusOpenedFromOccurrence() {
     const idx = occurrences.findIndex((o) => o.filename === openedFromFilename);
     if (idx !== -1) selectedIndex = idx;
+    await waitForStripRendered();
+    // Settle whether the scroll arrows are showing *before* scrolling —
+    // measuring/scrolling against a strip that's about to narrow (once
+    // the arrows appear) would land the wrong scroll position.
+    updateStripOverflow();
     await tick();
     scrollOccIntoView();
   }
@@ -136,7 +156,7 @@
     // itself) catches a *content* change (more/fewer tabs) that doesn't
     // necessarily resize the strip's own box at all.
     if (stripEl) {
-      stripResizeObserver = new ResizeObserver(() => updateStripOverflow());
+      stripResizeObserver = new ResizeObserver(() => refreshStripChrome());
       stripResizeObserver.observe(stripEl);
     }
   });
@@ -263,6 +283,13 @@
       block: "nearest",
       inline: "nearest",
     });
+    // `scrollIntoView` with no `behavior` is an instant jump — the new
+    // scroll position is already final by the time this line runs, so
+    // this can safely recompute pin visibility (and overflow, in case
+    // content changed too) synchronously rather than waiting on the
+    // `scroll` event (which a smooth scroll, e.g. `scrollOccStrip`, still
+    // needs — see the strip's own `on:scroll`).
+    refreshStripChrome();
   }
 
   // Chat feedback: "I miss the left and right buttons that the main tab
@@ -277,19 +304,143 @@
     if (stripEl) stripOverflowing = stripEl.scrollWidth > stripEl.clientWidth + 1;
   }
 
-  $: refreshStripOverflow(occurrences);
-  async function refreshStripOverflow(_occs: SectionOccurrence[]) {
-    await tick();
+  /** Chat feedback, 2026-09-28: the first version of "keep today's tab and
+   * the opened-from tab always in view" used `position: sticky`, which
+   * made the pinned tab visually *hover over* whatever else was scrolling
+   * underneath it — not what was asked for. This tracks, per pinned
+   * occurrence, whether its actual in-strip tab is currently fully inside
+   * the strip's own visible viewport ("visible"), or has scrolled fully
+   * past the left/right edge ("off-left"/"off-right") — the markup below
+   * uses this to render a small duplicate tab *outside* the scrollable
+   * strip only when one is genuinely needed, which (being a normal flex
+   * sibling, not an overlay) shrinks the strip's own available width to
+   * make room for it rather than floating above it. A tab that's already
+   * on screen never gets a redundant second copy. */
+  type PinState = "visible" | "off-left" | "off-right";
+  let todayPinState: PinState = "visible";
+  let sourcePinState: PinState = "visible";
+
+  function pinStateFor(index: number): PinState {
+    if (index === -1 || !stripEl) return "visible";
+    const el = stripEl.querySelector<HTMLElement>(`[data-occ-index="${index}"]`);
+    if (!el) return "visible";
+    const stripRect = stripEl.getBoundingClientRect();
+    const elRect = el.getBoundingClientRect();
+    if (elRect.right <= stripRect.left) return "off-left";
+    if (elRect.left >= stripRect.right) return "off-right";
+    return "visible";
+  }
+
+  function updatePinStates() {
+    todayPinState = pinStateFor(todayOccIndex);
+    sourcePinState = pinStateFor(openedFromOccIndex);
+  }
+
+  function refreshStripChrome() {
     updateStripOverflow();
+    updatePinStates();
+  }
+
+  $: refreshStripLayout(occurrences);
+  async function refreshStripLayout(_occs: SectionOccurrence[]) {
+    await waitForStripRendered();
+    refreshStripChrome();
+  }
+
+  /** The (at most two) pinned tabs' duplicate slots outside the scrollable
+   * strip, grouped by which side they render on. An occurrence that's
+   * *both* today and the one History was opened from (opened from today)
+   * gets a single merged entry, not two overlapping duplicates of the
+   * same tab. */
+  interface PinnedEntry {
+    key: string;
+    index: number;
+    side: "left" | "right";
+    classes: string;
+  }
+  $: pinnedEntries = computePinnedEntries(todayOccIndex, openedFromOccIndex, todayPinState, sourcePinState);
+  function computePinnedEntries(
+    todayIdx: number,
+    sourceIdx: number,
+    todayState: PinState,
+    sourceState: PinState,
+  ): PinnedEntry[] {
+    const entries: PinnedEntry[] = [];
+    if (todayIdx !== -1 && todayIdx === sourceIdx) {
+      if (todayState !== "visible") {
+        entries.push({
+          key: "today-source",
+          index: todayIdx,
+          side: todayState === "off-left" ? "left" : "right",
+          classes: "pinned-today pinned-source",
+        });
+      }
+      return entries;
+    }
+    if (todayIdx !== -1 && todayState !== "visible") {
+      entries.push({ key: "today", index: todayIdx, side: todayState === "off-left" ? "left" : "right", classes: "pinned-today" });
+    }
+    if (sourceIdx !== -1 && sourceState !== "visible") {
+      entries.push({ key: "source", index: sourceIdx, side: sourceState === "off-left" ? "left" : "right", classes: "pinned-source" });
+    }
+    return entries;
+  }
+
+  /** A pinned slot's own click — select and actually scroll the real tab
+   * into view (unlike a normal in-strip tab click, which doesn't need to:
+   * it's already visible, or it wouldn't be clickable). */
+  function selectAndReveal(index: number) {
+    selectedIndex = index;
+    bodyContainerEl?.focus();
+    scrollOccIntoView();
+  }
+
+  // A pinned slot appearing *as a result of* the scroll a click just did
+  // (e.g. wrapping to the far end can scroll the opened-from tab out of
+  // view, pinning a duplicate of it and narrowing the strip a little)
+  // lands scrollLeft close to, but not quite exactly at, the new edge —
+  // the strip's own available width just changed out from under it. A
+  // tolerance margin here (rather than requiring exact equality) means
+  // that still reads as "at the edge" for the next click's own wrap
+  // check, instead of silently falling back to a small nudge.
+  const EDGE_TOLERANCE = 40;
+
+  // Wrapping to the far-right end is a moving target: the `scrollTo` below
+  // is issued against *today's* maxScroll, but if that scroll itself
+  // scrolls the opened-from/today tab out of view, a pinned slot pops in
+  // partway through the animation and narrows the strip — growing
+  // maxScroll out from under the in-flight scroll, so it lands short of
+  // the (now-further) true end. Corrected once the scroll settles, rather
+  // than predicting the pinned slot up front, since that would require
+  // resolving a circular "layout depends on scroll position which depends
+  // on layout" dependency for what's a one-frame visual nudge either way.
+  function scrollStripToEndCorrecting(el: HTMLDivElement) {
+    const target = () => el.scrollWidth - el.clientWidth;
+    el.scrollTo({ left: target(), behavior: "smooth" });
+    let settled = false;
+    const correct = () => {
+      if (settled) return;
+      settled = true;
+      el.removeEventListener("scrollend", correct);
+      const finalTarget = target();
+      if (Math.abs(el.scrollLeft - finalTarget) > 1) {
+        el.scrollTo({ left: finalTarget, behavior: "auto" });
+      }
+    };
+    el.addEventListener("scrollend", correct, { once: true });
+    // `scrollend` never fires if the initial `scrollTo` turns out to be a
+    // no-op (already at that position) — a plain timeout fallback still
+    // catches a since-grown target in that case.
+    setTimeout(correct, 400);
   }
 
   function scrollOccStrip(direction: 1 | -1) {
     if (!stripEl) return;
     const maxScroll = stripEl.scrollWidth - stripEl.clientWidth;
-    const atLeftEdge = stripEl.scrollLeft <= 0;
-    const atRightEdge = stripEl.scrollLeft >= maxScroll - 1;
+    const atLeftEdge = stripEl.scrollLeft <= EDGE_TOLERANCE;
+    const atRightEdge = stripEl.scrollLeft >= maxScroll - EDGE_TOLERANCE;
     if (direction === -1 && atLeftEdge) {
-      stripEl.scrollTo({ left: maxScroll, behavior: "smooth" });
+      scrollStripToEndCorrecting(stripEl);
     } else if (direction === 1 && atRightEdge) {
       stripEl.scrollTo({ left: 0, behavior: "smooth" });
     } else {
@@ -392,7 +543,38 @@
           <Icon name="chevron-left" size={14} />
         </button>
       {/if}
-      <div class="history-occ-strip" role="tablist" aria-label="Occurrences" bind:this={stripEl}>
+      <!-- 2026-09-28: pinned duplicates of today's tab / the opened-from
+           tab, rendered *outside* the scrollable strip only once their
+           real in-strip tab has actually scrolled out of view
+           (`pinnedEntries`). Being an ordinary flex sibling of the strip
+           (not a `position: sticky` overlay, which is what this replaced
+           — chat feedback that it hovered over whatever scrolled
+           underneath it), it shrinks the strip's own available width to
+           make room for itself, the same way the scroll-arrow buttons
+           already do. -->
+      {#each pinnedEntries.filter((p) => p.side === "left") as p (p.key)}
+        {@const occ = occurrences[p.index]}
+        {@const heat = controller.occurrenceHeat(occ)}
+        <button
+          type="button"
+          class="history-occ-tab pinned-slot {p.classes} {p.index === selectedIndex ? 'active' : ''} {heat ? '' : 'empty'} {occDateClass(occ, $currentDateISO)}"
+          role="tab"
+          aria-selected={p.index === selectedIndex}
+          title={heat ? `Double-click to jump to ${occ.date}` : `No content yet — double-click to jump to ${occ.date}`}
+          on:click={() => selectAndReveal(p.index)}
+          on:dblclick={() => controller.jumpToHistoryLine(occ)}
+        >
+          <span class="history-occ-date">{occ.date}</span>
+          {#if heat}<span class="occ-dot has-{heat}" aria-hidden="true"></span>{/if}
+        </button>
+      {/each}
+      <div
+        class="history-occ-strip"
+        role="tablist"
+        aria-label="Occurrences"
+        bind:this={stripEl}
+        on:scroll={updatePinStates}
+      >
         {#if $historyLoading}
           <span class="history-occ-loading"><span class="modal-spinner" aria-label="Loading">⟳</span> Loading history…</span>
         {:else if occurrences.length === 0}
@@ -402,7 +584,7 @@
             {@const heat = controller.occurrenceHeat(occ)}
             <button
               type="button"
-              class="history-occ-tab {index === selectedIndex ? 'active' : ''} {heat ? '' : 'empty'} {occDateClass(occ, $currentDateISO)} {index === todayOccIndex ? 'pinned-today' : ''} {index === openedFromOccIndex ? 'pinned-source' : ''}"
+              class="history-occ-tab {index === selectedIndex ? 'active' : ''} {heat ? '' : 'empty'} {occDateClass(occ, $currentDateISO)}"
               role="tab"
               aria-selected={index === selectedIndex}
               data-occ-index={index}
@@ -420,6 +602,22 @@
           {/each}
         {/if}
       </div>
+      {#each pinnedEntries.filter((p) => p.side === "right") as p (p.key)}
+        {@const occ = occurrences[p.index]}
+        {@const heat = controller.occurrenceHeat(occ)}
+        <button
+          type="button"
+          class="history-occ-tab pinned-slot {p.classes} {p.index === selectedIndex ? 'active' : ''} {heat ? '' : 'empty'} {occDateClass(occ, $currentDateISO)}"
+          role="tab"
+          aria-selected={p.index === selectedIndex}
+          title={heat ? `Double-click to jump to ${occ.date}` : `No content yet — double-click to jump to ${occ.date}`}
+          on:click={() => selectAndReveal(p.index)}
+          on:dblclick={() => controller.jumpToHistoryLine(occ)}
+        >
+          <span class="history-occ-date">{occ.date}</span>
+          {#if heat}<span class="occ-dot has-{heat}" aria-hidden="true"></span>{/if}
+        </button>
+      {/each}
       {#if stripOverflowing}
         <button
           type="button"

@@ -176,7 +176,11 @@ test.describe("cross-tab search (Ctrl/Cmd+Shift+F)", () => {
 // rather than aggregating a flat, de-contextualized action list — these
 // tests replace the pre-redesign suite entirely.
 test.describe("section history (Ctrl/Cmd+Shift+H)", () => {
-  const occRow = (page: Page, date: string) => history(page).locator(".history-occ-tab", { hasText: date });
+  // Scoped to the scrollable strip specifically (never a `.pinned-slot`
+  // duplicate, which only lives outside it) — a pinned slot for the same
+  // date can coexist once scrolled out of view, which would otherwise
+  // make this locator ambiguous.
+  const occRow = (page: Page, date: string) => history(page).locator(".history-occ-strip .history-occ-tab", { hasText: date });
   const detailLine = (page: Page, text: string) => history(page).locator(".history-select-line", { hasText: text });
 
   test("lists every occurrence — past, today (empty), and future — and browsing one shows its full glyph-rendered body", async ({
@@ -772,13 +776,21 @@ test.describe("section history (Ctrl/Cmd+Shift+H)", () => {
     // strip's own arrows, which never change the active tab either).
     await expect(occRow(page, "2026-08-01")).toHaveClass(/active/);
 
-    const maxScroll = await strip.evaluate((el) => el.scrollWidth - el.clientWidth);
+    // `maxScroll` isn't captured once up front — scrolling the opened-from
+    // tab out of view can pin a duplicate of it outside the strip (see the
+    // dedicated pinned-slot test), narrowing the strip and changing what
+    // "the far end" actually is; recomputed fresh each time stays correct
+    // regardless of whether that happens to fire here too.
+    const currentMaxScroll = () => strip.evaluate((el) => el.scrollWidth - el.clientWidth);
     await leftBtn.click();
     // Wait for the smooth-scroll wrap to fully settle at the end before
     // clicking again — clicking mid-animation would read a stale,
     // not-yet-`maxScroll` position and scroll normally instead of
     // wrapping, which is a real flake source, not a fresh assertion.
-    await expect.poll(() => strip.evaluate((el) => el.scrollLeft)).toBe(maxScroll);
+    await expect.poll(async () => {
+      const [scrollLeft, maxScroll] = await Promise.all([strip.evaluate((el) => el.scrollLeft), currentMaxScroll()]);
+      return Math.abs(scrollLeft - maxScroll) <= 1;
+    }).toBe(true);
     await expect(occRow(page, "2026-08-01")).toHaveClass(/active/);
 
     await rightBtn.click();
@@ -849,42 +861,67 @@ test.describe("section history (Ctrl/Cmd+Shift+H)", () => {
     expect(activeBg).toBe(activeTodayBg);
   });
 
-  test("today's tab and the opened-from tab stay reachable in the strip, even scrolled far away", async ({ page }) => {
+  // 2026-09-28: replaces `position: sticky` (which made the pinned tab
+  // visually hover over whatever else was scrolling underneath it — chat
+  // feedback that this specifically wasn't wanted) with a genuine layout
+  // reflow: a small duplicate ("pinned slot") renders as an ordinary flex
+  // sibling of the scrollable strip, outside it, only once the real tab
+  // has actually scrolled out of view — shrinking the strip's own
+  // available width to make room for itself rather than floating above it.
+  test("today's tab and the opened-from tab get a real pinned slot (not an overlay) once scrolled out of view, and it shrinks the strip", async ({
+    page,
+  }) => {
+    // Enough occurrences that a strip-width's worth of tabs (roughly 8-9
+    // at this modal size) can't cover the opened-from date *and* the
+    // oldest one at the same time — with only ~15 total (the original
+    // size here) they were close enough together that scrolling to the
+    // oldest could still leave the opened-from one in view too, which
+    // undersold the point of this test.
     const notes: Record<string, string> = {
       [todayFilename()]: "Standup\n====\n# today item",
     };
-    for (let i = 1; i <= 15; i++) {
-      const d = `2026-07-${String(i).padStart(2, "0")}`;
+    for (let i = 1; i <= 30; i++) {
+      const d = `2026-06-${String(i).padStart(2, "0")}`;
       notes[`${d}.txt`] = `Standup\n=======\n# task from ${d}\n`;
     }
-    // Opened from a date in the middle of that older range, well away
-    // from both today's tab and the strip's own left edge.
+    // Opened from the middle of that older range — well away from both
+    // today's tab and the strip's own left edge either way.
     await seedApp(page, {
-      seed: { notes, session: { openTabs: ["2026-07-08.txt"], activeTab: "2026-07-08.txt" } },
+      seed: { notes, session: { openTabs: ["2026-06-15.txt"], activeTab: "2026-06-15.txt" } },
     });
     await editor(page).click();
     await page.keyboard.press("ControlOrMeta+Home");
     await page.keyboard.press("ControlOrMeta+Shift+H");
 
     const card = history(page);
-    const todayTab = occRow(page, todayFilename().replace(".txt", ""));
-    const sourceTab = occRow(page, "2026-07-08");
-    await expect(todayTab).toHaveClass(/pinned-today/);
-    await expect(sourceTab).toHaveClass(/pinned-source/);
+    const strip = card.locator(".history-occ-strip");
+    const pinnedToday = card.locator(".history-occ-strip-row > .history-occ-tab.pinned-slot.pinned-today");
+    const pinnedSource = card.locator(".history-occ-strip-row > .history-occ-tab.pinned-slot.pinned-source");
+
+    // Opened from 2026-06-15 (already on screen) — no pinned slot needed
+    // for it yet, so the strip has its full available width.
+    await expect(pinnedSource).toHaveCount(0);
+    const widthBefore = (await strip.boundingBox())!.width;
 
     // Browse all the way to the oldest (leftmost) date via the keyboard —
-    // far from both pinned dates — they must still actually be on screen
-    // (a real "position: sticky" check, not just the class being present).
-    const stripBox = (await card.locator(".history-occ-strip").boundingBox())!;
-    // Opened from 2026-07-08, the 8th of 16 occurrences (0-indexed 7) —
-    // exactly 7 presses reaches the oldest (index 0) without wrapping.
-    for (let i = 0; i < 7; i++) await page.keyboard.press("ArrowLeft");
-    await expect(occRow(page, "2026-07-01")).toHaveClass(/active/);
-    const [todayBox, sourceBox] = await Promise.all([todayTab.boundingBox(), sourceTab.boundingBox()]);
-    const within = (box: { x: number; width: number }) =>
-      box.x >= stripBox.x - 1 && box.x + box.width <= stripBox.x + stripBox.width + 1;
-    expect(within(todayBox!)).toBe(true);
-    expect(within(sourceBox!)).toBe(true);
+    // far from both pinned dates. 2026-06-15 is the 15th of 31
+    // occurrences (0-indexed 14) — exactly 14 presses reaches the oldest
+    // (index 0) without wrapping.
+    for (let i = 0; i < 14; i++) await page.keyboard.press("ArrowLeft");
+    await expect(occRow(page, "2026-06-01")).toHaveClass(/active/);
+
+    await expect(pinnedToday).toBeVisible();
+    await expect(pinnedSource).toBeVisible();
+    // A real reflow, not an overlay: the strip is now narrower, having
+    // given up width to the two new pinned slots beside it.
+    const widthAfter = (await strip.boundingBox())!.width;
+    expect(widthAfter).toBeLessThan(widthBefore);
+
+    // Clicking a pinned slot reveals + selects the real tab; the
+    // now-unneeded duplicate disappears.
+    await pinnedSource.click();
+    await expect(occRow(page, "2026-06-15")).toHaveClass(/active/);
+    await expect(pinnedSource).toHaveCount(0);
   });
 
   test("Up/Down move a single-line selection; Shift+Up/Down grow or shrink the range", async ({ page }) => {

@@ -2301,10 +2301,16 @@ textarea.modal-input.import-textarea {
  * "I miss the left and right buttons that the main tab bar has") and the
  * actual scrollable strip inside it — the arrows need to sit outside the
  * scrolling area, the same relationship `#tab-bar`'s own arrows have to
- * it. */
+ * it.
+ *
+ * 2026-09-28 follow-up: `.pinned-slot` tabs (see further down) are ordinary
+ * flex siblings of `.history-occ-strip` in this same row, not an overlay —
+ * `gap` here is what keeps them visually separated from the strip and the
+ * scroll buttons once one appears. */
 .history-occ-strip-row {
   display: flex;
   align-items: stretch;
+  gap: 2px;
   flex-shrink: 0;
   border-bottom: 1px solid var(--edge-soft);
   background: var(--surface-chrome);
@@ -2406,30 +2412,24 @@ textarea.modal-input.import-textarea {
 }
 /* Chat feedback: "keep today's tab button and destination section tab
  * button always in view in the tab bar, even when moving to earlier or
- * later dates" — a "frozen column" pattern (`position: sticky` against
- * `.history-occ-strip`'s own scrollport), not a separate duplicate
- * button, so it's still the exact same tab you'd otherwise have to scroll
- * to. Both `left: 0` and `right: 0` on the same element (the standard
- * "frozen first/last column" recipe): a tab whose natural position would
- * otherwise scroll off the *right* edge (browsing further back in the
- * past) clamps to `right: 0`; one that would scroll off the *left* edge
- * (browsing forward, past it) clamps to `left: 0` — either way it never
- * actually leaves the visible strip, regardless of which direction you
- * browse away from it. The `:not(.active)` guard keeps `.active`'s own
- * canvas-toned background from being overridden by the pinned chrome tone
- * when a pinned tab is also the selected one. */
-.history-occ-tab.pinned-today,
-.history-occ-tab.pinned-source {
-  position: sticky;
-  left: 0;
-  right: 0;
-  z-index: 2;
-  border-left: 1px solid var(--edge-soft);
-  border-right: 1px solid var(--edge-soft);
-}
-.history-occ-tab.pinned-today:not(.active),
-.history-occ-tab.pinned-source:not(.active) {
-  background: var(--surface-chrome);
+ * later dates" — 2026-09-27 first tried this as `position: sticky`
+ * against `.history-occ-strip`'s own scrollport (a "frozen column"), but
+ * that made the pinned tab visually hover *over* whatever else was
+ * scrolling underneath it, which 2026-09-28 chat feedback specifically
+ * didn't want. Replaced with a genuine layout reflow instead: `.pinned-
+ * slot` (`pinnedEntries` in the script, computed from each pinned
+ * occurrence's real in-strip tab actually having scrolled out of view —
+ * see `pinStateFor`) is a small duplicate tab rendered as an ordinary flex
+ * sibling of `.history-occ-strip` *outside* the scrollable area, in the
+ * same row as the scroll-arrow buttons — being a real sibling rather than
+ * an overlay, it shrinks the strip's own available width to make room for
+ * itself instead of floating above anything. `.pinned-today`/`.pinned-
+ * source` (kept as class names, no longer sticky-positioned) mark which
+ * occurrence a slot duplicates, purely for styling/testing — an
+ * occurrence that's both (opened from today) gets one merged slot with
+ * both classes, not two overlapping duplicates. */
+.history-occ-tab.pinned-slot {
+  border: 1px solid var(--edge-soft);
 }
 /* Mirrors the date picker's own `.cal-day` completion dots exactly
  * (`computeDayHeat`/`occurrenceHeat`) — the same colors mean the same

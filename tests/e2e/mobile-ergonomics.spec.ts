@@ -103,7 +103,13 @@ test.describe("mobile ergonomics & modal reflow (Area 5.4, 5.5, 6)", () => {
 
     await expect(strip).toBeVisible();
     await expect(detail).toBeVisible();
-    await expect(strip.locator(".history-occ-tab")).toHaveCount(2);
+    // 2026-09-28: a tab this narrow can be tight enough that today's/the
+    // opened-from tab reflows into its own pinned slot outside `.history-
+    // occ-strip` (see the dedicated pinned-slot test) — both occurrences
+    // are still represented somewhere in the modal either way, which is
+    // the actual thing this test cares about, not which specific element
+    // renders which date.
+    await expect(modal.locator(".history-occ-tab")).toHaveCount(2);
 
     await page.keyboard.press("Escape");
   });
