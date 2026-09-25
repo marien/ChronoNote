@@ -28,19 +28,19 @@ var e=Object.defineProperty,t=(t,n)=>{let r={};for(var i in t)e(r,i,{get:t[i],en
 `),r)))}function $u(e,t){let n=V(K),r=n.find(t=>t.id===e);if(!r)return;let i=r.content.split(`
 `),a=i[t].match(/^(\s*)([#>])(\s.*)$/);if(!a)return;let[,o,,s]=a;i[t]=o+`>`+s;let c=`#`+s,l=G()+`.txt`,u=Q(e,i.join(`
 `),n),d=u.find(e=>e.filename===l);d?u=Q(d.id,`${c}\n${d.content}`,u):_c(l).then(e=>{su(l,`${c}\n${e??``}`).catch(()=>{})}),K.set(u),Y(`Forwarded to today's top priorities!`)}async function ed(e,t=1){Qu(e.tabId??await Zu(e.filename),e.lineIdx,t)}async function td(e){$u(e.tabId??await Zu(e.filename),e.lineIdx)}function nd(e){return yo(vo(e.trim())).toLowerCase()}async function rd(e,t,n){if(id()){let n=(await Mc(e.replace(/\.txt$/,``))).find(([,e])=>nd(e)===t.toLowerCase());return n?{date:n[0],headerText:n[1]}:null}await au();let r=_d(V(As),t,e);return r?{date:r.date,headerText:n}:null}function id(){return V(ps)&&(V(ts)!==`web`||!!V(is)&&!!V(as))&&V(ms)}function ad(e,t,n,r){let i=e.split(`
-`),a=vd(i,t);if(a){let e=a.startLineIdx+a.lines.length,t=a.lines.some(e=>e.trim()!==``)?[``,...r]:r,n=i.slice(e),o=n.every(e=>e.trim()===``);return[...i.slice(0,e),...t,...o?[]:n].join(`
-`)}let o=[n,fl(n),...r],s=e.replace(/\s+$/,``);return(s?s+`
+`),a=vd(i,t);if(a){let e=a.startLineIdx+a.lines.length,t=a.lines.some(e=>e.trim()!==``),n=t?[``,...r]:r,o=i.slice(e),s=o.every(e=>e.trim()===``);return{content:[...i.slice(0,e),...n,...s?[]:o].join(`
+`),insertedAtLine:e+ +!!t}}let o=[n,fl(n),...r],s=e.replace(/\s+$/,``),c=s?s+`
 
 
-`+o.join(`
-`):o.join(`
-`))+`
-`}async function od(e,t,n,r,i,a,o){let s=V(K),c=s.find(t=>t.filename===e),l=c?c.content:await _c(e);if(l==null)return;let u=l.split(`
+`:``;return{content:c+o.join(`
+`)+`
+`,insertedAtLine:c.split(`
+`).length-1+2}}async function od(e,t,n,r,i,a,o){let s=V(K),c=s.find(t=>t.filename===e),l=c?c.content:await _c(e);if(l==null)return;let u=l.split(`
 `),d=u.slice(t,n+1),f=d.join(`
 `),p=vu(f).split(`
-`),m=o??d;if(r.kind===`tab`&&!s.find(e=>e.id===r.tabId))return;let h=r.kind===`tab`?s.find(e=>e.id===r.tabId).filename:`${r.dateIso}.txt`,g=s;if(h===e){let r=ad(l,i,a,m).split(`
+`),m=o??d;if(r.kind===`tab`&&!s.find(e=>e.id===r.tabId))return;let h=r.kind===`tab`?s.find(e=>e.id===r.tabId).filename:`${r.dateIso}.txt`,g=s;if(h===e){let r=ad(l,i,a,m).content.split(`
 `);r.splice(t,n-t+1,...p);let o=r.join(`
-`);c?(g=Q(c.id,o,g),K.set(g),c.id===V(q)&&X&&X.jumpToLine(t)):await su(e,o)}else{if(r.kind===`tab`){let e=g.find(e=>e.id===r.tabId),t=ad(e.content,i,a,m);g=Q(e.id,t,g)}else{let e=g.find(e=>e.filename===h);if(e){let t=ad(e.content,i,a,m);g=Q(e.id,t,g)}else await su(h,ad(await _c(h)??``,i,a,m))}let o=[...u];o.splice(t,n-t+1,...p),c?(g=Q(c.id,o.join(`
+`);c?(g=Q(c.id,o,g),K.set(g),c.id===V(q)&&X&&X.jumpToLine(t)):await su(e,o)}else{if(r.kind===`tab`){let e=g.find(e=>e.id===r.tabId),t=ad(e.content,i,a,m);g=Q(e.id,t.content,g),e.id===V(q)&&X&&X.jumpToLine(t.insertedAtLine)}else{let e=g.find(e=>e.filename===h);if(e){let t=ad(e.content,i,a,m);g=Q(e.id,t.content,g),e.id===V(q)&&X&&X.jumpToLine(t.insertedAtLine)}else await su(h,ad(await _c(h)??``,i,a,m).content)}let o=[...u];o.splice(t,n-t+1,...p),c?(g=Q(c.id,o.join(`
 `),g),K.set(g),c.id===V(q)&&X&&X.jumpToLine(t)):(K.set(g),await su(e,o.join(`
 `)))}let _=yu(f),v=r.kind===`tab`?`here`:`to ${r.dateIso}`;Y(_>0?`Copied ${v} — ${_} open ${_===1?`action`:`actions`} marked deferred here.`:`Copied ${v}.`)}async function sd(){let e=V(K).find(e=>e.id===V(q));if(!e||e.isScratchpad){Y(`Not available in a scratchpad — there's no next occurrence to copy to.`);return}if(!X)return;let t=X.getSelection();if(!t.text.trim()){Y(`Nothing to copy — nothing on this line, or in the selection.`);return}let n=vo(_o(e.content.split(`
 `),t.fromLine)),r=yo(n);if(!r){Y(`The selection isn't inside a named section.`);return}let i;try{i=await rd(e.filename,r,n)}catch(e){Y(e instanceof Error?e.message:`Couldn't read the calendar.`);return}if(i){await od(e.filename,t.fromLine,t.toLine,{kind:`date`,dateIso:i.date},r,i.headerText);return}let a={sourceFilename:e.filename,fromLine:t.fromLine,toLine:t.toLine,targetHeader:r,newSectionHeaderText:n};ks.set(a),J.set(`date`),Y(`No matching next occurrence found — pick a date.`)}async function cd(e){let t=V(ks);t&&(ks.set(null),await od(t.sourceFilename,t.fromLine,t.toLine,{kind:`date`,dateIso:e},t.targetHeader,t.newSectionHeaderText))}async function ld(e,t,n,r,i,a){await od(e,t,n,i.kind===`here`?{kind:`tab`,tabId:i.tabId}:{kind:`date`,dateIso:i.date},r,i.kind===`here`?r:i.headerText,a)}var ud=/^\d{4}-\d{2}-\d{2}\.txt$/;async function dd(e){await au();let t=V(As),n=Object.keys(t).sort(),r=[];for(let i of n){let n=vd(t[i].split(`
