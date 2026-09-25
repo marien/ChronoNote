@@ -2,7 +2,15 @@
   import { onMount, onDestroy, tick } from "svelte";
   import * as controller from "../../controller";
   import { focusTrap } from "../../actions/focusTrap";
-  import { historyDestinations, historyLoading, historyOccurrences, historyOpenedFromTabId, historyTargetHeader, tabs } from "../../controller";
+  import {
+    currentDateISO,
+    historyDestinations,
+    historyLoading,
+    historyOccurrences,
+    historyOpenedFromTabId,
+    historyTargetHeader,
+    tabs,
+  } from "../../controller";
   import { closeOnOutsideClick } from "../../actions/closeOnOutsideClick";
   import { parseGlyphLine } from "../../editor/glyphLine";
   import Icon from "../../icons/Icon.svelte";
@@ -39,16 +47,29 @@
   // to carry a line from this note to when this note is where it would land.
   $: isOwnOccurrence = !!selectedOcc && selectedOcc.filename === openedFromFilename;
 
+  /** #68/#96 precedent, applied to the occurrence strip: a date's own
+   * relationship to today, independent of whether it's the one currently
+   * selected — dims a past date, accents today, greens a future one. The
+   * selected tab's own colored underline (`.active.past`/`.active.future`
+   * in `app.css`) follows the same class. Takes `today` as a parameter for
+   * the same reason `TopBar`'s `tabDateClass` does: a template expression
+   * needs a real reactive dependency to refresh at midnight, not just a
+   * plain `todayISO()` call it happens not to re-run. */
+  function occDateClass(occ: SectionOccurrence, today: string): string {
+    return occ.date < today ? "past" : occ.date > today ? "future" : "today";
+  }
+
   let bodyContainerEl: HTMLDivElement;
 
   onMount(async () => {
     // §42 precedent: focus the occurrence that belongs to wherever the
-    // drawer was opened from, instead of always starting at the top of
-    // the (most-recent-first) list. `openMeetingHistory()` may still be
-    // filling `historyOccurrences` in when this mounts (§62) — wait one
-    // tick, which is enough for the synchronous part of that to have run;
-    // if the disk read is still genuinely in flight, this just falls back
-    // to the top of the list once it resolves, same as before §42 existed.
+    // drawer was opened from, instead of always starting at whichever end
+    // of the (chronological) strip happens to render first.
+    // `openMeetingHistory()` may still be filling `historyOccurrences` in
+    // when this mounts (§62) — wait one tick, which is enough for the
+    // synchronous part of that to have run; if the disk read is still
+    // genuinely in flight, this just falls back to index 0 once it
+    // resolves, same as before §42 existed.
     await tick();
     const idx = occurrences.findIndex((o) => o.filename === openedFromFilename);
     if (idx !== -1) selectedIndex = idx;
@@ -216,6 +237,19 @@
     } else if (e.key === "ArrowLeft") {
       e.preventDefault();
       moveOccurrence(-1);
+    } else if (e.key === "Enter" && e.shiftKey) {
+      // The keyboard equivalent of clicking the primary take-over button
+      // (chat feedback: "move to a line with the arrows, select multiple
+      // lines if needed, press shortcut to insert into section on main
+      // tab") — always the *first* destination `$historyDestinations`
+      // offers, which is always the nearest one (the note History was
+      // opened from, or "Today" when browsing from further in the past).
+      // A no-op with nothing selected or on the drawer's own opened-from
+      // occurrence, same as the button itself being absent then.
+      e.preventDefault();
+      if (lineSelection && !isOwnOccurrence && $historyDestinations[0]) {
+        takeOver($historyDestinations[0]);
+      }
     } else if (e.key === "Enter") {
       e.preventDefault();
       if (selectedOcc) {
@@ -273,16 +307,17 @@
           {@const heat = controller.occurrenceHeat(occ)}
           <button
             type="button"
-            class="history-occ-tab {index === selectedIndex ? 'active' : ''} {heat ? '' : 'empty'}"
+            class="history-occ-tab {index === selectedIndex ? 'active' : ''} {heat ? '' : 'empty'} {occDateClass(occ, $currentDateISO)}"
             role="tab"
             aria-selected={index === selectedIndex}
             data-occ-index={index}
             tabindex="-1"
-            title={heat ? undefined : "No content yet"}
+            title={heat ? `Double-click to jump to ${occ.date}` : `No content yet — double-click to jump to ${occ.date}`}
             on:click={() => {
               selectedIndex = index;
               bodyContainerEl?.focus();
             }}
+            on:dblclick={() => controller.jumpToHistoryLine(occ)}
           >
             <span class="history-occ-date">{occ.date}</span>
             {#if heat}<span class="occ-dot has-{heat}" aria-hidden="true"></span>{/if}
@@ -294,10 +329,6 @@
     <div class="history-body" tabindex="-1" bind:this={bodyContainerEl}>
       <div class="history-detail">
         {#if selectedOcc}
-          <div class="history-detail-head">
-            <span class="hp-label">{selectedOcc.filename}</span>
-            <button class="po-jump" on:click={() => controller.jumpToHistoryLine(selectedOcc, lineSelection?.from)}>Open file</button>
-          </div>
           <div class="hp-context history-select-body" bind:this={bodyEl}>
             {#if selectedOcc.lines.length === 0}
               <div class="hp-line hp-muted">(nothing in this section yet)</div>
@@ -334,6 +365,10 @@
               {#each $historyDestinations as dest}
                 <button type="button" class="icon-btn btn-primary" on:click={() => takeOver(dest)}>{dest.label}</button>
               {/each}
+              <span class="history-takeover-hint">
+                Moves the selected line(s) to the end of that section — marked forwarded (») in this
+                occurrence, not deleted.
+              </span>
             </div>
           {:else if isOwnOccurrence}
             <div class="hp-note">This is the note you opened History from — nothing to carry it over to.</div>
@@ -347,7 +382,10 @@
     <div class="modal-footer">
       <div>
         <kbd>↑/↓</kbd> Select line · <kbd>Shift+↑/↓</kbd> Extend · <kbd>←/→</kbd> Switch date ·
-        <kbd>Enter</kbd> Jump to source
+        <kbd>Enter</kbd> Jump to source · <kbd>Dbl-click</kbd> a date to jump there
+        {#if lineSelection && !isOwnOccurrence && $historyDestinations[0]}
+          · <kbd>Shift+Enter</kbd> {$historyDestinations[0].label}
+        {/if}
       </div>
       <div><kbd>Esc</kbd> Close</div>
     </div>

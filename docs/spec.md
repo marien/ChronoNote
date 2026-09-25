@@ -396,12 +396,20 @@ reachable from the top bar, a shortcut, or the command palette:
   scroll (#77), so an action deep in a long group never loses its date;
   keyboard navigation keeps the selected row clear of the pinned heading.
 - **Section History** (`Ctrl/Cmd+Shift+H`) — browses every dated note that
-  has the recurring section under the cursor, past and future,
-  most-recent-first: a compact horizontal strip of occurrence dates above
-  the note body (modeled on the main tab strip, sized down), each carrying
-  a dot mirroring the date picker's own completion heat (amber = open
+  has the recurring section under the cursor, past and future, at a fixed
+  ~80% of the window's height regardless of how much content the browsed
+  occurrence has (switching dates never resizes the modal). A compact
+  horizontal strip of occurrence dates sits above the note body (modeled on
+  the main tab strip, sized down), chronological left-to-right — oldest at
+  the left, newest at the right, same as the main tab strip — and opens
+  focused on whichever date the drawer was opened from. Each tab carries a
+  dot mirroring the date picker's own completion heat (amber = open
   actions, green = all resolved, muted = no actions at all; no dot = no
-  content yet). The selected occurrence's *entire* body renders below,
+  content yet) and colors its own date text — and, once selected, its
+  underline — by the same past/today/future scheme the main tab strip's
+  own tabs use. No filename is shown anywhere (the selected tab already
+  names the date); double-clicking a tab jumps straight to that section and
+  closes the drawer. The selected occurrence's *entire* body renders below,
   glyph-rendered and scrollable — the same rendering the editor itself
   uses, not an extracted list of actions out of context. Keyboard: Up/Down
   move a single-line selection, Shift+Up/Down grow or shrink a range from
@@ -409,18 +417,19 @@ reachable from the top bar, a shortcut, or the command palette:
   at either end), Enter jumps to the source file. Mouse: click selects one
   line, click-and-drag selects a range. Selecting a line (or a range) shows
   a destination bar with button(s) computed once when the drawer opened,
-  from the note it was opened from — a single "Insert here" when that note
-  is today, in the future, or a scratchpad; "→ Today" and (if one exists)
-  "→ Next occurrence" when it's in the past. Taking it over inserts
-  the selection at the target section (creating it if needed) and defers
-  whatever was open in the source, the same rule copy/paste forwarding and
-  `Ctrl/Cmd+Shift+.` already use; a deferred line taken over is re-adopted
-  as a fresh open action. A single line shaped `prose => action` also
-  offers "Whole line" vs. "Action only" (just the action, dropping the
-  prose). Browsing the note the drawer was opened from offers no take-over
-  — nothing to carry it to. Like every modal, it owns the keyboard while
-  open — no shortcut (Ctrl/Cmd+Tab included) reaches the app underneath
-  until it's closed.
+  named for exactly where they land — "Add to today", `Add to <date>` (a
+  future note or scratchpad), or "Add to next occurrence (<date>)" — plus a
+  one-line explanation of what taking a line over actually does, and
+  `Shift+Enter` as the keyboard equivalent of the first (nearest)
+  destination's button. Taking it over inserts the selection at the target
+  section (creating it if needed) and defers whatever was open in the
+  source, the same rule copy/paste forwarding and `Ctrl/Cmd+Shift+.`
+  already use; a deferred line taken over is re-adopted as a fresh open
+  action. A single line shaped `prose => action` also offers "Whole line"
+  vs. "Action only" (just the action, dropping the prose). Browsing the
+  note the drawer was opened from offers no take-over — nothing to carry it
+  to. Like every modal, it owns the keyboard while open — no shortcut
+  (Ctrl/Cmd+Tab included) reaches the app underneath until it's closed.
 - **Cross-Tab Search** (`Ctrl/Cmd+Shift+F`) — full-text search across
   either the open tabs or every file, same open-tabs/all-files toggle as
   the Action Drawer, results glyph-rendered like the drawer's own rows,

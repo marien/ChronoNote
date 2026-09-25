@@ -1,4 +1,4 @@
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect, type Locator, type Page } from "@playwright/test";
 import {
   seedApp,
   editor,
@@ -218,7 +218,6 @@ test.describe("section history (Ctrl/Cmd+Shift+H)", () => {
     // section header — not just the action lines out of context.
     await occRow(page, "2026-09-05").click();
     const detail = history(page).locator(".history-detail");
-    await expect(detail).toContainText("2026-09-05.txt");
     await expect(detail.locator(".hp-context")).toContainText("☐ chase the vendor (q3)");
     await expect(detail.locator(".hp-context")).toContainText("• reviewed the roadmap");
     await expect(detail.locator(".hp-context")).not.toContainText("not part of the sync");
@@ -227,16 +226,18 @@ test.describe("section history (Ctrl/Cmd+Shift+H)", () => {
     await occRow(page, "2026-08-20").click();
     await expect(detail.locator(".hp-context")).toContainText("nothing in this section yet");
 
-    // Browsing today's occurrence shows its own prose, and "Open file"
-    // jumps there and closes the drawer.
+    // Browsing today's occurrence shows its own prose, and double-clicking
+    // its tab jumps there and closes the drawer — the filename is never
+    // shown in the detail pane (the selected tab already names the date).
     await occRow(page, todayFilename().replace(".txt", "")).click();
     await expect(detail.locator(".hp-context")).toContainText("nothing actionable yet");
-    await detail.getByRole("button", { name: "Open file" }).click();
+    await expect(detail).not.toContainText(todayFilename());
+    await occRow(page, todayFilename().replace(".txt", "")).dblclick();
     expect(await currentModal(page)).toBe("none");
     await expect(activeTabLabel(page)).toHaveText(todayFilename().replace(".txt", ""));
   });
 
-  test("opened from today: selecting a line offers only 'Insert here', and takes it over into this same note", async ({
+  test("opened from today: selecting a line offers only 'Add to today', and takes it over into this same note", async ({
     page,
   }) => {
     await seedApp(page, {
@@ -258,9 +259,9 @@ test.describe("section history (Ctrl/Cmd+Shift+H)", () => {
     const bar = history(page).locator(".history-takeover-bar");
     await expect(bar).toBeVisible();
     await expect(bar.getByRole("button")).toHaveCount(1);
-    await expect(bar.getByRole("button", { name: "Insert here" })).toBeVisible();
+    await expect(bar.getByRole("button", { name: "Add to today" })).toBeVisible();
 
-    await bar.getByRole("button", { name: "Insert here" }).click();
+    await bar.getByRole("button", { name: "Add to today" }).click();
     // Source deferred, target (today's own note — opened from here) updated,
     // drawer stays open with the source's new state reflected.
     await expect(detailLine(page, "renew the cert")).toContainText("»"); // deferred glyph
@@ -268,7 +269,7 @@ test.describe("section history (Ctrl/Cmd+Shift+H)", () => {
     await expect.poll(() => mockNote(page, todayFilename())).toBe("Standup\n====\n- prior notes\n\n# renew the cert");
   });
 
-  test("opened from a past note: selecting a line offers 'Today' and 'Next occurrence'", async ({ page }) => {
+  test("opened from a past note: selecting a line offers 'Add to today' and 'Add to next occurrence'", async ({ page }) => {
     await seedApp(page, {
       seed: {
         notes: {
@@ -289,10 +290,10 @@ test.describe("section history (Ctrl/Cmd+Shift+H)", () => {
     await occRow(page, "2026-08-25").click();
     await detailLine(page, "an old item").click();
     const bar = history(page).locator(".history-takeover-bar");
-    await expect(bar.getByRole("button", { name: "→ Today" })).toBeVisible();
-    await expect(bar.getByRole("button", { name: /→ Next occurrence/ })).toBeVisible();
+    await expect(bar.getByRole("button", { name: "Add to today" })).toBeVisible();
+    await expect(bar.getByRole("button", { name: /Add to next occurrence/ })).toBeVisible();
 
-    await bar.getByRole("button", { name: "→ Today" }).click();
+    await bar.getByRole("button", { name: "Add to today" }).click();
     await expect.poll(() => mockNote(page, todayFilename())).toContain("# an old item");
     await expect.poll(() => mockNote(page, "2026-08-25.txt")).toContain("> an old item");
   });
@@ -316,7 +317,7 @@ test.describe("section history (Ctrl/Cmd+Shift+H)", () => {
     await detailLine(page, "second").click({ modifiers: ["Shift"] });
     await expect(history(page).locator(".history-line-selected")).toHaveCount(3);
 
-    await history(page).getByRole("button", { name: "Insert here" }).click();
+    await history(page).getByRole("button", { name: "Add to today" }).click();
     await expect.poll(() => mockNote(page, todayFilename())).toBe(
       "Standup\n====\n# first\nplain middle line\n# second",
     );
@@ -344,7 +345,7 @@ test.describe("section history (Ctrl/Cmd+Shift+H)", () => {
     const bar = history(page).locator(".history-takeover-bar");
     await expect(bar.getByRole("radio", { name: "Whole line" })).toBeVisible();
     await bar.getByRole("radio", { name: "Action only" }).click();
-    await bar.getByRole("button", { name: "Insert here" }).click();
+    await bar.getByRole("button", { name: "Add to today" }).click();
 
     await expect.poll(() => mockNote(page, todayFilename())).toBe("Standup\n====\n# chase the invoice");
   });
@@ -384,7 +385,7 @@ test.describe("section history (Ctrl/Cmd+Shift+H)", () => {
 
     await occRow(page, "2026-09-05").click();
     await detailLine(page, "chase the flaky test").click();
-    await history(page).getByRole("button", { name: "Insert here" }).click();
+    await history(page).getByRole("button", { name: "Add to today" }).click();
     await expect.poll(() => mockNote(page, todayFilename())).toBe("Standup\n====\n# chase the flaky test");
   });
 
@@ -494,12 +495,13 @@ test.describe("section history (Ctrl/Cmd+Shift+H)", () => {
     // The strip is a thin row, not a tall column...
     expect(stripBox!.height).toBeLessThan(50);
     // ...and the note body — not the strip — gets the space the card has
-    // to give (a short card here since each occurrence is only 3 lines;
-    // comparing against the strip's own height rather than a fraction of
-    // the card avoids the assertion being sensitive to how much of a
-    // short card the header/footer chrome otherwise takes up).
+    // to give.
     expect(detailBox!.height).toBeGreaterThan(stripBox!.height * 2);
-    expect(cardBox!.height).toBeLessThan(900 * 0.8 + 1);
+    // The card is a fixed ~80% of the viewport regardless of content —
+    // not "up to" 80%, per the chat feedback that switching dates used to
+    // visibly resize the whole modal.
+    expect(cardBox!.height).toBeGreaterThan(900 * 0.8 - 2);
+    expect(cardBox!.height).toBeLessThan(900 * 0.8 + 2);
     const [scrollWidth, clientWidth] = await card
       .locator(".history-occ-strip")
       .evaluate((el) => [el.scrollWidth, el.clientWidth]);
@@ -541,18 +543,59 @@ test.describe("section history (Ctrl/Cmd+Shift+H)", () => {
     await page.keyboard.press("ControlOrMeta+Home");
     await page.keyboard.press("ControlOrMeta+Shift+H");
 
+    // Chronological order, oldest at the left — opened from today, which is
+    // the newest of the three and so sits at the strip's right end.
     const today = todayFilename().replace(".txt", "");
     await expect(occRow(page, today)).toHaveClass(/active/);
 
-    // Wraps past the oldest occurrence back around to the newest.
     await page.keyboard.press("ArrowLeft");
-    await expect(occRow(page, "2026-09-01")).toHaveClass(/active/);
+    await expect(occRow(page, "2026-09-05")).toHaveClass(/active/);
 
     await page.keyboard.press("ArrowRight");
     await expect(occRow(page, today)).toHaveClass(/active/);
 
+    // Wraps past the newest occurrence back around to the oldest.
     await page.keyboard.press("ArrowRight");
+    await expect(occRow(page, "2026-09-01")).toHaveClass(/active/);
+  });
+
+  test("occurrence tabs render left-to-right in chronological order, oldest to newest", async ({ page }) => {
+    await seedApp(page, {
+      seed: {
+        notes: {
+          [todayFilename()]: "Standup\n====\n",
+          "2026-09-05.txt": "Standup\n====\n",
+          "2026-09-01.txt": "Standup\n====\n",
+        },
+        session: { openTabs: [todayFilename()], activeTab: todayFilename() },
+      },
+    });
+    await editor(page).click();
+    await page.keyboard.press("ControlOrMeta+Home");
+    await page.keyboard.press("ControlOrMeta+Shift+H");
+
+    const dates = await history(page).locator(".history-occ-date").allTextContents();
+    expect(dates).toEqual(["2026-09-01", "2026-09-05", todayFilename().replace(".txt", "")]);
+  });
+
+  test("opens focused on the occurrence for the note History was opened from", async ({ page }) => {
+    await seedApp(page, {
+      seed: {
+        notes: {
+          [todayFilename()]: "Standup\n====\n",
+          "2026-09-05.txt": "Standup\n====\n# an old item",
+        },
+        // Opened from the *older* note — the strip should focus that date,
+        // not the newest one (today) it happens to render at the right end.
+        session: { openTabs: ["2026-09-05.txt"], activeTab: "2026-09-05.txt" },
+      },
+    });
+    await editor(page).click();
+    await page.keyboard.press("ControlOrMeta+Home");
+    await page.keyboard.press("ControlOrMeta+Shift+H");
+
     await expect(occRow(page, "2026-09-05")).toHaveClass(/active/);
+    await expect(occRow(page, todayFilename().replace(".txt", ""))).not.toHaveClass(/active/);
   });
 
   test("Up/Down move a single-line selection; Shift+Up/Down grow or shrink the range", async ({ page }) => {
@@ -642,5 +685,115 @@ test.describe("section history (Ctrl/Cmd+Shift+H)", () => {
     // a modal was open.
     await expect(history(page)).toBeVisible();
     await expect(activeTabLabel(page)).toHaveText(todayFilename().replace(".txt", ""));
+  });
+
+  test("no filename is shown, and there's no separate 'Open file' button — double-click a tab instead", async ({
+    page,
+  }) => {
+    await seedApp(page, {
+      seed: {
+        notes: {
+          [todayFilename()]: "Standup\n====\n",
+          "2026-09-05.txt": "Standup\n====\n# an old item",
+        },
+        session: { openTabs: [todayFilename()], activeTab: todayFilename() },
+      },
+    });
+    await editor(page).click();
+    await page.keyboard.press("ControlOrMeta+Home");
+    await page.keyboard.press("ControlOrMeta+Shift+H");
+
+    await occRow(page, "2026-09-05").click();
+    await expect(history(page)).not.toContainText("2026-09-05.txt");
+    await expect(history(page).getByRole("button", { name: "Open file" })).toHaveCount(0);
+
+    // Double-clicking a *different* tab than the one currently browsed
+    // still jumps straight there — it doesn't require single-clicking it
+    // first.
+    await occRow(page, todayFilename().replace(".txt", "")).dblclick();
+    expect(await currentModal(page)).toBe("none");
+    await expect(activeTabLabel(page)).toHaveText(todayFilename().replace(".txt", ""));
+  });
+
+  test("the selected tab's colored line follows past/today/future, like the main tab strip (#96)", async ({ page }) => {
+    await seedApp(page, {
+      seed: {
+        notes: {
+          "2026-09-10.txt": "Standup\n====\n", // future
+          [todayFilename()]: "Standup\n====\n",
+          "2026-09-01.txt": "Standup\n====\n", // past
+        },
+        session: { openTabs: [todayFilename()], activeTab: todayFilename() },
+      },
+    });
+    await editor(page).click();
+    await page.keyboard.press("ControlOrMeta+Home");
+    await page.keyboard.press("ControlOrMeta+Shift+H");
+
+    const shadow = (locator: Locator) => locator.evaluate((el) => getComputedStyle(el).boxShadow);
+    const today = todayFilename().replace(".txt", "");
+
+    const todayShadow = await shadow(occRow(page, today));
+    await occRow(page, "2026-09-01").click();
+    const pastShadow = await shadow(occRow(page, "2026-09-01"));
+    await occRow(page, "2026-09-10").click();
+    const futureShadow = await shadow(occRow(page, "2026-09-10"));
+
+    expect(new Set([todayShadow, pastShadow, futureShadow]).size).toBe(3);
+  });
+
+  test("Shift+Enter takes over the current selection to the primary destination, same as clicking its button", async ({
+    page,
+  }) => {
+    await seedApp(page, {
+      seed: {
+        notes: {
+          [todayFilename()]: "Standup\n====\n",
+          "2026-09-05.txt": "Standup\n====\n# renew the cert",
+        },
+        session: { openTabs: [todayFilename()], activeTab: todayFilename() },
+      },
+    });
+    await editor(page).click();
+    await page.keyboard.press("ControlOrMeta+Home");
+    await page.keyboard.press("ControlOrMeta+Shift+H");
+
+    await occRow(page, "2026-09-05").click();
+    await page.keyboard.press("ArrowDown");
+    await expect(detailLine(page, "renew the cert")).toHaveClass(/history-line-selected/);
+
+    // The footer names the exact same destination the button would.
+    await expect(history(page).locator(".modal-footer")).toContainText("Add to today");
+
+    await page.keyboard.press("Shift+Enter");
+    await expect.poll(() => mockNote(page, "2026-09-05.txt")).toContain("> renew the cert");
+    await expect.poll(() => mockNote(page, todayFilename())).toBe("Standup\n====\n# renew the cert");
+  });
+
+  test("the modal height stays constant (~80% of the window) switching between a short and a long occurrence", async ({
+    page,
+  }) => {
+    const longBody = Array.from({ length: 80 }, (_, i) => `line ${i + 1}`).join("\n");
+    await seedApp(page, {
+      seed: {
+        notes: {
+          [todayFilename()]: "Standup\n====\n",
+          "2026-09-05.txt": `Standup\n====\n${longBody}`,
+        },
+        session: { openTabs: [todayFilename()], activeTab: todayFilename() },
+      },
+    });
+    await page.setViewportSize({ width: 1000, height: 800 });
+    await editor(page).click();
+    await page.keyboard.press("ControlOrMeta+Home");
+    await page.keyboard.press("ControlOrMeta+Shift+H");
+
+    const card = history(page);
+    const shortHeight = (await card.boundingBox())!.height;
+    await occRow(page, "2026-09-05").click();
+    const longHeight = (await card.boundingBox())!.height;
+
+    expect(shortHeight).toBeCloseTo(longHeight, 0);
+    expect(shortHeight).toBeCloseTo(800 * 0.8, 0);
   });
 });

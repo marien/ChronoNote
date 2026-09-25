@@ -34,7 +34,10 @@ const DATED_FILE = /^\d{4}-\d{2}-\d{2}\.txt$/;
 async function buildOccurrences(targetHeader: string): Promise<SectionOccurrence[]> {
   await refreshAllNotesCache();
   const allSources = get(allNotesCache);
-  const sortedFiles = Object.keys(allSources).sort().reverse();
+  // Chronological, oldest first — the occurrence strip reads left-to-right
+  // like a calendar (and like the main tab strip it's modeled on), newest
+  // date at the right end.
+  const sortedFiles = Object.keys(allSources).sort();
   const occurrences: SectionOccurrence[] = [];
   for (const filename of sortedFiles) {
     const flines = allSources[filename].split("\n");
@@ -49,7 +52,12 @@ async function buildOccurrences(targetHeader: string): Promise<SectionOccurrence
  * in `types.ts`) — computed once, from the opened-from tab's own date, not
  * re-decided per occurrence browsed. A scratchpad has no date of its own,
  * so it's treated the same as "today or later": there's nowhere else
- * sensible to thread a next-occurrence search from. */
+ * sensible to thread a next-occurrence search from.
+ *
+ * Labels spell out the actual destination ("Add to today" / `Add to
+ * 2026-09-10` / `Add to "Scratchpad 1"`) rather than a generic "Insert
+ * here" — chat feedback that the vague original left it unclear what the
+ * button actually did or where "here" was. */
 async function computeHistoryDestinations(
   openedFromTab: NoteTab,
   targetHeader: string,
@@ -58,16 +66,26 @@ async function computeHistoryDestinations(
   const today = todayISO();
   const openedFromDate = openedFromTab.isScratchpad ? null : openedFromTab.filename.replace(/\.txt$/, "");
   if (openedFromDate === null || openedFromDate >= today) {
-    return [{ kind: "here", tabId: openedFromTab.id, label: "Insert here" }];
+    const label = openedFromTab.isScratchpad
+      ? `Add to "${openedFromTab.filename}"`
+      : openedFromDate === today
+        ? "Add to today"
+        : `Add to ${openedFromDate}`;
+    return [{ kind: "here", tabId: openedFromTab.id, label }];
   }
 
   const destinations: HistoryDestination[] = [
-    { kind: "today", date: today, headerText: sourceHeaderDisplay, label: "→ Today" },
+    { kind: "today", date: today, headerText: sourceHeaderDisplay, label: "Add to today" },
   ];
   try {
     const next = await findNextOccurrenceTarget(openedFromTab.filename, targetHeader, sourceHeaderDisplay);
     if (next && next.date !== today) {
-      destinations.push({ kind: "next", date: next.date, headerText: next.headerText, label: `→ Next occurrence (${next.date})` });
+      destinations.push({
+        kind: "next",
+        date: next.date,
+        headerText: next.headerText,
+        label: `Add to next occurrence (${next.date})`,
+      });
     }
   } catch {
     // No calendar available, or a read failure — "Today" alone still works;

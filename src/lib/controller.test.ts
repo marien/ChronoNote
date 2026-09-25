@@ -1144,12 +1144,13 @@ describe("openMeetingHistory (2026-09-24 redesign: browse occurrences, no more f
     await controller.openMeetingHistory();
 
     const occurrences = get(controller.historyOccurrences);
-    // Most-recent-first, future included, and every dated occurrence
+    // Chronological, oldest first (newest at the right end of the
+    // occurrence strip), future included, and every dated occurrence
     // present even when it has no content at all.
-    expect(occurrences.map((o) => o.filename)).toEqual(["2026-09-15.txt", "2026-09-10.txt", "2026-09-05.txt"]);
-    expect(occurrences[0].lines).toEqual(["# a future action already on the books"]);
+    expect(occurrences.map((o) => o.filename)).toEqual(["2026-09-05.txt", "2026-09-10.txt", "2026-09-15.txt"]);
+    expect(occurrences[0].lines).toEqual(["# an older action"]);
     expect(occurrences[1].lines).toEqual(["today, nothing yet"]);
-    expect(occurrences[2].lines).toEqual(["# an older action"]);
+    expect(occurrences[2].lines).toEqual(["# a future action already on the books"]);
   });
 
   it("opened from today or later: the only destination is 'here', the opened-from tab itself", async () => {
@@ -1168,7 +1169,7 @@ describe("openMeetingHistory (2026-09-24 redesign: browse occurrences, no more f
     });
     apiMock.readAllNotes.mockResolvedValue([["2026-09-10.txt", "Sync\n====\nnotes"]]);
     await controller.openMeetingHistory();
-    expect(get(controller.historyDestinations)).toEqual([{ kind: "here", tabId: "active", label: "Insert here" }]);
+    expect(get(controller.historyDestinations)).toEqual([{ kind: "here", tabId: "active", label: "Add to today" }]);
   });
 
   it("opened from a past note with a next occurrence on disk: 'Today' and 'Next occurrence'", async () => {
@@ -1192,7 +1193,7 @@ describe("openMeetingHistory (2026-09-24 redesign: browse occurrences, no more f
     await controller.openMeetingHistory();
     const destinations = get(controller.historyDestinations);
     expect(destinations).toHaveLength(2);
-    expect(destinations[0]).toEqual({ kind: "today", date: "2026-09-12", headerText: "Sync", label: "→ Today" });
+    expect(destinations[0]).toEqual({ kind: "today", date: "2026-09-12", headerText: "Sync", label: "Add to today" });
     expect(destinations[1]).toMatchObject({ kind: "next", date: "2026-09-20" });
   });
 
@@ -1213,7 +1214,7 @@ describe("openMeetingHistory (2026-09-24 redesign: browse occurrences, no more f
     apiMock.readAllNotes.mockResolvedValue([["2026-09-05.txt", "Sync\n====\nold notes"]]);
     await controller.openMeetingHistory();
     expect(get(controller.historyDestinations)).toEqual([
-      { kind: "today", date: "2026-09-12", headerText: "Sync", label: "→ Today" },
+      { kind: "today", date: "2026-09-12", headerText: "Sync", label: "Add to today" },
     ]);
   });
 
@@ -1233,7 +1234,9 @@ describe("openMeetingHistory (2026-09-24 redesign: browse occurrences, no more f
     });
     apiMock.readAllNotes.mockResolvedValue([]);
     await controller.openMeetingHistory();
-    expect(get(controller.historyDestinations)).toEqual([{ kind: "here", tabId: "active", label: "Insert here" }]);
+    expect(get(controller.historyDestinations)).toEqual([
+      { kind: "here", tabId: "active", label: 'Add to "Scratchpad 1"' },
+    ]);
   });
 });
 

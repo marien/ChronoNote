@@ -1,12 +1,21 @@
 # Section History: browse occurrences in context, carry lines forward — design
 
 Status: **implemented, 2026-09-24 (`docs/CHANGELOG.md` §211), then revised
-2026-09-25 (§212)** after real use: the vertical occurrence list became a
-compact horizontal tab strip (dots included), line selection gained a full
-keyboard model (arrows/Shift+arrows/Left+Right) and mouse click-drag, and a
-general modal-focus-escape bug (Ctrl+Tab leaking to the app underneath any
-open modal) was found and fixed along the way. Written the
-same day at Marien's request, after using the current (§150-era) Section
+2026-09-25 (§212), then again 2026-09-25 (§213)** after real use. §212: the
+vertical occurrence list became a compact horizontal tab strip (dots
+included), line selection gained a full keyboard model
+(arrows/Shift+arrows/Left+Right) and mouse click-drag, and a general
+modal-focus-escape bug (Ctrl+Tab leaking to the app underneath any open
+modal) was found and fixed along the way. §213: the strip sorts oldest to
+newest (left to right, matching the main tab strip); its tabs color by
+past/today/future like the main strip's own tabs; the filename display and
+"Open file" button are gone in favor of the tab itself (double-click to
+jump); destination button labels spell out where they actually go ("Add to
+today", `Add to <date>`) instead of the vague "Insert here"/"→ Today", with
+a one-line explanation added and a `Shift+Enter` shortcut for the primary
+one; and the modal is a fixed ~80% of the window height rather than
+shrinking/growing per occurrence. Written
+the same day at Marien's request, after using the current (§150-era) Section
 History drawer for a while: "What I realize when using it, is that I don't
 use the action list itself, I use it to move between occurrences, and check
 the actual notes, including actions, so I can see actions and follow-ups in

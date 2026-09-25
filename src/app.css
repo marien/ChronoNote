@@ -2269,9 +2269,17 @@ textarea.modal-input.import-textarea {
  * `flex: 1 1 auto` sizing only kicks in once an ancestor actually has a
  * bounded height to divide up. Capping the card here gives `.history-body`
  * (now `flex: 1`) a real budget, which `.hp-context` shares via its own
- * `overflow-y: auto`. */
+ * `overflow-y: auto`.
+ *
+ * 2026-09-25 follow-up: a `max-height` let the card shrink to fit a short
+ * occurrence and grow for a long one, which meant the whole modal visibly
+ * resized every time Left/Right switched to a differently-sized date —
+ * chat feedback asked for a constant ~80% of the window instead. A plain
+ * `height` (not `max-height`) fixes it at that size regardless of content;
+ * a short occurrence just leaves empty space in `.hp-context` rather than
+ * shrinking the card down to meet it. */
 .history-modal-card {
-  max-height: 80vh;
+  height: 80vh;
 }
 
 /* The occurrence strip: one small tab per date, modeled on the main
@@ -2331,6 +2339,31 @@ textarea.modal-input.import-textarea {
 .history-occ-tab.empty {
   opacity: 0.55;
 }
+/* Chat feedback: "the colored line on the tab needs to follow the color
+ * scheme of the main tabs" — the exact same #68/#96 treatment `.tab`/
+ * `.tab.active` get in the main window's own strip, just applied to
+ * `.history-occ-date` (there's no icon here) instead of `.tab-icon`.
+ * Independent of selection, like the main strip's own past/today/future
+ * dimming; the selected tab's own underline additionally follows it via
+ * `.active.past`/`.active.future` (today needs no override — the default
+ * `.active` accent above already matches). */
+.history-occ-tab.past .history-occ-date {
+  opacity: 0.55;
+}
+.history-occ-tab.today .history-occ-date {
+  opacity: 1;
+  color: var(--tab-active-border);
+}
+.history-occ-tab.future .history-occ-date {
+  opacity: 1;
+  color: var(--state-ok);
+}
+.history-occ-tab.active.past {
+  box-shadow: inset 0 -2px 0 color-mix(in srgb, var(--muted) 45%, transparent);
+}
+.history-occ-tab.active.future {
+  box-shadow: inset 0 -2px 0 var(--state-ok);
+}
 /* Mirrors the date picker's own `.cal-day` completion dots exactly
  * (`computeDayHeat`/`occurrenceHeat`) — the same colors mean the same
  * thing everywhere: amber = open actions, green = all resolved, muted =
@@ -2365,33 +2398,6 @@ textarea.modal-input.import-textarea {
   display: flex;
   flex-direction: column;
   gap: 10px;
-}
-.history-detail-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  flex-shrink: 0;
-}
-.po-jump {
-  font: inherit;
-  font-size: 11px;
-  color: var(--text);
-  background: var(--surface-raised);
-  border: 1px solid var(--edge-soft);
-  border-radius: 4px;
-  padding: 2px 8px;
-  cursor: pointer;
-}
-.po-jump:hover {
-  border-color: var(--edge-strong);
-}
-.hp-label {
-  font-size: 10.5px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--muted);
-  font-weight: 600;
 }
 .hp-context {
   margin: 0;
@@ -2452,6 +2458,14 @@ textarea.modal-input.import-textarea {
   gap: 8px;
   flex-shrink: 0;
   flex-wrap: wrap;
+}
+/* Chat feedback: the destination button(s) alone didn't say what taking a
+ * line over actually does — a short, always-present explanation next to
+ * them instead of relying on the button label alone to carry it. */
+.history-takeover-hint {
+  font-size: 10.5px;
+  color: var(--muted);
+  flex-basis: 100%;
 }
 
 /* §194 Area 6.1: Dynamic floating toast for mobile */
