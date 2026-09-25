@@ -2294,17 +2294,34 @@ textarea.modal-input.import-textarea {
  * Horizontally scrollable (no visible scrollbar, same treatment as
  * `#tab-bar`) rather than collapsing/overflowing — occurrence counts here
  * are rarely huge, and keyboard Left/Right (`moveOccurrence`) plus
- * `scrollOccIntoView` keep the selected tab reachable either way. */
+ * `scrollOccIntoView` keep the selected tab reachable either way.
+ *
+ * 2026-09-27 follow-up: split into a row (`-row`, carries the chrome
+ * background/border and the #52-style scroll-arrow buttons, chat feedback:
+ * "I miss the left and right buttons that the main tab bar has") and the
+ * actual scrollable strip inside it — the arrows need to sit outside the
+ * scrolling area, the same relationship `#tab-bar`'s own arrows have to
+ * it. */
+.history-occ-strip-row {
+  display: flex;
+  align-items: stretch;
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--edge-soft);
+  background: var(--surface-chrome);
+}
+.history-occ-scroll-btn {
+  flex-shrink: 0;
+  padding: 0 6px;
+}
 .history-occ-strip {
   display: flex;
   align-items: center;
   gap: 2px;
-  flex-shrink: 0;
+  flex: 1;
+  min-width: 0;
   overflow-x: auto;
   scrollbar-width: none;
   padding: 5px 10px;
-  border-bottom: 1px solid var(--edge-soft);
-  background: var(--surface-chrome);
 }
 .history-occ-strip::-webkit-scrollbar {
   height: 0;
@@ -2337,10 +2354,18 @@ textarea.modal-input.import-textarea {
   background: var(--surface-raised);
   color: var(--text);
 }
+/* Chat feedback: "visually connect the tab buttons to the content" — the
+ * active tab now matches `.history-detail`'s own background
+ * (`--surface-canvas`, not the strip's `--surface-raised` hover tone) and
+ * squares off its bottom corners, so it reads as the same surface the body
+ * below belongs to rather than just another button in the row (the same
+ * idea as the main tab strip's `.tab.active`, which bridges into the
+ * editor the same way). */
 .history-occ-tab.active {
-  background: var(--surface-raised);
+  background: var(--surface-canvas);
   color: var(--text);
   font-weight: 600;
+  border-radius: 5px 5px 0 0;
   box-shadow: inset 0 -2px 0 var(--tab-active-border);
 }
 .history-occ-tab.empty {
@@ -2370,6 +2395,33 @@ textarea.modal-input.import-textarea {
 }
 .history-occ-tab.active.future {
   box-shadow: inset 0 -2px 0 var(--state-ok);
+}
+/* Chat feedback: "keep today's tab button and destination section tab
+ * button always in view in the tab bar, even when moving to earlier or
+ * later dates" — a "frozen column" pattern (`position: sticky` against
+ * `.history-occ-strip`'s own scrollport), not a separate duplicate
+ * button, so it's still the exact same tab you'd otherwise have to scroll
+ * to. Both `left: 0` and `right: 0` on the same element (the standard
+ * "frozen first/last column" recipe): a tab whose natural position would
+ * otherwise scroll off the *right* edge (browsing further back in the
+ * past) clamps to `right: 0`; one that would scroll off the *left* edge
+ * (browsing forward, past it) clamps to `left: 0` — either way it never
+ * actually leaves the visible strip, regardless of which direction you
+ * browse away from it. The `:not(.active)` guard keeps `.active`'s own
+ * canvas-toned background from being overridden by the pinned chrome tone
+ * when a pinned tab is also the selected one. */
+.history-occ-tab.pinned-today,
+.history-occ-tab.pinned-source {
+  position: sticky;
+  left: 0;
+  right: 0;
+  z-index: 2;
+  border-left: 1px solid var(--edge-soft);
+  border-right: 1px solid var(--edge-soft);
+}
+.history-occ-tab.pinned-today:not(.active),
+.history-occ-tab.pinned-source:not(.active) {
+  background: var(--surface-chrome);
 }
 /* Mirrors the date picker's own `.cal-day` completion dots exactly
  * (`computeDayHeat`/`occurrenceHeat`) — the same colors mean the same

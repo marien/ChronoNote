@@ -2,7 +2,18 @@
 
 Status: **implemented, 2026-09-24 (`docs/CHANGELOG.md` §211), then revised
 2026-09-25 (§212), then again 2026-09-25 (§213), then a real bug fix
-2026-09-26 (§214)** after real use. §214: `isOwnOccurrence` (a blanket
+2026-09-26 (§214), then more real-use fixes 2026-09-27 (§215)** after real
+use. §215: the focus-on-open logic ran once in `onMount`, before the async
+disk read had actually populated `historyOccurrences` — it silently landed
+on index 0, the *oldest* date once §213 sorted the strip oldest-first,
+instead of the note History was opened from; fixed by making it reactive
+to `occurrences` actually filling in, not a one-shot check that can run
+too early. Also added: `#tab-bar`-style scroll arrows on the strip; the
+active tab's background now matches the note body below it (a "connected"
+folder-tab look); and today's occurrence + the opened-from occurrence are
+each pinned to whichever edge of the strip they'd otherwise scroll past
+(`position: sticky`, both `left`/`right`), so browsing away from either
+one in either direction never scrolls it out of reach. §214: `isOwnOccurrence` (a blanket
 "no take-over from the note History was opened from" rule) is gone,
 replaced with `usableDestinations` — a per-destination check against
 whatever file the browsed occurrence itself is, which is both more

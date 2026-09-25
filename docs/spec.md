@@ -400,16 +400,22 @@ reachable from the top bar, a shortcut, or the command palette:
   ~80% of the window's height regardless of how much content the browsed
   occurrence has (switching dates never resizes the modal). A compact
   horizontal strip of occurrence dates sits above the note body (modeled on
-  the main tab strip, sized down), chronological left-to-right — oldest at
+  the main tab strip, sized down, with the same left/right scroll-arrow
+  buttons once it overflows), chronological left-to-right — oldest at
   the left, newest at the right, same as the main tab strip — and opens
   focused on whichever date the drawer was opened from. Each tab carries a
   dot mirroring the date picker's own completion heat (amber = open
   actions, green = all resolved, muted = no actions at all; no dot = no
   content yet) and colors its own date text — and, once selected, its
   underline — by the same past/today/future scheme the main tab strip's
-  own tabs use. No filename is shown anywhere (the selected tab already
-  names the date); double-clicking a tab jumps straight to that section and
-  closes the drawer. The selected occurrence's *entire* body renders below,
+  own tabs use. The selected tab's background matches the note body below
+  it with squared bottom corners, reading as one connected surface; the
+  occurrence dated today and the one History was opened from each stay
+  pinned in view (`position: sticky`) no matter how far you browse away
+  from them in either direction. No filename is shown anywhere (the
+  selected tab already names the date); double-clicking a tab jumps
+  straight to that section and closes the drawer. The selected occurrence's
+  *entire* body renders below,
   glyph-rendered and scrollable — the same rendering the editor itself
   uses, not an extracted list of actions out of context. Keyboard: Up/Down
   move a single-line selection, Shift+Up/Down grow or shrink a range from

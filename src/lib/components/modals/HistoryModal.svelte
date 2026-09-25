@@ -40,6 +40,16 @@
   $: selectedOcc = occurrences[selectedIndex] as SectionOccurrence | undefined;
   $: openedFromFilename = $tabs.find((t) => t.id === $historyOpenedFromTabId)?.filename;
 
+  // Chat feedback: "keep today's tab button and destination section tab
+  // button always in view in the tab bar, even when moving to earlier or
+  // later dates" — these two indices drive `.pinned-today`/`.pinned-source`
+  // (sticky-positioned to the strip's left/right edge in `app.css`) so
+  // browsing far away from either one never scrolls it out of reach. `-1`
+  // (no match) is a legitimate, common case — e.g. no section exists today
+  // yet — and simply means nothing gets that treatment.
+  $: todayOccIndex = occurrences.findIndex((o) => o.date === $currentDateISO);
+  $: openedFromOccIndex = occurrences.findIndex((o) => o.filename === openedFromFilename);
+
   /** The file a destination would actually write to — "here" always
    * targets the tab History was opened from, "today"/"next" a specific
    * date. Used to filter `$historyDestinations` down to ones that aren't
@@ -79,21 +89,33 @@
   }
 
   let bodyContainerEl: HTMLDivElement;
+  let hasFocusedOpenedFrom = false;
 
-  onMount(async () => {
-    // §42 precedent: focus the occurrence that belongs to wherever the
-    // drawer was opened from, instead of always starting at whichever end
-    // of the (chronological) strip happens to render first.
-    // `openMeetingHistory()` may still be filling `historyOccurrences` in
-    // when this mounts (§62) — wait one tick, which is enough for the
-    // synchronous part of that to have run; if the disk read is still
-    // genuinely in flight, this just falls back to index 0 once it
-    // resolves, same as before §42 existed.
-    await tick();
+  // 2026-09-27 bug fix: `historyOccurrences` always starts as `[]` and
+  // fills in once the disk read resolves — genuinely *after* `onMount` in
+  // every case, since `openMeetingHistory()` clears it and opens the modal
+  // before awaiting that read (the whole point of #62's spinner). Doing
+  // this focus-on-open logic in `onMount` (the previous approach, `await
+  // tick()` then search) ran while `occurrences` was still empty, found no
+  // match, and silently left `selectedIndex` at its default of 0 — which,
+  // now that the strip sorts oldest-first, is the *oldest* date rather
+  // than the one History was opened from. Doing it here instead, the first
+  // time the list actually has anything in it, means it always runs
+  // against real data regardless of how long the read takes.
+  $: if (!hasFocusedOpenedFrom && occurrences.length > 0) {
+    hasFocusedOpenedFrom = true;
+    focusOpenedFromOccurrence();
+  }
+
+  async function focusOpenedFromOccurrence() {
     const idx = occurrences.findIndex((o) => o.filename === openedFromFilename);
     if (idx !== -1) selectedIndex = idx;
-    bodyContainerEl?.focus();
+    await tick();
     scrollOccIntoView();
+  }
+
+  onMount(() => {
+    bodyContainerEl?.focus();
     // A drag started with the mouse still down when it leaves the line
     // list (over the takeover bar, or right off the modal) must still
     // stop on mouseup — listen on the window, not just the list itself.
@@ -107,11 +129,22 @@
     // everything through one div's own focus state. `onDestroy` below
     // removes it, so it's scoped to exactly this modal's lifetime.
     document.addEventListener("keydown", onKeydown);
+    // #61 precedent (TopBar's own tab strip): the occurrence strip can
+    // overflow its own width once there are enough dates — a
+    // `ResizeObserver` on the strip catches a *window*-driven width
+    // change; `refreshStripOverflow` below (triggered off `occurrences`
+    // itself) catches a *content* change (more/fewer tabs) that doesn't
+    // necessarily resize the strip's own box at all.
+    if (stripEl) {
+      stripResizeObserver = new ResizeObserver(() => updateStripOverflow());
+      stripResizeObserver.observe(stripEl);
+    }
   });
 
   onDestroy(() => {
     window.removeEventListener("mouseup", stopDrag);
     document.removeEventListener("keydown", onKeydown);
+    stripResizeObserver?.disconnect();
   });
 
   function stopDrag() {
@@ -232,6 +265,38 @@
     });
   }
 
+  // Chat feedback: "I miss the left and right buttons that the main tab
+  // bar has" — the same scroll-the-strip-not-the-selection behavior as
+  // `TopBar`'s own `.tab-scroll-btn`s (§52): only shown once the strip
+  // genuinely overflows, wraps to the far end past either edge.
+  let stripOverflowing = false;
+  let stripResizeObserver: ResizeObserver | null = null;
+  const STRIP_SCROLL_STEP = 160;
+
+  function updateStripOverflow() {
+    if (stripEl) stripOverflowing = stripEl.scrollWidth > stripEl.clientWidth + 1;
+  }
+
+  $: refreshStripOverflow(occurrences);
+  async function refreshStripOverflow(_occs: SectionOccurrence[]) {
+    await tick();
+    updateStripOverflow();
+  }
+
+  function scrollOccStrip(direction: 1 | -1) {
+    if (!stripEl) return;
+    const maxScroll = stripEl.scrollWidth - stripEl.clientWidth;
+    const atLeftEdge = stripEl.scrollLeft <= 0;
+    const atRightEdge = stripEl.scrollLeft >= maxScroll - 1;
+    if (direction === -1 && atLeftEdge) {
+      stripEl.scrollTo({ left: maxScroll, behavior: "smooth" });
+    } else if (direction === 1 && atRightEdge) {
+      stripEl.scrollTo({ left: 0, behavior: "smooth" });
+    } else {
+      stripEl.scrollBy({ left: direction * STRIP_SCROLL_STEP, behavior: "smooth" });
+    }
+  }
+
   let bodyEl: HTMLDivElement;
   function scrollLineIntoView(abs: number) {
     bodyEl?.querySelector<HTMLElement>(`[data-line-idx="${abs}"]`)?.scrollIntoView({ block: "nearest" });
@@ -316,32 +381,54 @@
          same thing everywhere in the app: amber = open actions, green =
          all resolved, muted = a note with no actions at all. No dot at
          all = genuinely empty ("no content yet"). -->
-    <div class="history-occ-strip" role="tablist" aria-label="Occurrences" bind:this={stripEl}>
-      {#if $historyLoading}
-        <span class="history-occ-loading"><span class="modal-spinner" aria-label="Loading">⟳</span> Loading history…</span>
-      {:else if occurrences.length === 0}
-        <span class="history-occ-loading">No prior occurrences found across open or closed notes.</span>
-      {:else}
-        {#each occurrences as occ, index (occ.filename)}
-          {@const heat = controller.occurrenceHeat(occ)}
-          <button
-            type="button"
-            class="history-occ-tab {index === selectedIndex ? 'active' : ''} {heat ? '' : 'empty'} {occDateClass(occ, $currentDateISO)}"
-            role="tab"
-            aria-selected={index === selectedIndex}
-            data-occ-index={index}
-            tabindex="-1"
-            title={heat ? `Double-click to jump to ${occ.date}` : `No content yet — double-click to jump to ${occ.date}`}
-            on:click={() => {
-              selectedIndex = index;
-              bodyContainerEl?.focus();
-            }}
-            on:dblclick={() => controller.jumpToHistoryLine(occ)}
-          >
-            <span class="history-occ-date">{occ.date}</span>
-            {#if heat}<span class="occ-dot has-{heat}" aria-hidden="true"></span>{/if}
-          </button>
-        {/each}
+    <div class="history-occ-strip-row">
+      {#if stripOverflowing}
+        <button
+          type="button"
+          class="icon-btn history-occ-scroll-btn"
+          aria-label="Scroll dates left"
+          on:click={() => scrollOccStrip(-1)}
+        >
+          <Icon name="chevron-left" size={14} />
+        </button>
+      {/if}
+      <div class="history-occ-strip" role="tablist" aria-label="Occurrences" bind:this={stripEl}>
+        {#if $historyLoading}
+          <span class="history-occ-loading"><span class="modal-spinner" aria-label="Loading">⟳</span> Loading history…</span>
+        {:else if occurrences.length === 0}
+          <span class="history-occ-loading">No prior occurrences found across open or closed notes.</span>
+        {:else}
+          {#each occurrences as occ, index (occ.filename)}
+            {@const heat = controller.occurrenceHeat(occ)}
+            <button
+              type="button"
+              class="history-occ-tab {index === selectedIndex ? 'active' : ''} {heat ? '' : 'empty'} {occDateClass(occ, $currentDateISO)} {index === todayOccIndex ? 'pinned-today' : ''} {index === openedFromOccIndex ? 'pinned-source' : ''}"
+              role="tab"
+              aria-selected={index === selectedIndex}
+              data-occ-index={index}
+              tabindex="-1"
+              title={heat ? `Double-click to jump to ${occ.date}` : `No content yet — double-click to jump to ${occ.date}`}
+              on:click={() => {
+                selectedIndex = index;
+                bodyContainerEl?.focus();
+              }}
+              on:dblclick={() => controller.jumpToHistoryLine(occ)}
+            >
+              <span class="history-occ-date">{occ.date}</span>
+              {#if heat}<span class="occ-dot has-{heat}" aria-hidden="true"></span>{/if}
+            </button>
+          {/each}
+        {/if}
+      </div>
+      {#if stripOverflowing}
+        <button
+          type="button"
+          class="icon-btn history-occ-scroll-btn"
+          aria-label="Scroll dates right"
+          on:click={() => scrollOccStrip(1)}
+        >
+          <Icon name="chevron-right" size={14} />
+        </button>
       {/if}
     </div>
 

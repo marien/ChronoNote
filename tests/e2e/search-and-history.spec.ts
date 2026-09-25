@@ -708,6 +708,141 @@ test.describe("section history (Ctrl/Cmd+Shift+H)", () => {
     await expect(occRow(page, todayFilename().replace(".txt", ""))).not.toHaveClass(/active/);
   });
 
+  // 2026-09-27 bug fix: the previous focus-on-open logic ran once in
+  // `onMount`, before `historyOccurrences` had actually filled in (#62
+  // means it always starts `[]` and fills in later, once the disk read
+  // resolves) — it silently found no match and left `selectedIndex` at 0,
+  // which is the *oldest* date now that the strip sorts oldest-first.
+  // A fast mock read can resolve quickly enough to mask this (the existing
+  // "opens focused" test above didn't fail), so this test forces the read
+  // to be genuinely slow — the same `delayCommands` pattern the #62 tests
+  // themselves use — to deterministically exercise the race that exposed
+  // the bug in real use.
+  test("bug fix: still focuses the opened-from occurrence when the disk read is slow (#62-style race)", async ({
+    page,
+  }) => {
+    await seedApp(page, {
+      seed: {
+        notes: {
+          "2026-08-01.txt": "Standup\n====\n# oldest item",
+          "2026-09-01.txt": "Standup\n====\n# opened from here",
+          "2026-09-20.txt": "Standup\n====\n# newest item",
+        },
+        session: { openTabs: ["2026-09-01.txt"], activeTab: "2026-09-01.txt" },
+        delayCommands: { read_all_notes: 500 },
+      },
+    });
+    await editor(page).click();
+    await page.keyboard.press("ControlOrMeta+Home");
+    await page.keyboard.press("ControlOrMeta+Shift+H");
+
+    await expect(history(page).locator(".modal-spinner")).toHaveCount(0, { timeout: 2000 });
+    await expect(occRow(page, "2026-09-01")).toHaveClass(/active/);
+    await expect(occRow(page, "2026-08-01")).not.toHaveClass(/active/);
+  });
+
+  test("scroll-left/right buttons appear once the strip overflows, scroll it (not the selection), and wrap at the ends", async ({
+    page,
+  }) => {
+    const notes: Record<string, string> = {};
+    for (let i = 1; i <= 20; i++) {
+      const d = `2026-08-${String(i).padStart(2, "0")}`;
+      notes[`${d}.txt`] = `Standup\n=======\n# task from ${d}\n`;
+    }
+    await seedApp(page, {
+      seed: { notes, session: { openTabs: ["2026-08-01.txt"], activeTab: "2026-08-01.txt" } },
+    });
+    await editor(page).click();
+    await page.keyboard.press("ControlOrMeta+Home");
+    await page.keyboard.press("ControlOrMeta+Shift+H");
+
+    const card = history(page);
+    const leftBtn = card.getByRole("button", { name: "Scroll dates left" });
+    const rightBtn = card.getByRole("button", { name: "Scroll dates right" });
+    await expect(leftBtn).toBeVisible();
+    await expect(rightBtn).toBeVisible();
+
+    // Opened from the oldest (leftmost) date — already scrolled fully
+    // left, so clicking "left" wraps around to the far (right) end,
+    // exactly like the main tab strip's own scroll arrows.
+    const strip = card.locator(".history-occ-strip");
+    await expect.poll(() => strip.evaluate((el) => el.scrollLeft)).toBe(0);
+    // The selection must not move — these buttons scroll the view, they
+    // don't change which occurrence is browsed (matching the main tab
+    // strip's own arrows, which never change the active tab either).
+    await expect(occRow(page, "2026-08-01")).toHaveClass(/active/);
+
+    const maxScroll = await strip.evaluate((el) => el.scrollWidth - el.clientWidth);
+    await leftBtn.click();
+    // Wait for the smooth-scroll wrap to fully settle at the end before
+    // clicking again — clicking mid-animation would read a stale,
+    // not-yet-`maxScroll` position and scroll normally instead of
+    // wrapping, which is a real flake source, not a fresh assertion.
+    await expect.poll(() => strip.evaluate((el) => el.scrollLeft)).toBe(maxScroll);
+    await expect(occRow(page, "2026-08-01")).toHaveClass(/active/);
+
+    await rightBtn.click();
+    await expect.poll(() => strip.evaluate((el) => el.scrollLeft)).toBe(0);
+  });
+
+  test("the active occurrence tab visually matches the note body below it (same background, squared bottom corners)", async ({
+    page,
+  }) => {
+    await seedApp(page, {
+      seed: { notes: { [todayFilename()]: "Standup\n====\n# today item" } },
+    });
+    await editor(page).click();
+    await page.keyboard.press("ControlOrMeta+Home");
+    await page.keyboard.press("ControlOrMeta+Shift+H");
+
+    const card = history(page);
+    const [activeBg, detailBg, radius] = await Promise.all([
+      card.locator(".history-occ-tab.active").evaluate((el) => getComputedStyle(el).backgroundColor),
+      card.locator(".history-detail").evaluate((el) => getComputedStyle(el).backgroundColor),
+      card.locator(".history-occ-tab.active").evaluate((el) => getComputedStyle(el).borderRadius),
+    ]);
+    expect(activeBg).toBe(detailBg);
+    expect(radius).toBe("5px 5px 0px 0px");
+  });
+
+  test("today's tab and the opened-from tab stay reachable in the strip, even scrolled far away", async ({ page }) => {
+    const notes: Record<string, string> = {
+      [todayFilename()]: "Standup\n====\n# today item",
+    };
+    for (let i = 1; i <= 15; i++) {
+      const d = `2026-07-${String(i).padStart(2, "0")}`;
+      notes[`${d}.txt`] = `Standup\n=======\n# task from ${d}\n`;
+    }
+    // Opened from a date in the middle of that older range, well away
+    // from both today's tab and the strip's own left edge.
+    await seedApp(page, {
+      seed: { notes, session: { openTabs: ["2026-07-08.txt"], activeTab: "2026-07-08.txt" } },
+    });
+    await editor(page).click();
+    await page.keyboard.press("ControlOrMeta+Home");
+    await page.keyboard.press("ControlOrMeta+Shift+H");
+
+    const card = history(page);
+    const todayTab = occRow(page, todayFilename().replace(".txt", ""));
+    const sourceTab = occRow(page, "2026-07-08");
+    await expect(todayTab).toHaveClass(/pinned-today/);
+    await expect(sourceTab).toHaveClass(/pinned-source/);
+
+    // Browse all the way to the oldest (leftmost) date via the keyboard —
+    // far from both pinned dates — they must still actually be on screen
+    // (a real "position: sticky" check, not just the class being present).
+    const stripBox = (await card.locator(".history-occ-strip").boundingBox())!;
+    // Opened from 2026-07-08, the 8th of 16 occurrences (0-indexed 7) —
+    // exactly 7 presses reaches the oldest (index 0) without wrapping.
+    for (let i = 0; i < 7; i++) await page.keyboard.press("ArrowLeft");
+    await expect(occRow(page, "2026-07-01")).toHaveClass(/active/);
+    const [todayBox, sourceBox] = await Promise.all([todayTab.boundingBox(), sourceTab.boundingBox()]);
+    const within = (box: { x: number; width: number }) =>
+      box.x >= stripBox.x - 1 && box.x + box.width <= stripBox.x + stripBox.width + 1;
+    expect(within(todayBox!)).toBe(true);
+    expect(within(sourceBox!)).toBe(true);
+  });
+
   test("Up/Down move a single-line selection; Shift+Up/Down grow or shrink the range", async ({ page }) => {
     await seedApp(page, {
       seed: {
