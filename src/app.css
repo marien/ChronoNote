@@ -2354,15 +2354,19 @@ textarea.modal-input.import-textarea {
   background: var(--surface-raised);
   color: var(--text);
 }
-/* Chat feedback: "visually connect the tab buttons to the content" — the
- * active tab now matches `.history-detail`'s own background
- * (`--surface-canvas`, not the strip's `--surface-raised` hover tone) and
- * squares off its bottom corners, so it reads as the same surface the body
- * below belongs to rather than just another button in the row (the same
- * idea as the main tab strip's `.tab.active`, which bridges into the
- * editor the same way). */
+/* Chat feedback: "visually connect the tab buttons to the content" tried
+ * matching the active tab's background to `.history-detail`'s own
+ * (`--surface-canvas`) — but `--surface-canvas` (#1e1e1e) is actually
+ * *darker* than the strip's own `--surface-chrome` (#252526), so the
+ * "highlighted" tab ended up less prominent than its unselected siblings,
+ * and unreadable combined with the past-date dimming below ("gray on
+ * gray"). Back to `--surface-raised` (#37373b, clearly lighter — the same
+ * token every other active/hovered control in the app uses), which stays
+ * legible regardless of which date-class also applies. The squared bottom
+ * corners are kept — a purely geometric "this tab belongs to the panel
+ * below it" cue that doesn't depend on a color contrast that can break. */
 .history-occ-tab.active {
-  background: var(--surface-canvas);
+  background: var(--surface-raised);
   color: var(--text);
   font-weight: 600;
   border-radius: 5px 5px 0 0;
@@ -2374,12 +2378,16 @@ textarea.modal-input.import-textarea {
 /* Chat feedback: "the colored line on the tab needs to follow the color
  * scheme of the main tabs" — the exact same #68/#96 treatment `.tab`/
  * `.tab.active` get in the main window's own strip, just applied to
- * `.history-occ-date` (there's no icon here) instead of `.tab-icon`.
- * Independent of selection, like the main strip's own past/today/future
- * dimming; the selected tab's own underline additionally follows it via
- * `.active.past`/`.active.future` (today needs no override — the default
- * `.active` accent above already matches). */
-.history-occ-tab.past .history-occ-date {
+ * `.history-occ-date` (there's no icon here) instead of `.tab-icon`. The
+ * main tab strip only ever dims a *decorative* icon for a past tab, never
+ * its label text, so an active-but-past tab there stays fully legible;
+ * `.history-occ-date` is this tab's only text at all, so dimming it while
+ * also active caused the same "hard to see" problem the background fix
+ * above did. `:not(.active)` keeps the dimming for at-a-glance scanning
+ * of the *un*selected tabs, matching what "past" means everywhere else,
+ * while the selected tab is always shown at full strength regardless of
+ * its date. */
+.history-occ-tab.past:not(.active) .history-occ-date {
   opacity: 0.55;
 }
 .history-occ-tab.today .history-occ-date {

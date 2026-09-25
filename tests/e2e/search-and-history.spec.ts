@@ -785,7 +785,7 @@ test.describe("section history (Ctrl/Cmd+Shift+H)", () => {
     await expect.poll(() => strip.evaluate((el) => el.scrollLeft)).toBe(0);
   });
 
-  test("the active occurrence tab visually matches the note body below it (same background, squared bottom corners)", async ({
+  test("the active occurrence tab squares off its bottom corners, connecting it to the note body below", async ({
     page,
   }) => {
     await seedApp(page, {
@@ -795,14 +795,58 @@ test.describe("section history (Ctrl/Cmd+Shift+H)", () => {
     await page.keyboard.press("ControlOrMeta+Home");
     await page.keyboard.press("ControlOrMeta+Shift+H");
 
-    const card = history(page);
-    const [activeBg, detailBg, radius] = await Promise.all([
-      card.locator(".history-occ-tab.active").evaluate((el) => getComputedStyle(el).backgroundColor),
-      card.locator(".history-detail").evaluate((el) => getComputedStyle(el).backgroundColor),
-      card.locator(".history-occ-tab.active").evaluate((el) => getComputedStyle(el).borderRadius),
-    ]);
-    expect(activeBg).toBe(detailBg);
+    const radius = await history(page)
+      .locator(".history-occ-tab.active")
+      .evaluate((el) => getComputedStyle(el).borderRadius);
     expect(radius).toBe("5px 5px 0px 0px");
+  });
+
+  // 2026-09-27 bug fix: chat feedback that the active tab, matched to the
+  // (darker) note-body background as the "visual connection" cue, was
+  // "very hard to see... if that is a past date, as it is gray on gray" —
+  // `--surface-canvas` (#1e1e1e) is actually darker than the strip's own
+  // `--surface-chrome` (#252526), so the "highlighted" tab was *less*
+  // prominent than an unselected one, and the past-date dimming (meant
+  // only for at-a-glance scanning of unselected tabs) hit the tab's only
+  // text at all once combined with it. Fixed by going back to
+  // `--surface-raised` (clearly lighter, the same token every other
+  // active control uses) and only dimming past dates when *not* selected.
+  test("bug fix: a selected occurrence stays clearly legible even when it's a past date", async ({ page }) => {
+    await seedApp(page, {
+      seed: {
+        notes: {
+          "2026-08-01.txt": "Standup\n====\n# an old item",
+          [todayFilename()]: "Standup\n====\n# today item",
+        },
+        session: { openTabs: ["2026-08-01.txt"], activeTab: "2026-08-01.txt" },
+      },
+    });
+    await editor(page).click();
+    await page.keyboard.press("ControlOrMeta+Home");
+    await page.keyboard.press("ControlOrMeta+Shift+H");
+
+    const card = history(page);
+    const activePastTab = occRow(page, "2026-08-01");
+    await expect(activePastTab).toHaveClass(/active/);
+    await expect(activePastTab).toHaveClass(/past/);
+
+    const [activeBg, chromeBg, dateOpacity] = await Promise.all([
+      activePastTab.evaluate((el) => getComputedStyle(el).backgroundColor),
+      card.locator(".history-occ-strip-row").evaluate((el) => getComputedStyle(el).backgroundColor),
+      activePastTab.locator(".history-occ-date").evaluate((el) => getComputedStyle(el).opacity),
+    ]);
+    // A real highlight, not just a same-or-darker tone the past dimming
+    // then washes out further.
+    expect(activeBg).not.toBe(chromeBg);
+    expect(dateOpacity).toBe("1");
+
+    // The same active background regardless of date-class — a past tab
+    // being selected must look exactly as prominent as any other.
+    await occRow(page, todayFilename().replace(".txt", "")).click();
+    const activeTodayBg = await occRow(page, todayFilename().replace(".txt", "")).evaluate(
+      (el) => getComputedStyle(el).backgroundColor,
+    );
+    expect(activeBg).toBe(activeTodayBg);
   });
 
   test("today's tab and the opened-from tab stay reachable in the strip, even scrolled far away", async ({ page }) => {
