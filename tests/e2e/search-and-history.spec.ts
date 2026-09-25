@@ -176,7 +176,7 @@ test.describe("cross-tab search (Ctrl/Cmd+Shift+F)", () => {
 // rather than aggregating a flat, de-contextualized action list — these
 // tests replace the pre-redesign suite entirely.
 test.describe("section history (Ctrl/Cmd+Shift+H)", () => {
-  const occRow = (page: Page, date: string) => history(page).locator(".modal-group-header", { hasText: date });
+  const occRow = (page: Page, date: string) => history(page).locator(".history-occ-tab", { hasText: date });
   const detailLine = (page: Page, text: string) => history(page).locator(".history-select-line", { hasText: text });
 
   test("lists every occurrence — past, today (empty), and future — and browsing one shows its full glyph-rendered body", async ({
@@ -207,11 +207,11 @@ test.describe("section history (Ctrl/Cmd+Shift+H)", () => {
 
     await expect(history(page)).toBeVisible();
     await expect(history(page).locator(".modal-title")).toContainText(/Weekly Sync/);
-    const list = history(page).locator(".modal-list");
-    await expect(list).toContainText("2026-09-10");
-    await expect(list).toContainText(todayFilename().replace(".txt", ""));
-    await expect(list).toContainText("2026-09-05");
-    await expect(occRow(page, "2026-08-20")).toContainText("no content yet");
+    const strip = history(page).locator(".history-occ-strip");
+    await expect(strip).toContainText("2026-09-10");
+    await expect(strip).toContainText(todayFilename().replace(".txt", ""));
+    await expect(strip).toContainText("2026-09-05");
+    await expect(occRow(page, "2026-08-20")).toHaveClass(/\bempty\b/);
 
     // Browsing the 2026-09-05 occurrence shows its whole body, glyph-
     // rendered (the `#` as ☐, the bullet as •), stopping at the next
@@ -422,10 +422,10 @@ test.describe("section history (Ctrl/Cmd+Shift+H)", () => {
     // (the fix for #62: "it takes a bit of time for the drawer to open").
     await expect(history(page)).toBeVisible({ timeout: 500 });
     await expect(history(page).locator(".modal-spinner")).toHaveCount(2);
-    await expect(history(page).locator(".modal-empty")).toContainText("Loading history");
+    await expect(history(page).locator(".history-occ-loading")).toContainText("Loading history");
 
     await expect(history(page).locator(".modal-spinner")).toHaveCount(0, { timeout: 2000 });
-    await expect(history(page).locator(".modal-list")).toContainText("2026-09-05");
+    await expect(history(page).locator(".history-occ-strip")).toContainText("2026-09-05");
   });
 
   test("cursor outside any named section shows a toast, no drawer", async ({ page }) => {
@@ -463,14 +463,13 @@ test.describe("section history (Ctrl/Cmd+Shift+H)", () => {
     expect(scrollHeight).toBeGreaterThan(clientHeight);
   });
 
-  test("the occurrence list fills its column height instead of stopping at a fixed size while the detail column grows (#59)", async ({
+  test("the occurrence strip stays a compact single row and scrolls horizontally, even with many occurrences (2026-09-25 redesign)", async ({
     page,
   }) => {
-    // Enough recurring occurrences that the list is a real, busy one —
-    // the shared `.modal-list` rule (used by Action Drawer/Search too)
-    // caps at 380px, which used to apply here as well even though this
-    // modal's own card can grow much taller (§155's 80vh cap), making
-    // the list look cut short next to the detail column beside it.
+    // Enough recurring occurrences that the strip genuinely overflows its
+    // own width — it should scroll horizontally rather than growing the
+    // modal taller (that's what a vertical sidebar list used to do; the
+    // whole point of the redesign is giving the note body the space back).
     const notes: Record<string, string> = {};
     for (let i = 1; i <= 20; i++) {
       const d = `2026-08-${String(i).padStart(2, "0")}`;
@@ -487,14 +486,161 @@ test.describe("section history (Ctrl/Cmd+Shift+H)", () => {
 
     const card = history(page);
     await expect(card).toBeVisible();
-    const [mainBox, detailBox, listBox] = await Promise.all([
-      card.locator(".history-main").boundingBox(),
+    const [cardBox, stripBox, detailBox] = await Promise.all([
+      card.boundingBox(),
+      card.locator(".history-occ-strip").boundingBox(),
       card.locator(".history-detail").boundingBox(),
-      card.locator(".modal-list").boundingBox(),
     ]);
-    // Same height as the detail column right next to it...
-    expect(Math.abs(mainBox!.height - detailBox!.height)).toBeLessThanOrEqual(1);
-    // ...which the list itself only achieves by no longer being capped at 380px.
-    expect(listBox!.height).toBeGreaterThan(380);
+    // The strip is a thin row, not a tall column...
+    expect(stripBox!.height).toBeLessThan(50);
+    // ...and the note body — not the strip — gets the space the card has
+    // to give (a short card here since each occurrence is only 3 lines;
+    // comparing against the strip's own height rather than a fraction of
+    // the card avoids the assertion being sensitive to how much of a
+    // short card the header/footer chrome otherwise takes up).
+    expect(detailBox!.height).toBeGreaterThan(stripBox!.height * 2);
+    expect(cardBox!.height).toBeLessThan(900 * 0.8 + 1);
+    const [scrollWidth, clientWidth] = await card
+      .locator(".history-occ-strip")
+      .evaluate((el) => [el.scrollWidth, el.clientWidth]);
+    expect(scrollWidth).toBeGreaterThan(clientWidth);
+  });
+
+  test("occurrence tabs show a dot reflecting that date's own open/closed/no-actions state", async ({ page }) => {
+    await seedApp(page, {
+      seed: {
+        notes: {
+          [todayFilename()]: "Standup\n====\n# an open item",
+          "2026-09-05.txt": "Standup\n====\nv a done item",
+          "2026-09-01.txt": "Standup\n====\njust some prose, no actions",
+        },
+        session: { openTabs: [todayFilename()], activeTab: todayFilename() },
+      },
+    });
+    await editor(page).click();
+    await page.keyboard.press("ControlOrMeta+Home");
+    await page.keyboard.press("ControlOrMeta+Shift+H");
+
+    await expect(occRow(page, todayFilename().replace(".txt", "")).locator(".occ-dot")).toHaveClass(/has-pending/);
+    await expect(occRow(page, "2026-09-05").locator(".occ-dot")).toHaveClass(/has-done/);
+    await expect(occRow(page, "2026-09-01").locator(".occ-dot")).toHaveClass(/has-log/);
+  });
+
+  test("Left/Right cycle between occurrence dates, wrapping at either end", async ({ page }) => {
+    await seedApp(page, {
+      seed: {
+        notes: {
+          [todayFilename()]: "Standup\n====\n",
+          "2026-09-05.txt": "Standup\n====\n# b",
+          "2026-09-01.txt": "Standup\n====\n# a",
+        },
+        session: { openTabs: [todayFilename()], activeTab: todayFilename() },
+      },
+    });
+    await editor(page).click();
+    await page.keyboard.press("ControlOrMeta+Home");
+    await page.keyboard.press("ControlOrMeta+Shift+H");
+
+    const today = todayFilename().replace(".txt", "");
+    await expect(occRow(page, today)).toHaveClass(/active/);
+
+    // Wraps past the oldest occurrence back around to the newest.
+    await page.keyboard.press("ArrowLeft");
+    await expect(occRow(page, "2026-09-01")).toHaveClass(/active/);
+
+    await page.keyboard.press("ArrowRight");
+    await expect(occRow(page, today)).toHaveClass(/active/);
+
+    await page.keyboard.press("ArrowRight");
+    await expect(occRow(page, "2026-09-05")).toHaveClass(/active/);
+  });
+
+  test("Up/Down move a single-line selection; Shift+Up/Down grow or shrink the range", async ({ page }) => {
+    await seedApp(page, {
+      seed: {
+        notes: {
+          [todayFilename()]: "Standup\n====\n",
+          "2026-09-05.txt": "Standup\n====\n# line a\n# line b\n# line c",
+        },
+        session: { openTabs: [todayFilename()], activeTab: todayFilename() },
+      },
+    });
+    await editor(page).click();
+    await page.keyboard.press("ControlOrMeta+Home");
+    await page.keyboard.press("ControlOrMeta+Shift+H");
+
+    await occRow(page, "2026-09-05").click();
+    await page.keyboard.press("ArrowDown");
+    await expect(detailLine(page, "line a")).toHaveClass(/history-line-selected/);
+    await expect(history(page).locator(".history-line-selected")).toHaveCount(1);
+
+    await page.keyboard.press("ArrowDown");
+    await expect(detailLine(page, "line b")).toHaveClass(/history-line-selected/);
+    await expect(history(page).locator(".history-line-selected")).toHaveCount(1);
+
+    await page.keyboard.press("Shift+ArrowDown");
+    await expect(history(page).locator(".history-line-selected")).toHaveCount(2);
+    await expect(detailLine(page, "line b")).toHaveClass(/history-line-selected/);
+    await expect(detailLine(page, "line c")).toHaveClass(/history-line-selected/);
+
+    // Shift+Up shrinks the same range back down rather than moving a
+    // brand new single-line selection.
+    await page.keyboard.press("Shift+ArrowUp");
+    await expect(history(page).locator(".history-line-selected")).toHaveCount(1);
+    await expect(detailLine(page, "line b")).toHaveClass(/history-line-selected/);
+  });
+
+  test("click-and-drag with the mouse selects a range of lines", async ({ page }) => {
+    await seedApp(page, {
+      seed: {
+        notes: {
+          [todayFilename()]: "Standup\n====\n",
+          "2026-09-05.txt": "Standup\n====\n# line a\n# line b\n# line c",
+        },
+        session: { openTabs: [todayFilename()], activeTab: todayFilename() },
+      },
+    });
+    await editor(page).click();
+    await page.keyboard.press("ControlOrMeta+Home");
+    await page.keyboard.press("ControlOrMeta+Shift+H");
+
+    await occRow(page, "2026-09-05").click();
+    const lineA = detailLine(page, "line a");
+    const lineC = detailLine(page, "line c");
+    const boxA = (await lineA.boundingBox())!;
+    const boxC = (await lineC.boundingBox())!;
+
+    await page.mouse.move(boxA.x + 5, boxA.y + boxA.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(boxC.x + 5, boxC.y + boxC.height / 2, { steps: 5 });
+    await page.mouse.up();
+
+    await expect(history(page).locator(".history-line-selected")).toHaveCount(3);
+  });
+
+  test("Ctrl/Cmd+Tab does not escape the drawer to switch the main tab strip underneath it (regression)", async ({
+    page,
+  }) => {
+    await seedApp(page, {
+      seed: {
+        notes: {
+          [todayFilename()]: "Standup\n====\n# today item",
+          "2026-09-05.txt": "Standup\n====\n# old item",
+        },
+        session: { openTabs: [todayFilename(), "2026-09-05.txt"], activeTab: todayFilename() },
+      },
+    });
+    await editor(page).click();
+    await page.keyboard.press("ControlOrMeta+Home");
+    await page.keyboard.press("ControlOrMeta+Shift+H");
+    await expect(history(page)).toBeVisible();
+
+    await page.keyboard.press("ControlOrMeta+Tab");
+
+    // The drawer is still open and the active tab underneath is unchanged
+    // — Ctrl+Tab used to leak through and cycle the main tab strip while
+    // a modal was open.
+    await expect(history(page)).toBeVisible();
+    await expect(activeTabLabel(page)).toHaveText(todayFilename().replace(".txt", ""));
   });
 });

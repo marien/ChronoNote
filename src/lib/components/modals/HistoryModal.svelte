@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount, tick } from "svelte";
+  import { onMount, onDestroy, tick } from "svelte";
   import * as controller from "../../controller";
   import { focusTrap } from "../../actions/focusTrap";
   import { historyDestinations, historyLoading, historyOccurrences, historyOpenedFromTabId, historyTargetHeader, tabs } from "../../controller";
@@ -8,29 +8,23 @@
   import Icon from "../../icons/Icon.svelte";
   import Segmented from "../Segmented.svelte";
   import type { HistoryDestination, SectionOccurrence } from "../../types";
-  import {
-    MODAL_ITEM_ROW_HEIGHT,
-    clampIndex,
-    scrollToShow,
-    stackHeight,
-    visibleWindow,
-    withTops,
-    wrapIndex,
-    type PlacedRow,
-  } from "./virtualList";
+  import { clampIndex, wrapIndex } from "./virtualList";
 
   let selectedIndex = 0;
-  let mobileTab: "list" | "preview" = "list";
 
-  // A contiguous line-range selection within the browsed occurrence, for
-  // "take it over" (§4 of the design doc) — absolute file line indices
-  // (`occ.startLineIdx`-relative), so they line up directly with
-  // `carryHistorySelectionForward`'s own `fromLine`/`toLine`. `selAnchor`
-  // is the line the selection started from, kept separate from the
-  // resulting range so a second Shift+click extends from where the
-  // selection *began*, not from wherever it currently ends.
+  // Anchor/focus line-selection model (2026-09-25 redesign, from chat
+  // feedback on the browse-and-carry-forward redesign): `selAnchor` is the
+  // line the selection started from, `focusLineIdx` is the end the
+  // keyboard/mouse is currently moving — the same anchor+focus pair a text
+  // editor uses, so Shift+Arrow can grow *or shrink* a range instead of
+  // only ever extending from a fixed starting click the way a plain
+  // Shift+click model does. `lineSelection` (the `{from, to}` actually
+  // used for rendering/take-over) is always derived from the two, never
+  // set directly.
   let selAnchor: number | null = null;
+  let focusLineIdx: number | null = null;
   let lineSelection: { from: number; to: number } | null = null;
+  let isDraggingLines = false;
   let takeOverMode: "whole" | "action-only" = "whole";
 
   $: occurrences = $historyOccurrences;
@@ -45,6 +39,8 @@
   // to carry a line from this note to when this note is where it would land.
   $: isOwnOccurrence = !!selectedOcc && selectedOcc.filename === openedFromFilename;
 
+  let bodyContainerEl: HTMLDivElement;
+
   onMount(async () => {
     // §42 precedent: focus the occurrence that belongs to wherever the
     // drawer was opened from, instead of always starting at the top of
@@ -56,9 +52,31 @@
     await tick();
     const idx = occurrences.findIndex((o) => o.filename === openedFromFilename);
     if (idx !== -1) selectedIndex = idx;
-    listEl?.focus();
-    scrollSelectedIntoView();
+    bodyContainerEl?.focus();
+    scrollOccIntoView();
+    // A drag started with the mouse still down when it leaves the line
+    // list (over the takeover bar, or right off the modal) must still
+    // stop on mouseup — listen on the window, not just the list itself.
+    window.addEventListener("mouseup", stopDrag);
+    // On `document`, not a template `on:keydown` on some div — a plain
+    // `<div>` holding a keydown listener has no ARIA role that makes it
+    // "interactive," which `svelte-check` rightly flags; the real fix is
+    // the same one `focusTrap` already uses for Tab (see that file's own
+    // comment): listen where the keys land regardless of which specific
+    // element inside the modal currently has focus, rather than routing
+    // everything through one div's own focus state. `onDestroy` below
+    // removes it, so it's scoped to exactly this modal's lifetime.
+    document.addEventListener("keydown", onKeydown);
   });
+
+  onDestroy(() => {
+    window.removeEventListener("mouseup", stopDrag);
+    document.removeEventListener("keydown", onKeydown);
+  });
+
+  function stopDrag() {
+    isDraggingLines = false;
+  }
 
   // Reset the line selection whenever the browsed occurrence changes —
   // it's meaningless carried over to a different occurrence's lines.
@@ -66,6 +84,7 @@
   $: if (selectedOcc?.filename !== lastSelectedFilename) {
     lastSelectedFilename = selectedOcc?.filename;
     selAnchor = null;
+    focusLineIdx = null;
     lineSelection = null;
     takeOverMode = "whole";
   }
@@ -76,13 +95,68 @@
       : null;
   $: if (!singleLineActionOnly && takeOverMode === "action-only") takeOverMode = "whole";
 
-  function clickLine(abs: number, shiftKey: boolean) {
+  function recomputeSelection() {
+    lineSelection =
+      selAnchor !== null && focusLineIdx !== null
+        ? { from: Math.min(selAnchor, focusLineIdx), to: Math.max(selAnchor, focusLineIdx) }
+        : null;
+  }
+
+  /** Mouse: a plain click selects exactly the clicked line (anchor and
+   * focus both land there); a Shift+click extends the existing anchor to
+   * the clicked line, same as before this redesign. Also arms
+   * `isDraggingLines`, so a click that turns into a drag (see
+   * `dragOverLine`) grows the very same selection instead of starting a
+   * fresh one. */
+  function startLineSelection(abs: number, shiftKey: boolean) {
     if (shiftKey && selAnchor !== null) {
-      lineSelection = { from: Math.min(selAnchor, abs), to: Math.max(selAnchor, abs) };
+      focusLineIdx = abs;
     } else {
       selAnchor = abs;
-      lineSelection = { from: abs, to: abs };
+      focusLineIdx = abs;
     }
+    isDraggingLines = true;
+    recomputeSelection();
+  }
+
+  /** Click-and-move-the-mouse multi-line selection: each line the pointer
+   * enters while the button is still down becomes the new focus end,
+   * exactly like dragging a text selection. */
+  function dragOverLine(abs: number) {
+    if (!isDraggingLines) return;
+    focusLineIdx = abs;
+    recomputeSelection();
+  }
+
+  /** Up/Down: move the line selection within the browsed occurrence.
+   * Plain arrow moves a single-line selection; Shift+arrow grows or
+   * shrinks the range from wherever the anchor already is (a real
+   * anchor+focus model, not just "extend from the last click"). Clamped
+   * at the occurrence's own first/last line — vertical movement doesn't
+   * wrap the way occurrence switching does. */
+  function moveLineCursor(delta: -1 | 1, extend: boolean) {
+    if (!selectedOcc || selectedOcc.lines.length === 0) return;
+    const first = selectedOcc.startLineIdx;
+    const last = selectedOcc.startLineIdx + selectedOcc.lines.length - 1;
+    const base = focusLineIdx ?? (delta > 0 ? first - 1 : last + 1);
+    const next = Math.min(last, Math.max(first, base + delta));
+    if (extend) {
+      if (selAnchor === null) selAnchor = focusLineIdx ?? next;
+    } else {
+      selAnchor = next;
+    }
+    focusLineIdx = next;
+    recomputeSelection();
+    scrollLineIntoView(next);
+  }
+
+  /** Left/Right: cycle between occurrence dates, wrapping at either end —
+   * the same wrap-around `Ctrl/Cmd+Tab` already uses for the main tab
+   * strip this drawer's own strip is modeled on. */
+  function moveOccurrence(delta: -1 | 1) {
+    if (occurrences.length === 0) return;
+    selectedIndex = wrapIndex(selectedIndex, occurrences.length, delta);
+    scrollOccIntoView();
   }
 
   async function takeOver(dest: HistoryDestination) {
@@ -105,43 +179,24 @@
       insertLines,
     );
     selAnchor = null;
+    focusLineIdx = null;
     lineSelection = null;
     await controller.refreshHistoryOccurrences();
   }
 
-  // --- Virtualized rendering (§38) — the left list is now one row per
-  // occurrence (no more per-action sub-rows), so the shared row model from
-  // `./virtualList` is simpler here than Action Drawer/Search's own use of
-  // it, but kept for consistency in case a long-running daily section ever
-  // makes the occurrence count itself worth virtualizing.
-  type RawRow = { key: string; occ: SectionOccurrence; index: number; height: number };
-  type Row = RawRow & PlacedRow;
-  $: rows = withTops<RawRow>(
-    occurrences.map((occ, index) => ({ key: occ.filename, occ, index, height: MODAL_ITEM_ROW_HEIGHT })),
-  ) as Row[];
-  $: totalHeight = stackHeight(rows);
-
-  let listEl: HTMLDivElement;
-  let scrollTop = 0;
-  let viewportHeight = 380;
-
-  $: ({ start: windowStart, end: windowEnd } = visibleWindow(rows, scrollTop, viewportHeight));
-  $: visibleRows = rows.slice(windowStart, windowEnd);
-
-  function onScroll() {
-    if (listEl) scrollTop = listEl.scrollTop;
-  }
-
-  function scrollSelectedIntoView() {
-    if (!listEl) return;
-    const row = rows.find((r) => r.index === selectedIndex);
-    if (!row) return;
-    const next = scrollToShow(row, listEl.scrollTop, viewportHeight);
-    if (next !== null) listEl.scrollTop = next;
-    scrollTop = listEl.scrollTop;
+  let stripEl: HTMLDivElement;
+  function scrollOccIntoView() {
+    stripEl?.querySelector<HTMLElement>(`[data-occ-index="${selectedIndex}"]`)?.scrollIntoView({
+      block: "nearest",
+      inline: "nearest",
+    });
   }
 
   let bodyEl: HTMLDivElement;
+  function scrollLineIntoView(abs: number) {
+    bodyEl?.querySelector<HTMLElement>(`[data-line-idx="${abs}"]`)?.scrollIntoView({ block: "nearest" });
+  }
+
   $: scrollBodyToTop(selectedOcc);
   async function scrollBodyToTop(_occ: SectionOccurrence | undefined) {
     await tick();
@@ -151,12 +206,16 @@
   function onKeydown(e: KeyboardEvent) {
     if (e.key === "ArrowDown") {
       e.preventDefault();
-      selectedIndex = wrapIndex(selectedIndex, occurrences.length, 1);
-      scrollSelectedIntoView();
+      moveLineCursor(1, e.shiftKey);
     } else if (e.key === "ArrowUp") {
       e.preventDefault();
-      selectedIndex = wrapIndex(selectedIndex, occurrences.length, -1);
-      scrollSelectedIntoView();
+      moveLineCursor(-1, e.shiftKey);
+    } else if (e.key === "ArrowRight") {
+      e.preventDefault();
+      moveOccurrence(1);
+    } else if (e.key === "ArrowLeft") {
+      e.preventDefault();
+      moveOccurrence(-1);
     } else if (e.key === "Enter") {
       e.preventDefault();
       if (selectedOcc) {
@@ -194,58 +253,45 @@
       </button>
     </div>
 
-    <!-- §194: Mobile tab switcher for viewports <= 680px -->
-    <div class="history-mobile-tabs">
-      <button type="button" class="history-tab-btn" class:active={mobileTab === "list"} on:click={() => (mobileTab = "list")}>
-        Occurrences ({occurrences.length})
-      </button>
-      <button type="button" class="history-tab-btn" class:active={mobileTab === "preview"} on:click={() => (mobileTab = "preview")}>
-        Preview
-      </button>
+    <!-- 2026-09-25 redesign: occurrences as a compact horizontal strip
+         (the same idea as the main window's tab strip, sized down) instead
+         of a tall vertical sidebar list — a recurring section's handful of
+         recent dates were the ones actually used, and the list ate space
+         better spent on the note body next to it. Each tab's dot mirrors
+         the date picker's own 3-tier completion heat (`computeDayHeat`,
+         `.cal-day`'s `.has-*` dots) so the same color already means the
+         same thing everywhere in the app: amber = open actions, green =
+         all resolved, muted = a note with no actions at all. No dot at
+         all = genuinely empty ("no content yet"). -->
+    <div class="history-occ-strip" role="tablist" aria-label="Occurrences" bind:this={stripEl}>
+      {#if $historyLoading}
+        <span class="history-occ-loading"><span class="modal-spinner" aria-label="Loading">⟳</span> Loading history…</span>
+      {:else if occurrences.length === 0}
+        <span class="history-occ-loading">No prior occurrences found across open or closed notes.</span>
+      {:else}
+        {#each occurrences as occ, index (occ.filename)}
+          {@const heat = controller.occurrenceHeat(occ)}
+          <button
+            type="button"
+            class="history-occ-tab {index === selectedIndex ? 'active' : ''} {heat ? '' : 'empty'}"
+            role="tab"
+            aria-selected={index === selectedIndex}
+            data-occ-index={index}
+            tabindex="-1"
+            title={heat ? undefined : "No content yet"}
+            on:click={() => {
+              selectedIndex = index;
+              bodyContainerEl?.focus();
+            }}
+          >
+            <span class="history-occ-date">{occ.date}</span>
+            {#if heat}<span class="occ-dot has-{heat}" aria-hidden="true"></span>{/if}
+          </button>
+        {/each}
+      {/if}
     </div>
 
-    <div class="history-body" class:show-list={mobileTab === "list"} class:show-preview={mobileTab === "preview"}>
-      <div class="history-main">
-        <div
-          class="modal-list"
-          role="listbox"
-          tabindex="0"
-          bind:this={listEl}
-          bind:clientHeight={viewportHeight}
-          on:scroll={onScroll}
-          on:keydown={onKeydown}
-          style="position: relative; overflow-y: auto; flex: 1; outline: none;"
-        >
-          {#if $historyLoading}
-            <div class="modal-empty"><span class="modal-spinner" aria-label="Loading">⟳</span> Loading history…</div>
-          {:else if occurrences.length === 0}
-            <div class="modal-empty">No prior occurrences found across open or closed notes.</div>
-          {/if}
-          <div style="position: relative; height: {totalHeight}px;">
-            {#each visibleRows as row (row.key)}
-              <div
-                class="modal-group-header selectable {row.index === selectedIndex ? 'selected' : ''}"
-                role="option"
-                aria-selected={row.index === selectedIndex}
-                tabindex="0"
-                style="position: absolute; top: {row.top}px; left: 0; right: 0; height: {row.height}px;"
-                on:click={() => {
-                  selectedIndex = row.index;
-                  mobileTab = "preview";
-                }}
-                on:mouseenter={() => (selectedIndex = row.index)}
-                on:keydown={(e) => e.key === "Enter" && controller.jumpToHistoryLine(row.occ)}
-              >
-                <span>{row.occ.date}</span>
-                {#if row.occ.lines.filter((l) => l.trim() !== "").length === 0}
-                  <span class="history-occ-empty">no content yet</span>
-                {/if}
-              </div>
-            {/each}
-          </div>
-        </div>
-      </div>
-
+    <div class="history-body" tabindex="-1" bind:this={bodyContainerEl}>
       <div class="history-detail">
         {#if selectedOcc}
           <div class="history-detail-head">
@@ -263,9 +309,10 @@
                   class="hp-line history-select-line {inSel ? 'history-line-selected' : ''}"
                   role="option"
                   aria-selected={inSel}
-                  tabindex="0"
-                  on:click={(e) => clickLine(abs, e.shiftKey)}
-                  on:keydown={(e) => e.key === "Enter" && clickLine(abs, e.shiftKey)}
+                  tabindex="-1"
+                  data-line-idx={abs}
+                  on:mousedown|preventDefault={(e) => startLineSelection(abs, e.shiftKey)}
+                  on:mouseenter={() => dragOverLine(abs)}
                 >
                   {#each parseGlyphLine(line) as part}<span class={part.cls ?? ""}>{part.text}</span>{/each}
                 </div>
@@ -298,7 +345,10 @@
     </div>
 
     <div class="modal-footer">
-      <div><kbd>Enter</kbd> Jump to source file · Click a line, or Shift+click to extend, then pick a destination</div>
+      <div>
+        <kbd>↑/↓</kbd> Select line · <kbd>Shift+↑/↓</kbd> Extend · <kbd>←/→</kbd> Switch date ·
+        <kbd>Enter</kbd> Jump to source
+      </div>
       <div><kbd>Esc</kbd> Close</div>
     </div>
   </div>

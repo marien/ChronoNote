@@ -82,7 +82,11 @@ test.describe("mobile ergonomics & modal reflow (Area 5.4, 5.5, 6)", () => {
     await page.keyboard.press("Escape");
   });
 
-  test("HistoryModal reflows to adaptive tabs on mobile viewport", async ({ page }) => {
+  test("HistoryModal's occurrence strip and note body both fit a mobile viewport at once", async ({ page }) => {
+    // 2026-09-25 redesign: the occurrence list is a compact horizontal
+    // strip above the note body now, not a full-width sidebar that has to
+    // be swapped for a "preview" tab on a narrow screen — both are visible
+    // together at any width, so there's no adaptive-tabs UI left to test.
     await page.setViewportSize({ width: 500, height: 720 });
     await seedApp(page, {
       seed: {
@@ -94,24 +98,12 @@ test.describe("mobile ergonomics & modal reflow (Area 5.4, 5.5, 6)", () => {
     });
 
     const modal = await openViaShortcut(page, "ControlOrMeta+Shift+h", "history");
-    const mobileTabs = modal.locator(".history-mobile-tabs");
-    await expect(mobileTabs).toBeVisible();
+    const strip = modal.locator(".history-occ-strip");
+    const detail = modal.locator(".history-detail");
 
-    const listTabBtn = mobileTabs.locator(".history-tab-btn").nth(0);
-    const previewTabBtn = mobileTabs.locator(".history-tab-btn").nth(1);
-
-    await expect(listTabBtn).toHaveClass(/\bactive\b/);
-    const historyMain = modal.locator(".history-main");
-    const historyDetail = modal.locator(".history-detail");
-
-    await expect(historyMain).toBeVisible();
-    await expect(historyDetail).toBeHidden();
-
-    // Switch to Preview
-    await previewTabBtn.click();
-    await expect(previewTabBtn).toHaveClass(/\bactive\b/);
-    await expect(historyDetail).toBeVisible();
-    await expect(historyMain).toBeHidden();
+    await expect(strip).toBeVisible();
+    await expect(detail).toBeVisible();
+    await expect(strip.locator(".history-occ-tab")).toHaveCount(2);
 
     await page.keyboard.press("Escape");
   });

@@ -598,6 +598,23 @@ describe("historyActionOnlyText (§4 of the design doc)", () => {
   });
 });
 
+describe("occurrenceHeat (2026-09-25 redesign: occurrence strip dots)", () => {
+  const occ = (lines: string[]) => ({ filename: "2026-09-05.txt", date: "2026-09-05", lines, startLineIdx: 2 });
+  it("at least one open action → pending", () => {
+    expect(controller.occurrenceHeat(occ(["# an open item", "v a done one"]))).toBe("pending");
+  });
+  it("only closed/deferred actions → done", () => {
+    expect(controller.occurrenceHeat(occ(["v a done item", "> deferred elsewhere"]))).toBe("done");
+  });
+  it("real content, no actions at all → log", () => {
+    expect(controller.occurrenceHeat(occ(["just some prose, no actions"]))).toBe("log");
+  });
+  it("no content at all → null (genuinely empty)", () => {
+    expect(controller.occurrenceHeat(occ([]))).toBeNull();
+    expect(controller.occurrenceHeat(occ([""]))).toBeNull();
+  });
+});
+
 describe("checkActiveTabForDrift (§94)", () => {
   const FILE = "2026-09-01.txt";
   async function openTabAt(content: string) {

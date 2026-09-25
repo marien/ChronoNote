@@ -397,23 +397,30 @@ reachable from the top bar, a shortcut, or the command palette:
   keyboard navigation keeps the selected row clear of the pinned heading.
 - **Section History** (`Ctrl/Cmd+Shift+H`) — browses every dated note that
   has the recurring section under the cursor, past and future,
-  most-recent-first: an occurrence list on the left, and the selected
-  occurrence's *entire* body glyph-rendered and scrollable on the right —
-  the same rendering the editor itself uses, not an extracted list of
-  actions out of context. A date with no content yet shows a "no content
-  yet" tag in the list and an explicit placeholder in the body. Clicking a
-  line (Shift+click to extend a range) selects it for "take it over": a
-  destination bar appears with button(s) computed once when the drawer
-  opened, from the note it was opened from — a single "Insert here" when
-  that note is today, in the future, or a scratchpad; "→ Today" and (if one
-  exists) "→ Next occurrence" when it's in the past. Taking it over inserts
+  most-recent-first: a compact horizontal strip of occurrence dates above
+  the note body (modeled on the main tab strip, sized down), each carrying
+  a dot mirroring the date picker's own completion heat (amber = open
+  actions, green = all resolved, muted = no actions at all; no dot = no
+  content yet). The selected occurrence's *entire* body renders below,
+  glyph-rendered and scrollable — the same rendering the editor itself
+  uses, not an extracted list of actions out of context. Keyboard: Up/Down
+  move a single-line selection, Shift+Up/Down grow or shrink a range from
+  wherever it started, Left/Right cycle the browsed occurrence (wrapping
+  at either end), Enter jumps to the source file. Mouse: click selects one
+  line, click-and-drag selects a range. Selecting a line (or a range) shows
+  a destination bar with button(s) computed once when the drawer opened,
+  from the note it was opened from — a single "Insert here" when that note
+  is today, in the future, or a scratchpad; "→ Today" and (if one exists)
+  "→ Next occurrence" when it's in the past. Taking it over inserts
   the selection at the target section (creating it if needed) and defers
   whatever was open in the source, the same rule copy/paste forwarding and
   `Ctrl/Cmd+Shift+.` already use; a deferred line taken over is re-adopted
   as a fresh open action. A single line shaped `prose => action` also
   offers "Whole line" vs. "Action only" (just the action, dropping the
   prose). Browsing the note the drawer was opened from offers no take-over
-  — nothing to carry it to.
+  — nothing to carry it to. Like every modal, it owns the keyboard while
+  open — no shortcut (Ctrl/Cmd+Tab included) reaches the app underneath
+  until it's closed.
 - **Cross-Tab Search** (`Ctrl/Cmd+Shift+F`) — full-text search across
   either the open tabs or every file, same open-tabs/all-files toggle as
   the Action Drawer, results glyph-rendered like the drawer's own rows,

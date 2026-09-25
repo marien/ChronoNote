@@ -1,6 +1,11 @@
 # Section History: browse occurrences in context, carry lines forward — design
 
-Status: **implemented, 2026-09-24 (`docs/CHANGELOG.md` §211).** Written the
+Status: **implemented, 2026-09-24 (`docs/CHANGELOG.md` §211), then revised
+2026-09-25 (§212)** after real use: the vertical occurrence list became a
+compact horizontal tab strip (dots included), line selection gained a full
+keyboard model (arrows/Shift+arrows/Left+Right) and mouse click-drag, and a
+general modal-focus-escape bug (Ctrl+Tab leaking to the app underneath any
+open modal) was found and fixed along the way. Written the
 same day at Marien's request, after using the current (§150-era) Section
 History drawer for a while: "What I realize when using it, is that I don't
 use the action list itself, I use it to move between occurrences, and check

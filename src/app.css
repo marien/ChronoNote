@@ -2059,21 +2059,6 @@ textarea.modal-input.import-textarea {
     linear-gradient(rgba(128, 128, 128, 0.06), rgba(128, 128, 128, 0.06)),
     var(--surface-overlay);
 }
-/* §150: Section History's date headers are themselves selectable (not
-   just the action rows under them) — opt-in via this modifier so the
-   Action Drawer / Search headers, which share the base class, stay
-   inert. */
-.modal-group-header.selectable {
-  cursor: pointer;
-}
-.modal-group-header.selectable:hover {
-  background: var(--surface-raised);
-}
-.modal-group-header.selected {
-  background: var(--selected-bg);
-  color: var(--selected-fg);
-}
-
 /* §150: an occurrence with nothing to show in the action list — visually
    distinct from both a header and a real row so it can't be mistaken for
    either (no glyph, no pointer, dimmed italic). */
@@ -2263,64 +2248,117 @@ textarea.modal-input.import-textarea {
   opacity: 0.85;
 }
 
-/* §109: Section History gets a right-hand preview column. */
+/* 2026-09-25 redesign (chat feedback on the browse-and-carry-forward
+ * redesign): the occurrence list is now a compact horizontal strip above
+ * the note body, not a vertical sidebar beside it — a recurring section's
+ * handful of recent dates were the ones actually browsed, and a tall list
+ * of one-row-per-date entries mostly just sat there empty next to a much
+ * busier note pane. `.history-body` is a single column now (no more
+ * side-by-side `.history-main` + `.history-detail`), so it's just the
+ * remaining vertical space below the strip. */
 .history-body {
   display: flex;
-  align-items: stretch;
+  flex-direction: column;
   flex: 1;
   min-height: 0;
+  outline: none;
 }
 /* §154 bug: nothing capped the modal's overall height, so a long "From"
  * occurrence (`.hp-context`, itself already scrollable) just grew the
  * whole card past the viewport instead of scrolling internally — its
  * `flex: 1 1 auto` sizing only kicks in once an ancestor actually has a
  * bounded height to divide up. Capping the card here gives `.history-body`
- * (now `flex: 1`) a real budget, which `.hp-context` and `.modal-list`
- * then share via their own `overflow-y: auto`. */
+ * (now `flex: 1`) a real budget, which `.hp-context` shares via its own
+ * `overflow-y: auto`. */
 .history-modal-card {
   max-height: 80vh;
 }
-.history-main {
+
+/* The occurrence strip: one small tab per date, modeled on the main
+ * window's own tab strip (`#tab-bar`/`.tab`) but sized down for a modal.
+ * Horizontally scrollable (no visible scrollbar, same treatment as
+ * `#tab-bar`) rather than collapsing/overflowing — occurrence counts here
+ * are rarely huge, and keyboard Left/Right (`moveOccurrence`) plus
+ * `scrollOccIntoView` keep the selected tab reachable either way. */
+.history-occ-strip {
   display: flex;
-  flex-direction: column;
-  flex: 1;
-  min-width: 0;
-  min-height: 0;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+  padding: 5px 10px;
+  border-bottom: 1px solid var(--edge-soft);
+  background: var(--surface-chrome);
 }
-/* #59: the shared `.modal-list` rule caps at 380px — right for Action
- * Drawer/Search, whose `.modal-card` has no height cap of its own, so
- * that 380px is the only thing stopping their list from growing
- * unbounded. Section History is different: its card is already capped
- * at 80vh (`.history-modal-card`, §155), so its list can safely fill
- * whatever `.history-main` actually has instead of stopping short at a
- * fixed height — which, once the detail column on the right (already
- * unbounded via `.hp-context`) grew past 380px, made
- * the list look cut off rather than genuinely finished. Scoped to this
- * modal only — Action Drawer and Search keep the shared cap. */
-.history-main .modal-list {
-  max-height: none;
+.history-occ-strip::-webkit-scrollbar {
+  height: 0;
 }
-/* 2026-09-24 redesign (docs/design/section-history-browse-and-carry-forward-
- * roadmap.md): the drawer's flat action list and its "Only Open" toggle,
- * and the dedicated full-width "Previous occurrence" pane, are gone —
- * every occurrence gets the same full-body browse treatment in
- * `.history-detail` (below) instead of one of them being special-cased.
- * A small "no content yet" tag on an empty occurrence's own row in the
- * list replaces the old separate empty-row placeholder. */
-.history-occ-empty {
-  margin-left: 8px;
-  font-size: 10.5px;
+.history-occ-loading {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 2px;
+  font-size: 11px;
   color: var(--muted);
-  font-style: italic;
+}
+.history-occ-tab {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  height: 26px;
+  padding: 0 9px;
+  border: none;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 11px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.history-occ-tab:hover {
+  background: var(--surface-raised);
+  color: var(--text);
+}
+.history-occ-tab.active {
+  background: var(--surface-raised);
+  color: var(--text);
+  font-weight: 600;
+  box-shadow: inset 0 -2px 0 var(--tab-active-border);
+}
+.history-occ-tab.empty {
+  opacity: 0.55;
+}
+/* Mirrors the date picker's own `.cal-day` completion dots exactly
+ * (`computeDayHeat`/`occurrenceHeat`) — the same colors mean the same
+ * thing everywhere: amber = open actions, green = all resolved, muted =
+ * a note with no actions at all. No dot (the `.empty` tab above) = the
+ * section genuinely has no content yet. */
+.occ-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.occ-dot.has-pending {
+  background: var(--state-warn);
+}
+.occ-dot.has-done {
+  background: var(--glyph-done-color);
+}
+.occ-dot.has-log {
+  background: var(--muted);
+  opacity: 0.45;
 }
 
-/* The occurrence's full glyph-rendered body — now the drawer's primary
- * content (not a narrow fixed-width "preview" aside), since browsing it in
- * context is the whole point of this redesign. */
+/* The occurrence's full glyph-rendered body — the drawer's primary
+ * content, since browsing it in context is the whole point of this
+ * design (both the 2026-09-24 and 2026-09-25 redesigns). */
 .history-detail {
-  flex: 1.4;
-  min-width: 0;
-  border-left: 1px solid var(--edge-soft);
+  flex: 1;
+  min-height: 0;
   background: var(--surface-canvas);
   padding: 14px;
   overflow: hidden;
@@ -2414,53 +2452,6 @@ textarea.modal-input.import-textarea {
   gap: 8px;
   flex-shrink: 0;
   flex-wrap: wrap;
-}
-
-.history-mobile-tabs {
-  display: none;
-  flex-shrink: 0;
-  border-bottom: 1px solid var(--edge-soft);
-  background: var(--surface-chrome);
-  padding: 6px 12px;
-  gap: 8px;
-}
-.history-tab-btn {
-  flex: 1;
-  font-family: inherit;
-  font-size: 11px;
-  padding: 6px 12px;
-  border-radius: 6px;
-  background: transparent;
-  border: 1px solid transparent;
-  color: var(--muted);
-  cursor: pointer;
-  transition: background 0.12s ease, color 0.12s ease;
-}
-.history-tab-btn.active {
-  background: var(--surface-raised);
-  border-color: var(--edge-soft);
-  color: var(--text);
-  font-weight: 500;
-}
-@media (max-width: 680px) {
-  .history-mobile-tabs {
-    display: flex;
-  }
-  .history-body {
-    flex-direction: column;
-  }
-  .history-body.show-list .history-detail {
-    display: none;
-  }
-  .history-body.show-preview .history-main {
-    display: none;
-  }
-  .history-detail {
-    width: 100%;
-    border-left: none;
-    flex: 1;
-    min-height: 200px;
-  }
 }
 
 /* §194 Area 6.1: Dynamic floating toast for mobile */

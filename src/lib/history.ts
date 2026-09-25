@@ -9,7 +9,7 @@
  * `controller.ts` in the v0.5.0 refactor. Depends on stores + persistence +
  * tabs (`jumpToFileLine`) + tokens + copyForward. */
 import { get } from "svelte/store";
-import { todayISO } from "./date";
+import { computeDayHeat, todayISO, type DayHeatState } from "./date";
 import {
   activeTabId,
   allNotesCache,
@@ -210,6 +210,17 @@ export function extractSectionBody(
     return { lines: fileLines.slice(start, sliceEnd), startLineIdx: start };
   }
   return null;
+}
+
+/** The occurrence strip's per-date dot (2026-09-25 redesign, chat
+ * feedback): reuses the exact same 3-tier completion heat the date
+ * picker's `.cal-day` dots already show for a whole note
+ * (`computeDayHeat`), just scoped to one section's own lines instead of
+ * the whole file — "open actions" / "all actions closed" / "no actions"
+ * is the same distinction either way. `null` (no dot at all) means the
+ * section genuinely has no content yet. */
+export function occurrenceHeat(occ: SectionOccurrence): DayHeatState | null {
+  return computeDayHeat(occ.lines.join("\n"));
 }
 
 /** Open the file behind a browsed occurrence, cursor on a specific line —
