@@ -1728,8 +1728,8 @@ body {
 }
 
 .modal-close-btn {
-  width: 32px;
-  height: 32px;
+  width: 26px;
+  height: 26px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -1761,8 +1761,15 @@ body {
     min-height: 44px;
   }
 }
+/* Chat feedback: this row (every modal's title/search bar) was taller than
+ * it needed to be — the 32px close button plus 12px of padding on every
+ * side put it around 56px tall regardless of what a modal actually needed.
+ * Tightened padding + a smaller close button (26px, still comfortably
+ * within the `pointer: coarse` invisible 44px hit-area below) brings it to
+ * ~42px without cramping the title text or the live-search inputs that
+ * reuse this same row. */
 .modal-input-wrap {
-  padding: 12px;
+  padding: 8px 12px;
   border-bottom: 1px solid var(--edge-soft);
   display: flex;
   align-items: center;
