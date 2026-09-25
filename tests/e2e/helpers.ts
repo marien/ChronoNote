@@ -50,6 +50,22 @@ export async function seedApp(page: Page, opts: SeedApp = {}): Promise<void> {
     (window as unknown as { __CHRONO_SEED__: unknown }).__CHRONO_SEED__ = s;
   }, seed);
 
+  // `installMockTauri` prefers whatever's in `sessionStorage` over a fresh
+  // seed on reload (deliberately, so a real `page.reload()` can test
+  // "…survives a restart"). A test that calls `seedApp()` a second time
+  // wants the opposite — a genuinely fresh start under the new seed — so
+  // clear any state a previous `seedApp()` call on this same page left
+  // behind first. A no-op on the very first call (nothing's been
+  // navigated to yet) or under `expectBootFailure` seeds with no
+  // storage access.
+  await page.evaluate(() => {
+    try {
+      sessionStorage.clear();
+    } catch {
+      /* private-mode / disabled storage, or no document yet — nothing to clear */
+    }
+  }).catch(() => {});
+
   await page.goto("/?mock");
   if (opts.expectBootFailure) return;
   // `#top-bar` only renders once `controller.initApp()` resolves.
