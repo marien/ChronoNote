@@ -16,7 +16,7 @@
 // with this cache name unchanged, so `activate`'s cleanup below never saw a
 // name mismatch, never deleted the old cache, and the precached icons stayed
 // stale indefinitely — the exact bug this scheme now prevents by construction.
-const CACHE_NAME = "chrononote-webapp-shell-0.13.0";
+const CACHE_NAME = "chrononote-webapp-shell-0.14.0";
 
 // The icon URLs carry the same `?v=` placeholder as index.html's own
 // `<link>` hrefs and manifest.webmanifest's `icons[].src` (same plugin,
@@ -28,10 +28,10 @@ const PRECACHE_URLS = [
   "./",
   "./index.html",
   "./manifest.webmanifest",
-  "./icons/icon-256.png?v=0.13.0",
-  "./icons/icon-512.png?v=0.13.0",
-  "./icons/icon-256-maskable.png?v=0.13.0",
-  "./icons/icon-512-maskable.png?v=0.13.0",
+  "./icons/icon-256.png?v=0.14.0",
+  "./icons/icon-512.png?v=0.14.0",
+  "./icons/icon-256-maskable.png?v=0.14.0",
+  "./icons/icon-512-maskable.png?v=0.14.0",
 ];
 
 self.addEventListener("install", (event) => {
