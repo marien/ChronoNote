@@ -4,20 +4,21 @@
   import { focusTrap } from "../../actions/focusTrap";
   import { safetyMessage } from "../../controller";
   import Icon from "../../icons/Icon.svelte";
+  import { t } from "../../i18n";
 
   let cancelBtn: HTMLButtonElement;
   onMount(() => cancelBtn?.focus());
 </script>
 
 <div class="overlay">
-  <div class="modal-card modal-sm" role="dialog" aria-modal="true" use:focusTrap aria-label="Unresolved actions warning">
+  <div class="modal-card modal-sm" role="dialog" aria-modal="true" use:focusTrap aria-label={$t("safetyModal.ariaLabel")}>
     <div class="modal-input-wrap modal-title">
       <Icon name="warning" size={15} />
-      <span>Unresolved Actions Warning</span>
+      <span>{$t("safetyModal.title")}</span>
       <button
         type="button"
         class="icon-btn modal-close-btn"
-        aria-label="Close dialog"
+        aria-label={$t("common.closeDialog")}
         on:click={controller.cancelSafetyClose}
       >
         <Icon name="close" size={14} />
@@ -25,8 +26,8 @@
     </div>
     <div style="padding: 16px; font-size: 13px; line-height: 1.5;">{$safetyMessage}</div>
     <div class="modal-footer" style="justify-content: flex-end; gap: 8px;">
-      <button class="icon-btn" bind:this={cancelBtn} on:click={controller.cancelSafetyClose}>Cancel</button>
-      <button class="icon-btn btn-primary" on:click={controller.confirmSafetyClose}>Close Anyway</button>
+      <button class="icon-btn" bind:this={cancelBtn} on:click={controller.cancelSafetyClose}>{$t("common.cancel")}</button>
+      <button class="icon-btn btn-primary" on:click={controller.confirmSafetyClose}>{$t("safetyModal.closeAnyway")}</button>
     </div>
   </div>
 </div>

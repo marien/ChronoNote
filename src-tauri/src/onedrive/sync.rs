@@ -5,9 +5,10 @@ use super::auth::{
 };
 use super::client::{DeleteResult, OneDriveClient, UploadResult};
 use super::{
-    FolderSwitchResult, OneDriveAccount, OneDriveAdvancedConfig, OneDriveFolderConfig, OneDriveFolderItem,
-    OneDriveLoginResult, OneDriveSyncResult, SyncConflict, SyncHealth, SyncStatus,
+    FolderSwitchBlocked, FolderSwitchResult, OneDriveAccount, OneDriveAdvancedConfig, OneDriveFolderConfig,
+    OneDriveFolderItem, OneDriveLoginResult, OneDriveSyncResult, SyncConflict, SyncHealth, SyncStatus,
 };
+use crate::error::AppError;
 use sha2::{Digest, Sha256};
 use std::collections::HashMap;
 use std::fs;
@@ -182,7 +183,7 @@ impl OneDriveManager {
             ready: true,
             switched,
             archived_count,
-            message: None,
+            blocked: None,
         };
         let Some(current) = self.get_folder(data_dir) else {
             return Ok(ready(false, 0));
@@ -205,19 +206,20 @@ impl OneDriveManager {
         let mut archived = 0;
         if !synced {
             if connected {
-                let why = if !result.success {
-                    result.message.unwrap_or_else(|| "the sync failed".to_string())
+                // i18n Phase 2 (docs/design/i18n-roadmap.md): structured, not
+                // a pre-composed English sentence — the frontend translates
+                // it (`apiError.ts::describeFolderSwitchBlocked`), including
+                // a real pluralized count for the held-conflicts case.
+                let blocked = if !result.success {
+                    FolderSwitchBlocked::SyncFailed { folder_path: current.folder_path.clone(), detail: result.message }
                 } else {
-                    format!("{held} note(s) have a sync conflict to resolve first")
+                    FolderSwitchBlocked::HeldConflicts { folder_path: current.folder_path.clone(), count: held }
                 };
                 return Ok(FolderSwitchResult {
                     ready: false,
                     switched: true,
                     archived_count: 0,
-                    message: Some(format!(
-                        "Couldn't sync {} before switching ({why}). Nothing was changed.",
-                        current.folder_path
-                    )),
+                    blocked: Some(blocked),
                 });
             }
             archived = archive_local_notes(data_dir, notes_dir, &files)?;
@@ -283,7 +285,7 @@ impl OneDriveManager {
                     pending: false,
                     success: false,
                     account: None,
-                    error: Some(format!("Could not bind local OAuth port 8765: {e}")),
+                    error: Some(AppError::OneDriveLoopbackBindFailed { detail: e.to_string() }),
                 }
             }
         };
@@ -299,7 +301,7 @@ impl OneDriveManager {
                 pending: false,
                 success: false,
                 account: None,
-                error: Some(format!("Failed to open system browser: {e}")),
+                error: Some(AppError::OneDriveBrowserOpenFailed { detail: e.to_string() }),
             };
         }
 
@@ -329,7 +331,7 @@ impl OneDriveManager {
                         pending: false,
                         success: false,
                         account: None,
-                        error: Some(format!("Error accepting OAuth callback: {e}")),
+                        error: Some(AppError::OneDriveCallbackAcceptFailed { detail: e.to_string() }),
                     };
                 }
             }
@@ -342,7 +344,7 @@ impl OneDriveManager {
                     pending: false,
                     success: false,
                     account: None,
-                    error: Some("Authentication timed out waiting for user approval".to_string()),
+                    error: Some(AppError::OneDriveAuthTimedOut),
                 }
             }
         };
@@ -377,7 +379,7 @@ impl OneDriveManager {
                 pending: false,
                 success: false,
                 account: None,
-                error: Some("No authorization code provided".to_string()),
+                error: Some(AppError::OneDriveNoAuthCode),
             };
         }
 
@@ -392,7 +394,7 @@ impl OneDriveManager {
                     pending: false,
                     success: false,
                     account: None,
-                    error: Some("No pending login session found. Please tap 'Connect Microsoft Account' first.".to_string()),
+                    error: Some(AppError::OneDriveNoPendingSession),
                 };
             }
         };
@@ -441,7 +443,7 @@ impl OneDriveManager {
                         pending: false,
                         success: false,
                         account: None,
-                        error: Some(format!("Failed to save credentials to the OS keychain: {e}")),
+                        error: Some(AppError::OneDriveKeychainSaveFailed { detail: e }),
                     };
                 }
                 if let Err(e) = save_stored_auth(data_dir, &stored) {
@@ -449,7 +451,7 @@ impl OneDriveManager {
                         pending: false,
                         success: false,
                         account: None,
-                        error: Some(format!("Failed to save auth state: {e}")),
+                        error: Some(AppError::OneDriveAuthStateSaveFailed { detail: e }),
                     };
                 }
                 OneDriveLoginResult {
@@ -463,7 +465,7 @@ impl OneDriveManager {
                 pending: false,
                 success: false,
                 account: None,
-                error: Some(format!("Failed to fetch user profile: {e}")),
+                error: Some(AppError::OneDriveProfileFetchFailed { detail: e }),
             },
         }
     }
@@ -473,7 +475,7 @@ impl OneDriveManager {
         if self.is_syncing.swap(true, Ordering::SeqCst) {
             return OneDriveSyncResult {
                 success: false,
-                message: Some("Sync already in progress".to_string()),
+                message: Some(AppError::OneDriveSyncBusy),
             };
         }
 
@@ -503,7 +505,7 @@ impl OneDriveManager {
                 self.set_status(status);
                 OneDriveSyncResult {
                     success: false,
-                    message: Some(err),
+                    message: Some(AppError::Other { detail: err }),
                 }
             }
         }
@@ -533,15 +535,16 @@ impl OneDriveManager {
         notes_dir: &Path,
         name: &str,
         resolution: &str,
-    ) -> Result<(), String> {
+    ) -> Result<(), AppError> {
         // A sync in flight holds its own copy of the cache and would write it
         // back over this resolution.
         if self.is_syncing.swap(true, Ordering::SeqCst) {
-            return Err("A sync is running — try again in a moment".to_string());
+            return Err(AppError::OneDriveSyncBusy);
         }
         let mut cache = self.load_cache(data_dir);
         let result = resolve_conflict_files(notes_dir, data_dir, name, resolution, &mut cache)
-            .and_then(|_| self.save_cache(data_dir, &cache));
+            .and_then(|_| self.save_cache(data_dir, &cache))
+            .map_err(AppError::from);
         self.is_syncing.store(false, Ordering::SeqCst);
         result
     }
@@ -1719,6 +1722,34 @@ mod tests {
         assert!(resolve_conflict_files(notes.path(), data.path(), NOTE, "shrug", &mut cache).is_err());
         assert!(cache.conflicts.contains_key(NOTE)); // still waiting
         assert!(resolve_conflict_files(notes.path(), data.path(), "2000-01-01.txt", "mine", &mut cache).is_err());
+    }
+
+    /// i18n Phase 2 (docs/design/i18n-roadmap.md): the manager's own
+    /// `resolve_conflict` — not the free `resolve_conflict_files` function
+    /// the test above exercises — is the one that owns the busy-guard and
+    /// must report it as the translatable `AppError::OneDriveSyncBusy`
+    /// code, not a bare string.
+    #[test]
+    fn resolve_conflict_reports_a_translatable_code_when_a_sync_is_already_running() {
+        let (notes, data) = dirs();
+        let mgr = OneDriveManager::new();
+        mgr.is_syncing.store(true, Ordering::SeqCst);
+        assert_eq!(
+            mgr.resolve_conflict(data.path(), notes.path(), NOTE, "mine"),
+            Err(AppError::OneDriveSyncBusy)
+        );
+    }
+
+    /// An ordinary resolve_conflict failure (no dedicated code) still
+    /// reaches the caller as `AppError::Other`, not lost or panicking —
+    /// the blanket `From<String>` conversion at `resolve_conflict`'s own
+    /// return boundary.
+    #[test]
+    fn resolve_conflict_falls_back_to_other_for_an_unrecognized_resolution() {
+        let (notes, data) = dirs();
+        let mgr = OneDriveManager::new();
+        let err = mgr.resolve_conflict(data.path(), notes.path(), NOTE, "shrug").unwrap_err();
+        assert!(matches!(err, AppError::Other { .. }));
     }
 
     #[test]

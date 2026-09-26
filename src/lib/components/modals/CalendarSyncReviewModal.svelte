@@ -6,6 +6,7 @@
   import { focusTrap } from "../../actions/focusTrap";
   import Icon from "../../icons/Icon.svelte";
   import Segmented from "../Segmented.svelte";
+  import { t } from "../../i18n";
 
   $: review = $calendarSyncReview;
 
@@ -46,14 +47,14 @@
 
 {#if review}
   <div class="overlay" role="presentation" use:closeOnOutsideClick={cancel}>
-    <div class="modal-card modal-lg" role="dialog" aria-modal="true" use:focusTrap aria-label="Sync review">
+    <div class="modal-card modal-lg" role="dialog" aria-modal="true" use:focusTrap aria-label={$t("calendarSyncReview.ariaLabel")}>
       <div class="modal-input-wrap modal-title">
         <Icon name="import" size={15} />
-        <span>Sync Review</span>
+        <span>{$t("calendarSyncReview.title")}</span>
         <button
           type="button"
           class="icon-btn modal-close-btn"
-          aria-label="Close dialog"
+          aria-label={$t("common.closeDialog")}
           on:click={cancel}
         >
           <Icon name="close" size={14} />
@@ -61,7 +62,7 @@
       </div>
       <div class="modal-list" bind:this={listEl}>
         {#if review.newItems.length}
-          <div class="modal-group-header">New meetings</div>
+          <div class="modal-group-header">{$t("calendarSyncReview.newMeetings")}</div>
           {#each review.newItems as item, i (item.title + i)}
             <div class="modal-item" style="cursor: default;">
               <label class="sync-review-check">
@@ -73,30 +74,30 @@
         {/if}
 
         {#if review.reorderedTitles.length}
-          <div class="modal-group-header">Reordered</div>
+          <div class="modal-group-header">{$t("calendarSyncReview.reordered")}</div>
           {#each review.reorderedTitles as title}
-            <div class="modal-empty-inline">{title} — moved earlier/later today</div>
+            <div class="modal-empty-inline">{$t("calendarSyncReview.reorderedItem", { title })}</div>
           {/each}
         {/if}
 
         {#if review.removedEmpty.length}
-          <div class="modal-group-header">Removed</div>
+          <div class="modal-group-header">{$t("calendarSyncReview.removed")}</div>
           {#each review.removedEmpty as title}
-            <div class="modal-empty-inline">{title} — no longer on the calendar, was empty</div>
+            <div class="modal-empty-inline">{$t("calendarSyncReview.removedItem", { title })}</div>
           {/each}
         {/if}
 
         {#if review.removals.length}
-          <div class="modal-group-header">No longer on the calendar</div>
+          <div class="modal-group-header">{$t("calendarSyncReview.noLongerOnCalendar")}</div>
           {#each review.removals as removal, i (removal.header)}
             <div class="modal-item sync-review-removal" style="cursor: default;">
               <span class="modal-item-main">{removal.header}</span>
               <div class="sync-review-removal-controls">
                 <Segmented
                   options={[
-                    { value: "flag", label: "Leave" },
-                    { value: "discard", label: "Discard" },
-                    { value: "move", label: "Move…" },
+                    { value: "flag", label: $t("calendarSyncReview.choice.leave") },
+                    { value: "discard", label: $t("calendarSyncReview.choice.discard") },
+                    { value: "move", label: $t("calendarSyncReview.choice.move") },
                   ]}
                   value={removal.choice}
                   onChange={(v) => controller.setSyncRemovalChoice(i, v as "flag" | "discard" | "move")}
@@ -115,12 +116,12 @@
         {/if}
 
         {#if !review.newItems.length && !review.reorderedTitles.length && !review.removedEmpty.length && !review.removals.length}
-          <div class="modal-empty">Nothing changed since the last sync.</div>
+          <div class="modal-empty">{$t("calendarSyncReview.nothingChanged")}</div>
         {/if}
       </div>
       <div class="modal-footer" style="justify-content: flex-end; gap: 8px;">
-        <button class="icon-btn" on:click={cancel}>Cancel</button>
-        <button class="icon-btn btn-primary" bind:this={syncBtn} on:click={confirm}>Sync</button>
+        <button class="icon-btn" on:click={cancel}>{$t("common.cancel")}</button>
+        <button class="icon-btn btn-primary" bind:this={syncBtn} on:click={confirm}>{$t("calendarSyncReview.syncButton")}</button>
       </div>
     </div>
   </div>

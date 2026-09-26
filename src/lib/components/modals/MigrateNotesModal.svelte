@@ -2,6 +2,7 @@
   import { closeOnOutsideClick } from "../../actions/closeOnOutsideClick";
   import { focusTrap } from "../../actions/focusTrap";
   import Icon from "../../icons/Icon.svelte";
+  import { t } from "../../i18n";
 
   export let noteCount: number;
   export let targetFolder: string;
@@ -45,25 +46,25 @@
     role="dialog"
     aria-modal="true"
     use:focusTrap
-    aria-label="Move Notes to OneDrive"
+    aria-label={$t("migrateNotes.ariaLabel")}
   >
     <div class="modal-input-wrap modal-title" style="justify-content: space-between;">
       <div style="display: flex; align-items: center; gap: 8px;">
         <Icon name="cloud" size={16} />
-        <span>Move Notes to OneDrive?</span>
+        <span>{$t("migrateNotes.title")}</span>
       </div>
-      <button type="button" class="icon-btn modal-close-btn" aria-label="Close dialog" on:click={onCancel} disabled={migrating || skipping}>
+      <button type="button" class="icon-btn modal-close-btn" aria-label={$t("common.closeDialog")} on:click={onCancel} disabled={migrating || skipping}>
         <Icon name="close" size={14} />
       </button>
     </div>
 
     <div style="font-size: 13px; color: var(--text-secondary); line-height: 1.5; margin-bottom: 14px;">
-      You have <strong style="color: var(--text);">{noteCount} {noteCount === 1 ? 'note' : 'notes'}</strong> in Browser storage.
-      Would you like to move them into your OneDrive folder (<strong style="color: var(--text);">{targetFolder}</strong>)?
+      {$t("migrateNotes.body.beforeCount")} <strong style="color: var(--text);">{$t("migrateNotes.noteCount", { count: noteCount })}</strong> {$t("migrateNotes.body.afterCount")}
+      {$t("migrateNotes.body.beforeFolder")}<strong style="color: var(--text);">{targetFolder}</strong>{$t("migrateNotes.body.afterFolder")}
     </div>
 
     <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 20px; line-height: 1.4;">
-      If a note with the same name already exists in OneDrive and the text differs, both versions are kept and you choose which to keep - nothing is overwritten. A safety backup of your browser notes will be saved.
+      {$t("migrateNotes.disclaimerHint")}
     </div>
 
     <div style="display: flex; flex-direction: column; gap: 10px;">
@@ -74,9 +75,9 @@
         on:click={handleMigrate}
       >
         {#if migrating}
-          <span class="modal-spinner">⟳</span> Moving notes…
+          <span class="modal-spinner">⟳</span> {$t("migrateNotes.moving")}
         {:else}
-          Move notes to OneDrive
+          {$t("migrateNotes.moveButton")}
         {/if}
       </button>
 
@@ -87,9 +88,9 @@
         on:click={handleSkip}
       >
         {#if skipping}
-          <span class="modal-spinner">⟳</span> Switching folder…
+          <span class="modal-spinner">⟳</span> {$t("migrateNotes.switchingFolder")}
         {:else}
-          Keep Browser storage separate
+          {$t("migrateNotes.keepSeparate")}
         {/if}
       </button>
 
@@ -99,7 +100,7 @@
         disabled={migrating || skipping}
         on:click={onCancel}
       >
-        Cancel
+        {$t("common.cancel")}
       </button>
     </div>
   </div>

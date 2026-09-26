@@ -6,6 +6,7 @@
   import Icon from "../../icons/Icon.svelte";
   import type { SyncConflictResolution } from "../../tauriCommands";
   import { diffLines } from "../../lineDiff";
+  import { t } from "../../i18n";
 
   // The note being shown; falls back to the first when the selected one has
   // just been resolved and dropped out of the list.
@@ -31,14 +32,14 @@
 </script>
 
 <div class="overlay" role="presentation" use:closeOnOutsideClick={controller.closeAllModals}>
-  <div class="modal-card modal-md" role="dialog" aria-modal="true" use:focusTrap aria-label="Sync conflicts">
+  <div class="modal-card modal-md" role="dialog" aria-modal="true" use:focusTrap aria-label={$t("syncConflicts.ariaLabel")}>
     <div class="modal-input-wrap modal-title">
       <Icon name="cloud" size={15} />
-      <span>Sync conflicts</span>
+      <span>{$t("syncConflicts.ariaLabel")}</span>
       <button
         type="button"
         class="icon-btn modal-close-btn"
-        aria-label="Close dialog"
+        aria-label={$t("common.closeDialog")}
         on:click={controller.closeAllModals}
       >
         <Icon name="close" size={14} />
@@ -47,8 +48,7 @@
 
     {#if current}
       <div class="settings-hint" style="padding: 12px 12px 8px; margin: 0;">
-        <strong style="color: var(--text);">{label(current.name)}</strong> was changed on this device and in OneDrive,
-        in the same place. Nothing has been overwritten — pick what to keep.
+        <strong style="color: var(--text);">{label(current.name)}</strong> {$t("syncConflicts.bodyHintAfter")}
       </div>
 
       {#if $syncConflicts.length > 1}
@@ -71,7 +71,7 @@
           class:active={viewMode === "both"}
           on:click={() => (viewMode = "both")}
         >
-          Side-by-Side
+          {$t("droppedNotes.tab.sideBySide")}
         </button>
         <button
           type="button"
@@ -79,7 +79,7 @@
           class:active={viewMode === "mine"}
           on:click={() => (viewMode = "mine")}
         >
-          This Device
+          {$t("syncConflicts.tab.thisDevice")}
         </button>
         <button
           type="button"
@@ -93,7 +93,7 @@
 
       <div class="conflict-versions" class:show-both={viewMode === "both"} class:show-mine={viewMode === "mine"} class:show-theirs={viewMode === "theirs"}>
         <div class="conflict-version">
-          <div class="conflict-version-label"><span class="conflict-badge">This device</span></div>
+          <div class="conflict-version-label"><span class="conflict-badge">{$t("syncConflicts.badge.thisDevice")}</span></div>
           <div class="conflict-text" data-testid="conflict-local">{#each diff.left as row}<div class="conflict-line" class:changed={row.changed}>{row.text}</div>{/each}</div>
         </div>
         <div class="conflict-version">
@@ -102,25 +102,25 @@
         </div>
       </div>
       {#if changedCount > 0}
-        <div class="settings-hint" style="padding: 6px 12px 0; margin: 0;">Highlighted lines are the ones that differ.</div>
+        <div class="settings-hint" style="padding: 6px 12px 0; margin: 0;">{$t("droppedNotes.highlightedDiffer")}</div>
       {/if}
 
       <div class="conflict-actions">
         <button class="icon-btn btn-primary" disabled={busy} on:click={() => choose("mine")}>
-          Keep this device's
+          {$t("syncConflicts.keepThisDevice")}
         </button>
-        <button class="icon-btn" disabled={busy} on:click={() => choose("theirs")}> Use OneDrive's </button>
-        <button class="icon-btn" disabled={busy} on:click={() => choose("both")}> Keep both </button>
+        <button class="icon-btn" disabled={busy} on:click={() => choose("theirs")}> {$t("syncConflicts.useOneDrive")} </button>
+        <button class="icon-btn" disabled={busy} on:click={() => choose("both")}> {$t("droppedNotes.keepBoth")} </button>
       </div>
       <div class="settings-hint" style="padding: 0 12px 12px; margin: 0;">
-        "Keep both" puts the OneDrive text under a marker line at the end so you can tidy it up.
+        {$t("syncConflicts.keepBothHint", { keepBothLabel: $t("droppedNotes.keepBoth") })}
       </div>
     {:else}
-      <div class="settings-hint" style="padding: 16px;">No sync conflicts.</div>
+      <div class="settings-hint" style="padding: 16px;">{$t("syncConflicts.noConflicts")}</div>
     {/if}
 
     <div class="modal-footer" style="padding: 8px 12px; display: flex; justify-content: flex-end;">
-      <button class="icon-btn" on:click={controller.closeAllModals}>Close</button>
+      <button class="icon-btn" on:click={controller.closeAllModals}>{$t("common.close")}</button>
     </div>
   </div>
 </div>

@@ -26,6 +26,14 @@ export default defineConfig({
     screenshot: "only-on-failure",
     // The app targets a 1100x720 Tauri window (tauri.conf.json).
     viewport: { width: 1100, height: 720 },
+    // i18n roadmap: without this, Chromium's reported `navigator.language`
+    // (and therefore which language the app's UI renders in) follows the
+    // *host OS's* locale — meaning the exact same spec could render
+    // English on a CI runner and Dutch on a contributor's own machine.
+    // Pinned so the suite is deterministic regardless of where it runs;
+    // `i18n-locales.spec.ts` explicitly overrides this per-test to
+    // exercise the other two languages.
+    locale: "en-US",
   },
 
   projects: [

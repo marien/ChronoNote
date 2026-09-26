@@ -13,6 +13,8 @@
   } from "../controller";
   import Icon from "../icons/Icon.svelte";
   import { focusTrap } from "../actions/focusTrap";
+  import { t, locale } from "../i18n";
+  import type { TranslationKey, TranslationParams } from "../i18n/schema";
 
   let popEl: HTMLDivElement;
   let anchorStyle = "visibility:hidden";
@@ -30,19 +32,32 @@
     anchorStyle = `bottom:${bottom}px; left:${left}px`;
   }
 
-  function formatRelativeTime(ms: number | null | undefined): string {
-    if (!ms) return "Never";
+  /** `resolvedLocale`/`translate` are passed in explicitly from the
+   * template call site (`$locale`/`$t`) rather than read as `$locale`/`$t`
+   * inside this function's own body — the same reactivity fix §225
+   * applied to `AboutModal`'s `agoLabel`: a plain function's internal
+   * `$store` reference isn't tracked as a dependency of whatever
+   * template expression calls it, only stores referenced *directly* in
+   * that expression are. i18n roadmap: relative times now go through
+   * `Intl.RelativeTimeFormat` instead of hand-translated fragments (only
+   * "Never" and the "just now (HH:MM)" case still need real dictionary
+   * entries) — same reasoning as `date.ts`'s `monthName`/`weekdayAbbrev`. */
+  function formatRelativeTime(
+    ms: number | null | undefined,
+    resolvedLocale: string,
+    translate: <K extends TranslationKey>(key: K, params: TranslationParams[K]) => string,
+  ): string {
+    if (!ms) return translate("syncHealth.relativeTime.never", undefined);
     const diffSec = Math.max(0, Math.floor((Date.now() - ms) / 1000));
-    const timeStr = new Date(ms).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-    if (diffSec < 60) return `Just now (${timeStr})`;
+    const timeStr = new Date(ms).toLocaleTimeString(resolvedLocale, { hour: "2-digit", minute: "2-digit" });
+    if (diffSec < 60) return translate("syncHealth.relativeTime.justNow", { time: timeStr });
+    const rtf = new Intl.RelativeTimeFormat(resolvedLocale, { numeric: "always" });
     const diffMin = Math.floor(diffSec / 60);
-    if (diffMin === 1) return `1 minute ago (${timeStr})`;
-    if (diffMin < 60) return `${diffMin} minutes ago (${timeStr})`;
+    if (diffMin < 60) return `${rtf.format(-diffMin, "minute")} (${timeStr})`;
     const diffHours = Math.floor(diffMin / 60);
-    if (diffHours === 1) return `1 hour ago (${timeStr})`;
-    if (diffHours < 24) return `${diffHours} hours ago (${timeStr})`;
+    if (diffHours < 24) return `${rtf.format(-diffHours, "hour")} (${timeStr})`;
     const diffDays = Math.floor(diffHours / 24);
-    return `${diffDays} ${diffDays === 1 ? "day" : "days"} ago`;
+    return rtf.format(-diffDays, "day");
   }
 
   onMount(async () => {
@@ -81,14 +96,14 @@
   $: isError = $oneDriveSignInExpired || $oneDriveSyncStatus === "error" || $syncHealth?.status === "error";
 
   $: statusLabel = $oneDriveSignInExpired
-    ? "Sign-in expired"
+    ? $t("syncHealth.status.signInExpired")
     : isSyncing
-    ? "Syncing changes…"
+    ? $t("syncHealth.status.syncingChanges")
     : isOffline
-      ? "Offline (cached)"
+      ? $t("syncHealth.status.offlineCached")
       : isError
-        ? "Sync error"
-        : "In sync";
+        ? $t("statusBar.oneDrive.syncError")
+        : $t("syncHealth.status.inSync");
 
   $: statusClass = isSyncing ? "syncing" : isOffline ? "offline" : isError ? "error" : "in-sync";
 </script>
@@ -100,19 +115,19 @@
   class="telemetry-popover"
   bind:this={popEl}
   role="dialog"
-  aria-label="Cloud sync health and telemetry"
+  aria-label={$t("syncHealth.ariaLabel")}
   use:focusTrap
   style={anchorStyle}
 >
   <div class="telemetry-header">
     <div class="telemetry-header-title">
       <Icon name="cloud" size={14} />
-      <span>OneDrive Cloud Sync</span>
+      <span>{$t("syncHealth.title")}</span>
     </div>
     <button
       type="button"
       class="modal-close-btn"
-      aria-label="Close"
+      aria-label={$t("common.close")}
       on:click={() => syncHealthPopoverOpen.set(false)}
     >
       ✕
@@ -121,7 +136,7 @@
 
   <div class="telemetry-details">
     <div class="telemetry-row">
-      <span class="telemetry-label">Status:</span>
+      <span class="telemetry-label">{$t("syncHealth.label.status")}</span>
       <span class="telemetry-status {statusClass}">
         {#if isSyncing}
           <span class="modal-spinner" aria-hidden="true">⟳</span>
@@ -137,45 +152,45 @@
     </div>
 
     <div class="telemetry-row">
-      <span class="telemetry-label">Last synced:</span>
-      <span class="telemetry-value">{formatRelativeTime($syncHealth?.lastSyncSuccessMs)}</span>
+      <span class="telemetry-label">{$t("syncHealth.label.lastSynced")}</span>
+      <span class="telemetry-value">{formatRelativeTime($syncHealth?.lastSyncSuccessMs, $locale, $t)}</span>
     </div>
 
     <div class="telemetry-row">
-      <span class="telemetry-label">Local mirror:</span>
+      <span class="telemetry-label">{$t("syncHealth.label.localMirror")}</span>
       <span class="telemetry-value">
-        {$syncHealth?.localNoteCount ?? 0} notes ({$backendKind === "web" ? "IndexedDB" : "local"})
+        {$t("syncHealth.notesCount", { count: $syncHealth?.localNoteCount ?? 0 })} ({$backendKind === "web" ? "IndexedDB" : $t("syncHealth.storageKind.local")})
       </span>
     </div>
 
     {#if ($syncHealth?.pendingUploadCount ?? 0) > 0}
       <div class="telemetry-row">
-        <span class="telemetry-label">Pending uploads:</span>
-        <span class="telemetry-value">{$syncHealth?.pendingUploadCount} notes</span>
+        <span class="telemetry-label">{$t("syncHealth.label.pendingUploads")}</span>
+        <span class="telemetry-value">{$t("syncHealth.notesCount", { count: $syncHealth?.pendingUploadCount ?? 0 })}</span>
       </div>
     {/if}
 
     <div class="telemetry-row">
-      <span class="telemetry-label">Account:</span>
-      <span class="telemetry-value telemetry-code">{$oneDriveAccount?.email ?? "Connected"}</span>
+      <span class="telemetry-label">{$t("syncHealth.label.account")}</span>
+      <span class="telemetry-value telemetry-code">{$oneDriveAccount?.email ?? $t("syncHealth.accountFallback")}</span>
     </div>
 
     <div class="telemetry-row">
-      <span class="telemetry-label">Target folder:</span>
+      <span class="telemetry-label">{$t("syncHealth.label.targetFolder")}</span>
       <span class="telemetry-value telemetry-code">{$oneDriveFolder?.folderPath ?? "/"}</span>
     </div>
   </div>
 
   {#if $oneDriveSignInExpired}
     <div class="settings-hint signin-expired" role="alert" style="margin: 0 12px 8px;">
-      Your notes are safe on this device. Sign in again to keep syncing; nothing is signed out and your unsynced edits are kept.
+      {$t("syncHealth.signInExpiredHint")}
     </div>
   {/if}
 
   <div class="telemetry-actions">
     {#if $oneDriveSignInExpired}
       <button type="button" class="telemetry-btn telemetry-sync-btn" on:click={() => controller.signInAgain()}>
-        Sign in again
+        {$t("statusBar.oneDrive.signInAgain")}
       </button>
     {/if}
     <button
@@ -185,9 +200,9 @@
       on:click={handleSyncNow}
     >
       {#if isSyncing}
-        <span class="modal-spinner">⟳</span> Syncing…
+        <span class="modal-spinner">⟳</span> {$t("statusBar.oneDrive.syncingText")}
       {:else}
-        ⟳ Sync Now
+        ⟳ {$t("syncHealth.syncNowLabel")}
       {/if}
     </button>
     <button
@@ -195,7 +210,7 @@
       class="telemetry-btn"
       on:click={handleOpenSettings}
     >
-      Open Settings
+      {$t("syncHealth.openSettingsButton")}
     </button>
   </div>
 </div>

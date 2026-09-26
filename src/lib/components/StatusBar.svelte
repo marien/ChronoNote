@@ -19,13 +19,14 @@
     syncConflicts,
     syncHealthPopoverOpen,
     toastMessage,
-    UPDATE_AVAILABLE_TOAST,
+    UPDATE_AVAILABLE_TOAST_KEY,
     updateStatus,
   } from "../controller";
   import * as controller from "../controller";
   import Icon from "../icons/Icon.svelte";
   import SyncHealthPopover from "./SyncHealthPopover.svelte";
   import { formatCombo, formatShortcut, shortcutById } from "../shortcuts";
+  import { t } from "../i18n";
 
   function onCloudClick() {
     if (!$oneDriveFolder) {
@@ -36,9 +37,7 @@
   }
 
   // #37/#38: how many lines the selection covers (not a character count).
-  $: selectionLabel = $statusSelection
-    ? `${$statusSelection.lines} ${$statusSelection.lines === 1 ? "line" : "lines"} selected`
-    : "";
+  $: selectionLabel = $statusSelection ? $t("statusBar.selection", { count: $statusSelection.lines }) : "";
 
   // §merged-titlebar: which notes folder is active — moved here from
   // "Settings-only" now that the window title itself no longer renders
@@ -54,19 +53,19 @@
       <button
         id="stat-cloud"
         class="status-folder-btn"
-        title={$oneDriveSignInExpired ? "Your OneDrive sign-in has expired. Click to sign in again." : $oneDriveAccount ? `OneDrive: ${$oneDriveFolder?.folderPath ?? "/"} (${$oneDriveSyncStatus})` : "Connect OneDrive in Settings"}
-        aria-label="OneDrive cloud sync"
+        title={$oneDriveSignInExpired ? $t("statusBar.oneDrive.signInExpired") : $oneDriveAccount ? $t("statusBar.oneDrive.statusTitle", { path: $oneDriveFolder?.folderPath ?? "/", status: $oneDriveSyncStatus }) : $t("statusBar.oneDrive.connectPrompt")}
+        aria-label={$t("statusBar.oneDrive.ariaLabel")}
         on:click={onCloudClick}
       >
         {#if $oneDriveSyncing || $oneDriveSyncStatus === "syncing"}
           <!-- Not gated by stat-tier0 like the label, so a narrow screen still shows *something is happening*. -->
-          <span class="modal-spinner" aria-label="Syncing">⟳</span>
+          <span class="modal-spinner" aria-label={$t("statusBar.oneDrive.syncingAriaLabel")}>⟳</span>
         {:else}
           <Icon name="cloud" size={12} />
         {/if}
         <span class="stat-tier0 status-folder-name">
           {#if $oneDriveAccount}
-            {$oneDriveSyncing || $oneDriveSyncStatus === "syncing" ? "Syncing…" : !$oneDriveFolder ? "Choose a folder" : $oneDriveSignInExpired ? "Sign in again" : $oneDriveSyncStatus === "error" ? "Sync error" : $oneDriveSyncStatus === "offline" ? "Offline" : ($oneDriveFolder.folderPath.split("/").filter(Boolean).pop() ?? "Notes")}
+            {$oneDriveSyncing || $oneDriveSyncStatus === "syncing" ? $t("statusBar.oneDrive.syncingText") : !$oneDriveFolder ? $t("statusBar.oneDrive.chooseFolder") : $oneDriveSignInExpired ? $t("statusBar.oneDrive.signInAgain") : $oneDriveSyncStatus === "error" ? $t("statusBar.oneDrive.syncError") : $oneDriveSyncStatus === "offline" ? $t("statusBar.oneDrive.offline") : ($oneDriveFolder.folderPath.split("/").filter(Boolean).pop() ?? $t("statusBar.oneDrive.defaultFolderName"))}
           {:else}
             OneDrive
           {/if}
@@ -77,10 +76,10 @@
         <button
           id="stat-conflicts"
           class="status-folder-btn stat-conflicts"
-          title="Some notes changed on this device and in OneDrive — tap to choose"
+          title={$t("statusBar.conflicts.title")}
           on:click={controller.openSyncConflicts}
         >
-          ⚠ {$syncConflicts.length === 1 ? "1 sync conflict" : `${$syncConflicts.length} sync conflicts`}
+          ⚠ {$t("statusBar.conflicts.count", { count: $syncConflicts.length })}
         </button>
         <span class="status-sep">·</span>
       {/if}
@@ -88,12 +87,12 @@
       <button
         id="stat-storage"
         class="status-folder-btn"
-        title="Notes are stored in browser storage. Click to open Settings."
-        aria-label="Browser storage"
+        title={$t("statusBar.browserStorage.title")}
+        aria-label={$t("statusBar.browserStorage.label")}
         on:click={controller.openSettingsOnNotesFolder}
       >
         <Icon name="folder" size={12} />
-        <span class="stat-tier0 status-folder-name">Browser storage</span>
+        <span class="stat-tier0 status-folder-name">{$t("statusBar.browserStorage.label")}</span>
       </button>
       <span class="status-sep stat-tier0">·</span>
     {:else if folderName}
@@ -101,7 +100,7 @@
         id="stat-folder"
         class="status-folder-btn"
         title={$notesDir}
-        aria-label="Change notes folder"
+        aria-label={$t("statusBar.changeFolderAriaLabel")}
         on:click={controller.openSettingsOnNotesFolder}
       >
         <Icon name="folder" size={12} />
@@ -109,33 +108,33 @@
       </button>
       <span class="status-sep stat-tier0">·</span>
     {/if}
-    <span id="stat-pos" class="stat-tier2">Ln {$statusPos.line}, Col {$statusPos.col}</span>
+    <span id="stat-pos" class="stat-tier2">{$t("statusBar.position", { line: $statusPos.line, col: $statusPos.col })}</span>
     {#if selectionLabel}
       <span class="status-sep stat-tier2">·</span>
       <span id="stat-selection" class="stat-tier2">{selectionLabel}</span>
     {/if}
     <span class="status-sep stat-tier1">·</span>
-    <span id="stat-words" class="stat-tier1">{$statusWordCount} {$statusWordCount === 1 ? "word" : "words"}</span>
+    <span id="stat-words" class="stat-tier1">{$t("statusBar.wordCount", { count: $statusWordCount })}</span>
     <span class="status-sep stat-tier2">·</span>
-    <span id="stat-open" class="stat-full">Open {$statusCounts.open}</span>
+    <span id="stat-open" class="stat-full">{$t("statusBar.openCount", { count: $statusCounts.open })}</span>
     <span class="stat-compact">☐ {$statusCounts.open}</span>
     <span class="status-sep">·</span>
-    <span id="stat-closed" class="stat-full">Closed {$statusCounts.closed}</span>
+    <span id="stat-closed" class="stat-full">{$t("statusBar.closedCount", { count: $statusCounts.closed })}</span>
     <span class="stat-compact">☑ {$statusCounts.closed}</span>
     <span class="status-sep">·</span>
-    <span id="stat-forwarded" class="stat-full">Forwarded {$statusCounts.forwarded}</span>
+    <span id="stat-forwarded" class="stat-full">{$t("statusBar.forwardedCount", { count: $statusCounts.forwarded })}</span>
     <span class="stat-compact">» {$statusCounts.forwarded}</span>
   </div>
 
   <div class="status-zone status-centre">
     {#if $justUpdatedToVersion}
       <span id="stat-updated" role="status">
-        Updated to v{$justUpdatedToVersion} —
+        {$t("statusBar.updatedTo", { version: $justUpdatedToVersion })}
         <button type="button" class="status-link" on:click={controller.openJustUpdatedReleaseNotes}>
-          What's new
+          {$t("statusBar.whatsNew")}
         </button>
       </span>
-    {:else if $toastMessage === UPDATE_AVAILABLE_TOAST && $updateStatus === "available"}
+    {:else if $toastMessage === $t(UPDATE_AVAILABLE_TOAST_KEY, undefined) && $updateStatus === "available"}
       <!-- §update-check follow-up: this specific toast is a shortcut to
            About, not the generic "read and forget" toast — matched by
            exact text (not just `updateStatus === "available"`, which
@@ -152,19 +151,19 @@
 
   <div class="status-zone status-right">
     {#if $updateStatus === "available" && $backendKind !== "web"}
-      <button type="button" class="status-update-btn" title="Update available — see About" on:click={controller.openAbout}>
+      <button type="button" class="status-update-btn" title={$t("statusBar.updateAvailableTitle")} on:click={controller.openAbout}>
         <Icon name="update" size={12} />
       </button>
     {/if}
     {#if $appVersion}
-      <button type="button" id="stat-version" title="About ChronoNote" on:click={controller.openAbout}>
+      <button type="button" id="stat-version" title={$t("shortcuts.openAbout.label")} on:click={controller.openAbout}>
         v{$appVersion}
       </button>
     {/if}
     <button
       type="button"
       class="status-help"
-      title="Shortcuts & symbols ({formatCombo(shortcutById('openShortcutsHelp').combos[0])})"
+      title={$t("statusBar.shortcutsTitle", { combo: formatCombo(shortcutById('openShortcutsHelp').combos[0]) })}
       on:click={controller.openShortcutsHelp}
     >
       ?
@@ -175,7 +174,7 @@
     <button
       type="button"
       class="status-about-btn"
-      title="About ChronoNote ({formatShortcut('openAbout')})"
+      title={$t("statusBar.aboutTitleWithCombo", { combo: formatShortcut('openAbout') })}
       on:click={controller.openAbout}
     >
       <Icon name="about" size={12} />

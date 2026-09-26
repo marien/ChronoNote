@@ -5,6 +5,7 @@
 // here so the rest of the app keeps a single `./types` import.
 export type {
   AppConfig,
+  AppError,
   ColorMode,
   FileMetadata,
   ImportMode,
@@ -12,7 +13,9 @@ export type {
   NoteWithMetadata,
   OneDriveAccount,
   OneDriveAdvancedConfig,
+  FolderSwitchBlocked,
   FolderSwitchResult,
+  LanguageMode,
   OneDriveFolderConfig,
   OneDriveFolderItem,
   OneDriveLoginResult,

@@ -15,6 +15,7 @@
   import Icon from "../../icons/Icon.svelte";
   import { formatShortcut } from "../../shortcuts";
   import { todayISO } from "../../date";
+  import { t } from "../../i18n";
 
   /** #56: the top bar collapses its secondary action buttons into this
    * popover once the window is too narrow for all of them (see
@@ -67,17 +68,17 @@
 
 <svelte:window on:mousedown={onOutsideMousedown} on:resize={positionUnderTrigger} />
 
-<div class="more-actions-pop" bind:this={popEl} role="menu" aria-label="More actions" use:focusTrap style={anchorStyle}>
+<div class="more-actions-pop" bind:this={popEl} role="menu" aria-label={$t("topBar.moreActions.title")} use:focusTrap style={anchorStyle}>
   <button type="button" class="more-actions-item" role="menuitem" on:click={controller.openActionDrawer}>
-    <Icon name="actions" size={14} /><span>Actions</span>
+    <Icon name="actions" size={14} /><span>{$t("actionDrawer.modal.ariaLabel")}</span>
     <kbd>{formatShortcut("openActions")}</kbd>
   </button>
   <button type="button" class="more-actions-item" role="menuitem" on:click={controller.openMeetingHistory}>
-    <Icon name="section-history" size={14} /><span>Section history</span>
+    <Icon name="section-history" size={14} /><span>{$t("history.modal.ariaLabel")}</span>
     <kbd>{formatShortcut("openHistory")}</kbd>
   </button>
   <button type="button" class="more-actions-item" role="menuitem" on:click={controller.openCrossTabSearch}>
-    <Icon name="search" size={14} /><span>Cross-tab search</span>
+    <Icon name="search" size={14} /><span>{$t("shortcuts.crossTabSearch.label")}</span>
     <kbd>{formatShortcut("crossTabSearch")}</kbd>
   </button>
   {#if calendarSyncVisible}
@@ -89,22 +90,22 @@
       title={calendarSyncReady
         ? ""
         : !$agendaFileExists
-          ? "No .agenda.json file found in your notes folder"
-          : "Only available for a note dated today or later"}
+          ? $t("topBar.calendarSync.titleNoAgendaFile")
+          : $t("topBar.calendarSync.titleNotAvailable")}
       on:click={controller.syncCalendarFromFile}
     >
-      <Icon name="calendar-import" size={14} /><span>Sync calendar for this day</span>
+      <Icon name="calendar-import" size={14} /><span>{$t("shortcuts.syncCalendar.label")}</span>
       <kbd>{formatShortcut("syncCalendar")}</kbd>
     </button>
   {/if}
   {#if activeTab?.isScratchpad}
     <button type="button" class="more-actions-item" role="menuitem" on:click={promote}>
-      <Icon name="promote" size={14} /><span>Promote into today's note</span>
+      <Icon name="promote" size={14} /><span>{$t("moreActions.promote.label")}</span>
     </button>
   {/if}
   <div class="more-actions-sep" role="separator"></div>
   <button type="button" class="more-actions-item" role="menuitem" on:click={controller.openSettings}>
-    <Icon name="settings" size={14} /><span>Settings</span>
+    <Icon name="settings" size={14} /><span>{$t("settings.modal.title")}</span>
     <kbd>{formatShortcut("openSettings")}</kbd>
   </button>
 </div>

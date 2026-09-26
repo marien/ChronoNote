@@ -1,4 +1,5 @@
 mod agenda;
+mod error;
 mod onedrive;
 mod storage;
 mod update_install;
@@ -64,6 +65,14 @@ fn set_auto_check_updates(app: AppHandle, enabled: bool) -> Result<storage::AppC
 fn set_theme_mode(app: AppHandle, mode: storage::ThemeMode) -> Result<storage::AppConfig, String> {
     let mut cfg = storage::load_config(&app)?;
     cfg.theme_mode = mode;
+    storage::save_config(&app, &cfg)?;
+    Ok(cfg)
+}
+
+#[tauri::command]
+fn set_language_mode(app: AppHandle, mode: storage::LanguageMode) -> Result<storage::AppConfig, String> {
+    let mut cfg = storage::load_config(&app)?;
+    cfg.language_mode = mode;
     storage::save_config(&app, &cfg)?;
     Ok(cfg)
 }
@@ -320,7 +329,7 @@ fn onedrive_resolve_conflict(
     mgr: tauri::State<'_, std::sync::Arc<onedrive::sync::OneDriveManager>>,
     name: String,
     resolution: String,
-) -> Result<(), String> {
+) -> Result<(), error::AppError> {
     let data_dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
     let cfg = storage::load_config(&app)?;
     mgr.resolve_conflict(&data_dir, &std::path::PathBuf::from(cfg.notes_dir), &name, &resolution)
@@ -435,6 +444,7 @@ pub fn run() {
             set_readable_line_length,
             set_auto_check_updates,
             set_theme_mode,
+            set_language_mode,
             set_calendar_sync_enabled,
             set_font_size,
             set_line_height,

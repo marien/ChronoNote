@@ -15,6 +15,7 @@ import { check, type Update } from "@tauri-apps/plugin-updater";
 import { relaunch } from "@tauri-apps/plugin-process";
 import { Channel, invoke } from "@tauri-apps/api/core";
 import { flushAllPendingSaves } from "./persistence";
+import { t } from "./i18n";
 import {
   showToast,
   updateAvailableVersion,
@@ -30,10 +31,14 @@ import {
 let pendingUpdate: Update | null = null;
 
 /** §update-check follow-up: the exact text of the launch-time "found an
- * update" toast, exported so `StatusBar.svelte` can recognize *this*
- * toast specifically (and render it as a click-to-About link) without
- * making every other transient status message clickable too. */
-export const UPDATE_AVAILABLE_TOAST = "Update available — see About";
+ * update" toast — `StatusBar.svelte` recognizes *this* toast specifically
+ * (and renders it as a click-to-About link) without making every other
+ * transient status message clickable too. i18n roadmap: both sides read
+ * the same `toast.updates.updateAvailable` key rather than one shared
+ * hardcoded string, so the identity check still holds once this text is
+ * translated — the same reasoning as `SHORTCUT_LABEL_KEYS`/
+ * `COMMAND_PALETTE_GROUP_KEYS`'s logic-vs-display split (§220/§223). */
+export const UPDATE_AVAILABLE_TOAST_KEY = "toast.updates.updateAvailable" as const;
 
 function errorMessage(e: unknown): string {
   return e instanceof Error ? e.message : String(e);
@@ -78,7 +83,7 @@ export async function checkForUpdates(): Promise<void> {
 export async function checkForUpdatesOnLaunch(): Promise<void> {
   await checkForUpdates();
   if (get(updateStatus) === "available") {
-    showToast(UPDATE_AVAILABLE_TOAST);
+    showToast(get(t)(UPDATE_AVAILABLE_TOAST_KEY, undefined));
   }
 }
 

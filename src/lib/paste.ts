@@ -8,6 +8,7 @@ import { get } from "svelte/store";
 import { showToast, tabs } from "./stores";
 import { writeTabContent } from "./persistence";
 import { todayISO } from "./date";
+import { t } from "./i18n";
 
 let lastCopiedAction: { text: string; sourceTabId: string } | null = null;
 
@@ -92,11 +93,7 @@ export function notifyTabClosed(tabId: string) {
 
 function deferRestoredToast(sourceFilename: string, blockText: string) {
   const n = countOpenActionsInText(blockText);
-  showToast(
-    n > 1
-      ? `${n} deferred tasks on ${sourceFilename} restored to open`
-      : `Deferred task on ${sourceFilename} restored to open`,
-  );
+  showToast(get(t)("toast.paste.deferRestored", { count: n, filename: sourceFilename }));
 }
 
 /** Called by `EditorPane` after an `undo` transaction that changed the
@@ -133,9 +130,7 @@ export function onEditorRedo(activeTabId: string, before: string, after: string)
   if (src && src.content.includes(link.openBlock)) {
     tabs.set(writeTabContent(src.id, src.content.replace(link.openBlock, link.deferredBlock), list));
     const n = countOpenActionsInText(link.openBlock);
-    showToast(
-      n > 1 ? `${n} tasks on ${src.filename} deferred again` : `Task on ${src.filename} deferred again`,
-    );
+    showToast(get(t)("toast.paste.deferredAgain", { count: n, filename: src.filename }));
     link.reverted = false;
   } else {
     pasteDeferLink = null;
@@ -183,10 +178,6 @@ export function handlePasteIntoTab(targetTabId: string) {
       reverted: false,
     };
     const count = countOpenActionsInText(copied.text);
-    showToast(
-      count > 1
-        ? `${count} original tasks on ${srcTab.filename} marked deferred`
-        : `Original task on ${srcTab.filename} marked deferred`,
-    );
+    showToast(get(t)("toast.paste.originalMarkedDeferred", { count, filename: srcTab.filename }));
   }
 }

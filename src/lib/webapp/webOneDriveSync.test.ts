@@ -214,7 +214,7 @@ describe("WebOneDriveSyncEngine lifecycle & sync", () => {
     );
     const res = await engine.exchangeCodeDirect("code", "forged");
     expect(res.success).toBe(false);
-    expect(res.error).toMatch(/did not match/);
+    expect(res.error).toEqual({ code: "other", detail: expect.stringMatching(/did not match/) });
   });
 
   it("logout(true) wipes the cloud notes and sync state but keeps browser notes", async () => {

@@ -28,6 +28,16 @@ async function openSettingsTab(page: Page, label: "Appearance" | "Notes & Sync" 
   await settings(page).getByRole("radio", { name: label, exact: true }).click();
 }
 
+/** i18n roadmap: the new Language control (below Theme) also has a
+ * "System" option, so a bare `getByRole("radio", { name: "System" })`
+ * inside the whole Settings card now matches two elements — scope to
+ * the Theme radiogroup specifically (the one that also has "Light"). */
+function themeControl(page: Page) {
+  return settings(page)
+    .getByRole("radiogroup")
+    .filter({ has: page.getByRole("radio", { name: "Light", exact: true }) });
+}
+
 test.describe("settings (Ctrl/Cmd+,)", () => {
   test("#48: light/dark/system theme control flips data-theme and persists to config", async ({ page }) => {
     await seedApp(page, { seed: "busy-week" });
@@ -35,7 +45,7 @@ test.describe("settings (Ctrl/Cmd+,)", () => {
 
     // system (default): no data-theme attribute — app.css's plain
     // @media (prefers-color-scheme) rules decide.
-    await expect(settings(page).getByRole("radio", { name: "System", exact: true })).toHaveAttribute(
+    await expect(themeControl(page).getByRole("radio", { name: "System", exact: true })).toHaveAttribute(
       "aria-checked",
       "true",
     );
@@ -55,7 +65,7 @@ test.describe("settings (Ctrl/Cmd+,)", () => {
 
     // Back to System removes the override entirely.
     await page.keyboard.press("ControlOrMeta+Comma");
-    await settings(page).getByRole("radio", { name: "System", exact: true }).click();
+    await themeControl(page).getByRole("radio", { name: "System", exact: true }).click();
     await expect(page.locator("html")).not.toHaveAttribute("data-theme");
     expect(await page.evaluate(() => window.__CHRONO_MOCK__!.themeMode)).toBe("system");
   });

@@ -25,6 +25,8 @@ import { writeTabContent, writeNoteAndInvalidateCache } from "./persistence";
 import * as api from "./tauriApi";
 import { todayISO } from "./date";
 import { appendRemovedSectionTo, computeCalendarSync, flagRemovedSection } from "./calendarReconcile";
+import { t } from "./i18n";
+import { describeApiError } from "./apiError";
 import type { NoteTab } from "./types";
 
 /** "Today or a future date only" — a scratchpad has no date at all, and a
@@ -91,11 +93,11 @@ export async function syncCalendarFromFile(): Promise<void> {
     agendaTitles = await api.readAgendaForDate(date);
     removedTitles = await api.readAgendaRemovedForDate(date);
   } catch (e) {
-    showToast(e instanceof Error ? e.message : "Couldn't read the calendar.");
+    showToast(describeApiError(e));
     return;
   }
   if (agendaTitles.length === 0 && removedTitles.length === 0) {
-    showToast(`No meetings on ${date}.`);
+    showToast(get(t)("toast.calendarSync.noMeetingsOn", { date }));
     return;
   }
   openCalendarSyncReview(tab, agendaTitles, removedTitles);
@@ -178,5 +180,5 @@ export async function confirmCalendarSync(): Promise<void> {
 
   calendarSyncReview.set(null);
   modal.set("none");
-  showToast("Calendar synced.");
+  showToast(get(t)("toast.calendarSync.synced", undefined));
 }

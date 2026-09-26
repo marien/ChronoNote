@@ -15,6 +15,7 @@
   import { parseGlyphLine } from "../../editor/glyphLine";
   import Icon from "../../icons/Icon.svelte";
   import Segmented from "../Segmented.svelte";
+  import { t } from "../../i18n";
   import type { HistoryDestination, SectionOccurrence } from "../../types";
   import { clampIndex, wrapIndex } from "./virtualList";
 
@@ -502,20 +503,20 @@
     role="dialog"
     aria-modal="true"
     use:focusTrap
-    aria-label="Section history"
+    aria-label={$t("history.modal.ariaLabel")}
   >
     <div class="modal-input-wrap modal-title">
       <Icon name="section-history" size={15} />
-      <div class="modal-input">Section History: "{$historyTargetHeader}"</div>
+      <div class="modal-input">{$t("history.modal.titlePrefix", { header: $historyTargetHeader })}</div>
       {#if $historyLoading}
-        <span class="modal-counter"><span class="modal-spinner" aria-label="Loading">⟳</span> Loading…</span>
+        <span class="modal-counter"><span class="modal-spinner" aria-label={$t("common.loading")}>⟳</span> {$t("history.modal.loadingCounter")}</span>
       {:else}
-        <span class="modal-counter">{occurrences.length} {occurrences.length === 1 ? "date" : "dates"}</span>
+        <span class="modal-counter">{$t("history.modal.dateCount", { count: occurrences.length })}</span>
       {/if}
       <button
         type="button"
         class="icon-btn modal-close-btn"
-        aria-label="Close dialog"
+        aria-label={$t("common.closeDialog")}
         on:click={controller.closeAllModals}
       >
         <Icon name="close" size={14} />
@@ -537,7 +538,7 @@
         <button
           type="button"
           class="icon-btn history-occ-scroll-btn"
-          aria-label="Scroll dates left"
+          aria-label={$t("history.strip.scrollLeft")}
           on:click={() => scrollOccStrip(-1)}
         >
           <Icon name="chevron-left" size={14} />
@@ -560,7 +561,7 @@
           class="history-occ-tab pinned-slot {p.classes} {p.index === selectedIndex ? 'active' : ''} {heat ? '' : 'empty'} {occDateClass(occ, $currentDateISO)}"
           role="tab"
           aria-selected={p.index === selectedIndex}
-          title={heat ? `Double-click to jump to ${occ.date}` : `No content yet — double-click to jump to ${occ.date}`}
+          title={heat ? $t("history.occ.title.hasContent", { date: occ.date }) : $t("history.occ.title.empty", { date: occ.date })}
           on:click={() => selectAndReveal(p.index)}
           on:dblclick={() => controller.jumpToHistoryLine(occ)}
         >
@@ -571,14 +572,14 @@
       <div
         class="history-occ-strip"
         role="tablist"
-        aria-label="Occurrences"
+        aria-label={$t("history.strip.ariaLabel")}
         bind:this={stripEl}
         on:scroll={updatePinStates}
       >
         {#if $historyLoading}
-          <span class="history-occ-loading"><span class="modal-spinner" aria-label="Loading">⟳</span> Loading history…</span>
+          <span class="history-occ-loading"><span class="modal-spinner" aria-label={$t("common.loading")}>⟳</span> {$t("history.strip.loading")}</span>
         {:else if occurrences.length === 0}
-          <span class="history-occ-loading">No prior occurrences found across open or closed notes.</span>
+          <span class="history-occ-loading">{$t("history.strip.empty")}</span>
         {:else}
           {#each occurrences as occ, index (occ.filename)}
             {@const heat = controller.occurrenceHeat(occ)}
@@ -589,7 +590,7 @@
               aria-selected={index === selectedIndex}
               data-occ-index={index}
               tabindex="-1"
-              title={heat ? `Double-click to jump to ${occ.date}` : `No content yet — double-click to jump to ${occ.date}`}
+              title={heat ? $t("history.occ.title.hasContent", { date: occ.date }) : $t("history.occ.title.empty", { date: occ.date })}
               on:click={() => {
                 selectedIndex = index;
                 bodyContainerEl?.focus();
@@ -610,7 +611,7 @@
           class="history-occ-tab pinned-slot {p.classes} {p.index === selectedIndex ? 'active' : ''} {heat ? '' : 'empty'} {occDateClass(occ, $currentDateISO)}"
           role="tab"
           aria-selected={p.index === selectedIndex}
-          title={heat ? `Double-click to jump to ${occ.date}` : `No content yet — double-click to jump to ${occ.date}`}
+          title={heat ? $t("history.occ.title.hasContent", { date: occ.date }) : $t("history.occ.title.empty", { date: occ.date })}
           on:click={() => selectAndReveal(p.index)}
           on:dblclick={() => controller.jumpToHistoryLine(occ)}
         >
@@ -622,7 +623,7 @@
         <button
           type="button"
           class="icon-btn history-occ-scroll-btn"
-          aria-label="Scroll dates right"
+          aria-label={$t("history.strip.scrollRight")}
           on:click={() => scrollOccStrip(1)}
         >
           <Icon name="chevron-right" size={14} />
@@ -635,7 +636,7 @@
         {#if selectedOcc}
           <div class="hp-context history-select-body" bind:this={bodyEl}>
             {#if selectedOcc.lines.length === 0}
-              <div class="hp-line hp-muted">(nothing in this section yet)</div>
+              <div class="hp-line hp-muted">{$t("history.body.emptySection")}</div>
             {:else}
               {#each selectedOcc.lines as line, i}
                 {@const abs = selectedOcc.startLineIdx + i}
@@ -659,8 +660,8 @@
               {#if singleLineActionOnly}
                 <Segmented
                   options={[
-                    { value: "whole", label: "Whole line" },
-                    { value: "action-only", label: "Action only" },
+                    { value: "whole", label: $t("history.takeover.wholeLine") },
+                    { value: "action-only", label: $t("history.takeover.actionOnly") },
                   ]}
                   value={takeOverMode}
                   onChange={(v) => (takeOverMode = v as "whole" | "action-only")}
@@ -670,28 +671,28 @@
                 <button type="button" class="icon-btn btn-primary" on:click={() => takeOver(dest)}>{dest.label}</button>
               {/each}
               <span class="history-takeover-hint">
-                Moves the selected line(s) to the end of that section — marked forwarded (») in this
-                occurrence, not deleted.
+                {$t("history.takeover.hint")}
               </span>
             </div>
           {:else if usableDestinations.length === 0}
-            <div class="hp-note">There's nowhere else to carry this over to from this occurrence.</div>
+            <div class="hp-note">{$t("history.takeover.none")}</div>
           {/if}
         {:else}
-          <div class="hp-empty">Select an occurrence to browse it.</div>
+          <div class="hp-empty">{$t("history.body.selectPrompt")}</div>
         {/if}
       </div>
     </div>
 
     <div class="modal-footer">
       <div>
-        <kbd>↑/↓</kbd> Select line · <kbd>Shift+↑/↓</kbd> Extend · <kbd>←/→</kbd> Switch date ·
-        <kbd>Enter</kbd> Jump to source · <kbd>Dbl-click</kbd> a date to jump there
+        <kbd>↑/↓</kbd> {$t("history.footer.selectLine")} · <kbd>Shift+↑/↓</kbd> {$t("history.footer.extend")} ·
+        <kbd>←/→</kbd> {$t("history.footer.switchDate")} ·
+        <kbd>Enter</kbd> {$t("history.footer.jumpToSource")} · <kbd>Dbl-click</kbd> {$t("history.footer.dblClickHint")}
         {#if lineSelection && usableDestinations[0]}
           · <kbd>Shift+Enter</kbd> {usableDestinations[0].label}
         {/if}
       </div>
-      <div><kbd>Esc</kbd> Close</div>
+      <div><kbd>Esc</kbd> {$t("common.close")}</div>
     </div>
   </div>
 </div>

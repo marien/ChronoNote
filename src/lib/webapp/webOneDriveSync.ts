@@ -1,4 +1,7 @@
 import type {
+  AppError,
+  FolderSwitchBlocked,
+  FolderSwitchResult,
   OneDriveAccount,
   OneDriveAdvancedConfig,
   OneDriveFolderConfig,
@@ -25,15 +28,7 @@ import {
 } from "./webOneDriveAuth";
 import { OneDriveClient } from "./oneDriveClient";
 import { merge3 } from "./lineMerge";
-
-export interface FolderSwitchResult {
-  ready: boolean;
-  /** The mirror belonged to a different folder, so it was cleared (or there was nothing in it). */
-  switched: boolean;
-  /** Notes copied to the archive because the old folder couldn't be synced. */
-  archivedCount: number;
-  message?: string;
-}
+import { describeApiError, toAppError } from "../apiError";
 
 export interface FileCacheEntry {
   id: string;
@@ -60,6 +55,22 @@ export interface StoredNote {
 }
 
 import { isValidNoteFilename } from "../noteFilename";
+
+/** i18n Phase 2 (`docs/design/i18n-roadmap.md`): this engine's own
+ * `OneDriveSyncResult.message` must be shaped like Rust's `AppError`
+ * (the type is shared, from `../types`), not a bare string — these two
+ * helpers keep every construction site below terse. `oneDriveSyncBusy()`
+ * reuses the exact code desktop's own busy-guard uses, so both platforms
+ * show the identical translated message for "a sync is already
+ * running." `otherError()` is for everything else this engine's own
+ * code produces or catches — untranslated diagnostic text, same as
+ * every raw `std::io::Error`/network error on the Rust side. */
+function oneDriveSyncBusy(): AppError {
+  return { code: "oneDriveSyncBusy" };
+}
+function otherError(detail: string): AppError {
+  return { code: "other", detail };
+}
 
 export function isSyncableFile(name: string): boolean {
   return isValidNoteFilename(name) || name === ".agenda.json";
@@ -222,16 +233,16 @@ export class WebOneDriveSyncEngine {
     // One last sync against the folder the mirror belongs to.
     if (!current) await idbPut(db, IDB_STORES.META, IDB_META_KEYS.ONEDRIVE_FOLDER, last);
     let synced = false;
-    let detail = "";
+    let syncFailed = false;
+    let syncFailureDetail: AppError | undefined;
+    let heldCount = 0;
     try {
       const res = await this.syncNow();
       const held = await this.listConflicts();
       synced = res.success && held.length === 0;
-      detail = !res.success
-        ? (res.message ?? "the sync failed")
-        : held.length > 0
-          ? `${held.length} note${held.length === 1 ? " has" : "s have"} a sync conflict to resolve first`
-          : "";
+      syncFailed = !res.success;
+      syncFailureDetail = res.message;
+      heldCount = held.length;
     } finally {
       if (!current) await idbDelete(db, IDB_STORES.META, IDB_META_KEYS.ONEDRIVE_FOLDER);
     }
@@ -239,12 +250,13 @@ export class WebOneDriveSyncEngine {
     let archivedCount = 0;
     if (!synced) {
       if (current) {
-        return {
-          ready: false,
-          switched: true,
-          archivedCount: 0,
-          message: `Couldn't sync ${current.folderPath} before switching (${detail}). Nothing was changed.`,
-        };
+        // Structured, not a pre-composed English sentence — mirrors
+        // `sync.rs::prepare_folder_switch` (i18n Phase 2), so the picker
+        // modal translates both platforms' block reason the same way.
+        const blocked: FolderSwitchBlocked = syncFailed
+          ? { reason: "syncFailed", folderPath: current.folderPath, detail: syncFailureDetail }
+          : { reason: "heldConflicts", folderPath: current.folderPath, count: heldCount };
+        return { ready: false, switched: true, archivedCount: 0, blocked };
       }
       // Signed out earlier and the old folder can't be synced now: keep a copy.
       const stamp = Date.now();
@@ -297,7 +309,7 @@ export class WebOneDriveSyncEngine {
       return {
         success: false,
         pending: false,
-        error: e instanceof Error ? e.message : String(e),
+        error: toAppError(e),
       };
     }
   }
@@ -305,11 +317,14 @@ export class WebOneDriveSyncEngine {
   async exchangeCodeDirect(code: string, state?: string): Promise<OneDriveLoginResult> {
     try {
       const pkce = loadPkceSession();
+      // Web-only — desktop's loopback-listener flow has no equivalent
+      // cross-tab/cross-request state to mismatch, so this stays a plain
+      // `Other` rather than a dedicated shared code.
       if (pkce && pkce.state !== state) {
         return {
           success: false,
           pending: false,
-          error: "Sign-in response did not match this browser's request. Please sign in again.",
+          error: otherError("Sign-in response did not match this browser's request. Please sign in again."),
         };
       }
       const advanced = await this.getAdvancedConfig();
@@ -319,10 +334,12 @@ export class WebOneDriveSyncEngine {
       const verifier = pkce?.verifier || "";
 
       if (!verifier) {
+        // Same real condition as desktop's manual-paste fallback — reuse
+        // its translated code rather than a web-only duplicate.
         return {
           success: false,
           pending: false,
-          error: "No pending login session found. Please sign in again.",
+          error: { code: "oneDriveNoPendingSession" },
         };
       }
 
@@ -354,7 +371,7 @@ export class WebOneDriveSyncEngine {
       return {
         success: false,
         pending: false,
-        error: e instanceof Error ? e.message : String(e),
+        error: toAppError(e),
       };
     }
   }
@@ -465,7 +482,9 @@ export class WebOneDriveSyncEngine {
 
   async resolveConflict(name: string, resolution: SyncConflictResolution): Promise<void> {
     if (this.isSyncing) {
-      throw new Error("A sync is running — try again in a moment");
+      // Thrown directly (not wrapped in an `Error`) so it round-trips through
+      // `describeApiError` exactly like a real Tauri command rejection would.
+      throw oneDriveSyncBusy();
     }
 
     const db = await this.getDb();
@@ -535,8 +554,12 @@ export class WebOneDriveSyncEngine {
           "onedrive-sync-lock",
           { ifAvailable: true },
           async (lock) => {
+            // Another tab already holds the lock — reuses Rust's own
+            // `oneDriveSyncBusy` code (i18n Phase 2) rather than a
+            // web-only one; the "in another tab" nuance isn't worth a
+            // separate translated message.
             if (!lock) {
-              return { success: false, message: "Sync already in progress in another tab" };
+              return { success: false, message: oneDriveSyncBusy() };
             }
             return await this.executeSync();
           },
@@ -545,14 +568,14 @@ export class WebOneDriveSyncEngine {
       } catch (err) {
         return {
           success: false,
-          message: err instanceof Error ? err.message : String(err),
+          message: otherError(err instanceof Error ? err.message : String(err)),
         };
       }
     }
 
     // Fallback if Web Locks not supported
     if (this.isSyncing) {
-      return { success: false, message: "Sync already in progress" };
+      return { success: false, message: oneDriveSyncBusy() };
     }
     return this.executeSync();
   }
@@ -799,7 +822,7 @@ export class WebOneDriveSyncEngine {
         msg.toLowerCase().includes("offline");
 
       this.setStatus(isOffline ? "offline" : "error");
-      return { success: false, message: msg };
+      return { success: false, message: otherError(msg) };
     } finally {
       this.isSyncing = false;
     }

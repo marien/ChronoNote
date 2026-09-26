@@ -20,6 +20,7 @@ import {
 import type { NoteTab } from "./types";
 import { registerSyncHooks, syncOneDriveNow } from "./oneDriveSync";
 import { sha256Hex } from "./hash";
+import { t } from "./i18n";
 
 // --- Debounced autosave on typing, immediate on deliberate actions ---
 
@@ -131,7 +132,7 @@ function persistTab(tab: NoteTab): Promise<void> {
     }
     await writeNoteAndInvalidateCache(tab.filename, tab.content);
   })()
-    .catch(() => showToast("Failed to save note"))
+    .catch(() => showToast(get(t)("toast.persistence.failedToSaveNote", undefined)))
     .finally(() => inFlightWrites.delete(p));
   inFlightWrites.add(p);
   return p;
@@ -371,7 +372,9 @@ export function writeTabContent(tabId: string, newContent: string, list: NoteTab
   const next = [...list];
   next[idx] = { ...next[idx], content: newContent };
   if (!next[idx].isScratchpad) {
-    writeNoteAndInvalidateCache(next[idx].filename, newContent).catch(() => showToast("Failed to save note"));
+    writeNoteAndInvalidateCache(next[idx].filename, newContent).catch(() =>
+      showToast(get(t)("toast.persistence.failedToSaveNote", undefined)),
+    );
   }
   if (tabId === get(activeTabId) && editorApi) editorApi.setContent(newContent);
   return next;

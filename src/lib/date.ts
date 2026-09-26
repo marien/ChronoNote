@@ -92,20 +92,22 @@ export function monthGrid(year: number, month: number): CalCell[] {
   return cells;
 }
 
-export const MONTH_NAMES = [
-  "January",
-  "February",
-  "March",
-  "April",
-  "May",
-  "June",
-  "July",
-  "August",
-  "September",
-  "October",
-  "November",
-  "December",
-];
+/** i18n roadmap: locale-aware month/weekday names via `Intl.DateTimeFormat`
+ * instead of a hand-translated array — less translation surface, and it
+ * gets grammatically correct forms for free (some languages need a
+ * different month-name form depending on context, which a flat array
+ * can't express). `locale` is a `SupportedLocale` (`./i18n`) but typed as
+ * `string` here to avoid `date.ts` depending on the i18n module. */
+export function monthName(locale: string, month: number): string {
+  return new Intl.DateTimeFormat(locale, { month: "long" }).format(new Date(2000, month, 1));
+}
+
+/** `weekdayIndex` is 0 = Monday ... 6 = Sunday, matching `monthGrid`'s own
+ * Monday-first convention. 2024-01-01 was a Monday — used as a fixed,
+ * arbitrary reference date purely to land on the right day of the week. */
+export function weekdayAbbrev(locale: string, weekdayIndex: number): string {
+  return new Intl.DateTimeFormat(locale, { weekday: "short" }).format(new Date(2024, 0, 1 + weekdayIndex));
+}
 
 export type DayHeatState = "done" | "pending" | "log";
 

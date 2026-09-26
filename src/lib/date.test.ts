@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import { formatISO, todayISO, parseDateQuery, addMonths, monthGrid, parseISODateLocal, addDaysISO } from "./date";
+import { formatISO, todayISO, parseDateQuery, addMonths, monthGrid, parseISODateLocal, addDaysISO, monthName, weekdayAbbrev } from "./date";
 
 describe("formatISO", () => {
   it("formats as zero-padded YYYY-MM-DD", () => {
@@ -131,5 +131,24 @@ describe("monthGrid", () => {
       expect(inMonth[0]).toBe(1);
       expect(inMonth).toEqual([...inMonth].sort((a, b) => a - b)); // contiguous, ascending
     }
+  });
+});
+
+// i18n roadmap: locale-aware month/weekday names via Intl.DateTimeFormat,
+// replacing the old hand-translated MONTH_NAMES array.
+describe("monthName / weekdayAbbrev (i18n roadmap)", () => {
+  it("returns the full month name in the given locale", () => {
+    expect(monthName("en", 0)).toBe("January");
+    expect(monthName("en", 11)).toBe("December");
+    expect(monthName("nl", 8)).toBe("september");
+    expect(monthName("de", 8)).toBe("September");
+  });
+
+  it("returns a short weekday abbreviation, Monday-first (index 0), in the given locale", () => {
+    // 2024-01-01 (the fixed reference date) is a real Monday.
+    expect(weekdayAbbrev("en", 0)).toMatch(/mon/i);
+    expect(weekdayAbbrev("en", 6)).toMatch(/sun/i);
+    expect(weekdayAbbrev("nl", 0)).toMatch(/ma/i);
+    expect(weekdayAbbrev("de", 0)).toMatch(/mo/i);
   });
 });

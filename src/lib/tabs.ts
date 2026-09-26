@@ -34,6 +34,7 @@ import { sha256Hex } from "./drift";
 import { sortedTabsForDisplay } from "./tabSort";
 import { countActions } from "./tokens";
 import { todayISO } from "./date";
+import { t } from "./i18n";
 import type { NoteTab } from "./types";
 
 /** #61: every tab id here used to be a bare `tab-${Date.now()}` — fine in
@@ -127,17 +128,21 @@ export function requestTabClose(tabId: string) {
     return;
   }
 
+  const translate = get(t);
   const reasons: string[] = [];
   if (dueOpen) {
-    reasons.push(`has ${counts.open} unresolved open action(s)`);
+    reasons.push(translate("safetyModal.reason.dueOpen", { count: counts.open }));
   }
   if (isNonEmptyScratchpad) {
-    reasons.push(
-      "is a scratchpad — closing it will permanently discard its content, since scratchpads are never saved to disk",
-    );
+    reasons.push(translate("safetyModal.reason.scratchpad", undefined));
   }
   pendingCloseTabId.set(tabId);
-  safetyMessage.set(`Tab "${tab.filename}" ${reasons.join(" and ")}. Are you sure you want to close it?`);
+  safetyMessage.set(
+    translate("safetyModal.message", {
+      filename: tab.filename,
+      reasons: reasons.join(translate("safetyModal.reasonJoiner", undefined)),
+    }),
+  );
   modal.set("safety");
 }
 
@@ -218,7 +223,7 @@ export function closeTab(tabId: string) {
 export async function reopenLastClosedTab() {
   const snapshot = closedTabHistory.pop();
   if (!snapshot) {
-    showToast("No recently closed tabs.");
+    showToast(get(t)("toast.tabs.noRecentlyClosedTabs", undefined));
     return;
   }
   if (snapshot.isScratchpad) {
@@ -256,7 +261,7 @@ export async function promoteScratchpad(tabId: string) {
   if (idx === -1 || !list[idx].isScratchpad) return;
   const scratchContent = list[idx].content.trim();
   if (!scratchContent) {
-    showToast("Nothing to promote.");
+    showToast(get(t)("toast.tabs.nothingToPromote", undefined));
     return;
   }
   const todayFilename = todayISO() + ".txt";
@@ -275,7 +280,7 @@ export async function promoteScratchpad(tabId: string) {
   tabs.set(remaining);
   markTabClean(todayTab.id, await sha256Hex(merged)); // §94 baseline for the promoted note
   activeTabId.set(todayTab.id);
-  showToast(`Promoted scratchpad into ${todayFilename}`);
+  showToast(get(t)("toast.tabs.promotedScratchpad", { filename: todayFilename }));
 }
 
 // --- Date picker ---

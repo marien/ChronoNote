@@ -6,6 +6,7 @@
   import { todayISO } from "../../date";
   import { closeOnOutsideClick } from "../../actions/closeOnOutsideClick";
   import { focusTrap } from "../../actions/focusTrap";
+  import { t } from "../../i18n";
 
   // Same order as the desktop tab bar: dated notes by date, then scratchpads.
   $: sortedTabs = controller.sortedTabsForDisplay($tabs);
@@ -57,17 +58,17 @@
   class="overlay mobile-drawer-overlay"
   role="dialog"
   aria-modal="true"
-  aria-label="Open tabs"
+  aria-label={$t("mobileTabDrawer.ariaLabel")}
   use:closeOnOutsideClick={closeDrawer}
 >
   <div class="modal-card mobile-drawer-card" use:focusTrap>
     <div class="drawer-header">
       <div class="drawer-title-group">
         <Icon name="tabs" size={18} />
-        <span class="drawer-title">Open Tabs</span>
+        <span class="drawer-title">{$t("mobileTabDrawer.title")}</span>
         <span class="drawer-count">{$tabs.length}</span>
       </div>
-      <button type="button" class="drawer-close-btn" on:click={closeDrawer} aria-label="Close tab list">
+      <button type="button" class="drawer-close-btn" on:click={closeDrawer} aria-label={$t("mobileTabDrawer.closeTabList")}>
         <Icon name="close" size={16} />
       </button>
     </div>
@@ -91,16 +92,16 @@
           </div>
           <span class="drawer-tab-name">{tabLabel(tab)}</span>
           {#if !tab.isScratchpad && tab.filename.slice(0, 10) === todayISO()}
-            <span class="drawer-today-tag">Today</span>
+            <span class="drawer-today-tag">{$t("datePicker.today")}</span>
           {/if}
           {#if tab.isScratchpad && tab.content.trim() !== ""}
-            <span class="tab-status-dot mem" title="Kept in memory only"></span>
+            <span class="tab-status-dot mem" title={$t("mobileTabDrawer.memoryOnly")}></span>
           {/if}
           <button
             type="button"
             class="drawer-tab-close"
             on:click={(e) => closeTab(e, tab.id)}
-            aria-label="Close {tabLabel(tab)}"
+            aria-label={$t("mobileTabDrawer.closeTab", { label: tabLabel(tab) })}
           >
             <Icon name="close" size={13} />
           </button>
@@ -111,11 +112,11 @@
     <div class="drawer-actions">
       <button type="button" class="drawer-action-btn" on:click={handleNewScratchpad}>
         <Icon name="new-scratchpad" size={15} />
-        <span>New Scratchpad</span>
+        <span>{$t("mobileTabDrawer.newScratchpad")}</span>
       </button>
       <button type="button" class="drawer-action-btn" on:click={handleOpenDate}>
         <Icon name="date-note" size={15} />
-        <span>Open Date Note</span>
+        <span>{$t("mobileTabDrawer.openDateNote")}</span>
       </button>
     </div>
   </div>

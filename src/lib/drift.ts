@@ -25,6 +25,7 @@ import {
 } from "./stores";
 import { cancelScheduledSave } from "./persistence";
 import { EMPTY_CONTENT_HASH, sha256Hex } from "./hash";
+import { t } from "./i18n";
 
 // Re-exported: callers (and the controller facade) have always imported it from here.
 export { sha256Hex };
@@ -100,7 +101,7 @@ export async function checkActiveTabForDrift(): Promise<void> {
       // tab's content, drop the baseline so it acts like a fresh unsaved
       // note, and let the next save re-create the file.
       clearTabCleanHash(now.id);
-      showToast(`${now.filename} was deleted on disk — save to re-create it`);
+      showToast(get(t)("toast.drift.deletedOnDisk", { filename: now.filename }));
       return;
     }
 
@@ -115,7 +116,7 @@ export async function checkActiveTabForDrift(): Promise<void> {
       const { content } = await api.readNoteWithMetadata(now.filename);
       if (driftTarget()?.id !== now.id) return;
       applyContent(now.id, content ?? "", diskHash);
-      showToast(`Reloaded ${now.filename} — it changed on disk`);
+      showToast(get(t)("toast.drift.reloadedChanged", { filename: now.filename }));
       return;
     }
 
@@ -148,7 +149,7 @@ export async function resolveConflictKeepDisk(): Promise<void> {
   endConflict();
   if (!c) return;
   applyContent(c.tabId, c.diskContent, c.diskHash);
-  showToast(`Reloaded ${c.filename} from disk`);
+  showToast(get(t)("toast.drift.reloadedFromDisk", { filename: c.filename }));
 }
 
 export async function resolveConflictKeepMine(): Promise<void> {
@@ -162,9 +163,9 @@ export async function resolveConflictKeepMine(): Promise<void> {
     // change since then re-opens the prompt instead of being clobbered.
     const meta = await api.writeNote(c.filename, tab.content, c.diskHash);
     markTabClean(c.tabId, meta.contentHash);
-    showToast(`Kept your version of ${c.filename}`);
+    showToast(get(t)("toast.drift.keptYourVersion", { filename: c.filename }));
   } catch {
-    showToast(`${c.filename} changed again on disk`);
+    showToast(get(t)("toast.drift.changedAgain", { filename: c.filename }));
     await checkActiveTabForDrift();
   }
 }
@@ -181,9 +182,9 @@ export async function resolveConflictSaveCopy(): Promise<void> {
   const name = `${stem}-${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}.txt`;
   try {
     await api.writeConflictCopy(name, tab.content);
-    showToast(`Saved your version as ${name}`);
+    showToast(get(t)("toast.drift.savedAs", { name }));
   } catch {
-    showToast("Couldn't save the copy — nothing changed");
+    showToast(get(t)("toast.drift.couldntSaveCopy", undefined));
     return;
   }
   applyContent(c.tabId, c.diskContent, c.diskHash);

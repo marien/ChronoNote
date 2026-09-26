@@ -52,6 +52,24 @@ import { setColorMode, setReadableLineLength, setWordWrap } from "./boot";
 import { checkForUpdates } from "./updates";
 import { formatCombo, formatShortcut, shortcutById } from "./shortcuts";
 import { exportAllNotesToFile } from "./exportImport";
+import { t } from "./i18n";
+import type { TranslationKey } from "./i18n/schema";
+
+/** Display text for each internal `PaletteItem.group` value — the group
+ * itself stays an untranslated English identifier (compared for logic,
+ * e.g. `CommandPaletteModal.svelte`'s `is-shortcut` styling check, not
+ * just displayed), so this is a display-only lookup, the same pattern
+ * `SHORTCUT_LABEL_KEYS` (`shortcuts.ts`) uses for shortcut ids. "Settings"
+ * reuses `settings.modal.title` rather than a duplicate identical string. */
+export const COMMAND_PALETTE_GROUP_KEYS: Record<string, TranslationKey> = {
+  Commands: "commandPalette.group.commands",
+  "Current line": "commandPalette.group.currentLine",
+  Settings: "settings.modal.title",
+  Help: "commandPalette.group.help",
+  "Open tabs": "commandPalette.group.openTabs",
+  "Open actions": "commandPalette.group.openActions",
+  Dates: "commandPalette.group.dates",
+};
 
 export interface PaletteItem {
   /** Stable key for keyed `{#each}`. */
@@ -143,18 +161,25 @@ function commandItems(): PaletteItem[] {
   const wrap = get(wordWrap);
   const readable = get(readableLineLength);
   const color = get(colorMode);
+  const translate = get(t);
   return [
-    { id: "cmd-scratch", label: "New scratchpad", hint: formatShortcut("newScratchpad"), group: "Commands", run: createScratchpad },
+    {
+      id: "cmd-scratch",
+      label: translate("shortcuts.newScratchpad.label", undefined),
+      hint: formatShortcut("newScratchpad"),
+      group: "Commands",
+      run: createScratchpad,
+    },
     {
       id: "cmd-reopen",
-      label: "Reopen last closed tab",
+      label: translate("commandPalette.reopenLastClosedTab", undefined),
       hint: formatShortcut("reopenClosedTab"),
       group: "Commands",
       run: reopenLastClosedTab,
     },
     {
       id: "cmd-close",
-      label: "Close current tab",
+      label: translate("commandPalette.closeCurrentTab", undefined),
       // Just the key combo here, not `formatShortcut`'s "/ middle-click"
       // — that's the Shortcuts drawer's fuller description; a palette
       // hint tag wants to stay terse.
@@ -168,30 +193,42 @@ function commandItems(): PaletteItem[] {
     // these two separate palette rows wants.
     {
       id: "cmd-next-tab",
-      label: "Next tab",
+      label: translate("commandPalette.nextTab", undefined),
       hint: formatCombo(shortcutById("cycleTab").combos[0]),
       group: "Commands",
       run: () => cycleTab(1),
     },
     {
       id: "cmd-prev-tab",
-      label: "Previous tab",
+      label: translate("commandPalette.previousTab", undefined),
       hint: formatCombo(shortcutById("cycleTab").combos[1]),
       group: "Commands",
       run: () => cycleTab(-1),
     },
-    { id: "cmd-date", label: "Open a dated note…", hint: formatShortcut("openDateNote"), group: "Commands", run: openDatePicker },
-    { id: "cmd-actions", label: "Actions", hint: formatShortcut("openActions"), group: "Commands", run: openActionDrawer },
+    {
+      id: "cmd-date",
+      label: translate("commandPalette.openDatedNote", undefined),
+      hint: formatShortcut("openDateNote"),
+      group: "Commands",
+      run: openDatePicker,
+    },
+    {
+      id: "cmd-actions",
+      label: translate("actionDrawer.modal.ariaLabel", undefined),
+      hint: formatShortcut("openActions"),
+      group: "Commands",
+      run: openActionDrawer,
+    },
     {
       id: "cmd-history",
-      label: "Section history",
+      label: translate("history.modal.ariaLabel", undefined),
       hint: formatShortcut("openHistory"),
       group: "Commands",
       run: openMeetingHistory,
     },
     {
       id: "cmd-search",
-      label: "Cross-tab search",
+      label: translate("shortcuts.crossTabSearch.label", undefined),
       hint: formatShortcut("crossTabSearch"),
       group: "Commands",
       run: openCrossTabSearch,
@@ -206,7 +243,7 @@ function commandItems(): PaletteItem[] {
       ? [
           {
             id: "cmd-sync-calendar",
-            label: "Sync calendar for this day",
+            label: translate("shortcuts.syncCalendar.label", undefined),
             hint: formatShortcut("syncCalendar"),
             group: "Commands",
             run: syncCalendarFromFile,
@@ -215,8 +252,8 @@ function commandItems(): PaletteItem[] {
       : []),
     {
       id: "cmd-export-notes",
-      label: "Export all notes to file (.json)",
-      hint: "Export",
+      label: translate("commandPalette.exportNotes.label", undefined),
+      hint: translate("commandPalette.exportNotes.hint", undefined),
       group: "Commands",
       run: async () => {
         await exportAllNotesToFile();
@@ -224,7 +261,7 @@ function commandItems(): PaletteItem[] {
     },
     {
       id: "cmd-toggle-zen",
-      label: "Toggle Zen mode (distraction-free canvas)",
+      label: translate("commandPalette.toggleZenMode", undefined),
       hint: formatShortcut("toggleZenMode"),
       group: "Commands",
       run: () => {
@@ -233,76 +270,76 @@ function commandItems(): PaletteItem[] {
     },
     {
       id: "cmd-line-close-open",
-      label: "Close open action on current line",
+      label: translate("commandPalette.line.closeOpenAction", undefined),
       hint: formatCombo(shortcutById("cycleLineState").combos[0]),
       group: "Current line",
       run: () => runPaletteLineAction((api) => api.closeCurrentOpenAction?.()),
     },
     {
       id: "cmd-line-reopen-done",
-      label: "Reopen done action on current line",
+      label: translate("commandPalette.line.reopenDoneAction", undefined),
       hint: formatCombo(shortcutById("cycleLineStateReverse").combos[0]),
       group: "Current line",
       run: () => runPaletteLineAction((api) => api.reopenCurrentDoneAction?.()),
     },
     {
       id: "cmd-line-section",
-      label: "Convert line to section header",
+      label: translate("shortcuts.convertToSection.label", undefined),
       hint: formatShortcut("convertToSection"),
       group: "Current line",
       run: () => runPaletteLineAction((api) => api.convertCurrentLineToSection?.()),
     },
     {
       id: "cmd-line-set-open",
-      label: "Set line/selection to Open",
+      label: translate("commandPalette.line.setOpen", undefined),
       hint: formatShortcut("setActionOpen"),
       group: "Current line",
       run: () => runPaletteLineAction((api) => api.setActionStateOnSelection?.("#")),
     },
     {
       id: "cmd-line-set-done",
-      label: "Set line/selection to Done",
+      label: translate("commandPalette.line.setDone", undefined),
       hint: formatShortcut("setActionDone"),
       group: "Current line",
       run: () => runPaletteLineAction((api) => api.setActionStateOnSelection?.("v")),
     },
     {
       id: "cmd-line-set-deferred",
-      label: "Set line/selection to Deferred",
+      label: translate("commandPalette.line.setDeferred", undefined),
       hint: formatShortcut("setActionDeferred"),
       group: "Current line",
       run: () => runPaletteLineAction((api) => api.setActionStateOnSelection?.(">")),
     },
     {
       id: "cmd-line-set-wontdo",
-      label: "Set line/selection to Won't-Do",
+      label: translate("commandPalette.line.setWontDo", undefined),
       hint: formatShortcut("setActionWontDo"),
       group: "Current line",
       run: () => runPaletteLineAction((api) => api.setActionStateOnSelection?.("x")),
     },
     {
       id: "cmd-line-jump-next",
-      label: "Jump to next open action",
+      label: translate("commandPalette.line.jumpNext", undefined),
       hint: formatCombo(shortcutById("jumpAction").combos[0]),
       group: "Current line",
       run: () => runPaletteLineAction((api) => api.jumpAdjacentOpenAction?.(1)),
     },
     {
       id: "cmd-line-jump-prev",
-      label: "Jump to previous open action",
+      label: translate("commandPalette.line.jumpPrev", undefined),
       hint: formatCombo(shortcutById("jumpAction").combos[1]),
       group: "Current line",
       run: () => runPaletteLineAction((api) => api.jumpAdjacentOpenAction?.(-1)),
     },
     {
       id: "cmd-wrap",
-      label: `${wrap ? "Disable" : "Enable"} word wrap`,
+      label: translate(wrap ? "commandPalette.wrap.disable" : "commandPalette.wrap.enable", undefined),
       group: "Settings",
       run: () => setWordWrap(!wrap),
     },
     {
       id: "cmd-readable",
-      label: `${readable ? "Disable" : "Enable"} readable line width`,
+      label: translate(readable ? "commandPalette.readable.disable" : "commandPalette.readable.enable", undefined),
       group: "Settings",
       run: () => setReadableLineLength(!readable),
     },
@@ -312,34 +349,46 @@ function commandItems(): PaletteItem[] {
       // the *next* palette so it reads as an action.
       label:
         color === "grayscale"
-          ? "Switch to colored glyphs"
+          ? translate("commandPalette.color.toColor", undefined)
           : color === "color"
-            ? "Switch to legacy glyphs (red / amber / green)"
-            : "Switch to grayscale glyphs",
+            ? translate("commandPalette.color.toLegacy", undefined)
+            : translate("commandPalette.color.toGrayscale", undefined),
       group: "Settings",
       run: () =>
         setColorMode(color === "grayscale" ? "color" : color === "color" ? "legacy" : "grayscale"),
     },
-    { id: "cmd-settings", label: "Settings", hint: formatShortcut("openSettings"), group: "Settings", run: openSettings },
+    {
+      id: "cmd-settings",
+      label: translate("settings.modal.title", undefined),
+      hint: formatShortcut("openSettings"),
+      group: "Settings",
+      run: openSettings,
+    },
     // Same "two combos, one id" situation as cycleTab above.
     {
       id: "cmd-shortcuts",
-      label: "Keyboard shortcuts",
+      label: translate("commandPalette.keyboardShortcuts", undefined),
       hint: formatCombo(shortcutById("openShortcutsHelp").combos[0]),
       group: "Help",
       run: openShortcutsHelp,
     },
     {
       id: "cmd-legend",
-      label: "Symbols & sections legend",
+      label: translate("commandPalette.symbolsLegend", undefined),
       hint: formatCombo(shortcutById("openShortcutsHelp").combos[1]),
       group: "Help",
       run: openGlyphLegend,
     },
-    { id: "cmd-about", label: "About ChronoNote", hint: formatShortcut("openAbout"), group: "Help", run: openAbout },
+    {
+      id: "cmd-about",
+      label: translate("shortcuts.openAbout.label", undefined),
+      hint: formatShortcut("openAbout"),
+      group: "Help",
+      run: openAbout,
+    },
     {
       id: "cmd-check-updates",
-      label: "Check for updates",
+      label: translate("commandPalette.checkForUpdates", undefined),
       group: "Help",
       run: () => {
         openAbout();
@@ -350,12 +399,15 @@ function commandItems(): PaletteItem[] {
 }
 
 function openTabItems(): PaletteItem[] {
-  return get(tabs).map((t) => ({
-    id: `tab-${t.id}`,
-    label: t.isScratchpad ? t.filename : t.filename.replace(/\.txt$/, ""),
-    hint: t.isScratchpad ? "scratchpad" : "open tab",
+  const translate = get(t);
+  return get(tabs).map((tab) => ({
+    id: `tab-${tab.id}`,
+    label: tab.isScratchpad ? tab.filename : tab.filename.replace(/\.txt$/, ""),
+    hint: tab.isScratchpad
+      ? translate("commandPalette.openTabs.scratchpadHint", undefined)
+      : translate("commandPalette.openTabs.openTabHint", undefined),
     group: "Open tabs",
-    run: () => switchTab(t.id),
+    run: () => switchTab(tab.id),
   }));
 }
 
@@ -367,12 +419,13 @@ export function fuzzyMatch(haystack: string, needle: string): boolean {
  * and `@` modes need the notes cache. */
 export async function buildPaletteResults(query: string): Promise<PaletteItem[]> {
   const q = query.trim();
+  const translate = get(t);
 
   if (q.startsWith("?")) {
     return [
       {
         id: "help-open",
-        label: "Open the keyboard-shortcuts drawer",
+        label: translate("commandPalette.help.openShortcutsDrawer", undefined),
         group: "Help",
         run: openShortcutsHelp,
       },
@@ -388,7 +441,7 @@ export async function buildPaletteResults(query: string): Promise<PaletteItem[]>
       const lines = cache[filename].split("\n");
       for (const lineIdx of openActionLineIndices(cache[filename])) {
         const text = stripLeadingToken(lines[lineIdx]).trim();
-        const label = text || "(empty action)";
+        const label = text || translate("commandPalette.emptyActionFallback", undefined);
         const match = fuzzyMatchWithIndices(label, term);
         if (!match) continue;
         out.push({
@@ -409,12 +462,12 @@ export async function buildPaletteResults(query: string): Promise<PaletteItem[]>
     const out: PaletteItem[] = [];
     const parsed = parseDateQuery(term);
     if (parsed) {
-      const label = `Jump to ${parsed}`;
+      const label = translate("commandPalette.jumpToDate", { date: parsed });
       const match = fuzzyMatchWithIndices(label, term);
       out.push({
         id: `date-${parsed}`,
         label,
-        hint: "date",
+        hint: translate("commandPalette.dateHint", undefined),
         group: "Dates",
         matchedIndices: match ? match.indices : [],
         run: () => commitDatePick(parsed),
@@ -432,7 +485,7 @@ export async function buildPaletteResults(query: string): Promise<PaletteItem[]>
       out.push({
         id: `date-${d}`,
         label: d,
-        hint: "existing note",
+        hint: translate("commandPalette.existingNoteHint", undefined),
         group: "Dates",
         matchedIndices,
         run: () => commitDatePick(d),

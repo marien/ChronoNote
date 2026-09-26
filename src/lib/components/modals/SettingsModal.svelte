@@ -11,6 +11,7 @@
     colorMode,
     fontSize,
     isMobile,
+    languageMode,
     lineHeight,
     notesDir,
     oneDriveAccount,
@@ -38,7 +39,9 @@
   import { closeOnOutsideClick } from "../../actions/closeOnOutsideClick";
   import Icon from "../../icons/Icon.svelte";
   import Segmented from "../Segmented.svelte";
-  import type { ColorMode, ThemeMode } from "../../types";
+  import { t } from "../../i18n";
+  import { describeApiError } from "../../apiError";
+  import type { ColorMode, LanguageMode, ThemeMode } from "../../types";
   import { ExportBundleError, type ExportBundle } from "../../exportImport";
   import OneDriveFolderPickerModal from "./OneDriveFolderPickerModal.svelte";
 
@@ -48,9 +51,9 @@
   // Updates stands alone since it's neither. The same short labels on every
   // platform (they were shortened on mobile first so every tab fits).
   $: settingsTabs = [
-    { value: "appearance", label: "Appearance" },
-    { value: "calendar", label: "Notes & Sync" },
-    ...($backendKind === "desktop" ? [{ value: "updates", label: "Updates" }] : []),
+    { value: "appearance", label: $t("settings.tabs.appearance") },
+    { value: "calendar", label: $t("settings.tabs.notesAndSync") },
+    ...($backendKind === "desktop" ? [{ value: "updates", label: $t("settings.tabs.updates") }] : []),
   ];
   // #71: the status bar's folder icon/name opens Settings landed
   // directly on this tab (`openSettingsOnNotesFolder`, `menu.ts`) —
@@ -187,11 +190,11 @@
         // closed again by then, hence the store rather than local state.
         oneDriveConnecting.set(true);
       } else if (res.error) {
-        authError = res.error;
+        authError = describeApiError(res.error);
         showManualAuthInput = true;
       }
     } catch (err) {
-      authError = err instanceof Error ? err.message : String(err);
+      authError = describeApiError(err);
       showManualAuthInput = true;
     } finally {
       loggingIn = false;
@@ -210,10 +213,10 @@
         showManualAuthInput = false;
         manualAuthCode = "";
       } else {
-        authError = res.error ?? "Failed to authenticate code.";
+        authError = res.error ? describeApiError(res.error) : "Failed to authenticate code.";
       }
     } catch (e) {
-      authError = e instanceof Error ? e.message : String(e);
+      authError = describeApiError(e);
     } finally {
       exchangingCode = false;
     }
@@ -313,15 +316,15 @@
     role="dialog"
     aria-modal="true"
     use:focusTrap
-    aria-label="Settings"
+    aria-label={$t("settings.modal.title")}
   >
     <div class="modal-input-wrap modal-title">
       <Icon name="settings" size={15} />
-      <span>Settings</span>
+      <span>{$t("settings.modal.title")}</span>
       <button
         type="button"
         class="icon-btn modal-close-btn"
-        aria-label="Close dialog"
+        aria-label={$t("common.closeDialog")}
         on:click={controller.closeAllModals}
       >
         <Icon name="close" size={14} />
@@ -333,35 +336,20 @@
     <div class="settings-section">
       {#if activeSettingsTab === "appearance"}
         <div>
-          <div class="settings-section-label">Appearance</div>
+          <div class="settings-section-label">{$t("settings.appearance.sectionLabel")}</div>
           <div class="settings-toggle-row">
-            <span class="settings-inline-label">Theme</span>
+            <span class="settings-inline-label">{$t("settings.appearance.theme.label")}</span>
             <Segmented
               options={[
-                { value: "light", label: "Light" },
-                { value: "dark", label: "Dark" },
-                { value: "system", label: "System" },
+                { value: "light", label: $t("settings.appearance.theme.light") },
+                { value: "dark", label: $t("settings.appearance.theme.dark") },
+                { value: "system", label: $t("common.system") },
               ]}
               value={$themeMode}
               onChange={(v) => controller.setThemeMode(v as ThemeMode)}
             />
           </div>
-          <div class="settings-hint">System follows your OS's own light/dark setting.</div>
-          <div class="settings-toggle-row" style="margin-top: 12px;">
-            <span class="settings-inline-label">Glyphs</span>
-            <Segmented
-              options={[
-                { value: "color", label: "Color" },
-                { value: "grayscale", label: "Grayscale" },
-                { value: "legacy", label: "Legacy" },
-              ]}
-              value={$colorMode}
-              onChange={(v) => controller.setColorMode(v as ColorMode)}
-            />
-          </div>
-          <div class="settings-hint">
-            Legacy restores the pre-0.6 glyph colours — red open, amber deferred, green done.
-          </div>
+          <div class="settings-hint">{$t("settings.appearance.theme.hint")}</div>
           {#if isDarkResolved}
             <div class="settings-toggle-row" style="margin-top: 12px;">
               <label class="toggle-switch">
@@ -371,35 +359,62 @@
                   on:change={(e) => controller.setPureBlack(e.currentTarget.checked)}
                 />
                 <span class="toggle-switch-track"></span>
-                Pure black (OLED)
+                {$t("settings.appearance.pureBlack.label")}
               </label>
             </div>
             <div class="settings-hint">
-              Absolute #000000 canvas for OLED displays and battery savings. Only active in dark mode.
+              {$t("settings.appearance.pureBlack.hint")}
             </div>
           {/if}
+          <div class="settings-toggle-row" style="margin-top: 12px;">
+            <span class="settings-inline-label">{$t("settings.appearance.language.label")}</span>
+            <Segmented
+              options={[
+                { value: "system", label: $t("common.system") },
+                { value: "en", label: "English" },
+                { value: "nl", label: "Nederlands" },
+                { value: "de", label: "Deutsch" },
+              ]}
+              value={$languageMode}
+              onChange={(v) => controller.setLanguageMode(v as LanguageMode)}
+            />
+          </div>
+          <div class="settings-hint">{$t("settings.appearance.language.hint")}</div>
+          <div class="settings-toggle-row" style="margin-top: 12px;">
+            <span class="settings-inline-label">{$t("settings.appearance.glyphs.label")}</span>
+            <Segmented
+              options={[
+                { value: "color", label: $t("settings.appearance.glyphs.color") },
+                { value: "grayscale", label: $t("settings.appearance.glyphs.grayscale") },
+                { value: "legacy", label: $t("settings.appearance.glyphs.legacy") },
+              ]}
+              value={$colorMode}
+              onChange={(v) => controller.setColorMode(v as ColorMode)}
+            />
+          </div>
+          <div class="settings-hint">
+            {$t("settings.appearance.glyphs.legacyHint")}
+          </div>
         </div>
         <div>
-          <div class="settings-section-label">Editor</div>
+          <div class="settings-section-label">{$t("settings.editor.sectionLabel")}</div>
           <div class="settings-toggle-row">
             <Segmented
               options={[
-                { value: "full", label: "Full" },
-                { value: "wrap", label: "Wrap" },
-                { value: "reading", label: "Reading column" },
+                { value: "full", label: $t("settings.editor.width.full") },
+                { value: "wrap", label: $t("settings.editor.width.wrap") },
+                { value: "reading", label: $t("settings.editor.width.readingColumn") },
               ]}
               value={editorWidthMode}
               onChange={setEditorWidth}
             />
           </div>
           <div class="settings-hint">
-            Full keeps every line unwrapped — the monospace grid stays intact for tables and aligned columns. Wrap
-            breaks long lines to fit the window. Reading column also caps the text to a comfortable centred measure,
-            for a single prose-reading mode.
+            {$t("settings.editor.width.hint")}
           </div>
           <div class="settings-slider-row" style="margin-top: 14px;">
             <div class="settings-slider-header">
-              <span class="settings-inline-label">Font size</span>
+              <span class="settings-inline-label">{$t("settings.editor.fontSize.label")}</span>
               <span class="settings-slider-val">{$fontSize}px</span>
             </div>
             <input
@@ -409,13 +424,13 @@
               max="18"
               step="0.5"
               value={$fontSize}
-              aria-label="Editor font size"
+              aria-label={$t("settings.editor.fontSize.ariaLabel")}
               on:input={(e) => controller.setFontSize(parseFloat(e.currentTarget.value))}
             />
           </div>
           <div class="settings-slider-row" style="margin-top: 12px;">
             <div class="settings-slider-header">
-              <span class="settings-inline-label">Line spacing</span>
+              <span class="settings-inline-label">{$t("settings.editor.lineSpacing.label")}</span>
               <span class="settings-slider-val">{$lineHeight.toFixed(2)}</span>
             </div>
             <input
@@ -425,7 +440,7 @@
               max="1.8"
               step="0.05"
               value={$lineHeight}
-              aria-label="Editor line spacing"
+              aria-label={$t("settings.editor.lineSpacing.ariaLabel")}
               on:input={(e) => controller.setLineHeight(parseFloat(e.currentTarget.value))}
             />
           </div>
@@ -433,7 +448,7 @@
       {:else if activeSettingsTab === "calendar"}
         {#if $backendKind !== "web" || $oneDriveAccount}
           <div>
-            <div class="settings-section-label">Calendar</div>
+            <div class="settings-section-label">{$t("settings.calendar.sectionLabel")}</div>
             <div class="settings-toggle-row">
               <label class="toggle-switch">
                 <input
@@ -442,44 +457,38 @@
                   on:change={(e) => controller.setCalendarSyncEnabled(e.currentTarget.checked)}
                 />
                 <span class="toggle-switch-track"></span>
-                Show "Sync calendar for this day"
+                {$t("settings.calendar.showButtonToggle")}
               </label>
             </div>
             <div class="settings-hint">
-              Reads meetings from a <code>.agenda.json</code> file in your notes folder — kept up to date by whatever
-              process you use to sync it, not by ChronoNote itself. Meetings are matched to sections by title — keep
-              section titles matching your calendar if you want re-syncing to find them. Two meetings with the exact
-              same title on the same day can't be told apart.
+              {$t("settings.calendar.agendaHint.before")}<code>.agenda.json</code>{$t("settings.calendar.agendaHint.after")}
             </div>
             {#if $calendarSyncEnabled && !$agendaFileExists}
               <div class="settings-hint" style="color: var(--state-error);">
-                No <code>.agenda.json</code> file found in this notes folder yet — the sync button stays grayed out
-                until one exists.
+                {$t("settings.calendar.agendaMissing.before")}<code>.agenda.json</code>{$t("settings.calendar.agendaMissing.after")}
               </div>
             {/if}
           </div>
         {/if}
         {#if $backendKind === "web"}
             <div>
-              <div class="settings-section-label">OneDrive Cloud Sync</div>
+              <div class="settings-section-label">{$t("settings.oneDrive.sectionLabel")}</div>
               {#if isSafariBrowser}
                 <div class="settings-hint" style="color: var(--state-warn); margin-bottom: 8px; border-left: 2px solid var(--state-warn); padding-left: 8px;">
-                  <strong>Safari Tip:</strong> Add ChronoNote to your Home Screen to prevent Apple from purging offline notes after 7 days of inactivity.
+                  <strong>{$t("settings.oneDrive.safariTip.label")}</strong> {$t("settings.oneDrive.safariTip.hint")}
                 </div>
               {/if}
               {#if $oneDriveAccount}
                 <div class="settings-hint" style="margin-bottom: 8px;">
-                  Connected as <strong>{$oneDriveAccount.displayName}</strong> ({$oneDriveAccount.email})
+                  {$t("settings.oneDrive.connectedAs.before")}<strong>{$oneDriveAccount.displayName}</strong> {$t("settings.oneDrive.connectedAs.after", { email: $oneDriveAccount.email })}
                 </div>
                 {#if $oneDriveSignInExpired}
                   <div class="settings-hint signin-expired" role="alert">
-                    <strong>Your OneDrive sign-in has expired.</strong> Your notes are safe on this device and nothing has
-                    been signed out. Sign in again to keep syncing; edits you made since the last sync are kept and will
-                    upload afterwards.
+                    <strong>{$t("settings.oneDrive.signInExpired.title")}</strong> {$t("settings.oneDrive.signInExpired.body")}
                     <div style="margin-top: 8px;">
                       <button class="icon-btn btn-primary" on:click={handleOneDriveLogin} disabled={loggingIn || $oneDriveConnecting}>
                         <Icon name="cloud" size={16} />
-                        <span>{loggingIn || $oneDriveConnecting ? "Connecting…" : "Sign in again"}</span>
+                        <span>{loggingIn || $oneDriveConnecting ? $t("settings.oneDrive.connecting") : $t("statusBar.oneDrive.signInAgain")}</span>
                       </button>
                     </div>
                   </div>
@@ -487,10 +496,10 @@
                 <div class="settings-dir-row">
                   {#if $oneDriveFolder}
                     <div class="settings-dir-path">{$oneDriveFolder.folderPath}</div>
-                    <button class="icon-btn" on:click={() => (showFolderPicker = true)}>Browse…</button>
+                    <button class="icon-btn" on:click={() => (showFolderPicker = true)}>{$t("common.browse")}</button>
                   {:else}
-                    <div class="settings-dir-path" style="color: var(--state-warn);">No folder selected yet</div>
-                    <button class="icon-btn btn-primary" on:click={() => (showFolderPicker = true)}>Choose folder…</button>
+                    <div class="settings-dir-path" style="color: var(--state-warn);">{$t("settings.oneDrive.noFolderSelected")}</div>
+                    <button class="icon-btn btn-primary" on:click={() => (showFolderPicker = true)}>{$t("settings.oneDrive.chooseFolder")}</button>
                   {/if}
                 </div>
                 <div style="display: flex; gap: 8px; margin-top: 8px;">
@@ -498,42 +507,42 @@
                     class="icon-btn"
                     on:click={handleOneDriveSyncNow}
                     disabled={$oneDriveSyncing || !$oneDriveFolder}
-                    title={$oneDriveFolder ? "" : "Choose a OneDrive folder first"}
+                    title={$oneDriveFolder ? "" : $t("settings.oneDrive.chooseFolderFirstTitle")}
                   >
                     {#if $oneDriveSyncing}
-                      <span class="modal-spinner" aria-hidden="true">⟳</span> Syncing…
+                      <span class="modal-spinner" aria-hidden="true">⟳</span> {$t("statusBar.oneDrive.syncingText")}
                     {:else}
-                      Sync now
+                      {$t("settings.oneDrive.syncNow")}
                     {/if}
                   </button>
-                  <button class="icon-btn" on:click={handleOneDriveLogout} disabled={$oneDriveSyncing}>Sign out</button>
+                  <button class="icon-btn" on:click={handleOneDriveLogout} disabled={$oneDriveSyncing}>{$t("settings.oneDrive.signOut")}</button>
                 </div>
                 {#if $backendKind === "web"}
                   <div class="settings-hint" style="margin-top: 6px;">
-                    Signing out will switch back to Browser storage, loading notes that are stored there and have not been migrated.
+                    {$t("settings.oneDrive.signOutHint")}
                   </div>
                   <label class="settings-hint" style="display: flex; gap: 6px; align-items: flex-start; margin-top: 6px;">
                     <input type="checkbox" bind:checked={removeLocalOnSignOut} />
-                    <span>Also remove the OneDrive notes from this browser. Edits that have not synced yet will be lost. Your notes on OneDrive are not touched.</span>
+                    <span>{$t("settings.oneDrive.removeLocalOnSignOut")}</span>
                   </label>
                 {/if}
                 {#if !$oneDriveFolder}
                   <div class="settings-hint" style="margin-top: 6px;">
-                    Choose the OneDrive folder your notes should sync with. Nothing syncs until you do.
+                    {$t("settings.oneDrive.noFolderYetHint")}
                   </div>
                 {/if}
               {:else}
                 <div class="settings-hint">
-                  Connect your Microsoft account to use a OneDrive folder as your Notes folder. Notes stay synchronized across all your devices.{#if $backendKind === "web"} After connecting, notes can be moved from Browser storage to OneDrive.{/if}
+                  {$t("settings.oneDrive.connectHint")}{#if $backendKind === "web"}{$t("settings.oneDrive.connectHintWebSuffix")}{/if}
                 </div>
                 <div style="margin-top: 8px;">
                   <button class="icon-btn btn-primary" on:click={handleOneDriveLogin} disabled={loggingIn || $oneDriveConnecting}>
                     <Icon name="cloud" size={16} />
-                    <span>{loggingIn || $oneDriveConnecting ? "Connecting…" : "Connect Microsoft Account"}</span>
+                    <span>{loggingIn || $oneDriveConnecting ? $t("settings.oneDrive.connecting") : $t("settings.oneDrive.connectMicrosoftAccount")}</span>
                   </button>
                   {#if $oneDriveConnecting}
                     <div class="settings-hint" style="margin-top: 6px;">
-                      Waiting for you to finish signing in in your browser…
+                      {$t("settings.oneDrive.waitingForBrowser")}
                     </div>
                   {/if}
                 </div>
@@ -541,13 +550,13 @@
                   {#if showManualAuthInput}
                     <form on:submit|preventDefault={handleManualAuthSubmit} style="display: flex; flex-direction: column; gap: 6px; margin-top: 6px;">
                       <div class="settings-hint">
-                        Paste the redirect URL or authorization code from your browser:
+                        {$t("settings.oneDrive.pasteCodeHint")}
                       </div>
                       <input
                         type="text"
                         class="find-input"
                         style="width: 100%; height: 32px;"
-                        placeholder="chrononote://auth?code=... or code"
+                        placeholder={$t("settings.oneDrive.codeInputPlaceholder")}
                         bind:value={manualAuthCode}
                       />
                       {#if authError}
@@ -555,10 +564,10 @@
                       {/if}
                       <div style="display: flex; gap: 8px;">
                         <button type="submit" class="icon-btn btn-primary" disabled={exchangingCode || !manualAuthCode.trim()}>
-                          {exchangingCode ? "Exchanging…" : "Submit code"}
+                          {exchangingCode ? $t("settings.oneDrive.exchangingCode") : $t("settings.oneDrive.submitCode")}
                         </button>
                         <button type="button" class="icon-btn" on:click={() => (showManualAuthInput = false)}>
-                          Cancel
+                          {$t("common.cancel")}
                         </button>
                       </div>
                     </form>
@@ -569,7 +578,7 @@
                       style="font-size: 11px; color: var(--muted); cursor: pointer;"
                       on:click={() => (showManualAuthInput = true)}
                     >
-                      Enter authorization code manually
+                      {$t("settings.oneDrive.enterCodeManually")}
                     </button>
                   {/if}
                 </div>
@@ -581,41 +590,40 @@
                     style="font-size: 11px; color: var(--muted); cursor: pointer;"
                     on:click={() => (showAdvanced = !showAdvanced)}
                   >
-                    {showAdvanced ? "Hide advanced" : "Advanced (work/school accounts)"}
+                    {showAdvanced ? $t("settings.oneDrive.hideAdvanced") : $t("settings.oneDrive.showAdvanced")}
                   </button>
                   {#if showAdvanced}
                     <div style="display: flex; flex-direction: column; gap: 6px; margin-top: 8px;">
                       <div class="settings-hint">
-                        A locked-down corporate Entra tenant may reject the generic sign-in endpoint and require its
-                        own app registration. Leave both blank for a personal Microsoft account.
+                        {$t("settings.oneDrive.advancedHint")}
                       </div>
-                      <label class="settings-hint" for="onedrive-client-id-override">Client ID override</label>
+                      <label class="settings-hint" for="onedrive-client-id-override">{$t("settings.oneDrive.clientIdLabel")}</label>
                       <input
                         id="onedrive-client-id-override"
                         type="text"
                         class="find-input"
                         style="width: 100%; height: 32px;"
-                        placeholder="(default) personal accounts"
+                        placeholder={$t("settings.oneDrive.clientIdPlaceholder")}
                         bind:value={clientIdOverride}
                       />
                       <label class="settings-hint" for="onedrive-tenant-id-override">
-                        Tenant ID or domain override
+                        {$t("settings.oneDrive.tenantIdLabel")}
                       </label>
                       <input
                         id="onedrive-tenant-id-override"
                         type="text"
                         class="find-input"
                         style="width: 100%; height: 32px;"
-                        placeholder="common"
+                        placeholder={$t("settings.oneDrive.tenantIdPlaceholder")}
                         bind:value={tenantIdOverride}
                       />
                       <div style="display: flex; align-items: center; gap: 8px;">
                         <button class="icon-btn" on:click={handleSaveAdvanced} disabled={savingAdvanced}>
-                          {savingAdvanced ? "Saving…" : "Save"}
+                          {savingAdvanced ? $t("settings.oneDrive.saving") : $t("settings.oneDrive.save")}
                         </button>
                         {#if advancedSaved}
                           <span class="settings-hint">
-                            Saved — sign out and reconnect for this to take effect.
+                            {$t("settings.oneDrive.savedHint")}
                           </span>
                         {/if}
                       </div>
@@ -626,16 +634,15 @@
             </div>
           {:else}
             <div>
-              <div class="settings-section-label">Notes Location</div>
+              <div class="settings-section-label">{$t("settings.notesLocation.sectionLabel")}</div>
               <div class="settings-dir-row">
                 <div class="settings-dir-path">{$notesDir}</div>
                 <button class="icon-btn" bind:this={browseButtonEl} on:click={controller.pickAndSwitchNotesDirectory}>
-                  Browse…
+                  {$t("common.browse")}
                 </button>
               </div>
               <div class="settings-hint">
-                Changing this switches your whole workspace — open tabs close and everything reloads from the new
-                folder. Existing files are not moved.
+                {$t("settings.notesLocation.hint")}
               </div>
               {#if visibleRecentDirs.length > 0}
                 <div class="settings-recent-dirs">
@@ -651,7 +658,7 @@
 
         {#if $backendKind !== "demo"}
           <div>
-            <div class="settings-section-label">Data</div>
+            <div class="settings-section-label">{$t("settings.data.sectionLabel")}</div>
             <input
               bind:this={fileInput}
               type="file"
@@ -661,22 +668,19 @@
             />
             <div class="settings-toggle-row" style="gap: 8px;">
               <button class="icon-btn" disabled={exporting} on:click={handleExport}>
-                {exporting ? "Exporting…" : "Export all notes…"}
+                {exporting ? $t("settings.data.exporting") : $t("settings.data.export")}
               </button>
               <button class="icon-btn" disabled={importing} on:click={pickImportFile}>
-                Import notes from a file…
+                {$t("settings.data.import")}
               </button>
             </div>
             {#if $backendKind === "web"}
               <div class="settings-hint">
-                Your notes live in this browser only — clearing site data, a private window, or Safari's storage
-                limits can lose them. Export a backup now and then, or install the desktop app for notes that live on
-                your disk.
+                {$t("settings.data.webHint")}
               </div>
             {:else}
               <div class="settings-hint">
-                Import reads a ChronoNote export file (from the web app, or another install) and writes its notes in
-                here.
+                {$t("settings.data.desktopHint")}
               </div>
             {/if}
             {#if importError}
@@ -688,26 +692,26 @@
                 style="margin-top: 8px; flex-direction: column; align-items: flex-start; gap: 8px;"
               >
                 <span class="settings-inline-label">
-                  {importPreview.noteCount} note{importPreview.noteCount === 1 ? "" : "s"} in this file.
+                  {$t("settings.data.noteCountInFile", { count: importPreview.noteCount })}
                 </span>
                 <Segmented
                   options={[
-                    { value: "merge", label: "Merge (skip duplicates)" },
-                    { value: "replace", label: "Replace everything" },
+                    { value: "merge", label: $t("settings.data.importMode.merge") },
+                    { value: "replace", label: $t("settings.data.importMode.replace") },
                   ]}
                   value={importMode}
                   onChange={(v) => (importMode = v as "merge" | "replace")}
                 />
                 {#if importMode === "replace"}
                   <div class="settings-hint" style="color: var(--state-error); margin-top: 0;">
-                    This deletes every note currently here first — not reversible.
+                    {$t("settings.data.replaceWarning")}
                   </div>
                 {/if}
                 <div style="display: flex; gap: 8px;">
                   <button class="icon-btn btn-primary" disabled={importing} on:click={confirmImport}>
-                    {importing ? "Importing…" : "Import"}
+                    {importing ? $t("settings.data.importing") : $t("settings.data.importAction")}
                   </button>
-                  <button class="icon-btn" disabled={importing} on:click={cancelImport}>Cancel</button>
+                  <button class="icon-btn" disabled={importing} on:click={cancelImport}>{$t("common.cancel")}</button>
                 </div>
               </div>
             {/if}
@@ -715,7 +719,7 @@
         {/if}
       {:else if activeSettingsTab === "updates" && $backendKind !== "web"}
         <div>
-          <div class="settings-section-label">Updates</div>
+          <div class="settings-section-label">{$t("about.updates.sectionLabel")}</div>
           <div class="settings-toggle-row">
             <label class="toggle-switch">
               <input
@@ -724,65 +728,65 @@
                 on:change={(e) => controller.setAutoCheckUpdates(e.currentTarget.checked)}
               />
               <span class="toggle-switch-track"></span>
-              Check for updates when ChronoNote starts
+              {$t("settings.updates.checkOnStart")}
             </label>
           </div>
           <div class="settings-hint">
-            A quiet check against github.com — never downloads or installs anything without your say.
+            {$t("settings.updates.checkOnStartHint")}
           </div>
           {#if $updateStatus === "checking"}
             <div class="settings-hint" style="margin-top: 8px;">
-              <span class="modal-spinner" aria-label="Checking">⟳</span> Checking for updates…
+              <span class="modal-spinner" aria-label={$t("about.chip.checking")}>⟳</span> {$t("about.checkingHint")}
             </div>
           {:else if $updateStatus === "available"}
             <div class="settings-hint" style="margin-top: 8px;">
-              <strong style="color: var(--text);">v{$updateAvailableVersion}</strong> is available.
+              <strong style="color: var(--text);">v{$updateAvailableVersion}</strong> {$t("about.isAvailable")}
             </div>
             <div class="settings-toggle-row" style="margin-top: 8px; gap: 8px;">
-              <button class="icon-btn" on:click={controller.openReleasesPage}> What's changed </button>
+              <button class="icon-btn" on:click={controller.openReleasesPage}> {$t("about.whatsChanged")} </button>
               <button class="icon-btn btn-primary" on:click={() => controller.downloadAndInstallUpdate()}>
-                <Icon name="update" size={14} /> Download &amp; install
+                <Icon name="update" size={14} /> {$t("about.downloadAndInstall")}
               </button>
             </div>
           {:else if $updateStatus === "downloading"}
             <div class="settings-hint" style="margin-top: 8px;">
-              {#if $updateInstalling}Starting the installer…{:else}Downloading update…{progressLabel}{/if}
+              {#if $updateInstalling}{$t("about.downloading.startingInstaller")}{:else}{$t("about.downloading.downloading")}{progressLabel}{/if}
             </div>
           {:else if $updateStatus === "ready"}
-            <div class="settings-hint" style="margin-top: 8px;">Installed — restart to finish.</div>
+            <div class="settings-hint" style="margin-top: 8px;">{$t("about.ready.installed")}</div>
             <button class="icon-btn btn-primary" style="margin-top: 8px;" on:click={() => controller.restartToFinishUpdate()}>
-              Restart now
+              {$t("about.ready.restartNow")}
             </button>
           {:else if $updateStatus === "error"}
             {#if $updateErrorDuring === "install"}
               <div class="settings-hint" style="margin-top: 8px; color: var(--state-error);">
-                Couldn't install the update. {$updateErrorMessage ?? ""}
+                {$t("about.error.installFailedPrefix")} {$updateErrorMessage ?? ""}
               </div>
               <div class="settings-toggle-row" style="margin-top: 8px; gap: 8px;">
-                <button class="icon-btn" on:click={() => controller.downloadAndInstallUpdate()}>Try again</button>
-                <button class="icon-btn btn-primary" on:click={controller.openReleasesPage}>Download from GitHub</button>
+                <button class="icon-btn" on:click={() => controller.downloadAndInstallUpdate()}>{$t("about.error.tryAgain")}</button>
+                <button class="icon-btn btn-primary" on:click={controller.openReleasesPage}>{$t("about.error.downloadFromGithub")}</button>
               </div>
             {:else}
               <div class="settings-hint" style="margin-top: 8px; color: var(--state-error);">
-                Couldn't check for updates. {$updateErrorMessage ?? ""}
+                {$t("about.error.couldntCheckPrefix")} {$updateErrorMessage ?? ""}
               </div>
               <button class="icon-btn" style="margin-top: 8px;" on:click={() => controller.checkForUpdates()}>
-                Try again
+                {$t("about.error.tryAgain")}
               </button>
             {/if}
           {:else}
             <div class="settings-hint" style="margin-top: 8px;">
-              {$updateStatus === "upToDate" ? "You're up to date." : "Not checked yet."}
+              {$updateStatus === "upToDate" ? $t("about.upToDate.running") : $t("about.chip.notCheckedYet")}
             </div>
             <button class="icon-btn" style="margin-top: 8px;" on:click={() => controller.checkForUpdates()}>
-              Check now
+              {$t("about.checkNow")}
             </button>
           {/if}
         </div>
       {/if}
     </div>
     <div class="modal-footer" style="justify-content: flex-end;">
-      <button class="icon-btn" on:click={controller.closeAllModals}>Close</button>
+      <button class="icon-btn" on:click={controller.closeAllModals}>{$t("common.close")}</button>
     </div>
   </div>
 </div>

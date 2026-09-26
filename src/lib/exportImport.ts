@@ -21,6 +21,7 @@ import {
   ExportBundleError,
   type ExportBundle,
 } from "./webapp/exportBundle";
+import { t } from "./i18n";
 
 export type { ExportBundle } from "./webapp/exportBundle";
 export { ExportBundleError } from "./webapp/exportBundle";
@@ -64,8 +65,9 @@ export async function applyImport(bundle: ExportBundle, mode: "merge" | "replace
   const result = await api.importNotesBundle(bundle.notes, mode);
   invalidateDiskNotesCache();
   await refreshAllNotesCache();
-  const parts = [`Imported ${result.imported} note${result.imported === 1 ? "" : "s"}`];
-  if (result.skipped > 0) parts.push(`skipped ${result.skipped}`);
+  const translate = get(t);
+  const parts = [translate("toast.exportImport.importedNoteCount", { count: result.imported })];
+  if (result.skipped > 0) parts.push(translate("toast.exportImport.skippedCount", { count: result.skipped }));
   showToast(`${parts.join(", ")}.`);
 }
 
@@ -77,7 +79,7 @@ export async function handleDroppedBundle(file: File): Promise<void> {
     settingsInitialTab.set("calendar");
     modal.set("settings");
   } catch (err) {
-    showToast(err instanceof ExportBundleError ? err.message : "Couldn't read that export file.");
+    showToast(err instanceof ExportBundleError ? err.message : get(t)("toast.exportImport.couldntReadExportFile", undefined));
   }
 }
 
@@ -111,11 +113,12 @@ export async function handleDroppedNotes(files: File[]): Promise<void> {
   invalidateDiskNotesCache();
   await refreshAllNotesCache();
 
+  const translate = get(t);
   const parts: string[] = [];
-  if (imported > 0) parts.push(`Imported ${imported} note${imported === 1 ? "" : "s"}`);
-  if (skipped > 0) parts.push(`skipped ${skipped}`);
-  if (conflicts > 0) parts.push(`${conflicts} differ${conflicts === 1 ? "s" : ""} from what you have`);
-  showToast(parts.length > 0 ? `${parts.join(", ")}.` : "No notes imported.");
+  if (imported > 0) parts.push(translate("toast.exportImport.importedNoteCount", { count: imported }));
+  if (skipped > 0) parts.push(translate("toast.exportImport.skippedCount", { count: skipped }));
+  if (conflicts > 0) parts.push(translate("toast.exportImport.differsFromWhatYouHave", { count: conflicts }));
+  showToast(parts.length > 0 ? `${parts.join(", ")}.` : translate("toast.exportImport.noNotesImported", undefined));
   if (held.length > 0) {
     droppedConflicts.set(held);
     modal.set("droppedNotes");
@@ -140,7 +143,7 @@ export async function resolveDroppedNote(name: string, resolution: DroppedResolu
 ${item.dropped}`, undefined);
     }
   } catch (e) {
-    showToast(`Couldn't save ${name}: ${e instanceof Error ? e.message : String(e)}`);
+    showToast(`${get(t)("toast.exportImport.couldntSavePrefix", { name })} ${e instanceof Error ? e.message : String(e)}`);
     return;
   }
   droppedConflicts.update((list) => list.filter((c) => c.name !== name));

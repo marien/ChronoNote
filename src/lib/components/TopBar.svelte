@@ -50,6 +50,7 @@
   import Icon from "../icons/Icon.svelte";
   import AppIcon from "./AppIcon.svelte";
   import { formatCombo, formatShortcut, shortcutById } from "../shortcuts";
+  import { t } from "../i18n";
 
   // §merged-titlebar: the app icon, drag regions, and window-control
   // buttons only make sense when this frontend is actually running inside
@@ -711,8 +712,8 @@
     {#if showOpenTabsBtn}
       <button
         class="icon-btn mobile-tab-drawer-btn"
-        title="Open tabs list"
-        aria-label="Open tabs list ({$tabs.length} open)"
+        title={$t("topBar.openTabsList.title")}
+        aria-label={$t("topBar.openTabsList.ariaLabel", { count: $tabs.length })}
         on:click={() => mobileTabDrawerOpen.set(true)}
       >
         <Icon name="tabs" size={16} />
@@ -721,7 +722,7 @@
       {#if mobileActiveTab}
         <button
           class="tab active mobile-active-tab {mobileActiveTab.isScratchpad ? 'scratch' : 'daily'} {tabDateClass(mobileActiveTab, $currentDateISO)}"
-          aria-label="Active tab: {tabLabel(mobileActiveTab)} (opens the tab list)"
+          aria-label={$t("topBar.activeTabAriaLabel", { label: tabLabel(mobileActiveTab) })}
           on:click={() => mobileTabDrawerOpen.set(true)}
         >
           <span class="tab-icon" aria-hidden="true">
@@ -734,7 +735,7 @@
     <div class="tab-bar-spacer"></div>
   {:else}
     {#if isOverflowing}
-      <button class="icon-btn tab-scroll-btn" aria-label="Scroll tabs left" on:click={() => scrollTabBar(-1)}>
+      <button class="icon-btn tab-scroll-btn" aria-label={$t("topBar.scrollTabsLeft")} on:click={() => scrollTabBar(-1)}>
         <Icon name="chevron-left" size={14} />
       </button>
     {/if}
@@ -772,15 +773,15 @@
           </span>
           <span class="tab-label">{tabLabel(tab)}</span>
           {#if tab.isScratchpad && tab.content.trim() !== ""}
-            <span class="tab-status-dot mem" title="Kept in memory only (not written to disk)"></span>
+            <span class="tab-status-dot mem" title={$t("topBar.tabStatus.memoryOnly")}></span>
           {:else if tab.id === $activeTabId && $saveState === "error"}
-            <span class="tab-status-dot err" title="The last save of this note failed"></span>
+            <span class="tab-status-dot err" title={$t("topBar.tabStatus.saveFailed")}></span>
           {/if}
           <span
             class="tab-close"
             role="button"
             tabindex="0"
-            aria-label="Close tab"
+            aria-label={$t("topBar.closeTab")}
             on:click|stopPropagation={() => controller.requestTabClose(tab.id)}
             on:keydown|stopPropagation={(e) => e.key === "Enter" && controller.requestTabClose(tab.id)}
           >
@@ -790,7 +791,7 @@
       {/each}
     </div>
     {#if isOverflowing}
-      <button class="icon-btn tab-scroll-btn" aria-label="Scroll tabs right" on:click={() => scrollTabBar(1)}>
+      <button class="icon-btn tab-scroll-btn" aria-label={$t("topBar.scrollTabsRight")} on:click={() => scrollTabBar(1)}>
         <Icon name="chevron-right" size={14} />
       </button>
     {/if}
@@ -816,85 +817,85 @@
   <button
     class="icon-btn tab-bar-new-btn"
 
-    title="New Scratchpad ({formatCombo(shortcutById('newScratchpad').combos[0])})"
+    title={$t("topBar.newScratchpad.title", { combo: formatCombo(shortcutById('newScratchpad').combos[0]) })}
     on:click={controller.createScratchpad}
   >
     <Icon name="new-scratchpad" />
   </button>
   <button
     class="icon-btn"
-    title="Open Date Note ({formatShortcut('openDateNote')})"
+    title={$t("topBar.openDateNote.title", { combo: formatShortcut('openDateNote') })}
     data-datepicker-trigger
     on:click={controller.openDatePicker}
   >
-    <Icon name="date-note" />{#if showActionLabels}<span class="icon-label">Date</span>{/if}
+    <Icon name="date-note" />{#if showActionLabels}<span class="icon-label">{$t("topBar.label.date")}</span>{/if}
   </button>
   {#if buttonsCollapsed}
     <!-- #56: everything below this button collapses into it once the
          window is too narrow — MoreActionsModal, anchored to
          data-more-trigger the same way DatePickerModal anchors to
          data-datepicker-trigger. -->
-    <button class="icon-btn" title="More actions" data-more-trigger on:click={controller.openMoreActions} bind:this={moreBtnEl}>
+    <button class="icon-btn" title={$t("topBar.moreActions.title")} data-more-trigger on:click={controller.openMoreActions} bind:this={moreBtnEl}>
       <Icon name="more" />
     </button>
   {:else}
-    <button class="icon-btn" title="Actions ({formatShortcut('openActions')})" on:click={controller.openActionDrawer}>
-      <Icon name="actions" />{#if showActionLabels}<span class="icon-label">Actions</span>{/if}
+    <button class="icon-btn" title={$t("topBar.actions.title", { combo: formatShortcut('openActions') })} on:click={controller.openActionDrawer}>
+      <Icon name="actions" />{#if showActionLabels}<span class="icon-label">{$t("actionDrawer.modal.ariaLabel")}</span>{/if}
     </button>
     <button
       class="icon-btn"
-      title="Section history ({formatShortcut('openHistory')})"
+      title={$t("topBar.history.title", { combo: formatShortcut('openHistory') })}
       on:click={controller.openMeetingHistory}
     >
-      <Icon name="section-history" />{#if showActionLabels}<span class="icon-label">Section history</span>{/if}
+      <Icon name="section-history" />{#if showActionLabels}<span class="icon-label">{$t("history.modal.ariaLabel")}</span>{/if}
     </button>
     <button
       class="icon-btn"
-      title="Cross-Tab Search ({formatShortcut('crossTabSearch')})"
+      title={$t("topBar.search.title", { combo: formatShortcut('crossTabSearch') })}
       on:click={controller.openCrossTabSearch}
     >
-      <Icon name="search" />{#if showActionLabels}<span class="icon-label">Search</span>{/if}
+      <Icon name="search" />{#if showActionLabels}<span class="icon-label">{$t("topBar.label.search")}</span>{/if}
     </button>
     {#if calendarSyncVisible}
       <button
         class="icon-btn"
         title={calendarSyncReady
-          ? `Sync calendar for this day (${formatShortcut('syncCalendar')})`
+          ? $t("topBar.calendarSync.titleReady", { combo: formatShortcut('syncCalendar') })
           : !$agendaFileExists
-            ? "No .agenda.json file found in your notes folder"
-            : "Only available for a note dated today or later"}
+            ? $t("topBar.calendarSync.titleNoAgendaFile")
+            : $t("topBar.calendarSync.titleNotAvailable")}
         disabled={!calendarSyncReady}
         on:click={controller.syncCalendarFromFile}
       >
-        <Icon name="calendar-import" />{#if showActionLabels}<span class="icon-label">Sync calendar</span>{/if}
+        <Icon name="calendar-import" />{#if showActionLabels}<span class="icon-label">{$t("topBar.label.calendarSync")}</span>{/if}
       </button>
     {/if}
     {#if activeTab?.isScratchpad}
       <button
         class="icon-btn"
-        title="Promote scratchpad into today's note"
+        title={$t("topBar.promote.title")}
         on:click={() => controller.promoteScratchpad(activeTab.id)}
       >
-        <Icon name="promote" />{#if showActionLabels}<span class="icon-label">Promote</span>{/if}
+        <Icon name="promote" />{#if showActionLabels}<span class="icon-label">{$t("topBar.label.promote")}</span>{/if}
       </button>
     {/if}
-    <button class="icon-btn" title="Settings ({formatShortcut('openSettings')})" on:click={controller.openSettings}>
-      <Icon name="settings" />{#if showActionLabels}<span class="icon-label">Settings</span>{/if}
+    <button class="icon-btn" title={$t("topBar.settings.title", { combo: formatShortcut('openSettings') })} on:click={controller.openSettings}>
+      <Icon name="settings" />{#if showActionLabels}<span class="icon-label">{$t("settings.modal.title")}</span>{/if}
     </button>
   {/if}
   {#if isMergedTitlebar}
     <div class="window-controls">
-      <button class="win-btn" aria-label="Minimize window" on:click={() => controller.minimizeWindow()}>
+      <button class="win-btn" aria-label={$t("topBar.window.minimize")} on:click={() => controller.minimizeWindow()}>
         <Icon name="minimize" size={12} />
       </button>
       <button
         class="win-btn"
-        aria-label={$chromeExpanded ? "Restore window" : "Maximize window"}
+        aria-label={$chromeExpanded ? $t("topBar.window.restore") : $t("topBar.window.maximize")}
         on:click={() => controller.toggleMaximizeWindow()}
       >
         <Icon name={$chromeExpanded ? "restore" : "maximize"} size={12} />
       </button>
-      <button class="win-btn win-close" aria-label="Close window" on:click={() => controller.closeWindow()}>
+      <button class="win-btn win-close" aria-label={$t("topBar.window.close")} on:click={() => controller.closeWindow()}>
         <Icon name="close" size={12} />
       </button>
     </div>
@@ -920,36 +921,36 @@
        only while `buttonsCollapsed` is true, since that's the only state
        where the real row isn't in the DOM at all to measure directly). -->
   <div class="icon-btn topbar-measure" aria-hidden="true" inert>
-    <span class="icon-label" bind:this={labelDateEl}>Date</span>
-    <span class="icon-label" bind:this={labelActionsEl}>Actions</span>
-    <span class="icon-label" bind:this={labelHistoryEl}>Section history</span>
-    <span class="icon-label" bind:this={labelSearchEl}>Search</span>
-    <span class="icon-label" bind:this={labelCalendarSyncEl}>Sync calendar</span>
-    <span class="icon-label" bind:this={labelPromoteEl}>Promote</span>
-    <span class="icon-label" bind:this={labelSettingsEl}>Settings</span>
+    <span class="icon-label" bind:this={labelDateEl}>{$t("topBar.label.date")}</span>
+    <span class="icon-label" bind:this={labelActionsEl}>{$t("actionDrawer.modal.ariaLabel")}</span>
+    <span class="icon-label" bind:this={labelHistoryEl}>{$t("history.modal.ariaLabel")}</span>
+    <span class="icon-label" bind:this={labelSearchEl}>{$t("topBar.label.search")}</span>
+    <span class="icon-label" bind:this={labelCalendarSyncEl}>{$t("topBar.label.calendarSync")}</span>
+    <span class="icon-label" bind:this={labelPromoteEl}>{$t("topBar.label.promote")}</span>
+    <span class="icon-label" bind:this={labelSettingsEl}>{$t("settings.modal.title")}</span>
   </div>
   <div class="topbar-measure" aria-hidden="true" inert>
     <button class="icon-btn" bind:this={cloneActionsEl} tabindex="-1">
-      <Icon name="actions" />{#if showActionLabels}<span class="icon-label">Actions</span>{/if}
+      <Icon name="actions" />{#if showActionLabels}<span class="icon-label">{$t("actionDrawer.modal.ariaLabel")}</span>{/if}
     </button>
     <button class="icon-btn" bind:this={cloneHistoryEl} tabindex="-1">
-      <Icon name="section-history" />{#if showActionLabels}<span class="icon-label">Section history</span>{/if}
+      <Icon name="section-history" />{#if showActionLabels}<span class="icon-label">{$t("history.modal.ariaLabel")}</span>{/if}
     </button>
     <button class="icon-btn" bind:this={cloneSearchEl} tabindex="-1">
-      <Icon name="search" />{#if showActionLabels}<span class="icon-label">Search</span>{/if}
+      <Icon name="search" />{#if showActionLabels}<span class="icon-label">{$t("topBar.label.search")}</span>{/if}
     </button>
     {#if calendarSyncVisible}
       <button class="icon-btn" bind:this={cloneCalendarSyncEl} tabindex="-1">
-        <Icon name="calendar-import" />{#if showActionLabels}<span class="icon-label">Sync calendar</span>{/if}
+        <Icon name="calendar-import" />{#if showActionLabels}<span class="icon-label">{$t("topBar.label.calendarSync")}</span>{/if}
       </button>
     {/if}
     {#if activeTab?.isScratchpad}
       <button class="icon-btn" bind:this={clonePromoteEl} tabindex="-1">
-        <Icon name="promote" />{#if showActionLabels}<span class="icon-label">Promote</span>{/if}
+        <Icon name="promote" />{#if showActionLabels}<span class="icon-label">{$t("topBar.label.promote")}</span>{/if}
       </button>
     {/if}
     <button class="icon-btn" bind:this={cloneSettingsEl} tabindex="-1">
-      <Icon name="settings" />{#if showActionLabels}<span class="icon-label">Settings</span>{/if}
+      <Icon name="settings" />{#if showActionLabels}<span class="icon-label">{$t("settings.modal.title")}</span>{/if}
     </button>
   </div>
 </div>

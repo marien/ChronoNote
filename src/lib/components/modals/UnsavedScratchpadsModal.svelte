@@ -4,6 +4,7 @@
   import { scratchpadGateContext, unsavedScratchpadNames } from "../../controller";
   import { focusTrap } from "../../actions/focusTrap";
   import Icon from "../../icons/Icon.svelte";
+  import { t } from "../../i18n";
 
   let cancelBtn: HTMLButtonElement;
   onMount(() => cancelBtn?.focus());
@@ -11,23 +12,21 @@
   // The gate is shared by the notes-folder switch (§39) and the app-close
   // barrier (§93); only the wording and which resolve handlers run differ.
   $: isClose = $scratchpadGateContext === "close";
-  $: lead = isClose
-    ? "Quitting ChronoNote will discard these scratchpads — they were never promoted to a note and are not saved to disk:"
-    : "Switching notes directories will close all open tabs. These scratchpads have content that was never promoted to a note and will be permanently lost:";
-  $: confirmLabel = isClose ? "Discard & Quit" : "Discard & Switch";
+  $: lead = isClose ? $t("unsavedScratchpads.leadClose") : $t("unsavedScratchpads.leadSwitch");
+  $: confirmLabel = isClose ? $t("unsavedScratchpads.confirmDiscardQuit") : $t("unsavedScratchpads.confirmDiscardSwitch");
   const cancel = () => (isClose ? controller.cancelAppClose() : controller.cancelDirectorySwitch());
   const confirm = () => (isClose ? controller.confirmDiscardAndClose() : controller.confirmDiscardAndSwitch());
 </script>
 
 <div class="overlay">
-  <div class="modal-card modal-sm" role="dialog" aria-modal="true" use:focusTrap aria-label="Unsaved scratchpad content">
+  <div class="modal-card modal-sm" role="dialog" aria-modal="true" use:focusTrap aria-label={$t("unsavedScratchpads.ariaLabel")}>
     <div class="modal-input-wrap modal-title">
       <Icon name="warning" size={15} />
-      <span>Unsaved Scratchpad Content</span>
+      <span>{$t("unsavedScratchpads.title")}</span>
       <button
         type="button"
         class="icon-btn modal-close-btn"
-        aria-label="Close dialog"
+        aria-label={$t("common.closeDialog")}
         on:click={cancel}
       >
         <Icon name="close" size={14} />
@@ -42,7 +41,7 @@
       </ul>
     </div>
     <div class="modal-footer" style="justify-content: flex-end; gap: 8px;">
-      <button class="icon-btn" bind:this={cancelBtn} on:click={cancel}>Cancel</button>
+      <button class="icon-btn" bind:this={cancelBtn} on:click={cancel}>{$t("common.cancel")}</button>
       <button class="icon-btn btn-primary" on:click={confirm}>
         {confirmLabel}
       </button>

@@ -35,6 +35,7 @@ import { flushSave, flushScratchpadDrafts, invalidateDiskNotesCache } from "./pe
 import { restoreOrBootstrapTabs } from "./boot";
 import { createScratchpadWith } from "./tabs";
 import { refreshAgendaFileExists } from "./calendarSyncActions";
+import { t } from "./i18n";
 
 /** Shared by the Browse dialog and by picking a recent folder directly
  * (§39) — both need the same unsaved-scratchpad safety gate before a
@@ -100,14 +101,7 @@ export function beginFolderSwitch(folderName: string): FolderSwitchPad {
 
 /** What the scratchpad shown during a folder switch says. */
 export function folderSwitchNote(folderName: string): string {
-  return (
-    `While I sync ${folderName}, feel free to use this scratchpad.
-
-` +
-    `If you leave it alone, it closes when the sync is done and today's note opens. ` +
-    `If you type something here, it stays open next to today's note.
-`
-  );
+  return get(t)("directory.folderSwitchNote", { folderName });
 }
 
 export interface FolderSwitchPad {
@@ -155,5 +149,5 @@ export async function performDirectorySwitch(path: string) {
   // from a folder that has one to one that doesn't (or vice versa).
   if (get(calendarSyncEnabled)) void refreshAgendaFileExists();
   modal.set("none");
-  showToast(`Switched notes directory to ${path}`);
+  showToast(get(t)("toast.directory.switched", { path }));
 }

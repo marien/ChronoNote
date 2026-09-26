@@ -2,6 +2,7 @@
   import { onMount, tick } from "svelte";
   import { editorApi, findMatch, findOpen } from "../controller";
   import Icon from "../icons/Icon.svelte";
+  import { t } from "../i18n";
 
   let query = "";
   let inputEl: HTMLInputElement;
@@ -35,9 +36,9 @@
   }
 
   $: countLabel = $findMatch.total
-    ? `${$findMatch.current || "–"} of ${$findMatch.total}`
+    ? $t("findBar.countOf", { current: String($findMatch.current || "–"), total: $findMatch.total })
     : query
-      ? "No results"
+      ? $t("findBar.noResults")
       : "";
 </script>
 
@@ -47,18 +48,18 @@
     bind:this={inputEl}
     bind:value={query}
     on:keydown={onKeydown}
-    placeholder="Find in note…"
-    aria-label="Find in note"
+    placeholder={$t("findBar.placeholder")}
+    aria-label={$t("findBar.ariaLabel")}
     autocomplete="off"
   />
   <span class="find-count" aria-live="polite">{countLabel}</span>
-  <button type="button" class="find-btn" on:click={() => editorApi?.find.prev()} aria-label="Previous match" title="Previous (Shift+Enter)">
+  <button type="button" class="find-btn" on:click={() => editorApi?.find.prev()} aria-label={$t("findBar.previousMatch")} title={$t("findBar.previousTitle")}>
     <Icon name="chevron-left" size={13} />
   </button>
-  <button type="button" class="find-btn" on:click={() => editorApi?.find.next()} aria-label="Next match" title="Next (Enter)">
+  <button type="button" class="find-btn" on:click={() => editorApi?.find.next()} aria-label={$t("findBar.nextMatch")} title={$t("findBar.nextTitle")}>
     <Icon name="chevron-right" size={13} />
   </button>
-  <button type="button" class="find-btn" on:click={close} aria-label="Close find" title="Close (Esc)">
+  <button type="button" class="find-btn" on:click={close} aria-label={$t("findBar.closeFind")} title={$t("findBar.closeTitle")}>
     <Icon name="close" size={12} />
   </button>
 </div>

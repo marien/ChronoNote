@@ -8,6 +8,9 @@
   import { closeOnOutsideClick } from "../../actions/closeOnOutsideClick";
   import { focusTrap } from "../../actions/focusTrap";
   import MigrateNotesModal from "./MigrateNotesModal.svelte";
+  import { t } from "../../i18n";
+  import { get } from "svelte/store";
+  import { describeFolderSwitchBlocked } from "../../apiError";
 
   export let onClose: () => void;
 
@@ -16,7 +19,7 @@
     name: string;
   }
 
-  let breadcrumbs: Breadcrumb[] = [{ id: null, name: "OneDrive Root" }];
+  let breadcrumbs: Breadcrumb[] = [{ id: null, name: get(t)("oneDrivePicker.rootBreadcrumb", undefined) }];
   let folders: Array<{ id: string; name: string }> = [];
   let loading = true;
   let error: string | null = null;
@@ -76,7 +79,7 @@
       await loadFolders(currentFolderId);
       navigateTo(created);
     } catch (e) {
-      showToast(`Failed to create folder: ${e instanceof Error ? e.message : String(e)}`);
+      showToast(`${$t("oneDrivePicker.toast.createFolderFailedPrefix")} ${e instanceof Error ? e.message : String(e)}`);
     } finally {
       creatingFolder = false;
     }
@@ -88,7 +91,7 @@
     try {
       await api.oneDriveSetFolder(folderId, folderPath);
       oneDriveFolder.set({ folderId, folderPath });
-      showToast(`Notes folder set to OneDrive: ${folderPath}`);
+      showToast($t("oneDrivePicker.toast.folderSet", { path: folderPath }));
       if ($backendKind === "web") {
         // Close the old notes and show a scratchpad while the first sync runs, then
         // open the folder's own notes - a tab opened before the sync would sit on a
@@ -105,7 +108,7 @@
         onClose();
       }
     } catch (e) {
-      showToast(`Failed to set folder: ${e instanceof Error ? e.message : String(e)}`);
+      showToast(`${$t("oneDrivePicker.toast.setFolderFailedPrefix")} ${e instanceof Error ? e.message : String(e)}`);
     }
   }
 
@@ -119,15 +122,15 @@
       await controller.flushAllPendingSaves();
       const prep = await api.oneDrivePrepareFolderSwitch(folderId);
       if (!prep.ready) {
-        showToast(prep.message ?? "Couldn't switch folders");
+        showToast(prep.blocked ? describeFolderSwitchBlocked(prep.blocked) : $t("oneDrivePicker.toast.couldntSwitchFolders"));
         return false;
       }
       if (prep.archivedCount > 0) {
-        showToast(`${prep.archivedCount} note(s) from the previous folder couldn't be synced - a copy is kept on this device.`);
+        showToast($t("oneDrivePicker.toast.archivedNotes", { count: prep.archivedCount }));
       }
       return true;
     } catch (e) {
-      showToast(`Couldn't switch folders: ${e instanceof Error ? e.message : String(e)}`);
+      showToast(`${$t("oneDrivePicker.toast.switchFoldersFailedPrefix")} ${e instanceof Error ? e.message : String(e)}`);
       return false;
     }
   }
@@ -158,11 +161,11 @@
     try {
       const res = await api.webMigrateBrowserNotes();
       if (res.conflictCount > 0) {
-        showToast(`Moved notes with ${res.conflictCount} conflict(s) to review.`);
+        showToast($t("oneDrivePicker.toast.movedWithConflicts", { count: res.conflictCount }));
       }
       await finalizeFolderSelection(folderId, folderPath);
     } catch (e) {
-      showToast(`Migration failed: ${e instanceof Error ? e.message : String(e)}`);
+      showToast(`${$t("oneDrivePicker.toast.migrationFailedPrefix")} ${e instanceof Error ? e.message : String(e)}`);
     }
   }
 
@@ -196,14 +199,14 @@
     role="dialog"
     aria-modal="true"
     use:focusTrap
-    aria-label="Select OneDrive Folder"
+    aria-label={$t("oneDrivePicker.ariaLabel")}
   >
     <div class="modal-input-wrap modal-title" style="justify-content: space-between;">
       <div style="display: flex; align-items: center; gap: 8px;">
         <Icon name="cloud" size={16} />
-        <span>Select OneDrive Notes Folder</span>
+        <span>{$t("oneDrivePicker.title")}</span>
       </div>
-      <button type="button" class="icon-btn modal-close-btn" aria-label="Close dialog" on:click={onClose}>
+      <button type="button" class="icon-btn modal-close-btn" aria-label={$t("common.closeDialog")} on:click={onClose}>
         <Icon name="close" size={14} />
       </button>
     </div>
@@ -214,7 +217,7 @@
         <button
           type="button"
           class="icon-btn onedrive-back-btn"
-          title="Go up one folder"
+          title={$t("oneDrivePicker.goUpFolder")}
           on:click={navigateUp}
         >
           <Icon name="chevron-left" size={14} />
@@ -240,18 +243,18 @@
     <!-- Folder list or state -->
     <div class="onedrive-folder-list">
       {#if loading}
-        <div class="onedrive-empty-hint">Loading folders…</div>
+        <div class="onedrive-empty-hint">{$t("oneDrivePicker.loadingFolders")}</div>
       {:else if error}
         <div class="onedrive-error-box">
           <div>{error}</div>
           <button class="icon-btn" style="margin-top: 8px;" on:click={() => loadFolders(currentFolderId)}>
-            Retry
+            {$t("oneDrivePicker.retry")}
           </button>
         </div>
       {:else}
         {#if folders.length === 0}
           <div class="onedrive-empty-hint">
-            No subfolders found in this folder.
+            {$t("oneDrivePicker.noSubfolders")}
           </div>
         {:else}
           {#each folders as folder (folder.id)}
@@ -281,7 +284,7 @@
           type="text"
           class="find-input"
           style="flex: 1; height: 32px;"
-          placeholder="New folder name…"
+          placeholder={$t("oneDrivePicker.newFolderPlaceholder")}
           bind:value={newFolderName}
         />
         <button
@@ -290,7 +293,7 @@
           style="height: 32px; padding: 0 12px;"
           disabled={creatingFolder || !newFolderName.trim()}
         >
-          {creatingFolder ? "Creating…" : "Create"}
+          {creatingFolder ? $t("oneDrivePicker.creating") : $t("oneDrivePicker.create")}
         </button>
         <button
           type="button"
@@ -301,7 +304,7 @@
             newFolderName = "";
           }}
         >
-          Cancel
+          {$t("common.cancel")}
         </button>
       </form>
     {:else}
@@ -312,7 +315,7 @@
           style="font-size: 12px; gap: 4px;"
           on:click={() => (showNewFolderInput = true)}
         >
-          <span>+ New subfolder</span>
+          <span>+ {$t("oneDrivePicker.newSubfolder")}</span>
         </button>
       </div>
     {/if}
@@ -320,18 +323,18 @@
     <!-- Footer actions -->
     <div class="onedrive-picker-footer">
       <div class="onedrive-selection-label">
-        Current target: <strong>{currentFolderPath}</strong>
+        {$t("oneDrivePicker.currentTarget")} <strong>{currentFolderPath}</strong>
       </div>
       <div style="display: flex; gap: 8px;">
         <button type="button" class="icon-btn" on:click={onClose}>
-          Cancel
+          {$t("common.cancel")}
         </button>
         <button
           type="button"
           class="icon-btn btn-primary"
           on:click={handleSelectCurrentFolder}
         >
-          Use this folder
+          {$t("oneDrivePicker.useThisFolder")}
         </button>
       </div>
     </div>

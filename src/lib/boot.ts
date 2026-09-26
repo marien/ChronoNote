@@ -20,6 +20,7 @@ import {
   colorMode,
   currentDateISO,
   fontSize,
+  languageMode,
   lineHeight,
   pureBlack,
   justUpdatedToVersion,
@@ -51,7 +52,9 @@ import { checkActiveTabForDrift } from "./drift";
 import { refreshAgendaFileExists } from "./calendarSyncActions";
 import { refreshSyncConflicts, syncOneDriveNow } from "./oneDriveSync";
 import { checkForUpdatesOnLaunch } from "./updates";
-import type { ColorMode, NoteTab, ThemeMode } from "./types";
+import { locale, t } from "./i18n";
+import { describeApiError } from "./apiError";
+import type { ColorMode, LanguageMode, NoteTab, ThemeMode } from "./types";
 
 // --- Standing subscriptions (wired once, from initApp) -----------------
 
@@ -260,6 +263,17 @@ export function applyPureBlackToDom(pureBlack: boolean) {
   else document.documentElement.removeAttribute("data-pure-black");
 }
 
+/** i18n roadmap: reflects the *resolved* display language (never
+ * `"system"` itself — `./i18n`'s `locale` store already resolved that)
+ * onto `<html lang>`, a real accessibility/correctness fix (screen
+ * readers and the browser's own spell-checker pick the right language)
+ * that falls out of having a resolved locale at all. Called once at
+ * boot and again on every `setLanguageMode`, mirroring
+ * `applyThemeModeToDom`'s call sites below. */
+export function applyLocaleToDom(resolvedLocale: string) {
+  document.documentElement.lang = resolvedLocale;
+}
+
 /** Set while a session restore (or a directory switch's fresh restore) is
  * rebuilding the `tabs`/`activeTabId` stores step by step, so the
  * persistence subscribers below don't write a half-built intermediate
@@ -404,6 +418,8 @@ export async function initApp() {
   applyColorModeToDom(cfg.colorMode);
   themeMode.set(cfg.themeMode);
   applyThemeModeToDom(cfg.themeMode);
+  languageMode.set(cfg.languageMode);
+  applyLocaleToDom(get(locale));
   // §110: "limit line width" implies word-wrap. Reconcile a stale config
   // (from the version where the two were gated the other way round).
   readableLineLength.set(cfg.readableLineLength);
@@ -492,19 +508,21 @@ export async function initOneDriveSync() {
               // leaving a "Choose a folder" label for the user to find.
               oneDriveFolderPickerOpen.set(true);
             }
-            showToast(folder ? "Connected to OneDrive" : "Connected to OneDrive — now choose a folder to sync");
+            showToast(
+              folder ? get(t)("toast.boot.oneDrive.connected", undefined) : get(t)("toast.boot.oneDrive.connectedChooseFolder", undefined),
+            );
           } else if (result.error) {
-            showToast(`OneDrive sign-in failed: ${result.error}`);
+            showToast(`${get(t)("toast.boot.oneDrive.signInFailedPrefix", undefined)} ${describeApiError(result.error)}`);
           }
         })
         .catch((err) => {
           oneDriveConnecting.set(false);
-          showToast(`OneDrive sign-in failed: ${err instanceof Error ? err.message : String(err)}`);
+          showToast(`${get(t)("toast.boot.oneDrive.signInFailedPrefix", undefined)} ${describeApiError(err)}`);
         });
     } else if (error) {
       const cleanUrl = `${window.location.origin}${window.location.pathname}${window.location.hash}`;
       window.history.replaceState({}, document.title, cleanUrl);
-      showToast(`OneDrive sign-in error: ${errorDescription || error}`);
+      showToast(`${get(t)("toast.boot.oneDrive.signInErrorPrefix", undefined)} ${errorDescription || error}`);
     }
   }
 
@@ -586,7 +604,7 @@ export async function setColorMode(mode: ColorMode) {
   try {
     await api.setColorMode(mode);
   } catch {
-    showToast("Failed to save theme preference");
+    showToast(get(t)("toast.boot.failedToSave.theme", undefined));
   }
 }
 
@@ -598,7 +616,18 @@ export async function setThemeMode(mode: ThemeMode) {
   try {
     await api.setThemeMode(mode);
   } catch {
-    showToast("Failed to save light/dark preference");
+    showToast(get(t)("toast.boot.failedToSave.lightDark", undefined));
+  }
+}
+
+/** i18n roadmap — UI display language override, independent of theme. */
+export async function setLanguageMode(mode: LanguageMode) {
+  languageMode.set(mode);
+  applyLocaleToDom(get(locale));
+  try {
+    await api.setLanguageMode(mode);
+  } catch {
+    showToast(get(t)("toast.boot.failedToSave.language", undefined));
   }
 }
 
@@ -607,7 +636,7 @@ export async function setWordWrap(enabled: boolean) {
   try {
     await api.setWordWrap(enabled);
   } catch {
-    showToast("Failed to save word-wrap preference");
+    showToast(get(t)("toast.boot.failedToSave.wordWrap", undefined));
   }
 }
 
@@ -619,7 +648,7 @@ export async function setReadableLineLength(enabled: boolean) {
   try {
     await api.setReadableLineLength(enabled);
   } catch {
-    showToast("Failed to save reading-width preference");
+    showToast(get(t)("toast.boot.failedToSave.readingWidth", undefined));
   }
 }
 
@@ -628,7 +657,7 @@ export async function setAutoCheckUpdates(enabled: boolean) {
   try {
     await api.setAutoCheckUpdates(enabled);
   } catch {
-    showToast("Failed to save update-check preference");
+    showToast(get(t)("toast.boot.failedToSave.updateCheck", undefined));
   }
 }
 
@@ -640,7 +669,7 @@ export async function setCalendarSyncEnabled(enabled: boolean) {
   try {
     await api.setCalendarSyncEnabled(enabled);
   } catch {
-    showToast("Failed to save calendar-sync preference");
+    showToast(get(t)("toast.boot.failedToSave.calendarSync", undefined));
   }
 }
 
@@ -650,7 +679,7 @@ export async function setFontSize(size: number) {
   try {
     await api.setFontSize(clamped);
   } catch {
-    showToast("Failed to save font size preference");
+    showToast(get(t)("toast.boot.failedToSave.fontSize", undefined));
   }
 }
 
@@ -660,7 +689,7 @@ export async function setLineHeight(height: number) {
   try {
     await api.setLineHeight(clamped);
   } catch {
-    showToast("Failed to save line height preference");
+    showToast(get(t)("toast.boot.failedToSave.lineHeight", undefined));
   }
 }
 
@@ -670,6 +699,6 @@ export async function setPureBlack(enabled: boolean) {
   try {
     await api.setPureBlack(enabled);
   } catch {
-    showToast("Failed to save pure black preference");
+    showToast(get(t)("toast.boot.failedToSave.pureBlack", undefined));
   }
 }

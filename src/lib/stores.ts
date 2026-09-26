@@ -11,6 +11,7 @@ import type {
   ActionSnapshotItem,
   ColorMode,
   HistoryDestination,
+  LanguageMode,
   NoteTab,
   SearchResultItem,
   SectionOccurrence,
@@ -66,6 +67,11 @@ export const colorMode = writable<ColorMode>("color");
  * glyph palette). Mirrors `AppConfig.themeMode`; `applyThemeModeToDom()`
  * (`boot.ts`) reflects it onto `<html data-theme>` for `app.css`. */
 export const themeMode = writable<ThemeMode>("system");
+/** i18n roadmap: UI display language override. Mirrors
+ * `AppConfig.languageMode`. `"system"` means "no override" — `./i18n`'s
+ * `locale` store resolves the actual display language from the
+ * browser/webview's own reported language in that case. */
+export const languageMode = writable<LanguageMode>("system");
 /** Soft word-wrap in the editor (§80). Mirrors `AppConfig.wordWrap`;
  * `EditorPane` subscribes to it and reconfigures a CodeMirror compartment
  * live, so toggling takes effect without a remount. Off by default. */

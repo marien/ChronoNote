@@ -11,15 +11,17 @@
     type DayHeatState,
     formatISO,
     monthGrid,
-    MONTH_NAMES,
+    monthName,
+    weekdayAbbrev,
     parseDateQuery,
     parseISODateLocal,
     todayISO,
   } from "../../date";
   import { countActions } from "../../tokens";
   import Icon from "../../icons/Icon.svelte";
+  import { t, locale } from "../../i18n";
 
-  const WEEKDAYS = ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"];
+  const WEEKDAY_INDICES = [0, 1, 2, 3, 4, 5, 6];
   const today = todayISO();
 
   let popEl: HTMLDivElement;
@@ -220,37 +222,37 @@
   class="datepicker-pop"
   bind:this={popEl}
   role="dialog"
-  aria-label="Jump to date"
+  aria-label={$t("datePicker.ariaLabel")}
   use:focusTrap
   style={anchorStyle}
 >
   <input
     class="datepicker-jump"
     bind:this={inputEl}
-    placeholder="Jump to date — today, -2, 2026-09-05…"
+    placeholder={$t("datePicker.jumpPlaceholder")}
     bind:value={jumpQuery}
     on:keydown={onJumpKeydown}
     autocomplete="off"
-    aria-label="Jump to a date by typing"
+    aria-label={$t("datePicker.jumpAriaLabel")}
   />
 
   <div class="cal-head">
-    <button type="button" class="cal-nav" aria-label="Previous month" on:click={() => shiftMonth(-1)}>
+    <button type="button" class="cal-nav" aria-label={$t("datePicker.previousMonth")} on:click={() => shiftMonth(-1)}>
       <Icon name="chevron-left" size={14} />
     </button>
     <span class="cal-title-wrap">
-      <span class="cal-title" aria-live="polite">{MONTH_NAMES[month]} {year}</span>
+      <span class="cal-title" aria-live="polite">{monthName($locale, month)} {year}</span>
       {#if loadingAll}
-        <span class="modal-spinner" title="Loading older notes…" aria-label="Loading older notes">⟳</span>
+        <span class="modal-spinner" title="{$t('datePicker.loadingOlderNotes')}…" aria-label={$t("datePicker.loadingOlderNotes")}>⟳</span>
       {/if}
     </span>
-    <button type="button" class="cal-nav" aria-label="Next month" on:click={() => shiftMonth(1)}>
+    <button type="button" class="cal-nav" aria-label={$t("datePicker.nextMonth")} on:click={() => shiftMonth(1)}>
       <Icon name="chevron-right" size={14} />
     </button>
   </div>
 
   <div class="cal-weekdays" aria-hidden="true">
-    {#each WEEKDAYS as w}<span>{w}</span>{/each}
+    {#each WEEKDAY_INDICES as i}<span>{weekdayAbbrev($locale, i)}</span>{/each}
   </div>
 
   <div class="cal-grid" role="grid" tabindex="-1" bind:this={gridEl} on:keydown={onGridKeydown}>
@@ -270,13 +272,13 @@
         tabindex={cell.iso === focusedIso ? 0 : -1}
         aria-label={`${cell.iso}${
           heatByIso.get(cell.iso) === "done"
-            ? ", all tasks completed"
+            ? $t("datePicker.day.allDone")
             : heatByIso.get(cell.iso) === "pending"
-              ? ", open actions pending"
+              ? $t("datePicker.day.pending")
               : heatByIso.get(cell.iso) === "log"
-                ? ", note log with no tasks"
+                ? $t("datePicker.day.log")
                 : noteByIso.has(cell.iso)
-                  ? ", has a note"
+                  ? $t("datePicker.day.hasNote")
                   : ""
         }`}
         aria-current={cell.iso === today ? "date" : undefined}
@@ -288,7 +290,7 @@
   </div>
 
   <div class="cal-foot">
-    <button type="button" class="cal-today-btn" on:click={goToday}>Today</button>
-    <span class="cal-hint">Esc to close</span>
+    <button type="button" class="cal-today-btn" on:click={goToday}>{$t("datePicker.today")}</button>
+    <span class="cal-hint">{$t("datePicker.escToClose")}</span>
   </div>
 </div>

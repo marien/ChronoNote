@@ -10,6 +10,7 @@
   import Segmented from "../Segmented.svelte";
   import type { SearchResultItem } from "../../types";
   import { parseSearchQuery, removeChipFromQuery, type SearchFilterChip } from "../../search";
+  import { t } from "../../i18n";
   import {
     MODAL_HEADER_ROW_HEIGHT,
     SEARCH_ITEM_ROW_HEIGHT,
@@ -193,26 +194,26 @@
 </script>
 
 <div class="overlay" role="presentation" use:closeOnOutsideClick={controller.closeAllModals}>
-  <div class="modal-card modal-lg" role="dialog" aria-modal="true" use:focusTrap aria-label="Cross-tab search">
+  <div class="modal-card modal-lg" role="dialog" aria-modal="true" use:focusTrap aria-label={$t("shortcuts.crossTabSearch.label")}>
     <div class="modal-input-wrap">
       <Icon name="search" size={15} />
       <input
         class="modal-input"
-        placeholder="Search..."
+        placeholder={$t("searchModal.placeholder")}
         bind:value={query}
         bind:this={inputEl}
         on:keydown={onKeydown}
         autocomplete="off"
       />
       {#if searching}
-        <span class="modal-spinner" aria-label="Searching">⟳</span>
+        <span class="modal-spinner" aria-label={$t("searchModal.searchingAriaLabel")}>⟳</span>
       {:else}
-        <span class="modal-counter">{flatList.length} match(es)</span>
+        <span class="modal-counter">{$t("searchModal.matchCount", { count: flatList.length })}</span>
       {/if}
       <button
         type="button"
         class="icon-btn modal-close-btn"
-        aria-label="Close dialog"
+        aria-label={$t("common.closeDialog")}
         on:click={controller.closeAllModals}
       >
         <Icon name="close" size={14} />
@@ -226,7 +227,7 @@
             <button
               type="button"
               class="chip-remove-btn"
-              aria-label="Remove filter {chip.label}"
+              aria-label={$t("searchModal.removeFilterAriaLabel", { label: chip.label })}
               on:click={() => removeChip(chip)}
             >
               ✕
@@ -239,8 +240,8 @@
       <div class="settings-toggle-row">
         <Segmented
           options={[
-            { value: "open", label: "Open Tabs" },
-            { value: "all", label: "All Files" },
+            { value: "open", label: $t("actionDrawer.scope.openTabs.label") },
+            { value: "all", label: $t("actionDrawer.scope.allFiles.label") },
           ]}
           value={scope}
           onChange={(v) => setScope(v as "open" | "all")}
@@ -256,7 +257,7 @@
       style="position: relative; overflow-y: auto;"
     >
       {#if flatList.length === 0 && query.trim() && !searching}
-        <div class="modal-empty">No matches for &ldquo;{query}&rdquo;.</div>
+        <div class="modal-empty">{$t("searchModal.noMatches", { query })}</div>
       {/if}
       <div style="position: relative; height: {totalHeight}px;">
         {#each visibleRows as row (row.key)}
@@ -325,15 +326,15 @@
                   {/if}
                 </div>
               </div>
-              <div class="item-tag">Ln {item.lineIdx + 1}</div>
+              <div class="item-tag">{$t("actionDrawer.item.lineTag", { line: item.lineIdx + 1 })}</div>
             </div>
           {/if}
         {/each}
       </div>
     </div>
     <div class="modal-footer">
-      <div><kbd>Enter</kbd> Jump to match</div>
-      <div><kbd>Esc</kbd> Close</div>
+      <div><kbd>Enter</kbd> {$t("searchModal.footer.jumpToMatch")}</div>
+      <div><kbd>Esc</kbd> {$t("common.close")}</div>
     </div>
   </div>
 </div>

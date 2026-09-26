@@ -1,4 +1,5 @@
 use super::{OneDriveAccount, OneDriveAdvancedConfig};
+use crate::error::AppError;
 use base64::Engine;
 use rand::RngCore;
 use serde::{Deserialize, Serialize};
@@ -145,7 +146,7 @@ pub async fn exchange_code(
     redirect_uri: &str,
     code: &str,
     verifier: &str,
-) -> Result<TokenExchange, String> {
+) -> Result<TokenExchange, AppError> {
     let params = [
         ("client_id", client_id),
         ("grant_type", "authorization_code"),
@@ -159,21 +160,19 @@ pub async fn exchange_code(
         .form(&params)
         .send()
         .await
-        .map_err(|e| format!("Failed to send token request: {e}"))?;
+        .map_err(|e| AppError::OneDriveTokenRequestFailed { detail: e.to_string() })?;
 
     if !resp.status().is_success() {
         let err_text = resp.text().await.unwrap_or_default();
-        return Err(format!("OAuth token exchange failed: {err_text}"));
+        return Err(AppError::OneDriveTokenExchangeRejected { detail: err_text });
     }
 
     let token_data: TokenResponse = resp
         .json()
         .await
-        .map_err(|e| format!("Failed to parse token response: {e}"))?;
+        .map_err(|e| AppError::OneDriveTokenResponseUnparseable { detail: e.to_string() })?;
 
-    let refresh_token = token_data.refresh_token.ok_or_else(|| {
-        "Microsoft didn't return a refresh token — check the app registration requests the offline_access scope.".to_string()
-    })?;
+    let refresh_token = token_data.refresh_token.ok_or(AppError::OneDriveMissingRefreshTokenScope)?;
 
     let now = SystemTime::now()
         .duration_since(UNIX_EPOCH)

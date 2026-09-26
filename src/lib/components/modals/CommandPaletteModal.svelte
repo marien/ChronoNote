@@ -2,10 +2,11 @@
   import { onMount, tick } from "svelte";
   import * as controller from "../../controller";
   import type { PaletteItem } from "../../commandPalette";
-  import { splitHighlighted } from "../../commandPalette";
+  import { splitHighlighted, COMMAND_PALETTE_GROUP_KEYS } from "../../commandPalette";
   import { focusTrap } from "../../actions/focusTrap";
   import { closeOnOutsideClick } from "../../actions/closeOnOutsideClick";
   import Icon from "../../icons/Icon.svelte";
+  import { t } from "../../i18n";
 
   let query = "";
   let items: PaletteItem[] = [];
@@ -115,26 +116,25 @@
     inputEl?.focus();
   }
 
-  const PLACEHOLDER = "Type a command…";
 </script>
 
 <div class="overlay" role="presentation" use:closeOnOutsideClick={controller.closeAllModals}>
-  <div class="modal-card modal-md" role="dialog" aria-modal="true" use:focusTrap aria-label="Command palette">
+  <div class="modal-card modal-md" role="dialog" aria-modal="true" use:focusTrap aria-label={$t("commandPalette.modal.ariaLabel")}>
     <div class="modal-input-wrap">
       <Icon name="command" size={15} />
       <input
         class="modal-input"
-        placeholder={PLACEHOLDER}
+        placeholder={$t("commandPalette.modal.placeholder")}
         bind:value={query}
         bind:this={inputEl}
         on:keydown={onKeydown}
         autocomplete="off"
-        aria-label="Command palette query"
+        aria-label={$t("commandPalette.modal.queryAriaLabel")}
       />
       <button
         type="button"
         class="icon-btn modal-close-btn"
-        aria-label="Close dialog"
+        aria-label={$t("common.closeDialog")}
         on:click={controller.closeAllModals}
       >
         <Icon name="close" size={14} />
@@ -149,30 +149,31 @@
         class="palette-chip"
         class:active={query.trim().startsWith(">")}
         on:click={() => setPrefix(">")}
-      ><kbd>&gt;</kbd> commands</button>
+      ><kbd>&gt;</kbd> {$t("commandPalette.legend.commands")}</button>
       <button
         type="button"
         class="palette-chip"
         class:active={query.trim().startsWith("!") || query.trim().startsWith("#")}
         on:click={() => setPrefix("!")}
-      ><kbd>!</kbd> actions</button>
+      ><kbd>!</kbd> {$t("commandPalette.legend.actions")}</button>
       <button
         type="button"
         class="palette-chip"
         class:active={query.trim().startsWith("@")}
         on:click={() => setPrefix("@")}
-      ><kbd>@</kbd> dates</button>
+      ><kbd>@</kbd> {$t("commandPalette.legend.dates")}</button>
       <button
         type="button"
         class="palette-chip"
         class:active={query.trim().startsWith("?")}
         on:click={() => setPrefix("?")}
-      ><kbd>?</kbd> shortcuts</button>
+      ><kbd>?</kbd> {$t("commandPalette.legend.shortcuts")}</button>
     </div>
-    <div class="modal-list" bind:this={listEl} role="listbox" aria-label="Results">
+    <div class="modal-list" bind:this={listEl} role="listbox" aria-label={$t("commandPalette.modal.resultsAriaLabel")}>
       {#each rows as row (("header" in row ? "h:" + row.header : "i:" + row.item.id))}
         {#if "header" in row}
-          <div class="modal-group-header">{row.header}</div>
+          {@const groupKey = COMMAND_PALETTE_GROUP_KEYS[row.header]}
+          <div class="modal-group-header">{groupKey ? $t(groupKey) : row.header}</div>
         {:else}
           <div
             class="modal-item {row.idx === selected ? 'selected' : ''}"
@@ -204,12 +205,12 @@
         {/if}
       {/each}
       {#if items.length === 0}
-        <div class="modal-empty">No matches.</div>
+        <div class="modal-empty">{$t("commandPalette.noMatches")}</div>
       {/if}
     </div>
     <div class="modal-footer">
-      <div><kbd>↑</kbd><kbd>↓</kbd> Navigate · <kbd>Enter</kbd> Run</div>
-      <div><kbd>Esc</kbd> Close</div>
+      <div><kbd>↑</kbd><kbd>↓</kbd> {$t("commandPalette.footer.navigate")} · <kbd>Enter</kbd> {$t("commandPalette.footer.run")}</div>
+      <div><kbd>Esc</kbd> {$t("common.close")}</div>
     </div>
   </div>
 </div>

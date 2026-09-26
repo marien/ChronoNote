@@ -9,6 +9,7 @@
  * `controller.ts` in the v0.5.0 refactor. Depends on stores + persistence +
  * tabs (`jumpToFileLine`) + tokens + copyForward. */
 import { get } from "svelte/store";
+import { t } from "./i18n";
 import { computeDayHeat, todayISO, type DayHeatState } from "./date";
 import {
   activeTabId,
@@ -63,19 +64,28 @@ async function computeHistoryDestinations(
   targetHeader: string,
   sourceHeaderDisplay: string,
 ): Promise<HistoryDestination[]> {
+  const translate = get(t);
   const today = todayISO();
   const openedFromDate = openedFromTab.isScratchpad ? null : openedFromTab.filename.replace(/\.txt$/, "");
   if (openedFromDate === null || openedFromDate >= today) {
+    // Non-null: `openedFromDate` is only ever `null` when `isScratchpad` is
+    // true (see its own assignment above), so the two other branches here
+    // — reached only when `isScratchpad` is false — always have a real date.
     const label = openedFromTab.isScratchpad
-      ? `Add to "${openedFromTab.filename}"`
+      ? translate("history.destination.addToQuoted", { name: openedFromTab.filename })
       : openedFromDate === today
-        ? "Add to today"
-        : `Add to ${openedFromDate}`;
+        ? translate("history.destination.addToToday", undefined)
+        : translate("history.destination.addToDate", { date: openedFromDate! });
     return [{ kind: "here", tabId: openedFromTab.id, label }];
   }
 
   const destinations: HistoryDestination[] = [
-    { kind: "today", date: today, headerText: sourceHeaderDisplay, label: "Add to today" },
+    {
+      kind: "today",
+      date: today,
+      headerText: sourceHeaderDisplay,
+      label: translate("history.destination.addToToday", undefined),
+    },
   ];
   try {
     const next = await findNextOccurrenceTarget(openedFromTab.filename, targetHeader, sourceHeaderDisplay);
@@ -84,7 +94,7 @@ async function computeHistoryDestinations(
         kind: "next",
         date: next.date,
         headerText: next.headerText,
-        label: `Add to next occurrence (${next.date})`,
+        label: translate("history.destination.addToNextOccurrence", { date: next.date }),
       });
     }
   } catch {
@@ -117,7 +127,7 @@ export async function openMeetingHistory() {
   const sourceHeaderDisplay = normalizeHeaderTitle(rawHeader);
   const targetHeader = titleForMatching(sourceHeaderDisplay);
   if (!targetHeader) {
-    showToast("Cursor is not on or inside a named section.");
+    showToast(get(t)("toast.history.cursorNotInSection", undefined));
     return;
   }
 

@@ -4,6 +4,7 @@ import type {
   FileMetadata,
   ImportMode,
   ImportResult,
+  LanguageMode,
   NoteWithMetadata,
   OneDriveAccount,
   OneDriveAdvancedConfig,
@@ -40,6 +41,7 @@ export interface TauriCommands {
   set_readable_line_length: { args: { enabled: boolean }; returns: AppConfig };
   set_auto_check_updates: { args: { enabled: boolean }; returns: AppConfig };
   set_theme_mode: { args: { mode: ThemeMode }; returns: AppConfig };
+  set_language_mode: { args: { mode: LanguageMode }; returns: AppConfig };
   set_calendar_sync_enabled: { args: { enabled: boolean }; returns: AppConfig };
   set_font_size: { args: { fontSize: number }; returns: AppConfig };
   set_line_height: { args: { lineHeight: number }; returns: AppConfig };

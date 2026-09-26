@@ -8,7 +8,9 @@ import type {
   FolderSwitchResult,
   ImportMode,
   ImportResult,
+  LanguageMode,
   NoteWithMetadata,
+  OneDriveSyncResult,
   SyncHealth,
   TabSession,
   ThemeMode,
@@ -57,6 +59,10 @@ export function setAutoCheckUpdates(enabled: boolean): Promise<AppConfig> {
 
 export function setThemeMode(mode: ThemeMode): Promise<AppConfig> {
   return invoke("set_theme_mode", { mode });
+}
+
+export function setLanguageMode(mode: LanguageMode): Promise<AppConfig> {
+  return invoke("set_language_mode", { mode });
 }
 
 export function setCalendarSyncEnabled(enabled: boolean): Promise<AppConfig> {
@@ -222,7 +228,7 @@ export function oneDriveExchangeCode(code: string, state?: string): Promise<OneD
   return invoke("onedrive_exchange_code", state === undefined ? { code } : { code, state });
 }
 
-export function oneDriveSyncNow(): Promise<{ success: boolean; message?: string }> {
+export function oneDriveSyncNow(): Promise<OneDriveSyncResult> {
   return invoke("onedrive_sync_now", {});
 }
 

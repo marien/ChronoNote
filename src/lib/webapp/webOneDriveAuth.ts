@@ -1,4 +1,4 @@
-import type { OneDriveAccount, OneDriveAdvancedConfig } from "../types";
+import type { AppError, OneDriveAccount, OneDriveAdvancedConfig } from "../types";
 
 export const DEFAULT_CLIENT_ID = "9b008168-6c13-4f0f-9531-2313e7613ccb";
 export const DEFAULT_TENANT = "common";
@@ -242,22 +242,32 @@ export async function exchangeCode(params: {
     code_verifier: params.verifier,
   });
 
-  const resp = await fetch(url, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/x-www-form-urlencoded",
-    },
-    body: body.toString(),
-  });
+  // i18n Phase 2 (docs/design/i18n-roadmap.md): thrown directly as
+  // `AppError` values (not wrapped in `Error`) so they mirror
+  // `auth.rs::exchange_code`'s own codes exactly — the caller
+  // (`WebOneDriveSyncEngine.exchangeCodeDirect`) passes them straight
+  // through into `OneDriveLoginResult.error` via `toAppError`.
+  let resp: Response;
+  try {
+    resp = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      body: body.toString(),
+    });
+  } catch (e) {
+    throw { code: "oneDriveTokenRequestFailed", detail: e instanceof Error ? e.message : String(e) } satisfies AppError;
+  }
 
   if (!resp.ok) {
     const errText = await resp.text().catch(() => "");
-    throw new Error(`OAuth token exchange failed (${resp.status}): ${errText}`);
+    throw { code: "oneDriveTokenExchangeRejected", detail: errText } satisfies AppError;
   }
 
   const data = await resp.json();
   if (!data.refresh_token) {
-    throw new Error("Microsoft did not return a refresh token — check that offline_access scope is requested.");
+    throw { code: "oneDriveMissingRefreshTokenScope" } satisfies AppError;
   }
 
   const nowSec = Math.floor(Date.now() / 1000);

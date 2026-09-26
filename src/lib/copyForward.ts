@@ -48,6 +48,8 @@ import { extractSectionBody, findNextSectionOccurrenceOnDisk } from "./history";
 import { countOpenActionsInText, deferOpenActionsInText } from "./paste";
 import { getSectionHeaderForLine, normalizeHeaderTitle, titleForMatching } from "./tokens";
 import { underlineFor } from "./sectionFormat";
+import { t } from "./i18n";
+import { describeApiError } from "./apiError";
 
 function matchKey(title: string): string {
   return titleForMatching(normalizeHeaderTitle(title.trim())).toLowerCase();
@@ -266,9 +268,15 @@ async function commitCopyForward(
   }
 
   const n = countOpenActionsInText(selectedText);
-  const dest = target.kind === "tab" ? "here" : `to ${target.dateIso}`;
+  const translate = get(t);
+  const dest =
+    target.kind === "tab"
+      ? translate("toast.copyForward.destHere", undefined)
+      : translate("toast.copyForward.destToDate", { date: target.dateIso });
   showToast(
-    n > 0 ? `Copied ${dest} — ${n} open ${n === 1 ? "action" : "actions"} marked deferred here.` : `Copied ${dest}.`,
+    n > 0
+      ? translate("toast.copyForward.copiedWithCount", { dest, count: n })
+      : translate("toast.copyForward.copied", { dest }),
   );
 }
 
@@ -279,13 +287,13 @@ async function commitCopyForward(
 export async function copySelectionToNextOccurrence(): Promise<void> {
   const tab = get(tabs).find((t) => t.id === get(activeTabId));
   if (!tab || tab.isScratchpad) {
-    showToast("Not available in a scratchpad — there's no next occurrence to copy to.");
+    showToast(get(t)("toast.copyForward.notAvailableInScratchpad", undefined));
     return;
   }
   if (!editorApi) return;
   const sel = editorApi.getSelection();
   if (!sel.text.trim()) {
-    showToast("Nothing to copy — nothing on this line, or in the selection.");
+    showToast(get(t)("toast.copyForward.nothingToCopy", undefined));
     return;
   }
 
@@ -294,7 +302,7 @@ export async function copySelectionToNextOccurrence(): Promise<void> {
   const sourceHeaderDisplay = normalizeHeaderTitle(rawHeader);
   const targetHeader = titleForMatching(sourceHeaderDisplay);
   if (!targetHeader) {
-    showToast("The selection isn't inside a named section.");
+    showToast(get(t)("toast.copyForward.notInNamedSection", undefined));
     return;
   }
 
@@ -302,7 +310,7 @@ export async function copySelectionToNextOccurrence(): Promise<void> {
   try {
     found = await findNextOccurrenceTarget(tab.filename, targetHeader, sourceHeaderDisplay);
   } catch (e) {
-    showToast(e instanceof Error ? e.message : "Couldn't read the calendar.");
+    showToast(describeApiError(e));
     return;
   }
 
@@ -327,7 +335,7 @@ export async function copySelectionToNextOccurrence(): Promise<void> {
   };
   copyForwardPending.set(pending);
   modal.set("date");
-  showToast("No matching next occurrence found — pick a date.");
+  showToast(get(t)("toast.copyForward.noMatchingOccurrence", undefined));
 }
 
 /** Called by `commitDatePick` (`tabs.ts`) when a `copyForwardPending` is

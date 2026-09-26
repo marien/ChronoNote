@@ -10,6 +10,7 @@ import { openOrCreateDatedFile } from "./tabs";
 import { compareTabsByRecency, sortFilenamesByRecency } from "./tabSort";
 import { cycleActionSymbol, getSectionHeaderForLine, normalizeHeaderTitle } from "./tokens";
 import { todayISO } from "./date";
+import { t } from "./i18n";
 import type { ActionSnapshotItem } from "./types";
 
 /** "Action lines" the drawer surfaces: all four action states (`# `/
@@ -144,7 +145,7 @@ export function forwardActionToToday(tabId: string, lineIdx: number) {
     });
   }
   tabs.set(next);
-  showToast("Forwarded to today's top priorities!");
+  showToast(get(t)("toast.actions.forwardedToToday", undefined));
 }
 
 /** Toggle/forward for an Action Drawer item that may come from "All Files"

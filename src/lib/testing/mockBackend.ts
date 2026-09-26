@@ -30,7 +30,7 @@
  *     by `list_note_files` / `read_all_notes`.
  */
 import { activeTitlesAfterDate, activeTitlesForDate, removedTitlesForDate as removedTitlesForDateShared } from "../agendaTitles";
-import type { AppConfig, ColorMode, FileMetadata, TabSession, ThemeMode } from "../types";
+import type { AppConfig, AppError, ColorMode, FileMetadata, LanguageMode, TabSession, ThemeMode } from "../types";
 import type { CommandArgs, CommandReturn, OneDriveAdvancedConfig, TauriCommand, TauriCommands } from "../tauriCommands";
 import { isValidNoteFilename } from "../noteFilename";
 
@@ -43,6 +43,7 @@ export interface MockSeed {
   session?: TabSession | null;
   colorMode?: ColorMode;
   themeMode?: ThemeMode;
+  languageMode?: LanguageMode;
   wordWrap?: boolean;
   readableLineLength?: boolean;
   autoCheckUpdates?: boolean;
@@ -123,6 +124,7 @@ const MUTATING_COMMANDS = new Set([
   "set_notes_dir",
   "set_color_mode",
   "set_theme_mode",
+  "set_language_mode",
   "set_word_wrap",
   "set_readable_line_length",
   "set_auto_check_updates",
@@ -181,8 +183,6 @@ function isAgendaMeeting(x: unknown): x is AgendaMeeting {
   );
 }
 
-const AGENDA_ERROR = "The calendar file (.agenda.json) is missing, empty, or invalid — check whatever syncs it.";
-
 /** Mirrors `src-tauri/src/agenda.rs`'s `parse_agenda` + `titles_for_date`
  * exactly: scoped to `date`, sorted by (start, end, title), de-duplicated
  * on the exact (start, end, title) tuple. Throws — rather than resolving
@@ -200,10 +200,10 @@ function parseAgendaMeetings(raw: string | undefined): AgendaMeeting[] {
   try {
     parsed = JSON.parse((raw ?? "").trim());
   } catch {
-    throw new Error(AGENDA_ERROR);
+    throw { code: "agendaInvalid" } satisfies AppError;
   }
   if (!Array.isArray(parsed) || parsed.length === 0 || !parsed.every(isAgendaMeeting)) {
-    throw new Error(AGENDA_ERROR);
+    throw { code: "agendaInvalid" } satisfies AppError;
   }
   return parsed as AgendaMeeting[];
 }
@@ -239,6 +239,7 @@ export class MockBackend {
   notesDir: string;
   colorMode: ColorMode;
   themeMode: ThemeMode;
+  languageMode: LanguageMode;
   wordWrap: boolean;
   readableLineLength: boolean;
   autoCheckUpdates: boolean;
@@ -312,6 +313,7 @@ export class MockBackend {
     this.notesDir = seed.notesDir ?? "/notes";
     this.colorMode = seed.colorMode ?? "color"; // mirrors storage.rs's ColorMode::default()
     this.themeMode = seed.themeMode ?? "system";
+    this.languageMode = seed.languageMode ?? "system";
     this.wordWrap = seed.wordWrap ?? false;
     this.readableLineLength = seed.readableLineLength ?? false;
     this.autoCheckUpdates = seed.autoCheckUpdates ?? true;
@@ -361,6 +363,7 @@ export class MockBackend {
       notesDir: this.notesDir,
       colorMode: this.colorMode,
       themeMode: this.themeMode,
+      languageMode: this.languageMode,
       wordWrap: this.wordWrap,
       readableLineLength: this.readableLineLength,
       autoCheckUpdates: this.autoCheckUpdates,
@@ -397,6 +400,7 @@ export class MockBackend {
         notesDir: string;
         colorMode: ColorMode;
         themeMode?: ThemeMode;
+        languageMode?: LanguageMode;
         wordWrap?: boolean;
         readableLineLength?: boolean;
         autoCheckUpdates?: boolean;
@@ -414,6 +418,7 @@ export class MockBackend {
       b.notesDir = s.notesDir;
       b.colorMode = s.colorMode;
       b.themeMode = s.themeMode ?? "system";
+      b.languageMode = s.languageMode ?? "system";
       b.wordWrap = s.wordWrap ?? false;
       b.autoCheckUpdates = s.autoCheckUpdates ?? true;
       b.lastSeenVersion = s.lastSeenVersion ?? null;
@@ -451,6 +456,7 @@ export class MockBackend {
       notesDir: this.notesDir,
       colorMode: this.colorMode,
       themeMode: this.themeMode,
+      languageMode: this.languageMode,
       wordWrap: this.wordWrap,
       readableLineLength: this.readableLineLength,
       recentNotesDirs: [...this.recentNotesDirs],
@@ -538,6 +544,11 @@ export class MockBackend {
 
     set_theme_mode: ({ mode }) => {
       this.themeMode = mode;
+      return this.config();
+    },
+
+    set_language_mode: ({ mode }) => {
+      this.languageMode = mode;
       return this.config();
     },
 
@@ -704,9 +715,9 @@ export class MockBackend {
       pending: false,
     }),
     onedrive_sync_now: () => {
-      if (this.oneDriveSyncError) return { success: false, message: this.oneDriveSyncError };
+      if (this.oneDriveSyncError) return { success: false, message: { code: "other", detail: this.oneDriveSyncError } };
       this.lastSyncSuccessMs = Date.now();
-      return { success: true, message: "Synced" };
+      return { success: true };
     },
     // Mirrors `sync.rs::list_conflicts` / `resolve_conflict_files`.
     onedrive_get_conflicts: () =>

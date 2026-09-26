@@ -9,6 +9,7 @@
   import { groupHeaderLabel } from "../../ui/listFormat";
   import Icon from "../../icons/Icon.svelte";
   import Segmented from "../Segmented.svelte";
+  import { t } from "../../i18n";
   import type { ActionSnapshotItem } from "../../types";
   import {
     MODAL_HEADER_ROW_HEIGHT,
@@ -242,22 +243,22 @@
 </script>
 
 <div class="overlay" role="presentation" use:closeOnOutsideClick={controller.closeAllModals}>
-  <div class="modal-card modal-lg" role="dialog" aria-modal="true" use:focusTrap aria-label="Actions">
+  <div class="modal-card modal-lg" role="dialog" aria-modal="true" use:focusTrap aria-label={$t("actionDrawer.modal.ariaLabel")}>
     <div class="modal-input-wrap">
       <Icon name="actions" size={15} />
       <input
         class="modal-input"
-        placeholder="Filter my actions (type @ to include delegated)..."
+        placeholder={$t("actionDrawer.filterPlaceholder")}
         bind:value={filter}
         bind:this={inputEl}
         on:keydown={onKeydown}
         autocomplete="off"
       />
-      <span class="modal-counter">{uncompletedCount} open / {flatList.length} listed</span>
+      <span class="modal-counter">{$t("actionDrawer.counter", { open: uncompletedCount, listed: flatList.length })}</span>
       <button
         type="button"
         class="icon-btn modal-close-btn"
-        aria-label="Close dialog"
+        aria-label={$t("common.closeDialog")}
         on:click={controller.closeAllModals}
       >
         <Icon name="close" size={14} />
@@ -267,20 +268,20 @@
       <div class="settings-toggle-row">
         <Segmented
           options={[
-            { value: "open", label: "Open Tabs", title: "Notes currently open as a tab" },
-            { value: "other", label: "Other Notes", title: "Notes on disk that aren't open in a tab" },
-            { value: "all", label: "All Files", title: "Every note, whether or not it's open in a tab" },
+            { value: "open", label: $t("actionDrawer.scope.openTabs.label"), title: $t("actionDrawer.scope.openTabs.title") },
+            { value: "other", label: $t("actionDrawer.scope.otherNotes.label"), title: $t("actionDrawer.scope.otherNotes.title") },
+            { value: "all", label: $t("actionDrawer.scope.allFiles.label"), title: $t("actionDrawer.scope.allFiles.title") },
           ]}
           value={scope}
           onChange={(v) => setScope(v as "open" | "other" | "all")}
         />
         {#if loadingAllFiles}
-          <span class="modal-spinner" aria-label="Loading">⟳</span>
+          <span class="modal-spinner" aria-label={$t("common.loading")}>⟳</span>
         {/if}
-        <label class="toggle-switch" title="Show only unresolved (open) actions — hide done, deferred, and won't-do lines">
+        <label class="toggle-switch" title={$t("actionDrawer.onlyOpen.title")}>
           <input type="checkbox" bind:checked={$actionDrawerShowOnlyOpen} />
           <span class="toggle-switch-track"></span>
-          Only Open
+          {$t("actionDrawer.onlyOpen.label")}
         </label>
       </div>
     </div>
@@ -294,7 +295,7 @@
     >
       {#if flatList.length === 0}
         <div class="modal-empty">
-          {filter ? `No actions match “${filter}”.` : "Nothing here — every action is resolved."}
+          {filter ? $t("actionDrawer.empty.noMatch", { filter }) : $t("actionDrawer.empty.allResolved")}
         </div>
       {/if}
       {#if stickyHeader}
@@ -339,7 +340,7 @@
                 <span class={sym === "v" || sym === "x" ? "item-completed" : ""}>{stripLeadingToken(item.line)}</span>
               </div>
               {#if item.header}<span class="item-breadcrumb">· {item.header}</span>{/if}
-              <div class="item-tag">Ln {item.lineIdx + 1}</div>
+              <div class="item-tag">{$t("actionDrawer.item.lineTag", { line: item.lineIdx + 1 })}</div>
             </div>
           {/if}
         {/each}
@@ -347,10 +348,10 @@
     </div>
     <div class="modal-footer">
       <div>
-        <kbd>Enter</kbd> Jump · <kbd>Shift+Enter</kbd> Forward to Today ·
-        <kbd>Ctrl+Space</kbd> Cycle · <kbd>Ctrl+Shift+Space</kbd> Cycle back
+        <kbd>Enter</kbd> {$t("actionDrawer.footer.jump")} · <kbd>Shift+Enter</kbd> {$t("actionDrawer.footer.forwardToToday")} ·
+        <kbd>Ctrl+Space</kbd> {$t("actionDrawer.footer.cycle")} · <kbd>Ctrl+Shift+Space</kbd> {$t("actionDrawer.footer.cycleBack")}
       </div>
-      <div><kbd>Esc</kbd> Close</div>
+      <div><kbd>Esc</kbd> {$t("common.close")}</div>
     </div>
   </div>
 </div>

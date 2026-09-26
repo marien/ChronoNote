@@ -30,7 +30,7 @@
  * placeholder is never actually shown.
  */
 import { activeTitlesAfterDate, activeTitlesForDate, removedTitlesForDate } from "../agendaTitles";
-import type { AppConfig, ColorMode, FileMetadata, TabSession, ThemeMode } from "../types";
+import type { AppConfig, AppError, ColorMode, FileMetadata, LanguageMode, TabSession, ThemeMode } from "../types";
 import type { CommandArgs, CommandReturn, TauriCommand, TauriCommands } from "../tauriCommands";
 import { isValidNoteFilename } from "../noteFilename";
 import { IDB_META_KEYS, IDB_STORES, idbClear, idbDelete, idbGet, idbGetAllEntries, idbGetAllKeys, idbPut, openDb } from "./idb";
@@ -61,6 +61,7 @@ interface StoredNote {
 interface StoredConfig {
   colorMode: ColorMode;
   themeMode: ThemeMode;
+  languageMode: LanguageMode;
   wordWrap: boolean;
   readableLineLength: boolean;
   autoCheckUpdates: boolean;
@@ -238,6 +239,7 @@ export class WebBackend {
       stored ?? {
         colorMode: "color", // mirrors storage.rs's ColorMode::default() (§140)
         themeMode: "system",
+        languageMode: "system",
         wordWrap: false,
         readableLineLength: false,
         autoCheckUpdates: true,
@@ -267,6 +269,7 @@ export class WebBackend {
       notesDir: dir,
       colorMode: cfg.colorMode,
       themeMode: cfg.themeMode,
+      languageMode: cfg.languageMode,
       wordWrap: cfg.wordWrap,
       readableLineLength: cfg.readableLineLength,
       recentNotesDirs: [],
@@ -308,6 +311,13 @@ export class WebBackend {
     set_theme_mode: async ({ mode }) => {
       const cfg = await this.loadConfig();
       cfg.themeMode = mode;
+      await this.saveConfig(cfg);
+      return this.toAppConfig(cfg);
+    },
+
+    set_language_mode: async ({ mode }) => {
+      const cfg = await this.loadConfig();
+      cfg.languageMode = mode;
       await this.saveConfig(cfg);
       return this.toAppConfig(cfg);
     },
@@ -503,7 +513,7 @@ export class WebBackend {
       const store = await this.getActiveNotesStore();
       const note = await idbGet<StoredNote>(db, store, ".agenda.json");
       if (!note || !note.content.trim()) {
-        throw new Error("The calendar file (.agenda.json) is missing, empty, or invalid — check whatever syncs it.");
+        throw { code: "agendaInvalid" } satisfies AppError;
       }
       try {
         const meetings: Array<{ date: string; start: string; end: string; title: string }> = JSON.parse(note.content.trim());
@@ -512,7 +522,7 @@ export class WebBackend {
         }
         return activeTitlesForDate(meetings, date);
       } catch {
-        throw new Error("The calendar file (.agenda.json) is missing, empty, or invalid — check whatever syncs it.");
+        throw { code: "agendaInvalid" } satisfies AppError;
       }
     },
 
@@ -522,7 +532,7 @@ export class WebBackend {
       const store = await this.getActiveNotesStore();
       const note = await idbGet<StoredNote>(db, store, ".agenda.json");
       if (!note || !note.content.trim()) {
-        throw new Error("The calendar file (.agenda.json) is missing, empty, or invalid — check whatever syncs it.");
+        throw { code: "agendaInvalid" } satisfies AppError;
       }
       try {
         const meetings: Array<{ date: string; start: string; end: string; title: string }> = JSON.parse(note.content.trim());
@@ -531,7 +541,7 @@ export class WebBackend {
         }
         return removedTitlesForDate(meetings, date);
       } catch {
-        throw new Error("The calendar file (.agenda.json) is missing, empty, or invalid — check whatever syncs it.");
+        throw { code: "agendaInvalid" } satisfies AppError;
       }
     },
 
@@ -540,7 +550,7 @@ export class WebBackend {
       const store = await this.getActiveNotesStore();
       const note = await idbGet<StoredNote>(db, store, ".agenda.json");
       if (!note || !note.content.trim()) {
-        throw new Error("The calendar file (.agenda.json) is missing, empty, or invalid — check whatever syncs it.");
+        throw { code: "agendaInvalid" } satisfies AppError;
       }
       try {
         const meetings: Array<{ date: string; start: string; end: string; title: string }> = JSON.parse(note.content.trim());
@@ -549,7 +559,7 @@ export class WebBackend {
         }
         return activeTitlesAfterDate(meetings, afterDate);
       } catch {
-        throw new Error("The calendar file (.agenda.json) is missing, empty, or invalid — check whatever syncs it.");
+        throw { code: "agendaInvalid" } satisfies AppError;
       }
     },
 

@@ -4,31 +4,39 @@
   import { closeOnOutsideClick } from "../../actions/closeOnOutsideClick";
   import { focusScrollableList, scrollableListKeys } from "../../actions/focusScrollableList";
   import Icon from "../../icons/Icon.svelte";
-  import { DRAWER_ROWS, shortcutById, formatShortcut } from "../../shortcuts";
+  import { t } from "../../i18n";
+  import { DRAWER_ROWS, SHORTCUT_LABEL_KEYS, formatShortcut } from "../../shortcuts";
 
   // Built from the shared registry (`shortcuts.ts`), in the same order
-  // this list has always read in — a plain id pulls that entry's label
-  // and platform-correct combo text; a literal `[string, string]` tuple
-  // is one of the two rows that aren't modifier-bearing key combos at
-  // all ("click a glyph" is a mouse action, "Escape" has no modifier),
-  // so there's nothing for the registry to add for either. An id with no
-  // combo on this platform (`caretLineNav` on Mac — see that entry's
-  // comment) is dropped rather than shown as an empty row.
-  const rows = DRAWER_ROWS;
-  const shortcuts: [string, string][] = rows
-    .map((row): [string, string] => (Array.isArray(row) ? row : [formatShortcut(row), shortcutById(row).label]))
-    .filter(([keys]) => keys !== "");
+  // this list has always read in — a plain id (or a tuple's pseudo-id)
+  // looks up its translated label via `SHORTCUT_LABEL_KEYS`, alongside
+  // the platform-correct combo text (never translated — see shortcuts.ts).
+  // An id with no combo on this platform (`caretLineNav` on Mac — see
+  // that entry's comment) is dropped rather than shown as an empty row.
+  // Reactive on `$t` so a language change re-renders every row.
+  let shortcuts: [string, string][];
+  $: shortcuts = DRAWER_ROWS.map((row): [string, string] =>
+    Array.isArray(row)
+      ? [row[0], $t(SHORTCUT_LABEL_KEYS[row[1] as keyof typeof SHORTCUT_LABEL_KEYS])]
+      : [formatShortcut(row), $t(SHORTCUT_LABEL_KEYS[row as keyof typeof SHORTCUT_LABEL_KEYS])],
+  ).filter(([keys]) => keys !== "");
 
   // Same `.glyph-*` classes the editor uses, so this follows the
   // colour/grayscale toggle for free.
-  const glyphs: [string, string, string, string][] = [
-    ["# ", "☐", "glyph-open", "Open action — something still to do"],
-    ["v ", "☑", "glyph-done", "Done"],
-    ["> ", "»", "glyph-progress", "Deferred — pushed forward to a later note"],
-    ["x ", "☒", "glyph-cancelled", "Won't do — closed without doing it"],
-    ["- / * ", "•", "glyph-bullet", "Bulleted list item (Enter continues it, an empty one ends it, Tab nests by two spaces)"],
-    ["=> ", "➔", "glyph-followup", "Follow-up — a plain note leading from this line"],
+  let glyphs: [string, string, string, string][];
+  $: glyphs = [
+    ["# ", "☐", "glyph-open", $t("shortcuts.modal.glyph.open")],
+    ["v ", "☑", "glyph-done", $t("shortcuts.modal.glyph.done")],
+    ["> ", "»", "glyph-progress", $t("shortcuts.modal.glyph.deferred")],
+    ["x ", "☒", "glyph-cancelled", $t("shortcuts.modal.glyph.wontDo")],
+    ["- / * ", "•", "glyph-bullet", $t("shortcuts.modal.glyph.bullet")],
+    ["=> ", "➔", "glyph-followup", $t("shortcuts.modal.glyph.followUp")],
   ];
+
+  // i18n roadmap: the consequence-action explanation embeds a live
+  // formatted shortcut hint mid-sentence — a genuine parameter, not
+  // static text.
+  $: consequenceActionHint = formatShortcut("setActionOpen").replace(/1$/, "1-4");
 
   let shortcutsTab: "shortcuts" | "glyphs" = "shortcuts";
 </script>
@@ -48,11 +56,11 @@
   >
     <div class="modal-input-wrap modal-title">
       <Icon name="keyboard" size={15} />
-      <span>Shortcuts &amp; Symbols</span>
+      <span>{$t("shortcuts.modal.title")}</span>
       <button
         type="button"
         class="icon-btn modal-close-btn"
-        aria-label="Close dialog"
+        aria-label={$t("common.closeDialog")}
         on:click={controller.closeAllModals}
       >
         <Icon name="close" size={14} />
@@ -66,7 +74,7 @@
         class:active={shortcutsTab === "shortcuts"}
         on:click={() => (shortcutsTab = "shortcuts")}
       >
-        Shortcuts
+        {$t("shortcuts.modal.tab.shortcuts")}
       </button>
       <button
         type="button"
@@ -74,12 +82,12 @@
         class:active={shortcutsTab === "glyphs"}
         on:click={() => (shortcutsTab = "glyphs")}
       >
-        Glyphs &amp; Symbols
+        {$t("shortcuts.modal.tab.glyphs")}
       </button>
     </div>
     <div class="shortcuts-body" class:show-shortcuts={shortcutsTab === "shortcuts"} class:show-glyphs={shortcutsTab === "glyphs"}>
       <div class="shortcuts-col shortcuts-list" use:focusScrollableList style="outline: none;">
-        <div class="modal-group-header">Keyboard shortcuts</div>
+        <div class="modal-group-header">{$t("shortcuts.modal.group.keyboardShortcuts")}</div>
         {#each shortcuts as [keys, label]}
           <div class="modal-item" style="cursor: default;">
             <div class="modal-item-main">
@@ -91,7 +99,7 @@
       </div>
 
       <div class="shortcuts-col shortcuts-list" use:scrollableListKeys style="outline: none;">
-        <div class="modal-group-header">Symbols → glyphs</div>
+        <div class="modal-group-header">{$t("shortcuts.modal.group.symbolsToGlyphs")}</div>
         {#each glyphs as [token, glyph, glyphClass, explanation]}
           <div class="modal-item" style="cursor: default;">
             <div class="modal-item-main"><span>{explanation}</span></div>
@@ -102,18 +110,15 @@
         {/each}
         <div class="modal-item" style="cursor: default;">
           <div class="modal-item-main">
-            <span
-              >Numbered list item — plain text, no glyph. Enter continues with the next number, an empty item ends the
-              list, Tab nests by two spaces; numbers are never rewritten. Sub-items: <kbd>1.1.</kbd>, <kbd>1.2.</kbd></span
-            >
+            <span>{$t("shortcuts.modal.numberedList")} <kbd>1.1.</kbd>, <kbd>1.2.</kbd></span>
           </div>
           <div class="item-tag"><kbd>1. </kbd>&nbsp;/&nbsp;<kbd>2) </kbd>&nbsp;/&nbsp;<kbd>1.1. </kbd></div>
         </div>
         <div class="modal-item" style="cursor: default;">
           <div class="modal-item-main">
             <span
-              >Delegated — follow-up assigned to someone. The <kbd>@name</kbd> is highlighted wherever it sits on a
-              <kbd>=&gt;</kbd> line, and stays real, editable text. Several people: <kbd>(@ana, @ben)</kbd></span
+              >{$t("shortcuts.modal.delegated.part1")}<kbd>@name</kbd>{$t("shortcuts.modal.delegated.part2")}
+              <kbd>=&gt;</kbd>{$t("shortcuts.modal.delegated.part3")}<kbd>(@ana, @ben)</kbd></span
             >
           </div>
           <div class="item-tag">
@@ -124,17 +129,13 @@
         </div>
         <div class="modal-item" style="cursor: default;">
           <div class="modal-item-main">
-            <span>Topic tag — group actions by subject, drawn as a pill only right after the action symbol; the parentheses show while you edit the line</span>
+            <span>{$t("shortcuts.modal.topicTag")}</span>
           </div>
           <div class="item-tag"><kbd># (topic) </kbd>&nbsp;→&nbsp;<span class="glyph-topic">(topic)</span></div>
         </div>
         <div class="modal-item" style="cursor: default;">
           <div class="modal-item-main">
-            <span
-              >Consequence-action — a follow-up with its own open/done/deferred/won't-do state, changed the same
-              way as any action line (click its glyph to close or reopen it, or
-              {formatShortcut("setActionOpen").replace(/1$/, "1-4")} to set it directly)</span
-            >
+            <span>{$t("shortcuts.modal.consequenceAction", { shortcutHint: consequenceActionHint })}</span>
           </div>
           <div class="item-tag">
             <kbd>=&gt; #/v/&gt;/x </kbd>&nbsp;→&nbsp;<span class="glyph-followup">➔</span>&nbsp;<span
@@ -144,28 +145,29 @@
         </div>
         <div class="modal-item" style="cursor: default;">
           <div class="modal-item-main">
-            <span>Done, deferred and won't-do lines are drawn dimmed; open ones stay at full strength</span>
+            <span>{$t("shortcuts.modal.dimmedLines")}</span>
           </div>
           <div class="item-tag"><span class="glyph-done">☑</span>&nbsp;<span class="glyph-progress">»</span>&nbsp;<span class="glyph-cancelled">☒</span></div>
         </div>
         <div class="modal-item" style="cursor: default;">
-          <div class="modal-item-main"><span>Bold emphasis for the rest of the line</span></div>
+          <div class="modal-item-main"><span>{$t("shortcuts.modal.boldEmphasis")}</span></div>
           <div class="item-tag"><kbd>! </kbd>&nbsp;→&nbsp;<span class="glyph-emphasis-line">like this</span></div>
         </div>
 
-        <div class="modal-group-header">Section headers</div>
+        <div class="modal-group-header">{$t("shortcuts.modal.group.sectionHeaders")}</div>
         <div class="modal-item" style="cursor: default; display: block;">
           <div class="settings-hint" style="margin-top: 0;">
-            A line of text followed immediately by a line of four or more <kbd>=</kbd> characters becomes that
-            section's title — e.g. <kbd>Weekly Sync</kbd> then <kbd>====</kbd> on the next line. This is what
-            Actions, Section History and search results tag each item with, and what Section History matches
-            recurring sections by (ignoring a leading/trailing date).
+            {$t("shortcuts.modal.sectionHeaderHint.part1")}<kbd>=</kbd>{$t("shortcuts.modal.sectionHeaderHint.part2")}<kbd
+              >{$t("shortcuts.modal.sectionHeaderHint.exampleTitle")}</kbd
+            >{$t("shortcuts.modal.sectionHeaderHint.part3")}<kbd>====</kbd>{$t(
+              "shortcuts.modal.sectionHeaderHint.part4",
+            )}
           </div>
         </div>
       </div>
     </div>
     <div class="modal-footer" style="justify-content: flex-end;">
-      <button class="icon-btn" on:click={controller.closeAllModals}>Close</button>
+      <button class="icon-btn" on:click={controller.closeAllModals}>{$t("common.close")}</button>
     </div>
   </div>
 </div>

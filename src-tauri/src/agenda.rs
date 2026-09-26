@@ -31,10 +31,8 @@
 
 use serde::Deserialize;
 
+use crate::error::AppError;
 use crate::storage;
-
-const AGENDA_ERROR: &str =
-    "The calendar file (.agenda.json) is missing, empty, or invalid — check whatever syncs it.";
 
 #[derive(Deserialize, Clone, Debug, PartialEq, Eq)]
 struct AgendaMeeting {
@@ -143,23 +141,23 @@ fn removed_titles_for_date(meetings: Vec<AgendaMeeting>, date: &str) -> Vec<Stri
 }
 
 #[tauri::command]
-pub fn read_agenda_for_date(app: tauri::AppHandle, date: String) -> Result<Vec<String>, String> {
+pub fn read_agenda_for_date(app: tauri::AppHandle, date: String) -> Result<Vec<String>, AppError> {
     let cfg = storage::load_config(&app)?;
     let path = std::path::Path::new(&cfg.notes_dir).join(".agenda.json");
     // A missing file reads as an empty string here, which `parse_agenda`
     // then rejects the same way it rejects any other blank/invalid
     // content — one error path for every "no confirmed-good data" case.
     let raw = std::fs::read_to_string(&path).unwrap_or_default();
-    let meetings = parse_agenda(&raw).map_err(|_| AGENDA_ERROR.to_string())?;
+    let meetings = parse_agenda(&raw).map_err(|_| AppError::AgendaInvalid)?;
     Ok(titles_for_date(meetings, &date))
 }
 
 #[tauri::command]
-pub fn read_agenda_removed_for_date(app: tauri::AppHandle, date: String) -> Result<Vec<String>, String> {
+pub fn read_agenda_removed_for_date(app: tauri::AppHandle, date: String) -> Result<Vec<String>, AppError> {
     let cfg = storage::load_config(&app)?;
     let path = std::path::Path::new(&cfg.notes_dir).join(".agenda.json");
     let raw = std::fs::read_to_string(&path).unwrap_or_default();
-    let meetings = parse_agenda(&raw).map_err(|_| AGENDA_ERROR.to_string())?;
+    let meetings = parse_agenda(&raw).map_err(|_| AppError::AgendaInvalid)?;
     Ok(removed_titles_for_date(meetings, &date))
 }
 
@@ -182,11 +180,11 @@ fn titles_after_date(meetings: Vec<AgendaMeeting>, after_date: &str) -> Vec<(Str
 }
 
 #[tauri::command]
-pub fn read_agenda_after(app: tauri::AppHandle, after_date: String) -> Result<Vec<(String, String)>, String> {
+pub fn read_agenda_after(app: tauri::AppHandle, after_date: String) -> Result<Vec<(String, String)>, AppError> {
     let cfg = storage::load_config(&app)?;
     let path = std::path::Path::new(&cfg.notes_dir).join(".agenda.json");
     let raw = std::fs::read_to_string(&path).unwrap_or_default();
-    let meetings = parse_agenda(&raw).map_err(|_| AGENDA_ERROR.to_string())?;
+    let meetings = parse_agenda(&raw).map_err(|_| AppError::AgendaInvalid)?;
     Ok(titles_after_date(meetings, &after_date))
 }
 

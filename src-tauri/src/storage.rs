@@ -40,6 +40,22 @@ pub enum ThemeMode {
     System,
 }
 
+/// UI display language. `System` (the default) means "no override" —
+/// the frontend resolves it from the webview's/browser's own reported
+/// language (`navigator.language`), exactly like `ThemeMode::System`
+/// defers to `prefers-color-scheme`. `En`/`Nl`/`De` pin it regardless of
+/// the OS setting. Keyboard shortcuts are unaffected by this — they're
+/// bound by physical key code (`shortcuts.ts`), never by displayed label.
+#[derive(Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Debug, Default, TS)]
+#[serde(rename_all = "lowercase")]
+pub enum LanguageMode {
+    En,
+    Nl,
+    De,
+    #[default]
+    System,
+}
+
 /// Persisted app configuration. Lives outside the notes folder, in the
 /// OS-appropriate app config directory (e.g. %APPDATA%\com.chrononote.app on
 /// Windows, ~/.config/com.chrononote.app on Linux, ~/Library/Application
@@ -116,6 +132,12 @@ pub struct AppConfig {
     /// block and the native anti-flash code in `show_window_without_flash`.
     #[serde(default)]
     pub pure_black: bool,
+    /// i18n roadmap: UI display language override. `System` (default)
+    /// means the frontend follows the webview/browser's own reported
+    /// language. `#[serde(default)]` gives `System` for every config
+    /// written before this field existed.
+    #[serde(default)]
+    pub language_mode: LanguageMode,
 }
 
 fn default_true() -> bool {
@@ -353,6 +375,7 @@ fn load_config_at(path: &Path, default_notes_dir: &Path) -> Result<AppConfig, St
         font_size: default_font_size(),
         line_height: default_line_height(),
         pure_black: false,
+        language_mode: LanguageMode::default(),
     };
     save_config_at(path, &cfg)?;
     Ok(cfg)
@@ -821,17 +844,24 @@ fn generate_typescript_bindings() {
     let decls = [
         ColorMode::decl(&cfg),
         ThemeMode::decl(&cfg),
+        LanguageMode::decl(&cfg),
         FileMetadata::decl(&cfg),
         AppConfig::decl(&cfg),
         TabSession::decl(&cfg),
         NoteWithMetadata::decl(&cfg),
         ImportMode::decl(&cfg),
         ImportResult::decl(&cfg),
+        // i18n Phase 2 (docs/design/i18n-roadmap.md): the small, stable
+        // error-code shape a few commands/result fields return instead of
+        // a bare `String`, so the frontend can translate the ones we
+        // author ourselves.
+        crate::error::AppError::decl(&cfg),
         // OneDrive wire types (Settings, folder picker, sync + conflict screen).
         crate::onedrive::OneDriveAccount::decl(&cfg),
         crate::onedrive::OneDriveLoginResult::decl(&cfg),
         crate::onedrive::OneDriveFolderItem::decl(&cfg),
         crate::onedrive::OneDriveFolderConfig::decl(&cfg),
+        crate::onedrive::FolderSwitchBlocked::decl(&cfg),
         crate::onedrive::FolderSwitchResult::decl(&cfg),
         crate::onedrive::OneDriveSyncResult::decl(&cfg),
         crate::onedrive::SyncConflict::decl(&cfg),
@@ -1020,6 +1050,7 @@ mod tests {
             font_size: 14.5,
             line_height: 1.7,
             pure_black: true,
+            language_mode: LanguageMode::Nl,
         };
         save_config_at(&path, &cfg).unwrap();
         let loaded = load_config_at(&path, &dir.path().join("Notes")).unwrap();
@@ -1034,6 +1065,7 @@ mod tests {
         assert_eq!(loaded.font_size, 14.5);
         assert_eq!(loaded.line_height, 1.7);
         assert!(loaded.pure_black);
+        assert_eq!(loaded.language_mode, LanguageMode::Nl);
     }
 
     #[test]
@@ -1055,6 +1087,7 @@ mod tests {
             font_size: default_font_size(),
             line_height: default_line_height(),
             pure_black: false,
+            language_mode: LanguageMode::default(),
         };
         save_config_at(&path, &cfg).unwrap();
         let on_disk = fs::read_to_string(&path).unwrap();
@@ -1088,6 +1121,7 @@ mod tests {
                 font_size: default_font_size(),
                 line_height: default_line_height(),
                 pure_black: false,
+                language_mode: LanguageMode::default(),
             };
             save_config_at(&path, &cfg).unwrap();
             let on_disk = fs::read_to_string(&path).unwrap();
@@ -1095,6 +1129,38 @@ mod tests {
             let loaded = load_config_at(&path, &dir.path().join("Notes")).unwrap();
             assert_eq!(loaded.theme_mode, mode);
         }
+    }
+
+    #[test]
+    fn language_mode_round_trips_through_json_for_every_variant() {
+        // i18n roadmap: each of the four language tokens serializes
+        // lowercase and loads back unchanged, same contract as theme_mode.
+        for (mode, token) in [
+            (LanguageMode::En, "en"),
+            (LanguageMode::Nl, "nl"),
+            (LanguageMode::De, "de"),
+            (LanguageMode::System, "system"),
+        ] {
+            let dir = tempdir().unwrap();
+            let path = dir.path().join("config.json");
+            let base = load_config_at(&path, &dir.path().join("Notes")).unwrap();
+            save_config_at(&path, &AppConfig { language_mode: mode, ..base }).unwrap();
+            let on_disk = fs::read_to_string(&path).unwrap();
+            assert!(on_disk.contains(&format!("\"{token}\"")), "{token} token not serialized: {on_disk}");
+            let loaded = load_config_at(&path, &dir.path().join("Notes")).unwrap();
+            assert_eq!(loaded.language_mode, mode);
+        }
+    }
+
+    #[test]
+    fn load_config_defaults_language_mode_when_omitted() {
+        // A config written before this field existed (or hand-edited down
+        // to just notesDir) should still load, defaulting to `System`.
+        let dir = tempdir().unwrap();
+        let path = dir.path().join("config.json");
+        fs::write(&path, r#"{"notesDir": "/hand/edited"}"#).unwrap();
+        let cfg = load_config_at(&path, &dir.path().join("Notes")).unwrap();
+        assert_eq!(cfg.language_mode, LanguageMode::System);
     }
 
     #[test]

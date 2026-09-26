@@ -6,9 +6,11 @@ export type ColorMode = "color" | "grayscale" | "legacy";
 
 export type ThemeMode = "light" | "dark" | "system";
 
+export type LanguageMode = "en" | "nl" | "de" | "system";
+
 export type FileMetadata = { exists: boolean, contentHash: string | null, sizeBytes: number | null, modifiedMs: number | null };
 
-export type AppConfig = { notesDir: string, colorMode: ColorMode, themeMode: ThemeMode, wordWrap: boolean, readableLineLength: boolean, recentNotesDirs: Array<string>, autoCheckUpdates: boolean, lastSeenVersion: string | null, calendarSyncEnabled: boolean, fontSize: number, lineHeight: number, pureBlack: boolean };
+export type AppConfig = { notesDir: string, colorMode: ColorMode, themeMode: ThemeMode, wordWrap: boolean, readableLineLength: boolean, recentNotesDirs: Array<string>, autoCheckUpdates: boolean, lastSeenVersion: string | null, calendarSyncEnabled: boolean, fontSize: number, lineHeight: number, pureBlack: boolean, languageMode: LanguageMode };
 
 export type TabSession = { openTabs: Array<string>, activeTab: string | null, lastOpenedDate?: string | null };
 
@@ -18,17 +20,21 @@ export type ImportMode = "merge" | "replace";
 
 export type ImportResult = { imported: number, skipped: number };
 
+export type AppError = { "code": "agendaInvalid" } | { "code": "oneDriveSyncBusy" } | { "code": "oneDriveLoopbackBindFailed", detail: string } | { "code": "oneDriveBrowserOpenFailed", detail: string } | { "code": "oneDriveCallbackAcceptFailed", detail: string } | { "code": "oneDriveAuthTimedOut" } | { "code": "oneDriveNoAuthCode" } | { "code": "oneDriveNoPendingSession" } | { "code": "oneDriveKeychainSaveFailed", detail: string } | { "code": "oneDriveAuthStateSaveFailed", detail: string } | { "code": "oneDriveProfileFetchFailed", detail: string } | { "code": "oneDriveMissingRefreshTokenScope" } | { "code": "oneDriveTokenRequestFailed", detail: string } | { "code": "oneDriveTokenExchangeRejected", detail: string } | { "code": "oneDriveTokenResponseUnparseable", detail: string } | { "code": "other", detail: string };
+
 export type OneDriveAccount = { email: string, displayName: string };
 
-export type OneDriveLoginResult = { success: boolean, account?: OneDriveAccount, error?: string, pending: boolean };
+export type OneDriveLoginResult = { success: boolean, account?: OneDriveAccount, error?: AppError, pending: boolean };
 
 export type OneDriveFolderItem = { id: string, name: string };
 
 export type OneDriveFolderConfig = { folderId: string, folderPath: string };
 
-export type FolderSwitchResult = { ready: boolean, switched: boolean, archivedCount: number, message?: string };
+export type FolderSwitchBlocked = { "reason": "syncFailed", folderPath: string, detail?: AppError } | { "reason": "heldConflicts", folderPath: string, count: number };
 
-export type OneDriveSyncResult = { success: boolean, message?: string };
+export type FolderSwitchResult = { ready: boolean, switched: boolean, archivedCount: number, blocked?: FolderSwitchBlocked };
+
+export type OneDriveSyncResult = { success: boolean, message?: AppError };
 
 export type SyncConflict = { name: string, local: string, remote: string };
 

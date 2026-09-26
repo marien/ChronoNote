@@ -12,6 +12,8 @@ import { oneDriveAccount, oneDriveConnecting, oneDriveFolder, oneDriveSignInExpi
 import { SIGN_IN_EXPIRED_MESSAGE } from "./signInExpired";
 import { checkActiveTabForDrift } from "./drift";
 import { refreshAgendaFileExists } from "./calendarSyncActions";
+import { t } from "./i18n";
+import { describeApiError } from "./apiError";
 
 export type SyncHooks = {
   flushPendingSaves?: () => Promise<void>;
@@ -46,7 +48,7 @@ let announce = false;
 export function syncOneDriveNow(opts: { notify?: boolean } = {}): Promise<void> {
   if (!get(oneDriveFolder)) {
     // Nothing to sync with yet — say so instead of failing inside Rust.
-    if (opts.notify) showToast("Choose a OneDrive folder first (Settings → Browse…)");
+    if (opts.notify) showToast(get(t)("toast.oneDriveSync.chooseFolderFirst", undefined));
     return Promise.resolve();
   }
   if (opts.notify) announce = true;
@@ -60,16 +62,26 @@ export function syncOneDriveNow(opts: { notify?: boolean } = {}): Promise<void> 
       }
       const result = await api.oneDriveSyncNow();
       if (result.success) oneDriveSignInExpired.set(false);
-      else if (result.message === SIGN_IN_EXPIRED_MESSAGE) oneDriveSignInExpired.set(true);
+      // The web app's own sync engine reports an expired sign-in as a plain
+      // `AppError.Other` carrying this exact text (its refresh token isn't
+      // renewable) — Rust's own sync never produces it.
+      else if (result.message?.code === "other" && result.message.detail === SIGN_IN_EXPIRED_MESSAGE)
+        oneDriveSignInExpired.set(true);
       await refreshSyncConflicts();
       syncHooks.invalidateCache?.();
       void checkActiveTabForDrift();
       void refreshAgendaFileExists();
       if (announce) {
-        showToast(result.success ? "OneDrive sync finished" : `OneDrive sync failed: ${result.message ?? "unknown error"}`);
+        showToast(
+          result.success
+            ? get(t)("toast.oneDriveSync.syncFinished", undefined)
+            : get(t)("toast.oneDriveSync.syncFailedPrefix", {
+                message: result.message ? describeApiError(result.message) : "unknown error",
+              }),
+        );
       }
     } catch (e) {
-      if (announce) showToast(`OneDrive sync failed: ${e instanceof Error ? e.message : String(e)}`);
+      if (announce) showToast(get(t)("toast.oneDriveSync.syncFailedPrefix", { message: describeApiError(e) }));
     } finally {
       announce = false;
       inFlight = null;
@@ -97,9 +109,13 @@ export async function signInAgain(): Promise<void> {
     } else if (res.pending) {
       oneDriveConnecting.set(true); // the browser (or, on the web, this page) is going to Microsoft
     } else if (res.error) {
-      showToast(`Couldn't start sign-in: ${res.error}`);
+      showToast(get(t)("toast.oneDriveSync.couldntStartSignInPrefix", { message: describeApiError(res.error) }));
     }
   } catch (e) {
-    showToast(`Couldn't start sign-in: ${e instanceof Error ? e.message : String(e)}`);
+    showToast(
+      get(t)("toast.oneDriveSync.couldntStartSignInPrefix", {
+        message: describeApiError(e),
+      }),
+    );
   }
 }

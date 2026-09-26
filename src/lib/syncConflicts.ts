@@ -8,6 +8,8 @@ import * as api from "./tauriApi";
 import { checkActiveTabForDrift } from "./drift";
 import { modal, showToast, syncConflicts } from "./stores";
 import { refreshSyncConflicts, syncOneDriveNow } from "./oneDriveSync";
+import { t } from "./i18n";
+import { describeApiError } from "./apiError";
 import type { SyncConflictResolution } from "./tauriCommands";
 
 export async function openSyncConflicts(): Promise<void> {
@@ -20,18 +22,21 @@ export async function resolveSyncConflict(name: string, resolution: SyncConflict
   try {
     await api.oneDriveResolveConflict(name, resolution);
   } catch (e) {
-    showToast(`Couldn't resolve ${name}: ${e instanceof Error ? e.message : String(e)}`);
+    showToast(get(t)("toast.syncConflicts.couldntResolvePrefix", { name, message: describeApiError(e) }));
     await refreshSyncConflicts();
     return;
   }
   await refreshSyncConflicts();
   if (get(syncConflicts).length === 0 && get(modal) === "syncConflicts") modal.set("none");
   showToast(
-    resolution === "theirs"
-      ? `Kept the OneDrive version of ${name}`
-      : resolution === "both"
-        ? `Kept both versions of ${name}`
-        : `Kept this device's version of ${name}`,
+    get(t)(
+      resolution === "theirs"
+        ? "toast.syncConflicts.keptOneDriveVersion"
+        : resolution === "both"
+          ? "toast.syncConflicts.keptBothVersions"
+          : "toast.syncConflicts.keptThisDeviceVersion",
+      { name },
+    ),
   );
   // "mine"/"both" now need uploading; "theirs" changed the file on disk, so
   // the open tab must pick that up (silent reload if it has no unsaved edits).

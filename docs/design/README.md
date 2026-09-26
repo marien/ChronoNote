@@ -1,5 +1,28 @@
 # Design notes
 
+## Multilanguage support (English, Dutch, German)
+
+**[`i18n-roadmap.md`](i18n-roadmap.md)** — pitched 2026-09-25: English/
+Dutch/German UI translation for the desktop app and web app, following
+the system language by default with a Settings override
+(`LanguageMode`, mirroring the existing `ThemeMode` pattern exactly).
+Hand-rolled TypeScript dictionaries (no new runtime dependency),
+compile-time-enforced completeness via `satisfies Dictionary`, and
+`Intl.DateTimeFormat` for month/weekday names instead of translated
+arrays. Keyboard shortcuts are unaffected by design — they're already
+keyed by physical `KeyboardEvent.code`, not by displayed label. The
+marketing website and Rust-originated error strings are explicitly out
+of scope for this pass.
+
+**Phase 1 foundation implemented, 2026-09-26 (§219 in
+`docs/CHANGELOG.md`)** — the full plumbing and the `src/lib/i18n/`
+mechanism, proven end to end through the new Language control in
+Settings. The large mechanical sweep across the rest of the app's
+strings hasn't started; `nl.ts`/`de.ts` need native/fluent review before
+release. Also fixed along the way: Playwright never pinned a browser
+locale, so the exact same spec could render in a different language in
+CI than on a contributor's own machine — now pinned to `en-US`.
+
 ## Section History: browse occurrences in context, carry lines forward
 
 **[`section-history-browse-and-carry-forward-roadmap.md`](section-history-browse-and-carry-forward-roadmap.md)**

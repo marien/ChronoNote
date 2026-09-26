@@ -3,6 +3,7 @@ pub mod client;
 pub mod merge;
 pub mod sync;
 
+use crate::error::AppError;
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
 
@@ -22,7 +23,7 @@ pub struct OneDriveLoginResult {
     pub account: Option<OneDriveAccount>,
     #[serde(skip_serializing_if = "Option::is_none")]
     #[ts(optional)]
-    pub error: Option<String>,
+    pub error: Option<AppError>,
     /// True when the sign-in flow has been handed off to a real page
     /// redirect and the actual outcome will only be known later, once the
     /// redirect comes back — `success`/`account`/`error` above are all
@@ -54,7 +55,42 @@ pub struct OneDriveSyncResult {
     pub success: bool,
     #[serde(skip_serializing_if = "Option::is_none")]
     #[ts(optional)]
-    pub message: Option<String>,
+    pub message: Option<AppError>,
+}
+
+/// i18n Phase 2 (docs/design/i18n-roadmap.md): why `prepare_folder_switch`
+/// couldn't go ahead — structured, not a pre-composed English sentence, so
+/// the frontend can translate it (`apiError.ts::describeFolderSwitchBlocked`)
+/// including a real pluralized count for `HeldConflicts`, which a flat
+/// `format!("{held} note(s) have...")` string could never get right in
+/// Dutch/German. `folder_path` is duplicated across variants rather than
+/// hoisted into a wrapper struct — ts-rs has no good answer for a Rust
+/// `#[serde(flatten)]` field, and duplicating one `String` is cheap.
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, TS)]
+#[serde(tag = "reason", rename_all = "camelCase")]
+pub enum FolderSwitchBlocked {
+    /// The one last sync before switching failed. `detail` is `None` only
+    /// if `OneDriveSyncResult.message` itself was `None` on a failed sync —
+    /// not a state the real sync engine produces today, but the type
+    /// doesn't rule it out, so the frontend still needs a fallback string.
+    // `rename_all` on the enum itself only renames the variant tag values
+    // ("syncFailed"/"heldConflicts") — each variant needs its own
+    // `rename_all` to camelCase its *own* fields (`folder_path` here).
+    #[serde(rename_all = "camelCase")]
+    SyncFailed {
+        folder_path: String,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        #[ts(optional)]
+        detail: Option<AppError>,
+    },
+    /// The sync itself succeeded, but the old folder has notes still
+    /// held with an unresolved conflict.
+    #[serde(rename_all = "camelCase")]
+    HeldConflicts {
+        folder_path: String,
+        #[ts(type = "number")]
+        count: usize,
+    },
 }
 
 /// The outcome of `prepare_folder_switch` (see sync.rs): whether choosing the
@@ -71,7 +107,7 @@ pub struct FolderSwitchResult {
     pub archived_count: usize,
     #[serde(skip_serializing_if = "Option::is_none")]
     #[ts(optional)]
-    pub message: Option<String>,
+    pub blocked: Option<FolderSwitchBlocked>,
 }
 
 /// A note whose local and cloud versions diverged in a way that couldn't be
@@ -126,4 +162,41 @@ pub struct OneDriveAdvancedConfig {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[ts(optional)]
     pub tenant_id_override: Option<String>,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// i18n Phase 2 (docs/design/i18n-roadmap.md): `prepare_folder_switch`
+    /// itself isn't unit-tested (it calls `sync_now`, which makes a real
+    /// network request with no mockable HTTP layer in this codebase — the
+    /// same reason `auth::exchange_code` has no direct test either) — these
+    /// cover the wire shape `sync.rs` constructs and the frontend consumes.
+    #[test]
+    fn sync_failed_with_a_detail_serializes_with_the_folder_path_alongside_it() {
+        let v = serde_json::to_value(FolderSwitchBlocked::SyncFailed {
+            folder_path: "/Notes".to_string(),
+            detail: Some(AppError::OneDriveSyncBusy),
+        })
+        .unwrap();
+        assert_eq!(
+            v,
+            serde_json::json!({ "reason": "syncFailed", "folderPath": "/Notes", "detail": { "code": "oneDriveSyncBusy" } })
+        );
+    }
+
+    #[test]
+    fn sync_failed_with_no_detail_omits_the_field_entirely() {
+        let v = serde_json::to_value(FolderSwitchBlocked::SyncFailed { folder_path: "/Notes".to_string(), detail: None })
+            .unwrap();
+        assert_eq!(v, serde_json::json!({ "reason": "syncFailed", "folderPath": "/Notes" }));
+    }
+
+    #[test]
+    fn held_conflicts_serializes_the_count_alongside_the_folder_path() {
+        let v = serde_json::to_value(FolderSwitchBlocked::HeldConflicts { folder_path: "/Notes".to_string(), count: 3 })
+            .unwrap();
+        assert_eq!(v, serde_json::json!({ "reason": "heldConflicts", "folderPath": "/Notes", "count": 3 }));
+    }
 }

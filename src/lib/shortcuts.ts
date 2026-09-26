@@ -27,6 +27,7 @@
  *     risking a regression to fix it under this same pass.
  */
 import { isMac } from "./platform";
+import type { TranslationKey } from "./i18n/schema";
 
 export interface ComboSpec {
   /** Ctrl (Win/Linux) or Cmd (Mac) — resolved by `matchesCombo`/`formatCombo`. */
@@ -45,8 +46,6 @@ export interface ComboSpec {
 
 export interface ShortcutDef {
   id: string;
-  /** Description shown in the Shortcuts & Symbols drawer. */
-  label: string;
   combos: ComboSpec[];
   /** Non-keyboard text appended after the formatted combo(s), e.g. "middle-click". */
   extra?: string;
@@ -55,12 +54,10 @@ export interface ShortcutDef {
 export const SHORTCUTS: ShortcutDef[] = [
   {
     id: "commandPalette",
-    label: "Command palette — run any command, jump to a tab, date or action",
     combos: [{ mod: true, code: "KeyK" }],
   },
   {
     id: "newScratchpad",
-    label: "New scratchpad",
     combos: [
       { mod: true, code: "KeyN" },
       { mod: true, code: "KeyT" },
@@ -68,7 +65,6 @@ export const SHORTCUTS: ShortcutDef[] = [
   },
   {
     id: "reopenClosedTab",
-    label: "Reopen most recently closed tab",
     combos: [
       { mod: true, shift: true, code: "KeyT" },
       { mod: true, shift: true, code: "KeyN" },
@@ -76,18 +72,15 @@ export const SHORTCUTS: ShortcutDef[] = [
   },
   {
     id: "openDateNote",
-    label: "Open/create a dated note",
     combos: [{ mod: true, code: "KeyO" }],
   },
   {
     id: "closeTab",
-    label: "Close current tab / close a tab",
     combos: [{ mod: true, code: "KeyW" }],
     extra: "middle-click",
   },
   {
     id: "cycleTab",
-    label: "Next / previous tab",
     combos: [
       { mod: true, code: "Tab" },
       { mod: true, shift: true, code: "Tab" },
@@ -95,12 +88,10 @@ export const SHORTCUTS: ShortcutDef[] = [
   },
   {
     id: "indentDedent",
-    label: "Indent / dedent (in editor)",
     combos: [{ code: "Tab" }, { shift: true, code: "Tab" }],
   },
   {
     id: "undoRedo",
-    label: "Undo / redo (kept per tab)",
     combos: [
       { mod: true, code: "KeyZ" },
       // CodeMirror's own historyKeymap doesn't bind Mod-Y as redo on Mac
@@ -116,7 +107,6 @@ export const SHORTCUTS: ShortcutDef[] = [
     // line" — every state is directly reachable via Ctrl+1-4 now, so
     // there's no need for Ctrl+Space to cycle through (or promote a plain
     // line into) all of them.
-    label: "Close the open action at the caret (# → v, in editor)",
     combos: [
       // Ctrl+Space collides with macOS's own input-source-switcher
       // shortcut — not offered as a Mac binding at all; Cmd+Enter (below)
@@ -127,7 +117,6 @@ export const SHORTCUTS: ShortcutDef[] = [
   },
   {
     id: "cycleLineStateReverse",
-    label: "Reopen the done action at the caret (v → #, in editor)",
     combos: [
       // Same Space-avoided-on-Mac reasoning as `cycleLineState` above —
       // no Mac binding involving Space, Cmd+Shift+Enter instead.
@@ -137,7 +126,6 @@ export const SHORTCUTS: ShortcutDef[] = [
   },
   {
     id: "markSelectionOpen",
-    label: "Open the action at the caret, or in every selected line (never turns a plain line into one)",
     combos: [{ mod: true, shift: true, code: "KeyO" }],
   },
   // #70: the same idea as markSelectionOpen, direct to each of the other
@@ -145,32 +133,26 @@ export const SHORTCUTS: ShortcutDef[] = [
   // order cycleLineState steps through.
   {
     id: "setActionOpen",
-    label: "Set the action at the caret to open, or in every selected line; a plain line becomes an action",
     combos: [{ mod: true, code: "Digit1" }],
   },
   {
     id: "setActionDone",
-    label: "Set the action at the caret to done, or in every selected line; a plain line becomes an action",
     combos: [{ mod: true, code: "Digit2" }],
   },
   {
     id: "setActionDeferred",
-    label: "Set the action at the caret to deferred, or in every selected line; a plain line becomes an action",
     combos: [{ mod: true, code: "Digit3" }],
   },
   {
     id: "setActionWontDo",
-    label: "Set the action at the caret to won't-do, or in every selected line; a plain line becomes an action",
     combos: [{ mod: true, code: "Digit4" }],
   },
   {
     id: "jumpAction",
-    label: "Jump to next / previous open action (in editor, wraps)",
     combos: [{ code: "F2" }, { shift: true, code: "F2" }],
   },
   {
     id: "caretLineNav",
-    label: "Caret to start of line, then previous line / start of next line (in editor)",
     // Win/Linux only by design (§90/#24) — macOS keeps CodeMirror's own
     // default page-scroll on these keys instead. Filtered out of the
     // Shortcuts drawer entirely on Mac (see `combosForPlatform`).
@@ -181,47 +163,38 @@ export const SHORTCUTS: ShortcutDef[] = [
   },
   {
     id: "convertToSection",
-    label: "Convert current line into a section header",
     combos: [{ mod: true, shift: true, code: "KeyS" }],
   },
   {
     id: "openActions",
-    label: "Actions",
     combos: [{ mod: true, shift: true, code: "KeyA" }],
   },
   {
     id: "openHistory",
-    label: "Section history",
     combos: [{ mod: true, shift: true, code: "KeyH" }],
   },
   {
     id: "findInNote",
-    label: "Find in this note (floating bar; Enter / Shift+Enter to step)",
     combos: [{ mod: true, code: "KeyF" }],
   },
   {
     id: "crossTabSearch",
-    label: "Cross-tab search",
     combos: [{ mod: true, shift: true, code: "KeyF" }],
   },
   {
     id: "syncCalendar",
-    label: "Sync calendar for this day",
     combos: [{ mod: true, shift: true, code: "KeyC" }],
   },
   {
     id: "openSettings",
-    label: "Settings",
     combos: [{ mod: true, code: "Comma" }],
   },
   {
     id: "openAbout",
-    label: "About ChronoNote",
     combos: [{ mod: true, shift: true, code: "Comma" }],
   },
   {
     id: "openShortcutsHelp",
-    label: "This drawer",
     combos: [
       { mod: true, code: "Slash" },
       { mod: true, shift: true, code: "Slash" },
@@ -229,12 +202,10 @@ export const SHORTCUTS: ShortcutDef[] = [
   },
   {
     id: "copyToNextOccurrence",
-    label: "Copy the selection (or current line) to the next occurrence of this section",
     combos: [{ mod: true, shift: true, code: "Period" }],
   },
   {
     id: "toggleZenMode",
-    label: "Zen mode (distraction-free canvas)",
     // Shift+F11 is Sublime Text's "Distraction Free Mode" chord, and needs no Ctrl+Alt (which is
     // AltGr on many European layouts and would fire while typing letters like a-with-diaeresis).
     // Plain F11 is deliberately not registered: browsers keep it for their own fullscreen, so it
@@ -243,6 +214,47 @@ export const SHORTCUTS: ShortcutDef[] = [
     combos: [{ shift: true, code: "F11" }, { mod: true, alt: true, code: "KeyZ", platforms: ["mac"] }],
   },
 ];
+
+/** i18n roadmap: the Shortcuts & Symbols drawer's translation key for
+ * each entry's description — the drawer is this table's only display
+ * consumer of a *label* (command palette hints, TopBar/StatusBar
+ * tooltips, and About all keep their own separately-authored strings).
+ * An explicit map, not a `` `shortcuts.${id}.label` `` template lookup,
+ * so a missing/renamed id is a `svelte-check` error via `satisfies`
+ * below, not a blank row. Covers every real `SHORTCUTS` id plus the two
+ * pseudo-ids `DRAWER_ROWS` uses for its non-registry rows. */
+export const SHORTCUT_LABEL_KEYS = {
+  commandPalette: "shortcuts.commandPalette.label",
+  newScratchpad: "shortcuts.newScratchpad.label",
+  reopenClosedTab: "shortcuts.reopenClosedTab.label",
+  openDateNote: "shortcuts.openDateNote.label",
+  closeTab: "shortcuts.closeTab.label",
+  cycleTab: "shortcuts.cycleTab.label",
+  indentDedent: "shortcuts.indentDedent.label",
+  undoRedo: "shortcuts.undoRedo.label",
+  cycleLineState: "shortcuts.cycleLineState.label",
+  cycleLineStateReverse: "shortcuts.cycleLineStateReverse.label",
+  markSelectionOpen: "shortcuts.markSelectionOpen.label",
+  setActionOpen: "shortcuts.setActionOpen.label",
+  setActionDone: "shortcuts.setActionDone.label",
+  setActionDeferred: "shortcuts.setActionDeferred.label",
+  setActionWontDo: "shortcuts.setActionWontDo.label",
+  jumpAction: "shortcuts.jumpAction.label",
+  caretLineNav: "shortcuts.caretLineNav.label",
+  convertToSection: "shortcuts.convertToSection.label",
+  openActions: "shortcuts.openActions.label",
+  openHistory: "shortcuts.openHistory.label",
+  findInNote: "shortcuts.findInNote.label",
+  crossTabSearch: "shortcuts.crossTabSearch.label",
+  syncCalendar: "shortcuts.syncCalendar.label",
+  openSettings: "shortcuts.openSettings.label",
+  openAbout: "shortcuts.openAbout.label",
+  openShortcutsHelp: "shortcuts.openShortcutsHelp.label",
+  copyToNextOccurrence: "shortcuts.copyToNextOccurrence.label",
+  toggleZenMode: "shortcuts.toggleZenMode.label",
+  clickGlyph: "shortcuts.clickGlyph.label",
+  escape: "shortcuts.escape.label",
+} satisfies Record<(typeof SHORTCUTS)[number]["id"] | "clickGlyph" | "escape", TranslationKey>;
 
 const BY_ID = new Map(SHORTCUTS.map((s) => [s.id, s]));
 
@@ -317,10 +329,12 @@ export function matchesShortcut(e: KeyboardEvent, id: string): boolean {
   return combosForPlatform(shortcutById(id)).some((c) => matchesCombo(e, c));
 }
 
-/** The rows of the Shortcuts & Symbols drawer, in reading order: a registry id pulls that entry's label and
- * platform-correct combo text; a literal `[keys, description]` tuple is one of the rows that are not key
- * combinations in the registry (a mouse action, or a key with no modifier). Lives here, next to the registry,
- * so a test can prove every shortcut in the registry has a row (the drawer had quietly lost Zen mode). */
+/** The rows of the Shortcuts & Symbols drawer, in reading order: a registry id pulls that entry's label (via
+ * `SHORTCUT_LABEL_KEYS`) and platform-correct combo text; a `[keys, pseudoId]` tuple is one of the rows that
+ * aren't key combinations in the registry (a mouse action, or a key with no modifier) — `pseudoId` looks up
+ * its own entry in `SHORTCUT_LABEL_KEYS` the same way a real registry id does, `keys` stays literal (like a
+ * formatted combo, not natural-language prose). Lives here, next to the registry, so a test can prove every
+ * shortcut in the registry has a row (the drawer had quietly lost Zen mode). */
 export const DRAWER_ROWS: (string | [string, string])[] = [
   "commandPalette",
   "newScratchpad",
@@ -332,7 +346,7 @@ export const DRAWER_ROWS: (string | [string, string])[] = [
   "undoRedo",
   "cycleLineState",
   "cycleLineStateReverse",
-  ["Click a glyph", "Close the glyph's action, or reopen it if it is done, deferred or won't-do (exactly that glyph); hover previews the result"],
+  ["Click a glyph", "clickGlyph"],
   "markSelectionOpen",
   "setActionOpen",
   "setActionDone",
@@ -351,5 +365,5 @@ export const DRAWER_ROWS: (string | [string, string])[] = [
   "openSettings",
   "openAbout",
   "openShortcutsHelp",
-  ["Escape", "Close whatever modal is open"],
+  ["Escape", "escape"],
 ];
