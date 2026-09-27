@@ -9297,3 +9297,21 @@ Verification: `svelte-check` 264/0; Vitest 589/589; full Playwright suite 400/40
 ---
 
 **Multilanguage support (English/Dutch/German) shipped as v0.15.0** — §219 through §242. Phase 1 (every Svelte component, every toast/message call site) and Phase 2 (the OneDrive/agenda/sign-in error surface, plus `FolderSwitchResult`'s composed sentence) are both complete, all three deferred rich-text cases are resolved, and the two real post-release-polish bugs Marien found using the translated app (the Shortcuts drawer gaps, the Esc/Close footer wrap, the Pure Black placement) are fixed. `nl.ts` and `de.ts` ship without a native-speaker review pass — Marien's own call ("the translations look good enough") — Phase 3 (translating the marketing website) remains out of scope, not started, not designed.
+
+---
+
+## 243. Visual layout audit & fit across locales (English, Dutch, German)
+
+Comprehensive visual audit of all UI text across English, Dutch, and German in desktop (1100x720) and mobile (375x667) viewports, checking every modal, tab strip, control, and drawer for alignment and overflow.
+
+Key refinements implemented:
+1. **Settings Notes & Sync Tab (`nl.ts`)**: Shortened Dutch `settings.tabs.notesAndSync` from `"Notities & synchronisatie"` (25 chars) to `"Notities & sync"` (15 chars), matching German ("Notizen & Sync") and English ("Notes & Sync"). Eliminates horizontal crowding and tab-strip overflow on both desktop and mobile.
+2. **Mobile Settings Segmented Control & Language Row (`app.css`)**: Added `flex-wrap: wrap` to `.settings-toggle-row`, `flex-shrink: 0` to `.settings-inline-label`, and mobile media query rules reducing segmented control padding and font size on narrow screens. Prevents squishing the label or pushing options out of view.
+3. **Mobile Settings Tabs (`app.css`)**: Tuned `.settings-tabs .segmented-option` padding and font size for `@media (max-width: 600px)` so that all three tabs fit without horizontal scroll or clipping on 375px screens across all locales.
+4. **Telemetry Popover Width & Timestamps (`app.css`, `nl.ts`, `de.ts`)**: Widened `#telemetry-popover` from `290px` to `min(320px, calc(100vw - 24px))` and streamlined timestamp labels (`"Laatste synchronisatie:"` in Dutch, `"Letzte Synchronisierung:"` in German). Prevents ellipsis truncation on `"Gerade eben (09:00)"` and `"Zojuist (09:00)"`.
+5. **Shortcuts Modal Symbols Tag (`ShortcutsModal.svelte`, `app.css`)**: Removed extra whitespace in `<kbd>` tags and adjusted item-tag layout (`min-width: max-content; padding-right: 4px;`) to prevent false-positive / subpixel line-wrapping.
+6. **Mobile Tab Drawer & Status Bar Phrasing (`nl.ts`, `de.ts`, `app.css`)**: Shortened `mobileTabDrawer.openDateNote` to `"Datum openen"` / `"Datum öffnen"`, refined Dutch status bar forwarded count to `"Doorgestuurd ${count}"`, and centered action button text in the mobile drawer.
+7. **Automated Visual Audit Regression Suite (`tests/e2e/visual-audit.spec.ts`)**: Added automated Playwright test asserting 0 horizontal overflows across all modals, tabs, controls, and drawers in `en`, `nl`, and `de`.
+
+Verification: `svelte-check` 0/0; Vitest 589/589; Cargo 163/163; full Playwright suite 403/403 clean.
+
