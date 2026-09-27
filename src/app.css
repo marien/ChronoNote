@@ -54,6 +54,11 @@
   --glyph-assignee-bg: rgba(128, 128, 128, 0.18);
   --glyph-assignee-color: var(--text);
   --glyph-emphasis-color: var(--text);
+
+  --ruler-marker-action: #f59e0b;
+  --ruler-marker-action-glow: rgba(245, 158, 11, 0.5);
+  --ruler-marker-topic: #06b6d4;
+  --ruler-marker-topic-glow: rgba(6, 182, 212, 0.5);
 }
 
 /* #48: light/dark is a three-state setting (`themeMode`: light / dark /
@@ -88,6 +93,11 @@
     --highlight: rgba(0, 0, 0, 0.15);
     --caret-color: #000000;
     --editor-selection-bg: #c8d3e0;
+
+    --ruler-marker-action: #d97706;
+    --ruler-marker-action-glow: rgba(217, 119, 6, 0.35);
+    --ruler-marker-topic: #0891b2;
+    --ruler-marker-topic-glow: rgba(8, 145, 178, 0.35);
   }
 }
 
@@ -113,6 +123,11 @@
   --highlight: rgba(0, 0, 0, 0.15);
   --caret-color: #000000;
   --editor-selection-bg: #c8d3e0;
+
+  --ruler-marker-action: #d97706;
+  --ruler-marker-action-glow: rgba(217, 119, 6, 0.35);
+  --ruler-marker-topic: #0891b2;
+  --ruler-marker-topic-glow: rgba(8, 145, 178, 0.35);
 }
 
 /* §v0.12.2: Pure Black OLED Dark Theme (Area 10.2)
@@ -123,6 +138,11 @@
   --surface-chrome: #0a0a0a;
   --surface-overlay: #121212;
   --surface-raised: #1e1e1e;
+
+  --ruler-marker-action: #fbbf24;
+  --ruler-marker-action-glow: rgba(251, 191, 36, 0.6);
+  --ruler-marker-topic: #22d3ee;
+  --ruler-marker-topic-glow: rgba(34, 211, 238, 0.6);
   --edge-soft: rgba(255, 255, 255, 0.10);
   --edge-strong: rgba(255, 255, 255, 0.18);
   --text: #e0e0e0;
@@ -820,6 +840,55 @@ body {
 .import-textarea::-webkit-scrollbar-thumb:hover,
 .settings-section::-webkit-scrollbar-thumb:hover {
   background: var(--muted);
+}
+
+/* Overview Ruler: scrollbar track markers for open actions and topics */
+.cm-overview-ruler {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 8px;
+  pointer-events: none;
+  z-index: 10;
+  user-select: none;
+}
+
+.cm-ruler-marker {
+  position: absolute;
+  right: 1px;
+  width: 6px;
+  height: 3px;
+  border-radius: 1.5px;
+  pointer-events: auto;
+  cursor: pointer;
+  box-sizing: border-box;
+  transition: transform 0.1s ease, width 0.1s ease, right 0.1s ease;
+}
+
+/* Touch and click hit-area expansion for easy, reliable targeting */
+.cm-ruler-marker::before {
+  content: "";
+  position: absolute;
+  top: -4px;
+  bottom: -4px;
+  right: -2px;
+  left: -8px;
+}
+
+.cm-ruler-marker:hover {
+  transform: scaleY(1.33);
+  width: 7px;
+  right: 0.5px;
+}
+
+.cm-ruler-marker.cm-ruler-action {
+  background: var(--ruler-marker-action);
+  box-shadow: 0 0 2.5px var(--ruler-marker-action-glow);
+}
+
+.cm-ruler-marker.cm-ruler-topic {
+  background: var(--ruler-marker-topic);
+  box-shadow: 0 0 2.5px var(--ruler-marker-topic-glow);
 }
 
 .cm-content {

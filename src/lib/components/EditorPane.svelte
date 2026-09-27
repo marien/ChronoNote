@@ -11,6 +11,7 @@
   import { resolvedLinesPlugin } from "../editor/resolvedLines";
   import { activeLinesPlugin } from "../editor/activeLines";
   import { clickableLinksPlugin } from "../editor/clickableLinks";
+  import { overviewRuler } from "../editor/overviewRuler";
   import { underlineFor } from "../sectionFormat";
   import {
     actionLineEnter,
@@ -581,6 +582,7 @@
       resolvedLinesPlugin,
       activeLinesPlugin,
       clickableLinksPlugin,
+      overviewRuler({ onJump: (lineIdx) => triggerLinePulse(lineIdx) }),
       pulseField,
       // §108: search state for findNext/findPrevious; its own panel is
       // never opened — the floating `FindBar` is the UI, and
