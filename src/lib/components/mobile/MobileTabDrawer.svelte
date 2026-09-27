@@ -95,7 +95,7 @@
           <span class="drawer-tab-name">{tabLabel(tab)}</span>
           {#if openCount > 0}
             <span class="drawer-tab-open-count" title={$t("statusBar.openCount", { count: openCount })}
-              ><span class="token-glyph glyph-open">☐</span>{openCount}</span
+              >☐ {openCount}</span
             >
           {/if}
           <span class="drawer-tab-spacer"></span>

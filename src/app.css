@@ -3126,9 +3126,10 @@ body {
   font-family: var(--font-mono, monospace);
   font-size: 13px;
 }
-/* Open-action count, right behind the date — same glyph as the mobile
-   accessory bar's own "open task" button (§68/#96 family), so the count
-   reads at a glance without opening the note. Kept as its own element
+/* Open-action count, right behind the date — same "☐ N" shape as the
+   status bar's own compact open count (#stat-open et al.), so it reads
+   as a quiet count rather than an accent. Deliberately plain text, not
+   the editor's colored glyph-open treatment. Kept as its own element
    (not appended to .drawer-tab-name's text) so the name stays the plain
    label text elsewhere in the app relies on. */
 .drawer-tab-open-count {
@@ -3136,9 +3137,7 @@ body {
   font-size: 12px;
   font-weight: 600;
   white-space: nowrap;
-}
-.drawer-tab-open-count .glyph-open {
-  margin-right: 1px;
+  color: var(--muted);
 }
 /* Absorbs the remaining row width so the today-tag/status-dot/close
    button stay pinned to the right edge, the same job .drawer-tab-name's

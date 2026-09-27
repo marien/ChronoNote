@@ -84,7 +84,7 @@ test.describe("mobile tabs drawer", () => {
     expect(pastActiveStripe).not.toBe(futureActiveStripe);
   });
 
-  test("shows each tab's open-action count, using the same glyph as the accessory bar", async ({ page }) => {
+  test("shows each tab's open-action count, in the status bar's quiet count style", async ({ page }) => {
     await seedApp(page, {
       seed: {
         notes: {
@@ -99,8 +99,22 @@ test.describe("mobile tabs drawer", () => {
     const withOpens = drawer(page).locator(".drawer-tab-item", { hasText: "2026-09-05" });
     const badge = withOpens.locator(".drawer-tab-open-count");
     await expect(badge).toBeVisible();
-    await expect(badge).toHaveText("☐2");
-    await expect(badge.locator(".glyph-open")).toBeVisible();
+    await expect(badge).toHaveText("☐ 2");
+    // Plain/muted, like the status bar's own count — not the editor's
+    // colored glyph-open treatment (which would use --glyph-open-color).
+    const { badgeColor, mutedColor, glyphOpenColor } = await page.evaluate(() => {
+      const probe = document.createElement("span");
+      document.body.appendChild(probe);
+      probe.style.color = "var(--muted)";
+      const mutedColor = getComputedStyle(probe).color;
+      probe.style.color = "var(--glyph-open-color)";
+      const glyphOpenColor = getComputedStyle(probe).color;
+      probe.remove();
+      const badgeColor = getComputedStyle(document.querySelector(".drawer-tab-open-count")!).color;
+      return { badgeColor, mutedColor, glyphOpenColor };
+    });
+    expect(badgeColor).toBe(mutedColor);
+    expect(badgeColor).not.toBe(glyphOpenColor);
 
     // A tab with no open actions shows no badge at all.
     const withoutOpens = drawer(page).locator(".drawer-tab-item.today");
