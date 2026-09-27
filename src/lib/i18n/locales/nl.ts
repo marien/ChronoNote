@@ -131,6 +131,12 @@ export const nl = {
     "De actie bij de cursor op uitgesteld zetten, of in elke geselecteerde regel; een gewone regel wordt een actie",
   "shortcuts.setActionWontDo.label": () =>
     "De actie bij de cursor op vervallen zetten, of in elke geselecteerde regel; een gewone regel wordt een actie",
+  "shortcuts.setTopicToDiscuss.label": () =>
+    "Het agendapunt bij de cursor op te bespreken zetten, of in elke geselecteerde regel; een gewone regel wordt een agendapunt",
+  "shortcuts.setTopicDiscussed.label": () =>
+    "Het agendapunt bij de cursor op besproken zetten, of in elke geselecteerde regel; een gewone regel wordt een agendapunt",
+  "shortcuts.setTopicNotDiscussed.label": () =>
+    "Het agendapunt bij de cursor op niet besproken zetten, of in elke geselecteerde regel; een gewone regel wordt een agendapunt",
   "shortcuts.jumpAction.label": () => "Naar volgende / vorige open actie springen (in editor, met terugloop)",
   "shortcuts.caretLineNav.label": () =>
     "Cursor naar begin van de regel, dan vorige regel / begin van volgende regel (in editor)",
@@ -160,6 +166,9 @@ export const nl = {
   "shortcuts.modal.glyph.done": () => "Voltooid",
   "shortcuts.modal.glyph.deferred": () => "Uitgesteld — doorgeschoven naar een latere notitie",
   "shortcuts.modal.glyph.wontDo": () => "Vervallen — gesloten zonder het te doen",
+  "shortcuts.modal.glyph.toDiscuss": () => "Te bespreken — open agendapunt",
+  "shortcuts.modal.glyph.discussed": () => "Besproken — agendapunt afgerond in dit overleg",
+  "shortcuts.modal.glyph.notDiscussed": () => "Niet besproken — uitgesteld naar een volgend overleg",
   "shortcuts.modal.glyph.bullet": () =>
     "Opsommingsteken (Enter zet voort, een lege regel eindigt de lijst, Tab springt twee spaties in)",
   "shortcuts.modal.glyph.followUp": () => "Vervolg — een gewone notitie die uit deze regel voortkomt",
@@ -265,6 +274,9 @@ export const nl = {
   "commandPalette.line.setDone": () => "Regel/selectie instellen op Voltooid",
   "commandPalette.line.setDeferred": () => "Regel/selectie instellen op Uitgesteld",
   "commandPalette.line.setWontDo": () => "Regel/selectie instellen op Vervallen",
+  "commandPalette.line.setTopicToDiscuss": () => "Regel/selectie instellen op Te bespreken",
+  "commandPalette.line.setTopicDiscussed": () => "Regel/selectie instellen op Besproken",
+  "commandPalette.line.setTopicNotDiscussed": () => "Regel/selectie instellen op Niet besproken",
   "commandPalette.line.jumpNext": () => "Naar volgende open actie springen",
   "commandPalette.line.jumpPrev": () => "Naar vorige open actie springen",
   "commandPalette.wrap.enable": () => "Woordafbreking inschakelen",
@@ -562,8 +574,14 @@ export const nl = {
   "mobileAccessory.openTask.titleWord": () => "Taak",
   "mobileAccessory.completedTask.ariaLabel": () => "Voltooide taak (vinkje)",
   "mobileAccessory.completedTask.titleWord": () => "Voltooid",
-  "mobileAccessory.deferredTask.ariaLabel": () => "Uitgestelde taak (pijl)",
+  "mobileAccessory.deferredTask.ariaLabel": () => "Uitgestelde taak (vakje)",
   "mobileAccessory.deferredTask.titleWord": () => "Uitgesteld",
+  "mobileAccessory.topicToDiscuss.ariaLabel": () => "Te bespreken agendapunt (cirkel)",
+  "mobileAccessory.topicToDiscuss.titleWord": () => "Te bespreken",
+  "mobileAccessory.topicDiscussed.ariaLabel": () => "Besproken agendapunt (oog)",
+  "mobileAccessory.topicDiscussed.titleWord": () => "Besproken",
+  "mobileAccessory.topicNotDiscussed.ariaLabel": () => "Niet besproken agendapunt (stippelcirkel)",
+  "mobileAccessory.topicNotDiscussed.titleWord": () => "Niet besproken",
   "mobileAccessory.bulletList.ariaLabel": () => "Opsommingslijst",
   "mobileAccessory.bulletList.titleWord": () => "Opsomming",
   "mobileAccessory.followUp.ariaLabel": () => "Vervolgpijl",

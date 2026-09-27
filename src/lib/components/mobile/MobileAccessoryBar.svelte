@@ -3,7 +3,7 @@
   import Icon from "../../icons/Icon.svelte";
   import { t } from "../../i18n";
 
-  function apply(token: "#" | "v" | ">" | "x" | "-" | "=>" | "!") {
+  function apply(token: "#" | "v" | ">" | "x" | "-" | "=>" | "!" | "o" | "." | ",") {
     editorApi?.applyToken?.(token);
     editorApi?.focus();
   }
@@ -37,8 +37,17 @@
     <button type="button" class="accessory-btn token-btn" on:click={() => apply("v")} aria-label={$t("mobileAccessory.completedTask.ariaLabel")} title="{$t('mobileAccessory.completedTask.titleWord')} ☑">
       <span class="token-glyph glyph-done">☑</span>
     </button>
-    <button type="button" class="accessory-btn token-btn" on:click={() => apply(">")} aria-label={$t("mobileAccessory.deferredTask.ariaLabel")} title="{$t('mobileAccessory.deferredTask.titleWord')} »">
-      <span class="token-glyph glyph-progress">»</span>
+    <button type="button" class="accessory-btn token-btn" on:click={() => apply(">")} aria-label={$t("mobileAccessory.deferredTask.ariaLabel")} title="{$t('mobileAccessory.deferredTask.titleWord')} ☐">
+      <span class="token-glyph glyph-progress">☐</span>
+    </button>
+    <button type="button" class="accessory-btn token-btn" on:click={() => apply("o")} aria-label={$t("mobileAccessory.topicToDiscuss.ariaLabel")} title="{$t('mobileAccessory.topicToDiscuss.titleWord')} ○">
+      <span class="token-glyph glyph-topic-open">○</span>
+    </button>
+    <button type="button" class="accessory-btn token-btn" on:click={() => apply(".")} aria-label={$t("mobileAccessory.topicDiscussed.ariaLabel")} title="{$t('mobileAccessory.topicDiscussed.titleWord')} ◉">
+      <span class="token-glyph glyph-topic-done">◉</span>
+    </button>
+    <button type="button" class="accessory-btn token-btn" on:click={() => apply(",")} aria-label={$t("mobileAccessory.topicNotDiscussed.ariaLabel")} title="{$t('mobileAccessory.topicNotDiscussed.titleWord')} ◌">
+      <span class="token-glyph glyph-topic-skipped">◌</span>
     </button>
     <button type="button" class="accessory-btn token-btn" on:click={() => apply("-")} aria-label={$t("mobileAccessory.bulletList.ariaLabel")} title="{$t('mobileAccessory.bulletList.titleWord')} •">
       <span class="token-glyph glyph-bullet">•</span>

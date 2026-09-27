@@ -17,9 +17,15 @@ export function glyphForSymbol(sym: string): GlyphPart {
     case "v":
       return { text: "☑", cls: "glyph-done" };
     case ">":
-      return { text: "»", cls: "glyph-progress" };
+      return { text: "☐", cls: "glyph-progress" };
     case "x":
       return { text: "☒", cls: "glyph-cancelled" };
+    case "o":
+      return { text: "○", cls: "glyph-topic-open" };
+    case ".":
+      return { text: "◉", cls: "glyph-topic-done" };
+    case ",":
+      return { text: "◌", cls: "glyph-topic-skipped" };
     default:
       return { text: "☐", cls: "glyph-open" }; // "#"
   }
@@ -45,7 +51,7 @@ export function parseGlyphLine(line: string): GlyphPart[] {
   let consumed = 0; // chars of `line` consumed by the lead strip, so
   // match offsets in `rest` can be mapped back onto `line`.
 
-  const lead = rest.match(/^(\s*)([#vx>]|[-*])\s/);
+  const lead = rest.match(/^(\s*)([#vx>o.,]|[-*])\s/);
   if (lead) {
     const [full, indent, sym] = lead;
     if (indent) parts.push({ text: indent });

@@ -27,8 +27,11 @@
   $: glyphs = [
     ["# ", "☐", "glyph-open", $t("shortcuts.modal.glyph.open")],
     ["v ", "☑", "glyph-done", $t("shortcuts.modal.glyph.done")],
-    ["> ", "»", "glyph-progress", $t("shortcuts.modal.glyph.deferred")],
+    ["> ", "☐", "glyph-progress", $t("shortcuts.modal.glyph.deferred")],
     ["x ", "☒", "glyph-cancelled", $t("shortcuts.modal.glyph.wontDo")],
+    ["o ", "○", "glyph-topic-open", $t("shortcuts.modal.glyph.toDiscuss")],
+    [". ", "◉", "glyph-topic-done", $t("shortcuts.modal.glyph.discussed")],
+    [", ", "◌", "glyph-topic-skipped", $t("shortcuts.modal.glyph.notDiscussed")],
     ["- / * ", "•", "glyph-bullet", $t("shortcuts.modal.glyph.bullet")],
     ["=> ", "➔", "glyph-followup", $t("shortcuts.modal.glyph.followUp")],
   ];
@@ -147,7 +150,7 @@
           <div class="modal-item-main">
             <span>{$t("shortcuts.modal.dimmedLines")}</span>
           </div>
-          <div class="item-tag"><span class="glyph-done">☑</span>&nbsp;<span class="glyph-progress">»</span>&nbsp;<span class="glyph-cancelled">☒</span></div>
+          <div class="item-tag"><span class="glyph-done">☑</span>&nbsp;<span class="glyph-progress">☐</span>&nbsp;<span class="glyph-cancelled">☒</span>&nbsp;<span class="glyph-topic-done">◉</span>&nbsp;<span class="glyph-topic-skipped">◌</span></div>
         </div>
         <div class="modal-item" style="cursor: default;">
           <div class="modal-item-main"><span>{$t("shortcuts.modal.boldEmphasis")}</span></div>

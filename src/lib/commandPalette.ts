@@ -318,6 +318,27 @@ function commandItems(): PaletteItem[] {
       run: () => runPaletteLineAction((api) => api.setActionStateOnSelection?.("x")),
     },
     {
+      id: "cmd-line-set-topic-open",
+      label: translate("commandPalette.line.setTopicToDiscuss", undefined),
+      hint: formatShortcut("setTopicToDiscuss"),
+      group: "Current line",
+      run: () => runPaletteLineAction((api) => api.setTopicStateOnSelection?.("o")),
+    },
+    {
+      id: "cmd-line-set-topic-done",
+      label: translate("commandPalette.line.setTopicDiscussed", undefined),
+      hint: formatShortcut("setTopicDiscussed"),
+      group: "Current line",
+      run: () => runPaletteLineAction((api) => api.setTopicStateOnSelection?.(".")),
+    },
+    {
+      id: "cmd-line-set-topic-skipped",
+      label: translate("commandPalette.line.setTopicNotDiscussed", undefined),
+      hint: formatShortcut("setTopicNotDiscussed"),
+      group: "Current line",
+      run: () => runPaletteLineAction((api) => api.setTopicStateOnSelection?.(",")),
+    },
+    {
       id: "cmd-line-jump-next",
       label: translate("commandPalette.line.jumpNext", undefined),
       hint: formatCombo(shortcutById("jumpAction").combos[0]),

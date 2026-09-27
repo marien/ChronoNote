@@ -364,5 +364,66 @@ test.describe("editor — token glyphs", () => {
     opened = await page.evaluate(() => window.__CHRONO_MOCK__!.openedUrls);
     expect(opened).toEqual(["https://github.com/marien/ChronoNote", "https://github.com/marien/ChronoNote"]);
   });
+
+  test("meeting topics: rendering glyphs, zero action counts, and dimming", async ({ page }) => {
+    await setEditorText(page, "o to discuss\n. discussed\n, skipped");
+
+    await expect(editor(page).locator(".glyph-topic-open")).toHaveCount(1);
+    await expect(editor(page).locator(".glyph-topic-done")).toHaveCount(1);
+    await expect(editor(page).locator(".glyph-topic-skipped")).toHaveCount(1);
+
+    // Strict Non-Action invariant: excluded from status counts
+    expect(await statusCounts(page)).toEqual({ open: 0, closed: 0, forwarded: 0 });
+
+    const lines = editor(page).locator(".cm-line");
+    // Lines 2 and 3 are resolved (. and ,)
+    await expect(lines.nth(0)).not.toHaveClass(/\bcm-line-resolved\b/);
+    await expect(lines.nth(1)).toHaveClass(/\bcm-line-resolved\b/);
+    await expect(lines.nth(2)).toHaveClass(/\bcm-line-resolved\b/);
+  });
+
+  test("meeting topics: shortcuts Ctrl+5, Ctrl+6, Ctrl+7, Ctrl+Space, and Ctrl+Shift+Space", async ({ page }) => {
+    await typeInEditor(page, "item");
+    // Ctrl+5 converts to o item
+    await page.keyboard.press("ControlOrMeta+5");
+    expect(await activeTabContent(page)).toBe("o item");
+
+    // Ctrl+Space marks as discussed
+    await page.keyboard.press("Control+Space");
+    expect(await activeTabContent(page)).toBe(". item");
+
+    // Ctrl+Shift+Space reopens
+    await page.keyboard.press("Control+Shift+Space");
+    expect(await activeTabContent(page)).toBe("o item");
+
+    // Ctrl+7 marks as skipped
+    await page.keyboard.press("ControlOrMeta+7");
+    expect(await activeTabContent(page)).toBe(", item");
+
+    // Ctrl+6 marks as discussed
+    await page.keyboard.press("ControlOrMeta+6");
+    expect(await activeTabContent(page)).toBe(". item");
+  });
+
+  test("meeting topics: smart Enter continuation with numbered and bulleted topics", async ({ page }) => {
+    // Numbered topic: o 1. First -> Enter -> o 2.
+    await typeInEditor(page, "o 1. First");
+    await page.keyboard.press("Enter");
+    expect(await activeTabContent(page)).toBe("o 1. First\no 2. ");
+
+    // Typing and Enter again
+    await page.keyboard.type("Second");
+    await page.keyboard.press("Enter");
+    expect(await activeTabContent(page)).toBe("o 1. First\no 2. Second\no 3. ");
+
+    // Empty Enter removes prefix
+    await page.keyboard.press("Enter");
+    expect(await activeTabContent(page)).toBe("o 1. First\no 2. Second\n");
+
+    // Bulleted topic: o - Bullet -> Enter -> o -
+    await page.keyboard.type("o - Bullet");
+    await page.keyboard.press("Enter");
+    expect(await activeTabContent(page)).toBe("o 1. First\no 2. Second\no - Bullet\no - ");
+  });
 });
 

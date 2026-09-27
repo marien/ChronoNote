@@ -128,6 +128,12 @@ export const en = {
     "Set the action at the caret to deferred, or in every selected line; a plain line becomes an action",
   "shortcuts.setActionWontDo.label": () =>
     "Set the action at the caret to won't-do, or in every selected line; a plain line becomes an action",
+  "shortcuts.setTopicToDiscuss.label": () =>
+    "Set the topic at the caret to to discuss, or in every selected line; a plain line becomes a topic",
+  "shortcuts.setTopicDiscussed.label": () =>
+    "Set the topic at the caret to discussed, or in every selected line; a plain line becomes a topic",
+  "shortcuts.setTopicNotDiscussed.label": () =>
+    "Set the topic at the caret to not discussed, or in every selected line; a plain line becomes a topic",
   "shortcuts.jumpAction.label": () => "Jump to next / previous open action (in editor, wraps)",
   "shortcuts.caretLineNav.label": () => "Caret to start of line, then previous line / start of next line (in editor)",
   "shortcuts.convertToSection.label": () => "Convert current line into a section header",
@@ -156,6 +162,9 @@ export const en = {
   "shortcuts.modal.glyph.done": () => "Done",
   "shortcuts.modal.glyph.deferred": () => "Deferred — pushed forward to a later note",
   "shortcuts.modal.glyph.wontDo": () => "Won't do — closed without doing it",
+  "shortcuts.modal.glyph.toDiscuss": () => "To discuss — open meeting topic",
+  "shortcuts.modal.glyph.discussed": () => "Discussed — topic concluded in this meeting",
+  "shortcuts.modal.glyph.notDiscussed": () => "Not discussed — postponed to another meeting",
   "shortcuts.modal.glyph.bullet": () =>
     "Bulleted list item (Enter continues it, an empty one ends it, Tab nests by two spaces)",
   "shortcuts.modal.glyph.followUp": () => "Follow-up — a plain note leading from this line",
@@ -260,6 +269,9 @@ export const en = {
   "commandPalette.line.setDone": () => "Set line/selection to Done",
   "commandPalette.line.setDeferred": () => "Set line/selection to Deferred",
   "commandPalette.line.setWontDo": () => "Set line/selection to Won't-Do",
+  "commandPalette.line.setTopicToDiscuss": () => "Set line/selection to To Discuss",
+  "commandPalette.line.setTopicDiscussed": () => "Set line/selection to Discussed",
+  "commandPalette.line.setTopicNotDiscussed": () => "Set line/selection to Not Discussed",
   "commandPalette.line.jumpNext": () => "Jump to next open action",
   "commandPalette.line.jumpPrev": () => "Jump to previous open action",
   "commandPalette.wrap.enable": () => "Enable word wrap",
@@ -553,8 +565,14 @@ export const en = {
   "mobileAccessory.openTask.titleWord": () => "Task",
   "mobileAccessory.completedTask.ariaLabel": () => "Completed task (check)",
   "mobileAccessory.completedTask.titleWord": () => "Completed",
-  "mobileAccessory.deferredTask.ariaLabel": () => "Deferred task (arrow)",
+  "mobileAccessory.deferredTask.ariaLabel": () => "Deferred task (box)",
   "mobileAccessory.deferredTask.titleWord": () => "Deferred",
+  "mobileAccessory.topicToDiscuss.ariaLabel": () => "To discuss topic (circle)",
+  "mobileAccessory.topicToDiscuss.titleWord": () => "To discuss",
+  "mobileAccessory.topicDiscussed.ariaLabel": () => "Discussed topic (fisheye)",
+  "mobileAccessory.topicDiscussed.titleWord": () => "Discussed",
+  "mobileAccessory.topicNotDiscussed.ariaLabel": () => "Not discussed topic (dotted circle)",
+  "mobileAccessory.topicNotDiscussed.titleWord": () => "Not discussed",
   "mobileAccessory.bulletList.ariaLabel": () => "Bullet list",
   "mobileAccessory.bulletList.titleWord": () => "Bullet",
   "mobileAccessory.followUp.ariaLabel": () => "Follow-up arrow",

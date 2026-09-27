@@ -419,7 +419,7 @@ export interface EditorApi {
     prev: () => void;
     clear: () => void;
   };
-  applyToken?: (token: "#" | "v" | ">" | "x" | "-" | "=>" | "!") => void;
+  applyToken?: (token: "#" | "v" | ">" | "x" | "-" | "=>" | "!" | "o" | "." | ",") => void;
   indent?: (dedent?: boolean) => void;
   undo?: () => void;
   redo?: () => void;
@@ -429,6 +429,7 @@ export interface EditorApi {
   reopenCurrentDoneAction?: () => boolean;
   convertCurrentLineToSection?: () => boolean;
   setActionStateOnSelection?: (symbol: "#" | "v" | ">" | "x") => boolean;
+  setTopicStateOnSelection?: (symbol: "o" | "." | ",") => boolean;
   jumpAdjacentOpenAction?: (direction: 1 | -1) => boolean;
   pulseLine?: (lineIdx: number) => void;
 }

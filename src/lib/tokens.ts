@@ -119,6 +119,68 @@ export function actionLineEnter(lineText: string): { removeSymbol: true } | { in
   return null;
 }
 
+/** Enter behavior for agenda topic lines (plain topics, numbered topics, bulleted topics).
+ * - Empty topic item: exits the list ({ removeSymbol: true })
+ * - Topic with numbered item: increments number, e.g. "o 1. Text" -> "o 2. "
+ * - Topic with bullet: continues as "o - "
+ * - Plain topic: continues as "o "
+ * New lines always start in the open state ("o "). */
+export function topicLineEnter(
+  lineText: string,
+  col?: number,
+  nextLine?: string,
+): { removeSymbol: true } | { plain: true } | { insert: string } | null {
+  // Topic with numbered list: e.g. "o 1. Title" or ". 1. Title"
+  const topicNumbered = lineText.match(/^(\s*)([o.,])\s+((?:[1-9]\d{0,8})(?:\.[1-9]\d{0,8})*)([.)])(\s|$)(.*)$/);
+  if (topicNumbered) {
+    const [, indent, , numStr, delim, , text] = topicNumbered;
+    if (text.trim() === "") return { removeSymbol: true };
+    const markerEnd = indent.length + 2 + numStr.length + delim.length;
+    if (col !== undefined && col <= markerEnd) return { plain: true };
+    if (nextLine !== undefined && isSetextUnderline(nextLine)) return { plain: true };
+    const numbers = numStr.split(".").map(Number);
+    numbers[numbers.length - 1] += 1;
+    const nextMarker = numbers.join(".") + delim;
+    return { insert: `\n${indent}o ${nextMarker} ` };
+  }
+
+  // Topic with bullet: e.g. "o - Title" or "o * Title"
+  const topicBullet = lineText.match(/^(\s*)([o.,])\s+([-*])(\s|$)(.*)$/);
+  if (topicBullet) {
+    const [, indent, , marker, , text] = topicBullet;
+    if (text.trim() === "") return { removeSymbol: true };
+    return { insert: `\n${indent}o ${marker} ` };
+  }
+
+  // Plain topic: e.g. "o Title"
+  const topicPlain = lineText.match(/^(\s*)([o.,])(\s|$)(.*)$/);
+  if (topicPlain) {
+    const [, indent, , , text] = topicPlain;
+    if (text.trim() === "") return { removeSymbol: true };
+    return { insert: `\n${indent}o ` };
+  }
+
+  return null;
+}
+
+/** Shift+Enter continuation indent for topic lines. */
+export function topicContinuationIndent(lineText: string): string | null {
+  const topicNumbered = lineText.match(/^(\s*)([o.,])\s+((?:[1-9]\d{0,8})(?:\.[1-9]\d{0,8})*)([.)])(\s|$)/);
+  if (topicNumbered) {
+    const [, indent, , numStr, delim] = topicNumbered;
+    return indent + "  " + " ".repeat(numStr.length + delim.length + 1);
+  }
+  const topicBullet = lineText.match(/^(\s*)([o.,])\s+([-*])(\s|$)/);
+  if (topicBullet) {
+    return topicBullet[1] + "    ";
+  }
+  const topicPlain = lineText.match(/^(\s*)([o.,])\s/);
+  if (topicPlain) {
+    return topicPlain[1] + "  ";
+  }
+  return null;
+}
+
 /** A numbered list item (`1. text`, `2) text`, and numbered sub-items `1.1. text`, `2.3.1) text`). The marker
  * must be the first non-blank character of the line, be a run of positive whole numbers (`1`-`999999999`, no
  * leading zero) separated by dots, and END in `.` or `)`, followed by whitespace (or nothing but the end of the line
@@ -227,20 +289,39 @@ export function cycleActionSymbol(line: string, direction: 1 | -1 = 1): string |
  * four, which never landed where you wanted; the direct shortcuts (`Ctrl/Cmd+1`-`4`, `Ctrl+Space`) reach
  * the others. Same line shapes as `cycleActionSymbol` (a plain leading symbol, or a `=> <symbol>`
  * consequence action); `null` when the line has no action symbol. */
+export function innermostTopicSymbol(line: string): "o" | "." | "," | null {
+  const plain = line.match(/^\s*([o.,])\s/);
+  if (plain) return plain[1] as "o" | "." | ",";
+  return null;
+}
+
+export function isTopicLikeLine(line: string): boolean {
+  return /^\s*[o.,]\s/.test(line);
+}
+
 export function toggleOpenClosed(line: string, col?: number): string | null {
   const m = matchActionSymbol(line, col);
-  return m ? m.rebuild(m.sym === "#" ? "v" : "#") : null;
+  if (!m) return null;
+  if (m.sym === "#") return m.rebuild("v");
+  if (m.sym === "o") return m.rebuild(".");
+  if (m.sym === "." || m.sym === ",") return m.rebuild("o");
+  return m.rebuild("#");
 }
 
 /** A click or tap on a glyph: toggles exactly the symbol whose character sits at `index` in the line (the
- * position of the glyph that was hit), whatever else the line holds. `null` if no action symbol is there. */
+ * position of the glyph that was hit), whatever else the line holds. `null` if no action or topic symbol is there. */
 export function toggleOpenClosedAtIndex(line: string, index: number): string | null {
   const s = findActionSymbols(line).find((x) => x.index === index);
-  return s ? setSymbolAt(line, s.index, s.sym === "#" ? "v" : "#") : null;
+  if (!s) return null;
+  if (s.sym === "o") return setSymbolAt(line, s.index, ".");
+  if (s.sym === "." || s.sym === ",") return setSymbolAt(line, s.index, "o");
+  return setSymbolAt(line, s.index, s.sym === "#" ? "v" : "#");
 }
 
 /** The symbol a click on a glyph showing `sym` produces (`toggleOpenClosed`'s target), for the hover preview. */
 export function symbolAfterClick(sym: string): string {
+  if (sym === "o") return ".";
+  if (sym === "." || sym === ",") return "o";
   return sym === "#" ? "v" : "#";
 }
 
@@ -261,6 +342,21 @@ export function setActionSymbolTo(line: string, symbol: "#" | "v" | ">" | "x", c
   return replaceActionSymbol(line, () => symbol, symbol, col);
 }
 
+/** Sets a line or selection directly to topic state `o`, `.`, or `,` (`Ctrl/Cmd+5`-`7`).
+ * Promotes a plain line or list item to the target topic state by prepending it. */
+export function setTopicSymbolTo(line: string, symbol: "o" | "." | ",", col?: number): string | null {
+  const m = matchActionSymbol(line, col);
+  if (m) {
+    return m.rebuild(symbol);
+  }
+  if (/=>/.test(line)) return null;
+  if (isSetextUnderline(line)) return null;
+  const match = line.match(/^(\s*)(.*)$/s);
+  if (!match) return null;
+  const [, indent, rest] = match;
+  return `${indent}${symbol} ${rest}`;
+}
+
 /** #65/#73: `Ctrl/Cmd+Shift+O` — sets every line in the selection to open,
  * *without* #69's promotion of a plain line into a new action (unlike
  * `Ctrl+1`, which shares the exact same target state but does promote).
@@ -275,62 +371,50 @@ export function setActionSymbolOpen(line: string, col?: number): string | null {
   return replaceActionSymbol(line, () => "#", undefined, col);
 }
 
-/** #73: Ctrl+Space's sole remaining job now that Ctrl+1-4 cover every
- * state directly — close an *open* action (`# → v`). No-op (`null`) for
- * anything else: a deferred/won't-do/already-done line, a plain line, a
- * bullet, emphasis, or a delegated follow-up. No more cycling through all
- * four states, and no more promoting a plain line into a new action —
- * that's `Ctrl+1`'s job now (`setActionSymbolTo`). */
+/** #73: Ctrl+Space / Mod-Enter: close an open action (`# → v`) or mark an open topic discussed (`o → .`).
+ * No-op (`null`) for anything else. */
 export function closeOpenAction(line: string, col?: number): string | null {
   const m = matchActionSymbol(line, col);
-  return m && m.sym === "#" ? m.rebuild("v") : null;
+  if (!m) return null;
+  if (m.sym === "#") return m.rebuild("v");
+  if (m.sym === "o") return m.rebuild(".");
+  return null;
 }
 
-/** #73: the reverse binding's sole job — reopen a *done* action
- * (`v → #`), the mirror of `closeOpenAction`. No-op for anything else,
- * including a deferred/won't-do/open/plain line — `Ctrl+1` already
- * reopens any line directly, so this only needs to handle its one literal
- * inverse. */
+/** #73: Ctrl+Shift+Space / Mod-Shift-Enter: reopen a done action (`v → #`) or reset a discussed/postponed topic (`.`/`,` → `o`). */
 export function reopenDoneAction(line: string, col?: number): string | null {
   const m = matchActionSymbol(line, col);
-  return m && m.sym === "v" ? m.rebuild("#") : null;
+  if (!m) return null;
+  if (m.sym === "v") return m.rebuild("#");
+  if (m.sym === "." || m.sym === ",") return m.rebuild("o");
+  return null;
 }
 
-/** Section History's take-over (2026-09-24): re-adopting a deferred (`>`)
- * line elsewhere turns it back into a fresh open action, the same rewrite
- * `historyInsertText` used to apply to its own single extracted action
- * string — done/won't-do/already-open lines land verbatim, only a
- * deferral is undone by moving the content. No-op for anything else,
- * including a plain line with no action state at all. */
+/** Section History's take-over: re-adopting a deferred (`>`) or skipped topic (`,`) turns it back into fresh open (`#` or `o`). */
 export function reopenDeferredAction(line: string, col?: number): string | null {
   const m = matchActionSymbol(line, col);
-  return m && m.sym === ">" ? m.rebuild("#") : null;
+  if (!m) return null;
+  if (m.sym === ">") return m.rebuild("#");
+  if (m.sym === "," || m.sym === ".") return m.rebuild("o");
+  return null;
 }
 
 /** Shared line-matching for the symbol transforms above — a plain
- * (optionally indented, §50) leading action symbol, or a `=> <symbol>`
- * consequence-action (§41) anywhere on the line (not anchored to the
- * start — "Talked to Sam => # follow up" must still match). Returns the
- * matched symbol plus a `rebuild` closure that swaps in a new one while
- * preserving everything else (indentation, the `=> ` prefix, the rest of
- * the line) — shared by every caller that needs to *inspect* the current
- * symbol before deciding whether/how to change it (`closeOpenAction`/
- * `reopenDoneAction`), not just blindly transform it the way
- * `replaceActionSymbol` below does. */
-/** One action symbol on a line: the index of its character (`#`/`v`/`>`/`x`) and which one it is. */
+ * (optionally indented, §50) leading action or topic symbol, or a `=> <symbol>`
+ * consequence-action (§41) anywhere on the line. */
+/** One action or topic symbol on a line: the index of its character and which one it is. */
 export interface ActionSymbolRef {
   index: number;
   sym: string;
 }
 
-/** Every action symbol on a line, left to right: the leading one (the first non-blank character, followed by
- * whitespace; indentation allowed, §50) and every `=> <symbol>` consequence action (§41), wherever on the line
- * it sits. A line can hold several (`# do X => # wait`). Delegates (`=> @name`), plain `=> ` follow-ups,
- * bullets, emphasis and prose have none. */
+/** Every action and topic symbol on a line, left to right. */
 export function findActionSymbols(line: string): ActionSymbolRef[] {
   const out: ActionSymbolRef[] = [];
-  const lead = line.match(/^(\s*)([#vx>])(?=\s)/);
-  if (lead) out.push({ index: lead[1].length, sym: lead[2] });
+  const leadAction = line.match(/^(\s*)([#vx>])(?=\s)/);
+  if (leadAction) out.push({ index: leadAction[1].length, sym: leadAction[2] });
+  const leadTopic = line.match(/^(\s*)([o.,])(?=\s)/);
+  if (leadTopic) out.push({ index: leadTopic[1].length, sym: leadTopic[2] });
   for (const m of line.matchAll(/=>\s([#vx>])(?=\s)/g)) out.push({ index: m.index! + m[0].length - 1, sym: m[1] });
   return out;
 }
@@ -361,10 +445,9 @@ export function referenceColumn(sel: { from: number; to: number; head: number },
   return 0;
 }
 
-/** Shared line-matching for the symbol transforms above. Without `col` it is the line-wide rule the Action Drawer
- * still uses: the innermost (last) symbol on the line. With `col` (a caret column) it is the symbol the caret
- * means (`pickActionSymbol`). Returns the symbol plus a `rebuild` closure that swaps in a new one, leaving
- * everything else (indentation, the arrow, the rest of the line) as it was. */
+/** Shared line-matching for the symbol transforms above. Without `col` it is the line-wide rule:
+ * the innermost (last) symbol on the line. With `col` (a caret column) it is the symbol the caret
+ * means (`pickActionSymbol`). */
 function matchActionSymbol(line: string, col?: number): { sym: string; rebuild: (newSym: string) => string } | null {
   const symbols = findActionSymbols(line);
   const pick = col === undefined ? (symbols[symbols.length - 1] ?? null) : pickActionSymbol(symbols, col);

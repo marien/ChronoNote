@@ -128,6 +128,9 @@ export type TranslationParams = {
   "shortcuts.setActionDone.label": undefined;
   "shortcuts.setActionDeferred.label": undefined;
   "shortcuts.setActionWontDo.label": undefined;
+  "shortcuts.setTopicToDiscuss.label": undefined;
+  "shortcuts.setTopicDiscussed.label": undefined;
+  "shortcuts.setTopicNotDiscussed.label": undefined;
   "shortcuts.jumpAction.label": undefined;
   "shortcuts.caretLineNav.label": undefined;
   "shortcuts.convertToSection.label": undefined;
@@ -160,6 +163,9 @@ export type TranslationParams = {
   "shortcuts.modal.glyph.done": undefined;
   "shortcuts.modal.glyph.deferred": undefined;
   "shortcuts.modal.glyph.wontDo": undefined;
+  "shortcuts.modal.glyph.toDiscuss": undefined;
+  "shortcuts.modal.glyph.discussed": undefined;
+  "shortcuts.modal.glyph.notDiscussed": undefined;
   "shortcuts.modal.glyph.bullet": undefined;
   "shortcuts.modal.glyph.followUp": undefined;
   "shortcuts.modal.topicTag": undefined;
@@ -276,6 +282,9 @@ export type TranslationParams = {
   "commandPalette.line.setDone": undefined;
   "commandPalette.line.setDeferred": undefined;
   "commandPalette.line.setWontDo": undefined;
+  "commandPalette.line.setTopicToDiscuss": undefined;
+  "commandPalette.line.setTopicDiscussed": undefined;
+  "commandPalette.line.setTopicNotDiscussed": undefined;
   "commandPalette.line.jumpNext": undefined;
   "commandPalette.line.jumpPrev": undefined;
   "commandPalette.wrap.enable": undefined;
@@ -617,6 +626,12 @@ export type TranslationParams = {
   "mobileAccessory.completedTask.titleWord": undefined;
   "mobileAccessory.deferredTask.ariaLabel": undefined;
   "mobileAccessory.deferredTask.titleWord": undefined;
+  "mobileAccessory.topicToDiscuss.ariaLabel": undefined;
+  "mobileAccessory.topicToDiscuss.titleWord": undefined;
+  "mobileAccessory.topicDiscussed.ariaLabel": undefined;
+  "mobileAccessory.topicDiscussed.titleWord": undefined;
+  "mobileAccessory.topicNotDiscussed.ariaLabel": undefined;
+  "mobileAccessory.topicNotDiscussed.titleWord": undefined;
   "mobileAccessory.bulletList.ariaLabel": undefined;
   "mobileAccessory.bulletList.titleWord": undefined;
   "mobileAccessory.followUp.ariaLabel": undefined;

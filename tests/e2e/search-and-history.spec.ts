@@ -274,7 +274,7 @@ test.describe("section history (Ctrl/Cmd+Shift+H)", () => {
     await bar.getByRole("button", { name: "Add to today" }).click();
     // Source deferred, target (today's own note — opened from here) updated,
     // drawer stays open with the source's new state reflected.
-    await expect(detailLine(page, "renew the cert")).toContainText("»"); // deferred glyph
+    await expect(detailLine(page, "renew the cert")).toContainText("☐"); // deferred glyph
     await expect.poll(() => mockNote(page, "2026-09-05.txt")).toContain("> renew the cert");
     await expect.poll(() => mockNote(page, todayFilename())).toBe("Standup\n====\n- prior notes\n\n# renew the cert");
     // 2026-09-28 bug fix: the target tab (today, active here) is a *different*

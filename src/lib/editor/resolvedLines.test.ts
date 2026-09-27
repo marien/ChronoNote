@@ -89,4 +89,16 @@ describe("resolvedLinesPlugin", () => {
       { line: 2, cls: "cm-line-resolved" },
     ]);
   });
+
+  it("decorates discussed '.' and not-discussed ',' topic lines, but leaves 'o' open", () => {
+    const doc = [
+      "o Open topic",
+      ". Discussed topic",
+      ", Postponed topic",
+      "  . Indented discussed topic",
+    ].join("\n");
+
+    const indices = getResolvedLineIndices(doc);
+    expect(indices).toEqual([1, 2, 3]);
+  });
 });

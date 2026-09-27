@@ -6,7 +6,7 @@ import {
   ViewPlugin,
   type ViewUpdate,
 } from "@codemirror/view";
-import { innermostActionSymbol, isSetextUnderline } from "../tokens";
+import { innermostActionSymbol, innermostTopicSymbol, isSetextUnderline } from "../tokens";
 
 /** Returns true if the line at 1-based lineNumber is a section header title line
  * directly followed by a setext `====` underline. */
@@ -31,7 +31,8 @@ export function buildResolvedLineDecorations(view: EditorView): DecorationSet {
       const line = view.state.doc.lineAt(pos);
       if (!isHeaderLine(view, line.number)) {
         const sym = innermostActionSymbol(line.text);
-        if (sym === "v" || sym === "x" || sym === ">") {
+        const topicSym = innermostTopicSymbol(line.text);
+        if (sym === "v" || sym === "x" || sym === ">" || topicSym === "." || topicSym === ",") {
           const isTouched = isLineTouchedBySelection(view, line.from, line.to);
           builder.add(
             line.from,

@@ -874,10 +874,13 @@ body {
 .cm-line .glyph-progress,
 .cm-line .glyph-cancelled,
 .cm-line .glyph-bullet,
-.cm-line .glyph-followup {
+.cm-line .glyph-followup,
+.cm-line .glyph-topic-open,
+.cm-line .glyph-topic-done,
+.cm-line .glyph-topic-skipped {
   display: inline-block;
-  height: 1.6em;
-  line-height: 1.6em;
+  height: calc(var(--editor-line-height, 1.6) * 1em);
+  line-height: calc(var(--editor-line-height, 1.6) * 1em);
   overflow: hidden;
   vertical-align: top;
   text-align: left;
@@ -885,37 +888,19 @@ body {
 
 /* §84 (#13): the checkbox characters (☐ ☑ ☒) in the symbol fallback font
    draw a near-full-em bordered square, which reads visibly larger and
-   heavier than the `#` / `v` / `x` they replace. Shrink just those three
-   to sit at roughly the `#` cap height. Uses `transform: scale()` rather
-   than `font-size` on purpose: `font-size` would also shrink the `1.6em`
-   height/line-height box above and break the §79 vertical-centering fix,
-   whereas a transform leaves the layout box untouched and scales the
-   drawn mark about its centre. `»` (progress) is left alone — Marien
-   confirmed it looks right as-is.
-
-   §87 (#16): `transform-origin: left center` so the shrink pulls toward
-   the cell's left edge (keeping the glyph on column 0), and `translateY`
-   drops it ~0.05em — against lowercase text the checkboxes and the
-   follow-up arrow read a touch high, their ink reaching well above the
-   x-height while sharing the baseline.
-
-   #93: `scale()` moved off the outer `.glyph-open`/`.glyph-done`/
-   `.glyph-cancelled` cell and onto a nested `.glyph-ink` span instead. The
-   outer span is the exact DOM node CodeMirror measures to place the
-   cursor right after the glyph — when the scale lived there, its own
-   `getBoundingClientRect()` shrank along with the drawn mark, so a cursor
-   at end-of-line (no text after the glyph) landed hugging the visually
-   shrunk checkbox instead of at the true right edge of the 2ch cell,
-   making the trailing space look absent. `translateY` stays on the outer
-   cell (vertical-only, doesn't affect its width) so §87's baseline fix is
-   unchanged; only the horizontal shrink moves inward. */
+   heavier than the `#` / `v` / `x` they replace. Shrink to sit at roughly
+   the `#` cap height. */
 .cm-line .glyph-open,
 .cm-line .glyph-done,
-.cm-line .glyph-cancelled {
-  transform: translateY(0.05em);
+.cm-line .glyph-progress,
+.cm-line .glyph-cancelled,
+.cm-line .glyph-topic-open,
+.cm-line .glyph-topic-done,
+.cm-line .glyph-topic-skipped {
+  transform: translateY(0);
 }
 .cm-line .glyph-followup {
-  transform: translateY(0.05em);
+  transform: translateY(0);
 }
 .cm-line .glyph-open .glyph-ink,
 .cm-line .glyph-done .glyph-ink,
@@ -924,11 +909,91 @@ body {
   transform: scale(0.85);
   transform-origin: left center;
 }
+
+/* Boxed Deferred Glyph (Option 1: ☐ with centered ›) */
+.cm-line .glyph-progress .glyph-ink,
+.glyph-progress .glyph-ink,
+.token-glyph.glyph-progress {
+  position: relative;
+  display: inline-block;
+  transform: scale(0.85);
+  transform-origin: left center;
+}
+.cm-line .glyph-progress .glyph-ink::after,
+.glyph-progress .glyph-ink::after,
+.token-glyph.glyph-progress::after {
+  content: "›";
+  position: absolute;
+  left: 48%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 0.70em;
+  font-weight: 900;
+  line-height: 1;
+  color: var(--glyph-progress-color);
+  pointer-events: none;
+}
+
+.cm-line .glyph-topic-open .glyph-ink,
+.cm-line .glyph-topic-done .glyph-ink,
+.cm-line .glyph-topic-skipped .glyph-ink,
+.token-glyph.glyph-topic-open,
+.token-glyph.glyph-topic-done,
+.token-glyph.glyph-topic-skipped {
+  color: transparent;
+  user-select: none;
+  display: inline-block;
+  position: relative;
+  width: 0.70em;
+  height: 0.70em;
+  box-sizing: border-box;
+  border-radius: 50%;
+  line-height: 1;
+  transform: translateY(0.20em);
+}
+
+/* o: open circle (1.4px solid stroke) */
+.cm-line .glyph-topic-open .glyph-ink,
+.glyph-topic-open.glyph-cyclable-preview .glyph-ink,
+.token-glyph.glyph-topic-open {
+  border: 1.4px solid var(--glyph-open-color);
+}
+
+/* .: discussed fisheye (outer circle + centered inner dot) */
+.cm-line .glyph-topic-done .glyph-ink,
+.glyph-topic-done.glyph-cyclable-preview .glyph-ink,
+.token-glyph.glyph-topic-done {
+  border: 1.4px solid var(--glyph-done-color);
+}
+.cm-line .glyph-topic-done .glyph-ink::after,
+.glyph-topic-done.glyph-cyclable-preview .glyph-ink::after,
+.token-glyph.glyph-topic-done::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 0.30em;
+  height: 0.30em;
+  border-radius: 50%;
+  background: var(--glyph-done-color);
+}
+
+/* ,: not discussed / postponed (1.4px dashed circular ring) */
+.cm-line .glyph-topic-skipped .glyph-ink,
+.glyph-topic-skipped.glyph-cyclable-preview .glyph-ink,
+.token-glyph.glyph-topic-skipped {
+  border: 1.4px dashed var(--glyph-progress-color);
+}
+
 .cm-line .glyph-open,
 .cm-line .glyph-done,
 .cm-line .glyph-progress,
 .cm-line .glyph-cancelled,
-.cm-line .glyph-bullet {
+.cm-line .glyph-bullet,
+.cm-line .glyph-topic-open,
+.cm-line .glyph-topic-done,
+.cm-line .glyph-topic-skipped {
   width: 2ch;
 }
 .cm-line .glyph-followup {
@@ -951,6 +1016,15 @@ body {
   color: var(--glyph-cancelled-color);
   font-weight: var(--glyph-cancelled-weight);
   opacity: var(--glyph-cancelled-opacity);
+}
+.glyph-topic-open {
+  color: var(--glyph-open-color);
+}
+.glyph-topic-done {
+  color: var(--glyph-done-color);
+}
+.glyph-topic-skipped {
+  color: var(--glyph-progress-color);
 }
 .glyph-cyclable {
   cursor: pointer;

@@ -17,13 +17,17 @@
     adjacentOpenActionLine,
     closeOpenAction,
     isSetextUnderline,
-    referenceColumn,
+    isTopicLikeLine,
     numberedContinuationIndent,
     numberedListEnter,
     parseNumberedItem,
+    referenceColumn,
     reopenDoneAction,
     setActionSymbolOpen,
     setActionSymbolTo,
+    setTopicSymbolTo,
+    topicContinuationIndent,
+    topicLineEnter,
   } from "../tokens";
   import * as controller from "../controller";
   import { findMatch, findOpen, readableLineLength, wordWrap } from "../controller";
@@ -324,7 +328,7 @@
       // continuation. Otherwise the token got duplicated onto the pushed-
       // down line ("# a" → blank line + "# # a").
       if (insertBullet) {
-        const lead = line.text.match(/^(\s*)(?:[-*]\s|[#vx>]\s|=>\s)/);
+        const lead = line.text.match(/^(\s*)(?:[-*]\s|[#vx>]\s|[o.,]\s|=>\s)/);
         if (lead && pos - line.from <= lead[1].length) {
           v.dispatch({
             changes: { from: pos, to: pos, insert: "\n" },
@@ -336,6 +340,33 @@
       }
       const match = line.text.match(/^(\s*)([-*])\s/);
       if (!match) {
+        if (isTopicLikeLine(line.text)) {
+          if (!insertBullet) {
+            const pad = topicContinuationIndent(line.text) ?? "  ";
+            v.dispatch({
+              changes: { from: pos, to: pos, insert: "\n" + pad },
+              selection: { anchor: pos + 1 + pad.length },
+              scrollIntoView: true,
+            });
+            return true;
+          }
+          const nextLine = line.number < v.state.doc.lines ? v.state.doc.line(line.number + 1).text : undefined;
+          const step = topicLineEnter(line.text, pos - line.from, nextLine);
+          if (step && "removeSymbol" in step) {
+            v.dispatch({ changes: { from: line.from, to: line.to, insert: "" }, selection: { anchor: line.from } });
+          } else if (step && "plain" in step) {
+            v.dispatch({ changes: { from: pos, to: pos, insert: "\n" }, selection: { anchor: pos + 1 }, scrollIntoView: true });
+          } else if (step && "insert" in step) {
+            v.dispatch({
+              changes: { from: pos, to: pos, insert: step.insert },
+              selection: { anchor: pos + step.insert.length },
+              scrollIntoView: true,
+            });
+          } else {
+            v.dispatch({ changes: { from: pos, to: pos, insert: "\n" }, selection: { anchor: pos + 1 }, scrollIntoView: true });
+          }
+          return true;
+        }
         // Numbered items (`1.`, `2)`, `1.1.`): Enter continues with the next number, an empty item exits, Shift+Enter
         // aligns under the item's text. The marker is the first non-blank character, so this never overlaps a bullet.
         const numbered = parseNumberedItem(line.text);
@@ -440,6 +471,9 @@
       { key: "Mod-2", run: (v) => applyActionStateToSelection(v, (line, col) => setActionSymbolTo(line, "v", col)) },
       { key: "Mod-3", run: (v) => applyActionStateToSelection(v, (line, col) => setActionSymbolTo(line, ">", col)) },
       { key: "Mod-4", run: (v) => applyActionStateToSelection(v, (line, col) => setActionSymbolTo(line, "x", col)) },
+      { key: "Mod-5", run: (v) => applyActionStateToSelection(v, (line, col) => setTopicSymbolTo(line, "o", col)) },
+      { key: "Mod-6", run: (v) => applyActionStateToSelection(v, (line, col) => setTopicSymbolTo(line, ".", col)) },
+      { key: "Mod-7", run: (v) => applyActionStateToSelection(v, (line, col) => setTopicSymbolTo(line, ",", col)) },
       { key: "F2", run: (v) => jumpToAdjacentOpenAction(v, 1) },
       { key: "Shift-F2", run: (v) => jumpToAdjacentOpenAction(v, -1) },
       {
@@ -724,6 +758,8 @@
       convertCurrentLineToSection: () => (view ? convertLineToSection(view) : false),
       setActionStateOnSelection: (symbol: "#" | "v" | ">" | "x") =>
         view ? applyActionStateToSelection(view, (line, col) => setActionSymbolTo(line, symbol, col)) : false,
+      setTopicStateOnSelection: (symbol: "o" | "." | ",") =>
+        view ? applyActionStateToSelection(view, (line, col) => setTopicSymbolTo(line, symbol, col)) : false,
       jumpAdjacentOpenAction: (direction: 1 | -1) => (view ? jumpToAdjacentOpenAction(view, direction) : false),
       pulseLine: (lineIdx: number) => {
         triggerLinePulse(lineIdx);
@@ -845,6 +881,8 @@
             } else {
               updated = `${line.text} => `;
             }
+          } else if (token === "o" || token === "." || token === ",") {
+            updated = setTopicSymbolTo(line.text, token, referenceColumn(sel, line));
           }
           if (updated !== null && updated !== line.text) {
             changes.push({ from: line.from, to: line.to, insert: updated });
