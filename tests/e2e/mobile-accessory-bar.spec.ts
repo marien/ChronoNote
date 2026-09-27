@@ -42,6 +42,21 @@ test.describe("mobile accessory bar — caret after token insertion", () => {
 
     expect(await activeTabContent(page)).toBe("call Sam => book room");
   });
+
+  test("single tap on the editor focuses and allows immediate typing without inputmode=none or double-tap", async ({ page }) => {
+    const cmContent = page.locator(".cm-content");
+    // Verify inputmode is not "none"
+    expect(await cmContent.getAttribute("inputmode")).not.toBe("none");
+
+    // Single tap focuses the editor
+    await cmContent.click();
+    await expect(cmContent).toBeFocused();
+    expect(await cmContent.getAttribute("inputmode")).not.toBe("none");
+
+    // Immediately typing works on first tap without requiring a second tap
+    await page.keyboard.type("hello from first tap");
+    expect(await activeTabContent(page)).toBe("hello from first tap");
+  });
 });
 
 test.describe("mobile mode is touch-first, not width-based", () => {
