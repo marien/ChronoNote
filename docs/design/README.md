@@ -1,5 +1,15 @@
 # Design notes
 
+## Action Drawer: Mobile portrait layout & ergonomics
+
+**[`action-drawer-mobile-design.md`](action-drawer-mobile-design.md)** — pitched 2026-09-27:
+reclaims horizontal reading space in `ActionDrawerModal` on mobile portrait viewports
+(360px–420px). Hides zero-utility line numbers (`.item-tag`) and non-collapsible section
+breadcrumbs (`.item-breadcrumb`), expanding available action text from ~100px (~12 chars)
+to ~320px–350px (~45 chars). Evaluates and decisively rejects horizontal scrollbars on
+touch due to vertical momentum scroll-trapping and tap-to-jump latency. Outlines single-line
+truncation vs. 48px touch-target two-line wrapping.
+
 ## Multilanguage support (English, Dutch, German)
 
 **[`i18n-roadmap.md`](i18n-roadmap.md)** — pitched 2026-09-25: English/

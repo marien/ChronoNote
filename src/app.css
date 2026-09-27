@@ -2002,6 +2002,17 @@ textarea.modal-input.import-textarea {
   white-space: nowrap;
   flex: 1;
   margin-right: 12px;
+  min-width: 0;
+}
+.modal-item-main > :first-child {
+  flex-shrink: 0;
+}
+.modal-item-main > span:last-child,
+.modal-item-main > .modal-item-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
 }
 .palette-match {
   color: var(--glyph-open-color);
@@ -2121,6 +2132,19 @@ textarea.modal-input.import-textarea {
 }
 .modal-item.selected .item-completed {
   opacity: 0.9;
+}
+/* Mobile portrait ergonomics (§222): unclutter action drawer and modal lists
+   so task descriptions can be read across the full width of narrow viewports. */
+@media (max-width: 600px) {
+  .modal-item .item-breadcrumb {
+    display: none;
+  }
+  .modal-item:not(.shortcuts-list *) .item-tag {
+    display: none;
+  }
+  .modal-item:not(.shortcuts-list *) .modal-item-main {
+    margin-right: 0;
+  }
 }
 .modal-group-header {
   padding: 6px 14px;
@@ -2261,6 +2285,11 @@ textarea.modal-input.import-textarea {
   text-overflow: clip;
   flex: 1 1 auto;
   min-width: 0;
+}
+.shortcuts-list .modal-item-main > span {
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
 }
 .shortcuts-list .item-tag {
   flex-shrink: 0;
