@@ -43,6 +43,7 @@
   // "Settings-only" now that the window title itself no longer renders
   // visibly (the merged title bar has no title text). Meaningless for the
   // web backend (no `notesDir`, IndexedDB-backed instead — the "Browser
+  // storage" badge in the right zone already covers that case).
   $: folderName = $notesDir ? folderNameFromPath($notesDir) : "";
 
   $: hasCentreMessage = Boolean(
