@@ -244,6 +244,13 @@ test.describe("sync review improvements (#78)", () => {
       seed: { ...scenario("empty"), calendarSyncEnabled: true, agendaJson: JSON.stringify([meeting("09:00", "Alpha")]) },
     });
     await openReview(page);
+    // The dialog is visible as soon as it mounts, but its own initial-focus
+    // effect (the focus trap landing on Sync) can still be a tick behind —
+    // the sibling test above waits for this same thing before its first
+    // keypress; this one didn't, so on a slower runner Enter could fire
+    // before anything was focused yet, leaving the dialog open until the
+    // assertion below timed out (a real, reproducible flake, not a fluke).
+    await expect(reviewDialog(page).getByRole("button", { name: "Sync", exact: true })).toBeFocused();
     await page.keyboard.press("Enter");
     await expect(reviewDialog(page)).toHaveCount(0);
     await expect(editor(page)).toContainText("Alpha");
