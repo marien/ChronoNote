@@ -9310,8 +9310,10 @@ Key refinements implemented:
 3. **Mobile Settings Tabs (`app.css`)**: Tuned `.settings-tabs .segmented-option` padding and font size for `@media (max-width: 600px)` so that all three tabs fit without horizontal scroll or clipping on 375px screens across all locales.
 4. **Telemetry Popover Width & Timestamps (`app.css`, `nl.ts`, `de.ts`)**: Widened `#telemetry-popover` from `290px` to `min(320px, calc(100vw - 24px))` and streamlined timestamp labels (`"Laatste synchronisatie:"` in Dutch, `"Letzte Synchronisierung:"` in German). Prevents ellipsis truncation on `"Gerade eben (09:00)"` and `"Zojuist (09:00)"`.
 5. **Shortcuts Modal Symbols Tag (`ShortcutsModal.svelte`, `app.css`)**: Removed extra whitespace in `<kbd>` tags and adjusted item-tag layout (`min-width: max-content; padding-right: 4px;`) to prevent false-positive / subpixel line-wrapping.
-6. **Mobile Tab Drawer & Status Bar Phrasing (`nl.ts`, `de.ts`, `app.css`)**: Shortened `mobileTabDrawer.openDateNote` to `"Datum openen"` / `"Datum öffnen"`, refined Dutch status bar forwarded count to `"Doorgestuurd ${count}"`, and centered action button text in the mobile drawer.
+6. **Mobile Tab Drawer & Status Bar Phrasing (`nl.ts`, `de.ts`, `app.css`)**: Shortened `mobileTabDrawer.openDateNote` to `"Datum openen"` / `"Datum öffnen"`, and centered action button text in the mobile drawer.
 7. **Automated Visual Audit Regression Suite (`tests/e2e/visual-audit.spec.ts`)**: Added automated Playwright test asserting 0 horizontal overflows across all modals, tabs, controls, and drawers in `en`, `nl`, and `de`.
+
+**Caught in review before merge**: this PR's draft had also changed the Dutch status bar forwarded-count label to `"Doorgestuurd ${count}"`, introducing a new term for the same `>` (deferred) concept `shortcuts.modal.glyph.deferred` and `toast.actions.forwardedToToday` already call "doorgeschoven" — `countActions()` (`tokens.ts`) confirms the forwarded count literally counts deferred actions. Reverted to `"Doorgeschoven ${count}"` before merging, to keep the term consistent everywhere it appears.
 
 Verification: `svelte-check` 0/0; Vitest 589/589; Cargo 163/163; full Playwright suite 403/403 clean.
 
