@@ -401,27 +401,6 @@ test.describe("glyph line layout", () => {
         });
       }
 
-      // Generate a 3x zoomed canvas with yellow guideline at dBottom
-      const zoomCanvas = document.createElement("canvas");
-      zoomCanvas.width = img.width * 3;
-      zoomCanvas.height = img.height * 3;
-      const zCtx = zoomCanvas.getContext("2d")!;
-      zCtx.imageSmoothingEnabled = false;
-      zCtx.drawImage(img, 0, 0, zoomCanvas.width, zoomCanvas.height);
-
-      zCtx.strokeStyle = "rgba(255, 230, 0, 0.85)";
-      zCtx.lineWidth = 1;
-      for (const r of results) {
-        if (r.dBottom !== -1) {
-          zCtx.beginPath();
-          zCtx.moveTo(0, (r.dBottom + 1) * 3);
-          zCtx.lineTo(zoomCanvas.width, (r.dBottom + 1) * 3);
-          zCtx.stroke();
-        }
-      }
-
-      window["_baselineImg"] = zoomCanvas.toDataURL();
-
       return results;
     }, { base64: buf.toString("base64"), cBox: contentBox! });
 
@@ -434,13 +413,6 @@ test.describe("glyph line layout", () => {
         expect(Math.abs(r.consequenceDiff)).toBeLessThanOrEqual(1);
       }
     }
-
-    const baselineDataUrl = await page.evaluate(() => window["_baselineImg"] as string);
-    const fs = await import("fs");
-    if (!fs.existsSync("test-results")) {
-      fs.mkdirSync("test-results", { recursive: true });
-    }
-    fs.writeFileSync("test-results/our-render-with-baseline.png", Buffer.from(baselineDataUrl.split(",")[1], "base64"));
   });
 
   test("baseline alignment is preserved across all supported line heights", async ({ page }) => {
