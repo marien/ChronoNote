@@ -71,7 +71,16 @@ test.describe("OneDrive first connect (mobile)", () => {
     const running = dialog.getByRole("button", { name: /Syncing…/ });
     await expect(running).toBeDisabled();
     await expect(running.locator(".modal-spinner")).toBeVisible();
-    await expect(page.locator("#stat-cloud .modal-spinner")).toBeVisible();
+    const statusSpinner = page.locator("#stat-cloud .modal-spinner");
+    await expect(statusSpinner).toBeVisible();
+    // The spinner (1em square, box-sizing: border-box) replaces the 12px
+    // cloud Icon while syncing — its font-size must match the Icon's
+    // size exactly, so nothing in the status bar shifts once the sync
+    // finishes and the icon comes back. Asserting on font-size directly
+    // rather than boundingBox(): the spinner spins continuously, and a
+    // rotated square's axis-aligned bounding box grows up to sqrt(2)x at
+    // 45 degrees, which would make a width/height assertion flaky.
+    await expect(statusSpinner).toHaveCSS("font-size", "12px");
 
     await expect(dialog.getByRole("button", { name: /Sync now/ })).toBeEnabled({ timeout: 5000 });
     await expect(toast(page)).toContainText("OneDrive sync finished");

@@ -1194,6 +1194,14 @@ body {
   color: var(--state-warn);
   white-space: nowrap;
 }
+/* #stat-cloud swaps its icon for a spinner while syncing (base
+   .modal-spinner is 14px, sized for a modal's own "Checking…" row) —
+   without this override it's 2px wider than the 12px `cloud` Icon it
+   replaces, so everything after it in the status bar visibly shifts
+   left the moment a sync finishes and the icon comes back. */
+#stat-cloud .modal-spinner {
+  font-size: 12px;
+}
 
 /* Sync-conflict resolve screen (SyncConflictsModal.svelte). */
 .conflict-view-tabs {
