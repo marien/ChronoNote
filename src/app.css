@@ -54,11 +54,6 @@
   --glyph-assignee-bg: rgba(128, 128, 128, 0.18);
   --glyph-assignee-color: var(--text);
   --glyph-emphasis-color: var(--text);
-
-  --ruler-marker-action: #f59e0b;
-  --ruler-marker-action-glow: rgba(245, 158, 11, 0.5);
-  --ruler-marker-topic: #06b6d4;
-  --ruler-marker-topic-glow: rgba(6, 182, 212, 0.5);
 }
 
 /* #48: light/dark is a three-state setting (`themeMode`: light / dark /
@@ -93,11 +88,6 @@
     --highlight: rgba(0, 0, 0, 0.15);
     --caret-color: #000000;
     --editor-selection-bg: #c8d3e0;
-
-    --ruler-marker-action: #d97706;
-    --ruler-marker-action-glow: rgba(217, 119, 6, 0.35);
-    --ruler-marker-topic: #0891b2;
-    --ruler-marker-topic-glow: rgba(8, 145, 178, 0.35);
   }
 }
 
@@ -123,11 +113,6 @@
   --highlight: rgba(0, 0, 0, 0.15);
   --caret-color: #000000;
   --editor-selection-bg: #c8d3e0;
-
-  --ruler-marker-action: #d97706;
-  --ruler-marker-action-glow: rgba(217, 119, 6, 0.35);
-  --ruler-marker-topic: #0891b2;
-  --ruler-marker-topic-glow: rgba(8, 145, 178, 0.35);
 }
 
 /* §v0.12.2: Pure Black OLED Dark Theme (Area 10.2)
@@ -139,10 +124,6 @@
   --surface-overlay: #121212;
   --surface-raised: #1e1e1e;
 
-  --ruler-marker-action: #fbbf24;
-  --ruler-marker-action-glow: rgba(251, 191, 36, 0.6);
-  --ruler-marker-topic: #22d3ee;
-  --ruler-marker-topic-glow: rgba(34, 211, 238, 0.6);
   --edge-soft: rgba(255, 255, 255, 0.10);
   --edge-strong: rgba(255, 255, 255, 0.18);
   --text: #e0e0e0;
@@ -844,8 +825,19 @@ body {
 
 /* Overview Ruler: scrollbar track markers for open actions and topics */
 .cm-overview-ruler {
+  /* top+bottom (not an explicit height) so the browser's own layout keeps
+     this box pixel-identical to .cm-editor's content box, always — a JS-
+     measured height (the previous approach) can be off by a rounding
+     pixel under fractional display scaling, and even 1px of overflow
+     here escapes .cm-editor's `overflow: visible` and bubbles up to
+     #editor-container, which has `overflow: auto` but was never in the
+     app's thin-scrollbar CSS — so it shows a full native OS scrollbar
+     (confirmed live: a deliberately oversized ruler reproduced exactly
+     this, both vertically and, via the width the scrollbar then steals,
+     horizontally too). */
   position: absolute;
   top: 0;
+  bottom: 0;
   right: 0;
   width: 8px;
   pointer-events: none;
@@ -865,13 +857,24 @@ body {
   transition: transform 0.1s ease, width 0.1s ease, right 0.1s ease;
 }
 
-/* Touch and click hit-area expansion for easy, reliable targeting */
+/* Touch and click hit-area expansion for easy, reliable targeting.
+   `right: 0` (not a further negative inset) deliberately stops flush with
+   the marker's own edge: the marker already sits 1px in from the 8px-wide
+   .cm-overview-ruler's own right edge, which is itself flush with
+   .cm-editor's right edge — a more negative `right` here pushed this
+   pseudo-element 1px past .cm-editor's box. .cm-editor's `scrollWidth`
+   counts that regardless of its `overflow: visible`, and the 1px escaped
+   from there to #editor-container (the next `overflow: auto` ancestor,
+   never in the app's thin-scrollbar CSS), forcing a full native
+   scrollbar — confirmed via a regression test that failed on this exact
+   assertion before this fix. There's nothing to the right worth an
+   expanded hit-area anyway (the ruler already sits at the pane's edge). */
 .cm-ruler-marker::before {
   content: "";
   position: absolute;
   top: -4px;
   bottom: -4px;
-  right: -2px;
+  right: 0;
   left: -8px;
 }
 
@@ -881,14 +884,15 @@ body {
   right: 0.5px;
 }
 
-.cm-ruler-marker.cm-ruler-action {
-  background: var(--ruler-marker-action);
-  box-shadow: 0 0 2.5px var(--ruler-marker-action-glow);
-}
-
+/* Muted, quiet dots — matching the status bar's own flat `--muted`
+   treatment of its open/closed/forwarded counts (#stat-open et al.)
+   rather than a bright, glowing accent color competing for attention
+   with the editor's own vibrant glyph palette. Action and topic markers
+   share the one tone, same as the status bar doesn't color-code its own
+   counts by type either. */
+.cm-ruler-marker.cm-ruler-action,
 .cm-ruler-marker.cm-ruler-topic {
-  background: var(--ruler-marker-topic);
-  box-shadow: 0 0 2.5px var(--ruler-marker-topic-glow);
+  background: var(--muted);
 }
 
 .cm-content {

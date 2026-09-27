@@ -139,8 +139,9 @@ class OverviewRulerPluginClass {
       return;
     }
 
-    this.dom.style.height = `${trackHeight}px`;
-
+    // The box's own on-screen size comes from CSS (top+bottom: 0), not
+    // from this measurement — see the comment on `.cm-overview-ruler` in
+    // app.css for why a JS-set height was the actual bug.
     const markers = buildMarkers(this.view, trackHeight);
     if (markers.length === 0) {
       this.dom.style.display = "none";
