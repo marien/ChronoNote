@@ -334,7 +334,7 @@ export const nl = {
   "statusBar.wordCount": ({ count }) => (count === 1 ? "1 woord" : `${count} woorden`),
   "statusBar.openCount": ({ count }) => `Open ${count}`,
   "statusBar.closedCount": ({ count }) => `Voltooid ${count}`,
-  "statusBar.forwardedCount": ({ count }) => `Doorgestuurd ${count}`,
+  "statusBar.forwardedCount": ({ count }) => `Doorgeschoven ${count}`,
   "statusBar.updatedTo": ({ version }) => `Bijgewerkt naar v${version} —`,
   "statusBar.whatsNew": () => "Wat is er nieuw",
   "statusBar.updateAvailableTitle": () => "Update beschikbaar — zie Over",
