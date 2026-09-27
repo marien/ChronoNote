@@ -28,37 +28,28 @@ let lastCopiedAction: { text: string; sourceTabId: string } | null = null;
  * the `#`, so a bare `#` elsewhere on the line never matches either way.
  * Capture group 1 is the prefix to preserve as-is (indentation, or the
  * `=> `); group 2 is the trailing space, also preserved. */
-const OPEN_ACTION_LINE = /(^\s*|=>\s)#(\s)/;
+const OPEN_ITEM_LINE = /(^\s*|=>\s)([#o])(\s)/;
 
 /** Flips every open action within `text` (a leading `# `, or a `=> #`
- * consequence-action, #67) to deferred `> ` / `=> > `, leaving everything
- * else byte-for-byte unchanged. Shared by `handlePasteIntoTab` below and
- * #66's "copy to next occurrence" — both need the exact same "defer
- * whatever was open in this block" transform, just triggered by a
- * different action (a paste vs. a dedicated shortcut). */
+ * consequence-action) to deferred `> ` / `=> > `, and open topics `o ` to skipped `, `,
+ * leaving everything else byte-for-byte unchanged. */
 export function deferOpenActionsInText(text: string): string {
-  return text.replace(new RegExp(OPEN_ACTION_LINE, "gm"), "$1>$2");
+  return text.replace(new RegExp(OPEN_ITEM_LINE, "gm"), (_m, p1, sym, p2) => {
+    const replacement = sym === "#" ? ">" : ",";
+    return `${p1}${replacement}${p2}`;
+  });
 }
 
-/** How many open actions `deferOpenActionsInText` would flip in `text` —
- * used for the "N tasks deferred" vs. singular toast wording. */
+/** How many open actions or topics `deferOpenActionsInText` would flip in `text`. */
 export function countOpenActionsInText(text: string): number {
-  return (text.match(new RegExp(OPEN_ACTION_LINE, "gm")) ?? []).length;
+  return (text.match(new RegExp(OPEN_ITEM_LINE, "gm")) ?? []).length;
 }
 
 /** Called on every `copy` inside the editor. `lastCopiedAction` is only
  * ever meaningful for the *very next* paste, so any fresh copy must
- * replace it — a copy that carries an open action becomes the new record,
- * a copy that doesn't (a plain line, a done/deferred action, a section
- * header) clears it.
- *
- * §82: it used to only *set* the record, never clear it. So: copy an
- * open-action block in an old tab (e.g. to paste into another app), then
- * copy something unrelated in today's tab, then paste — the stale
- * old-tab record was still live and its `# ` lines got marked `> ` in the
- * wrong tab. */
+ * replace it. */
 export function recordCopiedAction(text: string, sourceTabId: string) {
-  lastCopiedAction = new RegExp(OPEN_ACTION_LINE, "m").test(text) ? { text, sourceTabId } : null;
+  lastCopiedAction = new RegExp(OPEN_ITEM_LINE, "m").test(text) ? { text, sourceTabId } : null;
 }
 
 /** §86 (#9): links the most recent paste-forward to the `# ` → `> ` defer

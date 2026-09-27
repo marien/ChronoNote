@@ -87,6 +87,40 @@ test.describe("keyboard commands change the symbol at the caret", () => {
     expect(await activeTabContent(page)).toBe("v a => # b");
   });
 
+  test("Ctrl+Space and Ctrl+Shift+Space preserve caret position on actions and agenda topics", async ({ page }) => {
+    // Action line: caret in the middle of the line (between 'buy ' and 'groceries')
+    await setEditorText(page, "# buy groceries");
+    await page.keyboard.press("Home");
+    // Move into text after '# buy '
+    for (let i = 0; i < 5; i++) {
+      await page.keyboard.press("ArrowRight");
+    }
+    await page.keyboard.press("Control+Space");
+    expect(await activeTabContent(page)).toBe("v buy groceries");
+    await page.keyboard.type("fresh ");
+    expect(await activeTabContent(page)).toBe("v buy fresh groceries");
+
+    // Reopen action with Ctrl+Shift+Space: caret stays in place
+    await page.keyboard.press("Control+Shift+Space");
+    expect(await activeTabContent(page)).toBe("# buy fresh groceries");
+    await page.keyboard.type("!");
+    expect(await activeTabContent(page)).toBe("# buy fresh !groceries");
+
+    // Agenda topic: caret at end
+    await setEditorText(page, "o discuss budget");
+    await page.keyboard.press("End");
+    await page.keyboard.press("Control+Space");
+    expect(await activeTabContent(page)).toBe(". discuss budget");
+    await page.keyboard.type(" now");
+    expect(await activeTabContent(page)).toBe(". discuss budget now");
+
+    // Reopen agenda topic with Ctrl+Shift+Space: caret stays at end
+    await page.keyboard.press("Control+Shift+Space");
+    expect(await activeTabContent(page)).toBe("o discuss budget now");
+    await page.keyboard.type("!");
+    expect(await activeTabContent(page)).toBe("o discuss budget now!");
+  });
+
   test("Ctrl+1..4 set the state of the symbol at the caret", async ({ page }) => {
     await page.keyboard.press("Home");
     await page.keyboard.press("ControlOrMeta+3");

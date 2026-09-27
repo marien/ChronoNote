@@ -134,6 +134,12 @@ export const de = {
     "Die Aktion an der Einfügemarke auf verschoben setzen, oder in jeder ausgewählten Zeile; eine normale Zeile wird zu einer Aktion",
   "shortcuts.setActionWontDo.label": () =>
     "Die Aktion an der Einfügemarke auf 'entfällt' setzen, oder in jeder ausgewählten Zeile; eine normale Zeile wird zu einer Aktion",
+  "shortcuts.setTopicToDiscuss.label": () =>
+    "Das Thema an der Einfügemarke auf 'zu besprechen' setzen, oder in jeder ausgewählten Zeile; eine normale Zeile wird zu einem Thema",
+  "shortcuts.setTopicDiscussed.label": () =>
+    "Das Thema an der Einfügemarke auf 'besprochen' setzen, oder in jeder ausgewählten Zeile; eine normale Zeile wird zu einem Thema",
+  "shortcuts.setTopicNotDiscussed.label": () =>
+    "Das Thema an der Einfügemarke auf 'nicht besprochen' setzen, oder in jeder ausgewählten Zeile; eine normale Zeile wird zu einem Thema",
   "shortcuts.jumpAction.label": () => "Zur nächsten / vorherigen offenen Aktion springen (im Editor, mit Umlauf)",
   "shortcuts.caretLineNav.label": () =>
     "Einfügemarke an den Zeilenanfang, dann vorherige Zeile / Anfang der nächsten Zeile (im Editor)",
@@ -163,6 +169,9 @@ export const de = {
   "shortcuts.modal.glyph.done": () => "Erledigt",
   "shortcuts.modal.glyph.deferred": () => "Verschoben — auf eine spätere Notiz übertragen",
   "shortcuts.modal.glyph.wontDo": () => "Entfällt — geschlossen, ohne es zu erledigen",
+  "shortcuts.modal.glyph.toDiscuss": () => "Zu besprechen — offenes Thema",
+  "shortcuts.modal.glyph.discussed": () => "Besprochen — in dieser Besprechung behandelt",
+  "shortcuts.modal.glyph.notDiscussed": () => "Nicht besprochen — auf nächste Besprechung verschoben",
   "shortcuts.modal.glyph.bullet": () =>
     "Aufzählungspunkt (Enter setzt fort, ein leerer Punkt beendet die Liste, Tab rückt um zwei Leerzeichen ein)",
   "shortcuts.modal.glyph.followUp": () => "Folgeaktion — eine einfache Notiz, die aus dieser Zeile hervorgeht",
@@ -268,6 +277,9 @@ export const de = {
   "commandPalette.line.setDone": () => "Zeile/Auswahl auf Erledigt setzen",
   "commandPalette.line.setDeferred": () => "Zeile/Auswahl auf Verschoben setzen",
   "commandPalette.line.setWontDo": () => "Zeile/Auswahl auf 'entfällt' setzen",
+  "commandPalette.line.setTopicToDiscuss": () => "Zeile/Auswahl auf 'zu besprechen' setzen",
+  "commandPalette.line.setTopicDiscussed": () => "Zeile/Auswahl auf 'besprochen' setzen",
+  "commandPalette.line.setTopicNotDiscussed": () => "Zeile/Auswahl auf 'nicht besprochen' setzen",
   "commandPalette.line.jumpNext": () => "Zur nächsten offenen Aktion springen",
   "commandPalette.line.jumpPrev": () => "Zur vorherigen offenen Aktion springen",
   "commandPalette.wrap.enable": () => "Zeilenumbruch aktivieren",
@@ -565,8 +577,14 @@ export const de = {
   "mobileAccessory.openTask.titleWord": () => "Aufgabe",
   "mobileAccessory.completedTask.ariaLabel": () => "Erledigte Aufgabe (Häkchen)",
   "mobileAccessory.completedTask.titleWord": () => "Erledigt",
-  "mobileAccessory.deferredTask.ariaLabel": () => "Verschobene Aufgabe (Pfeil)",
+  "mobileAccessory.deferredTask.ariaLabel": () => "Verschobene Aufgabe (Kästchen)",
   "mobileAccessory.deferredTask.titleWord": () => "Verschoben",
+  "mobileAccessory.topicToDiscuss.ariaLabel": () => "Zu besprechendes Thema (Kreis)",
+  "mobileAccessory.topicToDiscuss.titleWord": () => "Zu besprechen",
+  "mobileAccessory.topicDiscussed.ariaLabel": () => "Besprochenes Thema (Auge)",
+  "mobileAccessory.topicDiscussed.titleWord": () => "Besprochen",
+  "mobileAccessory.topicNotDiscussed.ariaLabel": () => "Nicht besprochenes Thema (gepunkteter Kreis)",
+  "mobileAccessory.topicNotDiscussed.titleWord": () => "Nicht besprochen",
   "mobileAccessory.bulletList.ariaLabel": () => "Aufzählungsliste",
   "mobileAccessory.bulletList.titleWord": () => "Aufzählung",
   "mobileAccessory.followUp.ariaLabel": () => "Folgepfeil",

@@ -17,13 +17,17 @@
     adjacentOpenActionLine,
     closeOpenAction,
     isSetextUnderline,
-    referenceColumn,
+    isTopicLikeLine,
     numberedContinuationIndent,
     numberedListEnter,
     parseNumberedItem,
+    referenceColumn,
     reopenDoneAction,
     setActionSymbolOpen,
     setActionSymbolTo,
+    setTopicSymbolTo,
+    topicContinuationIndent,
+    topicLineEnter,
   } from "../tokens";
   import * as controller from "../controller";
   import { findMatch, findOpen, readableLineLength, wordWrap } from "../controller";
@@ -187,14 +191,28 @@
   /** #73: applies `transform` to the current line only — used for
    * Ctrl+Space's close/reopen pair, which (unlike `applyActionStateToSelection`
    * below) never touches more than one line at a time and never promotes
-   * a plain line into a new action. */
+   * a plain line into a new action. Preserves the caret / selection position
+   * instead of collapsing to the start of the line. */
   function applyToCurrentLine(v: EditorView, transform: (line: string, col: number) => string | null): boolean {
-    const pos = v.state.selection.main.head;
-    const line = v.state.doc.lineAt(pos);
+    const sel = v.state.selection.main;
+    const line = v.state.doc.lineAt(sel.head);
     if (isHeaderLine(v, line.number)) return false;
-    const updated = transform(line.text, pos - line.from);
+    const col = sel.head - line.from;
+    const updated = transform(line.text, col);
     if (updated === null) return false;
-    v.dispatch({ changes: { from: line.from, to: line.to, insert: updated } });
+
+    const delta = updated.length - line.text.length;
+    const anchorOffset = sel.anchor - line.from;
+    const headOffset = sel.head - line.from;
+    const newAnchor = line.from + Math.max(0, Math.min(anchorOffset + (anchorOffset > 0 ? delta : 0), updated.length));
+    const newHead = line.from + Math.max(0, Math.min(headOffset + (headOffset > 0 ? delta : 0), updated.length));
+
+    v.dispatch({
+      changes: { from: line.from, to: line.to, insert: updated },
+      selection: EditorSelection.range(newAnchor, newHead),
+      scrollIntoView: true,
+      userEvent: "input",
+    });
     return true;
   }
 
@@ -227,6 +245,24 @@
       lines.push(updated ?? text);
     }
     if (!changed) return false;
+
+    if (firstLine.number === lastLine.number) {
+      const origText = firstLine.text;
+      const updatedText = lines[0];
+      const delta = updatedText.length - origText.length;
+      const anchorOffset = sel.anchor - firstLine.from;
+      const headOffset = sel.head - firstLine.from;
+      const newAnchor = firstLine.from + Math.max(0, Math.min(anchorOffset + (anchorOffset > 0 ? delta : 0), updatedText.length));
+      const newHead = firstLine.from + Math.max(0, Math.min(headOffset + (headOffset > 0 ? delta : 0), updatedText.length));
+      v.dispatch({
+        changes: { from: firstLine.from, to: lastLine.to, insert: updatedText },
+        selection: EditorSelection.range(newAnchor, newHead),
+        scrollIntoView: true,
+        userEvent: "input",
+      });
+      return true;
+    }
+
     v.dispatch({ changes: { from: firstLine.from, to: lastLine.to, insert: lines.join("\n") } });
     return true;
   }
@@ -324,7 +360,7 @@
       // continuation. Otherwise the token got duplicated onto the pushed-
       // down line ("# a" → blank line + "# # a").
       if (insertBullet) {
-        const lead = line.text.match(/^(\s*)(?:[-*]\s|[#vx>]\s|=>\s)/);
+        const lead = line.text.match(/^(\s*)(?:[-*]\s|[#vx>]\s|[o.,]\s|=>\s)/);
         if (lead && pos - line.from <= lead[1].length) {
           v.dispatch({
             changes: { from: pos, to: pos, insert: "\n" },
@@ -336,6 +372,33 @@
       }
       const match = line.text.match(/^(\s*)([-*])\s/);
       if (!match) {
+        if (isTopicLikeLine(line.text)) {
+          if (!insertBullet) {
+            const pad = topicContinuationIndent(line.text) ?? "  ";
+            v.dispatch({
+              changes: { from: pos, to: pos, insert: "\n" + pad },
+              selection: { anchor: pos + 1 + pad.length },
+              scrollIntoView: true,
+            });
+            return true;
+          }
+          const nextLine = line.number < v.state.doc.lines ? v.state.doc.line(line.number + 1).text : undefined;
+          const step = topicLineEnter(line.text, pos - line.from, nextLine);
+          if (step && "removeSymbol" in step) {
+            v.dispatch({ changes: { from: line.from, to: line.to, insert: "" }, selection: { anchor: line.from } });
+          } else if (step && "plain" in step) {
+            v.dispatch({ changes: { from: pos, to: pos, insert: "\n" }, selection: { anchor: pos + 1 }, scrollIntoView: true });
+          } else if (step && "insert" in step) {
+            v.dispatch({
+              changes: { from: pos, to: pos, insert: step.insert },
+              selection: { anchor: pos + step.insert.length },
+              scrollIntoView: true,
+            });
+          } else {
+            v.dispatch({ changes: { from: pos, to: pos, insert: "\n" }, selection: { anchor: pos + 1 }, scrollIntoView: true });
+          }
+          return true;
+        }
         // Numbered items (`1.`, `2)`, `1.1.`): Enter continues with the next number, an empty item exits, Shift+Enter
         // aligns under the item's text. The marker is the first non-blank character, so this never overlaps a bullet.
         const numbered = parseNumberedItem(line.text);
@@ -440,6 +503,9 @@
       { key: "Mod-2", run: (v) => applyActionStateToSelection(v, (line, col) => setActionSymbolTo(line, "v", col)) },
       { key: "Mod-3", run: (v) => applyActionStateToSelection(v, (line, col) => setActionSymbolTo(line, ">", col)) },
       { key: "Mod-4", run: (v) => applyActionStateToSelection(v, (line, col) => setActionSymbolTo(line, "x", col)) },
+      { key: "Mod-5", run: (v) => applyActionStateToSelection(v, (line, col) => setTopicSymbolTo(line, "o", col)) },
+      { key: "Mod-6", run: (v) => applyActionStateToSelection(v, (line, col) => setTopicSymbolTo(line, ".", col)) },
+      { key: "Mod-7", run: (v) => applyActionStateToSelection(v, (line, col) => setTopicSymbolTo(line, ",", col)) },
       { key: "F2", run: (v) => jumpToAdjacentOpenAction(v, 1) },
       { key: "Shift-F2", run: (v) => jumpToAdjacentOpenAction(v, -1) },
       {
@@ -724,6 +790,8 @@
       convertCurrentLineToSection: () => (view ? convertLineToSection(view) : false),
       setActionStateOnSelection: (symbol: "#" | "v" | ">" | "x") =>
         view ? applyActionStateToSelection(view, (line, col) => setActionSymbolTo(line, symbol, col)) : false,
+      setTopicStateOnSelection: (symbol: "o" | "." | ",") =>
+        view ? applyActionStateToSelection(view, (line, col) => setTopicSymbolTo(line, symbol, col)) : false,
       jumpAdjacentOpenAction: (direction: 1 | -1) => (view ? jumpToAdjacentOpenAction(view, direction) : false),
       pulseLine: (lineIdx: number) => {
         triggerLinePulse(lineIdx);
@@ -845,6 +913,8 @@
             } else {
               updated = `${line.text} => `;
             }
+          } else if (token === "o" || token === "." || token === ",") {
+            updated = setTopicSymbolTo(line.text, token, referenceColumn(sel, line));
           }
           if (updated !== null && updated !== line.text) {
             changes.push({ from: line.from, to: line.to, insert: updated });

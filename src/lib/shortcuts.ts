@@ -148,6 +148,18 @@ export const SHORTCUTS: ShortcutDef[] = [
     combos: [{ mod: true, code: "Digit4" }],
   },
   {
+    id: "setTopicToDiscuss",
+    combos: [{ mod: true, code: "Digit5" }],
+  },
+  {
+    id: "setTopicDiscussed",
+    combos: [{ mod: true, code: "Digit6" }],
+  },
+  {
+    id: "setTopicNotDiscussed",
+    combos: [{ mod: true, code: "Digit7" }],
+  },
+  {
     id: "jumpAction",
     combos: [{ code: "F2" }, { shift: true, code: "F2" }],
   },
@@ -239,6 +251,9 @@ export const SHORTCUT_LABEL_KEYS = {
   setActionDone: "shortcuts.setActionDone.label",
   setActionDeferred: "shortcuts.setActionDeferred.label",
   setActionWontDo: "shortcuts.setActionWontDo.label",
+  setTopicToDiscuss: "shortcuts.setTopicToDiscuss.label",
+  setTopicDiscussed: "shortcuts.setTopicDiscussed.label",
+  setTopicNotDiscussed: "shortcuts.setTopicNotDiscussed.label",
   jumpAction: "shortcuts.jumpAction.label",
   caretLineNav: "shortcuts.caretLineNav.label",
   convertToSection: "shortcuts.convertToSection.label",
@@ -352,6 +367,9 @@ export const DRAWER_ROWS: (string | [string, string])[] = [
   "setActionDone",
   "setActionDeferred",
   "setActionWontDo",
+  "setTopicToDiscuss",
+  "setTopicDiscussed",
+  "setTopicNotDiscussed",
   "jumpAction",
   "caretLineNav",
   "convertToSection",

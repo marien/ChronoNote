@@ -17,8 +17,15 @@ describe("parseGlyphLine", () => {
     expect(text("# buy milk")).toBe("☐ buy milk");
     expect(classed("# buy milk")).toEqual([["glyph-open", "☐"]]);
     expect(text("v done")).toBe("☑ done");
-    expect(text("> deferred")).toBe("» deferred");
+    expect(text("> deferred")).toBe("☐ deferred");
+    expect(classed("> deferred")).toEqual([["glyph-progress", "☐"]]);
     expect(text("x nope")).toBe("☒ nope");
+    expect(text("o topic")).toBe("○ topic");
+    expect(classed("o topic")).toEqual([["glyph-topic-open", "○"]]);
+    expect(text(". discussed")).toBe("◉ discussed");
+    expect(classed(". discussed")).toEqual([["glyph-topic-done", "◉"]]);
+    expect(text(", postponed")).toBe("◌ postponed");
+    expect(classed(", postponed")).toEqual([["glyph-topic-skipped", "◌"]]);
   });
 
   it("keeps indentation before the glyph", () => {

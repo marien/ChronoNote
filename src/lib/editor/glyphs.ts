@@ -103,9 +103,15 @@ function glyphForSymbol(sym: string): [string, string] {
     case "v":
       return ["☑", "glyph-done"];
     case ">":
-      return ["»", "glyph-progress"];
+      return ["☐", "glyph-progress"];
     case "x":
       return ["☒", "glyph-cancelled"];
+    case "o":
+      return ["○", "glyph-topic-open"];
+    case ".":
+      return ["◉", "glyph-topic-done"];
+    case ",":
+      return ["◌", "glyph-topic-skipped"];
     default:
       return ["☐", "glyph-open"]; // "#"
   }
@@ -139,7 +145,7 @@ function glyphForSymbol(sym: string): [string, string] {
  * no indent-length arithmetic needed to find where it starts. */
 const renderMatcher = new MatchDecorator({
   regexp:
-    /(^!\s)|((?<=^\s*)#\s)|((?<=^\s*)v\s)|((?<=^\s*)>\s)|((?<=^\s*)x\s)|(=>\s@[\w-]+)|(=>\s[#vx>]\s)|(=>\s)|((?<=^\s*)[-*]\s)|(\(@[\w-]+(?:[\s,]+@[\w-]+)*\))|(@[\w-]+)|(\([^\s()]+\))/gm,
+    /(^!\s)|((?<=^\s*)#\s)|((?<=^\s*)v\s)|((?<=^\s*)>\s)|((?<=^\s*)x\s)|((?<=^\s*)o\s)|((?<=^\s*)\.\s)|((?<=^\s*),\s)|(=>\s@[\w-]+)|(=>\s[#vx>]\s)|(=>\s)|((?<=^\s*)[-*]\s)|(\(@[\w-]+(?:[\s,]+@[\w-]+)*\))|(@[\w-]+)|(\([^\s()]+\))/gm,
   decorate(add, from, to, match, view) {
     const text = match[0];
     if (text.startsWith("! ")) {
@@ -229,7 +235,7 @@ const renderMatcher = new MatchDecorator({
  * action line behind, symmetrically). */
 const atomicMatcher = new MatchDecorator({
   regexp:
-    /((?<=^\s*)#\s)|((?<=^\s*)v\s)|((?<=^\s*)>\s)|((?<=^\s*)x\s)|((?<==>\s)[#vx>]\s)|(=>\s)|((?<=^\s*)[-*]\s)/gm,
+    /((?<=^\s*)#\s)|((?<=^\s*)v\s)|((?<=^\s*)>\s)|((?<=^\s*)x\s)|((?<=^\s*)o\s)|((?<=^\s*)\.\s)|((?<=^\s*),\s)|((?<==>\s)[#vx>]\s)|(=>\s)|((?<=^\s*)[-*]\s)/gm,
   decoration: () => Decoration.replace({}),
 });
 

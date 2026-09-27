@@ -3,6 +3,8 @@ import {
   countActions,
   countWords,
   innermostActionSymbol,
+  innermostTopicSymbol,
+  isTopicLikeLine,
   cycleActionSymbol,
   closeOpenAction,
   findActionSymbols,
@@ -12,11 +14,15 @@ import {
   symbolAfterClick,
   toggleOpenClosed,
   reopenDoneAction,
+  reopenDeferredAction,
   setActionSymbolOpen,
   setActionSymbolTo,
+  setTopicSymbolTo,
   openActionLineIndices,
   adjacentOpenActionLine,
   actionLineEnter,
+  topicLineEnter,
+  topicContinuationIndent,
   isActionLikeLine,
   leadingTopicTag,
   stripLeadingToken,
@@ -750,5 +756,100 @@ describe("referenceColumn: which column each selected line is judged by", () => 
   });
   it("a caret at the very end of a line belongs to that line", () => {
     expect(referenceColumn({ from: 10, to: 10, head: 10 }, A)).toBe(10);
+  });
+});
+
+describe("Meeting Agenda Topics (o, ., ,)", () => {
+  it("innermostTopicSymbol and isTopicLikeLine identify topic lines", () => {
+    expect(innermostTopicSymbol("o Discuss budget")).toBe("o");
+    expect(innermostTopicSymbol("  . Approved budget")).toBe(".");
+    expect(innermostTopicSymbol(", Postponed topic")).toBe(",");
+    expect(innermostTopicSymbol("# Action item")).toBeNull();
+    expect(innermostTopicSymbol("plain prose")).toBeNull();
+
+    expect(isTopicLikeLine("o Topic")).toBe(true);
+    expect(isTopicLikeLine("  . Topic")).toBe(true);
+    expect(isTopicLikeLine(", Topic")).toBe(true);
+    expect(isTopicLikeLine("# Action")).toBe(false);
+  });
+
+  it("countActions explicitly ignores topic lines (invariant)", () => {
+    const text = [
+      "o Discuss Q3 budget",
+      ". Review marketing slide deck",
+      ", Follow up with auditor",
+      "  o Nested discussion point",
+      "# True action task",
+      "v Done action task",
+    ].join("\n");
+    const counts = countActions(text);
+    expect(counts.open).toBe(1);
+    expect(counts.closed).toBe(1);
+    expect(counts.forwarded).toBe(0);
+  });
+
+  it("closeOpenAction and reopenDoneAction toggle topic states (o <-> .)", () => {
+    expect(closeOpenAction("o Review Q3 budget")).toBe(". Review Q3 budget");
+    expect(closeOpenAction("  o Indented topic")).toBe("  . Indented topic");
+    expect(reopenDoneAction(". Review Q3 budget")).toBe("o Review Q3 budget");
+    expect(reopenDoneAction("  . Indented topic")).toBe("  o Indented topic");
+    expect(reopenDoneAction(", Postponed topic")).toBe("o Postponed topic");
+    expect(reopenDeferredAction(", Postponed topic")).toBe("o Postponed topic");
+  });
+
+  it("caret column awareness on mixed lines (o Topic => # Action)", () => {
+    const mixed = "o Discuss budget => # Email finance team";
+    // Caret inside topic segment (e.g. col 4)
+    expect(closeOpenAction(mixed, 4)).toBe(". Discuss budget => # Email finance team");
+    // Caret inside action segment (e.g. col 25)
+    expect(closeOpenAction(mixed, 25)).toBe("o Discuss budget => v Email finance team");
+
+    const mixedDone = ". Discuss budget => v Email finance team";
+    expect(reopenDoneAction(mixedDone, 4)).toBe("o Discuss budget => v Email finance team");
+    expect(reopenDoneAction(mixedDone, 25)).toBe(". Discuss budget => # Email finance team");
+  });
+
+  it("setTopicSymbolTo sets state and promotes plain lines / lists", () => {
+    expect(setTopicSymbolTo("plain text", "o")).toBe("o plain text");
+    expect(setTopicSymbolTo("  indented text", ".")).toBe("  . indented text");
+    expect(setTopicSymbolTo("o Existing topic", ".")).toBe(". Existing topic");
+    expect(setTopicSymbolTo(". Existing topic", ",")).toBe(", Existing topic");
+    expect(setTopicSymbolTo("# Action item", "o")).toBe("o Action item");
+    expect(setTopicSymbolTo("1. First numbered topic", "o")).toBe("o 1. First numbered topic");
+    expect(setTopicSymbolTo("- Bulleted topic", "o")).toBe("o - Bulleted topic");
+  });
+
+  it("topicLineEnter handles continuation for plain, numbered, and bulleted topics", () => {
+    // Plain topic
+    expect(topicLineEnter("o Discuss roadmap")).toEqual({ insert: "\no " });
+    expect(topicLineEnter("  . Discuss roadmap")).toEqual({ insert: "\n  o " });
+    expect(topicLineEnter("o ")).toEqual({ removeSymbol: true });
+
+    // Numbered topic: increments number and always starts fresh as 'o '
+    expect(topicLineEnter("o 1. First item")).toEqual({ insert: "\no 2. " });
+    expect(topicLineEnter(". 1. First item")).toEqual({ insert: "\no 2. " });
+    expect(topicLineEnter("  , 2.3. Sub item")).toEqual({ insert: "\n  o 2.4. " });
+    expect(topicLineEnter("o 2. ")).toEqual({ removeSymbol: true });
+
+    // Bulleted topic: continues bullet
+    expect(topicLineEnter("o - Key topic")).toEqual({ insert: "\no - " });
+    expect(topicLineEnter("  . * Sub bullet")).toEqual({ insert: "\n  o * " });
+    expect(topicLineEnter("o - ")).toEqual({ removeSymbol: true });
+  });
+
+  it("topicContinuationIndent returns soft indentation for Shift+Enter", () => {
+    expect(topicContinuationIndent("o Discuss roadmap")).toBe("  ");
+    expect(topicContinuationIndent("  o Discuss roadmap")).toBe("    ");
+    expect(topicContinuationIndent("o 1. First item")).toBe("     ");
+    expect(topicContinuationIndent("o - Bulleted item")).toBe("    ");
+  });
+
+  it("toggleOpenClosedAtIndex and symbolAfterClick handle topics", () => {
+    expect(toggleOpenClosedAtIndex("o Discuss", 0)).toBe(". Discuss");
+    expect(toggleOpenClosedAtIndex(". Discuss", 0)).toBe("o Discuss");
+    expect(toggleOpenClosedAtIndex(", Discuss", 0)).toBe("o Discuss");
+    expect(symbolAfterClick("o")).toBe(".");
+    expect(symbolAfterClick(".")).toBe("o");
+    expect(symbolAfterClick(",")).toBe("o");
   });
 });
