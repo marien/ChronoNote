@@ -76,14 +76,19 @@ jobs:
             exit 1
           fi
           echo "clean — no mock/testing code in dist/"
-      - name: build webapp bundle
+      # website/webapp/ and website/demo-app/ are committed release
+      # artifacts, refreshed only as part of cutting a release (see
+      # CLAUDE.local.md's release workflow, step 8) — the same way
+      # package.json's version field isn't bumped between releases
+      # either. These two builds exist here only to catch a source
+      # change that breaks the webapp/demo build outright; they are
+      # deliberately NOT diffed against the committed bundles, so an
+      # ordinary PR never needs to rebuild-and-commit a bundle just to
+      # pass CI.
+      - name: webapp bundle still builds
         run: npm run build:webapp
-      - name: assert webapp bundle is up to date
-        run: |
-          if ! git diff --exit-code -- website/webapp/; then
-            echo "::error::website/webapp/ bundle is stale — run 'npm run build:webapp' and commit the result"
-            exit 1
-          fi
+      - name: demo bundle still builds
+        run: npm run build:demo
 
   rust:
     name: Rust (cargo test)
