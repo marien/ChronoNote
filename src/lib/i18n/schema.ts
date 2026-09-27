@@ -363,6 +363,7 @@ export type TranslationParams = {
   "statusBar.forwardedCount": { count: number };
   "statusBar.updatedTo": { version: string };
   "statusBar.whatsNew": undefined;
+  "statusBar.dismissUpdate": undefined;
   "statusBar.updateAvailableTitle": undefined;
   "statusBar.aboutTitleWithCombo": { combo: string };
   "statusBar.shortcutsTitle": { combo: string };

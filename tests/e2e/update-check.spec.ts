@@ -198,6 +198,23 @@ test.describe("#50: first-launch-after-update notice", () => {
     });
     await expect(page.locator("#stat-updated")).toHaveCount(0);
   });
+
+  test("clicking the notice text dismisses the notice without opening the releases list", async ({ page }) => {
+    await seedApp(page, {
+      seed: { notes: {}, appVersion: "9.9.9", lastSeenVersion: "9.9.8", updateCheck: "none" },
+    });
+    const notice = page.locator("#stat-updated");
+    await expect(notice).toContainText("Updated to v9.9.9");
+
+    // Click the message text itself (not the button)
+    await notice.locator(".stat-updated-text").click();
+    await expect(notice).toHaveCount(0);
+
+    // Releases list was not opened
+    expect(await page.evaluate(() => window.__CHRONO_MOCK__!.openedUrls)).not.toContain(
+      "https://github.com/marien/ChronoNote/releases",
+    );
+  });
 });
 
 /** The About dialog's version card: the running version moved out of the title bar into the Updates

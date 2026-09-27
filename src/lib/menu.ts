@@ -90,3 +90,9 @@ export function openJustUpdatedReleaseNotes() {
   if (get(justUpdatedToVersion)) openReleasesPage();
   justUpdatedToVersion.set(null);
 }
+
+/** Dismisses the "Updated to vX.Y.Z" notice without navigating to the releases page. */
+export function dismissJustUpdatedNotice() {
+  justUpdatedToVersion.set(null);
+}
+

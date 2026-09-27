@@ -43,11 +43,16 @@
   // "Settings-only" now that the window title itself no longer renders
   // visibly (the merged title bar has no title text). Meaningless for the
   // web backend (no `notesDir`, IndexedDB-backed instead — the "Browser
-  // storage" badge in the right zone already covers that case).
   $: folderName = $notesDir ? folderNameFromPath($notesDir) : "";
+
+  $: hasCentreMessage = Boolean(
+    $justUpdatedToVersion ||
+      ($toastMessage === $t(UPDATE_AVAILABLE_TOAST_KEY, undefined) && $updateStatus === "available") ||
+      ($toastMessage && !$isMobile && $toastMessage.length <= LONG_TOAST_CHARS),
+  );
 </script>
 
-<div id="status-bar">
+<div id="status-bar" class:has-centre-message={hasCentreMessage}>
   <div class="status-zone status-left">
     {#if $backendKind === "web" && $oneDriveAccount}
       <button
@@ -128,9 +133,22 @@
 
   <div class="status-zone status-centre">
     {#if $justUpdatedToVersion}
-      <span id="stat-updated" role="status">
-        {$t("statusBar.updatedTo", { version: $justUpdatedToVersion })}
-        <button type="button" class="status-link" on:click={controller.openJustUpdatedReleaseNotes}>
+      <!-- svelte-ignore a11y-click-events-have-key-events -->
+      <!-- svelte-ignore a11y-no-static-element-interactions -->
+      <!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
+      <span
+        id="stat-updated"
+        role="status"
+        class="stat-dismissible"
+        on:click={controller.dismissJustUpdatedNotice}
+        title={$t("statusBar.dismissUpdate")}
+      >
+        <span class="stat-updated-text">{$t("statusBar.updatedTo", { version: $justUpdatedToVersion })}</span>
+        <button
+          type="button"
+          class="status-link"
+          on:click|stopPropagation={controller.openJustUpdatedReleaseNotes}
+        >
           {$t("statusBar.whatsNew")}
         </button>
       </span>

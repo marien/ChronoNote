@@ -2166,6 +2166,15 @@ describe("openJustUpdatedReleaseNotes (#50, §follow-up: opens the releases list
   });
 });
 
+describe("dismissJustUpdatedNotice", () => {
+  it("dismisses the notice without opening external releases URL", () => {
+    controller.justUpdatedToVersion.set("0.16.0");
+    controller.dismissJustUpdatedNotice();
+    expect(get(controller.justUpdatedToVersion)).toBe(null);
+    expect(apiMock.openExternalUrl).not.toHaveBeenCalled();
+  });
+});
+
 describe("openReleasesPage (§update-check follow-up)", () => {
   it("opens the repo's releases list, not a specific tag", () => {
     controller.openReleasesPage();

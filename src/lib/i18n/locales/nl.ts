@@ -349,6 +349,7 @@ export const nl = {
   "statusBar.forwardedCount": ({ count }) => `Doorgeschoven ${count}`,
   "statusBar.updatedTo": ({ version }) => `Bijgewerkt naar v${version} —`,
   "statusBar.whatsNew": () => "Wat is er nieuw",
+  "statusBar.dismissUpdate": () => "Klik om te sluiten",
   "statusBar.updateAvailableTitle": () => "Update beschikbaar — zie Over",
   "statusBar.aboutTitleWithCombo": ({ combo }) => `Over ChronoNote (${combo})`,
   "statusBar.shortcutsTitle": ({ combo }) => `Sneltoetsen & symbolen (${combo})`,
