@@ -912,16 +912,14 @@ body {
 
 /* Boxed Deferred Glyph (Option 1: ☐ with centered ›) */
 .cm-line .glyph-progress .glyph-ink,
-.glyph-progress .glyph-ink,
-.token-glyph.glyph-progress {
+.glyph-progress .glyph-ink {
   position: relative;
   display: inline-block;
   transform: scale(0.85);
   transform-origin: left center;
 }
 .cm-line .glyph-progress .glyph-ink::after,
-.glyph-progress .glyph-ink::after,
-.token-glyph.glyph-progress::after {
+.glyph-progress .glyph-ink::after {
   content: "›";
   position: absolute;
   left: 48%;
@@ -936,10 +934,7 @@ body {
 
 .cm-line .glyph-topic-open .glyph-ink,
 .cm-line .glyph-topic-done .glyph-ink,
-.cm-line .glyph-topic-skipped .glyph-ink,
-.token-glyph.glyph-topic-open,
-.token-glyph.glyph-topic-done,
-.token-glyph.glyph-topic-skipped {
+.cm-line .glyph-topic-skipped .glyph-ink {
   color: transparent;
   user-select: none;
   display: inline-block;
@@ -954,20 +949,17 @@ body {
 
 /* o: open circle (1.4px solid stroke) */
 .cm-line .glyph-topic-open .glyph-ink,
-.glyph-topic-open.glyph-cyclable-preview .glyph-ink,
-.token-glyph.glyph-topic-open {
+.glyph-topic-open.glyph-cyclable-preview .glyph-ink {
   border: 1.4px solid var(--glyph-open-color);
 }
 
 /* .: discussed fisheye (outer circle + centered inner dot) */
 .cm-line .glyph-topic-done .glyph-ink,
-.glyph-topic-done.glyph-cyclable-preview .glyph-ink,
-.token-glyph.glyph-topic-done {
+.glyph-topic-done.glyph-cyclable-preview .glyph-ink {
   border: 1.4px solid var(--glyph-done-color);
 }
 .cm-line .glyph-topic-done .glyph-ink::after,
-.glyph-topic-done.glyph-cyclable-preview .glyph-ink::after,
-.token-glyph.glyph-topic-done::after {
+.glyph-topic-done.glyph-cyclable-preview .glyph-ink::after {
   content: "";
   position: absolute;
   left: 50%;
@@ -981,8 +973,7 @@ body {
 
 /* ,: not discussed / postponed (1.4px dashed circular ring) */
 .cm-line .glyph-topic-skipped .glyph-ink,
-.glyph-topic-skipped.glyph-cyclable-preview .glyph-ink,
-.token-glyph.glyph-topic-skipped {
+.glyph-topic-skipped.glyph-cyclable-preview .glyph-ink {
   border: 1.4px dashed var(--glyph-progress-color);
 }
 
@@ -3070,9 +3061,113 @@ body {
   transform: translateY(1px);
 }
 .accessory-btn.token-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  min-width: 36px;
+  height: 36px;
+  padding: 0;
   font-family: var(--font-mono, monospace);
   font-size: 15px;
   font-weight: 600;
+  line-height: 1;
+  box-sizing: border-box;
+}
+
+.token-glyph {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  line-height: 1;
+  width: 16px;
+  height: 16px;
+  box-sizing: border-box;
+  text-align: center;
+  transform: none;
+}
+
+/* Action glyphs in mobile accessory bar */
+.token-glyph.glyph-open {
+  color: var(--glyph-open-color);
+}
+.token-glyph.glyph-done {
+  color: var(--glyph-done-color);
+}
+.token-glyph.glyph-progress {
+  color: var(--glyph-progress-color);
+  transform: none;
+}
+.token-glyph.glyph-progress::after {
+  content: "›";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 0.70em;
+  font-weight: 900;
+  line-height: 1;
+  color: var(--glyph-progress-color);
+  pointer-events: none;
+}
+
+/* Agenda topic glyphs in mobile accessory bar (centered & visually matched to action squares) */
+.token-glyph.glyph-topic-open,
+.token-glyph.glyph-topic-done,
+.token-glyph.glyph-topic-skipped {
+  width: 13.5px;
+  height: 13.5px;
+  border-radius: 50%;
+  box-sizing: border-box;
+  color: transparent;
+  user-select: none;
+  transform: none;
+  line-height: 1;
+}
+.token-glyph.glyph-topic-open {
+  border: 1.4px solid var(--glyph-open-color);
+}
+.token-glyph.glyph-topic-done {
+  border: 1.4px solid var(--glyph-done-color);
+}
+.token-glyph.glyph-topic-done::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 4.5px;
+  height: 4.5px;
+  border-radius: 50%;
+  background: var(--glyph-done-color);
+}
+.token-glyph.glyph-topic-skipped {
+  border: 1.4px dashed var(--glyph-progress-color);
+}
+
+/* Bullet, follow-up arrow, and emphasis in mobile accessory bar */
+.token-glyph.glyph-bullet {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--text);
+  color: transparent;
+  display: inline-block;
+  font-size: 0;
+  line-height: 0;
+}
+.token-glyph.glyph-arrow,
+.token-glyph.glyph-followup {
+  color: var(--text);
+  font-size: 15px;
+  line-height: 1;
+}
+.token-glyph.glyph-emphasis {
+  color: var(--text);
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1;
 }
 .accessory-separator {
   width: 1px;

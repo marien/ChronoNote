@@ -53,7 +53,7 @@
       <span class="token-glyph glyph-bullet">•</span>
     </button>
     <button type="button" class="accessory-btn token-btn" on:click={() => apply("=>")} aria-label={$t("mobileAccessory.followUp.ariaLabel")} title="{$t('mobileAccessory.followUp.titleWord')} ➔">
-      <span class="token-glyph glyph-arrow">➔</span>
+      <span class="token-glyph glyph-arrow glyph-followup">➔</span>
     </button>
     <button type="button" class="accessory-btn token-btn" on:click={() => apply("!")} aria-label={$t("mobileAccessory.emphasis")} title="{$t('mobileAccessory.emphasis')} !">
       <span class="token-glyph glyph-emphasis">!</span>

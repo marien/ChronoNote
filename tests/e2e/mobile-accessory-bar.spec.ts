@@ -57,6 +57,25 @@ test.describe("mobile accessory bar — caret after token insertion", () => {
     await page.keyboard.type("hello from first tap");
     expect(await activeTabContent(page)).toBe("hello from first tap");
   });
+
+  test("all token buttons in the mobile accessory bar share the same vertical centerline", async ({ page }) => {
+    const glyphs = page.locator(".accessory-btn.token-btn .token-glyph");
+    const count = await glyphs.count();
+    expect(count).toBe(9);
+
+    const midpoints: number[] = [];
+    for (let i = 0; i < count; i++) {
+      const box = await glyphs.nth(i).boundingBox();
+      expect(box).not.toBeNull();
+      midpoints.push(box!.y + box!.height / 2);
+    }
+
+    const baseline = midpoints[0];
+    for (let i = 1; i < count; i++) {
+      // All glyph centerlines must align within 1.5px
+      expect(Math.abs(midpoints[i] - baseline)).toBeLessThanOrEqual(1.5);
+    }
+  });
 });
 
 test.describe("mobile mode is touch-first, not width-based", () => {
