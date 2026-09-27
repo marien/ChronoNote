@@ -2170,16 +2170,22 @@ textarea.modal-input.import-textarea {
 .shortcuts-list .modal-item {
   align-items: flex-start;
   white-space: normal;
+  gap: 8px;
 }
 .shortcuts-list .modal-item-main {
+  display: block;
   white-space: normal;
   overflow: visible;
   text-overflow: clip;
+  flex: 1 1 auto;
+  min-width: 0;
 }
 .shortcuts-list .item-tag {
   flex-shrink: 0;
-  padding-top: 1px;
+  min-width: max-content;
+  padding: 1px 4px 0 0;
   text-align: right;
+  white-space: nowrap;
 }
 
 /* #47: the shortcuts and the symbols side by side, each its own
@@ -2640,6 +2646,13 @@ kbd {
   padding: 6px 10px;
   text-align: center;
 }
+@media (max-width: 600px) {
+  .settings-tabs .segmented-option {
+    padding: 6px 3px;
+    font-size: 11.5px;
+    letter-spacing: -0.15px;
+  }
+}
 .settings-section {
   padding: 16px;
   display: flex;
@@ -2652,7 +2665,17 @@ kbd {
 .settings-toggle-row {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 8px;
+}
+@media (max-width: 600px) {
+  .settings-toggle-row {
+    row-gap: 8px;
+  }
+  .settings-toggle-row .segmented-option {
+    padding: 5px 6px;
+    font-size: 11.5px;
+  }
 }
 /* #48: a settings section with more than one segmented control in it
    (Appearance: Theme + Glyphs) names each row so they're not mistaken for
@@ -2661,6 +2684,7 @@ kbd {
   font-size: 12px;
   color: var(--muted);
   min-width: 50px;
+  flex-shrink: 0;
 }
 .settings-slider-row {
   display: flex;
@@ -3131,6 +3155,10 @@ body {
 .drawer-action-btn:active {
   background: var(--surface-hover);
 }
+.drawer-action-btn span {
+  text-align: center;
+  line-height: 1.2;
+}
 
 @keyframes fadeIn {
   from { opacity: 0; }
@@ -3221,7 +3249,7 @@ body.zen-mode #status-bar {
   border: 1px solid var(--edge-strong);
   border-radius: 8px;
   box-shadow: 0 12px 36px rgba(0, 0, 0, 0.55);
-  width: 290px;
+  width: min(320px, calc(100vw - 24px));
   padding: 12px;
   z-index: 100;
   display: flex;

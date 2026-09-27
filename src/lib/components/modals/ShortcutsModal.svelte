@@ -122,7 +122,7 @@
             >
           </div>
           <div class="item-tag">
-            <kbd>=&gt; @name </kbd>&nbsp;→&nbsp;<span class="glyph-followup">➔</span>&nbsp;<span
+            <kbd>=&gt; @name</kbd>&nbsp;→&nbsp;<span class="glyph-followup">➔</span>&nbsp;<span
               class="glyph-assignee">@name</span
             >
           </div>
@@ -131,7 +131,7 @@
           <div class="modal-item-main">
             <span>{$t("shortcuts.modal.topicTag")}</span>
           </div>
-          <div class="item-tag"><kbd># (topic) </kbd>&nbsp;→&nbsp;<span class="glyph-topic">(topic)</span></div>
+          <div class="item-tag"><kbd># (topic)</kbd>&nbsp;→&nbsp;<span class="glyph-topic">(topic)</span></div>
         </div>
         <div class="modal-item" style="cursor: default;">
           <div class="modal-item-main">

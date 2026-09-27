@@ -510,7 +510,7 @@ export const de = {
   "syncHealth.status.offlineCached": () => "Offline (zwischengespeichert)",
   "syncHealth.status.inSync": () => "Synchronisiert",
   "syncHealth.label.status": () => "Status:",
-  "syncHealth.label.lastSynced": () => "Zuletzt synchronisiert:",
+  "syncHealth.label.lastSynced": () => "Letzte Synchronisierung:",
   "syncHealth.relativeTime.never": () => "Nie",
   "syncHealth.relativeTime.justNow": ({ time }) => `Gerade eben (${time})`,
   "syncHealth.label.localMirror": () => "Lokale Kopie:",
@@ -585,7 +585,7 @@ export const de = {
   "mobileTabDrawer.memoryOnly": () => "Nur im Speicher gehalten",
   "mobileTabDrawer.closeTab": ({ label }) => `${label} schließen`,
   "mobileTabDrawer.newScratchpad": () => "Neuer Notizblock",
-  "mobileTabDrawer.openDateNote": () => "Datierte Notiz öffnen",
+  "mobileTabDrawer.openDateNote": () => "Datum öffnen",
 
   "toast.actions.forwardedToToday": () => "An die heutigen Top-Prioritäten weitergeleitet!",
   "toast.boot.oneDrive.connected": () => "Mit OneDrive verbunden",
