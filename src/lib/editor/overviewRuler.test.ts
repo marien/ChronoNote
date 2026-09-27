@@ -115,4 +115,63 @@ describe("overviewRuler", () => {
     view.destroy();
     expect(view.dom.querySelector(".cm-overview-ruler")).toBeNull();
   });
+
+  it("is not visible initially, shows on scroll when scrollable, and hides after 10s", async () => {
+    const { vi } = await import("vitest");
+    vi.useFakeTimers();
+
+    const doc = Array.from({ length: 100 }, (_, i) => `# Action ${i + 1}`).join("\n");
+    const state = EditorState.create({
+      doc,
+      extensions: [overviewRuler()],
+    });
+    const view = new EditorView({ state });
+
+    const rulerEl = view.dom.querySelector(".cm-overview-ruler") as HTMLElement;
+    expect(rulerEl.classList.contains("cm-ruler-visible")).toBe(false);
+
+    // Mock scrollable dimensions
+    Object.defineProperty(view.scrollDOM, "scrollHeight", { value: 2000, configurable: true });
+    Object.defineProperty(view.scrollDOM, "clientHeight", { value: 500, configurable: true });
+
+    // Trigger scroll
+    view.scrollDOM.dispatchEvent(new Event("scroll"));
+    expect(rulerEl.classList.contains("cm-ruler-visible")).toBe(true);
+
+    // Advance 5 seconds — still visible
+    vi.advanceTimersByTime(5000);
+    expect(rulerEl.classList.contains("cm-ruler-visible")).toBe(true);
+
+    // Scroll again — resets timer
+    view.scrollDOM.dispatchEvent(new Event("scroll"));
+    vi.advanceTimersByTime(5000);
+    expect(rulerEl.classList.contains("cm-ruler-visible")).toBe(true);
+
+    // Advance past 10 seconds total from last scroll
+    vi.advanceTimersByTime(5001);
+    expect(rulerEl.classList.contains("cm-ruler-visible")).toBe(false);
+
+    view.destroy();
+    vi.useRealTimers();
+  });
+
+  it("does not show markers on scroll if document has no scrollbar", () => {
+    const doc = ["# Action 1", "# Action 2"].join("\n");
+    const state = EditorState.create({
+      doc,
+      extensions: [overviewRuler()],
+    });
+    const view = new EditorView({ state });
+
+    const rulerEl = view.dom.querySelector(".cm-overview-ruler") as HTMLElement;
+
+    // Content fits without scrollbar
+    Object.defineProperty(view.scrollDOM, "scrollHeight", { value: 200, configurable: true });
+    Object.defineProperty(view.scrollDOM, "clientHeight", { value: 500, configurable: true });
+
+    view.scrollDOM.dispatchEvent(new Event("scroll"));
+    expect(rulerEl.classList.contains("cm-ruler-visible")).toBe(false);
+
+    view.destroy();
+  });
 });

@@ -98,6 +98,8 @@ class OverviewRulerPluginClass {
   dom: HTMLDivElement;
   view: EditorView;
   private rafId: number | null = null;
+  private fadeTimer: ReturnType<typeof setTimeout> | null = null;
+  private readonly FADE_TIMEOUT_MS = 10000;
 
   constructor(view: EditorView) {
     this.view = view;
@@ -105,6 +107,7 @@ class OverviewRulerPluginClass {
     this.dom.className = "cm-overview-ruler";
     this.dom.setAttribute("aria-hidden", "true");
     this.dom.addEventListener("click", this.handleClick);
+    this.view.scrollDOM?.addEventListener("scroll", this.handleScroll, { passive: true });
     view.dom.appendChild(this.dom);
     this.scheduleUpdate();
   }
@@ -120,8 +123,50 @@ class OverviewRulerPluginClass {
       cancelAnimationFrame(this.rafId);
       this.rafId = null;
     }
+    if (this.fadeTimer !== null) {
+      clearTimeout(this.fadeTimer);
+      this.fadeTimer = null;
+    }
+    this.view.scrollDOM?.removeEventListener("scroll", this.handleScroll);
     this.dom.removeEventListener("click", this.handleClick);
     this.dom.remove();
+  }
+
+  private hasScrollbar(): boolean {
+    const scroller = this.view.scrollDOM;
+    if (!scroller) return false;
+    return scroller.scrollHeight > scroller.clientHeight + 1;
+  }
+
+  private handleScroll = () => {
+    if (!this.hasScrollbar()) {
+      this.hide();
+      return;
+    }
+    this.show();
+    this.resetFadeTimer();
+  };
+
+  private show() {
+    this.dom.classList.add("cm-ruler-visible");
+  }
+
+  private hide() {
+    this.dom.classList.remove("cm-ruler-visible");
+    if (this.fadeTimer !== null) {
+      clearTimeout(this.fadeTimer);
+      this.fadeTimer = null;
+    }
+  }
+
+  private resetFadeTimer() {
+    if (this.fadeTimer !== null) {
+      clearTimeout(this.fadeTimer);
+    }
+    this.fadeTimer = setTimeout(() => {
+      this.dom.classList.remove("cm-ruler-visible");
+      this.fadeTimer = null;
+    }, this.FADE_TIMEOUT_MS);
   }
 
   private scheduleUpdate() {
@@ -146,7 +191,12 @@ class OverviewRulerPluginClass {
     if (markers.length === 0) {
       this.dom.style.display = "none";
       this.dom.replaceChildren();
+      this.hide();
       return;
+    }
+
+    if (!this.hasScrollbar()) {
+      this.hide();
     }
 
     this.dom.style.display = "block";

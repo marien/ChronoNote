@@ -20,9 +20,10 @@ test.describe("Overview Ruler - scrollbar markers for open actions", () => {
     "x Cancelled item",
     "",
     "Closing remarks and summary.",
+    ...Array.from({ length: 40 }, (_, i) => `Filler line ${i + 1} to ensure scrollbar is present.`),
   ].join("\n");
 
-  test("renders markers on scrollbar for open actions and topics", async ({ page }) => {
+  test("markers only show when scrollbar is present and moved", async ({ page }) => {
     await seedApp(page, {
       seed: {
         notes: { "2026-09-07.txt": sampleNote },
@@ -31,7 +32,23 @@ test.describe("Overview Ruler - scrollbar markers for open actions", () => {
     });
 
     const ruler = page.locator(".cm-overview-ruler");
-    await expect(ruler).toBeVisible();
+    // Initially not visible (opacity: 0, no cm-ruler-visible class)
+    await expect(ruler).not.toHaveClass(/cm-ruler-visible/);
+    const initialOpacity = await ruler.evaluate((el) => window.getComputedStyle(el).opacity);
+    expect(initialOpacity).toBe("0");
+
+    // Scroll the editor
+    await page.locator(".cm-scroller").evaluate((el) => {
+      el.scrollTop = 100;
+      el.dispatchEvent(new Event("scroll"));
+    });
+
+    // Becomes visible on scroll
+    await expect(ruler).toHaveClass(/cm-ruler-visible/);
+    await expect(async () => {
+      const op = parseFloat(await ruler.evaluate((el) => window.getComputedStyle(el).opacity));
+      expect(op).toBeGreaterThan(0.5);
+    }).toPass();
 
     const markers = ruler.locator(".cm-ruler-marker");
     // Line 3: # First open priority task (action)
@@ -59,6 +76,12 @@ test.describe("Overview Ruler - scrollbar markers for open actions", () => {
         notes: { "2026-09-07.txt": sampleNote },
         session: { openTabs: ["2026-09-07.txt"], activeTab: "2026-09-07.txt" },
       },
+    });
+
+    // Move scrollbar to show markers
+    await page.locator(".cm-scroller").evaluate((el) => {
+      el.scrollTop = 50;
+      el.dispatchEvent(new Event("scroll"));
     });
 
     const ruler = page.locator(".cm-overview-ruler");

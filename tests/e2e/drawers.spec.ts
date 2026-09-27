@@ -154,4 +154,40 @@ test.describe("Shortcuts & Symbols drawer is current", () => {
     // the old wording is gone
     await expect(drawer).not.toContainText("click its glyph to cycle");
   });
+
+  test("symbols column renders boxed deferred glyph and properly sized topic glyphs", async ({ page }) => {
+    await seedApp(page);
+    await editor(page).click();
+    await page.keyboard.press("ControlOrMeta+/");
+    const drawer = modalCard(page, MODAL_LABELS.shortcuts);
+    await expect(drawer).toBeVisible();
+
+    const sizes = await page.evaluate(() => {
+      const box = document.querySelector<HTMLElement>(".item-tag .glyph-open");
+      const deferred = document.querySelector<HTMLElement>(".item-tag .glyph-progress");
+      const topicOpen = document.querySelector<HTMLElement>(".item-tag .glyph-topic-open");
+      const topicDone = document.querySelector<HTMLElement>(".item-tag .glyph-topic-done");
+      if (!box || !deferred || !topicOpen || !topicDone) return null;
+
+      const boxRect = box.getBoundingClientRect();
+      const topicRect = topicOpen.getBoundingClientRect();
+      const deferredAfter = window.getComputedStyle(deferred, "::after").content;
+
+      return {
+        boxWidth: boxRect.width,
+        boxHeight: boxRect.height,
+        topicWidth: topicRect.width,
+        topicHeight: topicRect.height,
+        deferredAfter,
+      };
+    });
+
+    expect(sizes).not.toBeNull();
+    // Deferred glyph has centered › chevron
+    expect(sizes!.deferredAfter).toContain("›");
+    // Topic circle width matches action box width within 2px
+    expect(Math.abs(sizes!.topicWidth - sizes!.boxWidth)).toBeLessThanOrEqual(2);
+    // Topic circle is square (width === height)
+    expect(Math.abs(sizes!.topicWidth - sizes!.topicHeight)).toBeLessThanOrEqual(1);
+  });
 });

@@ -843,6 +843,15 @@ body {
   pointer-events: none;
   z-index: 10;
   user-select: none;
+  opacity: 0;
+  transition: opacity 0.5s ease-out;
+}
+
+.cm-overview-ruler.cm-ruler-visible,
+.cm-overview-ruler:hover {
+  opacity: 1;
+  pointer-events: auto;
+  transition: opacity 0.15s ease-in;
 }
 
 .cm-ruler-marker {
@@ -984,6 +993,12 @@ body {
 }
 
 /* Boxed Deferred Glyph (Option 1: ☐ with centered ›) */
+.glyph-progress {
+  color: var(--glyph-progress-color);
+  font-weight: var(--glyph-progress-weight);
+  position: relative;
+  display: inline-block;
+}
 .cm-line .glyph-progress .glyph-ink,
 .glyph-progress .glyph-ink {
   position: relative;
@@ -991,11 +1006,11 @@ body {
   transform: scale(0.85);
   transform-origin: left center;
 }
-.cm-line .glyph-progress .glyph-ink::after,
+.glyph-progress:not(:has(.glyph-ink))::after,
 .glyph-progress .glyph-ink::after {
   content: "›";
   position: absolute;
-  left: 48%;
+  left: 50%;
   top: 50%;
   transform: translate(-50%, -50%);
   font-size: 0.70em;
@@ -1003,6 +1018,12 @@ body {
   line-height: 1;
   color: var(--glyph-progress-color);
   pointer-events: none;
+}
+.stat-compact .glyph-progress {
+  color: inherit;
+}
+.stat-compact .glyph-progress::after {
+  color: inherit;
 }
 
 .cm-line .glyph-topic-open .glyph-ink,
@@ -1080,6 +1101,41 @@ body {
   color: var(--glyph-cancelled-color);
   font-weight: var(--glyph-cancelled-weight);
   opacity: var(--glyph-cancelled-opacity);
+}
+/* Agenda topic glyphs outside editor/accessory-bar (e.g. ShortcutsModal, History, Search) */
+.glyph-topic-open:not(.cm-line *):not(.token-glyph),
+.glyph-topic-done:not(.cm-line *):not(.token-glyph),
+.glyph-topic-skipped:not(.cm-line *):not(.token-glyph) {
+  display: inline-block;
+  position: relative;
+  width: 1em;
+  height: 1em;
+  border-radius: 50%;
+  box-sizing: border-box;
+  color: transparent !important;
+  user-select: none;
+  vertical-align: -0.1em;
+  line-height: 1;
+}
+.glyph-topic-open:not(.cm-line *):not(.token-glyph) {
+  border: 1.4px solid var(--glyph-open-color);
+}
+.glyph-topic-done:not(.cm-line *):not(.token-glyph) {
+  border: 1.4px solid var(--glyph-done-color);
+}
+.glyph-topic-done:not(.cm-line *):not(.token-glyph)::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 0.32em;
+  height: 0.32em;
+  border-radius: 50%;
+  background: var(--glyph-done-color);
+}
+.glyph-topic-skipped:not(.cm-line *):not(.token-glyph) {
+  border: 1.4px dashed var(--glyph-progress-color);
 }
 .glyph-topic-open {
   color: var(--glyph-open-color);
@@ -1260,7 +1316,7 @@ body {
   background: var(--tab-bg);
   color: var(--status-fg);
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr) auto auto;
   /* §147: keeps the left/right zones from ever visually touching — the
      centre column collapses to 0 width whenever there's no transient
      message, and without a floor gap here the two side zones' clipped
@@ -1524,8 +1580,12 @@ body {
 }
 
 /* Centre message active (e.g. "Updated to v...", toast message):
-   The centre column takes significant space (~200-280px), so immediately
+   The centre column takes significant space (~200-280px), so restore the
+   symmetrical minmax(0, 1fr) auto minmax(0, 1fr) grid to optically center the message, and immediately
    collapse supplementary tiers to ensure the left zone and counts never collide. */
+#status-bar.has-centre-message {
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+}
 #status-bar.has-centre-message .stat-tier0 {
   display: none;
 }
