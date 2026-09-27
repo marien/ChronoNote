@@ -58,8 +58,11 @@ whole `=> ` token in one step, as if un-delegating the line.
 | :--- | :--- | :--- | :--- |
 | `# ` | `☐` | **Open Action (Self)** | **Unresolved.** Blocks tab closure with a safety modal (for a note dated today or earlier; a future-dated note closes silently — #76). Counted in status bar (Open). |
 | `v ` | `☑` | **Completed Action (Self)** | **Resolved.** Counted in status bar (Closed). |
-| `> ` | `»` | **Deferred Action (Self)** | **Resolved for origin day.** Represents a task forwarded to another day (typically today). Does not block tab close. Counted in status bar (Forwarded). |
+| `> ` | `☐` (boxed, centered `›`) | **Deferred Action (Self)** | **Resolved for origin day.** Represents a task forwarded to another day (typically today). Does not block tab close. Counted in status bar (Forwarded). |
 | `x ` | `☒` | **Won't-Do Action (Self)** | **Resolved.** Distinct from `v ` (was done) — this one won't happen at all. Folds into the same status-bar bucket as `v ` (Closed). |
+| `o ` | `○` | **Meeting Topic — To Discuss** | Purely a discussion item, never an action — excluded from action counts, the calendar heatmap, and `F2`/`Shift+F2` jump navigation. `Enter` continues the list (plain, numbered, or bulleted, same rules as an action line); `Ctrl/Cmd+5` sets a line/selection to this state directly. |
+| `. ` | `◉` (fisheye) | **Meeting Topic — Discussed** | Resolved for this meeting. Dimmed like a closed action, but still never counted as one. `Ctrl/Cmd+6`, or `Ctrl+Space` on an open topic. |
+| `, ` | `◌` (dashed ring) | **Meeting Topic — Not Discussed / Postponed** | Skipped this meeting, carried to the next one. Dimmed like a closed action, never counted as one. `Ctrl/Cmd+7`, or `Ctrl+Shift+Space` reopens it back to `o `. Copy/paste-deferral (below) defers an open topic `o ` to `, `, mirroring how an open action `# ` defers to `> `. |
 | `- ` or `* ` | `•` | **Bulleted List Item** | Purely structural — not an action, not counted anywhere, doesn't block tab close. May be indented in two-space increments to nest (see 2.4). `-` and `*` are interchangeable; both render identically. |
 | `=> ` | `➔` | **Consequence / Follow-up** | Informational note or meeting outcome. |
 | `=> @name` | `➔` + editable `@name` badge | **Delegated Action** | Action owned by another individual, with no action-state of its own. `@name` stays real text — edit it directly to fix a typo. The name may contain a hyphen (`@jean-luc`); on a `=> ` line it is badged wherever it appears, not only right after the arrow, and may be written parenthesised, `(@name)`, or several at once, `(@a, @b, @c)`, each badged. |
@@ -68,16 +71,18 @@ whole `=> ` token in one step, as if un-delegating the line.
 | `! ` | rest of line rendered bold, in an emphasis color | **Emphasis / Remember** | Purely informational — not an action, not counted anywhere, doesn't block tab close. Searchable like any other line via Cross-Tab Search; no dedicated drawer. |
 | `Heading\n====` | Setext H1 Display | **Section / Meeting Header** | Section delimiter for manual section import and meeting action history. |
 
-A line that is no longer open (done `v `, deferred `> `, won't-do `x `, or a `=> v `/`=> > `/`=> x ` follow-up) is drawn slightly
+A line that is no longer open (done `v `, deferred `> `, won't-do `x `, a discussed `. ` or postponed `, ` topic, or a `=> v `/`=> > `/`=> x ` follow-up) is drawn slightly
 dimmed so open work stands out; it returns to full strength on hover and while the caret or selection is on the line.
 Section titles are never dimmed.
 
-All four action symbols (`# `/`v `/`> `/`x `) may be indented in two-space
-increments, the same as bulleted list items — the indentation is real,
-untouched whitespace; only the symbol itself is replaced. Clicking an
-action glyph toggles it between open and closed (`# → v`; a done, deferred or
-won't-do line reopens to `#`); hovering it first previews the result without
-committing it. The other states are reached with `Ctrl/Cmd+1`-`4`.
+All four action symbols (`# `/`v `/`> `/`x `) and the three topic symbols
+(`o `/`. `/`, `) may be indented in two-space increments, the same as
+bulleted list items — the indentation is real, untouched whitespace; only
+the symbol itself is replaced. Clicking a glyph toggles it between its two
+main states (`# → v` for actions, `o → .` for topics; any other state
+reopens to `#`/`o` respectively); hovering it first previews the result
+without committing it. The other action states are reached with
+`Ctrl/Cmd+1`-`4`, the other topic states with `Ctrl/Cmd+5`-`7`.
 
 **Which symbol** when a line holds several (`# do X => # wait`): a click or tap
 changes exactly the glyph clicked. Keyboard shortcuts, palette commands and the
