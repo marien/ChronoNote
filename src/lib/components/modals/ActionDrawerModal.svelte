@@ -337,7 +337,7 @@
             >
               <div class="modal-item-main">
                 <span class={g.cls ?? ""}>{g.char}</span>
-                <span class={sym === "v" || sym === "x" ? "item-completed" : ""}>{stripLeadingToken(item.line)}</span>
+                <span class={sym === "v" || sym === "x" ? "item-completed" : ""} title={stripLeadingToken(item.line)}>{stripLeadingToken(item.line)}</span>
               </div>
               {#if item.header}<span class="item-breadcrumb">· {item.header}</span>{/if}
               <div class="item-tag">{$t("actionDrawer.item.lineTag", { line: item.lineIdx + 1 })}</div>

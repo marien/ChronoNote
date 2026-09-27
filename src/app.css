@@ -54,6 +54,11 @@
   --glyph-assignee-bg: rgba(128, 128, 128, 0.18);
   --glyph-assignee-color: var(--text);
   --glyph-emphasis-color: var(--text);
+
+  --ruler-marker-action: #f59e0b;
+  --ruler-marker-action-glow: rgba(245, 158, 11, 0.5);
+  --ruler-marker-topic: #06b6d4;
+  --ruler-marker-topic-glow: rgba(6, 182, 212, 0.5);
 }
 
 /* #48: light/dark is a three-state setting (`themeMode`: light / dark /
@@ -88,6 +93,11 @@
     --highlight: rgba(0, 0, 0, 0.15);
     --caret-color: #000000;
     --editor-selection-bg: #c8d3e0;
+
+    --ruler-marker-action: #d97706;
+    --ruler-marker-action-glow: rgba(217, 119, 6, 0.35);
+    --ruler-marker-topic: #0891b2;
+    --ruler-marker-topic-glow: rgba(8, 145, 178, 0.35);
   }
 }
 
@@ -113,6 +123,11 @@
   --highlight: rgba(0, 0, 0, 0.15);
   --caret-color: #000000;
   --editor-selection-bg: #c8d3e0;
+
+  --ruler-marker-action: #d97706;
+  --ruler-marker-action-glow: rgba(217, 119, 6, 0.35);
+  --ruler-marker-topic: #0891b2;
+  --ruler-marker-topic-glow: rgba(8, 145, 178, 0.35);
 }
 
 /* §v0.12.2: Pure Black OLED Dark Theme (Area 10.2)
@@ -123,6 +138,11 @@
   --surface-chrome: #0a0a0a;
   --surface-overlay: #121212;
   --surface-raised: #1e1e1e;
+
+  --ruler-marker-action: #fbbf24;
+  --ruler-marker-action-glow: rgba(251, 191, 36, 0.6);
+  --ruler-marker-topic: #22d3ee;
+  --ruler-marker-topic-glow: rgba(34, 211, 238, 0.6);
   --edge-soft: rgba(255, 255, 255, 0.10);
   --edge-strong: rgba(255, 255, 255, 0.18);
   --text: #e0e0e0;
@@ -822,6 +842,55 @@ body {
   background: var(--muted);
 }
 
+/* Overview Ruler: scrollbar track markers for open actions and topics */
+.cm-overview-ruler {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 8px;
+  pointer-events: none;
+  z-index: 10;
+  user-select: none;
+}
+
+.cm-ruler-marker {
+  position: absolute;
+  right: 1px;
+  width: 6px;
+  height: 3px;
+  border-radius: 1.5px;
+  pointer-events: auto;
+  cursor: pointer;
+  box-sizing: border-box;
+  transition: transform 0.1s ease, width 0.1s ease, right 0.1s ease;
+}
+
+/* Touch and click hit-area expansion for easy, reliable targeting */
+.cm-ruler-marker::before {
+  content: "";
+  position: absolute;
+  top: -4px;
+  bottom: -4px;
+  right: -2px;
+  left: -8px;
+}
+
+.cm-ruler-marker:hover {
+  transform: scaleY(1.33);
+  width: 7px;
+  right: 0.5px;
+}
+
+.cm-ruler-marker.cm-ruler-action {
+  background: var(--ruler-marker-action);
+  box-shadow: 0 0 2.5px var(--ruler-marker-action-glow);
+}
+
+.cm-ruler-marker.cm-ruler-topic {
+  background: var(--ruler-marker-topic);
+  box-shadow: 0 0 2.5px var(--ruler-marker-topic-glow);
+}
+
 .cm-content {
   caret-color: var(--caret-color) !important;
 }
@@ -912,16 +981,14 @@ body {
 
 /* Boxed Deferred Glyph (Option 1: ☐ with centered ›) */
 .cm-line .glyph-progress .glyph-ink,
-.glyph-progress .glyph-ink,
-.token-glyph.glyph-progress {
+.glyph-progress .glyph-ink {
   position: relative;
   display: inline-block;
   transform: scale(0.85);
   transform-origin: left center;
 }
 .cm-line .glyph-progress .glyph-ink::after,
-.glyph-progress .glyph-ink::after,
-.token-glyph.glyph-progress::after {
+.glyph-progress .glyph-ink::after {
   content: "›";
   position: absolute;
   left: 48%;
@@ -936,10 +1003,7 @@ body {
 
 .cm-line .glyph-topic-open .glyph-ink,
 .cm-line .glyph-topic-done .glyph-ink,
-.cm-line .glyph-topic-skipped .glyph-ink,
-.token-glyph.glyph-topic-open,
-.token-glyph.glyph-topic-done,
-.token-glyph.glyph-topic-skipped {
+.cm-line .glyph-topic-skipped .glyph-ink {
   color: transparent;
   user-select: none;
   display: inline-block;
@@ -954,20 +1018,17 @@ body {
 
 /* o: open circle (1.4px solid stroke) */
 .cm-line .glyph-topic-open .glyph-ink,
-.glyph-topic-open.glyph-cyclable-preview .glyph-ink,
-.token-glyph.glyph-topic-open {
+.glyph-topic-open.glyph-cyclable-preview .glyph-ink {
   border: 1.4px solid var(--glyph-open-color);
 }
 
 /* .: discussed fisheye (outer circle + centered inner dot) */
 .cm-line .glyph-topic-done .glyph-ink,
-.glyph-topic-done.glyph-cyclable-preview .glyph-ink,
-.token-glyph.glyph-topic-done {
+.glyph-topic-done.glyph-cyclable-preview .glyph-ink {
   border: 1.4px solid var(--glyph-done-color);
 }
 .cm-line .glyph-topic-done .glyph-ink::after,
-.glyph-topic-done.glyph-cyclable-preview .glyph-ink::after,
-.token-glyph.glyph-topic-done::after {
+.glyph-topic-done.glyph-cyclable-preview .glyph-ink::after {
   content: "";
   position: absolute;
   left: 50%;
@@ -981,8 +1042,7 @@ body {
 
 /* ,: not discussed / postponed (1.4px dashed circular ring) */
 .cm-line .glyph-topic-skipped .glyph-ink,
-.glyph-topic-skipped.glyph-cyclable-preview .glyph-ink,
-.token-glyph.glyph-topic-skipped {
+.glyph-topic-skipped.glyph-cyclable-preview .glyph-ink {
   border: 1.4px dashed var(--glyph-progress-color);
 }
 
@@ -1196,7 +1256,7 @@ body {
   background: var(--tab-bg);
   color: var(--status-fg);
   display: grid;
-  grid-template-columns: 1fr auto 1fr;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
   /* §147: keeps the left/right zones from ever visually touching — the
      centre column collapses to 0 width whenever there's no transient
      message, and without a floor gap here the two side zones' clipped
@@ -1401,16 +1461,37 @@ body {
     display: none;
   }
 }
+@media (max-width: 960px) {
+  :root:lang(de) .stat-tier0,
+  :root:lang(nl) .stat-tier0 {
+    display: none;
+  }
+}
+
 @media (max-width: 680px) {
   .stat-tier1 {
     display: none;
   }
 }
+@media (max-width: 720px) {
+  :root:lang(de) .stat-tier1,
+  :root:lang(nl) .stat-tier1 {
+    display: none;
+  }
+}
+
 @media (max-width: 520px) {
   .stat-tier2 {
     display: none;
   }
 }
+@media (max-width: 560px) {
+  :root:lang(de) .stat-tier2,
+  :root:lang(nl) .stat-tier2 {
+    display: none;
+  }
+}
+
 .stat-compact {
   display: none;
 }
@@ -1425,6 +1506,42 @@ body {
     display: none;
   }
 }
+/* In German & Dutch, long count words ("Doorgeschoven", "Weitergeleitet")
+   collapse to compact glyph form earlier so the left zone never overflows. */
+@media (max-width: 780px) {
+  :root:lang(de) .stat-full,
+  :root:lang(nl) .stat-full {
+    display: none;
+  }
+  :root:lang(de) .stat-compact,
+  :root:lang(nl) .stat-compact {
+    display: inline;
+  }
+}
+
+/* Centre message active (e.g. "Updated to v...", toast message):
+   The centre column takes significant space (~200-280px), so immediately
+   collapse supplementary tiers to ensure the left zone and counts never collide. */
+#status-bar.has-centre-message .stat-tier0 {
+  display: none;
+}
+#status-bar.has-centre-message .stat-full {
+  display: none;
+}
+#status-bar.has-centre-message .stat-compact {
+  display: inline;
+}
+@media (max-width: 920px) {
+  #status-bar.has-centre-message .stat-tier1 {
+    display: none;
+  }
+}
+@media (max-width: 680px) {
+  #status-bar.has-centre-message .stat-tier2 {
+    display: none;
+  }
+}
+
 /* §102/§110: transient messages (the former floating toast) — the centre
    zone is otherwise empty; the ambient save state moved to a quiet dot on
    the tab itself. */
@@ -1453,6 +1570,11 @@ body {
   gap: 6px;
   color: var(--status-fg);
   font-weight: 500;
+  cursor: pointer;
+  user-select: none;
+}
+#stat-updated:hover .stat-updated-text {
+  color: var(--text);
 }
 #stat-updated::before {
   content: "";
@@ -2002,6 +2124,17 @@ textarea.modal-input.import-textarea {
   white-space: nowrap;
   flex: 1;
   margin-right: 12px;
+  min-width: 0;
+}
+.modal-item-main > :first-child {
+  flex-shrink: 0;
+}
+.modal-item-main > span:last-child,
+.modal-item-main > .modal-item-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
 }
 .palette-match {
   color: var(--glyph-open-color);
@@ -2121,6 +2254,19 @@ textarea.modal-input.import-textarea {
 }
 .modal-item.selected .item-completed {
   opacity: 0.9;
+}
+/* Mobile portrait ergonomics (§222): unclutter action drawer and modal lists
+   so task descriptions can be read across the full width of narrow viewports. */
+@media (max-width: 600px) {
+  .modal-item .item-breadcrumb {
+    display: none;
+  }
+  .modal-item:not(.shortcuts-list *) .item-tag {
+    display: none;
+  }
+  .modal-item:not(.shortcuts-list *) .modal-item-main {
+    margin-right: 0;
+  }
 }
 .modal-group-header {
   padding: 6px 14px;
@@ -2261,6 +2407,11 @@ textarea.modal-input.import-textarea {
   text-overflow: clip;
   flex: 1 1 auto;
   min-width: 0;
+}
+.shortcuts-list .modal-item-main > span {
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
 }
 .shortcuts-list .item-tag {
   flex-shrink: 0;
@@ -3041,9 +3192,113 @@ body {
   transform: translateY(1px);
 }
 .accessory-btn.token-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  min-width: 36px;
+  height: 36px;
+  padding: 0;
   font-family: var(--font-mono, monospace);
   font-size: 15px;
   font-weight: 600;
+  line-height: 1;
+  box-sizing: border-box;
+}
+
+.token-glyph {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  line-height: 1;
+  width: 16px;
+  height: 16px;
+  box-sizing: border-box;
+  text-align: center;
+  transform: none;
+}
+
+/* Action glyphs in mobile accessory bar */
+.token-glyph.glyph-open {
+  color: var(--glyph-open-color);
+}
+.token-glyph.glyph-done {
+  color: var(--glyph-done-color);
+}
+.token-glyph.glyph-progress {
+  color: var(--glyph-progress-color);
+  transform: none;
+}
+.token-glyph.glyph-progress::after {
+  content: "›";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 0.70em;
+  font-weight: 900;
+  line-height: 1;
+  color: var(--glyph-progress-color);
+  pointer-events: none;
+}
+
+/* Agenda topic glyphs in mobile accessory bar (centered & visually matched to action squares) */
+.token-glyph.glyph-topic-open,
+.token-glyph.glyph-topic-done,
+.token-glyph.glyph-topic-skipped {
+  width: 13.5px;
+  height: 13.5px;
+  border-radius: 50%;
+  box-sizing: border-box;
+  color: transparent;
+  user-select: none;
+  transform: none;
+  line-height: 1;
+}
+.token-glyph.glyph-topic-open {
+  border: 1.4px solid var(--glyph-open-color);
+}
+.token-glyph.glyph-topic-done {
+  border: 1.4px solid var(--glyph-done-color);
+}
+.token-glyph.glyph-topic-done::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 4.5px;
+  height: 4.5px;
+  border-radius: 50%;
+  background: var(--glyph-done-color);
+}
+.token-glyph.glyph-topic-skipped {
+  border: 1.4px dashed var(--glyph-progress-color);
+}
+
+/* Bullet, follow-up arrow, and emphasis in mobile accessory bar */
+.token-glyph.glyph-bullet {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--text);
+  color: transparent;
+  display: inline-block;
+  font-size: 0;
+  line-height: 0;
+}
+.token-glyph.glyph-arrow,
+.token-glyph.glyph-followup {
+  color: var(--text);
+  font-size: 15px;
+  line-height: 1;
+}
+.token-glyph.glyph-emphasis {
+  color: var(--text);
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1;
 }
 .accessory-separator {
   width: 1px;

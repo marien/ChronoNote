@@ -211,3 +211,62 @@ test.describe("long messages", () => {
     await expect(page.locator(".long-toast")).toHaveCount(0);
   });
 });
+
+test.describe("Dutch and German status bar collapse & center message non-overlap", () => {
+  test("Dutch locale with centre update notice keeps counts visible and does not overlap", async ({ page }) => {
+    await page.setViewportSize({ width: 750, height: 600 });
+    await seedApp(page, {
+      seed: {
+        notes: { [todayFilename()]: "# taak een\nv taak twee\n> taak drie" },
+        languageMode: "nl",
+        appVersion: "0.16.0",
+        lastSeenVersion: "0.15.0",
+      },
+    });
+
+    const bar = page.locator("#status-bar");
+    await expect(bar).toHaveClass(/has-centre-message/);
+
+    const left = bar.locator(".status-left");
+    const centre = bar.locator(".status-centre");
+
+    // Centre message is visible
+    await expect(centre).toContainText("Bijgewerkt naar v0.16.0");
+    await expect(centre).toContainText("Wat is er nieuw");
+
+    // Action counts must be visible in compact form
+    await expect(left.locator(".stat-compact").first()).toBeVisible();
+    await expect(left).toContainText("☐ 1");
+
+    // Left and centre bounding boxes must not overlap
+    const leftBox = (await left.boundingBox())!;
+    const centreBox = (await centre.boundingBox())!;
+    expect(leftBox.x + leftBox.width).toBeLessThanOrEqual(centreBox.x);
+
+    // No overflow on status bar
+    const overflowing = await bar.evaluate((el) => el.scrollWidth > el.clientWidth);
+    expect(overflowing).toBe(false);
+  });
+
+  test("German locale without message collapses long count text gracefully on medium screens", async ({ page }) => {
+    await page.setViewportSize({ width: 720, height: 600 });
+    await seedApp(page, {
+      seed: {
+        notes: { [todayFilename()]: "# aufgabe eins\nv aufgabe zwei\n> aufgabe drei" },
+        languageMode: "de",
+      },
+    });
+
+    const bar = page.locator("#status-bar");
+    const left = bar.locator(".status-left");
+
+    // On 720px in German, verbose "Weitergeleitet" collapses to compact "»"
+    await expect(left.locator(".stat-compact").first()).toBeVisible();
+    await expect(left).toContainText("☐ 1");
+
+    // No overflow on status bar
+    const overflowing = await bar.evaluate((el) => el.scrollWidth > el.clientWidth);
+    expect(overflowing).toBe(false);
+  });
+});
+

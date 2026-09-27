@@ -352,6 +352,7 @@ export const de = {
   "statusBar.forwardedCount": ({ count }) => `Weitergeleitet ${count}`,
   "statusBar.updatedTo": ({ version }) => `Aktualisiert auf v${version} —`,
   "statusBar.whatsNew": () => "Was ist neu",
+  "statusBar.dismissUpdate": () => "Klicken zum Schließen",
   "statusBar.updateAvailableTitle": () => "Update verfügbar — siehe Über",
   "statusBar.aboutTitleWithCombo": ({ combo }) => `Über ChronoNote (${combo})`,
   "statusBar.shortcutsTitle": ({ combo }) => `Tastenkürzel & Symbole (${combo})`,

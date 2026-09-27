@@ -344,6 +344,7 @@ export const en = {
   "statusBar.forwardedCount": ({ count }) => `Forwarded ${count}`,
   "statusBar.updatedTo": ({ version }) => `Updated to v${version} —`,
   "statusBar.whatsNew": () => "What's new",
+  "statusBar.dismissUpdate": () => "Click to dismiss",
   "statusBar.updateAvailableTitle": () => "Update available — see About",
   "statusBar.aboutTitleWithCombo": ({ combo }) => `About ChronoNote (${combo})`,
   "statusBar.shortcutsTitle": ({ combo }) => `Shortcuts & symbols (${combo})`,

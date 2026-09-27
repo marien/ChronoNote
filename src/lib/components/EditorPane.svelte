@@ -11,6 +11,7 @@
   import { resolvedLinesPlugin } from "../editor/resolvedLines";
   import { activeLinesPlugin } from "../editor/activeLines";
   import { clickableLinksPlugin } from "../editor/clickableLinks";
+  import { overviewRuler } from "../editor/overviewRuler";
   import { underlineFor } from "../sectionFormat";
   import {
     actionLineEnter,
@@ -46,7 +47,6 @@
 
   let container: HTMLDivElement;
   let view: EditorView | null = null;
-  let activeTouchLine: number | null = null;
 
   /** §80: soft word-wrap, toggled live from Settings. A CodeMirror
    * compartment so flipping it reconfigures just this one extension in
@@ -582,6 +582,7 @@
       resolvedLinesPlugin,
       activeLinesPlugin,
       clickableLinksPlugin,
+      overviewRuler({ onJump: (lineIdx) => triggerLinePulse(lineIdx) }),
       pulseField,
       // §108: search state for findNext/findPrevious; its own panel is
       // never opened — the floating `FindBar` is the UI, and
@@ -625,44 +626,6 @@
         }
       }),
       EditorView.domEventHandlers({
-        pointerdown: (e: PointerEvent, v: EditorView) => {
-          if (!get(controller.isMobile) || e.pointerType === "mouse") return;
-          if ((e.target as HTMLElement)?.closest?.(".glyph-cyclable")) return;
-
-          const pos = v.posAtCoords({ x: e.clientX, y: e.clientY });
-          if (pos === null) return;
-          const lineNum = v.state.doc.lineAt(pos).number;
-
-          if (activeTouchLine === lineNum) {
-            // Second tap on the same line: allow keyboard to open
-            v.contentDOM.setAttribute("inputmode", "text");
-          } else {
-            // First tap on this line: position caret, keep keyboard hidden so bottom buttons are usable
-            activeTouchLine = lineNum;
-            const hadKeyboard = v.contentDOM.getAttribute("inputmode") === "text";
-            v.contentDOM.setAttribute("inputmode", "none");
-            v.dispatch({ selection: { anchor: pos } });
-            if (hadKeyboard) {
-              v.contentDOM.blur();
-              v.contentDOM.focus();
-            }
-          }
-        },
-        pointerup: (_e: PointerEvent, v: EditorView) => {
-          if (!get(controller.isMobile)) return;
-          // After the first tap settles without keyboard, enable text mode so a subsequent second tap opens keyboard
-          if (activeTouchLine !== null) {
-            setTimeout(() => {
-              v.contentDOM.setAttribute("inputmode", "text");
-            }, 50);
-          }
-        },
-        blur: (_e, v) => {
-          if (get(controller.isMobile)) {
-            v.contentDOM.setAttribute("inputmode", "none");
-            activeTouchLine = null;
-          }
-        },
         copy: (_event, v) => {
           const sel = v.state.sliceDoc(v.state.selection.main.from, v.state.selection.main.to);
           controller.recordCopiedAction(sel, controller.getActiveTabId());
@@ -701,10 +664,6 @@
       parent: container,
       scrollTo: saved?.scrollEffect as StateEffect<unknown> | undefined,
     });
-
-    if (get(controller.isMobile)) {
-      view.contentDOM.setAttribute("inputmode", "none");
-    }
 
     view.scrollDOM.addEventListener("scroll", () => {
       if (view) lastScrollEffect = view.scrollSnapshot();
@@ -804,12 +763,7 @@
         });
       },
       focus: () => {
-        if (!view) return;
-        const prevMode = view.contentDOM.getAttribute("inputmode");
-        view.focus();
-        if (prevMode === "none") {
-          view.contentDOM.setAttribute("inputmode", "none");
-        }
+        view?.focus();
       },
       find: {
         setQuery: (q: string) => {

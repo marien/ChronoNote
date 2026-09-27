@@ -42,6 +42,40 @@ test.describe("mobile accessory bar — caret after token insertion", () => {
 
     expect(await activeTabContent(page)).toBe("call Sam => book room");
   });
+
+  test("single tap on the editor focuses and allows immediate typing without inputmode=none or double-tap", async ({ page }) => {
+    const cmContent = page.locator(".cm-content");
+    // Verify inputmode is not "none"
+    expect(await cmContent.getAttribute("inputmode")).not.toBe("none");
+
+    // Single tap focuses the editor
+    await cmContent.click();
+    await expect(cmContent).toBeFocused();
+    expect(await cmContent.getAttribute("inputmode")).not.toBe("none");
+
+    // Immediately typing works on first tap without requiring a second tap
+    await page.keyboard.type("hello from first tap");
+    expect(await activeTabContent(page)).toBe("hello from first tap");
+  });
+
+  test("all token buttons in the mobile accessory bar share the same vertical centerline", async ({ page }) => {
+    const glyphs = page.locator(".accessory-btn.token-btn .token-glyph");
+    const count = await glyphs.count();
+    expect(count).toBe(9);
+
+    const midpoints: number[] = [];
+    for (let i = 0; i < count; i++) {
+      const box = await glyphs.nth(i).boundingBox();
+      expect(box).not.toBeNull();
+      midpoints.push(box!.y + box!.height / 2);
+    }
+
+    const baseline = midpoints[0];
+    for (let i = 1; i < count; i++) {
+      // All glyph centerlines must align within 1.5px
+      expect(Math.abs(midpoints[i] - baseline)).toBeLessThanOrEqual(1.5);
+    }
+  });
 });
 
 test.describe("mobile mode is touch-first, not width-based", () => {
