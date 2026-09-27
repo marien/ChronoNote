@@ -191,14 +191,28 @@
   /** #73: applies `transform` to the current line only — used for
    * Ctrl+Space's close/reopen pair, which (unlike `applyActionStateToSelection`
    * below) never touches more than one line at a time and never promotes
-   * a plain line into a new action. */
+   * a plain line into a new action. Preserves the caret / selection position
+   * instead of collapsing to the start of the line. */
   function applyToCurrentLine(v: EditorView, transform: (line: string, col: number) => string | null): boolean {
-    const pos = v.state.selection.main.head;
-    const line = v.state.doc.lineAt(pos);
+    const sel = v.state.selection.main;
+    const line = v.state.doc.lineAt(sel.head);
     if (isHeaderLine(v, line.number)) return false;
-    const updated = transform(line.text, pos - line.from);
+    const col = sel.head - line.from;
+    const updated = transform(line.text, col);
     if (updated === null) return false;
-    v.dispatch({ changes: { from: line.from, to: line.to, insert: updated } });
+
+    const delta = updated.length - line.text.length;
+    const anchorOffset = sel.anchor - line.from;
+    const headOffset = sel.head - line.from;
+    const newAnchor = line.from + Math.max(0, Math.min(anchorOffset + (anchorOffset > 0 ? delta : 0), updated.length));
+    const newHead = line.from + Math.max(0, Math.min(headOffset + (headOffset > 0 ? delta : 0), updated.length));
+
+    v.dispatch({
+      changes: { from: line.from, to: line.to, insert: updated },
+      selection: EditorSelection.range(newAnchor, newHead),
+      scrollIntoView: true,
+      userEvent: "input",
+    });
     return true;
   }
 
@@ -231,6 +245,24 @@
       lines.push(updated ?? text);
     }
     if (!changed) return false;
+
+    if (firstLine.number === lastLine.number) {
+      const origText = firstLine.text;
+      const updatedText = lines[0];
+      const delta = updatedText.length - origText.length;
+      const anchorOffset = sel.anchor - firstLine.from;
+      const headOffset = sel.head - firstLine.from;
+      const newAnchor = firstLine.from + Math.max(0, Math.min(anchorOffset + (anchorOffset > 0 ? delta : 0), updatedText.length));
+      const newHead = firstLine.from + Math.max(0, Math.min(headOffset + (headOffset > 0 ? delta : 0), updatedText.length));
+      v.dispatch({
+        changes: { from: firstLine.from, to: lastLine.to, insert: updatedText },
+        selection: EditorSelection.range(newAnchor, newHead),
+        scrollIntoView: true,
+        userEvent: "input",
+      });
+      return true;
+    }
+
     v.dispatch({ changes: { from: firstLine.from, to: lastLine.to, insert: lines.join("\n") } });
     return true;
   }
