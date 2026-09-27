@@ -7,6 +7,7 @@
   import { closeOnOutsideClick } from "../../actions/closeOnOutsideClick";
   import { focusTrap } from "../../actions/focusTrap";
   import { t } from "../../i18n";
+  import { countActions } from "../../tokens";
 
   // Same order as the desktop tab bar: dated notes by date, then scratchpads.
   $: sortedTabs = controller.sortedTabsForDisplay($tabs);
@@ -75,6 +76,7 @@
 
     <div class="drawer-tab-list" role="tablist">
       {#each sortedTabs as tab, i (tab.id)}
+        {@const openCount = countActions(tab.content).open}
         {#if i > 0 && tab.isScratchpad && !sortedTabs[i - 1].isScratchpad}
           <div class="drawer-group-divider" aria-hidden="true"></div>
         {/if}
@@ -91,6 +93,12 @@
             <Icon name={tab.isScratchpad ? "tab-scratch" : "tab-daily"} size={16} />
           </div>
           <span class="drawer-tab-name">{tabLabel(tab)}</span>
+          {#if openCount > 0}
+            <span class="drawer-tab-open-count" title={$t("statusBar.openCount", { count: openCount })}
+              ><span class="token-glyph glyph-open">☐</span>{openCount}</span
+            >
+          {/if}
+          <span class="drawer-tab-spacer"></span>
           {#if !tab.isScratchpad && tab.filename.slice(0, 10) === todayISO()}
             <span class="drawer-today-tag">{$t("datePicker.today")}</span>
           {/if}

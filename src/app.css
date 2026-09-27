@@ -3115,9 +3115,29 @@ body {
   opacity: 0.8;
 }
 .drawer-tab-name {
-  flex: 1;
   font-family: var(--font-mono, monospace);
   font-size: 13px;
+}
+/* Open-action count, right behind the date — same glyph as the mobile
+   accessory bar's own "open task" button (§68/#96 family), so the count
+   reads at a glance without opening the note. Kept as its own element
+   (not appended to .drawer-tab-name's text) so the name stays the plain
+   label text elsewhere in the app relies on. */
+.drawer-tab-open-count {
+  margin-left: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.drawer-tab-open-count .glyph-open {
+  margin-right: 1px;
+}
+/* Absorbs the remaining row width so the today-tag/status-dot/close
+   button stay pinned to the right edge, the same job .drawer-tab-name's
+   own flex:1 used to do before the open-count badge needed to sit
+   right after the name without stretching along with it. */
+.drawer-tab-spacer {
+  flex: 1;
 }
 .drawer-today-tag {
   font-size: 10px;

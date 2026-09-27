@@ -84,6 +84,29 @@ test.describe("mobile tabs drawer", () => {
     expect(pastActiveStripe).not.toBe(futureActiveStripe);
   });
 
+  test("shows each tab's open-action count, using the same glyph as the accessory bar", async ({ page }) => {
+    await seedApp(page, {
+      seed: {
+        notes: {
+          "2026-09-05.txt": "# one open\n# two open\nv done, not counted",
+          [todayFilename()]: "no actions here",
+        },
+        session: { openTabs: ["2026-09-05.txt", todayFilename()], activeTab: todayFilename() },
+      },
+    });
+    await page.getByRole("button", { name: /^Open tabs list/ }).click();
+
+    const withOpens = drawer(page).locator(".drawer-tab-item", { hasText: "2026-09-05" });
+    const badge = withOpens.locator(".drawer-tab-open-count");
+    await expect(badge).toBeVisible();
+    await expect(badge).toHaveText("☐2");
+    await expect(badge.locator(".glyph-open")).toBeVisible();
+
+    // A tab with no open actions shows no badge at all.
+    const withoutOpens = drawer(page).locator(".drawer-tab-item.today");
+    await expect(withoutOpens.locator(".drawer-tab-open-count")).toHaveCount(0);
+  });
+
   test("the active tab is shown next to the drawer button, and follows the selection", async ({ page }) => {
     await seedApp(page, { seed });
     const chip = page.locator(".mobile-active-tab");
