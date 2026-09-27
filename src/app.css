@@ -3088,6 +3088,19 @@ body {
   opacity: 1;
   color: var(--state-ok);
 }
+/* #96: mirrors `.tab.active.past`/`.tab.active.future` (the desktop top
+   bar's own fix) — `.drawer-tab-item.active`'s left accent stripe
+   (above) defaults to `--tab-active-border`, the same color `.today`
+   already uses, so a selected today-tab needs no override. A selected
+   past/future tab's stripe is brought in line with its own icon's color
+   above, instead of always showing the "today" accent regardless of
+   which tab is actually active. */
+.drawer-tab-item.active.past {
+  box-shadow: inset 3px 0 0 color-mix(in srgb, var(--muted) 45%, transparent);
+}
+.drawer-tab-item.active.future {
+  box-shadow: inset 3px 0 0 var(--state-ok);
+}
 .drawer-group-divider {
   height: 1px;
   margin: 2px 4px;

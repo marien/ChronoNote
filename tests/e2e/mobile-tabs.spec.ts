@@ -1,5 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
-import { seedApp } from "./helpers";
+import { seedApp, todayFilename } from "./helpers";
 
 /** Phone feedback on the tabs drawer: it lists tabs in the tab bar's order, uses
  * the tab bar's colour scheme, and the active tab is always visible next to the
@@ -45,6 +45,43 @@ test.describe("mobile tabs drawer", () => {
     // The active tab carries the accent edge (box-shadow), not the old selection fill.
     const shadow = await active.evaluate((el) => getComputedStyle(el).boxShadow);
     expect(shadow).not.toBe("none");
+  });
+
+  test("#96: the selected tab's accent stripe follows its own past/today/future color, not a fixed accent", async ({
+    page,
+  }) => {
+    const past = "2026-09-05.txt";
+    const future = "2026-09-10.txt";
+    await seedApp(page, {
+      seed: {
+        notes: { [past]: "old", [todayFilename()]: "today", [future]: "later" },
+        session: { openTabs: [past, todayFilename(), future], activeTab: past },
+      },
+    });
+    await page.getByRole("button", { name: /^Open tabs list/ }).click();
+
+    const pastItem = drawer(page).locator(".drawer-tab-item.daily.past");
+    const todayItem = drawer(page).locator(".drawer-tab-item.daily.today");
+    const futureItem = drawer(page).locator(".drawer-tab-item.daily.future");
+    const stripe = (loc: typeof pastItem) => loc.evaluate((el) => getComputedStyle(el).boxShadow);
+
+    // Past is active first: its own stripe color, not the "today" accent.
+    await expect(pastItem).toHaveClass(/active/);
+    const pastActiveStripe = await stripe(pastItem);
+
+    await todayItem.click();
+    await page.getByRole("button", { name: /^Open tabs list/ }).click();
+    await expect(todayItem).toHaveClass(/active/);
+    const todayActiveStripe = await stripe(todayItem);
+
+    await futureItem.click();
+    await page.getByRole("button", { name: /^Open tabs list/ }).click();
+    await expect(futureItem).toHaveClass(/active/);
+    const futureActiveStripe = await stripe(futureItem);
+
+    expect(pastActiveStripe).not.toBe(todayActiveStripe);
+    expect(todayActiveStripe).not.toBe(futureActiveStripe);
+    expect(pastActiveStripe).not.toBe(futureActiveStripe);
   });
 
   test("the active tab is shown next to the drawer button, and follows the selection", async ({ page }) => {
