@@ -4,7 +4,7 @@ import { EditorView } from "@codemirror/view";
 import { buildMarkers, overviewRuler, type MarkerData } from "./overviewRuler";
 
 describe("overviewRuler", () => {
-  it("builds markers for open actions and topics, skipping resolved lines and headers", () => {
+  it("builds markers for open actions, skipping agenda topics, resolved lines, and headers", () => {
     const doc = [
       "# Open action 1",
       "v Done action",
@@ -26,30 +26,27 @@ describe("overviewRuler", () => {
 
     // Should include:
     // Line 1: # Open action 1 (action)
-    // Line 7: o Open topic (topic)
+    // (Line 7: o Open topic is a topic, so it must NOT be included)
     // Line 11: => # Consequence open action (action)
-    expect(markers.length).toBe(3);
+    expect(markers.length).toBe(2);
 
     expect(markers[0].type).toBe("action");
     expect(markers[0].lineNumber).toBe(1);
     expect(markers[0].items[0].text).toBe("# Open action 1");
 
-    expect(markers[1].type).toBe("topic");
-    expect(markers[1].lineNumber).toBe(7);
-    expect(markers[1].items[0].text).toBe("o Open topic");
-
-    expect(markers[2].type).toBe("action");
-    expect(markers[2].lineNumber).toBe(11);
-    expect(markers[2].items[0].text).toBe("  => # Consequence open action");
+    expect(markers[1].type).toBe("action");
+    expect(markers[1].lineNumber).toBe(11);
+    expect(markers[1].items[0].text).toBe("  => # Consequence open action");
 
     view.destroy();
   });
 
-  it("returns empty markers when document has no open actions or topics", () => {
+  it("returns empty markers when document has no open actions (even if open topics exist)", () => {
     const doc = [
       "v Done action 1",
       "x Cancelled action",
       "Just some plain text",
+      "o Open topic but not an action",
       ". Discussed topic",
     ].join("\n");
 
@@ -116,7 +113,7 @@ describe("overviewRuler", () => {
     expect(view.dom.querySelector(".cm-overview-ruler")).toBeNull();
   });
 
-  it("is not visible initially, shows on scroll when scrollable, and hides after 10s", async () => {
+  it("is not visible initially, shows on scroll when scrollable, and hides after 3s", async () => {
     const { vi } = await import("vitest");
     vi.useFakeTimers();
 
@@ -138,17 +135,17 @@ describe("overviewRuler", () => {
     view.scrollDOM.dispatchEvent(new Event("scroll"));
     expect(rulerEl.classList.contains("cm-ruler-visible")).toBe(true);
 
-    // Advance 5 seconds — still visible
-    vi.advanceTimersByTime(5000);
+    // Advance 1.5 seconds — still visible
+    vi.advanceTimersByTime(1500);
     expect(rulerEl.classList.contains("cm-ruler-visible")).toBe(true);
 
     // Scroll again — resets timer
     view.scrollDOM.dispatchEvent(new Event("scroll"));
-    vi.advanceTimersByTime(5000);
+    vi.advanceTimersByTime(1500);
     expect(rulerEl.classList.contains("cm-ruler-visible")).toBe(true);
 
-    // Advance past 10 seconds total from last scroll
-    vi.advanceTimersByTime(5001);
+    // Advance past 3 seconds total from last scroll
+    vi.advanceTimersByTime(1501);
     expect(rulerEl.classList.contains("cm-ruler-visible")).toBe(false);
 
     view.destroy();

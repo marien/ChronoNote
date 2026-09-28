@@ -1,6 +1,6 @@
 import { Facet, type Extension } from "@codemirror/state";
 import { EditorView, ViewPlugin, type ViewUpdate } from "@codemirror/view";
-import { innermostActionSymbol, innermostTopicSymbol, isSetextUnderline } from "../tokens";
+import { innermostActionSymbol, isSetextUnderline } from "../tokens";
 
 export interface OverviewRulerConfig {
   onJump?: (lineIdx: number) => void;
@@ -22,11 +22,11 @@ export interface MarkerData {
   topPx: number;
   pos: number;
   lineNumber: number;
-  type: "action" | "topic";
+  type: "action";
   items: MarkerItem[];
 }
 
-/** Computes the list of overview ruler markers for open actions and topics. */
+/** Computes the list of overview ruler markers for open actions. */
 export function buildMarkers(
   view: EditorView,
   trackHeight: number,
@@ -50,16 +50,7 @@ export function buildMarkers(
     }
 
     const actionSym = innermostActionSymbol(text);
-    const topicSym = innermostTopicSymbol(text);
-
-    let type: "action" | "topic" | null = null;
-    if (actionSym === "#") {
-      type = "action";
-    } else if (topicSym === "o") {
-      type = "topic";
-    }
-
-    if (!type) continue;
+    if (actionSym !== "#") continue;
 
     // Compute proportional vertical position
     let fraction = 0;
@@ -79,13 +70,12 @@ export function buildMarkers(
 
     if (existing) {
       existing.items.push({ lineNumber: lineNum, text, pos: line.from });
-      if (type === "action") existing.type = "action"; // action takes visual precedence
     } else {
       markerMap.set(topPx, {
         topPx,
         pos: line.from,
         lineNumber: lineNum,
-        type,
+        type: "action",
         items: [{ lineNumber: lineNum, text, pos: line.from }],
       });
     }
@@ -99,7 +89,7 @@ class OverviewRulerPluginClass {
   view: EditorView;
   private rafId: number | null = null;
   private fadeTimer: ReturnType<typeof setTimeout> | null = null;
-  private readonly FADE_TIMEOUT_MS = 10000;
+  private readonly FADE_TIMEOUT_MS = 3000;
 
   constructor(view: EditorView) {
     this.view = view;

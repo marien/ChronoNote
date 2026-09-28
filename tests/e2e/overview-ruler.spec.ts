@@ -52,21 +52,20 @@ test.describe("Overview Ruler - scrollbar markers for open actions", () => {
 
     const markers = ruler.locator(".cm-ruler-marker");
     // Line 3: # First open priority task (action)
-    // Line 9: o Topic for tomorrow (topic)
+    // Line 9: o Topic for tomorrow (topic — not shown on ruler)
     // Line 14: => # Urgent blocker to resolve (action)
-    await expect(markers).toHaveCount(3);
+    await expect(markers).toHaveCount(2);
 
     // Check action markers
     const actionMarkers = ruler.locator(".cm-ruler-marker.cm-ruler-action");
     await expect(actionMarkers).toHaveCount(2);
 
-    // Check topic marker
+    // Check topic markers do not appear
     const topicMarkers = ruler.locator(".cm-ruler-marker.cm-ruler-topic");
-    await expect(topicMarkers).toHaveCount(1);
+    await expect(topicMarkers).toHaveCount(0);
 
     // Check tooltips
     await expect(actionMarkers.first()).toHaveAttribute("title", /First open priority task/);
-    await expect(topicMarkers.first()).toHaveAttribute("title", /Topic for tomorrow/);
     await expect(actionMarkers.last()).toHaveAttribute("title", /Urgent blocker to resolve/);
   });
 
@@ -95,12 +94,13 @@ test.describe("Overview Ruler - scrollbar markers for open actions", () => {
     await expect(statusPos).toContainText("14");
   });
 
-  test("completing all actions hides the ruler markers", async ({ page }) => {
+  test("completing all actions hides the ruler markers (even with open topics)", async ({ page }) => {
     const doneNote = [
       "Notes",
       "=====",
       "v Task 1 completed",
       "v Task 2 completed",
+      "o Open agenda topic",
       ". Discussed topic",
     ].join("\n");
 
@@ -112,7 +112,7 @@ test.describe("Overview Ruler - scrollbar markers for open actions", () => {
     });
 
     const ruler = page.locator(".cm-overview-ruler");
-    // With 0 open actions/topics, the ruler has display: none and 0 markers
+    // With 0 open actions, the ruler has display: none and 0 markers
     await expect(ruler).toBeHidden();
   });
 
@@ -136,7 +136,7 @@ test.describe("Overview Ruler - scrollbar markers for open actions", () => {
 
     const ruler = page.locator(".cm-overview-ruler");
     await expect(ruler).toBeVisible();
-    await expect(ruler.locator(".cm-ruler-marker")).toHaveCount(3);
+    await expect(ruler.locator(".cm-ruler-marker")).toHaveCount(2);
 
     const overflow = await page.locator("#editor-container").evaluate((el) => ({
       vertical: el.scrollHeight - el.clientHeight,
