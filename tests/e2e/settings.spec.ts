@@ -13,7 +13,7 @@ import {
 } from "./helpers";
 import { scenario } from "../../src/lib/testing/scenarios";
 
-const settings = (page: Page) => modalCard(page, MODAL_LABELS.settings);
+const settings = (page: Page) => page.locator(".settings-modal-card");
 
 async function openSettings(page: Page) {
   await editor(page).click();
@@ -346,5 +346,63 @@ test.describe("settings (Ctrl/Cmd+,)", () => {
     await expect(pureBlackInput).not.toBeChecked();
     await expect(page.locator("html")).not.toHaveAttribute("data-pure-black");
     expect(await page.evaluate(() => window.__CHRONO_MOCK__!.pureBlack)).toBe(false);
+  });
+
+  test("language control switches display language and persists to config", async ({ page }) => {
+    await seedApp(page);
+    await openSettings(page);
+
+    // Switch to French
+    await settings(page).getByRole("radio", { name: "Français", exact: true }).click();
+    expect(await page.evaluate(() => window.__CHRONO_MOCK__!.languageMode)).toBe("fr");
+    await expect(settings(page).locator(".modal-title")).toContainText("Paramètres");
+
+    // Switch to Polish
+    await settings(page).getByRole("radio", { name: "Polski", exact: true }).click();
+    expect(await page.evaluate(() => window.__CHRONO_MOCK__!.languageMode)).toBe("pl");
+    await expect(settings(page).locator(".modal-title")).toContainText("Ustawienia");
+
+    // Switch to Spanish
+    await settings(page).getByRole("radio", { name: "Español", exact: true }).click();
+    expect(await page.evaluate(() => window.__CHRONO_MOCK__!.languageMode)).toBe("es");
+    await expect(settings(page).locator(".modal-title")).toContainText("Ajustes");
+
+    // Switch to Italian
+    await settings(page).getByRole("radio", { name: "Italiano", exact: true }).click();
+    expect(await page.evaluate(() => window.__CHRONO_MOCK__!.languageMode)).toBe("it");
+    await expect(settings(page).locator(".modal-title")).toContainText("Impostazioni");
+
+    // Survives reload
+    await page.reload();
+    await openSettings(page);
+    await expect(settings(page).locator(".modal-title")).toContainText("Impostazioni");
+
+    // Switch back to English
+    await settings(page).getByRole("radio", { name: "English", exact: true }).click();
+    expect(await page.evaluate(() => window.__CHRONO_MOCK__!.languageMode)).toBe("en");
+    await expect(settings(page).locator(".modal-title")).toContainText("Settings");
+  });
+
+  test("language control renders as a responsive grid fitting within narrow viewports without overflowing", async ({
+    page,
+  }) => {
+    await seedApp(page);
+    await page.setViewportSize({ width: 375, height: 667 });
+    await openSettings(page);
+
+    const langGrid = settings(page).locator(".segmented-grid");
+    await expect(langGrid).toBeVisible();
+
+    const cardBox = (await settings(page).boundingBox())!;
+    const gridBox = (await langGrid.boundingBox())!;
+
+    // Must be completely contained horizontally within the card (no overflow/clipping)
+    expect(gridBox.x).toBeGreaterThanOrEqual(cardBox.x);
+    expect(gridBox.x + gridBox.width).toBeLessThanOrEqual(cardBox.x + cardBox.width + 1);
+
+    // All 8 language options are visible and reachable
+    for (const name of ["System", "English", "Nederlands", "Deutsch", "Français", "Polski", "Español", "Italiano"]) {
+      await expect(langGrid.getByRole("radio", { name, exact: true })).toBeVisible();
+    }
   });
 });

@@ -52,6 +52,10 @@ pub enum LanguageMode {
     En,
     Nl,
     De,
+    Fr,
+    Pl,
+    Es,
+    It,
     #[default]
     System,
 }
@@ -1139,6 +1143,10 @@ mod tests {
             (LanguageMode::En, "en"),
             (LanguageMode::Nl, "nl"),
             (LanguageMode::De, "de"),
+            (LanguageMode::Fr, "fr"),
+            (LanguageMode::Pl, "pl"),
+            (LanguageMode::Es, "es"),
+            (LanguageMode::It, "it"),
             (LanguageMode::System, "system"),
         ] {
             let dir = tempdir().unwrap();

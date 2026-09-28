@@ -10,9 +10,10 @@
   export let options: { value: string; label: string; title?: string }[];
   export let value: string;
   export let onChange: (value: string) => void;
+  export let grid: boolean = false;
 </script>
 
-<div class="segmented" role="radiogroup">
+<div class="segmented {grid ? 'segmented-grid' : ''}" role="radiogroup">
   {#each options as opt (opt.value)}
     <button
       type="button"
