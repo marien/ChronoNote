@@ -129,7 +129,7 @@
     <span class="stat-compact">☑ {$statusCounts.closed}</span>
     <span class="status-sep">·</span>
     <span id="stat-forwarded" class="stat-full">{$t("statusBar.forwardedCount", { count: $statusCounts.forwarded })}</span>
-    <span class="stat-compact">» {$statusCounts.forwarded}</span>
+    <span class="stat-compact"><span class="glyph-progress">☐</span> {$statusCounts.forwarded}</span>
   </div>
 
   <div class="status-zone status-centre">

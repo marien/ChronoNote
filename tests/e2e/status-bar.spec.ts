@@ -260,13 +260,46 @@ test.describe("Dutch and German status bar collapse & center message non-overlap
     const bar = page.locator("#status-bar");
     const left = bar.locator(".status-left");
 
-    // On 720px in German, verbose "Weitergeleitet" collapses to compact "»"
+    // On 720px in German, verbose "Weitergeleitet" collapses to compact glyph format
     await expect(left.locator(".stat-compact").first()).toBeVisible();
     await expect(left).toContainText("☐ 1");
 
     // No overflow on status bar
     const overflowing = await bar.evaluate((el) => el.scrollWidth > el.clientWidth);
     expect(overflowing).toBe(false);
+  });
+
+  test("Dutch locale displays full text for actions without clipping when stat-full is active", async ({ page }) => {
+    // 800px width is above the 780px compact threshold — stat-full is active
+    await page.setViewportSize({ width: 800, height: 600 });
+    await seedApp(page, {
+      seed: {
+        notes: { [todayFilename()]: "# taak een\nv taak twee\n> taak drie" },
+        languageMode: "nl",
+      },
+    });
+
+    const bar = page.locator("#status-bar");
+    const statForwarded = bar.locator("#stat-forwarded");
+    await expect(statForwarded).toBeVisible();
+    await expect(statForwarded).toContainText("Doorgeschoven 1");
+    await expect(bar.locator("#stat-open")).toContainText("Open 1");
+    await expect(bar.locator("#stat-closed")).toContainText("Voltooid 1");
+
+    // Verify stat-forwarded is not clipped by the left zone's container
+    const isClipped = await page.evaluate(() => {
+      const el = document.getElementById("stat-forwarded")!;
+      const left = el.closest(".status-left")!;
+      return el.getBoundingClientRect().right > left.getBoundingClientRect().right + 1;
+    });
+    expect(isClipped).toBe(false);
+
+    // Verify compact form uses boxed deferred glyph instead of »
+    await page.setViewportSize({ width: 400, height: 600 });
+    const compactForwarded = bar.locator(".stat-compact").last();
+    await expect(compactForwarded).toBeVisible();
+    await expect(compactForwarded.locator(".glyph-progress")).toBeVisible();
+    expect(await bar.locator(".status-left").innerText()).not.toContain("»");
   });
 });
 

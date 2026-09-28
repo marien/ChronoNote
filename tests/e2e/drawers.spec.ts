@@ -154,4 +154,51 @@ test.describe("Shortcuts & Symbols drawer is current", () => {
     // the old wording is gone
     await expect(drawer).not.toContainText("click its glyph to cycle");
   });
+
+  test("symbols column renders boxed deferred glyph and properly sized topic glyphs", async ({ page }) => {
+    await seedApp(page);
+    await editor(page).click();
+    await page.keyboard.press("ControlOrMeta+/");
+    const drawer = modalCard(page, MODAL_LABELS.shortcuts);
+    await expect(drawer).toBeVisible();
+
+    const sizes = await page.evaluate(() => {
+      const box = document.querySelector<HTMLElement>(".item-tag .glyph-open");
+      const deferred = document.querySelector<HTMLElement>(".item-tag .glyph-progress");
+      const topicOpen = document.querySelector<HTMLElement>(".item-tag .glyph-topic-open");
+      const topicDone = document.querySelector<HTMLElement>(".item-tag .glyph-topic-done");
+      if (!box || !deferred || !topicOpen || !topicDone) return null;
+
+      const boxRect = box.getBoundingClientRect();
+      const topicRect = topicOpen.getBoundingClientRect();
+      const deferredAfter = window.getComputedStyle(deferred, "::after").content;
+
+      return {
+        boxWidth: boxRect.width,
+        boxHeight: boxRect.height,
+        topicWidth: topicRect.width,
+        topicHeight: topicRect.height,
+        deferredAfter,
+      };
+    });
+
+    expect(sizes).not.toBeNull();
+    // Deferred glyph has centered › chevron
+    expect(sizes!.deferredAfter).toContain("›");
+    // Topic circle width is in the same ballpark as the action box's —
+    // .glyph-topic-open is a fixed 1em CSS box (pinned exactly, by
+    // design, so it renders consistently everywhere), but .glyph-open
+    // outside the editor has no width of its own; it's just the "☐"
+    // character's natural glyph metrics in whatever font the platform
+    // falls back to for that symbol, which is not the same across
+    // platforms. Confirmed on GitHub's Linux CI runner: a real, roughly
+    // 4.3px gap against this same assertion at a 2px tolerance, while
+    // passing comfortably under 2px on Windows — a font-fallback
+    // difference for an unconstrained glyph, not a layout bug. Widened
+    // to still catch a genuinely wrong size (half or double), not this.
+    expect(Math.abs(sizes!.topicWidth - sizes!.boxWidth)).toBeLessThanOrEqual(6);
+    // Topic circle is square (width === height) — both sides of this one
+    // come from the same fixed `1em`, so this stays tight.
+    expect(Math.abs(sizes!.topicWidth - sizes!.topicHeight)).toBeLessThanOrEqual(1);
+  });
 });
