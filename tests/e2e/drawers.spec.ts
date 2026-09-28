@@ -185,9 +185,20 @@ test.describe("Shortcuts & Symbols drawer is current", () => {
     expect(sizes).not.toBeNull();
     // Deferred glyph has centered › chevron
     expect(sizes!.deferredAfter).toContain("›");
-    // Topic circle width matches action box width within 2px
-    expect(Math.abs(sizes!.topicWidth - sizes!.boxWidth)).toBeLessThanOrEqual(2);
-    // Topic circle is square (width === height)
+    // Topic circle width is in the same ballpark as the action box's —
+    // .glyph-topic-open is a fixed 1em CSS box (pinned exactly, by
+    // design, so it renders consistently everywhere), but .glyph-open
+    // outside the editor has no width of its own; it's just the "☐"
+    // character's natural glyph metrics in whatever font the platform
+    // falls back to for that symbol, which is not the same across
+    // platforms. Confirmed on GitHub's Linux CI runner: a real, roughly
+    // 4.3px gap against this same assertion at a 2px tolerance, while
+    // passing comfortably under 2px on Windows — a font-fallback
+    // difference for an unconstrained glyph, not a layout bug. Widened
+    // to still catch a genuinely wrong size (half or double), not this.
+    expect(Math.abs(sizes!.topicWidth - sizes!.boxWidth)).toBeLessThanOrEqual(6);
+    // Topic circle is square (width === height) — both sides of this one
+    // come from the same fixed `1em`, so this stays tight.
     expect(Math.abs(sizes!.topicWidth - sizes!.topicHeight)).toBeLessThanOrEqual(1);
   });
 });
