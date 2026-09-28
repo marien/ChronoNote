@@ -122,6 +122,21 @@
             <td><strong>Topic tag.</strong> Groups actions by subject — recognised only right after a leading action symbol. The parentheses fade away until you edit the line.</td>
           </tr>
           <tr>
+            <td><code>o </code></td>
+            <td><span class="glyph glyph-topic-open">○</span></td>
+            <td><strong>Meeting topic — to discuss.</strong> A discussion item, not a task — never counted as an action, never in the calendar heatmap, never visited by the open-action jump shortcut. <kbd>Enter</kbd> continues the list the same way an action line does.</td>
+          </tr>
+          <tr>
+            <td><code>. </code></td>
+            <td><span class="glyph glyph-topic-done">◉</span></td>
+            <td><strong>Discussed.</strong> Resolved for this meeting — dimmed like a closed action, but still never counted as one.</td>
+          </tr>
+          <tr>
+            <td><code>, </code></td>
+            <td><span class="glyph glyph-topic-skipped">◌</span></td>
+            <td><strong>Not discussed.</strong> Skipped this meeting, carried to the next one. Copying/forwarding a note defers an open <code>o </code> topic to this state, the same way it defers an open action to <code>&gt; </code>.</td>
+          </tr>
+          <tr>
             <td><code>! </code></td>
             <td><span class="glyph glyph-emphasis">like this</span></td>
             <td><strong>Emphasis.</strong> The rest of the line renders bold. Informational only, but searchable like any other line.</td>
@@ -165,6 +180,7 @@
         <div class="shortcut-row"><span>Set the action at the caret to done — a plain line becomes one</span><kbd>Ctrl+2</kbd></div>
         <div class="shortcut-row"><span>Set the action at the caret to deferred — a plain line becomes one</span><kbd>Ctrl+3</kbd></div>
         <div class="shortcut-row"><span>Set the action at the caret to won't-do — a plain line becomes one</span><kbd>Ctrl+4</kbd></div>
+        <div class="shortcut-row"><span>Set the line at the caret to a topic: to discuss / discussed / not discussed</span><kbd>Ctrl+5</kbd> / <kbd>Ctrl+6</kbd> / <kbd>Ctrl+7</kbd></div>
         <div class="shortcut-row"><span>Jump to next / previous open action</span><kbd>F2</kbd> / <kbd>Shift+F2</kbd></div>
         <div class="shortcut-row"><span>Convert this line into a section header</span><kbd>Ctrl+Shift+S</kbd></div>
         <div class="shortcut-row"><span>Copy this section to its next occurrence</span><kbd>Ctrl+Shift+.</kbd></div>

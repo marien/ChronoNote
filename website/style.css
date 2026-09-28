@@ -350,6 +350,21 @@ section.alt {
 }
 .glyph-progress {
   color: var(--progress);
+  position: relative;
+}
+/* The deferred glyph is the same boxed ☐ as open/done/won't-do, with a
+   small centered chevron marking it as "pushed forward" rather than
+   just "open" — without this it's visually identical to glyph-open
+   apart from color. */
+.glyph-progress::after {
+  content: "›";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 0.7em;
+  font-weight: 900;
+  color: var(--progress);
 }
 .glyph-cancelled {
   color: var(--cancelled);
@@ -361,6 +376,45 @@ section.alt {
 .glyph-emphasis {
   color: var(--emphasis);
   font-weight: 700;
+}
+/* Meeting agenda topic glyphs — fixed-size CSS circles (matching the
+   app's own §247 treatment) rather than the raw ○/◉/◌ Unicode
+   characters: those render at wildly inconsistent sizes across
+   platforms/font-fallbacks, the same cross-platform issue the app's own
+   test suite hit for these exact glyphs. */
+.glyph-topic-open,
+.glyph-topic-done,
+.glyph-topic-skipped {
+  display: inline-block;
+  position: relative;
+  width: 1em;
+  height: 1em;
+  border-radius: 50%;
+  box-sizing: border-box;
+  color: transparent !important;
+  user-select: none;
+  vertical-align: -0.1em;
+  line-height: 1;
+}
+.glyph-topic-open {
+  border: 1.4px solid var(--accent);
+}
+.glyph-topic-done {
+  border: 1.4px solid var(--ok);
+}
+.glyph-topic-done::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 0.4em;
+  height: 0.4em;
+  border-radius: 50%;
+  background: var(--ok);
+}
+.glyph-topic-skipped {
+  border: 1.4px dashed var(--progress);
 }
 .badge-assignee {
   display: inline-block;
