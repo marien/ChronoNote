@@ -9411,3 +9411,13 @@ Updated the two existing tests that had encoded the old restrictive behavior as 
 
 Verification: `svelte-check` 270/0; Vitest 605/605 (-2 removed `isActionLikeLine` tests, +1 new `glyphLine.test.ts` case); `cargo test` unchanged (pure frontend); `editor-tokens.spec.ts` 35/35 (+2 new tests).
 
+## 250. App icon: Fluent depth sheen for dark-taskbar visibility (PR #104)
+
+Marien's own PR, reviewed and squash-merged. The Obsidian Slate icon (§133/§96) previously used a flat `#18181b` tile with a flat `#27272a` stroke — against Windows' own dark taskbar/title bar, the edge barely separated from the surrounding chrome. Replaced both with linear gradients: the tile face now runs `#2c2c32` → `#121214` top to bottom (a subtle depth cue), and the border is a top-lit "specular sheen" — `rgba(255,255,255,0.45)` at the top fading to `0.05` at the bottom, at a wider 28px stroke (up from 16px, inset adjusted from `x=32` to `x=36` to keep the same overall footprint) — so the icon reads as a lit, faceted tile rather than a flat silhouette merging into the taskbar behind it.
+
+Two places carry the icon's SVG source independently and both were updated to match: `docs/design/icon-A-master.svg` (the canonical source, regenerated into the four tracked `src-tauri/icons/*` binaries via `npx tauri icon`) and `src/lib/components/AppIcon.svelte` (a separate hand-maintained copy rendered live in the top bar, since that one needs to be a real Svelte-rendered SVG rather than a static bundled image) — the gradient `<defs>` IDs are scoped per-copy (`appIconBgGrad`/`appIconStrokeGrad`) rather than reused verbatim from the master, avoiding an SVG `id` collision if more than one `<AppIcon>` ever renders on the same page at once.
+
+**Verified the regenerated icon binaries are genuine, not hand-edited**: re-ran `npx tauri icon docs/design/icon-A-master.svg` against the PR's own SVG locally and confirmed the four committed PNG/ICO files come back byte-identical (`git diff` empty) — the only difference was `npx tauri icon`'s own default all-platform behavior spilling out an unrelated, untracked `src-tauri/icons/android/` directory (Android support was dropped in v0.13.0; not part of this PR, not committed, deleted before merging). Confirmed live in the running dev app (dark theme) that the top-bar `AppIcon.svelte` renders with both gradients correctly applied.
+
+Verification: `svelte-check` 270/0 (unchanged — pure SVG/asset change, no TS logic touched); Vitest/`cargo test` unaffected (nothing in either touches icon rendering); GitHub Actions' `Test` workflow green on the branch before merging.
+
