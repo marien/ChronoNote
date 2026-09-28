@@ -3035,6 +3035,51 @@ kbd {
   background: var(--selected-bg);
   color: var(--selected-fg);
 }
+.settings-language-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.segmented.segmented-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1px;
+  background: var(--edge-soft);
+  border: 1px solid var(--edge-soft);
+  border-radius: 6px;
+  overflow: hidden;
+  width: 100%;
+}
+.segmented.segmented-grid .segmented-option {
+  border: none;
+  border-right: none;
+  background: var(--surface-overlay);
+  padding: 6px 4px;
+  text-align: center;
+  font-size: 12px;
+  white-space: nowrap;
+  min-height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.segmented.segmented-grid .segmented-option:hover {
+  background: var(--surface-raised);
+  color: var(--text);
+}
+.segmented.segmented-grid .segmented-option.active {
+  background: var(--selected-bg);
+  color: var(--selected-fg);
+}
+@media (max-width: 440px) {
+  .segmented.segmented-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .segmented.segmented-grid .segmented-option {
+    padding: 7px 6px;
+    font-size: 11.5px;
+  }
+}
 /* §43/§44 — a real on/off switch (not a button styled "active"), pushed
    to the right edge of whatever row it's in via margin-left: auto. */
 .toggle-switch {

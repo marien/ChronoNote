@@ -10,16 +10,20 @@ import type { Dictionary, TranslationKey, TranslationParams } from "./schema";
 import { en } from "./locales/en";
 import { nl } from "./locales/nl";
 import { de } from "./locales/de";
+import { fr } from "./locales/fr";
+import { pl } from "./locales/pl";
+import { es } from "./locales/es";
+import { it } from "./locales/it";
 
-export type SupportedLocale = "en" | "nl" | "de";
+export type SupportedLocale = "en" | "nl" | "de" | "fr" | "pl" | "es" | "it";
 
-export const SUPPORTED_LOCALES: SupportedLocale[] = ["en", "nl", "de"];
+export const SUPPORTED_LOCALES: SupportedLocale[] = ["en", "nl", "de", "fr", "pl", "es", "it"];
 
 // Cast to the shared `Dictionary` call signature — each locale module's
 // own inferred type keeps its literal zero-arg functions (so `satisfies
 // Dictionary` there still enforces the right key set/arity), but calling
 // through `dict[key](params)` below needs the uniform signature.
-const DICTIONARIES: Record<SupportedLocale, Dictionary> = { en, nl, de } as Record<SupportedLocale, Dictionary>;
+const DICTIONARIES: Record<SupportedLocale, Dictionary> = { en, nl, de, fr, pl, es, it } as Record<SupportedLocale, Dictionary>;
 
 /** Detected once at boot from the webview's/browser's own reported
  * language — identical mechanism on desktop (WebView2/WKWebView/

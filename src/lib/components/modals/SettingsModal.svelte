@@ -366,14 +366,19 @@
               {$t("settings.appearance.pureBlack.hint")}
             </div>
           {/if}
-          <div class="settings-toggle-row" style="margin-top: 12px;">
+          <div class="settings-language-row" style="margin-top: 12px;">
             <span class="settings-inline-label">{$t("settings.appearance.language.label")}</span>
             <Segmented
+              grid
               options={[
                 { value: "system", label: $t("common.system") },
                 { value: "en", label: "English" },
                 { value: "nl", label: "Nederlands" },
                 { value: "de", label: "Deutsch" },
+                { value: "fr", label: "Français" },
+                { value: "pl", label: "Polski" },
+                { value: "es", label: "Español" },
+                { value: "it", label: "Italiano" },
               ]}
               value={$languageMode}
               onChange={(v) => controller.setLanguageMode(v as LanguageMode)}

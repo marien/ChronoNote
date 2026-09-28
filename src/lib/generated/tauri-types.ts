@@ -6,7 +6,7 @@ export type ColorMode = "color" | "grayscale" | "legacy";
 
 export type ThemeMode = "light" | "dark" | "system";
 
-export type LanguageMode = "en" | "nl" | "de" | "system";
+export type LanguageMode = "en" | "nl" | "de" | "fr" | "pl" | "es" | "it" | "system";
 
 export type FileMetadata = { exists: boolean, contentHash: string | null, sizeBytes: number | null, modifiedMs: number | null };
 

@@ -2,6 +2,10 @@ import { describe, expect, test } from "vitest";
 import { en } from "./locales/en";
 import { nl } from "./locales/nl";
 import { de } from "./locales/de";
+import { fr } from "./locales/fr";
+import { pl } from "./locales/pl";
+import { es } from "./locales/es";
+import { it } from "./locales/it";
 import type { TranslationKey } from "./schema";
 
 /** Sample params for the (currently few) keys whose dictionary function
@@ -107,14 +111,18 @@ const SAMPLE_PARAMS: Partial<Record<TranslationKey, unknown>> = {
  * refactor loosens that type and a key silently goes missing from one
  * locale. */
 describe("i18n dictionaries", () => {
-  test("nl and de have exactly the same keys as en", () => {
+  test("nl, de, fr, pl, es, and it have exactly the same keys as en", () => {
     const keys = (d: object) => Object.keys(d).sort();
     expect(keys(nl)).toEqual(keys(en));
     expect(keys(de)).toEqual(keys(en));
+    expect(keys(fr)).toEqual(keys(en));
+    expect(keys(pl)).toEqual(keys(en));
+    expect(keys(es)).toEqual(keys(en));
+    expect(keys(it)).toEqual(keys(en));
   });
 
   test("every entry in every locale returns a non-empty string", () => {
-    for (const dict of [en, nl, de]) {
+    for (const dict of [en, nl, de, fr, pl, es, it]) {
       for (const [key, fn] of Object.entries(dict)) {
         const params = SAMPLE_PARAMS[key as TranslationKey];
         const result = (fn as (params: unknown) => string)(params);
