@@ -359,12 +359,14 @@ section.alt {
 .glyph-progress::after {
   content: "›";
   position: absolute;
-  left: 50%;
-  top: 50%;
+  left: 52%;
+  top: 42%;
   transform: translate(-50%, -50%);
   font-size: 0.7em;
   font-weight: 900;
+  line-height: 1;
   color: var(--progress);
+  pointer-events: none;
 }
 .glyph-cancelled {
   color: var(--cancelled);
