@@ -1,10 +1,21 @@
-<svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
-  <title>ChronoNote app icon — "daily agenda" (Obsidian Slate)</title>
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <title>ChronoNote app icon — "daily agenda" (Obsidian Slate with Fluent Sheen)</title>
   <desc>Direction 1 Daily Agenda: tear-sheet with twin binder pins, header rule,
-  and daily action checkmark. Rendered on Obsidian Slate (#18181b) with high-contrast
-  ivory stroke (#fafafa) and scaled optical footprint (~74%) for Windows taskbar clarity.
+  and daily action checkmark. Rendered on Obsidian Slate with Fluent depth gradient
+  and top specular sheen for Windows dark taskbar clarity.
   Regenerate with: npx.cmd tauri icon docs/design/icon-A-master.svg</desc>
-  <rect x="32" y="32" width="960" height="960" rx="232" fill="#18181b" stroke="#27272a" stroke-width="16"/>
+  <defs>
+    <linearGradient id="bgGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#2c2c32"/>
+      <stop offset="100%" stop-color="#121214"/>
+    </linearGradient>
+    <linearGradient id="strokeGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="rgba(255, 255, 255, 0.45)"/>
+      <stop offset="50%" stop-color="rgba(255, 255, 255, 0.15)"/>
+      <stop offset="100%" stop-color="rgba(255, 255, 255, 0.05)"/>
+    </linearGradient>
+  </defs>
+  <rect x="36" y="36" width="952" height="952" rx="232" fill="url(#bgGrad)" stroke="url(#strokeGrad)" stroke-width="28"/>
   <g fill="none" stroke="#fafafa" stroke-width="68" stroke-linecap="round" stroke-linejoin="round">
     <rect x="182" y="210" width="660" height="630" rx="130"/>
     <path d="M182 390H842"/>

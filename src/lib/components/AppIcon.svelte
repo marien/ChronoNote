@@ -20,7 +20,18 @@
   focusable="false"
   class="app-icon-svg"
 >
-  <rect x="32" y="32" width="960" height="960" rx="232" fill="#18181b" stroke="#27272a" stroke-width="16" />
+  <defs>
+    <linearGradient id="appIconBgGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#2c2c32" />
+      <stop offset="100%" stop-color="#121214" />
+    </linearGradient>
+    <linearGradient id="appIconStrokeGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="rgba(255, 255, 255, 0.45)" />
+      <stop offset="50%" stop-color="rgba(255, 255, 255, 0.15)" />
+      <stop offset="100%" stop-color="rgba(255, 255, 255, 0.05)" />
+    </linearGradient>
+  </defs>
+  <rect x="36" y="36" width="952" height="952" rx="232" fill="url(#appIconBgGrad)" stroke="url(#appIconStrokeGrad)" stroke-width="28" />
   <g fill="none" stroke="#fafafa" stroke-width="68" stroke-linecap="round" stroke-linejoin="round">
     <rect x="182" y="210" width="660" height="630" rx="130" />
     <path d="M182 390H842" />
