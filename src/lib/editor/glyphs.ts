@@ -7,7 +7,7 @@ import {
   ViewUpdate,
   WidgetType,
 } from "@codemirror/view";
-import { isActionLikeLine, leadingTopicTag, symbolAfterClick, toggleOpenClosedAtIndex } from "../tokens";
+import { leadingTopicTag, symbolAfterClick, toggleOpenClosedAtIndex } from "../tokens";
 
 
 /** Renders the raw plain-text tokens (spec 2.2) as their visual glyphs
@@ -174,11 +174,10 @@ const renderMatcher = new MatchDecorator({
     }
     if (text.startsWith("(@")) {
       // #126: `(@name)` — a parenthesised delegate; also a list, `(@a, @b, @c)` (each name gets
-      // its own badge, the commas and parens stay plain text). On an action-like line.
-      if (isActionLikeLine(view.state.doc.lineAt(from).text)) {
-        for (const n of text.matchAll(/@[\w-]+/g)) {
-          add(from + n.index!, from + n.index! + n[0].length, Decoration.mark({ class: "glyph-assignee" }));
-        }
+      // its own badge, the commas and parens stay plain text). Recognised on any line, including
+      // plain prose and agenda topics — unlike the bare `@name` form below, it needs no `=> `.
+      for (const n of text.matchAll(/@[\w-]+/g)) {
+        add(from + n.index!, from + n.index! + n[0].length, Decoration.mark({ class: "glyph-assignee" }));
       }
       return;
     }

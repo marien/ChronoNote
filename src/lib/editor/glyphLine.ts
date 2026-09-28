@@ -1,4 +1,4 @@
-import { isActionLikeLine, leadingTopicTag } from "../tokens";
+import { leadingTopicTag } from "../tokens";
 
 /** One rendered piece of a line: `text` is what to show; `cls` (a
  * `.glyph-*` class) is set when it's a glyph or a styled span, absent for
@@ -38,9 +38,9 @@ export function glyphForSymbol(sym: string): GlyphPart {
  * token's trailing space folded into a literal gap after the glyph so
  * columns still line up without the editor's fixed-width CSS.
  *
- * Also applies the inline highlights: every `@name` (or parenthesised
- * `(@name)`, #126) on a `=> ` line (#35), and a `(topic)` tag immediately
- * after the action symbol (#36/#39). */
+ * Also applies the inline highlights: every bare `@name` on a `=> ` line
+ * (#35), a parenthesised `(@name)` or list `(@a, @b, @c)` (#126) on *any*
+ * line, and a `(topic)` tag immediately after the action symbol (#36/#39). */
 export function parseGlyphLine(line: string): GlyphPart[] {
   // `! ` — bold the whole line, token and all (matches glyphs.ts: the
   // `!` stays visible, it isn't replaced).
@@ -62,7 +62,6 @@ export function parseGlyphLine(line: string): GlyphPart[] {
   }
 
   const delegation = /=>\s/.test(line);
-  const actionLike = isActionLikeLine(line);
   const topic = leadingTopicTag(line);
 
   // One scan for every inline token: a Delegate arrow in any of its forms,
@@ -81,12 +80,13 @@ export function parseGlyphLine(line: string): GlyphPart[] {
       parts.push({ text: "➔", cls: "glyph-followup" }, { text: " " });
     } else if (m[3] !== undefined) {
       // `(@name)` or a list `(@a, @b)`: every name is its own badge, separators stay plain.
+      // Recognised on any line — unlike bare `@name` below, it needs no `=> `.
       parts.push({ text: "(" });
       let at = 0;
       const inner = "@" + m[3];
       for (const n of inner.matchAll(/@[\w-]+/g)) {
         if (n.index! > at) parts.push({ text: inner.slice(at, n.index) });
-        parts.push(actionLike ? { text: n[0], cls: "glyph-assignee" } : { text: n[0] });
+        parts.push({ text: n[0], cls: "glyph-assignee" });
         at = n.index! + n[0].length;
       }
       parts.push({ text: ")" });

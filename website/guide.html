@@ -107,9 +107,14 @@
             <td><strong>Follow-up.</strong> A plain note or outcome leading from the line above.</td>
           </tr>
           <tr>
-            <td><code>=&gt; @name</code> or <code>=&gt; (@name)</code></td>
+            <td><code>=&gt; @name</code></td>
             <td><span class="glyph glyph-followup">➔︎</span> <span class="badge-assignee">@name</span></td>
-            <td><strong>Delegated.</strong> Owned by someone else — no action-state of its own. <code>@name</code> stays real, editable text (fix a typo directly); names may contain a hyphen, and <code>(@a, @b, @c)</code> delegates to several people, each badged.</td>
+            <td><strong>Delegated.</strong> Owned by someone else — no action-state of its own. <code>@name</code> stays real, editable text (fix a typo directly); names may contain a hyphen. A bare <code>@name</code> like this needs a <code>=&gt; </code> somewhere on the line.</td>
+          </tr>
+          <tr>
+            <td><code>(@name)</code> or <code>(@a, @b, @c)</code></td>
+            <td><span class="badge-assignee">@name</span></td>
+            <td><strong>Delegated, parenthesised.</strong> The same badge, but recognised anywhere — no <code>=&gt; </code> or leading action symbol needed. Works in plain prose and on agenda topic lines too; several names at once each get their own badge.</td>
           </tr>
           <tr>
             <td><code>=&gt; #</code> / <code>v</code> / <code>&gt;</code> / <code>x</code></td>

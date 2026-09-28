@@ -72,9 +72,9 @@ describe("parseGlyphLine", () => {
     const names = classed(line).filter(([cls]) => cls === "glyph-assignee").map(([, txt]) => txt);
     expect(names).toEqual(["@dana", "@sam-jay", "@lee"]);
     expect(text(line)).toBe("☐ review the doc (@dana, @sam-jay, @lee) by friday");
-    // space-separated works too, and on a prose line nothing is badged
+    // space-separated works too, and it needs no leading action symbol at all
     expect(classed("# x (@a @b)").filter(([cls]) => cls === "glyph-assignee").map(([, txt]) => txt)).toEqual(["@a", "@b"]);
-    expect(classed("just prose (@a, @b)").filter(([cls]) => cls === "glyph-assignee")).toEqual([]);
+    expect(classed("just prose (@a, @b)").filter(([cls]) => cls === "glyph-assignee").map(([, txt]) => txt)).toEqual(["@a", "@b"]);
   });
 
   it("#126: `(@name)` badges the name, keeps the parens, and is not a topic", () => {
@@ -84,6 +84,11 @@ describe("parseGlyphLine", () => {
     expect(text("# review the doc (@dana) by friday")).toBe("☐ review the doc (@dana) by friday");
     // right after the symbol, `(@dana)` is still a delegate, not a topic
     expect(classed("# (@dana) chase it")).toContainEqual(["glyph-assignee", "@dana"]);
+  });
+
+  it("`(@name)` needs no action symbol or `=> ` at all — badges on plain prose and agenda topics too", () => {
+    expect(classed("notes from lunch with (@dana)")).toContainEqual(["glyph-assignee", "@dana"]);
+    expect(classed("o discuss the roadmap with (@dana, @sam)").filter(([cls]) => cls === "glyph-assignee").map(([, txt]) => txt)).toEqual(["@dana", "@sam"]);
   });
 
   it("#36/#39: highlights a (topic) tag only right after the action symbol", () => {

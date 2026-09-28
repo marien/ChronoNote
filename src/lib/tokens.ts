@@ -29,14 +29,6 @@ export function innermostActionSymbol(line: string): "#" | "v" | ">" | "x" | nul
   return null;
 }
 
-/** A line carrying an action or follow-up token — a leading (optionally
- * indented, §50) `# `/`v `/`> `/`x `, or a `=> ` anywhere on the line
- * (§41/§59, which can follow other text). Shared by Section History's
- * collector and the inline assignee (#35) highlighting. */
-export function isActionLikeLine(line: string): boolean {
-  return /^\s*[#vx>]\s/.test(line) || /=>\s/.test(line);
-}
-
 /** #36/#39: a `(topic)` tag used to group actions by subject, but only
  * when it sits **immediately after the action symbol** — a leading
  * (optionally indented) `# `/`v `/`> `/`x `, or a `=> <symbol> `

@@ -54,8 +54,8 @@ test.describe("editor — token glyphs", () => {
     await setEditorText(page, "# review the plan (@mary-jane, @dana, @sam)\nnotes (@dana, @sam) on a prose line");
     await expect(editor(page).locator(".cm-line").nth(0).locator(".glyph-assignee")).toHaveText(["@mary-jane", "@dana", "@sam"]);
     await expect(editor(page).locator(".cm-line").nth(0).locator(".glyph-topic")).toHaveCount(0);
-    // not an action-like line: left as plain text, like a single (@name)
-    await expect(editor(page).locator(".cm-line").nth(1).locator(".glyph-assignee")).toHaveCount(0);
+    // unlike a bare @name, (@name) needs no leading action symbol or `=> ` at all
+    await expect(editor(page).locator(".cm-line").nth(1).locator(".glyph-assignee")).toHaveText(["@dana", "@sam"]);
   });
 
   test("#125/#126: a hyphenated @name, and a parenthesised (@name), both badge", async ({ page }) => {
@@ -64,6 +64,12 @@ test.describe("editor — token glyphs", () => {
     const paren = editor(page).locator(".cm-line").nth(1);
     await expect(paren.locator(".glyph-assignee")).toHaveText("@mary-jane");
     await expect(paren.locator(".glyph-topic")).toHaveCount(0); // (@name) is a delegate, not a topic
+  });
+
+  test("(@name) badges on plain prose and agenda topic lines too, with no action symbol or => at all", async ({ page }) => {
+    await setEditorText(page, "notes from lunch with (@dana)\no discuss the roadmap with (@sam, @lee)");
+    await expect(editor(page).locator(".cm-line").nth(0).locator(".glyph-assignee")).toHaveText("@dana");
+    await expect(editor(page).locator(".cm-line").nth(1).locator(".glyph-assignee")).toHaveText(["@sam", "@lee"]);
   });
 
   test("#36/#39: a (topic) tag is highlighted only right after the action symbol", async ({ page }) => {

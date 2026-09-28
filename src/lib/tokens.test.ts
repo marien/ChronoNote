@@ -23,7 +23,6 @@ import {
   actionLineEnter,
   topicLineEnter,
   topicContinuationIndent,
-  isActionLikeLine,
   leadingTopicTag,
   stripLeadingToken,
   isSetextUnderline,
@@ -349,20 +348,6 @@ describe("actionLineEnter", () => {
 
   it("#34: a mid-line `=> ` is not a follow-up line — still null", () => {
     expect(actionLineEnter("Talked to Sam => # follow up")).toBeNull();
-  });
-});
-
-describe("isActionLikeLine", () => {
-  it("is true for a leading action symbol (indented or not) and any `=> `", () => {
-    expect(isActionLikeLine("# do it")).toBe(true);
-    expect(isActionLikeLine("   x dropped")).toBe(true);
-    expect(isActionLikeLine("Talked to Sam => follow up")).toBe(true);
-    expect(isActionLikeLine("=> @alice")).toBe(true);
-  });
-  it("is false for prose, bullets and headers", () => {
-    expect(isActionLikeLine("just a sentence (with a paren)")).toBe(false);
-    expect(isActionLikeLine("- a bullet")).toBe(false);
-    expect(isActionLikeLine("Weekly Sync")).toBe(false);
   });
 });
 

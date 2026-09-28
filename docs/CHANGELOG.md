@@ -9397,3 +9397,17 @@ Merge order was #101 → #102 → #103 (creation order; all three branched indep
 
 Verification: `svelte-check` 270/0 (+4 files, the new locale modules); Vitest 606/606; `cargo test` 163/163; targeted local runs after each merge (`overview-ruler.spec.ts` 4/4, `drawers.spec.ts` 11/11, `settings.spec.ts` 15/15) plus a full re-run of `check`/`check:e2e`/Vitest/`cargo test` on the final three-PR-merged `main` before cutting the release.
 
+## 249. `(@name)` and `(@a, @b, @c)` need no `=> ` or leading action symbol at all
+
+Marien: "(@name) and (@name, @name, ...) are only recognized when there is a => in the line. Change that." The parenthesised delegate form (#126) was gated behind `isActionLikeLine()` — a leading `#`/`v`/`x`/`>`, or a `=> ` anywhere on the line — so `(@dana)` in a plain prose line, or on an agenda topic line (`o `/`. `/`, `, which `isActionLikeLine` never covered either), rendered as inert plain text instead of a badge. Removed the gate entirely in both `glyphs.ts` (the live editor) and `glyphLine.ts` (the read-only renderer used by Section History/Search/Action Drawer) — `(@name)`/`(@a, @b, @c)` is now recognised on *any* line, unconditionally.
+
+**The bare `@name` form (no parens) is deliberately untouched** — it still needs a `=> ` somewhere on the line, per #35's own original design (mentioning someone mid-sentence without a delegate arrow was never meant to badge). The two forms already had independent gates before this fix (`isActionLikeLine` for parenthesised, a plain `=>\s` test for bare) and still do now — only the parenthesised one lost its gate.
+
+**`isActionLikeLine` deleted as genuinely dead code**: once both of its only two call sites (the `(@name)` checks in `glyphs.ts`/`glyphLine.ts`) were removed, nothing in the codebase called it anymore — confirmed via a full-repo search before deleting it and its own test block, rather than leaving an orphaned, untested helper behind.
+
+Updated the two existing tests that had encoded the old restrictive behavior as correct (`glyphLine.test.ts`'s "on a prose line nothing is badged" case, `editor-tokens.spec.ts`'s "not an action-like line" case) to expect badges instead, and added new coverage — both a Vitest case and a Playwright case — for the two scenarios that motivated the fix: plain prose with no action symbol at all, and an agenda topic line. Verified live in the running dev app (pasted `(@dana)` into a plain prose line and `(@sam, @lee)` into a `o ` topic line — both badged correctly) and confirmed the untouched bare-`@name`-needs-`=>` rule still holds (a bare `@dana` on its own prose line, no arrow, still renders as plain text).
+
+`docs/spec.md`'s token table and `website/guide.html`'s Guide page (split into two rows — bare `@name` still documented as needing `=> `, the parenthesised form documented as needing nothing) updated for accuracy.
+
+Verification: `svelte-check` 270/0; Vitest 605/605 (-2 removed `isActionLikeLine` tests, +1 new `glyphLine.test.ts` case); `cargo test` unchanged (pure frontend); `editor-tokens.spec.ts` 35/35 (+2 new tests).
+
