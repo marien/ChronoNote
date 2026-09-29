@@ -160,19 +160,19 @@ test.describe("editor — token glyphs", () => {
     expect(await activeTabContent(page)).toBe("> first\n> plain\n> second");
   });
 
-  test("#65/#73: Ctrl/Cmd+Shift+O marks every already-actioned line as open, but does NOT promote plain lines or a section header", async ({
+  test("#65/#73/#257: Ctrl/Cmd+Shift+O marks every already-actioned line as open (# or o), but does NOT promote plain lines or a section header", async ({
     page,
   }) => {
     await setEditorText(
       page,
-      "v done\nplain text\nTalked to Sam => x follow up\n> deferred\nSection\n========",
+      "v done\n. discussed\nplain text\nTalked to Sam => x follow up\n, postponed\n> deferred\nSection\n========",
     );
     await editor(page).click();
     await page.keyboard.press("ControlOrMeta+A");
     await page.keyboard.press("ControlOrMeta+Shift+O");
 
     expect(await activeTabContent(page)).toBe(
-      "# done\nplain text\nTalked to Sam => # follow up\n# deferred\nSection\n========",
+      "# done\no discussed\nplain text\nTalked to Sam => # follow up\no postponed\n# deferred\nSection\n========",
     );
   });
 

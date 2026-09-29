@@ -135,13 +135,19 @@ test.describe("keyboard commands change the symbol at the caret", () => {
   });
 
   test("Ctrl+Shift+O opens the symbol at the caret and never promotes a plain line", async ({ page }) => {
-    await setEditorText(page, "v a => x b\nplain");
+    await setEditorText(page, "v a => x b\nplain\n. discuss\n, skip");
     await page.keyboard.press("ControlOrMeta+Home");
     await page.keyboard.press("ControlOrMeta+Shift+O");
-    expect(await activeTabContent(page)).toBe("# a => x b\nplain");
-    await page.keyboard.press("ControlOrMeta+End");
+    expect(await activeTabContent(page)).toBe("# a => x b\nplain\n. discuss\n, skip");
+    await page.keyboard.press("ArrowDown");
     await page.keyboard.press("ControlOrMeta+Shift+O");
-    expect(await activeTabContent(page)).toBe("# a => x b\nplain");
+    expect(await activeTabContent(page)).toBe("# a => x b\nplain\n. discuss\n, skip");
+    await page.keyboard.press("ArrowDown");
+    await page.keyboard.press("ControlOrMeta+Shift+O");
+    expect(await activeTabContent(page)).toBe("# a => x b\nplain\no discuss\n, skip");
+    await page.keyboard.press("ArrowDown");
+    await page.keyboard.press("ControlOrMeta+Shift+O");
+    expect(await activeTabContent(page)).toBe("# a => x b\nplain\no discuss\no skip");
   });
 
   test("a line with no action symbol becomes that action, as before", async ({ page }) => {

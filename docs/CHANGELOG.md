@@ -9482,3 +9482,19 @@ Verification:
 ## 256. Web app: the welcome is a scratchpad, not a file
 
 §255 skipped the first-run welcome on the web app entirely (a dated file written before a later OneDrive sync could collide with a real note for today). A scratchpad has no file, so it can't. On the web backend a genuine first run now seeds the onboarding note as a scratchpad draft named "Welcome" (localized: Welkom, Willkommen, Bienvenida, Bienvenue, Benvenuto, Witamy), which `restoreOrBootstrapTabs` restores and `initApp` makes active. It is written once (same `onboardingCompleted` flag and the same skip rules as §255: upgrades, existing notes, saved session). While the scratchpad is still byte-identical to the template in any language (`isPristineOnboardingNote`), closing it, closing several tabs, or switching notes folders does not raise the "unsaved scratchpad" warning — nothing the user wrote would be lost; once edited it behaves like any scratchpad (`isUnsavedScratchpad` in `tabs.ts`). Desktop is unchanged (a dated note). Known wording gap: the template still mentions picking a notes folder, which doesn't apply in the browser.
+
+## 257. Topic-aware open shortcut: `Ctrl+Shift+O` opens agenda topics as `o` (not `#`)
+
+Previously, `Ctrl/Cmd+Shift+O` (`setActionSymbolOpen` in `tokens.ts`) unconditionally mapped every matched symbol to `#`. When invoked on an agenda topic line (`o`, `.`, or `,`), it erroneously converted the topic into an action symbol `#` (e.g. `. discussed topic` became `# discussed topic`), breaking topic semantics.
+
+1. **State Preservation across Domains**:
+   - `setActionSymbolOpen` now checks whether the matched symbol belongs to an agenda topic (`o`, `.`, `,`) or an action (`#`, `v`, `>`, `x`).
+   - Topics transition to open topic `o` (`.` / `,` → `o`, with `o` remaining unchanged).
+   - Actions transition to open action `#` (`v` / `>` / `x` → `#`, with `#` remaining unchanged).
+   - Consequence actions and multi-symbol lines (`. topic => v follow up`) continue to respect the caret's reference column (`col`), opening the targeted symbol into its respective open state.
+   - Plain lines, bullets, emphasis, and section headers continue to return `null` without promotion (preserving the #65/#73 invariant).
+
+2. **Verification**:
+   - Vitest unit tests in `src/lib/tokens.test.ts` for all topic symbols (`.`, `,`, `o`), indented topics, and caret targeting on mixed lines (`. topic => x follow up`).
+   - Playwright E2E tests in `tests/e2e/action-target.spec.ts` (caret targeting and plain line non-promotion) and `tests/e2e/editor-tokens.spec.ts` (multi-line selection spanning both actions and agenda topics).
+
