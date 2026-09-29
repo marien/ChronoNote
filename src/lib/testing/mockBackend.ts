@@ -324,7 +324,7 @@ export class MockBackend {
     this.fontSize = seed.fontSize ?? 13;
     this.lineHeight = seed.lineHeight ?? 1.6;
     this.pureBlack = seed.pureBlack ?? false;
-    this.onboardingCompleted = seed.onboardingCompleted ?? false;
+    this.onboardingCompleted = seed.onboardingCompleted ?? true;
     this.lastSyncSuccessMs = seed.lastSyncSuccessMs ?? null;
     this.recentNotesDirs = seed.recentNotesDirs ? [...seed.recentNotesDirs] : [];
     this.appVersion = seed.appVersion ?? "0.3.0";
@@ -432,7 +432,7 @@ export class MockBackend {
       b.fontSize = s.fontSize ?? 13;
       b.lineHeight = s.lineHeight ?? 1.6;
       b.pureBlack = s.pureBlack ?? false;
-      b.onboardingCompleted = s.onboardingCompleted ?? false;
+      b.onboardingCompleted = s.onboardingCompleted ?? true;
       b.recentNotesDirs = s.recentNotesDirs;
       b.appVersion = s.appVersion;
       b.agendaJson = s.agendaJson;

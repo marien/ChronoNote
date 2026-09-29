@@ -435,24 +435,40 @@ export async function initApp() {
   if (cfg.calendarSyncEnabled && (get(backendKind) !== "web" || !!get(oneDriveAccount))) {
     void refreshAgendaFileExists();
   }
-  // First-time installation onboarding (§onboarding):
+  // First-time installation onboarding (§onboarding, §255):
   // Strictly once per installation globally (tracked in config.json).
-  // If the notes directory already has existing notes, skip seeding and mark done.
+  // Distinguish genuine first install from existing user upgrades:
+  // If the user upgraded from an earlier version (lastSeenVersion is set),
+  // or a tab session already exists, or existing notes are present on disk,
+  // or on web with OneDrive connected, skip seeding and mark completed silently.
   if (cfg.onboardingCompleted === false) {
     try {
-      const existingFiles = (await api.listNoteFiles()) ?? [];
-      const todayFilename = todayISO() + ".txt";
-      if (existingFiles.length === 0) {
-        const template = getOnboardingTemplate(get(locale));
-        await api.writeNote(todayFilename, template);
-        if (get(isMobile)) {
-          showToast(get(t)("toast.onboarding.mobileHint", undefined));
+      const isUpgrade = Boolean(cfg.lastSeenVersion);
+      const isWebWithOneDrive = get(backendKind) === "web" && Boolean(get(oneDriveAccount));
+
+      if (isUpgrade || isWebWithOneDrive) {
+        await api.setOnboardingCompleted(true);
+      } else {
+        const existingFiles = (await api.listNoteFiles()) ?? [];
+        if (existingFiles.length > 0) {
+          await api.setOnboardingCompleted(true);
+        } else {
+          const session = await api.readTabSession();
+          if (session && session.openTabs && session.openTabs.length > 0) {
+            await api.setOnboardingCompleted(true);
+          } else {
+            const todayFilename = todayISO() + ".txt";
+            const template = getOnboardingTemplate(get(locale));
+            await api.writeNote(todayFilename, template);
+            await api.setOnboardingCompleted(true);
+            if (get(isMobile)) {
+              showToast(get(t)("toast.onboarding.mobileHint", undefined));
+            }
+          }
         }
       }
     } catch (err) {
       console.error("Failed to seed onboarding note:", err);
-    } finally {
-      api.setOnboardingCompleted(true).catch(() => {});
     }
   }
   await restoreOrBootstrapTabs();

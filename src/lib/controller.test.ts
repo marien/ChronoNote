@@ -2281,6 +2281,45 @@ describe("initApp — first-time installation onboarding (§onboarding)", () => 
     expect(apiMock.setOnboardingCompleted).toHaveBeenCalledWith(true);
   });
 
+  it("skips onboarding note generation and marks completed if upgrading from an earlier version (lastSeenVersion set)", async () => {
+    apiMock.getConfig.mockResolvedValue({
+      notesDir: "/notes",
+      colorMode: "grayscale",
+      wordWrap: false,
+      readableLineLength: false,
+      recentNotesDirs: [],
+      autoCheckUpdates: false,
+      lastSeenVersion: "0.17.1",
+      onboardingCompleted: false,
+    });
+    apiMock.listNoteFiles.mockResolvedValue([]);
+
+    await controller.initApp();
+
+    expect(apiMock.writeNote).not.toHaveBeenCalled();
+    expect(apiMock.setOnboardingCompleted).toHaveBeenCalledWith(true);
+  });
+
+  it("does not mark onboarding completed if writeNote fails", async () => {
+    apiMock.getConfig.mockResolvedValue({
+      notesDir: "/notes",
+      colorMode: "grayscale",
+      wordWrap: false,
+      readableLineLength: false,
+      recentNotesDirs: [],
+      autoCheckUpdates: false,
+      lastSeenVersion: null,
+      onboardingCompleted: false,
+    });
+    apiMock.listNoteFiles.mockResolvedValue([]);
+    apiMock.writeNote.mockRejectedValueOnce(new Error("disk write error"));
+
+    await controller.initApp();
+
+    expect(apiMock.writeNote).toHaveBeenCalled();
+    expect(apiMock.setOnboardingCompleted).not.toHaveBeenCalled();
+  });
+
   it("does nothing when onboardingCompleted is already true", async () => {
     apiMock.getConfig.mockResolvedValue({
       notesDir: "/notes",

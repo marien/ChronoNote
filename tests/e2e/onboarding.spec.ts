@@ -56,4 +56,20 @@ test.describe("first-time user onboarding flow (§onboarding)", () => {
     const text = await editor(page).innerText();
     expect(text).not.toContain("Welcome to ChronoNote");
   });
+
+  test("skips onboarding template if user is upgrading from an earlier version with 0 notes", async ({ page }) => {
+    await seedApp(page, {
+      seed: {
+        notesDir: "/notes",
+        notes: {},
+        session: null,
+        lastSeenVersion: "0.17.1",
+        onboardingCompleted: false,
+      },
+    });
+
+    await expect(activeTabLabel(page)).toHaveText(dateLabel(todayFilename()));
+    const text = await editor(page).innerText();
+    expect(text).not.toContain("Welcome to ChronoNote");
+  });
 });
