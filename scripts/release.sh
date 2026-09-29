@@ -12,6 +12,9 @@
 #                  just run on this exact commit).
 #   --dry-run      Run preflight + gates + print the plan; change nothing.
 #
+# Env: RELEASE_CO_AUTHOR="Name <email>" adds a Co-Authored-By trailer to the
+#      bump and bundles commits (omitted when unset).
+#
 # Resumable: every step first checks whether its result already exists
 # (bump commit, tag, installers, release, ...) so re-running after a failure
 # picks up where it stopped.
@@ -33,6 +36,153 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"; cd "$ROOT"
 export PATH="/c/Program Files/nodejs:/c/Users/marie/.cargo/bin:$PATH"
 TAG="v$VERSION"
 WORK="$(mktemp -d)"; LOGS="$WORK/logs"; mkdir -p "$LOGS"
+# Optional commit trailer, e.g. RELEASE_CO_AUTHOR="Claude Foo 6 <noreply@anthropic.com>".
+# Deliberately not hardcoded: the model name changes; the caller passes the current one.
+TRAILER=""; [[ -n "${RELEASE_CO_AUTHOR:-}" ]] && TRAILER="$(cd "$(dirname "$NOTES")" && pwd)/$(basename "$NOTES")"
+
+step() { printf '\n== %s\n' "$*"; }
+ok()   { printf '   ok: %s\n' "$*"; }
+# run <name> <cmd...>: quiet, log to file, tail the log on failure
+run() {
+  local name="$1"; shift
+  if "$@" >"$LOGS/$name.log" 2>&1; then ok "$name"
+  else echo "   FAILED: $name  (log: $LOGS/$name.log)"; tail -40 "$LOGS/$name.log"; exit 1; fi
+}
+
+# ---------------------------------------------------------------- preflight
+step "preflight"
+[[ "$(git rev-parse --abbrev-ref HEAD)" == "main" ]] || { echo "not on main" >&2; exit 1; }
+git fetch -q origin
+[[ -z "$(git status --porcelain)" ]] || { echo "working tree not clean" >&2; git status --short; exit 1; }
+[[ "$(git rev-list --count HEAD..origin/main)" == "0" ]] || { echo "main is behind origin/main" >&2; exit 1; }
+gh auth status >/dev/null 2>&1 || { echo "gh not authenticated" >&2; exit 1; }
+[[ -f src-tauri/updater-signing-key.local && -f src-tauri/updater-signing-key-password.local ]] \
+  || { echo "updater signing key files missing" >&2; exit 1; }
+CUR="$(node -p "require('./package.json').version")"
+BUMPED=0; [[ "$CUR" == "$VERSION" ]] && BUMPED=1
+if [[ $BUMPED == 0 ]]; then
+  [[ "$(printf '%s\n%s\n' "$CUR" "$VERSION" | sort -V | tail -1)" == "$VERSION" ]] \
+    || { echo "$VERSION is not newer than current $CUR" >&2; exit 1; }
+fi
+gh release view "$TAG" >/dev/null 2>&1 && { echo "GitHub release $TAG already exists" >&2; exit 1; }
+ok "on main, clean, up to date; $CUR -> $VERSION"
+
+# --------------------------------------------------------------------- gates
+if [[ $SKIP_GATES == 0 ]]; then
+  step "gates (sequential; never run Playwright twice concurrently)"
+  run check     npm run check
+  run vitest    npm test
+  run cargotest bash -c 'cd src-tauri && cargo test'
+  run playwright npx playwright test
+  for f in check vitest cargotest playwright; do
+    printf '   %-10s %s\n' "$f" "$(grep -Eio '[0-9]+ passed|test result: ok\.[^;]*|COMPLETED.*' "$LOGS/$f.log" | tail -1)"
+  done
+else
+  step "gates skipped (--skip-gates)"
+fi
+
+if [[ $DRY == 1 ]]; then
+  step "dry run: would bump, tag $TAG, build, publish; nothing changed"; exit 0
+fi
+
+# ---------------------------------------------------------------------- bump
+step "version bump"
+if [[ $BUMPED == 0 ]]; then
+  node -e '
+    const fs=require("fs"),v=process.argv[1];
+    for (const f of ["package.json","src-tauri/tauri.conf.json"]) {
+      const s=fs.readFileSync(f,"utf8");
+      fs.writeFileSync(f,s.replace(/("version":\s*")[^"]+(")/,`$1${v}$2`));
+    }
+    let c=fs.readFileSync("src-tauri/Cargo.toml","utf8");
+    fs.writeFileSync("src-tauri/Cargo.toml",c.replace(/^version = "[^"]+"/m,`version = "${v}"`));
+  ' "$VERSION"
+  run cargo-lock bash -c 'cd src-tauri && cargo check'
+  git add package.json src-tauri/tauri.conf.json src-tauri/Cargo.toml src-tauri/Cargo.lock
+  git commit -q -m "Bump version to $VERSION$TRAILER"
+  ok "committed"
+else
+  ok "already at $VERSION"
+fi
+git rev-parse "$TAG" >/dev/null 2>&1 || { git tag -a "$TAG" -m "$TAG"; ok "tagged $TAG"; }
+
+# --------------------------------------------------------------------- build
+step "signed build"
+TARGET="$(grep -E '^\s*target-dir' src-tauri/.cargo/config.toml 2>/dev/null | sed -E 's/.*"(.*)".*/\1/' || true)"
+[[ -n "$TARGET" ]] || TARGET="$ROOT/src-tauri/target"
+BUNDLE="$TARGET/release/bundle"
+EXE="$BUNDLE/nsis/ChronoNote_${VERSION}_x64-setup.exe"
+MSI="$BUNDLE/msi/ChronoNote_${VERSION}_x64_en-US.msi"
+if [[ -f "$EXE" && -f "$EXE.sig" && -f "$MSI" ]]; then
+  ok "installers for $VERSION already built"
+else
+  # stale dev instances interfere with the release build; the *installed* app
+  # (%LOCALAPPDATA%\ChronoNote) is not touched by a build, so leave it alone
+  export TAURI_SIGNING_PRIVATE_KEY="$(cat src-tauri/updater-signing-key.local)"
+  export TAURI_SIGNING_PRIVATE_KEY_PASSWORD="$(cat src-tauri/updater-signing-key-password.local)"
+  run tauri-build npm run tauri build
+fi
+[[ -f "$EXE" && -f "$EXE.sig" && -f "$MSI" ]] || { echo "expected installers missing under $BUNDLE" >&2; exit 1; }
+
+# --------------------------------------------------------------- latest.json
+# Must be named exactly latest.json on disk: `gh release create path#label`
+# only sets a display label, the uploaded asset keeps the local file name.
+step "latest.json"
+ASSETS="$WORK/assets"; mkdir -p "$ASSETS"
+SIG="$(tr -d '\r\n' < "$EXE.sig")"
+node -e '
+  const [v,sig]=process.argv.slice(1);
+  process.stdout.write(JSON.stringify({
+    version:v, notes:"See the release page.",
+    pub_date:new Date().toISOString(),
+    platforms:{"windows-x86_64":{signature:sig,
+      url:`https://github.com/marien/ChronoNote/releases/download/v${v}/ChronoNote_${v}_x64-setup.exe`}}
+  },null,2)+"\n");
+' "$VERSION" "$SIG" > "$ASSETS/latest.json"
+ok "$(node -p "require('$(cygpath -m "$ASSETS/latest.json")').version")"
+
+# ------------------------------------------------------------------- bundles
+step "demo + web app bundles"
+run build-demo   npm run build:demo
+run build-webapp npm run build:webapp
+if [[ -n "$(git status --porcelain website/demo-app website/webapp)" ]]; then
+  git add website/demo-app website/webapp
+  git commit -q -m "Rebuild demo and web app bundles for $TAG$TRAILER"
+  ok "committed"
+else
+  ok "bundles already fresh"
+fi
+[[ -z "$(git status --porcelain)" ]] || { echo "unexpected uncommitted changes after build:" >&2; git status --short; exit 1; }
+
+# ------------------------------------------------------------------- publish
+step "publish"
+git push -q origin main --follow-tags
+ok "pushed main + $TAG"
+cp "$EXE" "$MSI" "$ASSETS/"
+gh release create "$TAG" "$ASSETS/$(basename "$MSI")" "$ASSETS/$(basename "$EXE")" "$ASSETS/latest.json" \
+  --title "$TAG" --notes-file "$NOTES_ABS" >/dev/null
+ok "GitHub release $TAG created"
+git checkout -q website-live
+git merge -q --ff-only main
+git push -q origin website-live
+git checkout -q main
+ok "website-live fast-forwarded"
+
+# -------------------------------------------------------------------- verify
+step "verify"
+NAMES="$(gh release view "$TAG" --json assets -q '.assets[].name' | sort | tr '\n' ' ')"
+echo "   assets: $NAMES"
+for n in "ChronoNote_${VERSION}_x64-setup.exe" "ChronoNote_${VERSION}_x64_en-US.msi" latest.json; do
+  [[ "$NAMES" == *"$n "* ]] || { echo "   MISSING asset: $n" >&2; exit 1; }
+done
+LIVE="$(curl -fsSL "https://github.com/marien/ChronoNote/releases/latest/download/latest.json" | node -p "JSON.parse(require('fs').readFileSync(0,'utf8')).version")"
+[[ "$LIVE" == "$VERSION" ]] && ok "releases/latest serves $LIVE" || echo "   WARNING: releases/latest serves $LIVE (expected $VERSION)"
+echo
+echo "Released $TAG: https://github.com/marien/ChronoNote/releases/tag/$TAG"
+echo "Remaining by hand: CHANGELOG/CLAUDE.local.md/memory notes, comment+close any issues."
+
+
+Co-Authored-By: '"$RELEASE_CO_AUTHOR"
 NOTES_ABS="$(cd "$(dirname "$NOTES")" && pwd)/$(basename "$NOTES")"
 
 step() { printf '\n== %s\n' "$*"; }
@@ -94,9 +244,7 @@ if [[ $BUMPED == 0 ]]; then
   ' "$VERSION"
   run cargo-lock bash -c 'cd src-tauri && cargo check'
   git add package.json src-tauri/tauri.conf.json src-tauri/Cargo.toml src-tauri/Cargo.lock
-  git commit -q -m "Bump version to $VERSION
-
-Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>"
+  git commit -q -m "Bump version to $VERSION$TRAILER"
   ok "committed"
 else
   ok "already at $VERSION"
@@ -144,9 +292,7 @@ run build-demo   npm run build:demo
 run build-webapp npm run build:webapp
 if [[ -n "$(git status --porcelain website/demo-app website/webapp)" ]]; then
   git add website/demo-app website/webapp
-  git commit -q -m "Rebuild demo and web app bundles for $TAG
-
-Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>"
+  git commit -q -m "Rebuild demo and web app bundles for $TAG$TRAILER"
   ok "committed"
 else
   ok "bundles already fresh"
