@@ -75,7 +75,7 @@ if [[ $SKIP_GATES == 0 ]]; then
   run check     npm run check
   run vitest    npm test
   run cargotest bash -c 'cd src-tauri && cargo test'
-  run playwright npx playwright test
+  run playwright npx playwright test --workers=2
   for f in check vitest cargotest playwright; do
     printf '   %-10s %s\n' "$f" "$(grep -Eio '[0-9]+ passed|test result: ok\.[^;]*|COMPLETED.*' "$LOGS/$f.log" | tail -1)"
   done
