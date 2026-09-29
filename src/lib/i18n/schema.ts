@@ -735,6 +735,7 @@ export type TranslationParams = {
   "toast.oneDriveSync.syncFinished": undefined;
   "toast.oneDriveSync.syncFailedPrefix": { message: string };
   "toast.oneDriveSync.couldntStartSignInPrefix": { message: string };
+  "toast.oneDriveSync.signInExpired": undefined;
   "toast.updates.updateAvailable": undefined;
   "toast.persistence.failedToSaveNote": undefined;
   // i18n Phase 2 (docs/design/i18n-roadmap.md): translated headlines for

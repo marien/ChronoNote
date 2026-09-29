@@ -59,6 +59,7 @@
       <button
         id="stat-cloud"
         class="status-folder-btn"
+        class:stat-expired={$oneDriveSignInExpired}
         title={$oneDriveSignInExpired ? $t("statusBar.oneDrive.signInExpired") : $oneDriveAccount ? $t("statusBar.oneDrive.statusTitle", { path: $oneDriveFolder?.folderPath ?? "/", status: $oneDriveSyncStatus }) : $t("statusBar.oneDrive.connectPrompt")}
         aria-label={$t("statusBar.oneDrive.ariaLabel")}
         on:click={onCloudClick}
@@ -67,7 +68,12 @@
           <!-- Not gated by stat-tier0 like the label, so a narrow screen still shows *something is happening*. -->
           <span class="modal-spinner" aria-label={$t("statusBar.oneDrive.syncingAriaLabel")}>⟳</span>
         {:else}
-          <Icon name="cloud" size={12} />
+          <span class="stat-cloud-icon-wrap">
+            <Icon name="cloud" size={12} />
+            {#if $oneDriveSignInExpired}
+              <span class="stat-cloud-dot" aria-hidden="true"></span>
+            {/if}
+          </span>
         {/if}
         <span class="stat-tier0 status-folder-name">
           {#if $oneDriveAccount}

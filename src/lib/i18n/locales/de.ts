@@ -704,6 +704,7 @@ export const de = {
   "toast.oneDriveSync.syncFinished": () => "OneDrive-Synchronisierung abgeschlossen",
   "toast.oneDriveSync.syncFailedPrefix": ({ message }) => `OneDrive-Synchronisierung fehlgeschlagen: ${message}`,
   "toast.oneDriveSync.couldntStartSignInPrefix": ({ message }) => `Anmeldung konnte nicht gestartet werden: ${message}`,
+  "toast.oneDriveSync.signInExpired": () => "Deine OneDrive-Anmeldung ist abgelaufen. Klicke auf die Wolke, um dich erneut anzumelden.",
   "toast.updates.updateAvailable": () => "Update verfügbar — siehe Über",
   "toast.persistence.failedToSaveNote": () => "Notiz konnte nicht gespeichert werden",
   "error.agendaInvalid": () => "Die Kalenderdatei (.agenda.json) fehlt, ist leer oder ungültig — prüfe, was sie synchronisiert.",

@@ -3,6 +3,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { get } from "svelte/store";
 import type { NoteTab } from "./types";
 import { todayISO } from "./date";
+import { SIGN_IN_EXPIRED_MESSAGE } from "./signInExpired";
 
 /** Every mock function lives here, outside the `vi.mock` factories, so
  * `beforeEach` can reset them directly without depending on the factory
@@ -2336,6 +2337,53 @@ describe("beginFolderSwitch", () => {
       await controller.finishFolderSwitch("/Notes", pad);
       const pads = get(controller.tabs).filter((t) => t.isScratchpad);
       expect(pads.map((t) => t.content)).toEqual(["my earlier draft"]);
+    });
+  });
+
+  describe("OneDrive sync sign-in expired handling", () => {
+    beforeEach(() => {
+      controller.oneDriveFolder.set({ folderId: "f1", folderPath: "/Notes" });
+      controller.oneDriveSignInExpired.set(false);
+      controller.toastMessage.set("");
+    });
+
+    it("sets oneDriveSignInExpired and triggers toast on transition during background sync", async () => {
+      apiMock.oneDriveSyncNow.mockResolvedValueOnce({
+        success: false,
+        message: { code: "other", detail: SIGN_IN_EXPIRED_MESSAGE },
+      });
+
+      await controller.syncOneDriveNow();
+
+      expect(get(controller.oneDriveSignInExpired)).toBe(true);
+      expect(get(controller.toastMessage)).toBe("Your OneDrive sign-in has expired. Click the cloud to sign in again.");
+    });
+
+    it("does not re-trigger toast on subsequent background sync if already expired", async () => {
+      controller.oneDriveSignInExpired.set(true);
+      controller.toastMessage.set("");
+
+      apiMock.oneDriveSyncNow.mockResolvedValueOnce({
+        success: false,
+        message: { code: "other", detail: SIGN_IN_EXPIRED_MESSAGE },
+      });
+
+      await controller.syncOneDriveNow();
+
+      expect(get(controller.oneDriveSignInExpired)).toBe(true);
+      expect(get(controller.toastMessage)).toBe("");
+    });
+
+    it("clears oneDriveSignInExpired on successful sync", async () => {
+      controller.oneDriveSignInExpired.set(true);
+
+      apiMock.oneDriveSyncNow.mockResolvedValueOnce({
+        success: true,
+      });
+
+      await controller.syncOneDriveNow();
+
+      expect(get(controller.oneDriveSignInExpired)).toBe(false);
     });
   });
 });

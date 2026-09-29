@@ -699,6 +699,7 @@ export const nl = {
   "toast.oneDriveSync.syncFinished": () => "OneDrive-synchronisatie voltooid",
   "toast.oneDriveSync.syncFailedPrefix": ({ message }) => `OneDrive-synchronisatie mislukt: ${message}`,
   "toast.oneDriveSync.couldntStartSignInPrefix": ({ message }) => `Kon niet inloggen: ${message}`,
+  "toast.oneDriveSync.signInExpired": () => "Je OneDrive-aanmelding is verlopen. Klik op de wolk om opnieuw aan te melden.",
   "toast.updates.updateAvailable": () => "Update beschikbaar — zie Over",
   "toast.persistence.failedToSaveNote": () => "Opslaan van notitie mislukt",
   "error.agendaInvalid": () => "Het agendabestand (.agenda.json) ontbreekt, is leeg of ongeldig — controleer wat het synchroniseert.",

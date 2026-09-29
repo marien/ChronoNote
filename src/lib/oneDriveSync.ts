@@ -65,8 +65,13 @@ export function syncOneDriveNow(opts: { notify?: boolean } = {}): Promise<void> 
       // The web app's own sync engine reports an expired sign-in as a plain
       // `AppError.Other` carrying this exact text (its refresh token isn't
       // renewable) — Rust's own sync never produces it.
-      else if (result.message?.code === "other" && result.message.detail === SIGN_IN_EXPIRED_MESSAGE)
+      else if (result.message?.code === "other" && result.message.detail === SIGN_IN_EXPIRED_MESSAGE) {
+        const wasExpired = get(oneDriveSignInExpired);
         oneDriveSignInExpired.set(true);
+        if (!wasExpired && !announce) {
+          showToast(get(t)("toast.oneDriveSync.signInExpired", undefined));
+        }
+      }
       await refreshSyncConflicts();
       syncHooks.invalidateCache?.();
       void checkActiveTabForDrift();

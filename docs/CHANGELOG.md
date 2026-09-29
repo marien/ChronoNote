@@ -9421,3 +9421,15 @@ Two places carry the icon's SVG source independently and both were updated to ma
 
 Verification: `svelte-check` 270/0 (unchanged — pure SVG/asset change, no TS logic touched); Vitest/`cargo test` unaffected (nothing in either touches icon rendering); GitHub Actions' `Test` workflow green on the branch before merging.
 
+## 252. OneDrive sign-in expiration ambient indicator & alert toast
+
+Background sync automatically attempts silent token renewal using the stored OAuth refresh token on every sync, only encountering `SIGN_IN_EXPIRED_MESSAGE` when Microsoft actively rejects the refresh token (e.g. 24-hour SPA refresh token expiration or interactive MFA requirement). Previously, when this occurred during silent background polling, no alert toast was fired, and the cloud icon remained neutral monochrome gray without a warning indicator. On narrow screens (or whenever a center message was displayed), the `"Sign in again"` text label collapsed into `display: none`, making the expired state completely invisible ambiently without opening the sync health popover.
+
+1. **Ambient Status Bar Warning**:
+   - Styled `#stat-cloud.stat-expired` in warning amber (`var(--state-warn)`) with hover state, matching `#stat-conflicts`.
+   - Added a crisp 5px notification dot (`.stat-cloud-dot`) positioned at the top-right corner of the cloud icon so the warning state remains unmistakably prominent even on narrow viewports when `.stat-tier0` collapses the folder/text label.
+2. **Alert Toast on Transition**:
+   - Background sync now alerts the user once when `oneDriveSignInExpired` transitions from false to true via `toast.oneDriveSync.signInExpired` across all 7 display languages (en, nl, de, es, fr, it, pl).
+   - Subsequent background polling cycles while already expired do not repeat the toast, preventing toast spam during typing.
+
+
