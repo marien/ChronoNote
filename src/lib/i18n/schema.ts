@@ -198,7 +198,9 @@ export type TranslationParams = {
   "actionDrawer.onlyOpen.label": undefined;
   "actionDrawer.onlyOpen.title": undefined;
   "actionDrawer.empty.noMatch": { filter: string };
+  "actionDrawer.empty.filterSubtitle": undefined;
   "actionDrawer.empty.allResolved": undefined;
+  "actionDrawer.empty.allResolvedSubtitle": undefined;
   "actionDrawer.item.lineTag": { line: number };
   "actionDrawer.footer.jump": undefined;
   "actionDrawer.footer.forwardToToday": undefined;
@@ -218,6 +220,7 @@ export type TranslationParams = {
   "history.occ.title.hasContent": { date: string };
   "history.occ.title.empty": { date: string };
   "history.strip.loading": undefined;
+  "history.strip.emptyTitle": undefined;
   "history.strip.empty": undefined;
   "history.body.emptySection": undefined;
   "history.takeover.wholeLine": undefined;
@@ -255,6 +258,7 @@ export type TranslationParams = {
   "commandPalette.footer.navigate": undefined;
   "commandPalette.footer.run": undefined;
   "commandPalette.noMatches": undefined;
+  "commandPalette.emptySubtitle": undefined;
 
   /** Internal `PaletteItem.group` values stay untranslated English
    * identifiers (compared for logic — e.g. `is-shortcut` styling — not
@@ -438,6 +442,7 @@ export type TranslationParams = {
   "searchModal.searchingAriaLabel": undefined;
   "searchModal.removeFilterAriaLabel": { label: string };
   "searchModal.noMatches": { query: string };
+  "searchModal.emptySubtitle": undefined;
   "searchModal.footer.jumpToMatch": undefined;
 
   // Date picker (`DatePickerModal.svelte`). Month/weekday names come from
@@ -545,6 +550,7 @@ export type TranslationParams = {
   "calendarSyncReview.choice.discard": undefined;
   "calendarSyncReview.choice.move": undefined;
   "calendarSyncReview.nothingChanged": undefined;
+  "calendarSyncReview.nothingChangedSubtitle": undefined;
   "calendarSyncReview.syncButton": undefined;
 
   // OneDrive sync conflicts (`SyncConflictsModal.svelte`). "OneDrive"

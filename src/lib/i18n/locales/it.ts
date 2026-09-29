@@ -206,7 +206,11 @@ export const it = {
   "actionDrawer.onlyOpen.title": () =>
     "Mostra solo le azioni non risolte (aperte) — nascondi righe completate, rimandate e annullate",
   "actionDrawer.empty.noMatch": ({ filter }) => `Nessuna azione corrisponde a "${filter}".`,
+  "actionDrawer.empty.filterSubtitle": () =>
+    "Prova con una parola chiave diversa o cancella il filtro di ricerca.",
   "actionDrawer.empty.allResolved": () => "Nessun elemento — tutte le azioni sono risolte.",
+  "actionDrawer.empty.allResolvedSubtitle": () =>
+    "Nessuna attività in sospeso. Aggiungi nuove azioni nelle tue note con #.",
   "actionDrawer.item.lineTag": ({ line }) => `Riga ${line}`,
   "actionDrawer.footer.jump": () => "Vai",
   "actionDrawer.footer.forwardToToday": () => "Inoltra a oggi",
@@ -223,6 +227,7 @@ export const it = {
   "history.occ.title.hasContent": ({ date }) => `Doppio clic per andare a ${date}`,
   "history.occ.title.empty": ({ date }) => `Ancora nessun contenuto — doppio clic per andare a ${date}`,
   "history.strip.loading": () => "Caricamento cronologia…",
+  "history.strip.emptyTitle": () => "Nessuna cronologia della sezione",
   "history.strip.empty": () => "Nessuna ricorrenza precedente trovata tra le note aperte o chiuse.",
   "history.body.emptySection": () => "(nessun contenuto in questa sezione)",
   "history.takeover.wholeLine": () => "Riga intera",
@@ -253,6 +258,8 @@ export const it = {
   "commandPalette.footer.navigate": () => "Naviga",
   "commandPalette.footer.run": () => "Esegui",
   "commandPalette.noMatches": () => "Nessuna corrispondenza.",
+  "commandPalette.emptySubtitle": () =>
+    "Prova con un termine di ricerca diverso o premi Esc per chiudere.",
 
   "commandPalette.group.commands": () => "Comandi",
   "commandPalette.group.currentLine": () => "Riga corrente",
@@ -420,6 +427,8 @@ export const it = {
   "searchModal.searchingAriaLabel": () => "Ricerca in corso",
   "searchModal.removeFilterAriaLabel": ({ label }) => `Rimuovi filtro ${label}`,
   "searchModal.noMatches": ({ query }) => `Nessuna corrispondenza per "${query}".`,
+  "searchModal.emptySubtitle": () =>
+    "Controlla l'ortografia o usa operatori di ricerca come is:open o #tag.",
   "searchModal.footer.jumpToMatch": () => "Vai alla corrispondenza",
 
   "datePicker.ariaLabel": () => "Vai alla data",
@@ -510,6 +519,8 @@ export const it = {
   "calendarSyncReview.choice.discard": () => "Elimina",
   "calendarSyncReview.choice.move": () => "Sposta…",
   "calendarSyncReview.nothingChanged": () => "Nulla è cambiato dall'ultima sincronizzazione.",
+  "calendarSyncReview.nothingChangedSubtitle": () =>
+    "Le tue note giornaliere sono già sincronizzate con l'agenda esterna.",
   "calendarSyncReview.syncButton": () => "Sincronizza",
 
   "syncConflicts.ariaLabel": () => "Conflitti di sincronizzazione",

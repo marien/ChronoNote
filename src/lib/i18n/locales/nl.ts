@@ -205,7 +205,10 @@ export const nl = {
   "actionDrawer.onlyOpen.title": () =>
     "Toon alleen onopgeloste (open) acties — verberg voltooide, uitgestelde en vervallen regels",
   "actionDrawer.empty.noMatch": ({ filter }) => `Geen acties komen overeen met "${filter}".`,
+  "actionDrawer.empty.filterSubtitle": () => "Probeer een ander trefwoord of wis het zoekfilter.",
   "actionDrawer.empty.allResolved": () => "Niets hier — elke actie is afgehandeld.",
+  "actionDrawer.empty.allResolvedSubtitle": () =>
+    "Geen openstaande taken. Voeg nieuwe acties toe in je notities met #.",
   "actionDrawer.item.lineTag": ({ line }) => `Reg. ${line}`,
   "actionDrawer.footer.jump": () => "Spring",
   "actionDrawer.footer.forwardToToday": () => "Doorschuiven naar vandaag",
@@ -222,6 +225,7 @@ export const nl = {
   "history.occ.title.hasContent": ({ date }) => `Dubbelklik om naar ${date} te springen`,
   "history.occ.title.empty": ({ date }) => `Nog geen inhoud — dubbelklik om naar ${date} te springen`,
   "history.strip.loading": () => "Geschiedenis laden…",
+  "history.strip.emptyTitle": () => "Geen sectiegeschiedenis",
   "history.strip.empty": () => "Geen eerdere gelegenheden gevonden in open of gesloten notities.",
   "history.body.emptySection": () => "(nog niets in deze sectie)",
   "history.takeover.wholeLine": () => "Hele regel",
@@ -252,6 +256,7 @@ export const nl = {
   "commandPalette.footer.navigate": () => "Navigeren",
   "commandPalette.footer.run": () => "Uitvoeren",
   "commandPalette.noMatches": () => "Geen overeenkomsten.",
+  "commandPalette.emptySubtitle": () => "Probeer een andere zoekterm of druk op Esc om te sluiten.",
 
   "commandPalette.group.commands": () => "Opdrachten",
   "commandPalette.group.currentLine": () => "Huidige regel",
@@ -411,6 +416,8 @@ export const nl = {
   "searchModal.searchingAriaLabel": () => "Zoeken",
   "searchModal.removeFilterAriaLabel": ({ label }) => `Filter ${label} verwijderen`,
   "searchModal.noMatches": ({ query }) => `Geen overeenkomsten voor "${query}".`,
+  "searchModal.emptySubtitle": () =>
+    "Controleer de spelling of gebruik zoekoperators zoals is:open of #tag.",
   "searchModal.footer.jumpToMatch": () => "Naar overeenkomst springen",
 
   "datePicker.ariaLabel": () => "Naar datum springen",
@@ -500,6 +507,8 @@ export const nl = {
   "calendarSyncReview.choice.discard": () => "Verwijderen",
   "calendarSyncReview.choice.move": () => "Verplaatsen…",
   "calendarSyncReview.nothingChanged": () => "Niets gewijzigd sinds de laatste synchronisatie.",
+  "calendarSyncReview.nothingChangedSubtitle": () =>
+    "Je dagelijkse notities zijn al gesynchroniseerd met de externe agenda.",
   "calendarSyncReview.syncButton": () => "Synchroniseren",
 
   "syncConflicts.ariaLabel": () => "Synchronisatieconflicten",

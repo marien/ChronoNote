@@ -204,7 +204,11 @@ export const es = {
   "actionDrawer.onlyOpen.title": () =>
     "Mostrar solo acciones no resueltas (pendientes) — ocultar líneas completadas, pospuestas y descartadas",
   "actionDrawer.empty.noMatch": ({ filter }) => `Ninguna acción coincide con "${filter}".`,
+  "actionDrawer.empty.filterSubtitle": () =>
+    "Prueba con otra palabra clave o borra el filtro de búsqueda.",
   "actionDrawer.empty.allResolved": () => "Nada aquí — todas las acciones están resueltas.",
+  "actionDrawer.empty.allResolvedSubtitle": () =>
+    "No hay tareas pendientes. Agrega nuevas acciones en tus notas con #.",
   "actionDrawer.item.lineTag": ({ line }) => `Lín ${line}`,
   "actionDrawer.footer.jump": () => "Ir",
   "actionDrawer.footer.forwardToToday": () => "Reenviar a hoy",
@@ -221,6 +225,7 @@ export const es = {
   "history.occ.title.hasContent": ({ date }) => `Doble clic para ir a ${date}`,
   "history.occ.title.empty": ({ date }) => `Sin contenido aún — doble clic para ir a ${date}`,
   "history.strip.loading": () => "Cargando historial…",
+  "history.strip.emptyTitle": () => "Sin historial de sección",
   "history.strip.empty": () => "No se encontraron apariciones previas en notas abiertas o cerradas.",
   "history.body.emptySection": () => "(nada en esta sección aún)",
   "history.takeover.wholeLine": () => "Línea completa",
@@ -251,6 +256,8 @@ export const es = {
   "commandPalette.footer.navigate": () => "Navegar",
   "commandPalette.footer.run": () => "Ejecutar",
   "commandPalette.noMatches": () => "Sin coincidencias.",
+  "commandPalette.emptySubtitle": () =>
+    "Prueba con otro término de búsqueda o presiona Esc para cerrar.",
 
   "commandPalette.group.commands": () => "Comandos",
   "commandPalette.group.currentLine": () => "Línea actual",
@@ -418,6 +425,8 @@ export const es = {
   "searchModal.searchingAriaLabel": () => "Buscando",
   "searchModal.removeFilterAriaLabel": ({ label }) => `Eliminar filtro ${label}`,
   "searchModal.noMatches": ({ query }) => `Sin coincidencias para "${query}".`,
+  "searchModal.emptySubtitle": () =>
+    "Revisa la ortografía o usa operadores de búsqueda como is:open o #tag.",
   "searchModal.footer.jumpToMatch": () => "Ir a la coincidencia",
 
   "datePicker.ariaLabel": () => "Ir a fecha",
@@ -508,6 +517,8 @@ export const es = {
   "calendarSyncReview.choice.discard": () => "Descartar",
   "calendarSyncReview.choice.move": () => "Mover…",
   "calendarSyncReview.nothingChanged": () => "Nada ha cambiado desde la última sincronización.",
+  "calendarSyncReview.nothingChangedSubtitle": () =>
+    "Tus notas diarias ya están sincronizadas con la agenda externa.",
   "calendarSyncReview.syncButton": () => "Sincronizar",
 
   "syncConflicts.ariaLabel": () => "Conflictos de sincronización",

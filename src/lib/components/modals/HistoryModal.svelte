@@ -15,6 +15,7 @@
   import { parseGlyphLine } from "../../editor/glyphLine";
   import Icon from "../../icons/Icon.svelte";
   import Segmented from "../Segmented.svelte";
+  import EmptyState from "../EmptyState.svelte";
   import { t } from "../../i18n";
   import type { HistoryDestination, SectionOccurrence } from "../../types";
   import { clampIndex, wrapIndex } from "./virtualList";
@@ -677,6 +678,12 @@
           {:else if usableDestinations.length === 0}
             <div class="hp-note">{$t("history.takeover.none")}</div>
           {/if}
+        {:else if occurrences.length === 0 && !$historyLoading}
+          <EmptyState
+            icon="section-history"
+            title={$t("history.strip.emptyTitle")}
+            subtitle={$t("history.strip.empty")}
+          />
         {:else}
           <div class="hp-empty">{$t("history.body.selectPrompt")}</div>
         {/if}

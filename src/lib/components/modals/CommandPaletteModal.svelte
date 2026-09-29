@@ -6,6 +6,7 @@
   import { focusTrap } from "../../actions/focusTrap";
   import { closeOnOutsideClick } from "../../actions/closeOnOutsideClick";
   import Icon from "../../icons/Icon.svelte";
+  import EmptyState from "../EmptyState.svelte";
   import { t } from "../../i18n";
 
   let query = "";
@@ -205,7 +206,11 @@
         {/if}
       {/each}
       {#if items.length === 0}
-        <div class="modal-empty">{$t("commandPalette.noMatches")}</div>
+        <EmptyState
+          icon="command"
+          title={$t("commandPalette.noMatches")}
+          subtitle={$t("commandPalette.emptySubtitle")}
+        />
       {/if}
     </div>
     <div class="modal-footer">
