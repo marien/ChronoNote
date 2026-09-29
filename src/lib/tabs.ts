@@ -16,6 +16,7 @@ import {
   editorApi,
   markTabClean,
   modal,
+  pendingBatchCloseTabIds,
   pendingCloseTabId,
   safetyMessage,
   showToast,
@@ -241,16 +242,103 @@ export async function reopenLastClosedTab() {
   }
 }
 
+export function closeOtherTabs(keepTabId: string) {
+  const list = get(tabs);
+  const target = list.find((t) => t.id === keepTabId);
+  if (!target) return;
+  const toClose = list.filter((t) => t.id !== keepTabId);
+  if (toClose.length === 0) return;
+  batchCloseTabs(toClose, keepTabId);
+}
+
+export function closeTabsToTheRight(tabId: string) {
+  const list = sortedTabsForDisplay(get(tabs));
+  const idx = list.findIndex((t) => t.id === tabId);
+  if (idx === -1) return;
+  const toClose = list.slice(idx + 1);
+  if (toClose.length === 0) return;
+  batchCloseTabs(toClose, tabId);
+}
+
+export function closeTabsWithNoOpenActions() {
+  const list = get(tabs);
+  const toClose = list.filter((t) => countActions(t.content).open === 0);
+  if (toClose.length === 0) return;
+  const currentActive = get(activeTabId);
+  const firstKept = list.find((t) => countActions(t.content).open > 0)?.id ?? "";
+  const focusTabId = toClose.some((t) => t.id === currentActive) ? firstKept : (currentActive ?? firstKept);
+  batchCloseTabs(toClose, focusTabId);
+}
+
+function batchCloseTabs(toClose: NoteTab[], focusTabId: string) {
+  const warningTabs = toClose.filter((t) => {
+    const counts = countActions(t.content);
+    return hasDueOpenActions(t, counts.open) || (t.isScratchpad && t.content.trim() !== "");
+  });
+
+  if (warningTabs.length > 0) {
+    pendingCloseTabId.set(null);
+    pendingBatchCloseTabIds.set(toClose.map((t) => t.id));
+    const translate = get(t);
+    safetyMessage.set(
+      translate("safetyModal.batchCloseMessage", {
+        count: toClose.length,
+      })
+    );
+    modal.set("safety");
+    return;
+  }
+
+  for (const t of toClose) {
+    closeTab(t.id);
+  }
+  const currentActive = get(activeTabId);
+  const remaining = get(tabs);
+  if (!remaining.some((t) => t.id === currentActive)) {
+    if (focusTabId && remaining.some((t) => t.id === focusTabId)) {
+      switchTab(focusTabId);
+    }
+  }
+}
+
+export function renameScratchpad(tabId: string, newName: string) {
+  const trimmed = newName.trim();
+  if (!trimmed) return;
+  const list = get(tabs);
+  const target = list.find((t) => t.id === tabId);
+  if (!target || !target.isScratchpad) return;
+  target.filename = trimmed;
+  tabs.set([...list]);
+  flushScratchpadDrafts();
+  showToast(get(t)("toast.tabs.scratchpadRenamed", { name: trimmed }));
+}
+
+export function duplicateTab(tabId: string) {
+  const tab = get(tabs).find((t) => t.id === tabId);
+  if (!tab) return;
+  createScratchpadWith(tab.content);
+  showToast(get(t)("toast.tabs.duplicatedAsScratchpad", undefined));
+}
+
 export function confirmSafetyClose() {
-  const id = get(pendingCloseTabId);
+  const singleId = get(pendingCloseTabId);
+  const batchIds = get(pendingBatchCloseTabIds);
   modal.set("none");
   pendingCloseTabId.set(null);
-  if (id) closeTab(id);
+  pendingBatchCloseTabIds.set([]);
+  if (singleId) {
+    closeTab(singleId);
+  } else if (batchIds.length > 0) {
+    for (const id of batchIds) {
+      closeTab(id);
+    }
+  }
 }
 
 export function cancelSafetyClose() {
   modal.set("none");
   pendingCloseTabId.set(null);
+  pendingBatchCloseTabIds.set([]);
 }
 
 /** Spec 1.3: scratchpads stay purely in memory until explicitly promoted

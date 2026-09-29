@@ -334,6 +334,98 @@ describe("tab lifecycle", () => {
     expect(() => controller.reopenLastClosedTab()).not.toThrow();
   });
 
+  it("closeOtherTabs closes all other tabs and focuses the target tab", () => {
+    controller.tabs.set([
+      tab({ id: "a", filename: "2026-09-01.txt", content: "done" }),
+      tab({ id: "b", filename: "2026-09-02.txt", content: "done" }),
+      tab({ id: "c", filename: "2026-09-03.txt", content: "done" }),
+    ]);
+    controller.activeTabId.set("a");
+    controller.closeOtherTabs("b");
+    const remaining = get(controller.tabs);
+    expect(remaining).toHaveLength(1);
+    expect(remaining[0].id).toBe("b");
+    expect(get(controller.activeTabId)).toBe("b");
+  });
+
+  it("closeOtherTabs triggers safety modal when closing tabs with due open actions", () => {
+    controller.tabs.set([
+      tab({ id: "a", filename: "2020-01-01.txt", content: "# open action" }),
+      tab({ id: "b", filename: "2026-09-02.txt", content: "done" }),
+    ]);
+    controller.activeTabId.set("b");
+    controller.closeOtherTabs("b");
+    expect(get(controller.modal)).toBe("safety");
+    expect(get(controller.pendingBatchCloseTabIds)).toEqual(["a"]);
+    controller.confirmSafetyClose();
+    expect(get(controller.tabs)).toHaveLength(1);
+    expect(get(controller.tabs)[0].id).toBe("b");
+  });
+
+  it("closeTabsToTheRight closes only tabs to the right in display order", () => {
+    controller.tabs.set([
+      tab({ id: "a", filename: "2026-09-01.txt", content: "done" }),
+      tab({ id: "b", filename: "2026-09-02.txt", content: "done" }),
+      tab({ id: "c", filename: "2026-09-03.txt", content: "done" }),
+    ]);
+    controller.activeTabId.set("a");
+    controller.closeTabsToTheRight("b");
+    const remaining = get(controller.tabs);
+    expect(remaining.map((t) => t.id)).toEqual(["a", "b"]);
+    expect(get(controller.activeTabId)).toBe("a");
+  });
+
+  it("closeTabsWithNoOpenActions closes only tabs where open count is 0", () => {
+    controller.tabs.set([
+      tab({ id: "a", filename: "2026-09-01.txt", content: "# pending action" }),
+      tab({ id: "b", filename: "2026-09-02.txt", content: "v completed action" }),
+      tab({ id: "c", filename: "2026-09-03.txt", content: "just plain prose" }),
+    ]);
+    controller.activeTabId.set("b");
+    controller.closeTabsWithNoOpenActions();
+    const remaining = get(controller.tabs);
+    expect(remaining.map((t) => t.id)).toEqual(["a"]);
+    expect(get(controller.activeTabId)).toBe("a");
+  });
+
+  it("closeTabsWithNoOpenActions triggers safety modal when closing a non-empty scratchpad without open actions", () => {
+    controller.tabs.set([
+      tab({ id: "s1", isScratchpad: true, filename: "Scratchpad 1", content: "unsaved notes" }),
+      tab({ id: "a", filename: "2026-09-01.txt", content: "# open action" }),
+    ]);
+    controller.activeTabId.set("s1");
+    controller.closeTabsWithNoOpenActions();
+    expect(get(controller.modal)).toBe("safety");
+    expect(get(controller.pendingBatchCloseTabIds)).toEqual(["s1"]);
+    controller.confirmSafetyClose();
+    expect(get(controller.tabs)).toHaveLength(1);
+    expect(get(controller.tabs)[0].id).toBe("a");
+  });
+
+  it("renameScratchpad updates filename and flushes drafts", () => {
+    controller.tabs.set([
+      tab({ id: "s1", isScratchpad: true, filename: "Scratchpad 1", content: "ideas" }),
+    ]);
+    controller.renameScratchpad("s1", "Project Brainstorm");
+    const current = get(controller.tabs);
+    expect(current[0].filename).toBe("Project Brainstorm");
+    expect(apiMock.saveScratchpadDrafts).toHaveBeenCalledWith({
+      "Project Brainstorm": "ideas",
+    });
+  });
+
+  it("duplicateTab duplicates tab content into a new scratchpad", () => {
+    controller.tabs.set([
+      tab({ id: "t1", filename: "2026-09-01.txt", content: "important notes" }),
+    ]);
+    controller.duplicateTab("t1");
+    const current = get(controller.tabs);
+    expect(current).toHaveLength(2);
+    const scratch = current.find((t) => t.isScratchpad);
+    expect(scratch).toBeDefined();
+    expect(scratch?.content).toBe("important notes");
+  });
+
   it("#46: closing a tab right after resolving its last action updates the all-notes cache, not just disk", async () => {
     // Populate the disk-read cache *while the action is still open* —
     // mirrors opening the date picker (or Action Drawer "All Files") once

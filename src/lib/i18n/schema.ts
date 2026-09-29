@@ -337,6 +337,15 @@ export type TranslationParams = {
   "topBar.window.restore": undefined;
   "topBar.window.maximize": undefined;
   "topBar.window.close": undefined;
+  "topBar.contextMenu.ariaLabel": undefined;
+  "topBar.contextMenu.close": undefined;
+  "topBar.contextMenu.closeOthers": undefined;
+  "topBar.contextMenu.closeToTheRight": undefined;
+  "topBar.contextMenu.closeTabsWithNoOpenActions": undefined;
+  "topBar.contextMenu.renameScratchpad": undefined;
+  "topBar.contextMenu.duplicateScratchpad": undefined;
+  "topBar.contextMenu.copyDate": undefined;
+  "topBar.contextMenu.copyPath": undefined;
 
   // Status bar (`StatusBar.svelte`).
   "statusBar.oneDrive.signInExpired": undefined;
@@ -431,6 +440,7 @@ export type TranslationParams = {
   "safetyModal.reasonJoiner": undefined;
   "safetyModal.message": { filename: string; reasons: string };
   "safetyModal.closeAnyway": undefined;
+  "safetyModal.batchCloseMessage": { count: number };
 
   // Cross-tab search (`SearchModal.svelte`, Ctrl/Cmd+Shift+F).
   "searchModal.placeholder": undefined;
@@ -706,6 +716,9 @@ export type TranslationParams = {
   "toast.tabs.noRecentlyClosedTabs": undefined;
   "toast.tabs.nothingToPromote": undefined;
   "toast.tabs.promotedScratchpad": { filename: string };
+  "toast.tabs.scratchpadRenamed": { name: string };
+  "toast.tabs.duplicatedAsScratchpad": undefined;
+  "toast.tabs.copiedToClipboard": { text: string };
   "toast.syncConflicts.couldntResolvePrefix": { name: string; message: string };
   "toast.syncConflicts.keptOneDriveVersion": { name: string };
   "toast.syncConflicts.keptBothVersions": { name: string };

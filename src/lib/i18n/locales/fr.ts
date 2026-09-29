@@ -326,6 +326,15 @@ export const fr = {
   "topBar.window.restore": () => "Restaurer la fenêtre",
   "topBar.window.maximize": () => "Agrandir la fenêtre",
   "topBar.window.close": () => "Fermer la fenêtre",
+  "topBar.contextMenu.ariaLabel": () => "Actions d'onglet",
+  "topBar.contextMenu.close": () => "Fermer l'onglet",
+  "topBar.contextMenu.closeOthers": () => "Fermer les autres onglets",
+  "topBar.contextMenu.closeToTheRight": () => "Fermer les onglets vers la droite",
+  "topBar.contextMenu.closeTabsWithNoOpenActions": () => "Fermer les onglets sans actions ouvertes",
+  "topBar.contextMenu.renameScratchpad": () => "Renommer le bloc-notes",
+  "topBar.contextMenu.duplicateScratchpad": () => "Dupliquer le bloc-notes",
+  "topBar.contextMenu.copyDate": () => "Copier la date",
+  "topBar.contextMenu.copyPath": () => "Copier le chemin du fichier",
 
   "statusBar.oneDrive.signInExpired": () =>
     "Votre connexion OneDrive a expiré. Cliquez pour vous reconnecter.",
@@ -416,6 +425,8 @@ export const fr = {
   "safetyModal.message": ({ filename, reasons }) =>
     `L'onglet « ${filename} » ${reasons}. Voulez-vous vraiment le fermer ?`,
   "safetyModal.closeAnyway": () => "Fermer quand même",
+  "safetyModal.batchCloseMessage": ({ count }) =>
+    `Fermer ${count} onglets ? Certains onglets contiennent des actions en attente ou des brouillons non enregistrés.`,
 
   "searchModal.placeholder": () => "Rechercher…",
   "searchModal.matchCount": ({ count }) =>
@@ -680,6 +691,9 @@ export const fr = {
   "toast.tabs.noRecentlyClosedTabs": () => "Aucun onglet fermé récemment.",
   "toast.tabs.nothingToPromote": () => "Rien à transférer.",
   "toast.tabs.promotedScratchpad": ({ filename }) => `Brouillon transféré dans ${filename}`,
+  "toast.tabs.scratchpadRenamed": ({ name }) => `Bloc-notes renommé en ${name}`,
+  "toast.tabs.duplicatedAsScratchpad": () => "Dupliqué dans un nouveau bloc-notes",
+  "toast.tabs.copiedToClipboard": ({ text }) => `« ${text} » copié dans le presse-papiers`,
   "toast.syncConflicts.couldntResolvePrefix": ({ name, message }) => `Impossible de résoudre ${name} : ${message}`,
   "toast.syncConflicts.keptOneDriveVersion": ({ name }) => `Version OneDrive de ${name} conservée`,
   "toast.syncConflicts.keptBothVersions": ({ name }) => `Les deux versions de ${name} ont été conservées`,

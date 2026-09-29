@@ -325,6 +325,15 @@ export const it = {
   "topBar.window.restore": () => "Ripristina finestra",
   "topBar.window.maximize": () => "Ingrandisci finestra",
   "topBar.window.close": () => "Chiudi finestra",
+  "topBar.contextMenu.ariaLabel": () => "Azioni scheda",
+  "topBar.contextMenu.close": () => "Chiudi scheda",
+  "topBar.contextMenu.closeOthers": () => "Chiudi altre schede",
+  "topBar.contextMenu.closeToTheRight": () => "Chiudi schede a destra",
+  "topBar.contextMenu.closeTabsWithNoOpenActions": () => "Chiudi schede senza azioni aperte",
+  "topBar.contextMenu.renameScratchpad": () => "Rinomina blocco appunti",
+  "topBar.contextMenu.duplicateScratchpad": () => "Duplica blocco appunti",
+  "topBar.contextMenu.copyDate": () => "Copia data",
+  "topBar.contextMenu.copyPath": () => "Copia percorso file",
 
   "statusBar.oneDrive.signInExpired": () =>
     "L'accesso a OneDrive è scaduto. Fai clic per accedere di nuovo.",
@@ -414,6 +423,8 @@ export const it = {
   "safetyModal.message": ({ filename, reasons }) =>
     `La scheda "${filename}" ${reasons}. Sei sicuro di volerla chiudere?`,
   "safetyModal.closeAnyway": () => "Chiudi comunque",
+  "safetyModal.batchCloseMessage": ({ count }) =>
+    `Chiudere ${count} schede? Alcune schede contengono attività in sospeso o bozze non salvate.`,
 
   "searchModal.placeholder": () => "Cerca...",
   "searchModal.matchCount": ({ count }) => (count === 1 ? "1 corrispondenza" : `${count} corrispondenze`),
@@ -676,6 +687,9 @@ export const it = {
   "toast.tabs.noRecentlyClosedTabs": () => "Nessuna scheda chiusa di recente.",
   "toast.tabs.nothingToPromote": () => "Nulla da promuovere.",
   "toast.tabs.promotedScratchpad": ({ filename }) => `Bozza promossa in ${filename}`,
+  "toast.tabs.scratchpadRenamed": ({ name }) => `Blocco appunti rinominato in ${name}`,
+  "toast.tabs.duplicatedAsScratchpad": () => "Duplicato in un nuovo blocco appunti",
+  "toast.tabs.copiedToClipboard": ({ text }) => `"${text}" copiato negli appunti`,
   "toast.syncConflicts.couldntResolvePrefix": ({ name, message }) => `Impossibile risolvere ${name}: ${message}`,
   "toast.syncConflicts.keptOneDriveVersion": ({ name }) => `Mantenuta la versione OneDrive di ${name}`,
   "toast.syncConflicts.keptBothVersions": ({ name }) => `Mantenute entrambe le versioni di ${name}`,
