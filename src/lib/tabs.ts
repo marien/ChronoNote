@@ -36,6 +36,7 @@ import { sortedTabsForDisplay } from "./tabSort";
 import { countActions } from "./tokens";
 import { todayISO } from "./date";
 import { t } from "./i18n";
+import { isPristineOnboardingNote } from "./onboardingTemplate";
 import type { NoteTab } from "./types";
 
 /** #61: every tab id here used to be a bare `tab-${Date.now()}` — fine in
@@ -71,6 +72,12 @@ export function cycleTab(direction: 1 | -1) {
   const idx = list.findIndex((t) => t.id === get(activeTabId));
   const nextIdx = ((idx === -1 ? 0 : idx) + direction + list.length) % list.length;
   switchTab(list[nextIdx].id);
+}
+
+/** A scratchpad with content that would be lost on close/switch. The untouched
+ * web-app welcome note doesn't count: nothing the user wrote is in it. */
+export function isUnsavedScratchpad(tab: NoteTab): boolean {
+  return tab.isScratchpad && tab.content.trim() !== "" && !isPristineOnboardingNote(tab.content);
 }
 
 export function createScratchpad() {
@@ -120,9 +127,13 @@ function hasDueOpenActions(tab: NoteTab, open: number): boolean {
 export function requestTabClose(tabId: string) {
   const tab = get(tabs).find((t) => t.id === tabId);
   if (!tab) return;
+  if (tab.isScratchpad && isPristineOnboardingNote(tab.content)) {
+    closeTab(tabId);
+    return;
+  }
   const counts = countActions(tab.content);
   const dueOpen = hasDueOpenActions(tab, counts.open);
-  const isNonEmptyScratchpad = tab.isScratchpad && tab.content.trim() !== "";
+  const isNonEmptyScratchpad = isUnsavedScratchpad(tab);
 
   if (!dueOpen && !isNonEmptyScratchpad) {
     closeTab(tabId);
@@ -272,8 +283,9 @@ export function closeTabsWithNoOpenActions() {
 
 function batchCloseTabs(toClose: NoteTab[], focusTabId: string) {
   const warningTabs = toClose.filter((t) => {
+    if (t.isScratchpad && isPristineOnboardingNote(t.content)) return false;
     const counts = countActions(t.content);
-    return hasDueOpenActions(t, counts.open) || (t.isScratchpad && t.content.trim() !== "");
+    return hasDueOpenActions(t, counts.open) || isUnsavedScratchpad(t);
   });
 
   if (warningTabs.length > 0) {

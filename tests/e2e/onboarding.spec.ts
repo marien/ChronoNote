@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { seedApp, activeTabLabel, editor, mockNote, todayFilename, dateLabel } from "./helpers";
+import { seedApp, activeTabLabel, editor, mockNote, todayFilename, dateLabel, tab } from "./helpers";
 
 test.describe("first-time user onboarding flow (§onboarding)", () => {
   test("fresh installation with 0 notes seeds today's note with the interactive onboarding template", async ({
@@ -37,6 +37,30 @@ test.describe("first-time user onboarding flow (§onboarding)", () => {
     await actionLine.click();
     await page.keyboard.press("Control+Space");
     await expect(editor(page).locator(".glyph-done").first()).toBeVisible();
+  });
+
+  test("web app: the welcome is a scratchpad (no file), opens active, and closes without a warning", async ({
+    page,
+  }) => {
+    await seedApp(page, {
+      seed: {
+        backendKind: "web",
+        notes: {},
+        session: null,
+        onboardingCompleted: false,
+      },
+    });
+
+    await expect(activeTabLabel(page)).toHaveText("Welcome");
+    expect(await editor(page).innerText()).toContain("Welcome to ChronoNote");
+    // No dated file was written for it.
+    expect(await mockNote(page, todayFilename())).toBeNull();
+
+    // Untouched: closing is silent (no "unsaved scratchpad" safety modal).
+    await tab(page, "Welcome").hover();
+    await tab(page, "Welcome").locator(".tab-close").click();
+    await expect(page.locator(".modal-card")).toHaveCount(0);
+    await expect(tab(page, "Welcome")).toHaveCount(0);
   });
 
   test("skips onboarding template if user already has existing notes in the folder", async ({ page }) => {

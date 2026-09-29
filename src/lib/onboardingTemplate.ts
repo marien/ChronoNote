@@ -352,3 +352,15 @@ Tips: Press ${mod}+1 through 4 to toggle action types, or ${mod}+5 through 7 for
 `;
   }
 }
+
+const ONBOARDING_LANGS = ["en", "nl", "de", "es", "fr", "it", "pl"];
+
+/** True while `content` is still exactly the untouched onboarding note (in any
+ * language). Used so the web app's welcome scratchpad can be closed without the
+ * "unsaved scratchpad" warning — nothing the user wrote would be lost. Once
+ * they edit it, it is an ordinary scratchpad again. */
+export function isPristineOnboardingNote(content: string): boolean {
+  // Template literals are LF-normalised by the language, whatever the source
+  // file's line endings, so a plain comparison is enough.
+  return ONBOARDING_LANGS.some((l) => getOnboardingTemplate(l) === content);
+}

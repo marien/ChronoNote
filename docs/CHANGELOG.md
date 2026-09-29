@@ -9478,3 +9478,7 @@ Verification:
 - Webapp build: succeeded cleanly with no build warnings (`npm.cmd run build:webapp`).
 
 
+
+## 256. Web app: the welcome is a scratchpad, not a file
+
+§255 skipped the first-run welcome on the web app entirely (a dated file written before a later OneDrive sync could collide with a real note for today). A scratchpad has no file, so it can't. On the web backend a genuine first run now seeds the onboarding note as a scratchpad draft named "Welcome" (localized: Welkom, Willkommen, Bienvenida, Bienvenue, Benvenuto, Witamy), which `restoreOrBootstrapTabs` restores and `initApp` makes active. It is written once (same `onboardingCompleted` flag and the same skip rules as §255: upgrades, existing notes, saved session). While the scratchpad is still byte-identical to the template in any language (`isPristineOnboardingNote`), closing it, closing several tabs, or switching notes folders does not raise the "unsaved scratchpad" warning — nothing the user wrote would be lost; once edited it behaves like any scratchpad (`isUnsavedScratchpad` in `tabs.ts`). Desktop is unchanged (a dated note). Known wording gap: the template still mentions picking a notes folder, which doesn't apply in the browser.

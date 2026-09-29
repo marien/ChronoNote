@@ -3,6 +3,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { get } from "svelte/store";
 import type { NoteTab } from "./types";
 import { todayISO } from "./date";
+import { getOnboardingTemplate } from "./onboardingTemplate";
 import { SIGN_IN_EXPIRED_MESSAGE } from "./signInExpired";
 
 /** Every mock function lives here, outside the `vi.mock` factories, so
@@ -2300,7 +2301,7 @@ describe("initApp — first-time installation onboarding (§onboarding)", () => 
     expect(apiMock.setOnboardingCompleted).toHaveBeenCalledWith(true);
   });
 
-  it("skips onboarding note generation on the web backend (empty browser storage must not race a later OneDrive sync)", async () => {
+  it("on the web backend the welcome is a scratchpad draft, never a dated file (no race with a later OneDrive sync)", async () => {
     apiMock.getConfig.mockResolvedValue({
       notesDir: "/notes",
       colorMode: "grayscale",
@@ -2319,7 +2320,23 @@ describe("initApp — first-time installation onboarding (§onboarding)", () => 
     }
 
     expect(apiMock.writeNote).not.toHaveBeenCalled();
+    expect(apiMock.saveScratchpadDrafts).toHaveBeenCalledWith({
+      Welcome: expect.stringContaining("Welcome to ChronoNote"),
+    });
     expect(apiMock.setOnboardingCompleted).toHaveBeenCalledWith(true);
+  });
+
+  it("the untouched welcome scratchpad closes without a warning; an edited one still asks", () => {
+    const template = getOnboardingTemplate("en");
+    controller.tabs.set([tab({ id: "w", filename: "Welcome", isScratchpad: true, content: template })]);
+    controller.requestTabClose("w");
+    expect(get(controller.modal)).toBe("none");
+    expect(get(controller.tabs).some((t) => t.id === "w")).toBe(false);
+
+    controller.tabs.set([tab({ id: "w2", filename: "Welcome", isScratchpad: true, content: template + "my note" })]);
+    controller.requestTabClose("w2");
+    expect(get(controller.modal)).toBe("safety");
+    controller.cancelSafetyClose();
   });
 
   it("does not mark onboarding completed if writeNote fails", async () => {

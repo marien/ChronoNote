@@ -714,6 +714,7 @@ export const it = {
   "toast.oneDriveSync.signInExpired": () => "La sessione di OneDrive è scaduta. Fai clic sulla nuvola per accedere di nuovo.",
   "toast.updates.updateAvailable": () => "Aggiornamento disponibile — vedi Informazioni",
   "toast.persistence.failedToSaveNote": () => "Impossibile salvare la nota",
+  "onboarding.scratchpadName": () => "Benvenuto",
   "toast.onboarding.mobileHint": () =>
     "Tocca qualsiasi token nella barra inferiore per convertire le righe in azioni o argomenti di riunione.",
   "error.agendaInvalid": () =>

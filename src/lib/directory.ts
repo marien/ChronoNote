@@ -33,7 +33,7 @@ import {
 } from "./stores";
 import { flushSave, flushScratchpadDrafts, invalidateDiskNotesCache } from "./persistence";
 import { restoreOrBootstrapTabs } from "./boot";
-import { createScratchpadWith } from "./tabs";
+import { createScratchpadWith, isUnsavedScratchpad } from "./tabs";
 import { refreshAgendaFileExists } from "./calendarSyncActions";
 import { t } from "./i18n";
 
@@ -41,7 +41,7 @@ import { t } from "./i18n";
  * (§39) — both need the same unsaved-scratchpad safety gate before a
  * full workspace reset. */
 async function switchNotesDirectoryWithSafetyCheck(path: string) {
-  const unresolved = get(tabs).filter((t) => t.isScratchpad && t.content.trim() !== "");
+  const unresolved = get(tabs).filter(isUnsavedScratchpad);
   if (unresolved.length > 0) {
     pendingNotesDirSwitch.set(path);
     unsavedScratchpadNames.set(unresolved.map((t) => t.filename));

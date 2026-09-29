@@ -692,6 +692,7 @@ export const en = {
   "toast.oneDriveSync.signInExpired": () => "Your OneDrive sign-in has expired. Click the cloud to sign in again.",
   "toast.updates.updateAvailable": () => "Update available — see About",
   "toast.persistence.failedToSaveNote": () => "Failed to save note",
+  "onboarding.scratchpadName": () => "Welcome",
   "toast.onboarding.mobileHint": () =>
     "Tap any token in the bottom bar to convert lines into actions or meeting topics.",
   "error.agendaInvalid": () => "The calendar file (.agenda.json) is missing, empty, or invalid — check whatever syncs it.",

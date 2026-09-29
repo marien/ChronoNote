@@ -440,16 +440,15 @@ export async function initApp() {
   // Distinguish genuine first install from existing user upgrades:
   // If the user upgraded from an earlier version (lastSeenVersion is set),
   // or a tab session already exists, or existing notes are present on disk,
-  // or this is the web app, skip seeding and mark completed silently. The web
-  // app is skipped outright: its notes live in browser storage that is empty on
-  // every new browser/device, and a OneDrive sync that happens *after* boot
-  // would then collide with a welcome note written as today's file.
+  // skip seeding and mark completed silently. On the web app the welcome is a
+  // scratchpad rather than a dated file (see below).
+  let welcomeScratchpadName: string | null = null;
   if (cfg.onboardingCompleted === false) {
     try {
       const isUpgrade = Boolean(cfg.lastSeenVersion);
       const isWeb = get(backendKind) === "web";
 
-      if (isUpgrade || isWeb) {
+      if (isUpgrade) {
         await api.setOnboardingCompleted(true);
       } else {
         const existingFiles = (await api.listNoteFiles()) ?? [];
@@ -460,9 +459,18 @@ export async function initApp() {
           if (session && session.openTabs && session.openTabs.length > 0) {
             await api.setOnboardingCompleted(true);
           } else {
-            const todayFilename = todayISO() + ".txt";
             const template = getOnboardingTemplate(get(locale));
-            await api.writeNote(todayFilename, template);
+            if (isWeb) {
+              // The web app's browser storage is empty on every new browser/
+              // device, and a OneDrive sync after boot would collide with a
+              // welcome note written as today's file. A scratchpad has no file,
+              // so it can't. It is seeded as a draft; restoreOrBootstrapTabs
+              // then restores it as an ordinary scratchpad tab.
+              welcomeScratchpadName = get(t)("onboarding.scratchpadName", undefined);
+              await api.saveScratchpadDrafts({ [welcomeScratchpadName]: template });
+            } else {
+              await api.writeNote(todayISO() + ".txt", template);
+            }
             await api.setOnboardingCompleted(true);
             if (get(isMobile)) {
               showToast(get(t)("toast.onboarding.mobileHint", undefined));
@@ -475,6 +483,10 @@ export async function initApp() {
     }
   }
   await restoreOrBootstrapTabs();
+  if (welcomeScratchpadName) {
+    const welcome = get(tabs).find((t) => t.isScratchpad && t.filename === welcomeScratchpadName);
+    if (welcome) activeTabId.set(welcome.id);
+  }
   // #62: warm the "all notes" disk-read cache in the background, right
   // after the app has something to show — never awaited, so it can't
   // delay becoming interactive. Section History/Actions Drawer's "All

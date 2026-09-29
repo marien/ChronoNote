@@ -702,6 +702,7 @@ export const nl = {
   "toast.oneDriveSync.signInExpired": () => "Je OneDrive-aanmelding is verlopen. Klik op de wolk om opnieuw aan te melden.",
   "toast.updates.updateAvailable": () => "Update beschikbaar — zie Over",
   "toast.persistence.failedToSaveNote": () => "Opslaan van notitie mislukt",
+  "onboarding.scratchpadName": () => "Welkom",
   "toast.onboarding.mobileHint": () =>
     "Tik op een markering in de onderbalk om regels om te zetten in acties of agendapunten.",
   "error.agendaInvalid": () => "Het agendabestand (.agenda.json) ontbreekt, is leeg of ongeldig — controleer wat het synchroniseert.",
