@@ -684,6 +684,7 @@ export const it = {
   "toast.oneDriveSync.syncFinished": () => "Sincronizzazione OneDrive completata",
   "toast.oneDriveSync.syncFailedPrefix": ({ message }) => `Sincronizzazione OneDrive non riuscita: ${message}`,
   "toast.oneDriveSync.couldntStartSignInPrefix": ({ message }) => `Impossibile avviare l'accesso: ${message}`,
+  "toast.oneDriveSync.signInExpired": () => "La sessione di OneDrive è scaduta. Fai clic sulla nuvola per accedere di nuovo.",
   "toast.updates.updateAvailable": () => "Aggiornamento disponibile — vedi Informazioni",
   "toast.persistence.failedToSaveNote": () => "Impossibile salvare la nota",
   "error.agendaInvalid": () =>
