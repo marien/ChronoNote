@@ -58,6 +58,7 @@ export interface MockSeed {
   fontSize?: number;
   lineHeight?: number;
   pureBlack?: boolean;
+  onboardingCompleted?: boolean;
   lastSyncSuccessMs?: number | null;
   backendKind?: "desktop" | "demo" | "web";
   /** Seeds `recent_notes_dirs` directly (normally only `set_notes_dir`
@@ -248,6 +249,7 @@ export class MockBackend {
   fontSize: number;
   lineHeight: number;
   pureBlack: boolean;
+  onboardingCompleted: boolean;
   lastSyncSuccessMs: number | null = null;
   recentNotesDirs: string[];
   appVersion: string;
@@ -322,6 +324,7 @@ export class MockBackend {
     this.fontSize = seed.fontSize ?? 13;
     this.lineHeight = seed.lineHeight ?? 1.6;
     this.pureBlack = seed.pureBlack ?? false;
+    this.onboardingCompleted = seed.onboardingCompleted ?? true;
     this.lastSyncSuccessMs = seed.lastSyncSuccessMs ?? null;
     this.recentNotesDirs = seed.recentNotesDirs ? [...seed.recentNotesDirs] : [];
     this.appVersion = seed.appVersion ?? "0.3.0";
@@ -372,6 +375,7 @@ export class MockBackend {
       fontSize: this.fontSize,
       lineHeight: this.lineHeight,
       pureBlack: this.pureBlack,
+      onboardingCompleted: this.onboardingCompleted,
       recentNotesDirs: this.recentNotesDirs,
       appVersion: this.appVersion,
       agendaJson: this.agendaJson,
@@ -409,6 +413,7 @@ export class MockBackend {
         fontSize?: number;
         lineHeight?: number;
         pureBlack?: boolean;
+        onboardingCompleted?: boolean;
         recentNotesDirs: string[];
         appVersion: string;
         agendaJson?: string;
@@ -427,6 +432,7 @@ export class MockBackend {
       b.fontSize = s.fontSize ?? 13;
       b.lineHeight = s.lineHeight ?? 1.6;
       b.pureBlack = s.pureBlack ?? false;
+      b.onboardingCompleted = s.onboardingCompleted ?? true;
       b.recentNotesDirs = s.recentNotesDirs;
       b.appVersion = s.appVersion;
       b.agendaJson = s.agendaJson;
@@ -466,6 +472,7 @@ export class MockBackend {
       fontSize: this.fontSize,
       lineHeight: this.lineHeight,
       pureBlack: this.pureBlack,
+      onboardingCompleted: this.onboardingCompleted,
     };
   }
 
@@ -559,6 +566,11 @@ export class MockBackend {
 
     set_last_seen_version: ({ version }) => {
       this.lastSeenVersion = version;
+      return this.config();
+    },
+
+    set_onboarding_completed: ({ completed }) => {
+      this.onboardingCompleted = completed;
       return this.config();
     },
 

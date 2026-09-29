@@ -121,6 +121,14 @@ fn set_last_seen_version(app: AppHandle, version: String) -> Result<storage::App
 }
 
 #[tauri::command]
+fn set_onboarding_completed(app: AppHandle, completed: bool) -> Result<storage::AppConfig, String> {
+    let mut cfg = storage::load_config(&app)?;
+    cfg.onboarding_completed = completed;
+    storage::save_config(&app, &cfg)?;
+    Ok(cfg)
+}
+
+#[tauri::command]
 fn list_note_files(app: AppHandle) -> Result<Vec<String>, String> {
     storage::list_note_files(&app)
 }
@@ -450,6 +458,7 @@ pub fn run() {
             set_line_height,
             set_pure_black,
             set_last_seen_version,
+            set_onboarding_completed,
             list_note_files,
             read_note,
             write_note,

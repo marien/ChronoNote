@@ -738,6 +738,7 @@ export type TranslationParams = {
   "toast.oneDriveSync.signInExpired": undefined;
   "toast.updates.updateAvailable": undefined;
   "toast.persistence.failedToSaveNote": undefined;
+  "toast.onboarding.mobileHint": undefined;
   // i18n Phase 2 (docs/design/i18n-roadmap.md): translated headlines for
   // the small set of `AppError` codes Rust authors itself as fixed
   // sentences (src-tauri/src/error.rs) — see `apiError.ts`.

@@ -70,6 +70,7 @@ interface StoredConfig {
   fontSize?: number;
   lineHeight?: number;
   pureBlack?: boolean;
+  onboardingCompleted?: boolean;
 }
 
 async function sha256Hex(text: string): Promise<string> {
@@ -248,6 +249,7 @@ export class WebBackend {
         fontSize: 13,
         lineHeight: 1.6,
         pureBlack: false,
+        onboardingCompleted: false,
       }
     );
   }
@@ -279,6 +281,7 @@ export class WebBackend {
       fontSize: cfg.fontSize ?? 13,
       lineHeight: cfg.lineHeight ?? 1.6,
       pureBlack: cfg.pureBlack ?? false,
+      onboardingCompleted: cfg.onboardingCompleted ?? false,
     };
   }
 
@@ -378,6 +381,13 @@ export class WebBackend {
     set_last_seen_version: async ({ version }) => {
       const cfg = await this.loadConfig();
       cfg.lastSeenVersion = version;
+      await this.saveConfig(cfg);
+      return this.toAppConfig(cfg);
+    },
+
+    set_onboarding_completed: async ({ completed }) => {
+      const cfg = await this.loadConfig();
+      cfg.onboardingCompleted = completed;
       await this.saveConfig(cfg);
       return this.toAppConfig(cfg);
     },

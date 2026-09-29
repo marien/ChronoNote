@@ -714,6 +714,8 @@ export const it = {
   "toast.oneDriveSync.signInExpired": () => "La sessione di OneDrive è scaduta. Fai clic sulla nuvola per accedere di nuovo.",
   "toast.updates.updateAvailable": () => "Aggiornamento disponibile — vedi Informazioni",
   "toast.persistence.failedToSaveNote": () => "Impossibile salvare la nota",
+  "toast.onboarding.mobileHint": () =>
+    "Tocca qualsiasi token nella barra inferiore per convertire le righe in azioni o argomenti di riunione.",
   "error.agendaInvalid": () =>
     "Il file del calendario (.agenda.json) è mancante, vuoto o non valido — controlla il processo di sincronizzazione.",
   "error.oneDriveSyncBusy": () => "Una sincronizzazione è in corso — riprova tra un istante",

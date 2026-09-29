@@ -85,6 +85,10 @@ export function setLastSeenVersion(version: string): Promise<AppConfig> {
   return invoke("set_last_seen_version", { version });
 }
 
+export function setOnboardingCompleted(completed: boolean): Promise<AppConfig> {
+  return invoke("set_onboarding_completed", { completed });
+}
+
 export function listNoteFiles(): Promise<string[]> {
   return invoke("list_note_files", {});
 }

@@ -14,6 +14,7 @@ const apiMock = {
   setColorMode: vi.fn(),
   setThemeMode: vi.fn(),
   setLastSeenVersion: vi.fn(),
+  setOnboardingCompleted: vi.fn(),
   setWordWrap: vi.fn(),
   setReadableLineLength: vi.fn(),
   setAutoCheckUpdates: vi.fn(),
@@ -107,11 +108,13 @@ beforeEach(async () => {
   apiMock.getFileMetadata.mockResolvedValue(NO_META);
   apiMock.writeConflictCopy.mockResolvedValue("/notes/.chrononote-conflicts/copy.txt");
   apiMock.readAllNotes.mockResolvedValue([]);
+  apiMock.listNoteFiles.mockResolvedValue([]);
   apiMock.readTabSession.mockResolvedValue(null);
   apiMock.writeNote.mockResolvedValue({ exists: true, contentHash: "hash", sizeBytes: 0, modifiedMs: 0 });
   apiMock.deleteNote.mockResolvedValue(undefined);
   apiMock.writeTabSession.mockResolvedValue(undefined);
   apiMock.setLastSeenVersion.mockResolvedValue({} as never);
+  apiMock.setOnboardingCompleted.mockResolvedValue({} as never);
   apiMock.openExternalUrl.mockResolvedValue(undefined);
   apiMock.readAgendaForDate.mockResolvedValue([]);
   apiMock.readAgendaRemovedForDate.mockResolvedValue([]);
@@ -130,6 +133,7 @@ beforeEach(async () => {
     readableLineLength: false,
     recentNotesDirs: [],
     autoCheckUpdates: false,
+    onboardingCompleted: true,
   });
   apiMock.setNotesDir.mockResolvedValue({
     notesDir: "/new",
@@ -2233,6 +2237,105 @@ describe("initApp — first launch after an update (#50)", () => {
     await controller.initApp();
     expect(get(controller.justUpdatedToVersion)).toBe(null);
     expect(apiMock.setLastSeenVersion).not.toHaveBeenCalled();
+  });
+});
+
+describe("initApp — first-time installation onboarding (§onboarding)", () => {
+  it("seeds today's note with the onboarding template and marks onboarding completed when 0 notes exist", async () => {
+    apiMock.getConfig.mockResolvedValue({
+      notesDir: "/notes",
+      colorMode: "grayscale",
+      wordWrap: false,
+      readableLineLength: false,
+      recentNotesDirs: [],
+      autoCheckUpdates: false,
+      onboardingCompleted: false,
+    });
+    apiMock.listNoteFiles.mockResolvedValue([]);
+    const todayFile = `${todayISO()}.txt`;
+
+    await controller.initApp();
+
+    expect(apiMock.writeNote).toHaveBeenCalledWith(
+      todayFile,
+      expect.stringContaining("Welcome to ChronoNote"),
+    );
+    expect(apiMock.setOnboardingCompleted).toHaveBeenCalledWith(true);
+  });
+
+  it("skips onboarding note generation and marks completed if existing notes are present", async () => {
+    apiMock.getConfig.mockResolvedValue({
+      notesDir: "/notes",
+      colorMode: "grayscale",
+      wordWrap: false,
+      readableLineLength: false,
+      recentNotesDirs: [],
+      autoCheckUpdates: false,
+      onboardingCompleted: false,
+    });
+    apiMock.listNoteFiles.mockResolvedValue(["2026-09-01.txt"]);
+
+    await controller.initApp();
+
+    expect(apiMock.writeNote).not.toHaveBeenCalled();
+    expect(apiMock.setOnboardingCompleted).toHaveBeenCalledWith(true);
+  });
+
+  it("skips onboarding note generation and marks completed if upgrading from an earlier version (lastSeenVersion set)", async () => {
+    apiMock.getConfig.mockResolvedValue({
+      notesDir: "/notes",
+      colorMode: "grayscale",
+      wordWrap: false,
+      readableLineLength: false,
+      recentNotesDirs: [],
+      autoCheckUpdates: false,
+      lastSeenVersion: "0.17.1",
+      onboardingCompleted: false,
+    });
+    apiMock.listNoteFiles.mockResolvedValue([]);
+
+    await controller.initApp();
+
+    expect(apiMock.writeNote).not.toHaveBeenCalled();
+    expect(apiMock.setOnboardingCompleted).toHaveBeenCalledWith(true);
+  });
+
+  it("does not mark onboarding completed if writeNote fails", async () => {
+    apiMock.getConfig.mockResolvedValue({
+      notesDir: "/notes",
+      colorMode: "grayscale",
+      wordWrap: false,
+      readableLineLength: false,
+      recentNotesDirs: [],
+      autoCheckUpdates: false,
+      lastSeenVersion: null,
+      onboardingCompleted: false,
+    });
+    apiMock.listNoteFiles.mockResolvedValue([]);
+    apiMock.writeNote.mockRejectedValueOnce(new Error("disk write error"));
+
+    await controller.initApp();
+
+    expect(apiMock.writeNote).toHaveBeenCalled();
+    expect(apiMock.setOnboardingCompleted).not.toHaveBeenCalled();
+  });
+
+  it("does nothing when onboardingCompleted is already true", async () => {
+    apiMock.getConfig.mockResolvedValue({
+      notesDir: "/notes",
+      colorMode: "grayscale",
+      wordWrap: false,
+      readableLineLength: false,
+      recentNotesDirs: [],
+      autoCheckUpdates: false,
+      onboardingCompleted: true,
+    });
+    apiMock.listNoteFiles.mockResolvedValue([]);
+
+    await controller.initApp();
+
+    expect(apiMock.writeNote).not.toHaveBeenCalled();
+    expect(apiMock.setOnboardingCompleted).not.toHaveBeenCalled();
   });
 });
 

@@ -142,6 +142,12 @@ pub struct AppConfig {
     /// written before this field existed.
     #[serde(default)]
     pub language_mode: LanguageMode,
+    /// First-time user onboarding (§onboarding): records whether the initial
+    /// welcome / onboarding walkthrough has already completed or been dismissed.
+    /// Strictly once per installation globally (stored in `config.json`,
+    /// not per notes folder). Defaults to `false`.
+    #[serde(default)]
+    pub onboarding_completed: bool,
 }
 
 fn default_true() -> bool {
@@ -380,6 +386,7 @@ fn load_config_at(path: &Path, default_notes_dir: &Path) -> Result<AppConfig, St
         line_height: default_line_height(),
         pure_black: false,
         language_mode: LanguageMode::default(),
+        onboarding_completed: false,
     };
     save_config_at(path, &cfg)?;
     Ok(cfg)
@@ -1055,6 +1062,7 @@ mod tests {
             line_height: 1.7,
             pure_black: true,
             language_mode: LanguageMode::Nl,
+            onboarding_completed: true,
         };
         save_config_at(&path, &cfg).unwrap();
         let loaded = load_config_at(&path, &dir.path().join("Notes")).unwrap();
@@ -1070,6 +1078,7 @@ mod tests {
         assert_eq!(loaded.line_height, 1.7);
         assert!(loaded.pure_black);
         assert_eq!(loaded.language_mode, LanguageMode::Nl);
+        assert!(loaded.onboarding_completed);
     }
 
     #[test]
@@ -1092,6 +1101,7 @@ mod tests {
             line_height: default_line_height(),
             pure_black: false,
             language_mode: LanguageMode::default(),
+            onboarding_completed: false,
         };
         save_config_at(&path, &cfg).unwrap();
         let on_disk = fs::read_to_string(&path).unwrap();
@@ -1126,6 +1136,7 @@ mod tests {
                 line_height: default_line_height(),
                 pure_black: false,
                 language_mode: LanguageMode::default(),
+                onboarding_completed: false,
             };
             save_config_at(&path, &cfg).unwrap();
             let on_disk = fs::read_to_string(&path).unwrap();
@@ -1189,6 +1200,16 @@ mod tests {
         assert_eq!(loaded.last_seen_version, None);
         // Unlike the above, this one's omitted-default is *on* (§update-check).
         assert!(loaded.auto_check_updates);
+        assert!(!loaded.onboarding_completed);
+    }
+
+    #[test]
+    fn load_config_defaults_onboarding_completed_when_omitted() {
+        let dir = tempdir().unwrap();
+        let path = dir.path().join("config.json");
+        fs::write(&path, r#"{"notesDir": "/n"}"#).unwrap();
+        let loaded = load_config_at(&path, &dir.path().join("Notes")).unwrap();
+        assert!(!loaded.onboarding_completed);
     }
 
     #[test]
