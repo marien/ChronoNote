@@ -323,6 +323,15 @@ export const es = {
   "topBar.window.restore": () => "Restaurar ventana",
   "topBar.window.maximize": () => "Maximizar ventana",
   "topBar.window.close": () => "Cerrar ventana",
+  "topBar.contextMenu.ariaLabel": () => "Acciones de pestaña",
+  "topBar.contextMenu.close": () => "Cerrar pestaña",
+  "topBar.contextMenu.closeOthers": () => "Cerrar las demás pestañas",
+  "topBar.contextMenu.closeToTheRight": () => "Cerrar pestañas a la derecha",
+  "topBar.contextMenu.closeTabsWithNoOpenActions": () => "Cerrar pestañas sin acciones abiertas",
+  "topBar.contextMenu.renameScratchpad": () => "Renombrar bloc de notas",
+  "topBar.contextMenu.duplicateScratchpad": () => "Duplicar bloc de notas",
+  "topBar.contextMenu.copyDate": () => "Copiar fecha",
+  "topBar.contextMenu.copyPath": () => "Copiar ruta de archivo",
 
   "statusBar.oneDrive.signInExpired": () =>
     "Su sesión de OneDrive ha caducado. Haga clic para iniciar sesión de nuevo.",
@@ -412,6 +421,8 @@ export const es = {
   "safetyModal.message": ({ filename, reasons }) =>
     `La pestaña "${filename}" ${reasons}. ¿Seguro que desea cerrarla?`,
   "safetyModal.closeAnyway": () => "Cerrar de todos modos",
+  "safetyModal.batchCloseMessage": ({ count }) =>
+    `¿Cerrar ${count} pestañas? Algunas pestañas contienen acciones pendientes o notas temporales no guardadas.`,
 
   "searchModal.placeholder": () => "Buscar...",
   "searchModal.matchCount": ({ count }) => (count === 1 ? "1 coincidencia" : `${count} coincidencias`),
@@ -676,6 +687,9 @@ export const es = {
   "toast.tabs.noRecentlyClosedTabs": () => "No hay pestañas cerradas recientemente.",
   "toast.tabs.nothingToPromote": () => "Nada que promover.",
   "toast.tabs.promotedScratchpad": ({ filename }) => `Borrador promovido a ${filename}`,
+  "toast.tabs.scratchpadRenamed": ({ name }) => `Bloc de notas renombrado a ${name}`,
+  "toast.tabs.duplicatedAsScratchpad": () => "Duplicado en un nuevo bloc de notas",
+  "toast.tabs.copiedToClipboard": ({ text }) => `"${text}" copiado al portapapeles`,
   "toast.syncConflicts.couldntResolvePrefix": ({ name, message }) => `No se pudo resolver ${name}: ${message}`,
   "toast.syncConflicts.keptOneDriveVersion": ({ name }) => `Se conservó la versión de OneDrive de ${name}`,
   "toast.syncConflicts.keptBothVersions": ({ name }) => `Se conservaron ambas versiones de ${name}`,

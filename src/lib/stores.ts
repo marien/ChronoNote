@@ -267,6 +267,7 @@ export const updateInstalling = writable(false);
 export const justUpdatedToVersion = writable<string | null>(null);
 
 export const pendingCloseTabId = writable<string | null>(null);
+export const pendingBatchCloseTabIds = writable<string[]>([]);
 export const safetyMessage = writable<string>("");
 export const pendingNotesDirSwitch = writable<string | null>(null);
 export const unsavedScratchpadNames = writable<string[]>([]);

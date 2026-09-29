@@ -327,6 +327,15 @@ export const pl = {
   "topBar.window.restore": () => "Przywróć okno",
   "topBar.window.maximize": () => "Maksymalizuj okno",
   "topBar.window.close": () => "Zamknij okno",
+  "topBar.contextMenu.ariaLabel": () => "Działania na kartach",
+  "topBar.contextMenu.close": () => "Zamknij kartę",
+  "topBar.contextMenu.closeOthers": () => "Zamknij inne karty",
+  "topBar.contextMenu.closeToTheRight": () => "Zamknij karty po prawej",
+  "topBar.contextMenu.closeTabsWithNoOpenActions": () => "Zamknij karty bez otwartych zadań",
+  "topBar.contextMenu.renameScratchpad": () => "Zmień nazwę brudnopisu",
+  "topBar.contextMenu.duplicateScratchpad": () => "Duplikuj brudnopis",
+  "topBar.contextMenu.copyDate": () => "Kopiuj datę",
+  "topBar.contextMenu.copyPath": () => "Kopiuj ścieżkę pliku",
 
   "statusBar.oneDrive.signInExpired": () =>
     "Twoje logowanie do OneDrive wygasło. Kliknij, aby zalogować się ponownie.",
@@ -417,6 +426,8 @@ export const pl = {
   "safetyModal.message": ({ filename, reasons }) =>
     `Karta „${filename}” ${reasons}. Czy na pewno chcesz ją zamknąć?`,
   "safetyModal.closeAnyway": () => "Zamknij mimo to",
+  "safetyModal.batchCloseMessage": ({ count }) =>
+    `Zamknąć ${count} kart? Niektóre karty zawierają otwarte zadania lub niezapisane wersje robocze.`,
 
   "searchModal.placeholder": () => "Szukaj…",
   "searchModal.matchCount": ({ count }) =>
@@ -693,6 +704,9 @@ export const pl = {
   "toast.tabs.noRecentlyClosedTabs": () => "Brak ostatnio zamkniętych kart.",
   "toast.tabs.nothingToPromote": () => "Brak treści do przeniesienia.",
   "toast.tabs.promotedScratchpad": ({ filename }) => `Przeniesiono brudnopis do ${filename}`,
+  "toast.tabs.scratchpadRenamed": ({ name }) => `Zmieniono nazwę brudnopisu na ${name}`,
+  "toast.tabs.duplicatedAsScratchpad": () => "Zduplikowano do nowego brudnopisu",
+  "toast.tabs.copiedToClipboard": ({ text }) => `Skopiowano "${text}" do schowka`,
   "toast.syncConflicts.couldntResolvePrefix": ({ name, message }) =>
     `Nie udało się rozwiązać konfliktu w ${name}: ${message}`,
   "toast.syncConflicts.keptOneDriveVersion": ({ name }) => `Zachowano wersję OneDrive pliku ${name}`,

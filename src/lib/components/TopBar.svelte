@@ -29,7 +29,7 @@
 </script>
 
 <script lang="ts">
-  import { onMount } from "svelte";
+  import { onMount, tick } from "svelte";
   import * as controller from "../controller";
   import {
     activeTabId,
@@ -40,9 +40,11 @@
     currentDateISO,
     isMobile,
     mobileTabDrawerOpen,
+    notesDir,
     oneDriveAccount,
     oneDriveFolder,
     saveState,
+    showToast,
     tabs,
   } from "../controller";
 
@@ -50,7 +52,76 @@
   import Icon from "../icons/Icon.svelte";
   import AppIcon from "./AppIcon.svelte";
   import { formatCombo, formatShortcut, shortcutById } from "../shortcuts";
+  import { countActions } from "../tokens";
   import { t } from "../i18n";
+
+  let contextMenuVisible = false;
+  let contextTab: NoteTab | null = null;
+  let contextPos = { x: 0, y: 0 };
+  let contextMenuEl: HTMLDivElement;
+
+  let renamingTabId: string | null = null;
+  let renameInputVal = "";
+  let renameInputEl: HTMLInputElement;
+
+  function isLastDisplayTab(tab: NoteTab | null): boolean {
+    if (!tab) return true;
+    const last = displayTabs[displayTabs.length - 1];
+    return !last || last.id === tab.id;
+  }
+
+  function openTabContextMenu(e: MouseEvent, tab: NoteTab) {
+    e.preventDefault();
+    e.stopPropagation();
+    contextTab = tab;
+    contextMenuVisible = true;
+    const menuWidth = 200;
+    const menuHeight = 250;
+    const x = Math.min(e.clientX, window.innerWidth - menuWidth - 8);
+    const y = Math.min(e.clientY, window.innerHeight - menuHeight - 8);
+    contextPos = { x: Math.max(8, x), y: Math.max(8, y) };
+  }
+
+  function closeContextMenu() {
+    contextMenuVisible = false;
+    contextTab = null;
+  }
+
+  function startRenaming(tab: NoteTab) {
+    closeContextMenu();
+    if (!tab.isScratchpad) return;
+    renamingTabId = tab.id;
+    renameInputVal = tab.filename;
+    tick().then(() => {
+      renameInputEl?.focus();
+      renameInputEl?.select();
+    });
+  }
+
+  function commitRename() {
+    if (renamingTabId) {
+      if (renameInputVal.trim()) {
+        controller.renameScratchpad(renamingTabId, renameInputVal.trim());
+      }
+      renamingTabId = null;
+    }
+  }
+
+  function cancelRename() {
+    renamingTabId = null;
+  }
+
+  async function copyDate(tab: NoteTab) {
+    const dateStr = tab.filename.replace(/\.txt$/, "");
+    await navigator.clipboard.writeText(dateStr);
+    showToast($t("toast.tabs.copiedToClipboard", { text: dateStr }));
+  }
+
+  async function copyPath(tab: NoteTab) {
+    const path = $notesDir ? `${$notesDir}/${tab.filename}` : tab.filename;
+    await navigator.clipboard.writeText(path);
+    showToast($t("toast.tabs.copiedToClipboard", { text: path }));
+  }
 
   // §merged-titlebar: the app icon, drag regions, and window-control
   // buttons only make sense when this frontend is actually running inside
@@ -150,6 +221,7 @@
   $: calendarSyncReady =
     !!activeTab && !activeTab.isScratchpad && activeTab.filename.slice(0, 10) >= $currentDateISO && $agendaFileExists;
   $: displayTabs = controller.sortedTabsForDisplay($tabs);
+  $: hasTabsWithoutOpenActions = $tabs.some((t) => countActions(t.content).open === 0);
 
   /** Waits for the next paint frame — used instead of Svelte's own `tick()`
    * everywhere below. `tick()` resolves via Svelte's reactive scheduler,
@@ -758,6 +830,8 @@
           data-tab-id={tab.id}
           aria-selected={tab.id === $activeTabId}
           on:click={() => controller.switchTab(tab.id)}
+          on:dblclick={() => tab.isScratchpad && startRenaming(tab)}
+          on:contextmenu={(e) => openTabContextMenu(e, tab)}
           on:mousedown={(e) => {
             // Middle-click closes the tab (and suppress the autoscroll cursor).
             if (e.button === 1) {
@@ -767,11 +841,30 @@
           }}
           on:keydown={(e) => e.key === "Enter" && controller.switchTab(tab.id)}
         >
-
           <span class="tab-icon" aria-hidden="true">
             <Icon name={tab.isScratchpad ? "tab-scratch" : "tab-daily"} size={13} />
           </span>
-          <span class="tab-label">{tabLabel(tab)}</span>
+          {#if renamingTabId === tab.id}
+            <input
+              type="text"
+              class="tab-rename-input"
+              bind:this={renameInputEl}
+              bind:value={renameInputVal}
+              on:keydown={(e) => {
+                if (e.key === "Enter") {
+                  e.stopPropagation();
+                  commitRename();
+                } else if (e.key === "Escape") {
+                  e.stopPropagation();
+                  cancelRename();
+                }
+              }}
+              on:blur={commitRename}
+              on:click|stopPropagation
+            />
+          {:else}
+            <span class="tab-label">{tabLabel(tab)}</span>
+          {/if}
           {#if tab.isScratchpad && tab.content.trim() !== ""}
             <span class="tab-status-dot mem" title={$t("topBar.tabStatus.memoryOnly")}></span>
           {:else if tab.id === $activeTabId && $saveState === "error"}
@@ -954,3 +1047,137 @@
     </button>
   </div>
 </div>
+
+<svelte:window
+  on:mousedown={(e) => {
+    if (contextMenuVisible && contextMenuEl && !contextMenuEl.contains(e.target as Node)) {
+      closeContextMenu();
+    }
+  }}
+  on:keydown={(e) => {
+    if (e.key === "Escape" && contextMenuVisible) {
+      closeContextMenu();
+    }
+  }}
+/>
+
+{#if contextMenuVisible && contextTab}
+  <div
+    class="tab-context-menu"
+    bind:this={contextMenuEl}
+    style="top: {contextPos.y}px; left: {contextPos.x}px;"
+    role="menu"
+    aria-label={$t("topBar.contextMenu.ariaLabel")}
+  >
+    <button
+      type="button"
+      class="tab-context-item"
+      role="menuitem"
+      on:click={() => {
+        const id = contextTab?.id;
+        closeContextMenu();
+        if (id) controller.requestTabClose(id);
+      }}
+    >
+      <Icon name="close" size={13} />
+      <span>{$t("topBar.contextMenu.close")}</span>
+    </button>
+    <button
+      type="button"
+      class="tab-context-item"
+      role="menuitem"
+      disabled={$tabs.length <= 1}
+      on:click={() => {
+        const id = contextTab?.id;
+        closeContextMenu();
+        if (id) controller.closeOtherTabs(id);
+      }}
+    >
+      <Icon name="close-others" size={13} />
+      <span>{$t("topBar.contextMenu.closeOthers")}</span>
+    </button>
+    <button
+      type="button"
+      class="tab-context-item"
+      role="menuitem"
+      disabled={isLastDisplayTab(contextTab)}
+      on:click={() => {
+        const id = contextTab?.id;
+        closeContextMenu();
+        if (id) controller.closeTabsToTheRight(id);
+      }}
+    >
+      <Icon name="close-right" size={13} />
+      <span>{$t("topBar.contextMenu.closeToTheRight")}</span>
+    </button>
+    <button
+      type="button"
+      class="tab-context-item"
+      role="menuitem"
+      disabled={!hasTabsWithoutOpenActions}
+      on:click={() => {
+        closeContextMenu();
+        controller.closeTabsWithNoOpenActions();
+      }}
+    >
+      <Icon name="close-clean" size={13} />
+      <span>{$t("topBar.contextMenu.closeTabsWithNoOpenActions")}</span>
+    </button>
+
+    <div class="tab-context-sep" role="separator"></div>
+
+    {#if contextTab.isScratchpad}
+      <button
+        type="button"
+        class="tab-context-item"
+        role="menuitem"
+        on:click={() => {
+          if (contextTab) startRenaming(contextTab);
+        }}
+      >
+        <Icon name="edit" size={13} />
+        <span>{$t("topBar.contextMenu.renameScratchpad")}</span>
+      </button>
+      <button
+        type="button"
+        class="tab-context-item"
+        role="menuitem"
+        on:click={() => {
+          const id = contextTab?.id;
+          closeContextMenu();
+          if (id) controller.duplicateTab(id);
+        }}
+      >
+        <Icon name="new-scratchpad" size={13} />
+        <span>{$t("topBar.contextMenu.duplicateScratchpad")}</span>
+      </button>
+    {:else}
+      <button
+        type="button"
+        class="tab-context-item"
+        role="menuitem"
+        on:click={() => {
+          const t = contextTab;
+          closeContextMenu();
+          if (t) copyDate(t);
+        }}
+      >
+        <Icon name="date-note" size={13} />
+        <span>{$t("topBar.contextMenu.copyDate")}</span>
+      </button>
+      <button
+        type="button"
+        class="tab-context-item"
+        role="menuitem"
+        on:click={() => {
+          const t = contextTab;
+          closeContextMenu();
+          if (t) copyPath(t);
+        }}
+      >
+        <Icon name="copy" size={13} />
+        <span>{$t("topBar.contextMenu.copyPath")}</span>
+      </button>
+    {/if}
+  </div>
+{/if}

@@ -173,3 +173,101 @@ test.describe("close warning by date (#76)", () => {
     await expect(modalCard(page, MODAL_LABELS.safety)).toContainText("unresolved open action");
   });
 });
+
+test.describe("tab context menu", () => {
+  test("right-clicking a tab opens context menu with Close Others and Close to the Right", async ({ page }) => {
+    await seedApp(page, {
+      seed: {
+        notes: {
+          "2026-09-01.txt": "first",
+          "2026-09-02.txt": "second",
+          "2026-09-07.txt": "third",
+        },
+        session: {
+          openTabs: ["2026-09-01.txt", "2026-09-02.txt", "2026-09-07.txt"],
+          activeTab: "2026-09-02.txt",
+        },
+      },
+    });
+
+    await expect(page.locator("#tab-bar .tab")).toHaveCount(3);
+    const middleTab = tab(page, "2026-09-02");
+    await middleTab.click({ button: "right" });
+
+    const menu = page.locator(".tab-context-menu");
+    await expect(menu).toBeVisible();
+    await expect(menu.getByRole("menuitem", { name: "Close tab", exact: true })).toBeVisible();
+    await expect(menu.getByRole("menuitem", { name: "Close other tabs" })).toBeVisible();
+    await expect(menu.getByRole("menuitem", { name: "Close tabs to the right" })).toBeVisible();
+    await expect(menu.getByRole("menuitem", { name: "Close tabs with no open actions" })).toBeVisible();
+
+    // Click "Close tabs to the right"
+    await menu.getByRole("menuitem", { name: "Close tabs to the right" }).click();
+    await expect(page.locator("#tab-bar .tab")).toHaveCount(2);
+    await expect(tab(page, "2026-09-01")).toBeVisible();
+    await expect(tab(page, "2026-09-02")).toBeVisible();
+    await expect(tab(page, "2026-09-07")).toHaveCount(0);
+  });
+
+  test("right-clicking a scratchpad tab allows renaming it inline", async ({ page }) => {
+    await seedApp(page, { seed: "empty" });
+
+    await editor(page).click();
+    await page.keyboard.press("ControlOrMeta+n");
+    const scratchTab = tab(page, "Scratchpad 1");
+    await expect(scratchTab).toBeVisible();
+
+    await scratchTab.click({ button: "right" });
+    const menu = page.locator(".tab-context-menu");
+    await expect(menu).toBeVisible();
+
+    await menu.getByRole("menuitem", { name: "Rename scratchpad" }).click();
+    const input = page.locator(".tab-rename-input");
+    await expect(input).toBeVisible();
+    await expect(input).toBeFocused();
+
+    await input.fill("Quick Notes");
+    await input.press("Enter");
+
+    await expect(tab(page, "Quick Notes")).toBeVisible();
+  });
+
+  test("right-clicking a tab allows closing all tabs with no open actions", async ({ page }) => {
+    await seedApp(page, {
+      seed: {
+        notes: {
+          "2026-09-01.txt": "# Still pending task\n",
+          "2026-09-02.txt": "v Completed task\n",
+          "2026-09-07.txt": "Just some meeting notes without tasks\n",
+        },
+        session: {
+          openTabs: ["2026-09-01.txt", "2026-09-02.txt", "2026-09-07.txt"],
+          activeTab: "2026-09-01.txt",
+        },
+      },
+    });
+
+    await expect(page.locator("#tab-bar .tab")).toHaveCount(3);
+    const firstTab = tab(page, "2026-09-01");
+    await firstTab.click({ button: "right" });
+
+    const menu = page.locator(".tab-context-menu");
+    await expect(menu).toBeVisible();
+    const closeCleanItem = menu.getByRole("menuitem", { name: "Close tabs with no open actions" });
+    await expect(closeCleanItem).toBeVisible();
+    await expect(closeCleanItem).toBeEnabled();
+
+    await closeCleanItem.click();
+    await expect(page.locator("#tab-bar .tab")).toHaveCount(1);
+    await expect(tab(page, "2026-09-01")).toBeVisible();
+    await expect(tab(page, "2026-09-02")).toHaveCount(0);
+    await expect(tab(page, "2026-09-07")).toHaveCount(0);
+
+    // Right-clicking again shows the button is disabled since no tabs without open actions remain
+    await firstTab.click({ button: "right" });
+    const secondMenu = page.locator(".tab-context-menu");
+    await expect(secondMenu).toBeVisible();
+    await expect(secondMenu.getByRole("menuitem", { name: "Close tabs with no open actions" })).toBeDisabled();
+  });
+});
+

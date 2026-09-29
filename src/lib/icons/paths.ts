@@ -54,5 +54,10 @@ export const ICONS = {
   cloud: `<path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/>`,
   external: `<path d="M14 5h5v5"/><path d="M19 5l-8 8"/><path d="M17 14v4a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V8a1 1 0 0 1 1-1h4"/>`,
   tabs: `<rect x="4" y="6" width="16" height="12" rx="2"/><path d="M9 6v12M4 10h5"/>`,
+  copy: `<rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/>`,
+  edit: `<path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>`,
+  "close-others": `<path d="M4 8l5 5M9 8l-5 5"/><rect x="13" y="5" width="7" height="14" rx="2"/>`,
+  "close-right": `<rect x="4" y="5" width="6" height="14" rx="1.5"/><path d="M14 9l3 3-3 3M17 12h-4"/>`,
+  "close-clean": `<rect x="4" y="5" width="16" height="14" rx="2"/><path d="M8 12.5l2.5 2.5 5.5-5.5"/>`,
 } as const;
 
