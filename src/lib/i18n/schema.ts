@@ -627,6 +627,8 @@ export type TranslationParams = {
   "mobileAccessory.completedTask.titleWord": undefined;
   "mobileAccessory.deferredTask.ariaLabel": undefined;
   "mobileAccessory.deferredTask.titleWord": undefined;
+  "mobileAccessory.wontDoTask.ariaLabel": undefined;
+  "mobileAccessory.wontDoTask.titleWord": undefined;
   "mobileAccessory.topicToDiscuss.ariaLabel": undefined;
   "mobileAccessory.topicToDiscuss.titleWord": undefined;
   "mobileAccessory.topicDiscussed.ariaLabel": undefined;

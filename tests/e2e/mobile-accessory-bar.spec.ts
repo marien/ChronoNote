@@ -58,10 +58,17 @@ test.describe("mobile accessory bar — caret after token insertion", () => {
     expect(await activeTabContent(page)).toBe("hello from first tap");
   });
 
+  test("☒ on an empty line: the next typed text follows `x `", async ({ page }) => {
+    await page.getByRole("button", { name: "Won't do task (box)" }).click();
+    await page.keyboard.type("skip this");
+
+    expect(await activeTabContent(page)).toBe("x skip this");
+  });
+
   test("all token buttons in the mobile accessory bar share the same vertical centerline", async ({ page }) => {
     const glyphs = page.locator(".accessory-btn.token-btn .token-glyph");
     const count = await glyphs.count();
-    expect(count).toBe(9);
+    expect(count).toBe(10);
 
     const midpoints: number[] = [];
     for (let i = 0; i < count; i++) {
