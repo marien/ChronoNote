@@ -702,6 +702,8 @@ export const nl = {
   "toast.oneDriveSync.signInExpired": () => "Je OneDrive-aanmelding is verlopen. Klik op de wolk om opnieuw aan te melden.",
   "toast.updates.updateAvailable": () => "Update beschikbaar — zie Over",
   "toast.persistence.failedToSaveNote": () => "Opslaan van notitie mislukt",
+  "toast.onboarding.mobileHint": () =>
+    "Tik op een markering in de onderbalk om regels om te zetten in acties of agendapunten.",
   "error.agendaInvalid": () => "Het agendabestand (.agenda.json) ontbreekt, is leeg of ongeldig — controleer wat het synchroniseert.",
   "error.oneDriveSyncBusy": () => "Er wordt al gesynchroniseerd — probeer het over een moment opnieuw",
   "error.oneDriveLoopbackBindFailed": ({ detail }) => `Kon de lokale aanmeldlistener niet starten: ${detail}`,

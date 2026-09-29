@@ -707,6 +707,8 @@ export const de = {
   "toast.oneDriveSync.signInExpired": () => "Deine OneDrive-Anmeldung ist abgelaufen. Klicke auf die Wolke, um dich erneut anzumelden.",
   "toast.updates.updateAvailable": () => "Update verfügbar — siehe Über",
   "toast.persistence.failedToSaveNote": () => "Notiz konnte nicht gespeichert werden",
+  "toast.onboarding.mobileHint": () =>
+    "Tippen Sie auf ein Token in der unteren Leiste, um Zeilen in Aufgaben oder Themen umzuwandeln.",
   "error.agendaInvalid": () => "Die Kalenderdatei (.agenda.json) fehlt, ist leer oder ungültig — prüfe, was sie synchronisiert.",
   "error.oneDriveSyncBusy": () => "Es läuft bereits eine Synchronisierung — versuche es gleich noch einmal",
   "error.oneDriveLoopbackBindFailed": ({ detail }) => `Der lokale Anmelde-Listener konnte nicht gestartet werden: ${detail}`,

@@ -9444,4 +9444,35 @@ Background sync automatically attempts silent token renewal using the stored OAu
    - Background sync now alerts the user once when `oneDriveSignInExpired` transitions from false to true via `toast.oneDriveSync.signInExpired` across all 7 display languages (en, nl, de, es, fr, it, pl).
    - Subsequent background polling cycles while already expired do not repeat the toast, preventing toast spam during typing.
 
+## 255. First-time user onboarding: interactive token-based setup note and global one-time installation state
+
+Implemented an interactive, plain-text first-time onboarding experience adhering strictly to ChronoNote's core tenets of zero lock-in, zero modal friction, and "learn by doing":
+
+1. **Strictly Once Per Installation (Invariant 1)**:
+   - Persisted globally in `config.json` via `onboarding_completed: bool` (`onboardingCompleted` on frontend).
+   - Stored in the application data directory (`%APPDATA%/com.chrononote.app` on Windows, `~/.config/com.chrononote.app` on Linux, etc.), completely independent of whichever notes folder is active. Switching notes folders or connecting OneDrive will never re-trigger onboarding.
+   - IPC command `set_onboarding_completed` exposed and implemented across Rust backend (`src-tauri/src/storage.rs`, `lib.rs`), Tauri IPC client (`tauriApi.ts`, `tauriCommands.ts`), web IndexedDB backend (`webBackend.ts`), and in-memory mock (`mockBackend.ts`).
+
+2. **Zero Overwrite / Respects Existing Notes (Invariant 2)**:
+   - On first launch after installation, ChronoNote inspects the notes directory via `listNoteFiles()`.
+   - If any existing `.txt` notes are detected, or today's note already exists on disk, the onboarding note is completely skipped and `onboardingCompleted` is automatically marked `true` silently. Preexisting workspaces are never polluted or overwritten with boilerplate.
+
+3. **Interactive "Learn by Doing" Daily Note Template**:
+   - For fresh installs with 0 existing notes, today's note (`YYYY-MM-DD.txt`) is seeded with an editable daily note structured around ChronoNote's token system (`#`, `v`, `>`, `x`, `!`, `-`, `1.`, `=>`, `o`, `.`, `,`).
+   - "Do First — Initial Setup": guides the user to select their notes storage folder and immediately try `Ctrl+Space` (`Cmd+Space` on macOS) to check off their first action, witnessing the `#` transform into `v`, the line turn muted green, and the date picker heatmap dot activate in real time.
+   - "Do Next — Daily Workflow": introduces scratchpads (`Ctrl/Cmd+N`), open task jumping (`F2`), the Action Drawer (`Ctrl/Cmd+Shift+A`), and the Command Palette (`Ctrl/Cmd+K`).
+   - Token Quick Reference and Meeting Agenda Topics reference.
+
+4. **Multi-Language Localization (7 Languages)**:
+   - The onboarding note is fully translated and formatted across all 7 supported languages: English (`en`), Dutch (`nl`), German (`de`), Spanish (`es`), French (`fr`), Italian (`it`), and Polish (`pl`).
+   - Detects the active or resolved system locale on launch.
+   - Added `toast.onboarding.mobileHint` key across all 7 locale dictionaries to guide mobile users on bottom bar token tap conversions.
+
+Verification:
+- Vitest unit tests: 34 files, 617 tests passed (`npm.cmd test`).
+- Playwright E2E tests: `tests/e2e/onboarding.spec.ts` (both fresh install and existing-notes skip scenarios, plus live `Ctrl+Space` interaction) and `tests/e2e/first-open-of-day.spec.ts` passed (`npm.cmd run test:e2e`).
+- Cargo tests: 164 unit tests passed in `src-tauri` (`cargo test`).
+- Svelte check: 0 errors and 0 warnings (`npm.cmd run check`).
+- Webapp build: succeeded cleanly with no build warnings (`npm.cmd run build:webapp`).
+
 

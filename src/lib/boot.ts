@@ -23,6 +23,7 @@ import {
   languageMode,
   lineHeight,
   pureBlack,
+  isMobile,
   justUpdatedToVersion,
   markTabClean,
   modal,
@@ -54,6 +55,7 @@ import { refreshSyncConflicts, syncOneDriveNow } from "./oneDriveSync";
 import { checkForUpdatesOnLaunch } from "./updates";
 import { locale, t } from "./i18n";
 import { describeApiError } from "./apiError";
+import { getOnboardingTemplate } from "./onboardingTemplate";
 import type { ColorMode, LanguageMode, NoteTab, ThemeMode } from "./types";
 
 // --- Standing subscriptions (wired once, from initApp) -----------------
@@ -432,6 +434,26 @@ export async function initApp() {
   applyPureBlackToDom(cfg.pureBlack ?? false);
   if (cfg.calendarSyncEnabled && (get(backendKind) !== "web" || !!get(oneDriveAccount))) {
     void refreshAgendaFileExists();
+  }
+  // First-time installation onboarding (§onboarding):
+  // Strictly once per installation globally (tracked in config.json).
+  // If the notes directory already has existing notes, skip seeding and mark done.
+  if (cfg.onboardingCompleted === false) {
+    try {
+      const existingFiles = (await api.listNoteFiles()) ?? [];
+      const todayFilename = todayISO() + ".txt";
+      if (existingFiles.length === 0) {
+        const template = getOnboardingTemplate(get(locale));
+        await api.writeNote(todayFilename, template);
+        if (get(isMobile)) {
+          showToast(get(t)("toast.onboarding.mobileHint", undefined));
+        }
+      }
+    } catch (err) {
+      console.error("Failed to seed onboarding note:", err);
+    } finally {
+      api.setOnboardingCompleted(true).catch(() => {});
+    }
   }
   await restoreOrBootstrapTabs();
   // #62: warm the "all notes" disk-read cache in the background, right
