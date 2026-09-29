@@ -2300,6 +2300,28 @@ describe("initApp — first-time installation onboarding (§onboarding)", () => 
     expect(apiMock.setOnboardingCompleted).toHaveBeenCalledWith(true);
   });
 
+  it("skips onboarding note generation on the web backend (empty browser storage must not race a later OneDrive sync)", async () => {
+    apiMock.getConfig.mockResolvedValue({
+      notesDir: "/notes",
+      colorMode: "grayscale",
+      wordWrap: false,
+      readableLineLength: false,
+      recentNotesDirs: [],
+      autoCheckUpdates: false,
+      onboardingCompleted: false,
+    });
+    apiMock.listNoteFiles.mockResolvedValue([]);
+    controller.backendKind.set("web");
+    try {
+      await controller.initApp();
+    } finally {
+      controller.backendKind.set("desktop");
+    }
+
+    expect(apiMock.writeNote).not.toHaveBeenCalled();
+    expect(apiMock.setOnboardingCompleted).toHaveBeenCalledWith(true);
+  });
+
   it("does not mark onboarding completed if writeNote fails", async () => {
     apiMock.getConfig.mockResolvedValue({
       notesDir: "/notes",

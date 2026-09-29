@@ -9457,6 +9457,8 @@ Implemented an interactive, plain-text first-time onboarding experience adhering
    - On first launch after installation, ChronoNote inspects the notes directory via `listNoteFiles()`.
    - If any existing `.txt` notes are detected, or today's note already exists on disk, the onboarding note is completely skipped and `onboardingCompleted` is automatically marked `true` silently. Preexisting workspaces are never polluted or overwritten with boilerplate.
 
+   - **When seeding is skipped (marked complete silently):** an existing user upgrading (`lastSeenVersion` set), a tab session already present, or notes already on disk. **The web app never seeds**: its browser storage is empty on every new browser/device, and a OneDrive sync that happens after boot would collide with a welcome note written as today's file. (Review fix on merge: the PR's own web guard read `oneDriveAccount` before it is populated in `initApp`, so it was always false.) The note is only marked complete after a successful write.
+
 3. **Interactive "Learn by Doing" Daily Note Template**:
    - For fresh installs with 0 existing notes, today's note (`YYYY-MM-DD.txt`) is seeded with an editable daily note structured around ChronoNote's token system (`#`, `v`, `>`, `x`, `!`, `-`, `1.`, `=>`, `o`, `.`, `,`).
    - "Do First — Initial Setup": guides the user to select their notes storage folder and immediately try `Ctrl+Space` (`Cmd+Space` on macOS) to check off their first action, witnessing the `#` transform into `v`, the line turn muted green, and the date picker heatmap dot activate in real time.

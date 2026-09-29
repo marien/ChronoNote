@@ -440,13 +440,16 @@ export async function initApp() {
   // Distinguish genuine first install from existing user upgrades:
   // If the user upgraded from an earlier version (lastSeenVersion is set),
   // or a tab session already exists, or existing notes are present on disk,
-  // or on web with OneDrive connected, skip seeding and mark completed silently.
+  // or this is the web app, skip seeding and mark completed silently. The web
+  // app is skipped outright: its notes live in browser storage that is empty on
+  // every new browser/device, and a OneDrive sync that happens *after* boot
+  // would then collide with a welcome note written as today's file.
   if (cfg.onboardingCompleted === false) {
     try {
       const isUpgrade = Boolean(cfg.lastSeenVersion);
-      const isWebWithOneDrive = get(backendKind) === "web" && Boolean(get(oneDriveAccount));
+      const isWeb = get(backendKind) === "web";
 
-      if (isUpgrade || isWebWithOneDrive) {
+      if (isUpgrade || isWeb) {
         await api.setOnboardingCompleted(true);
       } else {
         const existingFiles = (await api.listNoteFiles()) ?? [];
