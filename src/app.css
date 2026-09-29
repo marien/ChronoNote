@@ -2557,7 +2557,7 @@ textarea.modal-input.import-textarea {
 .empty-state-title {
   font-size: 13px;
   font-weight: 600;
-  color: var(--fg);
+  color: var(--text);
   line-height: 1.4;
 }
 

@@ -9421,7 +9421,19 @@ Two places carry the icon's SVG source independently and both were updated to ma
 
 Verification: `svelte-check` 270/0 (unchanged — pure SVG/asset change, no TS logic touched); Vitest/`cargo test` unaffected (nothing in either touches icon rendering); GitHub Actions' `Test` workflow green on the branch before merging.
 
-## 252. OneDrive sign-in expiration ambient indicator & alert toast
+## 251. Mobile accessory bar: won't-do (`x` / ☒) button (PR #110)
+
+The mobile accessory bar had buttons for open (`#`), done (`v`) and deferred (`>`) but not won't-do, so the fourth action state needed the keyboard's `x`. Added the ☒ button (`glyph-cancelled`) with aria-label/title in all seven display languages, plus an E2E test that tapping it inserts `x ` with correct caret continuation.
+
+## 252. Tab context menu, scratchpad rename, batch close (PR #111)
+
+Right-clicking a tab opens a menu: Close tab, Close other tabs, Close tabs to the right, Close tabs with no open actions; for scratchpads Rename and Duplicate; for dated notes Copy date and Copy file path. Double-clicking a scratchpad tab (or Rename) swaps its label for an inline input (Enter commits, Escape cancels). Batch closes reuse the existing safety modal: if any tab has due open actions or is a non-empty scratchpad, one confirmation ("Close N tabs?") covers the batch (`pendingBatchCloseTabIds`). Five new monoline icons; all seven languages; Vitest + Playwright coverage. Known small gaps, not fixed: Copy file path joins with `/` even on Windows; two scratchpads can be renamed to the same name; the menu has no keyboard navigation.
+
+## 253. Expressive empty states (PR #112, roadmap area 6.4)
+
+New `EmptyState` component (28px monoline mark at 0.35 opacity, bold title, muted guidance subtitle) replaces the plain "no results" line in Search, Action Drawer (both "no match" and "all resolved"), Command Palette, Section History and Calendar Sync Review, with translated guidance in all seven languages. Review fix on merge: the title colour used a non-existent `--fg` token (it only worked through inheritance); now `--text`.
+
+## 254. OneDrive sign-in expiration ambient indicator & alert toast
 
 Background sync automatically attempts silent token renewal using the stored OAuth refresh token on every sync, only encountering `SIGN_IN_EXPIRED_MESSAGE` when Microsoft actively rejects the refresh token (e.g. 24-hour SPA refresh token expiration or interactive MFA requirement). Previously, when this occurred during silent background polling, no alert toast was fired, and the cloud icon remained neutral monochrome gray without a warning indicator. On narrow screens (or whenever a center message was displayed), the `"Sign in again"` text label collapsed into `display: none`, making the expired state completely invisible ambiently without opening the sync health popover.
 
