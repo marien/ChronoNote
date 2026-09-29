@@ -9,6 +9,7 @@
   import { groupHeaderLabel } from "../../ui/listFormat";
   import Icon from "../../icons/Icon.svelte";
   import Segmented from "../Segmented.svelte";
+  import EmptyState from "../EmptyState.svelte";
   import { t } from "../../i18n";
   import type { ActionSnapshotItem } from "../../types";
   import {
@@ -294,9 +295,19 @@
       style="position: relative; overflow-y: auto;"
     >
       {#if flatList.length === 0}
-        <div class="modal-empty">
-          {filter ? $t("actionDrawer.empty.noMatch", { filter }) : $t("actionDrawer.empty.allResolved")}
-        </div>
+        {#if filter.trim()}
+          <EmptyState
+            icon="actions"
+            title={$t("actionDrawer.empty.noMatch", { filter })}
+            subtitle={$t("actionDrawer.empty.filterSubtitle")}
+          />
+        {:else}
+          <EmptyState
+            icon="actions"
+            title={$t("actionDrawer.empty.allResolved")}
+            subtitle={$t("actionDrawer.empty.allResolvedSubtitle")}
+          />
+        {/if}
       {/if}
       {#if stickyHeader}
         <!-- Zero net height (negative margin) so the scroll extent is unchanged. -->

@@ -6,6 +6,7 @@
   import { focusTrap } from "../../actions/focusTrap";
   import Icon from "../../icons/Icon.svelte";
   import Segmented from "../Segmented.svelte";
+  import EmptyState from "../EmptyState.svelte";
   import { t } from "../../i18n";
 
   $: review = $calendarSyncReview;
@@ -116,7 +117,11 @@
         {/if}
 
         {#if !review.newItems.length && !review.reorderedTitles.length && !review.removedEmpty.length && !review.removals.length}
-          <div class="modal-empty">{$t("calendarSyncReview.nothingChanged")}</div>
+          <EmptyState
+            icon="calendar-import"
+            title={$t("calendarSyncReview.nothingChanged")}
+            subtitle={$t("calendarSyncReview.nothingChangedSubtitle")}
+          />
         {/if}
       </div>
       <div class="modal-footer" style="justify-content: flex-end; gap: 8px;">

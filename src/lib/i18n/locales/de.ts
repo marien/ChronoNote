@@ -208,7 +208,11 @@ export const de = {
   "actionDrawer.onlyOpen.title": () =>
     "Nur ungelöste (offene) Aktionen anzeigen — erledigte, verschobene und entfallene Zeilen ausblenden",
   "actionDrawer.empty.noMatch": ({ filter }) => `Keine Aktionen stimmen mit "${filter}" überein.`,
+  "actionDrawer.empty.filterSubtitle": () =>
+    "Probiere ein anderes Stichwort oder lösche den Suchfilter.",
   "actionDrawer.empty.allResolved": () => "Hier ist nichts — jede Aktion ist erledigt.",
+  "actionDrawer.empty.allResolvedSubtitle": () =>
+    "Keine ausstehenden Aufgaben. Erstelle neue Aktionen in deinen Notizen mit #.",
   "actionDrawer.item.lineTag": ({ line }) => `Z. ${line}`,
   "actionDrawer.footer.jump": () => "Springen",
   "actionDrawer.footer.forwardToToday": () => "Auf heute verschieben",
@@ -225,6 +229,7 @@ export const de = {
   "history.occ.title.hasContent": ({ date }) => `Doppelklick, um zu ${date} zu springen`,
   "history.occ.title.empty": ({ date }) => `Noch kein Inhalt — Doppelklick, um zu ${date} zu springen`,
   "history.strip.loading": () => "Verlauf wird geladen…",
+  "history.strip.emptyTitle": () => "Kein Abschnittsverlauf",
   "history.strip.empty": () => "Keine früheren Vorkommen in offenen oder geschlossenen Notizen gefunden.",
   "history.body.emptySection": () => "(noch nichts in diesem Abschnitt)",
   "history.takeover.wholeLine": () => "Ganze Zeile",
@@ -255,6 +260,8 @@ export const de = {
   "commandPalette.footer.navigate": () => "Navigieren",
   "commandPalette.footer.run": () => "Ausführen",
   "commandPalette.noMatches": () => "Keine Treffer.",
+  "commandPalette.emptySubtitle": () =>
+    "Probiere einen anderen Suchbegriff oder drücke Esc zum Schließen.",
 
   "commandPalette.group.commands": () => "Befehle",
   "commandPalette.group.currentLine": () => "Aktuelle Zeile",
@@ -425,6 +432,8 @@ export const de = {
   "searchModal.searchingAriaLabel": () => "Wird gesucht",
   "searchModal.removeFilterAriaLabel": ({ label }) => `Filter ${label} entfernen`,
   "searchModal.noMatches": ({ query }) => `Keine Treffer für "${query}".`,
+  "searchModal.emptySubtitle": () =>
+    "Überprüfe die Schreibweise oder verwende Suchoperatoren wie is:open oder #tag.",
   "searchModal.footer.jumpToMatch": () => "Zum Treffer springen",
 
   "datePicker.ariaLabel": () => "Zu einem Datum springen",
@@ -514,6 +523,8 @@ export const de = {
   "calendarSyncReview.choice.discard": () => "Verwerfen",
   "calendarSyncReview.choice.move": () => "Verschieben…",
   "calendarSyncReview.nothingChanged": () => "Seit der letzten Synchronisierung hat sich nichts geändert.",
+  "calendarSyncReview.nothingChangedSubtitle": () =>
+    "Deine Tagesnotizen sind bereits mit der externen Agenda synchronisiert.",
   "calendarSyncReview.syncButton": () => "Synchronisieren",
 
   "syncConflicts.ariaLabel": () => "Synchronisierungskonflikte",

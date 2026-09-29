@@ -8,6 +8,7 @@
   import { groupHeaderLabel } from "../../ui/listFormat";
   import Icon from "../../icons/Icon.svelte";
   import Segmented from "../Segmented.svelte";
+  import EmptyState from "../EmptyState.svelte";
   import type { SearchResultItem } from "../../types";
   import { parseSearchQuery, removeChipFromQuery, type SearchFilterChip } from "../../search";
   import { t } from "../../i18n";
@@ -257,7 +258,11 @@
       style="position: relative; overflow-y: auto;"
     >
       {#if flatList.length === 0 && query.trim() && !searching}
-        <div class="modal-empty">{$t("searchModal.noMatches", { query })}</div>
+        <EmptyState
+          icon="search"
+          title={$t("searchModal.noMatches", { query })}
+          subtitle={$t("searchModal.emptySubtitle")}
+        />
       {/if}
       <div style="position: relative; height: {totalHeight}px;">
         {#each visibleRows as row (row.key)}

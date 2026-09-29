@@ -2504,15 +2504,42 @@ textarea.modal-input.import-textarea {
 }
 
 /* §127 (finding G): one empty-state treatment for every list that can
-   come up blank (Action Drawer, Search, Section History) — replaces a mix
-   of an inline-styled `<div>` in one drawer and nothing at all in the
-   others. Not used by `.hp-empty` (History's *preview* pane) — that's a
-   "select something" prompt, not a "no results" one, and stays as is. */
-.modal-empty {
-  padding: 32px 16px;
+/* §127 / Area 6.4: expressive empty states when search / action drawer / history
+   come up blank — elevated with a centered monoline SVG mark (opacity 0.35, size 28px),
+   a 13px bold title, and an 11px muted subtitle guiding the user's next action. */
+.modal-empty,
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
   text-align: center;
+  padding: 40px 20px;
+  gap: 4px;
+  user-select: none;
+}
+
+.empty-state-icon {
+  opacity: 0.35;
   color: var(--muted);
-  font-size: 12px;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.empty-state-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--fg);
+  line-height: 1.4;
+}
+
+.empty-state-subtitle {
+  font-size: 11px;
+  color: var(--muted);
+  line-height: 1.5;
+  max-width: 360px;
 }
 
 /* §127 (finding E): the Shortcuts & Symbols drawer is a reference doc,

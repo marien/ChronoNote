@@ -207,7 +207,11 @@ export const pl = {
   "actionDrawer.onlyOpen.title": () =>
     "Pokaż tylko otwarte zadania — ukryj wykonane, odłożone i zaniechane",
   "actionDrawer.empty.noMatch": ({ filter }) => `Brak zadań pasujących do „${filter}”.`,
+  "actionDrawer.empty.filterSubtitle": () =>
+    "Spróbuj innego słowa kluczowego lub wyczyść filtr wyszukiwania.",
   "actionDrawer.empty.allResolved": () => "Wszystko gotowe — wszystkie zadania są rozwiązane.",
+  "actionDrawer.empty.allResolvedSubtitle": () =>
+    "Brak oczekujących zadań. Dodaj nowe działania w swoich notatkach za pomocą #.",
   "actionDrawer.item.lineTag": ({ line }) => `Wrsz ${line}`,
   "actionDrawer.footer.jump": () => "Przejdź",
   "actionDrawer.footer.forwardToToday": () => "Przełóż na dzisiaj",
@@ -224,6 +228,7 @@ export const pl = {
   "history.occ.title.hasContent": ({ date }) => `Kliknij dwukrotnie, aby przejść do ${date}`,
   "history.occ.title.empty": ({ date }) => `Brak treści — kliknij dwukrotnie, aby przejść do ${date}`,
   "history.strip.loading": () => "Ładowanie historii…",
+  "history.strip.emptyTitle": () => "Brak historii sekcji",
   "history.strip.empty": () => "Nie znaleziono wcześniejszych wystąpień w otwartych ani zamkniętych notatkach.",
   "history.body.emptySection": () => "(brak treści w tej sekcji)",
   "history.takeover.wholeLine": () => "Cały wiersz",
@@ -254,6 +259,8 @@ export const pl = {
   "commandPalette.footer.navigate": () => "Nawiguj",
   "commandPalette.footer.run": () => "Uruchom",
   "commandPalette.noMatches": () => "Brak wyników.",
+  "commandPalette.emptySubtitle": () =>
+    "Spróbuj innego hasła wyszukiwania lub naciśnij klawisz Esc, aby zamknąć.",
 
   "commandPalette.group.commands": () => "Polecenia",
   "commandPalette.group.currentLine": () => "Bieżący wiersz",
@@ -435,6 +442,8 @@ export const pl = {
   "searchModal.searchingAriaLabel": () => "Szukanie",
   "searchModal.removeFilterAriaLabel": ({ label }) => `Usuń filtr ${label}`,
   "searchModal.noMatches": ({ query }) => `Brak wyników dla „${query}”.`,
+  "searchModal.emptySubtitle": () =>
+    "Sprawdź pisownię lub użyj operatorów wyszukiwania, takich jak is:open lub #tag.",
   "searchModal.footer.jumpToMatch": () => "Przejdź do wyniku",
 
   "datePicker.ariaLabel": () => "Przejdź do daty",
@@ -526,6 +535,8 @@ export const pl = {
   "calendarSyncReview.choice.discard": () => "Odrzuć",
   "calendarSyncReview.choice.move": () => "Przenieś…",
   "calendarSyncReview.nothingChanged": () => "Nic się nie zmieniło od ostatniej synchronizacji.",
+  "calendarSyncReview.nothingChangedSubtitle": () =>
+    "Twoje codzienne notatki są już zsynchronizowane z zewnętrznym kalendarzem.",
   "calendarSyncReview.syncButton": () => "Synchronizuj",
 
   "syncConflicts.ariaLabel": () => "Konflikty synchronizacji",

@@ -200,7 +200,10 @@ export const en = {
   "actionDrawer.onlyOpen.title": () =>
     "Show only unresolved (open) actions — hide done, deferred, and won't-do lines",
   "actionDrawer.empty.noMatch": ({ filter }) => `No actions match "${filter}".`,
+  "actionDrawer.empty.filterSubtitle": () => "Try a different keyword or clear the search filter.",
   "actionDrawer.empty.allResolved": () => "Nothing here — every action is resolved.",
+  "actionDrawer.empty.allResolvedSubtitle": () =>
+    "No outstanding tasks. Add new actions in your notes with #.",
   "actionDrawer.item.lineTag": ({ line }) => `Ln ${line}`,
   "actionDrawer.footer.jump": () => "Jump",
   "actionDrawer.footer.forwardToToday": () => "Forward to Today",
@@ -217,6 +220,7 @@ export const en = {
   "history.occ.title.hasContent": ({ date }) => `Double-click to jump to ${date}`,
   "history.occ.title.empty": ({ date }) => `No content yet — double-click to jump to ${date}`,
   "history.strip.loading": () => "Loading history…",
+  "history.strip.emptyTitle": () => "No section history",
   "history.strip.empty": () => "No prior occurrences found across open or closed notes.",
   "history.body.emptySection": () => "(nothing in this section yet)",
   "history.takeover.wholeLine": () => "Whole line",
@@ -247,6 +251,7 @@ export const en = {
   "commandPalette.footer.navigate": () => "Navigate",
   "commandPalette.footer.run": () => "Run",
   "commandPalette.noMatches": () => "No matches.",
+  "commandPalette.emptySubtitle": () => "Try a different search term or press Esc to dismiss.",
 
   "commandPalette.group.commands": () => "Commands",
   "commandPalette.group.currentLine": () => "Current line",
@@ -417,6 +422,8 @@ export const en = {
   "searchModal.searchingAriaLabel": () => "Searching",
   "searchModal.removeFilterAriaLabel": ({ label }) => `Remove filter ${label}`,
   "searchModal.noMatches": ({ query }) => `No matches for "${query}".`,
+  "searchModal.emptySubtitle": () =>
+    "Check your spelling or try using search operators like is:open or #tag.",
   "searchModal.footer.jumpToMatch": () => "Jump to match",
 
   "datePicker.ariaLabel": () => "Jump to date",
@@ -506,6 +513,8 @@ export const en = {
   "calendarSyncReview.choice.discard": () => "Discard",
   "calendarSyncReview.choice.move": () => "Move…",
   "calendarSyncReview.nothingChanged": () => "Nothing changed since the last sync.",
+  "calendarSyncReview.nothingChangedSubtitle": () =>
+    "Your daily notes are already in sync with the external agenda.",
   "calendarSyncReview.syncButton": () => "Sync",
 
   "syncConflicts.ariaLabel": () => "Sync conflicts",
