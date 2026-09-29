@@ -40,6 +40,9 @@
     <button type="button" class="accessory-btn token-btn" on:click={() => apply(">")} aria-label={$t("mobileAccessory.deferredTask.ariaLabel")} title="{$t('mobileAccessory.deferredTask.titleWord')} ☐">
       <span class="token-glyph glyph-progress">☐</span>
     </button>
+    <button type="button" class="accessory-btn token-btn" on:click={() => apply("x")} aria-label={$t("mobileAccessory.wontDoTask.ariaLabel")} title="{$t('mobileAccessory.wontDoTask.titleWord')} ☒">
+      <span class="token-glyph glyph-cancelled">☒</span>
+    </button>
     <button type="button" class="accessory-btn token-btn" on:click={() => apply("o")} aria-label={$t("mobileAccessory.topicToDiscuss.ariaLabel")} title="{$t('mobileAccessory.topicToDiscuss.titleWord')} ○">
       <span class="token-glyph glyph-topic-open">○</span>
     </button>
