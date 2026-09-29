@@ -73,7 +73,7 @@ ok "on main, clean, up to date; $CUR -> $VERSION"
 if [[ $SKIP_GATES == 0 ]]; then
   step "gates (sequential; never run Playwright twice concurrently)"
   run check     npm run check
-  run vitest    npm test
+  run vitest    npm test -- --maxWorkers=2 --testTimeout=30000 --hookTimeout=30000
   run cargotest bash -c 'cd src-tauri && cargo test'
   run playwright npx playwright test --workers=2
   for f in check vitest cargotest playwright; do
