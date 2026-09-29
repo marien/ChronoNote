@@ -12,6 +12,7 @@
   import { activeLinesPlugin } from "../editor/activeLines";
   import { clickableLinksPlugin } from "../editor/clickableLinks";
   import { overviewRuler } from "../editor/overviewRuler";
+  import { wrapIndentExtension } from "../editor/wrapIndent";
   import { underlineFor } from "../sectionFormat";
   import {
     actionLineEnter,
@@ -54,7 +55,7 @@
    * the `wordWrap` store's current value at mount, then kept in sync by
    * the subscription set up in `onMount`. */
   const wrapCompartment = new Compartment();
-  const wrapExtension = (on: boolean) => (on ? EditorView.lineWrapping : []);
+  const wrapExtension = (on: boolean) => (on ? [EditorView.lineWrapping, wrapIndentExtension()] : []);
   let unsubscribeWrap: (() => void) | undefined;
 
   /** §99: cap the text column to a ~720px reading measure, centred. A

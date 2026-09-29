@@ -811,6 +811,42 @@ body {
   line-height: var(--editor-line-height, 1.6);
 }
 
+/* §258: Word-wrap hanging indent for continuation lines, keeping them aligned
+   with the logical line's text indentation level. */
+.cm-line.cm-line-wrap-indent {
+  padding-left: var(--line-indent, 0ch) !important;
+  text-indent: calc(-1 * var(--line-indent, 0ch)) !important;
+}
+
+/* §258: Curved return arrow wrap indicator at the end of broken visual lines. */
+.cm-wrap-layer {
+  pointer-events: none;
+  z-index: 10;
+}
+
+.cm-wrap-indicator {
+  position: absolute;
+  pointer-events: none;
+  user-select: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--fg, currentColor);
+  opacity: 0.38;
+  line-height: 1;
+}
+
+.cm-wrap-indicator svg {
+  display: block;
+}
+
+@media print {
+  .cm-wrap-layer,
+  .cm-wrap-indicator {
+    display: none !important;
+  }
+}
+
 /* Thin, theme-matched scrollbar (Notepad/Claude-style) in place of the
    OS-default one, for every scrollable pane — the editor, any
    overflowing modal list (search/history/action-drawer results), and any

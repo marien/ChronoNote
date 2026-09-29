@@ -79,4 +79,69 @@ test.describe("word wrap (§80)", () => {
     );
     expect(await scrollsHorizontally(page)).toBe(false); // wrapping is on
   });
+
+  test("continuation lines preserve indentation for action and indented lines (§258)", async ({ page }) => {
+    await seedApp(page, { seed: { notes: {}, wordWrap: true } });
+    const indentedAction = "  # " + LONG_LINE;
+    await setEditorText(page, indentedAction);
+
+    // The line should be marked with cm-line-wrap-indent and style variable --line-indent: 4ch
+    const lineInfo = await page.evaluate(() => {
+      const line = document.querySelector(".cm-line");
+      if (!line) return null;
+      return {
+        hasWrapIndentClass: line.classList.contains("cm-line-wrap-indent"),
+        style: line.getAttribute("style") ?? "",
+      };
+    });
+
+    expect(lineInfo).not.toBeNull();
+    expect(lineInfo!.hasWrapIndentClass).toBe(true);
+    expect(lineInfo!.style).toContain("--line-indent: 4ch;");
+  });
+
+  test("broken visual lines display curved return arrow indicators (§258)", async ({ page }) => {
+    await seedApp(page, { seed: { notes: {}, wordWrap: true } });
+    await setEditorText(page, LONG_LINE);
+
+    // Should have wrap indicators for the broken visual lines
+    await expect.poll(async () => {
+      return page.evaluate(() => document.querySelectorAll(".cm-wrap-indicator").length);
+    }).toBeGreaterThanOrEqual(1);
+
+    const indicatorInfo = await page.evaluate(() => {
+      const indicators = Array.from(document.querySelectorAll<HTMLElement>(".cm-wrap-indicator"));
+      return indicators.map((el) => {
+        const svg = el.querySelector("svg");
+        return {
+          hasSvg: svg !== null,
+          ariaHidden: el.getAttribute("aria-hidden"),
+          left: parseFloat(el.style.left || "0"),
+          top: parseFloat(el.style.top || "0"),
+        };
+      });
+    });
+
+    expect(indicatorInfo.length).toBeGreaterThan(0);
+    for (const info of indicatorInfo) {
+      expect(info.hasSvg).toBe(true);
+      expect(info.ariaHidden).toBe("true");
+      expect(info.left).toBeGreaterThan(0);
+    }
+  });
+
+  test("no wrap indicators or indent classes when word wrap is disabled", async ({ page }) => {
+    await seedApp(page, { seed: { notes: {}, wordWrap: false } });
+    await setEditorText(page, "  # " + LONG_LINE);
+
+    const count = await page.evaluate(() => {
+      return {
+        indicators: document.querySelectorAll(".cm-wrap-indicator").length,
+        wrapIndentLines: document.querySelectorAll(".cm-line-wrap-indent").length,
+      };
+    });
+
+    expect(count.indicators).toBe(0);
+    expect(count.wrapIndentLines).toBe(0);
+  });
 });
