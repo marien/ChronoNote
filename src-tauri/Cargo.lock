@@ -499,7 +499,7 @@ dependencies = [
 
 [[package]]
 name = "chrononote"
-version = "0.20.1"
+version = "0.20.2"
 dependencies = [
  "base64 0.23.1",
  "dunce",
