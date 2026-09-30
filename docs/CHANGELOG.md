@@ -9498,3 +9498,21 @@ Previously, `Ctrl/Cmd+Shift+O` (`setActionSymbolOpen` in `tokens.ts`) unconditio
    - Vitest unit tests in `src/lib/tokens.test.ts` for all topic symbols (`.`, `,`, `o`), indented topics, and caret targeting on mixed lines (`. topic => x follow up`).
    - Playwright E2E tests in `tests/e2e/action-target.spec.ts` (caret targeting and plain line non-promotion) and `tests/e2e/editor-tokens.spec.ts` (multi-line selection spanning both actions and agenda topics).
 
+
+## 258. Word-wrap continuation indent and broken-line curved return arrow
+
+1. **Word-Wrap Indentation Awareness**:
+   - Soft word-wrap now takes line indentation into account when breaking text across multiple visual rows, rather than letting continuation lines fall flush-left to column 0.
+   - Continuation lines align directly under the logical line's text column (past action tokens `#`, `v`, `>`, `x`, consequence arrows `=>`, agenda topics `o`, `.`, `,`, bullets `-`, `*`, emphasis `!`, and numbered list markers `1.`, `10.`), matching ChronoNote's existing `Shift+Enter` tabular continuation conventions and monospace grid.
+   - Plain indented prose lines match their leading whitespace indentation level.
+   - Implemented via CodeMirror 6 line decoration (`--line-indent: ${indent}ch;` on `.cm-line.cm-line-wrap-indent`) using CSS `padding-left: var(--line-indent)` and `text-indent: calc(-1 * var(--line-indent))`.
+   - Section headers, setext underlines, and unindented plain prose remain at 0ch.
+   - Zero overhead when word-wrap is disabled (`wrapExtension(false)` completely removes the extension compartment).
+
+2. **Curved Return Arrow Wrap Indicator**:
+   - Each broken visual line displays a subtle monoline curved return arrow (`↩`) at the end of the visual line, visually indicating that the line wraps onto the next line.
+   - The final visual line of a wrapped block (where the paragraph concludes) and single unwrapped lines never display an arrow indicator.
+   - Rendered using CodeMirror 6's native `layer({ above: true, markers(view) { ... } })` extension, measuring DOM line bounding boxes during scheduled viewport measurement passes.
+   - Strict monoline SVG iconography (`viewBox="0 0 16 16"`, `width="12"`, `height="12"`, stroke-width 1.6, round caps/joins, `stroke: currentColor`) matching ChronoNote's icon vocabulary and adapting automatically across Light, Dark, Legacy, Grayscale, and Pure Black OLED themes.
+   - Overlay attributes `pointer-events: none;`, `user-select: none;`, and `aria-hidden="true"` guarantee zero interference with cursor placement, drag selection, click-to-edit, or screen readers.
+   - Zero lock-in plain UTF-8 text storage: strictly an editor visual overlay; document text and clipboard copies remain 100% clean plain text.
