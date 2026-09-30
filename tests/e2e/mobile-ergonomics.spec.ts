@@ -211,4 +211,27 @@ test.describe("narrow reflow: sync conflicts and calendar review (Area 5.4)", ()
     expect(controls.x).toBeGreaterThanOrEqual(card.x - 1);
     expect(controls.x + controls.width).toBeLessThanOrEqual(card.x + card.width + 1);
   });
+
+  test("mobile toast is interactive, runs action on tap, and dismisses", async ({ page }) => {
+    await seedApp(page);
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.evaluate(() => {
+      window.__CHRONO_MOCK__!.debug!.setMobile(true);
+      window.__CHRONO_MOCK__!.debug!.showToast("Mobile Actionable Notice", {
+        action: () => {
+          (window as any).__MOBILE_ACTION_FIRED__ = true;
+        },
+      });
+    });
+
+    const toast = page.locator(".mobile-toast");
+    await expect(toast).toBeVisible();
+    await expect(toast).toHaveText("Mobile Actionable Notice");
+    await expect(toast).toHaveClass(/interactive/);
+
+    await toast.click();
+    const fired = await page.evaluate(() => (window as any).__MOBILE_ACTION_FIRED__);
+    expect(fired).toBe(true);
+    await expect(toast).toHaveCount(0);
+  });
 });

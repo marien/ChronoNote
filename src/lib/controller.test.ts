@@ -2498,7 +2498,8 @@ describe("beginFolderSwitch", () => {
       await controller.syncOneDriveNow();
 
       expect(get(controller.oneDriveSignInExpired)).toBe(true);
-      expect(get(controller.toastMessage)).toBe("Your OneDrive sign-in has expired. Click the cloud to sign in again.");
+      expect(get(controller.toastMessage)).toBe("Your OneDrive sign-in has expired. Click to sign in again.");
+      expect(get(controller.toastAction)).not.toBeNull();
     });
 
     it("does not re-trigger toast on subsequent background sync if already expired", async () => {

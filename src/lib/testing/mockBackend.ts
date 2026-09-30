@@ -31,6 +31,7 @@
  */
 import { activeTitlesAfterDate, activeTitlesForDate, removedTitlesForDate as removedTitlesForDateShared } from "../agendaTitles";
 import type { AppConfig, AppError, ColorMode, FileMetadata, LanguageMode, TabSession, ThemeMode } from "../types";
+import type { ToastOptions } from "../stores";
 import type { CommandArgs, CommandReturn, OneDriveAdvancedConfig, TauriCommand, TauriCommands } from "../tauriCommands";
 import { isValidNoteFilename } from "../noteFilename";
 
@@ -287,7 +288,7 @@ export class MockBackend {
     setMobile: (val: boolean) => void;
     isMobile: () => boolean;
     setBackendKind: (val: "desktop" | "demo" | "web") => void;
-    showToast: (msg: string) => void;
+    showToast: (msg: string, options?: ToastOptions | (() => void)) => void;
   };
 
   private eventListenerId = 0;

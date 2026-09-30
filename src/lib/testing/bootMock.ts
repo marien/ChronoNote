@@ -60,7 +60,8 @@ export function bootMockBackend(params: URLSearchParams): MockBackend {
     setMobile: (val: boolean) => controller.isMobile.set(val),
     isMobile: () => get(controller.isMobile),
     setBackendKind: (val: "desktop" | "demo" | "web") => controller.backendKind.set(val),
-    showToast: (msg: string) => controller.showToast(msg),
+    showToast: (msg: string, options?: controller.ToastOptions | (() => void)) =>
+      controller.showToast(msg, options),
   };
 
   console.info(

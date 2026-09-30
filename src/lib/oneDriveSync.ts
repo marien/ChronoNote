@@ -8,12 +8,22 @@
  * (which is itself a caller). */
 import { get } from "svelte/store";
 import * as api from "./tauriApi";
-import { oneDriveAccount, oneDriveConnecting, oneDriveFolder, oneDriveSignInExpired, oneDriveSyncing, showToast, syncConflicts } from "./stores";
+import { oneDriveAccount, oneDriveConnecting, oneDriveFolder, oneDriveSignInExpired, oneDriveSyncing, showToast, syncConflicts, syncHealthPopoverOpen } from "./stores";
+import { openSettingsOnNotesFolder } from "./menu";
 import { SIGN_IN_EXPIRED_MESSAGE } from "./signInExpired";
 import { checkActiveTabForDrift } from "./drift";
 import { refreshAgendaFileExists } from "./calendarSyncActions";
 import { t } from "./i18n";
 import { describeApiError } from "./apiError";
+
+/** Opens the OneDrive sync health popover, or Settings on the notes folder if no folder is chosen. */
+export function openOneDriveStatus() {
+  if (!get(oneDriveFolder)) {
+    openSettingsOnNotesFolder();
+  } else {
+    syncHealthPopoverOpen.set(true);
+  }
+}
 
 export type SyncHooks = {
   flushPendingSaves?: () => Promise<void>;
@@ -48,7 +58,7 @@ let announce = false;
 export function syncOneDriveNow(opts: { notify?: boolean } = {}): Promise<void> {
   if (!get(oneDriveFolder)) {
     // Nothing to sync with yet — say so instead of failing inside Rust.
-    if (opts.notify) showToast(get(t)("toast.oneDriveSync.chooseFolderFirst", undefined));
+    if (opts.notify) showToast(get(t)("toast.oneDriveSync.chooseFolderFirst", undefined), { action: openOneDriveStatus });
     return Promise.resolve();
   }
   if (opts.notify) announce = true;
@@ -69,7 +79,7 @@ export function syncOneDriveNow(opts: { notify?: boolean } = {}): Promise<void> 
         const wasExpired = get(oneDriveSignInExpired);
         oneDriveSignInExpired.set(true);
         if (!wasExpired && !announce) {
-          showToast(get(t)("toast.oneDriveSync.signInExpired", undefined));
+          showToast(get(t)("toast.oneDriveSync.signInExpired", undefined), { action: openOneDriveStatus });
         }
       }
       await refreshSyncConflicts();

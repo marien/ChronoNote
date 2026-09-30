@@ -1799,6 +1799,13 @@ body {
 .status-link:hover {
   color: var(--text);
 }
+.stat-dismissible {
+  cursor: pointer;
+}
+.stat-dismissible:hover {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
 .status-help {
   background: transparent;
   border: 1px solid var(--border);
@@ -3038,12 +3045,22 @@ textarea.modal-input.import-textarea {
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
   backdrop-filter: blur(8px);
   z-index: 1000;
-  pointer-events: none;
+  pointer-events: auto;
+  cursor: pointer;
+  user-select: none;
   white-space: normal;
   text-align: center;
   line-height: 1.4;
   border-radius: 16px;
   animation: mobile-toast-in 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: transform 0.15s ease, background 0.15s ease, border-color 0.15s ease;
+}
+.mobile-toast:active {
+  transform: translate(-50%, 0) scale(0.97);
+}
+.mobile-toast.interactive {
+  text-decoration: underline;
+  text-underline-offset: 2px;
 }
 @keyframes mobile-toast-in {
   from {
@@ -4023,7 +4040,24 @@ body.zen-mode #status-bar {
   text-align: center;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
   z-index: 1000;
-  pointer-events: none;
+  pointer-events: auto;
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
+}
+.long-toast:hover {
+  background: var(--surface-hover);
+  border-color: var(--muted);
+}
+.long-toast:active {
+  transform: translate(-50%, 0) scale(0.98);
+}
+.long-toast.interactive {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.long-toast.interactive:hover {
+  color: var(--accent);
 }
 .signin-expired {
   border-left: 2px solid var(--state-warn);
