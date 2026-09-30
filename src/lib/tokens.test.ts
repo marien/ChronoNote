@@ -218,7 +218,7 @@ describe("cycleActionSymbol", () => {
   });
 });
 
-describe("setActionSymbolOpen (#65/#73)", () => {
+describe("setActionSymbolOpen (#65/#73/#257)", () => {
   it("forces v / > / x straight to # without cycling through the order", () => {
     expect(setActionSymbolOpen("v Buy milk")).toBe("# Buy milk");
     expect(setActionSymbolOpen("> Buy milk")).toBe("# Buy milk");
@@ -227,6 +227,13 @@ describe("setActionSymbolOpen (#65/#73)", () => {
 
   it("is a no-op replacement (still returns the same text) for an already-open line", () => {
     expect(setActionSymbolOpen("# Buy milk")).toBe("# Buy milk");
+  });
+
+  it("#257: opens agenda topics (. / , -> o) without converting them to actions (#)", () => {
+    expect(setActionSymbolOpen(". Discussed topic")).toBe("o Discussed topic");
+    expect(setActionSymbolOpen(", Postponed topic")).toBe("o Postponed topic");
+    expect(setActionSymbolOpen("o Already open topic")).toBe("o Already open topic");
+    expect(setActionSymbolOpen("  . Indented discussed topic")).toBe("  o Indented discussed topic");
   });
 
   it("preserves indentation (§50)", () => {
@@ -678,6 +685,8 @@ describe("caret-aware transforms", () => {
   it("Ctrl+Shift+O (open) acts on the caret's symbol and never promotes a plain line", () => {
     expect(setActionSymbolOpen("v a => x b", 1)).toBe("# a => x b");
     expect(setActionSymbolOpen("v a => x b", 12)).toBe("v a => # b");
+    expect(setActionSymbolOpen(". topic => x b", 1)).toBe("o topic => x b");
+    expect(setActionSymbolOpen(". topic => x b", 14)).toBe(". topic => # b");
     expect(setActionSymbolOpen("plain", 2)).toBeNull();
   });
 

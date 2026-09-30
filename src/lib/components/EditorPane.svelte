@@ -492,7 +492,7 @@
       { win: "Ctrl-Shift-Space", linux: "Ctrl-Shift-Space", run: (v) => applyToCurrentLine(v, reopenDoneAction) },
       { key: "Mod-Shift-Enter", run: (v) => applyToCurrentLine(v, reopenDoneAction) },
       { key: "Mod-Shift-s", run: (v) => convertLineToSection(v) },
-      // #73: Ctrl+Shift+O sets every line in the selection to open
+      // #73/#257: Ctrl+Shift+O sets every line in the selection to open (# or o)
       // without #69's plain-line promotion — `setActionSymbolOpen`, not
       // `setActionSymbolTo`, is what keeps it distinct from Ctrl+1 below.
       { key: "Mod-Shift-o", run: (v) => applyActionStateToSelection(v, setActionSymbolOpen) },

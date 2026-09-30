@@ -349,18 +349,24 @@ export function setTopicSymbolTo(line: string, symbol: "o" | "." | ",", col?: nu
   return `${indent}${symbol} ${rest}`;
 }
 
-/** #65/#73: `Ctrl/Cmd+Shift+O` — sets every line in the selection to open,
- * *without* #69's promotion of a plain line into a new action (unlike
- * `Ctrl+1`, which shares the exact same target state but does promote).
- * Marien: Ctrl+Shift+O had drifted into being wired identically to
- * Ctrl+1, including that promotion, which wasn't the point of either
- * #65 (predates #69) or of having two separate shortcuts at all — this
+/** #65/#73/#257: `Ctrl/Cmd+Shift+O` — sets every line in the selection to open,
+ * aware of the difference between actions (`#`, `v`, `>`, `x` → `#`) and
+ * meeting agenda topics (`o`, `.`, `,` → `o`), *without* #69's promotion of a
+ * plain line into a new action (unlike `Ctrl+1`, which shares the open action
+ * target state but does promote). Marien: Ctrl+Shift+O had drifted into being
+ * wired identically to Ctrl+1, including that promotion, which wasn't the point
+ * of either #65 (predates #69) or of having two separate shortcuts at all — this
  * restores #65's original "only touch lines that already have a state"
  * contract. Same line-shape matching as `cycleActionSymbol` (no
  * `createAs`), so a plain line, bullet, emphasis, delegated follow-up, or
  * the setext underline itself all correctly return `null`. */
 export function setActionSymbolOpen(line: string, col?: number): string | null {
-  return replaceActionSymbol(line, () => "#", undefined, col);
+  return replaceActionSymbol(
+    line,
+    (sym) => (sym === "o" || sym === "." || sym === "," ? "o" : "#"),
+    undefined,
+    col,
+  );
 }
 
 /** #73: Ctrl+Space / Mod-Enter: close an open action (`# → v`) or mark an open topic discussed (`o → .`).
