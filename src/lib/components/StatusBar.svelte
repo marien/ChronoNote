@@ -18,6 +18,7 @@
     statusWordCount,
     syncConflicts,
     syncHealthPopoverOpen,
+    toastAction,
     toastMessage,
     UPDATE_AVAILABLE_TOAST_KEY,
     updateStatus,
@@ -159,6 +160,10 @@
           {$t("statusBar.whatsNew")}
         </button>
       </span>
+    {:else if $toastAction && $toastMessage && !$isMobile && $toastMessage.length <= LONG_TOAST_CHARS}
+      <button type="button" id="stat-message" class="status-link" on:click={controller.runToastAction}>
+        {$toastMessage}
+      </button>
     {:else if $toastMessage === $t(UPDATE_AVAILABLE_TOAST_KEY, undefined) && $updateStatus === "available"}
       <!-- §update-check follow-up: this specific toast is a shortcut to
            About, not the generic "read and forget" toast — matched by
@@ -170,7 +175,16 @@
         {$toastMessage}
       </button>
     {:else if $toastMessage && !$isMobile && $toastMessage.length <= LONG_TOAST_CHARS}
-      <span id="stat-message" role="status">{$toastMessage}</span>
+      <!-- svelte-ignore a11y-click-events-have-key-events -->
+      <!-- svelte-ignore a11y-no-static-element-interactions -->
+      <!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
+      <span
+        id="stat-message"
+        role="status"
+        class="stat-dismissible"
+        title={$t("common.close")}
+        on:click={controller.dismissToast}
+      >{$toastMessage}</span>
     {/if}
   </div>
 

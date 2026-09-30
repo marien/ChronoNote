@@ -17,6 +17,7 @@ import { Channel, invoke } from "@tauri-apps/api/core";
 import { flushAllPendingSaves } from "./persistence";
 import { t } from "./i18n";
 import {
+  modal,
   showToast,
   updateAvailableVersion,
   updateDownloadProgress,
@@ -83,7 +84,9 @@ export async function checkForUpdates(): Promise<void> {
 export async function checkForUpdatesOnLaunch(): Promise<void> {
   await checkForUpdates();
   if (get(updateStatus) === "available") {
-    showToast(get(t)(UPDATE_AVAILABLE_TOAST_KEY, undefined));
+    showToast(get(t)(UPDATE_AVAILABLE_TOAST_KEY, undefined), {
+      action: () => modal.set("about"),
+    });
   }
 }
 

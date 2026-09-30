@@ -9528,3 +9528,25 @@ Previously, `Ctrl/Cmd+Shift+O` (`setActionSymbolOpen` in `tokens.ts`) unconditio
 **Fix:** `.cm-line.cm-line-wrap-indent > * { text-indent: 0; }` (`app.css`). New Playwright regression test in `word-wrap.spec.ts` asserts each glyph's character lies inside its own box with wrap on; confirmed it fails without the fix.
 
 **Follow-up (v0.20.2):** v0.20.1 made the glyphs visible again but every hanging-indented line sat 6px left of the same line without word wrap: `.cm-line-wrap-indent` *replaced* CodeMirror's own 6px left padding with the bare indent. It now adds to it (`padding-left: calc(6px + var(--line-indent))`), so glyph and text land on the same x with wrap on and off. New e2e test compares both modes.
+
+## 260. Actionable and clickable toast notifications: direct drawer/action access and zero dead clicks
+
+Toast notifications that direct users to an action (such as OneDrive sign-in expiration, update availability, or choosing a notes folder) are now interactive and directly clickable instead of ignoring clicks:
+
+1. **First-Class Toast Actions (`ToastOptions.action` & `$toastAction`)**:
+   - Extended `showToast(msg, options?: ToastOptions | (() => void))` with an optional callback action.
+   - Added `runToastAction()`, which dismisses the toast immediately and invokes the registered action.
+   - Added `dismissToast()`, allowing informational ("read & forget") toasts to be dismissed on click without waiting for the auto-clear timer.
+   - Timer auto-dismiss cleanly clears both `toastMessage` and `toastAction`.
+
+2. **Interactive Affordances & Zero Dead Clicks Across Surfaces**:
+   - **Status Bar Message Slot**: Actionable toasts in `StatusBar.svelte` render as `<button id="stat-message" class="status-link">` with pointer cursor and focus styles. Clicking executes the action (e.g. opens `SyncHealthPopover` / re-auth, or About modal for updates). Standard informational toasts render with class `.stat-dismissible` and `title="Close"`, dismissing instantly on click.
+   - **Desktop Long Toast (`.long-toast`)**: Changed `pointer-events: none` to `pointer-events: auto` with `cursor: pointer`, hover feedback, active scaling, and an interactive underline when an action is bound. Clicking or pressing `Enter`/`Space` runs the action (or dismisses if informational).
+   - **Mobile Toast (`.mobile-toast`)**: Changed `pointer-events: none` to `pointer-events: auto` with active tap feedback (`scale(0.97)`), `role={$toastAction ? "button" : "status"}`, and keyboard/touch activation.
+
+3. **OneDrive Sign-In Expiration Flow**:
+   - `openOneDriveStatus()` opens the `SyncHealthPopover` (or Settings notes folder tab if no folder is chosen yet).
+   - `syncOneDriveNow` passes `{ action: openOneDriveStatus }` when OneDrive sign-in has expired or when prompt to choose a folder is displayed.
+   - Clicking either the toast message, the cloud icon in the status bar, or the cloud warning dot opens the Sync Health popover directly to the "Sign in again" button.
+   - Aligned copy across all 7 localization dictionaries (`en`, `nl`, `de`, `es`, `fr`, `it`, `pl`) for `toast.oneDriveSync.signInExpired` from "Click the cloud to sign in again" to "Click to sign in again" (matching `statusBar.oneDrive.signInExpired`).
+

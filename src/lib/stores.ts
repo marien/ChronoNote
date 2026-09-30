@@ -114,6 +114,7 @@ export const actionDrawerShowOnlyOpen = writable<boolean>(true);
 
 
 export const toastMessage = writable<string>("");
+export const toastAction = writable<(() => void) | null>(null);
 export const statusPos = writable<{ line: number; col: number }>({ line: 1, col: 1 });
 /** #37/#38: the current editor selection, for the status-bar left zone —
  * `null` when nothing is selected (a bare caret). `lines` counts the
@@ -381,14 +382,35 @@ let toastTimer: ReturnType<typeof setTimeout> | undefined;
  * in a wrapping toast instead (`App.svelte`), and stay up long enough to read. */
 export const LONG_TOAST_CHARS = 60;
 
-export function showToast(msg: string) {
+export interface ToastOptions {
+  action?: () => void;
+}
+
+export function showToast(msg: string, options?: ToastOptions | (() => void)) {
+  const action = typeof options === "function" ? options : options?.action;
   // The one-time "Updated to vX - What's new" banner shares the status bar's message slot and used to
   // stay put (hiding every later message) until clicked or the app restarted: a new message replaces it.
   justUpdatedToVersion.set(null);
   toastMessage.set(msg);
-  clearTimeout(toastTimer);
+  toastAction.set(action ?? null);
+  if (toastTimer) clearTimeout(toastTimer);
   const ms = msg.length > LONG_TOAST_CHARS ? Math.min(12000, 3000 + msg.length * 60) : 2400;
-  toastTimer = setTimeout(() => toastMessage.set(""), ms);
+  toastTimer = setTimeout(() => {
+    toastMessage.set("");
+    toastAction.set(null);
+  }, ms);
+}
+
+export function dismissToast() {
+  if (toastTimer) clearTimeout(toastTimer);
+  toastMessage.set("");
+  toastAction.set(null);
+}
+
+export function runToastAction() {
+  const action = get(toastAction);
+  dismissToast();
+  action?.();
 }
 
 export function setStatusPosition(line: number, col: number) {

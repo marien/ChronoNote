@@ -301,5 +301,58 @@ test.describe("Dutch and German status bar collapse & center message non-overlap
     await expect(compactForwarded.locator(".glyph-progress")).toBeVisible();
     expect(await bar.locator(".status-left").innerText()).not.toContain("»");
   });
+
+  test("actionable toast in status bar runs action on click and dismisses", async ({ page }) => {
+    await seedApp(page);
+    await page.evaluate(() => {
+      window.__CHRONO_MOCK__!.debug.showToast("Test Action Toast", {
+        action: () => {
+          (window as any).__ACTION_FIRED__ = true;
+        },
+      });
+    });
+
+    const btn = page.locator("button#stat-message");
+    await expect(btn).toHaveText("Test Action Toast");
+    await btn.click();
+
+    const fired = await page.evaluate(() => (window as any).__ACTION_FIRED__);
+    expect(fired).toBe(true);
+    await expect(page.locator("#stat-message")).toHaveCount(0);
+  });
+
+  test("clicking plain status bar toast dismisses it immediately", async ({ page }) => {
+    await seedApp(page);
+    await page.evaluate(() => {
+      window.__CHRONO_MOCK__!.debug.showToast("Short informational toast");
+    });
+
+    const msg = page.locator("span#stat-message");
+    await expect(msg).toHaveText("Short informational toast");
+    await msg.click();
+    await expect(page.locator("#stat-message")).toHaveCount(0);
+  });
+
+  test("long actionable toast renders in .long-toast, has pointer cursor, and runs action", async ({ page }) => {
+    await seedApp(page);
+    const longMsg = "This is a very long actionable toast message that exceeds sixty characters easily!";
+    await page.evaluate((text) => {
+      window.__CHRONO_MOCK__!.debug.showToast(text, {
+        action: () => {
+          (window as any).__LONG_ACTION_FIRED__ = true;
+        },
+      });
+    }, longMsg);
+
+    const toast = page.locator(".long-toast");
+    await expect(toast).toBeVisible();
+    await expect(toast).toHaveText(longMsg);
+    await expect(toast).toHaveClass(/interactive/);
+
+    await toast.click();
+    const fired = await page.evaluate(() => (window as any).__LONG_ACTION_FIRED__);
+    expect(fired).toBe(true);
+    await expect(toast).toHaveCount(0);
+  });
 });
 

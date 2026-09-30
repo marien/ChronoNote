@@ -16,6 +16,7 @@
     mobileTabDrawerOpen,
     scratchpadGateContext,
     tabs,
+    toastAction,
     toastMessage,
     LONG_TOAST_CHARS,
   } from "./lib/controller";
@@ -316,6 +317,21 @@
       }
     }
   }
+
+  function handleToastClick() {
+    if ($toastAction) {
+      controller.runToastAction();
+    } else {
+      controller.dismissToast();
+    }
+  }
+
+  function handleToastKeydown(e: KeyboardEvent) {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      handleToastClick();
+    }
+  }
 </script>
 
 {#if ready}
@@ -335,10 +351,34 @@
     </div>
   {/if}
   {#if !$isMobile && $toastMessage.length > LONG_TOAST_CHARS}
-    <div class="long-toast" role="status" aria-live="polite">{$toastMessage}</div>
+    <!-- svelte-ignore a11y-click-events-have-key-events -->
+    <!-- svelte-ignore a11y-no-noninteractive-tabindex -->
+    <!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
+    <div
+      class="long-toast"
+      class:interactive={Boolean($toastAction)}
+      role={$toastAction ? "button" : "status"}
+      tabindex={$toastAction ? 0 : -1}
+      aria-live="polite"
+      on:click={handleToastClick}
+      on:keydown={handleToastKeydown}
+    >
+      {$toastMessage}
+    </div>
   {/if}
   {#if $isMobile && $toastMessage}
-    <div class="mobile-toast" role="status" aria-live="polite">
+    <!-- svelte-ignore a11y-click-events-have-key-events -->
+    <!-- svelte-ignore a11y-no-noninteractive-tabindex -->
+    <!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
+    <div
+      class="mobile-toast"
+      class:interactive={Boolean($toastAction)}
+      role={$toastAction ? "button" : "status"}
+      tabindex={$toastAction ? 0 : -1}
+      aria-live="polite"
+      on:click={handleToastClick}
+      on:keydown={handleToastKeydown}
+    >
       {$toastMessage}
     </div>
   {/if}
