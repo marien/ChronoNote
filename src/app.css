@@ -831,7 +831,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--fg, currentColor);
+  color: var(--text);
   opacity: 0.38;
   line-height: 1;
 }
