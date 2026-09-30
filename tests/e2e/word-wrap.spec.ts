@@ -119,6 +119,30 @@ test.describe("word wrap (§80)", () => {
     }
   });
 
+  test("glyph and text sit at the same x with word wrap on as with it off (§259)", async ({ page }) => {
+    const measure = async (wordWrap: boolean) => {
+      await seedApp(page, { seed: { notes: {}, wordWrap } });
+      await setEditorText(page, "  # open task\n- bullet item");
+      return page.evaluate(() =>
+        Array.from(document.querySelectorAll<HTMLElement>(".cm-line")).map((line) => {
+          const first = line.querySelector<HTMLElement>('[class*="glyph-"]')!;
+          const text = [...line.childNodes].find((n) => n.nodeType === 3)!;
+          const r = document.createRange();
+          r.selectNodeContents(text);
+          return { glyph: first.getBoundingClientRect().left, text: r.getBoundingClientRect().left };
+        }),
+      );
+    };
+    const off = await measure(false);
+    const on = await measure(true);
+    expect(on.length).toBe(off.length);
+    on.forEach((p, i) => {
+      // CodeMirror's own 6px left padding must survive the hanging indent.
+      expect(p.glyph).toBeCloseTo(off[i].glyph, 0);
+      expect(p.text).toBeCloseTo(off[i].text, 0);
+    });
+  });
+
   test("broken visual lines display curved return arrow indicators (§258)", async ({ page }) => {
     await seedApp(page, { seed: { notes: {}, wordWrap: true } });
     await setEditorText(page, LONG_LINE);

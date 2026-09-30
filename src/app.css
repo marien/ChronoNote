@@ -814,7 +814,10 @@ body {
 /* §258: Word-wrap hanging indent for continuation lines, keeping them aligned
    with the logical line's text indentation level. */
 .cm-line.cm-line-wrap-indent {
-  padding-left: var(--line-indent, 0ch) !important;
+  /* 6px = CodeMirror's own `.cm-line` left padding; replacing it outright
+     (instead of adding to it) shifted every indented line 6px left of the
+     same line without word wrap. */
+  padding-left: calc(6px + var(--line-indent, 0ch)) !important;
   text-indent: calc(-1 * var(--line-indent, 0ch)) !important;
 }
 

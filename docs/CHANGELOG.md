@@ -9526,3 +9526,5 @@ Previously, `Ctrl/Cmd+Shift+O` (`setActionSymbolOpen` in `tokens.ts`) unconditio
 **Root cause:** §258's hanging indent sets a negative `text-indent` on `.cm-line`. `text-indent` is inherited, and the glyph widgets are `inline-block` (their own block containers), so each glyph applied the negative indent to its own character, shifting it out of its box where it was clipped. The §258 tests checked the indent variable and arrow indicators but never that a glyph was actually visible.
 
 **Fix:** `.cm-line.cm-line-wrap-indent > * { text-indent: 0; }` (`app.css`). New Playwright regression test in `word-wrap.spec.ts` asserts each glyph's character lies inside its own box with wrap on; confirmed it fails without the fix.
+
+**Follow-up (v0.20.2):** v0.20.1 made the glyphs visible again but every hanging-indented line sat 6px left of the same line without word wrap: `.cm-line-wrap-indent` *replaced* CodeMirror's own 6px left padding with the bare indent. It now adds to it (`padding-left: calc(6px + var(--line-indent))`), so glyph and text land on the same x with wrap on and off. New e2e test compares both modes.
