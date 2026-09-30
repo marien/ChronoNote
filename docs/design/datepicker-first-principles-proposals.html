@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>ChronoNote - Calibrated State B & Theme Modes</title>
+  <script src="https://www.gstatic.com/antigravity/web/dev/tailwindcss.min.js"></script>
+  <style>
+    /* ========================================================
+       CHRONONOTE THEME TOKENS ACROSS ALL PALETTES
+       ======================================================== */
+    :root {
+      --font-mono: "Cascadia Code", "JetBrains Mono", "Consolas", monospace;
+      --surface-canvas: #1e1e1e;
+      --surface-chrome: #252526;
+      --surface-overlay: #2d2d2e;
+      --surface-raised: #37373b;
+      --surface-hover: #444449;
+      --edge-soft: rgba(255, 255, 255, 0.08);
+      --edge-strong: rgba(255, 255, 255, 0.16);
+      --text: #d4d4d4;
+      --muted: #858585;
+      --selected-bg: #0a84d8;
+      --selected-fg: #ffffff;
+      --tab-active-border: #38bdf8;
+      --glyph-done-color: #10b981;
+      --state-warn: #d8a24a; /* warm amber */
+      --glyph-open-color: #38bdf8;
+      --cal-bg: var(--surface-overlay);
+    }
+
+    /* Light Theme */
+    .theme-light {
+      --surface-canvas: #ffffff;
+      --surface-chrome: #f3f3f3;
+      --surface-overlay: #ffffff;
+      --surface-raised: #e7e7e7;
+      --surface-hover: #dadada;
+      --edge-soft: rgba(0, 0, 0, 0.09);
+      --edge-strong: rgba(0, 0, 0, 0.18);
+      --text: #222222;
+      --muted: #888888;
+      --selected-bg: #0a6fc2;
+      --selected-fg: #ffffff;
+      --tab-active-border: #0e7490;
+      --glyph-done-color: #2f9e6b;
+      --state-warn: #b5771f;
+      --glyph-open-color: #0e7490;
+      --cal-bg: #ffffff;
+    }
+
+    /* Pure Black OLED */
+    .theme-pure-black {
+      --surface-canvas: #000000;
+      --surface-chrome: #0a0a0a;
+      --surface-overlay: #121212;
+      --surface-raised: #1e1e1e;
+      --surface-hover: #2a2a2a;
+      --edge-soft: rgba(255, 255, 255, 0.10);
+      --edge-strong: rgba(255, 255, 255, 0.20);
+      --text: #e0e0e0;
+      --muted: #8e8e8e;
+      --selected-bg: #0a84d8;
+      --selected-fg: #ffffff;
+      --tab-active-border: #38bdf8;
+      --glyph-done-color: #10b981;
+      --state-warn: #d8a24a;
+      --glyph-open-color: #38bdf8;
+      --cal-bg: #121212;
+    }
+
+    /* Legacy Mode (§111: Red = open action, Amber = deferred, Green = done, VS-Code blue) */
+    .mode-legacy {
+      --selected-bg: #007acc;
+      --tab-active-border: #007acc;
+      --state-warn: #ff6b6b; /* legacy red for open */
+      --glyph-open-color: #ff6b6b;
+      --glyph-done-color: #51cf66;
+    }
+    .theme-light.mode-legacy {
+      --selected-bg: #0066b8;
+      --tab-active-border: #0066b8;
+      --state-warn: #d9383a; /* legacy red in light */
+      --glyph-open-color: #d9383a;
+      --glyph-done-color: #2b8a3e;
+    }
+
+    /* Grayscale Mode (§88: No hue! Distinguished by weight, opacity, and borders) */
+    .mode-grayscale {
+      --selected-bg: #4a4a4a;
+      --tab-active-border: var(--text);
+      --state-warn: var(--text); /* no color hue in grayscale! */
+      --glyph-open-color: var(--text);
+      --glyph-done-color: var(--text);
+    }
+    .theme-light.mode-grayscale {
+      --selected-bg: #2d2d2d;
+      --tab-active-border: #111111;
+      --state-warn: #111111;
+      --glyph-open-color: #111111;
+      --glyph-done-color: #111111;
+    }
+
+    /* Popover Container */
+    .datepicker-pop {
+      width: 256px;
+      background: var(--cal-bg);
+      border: 1px solid var(--edge-strong);
+      border-radius: 8px;
+      box-shadow: 0 14px 40px rgba(0, 0, 0, 0.45);
+      padding: 10px;
+      font-size: 12px;
+      color: var(--text);
+      font-family: var(--font-mono);
+      user-select: none;
+    }
+
+    .cal-weekdays,
+    .cal-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 3px;
+    }
+
+    .cal-weekdays span {
+      text-align: center;
+      color: var(--muted);
+      font-size: 10px;
+      padding: 3px 0;
+      font-family: var(--font-mono);
+      font-weight: 500;
+    }
+
+    .cal-day {
+      position: relative;
+      aspect-ratio: 1;
+      background: transparent;
+      border: 1px solid transparent;
+      border-radius: 6px;
+      font-family: var(--font-mono);
+      font-size: 11.5px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-variant-numeric: tabular-nums;
+      padding: 0;
+      transition: background 100ms ease, border-color 100ms ease, color 100ms ease;
+      box-sizing: border-box;
+    }
+
+    .cal-day.out {
+      opacity: 0.25 !important;
+    }
+
+    /* ========================================================
+       SHARED BASELINE (Using Variation 2: Filled Neutral Chip)
+       ======================================================== */
+
+    /* D: Empty (No box, flat) */
+    .cal-day.st-none {
+      color: var(--muted);
+      opacity: 0.35;
+      font-weight: 400;
+    }
+
+    /* C: Agenda Only (Dashed Box - Placeholder) */
+    .cal-day.st-agenda {
+      color: var(--muted);
+      opacity: 0.85;
+      border: 1px dashed var(--edge-strong);
+      font-weight: 500;
+    }
+
+    /* A: Notes / Settled (Filled Neutral Chip) */
+    .cal-day.st-done {
+      color: var(--text);
+      font-weight: 600;
+      background: var(--surface-raised);
+      border: 1px solid var(--edge-soft);
+    }
+
+    /* ========================================================
+       UNIFORM HOVER BEHAVIOR ACROSS ALL STATES
+       ======================================================== */
+    .cal-day.st-none:hover {
+      background: var(--surface-raised);
+      opacity: 0.85;
+    }
+    .cal-day.st-agenda:hover {
+      background: var(--surface-raised);
+      opacity: 1;
+      border-style: solid;
+    }
+    .cal-day.st-done:hover {
+      background: var(--surface-hover);
+    }
+    .cal-day.st-open:hover {
+      background: var(--surface-hover) !important;
+      filter: brightness(1.08);
+    }
+
+    /* ========================================================
+       4 TASTEFUL PROPOSALS FOR STATE B (OPEN ACTIONS)
+       Goal: Strongest, but grounded in State A's chip family!
+       ======================================================== */
+
+    /* Option B1: Accent Border Only (Neutral Chip + Accent Border)
+       Shares A's surface-raised background and text color;
+       only the border becomes a crisp accent line. In grayscale: 1.5px solid text. */
+    .b-border .cal-day.st-open {
+      background: var(--surface-raised);
+      color: var(--text);
+      font-weight: 700;
+      border: 1.5px solid var(--state-warn);
+    }
+    .mode-grayscale .b-border .cal-day.st-open {
+      border: 1.5px solid var(--text);
+      font-weight: 800;
+    }
+
+    /* Option B2: Accent Text Only (Neutral Chip + Accent Number)
+       Shares A's surface-raised background and soft border;
+       the number itself carries the accent hue. In grayscale: bright white & extra bold. */
+    .b-text .cal-day.st-open {
+      background: var(--surface-raised);
+      border: 1px solid var(--edge-soft);
+      color: var(--state-warn);
+      font-weight: 800;
+    }
+    .mode-grayscale .b-text .cal-day.st-open {
+      color: #ffffff;
+      font-weight: 900;
+      border-color: var(--edge-strong);
+    }
+    .theme-light.mode-grayscale .b-text .cal-day.st-open {
+      color: #000000;
+      font-weight: 900;
+    }
+
+    /* Option B3: Left Accent Spine on Chip
+       Shares A's surface-raised chip, with a crisp 2.5px accent spine on the left edge.
+       In grayscale: crisp white spine. */
+    .b-spine .cal-day.st-open {
+      background: var(--surface-raised);
+      border: 1px solid var(--edge-soft);
+      color: var(--text);
+      font-weight: 700;
+      box-shadow: inset 2.5px 0 0 var(--state-warn);
+    }
+    .mode-grayscale .b-spine .cal-day.st-open {
+      box-shadow: inset 2.5px 0 0 var(--text);
+      font-weight: 800;
+    }
+
+    /* Option B4: Harmonized Border + Accent Text (Soft Dual Hint)
+       Soft warm border + warm text, but KEEPING A's neutral background.
+       Does not change background! */
+    .b-harmonized .cal-day.st-open {
+      background: var(--surface-raised);
+      border: 1px solid color-mix(in srgb, var(--state-warn) 65%, var(--edge-strong));
+      color: var(--state-warn);
+      font-weight: 700;
+    }
+    .mode-grayscale .b-harmonized .cal-day.st-open {
+      border: 1.5px solid var(--text);
+      color: var(--text);
+      font-weight: 900;
+    }
+
+    /* Today Outline (Distinctive perimeter ring) */
+    .cal-day.today {
+      outline: 2px solid var(--tab-active-border);
+      outline-offset: -2px;
+      font-weight: 800;
+    }
+
+    /* Selected / Target Date (Highest system priority) */
+    .cal-day.target {
+      background: var(--selected-bg) !important;
+      color: var(--selected-fg) !important;
+      border-color: var(--selected-bg) !important;
+      outline: none !important;
+      box-shadow: none !important;
+    }
+  </style>
+</head>
+<body class="bg-transparent text-[var(--text)] p-6 font-sans">
+  <div class="max-w-5xl mx-auto space-y-6">
+
+    <!-- Header & Controls -->
+    <div class="bg-[var(--surface-overlay)] border border-[var(--edge-strong)] rounded-xl p-5 shadow-sm">
+      <div class="flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <div class="inline-flex items-center gap-2 px-2 py-0.5 rounded text-xs font-semibold bg-sky-500/10 text-sky-400 border border-sky-500/20 mb-1">
+            ChronoNote Theme Parity • State B Calibration
+          </div>
+          <h1 class="text-xl font-bold tracking-tight text-[var(--text)]">Calibrating State B (Open Actions) Across All Themes</h1>
+          <p class="text-xs text-[var(--muted)] mt-1">
+            Grounded in State A's Neutral Filled Chip. Strongest priority without changing background, border, and text all at once.
+          </p>
+        </div>
+
+        <!-- Palette & Theme Selectors -->
+        <div class="flex flex-wrap items-center gap-3 text-xs">
+          <!-- Color Mode Selector -->
+          <div class="flex items-center gap-1.5">
+            <span class="text-[var(--muted)]">Palette:</span>
+            <select id="mode-selector" class="bg-[var(--surface-raised)] border border-[var(--edge-strong)] rounded px-2 py-1 text-xs text-[var(--text)] font-medium" onchange="applyMode(this.value)">
+              <option value="mode-color">Color (Default)</option>
+              <option value="mode-legacy">Legacy (Red Open)</option>
+              <option value="mode-grayscale">Grayscale (No Hue)</option>
+            </select>
+          </div>
+
+          <!-- Base Surface Theme Selector -->
+          <div class="flex items-center gap-1.5">
+            <span class="text-[var(--muted)]">Surface:</span>
+            <select id="theme-selector" class="bg-[var(--surface-raised)] border border-[var(--edge-strong)] rounded px-2 py-1 text-xs text-[var(--text)] font-medium" onchange="applyTheme(this.value)">
+              <option value="dark">Dark</option>
+              <option value="light">Light</option>
+              <option value="pure-black">Pure Black OLED</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- State Progression Summary -->
+    <div class="p-4 rounded-xl border border-[var(--edge-strong)] bg-[var(--surface-overlay)] text-xs">
+      <div class="font-bold text-[var(--muted)] uppercase tracking-wider mb-2">
+        Container State Progression (With State A Neutral Chip)
+      </div>
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div class="p-2.5 rounded bg-[var(--surface-canvas)] border border-[var(--edge-soft)]">
+          <span class="font-semibold text-[var(--muted)] block">D: Empty</span>
+          <span class="text-[11px] text-[var(--muted)] opacity-60">Flat, no border. Quiet backdrop.</span>
+        </div>
+        <div class="p-2.5 rounded bg-[var(--surface-canvas)] border border-[var(--edge-soft)]">
+          <span class="font-semibold text-sky-400 block">C: Agenda Only</span>
+          <span class="text-[11px] text-[var(--muted)]">Dashed border. Open reservation slot.</span>
+        </div>
+        <div class="p-2.5 rounded bg-[var(--surface-canvas)] border border-[var(--edge-soft)]">
+          <span class="font-semibold text-[var(--text)] block">A: Notes (Done)</span>
+          <span class="text-[11px] text-[var(--muted)]">Neutral filled chip. Note in place.</span>
+        </div>
+        <div class="p-2.5 rounded bg-[var(--surface-canvas)] border border-[var(--edge-soft)]">
+          <span class="font-semibold text-amber-400 block">B: Open Actions</span>
+          <span class="text-[11px] text-[var(--muted)]">Neutral chip + targeted highlight.</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 4 Calibrated Options for State B -->
+    <div class="space-y-4">
+      <h2 class="text-sm font-bold tracking-wide uppercase text-[var(--muted)]">4 Options for State B (Open Actions)</h2>
+      
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+
+        <!-- Option B1: Accent Border Only -->
+        <div class="p-4 rounded-xl border border-[var(--edge-strong)] bg-[var(--surface-overlay)] flex flex-col justify-between b-border">
+          <div>
+            <div class="flex items-center justify-between mb-1">
+              <span class="font-bold text-sm text-[var(--text)]">B1. Accent Border</span>
+              <span class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">Recommended</span>
+            </div>
+            <p class="text-[11px] text-[var(--muted)] mb-3">
+              Keeps A's neutral background and text. Only the border changes to an accent line (1.5px).
+            </p>
+            <div class="grid grid-cols-4 gap-2 py-3 border-y border-[var(--edge-soft)]">
+              <div class="flex flex-col items-center gap-1">
+                <div class="cal-day st-none w-8 h-8">14</div>
+                <span class="text-[8px] text-[var(--muted)]">D: Flat</span>
+              </div>
+              <div class="flex flex-col items-center gap-1">
+                <div class="cal-day st-agenda w-8 h-8">15</div>
+                <span class="text-[8px] text-[var(--muted)]">C: Dashed</span>
+              </div>
+              <div class="flex flex-col items-center gap-1">
+                <div class="cal-day st-done w-8 h-8">16</div>
+                <span class="text-[8px] text-[var(--text)]">A: Solid</span>
+              </div>
+              <div class="flex flex-col items-center gap-1">
+                <div class="cal-day st-open w-8 h-8">17</div>
+                <span class="text-[8px] text-[var(--text)] font-bold">B: Accent</span>
+              </div>
+            </div>
+          </div>
+          <div class="mt-3 text-[11px] text-emerald-400 font-medium">✓ Flawless in Grayscale & Legacy • Subtle</div>
+        </div>
+
+        <!-- Option B2: Accent Text Only -->
+        <div class="p-4 rounded-xl border border-[var(--edge-strong)] bg-[var(--surface-overlay)] flex flex-col justify-between b-text">
+          <div>
+            <div class="flex items-center justify-between mb-1">
+              <span class="font-bold text-sm text-[var(--text)]">B2. Accent Text</span>
+              <span class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-zinc-500/10 text-[var(--muted)]">Clean</span>
+            </div>
+            <p class="text-[11px] text-[var(--muted)] mb-3">
+              Keeps A's chip background and soft border. The number itself radiates the active state.
+            </p>
+            <div class="grid grid-cols-4 gap-2 py-3 border-y border-[var(--edge-soft)]">
+              <div class="flex flex-col items-center gap-1">
+                <div class="cal-day st-none w-8 h-8">14</div>
+                <span class="text-[8px] text-[var(--muted)]">D: Flat</span>
+              </div>
+              <div class="flex flex-col items-center gap-1">
+                <div class="cal-day st-agenda w-8 h-8">15</div>
+                <span class="text-[8px] text-[var(--muted)]">C: Dashed</span>
+              </div>
+              <div class="flex flex-col items-center gap-1">
+                <div class="cal-day st-done w-8 h-8">16</div>
+                <span class="text-[8px] text-[var(--text)]">A: Solid</span>
+              </div>
+              <div class="flex flex-col items-center gap-1">
+                <div class="cal-day st-open w-8 h-8">17</div>
+                <span class="text-[8px] text-amber-400 font-bold">B: Number</span>
+              </div>
+            </div>
+          </div>
+          <div class="mt-3 text-[11px] text-[var(--muted)]">Understated • Identical box shape</div>
+        </div>
+
+        <!-- Option B3: Left Accent Spine -->
+        <div class="p-4 rounded-xl border border-[var(--edge-strong)] bg-[var(--surface-overlay)] flex flex-col justify-between b-spine">
+          <div>
+            <div class="flex items-center justify-between mb-1">
+              <span class="font-bold text-sm text-[var(--text)]">B3. Left Spine</span>
+              <span class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-zinc-500/10 text-[var(--muted)]">Architectural</span>
+            </div>
+            <p class="text-[11px] text-[var(--muted)] mb-3">
+              A 2.5px vertical accent spine inside the left edge of the neutral chip.
+            </p>
+            <div class="grid grid-cols-4 gap-2 py-3 border-y border-[var(--edge-soft)]">
+              <div class="flex flex-col items-center gap-1">
+                <div class="cal-day st-none w-8 h-8">14</div>
+                <span class="text-[8px] text-[var(--muted)]">D: Flat</span>
+              </div>
+              <div class="flex flex-col items-center gap-1">
+                <div class="cal-day st-agenda w-8 h-8">15</div>
+                <span class="text-[8px] text-[var(--muted)]">C: Dashed</span>
+              </div>
+              <div class="flex flex-col items-center gap-1">
+                <div class="cal-day st-done w-8 h-8">16</div>
+                <span class="text-[8px] text-[var(--text)]">A: Solid</span>
+              </div>
+              <div class="flex flex-col items-center gap-1">
+                <div class="cal-day st-open w-8 h-8">17</div>
+                <span class="text-[8px] text-[var(--text)] font-bold">B: Spine</span>
+              </div>
+            </div>
+          </div>
+          <div class="mt-3 text-[11px] text-[var(--muted)]">Uncluttered center number</div>
+        </div>
+
+        <!-- Option B4: Harmonized Border + Text -->
+        <div class="p-4 rounded-xl border border-[var(--edge-strong)] bg-[var(--surface-overlay)] flex flex-col justify-between b-harmonized">
+          <div>
+            <div class="flex items-center justify-between mb-1">
+              <span class="font-bold text-sm text-[var(--text)]">B4. Soft Dual Hint</span>
+              <span class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-zinc-500/10 text-[var(--muted)]">Warm</span>
+            </div>
+            <p class="text-[11px] text-[var(--muted)] mb-3">
+              Soft warm border + warm text, but keeping the neutral chip background.
+            </p>
+            <div class="grid grid-cols-4 gap-2 py-3 border-y border-[var(--edge-soft)]">
+              <div class="flex flex-col items-center gap-1">
+                <div class="cal-day st-none w-8 h-8">14</div>
+                <span class="text-[8px] text-[var(--muted)]">D: Flat</span>
+              </div>
+              <div class="flex flex-col items-center gap-1">
+                <div class="cal-day st-agenda w-8 h-8">15</div>
+                <span class="text-[8px] text-[var(--muted)]">C: Dashed</span>
+              </div>
+              <div class="flex flex-col items-center gap-1">
+                <div class="cal-day st-done w-8 h-8">16</div>
+                <span class="text-[8px] text-[var(--text)]">A: Solid</span>
+              </div>
+              <div class="flex flex-col items-center gap-1">
+                <div class="cal-day st-open w-8 h-8">17</div>
+                <span class="text-[8px] text-amber-400 font-bold">B: Dual</span>
+              </div>
+            </div>
+          </div>
+          <div class="mt-3 text-[11px] text-[var(--muted)]">Noticeable without screaming</div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Live Month Simulation -->
+    <div class="space-y-4">
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 class="text-sm font-bold tracking-wide uppercase text-[var(--muted)]">Full Month Grid Simulation (October 2026)</h2>
+          <p class="text-xs text-[var(--muted)]">Test hover over all dates (D, C, A, B) and switch palettes (Color, Legacy, Grayscale).</p>
+        </div>
+        <div class="flex items-center gap-2 text-xs">
+          <span class="text-[var(--muted)] font-medium">State B Style:</span>
+          <select id="b-selector" class="bg-[var(--surface-raised)] border border-[var(--edge-strong)] rounded px-2.5 py-1 text-xs text-[var(--text)] font-medium" onchange="setBStyle(this.value)">
+            <option value="b-border">B1: Accent Border (Recommended)</option>
+            <option value="b-text">B2: Accent Text Only</option>
+            <option value="b-spine">B3: Left Accent Spine</option>
+            <option value="b-harmonized">B4: Soft Dual Hint</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="flex flex-col md:flex-row items-center justify-center gap-8 p-6 rounded-xl border border-[var(--edge-strong)] bg-[var(--surface-overlay)]">
+        
+        <!-- Live DatePicker Popover Container -->
+        <div id="popover-container" class="datepicker-pop b-border shadow-2xl">
+          <div class="flex items-center justify-between pb-2 mb-1">
+            <span class="text-xs font-semibold">October 2026</span>
+            <span class="text-[10px] text-sky-400 font-mono">📅 Calendar Active</span>
+          </div>
+
+          <!-- Weekdays -->
+          <div class="cal-weekdays">
+            <span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span><span>Su</span>
+          </div>
+
+          <!-- 35-day grid -->
+          <div class="cal-grid" id="full-grid">
+            <!-- Dynamically populated -->
+          </div>
+
+          <!-- Footer -->
+          <div class="flex items-center justify-between pt-2 mt-2 border-t border-[var(--edge-soft)] text-[11px]">
+            <span class="text-sky-400 font-medium">Today</span>
+            <span class="text-[var(--muted)] text-[10px]">Esc to close</span>
+          </div>
+        </div>
+
+        <!-- Testing Guide -->
+        <div class="w-full md:w-80 space-y-3 text-xs">
+          <div class="font-semibold text-sm text-[var(--text)] border-b border-[var(--edge-soft)] pb-1.5">Observations & Verification</div>
+          <div class="space-y-2.5 text-[var(--muted)] leading-relaxed">
+            <div>
+              <strong class="text-[var(--text)]">1. Hover Uniformity:</strong>
+              <p class="text-[11px] mt-0.5">
+                Hover over D (10), C (14), A (16), and B (8). All four states now smoothly react with uniform background elevation!
+              </p>
+            </div>
+            <div>
+              <strong class="text-[var(--text)]">2. Palette Adaptation:</strong>
+              <p class="text-[11px] mt-0.5">
+                Switch Palette to <strong>Legacy</strong> (open actions turn classic red) and <strong>Grayscale</strong> (zero hue, B is distinguished by a crisp 1.5px solid border and extra bold weight).
+              </p>
+            </div>
+            <div>
+              <strong class="text-[var(--text)]">3. Calm Hierarchy:</strong>
+              <p class="text-[11px] mt-0.5">
+                Notice how B (8, 12, 19) clearly indicates unfinished work without breaking the aesthetic harmony of the grid.
+              </p>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    const gridEl = document.getElementById("full-grid");
+    
+    // Categorized dates:
+    // Today: Oct 1
+    // State C (Agenda Only, dashed placeholder): Oct 14, 28
+    // State A (Notes Done, neutral chip): Oct 2, 3, 6, 16, 21, 23
+    // State B (Open Actions, calibrated B style): Oct 5, 8, 12, 19, 26
+    // State D (Empty, flat): all others
+    const today = 1;
+    const agendaDates = new Set([14, 28]);
+    const doneDates = new Set([2, 3, 6, 16, 21, 23]);
+    const openDates = new Set([5, 8, 12, 19, 26]);
+
+    function renderFullGrid() {
+      gridEl.innerHTML = "";
+
+      // October 2026 starts on Thursday -> 3 lead days from Sept (28, 29, 30)
+      const leadDays = [28, 29, 30];
+      leadDays.forEach(d => {
+        const btn = document.createElement("button");
+        btn.className = "cal-day out";
+        btn.textContent = d;
+        gridEl.appendChild(btn);
+      });
+
+      for (let day = 1; day <= 31; day++) {
+        const btn = document.createElement("button");
+        btn.className = "cal-day";
+
+        if (day === today) {
+          btn.classList.add("today");
+        }
+
+        // Determine core state
+        if (openDates.has(day)) {
+          btn.classList.add("st-open");
+        } else if (doneDates.has(day)) {
+          btn.classList.add("st-done");
+        } else if (agendaDates.has(day)) {
+          btn.classList.add("st-agenda");
+        } else {
+          btn.classList.add("st-none");
+        }
+
+        btn.textContent = day;
+
+        // Click interaction
+        btn.onclick = () => {
+          document.querySelectorAll("#full-grid .cal-day").forEach(b => b.classList.remove("target"));
+          btn.classList.add("target");
+        };
+
+        gridEl.appendChild(btn);
+      }
+
+      // Trail days (1..8) to fill 42 cells
+      for (let day = 1; day <= 8; day++) {
+        const btn = document.createElement("button");
+        btn.className = "cal-day out";
+        btn.textContent = day;
+        gridEl.appendChild(btn);
+      }
+    }
+
+    function setBStyle(cls) {
+      const pop = document.getElementById("popover-container");
+      pop.className = `datepicker-pop ${cls} shadow-2xl`;
+      renderFullGrid();
+    }
+
+    let currentTheme = "dark";
+    let currentMode = "mode-color";
+
+    function updateRootClasses() {
+      document.body.className = `bg-transparent text-[var(--text)] p-6 font-sans theme-${currentTheme} ${currentMode}`;
+      renderFullGrid();
+    }
+
+    function applyTheme(t) {
+      currentTheme = t;
+      updateRootClasses();
+    }
+
+    function applyMode(m) {
+      currentMode = m;
+      updateRootClasses();
+    }
+
+    renderFullGrid();
+  </script>
+</body>
+</html>

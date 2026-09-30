@@ -288,4 +288,40 @@ test.describe("sync review improvements (#78)", () => {
     await expect(dialog).toContainText("No longer on the calendar");
     await expect(dialog.locator(".sync-review-removal")).toContainText("Old sync");
   });
+
+  test("date picker displays dashed placeholder box for days with agenda items and no note", async ({ page }) => {
+    const futureDate = "2026-09-25";
+    await seedApp(page, {
+      seed: {
+        ...scenario("empty"),
+        calendarSyncEnabled: true,
+        agendaJson: JSON.stringify([
+          { date: futureDate, start: "09:00", end: "10:00", title: "Quarterly Strategy" },
+        ]),
+        notes: {
+          [`${today}.txt`]: "Today note\n# Open action\n",
+        },
+        session: { openTabs: [`${today}.txt`], activeTab: `${today}.txt` },
+      },
+    });
+
+    // Open date picker
+    await page.keyboard.press("ControlOrMeta+o");
+    const pop = page.locator(".datepicker-pop");
+    await expect(pop).toBeVisible();
+
+    // The future date with agenda has .has-agenda and proper aria-label
+    const futureDay = pop.locator(`.cal-day[data-iso="${futureDate}"]`);
+    await expect(futureDay).toHaveClass(/\bhas-agenda\b/);
+    await expect(futureDay).toHaveAttribute("aria-label", new RegExp(`${futureDate}.*scheduled meetings`));
+
+    // Today has note with open actions -> has-pending
+    const todayDay = pop.locator(`.cal-day[data-iso="${today}"]`);
+    await expect(todayDay).toHaveClass(/\bhas-pending\b/);
+
+    // An empty day has neither
+    const emptyDay = pop.locator('.cal-day[data-iso="2026-09-26"]');
+    await expect(emptyDay).not.toHaveClass(/\bhas-agenda\b/);
+    await expect(emptyDay).not.toHaveClass(/\bhasnote\b/);
+  });
 });

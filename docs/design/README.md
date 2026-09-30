@@ -1,5 +1,18 @@
 # Design notes
 
+## Date Picker: Container model & agenda indicator redesign
+
+**[`datepicker-bounding-box-spec.md`](datepicker-bounding-box-spec.md)** — approved 2026-09-30:
+replaces the date picker's legacy 3px completion dots and addresses Gestalt proximity ambiguity
+when displaying external calendar commitments (`.agenda.json`). Establishes a 4-tier Container Model
+calibrated along an intuitive intensity sequence ($\mathbf{D} \to \mathbf{C} \to \mathbf{A} \to \mathbf{B}$):
+- **State D (Empty)**: flat, no box (`35%` opacity muted text).
+- **State C (Agenda Only)**: dashed bounding box (an unfilled placeholder/reservation slot waiting to be drafted).
+- **State A (Notes Settled)**: solid neutral chip (`var(--surface-raised)`), indicating note is physically recorded.
+- **State B (Open Actions)**: neutral chip with an accent border (`1.5px solid var(--state-warn)` in Color, red in Legacy, crisp solid white in Grayscale), making open actions the strongest priority without overwhelming background fills.
+Includes full theme parity across Color, Legacy, Grayscale, and Pure Black OLED, with accessible ARIA labeling and single-pass batch date loading.
+Interactive prototype: [`datepicker-first-principles-proposals.html`](datepicker-first-principles-proposals.html).
+
 ## Action Drawer: Mobile portrait layout & ergonomics
 
 **[`action-drawer-mobile-design.md`](action-drawer-mobile-design.md)** — pitched 2026-09-27:

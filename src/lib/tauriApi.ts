@@ -192,6 +192,10 @@ export function readAgendaAfter(afterDate: string): Promise<[string, string][]> 
   return invoke("read_agenda_after", { afterDate });
 }
 
+export function readAgendaDates(): Promise<string[]> {
+  return invoke("read_agenda_dates", {});
+}
+
 export function agendaFileExists(): Promise<boolean> {
   return invoke("agenda_file_exists", {});
 }

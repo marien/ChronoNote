@@ -3,6 +3,8 @@
   import { onMount, tick } from "svelte";
   import * as controller from "../../controller";
   import { activeTabId, allNotesCache, copyForwardPending, isMobile, tabs } from "../../controller";
+  import * as api from "../../tauriApi";
+  import { agendaFileExists, calendarSyncEnabled } from "../../stores";
   import { focusTrap } from "../../actions/focusTrap";
   import {
     addDaysISO,
@@ -114,10 +116,20 @@
     return { noteByIso, openByIso, heatByIso };
   })());
 
+  let agendaDates = new Set<string>();
+
   onMount(async () => {
     positionUnderTrigger();
     await tick();
     inputEl?.focus(); // type-to-jump is the default, same as the other drawers
+    if (get(calendarSyncEnabled) && get(agendaFileExists)) {
+      try {
+        const dates = await api.readAgendaDates();
+        agendaDates = new Set(dates);
+      } catch {
+        agendaDates = new Set();
+      }
+    }
     await controller.refreshAllNotesCache();
     loadingAll = false;
   });
@@ -268,18 +280,21 @@
         class:has-done={heatByIso.get(cell.iso) === "done"}
         class:has-pending={heatByIso.get(cell.iso) === "pending"}
         class:has-log={heatByIso.get(cell.iso) === "log"}
+        class:has-agenda={!noteByIso.has(cell.iso) && agendaDates.has(cell.iso)}
         data-iso={cell.iso}
         tabindex={cell.iso === focusedIso ? 0 : -1}
         aria-label={`${cell.iso}${
-          heatByIso.get(cell.iso) === "done"
-            ? $t("datePicker.day.allDone")
-            : heatByIso.get(cell.iso) === "pending"
-              ? $t("datePicker.day.pending")
+          heatByIso.get(cell.iso) === "pending"
+            ? $t("datePicker.day.pending")
+            : heatByIso.get(cell.iso) === "done"
+              ? $t("datePicker.day.allDone")
               : heatByIso.get(cell.iso) === "log"
                 ? $t("datePicker.day.log")
                 : noteByIso.has(cell.iso)
                   ? $t("datePicker.day.hasNote")
-                  : ""
+                  : agendaDates.has(cell.iso)
+                    ? $t("datePicker.day.agendaOnly")
+                    : ""
         }`}
         aria-current={cell.iso === today ? "date" : undefined}
         on:click={() => commit(cell.iso)}

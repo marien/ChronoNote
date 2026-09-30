@@ -468,6 +468,7 @@ export type TranslationParams = {
   "datePicker.day.pending": undefined;
   "datePicker.day.log": undefined;
   "datePicker.day.hasNote": undefined;
+  "datePicker.day.agendaOnly": undefined;
   "datePicker.today": undefined;
   "datePicker.escToClose": undefined;
 

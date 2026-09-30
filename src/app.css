@@ -1992,73 +1992,90 @@ body {
   position: relative;
   aspect-ratio: 1;
   background: transparent;
-  border: none;
-  border-radius: 5px;
-  /* Plain dates are quiet; a day you actually wrote a note on reads at
-     full strength (`.hasnote`), and open actions add the dot (`.has`). */
+  border: 1px solid transparent;
+  border-radius: 6px;
+  /* State D (Empty): plain dates are quiet backdrop */
   color: var(--muted);
+  opacity: 0.35;
   font-family: inherit;
   font-size: 11.5px;
   cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   font-variant-numeric: tabular-nums;
-}
-.cal-day.hasnote {
-  color: var(--text);
-  font-weight: 500;
+  transition: background 100ms ease, border-color 100ms ease, opacity 100ms ease, color 100ms ease;
+  box-sizing: border-box;
 }
 .cal-day:hover {
   background: var(--surface-raised);
-  color: var(--text);
+  opacity: 0.85;
 }
 .cal-day.out {
+  opacity: 0.25;
+}
+
+/* State C (Agenda Only): Dashed bounding box placeholder */
+.cal-day.has-agenda {
   color: var(--muted);
-  opacity: 0.45;
+  opacity: 0.85;
+  border: 1px dashed var(--edge-strong);
+  font-weight: 500;
 }
-.cal-day.today {
-  box-shadow: inset 0 0 0 1px var(--tab-active-border);
+.cal-day.has-agenda:hover {
+  background: var(--surface-raised);
+  opacity: 1;
+  border-style: solid;
+}
+
+/* State A (Notes Recorded / Settled): Filled neutral chip */
+.cal-day.hasnote {
+  color: var(--text);
+  font-weight: 600;
+  opacity: 1;
+  background: var(--surface-raised);
+  border: 1px solid var(--edge-soft);
+}
+.cal-day.hasnote:hover {
+  background: color-mix(in srgb, var(--surface-raised) 85%, var(--text));
+}
+
+/* State B (Open Actions Pending): Neutral chip + Accent border */
+.cal-day.has-pending {
+  background: var(--surface-raised);
+  color: var(--text);
   font-weight: 700;
+  opacity: 1;
+  border: 1.5px solid var(--state-warn);
 }
+.cal-day.has-pending:hover {
+  background: color-mix(in srgb, var(--surface-raised) 85%, var(--text));
+}
+
+/* Grayscale mode: State B distinguished by bold solid 1.5px white border */
+[data-color-mode="grayscale"] .cal-day.has-pending {
+  border: 1.5px solid var(--text);
+  font-weight: 800;
+}
+
+/* Today: Dedicated perimeter ring */
+.cal-day.today {
+  outline: 2px solid var(--tab-active-border);
+  outline-offset: -2px;
+  font-weight: 800;
+}
+
 /* Where the typed query / keyboard cursor is pointing. */
 .cal-day.target {
-  background: var(--selected-bg);
-  color: var(--selected-fg);
+  background: var(--selected-bg) !important;
+  color: var(--selected-fg) !important;
+  border-color: var(--selected-bg) !important;
+  outline: none !important;
+  opacity: 1 !important;
 }
 .cal-day:focus-visible {
   outline: 2px solid var(--tab-active-border);
   outline-offset: -1px;
-}
-.cal-day.has-done::after,
-.cal-day.has-pending::after,
-.cal-day.has-log::after,
-.cal-day.has:not(.has-done):not(.has-pending):not(.has-log)::after {
-  content: "";
-  position: absolute;
-  left: 50%;
-  bottom: 3px;
-  transform: translateX(-50%);
-  width: 3px;
-  height: 3px;
-  border-radius: 50%;
-  transition: transform 120ms ease;
-}
-.cal-day:hover.has-done::after,
-.cal-day:hover.has-pending::after,
-.cal-day:hover.has-log::after,
-.cal-day:hover.has::after {
-  transform: translateX(-50%) scale(1.3);
-}
-.cal-day.has-done::after {
-  background: var(--glyph-done-color);
-}
-.cal-day.has-pending::after {
-  background: var(--state-warn);
-}
-.cal-day.has-log::after {
-  background: var(--muted);
-  opacity: 0.45;
-}
-.cal-day.has:not(.has-done):not(.has-pending):not(.has-log)::after {
-  background: var(--tab-active-border);
 }
 .cal-foot {
   display: flex;

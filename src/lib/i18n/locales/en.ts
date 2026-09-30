@@ -436,6 +436,7 @@ export const en = {
   "datePicker.day.pending": () => ", open actions pending",
   "datePicker.day.log": () => ", note log with no tasks",
   "datePicker.day.hasNote": () => ", has a note",
+  "datePicker.day.agendaOnly": () => ", scheduled meetings",
   "datePicker.today": () => "Today",
   "datePicker.escToClose": () => "Esc to close",
 

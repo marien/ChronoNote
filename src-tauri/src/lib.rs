@@ -484,6 +484,7 @@ pub fn run() {
             agenda::read_agenda_for_date,
             agenda::read_agenda_removed_for_date,
             agenda::read_agenda_after,
+            agenda::read_agenda_dates,
             agenda::agenda_file_exists,
             save_scratchpad_drafts,
             load_scratchpad_drafts,

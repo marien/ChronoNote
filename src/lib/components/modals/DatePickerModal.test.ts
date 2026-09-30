@@ -44,4 +44,24 @@ describe("DatePicker 3-Tier Completion Heatmap Math (Decision 3 / R7)", () => {
     expect(getAriaLabel("2026-09-20", "log")).toBe("2026-09-20, note log with no tasks");
     expect(getAriaLabel("2026-09-21", null)).toBe("2026-09-21");
   });
+
+  it("generates correct accessible aria-label for agenda placeholder days", () => {
+    const getAriaLabel = (
+      iso: string,
+      heat: "done" | "pending" | "log" | null,
+      hasNote: boolean,
+      hasAgenda: boolean,
+    ) => {
+      if (heat === "pending") return `${iso}, open actions pending`;
+      if (heat === "done") return `${iso}, all tasks completed`;
+      if (heat === "log") return `${iso}, note log with no tasks`;
+      if (hasNote) return `${iso}, has a note`;
+      if (hasAgenda) return `${iso}, scheduled meetings`;
+      return iso;
+    };
+
+    expect(getAriaLabel("2026-10-14", null, false, true)).toBe("2026-10-14, scheduled meetings");
+    expect(getAriaLabel("2026-10-15", "pending", true, true)).toBe("2026-10-15, open actions pending");
+    expect(getAriaLabel("2026-10-16", null, false, false)).toBe("2026-10-16");
+  });
 });
