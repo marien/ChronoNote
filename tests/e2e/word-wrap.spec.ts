@@ -100,6 +100,25 @@ test.describe("word wrap (§80)", () => {
     expect(lineInfo!.style).toContain("--line-indent: 4ch;");
   });
 
+  test("glyphs stay visible on hanging-indented lines: the negative text-indent must not leak into them (§259)", async ({ page }) => {
+    await seedApp(page, { seed: { notes: {}, wordWrap: true } });
+    await setEditorText(page, "# open task\nv done task");
+
+    const boxes = await page.evaluate(() =>
+      Array.from(document.querySelectorAll<HTMLElement>(".cm-line .glyph-open, .cm-line .glyph-done")).map((g) => {
+        const box = g.getBoundingClientRect();
+        const ink = g.firstElementChild!.getBoundingClientRect();
+        return { boxLeft: box.left, inkLeft: ink.left, inkRight: ink.right, boxRight: box.right };
+      }),
+    );
+    expect(boxes.length).toBe(2);
+    for (const b of boxes) {
+      // The character sits inside its own box, not shifted out (and clipped).
+      expect(b.inkLeft).toBeGreaterThanOrEqual(b.boxLeft - 0.5);
+      expect(b.inkRight).toBeLessThanOrEqual(b.boxRight + 0.5);
+    }
+  });
+
   test("broken visual lines display curved return arrow indicators (§258)", async ({ page }) => {
     await seedApp(page, { seed: { notes: {}, wordWrap: true } });
     await setEditorText(page, LONG_LINE);

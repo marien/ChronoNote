@@ -818,6 +818,13 @@ body {
   text-indent: calc(-1 * var(--line-indent, 0ch)) !important;
 }
 
+/* text-indent is inherited, and the glyph widgets are inline-blocks (their own
+   block containers): without this reset each one shifts its character by the
+   negative indent, out of its box, and the glyph vanishes. */
+.cm-line.cm-line-wrap-indent > * {
+  text-indent: 0;
+}
+
 /* §258: Curved return arrow wrap indicator at the end of broken visual lines. */
 .cm-wrap-layer {
   pointer-events: none;

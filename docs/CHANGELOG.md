@@ -9516,3 +9516,13 @@ Previously, `Ctrl/Cmd+Shift+O` (`setActionSymbolOpen` in `tokens.ts`) unconditio
    - Strict monoline SVG iconography (`viewBox="0 0 16 16"`, `width="12"`, `height="12"`, stroke-width 1.6, round caps/joins, `stroke: currentColor`) matching ChronoNote's icon vocabulary and adapting automatically across Light, Dark, Legacy, Grayscale, and Pure Black OLED themes.
    - Overlay attributes `pointer-events: none;`, `user-select: none;`, and `aria-hidden="true"` guarantee zero interference with cursor placement, drag selection, click-to-edit, or screen readers.
    - Zero lock-in plain UTF-8 text storage: strictly an editor visual overlay; document text and clipboard copies remain 100% clean plain text.
+
+## 259. Fix: glyphs invisible with word wrap on (regression from §258, v0.20.0)
+
+**Status:** fixed, released as v0.20.1.
+
+**Symptom:** after updating to v0.20.0, every glyph (`☐ ☑ ➔ …`) vanished from the editor whenever word wrap was on (desktop, and the mobile web app, which wraps).
+
+**Root cause:** §258's hanging indent sets a negative `text-indent` on `.cm-line`. `text-indent` is inherited, and the glyph widgets are `inline-block` (their own block containers), so each glyph applied the negative indent to its own character, shifting it out of its box where it was clipped. The §258 tests checked the indent variable and arrow indicators but never that a glyph was actually visible.
+
+**Fix:** `.cm-line.cm-line-wrap-indent > * { text-indent: 0; }` (`app.css`). New Playwright regression test in `word-wrap.spec.ts` asserts each glyph's character lies inside its own box with wrap on; confirmed it fails without the fix.
