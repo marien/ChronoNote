@@ -305,7 +305,7 @@ test.describe("Dutch and German status bar collapse & center message non-overlap
   test("actionable toast in status bar runs action on click and dismisses", async ({ page }) => {
     await seedApp(page);
     await page.evaluate(() => {
-      window.__CHRONO_MOCK__!.debug.showToast("Test Action Toast", {
+      window.__CHRONO_MOCK__!.debug!.showToast("Test Action Toast", {
         action: () => {
           (window as any).__ACTION_FIRED__ = true;
         },
@@ -324,7 +324,7 @@ test.describe("Dutch and German status bar collapse & center message non-overlap
   test("clicking plain status bar toast dismisses it immediately", async ({ page }) => {
     await seedApp(page);
     await page.evaluate(() => {
-      window.__CHRONO_MOCK__!.debug.showToast("Short informational toast");
+      window.__CHRONO_MOCK__!.debug!.showToast("Short informational toast");
     });
 
     const msg = page.locator("span#stat-message");
@@ -337,7 +337,7 @@ test.describe("Dutch and German status bar collapse & center message non-overlap
     await seedApp(page);
     const longMsg = "This is a very long actionable toast message that exceeds sixty characters easily!";
     await page.evaluate((text) => {
-      window.__CHRONO_MOCK__!.debug.showToast(text, {
+      window.__CHRONO_MOCK__!.debug!.showToast(text, {
         action: () => {
           (window as any).__LONG_ACTION_FIRED__ = true;
         },
