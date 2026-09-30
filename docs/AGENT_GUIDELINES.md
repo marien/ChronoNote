@@ -80,5 +80,10 @@ cargo test --manifest-path src-tauri/Cargo.toml
 npm run build
 ```
 
+### 4.1 Build Artifacts & Release Isolation
+- **NEVER** include compiled web app or demo app bundles (`website/webapp` or `website/demo`) in a feature PR or branch.
+- While running `npm.cmd run build:webapp` is required as a quality gate verification step to guarantee that web code compiles cleanly, any generated or modified files under `website/webapp` or `website/demo` must be reverted before committing (`git checkout website/webapp/ website/demo/ ; git clean -f website/webapp/ website/demo/`).
+- Web app and demo app bundles are strictly release artifacts, generated and committed only by the release agent during an explicit release action.
+
 > **Note on Windows / OneDrive Workspaces:** If this repository resides in a synced OneDrive folder (e.g. `OneDrive\Bureaublad\...`), OneDrive's background sync engine can lock files inside `src-tauri/target/`, causing `autocfg: output path is not a writable directory`. Set `CARGO_TARGET_DIR` to a path outside OneDrive (e.g. `set CARGO_TARGET_DIR=%LOCALAPPDATA%\cargo-target`) when running Cargo commands.
 
