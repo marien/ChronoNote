@@ -45,8 +45,8 @@ export const es = {
     " en esta carpeta de notas aún; el botón de sincronización permanece deshabilitado hasta que exista uno.",
   "settings.startup.sectionLabel": () => "Inicio",
   "settings.startup.label": () => "Primer inicio del día",
-  "settings.startup.today": () => "Abrir siempre Hoy",
-  "settings.startup.smart": () => "Restaurar última nota (Inteligente)",
+  "settings.startup.today": () => "Hoy",
+  "settings.startup.smart": () => "Última nota",
   "settings.startup.todayHint": () => "Abre siempre la nota de hoy en el primer inicio de cada día.",
   "settings.startup.smartHint": () =>
     "Abre la nota de hoy si tiene notas redactadas o reuniones programadas; de lo contrario, restaura donde lo dejó.",

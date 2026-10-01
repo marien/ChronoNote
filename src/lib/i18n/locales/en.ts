@@ -47,8 +47,8 @@ export const en = {
     " file found in this notes folder yet — the sync button stays grayed out until one exists.",
   "settings.startup.sectionLabel": () => "Startup",
   "settings.startup.label": () => "First launch of the day",
-  "settings.startup.today": () => "Always open Today",
-  "settings.startup.smart": () => "Restore last note (Smart)",
+  "settings.startup.today": () => "Today",
+  "settings.startup.smart": () => "Last note",
   "settings.startup.todayHint": () => "Always opens today's note on the first launch of each day.",
   "settings.startup.smartHint": () =>
     "Opens today's note if you have notes drafted or meetings scheduled; otherwise restores where you left off.",

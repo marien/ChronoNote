@@ -49,8 +49,8 @@ export const de = {
     "-Datei in diesem Notizordner gefunden — die Synchronisierungsschaltfläche bleibt ausgegraut, bis eine existiert.",
   "settings.startup.sectionLabel": () => "Start",
   "settings.startup.label": () => "Erster Start des Tages",
-  "settings.startup.today": () => "Immer Heute öffnen",
-  "settings.startup.smart": () => "Letzte Notiz wiederherstellen (Smart)",
+  "settings.startup.today": () => "Heute",
+  "settings.startup.smart": () => "Letzte Notiz",
   "settings.startup.todayHint": () => "Öffnet beim ersten Start des Tages immer die heutige Notiz.",
   "settings.startup.smartHint": () =>
     "Öffnet die heutige Notiz, wenn Entwürfe oder Termine vorliegen; stellt andernfalls den vorherigen Stand wieder her.",

@@ -45,8 +45,8 @@ export const it = {
     " trovato ancora in questa cartella di note — il pulsante di sincronizzazione rimane disabilitato finché non ne esiste uno.",
   "settings.startup.sectionLabel": () => "Avvio",
   "settings.startup.label": () => "Primo avvio del giorno",
-  "settings.startup.today": () => "Apri sempre Oggi",
-  "settings.startup.smart": () => "Ripristina ultima nota (Smart)",
+  "settings.startup.today": () => "Oggi",
+  "settings.startup.smart": () => "Ultima nota",
   "settings.startup.todayHint": () => "Apre sempre la nota di oggi al primo avvio di ogni giorno.",
   "settings.startup.smartHint": () =>
     "Apre la nota di oggi se ci sono note bozza o riunioni programmate; altrimenti ripristina il punto in cui ti eri fermato.",

@@ -46,8 +46,8 @@ export const pl = {
     " w tym folderze notatek — przycisk synchronizacji pozostaje nieaktywny, dopóki plik nie powstanie.",
   "settings.startup.sectionLabel": () => "Uruchamianie",
   "settings.startup.label": () => "Pierwsze uruchomienie w danym dniu",
-  "settings.startup.today": () => "Zawsze otwieraj Dzisiaj",
-  "settings.startup.smart": () => "Przywróć ostatnią notatkę (Inteligentne)",
+  "settings.startup.today": () => "Dzisiaj",
+  "settings.startup.smart": () => "Ostatnia notatka",
   "settings.startup.todayHint": () => "Zawsze otwiera dzisiejszą notatkę przy pierwszym uruchomieniu w danym dniu.",
   "settings.startup.smartHint": () =>
     "Otwiera dzisiejszą notatkę, jeśli masz sporządzone notatki lub zaplanowane spotkania; w przeciwnym razie przywraca ostatnie miejsce pracy.",

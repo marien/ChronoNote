@@ -929,7 +929,7 @@
          window is too narrow — MoreActionsModal, anchored to
          data-more-trigger the same way DatePickerModal anchors to
          data-datepicker-trigger. -->
-    <button class="icon-btn" title={$t("topBar.moreActions.title")} data-more-trigger on:click={controller.openMoreActions} bind:this={moreBtnEl}>
+    <button class="icon-btn has-pip" title={$t("topBar.moreActions.title")} data-more-trigger on:click={controller.openMoreActions} bind:this={moreBtnEl}>
       <Icon name="more" />
       {#if calendarSyncVisible && calendarSyncReady && $calendarSyncHasDiff}
         <span class="icon-btn-pip" aria-hidden="true"></span>
@@ -955,7 +955,7 @@
     </button>
     {#if calendarSyncVisible}
       <button
-        class="icon-btn"
+        class="icon-btn has-pip"
         title={calendarSyncReady
           ? $t("topBar.calendarSync.titleReady", { combo: formatShortcut('syncCalendar') })
           : !$agendaFileExists

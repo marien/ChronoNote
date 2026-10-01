@@ -46,8 +46,8 @@ export const fr = {
     " trouvé dans ce dossier de notes pour l'instant — le bouton reste grisé tant qu'il n'existe pas.",
   "settings.startup.sectionLabel": () => "Démarrage",
   "settings.startup.label": () => "Premier lancement de la journée",
-  "settings.startup.today": () => "Toujours ouvrir Aujourd'hui",
-  "settings.startup.smart": () => "Restaurer la dernière note (Intelligent)",
+  "settings.startup.today": () => "Aujourd'hui",
+  "settings.startup.smart": () => "Dernière note",
   "settings.startup.todayHint": () => "Ouvre toujours la note d'aujourd'hui lors du premier lancement de chaque journée.",
   "settings.startup.smartHint": () =>
     "Ouvre la note d'aujourd'hui si vous avez des notes rédigées ou des réunions prévues ; sinon, reprend là où vous vous étiez arrêté.",

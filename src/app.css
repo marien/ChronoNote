@@ -558,11 +558,16 @@ body {
    height exactly (both bottom-anchor in `#top-bar`/`#tab-bar`) so the
    tab strip and the toolbar buttons read as one row, not two. */
 #top-bar .icon-btn {
-  position: relative;
   height: 32px;
   min-width: 32px;
   justify-content: center;
   padding: 0 8px;
+}
+/* Only the buttons that carry a pip are positioned: a blanket
+   `position: relative` on `#top-bar .icon-btn` (id specificity) overrode the
+   positioning other top-bar buttons rely on and broke the tab-strip/collapse layout. */
+.icon-btn.has-pip {
+  position: relative;
 }
 .icon-btn-pip {
   position: absolute;
