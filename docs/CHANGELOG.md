@@ -9550,3 +9550,9 @@ Toast notifications that direct users to an action (such as OneDrive sign-in exp
    - Clicking either the toast message, the cloud icon in the status bar, or the cloud warning dot opens the Sync Health popover directly to the "Sign in again" button.
    - Aligned copy across all 7 localization dictionaries (`en`, `nl`, `de`, `es`, `fr`, `it`, `pl`) for `toast.oneDriveSync.signInExpired` from "Click the cloud to sign in again" to "Click to sign in again" (matching `statusBar.oneDrive.signInExpired`).
 
+
+## 261. Web app: Back button closes overlays; OAuth no longer leaves a stale history entry (PR #121)
+
+**Symptom:** on the installed web app (Android Back button / gesture), Back from the main screen after signing in to OneDrive landed on a stale pre-login state, and Back never closed a modal, the tab drawer, the folder picker, the find bar or Zen mode (it left the app instead).
+
+**Fix:** `initiateLogin()` uses `location.replace` so the pre-login page isn't left behind the OAuth round trip. New `mobileNavigation.ts` pushes one synthetic history entry while any overlay is open and turns `popstate` into "close the topmost overlay" (`dismissTopOverlayAndReturnTrue` in `App.svelte`, shared with Escape — Escape now also closes the folder picker and tab drawer). Closing an overlay by hand rewinds the entry. Web/demo only; the desktop app never pushes history. Tests: `mobileNavigation.test.ts` (unit) and `tests/e2e/back-navigation.spec.ts` (Back closes a modal, Escape unwinds, desktop unaffected). The PR title mentions bfcache; no bfcache-specific code was added.

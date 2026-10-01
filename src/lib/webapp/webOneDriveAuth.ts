@@ -209,7 +209,15 @@ export async function initiateLogin(advanced?: OneDriveAdvancedConfig): Promise<
     state,
   });
 
-  window.location.href = authUrl;
+  // Use location.replace so the pre-login page is replaced by the OAuth flow
+  // in the browser history stack rather than pushing an extra entry.
+  // When returning from Microsoft OAuth, back button will not land on a stale
+  // pre-login session.
+  if (typeof window.location.replace === "function") {
+    window.location.replace(authUrl);
+  } else {
+    window.location.href = authUrl;
+  }
 }
 
 /**
