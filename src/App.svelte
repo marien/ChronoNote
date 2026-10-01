@@ -22,6 +22,7 @@
   } from "./lib/controller";
   import { matchesShortcut } from "./lib/shortcuts";
   import { wireMobileViewport } from "./lib/mobileViewport";
+  import { wireMobileBackNavigation } from "./lib/mobileNavigation";
   import { invoke } from "@tauri-apps/api/core";
   import { createZenWindowController } from "./lib/zenWindow";
 
@@ -101,6 +102,43 @@
       toggleZenMode: () => isZenMode.update((v) => !v),
     };
 
+    function dismissTopOverlayAndReturnTrue(): boolean {
+      if (get(oneDriveFolderPickerOpen)) {
+        oneDriveFolderPickerOpen.set(false);
+        return true;
+      }
+      if (get(mobileTabDrawerOpen)) {
+        mobileTabDrawerOpen.set(false);
+        return true;
+      }
+      const current = get(modal);
+      if (current === "none" && get(findOpen)) {
+        // §108: close the find bar even if focus has moved back to the editor.
+        editorApi?.find.clear();
+        findOpen.set(false);
+        return true;
+      }
+      if (current === "safety") {
+        controller.cancelSafetyClose();
+        return true;
+      } else if (current === "conflict") {
+        /* a disk-vs-memory conflict needs an explicit choice — do not dismiss */
+        return false;
+      } else if (current === "unsavedScratchpads") {
+        get(scratchpadGateContext) === "close"
+          ? controller.cancelAppClose()
+          : controller.cancelDirectorySwitch();
+        return true;
+      } else if (current !== "none") {
+        controller.closeAllModals();
+        return true;
+      } else if (get(isZenMode)) {
+        isZenMode.set(false);
+        return true;
+      }
+      return false;
+    }
+
     function onKeydown(e: KeyboardEvent) {
       // Desktop app only: F11 as an alias for the Zen mode chord (see `shortcuts.ts`).
       if (e.key === "F11" && get(backendKind) === "desktop") {
@@ -108,24 +146,9 @@
         isZenMode.update((v) => !v);
         return;
       }
+
       if (e.key === "Escape") {
-        const current = get(modal);
-        if (current === "none" && get(findOpen)) {
-          // §108: close the find bar even if focus has moved back to the editor.
-          editorApi?.find.clear();
-          findOpen.set(false);
-          return;
-        }
-        if (current === "safety") controller.cancelSafetyClose();
-        else if (current === "conflict") {
-          /* a disk-vs-memory conflict needs an explicit choice — Escape is a no-op */
-        } else if (current === "unsavedScratchpads")
-          get(scratchpadGateContext) === "close"
-            ? controller.cancelAppClose()
-            : controller.cancelDirectorySwitch();
-        else if (current !== "none") controller.closeAllModals();
-        else if (get(isZenMode)) {
-          isZenMode.set(false);
+        if (dismissTopOverlayAndReturnTrue()) {
           e.preventDefault();
         }
         return;
@@ -248,8 +271,24 @@
     window.addEventListener("dragover", onWindowDragOver);
     window.addEventListener("drop", onWindowDrop);
 
+    const backNav = wireMobileBackNavigation({
+      hasOpenOverlay: () => {
+        return (
+          get(oneDriveFolderPickerOpen) ||
+          get(mobileTabDrawerOpen) ||
+          get(modal) !== "none" ||
+          get(findOpen) ||
+          get(isZenMode)
+        );
+      },
+      closeActiveOverlay: () => {
+        dismissTopOverlayAndReturnTrue();
+      },
+    });
+
     return () => {
       unwireViewport();
+      backNav.destroy();
       window.removeEventListener("keydown", onKeydown);
       window.removeEventListener("dragenter", onWindowDragEnter);
       window.removeEventListener("dragleave", onWindowDragLeave);
@@ -260,6 +299,21 @@
       window.removeEventListener("orientationchange", updateMobile);
     };
   });
+
+  // Keep back navigation history synchronized with whether any overlay/modal is open.
+  $: if (typeof window !== "undefined") {
+    const hasOverlay =
+      $oneDriveFolderPickerOpen ||
+      $mobileTabDrawerOpen ||
+      $modal !== "none" ||
+      $findOpen ||
+      $isZenMode;
+    // Only push/pop history in web/demo modes where browser back exists
+    if ($backendKind !== "desktop") {
+      // Dispatched to back navigation sync handler
+      window.dispatchEvent(new CustomEvent("chrononote:overlaychange", { detail: { hasOverlay } }));
+    }
+  }
 
   let isDraggingFile = false;
 
