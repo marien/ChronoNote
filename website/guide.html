@@ -99,7 +99,7 @@
           <tr>
             <td><code>1. </code> <code>2) </code> <code>1.1. </code></td>
             <td>1.</td>
-            <td><strong>Numbered list item.</strong> Plain text, no glyph, and not an action. <kbd>Enter</kbd> continues with the next number (<code>1.</code> → <code>2.</code>, <code>1.1.</code> → <code>1.2.</code>), an empty item ends the list, <kbd>Tab</kbd> nests it by two spaces. Start anywhere — <code>7.</code> works — and numbers are never rewritten. It must be the first thing on the line: <code>3.5 hours</code> is just text.</td>
+            <td><strong>Numbered list item.</strong> Plain text, no glyph, and not an action. <kbd>Enter</kbd> continues with the next number (<code>1.</code> → <code>2.</code>, <code>1.1.</code> → <code>1.2.</code>), an empty item ends the list, <kbd>Tab</kbd> nests it by two spaces. Start anywhere — <code>7.</code> works — and numbers are never rewritten, except that a new item you insert in the middle with <kbd>Enter</kbd> pushes the following numbers down by one. It must be the first thing on the line: <code>3.5 hours</code> is just text.</td>
           </tr>
           <tr>
             <td><code>=&gt; </code></td>
@@ -308,8 +308,9 @@
             <h3>Keep lists as lists</h3>
             <p>Start a line with <code>- </code> for a bullet or <code>1. </code> (or <code>2) </code>, or
               <code>1.1. </code> for a sub-item) for a numbered list, and <kbd>Enter</kbd> carries it on. An empty
-              item ends the list; <kbd>Tab</kbd> nests it. Numbers are plain text and never rewritten, so
-              nothing shifts under you when you rearrange a list.</p>
+              item ends the list; <kbd>Tab</kbd> nests it. Numbers are plain text. The one time they change is when you
+              press <kbd>Enter</kbd> in the middle of a list: the new item takes the next number and the items after it
+              (and their sub-items) shift down by one, up to the first blank line.</p>
           </div>
         </div>
         <div class="workflow-step">

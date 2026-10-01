@@ -22,6 +22,7 @@
     isTopicLikeLine,
     numberedContinuationIndent,
     numberedListEnter,
+    renumberAfterInsert,
     parseNumberedItem,
     referenceColumn,
     reopenDoneAction,
@@ -418,8 +419,15 @@
           if (step && "exit" in step) {
             v.dispatch({ changes: { from: line.from, to: line.to, insert: "" }, selection: { anchor: line.from } });
           } else if (step && "insert" in step) {
+            // #123: an item inserted in the middle of a list pushes the colliding numbers after it down by one.
+            const following: string[] = [];
+            for (let n = line.number + 1; n <= v.state.doc.lines; n++) following.push(v.state.doc.line(n).text);
+            const renumber = renumberAfterInsert(following, numbered).map((r) => {
+              const l = v.state.doc.line(line.number + 1 + r.index);
+              return { from: l.from, to: l.to, insert: r.text };
+            });
             v.dispatch({
-              changes: { from: pos, to: pos, insert: step.insert },
+              changes: [{ from: pos, to: pos, insert: step.insert }, ...renumber],
               selection: { anchor: pos + step.insert.length },
               scrollIntoView: true,
             });

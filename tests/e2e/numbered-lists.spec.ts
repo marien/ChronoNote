@@ -2,7 +2,8 @@ import { test, expect, type Page } from "@playwright/test";
 import { seedApp, editor, setEditorText, typeInEditor, activeTabContent, statusCounts } from "./helpers";
 
 /** Numbered lists: `1.`, `2)`, and numbered sub-items `1.1.`. Plain text with no styling: Enter continues the
- * numbering, an empty item exits, Tab indents like a bullet, and no number is ever rewritten. The marker has
+ * numbering, an empty item exits, Tab indents like a bullet, and the only numbers ever rewritten are the ones an
+ * item inserted mid-list pushes down (#123). The marker has
  * to be the first non-blank character of the line, so a bullet (or an action) on the same line wins. */
 
 async function caretAtEndOfLine(page: Page, line: number) {
@@ -343,5 +344,53 @@ test.describe("numbered lists: everything else stays as it was", () => {
     await caretAtEndOfLine(page, 0);
     await page.keyboard.press("Enter");
     expect(await activeTabContent(page)).toBe("# task\n# \n1. item\n2. ");
+  });
+});
+
+test.describe("numbered lists: an item inserted in the middle renumbers the rest (#123)", () => {
+  test.beforeEach(async ({ page }) => {
+    await seedApp(page, { seed: "empty" });
+  });
+
+  test("Enter after item 1 of 4 pushes 2, 3, 4 down", async ({ page }) => {
+    await setEditorText(page, "1. a\n2. b\n3. c\n4. d");
+    await caretAtEndOfLine(page, 0);
+    await page.keyboard.press("Enter");
+    await page.keyboard.type("new");
+    expect(await activeTabContent(page)).toBe("1. a\n2. new\n3. b\n4. c\n5. d");
+  });
+
+  test("splitting an item in the middle also renumbers what follows, and the caret stays in the new item", async ({ page }) => {
+    await setEditorText(page, "1. one two\n2. b\n3. c");
+    await page.keyboard.press("ControlOrMeta+Home");
+    for (let i = 0; i < 7; i++) await page.keyboard.press("ArrowRight"); // after "1. one "
+    await page.keyboard.press("Enter");
+    await page.keyboard.type("X");
+    expect(await activeTabContent(page)).toBe("1. one \n2. Xtwo\n3. b\n4. c");
+  });
+
+  test("a blank line ends the list: a second list below is left alone", async ({ page }) => {
+    await setEditorText(page, "1. a\n2. b\n\n2. other\n3. more");
+    await caretAtEndOfLine(page, 0);
+    await page.keyboard.press("Enter");
+    await page.keyboard.type("new");
+    expect(await activeTabContent(page)).toBe("1. a\n2. new\n3. b\n\n2. other\n3. more");
+  });
+
+  test("sub-items move with their parent", async ({ page }) => {
+    await setEditorText(page, "1. a\n2. b\n  2.1. b one\n3. c");
+    await caretAtEndOfLine(page, 0);
+    await page.keyboard.press("Enter");
+    await page.keyboard.type("new");
+    expect(await activeTabContent(page)).toBe("1. a\n2. new\n3. b\n  3.1. b one\n4. c");
+  });
+
+  test("the insert and the renumbering are one undo step", async ({ page }) => {
+    await setEditorText(page, "1. a\n2. b\n3. c");
+    await caretAtEndOfLine(page, 0);
+    await page.keyboard.press("Enter");
+    expect(await activeTabContent(page)).toBe("1. a\n2. \n3. b\n4. c");
+    await page.keyboard.press("ControlOrMeta+z");
+    expect(await activeTabContent(page)).toBe("1. a\n2. b\n3. c");
   });
 });

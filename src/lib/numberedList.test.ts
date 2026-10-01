@@ -4,6 +4,7 @@ import {
   numberedContinuationIndent,
   numberedListEnter,
   parseNumberedItem,
+  renumberAfterInsert,
   setActionSymbolTo,
 } from "./tokens";
 
@@ -188,5 +189,69 @@ describe("numbered items next to actions and bullets", () => {
   it("an action line that merely contains a numbered-looking text is an action, not an item", () => {
     expect(parseNumberedItem("# 1. task")).toBeNull();
     expect(setActionSymbolTo("# 1. task", "v")).toBe("v 1. task");
+  });
+});
+
+describe("renumberAfterInsert: a new item in the middle of a list (#123)", () => {
+  /** Renumbers `following` after a new item was inserted after `after`, and returns the resulting lines. */
+  const apply = (after: string, following: string[]) => {
+    const out = [...following];
+    for (const r of renumberAfterInsert(following, item(after)!)) out[r.index] = r.text;
+    return out;
+  };
+
+  it("pushes every following item down by one", () => {
+    expect(apply("1. a", ["2. b", "3. c", "4. d"])).toEqual(["3. b", "4. c", "5. d"]);
+  });
+
+  it("does nothing when the new item is the last one", () => {
+    expect(apply("3. c", [])).toEqual([]);
+    expect(apply("3. c", ["", "4. after a blank line"])).toEqual(["", "4. after a blank line"]);
+  });
+
+  it("only shifts on a real collision: a gap in the list stays closed, nothing past it moves", () => {
+    expect(apply("1. a", ["2. b", "4. d", "5. e"])).toEqual(["3. b", "4. d", "5. e"]);
+    expect(apply("1. a", ["5. e", "6. f"])).toEqual(["5. e", "6. f"]);
+  });
+
+  it("stops at a blank line, so a second list is left alone", () => {
+    expect(apply("1. a", ["2. b", "", "2. other list"])).toEqual(["3. b", "", "2. other list"]);
+  });
+
+  it("stops at text that is not part of the list, but skips continuation lines", () => {
+    expect(apply("1. a", ["2. b", "plain paragraph", "3. c"])).toEqual(["3. b", "plain paragraph", "3. c"]);
+    expect(apply("1. a", ["2. b", "   continuation of b", "3. c"])).toEqual(["3. b", "   continuation of b", "4. c"]);
+  });
+
+  it("keeps the delimiter and the indentation, and ignores another delimiter", () => {
+    expect(apply("  1) a", ["  2) b", "  3) c"])).toEqual(["  3) b", "  4) c"]);
+    expect(apply("1. a", ["2) not this list", "2. b"])).toEqual(["2) not this list", "2. b"]);
+  });
+
+  it("sub-items follow their parent's new number", () => {
+    expect(apply("1. a", ["2. b", "  2.1. b one", "  2.2. b two", "3. c", "  3.1. c one"])).toEqual([
+      "3. b",
+      "  3.1. b one",
+      "  3.2. b two",
+      "4. c",
+      "  4.1. c one",
+    ]);
+  });
+
+  it("renumbers siblings within a sub-list only", () => {
+    expect(apply("1.1. a", ["1.2. b", "1.3. c", "2. next parent", "2.1. kept"])).toEqual([
+      "1.3. b",
+      "1.4. c",
+      "2. next parent",
+      "2.1. kept",
+    ]);
+  });
+
+  it("stops at a shallower item (the parent list)", () => {
+    expect(apply("  1. a", ["  2. b", "1. parent", "2. other"])).toEqual(["  3. b", "1. parent", "2. other"]);
+  });
+
+  it("keeps the text after the marker exactly as it was", () => {
+    expect(apply("1. a", ["2.   spaced   text  "])).toEqual(["3.   spaced   text  "]);
   });
 });

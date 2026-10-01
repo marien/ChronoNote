@@ -177,8 +177,9 @@ export function topicContinuationIndent(lineText: string): string | null {
  * must be the first non-blank character of the line, be a run of positive whole numbers (`1`-`999999999`, no
  * leading zero) separated by dots, and END in `.` or `)`, followed by whitespace (or nothing but the end of the line
  * once the space has been typed). So `3.5 hours` and `1.5` are prose; `2019. A year` is an item (any positive
- * number may start a list). Deliberately no styling and no automatic renumbering: it is plain text that Enter
- * and Tab understand, like a bullet's indentation. */
+ * number may start a list). Deliberately no styling: it is plain text that Enter and Tab understand, like a
+ * bullet's indentation. The only automatic renumbering is when Enter inserts an item in the middle of a list
+ * (`renumberAfterInsert`, #123). */
 export interface NumberedItem {
   /** Leading whitespace, kept verbatim. */
   indent: string;
@@ -217,6 +218,49 @@ export function nextNumberedMarker(item: NumberedItem): string {
   const numbers = [...item.numbers];
   numbers[numbers.length - 1] += 1;
   return numbers.join(".") + item.delimiter;
+}
+
+/** #123: a new item was just inserted after `item` (Enter on it), taking the number `nextNumberedMarker(item)`.
+ * The items after it that would now repeat a number are pushed down by one, in a chain: `1. 2. 3. 4.` with a new
+ * item after `1.` becomes `1. 2. 3. 4. 5.`. Only a real collision shifts anything, so a list that already had a gap
+ * keeps it past the first free number (`1. 2. 4.` + a new item after `1.` gives `1. 2. 3. 4.`, not `1. 2. 3. 5.`).
+ * Sub-items (`2.1.`) follow their parent's new number. The walk stops at a blank line, a line shallower than the
+ * list, a line that is not part of it (another delimiter, another list), or the first sibling that does not collide;
+ * continuation lines and deeper text in between are skipped over, left as they are.
+ * `following` are the lines after the one Enter was pressed on; returns the lines to rewrite, by index into it. */
+export function renumberAfterInsert(following: string[], item: NumberedItem): { index: number; text: string }[] {
+  const depth = item.numbers.length;
+  const prefix = item.numbers.slice(0, -1);
+  const samePrefix = (n: number[]) => prefix.every((v, i) => n[i] === v);
+  const out: { index: number; text: string }[] = [];
+  const bumped = new Map<number, number>(); // old last number → new last number, for sub-items to follow
+  let taken = item.numbers[depth - 1] + 1; // the number the new item has just claimed
+  const rewrite = (line: string, p: NumberedItem, numbers: number[]) =>
+    p.indent + numbers.join(".") + p.delimiter + line.slice(p.indent.length + p.marker.length);
+  for (let i = 0; i < following.length; i++) {
+    const line = following[i];
+    if (line.trim() === "") break;
+    const p = parseNumberedItem(line);
+    if (!p) {
+      if ((line.match(/^\s*/)![0].length) > item.indent.length) continue; // continuation / deeper text
+      break;
+    }
+    if (p.indent.length < item.indent.length) break;
+    if (p.indent === item.indent && p.numbers.length === depth && samePrefix(p.numbers) && p.delimiter === item.delimiter) {
+      const last = p.numbers[depth - 1];
+      if (last !== taken) break;
+      taken += 1;
+      bumped.set(last, taken);
+      out.push({ index: i, text: rewrite(line, p, [...prefix, taken]) });
+    } else if (p.numbers.length > depth && samePrefix(p.numbers) && p.delimiter === item.delimiter && bumped.has(p.numbers[depth - 1])) {
+      const numbers = [...p.numbers];
+      numbers[depth - 1] = bumped.get(p.numbers[depth - 1])!;
+      out.push({ index: i, text: rewrite(line, p, numbers) });
+    } else {
+      break;
+    }
+  }
+  return out;
 }
 
 /** What Enter does on a numbered item, mirroring bullets:
