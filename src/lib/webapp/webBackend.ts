@@ -29,7 +29,7 @@
  * Location" section entirely when `backendKind` is `"web"`, so this
  * placeholder is never actually shown.
  */
-import { activeTitlesAfterDate, activeTitlesForDate, removedTitlesForDate } from "../agendaTitles";
+import { activeAgendaDates, activeTitlesAfterDate, activeTitlesForDate, removedTitlesForDate } from "../agendaTitles";
 import type { AppConfig, AppError, ColorMode, FileMetadata, LanguageMode, TabSession, ThemeMode } from "../types";
 import type { CommandArgs, CommandReturn, TauriCommand, TauriCommands } from "../tauriCommands";
 import { isValidNoteFilename } from "../noteFilename";
@@ -570,6 +570,20 @@ export class WebBackend {
         return activeTitlesAfterDate(meetings, afterDate);
       } catch {
         throw { code: "agendaInvalid" } satisfies AppError;
+      }
+    },
+
+    read_agenda_dates: async () => {
+      const db = await this.db();
+      const store = await this.getActiveNotesStore();
+      const note = await idbGet<StoredNote>(db, store, ".agenda.json");
+      if (!note || !note.content.trim()) return [];
+      try {
+        const meetings: Array<{ date: string; start: string; end: string; title: string }> = JSON.parse(note.content.trim());
+        if (!Array.isArray(meetings)) return [];
+        return activeAgendaDates(meetings);
+      } catch {
+        return [];
       }
     },
 

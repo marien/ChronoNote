@@ -98,3 +98,17 @@ export function activeTitlesAfterDate(meetings: AgendaMeeting[], afterDate: stri
     })
     .map((m) => [m.date, m.title] as [string, string]);
 }
+
+/** Distinct dates having at least one active meeting, sorted in chronological order. */
+export function activeAgendaDates(meetings: AgendaMeeting[]): string[] {
+  const dates = new Set<string>();
+  for (const m of meetings) {
+    if (!m.date) continue;
+    const c = typeof m.title === "string" ? classifyTitle(m.title) : null;
+    if (c && !c.removed) {
+      dates.add(m.date);
+    }
+  }
+  return Array.from(dates).sort();
+}
+

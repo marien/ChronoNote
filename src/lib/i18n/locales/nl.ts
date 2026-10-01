@@ -441,6 +441,7 @@ export const nl = {
   "datePicker.day.pending": () => ", open acties in behandeling",
   "datePicker.day.log": () => ", notitie zonder taken",
   "datePicker.day.hasNote": () => ", heeft een notitie",
+  "datePicker.day.agendaOnly": () => ", geplande vergaderingen",
   "datePicker.today": () => "Vandaag",
   "datePicker.escToClose": () => "Esc om te sluiten",
 

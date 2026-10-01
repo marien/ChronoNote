@@ -29,7 +29,7 @@
  *   - the session file lives *inside* the notes dir and is never returned
  *     by `list_note_files` / `read_all_notes`.
  */
-import { activeTitlesAfterDate, activeTitlesForDate, removedTitlesForDate as removedTitlesForDateShared } from "../agendaTitles";
+import { activeAgendaDates, activeTitlesAfterDate, activeTitlesForDate, removedTitlesForDate as removedTitlesForDateShared } from "../agendaTitles";
 import type { AppConfig, AppError, ColorMode, FileMetadata, LanguageMode, TabSession, ThemeMode } from "../types";
 import type { ToastOptions } from "../stores";
 import type { CommandArgs, CommandReturn, OneDriveAdvancedConfig, TauriCommand, TauriCommands } from "../tauriCommands";
@@ -701,6 +701,15 @@ export class MockBackend {
     read_agenda_removed_for_date: ({ date }) => removedTitlesForDate(this.agendaJson, date),
 
     read_agenda_after: ({ afterDate }) => titlesAfterDate(this.agendaJson, afterDate),
+
+    read_agenda_dates: () => {
+      if (!this.agendaJson) return [];
+      try {
+        return activeAgendaDates(parseAgendaMeetings(this.agendaJson));
+      } catch {
+        return [];
+      }
+    },
 
     // Mirrors `agenda.rs::agenda_file_exists` — a cheap existence check,
     // deliberately not the fuller `titlesForDate` validation (an

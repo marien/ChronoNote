@@ -89,6 +89,8 @@ export interface TauriCommands {
    * has calendar sync leading the search. See
    * `src-tauri/src/agenda.rs::read_agenda_after`. */
   read_agenda_after: { args: { afterDate: string }; returns: [string, string][] };
+  /** Distinct dates with at least one active agenda meeting — used by the date picker. */
+  read_agenda_dates: { args: NoArgs; returns: string[] };
   /** Cheap existence check for the "gray out the sync button" UI state —
    * see `src-tauri/src/agenda.rs::agenda_file_exists`. */
   agenda_file_exists: { args: NoArgs; returns: boolean };

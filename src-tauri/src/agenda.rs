@@ -188,6 +188,35 @@ pub fn read_agenda_after(app: tauri::AppHandle, after_date: String) -> Result<Ve
     Ok(titles_after_date(meetings, &after_date))
 }
 
+fn active_agenda_dates(meetings: Vec<AgendaMeeting>) -> Vec<String> {
+    let mut dates: Vec<String> = meetings
+        .into_iter()
+        .filter_map(|m| classify_title(&m.title).filter(|c| !c.removed).map(|_| m.date))
+        .collect();
+    dates.sort();
+    dates.dedup();
+    dates
+}
+
+/// Reads all distinct dates having at least one active (non-cancelled / non-declined)
+/// meeting in `.agenda.json`. Used by the date picker to display placeholder boxes
+/// for upcoming agenda days. If `.agenda.json` does not exist or has no meetings,
+/// returns an empty list without error.
+#[tauri::command]
+pub fn read_agenda_dates(app: tauri::AppHandle) -> Result<Vec<String>, AppError> {
+    let cfg = storage::load_config(&app)?;
+    let path = std::path::Path::new(&cfg.notes_dir).join(".agenda.json");
+    if !path.exists() {
+        return Ok(Vec::new());
+    }
+    let raw = std::fs::read_to_string(&path).unwrap_or_default();
+    let meetings = match parse_agenda(&raw) {
+        Ok(m) => m,
+        Err(_) => return Ok(Vec::new()),
+    };
+    Ok(active_agenda_dates(meetings))
+}
+
 /// A cheap existence check the frontend uses to gray out the "Sync
 /// calendar for this day" button before the user ever clicks it —
 /// deliberately just `Path::exists`, not the fuller `parse_agenda`
@@ -451,5 +480,20 @@ mod tests {
     fn read_agenda_after_with_nothing_in_range_is_an_empty_result_not_an_error() {
         let json = r#"[{"date":"2026-09-01","start":"09:00","end":"09:30","title":"Old"}]"#;
         assert_eq!(read_after(json, "2026-09-15"), Ok(vec![]));
+    }
+
+    #[test]
+    fn active_agenda_dates_returns_sorted_deduplicated_dates_excluding_removed_meetings() {
+        let json = r#"[
+            {"date":"2026-10-14","start":"09:00","end":"09:30","title":"Confirmed: Standup"},
+            {"date":"2026-10-14","start":"11:00","end":"11:30","title":"1:1 with Alice"},
+            {"date":"2026-10-21","start":"10:00","end":"10:30","title":"Canceled: Team Retrospective"},
+            {"date":"2026-10-07","start":"14:00","end":"15:00","title":"Planning"}
+        ]"#;
+        let meetings = parse_agenda(json).unwrap();
+        let dates = active_agenda_dates(meetings);
+        // 2026-10-21 is only a canceled meeting, so it must not be included.
+        // 2026-10-14 has 2 meetings on the same day, so it must only appear once.
+        assert_eq!(dates, vec!["2026-10-07".to_string(), "2026-10-14".to_string()]);
     }
 }

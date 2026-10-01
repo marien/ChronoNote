@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { activeTitlesAfterDate, activeTitlesForDate, classifyTitle, removedTitlesForDate } from "./agendaTitles";
+import { activeAgendaDates, activeTitlesAfterDate, activeTitlesForDate, classifyTitle, removedTitlesForDate } from "./agendaTitles";
 
 const m = (title: string, start = "09:00", date = "2026-09-14") => ({ date, start, end: "10:00", title });
 
@@ -51,5 +51,15 @@ describe("agenda title lists (#78)", () => {
 
   it("a status-stamped and a plain entry at the same time are one meeting", () => {
     expect(activeTitlesForDate([m("Placeholder: Budget"), m("Budget")], "2026-09-14")).toEqual(["Budget"]);
+  });
+
+  it("activeAgendaDates returns sorted distinct dates with live meetings", () => {
+    const list = [
+      m("Confirmed: Standup", "09:00", "2026-10-14"),
+      m("1:1 with Alice", "11:00", "2026-10-14"),
+      m("Canceled: Team Retrospective", "10:00", "2026-10-21"),
+      m("Planning", "14:00", "2026-10-07"),
+    ];
+    expect(activeAgendaDates(list)).toEqual(["2026-10-07", "2026-10-14"]);
   });
 });
