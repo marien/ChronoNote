@@ -60,6 +60,18 @@ pub enum LanguageMode {
     System,
 }
 
+/// Startup tab preference on the first launch of the day:
+/// `Today` (default) opens today's note unconditionally.
+/// `SmartLastActive` restores the last active note, unless today
+/// already has content or scheduled meetings.
+#[derive(Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Debug, Default, TS)]
+#[serde(rename_all = "snake_case")]
+pub enum StartupTabMode {
+    #[default]
+    Today,
+    SmartLastActive,
+}
+
 /// Persisted app configuration. Lives outside the notes folder, in the
 /// OS-appropriate app config directory (e.g. %APPDATA%\com.chrononote.app on
 /// Windows, ~/.config/com.chrononote.app on Linux, ~/Library/Application
@@ -148,6 +160,11 @@ pub struct AppConfig {
     /// not per notes folder). Defaults to `false`.
     #[serde(default)]
     pub onboarding_completed: bool,
+    /// Startup tab preference on the first launch of the day (§spec):
+    /// `Today` (default) opens today's note unconditionally.
+    /// `SmartLastActive` restores the last active note unless today has content or meetings.
+    #[serde(default)]
+    pub startup_tab_mode: StartupTabMode,
 }
 
 fn default_true() -> bool {
@@ -387,6 +404,7 @@ fn load_config_at(path: &Path, default_notes_dir: &Path) -> Result<AppConfig, St
         pure_black: false,
         language_mode: LanguageMode::default(),
         onboarding_completed: false,
+        startup_tab_mode: StartupTabMode::default(),
     };
     save_config_at(path, &cfg)?;
     Ok(cfg)
@@ -856,6 +874,7 @@ fn generate_typescript_bindings() {
         ColorMode::decl(&cfg),
         ThemeMode::decl(&cfg),
         LanguageMode::decl(&cfg),
+        StartupTabMode::decl(&cfg),
         FileMetadata::decl(&cfg),
         AppConfig::decl(&cfg),
         TabSession::decl(&cfg),
@@ -1063,6 +1082,7 @@ mod tests {
             pure_black: true,
             language_mode: LanguageMode::Nl,
             onboarding_completed: true,
+            startup_tab_mode: StartupTabMode::SmartLastActive,
         };
         save_config_at(&path, &cfg).unwrap();
         let loaded = load_config_at(&path, &dir.path().join("Notes")).unwrap();
@@ -1079,6 +1099,7 @@ mod tests {
         assert!(loaded.pure_black);
         assert_eq!(loaded.language_mode, LanguageMode::Nl);
         assert!(loaded.onboarding_completed);
+        assert_eq!(loaded.startup_tab_mode, StartupTabMode::SmartLastActive);
     }
 
     #[test]
@@ -1102,6 +1123,7 @@ mod tests {
             pure_black: false,
             language_mode: LanguageMode::default(),
             onboarding_completed: false,
+            startup_tab_mode: StartupTabMode::default(),
         };
         save_config_at(&path, &cfg).unwrap();
         let on_disk = fs::read_to_string(&path).unwrap();
@@ -1137,6 +1159,7 @@ mod tests {
                 pure_black: false,
                 language_mode: LanguageMode::default(),
                 onboarding_completed: false,
+                startup_tab_mode: StartupTabMode::default(),
             };
             save_config_at(&path, &cfg).unwrap();
             let on_disk = fs::read_to_string(&path).unwrap();
@@ -1180,6 +1203,32 @@ mod tests {
         fs::write(&path, r#"{"notesDir": "/hand/edited"}"#).unwrap();
         let cfg = load_config_at(&path, &dir.path().join("Notes")).unwrap();
         assert_eq!(cfg.language_mode, LanguageMode::System);
+    }
+
+    #[test]
+    fn startup_tab_mode_round_trips_through_json() {
+        for (mode, token) in [
+            (StartupTabMode::Today, "today"),
+            (StartupTabMode::SmartLastActive, "smart_last_active"),
+        ] {
+            let dir = tempdir().unwrap();
+            let path = dir.path().join("config.json");
+            let base = load_config_at(&path, &dir.path().join("Notes")).unwrap();
+            save_config_at(&path, &AppConfig { startup_tab_mode: mode, ..base }).unwrap();
+            let on_disk = fs::read_to_string(&path).unwrap();
+            assert!(on_disk.contains(&format!("\"{token}\"")), "{token} token not serialized: {on_disk}");
+            let loaded = load_config_at(&path, &dir.path().join("Notes")).unwrap();
+            assert_eq!(loaded.startup_tab_mode, mode);
+        }
+    }
+
+    #[test]
+    fn load_config_defaults_startup_tab_mode_when_omitted() {
+        let dir = tempdir().unwrap();
+        let path = dir.path().join("config.json");
+        fs::write(&path, r#"{"notesDir": "/hand/edited"}"#).unwrap();
+        let cfg = load_config_at(&path, &dir.path().join("Notes")).unwrap();
+        assert_eq!(cfg.startup_tab_mode, StartupTabMode::Today);
     }
 
     #[test]

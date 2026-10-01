@@ -45,6 +45,13 @@ export const en = {
   "settings.calendar.agendaMissing.before": () => "No ",
   "settings.calendar.agendaMissing.after": () =>
     " file found in this notes folder yet — the sync button stays grayed out until one exists.",
+  "settings.startup.sectionLabel": () => "Startup",
+  "settings.startup.label": () => "First launch of the day",
+  "settings.startup.today": () => "Always open Today",
+  "settings.startup.smart": () => "Restore last note (Smart)",
+  "settings.startup.todayHint": () => "Always opens today's note on the first launch of each day.",
+  "settings.startup.smartHint": () =>
+    "Opens today's note if you have notes drafted or meetings scheduled; otherwise restores where you left off.",
   "settings.oneDrive.sectionLabel": () => "OneDrive Cloud Sync",
   "settings.oneDrive.safariTip.label": () => "Safari Tip:",
   "settings.oneDrive.safariTip.hint": () =>
@@ -632,6 +639,7 @@ export const en = {
   "toast.boot.failedToSave.fontSize": () => "Failed to save font size preference",
   "toast.boot.failedToSave.lineHeight": () => "Failed to save line height preference",
   "toast.boot.failedToSave.pureBlack": () => "Failed to save pure black preference",
+  "toast.boot.failedToSave.startup": () => "Failed to save startup tab preference",
   "toast.calendarSync.noMeetingsOn": ({ date }) => `No meetings on ${date}.`,
   "toast.calendarSync.synced": () => "Calendar synced.",
   "toast.copyForward.destHere": () => "here",

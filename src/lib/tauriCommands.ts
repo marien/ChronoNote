@@ -18,6 +18,7 @@ import type {
   SyncStatus,
   TabSession,
   ThemeMode,
+  StartupTabMode,
 } from "./types";
 
 export type { OneDriveAdvancedConfig, OneDriveLoginResult, SyncConflict };
@@ -46,6 +47,7 @@ export interface TauriCommands {
   set_font_size: { args: { fontSize: number }; returns: AppConfig };
   set_line_height: { args: { lineHeight: number }; returns: AppConfig };
   set_pure_black: { args: { pureBlack: boolean }; returns: AppConfig };
+  set_startup_tab_mode: { args: { mode: StartupTabMode }; returns: AppConfig };
   set_last_seen_version: { args: { version: string }; returns: AppConfig };
   set_onboarding_completed: { args: { completed: boolean }; returns: AppConfig };
   list_note_files: { args: NoArgs; returns: string[] };

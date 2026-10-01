@@ -16,6 +16,7 @@ export type {
   FolderSwitchBlocked,
   FolderSwitchResult,
   LanguageMode,
+  StartupTabMode,
   OneDriveFolderConfig,
   OneDriveFolderItem,
   OneDriveLoginResult,

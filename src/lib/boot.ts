@@ -12,6 +12,7 @@ import { countActions, countWords } from "./tokens";
 import { todayISO } from "./date";
 import {
   activeTabId,
+  agendaFileExists,
   appVersion,
   autoCheckUpdates,
   backendKind,
@@ -42,6 +43,7 @@ import {
   statusPos,
   statusSelection,
   statusWordCount,
+  startupTabMode,
   syncHealth,
   tabs,
   themeMode,
@@ -56,7 +58,7 @@ import { checkForUpdatesOnLaunch } from "./updates";
 import { locale, t } from "./i18n";
 import { describeApiError } from "./apiError";
 import { getOnboardingTemplate } from "./onboardingTemplate";
-import type { ColorMode, LanguageMode, NoteTab, ThemeMode } from "./types";
+import type { ColorMode, LanguageMode, NoteTab, StartupTabMode, ThemeMode } from "./types";
 
 // --- Standing subscriptions (wired once, from initApp) -----------------
 
@@ -363,11 +365,34 @@ export async function restoreOrBootstrapTabs() {
     // daily-notes app is to land you on today when the day turns over.
     // Later launches the same day restore the last-active tab as before.
     const isFirstOpenToday = (session?.lastOpenedDate ?? null) !== todayISO();
-    const activeMatch =
-      !isFirstOpenToday && session?.activeTab
-        ? restored.find((t) => t.filename === session.activeTab)
-        : undefined;
-    const finalActive = activeMatch ?? todayTab;
+    let finalActive: NoteTab = todayTab;
+
+    if (!isFirstOpenToday && session?.activeTab) {
+      finalActive = restored.find((t) => t.filename === session.activeTab) ?? todayTab;
+    } else if (isFirstOpenToday && session?.activeTab && get(startupTabMode) === "smart_last_active") {
+      // Smart decision logic (§spec 5.3):
+      // 1. Check Today's Note: If today's note has non-whitespace content, open Today.
+      // 2. Check Today's Agenda: If Calendar Sync is enabled and today has agenda meetings, open Today.
+      // 3. Otherwise (Today is clean & clear): restore session.activeTab.
+      const todayHasContent = (todayRead.content ?? "").trim().length > 0;
+      let todayHasMeetings = false;
+      if (get(calendarSyncEnabled) && get(agendaFileExists)) {
+        try {
+          const meetings = await api.readAgendaForDate(todayISO());
+          todayHasMeetings = meetings.filter((m) => m.trim().length > 0).length > 0;
+        } catch {
+          todayHasMeetings = false;
+        }
+      }
+
+      if (!todayHasContent && !todayHasMeetings) {
+        const lastActiveMatch = restored.find((t) => t.filename === session.activeTab);
+        if (lastActiveMatch) {
+          finalActive = lastActiveMatch;
+        }
+      }
+    }
+
     activeTabId.set(finalActive.id);
     void maybeSilentSyncEmptyNote(finalActive);
   } finally {
@@ -435,6 +460,7 @@ export async function initApp() {
   lineHeight.set(cfg.lineHeight ?? 1.6);
   pureBlack.set(cfg.pureBlack ?? false);
   applyPureBlackToDom(cfg.pureBlack ?? false);
+  startupTabMode.set(cfg.startupTabMode ?? "today");
   if (cfg.calendarSyncEnabled && (get(backendKind) !== "web" || !!get(oneDriveAccount))) {
     await refreshAgendaFileExists();
   }
@@ -756,5 +782,14 @@ export async function setPureBlack(enabled: boolean) {
     await api.setPureBlack(enabled);
   } catch {
     showToast(get(t)("toast.boot.failedToSave.pureBlack", undefined));
+  }
+}
+
+export async function setStartupTabMode(mode: StartupTabMode) {
+  startupTabMode.set(mode);
+  try {
+    await api.setStartupTabMode(mode);
+  } catch {
+    showToast(get(t)("toast.boot.failedToSave.startup", undefined));
   }
 }

@@ -44,6 +44,13 @@ export const pl = {
   "settings.calendar.agendaMissing.before": () => "Nie znaleziono pliku ",
   "settings.calendar.agendaMissing.after": () =>
     " w tym folderze notatek — przycisk synchronizacji pozostaje nieaktywny, dopóki plik nie powstanie.",
+  "settings.startup.sectionLabel": () => "Uruchamianie",
+  "settings.startup.label": () => "Pierwsze uruchomienie w danym dniu",
+  "settings.startup.today": () => "Zawsze otwieraj Dzisiaj",
+  "settings.startup.smart": () => "Przywróć ostatnią notatkę (Inteligentne)",
+  "settings.startup.todayHint": () => "Zawsze otwiera dzisiejszą notatkę przy pierwszym uruchomieniu w danym dniu.",
+  "settings.startup.smartHint": () =>
+    "Otwiera dzisiejszą notatkę, jeśli masz sporządzone notatki lub zaplanowane spotkania; w przeciwnym razie przywraca ostatnie miejsce pracy.",
   "settings.oneDrive.sectionLabel": () => "Synchronizacja w chmurze OneDrive",
   "settings.oneDrive.safariTip.label": () => "Wskazówka dla Safari:",
   "settings.oneDrive.safariTip.hint": () =>
@@ -659,6 +666,8 @@ export const pl = {
   "toast.boot.failedToSave.fontSize": () => "Nie udało się zapisać preferencji rozmiaru czcionki",
   "toast.boot.failedToSave.lineHeight": () => "Nie udało się zapisać preferencji interlinii",
   "toast.boot.failedToSave.pureBlack": () => "Nie udało się zapisać preferencji czystej czerni",
+  "toast.boot.failedToSave.startup": () =>
+    "Nie udało się zapisać preferencji karty startowej",
   "toast.calendarSync.noMeetingsOn": ({ date }) => `Brak spotkań w dniu ${date}.`,
   "toast.calendarSync.synced": () => "Kalendarz zsynchronizowany.",
   "toast.copyForward.destHere": () => "tutaj",

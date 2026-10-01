@@ -15,6 +15,7 @@ import type {
   NoteTab,
   SearchResultItem,
   SectionOccurrence,
+  StartupTabMode,
   SyncHealth,
   ThemeMode,
 } from "./types";
@@ -87,6 +88,8 @@ export const fontSize = writable<number>(13);
 export const lineHeight = writable<number>(1.6);
 /** §v0.12.2: pure black (#000000) OLED canvas mode toggle. Layered on dark theme. */
 export const pureBlack = writable<boolean>(false);
+/** Startup tab preference on the first launch of the day ("today" | "smart_last_active"). */
+export const startupTabMode = writable<StartupTabMode>("today");
 /** §v0.12.2: distraction-free Zen mode canvas. */
 export const isZenMode = writable<boolean>(false);
 

@@ -30,7 +30,7 @@
  * placeholder is never actually shown.
  */
 import { activeAgendaDates, activeTitlesAfterDate, activeTitlesForDate, removedTitlesForDate } from "../agendaTitles";
-import type { AppConfig, AppError, ColorMode, FileMetadata, LanguageMode, TabSession, ThemeMode } from "../types";
+import type { AppConfig, AppError, ColorMode, FileMetadata, LanguageMode, StartupTabMode, TabSession, ThemeMode } from "../types";
 import type { CommandArgs, CommandReturn, TauriCommand, TauriCommands } from "../tauriCommands";
 import { isValidNoteFilename } from "../noteFilename";
 import { IDB_META_KEYS, IDB_STORES, idbClear, idbDelete, idbGet, idbGetAllEntries, idbGetAllKeys, idbPut, openDb } from "./idb";
@@ -70,6 +70,7 @@ interface StoredConfig {
   fontSize?: number;
   lineHeight?: number;
   pureBlack?: boolean;
+  startupTabMode?: StartupTabMode;
   onboardingCompleted?: boolean;
 }
 
@@ -250,6 +251,7 @@ export class WebBackend {
         lineHeight: 1.6,
         pureBlack: false,
         onboardingCompleted: false,
+        startupTabMode: "today",
       }
     );
   }
@@ -282,6 +284,7 @@ export class WebBackend {
       lineHeight: cfg.lineHeight ?? 1.6,
       pureBlack: cfg.pureBlack ?? false,
       onboardingCompleted: cfg.onboardingCompleted ?? false,
+      startupTabMode: cfg.startupTabMode ?? "today",
     };
   }
 
@@ -374,6 +377,13 @@ export class WebBackend {
     set_pure_black: async ({ pureBlack }) => {
       const cfg = await this.loadConfig();
       cfg.pureBlack = pureBlack;
+      await this.saveConfig(cfg);
+      return this.toAppConfig(cfg);
+    },
+
+    set_startup_tab_mode: async ({ mode }) => {
+      const cfg = await this.loadConfig();
+      cfg.startupTabMode = mode;
       await this.saveConfig(cfg);
       return this.toAppConfig(cfg);
     },

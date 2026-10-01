@@ -47,6 +47,13 @@ export const de = {
   "settings.calendar.agendaMissing.before": () => "Keine ",
   "settings.calendar.agendaMissing.after": () =>
     "-Datei in diesem Notizordner gefunden — die Synchronisierungsschaltfläche bleibt ausgegraut, bis eine existiert.",
+  "settings.startup.sectionLabel": () => "Start",
+  "settings.startup.label": () => "Erster Start des Tages",
+  "settings.startup.today": () => "Immer Heute öffnen",
+  "settings.startup.smart": () => "Letzte Notiz wiederherstellen (Smart)",
+  "settings.startup.todayHint": () => "Öffnet beim ersten Start des Tages immer die heutige Notiz.",
+  "settings.startup.smartHint": () =>
+    "Öffnet die heutige Notiz, wenn Entwürfe oder Termine vorliegen; stellt andernfalls den vorherigen Stand wieder her.",
   "settings.oneDrive.sectionLabel": () => "OneDrive-Cloud-Synchronisierung",
   "settings.oneDrive.safariTip.label": () => "Safari-Tipp:",
   "settings.oneDrive.safariTip.hint": () =>
@@ -646,6 +653,7 @@ export const de = {
   "toast.boot.failedToSave.fontSize": () => "Speichern der Schriftgrößeneinstellung fehlgeschlagen",
   "toast.boot.failedToSave.lineHeight": () => "Speichern der Zeilenabstandseinstellung fehlgeschlagen",
   "toast.boot.failedToSave.pureBlack": () => "Speichern der Reinschwarz-Einstellung fehlgeschlagen",
+  "toast.boot.failedToSave.startup": () => "Speichern der Start-Tab-Einstellung fehlgeschlagen",
   "toast.calendarSync.noMeetingsOn": ({ date }) => `Keine Termine am ${date}.`,
   "toast.calendarSync.synced": () => "Kalender synchronisiert.",
   "toast.copyForward.destHere": () => "hierher",

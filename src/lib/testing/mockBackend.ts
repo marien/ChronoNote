@@ -30,7 +30,7 @@
  *     by `list_note_files` / `read_all_notes`.
  */
 import { activeAgendaDates, activeTitlesAfterDate, activeTitlesForDate, removedTitlesForDate as removedTitlesForDateShared } from "../agendaTitles";
-import type { AppConfig, AppError, ColorMode, FileMetadata, LanguageMode, TabSession, ThemeMode } from "../types";
+import type { AppConfig, AppError, ColorMode, FileMetadata, LanguageMode, StartupTabMode, TabSession, ThemeMode } from "../types";
 import type { ToastOptions } from "../stores";
 import type { CommandArgs, CommandReturn, OneDriveAdvancedConfig, TauriCommand, TauriCommands } from "../tauriCommands";
 import { isValidNoteFilename } from "../noteFilename";
@@ -59,6 +59,7 @@ export interface MockSeed {
   fontSize?: number;
   lineHeight?: number;
   pureBlack?: boolean;
+  startupTabMode?: StartupTabMode;
   onboardingCompleted?: boolean;
   lastSyncSuccessMs?: number | null;
   backendKind?: "desktop" | "demo" | "web";
@@ -134,6 +135,7 @@ const MUTATING_COMMANDS = new Set([
   "set_font_size",
   "set_line_height",
   "set_pure_black",
+  "set_startup_tab_mode",
   "write_note",
   "write_conflict_copy",
   "write_tab_session",
@@ -250,6 +252,7 @@ export class MockBackend {
   fontSize: number;
   lineHeight: number;
   pureBlack: boolean;
+  startupTabMode: StartupTabMode;
   onboardingCompleted: boolean;
   lastSyncSuccessMs: number | null = null;
   recentNotesDirs: string[];
@@ -325,6 +328,7 @@ export class MockBackend {
     this.fontSize = seed.fontSize ?? 13;
     this.lineHeight = seed.lineHeight ?? 1.6;
     this.pureBlack = seed.pureBlack ?? false;
+    this.startupTabMode = seed.startupTabMode ?? "today";
     this.onboardingCompleted = seed.onboardingCompleted ?? true;
     this.lastSyncSuccessMs = seed.lastSyncSuccessMs ?? null;
     this.recentNotesDirs = seed.recentNotesDirs ? [...seed.recentNotesDirs] : [];
@@ -376,6 +380,7 @@ export class MockBackend {
       fontSize: this.fontSize,
       lineHeight: this.lineHeight,
       pureBlack: this.pureBlack,
+      startupTabMode: this.startupTabMode,
       onboardingCompleted: this.onboardingCompleted,
       recentNotesDirs: this.recentNotesDirs,
       appVersion: this.appVersion,
@@ -473,6 +478,7 @@ export class MockBackend {
       fontSize: this.fontSize,
       lineHeight: this.lineHeight,
       pureBlack: this.pureBlack,
+      startupTabMode: this.startupTabMode,
       onboardingCompleted: this.onboardingCompleted,
     };
   }
@@ -602,6 +608,11 @@ export class MockBackend {
 
     set_pure_black: ({ pureBlack }) => {
       this.pureBlack = pureBlack;
+      return this.config();
+    },
+
+    set_startup_tab_mode: ({ mode }) => {
+      this.startupTabMode = mode;
       return this.config();
     },
 
