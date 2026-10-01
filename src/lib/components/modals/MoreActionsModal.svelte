@@ -95,10 +95,7 @@
           : $t("topBar.calendarSync.titleNotAvailable")}
       on:click={controller.syncCalendarFromFile}
     >
-      <Icon name="calendar-import" size={14} /><span>{$t("shortcuts.syncCalendar.label")}</span>
-      {#if calendarSyncReady && $calendarSyncHasDiff}
-        <span class="more-actions-pip" aria-hidden="true"></span>
-      {/if}
+      <Icon name="calendar-import" size={14} /><span>{$t("shortcuts.syncCalendar.label")}{#if calendarSyncReady && $calendarSyncHasDiff}<span class="more-actions-pip" aria-hidden="true"></span>{/if}</span>
       <kbd>{formatShortcut("syncCalendar")}</kbd>
     </button>
   {/if}
@@ -120,7 +117,10 @@
     height: 6px;
     border-radius: 50%;
     background: var(--state-warn);
-    flex-shrink: 0;
-    margin-left: 2px;
+    /* Inline after the label: the row's `.more-actions-item span { flex: 1 }` must
+       not reach it (it did as a flex sibling, stretching it into a wide ellipse). */
+    display: inline-block;
+    margin-left: 6px;
+    vertical-align: middle;
   }
 </style>

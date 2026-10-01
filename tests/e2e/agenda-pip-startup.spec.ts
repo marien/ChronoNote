@@ -51,6 +51,23 @@ test.describe("agenda notification pip (Area 1)", () => {
     await expect(editor(page)).toContainText("Design Review");
     await expect(pip(page)).toHaveCount(0);
   });
+
+  test("in the collapsed More menu the pip is a small dot beside the label, not a stretched bar", async ({ page }) => {
+    await seedToday(page, "Standup\n=======\nnotes\n", ["Standup", "Design Review"]);
+    await page.setViewportSize({ width: 480, height: 720 });
+    await page.getByTitle("More actions").click();
+    const dot = page.locator(".more-actions-pip");
+    await expect(dot).toBeVisible();
+    const box = (await dot.boundingBox())!;
+    expect(box.width).toBeLessThanOrEqual(8);
+    expect(box.height).toBeLessThanOrEqual(8);
+    // Right after the label text, before the shortcut chip.
+    const row = page.locator(".more-actions-item", { has: dot });
+    const label = (await row.locator("span").first().boundingBox())!;
+    const kbd = (await row.locator("kbd").boundingBox())!;
+    expect(box.x).toBeGreaterThanOrEqual(label.x);
+    expect(box.x + box.width).toBeLessThanOrEqual(kbd.x);
+  });
 });
 
 test.describe("silent sync of an empty note (Area 3)", () => {
