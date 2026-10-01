@@ -36,6 +36,7 @@
     agendaFileExists,
     backendKind,
     calendarSyncEnabled,
+    calendarSyncHasDiff,
     chromeExpanded,
     currentDateISO,
     isMobile,
@@ -930,6 +931,9 @@
          data-datepicker-trigger. -->
     <button class="icon-btn" title={$t("topBar.moreActions.title")} data-more-trigger on:click={controller.openMoreActions} bind:this={moreBtnEl}>
       <Icon name="more" />
+      {#if calendarSyncVisible && calendarSyncReady && $calendarSyncHasDiff}
+        <span class="icon-btn-pip" aria-hidden="true"></span>
+      {/if}
     </button>
   {:else}
     <button class="icon-btn" title={$t("topBar.actions.title", { combo: formatShortcut('openActions') })} on:click={controller.openActionDrawer}>
@@ -961,6 +965,9 @@
         on:click={controller.syncCalendarFromFile}
       >
         <Icon name="calendar-import" />{#if showActionLabels}<span class="icon-label">{$t("topBar.label.calendarSync")}</span>{/if}
+        {#if calendarSyncReady && $calendarSyncHasDiff}
+          <span class="icon-btn-pip" aria-hidden="true"></span>
+        {/if}
       </button>
     {/if}
     {#if activeTab?.isScratchpad}

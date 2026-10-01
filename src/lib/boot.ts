@@ -50,7 +50,7 @@ import {
 } from "./stores";
 import { flushAllPendingSaves, recomputeSaveState, refreshAllNotesCache } from "./persistence";
 import { checkActiveTabForDrift } from "./drift";
-import { refreshAgendaFileExists } from "./calendarSyncActions";
+import { initCalendarSyncDiffTracking, refreshAgendaFileExists } from "./calendarSyncActions";
 import { refreshSyncConflicts, syncOneDriveNow } from "./oneDriveSync";
 import { checkForUpdatesOnLaunch } from "./updates";
 import { locale, t } from "./i18n";
@@ -413,6 +413,7 @@ export async function initApp() {
   wireCloseBarrier();
   wireDriftDetection();
   wireDateRollover();
+  initCalendarSyncDiffTracking();
   const cfg = await api.getConfig();
   notesDir.set(cfg.notesDir);
   recentNotesDirs.set(cfg.recentNotesDirs);

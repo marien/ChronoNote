@@ -1826,6 +1826,61 @@ describe("calendarSyncActions (.agenda.json)", () => {
     expect(apiMock.readAgendaForDate).not.toHaveBeenCalled();
     expect(get(controller.modal)).toBe("none");
   });
+
+  describe("calendarSyncHasDiff & checkCalendarSyncDiff (notification pip)", () => {
+    it("detects diff when external agenda has new meetings", async () => {
+      controller.calendarSyncEnabled.set(true);
+      controller.agendaFileExists.set(true);
+      controller.tabs.set([tab({ id: "a", filename: "2026-09-14.txt", content: "Standup\n=======\nnotes\n" })]);
+      controller.activeTabId.set("a");
+      apiMock.readAgendaForDate.mockResolvedValue(["Standup", "Design Review"]);
+      apiMock.readAgendaRemovedForDate.mockResolvedValue([]);
+
+      await controller.checkCalendarSyncDiff();
+      expect(get(controller.calendarSyncHasDiff)).toBe(true);
+    });
+
+    it("reports no diff when tab content is already in sync with agenda", async () => {
+      controller.calendarSyncEnabled.set(true);
+      controller.agendaFileExists.set(true);
+      controller.tabs.set([tab({ id: "a", filename: "2026-09-14.txt", content: "Standup\n=======\nnotes\n" })]);
+      controller.activeTabId.set("a");
+      apiMock.readAgendaForDate.mockResolvedValue(["Standup"]);
+      apiMock.readAgendaRemovedForDate.mockResolvedValue([]);
+
+      await controller.checkCalendarSyncDiff();
+      expect(get(controller.calendarSyncHasDiff)).toBe(false);
+    });
+
+    it("does not report diff if the only difference is an ad-hoc call (ad-hoc isolation)", async () => {
+      controller.calendarSyncEnabled.set(true);
+      controller.agendaFileExists.set(true);
+      controller.tabs.set([
+        tab({
+          id: "a",
+          filename: "2026-09-14.txt",
+          content: "Standup\n=======\nnotes\n\n\n'Quick sync with Dave\n=====================\ncall notes\n",
+        }),
+      ]);
+      controller.activeTabId.set("a");
+      apiMock.readAgendaForDate.mockResolvedValue(["Standup"]);
+      apiMock.readAgendaRemovedForDate.mockResolvedValue([]);
+
+      await controller.checkCalendarSyncDiff();
+      expect(get(controller.calendarSyncHasDiff)).toBe(false);
+    });
+
+    it("stays false when calendar sync is disabled or agenda file does not exist", async () => {
+      controller.calendarSyncEnabled.set(false);
+      controller.agendaFileExists.set(true);
+      controller.tabs.set([tab({ id: "a", filename: "2026-09-14.txt", content: "" })]);
+      controller.activeTabId.set("a");
+      apiMock.readAgendaForDate.mockResolvedValue(["Standup"]);
+
+      await controller.checkCalendarSyncDiff();
+      expect(get(controller.calendarSyncHasDiff)).toBe(false);
+    });
+  });
 });
 
 describe("directory switching", () => {

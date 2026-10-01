@@ -233,6 +233,10 @@ export const calendarSyncEnabled = writable<boolean>(false);
  * — never polled continuously, since the file is expected to change only
  * while ChronoNote is unfocused (an external process wrote it). */
 export const agendaFileExists = writable<boolean>(false);
+/** Whether the active tab's note content differs from external calendar meetings
+ * in `.agenda.json` (new, removed, or reordered meetings). Drives the notification pip
+ * on the calendar-sync button and MoreActionsModal. */
+export const calendarSyncHasDiff = writable<boolean>(false);
 /**
  *   `idle`       nothing checked yet this session
  *   `checking`   a check is in flight

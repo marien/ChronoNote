@@ -14,6 +14,7 @@ import {
   activeTabId,
   agendaFileExists,
   calendarSyncEnabled,
+  calendarSyncHasDiff,
   calendarSyncReview,
   modal,
   showToast,
@@ -36,6 +37,70 @@ export function canSyncCalendarForActiveTab(): boolean {
   return !!tab && !tab.isScratchpad && tab.filename.slice(0, 10) >= todayISO();
 }
 
+/**
+ * Evaluates whether the external agenda (.agenda.json) differs from the
+ * active tab's note content (new, removed, or reordered meetings).
+ * Ad-hoc calls (starting with ' or ’) are ignored and will never cause a diff.
+ */
+export async function checkCalendarSyncDiff(): Promise<void> {
+  if (!get(calendarSyncEnabled) || !canSyncCalendarForActiveTab() || !get(agendaFileExists)) {
+    calendarSyncHasDiff.set(false);
+    return;
+  }
+  const tab = get(tabs).find((t) => t.id === get(activeTabId));
+  if (!tab || tab.isScratchpad) {
+    calendarSyncHasDiff.set(false);
+    return;
+  }
+  const date = tab.filename.slice(0, 10);
+  try {
+    const agendaTitles = (await api.readAgendaForDate(date)).map((t) => t.trim()).filter((t) => t.length > 0);
+    const removedTitles = (await api.readAgendaRemovedForDate(date)).map((t) => t.trim()).filter((t) => t.length > 0);
+
+    const result = computeCalendarSync(tab.content, agendaTitles, removedTitles);
+    const hasDiff =
+      result.newTitles.length > 0 ||
+      result.removedEmpty.length > 0 ||
+      result.removedWithContent.length > 0 ||
+      result.reorderedTitles.length > 0;
+
+    calendarSyncHasDiff.set(hasDiff);
+  } catch {
+    calendarSyncHasDiff.set(false);
+  }
+}
+
+let diffCheckTimer: ReturnType<typeof setTimeout> | null = null;
+export function scheduleCalendarSyncDiffCheck() {
+  if (diffCheckTimer) clearTimeout(diffCheckTimer);
+  diffCheckTimer = setTimeout(() => {
+    void checkCalendarSyncDiff();
+  }, 400);
+}
+
+let lastCheckedContent: string | null = null;
+let lastCheckedTabId: string | null = null;
+
+export function initCalendarSyncDiffTracking() {
+  activeTabId.subscribe((id) => {
+    if (id !== lastCheckedTabId) {
+      lastCheckedTabId = id;
+      lastCheckedContent = null;
+      void checkCalendarSyncDiff();
+    }
+  });
+
+  tabs.subscribe((list) => {
+    const id = get(activeTabId);
+    const active = list.find((t) => t.id === id);
+    if (!active || active.isScratchpad) return;
+    if (active.content !== lastCheckedContent) {
+      lastCheckedContent = active.content;
+      scheduleCalendarSyncDiffCheck();
+    }
+  });
+}
+
 /** Refreshes `agendaFileExists` (`stores.ts`) — called at boot, on window
  * focus, and after switching notes folders (`boot.ts`/`directory.ts`)
  * rather than polled, since the file is only expected to change while
@@ -46,6 +111,7 @@ export async function refreshAgendaFileExists(): Promise<void> {
   } catch {
     agendaFileExists.set(false);
   }
+  void checkCalendarSyncDiff();
 }
 
 /** Runs the reconciliation engine against `tab` and opens the review step
@@ -179,6 +245,7 @@ export async function confirmCalendarSync(): Promise<void> {
   }
 
   calendarSyncReview.set(null);
+  calendarSyncHasDiff.set(false);
   modal.set("none");
   showToast(get(t)("toast.calendarSync.synced", undefined));
 }

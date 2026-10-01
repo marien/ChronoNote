@@ -558,10 +558,22 @@ body {
    height exactly (both bottom-anchor in `#top-bar`/`#tab-bar`) so the
    tab strip and the toolbar buttons read as one row, not two. */
 #top-bar .icon-btn {
+  position: relative;
   height: 32px;
   min-width: 32px;
   justify-content: center;
   padding: 0 8px;
+}
+.icon-btn-pip {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--state-warn);
+  box-shadow: 0 0 0 1.5px var(--surface-chrome);
+  pointer-events: none;
 }
 .icon-btn:hover {
   background: var(--surface-raised);
