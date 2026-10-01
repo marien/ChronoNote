@@ -9,6 +9,7 @@
  * controller side. The manual "Sync from a list…" paste entry point this
  * once had a peer in was dropped once the file-based sync worked — see
  * `docs/CHANGELOG.md`. */
+import { tick } from "svelte";
 import { get } from "svelte/store";
 import {
   activeTabId,
@@ -16,6 +17,8 @@ import {
   calendarSyncEnabled,
   calendarSyncHasDiff,
   calendarSyncReview,
+  editorApi,
+  markTabClean,
   modal,
   showToast,
   tabs,
@@ -28,6 +31,7 @@ import { todayISO } from "./date";
 import { appendRemovedSectionTo, computeCalendarSync, flagRemovedSection } from "./calendarReconcile";
 import { t } from "./i18n";
 import { describeApiError } from "./apiError";
+import { sha256Hex } from "./drift";
 import type { NoteTab } from "./types";
 
 /** "Today or a future date only" — a scratchpad has no date at all, and a
@@ -99,6 +103,90 @@ export function initCalendarSyncDiffTracking() {
       scheduleCalendarSyncDiffCheck();
     }
   });
+}
+
+const silentSyncInProgress = new Set<string>();
+
+/**
+ * Automatically places the editor caret on line index 2 (line 3, the blank line
+ * inside the first meeting section below the Setext underline) and focuses the editor.
+ */
+export async function focusFirstMeetingSection(targetLineIdx = 2): Promise<void> {
+  await tick();
+  let attempts = 0;
+  const tryFocus = () => {
+    if (editorApi) {
+      editorApi.jumpToLine(targetLineIdx);
+      editorApi.focus();
+    } else if (attempts < 10) {
+      attempts++;
+      if (typeof requestAnimationFrame !== "undefined") {
+        requestAnimationFrame(tryFocus);
+      } else {
+        setTimeout(tryFocus, 25);
+      }
+    }
+  };
+  tryFocus();
+}
+
+/**
+ * Area 3: When an empty note is opened (or switched to) and agenda sync is enabled,
+ * silently sync during opening and put the caret in the first section.
+ *
+ * Trigger invariants:
+ * 1. Active or target tab is a dated note (not a scratchpad).
+ * 2. Note date is today or future: tabDate >= todayISO().
+ * 3. calendarSyncEnabled === true and agendaFileExists === true.
+ * 4. Note content is empty: tab.content.trim() === "".
+ * 5. External agenda contains >= 1 meetings for that date.
+ */
+export async function maybeSilentSyncEmptyNote(tab: NoteTab): Promise<boolean> {
+  if (!get(calendarSyncEnabled)) return false;
+  if (!tab || tab.isScratchpad) return false;
+  const dateStr = tab.filename.slice(0, 10);
+  if (dateStr < todayISO()) return false;
+  if (tab.content.trim() !== "") return false;
+  if (silentSyncInProgress.has(tab.id)) return false;
+
+  let exists = get(agendaFileExists);
+  if (!exists) {
+    try {
+      exists = await api.agendaFileExists();
+      if (exists) agendaFileExists.set(true);
+    } catch {
+      exists = false;
+    }
+  }
+  if (!exists) return false;
+
+  silentSyncInProgress.add(tab.id);
+  try {
+    const agendaTitles = (await api.readAgendaForDate(dateStr)).map((t) => t.trim()).filter((t) => t.length > 0);
+    if (agendaTitles.length === 0) return false;
+
+    // Double check current tab content in store hasn't been edited while awaiting agenda
+    const currentList = get(tabs);
+    const currentTab = currentList.find((t) => t.id === tab.id);
+    if (!currentTab || currentTab.content.trim() !== "") return false;
+
+    const result = computeCalendarSync("", agendaTitles);
+    if (!result.content || result.content.trim() === "") return false;
+
+    tabs.set(writeTabContent(currentTab.id, result.content, currentList));
+
+    const hash = await sha256Hex(result.content);
+    markTabClean(currentTab.id, hash);
+
+    if (get(activeTabId) === currentTab.id) {
+      void focusFirstMeetingSection(2);
+    }
+    return true;
+  } catch {
+    return false;
+  } finally {
+    silentSyncInProgress.delete(tab.id);
+  }
 }
 
 /** Refreshes `agendaFileExists` (`stores.ts`) — called at boot, on window

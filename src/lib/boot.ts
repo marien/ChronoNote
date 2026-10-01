@@ -50,7 +50,7 @@ import {
 } from "./stores";
 import { flushAllPendingSaves, recomputeSaveState, refreshAllNotesCache } from "./persistence";
 import { checkActiveTabForDrift } from "./drift";
-import { initCalendarSyncDiffTracking, refreshAgendaFileExists } from "./calendarSyncActions";
+import { initCalendarSyncDiffTracking, maybeSilentSyncEmptyNote, refreshAgendaFileExists } from "./calendarSyncActions";
 import { refreshSyncConflicts, syncOneDriveNow } from "./oneDriveSync";
 import { checkForUpdatesOnLaunch } from "./updates";
 import { locale, t } from "./i18n";
@@ -367,7 +367,9 @@ export async function restoreOrBootstrapTabs() {
       !isFirstOpenToday && session?.activeTab
         ? restored.find((t) => t.filename === session.activeTab)
         : undefined;
-    activeTabId.set((activeMatch ?? todayTab).id);
+    const finalActive = activeMatch ?? todayTab;
+    activeTabId.set(finalActive.id);
+    void maybeSilentSyncEmptyNote(finalActive);
   } finally {
     restoringTabs = false;
   }
@@ -434,7 +436,7 @@ export async function initApp() {
   pureBlack.set(cfg.pureBlack ?? false);
   applyPureBlackToDom(cfg.pureBlack ?? false);
   if (cfg.calendarSyncEnabled && (get(backendKind) !== "web" || !!get(oneDriveAccount))) {
-    void refreshAgendaFileExists();
+    await refreshAgendaFileExists();
   }
   // First-time installation onboarding (§onboarding, §255):
   // Strictly once per installation globally (tracked in config.json).
