@@ -430,6 +430,16 @@ pub fn run() {
     let onedrive_mgr = std::sync::Arc::new(onedrive::sync::OneDriveManager::new());
 
     let builder = tauri::Builder::default()
+        // Must be the first plugin registered (Tauri docs): a second launch
+        // hands off to the running instance and exits before anything else
+        // initialises. Focuses the existing window instead of opening another.
+        .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
+            if let Some(w) = app.get_webview_window("main") {
+                let _ = w.unminimize();
+                let _ = w.show();
+                let _ = w.set_focus();
+            }
+        }))
         .manage(onedrive_mgr)
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
