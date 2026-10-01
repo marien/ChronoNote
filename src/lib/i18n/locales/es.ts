@@ -43,6 +43,13 @@ export const es = {
   "settings.calendar.agendaMissing.before": () => "No se encontró ningún archivo ",
   "settings.calendar.agendaMissing.after": () =>
     " en esta carpeta de notas aún; el botón de sincronización permanece deshabilitado hasta que exista uno.",
+  "settings.startup.sectionLabel": () => "Inicio",
+  "settings.startup.label": () => "Primer inicio del día",
+  "settings.startup.today": () => "Hoy",
+  "settings.startup.smart": () => "Última nota",
+  "settings.startup.todayHint": () => "Abre siempre la nota de hoy en el primer inicio de cada día.",
+  "settings.startup.smartHint": () =>
+    "Abre la nota de hoy si tiene notas redactadas o reuniones programadas; de lo contrario, restaura donde lo dejó.",
   "settings.oneDrive.sectionLabel": () => "Sincronización en la nube OneDrive",
   "settings.oneDrive.safariTip.label": () => "Consejo para Safari:",
   "settings.oneDrive.safariTip.hint": () =>
@@ -651,6 +658,7 @@ export const es = {
   "toast.boot.failedToSave.fontSize": () => "Error al guardar la preferencia de tamaño de fuente",
   "toast.boot.failedToSave.lineHeight": () => "Error al guardar la preferencia de interlineado",
   "toast.boot.failedToSave.pureBlack": () => "Error al guardar la preferencia de negro puro",
+  "toast.boot.failedToSave.startup": () => "Error al guardar la preferencia de pestaña de inicio",
   "toast.calendarSync.noMeetingsOn": ({ date }) => `No hay reuniones el ${date}.`,
   "toast.calendarSync.synced": () => "Calendario sincronizado.",
   "toast.copyForward.destHere": () => "aquí",

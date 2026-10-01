@@ -52,6 +52,12 @@ export type TranslationParams = {
   "settings.calendar.agendaHint.after": undefined;
   "settings.calendar.agendaMissing.before": undefined;
   "settings.calendar.agendaMissing.after": undefined;
+  "settings.startup.sectionLabel": undefined;
+  "settings.startup.label": undefined;
+  "settings.startup.today": undefined;
+  "settings.startup.smart": undefined;
+  "settings.startup.todayHint": undefined;
+  "settings.startup.smartHint": undefined;
   "settings.oneDrive.sectionLabel": undefined;
   "settings.oneDrive.safariTip.label": undefined;
   "settings.oneDrive.safariTip.hint": undefined;
@@ -693,6 +699,7 @@ export type TranslationParams = {
   "toast.boot.failedToSave.fontSize": undefined;
   "toast.boot.failedToSave.lineHeight": undefined;
   "toast.boot.failedToSave.pureBlack": undefined;
+  "toast.boot.failedToSave.startup": undefined;
   "toast.calendarSync.noMeetingsOn": { date: string };
   "toast.calendarSync.synced": undefined;
   "toast.copyForward.destHere": undefined;

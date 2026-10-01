@@ -7,6 +7,7 @@
     agendaFileExists,
     backendKind,
     calendarSyncEnabled,
+    calendarSyncHasDiff,
     oneDriveAccount,
     oneDriveFolder,
     tabs,
@@ -95,6 +96,9 @@
       on:click={controller.syncCalendarFromFile}
     >
       <Icon name="calendar-import" size={14} /><span>{$t("shortcuts.syncCalendar.label")}</span>
+      {#if calendarSyncReady && $calendarSyncHasDiff}
+        <span class="more-actions-pip" aria-hidden="true"></span>
+      {/if}
       <kbd>{formatShortcut("syncCalendar")}</kbd>
     </button>
   {/if}
@@ -109,3 +113,14 @@
     <kbd>{formatShortcut("openSettings")}</kbd>
   </button>
 </div>
+
+<style>
+  .more-actions-pip {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--state-warn);
+    flex-shrink: 0;
+    margin-left: 2px;
+  }
+</style>

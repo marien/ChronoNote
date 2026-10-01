@@ -1,5 +1,14 @@
 # Design notes
 
+## Agenda: Notification pip, ad-hoc calls, silent empty-note sync, and startup tab preference
+
+**[`agenda-pip-adhoc-startup-spec.md`](agenda-pip-adhoc-startup-spec.md)** — pitched 2026-10-01:
+specifies four integrated enhancements for calendar workflow and startup ergonomics:
+1. **Notification Pip on Sync Button**: Visual monoline badge dot on the calendar sync button (and More popover) when `.agenda.json` has new, removed, or reordered meetings relative to the active note.
+2. **Ad-Hoc Calls**: Non-calendar Setext sections starting with `'` (or `’`) that are ignored during agenda reconciliation and preserved in place in the section stream.
+3. **Empty Note Silent Auto-Sync**: Automatically populates meetings and focuses the cursor on line 3 when opening a blank daily note with calendar sync enabled.
+4. **Startup Tab Preference**: User setting allowing the first launch of the day to either always open Today (default) or restore the last opened note unless Today already has notes or meetings.
+
 ## Date Picker: Container model & agenda indicator redesign
 
 **[`datepicker-bounding-box-spec.md`](datepicker-bounding-box-spec.md)** — approved 2026-09-30:

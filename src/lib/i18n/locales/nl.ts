@@ -45,6 +45,13 @@ export const nl = {
   "settings.calendar.agendaMissing.before": () => "Geen ",
   "settings.calendar.agendaMissing.after": () =>
     " bestand gevonden in deze notitiemap — de synchronisatieknop blijft grijs totdat er een bestaat.",
+  "settings.startup.sectionLabel": () => "Opstarten",
+  "settings.startup.label": () => "Eerste keer opstarten van de dag",
+  "settings.startup.today": () => "Vandaag",
+  "settings.startup.smart": () => "Laatste notitie",
+  "settings.startup.todayHint": () => "Opent altijd de notitie van vandaag bij het eerste opstarten van de dag.",
+  "settings.startup.smartHint": () =>
+    "Opent de notitie van vandaag als u notities of geplande vergaderingen heeft; herstelt anders waar u was gebleven.",
   "settings.oneDrive.sectionLabel": () => "OneDrive-cloudsynchronisatie",
   "settings.oneDrive.safariTip.label": () => "Safari-tip:",
   "settings.oneDrive.safariTip.hint": () =>
@@ -641,6 +648,7 @@ export const nl = {
   "toast.boot.failedToSave.fontSize": () => "Opslaan van lettergroottevoorkeur mislukt",
   "toast.boot.failedToSave.lineHeight": () => "Opslaan van regelhoogtevoorkeur mislukt",
   "toast.boot.failedToSave.pureBlack": () => "Opslaan van puur-zwart-voorkeur mislukt",
+  "toast.boot.failedToSave.startup": () => "Opslaan van voorkeur voor opstarttabblad mislukt",
   "toast.calendarSync.noMeetingsOn": ({ date }) => `Geen afspraken op ${date}.`,
   "toast.calendarSync.synced": () => "Agenda gesynchroniseerd.",
   "toast.copyForward.destHere": () => "hier",

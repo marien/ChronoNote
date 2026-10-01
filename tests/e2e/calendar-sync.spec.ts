@@ -176,6 +176,10 @@ test.describe("calendar sync: file-based agenda", () => {
           { date: today, start: "09:00", end: "09:30", title: "Standup " }, // trailing space
           { date: today, start: "10:00", end: "10:30", title: "Design Review" },
         ]),
+        // Pre-seed today's note so Area 3 (silent auto-sync on empty note) does
+        // not auto-fill it on open — this test is about the manual sync review.
+        notes: { [`${today}.txt`]: "existing notes\n" },
+        session: { openTabs: [`${today}.txt`], activeTab: `${today}.txt` },
       },
     });
     await page.getByTitle("Sync calendar for this day", { exact: false }).click();
@@ -206,6 +210,10 @@ test.describe("sync review improvements (#78)", () => {
         ...scenario("empty"),
         calendarSyncEnabled: true,
         agendaJson: JSON.stringify([meeting("09:00", "Alpha"), meeting("10:00", "Bravo"), meeting("11:00", "Charlie")]),
+        // Pre-seed today's note so Area 3 (silent auto-sync on empty note) does
+        // not auto-fill it on open — this test is about keyboard UX in the review modal.
+        notes: { [`${today}.txt`]: "existing notes\n" },
+        session: { openTabs: [`${today}.txt`], activeTab: `${today}.txt` },
       },
     });
     await openReview(page);
@@ -241,7 +249,15 @@ test.describe("sync review improvements (#78)", () => {
 
   test("Enter on the initially focused Sync button accepts the review", async ({ page }) => {
     await seedApp(page, {
-      seed: { ...scenario("empty"), calendarSyncEnabled: true, agendaJson: JSON.stringify([meeting("09:00", "Alpha")]) },
+      seed: {
+        ...scenario("empty"),
+        calendarSyncEnabled: true,
+        agendaJson: JSON.stringify([meeting("09:00", "Alpha")]),
+        // Pre-seed today's note so Area 3 (silent auto-sync on empty note) does
+        // not auto-fill it on open — this test is about the Enter key in the review modal.
+        notes: { [`${today}.txt`]: "existing notes\n" },
+        session: { openTabs: [`${today}.txt`], activeTab: `${today}.txt` },
+      },
     });
     await openReview(page);
     // The dialog is visible as soon as it mounts, but its own initial-focus

@@ -44,6 +44,16 @@ function stripCancelledPrefix(header: string): string {
   return header.replace(CANCELED_PREFIX, "");
 }
 
+const ADHOC_PREFIX = /^\s*['’]/;
+
+/** An ad-hoc call is a section whose title starts with a single quote (`'` or `’`),
+ * with or without whitespace. Ad-hoc calls are non-calendar sections: they are
+ * ignored during agenda matching, never treated as removed meetings, and preserved
+ * in place relative to surrounding sections. */
+export function isAdhocSection(header: string): boolean {
+  return ADHOC_PREFIX.test(stripCancelledPrefix(header));
+}
+
 function parseSections(content: string): { preamble: string[]; sections: ParsedSection[] } {
   const allLines = content.split("\n");
   const headerIdxs: number[] = [];
@@ -102,27 +112,54 @@ export function computeCalendarSync(
 
   // Sections for a removed meeting, wherever they sit. One already flagged "[CANCELED] ..." by an
   // earlier "Leave it" is left alone, so a sync never flags the same meeting twice.
+  // Ad-hoc calls are strictly non-calendar: never treated as removed.
   const removedKeys = new Set(removedTitles.map((x) => x.trim()).filter(Boolean).map(matchKey));
   const isRemovedSection = (s: ParsedSection) =>
-    removedKeys.has(s.matchKey) && !agendaKeys.has(s.matchKey) && !isCancelledHeader(s.header);
+    !isAdhocSection(s.header) &&
+    removedKeys.has(s.matchKey) &&
+    !agendaKeys.has(s.matchKey) &&
+    !isCancelledHeader(s.header);
   const sections = allSections.filter((s) => !isRemovedSection(s));
 
   const matchedIdxs: number[] = [];
   sections.forEach((s, i) => {
-    if (agendaKeys.has(s.matchKey)) matchedIdxs.push(i);
+    if (!isAdhocSection(s.header) && agendaKeys.has(s.matchKey)) matchedIdxs.push(i);
   });
 
   const blockStart = matchedIdxs.length > 0 ? matchedIdxs[0] : sections.length;
   const before = sections.slice(0, blockStart);
   const blockSections = sections.slice(blockStart);
 
+  // Ad-hoc calls are non-calendar sections and must be preserved in place relative
+  // to surrounding sections. In blockSections, group each ad-hoc section with the
+  // calendar section that precedes it. Any leading ad-hoc sections are kept in leadingAdhoc.
+  const leadingAdhoc: ParsedSection[] = [];
+  const trailingAdhoc = new Map<number, ParsedSection[]>();
+  let lastCalIdx = -1;
+  blockSections.forEach((s, i) => {
+    if (!isAdhocSection(s.header)) {
+      lastCalIdx = i;
+      trailingAdhoc.set(i, []);
+    } else if (lastCalIdx >= 0) {
+      trailingAdhoc.get(lastCalIdx)!.push(s);
+    } else {
+      leadingAdhoc.push(s);
+    }
+  });
+
   const consumed = new Set<number>();
   const finalBlockLines: string[][] = [];
   const newTitles: string[] = [];
   const keptEntries: { title: string; origIdx: number }[] = [];
 
+  for (const leading of leadingAdhoc) {
+    finalBlockLines.push(leading.lines);
+  }
+
   for (const a of agenda) {
-    const foundIdx = blockSections.findIndex((s, i) => !consumed.has(i) && s.matchKey === a.key);
+    const foundIdx = blockSections.findIndex(
+      (s, i) => !consumed.has(i) && !isAdhocSection(s.header) && s.matchKey === a.key,
+    );
     if (foundIdx >= 0) {
       consumed.add(foundIdx);
       keptEntries.push({ title: a.title, origIdx: foundIdx });
@@ -137,6 +174,11 @@ export function computeCalendarSync(
         finalBlockLines.push([header, underlineFor(header), ...found.lines.slice(2)]);
       } else {
         finalBlockLines.push(found.lines);
+      }
+      // Emit any ad-hoc sections that immediately followed this calendar section
+      const adhocAfter = trailingAdhoc.get(foundIdx) ?? [];
+      for (const adhoc of adhocAfter) {
+        finalBlockLines.push(adhoc.lines);
       }
     } else {
       newTitles.push(a.title);
@@ -162,6 +204,7 @@ export function computeCalendarSync(
   // A cancelled meeting's section may sit above the calendar block; report it first, in note order.
   allSections.filter(isRemovedSection).forEach(noteRemoved);
   blockSections.forEach((s, i) => {
+    if (isAdhocSection(s.header)) return;
     if (consumed.has(i)) return;
     if (isCancelledHeader(s.header)) {
       // #92: still not back on the calendar, but this section was already
@@ -169,9 +212,14 @@ export function computeCalendarSync(
       // through unchanged instead of surfacing it as newly removed again —
       // that's what produced the doubled "[CANCELED] [CANCELED] …" prefix.
       finalBlockLines.push(s.lines);
-      return;
+    } else {
+      noteRemoved(s);
     }
-    noteRemoved(s);
+    // Even if this calendar section was removed, its attached ad-hoc sections are kept!
+    const orphanedAdhoc = trailingAdhoc.get(i) ?? [];
+    for (const adhoc of orphanedAdhoc) {
+      finalBlockLines.push(adhoc.lines);
+    }
   });
 
   const newContent = joinBlocks(preamble, [...before.map((s) => s.lines), ...finalBlockLines]);

@@ -15,6 +15,7 @@ import type {
   NoteTab,
   SearchResultItem,
   SectionOccurrence,
+  StartupTabMode,
   SyncHealth,
   ThemeMode,
 } from "./types";
@@ -87,6 +88,8 @@ export const fontSize = writable<number>(13);
 export const lineHeight = writable<number>(1.6);
 /** §v0.12.2: pure black (#000000) OLED canvas mode toggle. Layered on dark theme. */
 export const pureBlack = writable<boolean>(false);
+/** Startup tab preference on the first launch of the day ("today" | "smart_last_active"). */
+export const startupTabMode = writable<StartupTabMode>("today");
 /** §v0.12.2: distraction-free Zen mode canvas. */
 export const isZenMode = writable<boolean>(false);
 
@@ -233,6 +236,10 @@ export const calendarSyncEnabled = writable<boolean>(false);
  * — never polled continuously, since the file is expected to change only
  * while ChronoNote is unfocused (an external process wrote it). */
 export const agendaFileExists = writable<boolean>(false);
+/** Whether the active tab's note content differs from external calendar meetings
+ * in `.agenda.json` (new, removed, or reordered meetings). Drives the notification pip
+ * on the calendar-sync button and MoreActionsModal. */
+export const calendarSyncHasDiff = writable<boolean>(false);
 /**
  *   `idle`       nothing checked yet this session
  *   `checking`   a check is in flight

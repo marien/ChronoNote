@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { computeCalendarSync, flagRemovedSection, appendRemovedSectionTo } from "./calendarReconcile";
+import { computeCalendarSync, flagRemovedSection, appendRemovedSectionTo, isAdhocSection } from "./calendarReconcile";
 
 describe("computeCalendarSync", () => {
   it("reproduces the design doc's own worked example (§2.4)", () => {
@@ -222,5 +222,89 @@ describe("#92: a [CANCELED] section that flagRemovedSection actually produces (a
     expect(r.content).toContain("kept notes");
     // The underline is recomputed for the now-shorter (unprefixed) title.
     expect(r.content).toContain("Old sync\n========");
+  });
+
+  describe("isAdhocSection & ad-hoc calls handling", () => {
+    it("recognizes ASCII single quote and typographic quote with or without leading/trailing space", () => {
+      expect(isAdhocSection("'Quick sync with Dave")).toBe(true);
+      expect(isAdhocSection("' Quick sync with Dave")).toBe(true);
+      expect(isAdhocSection("  'Quick sync with Dave")).toBe(true);
+      expect(isAdhocSection("’Quick sync with Dave")).toBe(true);
+      expect(isAdhocSection("’ Quick sync with Dave")).toBe(true);
+      expect(isAdhocSection("  ’ Quick sync with Dave")).toBe(true);
+      expect(isAdhocSection("[CANCELED] 'Quick sync")).toBe(true);
+      expect(isAdhocSection("Standup")).toBe(false);
+      expect(isAdhocSection("Team sync")).toBe(false);
+    });
+
+    it("ad-hoc call between meetings is preserved in place and ignored during sync", () => {
+      const content =
+        "Standup\n=======\nnotes from standup\n\n\n'Quick sync with Dave\n=====================\nnotes with dave\n\n\nRetro\n=====\nretro notes\n";
+      const result = computeCalendarSync(content, ["Standup", "Retro"]);
+
+      expect(result.content).toBe(content);
+      expect(result.newTitles).toEqual([]);
+      expect(result.reorderedTitles).toEqual([]);
+      expect(result.removedEmpty).toEqual([]);
+      expect(result.removedWithContent).toEqual([]);
+    });
+
+    it("ad-hoc call at the end of the note is preserved when meetings are synced", () => {
+      const content =
+        "Standup\n=======\nnotes from standup\n\n\n'Call with Dave\n===============\ncall notes\n";
+      const result = computeCalendarSync(content, ["Standup"]);
+
+      expect(result.content).toBe(content);
+      expect(result.newTitles).toEqual([]);
+      expect(result.removedEmpty).toEqual([]);
+      expect(result.removedWithContent).toEqual([]);
+    });
+
+    it("ad-hoc call is preserved even when preceding calendar meeting is removed from agenda", () => {
+      const content =
+        "Standup\n=======\nnotes from standup\n\n\n'Call with Dave\n===============\ncall notes\n";
+      const result = computeCalendarSync(content, [], ["Standup"]);
+
+      expect(result.removedWithContent).toEqual([
+        { header: "Standup", lines: ["notes from standup"] },
+      ]);
+      expect(result.removedEmpty).toEqual([]);
+      expect(result.content).toBe("'Call with Dave\n===============\ncall notes\n");
+    });
+
+    it("ad-hoc call is preserved when preceding meeting inside blockSections is removed", () => {
+      const content =
+        "Standup\n=======\nstandup notes\n\n\nPlanning\n========\nplanning notes\n\n\n'Call with Dave\n===============\ncall notes\n";
+      const result = computeCalendarSync(content, ["Standup"]);
+
+      expect(result.removedWithContent).toEqual([
+        { header: "Planning", lines: ["planning notes"] },
+      ]);
+      expect(result.content).toBe(
+        "Standup\n=======\nstandup notes\n\n\n'Call with Dave\n===============\ncall notes\n",
+      );
+    });
+
+    it("ad-hoc calls stay anchored to their preceding meeting when calendar meetings are reordered", () => {
+      const content =
+        "Alpha\n=====\nnotes alpha\n\n\n'Adhoc Alpha\n============\nalpha adhoc\n\n\nBeta\n====\nnotes beta\n\n\n'Adhoc Beta\n===========\nbeta adhoc\n";
+      const result = computeCalendarSync(content, ["Beta", "Alpha"]);
+
+      expect(result.content).toBe(
+        "Beta\n====\nnotes beta\n\n\n'Adhoc Beta\n===========\nbeta adhoc\n\n\nAlpha\n=====\nnotes alpha\n\n\n'Adhoc Alpha\n============\nalpha adhoc\n",
+      );
+      expect(result.reorderedTitles.sort()).toEqual(["Alpha", "Beta"]);
+      expect(result.removedWithContent).toEqual([]);
+    });
+
+    it("note containing only ad-hoc call appends new calendar meetings without altering the ad-hoc call", () => {
+      const content = "'Quick chat\n===========\nnotes\n";
+      const result = computeCalendarSync(content, ["Standup"]);
+
+      expect(result.content).toBe("'Quick chat\n===========\nnotes\n\n\nStandup\n=======\n");
+      expect(result.newTitles).toEqual(["Standup"]);
+      expect(result.removedEmpty).toEqual([]);
+      expect(result.removedWithContent).toEqual([]);
+    });
   });
 });

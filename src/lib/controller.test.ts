@@ -1826,6 +1826,161 @@ describe("calendarSyncActions (.agenda.json)", () => {
     expect(apiMock.readAgendaForDate).not.toHaveBeenCalled();
     expect(get(controller.modal)).toBe("none");
   });
+
+  describe("calendarSyncHasDiff & checkCalendarSyncDiff (notification pip)", () => {
+    it("detects diff when external agenda has new meetings", async () => {
+      controller.calendarSyncEnabled.set(true);
+      controller.agendaFileExists.set(true);
+      controller.tabs.set([tab({ id: "a", filename: "2026-09-14.txt", content: "Standup\n=======\nnotes\n" })]);
+      controller.activeTabId.set("a");
+      apiMock.readAgendaForDate.mockResolvedValue(["Standup", "Design Review"]);
+      apiMock.readAgendaRemovedForDate.mockResolvedValue([]);
+
+      await controller.checkCalendarSyncDiff();
+      expect(get(controller.calendarSyncHasDiff)).toBe(true);
+    });
+
+    it("reports no diff when tab content is already in sync with agenda", async () => {
+      controller.calendarSyncEnabled.set(true);
+      controller.agendaFileExists.set(true);
+      controller.tabs.set([tab({ id: "a", filename: "2026-09-14.txt", content: "Standup\n=======\nnotes\n" })]);
+      controller.activeTabId.set("a");
+      apiMock.readAgendaForDate.mockResolvedValue(["Standup"]);
+      apiMock.readAgendaRemovedForDate.mockResolvedValue([]);
+
+      await controller.checkCalendarSyncDiff();
+      expect(get(controller.calendarSyncHasDiff)).toBe(false);
+    });
+
+    it("does not report diff if the only difference is an ad-hoc call (ad-hoc isolation)", async () => {
+      controller.calendarSyncEnabled.set(true);
+      controller.agendaFileExists.set(true);
+      controller.tabs.set([
+        tab({
+          id: "a",
+          filename: "2026-09-14.txt",
+          content: "Standup\n=======\nnotes\n\n\n'Quick sync with Dave\n=====================\ncall notes\n",
+        }),
+      ]);
+      controller.activeTabId.set("a");
+      apiMock.readAgendaForDate.mockResolvedValue(["Standup"]);
+      apiMock.readAgendaRemovedForDate.mockResolvedValue([]);
+
+      await controller.checkCalendarSyncDiff();
+      expect(get(controller.calendarSyncHasDiff)).toBe(false);
+    });
+
+    it("stays false when calendar sync is disabled or agenda file does not exist", async () => {
+      controller.calendarSyncEnabled.set(false);
+      controller.agendaFileExists.set(true);
+      controller.tabs.set([tab({ id: "a", filename: "2026-09-14.txt", content: "" })]);
+      controller.activeTabId.set("a");
+      apiMock.readAgendaForDate.mockResolvedValue(["Standup"]);
+
+      await controller.checkCalendarSyncDiff();
+      expect(get(controller.calendarSyncHasDiff)).toBe(false);
+    });
+  });
+
+  describe("maybeSilentSyncEmptyNote (silent sync on empty note)", () => {
+    it("silently synchronizes empty note on open and focuses first meeting section", async () => {
+      vi.setSystemTime(new Date(2026, 8, 14)); // 2026-09-14
+      controller.calendarSyncEnabled.set(true);
+      controller.agendaFileExists.set(true);
+
+      let jumpedLine = -1;
+      let focused = false;
+      controller.registerEditorApi({
+        getContent: () => "",
+        setContent: () => {},
+        insertAtCursor: () => {},
+        jumpToLine: (line) => {
+          jumpedLine = line;
+        },
+        getCursorLineIdx: () => 0,
+        getSelection: () => ({ text: "", fromLine: 0, toLine: 0 }),
+        focus: () => {
+          focused = true;
+        },
+        find: { setQuery: () => {}, next: () => {}, prev: () => {}, clear: () => {} },
+      });
+
+      const emptyTab = tab({ id: "t1", filename: "2026-09-14.txt", content: "" });
+      controller.tabs.set([emptyTab]);
+      controller.activeTabId.set("t1");
+
+      apiMock.readAgendaForDate.mockResolvedValue(["Daily Standup", "Planning"]);
+
+      const synced = await controller.maybeSilentSyncEmptyNote(emptyTab);
+      expect(synced).toBe(true);
+
+      const updated = get(controller.tabs).find((t) => t.id === "t1")!;
+      expect(updated.content).toContain("Daily Standup\n=============");
+      expect(updated.content).toContain("Planning\n========");
+      expect(apiMock.writeNote).toHaveBeenCalledWith("2026-09-14.txt", updated.content);
+
+      await new Promise((r) => setTimeout(r, 50));
+      expect(jumpedLine).toBe(2);
+      expect(focused).toBe(true);
+    });
+
+    it("does not trigger when note already has content", async () => {
+      vi.setSystemTime(new Date(2026, 8, 14));
+      controller.calendarSyncEnabled.set(true);
+      controller.agendaFileExists.set(true);
+
+      const filledTab = tab({ id: "t2", filename: "2026-09-14.txt", content: "Already written" });
+      controller.tabs.set([filledTab]);
+      controller.activeTabId.set("t2");
+      apiMock.readAgendaForDate.mockResolvedValue(["Daily Standup"]);
+
+      const synced = await controller.maybeSilentSyncEmptyNote(filledTab);
+      expect(synced).toBe(false);
+      expect(get(controller.tabs).find((t) => t.id === "t2")!.content).toBe("Already written");
+    });
+
+    it("does not trigger for past dated notes", async () => {
+      vi.setSystemTime(new Date(2026, 8, 14));
+      controller.calendarSyncEnabled.set(true);
+      controller.agendaFileExists.set(true);
+
+      const pastTab = tab({ id: "t3", filename: "2026-09-10.txt", content: "" });
+      controller.tabs.set([pastTab]);
+      controller.activeTabId.set("t3");
+      apiMock.readAgendaForDate.mockResolvedValue(["Old Standup"]);
+
+      const synced = await controller.maybeSilentSyncEmptyNote(pastTab);
+      expect(synced).toBe(false);
+    });
+
+    it("does not trigger when agenda has no meetings", async () => {
+      vi.setSystemTime(new Date(2026, 8, 14));
+      controller.calendarSyncEnabled.set(true);
+      controller.agendaFileExists.set(true);
+
+      const emptyTab = tab({ id: "t4", filename: "2026-09-14.txt", content: "" });
+      controller.tabs.set([emptyTab]);
+      controller.activeTabId.set("t4");
+      apiMock.readAgendaForDate.mockResolvedValue([]);
+
+      const synced = await controller.maybeSilentSyncEmptyNote(emptyTab);
+      expect(synced).toBe(false);
+    });
+
+    it("does not trigger when calendar sync is disabled", async () => {
+      vi.setSystemTime(new Date(2026, 8, 14));
+      controller.calendarSyncEnabled.set(false);
+      controller.agendaFileExists.set(true);
+
+      const emptyTab = tab({ id: "t5", filename: "2026-09-14.txt", content: "" });
+      controller.tabs.set([emptyTab]);
+      controller.activeTabId.set("t5");
+      apiMock.readAgendaForDate.mockResolvedValue(["Daily Standup"]);
+
+      const synced = await controller.maybeSilentSyncEmptyNote(emptyTab);
+      expect(synced).toBe(false);
+    });
+  });
 });
 
 describe("directory switching", () => {

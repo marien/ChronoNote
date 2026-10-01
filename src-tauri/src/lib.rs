@@ -109,6 +109,17 @@ fn set_pure_black(app: AppHandle, pure_black: bool) -> Result<storage::AppConfig
     Ok(cfg)
 }
 
+#[tauri::command]
+fn set_startup_tab_mode(
+    app: AppHandle,
+    mode: storage::StartupTabMode,
+) -> Result<storage::AppConfig, String> {
+    let mut cfg = storage::load_config(&app)?;
+    cfg.startup_tab_mode = mode;
+    storage::save_config(&app, &cfg)?;
+    Ok(cfg)
+}
+
 /// #50: called once per launch, right after boot compares the running
 /// version against `AppConfig.last_seen_version` — records the version
 /// so the same launch's update notice (if any) isn't repeated next time.
@@ -467,6 +478,7 @@ pub fn run() {
             set_font_size,
             set_line_height,
             set_pure_black,
+            set_startup_tab_mode,
             set_last_seen_version,
             set_onboarding_completed,
             list_note_files,

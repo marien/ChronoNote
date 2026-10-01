@@ -36,6 +36,7 @@
     agendaFileExists,
     backendKind,
     calendarSyncEnabled,
+    calendarSyncHasDiff,
     chromeExpanded,
     currentDateISO,
     isMobile,
@@ -928,8 +929,11 @@
          window is too narrow — MoreActionsModal, anchored to
          data-more-trigger the same way DatePickerModal anchors to
          data-datepicker-trigger. -->
-    <button class="icon-btn" title={$t("topBar.moreActions.title")} data-more-trigger on:click={controller.openMoreActions} bind:this={moreBtnEl}>
+    <button class="icon-btn has-pip" title={$t("topBar.moreActions.title")} data-more-trigger on:click={controller.openMoreActions} bind:this={moreBtnEl}>
       <Icon name="more" />
+      {#if calendarSyncVisible && calendarSyncReady && $calendarSyncHasDiff}
+        <span class="icon-btn-pip" aria-hidden="true"></span>
+      {/if}
     </button>
   {:else}
     <button class="icon-btn" title={$t("topBar.actions.title", { combo: formatShortcut('openActions') })} on:click={controller.openActionDrawer}>
@@ -951,7 +955,7 @@
     </button>
     {#if calendarSyncVisible}
       <button
-        class="icon-btn"
+        class="icon-btn has-pip"
         title={calendarSyncReady
           ? $t("topBar.calendarSync.titleReady", { combo: formatShortcut('syncCalendar') })
           : !$agendaFileExists
@@ -961,6 +965,9 @@
         on:click={controller.syncCalendarFromFile}
       >
         <Icon name="calendar-import" />{#if showActionLabels}<span class="icon-label">{$t("topBar.label.calendarSync")}</span>{/if}
+        {#if calendarSyncReady && $calendarSyncHasDiff}
+          <span class="icon-btn-pip" aria-hidden="true"></span>
+        {/if}
       </button>
     {/if}
     {#if activeTab?.isScratchpad}

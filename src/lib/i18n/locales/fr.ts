@@ -44,6 +44,13 @@ export const fr = {
   "settings.calendar.agendaMissing.before": () => "Aucun fichier ",
   "settings.calendar.agendaMissing.after": () =>
     " trouvé dans ce dossier de notes pour l'instant — le bouton reste grisé tant qu'il n'existe pas.",
+  "settings.startup.sectionLabel": () => "Démarrage",
+  "settings.startup.label": () => "Premier lancement de la journée",
+  "settings.startup.today": () => "Aujourd'hui",
+  "settings.startup.smart": () => "Dernière note",
+  "settings.startup.todayHint": () => "Ouvre toujours la note d'aujourd'hui lors du premier lancement de chaque journée.",
+  "settings.startup.smartHint": () =>
+    "Ouvre la note d'aujourd'hui si vous avez des notes rédigées ou des réunions prévues ; sinon, reprend là où vous vous étiez arrêté.",
   "settings.oneDrive.sectionLabel": () => "Synchronisation cloud OneDrive",
   "settings.oneDrive.safariTip.label": () => "Astuce Safari :",
   "settings.oneDrive.safariTip.hint": () =>
@@ -656,6 +663,8 @@ export const fr = {
   "toast.boot.failedToSave.fontSize": () => "Échec de l'enregistrement de la taille de police",
   "toast.boot.failedToSave.lineHeight": () => "Échec de l'enregistrement de l'interligne",
   "toast.boot.failedToSave.pureBlack": () => "Échec de l'enregistrement du mode noir pur",
+  "toast.boot.failedToSave.startup": () =>
+    "Échec de l'enregistrement de la préférence d'onglet de démarrage",
   "toast.calendarSync.noMeetingsOn": ({ date }) => `Aucune réunion le ${date}.`,
   "toast.calendarSync.synced": () => "Calendrier synchronisé.",
   "toast.copyForward.destHere": () => "ici",

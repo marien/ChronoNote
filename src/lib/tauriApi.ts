@@ -14,6 +14,7 @@ import type {
   SyncHealth,
   TabSession,
   ThemeMode,
+  StartupTabMode,
 } from "./types";
 import type {
   CommandArgs,
@@ -79,6 +80,10 @@ export function setLineHeight(lineHeight: number): Promise<AppConfig> {
 
 export function setPureBlack(pureBlack: boolean): Promise<AppConfig> {
   return invoke("set_pure_black", { pureBlack });
+}
+
+export function setStartupTabMode(mode: StartupTabMode): Promise<AppConfig> {
+  return invoke("set_startup_tab_mode", { mode });
 }
 
 export function setLastSeenVersion(version: string): Promise<AppConfig> {

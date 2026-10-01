@@ -43,6 +43,13 @@ export const it = {
   "settings.calendar.agendaMissing.before": () => "Nessun file ",
   "settings.calendar.agendaMissing.after": () =>
     " trovato ancora in questa cartella di note — il pulsante di sincronizzazione rimane disabilitato finché non ne esiste uno.",
+  "settings.startup.sectionLabel": () => "Avvio",
+  "settings.startup.label": () => "Primo avvio del giorno",
+  "settings.startup.today": () => "Oggi",
+  "settings.startup.smart": () => "Ultima nota",
+  "settings.startup.todayHint": () => "Apre sempre la nota di oggi al primo avvio di ogni giorno.",
+  "settings.startup.smartHint": () =>
+    "Apre la nota di oggi se ci sono note bozza o riunioni programmate; altrimenti ripristina il punto in cui ti eri fermato.",
   "settings.oneDrive.sectionLabel": () => "Sincronizzazione cloud OneDrive",
   "settings.oneDrive.safariTip.label": () => "Suggerimento per Safari:",
   "settings.oneDrive.safariTip.hint": () =>
@@ -653,6 +660,7 @@ export const it = {
   "toast.boot.failedToSave.fontSize": () => "Impossibile salvare la preferenza della dimensione carattere",
   "toast.boot.failedToSave.lineHeight": () => "Impossibile salvare la preferenza dell'interlinea",
   "toast.boot.failedToSave.pureBlack": () => "Impossibile salvare la preferenza per il nero assoluto",
+  "toast.boot.failedToSave.startup": () => "Impossibile salvare la preferenza della scheda di avvio",
   "toast.calendarSync.noMeetingsOn": ({ date }) => `Nessuna riunione il ${date}.`,
   "toast.calendarSync.synced": () => "Calendario sincronizzato.",
   "toast.copyForward.destHere": () => "qui",

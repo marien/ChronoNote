@@ -25,6 +25,7 @@
     readableLineLength,
     recentNotesDirs,
     settingsInitialTab,
+    startupTabMode,
     themeMode,
     updateAvailableVersion,
     updateDownloadProgress,
@@ -41,7 +42,7 @@
   import Segmented from "../Segmented.svelte";
   import { t } from "../../i18n";
   import { describeApiError } from "../../apiError";
-  import type { ColorMode, LanguageMode, ThemeMode } from "../../types";
+  import type { ColorMode, LanguageMode, StartupTabMode, ThemeMode } from "../../types";
   import { ExportBundleError, type ExportBundle } from "../../exportImport";
   import OneDriveFolderPickerModal from "./OneDriveFolderPickerModal.svelte";
 
@@ -475,6 +476,22 @@
             {/if}
           </div>
         {/if}
+        <div>
+          <div class="settings-section-label">{$t("settings.startup.sectionLabel")}</div>
+          <div class="settings-toggle-row">
+            <Segmented
+              options={[
+                { value: "today", label: $t("settings.startup.today") },
+                { value: "smart_last_active", label: $t("settings.startup.smart") },
+              ]}
+              value={$startupTabMode}
+              onChange={(v) => controller.setStartupTabMode(v as StartupTabMode)}
+            />
+          </div>
+          <div class="settings-hint">
+            {$startupTabMode === "smart_last_active" ? $t("settings.startup.smartHint") : $t("settings.startup.todayHint")}
+          </div>
+        </div>
         {#if $backendKind === "web"}
             <div>
               <div class="settings-section-label">{$t("settings.oneDrive.sectionLabel")}</div>

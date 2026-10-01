@@ -563,6 +563,23 @@ body {
   justify-content: center;
   padding: 0 8px;
 }
+/* Only the buttons that carry a pip are positioned: a blanket
+   `position: relative` on `#top-bar .icon-btn` (id specificity) overrode the
+   positioning other top-bar buttons rely on and broke the tab-strip/collapse layout. */
+.icon-btn.has-pip {
+  position: relative;
+}
+.icon-btn-pip {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--state-warn);
+  box-shadow: 0 0 0 1.5px var(--surface-chrome);
+  pointer-events: none;
+}
 .icon-btn:hover {
   background: var(--surface-raised);
   border-color: var(--edge-strong);

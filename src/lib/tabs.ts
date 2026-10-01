@@ -37,6 +37,7 @@ import { countActions } from "./tokens";
 import { todayISO } from "./date";
 import { t } from "./i18n";
 import { isPristineOnboardingNote } from "./onboardingTemplate";
+import { maybeSilentSyncEmptyNote } from "./calendarSyncActions";
 import type { NoteTab } from "./types";
 
 /** #61: every tab id here used to be a bare `tab-${Date.now()}` — fine in
@@ -61,6 +62,8 @@ export function switchTab(id: string) {
   const prev = get(activeTabId);
   if (prev && prev !== id) flushSave(prev);
   activeTabId.set(id);
+  const target = get(tabs).find((t) => t.id === id);
+  if (target) void maybeSilentSyncEmptyNote(target);
 }
 
 /** Ctrl/Cmd+Tab / Ctrl/Cmd+Shift+Tab: cycle to the next/previous open tab (in
@@ -100,6 +103,7 @@ export async function openOrCreateDatedFile(dateStr: string) {
   const existing = list.find((t) => t.filename === filename);
   if (existing) {
     switchTab(existing.id);
+    void maybeSilentSyncEmptyNote(existing);
     return;
   }
   const { content, metadata } = await api.readNoteWithMetadata(filename);
@@ -107,6 +111,7 @@ export async function openOrCreateDatedFile(dateStr: string) {
   tabs.set([...list, newTab]);
   markTabClean(newTab.id, loadBaseline(metadata)); // §94 baseline
   activeTabId.set(newTab.id);
+  void maybeSilentSyncEmptyNote(newTab);
 }
 
 /** #76: open actions only warrant the close warning once they've come due —
