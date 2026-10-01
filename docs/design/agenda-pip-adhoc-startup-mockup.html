@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ChronoNote - Agenda Sync & Startup Tab Visual Design</title>
+  <style>
+    :root {
+      --surface-canvas: #1e1e1e;
+      --surface-chrome: #252526;
+      --surface-overlay: #2d2d2e;
+      --surface-raised: #37373b;
+      --edge-soft: rgba(255, 255, 255, 0.07);
+      --edge-strong: rgba(255, 255, 255, 0.13);
+      --state-ok: #4bbf87;
+      --state-warn: #d8a24a;
+      --state-error: #d66b63;
+      --text: #d4d4d4;
+      --muted: #858585;
+      --font: "Cascadia Code", "JetBrains Mono", "Consolas", monospace;
+    }
+    html[data-theme="light"] {
+      --surface-canvas: #ffffff;
+      --surface-chrome: #f3f3f3;
+      --surface-overlay: #ffffff;
+      --surface-raised: #e7e7e7;
+      --edge-soft: rgba(0, 0, 0, 0.09);
+      --edge-strong: rgba(0, 0, 0, 0.16);
+      --state-ok: #2f9e6b;
+      --state-warn: #b5771f;
+      --state-error: #c4463e;
+      --text: #1f1f1f;
+      --muted: #6e6e6e;
+    }
+    body {
+      margin: 0;
+      padding: 24px;
+      background: var(--surface-canvas);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      line-height: 1.5;
+    }
+    .container {
+      max-width: 980px;
+      margin: 0 auto;
+    }
+    h1, h2, h3 {
+      font-weight: 600;
+      color: var(--text);
+    }
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      font-size: 11px;
+      border-radius: 12px;
+      background: var(--surface-raised);
+      color: var(--state-warn);
+      border: 1px solid var(--edge-strong);
+      margin-left: 8px;
+      vertical-align: middle;
+    }
+    .card {
+      background: var(--surface-overlay);
+      border: 1px solid var(--edge-strong);
+      border-radius: 8px;
+      padding: 22px;
+      margin-bottom: 24px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.18);
+    }
+    .mono {
+      font-family: var(--font);
+    }
+    .topbar-mock {
+      display: flex;
+      align-items: center;
+      background: var(--surface-chrome);
+      border: 1px solid var(--edge-strong);
+      border-radius: 6px;
+      padding: 4px 10px;
+      height: 40px;
+      gap: 8px;
+      margin: 16px 0;
+    }
+    .tab-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-family: var(--font);
+      background: transparent;
+      color: var(--muted);
+      cursor: pointer;
+    }
+    .tab-item.active {
+      background: var(--surface-canvas);
+      color: var(--text);
+      border: 1px solid var(--edge-soft);
+      border-bottom: none;
+    }
+    .icon-btn {
+      position: relative;
+      background: transparent;
+      border: 1px solid transparent;
+      color: var(--text);
+      width: 32px;
+      height: 32px;
+      border-radius: 4px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .icon-btn:hover {
+      background: var(--surface-raised);
+      border-color: var(--edge-strong);
+    }
+    .icon-btn-pip {
+      position: absolute;
+      top: 5px;
+      right: 5px;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--state-warn);
+      box-shadow: 0 0 0 1.5px var(--surface-chrome);
+      pointer-events: none;
+    }
+    .segmented {
+      display: inline-flex;
+      background: var(--surface-raised);
+      padding: 2px;
+      border-radius: 6px;
+      border: 1px solid var(--edge-strong);
+      gap: 2px;
+    }
+    .segmented-btn {
+      background: transparent;
+      border: none;
+      color: var(--muted);
+      padding: 5px 14px;
+      font-size: 13px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: 500;
+      transition: background 0.15s, color 0.15s;
+    }
+    .segmented-btn:hover {
+      color: var(--text);
+    }
+    .segmented-btn.active {
+      background: var(--surface-overlay);
+      color: var(--text);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.25);
+    }
+    .editor-box {
+      background: var(--surface-canvas);
+      border: 1px solid var(--edge-strong);
+      border-radius: 6px;
+      padding: 16px;
+      font-family: var(--font);
+      font-size: 13px;
+      line-height: 1.6;
+      white-space: pre-wrap;
+      position: relative;
+    }
+    .caret-marker {
+      display: inline-block;
+      width: 2px;
+      height: 1.25em;
+      background: #ffffff;
+      animation: blink 1s infinite;
+      vertical-align: text-bottom;
+    }
+    @keyframes blink {
+      0%, 49% { opacity: 1; }
+      50%, 100% { opacity: 0; }
+    }
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 18px;
+    }
+    .hint {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 8px;
+      line-height: 1.4;
+    }
+    .popover-menu {
+      width: 240px;
+      background: var(--surface-overlay);
+      border: 1px solid var(--edge-strong);
+      border-radius: 6px;
+      padding: 6px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .popover-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 6px 8px;
+      border-radius: 4px;
+      font-size: 13px;
+      color: var(--text);
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      position: relative;
+      text-align: left;
+    }
+    .popover-item:hover {
+      background: var(--surface-raised);
+    }
+    .popover-kbd {
+      margin-left: auto;
+      font-size: 11px;
+      color: var(--muted);
+      background: var(--surface-chrome);
+      padding: 2px 5px;
+      border-radius: 3px;
+      border: 1px solid var(--edge-soft);
+    }
+    .pill {
+      font-size: 11px;
+      padding: 2px 6px;
+      border-radius: 4px;
+      background: var(--surface-raised);
+      color: var(--muted);
+    }
+    .status-ok-box {
+      border-left: 3px solid var(--state-ok);
+      padding-left: 10px;
+      margin: 8px 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+      <div>
+        <h1 style="margin: 0; font-size: 24px;">ChronoNote Visual Design Review</h1>
+        <div style="color: var(--muted); font-size: 14px; margin-top: 4px;">Agenda Notification Pip, Ad-Hoc Calls, Empty Note Auto-Sync & Startup Tab</div>
+      </div>
+      <div style="display: flex; gap: 8px;">
+        <button class="segmented-btn active" id="theme-dark" onclick="setTheme('dark')">Dark Theme</button>
+        <button class="segmented-btn" id="theme-light" onclick="setTheme('light')">Light Theme</button>
+      </div>
+    </div>
+
+    <!-- AREA 1: NOTIFICATION PIP & AD-HOC ISOLATION -->
+    <div class="card">
+      <div style="display: flex; justify-content: space-between; align-items: baseline;">
+        <h2>1. Agenda Sync Button Notification Pip <span class="badge">Amber var(--state-warn)</span></h2>
+        <span class="pill">Decisions Confirmed</span>
+      </div>
+      <p style="color: var(--muted); font-size: 13px; margin-top: 2px;">
+        The pip alerts you if external meetings changed in <code>.agenda.json</code>. <strong>Ad-hoc calls are fully isolated:</strong> adding an ad-hoc call never turns on the pip.
+      </p>
+
+      <!-- Live Interactive Toggle for Pip States -->
+      <div style="margin: 12px 0 16px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+        <span style="font-size: 13px; font-weight: 500;">Simulate Note & Agenda State:</span>
+        <div class="segmented">
+          <button class="segmented-btn active" id="btn-state-synced" onclick="simulatePipState('synced')">In Sync (No Pip)</button>
+          <button class="segmented-btn" id="btn-state-adhoc" onclick="simulatePipState('adhoc')">Note Has Ad-Hoc Call (No Pip)</button>
+          <button class="segmented-btn" id="btn-state-diff" onclick="simulatePipState('diff')">External Meeting Added (Pip Shows)</button>
+        </div>
+      </div>
+
+      <!-- Topbar Simulation -->
+      <div class="topbar-mock">
+        <div class="tab-item active">
+          <span>2026-10-01.txt</span>
+        </div>
+        <div class="tab-item">
+          <span>Scratchpad 1</span>
+        </div>
+
+        <div style="margin-left: auto; display: flex; align-items: center; gap: 6px;">
+          <!-- Date Picker trigger -->
+          <button class="icon-btn" title="Open Date Note">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+              <rect x="2" y="3" width="12" height="11" rx="2" />
+              <line x1="2" y1="6" x2="14" y2="6" />
+              <line x1="5" y1="1.5" x2="5" y2="3.5" />
+              <line x1="11" y1="1.5" x2="11" y2="3.5" />
+            </svg>
+          </button>
+
+          <!-- Agenda Sync button with amber pip -->
+          <button class="icon-btn" id="sync-button" title="Sync calendar for this day">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M4 2v2M12 2v2M2 5h12M3 3h10a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z" />
+              <path d="M6 10l2 2 4-4" />
+            </svg>
+            <span class="icon-btn-pip" id="sync-pip" style="display: none;"></span>
+          </button>
+
+          <!-- Search button -->
+          <button class="icon-btn" title="Search">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+              <circle cx="7" cy="7" r="4.5" />
+              <line x1="10.5" y1="10.5" x2="14" y2="14" />
+            </svg>
+          </button>
+
+          <!-- Settings button -->
+          <button class="icon-btn" title="Settings">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+              <circle cx="8" cy="8" r="3" />
+              <path d="M8 1v2M8 13v2M1 8h2M13 8h2M3 3l1.5 1.5M11.5 11.5l1.5 1.5M3 13l1.5-1.5M11.5 4.5l1.5-1.5" />
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <div class="status-ok-box" id="pip-explanation">
+        <strong id="pip-status-title">Status: Fully in sync</strong>. The note matches external meetings. Pip is hidden.
+      </div>
+
+      <!-- Collapsed More Actions Popover Simulation -->
+      <div style="margin-top: 18px;">
+        <span style="font-size: 13px; font-weight: 500;">When Top Bar Collapses (Mobile / Narrow Window):</span>
+        <div style="display: flex; gap: 20px; align-items: flex-start; margin-top: 10px;">
+          <div>
+            <div style="font-size: 12px; color: var(--muted); margin-bottom: 4px;">TopBar 'More' Button:</div>
+            <button class="icon-btn" title="More Actions">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+                <circle cx="3" cy="8" r="1.2" fill="currentColor"/>
+                <circle cx="8" cy="8" r="1.2" fill="currentColor"/>
+                <circle cx="13" cy="8" r="1.2" fill="currentColor"/>
+              </svg>
+              <span class="icon-btn-pip" id="more-pip" style="display: none;"></span>
+            </button>
+          </div>
+
+          <div>
+            <div style="font-size: 12px; color: var(--muted); margin-bottom: 4px;">Inside MoreActionsModal:</div>
+            <div class="popover-menu">
+              <button class="popover-item">
+                <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 4h12M2 8h12M2 12h8"/></svg>
+                <span>Actions</span>
+                <span class="popover-kbd">Ctrl+Shift+A</span>
+              </button>
+              <button class="popover-item" style="position: relative;">
+                <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <path d="M4 2v2M12 2v2M2 5h12M3 3h10a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z" />
+                  <path d="M6 10l2 2 4-4" />
+                </svg>
+                <span>Sync calendar</span>
+                <span class="icon-btn-pip" id="popover-sync-pip" style="position: static; margin-left: 4px; display: none;"></span>
+                <span class="popover-kbd">Ctrl+Shift+S</span>
+              </button>
+              <button class="popover-item">
+                <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="7" cy="7" r="4.5" /><line x1="10.5" y1="10.5" x2="14" y2="14" /></svg>
+                <span>Search</span>
+                <span class="popover-kbd">Ctrl+Shift+F</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- AREA 2: ADHOC CALLS GRAMMAR -->
+    <div class="card">
+      <div style="display: flex; justify-content: space-between; align-items: baseline;">
+        <h2>2. Ad-Hoc Calls Grammar & Syntax Support <span class="badge">Supports ' and ’ with space</span></h2>
+        <span class="pill">Area 2</span>
+      </div>
+      <p style="color: var(--muted); font-size: 13px; margin-top: 2px;">
+        Regex: <code>/^\s*['’]/</code>. Any Setext header starting with ASCII single quote (<code>'</code>) or typographic quote (<code>’</code>), with or without spaces, is treated as an ad-hoc call.
+      </p>
+
+      <div class="grid-2" style="margin-top: 14px;">
+        <div>
+          <div style="font-weight: 600; font-size: 13px; margin-bottom: 6px;">Supported Syntax Variations:</div>
+          <div class="editor-box"><span style="color:#ce9178">'Quick Sync with Dave</span>
+=====================
+# Agreed to push deploy
+
+<span style="color:#ce9178">' Call with Architect</span>
+=====================
+Reviewed schema migrations
+
+<span style="color:#ce9178">’Ad-hoc Customer Check-in</span>
+=========================
+Customer requested export feature</div>
+        </div>
+        <div>
+          <div style="font-weight: 600; font-size: 13px; margin-bottom: 6px;">Behavior During Calendar Sync:</div>
+          <div style="background: var(--surface-canvas); border: 1px solid var(--edge-strong); border-radius: 6px; padding: 14px; font-size: 13px;">
+            <ul style="margin: 0; padding-left: 20px; line-height: 1.7;">
+              <li><strong>Never matched to .agenda.json</strong> (excluded from agenda matching).</li>
+              <li><strong>Never flagged as removed</strong> (no false-positive modal warnings).</li>
+              <li><strong>Preserved in place</strong>: stays at its exact relative position between surrounding meetings.</li>
+              <li><strong>Zero pip triggers</strong>: presence of ad-hoc calls does not cause the notification pip to light up.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- AREA 3: SILENT AUTO-SYNC ON EMPTY NOTE -->
+    <div class="card">
+      <div style="display: flex; justify-content: space-between; align-items: baseline;">
+        <h2>3. Silent Auto-Sync on Blank Note Open <span class="badge">Caret on Line 3</span></h2>
+        <span class="pill">Area 3</span>
+      </div>
+      <p style="color: var(--muted); font-size: 13px; margin-top: 2px;">
+        Opening an empty note for today or a future date with calendar sync enabled automatically loads today's agenda meetings and focuses the cursor right under the first header.
+      </p>
+
+      <div style="margin-top: 14px;">
+        <div style="font-weight: 600; font-size: 13px; margin-bottom: 6px;">Immediate Ready-to-Type Editor State:</div>
+        <div class="editor-box"><span style="color:#858585; font-size: 11px;">1: </span><span style="color:#569cd6">09:00 Daily Standup</span>
+<span style="color:#858585; font-size: 11px;">2: </span><span style="color:#569cd6">===================</span>
+<span style="color:#858585; font-size: 11px;">3: </span><span class="caret-marker"></span>
+<span style="color:#858585; font-size: 11px;">4: </span>
+<span style="color:#858585; font-size: 11px;">5: </span><span style="color:#569cd6">14:00 Architecture Review</span>
+<span style="color:#858585; font-size: 11px;">6: </span><span style="color:#569cd6">=========================</span></div>
+      </div>
+      <div class="hint">No review modal prompt; user starts typing notes immediately. Clean tab state is maintained until typed.</div>
+    </div>
+
+    <!-- AREA 4: SETTINGS MODAL STARTUP SECTION -->
+    <div class="card">
+      <div style="display: flex; justify-content: space-between; align-items: baseline;">
+        <h2>4. Startup Tab Preference in Settings Modal <span class="badge">Under "Notes & Sync"</span></h2>
+        <span class="pill">Area 4</span>
+      </div>
+      <p style="color: var(--muted); font-size: 13px; margin-top: 2px;">
+        Located inside <strong>Settings &rarr; Notes & Sync</strong> under a dedicated "Startup" section.
+      </p>
+
+      <!-- Settings UI Container Mockup -->
+      <div style="background: var(--surface-overlay); border: 1px solid var(--edge-strong); border-radius: 8px; padding: 18px; margin-top: 14px;">
+        <!-- Settings Tabs -->
+        <div style="display: flex; border-bottom: 1px solid var(--edge-soft); padding-bottom: 12px; margin-bottom: 16px;">
+          <div class="segmented">
+            <button class="segmented-btn">Appearance</button>
+            <button class="segmented-btn active">Notes & Sync</button>
+            <button class="segmented-btn">Updates</button>
+          </div>
+        </div>
+
+        <!-- Notes & Sync Content -->
+        <div style="display: flex; flex-direction: column; gap: 20px;">
+          <!-- Calendar Sync Section -->
+          <div>
+            <div style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); font-weight: 600; margin-bottom: 8px;">Calendar</div>
+            <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; cursor: pointer;">
+              <input type="checkbox" checked style="accent-color: var(--state-ok);" />
+              <span>Show "Sync calendar for this day" button</span>
+            </label>
+            <div class="hint">Reads external meetings from <code>.agenda.json</code> in your notes folder.</div>
+          </div>
+
+          <!-- New Startup Section -->
+          <div style="border-top: 1px solid var(--edge-soft); padding-top: 16px;">
+            <div style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); font-weight: 600; margin-bottom: 8px;">Startup</div>
+            <div style="display: flex; align-items: center; justify-content: space-between; gap: 16px;">
+              <span style="font-size: 13px; font-weight: 500;">First launch of each day:</span>
+              <div class="segmented">
+                <button class="segmented-btn active" id="setting-today" onclick="changeSetting('today')">Always open Today</button>
+                <button class="segmented-btn" id="setting-smart" onclick="changeSetting('smart')">Restore last note (Smart)</button>
+              </div>
+            </div>
+            <div class="hint" id="setting-hint" style="margin-top: 8px;">
+              Always opens Today's note when launching ChronoNote for the first time each day.
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function setTheme(theme) {
+      document.documentElement.setAttribute('data-theme', theme);
+      document.getElementById('theme-dark').className = 'segmented-btn ' + (theme === 'dark' ? 'active' : '');
+      document.getElementById('theme-light').className = 'segmented-btn ' + (theme === 'light' ? 'active' : '');
+    }
+
+    function simulatePipState(state) {
+      document.getElementById('btn-state-synced').className = 'segmented-btn ' + (state === 'synced' ? 'active' : '');
+      document.getElementById('btn-state-adhoc').className = 'segmented-btn ' + (state === 'adhoc' ? 'active' : '');
+      document.getElementById('btn-state-diff').className = 'segmented-btn ' + (state === 'diff' ? 'active' : '');
+
+      const syncPip = document.getElementById('sync-pip');
+      const morePip = document.getElementById('more-pip');
+      const popoverPip = document.getElementById('popover-sync-pip');
+      const explanation = document.getElementById('pip-explanation');
+
+      if (state === 'synced') {
+        syncPip.style.display = 'none';
+        morePip.style.display = 'none';
+        popoverPip.style.display = 'none';
+        explanation.className = 'status-ok-box';
+        explanation.style.borderLeftColor = 'var(--state-ok)';
+        explanation.innerHTML = '<strong>Status: In Sync</strong>. Note content reflects external calendar meetings. The pip is hidden.';
+      } else if (state === 'adhoc') {
+        syncPip.style.display = 'none';
+        morePip.style.display = 'none';
+        popoverPip.style.display = 'none';
+        explanation.className = 'status-ok-box';
+        explanation.style.borderLeftColor = 'var(--state-ok)';
+        explanation.innerHTML = '<strong>Status: Ad-Hoc Calls Ignored</strong>. Note contains <code>\'Quick Sync with Dave</code>. Because ad-hoc calls are non-calendar, the pip <strong>remains hidden</strong>.';
+      } else if (state === 'diff') {
+        syncPip.style.display = 'block';
+        morePip.style.display = 'block';
+        popoverPip.style.display = 'inline-block';
+        explanation.className = 'status-ok-box';
+        explanation.style.borderLeftColor = 'var(--state-warn)';
+        explanation.innerHTML = '<strong>Status: Agenda Difference Detected</strong>. A new meeting was scheduled on your calendar. Amber pip lights up on both the TopBar button and inside MoreActionsModal.';
+      }
+    }
+
+    function changeSetting(mode) {
+      document.getElementById('setting-today').className = 'segmented-btn ' + (mode === 'today' ? 'active' : '');
+      document.getElementById('setting-smart').className = 'segmented-btn ' + (mode === 'smart' ? 'active' : '');
+      const hint = document.getElementById('setting-hint');
+      if (mode === 'today') {
+        hint.innerHTML = 'Always opens Today\'s note when launching ChronoNote for the first time each day.';
+      } else {
+        hint.innerHTML = 'Restores your last active note on morning launch, <strong>unless</strong> Today already has drafted notes or scheduled meetings (in which case it opens Today).';
+      }
+    }
+  </script>
+</body>
+</html>
