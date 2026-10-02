@@ -126,6 +126,27 @@ describe("downloadAndInstallUpdate", () => {
     expect(get(stores.updateErrorMessage)).toContain("Access is denied");
   });
 
+  it("a Windows policy block (Smart App Control / WDAC, error 4551) is explained, with the raw reason kept", async () => {
+    const raw = "couldn't start the installer: Dit bestand is geblokkeerd door een beleid voor toepassingsbeheer. (os error 4551)";
+    coreMock.invoke.mockRejectedValue(raw);
+    await withPendingUpdate();
+    await updates.downloadAndInstallUpdate();
+    expect(get(stores.updateStatus)).toBe("error");
+    expect(get(stores.updateErrorDuring)).toBe("install");
+    const message = get(stores.updateErrorMessage)!;
+    expect(message).toMatch(/^Windows blocked the installer\./);
+    expect(message).toContain("Smart App Control");
+    expect(message).toContain("(os error 4551)"); // the raw reason is still there, after the explanation
+  });
+
+  it("isBlockedByPolicy: exactly the policy-block codes, nothing that merely starts with the same digits", () => {
+    expect(updates.isBlockedByPolicy("x (os error 4551)")).toBe(true);
+    expect(updates.isBlockedByPolicy("x (os error 1260)")).toBe(true);
+    expect(updates.isBlockedByPolicy("Access is denied. (os error 5)")).toBe(false);
+    expect(updates.isBlockedByPolicy("(os error 45510)")).toBe(false);
+    expect(updates.isBlockedByPolicy("")).toBe(false);
+  });
+
   it("a new check clears the install-error marker", async () => {
     coreMock.invoke.mockRejectedValue("nope");
     await withPendingUpdate();

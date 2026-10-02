@@ -405,6 +405,8 @@ export const es = {
   "about.ready.installed": () => "Instalada — reinicie para finalizar.",
   "about.ready.restartNow": () => "Reiniciar ahora",
   "about.error.installFailedPrefix": () => "No se pudo instalar la actualización.",
+  "about.error.blockedByPolicy": () =>
+    "Windows bloqueó el instalador. Normalmente Smart App Control o tu software de seguridad rechaza un instalador sin firmar; inténtalo de nuevo más tarde o descárgalo desde GitHub.",
   "about.error.tryAgain": () => "Reintentar",
   "about.error.downloadFromGithub": () => "Descargar desde GitHub",
   "about.error.couldntCheckPrefix": () => "No se pudieron buscar actualizaciones.",

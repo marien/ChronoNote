@@ -408,6 +408,8 @@ export const fr = {
   "about.ready.installed": () => "Installé — redémarrez pour terminer.",
   "about.ready.restartNow": () => "Redémarrer maintenant",
   "about.error.installFailedPrefix": () => "Impossible d'installer la mise à jour.",
+  "about.error.blockedByPolicy": () =>
+    "Windows a bloqué le programme d'installation. En général, Smart App Control ou votre logiciel de sécurité refuse un installateur non signé ; réessayez plus tard ou téléchargez-le depuis GitHub.",
   "about.error.tryAgain": () => "Réessayer",
   "about.error.downloadFromGithub": () => "Télécharger depuis GitHub",
   "about.error.couldntCheckPrefix": () => "Impossible de vérifier les mises à jour.",

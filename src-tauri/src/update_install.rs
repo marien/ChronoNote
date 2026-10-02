@@ -67,9 +67,26 @@ fn log_hint(app: &AppHandle) -> String {
         .unwrap_or_default()
 }
 
+/// The Windows error codes for "a policy blocked this file": 4551 (Code Integrity:
+/// Smart App Control, WDAC, or a security product built on it) and 1260 (AppLocker /
+/// group policy). The updater's installer is unsigned, so on a machine that enforces
+/// either, launching it can fail with one of these - sometimes only some of the time.
+fn policy_block_code(err: &str) -> Option<u32> {
+    [4551u32, 1260].into_iter().find(|code| {
+        let needle = format!("os error {code}");
+        // Exact code: "os error 45510" is not 4551.
+        err.match_indices(&needle)
+            .any(|(i, _)| !err[i + needle.len()..].starts_with(|c: char| c.is_ascii_digit()))
+    })
+}
+
 #[tauri::command]
 pub async fn install_update(app: AppHandle, on_event: Channel<InstallEvent>) -> Result<(), String> {
-    log(&app, &format!("install requested (running v{})", app.package_info().version));
+    let exe = std::env::current_exe().map(|p| p.display().to_string()).unwrap_or_else(|_| "?".into());
+    log(
+        &app,
+        &format!("install requested (running v{} from {exe}; times in this log are UTC)", app.package_info().version),
+    );
 
     let fail = |app: &AppHandle, what: &str, e: String| -> String {
         log(app, &format!("FAILED {what}: {e}"));
@@ -114,7 +131,17 @@ pub async fn install_update(app: AppHandle, on_event: Channel<InstallEvent>) -> 
     log(&app, &format!("downloaded {} bytes (streamed {total}); signature verified", bytes.len()));
 
     let _ = on_event.send(InstallEvent::Launching);
-    log(&app, "launching the installer");
+    // The plugin extracts the installer to <temp>\ChronoNote-<version>-updater-<random>\; naming
+    // the place makes a later "which file did Windows block" lookup (Code Integrity events,
+    // security-software logs) a matter of searching for it.
+    log(
+        &app,
+        &format!(
+            "launching the installer (extracted under {}\\ChronoNote-{}-updater-*)",
+            std::env::temp_dir().display().to_string().trim_end_matches('\\'),
+            update.version
+        ),
+    );
     // Blocking work (write the installer to %TEMP%, start it). On Windows success
     // never returns: the plugin exits the process once the installer is running.
     let app_for_install = app.clone();
@@ -130,13 +157,38 @@ pub async fn install_update(app: AppHandle, on_event: Channel<InstallEvent>) -> 
             log(&app, "install returned Ok (non-Windows: restart to finish)");
             Ok(())
         }
-        Err(e) => Err(fail(&app, "couldn't start the installer", e.to_string())),
+        Err(e) => {
+            let msg = e.to_string();
+            if let Some(code) = policy_block_code(&msg) {
+                log(
+                    &app,
+                    &format!(
+                        "windows refused to run the installer (policy block, code {code}): usually Smart App Control, \
+                         WDAC or security software rejecting an unsigned file. Look in the Event Viewer log \
+                         Microsoft-Windows-CodeIntegrity/Operational (ids 3076/3077, local time) and your security \
+                         product's log around this time"
+                    ),
+                );
+            }
+            Err(fail(&app, "couldn't start the installer", msg))
+        }
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use super::utc_stamp;
+    use super::{policy_block_code, utc_stamp};
+
+    #[test]
+    fn recognises_policy_block_errors() {
+        let msg = "Dit bestand is geblokkeerd door een beleid voor toepassingsbeheer. (os error 4551)";
+        assert_eq!(policy_block_code(msg), Some(4551));
+        assert_eq!(policy_block_code("This program is blocked by group policy. (os error 1260)"), Some(1260));
+        assert_eq!(policy_block_code("Access is denied. (os error 5)"), None);
+        // A longer code that merely starts with the same digits is not a match.
+        assert_eq!(policy_block_code("os error 45510"), None);
+        assert_eq!(policy_block_code("os error 12600"), None);
+    }
 
     #[test]
     fn formats_known_timestamps() {

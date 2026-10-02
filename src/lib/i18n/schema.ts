@@ -413,6 +413,7 @@ export type TranslationParams = {
   "about.ready.installed": undefined;
   "about.ready.restartNow": undefined;
   "about.error.installFailedPrefix": undefined;
+  "about.error.blockedByPolicy": undefined;
   "about.error.tryAgain": undefined;
   "about.error.downloadFromGithub": undefined;
   "about.error.couldntCheckPrefix": undefined;

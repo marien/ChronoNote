@@ -409,6 +409,8 @@ export const pl = {
   "about.ready.installed": () => "Zainstalowano — uruchom ponownie, aby dokończyć.",
   "about.ready.restartNow": () => "Uruchom ponownie teraz",
   "about.error.installFailedPrefix": () => "Nie udało się zainstalować aktualizacji.",
+  "about.error.blockedByPolicy": () =>
+    "System Windows zablokował instalator. Zwykle Smart App Control lub oprogramowanie zabezpieczające odrzuca niepodpisany instalator; spróbuj ponownie później lub pobierz go z GitHub.",
   "about.error.tryAgain": () => "Spróbuj ponownie",
   "about.error.downloadFromGithub": () => "Pobierz z GitHuba",
   "about.error.couldntCheckPrefix": () => "Nie udało się sprawdzić aktualizacji.",

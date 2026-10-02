@@ -399,6 +399,8 @@ export const nl = {
   "about.ready.installed": () => "Geïnstalleerd — herstart om te voltooien.",
   "about.ready.restartNow": () => "Nu herstarten",
   "about.error.installFailedPrefix": () => "De update kon niet worden geïnstalleerd.",
+  "about.error.blockedByPolicy": () =>
+    "Windows heeft het installatieprogramma geblokkeerd. Meestal weigert Smart App Control of je beveiligingssoftware een niet-ondertekend installatieprogramma; probeer het later opnieuw of download het van GitHub.",
   "about.error.tryAgain": () => "Opnieuw proberen",
   "about.error.downloadFromGithub": () => "Downloaden van GitHub",
   "about.error.couldntCheckPrefix": () => "Controleren op updates is mislukt.",

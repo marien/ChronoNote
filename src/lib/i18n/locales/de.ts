@@ -404,6 +404,8 @@ export const de = {
   "about.ready.installed": () => "Installiert — zum Abschließen neu starten.",
   "about.ready.restartNow": () => "Jetzt neu starten",
   "about.error.installFailedPrefix": () => "Das Update konnte nicht installiert werden.",
+  "about.error.blockedByPolicy": () =>
+    "Windows hat das Installationsprogramm blockiert. Meist verweigern Smart App Control oder Ihre Sicherheitssoftware ein nicht signiertes Installationsprogramm; versuchen Sie es später erneut oder laden Sie es von GitHub herunter.",
   "about.error.tryAgain": () => "Erneut versuchen",
   "about.error.downloadFromGithub": () => "Von GitHub herunterladen",
   "about.error.couldntCheckPrefix": () => "Die Suche nach Updates ist fehlgeschlagen.",

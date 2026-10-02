@@ -394,6 +394,8 @@ export const en = {
   "about.ready.installed": () => "Installed — restart to finish.",
   "about.ready.restartNow": () => "Restart now",
   "about.error.installFailedPrefix": () => "Couldn't install the update.",
+  "about.error.blockedByPolicy": () =>
+    "Windows blocked the installer. This is usually Smart App Control or your security software refusing an unsigned installer; trying again later may work, or download it from GitHub.",
   "about.error.tryAgain": () => "Try again",
   "about.error.downloadFromGithub": () => "Download from GitHub",
   "about.error.couldntCheckPrefix": () => "Couldn't check for updates.",

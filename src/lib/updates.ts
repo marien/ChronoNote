@@ -45,6 +45,14 @@ function errorMessage(e: unknown): string {
   return e instanceof Error ? e.message : String(e);
 }
 
+/** Whether a failed launch of the installer is Windows refusing it under an application-control policy: error
+ * 4551 (Code Integrity: Smart App Control, WDAC, or a security product built on it) or 1260 (AppLocker / group
+ * policy). The installer is unsigned, so a machine that enforces one of these can block it. Same codes as
+ * `policy_block_code` in `update_install.rs`, which logs the hint to `update.log`. */
+export function isBlockedByPolicy(message: string): boolean {
+  return /os error (4551|1260)(?!\d)/.test(message);
+}
+
 /** Runs a check and updates the stores — used by both the launch-time
  * check and every user-initiated "Check now" click. Never throws: a
  * failure lands in `updateStatus === "error"` / `updateErrorMessage`
@@ -156,7 +164,9 @@ export async function downloadAndInstallUpdate(): Promise<void> {
     updateInstalling.set(false);
     updateStatus.set("error");
     updateErrorDuring.set("install");
-    updateErrorMessage.set(errorMessage(e));
+    const raw = errorMessage(e);
+    // A Windows policy block gets a plain-language explanation up front, with the raw reason kept after it.
+    updateErrorMessage.set(isBlockedByPolicy(raw) ? `${get(t)("about.error.blockedByPolicy", undefined)} (${raw})` : raw);
   } finally {
     if (launchTimer) clearTimeout(launchTimer);
   }

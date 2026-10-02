@@ -407,6 +407,8 @@ export const it = {
   "about.ready.installed": () => "Installato — riavvia per completare.",
   "about.ready.restartNow": () => "Riavvia ora",
   "about.error.installFailedPrefix": () => "Impossibile installare l'aggiornamento.",
+  "about.error.blockedByPolicy": () =>
+    "Windows ha bloccato il programma di installazione. In genere Smart App Control o il software di sicurezza rifiuta un programma di installazione non firmato; riprova più tardi o scaricalo da GitHub.",
   "about.error.tryAgain": () => "Riprova",
   "about.error.downloadFromGithub": () => "Scarica da GitHub",
   "about.error.couldntCheckPrefix": () => "Impossibile verificare gli aggiornamenti.",
