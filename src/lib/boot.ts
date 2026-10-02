@@ -525,7 +525,10 @@ export async function initApp() {
   // opened first — usually finished by the time any of them are actually
   // opened now; each still has its own loading indicator for whenever
   // it isn't (a very large notes folder, or a very fast keypress).
-  void refreshAllNotesCache();
+  // Deferred a moment past app-ready (not just un-awaited): the read itself is
+  // off the UI thread, but on a big OneDrive folder it still competes with the
+  // editor's first paint for disk and CPU.
+  setTimeout(() => void refreshAllNotesCache(), 1500);
   tabs.subscribe(() => scheduleTabSessionSave());
   activeTabId.subscribe(() => scheduleTabSessionSave());
   const version = await api.getAppVersion();

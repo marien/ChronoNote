@@ -140,8 +140,11 @@ fn set_onboarding_completed(app: AppHandle, completed: bool) -> Result<storage::
 }
 
 #[tauri::command]
-fn list_note_files(app: AppHandle) -> Result<Vec<String>, String> {
-    storage::list_note_files(&app)
+async fn list_note_files(app: AppHandle) -> Result<Vec<String>, String> {
+    // Off the main thread for the same reason as `read_all_notes`.
+    tauri::async_runtime::spawn_blocking(move || storage::list_note_files(&app))
+        .await
+        .map_err(|e| e.to_string())?
 }
 
 #[tauri::command]
@@ -192,8 +195,14 @@ fn write_conflict_copy(app: AppHandle, name: String, content: String) -> Result<
 }
 
 #[tauri::command]
-fn read_all_notes(app: AppHandle) -> Result<Vec<(String, String)>, String> {
-    storage::read_all_notes(&app)
+async fn read_all_notes(app: AppHandle) -> Result<Vec<(String, String)>, String> {
+    // Reads every note in the folder. A plain `fn` command runs on the main thread, which is
+    // also the UI thread: with a large folder (each read going through OneDrive's filter driver
+    // and security software) that froze the window and held up every other command, startup
+    // included. On the blocking pool it only delays whoever asked for it.
+    tauri::async_runtime::spawn_blocking(move || storage::read_all_notes(&app))
+        .await
+        .map_err(|e| e.to_string())?
 }
 
 #[tauri::command]

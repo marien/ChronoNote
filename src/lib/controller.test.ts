@@ -2131,6 +2131,7 @@ describe("initApp", () => {
   });
 
   it("#62: warms the all-notes cache in the background without waiting for it", async () => {
+    vi.useFakeTimers();
     vi.setSystemTime(new Date(2026, 8, 15));
     apiMock.readTabSession.mockResolvedValue(null);
     // Never resolves — if `initApp()` awaited this, the test itself would
@@ -2139,7 +2140,12 @@ describe("initApp", () => {
     apiMock.readAllNotes.mockReturnValue(new Promise(() => {}));
     await controller.initApp();
     expect(get(controller.tabs).length).toBeGreaterThan(0); // boot completed normally
-    expect(apiMock.readAllNotes).toHaveBeenCalled(); // the background warm was still kicked off
+    // The warm is deferred past app-ready so it can't compete with the editor's first paint
+    // (a big OneDrive folder made it the dominant startup cost): not yet at the moment boot ends...
+    expect(apiMock.readAllNotes).not.toHaveBeenCalled();
+    // ...but still kicked off shortly after.
+    await vi.advanceTimersByTimeAsync(2000);
+    expect(apiMock.readAllNotes).toHaveBeenCalled();
     vi.useRealTimers();
   });
 
