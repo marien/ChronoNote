@@ -3181,10 +3181,11 @@ kbd {
   .settings-tabs {
     gap: 0;
   }
+  /* Size to the label (grow to share spare room) rather than forcing equal
+     widths: a long translation ("Notities & sync") must never overflow its tab. */
   .settings-tab {
-    flex: 1;
-    min-width: 0;
-    padding: 7px 4px;
+    flex: 1 1 auto;
+    padding: 7px 6px;
     font-size: 11.5px;
     text-align: center;
   }
