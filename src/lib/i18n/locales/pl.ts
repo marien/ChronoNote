@@ -241,6 +241,11 @@ export const pl = {
   "history.body.emptySection": () => "(brak treści w tej sekcji)",
   "history.takeover.wholeLine": () => "Cały wiersz",
   "history.takeover.actionOnly": () => "Tylko zadanie",
+  "history.takeover.asAgenda": () => "Jako agenda",
+  "history.takeover.asAgendaTitle": () =>
+    "Skopiuj wiersze bez zmian, ale otwórz ponownie punkty agendy (o). Zadania zachowują swój stan.",
+  "history.takeover.agendaHint": () =>
+    "Kopiuje zaznaczone wiersze na koniec tej sekcji, z punktami agendy ponownie otwartymi (o). Zadania zachowują swój stan, a to wystąpienie pozostaje bez zmian.",
   "history.takeover.hint": () =>
     "Przenosi zaznaczone wiersze na koniec tej sekcji — oznaczone jako odłożone (») w tym wystąpieniu, bez usuwania.",
   "history.takeover.none": () => "Brak innego miejsca do przeniesienia z tego wystąpienia.",

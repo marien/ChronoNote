@@ -441,6 +441,13 @@ export function reopenDeferredAction(line: string, col?: number): string | null 
   return null;
 }
 
+/** An agenda topic that has been dealt with (`. ` discussed, `, ` skipped) becomes open (`o `) again, keeping
+ * its indentation and text; every other line, including any action (`#`/`v`/`>`/`x`), is returned untouched.
+ * For reusing a past agenda as a template: only the topics are reset, the rest is copied as it was. */
+export function openAgendaTopic(line: string): string {
+  return line.replace(/^(\s*)[.,](\s)/, "$1o$2");
+}
+
 /** Shared line-matching for the symbol transforms above — a plain
  * (optionally indented, §50) leading action or topic symbol, or a `=> <symbol>`
  * consequence-action (§41) anywhere on the line. */

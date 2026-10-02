@@ -238,6 +238,11 @@ export const es = {
   "history.body.emptySection": () => "(nada en esta sección aún)",
   "history.takeover.wholeLine": () => "Línea completa",
   "history.takeover.actionOnly": () => "Solo acción",
+  "history.takeover.asAgenda": () => "Como agenda",
+  "history.takeover.asAgendaTitle": () =>
+    "Copia las líneas tal cual, pero reabre los puntos de la agenda (o). Las acciones conservan su estado.",
+  "history.takeover.agendaHint": () =>
+    "Copia las líneas seleccionadas al final de esa sección con los puntos de la agenda abiertos de nuevo (o). Las acciones conservan su estado y esta aparición queda sin cambios.",
   "history.takeover.hint": () =>
     "Mueve las líneas seleccionadas al final de esa sección: marcada como transferida (») en esta aparición, no eliminada.",
   "history.takeover.none": () => "No hay otro lugar al que transferir esto desde esta aparición.",

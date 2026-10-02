@@ -145,7 +145,7 @@ function glyphForSymbol(sym: string): [string, string] {
  * no indent-length arithmetic needed to find where it starts. */
 const renderMatcher = new MatchDecorator({
   regexp:
-    /(^!\s)|((?<=^\s*)#\s)|((?<=^\s*)v\s)|((?<=^\s*)>\s)|((?<=^\s*)x\s)|((?<=^\s*)o\s)|((?<=^\s*)\.\s)|((?<=^\s*),\s)|(=>\s@[\w-]+)|(=>\s[#vx>]\s)|(=>\s)|((?<=^\s*)[-*]\s)|(\(@[\w-]+(?:[\s,]+@[\w-]+)*\))|(@[\w-]+)|(\([^\s()]+\))/gm,
+    /(^!\s)|((?<=^\s*)#\s)|((?<=^\s*)v\s)|((?<=^\s*)>\s)|((?<=^\s*)x\s)|((?<=^\s*)o\s)|((?<=^\s*)\.\s)|((?<=^\s*),\s)|(=>\s@[\w-]+)|(=>\s[#vx>]\s)|(=>\s)|((?<=^\s*)[-*]\s)|(\(@[\w-]+(?:[\s,]+@[\w-]+)*\))|((?<![\w@/])@[\w-]+)|(\([^\s()]+\))/gm,
   decorate(add, from, to, match, view) {
     const text = match[0];
     if (text.startsWith("! ")) {
@@ -182,13 +182,11 @@ const renderMatcher = new MatchDecorator({
       return;
     }
     if (text.startsWith("@")) {
-      // #35: a bare `@name` anywhere on a line that also has a `=> `
-      // delegate arrow — the assignee can be mentioned mid-sentence, not
-      // just right after the arrow. (A `=> @name` right after the arrow
-      // was already caught by the earlier alternative.)
-      if (/=>\s/.test(view.state.doc.lineAt(from).text)) {
-        add(from, to, Decoration.mark({ class: "glyph-assignee" }));
-      }
+      // A bare `@name` is badged anywhere, on any line (#35 first limited it to lines with a
+      // `=> `, which left `ask @sam` unmarked while `(@sam)` and `=> @sam` were: inconsistent).
+      // The regex only lets it start where the `@` is not glued to a word, another `@` or a `/`,
+      // so an email address (`dana@example.com`) or a URL path (`/@user`) isn't mistaken for one.
+      add(from, to, Decoration.mark({ class: "glyph-assignee" }));
       return;
     }
     if (text.startsWith("(")) {

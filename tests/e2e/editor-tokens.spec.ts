@@ -42,19 +42,25 @@ test.describe("editor — token glyphs", () => {
     expect(await activeTabContent(page)).toContain("=> # follow up");
   });
 
-  test("#35: @name is highlighted anywhere on a `=> ` line, not just after the arrow", async ({ page }) => {
-    await setEditorText(page, "=> ask @dana and cc @sam\nemail @dana about lunch");
-    // both @names on the delegation line are badged
-    await expect(editor(page).locator(".cm-line").first().locator(".glyph-assignee")).toHaveCount(2);
-    // the @name on the plain prose line is left alone
+  test("@name is highlighted everywhere: after the arrow, mid-sentence, on plain prose and action lines", async ({ page }) => {
+    await setEditorText(page, "=> ask @dana and cc @sam\nemail @dana about lunch\n# chase @lee for the report");
+    await expect(editor(page).locator(".cm-line").nth(0).locator(".glyph-assignee")).toHaveText(["@dana", "@sam"]);
+    await expect(editor(page).locator(".cm-line").nth(1).locator(".glyph-assignee")).toHaveText("@dana");
+    await expect(editor(page).locator(".cm-line").nth(2).locator(".glyph-assignee")).toHaveText("@lee");
+  });
+
+  test("an email address or a URL path is not mistaken for an @name", async ({ page }) => {
+    await setEditorText(page, "write to dana@example.com\nprofile https://social.example/@dana\nbut @dana is");
+    await expect(editor(page).locator(".cm-line").nth(0).locator(".glyph-assignee")).toHaveCount(0);
     await expect(editor(page).locator(".cm-line").nth(1).locator(".glyph-assignee")).toHaveCount(0);
+    await expect(editor(page).locator(".cm-line").nth(2).locator(".glyph-assignee")).toHaveText("@dana");
   });
 
   test("a parenthesised list of delegates, (@a, @b, @c), badges every name", async ({ page }) => {
     await setEditorText(page, "# review the plan (@mary-jane, @dana, @sam)\nnotes (@dana, @sam) on a prose line");
     await expect(editor(page).locator(".cm-line").nth(0).locator(".glyph-assignee")).toHaveText(["@mary-jane", "@dana", "@sam"]);
     await expect(editor(page).locator(".cm-line").nth(0).locator(".glyph-topic")).toHaveCount(0);
-    // unlike a bare @name, (@name) needs no leading action symbol or `=> ` at all
+    // (@name) needs no leading action symbol or `=> ` at all (nor does a bare @name)
     await expect(editor(page).locator(".cm-line").nth(1).locator(".glyph-assignee")).toHaveText(["@dana", "@sam"]);
   });
 
@@ -369,6 +375,27 @@ test.describe("editor — token glyphs", () => {
     await link.click({ button: "middle" });
     opened = await page.evaluate(() => window.__CHRONO_MOCK__!.openedUrls);
     expect(opened).toEqual(["https://github.com/marien/ChronoNote", "https://github.com/marien/ChronoNote"]);
+  });
+
+  test("a resolved topic with an open follow-up: only the topic part is dimmed, the open action stays at full strength", async ({ page }) => {
+    await setEditorText(page, "o to discuss\n. discussed budget => # send the numbers\n. discussed => v already sent");
+    const lines = editor(page).locator(".cm-line");
+    const opacity = (loc: ReturnType<typeof lines.nth>) => loc.evaluate((el) => Number(getComputedStyle(el).opacity));
+
+    // The line itself is not dimmed; its topic part is.
+    await expect(lines.nth(1)).not.toHaveClass(/(^|\s)cm-line-resolved(\s|$)/); // (the -partial class is fine)
+    expect(await opacity(lines.nth(1))).toBe(1);
+    await expect(lines.nth(1).locator(".cm-resolved-part")).toHaveCount(1);
+    await expect.poll(() => opacity(lines.nth(1).locator(".cm-resolved-part"))).toBeLessThan(1);
+    // The open follow-up (arrow, ☐ and its text) sits outside the dimmed part.
+    await expect(lines.nth(1).locator(".cm-resolved-part .glyph-open")).toHaveCount(0);
+    await expect(lines.nth(1).locator(".glyph-open")).toHaveCount(1);
+    expect(await opacity(lines.nth(1).locator(".glyph-open"))).toBe(1);
+    // Caret on the line brings the dimmed part back to full strength too.
+    await lines.nth(1).click();
+    await expect.poll(() => opacity(lines.nth(1).locator(".cm-resolved-part"))).toBe(1);
+    // A topic whose follow-up is DONE is resolved all the way: the whole line is dimmed, as before.
+    await expect(lines.nth(2)).toHaveClass(/(^|\s)cm-line-resolved(\s|$)/);
   });
 
   test("meeting topics: rendering glyphs, zero action counts, and dimming", async ({ page }) => {

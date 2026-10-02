@@ -238,6 +238,11 @@ export const nl = {
   "history.body.emptySection": () => "(nog niets in deze sectie)",
   "history.takeover.wholeLine": () => "Hele regel",
   "history.takeover.actionOnly": () => "Alleen de actie",
+  "history.takeover.asAgenda": () => "Als agenda",
+  "history.takeover.asAgendaTitle": () =>
+    "Kopieer de regels zoals ze zijn, maar zet agendapunten weer open (o). Acties behouden hun status.",
+  "history.takeover.agendaHint": () =>
+    "Kopieert de geselecteerde regel(s) naar het einde van die sectie, met agendapunten weer open (o). Acties behouden hun status en deze gelegenheid blijft ongewijzigd.",
   "history.takeover.hint": () =>
     "Verplaatst de geselecteerde regel(s) naar het einde van die sectie — gemarkeerd als doorgeschoven (») in deze gelegenheid, niet verwijderd.",
   "history.takeover.none": () => "Er is nergens anders heen om dit vanuit deze gelegenheid over te zetten.",

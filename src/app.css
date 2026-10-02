@@ -1391,6 +1391,17 @@ body {
   opacity: 1;
 }
 
+/* A resolved topic with an open action after its arrow: only the topic part is muted. */
+.cm-line.cm-line-resolved-partial .cm-resolved-part {
+  opacity: 0.72;
+  transition: opacity 150ms ease;
+}
+.cm-line.cm-line-resolved-partial:hover .cm-resolved-part,
+.cm-line.cm-line-resolved-partial.cm-line-resolved-active .cm-resolved-part,
+.cm-line.cm-line-resolved-partial:focus-within .cm-resolved-part {
+  opacity: 1;
+}
+
 /* Grayscale mode contrast safeguard */
 [data-color-mode="grayscale"] .cm-line-resolved .glyph-done {
   opacity: 1;

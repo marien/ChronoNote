@@ -241,6 +241,11 @@ export const fr = {
   "history.body.emptySection": () => "(rien dans cette section pour l'instant)",
   "history.takeover.wholeLine": () => "Ligne entière",
   "history.takeover.actionOnly": () => "Action uniquement",
+  "history.takeover.asAgenda": () => "En agenda",
+  "history.takeover.asAgendaTitle": () =>
+    "Copier les lignes telles quelles, mais rouvrir les points d'ordre du jour (o). Les actions gardent leur état.",
+  "history.takeover.agendaHint": () =>
+    "Copie la ou les lignes sélectionnées à la fin de cette section, avec les points d'ordre du jour de nouveau ouverts (o). Les actions gardent leur état et cette occurrence reste inchangée.",
   "history.takeover.hint": () =>
     "Déplace la ou les lignes sélectionnées à la fin de cette section — marquée(s) comme reportée(s) (») ici, sans suppression.",
   "history.takeover.none": () => "Aucun autre emplacement vers lequel reporter depuis cette occurrence.",

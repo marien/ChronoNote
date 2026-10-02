@@ -57,9 +57,21 @@ describe("parseGlyphLine", () => {
     expect(cs).toContainEqual(["glyph-assignee", "@dana"]);
   });
 
-  it("#35: leaves @name alone on a line with no `=> `", () => {
-    expect(classed("email @dana about it")).toEqual([]);
+  it("a bare @name is highlighted on any line, with or without a `=> ` or an action symbol", () => {
+    expect(classed("email @dana about it")).toEqual([["glyph-assignee", "@dana"]]);
     expect(text("email @dana about it")).toBe("email @dana about it");
+    expect(classed("# ask @sam, then @lee")).toEqual([
+      ["glyph-open", "☐"],
+      ["glyph-assignee", "@sam"],
+      ["glyph-assignee", "@lee"],
+    ]);
+    expect(classed("@sam owns this")).toEqual([["glyph-assignee", "@sam"]]);
+  });
+
+  it("an @ glued to a word (an email address) or a URL path is not a name", () => {
+    expect(classed("mail dana@example.com today")).toEqual([]);
+    expect(classed("see https://social.example/@dana")).toEqual([]);
+    expect(classed("a@b and @c")).toEqual([["glyph-assignee", "@c"]]); // only the free-standing one
   });
 
   it("#125: a hyphenated @name is one badge", () => {

@@ -652,6 +652,22 @@ describe("saveState (§100 / §102 — derived from the active tab)", () => {
   });
 });
 
+describe("historyTakeOverLines 'agenda' mode", () => {
+  it("reopens agenda topics only: actions (even deferred ones) keep their state, everything else is verbatim", () => {
+    const src = [". budget", ", skipped", "o still open", "v done", "> deferred", "x won't do", "# open", "some prose"];
+    expect(controller.historyTakeOverLines(src, "agenda")).toEqual([
+      "o budget",
+      "o skipped",
+      "o still open",
+      "v done",
+      "> deferred", // unlike "whole", which re-adopts a deferred action as open
+      "x won't do",
+      "# open",
+      "some prose",
+    ]);
+  });
+});
+
 describe("historyTakeOverLines (2026-09-24 redesign, decision #3)", () => {
   it("re-adopts a deferred line as a fresh open one, leaves other states verbatim", () => {
     expect(controller.historyTakeOverLines(["> chase the vendor"], "whole")).toEqual(["# chase the vendor"]);

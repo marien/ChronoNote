@@ -232,6 +232,9 @@ export type TranslationParams = {
   "history.body.emptySection": undefined;
   "history.takeover.wholeLine": undefined;
   "history.takeover.actionOnly": undefined;
+  "history.takeover.agendaHint": undefined;
+  "history.takeover.asAgendaTitle": undefined;
+  "history.takeover.asAgenda": undefined;
   "history.takeover.hint": undefined;
   "history.takeover.none": undefined;
   "history.body.selectPrompt": undefined;

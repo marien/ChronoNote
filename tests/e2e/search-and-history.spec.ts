@@ -285,6 +285,44 @@ test.describe("section history (Ctrl/Cmd+Shift+H)", () => {
     await expect.poll(() => cursorLine(page)).toBe(5);
   });
 
+  test("'As agenda': Ctrl+A selects the whole occurrence; copying reopens only agenda topics and leaves the source untouched", async ({
+    page,
+  }) => {
+    const past = "Weekly\n====\n. budget review\n, skipped item\n  . nested discussed\no still open\nv done thing\n> deferred thing\n# open action\nplain prose";
+    await seedApp(page, {
+      seed: {
+        notes: { [todayFilename()]: "Weekly\n====\nprior", "2026-09-05.txt": past },
+        session: { openTabs: [todayFilename()], activeTab: todayFilename() },
+      },
+    });
+    await editor(page).click();
+    await page.keyboard.press("ControlOrMeta+Home");
+    await page.keyboard.press("ControlOrMeta+Shift+H");
+
+    await occRow(page, "2026-09-05").click();
+    await page.keyboard.press("ControlOrMeta+a"); // every line of the occurrence
+    await expect(history(page).locator(".history-line-selected")).toHaveCount(8);
+
+    const bar = history(page).locator(".history-takeover-bar");
+    await bar.getByRole("radio", { name: "As agenda" }).click();
+    await expect(bar).toContainText("agenda topics open again");
+    await bar.getByRole("button", { name: "Add to today" }).click();
+
+    const expected = [
+      "o budget review",
+      "o skipped item",
+      "  o nested discussed",
+      "o still open",
+      "v done thing",
+      "> deferred thing", // actions keep their state, a deferred one is not re-adopted
+      "# open action",
+      "plain prose",
+    ].join("\n");
+    await expect.poll(() => mockNote(page, todayFilename())).toContain(expected);
+    // A plain copy: the browsed occurrence is exactly as it was (nothing marked forwarded).
+    expect(await mockNote(page, "2026-09-05.txt")).toBe(past);
+  });
+
   test("opened from a past note: selecting a line offers 'Add to today' and 'Add to next occurrence'", async ({ page }) => {
     await seedApp(page, {
       seed: {
@@ -476,7 +514,7 @@ test.describe("section history (Ctrl/Cmd+Shift+H)", () => {
     await expect.poll(() => mockNote(page, todayFilename())).toBe("Standup\n====\n# chase the invoice");
   });
 
-  test("a plain leading action line has no Whole line / Action only choice — nothing to strip", async ({ page }) => {
+  test("a plain leading action line has no 'Action only' choice — nothing to strip (only Whole line / As agenda)", async ({ page }) => {
     await seedApp(page, {
       seed: {
         notes: {
@@ -492,7 +530,8 @@ test.describe("section history (Ctrl/Cmd+Shift+H)", () => {
 
     await occRow(page, "2026-09-05").click();
     await detailLine(page, "renew the cert").click();
-    await expect(history(page).locator(".history-takeover-bar").getByRole("radio")).toHaveCount(0);
+    const radios = history(page).locator(".history-takeover-bar").getByRole("radio");
+    await expect(radios).toHaveText(["Whole line", "As agenda"]); // no "Action only"
   });
 
   test("re-adopts a deferred line as a fresh open action when taken over (decision #3)", async ({ page }) => {

@@ -35,7 +35,8 @@
   let focusLineIdx: number | null = null;
   let lineSelection: { from: number; to: number } | null = null;
   let isDraggingLines = false;
-  let takeOverMode: "whole" | "action-only" = "whole";
+  // "agenda": copy the lines as they are with only the agenda topics reopened, leaving this note untouched.
+  let takeOverMode: "whole" | "action-only" | "agenda" = "whole";
 
   $: occurrences = $historyOccurrences;
   $: selectedIndex = clampIndex(selectedIndex, occurrences.length);
@@ -189,6 +190,11 @@
       ? controller.historyActionOnlyText(selectedOcc.lines[lineSelection.from - selectedOcc.startLineIdx])
       : null;
   $: if (!singleLineActionOnly && takeOverMode === "action-only") takeOverMode = "whole";
+  $: takeOverOptions = [
+    { value: "whole", label: $t("history.takeover.wholeLine") },
+    ...(singleLineActionOnly ? [{ value: "action-only", label: $t("history.takeover.actionOnly") }] : []),
+    { value: "agenda", label: $t("history.takeover.asAgenda"), title: $t("history.takeover.asAgendaTitle") },
+  ];
 
   function recomputeSelection() {
     lineSelection =
@@ -272,6 +278,7 @@
       $historyTargetHeader,
       destArg,
       insertLines,
+      takeOverMode === "agenda", // a plain copy: this occurrence is not marked forwarded
     );
     selAnchor = null;
     focusLineIdx = null;
@@ -461,8 +468,19 @@
     if (bodyEl) bodyEl.scrollTop = 0;
   }
 
+  /** Ctrl/Cmd+A: select every line of the browsed occurrence (to copy a whole agenda at once). */
+  function selectAllLines() {
+    if (!selectedOcc || selectedOcc.lines.length === 0) return;
+    selAnchor = selectedOcc.startLineIdx;
+    focusLineIdx = selectedOcc.startLineIdx + selectedOcc.lines.length - 1;
+    recomputeSelection();
+  }
+
   function onKeydown(e: KeyboardEvent) {
-    if (e.key === "ArrowDown") {
+    if ((e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey && e.key.toLowerCase() === "a") {
+      e.preventDefault();
+      selectAllLines();
+    } else if (e.key === "ArrowDown") {
       e.preventDefault();
       moveLineCursor(1, e.shiftKey);
     } else if (e.key === "ArrowUp") {
@@ -658,21 +676,16 @@
           </div>
           {#if lineSelection && usableDestinations.length > 0}
             <div class="history-takeover-bar">
-              {#if singleLineActionOnly}
-                <Segmented
-                  options={[
-                    { value: "whole", label: $t("history.takeover.wholeLine") },
-                    { value: "action-only", label: $t("history.takeover.actionOnly") },
-                  ]}
-                  value={takeOverMode}
-                  onChange={(v) => (takeOverMode = v as "whole" | "action-only")}
-                />
-              {/if}
+              <Segmented
+                options={takeOverOptions}
+                value={takeOverMode}
+                onChange={(v) => (takeOverMode = v as "whole" | "action-only" | "agenda")}
+              />
               {#each usableDestinations as dest}
                 <button type="button" class="icon-btn btn-primary" on:click={() => takeOver(dest)}>{dest.label}</button>
               {/each}
               <span class="history-takeover-hint">
-                {$t("history.takeover.hint")}
+                {takeOverMode === "agenda" ? $t("history.takeover.agendaHint") : $t("history.takeover.hint")}
               </span>
             </div>
           {:else if usableDestinations.length === 0}

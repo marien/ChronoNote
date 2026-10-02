@@ -44,6 +44,25 @@ describe("resolvedLinesPlugin", () => {
     expect(indices).toEqual([0, 1, 3]);
   });
 
+  it("a resolved topic with an OPEN action after its arrow mutes only the part before the arrow", () => {
+    const doc = ". discussed budget => # send the numbers\n. discussed => v already sent\n, skipped";
+    const state = EditorState.create({ doc });
+    const view = new EditorView({ state });
+    const found: { line: number; from: number; to: number; cls: string }[] = [];
+    buildResolvedLineDecorations(view).between(0, state.doc.length, (from, to, value) => {
+      found.push({ line: state.doc.lineAt(from).number - 1, from: from - state.doc.lineAt(from).from, to: to - state.doc.lineAt(from).from, cls: value.spec.class });
+    });
+    view.destroy();
+    // Line 0: a partial line class plus a mark over ". discussed budget " (up to the arrow), nothing after.
+    expect(found.filter((f) => f.line === 0)).toEqual([
+      { line: 0, from: 0, to: 0, cls: "cm-line-resolved-partial cm-line-resolved-active" }, // the caret starts on line 0
+      { line: 0, from: 0, to: ". discussed budget ".length, cls: "cm-resolved-part" },
+    ]);
+    // Line 1 (the follow-up is done) and line 2 stay whole-line muted.
+    expect(found.filter((f) => f.line === 1).map((f) => f.cls)).toEqual(["cm-line-resolved"]);
+    expect(found.filter((f) => f.line === 2).map((f) => f.cls)).toEqual(["cm-line-resolved"]);
+  });
+
   it("does not decorate section header titles that start with v or x", () => {
     const doc = [
       "v Section title",

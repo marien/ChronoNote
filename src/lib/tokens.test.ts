@@ -15,6 +15,7 @@ import {
   toggleOpenClosed,
   reopenDoneAction,
   reopenDeferredAction,
+  openAgendaTopic,
   setActionSymbolOpen,
   setActionSymbolTo,
   setTopicSymbolTo,
@@ -811,6 +812,19 @@ describe("Meeting Agenda Topics (o, ., ,)", () => {
     expect(setTopicSymbolTo("# Action item", "o")).toBe("o Action item");
     expect(setTopicSymbolTo("1. First numbered topic", "o")).toBe("o 1. First numbered topic");
     expect(setTopicSymbolTo("- Bulleted topic", "o")).toBe("o - Bulleted topic");
+  });
+
+  it("openAgendaTopic reopens only discussed/skipped topics and leaves every other line alone", () => {
+    expect(openAgendaTopic(". Discussed topic")).toBe("o Discussed topic");
+    expect(openAgendaTopic(", Skipped topic")).toBe("o Skipped topic");
+    expect(openAgendaTopic("  . Nested discussed")).toBe("  o Nested discussed");
+    expect(openAgendaTopic("o Already open")).toBe("o Already open");
+    // Actions keep their state, and prose / bullets / a dot that is not a symbol are untouched.
+    for (const line of ["v Done", "> Deferred", "x Won't do", "# Open", "- bullet", "plain. text", ".hidden", "3.5 estimate", ""]) {
+      expect(openAgendaTopic(line)).toBe(line);
+    }
+    // Only the leading symbol: a later ". " in the text stays.
+    expect(openAgendaTopic(". first. second")).toBe("o first. second");
   });
 
   it("topicLineEnter handles continuation for plain, numbered, and bulleted topics", () => {

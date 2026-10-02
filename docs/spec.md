@@ -65,7 +65,7 @@ whole `=> ` token in one step, as if un-delegating the line.
 | `, ` | `◌` (dashed ring) | **Meeting Topic — Not Discussed / Postponed** | Skipped this meeting, carried to the next one. Dimmed like a closed action, never counted as one. `Ctrl/Cmd+7`, or `Ctrl+Shift+Space` reopens it back to `o `. Copy/paste-deferral (below) defers an open topic `o ` to `, `, mirroring how an open action `# ` defers to `> `. |
 | `- ` or `* ` | `•` | **Bulleted List Item** | Purely structural — not an action, not counted anywhere, doesn't block tab close. May be indented in two-space increments to nest (see 2.4). `-` and `*` are interchangeable; both render identically. |
 | `=> ` | `➔` | **Consequence / Follow-up** | Informational note or meeting outcome. |
-| `=> @name` | `➔` + editable `@name` badge | **Delegated Action** | Action owned by another individual, with no action-state of its own. `@name` stays real text — edit it directly to fix a typo. The name may contain a hyphen (`@jean-luc`); a *bare* `@name` is badged only on a line that also has a `=> ` somewhere on it, wherever it appears, not only right after the arrow. Written parenthesised — `(@name)`, or several at once, `(@a, @b, @c)`, each badged — it needs no `=> ` and no leading action symbol at all: recognised on any line, including plain prose and agenda topics. |
+| `=> @name` | `➔` + editable `@name` badge | **Delegated Action** | Action owned by another individual, with no action-state of its own. `@name` stays real text — edit it directly to fix a typo. The name may contain a hyphen (`@jean-luc`); an `@name` is badged wherever it appears, on any line — after the arrow, mid-sentence, in plain prose, on an action or agenda-topic line; no `=> ` or leading action symbol needed. Written parenthesised — `(@name)`, or several at once, `(@a, @b, @c)` — each name is badged too. An `@` glued to a word (an email address, `dana@example.com`) or following a `/` (a URL path) is not a name. |
 | `=> <symbol> ` (`<symbol>` = `#`/`v`/`>`/`x`) | `➔` + the symbol's own glyph | **Consequence Action** | An action that is itself a consequence of the line (or text) before it — not delegated to anyone. Counts toward the same status-bar bucket its inner symbol would on its own. Mutually exclusive with `=> @name` — a line is either delegated-to-a-person or a consequence-action, never both. |
 | `(topic)` (right after the action symbol) | `(topic)` as an upright rounded pill (parentheses hidden until the line is edited or hovered, without shifting the text) | **Topic tag** | Groups actions by subject. Only recognised immediately after a leading `# `/`v `/`> `/`x ` or a `=> <symbol> `; a parenthesised word anywhere else, or in prose, stays plain text. Not counted anywhere. |
 | `! ` | rest of line rendered bold, in an emphasis color | **Emphasis / Remember** | Purely informational — not an action, not counted anywhere, doesn't block tab close. Searchable like any other line via Cross-Tab Search; no dedicated drawer. |
@@ -73,7 +73,8 @@ whole `=> ` token in one step, as if un-delegating the line.
 
 A line that is no longer open (done `v `, deferred `> `, won't-do `x `, a discussed `. ` or postponed `, ` topic, or a `=> v `/`=> > `/`=> x ` follow-up) is drawn slightly
 dimmed so open work stands out; it returns to full strength on hover and while the caret or selection is on the line.
-Section titles are never dimmed.
+Section titles are never dimmed. Exception: a discussed/postponed topic that has an **open** follow-up (`. topic => # follow up`) is dimmed only
+up to the arrow, so the open action itself stays at full strength.
 
 All four action symbols (`# `/`v `/`> `/`x `) and the three topic symbols
 (`o `/`. `/`, `) may be indented in two-space increments, the same as
@@ -441,7 +442,12 @@ reachable from the top bar, a shortcut, or the command palette:
   source, the same rule copy/paste forwarding and `Ctrl/Cmd+Shift+.`
   already use; a deferred line taken over is re-adopted as a fresh open
   action. A single line shaped `prose => action` also offers "Whole line"
-  vs. "Action only" (just the action, dropping the prose). A destination is
+  vs. "Action only" (just the action, dropping the prose). A third choice,
+  "As agenda", copies the selected lines exactly as they are except that
+  agenda topics (`. `/`, `) become open (`o `) again — actions keep their
+  state (a deferred one is not re-adopted) and the browsed occurrence is
+  left untouched (nothing marked forwarded): for reusing a past agenda as a
+  template. `Ctrl/Cmd+A` selects every line of the occurrence. A destination is
   hidden whenever it would just write back to the file already being
   browsed — not only the note History was opened from (browsing *that* is
   fine when the destinations are elsewhere, e.g. opened from a past note

@@ -32,15 +32,18 @@ export function buildResolvedLineDecorations(view: EditorView): DecorationSet {
       if (!isHeaderLine(view, line.number)) {
         const sym = innermostActionSymbol(line.text);
         const topicSym = innermostTopicSymbol(line.text);
-        if (sym === "v" || sym === "x" || sym === ">" || topicSym === "." || topicSym === ",") {
-          const isTouched = isLineTouchedBySelection(view, line.from, line.to);
-          builder.add(
-            line.from,
-            line.from,
-            Decoration.line({
-              class: isTouched ? "cm-line-resolved cm-line-resolved-active" : "cm-line-resolved",
-            }),
-          );
+        const resolvedTopic = topicSym === "." || topicSym === ",";
+        const isTouched = isLineTouchedBySelection(view, line.from, line.to);
+        const active = isTouched ? " cm-line-resolved-active" : "";
+        // A resolved topic (`. discussed`) with an OPEN action after an arrow
+        // (`. discussed => # follow up`): the topic is done but the action is not, so dimming the
+        // whole line would mute the one thing still open. Only the part before the arrow is muted.
+        const openArrow = resolvedTopic && sym === "#" ? line.text.search(/=>\s#\s/) : -1;
+        if (openArrow > 0) {
+          builder.add(line.from, line.from, Decoration.line({ class: `cm-line-resolved-partial${active}` }));
+          builder.add(line.from, line.from + openArrow, Decoration.mark({ class: "cm-resolved-part" }));
+        } else if (sym === "v" || sym === "x" || sym === ">" || resolvedTopic) {
+          builder.add(line.from, line.from, Decoration.line({ class: `cm-line-resolved${active}` }));
         }
       }
       pos = line.to + 1;

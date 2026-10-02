@@ -27,7 +27,7 @@ import {
 import { refreshAllNotesCache } from "./persistence";
 import { jumpToFileLine } from "./tabs";
 import { findNextOccurrenceTarget } from "./copyForward";
-import { getSectionHeaderForLine, isSetextUnderline, normalizeHeaderTitle, reopenDeferredAction, titleForMatching } from "./tokens";
+import { getSectionHeaderForLine, isSetextUnderline, normalizeHeaderTitle, openAgendaTopic, reopenDeferredAction, titleForMatching } from "./tokens";
 import type { HistoryDestination, NoteTab, SectionOccurrence } from "./types";
 
 const DATED_FILE = /^\d{4}-\d{2}-\d{2}\.txt$/;
@@ -179,7 +179,10 @@ export function historyActionOnlyText(line: string): string | null {
  * deferred (`>`) line re-adopted as a fresh open one, decision #3 of the
  * design doc: matches the old `historyInsertText`'s rewrite, done/won't-do/
  * already-open lines are untouched. */
-export function historyTakeOverLines(sourceLines: string[], mode: "whole" | "action-only"): string[] {
+export function historyTakeOverLines(sourceLines: string[], mode: "whole" | "action-only" | "agenda"): string[] {
+  // "As agenda": the lines exactly as they are, except that agenda topics are open again (`o`) —
+  // a done/deferred/won't-do action stays what it was (unlike "whole", which re-adopts deferred ones).
+  if (mode === "agenda") return sourceLines.map(openAgendaTopic);
   if (mode === "action-only" && sourceLines.length === 1) {
     const only = historyActionOnlyText(sourceLines[0]);
     if (only) return [reopenDeferredAction(only) ?? only];

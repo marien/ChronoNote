@@ -240,6 +240,11 @@ export const it = {
   "history.body.emptySection": () => "(nessun contenuto in questa sezione)",
   "history.takeover.wholeLine": () => "Riga intera",
   "history.takeover.actionOnly": () => "Solo azione",
+  "history.takeover.asAgenda": () => "Come agenda",
+  "history.takeover.asAgendaTitle": () =>
+    "Copia le righe così come sono, ma riapre i punti dell'agenda (o). Le azioni mantengono il loro stato.",
+  "history.takeover.agendaHint": () =>
+    "Copia le righe selezionate alla fine di quella sezione con i punti dell'agenda di nuovo aperti (o). Le azioni mantengono il loro stato e questa ricorrenza resta invariata.",
   "history.takeover.hint": () =>
     "Sposta le righe selezionate alla fine di quella sezione — contrassegnata come inoltrata (») in questa ricorrenza, non eliminata.",
   "history.takeover.none": () => "Nessun altro luogo a cui riportare questo da questa ricorrenza.",
