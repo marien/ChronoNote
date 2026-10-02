@@ -105,7 +105,14 @@
   // against real data regardless of how long the read takes.
   $: if (!hasFocusedOpenedFrom && occurrences.length > 0) {
     hasFocusedOpenedFrom = true;
-    focusOpenedFromOccurrence();
+    // The index is assigned HERE, in the reactive block itself, not inside the function below:
+    // Svelte orders reactive statements by the variables each one visibly assigns, and an
+    // assignment hidden in a called function is invisible to that. `selectedOcc` (the body) was
+    // then computed from the old index 0 in the same update while the strip, which reads
+    // `selectedIndex` directly, showed the right tab: highlighted date X, content of the first date.
+    const idx = occurrences.findIndex((o) => o.filename === openedFromFilename);
+    if (idx !== -1) selectedIndex = idx;
+    void focusOpenedFromOccurrence();
   }
 
   /** Waits until the strip's own tab buttons actually match `occurrences`
@@ -125,9 +132,8 @@
     }
   }
 
+  /** Scrolls the strip to the (already selected) opened-from occurrence once the tabs are rendered. */
   async function focusOpenedFromOccurrence() {
-    const idx = occurrences.findIndex((o) => o.filename === openedFromFilename);
-    if (idx !== -1) selectedIndex = idx;
     await waitForStripRendered();
     // Settle whether the scroll arrows are showing *before* scrolling —
     // measuring/scrolling against a strip that's about to narrow (once
@@ -278,7 +284,6 @@
       $historyTargetHeader,
       destArg,
       insertLines,
-      takeOverMode === "agenda", // a plain copy: this occurrence is not marked forwarded
     );
     selAnchor = null;
     focusLineIdx = null;

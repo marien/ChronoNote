@@ -652,19 +652,35 @@ describe("saveState (§100 / §102 — derived from the active tab)", () => {
   });
 });
 
-describe("historyTakeOverLines 'agenda' mode", () => {
-  it("reopens agenda topics only: actions (even deferred ones) keep their state, everything else is verbatim", () => {
-    const src = [". budget", ", skipped", "o still open", "v done", "> deferred", "x won't do", "# open", "some prose"];
-    expect(controller.historyTakeOverLines(src, "agenda")).toEqual([
-      "o budget",
+describe("historyTakeOverLines: 'Whole line' vs 'As agenda'", () => {
+  const src = [". budget", ", skipped", "o still open", "v done", "> deferred", "x won't do", "# open", "some prose"];
+
+  it("Whole line: deferred items come back open (> -> #, , -> o); a discussed topic and everything else stay as they were", () => {
+    expect(controller.historyTakeOverLines(src, "whole")).toEqual([
+      ". budget", // discussed: dealt with, copied as it is
       "o skipped",
       "o still open",
       "v done",
-      "> deferred", // unlike "whole", which re-adopts a deferred action as open
+      "# deferred",
       "x won't do",
       "# open",
       "some prose",
     ]);
+  });
+
+  it("As agenda: the same, plus every agenda topic is open (a discussed one too)", () => {
+    expect(controller.historyTakeOverLines(src, "agenda")).toEqual([
+      "o budget", // the one difference from Whole line
+      "o skipped",
+      "o still open",
+      "v done",
+      "# deferred", // actions are handled exactly as in Whole line
+      "x won't do",
+      "# open",
+      "some prose",
+    ]);
+    // Indented topics too.
+    expect(controller.historyTakeOverLines(["  . nested"], "agenda")).toEqual(["  o nested"]);
   });
 });
 

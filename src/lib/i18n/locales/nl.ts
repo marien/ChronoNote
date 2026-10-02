@@ -240,9 +240,9 @@ export const nl = {
   "history.takeover.actionOnly": () => "Alleen de actie",
   "history.takeover.asAgenda": () => "Als agenda",
   "history.takeover.asAgendaTitle": () =>
-    "Kopieer de regels zoals ze zijn, maar zet agendapunten weer open (o). Acties behouden hun status.",
+    "Zoals Hele regel (open punten worden hier als doorgeschoven gemarkeerd), maar elk agendapunt is op de nieuwe plek open.",
   "history.takeover.agendaHint": () =>
-    "Kopieert de geselecteerde regel(s) naar het einde van die sectie, met agendapunten weer open (o). Acties behouden hun status en deze gelegenheid blijft ongewijzigd.",
+    "Verplaatst de geselecteerde regel(s) naar het einde van die sectie, zoals Hele regel, met open punten hier als doorgeschoven gemarkeerd, en zet elk agendapunt (o) daar open, ook besproken punten.",
   "history.takeover.hint": () =>
     "Verplaatst de geselecteerde regel(s) naar het einde van die sectie — gemarkeerd als doorgeschoven (») in deze gelegenheid, niet verwijderd.",
   "history.takeover.none": () => "Er is nergens anders heen om dit vanuit deze gelegenheid over te zetten.",

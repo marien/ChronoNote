@@ -247,6 +247,26 @@ test.describe("section history (Ctrl/Cmd+Shift+H)", () => {
     await expect(activeTabLabel(page)).toHaveText(todayFilename().replace(".txt", ""));
   });
 
+  test("opens on the occurrence it was opened from, and shows THAT occurrence's body (not the first one's)", async ({ page }) => {
+    await seedApp(page, {
+      seed: {
+        notes: {
+          "2026-09-01.txt": "Weekly\n====\n# alpha first",
+          "2026-09-08.txt": "Weekly\n====\n# bravo middle",
+          "2026-09-15.txt": "Weekly\n====\n# charlie last",
+        },
+        session: { openTabs: ["2026-09-08.txt"], activeTab: "2026-09-08.txt" },
+      },
+    });
+    await editor(page).click();
+    await page.keyboard.press("ControlOrMeta+Home");
+    await page.keyboard.press("ControlOrMeta+Shift+H");
+    // The selected tab and the body used to disagree: the tab was right, the body was the first date's.
+    await expect(history(page).locator(".history-occ-tab.active")).toContainText("2026-09-08");
+    await expect(history(page).locator(".hp-context")).toContainText("bravo middle");
+    await expect(history(page).locator(".hp-context")).not.toContainText("alpha first");
+  });
+
   test("opened from today: selecting a line offers only 'Add to today', and takes it over into this same note", async ({
     page,
   }) => {
@@ -285,43 +305,67 @@ test.describe("section history (Ctrl/Cmd+Shift+H)", () => {
     await expect.poll(() => cursorLine(page)).toBe(5);
   });
 
-  test("'As agenda': Ctrl+A selects the whole occurrence; copying reopens only agenda topics and leaves the source untouched", async ({
-    page,
-  }) => {
-    const past = "Weekly\n====\n. budget review\n, skipped item\n  . nested discussed\no still open\nv done thing\n> deferred thing\n# open action\nplain prose";
-    await seedApp(page, {
-      seed: {
-        notes: { [todayFilename()]: "Weekly\n====\nprior", "2026-09-05.txt": past },
-        session: { openTabs: [todayFilename()], activeTab: todayFilename() },
-      },
+  // "Whole line" (the default) and "As agenda" treat the source and the actions identically; the only
+  // difference is that "As agenda" opens every agenda topic in the new place, a discussed one included.
+  const agendaSource =
+    "Weekly\n====\n. budget review\n, skipped item\n  . nested discussed\no still open\nv done thing\n> deferred thing\n# open action\nplain prose";
+  // In the source, whichever mode: open items are marked forwarded (`o` -> `,`, `#` -> `>`), nothing else changes.
+  const agendaSourceAfter =
+    "Weekly\n====\n. budget review\n, skipped item\n  . nested discussed\n, still open\nv done thing\n> deferred thing\n> open action\nplain prose";
+  const agendaCases = [
+    {
+      mode: "Whole line",
+      landed: [
+        ". budget review", // discussed: copied as it was
+        "o skipped item", // a deferred topic comes back open
+        "  . nested discussed",
+        "o still open",
+        "v done thing",
+        "# deferred thing", // a deferred action comes back open
+        "# open action",
+        "plain prose",
+      ],
+    },
+    {
+      mode: "As agenda",
+      landed: [
+        "o budget review", // the one difference: every agenda topic is open
+        "o skipped item",
+        "  o nested discussed",
+        "o still open",
+        "v done thing",
+        "# deferred thing",
+        "# open action",
+        "plain prose",
+      ],
+    },
+  ];
+  for (const { mode, landed } of agendaCases) {
+    test(`'${mode}' on a whole agenda (Ctrl+A): source gets open items marked forwarded, the copy lands as specified`, async ({
+      page,
+    }) => {
+      await seedApp(page, {
+        seed: {
+          notes: { [todayFilename()]: "Weekly\n====\nprior", "2026-09-05.txt": agendaSource },
+          session: { openTabs: [todayFilename()], activeTab: todayFilename() },
+        },
+      });
+      await editor(page).click();
+      await page.keyboard.press("ControlOrMeta+Home");
+      await page.keyboard.press("ControlOrMeta+Shift+H");
+
+      await occRow(page, "2026-09-05").click();
+      await page.keyboard.press("ControlOrMeta+a"); // every line of the occurrence
+      await expect(history(page).locator(".history-line-selected")).toHaveCount(8);
+
+      const bar = history(page).locator(".history-takeover-bar");
+      await bar.getByRole("radio", { name: mode }).click();
+      await bar.getByRole("button", { name: "Add to today" }).click();
+
+      await expect.poll(() => mockNote(page, todayFilename())).toContain(landed.join("\n"));
+      await expect.poll(() => mockNote(page, "2026-09-05.txt")).toBe(agendaSourceAfter);
     });
-    await editor(page).click();
-    await page.keyboard.press("ControlOrMeta+Home");
-    await page.keyboard.press("ControlOrMeta+Shift+H");
-
-    await occRow(page, "2026-09-05").click();
-    await page.keyboard.press("ControlOrMeta+a"); // every line of the occurrence
-    await expect(history(page).locator(".history-line-selected")).toHaveCount(8);
-
-    const bar = history(page).locator(".history-takeover-bar");
-    await bar.getByRole("radio", { name: "As agenda" }).click();
-    await expect(bar).toContainText("agenda topics open again");
-    await bar.getByRole("button", { name: "Add to today" }).click();
-
-    const expected = [
-      "o budget review",
-      "o skipped item",
-      "  o nested discussed",
-      "o still open",
-      "v done thing",
-      "> deferred thing", // actions keep their state, a deferred one is not re-adopted
-      "# open action",
-      "plain prose",
-    ].join("\n");
-    await expect.poll(() => mockNote(page, todayFilename())).toContain(expected);
-    // A plain copy: the browsed occurrence is exactly as it was (nothing marked forwarded).
-    expect(await mockNote(page, "2026-09-05.txt")).toBe(past);
-  });
+  }
 
   test("opened from a past note: selecting a line offers 'Add to today' and 'Add to next occurrence'", async ({ page }) => {
     await seedApp(page, {

@@ -240,9 +240,9 @@ export const es = {
   "history.takeover.actionOnly": () => "Solo acción",
   "history.takeover.asAgenda": () => "Como agenda",
   "history.takeover.asAgendaTitle": () =>
-    "Copia las líneas tal cual, pero reabre los puntos de la agenda (o). Las acciones conservan su estado.",
+    "Igual que Línea completa (los elementos abiertos se marcan aquí como transferidos), pero cada punto de la agenda queda abierto en el nuevo lugar.",
   "history.takeover.agendaHint": () =>
-    "Copia las líneas seleccionadas al final de esa sección con los puntos de la agenda abiertos de nuevo (o). Las acciones conservan su estado y esta aparición queda sin cambios.",
+    "Mueve las líneas seleccionadas al final de esa sección como Línea completa, con los elementos abiertos marcados aquí como transferidos, y abre allí cada punto de la agenda (o), incluidos los ya tratados.",
   "history.takeover.hint": () =>
     "Mueve las líneas seleccionadas al final de esa sección: marcada como transferida (») en esta aparición, no eliminada.",
   "history.takeover.none": () => "No hay otro lugar al que transferir esto desde esta aparición.",

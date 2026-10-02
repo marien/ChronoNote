@@ -97,7 +97,8 @@ Action Drawer acts on whole lines (the last symbol).
 **Copy/paste deferral:** copying a `# ` line and pasting it into today's
 note, or into any *later*-dated note, marks the original line as `> `
 (deferred) back in its source file/tab — a quick way to forward a task
-without manually editing the original. Copying several lines together
+without manually editing the original. The same goes for an open agenda
+item: a copied `o ` topic is marked `, ` (postponed) in its source. Copying several lines together
 defers every open-action line found anywhere in the copied block, not
 just one at its start — other lines in the same copy (plain text,
 bullets, already-resolved actions) are left as they were. Pasting into a
@@ -439,14 +440,15 @@ reachable from the top bar, a shortcut, or the command palette:
   `Shift+Enter` as the keyboard equivalent of the first (nearest)
   destination's button. Taking it over inserts the selection at the target
   section (creating it if needed) and defers whatever was open in the
-  source, the same rule copy/paste forwarding and `Ctrl/Cmd+Shift+.`
+  source (an open action `# ` becomes `> `, an open agenda item `o `
+  becomes `, `), the same rule copy/paste forwarding and `Ctrl/Cmd+Shift+.`
   already use; a deferred line taken over is re-adopted as a fresh open
-  action. A single line shaped `prose => action` also offers "Whole line"
-  vs. "Action only" (just the action, dropping the prose). A third choice,
-  "As agenda", copies the selected lines exactly as they are except that
-  agenda topics (`. `/`, `) become open (`o `) again — actions keep their
-  state (a deferred one is not re-adopted) and the browsed occurrence is
-  left untouched (nothing marked forwarded): for reusing a past agenda as a
+  action (`> ` becomes `# `) or topic (`, ` becomes `o `), while a discussed
+  topic (`. `) is copied as it is. A single line shaped `prose => action`
+  also offers "Whole line" vs. "Action only" (just the action, dropping the
+  prose). A third choice, "As agenda", does exactly what "Whole line" does
+  (source and actions alike) and in addition opens every agenda topic in
+  the new place, a discussed one included, so a past agenda can serve as a
   template. `Ctrl/Cmd+A` selects every line of the occurrence. A destination is
   hidden whenever it would just write back to the file already being
   browsed — not only the note History was opened from (browsing *that* is

@@ -43,6 +43,41 @@ test.describe("copy/paste deferral", () => {
     await expect.poll(() => mockNote(page, "2026-09-03.txt")).not.toContain("# call the vendor back");
   });
 
+  test("pasting a copied open agenda item ('o ') into today defers the original too (', '), along with an open action in the same block", async ({
+    page,
+  }) => {
+    await seedApp(page, {
+      seed: {
+        notes: {
+          "2026-09-07.txt": "Top priorities\n==============\n",
+          "2026-09-03.txt": "Weekly\n======\no discuss the budget\n. already discussed\n# send the numbers\n- other stuff",
+        },
+        session: { openTabs: ["2026-09-03.txt", "2026-09-07.txt"], activeTab: "2026-09-03.txt" },
+      },
+    });
+
+    // Select the three lines "o discuss the budget" .. "# send the numbers" and copy them.
+    await editor(page).click();
+    await page.keyboard.press("ControlOrMeta+Home");
+    for (let i = 0; i < 2; i++) await page.keyboard.press("ArrowDown");
+    await page.keyboard.press("Home");
+    for (let i = 0; i < 2; i++) await page.keyboard.press("Shift+ArrowDown");
+    await page.keyboard.press("Shift+End");
+    await page.keyboard.press("ControlOrMeta+C");
+
+    await tab(page, "2026-09-07.txt").click();
+    await editor(page).click();
+    await page.keyboard.press("ControlOrMeta+End");
+    await page.keyboard.press("ControlOrMeta+V");
+
+    // The open topic is deferred (`,`), the open action too (`>`); the discussed one is left alone.
+    await expect
+      .poll(() => mockNote(page, "2026-09-03.txt"))
+      .toBe("Weekly\n======\n, discuss the budget\n. already discussed\n> send the numbers\n- other stuff");
+    // ...and the pasted copy keeps them open.
+    await expect.poll(() => mockNote(page, "2026-09-07.txt")).toContain("o discuss the budget");
+  });
+
   test("pasting into a past-dated note does NOT defer the original", async ({ page }) => {
     await seedApp(page, {
       seed: {

@@ -180,14 +180,22 @@ export function historyActionOnlyText(line: string): string | null {
  * design doc: matches the old `historyInsertText`'s rewrite, done/won't-do/
  * already-open lines are untouched. */
 export function historyTakeOverLines(sourceLines: string[], mode: "whole" | "action-only" | "agenda"): string[] {
-  // "As agenda": the lines exactly as they are, except that agenda topics are open again (`o`) —
-  // a done/deferred/won't-do action stays what it was (unlike "whole", which re-adopts deferred ones).
-  if (mode === "agenda") return sourceLines.map(openAgendaTopic);
   if (mode === "action-only" && sourceLines.length === 1) {
     const only = historyActionOnlyText(sourceLines[0]);
-    if (only) return [reopenDeferredAction(only) ?? only];
+    if (only) return [readoptDeferred(only)];
   }
-  return sourceLines.map((l) => reopenDeferredAction(l) ?? l);
+  const lines = sourceLines.map(readoptDeferred);
+  // "As agenda" is "Whole line" plus: every agenda topic is open again in the new place, including
+  // a discussed one. (The source is handled identically in both: open actions and open agenda
+  // items there are marked deferred, by `commitCopyForward`.)
+  return mode === "agenda" ? lines.map(openAgendaTopic) : lines;
+}
+
+/** A deferred item carried forward is open again: `> ` action becomes `# `, `, ` topic becomes `o `.
+ * Anything else, including a discussed `. ` topic (it was dealt with), is left as it was. */
+function readoptDeferred(line: string): string {
+  if (/^\s*\.\s/.test(line)) return line;
+  return reopenDeferredAction(line) ?? line;
 }
 
 /** #66: the earliest dated file strictly after `afterFilename` that has a

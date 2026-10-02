@@ -242,9 +242,9 @@ export const it = {
   "history.takeover.actionOnly": () => "Solo azione",
   "history.takeover.asAgenda": () => "Come agenda",
   "history.takeover.asAgendaTitle": () =>
-    "Copia le righe così come sono, ma riapre i punti dell'agenda (o). Le azioni mantengono il loro stato.",
+    "Come Riga intera (gli elementi aperti vengono contrassegnati qui come inoltrati), ma ogni punto dell'agenda è aperto nella nuova posizione.",
   "history.takeover.agendaHint": () =>
-    "Copia le righe selezionate alla fine di quella sezione con i punti dell'agenda di nuovo aperti (o). Le azioni mantengono il loro stato e questa ricorrenza resta invariata.",
+    "Sposta le righe selezionate alla fine di quella sezione come Riga intera, con gli elementi aperti contrassegnati qui come inoltrati, e apre lì ogni punto dell'agenda (o), anche quelli già trattati.",
   "history.takeover.hint": () =>
     "Sposta le righe selezionate alla fine di quella sezione — contrassegnata come inoltrata (») in questa ricorrenza, non eliminata.",
   "history.takeover.none": () => "Nessun altro luogo a cui riportare questo da questa ricorrenza.",

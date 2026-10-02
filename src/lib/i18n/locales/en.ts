@@ -235,9 +235,9 @@ export const en = {
   "history.takeover.actionOnly": () => "Action only",
   "history.takeover.asAgenda": () => "As agenda",
   "history.takeover.asAgendaTitle": () =>
-    "Copy the lines as they are, but reopen agenda topics (o). Actions keep their state.",
+    "Same as Whole line (open items are marked forwarded here), but every agenda topic is open in the new place.",
   "history.takeover.agendaHint": () =>
-    "Copies the selected line(s) to the end of that section with agenda topics open again (o). Actions keep their state, and this occurrence is left untouched.",
+    "Moves the selected line(s) to the end of that section like Whole line, with open items marked forwarded here, and opens every agenda topic (o) there, discussed ones included.",
   "history.takeover.hint": () =>
     "Moves the selected line(s) to the end of that section — marked forwarded (») in this occurrence, not deleted.",
   "history.takeover.none": () => "There's nowhere else to carry this over to from this occurrence.",

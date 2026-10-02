@@ -169,8 +169,6 @@ async function commitCopyForward(
   targetHeader: string,
   newSectionHeaderText: string,
   insertLinesOverride?: string[],
-  /** A plain copy: the source lines are left exactly as they are (not marked deferred). */
-  leaveSource = false,
 ): Promise<void> {
   const list0 = get(tabs);
   const srcTab = list0.find((t) => t.filename === sourceFilename);
@@ -206,13 +204,13 @@ async function commitCopyForward(
   if (targetFilename === sourceFilename) {
     const withInsertion = insertIntoSection(srcContent, targetHeader, newSectionHeaderText, insertLines);
     const finalLines = withInsertion.content.split("\n");
-    if (!leaveSource) finalLines.splice(fromLine, toLine - fromLine + 1, ...deferredLines);
+    finalLines.splice(fromLine, toLine - fromLine + 1, ...deferredLines);
     const finalContent = finalLines.join("\n");
     if (srcTab) {
       list = writeTabContent(srcTab.id, finalContent, list);
       tabs.set(list);
       if (srcTab.id === get(activeTabId) && editorApi) {
-        editorApi.jumpToLine(leaveSource ? withInsertion.insertedAtLine : fromLine);
+        editorApi.jumpToLine(fromLine);
       }
     } else {
       await writeNoteAndInvalidateCache(sourceFilename, finalContent);
@@ -246,30 +244,26 @@ async function commitCopyForward(
       }
     }
 
-    if (leaveSource) {
+    const newSrcLines = [...srcLines];
+    newSrcLines.splice(fromLine, toLine - fromLine + 1, ...deferredLines);
+    if (srcTab) {
+      list = writeTabContent(srcTab.id, newSrcLines.join("\n"), list);
       tabs.set(list);
-    } else {
-      const newSrcLines = [...srcLines];
-      newSrcLines.splice(fromLine, toLine - fromLine + 1, ...deferredLines);
-      if (srcTab) {
-        list = writeTabContent(srcTab.id, newSrcLines.join("\n"), list);
-        tabs.set(list);
-        // #75: `writeTabContent` pushes the new text into the live editor via a
-        // full-document replace (`EditorApi.setContent`) — CodeMirror's default
-        // selection mapping for a change spanning the *entire* document
-        // collapses the old cursor to the very start of the new content, so
-        // without this the cursor (and the scroll position with it) jumped to
-        // line 1 instead of staying on the line that just got marked deferred.
-        // `deferOpenActionsInText` only ever swaps a symbol character, never
-        // adds/removes lines, so `fromLine` is still exactly where the deferred
-        // content landed. Only matters when the source is the active tab.
-        if (srcTab.id === get(activeTabId) && editorApi) {
-          editorApi.jumpToLine(fromLine);
-        }
-      } else {
-        tabs.set(list);
-        await writeNoteAndInvalidateCache(sourceFilename, newSrcLines.join("\n"));
+      // #75: `writeTabContent` pushes the new text into the live editor via a
+      // full-document replace (`EditorApi.setContent`) — CodeMirror's default
+      // selection mapping for a change spanning the *entire* document
+      // collapses the old cursor to the very start of the new content, so
+      // without this the cursor (and the scroll position with it) jumped to
+      // line 1 instead of staying on the line that just got marked deferred.
+      // `deferOpenActionsInText` only ever swaps a symbol character, never
+      // adds/removes lines, so `fromLine` is still exactly where the deferred
+      // content landed. Only matters when the source is the active tab.
+      if (srcTab.id === get(activeTabId) && editorApi) {
+        editorApi.jumpToLine(fromLine);
       }
+    } else {
+      tabs.set(list);
+      await writeNoteAndInvalidateCache(sourceFilename, newSrcLines.join("\n"));
     }
   }
 
@@ -280,8 +274,7 @@ async function commitCopyForward(
       ? translate("toast.copyForward.destHere", undefined)
       : translate("toast.copyForward.destToDate", { date: target.dateIso });
   showToast(
-    // A plain copy marks nothing deferred, so the "N open actions" wording would be wrong for it.
-    n > 0 && !leaveSource
+    n > 0
       ? translate("toast.copyForward.copiedWithCount", { dest, count: n })
       : translate("toast.copyForward.copied", { dest }),
   );
@@ -377,10 +370,9 @@ export async function carryHistorySelectionForward(
   targetHeader: string,
   destination: { kind: "here"; tabId: string } | { kind: "today" | "next"; date: string; headerText: string },
   insertLinesOverride?: string[],
-  leaveSource = false,
 ): Promise<void> {
   const target: CopyTarget =
     destination.kind === "here" ? { kind: "tab", tabId: destination.tabId } : { kind: "date", dateIso: destination.date };
   const newSectionHeaderText = destination.kind === "here" ? targetHeader : destination.headerText;
-  await commitCopyForward(sourceFilename, fromLine, toLine, target, targetHeader, newSectionHeaderText, insertLinesOverride, leaveSource);
+  await commitCopyForward(sourceFilename, fromLine, toLine, target, targetHeader, newSectionHeaderText, insertLinesOverride);
 }

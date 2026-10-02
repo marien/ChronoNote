@@ -244,9 +244,9 @@ export const de = {
   "history.takeover.actionOnly": () => "Nur die Aktion",
   "history.takeover.asAgenda": () => "Als Agenda",
   "history.takeover.asAgendaTitle": () =>
-    "Zeilen unverändert kopieren, aber Agendapunkte wieder öffnen (o). Aktionen behalten ihren Status.",
+    "Wie Ganze Zeile (offene Punkte werden hier als weitergeleitet markiert), aber jeder Agendapunkt ist am neuen Ort offen.",
   "history.takeover.agendaHint": () =>
-    "Kopiert die ausgewählte(n) Zeile(n) an das Ende dieses Abschnitts, wobei Agendapunkte wieder offen sind (o). Aktionen behalten ihren Status, dieses Vorkommen bleibt unverändert.",
+    "Verschiebt die ausgewählte(n) Zeile(n) wie Ganze Zeile an das Ende dieses Abschnitts, wobei offene Punkte hier als weitergeleitet markiert werden, und öffnet dort jeden Agendapunkt (o), auch besprochene.",
   "history.takeover.hint": () =>
     "Verschiebt die ausgewählte(n) Zeile(n) an das Ende dieses Abschnitts — in diesem Vorkommen als weitergeleitet (») markiert, nicht gelöscht.",
   "history.takeover.none": () => "Von diesem Vorkommen aus gibt es nirgendwo anders hin zu übertragen.",

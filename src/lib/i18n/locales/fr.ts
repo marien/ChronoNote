@@ -243,9 +243,9 @@ export const fr = {
   "history.takeover.actionOnly": () => "Action uniquement",
   "history.takeover.asAgenda": () => "En agenda",
   "history.takeover.asAgendaTitle": () =>
-    "Copier les lignes telles quelles, mais rouvrir les points d'ordre du jour (o). Les actions gardent leur état.",
+    "Comme Ligne entière (les éléments ouverts sont marqués comme reportés ici), mais chaque point d'ordre du jour est ouvert au nouvel endroit.",
   "history.takeover.agendaHint": () =>
-    "Copie la ou les lignes sélectionnées à la fin de cette section, avec les points d'ordre du jour de nouveau ouverts (o). Les actions gardent leur état et cette occurrence reste inchangée.",
+    "Déplace la ou les lignes sélectionnées à la fin de cette section comme Ligne entière, les éléments ouverts étant marqués comme reportés ici, et rouvre chaque point d'ordre du jour (o) à cet endroit, y compris ceux déjà traités.",
   "history.takeover.hint": () =>
     "Déplace la ou les lignes sélectionnées à la fin de cette section — marquée(s) comme reportée(s) (») ici, sans suppression.",
   "history.takeover.none": () => "Aucun autre emplacement vers lequel reporter depuis cette occurrence.",

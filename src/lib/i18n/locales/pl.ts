@@ -243,9 +243,9 @@ export const pl = {
   "history.takeover.actionOnly": () => "Tylko zadanie",
   "history.takeover.asAgenda": () => "Jako agenda",
   "history.takeover.asAgendaTitle": () =>
-    "Skopiuj wiersze bez zmian, ale otwórz ponownie punkty agendy (o). Zadania zachowują swój stan.",
+    "Tak jak Cały wiersz (otwarte pozycje są tu oznaczane jako odłożone), ale każdy punkt agendy jest w nowym miejscu otwarty.",
   "history.takeover.agendaHint": () =>
-    "Kopiuje zaznaczone wiersze na koniec tej sekcji, z punktami agendy ponownie otwartymi (o). Zadania zachowują swój stan, a to wystąpienie pozostaje bez zmian.",
+    "Przenosi zaznaczone wiersze na koniec tej sekcji jak Cały wiersz, z otwartymi pozycjami oznaczonymi tu jako odłożone, i otwiera tam każdy punkt agendy (o), także omówione.",
   "history.takeover.hint": () =>
     "Przenosi zaznaczone wiersze na koniec tej sekcji — oznaczone jako odłożone (») w tym wystąpieniu, bez usuwania.",
   "history.takeover.none": () => "Brak innego miejsca do przeniesienia z tego wystąpienia.",
