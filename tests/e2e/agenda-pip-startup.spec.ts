@@ -133,7 +133,7 @@ test.describe("startup tab preference (Area 4)", () => {
     await editor(page).click();
     await page.keyboard.press("ControlOrMeta+Comma");
     const settings = modalCard(page, MODAL_LABELS.settings);
-    await settings.getByRole("radio", { name: "Notes & Sync" }).click();
+    await settings.getByRole("tab", { name: "Notes & Sync" }).click();
     await expect(settings.getByText("Startup", { exact: true })).toBeVisible();
     await settings.getByRole("radio", { name: "Last note" }).click();
     await expect(settings.getByRole("radio", { name: "Last note" })).toBeChecked();

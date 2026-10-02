@@ -26,6 +26,7 @@ export const it = {
   "settings.appearance.pureBlack.hint": () =>
     "Sfondo #000000 puro per schermi OLED e risparmio batteria. Attivo solo in modalità scura.",
   "settings.editor.sectionLabel": () => "Editor",
+  "settings.editor.width.label": () => "Larghezza del testo",
   "settings.editor.width.full": () => "Intera",
   "settings.editor.width.wrap": () => "A capo",
   "settings.editor.width.readingColumn": () => "Colonna di lettura",

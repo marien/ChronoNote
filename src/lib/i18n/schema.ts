@@ -38,6 +38,7 @@ export type TranslationParams = {
   "settings.appearance.pureBlack.label": undefined;
   "settings.appearance.pureBlack.hint": undefined;
   "settings.editor.sectionLabel": undefined;
+  "settings.editor.width.label": undefined;
   "settings.editor.width.full": undefined;
   "settings.editor.width.wrap": undefined;
   "settings.editor.width.readingColumn": undefined;

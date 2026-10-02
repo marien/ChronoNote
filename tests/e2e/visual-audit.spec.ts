@@ -81,7 +81,7 @@ test.describe("Visual layout & overflow audit across locales", () => {
       allIssues.push(...issues);
 
       // Switch to Notes & Sync tab
-      const tabButtons = page.locator(".settings-tabs .segmented-option");
+      const tabButtons = page.locator(".settings-tab");
       await tabButtons.nth(1).click();
       await page.waitForTimeout(100);
       issues = await findOverflows(page, ".settings-modal-card", locale, "Settings (Notes & Sync)");
@@ -185,7 +185,7 @@ test.describe("Visual layout & overflow audit across locales", () => {
       issues = await findOverflows(page, ".settings-modal-card", locale, "Mobile Settings");
       allIssues.push(...issues);
 
-      await page.locator(".settings-tabs .segmented-option").nth(1).click();
+      await page.locator(".settings-tab").nth(1).click();
       await page.waitForTimeout(100);
       issues = await findOverflows(page, ".settings-modal-card", locale, "Mobile Settings (Notes)");
       allIssues.push(...issues);

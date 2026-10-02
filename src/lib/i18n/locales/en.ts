@@ -28,6 +28,7 @@ export const en = {
   "settings.appearance.pureBlack.hint": () =>
     "Absolute #000000 canvas for OLED displays and battery savings. Only active in dark mode.",
   "settings.editor.sectionLabel": () => "Editor",
+  "settings.editor.width.label": () => "Text width",
   "settings.editor.width.full": () => "Full",
   "settings.editor.width.wrap": () => "Wrap",
   "settings.editor.width.readingColumn": () => "Reading column",

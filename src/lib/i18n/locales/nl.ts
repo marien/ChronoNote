@@ -28,6 +28,7 @@ export const nl = {
   "settings.appearance.pureBlack.hint": () =>
     "Absoluut #000000-canvas voor OLED-schermen en batterijbesparing. Alleen actief in donkere modus.",
   "settings.editor.sectionLabel": () => "Editor",
+  "settings.editor.width.label": () => "Tekstbreedte",
   "settings.editor.width.full": () => "Volledig",
   "settings.editor.width.wrap": () => "Omslaan",
   "settings.editor.width.readingColumn": () => "Leeskolom",

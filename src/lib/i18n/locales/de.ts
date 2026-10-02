@@ -30,6 +30,7 @@ export const de = {
   "settings.appearance.pureBlack.hint": () =>
     "Absolute #000000-Fläche für OLED-Displays und Akku-Ersparnis. Nur im dunklen Modus aktiv.",
   "settings.editor.sectionLabel": () => "Editor",
+  "settings.editor.width.label": () => "Textbreite",
   "settings.editor.width.full": () => "Vollständig",
   "settings.editor.width.wrap": () => "Umbrechen",
   "settings.editor.width.readingColumn": () => "Lesespalte",

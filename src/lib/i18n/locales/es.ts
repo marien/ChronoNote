@@ -26,6 +26,7 @@ export const es = {
   "settings.appearance.pureBlack.hint": () =>
     "Lienzo #000000 absoluto para pantallas OLED y ahorro de batería. Solo activo en modo oscuro.",
   "settings.editor.sectionLabel": () => "Editor",
+  "settings.editor.width.label": () => "Ancho del texto",
   "settings.editor.width.full": () => "Completo",
   "settings.editor.width.wrap": () => "Ajuste",
   "settings.editor.width.readingColumn": () => "Columna de lectura",

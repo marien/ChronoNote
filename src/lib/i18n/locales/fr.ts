@@ -27,6 +27,7 @@ export const fr = {
   "settings.appearance.pureBlack.hint": () =>
     "Fond #000000 absolu pour écrans OLED et économie d'énergie. Actif uniquement en mode sombre.",
   "settings.editor.sectionLabel": () => "Éditeur",
+  "settings.editor.width.label": () => "Largeur du texte",
   "settings.editor.width.full": () => "Plein",
   "settings.editor.width.wrap": () => "Retour à la ligne",
   "settings.editor.width.readingColumn": () => "Colonne de lecture",

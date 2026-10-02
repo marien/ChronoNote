@@ -27,6 +27,7 @@ export const pl = {
   "settings.appearance.pureBlack.hint": () =>
     "Absolutne tło #000000 dla ekranów OLED i oszczędzania baterii. Działa tylko w trybie ciemnym.",
   "settings.editor.sectionLabel": () => "Edytor",
+  "settings.editor.width.label": () => "Szerokość tekstu",
   "settings.editor.width.full": () => "Pełna",
   "settings.editor.width.wrap": () => "Zawijanie",
   "settings.editor.width.readingColumn": () => "Kolumna do czytania",

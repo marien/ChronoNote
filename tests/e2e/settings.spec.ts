@@ -25,7 +25,7 @@ async function openSettings(page: Page) {
  * Updates) — always reopens on the first tab, so anything under the other
  * two needs an explicit switch first. */
 async function openSettingsTab(page: Page, label: "Appearance" | "Notes & Sync" | "Updates") {
-  await settings(page).getByRole("radio", { name: label, exact: true }).click();
+  await settings(page).getByRole("tab", { name: label, exact: true }).click();
 }
 
 /** i18n roadmap: the new Language control (below Theme) also has a
@@ -283,6 +283,34 @@ test.describe("settings (Ctrl/Cmd+,)", () => {
     // Close stays reachable — the original bug this cap guards against.
     await settings(page).getByRole("button", { name: "Close", exact: true }).click();
     expect(await currentModal(page)).toBe("none");
+  });
+
+  test("the tabs are real tabs: one selected, Left/Right move between them", async ({ page }) => {
+    await seedApp(page);
+    await openSettings(page);
+    const tabs = settings(page).getByRole("tab");
+    await expect(tabs).toHaveCount(3);
+    await expect(settings(page).getByRole("tab", { name: "Appearance", exact: true })).toHaveAttribute("aria-selected", "true");
+
+    await settings(page).getByRole("tab", { name: "Appearance", exact: true }).focus();
+    await page.keyboard.press("ArrowRight");
+    await expect(settings(page).getByRole("tab", { name: "Notes & Sync", exact: true })).toHaveAttribute("aria-selected", "true");
+    await expect(settings(page).getByRole("tab", { name: "Notes & Sync", exact: true })).toBeFocused();
+    await expect(settings(page).getByText("Startup", { exact: true })).toBeVisible();
+    await page.keyboard.press("ArrowLeft");
+    await page.keyboard.press("ArrowLeft"); // wraps round to the last tab
+    await expect(settings(page).getByRole("tab", { name: "Updates", exact: true })).toHaveAttribute("aria-selected", "true");
+  });
+
+  test("every setting is laid out the same way: a labelled row with its control", async ({ page }) => {
+    await seedApp(page);
+    await openSettings(page);
+    // Theme, Language, Glyphs, Text width, Font size and Line spacing are all rows.
+    for (const label of ["Theme", "Language", "Glyphs", "Text width", "Font size", "Line spacing"]) {
+      const row = settings(page).locator(".s-row", { has: page.locator(".s-label", { hasText: label }) });
+      await expect(row, label).toHaveCount(1);
+      await expect(row.locator(".s-control"), label).toBeVisible();
+    }
   });
 
   test("typography sliders adjust font size and line height (Area 10.1)", async ({ page }) => {

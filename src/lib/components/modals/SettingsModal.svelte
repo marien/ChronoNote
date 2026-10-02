@@ -40,6 +40,8 @@
   import { closeOnOutsideClick } from "../../actions/closeOnOutsideClick";
   import Icon from "../../icons/Icon.svelte";
   import Segmented from "../Segmented.svelte";
+  import SettingRow from "../SettingRow.svelte";
+  import SettingToggle from "../SettingToggle.svelte";
   import { t } from "../../i18n";
   import { describeApiError } from "../../apiError";
   import type { ColorMode, LanguageMode, StartupTabMode, ThemeMode } from "../../types";
@@ -47,8 +49,8 @@
   import OneDriveFolderPickerModal from "./OneDriveFolderPickerModal.svelte";
 
   // Three tabs group what used to be one long scrolling list: Appearance/
-  // Editor are the "how it looks and feels while typing" settings; Calendar/
-  // Notes Location/Data are the "where things come from and go" settings;
+  // Editor are the "how it looks and feels while typing" settings; Notes
+  // location/Startup/Calendar/Data are the "where things come from and go" settings;
   // Updates stands alone since it's neither. The same short labels on every
   // platform (they were shortened on mobile first so every tab fits).
   $: settingsTabs = [
@@ -56,6 +58,16 @@
     { value: "calendar", label: $t("settings.tabs.notesAndSync") },
     ...($backendKind === "desktop" ? [{ value: "updates", label: $t("settings.tabs.updates") }] : []),
   ];
+  // Left/Right move between the tabs (and select them, as the tab pattern does).
+  function onTabsKeydown(e: KeyboardEvent) {
+    if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") return;
+    const list = e.currentTarget as HTMLElement;
+    const i = settingsTabs.findIndex((tab) => tab.value === activeSettingsTab);
+    const step = e.key === "ArrowRight" ? 1 : -1;
+    activeSettingsTab = settingsTabs[(i + step + settingsTabs.length) % settingsTabs.length].value;
+    e.preventDefault();
+    void tick().then(() => list.querySelector<HTMLElement>('[aria-selected="true"]')?.focus());
+  }
   // #71: the status bar's folder icon/name opens Settings landed
   // directly on this tab (`openSettingsOnNotesFolder`, `menu.ts`) —
   // consumed once here so a later plain Settings open still starts on
@@ -310,7 +322,6 @@
     }
   }
 </script>
-
 <div class="overlay" role="presentation" use:closeOnOutsideClick={controller.closeAllModals}>
   <div
     class="modal-card settings-modal-card modal-md"
@@ -331,15 +342,25 @@
         <Icon name="close" size={14} />
       </button>
     </div>
-    <div class="settings-tabs">
-      <Segmented options={settingsTabs} value={activeSettingsTab} onChange={(v) => (activeSettingsTab = v)} />
+    <div class="settings-tabs" role="tablist" tabindex="-1" on:keydown={onTabsKeydown}>
+      {#each settingsTabs as tab (tab.value)}
+        <button
+          type="button"
+          role="tab"
+          class="settings-tab"
+          aria-selected={tab.value === activeSettingsTab}
+          tabindex={tab.value === activeSettingsTab ? 0 : -1}
+          on:click={() => (activeSettingsTab = tab.value)}
+        >
+          {tab.label}
+        </button>
+      {/each}
     </div>
-    <div class="settings-section">
+    <div class="settings-section" role="tabpanel">
       {#if activeSettingsTab === "appearance"}
-        <div>
+        <section class="s-group">
           <div class="settings-section-label">{$t("settings.appearance.sectionLabel")}</div>
-          <div class="settings-toggle-row">
-            <span class="settings-inline-label">{$t("settings.appearance.theme.label")}</span>
+          <SettingRow label={$t("settings.appearance.theme.label")}>
             <Segmented
               options={[
                 { value: "light", label: $t("settings.appearance.theme.light") },
@@ -349,26 +370,17 @@
               value={$themeMode}
               onChange={(v) => controller.setThemeMode(v as ThemeMode)}
             />
-          </div>
-          <div class="settings-hint">{$t("settings.appearance.theme.hint")}</div>
+          </SettingRow>
           {#if isDarkResolved}
-            <div class="settings-toggle-row" style="margin-top: 12px;">
-              <label class="toggle-switch">
-                <input
-                  type="checkbox"
-                  checked={$pureBlack}
-                  on:change={(e) => controller.setPureBlack(e.currentTarget.checked)}
-                />
-                <span class="toggle-switch-track"></span>
-                {$t("settings.appearance.pureBlack.label")}
-              </label>
-            </div>
-            <div class="settings-hint">
-              {$t("settings.appearance.pureBlack.hint")}
-            </div>
+            <SettingToggle
+              label={$t("settings.appearance.pureBlack.label")}
+              checked={$pureBlack}
+              onChange={(v) => controller.setPureBlack(v)}
+            >
+              <svelte:fragment slot="description">{$t("settings.appearance.pureBlack.hint")}</svelte:fragment>
+            </SettingToggle>
           {/if}
-          <div class="settings-language-row" style="margin-top: 12px;">
-            <span class="settings-inline-label">{$t("settings.appearance.language.label")}</span>
+          <SettingRow label={$t("settings.appearance.language.label")} stack>
             <Segmented
               grid
               options={[
@@ -384,10 +396,9 @@
               value={$languageMode}
               onChange={(v) => controller.setLanguageMode(v as LanguageMode)}
             />
-          </div>
-          <div class="settings-hint">{$t("settings.appearance.language.hint")}</div>
-          <div class="settings-toggle-row" style="margin-top: 12px;">
-            <span class="settings-inline-label">{$t("settings.appearance.glyphs.label")}</span>
+          </SettingRow>
+          <SettingRow label={$t("settings.appearance.glyphs.label")}>
+            <svelte:fragment slot="description">{$t("settings.appearance.glyphs.legacyHint")}</svelte:fragment>
             <Segmented
               options={[
                 { value: "color", label: $t("settings.appearance.glyphs.color") },
@@ -397,14 +408,12 @@
               value={$colorMode}
               onChange={(v) => controller.setColorMode(v as ColorMode)}
             />
-          </div>
-          <div class="settings-hint">
-            {$t("settings.appearance.glyphs.legacyHint")}
-          </div>
-        </div>
-        <div>
+          </SettingRow>
+        </section>
+        <section class="s-group">
           <div class="settings-section-label">{$t("settings.editor.sectionLabel")}</div>
-          <div class="settings-toggle-row">
+          <SettingRow label={$t("settings.editor.width.label")} stack>
+            <svelte:fragment slot="description">{$t("settings.editor.width.hint")}</svelte:fragment>
             <Segmented
               options={[
                 { value: "full", label: $t("settings.editor.width.full") },
@@ -414,71 +423,189 @@
               value={editorWidthMode}
               onChange={setEditorWidth}
             />
-          </div>
-          <div class="settings-hint">
-            {$t("settings.editor.width.hint")}
-          </div>
-          <div class="settings-slider-row" style="margin-top: 14px;">
-            <div class="settings-slider-header">
-              <span class="settings-inline-label">{$t("settings.editor.fontSize.label")}</span>
+          </SettingRow>
+          <SettingRow label={$t("settings.editor.fontSize.label")}>
+            <div class="s-slider">
+              <input
+                type="range"
+                class="settings-range-slider"
+                min="12"
+                max="18"
+                step="0.5"
+                value={$fontSize}
+                aria-label={$t("settings.editor.fontSize.ariaLabel")}
+                on:input={(e) => controller.setFontSize(parseFloat(e.currentTarget.value))}
+              />
               <span class="settings-slider-val">{$fontSize}px</span>
             </div>
-            <input
-              type="range"
-              class="settings-range-slider"
-              min="12"
-              max="18"
-              step="0.5"
-              value={$fontSize}
-              aria-label={$t("settings.editor.fontSize.ariaLabel")}
-              on:input={(e) => controller.setFontSize(parseFloat(e.currentTarget.value))}
-            />
-          </div>
-          <div class="settings-slider-row" style="margin-top: 12px;">
-            <div class="settings-slider-header">
-              <span class="settings-inline-label">{$t("settings.editor.lineSpacing.label")}</span>
+          </SettingRow>
+          <SettingRow label={$t("settings.editor.lineSpacing.label")}>
+            <div class="s-slider">
+              <input
+                type="range"
+                class="settings-range-slider"
+                min="1.3"
+                max="1.8"
+                step="0.05"
+                value={$lineHeight}
+                aria-label={$t("settings.editor.lineSpacing.ariaLabel")}
+                on:input={(e) => controller.setLineHeight(parseFloat(e.currentTarget.value))}
+              />
               <span class="settings-slider-val">{$lineHeight.toFixed(2)}</span>
             </div>
-            <input
-              type="range"
-              class="settings-range-slider"
-              min="1.3"
-              max="1.8"
-              step="0.05"
-              value={$lineHeight}
-              aria-label={$t("settings.editor.lineSpacing.ariaLabel")}
-              on:input={(e) => controller.setLineHeight(parseFloat(e.currentTarget.value))}
-            />
-          </div>
-        </div>
+          </SettingRow>
+        </section>
       {:else if activeSettingsTab === "calendar"}
-        {#if $backendKind !== "web" || $oneDriveAccount}
-          <div>
-            <div class="settings-section-label">{$t("settings.calendar.sectionLabel")}</div>
-            <div class="settings-toggle-row">
-              <label class="toggle-switch">
-                <input
-                  type="checkbox"
-                  checked={$calendarSyncEnabled}
-                  on:change={(e) => controller.setCalendarSyncEnabled(e.currentTarget.checked)}
-                />
-                <span class="toggle-switch-track"></span>
-                {$t("settings.calendar.showButtonToggle")}
-              </label>
-            </div>
-            <div class="settings-hint">
-              {$t("settings.calendar.agendaHint.before")}<code>.agenda.json</code>{$t("settings.calendar.agendaHint.after")}
-            </div>
-            {#if $calendarSyncEnabled && !$agendaFileExists}
-              <div class="settings-hint" style="color: var(--state-error);">
-                {$t("settings.calendar.agendaMissing.before")}<code>.agenda.json</code>{$t("settings.calendar.agendaMissing.after")}
+        {#if $backendKind === "web"}
+          <section class="s-group">
+            <div class="settings-section-label">{$t("settings.oneDrive.sectionLabel")}</div>
+            {#if isSafariBrowser}
+              <div class="s-note warn">
+                <strong>{$t("settings.oneDrive.safariTip.label")}</strong> {$t("settings.oneDrive.safariTip.hint")}
               </div>
             {/if}
-          </div>
+            {#if $oneDriveAccount}
+              <div class="s-note">
+                {$t("settings.oneDrive.connectedAs.before")}<strong>{$oneDriveAccount.displayName}</strong> {$t("settings.oneDrive.connectedAs.after", { email: $oneDriveAccount.email })}
+              </div>
+              {#if $oneDriveSignInExpired}
+                <div class="s-note warn signin-expired" role="alert">
+                  <strong>{$t("settings.oneDrive.signInExpired.title")}</strong> {$t("settings.oneDrive.signInExpired.body")}
+                  <div class="s-actions">
+                    <button class="settings-btn primary" on:click={handleOneDriveLogin} disabled={loggingIn || $oneDriveConnecting}>
+                      <Icon name="cloud" size={14} />
+                      <span>{loggingIn || $oneDriveConnecting ? $t("settings.oneDrive.connecting") : $t("statusBar.oneDrive.signInAgain")}</span>
+                    </button>
+                  </div>
+                </div>
+              {/if}
+              <SettingRow label={$oneDriveFolder ? $oneDriveFolder.folderPath : $t("settings.oneDrive.noFolderSelected")}>
+                {#if $oneDriveFolder}
+                  <button class="settings-btn" on:click={() => (showFolderPicker = true)}>{$t("common.browse")}</button>
+                {:else}
+                  <button class="settings-btn primary" on:click={() => (showFolderPicker = true)}>{$t("settings.oneDrive.chooseFolder")}</button>
+                {/if}
+              </SettingRow>
+              <div class="s-actions">
+                <button
+                  class="settings-btn"
+                  on:click={handleOneDriveSyncNow}
+                  disabled={$oneDriveSyncing || !$oneDriveFolder}
+                  title={$oneDriveFolder ? "" : $t("settings.oneDrive.chooseFolderFirstTitle")}
+                >
+                  {#if $oneDriveSyncing}
+                    <span class="modal-spinner" aria-hidden="true">⟳</span> {$t("statusBar.oneDrive.syncingText")}
+                  {:else}
+                    {$t("settings.oneDrive.syncNow")}
+                  {/if}
+                </button>
+                <button class="settings-btn" on:click={handleOneDriveLogout} disabled={$oneDriveSyncing}>{$t("settings.oneDrive.signOut")}</button>
+              </div>
+              <SettingToggle
+                label={$t("settings.oneDrive.removeLocalOnSignOut")}
+                checked={removeLocalOnSignOut}
+                onChange={(v) => (removeLocalOnSignOut = v)}
+              >
+                <svelte:fragment slot="description">{$t("settings.oneDrive.signOutHint")}</svelte:fragment>
+              </SettingToggle>
+              {#if !$oneDriveFolder}
+                <div class="s-note">{$t("settings.oneDrive.noFolderYetHint")}</div>
+              {/if}
+            {:else}
+              <div class="s-note">
+                {$t("settings.oneDrive.connectHint")}{$t("settings.oneDrive.connectHintWebSuffix")}
+              </div>
+              <div class="s-actions">
+                <button class="settings-btn primary" on:click={handleOneDriveLogin} disabled={loggingIn || $oneDriveConnecting}>
+                  <Icon name="cloud" size={14} />
+                  <span>{loggingIn || $oneDriveConnecting ? $t("settings.oneDrive.connecting") : $t("settings.oneDrive.connectMicrosoftAccount")}</span>
+                </button>
+              </div>
+              {#if $oneDriveConnecting}
+                <div class="s-note">{$t("settings.oneDrive.waitingForBrowser")}</div>
+              {/if}
+              {#if showManualAuthInput}
+                <form class="s-fields" on:submit|preventDefault={handleManualAuthSubmit}>
+                  <div class="s-note">{$t("settings.oneDrive.pasteCodeHint")}</div>
+                  <input type="text" class="find-input s-input" placeholder={$t("settings.oneDrive.codeInputPlaceholder")} bind:value={manualAuthCode} />
+                  {#if authError}
+                    <div class="s-note error">{authError}</div>
+                  {/if}
+                  <div class="s-actions">
+                    <button type="submit" class="settings-btn primary" disabled={exchangingCode || !manualAuthCode.trim()}>
+                      {exchangingCode ? $t("settings.oneDrive.exchangingCode") : $t("settings.oneDrive.submitCode")}
+                    </button>
+                    <button type="button" class="settings-btn" on:click={() => (showManualAuthInput = false)}>
+                      {$t("common.cancel")}
+                    </button>
+                  </div>
+                </form>
+              {:else}
+                <button type="button" class="s-linkbtn" on:click={() => (showManualAuthInput = true)}>
+                  {$t("settings.oneDrive.enterCodeManually")}
+                </button>
+              {/if}
+              <button type="button" class="s-linkbtn" on:click={() => (showAdvanced = !showAdvanced)}>
+                {showAdvanced ? $t("settings.oneDrive.hideAdvanced") : $t("settings.oneDrive.showAdvanced")}
+              </button>
+              {#if showAdvanced}
+                <div class="s-fields">
+                  <div class="s-note">{$t("settings.oneDrive.advancedHint")}</div>
+                  <label class="s-field-label" for="onedrive-client-id-override">{$t("settings.oneDrive.clientIdLabel")}</label>
+                  <input
+                    id="onedrive-client-id-override"
+                    type="text"
+                    class="find-input s-input"
+                    placeholder={$t("settings.oneDrive.clientIdPlaceholder")}
+                    bind:value={clientIdOverride}
+                  />
+                  <label class="s-field-label" for="onedrive-tenant-id-override">{$t("settings.oneDrive.tenantIdLabel")}</label>
+                  <input
+                    id="onedrive-tenant-id-override"
+                    type="text"
+                    class="find-input s-input"
+                    placeholder={$t("settings.oneDrive.tenantIdPlaceholder")}
+                    bind:value={tenantIdOverride}
+                  />
+                  <div class="s-actions">
+                    <button class="settings-btn" on:click={handleSaveAdvanced} disabled={savingAdvanced}>
+                      {savingAdvanced ? $t("settings.oneDrive.saving") : $t("settings.oneDrive.save")}
+                    </button>
+                    {#if advancedSaved}
+                      <span class="s-desc">{$t("settings.oneDrive.savedHint")}</span>
+                    {/if}
+                  </div>
+                </div>
+              {/if}
+            {/if}
+          </section>
+        {:else}
+          <section class="s-group">
+            <div class="settings-section-label">{$t("settings.notesLocation.sectionLabel")}</div>
+            <SettingRow label={$notesDir}>
+              <svelte:fragment slot="description">{$t("settings.notesLocation.hint")}</svelte:fragment>
+              <button class="settings-btn" bind:this={browseButtonEl} on:click={controller.pickAndSwitchNotesDirectory}>
+                {$t("common.browse")}
+              </button>
+            </SettingRow>
+            {#if visibleRecentDirs.length > 0}
+              <div class="settings-recent-dirs">
+                {#each visibleRecentDirs as dir (dir)}
+                  <button class="settings-recent-dir" on:click={() => controller.switchToRecentDirectory(dir)}>
+                    {dir}
+                  </button>
+                {/each}
+              </div>
+            {/if}
+          </section>
         {/if}
-        <div>
+
+        <section class="s-group">
           <div class="settings-section-label">{$t("settings.startup.sectionLabel")}</div>
-          <div class="settings-toggle-row">
+          <SettingRow label={$t("settings.startup.label")}>
+            <svelte:fragment slot="description">
+              {$startupTabMode === "smart_last_active" ? $t("settings.startup.smartHint") : $t("settings.startup.todayHint")}
+            </svelte:fragment>
             <Segmented
               options={[
                 { value: "today", label: $t("settings.startup.today") },
@@ -487,235 +614,58 @@
               value={$startupTabMode}
               onChange={(v) => controller.setStartupTabMode(v as StartupTabMode)}
             />
-          </div>
-          <div class="settings-hint">
-            {$startupTabMode === "smart_last_active" ? $t("settings.startup.smartHint") : $t("settings.startup.todayHint")}
-          </div>
-        </div>
-        {#if $backendKind === "web"}
-            <div>
-              <div class="settings-section-label">{$t("settings.oneDrive.sectionLabel")}</div>
-              {#if isSafariBrowser}
-                <div class="settings-hint" style="color: var(--state-warn); margin-bottom: 8px; border-left: 2px solid var(--state-warn); padding-left: 8px;">
-                  <strong>{$t("settings.oneDrive.safariTip.label")}</strong> {$t("settings.oneDrive.safariTip.hint")}
-                </div>
-              {/if}
-              {#if $oneDriveAccount}
-                <div class="settings-hint" style="margin-bottom: 8px;">
-                  {$t("settings.oneDrive.connectedAs.before")}<strong>{$oneDriveAccount.displayName}</strong> {$t("settings.oneDrive.connectedAs.after", { email: $oneDriveAccount.email })}
-                </div>
-                {#if $oneDriveSignInExpired}
-                  <div class="settings-hint signin-expired" role="alert">
-                    <strong>{$t("settings.oneDrive.signInExpired.title")}</strong> {$t("settings.oneDrive.signInExpired.body")}
-                    <div style="margin-top: 8px;">
-                      <button class="icon-btn btn-primary" on:click={handleOneDriveLogin} disabled={loggingIn || $oneDriveConnecting}>
-                        <Icon name="cloud" size={16} />
-                        <span>{loggingIn || $oneDriveConnecting ? $t("settings.oneDrive.connecting") : $t("statusBar.oneDrive.signInAgain")}</span>
-                      </button>
-                    </div>
-                  </div>
-                {/if}
-                <div class="settings-dir-row">
-                  {#if $oneDriveFolder}
-                    <div class="settings-dir-path">{$oneDriveFolder.folderPath}</div>
-                    <button class="icon-btn" on:click={() => (showFolderPicker = true)}>{$t("common.browse")}</button>
-                  {:else}
-                    <div class="settings-dir-path" style="color: var(--state-warn);">{$t("settings.oneDrive.noFolderSelected")}</div>
-                    <button class="icon-btn btn-primary" on:click={() => (showFolderPicker = true)}>{$t("settings.oneDrive.chooseFolder")}</button>
-                  {/if}
-                </div>
-                <div style="display: flex; gap: 8px; margin-top: 8px;">
-                  <button
-                    class="icon-btn"
-                    on:click={handleOneDriveSyncNow}
-                    disabled={$oneDriveSyncing || !$oneDriveFolder}
-                    title={$oneDriveFolder ? "" : $t("settings.oneDrive.chooseFolderFirstTitle")}
-                  >
-                    {#if $oneDriveSyncing}
-                      <span class="modal-spinner" aria-hidden="true">⟳</span> {$t("statusBar.oneDrive.syncingText")}
-                    {:else}
-                      {$t("settings.oneDrive.syncNow")}
-                    {/if}
-                  </button>
-                  <button class="icon-btn" on:click={handleOneDriveLogout} disabled={$oneDriveSyncing}>{$t("settings.oneDrive.signOut")}</button>
-                </div>
-                {#if $backendKind === "web"}
-                  <div class="settings-hint" style="margin-top: 6px;">
-                    {$t("settings.oneDrive.signOutHint")}
-                  </div>
-                  <label class="settings-hint" style="display: flex; gap: 6px; align-items: flex-start; margin-top: 6px;">
-                    <input type="checkbox" bind:checked={removeLocalOnSignOut} />
-                    <span>{$t("settings.oneDrive.removeLocalOnSignOut")}</span>
-                  </label>
-                {/if}
-                {#if !$oneDriveFolder}
-                  <div class="settings-hint" style="margin-top: 6px;">
-                    {$t("settings.oneDrive.noFolderYetHint")}
-                  </div>
-                {/if}
-              {:else}
-                <div class="settings-hint">
-                  {$t("settings.oneDrive.connectHint")}{#if $backendKind === "web"}{$t("settings.oneDrive.connectHintWebSuffix")}{/if}
-                </div>
-                <div style="margin-top: 8px;">
-                  <button class="icon-btn btn-primary" on:click={handleOneDriveLogin} disabled={loggingIn || $oneDriveConnecting}>
-                    <Icon name="cloud" size={16} />
-                    <span>{loggingIn || $oneDriveConnecting ? $t("settings.oneDrive.connecting") : $t("settings.oneDrive.connectMicrosoftAccount")}</span>
-                  </button>
-                  {#if $oneDriveConnecting}
-                    <div class="settings-hint" style="margin-top: 6px;">
-                      {$t("settings.oneDrive.waitingForBrowser")}
-                    </div>
-                  {/if}
-                </div>
-                <div style="margin-top: 10px;">
-                  {#if showManualAuthInput}
-                    <form on:submit|preventDefault={handleManualAuthSubmit} style="display: flex; flex-direction: column; gap: 6px; margin-top: 6px;">
-                      <div class="settings-hint">
-                        {$t("settings.oneDrive.pasteCodeHint")}
-                      </div>
-                      <input
-                        type="text"
-                        class="find-input"
-                        style="width: 100%; height: 32px;"
-                        placeholder={$t("settings.oneDrive.codeInputPlaceholder")}
-                        bind:value={manualAuthCode}
-                      />
-                      {#if authError}
-                        <div class="settings-hint" style="color: var(--state-error);">{authError}</div>
-                      {/if}
-                      <div style="display: flex; gap: 8px;">
-                        <button type="submit" class="icon-btn btn-primary" disabled={exchangingCode || !manualAuthCode.trim()}>
-                          {exchangingCode ? $t("settings.oneDrive.exchangingCode") : $t("settings.oneDrive.submitCode")}
-                        </button>
-                        <button type="button" class="icon-btn" on:click={() => (showManualAuthInput = false)}>
-                          {$t("common.cancel")}
-                        </button>
-                      </div>
-                    </form>
-                  {:else}
-                    <button
-                      type="button"
-                      class="status-link"
-                      style="font-size: 11px; color: var(--muted); cursor: pointer;"
-                      on:click={() => (showManualAuthInput = true)}
-                    >
-                      {$t("settings.oneDrive.enterCodeManually")}
-                    </button>
-                  {/if}
-                </div>
+          </SettingRow>
+        </section>
 
-                <div style="margin-top: 12px;">
-                  <button
-                    type="button"
-                    class="status-link"
-                    style="font-size: 11px; color: var(--muted); cursor: pointer;"
-                    on:click={() => (showAdvanced = !showAdvanced)}
-                  >
-                    {showAdvanced ? $t("settings.oneDrive.hideAdvanced") : $t("settings.oneDrive.showAdvanced")}
-                  </button>
-                  {#if showAdvanced}
-                    <div style="display: flex; flex-direction: column; gap: 6px; margin-top: 8px;">
-                      <div class="settings-hint">
-                        {$t("settings.oneDrive.advancedHint")}
-                      </div>
-                      <label class="settings-hint" for="onedrive-client-id-override">{$t("settings.oneDrive.clientIdLabel")}</label>
-                      <input
-                        id="onedrive-client-id-override"
-                        type="text"
-                        class="find-input"
-                        style="width: 100%; height: 32px;"
-                        placeholder={$t("settings.oneDrive.clientIdPlaceholder")}
-                        bind:value={clientIdOverride}
-                      />
-                      <label class="settings-hint" for="onedrive-tenant-id-override">
-                        {$t("settings.oneDrive.tenantIdLabel")}
-                      </label>
-                      <input
-                        id="onedrive-tenant-id-override"
-                        type="text"
-                        class="find-input"
-                        style="width: 100%; height: 32px;"
-                        placeholder={$t("settings.oneDrive.tenantIdPlaceholder")}
-                        bind:value={tenantIdOverride}
-                      />
-                      <div style="display: flex; align-items: center; gap: 8px;">
-                        <button class="icon-btn" on:click={handleSaveAdvanced} disabled={savingAdvanced}>
-                          {savingAdvanced ? $t("settings.oneDrive.saving") : $t("settings.oneDrive.save")}
-                        </button>
-                        {#if advancedSaved}
-                          <span class="settings-hint">
-                            {$t("settings.oneDrive.savedHint")}
-                          </span>
-                        {/if}
-                      </div>
-                    </div>
-                  {/if}
-                </div>
-              {/if}
-            </div>
-          {:else}
-            <div>
-              <div class="settings-section-label">{$t("settings.notesLocation.sectionLabel")}</div>
-              <div class="settings-dir-row">
-                <div class="settings-dir-path">{$notesDir}</div>
-                <button class="icon-btn" bind:this={browseButtonEl} on:click={controller.pickAndSwitchNotesDirectory}>
-                  {$t("common.browse")}
-                </button>
+        {#if $backendKind !== "web" || $oneDriveAccount}
+          <section class="s-group">
+            <div class="settings-section-label">{$t("settings.calendar.sectionLabel")}</div>
+            <SettingToggle
+              label={$t("settings.calendar.showButtonToggle")}
+              checked={$calendarSyncEnabled}
+              onChange={(v) => controller.setCalendarSyncEnabled(v)}
+            >
+              <svelte:fragment slot="description">
+                {$t("settings.calendar.agendaHint.before")}<code>.agenda.json</code>{$t("settings.calendar.agendaHint.after")}
+              </svelte:fragment>
+            </SettingToggle>
+            {#if $calendarSyncEnabled && !$agendaFileExists}
+              <div class="s-note error">
+                {$t("settings.calendar.agendaMissing.before")}<code>.agenda.json</code>{$t("settings.calendar.agendaMissing.after")}
               </div>
-              <div class="settings-hint">
-                {$t("settings.notesLocation.hint")}
-              </div>
-              {#if visibleRecentDirs.length > 0}
-                <div class="settings-recent-dirs">
-                  {#each visibleRecentDirs as dir (dir)}
-                    <button class="settings-recent-dir" on:click={() => controller.switchToRecentDirectory(dir)}>
-                      {dir}
-                    </button>
-                  {/each}
-                </div>
-              {/if}
-            </div>
-          {/if}
+            {/if}
+          </section>
+        {/if}
 
         {#if $backendKind !== "demo"}
-          <div>
+          <section class="s-group">
             <div class="settings-section-label">{$t("settings.data.sectionLabel")}</div>
             <input
               bind:this={fileInput}
               type="file"
               accept="application/json,.json"
-              style="display: none;"
+              class="s-hidden-input"
               on:change={onFileChosen}
             />
-            <div class="settings-toggle-row" style="gap: 8px;">
-              <button class="icon-btn" disabled={exporting} on:click={handleExport}>
-                {exporting ? $t("settings.data.exporting") : $t("settings.data.export")}
-              </button>
-              <button class="icon-btn" disabled={importing} on:click={pickImportFile}>
-                {$t("settings.data.import")}
-              </button>
-            </div>
-            {#if $backendKind === "web"}
-              <div class="settings-hint">
-                {$t("settings.data.webHint")}
+            <SettingRow stack>
+              <svelte:fragment slot="description">
+                {$backendKind === "web" ? $t("settings.data.webHint") : $t("settings.data.desktopHint")}
+              </svelte:fragment>
+              <div class="s-actions inline">
+                <button class="settings-btn" disabled={exporting} on:click={handleExport}>
+                  {exporting ? $t("settings.data.exporting") : $t("settings.data.export")}
+                </button>
+                <button class="settings-btn" disabled={importing} on:click={pickImportFile}>
+                  {$t("settings.data.import")}
+                </button>
               </div>
-            {:else}
-              <div class="settings-hint">
-                {$t("settings.data.desktopHint")}
-              </div>
-            {/if}
+            </SettingRow>
             {#if importError}
-              <div class="settings-hint" style="color: var(--state-error);">{importError}</div>
+              <div class="s-note error">{importError}</div>
             {/if}
             {#if importPreview}
-              <div
-                class="settings-toggle-row"
-                style="margin-top: 8px; flex-direction: column; align-items: flex-start; gap: 8px;"
-              >
-                <span class="settings-inline-label">
-                  {$t("settings.data.noteCountInFile", { count: importPreview.noteCount })}
-                </span>
+              <div class="s-fields">
+                <span class="s-label">{$t("settings.data.noteCountInFile", { count: importPreview.noteCount })}</span>
                 <Segmented
                   options={[
                     { value: "merge", label: $t("settings.data.importMode.merge") },
@@ -725,90 +675,74 @@
                   onChange={(v) => (importMode = v as "merge" | "replace")}
                 />
                 {#if importMode === "replace"}
-                  <div class="settings-hint" style="color: var(--state-error); margin-top: 0;">
-                    {$t("settings.data.replaceWarning")}
-                  </div>
+                  <div class="s-note error">{$t("settings.data.replaceWarning")}</div>
                 {/if}
-                <div style="display: flex; gap: 8px;">
-                  <button class="icon-btn btn-primary" disabled={importing} on:click={confirmImport}>
+                <div class="s-actions">
+                  <button class="settings-btn primary" disabled={importing} on:click={confirmImport}>
                     {importing ? $t("settings.data.importing") : $t("settings.data.importAction")}
                   </button>
-                  <button class="icon-btn" disabled={importing} on:click={cancelImport}>{$t("common.cancel")}</button>
+                  <button class="settings-btn" disabled={importing} on:click={cancelImport}>{$t("common.cancel")}</button>
                 </div>
               </div>
             {/if}
-          </div>
+          </section>
         {/if}
       {:else if activeSettingsTab === "updates" && $backendKind !== "web"}
-        <div>
-          <div class="settings-section-label">{$t("about.updates.sectionLabel")}</div>
-          <div class="settings-toggle-row">
-            <label class="toggle-switch">
-              <input
-                type="checkbox"
-                checked={$autoCheckUpdates}
-                on:change={(e) => controller.setAutoCheckUpdates(e.currentTarget.checked)}
-              />
-              <span class="toggle-switch-track"></span>
-              {$t("settings.updates.checkOnStart")}
-            </label>
-          </div>
-          <div class="settings-hint">
-            {$t("settings.updates.checkOnStartHint")}
-          </div>
-          {#if $updateStatus === "checking"}
-            <div class="settings-hint" style="margin-top: 8px;">
-              <span class="modal-spinner" aria-label={$t("about.chip.checking")}>⟳</span> {$t("about.checkingHint")}
-            </div>
-          {:else if $updateStatus === "available"}
-            <div class="settings-hint" style="margin-top: 8px;">
-              <strong style="color: var(--text);">v{$updateAvailableVersion}</strong> {$t("about.isAvailable")}
-            </div>
-            <div class="settings-toggle-row" style="margin-top: 8px; gap: 8px;">
-              <button class="icon-btn" on:click={controller.openReleasesPage}> {$t("about.whatsChanged")} </button>
-              <button class="icon-btn btn-primary" on:click={() => controller.downloadAndInstallUpdate()}>
-                <Icon name="update" size={14} /> {$t("about.downloadAndInstall")}
-              </button>
-            </div>
-          {:else if $updateStatus === "downloading"}
-            <div class="settings-hint" style="margin-top: 8px;">
-              {#if $updateInstalling}{$t("about.downloading.startingInstaller")}{:else}{$t("about.downloading.downloading")}{progressLabel}{/if}
-            </div>
-          {:else if $updateStatus === "ready"}
-            <div class="settings-hint" style="margin-top: 8px;">{$t("about.ready.installed")}</div>
-            <button class="icon-btn btn-primary" style="margin-top: 8px;" on:click={() => controller.restartToFinishUpdate()}>
-              {$t("about.ready.restartNow")}
-            </button>
-          {:else if $updateStatus === "error"}
-            {#if $updateErrorDuring === "install"}
-              <div class="settings-hint" style="margin-top: 8px; color: var(--state-error);">
-                {$t("about.error.installFailedPrefix")} {$updateErrorMessage ?? ""}
+        <section class="s-group">
+          <SettingToggle
+            label={$t("settings.updates.checkOnStart")}
+            checked={$autoCheckUpdates}
+            onChange={(v) => controller.setAutoCheckUpdates(v)}
+          >
+            <svelte:fragment slot="description">{$t("settings.updates.checkOnStartHint")}</svelte:fragment>
+          </SettingToggle>
+          <div class="s-status">
+            {#if $updateStatus === "checking"}
+              <div class="s-note"><span class="modal-spinner" aria-label={$t("about.chip.checking")}>⟳</span> {$t("about.checkingHint")}</div>
+            {:else if $updateStatus === "available"}
+              <div class="s-note"><strong class="s-strong">v{$updateAvailableVersion}</strong> {$t("about.isAvailable")}</div>
+              <div class="s-actions">
+                <button class="settings-btn" on:click={controller.openReleasesPage}>{$t("about.whatsChanged")}</button>
+                <button class="settings-btn primary" on:click={() => controller.downloadAndInstallUpdate()}>
+                  <Icon name="update" size={14} /> {$t("about.downloadAndInstall")}
+                </button>
               </div>
-              <div class="settings-toggle-row" style="margin-top: 8px; gap: 8px;">
-                <button class="icon-btn" on:click={() => controller.downloadAndInstallUpdate()}>{$t("about.error.tryAgain")}</button>
-                <button class="icon-btn btn-primary" on:click={controller.openReleasesPage}>{$t("about.error.downloadFromGithub")}</button>
+            {:else if $updateStatus === "downloading"}
+              <div class="s-note">
+                {#if $updateInstalling}{$t("about.downloading.startingInstaller")}{:else}{$t("about.downloading.downloading")}{progressLabel}{/if}
               </div>
+            {:else if $updateStatus === "ready"}
+              <div class="s-note">{$t("about.ready.installed")}</div>
+              <div class="s-actions">
+                <button class="settings-btn primary" on:click={() => controller.restartToFinishUpdate()}>
+                  {$t("about.ready.restartNow")}
+                </button>
+              </div>
+            {:else if $updateStatus === "error"}
+              {#if $updateErrorDuring === "install"}
+                <div class="s-note error">{$t("about.error.installFailedPrefix")} {$updateErrorMessage ?? ""}</div>
+                <div class="s-actions">
+                  <button class="settings-btn" on:click={() => controller.downloadAndInstallUpdate()}>{$t("about.error.tryAgain")}</button>
+                  <button class="settings-btn primary" on:click={controller.openReleasesPage}>{$t("about.error.downloadFromGithub")}</button>
+                </div>
+              {:else}
+                <div class="s-note error">{$t("about.error.couldntCheckPrefix")} {$updateErrorMessage ?? ""}</div>
+                <div class="s-actions">
+                  <button class="settings-btn" on:click={() => controller.checkForUpdates()}>{$t("about.error.tryAgain")}</button>
+                </div>
+              {/if}
             {:else}
-              <div class="settings-hint" style="margin-top: 8px; color: var(--state-error);">
-                {$t("about.error.couldntCheckPrefix")} {$updateErrorMessage ?? ""}
+              <div class="s-note">{$updateStatus === "upToDate" ? $t("about.upToDate.running") : $t("about.chip.notCheckedYet")}</div>
+              <div class="s-actions">
+                <button class="settings-btn" on:click={() => controller.checkForUpdates()}>{$t("about.checkNow")}</button>
               </div>
-              <button class="icon-btn" style="margin-top: 8px;" on:click={() => controller.checkForUpdates()}>
-                {$t("about.error.tryAgain")}
-              </button>
             {/if}
-          {:else}
-            <div class="settings-hint" style="margin-top: 8px;">
-              {$updateStatus === "upToDate" ? $t("about.upToDate.running") : $t("about.chip.notCheckedYet")}
-            </div>
-            <button class="icon-btn" style="margin-top: 8px;" on:click={() => controller.checkForUpdates()}>
-              {$t("about.checkNow")}
-            </button>
-          {/if}
-        </div>
+          </div>
+        </section>
       {/if}
     </div>
-    <div class="modal-footer" style="justify-content: flex-end;">
-      <button class="icon-btn" on:click={controller.closeAllModals}>{$t("common.close")}</button>
+    <div class="modal-footer s-footer">
+      <button class="settings-btn" on:click={controller.closeAllModals}>{$t("common.close")}</button>
     </div>
   </div>
 </div>
