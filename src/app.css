@@ -4412,7 +4412,7 @@ body.peek-mode .cm-scroller {
 }
 /* Keep text readable over whatever is behind: a soft halo in the background colour. */
 body.peek-mode .cm-content {
-  text-shadow: 0 0 3px var(--bg), 0 0 6px var(--bg);
+  text-shadow: 0 0 2px var(--bg), 0 0 5px var(--bg), 0 0 9px var(--bg);
 }
 .peek-bar {
   flex: 0 0 auto;
@@ -4423,8 +4423,9 @@ body.peek-mode .cm-content {
   padding: 0 6px;
   border-top: 2px solid var(--tab-active-border);
   background: color-mix(in srgb, var(--surface-chrome) calc(var(--peek-opacity, 70) * 1%), transparent);
-  color: var(--muted);
+  color: var(--text);
   font-size: 12px;
+  text-shadow: 0 0 3px var(--bg), 0 0 6px var(--bg);
   user-select: none;
   -webkit-app-region: drag;
 }
@@ -4440,7 +4441,7 @@ body.peek-mode .cm-content {
   color: var(--tab-active-border);
 }
 .peek-bar.past .peek-date {
-  color: var(--muted);
+  color: color-mix(in srgb, var(--text) 80%, var(--muted));
 }
 .peek-bar.future .peek-date {
   color: var(--state-ok);
