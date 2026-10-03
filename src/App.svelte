@@ -145,9 +145,9 @@
 
     function onKeydown(e: KeyboardEvent) {
       // Peek mode: Alt+Left / Alt+Right switch to the previous / next occurrence of the section.
-      if (get(peekMode) && e.altKey && !e.ctrlKey && !e.metaKey && !e.shiftKey && (e.code === "ArrowLeft" || e.code === "ArrowRight")) {
+      if (get(peekMode) && e.altKey && !e.ctrlKey && !e.metaKey && !e.shiftKey && (e.key === "ArrowLeft" || e.key === "ArrowRight")) {
         e.preventDefault();
-        void controller.stepPeekOccurrence(e.code === "ArrowLeft" ? -1 : 1);
+        void controller.stepPeekOccurrence(e.key === "ArrowLeft" ? -1 : 1);
         return;
       }
       // Desktop app only: F11 as an alias for the Zen mode chord (see `shortcuts.ts`).
