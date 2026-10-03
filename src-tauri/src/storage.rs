@@ -72,6 +72,74 @@ pub enum StartupTabMode {
     SmartLastActive,
 }
 
+/// Peek mode (compact see-through note window for calls): how much of the header strip shows.
+#[derive(Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Debug, Default, TS)]
+#[serde(rename_all = "snake_case")]
+pub enum PeekHeader {
+    Always,
+    Hover,
+    /// Only a thin strip (it still carries the past/today/future colour and works as the drag handle).
+    #[default]
+    Never,
+}
+
+/// Where the compact Peek window was last left, in physical pixels.
+#[derive(Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Debug, TS)]
+pub struct PeekGeometry {
+    pub x: i32,
+    pub y: i32,
+    pub width: u32,
+    pub height: u32,
+}
+
+/// Peek mode settings. One nested object so the feature adds a single field to `config.json`; every field has a
+/// default, so a config written before Peek existed (or hand-edited) loads fine.
+#[derive(Serialize, Deserialize, Clone, PartialEq, Debug, TS)]
+#[serde(rename_all = "camelCase", default)]
+pub struct PeekConfig {
+    /// Feature toggle. Peek is experimental: off by default, and while off nothing of it is active (no global
+    /// shortcut, no menu entries, only this switch in Settings).
+    pub enabled: bool,
+    /// Height in lines; 0 = fit the whole section.
+    pub lines: u32,
+    /// Background opacity in percent (text is never translucent).
+    pub opacity: u32,
+    pub always_on_top: bool,
+    pub header: PeekHeader,
+    /// Global shortcut, Tauri accelerator syntax.
+    pub shortcut: String,
+    pub geometry: Option<PeekGeometry>,
+    /// The "lines" setting changed since the window was last left: use it for the height, not the remembered one.
+    pub use_lines_height: bool,
+}
+
+pub const PEEK_MAX_LINES: u32 = 15;
+pub const PEEK_MIN_OPACITY: u32 = 20;
+
+impl Default for PeekConfig {
+    fn default() -> Self {
+        PeekConfig {
+            enabled: false,
+            lines: 6,
+            opacity: 70,
+            always_on_top: true,
+            header: PeekHeader::default(),
+            shortcut: "CommandOrControl+F11".to_string(),
+            geometry: None,
+            use_lines_height: false,
+        }
+    }
+}
+
+impl PeekConfig {
+    /// Keeps hand-edited or out-of-range values usable.
+    pub fn clamped(mut self) -> Self {
+        self.lines = self.lines.min(PEEK_MAX_LINES);
+        self.opacity = self.opacity.clamp(PEEK_MIN_OPACITY, 100);
+        self
+    }
+}
+
 /// Persisted app configuration. Lives outside the notes folder, in the
 /// OS-appropriate app config directory (e.g. %APPDATA%\com.chrononote.app on
 /// Windows, ~/.config/com.chrononote.app on Linux, ~/Library/Application
@@ -165,6 +233,9 @@ pub struct AppConfig {
     /// `SmartLastActive` restores the last active note unless today has content or meetings.
     #[serde(default)]
     pub startup_tab_mode: StartupTabMode,
+    /// Peek mode settings (compact see-through note window for calls).
+    #[serde(default)]
+    pub peek: PeekConfig,
 }
 
 fn default_true() -> bool {
@@ -405,6 +476,7 @@ fn load_config_at(path: &Path, default_notes_dir: &Path) -> Result<AppConfig, St
         language_mode: LanguageMode::default(),
         onboarding_completed: false,
         startup_tab_mode: StartupTabMode::default(),
+        peek: PeekConfig::default(),
     };
     save_config_at(path, &cfg)?;
     Ok(cfg)
@@ -875,6 +947,9 @@ fn generate_typescript_bindings() {
         ThemeMode::decl(&cfg),
         LanguageMode::decl(&cfg),
         StartupTabMode::decl(&cfg),
+        PeekHeader::decl(&cfg),
+        PeekGeometry::decl(&cfg),
+        PeekConfig::decl(&cfg),
         FileMetadata::decl(&cfg),
         AppConfig::decl(&cfg),
         TabSession::decl(&cfg),
@@ -1083,6 +1158,7 @@ mod tests {
             language_mode: LanguageMode::Nl,
             onboarding_completed: true,
             startup_tab_mode: StartupTabMode::SmartLastActive,
+            peek: PeekConfig::default(),
         };
         save_config_at(&path, &cfg).unwrap();
         let loaded = load_config_at(&path, &dir.path().join("Notes")).unwrap();
@@ -1124,6 +1200,7 @@ mod tests {
             language_mode: LanguageMode::default(),
             onboarding_completed: false,
             startup_tab_mode: StartupTabMode::default(),
+            peek: PeekConfig::default(),
         };
         save_config_at(&path, &cfg).unwrap();
         let on_disk = fs::read_to_string(&path).unwrap();
@@ -1160,6 +1237,7 @@ mod tests {
                 language_mode: LanguageMode::default(),
                 onboarding_completed: false,
                 startup_tab_mode: StartupTabMode::default(),
+                peek: PeekConfig::default(),
             };
             save_config_at(&path, &cfg).unwrap();
             let on_disk = fs::read_to_string(&path).unwrap();
@@ -1220,6 +1298,58 @@ mod tests {
             let loaded = load_config_at(&path, &dir.path().join("Notes")).unwrap();
             assert_eq!(loaded.startup_tab_mode, mode);
         }
+    }
+
+    #[test]
+    fn peek_settings_round_trip_through_json() {
+        let dir = tempdir().unwrap();
+        let path = dir.path().join("config.json");
+        let base = load_config_at(&path, &dir.path().join("Notes")).unwrap();
+        let peek = PeekConfig {
+            enabled: true,
+            lines: 3,
+            opacity: 40,
+            always_on_top: false,
+            header: PeekHeader::Hover,
+            shortcut: "Ctrl+Alt+P".to_string(),
+            geometry: Some(PeekGeometry { x: -20, y: 471, width: 523, height: 113 }),
+            use_lines_height: true,
+        };
+        save_config_at(&path, &AppConfig { peek: peek.clone(), ..base }).unwrap();
+        let on_disk = fs::read_to_string(&path).unwrap();
+        assert!(on_disk.contains("\"alwaysOnTop\""), "camelCase keys expected: {on_disk}");
+        assert!(on_disk.contains("\"hover\""), "header token not serialized: {on_disk}");
+        assert_eq!(load_config_at(&path, &dir.path().join("Notes")).unwrap().peek, peek);
+    }
+
+    #[test]
+    fn load_config_defaults_peek_when_omitted_or_partial() {
+        let dir = tempdir().unwrap();
+        let path = dir.path().join("config.json");
+        fs::write(&path, r#"{"notesDir": "/hand/edited"}"#).unwrap();
+        let cfg = load_config_at(&path, &dir.path().join("Notes")).unwrap();
+        assert_eq!(cfg.peek, PeekConfig::default());
+
+        fs::write(&path, r#"{"notesDir": "/hand/edited", "peek": {"opacity": 55}}"#).unwrap();
+        let cfg = load_config_at(&path, &dir.path().join("Notes")).unwrap();
+        assert_eq!(cfg.peek.opacity, 55);
+        assert_eq!(cfg.peek.lines, 6);
+        assert!(cfg.peek.always_on_top);
+    }
+
+    #[test]
+    fn peek_is_off_by_default_with_the_header_hidden() {
+        assert!(!PeekConfig::default().enabled);
+        assert_eq!(PeekConfig::default().header, PeekHeader::Never);
+        assert_eq!(PeekHeader::default(), PeekHeader::Never);
+    }
+
+    #[test]
+    fn peek_clamped_keeps_values_in_range() {
+        let wild = PeekConfig { lines: 999, opacity: 1, ..PeekConfig::default() }.clamped();
+        assert_eq!(wild.lines, PEEK_MAX_LINES);
+        assert_eq!(wild.opacity, PEEK_MIN_OPACITY);
+        assert_eq!(PeekConfig { opacity: 500, ..PeekConfig::default() }.clamped().opacity, 100);
     }
 
     #[test]

@@ -225,6 +225,12 @@ export const SHORTCUTS: ShortcutDef[] = [
     // Mac gets Cmd+Option+Z too (Option is not AltGr there, and F-keys need fn on many Macs).
     combos: [{ shift: true, code: "F11" }, { mod: true, alt: true, code: "KeyZ", platforms: ["mac"] }],
   },
+  {
+    id: "togglePeekMode",
+    // Desktop app only. Also registered as an OS-wide shortcut (`peek.ts`) so it works while a call app has the
+    // focus; this entry is what the drawer/palette show and what fires inside the app if that registration failed.
+    combos: [{ mod: true, code: "F11" }],
+  },
 ];
 
 /** i18n roadmap: the Shortcuts & Symbols drawer's translation key for
@@ -267,6 +273,7 @@ export const SHORTCUT_LABEL_KEYS = {
   openShortcutsHelp: "shortcuts.openShortcutsHelp.label",
   copyToNextOccurrence: "shortcuts.copyToNextOccurrence.label",
   toggleZenMode: "shortcuts.toggleZenMode.label",
+  togglePeekMode: "shortcuts.togglePeekMode.label",
   clickGlyph: "shortcuts.clickGlyph.label",
   escape: "shortcuts.escape.label",
 } satisfies Record<(typeof SHORTCUTS)[number]["id"] | "clickGlyph" | "escape", TranslationKey>;
@@ -279,11 +286,21 @@ export function shortcutById(id: string): ShortcutDef {
   return def;
 }
 
+/** Shortcuts of features that are switched off (an experimental feature behind a setting). A switched-off shortcut
+ * has no combos at all, so it neither matches a key press nor appears in the Shortcuts drawer (the drawer drops rows
+ * with no combo) or anywhere else a combo is displayed. Peek starts switched off. */
+const switchedOff = new Set<string>(["togglePeekMode"]);
+export function setShortcutEnabled(id: string, enabled: boolean): void {
+  if (enabled) switchedOff.delete(id);
+  else switchedOff.add(id);
+}
+
 /** This def's combos that actually apply on the current platform — the
  * general mechanism both display and (for the App.svelte dispatcher)
  * matching filter through, so a Windows/Linux-only or Mac-only combo
  * simply isn't offered on the other platform. */
 export function combosForPlatform(def: ShortcutDef): ComboSpec[] {
+  if (switchedOff.has(def.id)) return [];
   const platform = isMac ? "mac" : "other";
   return def.combos.filter((c) => !c.platforms || c.platforms.includes(platform));
 }
@@ -380,6 +397,7 @@ export const DRAWER_ROWS: (string | [string, string])[] = [
   "crossTabSearch",
   "syncCalendar",
   "toggleZenMode",
+  "togglePeekMode",
   "openSettings",
   "openAbout",
   "openShortcutsHelp",

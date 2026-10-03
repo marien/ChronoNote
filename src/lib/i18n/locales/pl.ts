@@ -162,6 +162,44 @@ export const pl = {
   "shortcuts.copyToNextOccurrence.label": () =>
     "Skopiuj zaznaczenie (lub bieżący wiersz) do następnego wystąpienia tej sekcji",
   "shortcuts.toggleZenMode.label": () => "Tryb Zen (przestrzeń bez rozpraszaczy)",
+  "shortcuts.togglePeekMode.label": () =>
+    "Peek: compact see-through note window for calls (works from any app)",
+  "commandPalette.togglePeekMode": () =>
+    "Toggle Peek (compact note window for calls)",
+  "peek.toast.noSection": () =>
+    "Put the cursor in a section to peek at it.",
+  "peek.expand": () =>
+    "Back to the full window",
+  "peek.prev": () =>
+    "Previous occurrence",
+  "peek.next": () =>
+    "Next occurrence",
+  "peek.settings.title": () =>
+    "Peek (compact notes during a call)",
+  "peek.settings.enabled.label": () =>
+    "Enable Peek (experimental)",
+  "peek.settings.enabled.hint": () =>
+    "Off by default. A compact, see-through note window for taking notes during a call. Still being tried out.",
+  "peek.settings.lines.label": () =>
+    "Height (lines)",
+  "peek.settings.lines.fit": () =>
+    "Fit the whole section",
+  "peek.settings.opacity.label": () =>
+    "Background opacity",
+  "peek.settings.alwaysOnTop.label": () =>
+    "Keep on top of other windows",
+  "peek.settings.header.label": () =>
+    "Header strip",
+  "peek.settings.header.always": () =>
+    "Always",
+  "peek.settings.header.hover": () =>
+    "On hover",
+  "peek.settings.header.never": () =>
+    "Hidden",
+  "peek.settings.shortcut.label": () =>
+    "Shortcut (works from any app)",
+  "peek.settings.hint": () =>
+    "Peek shrinks the window to the section your cursor is in. Alt+Left / Alt+Right switch to the previous / next occurrence; edits are normal edits. Press the shortcut again to come back.",
   "shortcuts.clickGlyph.label": () =>
     "Ukończ zadanie glifu lub otwórz je ponownie, jeśli jest ukończone, odłożone lub zaniechane; najechanie pokazuje podgląd",
   "shortcuts.escape.label": () => "Zamknij otwarte okno dialogowe",

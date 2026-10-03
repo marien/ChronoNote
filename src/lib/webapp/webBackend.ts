@@ -30,7 +30,8 @@
  * placeholder is never actually shown.
  */
 import { activeAgendaDates, activeTitlesAfterDate, activeTitlesForDate, removedTitlesForDate } from "../agendaTitles";
-import type { AppConfig, AppError, ColorMode, FileMetadata, LanguageMode, StartupTabMode, TabSession, ThemeMode } from "../types";
+import type { AppConfig, AppError, ColorMode, FileMetadata, LanguageMode, PeekConfig, StartupTabMode, TabSession, ThemeMode } from "../types";
+import { PEEK_DEFAULTS, clampPeek } from "../peekDefaults";
 import type { CommandArgs, CommandReturn, TauriCommand, TauriCommands } from "../tauriCommands";
 import { isValidNoteFilename } from "../noteFilename";
 import { IDB_META_KEYS, IDB_STORES, idbClear, idbDelete, idbGet, idbGetAllEntries, idbGetAllKeys, idbPut, openDb } from "./idb";
@@ -71,6 +72,7 @@ interface StoredConfig {
   lineHeight?: number;
   pureBlack?: boolean;
   startupTabMode?: StartupTabMode;
+  peek?: PeekConfig;
   onboardingCompleted?: boolean;
 }
 
@@ -285,6 +287,7 @@ export class WebBackend {
       pureBlack: cfg.pureBlack ?? false,
       onboardingCompleted: cfg.onboardingCompleted ?? false,
       startupTabMode: cfg.startupTabMode ?? "today",
+      peek: cfg.peek ?? PEEK_DEFAULTS,
     };
   }
 
@@ -377,6 +380,14 @@ export class WebBackend {
     set_pure_black: async ({ pureBlack }) => {
       const cfg = await this.loadConfig();
       cfg.pureBlack = pureBlack;
+      await this.saveConfig(cfg);
+      return this.toAppConfig(cfg);
+    },
+
+    // Peek is a desktop-only feature; the web app just stores the value so the shared config shape stays whole.
+    set_peek: async ({ peek }) => {
+      const cfg = await this.loadConfig();
+      cfg.peek = clampPeek(peek);
       await this.saveConfig(cfg);
       return this.toAppConfig(cfg);
     },

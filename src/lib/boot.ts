@@ -55,6 +55,7 @@ import { checkActiveTabForDrift } from "./drift";
 import { initCalendarSyncDiffTracking, maybeSilentSyncEmptyNote, refreshAgendaFileExists } from "./calendarSyncActions";
 import { refreshSyncConflicts, syncOneDriveNow } from "./oneDriveSync";
 import { checkForUpdatesOnLaunch } from "./updates";
+import { applyPeekConfig } from "./peek";
 import { locale, t } from "./i18n";
 import { describeApiError } from "./apiError";
 import { getOnboardingTemplate } from "./onboardingTemplate";
@@ -461,6 +462,7 @@ export async function initApp() {
   pureBlack.set(cfg.pureBlack ?? false);
   applyPureBlackToDom(cfg.pureBlack ?? false);
   startupTabMode.set(cfg.startupTabMode ?? "today");
+  applyPeekConfig(cfg.peek);
   if (cfg.calendarSyncEnabled && (get(backendKind) !== "web" || !!get(oneDriveAccount))) {
     await refreshAgendaFileExists();
   }

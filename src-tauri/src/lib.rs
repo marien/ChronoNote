@@ -120,6 +120,15 @@ fn set_startup_tab_mode(
     Ok(cfg)
 }
 
+/// Peek mode settings (and where the compact window was last left). Out-of-range values are clamped.
+#[tauri::command]
+fn set_peek(app: AppHandle, peek: storage::PeekConfig) -> Result<storage::AppConfig, String> {
+    let mut cfg = storage::load_config(&app)?;
+    cfg.peek = peek.clamped();
+    storage::save_config(&app, &cfg)?;
+    Ok(cfg)
+}
+
 /// #50: called once per launch, right after boot compares the running
 /// version against `AppConfig.last_seen_version` — records the version
 /// so the same launch's update notice (if any) isn't repeated next time.
@@ -446,6 +455,16 @@ fn show_window_without_flash(app: &tauri::App) {
     let _ = window.show();
 }
 
+/// Peek mode: the window is created transparent (`tauri.conf.json`), but `show_window_without_flash` paints an
+/// opaque theme colour under the page so the normal window looks exactly as before. Peek clears that colour so the
+/// page's own semi-transparent background (and nothing else) lets the desktop show through, and puts it back when
+/// Peek ends. Text is never affected: only the background layer is translucent.
+#[tauri::command]
+fn peek_set_transparent(window: tauri::WebviewWindow, transparent: bool, r: u8, g: u8, b: u8) -> Result<(), String> {
+    let color = if transparent { tauri::window::Color(0, 0, 0, 0) } else { tauri::window::Color(r, g, b, 255) };
+    window.set_background_color(Some(color)).map_err(|e| e.to_string())
+}
+
 pub fn run() {
     let onedrive_mgr = std::sync::Arc::new(onedrive::sync::OneDriveManager::new());
 
@@ -464,6 +483,7 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_process::init())
+        .plugin(tauri_plugin_global_shortcut::Builder::new().build())
         .plugin(tauri_plugin_updater::Builder::new().build());
 
     builder
@@ -475,6 +495,7 @@ pub fn run() {
             update_install::install_update,
             zen_window::zen_cover_monitor,
             zen_window::zen_prepare_leave,
+            peek_set_transparent,
             get_config,
             set_notes_dir,
             set_color_mode,
@@ -488,6 +509,7 @@ pub fn run() {
             set_line_height,
             set_pure_black,
             set_startup_tab_mode,
+            set_peek,
             set_last_seen_version,
             set_onboarding_completed,
             list_note_files,

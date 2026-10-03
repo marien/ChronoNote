@@ -10,9 +10,15 @@ export type LanguageMode = "en" | "nl" | "de" | "fr" | "pl" | "es" | "it" | "sys
 
 export type StartupTabMode = "today" | "smart_last_active";
 
+export type PeekHeader = "always" | "hover" | "never";
+
+export type PeekGeometry = { x: number, y: number, width: number, height: number };
+
+export type PeekConfig = { enabled: boolean, lines: number, opacity: number, alwaysOnTop: boolean, header: PeekHeader, shortcut: string, geometry: PeekGeometry | null, useLinesHeight: boolean };
+
 export type FileMetadata = { exists: boolean, contentHash: string | null, sizeBytes: number | null, modifiedMs: number | null };
 
-export type AppConfig = { notesDir: string, colorMode: ColorMode, themeMode: ThemeMode, wordWrap: boolean, readableLineLength: boolean, recentNotesDirs: Array<string>, autoCheckUpdates: boolean, lastSeenVersion: string | null, calendarSyncEnabled: boolean, fontSize: number, lineHeight: number, pureBlack: boolean, languageMode: LanguageMode, onboardingCompleted: boolean, startupTabMode: StartupTabMode };
+export type AppConfig = { notesDir: string, colorMode: ColorMode, themeMode: ThemeMode, wordWrap: boolean, readableLineLength: boolean, recentNotesDirs: Array<string>, autoCheckUpdates: boolean, lastSeenVersion: string | null, calendarSyncEnabled: boolean, fontSize: number, lineHeight: number, pureBlack: boolean, languageMode: LanguageMode, onboardingCompleted: boolean, startupTabMode: StartupTabMode, peek: PeekConfig };
 
 export type TabSession = { openTabs: Array<string>, activeTab: string | null, lastOpenedDate?: string | null };
 

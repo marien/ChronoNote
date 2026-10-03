@@ -30,7 +30,8 @@
  *     by `list_note_files` / `read_all_notes`.
  */
 import { activeAgendaDates, activeTitlesAfterDate, activeTitlesForDate, removedTitlesForDate as removedTitlesForDateShared } from "../agendaTitles";
-import type { AppConfig, AppError, ColorMode, FileMetadata, LanguageMode, StartupTabMode, TabSession, ThemeMode } from "../types";
+import type { AppConfig, AppError, ColorMode, FileMetadata, LanguageMode, PeekConfig, StartupTabMode, TabSession, ThemeMode } from "../types";
+import { PEEK_DEFAULTS, clampPeek } from "../peekDefaults";
 import type { ToastOptions } from "../stores";
 import type { CommandArgs, CommandReturn, OneDriveAdvancedConfig, TauriCommand, TauriCommands } from "../tauriCommands";
 import { isValidNoteFilename } from "../noteFilename";
@@ -60,6 +61,7 @@ export interface MockSeed {
   lineHeight?: number;
   pureBlack?: boolean;
   startupTabMode?: StartupTabMode;
+  peek?: Partial<PeekConfig>;
   onboardingCompleted?: boolean;
   lastSyncSuccessMs?: number | null;
   backendKind?: "desktop" | "demo" | "web";
@@ -136,6 +138,7 @@ const MUTATING_COMMANDS = new Set([
   "set_line_height",
   "set_pure_black",
   "set_startup_tab_mode",
+  "set_peek",
   "write_note",
   "write_conflict_copy",
   "write_tab_session",
@@ -253,6 +256,7 @@ export class MockBackend {
   lineHeight: number;
   pureBlack: boolean;
   startupTabMode: StartupTabMode;
+  peek: PeekConfig;
   onboardingCompleted: boolean;
   lastSyncSuccessMs: number | null = null;
   recentNotesDirs: string[];
@@ -329,6 +333,7 @@ export class MockBackend {
     this.lineHeight = seed.lineHeight ?? 1.6;
     this.pureBlack = seed.pureBlack ?? false;
     this.startupTabMode = seed.startupTabMode ?? "today";
+    this.peek = { ...PEEK_DEFAULTS, ...seed.peek };
     this.onboardingCompleted = seed.onboardingCompleted ?? true;
     this.lastSyncSuccessMs = seed.lastSyncSuccessMs ?? null;
     this.recentNotesDirs = seed.recentNotesDirs ? [...seed.recentNotesDirs] : [];
@@ -381,6 +386,7 @@ export class MockBackend {
       lineHeight: this.lineHeight,
       pureBlack: this.pureBlack,
       startupTabMode: this.startupTabMode,
+      peek: this.peek,
       onboardingCompleted: this.onboardingCompleted,
       recentNotesDirs: this.recentNotesDirs,
       appVersion: this.appVersion,
@@ -419,6 +425,7 @@ export class MockBackend {
         fontSize?: number;
         lineHeight?: number;
         pureBlack?: boolean;
+        peek?: Partial<PeekConfig>;
         onboardingCompleted?: boolean;
         recentNotesDirs: string[];
         appVersion: string;
@@ -438,6 +445,7 @@ export class MockBackend {
       b.fontSize = s.fontSize ?? 13;
       b.lineHeight = s.lineHeight ?? 1.6;
       b.pureBlack = s.pureBlack ?? false;
+      b.peek = { ...PEEK_DEFAULTS, ...s.peek };
       b.onboardingCompleted = s.onboardingCompleted ?? true;
       b.recentNotesDirs = s.recentNotesDirs;
       b.appVersion = s.appVersion;
@@ -479,6 +487,7 @@ export class MockBackend {
       lineHeight: this.lineHeight,
       pureBlack: this.pureBlack,
       startupTabMode: this.startupTabMode,
+      peek: this.peek,
       onboardingCompleted: this.onboardingCompleted,
     };
   }
@@ -613,6 +622,11 @@ export class MockBackend {
 
     set_startup_tab_mode: ({ mode }) => {
       this.startupTabMode = mode;
+      return this.config();
+    },
+
+    set_peek: ({ peek }) => {
+      this.peek = clampPeek(peek);
       return this.config();
     },
 
@@ -851,6 +865,7 @@ export class MockBackend {
       }
 
       // Rust `zen_window.rs`: no windowing in the mock.
+      case "peek_set_transparent":
       case "zen_cover_monitor":
       case "zen_prepare_leave":
         return null;
@@ -899,6 +914,7 @@ export class MockBackend {
         return null;
 
       default:
+        if (cmd.startsWith("plugin:global-shortcut|")) return null;
         if (cmd.startsWith("plugin:window|") || cmd.startsWith("plugin:webview|")) {
           return mockWindowCall(cmd);
         }
@@ -934,6 +950,10 @@ function mockWindowCall(cmd: string): unknown {
       return { width: 1100, height: 720 };
     case "scale_factor":
       return 1;
+    case "outer_position":
+      return { x: 0, y: 0 };
+    case "current_monitor":
+      return { name: "mock", size: { width: 1920, height: 1080 }, position: { x: 0, y: 0 }, scaleFactor: 1 };
     case "theme":
       return "light";
     case "set_title":

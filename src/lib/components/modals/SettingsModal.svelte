@@ -42,6 +42,7 @@
   import Segmented from "../Segmented.svelte";
   import SettingRow from "../SettingRow.svelte";
   import SettingToggle from "../SettingToggle.svelte";
+  import { peekSettings, type PeekHeaderMode } from "../../peek";
   import { t } from "../../i18n";
   import { describeApiError } from "../../apiError";
   import type { ColorMode, LanguageMode, StartupTabMode, ThemeMode } from "../../types";
@@ -455,6 +456,76 @@
             </div>
           </SettingRow>
         </section>
+        {#if $backendKind === "desktop"}
+          <section class="s-group">
+            <div class="settings-section-label">{$t("peek.settings.title")}</div>
+            <SettingToggle
+              label={$t("peek.settings.enabled.label")}
+              checked={$peekSettings.enabled}
+              onChange={(v) => peekSettings.update((s) => ({ ...s, enabled: v }))}
+            >
+              <svelte:fragment slot="description">{$t("peek.settings.enabled.hint")}</svelte:fragment>
+            </SettingToggle>
+            {#if $peekSettings.enabled}
+            <SettingRow label={$t("peek.settings.lines.label")}>
+              <svelte:fragment slot="description">{$t("peek.settings.hint")}</svelte:fragment>
+              <div class="s-slider">
+                <input
+                  type="range"
+                  class="settings-range-slider"
+                  min="0"
+                  max="15"
+                  step="1"
+                  value={$peekSettings.lines}
+                  aria-label={$t("peek.settings.lines.label")}
+                  on:input={(e) => peekSettings.update((s) => ({ ...s, lines: parseInt(e.currentTarget.value, 10), useLinesHeight: true }))}
+                />
+                <span class="settings-slider-val">{$peekSettings.lines === 0 ? $t("peek.settings.lines.fit") : $peekSettings.lines}</span>
+              </div>
+            </SettingRow>
+            <SettingRow label={$t("peek.settings.opacity.label")}>
+              <div class="s-slider">
+                <input
+                  type="range"
+                  class="settings-range-slider"
+                  min="20"
+                  max="100"
+                  step="5"
+                  value={$peekSettings.opacity}
+                  aria-label={$t("peek.settings.opacity.label")}
+                  on:input={(e) => peekSettings.update((s) => ({ ...s, opacity: parseInt(e.currentTarget.value, 10) }))}
+                />
+                <span class="settings-slider-val">{$peekSettings.opacity}%</span>
+              </div>
+            </SettingRow>
+            <SettingToggle
+              label={$t("peek.settings.alwaysOnTop.label")}
+              checked={$peekSettings.alwaysOnTop}
+              onChange={(v) => peekSettings.update((s) => ({ ...s, alwaysOnTop: v }))}
+            />
+            <SettingRow label={$t("peek.settings.header.label")}>
+              <Segmented
+                options={[
+                  { value: "always", label: $t("peek.settings.header.always") },
+                  { value: "hover", label: $t("peek.settings.header.hover") },
+                  { value: "never", label: $t("peek.settings.header.never") },
+                ]}
+                value={$peekSettings.header}
+                onChange={(v) => peekSettings.update((s) => ({ ...s, header: v as PeekHeaderMode }))}
+              />
+            </SettingRow>
+            <SettingRow label={$t("peek.settings.shortcut.label")}>
+              <input
+                type="text"
+                class="find-input s-input"
+                value={$peekSettings.shortcut}
+                aria-label={$t("peek.settings.shortcut.label")}
+                on:change={(e) => peekSettings.update((s) => ({ ...s, shortcut: e.currentTarget.value.trim() }))}
+              />
+            </SettingRow>
+            {/if}
+          </section>
+        {/if}
       {:else if activeSettingsTab === "calendar"}
         {#if $backendKind === "web"}
           <section class="s-group">

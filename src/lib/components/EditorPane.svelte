@@ -13,6 +13,7 @@
   import { clickableLinksPlugin } from "../editor/clickableLinks";
   import { overviewRuler } from "../editor/overviewRuler";
   import { wrapIndentExtension } from "../editor/wrapIndent";
+  import { sectionFocus } from "../editor/sectionFocus";
   import { underlineFor } from "../sectionFormat";
   import {
     actionLineEnter,
@@ -58,6 +59,13 @@
   const wrapCompartment = new Compartment();
   const wrapExtension = (on: boolean) => (on ? [EditorView.lineWrapping, wrapIndentExtension()] : []);
   let unsubscribeWrap: (() => void) | undefined;
+
+  /** Peek mode (compact note window): only one section of the document is shown. A compartment so entering and
+   * leaving Peek reconfigures this one extension in place, with the same document, cursor and undo history. */
+  const peekCompartment = new Compartment();
+  const peekExtension = (target: string | null) =>
+    target ? sectionFocus(target, (lines) => controller.peekFitLines.set(lines)) : [];
+  let unsubscribePeek: (() => void) | undefined;
 
   /** §99: cap the text column to a ~720px reading measure, centred. A
    * compartment like `wrapCompartment` so Settings can flip it live with
@@ -598,6 +606,7 @@
       // `findHiCompartment` does the match highlighting.
       search({ top: true }),
       findHiCompartment.of([]),
+      peekCompartment.of(peekExtension(get(controller.peekTarget))),
       shortcuts,
       keymap.of([...defaultKeymap, ...historyKeymap, indentWithTab]),
       EditorView.updateListener.of((u) => {
@@ -700,6 +709,21 @@
       // §99: the reading measure only applies with wrap on, so a wrap
       // toggle can turn it on or off too.
       reconfigureMeasure();
+    });
+    let firstPeek = true;
+    unsubscribePeek = controller.peekTarget.subscribe((target) => {
+      if (firstPeek) {
+        firstPeek = false;
+        return;
+      }
+      if (!view) return;
+      view.dispatch({ effects: peekCompartment.reconfigure(peekExtension(target)) });
+      if (target) {
+        // A no-op selection update runs the section's selection filter, which moves a caret that was on the title or
+        // outside the section into its body.
+        view.dispatch({ selection: view.state.selection });
+        view.dispatch({ effects: EditorView.scrollIntoView(view.state.selection.main.head, { y: "start", yMargin: 0 }) });
+      }
     });
     let firstMeasure = true;
     unsubscribeMeasure = readableLineLength.subscribe(() => {
@@ -948,6 +972,7 @@
   onDestroy(() => {
     if (pulseTimer) clearTimeout(pulseTimer);
     unsubscribeWrap?.();
+    unsubscribePeek?.();
     unsubscribeMeasure?.();
     // §108: the find bar belongs to this editor instance — a tab switch
     // (which remounts this component) closes it and drops the query.

@@ -160,6 +160,44 @@ export const nl = {
   "shortcuts.copyToNextOccurrence.label": () =>
     "De selectie (of huidige regel) kopiëren naar de volgende gelegenheid van deze sectie",
   "shortcuts.toggleZenMode.label": () => "Zen-modus (afleidingsvrij canvas)",
+  "shortcuts.togglePeekMode.label": () =>
+    "Peek: compact doorzichtig notitievenster voor gesprekken (werkt vanuit elke app)",
+  "commandPalette.togglePeekMode": () =>
+    "Peek omschakelen (compact notitievenster voor gesprekken)",
+  "peek.toast.noSection": () =>
+    "Zet de cursor in een sectie om die te bekijken.",
+  "peek.expand": () =>
+    "Terug naar het volledige venster",
+  "peek.prev": () =>
+    "Vorige keer",
+  "peek.next": () =>
+    "Volgende keer",
+  "peek.settings.title": () =>
+    "Peek (compacte notities tijdens een gesprek)",
+  "peek.settings.enabled.label": () =>
+    "Peek inschakelen (experimenteel)",
+  "peek.settings.enabled.hint": () =>
+    "Standaard uit. Een compact, doorzichtig notitievenster om notities te maken tijdens een gesprek. Wordt nog uitgeprobeerd.",
+  "peek.settings.lines.label": () =>
+    "Hoogte (regels)",
+  "peek.settings.lines.fit": () =>
+    "Hele sectie passend",
+  "peek.settings.opacity.label": () =>
+    "Dekking van de achtergrond",
+  "peek.settings.alwaysOnTop.label": () =>
+    "Boven andere vensters houden",
+  "peek.settings.header.label": () =>
+    "Kopstrook",
+  "peek.settings.header.always": () =>
+    "Altijd",
+  "peek.settings.header.hover": () =>
+    "Bij aanwijzen",
+  "peek.settings.header.never": () =>
+    "Verborgen",
+  "peek.settings.shortcut.label": () =>
+    "Sneltoets (werkt vanuit elke app)",
+  "peek.settings.hint": () =>
+    "Peek verkleint het venster tot de sectie waar je cursor staat. Alt+Links / Alt+Rechts gaan naar de vorige / volgende keer; wijzigingen zijn gewone wijzigingen. Druk nogmaals op de sneltoets om terug te gaan.",
   "shortcuts.clickGlyph.label": () =>
     "Sluit de actie van het symbool, of heropent deze als hij voltooid, uitgesteld of vervallen is (precies dat symbool); bij hover zie je een voorbeeld",
   "shortcuts.escape.label": () => "Sluit het geopende venster",

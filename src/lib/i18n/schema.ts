@@ -151,6 +151,25 @@ export type TranslationParams = {
   "shortcuts.openShortcutsHelp.label": undefined;
   "shortcuts.copyToNextOccurrence.label": undefined;
   "shortcuts.toggleZenMode.label": undefined;
+  "shortcuts.togglePeekMode.label": undefined;
+  "commandPalette.togglePeekMode": undefined;
+  "peek.toast.noSection": undefined;
+  "peek.expand": undefined;
+  "peek.prev": undefined;
+  "peek.next": undefined;
+  "peek.settings.title": undefined;
+  "peek.settings.enabled.label": undefined;
+  "peek.settings.enabled.hint": undefined;
+  "peek.settings.lines.label": undefined;
+  "peek.settings.lines.fit": undefined;
+  "peek.settings.opacity.label": undefined;
+  "peek.settings.alwaysOnTop.label": undefined;
+  "peek.settings.header.label": undefined;
+  "peek.settings.header.always": undefined;
+  "peek.settings.header.hover": undefined;
+  "peek.settings.header.never": undefined;
+  "peek.settings.shortcut.label": undefined;
+  "peek.settings.hint": undefined;
   "shortcuts.clickGlyph.label": undefined;
   "shortcuts.escape.label": undefined;
 

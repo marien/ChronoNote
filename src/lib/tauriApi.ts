@@ -15,6 +15,7 @@ import type {
   TabSession,
   ThemeMode,
   StartupTabMode,
+  PeekConfig,
 } from "./types";
 import type {
   CommandArgs,
@@ -84,6 +85,10 @@ export function setPureBlack(pureBlack: boolean): Promise<AppConfig> {
 
 export function setStartupTabMode(mode: StartupTabMode): Promise<AppConfig> {
   return invoke("set_startup_tab_mode", { mode });
+}
+
+export function setPeek(peek: PeekConfig): Promise<AppConfig> {
+  return invoke("set_peek", { peek });
 }
 
 export function setLastSeenVersion(version: string): Promise<AppConfig> {
