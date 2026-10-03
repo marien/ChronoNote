@@ -20,6 +20,8 @@ test.describe("peek mode", () => {
           "2026-09-10.txt": note("- next week"),
         },
         session: { openTabs: ["2026-09-07.txt"], activeTab: "2026-09-07.txt" },
+        // The header strip is hidden by default; most of these tests read it.
+        peek: { header: "always" },
       },
     });
   });
@@ -42,6 +44,21 @@ test.describe("peek mode", () => {
     await expect(page.locator("#peek-bar")).toContainText("2026-09-07");
     await expect(page.locator("#peek-bar")).toContainText("2/3");
     await expect(page.locator("#peek-bar")).toHaveClass(/\btoday\b/);
+  });
+
+  test("by default the header strip is hidden: a thin strip keeps the past/today/future colour and the drag handle", async ({ page }) => {
+    await seedApp(page, {
+      seed: {
+        notes: { "2026-09-07.txt": note("- today") },
+        session: { openTabs: ["2026-09-07.txt"], activeTab: "2026-09-07.txt" },
+      },
+    });
+    await enterOnWeeklySync(page);
+    const bar = page.locator("#peek-bar");
+    await expect(bar).toHaveClass(/\bthin\b/);
+    await expect(bar).toHaveClass(/\btoday\b/);
+    await expect(bar).toHaveText("");
+    expect((await bar.boundingBox())!.height).toBeLessThan(12);
   });
 
   test("the shortcut again brings the full note back", async ({ page }) => {
@@ -113,6 +130,7 @@ test.describe("peek mode", () => {
         seed: {
           notes: { "2026-09-01.txt": note("- last month"), "2026-09-07.txt": note("- today") },
           session: { openTabs: ["2026-09-01.txt", "2026-09-07.txt"], activeTab: "2026-09-07.txt" },
+          peek: { header: "always" },
         },
       });
       await enterOnWeeklySync(page);

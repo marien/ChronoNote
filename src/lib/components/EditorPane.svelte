@@ -718,7 +718,12 @@
       }
       if (!view) return;
       view.dispatch({ effects: peekCompartment.reconfigure(peekExtension(target)) });
-      if (target) view.dispatch({ effects: EditorView.scrollIntoView(view.state.selection.main.head, { y: "start", yMargin: 0 }) });
+      if (target) {
+        // A no-op selection update runs the section's selection filter, which moves a caret that was on the title or
+        // outside the section into its body.
+        view.dispatch({ selection: view.state.selection });
+        view.dispatch({ effects: EditorView.scrollIntoView(view.state.selection.main.head, { y: "start", yMargin: 0 }) });
+      }
     });
     let firstMeasure = true;
     unsubscribeMeasure = readableLineLength.subscribe(() => {

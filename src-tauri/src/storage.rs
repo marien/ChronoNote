@@ -76,9 +76,10 @@ pub enum StartupTabMode {
 #[derive(Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Debug, Default, TS)]
 #[serde(rename_all = "snake_case")]
 pub enum PeekHeader {
-    #[default]
     Always,
     Hover,
+    /// Only a thin strip (it still carries the past/today/future colour and works as the drag handle).
+    #[default]
     Never,
 }
 
@@ -1329,6 +1330,12 @@ mod tests {
         assert_eq!(cfg.peek.opacity, 55);
         assert_eq!(cfg.peek.lines, 6);
         assert!(cfg.peek.always_on_top);
+    }
+
+    #[test]
+    fn peek_header_is_hidden_by_default() {
+        assert_eq!(PeekConfig::default().header, PeekHeader::Never);
+        assert_eq!(PeekHeader::default(), PeekHeader::Never);
     }
 
     #[test]

@@ -10,7 +10,7 @@ export const PEEK_DEFAULTS: PeekConfig = {
   lines: 6,
   opacity: 70,
   alwaysOnTop: true,
-  header: "always",
+  header: "never",
   shortcut: "CommandOrControl+F11",
   geometry: null,
   useLinesHeight: false,

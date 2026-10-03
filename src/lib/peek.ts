@@ -28,6 +28,7 @@ import {
   showToast,
   tabs,
 } from "./stores";
+import { findSectionRange } from "./peekSection";
 import { getSectionHeaderForLine, normalizeHeaderTitle, titleForMatching } from "./tokens";
 
 export type PeekHeaderMode = PeekHeader;
@@ -37,8 +38,9 @@ export type PeekSettings = PeekConfig;
 export { PEEK_DEFAULTS };
 /** Most rows "fit the whole section" mode grows to. */
 export const PEEK_MAX_FIT_LINES = 20;
-/** Chrome around the text in logical px: the header strip plus the editor's own padding. */
-const CHROME_PX = 30 + 12;
+/** Logical px around the text: the header strip (a thin colour/drag strip when the header is hidden) plus the
+ * editor's own padding. */
+const chromePx = (header: PeekHeader) => (header === "never" ? 8 : 30) + 12;
 
 export const peekSettings = writable<PeekSettings>({ ...PEEK_DEFAULTS });
 
@@ -79,7 +81,7 @@ const desktop = () => get(backendKind) === "desktop";
 
 function logicalHeight(s: PeekSettings, fit: number): number {
   const rows = s.lines > 0 ? s.lines : Math.min(Math.max(fit, 3), PEEK_MAX_FIT_LINES);
-  return Math.round(rows * get(fontSize) * get(lineHeight) + CHROME_PX);
+  return Math.round(rows * get(fontSize) * get(lineHeight) + chromePx(s.header));
 }
 
 /** Dated notes that contain the section, oldest first: disk notes overlaid with what the open tabs hold. */
@@ -228,6 +230,16 @@ export function wirePeek(): () => void {
       })();
     }),
   );
+
+  // Peek stays in the section it was opened from. If the note on screen no longer has that section (another
+  // note was switched to, or its text was replaced from outside), Peek ends: to work elsewhere, leave Peek.
+  const stayInSection = () => {
+    if (!get(peekMode)) return;
+    const target = get(peekTarget);
+    const tab = get(tabs).find((x) => x.id === get(activeTabId));
+    if (!target || !tab || !findSectionRange(tab.content.split("\n"), target)) leavePeek();
+  };
+  cleanups.push(tabs.subscribe(stayInSection), activeTabId.subscribe(stayInSection));
 
   // The "lines" setting (or the section growing in fit mode) resizes the window live.
   const resize = () => {
