@@ -95,6 +95,19 @@ section whose title starts with `'` (an ad-hoc call) is never touched by
 the sync. See [`docs/agenda-file-guide.md`](docs/agenda-file-guide.md)
 for the exact schema.
 
+## Peek (experimental)
+
+A compact, see-through note window for taking notes during a call, so you can keep
+seeing the people you are talking to. It is **off by default**: switch it on in
+Settings -> Appearance -> "Enable Peek (experimental)" (desktop app only). Then
+`Ctrl+F11` (`Cmd+F11` on a Mac, works from any app) shrinks ChronoNote to a small
+always-on-top window showing only the section your cursor was in; `Alt+Left` /
+`Alt+Right` step to earlier / later occurrences of that section, and the same
+shortcut brings the full window back. It is the same window and editor, so
+everything you type is a normal edit, and it stays inside its section (to work in
+another section, leave Peek). Height, opacity, the header strip and the shortcut are
+in the same Settings group.
+
 ## Web app and demo
 
 The same `src/` tree also builds the public demo and the web app —

@@ -328,6 +328,14 @@ Every modal dialog conforms to a standardized 4-tier sizing scale, universal dis
    * Customizable monospace font size slider (12px to 18px in 0.5px steps, default 13px) and line spacing slider (1.30 to 1.80 in 0.05 steps, default 1.60) in Settings, updating live via `--editor-font-size` and `--editor-line-height` CSS custom properties.
    * Pure black OLED dark theme toggle (`pure_black: bool`) layers `data-pure-black` on top of the dark theme, mapping the canvas to absolute `#000000` for OLED battery savings and true zero-luminance black backgrounds.
 
+5. **Peek (experimental, desktop app only, off by default):** a compact, see-through, always-on-top note window for taking notes during a call.
+   * Off until Settings -> Appearance -> "Enable Peek (experimental)" is switched on (`peek.enabled` in `config.json`). While off it has no shortcut anywhere (not even the system-wide registration), no palette entry, no Shortcuts-drawer row, and Settings shows only the switch.
+   * The same window and editor, shrunk: `Ctrl+F11` (`Cmd+F11` on macOS; system-wide, editable) enters and leaves; leaving restores the full window exactly.
+   * Shows only the section the cursor was in; edits cannot touch anything outside it or its title/underline, and the caret stays in its body. To work in another section, leave Peek. If the visible note has no such section Peek ends.
+   * `Alt+Left` / `Alt+Right` step to the previous / next note that has the section (past occurrences are editable). Leaving returns to the starting note and closes the notes Peek opened unless they were edited.
+   * The window is transparent at the OS level; only the page background takes the opacity (20-100%, default 70%), text stays opaque. The header strip is hidden by default (thin strip: drag handle and past/today/future colour).
+   * Settings (`peek` object): lines or fit-section, opacity, always on top, header strip, shortcut, remembered position.
+
 ---
 
 ## 4. Keyboard Shortcuts & Platform Awareness
@@ -360,6 +368,8 @@ snapshot for reference, not the source of truth.
 | Set the line to a topic: to discuss / discussed / not discussed | `Ctrl+5` / `Ctrl+6` / `Ctrl+7` | `Cmd+5` / `Cmd+6` / `Cmd+7` |
 | Copy this section to its next occurrence | `Ctrl+Shift+.` | `Cmd+Shift+.` |
 | Zen mode (hide the bars) | `Shift+F11` (also `F11` on desktop) | `Shift+F11` / `Cmd+Option+Z` |
+| Peek: compact note window (experimental, only when enabled; works from any app) | `Ctrl+F11` | `Cmd+F11` |
+| Peek: previous / next occurrence of the section | `Alt+Left` / `Alt+Right` | `Alt+Left` / `Alt+Right` |
 | Jump to next / previous open action | `F2` / `Shift+F2` | `F2` / `Shift+F2` |
 | Caret to line start, then previous/next line start | `Ctrl+↑` / `Ctrl+↓` | *(not offered — Mac keeps the OS's own page-scroll on these keys)* |
 | Convert current line to a section header | `Ctrl+Shift+S` | `Cmd+Shift+S` |
