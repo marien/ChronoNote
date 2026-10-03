@@ -188,16 +188,45 @@ test.describe("peek mode: tests with their own seed", () => {
       expect(await editor(page).innerText()).toContain("Standup");
     });
 
-    test("with a modal open, Esc closes the modal first and only the next Esc leaves Peek", async ({ page }) => {
+  });
+
+  test.describe("opening a drawer or dialog ends Peek (they do not fit in the small window)", () => {
+    test.beforeEach(async ({ page }) => seedThreeOccurrences(page));
+    const modal = (page: import("@playwright/test").Page) => page.evaluate(() => window.__CHRONO_MOCK__!.debug!.modal());
+
+    const shortcuts: [string, string, string][] = [
+      ["Action Drawer", "ControlOrMeta+Shift+A", "actions"],
+      ["Section History", "ControlOrMeta+Shift+H", "history"],
+      ["Search", "ControlOrMeta+Shift+F", "search"],
+      ["command palette", "ControlOrMeta+K", "commandPalette"],
+      ["Settings", "ControlOrMeta+Comma", "settings"],
+      ["date picker", "ControlOrMeta+O", "date"],
+      ["Shortcuts & Symbols", "ControlOrMeta+Slash", "shortcuts"],
+    ];
+    for (const [name, combo, kind] of shortcuts) {
+      test(`the ${name} shortcut ends Peek and opens the ${name}`, async ({ page }) => {
+        await enterOnWeeklySync(page);
+        await expect(page.locator("body.peek-mode")).toBeVisible();
+        await page.keyboard.press(combo);
+        await expect.poll(() => modal(page)).toBe(kind);
+        await expect(page.locator("body.peek-mode")).toHaveCount(0);
+        // Esc then just closes the drawer; we are back in the full window, not in Peek.
+        await page.keyboard.press("Escape");
+        await expect.poll(() => modal(page)).toBe("none");
+        await expect(page.locator("body.peek-mode")).toHaveCount(0);
+      });
+    }
+
+    test("the tabs stay as they are: Section History opened from a past occurrence works on that note", async ({ page }) => {
       await enterOnWeeklySync(page);
-      const modal = () => page.evaluate(() => window.__CHRONO_MOCK__!.debug!.modal());
-      await page.keyboard.press("ControlOrMeta+Shift+A");
-      await expect.poll(modal).toBe("actions");
-      await page.keyboard.press("Escape");
-      await expect.poll(modal).toBe("none");
-      await expect(page.locator("body.peek-mode")).toBeVisible();
-      await page.keyboard.press("Escape");
+      await page.keyboard.press("Alt+ArrowLeft");
+      await expect(page.locator("#peek-bar")).toContainText("2026-09-01");
+      await page.keyboard.press("ControlOrMeta+Shift+H");
+      await expect.poll(() => modal(page)).toBe("history");
       await expect(page.locator("body.peek-mode")).toHaveCount(0);
+      // Not sent back to the starting note, and the note Peek opened is not closed under the drawer.
+      await expect(activeTabLabel(page)).toContainText("2026-09-01");
+      await expect(tab(page, "2026-09-01.txt")).toHaveCount(1);
     });
   });
 

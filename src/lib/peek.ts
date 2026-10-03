@@ -25,6 +25,7 @@ import {
   fontSize,
   isZenMode,
   lineHeight,
+  modal,
   showToast,
   tabs,
 } from "./stores";
@@ -131,13 +132,14 @@ let peekOrigin: string | null = null;
 const peekSeen = new Map<string, string>();
 const peekOpened = new Set<string>();
 
-function tidyTabsAfterPeek(): void {
+function tidyTabsAfterPeek(keepTabs: boolean): void {
   const origin = peekOrigin;
   const seen = new Map(peekSeen);
   const opened = new Set(peekOpened);
   peekOrigin = null;
   peekSeen.clear();
   peekOpened.clear();
+  if (keepTabs) return;
   const open = get(tabs);
   const edited = (id: string) => {
     const now = open.find((x) => x.id === id);
@@ -170,12 +172,14 @@ export async function enterPeek(): Promise<boolean> {
   return true;
 }
 
-export function leavePeek(): void {
+/** `keepTabs`: leave the tabs exactly as they are (no return to the starting note, no closing of the notes Peek opened).
+ * Used when a drawer or dialog opens: it works on the note you were looking at. */
+export function leavePeek(options: { keepTabs?: boolean } = {}): void {
   if (!get(peekMode)) return;
   peekMode.set(false);
   peekTarget.set(null);
   peekPosition.set(null);
-  tidyTabsAfterPeek();
+  tidyTabsAfterPeek(options.keepTabs === true);
 }
 
 /** Alt+Left (-1) / Alt+Right (+1): the previous / next note that has this section. */
@@ -241,6 +245,15 @@ export function wirePeek(): () => void {
           if (compact) peekSettings.update((x) => ({ ...x, geometry: compact, useLinesHeight: false }));
         }
       })();
+    }),
+  );
+
+  // Peek is a very small window: a drawer or dialog opened by its shortcut would not fit in it. So opening any
+  // modal ends Peek and the modal appears in the full window. The tabs stay as they are, because the modal works on
+  // the note you were looking at (Section History opened from a past occurrence, for instance).
+  cleanups.push(
+    modal.subscribe((m) => {
+      if (m !== "none" && get(peekMode)) leavePeek({ keepTabs: true });
     }),
   );
 

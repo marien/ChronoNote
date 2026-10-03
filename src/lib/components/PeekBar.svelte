@@ -59,7 +59,7 @@
       class="peek-btn"
       aria-label={$t("peek.expand")}
       title={$t("peek.expand")}
-      on:click={controller.leavePeek}><Icon name="maximize" size={13} /></button
+      on:click={() => controller.leavePeek()}><Icon name="maximize" size={13} /></button
     >
   {/if}
 </div>
