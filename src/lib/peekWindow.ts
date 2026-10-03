@@ -113,6 +113,17 @@ export function createPeekWindowController(win: PeekWin) {
       }, undefined);
     },
 
+    /** Grow (positive) or shrink (negative) the window at its TOP edge: the bottom stays where it is. Used when the
+     * header strip expands and collapses. */
+    resizeKeepingBottom(deltaLogical: number): Promise<void> {
+      return run(async () => {
+        if (!full) return;
+        const [g, scale] = [await currentGeometry(), (await win.scaleFactor()) || 1];
+        const d = Math.round(deltaLogical * scale);
+        await win.setBounds({ ...g, y: g.y - d, height: g.height + d });
+      }, undefined);
+    },
+
     setAlwaysOnTop(on: boolean): Promise<void> {
       return run(async () => {
         if (full) await win.setAlwaysOnTop(on);

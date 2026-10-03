@@ -9,12 +9,13 @@ export const PEEK_MIN_OPACITY = 20;
 export const PEEK_DEFAULTS: PeekConfig = {
   enabled: false,
   lines: 6,
-  opacity: 70,
+  opacity: 80,
   alwaysOnTop: true,
-  header: "never",
+  header: "always",
   shortcut: "CommandOrControl+F11",
   geometry: null,
   useLinesHeight: false,
+  defaultsVersion: 1,
 };
 
 export function clampPeek(peek: PeekConfig): PeekConfig {

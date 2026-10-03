@@ -47,10 +47,13 @@ test.describe("peek mode", () => {
     await enterOnWeeklySync(page);
     await expect(page.locator("body.peek-mode")).toBeVisible();
     const text = await editor(page).innerText();
-    expect(text).toContain("Weekly sync");
     expect(text).toContain("budget");
     expect(text).not.toContain("Standup");
     expect(text).not.toContain("elsewhere");
+    // The section's own title and underline are not drawn: the header strip shows the title.
+    expect(text).not.toContain("Weekly sync");
+    expect(text).not.toContain("=====");
+    await expect(page.locator("#peek-bar")).toContainText("Weekly sync");
     await expect(page.locator("#peek-bar")).toContainText("2026-09-07");
     await expect(page.locator("#peek-bar")).toContainText("2/3");
     await expect(page.locator("#peek-bar")).toHaveClass(/\btoday\b/);
@@ -133,14 +136,69 @@ test.describe("peek mode", () => {
 });
 
 test.describe("peek mode: tests with their own seed", () => {
-  test("by default the header strip is hidden: a thin strip keeps the past/today/future colour and the drag handle", async ({ page }) => {
+  test("the header strip is shown by default, with the date and the section's title", async ({ page }) => {
     await seedApp(page, { seed: { ...today(), peek: { enabled: true } } });
+    await enterOnWeeklySync(page);
+    const bar = page.locator("#peek-bar");
+    await expect(bar).not.toHaveClass(/\bthin\b/);
+    await expect(bar).toContainText("2026-09-07");
+    await expect(bar).toContainText("Weekly sync");
+  });
+
+  test('set to "Verborgen" (hidden) the strip shrinks to a thin one that keeps the past/today/future colour and the drag handle', async ({ page }) => {
+    await seedApp(page, { seed: { ...today(), peek: { enabled: true, header: "never" } } });
     await enterOnWeeklySync(page);
     const bar = page.locator("#peek-bar");
     await expect(bar).toHaveClass(/\bthin\b/);
     await expect(bar).toHaveClass(/\btoday\b/);
     await expect(bar).toHaveText("");
-    expect((await bar.boundingBox())!.height).toBeLessThan(12);
+    // Thin, but a real grab area (it is the only handle for moving the window).
+    const height = (await bar.boundingBox())!.height;
+    expect(height).toBeGreaterThanOrEqual(14);
+    expect(height).toBeLessThan(20);
+  });
+
+  test('"On hover": the thin strip grows into the header while the pointer is over the window', async ({ page }) => {
+    await seedApp(page, { seed: { ...today(), peek: { enabled: true, header: "hover" } } });
+    await enterOnWeeklySync(page);
+    const bar = page.locator("#peek-bar");
+    await expect(bar).toHaveClass(/\bthin\b/);
+    await expect(bar).toHaveText("");
+    await page.evaluate(() => document.documentElement.dispatchEvent(new MouseEvent("mouseenter")));
+    await expect(bar).not.toHaveClass(/\bthin\b/);
+    await expect(bar).toContainText("Weekly sync");
+    await page.evaluate(() => document.documentElement.dispatchEvent(new MouseEvent("mouseleave")));
+    await expect(bar).toHaveClass(/\bthin\b/);
+  });
+
+  test("the background opacity defaults to 80%", async ({ page }) => {
+    await seedApp(page, { seed: { ...today(), peek: { enabled: true } } });
+    await openPeekSettings(page);
+    await expect(peekRange(page, "Background opacity")).toHaveValue("80");
+  });
+
+  test.describe("Esc", () => {
+    test.beforeEach(async ({ page }) => seedThreeOccurrences(page));
+
+    test("Esc leaves Peek, like Zen mode", async ({ page }) => {
+      await enterOnWeeklySync(page);
+      await expect(page.locator("body.peek-mode")).toBeVisible();
+      await page.keyboard.press("Escape");
+      await expect(page.locator("body.peek-mode")).toHaveCount(0);
+      expect(await editor(page).innerText()).toContain("Standup");
+    });
+
+    test("with a modal open, Esc closes the modal first and only the next Esc leaves Peek", async ({ page }) => {
+      await enterOnWeeklySync(page);
+      const modal = () => page.evaluate(() => window.__CHRONO_MOCK__!.debug!.modal());
+      await page.keyboard.press("ControlOrMeta+Shift+A");
+      await expect.poll(modal).toBe("actions");
+      await page.keyboard.press("Escape");
+      await expect.poll(modal).toBe("none");
+      await expect(page.locator("body.peek-mode")).toBeVisible();
+      await page.keyboard.press("Escape");
+      await expect(page.locator("body.peek-mode")).toHaveCount(0);
+    });
   });
 
   test("a note that was already open before Peek is not closed, and you land back on the note you started from", async ({ page }) => {

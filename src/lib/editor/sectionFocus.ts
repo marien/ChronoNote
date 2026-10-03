@@ -1,8 +1,9 @@
 /** Peek mode's editor extension: shows only one section of the document, and keeps every edit inside it.
  *
- * Everything before the section's title and after its last line is covered by a block "replace" decoration that
- * draws nothing, so it is the SAME document in the SAME editor (edits, undo, autosave all stay the normal ones) with
- * the other sections folded away. On top of that:
+ * Everything before the section's body (including its own title and underline, which the header strip shows
+ * instead) and after its last line is covered by a block "replace" decoration that draws nothing, so it is the SAME
+ * document in the SAME editor (edits, undo, autosave all stay the normal ones) with the other sections folded away.
+ * On top of that:
  *  - the folded ranges are atomic, so the caret cannot enter them;
  *  - a transaction filter pulls any selection (select-all, click on the title, shift-arrows) back into the section's
  *    body;
@@ -28,7 +29,8 @@ function hiddenRanges(state: EditorState, range: SectionRange | null): Decoratio
   if (!range) return Decoration.none;
   const hide = Decoration.replace({ block: true });
   const ranges: Range<Decoration>[] = [];
-  if (range.titleLine > 0) ranges.push(hide.range(0, state.doc.line(range.titleLine).to));
+  // Everything up to and including the section's underline: earlier sections, then this section's title lines.
+  ranges.push(hide.range(0, state.doc.line(range.titleLine + 2).to));
   if (range.lastLine + 2 <= state.doc.lines) ranges.push(hide.range(state.doc.line(range.lastLine + 2).from, state.doc.length));
   return Decoration.set(ranges);
 }

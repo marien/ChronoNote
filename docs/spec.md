@@ -331,9 +331,9 @@ Every modal dialog conforms to a standardized 4-tier sizing scale, universal dis
 5. **Peek (experimental, desktop app only, off by default):** a compact, see-through, always-on-top note window for taking notes during a call.
    * Off until Settings -> Appearance -> "Enable Peek (experimental)" is switched on (`peek.enabled` in `config.json`). While off it has no shortcut anywhere (not even the system-wide registration), no palette entry, no Shortcuts-drawer row, and Settings shows only the switch.
    * The same window and editor, shrunk: `Ctrl+F11` (`Cmd+F11` on macOS; system-wide, editable) enters and leaves; leaving restores the full window exactly.
-   * Shows only the section the cursor was in; edits cannot touch anything outside it or its title/underline, and the caret stays in its body. To work in another section, leave Peek. If the visible note has no such section Peek ends.
+   * Shows only the section's body (its title and underline are not drawn: the header strip shows the title); edits cannot touch anything outside the section or its title/underline, and the caret stays in the body. To work in another section, leave Peek. If the visible note has no such section Peek ends. `Esc` leaves Peek, after an open drawer or the find bar has taken its `Esc`.
    * `Alt+Left` / `Alt+Right` step to the previous / next note that has the section (past occurrences are editable). Leaving returns to the starting note and closes the notes Peek opened unless they were edited.
-   * The window is transparent at the OS level; only the page background takes the opacity (20-100%, default 70%), text stays opaque. The header strip is hidden by default (thin strip: drag handle and past/today/future colour).
+   * The window is transparent at the OS level; only the page background takes the opacity (20-100%, default 70%), text stays opaque (default 80%). The header strip (date, position among the occurrences, title, a button back to the full window) is shown by default; "Hidden" collapses it to a 16 px strip that is still the drag handle and carries the past/today/future colour; "On hover" shows that strip until the pointer is over the window, which then grows upward by the header's height (the bottom edge stays put).
    * Settings (`peek` object): lines or fit-section, opacity, always on top, header strip, shortcut, remembered position.
 
 ---

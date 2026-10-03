@@ -106,7 +106,18 @@
       togglePeekMode: () => controller.togglePeek(),
     };
 
-    function dismissTopOverlayAndReturnTrue(): boolean {
+    // A modal or the find bar handles Esc in its own handler, which runs before this window-level one and has
+    // already closed itself by the time we get here. So whether Esc may also END Zen / Peek is decided from what was
+    // open when the key went down (this capture-phase listener), not from what is open now.
+    let overlayOpenAtEscape = false;
+    function noteEscapeStart(e: KeyboardEvent) {
+      if (e.key !== "Escape") return;
+      overlayOpenAtEscape =
+        get(oneDriveFolderPickerOpen) || get(mobileTabDrawerOpen) || get(modal) !== "none" || get(findOpen);
+    }
+    window.addEventListener("keydown", noteEscapeStart, true);
+
+    function dismissTopOverlayAndReturnTrue(allowModeExit = true): boolean {
       if (get(oneDriveFolderPickerOpen)) {
         oneDriveFolderPickerOpen.set(false);
         return true;
@@ -136,8 +147,11 @@
       } else if (current !== "none") {
         controller.closeAllModals();
         return true;
-      } else if (get(isZenMode)) {
+      } else if (allowModeExit && get(isZenMode)) {
         isZenMode.set(false);
+        return true;
+      } else if (allowModeExit && get(peekMode)) {
+        controller.leavePeek();
         return true;
       }
       return false;
@@ -158,7 +172,7 @@
       }
 
       if (e.key === "Escape") {
-        if (dismissTopOverlayAndReturnTrue()) {
+        if (dismissTopOverlayAndReturnTrue(!overlayOpenAtEscape)) {
           e.preventDefault();
         }
         return;
@@ -301,6 +315,7 @@
       unwireViewport();
       backNav.destroy();
       window.removeEventListener("keydown", onKeydown);
+      window.removeEventListener("keydown", noteEscapeStart, true);
       window.removeEventListener("dragenter", onWindowDragEnter);
       window.removeEventListener("dragleave", onWindowDragLeave);
       window.removeEventListener("dragover", onWindowDragOver);

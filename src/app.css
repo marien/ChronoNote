@@ -4399,7 +4399,7 @@ body.peek-mode #status-bar {
    the window is transparent at the OS level, the page paints the theme colour at `--peek-opacity`, and all text and
    glyphs stay fully opaque. In the normal window the page paints the opaque theme colour as always. */
 body.peek-mode {
-  background: color-mix(in srgb, var(--bg) calc(var(--peek-opacity, 70) * 1%), transparent);
+  background: color-mix(in srgb, var(--bg) calc(var(--peek-opacity, 80) * 1%), transparent);
 }
 body.peek-mode #editor-container,
 body.peek-mode .cm-editor,
@@ -4422,7 +4422,7 @@ body.peek-mode .cm-content {
   gap: 6px;
   padding: 0 6px;
   border-top: 2px solid var(--tab-active-border);
-  background: color-mix(in srgb, var(--surface-chrome) calc(var(--peek-opacity, 70) * 1%), transparent);
+  background: color-mix(in srgb, var(--surface-chrome) calc(var(--peek-opacity, 80) * 1%), transparent);
   color: var(--text);
   font-size: 12px;
   text-shadow: 0 0 3px var(--bg), 0 0 6px var(--bg);
@@ -4477,14 +4477,23 @@ body.peek-mode .cm-content {
   opacity: 0.3;
   cursor: default;
 }
-.peek-bar.hover-only {
-  opacity: 0;
-  transition: opacity 150ms ease;
-}
-body.peek-mode:hover .peek-bar.hover-only,
-.peek-bar.hover-only:focus-within {
-  opacity: 1;
-}
+/* The collapsed strip is the only place to grab the window with the mouse, so it is not hair-thin: 16px, with a small
+   grip mark in the middle. (The colour line along its top edge is the past / today / future cue.) */
 .peek-bar.thin {
-  height: 8px;
+  height: 16px;
+  padding: 0;
+  position: relative;
+}
+.peek-bar.thin::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 28px;
+  height: 3px;
+  margin: -1px 0 0 -14px;
+  border-radius: 2px;
+  background: var(--muted);
+  opacity: 0.45;
+  pointer-events: none;
 }

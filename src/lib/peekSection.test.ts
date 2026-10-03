@@ -27,9 +27,9 @@ describe("findSectionRange", () => {
   it("returns null when the section is missing", () => {
     expect(findSectionRange(note, "nope")).toBeNull();
   });
-  it("counts visible lines without trailing blanks, plus one to type on", () => {
+  it("counts body lines without trailing blanks (title and underline are not drawn), plus one to type on", () => {
     const r = findSectionRange(note, "weekly sync")!;
-    expect(sectionVisibleLineCount(note, r)).toBe(5);
+    expect(sectionVisibleLineCount(note, r)).toBe(3);
   });
 });
 

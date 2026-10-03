@@ -39,9 +39,14 @@ export type PeekSettings = PeekConfig;
 export { PEEK_DEFAULTS };
 /** Most rows "fit the whole section" mode grows to. */
 export const PEEK_MAX_FIT_LINES = 20;
-/** Logical px around the text: the header strip (a thin colour/drag strip when the header is hidden) plus the
- * editor's own padding. */
-const chromePx = (header: PeekHeader) => (header === "never" ? 8 : 30) + 12;
+/** Logical px of the header strip: the full strip, or the thin colour/drag strip it collapses to (when hidden, and
+ * in "on hover" mode until the pointer is over the window). */
+const HEADER_FULL_PX = 30;
+const HEADER_THIN_PX = 16;
+/** Plus the editor's own padding. */
+const EDITOR_PADDING_PX = 12;
+const headerPx = (header: PeekHeader, expanded: boolean) =>
+  header === "always" || (header === "hover" && expanded) ? HEADER_FULL_PX : HEADER_THIN_PX;
 
 export const peekSettings = writable<PeekSettings>({ ...PEEK_DEFAULTS });
 
@@ -69,6 +74,8 @@ export const peekMode = writable(false);
 export const peekTarget = writable<string | null>(null);
 /** Lines the section needs right now (reported by the editor), for fit-to-section sizing. */
 export const peekFitLines = writable(0);
+/** "On hover" header: true while the pointer is over the window and the thin strip has grown into the full header. */
+export const peekHeaderExpanded = writable(false);
 /** Position of the shown occurrence among all occurrences of the section (1-based), for the header. */
 export const peekPosition = writable<{ index: number; total: number } | null>(null);
 
@@ -82,7 +89,7 @@ const desktop = () => get(backendKind) === "desktop";
 
 function logicalHeight(s: PeekSettings, fit: number): number {
   const rows = s.lines > 0 ? s.lines : Math.min(Math.max(fit, 3), PEEK_MAX_FIT_LINES);
-  return Math.round(rows * get(fontSize) * get(lineHeight) + chromePx(s.header));
+  return Math.round(rows * get(fontSize) * get(lineHeight) + headerPx(s.header, get(peekHeaderExpanded)) + EDITOR_PADDING_PX);
 }
 
 /** Dated notes that contain the section, oldest first: disk notes overlaid with what the open tabs hold. */
@@ -152,6 +159,7 @@ export async function enterPeek(): Promise<boolean> {
     return false;
   }
   isZenMode.set(false);
+  peekHeaderExpanded.set(false);
   peekOrigin = tab.id;
   peekSeen.clear();
   peekOpened.clear();
@@ -226,6 +234,9 @@ export function wirePeek(): () => void {
             alwaysOnTop: s.alwaysOnTop,
           });
         } else {
+          // Leaving with the hover header expanded: collapse it first so the remembered height is the collapsed one.
+          if (get(peekHeaderExpanded)) await win.resizeKeepingBottom(-(HEADER_FULL_PX - HEADER_THIN_PX));
+          peekHeaderExpanded.set(false);
           const compact = await win.leave();
           if (compact) peekSettings.update((x) => ({ ...x, geometry: compact, useLinesHeight: false }));
         }
@@ -242,6 +253,23 @@ export function wirePeek(): () => void {
     if (!target || !tab || !findSectionRange(tab.content.split("\n"), target)) leavePeek();
   };
   cleanups.push(tabs.subscribe(stayInSection), activeTabId.subscribe(stayInSection));
+
+  // Header strip "on hover": the thin strip grows into the full header while the pointer is over the window, and
+  // the window grows UPWARD by the difference so its bottom edge (and the text) does not move.
+  const setHeaderExpanded = (on: boolean) => {
+    if (!get(peekMode) || get(peekSettings).header !== "hover" || get(peekHeaderExpanded) === on) return;
+    peekHeaderExpanded.set(on);
+    const delta = HEADER_FULL_PX - HEADER_THIN_PX;
+    void controller().then((w) => w.resizeKeepingBottom(on ? delta : -delta));
+  };
+  const onPointerEnter = () => setHeaderExpanded(true);
+  const onPointerLeave = () => setHeaderExpanded(false);
+  document.documentElement.addEventListener("mouseenter", onPointerEnter);
+  document.documentElement.addEventListener("mouseleave", onPointerLeave);
+  cleanups.push(() => {
+    document.documentElement.removeEventListener("mouseenter", onPointerEnter);
+    document.documentElement.removeEventListener("mouseleave", onPointerLeave);
+  });
 
   // The "lines" setting (or the section growing in fit mode) resizes the window live.
   const resize = () => {

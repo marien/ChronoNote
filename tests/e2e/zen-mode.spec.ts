@@ -64,6 +64,23 @@ test.describe("Zen mode (Area 3)", () => {
     await page.keyboard.press("Escape");
     await expect(page.locator("body")).not.toHaveClass(/zen-mode/);
   });
+
+  test("escape closes an open drawer first and does not also exit zen mode", async ({ page }) => {
+    await seedApp(page);
+    await page.keyboard.press("Shift+F11");
+    await expect(page.locator("body")).toHaveClass(/zen-mode/);
+
+    // A drawer closes itself on Escape; the same key press must not carry on to end Zen as well.
+    const modal = () => page.evaluate(() => window.__CHRONO_MOCK__!.debug!.modal());
+    await page.keyboard.press("ControlOrMeta+Shift+A");
+    await expect.poll(modal).toBe("actions");
+    await page.keyboard.press("Escape");
+    await expect.poll(modal).toBe("none");
+    await expect(page.locator("body")).toHaveClass(/zen-mode/);
+
+    await page.keyboard.press("Escape");
+    await expect(page.locator("body")).not.toHaveClass(/zen-mode/);
+  });
 });
 
 test.describe("Zen mode: F11 is a desktop-only alias", () => {

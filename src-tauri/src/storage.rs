@@ -76,10 +76,10 @@ pub enum StartupTabMode {
 #[derive(Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Debug, Default, TS)]
 #[serde(rename_all = "snake_case")]
 pub enum PeekHeader {
+    #[default]
     Always,
     Hover,
     /// Only a thin strip (it still carries the past/today/future colour and works as the drag handle).
-    #[default]
     Never,
 }
 
@@ -111,9 +111,15 @@ pub struct PeekConfig {
     pub geometry: Option<PeekGeometry>,
     /// The "lines" setting changed since the window was last left: use it for the height, not the remembered one.
     pub use_lines_height: bool,
+    /// Which generation of defaults these values were saved under (see `migrated`). A config saved before this
+    /// field existed has none, which reads as 0.
+    #[serde(default)]
+    pub defaults_version: u32,
 }
 
 pub const PEEK_MAX_LINES: u32 = 15;
+/// Bumped when Peek's defaults change; see `PeekConfig::migrated`.
+pub const PEEK_DEFAULTS_VERSION: u32 = 1;
 pub const PEEK_MIN_OPACITY: u32 = 20;
 
 impl Default for PeekConfig {
@@ -121,17 +127,35 @@ impl Default for PeekConfig {
         PeekConfig {
             enabled: false,
             lines: 6,
-            opacity: 70,
+            opacity: 80,
             always_on_top: true,
             header: PeekHeader::default(),
             shortcut: "CommandOrControl+F11".to_string(),
             geometry: None,
             use_lines_height: false,
+            defaults_version: PEEK_DEFAULTS_VERSION,
         }
     }
 }
 
 impl PeekConfig {
+    /// v0.23.0 saved Peek's settings whole (the first time any of them changed), including its then-defaults: the
+    /// header strip "never" (hidden) and opacity 70. Those defaults changed to "always" and 80, but a saved copy of the
+    /// old ones would hide the change. Settings saved before the defaults were versioned get the new ones once; from
+    /// then on the stored values are the user's own.
+    pub fn migrated(mut self) -> Self {
+        if self.defaults_version < PEEK_DEFAULTS_VERSION {
+            if self.header == PeekHeader::Never {
+                self.header = PeekHeader::Always;
+            }
+            if self.opacity == 70 {
+                self.opacity = 80;
+            }
+            self.defaults_version = PEEK_DEFAULTS_VERSION;
+        }
+        self
+    }
+
     /// Keeps hand-edited or out-of-range values usable.
     pub fn clamped(mut self) -> Self {
         self.lines = self.lines.min(PEEK_MAX_LINES);
@@ -452,8 +476,11 @@ fn quarantine_corrupt_file(path: &Path) {
 fn load_config_at(path: &Path, default_notes_dir: &Path) -> Result<AppConfig, String> {
     if path.exists() {
         let raw = fs::read_to_string(path).map_err(|e| e.to_string())?;
-        match serde_json::from_str(&raw) {
-            Ok(cfg) => return Ok(cfg),
+        match serde_json::from_str::<AppConfig>(&raw) {
+            Ok(mut cfg) => {
+                cfg.peek = cfg.peek.migrated();
+                return Ok(cfg);
+            }
             // Corrupt or truncated (a mid-write crash from before atomic
             // writes, disk rot, a botched hand-edit). Set it aside and
             // rebuild a default rather than leave the app unbootable.
@@ -1314,6 +1341,7 @@ mod tests {
             shortcut: "Ctrl+Alt+P".to_string(),
             geometry: Some(PeekGeometry { x: -20, y: 471, width: 523, height: 113 }),
             use_lines_height: true,
+            defaults_version: PEEK_DEFAULTS_VERSION,
         };
         save_config_at(&path, &AppConfig { peek: peek.clone(), ..base }).unwrap();
         let on_disk = fs::read_to_string(&path).unwrap();
@@ -1338,10 +1366,38 @@ mod tests {
     }
 
     #[test]
-    fn peek_is_off_by_default_with_the_header_hidden() {
+    fn peek_is_off_by_default_with_the_header_shown() {
         assert!(!PeekConfig::default().enabled);
-        assert_eq!(PeekConfig::default().header, PeekHeader::Never);
-        assert_eq!(PeekHeader::default(), PeekHeader::Never);
+        assert_eq!(PeekConfig::default().header, PeekHeader::Always);
+        assert_eq!(PeekHeader::default(), PeekHeader::Always);
+    }
+
+    #[test]
+    fn peek_settings_saved_with_the_old_defaults_get_the_new_ones_once() {
+        let dir = tempdir().unwrap();
+        let path = dir.path().join("config.json");
+        // What v0.23.0 wrote: no defaultsVersion, header hidden, opacity 70, other values the user's.
+        fs::write(
+            &path,
+            r#"{"notesDir": "/n", "peek": {"enabled": true, "lines": 4, "opacity": 70, "header": "never"}}"#,
+        )
+        .unwrap();
+        let cfg = load_config_at(&path, &dir.path().join("Notes")).unwrap();
+        assert_eq!(cfg.peek.header, PeekHeader::Always);
+        assert_eq!(cfg.peek.opacity, 80);
+        assert_eq!(cfg.peek.lines, 4); // untouched
+        assert!(cfg.peek.enabled);
+        assert_eq!(cfg.peek.defaults_version, PEEK_DEFAULTS_VERSION);
+
+        // Once saved under the new version, a deliberate "hidden" / 70 is the user's own and stays.
+        save_config_at(&path, &cfg).unwrap();
+        let mut again = load_config_at(&path, &dir.path().join("Notes")).unwrap();
+        again.peek.header = PeekHeader::Never;
+        again.peek.opacity = 70;
+        save_config_at(&path, &again).unwrap();
+        let kept = load_config_at(&path, &dir.path().join("Notes")).unwrap();
+        assert_eq!(kept.peek.header, PeekHeader::Never);
+        assert_eq!(kept.peek.opacity, 70);
     }
 
     #[test]

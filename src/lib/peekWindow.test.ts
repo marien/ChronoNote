@@ -103,6 +103,20 @@ describe("createPeekWindowController", () => {
     await expect(createPeekWindowController(f.win).enter(enterOpts)).resolves.toBeUndefined();
   });
 
+  it("resizeKeepingBottom grows and shrinks at the top: the bottom edge does not move", async () => {
+    const f = fakeWindow({ scale: 1.5 });
+    const peek = createPeekWindowController(f.win);
+    await peek.resizeKeepingBottom(22); // not in Peek: nothing happens
+    expect(f.log).toEqual([]);
+    await peek.enter(enterOpts);
+    const before = { ...f.geo };
+    await peek.resizeKeepingBottom(22); // the header strip expands: +22 logical = +33 physical
+    expect(f.geo).toEqual({ ...before, y: before.y - 33, height: before.height + 33 });
+    expect(f.geo.y + f.geo.height).toBe(before.y + before.height);
+    await peek.resizeKeepingBottom(-22); // and collapses again
+    expect(f.geo).toEqual(before);
+  });
+
   it("setLogicalHeight keeps position and width, only while in Peek", async () => {
     const f = fakeWindow({ scale: 2 });
     const peek = createPeekWindowController(f.win);

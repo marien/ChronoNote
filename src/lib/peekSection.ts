@@ -28,12 +28,12 @@ export function findSectionRange(lines: readonly string[], targetHeader: string)
   return null;
 }
 
-/** Number of lines the section occupies, without trailing blank lines (but never less than title + underline +
- * one body line), for "fit the whole section" sizing. */
+/** Number of lines Peek needs for the section: its body without trailing blank lines (the title and underline are
+ * not drawn in Peek), plus the line being typed on. For "fit the whole section" sizing. */
 export function sectionVisibleLineCount(lines: readonly string[], range: SectionRange): number {
   let end = range.lastLine;
   while (end > range.titleLine + 1 && lines[end].trim() === "") end--;
-  return end - range.titleLine + 2; // +1 inclusive, +1 for the line being typed on
+  return end - range.titleLine; // body lines (end - titleLine - 1) + 1 for the line being typed on
 }
 
 /** The section as document offsets (what an editor transaction talks in). */

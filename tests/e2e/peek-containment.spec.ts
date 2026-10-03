@@ -96,12 +96,15 @@ test.describe("peek stays inside its section", () => {
     expect(await docText(page)).toContain("Weekly sync\n===========");
   });
 
-  test("clicking the title and typing leaves the title alone", async ({ page }) => {
+  test("the title and underline are not drawn, and the caret starts on the first line of the body", async ({ page }) => {
     await enterPeek(page);
-    await editor(page).getByText("Weekly sync").first().click();
+    const text = await editor(page).innerText();
+    expect(text).not.toContain("Weekly sync");
+    expect(text).not.toContain("=====");
+    await page.keyboard.press("ControlOrMeta+Home");
     await page.keyboard.type("ZZ");
     const doc = await docText(page);
-    expect(doc).toContain("\nWeekly sync\n===========\n");
+    expect(doc).toContain("Weekly sync\n===========\nZZo budget");
     expectHiddenIntact(doc);
   });
 
