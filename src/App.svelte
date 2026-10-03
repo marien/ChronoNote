@@ -19,6 +19,8 @@
     toastAction,
     toastMessage,
     LONG_TOAST_CHARS,
+    peekMode,
+    peekSettings,
   } from "./lib/controller";
   import { matchesShortcut } from "./lib/shortcuts";
   import { wireMobileViewport } from "./lib/mobileViewport";
@@ -38,6 +40,7 @@
   import Icon from "./lib/icons/Icon.svelte";
   import TopBar from "./lib/components/TopBar.svelte";
   import StatusBar from "./lib/components/StatusBar.svelte";
+  import PeekBar from "./lib/components/PeekBar.svelte";
   import EditorPane from "./lib/components/EditorPane.svelte";
   import FindBar from "./lib/components/FindBar.svelte";
   import MobileAccessoryBar from "./lib/components/mobile/MobileAccessoryBar.svelte";
@@ -100,6 +103,7 @@
       openAbout: () => controller.openAbout(),
       openShortcutsHelp: () => controller.openShortcutsHelp(),
       toggleZenMode: () => isZenMode.update((v) => !v),
+      togglePeekMode: () => controller.togglePeek(),
     };
 
     function dismissTopOverlayAndReturnTrue(): boolean {
@@ -140,8 +144,14 @@
     }
 
     function onKeydown(e: KeyboardEvent) {
+      // Peek mode: Alt+Left / Alt+Right switch to the previous / next occurrence of the section.
+      if (get(peekMode) && e.altKey && !e.ctrlKey && !e.metaKey && !e.shiftKey && (e.code === "ArrowLeft" || e.code === "ArrowRight")) {
+        e.preventDefault();
+        void controller.stepPeekOccurrence(e.code === "ArrowLeft" ? -1 : 1);
+        return;
+      }
       // Desktop app only: F11 as an alias for the Zen mode chord (see `shortcuts.ts`).
-      if (e.key === "F11" && get(backendKind) === "desktop") {
+      if (e.key === "F11" && !e.ctrlKey && !e.metaKey && !e.altKey && get(backendKind) === "desktop") {
         e.preventDefault();
         isZenMode.update((v) => !v);
         return;
@@ -213,6 +223,7 @@
     window.addEventListener("orientationchange", updateMobile);
 
     const unwireViewport = wireMobileViewport();
+    const unwirePeek = controller.wirePeek();
 
     // §v0.12.2: Full-screen Drag and Drop file import (Area 4)
     let dragDepth = 0;
@@ -335,6 +346,12 @@
     }
   }
 
+  // Peek mode (compact note window): the body class swaps the layout and makes the background see-through.
+  $: if (typeof document !== "undefined") {
+    document.body.classList.toggle("peek-mode", $peekMode);
+    document.documentElement.style.setProperty("--peek-opacity", String($peekSettings.opacity));
+  }
+
   $: activeTab = $tabs.find((t) => t.id === $activeTabId);
 
   // §108: a modal opening over an open find bar leaves the bar stranded
@@ -390,6 +407,9 @@
 
 {#if ready}
   <TopBar />
+  {#if $peekMode}
+    <PeekBar />
+  {/if}
   {#if $isZenMode}
     <div id="zen-banner" role="status" aria-live="polite">
       <span>Zen mode</span>

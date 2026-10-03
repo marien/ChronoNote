@@ -225,6 +225,12 @@ export const SHORTCUTS: ShortcutDef[] = [
     // Mac gets Cmd+Option+Z too (Option is not AltGr there, and F-keys need fn on many Macs).
     combos: [{ shift: true, code: "F11" }, { mod: true, alt: true, code: "KeyZ", platforms: ["mac"] }],
   },
+  {
+    id: "togglePeekMode",
+    // Desktop app only. Also registered as an OS-wide shortcut (`peek.ts`) so it works while a call app has the
+    // focus; this entry is what the drawer/palette show and what fires inside the app if that registration failed.
+    combos: [{ mod: true, code: "F11" }],
+  },
 ];
 
 /** i18n roadmap: the Shortcuts & Symbols drawer's translation key for
@@ -267,6 +273,7 @@ export const SHORTCUT_LABEL_KEYS = {
   openShortcutsHelp: "shortcuts.openShortcutsHelp.label",
   copyToNextOccurrence: "shortcuts.copyToNextOccurrence.label",
   toggleZenMode: "shortcuts.toggleZenMode.label",
+  togglePeekMode: "shortcuts.togglePeekMode.label",
   clickGlyph: "shortcuts.clickGlyph.label",
   escape: "shortcuts.escape.label",
 } satisfies Record<(typeof SHORTCUTS)[number]["id"] | "clickGlyph" | "escape", TranslationKey>;
@@ -380,6 +387,7 @@ export const DRAWER_ROWS: (string | [string, string])[] = [
   "crossTabSearch",
   "syncCalendar",
   "toggleZenMode",
+  "togglePeekMode",
   "openSettings",
   "openAbout",
   "openShortcutsHelp",

@@ -851,6 +851,7 @@ export class MockBackend {
       }
 
       // Rust `zen_window.rs`: no windowing in the mock.
+      case "peek_set_transparent":
       case "zen_cover_monitor":
       case "zen_prepare_leave":
         return null;
@@ -899,6 +900,7 @@ export class MockBackend {
         return null;
 
       default:
+        if (cmd.startsWith("plugin:global-shortcut|")) return null;
         if (cmd.startsWith("plugin:window|") || cmd.startsWith("plugin:webview|")) {
           return mockWindowCall(cmd);
         }
@@ -934,6 +936,10 @@ function mockWindowCall(cmd: string): unknown {
       return { width: 1100, height: 720 };
     case "scale_factor":
       return 1;
+    case "outer_position":
+      return { x: 0, y: 0 };
+    case "current_monitor":
+      return { name: "mock", size: { width: 1920, height: 1080 }, position: { x: 0, y: 0 }, scaleFactor: 1 };
     case "theme":
       return "light";
     case "set_title":

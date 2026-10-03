@@ -161,6 +161,40 @@ export const it = {
   "shortcuts.copyToNextOccurrence.label": () =>
     "Copia la selezione (o la riga corrente) alla successiva ricorrenza di questa sezione",
   "shortcuts.toggleZenMode.label": () => "Modalità Zen (schermo senza distrazioni)",
+  "shortcuts.togglePeekMode.label": () =>
+    "Peek: compact see-through note window for calls (works from any app)",
+  "commandPalette.togglePeekMode": () =>
+    "Toggle Peek (compact note window for calls)",
+  "peek.toast.noSection": () =>
+    "Put the cursor in a section to peek at it.",
+  "peek.expand": () =>
+    "Back to the full window",
+  "peek.prev": () =>
+    "Previous occurrence",
+  "peek.next": () =>
+    "Next occurrence",
+  "peek.settings.title": () =>
+    "Peek (compact notes during a call)",
+  "peek.settings.lines.label": () =>
+    "Height (lines)",
+  "peek.settings.lines.fit": () =>
+    "Fit the whole section",
+  "peek.settings.opacity.label": () =>
+    "Background opacity",
+  "peek.settings.alwaysOnTop.label": () =>
+    "Keep on top of other windows",
+  "peek.settings.header.label": () =>
+    "Header strip",
+  "peek.settings.header.always": () =>
+    "Always",
+  "peek.settings.header.hover": () =>
+    "On hover",
+  "peek.settings.header.never": () =>
+    "Hidden",
+  "peek.settings.shortcut.label": () =>
+    "Shortcut (works from any app)",
+  "peek.settings.hint": () =>
+    "Peek shrinks the window to the section your cursor is in. Alt+Left / Alt+Right switch to the previous / next occurrence; edits are normal edits. Press the shortcut again to come back.",
   "shortcuts.clickGlyph.label": () =>
     "Completa l'azione del glifo o riaprila se completata, rimandata o annullata (esattamente quel glifo); passa il cursore per l'anteprima",
   "shortcuts.escape.label": () => "Chiudi qualsiasi finestra di dialogo aperta",

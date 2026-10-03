@@ -4092,7 +4092,9 @@ body {
 /* The bars must give their space back, not just slide out of sight (a transform leaves a blank
    strip where each one was and the editor never uses the full screen). */
 body.zen-mode #top-bar,
-body.zen-mode #status-bar {
+body.zen-mode #status-bar,
+body.peek-mode #top-bar,
+body.peek-mode #status-bar {
   height: 0;
   min-height: 0;
   padding-top: 0;
@@ -4391,4 +4393,97 @@ body.zen-mode #status-bar {
 .about-version-card[data-tone="busy"] { --tone: var(--muted); }
 .about-checked {
   color: var(--muted);
+}
+
+/* Peek mode: the compact, see-through note window for calls (`peek.ts`). Only the BACKGROUND layer is translucent:
+   the window is transparent at the OS level, the page paints the theme colour at `--peek-opacity`, and all text and
+   glyphs stay fully opaque. In the normal window the page paints the opaque theme colour as always. */
+body.peek-mode {
+  background: color-mix(in srgb, var(--bg) calc(var(--peek-opacity, 70) * 1%), transparent);
+}
+body.peek-mode #editor-container,
+body.peek-mode .cm-editor,
+body.peek-mode .cm-scroller,
+body.peek-mode .cm-gutters {
+  background: transparent !important;
+}
+body.peek-mode .cm-scroller {
+  padding: 4px 10px 6px !important;
+}
+/* Keep text readable over whatever is behind: a soft halo in the background colour. */
+body.peek-mode .cm-content {
+  text-shadow: 0 0 3px var(--bg), 0 0 6px var(--bg);
+}
+.peek-bar {
+  flex: 0 0 auto;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 6px;
+  border-top: 2px solid var(--tab-active-border);
+  background: color-mix(in srgb, var(--surface-chrome) calc(var(--peek-opacity, 70) * 1%), transparent);
+  color: var(--muted);
+  font-size: 12px;
+  user-select: none;
+  -webkit-app-region: drag;
+}
+/* Same colours as the tab strip: past = grey, today = blue, future = green. */
+.peek-bar.past {
+  border-top-color: color-mix(in srgb, var(--muted) 55%, transparent);
+}
+.peek-bar.future {
+  border-top-color: var(--state-ok);
+}
+.peek-bar .peek-date {
+  font-weight: 600;
+  color: var(--tab-active-border);
+}
+.peek-bar.past .peek-date {
+  color: var(--muted);
+}
+.peek-bar.future .peek-date {
+  color: var(--state-ok);
+}
+.peek-count {
+  opacity: 0.8;
+}
+.peek-title {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: right;
+}
+.peek-btn {
+  -webkit-app-region: no-drag;
+  background: transparent;
+  border: none;
+  color: inherit;
+  font: inherit;
+  font-size: 15px;
+  line-height: 1;
+  padding: 3px 6px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+.peek-btn:hover:not(:disabled) {
+  background: var(--surface-raised);
+  color: var(--text);
+}
+.peek-btn:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+.peek-bar.hover-only {
+  opacity: 0;
+  transition: opacity 150ms ease;
+}
+body.peek-mode:hover .peek-bar.hover-only,
+.peek-bar.hover-only:focus-within {
+  opacity: 1;
+}
+.peek-bar.thin {
+  height: 8px;
 }

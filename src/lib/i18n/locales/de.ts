@@ -163,6 +163,40 @@ export const de = {
   "shortcuts.copyToNextOccurrence.label": () =>
     "Die Auswahl (oder aktuelle Zeile) zum nächsten Vorkommen dieses Abschnitts kopieren",
   "shortcuts.toggleZenMode.label": () => "Zen-Modus (ablenkungsfreie Ansicht)",
+  "shortcuts.togglePeekMode.label": () =>
+    "Peek: kompaktes, durchsichtiges Notizfenster für Gespräche (funktioniert aus jeder App)",
+  "commandPalette.togglePeekMode": () =>
+    "Peek umschalten (kompaktes Notizfenster für Gespräche)",
+  "peek.toast.noSection": () =>
+    "Setze den Cursor in einen Abschnitt, um ihn anzuzeigen.",
+  "peek.expand": () =>
+    "Zurück zum vollständigen Fenster",
+  "peek.prev": () =>
+    "Vorheriges Vorkommen",
+  "peek.next": () =>
+    "Nächstes Vorkommen",
+  "peek.settings.title": () =>
+    "Peek (kompakte Notizen im Gespräch)",
+  "peek.settings.lines.label": () =>
+    "Höhe (Zeilen)",
+  "peek.settings.lines.fit": () =>
+    "Ganzen Abschnitt anpassen",
+  "peek.settings.opacity.label": () =>
+    "Deckkraft des Hintergrunds",
+  "peek.settings.alwaysOnTop.label": () =>
+    "Über anderen Fenstern halten",
+  "peek.settings.header.label": () =>
+    "Kopfleiste",
+  "peek.settings.header.always": () =>
+    "Immer",
+  "peek.settings.header.hover": () =>
+    "Beim Darüberfahren",
+  "peek.settings.header.never": () =>
+    "Ausgeblendet",
+  "peek.settings.shortcut.label": () =>
+    "Tastenkürzel (funktioniert aus jeder App)",
+  "peek.settings.hint": () =>
+    "Peek verkleinert das Fenster auf den Abschnitt, in dem dein Cursor steht. Alt+Links / Alt+Rechts wechseln zum vorherigen / nächsten Vorkommen; Änderungen sind normale Änderungen. Das Tastenkürzel erneut drücken, um zurückzukehren.",
   "shortcuts.clickGlyph.label": () =>
     "Schließt die Aktion des Symbols, oder öffnet es erneut, wenn es erledigt, verschoben ist oder entfällt (genau dieses Symbol); beim Hover wird das Ergebnis als Vorschau gezeigt",
   "shortcuts.escape.label": () => "Schließt das geöffnete Fenster",

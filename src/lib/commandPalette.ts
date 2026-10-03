@@ -45,6 +45,7 @@ import {
 } from "./tabs";
 import { openActionDrawer } from "./actions";
 import { openMeetingHistory } from "./history";
+import { togglePeek } from "./peek";
 import { openCrossTabSearch } from "./search";
 import { canSyncCalendarForActiveTab, syncCalendarFromFile } from "./calendarSyncActions";
 import { openAbout, openGlyphLegend, openSettings, openShortcutsHelp } from "./menu";
@@ -268,6 +269,17 @@ function commandItems(): PaletteItem[] {
         isZenMode.update((v) => !v);
       },
     },
+    ...(get(backendKind) === "desktop"
+      ? [
+          {
+            id: "cmd-toggle-peek",
+            label: translate("commandPalette.togglePeekMode", undefined),
+            hint: formatShortcut("togglePeekMode"),
+            group: "Commands" as const,
+            run: () => togglePeek(),
+          },
+        ]
+      : []),
     {
       id: "cmd-line-close-open",
       label: translate("commandPalette.line.closeOpenAction", undefined),
