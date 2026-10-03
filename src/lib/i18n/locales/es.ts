@@ -182,15 +182,15 @@ export const es = {
   "shortcuts.modal.topicTag": () =>
     "Etiqueta de tema — agrupa acciones por materia, mostrada como pastilla solo justo tras el símbolo de acción; los paréntesis se muestran mientras edita la línea",
   "shortcuts.modal.dimmedLines": () =>
-    "Las líneas completadas, pospuestas y descartadas se muestran atenuadas; las pendientes permanecen con intensidad normal",
+    "Las líneas completadas, pospuestas y descartadas, y los puntos tratados o aplazados, se muestran atenuados; los abiertos permanecen con intensidad normal (un punto con seguimiento abierto solo se atenúa hasta la flecha)",
   "shortcuts.modal.boldEmphasis": () => "Énfasis en negrita para el resto de la línea",
   "shortcuts.modal.numberedList": () =>
     "Elemento de lista numerada — texto plano, sin glifo. Enter continúa con el siguiente número, un elemento vacío termina la lista, Tab sangra dos espacios; los números nunca se reescriben. Subelementos:",
   "shortcuts.modal.consequenceAction": ({ shortcutHint }) =>
     `Acción de consecuencia — un seguimiento con su propio estado pendiente/completada/pospuesta/descartada, cambiado igual que cualquier línea de acción (haga clic en su glifo para cerrar o reabrir, o ${shortcutHint} para establecerla directamente)`,
-  "shortcuts.modal.delegated.part1": () => "Delegado — seguimiento asignado a alguien. El ",
-  "shortcuts.modal.delegated.part2": () => " se resalta dondequiera que esté en una línea ",
-  "shortcuts.modal.delegated.part3": () => ", y sigue siendo texto real y editable. Varias personas: ",
+  "shortcuts.modal.delegated.part1": () => "Delegado — seguimiento asignado a alguien. Un ",
+  "shortcuts.modal.delegated.part2": () => " se resalta dondequiera que esté, en cualquier línea, y sigue siendo texto real y editable; tras un ",
+  "shortcuts.modal.delegated.part3": () => " indica quién se encarga del seguimiento. Varias personas: ",
   "shortcuts.modal.sectionHeaderHint.part1": () =>
     "Una línea de texto seguida inmediatamente de una línea de cuatro o más caracteres ",
   "shortcuts.modal.sectionHeaderHint.part2": () => " se convierte en el título de esa sección — p. ej. ",
@@ -198,6 +198,8 @@ export const es = {
   "shortcuts.modal.sectionHeaderHint.part3": () => " luego ",
   "shortcuts.modal.sectionHeaderHint.part4": () =>
     " en la línea siguiente. Con esto etiquetan cada elemento Acciones, Historial de sección y los resultados de búsqueda, y con esto Historial de sección compara secciones recurrentes (ignorando una fecha inicial o final).",
+  "shortcuts.modal.adhocSection": () =>
+    "Llamada improvisada — empieza el título de una sección con ' (como 'Llamada rápida con Dave). La sincronización del calendario nunca la empareja, la marca ni la elimina.",
 
   "actionDrawer.modal.ariaLabel": () => "Acciones",
   "actionDrawer.filterPlaceholder": () => "Filtrar mis acciones (escriba @ para incluir delegadas)...",

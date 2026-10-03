@@ -2,7 +2,7 @@
 
 This is a reference for converting notes from another tool (Notion, Obsidian,
 a calendar export, plain Markdown, anything) into ChronoNote's format and
-bringing them in via **Settings → Data → "Import notes from a file…"**. It's
+bringing them in via **Settings → Notes & Sync → Data → "Import notes from a file…"**. It's
 written to be precise enough to hand to a conversion script or an AI agent,
 not just a human — every format rule below is the literal parsing behavior,
 not an approximation.

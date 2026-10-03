@@ -9627,3 +9627,19 @@ Designed and implemented by another AI (`docs/design/agenda-pip-adhoc-startup-sp
 **Change:** one rule for both. **Source:** open actions `# ` -> `> ` and open agenda items `o ` -> `, ` (this was already how "Whole line" worked, through the shared `deferOpenActionsInText`). **Destination, both modes:** a deferred item carried forward comes back open (`> ` -> `# `, `, ` -> `o `) and everything else is copied as it was. **Only difference:** "As agenda" also opens every agenda topic in the new place, a discussed `. ` one included (`openAgendaTopic`). Behaviour change in "Whole line": a discussed `. ` topic is now copied as `. ` (it used to be reopened as `o `, a side effect of sharing `reopenDeferredAction`); that is what makes the two modes differ. Removed §269's `leaveSource` flag from `commitCopyForward`/`carryHistorySelectionForward`. The mode's tooltip and hint, in all 7 locales, now say this. Tests: `controller.test.ts` (both modes side by side), `search-and-history.spec.ts` (a whole agenda through the UI in both modes: source and destination).
 
 **Copy/paste deferral of agenda items (question):** already worked: `OPEN_ITEM_LINE` in `paste.ts` matches `o ` as well as `# `, so pasting a copied open agenda item into today or a later note marks it `, ` in the source, together with any open action in the same block (the discussed `. ` ones are left alone). It had no test; `paste-deferral.spec.ts` now covers it. `spec.md` updated for both.
+
+## 272. Documentation and the Symbols & Shortcuts drawer brought up to date
+
+An audit of the public docs and the in-app reference against the behaviour shipped since v0.20 found these out of date; all fixed, no behaviour change.
+
+**In-app (Shortcuts & Symbols drawer, 7 locales):** the "Delegated" row still said an `@name` is highlighted only "on a `=>` line" (§268: any line); the "dimmed lines" row ignored discussed/postponed topics and the partial dimming for a topic with an open follow-up (§269); the Section headers group did not mention ad-hoc `'` sections at all (new key `shortcuts.modal.adhocSection`). The shortcut list itself is generated from `shortcuts.ts` and was already correct.
+
+**README:** Settings paths (`Settings → Calendar` / `→ Data` are now under Notes & Sync); the calendar paragraph gains the notification dot, the silent fill of an empty note and ad-hoc `'` sections.
+
+**`docs/agenda-file-guide.md`, `docs/migration-guide.md`:** the same Settings paths; the agenda guide documents the three behaviours that react to the file (dot, ad-hoc, silent fill).
+
+**`website/guide.html`:** startup-note setting; carrying lines forward from Section History, `Ctrl+A`, and "As agenda" for reusing a past agenda; calendar dot / silent fill / ad-hoc calls; the date picker description (the green/amber completion dots were replaced by the container model in §262); the Settings path for importing.
+
+**`docs/spec.md`:** the keyboard-shortcut table (it still described `Ctrl+Space` as cycling states and lacked `Ctrl+Shift+Space`, `Ctrl+Shift+O`, `Ctrl+1`–`7`, copy-to-next-occurrence and Zen mode); the date picker; the calendar feature (dot, ad-hoc, silent sync); Settings (language, pure black, hanging indent, Startup, row layout, real tabs); launch behaviour (off-thread bulk read, single instance); session restore and the Startup setting; clickable status messages (§260); the web Back button (§261).
+
+**Not changed, on purpose:** `website/index.html` (still accurate); the History drawer's own footer, which does not list `Ctrl+A`; the onboarding note (accurate).

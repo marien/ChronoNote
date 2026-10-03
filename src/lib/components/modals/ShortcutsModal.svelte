@@ -167,6 +167,9 @@
             )}
           </div>
         </div>
+        <div class="modal-item" style="cursor: default; display: block;">
+          <div class="settings-hint" style="margin-top: 0;">{$t("shortcuts.modal.adhocSection")}</div>
+        </div>
       </div>
     </div>
     <div class="modal-footer" style="justify-content: flex-end;">

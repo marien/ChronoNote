@@ -183,15 +183,15 @@ export const nl = {
   "shortcuts.modal.topicTag": () =>
     "Onderwerptag — groepeer acties per onderwerp, getekend als pil alleen direct na het actiesymbool; de haakjes zijn zichtbaar tijdens het bewerken van de regel",
   "shortcuts.modal.dimmedLines": () =>
-    "Voltooide, uitgestelde en vervallen regels worden gedimd weergegeven; open regels blijven op volle sterkte",
+    "Voltooide, uitgestelde en vervallen regels, en besproken of uitgestelde agendapunten, worden gedimd weergegeven; open regels blijven op volle sterkte (een agendapunt met een open vervolgactie wordt alleen tot de pijl gedimd)",
   "shortcuts.modal.boldEmphasis": () => "Vetgedrukte nadruk voor de rest van de regel",
   "shortcuts.modal.numberedList": () =>
     "Genummerd lijstitem — platte tekst, geen symbool. Enter gaat verder met het volgende nummer, een leeg item beëindigt de lijst, Tab springt twee spaties in; nummers worden nooit herschreven. Subitems:",
   "shortcuts.modal.consequenceAction": ({ shortcutHint }) =>
     `Vervolgactie — een vervolg met een eigen open/voltooid/uitgesteld/vervallen-status, gewijzigd op dezelfde manier als elke actieregel (klik het symbool om te sluiten of te heropenen, of ${shortcutHint} om direct in te stellen)`,
-  "shortcuts.modal.delegated.part1": () => "Gedelegeerd — vervolgactie toegewezen aan iemand. De ",
-  "shortcuts.modal.delegated.part2": () => " wordt gemarkeerd waar hij ook op een ",
-  "shortcuts.modal.delegated.part3": () => " regel staat, en blijft echte, bewerkbare tekst. Meerdere personen: ",
+  "shortcuts.modal.delegated.part1": () => "Gedelegeerd — vervolgactie toegewezen aan iemand. Een ",
+  "shortcuts.modal.delegated.part2": () => " wordt overal gemarkeerd waar hij staat, op elke regel, en blijft echte, bewerkbare tekst; na een ",
+  "shortcuts.modal.delegated.part3": () => " geeft het aan wie de vervolgactie oppakt. Meerdere personen: ",
   "shortcuts.modal.sectionHeaderHint.part1": () =>
     "Een regel tekst die direct wordt gevolgd door een regel van vier of meer ",
   "shortcuts.modal.sectionHeaderHint.part2": () => " tekens wordt de titel van die sectie — bijv. ",
@@ -199,6 +199,8 @@ export const nl = {
   "shortcuts.modal.sectionHeaderHint.part3": () => " gevolgd door ",
   "shortcuts.modal.sectionHeaderHint.part4": () =>
     " op de volgende regel. Hierop taggen Acties, Sectiegeschiedenis en zoekresultaten elk item, en hierop matcht Sectiegeschiedenis terugkerende secties (een leidende/volgende datum wordt genegeerd).",
+  "shortcuts.modal.adhocSection": () =>
+    "Ad-hocgesprek — begin een sectietitel met ' (zoals 'Snel bellen met Dave). Agendasynchronisatie koppelt, markeert of verwijdert zo'n sectie nooit.",
 
   "actionDrawer.modal.ariaLabel": () => "Acties",
   "actionDrawer.filterPlaceholder": () => "Filter mijn acties (typ @ om gedelegeerde op te nemen)...",

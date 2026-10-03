@@ -78,19 +78,22 @@ The web app keeps the equivalent data in the browser's own storage — see
 
 Already have notes somewhere else? See
 [`docs/migration-guide.md`](docs/migration-guide.md) for the exact file
-format to convert them into and how to bring them in via Settings → Data
-→ "Import notes from a file…" — precise enough to hand to a conversion
+format to convert them into and how to bring them in via Settings → Notes
+& Sync → Data → "Import notes from a file…" — precise enough to hand to a conversion
 script or an AI agent.
 
 ## Calendar sync
 
-"Sync calendar for this day" (opt-in, Settings → Calendar) turns a real
-meeting calendar into note sections automatically. ChronoNote never talks
-to a calendar API directly — it reads a `.agenda.json` file that whatever
-you already use to sync your calendar needs to keep up to date, at the
-root of your notes folder. See
-[`docs/agenda-file-guide.md`](docs/agenda-file-guide.md) for the exact
-schema.
+"Sync calendar for this day" (opt-in, Settings → Notes & Sync → Calendar)
+turns a real meeting calendar into note sections automatically.
+ChronoNote never talks to a calendar API directly — it reads a
+`.agenda.json` file that whatever you already use to sync your calendar
+needs to keep up to date, at the root of your notes folder. A dot on the
+sync button shows when the open note differs from the calendar, an empty
+note for today fills itself from the calendar when you open it, and a
+section whose title starts with `'` (an ad-hoc call) is never touched by
+the sync. See [`docs/agenda-file-guide.md`](docs/agenda-file-guide.md)
+for the exact schema.
 
 ## Web app and demo
 

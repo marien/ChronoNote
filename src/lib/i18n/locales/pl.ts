@@ -185,15 +185,15 @@ export const pl = {
   "shortcuts.modal.topicTag": () =>
     "Etykieta tematu — grupuje zadania według wątku, wyświetlana jako pigułka zaraz po symbolu zadania; nawiasy pojawiają się przy edycji",
   "shortcuts.modal.dimmedLines": () =>
-    "Wiersze wykonane, odłożone i zaniechane są przygaszone; otwarte pozostają w pełni wyraźne",
+    "Wiersze wykonane, odłożone i zaniechane oraz omówione lub odłożone punkty agendy są przygaszone; otwarte pozostają w pełni wyraźne (punkt z otwartym dalszym krokiem jest przygaszony tylko do strzałki)",
   "shortcuts.modal.boldEmphasis": () => "Pogrubienie dla reszty wiersza",
   "shortcuts.modal.numberedList": () =>
     "Element listy numerowanej — zwykły tekst, bez glifu. Enter kontynuuje z kolejnym numerem, pusty kończy listę, Tab tworzy wcięcie o 2 spacje; numery nie są modyfikowane. Podelementy:",
   "shortcuts.modal.consequenceAction": ({ shortcutHint }) =>
     `Zadanie wynikowe — kontynuacja z własnym stanem otwarte/wykonane/odłożone/zaniechane, zmienianym tak jak każde zadanie (kliknij glif, aby zamknąć lub otworzyć, lub ${shortcutHint}, aby ustawić bezpośrednio)`,
   "shortcuts.modal.delegated.part1": () => "Oddelegowane — zadanie przypisane do kogoś. Oznaczenie ",
-  "shortcuts.modal.delegated.part2": () => " jest wyróżnione w każdym miejscu wiersza ",
-  "shortcuts.modal.delegated.part3": () => ", pozostając edytowalnym tekstem. Kilka osób: ",
+  "shortcuts.modal.delegated.part2": () => " jest wyróżnione w każdym miejscu, w dowolnym wierszu, pozostając edytowalnym tekstem; po ",
+  "shortcuts.modal.delegated.part3": () => " wskazuje, kto zajmie się dalszym krokiem. Kilka osób: ",
   "shortcuts.modal.sectionHeaderHint.part1": () =>
     "Wiersz tekstu, po którym bezpośrednio następuje wiersz z co najmniej czterema znakami ",
   "shortcuts.modal.sectionHeaderHint.part2": () => ", staje się tytułem sekcji — np. ",
@@ -201,6 +201,8 @@ export const pl = {
   "shortcuts.modal.sectionHeaderHint.part3": () => " a następnie ",
   "shortcuts.modal.sectionHeaderHint.part4": () =>
     " w kolejnym wierszu. W ten sposób Zadania, Historia sekcji i wyszukiwanie oznaczają każdy element, a Historia sekcji łączy cykliczne spotkania (ignorując datę na początku lub końcu).",
+  "shortcuts.modal.adhocSection": () =>
+    "Rozmowa ad hoc — zacznij tytuł sekcji od ' (np. 'Szybka rozmowa z Dave'em). Synchronizacja kalendarza nigdy jej nie dopasowuje, nie oznacza ani nie usuwa.",
 
   "actionDrawer.modal.ariaLabel": () => "Zadania",
   "actionDrawer.filterPlaceholder": () => "Filtruj zadania (wpisz @ dla oddelegowanych)…",

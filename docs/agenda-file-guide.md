@@ -7,7 +7,7 @@ precise enough to hand to a script (or an AI agent) directly, not just a
 human — every rule below is the literal parsing behavior, not an
 approximation. See `docs/migration-guide.md` if what you're looking for is
 instead a **one-time bulk import** of existing notes from another tool —
-that's a different feature (Settings → Data → "Import notes from a file…")
+that's a different feature (Settings → Notes & Sync → Data → "Import notes from a file…")
 with its own file format; this document is about the **ongoing, repeated**
 calendar-sync feed, a completely separate JSON schema for a completely
 separate purpose.
@@ -32,6 +32,23 @@ no longer on the agenda. None of that reconciliation logic is described
 here; this document is only about what the *file* needs to contain for that
 feature to work correctly.
 
+Three behaviours of the feature are worth knowing when you write the file,
+because they react to what it contains:
+
+- **Notification dot.** The sync button shows a small dot whenever the open
+  dated note (today or later) differs from the file: a meeting that has no
+  section yet, a section whose meeting is gone, or meetings in a different
+  order. It is re-checked when you switch tabs, shortly after you stop
+  editing, and when the window regains focus.
+- **Ad-hoc calls are left alone.** A section whose title starts with `'`
+  (for example `'Quick call with Dave`) is never matched to a meeting, never
+  flagged as removed, and never lights the dot. Titles in this file should
+  therefore not start with `'`.
+- **An empty note fills itself.** Opening an empty note dated today or later,
+  when the file has meetings for that day, writes the meeting sections
+  straight away without the review step and puts the caret on the first body
+  line. A note that already has content is never changed without the review.
+
 ## 2. Where it lives
 
 **Desktop app:** a file literally named `.agenda.json` (leading dot, exactly
@@ -40,7 +57,7 @@ notes folder** — the same folder your daily `YYYY-MM-DD.txt` files live in,
 not a subfolder.
 
 **Web app:** the feature is available there too, but only once you've
-connected a OneDrive account and folder (Settings → Calendar). The web app
+connected a OneDrive account and folder (Settings → Notes & Sync). The web app
 has no local filesystem of its own — it reads `.agenda.json` the same way
 it reads everything else, from whatever OneDrive has synced down into the
 browser's own storage. Concretely: put `.agenda.json` in the same

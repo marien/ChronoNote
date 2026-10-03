@@ -178,15 +178,16 @@ export const en = {
   "shortcuts.modal.glyph.followUp": () => "Follow-up — a plain note leading from this line",
   "shortcuts.modal.topicTag": () =>
     "Topic tag — group actions by subject, drawn as a pill only right after the action symbol; the parentheses show while you edit the line",
-  "shortcuts.modal.dimmedLines": () => "Done, deferred and won't-do lines are drawn dimmed; open ones stay at full strength",
+  "shortcuts.modal.dimmedLines": () =>
+    "Done, deferred and won't-do lines, and discussed or postponed topics, are drawn dimmed; open ones stay at full strength (a topic with an open follow-up is dimmed only up to the arrow)",
   "shortcuts.modal.boldEmphasis": () => "Bold emphasis for the rest of the line",
   "shortcuts.modal.numberedList": () =>
     "Numbered list item — plain text, no glyph. Enter continues with the next number, an empty item ends the list, Tab nests by two spaces; numbers are never rewritten. Sub-items:",
   "shortcuts.modal.consequenceAction": ({ shortcutHint }) =>
     `Consequence-action — a follow-up with its own open/done/deferred/won't-do state, changed the same way as any action line (click its glyph to close or reopen it, or ${shortcutHint} to set it directly)`,
-  "shortcuts.modal.delegated.part1": () => "Delegated — follow-up assigned to someone. The ",
-  "shortcuts.modal.delegated.part2": () => " is highlighted wherever it sits on a ",
-  "shortcuts.modal.delegated.part3": () => " line, and stays real, editable text. Several people: ",
+  "shortcuts.modal.delegated.part1": () => "Delegated — follow-up assigned to someone. An ",
+  "shortcuts.modal.delegated.part2": () => " is highlighted wherever it sits, on any line, and stays real, editable text; after a ",
+  "shortcuts.modal.delegated.part3": () => " it names who owns the follow-up. Several people: ",
   "shortcuts.modal.sectionHeaderHint.part1": () =>
     "A line of text followed immediately by a line of four or more ",
   "shortcuts.modal.sectionHeaderHint.part2": () => " characters becomes that section's title — e.g. ",
@@ -194,6 +195,8 @@ export const en = {
   "shortcuts.modal.sectionHeaderHint.part3": () => " then ",
   "shortcuts.modal.sectionHeaderHint.part4": () =>
     " on the next line. This is what Actions, Section History and search results tag each item with, and what Section History matches recurring sections by (ignoring a leading/trailing date).",
+  "shortcuts.modal.adhocSection": () =>
+    "Ad-hoc call — start a section title with ' (like 'Quick call with Dave). Calendar sync never matches, flags or removes it.",
 
   "actionDrawer.modal.ariaLabel": () => "Actions",
   "actionDrawer.filterPlaceholder": () => "Filter my actions (type @ to include delegated)...",

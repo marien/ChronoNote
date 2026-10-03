@@ -192,7 +192,10 @@ lowest-priority item here, first to hide as the window narrows, and
 shows the full path on hover; it moved here (from Settings-only) once
 the merged title bar stopped rendering a visible window title anywhere;
 a centre zone reserved for transient status messages (autosave
-confirmations, "nothing to import," etc.), empty otherwise; and a right
+confirmations, "nothing to import," etc.), empty otherwise — a message
+that points somewhere is clickable (sign-in expired opens the sync popover,
+"choose a folder" opens Settings, update available opens About) and any
+other message dismisses on click (§260); and a right
 zone showing Open / Closed / Forwarded action counts for the active
 note (`x`, won't-do, folds into Closed alongside `v`, done), the
 currently-running version number (clicking it opens About), an
@@ -214,9 +217,17 @@ Updates (the last dropped entirely in the web app, where nothing in it
 applies; the tab labels are the same on every platform) — grouping
 independent controls:
 
-**Appearance** (theme, glyph palette and editor)
+Every setting is one row — label and a one-line description on the left,
+the control on the right (stacked on a phone), rows divided by hairlines;
+the tabs are real tabs (Left/Right move between them), not segmented
+controls.
+
+**Appearance** (theme, language, glyph palette and editor)
 - **Theme:** Light / Dark / System for the app's own chrome (System
-  follows the OS setting and is the default).
+  follows the OS setting and is the default). In dark mode a **Pure black
+  (OLED)** toggle appears right below it (§3.7).
+- **Language:** System / English / Nederlands / Deutsch / Français /
+  Polski / Español / Italiano; System follows the OS/browser language.
 - **Glyph palette:** Color / Grayscale / Legacy — a three-way choice
   independent of the chrome theme above. Glyphs, tab/status-bar accents,
   and search highlighting all follow it, including inside the action
@@ -227,9 +238,15 @@ independent controls:
 - **Editor width:** Full / Wrap / Reading column — Full keeps every line
   unwrapped (for tables and aligned columns), Wrap breaks long lines to
   fit the window, Reading column additionally caps the text to a
-  comfortable centred measure.
+  comfortable centred measure. With wrapping on, a continuation line is
+  indented to match its line's text (a hanging indent) and a small curved
+  arrow marks where a line was broken.
+- **Font size / line spacing:** two sliders (§3.7).
 
-**Notes & Sync** (calendar, notes location and data)
+**Notes & Sync** (notes location, startup, calendar and data)
+- **Startup:** which note opens on the first launch of each day — "Today"
+  (default) or "Last note", which restores the previously active note
+  unless today already has content or meetings (`startupTabMode`).
 - **Calendar** (desktop only): a single opt-in toggle, "Show 'Sync
   calendar for this day'" (off by default) — the top-bar/More-actions/
   command-palette button for it doesn't exist at all until turned on.
@@ -265,7 +282,11 @@ The app launches without the white-flash-before-dark-theme most Tauri
 apps show — the window's native background is set to match the OS/app
 theme before the window is ever shown. Restoring a previous session's
 tabs reads them all in parallel rather than one at a time, for a faster
-time-to-typable. Scrollbars throughout (editor, modal lists, the import
+time-to-typable. Reading the whole notes folder (for Section History, the
+Action Drawer and search) is kept off the startup path: it runs off the UI
+thread and starts a moment after the editor is up, so a large folder never
+delays the first keystroke (§266). Starting the app a second time focuses
+the window that is already running instead of opening another. Scrollbars throughout (editor, modal lists, the import
 textarea) are thin and theme-matched rather than the OS default.
 
 ### 3.6 Modal Dialog System & Mobile Ergonomics
@@ -332,7 +353,13 @@ snapshot for reference, not the source of truth.
 | Close tab (or middle-click) | `Ctrl+W` | `Cmd+W` |
 | Next / previous tab | `Ctrl+Tab` / `Ctrl+Shift+Tab` | `Cmd+Tab` / `Cmd+Shift+Tab` |
 | Undo / redo (per tab) | `Ctrl+Z` / `Ctrl+Y` / `Ctrl+Shift+Z` | `Cmd+Z` / `Cmd+Shift+Z` |
-| Cycle action state on the current line | `Ctrl+Space` or `Ctrl+Enter` | `Cmd+Enter` only |
+| Close the open action at the caret (`#` → `v`; topics `o` → `.`) | `Ctrl+Space` or `Ctrl+Enter` | `Cmd+Enter` only |
+| Reopen the done action at the caret (`v` → `#`; `.`/`,` → `o`) | `Ctrl+Shift+Space` or `Ctrl+Shift+Enter` | `Cmd+Shift+Enter` only |
+| Open the action at the caret, or in each selected line | `Ctrl+Shift+O` | `Cmd+Shift+O` |
+| Set the action at the caret to open / done / deferred / won't do (a plain line becomes one) | `Ctrl+1` / `Ctrl+2` / `Ctrl+3` / `Ctrl+4` | `Cmd+1` … `Cmd+4` |
+| Set the line to a topic: to discuss / discussed / not discussed | `Ctrl+5` / `Ctrl+6` / `Ctrl+7` | `Cmd+5` / `Cmd+6` / `Cmd+7` |
+| Copy this section to its next occurrence | `Ctrl+Shift+.` | `Cmd+Shift+.` |
+| Zen mode (hide the bars) | `Shift+F11` (also `F11` on desktop) | `Shift+F11` / `Cmd+Option+Z` |
 | Jump to next / previous open action | `F2` / `Shift+F2` | `F2` / `Shift+F2` |
 | Caret to line start, then previous/next line start | `Ctrl+↑` / `Ctrl+↓` | *(not offered — Mac keeps the OS's own page-scroll on these keys)* |
 | Convert current line to a section header | `Ctrl+Shift+S` | `Cmd+Shift+S` |
@@ -348,7 +375,7 @@ snapshot for reference, not the source of truth.
 
 Three combos are deliberately **not** made Mac-aware, each for a
 specific reason recorded alongside its binding:
-- **`Ctrl+Space`** (action-state cycle) collides with macOS's own
+- **`Ctrl+Space`** (close the open action) collides with macOS's own
   input-source-switcher shortcut — `Cmd+Enter` is the reliable Mac
   binding for the same action instead.
 - **`Ctrl+Y`-as-redo** isn't how CodeMirror's own history keymap binds
@@ -388,8 +415,13 @@ reachable from the top bar, a shortcut, or the command palette:
   typing into it) doesn't count. Opens on the active tab's own month
   with that day highlighted (falling back to today for a scratchpad,
   which has no date of its own), rather than always defaulting to today.
-  A dot under a day shows its state: green (has actions, none open),
-  amber (has open actions), dim (a note with no actions).
+  Each day is a small container showing its state (§262): empty days are
+  flat and faint; days with a note are a neutral chip; days with open
+  actions add an accent border; today keeps a ring and the selected day is
+  filled. With calendar sync on and `.agenda.json` present, a day that only
+  has meetings so far (no note yet) is a dashed box. (There are no
+  completion dots any more: an all-done day looks like any other day with a
+  note.)
 - **Action Drawer** (`Ctrl/Cmd+Shift+A`) — lists actions across either
   just the open tabs or every file in the notes folder (a per-session
   toggle), most-recent-first either way. A second toggle (remembered for
@@ -467,7 +499,7 @@ reachable from the top bar, a shortcut, or the command palette:
   `has:@<name>`, `since:YYYY-MM-DD`, `before:YYYY-MM-DD`. Opening a result
   briefly pulses the target line.
 - **Sync Calendar for This Day** (`Ctrl/Cmd+Shift+C`, see tenet 4) — an
-  opt-in feature (Settings → Calendar, §3.4; hidden entirely until turned
+  opt-in feature (Settings → Notes & Sync → Calendar, §3.4; hidden entirely until turned
   on) that reads a `.agenda.json` file from the root of the notes folder
   (kept up to date by whatever external process syncs the user's real
   calendar, not by ChronoNote — full schema and rules in
@@ -485,7 +517,16 @@ reachable from the top bar, a shortcut, or the command palette:
   a checklist for new meetings, and a Leave-flagged/Discard/Move-to-
   another-day choice for any existing section whose meeting is no
   longer on the agenda but still has content — before anything is
-  written.
+  written. Around that review (§263): an amber **dot** on the sync button
+  (and on the More button / its row when collapsed) shows when the active
+  dated note differs from `.agenda.json` — checked on tab switch, shortly
+  after edits and on window focus; a section whose title starts with `'`
+  or `’` is an **ad-hoc call**, never matched to a meeting, never flagged
+  as removed and never lighting the dot; and opening an **empty** note
+  for today or later while meetings exist for it fills the meeting
+  sections **silently**, without the review, with the caret on line 3 (it
+  writes the file at once, so opening a future day with meetings creates
+  its note).
 - **Shortcuts & Symbols** (`Ctrl/Cmd+/` or `Ctrl/Cmd+Shift+/`) — the
   keyboard shortcut table (§4) and the token→glyph vocabulary (§2.2)
   side by side in two independently-scrollable columns. Each column
@@ -527,7 +568,9 @@ reopens the tabs that were open last time, with the same tab active;
 files deleted in the meantime are silently skipped. Today's dated tab is
 always opened too, and becomes active if the previously-active one
 couldn't be restored — including on the first launch of a new day, so
-the app always lands on today rather than wherever it was left. Cursor
+the app lands on today rather than wherever it was left (unless Settings →
+Notes & Sync → Startup is "Last note" and today is still empty with no
+meetings, in which case the previously active note comes back). Cursor
 position and scroll offset are remembered per tab for the rest of the
 session (not persisted across restarts); per-tab undo/redo history is
 also preserved across a tab switch within the same session.
@@ -607,7 +650,9 @@ one back in with merge-skip-duplicates semantics, so a user's data can
 move between the web app and the desktop app deliberately, by hand.
 Installable as a PWA (offline-capable, launches in its own window) for
 anyone who wants an app-like feel without leaving the browser-storage
-tier.
+tier. The browser's Back button (and a phone's Back gesture) closes the
+topmost open overlay (modal, popover or drawer) before it leaves the page
+(§261).
 
 **OneDrive sync (v0.11.0).** The web app can connect a Microsoft account
 (OAuth 2.0 PKCE in the browser, no server of ours) and sync a chosen OneDrive

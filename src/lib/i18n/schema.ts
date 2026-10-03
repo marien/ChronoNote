@@ -191,6 +191,7 @@ export type TranslationParams = {
   "shortcuts.modal.sectionHeaderHint.exampleTitle": undefined;
   "shortcuts.modal.sectionHeaderHint.part3": undefined;
   "shortcuts.modal.sectionHeaderHint.part4": undefined;
+  "shortcuts.modal.adhocSection": undefined;
 
   // Action Drawer (`ActionDrawerModal.svelte`, Ctrl/Cmd+Shift+A).
   "actionDrawer.modal.ariaLabel": undefined;

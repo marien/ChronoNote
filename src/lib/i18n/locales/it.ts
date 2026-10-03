@@ -184,15 +184,15 @@ export const it = {
   "shortcuts.modal.topicTag": () =>
     "Tag argomento — raggruppa le azioni per argomento, mostrato come pillola solo subito dopo il simbolo dell'azione; le parentesi appaiono durante la modifica della riga",
   "shortcuts.modal.dimmedLines": () =>
-    "Le righe completate, rimandate e annullate appaiono attenuate; quelle aperte mantengono la piena intensità",
+    "Le righe completate, rimandate e annullate, e i punti trattati o rinviati, appaiono attenuati; quelli aperti mantengono la piena intensità (un punto con follow-up aperto è attenuato solo fino alla freccia)",
   "shortcuts.modal.boldEmphasis": () => "Grassetto per il resto della riga",
   "shortcuts.modal.numberedList": () =>
     "Elemento di elenco numerato — testo normale, nessun glifo. Invio continua con il numero successivo, un elemento vuoto termina l'elenco, Tab rientra di due spazi; i numeri non vengono mai riscritti. Sotto-elementi:",
   "shortcuts.modal.consequenceAction": ({ shortcutHint }) =>
     `Azione conseguente — un follow-up con il proprio stato aperta/completata/rimandata/annullata, modificabile come qualsiasi riga di azione (fai clic sul glifo per chiudere o riaprire, o ${shortcutHint} per impostarlo direttamente)`,
-  "shortcuts.modal.delegated.part1": () => "Delegato — follow-up assegnato a qualcuno. Il ",
-  "shortcuts.modal.delegated.part2": () => " viene evidenziato ovunque si trovi su una riga ",
-  "shortcuts.modal.delegated.part3": () => ", e rimane testo reale e modificabile. Più persone: ",
+  "shortcuts.modal.delegated.part1": () => "Delegato — follow-up assegnato a qualcuno. Un ",
+  "shortcuts.modal.delegated.part2": () => " viene evidenziato ovunque si trovi, su qualsiasi riga, e rimane testo reale e modificabile; dopo un ",
+  "shortcuts.modal.delegated.part3": () => " indica chi si occupa del follow-up. Più persone: ",
   "shortcuts.modal.sectionHeaderHint.part1": () =>
     "Una riga di testo seguita immediatamente da una riga di quattro o più caratteri ",
   "shortcuts.modal.sectionHeaderHint.part2": () => " diventa il titolo di quella sezione — es. ",
@@ -200,6 +200,8 @@ export const it = {
   "shortcuts.modal.sectionHeaderHint.part3": () => " poi ",
   "shortcuts.modal.sectionHeaderHint.part4": () =>
     " nella riga successiva. Con questo Azioni, Cronologia sezione e i risultati di ricerca etichettano ogni elemento, e Cronologia sezione riconosce le sezioni ricorrenti (ignorando una data iniziale o finale).",
+  "shortcuts.modal.adhocSection": () =>
+    "Chiamata estemporanea — inizia il titolo di una sezione con ' (come 'Chiamata veloce con Dave). La sincronizzazione del calendario non la abbina, segnala o rimuove mai.",
 
   "actionDrawer.modal.ariaLabel": () => "Azioni",
   "actionDrawer.filterPlaceholder": () => "Filtra le mie azioni (digita @ per includere delegate)...",

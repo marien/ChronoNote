@@ -186,15 +186,15 @@ export const de = {
   "shortcuts.modal.topicTag": () =>
     "Themen-Tag — gruppiert Aktionen nach Thema, als Pille dargestellt nur direkt nach dem Aktionssymbol; die Klammern sind beim Bearbeiten der Zeile sichtbar",
   "shortcuts.modal.dimmedLines": () =>
-    "Erledigte, verschobene und entfallene Zeilen werden abgeblendet dargestellt; offene bleiben in voller Stärke",
+    "Erledigte, verschobene und entfallene Zeilen sowie besprochene oder verschobene Agendapunkte werden abgeblendet dargestellt; offene bleiben in voller Stärke (ein Agendapunkt mit offener Folgeaufgabe nur bis zum Pfeil)",
   "shortcuts.modal.boldEmphasis": () => "Fette Hervorhebung für den Rest der Zeile",
   "shortcuts.modal.numberedList": () =>
     "Nummeriertes Listenelement — reiner Text, kein Symbol. Enter setzt mit der nächsten Nummer fort, ein leeres Element beendet die Liste, Tab rückt um zwei Leerzeichen ein; Nummern werden nie neu geschrieben. Unterpunkte:",
   "shortcuts.modal.consequenceAction": ({ shortcutHint }) =>
     `Folgeaktion — eine Folge mit eigenem Status offen/erledigt/verschoben/entfällt, geändert auf dieselbe Weise wie jede Aktionszeile (klicke das Symbol, um sie zu schließen oder erneut zu öffnen, oder ${shortcutHint}, um sie direkt festzulegen)`,
-  "shortcuts.modal.delegated.part1": () => "Delegiert — Folgeaufgabe, die jemandem zugewiesen ist. Das ",
-  "shortcuts.modal.delegated.part2": () => " wird hervorgehoben, wo auch immer es auf einer ",
-  "shortcuts.modal.delegated.part3": () => "-Zeile steht, und bleibt echter, bearbeitbarer Text. Mehrere Personen: ",
+  "shortcuts.modal.delegated.part1": () => "Delegiert — Folgeaufgabe, die jemandem zugewiesen ist. Ein ",
+  "shortcuts.modal.delegated.part2": () => " wird überall hervorgehoben, wo es steht, auf jeder Zeile, und bleibt echter, bearbeitbarer Text; nach einem ",
+  "shortcuts.modal.delegated.part3": () => " nennt es, wer die Folgeaufgabe übernimmt. Mehrere Personen: ",
   "shortcuts.modal.sectionHeaderHint.part1": () =>
     "Eine Textzeile, der unmittelbar eine Zeile mit vier oder mehr ",
   "shortcuts.modal.sectionHeaderHint.part2": () => "-Zeichen folgt, wird zum Titel dieses Abschnitts — z. B. ",
@@ -202,6 +202,8 @@ export const de = {
   "shortcuts.modal.sectionHeaderHint.part3": () => " gefolgt von ",
   "shortcuts.modal.sectionHeaderHint.part4": () =>
     " in der nächsten Zeile. Danach benennen Aktionen, Abschnittsverlauf und Suchergebnisse jeden Eintrag, und danach gleicht der Abschnittsverlauf wiederkehrende Abschnitte ab (ein führendes/folgendes Datum wird ignoriert).",
+  "shortcuts.modal.adhocSection": () =>
+    "Spontanes Gespräch — beginne einen Abschnittstitel mit ' (z. B. 'Kurzer Anruf mit Dave). Die Kalendersynchronisierung ordnet ihn nie zu, markiert oder entfernt ihn.",
 
   "actionDrawer.modal.ariaLabel": () => "Aktionen",
   "actionDrawer.filterPlaceholder": () => "Meine Aktionen filtern (@ eingeben, um Delegierte einzubeziehen)...",

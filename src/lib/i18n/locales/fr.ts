@@ -185,15 +185,15 @@ export const fr = {
   "shortcuts.modal.topicTag": () =>
     "Balise de sujet — regroupe les actions par thème, affichée en pastille juste après le symbole d'action ; les parenthèses réapparaissent à l'édition",
   "shortcuts.modal.dimmedLines": () =>
-    "Les lignes terminées, reportées et abandonnées sont estompées ; les ouvertes restent bien visibles",
+    "Les lignes terminées, reportées et abandonnées, ainsi que les points traités ou reportés, sont estompés ; les ouverts restent bien visibles (un point avec un suivi ouvert n'est estompé que jusqu'à la flèche)",
   "shortcuts.modal.boldEmphasis": () => "Mise en gras pour le reste de la ligne",
   "shortcuts.modal.numberedList": () =>
     "Élément de liste numérotée — texte brut, sans glyphe. Entrée continue au numéro suivant, un élément vide termine la liste, Tab indente de deux espaces ; les numéros ne sont jamais modifiés. Sous-éléments :",
   "shortcuts.modal.consequenceAction": ({ shortcutHint }) =>
     `Action consécutive — un suivi doté de son propre état ouvert/terminé/reporté/abandonné, modifiable comme toute ligne d'action (cliquez sur son glyphe pour fermer ou rouvrir, ou ${shortcutHint} pour le définir directement)`,
-  "shortcuts.modal.delegated.part1": () => "Délégué — suivi assigné à quelqu'un. Le ",
-  "shortcuts.modal.delegated.part2": () => " est mis en évidence où qu'il se trouve sur une ligne ",
-  "shortcuts.modal.delegated.part3": () => ", et reste un texte modifiable. Plusieurs personnes : ",
+  "shortcuts.modal.delegated.part1": () => "Délégué — suivi assigné à quelqu'un. Un ",
+  "shortcuts.modal.delegated.part2": () => " est mis en évidence où qu'il se trouve, sur n'importe quelle ligne, et reste un texte modifiable ; après un ",
+  "shortcuts.modal.delegated.part3": () => " il indique qui s'occupe du suivi. Plusieurs personnes : ",
   "shortcuts.modal.sectionHeaderHint.part1": () =>
     "Une ligne de texte suivie immédiatement d'une ligne de quatre caractères ",
   "shortcuts.modal.sectionHeaderHint.part2": () => " ou plus devient le titre de la section — ex. ",
@@ -201,6 +201,8 @@ export const fr = {
   "shortcuts.modal.sectionHeaderHint.part3": () => " puis ",
   "shortcuts.modal.sectionHeaderHint.part4": () =>
     " à la ligne suivante. C'est ce qui identifie chaque élément dans Actions, Historique de section et les résultats de recherche, et permet de relier les sections récurrentes (sans tenir compte d'une date en début ou fin).",
+  "shortcuts.modal.adhocSection": () =>
+    "Appel improvisé — commencez un titre de section par ' (par ex. 'Appel rapide avec Dave). La synchronisation du calendrier ne l'associe, ne le signale et ne le supprime jamais.",
 
   "actionDrawer.modal.ariaLabel": () => "Actions",
   "actionDrawer.filterPlaceholder": () => "Filtrer mes actions (tapez @ pour inclure les déléguées)…",

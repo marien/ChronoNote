@@ -214,8 +214,9 @@
           <div class="num">1</div>
           <div>
             <h3>Open today, type what's happening</h3>
-            <p>ChronoNote always opens on today's note. Give a meeting a title and underline it to make a
-              section, then log actions as they come up.</p>
+            <p>ChronoNote opens on today's note the first time you launch it each day. (Settings → Notes &amp; Sync →
+              Startup can bring back the note you were last on instead, as long as today is still empty and has no
+              meetings.) Give a meeting a title and underline it to make a section, then log actions as they come up.</p>
             <div class="snippet-pair">
               <div>
                 <div class="snippet-pair-label">What you type</div>
@@ -261,6 +262,11 @@
             <p>Reuse the same section title tomorrow — "Daily Standup" again, or "1:1 — Priya" next week —
               and <kbd>Ctrl+Shift+H</kbd> pulls up every prior occurrence, aggregated, right from wherever
               your cursor sits in the current one.</p>
+            <p>Select lines in an occurrence (<kbd>↑</kbd>/<kbd>↓</kbd>, <kbd>Shift</kbd> to extend,
+              <kbd>Ctrl+A</kbd> for all of them) and carry them forward with "Add to today" or "Add to next
+              occurrence". The old lines are marked as forwarded, and whatever was deferred comes back open.
+              Choose <strong>As agenda</strong> to reuse a whole past agenda as a template: the same, but every
+              agenda topic (<code>o</code>, <code>.</code> and <code>,</code>) is open again in the new note.</p>
           </div>
         </div>
         <div class="workflow-step">
@@ -276,6 +282,10 @@
               <code>Followed:</code> and so on) counts as removed, named by the rest of its title, and
               <code>Placeholder:</code> or <code>Confirmed -</code> in front of a title is dropped. The review opens with
               focus on Sync; <kbd>↑</kbd> and <kbd>↓</kbd> move between the checkboxes.</p>
+            <p>A small dot on the sync button tells you when the open note differs from the calendar. Opening an
+              empty note for today (or a later day) with meetings in the calendar fills in the meeting sections
+              straight away, no review needed. A section whose title starts with <code>'</code> — an ad-hoc call
+              like <code>'Quick call with Dave</code> — is never matched to the calendar and never flagged.</p>
             <p>Something needs to write that file for this to work — the exact schema (and how to keep it fed from
               whatever you already use to sync your real calendar) is in the
               <a href="https://github.com/marien/ChronoNote/blob/main/docs/agenda-file-guide.md" target="_blank" rel="noopener">.agenda.json reference</a>
@@ -319,8 +329,8 @@
             <h3>Write without distraction, your way</h3>
             <p><kbd>Shift+F11</kbd> hides the bars for Zen mode (<kbd>Esc</kbd> brings them back). In Settings, set the
               editor's font size and line spacing, and switch on pure black in dark mode for OLED screens. The
-              calendar dots in <kbd>Ctrl+O</kbd> show at a glance which days are all done (green), have open
-              actions (amber) or are only notes.</p>
+              date picker (<kbd>Ctrl+O</kbd>) shows at a glance which days have a note, which have open actions
+              (an accent border) and, with calendar sync on, which only have meetings so far (a dashed box).</p>
           </div>
         </div>
       </div>
@@ -334,7 +344,7 @@
         <h2>Migrating from somewhere else</h2>
       </div>
       <p>
-        Already keeping notes in another tool? Settings → Data → "Import notes from a file…"
+        Already keeping notes in another tool? Settings → Notes &amp; Sync → Data → "Import notes from a file…"
         brings them in, once they're converted to ChronoNote's plain-text format — one
         <code>.txt</code> file per day, tokens like <code># </code> and <code>=&gt; </code>
         turned into actions and follow-ups.
