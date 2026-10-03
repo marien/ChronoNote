@@ -6,15 +6,17 @@
  * normal tab machinery (so a past occurrence is editable and the tab's grey/blue/green says past/today/future). The
  * window handling lives in `peekWindow.ts`, the one-section editor view in `editor/sectionFocus.ts`.
  *
- * Settings are per-device conveniences kept in localStorage for now (this is an experiment; if it stays they move
- * into config.json like the other settings). */
+ * Settings live in config.json (`PeekConfig`), applied at startup by `applyPeekConfig`. */
 import { get, writable } from "svelte/store";
 import { t } from "./i18n";
 import { todayISO } from "./date";
 import { extractSectionBody } from "./history";
 import { refreshAllNotesCache } from "./persistence";
-import { jumpToFileLine } from "./tabs";
-import { createPeekWindowController, nativePeekWindow, type PeekGeometry } from "./peekWindow";
+import { closeTab, jumpToFileLine, switchTab } from "./tabs";
+import { createPeekWindowController, nativePeekWindow } from "./peekWindow";
+import { PEEK_DEFAULTS } from "./peekDefaults";
+import * as api from "./tauriApi";
+import type { PeekConfig, PeekHeader } from "./types";
 import {
   activeTabId,
   allNotesCache,
@@ -28,55 +30,35 @@ import {
 } from "./stores";
 import { getSectionHeaderForLine, normalizeHeaderTitle, titleForMatching } from "./tokens";
 
-export type PeekHeaderMode = "always" | "hover" | "never";
+export type PeekHeaderMode = PeekHeader;
+/** The Peek settings, as stored in `config.json` (`PeekConfig`, generated from Rust). */
+export type PeekSettings = PeekConfig;
 
-export interface PeekSettings {
-  /** Height in lines; 0 = fit the whole section (up to `PEEK_MAX_FIT_LINES`). */
-  lines: number;
-  /** Background opacity in percent (text is always fully opaque). */
-  opacity: number;
-  alwaysOnTop: boolean;
-  header: PeekHeaderMode;
-  /** Global shortcut (Tauri accelerator syntax). */
-  shortcut: string;
-  /** Where the compact window was last left, physical pixels. */
-  geometry: PeekGeometry | null;
-  /** The "lines" setting changed since the window was last left: use it for the height, not the remembered one. */
-  useLinesHeight: boolean;
-}
-
+export { PEEK_DEFAULTS };
+/** Most rows "fit the whole section" mode grows to. */
 export const PEEK_MAX_FIT_LINES = 20;
-export const PEEK_DEFAULTS: PeekSettings = {
-  lines: 6,
-  opacity: 70,
-  alwaysOnTop: true,
-  header: "always",
-  shortcut: "CommandOrControl+F11",
-  geometry: null,
-  useLinesHeight: false,
-};
 /** Chrome around the text in logical px: the header strip plus the editor's own padding. */
 const CHROME_PX = 30 + 12;
-const STORAGE_KEY = "chrononote.peek";
 
-function loadSettings(): PeekSettings {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) return { ...PEEK_DEFAULTS, ...JSON.parse(raw) };
-  } catch {
-    // Private window / blocked storage: defaults.
-  }
-  return { ...PEEK_DEFAULTS };
-}
+export const peekSettings = writable<PeekSettings>({ ...PEEK_DEFAULTS });
 
-export const peekSettings = writable<PeekSettings>(loadSettings());
+// Settings live in config.json like every other setting. Nothing is written until the stored config has been
+// applied once (`applyPeekConfig`), so starting up never writes the defaults over what is on disk; after that a
+// change is saved shortly after the last edit (a slider drag fires many).
+let configLoaded = false;
+let saveTimer: ReturnType<typeof setTimeout> | undefined;
 peekSettings.subscribe((s) => {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(s));
-  } catch {
-    // Not persisted; the session still works.
-  }
+  if (!configLoaded) return;
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => void api.setPeek(s).catch(() => {}), 300);
 });
+
+/** Called once at startup with `config.peek`. */
+export function applyPeekConfig(cfg: PeekConfig | undefined): void {
+  configLoaded = false;
+  peekSettings.set({ ...PEEK_DEFAULTS, ...cfg });
+  configLoaded = true;
+}
 
 /** On while the compact window is showing. */
 export const peekMode = writable(false);
@@ -129,6 +111,32 @@ export function togglePeek(): void {
   else void enterPeek();
 }
 
+/** What Peek needs to tidy up when it ends: the tab it was started from, every tab it showed (id -> its content
+ * the first time Peek showed it, to tell afterwards whether you edited it), and which of those Peek had to open.
+ * Leaving Peek takes you back to the note you started from and closes the notes Peek opened, so stepping through a
+ * section's history leaves no pile of tabs behind. A note you edited is never closed, and if you are on one you
+ * edited you stay on it. */
+let peekOrigin: string | null = null;
+const peekSeen = new Map<string, string>();
+const peekOpened = new Set<string>();
+
+function tidyTabsAfterPeek(): void {
+  const origin = peekOrigin;
+  const seen = new Map(peekSeen);
+  const opened = new Set(peekOpened);
+  peekOrigin = null;
+  peekSeen.clear();
+  peekOpened.clear();
+  const open = get(tabs);
+  const edited = (id: string) => {
+    const now = open.find((x) => x.id === id);
+    return !!now && seen.has(id) && now.content !== seen.get(id);
+  };
+  const active = get(activeTabId);
+  if (origin && active !== origin && !edited(active) && open.some((x) => x.id === origin)) switchTab(origin);
+  for (const id of opened) if (open.some((x) => x.id === id) && !edited(id)) closeTab(id);
+}
+
 export async function enterPeek(): Promise<boolean> {
   if (!desktop() || get(peekMode)) return false;
   const tab = get(tabs).find((x) => x.id === get(activeTabId));
@@ -140,6 +148,9 @@ export async function enterPeek(): Promise<boolean> {
     return false;
   }
   isZenMode.set(false);
+  peekOrigin = tab.id;
+  peekSeen.clear();
+  peekOpened.clear();
   peekTarget.set(target);
   peekFitLines.set(0);
   peekMode.set(true);
@@ -152,6 +163,7 @@ export function leavePeek(): void {
   peekMode.set(false);
   peekTarget.set(null);
   peekPosition.set(null);
+  tidyTabsAfterPeek();
 }
 
 /** Alt+Left (-1) / Alt+Right (+1): the previous / next note that has this section. */
@@ -168,6 +180,11 @@ export async function stepPeekOccurrence(direction: -1 | 1): Promise<void> {
   const sourceLines = openTab?.content.split("\n") ?? (get(allNotesCache)[next] ?? "").split("\n");
   const body = extractSectionBody(sourceLines, target);
   await jumpToFileLine({ tabId: openTab?.id, filename: next, lineIdx: body ? body.startLineIdx : 0 });
+  const shown = get(tabs).find((x) => x.filename === next && !x.isScratchpad);
+  if (shown && !peekSeen.has(shown.id)) {
+    peekSeen.set(shown.id, shown.content);
+    if (!openTab) peekOpened.add(shown.id);
+  }
   void refreshPosition();
 }
 

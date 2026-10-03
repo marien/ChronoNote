@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { seedApp, editor, mockNote, tab } from "./helpers";
+import { seedApp, editor, mockNote, tab, activeTabLabel } from "./helpers";
 
 /** Peek mode: the compact, see-through note window for calls. The native window handling (size, position,
  * transparency, always-on-top, the global shortcut) can't run in a browser — this covers the part the page owns:
@@ -77,5 +77,90 @@ test.describe("peek mode", () => {
       .toContain("added in peek");
     // The tab for that day is a normal tab now.
     await expect(tab(page, "2026-09-01.txt")).toHaveCount(1);
+  });
+
+  test.describe("tabs Peek opens while stepping", () => {
+    test("leaving Peek closes the notes it opened and returns to the note you started from", async ({ page }) => {
+      await enterOnWeeklySync(page);
+      await page.keyboard.press("Alt+ArrowLeft");
+      await expect(tab(page, "2026-09-01.txt")).toHaveCount(1);
+      await page.keyboard.press("Alt+ArrowRight");
+      await page.keyboard.press("Alt+ArrowRight");
+      await expect(page.locator("#peek-bar")).toContainText("2026-09-10");
+      await expect(tab(page, "2026-09-10.txt")).toHaveCount(1);
+      await page.keyboard.press("ControlOrMeta+F11");
+      await expect(page.locator("body.peek-mode")).toHaveCount(0);
+      await expect(tab(page, "2026-09-01.txt")).toHaveCount(0);
+      await expect(tab(page, "2026-09-10.txt")).toHaveCount(0);
+      await expect(activeTabLabel(page)).toContainText("2026-09-07");
+    });
+
+    test("a note you edited in Peek stays open, and you stay on it", async ({ page }) => {
+      await enterOnWeeklySync(page);
+      await page.keyboard.press("Alt+ArrowLeft");
+      await expect(page.locator("#peek-bar")).toContainText("2026-09-01");
+      await editor(page).click();
+      await page.keyboard.press("ControlOrMeta+End");
+      await page.keyboard.type("kept");
+      await page.keyboard.press("ControlOrMeta+F11");
+      await expect(page.locator("body.peek-mode")).toHaveCount(0);
+      await expect(tab(page, "2026-09-01.txt")).toHaveCount(1);
+      await expect(activeTabLabel(page)).toContainText("2026-09-01");
+    });
+
+    test("a note that was already open before Peek is not closed, and you land back on the note you started from", async ({ page }) => {
+      await seedApp(page, {
+        seed: {
+          notes: { "2026-09-01.txt": note("- last month"), "2026-09-07.txt": note("- today") },
+          session: { openTabs: ["2026-09-01.txt", "2026-09-07.txt"], activeTab: "2026-09-07.txt" },
+        },
+      });
+      await enterOnWeeklySync(page);
+      await page.keyboard.press("Alt+ArrowLeft");
+      await expect(page.locator("#peek-bar")).toContainText("2026-09-01");
+      await page.keyboard.press("ControlOrMeta+F11");
+      await expect(page.locator("body.peek-mode")).toHaveCount(0);
+      await expect(tab(page, "2026-09-01.txt")).toHaveCount(1);
+      await expect(activeTabLabel(page)).toContainText("2026-09-07");
+    });
+  });
+
+  test.describe("settings are stored in config.json", () => {
+    const peekRange = (page: import("@playwright/test").Page, label: string) =>
+      page.locator(".settings-modal-card").getByLabel(label, { exact: true });
+
+    async function openPeekSettings(page: import("@playwright/test").Page) {
+      await editor(page).click();
+      await page.keyboard.press("ControlOrMeta+Comma");
+      await expect(page.locator(".settings-modal-card")).toBeVisible();
+      await peekRange(page, "Background opacity").scrollIntoViewIfNeeded();
+    }
+
+    test("a changed setting is saved to the config and is still there after a reload", async ({ page }) => {
+      await openPeekSettings(page);
+      await peekRange(page, "Background opacity").evaluate((el: HTMLInputElement) => {
+        el.value = "45";
+        el.dispatchEvent(new Event("input", { bubbles: true }));
+      });
+      await expect.poll(() => page.evaluate(() => window.__CHRONO_MOCK__!.peek.opacity)).toBe(45);
+      await page.reload();
+      await openPeekSettings(page);
+      await expect(peekRange(page, "Background opacity")).toHaveValue("45");
+    });
+
+    test("starting up shows the stored settings and does not overwrite them with defaults", async ({ page }) => {
+      await seedApp(page, {
+        seed: {
+          notes: { "2026-09-07.txt": note("- x") },
+          session: { openTabs: ["2026-09-07.txt"], activeTab: "2026-09-07.txt" },
+          peek: { opacity: 35, lines: 4 },
+        },
+      });
+      await openPeekSettings(page);
+      await expect(peekRange(page, "Background opacity")).toHaveValue("35");
+      await expect(peekRange(page, "Height (lines)")).toHaveValue("4");
+      await page.waitForTimeout(700); // longer than the save debounce
+      expect(await page.evaluate(() => window.__CHRONO_MOCK__!.peek)).toMatchObject({ opacity: 35, lines: 4 });
+    });
   });
 });

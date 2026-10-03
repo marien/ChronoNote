@@ -120,6 +120,15 @@ fn set_startup_tab_mode(
     Ok(cfg)
 }
 
+/// Peek mode settings (and where the compact window was last left). Out-of-range values are clamped.
+#[tauri::command]
+fn set_peek(app: AppHandle, peek: storage::PeekConfig) -> Result<storage::AppConfig, String> {
+    let mut cfg = storage::load_config(&app)?;
+    cfg.peek = peek.clamped();
+    storage::save_config(&app, &cfg)?;
+    Ok(cfg)
+}
+
 /// #50: called once per launch, right after boot compares the running
 /// version against `AppConfig.last_seen_version` — records the version
 /// so the same launch's update notice (if any) isn't repeated next time.
@@ -500,6 +509,7 @@ pub fn run() {
             set_line_height,
             set_pure_black,
             set_startup_tab_mode,
+            set_peek,
             set_last_seen_version,
             set_onboarding_completed,
             list_note_files,
