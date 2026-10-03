@@ -176,6 +176,10 @@ export const pl = {
     "Next occurrence",
   "peek.settings.title": () =>
     "Peek (compact notes during a call)",
+  "peek.settings.enabled.label": () =>
+    "Enable Peek (experimental)",
+  "peek.settings.enabled.hint": () =>
+    "Off by default. A compact, see-through note window for taking notes during a call. Still being tried out.",
   "peek.settings.lines.label": () =>
     "Height (lines)",
   "peek.settings.lines.fit": () =>

@@ -29,6 +29,7 @@ import {
   tabs,
 } from "./stores";
 import { findSectionRange } from "./peekSection";
+import { setShortcutEnabled } from "./shortcuts";
 import { getSectionHeaderForLine, normalizeHeaderTitle, titleForMatching } from "./tokens";
 
 export type PeekHeaderMode = PeekHeader;
@@ -109,6 +110,7 @@ async function refreshPosition(): Promise<string[]> {
 }
 
 export function togglePeek(): void {
+  if (!get(peekSettings).enabled) return;
   if (get(peekMode)) leavePeek();
   else void enterPeek();
 }
@@ -140,7 +142,7 @@ function tidyTabsAfterPeek(): void {
 }
 
 export async function enterPeek(): Promise<boolean> {
-  if (!desktop() || get(peekMode)) return false;
+  if (!desktop() || !get(peekSettings).enabled || get(peekMode)) return false;
   const tab = get(tabs).find((x) => x.id === get(activeTabId));
   if (!tab) return false;
   const cursor = editorApi ? editorApi.getCursorLineIdx() : 0;
@@ -257,13 +259,23 @@ export function wirePeek(): () => void {
 
   cleanups.push(
     peekSettings.subscribe((s) => {
-      void controller().then((w) => w.setAlwaysOnTop(s.alwaysOnTop));
+      if (s.enabled) void controller().then((w) => w.setAlwaysOnTop(s.alwaysOnTop));
+    }),
+  );
+
+  // The feature toggle: while off, Peek has no shortcut anywhere and nothing about it runs; turning it off while
+  // Peek is showing ends Peek.
+  cleanups.push(
+    peekSettings.subscribe((s) => {
+      setShortcutEnabled("togglePeekMode", s.enabled);
+      if (!s.enabled && get(peekMode)) leavePeek();
     }),
   );
 
   // Global shortcut: works while another app (the call) has the focus.
   let registered: string | null = null;
   const bindShortcut = async (accelerator: string) => {
+    if (!accelerator && !registered) return; // switched off and never registered: nothing to do, nothing to load
     if (registered === accelerator) return;
     try {
       const gs = await import("@tauri-apps/plugin-global-shortcut");
@@ -278,7 +290,7 @@ export function wirePeek(): () => void {
       // Taken by another app or not available: the in-app shortcut still works.
     }
   };
-  cleanups.push(peekSettings.subscribe((s) => void bindShortcut(s.shortcut)));
+  cleanups.push(peekSettings.subscribe((s) => void bindShortcut(s.enabled ? s.shortcut : "")));
 
   return () => cleanups.forEach((c) => c());
 }

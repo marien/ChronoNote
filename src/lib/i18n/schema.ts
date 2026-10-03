@@ -158,6 +158,8 @@ export type TranslationParams = {
   "peek.prev": undefined;
   "peek.next": undefined;
   "peek.settings.title": undefined;
+  "peek.settings.enabled.label": undefined;
+  "peek.settings.enabled.hint": undefined;
   "peek.settings.lines.label": undefined;
   "peek.settings.lines.fit": undefined;
   "peek.settings.opacity.label": undefined;

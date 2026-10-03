@@ -177,6 +177,10 @@ export const de = {
     "Nächstes Vorkommen",
   "peek.settings.title": () =>
     "Peek (kompakte Notizen im Gespräch)",
+  "peek.settings.enabled.label": () =>
+    "Peek aktivieren (experimentell)",
+  "peek.settings.enabled.hint": () =>
+    "Standardmäßig aus. Ein kompaktes, durchsichtiges Notizfenster für Notizen während eines Gesprächs. Wird noch erprobt.",
   "peek.settings.lines.label": () =>
     "Höhe (Zeilen)",
   "peek.settings.lines.fit": () =>

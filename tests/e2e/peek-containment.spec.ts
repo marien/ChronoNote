@@ -49,6 +49,7 @@ test.describe("peek stays inside its section", () => {
           "2026-09-12.txt": "Nothing here\n============\nx",
         },
         session: { openTabs: ["2026-09-07.txt", "2026-09-12.txt"], activeTab: "2026-09-07.txt" },
+        peek: { enabled: true },
       },
     });
   });

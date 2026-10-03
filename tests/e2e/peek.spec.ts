@@ -21,7 +21,7 @@ test.describe("peek mode", () => {
         },
         session: { openTabs: ["2026-09-07.txt"], activeTab: "2026-09-07.txt" },
         // The header strip is hidden by default; most of these tests read it.
-        peek: { header: "always" },
+        peek: { enabled: true, header: "always" },
       },
     });
   });
@@ -51,6 +51,7 @@ test.describe("peek mode", () => {
       seed: {
         notes: { "2026-09-07.txt": note("- today") },
         session: { openTabs: ["2026-09-07.txt"], activeTab: "2026-09-07.txt" },
+        peek: { enabled: true },
       },
     });
     await enterOnWeeklySync(page);
@@ -130,7 +131,7 @@ test.describe("peek mode", () => {
         seed: {
           notes: { "2026-09-01.txt": note("- last month"), "2026-09-07.txt": note("- today") },
           session: { openTabs: ["2026-09-01.txt", "2026-09-07.txt"], activeTab: "2026-09-07.txt" },
-          peek: { header: "always" },
+          peek: { enabled: true, header: "always" },
         },
       });
       await enterOnWeeklySync(page);
@@ -140,6 +141,66 @@ test.describe("peek mode", () => {
       await expect(page.locator("body.peek-mode")).toHaveCount(0);
       await expect(tab(page, "2026-09-01.txt")).toHaveCount(1);
       await expect(activeTabLabel(page)).toContainText("2026-09-07");
+    });
+  });
+
+  test.describe("feature toggle: off by default", () => {
+    const off = async (page: import("@playwright/test").Page) =>
+      seedApp(page, {
+        seed: {
+          notes: { "2026-09-07.txt": note("- today") },
+          session: { openTabs: ["2026-09-07.txt"], activeTab: "2026-09-07.txt" },
+        },
+      });
+
+    test("with Peek off the shortcut does nothing", async ({ page }) => {
+      await off(page);
+      await enterOnWeeklySync(page);
+      await page.waitForTimeout(300);
+      await expect(page.locator("body.peek-mode")).toHaveCount(0);
+      await expect(page.locator("#peek-bar")).toHaveCount(0);
+      expect(await editor(page).innerText()).toContain("Standup");
+    });
+
+    test("with Peek off there is no command-palette entry and no Shortcuts-drawer row", async ({ page }) => {
+      await off(page);
+      await editor(page).click();
+      await page.keyboard.press("ControlOrMeta+K");
+      await page.keyboard.type("peek");
+      await page.waitForTimeout(300);
+      await expect(page.locator(".modal-card")).not.toContainText("Peek");
+      await page.keyboard.press("Escape");
+      await page.keyboard.press("ControlOrMeta+Slash");
+      await expect(page.locator(".modal-card")).toContainText("Zen mode");
+      await expect(page.locator(".modal-card")).not.toContainText("Peek");
+    });
+
+    test("Settings shows only the switch while it is off; switching it on reveals the rest and Peek works at once", async ({ page }) => {
+      await off(page);
+      await editor(page).click();
+      await page.keyboard.press("ControlOrMeta+Comma");
+      const settings = page.locator(".settings-modal-card");
+      const toggle = settings.getByLabel("Enable Peek (experimental)");
+      await toggle.scrollIntoViewIfNeeded();
+      await expect(toggle).not.toBeChecked();
+      await expect(settings.getByLabel("Background opacity", { exact: true })).toHaveCount(0);
+      await expect(settings.getByLabel("Height (lines)", { exact: true })).toHaveCount(0);
+
+      await settings.locator("label.toggle-switch", { hasText: "Enable Peek (experimental)" }).click();
+      await expect(toggle).toBeChecked();
+      await expect(settings.getByLabel("Background opacity", { exact: true })).toHaveCount(1);
+      await expect.poll(() => page.evaluate(() => window.__CHRONO_MOCK__!.peek.enabled)).toBe(true);
+
+      await page.keyboard.press("Escape");
+      await enterOnWeeklySync(page);
+      await expect(page.locator("body.peek-mode")).toBeVisible();
+
+      // Switching it off again while Peek is showing ends Peek.
+      await page.keyboard.press("ControlOrMeta+F11");
+      await expect(page.locator("body.peek-mode")).toHaveCount(0);
+      await page.keyboard.press("ControlOrMeta+Comma");
+      await settings.locator("label.toggle-switch", { hasText: "Enable Peek (experimental)" }).click();
+      await expect.poll(() => page.evaluate(() => window.__CHRONO_MOCK__!.peek.enabled)).toBe(false);
     });
   });
 
@@ -171,7 +232,7 @@ test.describe("peek mode", () => {
         seed: {
           notes: { "2026-09-07.txt": note("- x") },
           session: { openTabs: ["2026-09-07.txt"], activeTab: "2026-09-07.txt" },
-          peek: { opacity: 35, lines: 4 },
+          peek: { enabled: true, opacity: 35, lines: 4 },
         },
       });
       await openPeekSettings(page);

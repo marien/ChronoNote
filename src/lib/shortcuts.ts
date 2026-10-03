@@ -286,11 +286,21 @@ export function shortcutById(id: string): ShortcutDef {
   return def;
 }
 
+/** Shortcuts of features that are switched off (an experimental feature behind a setting). A switched-off shortcut
+ * has no combos at all, so it neither matches a key press nor appears in the Shortcuts drawer (the drawer drops rows
+ * with no combo) or anywhere else a combo is displayed. Peek starts switched off. */
+const switchedOff = new Set<string>(["togglePeekMode"]);
+export function setShortcutEnabled(id: string, enabled: boolean): void {
+  if (enabled) switchedOff.delete(id);
+  else switchedOff.add(id);
+}
+
 /** This def's combos that actually apply on the current platform — the
  * general mechanism both display and (for the App.svelte dispatcher)
  * matching filter through, so a Windows/Linux-only or Mac-only combo
  * simply isn't offered on the other platform. */
 export function combosForPlatform(def: ShortcutDef): ComboSpec[] {
+  if (switchedOff.has(def.id)) return [];
   const platform = isMac ? "mac" : "other";
   return def.combos.filter((c) => !c.platforms || c.platforms.includes(platform));
 }

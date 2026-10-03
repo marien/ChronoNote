@@ -97,6 +97,9 @@ pub struct PeekGeometry {
 #[derive(Serialize, Deserialize, Clone, PartialEq, Debug, TS)]
 #[serde(rename_all = "camelCase", default)]
 pub struct PeekConfig {
+    /// Feature toggle. Peek is experimental: off by default, and while off nothing of it is active (no global
+    /// shortcut, no menu entries, only this switch in Settings).
+    pub enabled: bool,
     /// Height in lines; 0 = fit the whole section.
     pub lines: u32,
     /// Background opacity in percent (text is never translucent).
@@ -116,6 +119,7 @@ pub const PEEK_MIN_OPACITY: u32 = 20;
 impl Default for PeekConfig {
     fn default() -> Self {
         PeekConfig {
+            enabled: false,
             lines: 6,
             opacity: 70,
             always_on_top: true,
@@ -1302,6 +1306,7 @@ mod tests {
         let path = dir.path().join("config.json");
         let base = load_config_at(&path, &dir.path().join("Notes")).unwrap();
         let peek = PeekConfig {
+            enabled: true,
             lines: 3,
             opacity: 40,
             always_on_top: false,
@@ -1333,7 +1338,8 @@ mod tests {
     }
 
     #[test]
-    fn peek_header_is_hidden_by_default() {
+    fn peek_is_off_by_default_with_the_header_hidden() {
+        assert!(!PeekConfig::default().enabled);
         assert_eq!(PeekConfig::default().header, PeekHeader::Never);
         assert_eq!(PeekHeader::default(), PeekHeader::Never);
     }

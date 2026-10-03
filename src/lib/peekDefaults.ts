@@ -7,6 +7,7 @@ export const PEEK_MAX_LINES = 15;
 export const PEEK_MIN_OPACITY = 20;
 
 export const PEEK_DEFAULTS: PeekConfig = {
+  enabled: false,
   lines: 6,
   opacity: 70,
   alwaysOnTop: true,

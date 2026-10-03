@@ -174,6 +174,10 @@ export const nl = {
     "Volgende keer",
   "peek.settings.title": () =>
     "Peek (compacte notities tijdens een gesprek)",
+  "peek.settings.enabled.label": () =>
+    "Peek inschakelen (experimenteel)",
+  "peek.settings.enabled.hint": () =>
+    "Standaard uit. Een compact, doorzichtig notitievenster om notities te maken tijdens een gesprek. Wordt nog uitgeprobeerd.",
   "peek.settings.lines.label": () =>
     "Hoogte (regels)",
   "peek.settings.lines.fit": () =>
