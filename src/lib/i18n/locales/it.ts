@@ -170,16 +170,16 @@ export const it = {
   "peek.expand": () =>
     "Back to the full window",
   "peek.prev": () =>
-    "Previous occurrence",
+    "Occorrenza precedente",
   "peek.next": () =>
-    "Next occurrence",
+    "Occorrenza successiva",
   "occurrence.settings.title": () =>
-    "Occurrences of a section",
+    "Occorrenze di una sezione",
   "occurrence.settings.hint.label": () =>
-    "Show the occurrence hint after section titles (experimental)",
+    "Mostra l'indicatore delle occorrenze dopo i titoli delle sezioni (sperimentale)",
   "occurrence.settings.hint.hint": () =>
-    "Off by default. Shows < (2/5) > after a section's title when other notes have the same section; click the arrows to go there. Alt+Left / Alt+Right always work in a section, with or without the hint.",
-  "toast.boot.failedToSave.occurrenceHint": () => "Failed to save occurrence hint preference",
+    "Disattivato per impostazione predefinita. Mostra < (2/5) > dopo il titolo di una sezione quando altre note contengono la stessa sezione; fai clic sulle frecce per andarci. Alt+Sinistra / Alt+Destra funzionano sempre dentro una sezione, con o senza l'indicatore.",
+  "toast.boot.failedToSave.occurrenceHint": () => "Impossibile salvare la preferenza dell'indicatore delle occorrenze",
   "peek.settings.title": () =>
     "Peek (compact notes during a call)",
   "peek.settings.enabled.label": () =>
@@ -207,7 +207,7 @@ export const it = {
   "peek.settings.hint": () =>
     "Peek shrinks the window to the section your cursor is in. Alt+Left / Alt+Right switch to the previous / next occurrence; edits are normal edits. Press the shortcut again to come back.",
   "shortcuts.stepOccurrence.label": () =>
-    "Previous / next occurrence of this section",
+    "Occorrenza precedente / successiva di questa sezione",
   "shortcuts.clickGlyph.label": () =>
     "Completa l'azione del glifo o riaprila se completata, rimandata o annullata (esattamente quel glifo); passa il cursore per l'anteprima",
   "shortcuts.escape.label": () => "Chiudi qualsiasi finestra di dialogo aperta",

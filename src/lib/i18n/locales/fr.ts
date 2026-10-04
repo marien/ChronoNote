@@ -171,16 +171,16 @@ export const fr = {
   "peek.expand": () =>
     "Back to the full window",
   "peek.prev": () =>
-    "Previous occurrence",
+    "Occurrence précédente",
   "peek.next": () =>
-    "Next occurrence",
+    "Occurrence suivante",
   "occurrence.settings.title": () =>
-    "Occurrences of a section",
+    "Occurrences d'une section",
   "occurrence.settings.hint.label": () =>
-    "Show the occurrence hint after section titles (experimental)",
+    "Afficher l'indicateur d'occurrences après les titres de section (expérimental)",
   "occurrence.settings.hint.hint": () =>
-    "Off by default. Shows < (2/5) > after a section's title when other notes have the same section; click the arrows to go there. Alt+Left / Alt+Right always work in a section, with or without the hint.",
-  "toast.boot.failedToSave.occurrenceHint": () => "Failed to save occurrence hint preference",
+    "Désactivé par défaut. Affiche < (2/5) > après le titre d'une section lorsque d'autres notes contiennent la même section ; cliquez sur les flèches pour y aller. Alt+Gauche / Alt+Droite fonctionnent toujours dans une section, avec ou sans l'indicateur.",
+  "toast.boot.failedToSave.occurrenceHint": () => "Échec de l'enregistrement de l'indicateur d'occurrences",
   "peek.settings.title": () =>
     "Peek (compact notes during a call)",
   "peek.settings.enabled.label": () =>
@@ -208,7 +208,7 @@ export const fr = {
   "peek.settings.hint": () =>
     "Peek shrinks the window to the section your cursor is in. Alt+Left / Alt+Right switch to the previous / next occurrence; edits are normal edits. Press the shortcut again to come back.",
   "shortcuts.stepOccurrence.label": () =>
-    "Previous / next occurrence of this section",
+    "Occurrence précédente / suivante de cette section",
   "shortcuts.clickGlyph.label": () =>
     "Terminer l'action du glyphe, ou la rouvrir si elle est terminée, reportée ou abandonnée ; le survol affiche l'aperçu",
   "shortcuts.escape.label": () => "Fermer la boîte de dialogue ouverte",

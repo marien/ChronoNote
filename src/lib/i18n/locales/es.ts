@@ -168,16 +168,16 @@ export const es = {
   "peek.expand": () =>
     "Back to the full window",
   "peek.prev": () =>
-    "Previous occurrence",
+    "Aparición anterior",
   "peek.next": () =>
-    "Next occurrence",
+    "Aparición siguiente",
   "occurrence.settings.title": () =>
-    "Occurrences of a section",
+    "Apariciones de una sección",
   "occurrence.settings.hint.label": () =>
-    "Show the occurrence hint after section titles (experimental)",
+    "Mostrar la indicación de apariciones tras los títulos de sección (experimental)",
   "occurrence.settings.hint.hint": () =>
-    "Off by default. Shows < (2/5) > after a section's title when other notes have the same section; click the arrows to go there. Alt+Left / Alt+Right always work in a section, with or without the hint.",
-  "toast.boot.failedToSave.occurrenceHint": () => "Failed to save occurrence hint preference",
+    "Desactivado por defecto. Muestra < (2/5) > tras el título de una sección cuando otras notas tienen la misma sección; haga clic en las flechas para ir a ella. Alt+Izquierda / Alt+Derecha funcionan siempre dentro de una sección, con o sin la indicación.",
+  "toast.boot.failedToSave.occurrenceHint": () => "Error al guardar la preferencia de la indicación de apariciones",
   "peek.settings.title": () =>
     "Peek (compact notes during a call)",
   "peek.settings.enabled.label": () =>
@@ -205,7 +205,7 @@ export const es = {
   "peek.settings.hint": () =>
     "Peek shrinks the window to the section your cursor is in. Alt+Left / Alt+Right switch to the previous / next occurrence; edits are normal edits. Press the shortcut again to come back.",
   "shortcuts.stepOccurrence.label": () =>
-    "Previous / next occurrence of this section",
+    "Aparición anterior / siguiente de esta sección",
   "shortcuts.clickGlyph.label": () =>
     "Completar la acción del glifo, o reabrirla si está completada, pospuesta o descartada (exactamente ese glifo); pasar el cursor previsualiza el resultado",
   "shortcuts.escape.label": () => "Cerrar cualquier ventana modal abierta",
