@@ -49,8 +49,9 @@ const HEADER_THIN_PX = 16;
 const COLLAPSE_DELAY_MS = 150;
 /** Plus the editor's own padding. */
 const EDITOR_PADDING_PX = 12;
-/** "On hover" reserves the full strip: collapsed, the top part of it is a transparent band (see `body.peek-hover`). */
-const headerPx = (header: PeekHeader) => (header === "never" ? HEADER_THIN_PX : HEADER_FULL_PX);
+/** The window only reserves the thin strip for "hidden" and "on hover": the full strip of "on hover" is drawn OVER the
+ * content while the pointer is on the window (`.peek-bar.overlay`), so the window never changes size. */
+const headerPx = (header: PeekHeader) => (header === "always" ? HEADER_FULL_PX : HEADER_THIN_PX);
 
 export const peekSettings = writable<PeekSettings>({ ...PEEK_DEFAULTS });
 
@@ -258,11 +259,10 @@ export function wirePeek(): () => void {
   };
   cleanups.push(tabs.subscribe(stayInSection), activeTabId.subscribe(stayInSection));
 
-  // Header strip "on hover": the window never changes size. It always has room for the full strip; collapsed, the top
-  // part of that room is a transparent band and only the thin strip is drawn (`body.peek-hover` in app.css), and
-  // while the pointer is over the window the strip grows into the band (`peek-hover-open`). It is one layout change
-  // inside the page, so nothing moves: resizing the native window instead moved its top edge a frame before the page
-  // inside it caught up, which showed as a jump of the text and a flicker of the scrollbar.
+  // Header strip "on hover": the window never changes size. The thin strip stays where it is and, while the pointer is
+  // over the window, the full strip is drawn over the top of the content (`peekHeaderExpanded` -> `.peek-bar.overlay`).
+  // Growing the native window instead moved its top edge a frame before the page inside it caught up, which showed
+  // as a jump of the text and a flicker of the scrollbar.
   const setHeaderExpanded = (on: boolean) => {
     if (!get(peekMode) || get(peekSettings).header !== "hover") return;
     peekHeaderExpanded.set(on);

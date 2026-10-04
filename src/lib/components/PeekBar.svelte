@@ -14,6 +14,7 @@
   $: label = tab ? tab.filename.replace(/\.txt$/, "") : "";
   // The thin strip: always when hidden; in "on hover" mode until the pointer is over the window.
   $: hidden = $peekSettings.header === "never" || ($peekSettings.header === "hover" && !$peekHeaderExpanded);
+  $: overlay = $peekSettings.header === "hover" && $peekHeaderExpanded;
   // The section's title as written in this note (without a date), since the title line itself is not drawn in Peek.
   $: title = (() => {
     if (!tab || !$peekTarget) return "";
@@ -23,11 +24,17 @@
   })();
 </script>
 
+<!-- "On hover": while the pointer is on the window the full strip is drawn OVER the content; this spacer keeps the thin
+     strip's place in the layout so nothing underneath moves. -->
+{#if overlay}
+  <div class="peek-bar-spacer" aria-hidden="true"></div>
+{/if}
 <!-- `data-tauri-drag-region` only applies to the element itself, so every non-interactive child carries it too. -->
 <div
   id="peek-bar"
   class="peek-bar {dateClass}"
   class:thin={hidden}
+  class:overlay
   data-tauri-drag-region
   role="toolbar"
   aria-label="Peek"

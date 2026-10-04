@@ -4491,23 +4491,25 @@ body.peek-mode .cm-content {
   padding: 0;
   position: relative;
 }
-/* "On hover": the window always has room for the full 30px strip. Collapsed, the top 14px of it is a transparent band
-   (the translucent page background moves from the body to #app, which starts below the body's padding) and the 16px
-   strip is drawn under it; with the pointer over the window the band is given to the strip (`peek-hover-open`). Same
-   total height, so the editor never moves and the native window never has to change size. (A background on the body
-   itself would be propagated to the whole canvas, band included.) */
-body.peek-mode.peek-hover {
-  padding-top: 14px;
-  background: transparent;
+/* "On hover": the thin strip keeps its place; the full strip is drawn over the top of the content while the pointer is on
+   the window. The spacer takes the strip's 16px in the layout at the same moment, so the editor never moves. Nearly
+   opaque, since it covers text. */
+body.peek-mode #app {
+  position: relative;
 }
-body.peek-mode.peek-hover.peek-hover-open {
-  padding-top: 0;
+.peek-bar-spacer {
+  flex: 0 0 16px;
+  height: 16px;
 }
-body.peek-mode.peek-hover #app {
-  height: auto;
-  flex: 1 1 0;
-  min-height: 0;
-  background: color-mix(in srgb, var(--bg) calc(var(--peek-opacity, 80) * 1%), transparent);
+.peek-bar.overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 30;
+  box-sizing: border-box;
+  background: var(--surface-chrome);
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.25);
 }
 .peek-bar.thin::after {
   content: "";

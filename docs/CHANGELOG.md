@@ -9713,18 +9713,14 @@ Verified in the real window (dev build, 4K at 150%): normal -> maximize -> Peek 
 
 Tests: `peekWindow.test.ts` (restore size of a maximized window; a resize is ONE bounds change), `zenWindow.test.ts` (`whenZenSettled`), `peek.spec.ts` (no flapping on leave/enter pairs, Peek from Zen). Not verified: a second monitor with different scaling; non-Windows (falls back to the two Tauri calls).
 
-## 278. Peek "On hover": the window no longer resizes at all
+## 278. Peek "On hover": the full strip is drawn over the content, the window never resizes
 
-Marien, testing the v0.24.0 candidate (twice): showing and hiding the strip still looked like two steps, the text briefly jumped and the scrollbar briefly resized.
+Marien, testing the v0.24.0 candidate (three rounds): showing and hiding the strip still looked like two steps, the text briefly jumped and the scrollbar briefly resized.
 
-First attempt (strip height derived from the window height, one layout pass) was measured in the real window by attaching to the page over the WebView2 debugging port and recording every animation frame: inside the page it WAS one frame and the editor never changed size. What Marien saw was the native window: `SetWindowPos` moves the top edge up and the window frame is drawn at its new rectangle one or two frames before the page inside has been re-laid out, so for that moment the old picture sits at the wrong place (text jump, scrollbar redraw). Nothing in the page can hide that, as long as the top edge of a window moves.
+Measured in the real window (attached to the page over the WebView2 debugging port, every animation frame recorded): inside the page the change was ONE frame and the editor never changed size. What was seen is the native window: `SetWindowPos` moves the top edge up and the window frame is drawn at its new rectangle one or two frames before the page inside has been re-laid out, so for that moment the old picture sits at the wrong place. Nothing in the page can hide that while the top edge of a window moves.
 
-**Fix: the window never changes size when the strip appears.**
-- In "on hover" mode the window always has room for the full 30 px strip (`headerPx`). Collapsed, the top 14 px of that room is a **transparent band** and the 16 px strip is drawn below it; with the pointer over the window the band is given to the strip (`body.peek-hover` / `peek-hover-open`, app.css). Same total height, so the editor never moves.
-- The translucent page background lives on `#app` in this mode, not on the body: a body background is propagated to the whole canvas and would paint the band.
-- The band is part of the window (the body has `data-tauri-drag-region` there), so it is also a larger handle for moving the window, and hovering it expands the strip. It does take clicks like the rest of the window: 14 px above the strip are not clickable through to the app underneath.
-- Removed: `resizeKeepingBottom` and all the hover resize queueing. Changing the header-strip setting while in Peek now re-applies the window height (it used not to when the "lines" setting was fixed).
-- Kept from the earlier attempt: one-call `peek_set_bounds` for entering Peek, the 150 ms collapse delay.
+**Fix: the window does not change size when the strip appears.** The window reserves only the thin 16 px strip, as for "Hidden". While the pointer is over the window the full 30 px strip is drawn OVER the top of the content (`.peek-bar.overlay`, absolutely positioned, opaque, with a soft shadow); a 16 px spacer takes the thin strip's place in the layout in the same update, so nothing underneath moves. It covers the first line or so while it is open and goes away again 150 ms after the pointer has left, leaving the thin strip. (A first try with a transparent band above the thin strip was rejected: the OS window frame still drew a line and shadow along the top edge.)
 
-Verified in the real window: the window rectangle does not change at all on hover (sampled every ms) and the bottom 150 rows of the window (the text) are pixel-identical in every captured frame of an expand and a collapse. Tests: `peek.spec.ts` (the strip takes the band while the editor's top and height stay identical, the body is transparent and #app carries the background, no band for the other header modes).
-
+- Removed: `resizeKeepingBottom` and all hover resizing. Kept: the one-call `peek_set_bounds` for entering Peek, the 150 ms collapse delay. Changing the header-strip setting while in Peek re-applies the window height (it used not to when the "lines" setting was fixed).
+- Verified in the real window: the window rectangle does not change on hover (sampled every ms); collapsed it looks exactly like "Hidden"; the opened strip covers the first line cleanly.
+- Test: `peek.spec.ts` (the strip becomes absolute, 30 px, over the editor; the editor's top and height are identical before and after; back to the same geometry on leave).

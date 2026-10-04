@@ -219,45 +219,36 @@ test.describe("peek mode: tests with their own seed", () => {
     await expect(bar).toHaveClass(/\bthin\b/);
   });
 
-  test('"On hover": the window never changes size; the strip grows into a transparent band above it and the editor does not move', async ({ page }) => {
+  test('"On hover": the full strip is drawn OVER the content: nothing underneath moves and the window never changes size', async ({ page }) => {
     await page.setViewportSize({ width: 420, height: 240 });
     await seedApp(page, { seed: { ...today(), peek: { enabled: true, header: "hover" } } });
     await enterOnWeeklySync(page);
     const bar = page.locator("#peek-bar");
     const geometry = async () => {
       const editorBox = (await page.locator("#editor-container").boundingBox())!;
+      const barBox = (await bar.boundingBox())!;
       return {
-        bar: (await bar.boundingBox())!.height,
+        barTop: barBox.y,
+        barHeight: barBox.height,
         editorTop: editorBox.y,
         editorHeight: editorBox.height,
-        bodyPaddingTop: await page.evaluate(() => getComputedStyle(document.body).paddingTop),
-        bodyBackground: await page.evaluate(() => getComputedStyle(document.body).backgroundColor),
-        appBackground: await page.evaluate(() => getComputedStyle(document.querySelector("#app")!).backgroundColor),
+        position: await bar.evaluate((el) => getComputedStyle(el).position),
       };
     };
-    await expect(page.locator("body.peek-hover")).toBeVisible();
     await page.waitForTimeout(300); // let Peek's own layout settle
     const collapsed = await geometry();
-    // Collapsed: 14px of the window above the 16px strip is a band the body does not paint.
-    expect(collapsed).toMatchObject({ bar: 16, bodyPaddingTop: "14px", bodyBackground: "rgba(0, 0, 0, 0)" });
-    expect(collapsed.appBackground).not.toBe("rgba(0, 0, 0, 0)");
+    expect(collapsed).toMatchObject({ barHeight: 16, position: "relative" });
     await page.evaluate(() => document.documentElement.dispatchEvent(new MouseEvent("mouseenter")));
-    await expect(page.locator("body.peek-hover-open")).toBeVisible();
+    await expect(bar).toHaveClass(/\boverlay\b/);
     const open = await geometry();
-    expect(open).toMatchObject({ bar: 30, bodyPaddingTop: "0px" });
-    // The strip took the band: the editor is exactly where it was, and the window (the viewport) has not changed.
+    // 30px tall, over the top of the editor; the editor is exactly where it was.
+    expect(open).toMatchObject({ barHeight: 30, position: "absolute", barTop: collapsed.barTop });
     expect(open.editorTop).toBe(collapsed.editorTop);
     expect(open.editorHeight).toBe(collapsed.editorHeight);
+    expect(open.barTop + open.barHeight).toBeGreaterThan(open.editorTop); // it covers the first lines
     await page.evaluate(() => document.documentElement.dispatchEvent(new MouseEvent("mouseleave")));
-    await expect(page.locator("body.peek-hover-open")).toHaveCount(0);
+    await expect(bar).not.toHaveClass(/\boverlay\b/);
     expect(await geometry()).toEqual(collapsed);
-  });
-
-  test("with the header strip not on hover there is no transparent band", async ({ page }) => {
-    await seedApp(page, { seed: { ...today(), peek: { enabled: true, header: "always" } } });
-    await enterOnWeeklySync(page);
-    await expect(page.locator("body.peek-hover")).toHaveCount(0);
-    expect(await page.evaluate(() => getComputedStyle(document.body).paddingTop)).toBe("0px");
   });
 
   test("the background opacity defaults to 80%", async ({ page }) => {
