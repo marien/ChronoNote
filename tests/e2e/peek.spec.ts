@@ -136,6 +136,32 @@ test.describe("peek mode", () => {
 });
 
 test.describe("peek mode: tests with their own seed", () => {
+  test("the scrollbar's open-action markers are not drawn in Peek (they would mark actions in the hidden sections, and the track looks like a second scrollbar)", async ({ page }) => {
+    await page.setViewportSize({ width: 420, height: 260 });
+    const body = Array.from({ length: 25 }, (_, i) => `- line ${i + 1}`).join("\n");
+    const long = ["Standup", "=======", "# one", "", "Weekly sync", "===========", body, "# open at the end", "", "Other", "=====", "x elsewhere"].join("\n");
+    await seedApp(page, {
+      seed: { notes: { "2026-09-07.txt": long }, session: { openTabs: ["2026-09-07.txt"], activeTab: "2026-09-07.txt" }, peek: { enabled: true } },
+    });
+    await editor(page).click();
+    await page.keyboard.press("ControlOrMeta+Home");
+    for (let i = 0; i < 6; i++) await page.keyboard.press("ArrowDown");
+    // Normal window: the markers exist and the ruler is part of the layout.
+    await expect.poll(() => page.locator(".cm-ruler-marker").count()).toBeGreaterThan(0);
+    await expect(page.locator(".cm-overview-ruler")).not.toHaveCSS("display", "none");
+    await page.keyboard.press("ControlOrMeta+F11");
+    await expect(page.locator("body.peek-mode")).toBeVisible();
+    await page.evaluate(() => { (document.querySelector(".cm-scroller") as HTMLElement).scrollTop = 1000; });
+    await page.waitForTimeout(500);
+    await expect(page.locator(".cm-overview-ruler")).toHaveCSS("display", "none");
+    // And nothing makes the editor's container scroll on its own.
+    const overflow = await page.evaluate(() => {
+      const c = document.querySelector("#editor-container") as HTMLElement;
+      return c.scrollHeight - c.clientHeight;
+    });
+    expect(overflow).toBeLessThanOrEqual(0);
+  });
+
   test("the header strip is shown by default, with the date and the section's title", async ({ page }) => {
     await seedApp(page, { seed: { ...today(), peek: { enabled: true } } });
     await enterOnWeeklySync(page);

@@ -9677,3 +9677,13 @@ Marien's first feedback on Peek (v0.23.0), all changes to Peek only:
 - **Hidden header is easier to grab:** the collapsed strip is 16 px (was 8) with a small grip mark, because it is the only handle for moving the window.
 - **Background opacity defaults to 80%** (was 70).
 - **Opening a drawer or dialog by its shortcut ends Peek** (asked for; I first misread it as a bug report): the compact window is too small for them. Whatever opens - Action Drawer, Section History, Search, the command palette, Settings, the date picker, Shortcuts & Symbols, and also the safety / conflict dialogs - the window goes back to full size and the modal shows there; Esc then closes just the modal. The tabs are left exactly as they are (no return to the starting note, nothing closed), because the modal works on the note you were looking at, e.g. Section History opened from a past occurrence. Seven end-to-end tests (one per shortcut) plus the tab case; checked in the real app (window back to the same place and size, drawer at full size).
+
+## 276. Peek: no scrollbar markers
+
+Reported while trying Peek (v0.23.0): "an extra vertical scrollbar" on some occurrences, sometimes disappearing while resizing, and I think when there is an open action on one of the last lines of a longer note. That is the overview ruler (the open-action markers along the editor's right edge, `overviewRuler.ts`), which fades in on scrolling. In Peek it was wrong twice over: it still marked the actions of the hidden sections (a `# ` in an earlier section drew a marker at the top), and in a window that small its track looks like a second scrollbar. A marker near the bottom also has a hit area (`::before`, 4 px beyond) that reaches past the pane.
+
+- **In Peek the ruler is not drawn** (`body.peek-mode .cm-overview-ruler { display: none }`).
+- **The ruler clips its own children** (`overflow: hidden`), so a marker at the very bottom can no longer push the container into a native scrollbar in the normal window either.
+- Test: `peek.spec.ts` (a long section with an open action on its last line: markers exist in the normal window, none in Peek, the container does not overflow); verified to fail without the CSS.
+
+The same report listed three things that v0.23.0 did and v0.23.1 fixed (section title visible after stepping, Esc not leaving Peek, a too large "On hover" strip), so nothing more was changed for them. Not reproduced in the browser harness: the scrollbar itself (the ruler is the only candidate found), so please confirm with the next build.
