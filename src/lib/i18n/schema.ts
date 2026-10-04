@@ -158,6 +158,10 @@ export type TranslationParams = {
   "peek.prev": undefined;
   "peek.next": undefined;
   "peek.settings.title": undefined;
+  "occurrence.settings.title": undefined;
+  "occurrence.settings.hint.label": undefined;
+  "occurrence.settings.hint.hint": undefined;
+  "toast.boot.failedToSave.occurrenceHint": undefined;
   "peek.settings.enabled.label": undefined;
   "peek.settings.enabled.hint": undefined;
   "peek.settings.lines.label": undefined;
@@ -171,6 +175,7 @@ export type TranslationParams = {
   "peek.settings.shortcut.label": undefined;
   "peek.settings.hint": undefined;
   "shortcuts.clickGlyph.label": undefined;
+  "shortcuts.stepOccurrence.label": undefined;
   "shortcuts.escape.label": undefined;
 
   // Shortcuts & Symbols drawer (`ShortcutsModal.svelte`) chrome and the

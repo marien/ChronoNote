@@ -95,6 +95,15 @@ section whose title starts with `'` (an ad-hoc call) is never touched by
 the sync. See [`docs/agenda-file-guide.md`](docs/agenda-file-guide.md)
 for the exact schema.
 
+## Moving between a section's occurrences
+
+`Alt+Left` / `Alt+Right` show the previous / next note that has the section the cursor is in
+(a recurring meeting, say), from anywhere in the section including its title line. The keys
+are left alone where there is nothing to go to (a section that occurs once, text outside any
+section) and on a Mac, where Option+Arrow moves by word. An experimental setting
+(Settings -> Appearance, off by default) also shows a quiet `< (2/5) >` after the section title
+with the arrows to click; it is hidden while the caret is on the title line.
+
 ## Peek (experimental)
 
 A compact, see-through note window for taking notes during a call, so you can keep

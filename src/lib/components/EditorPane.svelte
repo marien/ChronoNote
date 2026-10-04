@@ -14,6 +14,9 @@
   import { overviewRuler } from "../editor/overviewRuler";
   import { wrapIndentExtension } from "../editor/wrapIndent";
   import { sectionFocus } from "../editor/sectionFocus";
+  import { occurrenceHintExtension, setOccurrenceInfo } from "../editor/occurrenceHint";
+  import { isMac } from "../platform";
+  import { t } from "../i18n";
   import { underlineFor } from "../sectionFormat";
   import {
     actionLineEnter,
@@ -66,6 +69,18 @@
   const peekExtension = (target: string | null) =>
     target ? sectionFocus(target, (lines) => controller.peekFitLines.set(lines)) : [];
   let unsubscribePeek: (() => void) | undefined;
+  let unsubscribeOccurrence: (() => void)[] = [];
+
+  /** Alt+Left / Alt+Right in the editor; true = the key was ours. */
+  function occurrenceKey(direction: -1 | 1): boolean {
+    if (get(controller.peekMode)) {
+      void controller.stepPeekOccurrence(direction);
+      return true;
+    }
+    if (isMac || !controller.occurrenceKeyApplies()) return false;
+    void controller.stepSectionOccurrence(direction);
+    return true;
+  }
 
   /** §99: cap the text column to a ~720px reading measure, centred. A
    * compartment like `wrapCompartment` so Settings can flip it live with
@@ -523,6 +538,11 @@
       { key: "Mod-5", run: (v) => applyActionStateToSelection(v, (line, col) => setTopicSymbolTo(line, "o", col)) },
       { key: "Mod-6", run: (v) => applyActionStateToSelection(v, (line, col) => setTopicSymbolTo(line, ".", col)) },
       { key: "Mod-7", run: (v) => applyActionStateToSelection(v, (line, col) => setTopicSymbolTo(line, ",", col)) },
+      // Alt+Left / Alt+Right: previous / next occurrence of the section the cursor is in. Taken only when there is
+      // one; otherwise the key falls through to the default (syntax-aware caret movement). Not on macOS, where
+      // Option+Arrow is word movement - except in Peek, which has always used it there.
+      { key: "Alt-ArrowLeft", run: () => occurrenceKey(-1) },
+      { key: "Alt-ArrowRight", run: () => occurrenceKey(1) },
       { key: "F2", run: (v) => jumpToAdjacentOpenAction(v, 1) },
       { key: "Shift-F2", run: (v) => jumpToAdjacentOpenAction(v, -1) },
       {
@@ -607,6 +627,10 @@
       search({ top: true }),
       findHiCompartment.of([]),
       peekCompartment.of(peekExtension(get(controller.peekTarget))),
+      occurrenceHintExtension(
+        () => ({ prev: get(t)("peek.prev", undefined), next: get(t)("peek.next", undefined) }),
+        (target, direction) => void controller.stepToOccurrence(target, direction),
+      ),
       shortcuts,
       keymap.of([...defaultKeymap, ...historyKeymap, indentWithTab]),
       EditorView.updateListener.of((u) => {
@@ -637,6 +661,11 @@
             const main = u.state.selection.main;
             const lines = u.state.doc.lineAt(main.to).number - u.state.doc.lineAt(main.from).number + 1;
             controller.setStatusSelection({ lines });
+          }
+          // The section the caret is in, for the occurrence hint (only worked out while the hint is on).
+          if (get(controller.occurrenceHint)) {
+            const text = u.state.doc.toString();
+            controller.cursorSection.set(controller.sectionTargetAt(text, u.state.doc.lineAt(pos).number - 1));
           }
           // §108: the find bar is non-modal, so the caret can move (click,
           // arrows, an edit) while it's open — keep "N of M" in step.
@@ -725,6 +754,23 @@
         view.dispatch({ effects: EditorView.scrollIntoView(view.state.selection.main.head, { y: "start", yMargin: 0 }) });
       }
     });
+    // The occurrence hint: what to show after the section title, pushed into the editor whenever it changes.
+    // Not in Peek (the title line is not drawn there).
+    const pushOccurrenceInfo = () => {
+      if (!view) return;
+      const info = get(controller.peekMode) ? null : get(controller.occurrenceInfo);
+      view.dispatch({ effects: setOccurrenceInfo.of(info) });
+    };
+    unsubscribeOccurrence = [
+      controller.occurrenceInfo.subscribe(pushOccurrenceInfo),
+      controller.peekMode.subscribe(pushOccurrenceInfo),
+      controller.occurrenceHint.subscribe((on) => {
+        if (on && view) {
+          const pos = view.state.selection.main.head;
+          controller.cursorSection.set(controller.sectionTargetAt(view.state.doc.toString(), view.state.doc.lineAt(pos).number - 1));
+        }
+      }),
+    ];
     let firstMeasure = true;
     unsubscribeMeasure = readableLineLength.subscribe(() => {
       if (firstMeasure) {
@@ -973,6 +1019,7 @@
     if (pulseTimer) clearTimeout(pulseTimer);
     unsubscribeWrap?.();
     unsubscribePeek?.();
+    unsubscribeOccurrence.forEach((u) => u());
     unsubscribeMeasure?.();
     // §108: the find bar belongs to this editor instance — a tab switch
     // (which remounts this component) closes it and drops the query.

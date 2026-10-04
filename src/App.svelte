@@ -23,6 +23,7 @@
     peekSettings,
   } from "./lib/controller";
   import { matchesShortcut } from "./lib/shortcuts";
+  import { isMac } from "./lib/platform";
   import { wireMobileViewport } from "./lib/mobileViewport";
   import { wireMobileBackNavigation } from "./lib/mobileNavigation";
   import { invoke } from "@tauri-apps/api/core";
@@ -158,11 +159,30 @@
     }
 
     function onKeydown(e: KeyboardEvent) {
-      // Peek mode: Alt+Left / Alt+Right switch to the previous / next occurrence of the section.
-      if (get(peekMode) && e.altKey && !e.ctrlKey && !e.metaKey && !e.shiftKey && (e.key === "ArrowLeft" || e.key === "ArrowRight")) {
-        e.preventDefault();
-        void controller.stepPeekOccurrence(e.key === "ArrowLeft" ? -1 : 1);
-        return;
+      // Alt+Left / Alt+Right: previous / next occurrence of the section the cursor is in. The editor handles the key
+      // itself while it has focus (`EditorPane`); this is for the rest of the window. Peek on every platform; the main
+      // window not on macOS, where Option+Arrow is the editor's word movement.
+      if (
+        !e.defaultPrevented &&
+        e.altKey &&
+        !e.ctrlKey &&
+        !e.metaKey &&
+        !e.shiftKey &&
+        (e.key === "ArrowLeft" || e.key === "ArrowRight") &&
+        get(modal) === "none" &&
+        !(e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement)
+      ) {
+        const direction = e.key === "ArrowLeft" ? -1 : 1;
+        if (get(peekMode)) {
+          e.preventDefault();
+          void controller.stepPeekOccurrence(direction);
+          return;
+        }
+        if (!isMac && controller.occurrenceKeyApplies()) {
+          e.preventDefault();
+          void controller.stepSectionOccurrence(direction);
+          return;
+        }
       }
       // Desktop app only: F11 as an alias for the Zen mode chord (see `shortcuts.ts`).
       if (e.key === "F11" && !e.ctrlKey && !e.metaKey && !e.altKey && get(backendKind) === "desktop") {
@@ -238,6 +258,7 @@
 
     const unwireViewport = wireMobileViewport();
     const unwirePeek = controller.wirePeek();
+    const unwireOccurrenceHint = controller.wireOccurrenceHint();
 
     // §v0.12.2: Full-screen Drag and Drop file import (Area 4)
     let dragDepth = 0;
@@ -313,6 +334,7 @@
 
     return () => {
       unwireViewport();
+      unwireOccurrenceHint();
       backNav.destroy();
       window.removeEventListener("keydown", onKeydown);
       window.removeEventListener("keydown", noteEscapeStart, true);

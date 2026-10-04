@@ -369,7 +369,8 @@ snapshot for reference, not the source of truth.
 | Copy this section to its next occurrence | `Ctrl+Shift+.` | `Cmd+Shift+.` |
 | Zen mode (hide the bars) | `Shift+F11` (also `F11` on desktop) | `Shift+F11` / `Cmd+Option+Z` |
 | Peek: compact note window (experimental, only when enabled; works from any app) | `Ctrl+F11` | `Cmd+F11` |
-| Peek: previous / next occurrence of the section | `Alt+Left` / `Alt+Right` | `Alt+Left` / `Alt+Right` |
+| Previous / next occurrence of the section the cursor is in (anywhere in the section, title line included; also steps Peek) | `Alt+Left` / `Alt+Right` | Peek only (Option+Arrow is word movement) |
+| Occurrence hint after section titles: `< (X/Y) >` (experimental setting, off by default; Settings -> Appearance) | click the arrows | click the arrows |
 | Jump to next / previous open action | `F2` / `Shift+F2` | `F2` / `Shift+F2` |
 | Caret to line start, then previous/next line start | `Ctrl+↑` / `Ctrl+↓` | *(not offered — Mac keeps the OS's own page-scroll on these keys)* |
 | Convert current line to a section header | `Ctrl+Shift+S` | `Cmd+Shift+S` |

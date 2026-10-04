@@ -87,6 +87,10 @@ export function setStartupTabMode(mode: StartupTabMode): Promise<AppConfig> {
   return invoke("set_startup_tab_mode", { mode });
 }
 
+export function setOccurrenceHint(enabled: boolean): Promise<AppConfig> {
+  return invoke("set_occurrence_hint", { enabled });
+}
+
 export function setPeek(peek: PeekConfig): Promise<AppConfig> {
   return invoke("set_peek", { peek });
 }

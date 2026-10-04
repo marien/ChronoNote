@@ -260,6 +260,10 @@ pub struct AppConfig {
     /// Peek mode settings (compact see-through note window for calls).
     #[serde(default)]
     pub peek: PeekConfig,
+    /// Experimental: show `< (X/Y) >` after a section's title in the editor when the section has other
+    /// occurrences. The Alt+Left / Alt+Right shortcuts work regardless. Off by default.
+    #[serde(default)]
+    pub occurrence_hint: bool,
 }
 
 fn default_true() -> bool {
@@ -504,6 +508,7 @@ fn load_config_at(path: &Path, default_notes_dir: &Path) -> Result<AppConfig, St
         onboarding_completed: false,
         startup_tab_mode: StartupTabMode::default(),
         peek: PeekConfig::default(),
+        occurrence_hint: false,
     };
     save_config_at(path, &cfg)?;
     Ok(cfg)
@@ -1186,6 +1191,7 @@ mod tests {
             onboarding_completed: true,
             startup_tab_mode: StartupTabMode::SmartLastActive,
             peek: PeekConfig::default(),
+            occurrence_hint: false,
         };
         save_config_at(&path, &cfg).unwrap();
         let loaded = load_config_at(&path, &dir.path().join("Notes")).unwrap();
@@ -1228,6 +1234,7 @@ mod tests {
             onboarding_completed: false,
             startup_tab_mode: StartupTabMode::default(),
             peek: PeekConfig::default(),
+            occurrence_hint: false,
         };
         save_config_at(&path, &cfg).unwrap();
         let on_disk = fs::read_to_string(&path).unwrap();
@@ -1265,6 +1272,7 @@ mod tests {
                 onboarding_completed: false,
                 startup_tab_mode: StartupTabMode::default(),
                 peek: PeekConfig::default(),
+                occurrence_hint: false,
             };
             save_config_at(&path, &cfg).unwrap();
             let on_disk = fs::read_to_string(&path).unwrap();
@@ -1370,6 +1378,18 @@ mod tests {
         assert!(!PeekConfig::default().enabled);
         assert_eq!(PeekConfig::default().header, PeekHeader::Always);
         assert_eq!(PeekHeader::default(), PeekHeader::Always);
+    }
+
+    #[test]
+    fn occurrence_hint_is_off_by_default_and_round_trips() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("config.json");
+        fs::write(&path, r#"{"notesDir":"/n"}"#).unwrap();
+        assert!(!load_config_at(&path, dir.path()).unwrap().occurrence_hint);
+        let mut cfg = load_config_at(&path, dir.path()).unwrap();
+        cfg.occurrence_hint = true;
+        save_config_at(&path, &cfg).unwrap();
+        assert!(load_config_at(&path, dir.path()).unwrap().occurrence_hint);
     }
 
     #[test]

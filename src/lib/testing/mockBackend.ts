@@ -62,6 +62,8 @@ export interface MockSeed {
   pureBlack?: boolean;
   startupTabMode?: StartupTabMode;
   peek?: Partial<PeekConfig>;
+  /** Mirrors `AppConfig.occurrenceHint`, off by default. */
+  occurrenceHint?: boolean;
   onboardingCompleted?: boolean;
   lastSyncSuccessMs?: number | null;
   backendKind?: "desktop" | "demo" | "web";
@@ -139,6 +141,7 @@ const MUTATING_COMMANDS = new Set([
   "set_pure_black",
   "set_startup_tab_mode",
   "set_peek",
+  "set_occurrence_hint",
   "write_note",
   "write_conflict_copy",
   "write_tab_session",
@@ -257,6 +260,7 @@ export class MockBackend {
   pureBlack: boolean;
   startupTabMode: StartupTabMode;
   peek: PeekConfig;
+  occurrenceHint: boolean;
   onboardingCompleted: boolean;
   lastSyncSuccessMs: number | null = null;
   recentNotesDirs: string[];
@@ -334,6 +338,7 @@ export class MockBackend {
     this.pureBlack = seed.pureBlack ?? false;
     this.startupTabMode = seed.startupTabMode ?? "today";
     this.peek = { ...PEEK_DEFAULTS, ...seed.peek };
+    this.occurrenceHint = seed.occurrenceHint ?? false;
     this.onboardingCompleted = seed.onboardingCompleted ?? true;
     this.lastSyncSuccessMs = seed.lastSyncSuccessMs ?? null;
     this.recentNotesDirs = seed.recentNotesDirs ? [...seed.recentNotesDirs] : [];
@@ -387,6 +392,7 @@ export class MockBackend {
       pureBlack: this.pureBlack,
       startupTabMode: this.startupTabMode,
       peek: this.peek,
+      occurrenceHint: this.occurrenceHint,
       onboardingCompleted: this.onboardingCompleted,
       recentNotesDirs: this.recentNotesDirs,
       appVersion: this.appVersion,
@@ -426,6 +432,7 @@ export class MockBackend {
         lineHeight?: number;
         pureBlack?: boolean;
         peek?: Partial<PeekConfig>;
+        occurrenceHint?: boolean;
         onboardingCompleted?: boolean;
         recentNotesDirs: string[];
         appVersion: string;
@@ -446,6 +453,7 @@ export class MockBackend {
       b.lineHeight = s.lineHeight ?? 1.6;
       b.pureBlack = s.pureBlack ?? false;
       b.peek = { ...PEEK_DEFAULTS, ...s.peek };
+      b.occurrenceHint = s.occurrenceHint ?? false;
       b.onboardingCompleted = s.onboardingCompleted ?? true;
       b.recentNotesDirs = s.recentNotesDirs;
       b.appVersion = s.appVersion;
@@ -488,6 +496,7 @@ export class MockBackend {
       pureBlack: this.pureBlack,
       startupTabMode: this.startupTabMode,
       peek: this.peek,
+      occurrenceHint: this.occurrenceHint,
       onboardingCompleted: this.onboardingCompleted,
     };
   }
@@ -622,6 +631,11 @@ export class MockBackend {
 
     set_startup_tab_mode: ({ mode }) => {
       this.startupTabMode = mode;
+      return this.config();
+    },
+
+    set_occurrence_hint: ({ enabled }) => {
+      this.occurrenceHint = enabled;
       return this.config();
     },
 

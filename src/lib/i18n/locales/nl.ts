@@ -172,6 +172,13 @@ export const nl = {
     "Vorige keer",
   "peek.next": () =>
     "Volgende keer",
+  "occurrence.settings.title": () =>
+    "Voorkomens van een sectie",
+  "occurrence.settings.hint.label": () =>
+    "Voorkomens-hint na sectietitels tonen (experimenteel)",
+  "occurrence.settings.hint.hint": () =>
+    "Standaard uit. Toont < (2/5) > na de titel van een sectie als andere notities dezelfde sectie hebben; klik op de pijltjes om erheen te gaan. Alt+Links / Alt+Rechts werken altijd in een sectie, met of zonder hint.",
+  "toast.boot.failedToSave.occurrenceHint": () => "Opslaan van de voorkomens-hint mislukt",
   "peek.settings.title": () =>
     "Peek (compacte notities tijdens een gesprek)",
   "peek.settings.enabled.label": () =>
@@ -198,6 +205,8 @@ export const nl = {
     "Sneltoets (werkt vanuit elke app)",
   "peek.settings.hint": () =>
     "Peek verkleint het venster tot de sectie waar je cursor staat. Alt+Links / Alt+Rechts gaan naar de vorige / volgende keer; wijzigingen zijn gewone wijzigingen. Druk nogmaals op de sneltoets om terug te gaan.",
+  "shortcuts.stepOccurrence.label": () =>
+    "Vorig / volgend voorkomen van deze sectie",
   "shortcuts.clickGlyph.label": () =>
     "Sluit de actie van het symbool, of heropent deze als hij voltooid, uitgesteld of vervallen is (precies dat symbool); bij hover zie je een voorbeeld",
   "shortcuts.escape.label": () => "Sluit het geopende venster",

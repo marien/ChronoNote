@@ -275,8 +275,9 @@ export const SHORTCUT_LABEL_KEYS = {
   toggleZenMode: "shortcuts.toggleZenMode.label",
   togglePeekMode: "shortcuts.togglePeekMode.label",
   clickGlyph: "shortcuts.clickGlyph.label",
+  stepOccurrence: "shortcuts.stepOccurrence.label",
   escape: "shortcuts.escape.label",
-} satisfies Record<(typeof SHORTCUTS)[number]["id"] | "clickGlyph" | "escape", TranslationKey>;
+} satisfies Record<(typeof SHORTCUTS)[number]["id"] | "clickGlyph" | "stepOccurrence" | "escape", TranslationKey>;
 
 const BY_ID = new Map(SHORTCUTS.map((s) => [s.id, s]));
 
@@ -379,6 +380,8 @@ export const DRAWER_ROWS: (string | [string, string])[] = [
   "cycleLineState",
   "cycleLineStateReverse",
   ["Click a glyph", "clickGlyph"],
+  // Not Mac: Option+Arrow is word movement there (the main window leaves it alone; Peek still uses it).
+  ...(isMac ? [] : [["Alt+← / Alt+→", "stepOccurrence"] as [string, string]]),
   "markSelectionOpen",
   "setActionOpen",
   "setActionDone",

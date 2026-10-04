@@ -49,6 +49,7 @@ export interface TauriCommands {
   set_line_height: { args: { lineHeight: number }; returns: AppConfig };
   set_pure_black: { args: { pureBlack: boolean }; returns: AppConfig };
   set_startup_tab_mode: { args: { mode: StartupTabMode }; returns: AppConfig };
+  set_occurrence_hint: { args: { enabled: boolean }; returns: AppConfig };
   set_peek: { args: { peek: PeekConfig }; returns: AppConfig };
   set_last_seen_version: { args: { version: string }; returns: AppConfig };
   set_onboarding_completed: { args: { completed: boolean }; returns: AppConfig };

@@ -10,9 +10,8 @@
 import { get, writable } from "svelte/store";
 import { t } from "./i18n";
 import { todayISO } from "./date";
-import { extractSectionBody } from "./history";
-import { refreshAllNotesCache } from "./persistence";
-import { closeTab, jumpToFileLine, switchTab } from "./tabs";
+import { occurrenceFiles, stepToOccurrence } from "./occurrences";
+import { closeTab, switchTab } from "./tabs";
 import { createPeekWindowController, nativePeekWindow } from "./peekWindow";
 import { PEEK_DEFAULTS } from "./peekDefaults";
 import * as api from "./tauriApi";
@@ -91,17 +90,6 @@ const desktop = () => get(backendKind) === "desktop";
 function logicalHeight(s: PeekSettings, fit: number): number {
   const rows = s.lines > 0 ? s.lines : Math.min(Math.max(fit, 3), PEEK_MAX_FIT_LINES);
   return Math.round(rows * get(fontSize) * get(lineHeight) + headerPx(s.header, get(peekHeaderExpanded)) + EDITOR_PADDING_PX);
-}
-
-/** Dated notes that contain the section, oldest first: disk notes overlaid with what the open tabs hold. */
-async function occurrenceFiles(target: string): Promise<string[]> {
-  await refreshAllNotesCache();
-  const sources: Record<string, string> = { ...get(allNotesCache) };
-  for (const tab of get(tabs)) if (!tab.isScratchpad) sources[tab.filename] = tab.content;
-  return Object.keys(sources)
-    .filter((f) => /^\d{4}-\d{2}-\d{2}\.txt$/.test(f))
-    .sort()
-    .filter((f) => extractSectionBody(sources[f].split("\n"), target) !== null);
 }
 
 async function refreshPosition(): Promise<string[]> {
@@ -185,21 +173,15 @@ export function leavePeek(options: { keepTabs?: boolean } = {}): void {
 /** Alt+Left (-1) / Alt+Right (+1): the previous / next note that has this section. */
 export async function stepPeekOccurrence(direction: -1 | 1): Promise<void> {
   if (!get(peekMode)) return;
-  const tab = get(tabs).find((x) => x.id === get(activeTabId));
   const target = get(peekTarget);
-  if (!tab || !target) return;
-  const files = await refreshPosition();
-  const index = files.indexOf(tab.filename);
-  const next = files[index + direction];
-  if (index < 0 || !next) return;
-  const openTab = get(tabs).find((x) => x.filename === next && !x.isScratchpad);
-  const sourceLines = openTab?.content.split("\n") ?? (get(allNotesCache)[next] ?? "").split("\n");
-  const body = extractSectionBody(sourceLines, target);
-  await jumpToFileLine({ tabId: openTab?.id, filename: next, lineIdx: body ? body.startLineIdx : 0 });
-  const shown = get(tabs).find((x) => x.filename === next && !x.isScratchpad);
-  if (shown && !peekSeen.has(shown.id)) {
-    peekSeen.set(shown.id, shown.content);
-    if (!openTab) peekOpened.add(shown.id);
+  if (!target) return;
+  const shown = await stepToOccurrence(target, direction);
+  if (shown) {
+    const tab = get(tabs).find((x) => x.id === shown.tabId);
+    if (tab && !peekSeen.has(tab.id)) {
+      peekSeen.set(tab.id, tab.content);
+      if (shown.opened) peekOpened.add(tab.id);
+    }
   }
   void refreshPosition();
 }

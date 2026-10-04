@@ -175,6 +175,13 @@ export const de = {
     "Vorheriges Vorkommen",
   "peek.next": () =>
     "Nächstes Vorkommen",
+  "occurrence.settings.title": () =>
+    "Vorkommen eines Abschnitts",
+  "occurrence.settings.hint.label": () =>
+    "Vorkommen-Hinweis nach Abschnittstiteln anzeigen (experimentell)",
+  "occurrence.settings.hint.hint": () =>
+    "Standardmäßig aus. Zeigt < (2/5) > hinter dem Titel eines Abschnitts, wenn andere Notizen denselben Abschnitt haben; mit den Pfeilen springen Sie dorthin. Alt+Links / Alt+Rechts funktionieren in einem Abschnitt immer, mit oder ohne Hinweis.",
+  "toast.boot.failedToSave.occurrenceHint": () => "Speichern der Vorkommen-Einstellung fehlgeschlagen",
   "peek.settings.title": () =>
     "Peek (kompakte Notizen im Gespräch)",
   "peek.settings.enabled.label": () =>
@@ -201,6 +208,8 @@ export const de = {
     "Tastenkürzel (funktioniert aus jeder App)",
   "peek.settings.hint": () =>
     "Peek verkleinert das Fenster auf den Abschnitt, in dem dein Cursor steht. Alt+Links / Alt+Rechts wechseln zum vorherigen / nächsten Vorkommen; Änderungen sind normale Änderungen. Das Tastenkürzel erneut drücken, um zurückzukehren.",
+  "shortcuts.stepOccurrence.label": () =>
+    "Voriges / nächstes Vorkommen dieses Abschnitts",
   "shortcuts.clickGlyph.label": () =>
     "Schließt die Aktion des Symbols, oder öffnet es erneut, wenn es erledigt, verschoben ist oder entfällt (genau dieses Symbol); beim Hover wird das Ergebnis als Vorschau gezeigt",
   "shortcuts.escape.label": () => "Schließt das geöffnete Fenster",

@@ -102,6 +102,14 @@ fn set_line_height(app: AppHandle, line_height: f32) -> Result<storage::AppConfi
 }
 
 #[tauri::command]
+fn set_occurrence_hint(app: AppHandle, enabled: bool) -> Result<storage::AppConfig, String> {
+    let mut cfg = storage::load_config(&app)?;
+    cfg.occurrence_hint = enabled;
+    storage::save_config(&app, &cfg)?;
+    Ok(cfg)
+}
+
+#[tauri::command]
 fn set_pure_black(app: AppHandle, pure_black: bool) -> Result<storage::AppConfig, String> {
     let mut cfg = storage::load_config(&app)?;
     cfg.pure_black = pure_black;
@@ -510,6 +518,7 @@ pub fn run() {
             set_pure_black,
             set_startup_tab_mode,
             set_peek,
+            set_occurrence_hint,
             set_last_seen_version,
             set_onboarding_completed,
             list_note_files,

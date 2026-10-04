@@ -43,6 +43,7 @@
   import SettingRow from "../SettingRow.svelte";
   import SettingToggle from "../SettingToggle.svelte";
   import { peekSettings, type PeekHeaderMode } from "../../peek";
+  import { occurrenceHint, setOccurrenceHint } from "../../occurrences";
   import { t } from "../../i18n";
   import { describeApiError } from "../../apiError";
   import type { ColorMode, LanguageMode, StartupTabMode, ThemeMode } from "../../types";
@@ -455,6 +456,16 @@
               <span class="settings-slider-val">{$lineHeight.toFixed(2)}</span>
             </div>
           </SettingRow>
+        </section>
+        <section class="s-group">
+          <div class="settings-section-label">{$t("occurrence.settings.title")}</div>
+          <SettingToggle
+            label={$t("occurrence.settings.hint.label")}
+            checked={$occurrenceHint}
+            onChange={(v) => void setOccurrenceHint(v)}
+          >
+            <svelte:fragment slot="description">{$t("occurrence.settings.hint.hint")}</svelte:fragment>
+          </SettingToggle>
         </section>
         {#if $backendKind === "desktop"}
           <section class="s-group">

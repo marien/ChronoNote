@@ -56,6 +56,7 @@ import { initCalendarSyncDiffTracking, maybeSilentSyncEmptyNote, refreshAgendaFi
 import { refreshSyncConflicts, syncOneDriveNow } from "./oneDriveSync";
 import { checkForUpdatesOnLaunch } from "./updates";
 import { applyPeekConfig } from "./peek";
+import { occurrenceHint } from "./occurrences";
 import { locale, t } from "./i18n";
 import { describeApiError } from "./apiError";
 import { getOnboardingTemplate } from "./onboardingTemplate";
@@ -463,6 +464,7 @@ export async function initApp() {
   applyPureBlackToDom(cfg.pureBlack ?? false);
   startupTabMode.set(cfg.startupTabMode ?? "today");
   applyPeekConfig(cfg.peek);
+  occurrenceHint.set(cfg.occurrenceHint ?? false);
   if (cfg.calendarSyncEnabled && (get(backendKind) !== "web" || !!get(oneDriveAccount))) {
     await refreshAgendaFileExists();
   }

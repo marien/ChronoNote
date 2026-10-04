@@ -24,6 +24,7 @@
  *   exportImport         export/import (web-app design doc, Phase 1)
  *   windowChrome         merged-titlebar window controls (minimize/maximize/close)
  *   peek                 compact see-through note window for calls (Peek mode)
+ *   occurrences          Alt+Left / Alt+Right between a section's occurrences, and the optional `< (X/Y) >` hint
  */
 export * from "./stores";
 export * from "./persistence";
@@ -46,3 +47,4 @@ export * from "./updates";
 export * from "./exportImport";
 export * from "./windowChrome";
 export * from "./peek";
+export * from "./occurrences";

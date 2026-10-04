@@ -171,6 +171,13 @@ export const es = {
     "Previous occurrence",
   "peek.next": () =>
     "Next occurrence",
+  "occurrence.settings.title": () =>
+    "Occurrences of a section",
+  "occurrence.settings.hint.label": () =>
+    "Show the occurrence hint after section titles (experimental)",
+  "occurrence.settings.hint.hint": () =>
+    "Off by default. Shows < (2/5) > after a section's title when other notes have the same section; click the arrows to go there. Alt+Left / Alt+Right always work in a section, with or without the hint.",
+  "toast.boot.failedToSave.occurrenceHint": () => "Failed to save occurrence hint preference",
   "peek.settings.title": () =>
     "Peek (compact notes during a call)",
   "peek.settings.enabled.label": () =>
@@ -197,6 +204,8 @@ export const es = {
     "Shortcut (works from any app)",
   "peek.settings.hint": () =>
     "Peek shrinks the window to the section your cursor is in. Alt+Left / Alt+Right switch to the previous / next occurrence; edits are normal edits. Press the shortcut again to come back.",
+  "shortcuts.stepOccurrence.label": () =>
+    "Previous / next occurrence of this section",
   "shortcuts.clickGlyph.label": () =>
     "Completar la acción del glifo, o reabrirla si está completada, pospuesta o descartada (exactamente ese glifo); pasar el cursor previsualiza el resultado",
   "shortcuts.escape.label": () => "Cerrar cualquier ventana modal abierta",

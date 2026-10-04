@@ -4497,3 +4497,37 @@ body.peek-mode .cm-content {
   opacity: 0.45;
   pointer-events: none;
 }
+
+/* The optional "< (X/Y) >" after a section title (experimental setting): clearly not text, but quiet. */
+.occ-hint {
+  margin-left: 0.7em;
+  font-size: 0.82em;
+  font-weight: 400;
+  font-style: normal;
+  letter-spacing: 0;
+  white-space: nowrap;
+  color: var(--muted);
+  opacity: 0.55;
+  user-select: none;
+  -webkit-user-select: none;
+  transition: opacity 0.12s;
+}
+.occ-hint:hover {
+  opacity: 0.95;
+}
+.occ-hint-btn {
+  cursor: pointer;
+  padding: 0 0.3em;
+  border-radius: 3px;
+}
+.occ-hint-btn:hover:not(.off) {
+  background: color-mix(in srgb, var(--text) 12%, transparent);
+  color: var(--text);
+}
+.occ-hint-btn.off {
+  opacity: 0.35;
+  cursor: default;
+}
+.occ-hint-count {
+  font-variant-numeric: tabular-nums;
+}

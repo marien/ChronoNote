@@ -73,6 +73,7 @@ interface StoredConfig {
   pureBlack?: boolean;
   startupTabMode?: StartupTabMode;
   peek?: PeekConfig;
+  occurrenceHint?: boolean;
   onboardingCompleted?: boolean;
 }
 
@@ -288,6 +289,7 @@ export class WebBackend {
       onboardingCompleted: cfg.onboardingCompleted ?? false,
       startupTabMode: cfg.startupTabMode ?? "today",
       peek: cfg.peek ?? PEEK_DEFAULTS,
+      occurrenceHint: cfg.occurrenceHint ?? false,
     };
   }
 
@@ -380,6 +382,13 @@ export class WebBackend {
     set_pure_black: async ({ pureBlack }) => {
       const cfg = await this.loadConfig();
       cfg.pureBlack = pureBlack;
+      await this.saveConfig(cfg);
+      return this.toAppConfig(cfg);
+    },
+
+    set_occurrence_hint: async ({ enabled }) => {
+      const cfg = await this.loadConfig();
+      cfg.occurrenceHint = enabled;
       await this.saveConfig(cfg);
       return this.toAppConfig(cfg);
     },
