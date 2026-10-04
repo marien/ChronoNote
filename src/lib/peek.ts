@@ -7,12 +7,14 @@
  * window handling lives in `peekWindow.ts`, the one-section editor view in `editor/sectionFocus.ts`.
  *
  * Settings live in config.json (`PeekConfig`), applied at startup by `applyPeekConfig`. */
+import { tick } from "svelte";
 import { get, writable } from "svelte/store";
 import { t } from "./i18n";
 import { todayISO } from "./date";
 import { occurrenceFiles, stepToOccurrence } from "./occurrences";
 import { closeTab, switchTab } from "./tabs";
 import { createPeekWindowController, nativePeekWindow } from "./peekWindow";
+import { whenZenSettled } from "./zenWindow";
 import { PEEK_DEFAULTS } from "./peekDefaults";
 import * as api from "./tauriApi";
 import type { PeekConfig, PeekHeader } from "./types";
@@ -43,6 +45,8 @@ export const PEEK_MAX_FIT_LINES = 20;
  * in "on hover" mode until the pointer is over the window). */
 const HEADER_FULL_PX = 30;
 const HEADER_THIN_PX = 16;
+/** How long the pointer must be away before the "on hover" strip collapses again. */
+const COLLAPSE_DELAY_MS = 150;
 /** Plus the editor's own padding. */
 const EDITOR_PADDING_PX = 12;
 const headerPx = (header: PeekHeader, expanded: boolean) =>
@@ -148,7 +152,13 @@ export async function enterPeek(): Promise<boolean> {
     showToast(get(t)("peek.toast.noSection", undefined));
     return false;
   }
-  isZenMode.set(false);
+  if (get(isZenMode)) {
+    // Leave Zen and let its window changes finish first: while it is still fullscreen the window reports the whole
+    // monitor as its size, and that would be remembered as the size to come back to.
+    isZenMode.set(false);
+    await tick();
+    await whenZenSettled();
+  }
   peekHeaderExpanded.set(false);
   peekOrigin = tab.id;
   peekSeen.clear();
@@ -257,13 +267,26 @@ export function wirePeek(): () => void {
     const delta = HEADER_FULL_PX - HEADER_THIN_PX;
     void controller().then((w) => w.resizeKeepingBottom(on ? delta : -delta));
   };
-  const onPointerEnter = () => setHeaderExpanded(true);
-  const onPointerLeave = () => setHeaderExpanded(false);
+  // Collapsing waits a moment and is cancelled by any pointer movement over the window: resizing moves the window
+  // under a pointer that stands still, and the enter/leave events that causes must not flap the strip.
+  let collapseTimer: ReturnType<typeof setTimeout> | undefined;
+  const onPointerEnter = () => {
+    clearTimeout(collapseTimer);
+    setHeaderExpanded(true);
+  };
+  const onPointerLeave = () => {
+    clearTimeout(collapseTimer);
+    collapseTimer = setTimeout(() => setHeaderExpanded(false), COLLAPSE_DELAY_MS);
+  };
+  const onPointerMove = () => clearTimeout(collapseTimer);
   document.documentElement.addEventListener("mouseenter", onPointerEnter);
   document.documentElement.addEventListener("mouseleave", onPointerLeave);
+  document.documentElement.addEventListener("mousemove", onPointerMove);
   cleanups.push(() => {
+    clearTimeout(collapseTimer);
     document.documentElement.removeEventListener("mouseenter", onPointerEnter);
     document.documentElement.removeEventListener("mouseleave", onPointerLeave);
+    document.documentElement.removeEventListener("mousemove", onPointerMove);
   });
 
   // The "lines" setting (or the section growing in fit mode) resizes the window live.

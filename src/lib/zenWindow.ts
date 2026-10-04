@@ -17,6 +17,11 @@ export interface ZenWindow {
   prepareLeave(): Promise<void>;
 }
 
+/** Resolves when every Zen window change requested so far has been carried out. Peek waits for it before it looks at
+ * the window, so it never mistakes the fullscreen rectangle of a window that is still leaving Zen for its normal size. */
+let zenSettled: Promise<void> = Promise.resolve();
+export const whenZenSettled = (): Promise<void> => zenSettled;
+
 export function createZenWindowController(win: ZenWindow) {
   let queue: Promise<void> = Promise.resolve();
   let wasMaximized = false;
@@ -37,6 +42,7 @@ export function createZenWindowController(win: ZenWindow) {
     /** Zen turned on (`true`) or off (`false`). Never rejects: a window error must not break the app. */
     set(on: boolean): Promise<void> {
       queue = queue.then(on ? enter : leave).catch(() => {});
+      zenSettled = queue;
       return queue;
     },
   };

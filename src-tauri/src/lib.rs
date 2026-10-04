@@ -1,6 +1,7 @@
 mod agenda;
 mod error;
 mod onedrive;
+mod peek_window;
 mod storage;
 mod update_install;
 mod zen_window;
@@ -504,6 +505,7 @@ pub fn run() {
             zen_window::zen_cover_monitor,
             zen_window::zen_prepare_leave,
             peek_set_transparent,
+            peek_window::peek_set_bounds,
             get_config,
             set_notes_dir,
             set_color_mode,

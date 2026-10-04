@@ -117,6 +117,45 @@ describe("createPeekWindowController", () => {
     expect(f.geo).toEqual(before);
   });
 
+it("a maximized window remembers the size it will be restored to, not the screen-sized rectangle", async () => {
+    // Like Windows: while maximized the window reports the screen rectangle, and the rectangle it was set to while
+    // NOT maximized is what "restore" goes back to.
+    const screen: PeekGeometry = { x: 0, y: 0, width: 1920, height: 1040 };
+    let normal: PeekGeometry = { x: 300, y: 200, width: 1000, height: 600 };
+    let maximized = true;
+    const geo = () => (maximized ? screen : normal);
+    const win: PeekWin = {
+      outerPosition: async () => ({ x: geo().x, y: geo().y }),
+      size: async () => ({ width: geo().width, height: geo().height }),
+      scaleFactor: async () => 1,
+      monitor: async () => ({ x: 0, y: 0, width: 1920, height: 1080 }),
+      isMaximized: async () => maximized,
+      setMaximized: async (on) => void (maximized = on),
+      setMinSize: async () => {},
+      setBounds: async (g) => void (normal = g),
+      setAlwaysOnTop: async () => {},
+      reveal: async () => {},
+      setTransparent: async () => {},
+    };
+    const peek = createPeekWindowController(win);
+    await peek.enter(enterOpts);
+    expect(maximized).toBe(false);
+    await peek.leave();
+    expect(maximized).toBe(true);
+    // Restoring (un-maximizing) afterwards goes back to the size it had before, not to almost full screen.
+    maximized = false;
+    expect(normal).toEqual({ x: 300, y: 200, width: 1000, height: 600 });
+  });
+
+  it("a resize at the top is ONE window change, so no intermediate size or position is ever shown", async () => {
+    const f = fakeWindow();
+    const peek = createPeekWindowController(f.win);
+    await peek.enter(enterOpts);
+    f.log.length = 0;
+    await peek.resizeKeepingBottom(14);
+    expect(f.log.filter((l) => l.startsWith("bounds:"))).toHaveLength(1);
+  });
+
   it("setLogicalHeight keeps position and width, only while in Peek", async () => {
     const f = fakeWindow({ scale: 2 });
     const peek = createPeekWindowController(f.win);

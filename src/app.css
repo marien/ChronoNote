@@ -970,6 +970,15 @@ body {
   user-select: none;
   opacity: 0;
   transition: opacity 0.5s ease-out;
+  /* A marker near the bottom (an open action on the last lines) has a hit area that reaches past the pane; clipped
+     here so it can never make the surrounding container grow its own native scrollbar. */
+  overflow: hidden;
+}
+
+/* Peek shows one section of the note: the markers would point at actions in the hidden sections, and in a window this
+   small the track looks like a second scrollbar. */
+body.peek-mode .cm-overview-ruler {
+  display: none !important;
 }
 
 .cm-overview-ruler.cm-ruler-visible,
@@ -4427,7 +4436,6 @@ body.peek-mode .cm-content {
   font-size: 12px;
   text-shadow: 0 0 3px var(--bg), 0 0 6px var(--bg);
   user-select: none;
-  -webkit-app-region: drag;
 }
 /* Same colours as the tab strip: past = grey, today = blue, future = green. */
 .peek-bar.past {
@@ -4458,7 +4466,6 @@ body.peek-mode .cm-content {
   text-align: right;
 }
 .peek-btn {
-  -webkit-app-region: no-drag;
   background: transparent;
   border: none;
   color: inherit;
