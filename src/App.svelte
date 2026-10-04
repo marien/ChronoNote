@@ -20,6 +20,7 @@
     toastMessage,
     LONG_TOAST_CHARS,
     peekMode,
+    peekHeaderExpanded,
     peekSettings,
   } from "./lib/controller";
   import { matchesShortcut } from "./lib/shortcuts";
@@ -386,6 +387,11 @@
   // Peek mode (compact note window): the body class swaps the layout and makes the background see-through.
   $: if (typeof document !== "undefined") {
     document.body.classList.toggle("peek-mode", $peekMode);
+    // "On hover" header: a transparent band above the collapsed strip, which the strip grows into (see app.css).
+    document.body.classList.toggle("peek-hover", $peekMode && $peekSettings.header === "hover");
+    document.body.classList.toggle("peek-hover-open", $peekHeaderExpanded);
+    // The band is not an element, so the window is dragged by the body itself there.
+    document.body.toggleAttribute("data-tauri-drag-region", $peekMode && $peekSettings.header === "hover");
     document.documentElement.style.setProperty("--peek-opacity", String($peekSettings.opacity));
   }
 

@@ -9713,11 +9713,18 @@ Verified in the real window (dev build, 4K at 150%): normal -> maximize -> Peek 
 
 Tests: `peekWindow.test.ts` (restore size of a maximized window; a resize is ONE bounds change), `zenWindow.test.ts` (`whenZenSettled`), `peek.spec.ts` (no flapping on leave/enter pairs, Peek from Zen). Not verified: a second monitor with different scaling; non-Windows (falls back to the two Tauri calls).
 
-## 278. Peek "On hover": the strip and the window change in one layout pass
+## 278. Peek "On hover": the window no longer resizes at all
 
-Marien, testing the v0.24.0 candidate: showing and hiding the strip still looked like two steps (resize, then show), the editor's scrollbar briefly resized and the strip seemed to overlap the content. Cause: the strip's height followed a flag that was set just before the native resize, so for a moment the layout had the new strip but the old window (and, in the other order, the new window with the old strip), and the editor in between was squeezed or stretched.
+Marien, testing the v0.24.0 candidate (twice): showing and hiding the strip still looked like two steps, the text briefly jumped and the scrollbar briefly resized.
 
-- **The strip's height is now derived from the window's height**, not from the flag: in "on hover" mode it is `clamp(16px, 100vh - --peek-base-h + 16px, 30px)` (`.peek-bar.hover-strip`), where `--peek-base-h` is the window's height with the strip collapsed (`peek.ts`, measured whenever the window is resized by anything other than the strip itself). The window grows by the strip's extra height and the strip takes exactly that space in the same layout pass, so the editor underneath is never resized.
-- `peekHeaderExpanded` now only decides whether the strip shows its contents: they appear after the window has grown and disappear before it shrinks, so nothing is ever drawn cropped. Hover changes are queued so overlapping enter/leave events cannot start two grows.
-- Checked in the real window by capturing the screen about every 30 ms: the text rows stay on exactly the same pixels in every frame; the empty strip appears with the window and its contents one frame later.
-- Test: `peek.spec.ts` (the strip takes the window's new space immediately, with the editor's height unchanged; fails without the CSS).
+First attempt (strip height derived from the window height, one layout pass) was measured in the real window by attaching to the page over the WebView2 debugging port and recording every animation frame: inside the page it WAS one frame and the editor never changed size. What Marien saw was the native window: `SetWindowPos` moves the top edge up and the window frame is drawn at its new rectangle one or two frames before the page inside has been re-laid out, so for that moment the old picture sits at the wrong place (text jump, scrollbar redraw). Nothing in the page can hide that, as long as the top edge of a window moves.
+
+**Fix: the window never changes size when the strip appears.**
+- In "on hover" mode the window always has room for the full 30 px strip (`headerPx`). Collapsed, the top 14 px of that room is a **transparent band** and the 16 px strip is drawn below it; with the pointer over the window the band is given to the strip (`body.peek-hover` / `peek-hover-open`, app.css). Same total height, so the editor never moves.
+- The translucent page background lives on `#app` in this mode, not on the body: a body background is propagated to the whole canvas and would paint the band.
+- The band is part of the window (the body has `data-tauri-drag-region` there), so it is also a larger handle for moving the window, and hovering it expands the strip. It does take clicks like the rest of the window: 14 px above the strip are not clickable through to the app underneath.
+- Removed: `resizeKeepingBottom` and all the hover resize queueing. Changing the header-strip setting while in Peek now re-applies the window height (it used not to when the "lines" setting was fixed).
+- Kept from the earlier attempt: one-call `peek_set_bounds` for entering Peek, the 150 ms collapse delay.
+
+Verified in the real window: the window rectangle does not change at all on hover (sampled every ms) and the bottom 150 rows of the window (the text) are pixel-identical in every captured frame of an expand and a collapse. Tests: `peek.spec.ts` (the strip takes the band while the editor's top and height stay identical, the body is transparent and #app carries the background, no band for the other header modes).
+

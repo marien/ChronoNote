@@ -49,8 +49,8 @@ const HEADER_THIN_PX = 16;
 const COLLAPSE_DELAY_MS = 150;
 /** Plus the editor's own padding. */
 const EDITOR_PADDING_PX = 12;
-const headerPx = (header: PeekHeader, expanded: boolean) =>
-  header === "always" || (header === "hover" && expanded) ? HEADER_FULL_PX : HEADER_THIN_PX;
+/** "On hover" reserves the full strip: collapsed, the top part of it is a transparent band (see `body.peek-hover`). */
+const headerPx = (header: PeekHeader) => (header === "never" ? HEADER_THIN_PX : HEADER_FULL_PX);
 
 export const peekSettings = writable<PeekSettings>({ ...PEEK_DEFAULTS });
 
@@ -93,7 +93,7 @@ const desktop = () => get(backendKind) === "desktop";
 
 function logicalHeight(s: PeekSettings, fit: number): number {
   const rows = s.lines > 0 ? s.lines : Math.min(Math.max(fit, 3), PEEK_MAX_FIT_LINES);
-  return Math.round(rows * get(fontSize) * get(lineHeight) + headerPx(s.header, get(peekHeaderExpanded)) + EDITOR_PADDING_PX);
+  return Math.round(rows * get(fontSize) * get(lineHeight) + headerPx(s.header) + EDITOR_PADDING_PX);
 }
 
 async function refreshPosition(): Promise<string[]> {
@@ -212,6 +212,7 @@ export function wirePeek(): () => void {
   const cleanups: (() => void)[] = [];
   let applied = false;
   let lastLines = -1;
+  let lastHeader: PeekHeader = get(peekSettings).header;
 
   cleanups.push(
     peekMode.subscribe((on) => {
@@ -230,8 +231,6 @@ export function wirePeek(): () => void {
             alwaysOnTop: s.alwaysOnTop,
           });
         } else {
-          // Leaving with the hover header expanded: collapse it first so the remembered height is the collapsed one.
-          if (get(peekHeaderExpanded)) await win.resizeKeepingBottom(-(HEADER_FULL_PX - HEADER_THIN_PX));
           peekHeaderExpanded.set(false);
           const compact = await win.leave();
           if (compact) peekSettings.update((x) => ({ ...x, geometry: compact, useLinesHeight: false }));
@@ -259,45 +258,15 @@ export function wirePeek(): () => void {
   };
   cleanups.push(tabs.subscribe(stayInSection), activeTabId.subscribe(stayInSection));
 
-  // Header strip "on hover": the thin strip grows into the full header while the pointer is over the window, and
-  // the window grows UPWARD by the difference so its bottom edge (and the text) does not move.
-  //
-  // The strip's HEIGHT is not state: in "on hover" mode CSS derives it from the window's own height
-  // (`.peek-bar.hover-strip`: the window's height minus `--peek-base-h`, the height it has collapsed), so the strip
-  // and the window change in the very same layout pass and the editor underneath never changes size. `peekHeaderExpanded`
-  // only decides whether the strip shows its contents, and is flipped around the resize so nothing is ever drawn
-  // cropped: the contents appear after the window has grown and disappear before it shrinks.
-  const delta = HEADER_FULL_PX - HEADER_THIN_PX;
-  let resizing = false;
-  let hoverQueue: Promise<void> = Promise.resolve();
+  // Header strip "on hover": the window never changes size. It always has room for the full strip; collapsed, the top
+  // part of that room is a transparent band and only the thin strip is drawn (`body.peek-hover` in app.css), and
+  // while the pointer is over the window the strip grows into the band (`peek-hover-open`). It is one layout change
+  // inside the page, so nothing moves: resizing the native window instead moved its top edge a frame before the page
+  // inside it caught up, which showed as a jump of the text and a flicker of the scrollbar.
   const setHeaderExpanded = (on: boolean) => {
     if (!get(peekMode) || get(peekSettings).header !== "hover") return;
-    hoverQueue = hoverQueue.then(async () => {
-      if (!get(peekMode) || get(peekSettings).header !== "hover" || get(peekHeaderExpanded) === on) return;
-      resizing = true;
-      try {
-        const w = await controller();
-        if (on) {
-          await w.resizeKeepingBottom(delta);
-          peekHeaderExpanded.set(true);
-        } else {
-          peekHeaderExpanded.set(false);
-          await w.resizeKeepingBottom(-delta);
-        }
-      } finally {
-        resizing = false;
-      }
-    });
+    peekHeaderExpanded.set(on);
   };
-  // The window's height when the strip is collapsed, for the CSS above. Measured whenever the window is resized by
-  // anything but the strip itself (entering Peek, a drag on the edge, the "lines" setting).
-  const syncBaseHeight = () => {
-    if (!get(peekMode) || resizing) return;
-    const base = window.innerHeight - (get(peekHeaderExpanded) ? delta : 0);
-    document.documentElement.style.setProperty("--peek-base-h", `${base}px`);
-  };
-  window.addEventListener("resize", syncBaseHeight);
-  cleanups.push(() => window.removeEventListener("resize", syncBaseHeight), peekMode.subscribe(() => syncBaseHeight()));
   // Collapsing waits a moment and is cancelled by any pointer movement over the window: resizing moves the window
   // under a pointer that stands still, and the enter/leave events that causes must not flap the strip.
   let collapseTimer: ReturnType<typeof setTimeout> | undefined;
@@ -324,7 +293,8 @@ export function wirePeek(): () => void {
   const resize = () => {
     if (!get(peekMode)) return;
     const s = get(peekSettings);
-    if (s.lines !== 0 && s.lines === lastLines) return;
+    if (s.lines !== 0 && s.lines === lastLines && s.header === lastHeader) return;
+    lastHeader = s.header;
     if (s.lines !== lastLines && !s.useLinesHeight) {
       lastLines = s.lines;
       peekSettings.update((x) => ({ ...x, useLinesHeight: true }));

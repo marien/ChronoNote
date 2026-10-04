@@ -219,42 +219,45 @@ test.describe("peek mode: tests with their own seed", () => {
     await expect(bar).toHaveClass(/\bthin\b/);
   });
 
-  test('"On hover": the strip grows with the window in ONE layout change, so the editor underneath never changes size', async ({ page }) => {
+  test('"On hover": the window never changes size; the strip grows into a transparent band above it and the editor does not move', async ({ page }) => {
     await page.setViewportSize({ width: 420, height: 240 });
     await seedApp(page, { seed: { ...today(), peek: { enabled: true, header: "hover" } } });
     await enterOnWeeklySync(page);
     const bar = page.locator("#peek-bar");
-    const box = async () => ({
-      bar: (await bar.boundingBox())!.height,
-      editor: (await page.locator("#editor-container").boundingBox())!.height,
-    });
-    await page.evaluate(() => window.dispatchEvent(new Event("resize"))); // measures the collapsed height
+    const geometry = async () => {
+      const editorBox = (await page.locator("#editor-container").boundingBox())!;
+      return {
+        bar: (await bar.boundingBox())!.height,
+        editorTop: editorBox.y,
+        editorHeight: editorBox.height,
+        bodyPaddingTop: await page.evaluate(() => getComputedStyle(document.body).paddingTop),
+        bodyBackground: await page.evaluate(() => getComputedStyle(document.body).backgroundColor),
+        appBackground: await page.evaluate(() => getComputedStyle(document.querySelector("#app")!).backgroundColor),
+      };
+    };
+    await expect(page.locator("body.peek-hover")).toBeVisible();
     await page.waitForTimeout(300); // let Peek's own layout settle
-    const collapsed = await box();
-    expect(collapsed.bar).toBe(16);
-    // The moment the native window has grown but the strip has not yet been told (the contents still hidden): the strip
-    // must already have taken the new space, because its height follows the window, not a flag.
-    await page.setViewportSize({ width: 420, height: 240 + 14 });
-    await page.waitForTimeout(150); // the resize event has been handled; now put the base back as the strip itself leaves it
-    await page.evaluate((base) => document.documentElement.style.setProperty("--peek-base-h", base + "px"), 240);
-    await expect(bar).toHaveClass(/\bthin\b/);
-    expect((await box()).bar).toBe(30);
-    expect((await box()).editor).toBe(collapsed.editor);
-    await page.setViewportSize({ width: 420, height: 240 });
-    await page.evaluate(() => window.dispatchEvent(new Event("resize")));
-    await expect.poll(async () => (await box()).bar).toBe(16);
-    // The window grows by the header's extra height (what the native resize does) while the pointer is over it.
+    const collapsed = await geometry();
+    // Collapsed: 14px of the window above the 16px strip is a band the body does not paint.
+    expect(collapsed).toMatchObject({ bar: 16, bodyPaddingTop: "14px", bodyBackground: "rgba(0, 0, 0, 0)" });
+    expect(collapsed.appBackground).not.toBe("rgba(0, 0, 0, 0)");
     await page.evaluate(() => document.documentElement.dispatchEvent(new MouseEvent("mouseenter")));
-    await expect(bar).not.toHaveClass(/\bthin\b/);
-    await page.setViewportSize({ width: 420, height: 240 + 14 });
-    await expect.poll(async () => (await box()).bar).toBe(30);
-    expect((await box()).editor).toBe(collapsed.editor);
-    // And back: the strip and the window shrink together.
+    await expect(page.locator("body.peek-hover-open")).toBeVisible();
+    const open = await geometry();
+    expect(open).toMatchObject({ bar: 30, bodyPaddingTop: "0px" });
+    // The strip took the band: the editor is exactly where it was, and the window (the viewport) has not changed.
+    expect(open.editorTop).toBe(collapsed.editorTop);
+    expect(open.editorHeight).toBe(collapsed.editorHeight);
     await page.evaluate(() => document.documentElement.dispatchEvent(new MouseEvent("mouseleave")));
-    await expect(bar).toHaveClass(/\bthin\b/);
-    await page.setViewportSize({ width: 420, height: 240 });
-    await expect.poll(async () => (await box()).bar).toBe(16);
-    expect((await box()).editor).toBe(collapsed.editor);
+    await expect(page.locator("body.peek-hover-open")).toHaveCount(0);
+    expect(await geometry()).toEqual(collapsed);
+  });
+
+  test("with the header strip not on hover there is no transparent band", async ({ page }) => {
+    await seedApp(page, { seed: { ...today(), peek: { enabled: true, header: "always" } } });
+    await enterOnWeeklySync(page);
+    await expect(page.locator("body.peek-hover")).toHaveCount(0);
+    expect(await page.evaluate(() => getComputedStyle(document.body).paddingTop)).toBe("0px");
   });
 
   test("the background opacity defaults to 80%", async ({ page }) => {

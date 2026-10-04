@@ -4491,12 +4491,23 @@ body.peek-mode .cm-content {
   padding: 0;
   position: relative;
 }
-/* "On hover": the strip is as tall as the window has grown beyond its collapsed height (16px, up to 30px), so growing the
-   window and showing the strip are one layout change. `--peek-base-h` is set by `peek.ts`. */
-.peek-bar.hover-strip,
-.peek-bar.hover-strip.thin {
-  height: clamp(16px, calc(100vh - var(--peek-base-h, 9999px) + 16px), 30px);
-  overflow: hidden;
+/* "On hover": the window always has room for the full 30px strip. Collapsed, the top 14px of it is a transparent band
+   (the translucent page background moves from the body to #app, which starts below the body's padding) and the 16px
+   strip is drawn under it; with the pointer over the window the band is given to the strip (`peek-hover-open`). Same
+   total height, so the editor never moves and the native window never has to change size. (A background on the body
+   itself would be propagated to the whole canvas, band included.) */
+body.peek-mode.peek-hover {
+  padding-top: 14px;
+  background: transparent;
+}
+body.peek-mode.peek-hover.peek-hover-open {
+  padding-top: 0;
+}
+body.peek-mode.peek-hover #app {
+  height: auto;
+  flex: 1 1 0;
+  min-height: 0;
+  background: color-mix(in srgb, var(--bg) calc(var(--peek-opacity, 80) * 1%), transparent);
 }
 .peek-bar.thin::after {
   content: "";

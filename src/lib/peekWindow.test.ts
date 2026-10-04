@@ -103,21 +103,7 @@ describe("createPeekWindowController", () => {
     await expect(createPeekWindowController(f.win).enter(enterOpts)).resolves.toBeUndefined();
   });
 
-  it("resizeKeepingBottom grows and shrinks at the top: the bottom edge does not move", async () => {
-    const f = fakeWindow({ scale: 1.5 });
-    const peek = createPeekWindowController(f.win);
-    await peek.resizeKeepingBottom(22); // not in Peek: nothing happens
-    expect(f.log).toEqual([]);
-    await peek.enter(enterOpts);
-    const before = { ...f.geo };
-    await peek.resizeKeepingBottom(22); // the header strip expands: +22 logical = +33 physical
-    expect(f.geo).toEqual({ ...before, y: before.y - 33, height: before.height + 33 });
-    expect(f.geo.y + f.geo.height).toBe(before.y + before.height);
-    await peek.resizeKeepingBottom(-22); // and collapses again
-    expect(f.geo).toEqual(before);
-  });
-
-it("a maximized window remembers the size it will be restored to, not the screen-sized rectangle", async () => {
+  it("a maximized window remembers the size it will be restored to, not the screen-sized rectangle", async () => {
     // Like Windows: while maximized the window reports the screen rectangle, and the rectangle it was set to while
     // NOT maximized is what "restore" goes back to.
     const screen: PeekGeometry = { x: 0, y: 0, width: 1920, height: 1040 };
@@ -145,15 +131,6 @@ it("a maximized window remembers the size it will be restored to, not the screen
     // Restoring (un-maximizing) afterwards goes back to the size it had before, not to almost full screen.
     maximized = false;
     expect(normal).toEqual({ x: 300, y: 200, width: 1000, height: 600 });
-  });
-
-  it("a resize at the top is ONE window change, so no intermediate size or position is ever shown", async () => {
-    const f = fakeWindow();
-    const peek = createPeekWindowController(f.win);
-    await peek.enter(enterOpts);
-    f.log.length = 0;
-    await peek.resizeKeepingBottom(14);
-    expect(f.log.filter((l) => l.startsWith("bounds:"))).toHaveLength(1);
   });
 
   it("setLogicalHeight keeps position and width, only while in Peek", async () => {

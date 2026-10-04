@@ -28,7 +28,6 @@
   id="peek-bar"
   class="peek-bar {dateClass}"
   class:thin={hidden}
-  class:hover-strip={$peekSettings.header === "hover"}
   data-tauri-drag-region
   role="toolbar"
   aria-label="Peek"
