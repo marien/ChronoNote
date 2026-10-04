@@ -4436,7 +4436,6 @@ body.peek-mode .cm-content {
   font-size: 12px;
   text-shadow: 0 0 3px var(--bg), 0 0 6px var(--bg);
   user-select: none;
-  -webkit-app-region: drag;
 }
 /* Same colours as the tab strip: past = grey, today = blue, future = green. */
 .peek-bar.past {
@@ -4467,7 +4466,6 @@ body.peek-mode .cm-content {
   text-align: right;
 }
 .peek-btn {
-  -webkit-app-region: no-drag;
   background: transparent;
   border: none;
   color: inherit;

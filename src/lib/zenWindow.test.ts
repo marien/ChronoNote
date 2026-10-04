@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createZenWindowController, type ZenWindow } from "./zenWindow";
+import { createZenWindowController, whenZenSettled, type ZenWindow } from "./zenWindow";
 
 /** A fake window that records the calls made on it, in order. */
 function fakeWindow(opts: { maximized: boolean; failOn?: string; delayMs?: number }) {
@@ -93,5 +93,15 @@ describe("Zen mode's native fullscreen", () => {
     const zen = createZenWindowController(f.win);
     await zen.set(true);
     expect(f.calls).toEqual(["isMaximized", "setFullscreen(true)"]);
+  });
+
+  it("whenZenSettled resolves only after the window changes asked for so far have been carried out", async () => {
+    const f = fakeWindow({ maximized: true, delayMs: 5 });
+    const zen = createZenWindowController(f.win);
+    void zen.set(true);
+    void zen.set(false);
+    expect(f.calls.length).toBeLessThan(5);
+    await whenZenSettled();
+    expect(f.calls.at(-1)).toBe("setFullscreen(false)");
   });
 });

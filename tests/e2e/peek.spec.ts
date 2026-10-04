@@ -197,10 +197,49 @@ test.describe("peek mode: tests with their own seed", () => {
     await expect(bar).toHaveClass(/\bthin\b/);
   });
 
+  test('"On hover": a pointer that leaves and comes back (or moves on) at once does not flap the strip', async ({ page }) => {
+    await seedApp(page, { seed: { ...today(), peek: { enabled: true, header: "hover" } } });
+    await enterOnWeeklySync(page);
+    const bar = page.locator("#peek-bar");
+    const fire = (type: string) => page.evaluate((t) => document.documentElement.dispatchEvent(new MouseEvent(t)), type);
+    await fire("mouseenter");
+    await expect(bar).not.toHaveClass(/\bthin\b/);
+    // Resizing the window moves it under a still pointer, which makes the browser report a leave and an enter.
+    await fire("mouseleave");
+    await fire("mouseenter");
+    await page.waitForTimeout(400);
+    await expect(bar).not.toHaveClass(/\bthin\b/);
+    // A leave followed by movement over the window is not a real leave either.
+    await fire("mouseleave");
+    await fire("mousemove");
+    await page.waitForTimeout(400);
+    await expect(bar).not.toHaveClass(/\bthin\b/);
+    // A real leave collapses it after a short delay.
+    await fire("mouseleave");
+    await expect(bar).toHaveClass(/\bthin\b/);
+  });
+
   test("the background opacity defaults to 80%", async ({ page }) => {
     await seedApp(page, { seed: { ...today(), peek: { enabled: true } } });
     await openPeekSettings(page);
     await expect(peekRange(page, "Background opacity")).toHaveValue("80");
+  });
+
+  test.describe("from Zen mode", () => {
+    test.beforeEach(async ({ page }) => seedThreeOccurrences(page));
+
+    test("Peek can be started while Zen is on: Zen ends and Peek shows", async ({ page }) => {
+      await editor(page).click();
+      await page.keyboard.press("ControlOrMeta+Home");
+      for (let i = 0; i < 6; i++) await page.keyboard.press("ArrowDown");
+      await page.keyboard.press("Shift+F11");
+      await expect(page.locator("body.zen-mode")).toBeVisible();
+      await page.keyboard.press("ControlOrMeta+F11");
+      await expect(page.locator("body.peek-mode")).toBeVisible();
+      await expect(page.locator("body.zen-mode")).toHaveCount(0);
+      await page.keyboard.press("ControlOrMeta+F11");
+      await expect(page.locator("body.peek-mode")).toHaveCount(0);
+    });
   });
 
   test.describe("Esc", () => {

@@ -64,9 +64,15 @@ export function createPeekWindowController(win: PeekWin) {
   return {
     enter(o: PeekEnterOptions): Promise<void> {
       return run(async () => {
-        if (!full) full = { geometry: await currentGeometry(), maximized: await win.isMaximized() };
+        if (!full) {
+          // A maximized window only reveals the size it will have when restored once it IS restored. Reading its
+          // geometry while maximized would record the screen-sized rectangle, and putting that back before
+          // maximizing again would make it the size "restore" goes to afterwards.
+          const maximized = await win.isMaximized();
+          if (maximized) await win.setMaximized(false);
+          full = { geometry: await currentGeometry(), maximized };
+        }
         await win.setTransparent(true);
-        if (full.maximized) await win.setMaximized(false);
         await win.setMinSize(PEEK_MIN_LOGICAL.width, PEEK_MIN_LOGICAL.height);
         const scale = (await win.scaleFactor()) || 1;
         const h = Math.round(o.logicalHeight * scale);
@@ -156,6 +162,13 @@ export async function nativePeekWindow(): Promise<PeekWin> {
     setMaximized: (on) => (on ? w.maximize() : w.unmaximize()),
     setMinSize: (width, height) => w.setMinSize(new LogicalSize(width, height)),
     setBounds: async (g) => {
+      // One native call (Windows): size and position change together, nothing in between is ever shown.
+      try {
+        await invoke("peek_set_bounds", { x: g.x, y: g.y, width: g.width, height: g.height });
+        return;
+      } catch {
+        // fall through to the two-call version below
+      }
       await w.setSize(new PhysicalSize(g.width, g.height));
       // An undecorated window comes out a little larger than asked (the invisible resize border is added on top),
       // which made it grow on every Peek round trip. Read it back and take the difference off once.

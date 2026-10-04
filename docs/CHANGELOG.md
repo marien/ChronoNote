@@ -9687,3 +9687,20 @@ Reported while trying Peek (v0.23.0): "an extra vertical scrollbar" on some occu
 - Test: `peek.spec.ts` (a long section with an open action on its last line: markers exist in the normal window, none in Peek, the container does not overflow); verified to fail without the CSS.
 
 The same report listed three things that v0.23.0 did and v0.23.1 fixed (section title visible after stepping, Esc not leaving Peek, a too large "On hover" strip), so nothing more was changed for them. Not reproduced in the browser harness: the scrollbar itself (the ruler is the only candidate found), so please confirm with the next build.
+
+## 277. Peek: one-step resizing of the "On hover" strip, and the window size after Peek from a maximized or Zen window
+
+Two reports from trying v0.23.1:
+
+**1. "On hover" resized in several steps, and worse when the pointer went from the content into the header strip** (the window grew a few times, the bottom edge moved, then settled). Causes, all found by sampling the real window rectangle every millisecond:
+- `setBounds` was `setSize` + a read-back + a correcting `setSize` + `setPosition`: three or four visible steps, the first of which grew the window DOWNWARD before the last one moved it up. New Rust command `peek_set_bounds` (`peek_window.rs`) applies position and size with ONE `SetWindowPos`, measuring the window's own frame so no correction is needed. Measured: entering the window is one change (90,243 high -> 69,264 high, bottom unchanged), leaving is one change.
+- The intermediate sizes made the browser report leave/enter pairs under a still pointer, which flapped the strip. Collapsing now waits 150 ms and any pointer movement over the window cancels it.
+- The strip carried `-webkit-app-region: drag`, which makes WebView2 swallow mouse events over it, so hovering straight onto the thin strip did nothing until the pointer reached the text. Tauri's `data-tauri-drag-region` (already on the elements, and what the main title bar uses) is enough; verified that dragging by the strip and the strip's buttons still work.
+
+**2. Peek from a full-screen window lost the size to come back to.** Two ways to be "full screen":
+- *Maximized:* Peek read the window's geometry while it was still maximized (the screen-sized rectangle), put THAT back before maximizing again, and so overwrote what "restore" goes back to: restoring gave an almost-full-screen window. Now the window is un-maximized first and its restore size is read then; leaving Peek sets that size and maximizes again.
+- *Zen (fullscreen), maximized or not:* Peek was entered while the window was still leaving Zen and recorded the monitor rectangle as its normal size; afterwards the window was stuck at screen size, not maximized, and "restore" did nothing. Peek now ends Zen and waits until its window changes are done (`whenZenSettled` in `zenWindow.ts`) before it looks at the window.
+
+Verified in the real window (dev build, 4K at 150%): normal -> maximize -> Peek -> Esc -> restore returns to the original rectangle; Zen from maximized and Zen from a normal window both come back correctly; hover sweeps in both directions produce single transitions.
+
+Tests: `peekWindow.test.ts` (restore size of a maximized window; a resize is ONE bounds change), `zenWindow.test.ts` (`whenZenSettled`), `peek.spec.ts` (no flapping on leave/enter pairs, Peek from Zen). Not verified: a second monitor with different scaling; non-Windows (falls back to the two Tauri calls).
