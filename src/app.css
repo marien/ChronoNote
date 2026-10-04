@@ -4491,6 +4491,13 @@ body.peek-mode .cm-content {
   padding: 0;
   position: relative;
 }
+/* "On hover": the strip is as tall as the window has grown beyond its collapsed height (16px, up to 30px), so growing the
+   window and showing the strip are one layout change. `--peek-base-h` is set by `peek.ts`. */
+.peek-bar.hover-strip,
+.peek-bar.hover-strip.thin {
+  height: clamp(16px, calc(100vh - var(--peek-base-h, 9999px) + 16px), 30px);
+  overflow: hidden;
+}
 .peek-bar.thin::after {
   content: "";
   position: absolute;

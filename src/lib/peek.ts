@@ -261,12 +261,43 @@ export function wirePeek(): () => void {
 
   // Header strip "on hover": the thin strip grows into the full header while the pointer is over the window, and
   // the window grows UPWARD by the difference so its bottom edge (and the text) does not move.
+  //
+  // The strip's HEIGHT is not state: in "on hover" mode CSS derives it from the window's own height
+  // (`.peek-bar.hover-strip`: the window's height minus `--peek-base-h`, the height it has collapsed), so the strip
+  // and the window change in the very same layout pass and the editor underneath never changes size. `peekHeaderExpanded`
+  // only decides whether the strip shows its contents, and is flipped around the resize so nothing is ever drawn
+  // cropped: the contents appear after the window has grown and disappear before it shrinks.
+  const delta = HEADER_FULL_PX - HEADER_THIN_PX;
+  let resizing = false;
+  let hoverQueue: Promise<void> = Promise.resolve();
   const setHeaderExpanded = (on: boolean) => {
-    if (!get(peekMode) || get(peekSettings).header !== "hover" || get(peekHeaderExpanded) === on) return;
-    peekHeaderExpanded.set(on);
-    const delta = HEADER_FULL_PX - HEADER_THIN_PX;
-    void controller().then((w) => w.resizeKeepingBottom(on ? delta : -delta));
+    if (!get(peekMode) || get(peekSettings).header !== "hover") return;
+    hoverQueue = hoverQueue.then(async () => {
+      if (!get(peekMode) || get(peekSettings).header !== "hover" || get(peekHeaderExpanded) === on) return;
+      resizing = true;
+      try {
+        const w = await controller();
+        if (on) {
+          await w.resizeKeepingBottom(delta);
+          peekHeaderExpanded.set(true);
+        } else {
+          peekHeaderExpanded.set(false);
+          await w.resizeKeepingBottom(-delta);
+        }
+      } finally {
+        resizing = false;
+      }
+    });
   };
+  // The window's height when the strip is collapsed, for the CSS above. Measured whenever the window is resized by
+  // anything but the strip itself (entering Peek, a drag on the edge, the "lines" setting).
+  const syncBaseHeight = () => {
+    if (!get(peekMode) || resizing) return;
+    const base = window.innerHeight - (get(peekHeaderExpanded) ? delta : 0);
+    document.documentElement.style.setProperty("--peek-base-h", `${base}px`);
+  };
+  window.addEventListener("resize", syncBaseHeight);
+  cleanups.push(() => window.removeEventListener("resize", syncBaseHeight), peekMode.subscribe(() => syncBaseHeight()));
   // Collapsing waits a moment and is cancelled by any pointer movement over the window: resizing moves the window
   // under a pointer that stands still, and the enter/leave events that causes must not flap the strip.
   let collapseTimer: ReturnType<typeof setTimeout> | undefined;

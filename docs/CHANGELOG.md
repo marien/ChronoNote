@@ -9712,3 +9712,12 @@ Two reports from trying v0.23.1:
 Verified in the real window (dev build, 4K at 150%): normal -> maximize -> Peek -> Esc -> restore returns to the original rectangle; Zen from maximized and Zen from a normal window both come back correctly; hover sweeps in both directions produce single transitions.
 
 Tests: `peekWindow.test.ts` (restore size of a maximized window; a resize is ONE bounds change), `zenWindow.test.ts` (`whenZenSettled`), `peek.spec.ts` (no flapping on leave/enter pairs, Peek from Zen). Not verified: a second monitor with different scaling; non-Windows (falls back to the two Tauri calls).
+
+## 278. Peek "On hover": the strip and the window change in one layout pass
+
+Marien, testing the v0.24.0 candidate: showing and hiding the strip still looked like two steps (resize, then show), the editor's scrollbar briefly resized and the strip seemed to overlap the content. Cause: the strip's height followed a flag that was set just before the native resize, so for a moment the layout had the new strip but the old window (and, in the other order, the new window with the old strip), and the editor in between was squeezed or stretched.
+
+- **The strip's height is now derived from the window's height**, not from the flag: in "on hover" mode it is `clamp(16px, 100vh - --peek-base-h + 16px, 30px)` (`.peek-bar.hover-strip`), where `--peek-base-h` is the window's height with the strip collapsed (`peek.ts`, measured whenever the window is resized by anything other than the strip itself). The window grows by the strip's extra height and the strip takes exactly that space in the same layout pass, so the editor underneath is never resized.
+- `peekHeaderExpanded` now only decides whether the strip shows its contents: they appear after the window has grown and disappear before it shrinks, so nothing is ever drawn cropped. Hover changes are queued so overlapping enter/leave events cannot start two grows.
+- Checked in the real window by capturing the screen about every 30 ms: the text rows stay on exactly the same pixels in every frame; the empty strip appears with the window and its contents one frame later.
+- Test: `peek.spec.ts` (the strip takes the window's new space immediately, with the editor's height unchanged; fails without the CSS).

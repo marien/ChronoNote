@@ -219,6 +219,44 @@ test.describe("peek mode: tests with their own seed", () => {
     await expect(bar).toHaveClass(/\bthin\b/);
   });
 
+  test('"On hover": the strip grows with the window in ONE layout change, so the editor underneath never changes size', async ({ page }) => {
+    await page.setViewportSize({ width: 420, height: 240 });
+    await seedApp(page, { seed: { ...today(), peek: { enabled: true, header: "hover" } } });
+    await enterOnWeeklySync(page);
+    const bar = page.locator("#peek-bar");
+    const box = async () => ({
+      bar: (await bar.boundingBox())!.height,
+      editor: (await page.locator("#editor-container").boundingBox())!.height,
+    });
+    await page.evaluate(() => window.dispatchEvent(new Event("resize"))); // measures the collapsed height
+    await page.waitForTimeout(300); // let Peek's own layout settle
+    const collapsed = await box();
+    expect(collapsed.bar).toBe(16);
+    // The moment the native window has grown but the strip has not yet been told (the contents still hidden): the strip
+    // must already have taken the new space, because its height follows the window, not a flag.
+    await page.setViewportSize({ width: 420, height: 240 + 14 });
+    await page.waitForTimeout(150); // the resize event has been handled; now put the base back as the strip itself leaves it
+    await page.evaluate((base) => document.documentElement.style.setProperty("--peek-base-h", base + "px"), 240);
+    await expect(bar).toHaveClass(/\bthin\b/);
+    expect((await box()).bar).toBe(30);
+    expect((await box()).editor).toBe(collapsed.editor);
+    await page.setViewportSize({ width: 420, height: 240 });
+    await page.evaluate(() => window.dispatchEvent(new Event("resize")));
+    await expect.poll(async () => (await box()).bar).toBe(16);
+    // The window grows by the header's extra height (what the native resize does) while the pointer is over it.
+    await page.evaluate(() => document.documentElement.dispatchEvent(new MouseEvent("mouseenter")));
+    await expect(bar).not.toHaveClass(/\bthin\b/);
+    await page.setViewportSize({ width: 420, height: 240 + 14 });
+    await expect.poll(async () => (await box()).bar).toBe(30);
+    expect((await box()).editor).toBe(collapsed.editor);
+    // And back: the strip and the window shrink together.
+    await page.evaluate(() => document.documentElement.dispatchEvent(new MouseEvent("mouseleave")));
+    await expect(bar).toHaveClass(/\bthin\b/);
+    await page.setViewportSize({ width: 420, height: 240 });
+    await expect.poll(async () => (await box()).bar).toBe(16);
+    expect((await box()).editor).toBe(collapsed.editor);
+  });
+
   test("the background opacity defaults to 80%", async ({ page }) => {
     await seedApp(page, { seed: { ...today(), peek: { enabled: true } } });
     await openPeekSettings(page);
