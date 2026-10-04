@@ -163,13 +163,13 @@ export const pl = {
     "Skopiuj zaznaczenie (lub bieżący wiersz) do następnego wystąpienia tej sekcji",
   "shortcuts.toggleZenMode.label": () => "Tryb Zen (przestrzeń bez rozpraszaczy)",
   "shortcuts.togglePeekMode.label": () =>
-    "Peek: compact see-through note window for calls (works from any app)",
+    "Peek: kompaktowe, półprzezroczyste okno notatek na rozmowy (działa z każdej aplikacji)",
   "commandPalette.togglePeekMode": () =>
-    "Toggle Peek (compact note window for calls)",
+    "Przełącz Peek (kompaktowe okno notatek na rozmowy)",
   "peek.toast.noSection": () =>
-    "Put the cursor in a section to peek at it.",
+    "Umieść kursor w sekcji, aby w nią zerknąć.",
   "peek.expand": () =>
-    "Back to the full window",
+    "Wróć do pełnego okna",
   "peek.prev": () =>
     "Poprzednie wystąpienie",
   "peek.next": () =>
@@ -182,31 +182,31 @@ export const pl = {
     "Domyślnie wyłączone. Pokazuje < (2/5) > po tytule sekcji, gdy ta sama sekcja jest w innych notatkach; kliknij strzałki, aby tam przejść. Alt+Strzałka w lewo / Alt+Strzałka w prawo działają w sekcji zawsze, ze wskaźnikiem lub bez niego.",
   "toast.boot.failedToSave.occurrenceHint": () => "Nie udało się zapisać ustawienia wskaźnika wystąpień",
   "peek.settings.title": () =>
-    "Peek (compact notes during a call)",
+    "Peek (kompaktowe notatki podczas rozmowy)",
   "peek.settings.enabled.label": () =>
-    "Enable Peek (experimental)",
+    "Włącz Peek (eksperymentalne)",
   "peek.settings.enabled.hint": () =>
-    "Off by default. A compact, see-through note window for taking notes during a call. Still being tried out.",
+    "Domyślnie wyłączone. Kompaktowe, półprzezroczyste okno notatek do robienia notatek podczas rozmowy. Wciąż w fazie prób.",
   "peek.settings.lines.label": () =>
-    "Height (lines)",
+    "Wysokość (wiersze)",
   "peek.settings.lines.fit": () =>
-    "Fit the whole section",
+    "Dopasuj do całej sekcji",
   "peek.settings.opacity.label": () =>
-    "Background opacity",
+    "Krycie tła",
   "peek.settings.alwaysOnTop.label": () =>
-    "Keep on top of other windows",
+    "Trzymaj nad innymi oknami",
   "peek.settings.header.label": () =>
-    "Header strip",
+    "Pasek nagłówka",
   "peek.settings.header.always": () =>
-    "Always",
+    "Zawsze",
   "peek.settings.header.hover": () =>
-    "On hover",
+    "Po najechaniu",
   "peek.settings.header.never": () =>
-    "Hidden",
+    "Ukryty",
   "peek.settings.shortcut.label": () =>
-    "Shortcut (works from any app)",
+    "Skrót (działa z każdej aplikacji)",
   "peek.settings.hint": () =>
-    "Peek shrinks the window to the section your cursor is in. Alt+Left / Alt+Right switch to the previous / next occurrence; edits are normal edits. Press the shortcut again to come back.",
+    "Peek zmniejsza okno do sekcji, w której jest kursor. Alt+Strzałka w lewo / Alt+Strzałka w prawo przechodzą do poprzedniego / następnego wystąpienia; edycje są zwykłymi edycjami. Naciśnij skrót ponownie, aby wrócić.",
   "shortcuts.stepOccurrence.label": () =>
     "Poprzednie / następne wystąpienie tej sekcji",
   "shortcuts.clickGlyph.label": () =>

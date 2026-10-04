@@ -162,13 +162,13 @@ export const it = {
     "Copia la selezione (o la riga corrente) alla successiva ricorrenza di questa sezione",
   "shortcuts.toggleZenMode.label": () => "Modalità Zen (schermo senza distrazioni)",
   "shortcuts.togglePeekMode.label": () =>
-    "Peek: compact see-through note window for calls (works from any app)",
+    "Peek: finestra di note compatta e semitrasparente per le chiamate (funziona da qualsiasi app)",
   "commandPalette.togglePeekMode": () =>
-    "Toggle Peek (compact note window for calls)",
+    "Attiva/disattiva Peek (finestra di note compatta per le chiamate)",
   "peek.toast.noSection": () =>
-    "Put the cursor in a section to peek at it.",
+    "Metti il cursore in una sezione per darle un'occhiata.",
   "peek.expand": () =>
-    "Back to the full window",
+    "Torna alla finestra completa",
   "peek.prev": () =>
     "Occorrenza precedente",
   "peek.next": () =>
@@ -181,31 +181,31 @@ export const it = {
     "Disattivato per impostazione predefinita. Mostra < (2/5) > dopo il titolo di una sezione quando altre note contengono la stessa sezione; fai clic sulle frecce per andarci. Alt+Sinistra / Alt+Destra funzionano sempre dentro una sezione, con o senza l'indicatore.",
   "toast.boot.failedToSave.occurrenceHint": () => "Impossibile salvare la preferenza dell'indicatore delle occorrenze",
   "peek.settings.title": () =>
-    "Peek (compact notes during a call)",
+    "Peek (note compatte durante una chiamata)",
   "peek.settings.enabled.label": () =>
-    "Enable Peek (experimental)",
+    "Attiva Peek (sperimentale)",
   "peek.settings.enabled.hint": () =>
-    "Off by default. A compact, see-through note window for taking notes during a call. Still being tried out.",
+    "Disattivato per impostazione predefinita. Una finestra di note compatta e semitrasparente per prendere appunti durante una chiamata. Ancora in fase di prova.",
   "peek.settings.lines.label": () =>
-    "Height (lines)",
+    "Altezza (righe)",
   "peek.settings.lines.fit": () =>
-    "Fit the whole section",
+    "Adatta a tutta la sezione",
   "peek.settings.opacity.label": () =>
-    "Background opacity",
+    "Opacità dello sfondo",
   "peek.settings.alwaysOnTop.label": () =>
-    "Keep on top of other windows",
+    "Mantieni sopra le altre finestre",
   "peek.settings.header.label": () =>
-    "Header strip",
+    "Barra di intestazione",
   "peek.settings.header.always": () =>
-    "Always",
+    "Sempre",
   "peek.settings.header.hover": () =>
-    "On hover",
+    "Al passaggio del mouse",
   "peek.settings.header.never": () =>
-    "Hidden",
+    "Nascosta",
   "peek.settings.shortcut.label": () =>
-    "Shortcut (works from any app)",
+    "Scorciatoia (funziona da qualsiasi app)",
   "peek.settings.hint": () =>
-    "Peek shrinks the window to the section your cursor is in. Alt+Left / Alt+Right switch to the previous / next occurrence; edits are normal edits. Press the shortcut again to come back.",
+    "Peek riduce la finestra alla sezione in cui si trova il cursore. Alt+Sinistra / Alt+Destra passano all'occorrenza precedente / successiva; le modifiche sono modifiche normali. Premi di nuovo la scorciatoia per tornare indietro.",
   "shortcuts.stepOccurrence.label": () =>
     "Occorrenza precedente / successiva di questa sezione",
   "shortcuts.clickGlyph.label": () =>
