@@ -115,7 +115,7 @@ always-on-top window showing only the section your cursor was in; `Alt+Left` /
 shortcut brings the full window back. It is the same window and editor, so
 everything you type is a normal edit, and it stays inside its section (to work in
 another section, leave Peek). Height, opacity, the header strip and the shortcut are
-in the same Settings group.
+in the same Settings group. `Ctrl+Alt+J` (also changeable) opens Peek on the meeting that is on now according to your `.agenda.json`, or on a new `'Call HH:MM` section placed in time order between the meetings. Peek reopens where you left it, or above the taskbar if that screen is gone.
 
 ## Web app and demo
 

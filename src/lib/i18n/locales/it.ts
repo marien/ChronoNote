@@ -180,6 +180,11 @@ export const it = {
   "occurrence.settings.hint.hint": () =>
     "Disattivato per impostazione predefinita. Mostra < (2/5) > dopo il titolo di una sezione quando altre note contengono la stessa sezione; fai clic sulle frecce per andarci. Alt+Sinistra / Alt+Destra funzionano sempre dentro una sezione, con o senza l'indicatore.",
   "toast.boot.failedToSave.occurrenceHint": () => "Impossibile salvare la preferenza dell'indicatore delle occorrenze",
+  "peek.settings.callShortcut.label": () =>
+    "Scorciatoia: note della riunione in corso (funziona da qualsiasi app)",
+  "commandPalette.peekCall": () =>
+    "Peek: note della riunione in corso (o una nuova sezione di chiamata)",
+  "call.adhocTitle": ({ time }) => `'Chiamata ${time}`,
   "peek.settings.title": () =>
     "Peek (note compatte durante una chiamata)",
   "peek.settings.enabled.label": () =>

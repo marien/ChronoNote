@@ -196,6 +196,10 @@ export function readAgendaRemovedForDate(date: string): Promise<string[]> {
   return invoke("read_agenda_removed_for_date", { date });
 }
 
+export function readAgendaEntriesForDate(date: string): Promise<[string, string, string][]> {
+  return invoke("read_agenda_entries_for_date", { date });
+}
+
 export function readAgendaForDate(date: string): Promise<string[]> {
   return invoke("read_agenda_for_date", { date });
 }

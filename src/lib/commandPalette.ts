@@ -46,6 +46,7 @@ import {
 import { openActionDrawer } from "./actions";
 import { openMeetingHistory } from "./history";
 import { peekSettings, togglePeek } from "./peek";
+import { noteCall } from "./callNote";
 import { openCrossTabSearch } from "./search";
 import { canSyncCalendarForActiveTab, syncCalendarFromFile } from "./calendarSyncActions";
 import { openAbout, openGlyphLegend, openSettings, openShortcutsHelp } from "./menu";
@@ -277,6 +278,13 @@ function commandItems(): PaletteItem[] {
             hint: formatShortcut("togglePeekMode"),
             group: "Commands" as const,
             run: () => togglePeek(),
+          },
+          {
+            id: "cmd-peek-call",
+            label: translate("commandPalette.peekCall", undefined),
+            hint: get(peekSettings).callShortcut,
+            group: "Commands" as const,
+            run: () => void noteCall(),
           },
         ]
       : []),

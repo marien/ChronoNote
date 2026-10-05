@@ -536,6 +536,7 @@ pub fn run() {
             import_notes_bundle,
             path_exists,
             agenda::read_agenda_for_date,
+            agenda::read_agenda_entries_for_date,
             agenda::read_agenda_removed_for_date,
             agenda::read_agenda_after,
             agenda::read_agenda_dates,

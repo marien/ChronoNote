@@ -258,6 +258,7 @@
 
     const unwireViewport = wireMobileViewport();
     const unwirePeek = controller.wirePeek();
+    const unwireCallNote = controller.wireCallNote();
     const unwireOccurrenceHint = controller.wireOccurrenceHint();
 
     // §v0.12.2: Full-screen Drag and Drop file import (Area 4)
@@ -335,6 +336,7 @@
     return () => {
       unwireViewport();
       unwireOccurrenceHint();
+      unwireCallNote();
       backNav.destroy();
       window.removeEventListener("keydown", onKeydown);
       window.removeEventListener("keydown", noteEscapeStart, true);

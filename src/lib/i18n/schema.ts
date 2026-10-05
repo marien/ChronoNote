@@ -157,6 +157,9 @@ export type TranslationParams = {
   "peek.expand": undefined;
   "peek.prev": undefined;
   "peek.next": undefined;
+  "peek.settings.callShortcut.label": undefined;
+  "commandPalette.peekCall": undefined;
+  "call.adhocTitle": { time: string };
   "peek.settings.title": undefined;
   "occurrence.settings.title": undefined;
   "occurrence.settings.hint.label": undefined;

@@ -62,6 +62,27 @@ export function activeTitlesForDate(meetings: AgendaMeeting[], date: string): st
     .map((m) => m.title);
 }
 
+/** The day's live meetings with their times, `[start, end, title]`, sorted and de-duplicated like `activeTitlesForDate`
+ * (mirrors `agenda.rs`'s `entries_for_date`): for Peek's "notes for the meeting that is on now" shortcut. */
+export function activeEntriesForDate(meetings: AgendaMeeting[], date: string): [string, string, string][] {
+  const day = meetings
+    .filter((m) => m.date === date)
+    .flatMap((m) => {
+      const c = typeof m.title === "string" ? classifyTitle(m.title) : null;
+      return c && !c.removed ? [{ start: m.start, end: m.end, title: c.title }] : [];
+    });
+  day.sort((a, b) => a.start.localeCompare(b.start) || a.end.localeCompare(b.end) || a.title.localeCompare(b.title));
+  const seen = new Set<string>();
+  return day
+    .filter((m) => {
+      const key = `${m.start}|${m.end}|${m.title}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    })
+    .map((m): [string, string, string] => [m.start, m.end, m.title]);
+}
+
 /** The real titles of the day's removed meetings, sorted and de-duplicated. */
 export function removedTitlesForDate(meetings: AgendaMeeting[], date: string): string[] {
   const out = meetings

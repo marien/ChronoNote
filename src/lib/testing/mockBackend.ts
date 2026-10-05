@@ -29,7 +29,7 @@
  *   - the session file lives *inside* the notes dir and is never returned
  *     by `list_note_files` / `read_all_notes`.
  */
-import { activeAgendaDates, activeTitlesAfterDate, activeTitlesForDate, removedTitlesForDate as removedTitlesForDateShared } from "../agendaTitles";
+import { activeAgendaDates, activeEntriesForDate, activeTitlesAfterDate, activeTitlesForDate, removedTitlesForDate as removedTitlesForDateShared } from "../agendaTitles";
 import type { AppConfig, AppError, ColorMode, FileMetadata, LanguageMode, PeekConfig, StartupTabMode, TabSession, ThemeMode } from "../types";
 import { PEEK_DEFAULTS, clampPeek } from "../peekDefaults";
 import type { ToastOptions } from "../stores";
@@ -268,6 +268,8 @@ export class MockBackend {
   updateCheck: "none" | "available";
   updateCheckVersion: string;
   agendaJson: string | undefined;
+  /** Global shortcuts the app has registered and not unregistered (test-only). */
+  globalShortcuts: string[] = [];
   scratchpadDrafts: Record<string, string> = {};
   oneDriveAdvancedConfig: OneDriveAdvancedConfig = {};
   /** note name -> the cloud's version, for `onedrive_get_conflicts`. */
@@ -738,6 +740,7 @@ export class MockBackend {
 
     read_agenda_for_date: ({ date }) => titlesForDate(this.agendaJson, date),
     read_agenda_removed_for_date: ({ date }) => removedTitlesForDate(this.agendaJson, date),
+    read_agenda_entries_for_date: ({ date }) => activeEntriesForDate(parseAgendaMeetings(this.agendaJson), date),
 
     read_agenda_after: ({ afterDate }) => titlesAfterDate(this.agendaJson, afterDate),
 
@@ -928,7 +931,13 @@ export class MockBackend {
         return null;
 
       default:
-        if (cmd.startsWith("plugin:global-shortcut|")) return null;
+        if (cmd.startsWith("plugin:global-shortcut|")) {
+          // Test-only record of what is registered (the real shortcut cannot be pressed in a browser).
+          const keys = ([] as unknown[]).concat(args.shortcuts ?? args.shortcut ?? []).filter((x): x is string => typeof x === "string");
+          if (cmd.endsWith("|register")) for (const k of keys) if (!this.globalShortcuts.includes(k)) this.globalShortcuts.push(k);
+          if (cmd.endsWith("|unregister")) this.globalShortcuts = this.globalShortcuts.filter((x) => !keys.includes(x));
+          return null;
+        }
         if (cmd.startsWith("plugin:window|") || cmd.startsWith("plugin:webview|")) {
           return mockWindowCall(cmd);
         }

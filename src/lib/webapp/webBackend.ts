@@ -29,7 +29,7 @@
  * Location" section entirely when `backendKind` is `"web"`, so this
  * placeholder is never actually shown.
  */
-import { activeAgendaDates, activeTitlesAfterDate, activeTitlesForDate, removedTitlesForDate } from "../agendaTitles";
+import { activeAgendaDates, activeEntriesForDate, activeTitlesAfterDate, activeTitlesForDate, removedTitlesForDate } from "../agendaTitles";
 import type { AppConfig, AppError, ColorMode, FileMetadata, LanguageMode, PeekConfig, StartupTabMode, TabSession, ThemeMode } from "../types";
 import { PEEK_DEFAULTS, clampPeek } from "../peekDefaults";
 import type { CommandArgs, CommandReturn, TauriCommand, TauriCommands } from "../tauriCommands";
@@ -561,6 +561,23 @@ export class WebBackend {
           throw new Error("Invalid");
         }
         return activeTitlesForDate(meetings, date);
+      } catch {
+        throw { code: "agendaInvalid" } satisfies AppError;
+      }
+    },
+
+    // Peek's call note is desktop-only; the web app only implements the contract.
+    read_agenda_entries_for_date: async ({ date }) => {
+      const db = await this.db();
+      const store = await this.getActiveNotesStore();
+      const note = await idbGet<StoredNote>(db, store, ".agenda.json");
+      if (!note || !note.content.trim()) {
+        throw { code: "agendaInvalid" } satisfies AppError;
+      }
+      try {
+        const meetings: Array<{ date: string; start: string; end: string; title: string }> = JSON.parse(note.content.trim());
+        if (!Array.isArray(meetings) || meetings.length === 0) throw new Error("Invalid");
+        return activeEntriesForDate(meetings, date);
       } catch {
         throw { code: "agendaInvalid" } satisfies AppError;
       }

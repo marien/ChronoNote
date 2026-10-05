@@ -182,6 +182,11 @@ export const de = {
   "occurrence.settings.hint.hint": () =>
     "Standardmäßig aus. Zeigt < (2/5) > hinter dem Titel eines Abschnitts, wenn andere Notizen denselben Abschnitt haben; mit den Pfeilen springen Sie dorthin. Alt+Links / Alt+Rechts funktionieren in einem Abschnitt immer, mit oder ohne Hinweis.",
   "toast.boot.failedToSave.occurrenceHint": () => "Speichern der Vorkommen-Einstellung fehlgeschlagen",
+  "peek.settings.callShortcut.label": () =>
+    "Tastenkürzel: Notizen zur laufenden Besprechung (funktioniert in jeder App)",
+  "commandPalette.peekCall": () =>
+    "Peek: Notizen zur laufenden Besprechung (oder ein neuer Anrufabschnitt)",
+  "call.adhocTitle": ({ time }) => `'Anruf ${time}`,
   "peek.settings.title": () =>
     "Peek (kompakte Notizen im Gespräch)",
   "peek.settings.enabled.label": () =>

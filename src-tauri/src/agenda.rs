@@ -127,6 +127,20 @@ fn titles_for_date(meetings: Vec<AgendaMeeting>, date: &str) -> Vec<String> {
     day.into_iter().map(|(_, _, title)| title).collect()
 }
 
+/// The day's real meetings WITH their times, for Peek's "notes for the meeting that is on now" shortcut:
+/// `(start, end, title)`, `HH:mm` local wall-clock times, removed meetings dropped, sorted and de-duplicated exactly
+/// like `titles_for_date`.
+fn entries_for_date(meetings: Vec<AgendaMeeting>, date: &str) -> Vec<(String, String, String)> {
+    let mut day: Vec<(String, String, String)> = meetings
+        .into_iter()
+        .filter(|m| m.date == date)
+        .filter_map(|m| classify_title(&m.title).filter(|c| !c.removed).map(|c| (m.start, m.end, c.title)))
+        .collect();
+    day.sort();
+    day.dedup();
+    day
+}
+
 /// #78: the real titles of the day's *removed* meetings (cancelled, declined, forwarded), sorted and
 /// de-duplicated. The sync review treats a section with one of these titles as a meeting that is gone.
 fn removed_titles_for_date(meetings: Vec<AgendaMeeting>, date: &str) -> Vec<String> {
@@ -150,6 +164,18 @@ pub fn read_agenda_for_date(app: tauri::AppHandle, date: String) -> Result<Vec<S
     let raw = std::fs::read_to_string(&path).unwrap_or_default();
     let meetings = parse_agenda(&raw).map_err(|_| AppError::AgendaInvalid)?;
     Ok(titles_for_date(meetings, &date))
+}
+
+#[tauri::command]
+pub fn read_agenda_entries_for_date(
+    app: tauri::AppHandle,
+    date: String,
+) -> Result<Vec<(String, String, String)>, AppError> {
+    let cfg = storage::load_config(&app)?;
+    let path = std::path::Path::new(&cfg.notes_dir).join(".agenda.json");
+    let raw = std::fs::read_to_string(&path).unwrap_or_default();
+    let meetings = parse_agenda(&raw).map_err(|_| AppError::AgendaInvalid)?;
+    Ok(entries_for_date(meetings, &date))
 }
 
 #[tauri::command]
@@ -238,6 +264,24 @@ mod tests {
 
     fn read(raw: &str, date: &str) -> Result<Vec<String>, ()> {
         parse_agenda(raw).map(|meetings| titles_for_date(meetings, date))
+    }
+
+    #[test]
+    fn entries_carry_their_times_and_skip_removed_meetings() {
+        let json = r#"[
+            {"date":"2026-09-14","start":"11:00","end":"11:30","title":"Design Review"},
+            {"date":"2026-09-14","start":"09:00","end":"09:30","title":"Standup"},
+            {"date":"2026-09-14","start":"10:00","end":"10:30","title":"Cancelled: Planning"},
+            {"date":"2026-09-15","start":"09:00","end":"09:30","title":"Tomorrow"}
+        ]"#;
+        let entries = parse_agenda(json).map(|m| entries_for_date(m, "2026-09-14")).unwrap();
+        assert_eq!(
+            entries,
+            vec![
+                ("09:00".to_string(), "09:30".to_string(), "Standup".to_string()),
+                ("11:00".to_string(), "11:30".to_string(), "Design Review".to_string()),
+            ]
+        );
     }
 
     #[test]

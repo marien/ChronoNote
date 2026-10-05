@@ -13,6 +13,73 @@ export interface PeekGeometry {
   height: number;
 }
 
+/** One monitor's usable area (the screen minus the taskbar), in physical pixels. */
+export interface MonitorArea {
+  work: PeekGeometry;
+  /** The monitor the app window is on now. */
+  current: boolean;
+}
+
+/** At least this share of the window's own area has to be on a monitor for a remembered position to count as still
+ * usable (a laptop that has left its docking station takes the second screen with it). */
+const MIN_VISIBLE_SHARE = 0.4;
+
+const overlap = (a: PeekGeometry, b: PeekGeometry): number => {
+  const w = Math.min(a.x + a.width, b.x + b.width) - Math.max(a.x, b.x);
+  const h = Math.min(a.y + a.height, b.y + b.height) - Math.max(a.y, b.y);
+  return w > 0 && h > 0 ? w * h : 0;
+};
+
+const clamp = (n: number, lo: number, hi: number) => Math.max(lo, Math.min(n, Math.max(lo, hi)));
+
+/** `g` moved fully inside `work` (and shrunk if it is bigger than it). */
+function insideWork(g: PeekGeometry, work: PeekGeometry): PeekGeometry {
+  const width = Math.min(g.width, work.width);
+  const height = Math.min(g.height, work.height);
+  return {
+    x: clamp(g.x, work.x, work.x + work.width - width),
+    y: clamp(g.y, work.y, work.y + work.height - height),
+    width,
+    height,
+  };
+}
+
+/** A remembered window position, made safe for the monitors there are NOW: kept (nudged fully inside that monitor's
+ * work area) when enough of it is on a monitor, `null` when it is not (its monitor is gone, or the layout changed). */
+export function fitToMonitors(g: PeekGeometry, monitors: MonitorArea[]): PeekGeometry | null {
+  let best: MonitorArea | null = null;
+  let bestOverlap = 0;
+  for (const m of monitors) {
+    const o = overlap(g, m.work);
+    if (o > bestOverlap) {
+      best = m;
+      bestOverlap = o;
+    }
+  }
+  if (!best || bestOverlap < g.width * g.height * MIN_VISIBLE_SHARE) return null;
+  return insideWork(g, best.work);
+}
+
+/** Where Peek opens when there is no usable remembered position: centred horizontally on the current monitor, just above
+ * the taskbar (the bottom of the work area), `margin` pixels clear of it. */
+export function defaultPeekGeometry(
+  size: { width: number; height: number },
+  monitors: MonitorArea[],
+  margin: number,
+): PeekGeometry | null {
+  const mon = monitors.find((m) => m.current) ?? monitors[0];
+  if (!mon) return null;
+  const { work } = mon;
+  const width = Math.min(size.width, work.width);
+  const height = Math.min(size.height, work.height);
+  return {
+    x: work.x + Math.round((work.width - width) / 2),
+    y: Math.max(work.y, work.y + work.height - height - margin),
+    width,
+    height,
+  };
+}
+
 /** The bits of Tauri's window this needs (fakes in the unit test). */
 export interface PeekWin {
   outerPosition(): Promise<{ x: number; y: number }>;
@@ -20,8 +87,9 @@ export interface PeekWin {
    * remember and restore a size made the window grow a little on every Peek round trip. */
   size(): Promise<{ width: number; height: number }>;
   scaleFactor(): Promise<number>;
-  /** The monitor the window is on, in physical pixels. */
-  monitor(): Promise<PeekGeometry | null>;
+  /** Every monitor's work area (the screen minus the taskbar), physical pixels, and which one the window is on. Empty
+   * when unknown. */
+  monitors(): Promise<MonitorArea[]>;
   isMaximized(): Promise<boolean>;
   setMaximized(on: boolean): Promise<void>;
   setMinSize(logicalWidth: number, logicalHeight: number): Promise<void>;
@@ -76,16 +144,25 @@ export function createPeekWindowController(win: PeekWin) {
         await win.setMinSize(PEEK_MIN_LOGICAL.width, PEEK_MIN_LOGICAL.height);
         const scale = (await win.scaleFactor()) || 1;
         const h = Math.round(o.logicalHeight * scale);
-        let g: PeekGeometry;
+        const monitors = await win.monitors();
+        // The remembered position if it is still on a screen; else the lower centre of the current monitor, just above
+        // the taskbar.
+        let g: PeekGeometry | null = null;
         if (o.geometry) {
-          g = { ...o.geometry, height: o.forceHeight ? h : o.geometry.height };
-        } else {
-          const mon = await win.monitor();
-          const w = Math.round(o.logicalWidth * scale);
-          const margin = Math.round(24 * scale);
-          g = mon
-            ? { x: mon.x + mon.width - w - margin, y: mon.y + Math.round(60 * scale), width: w, height: h }
-            : { x: full.geometry.x, y: full.geometry.y, width: w, height: h };
+          const wanted = { ...o.geometry, height: o.forceHeight ? h : o.geometry.height };
+          g = monitors.length > 0 ? fitToMonitors(wanted, monitors) : wanted;
+        }
+        if (!g) {
+          const size = {
+            width: o.geometry?.width ?? Math.round(o.logicalWidth * scale),
+            height: o.forceHeight ? h : (o.geometry?.height ?? h),
+          };
+          g =
+            defaultPeekGeometry(size, monitors, Math.round(12 * scale)) ?? {
+              x: full.geometry.x,
+              y: full.geometry.y,
+              ...size,
+            };
         }
         await win.setBounds(g);
         await win.setAlwaysOnTop(o.alwaysOnTop);
@@ -103,7 +180,12 @@ export function createPeekWindowController(win: PeekWin) {
         await win.setAlwaysOnTop(false);
         await win.setTransparent(false);
         await win.setMinSize(FULL_MIN_LOGICAL.width, FULL_MIN_LOGICAL.height);
-        await win.setBounds(back.geometry);
+        // The screen the full window was on may be gone (a laptop undocked during the call): bring it back onto one.
+        const monitors = await win.monitors();
+        // Exactly where it was if enough of it is still on a screen; else onto the current one.
+        const onScreen = monitors.length === 0 || fitToMonitors(back.geometry, monitors) !== null;
+        const home = onScreen ? back.geometry : (defaultPeekGeometry(back.geometry, monitors, 0) ?? back.geometry);
+        await win.setBounds(home);
         if (back.maximized) await win.setMaximized(true);
         await win.reveal();
         return compact;
@@ -134,7 +216,7 @@ export function createPeekWindowController(win: PeekWin) {
 
 /** The real thing, on the desktop app. */
 export async function nativePeekWindow(): Promise<PeekWin> {
-  const { getCurrentWindow, LogicalSize, PhysicalPosition, PhysicalSize, currentMonitor } = await import(
+  const { getCurrentWindow, LogicalSize, PhysicalPosition, PhysicalSize, availableMonitors, currentMonitor } = await import(
     "@tauri-apps/api/window"
   );
   const { invoke } = await import("@tauri-apps/api/core");
@@ -143,9 +225,12 @@ export async function nativePeekWindow(): Promise<PeekWin> {
     outerPosition: () => w.outerPosition(),
     size: () => w.innerSize(),
     scaleFactor: () => w.scaleFactor(),
-    monitor: async () => {
-      const m = await currentMonitor();
-      return m ? { x: m.position.x, y: m.position.y, width: m.size.width, height: m.size.height } : null;
+    monitors: async () => {
+      const [all, now] = await Promise.all([availableMonitors(), currentMonitor()]);
+      return all.map((m) => ({
+        work: { x: m.workArea.position.x, y: m.workArea.position.y, width: m.workArea.size.width, height: m.workArea.size.height },
+        current: !!now && now.position.x === m.position.x && now.position.y === m.position.y,
+      }));
     },
     isMaximized: () => w.isMaximized(),
     setMaximized: (on) => (on ? w.maximize() : w.unmaximize()),

@@ -181,6 +181,11 @@ export const fr = {
   "occurrence.settings.hint.hint": () =>
     "Désactivé par défaut. Affiche < (2/5) > après le titre d'une section lorsque d'autres notes contiennent la même section ; cliquez sur les flèches pour y aller. Alt+Gauche / Alt+Droite fonctionnent toujours dans une section, avec ou sans l'indicateur.",
   "toast.boot.failedToSave.occurrenceHint": () => "Échec de l'enregistrement de l'indicateur d'occurrences",
+  "peek.settings.callShortcut.label": () =>
+    "Raccourci : notes de la réunion en cours (fonctionne depuis n'importe quelle application)",
+  "commandPalette.peekCall": () =>
+    "Peek : notes de la réunion en cours (ou une nouvelle section d'appel)",
+  "call.adhocTitle": ({ time }) => `'Appel ${time}`,
   "peek.settings.title": () =>
     "Peek (notes compactes pendant un appel)",
   "peek.settings.enabled.label": () =>

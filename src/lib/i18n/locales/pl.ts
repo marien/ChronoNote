@@ -181,6 +181,11 @@ export const pl = {
   "occurrence.settings.hint.hint": () =>
     "Domyślnie wyłączone. Pokazuje < (2/5) > po tytule sekcji, gdy ta sama sekcja jest w innych notatkach; kliknij strzałki, aby tam przejść. Alt+Strzałka w lewo / Alt+Strzałka w prawo działają w sekcji zawsze, ze wskaźnikiem lub bez niego.",
   "toast.boot.failedToSave.occurrenceHint": () => "Nie udało się zapisać ustawienia wskaźnika wystąpień",
+  "peek.settings.callShortcut.label": () =>
+    "Skrót: notatki do trwającego spotkania (działa z każdej aplikacji)",
+  "commandPalette.peekCall": () =>
+    "Peek: notatki do trwającego spotkania (lub nowa sekcja rozmowy)",
+  "call.adhocTitle": ({ time }) => `'Rozmowa ${time}`,
   "peek.settings.title": () =>
     "Peek (kompaktowe notatki podczas rozmowy)",
   "peek.settings.enabled.label": () =>

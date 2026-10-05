@@ -534,6 +534,15 @@
                 on:change={(e) => peekSettings.update((s) => ({ ...s, shortcut: e.currentTarget.value.trim() }))}
               />
             </SettingRow>
+            <SettingRow label={$t("peek.settings.callShortcut.label")}>
+              <input
+                type="text"
+                class="find-input s-input"
+                value={$peekSettings.callShortcut}
+                aria-label={$t("peek.settings.callShortcut.label")}
+                on:change={(e) => peekSettings.update((s) => ({ ...s, callShortcut: e.currentTarget.value.trim() }))}
+              />
+            </SettingRow>
             {/if}
           </section>
         {/if}

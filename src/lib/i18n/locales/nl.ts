@@ -179,6 +179,11 @@ export const nl = {
   "occurrence.settings.hint.hint": () =>
     "Standaard uit. Toont < (2/5) > na de titel van een sectie als andere notities dezelfde sectie hebben; klik op de pijltjes om erheen te gaan. Alt+Links / Alt+Rechts werken altijd in een sectie, met of zonder hint.",
   "toast.boot.failedToSave.occurrenceHint": () => "Opslaan van de voorkomens-hint mislukt",
+  "peek.settings.callShortcut.label": () =>
+    "Sneltoets: notities voor de vergadering die nu bezig is (werkt vanuit elke app)",
+  "commandPalette.peekCall": () =>
+    "Peek: notities voor de vergadering die nu bezig is (of een nieuwe gespreksectie)",
+  "call.adhocTitle": ({ time }) => `'Gesprek ${time}`,
   "peek.settings.title": () =>
     "Peek (compacte notities tijdens een gesprek)",
   "peek.settings.enabled.label": () =>

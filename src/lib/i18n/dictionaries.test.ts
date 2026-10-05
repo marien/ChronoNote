@@ -17,6 +17,7 @@ const SAMPLE_PARAMS: Partial<Record<TranslationKey, unknown>> = {
   "settings.data.noteCountInFile": { count: 3 },
   "shortcuts.modal.consequenceAction": { shortcutHint: "Ctrl+1-4" },
   "actionDrawer.counter": { open: 3, listed: 7 },
+  "call.adhocTitle": { time: "09:30" },
   "actionDrawer.empty.noMatch": { filter: "meeting" },
   "actionDrawer.item.lineTag": { line: 5 },
   "history.modal.titlePrefix": { header: "Weekly Sync" },

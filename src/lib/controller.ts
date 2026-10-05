@@ -48,3 +48,4 @@ export * from "./exportImport";
 export * from "./windowChrome";
 export * from "./peek";
 export * from "./occurrences";
+export * from "./callNote";

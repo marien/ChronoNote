@@ -89,6 +89,8 @@ export interface TauriCommands {
   read_agenda_for_date: { args: { date: string }; returns: string[] };
   /** #78: the real titles of that day's cancelled/declined/forwarded meetings. */
   read_agenda_removed_for_date: { args: { date: string }; returns: string[] };
+  /** `[start, end, title]` of the day's live meetings (HH:mm local times), sorted: which meeting is on now. */
+  read_agenda_entries_for_date: { args: { date: string }; returns: [string, string, string][] };
   /** #66: every `(date, title)` pair after `afterDate` — used to find the
    * next occurrence of a recurring meeting when "copy to next occurrence"
    * has calendar sync leading the search. See

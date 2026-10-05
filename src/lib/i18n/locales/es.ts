@@ -178,6 +178,11 @@ export const es = {
   "occurrence.settings.hint.hint": () =>
     "Desactivado por defecto. Muestra < (2/5) > tras el título de una sección cuando otras notas tienen la misma sección; haga clic en las flechas para ir a ella. Alt+Izquierda / Alt+Derecha funcionan siempre dentro de una sección, con o sin la indicación.",
   "toast.boot.failedToSave.occurrenceHint": () => "Error al guardar la preferencia de la indicación de apariciones",
+  "peek.settings.callShortcut.label": () =>
+    "Atajo: notas de la reunión en curso (funciona desde cualquier aplicación)",
+  "commandPalette.peekCall": () =>
+    "Peek: notas de la reunión en curso (o una nueva sección de llamada)",
+  "call.adhocTitle": ({ time }) => `'Llamada ${time}`,
   "peek.settings.title": () =>
     "Peek (notas compactas durante una llamada)",
   "peek.settings.enabled.label": () =>

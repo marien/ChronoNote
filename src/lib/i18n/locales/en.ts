@@ -175,6 +175,11 @@ export const en = {
   "occurrence.settings.hint.hint": () =>
     "Off by default. Shows < (2/5) > after a section's title when other notes have the same section; click the arrows to go there. Alt+Left / Alt+Right always work in a section, with or without the hint.",
   "toast.boot.failedToSave.occurrenceHint": () => "Failed to save occurrence hint preference",
+  "peek.settings.callShortcut.label": () =>
+    "Shortcut: notes for the meeting that is on now (works from any app)",
+  "commandPalette.peekCall": () =>
+    "Peek: notes for the meeting that is on now (or a new call section)",
+  "call.adhocTitle": ({ time }) => `'Call ${time}`,
   "peek.settings.title": () =>
     "Peek (compact notes during a call)",
   "peek.settings.enabled.label": () =>

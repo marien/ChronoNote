@@ -115,6 +115,9 @@ pub struct PeekConfig {
     /// field existed has none, which reads as 0.
     #[serde(default)]
     pub defaults_version: u32,
+    /// Global shortcut that opens Peek on the meeting that is on now (or a new ad-hoc call section). No function key
+    /// (they need Fn on a laptop), and a letter AltGr does not produce on common layouts.
+    pub call_shortcut: String,
 }
 
 pub const PEEK_MAX_LINES: u32 = 15;
@@ -134,6 +137,7 @@ impl Default for PeekConfig {
             geometry: None,
             use_lines_height: false,
             defaults_version: PEEK_DEFAULTS_VERSION,
+            call_shortcut: "CommandOrControl+Alt+J".to_string(),
         }
     }
 }
@@ -1350,6 +1354,7 @@ mod tests {
             geometry: Some(PeekGeometry { x: -20, y: 471, width: 523, height: 113 }),
             use_lines_height: true,
             defaults_version: PEEK_DEFAULTS_VERSION,
+            call_shortcut: "Ctrl+Alt+K".to_string(),
         };
         save_config_at(&path, &AppConfig { peek: peek.clone(), ..base }).unwrap();
         let on_disk = fs::read_to_string(&path).unwrap();
