@@ -1,1 +1,0 @@
-import{d as e,f as t,l as n,p as r,s as i}from"./window-DLYPiPJY.js";export{e as LogicalSize,t as PhysicalPosition,r as PhysicalSize,i as currentMonitor,n as getCurrentWindow};
