@@ -109,7 +109,7 @@ with the arrows to click; it is hidden while the caret is on the title line.
 A compact, see-through note window for taking notes during a call, so you can keep
 seeing the people you are talking to. It is **off by default**: switch it on in
 Settings -> Appearance -> "Enable Peek (experimental)" (desktop app only). Then
-`Ctrl+F11` (`Cmd+F11` on a Mac, works from any app) shrinks ChronoNote to a small
+`Ctrl+Alt+Space` (`Cmd+Option+Space` on a Mac, works from any app) shrinks ChronoNote to a small
 always-on-top window showing only the section your cursor was in; `Alt+Left` /
 `Alt+Right` step to earlier / later occurrences of that section, and the same
 shortcut brings the full window back. It is the same window and editor, so

@@ -122,7 +122,11 @@ pub struct PeekConfig {
 
 pub const PEEK_MAX_LINES: u32 = 15;
 /// Bumped when Peek's defaults change; see `PeekConfig::migrated`.
-pub const PEEK_DEFAULTS_VERSION: u32 = 1;
+pub const PEEK_DEFAULTS_VERSION: u32 = 2;
+/// The shortcut Peek shipped with (v0.23): a function key, which needs Fn on a laptop.
+pub const PEEK_OLD_DEFAULT_SHORTCUT: &str = "CommandOrControl+F11";
+/// The default now: no function key, no letter that AltGr produces a character on.
+pub const PEEK_DEFAULT_SHORTCUT: &str = "CommandOrControl+Alt+Space";
 pub const PEEK_MIN_OPACITY: u32 = 20;
 
 impl Default for PeekConfig {
@@ -133,7 +137,7 @@ impl Default for PeekConfig {
             opacity: 80,
             always_on_top: true,
             header: PeekHeader::default(),
-            shortcut: "CommandOrControl+F11".to_string(),
+            shortcut: PEEK_DEFAULT_SHORTCUT.to_string(),
             geometry: None,
             use_lines_height: false,
             defaults_version: PEEK_DEFAULTS_VERSION,
@@ -148,15 +152,20 @@ impl PeekConfig {
     /// old ones would hide the change. Settings saved before the defaults were versioned get the new ones once; from
     /// then on the stored values are the user's own.
     pub fn migrated(mut self) -> Self {
-        if self.defaults_version < PEEK_DEFAULTS_VERSION {
+        // Each step runs once, for configs saved before it existed: version 0 -> 1 moved the header and opacity
+        // defaults, 1 -> 2 moved the shortcut off the function key. A value the user changed on purpose is kept.
+        if self.defaults_version < 1 {
             if self.header == PeekHeader::Never {
                 self.header = PeekHeader::Always;
             }
             if self.opacity == 70 {
                 self.opacity = 80;
             }
-            self.defaults_version = PEEK_DEFAULTS_VERSION;
         }
+        if self.defaults_version < 2 && self.shortcut == PEEK_OLD_DEFAULT_SHORTCUT {
+            self.shortcut = PEEK_DEFAULT_SHORTCUT.to_string();
+        }
+        self.defaults_version = PEEK_DEFAULTS_VERSION;
         self
     }
 
@@ -1423,6 +1432,46 @@ mod tests {
         let kept = load_config_at(&path, &dir.path().join("Notes")).unwrap();
         assert_eq!(kept.peek.header, PeekHeader::Never);
         assert_eq!(kept.peek.opacity, 70);
+    }
+
+    #[test]
+    fn the_peek_shortcut_default_moves_off_the_function_key_once_and_only_when_it_was_the_old_default() {
+        let dir = tempdir().unwrap();
+        let path = dir.path().join("config.json");
+        let notes = dir.path().join("Notes");
+
+        // v0.23: saved with the old default, defaults version 1 (header and opacity are the user's own now).
+        fs::write(
+            &path,
+            r#"{"notesDir": "/n", "peek": {"enabled": true, "header": "never", "opacity": 70, "shortcut": "CommandOrControl+F11", "defaultsVersion": 1}}"#,
+        )
+        .unwrap();
+        let cfg = load_config_at(&path, &notes).unwrap();
+        assert_eq!(cfg.peek.shortcut, "CommandOrControl+Alt+Space");
+        assert_eq!(cfg.peek.defaults_version, PEEK_DEFAULTS_VERSION);
+        // The version-1 choices are NOT redone: a deliberately hidden header / 70% stay.
+        assert_eq!(cfg.peek.header, PeekHeader::Never);
+        assert_eq!(cfg.peek.opacity, 70);
+
+        // A shortcut the user chose themselves is never replaced.
+        fs::write(
+            &path,
+            r#"{"notesDir": "/n", "peek": {"enabled": true, "shortcut": "Ctrl+Shift+Y", "defaultsVersion": 1}}"#,
+        )
+        .unwrap();
+        assert_eq!(load_config_at(&path, &notes).unwrap().peek.shortcut, "Ctrl+Shift+Y");
+
+        // Once on version 2, going back to the function key on purpose stays.
+        fs::write(
+            &path,
+            r#"{"notesDir": "/n", "peek": {"enabled": true, "shortcut": "CommandOrControl+F11", "defaultsVersion": 2}}"#,
+        )
+        .unwrap();
+        assert_eq!(load_config_at(&path, &notes).unwrap().peek.shortcut, "CommandOrControl+F11");
+
+        // And a fresh config has the new default and no function key.
+        assert_eq!(PeekConfig::default().shortcut, "CommandOrControl+Alt+Space");
+        assert!(!PeekConfig::default().shortcut.contains("F1"));
     }
 
     #[test]

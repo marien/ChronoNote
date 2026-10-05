@@ -119,7 +119,9 @@ test.describe("Peek notes for the meeting that is on now", () => {
   test("the global shortcut is registered while Peek is on (no function key), and gone when it is turned off", async ({ page }) => {
     await seed(page);
     await expect.poll(() => page.evaluate(() => window.__CHRONO_MOCK__!.globalShortcuts)).toContain("CommandOrControl+Alt+J");
-    expect(await page.evaluate(() => window.__CHRONO_MOCK__!.globalShortcuts.every((k) => !/F\d+$/.test(k) || k === "CommandOrControl+F11"))).toBe(true);
+    // Both Peek shortcuts avoid function keys (they need Fn on a laptop).
+    await expect.poll(() => page.evaluate(() => window.__CHRONO_MOCK__!.globalShortcuts)).toContain("CommandOrControl+Alt+Space");
+    expect(await page.evaluate(() => window.__CHRONO_MOCK__!.globalShortcuts.some((k) => /F\d+$/.test(k)))).toBe(false);
     await editor(page).click();
     await page.keyboard.press("ControlOrMeta+Comma");
     const settings = page.locator(".settings-modal-card");

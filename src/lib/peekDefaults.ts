@@ -12,10 +12,10 @@ export const PEEK_DEFAULTS: PeekConfig = {
   opacity: 80,
   alwaysOnTop: true,
   header: "always",
-  shortcut: "CommandOrControl+F11",
+  shortcut: "CommandOrControl+Alt+Space",
   geometry: null,
   useLinesHeight: false,
-  defaultsVersion: 1,
+  defaultsVersion: 2,
   callShortcut: "CommandOrControl+Alt+J",
 };
 
