@@ -938,6 +938,33 @@ describe("recordCopiedAction / handlePasteIntoTab (§64)", () => {
     vi.useRealTimers();
   });
 
+  it("does not defer when what is pasted is not what was copied in ChronoNote (copied elsewhere in between)", () => {
+    controller.tabs.set([
+      tab({ id: "src", filename: "2026-08-01.txt", content: "before\n# do the thing\nafter" }),
+      tab({ id: "today", filename: "2026-09-15.txt", content: "" }),
+    ]);
+    vi.setSystemTime(new Date(2026, 8, 15));
+    controller.recordCopiedAction("# do the thing", "src");
+    controller.handlePasteIntoTab("today", "something copied in another application");
+    expect(get(controller.tabs).find((t) => t.id === "src")!.content).toBe("before\n# do the thing\nafter");
+    // ... and the stale copy is gone: pasting the real text later does not defer either
+    controller.handlePasteIntoTab("today", "# do the thing");
+    expect(get(controller.tabs).find((t) => t.id === "src")!.content).toBe("before\n# do the thing\nafter");
+    vi.useRealTimers();
+  });
+
+  it("still defers when the pasted text is the copied text (other line endings, trailing newline)", () => {
+    controller.tabs.set([
+      tab({ id: "src", filename: "2026-08-01.txt", content: "# first\nplain\n# second" }),
+      tab({ id: "today", filename: "2026-09-15.txt", content: "" }),
+    ]);
+    vi.setSystemTime(new Date(2026, 8, 15));
+    controller.recordCopiedAction("# first\nplain\n# second", "src");
+    controller.handlePasteIntoTab("today", "# first\r\nplain\r\n# second\r\n");
+    expect(get(controller.tabs).find((t) => t.id === "src")!.content).toBe("> first\nplain\n> second");
+    vi.useRealTimers();
+  });
+
   it("defers every open action in a multi-line copy, not just the first (§64)", () => {
     controller.tabs.set([
       tab({ id: "src", filename: "2026-08-01.txt", content: "# first\nplain\n# second" }),

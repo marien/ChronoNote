@@ -43,6 +43,40 @@ test.describe("copy/paste deferral", () => {
     await expect.poll(() => mockNote(page, "2026-09-03.txt")).not.toContain("# call the vendor back");
   });
 
+  test("pasting something copied in ANOTHER application does not defer what was copied in ChronoNote earlier", async ({ page }) => {
+    await seedApp(page, {
+      seed: {
+        notes: {
+          "2026-09-07.txt": "Top priorities\n==============\n",
+          "2026-09-03.txt": "Daily Standup\n=============\n# call the vendor back\n- other stuff",
+        },
+        session: { openTabs: ["2026-09-03.txt", "2026-09-07.txt"], activeTab: "2026-09-03.txt" },
+      },
+    });
+    await editor(page).click();
+    await page.keyboard.press("ControlOrMeta+Home");
+    for (let i = 0; i < 2; i++) await page.keyboard.press("ArrowDown");
+    await page.keyboard.press("Home");
+    await page.keyboard.press("Shift+End");
+    await page.keyboard.press("ControlOrMeta+C");
+
+    // (the line was pasted into another application, and something else copied there)
+    await tab(page, "2026-09-07.txt").click();
+    await editor(page).click();
+    await page.keyboard.press("ControlOrMeta+End");
+    await page.evaluate(() => {
+      const data = new DataTransfer();
+      data.setData("text/plain", "text from another application");
+      document
+        .querySelector(".cm-content")!
+        .dispatchEvent(new ClipboardEvent("paste", { clipboardData: data, bubbles: true, cancelable: true }));
+    });
+    await expect.poll(() => mockNote(page, "2026-09-07.txt")).toContain("text from another application");
+    await page.waitForTimeout(500);
+    expect(await mockNote(page, "2026-09-03.txt")).toContain("# call the vendor back");
+    expect(await mockNote(page, "2026-09-03.txt")).not.toContain("> call the vendor back");
+  });
+
   test("pasting a copied open agenda item ('o ') into today defers the original too (', '), along with an open action in the same block", async ({
     page,
   }) => {

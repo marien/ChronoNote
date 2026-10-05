@@ -9764,3 +9764,11 @@ Marien, after abandoning the idea of Peek reacting to Teams calls by itself (wat
 - **Two empty lines out of Peek's window:** the `PEEK_MIN_GAP_LINES` empty lines before the next section are no longer drawn and the caret cannot enter them (`visibleLastLine`; the hidden-range decoration, edit span and selection clamp use it; the whole last section of a note and the first body line are always visible). Enter at the end of the last filled line opens a new line to type on; Delete there cannot pull the gap in. Peek's own top-up of the gap is allowed through the edit guard (newline-only insertions in the hidden part, `SectionSpan.sectionTo`), and the undo guard counts the whole section as inside.
 - **Noted, not built:** the second laptop's updater blocks are Smart App Control wanting an officially signed installer (Marien's finding). Authenticode signing is recorded as a future improvement, not to be worked on now.
 - Tests: Rust +6 (zone conversion: DST, date shift, midnight, other zones, invalid), Vitest +7, Playwright +1 (554 + 1; `mobile-ergonomics` History flake passes alone).
+
+## 282. Copy/paste deferral: a stale copy no longer defers the original
+
+**Status: implemented, not yet released.**
+
+- **Bug (found by Marien):** copy an open action in ChronoNote, paste it in another application, copy something else there and paste THAT into a later ChronoNote tab: the action first copied was marked deferred (`>`) in its source, although it was never pasted into ChronoNote. Cause: `handlePasteIntoTab` trusted the remembered copy (`lastCopiedAction`) for the next paste in ChronoNote whatever was pasted.
+- **Fix:** the paste handler passes the clipboard's text (`event.clipboardData`) to `handlePasteIntoTab(tabId, pastedText)`; the remembered copy only counts when that text equals what was copied (line endings and trailing whitespace ignored). A different paste also forgets the stale copy. Without clipboard data on the event the old rule applies.
+- Tests: Vitest +2 (751), Playwright +1 reproduced without the fix (556; the `tab-scroll-arrows` test flaked once under load, passes alone 3/3), no Rust change.

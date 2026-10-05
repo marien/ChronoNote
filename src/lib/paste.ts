@@ -128,10 +128,17 @@ export function onEditorRedo(activeTabId: string, before: string, after: string)
   }
 }
 
-export function handlePasteIntoTab(targetTabId: string) {
+/** Line endings and trailing whitespace differ between apps; the text itself must not. */
+const normalizeClipboardText = (text: string) => text.split(String.fromCharCode(13)).join("").trimEnd();
+
+/** `pastedText`: what is being pasted (the clipboard's text), when known. The remembered copy only counts when that IS
+ * the text copied in ChronoNote: copy in ChronoNote, paste in another app, copy something else there and paste it
+ * here must not defer the original. Without it (no clipboard data on the event) the old rule applies. */
+export function handlePasteIntoTab(targetTabId: string, pastedText?: string) {
   if (!lastCopiedAction) return;
   const copied = lastCopiedAction;
   lastCopiedAction = null;
+  if (pastedText !== undefined && normalizeClipboardText(pastedText) !== normalizeClipboardText(copied.text)) return;
 
   const todayFilename = todayISO() + ".txt";
   const targetTab = get(tabs).find((t) => t.id === targetTabId);

@@ -677,8 +677,8 @@
           const sel = v.state.sliceDoc(v.state.selection.main.from, v.state.selection.main.to);
           controller.recordCopiedAction(sel, controller.getActiveTabId());
         },
-        paste: () => {
-          controller.handlePasteIntoTab(controller.getActiveTabId());
+        paste: (event) => {
+          controller.handlePasteIntoTab(controller.getActiveTabId(), event.clipboardData?.getData("text/plain"));
         },
       }),
     ];
