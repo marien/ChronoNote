@@ -194,7 +194,9 @@ export const es = {
   "peek.settings.lines.fit": () =>
     "Ajustar a toda la sección",
   "peek.settings.opacity.label": () =>
-    "Opacidad del fondo",
+    "Opacidad del fondo (puntero fuera)",
+  "peek.settings.opacityHover.label": () =>
+    "Opacidad del fondo bajo el puntero",
   "peek.settings.alwaysOnTop.label": () =>
     "Mantener encima de otras ventanas",
   "peek.settings.header.label": () =>

@@ -4431,7 +4431,7 @@ body.peek-mode .cm-content {
   gap: 6px;
   padding: 0 6px;
   border-top: 2px solid var(--tab-active-border);
-  background: color-mix(in srgb, var(--surface-chrome) calc(var(--peek-opacity, 80) * 1%), transparent);
+  background: color-mix(in srgb, var(--surface-chrome) calc(var(--peek-bar-opacity, 85) * 1%), transparent);
   color: var(--text);
   font-size: 12px;
   text-shadow: 0 0 3px var(--bg), 0 0 6px var(--bg);

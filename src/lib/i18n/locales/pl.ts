@@ -197,7 +197,9 @@ export const pl = {
   "peek.settings.lines.fit": () =>
     "Dopasuj do całej sekcji",
   "peek.settings.opacity.label": () =>
-    "Krycie tła",
+    "Krycie tła (wskaźnik poza oknem)",
+  "peek.settings.opacityHover.label": () =>
+    "Krycie tła pod wskaźnikiem",
   "peek.settings.alwaysOnTop.label": () =>
     "Trzymaj nad innymi oknami",
   "peek.settings.header.label": () =>

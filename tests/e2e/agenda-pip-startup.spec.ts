@@ -1,5 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
-import { seedApp, editor, modalCard, MODAL_LABELS, todayFilename, activeTabLabel, mockNote } from "./helpers";
+import { seedApp, editor, modalCard, MODAL_LABELS, todayFilename, activeTabLabel, mockNote, tabLabels } from "./helpers";
 import { scenario } from "../../src/lib/testing/scenarios";
 
 /** PR #122: the agenda notification pip, ad-hoc calls, silent sync of an empty
@@ -139,5 +139,32 @@ test.describe("startup tab preference (Area 4)", () => {
     await expect(settings.getByRole("radio", { name: "Last note" })).toBeChecked();
     expect(await mockNote(page, PAST)).toBe("an older note\n"); // choosing a mode touches no note
     expect(await page.evaluate(() => (window as any).__CHRONO_MOCK__.startupTabMode)).toBe("smart_last_active");
+  });
+});
+
+test.describe("startup tab: Last note does not open an empty today (#125)", () => {
+  const PAST = "2026-09-01.txt";
+  const seed = (openTabs: string[]) => ({
+    ...scenario("empty"),
+    startupTabMode: "smart_last_active" as const,
+    notes: { [PAST]: "an older note\n" },
+    session: { openTabs, activeTab: PAST, lastOpenedDate: "2026-09-01" },
+  });
+
+  test("only the last note is open", async ({ page }) => {
+    await seedApp(page, { seed: seed([PAST]) });
+    await expect(activeTabLabel(page)).toContainText("2026-09-01");
+    expect(await tabLabels(page)).toEqual(["2026-09-01"]);
+  });
+
+  test("today's tab stays when it was already open last time", async ({ page }) => {
+    await seedApp(page, { seed: seed([PAST, TODAY_FILE]) });
+    await expect(activeTabLabel(page)).toContainText("2026-09-01");
+    expect(await tabLabels(page)).toContain(today);
+  });
+
+  test("the default mode still opens today", async ({ page }) => {
+    await seedApp(page, { seed: { ...seed([PAST]), startupTabMode: "today" as const } });
+    await expect(activeTabLabel(page)).toContainText(today);
   });
 });

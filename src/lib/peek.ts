@@ -30,7 +30,7 @@ import {
   showToast,
   tabs,
 } from "./stores";
-import { findSectionRange } from "./peekSection";
+import { exitCaretLine, findSectionRange } from "./peekSection";
 import { setShortcutEnabled } from "./shortcuts";
 import { getSectionHeaderForLine, normalizeHeaderTitle, titleForMatching } from "./tokens";
 
@@ -81,6 +81,8 @@ export const peekTarget = writable<string | null>(null);
 export const peekFitLines = writable(0);
 /** "On hover" header: true while the pointer is over the window and the thin strip has grown into the full header. */
 export const peekHeaderExpanded = writable(false);
+/** True while the pointer is over the Peek window: the background then uses `opacityHover` instead of `opacity`. */
+export const peekPointerOver = writable(false);
 /** Position of the shown occurrence among all occurrences of the section (1-based), for the header. */
 export const peekPosition = writable<{ index: number; total: number } | null>(null);
 
@@ -143,12 +145,14 @@ function tidyTabsAfterPeek(keepTabs: boolean): void {
   for (const id of opened) if (open.some((x) => x.id === id) && !edited(id)) closeTab(id);
 }
 
-export async function enterPeek(): Promise<boolean> {
+/** `section`: the (matching form of the) title of the section to show; without it Peek shows the section the caret is in. */
+export async function enterPeek(section?: string): Promise<boolean> {
   if (!desktop() || !get(peekSettings).enabled || get(peekMode)) return false;
   const tab = get(tabs).find((x) => x.id === get(activeTabId));
   if (!tab) return false;
   const cursor = editorApi ? editorApi.getCursorLineIdx() : 0;
-  const target = titleForMatching(normalizeHeaderTitle(getSectionHeaderForLine(tab.content.split("\n"), cursor)));
+  const target =
+    section ?? titleForMatching(normalizeHeaderTitle(getSectionHeaderForLine(tab.content.split("\n"), cursor)));
   if (!target) {
     showToast(get(t)("peek.toast.noSection", undefined));
     return false;
@@ -175,10 +179,35 @@ export async function enterPeek(): Promise<boolean> {
  * Used when a drawer or dialog opens: it works on the note you were looking at. */
 export function leavePeek(options: { keepTabs?: boolean } = {}): void {
   if (!get(peekMode)) return;
+  const target = get(peekTarget);
+  const shownTab = get(activeTabId);
+  const caret = editorApi ? editorApi.getCursorLineIdx() : null;
   peekMode.set(false);
   peekTarget.set(null);
   peekPosition.set(null);
   tidyTabsAfterPeek(options.keepTabs === true);
+  // The caret goes to the section Peek was showing (see `restoreCaretAfterPeek`). Not when a dialog opened Peek's end:
+  // the dialog has the focus.
+  pendingExit = null;
+  if (options.keepTabs === true || !target) return;
+  const tab = get(tabs).find((x) => x.id === get(activeTabId));
+  const line = tab ? exitCaretLine(tab.content.split("\n"), target, tab.id === shownTab, caret) : null;
+  if (tab && line !== null) pendingExit = { tabId: tab.id, line, exact: tab.id === shownTab && line === caret };
+}
+
+/** Where the caret goes once the window is back to full size (set by `leavePeek`). */
+let pendingExit: { tabId: string; line: number; exact: boolean } | null = null;
+
+/** Puts the caret in the section Peek was showing and scrolls it into view: the full-size editor still has the small
+ * window's scroll position, which can have the section off screen. */
+function restoreCaretAfterPeek(): void {
+  const exit = pendingExit;
+  pendingExit = null;
+  if (!exit || get(peekMode) || get(activeTabId) !== exit.tabId) return;
+  // The caret is already where it was in the section: leave it (and its column), only bring it into view.
+  if (exit.exact && editorApi?.scrollCaretIntoView) editorApi.scrollCaretIntoView();
+  else editorApi?.jumpToLine(exit.line);
+  editorApi?.focus();
 }
 
 /** Alt+Left (-1) / Alt+Right (+1): the previous / next note that has this section. */
@@ -233,8 +262,11 @@ export function wirePeek(): () => void {
           });
         } else {
           peekHeaderExpanded.set(false);
+          peekPointerOver.set(false);
           const compact = await win.leave();
           if (compact) peekSettings.update((x) => ({ ...x, geometry: compact, useLinesHeight: false }));
+          await tick();
+          restoreCaretAfterPeek();
         }
       })();
     }),
@@ -272,13 +304,19 @@ export function wirePeek(): () => void {
   let collapseTimer: ReturnType<typeof setTimeout> | undefined;
   const onPointerEnter = () => {
     clearTimeout(collapseTimer);
+    peekPointerOver.set(true);
     setHeaderExpanded(true);
   };
   const onPointerLeave = () => {
     clearTimeout(collapseTimer);
+    peekPointerOver.set(false);
     collapseTimer = setTimeout(() => setHeaderExpanded(false), COLLAPSE_DELAY_MS);
   };
-  const onPointerMove = () => clearTimeout(collapseTimer);
+  const onPointerMove = () => {
+    clearTimeout(collapseTimer);
+    // A window shown under a pointer that is already inside it gets no enter event until the pointer moves.
+    if (!get(peekPointerOver)) peekPointerOver.set(true);
+  };
   document.documentElement.addEventListener("mouseenter", onPointerEnter);
   document.documentElement.addEventListener("mouseleave", onPointerLeave);
   document.documentElement.addEventListener("mousemove", onPointerMove);

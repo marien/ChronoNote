@@ -147,7 +147,9 @@ export async function noteCall(now: Date = new Date()): Promise<boolean> {
     }
     const body = extractSectionBody(content.split("\n"), target);
     await jumpToFileLine({ tabId: tab.id, filename, lineIdx: body ? body.startLineIdx : 0 });
-    return await enterPeek();
+    // Peek is told which section to show. Reading it back from where the caret landed showed the NEXT meeting
+    // whenever a section had no empty line under its title (the first body line was the next title).
+    return await enterPeek(target);
   } finally {
     busy = false;
   }

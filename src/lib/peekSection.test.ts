@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { editAllowed, findSectionRange, sectionVisibleLineCount, type SectionSpan } from "./peekSection";
+import { editAllowed, exitCaretLine, findSectionRange, gapLinesNeeded, sectionVisibleLineCount, type SectionSpan } from "./peekSection";
 
 const note = [
   "Standup",
@@ -66,5 +66,40 @@ describe("editAllowed", () => {
   it("allows a new line right after the underline (a section with no body yet), but not other text there", () => {
     expect(editAllowed(span, 16, 16, "\n")).toBe(true);
     expect(editAllowed(span, 16, 16, "x")).toBe(false);
+  });
+});
+
+describe("gapLinesNeeded", () => {
+  const range = (lines: string[], t: string) => findSectionRange(lines, t)!;
+  it("is 0 when two empty lines already separate the next section", () => {
+    expect(gapLinesNeeded(note, range(note, "weekly sync"))).toBe(0);
+  });
+  it("asks for the missing lines when there is one or none", () => {
+    const one = ["A", "===", "text", "", "B", "===", "x"];
+    expect(gapLinesNeeded(one, range(one, "a"))).toBe(1);
+    const none = ["A", "===", "text", "B", "===", "x"];
+    // "text" directly followed by B: the section's last line is the text itself
+    expect(gapLinesNeeded(none, range(none, "a"))).toBe(2);
+  });
+  it("counts an empty section's own empty lines too", () => {
+    const empty = ["A", "===", "", "B", "===", "x"];
+    expect(gapLinesNeeded(empty, range(empty, "a"))).toBe(1);
+  });
+  it("asks for nothing at the end of the note", () => {
+    expect(gapLinesNeeded(note, range(note, "other"))).toBe(0);
+  });
+});
+
+describe("exitCaretLine", () => {
+  it("keeps the caret line when it is in the section of the same note", () => {
+    expect(exitCaretLine(note, "weekly sync", true, 7)).toBe(7);
+  });
+  it("goes to the first body line when the note changed or the caret is elsewhere", () => {
+    expect(exitCaretLine(note, "weekly sync", false, 7)).toBe(6);
+    expect(exitCaretLine(note, "weekly sync", true, 0)).toBe(6);
+    expect(exitCaretLine(note, "weekly sync", true, 11)).toBe(6);
+  });
+  it("is null when the note has no such section", () => {
+    expect(exitCaretLine(note, "nope", true, 1)).toBeNull();
   });
 });

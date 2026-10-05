@@ -191,7 +191,9 @@ export const en = {
   "peek.settings.lines.fit": () =>
     "Fit the whole section",
   "peek.settings.opacity.label": () =>
-    "Background opacity",
+    "Background opacity (pointer away)",
+  "peek.settings.opacityHover.label": () =>
+    "Background opacity under the pointer",
   "peek.settings.alwaysOnTop.label": () =>
     "Keep on top of other windows",
   "peek.settings.header.label": () =>

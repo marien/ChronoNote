@@ -102,8 +102,10 @@ pub struct PeekConfig {
     pub enabled: bool,
     /// Height in lines; 0 = fit the whole section.
     pub lines: u32,
-    /// Background opacity in percent (text is never translucent).
+    /// Background opacity in percent while the pointer is away (text is never translucent).
     pub opacity: u32,
+    /// Background opacity in percent while the pointer is over the window.
+    pub opacity_hover: u32,
     pub always_on_top: bool,
     pub header: PeekHeader,
     /// Global shortcut, Tauri accelerator syntax.
@@ -135,6 +137,7 @@ impl Default for PeekConfig {
             enabled: false,
             lines: 6,
             opacity: 80,
+            opacity_hover: 100,
             always_on_top: true,
             header: PeekHeader::default(),
             shortcut: PEEK_DEFAULT_SHORTCUT.to_string(),
@@ -173,6 +176,7 @@ impl PeekConfig {
     pub fn clamped(mut self) -> Self {
         self.lines = self.lines.min(PEEK_MAX_LINES);
         self.opacity = self.opacity.clamp(PEEK_MIN_OPACITY, 100);
+        self.opacity_hover = self.opacity_hover.clamp(PEEK_MIN_OPACITY, 100);
         self
     }
 }
@@ -1357,6 +1361,7 @@ mod tests {
             enabled: true,
             lines: 3,
             opacity: 40,
+            opacity_hover: 90,
             always_on_top: false,
             header: PeekHeader::Hover,
             shortcut: "Ctrl+Alt+P".to_string(),

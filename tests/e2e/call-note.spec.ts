@@ -42,6 +42,17 @@ test.describe("Peek notes for the meeting that is on now", () => {
     expect(text).not.toContain("prepare");
   });
 
+  test("an empty meeting section with no empty line under it still opens that meeting, not the next one", async ({ page }) => {
+    const tight = ["Standup", "=======", "Design review", "=============", "o slides"].join("\n");
+    await seed(page, {
+      notes: { [TODAY]: tight },
+      agendaJson: agenda(["08:30", "09:30", "Standup"], ["11:00", "12:00", "Design review"]),
+    });
+    await runFromPalette(page);
+    await expect(page.locator("#peek-bar")).toContainText("Standup");
+    expect(await editor(page).innerText()).not.toContain("slides");
+  });
+
   test("a meeting that starts in a few minutes counts", async ({ page }) => {
     await seed(page, { agendaJson: agenda(["09:05", "10:00", "Design review"]) });
     await runFromPalette(page);

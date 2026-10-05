@@ -20,6 +20,7 @@
     toastMessage,
     LONG_TOAST_CHARS,
     peekMode,
+    peekPointerOver,
     peekSettings,
   } from "./lib/controller";
   import { matchesShortcut } from "./lib/shortcuts";
@@ -388,7 +389,11 @@
   // Peek mode (compact note window): the body class swaps the layout and makes the background see-through.
   $: if (typeof document !== "undefined") {
     document.body.classList.toggle("peek-mode", $peekMode);
-    document.documentElement.style.setProperty("--peek-opacity", String($peekSettings.opacity));
+    // Under the pointer the background is (usually) more solid; the header strip is 5 points more solid than the
+    // background so it stays readable.
+    const peekOpacity = $peekPointerOver ? $peekSettings.opacityHover : $peekSettings.opacity;
+    document.documentElement.style.setProperty("--peek-opacity", String(peekOpacity));
+    document.documentElement.style.setProperty("--peek-bar-opacity", String(Math.min(100, peekOpacity + 5)));
   }
 
   $: activeTab = $tabs.find((t) => t.id === $activeTabId);

@@ -17,7 +17,7 @@
 import { EditorSelection, EditorState, Prec, StateField, type Extension, type Range, type Transaction } from "@codemirror/state";
 import { Decoration, EditorView, keymap, type DecorationSet } from "@codemirror/view";
 import { redo, undo } from "@codemirror/commands";
-import { editAllowed, findSectionRange, sectionVisibleLineCount, type SectionRange, type SectionSpan } from "../peekSection";
+import { editAllowed, findSectionRange, gapLinesNeeded, sectionVisibleLineCount, type SectionRange, type SectionSpan } from "../peekSection";
 
 function docLines(state: EditorState): string[] {
   const out: string[] = [];
@@ -121,7 +121,21 @@ export function sectionFocus(targetHeader: string, onFit?: (lines: number) => vo
     if (range) onFit(sectionVisibleLineCount(lines, range));
   });
 
-  return [field, rejectEditsOutside, keepSelectionInBody, historyKeys, fit];
+  // Two empty lines always separate the last filled line from the next section's title: after a change, top the
+  // section's trailing empty lines up to two. The caret stays where it was (it is mapped to before the new lines), and the
+  // lines are part of the same undo step as the edit that needed them.
+  const keepGap = EditorState.transactionFilter.of((tr) => {
+    if (!tr.docChanged) return tr;
+    const lines = docLines(tr.state);
+    const range = findSectionRange(lines, targetHeader);
+    if (!range) return tr;
+    const missing = gapLinesNeeded(lines, range);
+    if (missing === 0) return tr;
+    const end = tr.newDoc.line(Math.min(range.lastLine + 1, tr.newDoc.lines)).to;
+    return [tr, { changes: { from: end, insert: "\n".repeat(missing) }, sequential: true }];
+  });
+
+  return [field, rejectEditsOutside, keepSelectionInBody, keepGap, historyKeys, fit];
 }
 
 /** Lines the section needs right now, or null when the note has no such section. */

@@ -368,6 +368,7 @@ export async function restoreOrBootstrapTabs() {
     // Later launches the same day restore the last-active tab as before.
     const isFirstOpenToday = (session?.lastOpenedDate ?? null) !== todayISO();
     let finalActive: NoteTab = todayTab;
+    let dropTodayTab = false;
 
     if (!isFirstOpenToday && session?.activeTab) {
       finalActive = restored.find((t) => t.filename === session.activeTab) ?? todayTab;
@@ -391,11 +392,15 @@ export async function restoreOrBootstrapTabs() {
         const lastActiveMatch = restored.find((t) => t.filename === session.activeTab);
         if (lastActiveMatch) {
           finalActive = lastActiveMatch;
+          // #125: today's tab is only opened here when it gets the focus (or was already open last time). Today is
+          // empty, so there is nothing to lose by not opening it; it is created when it is opened on purpose.
+          dropTodayTab = !(session.openTabs ?? []).includes(todayFilename);
         }
       }
     }
 
     activeTabId.set(finalActive.id);
+    if (dropTodayTab) tabs.update((list) => list.filter((x) => x.id !== todayTab.id));
     void maybeSilentSyncEmptyNote(finalActive);
   } finally {
     restoringTabs = false;

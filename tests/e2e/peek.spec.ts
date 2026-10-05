@@ -124,14 +124,14 @@ test.describe("peek mode", () => {
 
   test("a changed setting is saved to the config and is still there after a reload", async ({ page }) => {
     await openPeekSettings(page);
-    await peekRange(page, "Background opacity").evaluate((el: HTMLInputElement) => {
+    await peekRange(page, "Background opacity (pointer away)").evaluate((el: HTMLInputElement) => {
       el.value = "45";
       el.dispatchEvent(new Event("input", { bubbles: true }));
     });
     await expect.poll(() => page.evaluate(() => window.__CHRONO_MOCK__!.peek.opacity)).toBe(45);
     await page.reload();
     await openPeekSettings(page);
-    await expect(peekRange(page, "Background opacity")).toHaveValue("45");
+    await expect(peekRange(page, "Background opacity (pointer away)")).toHaveValue("45");
   });
 });
 
@@ -254,7 +254,7 @@ test.describe("peek mode: tests with their own seed", () => {
   test("the background opacity defaults to 80%", async ({ page }) => {
     await seedApp(page, { seed: { ...today(), peek: { enabled: true } } });
     await openPeekSettings(page);
-    await expect(peekRange(page, "Background opacity")).toHaveValue("80");
+    await expect(peekRange(page, "Background opacity (pointer away)")).toHaveValue("80");
   });
 
   test.describe("from Zen mode", () => {
@@ -368,12 +368,12 @@ test.describe("peek mode: tests with their own seed", () => {
       const toggle = settings.getByLabel("Enable Peek (experimental)");
       await toggle.scrollIntoViewIfNeeded();
       await expect(toggle).not.toBeChecked();
-      await expect(settings.getByLabel("Background opacity", { exact: true })).toHaveCount(0);
+      await expect(settings.getByLabel("Background opacity (pointer away)", { exact: true })).toHaveCount(0);
       await expect(settings.getByLabel("Height (lines)", { exact: true })).toHaveCount(0);
 
       await settings.locator("label.toggle-switch", { hasText: "Enable Peek (experimental)" }).click();
       await expect(toggle).toBeChecked();
-      await expect(settings.getByLabel("Background opacity", { exact: true })).toHaveCount(1);
+      await expect(settings.getByLabel("Background opacity (pointer away)", { exact: true })).toHaveCount(1);
       await expect.poll(() => page.evaluate(() => window.__CHRONO_MOCK__!.peek.enabled)).toBe(true);
 
       await page.keyboard.press("Escape");
@@ -392,7 +392,7 @@ test.describe("peek mode: tests with their own seed", () => {
   test("starting up shows the stored settings and does not overwrite them with defaults", async ({ page }) => {
     await seedApp(page, { seed: { ...today("- x"), peek: { enabled: true, opacity: 35, lines: 4 } } });
     await openPeekSettings(page);
-    await expect(peekRange(page, "Background opacity")).toHaveValue("35");
+    await expect(peekRange(page, "Background opacity (pointer away)")).toHaveValue("35");
     await expect(peekRange(page, "Height (lines)")).toHaveValue("4");
     await page.waitForTimeout(700); // longer than the save debounce
     expect(await page.evaluate(() => window.__CHRONO_MOCK__!.peek)).toMatchObject({ opacity: 35, lines: 4 });
@@ -405,5 +405,65 @@ async function openPeekSettings(page: Page) {
   await editor(page).click();
   await page.keyboard.press("ControlOrMeta+Comma");
   await expect(page.locator(".settings-modal-card")).toBeVisible();
-  await peekRange(page, "Background opacity").scrollIntoViewIfNeeded();
+  await peekRange(page, "Background opacity (pointer away)").scrollIntoViewIfNeeded();
 }
+
+test.describe("peek feedback round 3 (#126)", () => {
+  test.beforeEach(async ({ page }) => seedThreeOccurrences(page));
+
+  const vars = (page: Page) =>
+    page.evaluate(() => ({
+      bg: document.documentElement.style.getPropertyValue("--peek-opacity"),
+      bar: document.documentElement.style.getPropertyValue("--peek-bar-opacity"),
+    }));
+
+  test("the background is 100% under the pointer and 80% away; the header is 5 points above the background", async ({ page }) => {
+    await enterOnWeeklySync(page);
+    await page.locator("html").dispatchEvent("mouseleave");
+    await expect.poll(() => vars(page)).toEqual({ bg: "80", bar: "85" });
+    await page.locator("html").dispatchEvent("mouseenter");
+    await expect.poll(() => vars(page)).toEqual({ bg: "100", bar: "100" });
+    await page.locator("html").dispatchEvent("mouseleave");
+    await expect.poll(() => vars(page)).toEqual({ bg: "80", bar: "85" });
+  });
+
+  test("the opacity under the pointer is a setting with a 100% default", async ({ page }) => {
+    await editor(page).click();
+    await page.keyboard.press("ControlOrMeta+Comma");
+    await expect(peekRange(page, "Background opacity under the pointer")).toHaveValue("100");
+  });
+
+  test("two empty lines are kept between the section's last filled line and the next section", async ({ page }) => {
+    await enterOnWeeklySync(page);
+    await page.keyboard.press("End");
+    await page.keyboard.type("x");
+    await expect.poll(() => mockNote(page, "2026-09-07.txt")).toContain("- today\n\n\nOther");
+    // typing in the empty lines does not eat the gap either
+    await page.keyboard.press("ControlOrMeta+End");
+    await page.keyboard.type("more");
+    await expect.poll(() => mockNote(page, "2026-09-07.txt")).toMatch(/more\n\n\nOther/);
+  });
+
+  test("ending Peek puts the caret in the section it was showing, also after stepping to another note", async ({ page }) => {
+    await enterOnWeeklySync(page);
+    await page.keyboard.press("Alt+ArrowLeft");
+    await expect(page.locator("#peek-bar")).toContainText("2026-09-01");
+    await page.waitForTimeout(300);
+    await page.keyboard.press("Escape");
+    await expect(page.locator("body.peek-mode")).toHaveCount(0);
+    await expect(activeTabLabel(page)).toContainText("2026-09-07");
+    await page.keyboard.type("Z");
+    await expect.poll(() => mockNote(page, "2026-09-07.txt")).toContain("Weekly sync\n===========\nZo budget");
+  });
+
+  test("ending Peek keeps the caret where it was in the section", async ({ page }) => {
+    await enterOnWeeklySync(page);
+    await page.keyboard.press("ArrowDown");
+    await page.keyboard.press("End");
+    await page.waitForTimeout(300);
+    await page.keyboard.press("Escape");
+    await expect(page.locator("body.peek-mode")).toHaveCount(0);
+    await page.keyboard.type("Z");
+    await expect.poll(() => mockNote(page, "2026-09-07.txt")).toContain("- todayZ");
+  });
+});

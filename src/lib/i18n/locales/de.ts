@@ -198,7 +198,9 @@ export const de = {
   "peek.settings.lines.fit": () =>
     "Ganzen Abschnitt anpassen",
   "peek.settings.opacity.label": () =>
-    "Deckkraft des Hintergrunds",
+    "Deckkraft des Hintergrunds (Zeiger weg)",
+  "peek.settings.opacityHover.label": () =>
+    "Deckkraft des Hintergrunds unter dem Zeiger",
   "peek.settings.alwaysOnTop.label": () =>
     "Über anderen Fenstern halten",
   "peek.settings.header.label": () =>

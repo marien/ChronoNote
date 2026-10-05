@@ -197,7 +197,9 @@ export const fr = {
   "peek.settings.lines.fit": () =>
     "Ajuster à toute la section",
   "peek.settings.opacity.label": () =>
-    "Opacité de l'arrière-plan",
+    "Opacité de l'arrière-plan (pointeur absent)",
+  "peek.settings.opacityHover.label": () =>
+    "Opacité de l'arrière-plan sous le pointeur",
   "peek.settings.alwaysOnTop.label": () =>
     "Garder au-dessus des autres fenêtres",
   "peek.settings.header.label": () =>

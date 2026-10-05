@@ -28,6 +28,34 @@ export function findSectionRange(lines: readonly string[], targetHeader: string)
   return null;
 }
 
+/** Empty lines kept between the last filled line of a section and the next section's title. */
+export const PEEK_MIN_GAP_LINES = 2;
+
+/** How many empty lines to add at the end of the section so that at least `PEEK_MIN_GAP_LINES` separate its last
+ * filled line from the next section's title. 0 for the last section of the note (nothing follows it). A section with
+ * no text yet counts its empty lines after the underline. */
+export function gapLinesNeeded(lines: readonly string[], range: SectionRange): number {
+  if (range.lastLine >= lines.length - 1) return 0;
+  let blanks = 0;
+  for (let i = range.lastLine; i > range.titleLine + 1 && lines[i].trim() === ""; i--) blanks++;
+  return Math.max(0, PEEK_MIN_GAP_LINES - blanks);
+}
+
+/** Where the caret goes when Peek ends: the line it was on if it is still in the section being shown (same note),
+ * else the first body line of the section in the note you end up on. null when that note has no such section. */
+export function exitCaretLine(
+  lines: readonly string[],
+  target: string,
+  sameNote: boolean,
+  caretLine: number | null,
+): number | null {
+  const range = findSectionRange(lines, target);
+  if (!range) return null;
+  const bodyStart = Math.min(range.titleLine + 2, lines.length - 1);
+  if (sameNote && caretLine !== null && caretLine >= bodyStart && caretLine <= range.lastLine) return caretLine;
+  return bodyStart;
+}
+
 /** Number of lines Peek needs for the section: its body without trailing blank lines (the title and underline are
  * not drawn in Peek), plus the line being typed on. For "fit the whole section" sizing. */
 export function sectionVisibleLineCount(lines: readonly string[], range: SectionRange): number {
