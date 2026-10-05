@@ -87,7 +87,7 @@ element is an object with exactly these four string fields:
 | Field | Format | Notes |
 | :--- | :--- | :--- |
 | `date` | `YYYY-MM-DD` | Which day's agenda this meeting belongs to. Must match a real filename's date to be findable — same zero-padded shape as note filenames (`2026-09-14`, not `2026-9-14`). |
-| `start` | `HH:mm`, 24-hour | Local wall-clock time, not UTC, no timezone offset, no seconds. `09:00`, not `9:00` or `09:00:00`. |
+| `start` | `HH:mm`, 24-hour | Wall-clock time in the machine's own time zone (or in the file's `timezone`, see below), no offset, no seconds. `09:00`, not `9:00` or `09:00:00`. |
 | `end` | `HH:mm`, 24-hour | Same shape as `start`. Used only for sorting and de-duplication (§5) — ChronoNote doesn't compute or display a duration anywhere. |
 | `title` | any string | The meeting's title, exactly as it should appear as a section header — apart from the special prefixes in §6, which are stripped before the title is used. |
 
@@ -200,11 +200,24 @@ filtering of its own beyond the title-prefix conventions in §6. Everything
 in the array is treated as a real, attending meeting unless its title says
 otherwise.
 
-**No timezone handling.** `start`/`end` are read as plain local wall-clock
-strings with no timezone conversion of any kind. If your source calendar
-spans timezones, resolve that before writing the file — write the time as
-it should read on the day in question, in whatever timezone that day's
-notes are being kept in.
+**Time zone of the file.** By default `start`/`end` are plain wall-clock times
+in the machine's own time zone, with no conversion. If your calendar export
+is in another zone (GMT/UTC, say), write the file as an object instead of a
+bare array and name the zone:
+
+```json
+{ "timezone": "GMT", "meetings": [
+  { "date": "2026-10-05", "start": "09:00", "end": "09:30", "title": "Daily Standup" }
+] }
+```
+
+`timezone` is any IANA name (`GMT`, `UTC`, `Europe/London`, `America/New_York`,
+...; `Z` means UTC). Daylight saving is applied for the date of each meeting.
+The times and the date are converted to local time when the file is read, so
+the sync, the date picker and Peek's meeting-that-is-on-now all see local
+times (a meeting at 23:30 GMT is the next day's 01:30 in GMT+2). A meeting
+that ends after local midnight ends at `24:00`. An unknown zone name makes the
+whole file invalid, like any other unusable file.
 
 **No recurrence expansion.** Each occurrence of a recurring meeting needs
 its own entry with its own `date` — `.agenda.json` has no notion of "this

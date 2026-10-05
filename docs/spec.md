@@ -514,7 +514,7 @@ reachable from the top bar, a shortcut, or the command palette:
   on) that reads a `.agenda.json` file from the root of the notes folder
   (kept up to date by whatever external process syncs the user's real
   calendar, not by ChronoNote — full schema and rules in
-  `docs/agenda-file-guide.md`) and reconciles it against the active tab's
+  `docs/agenda-file-guide.md`; optionally `{ "timezone": "GMT", "meetings": [...] }` when the export is not in local time, converted to local when read) and reconciles it against the active tab's
   note. Always available on desktop; on the web app, only once a OneDrive
   account and folder are connected (the web app has no local notes folder
   of its own to read the file from otherwise). Only offered on a dated tab

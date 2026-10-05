@@ -25,6 +25,10 @@ tauri-plugin-single-instance = "2"
 tauri-plugin-global-shortcut = "~2.3"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+# Meeting times in `.agenda.json` can be in another time zone than the machine (`"timezone"` in the file): they are
+# converted to local time when the file is read.
+chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }
+chrono-tz = "0.10"
 # Atomic note writes (§1.2): temp-file + fsync + rename, with an
 # on-drop cleanup guard. `dunce` canonicalizes paths for the
 # workspace-confinement check (§1.1) without Windows' `\\?\` prefix.

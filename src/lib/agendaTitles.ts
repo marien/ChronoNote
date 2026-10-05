@@ -133,3 +133,46 @@ export function activeAgendaDates(meetings: AgendaMeeting[]): string[] {
   return Array.from(dates).sort();
 }
 
+
+/** The `"timezone"` of a `.agenda.json` written as `{ "timezone": "GMT", "meetings": [...] }` (mirrors `agenda.rs`'s
+ * `parse_agenda_in`): the meetings' times are converted to local time (`localZone`: the machine's, unless a test fixes
+ * it). Throws for a zone name that does not exist, like the desktop app's error. */
+export function toLocalMeetings(meetings: AgendaMeeting[], zone: string, localZone?: string): AgendaMeeting[] {
+  const name = zone.trim().toUpperCase() === "Z" ? "UTC" : zone.trim();
+  const offsetMinutes = (instant: number, tz: string | undefined): number => {
+    const parts = new Intl.DateTimeFormat("en-US", {
+      timeZone: tz,
+      hourCycle: "h23",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+    }).formatToParts(new Date(instant));
+    const n = (type: string) => Number(parts.find((p) => p.type === type)?.value);
+    return (Date.UTC(n("year"), n("month") - 1, n("day"), n("hour"), n("minute")) - Math.floor(instant / 60000) * 60000) / 60000;
+  };
+  new Intl.DateTimeFormat("en-US", { timeZone: name }); // RangeError for an unknown zone
+  /** A wall-clock time in `name` as local [date, HH:mm]; null when it is not a time. */
+  const toLocal = (date: string, time: string): [string, string] | null => {
+    const d = /^(\d{4})-(\d{2})-(\d{2})$/.exec(date.trim());
+    const t = /^(\d{1,2}):(\d{2})$/.exec(time.trim());
+    if (!d || !t) return null;
+    const wall = Date.UTC(+d[1], +d[2] - 1, +d[3], +t[1], +t[2]);
+    let instant = wall - offsetMinutes(wall, name) * 60000;
+    instant = wall - offsetMinutes(instant, name) * 60000;
+    const local = new Date(instant + offsetMinutes(instant, localZone) * 60000);
+    const pad = (x: number) => String(x).padStart(2, "0");
+    return [
+      `${local.getUTCFullYear()}-${pad(local.getUTCMonth() + 1)}-${pad(local.getUTCDate())}`,
+      `${pad(local.getUTCHours())}:${pad(local.getUTCMinutes())}`,
+    ];
+  };
+  return meetings.map((m) => {
+    const start = toLocal(m.date, m.start);
+    if (!start) return m;
+    const end = toLocal(m.date, m.end);
+    const endTime = end && end[0] === start[0] ? end[1] : end && end[0] > start[0] ? "24:00" : m.end;
+    return { ...m, date: start[0], start: start[1], end: endTime };
+  });
+}

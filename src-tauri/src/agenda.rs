@@ -12,7 +12,10 @@
 //!
 //! Schema: a JSON array of
 //! `{ "date": "YYYY-MM-DD", "start": "HH:mm", "end": "HH:mm", "title": "…" }`
-//! objects, all local wall-clock times, already filtered by the external
+//! objects, wall-clock times in the machine's own time zone — or in another zone, by writing the file as an object
+//! `{ "timezone": "GMT", "meetings": [ … ] }` (any IANA name: `GMT`, `UTC`, `Europe/London`, …; daylight saving is
+//! applied). Dates and times are converted to local time the moment the file is read, so everything built on it (the
+//! sync, the date picker, Peek's meeting that is on now) sees local times, already filtered by the external
 //! process to meetings with at least one other participant — ChronoNote
 //! does no attendee filtering of its own here, just date-scoping, sorting,
 //! and de-duplication. The reconciliation engine (§2.4,
@@ -29,6 +32,8 @@
 //! genuinely has no meetings is signaled by a non-empty array with no
 //! entries for that date, not by an empty array.)
 
+use chrono::{Local, NaiveDateTime, TimeZone};
+use chrono_tz::Tz;
 use serde::Deserialize;
 
 use crate::error::AppError;
@@ -49,11 +54,62 @@ struct AgendaMeeting {
 /// expected shape, or a bare `[]` — see the module doc comment for why an
 /// empty array specifically doesn't count as "confirmed good data" here.
 fn parse_agenda(raw: &str) -> Result<Vec<AgendaMeeting>, ()> {
-    let meetings: Vec<AgendaMeeting> = serde_json::from_str(raw.trim()).map_err(|_| ())?;
+    parse_agenda_in(raw, &Local)
+}
+
+/// The file is either the plain array (times in the machine's zone) or `{ "timezone": "…", "meetings": [...] }`.
+#[derive(Deserialize)]
+#[serde(untagged)]
+enum AgendaFile {
+    List(Vec<AgendaMeeting>),
+    InZone { timezone: String, meetings: Vec<AgendaMeeting> },
+}
+
+/// `parse_agenda` with the machine's zone passed in (a test fixes it). An unknown time zone name is an error like any
+/// other unusable file: guessing would put every meeting at the wrong time.
+fn parse_agenda_in<L: TimeZone>(raw: &str, local: &L) -> Result<Vec<AgendaMeeting>, ()> {
+    let file: AgendaFile = serde_json::from_str(raw.trim()).map_err(|_| ())?;
+    let (zone, meetings) = match file {
+        AgendaFile::List(meetings) => (None, meetings),
+        AgendaFile::InZone { timezone, meetings } => (Some(parse_zone(&timezone)?), meetings),
+    };
     if meetings.is_empty() {
         return Err(());
     }
-    Ok(meetings)
+    Ok(match zone {
+        Some(zone) => meetings.into_iter().map(|m| to_local(m, zone, local)).collect(),
+        None => meetings,
+    })
+}
+
+/// An IANA zone name (`GMT`, `UTC`, `Europe/London`, `America/New_York`, ...), or `Z`.
+fn parse_zone(name: &str) -> Result<Tz, ()> {
+    let name = name.trim();
+    if name.eq_ignore_ascii_case("z") {
+        return Ok(Tz::UTC);
+    }
+    name.parse::<Tz>().map_err(|_| ())
+}
+
+/// One wall-clock time in `zone` on `date` as local `(date, HH:mm)`. `None` when it is not a time (the meeting is then
+/// left as it is) or does not exist in the zone (skipped by a clock change: the later reading is taken).
+fn local_time<L: TimeZone>(date: &str, time: &str, zone: Tz, local: &L) -> Option<(String, String)> {
+    let naive = NaiveDateTime::parse_from_str(&format!("{} {}", date.trim(), time.trim()), "%Y-%m-%d %H:%M").ok()?;
+    let at = zone.from_local_datetime(&naive).earliest().or_else(|| zone.from_local_datetime(&(naive + chrono::Duration::hours(1))).earliest())?;
+    let l = at.with_timezone(local).naive_local();
+    Some((l.format("%Y-%m-%d").to_string(), l.format("%H:%M").to_string()))
+}
+
+/// A meeting from `zone` in local time. An end that falls on a later local day than the start becomes `24:00`, so it
+/// still reads as "after the start".
+fn to_local<L: TimeZone>(m: AgendaMeeting, zone: Tz, local: &L) -> AgendaMeeting {
+    let Some((date, start)) = local_time(&m.date, &m.start, zone, local) else { return m };
+    let end = match local_time(&m.date, &m.end, zone, local) {
+        Some((end_date, end)) if end_date == date => end,
+        Some((end_date, _)) if end_date > date => "24:00".to_string(),
+        _ => m.end.clone(),
+    };
+    AgendaMeeting { date, start, end, title: m.title }
 }
 
 /// #74 / #78: prefixes an external calendar syncer stamps onto a meeting's own title to say it is
@@ -539,5 +595,71 @@ mod tests {
         // 2026-10-21 is only a canceled meeting, so it must not be included.
         // 2026-10-14 has 2 meetings on the same day, so it must only appear once.
         assert_eq!(dates, vec!["2026-10-07".to_string(), "2026-10-14".to_string()]);
+    }
+
+    // --- time zone of the file ---
+    use chrono_tz::Europe::Amsterdam;
+
+    fn in_amsterdam(raw: &str) -> Vec<(String, String, String, String)> {
+        parse_agenda_in(raw, &Amsterdam)
+            .unwrap()
+            .into_iter()
+            .map(|m| (m.date, m.start, m.end, m.title))
+            .collect()
+    }
+    fn row(d: &str, s: &str, e: &str, t: &str) -> (String, String, String, String) {
+        (d.to_string(), s.to_string(), e.to_string(), t.to_string())
+    }
+
+    #[test]
+    fn a_plain_array_is_left_in_local_time() {
+        let raw = r#"[{"date":"2026-10-05","start":"09:00","end":"09:30","title":"A"}]"#;
+        assert_eq!(in_amsterdam(raw), vec![row("2026-10-05", "09:00", "09:30", "A")]);
+    }
+
+    #[test]
+    fn gmt_times_are_converted_with_daylight_saving() {
+        // 5 Oct 2026 is summer time in Amsterdam (GMT+2): 09:00 GMT is 11:00 local.
+        let raw = r#"{"timezone":"GMT","meetings":[{"date":"2026-10-05","start":"09:00","end":"09:30","title":"A"}]}"#;
+        assert_eq!(in_amsterdam(raw), vec![row("2026-10-05", "11:00", "11:30", "A")]);
+        // 5 Dec 2026 is winter time (GMT+1).
+        let raw = r#"{"timezone":"UTC","meetings":[{"date":"2026-12-05","start":"09:00","end":"09:30","title":"A"}]}"#;
+        assert_eq!(in_amsterdam(raw), vec![row("2026-12-05", "10:00", "10:30", "A")]);
+    }
+
+    #[test]
+    fn the_date_follows_the_conversion() {
+        // 23:30 GMT in summer is 01:30 the next day locally; its end is past midnight too.
+        let raw = r#"{"timezone":"GMT","meetings":[{"date":"2026-10-05","start":"23:30","end":"23:59","title":"Late"}]}"#;
+        assert_eq!(in_amsterdam(raw), vec![row("2026-10-06", "01:30", "01:59", "Late")]);
+        // A meeting that crosses local midnight ends at 24:00.
+        let raw = r#"{"timezone":"GMT","meetings":[{"date":"2026-10-05","start":"21:30","end":"22:30","title":"X"}]}"#;
+        assert_eq!(in_amsterdam(raw), vec![row("2026-10-05", "23:30", "24:00", "X")]);
+    }
+
+    #[test]
+    fn another_zone_and_a_z_are_understood() {
+        let raw = r#"{"timezone":"America/New_York","meetings":[{"date":"2026-10-05","start":"09:00","end":"10:00","title":"A"}]}"#;
+        assert_eq!(in_amsterdam(raw), vec![row("2026-10-05", "15:00", "16:00", "A")]);
+        let raw = r#"{"timezone":"Z","meetings":[{"date":"2026-10-05","start":"9:00","end":"9:30","title":"A"}]}"#;
+        assert_eq!(in_amsterdam(raw), vec![row("2026-10-05", "11:00", "11:30", "A")]);
+    }
+
+    #[test]
+    fn an_unknown_zone_or_an_empty_object_file_is_an_error() {
+        let raw = r#"{"timezone":"Mars/Olympus","meetings":[{"date":"2026-10-05","start":"09:00","end":"09:30","title":"A"}]}"#;
+        assert_eq!(parse_agenda_in(raw, &Amsterdam), Err(()));
+        let raw = r#"{"timezone":"GMT","meetings":[]}"#;
+        assert_eq!(parse_agenda_in(raw, &Amsterdam), Err(()));
+    }
+
+    #[test]
+    fn everything_built_on_the_file_sees_the_converted_day() {
+        let raw = r#"{"timezone":"GMT","meetings":[
+            {"date":"2026-10-05","start":"09:00","end":"10:00","title":"Design review"},
+            {"date":"2026-10-05","start":"23:30","end":"23:59","title":"Late"}]}"#;
+        let meetings = parse_agenda_in(raw, &Amsterdam).unwrap();
+        assert_eq!(titles_for_date(meetings.clone(), "2026-10-05"), vec!["Design review".to_string()]);
+        assert_eq!(titles_for_date(meetings, "2026-10-06"), vec!["Late".to_string()]);
     }
 }

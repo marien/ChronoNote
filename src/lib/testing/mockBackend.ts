@@ -29,7 +29,7 @@
  *   - the session file lives *inside* the notes dir and is never returned
  *     by `list_note_files` / `read_all_notes`.
  */
-import { activeAgendaDates, activeEntriesForDate, activeTitlesAfterDate, activeTitlesForDate, removedTitlesForDate as removedTitlesForDateShared } from "../agendaTitles";
+import { activeAgendaDates, activeEntriesForDate, toLocalMeetings, activeTitlesAfterDate, activeTitlesForDate, removedTitlesForDate as removedTitlesForDateShared } from "../agendaTitles";
 import type { AppConfig, AppError, ColorMode, FileMetadata, LanguageMode, PeekConfig, StartupTabMode, TabSession, ThemeMode } from "../types";
 import { PEEK_DEFAULTS, clampPeek } from "../peekDefaults";
 import type { ToastOptions } from "../stores";
@@ -212,10 +212,23 @@ function parseAgendaMeetings(raw: string | undefined): AgendaMeeting[] {
   } catch {
     throw { code: "agendaInvalid" } satisfies AppError;
   }
+  // `{ "timezone": "GMT", "meetings": [...] }`: the times are in that zone (see `toLocalMeetings`).
+  let zone: string | null = null;
+  if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+    const file = parsed as { timezone?: unknown; meetings?: unknown };
+    if (typeof file.timezone !== "string") throw { code: "agendaInvalid" } satisfies AppError;
+    zone = file.timezone;
+    parsed = file.meetings;
+  }
   if (!Array.isArray(parsed) || parsed.length === 0 || !parsed.every(isAgendaMeeting)) {
     throw { code: "agendaInvalid" } satisfies AppError;
   }
-  return parsed as AgendaMeeting[];
+  if (zone === null) return parsed as AgendaMeeting[];
+  try {
+    return toLocalMeetings(parsed as AgendaMeeting[], zone);
+  } catch {
+    throw { code: "agendaInvalid" } satisfies AppError;
+  }
 }
 
 /** #74/#78: the title rules (removed prefixes, "Placeholder"/"Confirmed" stamps) live in the shared

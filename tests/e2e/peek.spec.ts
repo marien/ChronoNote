@@ -444,6 +444,26 @@ test.describe("peek feedback round 3 (#126)", () => {
     await expect.poll(() => mockNote(page, "2026-09-07.txt")).toMatch(/more\n\n\nOther/);
   });
 
+  test("the two empty lines are kept out of the window: the caret cannot reach them", async ({ page }) => {
+    await enterOnWeeklySync(page);
+    await page.keyboard.press("End"); // the first body line
+    await page.keyboard.type("x"); // makes sure the two empty lines exist
+    await expect.poll(() => mockNote(page, "2026-09-07.txt")).toContain("- today\n\n\nOther");
+    await page.keyboard.press("ControlOrMeta+End");
+    await page.keyboard.press("ArrowDown");
+    await page.keyboard.press("ArrowDown");
+    await page.keyboard.type("Q");
+    await expect.poll(() => mockNote(page, "2026-09-07.txt")).toContain("- todayQ\n\n\nOther");
+    // Delete at the end of the last line cannot pull an empty line (or the next section) in either
+    await page.keyboard.press("Delete");
+    await page.waitForTimeout(200);
+    expect(await mockNote(page, "2026-09-07.txt")).toContain("- todayQ\n\n\nOther");
+    // Enter at the end opens a new line to type on (a list item continues the list)
+    await page.keyboard.press("Enter");
+    await page.keyboard.type("next");
+    await expect.poll(() => mockNote(page, "2026-09-07.txt")).toContain("- todayQ\n- next\n\n\nOther");
+  });
+
   test("ending Peek puts the caret in the section it was showing, also after stepping to another note", async ({ page }) => {
     await enterOnWeeklySync(page);
     await page.keyboard.press("Alt+ArrowLeft");

@@ -17,7 +17,7 @@
 import { EditorSelection, EditorState, Prec, StateField, type Extension, type Range, type Transaction } from "@codemirror/state";
 import { Decoration, EditorView, keymap, type DecorationSet } from "@codemirror/view";
 import { redo, undo } from "@codemirror/commands";
-import { editAllowed, findSectionRange, gapLinesNeeded, sectionVisibleLineCount, type SectionRange, type SectionSpan } from "../peekSection";
+import { editAllowed, findSectionRange, gapLinesNeeded, sectionVisibleLineCount, visibleLastLine, type SectionRange, type SectionSpan } from "../peekSection";
 
 function docLines(state: EditorState): string[] {
   const out: string[] = [];
@@ -31,7 +31,9 @@ function hiddenRanges(state: EditorState, range: SectionRange | null): Decoratio
   const ranges: Range<Decoration>[] = [];
   // Everything up to and including the section's underline: earlier sections, then this section's title lines.
   ranges.push(hide.range(0, state.doc.line(range.titleLine + 2).to));
-  if (range.lastLine + 2 <= state.doc.lines) ranges.push(hide.range(state.doc.line(range.lastLine + 2).from, state.doc.length));
+  // ...and everything after the last visible line: the empty lines kept before the next section, then the next ones.
+  const last = visibleLastLine(docLines(state), range);
+  if (last + 2 <= state.doc.lines) ranges.push(hide.range(state.doc.line(last + 2).from, state.doc.length));
   return Decoration.set(ranges);
 }
 
@@ -39,7 +41,8 @@ function spanOf(state: EditorState, range: SectionRange): SectionSpan {
   return {
     from: state.doc.line(range.titleLine + 1).from,
     headerEnd: state.doc.line(range.titleLine + 2).to,
-    to: state.doc.line(Math.min(range.lastLine + 1, state.doc.lines)).to,
+    to: state.doc.line(Math.min(visibleLastLine(docLines(state), range) + 1, state.doc.lines)).to,
+    sectionTo: state.doc.line(Math.min(range.lastLine + 1, state.doc.lines)).to,
   };
 }
 
@@ -57,7 +60,9 @@ function outsideSignature(state: EditorState, targetHeader: string): string | nu
   const range = findSectionRange(docLines(state), targetHeader);
   if (!range) return null;
   const span = spanOf(state, range);
-  return [state.doc.sliceString(0, span.from), state.doc.sliceString(span.from, span.headerEnd), state.doc.sliceString(span.to)].join("\u0000");
+  // The section's own gap lines (which Peek tops up itself) are not "outside"; everything after the section is.
+  const sectionEnd = state.doc.line(Math.min(range.lastLine + 1, state.doc.lines)).to;
+  return [state.doc.sliceString(0, span.from), state.doc.sliceString(span.from, span.headerEnd), state.doc.sliceString(sectionEnd)].join("\u0000");
 }
 
 /** `onFit` gets the number of lines the section needs (for "fit the whole section" window sizing). */
@@ -86,7 +91,7 @@ export function sectionFocus(targetHeader: string, onFit?: (lines: number) => vo
     const range = findSectionRange(docLines(tr.state), targetHeader);
     if (!range) return tr;
     const doc = tr.newDoc;
-    const to = doc.line(Math.min(range.lastLine + 1, doc.lines)).to;
+    const to = doc.line(Math.min(visibleLastLine(docLines(tr.state), range) + 1, doc.lines)).to;
     // The caret lives in the body, never on the title/underline lines (those are not editable here).
     const from = range.titleLine + 3 <= doc.lines ? doc.line(range.titleLine + 3).from : doc.line(range.titleLine + 2).to;
     const sel = tr.newSelection;

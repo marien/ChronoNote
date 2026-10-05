@@ -41,6 +41,17 @@ export function gapLinesNeeded(lines: readonly string[], range: SectionRange): n
   return Math.max(0, PEEK_MIN_GAP_LINES - blanks);
 }
 
+/** The last line Peek draws and lets the caret reach (0-based): the section's last line without the `PEEK_MIN_GAP_LINES`
+ * empty lines that separate it from the next section. Those are kept out of the window, so the caret cannot enter them.
+ * Always at least the first body line (a line to type on), and the whole section for the last one of a note. */
+export function visibleLastLine(lines: readonly string[], range: SectionRange): number {
+  if (range.lastLine >= lines.length - 1) return range.lastLine;
+  let trailing = 0;
+  for (let i = range.lastLine; i > range.titleLine + 1 && lines[i].trim() === ""; i--) trailing++;
+  const firstBody = range.titleLine + 2;
+  return Math.max(range.lastLine - Math.min(trailing, PEEK_MIN_GAP_LINES), Math.min(firstBody, range.lastLine));
+}
+
 /** Where the caret goes when Peek ends: the line it was on if it is still in the section being shown (same note),
  * else the first body line of the section in the note you end up on. null when that note has no such section. */
 export function exitCaretLine(
@@ -72,6 +83,8 @@ export interface SectionSpan {
   headerEnd: number;
   /** End of the section's last visible line. */
   to: number;
+  /** End of the whole section, including the empty lines kept out of view before the next section. */
+  sectionTo?: number;
 }
 
 /** Whether one change `[a, b)` -> `inserted` (offsets in the document BEFORE the change) is allowed in Peek.
@@ -81,6 +94,8 @@ export interface SectionSpan {
  *  - never the title or underline, nor the line break after the underline (that would break the section the view is
  *    built around). The one exception is a new line typed right after the underline, for a section with no body. */
 export function editAllowed(span: SectionSpan, a: number, b: number, inserted: string): boolean {
+  // Peek itself tops up the empty lines before the next section, out of view: only line breaks, only there.
+  if (a === b && span.sectionTo !== undefined && a >= span.to && a <= span.sectionTo && inserted.length > 0 && inserted.split("\n").every((part) => part === "")) return true;
   if (a < span.from || b > span.to) return false;
   if (a === b) {
     if (a < span.headerEnd) return false;

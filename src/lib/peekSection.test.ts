@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { editAllowed, exitCaretLine, findSectionRange, gapLinesNeeded, sectionVisibleLineCount, type SectionSpan } from "./peekSection";
+import { editAllowed, exitCaretLine, findSectionRange, gapLinesNeeded, sectionVisibleLineCount, visibleLastLine, type SectionSpan } from "./peekSection";
 
 const note = [
   "Standup",
@@ -101,5 +101,26 @@ describe("exitCaretLine", () => {
   });
   it("is null when the note has no such section", () => {
     expect(exitCaretLine(note, "nope", true, 1)).toBeNull();
+  });
+});
+
+describe("visibleLastLine", () => {
+  const range = (lines: string[], t: string) => findSectionRange(lines, t)!;
+  it("leaves the two gap lines before the next section out of view", () => {
+    // "weekly sync" runs to line 9 (two empty lines 8 and 9): the last drawn line is the last filled one, 7
+    expect(visibleLastLine(note, range(note, "weekly sync"))).toBe(7);
+  });
+  it("shows an extra empty line beyond the two as a line to type on", () => {
+    const three = ["A", "===", "text", "", "", "", "B", "===", "x"];
+    expect(visibleLastLine(three, range(three, "a"))).toBe(3);
+  });
+  it("always keeps the first body line, even when the body is empty", () => {
+    const empty = ["A", "===", "", "", "B", "===", "x"];
+    expect(visibleLastLine(empty, range(empty, "a"))).toBe(2);
+    const none = ["A", "===", "B", "===", "x"];
+    expect(visibleLastLine(none, range(none, "a"))).toBe(1);
+  });
+  it("shows the whole last section of a note", () => {
+    expect(visibleLastLine(note, range(note, "other"))).toBe(12);
   });
 });
