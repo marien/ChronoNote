@@ -1,7 +1,7 @@
 {
   "name": "chrononote",
   "private": true,
-  "version": "0.25.6",
+  "version": "0.25.7",
   "license": "MIT",
   "type": "module",
   "scripts": {
