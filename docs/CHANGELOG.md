@@ -9768,6 +9768,13 @@ Marien, after abandoning the idea of Peek reacting to Teams calls by itself (wat
 - **#147:** an ad-hoc call section added at the end of a note gets two blank lines before it (spacing rule); resolving a drift conflict (keep mine / save copy) invalidates the disk cache, refreshes the all-notes cache and schedules the cloud push, so a OneDrive-backed note is not left un-synced.
 - `npm audit fix` (source-map-js, GHSA-68fv-2mgg-jv7q) turns the NPM Audit check green again.
 
+## 284. Tauri 2.12 stack (Dependabot #127-#141, taken together)
+
+**Status: implemented, not yet released.** The 15 Dependabot PRs were applied as ONE change instead of separately, because the Tauri crates and plugins have to move together: `tauri` 2.11.6 -> 2.12.1 (wry 0.57), `tauri-build` 2.7.1, `tauri-plugin-dialog` 2.8.1, `-opener` 2.7.0, `-updater` 2.13.1, `-process` 2.4.0, `-global-shortcut` 2.4.0, `-single-instance` 2.5.2 and the matching `@tauri-apps/*` JS packages, plus `@tauri-apps/cli` 2.12.1, vite 8.3.2, vitest 5.0.3 and the `taiki-e/install-action` pin 2.87.22. 2.12.1 is the latest stable `tauri`; crates.io has only 3.0 alphas beyond it.
+- **Pins removed:** `tauri-plugin-global-shortcut` was held at `~2.3` (and the JS package at `~2.3.2`) because 2.4 requires Tauri 2.12; both are now plain `2` / `^2.4.0`. No other version pin exists (the Rust 1.95 pin was for Android only, gone since v0.13.0).
+- **Verified natively** on a dev build against a throwaway notes folder (config backed up and restored): the app starts, Peek enters (compact, always on top, shows the section without the two gap lines) and leaves back to the exact original window rectangle, Peek from a maximized window gives back the maximized state and then the restore size, Zen covers the whole monitor and returns, the in-app update check against GitHub reports up to date ("Opnieuw controleren"). **Not verified:** installing an update with the new updater plugin (needs a real newer release), pressing the real global shortcuts (workstation locked), the release-profile installer build (the release script does it).
+- Gates: svelte-check 0, Vitest 761, Playwright 556, cargo 182.
+
 ## 281. `.agenda.json` time zone, and the two empty lines kept out of Peek's window
 
 **Status: implemented, not yet released.**
