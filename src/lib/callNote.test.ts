@@ -91,6 +91,11 @@ describe("insertSection: a new section goes where it belongs in time", () => {
     expect(insertSection("", "'Call 09:00", at(9), day)).toBe("'Call 09:00\n===========\n");
   });
 
+  it("enforces two blank lines (\\n\\n\\n) when inserting at the end of content per spec §2.3", () => {
+    const out = insertSection("Some content", "'Call 16:30", at(16, 30), day);
+    expect(out).toBe("Some content\n\n\n'Call 16:30\n===========\n");
+  });
+
   it("at the minute a meeting starts it goes after that meeting", () => {
     expect(titles(insertSection(note, "'Call 10:00", at(10), day))).toEqual(["Standup", "Design review", "'Call 10:00", "Weekly sync"]);
   });

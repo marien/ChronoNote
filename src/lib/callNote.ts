@@ -97,7 +97,7 @@ export function insertSection(content: string, title: string, minutes: number, e
   });
   const block = [title, underlineFor(title), ""];
   if (!next) {
-    return `${content.trimEnd()}${content.trim() ? "\n\n" : ""}${block.join("\n")}`;
+    return `${content.trimEnd()}${content.trim() ? "\n\n\n" : ""}${block.join("\n")}`;
   }
   const spacer = next.titleLine > 0 && lines[next.titleLine - 1].trim() !== "" ? [""] : [];
   lines.splice(next.titleLine, 0, ...spacer, ...block, "");
