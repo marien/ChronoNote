@@ -71,10 +71,11 @@ below applies regardless of which app reads it.
 
 ## 3. The schema
 
-The whole file is a single JSON **array** — not an object, not a bundle
-with metadata fields wrapping it (that's the different, unrelated import
-bundle format in `docs/migration-guide.md` — don't confuse the two). Every
-element is an object with exactly these four string fields:
+The file has two valid top-level shapes:
+- **Plain array** (default): wall-clock times in the machine's own local time zone.
+- **Timezone object** (`{ "timezone": "…", "meetings": [ … ] }`): times in another specified time zone (e.g. `GMT`, `UTC`, `Europe/London`), converted to local time upon reading — see §7.
+
+In both shapes, each meeting entry is an object with exactly these four string fields:
 
 ```json
 [
@@ -255,9 +256,9 @@ case-insensitive and exact once both are stripped of any prefix) and
 
 - **Writing `[]` when there are genuinely no meetings.** This is read as a
   broken/incomplete sync, not an empty calendar — see §4.
-- **Wrapping the array in an object**, e.g. `{"meetings": [...]}` or
+- **Wrapping the array in an unrecognized object**, e.g. `{"agenda": [...]}` or
   `{"agenda": [...], "version": 1}`. The file's top level must be the array
-  itself, not a key holding it.
+  itself, or the `{ "timezone": "...", "meetings": [...] }` format documented in §7.
 - **A missing `end` field** because your source calendar doesn't track
   meeting duration. All four fields are required regardless — synthesize a
   plausible `end` (e.g. `start` plus 30 minutes) rather than omitting it.
