@@ -20,6 +20,7 @@ import { backendKind, tabs } from "./stores";
 import { jumpToFileLine, openOrCreateDatedFile } from "./tabs";
 import * as api from "./tauriApi";
 import { isSetextUnderline, normalizeHeaderTitle, titleForMatching } from "./tokens";
+import { whenSilentSyncSettled } from "./calendarSyncActions";
 
 export interface AgendaEntry {
   start: string;
@@ -133,9 +134,9 @@ export async function noteCall(now: Date = new Date()): Promise<boolean> {
     const filename = `${date}.txt`;
     let tab = get(tabs).find((x) => x.filename === filename && !x.isScratchpad);
     if (!tab) return false;
-    // A brand-new day fills its meeting sections by itself (silent calendar sync); let that finish first.
+    // A brand-new day fills its meeting sections by itself (silent calendar sync); wait for any in-flight sync to settle.
     if (!tab.content.trim()) {
-      await new Promise((resolve) => setTimeout(resolve, 600));
+      await whenSilentSyncSettled(tab.id);
       tab = get(tabs).find((x) => x.id === tab!.id) ?? tab;
     }
 

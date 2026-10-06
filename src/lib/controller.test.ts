@@ -2079,6 +2079,44 @@ describe("calendarSyncActions (.agenda.json)", () => {
       const synced = await controller.maybeSilentSyncEmptyNote(emptyTab);
       expect(synced).toBe(false);
     });
+
+    it("whenSilentSyncSettled awaits the in-flight sync promise and clears afterwards", async () => {
+      vi.setSystemTime(new Date(2026, 8, 14));
+      controller.calendarSyncEnabled.set(true);
+      controller.agendaFileExists.set(true);
+
+      const emptyTab = tab({ id: "t-wait", filename: "2026-09-14.txt", content: "" });
+      controller.tabs.set([emptyTab]);
+      controller.activeTabId.set("t-wait");
+
+      let resolveAgenda!: (val: string[]) => void;
+      apiMock.readAgendaForDate.mockReturnValue(
+        new Promise<string[]>((res) => {
+          resolveAgenda = res;
+        })
+      );
+
+      // Trigger silent sync in the background
+      const syncPromise = controller.maybeSilentSyncEmptyNote(emptyTab);
+
+      // A parallel caller awaits whenSilentSyncSettled
+      let settled = false;
+      const waiter = controller.whenSilentSyncSettled("t-wait").then((res) => {
+        settled = true;
+        return res;
+      });
+
+      expect(settled).toBe(false);
+      resolveAgenda(["Morning Standup"]);
+
+      const result = await waiter;
+      expect(result).toBe(true);
+      expect(settled).toBe(true);
+      await syncPromise;
+
+      // Afterwards, whenSilentSyncSettled resolves immediately false for idle tab
+      expect(await controller.whenSilentSyncSettled("t-wait")).toBe(false);
+    });
   });
 });
 
