@@ -176,23 +176,19 @@ export const it = {
   "occurrence.settings.title": () =>
     "Occorrenze di una sezione",
   "occurrence.settings.hint.label": () =>
-    "Mostra l'indicatore delle occorrenze dopo i titoli delle sezioni (sperimentale)",
+    "Mostra l'indicatore delle occorrenze dopo i titoli delle sezioni",
   "occurrence.settings.hint.hint": () =>
     "Disattivato per impostazione predefinita. Mostra < (2/5) > dopo il titolo di una sezione quando altre note contengono la stessa sezione; fai clic sulle frecce per andarci. Alt+Sinistra / Alt+Destra funzionano sempre dentro una sezione, con o senza l'indicatore.",
   "toast.boot.failedToSave.occurrenceHint": () => "Impossibile salvare la preferenza dell'indicatore delle occorrenze",
   "peek.settings.callShortcut.label": () =>
     "Scorciatoia: note della riunione in corso (funziona da qualsiasi app)",
   "commandPalette.peekCall": () =>
-    "Peek: note della riunione in corso (o una nuova sezione di chiamata)",
+    "Peek: note della riunione in corso",
   "call.adhocTitle": ({ time }) => `'Chiamata ${time}`,
   "peek.settings.title": () =>
     "Peek (note compatte durante una chiamata)",
   "occurrence.peek": () =>
     "Peek su questa sezione",
-  "peek.settings.enabled.label": () =>
-    "Attiva Peek (sperimentale)",
-  "peek.settings.enabled.hint": () =>
-    "Disattivato per impostazione predefinita. Una finestra di note compatta e semitrasparente per prendere appunti durante una chiamata. Ancora in fase di prova.",
   "peek.settings.fitSection.label": () =>
     "Adatta l'altezza della finestra alla sezione",
   "peek.settings.opacity.label": () =>

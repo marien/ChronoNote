@@ -177,23 +177,19 @@ export const fr = {
   "occurrence.settings.title": () =>
     "Occurrences d'une section",
   "occurrence.settings.hint.label": () =>
-    "Afficher l'indicateur d'occurrences après les titres de section (expérimental)",
+    "Afficher l'indicateur d'occurrences après les titres de section",
   "occurrence.settings.hint.hint": () =>
     "Désactivé par défaut. Affiche < (2/5) > après le titre d'une section lorsque d'autres notes contiennent la même section ; cliquez sur les flèches pour y aller. Alt+Gauche / Alt+Droite fonctionnent toujours dans une section, avec ou sans l'indicateur.",
   "toast.boot.failedToSave.occurrenceHint": () => "Échec de l'enregistrement de l'indicateur d'occurrences",
   "peek.settings.callShortcut.label": () =>
     "Raccourci : notes de la réunion en cours (fonctionne depuis n'importe quelle application)",
   "commandPalette.peekCall": () =>
-    "Peek : notes de la réunion en cours (ou une nouvelle section d'appel)",
+    "Peek : notes de la réunion en cours",
   "call.adhocTitle": ({ time }) => `'Appel ${time}`,
   "peek.settings.title": () =>
     "Peek (notes compactes pendant un appel)",
   "occurrence.peek": () =>
     "Peek sur cette section",
-  "peek.settings.enabled.label": () =>
-    "Activer Peek (expérimental)",
-  "peek.settings.enabled.hint": () =>
-    "Désactivé par défaut. Une fenêtre de notes compacte et translucide pour prendre des notes pendant un appel. Encore en phase d'essai.",
   "peek.settings.fitSection.label": () =>
     "Adapter la hauteur de la fenêtre à la section",
   "peek.settings.opacity.label": () =>

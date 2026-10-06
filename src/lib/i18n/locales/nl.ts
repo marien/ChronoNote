@@ -175,23 +175,19 @@ export const nl = {
   "occurrence.settings.title": () =>
     "Voorkomens van een sectie",
   "occurrence.settings.hint.label": () =>
-    "Voorkomens-hint na sectietitels tonen (experimenteel)",
+    "Voorkomens-hint na sectietitels tonen",
   "occurrence.settings.hint.hint": () =>
     "Standaard uit. Toont < (2/5) > na de titel van een sectie als andere notities dezelfde sectie hebben; klik op de pijltjes om erheen te gaan. Alt+Links / Alt+Rechts werken altijd in een sectie, met of zonder hint.",
   "toast.boot.failedToSave.occurrenceHint": () => "Opslaan van de voorkomens-hint mislukt",
   "peek.settings.callShortcut.label": () =>
     "Sneltoets: notities voor de vergadering die nu bezig is (werkt vanuit elke app)",
   "commandPalette.peekCall": () =>
-    "Peek: notities voor de vergadering die nu bezig is (of een nieuwe gespreksectie)",
+    "Peek: notities voor de lopende vergadering",
   "call.adhocTitle": ({ time }) => `'Gesprek ${time}`,
   "peek.settings.title": () =>
     "Peek (compacte notities tijdens een gesprek)",
   "occurrence.peek": () =>
     "Peek op deze sectie",
-  "peek.settings.enabled.label": () =>
-    "Peek inschakelen (experimenteel)",
-  "peek.settings.enabled.hint": () =>
-    "Standaard uit. Een compact, doorzichtig notitievenster om notities te maken tijdens een gesprek. Wordt nog uitgeprobeerd.",
   "peek.settings.fitSection.label": () =>
     "Vensterhoogte aanpassen aan de sectie",
   "peek.settings.opacity.label": () =>

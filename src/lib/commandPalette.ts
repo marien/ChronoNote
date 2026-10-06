@@ -270,7 +270,7 @@ function commandItems(): PaletteItem[] {
         isZenMode.update((v) => !v);
       },
     },
-    ...(get(backendKind) === "desktop" && get(peekSettings).enabled
+    ...(get(backendKind) === "desktop"
       ? [
           {
             id: "cmd-toggle-peek",

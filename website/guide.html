@@ -194,6 +194,9 @@
         <div class="shortcut-row"><span>Find in this note</span><kbd>Ctrl+F</kbd></div>
         <div class="shortcut-row"><span>Cross-tab search</span><kbd>Ctrl+Shift+F</kbd></div>
         <div class="shortcut-row"><span>Sync calendar for this day (opt-in, desktop only)</span><kbd>Ctrl+Shift+C</kbd></div>
+        <div class="shortcut-row"><span>Previous / next occurrence of the section at the caret (also inside Peek; not on a Mac)</span><kbd>Alt+←</kbd> / <kbd>Alt+→</kbd></div>
+        <div class="shortcut-row"><span>Peek: compact note window for calls (desktop only, works from any app)</span><kbd>Ctrl+Alt+Space</kbd></div>
+        <div class="shortcut-row"><span>Peek on the meeting that is on now, or a new call section (desktop only, works from any app)</span><kbd>Ctrl+Alt+J</kbd></div>
         <div class="shortcut-row"><span>Zen mode: hide the bars and just write (desktop and web; plain F11 too in the desktop app)</span><kbd>Shift+F11</kbd></div>
         <div class="shortcut-row"><span>Settings</span><kbd>Ctrl+,</kbd></div>
         <div class="shortcut-row"><span>About ChronoNote</span><kbd>Ctrl+Shift+,</kbd></div>
@@ -331,6 +334,26 @@
               editor's font size and line spacing, and switch on pure black in dark mode for OLED screens. The
               date picker (<kbd>Ctrl+O</kbd>) shows at a glance which days have a note, which have open actions
               (an accent border) and, with calendar sync on, which only have meetings so far (a dashed box).</p>
+          </div>
+        </div>
+        <div class="workflow-step">
+          <div class="num">9</div>
+          <div>
+            <h3>Take notes during a call</h3>
+            <p>In the desktop app, <kbd>Ctrl+Alt+Space</kbd> (<kbd>Cmd+Option+Space</kbd> on a Mac, works from
+              any app) turns ChronoNote into <strong>Peek</strong>: a small, see-through, always-on-top window that
+              shows only the section your cursor was in, so you can keep looking at the people you are talking
+              to. It is the same editor, so everything you type is a normal edit, and it stays inside its
+              section; press the shortcut again (or <kbd>Esc</kbd>) to get the full window back exactly as it was.</p>
+            <p><kbd>Ctrl+Alt+J</kbd> opens Peek on the meeting that is on right now according to your
+              <code>.agenda.json</code> — or on a new <code>'Call 14:05</code> section placed in time order between
+              the day's meetings, when there is none. Inside Peek, <kbd>Alt+←</kbd> / <kbd>Alt+→</kbd> step through
+              earlier and later occurrences of the same section, and a quiet <code>‹ (2/5) ›</code> after any
+              section title (a setting, Settings → Appearance) shows where this note sits among them, with a small
+              Peek icon to open that section in Peek with the mouse.</p>
+            <p>The window is more solid while you type or point at it and fades to a see-through level a few
+              seconds later; the opacities, fade time, header strip (always, hover or hidden) and shortcuts are in
+              Settings.</p>
           </div>
         </div>
       </div>

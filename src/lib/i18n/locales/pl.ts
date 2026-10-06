@@ -177,23 +177,19 @@ export const pl = {
   "occurrence.settings.title": () =>
     "Wystąpienia sekcji",
   "occurrence.settings.hint.label": () =>
-    "Pokazuj wskaźnik wystąpień po tytułach sekcji (eksperymentalne)",
+    "Pokazuj wskaźnik wystąpień po tytułach sekcji",
   "occurrence.settings.hint.hint": () =>
     "Domyślnie wyłączone. Pokazuje < (2/5) > po tytule sekcji, gdy ta sama sekcja jest w innych notatkach; kliknij strzałki, aby tam przejść. Alt+Strzałka w lewo / Alt+Strzałka w prawo działają w sekcji zawsze, ze wskaźnikiem lub bez niego.",
   "toast.boot.failedToSave.occurrenceHint": () => "Nie udało się zapisać ustawienia wskaźnika wystąpień",
   "peek.settings.callShortcut.label": () =>
     "Skrót: notatki do trwającego spotkania (działa z każdej aplikacji)",
   "commandPalette.peekCall": () =>
-    "Peek: notatki do trwającego spotkania (lub nowa sekcja rozmowy)",
+    "Peek: notatki do trwającego spotkania",
   "call.adhocTitle": ({ time }) => `'Rozmowa ${time}`,
   "peek.settings.title": () =>
     "Peek (kompaktowe notatki podczas rozmowy)",
   "occurrence.peek": () =>
     "Peek na tę sekcję",
-  "peek.settings.enabled.label": () =>
-    "Włącz Peek (eksperymentalne)",
-  "peek.settings.enabled.hint": () =>
-    "Domyślnie wyłączone. Kompaktowe, półprzezroczyste okno notatek do robienia notatek podczas rozmowy. Wciąż w fazie prób.",
   "peek.settings.fitSection.label": () =>
     "Dopasuj wysokość okna do sekcji",
   "peek.settings.opacity.label": () =>

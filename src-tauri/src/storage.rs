@@ -97,9 +97,6 @@ pub struct PeekGeometry {
 #[derive(Serialize, Deserialize, Clone, PartialEq, Debug, TS)]
 #[serde(rename_all = "camelCase", default)]
 pub struct PeekConfig {
-    /// Feature toggle. Peek is experimental: off by default, and while off nothing of it is active (no global
-    /// shortcut, no menu entries, only this switch in Settings).
-    pub enabled: bool,
     /// Height in lines; 0 = fit the whole section.
     pub lines: u32,
     /// Background opacity in percent while the pointer is away (text is never translucent).
@@ -139,7 +136,6 @@ pub const PEEK_MAX_FADE_SECONDS: u32 = 60;
 impl Default for PeekConfig {
     fn default() -> Self {
         PeekConfig {
-            enabled: false,
             lines: 6,
             opacity: 50,
             opacity_hover: 95,
@@ -1378,7 +1374,6 @@ mod tests {
         let path = dir.path().join("config.json");
         let base = load_config_at(&path, &dir.path().join("Notes")).unwrap();
         let peek = PeekConfig {
-            enabled: true,
             lines: 3,
             opacity: 40,
             opacity_hover: 90,
@@ -1414,8 +1409,19 @@ mod tests {
     }
 
     #[test]
-    fn peek_is_off_by_default_with_the_header_shown() {
-        assert!(!PeekConfig::default().enabled);
+    fn a_config_saved_while_peek_was_optional_still_loads() {
+        let dir = tempdir().unwrap();
+        let path = dir.path().join("config.json");
+        fs::write(&path, r#"{"notesDir": "/n", "peek": {"enabled": false, "lines": 4, "opacity": 65, "defaultsVersion": 3}}"#).unwrap();
+        let cfg = load_config_at(&path, &dir.path().join("Notes")).unwrap();
+        assert_eq!((cfg.peek.lines, cfg.peek.opacity), (4, 65));
+        // the retired field is not written back
+        save_config_at(&path, &cfg).unwrap();
+        assert!(!fs::read_to_string(&path).unwrap().contains("\"enabled\""));
+    }
+
+    #[test]
+    fn peek_has_the_header_shown_by_default() {
         assert_eq!(PeekConfig::default().header, PeekHeader::Always);
         assert_eq!(PeekHeader::default(), PeekHeader::Always);
     }
@@ -1447,7 +1453,6 @@ mod tests {
         // 70 -> 80 (version 1) -> 50 (version 3): it was never the user's own choice.
         assert_eq!(cfg.peek.opacity, 50);
         assert_eq!(cfg.peek.lines, 4); // untouched
-        assert!(cfg.peek.enabled);
         assert_eq!(cfg.peek.defaults_version, PEEK_DEFAULTS_VERSION);
 
         // Once saved under the new version, a deliberate "hidden" / 70 is the user's own and stays.

@@ -470,21 +470,12 @@
         {#if $backendKind === "desktop"}
           <section class="s-group">
             <div class="settings-section-label">{$t("peek.settings.title")}</div>
-            <SettingToggle
-              label={$t("peek.settings.enabled.label")}
-              checked={$peekSettings.enabled}
-              onChange={(v) => peekSettings.update((s) => ({ ...s, enabled: v }))}
-            >
-              <svelte:fragment slot="description">{$t("peek.settings.enabled.hint")}</svelte:fragment>
-            </SettingToggle>
-            {#if $peekSettings.enabled}
+            <div class="s-note">{$t("peek.settings.hint")}</div>
             <SettingToggle
               label={$t("peek.settings.fitSection.label")}
               checked={$peekSettings.lines === 0}
               onChange={(v) => peekSettings.update((s) => ({ ...s, lines: v ? 0 : PEEK_DEFAULTS.lines, useLinesHeight: true }))}
-            >
-              <svelte:fragment slot="description">{$t("peek.settings.hint")}</svelte:fragment>
-            </SettingToggle>
+            />
             <SettingRow label={$t("peek.settings.opacity.label")}>
               <div class="s-slider">
                 <input
@@ -564,7 +555,6 @@
                 on:change={(e) => peekSettings.update((s) => ({ ...s, callShortcut: e.currentTarget.value.trim() }))}
               />
             </SettingRow>
-            {/if}
           </section>
         {/if}
       {:else if activeSettingsTab === "calendar"}

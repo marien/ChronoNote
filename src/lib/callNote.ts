@@ -1,4 +1,4 @@
-/** Peek on the meeting that is on now, or on a new ad-hoc call section (experimental, part of Peek).
+/** Peek on the meeting that is on now, or on a new ad-hoc call section (part of Peek).
  *
  * One manual action - a global shortcut (default Ctrl+Alt+J, no function key), or the command palette - that works out
  * what you are probably in right now and opens Peek on it, so notes for a call are one keypress away:
@@ -13,6 +13,7 @@ import { get } from "svelte/store";
 import { todayISO } from "./date";
 import { extractSectionBody } from "./history";
 import { t } from "./i18n";
+import { createGlobalShortcutBinder } from "./globalShortcut";
 import { enterPeek, leavePeek, peekMode, peekSettings } from "./peek";
 import { writeTabContent } from "./persistence";
 import { underlineFor } from "./sectionFormat";
@@ -112,8 +113,7 @@ let busy = false;
 /** The shortcut: Peek on the meeting that is on now, or on a new ad-hoc call section; pressed again it leaves Peek.
  * Returns whether Peek was entered. */
 export async function noteCall(now: Date = new Date()): Promise<boolean> {
-  const settings = get(peekSettings);
-  if (get(backendKind) !== "desktop" || !settings.enabled || busy) return false;
+  if (get(backendKind) !== "desktop" || busy) return false;
   if (get(peekMode)) {
     leavePeek();
     return false;
@@ -156,37 +156,14 @@ export async function noteCall(now: Date = new Date()): Promise<boolean> {
   }
 }
 
-/** Registers the global shortcut (works while another app, the call, has the focus) while Peek is enabled, and keeps it
- * in step with the setting. Desktop only. Call once at startup; returns a cleanup. */
+/** Registers the global shortcut (works while another app, the call, has the focus) and keeps it in step with the
+ * setting. Desktop only. Call once at startup; returns a cleanup. */
 export function wireCallNote(): () => void {
   if (get(backendKind) !== "desktop") return () => {};
-  let registered: string | null = null;
-  let version = 0;
-  const bind = async (accelerator: string) => {
-    if (!accelerator && !registered) return;
-    if (registered === accelerator) return;
-    const mine = ++version;
-    try {
-      const gs = await import("@tauri-apps/plugin-global-shortcut");
-      if (registered) await gs.unregister(registered).catch(() => {});
-      registered = null;
-      if (!accelerator || mine !== version) return;
-      await gs.register(accelerator, (e) => {
-        if (e.state === "Pressed") void noteCall();
-      });
-      registered = accelerator;
-    } catch {
-      // Taken by another app or not available: the command palette entry still works.
-    }
-  };
-  const unsubscribe = peekSettings.subscribe((s) => void bind(s.enabled ? s.callShortcut : ""));
+  const shortcut = createGlobalShortcutBinder(() => void noteCall());
+  const unsubscribe = peekSettings.subscribe((s) => shortcut.bind(s.callShortcut));
   return () => {
     unsubscribe();
-    version++;
-    if (registered) {
-      const old = registered;
-      registered = null;
-      void import("@tauri-apps/plugin-global-shortcut").then((gs) => gs.unregister(old)).catch(() => {});
-    }
+    shortcut.dispose();
   };
 }

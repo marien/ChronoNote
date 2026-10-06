@@ -174,23 +174,19 @@ export const es = {
   "occurrence.settings.title": () =>
     "Apariciones de una sección",
   "occurrence.settings.hint.label": () =>
-    "Mostrar la indicación de apariciones tras los títulos de sección (experimental)",
+    "Mostrar la indicación de apariciones tras los títulos de sección",
   "occurrence.settings.hint.hint": () =>
     "Desactivado por defecto. Muestra < (2/5) > tras el título de una sección cuando otras notas tienen la misma sección; haga clic en las flechas para ir a ella. Alt+Izquierda / Alt+Derecha funcionan siempre dentro de una sección, con o sin la indicación.",
   "toast.boot.failedToSave.occurrenceHint": () => "Error al guardar la preferencia de la indicación de apariciones",
   "peek.settings.callShortcut.label": () =>
     "Atajo: notas de la reunión en curso (funciona desde cualquier aplicación)",
   "commandPalette.peekCall": () =>
-    "Peek: notas de la reunión en curso (o una nueva sección de llamada)",
+    "Peek: notas de la reunión en curso",
   "call.adhocTitle": ({ time }) => `'Llamada ${time}`,
   "peek.settings.title": () =>
     "Peek (notas compactas durante una llamada)",
   "occurrence.peek": () =>
     "Peek en esta sección",
-  "peek.settings.enabled.label": () =>
-    "Activar Peek (experimental)",
-  "peek.settings.enabled.hint": () =>
-    "Desactivado por defecto. Una ventana de notas compacta y translúcida para tomar notas durante una llamada. Aún en pruebas.",
   "peek.settings.fitSection.label": () =>
     "Ajustar la altura de la ventana a la sección",
   "peek.settings.opacity.label": () =>

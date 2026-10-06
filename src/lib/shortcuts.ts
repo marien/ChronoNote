@@ -287,9 +287,9 @@ export function shortcutById(id: string): ShortcutDef {
   return def;
 }
 
-/** Shortcuts of features that are switched off (an experimental feature behind a setting). A switched-off shortcut
- * has no combos at all, so it neither matches a key press nor appears in the Shortcuts drawer (the drawer drops rows
- * with no combo) or anywhere else a combo is displayed. Peek starts switched off. */
+/** Shortcuts of features that are switched off (here: Peek, which only exists in the desktop app and is switched on
+ * by `wirePeek` there). A switched-off shortcut has no combos at all, so it neither matches a key press nor appears in
+ * the Shortcuts drawer (the drawer drops rows with no combo) or anywhere else a combo is displayed. */
 const switchedOff = new Set<string>(["togglePeekMode"]);
 export function setShortcutEnabled(id: string, enabled: boolean): void {
   if (enabled) switchedOff.delete(id);

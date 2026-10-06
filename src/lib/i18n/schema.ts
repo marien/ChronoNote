@@ -166,8 +166,6 @@ export type TranslationParams = {
   "occurrence.settings.hint.hint": undefined;
   "toast.boot.failedToSave.occurrenceHint": undefined;
   "occurrence.peek": undefined;
-  "peek.settings.enabled.label": undefined;
-  "peek.settings.enabled.hint": undefined;
   "peek.settings.fitSection.label": undefined;
   "peek.settings.opacity.label": undefined;
   "peek.settings.opacityHover.label": undefined;

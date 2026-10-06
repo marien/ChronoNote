@@ -8,7 +8,7 @@ const note = (extra: string, solo = "") =>
     "\n",
   );
 
-async function seed(page: Page, opts: { hint?: boolean; openTabs?: string[]; peek?: boolean } = {}) {
+async function seed(page: Page, opts: { hint?: boolean; openTabs?: string[] } = {}) {
   await seedApp(page, {
     seed: {
       notes: {
@@ -18,7 +18,6 @@ async function seed(page: Page, opts: { hint?: boolean; openTabs?: string[]; pee
       },
       session: { openTabs: opts.openTabs ?? ["2026-09-07.txt"], activeTab: "2026-09-07.txt" },
       occurrenceHint: opts.hint ?? false,
-      ...(opts.peek ? { peek: { enabled: true } } : {}),
     },
   });
 }
@@ -91,7 +90,7 @@ test.describe("Alt+Left / Alt+Right between the occurrences of a section", () =>
   });
 });
 
-test.describe("the < (X/Y) > hint after the section title (experimental)", () => {
+test.describe("the < (X/Y) > hint after the section title (setting)", () => {
   test.beforeEach(async ({ page }) => seed(page, { hint: true }));
 
   test("shows the position on the title line of the section the caret is in", async ({ page }) => {
@@ -122,13 +121,13 @@ test.describe("the < (X/Y) > hint after the section title (experimental)", () =>
     await goToLine(page, BODY);
     await expect(hint).toContainText("(1/3)");
     await expect(hint.locator(".occ-hint-btn").first()).toHaveClass(/\boff\b/);
-    await hint.locator(".occ-hint-btn").last().click();
+    await hint.locator(".occ-hint-btn:not(.occ-hint-peek)").last().click();
     await goToLine(page, BODY);
-    await hint.locator(".occ-hint-btn").last().click();
+    await hint.locator(".occ-hint-btn:not(.occ-hint-peek)").last().click();
     await expect(activeTabLabel(page)).toContainText("2026-09-10");
     await goToLine(page, BODY);
     await expect(hint).toContainText("(3/3)");
-    await expect(hint.locator(".occ-hint-btn").last()).toHaveClass(/\boff\b/);
+    await expect(hint.locator(".occ-hint-btn:not(.occ-hint-peek)").last()).toHaveClass(/\boff\b/);
   });
 
   test("a section that occurs only once gets no hint", async ({ page }) => {
@@ -165,15 +164,8 @@ test.describe("the setting", () => {
 });
 
 test.describe("the Peek button next to the occurrence hint", () => {
-  test("is there only while Peek is enabled", async ({ page }) => {
-    await seed(page, { hint: true });
-    await goToLine(page, BODY);
-    await expect(page.locator(".occ-hint")).toHaveCount(1);
-    await expect(page.locator(".occ-hint-peek")).toHaveCount(0);
-  });
-
   test("opens Peek on that section without the global shortcut", async ({ page }) => {
-    await seed(page, { hint: true, peek: true });
+    await seed(page, { hint: true });
     await goToLine(page, BODY); // the hint shows after the title of the section the caret is in
     const button = page.locator(".occ-hint-peek");
     await expect(button).toHaveCount(1);

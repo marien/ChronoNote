@@ -35,7 +35,7 @@ async function seedThreeOccurrences(page: Page, openTabs = ["2026-09-07.txt"]) {
         "2026-09-10.txt": note("- next week"),
       },
       session: { openTabs, activeTab: "2026-09-07.txt" },
-      peek: { enabled: true, header: "always", fadeSeconds: 1 },
+      peek: { header: "always", fadeSeconds: 1 },
     },
   });
 }
@@ -141,7 +141,7 @@ test.describe("peek mode: tests with their own seed", () => {
     const body = Array.from({ length: 25 }, (_, i) => `- line ${i + 1}`).join("\n");
     const long = ["Standup", "=======", "# one", "", "Weekly sync", "===========", body, "# open at the end", "", "Other", "=====", "x elsewhere"].join("\n");
     await seedApp(page, {
-      seed: { notes: { "2026-09-07.txt": long }, session: { openTabs: ["2026-09-07.txt"], activeTab: "2026-09-07.txt" }, peek: { enabled: true } },
+      seed: { notes: { "2026-09-07.txt": long }, session: { openTabs: ["2026-09-07.txt"], activeTab: "2026-09-07.txt" }, peek: {} },
     });
     await editor(page).click();
     await page.keyboard.press("ControlOrMeta+Home");
@@ -163,7 +163,7 @@ test.describe("peek mode: tests with their own seed", () => {
   });
 
   test("the header strip is shown by default, with the date and the section's title", async ({ page }) => {
-    await seedApp(page, { seed: { ...today(), peek: { enabled: true } } });
+    await seedApp(page, { seed: { ...today(), peek: {} } });
     await enterOnWeeklySync(page);
     const bar = page.locator("#peek-bar");
     await expect(bar).not.toHaveClass(/\bthin\b/);
@@ -172,7 +172,7 @@ test.describe("peek mode: tests with their own seed", () => {
   });
 
   test('set to "Verborgen" (hidden) the strip shrinks to a thin one that keeps the past/today/future colour and the drag handle', async ({ page }) => {
-    await seedApp(page, { seed: { ...today(), peek: { enabled: true, header: "never" } } });
+    await seedApp(page, { seed: { ...today(), peek: { header: "never" } } });
     await enterOnWeeklySync(page);
     const bar = page.locator("#peek-bar");
     await expect(bar).toHaveClass(/\bthin\b/);
@@ -185,7 +185,7 @@ test.describe("peek mode: tests with their own seed", () => {
   });
 
   test('"On hover": the thin strip grows into the header while the pointer is over the window', async ({ page }) => {
-    await seedApp(page, { seed: { ...today(), peek: { enabled: true, header: "hover" } } });
+    await seedApp(page, { seed: { ...today(), peek: { header: "hover" } } });
     await enterOnWeeklySync(page);
     const bar = page.locator("#peek-bar");
     await expect(bar).toHaveClass(/\bthin\b/);
@@ -198,7 +198,7 @@ test.describe("peek mode: tests with their own seed", () => {
   });
 
   test('"On hover": a pointer that leaves and comes back (or moves on) at once does not flap the strip', async ({ page }) => {
-    await seedApp(page, { seed: { ...today(), peek: { enabled: true, header: "hover" } } });
+    await seedApp(page, { seed: { ...today(), peek: { header: "hover" } } });
     await enterOnWeeklySync(page);
     const bar = page.locator("#peek-bar");
     const fire = (type: string) => page.evaluate((t) => document.documentElement.dispatchEvent(new MouseEvent(t)), type);
@@ -221,7 +221,7 @@ test.describe("peek mode: tests with their own seed", () => {
 
   test('"On hover": the full strip is drawn OVER the content: nothing underneath moves and the window never changes size', async ({ page }) => {
     await page.setViewportSize({ width: 420, height: 240 });
-    await seedApp(page, { seed: { ...today(), peek: { enabled: true, header: "hover" } } });
+    await seedApp(page, { seed: { ...today(), peek: { header: "hover" } } });
     await enterOnWeeklySync(page);
     const bar = page.locator("#peek-bar");
     const geometry = async () => {
@@ -252,7 +252,7 @@ test.describe("peek mode: tests with their own seed", () => {
   });
 
   test("the background opacity defaults to 50% (out of focus)", async ({ page }) => {
-    await seedApp(page, { seed: { ...today(), peek: { enabled: true } } });
+    await seedApp(page, { seed: { ...today(), peek: {} } });
     await openPeekSettings(page);
     await expect(peekRange(page, "Background opacity, out of focus")).toHaveValue("50");
   });
@@ -338,59 +338,37 @@ test.describe("peek mode: tests with their own seed", () => {
     await expect(activeTabLabel(page)).toContainText("2026-09-07");
   });
 
-  test.describe("feature toggle: off by default", () => {
+  test.describe("Peek is part of the app (no switch)", () => {
     test.beforeEach(async ({ page }) => seedApp(page, { seed: today() }));
 
-    test("with Peek off the shortcut does nothing", async ({ page }) => {
+    test("the shortcut works with no Peek configuration at all", async ({ page }) => {
       await enterOnWeeklySync(page);
-      await page.waitForTimeout(300);
-      await expect(page.locator("body.peek-mode")).toHaveCount(0);
-      await expect(page.locator("#peek-bar")).toHaveCount(0);
-      expect(await editor(page).innerText()).toContain("Standup");
+      await expect(page.locator("body.peek-mode")).toBeVisible();
+      await expect(page.locator("#peek-bar")).toContainText("Weekly sync");
     });
 
-    test("with Peek off there is no command-palette entry and no Shortcuts-drawer row", async ({ page }) => {
+    test("there is a command-palette entry and a Shortcuts-drawer row", async ({ page }) => {
       await editor(page).click();
       await page.keyboard.press("ControlOrMeta+K");
       await page.keyboard.type("peek");
-      await page.waitForTimeout(300);
-      await expect(page.locator(".modal-card")).not.toContainText("Peek");
+      await expect(page.locator(".modal-card")).toContainText("Peek");
       await page.keyboard.press("Escape");
       await page.keyboard.press("ControlOrMeta+Slash");
-      await expect(page.locator(".modal-card")).toContainText("Zen mode");
-      await expect(page.locator(".modal-card")).not.toContainText("Peek");
+      await expect(page.locator(".modal-card")).toContainText("Peek");
     });
 
-    test("Settings shows only the switch while it is off; switching it on reveals the rest and Peek works at once", async ({ page }) => {
+    test("Settings has the Peek settings and no enable switch", async ({ page }) => {
       await editor(page).click();
       await page.keyboard.press("ControlOrMeta+Comma");
       const settings = page.locator(".settings-modal-card");
-      const toggle = settings.getByLabel("Enable Peek (experimental)");
-      await toggle.scrollIntoViewIfNeeded();
-      await expect(toggle).not.toBeChecked();
-      await expect(settings.getByLabel("Background opacity, out of focus", { exact: true })).toHaveCount(0);
-      await expect(settings.getByLabel("Fit the window height to the section", { exact: true })).toHaveCount(0);
-
-      await settings.locator("label.toggle-switch", { hasText: "Enable Peek (experimental)" }).click();
-      await expect(toggle).toBeChecked();
       await expect(settings.getByLabel("Background opacity, out of focus", { exact: true })).toHaveCount(1);
-      await expect.poll(() => page.evaluate(() => window.__CHRONO_MOCK__!.peek.enabled)).toBe(true);
-
-      await page.keyboard.press("Escape");
-      await enterOnWeeklySync(page);
-      await expect(page.locator("body.peek-mode")).toBeVisible();
-
-      // Switching it off again ends Peek's availability.
-      await page.keyboard.press("ControlOrMeta+Alt+Space");
-      await expect(page.locator("body.peek-mode")).toHaveCount(0);
-      await page.keyboard.press("ControlOrMeta+Comma");
-      await settings.locator("label.toggle-switch", { hasText: "Enable Peek (experimental)" }).click();
-      await expect.poll(() => page.evaluate(() => window.__CHRONO_MOCK__!.peek.enabled)).toBe(false);
+      await expect(settings.getByLabel("Fit the window height to the section", { exact: true })).toHaveCount(1);
+      await expect(settings.getByLabel(/Enable Peek/)).toHaveCount(0);
     });
   });
 
   test("the height is a fit-to-section switch: lines 0 is on, turning it off gives the default 6 lines", async ({ page }) => {
-    await seedApp(page, { seed: { ...today("- x"), peek: { enabled: true, lines: 0 } } });
+    await seedApp(page, { seed: { ...today("- x"), peek: { lines: 0 } } });
     await openPeekSettings(page);
     const fit = page.getByLabel("Fit the window height to the section", { exact: true });
     await expect(fit).toBeChecked();
@@ -402,7 +380,7 @@ test.describe("peek mode: tests with their own seed", () => {
   });
 
   test("starting up shows the stored settings and does not overwrite them with defaults", async ({ page }) => {
-    await seedApp(page, { seed: { ...today("- x"), peek: { enabled: true, opacity: 35, lines: 4 } } });
+    await seedApp(page, { seed: { ...today("- x"), peek: { opacity: 35, lines: 4 } } });
     await openPeekSettings(page);
     await expect(peekRange(page, "Background opacity, out of focus")).toHaveValue("35");
     await expect(page.getByLabel("Fit the window height to the section", { exact: true })).not.toBeChecked();
@@ -459,7 +437,7 @@ test.describe("peek feedback round 3 (#126)", () => {
 
   test("a fade time of 0 never fades", async ({ page }) => {
     await seedApp(page, {
-      seed: { ...today(), peek: { enabled: true, header: "always", fadeSeconds: 0 } },
+      seed: { ...today(), peek: { header: "always", fadeSeconds: 0 } },
     });
     await enterOnWeeklySync(page);
     await page.waitForTimeout(1500);

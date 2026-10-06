@@ -4536,7 +4536,7 @@ body.peek-mode #app {
   pointer-events: none;
 }
 
-/* The optional "< (X/Y) >" after a section title (experimental setting): clearly not text, but quiet. */
+/* The optional "< (X/Y) >" after a section title (a setting): clearly not text, but quiet. */
 .occ-hint {
   margin-left: 0.7em;
   font-size: 0.82em;

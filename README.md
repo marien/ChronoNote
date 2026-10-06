@@ -100,22 +100,20 @@ for the exact schema.
 `Alt+Left` / `Alt+Right` show the previous / next note that has the section the cursor is in
 (a recurring meeting, say), from anywhere in the section including its title line. The keys
 are left alone where there is nothing to go to (a section that occurs once, text outside any
-section) and on a Mac, where Option+Arrow moves by word. An experimental setting
+section) and on a Mac, where Option+Arrow moves by word. A setting
 (Settings -> Appearance, off by default) also shows a quiet `< (2/5) >` after the section title
 with the arrows to click; it is hidden while the caret is on the title line.
 
-## Peek (experimental)
+## Peek
 
 A compact, see-through note window for taking notes during a call, so you can keep
-seeing the people you are talking to. It is **off by default**: switch it on in
-Settings -> Appearance -> "Enable Peek (experimental)" (desktop app only). Then
+seeing the people you are talking to. It is part of the desktop app (no switch to turn on):
 `Ctrl+Alt+Space` (`Cmd+Option+Space` on a Mac, works from any app) shrinks ChronoNote to a small
 always-on-top window showing only the section your cursor was in; `Alt+Left` /
 `Alt+Right` step to earlier / later occurrences of that section, and the same
 shortcut brings the full window back. It is the same window and editor, so
 everything you type is a normal edit, and it stays inside its section (to work in
-another section, leave Peek). Fit-to-section height, opacity, the header strip and the shortcut are
-in the same Settings group. `Ctrl+Alt+J` (also changeable) opens Peek on the meeting that is on now according to your `.agenda.json`, or on a new `'Call HH:MM` section placed in time order between the meetings. Peek reopens where you left it, or above the taskbar if that screen is gone.
+another section, leave Peek). Opacity (more solid while you are typing or pointing at it, fading after a few seconds), the fit-to-section height, the header strip and the shortcuts are in Settings -> Appearance. A small Peek icon after the occurrence hint opens it on that section with the mouse. `Ctrl+Alt+J` (also changeable) opens Peek on the meeting that is on now according to your `.agenda.json`, or on a new `'Call HH:MM` section placed in time order between the meetings. Peek reopens where you left it, or above the taskbar if that screen is gone.
 
 ## Web app and demo
 

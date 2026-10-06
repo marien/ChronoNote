@@ -171,23 +171,19 @@ export const en = {
   "occurrence.settings.title": () =>
     "Occurrences of a section",
   "occurrence.settings.hint.label": () =>
-    "Show the occurrence hint after section titles (experimental)",
+    "Show the occurrence hint after section titles",
   "occurrence.settings.hint.hint": () =>
     "Off by default. Shows < (2/5) > after a section's title when other notes have the same section; click the arrows to go there. Alt+Left / Alt+Right always work in a section, with or without the hint.",
   "toast.boot.failedToSave.occurrenceHint": () => "Failed to save occurrence hint preference",
   "peek.settings.callShortcut.label": () =>
     "Shortcut: notes for the meeting that is on now (works from any app)",
   "commandPalette.peekCall": () =>
-    "Peek: notes for the meeting that is on now (or a new call section)",
+    "Peek: notes for the meeting on now",
   "call.adhocTitle": ({ time }) => `'Call ${time}`,
   "peek.settings.title": () =>
     "Peek (compact notes during a call)",
   "occurrence.peek": () =>
     "Peek at this section",
-  "peek.settings.enabled.label": () =>
-    "Enable Peek (experimental)",
-  "peek.settings.enabled.hint": () =>
-    "Off by default. A compact, see-through note window for taking notes during a call. Still being tried out.",
   "peek.settings.fitSection.label": () =>
     "Fit the window height to the section",
   "peek.settings.opacity.label": () =>

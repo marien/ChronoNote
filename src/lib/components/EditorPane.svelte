@@ -631,7 +631,7 @@
         () => ({ prev: get(t)("peek.prev", undefined), next: get(t)("peek.next", undefined), peek: get(t)("occurrence.peek", undefined) }),
         (target, direction) => void controller.stepToOccurrence(target, direction),
         {
-          available: () => get(controller.backendKind) === "desktop" && get(controller.peekSettings).enabled,
+          available: () => get(controller.backendKind) === "desktop",
           open: (target) => void controller.enterPeek(target),
         },
       ),
@@ -773,7 +773,6 @@
     unsubscribeOccurrence = [
       controller.occurrenceInfo.subscribe(pushOccurrenceInfo),
       controller.peekMode.subscribe(pushOccurrenceInfo),
-      controller.peekSettings.subscribe(pushOccurrenceInfo),
       controller.occurrenceHint.subscribe((on) => {
         if (on && view) {
           const pos = view.state.selection.main.head;

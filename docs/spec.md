@@ -328,8 +328,8 @@ Every modal dialog conforms to a standardized 4-tier sizing scale, universal dis
    * Customizable monospace font size slider (12px to 18px in 0.5px steps, default 13px) and line spacing slider (1.30 to 1.80 in 0.05 steps, default 1.60) in Settings, updating live via `--editor-font-size` and `--editor-line-height` CSS custom properties.
    * Pure black OLED dark theme toggle (`pure_black: bool`) layers `data-pure-black` on top of the dark theme, mapping the canvas to absolute `#000000` for OLED battery savings and true zero-luminance black backgrounds.
 
-5. **Peek (experimental, desktop app only, off by default):** a compact, see-through, always-on-top note window for taking notes during a call.
-   * Off until Settings -> Appearance -> "Enable Peek (experimental)" is switched on (`peek.enabled` in `config.json`). While off it has no shortcut anywhere (not even the system-wide registration), no palette entry, no Shortcuts-drawer row, and Settings shows only the switch.
+5. **Peek (desktop app only):** a compact, see-through, always-on-top note window for taking notes during a call.
+   * Always available in the desktop app: there is no switch. Its two system-wide shortcuts (`Ctrl+Alt+Space`, `Ctrl+Alt+J`) are registered at startup (a key another app already holds simply does not register; change it in Settings), and it has a command-palette entry and a Shortcuts-drawer row. Its settings stay in Settings -> Appearance. The web app and demo have no Peek.
    * The same window and editor, shrunk: `Ctrl+Alt+Space` (`Cmd+Option+Space` on macOS; system-wide, editable; it was `Ctrl+F11` until v0.24, a function key, which needs Fn on a laptop) enters and leaves; leaving restores the full window exactly.
    * Shows only the section's body (its title and underline are not drawn: the header strip shows the title); edits cannot touch anything outside the section or its title/underline, and the caret stays in the body. To work in another section, leave Peek. If the visible note has no such section Peek ends. `Esc` leaves Peek, after an open drawer or the find bar has taken its `Esc`. A second global shortcut (default `Ctrl+Alt+J`, changeable; also in the command palette) opens Peek on the meeting that is on now according to today's `.agenda.json` (or the next one starting within 10 minutes), else on a new ad-hoc section `'Call HH:MM`; new sections are inserted in time order between the meetings. Peek opens where it was last left if that is still on a screen, else centred above the taskbar of the monitor the app is on. Opening any drawer or dialog (by its shortcut or otherwise) also ends Peek, since they do not fit the small window; the tabs are then left as they are.
    * `Alt+Left` / `Alt+Right` step to the previous / next note that has the section (past occurrences are editable). Leaving returns to the starting note and closes the notes Peek opened unless they were edited.
@@ -368,9 +368,9 @@ snapshot for reference, not the source of truth.
 | Set the line to a topic: to discuss / discussed / not discussed | `Ctrl+5` / `Ctrl+6` / `Ctrl+7` | `Cmd+5` / `Cmd+6` / `Cmd+7` |
 | Copy this section to its next occurrence | `Ctrl+Shift+.` | `Cmd+Shift+.` |
 | Zen mode (hide the bars) | `Shift+F11` (also `F11` on desktop) | `Shift+F11` / `Cmd+Option+Z` |
-| Peek: compact note window (experimental, only when enabled; works from any app) | `Ctrl+Alt+Space` | `Cmd+Option+Space` |
+| Peek: compact note window (desktop app; works from any app) | `Ctrl+Alt+Space` | `Cmd+Option+Space` |
 | Previous / next occurrence of the section the cursor is in (anywhere in the section, title line included; also steps Peek) | `Alt+Left` / `Alt+Right` | Peek only (Option+Arrow is word movement) |
-| Occurrence hint after section titles: `< (X/Y) >` (experimental setting, off by default; Settings -> Appearance), plus a small Peek button (only while Peek is enabled) that opens Peek on that section | click the arrows / the Peek button | click the arrows / the Peek button |
+| Occurrence hint after section titles: `< (X/Y) >` (a setting, off by default; Settings -> Appearance), plus a small Peek button (desktop app) that opens Peek on that section | click the arrows / the Peek button | click the arrows / the Peek button |
 | Jump to next / previous open action | `F2` / `Shift+F2` | `F2` / `Shift+F2` |
 | Caret to line start, then previous/next line start | `Ctrl+↑` / `Ctrl+↓` | *(not offered — Mac keeps the OS's own page-scroll on these keys)* |
 | Convert current line to a section header | `Ctrl+Shift+S` | `Cmd+Shift+S` |

@@ -15,6 +15,7 @@ import { occurrenceFiles, stepToOccurrence } from "./occurrences";
 import { closeTab, switchTab } from "./tabs";
 import { createPeekWindowController, nativePeekWindow } from "./peekWindow";
 import { whenZenSettled } from "./zenWindow";
+import { createGlobalShortcutBinder } from "./globalShortcut";
 import { PEEK_DEFAULTS } from "./peekDefaults";
 import * as api from "./tauriApi";
 import type { PeekConfig, PeekHeader } from "./types";
@@ -114,7 +115,7 @@ async function refreshPosition(): Promise<string[]> {
 }
 
 export function togglePeek(): void {
-  if (!get(peekSettings).enabled) return;
+  if (!desktop()) return;
   if (get(peekMode)) leavePeek();
   else void enterPeek();
 }
@@ -148,7 +149,7 @@ function tidyTabsAfterPeek(keepTabs: boolean): void {
 
 /** `section`: the (matching form of the) title of the section to show; without it Peek shows the section the caret is in. */
 export async function enterPeek(section?: string): Promise<boolean> {
-  if (!desktop() || !get(peekSettings).enabled || get(peekMode)) return false;
+  if (!desktop() || get(peekMode)) return false;
   const tab = get(tabs).find((x) => x.id === get(activeTabId));
   if (!tab) return false;
   const cursor = editorApi ? editorApi.getCursorLineIdx() : 0;
@@ -371,38 +372,16 @@ export function wirePeek(): () => void {
 
   cleanups.push(
     peekSettings.subscribe((s) => {
-      if (s.enabled) void controller().then((w) => w.setAlwaysOnTop(s.alwaysOnTop));
+      if (get(peekMode)) void controller().then((w) => w.setAlwaysOnTop(s.alwaysOnTop));
     }),
   );
 
-  // The feature toggle: while off, Peek has no shortcut anywhere and nothing about it runs; turning it off while
-  // Peek is showing ends Peek.
-  cleanups.push(
-    peekSettings.subscribe((s) => {
-      setShortcutEnabled("togglePeekMode", s.enabled);
-      if (!s.enabled && get(peekMode)) leavePeek();
-    }),
-  );
+  // Peek is part of the desktop app: its in-app shortcut is listed and active from startup (it stays off on the web).
+  setShortcutEnabled("togglePeekMode", true);
 
   // Global shortcut: works while another app (the call) has the focus.
-  let registered: string | null = null;
-  const bindShortcut = async (accelerator: string) => {
-    if (!accelerator && !registered) return; // switched off and never registered: nothing to do, nothing to load
-    if (registered === accelerator) return;
-    try {
-      const gs = await import("@tauri-apps/plugin-global-shortcut");
-      if (registered) await gs.unregister(registered).catch(() => {});
-      registered = null;
-      if (!accelerator) return;
-      await gs.register(accelerator, (e) => {
-        if (e.state === "Pressed") togglePeek();
-      });
-      registered = accelerator;
-    } catch {
-      // Taken by another app or not available: the in-app shortcut still works.
-    }
-  };
-  cleanups.push(peekSettings.subscribe((s) => void bindShortcut(s.enabled ? s.shortcut : "")));
+  const shortcut = createGlobalShortcutBinder(togglePeek);
+  cleanups.push(peekSettings.subscribe((s) => shortcut.bind(s.shortcut)), () => shortcut.dispose());
 
   return () => cleanups.forEach((c) => c());
 }

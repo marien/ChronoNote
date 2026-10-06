@@ -13,13 +13,12 @@ const note = ["Standup", "=======", "o prepare", "", "Design review", "=========
   "\n",
 );
 
-async function seed(page: Page, opts: { enabled?: boolean; agendaJson?: string; notes?: Record<string, string> } = {}) {
+async function seed(page: Page, opts: { agendaJson?: string; notes?: Record<string, string> } = {}) {
   await seedApp(page, {
     seed: {
       notes: opts.notes ?? { [TODAY]: note },
       session: { openTabs: [TODAY], activeTab: TODAY },
       agendaJson: opts.agendaJson ?? agenda(["08:00", "08:30", "Standup"], ["11:00", "12:00", "Design review"]),
-      peek: { enabled: opts.enabled ?? true },
     },
   });
 }
@@ -119,25 +118,12 @@ test.describe("Peek notes for the meeting that is on now", () => {
     await expect(page.locator("#peek-bar")).toContainText("2026-09-07");
   });
 
-  test("there is no command while Peek is off", async ({ page }) => {
-    await seed(page, { enabled: false });
-    await editor(page).click();
-    await page.keyboard.press("ControlOrMeta+K");
-    await page.keyboard.type("notes for the meeting");
-    await expect(page.locator(".palette-item, .modal-list [role=option]").filter({ hasText: "notes for the meeting" })).toHaveCount(0);
-  });
-
-  test("the global shortcut is registered while Peek is on (no function key), and gone when it is turned off", async ({ page }) => {
+  test("both global shortcuts are registered from startup (no function key)", async ({ page }) => {
     await seed(page);
     await expect.poll(() => page.evaluate(() => window.__CHRONO_MOCK__!.globalShortcuts)).toContain("CommandOrControl+Alt+J");
     // Both Peek shortcuts avoid function keys (they need Fn on a laptop).
     await expect.poll(() => page.evaluate(() => window.__CHRONO_MOCK__!.globalShortcuts)).toContain("CommandOrControl+Alt+Space");
     expect(await page.evaluate(() => window.__CHRONO_MOCK__!.globalShortcuts.some((k) => /F\d+$/.test(k)))).toBe(false);
-    await editor(page).click();
-    await page.keyboard.press("ControlOrMeta+Comma");
-    const settings = page.locator(".settings-modal-card");
-    await settings.locator("label.toggle-switch", { hasText: "Enable Peek" }).click();
-    await expect.poll(() => page.evaluate(() => window.__CHRONO_MOCK__!.globalShortcuts.includes("CommandOrControl+Alt+J"))).toBe(false);
   });
 
   test("the shortcut can be changed in Settings", async ({ page }) => {

@@ -3,7 +3,7 @@
  *
  * "Occurrences" are the dated notes that contain a section with the same date-insensitive title (the matching
  * Section History uses). The shortcut works anywhere in a section, on the title line included, and is not
- * experimental; only the hint in the editor is (`occurrenceHint`, off by default, `AppConfig.occurrenceHint`).
+ * not a setting; only the hint in the editor is (`occurrenceHint`, off by default, `AppConfig.occurrenceHint`).
  * Peek (`peek.ts`) steps with the same functions. */
 import { get, writable } from "svelte/store";
 import { extractSectionBody } from "./history";
@@ -15,7 +15,7 @@ import { t } from "./i18n";
 import { getSectionHeaderForLine, normalizeHeaderTitle, titleForMatching } from "./tokens";
 import type { NoteTab } from "./types";
 
-/** Experimental setting: show `< (X/Y) >` after a section's title. */
+/** Setting: show `< (X/Y) >` after a section's title. */
 export const occurrenceHint = writable(false);
 
 export async function setOccurrenceHint(enabled: boolean): Promise<void> {

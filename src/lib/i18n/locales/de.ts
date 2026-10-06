@@ -178,23 +178,19 @@ export const de = {
   "occurrence.settings.title": () =>
     "Vorkommen eines Abschnitts",
   "occurrence.settings.hint.label": () =>
-    "Vorkommen-Hinweis nach Abschnittstiteln anzeigen (experimentell)",
+    "Vorkommen-Hinweis nach Abschnittstiteln anzeigen",
   "occurrence.settings.hint.hint": () =>
     "Standardmäßig aus. Zeigt < (2/5) > hinter dem Titel eines Abschnitts, wenn andere Notizen denselben Abschnitt haben; mit den Pfeilen springen Sie dorthin. Alt+Links / Alt+Rechts funktionieren in einem Abschnitt immer, mit oder ohne Hinweis.",
   "toast.boot.failedToSave.occurrenceHint": () => "Speichern der Vorkommen-Einstellung fehlgeschlagen",
   "peek.settings.callShortcut.label": () =>
     "Tastenkürzel: Notizen zur laufenden Besprechung (funktioniert in jeder App)",
   "commandPalette.peekCall": () =>
-    "Peek: Notizen zur laufenden Besprechung (oder ein neuer Anrufabschnitt)",
+    "Peek: Notizen zur laufenden Besprechung",
   "call.adhocTitle": ({ time }) => `'Anruf ${time}`,
   "peek.settings.title": () =>
     "Peek (kompakte Notizen im Gespräch)",
   "occurrence.peek": () =>
     "Peek auf diesen Abschnitt",
-  "peek.settings.enabled.label": () =>
-    "Peek aktivieren (experimentell)",
-  "peek.settings.enabled.hint": () =>
-    "Standardmäßig aus. Ein kompaktes, durchsichtiges Notizfenster für Notizen während eines Gesprächs. Wird noch erprobt.",
   "peek.settings.fitSection.label": () =>
     "Fensterhöhe an den Abschnitt anpassen",
   "peek.settings.opacity.label": () =>
