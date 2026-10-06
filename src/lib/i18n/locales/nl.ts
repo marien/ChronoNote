@@ -192,10 +192,8 @@ export const nl = {
     "Peek inschakelen (experimenteel)",
   "peek.settings.enabled.hint": () =>
     "Standaard uit. Een compact, doorzichtig notitievenster om notities te maken tijdens een gesprek. Wordt nog uitgeprobeerd.",
-  "peek.settings.lines.label": () =>
-    "Hoogte (regels)",
-  "peek.settings.lines.fit": () =>
-    "Hele sectie passend",
+  "peek.settings.fitSection.label": () =>
+    "Vensterhoogte aanpassen aan de sectie",
   "peek.settings.opacity.label": () =>
     "Dekking van de achtergrond, niet in focus",
   "peek.settings.opacityHover.label": () =>

@@ -369,7 +369,7 @@ test.describe("peek mode: tests with their own seed", () => {
       await toggle.scrollIntoViewIfNeeded();
       await expect(toggle).not.toBeChecked();
       await expect(settings.getByLabel("Background opacity, out of focus", { exact: true })).toHaveCount(0);
-      await expect(settings.getByLabel("Height (lines)", { exact: true })).toHaveCount(0);
+      await expect(settings.getByLabel("Fit the window height to the section", { exact: true })).toHaveCount(0);
 
       await settings.locator("label.toggle-switch", { hasText: "Enable Peek (experimental)" }).click();
       await expect(toggle).toBeChecked();
@@ -389,11 +389,23 @@ test.describe("peek mode: tests with their own seed", () => {
     });
   });
 
+  test("the height is a fit-to-section switch: lines 0 is on, turning it off gives the default 6 lines", async ({ page }) => {
+    await seedApp(page, { seed: { ...today("- x"), peek: { enabled: true, lines: 0 } } });
+    await openPeekSettings(page);
+    const fit = page.getByLabel("Fit the window height to the section", { exact: true });
+    await expect(fit).toBeChecked();
+    await page.locator("label.toggle-switch", { hasText: "Fit the window height to the section" }).click();
+    await expect.poll(() => page.evaluate(() => window.__CHRONO_MOCK__!.peek.lines)).toBe(6);
+    await expect(fit).not.toBeChecked();
+    await page.locator("label.toggle-switch", { hasText: "Fit the window height to the section" }).click();
+    await expect.poll(() => page.evaluate(() => window.__CHRONO_MOCK__!.peek.lines)).toBe(0);
+  });
+
   test("starting up shows the stored settings and does not overwrite them with defaults", async ({ page }) => {
     await seedApp(page, { seed: { ...today("- x"), peek: { enabled: true, opacity: 35, lines: 4 } } });
     await openPeekSettings(page);
     await expect(peekRange(page, "Background opacity, out of focus")).toHaveValue("35");
-    await expect(peekRange(page, "Height (lines)")).toHaveValue("4");
+    await expect(page.getByLabel("Fit the window height to the section", { exact: true })).not.toBeChecked();
     await page.waitForTimeout(700); // longer than the save debounce
     expect(await page.evaluate(() => window.__CHRONO_MOCK__!.peek)).toMatchObject({ opacity: 35, lines: 4 });
   });

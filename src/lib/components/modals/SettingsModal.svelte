@@ -42,7 +42,7 @@
   import Segmented from "../Segmented.svelte";
   import SettingRow from "../SettingRow.svelte";
   import SettingToggle from "../SettingToggle.svelte";
-  import { peekSettings, type PeekHeaderMode } from "../../peek";
+  import { PEEK_DEFAULTS, peekSettings, type PeekHeaderMode } from "../../peek";
   import { occurrenceHint, setOccurrenceHint } from "../../occurrences";
   import { t } from "../../i18n";
   import { describeApiError } from "../../apiError";
@@ -478,22 +478,13 @@
               <svelte:fragment slot="description">{$t("peek.settings.enabled.hint")}</svelte:fragment>
             </SettingToggle>
             {#if $peekSettings.enabled}
-            <SettingRow label={$t("peek.settings.lines.label")}>
+            <SettingToggle
+              label={$t("peek.settings.fitSection.label")}
+              checked={$peekSettings.lines === 0}
+              onChange={(v) => peekSettings.update((s) => ({ ...s, lines: v ? 0 : PEEK_DEFAULTS.lines, useLinesHeight: true }))}
+            >
               <svelte:fragment slot="description">{$t("peek.settings.hint")}</svelte:fragment>
-              <div class="s-slider">
-                <input
-                  type="range"
-                  class="settings-range-slider"
-                  min="0"
-                  max="15"
-                  step="1"
-                  value={$peekSettings.lines}
-                  aria-label={$t("peek.settings.lines.label")}
-                  on:input={(e) => peekSettings.update((s) => ({ ...s, lines: parseInt(e.currentTarget.value, 10), useLinesHeight: true }))}
-                />
-                <span class="settings-slider-val">{$peekSettings.lines === 0 ? $t("peek.settings.lines.fit") : $peekSettings.lines}</span>
-              </div>
-            </SettingRow>
+            </SettingToggle>
             <SettingRow label={$t("peek.settings.opacity.label")}>
               <div class="s-slider">
                 <input

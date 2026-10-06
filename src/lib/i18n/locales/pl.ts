@@ -194,10 +194,8 @@ export const pl = {
     "Włącz Peek (eksperymentalne)",
   "peek.settings.enabled.hint": () =>
     "Domyślnie wyłączone. Kompaktowe, półprzezroczyste okno notatek do robienia notatek podczas rozmowy. Wciąż w fazie prób.",
-  "peek.settings.lines.label": () =>
-    "Wysokość (wiersze)",
-  "peek.settings.lines.fit": () =>
-    "Dopasuj do całej sekcji",
+  "peek.settings.fitSection.label": () =>
+    "Dopasuj wysokość okna do sekcji",
   "peek.settings.opacity.label": () =>
     "Krycie tła, bez fokusu",
   "peek.settings.opacityHover.label": () =>

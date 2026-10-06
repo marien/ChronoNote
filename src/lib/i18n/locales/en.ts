@@ -188,10 +188,8 @@ export const en = {
     "Enable Peek (experimental)",
   "peek.settings.enabled.hint": () =>
     "Off by default. A compact, see-through note window for taking notes during a call. Still being tried out.",
-  "peek.settings.lines.label": () =>
-    "Height (lines)",
-  "peek.settings.lines.fit": () =>
-    "Fit the whole section",
+  "peek.settings.fitSection.label": () =>
+    "Fit the window height to the section",
   "peek.settings.opacity.label": () =>
     "Background opacity, out of focus",
   "peek.settings.opacityHover.label": () =>

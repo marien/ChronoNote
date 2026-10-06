@@ -193,10 +193,8 @@ export const it = {
     "Attiva Peek (sperimentale)",
   "peek.settings.enabled.hint": () =>
     "Disattivato per impostazione predefinita. Una finestra di note compatta e semitrasparente per prendere appunti durante una chiamata. Ancora in fase di prova.",
-  "peek.settings.lines.label": () =>
-    "Altezza (righe)",
-  "peek.settings.lines.fit": () =>
-    "Adatta a tutta la sezione",
+  "peek.settings.fitSection.label": () =>
+    "Adatta l'altezza della finestra alla sezione",
   "peek.settings.opacity.label": () =>
     "Opacità dello sfondo, senza focus",
   "peek.settings.opacityHover.label": () =>

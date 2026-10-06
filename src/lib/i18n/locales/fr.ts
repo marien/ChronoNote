@@ -194,10 +194,8 @@ export const fr = {
     "Activer Peek (expérimental)",
   "peek.settings.enabled.hint": () =>
     "Désactivé par défaut. Une fenêtre de notes compacte et translucide pour prendre des notes pendant un appel. Encore en phase d'essai.",
-  "peek.settings.lines.label": () =>
-    "Hauteur (lignes)",
-  "peek.settings.lines.fit": () =>
-    "Ajuster à toute la section",
+  "peek.settings.fitSection.label": () =>
+    "Adapter la hauteur de la fenêtre à la section",
   "peek.settings.opacity.label": () =>
     "Opacité de l'arrière-plan, sans focus",
   "peek.settings.opacityHover.label": () =>

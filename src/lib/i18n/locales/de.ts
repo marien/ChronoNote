@@ -195,10 +195,8 @@ export const de = {
     "Peek aktivieren (experimentell)",
   "peek.settings.enabled.hint": () =>
     "Standardmäßig aus. Ein kompaktes, durchsichtiges Notizfenster für Notizen während eines Gesprächs. Wird noch erprobt.",
-  "peek.settings.lines.label": () =>
-    "Höhe (Zeilen)",
-  "peek.settings.lines.fit": () =>
-    "Ganzen Abschnitt anpassen",
+  "peek.settings.fitSection.label": () =>
+    "Fensterhöhe an den Abschnitt anpassen",
   "peek.settings.opacity.label": () =>
     "Deckkraft des Hintergrunds, ohne Fokus",
   "peek.settings.opacityHover.label": () =>
