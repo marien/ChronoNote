@@ -8,10 +8,22 @@
  * `docs/design/webapp-roadmap.md`. */
 import { get } from "svelte/store";
 import * as api from "./tauriApi";
-import { colorMode, droppedConflicts, modal, pendingImportPreview, settingsInitialTab, showToast, themeMode } from "./stores";
-import { checkActiveTabForDrift } from "./drift";
+import {
+  activeTabId,
+  colorMode,
+  droppedConflicts,
+  editorApi,
+  markTabClean,
+  modal,
+  pendingImportPreview,
+  settingsInitialTab,
+  showToast,
+  tabs,
+  themeMode,
+} from "./stores";
+import { checkActiveTabForDrift, sha256Hex } from "./drift";
 import type { DroppedNoteConflict } from "./stores";
-import { invalidateDiskNotesCache, refreshAllNotesCache } from "./persistence";
+import { cancelScheduledSave, invalidateDiskNotesCache, refreshAllNotesCache } from "./persistence";
 import { todayISO } from "./date";
 import { isValidNoteFilename } from "./noteFilename";
 import {
@@ -91,6 +103,7 @@ export async function handleDroppedNotes(files: File[]): Promise<void> {
   let skipped = 0;
   let conflicts = 0;
   const held: DroppedNoteConflict[] = [];
+  const list = get(tabs);
 
   for (const file of files) {
     if (!isValidNoteFilename(file.name)) {
@@ -98,7 +111,8 @@ export async function handleDroppedNotes(files: File[]): Promise<void> {
       continue;
     }
     const content = await file.text();
-    const existing = await api.readNote(file.name);
+    const openTab = list.find((t) => !t.isScratchpad && t.filename === file.name);
+    const existing = openTab !== undefined ? openTab.content : await api.readNote(file.name);
     if (existing === null) {
       await api.writeNote(file.name, content, undefined);
       imported++;
@@ -131,23 +145,39 @@ export type DroppedResolution = "keep" | "replace" | "both";
 export async function resolveDroppedNote(name: string, resolution: DroppedResolution): Promise<void> {
   const item = get(droppedConflicts).find((c) => c.name === name);
   if (!item) return;
-  try {
-    if (resolution === "replace") {
-      await api.writeNote(name, item.dropped, undefined);
-    } else if (resolution === "both") {
-      await api.writeNote(name, `${item.existing}
+  let newContent: string | null = null;
+  if (resolution === "replace") {
+    newContent = item.dropped;
+  } else if (resolution === "both") {
+    newContent = `${item.existing}
 
 ---
 # Dropped copy
 
-${item.dropped}`, undefined);
+${item.dropped}`;
+  }
+
+  try {
+    if (newContent !== null) {
+      await api.writeNote(name, newContent, undefined);
     }
   } catch (e) {
     showToast(`${get(t)("toast.exportImport.couldntSavePrefix", { name })} ${e instanceof Error ? e.message : String(e)}`);
     return;
   }
   droppedConflicts.update((list) => list.filter((c) => c.name !== name));
-  if (resolution !== "keep") {
+  if (resolution !== "keep" && newContent !== null) {
+    const list = get(tabs);
+    const openTab = list.find((t) => !t.isScratchpad && t.filename === name);
+    if (openTab) {
+      cancelScheduledSave(openTab.id);
+      openTab.content = newContent;
+      tabs.set([...list]);
+      markTabClean(openTab.id, await sha256Hex(newContent));
+      if (openTab.id === get(activeTabId) && editorApi) {
+        editorApi.setContent(newContent);
+      }
+    }
     invalidateDiskNotesCache();
     await refreshAllNotesCache();
     // The note may be open in a tab: pick the new text up (silent reload if it has no unsaved edits).

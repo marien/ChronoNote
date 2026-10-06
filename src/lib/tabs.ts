@@ -370,12 +370,16 @@ export async function promoteScratchpad(tabId: string) {
     return;
   }
   const todayFilename = todayISO() + ".txt";
-  const existingToday = (await api.readNote(todayFilename)) ?? "";
+  const existingTab = list.find((t) => !t.isScratchpad && t.filename === todayFilename);
+  if (existingTab) {
+    cancelScheduledSave(existingTab.id);
+  }
+  const existingToday = (existingTab ? existingTab.content : ((await api.readNote(todayFilename)) ?? "")).trimEnd();
   const merged = existingToday ? `${existingToday}\n\n\n${scratchContent}\n` : `${scratchContent}\n`;
   await writeNoteAndInvalidateCache(todayFilename, merged);
 
   const remaining = list.filter((t) => t.id !== tabId);
-  let todayTab = remaining.find((t) => t.filename === todayFilename);
+  let todayTab = remaining.find((t) => !t.isScratchpad && t.filename === todayFilename);
   if (todayTab) {
     todayTab.content = merged;
   } else {
@@ -384,6 +388,9 @@ export async function promoteScratchpad(tabId: string) {
   }
   tabs.set(remaining);
   markTabClean(todayTab.id, await sha256Hex(merged)); // §94 baseline for the promoted note
+  if (todayTab.id === get(activeTabId) && editorApi) {
+    editorApi.setContent(merged);
+  }
   activeTabId.set(todayTab.id);
   showToast(get(t)("toast.tabs.promotedScratchpad", { filename: todayFilename }));
 }
