@@ -1,1 +1,0 @@
-import{c as e,f as t,m as n,p as r,s as i,u as a}from"./window-9GVWQ5vj.js";export{t as LogicalSize,r as PhysicalPosition,n as PhysicalSize,i as availableMonitors,e as currentMonitor,a as getCurrentWindow};
