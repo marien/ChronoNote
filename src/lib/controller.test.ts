@@ -567,6 +567,41 @@ describe("updateActiveTabContent", () => {
     controller.activeTabId.set("a");
     controller.updateActiveTabContent("new");
     expect(get(controller.tabs)[0].content).toBe("new");
+    controller.cancelScheduledSave("a");
+  });
+
+  it("writeTabContent cancels pending debounced save and prevents stale snapshot overwrite", async () => {
+    controller.tabs.set([tab({ id: "cancel-tab", filename: "2026-09-20.txt", content: "start" })]);
+    controller.activeTabId.set("cancel-tab");
+    controller.updateActiveTabContent("typed content");
+    expect(apiMock.writeNote).not.toHaveBeenCalled();
+
+    // An external action (e.g. Action Drawer or paste deferral) updates the tab immediately
+    const currentTabs = get(controller.tabs);
+    controller.tabs.set(controller.writeTabContent("cancel-tab", "action updated content", currentTabs));
+    expect(apiMock.writeNote).toHaveBeenCalledWith("2026-09-20.txt", "action updated content");
+    apiMock.writeNote.mockClear();
+
+    // Wait past the 400ms debounce timer: it should NOT overwrite with "typed content"
+    await new Promise((r) => setTimeout(r, 450));
+    expect(apiMock.writeNote).not.toHaveBeenCalled();
+  });
+});
+
+describe("deleteNoteAndInvalidateCache", () => {
+  it("immediately removes deleted note from allNotesCache even while tab is open", () => {
+    controller.allNotesCache.set({
+      "2026-09-01.txt": "content to delete",
+      "2026-09-02.txt": "keep this",
+    });
+    controller.tabs.set([tab({ id: "a", filename: "2026-09-01.txt", content: "" })]);
+
+    controller.deleteNoteAndInvalidateCache("2026-09-01.txt");
+
+    const cache = get(controller.allNotesCache);
+    expect(cache["2026-09-01.txt"]).toBeUndefined();
+    expect(cache["2026-09-02.txt"]).toBe("keep this");
+    expect(apiMock.deleteNote).toHaveBeenCalledWith("2026-09-01.txt");
   });
 });
 

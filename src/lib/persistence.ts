@@ -101,7 +101,7 @@ export function scheduleSave(tab: NoteTab) {
   clearTimeout(saveTimers[tab.id]);
   saveTimers[tab.id] = setTimeout(() => {
     delete saveTimers[tab.id];
-    void persistTab(tab);
+    void persistTab(tab.id);
   }, 400);
 }
 
@@ -117,15 +117,22 @@ async function matchesDisk(tab: NoteTab): Promise<boolean> {
 }
 
 /** Write a tab's note to disk unless it's unchanged (see `matchesDisk`).
- * Registered as in flight for the whole check-and-write, so the app-close
- * barrier (§93) still waits for it. */
-function persistTab(tab: NoteTab): Promise<void> {
+ * Reads the latest tab content from store at execution time to avoid stale
+ * closure overwrites. Registered as in flight for the whole check-and-write,
+ * so the app-close barrier (§93) still waits for it. */
+function persistTab(tabId: string): Promise<void> {
   const p: Promise<void> = (async () => {
+    const tab = get(tabs).find((t) => t.id === tabId);
+    if (!tab || tab.isScratchpad) {
+      pendingSaveTabIds.delete(tabId);
+      recomputeSaveState();
+      return;
+    }
     const unchanged = await matchesDisk(tab);
     // Settled either way from here: the "Saving…" mark goes now, and a real
     // write moves the filename into `inFlightFilenames` synchronously, so
     // there's no "saved" flicker in between.
-    pendingSaveTabIds.delete(tab.id);
+    pendingSaveTabIds.delete(tabId);
     if (unchanged) {
       recomputeSaveState();
       return;
@@ -149,7 +156,7 @@ export function flushSave(tabId: string) {
   }
   const tab = get(tabs).find((t) => t.id === tabId);
   if (tab && !tab.isScratchpad) {
-    void persistTab(tab);
+    void persistTab(tabId);
   } else {
     pendingSaveTabIds.delete(tabId);
     recomputeSaveState();
@@ -289,6 +296,15 @@ export function writeNoteAndInvalidateCache(filename: string, content: string): 
  * worst, lingers), not to interrupt the close with a toast the way a
  * real content-loss failure would. */
 export function deleteNoteAndInvalidateCache(filename: string): void {
+  if (diskNotesCacheRaw !== null) delete diskNotesCacheRaw[filename];
+  allNotesCache.update((map) => {
+    if (filename in map) {
+      const next = { ...map };
+      delete next[filename];
+      return next;
+    }
+    return map;
+  });
   const hasOpenTab = get(tabs).some((t) => !t.isScratchpad && t.filename === filename);
   if (!hasOpenTab) diskNotesCacheRaw = null;
   // With OneDrive sync on, Rust has just queued the cloud copy for deletion;
@@ -367,6 +383,7 @@ export function updateActiveTabContent(newContent: string) {
  * from outside the editor: the Action Drawer, section import, the
  * copy/paste-forward defer. */
 export function writeTabContent(tabId: string, newContent: string, list: NoteTab[]): NoteTab[] {
+  cancelScheduledSave(tabId);
   const idx = list.findIndex((t) => t.id === tabId);
   if (idx === -1) return list;
   const next = [...list];
