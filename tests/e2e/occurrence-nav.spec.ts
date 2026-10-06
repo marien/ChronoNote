@@ -8,7 +8,7 @@ const note = (extra: string, solo = "") =>
     "\n",
   );
 
-async function seed(page: Page, opts: { hint?: boolean; openTabs?: string[] } = {}) {
+async function seed(page: Page, opts: { hint?: boolean; openTabs?: string[]; peek?: boolean } = {}) {
   await seedApp(page, {
     seed: {
       notes: {
@@ -18,6 +18,7 @@ async function seed(page: Page, opts: { hint?: boolean; openTabs?: string[] } = 
       },
       session: { openTabs: opts.openTabs ?? ["2026-09-07.txt"], activeTab: "2026-09-07.txt" },
       occurrenceHint: opts.hint ?? false,
+      ...(opts.peek ? { peek: { enabled: true } } : {}),
     },
   });
 }
@@ -160,5 +161,28 @@ test.describe("the setting", () => {
     await page.reload();
     await goToLine(page, BODY);
     await expect(page.locator(".occ-hint")).toHaveCount(1);
+  });
+});
+
+test.describe("the Peek button next to the occurrence hint", () => {
+  test("is there only while Peek is enabled", async ({ page }) => {
+    await seed(page, { hint: true });
+    await goToLine(page, BODY);
+    await expect(page.locator(".occ-hint")).toHaveCount(1);
+    await expect(page.locator(".occ-hint-peek")).toHaveCount(0);
+  });
+
+  test("opens Peek on that section without the global shortcut", async ({ page }) => {
+    await seed(page, { hint: true, peek: true });
+    await goToLine(page, BODY); // the hint shows after the title of the section the caret is in
+    const button = page.locator(".occ-hint-peek");
+    await expect(button).toHaveCount(1);
+    await expect(button).toHaveAttribute("title", "Peek at this section");
+    await button.dispatchEvent("mousedown");
+    await expect(page.locator("body.peek-mode")).toBeVisible();
+    await expect(page.locator("#peek-bar")).toContainText("Weekly sync");
+    const text = await editor(page).innerText();
+    expect(text).toContain("budget");
+    expect(text).not.toContain("Standup");
   });
 });

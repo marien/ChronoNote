@@ -9801,3 +9801,12 @@ Marien, after abandoning the idea of Peek reacting to Teams calls by itself (wat
 - Settings: "Background opacity, in focus" / "Background opacity, out of focus" (relabelled) and "Fade to out of focus after (seconds)" (shows "Never" at 0), in all 7 languages (no native review).
 - Verified natively on a dev build (throwaway notes folder, config restored): the real computed background stayed opaque ~2 s, faded 0.8 -> 0.5 alpha over ~0.6 s, and a key press returned to 100 % immediately.
 - Tests: Vitest +2 (763), Playwright +3 net in `peek.spec.ts` (focus at start and fade, typing, pointer rules, 0 = never), cargo round-trip test has the new field.
+
+## 286. Peek defaults 95 / 50 / 3 s, a Peek button on the occurrence hint, Settings header scrollbar
+
+**Status: implemented, not yet released.**
+
+- **New Peek defaults:** in focus 95 %, out of focus 50 %, fade after 3 s (was 100 / 80 / 5). `PEEK_DEFAULTS_VERSION` 3: a saved config whose values are still exactly the old defaults (80 / 100 / 5) moves once; a value the user set (e.g. 65, 90, 0) is kept, and on version 3 the old numbers are the user's own again. A version-0 config that had opacity 70 goes 70 -> 80 -> 50.
+- **Peek button next to the occurrence hint:** a small window icon after `< (X/Y) >` (shown only on the desktop app while Peek is enabled; tooltip "Peek at this section" in 7 languages) opens Peek on that section with the mouse, without the global shortcut (`enterPeek(target)`). The hint is rebuilt when Peek is turned on/off.
+- **Settings header scrollbar:** the tab strip (`.settings-tabs`) scrolls sideways (`overflow-x: auto`, which also makes `overflow-y` auto), and its tabs have `margin-bottom: -1px` so the active underline covers the rule under the row; that 1px poked out of the padding box and showed a tiny vertical scrollbar. The rule is now an inset box-shadow in 1px of bottom padding: same look (checked on a screenshot), no overflow. Regression test measures `scrollHeight <= clientHeight` (fails without the fix).
+- Tests: cargo 183 (migration test), Vitest 763, Playwright 562 (the History flake passes alone).

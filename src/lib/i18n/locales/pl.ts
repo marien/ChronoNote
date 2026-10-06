@@ -188,6 +188,8 @@ export const pl = {
   "call.adhocTitle": ({ time }) => `'Rozmowa ${time}`,
   "peek.settings.title": () =>
     "Peek (kompaktowe notatki podczas rozmowy)",
+  "occurrence.peek": () =>
+    "Peek na tę sekcję",
   "peek.settings.enabled.label": () =>
     "Włącz Peek (eksperymentalne)",
   "peek.settings.enabled.hint": () =>

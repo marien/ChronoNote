@@ -188,6 +188,8 @@ export const fr = {
   "call.adhocTitle": ({ time }) => `'Appel ${time}`,
   "peek.settings.title": () =>
     "Peek (notes compactes pendant un appel)",
+  "occurrence.peek": () =>
+    "Peek sur cette section",
   "peek.settings.enabled.label": () =>
     "Activer Peek (expérimental)",
   "peek.settings.enabled.hint": () =>

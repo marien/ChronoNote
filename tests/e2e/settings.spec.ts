@@ -39,6 +39,16 @@ function themeControl(page: Page) {
 }
 
 test.describe("settings (Ctrl/Cmd+,)", () => {
+  test("the tab strip in the header has no scrollbar of its own (its tabs sit 1px low to cover the rule)", async ({ page }) => {
+    await seedApp(page, { seed: "busy-week" });
+    await openSettings(page);
+    const strip = await settings(page).locator(".settings-tabs").evaluate((el) => ({
+      scrollHeight: el.scrollHeight,
+      clientHeight: el.clientHeight,
+    }));
+    expect(strip.scrollHeight).toBeLessThanOrEqual(strip.clientHeight);
+  });
+
   test("#48: light/dark/system theme control flips data-theme and persists to config", async ({ page }) => {
     await seedApp(page, { seed: "busy-week" });
     await openSettings(page);

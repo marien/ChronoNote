@@ -4,6 +4,7 @@
  * `info` is pushed in by the editor (`setOccurrenceInfo`); null means "show nothing". */
 import { type Extension, StateEffect, StateField } from "@codemirror/state";
 import { Decoration, type DecorationSet, EditorView, WidgetType } from "@codemirror/view";
+import { ICONS } from "../icons/paths";
 import { findSectionRange } from "../peekSection";
 
 export interface OccurrenceInfo {
@@ -16,6 +17,14 @@ export interface OccurrenceInfo {
 export interface OccurrenceHintLabels {
   prev: string;
   next: string;
+  /** Tooltip of the small Peek button. */
+  peek: string;
+}
+
+/** The small Peek button after the arrows: shown only while `available()` (Peek on, desktop app). */
+export interface OccurrencePeek {
+  available: () => boolean;
+  open: (target: string) => void;
 }
 
 export const setOccurrenceInfo = StateEffect.define<OccurrenceInfo | null>();
@@ -25,6 +34,8 @@ class HintWidget extends WidgetType {
     private readonly info: OccurrenceInfo,
     private readonly labels: OccurrenceHintLabels,
     private readonly step: (target: string, direction: -1 | 1) => void,
+    private readonly peek: OccurrencePeek | undefined,
+    private readonly peekable: boolean,
   ) {
     super();
   }
@@ -35,7 +46,9 @@ class HintWidget extends WidgetType {
       other.info.index === this.info.index &&
       other.info.total === this.info.total &&
       other.labels.prev === this.labels.prev &&
-      other.labels.next === this.labels.next
+      other.labels.next === this.labels.next &&
+      other.labels.peek === this.labels.peek &&
+      other.peekable === this.peekable
     );
   }
 
@@ -67,6 +80,21 @@ class HintWidget extends WidgetType {
       count,
       button("›", 1, this.labels.next, index < total),
     );
+    if (this.peekable && this.peek) {
+      const open = this.peek.open;
+      const p = document.createElement("span");
+      p.className = "occ-hint-btn occ-hint-peek";
+      p.setAttribute("role", "button");
+      p.setAttribute("aria-label", this.labels.peek);
+      p.title = this.labels.peek;
+      p.innerHTML = `<svg viewBox="0 0 24 24" width="1.1em" height="1.1em" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS.peek}</svg>`;
+      p.addEventListener("mousedown", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        open(target);
+      });
+      wrap.append(p);
+    }
     return wrap;
   }
 
@@ -78,6 +106,7 @@ class HintWidget extends WidgetType {
 export function occurrenceHintExtension(
   labels: () => OccurrenceHintLabels,
   step: (target: string, direction: -1 | 1) => void,
+  peek?: OccurrencePeek,
 ): Extension {
   const field = StateField.define<{ info: OccurrenceInfo | null; decorations: DecorationSet }>({
     create: () => ({ info: null, decorations: Decoration.none }),
@@ -100,7 +129,7 @@ export function occurrenceHintExtension(
       if (tr.state.selection.ranges.some((r) => r.from <= line.to && r.to >= line.from)) {
         return { info, decorations: Decoration.none };
       }
-      const widget = new HintWidget(info, labels(), step);
+      const widget = new HintWidget(info, labels(), step, peek, peek?.available() ?? false);
       return { info, decorations: Decoration.set([Decoration.widget({ widget, side: 1 }).range(line.to)]) };
     },
     provide: (f) => EditorView.decorations.from(f, (v) => v.decorations),

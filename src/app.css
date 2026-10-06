@@ -3166,8 +3166,12 @@ kbd {
 .settings-tabs {
   display: flex;
   gap: 4px;
-  padding: 6px 16px 0;
-  border-bottom: 1px solid var(--edge-soft);
+  /* The tabs sit 1px lower than the content (margin-bottom: -1px) so the active tab's underline covers the rule
+     under the row. With the rule as a border that 1px poked out of the padding box and, because this box scrolls
+     sideways (overflow-x: auto makes overflow-y auto too), showed a tiny vertical scrollbar. The rule is an inset
+     shadow in 1px of bottom padding instead: the same look, and the tabs stay inside the box. */
+  padding: 6px 16px 1px;
+  box-shadow: inset 0 -1px 0 var(--edge-soft);
   flex-shrink: 0;
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
@@ -4564,4 +4568,14 @@ body.peek-mode #app {
 }
 .occ-hint-count {
   font-variant-numeric: tabular-nums;
+}
+/* The small Peek button after the arrows. */
+.occ-hint-peek {
+  margin-left: 0.2em;
+  display: inline-flex;
+  align-items: center;
+  vertical-align: middle;
+}
+.occ-hint-peek svg {
+  display: block;
 }

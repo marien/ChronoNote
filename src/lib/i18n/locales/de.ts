@@ -189,6 +189,8 @@ export const de = {
   "call.adhocTitle": ({ time }) => `'Anruf ${time}`,
   "peek.settings.title": () =>
     "Peek (kompakte Notizen im Gespräch)",
+  "occurrence.peek": () =>
+    "Peek auf diesen Abschnitt",
   "peek.settings.enabled.label": () =>
     "Peek aktivieren (experimentell)",
   "peek.settings.enabled.hint": () =>

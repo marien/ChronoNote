@@ -10,15 +10,15 @@ export const PEEK_MAX_FADE_SECONDS = 60;
 export const PEEK_DEFAULTS: PeekConfig = {
   enabled: false,
   lines: 6,
-  opacity: 80,
-  opacityHover: 100,
-  fadeSeconds: 5,
+  opacity: 50,
+  opacityHover: 95,
+  fadeSeconds: 3,
   alwaysOnTop: true,
   header: "always",
   shortcut: "CommandOrControl+Alt+Space",
   geometry: null,
   useLinesHeight: false,
-  defaultsVersion: 2,
+  defaultsVersion: 3,
   callShortcut: "CommandOrControl+Alt+J",
 };
 

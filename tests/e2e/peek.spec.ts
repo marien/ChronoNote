@@ -251,10 +251,10 @@ test.describe("peek mode: tests with their own seed", () => {
     expect(await geometry()).toEqual(collapsed);
   });
 
-  test("the background opacity defaults to 80%", async ({ page }) => {
+  test("the background opacity defaults to 50% (out of focus)", async ({ page }) => {
     await seedApp(page, { seed: { ...today(), peek: { enabled: true } } });
     await openPeekSettings(page);
-    await expect(peekRange(page, "Background opacity, out of focus")).toHaveValue("80");
+    await expect(peekRange(page, "Background opacity, out of focus")).toHaveValue("50");
   });
 
   test.describe("from Zen mode", () => {
@@ -417,32 +417,32 @@ test.describe("peek feedback round 3 (#126)", () => {
       bar: document.documentElement.style.getPropertyValue("--peek-bar-opacity"),
     }));
 
-  test("the window is in focus (100%) when Peek starts and fades to out of focus (80%) after the timer; the header is 5 points above", async ({ page }) => {
+  test("the window is in focus (95%) when Peek starts and fades to out of focus (50%) after the timer; the header is 5 points above", async ({ page }) => {
     await enterOnWeeklySync(page);
-    await expect.poll(() => vars(page)).toEqual({ bg: "100", bar: "100" });
-    await expect.poll(() => vars(page), { timeout: 4000 }).toEqual({ bg: "80", bar: "85" });
+    await expect.poll(() => vars(page)).toEqual({ bg: "95", bar: "100" });
+    await expect.poll(() => vars(page), { timeout: 4000 }).toEqual({ bg: "50", bar: "55" });
   });
 
   test("typing takes it back into focus at once, and it fades again after the timer", async ({ page }) => {
     await enterOnWeeklySync(page);
-    await expect.poll(() => vars(page), { timeout: 8000 }).toEqual({ bg: "80", bar: "85" });
+    await expect.poll(() => vars(page), { timeout: 8000 }).toEqual({ bg: "50", bar: "55" });
     await page.keyboard.type("x");
-    await expect.poll(() => vars(page)).toEqual({ bg: "100", bar: "100" });
-    await expect.poll(() => vars(page), { timeout: 8000 }).toEqual({ bg: "80", bar: "85" });
+    await expect.poll(() => vars(page)).toEqual({ bg: "95", bar: "100" });
+    await expect.poll(() => vars(page), { timeout: 8000 }).toEqual({ bg: "50", bar: "55" });
   });
 
   test("moving the pointer over the window is activity; resting or leaving is not", async ({ page }) => {
     await enterOnWeeklySync(page);
-    await expect.poll(() => vars(page), { timeout: 8000 }).toEqual({ bg: "80", bar: "85" });
+    await expect.poll(() => vars(page), { timeout: 8000 }).toEqual({ bg: "50", bar: "55" });
     await page.locator("html").dispatchEvent("mouseenter");
-    await expect.poll(() => vars(page)).toEqual({ bg: "100", bar: "100" });
+    await expect.poll(() => vars(page)).toEqual({ bg: "95", bar: "100" });
     // the pointer leaving does not fade it by itself: the countdown just runs on
     await page.locator("html").dispatchEvent("mouseleave");
     await page.waitForTimeout(300);
-    expect(await vars(page)).toEqual({ bg: "100", bar: "100" });
-    await expect.poll(() => vars(page), { timeout: 8000 }).toEqual({ bg: "80", bar: "85" });
+    expect(await vars(page)).toEqual({ bg: "95", bar: "100" });
+    await expect.poll(() => vars(page), { timeout: 8000 }).toEqual({ bg: "50", bar: "55" });
     await page.locator("html").dispatchEvent("mousemove");
-    await expect.poll(() => vars(page)).toEqual({ bg: "100", bar: "100" });
+    await expect.poll(() => vars(page)).toEqual({ bg: "95", bar: "100" });
   });
 
   test("a fade time of 0 never fades", async ({ page }) => {
@@ -451,13 +451,13 @@ test.describe("peek feedback round 3 (#126)", () => {
     });
     await enterOnWeeklySync(page);
     await page.waitForTimeout(1500);
-    expect(await vars(page)).toEqual({ bg: "100", bar: "100" });
+    expect(await vars(page)).toEqual({ bg: "95", bar: "100" });
   });
 
-  test("the in-focus opacity (default 100%) and the fade time are settings", async ({ page }) => {
+  test("the in-focus opacity (default 95%) and the fade time are settings", async ({ page }) => {
     await editor(page).click();
     await page.keyboard.press("ControlOrMeta+Comma");
-    await expect(peekRange(page, "Background opacity, in focus")).toHaveValue("100");
+    await expect(peekRange(page, "Background opacity, in focus")).toHaveValue("95");
     await expect(peekRange(page, "Fade to out of focus after (seconds)")).toHaveValue("1");
   });
 

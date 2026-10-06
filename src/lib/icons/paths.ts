@@ -14,6 +14,8 @@
 export type IconName = keyof typeof ICONS;
 
 export const ICONS = {
+  // The Peek button next to the occurrence hint: a small window with its header strip.
+  peek: `<rect x="4" y="6" width="16" height="12" rx="2"/><path d="M4 10h16"/><path d="M7 8h0" stroke-width="2.2"/>`,
   "new-scratchpad": `<path d="M13 3H7a1 1 0 0 0-1 1v11"/><path d="M13 3l4 4v6"/><path d="M17 7h-4V3"/><path d="M8 19h8M12 15v8"/>`,
   "date-note": `<rect x="4" y="4.5" width="16" height="15" rx="2.5"/><path d="M4 9.5h16M8 2.5v3.5M16 2.5v3.5"/><circle cx="8" cy="13" r="1" fill="currentColor" stroke="none"/><circle cx="12" cy="13" r="1" fill="currentColor" stroke="none"/><circle cx="16" cy="13" r="1" fill="currentColor" stroke="none"/><circle cx="8" cy="16.5" r="1" fill="currentColor" stroke="none"/><rect x="10.5" y="15" width="3" height="3" rx="0.8"/><circle cx="16" cy="16.5" r="1" fill="currentColor" stroke="none"/>`,
   actions: `<rect x="3.5" y="4" width="6" height="6" rx="1.4"/><path d="M5 7l1.4 1.4L9 5.6"/><path d="M13 7h7"/><rect x="3.5" y="14" width="6" height="6" rx="1.4"/><path d="M13 17h7"/>`,

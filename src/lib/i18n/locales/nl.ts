@@ -186,6 +186,8 @@ export const nl = {
   "call.adhocTitle": ({ time }) => `'Gesprek ${time}`,
   "peek.settings.title": () =>
     "Peek (compacte notities tijdens een gesprek)",
+  "occurrence.peek": () =>
+    "Peek op deze sectie",
   "peek.settings.enabled.label": () =>
     "Peek inschakelen (experimenteel)",
   "peek.settings.enabled.hint": () =>

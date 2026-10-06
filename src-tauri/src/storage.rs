@@ -128,7 +128,7 @@ pub struct PeekConfig {
 
 pub const PEEK_MAX_LINES: u32 = 15;
 /// Bumped when Peek's defaults change; see `PeekConfig::migrated`.
-pub const PEEK_DEFAULTS_VERSION: u32 = 2;
+pub const PEEK_DEFAULTS_VERSION: u32 = 3;
 /// The shortcut Peek shipped with (v0.23): a function key, which needs Fn on a laptop.
 pub const PEEK_OLD_DEFAULT_SHORTCUT: &str = "CommandOrControl+F11";
 /// The default now: no function key, no letter that AltGr produces a character on.
@@ -141,9 +141,9 @@ impl Default for PeekConfig {
         PeekConfig {
             enabled: false,
             lines: 6,
-            opacity: 80,
-            opacity_hover: 100,
-            fade_seconds: 5,
+            opacity: 50,
+            opacity_hover: 95,
+            fade_seconds: 3,
             always_on_top: true,
             header: PeekHeader::default(),
             shortcut: PEEK_DEFAULT_SHORTCUT.to_string(),
@@ -173,6 +173,19 @@ impl PeekConfig {
         }
         if self.defaults_version < 2 && self.shortcut == PEEK_OLD_DEFAULT_SHORTCUT {
             self.shortcut = PEEK_DEFAULT_SHORTCUT.to_string();
+        }
+        // 2 -> 3: the in focus / out of focus / fade defaults became 95 / 50 / 3 s. A value that is still the old
+        // default (never changed, only saved along with another setting) moves; one the user chose is kept.
+        if self.defaults_version < 3 {
+            if self.opacity == 80 {
+                self.opacity = 50;
+            }
+            if self.opacity_hover == 100 {
+                self.opacity_hover = 95;
+            }
+            if self.fade_seconds == 5 {
+                self.fade_seconds = 3;
+            }
         }
         self.defaults_version = PEEK_DEFAULTS_VERSION;
         self
@@ -1431,7 +1444,8 @@ mod tests {
         .unwrap();
         let cfg = load_config_at(&path, &dir.path().join("Notes")).unwrap();
         assert_eq!(cfg.peek.header, PeekHeader::Always);
-        assert_eq!(cfg.peek.opacity, 80);
+        // 70 -> 80 (version 1) -> 50 (version 3): it was never the user's own choice.
+        assert_eq!(cfg.peek.opacity, 50);
         assert_eq!(cfg.peek.lines, 4); // untouched
         assert!(cfg.peek.enabled);
         assert_eq!(cfg.peek.defaults_version, PEEK_DEFAULTS_VERSION);
@@ -1445,6 +1459,40 @@ mod tests {
         let kept = load_config_at(&path, &dir.path().join("Notes")).unwrap();
         assert_eq!(kept.peek.header, PeekHeader::Never);
         assert_eq!(kept.peek.opacity, 70);
+    }
+
+    #[test]
+    fn peek_focus_defaults_move_to_95_50_3_only_when_they_were_the_old_defaults() {
+        let dir = tempdir().unwrap();
+        let path = dir.path().join("config.json");
+        let notes = dir.path().join("Notes");
+        // Saved by 0.25.x with the old defaults (80 / 100 / 5): moves once.
+        fs::write(
+            &path,
+            r#"{"notesDir": "/n", "peek": {"enabled": true, "opacity": 80, "opacityHover": 100, "fadeSeconds": 5, "defaultsVersion": 2}}"#,
+        )
+        .unwrap();
+        let cfg = load_config_at(&path, &notes).unwrap();
+        assert_eq!((cfg.peek.opacity, cfg.peek.opacity_hover, cfg.peek.fade_seconds), (50, 95, 3));
+        // Values the user chose are kept, whatever their version.
+        fs::write(
+            &path,
+            r#"{"notesDir": "/n", "peek": {"enabled": true, "opacity": 65, "opacityHover": 90, "fadeSeconds": 0, "defaultsVersion": 2}}"#,
+        )
+        .unwrap();
+        let kept = load_config_at(&path, &notes).unwrap();
+        assert_eq!((kept.peek.opacity, kept.peek.opacity_hover, kept.peek.fade_seconds), (65, 90, 0));
+        // On version 3 the old numbers are the user's own again.
+        fs::write(
+            &path,
+            r#"{"notesDir": "/n", "peek": {"enabled": true, "opacity": 80, "opacityHover": 100, "fadeSeconds": 5, "defaultsVersion": 3}}"#,
+        )
+        .unwrap();
+        let own = load_config_at(&path, &notes).unwrap();
+        assert_eq!((own.peek.opacity, own.peek.opacity_hover, own.peek.fade_seconds), (80, 100, 5));
+        // A fresh config has the new defaults.
+        let d = PeekConfig::default();
+        assert_eq!((d.opacity, d.opacity_hover, d.fade_seconds), (50, 95, 3));
     }
 
     #[test]
