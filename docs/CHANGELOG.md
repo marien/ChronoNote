@@ -9833,3 +9833,12 @@ Marien, after abandoning the idea of Peek reacting to Teams calls by itself (wat
 - **Why this also removes the clash found after v0.26.0:** the old system-wide `Ctrl+Alt+Space` was NOT registered natively on the development machine while the Claude desktop app was running (the plugin answered "HotKey already registered" for it; not proven that Claude holds it, but its quick-entry default is that key). A key registered natively is only `Ctrl+Alt+N` now; `P` and `N` both registered fine on that machine when tried.
 - Texts: the Shortcuts-drawer label of the toggle no longer says "works from any app" (7 locales); docs/spec, README and the website guide list the new keys.
 - Tests: Rust migration test replaced (184), Playwright: toggle key now `KeyP` everywhere, and "exactly one global shortcut is registered: the call one, N" (Vitest 768).
+
+## 289. Peek's in-app key is Ctrl+Shift+P (Ctrl+Alt+P typed an o with a diaeresis)
+
+**Status: implemented, not yet released.**
+
+- **Bug (found by Marien right after v0.26.1):** on his keyboard (US-International: AltGr = Ctrl+Alt) AltGr+P types an o with a diaeresis, so the in-app Peek toggle `Ctrl+Alt+P` swallowed that letter in the editor and could not be used. It is the same AltGr trap that picked J for the first call shortcut; I had checked N and P only against the OS (they registered), not against his layout.
+- **Fix:** `togglePeekMode` is `Ctrl+Shift+P` / `Cmd+Shift+P` (still in-app only, still P for Peek; Shift does not take part in AltGr, and the key was free in the shortcut registry). Docs, README, spec and the website guide updated.
+- **Guard:** a unit test (`shortcuts.test.ts`) fails if ANY in-app shortcut is a Ctrl+Alt+letter chord (Mac-only Option aliases excepted), and an e2e test checks that Ctrl+Alt+P does not enter Peek. The system-wide call shortcut (`Ctrl+Alt+N`) is a global key registered with the OS; on US-International AltGr+N is n with a tilde, which that global key also blocks system-wide (Marien already uses it and can change it in Settings).
+- Tests: Vitest 770, Playwright 562.

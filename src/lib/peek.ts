@@ -378,7 +378,7 @@ export function wirePeek(): () => void {
   // Peek is part of the desktop app: its in-app shortcut is listed and active from startup (it stays off on the web).
   setShortcutEnabled("togglePeekMode", true);
 
-  // Peek on the section at the caret is an in-app shortcut only (`togglePeekMode`, Ctrl+Alt+P). The one system-wide
+  // Peek on the section at the caret is an in-app shortcut only (`togglePeekMode`, Ctrl+Shift+P). The one system-wide
   // Peek shortcut is the call-note one (`callNote.ts`): it also leaves Peek when it is showing.
 
   return () => cleanups.forEach((c) => c());

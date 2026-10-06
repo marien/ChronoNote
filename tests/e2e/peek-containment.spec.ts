@@ -30,7 +30,7 @@ async function enterPeek(page: Page, downLines = 6) {
   await editor(page).click();
   await page.keyboard.press("ControlOrMeta+Home");
   for (let i = 0; i < downLines; i++) await page.keyboard.press("ArrowDown");
-  await page.keyboard.press("ControlOrMeta+Alt+KeyP");
+  await page.keyboard.press("ControlOrMeta+Shift+KeyP");
   await expect(page.locator("body.peek-mode")).toBeVisible();
 }
 
@@ -136,7 +136,7 @@ test.describe("peek stays inside its section", () => {
     await page.keyboard.press("ControlOrMeta+Home");
     await page.keyboard.type("ZZ");
     for (let i = 0; i < 6; i++) await page.keyboard.press("ArrowDown");
-    await page.keyboard.press("ControlOrMeta+Alt+KeyP");
+    await page.keyboard.press("ControlOrMeta+Shift+KeyP");
     await expect(page.locator("body.peek-mode")).toBeVisible();
     for (let i = 0; i < 4; i++) await page.keyboard.press("ControlOrMeta+Z");
     expect((await docText(page)).startsWith("ZZStandup")).toBe(true);

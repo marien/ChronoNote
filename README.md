@@ -108,7 +108,7 @@ with the arrows to click; it is hidden while the caret is on the title line.
 
 A compact, see-through note window for taking notes during a call, so you can keep
 seeing the people you are talking to. It is part of the desktop app (no switch to turn on):
-`Ctrl+Alt+P` (`Cmd+Option+P` on a Mac, inside ChronoNote) shrinks it to a small
+`Ctrl+Shift+P` (`Cmd+Shift+P` on a Mac, inside ChronoNote) shrinks it to a small
 always-on-top window showing only the section your cursor was in; `Alt+Left` /
 `Alt+Right` step to earlier / later occurrences of that section, and the same
 shortcut brings the full window back. It is the same window and editor, so

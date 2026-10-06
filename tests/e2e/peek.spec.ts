@@ -22,7 +22,7 @@ async function enterOnWeeklySync(page: Page) {
   await editor(page).click();
   await page.keyboard.press("ControlOrMeta+Home");
   for (let i = 0; i < 6; i++) await page.keyboard.press("ArrowDown");
-  await page.keyboard.press("ControlOrMeta+Alt+KeyP");
+  await page.keyboard.press("ControlOrMeta+Shift+KeyP");
 }
 
 /** Three occurrences of the section (09-01 past, 09-07 today, 09-10 future), Peek on, header strip visible. */
@@ -62,7 +62,7 @@ test.describe("peek mode", () => {
   test("the shortcut again brings the full note back", async ({ page }) => {
     await enterOnWeeklySync(page);
     await page.waitForTimeout(300);
-    await page.keyboard.press("ControlOrMeta+Alt+KeyP");
+    await page.keyboard.press("ControlOrMeta+Shift+KeyP");
     await expect(page.locator("body.peek-mode")).toHaveCount(0);
     expect(await editor(page).innerText()).toContain("Standup");
   });
@@ -102,7 +102,7 @@ test.describe("peek mode", () => {
     await page.keyboard.press("Alt+ArrowRight");
     await expect(page.locator("#peek-bar")).toContainText("2026-09-10");
     await expect(tab(page, "2026-09-10.txt")).toHaveCount(1);
-    await page.keyboard.press("ControlOrMeta+Alt+KeyP");
+    await page.keyboard.press("ControlOrMeta+Shift+KeyP");
     await expect(page.locator("body.peek-mode")).toHaveCount(0);
     await expect(tab(page, "2026-09-01.txt")).toHaveCount(0);
     await expect(tab(page, "2026-09-10.txt")).toHaveCount(0);
@@ -116,7 +116,7 @@ test.describe("peek mode", () => {
     await editor(page).click();
     await page.keyboard.press("ControlOrMeta+End");
     await page.keyboard.type("kept");
-    await page.keyboard.press("ControlOrMeta+Alt+KeyP");
+    await page.keyboard.press("ControlOrMeta+Shift+KeyP");
     await expect(page.locator("body.peek-mode")).toHaveCount(0);
     await expect(tab(page, "2026-09-01.txt")).toHaveCount(1);
     await expect(activeTabLabel(page)).toContainText("2026-09-01");
@@ -149,7 +149,7 @@ test.describe("peek mode: tests with their own seed", () => {
     // Normal window: the markers exist and the ruler is part of the layout.
     await expect.poll(() => page.locator(".cm-ruler-marker").count()).toBeGreaterThan(0);
     await expect(page.locator(".cm-overview-ruler")).not.toHaveCSS("display", "none");
-    await page.keyboard.press("ControlOrMeta+Alt+KeyP");
+    await page.keyboard.press("ControlOrMeta+Shift+KeyP");
     await expect(page.locator("body.peek-mode")).toBeVisible();
     await page.evaluate(() => { (document.querySelector(".cm-scroller") as HTMLElement).scrollTop = 1000; });
     await page.waitForTimeout(500);
@@ -266,10 +266,10 @@ test.describe("peek mode: tests with their own seed", () => {
       for (let i = 0; i < 6; i++) await page.keyboard.press("ArrowDown");
       await page.keyboard.press("Shift+F11");
       await expect(page.locator("body.zen-mode")).toBeVisible();
-      await page.keyboard.press("ControlOrMeta+Alt+KeyP");
+      await page.keyboard.press("ControlOrMeta+Shift+KeyP");
       await expect(page.locator("body.peek-mode")).toBeVisible();
       await expect(page.locator("body.zen-mode")).toHaveCount(0);
-      await page.keyboard.press("ControlOrMeta+Alt+KeyP");
+      await page.keyboard.press("ControlOrMeta+Shift+KeyP");
       await expect(page.locator("body.peek-mode")).toHaveCount(0);
     });
   });
@@ -332,7 +332,7 @@ test.describe("peek mode: tests with their own seed", () => {
     await enterOnWeeklySync(page);
     await page.keyboard.press("Alt+ArrowLeft");
     await expect(page.locator("#peek-bar")).toContainText("2026-09-01");
-    await page.keyboard.press("ControlOrMeta+Alt+KeyP");
+    await page.keyboard.press("ControlOrMeta+Shift+KeyP");
     await expect(page.locator("body.peek-mode")).toHaveCount(0);
     await expect(tab(page, "2026-09-01.txt")).toHaveCount(1);
     await expect(activeTabLabel(page)).toContainText("2026-09-07");
@@ -345,6 +345,13 @@ test.describe("peek mode: tests with their own seed", () => {
       await enterOnWeeklySync(page);
       await expect(page.locator("body.peek-mode")).toBeVisible();
       await expect(page.locator("#peek-bar")).toContainText("Weekly sync");
+    });
+
+    test("Ctrl+Alt+P (AltGr+P, an o with a diaeresis on US-International) is not a Peek shortcut", async ({ page }) => {
+      await editor(page).click();
+      await page.keyboard.press("ControlOrMeta+Alt+KeyP");
+      await page.waitForTimeout(300);
+      await expect(page.locator("body.peek-mode")).toHaveCount(0);
     });
 
     test("there is a command-palette entry and a Shortcuts-drawer row", async ({ page }) => {

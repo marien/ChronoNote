@@ -228,8 +228,9 @@ export const SHORTCUTS: ShortcutDef[] = [
   {
     id: "togglePeekMode",
     // Desktop app only, and in-app only: Peek on the section at the caret. (The system-wide Peek shortcut is the
-    // separate, configurable call-note one.) P for Peek.
-    combos: [{ mod: true, alt: true, code: "KeyP" }],
+    // separate, configurable call-note one.) P for Peek. Shift, not Alt: Ctrl+Alt is AltGr, and Ctrl+Alt+P types an o with
+    // a diaeresis on the US-International layout, so it would swallow that letter in the editor.
+    combos: [{ mod: true, shift: true, code: "KeyP" }],
   },
 ];
 
