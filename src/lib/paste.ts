@@ -10,7 +10,7 @@ import { writeTabContent } from "./persistence";
 import { todayISO } from "./date";
 import { t } from "./i18n";
 
-let lastCopiedAction: { text: string; sourceTabId: string } | null = null;
+let lastCopiedAction: { text: string; sourceTabId: string; sourceOffset?: number } | null = null;
 
 /** Indentation-tolerant (§50, same as everywhere else an open-action
  * symbol is recognized) and multi-line: a copied block only needs *some*
@@ -47,9 +47,10 @@ export function countOpenActionsInText(text: string): number {
 
 /** Called on every `copy` inside the editor. `lastCopiedAction` is only
  * ever meaningful for the *very next* paste, so any fresh copy must
- * replace it. */
-export function recordCopiedAction(text: string, sourceTabId: string) {
-  lastCopiedAction = new RegExp(OPEN_ITEM_LINE, "m").test(text) ? { text, sourceTabId } : null;
+ * replace it. `sourceOffset` records the exact character offset in the source document
+ * to disambiguate identical action lines. */
+export function recordCopiedAction(text: string, sourceTabId: string, sourceOffset?: number) {
+  lastCopiedAction = new RegExp(OPEN_ITEM_LINE, "m").test(text) ? { text, sourceTabId, sourceOffset } : null;
 }
 
 /** §86 (#9): links the most recent paste-forward to the `# ` → `> ` defer
@@ -65,6 +66,7 @@ interface PasteDeferLink {
   sourceTabId: string;
   openBlock: string;
   deferredBlock: string;
+  sourceOffset?: number;
   reverted: boolean;
 }
 let pasteDeferLink: PasteDeferLink | null = null;
@@ -101,7 +103,19 @@ export function onEditorUndo(activeTabId: string, before: string, after: string)
   const list = get(tabs);
   const src = list.find((t) => t.id === link.sourceTabId);
   if (src && src.content.includes(link.deferredBlock)) {
-    tabs.set(writeTabContent(src.id, src.content.replace(link.deferredBlock, link.openBlock), list));
+    let restoredContent: string;
+    if (
+      link.sourceOffset !== undefined &&
+      src.content.slice(link.sourceOffset, link.sourceOffset + link.deferredBlock.length) === link.deferredBlock
+    ) {
+      restoredContent =
+        src.content.slice(0, link.sourceOffset) +
+        link.openBlock +
+        src.content.slice(link.sourceOffset + link.deferredBlock.length);
+    } else {
+      restoredContent = src.content.replace(link.deferredBlock, link.openBlock);
+    }
+    tabs.set(writeTabContent(src.id, restoredContent, list));
     deferRestoredToast(src.filename, link.openBlock);
     link.reverted = true;
   } else {
@@ -119,7 +133,19 @@ export function onEditorRedo(activeTabId: string, before: string, after: string)
   const list = get(tabs);
   const src = list.find((t) => t.id === link.sourceTabId);
   if (src && src.content.includes(link.openBlock)) {
-    tabs.set(writeTabContent(src.id, src.content.replace(link.openBlock, link.deferredBlock), list));
+    let redoneContent: string;
+    if (
+      link.sourceOffset !== undefined &&
+      src.content.slice(link.sourceOffset, link.sourceOffset + link.openBlock.length) === link.openBlock
+    ) {
+      redoneContent =
+        src.content.slice(0, link.sourceOffset) +
+        link.deferredBlock +
+        src.content.slice(link.sourceOffset + link.openBlock.length);
+    } else {
+      redoneContent = src.content.replace(link.openBlock, link.deferredBlock);
+    }
+    tabs.set(writeTabContent(src.id, redoneContent, list));
     const n = countOpenActionsInText(link.openBlock);
     showToast(get(t)("toast.paste.deferredAgain", { count: n, filename: src.filename }));
     link.reverted = false;
@@ -164,7 +190,21 @@ export function handlePasteIntoTab(targetTabId: string, pastedText?: string) {
     // "# " lines (or one indented past the block's first line) should
     // forward all of them, the same as pasting just one always has.
     const deferredBlock = deferOpenActionsInText(copied.text);
-    const newSrcContent = srcTab.content.replace(copied.text, deferredBlock);
+    let newSrcContent: string;
+    let effectiveOffset = copied.sourceOffset;
+    if (
+      effectiveOffset !== undefined &&
+      srcTab.content.slice(effectiveOffset, effectiveOffset + copied.text.length) === copied.text
+    ) {
+      newSrcContent =
+        srcTab.content.slice(0, effectiveOffset) +
+        deferredBlock +
+        srcTab.content.slice(effectiveOffset + copied.text.length);
+    } else {
+      newSrcContent = srcTab.content.replace(copied.text, deferredBlock);
+      const idx = srcTab.content.indexOf(copied.text);
+      effectiveOffset = idx >= 0 ? idx : undefined;
+    }
     tabs.set(writeTabContent(srcTab.id, newSrcContent, list));
     // §86 (#9): remember this defer so an undo of the paste in the target
     // tab can flip it back.
@@ -173,6 +213,7 @@ export function handlePasteIntoTab(targetTabId: string, pastedText?: string) {
       sourceTabId: srcTab.id,
       openBlock: copied.text,
       deferredBlock,
+      sourceOffset: effectiveOffset,
       reverted: false,
     };
     const count = countOpenActionsInText(copied.text);

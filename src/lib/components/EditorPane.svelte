@@ -675,7 +675,12 @@
       EditorView.domEventHandlers({
         copy: (_event, v) => {
           const sel = v.state.sliceDoc(v.state.selection.main.from, v.state.selection.main.to);
-          controller.recordCopiedAction(sel, controller.getActiveTabId());
+          controller.recordCopiedAction(sel, controller.getActiveTabId(), v.state.selection.main.from);
+        },
+        cut: (_event, _v) => {
+          // Cutting removes the selection from this note. Clear any pending copy-defer link
+          // so cutting text cannot defer a stale previous copy.
+          controller.recordCopiedAction("", controller.getActiveTabId());
         },
         paste: (event) => {
           controller.handlePasteIntoTab(controller.getActiveTabId(), event.clipboardData?.getData("text/plain"));
