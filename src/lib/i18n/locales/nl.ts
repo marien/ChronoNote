@@ -161,7 +161,7 @@ export const nl = {
     "De selectie (of huidige regel) kopiëren naar de volgende gelegenheid van deze sectie",
   "shortcuts.toggleZenMode.label": () => "Zen-modus (afleidingsvrij canvas)",
   "shortcuts.togglePeekMode.label": () =>
-    "Peek: compact doorzichtig notitievenster voor gesprekken (werkt vanuit elke app)",
+    "Peek: compact doorzichtig notitievenster voor de sectie bij de cursor",
   "commandPalette.togglePeekMode": () =>
     "Peek omschakelen (compact notitievenster voor gesprekken)",
   "peek.toast.noSection": () =>
@@ -208,8 +208,6 @@ export const nl = {
     "Bij aanwijzen",
   "peek.settings.header.never": () =>
     "Verborgen",
-  "peek.settings.shortcut.label": () =>
-    "Sneltoets (werkt vanuit elke app)",
   "peek.settings.hint": () =>
     "Peek verkleint het venster tot de sectie waar je cursor staat. Alt+Links / Alt+Rechts gaan naar de vorige / volgende keer; wijzigingen zijn gewone wijzigingen. Druk nogmaals op de sneltoets om terug te gaan.",
   "shortcuts.stepOccurrence.label": () =>

@@ -14,11 +14,10 @@ export const PEEK_DEFAULTS: PeekConfig = {
   fadeSeconds: 3,
   alwaysOnTop: true,
   header: "always",
-  shortcut: "CommandOrControl+Alt+Space",
   geometry: null,
   useLinesHeight: false,
-  defaultsVersion: 3,
-  callShortcut: "CommandOrControl+Alt+J",
+  defaultsVersion: 4,
+  callShortcut: "CommandOrControl+Alt+N",
 };
 
 export function clampPeek(peek: PeekConfig): PeekConfig {

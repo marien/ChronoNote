@@ -537,15 +537,6 @@
                 onChange={(v) => peekSettings.update((s) => ({ ...s, header: v as PeekHeaderMode }))}
               />
             </SettingRow>
-            <SettingRow label={$t("peek.settings.shortcut.label")}>
-              <input
-                type="text"
-                class="find-input s-input"
-                value={$peekSettings.shortcut}
-                aria-label={$t("peek.settings.shortcut.label")}
-                on:change={(e) => peekSettings.update((s) => ({ ...s, shortcut: e.currentTarget.value.trim() }))}
-              />
-            </SettingRow>
             <SettingRow label={$t("peek.settings.callShortcut.label")}>
               <input
                 type="text"

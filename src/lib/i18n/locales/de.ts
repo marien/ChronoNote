@@ -164,7 +164,7 @@ export const de = {
     "Die Auswahl (oder aktuelle Zeile) zum nächsten Vorkommen dieses Abschnitts kopieren",
   "shortcuts.toggleZenMode.label": () => "Zen-Modus (ablenkungsfreie Ansicht)",
   "shortcuts.togglePeekMode.label": () =>
-    "Peek: kompaktes, durchsichtiges Notizfenster für Gespräche (funktioniert aus jeder App)",
+    "Peek: kompaktes, durchsichtiges Notizfenster für den Abschnitt am Cursor",
   "commandPalette.togglePeekMode": () =>
     "Peek umschalten (kompaktes Notizfenster für Gespräche)",
   "peek.toast.noSection": () =>
@@ -211,8 +211,6 @@ export const de = {
     "Beim Darüberfahren",
   "peek.settings.header.never": () =>
     "Ausgeblendet",
-  "peek.settings.shortcut.label": () =>
-    "Tastenkürzel (funktioniert aus jeder App)",
   "peek.settings.hint": () =>
     "Peek verkleinert das Fenster auf den Abschnitt, in dem dein Cursor steht. Alt+Links / Alt+Rechts wechseln zum vorherigen / nächsten Vorkommen; Änderungen sind normale Änderungen. Das Tastenkürzel erneut drücken, um zurückzukehren.",
   "shortcuts.stepOccurrence.label": () =>

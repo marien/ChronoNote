@@ -176,7 +176,6 @@ export type TranslationParams = {
   "peek.settings.header.always": undefined;
   "peek.settings.header.hover": undefined;
   "peek.settings.header.never": undefined;
-  "peek.settings.shortcut.label": undefined;
   "peek.settings.hint": undefined;
   "shortcuts.clickGlyph.label": undefined;
   "shortcuts.stepOccurrence.label": undefined;

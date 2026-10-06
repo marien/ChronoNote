@@ -109,8 +109,6 @@ pub struct PeekConfig {
     pub fade_seconds: u32,
     pub always_on_top: bool,
     pub header: PeekHeader,
-    /// Global shortcut, Tauri accelerator syntax.
-    pub shortcut: String,
     pub geometry: Option<PeekGeometry>,
     /// The "lines" setting changed since the window was last left: use it for the height, not the remembered one.
     pub use_lines_height: bool,
@@ -118,18 +116,18 @@ pub struct PeekConfig {
     /// field existed has none, which reads as 0.
     #[serde(default)]
     pub defaults_version: u32,
-    /// Global shortcut that opens Peek on the meeting that is on now (or a new ad-hoc call section). No function key
-    /// (they need Fn on a laptop), and a letter AltGr does not produce on common layouts.
+    /// The ONE global (system-wide) Peek shortcut: opens Peek on the meeting that is on now (or a new ad-hoc call
+    /// section) and leaves Peek again. No function key (they need Fn on a laptop). Peek on the section the cursor is in
+    /// is an in-app shortcut only (`Ctrl+Alt+P`, fixed like every other in-app shortcut).
     pub call_shortcut: String,
 }
 
 pub const PEEK_MAX_LINES: u32 = 15;
 /// Bumped when Peek's defaults change; see `PeekConfig::migrated`.
-pub const PEEK_DEFAULTS_VERSION: u32 = 3;
-/// The shortcut Peek shipped with (v0.23): a function key, which needs Fn on a laptop.
-pub const PEEK_OLD_DEFAULT_SHORTCUT: &str = "CommandOrControl+F11";
-/// The default now: no function key, no letter that AltGr produces a character on.
-pub const PEEK_DEFAULT_SHORTCUT: &str = "CommandOrControl+Alt+Space";
+pub const PEEK_DEFAULTS_VERSION: u32 = 4;
+/// The call shortcut Peek shipped with in v0.25 (J) and the default since v0.26.1 (N for "now").
+pub const PEEK_OLD_CALL_SHORTCUT: &str = "CommandOrControl+Alt+J";
+pub const PEEK_DEFAULT_CALL_SHORTCUT: &str = "CommandOrControl+Alt+N";
 pub const PEEK_MIN_OPACITY: u32 = 20;
 pub const PEEK_MAX_FADE_SECONDS: u32 = 60;
 
@@ -142,11 +140,10 @@ impl Default for PeekConfig {
             fade_seconds: 3,
             always_on_top: true,
             header: PeekHeader::default(),
-            shortcut: PEEK_DEFAULT_SHORTCUT.to_string(),
             geometry: None,
             use_lines_height: false,
             defaults_version: PEEK_DEFAULTS_VERSION,
-            call_shortcut: "CommandOrControl+Alt+J".to_string(),
+            call_shortcut: PEEK_DEFAULT_CALL_SHORTCUT.to_string(),
         }
     }
 }
@@ -158,7 +155,7 @@ impl PeekConfig {
     /// then on the stored values are the user's own.
     pub fn migrated(mut self) -> Self {
         // Each step runs once, for configs saved before it existed: version 0 -> 1 moved the header and opacity
-        // defaults, 1 -> 2 moved the shortcut off the function key. A value the user changed on purpose is kept.
+        // defaults. A value the user changed on purpose is kept.
         if self.defaults_version < 1 {
             if self.header == PeekHeader::Never {
                 self.header = PeekHeader::Always;
@@ -166,9 +163,6 @@ impl PeekConfig {
             if self.opacity == 70 {
                 self.opacity = 80;
             }
-        }
-        if self.defaults_version < 2 && self.shortcut == PEEK_OLD_DEFAULT_SHORTCUT {
-            self.shortcut = PEEK_DEFAULT_SHORTCUT.to_string();
         }
         // 2 -> 3: the in focus / out of focus / fade defaults became 95 / 50 / 3 s. A value that is still the old
         // default (never changed, only saved along with another setting) moves; one the user chose is kept.
@@ -182,6 +176,11 @@ impl PeekConfig {
             if self.fade_seconds == 5 {
                 self.fade_seconds = 3;
             }
+        }
+        // 3 -> 4: the call shortcut default became Ctrl+Alt+N (was J); the toggle shortcut stopped being a setting (it
+        // is the fixed in-app Ctrl+Alt+P), so the old `shortcut` field is ignored when loading.
+        if self.defaults_version < 4 && self.call_shortcut == PEEK_OLD_CALL_SHORTCUT {
+            self.call_shortcut = PEEK_DEFAULT_CALL_SHORTCUT.to_string();
         }
         self.defaults_version = PEEK_DEFAULTS_VERSION;
         self
@@ -1380,7 +1379,6 @@ mod tests {
             fade_seconds: 12,
             always_on_top: false,
             header: PeekHeader::Hover,
-            shortcut: "Ctrl+Alt+P".to_string(),
             geometry: Some(PeekGeometry { x: -20, y: 471, width: 523, height: 113 }),
             use_lines_height: true,
             defaults_version: PEEK_DEFAULTS_VERSION,
@@ -1501,43 +1499,32 @@ mod tests {
     }
 
     #[test]
-    fn the_peek_shortcut_default_moves_off_the_function_key_once_and_only_when_it_was_the_old_default() {
+    fn the_call_shortcut_default_moves_from_j_to_n_once_and_a_retired_toggle_shortcut_is_ignored() {
         let dir = tempdir().unwrap();
         let path = dir.path().join("config.json");
         let notes = dir.path().join("Notes");
-
-        // v0.23: saved with the old default, defaults version 1 (header and opacity are the user's own now).
+        // 0.25.x / 0.26.0: saved with the old J default, and a toggle shortcut that is no longer a setting.
         fs::write(
             &path,
-            r#"{"notesDir": "/n", "peek": {"enabled": true, "header": "never", "opacity": 70, "shortcut": "CommandOrControl+F11", "defaultsVersion": 1}}"#,
+            r#"{"notesDir": "/n", "peek": {"shortcut": "CommandOrControl+Alt+N", "callShortcut": "CommandOrControl+Alt+J", "defaultsVersion": 3}}"#,
         )
         .unwrap();
         let cfg = load_config_at(&path, &notes).unwrap();
-        assert_eq!(cfg.peek.shortcut, "CommandOrControl+Alt+Space");
+        assert_eq!(cfg.peek.call_shortcut, "CommandOrControl+Alt+N");
         assert_eq!(cfg.peek.defaults_version, PEEK_DEFAULTS_VERSION);
-        // The version-1 choices are NOT redone: a deliberately hidden header / 70% stay.
-        assert_eq!(cfg.peek.header, PeekHeader::Never);
-        assert_eq!(cfg.peek.opacity, 70);
-
-        // A shortcut the user chose themselves is never replaced.
-        fs::write(
-            &path,
-            r#"{"notesDir": "/n", "peek": {"enabled": true, "shortcut": "Ctrl+Shift+Y", "defaultsVersion": 1}}"#,
-        )
-        .unwrap();
-        assert_eq!(load_config_at(&path, &notes).unwrap().peek.shortcut, "Ctrl+Shift+Y");
-
-        // Once on version 2, going back to the function key on purpose stays.
-        fs::write(
-            &path,
-            r#"{"notesDir": "/n", "peek": {"enabled": true, "shortcut": "CommandOrControl+F11", "defaultsVersion": 2}}"#,
-        )
-        .unwrap();
-        assert_eq!(load_config_at(&path, &notes).unwrap().peek.shortcut, "CommandOrControl+F11");
-
-        // And a fresh config has the new default and no function key.
-        assert_eq!(PeekConfig::default().shortcut, "CommandOrControl+Alt+Space");
-        assert!(!PeekConfig::default().shortcut.contains("F1"));
+        // A call shortcut the user chose themselves is never replaced.
+        fs::write(&path, r#"{"notesDir": "/n", "peek": {"callShortcut": "Ctrl+Shift+Y", "defaultsVersion": 3}}"#).unwrap();
+        assert_eq!(load_config_at(&path, &notes).unwrap().peek.call_shortcut, "Ctrl+Shift+Y");
+        // On version 4, going back to J on purpose stays.
+        fs::write(&path, r#"{"notesDir": "/n", "peek": {"callShortcut": "CommandOrControl+Alt+J", "defaultsVersion": 4}}"#).unwrap();
+        assert_eq!(load_config_at(&path, &notes).unwrap().peek.call_shortcut, "CommandOrControl+Alt+J");
+        // A fresh config: N, and no function key.
+        assert_eq!(PeekConfig::default().call_shortcut, "CommandOrControl+Alt+N");
+        assert!(!PeekConfig::default().call_shortcut.contains("F1"));
+        // The retired field is not written back.
+        let saved = load_config_at(&path, &notes).unwrap();
+        save_config_at(&path, &saved).unwrap();
+        assert!(!fs::read_to_string(&path).unwrap().contains("\"shortcut\""));
     }
 
     #[test]

@@ -9822,3 +9822,14 @@ Marien, after abandoning the idea of Peek reacting to Teams calls by itself (wat
 - **Palette label shortened** (it is now always listed, and the visual audit caught the old long label overflowing): "Peek: notes for the meeting on now" and its translations.
 - Docs: `docs/spec.md` and README no longer say experimental / off by default; the website guide gets Peek, the call shortcut and the occurrence keys (a new workflow step "Take notes during a call" and three shortcut rows).
 - Tests: the feature-toggle tests became "Peek is part of the app" tests (works with no config at all, palette entry + drawer row, Settings without the switch); seeds no longer carry `enabled`. Vitest 768, Playwright 563, cargo 184.
+
+## 288. Peek shortcuts: Ctrl+Alt+P in the app, Ctrl+Alt+N (now) system-wide
+
+**Status: implemented, not yet released.**
+
+- **Marien's decision:** only "Peek for the call happening now" is a system-wide shortcut; "Peek for the section with focus" stays application-local. P for Peek, N for now.
+- **Toggle (Peek on the section at the caret):** now only the in-app shortcut `togglePeekMode`, `Ctrl+Alt+P` / `Cmd+Option+P` (was `Ctrl+Alt+Space`, before that `Ctrl+F11`). It is no longer registered with the OS at all, and since in-app shortcuts are fixed (one shared registry), `PeekConfig.shortcut` and its Settings field are gone (an old config's `shortcut` is ignored and not written back; a custom toggle key such as the `Ctrl+Alt+N` Marien had set is dropped, which is what frees N for the call shortcut). It still works while Peek has the keyboard focus; to leave Peek from another app use the call shortcut, which toggles.
+- **Call shortcut:** default `Ctrl+Alt+N` (was `Ctrl+Alt+J`), the only system-wide Peek key, still changeable in Settings. `PEEK_DEFAULTS_VERSION` 4: a saved config that still has exactly the old default J moves to N once; a key the user chose is kept (test).
+- **Why this also removes the clash found after v0.26.0:** the old system-wide `Ctrl+Alt+Space` was NOT registered natively on the development machine while the Claude desktop app was running (the plugin answered "HotKey already registered" for it; not proven that Claude holds it, but its quick-entry default is that key). A key registered natively is only `Ctrl+Alt+N` now; `P` and `N` both registered fine on that machine when tried.
+- Texts: the Shortcuts-drawer label of the toggle no longer says "works from any app" (7 locales); docs/spec, README and the website guide list the new keys.
+- Tests: Rust migration test replaced (184), Playwright: toggle key now `KeyP` everywhere, and "exactly one global shortcut is registered: the call one, N" (Vitest 768).

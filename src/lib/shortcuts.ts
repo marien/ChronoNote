@@ -227,9 +227,9 @@ export const SHORTCUTS: ShortcutDef[] = [
   },
   {
     id: "togglePeekMode",
-    // Desktop app only. Also registered as an OS-wide shortcut (`peek.ts`) so it works while a call app has the
-    // focus; this entry is what the drawer/palette show and what fires inside the app if that registration failed.
-    combos: [{ mod: true, alt: true, code: "Space" }],
+    // Desktop app only, and in-app only: Peek on the section at the caret. (The system-wide Peek shortcut is the
+    // separate, configurable call-note one.) P for Peek.
+    combos: [{ mod: true, alt: true, code: "KeyP" }],
   },
 ];
 

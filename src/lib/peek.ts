@@ -15,7 +15,6 @@ import { occurrenceFiles, stepToOccurrence } from "./occurrences";
 import { closeTab, switchTab } from "./tabs";
 import { createPeekWindowController, nativePeekWindow } from "./peekWindow";
 import { whenZenSettled } from "./zenWindow";
-import { createGlobalShortcutBinder } from "./globalShortcut";
 import { PEEK_DEFAULTS } from "./peekDefaults";
 import * as api from "./tauriApi";
 import type { PeekConfig, PeekHeader } from "./types";
@@ -379,9 +378,8 @@ export function wirePeek(): () => void {
   // Peek is part of the desktop app: its in-app shortcut is listed and active from startup (it stays off on the web).
   setShortcutEnabled("togglePeekMode", true);
 
-  // Global shortcut: works while another app (the call) has the focus.
-  const shortcut = createGlobalShortcutBinder(togglePeek);
-  cleanups.push(peekSettings.subscribe((s) => shortcut.bind(s.shortcut)), () => shortcut.dispose());
+  // Peek on the section at the caret is an in-app shortcut only (`togglePeekMode`, Ctrl+Alt+P). The one system-wide
+  // Peek shortcut is the call-note one (`callNote.ts`): it also leaves Peek when it is showing.
 
   return () => cleanups.forEach((c) => c());
 }

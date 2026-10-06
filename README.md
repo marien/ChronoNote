@@ -108,12 +108,12 @@ with the arrows to click; it is hidden while the caret is on the title line.
 
 A compact, see-through note window for taking notes during a call, so you can keep
 seeing the people you are talking to. It is part of the desktop app (no switch to turn on):
-`Ctrl+Alt+Space` (`Cmd+Option+Space` on a Mac, works from any app) shrinks ChronoNote to a small
+`Ctrl+Alt+P` (`Cmd+Option+P` on a Mac, inside ChronoNote) shrinks it to a small
 always-on-top window showing only the section your cursor was in; `Alt+Left` /
 `Alt+Right` step to earlier / later occurrences of that section, and the same
 shortcut brings the full window back. It is the same window and editor, so
 everything you type is a normal edit, and it stays inside its section (to work in
-another section, leave Peek). Opacity (more solid while you are typing or pointing at it, fading after a few seconds), the fit-to-section height, the header strip and the shortcuts are in Settings -> Appearance. A small Peek icon after the occurrence hint opens it on that section with the mouse. `Ctrl+Alt+J` (also changeable) opens Peek on the meeting that is on now according to your `.agenda.json`, or on a new `'Call HH:MM` section placed in time order between the meetings. Peek reopens where you left it, or above the taskbar if that screen is gone.
+another section, leave Peek). Opacity (more solid while you are typing or pointing at it, fading after a few seconds), the fit-to-section height, the header strip and the call shortcut are in Settings -> Appearance. A small Peek icon after the occurrence hint opens it on that section with the mouse. `Ctrl+Alt+N` (N for now; the one system-wide shortcut, changeable in Settings, and it also leaves Peek again) opens Peek on the meeting that is on now according to your `.agenda.json`, or on a new `'Call HH:MM` section placed in time order between the meetings. Peek reopens where you left it, or above the taskbar if that screen is gone.
 
 ## Web app and demo
 

@@ -162,7 +162,7 @@ export const it = {
     "Copia la selezione (o la riga corrente) alla successiva ricorrenza di questa sezione",
   "shortcuts.toggleZenMode.label": () => "Modalità Zen (schermo senza distrazioni)",
   "shortcuts.togglePeekMode.label": () =>
-    "Peek: finestra di note compatta e semitrasparente per le chiamate (funziona da qualsiasi app)",
+    "Peek: finestra di note compatta e semitrasparente per la sezione del cursore",
   "commandPalette.togglePeekMode": () =>
     "Attiva/disattiva Peek (finestra di note compatta per le chiamate)",
   "peek.toast.noSection": () =>
@@ -209,8 +209,6 @@ export const it = {
     "Al passaggio del mouse",
   "peek.settings.header.never": () =>
     "Nascosta",
-  "peek.settings.shortcut.label": () =>
-    "Scorciatoia (funziona da qualsiasi app)",
   "peek.settings.hint": () =>
     "Peek riduce la finestra alla sezione in cui si trova il cursore. Alt+Sinistra / Alt+Destra passano all'occorrenza precedente / successiva; le modifiche sono modifiche normali. Premi di nuovo la scorciatoia per tornare indietro.",
   "shortcuts.stepOccurrence.label": () =>

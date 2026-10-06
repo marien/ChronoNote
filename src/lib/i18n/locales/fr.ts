@@ -163,7 +163,7 @@ export const fr = {
     "Copier la sélection (ou ligne courante) vers la prochaine occurrence de cette section",
   "shortcuts.toggleZenMode.label": () => "Mode Zen (espace sans distraction)",
   "shortcuts.togglePeekMode.label": () =>
-    "Peek : fenêtre de notes compacte et translucide pour les appels (fonctionne depuis n'importe quelle application)",
+    "Peek : fenêtre de notes compacte et translucide pour la section du curseur",
   "commandPalette.togglePeekMode": () =>
     "Activer/désactiver Peek (fenêtre de notes compacte pour les appels)",
   "peek.toast.noSection": () =>
@@ -210,8 +210,6 @@ export const fr = {
     "Au survol",
   "peek.settings.header.never": () =>
     "Masqué",
-  "peek.settings.shortcut.label": () =>
-    "Raccourci (fonctionne depuis n'importe quelle application)",
   "peek.settings.hint": () =>
     "Peek réduit la fenêtre à la section où se trouve votre curseur. Alt+Gauche / Alt+Droite passent à l'occurrence précédente / suivante ; les modifications sont des modifications normales. Appuyez de nouveau sur le raccourci pour revenir.",
   "shortcuts.stepOccurrence.label": () =>

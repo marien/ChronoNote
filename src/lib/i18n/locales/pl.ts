@@ -163,7 +163,7 @@ export const pl = {
     "Skopiuj zaznaczenie (lub bieżący wiersz) do następnego wystąpienia tej sekcji",
   "shortcuts.toggleZenMode.label": () => "Tryb Zen (przestrzeń bez rozpraszaczy)",
   "shortcuts.togglePeekMode.label": () =>
-    "Peek: kompaktowe, półprzezroczyste okno notatek na rozmowy (działa z każdej aplikacji)",
+    "Peek: kompaktowe, półprzezroczyste okno notatek dla sekcji przy kursorze",
   "commandPalette.togglePeekMode": () =>
     "Przełącz Peek (kompaktowe okno notatek na rozmowy)",
   "peek.toast.noSection": () =>
@@ -210,8 +210,6 @@ export const pl = {
     "Po najechaniu",
   "peek.settings.header.never": () =>
     "Ukryty",
-  "peek.settings.shortcut.label": () =>
-    "Skrót (działa z każdej aplikacji)",
   "peek.settings.hint": () =>
     "Peek zmniejsza okno do sekcji, w której jest kursor. Alt+Strzałka w lewo / Alt+Strzałka w prawo przechodzą do poprzedniego / następnego wystąpienia; edycje są zwykłymi edycjami. Naciśnij skrót ponownie, aby wrócić.",
   "shortcuts.stepOccurrence.label": () =>

@@ -160,7 +160,7 @@ export const es = {
     "Copiar la selección (o la línea actual) a la siguiente aparición de esta sección",
   "shortcuts.toggleZenMode.label": () => "Modo Zen (lienzo sin distracciones)",
   "shortcuts.togglePeekMode.label": () =>
-    "Peek: ventana de notas compacta y translúcida para llamadas (funciona desde cualquier aplicación)",
+    "Peek: ventana de notas compacta y translúcida para la sección del cursor",
   "commandPalette.togglePeekMode": () =>
     "Activar/desactivar Peek (ventana de notas compacta para llamadas)",
   "peek.toast.noSection": () =>
@@ -207,8 +207,6 @@ export const es = {
     "Al pasar el ratón",
   "peek.settings.header.never": () =>
     "Oculta",
-  "peek.settings.shortcut.label": () =>
-    "Atajo (funciona desde cualquier aplicación)",
   "peek.settings.hint": () =>
     "Peek reduce la ventana a la sección en la que está el cursor. Alt+Izquierda / Alt+Derecha cambian a la aparición anterior / siguiente; las ediciones son ediciones normales. Pulse de nuevo el atajo para volver.",
   "shortcuts.stepOccurrence.label": () =>

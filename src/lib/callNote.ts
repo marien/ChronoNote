@@ -1,6 +1,6 @@
 /** Peek on the meeting that is on now, or on a new ad-hoc call section (part of Peek).
  *
- * One manual action - a global shortcut (default Ctrl+Alt+J, no function key), or the command palette - that works out
+ * One manual action - a global shortcut (default Ctrl+Alt+N for "now", no function key), or the command palette - that works out
  * what you are probably in right now and opens Peek on it, so notes for a call are one keypress away:
  *  - today's `.agenda.json` has a meeting that is on now (or one that starts within 10 minutes: joining early): Peek
  *    opens on that meeting's section, which is created if the note does not have it yet;
