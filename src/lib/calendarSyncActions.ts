@@ -105,7 +105,12 @@ export function initCalendarSyncDiffTracking() {
   });
 }
 
-const silentSyncInProgress = new Set<string>();
+const silentSyncInProgress = new Map<string, Promise<boolean>>();
+
+/** Awaits any in-flight silent calendar sync for `tabId`, resolving once completed or immediately if none is running. */
+export function whenSilentSyncSettled(tabId: string): Promise<boolean> {
+  return silentSyncInProgress.get(tabId) ?? Promise.resolve(false);
+}
 
 /**
  * Automatically places the editor caret on line index 2 (line 3, the blank line
@@ -141,52 +146,57 @@ export async function focusFirstMeetingSection(targetLineIdx = 2): Promise<void>
  * 4. Note content is empty: tab.content.trim() === "".
  * 5. External agenda contains >= 1 meetings for that date.
  */
-export async function maybeSilentSyncEmptyNote(tab: NoteTab): Promise<boolean> {
-  if (!get(calendarSyncEnabled)) return false;
-  if (!tab || tab.isScratchpad) return false;
+export function maybeSilentSyncEmptyNote(tab: NoteTab): Promise<boolean> {
+  if (!get(calendarSyncEnabled)) return Promise.resolve(false);
+  if (!tab || tab.isScratchpad) return Promise.resolve(false);
   const dateStr = tab.filename.slice(0, 10);
-  if (dateStr < todayISO()) return false;
-  if (tab.content.trim() !== "") return false;
-  if (silentSyncInProgress.has(tab.id)) return false;
+  if (dateStr < todayISO()) return Promise.resolve(false);
+  if (tab.content.trim() !== "") return Promise.resolve(false);
+  const existing = silentSyncInProgress.get(tab.id);
+  if (existing) return existing;
 
-  let exists = get(agendaFileExists);
-  if (!exists) {
+  const promise = (async () => {
+    let exists = get(agendaFileExists);
+    if (!exists) {
+      try {
+        exists = await api.agendaFileExists();
+        if (exists) agendaFileExists.set(true);
+      } catch {
+        exists = false;
+      }
+    }
+    if (!exists) return false;
+
     try {
-      exists = await api.agendaFileExists();
-      if (exists) agendaFileExists.set(true);
+      const agendaTitles = (await api.readAgendaForDate(dateStr)).map((t) => t.trim()).filter((t) => t.length > 0);
+      if (agendaTitles.length === 0) return false;
+
+      // Double check current tab content in store hasn't been edited while awaiting agenda
+      const currentList = get(tabs);
+      const currentTab = currentList.find((t) => t.id === tab.id);
+      if (!currentTab || currentTab.content.trim() !== "") return false;
+
+      const result = computeCalendarSync("", agendaTitles);
+      if (!result.content || result.content.trim() === "") return false;
+
+      tabs.set(writeTabContent(currentTab.id, result.content, currentList));
+
+      const hash = await sha256Hex(result.content);
+      markTabClean(currentTab.id, hash);
+
+      if (get(activeTabId) === currentTab.id) {
+        void focusFirstMeetingSection(2);
+      }
+      return true;
     } catch {
-      exists = false;
+      return false;
     }
-  }
-  if (!exists) return false;
+  })();
 
-  silentSyncInProgress.add(tab.id);
-  try {
-    const agendaTitles = (await api.readAgendaForDate(dateStr)).map((t) => t.trim()).filter((t) => t.length > 0);
-    if (agendaTitles.length === 0) return false;
-
-    // Double check current tab content in store hasn't been edited while awaiting agenda
-    const currentList = get(tabs);
-    const currentTab = currentList.find((t) => t.id === tab.id);
-    if (!currentTab || currentTab.content.trim() !== "") return false;
-
-    const result = computeCalendarSync("", agendaTitles);
-    if (!result.content || result.content.trim() === "") return false;
-
-    tabs.set(writeTabContent(currentTab.id, result.content, currentList));
-
-    const hash = await sha256Hex(result.content);
-    markTabClean(currentTab.id, hash);
-
-    if (get(activeTabId) === currentTab.id) {
-      void focusFirstMeetingSection(2);
-    }
-    return true;
-  } catch {
-    return false;
-  } finally {
+  silentSyncInProgress.set(tab.id, promise);
+  return promise.finally(() => {
     silentSyncInProgress.delete(tab.id);
-  }
+  });
 }
 
 /** Refreshes `agendaFileExists` (`stores.ts`) — called at boot, on window
