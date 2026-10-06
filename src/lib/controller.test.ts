@@ -965,6 +965,46 @@ describe("recordCopiedAction / handlePasteIntoTab (§64)", () => {
     vi.useRealTimers();
   });
 
+  it("defers the exact occurrence when duplicate identical action lines exist in the source tab", () => {
+    const srcContent = "Section 1\n=========\n# Buy milk\n\nSection 2\n=========\n# Buy milk";
+    const secondOffset = srcContent.lastIndexOf("# Buy milk");
+    controller.tabs.set([
+      tab({ id: "src", filename: "2026-08-01.txt", content: srcContent }),
+      tab({ id: "today", filename: "2026-09-15.txt", content: "" }),
+    ]);
+    vi.setSystemTime(new Date(2026, 8, 15));
+    // User copies the SECOND occurrence
+    controller.recordCopiedAction("# Buy milk", "src", secondOffset);
+    controller.handlePasteIntoTab("today", "# Buy milk");
+    const updated = get(controller.tabs).find((t) => t.id === "src")!.content;
+    expect(updated).toBe("Section 1\n=========\n# Buy milk\n\nSection 2\n=========\n> Buy milk");
+
+    // Undoing in the target tab restores the SECOND occurrence
+    controller.onEditorUndo("today", "# Buy milk", "");
+    expect(get(controller.tabs).find((t) => t.id === "src")!.content).toBe(srcContent);
+
+    // Redoing in the target tab defers the SECOND occurrence again
+    controller.onEditorRedo("today", "", "# Buy milk");
+    expect(get(controller.tabs).find((t) => t.id === "src")!.content).toBe(
+      "Section 1\n=========\n# Buy milk\n\nSection 2\n=========\n> Buy milk"
+    );
+    vi.useRealTimers();
+  });
+
+  it("clearing copied action on cut prevents any stale paste-forward deferral", () => {
+    controller.tabs.set([
+      tab({ id: "src", filename: "2026-08-01.txt", content: "# keep me open" }),
+      tab({ id: "today", filename: "2026-09-15.txt", content: "" }),
+    ]);
+    vi.setSystemTime(new Date(2026, 8, 15));
+    controller.recordCopiedAction("# keep me open", "src");
+    // User cuts something (clearing copied action)
+    controller.recordCopiedAction("", "src");
+    controller.handlePasteIntoTab("today", "# keep me open");
+    expect(get(controller.tabs).find((t) => t.id === "src")!.content).toBe("# keep me open");
+    vi.useRealTimers();
+  });
+
   it("defers every open action in a multi-line copy, not just the first (§64)", () => {
     controller.tabs.set([
       tab({ id: "src", filename: "2026-08-01.txt", content: "# first\nplain\n# second" }),
