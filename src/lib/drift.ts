@@ -23,7 +23,12 @@ import {
   showToast,
   tabs,
 } from "./stores";
-import { cancelScheduledSave } from "./persistence";
+import {
+  cancelScheduledSave,
+  invalidateDiskNotesCache,
+  refreshAllNotesCache,
+  scheduleCloudPush,
+} from "./persistence";
 import { EMPTY_CONTENT_HASH, sha256Hex } from "./hash";
 import { t } from "./i18n";
 
@@ -163,6 +168,9 @@ export async function resolveConflictKeepMine(): Promise<void> {
     // change since then re-opens the prompt instead of being clobbered.
     const meta = await api.writeNote(c.filename, tab.content, c.diskHash);
     markTabClean(c.tabId, meta.contentHash);
+    invalidateDiskNotesCache();
+    scheduleCloudPush();
+    void refreshAllNotesCache();
     showToast(get(t)("toast.drift.keptYourVersion", { filename: c.filename }));
   } catch {
     showToast(get(t)("toast.drift.changedAgain", { filename: c.filename }));
@@ -182,6 +190,9 @@ export async function resolveConflictSaveCopy(): Promise<void> {
   const name = `${stem}-${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}.txt`;
   try {
     await api.writeConflictCopy(name, tab.content);
+    invalidateDiskNotesCache();
+    scheduleCloudPush();
+    void refreshAllNotesCache();
     showToast(get(t)("toast.drift.savedAs", { name }));
   } catch {
     showToast(get(t)("toast.drift.couldntSaveCopy", undefined));

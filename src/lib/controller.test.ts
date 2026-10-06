@@ -834,7 +834,12 @@ describe("checkActiveTabForDrift (§94)", () => {
     });
   });
 
-  it("Case C then 'keep my version' writes with a compare-and-swap hash", async () => {
+  it("Case C then 'keep my version' writes with a compare-and-swap hash and schedules cloud push", async () => {
+    controller.backendKind.set("web");
+    controller.oneDriveAccount.set({ email: "user@example.com", displayName: "User" });
+    controller.oneDriveFolder.set({ folderId: "f1", folderPath: "/Notes" });
+    apiMock.oneDriveSyncNow.mockResolvedValue({ success: true });
+
     await openTabAt("v1");
     controller.tabs.update((list) => list.map((t) => ({ ...t, content: "mine" })));
     const externalHash = (await metaFor("external")).contentHash;
@@ -845,6 +850,9 @@ describe("checkActiveTabForDrift (§94)", () => {
     await controller.resolveConflictKeepMine();
     expect(apiMock.writeNote).toHaveBeenCalledWith(FILE, "mine", externalHash);
     expect(get(controller.modal)).toBe("none");
+
+    await new Promise((r) => setTimeout(r, 2050));
+    expect(apiMock.oneDriveSyncNow).toHaveBeenCalled();
   });
 
   it("a deleted-on-disk file drops the baseline without a prompt", async () => {
