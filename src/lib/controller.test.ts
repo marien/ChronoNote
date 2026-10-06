@@ -2862,4 +2862,98 @@ describe("beginFolderSwitch", () => {
       expect(get(controller.oneDriveSignInExpired)).toBe(false);
     });
   });
+
+  describe("promoteScratchpad", () => {
+    it("promotes scratchpad into today note and appends to in-memory today tab content", async () => {
+      const today = todayISO() + ".txt";
+      apiMock.readNote.mockResolvedValue("disk content that is stale");
+      controller.tabs.set([
+        tab({ id: "today-tab", filename: today, content: "memory content", isScratchpad: false }),
+        tab({ id: "scratch-tab", filename: "Scratchpad 1", content: "# Scratch action", isScratchpad: true }),
+      ]);
+      controller.activeTabId.set("scratch-tab");
+
+      await controller.promoteScratchpad("scratch-tab");
+
+      const expectedMerged = "memory content\n\n\n# Scratch action\n";
+      expect(apiMock.writeNote).toHaveBeenCalledWith(today, expectedMerged);
+      const tabs = get(controller.tabs);
+      expect(tabs.length).toBe(1);
+      expect(tabs[0].id).toBe("today-tab");
+      expect(tabs[0].content).toBe(expectedMerged);
+      expect(get(controller.activeTabId)).toBe("today-tab");
+    });
+
+    it("cancels pending scheduled save on open today tab before promoting", async () => {
+      const today = todayISO() + ".txt";
+      controller.tabs.set([
+        tab({ id: "today-tab-debounce", filename: today, content: "memory typed", isScratchpad: false }),
+        tab({ id: "scratch-tab-debounce", filename: "Scratchpad 1", content: "scratch notes", isScratchpad: true }),
+      ]);
+      controller.activeTabId.set("today-tab-debounce");
+      controller.updateActiveTabContent("memory typed"); // schedules debounced save
+
+      apiMock.writeNote.mockClear();
+      await controller.promoteScratchpad("scratch-tab-debounce");
+
+      const expectedMerged = "memory typed\n\n\nscratch notes\n";
+      expect(apiMock.writeNote).toHaveBeenCalledWith(today, expectedMerged);
+      apiMock.writeNote.mockClear();
+
+      // Wait past the 400ms debounce: it should not re-save "memory typed"
+      await new Promise((r) => setTimeout(r, 450));
+      expect(apiMock.writeNote).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("handleDroppedNotes & resolveDroppedNote", () => {
+    it("protects unsaved open tab content when a conflicting note file is dropped", async () => {
+      apiMock.readNote.mockResolvedValue("disk text");
+      controller.tabs.set([
+        tab({ id: "t-drop", filename: "2026-09-01.txt", content: "live memory unsaved edits", isScratchpad: false }),
+      ]);
+      controller.activeTabId.set("t-drop");
+
+      const mockFile = {
+        name: "2026-09-01.txt",
+        text: vi.fn().mockResolvedValue("dropped incoming text"),
+      } as unknown as File;
+
+      await controller.handleDroppedNotes([mockFile]);
+
+      // Shouldn't overwrite disk directly
+      expect(apiMock.writeNote).not.toHaveBeenCalled();
+      const conflicts = get(controller.droppedConflicts);
+      expect(conflicts.length).toBe(1);
+      expect(conflicts[0].name).toBe("2026-09-01.txt");
+      expect(conflicts[0].existing).toBe("live memory unsaved edits");
+      expect(conflicts[0].dropped).toBe("dropped incoming text");
+      expect(get(controller.modal)).toBe("droppedNotes");
+    });
+
+    it("resolving dropped note with replace updates in-memory tab and cancels pending save", async () => {
+      controller.tabs.set([
+        tab({ id: "t-resolve", filename: "2026-09-01.txt", content: "live edits", isScratchpad: false }),
+      ]);
+      controller.activeTabId.set("t-resolve");
+      controller.updateActiveTabContent("live edits"); // schedules debounced save
+
+      controller.droppedConflicts.set([
+        { name: "2026-09-01.txt", existing: "live edits", dropped: "new dropped content" },
+      ]);
+      controller.modal.set("droppedNotes");
+
+      apiMock.writeNote.mockClear();
+      await controller.resolveDroppedNote("2026-09-01.txt", "replace");
+
+      expect(apiMock.writeNote).toHaveBeenCalledWith("2026-09-01.txt", "new dropped content", undefined);
+      expect(get(controller.tabs)[0].content).toBe("new dropped content");
+      expect(get(controller.modal)).toBe("none");
+
+      apiMock.writeNote.mockClear();
+      // Debounce timer shouldn't fire with old content
+      await new Promise((r) => setTimeout(r, 450));
+      expect(apiMock.writeNote).not.toHaveBeenCalled();
+    });
+  });
 });
