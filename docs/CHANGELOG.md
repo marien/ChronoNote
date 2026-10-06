@@ -9756,6 +9756,18 @@ Marien, after abandoning the idea of Peek reacting to Teams calls by itself (wat
 - **#125:** with "Last note", the empty today tab is not opened when the last note gets the focus, unless today's note was already an open tab last time (`restoreOrBootstrapTabs`, `dropTodayTab`).
 - Tests: Vitest 742, Playwright 554 (the `mobile-ergonomics` History flake passes alone), cargo 176 (round-trip test has the new field).
 
+## 283. Robustness batch (PRs #142-#147, reviewed and merged together)
+
+**Status: implemented, not yet released.** Six small fixes from a review pass over the paste, save and call-note code; each was read in full, their combined tree was tested as one (svelte-check 0, Vitest 761, Playwright 556, cargo 182).
+
+- **#142 paste deferral:** the copy records its exact offset in the source (`sourceOffset`), so with duplicate identical `# Buy milk` lines the copied one is deferred, and undo/redo restore the same one (falls back to the first occurrence when the text moved). A `cut` forgets the remembered copy. Builds on §282.
+- **#143 call shortcut:** `callNote` waits for the real silent calendar sync (`whenSilentSyncSettled`, in-flight promises per tab in `calendarSyncActions.ts`) instead of a 600 ms timer. The sync is registered synchronously on every tab-open path, so the race it replaces is closed.
+- **#144:** the agenda file guide describes both top-level shapes (plain array, `{ timezone, meetings }`) and that other wrappers are invalid.
+- **#145 saving:** `persistTab` takes the tab id and reads the CURRENT tab when the debounce fires (no stale snapshot overwriting a newer external write); `writeTabContent` cancels the tab's pending save; deleting a note drops it from the caches even while its tab stays open.
+- **#146 tabs:** promoting a scratchpad merges into today's OPEN tab's live text (pending save cancelled, editor updated, the existing text's trailing blank lines normalised to exactly two before the scratchpad text); dropping notes compares with an open tab's live text, and replace/both update that tab (baseline, editor) instead of letting a later save or drift check undo it.
+- **#147:** an ad-hoc call section added at the end of a note gets two blank lines before it (spacing rule); resolving a drift conflict (keep mine / save copy) invalidates the disk cache, refreshes the all-notes cache and schedules the cloud push, so a OneDrive-backed note is not left un-synced.
+- `npm audit fix` (source-map-js, GHSA-68fv-2mgg-jv7q) turns the NPM Audit check green again.
+
 ## 281. `.agenda.json` time zone, and the two empty lines kept out of Peek's window
 
 **Status: implemented, not yet released.**
