@@ -14,4 +14,10 @@ describe("Peek defaults", () => {
     expect(clampPeek({ ...PEEK_DEFAULTS, opacityHover: 5 }).opacityHover).toBe(20);
     expect(clampPeek({ ...PEEK_DEFAULTS, opacity: 500 }).opacity).toBe(100);
   });
+
+  it("the system-wide call shortcut is a Ctrl+Alt chord on a letter that types nothing with AltGr", () => {
+    // US-International AltGr letters: q w e r t y u i o p a s d l z c n m (and x on Polish). A global Ctrl+Alt+<one of
+    // those> blocks that character in every app.
+    expect(PEEK_DEFAULTS.callShortcut).toMatch(/^CommandOrControl\+Alt\+[BFGHJKV]$/);
+  });
 });

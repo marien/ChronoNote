@@ -16,8 +16,8 @@ export const PEEK_DEFAULTS: PeekConfig = {
   header: "always",
   geometry: null,
   useLinesHeight: false,
-  defaultsVersion: 4,
-  callShortcut: "CommandOrControl+Alt+N",
+  defaultsVersion: 5,
+  callShortcut: "CommandOrControl+Alt+J",
 };
 
 export function clampPeek(peek: PeekConfig): PeekConfig {

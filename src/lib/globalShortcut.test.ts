@@ -27,16 +27,16 @@ describe("createGlobalShortcutBinder", () => {
 
   it("overlapping binds of the same key register it once and keep it registered", async () => {
     const b = createGlobalShortcutBinder(() => {});
-    b.bind("Ctrl+Alt+N");
-    b.bind("Ctrl+Alt+N");
-    b.bind("Ctrl+Alt+N");
+    b.bind("Ctrl+Alt+J");
+    b.bind("Ctrl+Alt+J");
+    b.bind("Ctrl+Alt+J");
     await flush();
-    expect(calls).toEqual(["register Ctrl+Alt+N"]);
+    expect(calls).toEqual(["register Ctrl+Alt+J"]);
   });
 
   it("changing the key unregisters the old one and registers the new one, in order", async () => {
     const b = createGlobalShortcutBinder(() => {});
-    b.bind("Ctrl+Alt+N");
+    b.bind("Ctrl+Alt+J");
     b.bind("Ctrl+Alt+K");
     await flush();
     expect(calls).toEqual(["register Ctrl+Alt+K"]); // the first was superseded before it ran
@@ -53,23 +53,23 @@ describe("createGlobalShortcutBinder", () => {
   });
 
   it("a key another app holds fails quietly and is retried by the next bind", async () => {
-    failRegister = "Ctrl+Alt+N";
+    failRegister = "Ctrl+Alt+J";
     const b = createGlobalShortcutBinder(() => {});
-    b.bind("Ctrl+Alt+N");
+    b.bind("Ctrl+Alt+J");
     await flush();
     failRegister = null;
-    b.bind("Ctrl+Alt+N");
+    b.bind("Ctrl+Alt+J");
     await flush();
-    expect(calls).toEqual(["register Ctrl+Alt+N", "register Ctrl+Alt+N"]);
+    expect(calls).toEqual(["register Ctrl+Alt+J", "register Ctrl+Alt+J"]);
   });
 
   it("dispose unregisters and later binds do nothing", async () => {
     const b = createGlobalShortcutBinder(() => {});
-    b.bind("Ctrl+Alt+N");
+    b.bind("Ctrl+Alt+J");
     await flush();
     b.dispose();
     b.bind("Ctrl+Alt+K");
     await flush();
-    expect(calls).toEqual(["register Ctrl+Alt+N", "unregister Ctrl+Alt+N"]);
+    expect(calls).toEqual(["register Ctrl+Alt+J", "unregister Ctrl+Alt+J"]);
   });
 });

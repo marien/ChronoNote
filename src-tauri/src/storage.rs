@@ -124,10 +124,12 @@ pub struct PeekConfig {
 
 pub const PEEK_MAX_LINES: u32 = 15;
 /// Bumped when Peek's defaults change; see `PeekConfig::migrated`.
-pub const PEEK_DEFAULTS_VERSION: u32 = 4;
-/// The call shortcut Peek shipped with in v0.25 (J) and the default since v0.26.1 (N for "now").
-pub const PEEK_OLD_CALL_SHORTCUT: &str = "CommandOrControl+Alt+J";
-pub const PEEK_DEFAULT_CALL_SHORTCUT: &str = "CommandOrControl+Alt+N";
+pub const PEEK_DEFAULTS_VERSION: u32 = 5;
+/// The call shortcut default has been J (v0.25, v0.26.0), N for a day (v0.26.1) and is J again: N types an n with a
+/// tilde with AltGr on US-International (and Polish layouts), and a system-wide Ctrl+Alt+N blocks that letter in
+/// every app. J types nothing with AltGr on the common layouts.
+pub const PEEK_OLD_CALL_SHORTCUT: &str = "CommandOrControl+Alt+N";
+pub const PEEK_DEFAULT_CALL_SHORTCUT: &str = "CommandOrControl+Alt+J";
 pub const PEEK_MIN_OPACITY: u32 = 20;
 pub const PEEK_MAX_FADE_SECONDS: u32 = 60;
 
@@ -177,9 +179,10 @@ impl PeekConfig {
                 self.fade_seconds = 3;
             }
         }
-        // 3 -> 4: the call shortcut default became Ctrl+Alt+N (was J); the toggle shortcut stopped being a setting (it
-        // is the fixed in-app Ctrl+Alt+P), so the old `shortcut` field is ignored when loading.
-        if self.defaults_version < 4 && self.call_shortcut == PEEK_OLD_CALL_SHORTCUT {
+        // The toggle shortcut stopped being a setting in v0.26.1 (it is the fixed in-app Ctrl+Shift+P), so an old
+        // `shortcut` field is ignored when loading. The call shortcut default is J again (N only lived in v0.26.1):
+        // a config still on N moves once; any other key the user chose is kept.
+        if self.defaults_version < 5 && self.call_shortcut == PEEK_OLD_CALL_SHORTCUT {
             self.call_shortcut = PEEK_DEFAULT_CALL_SHORTCUT.to_string();
         }
         self.defaults_version = PEEK_DEFAULTS_VERSION;
@@ -1499,27 +1502,30 @@ mod tests {
     }
 
     #[test]
-    fn the_call_shortcut_default_moves_from_j_to_n_once_and_a_retired_toggle_shortcut_is_ignored() {
+    fn the_call_shortcut_default_is_j_a_saved_n_default_moves_back_once_and_a_retired_toggle_shortcut_is_ignored() {
         let dir = tempdir().unwrap();
         let path = dir.path().join("config.json");
         let notes = dir.path().join("Notes");
-        // 0.25.x / 0.26.0: saved with the old J default, and a toggle shortcut that is no longer a setting.
+        // v0.26.1 saved the N default (and a toggle shortcut that is no longer a setting): back to J.
         fs::write(
             &path,
-            r#"{"notesDir": "/n", "peek": {"shortcut": "CommandOrControl+Alt+N", "callShortcut": "CommandOrControl+Alt+J", "defaultsVersion": 3}}"#,
+            r#"{"notesDir": "/n", "peek": {"shortcut": "CommandOrControl+Alt+Space", "callShortcut": "CommandOrControl+Alt+N", "defaultsVersion": 4}}"#,
         )
         .unwrap();
         let cfg = load_config_at(&path, &notes).unwrap();
-        assert_eq!(cfg.peek.call_shortcut, "CommandOrControl+Alt+N");
+        assert_eq!(cfg.peek.call_shortcut, "CommandOrControl+Alt+J");
         assert_eq!(cfg.peek.defaults_version, PEEK_DEFAULTS_VERSION);
-        // A call shortcut the user chose themselves is never replaced.
-        fs::write(&path, r#"{"notesDir": "/n", "peek": {"callShortcut": "Ctrl+Shift+Y", "defaultsVersion": 3}}"#).unwrap();
-        assert_eq!(load_config_at(&path, &notes).unwrap().peek.call_shortcut, "Ctrl+Shift+Y");
-        // On version 4, going back to J on purpose stays.
-        fs::write(&path, r#"{"notesDir": "/n", "peek": {"callShortcut": "CommandOrControl+Alt+J", "defaultsVersion": 4}}"#).unwrap();
+        // A call shortcut on J (0.25.x / 0.26.0) simply stays J.
+        fs::write(&path, r#"{"notesDir": "/n", "peek": {"callShortcut": "CommandOrControl+Alt+J", "defaultsVersion": 3}}"#).unwrap();
         assert_eq!(load_config_at(&path, &notes).unwrap().peek.call_shortcut, "CommandOrControl+Alt+J");
-        // A fresh config: N, and no function key.
-        assert_eq!(PeekConfig::default().call_shortcut, "CommandOrControl+Alt+N");
+        // A call shortcut the user chose themselves is never replaced.
+        fs::write(&path, r#"{"notesDir": "/n", "peek": {"callShortcut": "Ctrl+Shift+Y", "defaultsVersion": 4}}"#).unwrap();
+        assert_eq!(load_config_at(&path, &notes).unwrap().peek.call_shortcut, "Ctrl+Shift+Y");
+        // On version 5, choosing N on purpose stays.
+        fs::write(&path, r#"{"notesDir": "/n", "peek": {"callShortcut": "CommandOrControl+Alt+N", "defaultsVersion": 5}}"#).unwrap();
+        assert_eq!(load_config_at(&path, &notes).unwrap().peek.call_shortcut, "CommandOrControl+Alt+N");
+        // A fresh config: J, and no function key.
+        assert_eq!(PeekConfig::default().call_shortcut, "CommandOrControl+Alt+J");
         assert!(!PeekConfig::default().call_shortcut.contains("F1"));
         // The retired field is not written back.
         let saved = load_config_at(&path, &notes).unwrap();

@@ -118,12 +118,12 @@ test.describe("Peek notes for the meeting that is on now", () => {
     await expect(page.locator("#peek-bar")).toContainText("2026-09-07");
   });
 
-  test("exactly one global shortcut is registered from startup: the call one, Ctrl+Alt+N, no function key", async ({ page }) => {
+  test("exactly one global shortcut is registered from startup: the call one, Ctrl+Alt+J, no function key", async ({ page }) => {
     await seed(page);
-    await expect.poll(() => page.evaluate(() => window.__CHRONO_MOCK__!.globalShortcuts)).toEqual(["CommandOrControl+Alt+N"]);
+    await expect.poll(() => page.evaluate(() => window.__CHRONO_MOCK__!.globalShortcuts)).toEqual(["CommandOrControl+Alt+J"]);
     // Peek on the section at the caret (Ctrl+Shift+P) is in-app only: nothing else is registered with the OS.
     await page.waitForTimeout(500);
-    expect(await page.evaluate(() => window.__CHRONO_MOCK__!.globalShortcuts)).toEqual(["CommandOrControl+Alt+N"]);
+    expect(await page.evaluate(() => window.__CHRONO_MOCK__!.globalShortcuts)).toEqual(["CommandOrControl+Alt+J"]);
   });
 
   test("the shortcut can be changed in Settings", async ({ page }) => {
@@ -135,6 +135,6 @@ test.describe("Peek notes for the meeting that is on now", () => {
     await field.fill("CommandOrControl+Alt+K");
     await field.blur();
     await expect.poll(() => page.evaluate(() => window.__CHRONO_MOCK__!.globalShortcuts)).toContain("CommandOrControl+Alt+K");
-    expect(await page.evaluate(() => window.__CHRONO_MOCK__!.globalShortcuts.includes("CommandOrControl+Alt+N"))).toBe(false);
+    expect(await page.evaluate(() => window.__CHRONO_MOCK__!.globalShortcuts.includes("CommandOrControl+Alt+J"))).toBe(false);
   });
 });

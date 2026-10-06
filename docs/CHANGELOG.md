@@ -9842,3 +9842,13 @@ Marien, after abandoning the idea of Peek reacting to Teams calls by itself (wat
 - **Fix:** `togglePeekMode` is `Ctrl+Shift+P` / `Cmd+Shift+P` (still in-app only, still P for Peek; Shift does not take part in AltGr, and the key was free in the shortcut registry). Docs, README, spec and the website guide updated.
 - **Guard:** a unit test (`shortcuts.test.ts`) fails if ANY in-app shortcut is a Ctrl+Alt+letter chord (Mac-only Option aliases excepted), and an e2e test checks that Ctrl+Alt+P does not enter Peek. The system-wide call shortcut (`Ctrl+Alt+N`) is a global key registered with the OS; on US-International AltGr+N is n with a tilde, which that global key also blocks system-wide (Marien already uses it and can change it in Settings).
 - Tests: Vitest 770, Playwright 562.
+
+## 290. The call shortcut is Ctrl+Alt+J again (N is an AltGr letter)
+
+**Status: implemented, not yet released (goes out with §289).**
+
+- Marien asked to move the system-wide call shortcut off the AltGr family too: on US-International (and Polish layouts) AltGr+N types an n with a tilde, and a system-wide `Ctrl+Alt+N` blocks that letter in every app, not just in ChronoNote.
+- **Default back to `Ctrl+Alt+J`** (J types nothing with AltGr on the common layouts; the free letters are B F G H J K V). `PEEK_DEFAULTS_VERSION` 5: a saved config still on the v0.26.1 default N moves back to J once; a config already on J stays; a key the user chose is kept, and N chosen on purpose after version 5 stays (Rust test).
+- **Guard:** a unit test requires the default call shortcut to be a Ctrl+Alt chord on one of B/F/G/H/J/K/V. The in-app shortcuts already have a test that none is a Ctrl+Alt+letter chord (§289).
+- Docs, README, spec and the website guide say J again; the Peek toggle stays `Ctrl+Shift+P`.
+- Tests: cargo 184, Vitest 771, Playwright 562.
