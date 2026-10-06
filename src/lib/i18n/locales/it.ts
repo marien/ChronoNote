@@ -196,9 +196,13 @@ export const it = {
   "peek.settings.lines.fit": () =>
     "Adatta a tutta la sezione",
   "peek.settings.opacity.label": () =>
-    "Opacità dello sfondo (puntatore fuori)",
+    "Opacità dello sfondo, senza focus",
   "peek.settings.opacityHover.label": () =>
-    "Opacità dello sfondo sotto il puntatore",
+    "Opacità dello sfondo, con focus",
+  "peek.settings.fadeSeconds.label": () =>
+    "Sfuma verso senza focus dopo (secondi)",
+  "peek.settings.fadeSeconds.never": () =>
+    "Mai",
   "peek.settings.alwaysOnTop.label": () =>
     "Mantieni sopra le altre finestre",
   "peek.settings.header.label": () =>

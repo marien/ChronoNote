@@ -9791,3 +9791,13 @@ Marien, after abandoning the idea of Peek reacting to Teams calls by itself (wat
 - **Bug (found by Marien):** copy an open action in ChronoNote, paste it in another application, copy something else there and paste THAT into a later ChronoNote tab: the action first copied was marked deferred (`>`) in its source, although it was never pasted into ChronoNote. Cause: `handlePasteIntoTab` trusted the remembered copy (`lastCopiedAction`) for the next paste in ChronoNote whatever was pasted.
 - **Fix:** the paste handler passes the clipboard's text (`event.clipboardData`) to `handlePasteIntoTab(tabId, pastedText)`; the remembered copy only counts when that text equals what was copied (line endings and trailing whitespace ignored). A different paste also forgets the stale copy. Without clipboard data on the event the old rule applies.
 - Tests: Vitest +2 (751), Playwright +1 reproduced without the fix (556; the `tab-scroll-arrows` test flaked once under load, passes alone 3/3), no Rust change.
+
+## 285. Peek fades from in focus to out of focus
+
+**Status: implemented, not yet released.**
+
+- Peek has an "in focus" opacity (`opacityHover`, default 100 %, the setting that used to apply only under the pointer) and an "out of focus" opacity (`opacity`, default 80 %). New `PeekConfig.fadeSeconds` (default 5, 0 = never fade, max 60): that long without activity fades the background (and the header strip, +5 %) from the first to the second over 600 ms (CSS transition on the background colour); activity switches back instantly (no transition while `body.peek-in-focus`).
+- Activity = a key press, a click or a scroll in the window, and pointer movement over it (`peekInFocus` store, `markActive` in `wirePeek`). A pointer that rests on the window or leaves it is NOT activity: the countdown runs on (it does not fade at once on leaving). Starting Peek counts as activity; changing the fade time re-arms the countdown.
+- Settings: "Background opacity, in focus" / "Background opacity, out of focus" (relabelled) and "Fade to out of focus after (seconds)" (shows "Never" at 0), in all 7 languages (no native review).
+- Verified natively on a dev build (throwaway notes folder, config restored): the real computed background stayed opaque ~2 s, faded 0.8 -> 0.5 alpha over ~0.6 s, and a key press returned to 100 % immediately.
+- Tests: Vitest +2 (763), Playwright +3 net in `peek.spec.ts` (focus at start and fade, typing, pointer rules, 0 = never), cargo round-trip test has the new field.

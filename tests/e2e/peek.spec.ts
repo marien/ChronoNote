@@ -35,7 +35,7 @@ async function seedThreeOccurrences(page: Page, openTabs = ["2026-09-07.txt"]) {
         "2026-09-10.txt": note("- next week"),
       },
       session: { openTabs, activeTab: "2026-09-07.txt" },
-      peek: { enabled: true, header: "always" },
+      peek: { enabled: true, header: "always", fadeSeconds: 1 },
     },
   });
 }
@@ -124,14 +124,14 @@ test.describe("peek mode", () => {
 
   test("a changed setting is saved to the config and is still there after a reload", async ({ page }) => {
     await openPeekSettings(page);
-    await peekRange(page, "Background opacity (pointer away)").evaluate((el: HTMLInputElement) => {
+    await peekRange(page, "Background opacity, out of focus").evaluate((el: HTMLInputElement) => {
       el.value = "45";
       el.dispatchEvent(new Event("input", { bubbles: true }));
     });
     await expect.poll(() => page.evaluate(() => window.__CHRONO_MOCK__!.peek.opacity)).toBe(45);
     await page.reload();
     await openPeekSettings(page);
-    await expect(peekRange(page, "Background opacity (pointer away)")).toHaveValue("45");
+    await expect(peekRange(page, "Background opacity, out of focus")).toHaveValue("45");
   });
 });
 
@@ -254,7 +254,7 @@ test.describe("peek mode: tests with their own seed", () => {
   test("the background opacity defaults to 80%", async ({ page }) => {
     await seedApp(page, { seed: { ...today(), peek: { enabled: true } } });
     await openPeekSettings(page);
-    await expect(peekRange(page, "Background opacity (pointer away)")).toHaveValue("80");
+    await expect(peekRange(page, "Background opacity, out of focus")).toHaveValue("80");
   });
 
   test.describe("from Zen mode", () => {
@@ -368,12 +368,12 @@ test.describe("peek mode: tests with their own seed", () => {
       const toggle = settings.getByLabel("Enable Peek (experimental)");
       await toggle.scrollIntoViewIfNeeded();
       await expect(toggle).not.toBeChecked();
-      await expect(settings.getByLabel("Background opacity (pointer away)", { exact: true })).toHaveCount(0);
+      await expect(settings.getByLabel("Background opacity, out of focus", { exact: true })).toHaveCount(0);
       await expect(settings.getByLabel("Height (lines)", { exact: true })).toHaveCount(0);
 
       await settings.locator("label.toggle-switch", { hasText: "Enable Peek (experimental)" }).click();
       await expect(toggle).toBeChecked();
-      await expect(settings.getByLabel("Background opacity (pointer away)", { exact: true })).toHaveCount(1);
+      await expect(settings.getByLabel("Background opacity, out of focus", { exact: true })).toHaveCount(1);
       await expect.poll(() => page.evaluate(() => window.__CHRONO_MOCK__!.peek.enabled)).toBe(true);
 
       await page.keyboard.press("Escape");
@@ -392,7 +392,7 @@ test.describe("peek mode: tests with their own seed", () => {
   test("starting up shows the stored settings and does not overwrite them with defaults", async ({ page }) => {
     await seedApp(page, { seed: { ...today("- x"), peek: { enabled: true, opacity: 35, lines: 4 } } });
     await openPeekSettings(page);
-    await expect(peekRange(page, "Background opacity (pointer away)")).toHaveValue("35");
+    await expect(peekRange(page, "Background opacity, out of focus")).toHaveValue("35");
     await expect(peekRange(page, "Height (lines)")).toHaveValue("4");
     await page.waitForTimeout(700); // longer than the save debounce
     expect(await page.evaluate(() => window.__CHRONO_MOCK__!.peek)).toMatchObject({ opacity: 35, lines: 4 });
@@ -405,7 +405,7 @@ async function openPeekSettings(page: Page) {
   await editor(page).click();
   await page.keyboard.press("ControlOrMeta+Comma");
   await expect(page.locator(".settings-modal-card")).toBeVisible();
-  await peekRange(page, "Background opacity (pointer away)").scrollIntoViewIfNeeded();
+  await peekRange(page, "Background opacity, out of focus").scrollIntoViewIfNeeded();
 }
 
 test.describe("peek feedback round 3 (#126)", () => {
@@ -417,20 +417,48 @@ test.describe("peek feedback round 3 (#126)", () => {
       bar: document.documentElement.style.getPropertyValue("--peek-bar-opacity"),
     }));
 
-  test("the background is 100% under the pointer and 80% away; the header is 5 points above the background", async ({ page }) => {
+  test("the window is in focus (100%) when Peek starts and fades to out of focus (80%) after the timer; the header is 5 points above", async ({ page }) => {
     await enterOnWeeklySync(page);
-    await page.locator("html").dispatchEvent("mouseleave");
-    await expect.poll(() => vars(page)).toEqual({ bg: "80", bar: "85" });
-    await page.locator("html").dispatchEvent("mouseenter");
     await expect.poll(() => vars(page)).toEqual({ bg: "100", bar: "100" });
-    await page.locator("html").dispatchEvent("mouseleave");
-    await expect.poll(() => vars(page)).toEqual({ bg: "80", bar: "85" });
+    await expect.poll(() => vars(page), { timeout: 4000 }).toEqual({ bg: "80", bar: "85" });
   });
 
-  test("the opacity under the pointer is a setting with a 100% default", async ({ page }) => {
+  test("typing takes it back into focus at once, and it fades again after the timer", async ({ page }) => {
+    await enterOnWeeklySync(page);
+    await expect.poll(() => vars(page), { timeout: 8000 }).toEqual({ bg: "80", bar: "85" });
+    await page.keyboard.type("x");
+    await expect.poll(() => vars(page)).toEqual({ bg: "100", bar: "100" });
+    await expect.poll(() => vars(page), { timeout: 8000 }).toEqual({ bg: "80", bar: "85" });
+  });
+
+  test("moving the pointer over the window is activity; resting or leaving is not", async ({ page }) => {
+    await enterOnWeeklySync(page);
+    await expect.poll(() => vars(page), { timeout: 8000 }).toEqual({ bg: "80", bar: "85" });
+    await page.locator("html").dispatchEvent("mouseenter");
+    await expect.poll(() => vars(page)).toEqual({ bg: "100", bar: "100" });
+    // the pointer leaving does not fade it by itself: the countdown just runs on
+    await page.locator("html").dispatchEvent("mouseleave");
+    await page.waitForTimeout(300);
+    expect(await vars(page)).toEqual({ bg: "100", bar: "100" });
+    await expect.poll(() => vars(page), { timeout: 8000 }).toEqual({ bg: "80", bar: "85" });
+    await page.locator("html").dispatchEvent("mousemove");
+    await expect.poll(() => vars(page)).toEqual({ bg: "100", bar: "100" });
+  });
+
+  test("a fade time of 0 never fades", async ({ page }) => {
+    await seedApp(page, {
+      seed: { ...today(), peek: { enabled: true, header: "always", fadeSeconds: 0 } },
+    });
+    await enterOnWeeklySync(page);
+    await page.waitForTimeout(1500);
+    expect(await vars(page)).toEqual({ bg: "100", bar: "100" });
+  });
+
+  test("the in-focus opacity (default 100%) and the fade time are settings", async ({ page }) => {
     await editor(page).click();
     await page.keyboard.press("ControlOrMeta+Comma");
-    await expect(peekRange(page, "Background opacity under the pointer")).toHaveValue("100");
+    await expect(peekRange(page, "Background opacity, in focus")).toHaveValue("100");
+    await expect(peekRange(page, "Fade to out of focus after (seconds)")).toHaveValue("1");
   });
 
   test("two empty lines are kept between the section's last filled line and the next section", async ({ page }) => {

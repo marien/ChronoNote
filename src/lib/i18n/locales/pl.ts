@@ -197,9 +197,13 @@ export const pl = {
   "peek.settings.lines.fit": () =>
     "Dopasuj do całej sekcji",
   "peek.settings.opacity.label": () =>
-    "Krycie tła (wskaźnik poza oknem)",
+    "Krycie tła, bez fokusu",
   "peek.settings.opacityHover.label": () =>
-    "Krycie tła pod wskaźnikiem",
+    "Krycie tła, z fokusem",
+  "peek.settings.fadeSeconds.label": () =>
+    "Wygaś do braku fokusu po (sekundach)",
+  "peek.settings.fadeSeconds.never": () =>
+    "Nigdy",
   "peek.settings.alwaysOnTop.label": () =>
     "Trzymaj nad innymi oknami",
   "peek.settings.header.label": () =>

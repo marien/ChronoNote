@@ -195,9 +195,13 @@ export const nl = {
   "peek.settings.lines.fit": () =>
     "Hele sectie passend",
   "peek.settings.opacity.label": () =>
-    "Dekking van de achtergrond (aanwijzer weg)",
+    "Dekking van de achtergrond, niet in focus",
   "peek.settings.opacityHover.label": () =>
-    "Dekking van de achtergrond onder de aanwijzer",
+    "Dekking van de achtergrond, in focus",
+  "peek.settings.fadeSeconds.label": () =>
+    "Vervagen naar niet in focus na (seconden)",
+  "peek.settings.fadeSeconds.never": () =>
+    "Nooit",
   "peek.settings.alwaysOnTop.label": () =>
     "Boven andere vensters houden",
   "peek.settings.header.label": () =>

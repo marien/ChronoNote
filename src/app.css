@@ -4409,6 +4409,12 @@ body.peek-mode #status-bar {
    glyphs stay fully opaque. In the normal window the page paints the opaque theme colour as always. */
 body.peek-mode {
   background: color-mix(in srgb, var(--bg) calc(var(--peek-opacity, 80) * 1%), transparent);
+  /* Fading out of focus is gradual; coming back into focus (the `peek-in-focus` class) is instant. */
+  transition: background-color 600ms ease;
+}
+body.peek-mode.peek-in-focus,
+body.peek-mode.peek-in-focus .peek-bar {
+  transition: none;
 }
 body.peek-mode #editor-container,
 body.peek-mode .cm-editor,
@@ -4432,6 +4438,7 @@ body.peek-mode .cm-content {
   padding: 0 6px;
   border-top: 2px solid var(--tab-active-border);
   background: color-mix(in srgb, var(--surface-chrome) calc(var(--peek-bar-opacity, 85) * 1%), transparent);
+  transition: background-color 600ms ease;
   color: var(--text);
   font-size: 12px;
   text-shadow: 0 0 3px var(--bg), 0 0 6px var(--bg);

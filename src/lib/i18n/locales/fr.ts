@@ -197,9 +197,13 @@ export const fr = {
   "peek.settings.lines.fit": () =>
     "Ajuster à toute la section",
   "peek.settings.opacity.label": () =>
-    "Opacité de l'arrière-plan (pointeur absent)",
+    "Opacité de l'arrière-plan, sans focus",
   "peek.settings.opacityHover.label": () =>
-    "Opacité de l'arrière-plan sous le pointeur",
+    "Opacité de l'arrière-plan, avec focus",
+  "peek.settings.fadeSeconds.label": () =>
+    "Estomper vers sans focus après (secondes)",
+  "peek.settings.fadeSeconds.never": () =>
+    "Jamais",
   "peek.settings.alwaysOnTop.label": () =>
     "Garder au-dessus des autres fenêtres",
   "peek.settings.header.label": () =>

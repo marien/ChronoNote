@@ -524,6 +524,21 @@
                 <span class="settings-slider-val">{$peekSettings.opacityHover}%</span>
               </div>
             </SettingRow>
+            <SettingRow label={$t("peek.settings.fadeSeconds.label")}>
+              <div class="s-slider">
+                <input
+                  type="range"
+                  class="settings-range-slider"
+                  min="0"
+                  max="60"
+                  step="1"
+                  value={$peekSettings.fadeSeconds}
+                  aria-label={$t("peek.settings.fadeSeconds.label")}
+                  on:input={(e) => peekSettings.update((s) => ({ ...s, fadeSeconds: parseInt(e.currentTarget.value, 10) }))}
+                />
+                <span class="settings-slider-val">{$peekSettings.fadeSeconds === 0 ? $t("peek.settings.fadeSeconds.never") : $peekSettings.fadeSeconds + " s"}</span>
+              </div>
+            </SettingRow>
             <SettingToggle
               label={$t("peek.settings.alwaysOnTop.label")}
               checked={$peekSettings.alwaysOnTop}

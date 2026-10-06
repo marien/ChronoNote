@@ -81,8 +81,9 @@ export const peekTarget = writable<string | null>(null);
 export const peekFitLines = writable(0);
 /** "On hover" header: true while the pointer is over the window and the thin strip has grown into the full header. */
 export const peekHeaderExpanded = writable(false);
-/** True while the pointer is over the Peek window: the background then uses `opacityHover` instead of `opacity`. */
-export const peekPointerOver = writable(false);
+/** True while Peek is "in focus": you typed, clicked or moved the pointer over it less than `fadeSeconds` ago. The
+ * background then uses `opacityHover`; otherwise (and after the fade) `opacity`. */
+export const peekInFocus = writable(false);
 /** Position of the shown occurrence among all occurrences of the section (1-based), for the header. */
 export const peekPosition = writable<{ index: number; total: number } | null>(null);
 
@@ -244,10 +245,23 @@ export function wirePeek(): () => void {
   let lastLines = -1;
   let lastHeader: PeekHeader = get(peekSettings).header;
 
+  // "In focus" while you are working in Peek: typing, clicking or moving the pointer over it makes the background take
+  // `opacityHover`; `fadeSeconds` later without any of those it fades to `opacity` (0 = never fades). A pointer that
+  // rests on the window, or one that leaves it, is not activity: the countdown just runs on.
+  let fadeTimer: ReturnType<typeof setTimeout> | undefined;
+  const markActive = () => {
+    if (!get(peekMode)) return;
+    if (!get(peekInFocus)) peekInFocus.set(true);
+    clearTimeout(fadeTimer);
+    const seconds = get(peekSettings).fadeSeconds;
+    if (seconds > 0) fadeTimer = setTimeout(() => peekInFocus.set(false), seconds * 1000);
+  };
+
   cleanups.push(
     peekMode.subscribe((on) => {
       if (on === applied) return;
       applied = on;
+      if (on) markActive(); // starting Peek counts as activity
       void (async () => {
         const win = await controller();
         const s = get(peekSettings);
@@ -262,7 +276,8 @@ export function wirePeek(): () => void {
           });
         } else {
           peekHeaderExpanded.set(false);
-          peekPointerOver.set(false);
+          clearTimeout(fadeTimer);
+          peekInFocus.set(false);
           const compact = await win.leave();
           if (compact) peekSettings.update((x) => ({ ...x, geometry: compact, useLinesHeight: false }));
           await tick();
@@ -304,28 +319,40 @@ export function wirePeek(): () => void {
   let collapseTimer: ReturnType<typeof setTimeout> | undefined;
   const onPointerEnter = () => {
     clearTimeout(collapseTimer);
-    peekPointerOver.set(true);
+    markActive();
     setHeaderExpanded(true);
   };
   const onPointerLeave = () => {
     clearTimeout(collapseTimer);
-    peekPointerOver.set(false);
     collapseTimer = setTimeout(() => setHeaderExpanded(false), COLLAPSE_DELAY_MS);
   };
   const onPointerMove = () => {
     clearTimeout(collapseTimer);
-    // A window shown under a pointer that is already inside it gets no enter event until the pointer moves.
-    if (!get(peekPointerOver)) peekPointerOver.set(true);
+    markActive();
   };
   document.documentElement.addEventListener("mouseenter", onPointerEnter);
   document.documentElement.addEventListener("mouseleave", onPointerLeave);
   document.documentElement.addEventListener("mousemove", onPointerMove);
+  // Typing, clicking and scrolling are activity too (capture phase: the editor handles these keys itself).
+  const activityEvents = ["keydown", "mousedown", "wheel"] as const;
+  for (const name of activityEvents) document.addEventListener(name, markActive, true);
   cleanups.push(() => {
     clearTimeout(collapseTimer);
+    clearTimeout(fadeTimer);
     document.documentElement.removeEventListener("mouseenter", onPointerEnter);
     document.documentElement.removeEventListener("mouseleave", onPointerLeave);
     document.documentElement.removeEventListener("mousemove", onPointerMove);
+    for (const name of activityEvents) document.removeEventListener(name, markActive, true);
   });
+  // A changed fade time applies to the countdown that is running now.
+  let lastFade = get(peekSettings).fadeSeconds;
+  cleanups.push(
+    peekSettings.subscribe((s) => {
+      if (s.fadeSeconds === lastFade) return;
+      lastFade = s.fadeSeconds;
+      markActive();
+    }),
+  );
 
   // The "lines" setting (or the section growing in fit mode) resizes the window live.
   const resize = () => {

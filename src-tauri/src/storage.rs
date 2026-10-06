@@ -104,8 +104,12 @@ pub struct PeekConfig {
     pub lines: u32,
     /// Background opacity in percent while the pointer is away (text is never translucent).
     pub opacity: u32,
-    /// Background opacity in percent while the pointer is over the window.
+    /// Background opacity in percent while the window is "in focus": you are typing in it or moving the pointer over
+    /// it (it fades to `opacity` after `fade_seconds` without either).
     pub opacity_hover: u32,
+    /// Seconds without typing or pointer movement after which the window fades from `opacity_hover` to `opacity`;
+    /// 0 = never fade.
+    pub fade_seconds: u32,
     pub always_on_top: bool,
     pub header: PeekHeader,
     /// Global shortcut, Tauri accelerator syntax.
@@ -130,6 +134,7 @@ pub const PEEK_OLD_DEFAULT_SHORTCUT: &str = "CommandOrControl+F11";
 /// The default now: no function key, no letter that AltGr produces a character on.
 pub const PEEK_DEFAULT_SHORTCUT: &str = "CommandOrControl+Alt+Space";
 pub const PEEK_MIN_OPACITY: u32 = 20;
+pub const PEEK_MAX_FADE_SECONDS: u32 = 60;
 
 impl Default for PeekConfig {
     fn default() -> Self {
@@ -138,6 +143,7 @@ impl Default for PeekConfig {
             lines: 6,
             opacity: 80,
             opacity_hover: 100,
+            fade_seconds: 5,
             always_on_top: true,
             header: PeekHeader::default(),
             shortcut: PEEK_DEFAULT_SHORTCUT.to_string(),
@@ -177,6 +183,7 @@ impl PeekConfig {
         self.lines = self.lines.min(PEEK_MAX_LINES);
         self.opacity = self.opacity.clamp(PEEK_MIN_OPACITY, 100);
         self.opacity_hover = self.opacity_hover.clamp(PEEK_MIN_OPACITY, 100);
+        self.fade_seconds = self.fade_seconds.min(PEEK_MAX_FADE_SECONDS);
         self
     }
 }
@@ -1362,6 +1369,7 @@ mod tests {
             lines: 3,
             opacity: 40,
             opacity_hover: 90,
+            fade_seconds: 12,
             always_on_top: false,
             header: PeekHeader::Hover,
             shortcut: "Ctrl+Alt+P".to_string(),

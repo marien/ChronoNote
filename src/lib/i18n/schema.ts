@@ -171,6 +171,8 @@ export type TranslationParams = {
   "peek.settings.lines.fit": undefined;
   "peek.settings.opacity.label": undefined;
   "peek.settings.opacityHover.label": undefined;
+  "peek.settings.fadeSeconds.label": undefined;
+  "peek.settings.fadeSeconds.never": undefined;
   "peek.settings.alwaysOnTop.label": undefined;
   "peek.settings.header.label": undefined;
   "peek.settings.header.always": undefined;
