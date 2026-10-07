@@ -775,6 +775,7 @@ export const nl = {
   "toast.updates.updateAvailable": () => "Update beschikbaar — zie Over",
   "toast.persistence.failedToSaveNote": () => "Opslaan van notitie mislukt",
   "toast.persistence.keptChangedNote": ({ filename }) => `${filename} is op schijf gewijzigd en is daarom bewaard in plaats van verwijderd`,
+  "toast.dragDrop.unsupportedFile": () => "Niet-ondersteund bestand. Sleep een .json-export of een YYYY-MM-DD.txt-notitie hierheen.",
   "onboarding.scratchpadName": () => "Welkom",
   "toast.onboarding.mobileHint": () =>
     "Tik op een markering in de onderbalk om regels om te zetten in acties of agendapunten.",

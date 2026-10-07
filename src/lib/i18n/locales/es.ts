@@ -785,6 +785,7 @@ export const es = {
   "toast.updates.updateAvailable": () => "Actualización disponible — ver Acerca de",
   "toast.persistence.failedToSaveNote": () => "Error al guardar la nota",
   "toast.persistence.keptChangedNote": ({ filename }) => `${filename} cambió en el disco, así que se conservó en lugar de eliminarse`,
+  "toast.dragDrop.unsupportedFile": () => "Archivo no compatible. Suelta una exportación .json o una nota YYYY-MM-DD.txt.",
   "onboarding.scratchpadName": () => "Bienvenida",
   "toast.onboarding.mobileHint": () =>
     "Toca cualquier ficha en la barra inferior para convertir líneas en acciones o temas de reunión.",
