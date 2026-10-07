@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount, tick } from "svelte";
+  import { onMount, tick, untrack } from "svelte";
   import * as controller from "../../controller";
   import type { PaletteItem } from "../../commandPalette";
   import { splitHighlighted, COMMAND_PALETTE_GROUP_KEYS } from "../../commandPalette";
@@ -9,13 +9,13 @@
   import EmptyState from "../EmptyState.svelte";
   import { t } from "../../i18n";
 
-  let query = "";
-  let items: PaletteItem[] = [];
+  let query = $state("");
+  let items = $state<PaletteItem[]>([]);
   /** The query `items` were actually built for — `commit()` refuses to
    * run against a result set that's a keystroke or two stale (the `!`/`@`
    * modes resolve async). */
   let itemsQuery = "\0";
-  let selected = 0;
+  let selected = $state(0);
   let inputEl: HTMLInputElement;
   let listEl: HTMLDivElement;
   let seq = 0;
@@ -45,10 +45,18 @@
       void runRefresh(q);
     }
   }
-  $: scheduleRefresh(query);
+  $effect(() => {
+    const q = query;
+    untrack(() => {
+      scheduleRefresh(q);
+    });
+    return () => {
+      clearTimeout(debounce);
+    };
+  });
 
   // Group headers are derived so the list stays a flat keyboard target.
-  $: rows = (() => {
+  const rows = $derived.by(() => {
     const out: Array<{ header: string } | { item: PaletteItem; idx: number }> = [];
     let lastGroup = "";
     items.forEach((item, idx) => {
@@ -59,7 +67,7 @@
       out.push({ item, idx });
     });
     return out;
-  })();
+  });
 
   async function commit(idx: number) {
     const item = items[idx];
@@ -128,7 +136,7 @@
         placeholder={$t("commandPalette.modal.placeholder")}
         bind:value={query}
         bind:this={inputEl}
-        on:keydown={onKeydown}
+        onkeydown={onKeydown}
         autocomplete="off"
         aria-label={$t("commandPalette.modal.queryAriaLabel")}
       />
@@ -136,7 +144,7 @@
         type="button"
         class="icon-btn modal-close-btn"
         aria-label={$t("common.closeDialog")}
-        on:click={controller.closeAllModals}
+        onclick={controller.closeAllModals}
       >
         <Icon name="close" size={14} />
       </button>
@@ -149,25 +157,25 @@
         type="button"
         class="palette-chip"
         class:active={query.trim().startsWith(">")}
-        on:click={() => setPrefix(">")}
+        onclick={() => setPrefix(">")}
       ><kbd>&gt;</kbd> {$t("commandPalette.legend.commands")}</button>
       <button
         type="button"
         class="palette-chip"
         class:active={query.trim().startsWith("!") || query.trim().startsWith("#")}
-        on:click={() => setPrefix("!")}
+        onclick={() => setPrefix("!")}
       ><kbd>!</kbd> {$t("commandPalette.legend.actions")}</button>
       <button
         type="button"
         class="palette-chip"
         class:active={query.trim().startsWith("@")}
-        on:click={() => setPrefix("@")}
+        onclick={() => setPrefix("@")}
       ><kbd>@</kbd> {$t("commandPalette.legend.dates")}</button>
       <button
         type="button"
         class="palette-chip"
         class:active={query.trim().startsWith("?")}
-        on:click={() => setPrefix("?")}
+        onclick={() => setPrefix("?")}
       ><kbd>?</kbd> {$t("commandPalette.legend.shortcuts")}</button>
     </div>
     <div class="modal-list" bind:this={listEl} role="listbox" aria-label={$t("commandPalette.modal.resultsAriaLabel")}>
@@ -182,9 +190,9 @@
             aria-selected={row.idx === selected}
             data-idx={row.idx}
             tabindex="0"
-            on:click={() => commit(row.idx)}
-            on:mouseenter={() => (selected = row.idx)}
-            on:keydown={(e) => e.key === "Enter" && commit(row.idx)}
+            onclick={() => commit(row.idx)}
+            onmouseenter={() => (selected = row.idx)}
+            onkeydown={(e) => e.key === "Enter" && commit(row.idx)}
           >
             <div class="modal-item-main">
               {#if row.item.matchedIndices && row.item.matchedIndices.length > 0}
