@@ -4,6 +4,7 @@ import { openUrl } from "@tauri-apps/plugin-opener";
 import type {
   AppConfig,
   ColorMode,
+  ConfigPatch,
   FileMetadata,
   FolderSwitchResult,
   ImportMode,
@@ -43,64 +44,69 @@ export function setNotesDir(path: string): Promise<AppConfig> {
   return invoke("set_notes_dir", { path });
 }
 
+/** Partial settings update: only the fields present change (clamps applied in the backend). */
+export function updateConfig(patch: ConfigPatch): Promise<AppConfig> {
+  return invoke("update_config", { patch });
+}
+
 export function setColorMode(mode: ColorMode): Promise<AppConfig> {
-  return invoke("set_color_mode", { mode });
+  return updateConfig({ colorMode: mode });
 }
 
 export function setWordWrap(enabled: boolean): Promise<AppConfig> {
-  return invoke("set_word_wrap", { enabled });
+  return updateConfig({ wordWrap: enabled });
 }
 
 export function setReadableLineLength(enabled: boolean): Promise<AppConfig> {
-  return invoke("set_readable_line_length", { enabled });
+  return updateConfig({ readableLineLength: enabled });
 }
 
 export function setAutoCheckUpdates(enabled: boolean): Promise<AppConfig> {
-  return invoke("set_auto_check_updates", { enabled });
+  return updateConfig({ autoCheckUpdates: enabled });
 }
 
 export function setThemeMode(mode: ThemeMode): Promise<AppConfig> {
-  return invoke("set_theme_mode", { mode });
+  return updateConfig({ themeMode: mode });
 }
 
 export function setLanguageMode(mode: LanguageMode): Promise<AppConfig> {
-  return invoke("set_language_mode", { mode });
+  return updateConfig({ languageMode: mode });
 }
 
 export function setCalendarSyncEnabled(enabled: boolean): Promise<AppConfig> {
-  return invoke("set_calendar_sync_enabled", { enabled });
+  return updateConfig({ calendarSyncEnabled: enabled });
 }
 
 export function setFontSize(fontSize: number): Promise<AppConfig> {
-  return invoke("set_font_size", { fontSize });
+  return updateConfig({ fontSize });
 }
 
 export function setLineHeight(lineHeight: number): Promise<AppConfig> {
-  return invoke("set_line_height", { lineHeight });
+  return updateConfig({ lineHeight });
 }
 
 export function setPureBlack(pureBlack: boolean): Promise<AppConfig> {
-  return invoke("set_pure_black", { pureBlack });
+  return updateConfig({ pureBlack });
 }
 
 export function setStartupTabMode(mode: StartupTabMode): Promise<AppConfig> {
-  return invoke("set_startup_tab_mode", { mode });
+  return updateConfig({ startupTabMode: mode });
 }
 
 export function setOccurrenceHint(enabled: boolean): Promise<AppConfig> {
-  return invoke("set_occurrence_hint", { enabled });
+  return updateConfig({ occurrenceHint: enabled });
 }
 
 export function setPeek(peek: PeekConfig): Promise<AppConfig> {
-  return invoke("set_peek", { peek });
+  return updateConfig({ peek });
 }
 
 export function setLastSeenVersion(version: string): Promise<AppConfig> {
-  return invoke("set_last_seen_version", { version });
+  return updateConfig({ lastSeenVersion: version });
 }
 
 export function setOnboardingCompleted(completed: boolean): Promise<AppConfig> {
-  return invoke("set_onboarding_completed", { completed });
+  return updateConfig({ onboardingCompleted: completed });
 }
 
 export function listNoteFiles(): Promise<string[]> {

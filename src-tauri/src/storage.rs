@@ -302,6 +302,95 @@ pub struct AppConfig {
     pub occurrence_hint: bool,
 }
 
+/// A partial update of `AppConfig` for the `update_config` command: only the
+/// fields present are changed. `notes_dir`/`recent_notes_dirs` are not here on
+/// purpose (`set_notes_dir` maintains the recent list).
+#[derive(Deserialize, Default, Clone, TS)]
+#[serde(rename_all = "camelCase", default)]
+pub struct ConfigPatch {
+    #[ts(optional)]
+    pub color_mode: Option<ColorMode>,
+    #[ts(optional)]
+    pub theme_mode: Option<ThemeMode>,
+    #[ts(optional)]
+    pub language_mode: Option<LanguageMode>,
+    #[ts(optional)]
+    pub startup_tab_mode: Option<StartupTabMode>,
+    #[ts(optional)]
+    pub word_wrap: Option<bool>,
+    #[ts(optional)]
+    pub readable_line_length: Option<bool>,
+    #[ts(optional)]
+    pub auto_check_updates: Option<bool>,
+    #[ts(optional)]
+    pub calendar_sync_enabled: Option<bool>,
+    #[ts(optional)]
+    pub font_size: Option<f32>,
+    #[ts(optional)]
+    pub line_height: Option<f32>,
+    #[ts(optional)]
+    pub occurrence_hint: Option<bool>,
+    #[ts(optional)]
+    pub pure_black: Option<bool>,
+    #[ts(optional)]
+    pub peek: Option<PeekConfig>,
+    #[ts(optional)]
+    pub last_seen_version: Option<String>,
+    #[ts(optional)]
+    pub onboarding_completed: Option<bool>,
+}
+
+impl ConfigPatch {
+    /// Sets every present field, with the clamps the old per-field setters had.
+    pub fn apply(self, cfg: &mut AppConfig) {
+        if let Some(v) = self.color_mode {
+            cfg.color_mode = v;
+        }
+        if let Some(v) = self.theme_mode {
+            cfg.theme_mode = v;
+        }
+        if let Some(v) = self.language_mode {
+            cfg.language_mode = v;
+        }
+        if let Some(v) = self.startup_tab_mode {
+            cfg.startup_tab_mode = v;
+        }
+        if let Some(v) = self.word_wrap {
+            cfg.word_wrap = v;
+        }
+        if let Some(v) = self.readable_line_length {
+            cfg.readable_line_length = v;
+        }
+        if let Some(v) = self.auto_check_updates {
+            cfg.auto_check_updates = v;
+        }
+        if let Some(v) = self.calendar_sync_enabled {
+            cfg.calendar_sync_enabled = v;
+        }
+        if let Some(v) = self.font_size {
+            cfg.font_size = v.clamp(12.0, 18.0);
+        }
+        if let Some(v) = self.line_height {
+            cfg.line_height = v.clamp(1.3, 1.8);
+        }
+        if let Some(v) = self.occurrence_hint {
+            cfg.occurrence_hint = v;
+        }
+        if let Some(v) = self.pure_black {
+            cfg.pure_black = v;
+        }
+        if let Some(v) = self.peek {
+            cfg.peek = v.clamped();
+        }
+        if let Some(v) = self.last_seen_version {
+            cfg.last_seen_version = Some(v);
+        }
+        if let Some(v) = self.onboarding_completed {
+            cfg.onboarding_completed = v;
+        }
+    }
+}
+
 fn default_true() -> bool {
     true
 }
@@ -1082,6 +1171,7 @@ fn generate_typescript_bindings() {
         PeekConfig::decl(&cfg),
         FileMetadata::decl(&cfg),
         AppConfig::decl(&cfg),
+        ConfigPatch::decl(&cfg),
         TabSession::decl(&cfg),
         NoteWithMetadata::decl(&cfg),
         ImportMode::decl(&cfg),
@@ -2208,5 +2298,39 @@ mod tests {
 
         let loaded = read_scratchpad_drafts_at(&file).unwrap();
         assert_eq!(loaded.get("scratchpad-1").map(String::as_str), Some("hello mobile"));
+    }
+
+    fn patched(json: &str) -> (serde_json::Value, serde_json::Value) {
+        let dir = tempdir().unwrap();
+        let base = load_config_at(&dir.path().join("config.json"), &dir.path().join("Notes")).unwrap();
+        let before = serde_json::to_value(&base).unwrap();
+        let mut cfg = base;
+        serde_json::from_str::<ConfigPatch>(json).unwrap().apply(&mut cfg);
+        (before, serde_json::to_value(&cfg).unwrap())
+    }
+
+    #[test]
+    fn config_patch_with_only_word_wrap_changes_only_that_field() {
+        let (before, after) = patched(r#"{"wordWrap": true}"#);
+        let mut expected = before.clone();
+        expected["wordWrap"] = serde_json::json!(true);
+        assert_ne!(before, after);
+        assert_eq!(after, expected);
+    }
+
+    #[test]
+    fn config_patch_clamps_font_size_line_height_and_peek() {
+        let (_, after) = patched(r#"{"fontSize": 30.0, "lineHeight": 0.5}"#);
+        assert_eq!(after["fontSize"], serde_json::json!(18.0));
+        assert_eq!(after["lineHeight"].as_f64().unwrap() as f32, 1.3_f32);
+        let (_, after) = patched(r#"{"peek": {"opacity": 1, "lines": 999}}"#);
+        assert_eq!(after["peek"]["opacity"], serde_json::json!(PEEK_MIN_OPACITY));
+        assert_eq!(after["peek"]["lines"], serde_json::json!(PEEK_MAX_LINES));
+    }
+
+    #[test]
+    fn empty_config_patch_changes_nothing() {
+        let (before, after) = patched("{}");
+        assert_eq!(before, after);
     }
 }
