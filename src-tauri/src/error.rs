@@ -25,9 +25,9 @@
 //! this one, given its own pluralization opportunity and a parallel
 //! implementation in the web app's `webOneDriveSync.ts` to keep in sync.
 //!
-//! The OneDrive sign-in flow's own fixed sentences (`onedrive::auth`'s
-//! `exchange_code`, `onedrive::sync`'s `login_interactive`/
-//! `exchange_code_direct`/`finish_login`) *are* covered — note that
+//! The OneDrive sign-in flow's own fixed sentences (produced by the web
+//! app's `webOneDriveAuth.ts`/`webOneDriveSync.ts`; the desktop app has no
+//! OneDrive engine) *are* covered — note that
 //! `refresh_access_token` (used only by a background sync's own token
 //! refresh, never by `OneDriveLoginResult`) is deliberately NOT among
 //! them: its failures were always going to fold into `Other` regardless,
@@ -45,51 +45,51 @@ pub enum AppError {
     /// none can be trusted as "no meetings today" (see that module's own
     /// doc comment).
     AgendaInvalid,
-    /// `onedrive::sync`: a sync was already running when another sync-
+    /// the web app's `webOneDriveSync.ts`/`webOneDriveAuth.ts`: a sync was already running when another sync-
     /// affecting operation (a further sync, or resolving a held conflict)
     /// was attempted. One shared code for both guards — the user-facing
     /// meaning ("try again in a moment") is identical either way.
     OneDriveSyncBusy,
-    /// `onedrive::sync::login_interactive`: couldn't bind the local OAuth
+    /// the web app's `webOneDriveSync.ts`/`webOneDriveAuth.ts`: couldn't bind the local OAuth
     /// loopback listener (port 8765 already in use, most likely).
     OneDriveLoopbackBindFailed { detail: String },
-    /// `onedrive::sync::login_interactive`: couldn't open the system
+    /// the web app's `webOneDriveSync.ts`/`webOneDriveAuth.ts`: couldn't open the system
     /// browser to start the Microsoft sign-in page.
     OneDriveBrowserOpenFailed { detail: String },
-    /// `onedrive::sync::login_interactive`: a real error (not just no
+    /// the web app's `webOneDriveSync.ts`/`webOneDriveAuth.ts`: a real error (not just no
     /// connection yet) while waiting for the loopback callback.
     OneDriveCallbackAcceptFailed { detail: String },
-    /// `onedrive::sync::login_interactive`: the user never completed the
+    /// the web app's `webOneDriveSync.ts`/`webOneDriveAuth.ts`: the user never completed the
     /// browser sign-in within the 120-second window.
     OneDriveAuthTimedOut,
-    /// `onedrive::sync::exchange_code_direct`: the manual-paste fallback
+    /// the web app's `webOneDriveSync.ts`/`webOneDriveAuth.ts`: the manual-paste fallback
     /// was given text with no recognizable authorization code in it.
     OneDriveNoAuthCode,
-    /// `onedrive::sync::exchange_code_direct`: pasted a code with no
+    /// the web app's `webOneDriveSync.ts`/`webOneDriveAuth.ts`: pasted a code with no
     /// matching `login_interactive` PKCE session to exchange it against.
     OneDriveNoPendingSession,
-    /// `onedrive::sync::finish_login`: got tokens from Microsoft but
+    /// the web app's `webOneDriveSync.ts`/`webOneDriveAuth.ts`: got tokens from Microsoft but
     /// couldn't put the refresh token in the OS keychain.
     OneDriveKeychainSaveFailed { detail: String },
-    /// `onedrive::sync::finish_login`: couldn't persist the (non-
+    /// the web app's `webOneDriveSync.ts`/`webOneDriveAuth.ts`: couldn't persist the (non-
     /// sensitive) auth state file alongside the keychain entry.
     OneDriveAuthStateSaveFailed { detail: String },
-    /// `onedrive::sync::finish_login`: signed in, but the follow-up
+    /// the web app's `webOneDriveSync.ts`/`webOneDriveAuth.ts`: signed in, but the follow-up
     /// Graph API call for the account's own profile failed.
     OneDriveProfileFetchFailed { detail: String },
-    /// `onedrive::auth::exchange_code`: Microsoft's token endpoint didn't
+    /// the web app's `webOneDriveSync.ts`/`webOneDriveAuth.ts`: Microsoft's token endpoint didn't
     /// include a refresh token in its response — almost always a missing
     /// `offline_access` scope on the app registration.
     OneDriveMissingRefreshTokenScope,
-    /// `onedrive::auth::exchange_code`: the HTTP request to Microsoft's
+    /// the web app's `webOneDriveSync.ts`/`webOneDriveAuth.ts`: the HTTP request to Microsoft's
     /// token endpoint itself failed (DNS, connection, TLS — before any
     /// response body exists to inspect).
     OneDriveTokenRequestFailed { detail: String },
-    /// `onedrive::auth::exchange_code`: Microsoft's token endpoint
+    /// the web app's `webOneDriveSync.ts`/`webOneDriveAuth.ts`: Microsoft's token endpoint
     /// responded, but rejected the exchange (a non-2xx status) — `detail`
     /// is whatever error body it returned, Microsoft's own English text.
     OneDriveTokenExchangeRejected { detail: String },
-    /// `onedrive::auth::exchange_code`: got a 2xx response that isn't the
+    /// the web app's `webOneDriveSync.ts`/`webOneDriveAuth.ts`: got a 2xx response that isn't the
     /// JSON shape a token response should be.
     OneDriveTokenResponseUnparseable { detail: String },
     /// Anything else: a raw, untranslated diagnostic string — usually a
