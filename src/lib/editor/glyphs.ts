@@ -1,13 +1,8 @@
-import {
-  Decoration,
-  DecorationSet,
-  EditorView,
-  MatchDecorator,
-  ViewPlugin,
-  ViewUpdate,
-  WidgetType,
-} from "@codemirror/view";
-import { leadingTopicTag, symbolAfterClick, toggleOpenClosedAtIndex } from "../tokens";
+import { RangeSetBuilder } from "@codemirror/state";
+import { Decoration, DecorationSet, EditorView, ViewPlugin, ViewUpdate, WidgetType } from "@codemirror/view";
+import { symbolAfterClick, toggleOpenClosedAtIndex } from "../tokens";
+import { ARROW_GLYPH, GLYPHS, glyphSpecForSymbol } from "../grammar/glyphs";
+import { tokenizeLine } from "../grammar/tokenize";
 
 
 /** Renders the raw plain-text tokens (spec 2.2) as their visual glyphs
@@ -58,7 +53,7 @@ class InlineGlyphWidget extends WidgetType {
     span.appendChild(ink);
     if (this.cyclable) {
       span.classList.add("glyph-cyclable");
-      const [nextChar, nextClass] = glyphForSymbol(symbolAfterClick(this.symbol));
+      const { char: nextChar, cls: nextClass } = glyphSpecForSymbol(symbolAfterClick(this.symbol));
       // #34: on hover, morph into the glyph a click will produce so you can
       // see what it will do; revert on leave. Bypassed on touchscreens.
       span.addEventListener("mouseenter", () => {
@@ -95,158 +90,82 @@ class InlineGlyphWidget extends WidgetType {
   }
 }
 
-/** Shared by standalone action lines and the `=> <symbol>` consequence-
- * action form (§41) — one glyph per action state, regardless of whether
- * it's reached directly or through a Delegate arrow. */
-function glyphForSymbol(sym: string): [string, string] {
-  switch (sym) {
-    case "v":
-      return ["☑", "glyph-done"];
-    case ">":
-      return ["☐", "glyph-progress"];
-    case "x":
-      return ["☒", "glyph-cancelled"];
-    case "o":
-      return ["○", "glyph-topic-open"];
-    case ".":
-      return ["◉", "glyph-topic-done"];
-    case ",":
-      return ["◌", "glyph-topic-skipped"];
-    default:
-      return ["☐", "glyph-open"]; // "#"
+const MARK_EMPHASIS = Decoration.mark({ class: "glyph-emphasis-line" });
+const MARK_ASSIGNEE = Decoration.mark({ class: "glyph-assignee" });
+const MARK_TOPIC = Decoration.mark({ class: "glyph-topic" });
+// The parentheses of a `(topic)` stay real text (each exactly 1ch) but are drawn transparent, so they act
+// as the pill's inner padding: hidden pill = same width as the raw text, zero column shift. CSS shows them
+// again on the line being edited or hovered.
+const MARK_TOPIC_PAREN = Decoration.mark({ class: "glyph-topic-paren" });
+// Only the range of an atomic decoration matters, never its content.
+const ATOMIC = Decoration.replace({});
+
+/** Builds the glyph decorations and the atomic ranges for the visible lines from the one line tokenizer
+ * (src/lib/grammar/tokenize.ts), in a single pass so no line is tokenized twice. The document always
+ * matches the file: replaced tokens are only drawn differently; `@name`, `(topic)` and the `! ` line are
+ * marked in place and stay editable. Atomic = exactly the replaced tokens (the arrow and a consequence
+ * symbol each their own range, so the cursor can land between them). */
+export function buildGlyphDecorations(view: EditorView): { decorations: DecorationSet; atomic: DecorationSet } {
+  const deco = new RangeSetBuilder<Decoration>();
+  const atomic = new RangeSetBuilder<Decoration>();
+  const doc = view.state.doc;
+  let doneTo = -1; // end of the last line handled, so touching visible ranges never repeat a line
+  for (const { from, to } of view.visibleRanges) {
+    let pos = Math.max(from, doneTo + 1);
+    while (pos <= to) {
+      const line = doc.lineAt(pos);
+      doneTo = line.to;
+      pos = line.to + 1;
+      for (const t of tokenizeLine(line.text)) {
+        const a = line.from + t.from;
+        const b = line.from + t.to;
+        if (t.replaced) atomic.add(a, b, ATOMIC);
+        switch (t.kind) {
+          case "emphasis":
+            deco.add(a, line.to, MARK_EMPHASIS);
+            break;
+          case "arrow":
+            deco.add(a, b, Decoration.replace({ widget: new InlineGlyphWidget(ARROW_GLYPH.char, ARROW_GLYPH.cls) }));
+            break;
+          case "bullet":
+            deco.add(a, b, Decoration.replace({ widget: new InlineGlyphWidget(GLYPHS.bullet.char, GLYPHS.bullet.cls) }));
+            break;
+          case "action":
+          case "topic":
+          case "consequence": {
+            // Action, agenda-topic and consequence symbols cycle on click; the arrow and bullet do not.
+            const g = glyphSpecForSymbol(t.symbol!);
+            deco.add(a, b, Decoration.replace({ widget: new InlineGlyphWidget(g.char, g.cls, true, t.symbol) }));
+            break;
+          }
+          case "assignee":
+            deco.add(a, b, MARK_ASSIGNEE);
+            break;
+          case "topicTag":
+            // #36/#39: only right after the action symbol; `(word)` elsewhere is ordinary text.
+            deco.add(a, b, MARK_TOPIC);
+            deco.add(a, a + 1, MARK_TOPIC_PAREN);
+            deco.add(b - 1, b, MARK_TOPIC_PAREN);
+            break;
+          // assigneeList and paren draw nothing in the editor (an assigneeList only through its assignees).
+        }
+      }
+    }
   }
+  return { decorations: deco.finish(), atomic: atomic.finish() };
 }
-
-/** Full rendering pass. Uses MatchDecorator's lower-level `decorate`
- * callback (rather than the simple one-decoration-per-match `decoration`
- * callback) because some cases need more than a single fixed-width
- * replacement:
- *  - `! ` marks the *rest of the line* (variable length), not just the
- *    token itself, so the emphasis reads as one visual unit.
- *  - `=> @name` splits into a replaced arrow glyph (`=> `, 3 chars) plus a
- *    `Decoration.mark` over `@name` — real, live, editable text with just
- *    a badge style layered on, rather than one static baked-in widget.
- *  - `=> <symbol>` (§41 — `#`/`v`/`>`/`x` after a Delegate arrow) splits
- *    into the arrow glyph plus a *second* replaced glyph for the action
- *    state; only the text after that second symbol is real/editable —
- *    "only the text after the action symbol is part of the action," per
- *    spec. Deliberately mutually exclusive with `=> @name` — a line is
- *    either delegated-to-a-person or a consequence-action, never both
- *    (confirmed) — so this is a distinct branch, not a further split of
- *    the assignee case.
- *
- * The bullet (`- `/`* `, §51) and action tokens (`# `/`v `/`> `/`x `, §40/
- * §50) all use a lookbehind (`(?<=^\s*)...`) rather than capturing the
- * leading indentation in the match itself: indentation must stay
- * untouched, real, visible whitespace (that's how bullet nesting works —
- * spec: two spaces per level — and actions now tolerate the same
- * indentation without it being "part of" the matched token), and the
- * lookbehind means the match is already just the token to replace, with
- * no indent-length arithmetic needed to find where it starts. */
-const renderMatcher = new MatchDecorator({
-  regexp:
-    /(^!\s)|((?<=^\s*)#\s)|((?<=^\s*)v\s)|((?<=^\s*)>\s)|((?<=^\s*)x\s)|((?<=^\s*)o\s)|((?<=^\s*)\.\s)|((?<=^\s*),\s)|(=>\s@[\w-]+)|(=>\s[#vx>]\s)|(=>\s)|((?<=^\s*)[-*]\s)|(\(@[\w-]+(?:[\s,]+@[\w-]+)*\))|((?<![\w@/])@[\w-]+)|(\([^\s()]+\))/gm,
-  decorate(add, from, to, match, view) {
-    const text = match[0];
-    if (text.startsWith("! ")) {
-      const line = view.state.doc.lineAt(from);
-      add(from, line.to, Decoration.mark({ class: "glyph-emphasis-line" }));
-      return;
-    }
-    if (text.startsWith("=> @")) {
-      add(from, from + 3, Decoration.replace({ widget: new InlineGlyphWidget("➔", "glyph-followup") }));
-      add(from + 3, to, Decoration.mark({ class: "glyph-assignee" }));
-      return;
-    }
-    if (text.startsWith("=>")) {
-      add(from, from + 3, Decoration.replace({ widget: new InlineGlyphWidget("➔", "glyph-followup") }));
-      if (to > from + 3) {
-        // "=> <symbol> " — the consequence-action form (§41). The inner
-        // symbol is a real action state, so it cycles on click too.
-        const [char, cls] = glyphForSymbol(text[3]);
-        add(from + 3, to, Decoration.replace({ widget: new InlineGlyphWidget(char, cls, true, text[3]) }));
-      }
-      return;
-    }
-    if (text.startsWith("-") || text.startsWith("*")) {
-      add(from, to, Decoration.replace({ widget: new InlineGlyphWidget("•", "glyph-bullet") }));
-      return;
-    }
-    if (text.startsWith("(@")) {
-      // #126: `(@name)` — a parenthesised delegate; also a list, `(@a, @b, @c)` (each name gets
-      // its own badge, the commas and parens stay plain text). Recognised on any line, including
-      // plain prose and agenda topics — unlike the bare `@name` form below, it needs no `=> `.
-      for (const n of text.matchAll(/@[\w-]+/g)) {
-        add(from + n.index!, from + n.index! + n[0].length, Decoration.mark({ class: "glyph-assignee" }));
-      }
-      return;
-    }
-    if (text.startsWith("@")) {
-      // A bare `@name` is badged anywhere, on any line (#35 first limited it to lines with a
-      // `=> `, which left `ask @sam` unmarked while `(@sam)` and `=> @sam` were: inconsistent).
-      // The regex only lets it start where the `@` is not glued to a word, another `@` or a `/`,
-      // so an email address (`dana@example.com`) or a URL path (`/@user`) isn't mistaken for one.
-      add(from, to, Decoration.mark({ class: "glyph-assignee" }));
-      return;
-    }
-    if (text.startsWith("(")) {
-      // #36/#39: a `(topic)` tag, but only immediately after the action
-      // symbol (`# (topic) …`, or `… => # (topic) …`). `(word)` anywhere
-      // else, or in prose, stays ordinary text.
-      const line = view.state.doc.lineAt(from);
-      const tag = leadingTopicTag(line.text);
-      if (tag && line.from + tag.from === from) {
-        add(from, to, Decoration.mark({ class: "glyph-topic" }));
-        // The parentheses stay real text (each exactly 1ch) but are drawn transparent, so they act as
-        // the pill's inner padding: hidden pill = same width as the raw text, zero column shift. CSS
-        // shows them again on the line being edited or hovered.
-        add(from, from + 1, Decoration.mark({ class: "glyph-topic-paren" }));
-        add(to - 1, to, Decoration.mark({ class: "glyph-topic-paren" }));
-      }
-      return;
-    }
-    // Whatever's left is one of the four (optionally indented) action
-    // symbols on its own — the lookbehind already excludes any leading
-    // indentation from `text`, so `text[0]` is the symbol itself.
-    const [char, cls] = glyphForSymbol(text[0]);
-    add(from, to, Decoration.replace({ widget: new InlineGlyphWidget(char, cls, true, text[0]) }));
-  },
-});
-
-/** Atomic-only pass: exactly the ranges that are actually *replaced* above
- * (never the `@name` mark, never the `!`-line mark, never a bullet's or
- * action's leading indentation — those stay ordinary, fully editable
- * text). Kept as a separate matcher rather than filtering `renderMatcher`'s
- * mixed set, since `EditorView.atomicRanges` must never include `@name` —
- * that would make it uneditable again, defeating the whole point of
- * marking it instead of replacing it. The actual Decoration value here is
- * never rendered (only fed to `atomicRanges`), so its content doesn't
- * matter, only its range. The `=> <symbol>` form's arrow and its action
- * glyph are each their own atomic range (`=> ` via the shared `(=>\s)`
- * alternative below, the symbol via its own lookbehind-gated one) rather
- * than one combined 5-character range — so the cursor can land between
- * them, and backspacing/selecting one doesn't take the other with it
- * (turning "=> # text" into "=> text" un-marks it as a consequence-action
- * without touching the delegate arrow, same as deleting `# ` off a plain
- * action line does; deleting just the arrow leaves the bare "# text"
- * action line behind, symmetrically). */
-const atomicMatcher = new MatchDecorator({
-  regexp:
-    /((?<=^\s*)#\s)|((?<=^\s*)v\s)|((?<=^\s*)>\s)|((?<=^\s*)x\s)|((?<=^\s*)o\s)|((?<=^\s*)\.\s)|((?<=^\s*),\s)|((?<==>\s)[#vx>]\s)|(=>\s)|((?<=^\s*)[-*]\s)/gm,
-  decoration: () => Decoration.replace({}),
-});
 
 export const liveGlyphs = ViewPlugin.fromClass(
   class {
     decorations: DecorationSet;
     atomicDecorations: DecorationSet;
     constructor(view: EditorView) {
-      this.decorations = renderMatcher.createDeco(view);
-      this.atomicDecorations = atomicMatcher.createDeco(view);
+      ({ decorations: this.decorations, atomic: this.atomicDecorations } = buildGlyphDecorations(view));
     }
     update(update: ViewUpdate) {
-      this.decorations = renderMatcher.updateDeco(update, this.decorations);
-      this.atomicDecorations = atomicMatcher.updateDeco(update, this.atomicDecorations);
+      if (update.docChanged || update.viewportChanged) {
+        ({ decorations: this.decorations, atomic: this.atomicDecorations } = buildGlyphDecorations(update.view));
+      }
     }
   },
   { decorations: (v) => v.decorations },
