@@ -2178,6 +2178,27 @@ describe("directory switching", () => {
     expect(get(controller.modal)).toBe("none");
   });
 
+  it("waits for pending note saves before switching folders", async () => {
+    controller.tabs.set([tab({ id: "a", filename: "2026-09-01.txt", content: "start" })]);
+    controller.activeTabId.set("a");
+    controller.updateActiveTabContent("typed just now");
+    let releaseWrite!: () => void;
+    apiMock.writeNote.mockImplementationOnce(
+      () => new Promise((resolve) => {
+        releaseWrite = () => resolve({ exists: true, contentHash: "h", sizeBytes: 1, modifiedMs: 1 });
+      }),
+    );
+    apiMock.setNotesDir.mockResolvedValue({
+      notesDir: "/new-folder", colorMode: "grayscale", wordWrap: false, readableLineLength: true, recentNotesDirs: [],
+    });
+    const switching = controller.switchToRecentDirectory("/new-folder");
+    await vi.waitFor(() => expect(apiMock.writeNote).toHaveBeenCalled());
+    expect(apiMock.setNotesDir).not.toHaveBeenCalled();
+    releaseWrite();
+    await switching;
+    expect(apiMock.setNotesDir).toHaveBeenCalledWith("/new-folder");
+  });
+
   it("blocks with the unsaved-scratchpads gate when a scratchpad has real content", async () => {
     controller.tabs.set([tab({ id: "a", isScratchpad: true, filename: "Scratchpad 1", content: "unsaved idea" })]);
     await controller.switchToRecentDirectory("/new-folder");
