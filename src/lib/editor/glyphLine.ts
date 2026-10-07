@@ -1,4 +1,5 @@
-import { leadingTopicTag } from "../tokens";
+import { ARROW_GLYPH, GLYPHS, glyphSpecForSymbol } from "../grammar/glyphs";
+import { tokenizeLine } from "../grammar/tokenize";
 
 /** One rendered piece of a line: `text` is what to show; `cls` (a
  * `.glyph-*` class) is set when it's a glyph or a styled span, absent for
@@ -11,94 +12,76 @@ export interface GlyphPart {
 /** Exported for `ActionDrawerModal` (§127, finding B) — its row icon used
  * to duplicate this mapping as a private `--glyph-*` inline-style lookup;
  * sharing it means both places agree on colour/weight through one map,
- * not two kept in sync by hand. */
+ * not two kept in sync by hand. The map itself is `GLYPHS` in `grammar/`. */
 export function glyphForSymbol(sym: string): GlyphPart {
-  switch (sym) {
-    case "v":
-      return { text: "☑", cls: "glyph-done" };
-    case ">":
-      return { text: "☐", cls: "glyph-progress" };
-    case "x":
-      return { text: "☒", cls: "glyph-cancelled" };
-    case "o":
-      return { text: "○", cls: "glyph-topic-open" };
-    case ".":
-      return { text: "◉", cls: "glyph-topic-done" };
-    case ",":
-      return { text: "◌", cls: "glyph-topic-skipped" };
-    default:
-      return { text: "☐", cls: "glyph-open" }; // "#"
-  }
+  const g = glyphSpecForSymbol(sym);
+  return { text: g.char, cls: g.cls };
 }
 
 /** Turn one plain-text line into the sequence of styled parts a read-only
  * viewer (Section History's occurrence body, #33) should
- * render — the same token → glyph mapping the editor's `glyphs.ts` does,
- * but as plain spans instead of CodeMirror decorations, and with the
- * token's trailing space folded into a literal gap after the glyph so
- * columns still line up without the editor's fixed-width CSS.
+ * render — the same tokens the editor's glyph decorations come from
+ * (`grammar/tokenize.ts`), but as plain spans instead of CodeMirror
+ * decorations, and with the token's trailing space folded into a literal
+ * gap after the glyph so columns still line up without the editor's
+ * fixed-width CSS.
  *
  * Also applies the inline highlights: every `@name` on *any* line (not one
  * glued to a word, so emails are left alone), a parenthesised `(@name)` or
  * list `(@a, @b, @c)` (#126), and a `(topic)` tag immediately after the
- * action symbol (#36/#39). */
+ * action symbol (#36/#39). Text between tokens is emitted verbatim, one
+ * part per gap. */
 export function parseGlyphLine(line: string): GlyphPart[] {
+  const tokens = tokenizeLine(line);
   // `! ` — bold the whole line, token and all (matches glyphs.ts: the
-  // `!` stays visible, it isn't replaced).
-  if (/^!\s/.test(line)) return [{ text: line, cls: "glyph-emphasis-line" }];
+  // `!` stays visible, it isn't replaced). Nothing else is rendered.
+  if (tokens[0]?.kind === "emphasis") return [{ text: line, cls: "glyph-emphasis-line" }];
 
   const parts: GlyphPart[] = [];
-  let rest = line;
-  let consumed = 0; // chars of `line` consumed by the lead strip, so
-  // match offsets in `rest` can be mapped back onto `line`.
+  let at = 0; // chars of `line` already emitted
+  const gap = (to: number) => {
+    if (to > at) parts.push({ text: line.slice(at, to) });
+  };
 
-  const lead = rest.match(/^(\s*)([#vx>o.,]|[-*])\s/);
-  if (lead) {
-    const [full, indent, sym] = lead;
-    if (indent) parts.push({ text: indent });
-    parts.push(sym === "-" || sym === "*" ? { text: "•", cls: "glyph-bullet" } : glyphForSymbol(sym));
-    parts.push({ text: " " });
-    rest = rest.slice(full.length);
-    consumed = full.length;
-  }
-
-  const topic = leadingTopicTag(line);
-
-  // One scan for every inline token: a Delegate arrow in any of its forms,
-  // a bare `@name`, a parenthesised `(@name)` delegate (#126), or a
-  // `(topic)` tag. Text between matches is emitted verbatim.
-  const re = /=>\s@([\w-]+)|=>\s([#vx>])\s|=>\s|\(@([\w-]+(?:[\s,]+@[\w-]+)*)\)|(?<![\w@/])@([\w-]+)|\(([^\s()]+)\)/g;
-  let last = 0;
-  let m: RegExpExecArray | null;
-  while ((m = re.exec(rest)) !== null) {
-    if (m.index > last) parts.push({ text: rest.slice(last, m.index) });
-    if (m[1] !== undefined) {
-      parts.push({ text: "➔", cls: "glyph-followup" }, { text: " " }, { text: "@" + m[1], cls: "glyph-assignee" });
-    } else if (m[2] !== undefined) {
-      parts.push({ text: "➔", cls: "glyph-followup" }, { text: " " }, glyphForSymbol(m[2]), { text: " " });
-    } else if (m[0].startsWith("=>")) {
-      parts.push({ text: "➔", cls: "glyph-followup" }, { text: " " });
-    } else if (m[3] !== undefined) {
-      // `(@name)` or a list `(@a, @b)`: every name is its own badge, separators stay plain.
-      // Recognised on any line — unlike bare `@name` below, it needs no `=> `.
-      parts.push({ text: "(" });
-      let at = 0;
-      const inner = "@" + m[3];
-      for (const n of inner.matchAll(/@[\w-]+/g)) {
-        if (n.index! > at) parts.push({ text: inner.slice(at, n.index) });
-        parts.push({ text: n[0], cls: "glyph-assignee" });
-        at = n.index! + n[0].length;
-      }
-      parts.push({ text: ")" });
-    } else if (m[4] !== undefined) {
-      parts.push({ text: "@" + m[4], cls: "glyph-assignee" });
-    } else if (m[5] !== undefined) {
-      const isTag = topic !== null && consumed + m.index === topic.from;
-      parts.push(isTag ? { text: "(" + m[5] + ")", cls: "glyph-topic" } : { text: "(" + m[5] + ")" });
+  for (let i = 0; i < tokens.length; i++) {
+    const t = tokens[i];
+    gap(t.from);
+    switch (t.kind) {
+      case "action":
+      case "topic":
+      case "consequence":
+        parts.push(glyphForSymbol(t.symbol!), { text: " " });
+        break;
+      case "bullet":
+        parts.push({ text: GLYPHS.bullet.char, cls: GLYPHS.bullet.cls }, { text: " " });
+        break;
+      case "arrow":
+        parts.push({ text: ARROW_GLYPH.char, cls: ARROW_GLYPH.cls }, { text: " " });
+        break;
+      case "assignee":
+        parts.push({ text: line.slice(t.from, t.to), cls: "glyph-assignee" });
+        break;
+      case "assigneeList":
+        // Every name is its own badge; the parens and separators stay plain.
+        parts.push({ text: "(" });
+        at = t.from + 1;
+        while (tokens[i + 1]?.kind === "assignee" && tokens[i + 1].to <= t.to) {
+          const c = tokens[++i];
+          gap(c.from);
+          parts.push({ text: line.slice(c.from, c.to), cls: "glyph-assignee" });
+          at = c.to;
+        }
+        parts.push({ text: ")" });
+        break;
+      case "topicTag":
+        parts.push({ text: line.slice(t.from, t.to), cls: "glyph-topic" });
+        break;
+      default: // "paren": ordinary text, but its own part
+        parts.push({ text: line.slice(t.from, t.to) });
     }
-    last = re.lastIndex;
+    at = t.to;
   }
-  if (last < rest.length) parts.push({ text: rest.slice(last) });
+  if (at < line.length) parts.push({ text: line.slice(at) });
 
   return parts.length > 0 ? parts : [{ text: "" }];
 }
