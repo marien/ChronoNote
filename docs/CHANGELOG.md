@@ -10030,3 +10030,10 @@ Marien, after abandoning the idea of Peek reacting to Teams calls by itself (wat
 - The top bar's width-fitting logic (§156, §160, §161), its frame waits and its `onMount` store subscriptions are unchanged; only its declarations moved to runes.
 - No component uses `$:`, `export let`, `on:` or `<slot>` any more.
 - Gates: svelte-check 0, Vitest 828, Playwright 569.
+
+## 313. Runes mode for the whole project
+
+**Status: implemented, not yet released.** With every component converted (§306-§312), `svelte.config.js` sets `compilerOptions.runes: true`, so legacy syntax (`$:`, `export let`, `on:`, `<slot>`) is a compile error instead of quietly putting that one file back in legacy mode. Third-party components under `node_modules` keep Svelte's own per-file detection (`vitePlugin.dynamicCompileOptions`).
+
+- Checked by adding a throwaway component with a `$:` line: svelte-check rejects it (`legacy_reactive_statement_invalid`).
+- svelte-check 0, the desktop, web-app and demo builds all succeed. Native check of the runes migration in the real window by Marien: fine.
