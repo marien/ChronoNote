@@ -24,6 +24,7 @@ import {
   showToast,
   tabs,
 } from "./stores";
+import { tokenizeLine } from "./grammar/tokenize";
 import { refreshAllNotesCache } from "./persistence";
 import { jumpToFileLine } from "./tabs";
 import { findNextOccurrenceTarget } from "./copyForward";
@@ -169,8 +170,10 @@ export function historyActionOnlyText(line: string): string | null {
   const prose = line.slice(0, li).trim();
   if (!prose) return null;
   const after = line.slice(li + 3).trim();
-  const m = after.match(/^([#vx>])\s+(.+)$/);
-  return m ? `${m[1]} ${m[2].trim()}` : null;
+  const action = tokenizeLine(after)[0];
+  if (action?.kind !== "action" || action.from !== 0) return null;
+  const text = after.slice(action.to).trim();
+  return text ? `${action.symbol} ${text}` : null;
 }
 
 /** What actually lands in the target for a take-over — the selected

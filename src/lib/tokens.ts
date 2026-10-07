@@ -1,5 +1,14 @@
 /** Token semantics from spec section 2.2/2.3: parsing helpers shared by the
- * editor's glyph rendering, the action drawer, and section history. */
+ * editor's glyph rendering, the action drawer, and section history. The per-line
+ * questions are answered from `tokenizeLine` (grammar/), so there is one definition
+ * of each token. */
+import { ACTION_CLASS, BULLET_CLASS } from "./grammar/symbols";
+import { tokenizeLine } from "./grammar/tokenize";
+
+// Kept as regexes: stripLeadingToken splices around the *last* arrow, which a token list would only make longer.
+const LEADING_ACTION = new RegExp(String.raw`^(\s*)${ACTION_CLASS}\s`);
+const CONSEQUENCE_ACTION = new RegExp(String.raw`^(.*)=>\s${ACTION_CLASS}\s(.*)$`);
+const LINE_MARKER = new RegExp(String.raw`^(\s*)(${ACTION_CLASS}|${BULLET_CLASS}|!)\s`);
 
 /** §40: `x` (won't-do) folds into Closed alongside `v` (done) — both mean
  * "no longer outstanding," just for different reasons. §41: a
@@ -8,10 +17,17 @@
  * `=> >` → Forwarded). §50: the leading action symbol may be indented,
  * matching how bulleted lines already tolerate indentation. */
 export function countActions(text: string): { open: number; closed: number; forwarded: number } {
-  const openMatches = text.match(/(^\s*#\s)|(=>\s#\s)/gm) || [];
-  const closedMatches = text.match(/(^\s*[vx]\s)|(=>\s[vx]\s)/gm) || [];
-  const forwardedMatches = text.match(/(^\s*>\s)|(=>\s>\s)/gm) || [];
-  return { open: openMatches.length, closed: closedMatches.length, forwarded: forwardedMatches.length };
+  const counts = { open: 0, closed: 0, forwarded: 0 };
+  for (const line of text.split("\n")) {
+    for (const tok of tokenizeLine(line)) {
+      // Topic symbols (o . ,) are agenda items, not actions: never counted.
+      if (tok.kind !== "action" && tok.kind !== "consequence") continue;
+      if (tok.symbol === "#") counts.open++;
+      else if (tok.symbol === ">") counts.forwarded++;
+      else counts.closed++;
+    }
+  }
+  return counts;
 }
 
 /** The action symbol that actually governs a line's state — whether it's
@@ -22,11 +38,9 @@ export function countActions(text: string): { open: number; closed: number; forw
  * display (§45), so both agree on exactly what counts as "this line's
  * action state." */
 export function innermostActionSymbol(line: string): "#" | "v" | ">" | "x" | null {
-  const consequence = line.match(/=>\s([#vx>])\s/);
-  if (consequence) return consequence[1] as "#" | "v" | ">" | "x";
-  const plain = line.match(/^\s*([#vx>])\s/);
-  if (plain) return plain[1] as "#" | "v" | ">" | "x";
-  return null;
+  const tokens = tokenizeLine(line);
+  const sym = (tokens.find((t) => t.kind === "consequence") ?? tokens.find((t) => t.kind === "action"))?.symbol;
+  return (sym as "#" | "v" | ">" | "x" | undefined) ?? null;
 }
 
 /** #36/#39: a `(topic)` tag used to group actions by subject, but only
@@ -37,11 +51,9 @@ export function innermostActionSymbol(line: string): "#" | "v" | ">" | "x" | nul
  * `null`. Shared by the editor (`glyphs.ts`) and the read-only line
  * renderer (`glyphLine.ts`). */
 export function leadingTopicTag(line: string): { from: number; to: number } | null {
-  // `(@name)` is a parenthesised delegate (#126), not a topic — exclude it.
-  const m = line.match(/^(\s*[#vx>]\s+|.*?=>\s+[#vx>]\s+)(\((?!@)[^\s()]+\))/);
-  if (!m) return null;
-  const from = m[1].length;
-  return { from, to: from + m[2].length };
+  // `(@name)` is a parenthesised delegate (#126), not a topic: the tokenizer excludes it.
+  const tag = tokenizeLine(line).find((t) => t.kind === "topicTag");
+  return tag ? { from: tag.from, to: tag.to } : null;
 }
 
 /** 0-based indices of every line whose governing action symbol is an open
@@ -95,18 +107,16 @@ export function adjacentOpenActionLine(text: string, fromLineIdx: number, dir: 1
  * the line in two, the tail becoming its own continued action —
  * mirroring `bulletContinuation`'s split-anywhere behaviour. */
 export function actionLineEnter(lineText: string): { removeSymbol: true } | { insert: string } | null {
-  const action = lineText.match(/^(\s*)([#vx>])\s/);
-  if (action) {
-    const [, indent, symbol] = action;
-    if (lineText.trim() === symbol) return { removeSymbol: true };
-    return { insert: `\n${indent}# ` };
+  const [first, second] = tokenizeLine(lineText);
+  if (first?.kind === "action") {
+    if (lineText.trim() === first.symbol) return { removeSymbol: true };
+    return { insert: `\n${lineText.slice(0, first.from)}# ` };
   }
-  const follow = lineText.match(/^(\s*)=>\s/);
-  if (follow) {
+  if (first?.kind === "arrow" && lineText.slice(0, first.from).trim() === "") {
     const trimmed = lineText.trim();
     if (trimmed === "=>" || trimmed === "=> #") return { removeSymbol: true };
-    const consequenceAction = /^\s*=>\s[#vx>]\s/.test(lineText);
-    return { insert: `\n${follow[1]}=> ${consequenceAction ? "# " : ""}` };
+    const consequenceAction = second?.kind === "consequence";
+    return { insert: `\n${lineText.slice(0, first.from)}=> ${consequenceAction ? "# " : ""}` };
   }
   return null;
 }
@@ -332,7 +342,23 @@ export function innermostTopicSymbol(line: string): "o" | "." | "," | null {
 }
 
 export function isTopicLikeLine(line: string): boolean {
-  return /^\s*[o.,]\s/.test(line);
+  return tokenizeLine(line)[0]?.kind === "topic";
+}
+
+/** The length of the indentation before a line's leading marker (bullet, action or topic symbol, or a leading
+ * `=> `); `null` when the line does not start with one. */
+export function leadingMarkerIndent(line: string): number | null {
+  const first = tokenizeLine(line)[0];
+  if (!first) return null;
+  if (first.kind === "action" || first.kind === "topic" || first.kind === "bullet") return first.from;
+  if (first.kind === "arrow" && line.slice(0, first.from).trim() === "") return first.from;
+  return null;
+}
+
+/** The line without its leading action symbol, bullet or `!` and the space after it (the indentation goes
+ * with it); a line with none of them is returned as it is. For turning one kind of line marker into another. */
+export function withoutLineMarker(line: string): string {
+  return line.replace(LINE_MARKER, "");
 }
 
 export function toggleOpenClosed(line: string, col?: number): string | null {
@@ -460,11 +486,9 @@ export interface ActionSymbolRef {
 /** Every action and topic symbol on a line, left to right. */
 export function findActionSymbols(line: string): ActionSymbolRef[] {
   const out: ActionSymbolRef[] = [];
-  const leadAction = line.match(/^(\s*)([#vx>])(?=\s)/);
-  if (leadAction) out.push({ index: leadAction[1].length, sym: leadAction[2] });
-  const leadTopic = line.match(/^(\s*)([o.,])(?=\s)/);
-  if (leadTopic) out.push({ index: leadTopic[1].length, sym: leadTopic[2] });
-  for (const m of line.matchAll(/=>\s([#vx>])(?=\s)/g)) out.push({ index: m.index! + m[0].length - 1, sym: m[1] });
+  for (const t of tokenizeLine(line)) {
+    if (t.kind === "action" || t.kind === "topic" || t.kind === "consequence") out.push({ index: t.from, sym: t.symbol! });
+  }
   return out;
 }
 
@@ -561,8 +585,8 @@ function replaceActionSymbol(line: string, next: (sym: string) => string, create
  * leading `#` because a `=> ` branch matched and returned before the
  * plain-symbol branch was ever reached. */
 export function stripLeadingToken(line: string): string {
-  const withoutLeading = line.replace(/^(\s*)[#vx>]\s/, "$1");
-  const consequence = withoutLeading.match(/^(.*)=>\s[#vx>]\s(.*)$/);
+  const withoutLeading = line.replace(LEADING_ACTION, "$1");
+  const consequence = withoutLeading.match(CONSEQUENCE_ACTION);
   if (consequence) return consequence[1] + consequence[2];
   const delegated = withoutLeading.match(/^(.*)=>\s(@[\w-]+\s.*)$/);
   if (delegated) return delegated[1] + delegated[2];

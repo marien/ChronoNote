@@ -24,6 +24,8 @@
     closeOpenAction,
     isSetextUnderline,
     isTopicLikeLine,
+    leadingMarkerIndent,
+    withoutLineMarker,
     numberedContinuationIndent,
     numberedListEnter,
     renumberAfterInsert,
@@ -385,8 +387,8 @@
       // continuation. Otherwise the token got duplicated onto the pushed-
       // down line ("# a" → blank line + "# # a").
       if (insertBullet) {
-        const lead = line.text.match(/^(\s*)(?:[-*]\s|[#vx>]\s|[o.,]\s|=>\s)/);
-        if (lead && pos - line.from <= lead[1].length) {
+        const leadIndent = leadingMarkerIndent(line.text);
+        if (leadIndent !== null && pos - line.from <= leadIndent) {
           v.dispatch({
             changes: { from: pos, to: pos, insert: "\n" },
             selection: { anchor: pos + 1 },
@@ -928,7 +930,7 @@
           if (token === "#" || token === "v" || token === ">" || token === "x") {
             if (/^\s*[-*!]\s/.test(line.text)) {
               const indent = line.text.match(/^(\s*)/)?.[1] ?? "";
-              const stripped = line.text.replace(/^(\s*)([#vx>]|[-*]|!)\s/, "");
+              const stripped = withoutLineMarker(line.text);
               updated = `${indent}${token} ${stripped}`;
             } else {
               updated = setActionSymbolTo(line.text, token, referenceColumn(sel, line));
@@ -938,7 +940,7 @@
               updated = line.text.replace(/^(\s*)[-*]\s/, "$1");
             } else {
               const indent = line.text.match(/^(\s*)/)?.[1] ?? "";
-              const stripped = line.text.replace(/^(\s*)([#vx>]|[-*]|!)\s/, "");
+              const stripped = withoutLineMarker(line.text);
               updated = `${indent}- ${stripped}`;
             }
           } else if (token === "!") {
@@ -946,7 +948,7 @@
               updated = line.text.replace(/^(\s*)!\s/, "$1");
             } else {
               const indent = line.text.match(/^(\s*)/)?.[1] ?? "";
-              const stripped = line.text.replace(/^(\s*)([#vx>]|[-*]|!)\s/, "");
+              const stripped = withoutLineMarker(line.text);
               updated = `${indent}! ${stripped}`;
             }
           } else if (token === "=>") {
