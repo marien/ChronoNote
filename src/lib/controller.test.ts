@@ -1028,6 +1028,40 @@ describe("toggleActionLine / forwardActionToToday", () => {
     expect(list.find((t) => t.id === "today")!.content).toBe("# call the client\nexisting note");
     vi.useRealTimers();
   });
+
+  it("forward with no today tab writes to disk guarded by the hash read with it", async () => {
+    controller.tabs.set([tab({ id: "src", filename: "2026-08-01.txt", content: "# task" })]);
+    vi.setSystemTime(new Date(2026, 8, 15));
+    apiMock.readNoteWithMetadata.mockResolvedValue(withMeta("old\n"));
+    controller.forwardActionToToday("src", 0);
+    await vi.waitFor(() => expect(apiMock.writeNote).toHaveBeenCalledWith("2026-09-15.txt", "# task\nold\n", "h:old\n"));
+    vi.useRealTimers();
+  });
+
+  it("forward with no today tab restores the source and toasts when the write fails", async () => {
+    controller.tabs.set([tab({ id: "src", filename: "2026-08-01.txt", content: "# task" })]);
+    vi.setSystemTime(new Date(2026, 8, 15));
+    apiMock.writeNote.mockImplementation((filename: string) =>
+      filename === "2026-09-15.txt" ? Promise.reject("disk full") : Promise.resolve({ exists: true, contentHash: "hash", sizeBytes: 0, modifiedMs: 0 }),
+    );
+    controller.forwardActionToToday("src", 0);
+    await vi.waitFor(() => expect(get(controller.toastMessage)).toMatch(/couldn't add the task/i));
+    expect(get(controller.tabs).find((t) => t.id === "src")!.content).toBe("# task");
+    vi.useRealTimers();
+  });
+});
+
+describe("updateNoteOnDisk", () => {
+  it("re-reads and retries once when the file changed between the read and the write", async () => {
+    apiMock.readNoteWithMetadata.mockResolvedValue(withMeta("x"));
+    apiMock.writeNote
+      .mockRejectedValueOnce("conflict: note changed on disk: x")
+      .mockResolvedValue({ exists: true, contentHash: "hash", sizeBytes: 0, modifiedMs: 0 });
+    const { updateNoteOnDisk } = await import("./persistence");
+    await expect(updateNoteOnDisk("2026-09-15.txt", (c) => c + "!")).resolves.toBe("x!");
+    expect(apiMock.readNoteWithMetadata).toHaveBeenCalledTimes(2);
+    expect(apiMock.writeNote).toHaveBeenCalledTimes(2);
+  });
 });
 
 describe("recordCopiedAction / handlePasteIntoTab (§64)", () => {
@@ -1977,17 +2011,17 @@ describe("calendarSyncActions (.agenda.json)", () => {
       }),
     ]);
     controller.activeTabId.set("a");
-    apiMock.readNote.mockResolvedValue("Existing note\n=============\n");
+    apiMock.readNoteWithMetadata.mockResolvedValue(withMeta("Existing note\n=============\n"));
     apiMock.readAgendaForDate.mockResolvedValue(["Standup"]);
     await controller.syncCalendarFromFile();
     controller.setSyncRemovalChoice(0, "move");
     controller.setSyncRemovalMoveDate(0, "2026-09-20");
     await controller.confirmCalendarSync();
-    expect(apiMock.readNote).toHaveBeenCalledWith("2026-09-20.txt");
+    expect(apiMock.readNoteWithMetadata).toHaveBeenCalledWith("2026-09-20.txt");
     expect(apiMock.writeNote).toHaveBeenCalledWith(
       "2026-09-20.txt",
       "Existing note\n=============\n\n\n1:1 with Priya\n==============\nAsked about the roadmap\n",
-      undefined,
+      "h:Existing note\n=============\n",
     );
   });
 

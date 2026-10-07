@@ -3,9 +3,8 @@
  * today's top priorities. Split out of `controller.ts` in the v0.5.0
  * refactor. Depends on stores + persistence + tabs + tabSort + tokens. */
 import { get } from "svelte/store";
-import * as api from "./tauriApi";
 import { actionSnapshot, allNotesCache, modal, showToast, tabs } from "./stores";
-import { refreshAllNotesCache, writeNoteAndInvalidateCache, writeTabContent } from "./persistence";
+import { refreshAllNotesCache, updateNoteOnDisk, writeTabContent } from "./persistence";
 import { openOrCreateDatedFile } from "./tabs";
 import { compareTabsByRecency, sortFilenamesByRecency } from "./tabSort";
 import { cycleActionSymbol, getSectionHeaderForLine, normalizeHeaderTitle } from "./tokens";
@@ -139,9 +138,10 @@ export function forwardActionToToday(tabId: string, lineIdx: number) {
   if (todayTab) {
     next = writeTabContent(todayTab.id, `${taskText}\n${todayTab.content}`, next);
   } else {
-    api.readNote(todayFilename).then((existing) => {
-      const base = existing ?? "";
-      writeNoteAndInvalidateCache(todayFilename, `${taskText}\n${base}`).catch(() => {});
+    updateNoteOnDisk(todayFilename, (base) => `${taskText}\n${base}`).catch(() => {
+      // The source line was already marked as moved: put it back so the task isn't lost.
+      tabs.set(writeTabContent(tabId, src.content, get(tabs)));
+      showToast(get(t)("toast.actions.forwardFailed", undefined));
     });
   }
   tabs.set(next);

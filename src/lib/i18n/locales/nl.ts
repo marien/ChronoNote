@@ -696,6 +696,7 @@ export const nl = {
   "mobileTabDrawer.openDateNote": () => "Datum openen",
 
   "toast.actions.forwardedToToday": () => "Doorgeschoven naar de topprioriteiten van vandaag!",
+  "toast.actions.forwardFailed": () => "De taak kon niet aan de notitie van vandaag worden toegevoegd; er is niets gewijzigd",
   "toast.boot.oneDrive.connected": () => "Verbonden met OneDrive",
   "toast.boot.oneDrive.connectedChooseFolder": () => "Verbonden met OneDrive — kies nu een map om te synchroniseren",
   "toast.boot.oneDrive.signInFailedPrefix": () => "OneDrive-aanmelding mislukt:",
