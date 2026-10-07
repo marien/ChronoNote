@@ -723,6 +723,8 @@ export const de = {
   "toast.copyForward.destHere": () => "hierher",
   "toast.copyForward.destToDate": ({ date }) => `nach ${date}`,
   "toast.copyForward.copied": ({ dest }) => `Kopiert ${dest}.`,
+  "toast.copyForward.changedTryAgain": ({ filename }) => `${filename} wurde auf der Festplatte geändert, daher wurde nichts kopiert. Versuchen Sie es erneut.`,
+  "toast.copyForward.sourceChanged": ({ dest, filename }) => `Kopiert ${dest}, aber ${filename} wurde auf der Festplatte geändert, daher wurden die Einträge dort nicht als verschoben markiert.`,
   "toast.copyForward.copiedWithCount": ({ dest, count }) =>
     count === 1
       ? `Kopiert ${dest} — 1 offene Aktion hier als verschoben markiert.`

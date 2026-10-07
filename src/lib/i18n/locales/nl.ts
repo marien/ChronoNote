@@ -718,6 +718,8 @@ export const nl = {
   "toast.copyForward.destHere": () => "hier",
   "toast.copyForward.destToDate": ({ date }) => `naar ${date}`,
   "toast.copyForward.copied": ({ dest }) => `Gekopieerd ${dest}.`,
+  "toast.copyForward.changedTryAgain": ({ filename }) => `${filename} is op schijf gewijzigd, dus er is niets gekopieerd. Probeer het opnieuw.`,
+  "toast.copyForward.sourceChanged": ({ dest, filename }) => `Gekopieerd ${dest}, maar ${filename} is op schijf gewijzigd, dus de items daarin zijn niet als verplaatst gemarkeerd.`,
   "toast.copyForward.copiedWithCount": ({ dest, count }) =>
     count === 1
       ? `Gekopieerd ${dest} — 1 open actie hier als uitgesteld gemarkeerd.`

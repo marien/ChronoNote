@@ -1804,8 +1804,8 @@ describe("carryHistorySelectionForward (2026-09-24 redesign, Section History tak
 
   it("'today'/'next': writes straight to disk when the source isn't an open tab at all", async () => {
     controller.tabs.set([]); // the browsed occurrence isn't open as a tab
-    apiMock.readNote.mockImplementation(async (filename: string) =>
-      filename === "2026-08-01.txt" ? "Sync\n====\n# an old action" : null,
+    apiMock.readNoteWithMetadata.mockImplementation(async (filename: string) =>
+      withMeta(filename === "2026-08-01.txt" ? "Sync\n====\n# an old action" : null),
     );
     await controller.carryHistorySelectionForward(
       "2026-08-01.txt",
@@ -1815,7 +1815,11 @@ describe("carryHistorySelectionForward (2026-09-24 redesign, Section History tak
       { kind: "today", date: "2026-09-12", headerText: "Sync" },
       ["# an old action"],
     );
-    expect(apiMock.writeNote).toHaveBeenCalledWith("2026-08-01.txt", "Sync\n====\n> an old action", undefined);
+    expect(apiMock.writeNote).toHaveBeenCalledWith(
+      "2026-08-01.txt",
+      "Sync\n====\n> an old action",
+      "h:Sync\n====\n# an old action",
+    );
     expect(apiMock.writeNote).toHaveBeenCalledWith("2026-09-12.txt", "Sync\n====\n# an old action\n", EMPTY_CONTENT_HASH);
   });
 
@@ -1866,8 +1870,8 @@ describe("carryHistorySelectionForward (2026-09-24 redesign, Section History tak
 
   it("target and source are the same file, neither open as a tab: a single write, not two", async () => {
     controller.tabs.set([]);
-    apiMock.readNote.mockImplementation(async (filename: string) =>
-      filename === "2026-08-01.txt" ? "Sync\n====\n# an old action" : null,
+    apiMock.readNoteWithMetadata.mockImplementation(async (filename: string) =>
+      withMeta(filename === "2026-08-01.txt" ? "Sync\n====\n# an old action" : null),
     );
     await controller.carryHistorySelectionForward(
       "2026-08-01.txt",
@@ -1881,8 +1885,45 @@ describe("carryHistorySelectionForward (2026-09-24 redesign, Section History tak
     expect(apiMock.writeNote).toHaveBeenCalledWith(
       "2026-08-01.txt",
       "Sync\n====\n> an old action\n\n# an old action",
-      undefined,
+      "h:Sync\n====\n# an old action",
     );
+  });
+
+  it("source not open, different target: a conflict on the source write keeps the copy and warns", async () => {
+    controller.tabs.set([]);
+    apiMock.readNoteWithMetadata.mockImplementation(async (filename: string) =>
+      withMeta(filename === "2026-08-01.txt" ? "Sync\n====\n# an old action" : null),
+    );
+    apiMock.writeNote.mockImplementation(async (filename: string) => {
+      if (filename === "2026-08-01.txt") throw new Error("conflict: note changed on disk: 2026-08-01.txt");
+    });
+    await controller.carryHistorySelectionForward(
+      "2026-08-01.txt",
+      2,
+      2,
+      "sync",
+      { kind: "today", date: "2026-09-12", headerText: "Sync" },
+      ["# an old action"],
+    );
+    expect(apiMock.writeNote).toHaveBeenCalledWith("2026-09-12.txt", "Sync\n====\n# an old action\n", EMPTY_CONTENT_HASH);
+    expect(get(controller.toastMessage)).toMatch(/changed on disk, so its items were not marked/);
+  });
+
+  it("source not open, same file: a conflict on the combined write says nothing was copied", async () => {
+    controller.tabs.set([]);
+    apiMock.readNoteWithMetadata.mockImplementation(async (filename: string) =>
+      withMeta(filename === "2026-08-01.txt" ? "Sync\n====\n# an old action" : null),
+    );
+    apiMock.writeNote.mockRejectedValue(new Error("conflict: note changed on disk: 2026-08-01.txt"));
+    await controller.carryHistorySelectionForward(
+      "2026-08-01.txt",
+      2,
+      2,
+      "sync",
+      { kind: "next", date: "2026-08-01", headerText: "Sync" },
+      ["# an old action"],
+    );
+    expect(get(controller.toastMessage)).toMatch(/nothing was copied/);
   });
 });
 
