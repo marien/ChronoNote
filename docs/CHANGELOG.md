@@ -9993,3 +9993,13 @@ Marien, after abandoning the idea of Peek reacting to Teams calls by itself (wat
 - What was open lived in `modal` plus four separate flags (find bar, mobile tab drawer, OneDrive folder picker, sync popover), and what Escape and mobile Back closed was a fixed order of `if`s plus a capture-phase flag.
 - `src/lib/overlays.ts` now holds one stack. `modal` and the four flags are thin views of it with the old API, so none of the 72 places that write them changed. Escape records the top entry when the key goes down and dismisses only that one, and only if it didn't already close itself in its own handler; mobile Back uses the same.
 - Behaviour changes (all improvements): Escape closes the top-most overlay first instead of a fixed priority; Escape with the sync popover open no longer also ends Zen or Peek; mobile Back now closes the sync popover too.
+
+## 309. Styles split into ordered files and scoped components
+
+**Status: implemented, not yet released.** From `docs/design/split-app-css-design.md`, steps R11 and R12. No intended visual change.
+
+- `src/app.css` (4,581 lines, all global) is now a list of `@import`s of ordered files in `src/styles/` (tokens/themes, top bar, editor, status bar, modals, toast/settings, mobile, Zen/sync/About, Peek). Proof for the split: the built CSS of both the desktop app and the web app was byte-identical before and after.
+- The rules that belong to one component moved into that component's `<style>` block, where Svelte scopes them: `TopBar`, `StatusBar`, `DatePickerModal`, `HistoryModal`, `SettingsModal` (the date-picker and History files are gone). Rules shared with other components, rules for elements CodeMirror creates, and classes set from script stay global or use `:global(...)`. Two mobile overrides moved with the top bar, because the scoped rules would otherwise have outranked them.
+- **The proof here:** a new opt-in pixel-parity check, `tests/e2e/css-parity.spec.ts` (`CSS_PARITY=1`; baseline with `--update-snapshots` on the commit before, compare after; zero pixel tolerance; baselines git-ignored because they are only valid on the machine that took them). It covers the editor in both themes and all three palettes, eight drawers, every Settings tab, the find bar, a narrow window and the phone layout; it passed after every component and against an independent baseline. States it does not cover (tab context menu, rename input, scroll arrows) are covered by the full Playwright suite.
+- A status-bar test compared full `className`s and broke on Svelte's scoping class; it now compares the component class.
+- Gates for §306-§309 together: svelte-check 0, Vitest 828, cargo 124, clippy 0, Playwright 569.
