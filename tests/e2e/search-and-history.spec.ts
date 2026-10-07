@@ -267,6 +267,35 @@ test.describe("section history (Ctrl/Cmd+Shift+H)", () => {
     await expect(history(page).locator(".hp-context")).not.toContainText("alpha first");
   });
 
+  test("switching occurrences with Left/Right shows each occurrence's own body (strip and body stay in step)", async ({ page }) => {
+    await seedApp(page, {
+      seed: {
+        notes: {
+          "2026-09-01.txt": "Weekly\n====\n# alpha first",
+          "2026-09-08.txt": "Weekly\n====\n# bravo middle",
+          "2026-09-15.txt": "Weekly\n====\n# charlie last",
+        },
+        session: { openTabs: ["2026-09-08.txt"], activeTab: "2026-09-08.txt" },
+      },
+    });
+    await editor(page).click();
+    await page.keyboard.press("ControlOrMeta+Home");
+    await page.keyboard.press("ControlOrMeta+Shift+H");
+    await expect(history(page).locator(".history-occ-tab.active")).toContainText("2026-09-08");
+    await expect(history(page).locator(".hp-context")).toContainText("bravo middle");
+
+    await page.keyboard.press("ArrowRight");
+    await expect(history(page).locator(".history-occ-tab.active")).toContainText("2026-09-15");
+    await expect(history(page).locator(".hp-context")).toContainText("charlie last");
+    await expect(history(page).locator(".hp-context")).not.toContainText("bravo middle");
+
+    await page.keyboard.press("ArrowLeft");
+    await page.keyboard.press("ArrowLeft");
+    await expect(history(page).locator(".history-occ-tab.active")).toContainText("2026-09-01");
+    await expect(history(page).locator(".hp-context")).toContainText("alpha first");
+    await expect(history(page).locator(".hp-context")).not.toContainText("charlie last");
+  });
+
   test("opened from today: selecting a line offers only 'Add to today', and takes it over into this same note", async ({
     page,
   }) => {
