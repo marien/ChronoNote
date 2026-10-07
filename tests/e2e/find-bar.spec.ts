@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { seedApp, editor, setEditorText, todayFilename, activeTabContent } from "./helpers";
+import { seedApp, editor, setEditorText, todayFilename, activeTabContent, openViaShortcut, currentModal } from "./helpers";
 
 const NOTE = "alpha beta alpha\ngamma alpha delta\nalpha omega";
 
@@ -59,6 +59,23 @@ test.describe("in-document find bar (Ctrl/Cmd+F, §108)", () => {
     await expect(page.locator(".find-bar")).toBeVisible();
 
     await page.keyboard.press("ControlOrMeta+n"); // new scratchpad
+    await expect(page.locator(".find-bar")).toBeHidden();
+  });
+
+  test("Escape closes a modal opened over the find bar first; a second Escape closes the bar (overlay stack)", async ({ page }) => {
+    await seedApp(page, { seed: { notes: { [todayFilename()]: NOTE } } });
+    await editor(page).click();
+    await page.keyboard.press("ControlOrMeta+f");
+    await expect(page.locator(".find-bar")).toBeVisible();
+
+    await openViaShortcut(page, "ControlOrMeta+/", "shortcuts");
+    await expect(page.locator(".find-bar")).toBeVisible();
+
+    await page.keyboard.press("Escape");
+    expect(await currentModal(page)).toBe("none");
+    await expect(page.locator(".find-bar")).toBeVisible();
+
+    await page.keyboard.press("Escape");
     await expect(page.locator(".find-bar")).toBeHidden();
   });
 });

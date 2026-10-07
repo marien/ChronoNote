@@ -64,7 +64,8 @@
   import DroppedNotesModal from "./lib/components/modals/DroppedNotesModal.svelte";
   import SyncConflictsModal from "./lib/components/modals/SyncConflictsModal.svelte";
   import OneDriveFolderPickerModal from "./lib/components/modals/OneDriveFolderPickerModal.svelte";
-  import { oneDriveFolderPickerOpen } from "./lib/stores";
+  import { oneDriveFolderPickerOpen, syncHealthPopoverOpen } from "./lib/stores";
+  import { overlays, topOverlay, type Overlay } from "./lib/overlays";
 
   let ready = false;
   let bootError = "";
@@ -109,55 +110,62 @@
       togglePeekMode: () => controller.togglePeek(),
     };
 
-    // A modal or the find bar handles Esc in its own handler, which runs before this window-level one and has
-    // already closed itself by the time we get here. So whether Esc may also END Zen / Peek is decided from what was
-    // open when the key went down (this capture-phase listener), not from what is open now.
-    let overlayOpenAtEscape = false;
+    // A modal, the find bar or the sync-health popover handles Esc in its own handler, which runs before this
+    // window-level one and has already closed itself by the time we get here. So what Esc may close here is decided
+    // from the top of the overlay stack when the key went down (this capture-phase listener), not from what is on
+    // top now: otherwise one Esc would close two things.
+    let topAtEscape: Overlay | null = null;
     function noteEscapeStart(e: KeyboardEvent) {
       if (e.key !== "Escape") return;
-      overlayOpenAtEscape =
-        get(oneDriveFolderPickerOpen) || get(mobileTabDrawerOpen) || get(modal) !== "none" || get(findOpen);
+      topAtEscape = get(topOverlay);
     }
     window.addEventListener("keydown", noteEscapeStart, true);
 
-    function dismissTopOverlayAndReturnTrue(allowModeExit = true): boolean {
-      if (get(oneDriveFolderPickerOpen)) {
-        oneDriveFolderPickerOpen.set(false);
-        return true;
-      }
-      if (get(mobileTabDrawerOpen)) {
-        mobileTabDrawerOpen.set(false);
-        return true;
-      }
-      const current = get(modal);
-      if (current === "none" && get(findOpen)) {
-        // §108: close the find bar even if focus has moved back to the editor.
-        editorApi?.find.clear();
-        findOpen.set(false);
-        return true;
-      }
-      if (current === "safety") {
-        controller.cancelSafetyClose();
-        return true;
-      } else if (current === "conflict") {
-        /* a disk-vs-memory conflict needs an explicit choice — do not dismiss */
+    // `top` is the overlay to close (null = none: then Zen / Peek may end, when allowed).
+    function dismissTopOverlayAndReturnTrue(top: Overlay | null, allowModeExit = true): boolean {
+      if (top === null) {
+        if (allowModeExit && get(isZenMode)) {
+          isZenMode.set(false);
+          return true;
+        }
+        if (allowModeExit && get(peekMode)) {
+          controller.leavePeek();
+          return true;
+        }
         return false;
-      } else if (current === "unsavedScratchpads") {
-        get(scratchpadGateContext) === "close"
-          ? controller.cancelAppClose()
-          : controller.cancelDirectorySwitch();
-        return true;
-      } else if (current !== "none") {
-        controller.closeAllModals();
-        return true;
-      } else if (allowModeExit && get(isZenMode)) {
-        isZenMode.set(false);
-        return true;
-      } else if (allowModeExit && get(peekMode)) {
-        controller.leavePeek();
-        return true;
       }
-      return false;
+      // It closed itself in its own Esc handler: that was this key press's dismissal.
+      if (!get(overlays).some((o) => o.kind === top.kind)) return true;
+      switch (top.kind) {
+        case "folderPicker":
+          oneDriveFolderPickerOpen.set(false);
+          return true;
+        case "mobileTabs":
+          mobileTabDrawerOpen.set(false);
+          return true;
+        case "find":
+          // §108: close the find bar even if focus has moved back to the editor.
+          editorApi?.find.clear();
+          findOpen.set(false);
+          return true;
+        case "syncHealth":
+          syncHealthPopoverOpen.set(false);
+          return true;
+        case "safety":
+          controller.cancelSafetyClose();
+          return true;
+        case "conflict":
+          /* a disk-vs-memory conflict needs an explicit choice — do not dismiss */
+          return false;
+        case "unsavedScratchpads":
+          get(scratchpadGateContext) === "close"
+            ? controller.cancelAppClose()
+            : controller.cancelDirectorySwitch();
+          return true;
+        default:
+          controller.closeAllModals();
+          return true;
+      }
     }
 
     function onKeydown(e: KeyboardEvent) {
@@ -194,7 +202,7 @@
       }
 
       if (e.key === "Escape") {
-        if (dismissTopOverlayAndReturnTrue(!overlayOpenAtEscape)) {
+        if (dismissTopOverlayAndReturnTrue(topAtEscape, topAtEscape === null)) {
           e.preventDefault();
         }
         return;
@@ -321,17 +329,9 @@
     window.addEventListener("drop", onWindowDrop);
 
     const backNav = wireMobileBackNavigation({
-      hasOpenOverlay: () => {
-        return (
-          get(oneDriveFolderPickerOpen) ||
-          get(mobileTabDrawerOpen) ||
-          get(modal) !== "none" ||
-          get(findOpen) ||
-          get(isZenMode)
-        );
-      },
+      hasOpenOverlay: () => get(overlays).length > 0 || get(isZenMode),
       closeActiveOverlay: () => {
-        dismissTopOverlayAndReturnTrue();
+        dismissTopOverlayAndReturnTrue(get(topOverlay));
       },
     });
 
