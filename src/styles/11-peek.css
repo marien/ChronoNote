@@ -1,0 +1,171 @@
+/* Peek mode: the compact, see-through note window for calls (`peek.ts`). Only the BACKGROUND layer is translucent:
+   the window is transparent at the OS level, the page paints the theme colour at `--peek-opacity`, and all text and
+   glyphs stay fully opaque. In the normal window the page paints the opaque theme colour as always. */
+body.peek-mode {
+  background: color-mix(in srgb, var(--bg) calc(var(--peek-opacity, 80) * 1%), transparent);
+  /* Fading out of focus is gradual; coming back into focus (the `peek-in-focus` class) is instant. */
+  transition: background-color 600ms ease;
+}
+body.peek-mode.peek-in-focus,
+body.peek-mode.peek-in-focus .peek-bar {
+  transition: none;
+}
+body.peek-mode #editor-container,
+body.peek-mode .cm-editor,
+body.peek-mode .cm-scroller,
+body.peek-mode .cm-gutters {
+  background: transparent !important;
+}
+body.peek-mode .cm-scroller {
+  padding: 4px 10px 6px !important;
+}
+/* Keep text readable over whatever is behind: a soft halo in the background colour. */
+body.peek-mode .cm-content {
+  text-shadow: 0 0 2px var(--bg), 0 0 5px var(--bg), 0 0 9px var(--bg);
+}
+.peek-bar {
+  flex: 0 0 auto;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 6px;
+  border-top: 2px solid var(--tab-active-border);
+  background: color-mix(in srgb, var(--surface-chrome) calc(var(--peek-bar-opacity, 85) * 1%), transparent);
+  transition: background-color 600ms ease;
+  color: var(--text);
+  font-size: 12px;
+  text-shadow: 0 0 3px var(--bg), 0 0 6px var(--bg);
+  user-select: none;
+}
+/* Same colours as the tab strip: past = grey, today = blue, future = green. */
+.peek-bar.past {
+  border-top-color: color-mix(in srgb, var(--muted) 55%, transparent);
+}
+.peek-bar.future {
+  border-top-color: var(--state-ok);
+}
+.peek-bar .peek-date {
+  font-weight: 600;
+  color: var(--tab-active-border);
+}
+.peek-bar.past .peek-date {
+  color: color-mix(in srgb, var(--text) 80%, var(--muted));
+}
+.peek-bar.future .peek-date {
+  color: var(--state-ok);
+}
+.peek-count {
+  opacity: 0.8;
+}
+.peek-title {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: right;
+}
+.peek-btn {
+  background: transparent;
+  border: none;
+  color: inherit;
+  font: inherit;
+  font-size: 15px;
+  line-height: 1;
+  padding: 3px 6px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+.peek-btn:hover:not(:disabled) {
+  background: var(--surface-raised);
+  color: var(--text);
+}
+.peek-btn:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+/* The collapsed strip is the only place to grab the window with the mouse, so it is not hair-thin: 16px, with a small
+   grip mark in the middle. (The colour line along its top edge is the past / today / future cue.) */
+.peek-bar.thin {
+  height: 16px;
+  padding: 0;
+  position: relative;
+}
+/* "On hover": the thin strip keeps its place; the full strip is drawn over the top of the content while the pointer is on
+   the window. The spacer takes the strip's 16px in the layout at the same moment, so the editor never moves. Nearly
+   opaque, since it covers text. */
+body.peek-mode #app {
+  position: relative;
+}
+.peek-bar-spacer {
+  flex: 0 0 16px;
+  height: 16px;
+}
+.peek-bar.overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 30;
+  box-sizing: border-box;
+  background: var(--surface-chrome);
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.25);
+}
+.peek-bar.thin::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 28px;
+  height: 3px;
+  margin: -1px 0 0 -14px;
+  border-radius: 2px;
+  background: var(--muted);
+  opacity: 0.45;
+  pointer-events: none;
+}
+
+/* The optional "< (X/Y) >" after a section title (a setting): clearly not text, but quiet. */
+.occ-hint {
+  margin-left: 0.7em;
+  font-size: 0.82em;
+  font-weight: 400;
+  font-style: normal;
+  letter-spacing: 0;
+  white-space: nowrap;
+  color: var(--muted);
+  opacity: 0.55;
+  user-select: none;
+  -webkit-user-select: none;
+  transition: opacity 0.12s;
+}
+.occ-hint:hover {
+  opacity: 0.95;
+}
+.occ-hint-btn {
+  cursor: pointer;
+  padding: 0 0.3em;
+  border-radius: 3px;
+}
+.occ-hint-btn:hover:not(.off) {
+  background: color-mix(in srgb, var(--text) 12%, transparent);
+  color: var(--text);
+}
+.occ-hint-btn.off {
+  opacity: 0.35;
+  cursor: default;
+}
+.occ-hint-count {
+  font-variant-numeric: tabular-nums;
+}
+/* The small Peek button after the arrows. */
+.occ-hint-peek {
+  margin-left: 0.2em;
+  display: inline-flex;
+  align-items: center;
+  vertical-align: middle;
+}
+.occ-hint-peek svg {
+  display: block;
+}

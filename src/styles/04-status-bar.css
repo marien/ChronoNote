@@ -1,0 +1,487 @@
+/* Status Bar — three zones (§100): cursor/doc metrics · ambient save
+   state · version + help. A 1fr / auto / 1fr grid so the centre zone is
+   optically centred regardless of how wide the side zones get. */
+#status-bar {
+  height: 25px;
+  background: var(--tab-bg);
+  color: var(--status-fg);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  /* §147: keeps the left/right zones from ever visually touching — the
+     centre column collapses to 0 width whenever there's no transient
+     message, and without a floor gap here the two side zones' clipped
+     text runs straight into each other with no separation at all. */
+  column-gap: 16px;
+  align-items: center;
+  padding: 0 12px;
+  font-size: 11px;
+  border-top: 1px solid var(--border);
+  /* Stays lit above a modal's `.overlay` (z-index 200) so the save state
+     and transient messages (§102, e.g. "Sections imported" fired from a
+     drawer that stays open) are always visible. */
+  position: relative;
+  z-index: 250;
+}
+.status-zone {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.status-left {
+  font-variant-numeric: tabular-nums;
+}
+.status-centre {
+  justify-content: center;
+  gap: 6px;
+  color: var(--muted);
+}
+.status-right {
+  justify-content: flex-end;
+  color: var(--muted);
+}
+.status-sep {
+  opacity: 0.4;
+}
+/* #71: a plain-text-look button (`#stat-version`'s own pattern), so the
+   folder name/icon doesn't read as a bigger control than it is — opens
+   Settings landed on the notes-folder control. The icon (`.cn-icon`,
+   `currentColor`) isn't itself gated by `stat-tier0`, so it survives the
+   folder-name collapse below and stays a click target even at the
+   narrowest width the name is shown at all. */
+#stat-folder,
+#stat-storage,
+#stat-cloud,
+#stat-conflicts {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: transparent;
+  border: none;
+  color: inherit;
+  font: inherit;
+  padding: 0;
+  margin: 0;
+  cursor: pointer;
+}
+#stat-folder:hover,
+#stat-storage:hover,
+#stat-cloud:hover,
+#stat-conflicts:hover {
+  color: var(--text);
+}
+/* OneDrive sync: a held conflict needs the user, so it's the one
+   status-bar item that draws the eye. */
+#stat-conflicts {
+  color: var(--state-warn);
+  white-space: nowrap;
+}
+/* OneDrive sign-in expired: the stored session can no longer be renewed
+   silently, so highlight the cloud control in amber with a dot badge. */
+#stat-cloud.stat-expired {
+  color: var(--state-warn);
+}
+#stat-cloud.stat-expired:hover {
+  color: var(--state-warn);
+  opacity: 0.85;
+}
+.stat-cloud-icon-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 0;
+}
+.stat-cloud-dot {
+  position: absolute;
+  top: -2px;
+  right: -3px;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--state-warn);
+  box-shadow: 0 0 0 1px var(--tab-bg);
+}
+/* #stat-cloud swaps its icon for a spinner while syncing (base
+   .modal-spinner is 14px, sized for a modal's own "Checking…" row) —
+   without this override it's 2px wider than the 12px `cloud` Icon it
+   replaces, so everything after it in the status bar visibly shifts
+   left the moment a sync finishes and the icon comes back. */
+#stat-cloud .modal-spinner {
+  font-size: 12px;
+}
+
+/* Sync-conflict resolve screen (SyncConflictsModal.svelte). */
+.conflict-view-tabs {
+  display: none;
+  padding: 0 12px 8px;
+  gap: 6px;
+}
+.conflict-view-btn {
+  flex: 1;
+  font-family: inherit;
+  font-size: 11px;
+  padding: 5px 8px;
+  border-radius: 6px;
+  background: var(--surface-raised);
+  border: 1px solid var(--edge-soft);
+  color: var(--muted);
+  cursor: pointer;
+  transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease;
+}
+.conflict-view-btn.active {
+  background: var(--surface-active, rgba(255, 255, 255, 0.1));
+  border-color: var(--edge-strong);
+  color: var(--text);
+  font-weight: 500;
+}
+.conflict-badge {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.conflict-versions {
+  display: flex;
+  gap: 10px;
+  padding: 0 12px;
+  flex-wrap: wrap;
+}
+@media (max-width: 520px) {
+  .conflict-view-tabs {
+    display: flex;
+  }
+  .conflict-versions {
+    flex-direction: column;
+  }
+  .conflict-versions.show-mine .conflict-version:nth-child(2) {
+    display: none;
+  }
+  .conflict-versions.show-theirs .conflict-version:nth-child(1) {
+    display: none;
+  }
+}
+.conflict-version {
+  flex: 1 1 200px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.conflict-version-label {
+  font-size: 12px;
+  color: var(--text-muted, var(--text));
+}
+.conflict-text {
+  margin: 0;
+  padding: 8px 0;
+  max-height: 32vh;
+  overflow: auto;
+  background: var(--surface-base, transparent);
+  border: 1px solid var(--edge-soft);
+  border-radius: 6px;
+  font: inherit;
+  font-size: 13px;
+}
+/* One block per line so a differing line can be highlighted edge to edge;
+   min-height keeps blank lines visible. */
+.conflict-line {
+  padding: 1px 8px;
+  min-height: 1.5em;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  border-left: 3px solid transparent;
+}
+.conflict-line.changed {
+  background: color-mix(in srgb, var(--state-warn) 22%, transparent);
+  border-left-color: var(--state-warn);
+}
+.conflict-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 12px;
+}
+/* §merged-titlebar: the folder name shouldn't be able to crowd out
+   everything else on a merely-medium-width window if it's a long one —
+   the full name is always still one hover away via the `title` attribute. */
+.status-folder-name {
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+#stat-open,
+#stat-closed,
+#stat-forwarded {
+  color: var(--muted);
+}
+
+/* §147: narrow-window collapse, least-useful info first. Pure CSS
+   breakpoints rather than a settleLayout-style measurement system (like
+   §144's top-bar collapse) — this bar's content is a fixed, known set
+   of text spans, not an unbounded tab list, so there's nothing here
+   that actually needs JS-driven measurement. The Open/Closed/Forwarded
+   counts and the help button never disappear — they stay pinned the
+   same way New Scratchpad/Open Date do in the top bar's own collapse —
+   they just switch to compact glyph/dot form at the narrowest tier
+   instead of vanishing. */
+/* §merged-titlebar: the notes folder name — lowest priority of everything
+   in the left zone (it's supplementary context, not working info), so it
+   drops before word count does. */
+@media (max-width: 860px) {
+  .stat-tier0 {
+    display: none;
+  }
+}
+@media (max-width: 960px) {
+  :root:lang(de) .stat-tier0,
+  :root:lang(nl) .stat-tier0 {
+    display: none;
+  }
+}
+
+@media (max-width: 680px) {
+  .stat-tier1 {
+    display: none;
+  }
+}
+@media (max-width: 720px) {
+  :root:lang(de) .stat-tier1,
+  :root:lang(nl) .stat-tier1 {
+    display: none;
+  }
+}
+
+@media (max-width: 520px) {
+  .stat-tier2 {
+    display: none;
+  }
+}
+@media (max-width: 560px) {
+  :root:lang(de) .stat-tier2,
+  :root:lang(nl) .stat-tier2 {
+    display: none;
+  }
+}
+
+.stat-compact {
+  display: none;
+}
+@media (max-width: 420px) {
+  .stat-full {
+    display: none;
+  }
+  .stat-compact {
+    display: inline;
+  }
+  #stat-version {
+    display: none;
+  }
+}
+/* In German & Dutch, long count words ("Doorgeschoven", "Weitergeleitet")
+   collapse to compact glyph form earlier so the left zone never overflows. */
+@media (max-width: 780px) {
+  :root:lang(de) .stat-full,
+  :root:lang(nl) .stat-full {
+    display: none;
+  }
+  :root:lang(de) .stat-compact,
+  :root:lang(nl) .stat-compact {
+    display: inline;
+  }
+}
+
+/* Centre message active (e.g. "Updated to v...", toast message):
+   The centre column takes significant space (~200-280px), so restore the
+   symmetrical minmax(0, 1fr) auto minmax(0, 1fr) grid to optically center the message, and immediately
+   collapse supplementary tiers to ensure the left zone and counts never collide. */
+#status-bar.has-centre-message {
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+}
+#status-bar.has-centre-message .stat-tier0 {
+  display: none;
+}
+#status-bar.has-centre-message .stat-full {
+  display: none;
+}
+#status-bar.has-centre-message .stat-compact {
+  display: inline;
+}
+@media (max-width: 920px) {
+  #status-bar.has-centre-message .stat-tier1 {
+    display: none;
+  }
+}
+@media (max-width: 680px) {
+  #status-bar.has-centre-message .stat-tier2 {
+    display: none;
+  }
+}
+
+/* §102/§110: transient messages (the former floating toast) — the centre
+   zone is otherwise empty; the ambient save state moved to a quiet dot on
+   the tab itself. */
+#stat-message {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--status-fg);
+  font-weight: 500;
+}
+#stat-message::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--text);
+  flex-shrink: 0;
+  opacity: 0.55;
+}
+/* #50: the one-time "Updated to vX.Y.Z" notice — same quiet dot-marker
+   look as #stat-message, but its own id since the two are mutually
+   exclusive in the same slot (StatusBar.svelte), not a shared style. */
+#stat-updated {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--status-fg);
+  font-weight: 500;
+  cursor: pointer;
+  user-select: none;
+}
+#stat-updated:hover .stat-updated-text {
+  color: var(--text);
+}
+#stat-updated::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--text);
+  flex-shrink: 0;
+  opacity: 0.55;
+}
+.status-link {
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  color: var(--status-fg);
+  font-family: inherit;
+  font-size: inherit;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+.status-link:hover {
+  color: var(--text);
+}
+.stat-dismissible {
+  cursor: pointer;
+}
+.stat-dismissible:hover {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.status-help {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--status-fg);
+  border-radius: 3px;
+  width: 16px;
+  height: 16px;
+  line-height: 1;
+  font-family: inherit;
+  font-size: 10px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+.status-help:hover {
+  background: var(--surface-raised);
+  border-color: var(--muted);
+}
+/* §update-check: the down-arrow-into-a-tray mark (§127's icon set) next
+   to the version number, only while `updateStatus === "available"` —
+   a quiet, always-visible companion to the one-shot status-bar toast
+   that fired when the check first found it (`checkForUpdatesOnLaunch`),
+   so the fact stays visible even after that toast auto-clears. */
+.status-update-btn {
+  background: transparent;
+  border: none;
+  color: var(--status-fg);
+  display: inline-flex;
+  align-items: center;
+  padding: 0;
+  cursor: pointer;
+}
+.status-update-btn:hover {
+  color: var(--text);
+}
+/* #58: About moved here from the top bar. Matches `.status-help`'s
+   boxed/outlined treatment (same 16px square, border, radius, hover
+   fill) right next to it, rather than `.status-update-btn`'s borderless
+   icon above — the two sit side by side reading as one pair of icon
+   buttons, not two different button styles. */
+.status-about-btn {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--status-fg);
+  border-radius: 3px;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.status-about-btn:hover {
+  background: var(--surface-raised);
+  border-color: var(--muted);
+}
+/* §update-check follow-up: the version number opens About too, same as
+   the update icon next to it — a plain-text look (no border/background)
+   so it doesn't read as a bigger control than it is. */
+#stat-version {
+  background: transparent;
+  border: none;
+  color: inherit;
+  font: inherit;
+  padding: 0;
+  margin: 0;
+  cursor: pointer;
+}
+#stat-version:hover {
+  color: var(--text);
+}
+/* §147: the phone-width stand-in for the "Browser storage" text badge —
+   same quiet-dot language as #stat-message/#stat-updated above, just a
+   static (not conditionally-rendered) accent dot; the full text stays
+   available via the parent span's title attribute. Hidden by default
+   and revealed at the same breakpoint as `.stat-compact` (kept as its
+   own rule + media block, not the shared `.stat-compact` class, so its
+   `display: inline-flex` — needed for width/height/border-radius to
+   apply at all — can't lose a source-order tie against that class). */
+.status-storage-dot {
+  display: none;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--text);
+  opacity: 0.55;
+  flex-shrink: 0;
+}
+@media (max-width: 420px) {
+  .status-storage-dot {
+    display: inline-flex;
+  }
+}
+

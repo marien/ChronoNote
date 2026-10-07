@@ -1,0 +1,201 @@
+/* §104: anchored mini calendar popover (the date picker). Not an
+   overlay — it's positioned under the top-bar 📅 trigger and closed by
+   Esc / an outside click. */
+.datepicker-pop {
+  position: fixed;
+  z-index: 250;
+  width: 248px;
+  background: var(--surface-overlay);
+  border: 1px solid var(--edge-strong);
+  border-radius: 8px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 16px 44px rgba(0, 0, 0, 0.5);
+  padding: 8px;
+  font-size: 12px;
+  color: var(--text);
+  user-select: none;
+}
+.datepicker-jump {
+  width: 100%;
+  background: var(--surface-raised);
+  border: 1px solid var(--edge-soft);
+  border-radius: 5px;
+  padding: 6px 8px;
+  font-family: var(--font);
+  font-size: 12px;
+  color: var(--text);
+  outline: none;
+  margin-bottom: 8px;
+}
+.datepicker-jump:focus-visible {
+  border-color: var(--tab-active-border);
+}
+.cal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 2px 2px 6px;
+}
+.cal-title-wrap {
+  /* One flex item for .cal-head's `space-between` (prev / this / next),
+     so the optional loading spinner next to the title doesn't throw off
+     the nav buttons' spacing. */
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.cal-title {
+  font-weight: 600;
+}
+.cal-title-wrap .modal-spinner {
+  font-size: 11px;
+}
+.cal-nav {
+  background: transparent;
+  border: none;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 15px;
+  line-height: 1;
+  width: 22px;
+  height: 22px;
+  border-radius: 4px;
+  font-family: inherit;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.cal-nav:hover {
+  background: var(--surface-raised);
+  color: var(--text);
+}
+.cal-weekdays,
+.cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+}
+.cal-weekdays {
+  margin-bottom: 2px;
+}
+.cal-weekdays span {
+  text-align: center;
+  color: var(--muted);
+  font-size: 10px;
+  padding: 3px 0;
+}
+.cal-day {
+  position: relative;
+  aspect-ratio: 1;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  /* State D (Empty): plain dates are quiet backdrop */
+  color: var(--muted);
+  opacity: 0.35;
+  font-family: inherit;
+  font-size: 11.5px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-variant-numeric: tabular-nums;
+  transition: background 100ms ease, border-color 100ms ease, opacity 100ms ease, color 100ms ease;
+  box-sizing: border-box;
+}
+.cal-day:hover {
+  background: var(--surface-raised);
+  opacity: 0.85;
+}
+.cal-day.out {
+  opacity: 0.25;
+}
+
+/* State C (Agenda Only): Dashed bounding box placeholder */
+.cal-day.has-agenda {
+  color: var(--muted);
+  opacity: 0.85;
+  border: 1px dashed var(--edge-strong);
+  font-weight: 500;
+}
+.cal-day.has-agenda:hover {
+  background: var(--surface-raised);
+  opacity: 1;
+  border-style: solid;
+}
+
+/* State A (Notes Recorded / Settled): Filled neutral chip */
+.cal-day.hasnote {
+  color: var(--text);
+  font-weight: 600;
+  opacity: 1;
+  background: var(--surface-raised);
+  border: 1px solid var(--edge-soft);
+}
+.cal-day.hasnote:hover {
+  background: color-mix(in srgb, var(--surface-raised) 85%, var(--text));
+}
+
+/* State B (Open Actions Pending): Neutral chip + Accent border */
+.cal-day.has-pending {
+  background: var(--surface-raised);
+  color: var(--text);
+  font-weight: 700;
+  opacity: 1;
+  border: 1.5px solid var(--state-warn);
+}
+.cal-day.has-pending:hover {
+  background: color-mix(in srgb, var(--surface-raised) 85%, var(--text));
+}
+
+/* Grayscale mode: State B distinguished by bold solid 1.5px white border */
+[data-color-mode="grayscale"] .cal-day.has-pending {
+  border: 1.5px solid var(--text);
+  font-weight: 800;
+}
+
+/* Today: Dedicated perimeter ring */
+.cal-day.today {
+  outline: 2px solid var(--tab-active-border);
+  outline-offset: -2px;
+  font-weight: 800;
+}
+
+/* Where the typed query / keyboard cursor is pointing. */
+.cal-day.target {
+  background: var(--selected-bg) !important;
+  color: var(--selected-fg) !important;
+  border-color: var(--selected-bg) !important;
+  outline: none !important;
+  opacity: 1 !important;
+}
+.cal-day:focus-visible {
+  outline: 2px solid var(--tab-active-border);
+  outline-offset: -1px;
+}
+.cal-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 8px;
+  padding-top: 7px;
+  border-top: 1px solid var(--edge-soft);
+}
+.cal-today-btn {
+  background: transparent;
+  border: none;
+  color: var(--tab-active-border);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 4px;
+  border-radius: 3px;
+}
+.cal-today-btn:hover {
+  background: var(--surface-raised);
+}
+.cal-hint {
+  color: var(--muted);
+  font-size: 10.5px;
+}
+

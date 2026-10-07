@@ -1,0 +1,468 @@
+/* ==========================================================================
+   Mobile & Touch Ergonomics
+   ========================================================================== */
+
+/* Safe area support for notched phones / browser chrome — a mobile
+   browser (including one running the installed PWA) reports these
+   correctly, so a plain env() read is all that's needed. */
+body {
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  padding-left: env(safe-area-inset-left, 0px);
+  padding-right: env(safe-area-inset-right, 0px);
+}
+
+/* §194 Area 6.2: Consolidated coarse pointer hit-target ergonomics */
+@media (pointer: coarse) {
+  .drawer-tab-close {
+    position: relative;
+  }
+  .drawer-tab-close::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    min-width: 44px;
+    min-height: 44px;
+  }
+  .cal-day::before {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    min-width: 36px;
+    min-height: 36px;
+  }
+  #top-bar .icon-btn {
+    min-width: 38px;
+    height: 38px;
+  }
+}
+
+/* Top bar mobile tab drawer button */
+.mobile-tab-drawer-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  background: var(--surface-raised);
+  border: 1px solid var(--edge-strong);
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.mobile-tab-drawer-btn:active {
+  background: var(--surface-hover);
+}
+/* The active tab, shown next to the drawer button so the date being edited is always visible. */
+.tab.mobile-active-tab {
+  flex: 0 1 auto;
+  min-width: 0;
+  border: none;
+  font: inherit;
+  font-size: 12px;
+  margin: 0 0 0 4px;
+}
+.tab.mobile-active-tab .tab-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.mobile-tab-count {
+  font-size: 10px;
+  opacity: 0.85;
+}
+
+/* Mobile Quick Action Accessory Bar (docked above keyboard / status bar) */
+.mobile-accessory-bar {
+  flex-shrink: 0;
+  width: 100%;
+  z-index: 40;
+  background: var(--surface-overlay);
+  border-top: 1px solid var(--edge-strong);
+  padding: 4px 6px;
+  display: flex;
+  align-items: center;
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.2);
+}
+.accessory-scroll {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+  width: 100%;
+}
+.accessory-scroll::-webkit-scrollbar {
+  display: none;
+}
+.accessory-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 36px;
+  height: 36px;
+  padding: 0 6px;
+  background: var(--surface-raised);
+  border: 1px solid var(--edge-strong);
+  border-radius: 6px;
+  color: var(--text);
+  font-family: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  flex-shrink: 0;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+.accessory-btn:active {
+  background: var(--surface-hover);
+  transform: translateY(1px);
+}
+.accessory-btn.token-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  min-width: 36px;
+  height: 36px;
+  padding: 0;
+  font-family: var(--font-mono, monospace);
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1;
+  box-sizing: border-box;
+}
+
+.token-glyph {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  line-height: 1;
+  width: 16px;
+  height: 16px;
+  box-sizing: border-box;
+  text-align: center;
+  transform: none;
+}
+
+/* Action glyphs in mobile accessory bar */
+.token-glyph.glyph-open {
+  color: var(--glyph-open-color);
+}
+.token-glyph.glyph-done {
+  color: var(--glyph-done-color);
+}
+.token-glyph.glyph-progress {
+  color: var(--glyph-progress-color);
+  transform: none;
+}
+.token-glyph.glyph-progress::after {
+  content: "›";
+  position: absolute;
+  left: 52%;
+  top: 42%;
+  transform: translate(-50%, -50%);
+  font-size: 0.70em;
+  font-weight: 900;
+  line-height: 1;
+  color: var(--glyph-progress-color);
+  pointer-events: none;
+}
+
+/* Agenda topic glyphs in mobile accessory bar (centered & visually matched to action squares) */
+.token-glyph.glyph-topic-open,
+.token-glyph.glyph-topic-done,
+.token-glyph.glyph-topic-skipped {
+  width: 13.5px;
+  height: 13.5px;
+  border-radius: 50%;
+  box-sizing: border-box;
+  color: transparent;
+  user-select: none;
+  transform: none;
+  line-height: 1;
+}
+.token-glyph.glyph-topic-open {
+  border: 1.4px solid var(--glyph-open-color);
+}
+.token-glyph.glyph-topic-done {
+  border: 1.4px solid var(--glyph-done-color);
+}
+.token-glyph.glyph-topic-done::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 4.5px;
+  height: 4.5px;
+  border-radius: 50%;
+  background: var(--glyph-done-color);
+}
+.token-glyph.glyph-topic-skipped {
+  border: 1.4px dashed var(--glyph-progress-color);
+}
+
+/* Bullet, follow-up arrow, and emphasis in mobile accessory bar */
+.token-glyph.glyph-bullet {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--text);
+  color: transparent;
+  display: inline-block;
+  font-size: 0;
+  line-height: 0;
+}
+.token-glyph.glyph-arrow,
+.token-glyph.glyph-followup {
+  color: var(--text);
+  font-size: 15px;
+  line-height: 1;
+}
+.token-glyph.glyph-emphasis {
+  color: var(--text);
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1;
+}
+.accessory-separator {
+  width: 1px;
+  height: 20px;
+  background: var(--edge-strong);
+  margin: 0 2px;
+  flex-shrink: 0;
+}
+
+/* Mobile Tab Drawer (Modal Card in Overlay) */
+.mobile-drawer-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 300;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(2px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+.mobile-drawer-card {
+  background: var(--surface-overlay);
+  border: 1px solid var(--edge-strong);
+  border-radius: 12px;
+  width: 100%;
+  max-width: 480px;
+  max-height: 85vh;
+  max-height: 85dvh;
+  display: flex;
+  flex-direction: column;
+  padding: 16px;
+  box-shadow: 0 16px 44px rgba(0, 0, 0, 0.5);
+}
+.drawer-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--edge-strong);
+}
+.drawer-title-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.drawer-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+}
+.drawer-count {
+  font-size: 12px;
+  font-weight: 600;
+  background: var(--surface-raised);
+  padding: 2px 6px;
+  border-radius: 10px;
+  color: var(--muted);
+}
+.drawer-close-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background: transparent;
+  border: none;
+  border-radius: 50%;
+  color: var(--muted);
+  cursor: pointer;
+}
+.drawer-close-btn:active {
+  background: var(--surface-raised);
+}
+.drawer-tab-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  overflow-y: auto;
+  max-height: 50vh;
+  max-height: 50dvh;
+  margin-bottom: 14px;
+  padding-right: 2px;
+}
+.drawer-tab-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  min-height: 44px;
+  background: var(--surface-raised);
+  border: 1px solid transparent;
+  border-radius: 8px;
+  color: var(--text);
+  font-size: 13px;
+  cursor: pointer;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+/* Same scheme as the tab bar (.tab): the active tab is the canvas surface with the
+   accent edge, and past/today/future tint the icon the same way (#68). */
+.drawer-tab-item.active {
+  background: var(--surface-canvas);
+  color: var(--text);
+  font-weight: 600;
+  box-shadow: inset 3px 0 0 var(--tab-active-border);
+}
+.drawer-tab-item.scratch .drawer-tab-name {
+  font-style: italic;
+}
+.drawer-tab-item.active .drawer-tab-icon {
+  opacity: 1;
+  color: var(--tab-active-border);
+}
+.drawer-tab-item.past .drawer-tab-icon {
+  opacity: 0.45;
+}
+.drawer-tab-item.today .drawer-tab-icon {
+  opacity: 1;
+  color: var(--tab-active-border);
+}
+.drawer-tab-item.future .drawer-tab-icon {
+  opacity: 1;
+  color: var(--state-ok);
+}
+/* #96: mirrors `.tab.active.past`/`.tab.active.future` (the desktop top
+   bar's own fix) — `.drawer-tab-item.active`'s left accent stripe
+   (above) defaults to `--tab-active-border`, the same color `.today`
+   already uses, so a selected today-tab needs no override. A selected
+   past/future tab's stripe is brought in line with its own icon's color
+   above, instead of always showing the "today" accent regardless of
+   which tab is actually active. */
+.drawer-tab-item.active.past {
+  box-shadow: inset 3px 0 0 color-mix(in srgb, var(--muted) 45%, transparent);
+}
+.drawer-tab-item.active.future {
+  box-shadow: inset 3px 0 0 var(--state-ok);
+}
+.drawer-group-divider {
+  height: 1px;
+  margin: 2px 4px;
+  background: var(--edge-strong);
+}
+.drawer-tab-item:active {
+  opacity: 0.85;
+}
+.drawer-tab-icon {
+  display: flex;
+  align-items: center;
+  opacity: 0.8;
+}
+.drawer-tab-name {
+  font-family: var(--font-mono, monospace);
+  font-size: 13px;
+}
+/* Open-action count, right behind the date — same "☐ N" shape as the
+   status bar's own compact open count (#stat-open et al.), so it reads
+   as a quiet count rather than an accent. Deliberately plain text, not
+   the editor's colored glyph-open treatment. Kept as its own element
+   (not appended to .drawer-tab-name's text) so the name stays the plain
+   label text elsewhere in the app relies on. */
+.drawer-tab-open-count {
+  margin-left: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  color: var(--muted);
+}
+/* Absorbs the remaining row width so the today-tag/status-dot/close
+   button stay pinned to the right edge, the same job .drawer-tab-name's
+   own flex:1 used to do before the open-count badge needed to sit
+   right after the name without stretching along with it. */
+.drawer-tab-spacer {
+  flex: 1;
+}
+.drawer-today-tag {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: var(--surface-overlay);
+  color: var(--text);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.drawer-tab-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  background: transparent;
+  border: none;
+  border-radius: 4px;
+  color: var(--muted);
+  cursor: pointer;
+}
+.drawer-tab-close:active {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text);
+}
+.drawer-actions {
+  display: flex;
+  gap: 8px;
+}
+.drawer-action-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px;
+  min-height: 44px;
+  background: var(--surface-raised);
+  border: 1px solid var(--edge-strong);
+  border-radius: 8px;
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+}
+.drawer-action-btn:active {
+  background: var(--surface-hover);
+}
+.drawer-action-btn span {
+  text-align: center;
+  line-height: 1.2;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+

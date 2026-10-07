@@ -1,0 +1,714 @@
+/* Editor Canvas */
+#editor-container {
+  flex: 1;
+  overflow: auto;
+  position: relative;
+}
+
+/* §108: floating in-document find bar, docked top-right of the editor.
+   Not a modal — the editor stays scrollable and editable underneath. */
+.find-bar {
+  position: absolute;
+  top: 8px;
+  right: 14px;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 4px 4px 8px;
+  background: var(--surface-overlay);
+  border: 1px solid var(--edge-strong);
+  border-radius: 7px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  font-size: 12px;
+}
+.find-input {
+  width: 180px;
+  background: var(--surface-raised);
+  border: 1px solid var(--edge-soft);
+  border-radius: 4px;
+  padding: 4px 7px;
+  font-family: var(--font);
+  font-size: 12px;
+  color: var(--text);
+  outline: none;
+}
+.find-input:focus-visible {
+  border-color: var(--tab-active-border);
+}
+.find-count {
+  min-width: 62px;
+  text-align: right;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+  padding: 0 2px;
+}
+.find-btn {
+  background: transparent;
+  border: none;
+  color: var(--muted);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 13px;
+  width: 22px;
+  height: 22px;
+  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.find-btn:hover {
+  background: var(--surface-raised);
+  color: var(--text);
+}
+
+/* Search-match highlighting from @codemirror/search — its defaults are
+   tuned for a light editor; retheme for ours. */
+.cm-searchMatch {
+  background: var(--highlight);
+  border-radius: 2px;
+}
+.cm-searchMatch-selected {
+  background: var(--selected-bg);
+  color: var(--selected-fg);
+}
+.editor-host {
+  height: 100%;
+}
+.cm-editor {
+  height: 100%;
+  font-family: var(--font) !important;
+  font-size: var(--editor-font-size, 13px) !important;
+}
+.cm-scroller {
+  padding: 16px 20px !important;
+}
+.cm-line {
+  line-height: var(--editor-line-height, 1.6);
+}
+
+/* §258: Word-wrap hanging indent for continuation lines, keeping them aligned
+   with the logical line's text indentation level. */
+.cm-line.cm-line-wrap-indent {
+  /* 6px = CodeMirror's own `.cm-line` left padding; replacing it outright
+     (instead of adding to it) shifted every indented line 6px left of the
+     same line without word wrap. */
+  padding-left: calc(6px + var(--line-indent, 0ch)) !important;
+  text-indent: calc(-1 * var(--line-indent, 0ch)) !important;
+}
+
+/* text-indent is inherited, and the glyph widgets are inline-blocks (their own
+   block containers): without this reset each one shifts its character by the
+   negative indent, out of its box, and the glyph vanishes. */
+.cm-line.cm-line-wrap-indent > * {
+  text-indent: 0;
+}
+
+/* §258: Curved return arrow wrap indicator at the end of broken visual lines. */
+.cm-wrap-layer {
+  pointer-events: none;
+  z-index: 10;
+}
+
+.cm-wrap-indicator {
+  position: absolute;
+  pointer-events: none;
+  user-select: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text);
+  opacity: 0.38;
+  line-height: 1;
+}
+
+.cm-wrap-indicator svg {
+  display: block;
+}
+
+@media print {
+  .cm-wrap-layer,
+  .cm-wrap-indicator {
+    display: none !important;
+  }
+}
+
+/* Thin, theme-matched scrollbar (Notepad/Claude-style) in place of the
+   OS-default one, for every scrollable pane — the editor, any
+   overflowing modal list (search/history/action-drawer results), and any
+   resizable/overflowing input field (e.g. the import textarea). Uses the
+   same tokens as everything else, so it already follows light/dark and
+   color/grayscale without any extra rules. */
+.cm-scroller,
+.modal-list,
+.hp-context,
+.shortcuts-col,
+.import-textarea,
+.settings-section {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+.cm-scroller::-webkit-scrollbar,
+.modal-list::-webkit-scrollbar,
+.hp-context::-webkit-scrollbar,
+.shortcuts-col::-webkit-scrollbar,
+.import-textarea::-webkit-scrollbar,
+.settings-section::-webkit-scrollbar {
+  width: 8px;
+}
+.cm-scroller::-webkit-scrollbar-track,
+.modal-list::-webkit-scrollbar-track,
+.hp-context::-webkit-scrollbar-track,
+.shortcuts-col::-webkit-scrollbar-track,
+.import-textarea::-webkit-scrollbar-track,
+.settings-section::-webkit-scrollbar-track {
+  background: transparent;
+}
+/* The bottom-right corner (the gap where scrollbars would meet) is its
+   own pseudo-element, not styled by the track/thumb rules above — left
+   unstyled it defaults to an opaque white box in Chromium/WebView2,
+   showing as a stray white sliver behind the resize grip once the
+   scrollbar appears. */
+.import-textarea::-webkit-scrollbar-corner {
+  background: transparent;
+}
+/* The native resize-grip icon itself bakes in a light top/left 3D-bevel
+   highlight (confirmed via a zoomed screenshot) that isn't a separate
+   background layer — it's part of Chromium's built-in themed icon, so it
+   can't be selectively removed. Styling ::-webkit-resizer at all switches
+   Chromium off that native rendering (confirmed earlier: plain
+   `background: transparent` left it blank, not just un-beveled), so the
+   only way to keep a visible grip is to fully replace it with our own
+   flat icon — three diagonal lines, matching the classic grip shape,
+   drawn via background-image since these scrollbar sub-elements only
+   support a limited CSS subset (mask-image isn't reliably one of them). */
+.import-textarea::-webkit-resizer {
+  background-color: transparent;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cline x1='11' y1='16' x2='16' y2='11' stroke='%23888888' stroke-width='1.6'/%3E%3Cline x1='7' y1='16' x2='16' y2='7' stroke='%23888888' stroke-width='1.6'/%3E%3Cline x1='3' y1='16' x2='16' y2='3' stroke='%23888888' stroke-width='1.6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: bottom right;
+  background-size: 10px 10px;
+}
+.cm-scroller::-webkit-scrollbar-thumb,
+.modal-list::-webkit-scrollbar-thumb,
+.hp-context::-webkit-scrollbar-thumb,
+.shortcuts-col::-webkit-scrollbar-thumb,
+.import-textarea::-webkit-scrollbar-thumb,
+.settings-section::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 4px;
+}
+.cm-scroller::-webkit-scrollbar-thumb:hover,
+.modal-list::-webkit-scrollbar-thumb:hover,
+.hp-context::-webkit-scrollbar-thumb:hover,
+.shortcuts-col::-webkit-scrollbar-thumb:hover,
+.import-textarea::-webkit-scrollbar-thumb:hover,
+.settings-section::-webkit-scrollbar-thumb:hover {
+  background: var(--muted);
+}
+
+/* Overview Ruler: scrollbar track markers for open actions and topics */
+.cm-overview-ruler {
+  /* top+bottom (not an explicit height) so the browser's own layout keeps
+     this box pixel-identical to .cm-editor's content box, always — a JS-
+     measured height (the previous approach) can be off by a rounding
+     pixel under fractional display scaling, and even 1px of overflow
+     here escapes .cm-editor's `overflow: visible` and bubbles up to
+     #editor-container, which has `overflow: auto` but was never in the
+     app's thin-scrollbar CSS — so it shows a full native OS scrollbar
+     (confirmed live: a deliberately oversized ruler reproduced exactly
+     this, both vertically and, via the width the scrollbar then steals,
+     horizontally too). */
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: 0;
+  width: 8px;
+  pointer-events: none;
+  z-index: 10;
+  user-select: none;
+  opacity: 0;
+  transition: opacity 0.5s ease-out;
+  /* A marker near the bottom (an open action on the last lines) has a hit area that reaches past the pane; clipped
+     here so it can never make the surrounding container grow its own native scrollbar. */
+  overflow: hidden;
+}
+
+/* Peek shows one section of the note: the markers would point at actions in the hidden sections, and in a window this
+   small the track looks like a second scrollbar. */
+body.peek-mode .cm-overview-ruler {
+  display: none !important;
+}
+
+.cm-overview-ruler.cm-ruler-visible,
+.cm-overview-ruler:hover {
+  opacity: 1;
+  pointer-events: auto;
+  transition: opacity 0.15s ease-in;
+}
+
+.cm-ruler-marker {
+  position: absolute;
+  right: 1px;
+  width: 6px;
+  height: 3px;
+  border-radius: 1.5px;
+  pointer-events: auto;
+  cursor: pointer;
+  box-sizing: border-box;
+  transition: transform 0.1s ease, width 0.1s ease, right 0.1s ease;
+}
+
+/* Touch and click hit-area expansion for easy, reliable targeting.
+   `right: 0` (not a further negative inset) deliberately stops flush with
+   the marker's own edge: the marker already sits 1px in from the 8px-wide
+   .cm-overview-ruler's own right edge, which is itself flush with
+   .cm-editor's right edge — a more negative `right` here pushed this
+   pseudo-element 1px past .cm-editor's box. .cm-editor's `scrollWidth`
+   counts that regardless of its `overflow: visible`, and the 1px escaped
+   from there to #editor-container (the next `overflow: auto` ancestor,
+   never in the app's thin-scrollbar CSS), forcing a full native
+   scrollbar — confirmed via a regression test that failed on this exact
+   assertion before this fix. There's nothing to the right worth an
+   expanded hit-area anyway (the ruler already sits at the pane's edge). */
+.cm-ruler-marker::before {
+  content: "";
+  position: absolute;
+  top: -4px;
+  bottom: -4px;
+  right: 0;
+  left: -8px;
+}
+
+.cm-ruler-marker:hover {
+  transform: scaleY(1.33);
+  width: 7px;
+  right: 0.5px;
+}
+
+/* Muted, quiet dots — matching the status bar's own flat `--muted`
+   treatment of its open/closed/forwarded counts (#stat-open et al.)
+   rather than a bright, glowing accent color competing for attention
+   with the editor's own vibrant glyph palette. Action and topic markers
+   share the one tone, same as the status bar doesn't color-code its own
+   counts by type either. */
+.cm-ruler-marker.cm-ruler-action,
+.cm-ruler-marker.cm-ruler-topic {
+  background: var(--muted);
+}
+
+.cm-content {
+  caret-color: var(--caret-color) !important;
+}
+/* drawSelection()'s own default theme assumes a light-background editor
+   (a near-white selection fill) — against our dark theme's light text
+   that made selected text nearly unreadable. Overriding with a neutral
+   backdrop that contrasts against both light and dark foreground colors. */
+.cm-selectionBackground,
+.cm-focused .cm-selectionBackground {
+  background: var(--editor-selection-bg) !important;
+}
+.cm-cursor,
+.cm-dropCursor,
+.cm-editor .cm-cursor-primary,
+.cm-editor .cm-cursor-secondary {
+  border-left: 2.5px solid var(--caret-color) !important;
+  margin-left: -1px !important;
+}
+
+/* Custom In-line Presentation Glyphs — theme-driven via CSS variables, so
+   the color/grayscale toggle applies with no component logic needed.
+
+   §88 (#19): the `.glyph-*` classes carry two unrelated things — the
+   `--glyph-*` colour/weight/opacity theming (below, unscoped, wanted
+   anywhere a glyph is shown) and the editor's fixed-cell box model
+   (`.cm-line .glyph-*`, scoped, only meaningful inside CodeMirror). The
+   Symbols & Sections legend reuses the classes purely for the colours; it
+   must render them as plain inline text, so everything layout-related is
+   gated behind `.cm-line`.
+
+   Fixed `ch`-unit widths force exact column alignment in the editor: a
+   single Unicode character doesn't guarantee single-monospace-cell
+   rendered width in every font, so width is forced via CSS rather than
+   trusted to the glyph's own natural size — 2ch for the two-character
+   tokens (`# `, `v `, `> `, `- `), 3ch for the three-character `=> `.
+
+   Fixed *height* matters for the same reason (§79): the geometric
+   characters (☐ ☑ ☒ » ➔ •) aren't in the monospace stack and fall back
+   to a symbol font — Segoe UI Symbol in WebView2 — whose glyph box runs
+   ~1px taller than the editor's own line box. Left unconstrained, an
+   `inline-block` sized by that fallback dragged every glyph line taller
+   than the plain lines around it. Pinning the box to exactly one line
+   (`height`/`line-height` at the `.cm-line` 1.6 ratio) with
+   `overflow: hidden` and top alignment keeps the fallback's vertical
+   metrics out of layout. §87 (#16): `text-align: left` puts the glyph on
+   the column its token's first character had, with the trailing space as
+   the gap. */
+.cm-line .glyph-open,
+.cm-line .glyph-done,
+.cm-line .glyph-progress,
+.cm-line .glyph-cancelled,
+.cm-line .glyph-bullet,
+.cm-line .glyph-followup,
+.cm-line .glyph-topic-open,
+.cm-line .glyph-topic-done,
+.cm-line .glyph-topic-skipped {
+  display: inline-block;
+  height: calc(var(--editor-line-height, 1.6) * 1em);
+  line-height: calc(var(--editor-line-height, 1.6) * 1em);
+  overflow: hidden;
+  vertical-align: top;
+  text-align: left;
+}
+
+/* §84 (#13): the checkbox characters (☐ ☑ ☒) in the symbol fallback font
+   draw a near-full-em bordered square, which reads visibly larger and
+   heavier than the `#` / `v` / `x` they replace. Shrink to sit at roughly
+   the `#` cap height. */
+.cm-line .glyph-open,
+.cm-line .glyph-done,
+.cm-line .glyph-progress,
+.cm-line .glyph-cancelled,
+.cm-line .glyph-topic-open,
+.cm-line .glyph-topic-done,
+.cm-line .glyph-topic-skipped {
+  transform: translateY(0);
+}
+.cm-line .glyph-followup {
+  transform: translateY(0);
+}
+.cm-line .glyph-open .glyph-ink,
+.cm-line .glyph-done .glyph-ink,
+.cm-line .glyph-cancelled .glyph-ink {
+  display: inline-block;
+  transform: scale(0.85);
+  transform-origin: left center;
+}
+
+/* Boxed Deferred Glyph (Option 1: ☐ with centered ›) */
+.glyph-progress {
+  color: var(--glyph-progress-color);
+  font-weight: var(--glyph-progress-weight);
+  position: relative;
+  display: inline-block;
+}
+.cm-line .glyph-progress .glyph-ink,
+.glyph-progress .glyph-ink {
+  position: relative;
+  display: inline-block;
+  transform: scale(0.85);
+  transform-origin: left center;
+}
+.glyph-progress:not(:has(.glyph-ink))::after,
+.glyph-progress .glyph-ink::after {
+  content: "›";
+  position: absolute;
+  left: 52%;
+  top: 42%;
+  transform: translate(-50%, -50%);
+  font-size: 0.70em;
+  font-weight: 900;
+  line-height: 1;
+  color: var(--glyph-progress-color);
+  pointer-events: none;
+}
+.stat-compact .glyph-progress {
+  color: inherit;
+}
+.stat-compact .glyph-progress::after {
+  color: inherit;
+}
+
+.cm-line .glyph-topic-open .glyph-ink,
+.cm-line .glyph-topic-done .glyph-ink,
+.cm-line .glyph-topic-skipped .glyph-ink {
+  color: transparent;
+  user-select: none;
+  display: inline-block;
+  position: relative;
+  width: 0.70em;
+  height: 0.70em;
+  box-sizing: border-box;
+  border-radius: 50%;
+  line-height: 1;
+  transform: translateY(0.20em);
+}
+
+/* o: open circle (1.4px solid stroke) */
+.cm-line .glyph-topic-open .glyph-ink,
+.glyph-topic-open.glyph-cyclable-preview .glyph-ink {
+  border: 1.4px solid var(--glyph-open-color);
+}
+
+/* .: discussed fisheye (outer circle + centered inner dot) */
+.cm-line .glyph-topic-done .glyph-ink,
+.glyph-topic-done.glyph-cyclable-preview .glyph-ink {
+  border: 1.4px solid var(--glyph-done-color);
+}
+.cm-line .glyph-topic-done .glyph-ink::after,
+.glyph-topic-done.glyph-cyclable-preview .glyph-ink::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 0.30em;
+  height: 0.30em;
+  border-radius: 50%;
+  background: var(--glyph-done-color);
+}
+
+/* ,: not discussed / postponed (1.4px dashed circular ring) */
+.cm-line .glyph-topic-skipped .glyph-ink,
+.glyph-topic-skipped.glyph-cyclable-preview .glyph-ink {
+  border: 1.4px dashed var(--glyph-progress-color);
+}
+
+.cm-line .glyph-open,
+.cm-line .glyph-done,
+.cm-line .glyph-progress,
+.cm-line .glyph-cancelled,
+.cm-line .glyph-bullet,
+.cm-line .glyph-topic-open,
+.cm-line .glyph-topic-done,
+.cm-line .glyph-topic-skipped {
+  width: 2ch;
+}
+.cm-line .glyph-followup {
+  width: 3ch;
+}
+.glyph-open {
+  color: var(--glyph-open-color);
+  font-weight: var(--glyph-open-weight);
+}
+.glyph-done {
+  color: var(--glyph-done-color);
+  font-weight: var(--glyph-done-weight);
+  opacity: var(--glyph-done-opacity);
+}
+.glyph-progress {
+  color: var(--glyph-progress-color);
+  font-weight: var(--glyph-progress-weight);
+}
+.glyph-cancelled {
+  color: var(--glyph-cancelled-color);
+  font-weight: var(--glyph-cancelled-weight);
+  opacity: var(--glyph-cancelled-opacity);
+}
+/* Agenda topic glyphs outside editor/accessory-bar (e.g. ShortcutsModal, History, Search) */
+.glyph-topic-open:not(.cm-line *):not(.token-glyph),
+.glyph-topic-done:not(.cm-line *):not(.token-glyph),
+.glyph-topic-skipped:not(.cm-line *):not(.token-glyph) {
+  display: inline-block;
+  position: relative;
+  width: 1em;
+  height: 1em;
+  border-radius: 50%;
+  box-sizing: border-box;
+  color: transparent !important;
+  user-select: none;
+  vertical-align: -0.1em;
+  line-height: 1;
+}
+.glyph-topic-open:not(.cm-line *):not(.token-glyph) {
+  border: 1.4px solid var(--glyph-open-color);
+}
+.glyph-topic-done:not(.cm-line *):not(.token-glyph) {
+  border: 1.4px solid var(--glyph-done-color);
+}
+.glyph-topic-done:not(.cm-line *):not(.token-glyph)::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 0.32em;
+  height: 0.32em;
+  border-radius: 50%;
+  background: var(--glyph-done-color);
+}
+.glyph-topic-skipped:not(.cm-line *):not(.token-glyph) {
+  border: 1.4px dashed var(--glyph-progress-color);
+}
+.glyph-topic-open {
+  color: var(--glyph-open-color);
+}
+.glyph-topic-done {
+  color: var(--glyph-done-color);
+}
+.glyph-topic-skipped {
+  color: var(--glyph-progress-color);
+}
+.glyph-cyclable {
+  cursor: pointer;
+  user-select: none;
+}
+@media (pointer: coarse) {
+  .cm-line .glyph-cyclable,
+  .glyph-cyclable {
+    overflow: visible !important;
+    position: relative;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .cm-line .glyph-cyclable::after,
+  .glyph-cyclable::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    min-height: 44px;
+    z-index: 5;
+  }
+}
+.glyph-followup {
+  color: var(--glyph-followup-color);
+  font-weight: var(--glyph-followup-weight);
+}
+.glyph-bullet {
+  color: var(--text);
+  font-weight: normal;
+}
+.glyph-assignee {
+  background: var(--glyph-assignee-bg);
+  border-radius: 3px;
+  /* #42: the pill's horizontal inset is drawn but not *spent* — a
+     matching negative margin keeps `@name` and everything after it on the
+     same monospace column it would sit on unglyphed, so a delegated line
+     is exactly as long as its raw text. */
+  padding: 0 3px;
+  margin: 0 -3px;
+  color: var(--glyph-assignee-color);
+  font-weight: 600;
+}
+.glyph-emphasis-line {
+  font-weight: bold;
+  color: var(--glyph-emphasis-color);
+}
+/* #36 / v0.12 (2.2): a `(topic)` tag on an action line, drawn as an upright rounded pill.
+   Layout-neutral (#42): the two parentheses stay real text, each 1ch, and are drawn transparent
+   while the line is idle, so they ARE the pill's inner padding; the 1px border is cancelled by a
+   -1px side margin. So the line is exactly as long as its raw text, and the text after the pill
+   never moves when the caret enters or leaves the line. Chrome tokens only (already light/dark
+   aware). Read-only renderings (history rows, the shortcuts legend) get the same look with the
+   parentheses simply left visible. */
+.glyph-topic {
+  border: 1px solid var(--edge-strong);
+  border-radius: 4px;
+  margin: 0 -1px;
+  padding: 0;
+  background: color-mix(in srgb, var(--text) 6%, transparent);
+  color: var(--text);
+  font-style: normal;
+  font-weight: 500;
+  transition: border-color 150ms ease, background-color 150ms ease;
+}
+.glyph-topic .glyph-topic-paren {
+  color: transparent;
+  transition: color 150ms ease;
+}
+/* The line being edited (caret or selection on it), or hovered: show the literal `(topic)`. */
+.cm-line-touched .glyph-topic .glyph-topic-paren,
+.cm-line:hover .glyph-topic .glyph-topic-paren {
+  color: var(--muted);
+}
+
+/* §106: the action-state glyphs cycle on click. Subtle pointer + hover
+   tint so it reads as interactive without adding chrome to every line. */
+.cm-line .glyph-cyclable {
+  cursor: pointer;
+}
+.cm-line .glyph-cyclable:hover {
+  background: var(--surface-raised);
+  border-radius: 3px;
+}
+/* #34: while hovering a cyclable glyph it shows the *next* state's glyph.
+   Reduced opacity alone reads as provisional, not as the line's real
+   current state — a dashed underline was also tried but read as noisy
+   cutting through a small glyph character, dropped per Marien's request. */
+.cm-line .glyph-cyclable-preview {
+  opacity: 0.6;
+}
+
+/* Clickable links in editor content (Issue #79) */
+.cm-line .cm-link {
+  color: var(--text);
+  text-decoration: underline;
+  text-decoration-color: var(--edge-strong);
+  text-underline-offset: 3px;
+  cursor: pointer;
+  transition: color 100ms ease, text-decoration-color 100ms ease;
+}
+.cm-line .cm-link:hover {
+  text-decoration-color: var(--text);
+}
+
+/* Area 2: Subtle resolved line muting */
+.cm-line.cm-line-resolved {
+  opacity: 0.72;
+  transition: opacity 150ms ease;
+}
+
+.cm-line.cm-line-resolved:hover,
+.cm-line.cm-line-resolved.cm-line-resolved-active,
+.cm-line.cm-line-resolved:focus-within {
+  opacity: 1;
+}
+
+/* A resolved topic with an open action after its arrow: only the topic part is muted. */
+.cm-line.cm-line-resolved-partial .cm-resolved-part {
+  opacity: 0.72;
+  transition: opacity 150ms ease;
+}
+.cm-line.cm-line-resolved-partial:hover .cm-resolved-part,
+.cm-line.cm-line-resolved-partial.cm-line-resolved-active .cm-resolved-part,
+.cm-line.cm-line-resolved-partial:focus-within .cm-resolved-part {
+  opacity: 1;
+}
+
+/* Grayscale mode contrast safeguard */
+[data-color-mode="grayscale"] .cm-line-resolved .glyph-done {
+  opacity: 1;
+}
+
+/* Area 8: In-editor search hit jump pulse */
+@keyframes searchHitPulse {
+  0% { background: color-mix(in srgb, var(--glyph-open-color) 35%, transparent); }
+  100% { background: transparent; }
+}
+.cm-line.cm-line-hit-pulse {
+  animation: searchHitPulse 1400ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* §81: a Setext underline row (`====` under a section title) drawn as a
+   double rule. `Decoration.mark` over the real `=` characters — they stay
+   in the layout (so hit-testing and `posAtCoords` work natively for
+   hover/click-to-edit) but render invisible. The mark is dropped —
+   reverting to the literal, editable `=` — whenever the cursor,
+   selection, or mouse is on that row (see setextRule.ts).
+
+   The rule is two 1px lines drawn as background gradients at
+   `51% ± 0.09em` of the line box — i.e. straight through where the `=`
+   glyph's own ink sits (measured: Cascadia Code renders `=` essentially
+   centred in the line box; 51% landed dead-on in an overlay check). This
+   means there's no vertical jump when the row toggles between the rule
+   and the literal `=`. A `border-bottom` sat at the text box's bottom
+   edge instead — about half a line too low — which showed as a visible
+   shift on reveal. Backgrounds don't affect layout, so the row stays
+   exactly one line tall. */
+.cm-setext-rule {
+  color: transparent;
+  background-image:
+    linear-gradient(var(--muted), var(--muted)),
+    linear-gradient(var(--muted), var(--muted));
+  background-size: 100% 1px;
+  background-repeat: no-repeat;
+  background-position:
+    0 calc(51% - 0.09em),
+    0 calc(51% + 0.09em);
+}
+
