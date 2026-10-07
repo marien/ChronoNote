@@ -35,6 +35,7 @@ import { PEEK_DEFAULTS, clampPeek } from "../peekDefaults";
 import type { ToastOptions } from "../stores";
 import type { CommandArgs, CommandReturn, OneDriveAdvancedConfig, TauriCommand, TauriCommands } from "../tauriCommands";
 import { isValidNoteFilename } from "../noteFilename";
+import { normalizeNoteText } from "../noteText";
 
 export interface MockSeed {
   /** Path used as the active notes directory. Default `/notes`. */
@@ -162,7 +163,7 @@ async function fileMetadata(content: string | undefined): Promise<FileMetadata> 
   }
   return {
     exists: true,
-    contentHash: await sha256Hex(content),
+    contentHash: await sha256Hex(normalizeNoteText(content)),
     sizeBytes: new TextEncoder().encode(content).length,
     modifiedMs: Date.now(),
   };
@@ -665,7 +666,8 @@ export class MockBackend {
       if (!isValidNoteFilename(filename)) {
         throw new Error(`Invalid note filename: ${filename}`);
       }
-      return this.dir().notes.get(filename) ?? null;
+      const raw = this.dir().notes.get(filename);
+      return raw === undefined ? null : normalizeNoteText(raw);
     },
 
     write_note: async ({ filename, content, expectedHash }) => {
@@ -675,13 +677,14 @@ export class MockBackend {
       // §94: compare-and-swap when the caller passed the hash it last saw.
       if (typeof expectedHash === "string") {
         const current = this.dir().notes.get(filename);
-        const currentHash = current === undefined ? null : await sha256Hex(current);
+        const currentHash = current === undefined ? null : await sha256Hex(normalizeNoteText(current));
         if (currentHash !== expectedHash) {
           throw new Error(`conflict: note changed on disk: ${filename}`);
         }
       }
-      this.dir().notes.set(filename, content);
-      return fileMetadata(content);
+      const text = normalizeNoteText(content);
+      this.dir().notes.set(filename, text);
+      return fileMetadata(text);
     },
 
     // #63: a missing file is not an error — mirrors
@@ -707,7 +710,8 @@ export class MockBackend {
 
     read_note_with_metadata: async ({ filename }) => {
       if (!isValidNoteFilename(filename)) throw new Error(`Invalid note filename: ${filename}`);
-      const content = this.dir().notes.get(filename) ?? null;
+      const raw = this.dir().notes.get(filename);
+      const content = raw === undefined ? null : normalizeNoteText(raw);
       return { content, metadata: await fileMetadata(content ?? undefined) };
     },
 
@@ -720,7 +724,7 @@ export class MockBackend {
     },
 
     read_all_notes: () =>
-      this.listFiles().map((f) => [f, this.dir().notes.get(f) ?? ""] as [string, string]),
+      this.listFiles().map((f) => [f, normalizeNoteText(this.dir().notes.get(f) ?? "")] as [string, string]),
 
     read_tab_session: () => this.dir().session,
 
@@ -752,7 +756,7 @@ export class MockBackend {
           skipped++;
           continue;
         }
-        d.notes.set(filename, content);
+        d.notes.set(filename, normalizeNoteText(content));
         imported++;
       }
       return { imported, skipped };
