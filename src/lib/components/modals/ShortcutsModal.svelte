@@ -14,17 +14,17 @@
   // An id with no combo on this platform (`caretLineNav` on Mac — see
   // that entry's comment) is dropped rather than shown as an empty row.
   // Reactive on `$t` so a language change re-renders every row.
-  let shortcuts: [string, string][];
-  $: shortcuts = DRAWER_ROWS.map((row): [string, string] =>
-    Array.isArray(row)
-      ? [row[0], $t(SHORTCUT_LABEL_KEYS[row[1] as keyof typeof SHORTCUT_LABEL_KEYS])]
-      : [formatShortcut(row), $t(SHORTCUT_LABEL_KEYS[row as keyof typeof SHORTCUT_LABEL_KEYS])],
-  ).filter(([keys]) => keys !== "");
+  const shortcuts = $derived(
+    DRAWER_ROWS.map((row): [string, string] =>
+      Array.isArray(row)
+        ? [row[0], $t(SHORTCUT_LABEL_KEYS[row[1] as keyof typeof SHORTCUT_LABEL_KEYS])]
+        : [formatShortcut(row), $t(SHORTCUT_LABEL_KEYS[row as keyof typeof SHORTCUT_LABEL_KEYS])],
+    ).filter(([keys]) => keys !== ""),
+  );
 
   // Same `.glyph-*` classes the editor uses, so this follows the
   // colour/grayscale toggle for free.
-  let glyphs: [string, string, string, string][];
-  $: glyphs = [
+  const glyphs = $derived<[string, string, string, string][]>([
     ["# ", "☐", "glyph-open", $t("shortcuts.modal.glyph.open")],
     ["v ", "☑", "glyph-done", $t("shortcuts.modal.glyph.done")],
     ["> ", "☐", "glyph-progress", $t("shortcuts.modal.glyph.deferred")],
@@ -34,14 +34,14 @@
     [", ", "◌", "glyph-topic-skipped", $t("shortcuts.modal.glyph.notDiscussed")],
     ["- / * ", "•", "glyph-bullet", $t("shortcuts.modal.glyph.bullet")],
     ["=> ", "➔", "glyph-followup", $t("shortcuts.modal.glyph.followUp")],
-  ];
+  ]);
 
   // i18n roadmap: the consequence-action explanation embeds a live
   // formatted shortcut hint mid-sentence — a genuine parameter, not
   // static text.
-  $: consequenceActionHint = formatShortcut("setActionOpen").replace(/1$/, "1-4");
+  const consequenceActionHint = $derived(formatShortcut("setActionOpen").replace(/1$/, "1-4"));
 
-  let shortcutsTab: "shortcuts" | "glyphs" = "shortcuts";
+  let shortcutsTab = $state<"shortcuts" | "glyphs">("shortcuts");
 </script>
 
 <!-- #47: side-by-side columns instead of one long scrolling list, so the
@@ -64,7 +64,7 @@
         type="button"
         class="icon-btn modal-close-btn"
         aria-label={$t("common.closeDialog")}
-        on:click={controller.closeAllModals}
+        onclick={controller.closeAllModals}
       >
         <Icon name="close" size={14} />
       </button>
@@ -75,7 +75,7 @@
         type="button"
         class="shortcuts-tab-btn"
         class:active={shortcutsTab === "shortcuts"}
-        on:click={() => (shortcutsTab = "shortcuts")}
+        onclick={() => (shortcutsTab = "shortcuts")}
       >
         {$t("shortcuts.modal.tab.shortcuts")}
       </button>
@@ -83,7 +83,7 @@
         type="button"
         class="shortcuts-tab-btn"
         class:active={shortcutsTab === "glyphs"}
-        on:click={() => (shortcutsTab = "glyphs")}
+        onclick={() => (shortcutsTab = "glyphs")}
       >
         {$t("shortcuts.modal.tab.glyphs")}
       </button>
@@ -173,7 +173,7 @@
       </div>
     </div>
     <div class="modal-footer" style="justify-content: flex-end;">
-      <button class="icon-btn" on:click={controller.closeAllModals}>{$t("common.close")}</button>
+      <button class="icon-btn" onclick={controller.closeAllModals}>{$t("common.close")}</button>
     </div>
   </div>
 </div>

@@ -19,15 +19,15 @@
         type="button"
         class="icon-btn modal-close-btn"
         aria-label={$t("common.closeDialog")}
-        on:click={controller.cancelSafetyClose}
+        onclick={controller.cancelSafetyClose}
       >
         <Icon name="close" size={14} />
       </button>
     </div>
     <div style="padding: 16px; font-size: 13px; line-height: 1.5;">{$safetyMessage}</div>
     <div class="modal-footer" style="justify-content: flex-end; gap: 8px;">
-      <button class="icon-btn" bind:this={cancelBtn} on:click={controller.cancelSafetyClose}>{$t("common.cancel")}</button>
-      <button class="icon-btn btn-primary" on:click={controller.confirmSafetyClose}>{$t("safetyModal.closeAnyway")}</button>
+      <button class="icon-btn" bind:this={cancelBtn} onclick={controller.cancelSafetyClose}>{$t("common.cancel")}</button>
+      <button class="icon-btn btn-primary" onclick={controller.confirmSafetyClose}>{$t("safetyModal.closeAnyway")}</button>
     </div>
   </div>
 </div>

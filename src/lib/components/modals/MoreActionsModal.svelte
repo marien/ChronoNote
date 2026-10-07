@@ -28,13 +28,15 @@
    * menu, not a dialog. */
 
   let popEl: HTMLDivElement;
-  let anchorStyle = "visibility:hidden"; // until measured against the trigger
+  let anchorStyle = $state("visibility:hidden"); // until measured against the trigger
 
-  $: activeTab = $tabs.find((t) => t.id === $activeTabId);
-  $: calendarSyncVisible =
-    $calendarSyncEnabled && ($backendKind !== "web" || (!!$oneDriveAccount && !!$oneDriveFolder));
-  $: calendarSyncReady =
-    !!activeTab && !activeTab.isScratchpad && activeTab.filename.slice(0, 10) >= todayISO() && $agendaFileExists;
+  const activeTab = $derived($tabs.find((t) => t.id === $activeTabId));
+  const calendarSyncVisible = $derived(
+    $calendarSyncEnabled && ($backendKind !== "web" || (!!$oneDriveAccount && !!$oneDriveFolder)),
+  );
+  const calendarSyncReady = $derived(
+    !!activeTab && !activeTab.isScratchpad && activeTab.filename.slice(0, 10) >= todayISO() && $agendaFileExists,
+  );
 
   function positionUnderTrigger() {
     const trigger = document.querySelector<HTMLElement>("[data-more-trigger]");
@@ -67,18 +69,18 @@
   }
 </script>
 
-<svelte:window on:mousedown={onOutsideMousedown} on:resize={positionUnderTrigger} />
+<svelte:window onmousedown={onOutsideMousedown} onresize={positionUnderTrigger} />
 
 <div class="more-actions-pop" bind:this={popEl} role="menu" aria-label={$t("topBar.moreActions.title")} use:focusTrap style={anchorStyle}>
-  <button type="button" class="more-actions-item" role="menuitem" on:click={controller.openActionDrawer}>
+  <button type="button" class="more-actions-item" role="menuitem" onclick={controller.openActionDrawer}>
     <Icon name="actions" size={14} /><span>{$t("actionDrawer.modal.ariaLabel")}</span>
     <kbd>{formatShortcut("openActions")}</kbd>
   </button>
-  <button type="button" class="more-actions-item" role="menuitem" on:click={controller.openMeetingHistory}>
+  <button type="button" class="more-actions-item" role="menuitem" onclick={controller.openMeetingHistory}>
     <Icon name="section-history" size={14} /><span>{$t("history.modal.ariaLabel")}</span>
     <kbd>{formatShortcut("openHistory")}</kbd>
   </button>
-  <button type="button" class="more-actions-item" role="menuitem" on:click={controller.openCrossTabSearch}>
+  <button type="button" class="more-actions-item" role="menuitem" onclick={controller.openCrossTabSearch}>
     <Icon name="search" size={14} /><span>{$t("shortcuts.crossTabSearch.label")}</span>
     <kbd>{formatShortcut("crossTabSearch")}</kbd>
   </button>
@@ -93,19 +95,19 @@
         : !$agendaFileExists
           ? $t("topBar.calendarSync.titleNoAgendaFile")
           : $t("topBar.calendarSync.titleNotAvailable")}
-      on:click={controller.syncCalendarFromFile}
+      onclick={controller.syncCalendarFromFile}
     >
       <Icon name="calendar-import" size={14} /><span>{$t("shortcuts.syncCalendar.label")}{#if calendarSyncReady && $calendarSyncHasDiff}<span class="more-actions-pip" aria-hidden="true"></span>{/if}</span>
       <kbd>{formatShortcut("syncCalendar")}</kbd>
     </button>
   {/if}
   {#if activeTab?.isScratchpad}
-    <button type="button" class="more-actions-item" role="menuitem" on:click={promote}>
+    <button type="button" class="more-actions-item" role="menuitem" onclick={promote}>
       <Icon name="promote" size={14} /><span>{$t("moreActions.promote.label")}</span>
     </button>
   {/if}
   <div class="more-actions-sep" role="separator"></div>
-  <button type="button" class="more-actions-item" role="menuitem" on:click={controller.openSettings}>
+  <button type="button" class="more-actions-item" role="menuitem" onclick={controller.openSettings}>
     <Icon name="settings" size={14} /><span>{$t("settings.modal.title")}</span>
     <kbd>{formatShortcut("openSettings")}</kbd>
   </button>

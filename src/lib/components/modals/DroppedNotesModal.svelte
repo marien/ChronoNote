@@ -11,13 +11,13 @@
 
   // Dropped notes whose date already has a different note. The note being shown falls back to
   // the first one when the selected one has just been settled and dropped out of the list.
-  let selectedName = "";
-  $: current = $droppedConflicts.find((c) => c.name === selectedName) ?? $droppedConflicts[0];
-  $: diff = current ? diffLines(current.existing, current.dropped) : { left: [], right: [] };
-  $: changedCount = diff.left.filter((r) => r.changed).length + diff.right.filter((r) => r.changed).length;
+  let selectedName = $state("");
+  const current = $derived($droppedConflicts.find((c) => c.name === selectedName) ?? $droppedConflicts[0]);
+  const diff = $derived(current ? diffLines(current.existing, current.dropped) : { left: [], right: [] });
+  const changedCount = $derived(diff.left.filter((r) => r.changed).length + diff.right.filter((r) => r.changed).length);
 
-  let busy = false;
-  let viewMode: "both" | "mine" | "theirs" = "both";
+  let busy = $state(false);
+  let viewMode = $state<"both" | "mine" | "theirs">("both");
   async function choose(resolution: DroppedResolution) {
     if (!current || busy) return;
     busy = true;
@@ -43,7 +43,7 @@
         type="button"
         class="icon-btn modal-close-btn"
         aria-label={$t("common.closeDialog")}
-        on:click={controller.closeAllModals}
+        onclick={controller.closeAllModals}
       >
         <Icon name="close" size={14} />
       </button>
@@ -60,20 +60,20 @@
             <button
               class="icon-btn"
               class:active={c.name === current.name}
-              on:click={() => (selectedName = c.name)}>{label(c.name)}</button
+              onclick={() => (selectedName = c.name)}>{label(c.name)}</button
             >
           {/each}
         </div>
       {/if}
 
       <div class="conflict-view-tabs">
-        <button type="button" class="conflict-view-btn" class:active={viewMode === "both"} on:click={() => (viewMode = "both")}>
+        <button type="button" class="conflict-view-btn" class:active={viewMode === "both"} onclick={() => (viewMode = "both")}>
           {$t("droppedNotes.tab.sideBySide")}
         </button>
-        <button type="button" class="conflict-view-btn" class:active={viewMode === "mine"} on:click={() => (viewMode = "mine")}>
+        <button type="button" class="conflict-view-btn" class:active={viewMode === "mine"} onclick={() => (viewMode = "mine")}>
           {$t("droppedNotes.tab.yourNote")}
         </button>
-        <button type="button" class="conflict-view-btn" class:active={viewMode === "theirs"} on:click={() => (viewMode = "theirs")}>
+        <button type="button" class="conflict-view-btn" class:active={viewMode === "theirs"} onclick={() => (viewMode = "theirs")}>
           {$t("droppedNotes.tab.droppedFile")}
         </button>
       </div>
@@ -93,9 +93,9 @@
       {/if}
 
       <div class="conflict-actions">
-        <button class="icon-btn btn-primary" disabled={busy} on:click={() => choose("keep")}>{$t("droppedNotes.keepMyNote")}</button>
-        <button class="icon-btn" disabled={busy} on:click={() => choose("replace")}>{$t("droppedNotes.useDroppedFile")}</button>
-        <button class="icon-btn" disabled={busy} on:click={() => choose("both")}>{$t("droppedNotes.keepBoth")}</button>
+        <button class="icon-btn btn-primary" disabled={busy} onclick={() => choose("keep")}>{$t("droppedNotes.keepMyNote")}</button>
+        <button class="icon-btn" disabled={busy} onclick={() => choose("replace")}>{$t("droppedNotes.useDroppedFile")}</button>
+        <button class="icon-btn" disabled={busy} onclick={() => choose("both")}>{$t("droppedNotes.keepBoth")}</button>
       </div>
       <div class="settings-hint" style="padding: 0 12px 12px; margin: 0;">
         {$t("droppedNotes.keepBothHint", { keepBothLabel: $t("droppedNotes.keepBoth") })}
@@ -105,7 +105,7 @@
     {/if}
 
     <div class="modal-footer" style="padding: 8px 12px; display: flex; justify-content: flex-end;">
-      <button class="icon-btn" on:click={controller.closeAllModals}>{$t("common.close")}</button>
+      <button class="icon-btn" onclick={controller.closeAllModals}>{$t("common.close")}</button>
     </div>
   </div>
 </div>
