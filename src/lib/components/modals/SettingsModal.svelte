@@ -55,11 +55,11 @@
   // location/Startup/Calendar/Data are the "where things come from and go" settings;
   // Updates stands alone since it's neither. The same short labels on every
   // platform (they were shortened on mobile first so every tab fits).
-  $: settingsTabs = [
+  const settingsTabs = $derived([
     { value: "appearance", label: $t("settings.tabs.appearance") },
     { value: "calendar", label: $t("settings.tabs.notesAndSync") },
     ...($backendKind === "desktop" ? [{ value: "updates", label: $t("settings.tabs.updates") }] : []),
-  ];
+  ]);
   // Left/Right move between the tabs (and select them, as the tab pattern does).
   function onTabsKeydown(e: KeyboardEvent) {
     if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") return;
@@ -75,7 +75,7 @@
   // consumed once here so a later plain Settings open still starts on
   // the default first tab, same as any other freshly-opened modal.
   const openedOnNotesFolder = get(settingsInitialTab) !== null;
-  let activeSettingsTab: string = get(settingsInitialTab) ?? "appearance";
+  let activeSettingsTab: string = $state(get(settingsInitialTab) ?? "appearance");
   settingsInitialTab.set(null);
 
   // Filtered at open time (not reactively) — a directory switch closes
@@ -85,9 +85,9 @@
   // link — checked here rather than stored as a flag, so a folder that
   // reappears later (e.g. a drive remounted) isn't permanently lost from
   // the list.
-  let visibleRecentDirs: string[] = [];
-  let browseButtonEl: HTMLButtonElement;
-  let isSafariBrowser = false;
+  let visibleRecentDirs: string[] = $state([]);
+  let browseButtonEl = $state<HTMLButtonElement>();
+  let isSafariBrowser = $state(false);
   if (typeof window !== "undefined") {
     const ua = window.navigator.userAgent;
     const isIOS = /iPad|iPhone|iPod/.test(ua);
@@ -102,7 +102,7 @@
   if (typeof window !== "undefined") {
     prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
   }
-  $: isDarkResolved = $themeMode === "dark" || ($themeMode === "system" && prefersDark);
+  const isDarkResolved = $derived($themeMode === "dark" || ($themeMode === "system" && prefersDark));
 
   onMount(async () => {
     if ($backendKind === "web") {
@@ -133,12 +133,12 @@
   // #64: the Updates tab's own status block mirrors About's — shares the
   // same `updateStatus`/etc. stores (a click here updates the exact same
   // state About reads), so both places always agree.
-  $: progressLabel = (() => {
+  const progressLabel = $derived.by(() => {
     const p = $updateDownloadProgress;
     if (!p || !p.totalBytes) return "";
     const mb = (n: number) => (n / (1024 * 1024)).toFixed(1);
     return ` ${mb(p.doneBytes)} / ${mb(p.totalBytes)} MB`;
-  })();
+  });
 
   // --- Data: export / import (web-app design doc, Phase 1) --------------
   //
@@ -148,20 +148,20 @@
   // does the picking; Tauri's webview supports the File API exactly like
   // a real browser, so no OS dialog / native fs read is needed even on
   // desktop — see `docs/design/webapp-roadmap.md`.
-  let fileInput: HTMLInputElement;
-  let importPreview: { bundle: ExportBundle; noteCount: number } | null = null;
-  let importError: string | null = null;
-  let importMode: "merge" | "replace" = "merge";
-  let importing = false;
-  let exporting = false;
+  let fileInput = $state<HTMLInputElement>();
+  let importPreview: { bundle: ExportBundle; noteCount: number } | null = $state(null);
+  let importError: string | null = $state(null);
+  let importMode: "merge" | "replace" = $state("merge");
+  let importing = $state(false);
+  let exporting = $state(false);
 
-  let loggingIn = false;
+  let loggingIn = $state(false);
 
-  let showFolderPicker = false;
-  let showManualAuthInput = false;
-  let manualAuthCode = "";
-  let exchangingCode = false;
-  let authError: string | null = null;
+  let showFolderPicker = $state(false);
+  let showManualAuthInput = $state(false);
+  let manualAuthCode = $state("");
+  let exchangingCode = $state(false);
+  let authError: string | null = $state(null);
 
   // Advanced overrides for work/school Entra tenants that reject the
   // default multi-tenant client ID and/or the generic `/common` endpoint
@@ -169,11 +169,11 @@
   // needed for the identical reason. Blank means "use the built-in
   // defaults." Set these *before* connecting; changing them afterward
   // only takes effect on the next sign-in.
-  let showAdvanced = false;
-  let clientIdOverride = "";
-  let tenantIdOverride = "";
-  let savingAdvanced = false;
-  let advancedSaved = false;
+  let showAdvanced = $state(false);
+  let clientIdOverride = $state("");
+  let tenantIdOverride = $state("");
+  let savingAdvanced = $state(false);
+  let advancedSaved = $state(false);
 
   async function handleSaveAdvanced() {
     savingAdvanced = true;
@@ -248,7 +248,7 @@
     }
   }
 
-  let removeLocalOnSignOut = false;
+  let removeLocalOnSignOut = $state(false);
 
   function handleOneDriveSyncNow() {
     void controller.syncOneDriveNow({ notify: true });
@@ -259,10 +259,12 @@
   // open the folder picker instead of leaving the user to find it. Once per
   // Settings visit, so closing the picker without choosing isn't nagged.
   let autoOpenedFolderPicker = false;
-  $: if ($oneDriveAccount && !$oneDriveFolder && !$oneDriveFolderPickerOpen && !autoOpenedFolderPicker && $backendKind === "web") {
-    autoOpenedFolderPicker = true;
-    showFolderPicker = true;
-  }
+  $effect(() => {
+    if ($oneDriveAccount && !$oneDriveFolder && !$oneDriveFolderPickerOpen && !autoOpenedFolderPicker && $backendKind === "web") {
+      autoOpenedFolderPicker = true;
+      showFolderPicker = true;
+    }
+  });
 
   async function handleExport() {
     exporting = true;
@@ -276,7 +278,7 @@
   function pickImportFile() {
     importError = null;
     importPreview = null;
-    fileInput.click();
+    fileInput?.click();
   }
 
   async function onFileChosen(e: Event) {
@@ -314,7 +316,7 @@
   // two booleans underneath (full = both off, wrap = word_wrap only,
   // reading = both on, since "reading column" only ever applies with wrap
   // on too).
-  $: editorWidthMode = $readableLineLength ? "reading" : $wordWrap ? "wrap" : "full";
+  const editorWidthMode = $derived($readableLineLength ? "reading" : $wordWrap ? "wrap" : "full");
   async function setEditorWidth(mode: string) {
     if (mode === "reading") {
       await controller.setReadableLineLength(true);
@@ -339,12 +341,12 @@
         type="button"
         class="icon-btn modal-close-btn"
         aria-label={$t("common.closeDialog")}
-        on:click={controller.closeAllModals}
+        onclick={controller.closeAllModals}
       >
         <Icon name="close" size={14} />
       </button>
     </div>
-    <div class="settings-tabs" role="tablist" tabindex="-1" on:keydown={onTabsKeydown}>
+    <div class="settings-tabs" role="tablist" tabindex="-1" onkeydown={onTabsKeydown}>
       {#each settingsTabs as tab (tab.value)}
         <button
           type="button"
@@ -352,7 +354,7 @@
           class="settings-tab"
           aria-selected={tab.value === activeSettingsTab}
           tabindex={tab.value === activeSettingsTab ? 0 : -1}
-          on:click={() => (activeSettingsTab = tab.value)}
+          onclick={() => (activeSettingsTab = tab.value)}
         >
           {tab.label}
         </button>
@@ -379,7 +381,7 @@
               checked={$pureBlack}
               onChange={(v) => controller.setPureBlack(v)}
             >
-              <svelte:fragment slot="description">{$t("settings.appearance.pureBlack.hint")}</svelte:fragment>
+              {#snippet description()}{$t("settings.appearance.pureBlack.hint")}{/snippet}
             </SettingToggle>
           {/if}
           <SettingRow label={$t("settings.appearance.language.label")} stack>
@@ -400,7 +402,7 @@
             />
           </SettingRow>
           <SettingRow label={$t("settings.appearance.glyphs.label")}>
-            <svelte:fragment slot="description">{$t("settings.appearance.glyphs.legacyHint")}</svelte:fragment>
+            {#snippet description()}{$t("settings.appearance.glyphs.legacyHint")}{/snippet}
             <Segmented
               options={[
                 { value: "color", label: $t("settings.appearance.glyphs.color") },
@@ -415,7 +417,7 @@
         <section class="s-group">
           <div class="settings-section-label">{$t("settings.editor.sectionLabel")}</div>
           <SettingRow label={$t("settings.editor.width.label")} stack>
-            <svelte:fragment slot="description">{$t("settings.editor.width.hint")}</svelte:fragment>
+            {#snippet description()}{$t("settings.editor.width.hint")}{/snippet}
             <Segmented
               options={[
                 { value: "full", label: $t("settings.editor.width.full") },
@@ -436,7 +438,7 @@
                 step="0.5"
                 value={$fontSize}
                 aria-label={$t("settings.editor.fontSize.ariaLabel")}
-                on:input={(e) => controller.setFontSize(parseFloat(e.currentTarget.value))}
+                oninput={(e) => controller.setFontSize(parseFloat(e.currentTarget.value))}
               />
               <span class="settings-slider-val">{$fontSize}px</span>
             </div>
@@ -451,7 +453,7 @@
                 step="0.05"
                 value={$lineHeight}
                 aria-label={$t("settings.editor.lineSpacing.ariaLabel")}
-                on:input={(e) => controller.setLineHeight(parseFloat(e.currentTarget.value))}
+                oninput={(e) => controller.setLineHeight(parseFloat(e.currentTarget.value))}
               />
               <span class="settings-slider-val">{$lineHeight.toFixed(2)}</span>
             </div>
@@ -464,7 +466,7 @@
             checked={$occurrenceHint}
             onChange={(v) => void setOccurrenceHint(v)}
           >
-            <svelte:fragment slot="description">{$t("occurrence.settings.hint.hint")}</svelte:fragment>
+            {#snippet description()}{$t("occurrence.settings.hint.hint")}{/snippet}
           </SettingToggle>
         </section>
         {#if $backendKind === "desktop"}
@@ -486,7 +488,7 @@
                   step="5"
                   value={$peekSettings.opacity}
                   aria-label={$t("peek.settings.opacity.label")}
-                  on:input={(e) => peekSettings.update((s) => ({ ...s, opacity: parseInt(e.currentTarget.value, 10) }))}
+                  oninput={(e) => peekSettings.update((s) => ({ ...s, opacity: parseInt(e.currentTarget.value, 10) }))}
                 />
                 <span class="settings-slider-val">{$peekSettings.opacity}%</span>
               </div>
@@ -501,7 +503,7 @@
                   step="5"
                   value={$peekSettings.opacityHover}
                   aria-label={$t("peek.settings.opacityHover.label")}
-                  on:input={(e) => peekSettings.update((s) => ({ ...s, opacityHover: parseInt(e.currentTarget.value, 10) }))}
+                  oninput={(e) => peekSettings.update((s) => ({ ...s, opacityHover: parseInt(e.currentTarget.value, 10) }))}
                 />
                 <span class="settings-slider-val">{$peekSettings.opacityHover}%</span>
               </div>
@@ -516,7 +518,7 @@
                   step="1"
                   value={$peekSettings.fadeSeconds}
                   aria-label={$t("peek.settings.fadeSeconds.label")}
-                  on:input={(e) => peekSettings.update((s) => ({ ...s, fadeSeconds: parseInt(e.currentTarget.value, 10) }))}
+                  oninput={(e) => peekSettings.update((s) => ({ ...s, fadeSeconds: parseInt(e.currentTarget.value, 10) }))}
                 />
                 <span class="settings-slider-val">{$peekSettings.fadeSeconds === 0 ? $t("peek.settings.fadeSeconds.never") : $peekSettings.fadeSeconds + " s"}</span>
               </div>
@@ -543,7 +545,7 @@
                 class="find-input s-input"
                 value={$peekSettings.callShortcut}
                 aria-label={$t("peek.settings.callShortcut.label")}
-                on:change={(e) => peekSettings.update((s) => ({ ...s, callShortcut: e.currentTarget.value.trim() }))}
+                onchange={(e) => peekSettings.update((s) => ({ ...s, callShortcut: e.currentTarget.value.trim() }))}
               />
             </SettingRow>
           </section>
@@ -565,7 +567,7 @@
                 <div class="s-note warn signin-expired" role="alert">
                   <strong>{$t("settings.oneDrive.signInExpired.title")}</strong> {$t("settings.oneDrive.signInExpired.body")}
                   <div class="s-actions">
-                    <button class="settings-btn primary" on:click={handleOneDriveLogin} disabled={loggingIn || $oneDriveConnecting}>
+                    <button class="settings-btn primary" onclick={handleOneDriveLogin} disabled={loggingIn || $oneDriveConnecting}>
                       <Icon name="cloud" size={14} />
                       <span>{loggingIn || $oneDriveConnecting ? $t("settings.oneDrive.connecting") : $t("statusBar.oneDrive.signInAgain")}</span>
                     </button>
@@ -574,15 +576,15 @@
               {/if}
               <SettingRow label={$oneDriveFolder ? $oneDriveFolder.folderPath : $t("settings.oneDrive.noFolderSelected")}>
                 {#if $oneDriveFolder}
-                  <button class="settings-btn" on:click={() => (showFolderPicker = true)}>{$t("common.browse")}</button>
+                  <button class="settings-btn" onclick={() => (showFolderPicker = true)}>{$t("common.browse")}</button>
                 {:else}
-                  <button class="settings-btn primary" on:click={() => (showFolderPicker = true)}>{$t("settings.oneDrive.chooseFolder")}</button>
+                  <button class="settings-btn primary" onclick={() => (showFolderPicker = true)}>{$t("settings.oneDrive.chooseFolder")}</button>
                 {/if}
               </SettingRow>
               <div class="s-actions">
                 <button
                   class="settings-btn"
-                  on:click={handleOneDriveSyncNow}
+                  onclick={handleOneDriveSyncNow}
                   disabled={$oneDriveSyncing || !$oneDriveFolder}
                   title={$oneDriveFolder ? "" : $t("settings.oneDrive.chooseFolderFirstTitle")}
                 >
@@ -592,14 +594,14 @@
                     {$t("settings.oneDrive.syncNow")}
                   {/if}
                 </button>
-                <button class="settings-btn" on:click={handleOneDriveLogout} disabled={$oneDriveSyncing}>{$t("settings.oneDrive.signOut")}</button>
+                <button class="settings-btn" onclick={handleOneDriveLogout} disabled={$oneDriveSyncing}>{$t("settings.oneDrive.signOut")}</button>
               </div>
               <SettingToggle
                 label={$t("settings.oneDrive.removeLocalOnSignOut")}
                 checked={removeLocalOnSignOut}
                 onChange={(v) => (removeLocalOnSignOut = v)}
               >
-                <svelte:fragment slot="description">{$t("settings.oneDrive.signOutHint")}</svelte:fragment>
+                {#snippet description()}{$t("settings.oneDrive.signOutHint")}{/snippet}
               </SettingToggle>
               {#if !$oneDriveFolder}
                 <div class="s-note">{$t("settings.oneDrive.noFolderYetHint")}</div>
@@ -609,7 +611,7 @@
                 {$t("settings.oneDrive.connectHint")}{$t("settings.oneDrive.connectHintWebSuffix")}
               </div>
               <div class="s-actions">
-                <button class="settings-btn primary" on:click={handleOneDriveLogin} disabled={loggingIn || $oneDriveConnecting}>
+                <button class="settings-btn primary" onclick={handleOneDriveLogin} disabled={loggingIn || $oneDriveConnecting}>
                   <Icon name="cloud" size={14} />
                   <span>{loggingIn || $oneDriveConnecting ? $t("settings.oneDrive.connecting") : $t("settings.oneDrive.connectMicrosoftAccount")}</span>
                 </button>
@@ -618,7 +620,13 @@
                 <div class="s-note">{$t("settings.oneDrive.waitingForBrowser")}</div>
               {/if}
               {#if showManualAuthInput}
-                <form class="s-fields" on:submit|preventDefault={handleManualAuthSubmit}>
+                <form
+                  class="s-fields"
+                  onsubmit={(e) => {
+                    e.preventDefault();
+                    handleManualAuthSubmit();
+                  }}
+                >
                   <div class="s-note">{$t("settings.oneDrive.pasteCodeHint")}</div>
                   <input type="text" class="find-input s-input" placeholder={$t("settings.oneDrive.codeInputPlaceholder")} bind:value={manualAuthCode} />
                   {#if authError}
@@ -628,17 +636,17 @@
                     <button type="submit" class="settings-btn primary" disabled={exchangingCode || !manualAuthCode.trim()}>
                       {exchangingCode ? $t("settings.oneDrive.exchangingCode") : $t("settings.oneDrive.submitCode")}
                     </button>
-                    <button type="button" class="settings-btn" on:click={() => (showManualAuthInput = false)}>
+                    <button type="button" class="settings-btn" onclick={() => (showManualAuthInput = false)}>
                       {$t("common.cancel")}
                     </button>
                   </div>
                 </form>
               {:else}
-                <button type="button" class="s-linkbtn" on:click={() => (showManualAuthInput = true)}>
+                <button type="button" class="s-linkbtn" onclick={() => (showManualAuthInput = true)}>
                   {$t("settings.oneDrive.enterCodeManually")}
                 </button>
               {/if}
-              <button type="button" class="s-linkbtn" on:click={() => (showAdvanced = !showAdvanced)}>
+              <button type="button" class="s-linkbtn" onclick={() => (showAdvanced = !showAdvanced)}>
                 {showAdvanced ? $t("settings.oneDrive.hideAdvanced") : $t("settings.oneDrive.showAdvanced")}
               </button>
               {#if showAdvanced}
@@ -661,7 +669,7 @@
                     bind:value={tenantIdOverride}
                   />
                   <div class="s-actions">
-                    <button class="settings-btn" on:click={handleSaveAdvanced} disabled={savingAdvanced}>
+                    <button class="settings-btn" onclick={handleSaveAdvanced} disabled={savingAdvanced}>
                       {savingAdvanced ? $t("settings.oneDrive.saving") : $t("settings.oneDrive.save")}
                     </button>
                     {#if advancedSaved}
@@ -676,15 +684,15 @@
           <section class="s-group">
             <div class="settings-section-label">{$t("settings.notesLocation.sectionLabel")}</div>
             <SettingRow label={$notesDir}>
-              <svelte:fragment slot="description">{$t("settings.notesLocation.hint")}</svelte:fragment>
-              <button class="settings-btn" bind:this={browseButtonEl} on:click={controller.pickAndSwitchNotesDirectory}>
+              {#snippet description()}{$t("settings.notesLocation.hint")}{/snippet}
+              <button class="settings-btn" bind:this={browseButtonEl} onclick={controller.pickAndSwitchNotesDirectory}>
                 {$t("common.browse")}
               </button>
             </SettingRow>
             {#if visibleRecentDirs.length > 0}
               <div class="settings-recent-dirs">
                 {#each visibleRecentDirs as dir (dir)}
-                  <button class="settings-recent-dir" on:click={() => controller.switchToRecentDirectory(dir)}>
+                  <button class="settings-recent-dir" onclick={() => controller.switchToRecentDirectory(dir)}>
                     {dir}
                   </button>
                 {/each}
@@ -696,9 +704,9 @@
         <section class="s-group">
           <div class="settings-section-label">{$t("settings.startup.sectionLabel")}</div>
           <SettingRow label={$t("settings.startup.label")}>
-            <svelte:fragment slot="description">
+            {#snippet description()}
               {$startupTabMode === "smart_last_active" ? $t("settings.startup.smartHint") : $t("settings.startup.todayHint")}
-            </svelte:fragment>
+            {/snippet}
             <Segmented
               options={[
                 { value: "today", label: $t("settings.startup.today") },
@@ -718,9 +726,9 @@
               checked={$calendarSyncEnabled}
               onChange={(v) => controller.setCalendarSyncEnabled(v)}
             >
-              <svelte:fragment slot="description">
+              {#snippet description()}
                 {$t("settings.calendar.agendaHint.before")}<code>.agenda.json</code>{$t("settings.calendar.agendaHint.after")}
-              </svelte:fragment>
+              {/snippet}
             </SettingToggle>
             {#if $calendarSyncEnabled && !$agendaFileExists}
               <div class="s-note error">
@@ -738,17 +746,17 @@
               type="file"
               accept="application/json,.json"
               class="s-hidden-input"
-              on:change={onFileChosen}
+              onchange={onFileChosen}
             />
             <SettingRow stack>
-              <svelte:fragment slot="description">
+              {#snippet description()}
                 {$backendKind === "web" ? $t("settings.data.webHint") : $t("settings.data.desktopHint")}
-              </svelte:fragment>
+              {/snippet}
               <div class="s-actions inline">
-                <button class="settings-btn" disabled={exporting} on:click={handleExport}>
+                <button class="settings-btn" disabled={exporting} onclick={handleExport}>
                   {exporting ? $t("settings.data.exporting") : $t("settings.data.export")}
                 </button>
-                <button class="settings-btn" disabled={importing} on:click={pickImportFile}>
+                <button class="settings-btn" disabled={importing} onclick={pickImportFile}>
                   {$t("settings.data.import")}
                 </button>
               </div>
@@ -771,10 +779,10 @@
                   <div class="s-note error">{$t("settings.data.replaceWarning")}</div>
                 {/if}
                 <div class="s-actions">
-                  <button class="settings-btn primary" disabled={importing} on:click={confirmImport}>
+                  <button class="settings-btn primary" disabled={importing} onclick={confirmImport}>
                     {importing ? $t("settings.data.importing") : $t("settings.data.importAction")}
                   </button>
-                  <button class="settings-btn" disabled={importing} on:click={cancelImport}>{$t("common.cancel")}</button>
+                  <button class="settings-btn" disabled={importing} onclick={cancelImport}>{$t("common.cancel")}</button>
                 </div>
               </div>
             {/if}
@@ -787,7 +795,7 @@
             checked={$autoCheckUpdates}
             onChange={(v) => controller.setAutoCheckUpdates(v)}
           >
-            <svelte:fragment slot="description">{$t("settings.updates.checkOnStartHint")}</svelte:fragment>
+            {#snippet description()}{$t("settings.updates.checkOnStartHint")}{/snippet}
           </SettingToggle>
           <div class="s-status">
             {#if $updateStatus === "checking"}
@@ -795,8 +803,8 @@
             {:else if $updateStatus === "available"}
               <div class="s-note"><strong class="s-strong">v{$updateAvailableVersion}</strong> {$t("about.isAvailable")}</div>
               <div class="s-actions">
-                <button class="settings-btn" on:click={controller.openReleasesPage}>{$t("about.whatsChanged")}</button>
-                <button class="settings-btn primary" on:click={() => controller.downloadAndInstallUpdate()}>
+                <button class="settings-btn" onclick={controller.openReleasesPage}>{$t("about.whatsChanged")}</button>
+                <button class="settings-btn primary" onclick={() => controller.downloadAndInstallUpdate()}>
                   <Icon name="update" size={14} /> {$t("about.downloadAndInstall")}
                 </button>
               </div>
@@ -807,7 +815,7 @@
             {:else if $updateStatus === "ready"}
               <div class="s-note">{$t("about.ready.installed")}</div>
               <div class="s-actions">
-                <button class="settings-btn primary" on:click={() => controller.restartToFinishUpdate()}>
+                <button class="settings-btn primary" onclick={() => controller.restartToFinishUpdate()}>
                   {$t("about.ready.restartNow")}
                 </button>
               </div>
@@ -815,19 +823,19 @@
               {#if $updateErrorDuring === "install"}
                 <div class="s-note error">{$t("about.error.installFailedPrefix")} {$updateErrorMessage ?? ""}</div>
                 <div class="s-actions">
-                  <button class="settings-btn" on:click={() => controller.downloadAndInstallUpdate()}>{$t("about.error.tryAgain")}</button>
-                  <button class="settings-btn primary" on:click={controller.openReleasesPage}>{$t("about.error.downloadFromGithub")}</button>
+                  <button class="settings-btn" onclick={() => controller.downloadAndInstallUpdate()}>{$t("about.error.tryAgain")}</button>
+                  <button class="settings-btn primary" onclick={controller.openReleasesPage}>{$t("about.error.downloadFromGithub")}</button>
                 </div>
               {:else}
                 <div class="s-note error">{$t("about.error.couldntCheckPrefix")} {$updateErrorMessage ?? ""}</div>
                 <div class="s-actions">
-                  <button class="settings-btn" on:click={() => controller.checkForUpdates()}>{$t("about.error.tryAgain")}</button>
+                  <button class="settings-btn" onclick={() => controller.checkForUpdates()}>{$t("about.error.tryAgain")}</button>
                 </div>
               {/if}
             {:else}
               <div class="s-note">{$updateStatus === "upToDate" ? $t("about.upToDate.running") : $t("about.chip.notCheckedYet")}</div>
               <div class="s-actions">
-                <button class="settings-btn" on:click={() => controller.checkForUpdates()}>{$t("about.checkNow")}</button>
+                <button class="settings-btn" onclick={() => controller.checkForUpdates()}>{$t("about.checkNow")}</button>
               </div>
             {/if}
           </div>
@@ -835,7 +843,7 @@
       {/if}
     </div>
     <div class="modal-footer s-footer">
-      <button class="settings-btn" on:click={controller.closeAllModals}>{$t("common.close")}</button>
+      <button class="settings-btn" onclick={controller.closeAllModals}>{$t("common.close")}</button>
     </div>
   </div>
 </div>
