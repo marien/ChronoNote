@@ -208,12 +208,13 @@ describe("token behaviour snapshot (refactor R1)", () => {
     const lines = scenarioLines();
     expect(lines.length).toBeGreaterThan(200);
     expect(lines.map(record)).toMatchSnapshot();
-  });
+    // One EditorView per line: about 8 s on a busy machine, past Vitest's 5 s default.
+  }, 60_000);
 
   it("edge cases", () => {
     expect(EDGE_CASES.length).toBeGreaterThanOrEqual(40);
     expect(EDGE_CASES.map(record)).toMatchSnapshot();
-  });
+  }, 60_000);
 
   it("the snapshot is meaningful", () => {
     expect(parseGlyphLine("# a").some((p) => p.cls === "glyph-open")).toBe(true);

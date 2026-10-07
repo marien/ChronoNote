@@ -20,3 +20,6 @@ website/demo-app/**/*.html text eol=lf
 website/demo-app/*.html text eol=lf
 webapp-src/*.html text eol=lf
 demo-src/*.html text eol=lf
+
+# Vitest writes snapshot files with LF; pin them so a test run never shows them as modified.
+**/__snapshots__/*.snap text eol=lf
