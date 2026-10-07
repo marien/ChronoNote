@@ -723,6 +723,7 @@ export const it = {
   "toast.boot.failedToSave.lineHeight": () => "Impossibile salvare la preferenza dell'interlinea",
   "toast.boot.failedToSave.pureBlack": () => "Impossibile salvare la preferenza per il nero assoluto",
   "toast.boot.failedToSave.startup": () => "Impossibile salvare la preferenza della scheda di avvio",
+  "toast.boot.couldntOpenNotes": ({ filenames }) => `Impossibile aprire queste note, quindi restano chiuse: ${filenames}`,
   "toast.calendarSync.noMeetingsOn": ({ date }) => `Nessuna riunione il ${date}.`,
   "toast.calendarSync.synced": () => "Calendario sincronizzato.",
   "toast.copyForward.destHere": () => "qui",

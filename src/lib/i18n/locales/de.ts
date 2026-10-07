@@ -716,6 +716,7 @@ export const de = {
   "toast.boot.failedToSave.lineHeight": () => "Speichern der Zeilenabstandseinstellung fehlgeschlagen",
   "toast.boot.failedToSave.pureBlack": () => "Speichern der Reinschwarz-Einstellung fehlgeschlagen",
   "toast.boot.failedToSave.startup": () => "Speichern der Start-Tab-Einstellung fehlgeschlagen",
+  "toast.boot.couldntOpenNotes": ({ filenames }) => `Diese Notizen konnten nicht geöffnet werden und bleiben geschlossen: ${filenames}`,
   "toast.calendarSync.noMeetingsOn": ({ date }) => `Keine Termine am ${date}.`,
   "toast.calendarSync.synced": () => "Kalender synchronisiert.",
   "toast.copyForward.destHere": () => "hierher",

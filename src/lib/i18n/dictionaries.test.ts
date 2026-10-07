@@ -51,6 +51,7 @@ const SAMPLE_PARAMS: Partial<Record<TranslationKey, unknown>> = {
   "about.checkedMinutesAgo": { minutes: 3 },
   "about.checkedHoursAgo": { hours: 2 },
   "conflictModal.title": { filename: "2026-09-26.txt" },
+  "toast.boot.couldntOpenNotes": { filenames: "2026-09-02.txt" },
   "droppedNotes.keepBothHint": { keepBothLabel: "Keep both" },
   "migrateNotes.noteCount": { count: 5 },
   "findBar.countOf": { current: "2", total: 8 },

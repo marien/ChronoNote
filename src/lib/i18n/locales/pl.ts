@@ -730,6 +730,7 @@ export const pl = {
   "toast.boot.failedToSave.pureBlack": () => "Nie udało się zapisać preferencji czystej czerni",
   "toast.boot.failedToSave.startup": () =>
     "Nie udało się zapisać preferencji karty startowej",
+  "toast.boot.couldntOpenNotes": ({ filenames }) => `Nie udało się otworzyć tych notatek, więc pozostają zamknięte: ${filenames}`,
   "toast.calendarSync.noMeetingsOn": ({ date }) => `Brak spotkań w dniu ${date}.`,
   "toast.calendarSync.synced": () => "Kalendarz zsynchronizowany.",
   "toast.copyForward.destHere": () => "tutaj",

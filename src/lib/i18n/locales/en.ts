@@ -703,6 +703,7 @@ export const en = {
   "toast.boot.failedToSave.lineHeight": () => "Failed to save line height preference",
   "toast.boot.failedToSave.pureBlack": () => "Failed to save pure black preference",
   "toast.boot.failedToSave.startup": () => "Failed to save startup tab preference",
+  "toast.boot.couldntOpenNotes": ({ filenames }) => `Couldn't open these notes, so they stay closed: ${filenames}`,
   "toast.calendarSync.noMeetingsOn": ({ date }) => `No meetings on ${date}.`,
   "toast.calendarSync.synced": () => "Calendar synced.",
   "toast.copyForward.destHere": () => "here",
