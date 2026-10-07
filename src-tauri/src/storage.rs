@@ -604,7 +604,9 @@ fn read_note_at(root: &Path, filename: &str) -> Result<Option<String>, String> {
     if !path.exists() {
         return Ok(None);
     }
-    fs::read_to_string(path).map(Some).map_err(|e| e.to_string())
+    fs::read_to_string(path)
+        .map(|s| Some(normalize_note_text(&s).into_owned()))
+        .map_err(|e| e.to_string())
 }
 
 // --- External-modification detection (§2 / §94) -------------------------
@@ -651,6 +653,27 @@ fn hash_bytes(bytes: &[u8]) -> String {
     hasher.finalize().iter().map(|b| format!("{b:02x}")).collect()
 }
 
+/// Notes are handled as LF text without a byte-order mark. Files from other editors can have CRLF
+/// line endings or a BOM, which the frontend's line rules don't expect. Reads normalize, writes
+/// store the normalized text, and the content hash is taken over it, so a CRLF file nobody edited
+/// still matches the tab showing it.
+pub(crate) fn normalize_note_text(s: &str) -> std::borrow::Cow<'_, str> {
+    let s = s.strip_prefix('\u{feff}').unwrap_or(s);
+    if s.contains('\r') {
+        std::borrow::Cow::Owned(s.replace("\r\n", "\n").replace('\r', "\n"))
+    } else {
+        std::borrow::Cow::Borrowed(s)
+    }
+}
+
+/// Hash of a note file's bytes as the app sees them (normalized). Non-UTF-8 bytes are hashed as-is.
+fn note_hash(bytes: &[u8]) -> String {
+    match std::str::from_utf8(bytes) {
+        Ok(text) => hash_bytes(normalize_note_text(text).as_bytes()),
+        Err(_) => hash_bytes(bytes),
+    }
+}
+
 fn file_metadata_at(root: &Path, filename: &str) -> Result<FileMetadata, String> {
     if !is_valid_note_filename(filename) {
         return Err(format!("Invalid note filename: {filename}"));
@@ -680,7 +703,7 @@ fn metadata_from_bytes(path: &Path, bytes: &[u8]) -> FileMetadata {
         .map(|d| d.as_millis() as i64);
     FileMetadata {
         exists: true,
-        content_hash: Some(hash_bytes(bytes)),
+        content_hash: Some(note_hash(bytes)),
         size_bytes: Some(bytes.len() as u64),
         modified_ms,
     }
@@ -703,7 +726,7 @@ fn read_note_with_metadata_at(root: &Path, filename: &str) -> Result<NoteWithMet
     };
     let metadata = metadata_from_bytes(&path, &bytes);
     let content = String::from_utf8(bytes).map_err(|e| e.to_string())?;
-    Ok(NoteWithMetadata { content: Some(content), metadata })
+    Ok(NoteWithMetadata { content: Some(normalize_note_text(&content).into_owned()), metadata })
 }
 
 /// Validates a conflict-copy filename from the frontend: a plain basename
@@ -737,6 +760,7 @@ fn write_note_at(
     if !is_valid_note_filename(filename) {
         return Err(format!("Invalid note filename: {filename}"));
     }
+    let content = normalize_note_text(content);
     fs::create_dir_all(root).map_err(|e| e.to_string())?;
 
     // §94: compare-and-swap. When the caller passes the hash it last saw,
@@ -788,7 +812,7 @@ fn read_all_notes_at(root: &Path) -> Result<Vec<(String, String)>, String> {
     let mut out = vec![];
     for f in files {
         let content = fs::read_to_string(root.join(&f)).unwrap_or_default();
-        out.push((f, content));
+        out.push((f, normalize_note_text(&content).into_owned()));
     }
     Ok(out)
 }
@@ -1904,6 +1928,34 @@ mod tests {
         let r = read_note_with_metadata_at(dir.path(), "2026-09-07.txt").unwrap();
         assert_eq!(r.content, Some("abc".to_string()));
         assert_eq!(r.metadata.content_hash, Some(hash_bytes(b"abc")));
+    }
+
+    #[test]
+    fn normalize_note_text_strips_bom_and_converts_line_endings() {
+        assert_eq!(normalize_note_text("\u{feff}a\r\nb\rc"), "a\nb\nc");
+        assert!(matches!(normalize_note_text("a\nb"), std::borrow::Cow::Borrowed("a\nb")));
+    }
+
+    #[test]
+    fn crlf_file_reads_as_lf_and_hashes_as_lf() {
+        let dir = tempdir().unwrap();
+        fs::write(dir.path().join("2026-09-07.txt"), "# task\r\nmore\r\n").unwrap();
+        assert_eq!(read_note_at(dir.path(), "2026-09-07.txt").unwrap(), Some("# task\nmore\n".to_string()));
+        assert_eq!(
+            file_metadata_at(dir.path(), "2026-09-07.txt").unwrap().content_hash,
+            Some(hash_bytes(b"# task\nmore\n")),
+        );
+        let r = read_note_with_metadata_at(dir.path(), "2026-09-07.txt").unwrap();
+        assert_eq!(r.content, Some("# task\nmore\n".to_string()));
+        assert_eq!(r.metadata.content_hash, Some(hash_bytes(b"# task\nmore\n")));
+    }
+
+    #[test]
+    fn write_note_at_stores_lf_text() {
+        let dir = tempdir().unwrap();
+        let m = write_note_at(dir.path(), "2026-09-07.txt", "a\r\nb", None).unwrap();
+        assert_eq!(fs::read(dir.path().join("2026-09-07.txt")).unwrap(), b"a\nb");
+        assert_eq!(m.content_hash, Some(hash_bytes(b"a\nb")));
     }
 
     #[test]

@@ -34,6 +34,7 @@ import type { AppConfig, AppError, ColorMode, FileMetadata, LanguageMode, PeekCo
 import { PEEK_DEFAULTS, clampPeek } from "../peekDefaults";
 import type { CommandArgs, CommandReturn, TauriCommand, TauriCommands } from "../tauriCommands";
 import { isValidNoteFilename } from "../noteFilename";
+import { normalizeNoteText } from "../noteText";
 import { IDB_META_KEYS, IDB_STORES, idbClear, idbDelete, idbGet, idbGetAllEntries, idbGetAllKeys, idbPut, openDb } from "./idb";
 import { WebOneDriveSyncEngine, type SyncCache } from "./webOneDriveSync";
 import { merge3 } from "./lineMerge";
@@ -443,7 +444,8 @@ export class WebBackend {
           throw new Error(`conflict: note changed on disk: ${filename}`);
         }
       }
-      const note: StoredNote = { content, contentHash: await sha256Hex(content), modifiedMs: Date.now() };
+      const text = normalizeNoteText(content);
+      const note: StoredNote = { content: text, contentHash: await sha256Hex(text), modifiedMs: Date.now() };
       await idbPut(db, store, filename, note);
       return metadataOf(note);
     },
@@ -532,8 +534,8 @@ export class WebBackend {
           continue;
         }
         await idbPut(db, store, filename, {
-          content,
-          contentHash: await sha256Hex(content),
+          content: normalizeNoteText(content),
+          contentHash: await sha256Hex(normalizeNoteText(content)),
           modifiedMs: Date.now(),
         });
         imported++;
