@@ -79,7 +79,10 @@ test.describe("status bar — three zones (§100/§110)", () => {
     await seedApp(page, { seed: { notes: {}, appVersion: "9.9.9", updateCheck: "none" } });
 
     const order = await page.locator(".status-right").evaluate((el) =>
-      [...el.querySelectorAll("#stat-version, .status-about-btn, .status-help")].map((n) => n.id || n.className),
+      // The component's own class, not the full className: scoped styles add Svelte's hash class.
+      [...el.querySelectorAll("#stat-version, .status-about-btn, .status-help")].map(
+        (n) => n.id || [...n.classList].find((c) => c === "status-help" || c === "status-about-btn"),
+      ),
     );
     expect(order).toEqual(["stat-version", "status-help", "status-about-btn"]);
 
