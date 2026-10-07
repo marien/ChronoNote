@@ -21,6 +21,7 @@ import {
   safetyMessage,
   showToast,
   tabs,
+  getTabCleanHash,
 } from "./stores";
 import {
   cancelScheduledSave,
@@ -182,9 +183,13 @@ export function closeTab(tabId: string) {
   // again) isn't useful. `cancelScheduledSave` drops any pending
   // debounced autosave first, so it can't resurrect the file moments
   // after this deletes it.
-  if (closingTab && !closingTab.isScratchpad && closingTab.content.trim() === "") {
+  const closesEmpty = !!closingTab && !closingTab.isScratchpad && closingTab.content.trim() === "";
+  if (closesEmpty) {
     cancelScheduledSave(tabId);
-    deleteNoteAndInvalidateCache(closingTab.filename);
+    // Read the baseline now, before anything below clears the tab's state. Without one we
+    // don't know what is on disk, so the file is left alone.
+    const baseline = getTabCleanHash(tabId);
+    if (baseline) void deleteNoteAndInvalidateCache(closingTab!.filename, baseline);
   } else {
     flushSave(tabId);
   }
@@ -196,7 +201,8 @@ export function closeTab(tabId: string) {
   // matching what `flushSave` just wrote, since the live-tab overlay that
   // was standing in for it disappears the moment it's actually closed —
   // see `noteClosingWithContent`'s own comment for the full story.
-  if (!list[idx].isScratchpad) noteClosingWithContent(list[idx].filename, list[idx].content);
+  // (the delete callback owns the cache for an empty close)
+  if (!list[idx].isScratchpad && !closesEmpty) noteClosingWithContent(list[idx].filename, list[idx].content);
 
   clearEditorViewState(tabId);
   clearTabCleanHash(tabId); // §94: drop the drift baseline for a gone tab

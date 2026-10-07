@@ -468,15 +468,17 @@ describe("tab lifecycle", () => {
 
   it("#63: closing a dated tab with empty content deletes its file instead of saving it", () => {
     controller.tabs.set([tab({ id: "a", filename: "2026-09-11.txt", content: "" })]);
+    controller.markTabClean("a", "h-a");
     controller.closeTab("a");
-    expect(apiMock.deleteNote).toHaveBeenCalledWith("2026-09-11.txt");
+    expect(apiMock.deleteNote).toHaveBeenCalledWith("2026-09-11.txt", "h-a");
     expect(apiMock.writeNote).not.toHaveBeenCalled();
   });
 
   it("#63: also deletes when the content is whitespace-only, not just the literal empty string", () => {
     controller.tabs.set([tab({ id: "a", filename: "2026-09-11.txt", content: "   \n  " })]);
+    controller.markTabClean("a", "h-a");
     controller.closeTab("a");
-    expect(apiMock.deleteNote).toHaveBeenCalledWith("2026-09-11.txt");
+    expect(apiMock.deleteNote).toHaveBeenCalledWith("2026-09-11.txt", "h-a");
   });
 
   it("#63: also deletes a note that previously had real content, now fully cleared (Marien's confirmed scope)", () => {
@@ -484,20 +486,28 @@ describe("tab lifecycle", () => {
     // No distinction is made between "always empty" and "had content,
     // then cleared" — simplest behavior, confirmed with Marien rather
     // than assumed.
+    controller.markTabClean("a", "h-a");
     controller.closeTab("a");
-    expect(apiMock.deleteNote).toHaveBeenCalledWith("2026-09-11.txt");
+    expect(apiMock.deleteNote).toHaveBeenCalledWith("2026-09-11.txt", "h-a");
   });
 
   it("#63: a pending debounced autosave for an emptied tab is cancelled, not flushed, on close", () => {
     vi.useFakeTimers();
     controller.tabs.set([tab({ id: "a", filename: "2026-09-11.txt", content: "something" })]);
     controller.activeTabId.set("a");
+    controller.markTabClean("a", "h-a");
     controller.updateActiveTabContent(""); // schedules a debounced save of ""
     controller.closeTab("a");
     vi.advanceTimersByTime(1000); // past the 400ms debounce, if it were still pending
     expect(apiMock.writeNote).not.toHaveBeenCalled();
-    expect(apiMock.deleteNote).toHaveBeenCalledWith("2026-09-11.txt");
+    expect(apiMock.deleteNote).toHaveBeenCalledWith("2026-09-11.txt", "h-a");
     vi.useRealTimers();
+  });
+
+  it("review A: an empty tab with no clean baseline leaves the file alone", () => {
+    controller.tabs.set([tab({ id: "a", filename: "2026-09-11.txt", content: "" })]);
+    controller.closeTab("a");
+    expect(apiMock.deleteNote).not.toHaveBeenCalled();
   });
 
   it("#63: never deletes a non-empty dated tab's file, or touches a scratchpad's (never on disk anyway)", () => {
@@ -589,19 +599,29 @@ describe("updateActiveTabContent", () => {
 });
 
 describe("deleteNoteAndInvalidateCache", () => {
-  it("immediately removes deleted note from allNotesCache even while tab is open", () => {
+  it("removes the deleted note from allNotesCache once the backend confirms", async () => {
     controller.allNotesCache.set({
       "2026-09-01.txt": "content to delete",
       "2026-09-02.txt": "keep this",
     });
     controller.tabs.set([tab({ id: "a", filename: "2026-09-01.txt", content: "" })]);
 
-    controller.deleteNoteAndInvalidateCache("2026-09-01.txt");
+    await controller.deleteNoteAndInvalidateCache("2026-09-01.txt", "h0");
 
     const cache = get(controller.allNotesCache);
     expect(cache["2026-09-01.txt"]).toBeUndefined();
     expect(cache["2026-09-02.txt"]).toBe("keep this");
-    expect(apiMock.deleteNote).toHaveBeenCalledWith("2026-09-01.txt");
+    expect(apiMock.deleteNote).toHaveBeenCalledWith("2026-09-01.txt", "h0");
+  });
+
+  it("keeps the cache entry and shows a message when the file changed on disk", async () => {
+    controller.allNotesCache.set({ "2026-09-01.txt": "content" });
+    apiMock.deleteNote.mockRejectedValueOnce("conflict: note changed on disk: 2026-09-01.txt");
+
+    await controller.deleteNoteAndInvalidateCache("2026-09-01.txt", "h0");
+
+    expect(get(controller.allNotesCache)["2026-09-01.txt"]).toBe("content");
+    expect(get(controller.toastMessage)).toContain("changed on disk");
   });
 });
 

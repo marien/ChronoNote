@@ -77,6 +77,7 @@ const SAMPLE_PARAMS: Partial<Record<TranslationKey, unknown>> = {
   "toast.copyForward.copiedWithCount": { dest: "here", count: 2 },
   "toast.directory.switched": { path: "C:/Notes" },
   "directory.folderSwitchNote": { folderName: "OneDrive" },
+  "toast.persistence.keptChangedNote": { filename: "2026-09-26.txt" },
   "toast.drift.deletedOnDisk": { filename: "2026-09-26.txt" },
   "toast.drift.reloadedChanged": { filename: "2026-09-26.txt" },
   "toast.drift.reloadedFromDisk": { filename: "2026-09-26.txt" },

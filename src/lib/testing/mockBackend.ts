@@ -686,9 +686,16 @@ export class MockBackend {
 
     // #63: a missing file is not an error — mirrors
     // `storage.rs::delete_note_at`'s own idempotent behavior.
-    delete_note: ({ filename }) => {
+    delete_note: async ({ filename, expectedHash }) => {
       if (!isValidNoteFilename(filename)) {
         throw new Error(`Invalid note filename: ${filename}`);
+      }
+      if (typeof expectedHash === "string") {
+        const current = this.dir().notes.get(filename);
+        if (current === undefined) return;
+        if ((await sha256Hex(current)) !== expectedHash) {
+          throw new Error(`conflict: note changed on disk: ${filename}`);
+        }
       }
       this.dir().notes.delete(filename);
     },

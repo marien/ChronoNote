@@ -783,6 +783,7 @@ export const es = {
   "toast.oneDriveSync.signInExpired": () => "Su sesión de OneDrive ha caducado. Haga clic para iniciar sesión de nuevo.",
   "toast.updates.updateAvailable": () => "Actualización disponible — ver Acerca de",
   "toast.persistence.failedToSaveNote": () => "Error al guardar la nota",
+  "toast.persistence.keptChangedNote": ({ filename }) => `${filename} cambió en el disco, así que se conservó en lugar de eliminarse`,
   "onboarding.scratchpadName": () => "Bienvenida",
   "toast.onboarding.mobileHint": () =>
     "Toca cualquier ficha en la barra inferior para convertir líneas en acciones o temas de reunión.",
