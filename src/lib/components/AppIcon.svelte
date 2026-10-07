@@ -8,7 +8,11 @@
    * same obsidian tile + high-contrast knockout regardless of theme, exactly like
    * a taskbar icon never re-themes itself. Colors are copied verbatim from the
    * master SVG rather than referencing `--accent`-style tokens, on purpose. */
-  export let size = 16;
+  interface Props {
+    size?: number;
+  }
+
+  let { size = 16 }: Props = $props();
 </script>
 
 <svg

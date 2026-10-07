@@ -1,10 +1,10 @@
 <script lang="ts">
-  import { onMount, tick } from "svelte";
+  import { onMount, tick, untrack } from "svelte";
   import { editorApi, findMatch, findOpen } from "../controller";
   import Icon from "../icons/Icon.svelte";
   import { t } from "../i18n";
 
-  let query = "";
+  let query = $state("");
   let inputEl: HTMLInputElement;
 
   onMount(async () => {
@@ -15,7 +15,12 @@
 
   // Re-run the search on every keystroke — the editor stays fully live
   // underneath, this is not a modal.
-  $: query, editorApi?.find.setQuery(query);
+  $effect(() => {
+    const q = query;
+    untrack(() => {
+      editorApi?.find.setQuery(q);
+    });
+  });
 
   function close() {
     editorApi?.find.clear();
@@ -35,11 +40,13 @@
     }
   }
 
-  $: countLabel = $findMatch.total
-    ? $t("findBar.countOf", { current: String($findMatch.current || "–"), total: $findMatch.total })
-    : query
-      ? $t("findBar.noResults")
-      : "";
+  const countLabel = $derived(
+    $findMatch.total
+      ? $t("findBar.countOf", { current: String($findMatch.current || "–"), total: $findMatch.total })
+      : query
+        ? $t("findBar.noResults")
+        : "",
+  );
 </script>
 
 <div class="find-bar" role="search">
@@ -47,19 +54,19 @@
     class="find-input"
     bind:this={inputEl}
     bind:value={query}
-    on:keydown={onKeydown}
+    onkeydown={onKeydown}
     placeholder={$t("findBar.placeholder")}
     aria-label={$t("findBar.ariaLabel")}
     autocomplete="off"
   />
   <span class="find-count" aria-live="polite">{countLabel}</span>
-  <button type="button" class="find-btn" on:click={() => editorApi?.find.prev()} aria-label={$t("findBar.previousMatch")} title={$t("findBar.previousTitle")}>
+  <button type="button" class="find-btn" onclick={() => editorApi?.find.prev()} aria-label={$t("findBar.previousMatch")} title={$t("findBar.previousTitle")}>
     <Icon name="chevron-left" size={13} />
   </button>
-  <button type="button" class="find-btn" on:click={() => editorApi?.find.next()} aria-label={$t("findBar.nextMatch")} title={$t("findBar.nextTitle")}>
+  <button type="button" class="find-btn" onclick={() => editorApi?.find.next()} aria-label={$t("findBar.nextMatch")} title={$t("findBar.nextTitle")}>
     <Icon name="chevron-right" size={13} />
   </button>
-  <button type="button" class="find-btn" on:click={close} aria-label={$t("findBar.closeFind")} title={$t("findBar.closeTitle")}>
+  <button type="button" class="find-btn" onclick={close} aria-label={$t("findBar.closeFind")} title={$t("findBar.closeTitle")}>
     <Icon name="close" size={12} />
   </button>
 </div>
