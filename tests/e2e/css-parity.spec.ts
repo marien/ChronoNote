@@ -10,6 +10,8 @@ import { seedApp, editor, setEditorText, modalCard, MODAL_LABELS, datePicker } f
  *
  * The baseline images live in `css-parity.spec.ts-snapshots/` (git-ignored): they are only valid on
  * the machine and fonts they were taken with, which is why this is not an always-on assertion. */
+// The e2e tsconfig has no Node types; Playwright runs specs in Node, where `process` exists.
+declare const process: { env: Record<string, string | undefined> };
 test.skip(!process.env.CSS_PARITY, "opt-in: set CSS_PARITY=1");
 test.describe.configure({ mode: "serial" });
 
