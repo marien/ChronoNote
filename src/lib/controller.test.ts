@@ -1,4 +1,4 @@
-import { loadBaseline } from "./hash";
+import { EMPTY_CONTENT_HASH, loadBaseline } from "./hash";
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { get } from "svelte/store";
 import type { NoteTab } from "./types";
@@ -1656,7 +1656,7 @@ describe("copySelectionToNextOccurrence (#66)", () => {
     expect(apiMock.writeNote).toHaveBeenCalledWith(
       "2026-09-08.txt",
       "Weekly Sync\n===========\n# renew the cert\n",
-      undefined,
+      EMPTY_CONTENT_HASH, // a new file: its creation is guarded as empty content
     );
     controller.agendaFileExists.set(false);
   });
@@ -1704,7 +1704,7 @@ describe("copySelectionToNextOccurrence (#66)", () => {
     expect(apiMock.writeNote).toHaveBeenCalledWith(
       "2026-09-20.txt",
       "Weekly Sync\n===========\n# renew the cert\n",
-      undefined,
+      EMPTY_CONTENT_HASH, // a new file: its creation is guarded as empty content
     );
   });
 
@@ -1816,7 +1816,7 @@ describe("carryHistorySelectionForward (2026-09-24 redesign, Section History tak
       ["# an old action"],
     );
     expect(apiMock.writeNote).toHaveBeenCalledWith("2026-08-01.txt", "Sync\n====\n> an old action", undefined);
-    expect(apiMock.writeNote).toHaveBeenCalledWith("2026-09-12.txt", "Sync\n====\n# an old action\n", undefined);
+    expect(apiMock.writeNote).toHaveBeenCalledWith("2026-09-12.txt", "Sync\n====\n# an old action\n", EMPTY_CONTENT_HASH);
   });
 
   it("uses insertLinesOverride (e.g. 'action only') instead of the verbatim source lines", async () => {

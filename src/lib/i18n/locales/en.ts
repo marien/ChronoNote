@@ -767,7 +767,7 @@ export const en = {
   "toast.updates.updateAvailable": () => "Update available — see About",
   "toast.persistence.failedToSaveNote": () => "Failed to save note",
   "toast.persistence.keptChangedNote": ({ filename }) => `${filename} changed on disk, so it was kept instead of deleted`,
-  "toast.dragDrop.unsupportedFile": () => "Unsupported file. Drop a .json export or a YYYY-MM-DD.txt note.",
+  "toast.dragDrop.unsupportedFile": () => "Unsupported file. Drop a .json export bundle or YYYY-MM-DD.txt note.",
   "onboarding.scratchpadName": () => "Welcome",
   "toast.onboarding.mobileHint": () =>
     "Tap any token in the bottom bar to convert lines into actions or meeting topics.",

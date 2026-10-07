@@ -19,7 +19,7 @@ import {
 } from "./stores";
 import type { NoteTab } from "./types";
 import { registerSyncHooks, syncOneDriveNow } from "./oneDriveSync";
-import { sha256Hex } from "./hash";
+import { EMPTY_CONTENT_HASH, sha256Hex } from "./hash";
 import { t } from "./i18n";
 
 /** How a write protects against overwriting a version it hasn't seen. */
@@ -313,8 +313,9 @@ export async function updateNoteOnDisk(filename: string, change: (current: strin
   for (let attempt = 1; ; attempt++) {
     const { content, metadata } = await api.readNoteWithMetadata(filename);
     const next = change(content ?? "");
-    // A file that doesn't exist yet has no hash to guard with; creating it is unguarded.
-    const guard: WriteGuard = metadata.contentHash ? { kind: "hash", hash: metadata.contentHash } : { kind: "none" };
+    // A file that doesn't exist yet matches the empty-content hash, so creating it is guarded too:
+    // if another device creates it in between, the write is refused and retried.
+    const guard: WriteGuard = { kind: "hash", hash: metadata.contentHash ?? EMPTY_CONTENT_HASH };
     try {
       await writeNoteAndInvalidateCache(filename, next, guard);
       return next;
@@ -324,7 +325,7 @@ export async function updateNoteOnDisk(filename: string, change: (current: strin
   }
 }
 
-/** True for the error `write_note`/ `delete_note` return when the file on disk is no longer
+/** True for the error `write_note` / `delete_note` return when the file on disk is no longer
  * the version the caller expected (Rust: `CONFLICT_ERROR_PREFIX`; the TS backends throw the same text). */
 export function isWriteConflictError(err: unknown): boolean {
   const msg = err instanceof Error ? err.message : String(err);
