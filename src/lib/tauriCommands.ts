@@ -1,6 +1,7 @@
 import type {
   AppConfig,
   ColorMode,
+  ConfigPatch,
   FileMetadata,
   ImportMode,
   ImportResult,
@@ -38,21 +39,8 @@ export type SyncConflictResolution = "mine" | "theirs" | "both";
 export interface TauriCommands {
   get_config: { args: NoArgs; returns: AppConfig };
   set_notes_dir: { args: { path: string }; returns: AppConfig };
-  set_color_mode: { args: { mode: ColorMode }; returns: AppConfig };
-  set_word_wrap: { args: { enabled: boolean }; returns: AppConfig };
-  set_readable_line_length: { args: { enabled: boolean }; returns: AppConfig };
-  set_auto_check_updates: { args: { enabled: boolean }; returns: AppConfig };
-  set_theme_mode: { args: { mode: ThemeMode }; returns: AppConfig };
-  set_language_mode: { args: { mode: LanguageMode }; returns: AppConfig };
-  set_calendar_sync_enabled: { args: { enabled: boolean }; returns: AppConfig };
-  set_font_size: { args: { fontSize: number }; returns: AppConfig };
-  set_line_height: { args: { lineHeight: number }; returns: AppConfig };
-  set_pure_black: { args: { pureBlack: boolean }; returns: AppConfig };
-  set_startup_tab_mode: { args: { mode: StartupTabMode }; returns: AppConfig };
-  set_occurrence_hint: { args: { enabled: boolean }; returns: AppConfig };
-  set_peek: { args: { peek: PeekConfig }; returns: AppConfig };
-  set_last_seen_version: { args: { version: string }; returns: AppConfig };
-  set_onboarding_completed: { args: { completed: boolean }; returns: AppConfig };
+  /** Partial settings update: only the fields present in `patch` change. */
+  update_config: { args: { patch: ConfigPatch }; returns: AppConfig };
   list_note_files: { args: NoArgs; returns: string[] };
   read_note: { args: { filename: string }; returns: string | null };
   write_note: {

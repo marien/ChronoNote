@@ -30,129 +30,11 @@ fn path_exists(path: String) -> bool {
     std::path::Path::new(&path).exists()
 }
 
+/// Applies a partial settings update (only the fields present) and returns the new config.
 #[tauri::command]
-fn set_color_mode(app: AppHandle, mode: storage::ColorMode) -> Result<storage::AppConfig, String> {
+fn update_config(app: AppHandle, patch: storage::ConfigPatch) -> Result<storage::AppConfig, String> {
     let mut cfg = storage::load_config(&app)?;
-    cfg.color_mode = mode;
-    storage::save_config(&app, &cfg)?;
-    Ok(cfg)
-}
-
-#[tauri::command]
-fn set_word_wrap(app: AppHandle, enabled: bool) -> Result<storage::AppConfig, String> {
-    let mut cfg = storage::load_config(&app)?;
-    cfg.word_wrap = enabled;
-    storage::save_config(&app, &cfg)?;
-    Ok(cfg)
-}
-
-#[tauri::command]
-fn set_readable_line_length(app: AppHandle, enabled: bool) -> Result<storage::AppConfig, String> {
-    let mut cfg = storage::load_config(&app)?;
-    cfg.readable_line_length = enabled;
-    storage::save_config(&app, &cfg)?;
-    Ok(cfg)
-}
-
-#[tauri::command]
-fn set_auto_check_updates(app: AppHandle, enabled: bool) -> Result<storage::AppConfig, String> {
-    let mut cfg = storage::load_config(&app)?;
-    cfg.auto_check_updates = enabled;
-    storage::save_config(&app, &cfg)?;
-    Ok(cfg)
-}
-
-#[tauri::command]
-fn set_theme_mode(app: AppHandle, mode: storage::ThemeMode) -> Result<storage::AppConfig, String> {
-    let mut cfg = storage::load_config(&app)?;
-    cfg.theme_mode = mode;
-    storage::save_config(&app, &cfg)?;
-    Ok(cfg)
-}
-
-#[tauri::command]
-fn set_language_mode(app: AppHandle, mode: storage::LanguageMode) -> Result<storage::AppConfig, String> {
-    let mut cfg = storage::load_config(&app)?;
-    cfg.language_mode = mode;
-    storage::save_config(&app, &cfg)?;
-    Ok(cfg)
-}
-
-#[tauri::command]
-fn set_calendar_sync_enabled(app: AppHandle, enabled: bool) -> Result<storage::AppConfig, String> {
-    let mut cfg = storage::load_config(&app)?;
-    cfg.calendar_sync_enabled = enabled;
-    storage::save_config(&app, &cfg)?;
-    Ok(cfg)
-}
-
-#[tauri::command]
-fn set_font_size(app: AppHandle, font_size: f32) -> Result<storage::AppConfig, String> {
-    let mut cfg = storage::load_config(&app)?;
-    cfg.font_size = font_size.clamp(12.0, 18.0);
-    storage::save_config(&app, &cfg)?;
-    Ok(cfg)
-}
-
-#[tauri::command]
-fn set_line_height(app: AppHandle, line_height: f32) -> Result<storage::AppConfig, String> {
-    let mut cfg = storage::load_config(&app)?;
-    cfg.line_height = line_height.clamp(1.3, 1.8);
-    storage::save_config(&app, &cfg)?;
-    Ok(cfg)
-}
-
-#[tauri::command]
-fn set_occurrence_hint(app: AppHandle, enabled: bool) -> Result<storage::AppConfig, String> {
-    let mut cfg = storage::load_config(&app)?;
-    cfg.occurrence_hint = enabled;
-    storage::save_config(&app, &cfg)?;
-    Ok(cfg)
-}
-
-#[tauri::command]
-fn set_pure_black(app: AppHandle, pure_black: bool) -> Result<storage::AppConfig, String> {
-    let mut cfg = storage::load_config(&app)?;
-    cfg.pure_black = pure_black;
-    storage::save_config(&app, &cfg)?;
-    Ok(cfg)
-}
-
-#[tauri::command]
-fn set_startup_tab_mode(
-    app: AppHandle,
-    mode: storage::StartupTabMode,
-) -> Result<storage::AppConfig, String> {
-    let mut cfg = storage::load_config(&app)?;
-    cfg.startup_tab_mode = mode;
-    storage::save_config(&app, &cfg)?;
-    Ok(cfg)
-}
-
-/// Peek mode settings (and where the compact window was last left). Out-of-range values are clamped.
-#[tauri::command]
-fn set_peek(app: AppHandle, peek: storage::PeekConfig) -> Result<storage::AppConfig, String> {
-    let mut cfg = storage::load_config(&app)?;
-    cfg.peek = peek.clamped();
-    storage::save_config(&app, &cfg)?;
-    Ok(cfg)
-}
-
-/// #50: called once per launch, right after boot compares the running
-/// version against `AppConfig.last_seen_version` — records the version
-/// so the same launch's update notice (if any) isn't repeated next time.
-#[tauri::command]
-fn set_last_seen_version(app: AppHandle, version: String) -> Result<storage::AppConfig, String> {
-    let mut cfg = storage::load_config(&app)?;
-    cfg.last_seen_version = Some(version);
-    storage::save_config(&app, &cfg)?;
-    Ok(cfg)
-}
-
-#[tauri::command]
-fn set_onboarding_completed(app: AppHandle, completed: bool) -> Result<storage::AppConfig, String> {
-    let mut cfg = storage::load_config(&app)?;
-    cfg.onboarding_completed = completed;
+    patch.apply(&mut cfg);
     storage::save_config(&app, &cfg)?;
     Ok(cfg)
 }
@@ -341,21 +223,7 @@ pub fn run() {
             peek_window::peek_set_bounds,
             get_config,
             set_notes_dir,
-            set_color_mode,
-            set_word_wrap,
-            set_readable_line_length,
-            set_auto_check_updates,
-            set_theme_mode,
-            set_language_mode,
-            set_calendar_sync_enabled,
-            set_font_size,
-            set_line_height,
-            set_pure_black,
-            set_startup_tab_mode,
-            set_peek,
-            set_occurrence_hint,
-            set_last_seen_version,
-            set_onboarding_completed,
+            update_config,
             list_note_files,
             read_note,
             write_note,

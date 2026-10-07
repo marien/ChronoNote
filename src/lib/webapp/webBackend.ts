@@ -313,112 +313,25 @@ export class WebBackend {
     },
     path_exists: () => false,
 
-    set_color_mode: async ({ mode }) => {
+    // Only the present fields change; clamps mirror `ConfigPatch::apply` in storage.rs.
+    // Calendar sync and Peek are desktop-only; the web app just stores the values so the shared config shape stays whole.
+    update_config: async ({ patch }) => {
       const cfg = await this.loadConfig();
-      cfg.colorMode = mode;
-      await this.saveConfig(cfg);
-      return this.toAppConfig(cfg);
-    },
-
-    set_theme_mode: async ({ mode }) => {
-      const cfg = await this.loadConfig();
-      cfg.themeMode = mode;
-      await this.saveConfig(cfg);
-      return this.toAppConfig(cfg);
-    },
-
-    set_language_mode: async ({ mode }) => {
-      const cfg = await this.loadConfig();
-      cfg.languageMode = mode;
-      await this.saveConfig(cfg);
-      return this.toAppConfig(cfg);
-    },
-
-    // Calendar sync is desktop/demo-only (no local filesystem to read
-    // `.agenda.json` from in the browser) — the Settings Calendar section
-    // is already hidden on web, so this is never actually called, but
-    // kept fully functional rather than a no-op/throw for consistency.
-    set_calendar_sync_enabled: async ({ enabled }) => {
-      const cfg = await this.loadConfig();
-      cfg.calendarSyncEnabled = enabled;
-      await this.saveConfig(cfg);
-      return this.toAppConfig(cfg);
-    },
-
-    set_word_wrap: async ({ enabled }) => {
-      const cfg = await this.loadConfig();
-      cfg.wordWrap = enabled;
-      await this.saveConfig(cfg);
-      return this.toAppConfig(cfg);
-    },
-
-    set_readable_line_length: async ({ enabled }) => {
-      const cfg = await this.loadConfig();
-      cfg.readableLineLength = enabled;
-      await this.saveConfig(cfg);
-      return this.toAppConfig(cfg);
-    },
-
-    set_auto_check_updates: async ({ enabled }) => {
-      const cfg = await this.loadConfig();
-      cfg.autoCheckUpdates = enabled;
-      await this.saveConfig(cfg);
-      return this.toAppConfig(cfg);
-    },
-
-    set_font_size: async ({ fontSize }) => {
-      const cfg = await this.loadConfig();
-      cfg.fontSize = Math.min(18, Math.max(12, fontSize));
-      await this.saveConfig(cfg);
-      return this.toAppConfig(cfg);
-    },
-
-    set_line_height: async ({ lineHeight }) => {
-      const cfg = await this.loadConfig();
-      cfg.lineHeight = Math.min(1.8, Math.max(1.3, lineHeight));
-      await this.saveConfig(cfg);
-      return this.toAppConfig(cfg);
-    },
-
-    set_pure_black: async ({ pureBlack }) => {
-      const cfg = await this.loadConfig();
-      cfg.pureBlack = pureBlack;
-      await this.saveConfig(cfg);
-      return this.toAppConfig(cfg);
-    },
-
-    set_occurrence_hint: async ({ enabled }) => {
-      const cfg = await this.loadConfig();
-      cfg.occurrenceHint = enabled;
-      await this.saveConfig(cfg);
-      return this.toAppConfig(cfg);
-    },
-
-    // Peek is a desktop-only feature; the web app just stores the value so the shared config shape stays whole.
-    set_peek: async ({ peek }) => {
-      const cfg = await this.loadConfig();
-      cfg.peek = clampPeek(peek);
-      await this.saveConfig(cfg);
-      return this.toAppConfig(cfg);
-    },
-
-    set_startup_tab_mode: async ({ mode }) => {
-      const cfg = await this.loadConfig();
-      cfg.startupTabMode = mode;
-      await this.saveConfig(cfg);
-      return this.toAppConfig(cfg);
-    },
-
-    set_last_seen_version: async ({ version }) => {
-      const cfg = await this.loadConfig();
-      cfg.lastSeenVersion = version;
-      await this.saveConfig(cfg);
-      return this.toAppConfig(cfg);
-    },
-
-    set_onboarding_completed: async ({ completed }) => {
-      const cfg = await this.loadConfig();
-      cfg.onboardingCompleted = completed;
+      if (patch.colorMode !== undefined) cfg.colorMode = patch.colorMode;
+      if (patch.themeMode !== undefined) cfg.themeMode = patch.themeMode;
+      if (patch.languageMode !== undefined) cfg.languageMode = patch.languageMode;
+      if (patch.startupTabMode !== undefined) cfg.startupTabMode = patch.startupTabMode;
+      if (patch.wordWrap !== undefined) cfg.wordWrap = patch.wordWrap;
+      if (patch.readableLineLength !== undefined) cfg.readableLineLength = patch.readableLineLength;
+      if (patch.autoCheckUpdates !== undefined) cfg.autoCheckUpdates = patch.autoCheckUpdates;
+      if (patch.calendarSyncEnabled !== undefined) cfg.calendarSyncEnabled = patch.calendarSyncEnabled;
+      if (patch.fontSize !== undefined) cfg.fontSize = Math.min(18, Math.max(12, patch.fontSize));
+      if (patch.lineHeight !== undefined) cfg.lineHeight = Math.min(1.8, Math.max(1.3, patch.lineHeight));
+      if (patch.occurrenceHint !== undefined) cfg.occurrenceHint = patch.occurrenceHint;
+      if (patch.pureBlack !== undefined) cfg.pureBlack = patch.pureBlack;
+      if (patch.peek !== undefined) cfg.peek = clampPeek(patch.peek);
+      if (patch.lastSeenVersion !== undefined) cfg.lastSeenVersion = patch.lastSeenVersion;
+      if (patch.onboardingCompleted !== undefined) cfg.onboardingCompleted = patch.onboardingCompleted;
       await this.saveConfig(cfg);
       return this.toAppConfig(cfg);
     },

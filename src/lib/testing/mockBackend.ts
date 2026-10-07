@@ -23,8 +23,8 @@
  *   - `set_notes_dir` -> `push_recent_notes_dir` — old dir goes to the
  *     front of `recent_notes_dirs`, new dir is removed from it, deduped,
  *     capped at 5.
- *   - `set_color_mode` / `set_word_wrap` — write the one field, persist,
- *     return the whole `AppConfig`.
+ *   - `update_config` — apply only the fields present in the patch (with
+ *     the same clamps), persist, return the whole `AppConfig`.
  *   - `read_note` returns `null` (not an error) for a missing file.
  *   - the session file lives *inside* the notes dir and is never returned
  *     by `list_note_files` / `read_all_notes`.
@@ -130,19 +130,7 @@ const CONFLICTS_DIRNAME = ".chrononote-conflicts";
  * `sessionStorage` so a reload sees the same "disk". */
 const MUTATING_COMMANDS = new Set([
   "set_notes_dir",
-  "set_color_mode",
-  "set_theme_mode",
-  "set_language_mode",
-  "set_word_wrap",
-  "set_readable_line_length",
-  "set_auto_check_updates",
-  "set_last_seen_version",
-  "set_font_size",
-  "set_line_height",
-  "set_pure_black",
-  "set_startup_tab_mode",
-  "set_peek",
-  "set_occurrence_hint",
+  "update_config",
   "write_note",
   "write_conflict_copy",
   "write_tab_session",
@@ -585,78 +573,23 @@ export class MockBackend {
       return this.config();
     },
 
-    set_color_mode: ({ mode }) => {
-      this.colorMode = mode;
-      return this.config();
-    },
-
-    set_theme_mode: ({ mode }) => {
-      this.themeMode = mode;
-      return this.config();
-    },
-
-    set_language_mode: ({ mode }) => {
-      this.languageMode = mode;
-      return this.config();
-    },
-
-    set_calendar_sync_enabled: ({ enabled }) => {
-      this.calendarSyncEnabled = enabled;
-      return this.config();
-    },
-
-    set_last_seen_version: ({ version }) => {
-      this.lastSeenVersion = version;
-      return this.config();
-    },
-
-    set_onboarding_completed: ({ completed }) => {
-      this.onboardingCompleted = completed;
-      return this.config();
-    },
-
-    set_word_wrap: ({ enabled }) => {
-      this.wordWrap = enabled;
-      return this.config();
-    },
-
-    set_readable_line_length: ({ enabled }) => {
-      this.readableLineLength = enabled;
-      return this.config();
-    },
-
-    set_auto_check_updates: ({ enabled }) => {
-      this.autoCheckUpdates = enabled;
-      return this.config();
-    },
-
-    set_font_size: ({ fontSize }) => {
-      this.fontSize = Math.min(18, Math.max(12, fontSize));
-      return this.config();
-    },
-
-    set_line_height: ({ lineHeight }) => {
-      this.lineHeight = Math.min(1.8, Math.max(1.3, lineHeight));
-      return this.config();
-    },
-
-    set_pure_black: ({ pureBlack }) => {
-      this.pureBlack = pureBlack;
-      return this.config();
-    },
-
-    set_startup_tab_mode: ({ mode }) => {
-      this.startupTabMode = mode;
-      return this.config();
-    },
-
-    set_occurrence_hint: ({ enabled }) => {
-      this.occurrenceHint = enabled;
-      return this.config();
-    },
-
-    set_peek: ({ peek }) => {
-      this.peek = clampPeek(peek);
+    update_config: ({ patch }) => {
+      // Only the present fields change; clamps mirror `ConfigPatch::apply` in storage.rs.
+      if (patch.colorMode !== undefined) this.colorMode = patch.colorMode;
+      if (patch.themeMode !== undefined) this.themeMode = patch.themeMode;
+      if (patch.languageMode !== undefined) this.languageMode = patch.languageMode;
+      if (patch.startupTabMode !== undefined) this.startupTabMode = patch.startupTabMode;
+      if (patch.wordWrap !== undefined) this.wordWrap = patch.wordWrap;
+      if (patch.readableLineLength !== undefined) this.readableLineLength = patch.readableLineLength;
+      if (patch.autoCheckUpdates !== undefined) this.autoCheckUpdates = patch.autoCheckUpdates;
+      if (patch.calendarSyncEnabled !== undefined) this.calendarSyncEnabled = patch.calendarSyncEnabled;
+      if (patch.fontSize !== undefined) this.fontSize = Math.min(18, Math.max(12, patch.fontSize));
+      if (patch.lineHeight !== undefined) this.lineHeight = Math.min(1.8, Math.max(1.3, patch.lineHeight));
+      if (patch.occurrenceHint !== undefined) this.occurrenceHint = patch.occurrenceHint;
+      if (patch.pureBlack !== undefined) this.pureBlack = patch.pureBlack;
+      if (patch.peek !== undefined) this.peek = clampPeek(patch.peek);
+      if (patch.lastSeenVersion !== undefined) this.lastSeenVersion = patch.lastSeenVersion;
+      if (patch.onboardingCompleted !== undefined) this.onboardingCompleted = patch.onboardingCompleted;
       return this.config();
     },
 

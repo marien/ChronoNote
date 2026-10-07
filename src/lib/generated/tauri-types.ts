@@ -20,6 +20,8 @@ export type FileMetadata = { exists: boolean, contentHash: string | null, sizeBy
 
 export type AppConfig = { notesDir: string, colorMode: ColorMode, themeMode: ThemeMode, wordWrap: boolean, readableLineLength: boolean, recentNotesDirs: Array<string>, autoCheckUpdates: boolean, lastSeenVersion: string | null, calendarSyncEnabled: boolean, fontSize: number, lineHeight: number, pureBlack: boolean, languageMode: LanguageMode, onboardingCompleted: boolean, startupTabMode: StartupTabMode, peek: PeekConfig, occurrenceHint: boolean };
 
+export type ConfigPatch = { colorMode?: ColorMode, themeMode?: ThemeMode, languageMode?: LanguageMode, startupTabMode?: StartupTabMode, wordWrap?: boolean, readableLineLength?: boolean, autoCheckUpdates?: boolean, calendarSyncEnabled?: boolean, fontSize?: number, lineHeight?: number, occurrenceHint?: boolean, pureBlack?: boolean, peek?: PeekConfig, lastSeenVersion?: string, onboardingCompleted?: boolean };
+
 export type TabSession = { openTabs: Array<string>, activeTab: string | null, lastOpenedDate?: string | null };
 
 export type NoteWithMetadata = { content: string | null, metadata: FileMetadata };

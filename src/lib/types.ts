@@ -7,6 +7,7 @@ export type {
   AppConfig,
   AppError,
   ColorMode,
+  ConfigPatch,
   FileMetadata,
   ImportMode,
   ImportResult,
