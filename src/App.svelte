@@ -67,8 +67,8 @@
   import { oneDriveFolderPickerOpen, syncHealthPopoverOpen } from "./lib/stores";
   import { overlays, topOverlay, type Overlay } from "./lib/overlays";
 
-  let ready = false;
-  let bootError = "";
+  let ready = $state(false);
+  let bootError = $state("");
 
   onMount(() => {
     controller.initApp().then(
@@ -353,60 +353,70 @@
   });
 
   // Keep back navigation history synchronized with whether any overlay/modal is open.
-  $: if (typeof window !== "undefined") {
-    const hasOverlay =
-      $oneDriveFolderPickerOpen ||
-      $mobileTabDrawerOpen ||
-      $modal !== "none" ||
-      $findOpen ||
-      $isZenMode;
-    // Only push/pop history in web/demo modes where browser back exists
-    if ($backendKind !== "desktop") {
-      // Dispatched to back navigation sync handler
-      window.dispatchEvent(new CustomEvent("chrononote:overlaychange", { detail: { hasOverlay } }));
+  $effect(() => {
+    if (typeof window !== "undefined") {
+      const hasOverlay =
+        $oneDriveFolderPickerOpen ||
+        $mobileTabDrawerOpen ||
+        $modal !== "none" ||
+        $findOpen ||
+        $isZenMode;
+      // Only push/pop history in web/demo modes where browser back exists
+      if ($backendKind !== "desktop") {
+        // Dispatched to back navigation sync handler
+        window.dispatchEvent(new CustomEvent("chrononote:overlaychange", { detail: { hasOverlay } }));
+      }
     }
-  }
+  });
 
-  let isDraggingFile = false;
+  let isDraggingFile = $state(false);
 
-  $: if (typeof document !== "undefined") {
-    document.documentElement.style.setProperty("--editor-font-size", `${$fontSize}px`);
-    document.documentElement.style.setProperty("--editor-line-height", `${$lineHeight}`);
-  }
+  $effect.pre(() => {
+    if (typeof document !== "undefined") {
+      document.documentElement.style.setProperty("--editor-font-size", `${$fontSize}px`);
+      document.documentElement.style.setProperty("--editor-line-height", `${$lineHeight}`);
+    }
+  });
 
   // Only touch the native window when Zen actually flips: on startup the value is already
   // false and there is nothing to undo (this used to force "leave fullscreen" on every launch).
   let zenFullscreenApplied = false;
   let zenWindow: ReturnType<typeof createZenWindowController> | undefined;
-  $: if (typeof document !== "undefined") {
-    document.body.classList.toggle("zen-mode", $isZenMode);
-    if ($backendKind === "desktop" && $isZenMode !== zenFullscreenApplied) {
-      zenFullscreenApplied = $isZenMode;
-      zenWindow ??= createZenWindowController(nativeZenWindow());
-      void zenWindow.set($isZenMode);
+  $effect.pre(() => {
+    if (typeof document !== "undefined") {
+      document.body.classList.toggle("zen-mode", $isZenMode);
+      if ($backendKind === "desktop" && $isZenMode !== zenFullscreenApplied) {
+        zenFullscreenApplied = $isZenMode;
+        zenWindow ??= createZenWindowController(nativeZenWindow());
+        void zenWindow.set($isZenMode);
+      }
     }
-  }
+  });
 
   // Peek mode (compact note window): the body class swaps the layout and makes the background see-through.
-  $: if (typeof document !== "undefined") {
-    document.body.classList.toggle("peek-mode", $peekMode);
-    // In focus (you typed or moved the pointer over it recently) the background is (usually) more solid and fades
-    // back after `fadeSeconds`; the header strip is 5 points more solid than the background so it stays readable.
-    document.body.classList.toggle("peek-in-focus", $peekInFocus);
-    const peekOpacity = $peekInFocus ? $peekSettings.opacityHover : $peekSettings.opacity;
-    document.documentElement.style.setProperty("--peek-opacity", String(peekOpacity));
-    document.documentElement.style.setProperty("--peek-bar-opacity", String(Math.min(100, peekOpacity + 5)));
-  }
+  $effect.pre(() => {
+    if (typeof document !== "undefined") {
+      document.body.classList.toggle("peek-mode", $peekMode);
+      // In focus (you typed or moved the pointer over it recently) the background is (usually) more solid and fades
+      // back after `fadeSeconds`; the header strip is 5 points more solid than the background so it stays readable.
+      document.body.classList.toggle("peek-in-focus", $peekInFocus);
+      const peekOpacity = $peekInFocus ? $peekSettings.opacityHover : $peekSettings.opacity;
+      document.documentElement.style.setProperty("--peek-opacity", String(peekOpacity));
+      document.documentElement.style.setProperty("--peek-bar-opacity", String(Math.min(100, peekOpacity + 5)));
+    }
+  });
 
-  $: activeTab = $tabs.find((t) => t.id === $activeTabId);
+  const activeTab = $derived($tabs.find((t) => t.id === $activeTabId));
 
   // §108: a modal opening over an open find bar leaves the bar stranded
   // behind the overlay — close it. (`find.clear()` is synchronous, so
   // this can't retrigger itself the way an awaited `$:` block can.)
-  $: if ($modal !== "none" && $findOpen) {
-    editorApi?.find.clear();
-    findOpen.set(false);
-  }
+  $effect(() => {
+    if ($modal !== "none" && $findOpen) {
+      editorApi?.find.clear();
+      findOpen.set(false);
+    }
+  });
 
   let touchStartX = 0;
   let touchStartY = 0;
@@ -459,7 +469,7 @@
   {#if $isZenMode}
     <div id="zen-banner" role="status" aria-live="polite">
       <span>Zen mode</span>
-      <button class="zen-exit-btn" on:click={() => isZenMode.set(false)}>Exit</button>
+      <button class="zen-exit-btn" onclick={() => isZenMode.set(false)}>Exit</button>
     </div>
   {/if}
   {#if isDraggingFile && ($backendKind === "web" || $backendKind === "demo")}
@@ -471,33 +481,33 @@
     </div>
   {/if}
   {#if !$isMobile && $toastMessage.length > LONG_TOAST_CHARS}
-    <!-- svelte-ignore a11y-click-events-have-key-events -->
-    <!-- svelte-ignore a11y-no-noninteractive-tabindex -->
-    <!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
+    <!-- svelte-ignore a11y_click_events_have_key_events -->
+    <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
+    <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
     <div
       class="long-toast"
       class:interactive={Boolean($toastAction)}
       role={$toastAction ? "button" : "status"}
       tabindex={$toastAction ? 0 : -1}
       aria-live="polite"
-      on:click={handleToastClick}
-      on:keydown={handleToastKeydown}
+      onclick={handleToastClick}
+      onkeydown={handleToastKeydown}
     >
       {$toastMessage}
     </div>
   {/if}
   {#if $isMobile && $toastMessage}
-    <!-- svelte-ignore a11y-click-events-have-key-events -->
-    <!-- svelte-ignore a11y-no-noninteractive-tabindex -->
-    <!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
+    <!-- svelte-ignore a11y_click_events_have_key_events -->
+    <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
+    <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
     <div
       class="mobile-toast"
       class:interactive={Boolean($toastAction)}
       role={$toastAction ? "button" : "status"}
       tabindex={$toastAction ? 0 : -1}
       aria-live="polite"
-      on:click={handleToastClick}
-      on:keydown={handleToastKeydown}
+      onclick={handleToastClick}
+      onkeydown={handleToastKeydown}
     >
       {$toastMessage}
     </div>
@@ -506,8 +516,8 @@
     id="editor-container"
     role="region"
     aria-label="Editor notes area"
-    on:touchstart={handleTouchStart}
-    on:touchend={handleTouchEnd}
+    ontouchstart={handleTouchStart}
+    ontouchend={handleTouchEnd}
   >
     {#if activeTab}
       {#key activeTab.id}

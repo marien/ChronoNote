@@ -41,17 +41,22 @@
   import * as controller from "../controller";
   import { findMatch, findOpen, readableLineLength, wordWrap } from "../controller";
 
+  interface Props {
+    content: string;
+    tabId: string;
+  }
+
   // `content` is only used as the initial document for this mount. Tab
   // switches are handled by wrapping this component in a {#key} block
   // upstream, so it fully remounts per tab instead of reacting to prop
   // changes on every keystroke (which would otherwise reset the cursor
   // and undo history on every character typed).
-  export let content: string;
-  // Identifies which tab this mount belongs to, so its cursor/selection
+  //
+  // `tabId` identifies which tab this mount belongs to, so its cursor/selection
   // and scroll position can be saved on the way out and restored the next
   // time this same tab becomes active — see `saveEditorViewState`/
   // `getEditorViewState` in controller.ts.
-  export let tabId: string;
+  let { content, tabId }: Props = $props();
 
   let container: HTMLDivElement;
   let view: EditorView | null = null;
