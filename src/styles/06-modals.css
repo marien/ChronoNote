@@ -646,19 +646,3 @@ textarea.modal-input.import-textarea {
   background: var(--text);
   opacity: 0.85;
 }
-
-/* 2026-09-25 redesign (chat feedback on the browse-and-carry-forward
- * redesign): the occurrence list is now a compact horizontal strip above
- * the note body, not a vertical sidebar beside it — a recurring section's
- * handful of recent dates were the ones actually browsed, and a tall list
- * of one-row-per-date entries mostly just sat there empty next to a much
- * busier note pane. `.history-body` is a single column now (no more
- * side-by-side `.history-main` + `.history-detail`), so it's just the
- * remaining vertical space below the strip. */
-.history-body {
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-  min-height: 0;
-  outline: none;
-}
