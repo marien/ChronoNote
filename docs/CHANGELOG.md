@@ -10018,3 +10018,15 @@ Marien, after abandoning the idea of Peek reacting to Teams calls by itself (wat
 - All four former `$:` blocks were plain values and are now `$derived`; neither dialog has an `$effect`. Click handlers use `onclick`.
 - `ConflictModal`'s focus target is `$state`, because its button sits inside `{#if info}` and a plain `let` there triggers svelte-check's `non_reactive_update` warning; `UnsavedScratchpadsModal`'s stays a plain `let`.
 - Gates: svelte-check 0, Vitest 828, cargo 124, Playwright 569.
+
+## 312. Every remaining component on Svelte runes
+
+**Status: implemented, not yet released.** Refactors R15-R21, the same conversion as §307/§310/§311 for all 26 components that were still in legacy mode. No intended behaviour change. Implemented by Gemini 3.8 Flash (R15, R16, R18, R20, R21) and Claude Sonnet 5.5 (R17, R19) through the Antigravity CLI, five briefs from one shared rule set, every diff reviewed before merging.
+
+- **R15** seven small modals (Safety, MigrateNotes, CalendarSyncReview, DroppedNotes, SyncConflicts, MoreActions, Shortcuts). **R16** small shared components (AppIcon, Icon, EmptyState, FindBar, PeekBar, MobileTabDrawer, MobileAccessoryBar, SyncHealthPopover, About). **R17** Settings and its row components: `SettingRow`/`SettingToggle`'s named `description` slot is now a snippet prop, filled with `{#snippet description()}` in `SettingsModal`. **R18** command palette and OneDrive folder picker. **R19** status bar. **R20** top bar. **R21** `App.svelte` and `EditorPane.svelte`.
+- Values are `$derived`; side effects are `$effect`s that read only their inputs (`untrack` around calls that write state). The ones that must apply before paint are `$effect.pre`: App's font-size/line-height variables, the Zen and Peek body classes and opacity variables, and the top bar's "collapse the buttons on a phone".
+- Event modifiers are written out in the handlers (`stopPropagation`/`preventDefault`); `svelte-ignore` comments use the runes spelling. Element refs inside `{#if}` blocks are `$state`.
+- Two small structural changes, equivalent to the old behaviour: the OneDrive folder picker loads folders from an effect on the current folder id instead of calling `loadFolders` in every navigation handler (navigating to the folder you are in was already a no-op); the command palette's debounce effect also cancels a pending refresh when the palette closes.
+- The top bar's width-fitting logic (§156, §160, §161), its frame waits and its `onMount` store subscriptions are unchanged; only its declarations moved to runes.
+- No component uses `$:`, `export let`, `on:` or `<slot>` any more.
+- Gates: svelte-check 0, Vitest 828, Playwright 569.
