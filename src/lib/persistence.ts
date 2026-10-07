@@ -286,33 +286,36 @@ export function writeNoteAndInvalidateCache(filename: string, content: string): 
   return writeNoteRaw(filename, content);
 }
 
-/** #63: called instead of `flushSave` when a dated tab closes with empty
- * (`trim() === ""`) content — deletes the file from disk rather than
- * persisting (or leaving behind) an empty note nobody ever wrote
- * anything into. Fire-and-forget like `flushSave`'s own write; a missing
- * file isn't an error (the common case — a tab that was opened but never
- * actually edited never had a file to begin with), and any genuine
- * failure is rare enough, and low-enough-stakes (an empty file, at
- * worst, lingers), not to interrupt the close with a toast the way a
- * real content-loss failure would. */
-export function deleteNoteAndInvalidateCache(filename: string): void {
-  if (diskNotesCacheRaw !== null) delete diskNotesCacheRaw[filename];
-  allNotesCache.update((map) => {
-    if (filename in map) {
-      const next = { ...map };
-      delete next[filename];
-      return next;
-    }
-    return map;
-  });
-  const hasOpenTab = get(tabs).some((t) => !t.isScratchpad && t.filename === filename);
-  if (!hasOpenTab) diskNotesCacheRaw = null;
-  // With OneDrive sync on, Rust has just queued the cloud copy for deletion;
-  // a sync soon after carries it out.
-  api
-    .deleteNote(filename)
-    .then(() => scheduleCloudPush())
-    .catch(() => {});
+/** True for the error `write_note` / `delete_note` return when the file on disk is no longer
+ * the version the caller expected (Rust: `CONFLICT_ERROR_PREFIX`; the TS backends throw the same text). */
+export function isWriteConflictError(err: unknown): boolean {
+  const msg = err instanceof Error ? err.message : String(err);
+  return msg.includes("conflict: note changed on disk");
+}
+
+/** #63: deletes the file of a dated tab that closes empty. `expectedHash` is the tab's clean
+ * baseline: if the file changed on disk since (synced in from another device), the backend
+ * refuses and the file is kept. Caches are updated only once the outcome is known. */
+export function deleteNoteAndInvalidateCache(filename: string, expectedHash: string): Promise<void> {
+  return api.deleteNote(filename, expectedHash).then(
+    () => {
+      if (diskNotesCacheRaw !== null) delete diskNotesCacheRaw[filename];
+      allNotesCache.update((map) => {
+        if (!(filename in map)) return map;
+        const next = { ...map };
+        delete next[filename];
+        return next;
+      });
+      scheduleCloudPush();
+    },
+    (err) => {
+      if (isWriteConflictError(err)) {
+        diskNotesCacheRaw = null; // the file has content we haven't read
+        showToast(get(t)("toast.persistence.keptChangedNote", { filename }));
+      }
+      // Any other failure: at worst an empty file stays behind (as before).
+    },
+  );
 }
 
 /** #46: a tab is about to close with content that may not yet be reflected

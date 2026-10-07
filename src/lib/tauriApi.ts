@@ -126,8 +126,8 @@ export function writeNote(
 
 /** #63: removes a note file from disk. A missing file is not an error —
  * see `storage.rs::delete_note_at`'s own doc comment for why. */
-export function deleteNote(filename: string): Promise<void> {
-  return invoke("delete_note", { filename });
+export function deleteNote(filename: string, expectedHash?: string): Promise<void> {
+  return invoke("delete_note", { filename, expectedHash: expectedHash ?? null });
 }
 
 export function getFileMetadata(filename: string): Promise<FileMetadata> {

@@ -771,9 +771,20 @@ fn write_note_at(
 /// ever written for it in the first place — deleting it "succeeds"
 /// trivially rather than surfacing a spurious failure toast for what is,
 /// from the caller's point of view, already the desired end state.
-fn delete_note_at(root: &Path, filename: &str) -> Result<(), String> {
+fn delete_note_at(root: &Path, filename: &str, expected_hash: Option<&str>) -> Result<(), String> {
     if !is_valid_note_filename(filename) {
         return Err(format!("Invalid note filename: {filename}"));
+    }
+    // Same compare-and-swap rule as `write_note_at`: when the caller passes the hash it last saw,
+    // a file that changed since then (another device synced a new version in) is kept, not deleted.
+    if let Some(expected) = expected_hash {
+        let current = file_metadata_at(root, filename)?;
+        if !current.exists {
+            return Ok(());
+        }
+        if current.content_hash.as_deref() != Some(expected) {
+            return Err(format!("{CONFLICT_ERROR_PREFIX}: {filename}"));
+        }
     }
     let target = resolve_workspace_path(root, Path::new(filename)).map_err(String::from)?;
     match fs::remove_file(&target) {
@@ -963,8 +974,8 @@ pub fn write_note(
     write_note_at(&notes_root(app)?, filename, content, expected_hash)
 }
 
-pub fn delete_note(app: &AppHandle, filename: &str) -> Result<(), String> {
-    delete_note_at(&notes_root(app)?, filename)
+pub fn delete_note(app: &AppHandle, filename: &str, expected_hash: Option<&str>) -> Result<(), String> {
+    delete_note_at(&notes_root(app)?, filename, expected_hash)
 }
 
 pub fn get_file_metadata(app: &AppHandle, filename: &str) -> Result<FileMetadata, String> {
@@ -1656,7 +1667,7 @@ mod tests {
         let dir = tempdir().unwrap();
         write_note_at(dir.path(), "2026-09-07.txt", "content", None).unwrap();
         assert!(dir.path().join("2026-09-07.txt").exists());
-        delete_note_at(dir.path(), "2026-09-07.txt").unwrap();
+        delete_note_at(dir.path(), "2026-09-07.txt", None).unwrap();
         assert!(!dir.path().join("2026-09-07.txt").exists());
     }
 
@@ -1665,13 +1676,38 @@ mod tests {
         // #63: the common case — a tab that was opened but never actually
         // written to, so no file exists for it in the first place.
         let dir = tempdir().unwrap();
-        assert!(delete_note_at(dir.path(), "2026-09-07.txt").is_ok());
+        assert!(delete_note_at(dir.path(), "2026-09-07.txt", None).is_ok());
     }
 
     #[test]
     fn delete_note_at_rejects_an_invalid_filename() {
         let dir = tempdir().unwrap();
-        assert!(delete_note_at(dir.path(), "../escape.txt").is_err());
+        assert!(delete_note_at(dir.path(), "../escape.txt", None).is_err());
+    }
+
+    #[test]
+    fn delete_note_at_with_the_current_hash_deletes() {
+        let dir = tempdir().unwrap();
+        fs::write(dir.path().join("2026-09-07.txt"), "").unwrap();
+        let hash = hash_bytes(b"");
+        delete_note_at(dir.path(), "2026-09-07.txt", Some(&hash)).unwrap();
+        assert!(!dir.path().join("2026-09-07.txt").exists());
+    }
+
+    #[test]
+    fn delete_note_at_keeps_a_file_that_changed() {
+        let dir = tempdir().unwrap();
+        fs::write(dir.path().join("2026-09-07.txt"), "synced in from another device").unwrap();
+        let stale = hash_bytes(b"");
+        let err = delete_note_at(dir.path(), "2026-09-07.txt", Some(&stale)).unwrap_err();
+        assert!(err.starts_with(CONFLICT_ERROR_PREFIX));
+        assert!(dir.path().join("2026-09-07.txt").exists());
+    }
+
+    #[test]
+    fn delete_note_at_with_a_hash_and_no_file_succeeds() {
+        let dir = tempdir().unwrap();
+        assert!(delete_note_at(dir.path(), "2026-09-07.txt", Some("abc")).is_ok());
     }
 
     #[test]

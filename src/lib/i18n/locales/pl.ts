@@ -802,6 +802,7 @@ export const pl = {
   "toast.oneDriveSync.signInExpired": () => "Twoje logowanie do usługi OneDrive wygasło. Kliknij, aby zalogować się ponownie.",
   "toast.updates.updateAvailable": () => "Dostępna aktualizacja — zobacz O programie",
   "toast.persistence.failedToSaveNote": () => "Nie udało się zapisać notatki",
+  "toast.persistence.keptChangedNote": ({ filename }) => `Plik ${filename} zmienił się na dysku, więc został zachowany zamiast usunięty`,
   "onboarding.scratchpadName": () => "Witamy",
   "toast.onboarding.mobileHint": () =>
     "Dotknij dowolnego znacznika na dolnym pasku, aby przekształcić wiersze w zadania lub tematy spotkań.",

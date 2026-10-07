@@ -790,6 +790,7 @@ export const fr = {
   "toast.oneDriveSync.signInExpired": () => "Votre connexion OneDrive a expiré. Cliquez pour vous reconnecter.",
   "toast.updates.updateAvailable": () => "Mise à jour disponible — voir À propos",
   "toast.persistence.failedToSaveNote": () => "Échec de l'enregistrement de la note",
+  "toast.persistence.keptChangedNote": ({ filename }) => `${filename} a été modifié sur le disque ; il a donc été conservé au lieu d'être supprimé`,
   "onboarding.scratchpadName": () => "Bienvenue",
   "toast.onboarding.mobileHint": () =>
     "Touchez un jeton dans la barre inférieure pour convertir des lignes en actions ou sujets de réunion.",

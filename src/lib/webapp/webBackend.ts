@@ -450,10 +450,15 @@ export class WebBackend {
 
     // #63: a missing entry is not an error — mirrors storage.rs's own
     // idempotent `delete_note_at`.
-    delete_note: async ({ filename }) => {
+    delete_note: async ({ filename, expectedHash }) => {
       if (!isValidNoteFilename(filename)) throw new Error(`Invalid note filename: ${filename}`);
       const db = await this.db();
       const store = await this.getActiveNotesStore();
+      if (typeof expectedHash === "string") {
+        const current = await idbGet<StoredNote>(db, store, filename);
+        if (!current) return;
+        if (current.contentHash !== expectedHash) throw new Error(`conflict: note changed on disk: ${filename}`);
+      }
       await idbDelete(db, store, filename);
       if (store === STORE_NOTES_CLOUD) {
         await this.syncEngine.recordLocalDelete(filename);

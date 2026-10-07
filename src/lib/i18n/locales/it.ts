@@ -785,6 +785,7 @@ export const it = {
   "toast.oneDriveSync.signInExpired": () => "L'accesso a OneDrive è scaduto. Fai clic per accedere di nuovo.",
   "toast.updates.updateAvailable": () => "Aggiornamento disponibile — vedi Informazioni",
   "toast.persistence.failedToSaveNote": () => "Impossibile salvare la nota",
+  "toast.persistence.keptChangedNote": ({ filename }) => `${filename} è stato modificato su disco, quindi è stato mantenuto invece di essere eliminato`,
   "onboarding.scratchpadName": () => "Benvenuto",
   "toast.onboarding.mobileHint": () =>
     "Tocca qualsiasi token nella barra inferiore per convertire le righe in azioni o argomenti di riunione.",
