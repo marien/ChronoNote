@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onDestroy, onMount, tick } from "svelte";
+  import { onMount, tick } from "svelte";
   import * as controller from "../../controller";
   import { focusTrap } from "../../actions/focusTrap";
   import { searchResultsStore } from "../../controller";
@@ -24,15 +24,15 @@
     type PlacedRow,
   } from "./virtualList";
 
-  let query = "";
-  let selectedIndex = 0;
-  let scope: "open" | "all" = "open";
+  let query = $state("");
+  let selectedIndex = $state(0);
+  let scope: "open" | "all" = $state("open");
   let inputEl: HTMLInputElement;
-  let searching = false;
+  let searching = $state(false);
 
-  $: parsed = parseSearchQuery(query);
-  $: chips = parsed.chips;
-  $: queryTerm = parsed.term;
+  const parsed = $derived(parseSearchQuery(query));
+  const chips = $derived(parsed.chips);
+  const queryTerm = $derived(parsed.term);
 
   function removeChip(chip: SearchFilterChip) {
     query = removeChipFromQuery(query, chip);
@@ -52,7 +52,7 @@
       await controller.refreshAllNotesCache();
       searching = false;
     }
-    scope = next; // triggers the reactive search below
+    scope = next; // triggers the search effect below
     // Clicking the toggle button moves focus to the button — bring it
     // straight back to the input, with the current query selected, so
     // typing immediately starts a fresh search instead of needing an
@@ -71,13 +71,14 @@
   // (bounded by how many tabs are open, not total notes). An empty query
   // always runs immediately too — there's nothing to scan, and waiting
   // out the debounce just to clear the list would feel laggy.
-  let searchDebounceTimer: ReturnType<typeof setTimeout> | null = null;
-  onDestroy(() => {
-    if (searchDebounceTimer) clearTimeout(searchDebounceTimer);
-  });
-  $: {
-    if (searchDebounceTimer) clearTimeout(searchDebounceTimer);
-    if (scope === "all" && query.trim()) {
+  // The effect's cleanup clears the pending timer, both before each re-run
+  // and on destroy. It reads only `query` and `scope`; the timer and the
+  // rAF callback run outside tracking.
+  $effect(() => {
+    const q = query;
+    const sc = scope;
+    let searchDebounceTimer: ReturnType<typeof setTimeout> | null = null;
+    if (sc === "all" && q.trim()) {
       searching = true;
       searchDebounceTimer = setTimeout(() => {
         // One extra frame so the "searching" indicator actually paints
@@ -85,23 +86,26 @@
         // the thread — otherwise setting `searching = true` and running
         // the scan in the same tick means the spinner never gets drawn.
         requestAnimationFrame(() => {
-          controller.runSearch(query, scope);
+          controller.runSearch(q, sc);
           searching = false;
         });
       }, 200);
     } else {
       searching = false;
-      controller.runSearch(query, scope);
+      controller.runSearch(q, sc);
     }
-  }
+    return () => {
+      if (searchDebounceTimer) clearTimeout(searchDebounceTimer);
+    };
+  });
   // Carrying each item's position as data (assigned once, here) rather
   // than looking it up per rendered row via flatList.indexOf(item) in the
   // template — at large result counts that indexOf call made the render
   // itself O(N^2) in match count (confirmed during large-dataset stress
   // testing, §38).
   type IndexedItem = SearchResultItem & { __flatIndex: number };
-  $: flatList = $searchResultsStore.map((it, i): IndexedItem => ({ ...it, __flatIndex: i }));
-  $: groups = ((): [string, { filename: string; items: IndexedItem[] }][] => {
+  const flatList = $derived($searchResultsStore.map((it, i): IndexedItem => ({ ...it, __flatIndex: i })));
+  const groups = $derived.by((): [string, { filename: string; items: IndexedItem[] }][] => {
     const map = new Map<string, { filename: string; items: IndexedItem[] }>();
     for (const it of flatList) {
       const key = it.tabId ?? it.tabFilename;
@@ -109,8 +113,13 @@
       map.get(key)!.items.push(it);
     }
     return Array.from(map.entries());
-  })();
-  $: selectedIndex = clampIndex(selectedIndex, flatList.length);
+  });
+  // Re-clamps the stored index (a shrunk list keeps it clamped persistently,
+  // as before); writes only when the value actually changes.
+  $effect.pre(() => {
+    const clamped = clampIndex(selectedIndex, flatList.length);
+    if (clamped !== selectedIndex) selectedIndex = clamped;
+  });
 
   // --- Virtualized rendering (§38) --- a common query at the large tier
   // can match tens of thousands of lines; only the rows scrolled into
@@ -123,7 +132,8 @@
     | { type: "item"; key: string; item: IndexedItem; height: number };
   type Row = RawRow & PlacedRow;
 
-  $: rows = withTops<RawRow>(
+  const rows = $derived(
+    withTops<RawRow>(
     ((): RawRow[] => {
       const out: RawRow[] = [];
       let isFirst = true;
@@ -148,15 +158,18 @@
       }
       return out;
     })(),
-  ) as Row[];
-  $: totalHeight = stackHeight(rows);
+    ) as Row[],
+  );
+  const totalHeight = $derived(stackHeight(rows));
 
   let listEl: HTMLDivElement;
-  let scrollTop = 0;
-  let viewportHeight = 380;
+  let scrollTop = $state(0);
+  let viewportHeight = $state(380);
 
-  $: ({ start: windowStart, end: windowEnd } = visibleWindow(rows, scrollTop, viewportHeight));
-  $: visibleRows = rows.slice(windowStart, windowEnd);
+  const visibleRows = $derived.by(() => {
+    const { start, end } = visibleWindow(rows, scrollTop, viewportHeight);
+    return rows.slice(start, end);
+  });
 
   function onScroll() {
     if (listEl) scrollTop = listEl.scrollTop;
@@ -203,7 +216,7 @@
         placeholder={$t("searchModal.placeholder")}
         bind:value={query}
         bind:this={inputEl}
-        on:keydown={onKeydown}
+        onkeydown={onKeydown}
         autocomplete="off"
       />
       {#if searching}
@@ -215,7 +228,7 @@
         type="button"
         class="icon-btn modal-close-btn"
         aria-label={$t("common.closeDialog")}
-        on:click={controller.closeAllModals}
+        onclick={controller.closeAllModals}
       >
         <Icon name="close" size={14} />
       </button>
@@ -229,7 +242,7 @@
               type="button"
               class="chip-remove-btn"
               aria-label={$t("searchModal.removeFilterAriaLabel", { label: chip.label })}
-              on:click={() => removeChip(chip)}
+              onclick={() => removeChip(chip)}
             >
               ✕
             </button>
@@ -254,7 +267,7 @@
       role="listbox"
       bind:this={listEl}
       bind:clientHeight={viewportHeight}
-      on:scroll={onScroll}
+      onscroll={onScroll}
       style="position: relative; overflow-y: auto;"
     >
       {#if flatList.length === 0 && query.trim() && !searching}
@@ -284,9 +297,9 @@
               aria-selected={idx === selectedIndex}
               tabindex="0"
               style="position: absolute; top: {row.top}px; left: 0; right: 0; height: {row.height}px;"
-              on:click={() => controller.jumpToFileLine({ tabId: item.tabId, filename: item.tabFilename, lineIdx: item.lineIdx })}
-              on:mouseenter={() => (selectedIndex = idx)}
-              on:keydown={(e) =>
+              onclick={() => controller.jumpToFileLine({ tabId: item.tabId, filename: item.tabFilename, lineIdx: item.lineIdx })}
+              onmouseenter={() => (selectedIndex = idx)}
+              onkeydown={(e) =>
                 e.key === "Enter" &&
                 controller.jumpToFileLine({ tabId: item.tabId, filename: item.tabFilename, lineIdx: item.lineIdx })}
             >
