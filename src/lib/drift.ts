@@ -178,16 +178,40 @@ export async function resolveConflictKeepMine(): Promise<void> {
   }
 }
 
+function conflictCopyName(filename: string): string {
+  const stem = filename.replace(/\.txt$/, "");
+  const d = new Date();
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${stem}-${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}.txt`;
+}
+
+/** A guarded write of an open tab was refused because the file changed on disk. */
+export async function handleWriteConflict(filename: string): Promise<void> {
+  const tab = get(tabs).find((t) => !t.isScratchpad && t.filename === filename);
+  if (!tab) return;
+  cancelScheduledSave(tab.id);
+  if (tab.id === get(activeTabId)) {
+    await checkActiveTabForDrift(); // shows the conflict dialog (Case C) or reloads (Case B)
+    return;
+  }
+  // Not on screen: keep the user's text as a conflict copy so nothing is lost. The drift check
+  // sorts out the tab itself when it is next activated.
+  const name = conflictCopyName(filename);
+  try {
+    await api.writeConflictCopy(name, tab.content);
+    showToast(get(t)("toast.drift.savedAs", { name }));
+  } catch {
+    showToast(get(t)("toast.drift.couldntSaveCopy", undefined));
+  }
+}
+
 export async function resolveConflictSaveCopy(): Promise<void> {
   const c = get(conflictInfo);
   endConflict();
   if (!c) return;
   const tab = get(tabs).find((t) => t.id === c.tabId);
   if (!tab) return;
-  const stem = c.filename.replace(/\.txt$/, "");
-  const d = new Date();
-  const pad = (n: number) => String(n).padStart(2, "0");
-  const name = `${stem}-${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}.txt`;
+  const name = conflictCopyName(c.filename);
   try {
     await api.writeConflictCopy(name, tab.content);
     invalidateDiskNotesCache();

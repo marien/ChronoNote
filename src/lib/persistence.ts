@@ -22,6 +22,21 @@ import { registerSyncHooks, syncOneDriveNow } from "./oneDriveSync";
 import { sha256Hex } from "./hash";
 import { t } from "./i18n";
 
+/** How a write protects against overwriting a version it hasn't seen. */
+export type WriteGuard =
+  | { kind: "tabBaseline" } // the open tab's clean hash, read right before the write
+  | { kind: "hash"; hash: string } // a hash the caller read itself
+  | { kind: "none" };
+
+/** Writes to one filename run in order, so each reads its expected hash after the previous one landed. */
+const writeChains = new Map<string, Promise<unknown>>();
+
+/** Set from boot.ts (persistence can't import drift.ts: drift imports persistence). */
+let onWriteConflict: ((filename: string) => Promise<void>) | null = null;
+export function setWriteConflictHandler(fn: ((filename: string) => Promise<void>) | null) {
+  onWriteConflict = fn;
+}
+
 // --- Debounced autosave on typing, immediate on deliberate actions ---
 
 const saveTimers: Record<string, ReturnType<typeof setTimeout>> = {};
@@ -137,9 +152,11 @@ function persistTab(tabId: string): Promise<void> {
       recomputeSaveState();
       return;
     }
-    await writeNoteAndInvalidateCache(tab.filename, tab.content);
+    await writeNoteAndInvalidateCache(tab.filename, tab.content, { kind: "tabBaseline" });
   })()
-    .catch(() => showToast(get(t)("toast.persistence.failedToSaveNote", undefined)))
+    .catch((e) => {
+      if (!isWriteConflictError(e)) showToast(get(t)("toast.persistence.failedToSaveNote", undefined));
+    })
     .finally(() => inFlightWrites.delete(p));
   inFlightWrites.add(p);
   return p;
@@ -280,10 +297,14 @@ export async function prefetchNotesForDates(filenames: string[]): Promise<void> 
  * filename with *no* open tab — `promoteScratchpad`'s brand-new today
  * file, `forwardActionToToday`'s no-open-tab fallback — actually needs to
  * invalidate. */
-export function writeNoteAndInvalidateCache(filename: string, content: string): Promise<void> {
+export function writeNoteAndInvalidateCache(
+  filename: string,
+  content: string,
+  guard: WriteGuard = { kind: "none" },
+): Promise<void> {
   const hasOpenTab = get(tabs).some((t) => !t.isScratchpad && t.filename === filename);
   if (!hasOpenTab) diskNotesCacheRaw = null;
-  return writeNoteRaw(filename, content);
+  return writeNoteRaw(filename, content, guard);
 }
 
 /** True for the error `write_note` / `delete_note` return when the file on disk is no longer
@@ -339,32 +360,55 @@ export function noteClosingWithContent(filename: string, content: string): void 
   if (diskNotesCacheRaw !== null) diskNotesCacheRaw[filename] = content;
 }
 
-function writeNoteRaw(filename: string, content: string): Promise<void> {
-  const p = api.writeNote(filename, content);
+function writeNoteRaw(filename: string, content: string, guard: WriteGuard): Promise<void> {
+  const previous = writeChains.get(filename) ?? Promise.resolve();
+  const p = previous
+    .catch(() => {})
+    .then(() => {
+      let expected: string | undefined;
+      if (guard.kind === "hash") expected = guard.hash;
+      else if (guard.kind === "tabBaseline") {
+        const tab = get(tabs).find((t) => !t.isScratchpad && t.filename === filename);
+        expected = tab ? getTabCleanHash(tab.id) : undefined;
+      }
+      return api.writeNote(filename, content, expected);
+    });
   inFlightWrites.add(p);
   inFlightFilenames.add(filename);
   failedFilenames.delete(filename); // a retry clears the prior failure mark
   recomputeSaveState();
-  return p.then(
+  const done = p.then(
     (meta) => {
       inFlightWrites.delete(p);
       inFlightFilenames.delete(filename);
       recomputeSaveState();
-      // §94: the disk now matches this content — refresh the tab's clean
-      // baseline so a later external edit is detected against what we
-      // actually last wrote, not a stale hash.
+      // §94: the disk now matches this content; re-baseline the tab.
       const tab = get(tabs).find((t) => !t.isScratchpad && t.filename === filename);
       if (tab) markTabClean(tab.id, meta?.contentHash);
       scheduleCloudPush();
     },
-    (err) => {
+    async (err) => {
       inFlightWrites.delete(p);
       inFlightFilenames.delete(filename);
-      failedFilenames.add(filename);
-      recomputeSaveState();
-      throw err; // callers still see the failure (their `.catch` toasts it)
+      if (isWriteConflictError(err)) {
+        // Not a disk failure: the file changed under us. The handler opens the conflict dialog
+        // (active tab) or keeps the text as a conflict copy (background tab).
+        recomputeSaveState();
+        if (guard.kind === "tabBaseline" && onWriteConflict) await onWriteConflict(filename);
+      } else {
+        failedFilenames.add(filename);
+        recomputeSaveState();
+      }
+      throw err; // callers still see the failure
     },
   );
+  writeChains.set(filename, done);
+  void done
+    .catch(() => {})
+    .finally(() => {
+      if (writeChains.get(filename) === done) writeChains.delete(filename);
+    });
+  return done;
 }
 
 // --- Editing ---
@@ -392,9 +436,9 @@ export function writeTabContent(tabId: string, newContent: string, list: NoteTab
   const next = [...list];
   next[idx] = { ...next[idx], content: newContent };
   if (!next[idx].isScratchpad) {
-    writeNoteAndInvalidateCache(next[idx].filename, newContent).catch(() =>
-      showToast(get(t)("toast.persistence.failedToSaveNote", undefined)),
-    );
+    writeNoteAndInvalidateCache(next[idx].filename, newContent, { kind: "tabBaseline" }).catch((e) => {
+      if (!isWriteConflictError(e)) showToast(get(t)("toast.persistence.failedToSaveNote", undefined));
+    });
   }
   if (tabId === get(activeTabId) && editorApi) editorApi.setContent(newContent);
   return next;

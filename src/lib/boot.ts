@@ -50,8 +50,13 @@ import {
   unsavedScratchpadNames,
   wordWrap,
 } from "./stores";
-import { flushAllPendingSaves, recomputeSaveState, refreshAllNotesCache } from "./persistence";
-import { checkActiveTabForDrift } from "./drift";
+import {
+  flushAllPendingSaves,
+  recomputeSaveState,
+  refreshAllNotesCache,
+  setWriteConflictHandler,
+} from "./persistence";
+import { checkActiveTabForDrift, handleWriteConflict } from "./drift";
 import { initCalendarSyncDiffTracking, maybeSilentSyncEmptyNote, refreshAgendaFileExists } from "./calendarSyncActions";
 import { refreshSyncConflicts, syncOneDriveNow } from "./oneDriveSync";
 import { checkForUpdatesOnLaunch } from "./updates";
@@ -468,6 +473,7 @@ export async function initApp() {
   wireWindowTitleSync();
   wireCloseBarrier();
   wireDriftDetection();
+  setWriteConflictHandler(handleWriteConflict);
   wireDateRollover();
   initCalendarSyncDiffTracking();
   const cfg = await api.getConfig();

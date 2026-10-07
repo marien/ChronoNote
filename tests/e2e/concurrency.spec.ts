@@ -107,3 +107,14 @@ test("switching to a tab whose file changed reloads it (activate trigger)", asyn
   await tab(page, "2026-09-03.txt").click();
   await expect.poll(() => activeTabContent(page)).toContain("v2 external");
 });
+
+test("autosave does not overwrite a note that changed on disk", async ({ page }) => {
+  await seedApp(page, seed);
+  await editor(page).click();
+  await page.keyboard.press("Control+End");
+  await page.keyboard.type("\nmy new line");
+  // Before the 400 ms autosave fires, another device writes the file.
+  await externallyWrite(page, "Today\n=====\nEXTERNAL edit\n");
+  await expect(modalCard(page, MODAL_LABELS.conflict)).toBeVisible();
+  expect(await diskNote(page)).toBe("Today\n=====\nEXTERNAL edit\n");
+});

@@ -589,7 +589,10 @@ describe("updateActiveTabContent", () => {
     // An external action (e.g. Action Drawer or paste deferral) updates the tab immediately
     const currentTabs = get(controller.tabs);
     controller.tabs.set(controller.writeTabContent("cancel-tab", "action updated content", currentTabs));
-    expect(apiMock.writeNote).toHaveBeenCalledWith("2026-09-20.txt", "action updated content");
+    // The write is queued behind earlier writes to the file, so it starts a microtask later.
+    await vi.waitFor(() =>
+      expect(apiMock.writeNote).toHaveBeenCalledWith("2026-09-20.txt", "action updated content", undefined),
+    );
     apiMock.writeNote.mockClear();
 
     // Wait past the 400ms debounce timer: it should NOT overwrite with "typed content"
@@ -625,6 +628,45 @@ describe("deleteNoteAndInvalidateCache", () => {
   });
 });
 
+describe("guarded writes", () => {
+  it("autosave passes the tab's clean hash", async () => {
+    controller.tabs.set([tab({ id: "a", filename: "2026-09-01.txt", content: "v0" })]);
+    controller.activeTabId.set("a");
+    controller.markTabClean("a", "h0");
+    controller.updateActiveTabContent("v1");
+    await controller.flushAllPendingSaves();
+    expect(apiMock.writeNote).toHaveBeenCalledWith("2026-09-01.txt", "v1", "h0");
+  });
+
+  it("two quick writes run in order; the second expects the hash the first wrote", async () => {
+    controller.tabs.set([tab({ id: "a", filename: "2026-09-01.txt", content: "v0" })]);
+    controller.activeTabId.set("a");
+    controller.markTabClean("a", "h0");
+    apiMock.writeNote
+      .mockResolvedValueOnce({ exists: true, contentHash: "h1", sizeBytes: 2, modifiedMs: 1 })
+      .mockResolvedValueOnce({ exists: true, contentHash: "h2", sizeBytes: 2, modifiedMs: 2 });
+    controller.tabs.set(controller.writeTabContent("a", "v1", get(controller.tabs)));
+    controller.tabs.set(controller.writeTabContent("a", "v2", get(controller.tabs)));
+    await vi.waitFor(() => expect(apiMock.writeNote).toHaveBeenCalledTimes(2));
+    expect(apiMock.writeNote.mock.calls[0]).toEqual(["2026-09-01.txt", "v1", "h0"]);
+    expect(apiMock.writeNote.mock.calls[1]).toEqual(["2026-09-01.txt", "v2", "h1"]);
+  });
+
+  it("a refused write calls the conflict handler and shows no save-failed message", async () => {
+    const handler = vi.fn(async () => {});
+    controller.setWriteConflictHandler(handler);
+    controller.tabs.set([tab({ id: "a", filename: "2026-09-01.txt", content: "v0" })]);
+    controller.activeTabId.set("a");
+    controller.markTabClean("a", "h0");
+    apiMock.writeNote.mockRejectedValueOnce("conflict: note changed on disk: 2026-09-01.txt");
+    controller.updateActiveTabContent("v1");
+    await controller.flushAllPendingSaves();
+    expect(handler).toHaveBeenCalledWith("2026-09-01.txt");
+    expect(get(controller.toastMessage)).not.toMatch(/failed to save/i);
+    controller.setWriteConflictHandler(null);
+  });
+});
+
 describe("flushAllPendingSaves (§93 exit barrier)", () => {
   it("writes a tab's debounced content immediately instead of waiting out the 400ms", async () => {
     controller.tabs.set([tab({ id: "a", filename: "2026-09-01.txt", content: "start" })]);
@@ -634,7 +676,7 @@ describe("flushAllPendingSaves (§93 exit barrier)", () => {
 
     await controller.flushAllPendingSaves();
 
-    expect(apiMock.writeNote).toHaveBeenCalledWith("2026-09-01.txt", "typed just now");
+    expect(apiMock.writeNote).toHaveBeenCalledWith("2026-09-01.txt", "typed just now", undefined);
   });
 
   it("resolves cleanly when nothing is pending", async () => {
@@ -1580,6 +1622,7 @@ describe("copySelectionToNextOccurrence (#66)", () => {
     expect(apiMock.writeNote).toHaveBeenCalledWith(
       "2026-09-08.txt",
       "Weekly Sync\n===========\n# renew the cert\n",
+      undefined,
     );
     controller.agendaFileExists.set(false);
   });
@@ -1627,6 +1670,7 @@ describe("copySelectionToNextOccurrence (#66)", () => {
     expect(apiMock.writeNote).toHaveBeenCalledWith(
       "2026-09-20.txt",
       "Weekly Sync\n===========\n# renew the cert\n",
+      undefined,
     );
   });
 
@@ -1737,8 +1781,8 @@ describe("carryHistorySelectionForward (2026-09-24 redesign, Section History tak
       { kind: "today", date: "2026-09-12", headerText: "Sync" },
       ["# an old action"],
     );
-    expect(apiMock.writeNote).toHaveBeenCalledWith("2026-08-01.txt", "Sync\n====\n> an old action");
-    expect(apiMock.writeNote).toHaveBeenCalledWith("2026-09-12.txt", "Sync\n====\n# an old action\n");
+    expect(apiMock.writeNote).toHaveBeenCalledWith("2026-08-01.txt", "Sync\n====\n> an old action", undefined);
+    expect(apiMock.writeNote).toHaveBeenCalledWith("2026-09-12.txt", "Sync\n====\n# an old action\n", undefined);
   });
 
   it("uses insertLinesOverride (e.g. 'action only') instead of the verbatim source lines", async () => {
@@ -1803,6 +1847,7 @@ describe("carryHistorySelectionForward (2026-09-24 redesign, Section History tak
     expect(apiMock.writeNote).toHaveBeenCalledWith(
       "2026-08-01.txt",
       "Sync\n====\n> an old action\n\n# an old action",
+      undefined,
     );
   });
 });
@@ -1942,6 +1987,7 @@ describe("calendarSyncActions (.agenda.json)", () => {
     expect(apiMock.writeNote).toHaveBeenCalledWith(
       "2026-09-20.txt",
       "Existing note\n=============\n\n\n1:1 with Priya\n==============\nAsked about the roadmap\n",
+      undefined,
     );
   });
 
@@ -2079,7 +2125,7 @@ describe("calendarSyncActions (.agenda.json)", () => {
       const updated = get(controller.tabs).find((t) => t.id === "t1")!;
       expect(updated.content).toContain("Daily Standup\n=============");
       expect(updated.content).toContain("Planning\n========");
-      expect(apiMock.writeNote).toHaveBeenCalledWith("2026-09-14.txt", updated.content);
+      expect(apiMock.writeNote).toHaveBeenCalledWith("2026-09-14.txt", updated.content, undefined);
 
       await new Promise((r) => setTimeout(r, 50));
       expect(jumpedLine).toBe(2);
@@ -2948,7 +2994,7 @@ describe("beginFolderSwitch", () => {
       await controller.promoteScratchpad("scratch-tab");
 
       const expectedMerged = "memory content\n\n\n# Scratch action\n";
-      expect(apiMock.writeNote).toHaveBeenCalledWith(today, expectedMerged);
+      expect(apiMock.writeNote).toHaveBeenCalledWith(today, expectedMerged, undefined);
       const tabs = get(controller.tabs);
       expect(tabs.length).toBe(1);
       expect(tabs[0].id).toBe("today-tab");
@@ -2969,7 +3015,7 @@ describe("beginFolderSwitch", () => {
       await controller.promoteScratchpad("scratch-tab-debounce");
 
       const expectedMerged = "memory typed\n\n\nscratch notes\n";
-      expect(apiMock.writeNote).toHaveBeenCalledWith(today, expectedMerged);
+      expect(apiMock.writeNote).toHaveBeenCalledWith(today, expectedMerged, undefined);
       apiMock.writeNote.mockClear();
 
       // Wait past the 400ms debounce: it should not re-save "memory typed"
