@@ -10,7 +10,7 @@
   import { countActions } from "../../tokens";
 
   // Same order as the desktop tab bar: dated notes by date, then scratchpads.
-  $: sortedTabs = controller.sortedTabsForDisplay($tabs);
+  const sortedTabs = $derived(controller.sortedTabsForDisplay($tabs));
 
   const tabLabel = (t: NoteTab) => (t.isScratchpad ? t.filename : t.filename.replace(/\.txt$/, ""));
 
@@ -53,7 +53,7 @@
   }
 </script>
 
-<svelte:window on:keydown={onKeydown} />
+<svelte:window onkeydown={onKeydown} />
 
 <div
   class="overlay mobile-drawer-overlay"
@@ -69,7 +69,7 @@
         <span class="drawer-title">{$t("mobileTabDrawer.title")}</span>
         <span class="drawer-count">{$tabs.length}</span>
       </div>
-      <button type="button" class="drawer-close-btn" on:click={closeDrawer} aria-label={$t("mobileTabDrawer.closeTabList")}>
+      <button type="button" class="drawer-close-btn" onclick={closeDrawer} aria-label={$t("mobileTabDrawer.closeTabList")}>
         <Icon name="close" size={16} />
       </button>
     </div>
@@ -86,8 +86,8 @@
           role="tab"
           tabindex="0"
           aria-selected={tab.id === $activeTabId}
-          on:click={() => selectTab(tab.id)}
-          on:keydown={(e) => e.key === 'Enter' && selectTab(tab.id)}
+          onclick={() => selectTab(tab.id)}
+          onkeydown={(e) => e.key === 'Enter' && selectTab(tab.id)}
         >
           <div class="drawer-tab-icon">
             <Icon name={tab.isScratchpad ? "tab-scratch" : "tab-daily"} size={16} />
@@ -108,7 +108,7 @@
           <button
             type="button"
             class="drawer-tab-close"
-            on:click={(e) => closeTab(e, tab.id)}
+            onclick={(e) => closeTab(e, tab.id)}
             aria-label={$t("mobileTabDrawer.closeTab", { label: tabLabel(tab) })}
           >
             <Icon name="close" size={13} />
@@ -118,11 +118,11 @@
     </div>
 
     <div class="drawer-actions">
-      <button type="button" class="drawer-action-btn" on:click={handleNewScratchpad}>
+      <button type="button" class="drawer-action-btn" onclick={handleNewScratchpad}>
         <Icon name="new-scratchpad" size={15} />
         <span>{$t("mobileTabDrawer.newScratchpad")}</span>
       </button>
-      <button type="button" class="drawer-action-btn" on:click={handleOpenDate}>
+      <button type="button" class="drawer-action-btn" onclick={handleOpenDate}>
         <Icon name="date-note" size={15} />
         <span>{$t("mobileTabDrawer.openDateNote")}</span>
       </button>

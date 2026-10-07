@@ -1,10 +1,16 @@
 <script lang="ts">
+  import type { Snippet } from "svelte";
   import Icon from "../icons/Icon.svelte";
   import type { IconName } from "../icons/paths";
 
-  export let icon: IconName;
-  export let title: string;
-  export let subtitle: string = "";
+  interface Props {
+    icon: IconName;
+    title: string;
+    subtitle?: string;
+    children?: Snippet;
+  }
+
+  let { icon, title, subtitle = "", children }: Props = $props();
 </script>
 
 <div class="modal-empty empty-state" role="status">
@@ -15,5 +21,5 @@
   {#if subtitle}
     <div class="empty-state-subtitle">{subtitle}</div>
   {/if}
-  <slot />
+  {@render children?.()}
 </div>

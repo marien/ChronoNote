@@ -17,7 +17,7 @@
   import type { TranslationKey, TranslationParams } from "../i18n/schema";
 
   let popEl: HTMLDivElement;
-  let anchorStyle = "visibility:hidden";
+  let anchorStyle = $state("visibility:hidden");
 
   function positionAboveTrigger() {
     const trigger = document.querySelector<HTMLElement>("#stat-cloud");
@@ -91,24 +91,26 @@
     controller.openSettingsOnNotesFolder();
   }
 
-  $: isSyncing = $oneDriveSyncing || $oneDriveSyncStatus === "syncing" || $syncHealth?.status === "syncing";
-  $: isOffline = $oneDriveSyncStatus === "offline" || $syncHealth?.status === "offline";
-  $: isError = $oneDriveSignInExpired || $oneDriveSyncStatus === "error" || $syncHealth?.status === "error";
+  const isSyncing = $derived($oneDriveSyncing || $oneDriveSyncStatus === "syncing" || $syncHealth?.status === "syncing");
+  const isOffline = $derived($oneDriveSyncStatus === "offline" || $syncHealth?.status === "offline");
+  const isError = $derived($oneDriveSignInExpired || $oneDriveSyncStatus === "error" || $syncHealth?.status === "error");
 
-  $: statusLabel = $oneDriveSignInExpired
-    ? $t("syncHealth.status.signInExpired")
-    : isSyncing
-    ? $t("syncHealth.status.syncingChanges")
-    : isOffline
-      ? $t("syncHealth.status.offlineCached")
-      : isError
-        ? $t("statusBar.oneDrive.syncError")
-        : $t("syncHealth.status.inSync");
+  const statusLabel = $derived(
+    $oneDriveSignInExpired
+      ? $t("syncHealth.status.signInExpired")
+      : isSyncing
+      ? $t("syncHealth.status.syncingChanges")
+      : isOffline
+        ? $t("syncHealth.status.offlineCached")
+        : isError
+          ? $t("statusBar.oneDrive.syncError")
+          : $t("syncHealth.status.inSync"),
+  );
 
-  $: statusClass = isSyncing ? "syncing" : isOffline ? "offline" : isError ? "error" : "in-sync";
+  const statusClass = $derived(isSyncing ? "syncing" : isOffline ? "offline" : isError ? "error" : "in-sync");
 </script>
 
-<svelte:window on:mousedown={onOutsideMousedown} on:keydown={onWindowKeydown} on:resize={positionAboveTrigger} />
+<svelte:window onmousedown={onOutsideMousedown} onkeydown={onWindowKeydown} onresize={positionAboveTrigger} />
 
 <div
   id="telemetry-popover"
@@ -128,7 +130,7 @@
       type="button"
       class="modal-close-btn"
       aria-label={$t("common.close")}
-      on:click={() => syncHealthPopoverOpen.set(false)}
+      onclick={() => syncHealthPopoverOpen.set(false)}
     >
       ✕
     </button>
@@ -189,7 +191,7 @@
 
   <div class="telemetry-actions">
     {#if $oneDriveSignInExpired}
-      <button type="button" class="telemetry-btn telemetry-sync-btn" on:click={() => controller.signInAgain()}>
+      <button type="button" class="telemetry-btn telemetry-sync-btn" onclick={() => controller.signInAgain()}>
         {$t("statusBar.oneDrive.signInAgain")}
       </button>
     {/if}
@@ -197,7 +199,7 @@
       type="button"
       class="telemetry-btn telemetry-sync-btn"
       disabled={isSyncing || $oneDriveSignInExpired}
-      on:click={handleSyncNow}
+      onclick={handleSyncNow}
     >
       {#if isSyncing}
         <span class="modal-spinner">⟳</span> {$t("statusBar.oneDrive.syncingText")}
@@ -208,7 +210,7 @@
     <button
       type="button"
       class="telemetry-btn"
-      on:click={handleOpenSettings}
+      onclick={handleOpenSettings}
     >
       {$t("syncHealth.openSettingsButton")}
     </button>

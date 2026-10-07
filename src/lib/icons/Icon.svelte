@@ -8,8 +8,12 @@
    * is deliberately never set here — it's `currentColor`, so the icon
    * follows whatever `color` the surrounding button/heading already has,
    * the same way the editor glyphs follow their `--glyph-*` tokens. */
-  export let name: IconName;
-  export let size = 16;
+  interface Props {
+    name: IconName;
+    size?: number;
+  }
+
+  let { name, size = 16 }: Props = $props();
 </script>
 
 <svg

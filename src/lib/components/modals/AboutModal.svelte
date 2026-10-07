@@ -25,18 +25,19 @@
   // serves the latest deployed build), so skipped there.
   if ($backendKind !== "web" && $updateStatus === "idle") controller.checkForUpdates();
 
-  $: progressLabel = (() => {
+  const progressLabel = $derived.by(() => {
     const p = $updateDownloadProgress;
     if (!p || !p.totalBytes) return "";
     const mb = (n: number) => (n / (1024 * 1024)).toFixed(1);
     return ` ${mb(p.doneBytes)} / ${mb(p.totalBytes)} MB`;
-  })();
+  });
 
   /** "Checked just now / 3 minutes ago / 2 hours ago" for the last completed update check.
    * A `$:` block (not a plain function called from the template) so Svelte tracks `$t` as a
    * real reactive dependency here too — a plain helper function's own internal `$t` reference
    * wouldn't otherwise make the template re-render on a language change while this stays open. */
-  $: agoText = ((ms: number | null): string => {
+  const agoText = $derived.by(() => {
+    const ms = $updateLastChecked;
     if (!ms) return "";
     const s = Math.max(0, Math.round((Date.now() - ms) / 1000));
     if (s < 45) return $t("about.checkedJustNow", undefined);
@@ -44,10 +45,10 @@
     if (m < 60) return $t("about.checkedMinutesAgo", { minutes: m });
     const h = Math.round(m / 60);
     return $t("about.checkedHoursAgo", { hours: h });
-  })($updateLastChecked);
+  });
 
   /** The version card's status chip: a word, and a tone that colours its dot and outline. */
-  $: chip = ((): { label: string; tone: "ok" | "accent" | "busy" | "warn" | "neutral" } => {
+  const chip = $derived.by((): { label: string; tone: "ok" | "accent" | "busy" | "warn" | "neutral" } => {
     if ($backendKind === "web") return { label: $t("about.chip.alwaysCurrent", undefined), tone: "ok" };
     switch ($updateStatus) {
       case "checking":
@@ -71,7 +72,7 @@
       default:
         return { label: $t("about.chip.notCheckedYet", undefined), tone: "neutral" };
     }
-  })();
+  });
 </script>
 
 <div class="overlay" role="presentation" use:closeOnOutsideClick={controller.closeAllModals}>
@@ -83,7 +84,7 @@
         type="button"
         class="icon-btn modal-close-btn"
         aria-label={$t("common.closeDialog")}
-        on:click={controller.closeAllModals}
+        onclick={controller.closeAllModals}
       >
         <Icon name="close" size={14} />
       </button>
@@ -113,7 +114,7 @@
             {$t("about.web.hint")}
           </div>
           <div class="settings-toggle-row" style="margin-top: 8px; gap: 8px;">
-            <button class="icon-btn" on:click={controller.openCurrentReleaseNotes}>
+            <button class="icon-btn" onclick={controller.openCurrentReleaseNotes}>
               {$t("about.releaseNotes")} <Icon name="external" size={12} />
             </button>
           </div>
@@ -124,8 +125,8 @@
             <strong style="color: var(--text);">v{$updateAvailableVersion}</strong> {$t("about.isAvailable")}
           </div>
           <div class="settings-toggle-row" style="margin-top: 8px; gap: 8px;">
-            <button class="icon-btn" on:click={controller.openReleasesPage}> {$t("about.whatsChanged")} </button>
-            <button class="icon-btn btn-primary" on:click={() => controller.downloadAndInstallUpdate()}>
+            <button class="icon-btn" onclick={controller.openReleasesPage}> {$t("about.whatsChanged")} </button>
+            <button class="icon-btn btn-primary" onclick={() => controller.downloadAndInstallUpdate()}>
               <Icon name="update" size={14} /> {$t("about.downloadAndInstall")}
             </button>
           </div>
@@ -135,7 +136,7 @@
           </div>
         {:else if $updateStatus === "ready"}
           <div class="settings-hint" style="margin-top: 8px;">{$t("about.ready.installed")}</div>
-          <button class="icon-btn btn-primary" style="margin-top: 8px;" on:click={() => controller.restartToFinishUpdate()}>
+          <button class="icon-btn btn-primary" style="margin-top: 8px;" onclick={() => controller.restartToFinishUpdate()}>
             {$t("about.ready.restartNow")}
           </button>
         {:else if $updateStatus === "error"}
@@ -144,16 +145,16 @@
               {$t("about.error.installFailedPrefix")} {$updateErrorMessage ?? ""}
             </div>
             <div class="settings-toggle-row" style="margin-top: 8px; gap: 8px;">
-              <button class="icon-btn" on:click={() => controller.downloadAndInstallUpdate()}>{$t("about.error.tryAgain")}</button>
-              <button class="icon-btn btn-primary" on:click={controller.openReleasesPage}>{$t("about.error.downloadFromGithub")}</button>
+              <button class="icon-btn" onclick={() => controller.downloadAndInstallUpdate()}>{$t("about.error.tryAgain")}</button>
+              <button class="icon-btn btn-primary" onclick={controller.openReleasesPage}>{$t("about.error.downloadFromGithub")}</button>
             </div>
           {:else}
             <div class="settings-hint" style="margin-top: 8px; color: var(--state-error);">
               {$t("about.error.couldntCheckPrefix")} {$updateErrorMessage ?? ""}
             </div>
             <div class="settings-toggle-row" style="margin-top: 8px; gap: 8px;">
-              <button class="icon-btn" on:click={() => controller.checkForUpdates()}>{$t("about.error.tryAgain")}</button>
-              <button class="icon-btn" on:click={controller.openCurrentReleaseNotes}>
+              <button class="icon-btn" onclick={() => controller.checkForUpdates()}>{$t("about.error.tryAgain")}</button>
+              <button class="icon-btn" onclick={controller.openCurrentReleaseNotes}>
                 {$t("about.releaseNotes")} <Icon name="external" size={12} />
               </button>
             </div>
@@ -169,10 +170,10 @@
             {/if}
           </div>
           <div class="settings-toggle-row" style="margin-top: 8px; gap: 8px;">
-            <button class="icon-btn" on:click={controller.openCurrentReleaseNotes}>
+            <button class="icon-btn" onclick={controller.openCurrentReleaseNotes}>
               {$t("about.releaseNotes")} <Icon name="external" size={12} />
             </button>
-            <button class="icon-btn" on:click={() => controller.checkForUpdates()}>
+            <button class="icon-btn" onclick={() => controller.checkForUpdates()}>
               {$updateStatus === "upToDate" ? $t("about.checkAgain") : $t("about.checkNow")}
             </button>
           </div>
@@ -183,13 +184,13 @@
         <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 8px;">
           <div style="display: flex; align-items: center; gap: 8px;">
             <span class="settings-inline-label">{$t("about.links.website")}</span>
-            <button class="icon-btn" style="text-align: left; flex: 1;" on:click={controller.openWebsiteLink}>
+            <button class="icon-btn" style="text-align: left; flex: 1;" onclick={controller.openWebsiteLink}>
               {controller.WEBSITE_URL}
             </button>
           </div>
           <div style="display: flex; align-items: center; gap: 8px;">
             <span class="settings-inline-label">{$t("about.links.project")}</span>
-            <button class="icon-btn" style="text-align: left; flex: 1;" on:click={controller.openProjectLink}>
+            <button class="icon-btn" style="text-align: left; flex: 1;" onclick={controller.openProjectLink}>
               {controller.PROJECT_URL}
             </button>
           </div>
@@ -204,7 +205,7 @@
       </div>
     </div>
     <div class="modal-footer" style="justify-content: flex-end;">
-      <button class="icon-btn" on:click={controller.closeAllModals}>{$t("common.close")}</button>
+      <button class="icon-btn" onclick={controller.closeAllModals}>{$t("common.close")}</button>
     </div>
   </div>
 </div>

@@ -9,19 +9,19 @@
 
   // The header strip of the compact window: drag handle, which occurrence is showing (coloured like the tab strip:
   // grey = past, blue = today, green = future), previous/next occurrence, and the way back to the full window.
-  $: tab = $tabs.find((x) => x.id === $activeTabId);
-  $: dateClass = peekDateClass(tab?.filename, $currentDateISO);
-  $: label = tab ? tab.filename.replace(/\.txt$/, "") : "";
+  const tab = $derived($tabs.find((x) => x.id === $activeTabId));
+  const dateClass = $derived(peekDateClass(tab?.filename, $currentDateISO));
+  const label = $derived(tab ? tab.filename.replace(/\.txt$/, "") : "");
   // The thin strip: always when hidden; in "on hover" mode until the pointer is over the window.
-  $: hidden = $peekSettings.header === "never" || ($peekSettings.header === "hover" && !$peekHeaderExpanded);
-  $: overlay = $peekSettings.header === "hover" && $peekHeaderExpanded;
+  const hidden = $derived($peekSettings.header === "never" || ($peekSettings.header === "hover" && !$peekHeaderExpanded));
+  const overlay = $derived($peekSettings.header === "hover" && $peekHeaderExpanded);
   // The section's title as written in this note (without a date), since the title line itself is not drawn in Peek.
-  $: title = (() => {
+  const title = $derived.by(() => {
     if (!tab || !$peekTarget) return "";
     const lines = tab.content.split("\n");
     const range = findSectionRange(lines, $peekTarget);
     return range ? normalizeHeaderTitle(lines[range.titleLine].trim()) : $peekTarget;
-  })();
+  });
 </script>
 
 <!-- "On hover": while the pointer is on the window the full strip is drawn OVER the content; this spacer keeps the thin
@@ -46,7 +46,7 @@
       aria-label={$t("peek.prev")}
       title="{$t('peek.prev')} (Alt+←)"
       disabled={!$peekPosition || $peekPosition.index <= 1}
-      on:click={() => controller.stepPeekOccurrence(-1)}>‹</button
+      onclick={() => controller.stepPeekOccurrence(-1)}>‹</button
     >
     <span class="peek-date" data-tauri-drag-region>{label}</span>
     {#if $peekPosition}
@@ -58,7 +58,7 @@
       aria-label={$t("peek.next")}
       title="{$t('peek.next')} (Alt+→)"
       disabled={!$peekPosition || $peekPosition.index >= $peekPosition.total}
-      on:click={() => controller.stepPeekOccurrence(1)}>›</button
+      onclick={() => controller.stepPeekOccurrence(1)}>›</button
     >
     <span class="peek-title" data-tauri-drag-region>{title}</span>
     <button
@@ -66,7 +66,7 @@
       class="peek-btn"
       aria-label={$t("peek.expand")}
       title={$t("peek.expand")}
-      on:click={() => controller.leavePeek()}><Icon name="maximize" size={13} /></button
+      onclick={() => controller.leavePeek()}><Icon name="maximize" size={13} /></button
     >
   {/if}
 </div>
