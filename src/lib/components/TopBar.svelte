@@ -56,14 +56,14 @@
   import { countActions } from "../tokens";
   import { t } from "../i18n";
 
-  let contextMenuVisible = false;
-  let contextTab: NoteTab | null = null;
-  let contextPos = { x: 0, y: 0 };
-  let contextMenuEl: HTMLDivElement;
+  let contextMenuVisible = $state(false);
+  let contextTab = $state<NoteTab | null>(null);
+  let contextPos = $state({ x: 0, y: 0 });
+  let contextMenuEl = $state<HTMLDivElement>();
 
-  let renamingTabId: string | null = null;
-  let renameInputVal = "";
-  let renameInputEl: HTMLInputElement;
+  let renamingTabId = $state<string | null>(null);
+  let renameInputVal = $state("");
+  let renameInputEl = $state<HTMLInputElement>();
 
   function isLastDisplayTab(tab: NoteTab | null): boolean {
     if (!tab) return true;
@@ -134,7 +134,7 @@
   // buttons just call mocked Tauri APIs, same as every other
   // `getCurrentWindow()` call already exercised under the mock) and lets
   // the whole thing be covered by the existing Playwright suite.
-  $: isMergedTitlebar = $backendKind === "desktop";
+  const isMergedTitlebar = $derived($backendKind === "desktop");
 
   /** Dated tabs show just the date; scratchpads keep their given name. */
   const tabLabel = (t: NoteTab) => (t.isScratchpad ? t.filename : t.filename.replace(/\.txt$/, ""));
@@ -157,8 +157,8 @@
   };
 
   let topBarEl: HTMLDivElement;
-  let tabBarEl: HTMLDivElement;
-  let showActionLabels = false;
+  let tabBarEl = $state<HTMLDivElement>();
+  let showActionLabels = $state(false);
   // #56: once even icon-only action buttons leave the tab strip too
   // little room, collapse the secondary ones (Actions/History/Search/
   // Sync calendar/Promote/Settings) into a single
@@ -167,7 +167,7 @@
   // regardless; see `settleLayout` for how this is decided. About moved
   // to the status bar (#58) — it's always reachable there regardless of
   // window width, so it no longer needs a place in this collapse group.
-  let buttonsCollapsed = false;
+  let buttonsCollapsed = $state(false);
   // §52: whether the tab bar is overflowing at all — drives whether the
   // scroll arrows show. Deliberately *not* derived from scroll position
   // (the way `canScrollLeft`/`canScrollRight` used to work) — that made
@@ -175,7 +175,7 @@
   // which is the opposite of what's wanted now: both arrows stay visible
   // the whole time the bar is overflowing, and clicking one at an edge
   // wraps to the other end instead of the arrow just vanishing.
-  let isOverflowing = false;
+  let isOverflowing = $state(false);
   let resizeObserver: ResizeObserver | null = null;
 
   // #61 follow-up: refs into the off-screen measurement clones below —
@@ -191,38 +191,42 @@
   let cloneActionsEl: HTMLElement;
   let cloneHistoryEl: HTMLElement;
   let cloneSearchEl: HTMLElement;
-  let cloneCalendarSyncEl: HTMLElement;
-  let clonePromoteEl: HTMLElement;
+  let cloneCalendarSyncEl = $state<HTMLElement>();
+  let clonePromoteEl = $state<HTMLElement>();
   let cloneSettingsEl: HTMLElement;
-  let moreBtnEl: HTMLElement;
+  let moreBtnEl = $state<HTMLElement>();
 
   // The horizontal tab strip is replaced by the tabs-drawer button on
   // touch-first devices only — NOT by window width: a narrow desktop/web
   // window keeps the strip (#56's collapse-into-More logic measures it).
-  $: showHorizontalTabs = !$isMobile;
+  const showHorizontalTabs = $derived(!$isMobile);
   // Touch-first only: desktop scrolls its strip with the §52 arrows instead.
-  $: showOpenTabsBtn = !showHorizontalTabs;
-  $: mobileActiveTab = $tabs.find((t) => t.id === $activeTabId) ?? null;
+  const showOpenTabsBtn = $derived(!showHorizontalTabs);
+  const mobileActiveTab = $derived($tabs.find((t) => t.id === $activeTabId) ?? null);
   // On a phone the top bar carries the drawer button and the active tab's date, so
   // there's no room for the whole button row: the secondary buttons live in "More".
-  $: if (!showHorizontalTabs) buttonsCollapsed = true;
+  $effect.pre(() => {
+    if (!showHorizontalTabs) buttonsCollapsed = true;
+  });
 
-  $: activeTab = $tabs.find((t) => t.id === $activeTabId);
+  const activeTab = $derived($tabs.find((t) => t.id === $activeTabId));
   // The button itself only ever appears once turned on in Settings — an
   // opt-in feature that reads an external file, not something to dangle
   // in front of everyone by default. `.agenda.json` is a file in the
   // desktop notes folder — the web app has no such folder (IndexedDB-
   // backed, no filesystem) to read one from, so it's excluded regardless
   // of the setting.
-  $: calendarSyncVisible =
-    $calendarSyncEnabled && ($backendKind !== "web" || (!!$oneDriveAccount && !!$oneDriveFolder));
+  const calendarSyncVisible = $derived(
+    $calendarSyncEnabled && ($backendKind !== "web" || (!!$oneDriveAccount && !!$oneDriveFolder)),
+  );
   // Grayed out (not hidden) rather than gated on visibility: today-or-
   // later, same restriction every dated action shares, and the agenda
   // file has to actually exist to be worth trying.
-  $: calendarSyncReady =
-    !!activeTab && !activeTab.isScratchpad && activeTab.filename.slice(0, 10) >= $currentDateISO && $agendaFileExists;
-  $: displayTabs = controller.sortedTabsForDisplay($tabs);
-  $: hasTabsWithoutOpenActions = $tabs.some((t) => countActions(t.content).open === 0);
+  const calendarSyncReady = $derived(
+    !!activeTab && !activeTab.isScratchpad && activeTab.filename.slice(0, 10) >= $currentDateISO && $agendaFileExists,
+  );
+  const displayTabs = $derived(controller.sortedTabsForDisplay($tabs));
+  const hasTabsWithoutOpenActions = $derived($tabs.some((t) => countActions(t.content).open === 0));
 
   /** Waits for the next paint frame — used instead of Svelte's own `tick()`
    * everywhere below. `tick()` resolves via Svelte's reactive scheduler,
@@ -303,6 +307,7 @@
    * instead, which isn't floored the same way and actually shrinks when
    * there's less content, however comfortably it fits. */
   function tabsContentWidth(): number {
+    if (!tabBarEl) return 0;
     let w = 0;
     for (const child of tabBarEl.children) w += (child as HTMLElement).offsetWidth;
     return w;
@@ -375,7 +380,7 @@
    * uncollapse that the live fallback would actually have found room for. */
   function predictUncollapseWouldFit(labelsOn: boolean): boolean {
     if (!tabBarEl || !moreBtnEl) return false;
-    const rows: [HTMLElement, HTMLElement][] = [
+    const rows: [HTMLElement | undefined, HTMLElement][] = [
       [cloneActionsEl, labelActionsEl],
       [cloneHistoryEl, labelHistoryEl],
       [cloneSearchEl, labelSearchEl],
@@ -787,7 +792,7 @@
         class="icon-btn mobile-tab-drawer-btn"
         title={$t("topBar.openTabsList.title")}
         aria-label={$t("topBar.openTabsList.ariaLabel", { count: $tabs.length })}
-        on:click={() => mobileTabDrawerOpen.set(true)}
+        onclick={() => mobileTabDrawerOpen.set(true)}
       >
         <Icon name="tabs" size={16} />
         <span class="mobile-tab-count">{$tabs.length}</span>
@@ -796,7 +801,7 @@
         <button
           class="tab active mobile-active-tab {mobileActiveTab.isScratchpad ? 'scratch' : 'daily'} {tabDateClass(mobileActiveTab, $currentDateISO)}"
           aria-label={$t("topBar.activeTabAriaLabel", { label: tabLabel(mobileActiveTab) })}
-          on:click={() => mobileTabDrawerOpen.set(true)}
+          onclick={() => mobileTabDrawerOpen.set(true)}
         >
           <span class="tab-icon" aria-hidden="true">
             <Icon name={mobileActiveTab.isScratchpad ? "tab-scratch" : "tab-daily"} size={13} />
@@ -808,7 +813,7 @@
     <div class="tab-bar-spacer"></div>
   {:else}
     {#if isOverflowing}
-      <button class="icon-btn tab-scroll-btn" aria-label={$t("topBar.scrollTabsLeft")} on:click={() => scrollTabBar(-1)}>
+      <button class="icon-btn tab-scroll-btn" aria-label={$t("topBar.scrollTabsLeft")} onclick={() => scrollTabBar(-1)}>
         <Icon name="chevron-left" size={14} />
       </button>
     {/if}
@@ -830,17 +835,17 @@
           tabindex="0"
           data-tab-id={tab.id}
           aria-selected={tab.id === $activeTabId}
-          on:click={() => controller.switchTab(tab.id)}
-          on:dblclick={() => tab.isScratchpad && startRenaming(tab)}
-          on:contextmenu={(e) => openTabContextMenu(e, tab)}
-          on:mousedown={(e) => {
+          onclick={() => controller.switchTab(tab.id)}
+          ondblclick={() => tab.isScratchpad && startRenaming(tab)}
+          oncontextmenu={(e) => openTabContextMenu(e, tab)}
+          onmousedown={(e) => {
             // Middle-click closes the tab (and suppress the autoscroll cursor).
             if (e.button === 1) {
               e.preventDefault();
               controller.requestTabClose(tab.id);
             }
           }}
-          on:keydown={(e) => e.key === "Enter" && controller.switchTab(tab.id)}
+          onkeydown={(e) => e.key === "Enter" && controller.switchTab(tab.id)}
         >
           <span class="tab-icon" aria-hidden="true">
             <Icon name={tab.isScratchpad ? "tab-scratch" : "tab-daily"} size={13} />
@@ -851,7 +856,7 @@
               class="tab-rename-input"
               bind:this={renameInputEl}
               bind:value={renameInputVal}
-              on:keydown={(e) => {
+              onkeydown={(e) => {
                 if (e.key === "Enter") {
                   e.stopPropagation();
                   commitRename();
@@ -860,8 +865,8 @@
                   cancelRename();
                 }
               }}
-              on:blur={commitRename}
-              on:click|stopPropagation
+              onblur={commitRename}
+              onclick={(e) => e.stopPropagation()}
             />
           {:else}
             <span class="tab-label">{tabLabel(tab)}</span>
@@ -876,8 +881,14 @@
             role="button"
             tabindex="0"
             aria-label={$t("topBar.closeTab")}
-            on:click|stopPropagation={() => controller.requestTabClose(tab.id)}
-            on:keydown|stopPropagation={(e) => e.key === "Enter" && controller.requestTabClose(tab.id)}
+            onclick={(e) => {
+              e.stopPropagation();
+              controller.requestTabClose(tab.id);
+            }}
+            onkeydown={(e) => {
+              e.stopPropagation();
+              if (e.key === "Enter") controller.requestTabClose(tab.id);
+            }}
           >
             <Icon name="close" size={11} />
           </span>
@@ -885,7 +896,7 @@
       {/each}
     </div>
     {#if isOverflowing}
-      <button class="icon-btn tab-scroll-btn" aria-label={$t("topBar.scrollTabsRight")} on:click={() => scrollTabBar(1)}>
+      <button class="icon-btn tab-scroll-btn" aria-label={$t("topBar.scrollTabsRight")} onclick={() => scrollTabBar(1)}>
         <Icon name="chevron-right" size={14} />
       </button>
     {/if}
@@ -912,7 +923,7 @@
     class="icon-btn tab-bar-new-btn"
 
     title={$t("topBar.newScratchpad.title", { combo: formatCombo(shortcutById('newScratchpad').combos[0]) })}
-    on:click={controller.createScratchpad}
+    onclick={controller.createScratchpad}
   >
     <Icon name="new-scratchpad" />
   </button>
@@ -920,7 +931,7 @@
     class="icon-btn"
     title={$t("topBar.openDateNote.title", { combo: formatShortcut('openDateNote') })}
     data-datepicker-trigger
-    on:click={controller.openDatePicker}
+    onclick={controller.openDatePicker}
   >
     <Icon name="date-note" />{#if showActionLabels}<span class="icon-label">{$t("topBar.label.date")}</span>{/if}
   </button>
@@ -929,27 +940,27 @@
          window is too narrow — MoreActionsModal, anchored to
          data-more-trigger the same way DatePickerModal anchors to
          data-datepicker-trigger. -->
-    <button class="icon-btn has-pip" title={$t("topBar.moreActions.title")} data-more-trigger on:click={controller.openMoreActions} bind:this={moreBtnEl}>
+    <button class="icon-btn has-pip" title={$t("topBar.moreActions.title")} data-more-trigger onclick={controller.openMoreActions} bind:this={moreBtnEl}>
       <Icon name="more" />
       {#if calendarSyncVisible && calendarSyncReady && $calendarSyncHasDiff}
         <span class="icon-btn-pip" aria-hidden="true"></span>
       {/if}
     </button>
   {:else}
-    <button class="icon-btn" title={$t("topBar.actions.title", { combo: formatShortcut('openActions') })} on:click={controller.openActionDrawer}>
+    <button class="icon-btn" title={$t("topBar.actions.title", { combo: formatShortcut('openActions') })} onclick={controller.openActionDrawer}>
       <Icon name="actions" />{#if showActionLabels}<span class="icon-label">{$t("actionDrawer.modal.ariaLabel")}</span>{/if}
     </button>
     <button
       class="icon-btn"
       title={$t("topBar.history.title", { combo: formatShortcut('openHistory') })}
-      on:click={controller.openMeetingHistory}
+      onclick={controller.openMeetingHistory}
     >
       <Icon name="section-history" />{#if showActionLabels}<span class="icon-label">{$t("history.modal.ariaLabel")}</span>{/if}
     </button>
     <button
       class="icon-btn"
       title={$t("topBar.search.title", { combo: formatShortcut('crossTabSearch') })}
-      on:click={controller.openCrossTabSearch}
+      onclick={controller.openCrossTabSearch}
     >
       <Icon name="search" />{#if showActionLabels}<span class="icon-label">{$t("topBar.label.search")}</span>{/if}
     </button>
@@ -962,7 +973,7 @@
             ? $t("topBar.calendarSync.titleNoAgendaFile")
             : $t("topBar.calendarSync.titleNotAvailable")}
         disabled={!calendarSyncReady}
-        on:click={controller.syncCalendarFromFile}
+        onclick={controller.syncCalendarFromFile}
       >
         <Icon name="calendar-import" />{#if showActionLabels}<span class="icon-label">{$t("topBar.label.calendarSync")}</span>{/if}
         {#if calendarSyncReady && $calendarSyncHasDiff}
@@ -974,28 +985,28 @@
       <button
         class="icon-btn"
         title={$t("topBar.promote.title")}
-        on:click={() => controller.promoteScratchpad(activeTab.id)}
+        onclick={() => controller.promoteScratchpad(activeTab.id)}
       >
         <Icon name="promote" />{#if showActionLabels}<span class="icon-label">{$t("topBar.label.promote")}</span>{/if}
       </button>
     {/if}
-    <button class="icon-btn" title={$t("topBar.settings.title", { combo: formatShortcut('openSettings') })} on:click={controller.openSettings}>
+    <button class="icon-btn" title={$t("topBar.settings.title", { combo: formatShortcut('openSettings') })} onclick={controller.openSettings}>
       <Icon name="settings" />{#if showActionLabels}<span class="icon-label">{$t("settings.modal.title")}</span>{/if}
     </button>
   {/if}
   {#if isMergedTitlebar}
     <div class="window-controls">
-      <button class="win-btn" aria-label={$t("topBar.window.minimize")} on:click={() => controller.minimizeWindow()}>
+      <button class="win-btn" aria-label={$t("topBar.window.minimize")} onclick={() => controller.minimizeWindow()}>
         <Icon name="minimize" size={12} />
       </button>
       <button
         class="win-btn"
         aria-label={$chromeExpanded ? $t("topBar.window.restore") : $t("topBar.window.maximize")}
-        on:click={() => controller.toggleMaximizeWindow()}
+        onclick={() => controller.toggleMaximizeWindow()}
       >
         <Icon name={$chromeExpanded ? "restore" : "maximize"} size={12} />
       </button>
-      <button class="win-btn win-close" aria-label={$t("topBar.window.close")} on:click={() => controller.closeWindow()}>
+      <button class="win-btn win-close" aria-label={$t("topBar.window.close")} onclick={() => controller.closeWindow()}>
         <Icon name="close" size={12} />
       </button>
     </div>
@@ -1056,12 +1067,12 @@
 </div>
 
 <svelte:window
-  on:mousedown={(e) => {
+  onmousedown={(e) => {
     if (contextMenuVisible && contextMenuEl && !contextMenuEl.contains(e.target as Node)) {
       closeContextMenu();
     }
   }}
-  on:keydown={(e) => {
+  onkeydown={(e) => {
     if (e.key === "Escape" && contextMenuVisible) {
       closeContextMenu();
     }
@@ -1080,7 +1091,7 @@
       type="button"
       class="tab-context-item"
       role="menuitem"
-      on:click={() => {
+      onclick={() => {
         const id = contextTab?.id;
         closeContextMenu();
         if (id) controller.requestTabClose(id);
@@ -1094,7 +1105,7 @@
       class="tab-context-item"
       role="menuitem"
       disabled={$tabs.length <= 1}
-      on:click={() => {
+      onclick={() => {
         const id = contextTab?.id;
         closeContextMenu();
         if (id) controller.closeOtherTabs(id);
@@ -1108,7 +1119,7 @@
       class="tab-context-item"
       role="menuitem"
       disabled={isLastDisplayTab(contextTab)}
-      on:click={() => {
+      onclick={() => {
         const id = contextTab?.id;
         closeContextMenu();
         if (id) controller.closeTabsToTheRight(id);
@@ -1122,7 +1133,7 @@
       class="tab-context-item"
       role="menuitem"
       disabled={!hasTabsWithoutOpenActions}
-      on:click={() => {
+      onclick={() => {
         closeContextMenu();
         controller.closeTabsWithNoOpenActions();
       }}
@@ -1138,7 +1149,7 @@
         type="button"
         class="tab-context-item"
         role="menuitem"
-        on:click={() => {
+        onclick={() => {
           if (contextTab) startRenaming(contextTab);
         }}
       >
@@ -1149,7 +1160,7 @@
         type="button"
         class="tab-context-item"
         role="menuitem"
-        on:click={() => {
+        onclick={() => {
           const id = contextTab?.id;
           closeContextMenu();
           if (id) controller.duplicateTab(id);
@@ -1163,7 +1174,7 @@
         type="button"
         class="tab-context-item"
         role="menuitem"
-        on:click={() => {
+        onclick={() => {
           const t = contextTab;
           closeContextMenu();
           if (t) copyDate(t);
@@ -1176,7 +1187,7 @@
         type="button"
         class="tab-context-item"
         role="menuitem"
-        on:click={() => {
+        onclick={() => {
           const t = contextTab;
           closeContextMenu();
           if (t) copyPath(t);
