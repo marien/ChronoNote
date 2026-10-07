@@ -787,6 +787,7 @@ export const it = {
   "toast.updates.updateAvailable": () => "Aggiornamento disponibile — vedi Informazioni",
   "toast.persistence.failedToSaveNote": () => "Impossibile salvare la nota",
   "toast.persistence.keptChangedNote": ({ filename }) => `${filename} è stato modificato su disco, quindi è stato mantenuto invece di essere eliminato`,
+  "toast.dragDrop.unsupportedFile": () => "File non supportato. Trascina un'esportazione .json o una nota YYYY-MM-DD.txt.",
   "onboarding.scratchpadName": () => "Benvenuto",
   "toast.onboarding.mobileHint": () =>
     "Tocca qualsiasi token nella barra inferiore per convertire le righe in azioni o argomenti di riunione.",

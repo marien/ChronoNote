@@ -25,6 +25,7 @@
   } from "./lib/controller";
   import { matchesShortcut } from "./lib/shortcuts";
   import { isMac } from "./lib/platform";
+  import { t } from "./lib/i18n";
   import { wireMobileViewport } from "./lib/mobileViewport";
   import { wireMobileBackNavigation } from "./lib/mobileNavigation";
   import { invoke } from "@tauri-apps/api/core";
@@ -310,7 +311,7 @@
         return;
       }
 
-      controller.showToast("Unsupported file. Drop a .json export bundle or YYYY-MM-DD.txt note.");
+      controller.showToast(get(t)("toast.dragDrop.unsupportedFile", undefined));
     }
 
     window.addEventListener("keydown", onKeydown);

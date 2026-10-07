@@ -782,6 +782,7 @@ export type TranslationParams = {
   "toast.persistence.failedToSaveNote": undefined;
   "toast.persistence.keptChangedNote": { filename: string };
   "toast.onboarding.mobileHint": undefined;
+  "toast.dragDrop.unsupportedFile": undefined;
   "onboarding.scratchpadName": undefined;
   // i18n Phase 2 (docs/design/i18n-roadmap.md): translated headlines for
   // the small set of `AppError` codes Rust authors itself as fixed

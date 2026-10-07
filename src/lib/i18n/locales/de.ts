@@ -780,6 +780,7 @@ export const de = {
   "toast.updates.updateAvailable": () => "Update verfügbar — siehe Über",
   "toast.persistence.failedToSaveNote": () => "Notiz konnte nicht gespeichert werden",
   "toast.persistence.keptChangedNote": ({ filename }) => `${filename} wurde auf der Festplatte geändert und deshalb behalten statt gelöscht`,
+  "toast.dragDrop.unsupportedFile": () => "Nicht unterstützte Datei. Ziehen Sie einen .json-Export oder eine YYYY-MM-DD.txt-Notiz hierher.",
   "onboarding.scratchpadName": () => "Willkommen",
   "toast.onboarding.mobileHint": () =>
     "Tippen Sie auf ein Token in der unteren Leiste, um Zeilen in Aufgaben oder Themen umzuwandeln.",

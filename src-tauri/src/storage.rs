@@ -14,9 +14,9 @@ use ts_rs::TS;
 ///  - `Grayscale` — weight/opacity only, no hue.
 ///  - `Legacy` — the pre-0.6 palette (§111): red open · amber deferred ·
 ///    green done, on the old VS-Code-blue chrome accent.
-/// Stored in `config.json`; deserialization rejects anything else (an
-/// invalid value trips the §97 corrupt-config recovery instead of silently
-/// passing through, as it did while this was a bare `String`).
+///    Stored in `config.json`; deserialization rejects anything else (an
+///    invalid value trips the §97 corrupt-config recovery instead of silently
+///    passing through, as it did while this was a bare `String`).
 #[derive(Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Debug, Default, TS)]
 #[serde(rename_all = "lowercase")]
 pub enum ColorMode {

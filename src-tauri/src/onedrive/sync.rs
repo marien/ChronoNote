@@ -584,7 +584,7 @@ impl OneDriveManager {
         // A listing that starts from scratch (no saved delta link) contains
         // every file that exists, but says nothing about the ones that are
         // gone — those are found below by what's missing from it.
-        let full_listing = cache.delta_link.as_deref().map_or(true, str::is_empty);
+        let full_listing = cache.delta_link.as_deref().is_none_or(str::is_empty);
         let mut seen_in_listing = std::collections::HashSet::new();
 
         for item in delta_res.changes {
