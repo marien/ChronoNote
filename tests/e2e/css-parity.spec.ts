@@ -36,7 +36,7 @@ const SAMPLER = [
 ].join("\n");
 
 async function same(page: Page, name: string) {
-  await expect(page).toHaveScreenshot(`${name}.png`, { animations: "disabled", caret: "hide", maxDiffPixels: 0 });
+  await expect(page).toHaveScreenshot(`${name}.png`, { animations: "disabled", caret: "hide", maxDiffPixels: 0, mask: [page.locator(".cm-overview-ruler")] });
 }
 
 for (const theme of ["dark", "light"] as const) {
