@@ -843,3 +843,268 @@
 {#if showFolderPicker}
   <OneDriveFolderPickerModal onClose={() => (showFolderPicker = false)} />
 {/if}
+
+<style>
+/* Tabbed Settings: the tab switcher sits between the title and the
+   scrollable section below, never itself part of what scrolls. */
+
+/* Real tabs (an underline on the selected one), deliberately unlike the
+   bordered `.segmented` controls inside them, so navigation and settings
+   don't look like the same thing. */
+
+.settings-tabs {
+  display: flex;
+  gap: 4px;
+  /* The tabs sit 1px lower than the content (margin-bottom: -1px) so the active tab's underline covers the rule
+     under the row. With the rule as a border that 1px poked out of the padding box and, because this box scrolls
+     sideways (overflow-x: auto makes overflow-y auto too), showed a tiny vertical scrollbar. The rule is an inset
+     shadow in 1px of bottom padding instead: the same look, and the tabs stay inside the box. */
+  padding: 6px 16px 1px;
+  box-shadow: inset 0 -1px 0 var(--edge-soft);
+  flex-shrink: 0;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.settings-tab {
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  padding: 7px 12px;
+  font: inherit;
+  font-size: 12px;
+  color: var(--muted);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.settings-tab:hover {
+  color: var(--text);
+}
+
+.settings-tab[aria-selected="true"] {
+  color: var(--text);
+  font-weight: 600;
+  border-bottom-color: var(--tab-active-border);
+}
+
+.settings-tab:focus-visible {
+  outline: 2px solid var(--tab-active-border);
+  outline-offset: -2px;
+  border-radius: 3px;
+}
+
+@media (max-width: 600px) {
+  .settings-tabs {
+    gap: 0;
+  }
+  /* Size to the label (grow to share spare room) rather than forcing equal
+     widths: a long translation ("Notities & sync") must never overflow its tab. */
+  .settings-tab {
+    flex: 1 1 auto;
+    padding: 7px 6px;
+    font-size: 11.5px;
+    text-align: center;
+  }
+}
+
+.settings-slider-val {
+  font-size: 12px;
+  font-family: var(--font);
+  color: var(--muted);
+}
+
+.settings-range-slider {
+  width: 100%;
+  accent-color: var(--glyph-open-color);
+  cursor: pointer;
+}
+
+.settings-recent-dirs {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: 8px;
+}
+
+.settings-recent-dir {
+  text-align: left;
+  font-size: 12px;
+  color: var(--muted);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  padding: 4px 8px;
+  cursor: pointer;
+  overflow-wrap: anywhere;
+  font-family: inherit;
+}
+
+.settings-recent-dir:hover {
+  background: var(--surface-raised);
+  border-color: var(--edge-strong);
+  color: var(--text);
+}
+
+/* Settings layout. Every setting is one `.s-row` (SettingRow/SettingToggle):
+   label + optional one-line description on the left, control on the right;
+   rows in a group are divided by a hairline. A `stack` row puts the control
+   under the text, and on a phone every row stacks. Spacing lives here, not
+   in inline styles. */
+
+.s-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.s-slider {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 200px;
+}
+
+.s-slider .settings-range-slider {
+  flex: 1;
+  min-width: 0;
+}
+
+.s-slider .settings-slider-val {
+  min-width: 42px;
+  text-align: right;
+}
+
+/* Buttons in Settings read as buttons: bordered, the primary one filled. */
+
+.settings-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: transparent;
+  border: 1px solid var(--edge-strong);
+  border-radius: 5px;
+  color: var(--text);
+  padding: 5px 12px;
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.settings-btn:hover {
+  background: var(--surface-raised);
+}
+
+.settings-btn.primary {
+  background: var(--text);
+  color: var(--bg);
+  border-color: transparent;
+}
+
+.settings-btn.primary:hover {
+  background: var(--text);
+  opacity: 0.85;
+}
+
+.settings-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.settings-btn:disabled:hover {
+  background: transparent;
+}
+
+.settings-btn.primary:disabled:hover {
+  background: var(--text);
+  opacity: 0.4;
+}
+
+.s-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.s-actions.inline {
+  margin-top: 0;
+}
+
+.s-fields {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.s-fields .s-input {
+  width: 100%;
+  height: 32px;
+}
+
+.s-field-label {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.s-note {
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 8px;
+}
+
+.s-strong {
+  color: var(--text);
+}
+
+.s-status {
+  border-top: 1px solid var(--edge-soft);
+  padding-top: 2px;
+}
+
+.s-linkbtn {
+  align-self: flex-start;
+  background: none;
+  border: none;
+  padding: 0;
+  margin-top: 10px;
+  font: inherit;
+  font-size: 11px;
+  color: var(--muted);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+
+.s-linkbtn:hover {
+  color: var(--text);
+}
+
+.s-hidden-input {
+  display: none;
+}
+
+.s-footer {
+  justify-content: flex-end;
+}
+
+.s-note.warn {
+  color: var(--state-warn);
+  border-left: 2px solid var(--state-warn);
+  padding-left: 8px;
+}
+
+.s-note.error {
+  color: var(--state-error);
+}
+
+/* Was inside the global phone-width block that also holds the row rules. */
+@media (max-width: 600px) {
+  .s-slider {
+    width: 100%;
+  }
+}
+</style>
