@@ -9970,7 +9970,7 @@ Marien, after abandoning the idea of Peek reacting to Teams calls by itself (wat
 
 ## 306. One tokenizer for the note grammar
 
-**Status: implemented, not yet released.** Refactor from `docs/design/line-tokenizer-design.md` (approved by Marien 2026-10-07), steps R1, R4, R7, R10; implemented by Sonnet 5.5 agents, reviewed and integrated by the orchestrator. No intended behaviour change.
+**Status: released in v0.28.0.** Refactor from `docs/design/line-tokenizer-design.md` (approved by Marien 2026-10-07), steps R1, R4, R7, R10; implemented by Sonnet 5.5 agents, reviewed and integrated by the orchestrator. No intended behaviour change.
 
 - The grammar (`# v > x o . ,`, bullets, `! `, `=> `, consequences, `@name`, `(@a, @b)`, `(topic)`) used to be parsed by separate regexes: two in the editor (`glyphs.ts`), a hand-mirrored copy for read-only views (`glyphLine.ts`), one per query in `tokens.ts`, and local copies of the action-symbol class in six files. Several past fixes (§120, §125, §126, §259, §268) were one copy drifting from another.
 - Now `src/lib/grammar/tokenize.ts` (`tokenizeLine`) is the one definition, with one glyph table (`grammar/glyphs.ts`) and one symbol list (`grammar/symbols.ts`). The editor's decorations and atomic ranges, the read-only glyph views and the per-line queries in `tokens.ts` are built on it. The editor rebuild is about 1.4× faster on a 2,000-line note.
@@ -9980,7 +9980,7 @@ Marien, after abandoning the idea of Peek reacting to Teams calls by itself (wat
 
 ## 307. The three big drawers on Svelte runes
 
-**Status: implemented, not yet released.** From `docs/design/svelte-runes-drawers-design.md`, steps R2, R5, R8. No intended behaviour change.
+**Status: released in v0.28.0.** From `docs/design/svelte-runes-drawers-design.md`, steps R2, R5, R8. No intended behaviour change.
 
 - `SearchModal`, `ActionDrawerModal` and `HistoryModal` used 39 legacy `$:` blocks between them. Their ordering rules caused real bugs (§55/§56, §61/§62, §215, §270: History on the right date, showing the first occurrence's body).
 - Converted to runes: values are `$derived` (computed on read, so no ordering problem), side effects are `$effect`/`$effect.pre` reading only what they need, a block that reassigned its own input became a guarded `$effect.pre`, timers are cleared by effect cleanup.
@@ -9988,7 +9988,7 @@ Marien, after abandoning the idea of Peek reacting to Teams calls by itself (wat
 
 ## 308. One overlay stack for everything open over the editor
 
-**Status: implemented, not yet released.** From `docs/design/overlay-state-design.md`, steps R3, R6, R9.
+**Status: released in v0.28.0.** From `docs/design/overlay-state-design.md`, steps R3, R6, R9.
 
 - What was open lived in `modal` plus four separate flags (find bar, mobile tab drawer, OneDrive folder picker, sync popover), and what Escape and mobile Back closed was a fixed order of `if`s plus a capture-phase flag.
 - `src/lib/overlays.ts` now holds one stack. `modal` and the four flags are thin views of it with the old API, so none of the 72 places that write them changed. Escape records the top entry when the key goes down and dismisses only that one, and only if it didn't already close itself in its own handler; mobile Back uses the same.
@@ -9996,7 +9996,7 @@ Marien, after abandoning the idea of Peek reacting to Teams calls by itself (wat
 
 ## 309. Styles split into ordered files and scoped components
 
-**Status: implemented, not yet released.** From `docs/design/split-app-css-design.md`, steps R11 and R12. No intended visual change.
+**Status: released in v0.28.0.** From `docs/design/split-app-css-design.md`, steps R11 and R12. No intended visual change.
 
 - `src/app.css` (4,581 lines, all global) is now a list of `@import`s of ordered files in `src/styles/` (tokens/themes, top bar, editor, status bar, modals, toast/settings, mobile, Zen/sync/About, Peek). Proof for the split: the built CSS of both the desktop app and the web app was byte-identical before and after.
 - The rules that belong to one component moved into that component's `<style>` block, where Svelte scopes them: `TopBar`, `StatusBar`, `DatePickerModal`, `HistoryModal`, `SettingsModal` (the date-picker and History files are gone). Rules shared with other components, rules for elements CodeMirror creates, and classes set from script stay global or use `:global(...)`. Two mobile overrides moved with the top bar, because the scoped rules would otherwise have outranked them.
@@ -10006,14 +10006,14 @@ Marien, after abandoning the idea of Peek reacting to Teams calls by itself (wat
 
 ## 310. The date picker on Svelte runes
 
-**Status: implemented, not yet released.** Refactor R13, the same conversion as §307 for `DatePickerModal.svelte` (5 `$:` blocks). No intended behaviour change. The first change implemented by Gemini 3.8 Flash through the Antigravity CLI (orchestrated and reviewed like the Sonnet agents).
+**Status: released in v0.28.1.** Refactor R13, the same conversion as §307 for `DatePickerModal.svelte` (5 `$:` blocks). No intended behaviour change. The first change implemented by Gemini 3.8 Flash through the Antigravity CLI (orchestrated and reviewed like the Sonnet agents).
 
 - Values (`showTarget`, `cells`, the note/open/heat maps) are `$derived`; the two side effects (prefetching the visible month's notes, following the typed date) are `$effect`s that read only their inputs and call their functions inside `untrack`, so a function that writes state cannot re-trigger its own effect.
 - Gates: svelte-check 0, Vitest 828, Playwright 569.
 
 ## 311. The conflict and unsaved-scratchpad dialogs on Svelte runes
 
-**Status: implemented, not yet released.** Refactor R14, the same conversion as §307/§310 for `ConflictModal.svelte` (1 `$:` block) and `UnsavedScratchpadsModal.svelte` (3). No intended behaviour change. Implemented by Gemini 3.8 Flash through the Antigravity CLI.
+**Status: released in v0.28.1.** Refactor R14, the same conversion as §307/§310 for `ConflictModal.svelte` (1 `$:` block) and `UnsavedScratchpadsModal.svelte` (3). No intended behaviour change. Implemented by Gemini 3.8 Flash through the Antigravity CLI.
 
 - All four former `$:` blocks were plain values and are now `$derived`; neither dialog has an `$effect`. Click handlers use `onclick`.
 - `ConflictModal`'s focus target is `$state`, because its button sits inside `{#if info}` and a plain `let` there triggers svelte-check's `non_reactive_update` warning; `UnsavedScratchpadsModal`'s stays a plain `let`.
@@ -10021,7 +10021,7 @@ Marien, after abandoning the idea of Peek reacting to Teams calls by itself (wat
 
 ## 312. Every remaining component on Svelte runes
 
-**Status: implemented, not yet released.** Refactors R15-R21, the same conversion as §307/§310/§311 for all 26 components that were still in legacy mode. No intended behaviour change. Implemented by Gemini 3.8 Flash (R15, R16, R18, R20, R21) and Claude Sonnet 5.5 (R17, R19) through the Antigravity CLI, five briefs from one shared rule set, every diff reviewed before merging.
+**Status: released in v0.28.1.** Refactors R15-R21, the same conversion as §307/§310/§311 for all 26 components that were still in legacy mode. No intended behaviour change. Implemented by Gemini 3.8 Flash (R15, R16, R18, R20, R21) and Claude Sonnet 5.5 (R17, R19) through the Antigravity CLI, five briefs from one shared rule set, every diff reviewed before merging.
 
 - **R15** seven small modals (Safety, MigrateNotes, CalendarSyncReview, DroppedNotes, SyncConflicts, MoreActions, Shortcuts). **R16** small shared components (AppIcon, Icon, EmptyState, FindBar, PeekBar, MobileTabDrawer, MobileAccessoryBar, SyncHealthPopover, About). **R17** Settings and its row components: `SettingRow`/`SettingToggle`'s named `description` slot is now a snippet prop, filled with `{#snippet description()}` in `SettingsModal`. **R18** command palette and OneDrive folder picker. **R19** status bar. **R20** top bar. **R21** `App.svelte` and `EditorPane.svelte`.
 - Values are `$derived`; side effects are `$effect`s that read only their inputs (`untrack` around calls that write state). The ones that must apply before paint are `$effect.pre`: App's font-size/line-height variables, the Zen and Peek body classes and opacity variables, and the top bar's "collapse the buttons on a phone".
@@ -10033,7 +10033,7 @@ Marien, after abandoning the idea of Peek reacting to Teams calls by itself (wat
 
 ## 313. Runes mode for the whole project
 
-**Status: implemented, not yet released.** With every component converted (§306-§312), `svelte.config.js` sets `compilerOptions.runes: true`, so legacy syntax (`$:`, `export let`, `on:`, `<slot>`) is a compile error instead of quietly putting that one file back in legacy mode. Third-party components under `node_modules` keep Svelte's own per-file detection (`vitePlugin.dynamicCompileOptions`).
+**Status: released in v0.28.1.** With every component converted (§306-§312), `svelte.config.js` sets `compilerOptions.runes: true`, so legacy syntax (`$:`, `export let`, `on:`, `<slot>`) is a compile error instead of quietly putting that one file back in legacy mode. Third-party components under `node_modules` keep Svelte's own per-file detection (`vitePlugin.dynamicCompileOptions`).
 
 - Checked by adding a throwaway component with a `$:` line: svelte-check rejects it (`legacy_reactive_statement_invalid`).
 - svelte-check 0, the desktop, web-app and demo builds all succeed. Native check of the runes migration in the real window by Marien: fine.
