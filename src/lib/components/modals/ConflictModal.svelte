@@ -6,10 +6,10 @@
   import Icon from "../../icons/Icon.svelte";
   import { t } from "../../i18n";
 
-  let keepDiskBtn: HTMLButtonElement;
+  let keepDiskBtn = $state<HTMLButtonElement>();
   onMount(() => keepDiskBtn?.focus());
 
-  $: info = $conflictInfo;
+  const info = $derived($conflictInfo);
 </script>
 
 {#if info}
@@ -24,11 +24,11 @@
         )}<em>{$t("conflictModal.explanation.keepMineRef")}</em>{$t("conflictModal.explanation.part3")}
       </div>
       <div class="modal-footer" style="justify-content: flex-end; gap: 8px; flex-wrap: wrap;">
-        <button class="icon-btn" bind:this={keepDiskBtn} on:click={controller.resolveConflictKeepDisk}>
+        <button class="icon-btn" bind:this={keepDiskBtn} onclick={controller.resolveConflictKeepDisk}>
           {$t("conflictModal.keepDiskVersion")}
         </button>
-        <button class="icon-btn" on:click={controller.resolveConflictSaveCopy}>{$t("conflictModal.saveMineAsCopy")}</button>
-        <button class="icon-btn btn-primary" on:click={controller.resolveConflictKeepMine}>
+        <button class="icon-btn" onclick={controller.resolveConflictSaveCopy}>{$t("conflictModal.saveMineAsCopy")}</button>
+        <button class="icon-btn btn-primary" onclick={controller.resolveConflictKeepMine}>
           {$t("conflictModal.keepMyVersion")}
         </button>
       </div>
