@@ -31,7 +31,7 @@ import {
   tabs,
   unsavedScratchpadNames,
 } from "./stores";
-import { flushSave, flushScratchpadDrafts, invalidateDiskNotesCache } from "./persistence";
+import { flushAllPendingSaves, flushScratchpadDrafts, invalidateDiskNotesCache } from "./persistence";
 import { restoreOrBootstrapTabs } from "./boot";
 import { createScratchpadWith, isUnsavedScratchpad } from "./tabs";
 import { refreshAgendaFileExists } from "./calendarSyncActions";
@@ -123,9 +123,9 @@ export async function finishFolderSwitch(path: string, pad: FolderSwitchPad) {
 }
 
 export async function performDirectorySwitch(path: string) {
-  for (const t of get(tabs)) {
-    if (!t.isScratchpad) flushSave(t.id);
-  }
+  // Wait for every pending save: Rust resolves the notes folder per command, so a save landing
+  // after set_notes_dir would be written into the new folder.
+  await flushAllPendingSaves();
   const cfg = await api.setNotesDir(path);
   notesDir.set(cfg.notesDir);
   recentNotesDirs.set(cfg.recentNotesDirs);
