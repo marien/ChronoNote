@@ -10010,3 +10010,11 @@ Marien, after abandoning the idea of Peek reacting to Teams calls by itself (wat
 
 - Values (`showTarget`, `cells`, the note/open/heat maps) are `$derived`; the two side effects (prefetching the visible month's notes, following the typed date) are `$effect`s that read only their inputs and call their functions inside `untrack`, so a function that writes state cannot re-trigger its own effect.
 - Gates: svelte-check 0, Vitest 828, Playwright 569.
+
+## 311. The conflict and unsaved-scratchpad dialogs on Svelte runes
+
+**Status: implemented, not yet released.** Refactor R14, the same conversion as §307/§310 for `ConflictModal.svelte` (1 `$:` block) and `UnsavedScratchpadsModal.svelte` (3). No intended behaviour change. Implemented by Gemini 3.8 Flash through the Antigravity CLI.
+
+- All four former `$:` blocks were plain values and are now `$derived`; neither dialog has an `$effect`. Click handlers use `onclick`.
+- `ConflictModal`'s focus target is `$state`, because its button sits inside `{#if info}` and a plain `let` there triggers svelte-check's `non_reactive_update` warning; `UnsavedScratchpadsModal`'s stays a plain `let`.
+- Gates: svelte-check 0, Vitest 828, cargo 124, Playwright 569.
