@@ -737,6 +737,8 @@ export const pl = {
   "toast.copyForward.destHere": () => "tutaj",
   "toast.copyForward.destToDate": ({ date }) => `do ${date}`,
   "toast.copyForward.copied": ({ dest }) => `Skopiowano ${dest}.`,
+  "toast.copyForward.changedTryAgain": ({ filename }) => `Plik ${filename} zmienił się na dysku, więc nic nie zostało skopiowane. Spróbuj ponownie.`,
+  "toast.copyForward.sourceChanged": ({ dest, filename }) => `Skopiowano ${dest}, ale plik ${filename} zmienił się na dysku, więc jego elementy nie zostały oznaczone jako przeniesione.`,
   "toast.copyForward.copiedWithCount": ({ dest, count }) =>
     count === 1
       ? `Skopiowano ${dest} — 1 otwarte zadanie oznaczono tutaj jako odłożone.`

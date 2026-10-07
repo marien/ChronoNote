@@ -43,7 +43,14 @@ import {
   type CopyForwardPending,
 } from "./stores";
 import * as api from "./tauriApi";
-import { refreshAllNotesCache, updateNoteOnDisk, writeNoteAndInvalidateCache, writeTabContent } from "./persistence";
+import {
+  isWriteConflictError,
+  refreshAllNotesCache,
+  updateNoteOnDisk,
+  writeNoteAndInvalidateCache,
+  writeTabContent,
+  type WriteGuard,
+} from "./persistence";
 import { extractSectionBody, findNextSectionOccurrenceOnDisk } from "./history";
 import { countOpenActionsInText, deferOpenActionsInText } from "./paste";
 import { getSectionHeaderForLine, normalizeHeaderTitle, titleForMatching } from "./tokens";
@@ -172,8 +179,18 @@ async function commitCopyForward(
 ): Promise<void> {
   const list0 = get(tabs);
   const srcTab = list0.find((t) => t.filename === sourceFilename);
-  const srcContent = srcTab ? srcTab.content : await api.readNote(sourceFilename);
+  let srcContent: string | null;
+  let srcDiskHash: string | null = null; // only when the source has no open tab
+  if (srcTab) {
+    srcContent = srcTab.content;
+  } else {
+    const read = await api.readNoteWithMetadata(sourceFilename);
+    srcContent = read.content;
+    srcDiskHash = read.metadata.contentHash;
+  }
   if (srcContent === null || srcContent === undefined) return;
+  // A source that is not open is written back only if it is still what we read.
+  const srcGuard: WriteGuard = srcDiskHash ? { kind: "hash", hash: srcDiskHash } : { kind: "none" };
 
   const srcLines = srcContent.split("\n");
   const selectedLines = srcLines.slice(fromLine, toLine + 1);
@@ -186,6 +203,7 @@ async function commitCopyForward(
     target.kind === "tab" ? list0.find((t) => t.id === target.tabId)!.filename : `${target.dateIso}.txt`;
 
   let list = list0;
+  let sourceKept = false;
 
   // 2026-09-26: a real bug, found via Section History — the target can be
   // the very file the source range is being deferred in (e.g. browsing
@@ -213,7 +231,13 @@ async function commitCopyForward(
         editorApi.jumpToLine(fromLine);
       }
     } else {
-      await writeNoteAndInvalidateCache(sourceFilename, finalContent);
+      try {
+        await writeNoteAndInvalidateCache(sourceFilename, finalContent, srcGuard);
+      } catch (e) {
+        if (!isWriteConflictError(e)) throw e;
+        showToast(get(t)("toast.copyForward.changedTryAgain", { filename: sourceFilename }));
+        return;
+      }
     }
   } else {
     if (target.kind === "tab") {
@@ -264,7 +288,12 @@ async function commitCopyForward(
       }
     } else {
       tabs.set(list);
-      await writeNoteAndInvalidateCache(sourceFilename, newSrcLines.join("\n"));
+      try {
+        await writeNoteAndInvalidateCache(sourceFilename, newSrcLines.join("\n"), srcGuard);
+      } catch (e) {
+        if (!isWriteConflictError(e)) throw e;
+        sourceKept = true;
+      }
     }
   }
 
@@ -274,6 +303,10 @@ async function commitCopyForward(
     target.kind === "tab"
       ? translate("toast.copyForward.destHere", undefined)
       : translate("toast.copyForward.destToDate", { date: target.dateIso });
+  if (sourceKept) {
+    showToast(translate("toast.copyForward.sourceChanged", { dest, filename: sourceFilename }));
+    return;
+  }
   showToast(
     n > 0
       ? translate("toast.copyForward.copiedWithCount", { dest, count: n })

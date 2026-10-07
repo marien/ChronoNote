@@ -76,6 +76,8 @@ const SAMPLE_PARAMS: Partial<Record<TranslationKey, unknown>> = {
   "toast.copyForward.destToDate": { date: "2026-10-03" },
   "toast.copyForward.copied": { dest: "here" },
   "toast.copyForward.copiedWithCount": { dest: "here", count: 2 },
+  "toast.copyForward.changedTryAgain": { filename: "2026-10-03.txt" },
+  "toast.copyForward.sourceChanged": { dest: "here", filename: "2026-10-03.txt" },
   "toast.directory.switched": { path: "C:/Notes" },
   "directory.folderSwitchNote": { folderName: "OneDrive" },
   "toast.persistence.keptChangedNote": { filename: "2026-09-26.txt" },

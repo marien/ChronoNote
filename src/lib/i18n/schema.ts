@@ -741,6 +741,8 @@ export type TranslationParams = {
   "toast.copyForward.destToDate": { date: string };
   "toast.copyForward.copied": { dest: string };
   "toast.copyForward.copiedWithCount": { dest: string; count: number };
+  "toast.copyForward.changedTryAgain": { filename: string };
+  "toast.copyForward.sourceChanged": { dest: string; filename: string };
   "toast.copyForward.notAvailableInScratchpad": undefined;
   "toast.copyForward.nothingToCopy": undefined;
   "toast.copyForward.notInNamedSection": undefined;

@@ -734,6 +734,8 @@ export const fr = {
   "toast.copyForward.destHere": () => "ici",
   "toast.copyForward.destToDate": ({ date }) => `au ${date}`,
   "toast.copyForward.copied": ({ dest }) => `Copié ${dest}.`,
+  "toast.copyForward.changedTryAgain": ({ filename }) => `${filename} a changé sur le disque ; rien n'a été copié. Réessayez.`,
+  "toast.copyForward.sourceChanged": ({ dest, filename }) => `Copié ${dest}, mais ${filename} a changé sur le disque ; ses éléments n'ont donc pas été marqués comme déplacés.`,
   "toast.copyForward.copiedWithCount": ({ dest, count }) =>
     count === 1
       ? `Copié ${dest} — 1 action ouverte marquée reportée ici.`
