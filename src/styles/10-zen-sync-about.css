@@ -1,0 +1,307 @@
+/* §v0.12.2: Zen Mode (Area 3) — distraction-free canvas */
+/* The bars must give their space back, not just slide out of sight (a transform leaves a blank
+   strip where each one was and the editor never uses the full screen). */
+body.zen-mode #top-bar,
+body.zen-mode #status-bar,
+body.peek-mode #top-bar,
+body.peek-mode #status-bar {
+  height: 0;
+  min-height: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+  border-width: 0;
+  overflow: hidden;
+  opacity: 0;
+  pointer-events: none;
+}
+#top-bar,
+#status-bar {
+  transition: height 200ms ease, opacity 200ms ease;
+}
+
+#zen-banner {
+  position: fixed;
+  top: 12px;
+  right: 16px;
+  background: var(--surface-overlay);
+  border: 1px solid var(--edge-strong);
+  border-radius: 4px;
+  padding: 4px 10px;
+  font-size: 11px;
+  color: var(--muted);
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+  animation: fadeIn 200ms ease;
+}
+
+.zen-exit-btn {
+  background: none;
+  border: none;
+  color: var(--text);
+  text-decoration: underline;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: inherit;
+  padding: 0;
+}
+
+/* §v0.12.2: Full-screen Drag-and-Drop file import overlay (Area 4) */
+#drop-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(14, 116, 144, 0.18);
+  backdrop-filter: blur(4px);
+  border: 3px dashed var(--glyph-open-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 200;
+  pointer-events: none;
+  animation: fadeIn 120ms ease;
+}
+
+.drop-banner {
+  background: var(--surface-overlay);
+  border: 1px solid var(--edge-strong);
+  border-radius: 8px;
+  padding: 24px 36px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+/* §v0.12.2: Cloud Sync Telemetry Popover (Area 9) */
+#telemetry-popover {
+  position: fixed;
+  background: var(--surface-overlay);
+  border: 1px solid var(--edge-strong);
+  border-radius: 8px;
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.55);
+  width: min(320px, calc(100vw - 24px));
+  padding: 12px;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  font-size: 11.5px;
+  animation: fadeIn 150ms ease;
+}
+
+.telemetry-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-weight: 600;
+  font-size: 12px;
+  color: var(--text);
+}
+
+.telemetry-header-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.telemetry-details {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 11px;
+}
+
+.telemetry-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.telemetry-label {
+  color: var(--muted);
+  flex-shrink: 0;
+}
+
+.telemetry-value {
+  color: var(--text);
+  text-align: right;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.telemetry-code {
+  font-family: var(--font);
+}
+
+.telemetry-status {
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.telemetry-status.in-sync {
+  color: var(--state-ok);
+}
+
+.telemetry-status.syncing {
+  color: var(--glyph-open-color);
+}
+
+.telemetry-status.offline {
+  color: var(--state-warn);
+}
+
+.telemetry-status.error {
+  color: var(--state-danger, #ef4444);
+}
+
+.telemetry-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.telemetry-btn {
+  flex: 1;
+  padding: 6px 10px;
+  border-radius: 4px;
+  border: 1px solid var(--edge-strong);
+  background: var(--surface-chrome);
+  color: var(--text);
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  transition: background 120ms ease;
+}
+
+.telemetry-btn:hover:not(:disabled) {
+  background: var(--surface-hover);
+}
+
+.telemetry-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.telemetry-sync-btn {
+  background: var(--surface-hover);
+}
+
+
+
+/* A message too long for the status bar's one-line slot (`LONG_TOAST_CHARS`): wraps, stays up long enough to read. */
+.long-toast {
+  position: fixed;
+  left: 50%;
+  bottom: calc(25px + env(safe-area-inset-bottom, 0px) + 12px);
+  transform: translateX(-50%);
+  max-width: min(560px, calc(100vw - 32px));
+  padding: 10px 16px;
+  background: var(--surface-raised);
+  border: 1px solid var(--edge-strong);
+  border-radius: 8px;
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 12px;
+  line-height: 1.45;
+  text-align: center;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+  z-index: 1000;
+  pointer-events: auto;
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
+}
+.long-toast:hover {
+  background: var(--surface-hover);
+  border-color: var(--muted);
+}
+.long-toast:active {
+  transform: translate(-50%, 0) scale(0.98);
+}
+.long-toast.interactive {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.long-toast.interactive:hover {
+  color: var(--accent);
+}
+.signin-expired {
+  border-left: 2px solid var(--state-warn);
+  padding-left: 8px;
+  color: var(--text);
+}
+
+/* About: the version card at the top of the Updates section. The running version, big, and a chip saying
+   what the update check makes of it; the chip's dot and outline take the tone (ok / accent / busy / warn). */
+.about-version-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 8px;
+  padding: 10px 12px;
+  background: var(--surface-raised);
+  border: 1px solid var(--edge-soft);
+  border-radius: 8px;
+}
+.about-version-main {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.about-version-label {
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.about-version-num {
+  font-family: var(--font-mono, monospace);
+  font-size: 20px;
+  font-weight: 600;
+  line-height: 1.1;
+  color: var(--text);
+}
+.about-status-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  padding: 3px 10px;
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--tone, var(--muted));
+  border: 1px solid color-mix(in srgb, var(--tone, var(--muted)) 45%, transparent);
+  border-radius: 999px;
+}
+.about-status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+}
+.about-status-chip .modal-spinner {
+  font-size: 11px;
+}
+.about-version-card[data-tone="ok"] { --tone: var(--state-ok); }
+.about-version-card[data-tone="accent"] { --tone: var(--tab-active-border); }
+.about-version-card[data-tone="warn"] { --tone: var(--state-warn); }
+.about-version-card[data-tone="busy"] { --tone: var(--muted); }
+.about-checked {
+  color: var(--muted);
+}
+

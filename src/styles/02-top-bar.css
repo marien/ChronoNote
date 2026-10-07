@@ -1,0 +1,433 @@
+/* Top Chrome / Tabs (§103: bar, daily vs scratchpad archetypes) */
+#top-bar {
+  display: flex;
+  background: var(--surface-chrome);
+  border-bottom: 1px solid var(--edge-soft);
+  height: 40px;
+  /* #49 (second pass): both the tabs and the toolbar buttons bottom-anchor
+     and share one height (see `.tab` and `#top-bar .icon-btn` below) — a
+     first attempt at fixing their icon misalignment stretched `.tab` to
+     the bar's full height and left `.icon-btn` centred, which fixed the
+     alignment but made tabs look unnaturally tall with the buttons then
+     reading as floating, with empty space above *and* below them. Matching
+     heights (not stretching one side to meet the other's position) is what
+     actually reads as one coherent row. */
+  align-items: flex-end;
+  padding-right: 8px;
+}
+/* §merged-titlebar: the app icon at the bar's leading edge, replacing the
+   native OS title bar's own icon. Same "32px box, bottom-anchored"
+   treatment as `.tab`/`.icon-btn` (§49) rather than its own vertical
+   alignment — an earlier `align-self: center` centred the icon in the
+   full 40px bar, which reads visibly higher than the tabs/buttons next
+   to it: those bottom-anchor a 32px box (an 8px gap only at the *top*),
+   so their own icons' visual centre sits lower than a plain
+   full-height centre would. Matching the same box height and letting it
+   inherit `#top-bar`'s `align-items: flex-end` puts the icon on the
+   same row the rest of the bar's icons sit on. */
+.app-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 32px;
+  flex-shrink: 0;
+  /* §merged-titlebar follow-up: the vertical centring above already gives
+     the icon ~16px of breathing room above it (8px from the bar's own
+     bottom-anchor gap, 8px from centring the 16px icon in its 32px box)
+     — the left margin was still the old, smaller value from before that
+     box existed, so the icon read closer to the bar's left edge than to
+     its top. Matched to the same ~16px so the icon sits with roughly
+     equal room on both its free sides, confirmed via
+     `getBoundingClientRect()` (15.3px top vs. 10px left before this). */
+  margin: 0 8px 0 16px;
+}
+/* §merged-titlebar: a fixed, always-present drag territory between the
+   toolbar cluster and the window controls — #tab-bar's own empty
+   trailing space (also `data-tauri-drag-region`, see #tab-bar below) can
+   shrink to nothing once tabs overflow, so the window still needs
+   somewhere guaranteed to grab regardless of tab count. Stretches to the
+   bar's full height like the window controls next to it, not bottom-
+   anchored like tabs/buttons. */
+.titlebar-drag-gutter {
+  flex: 0 0 20px;
+  align-self: stretch;
+}
+/* §merged-titlebar: minimize/maximize/close — Windows/Linux convention:
+   square-ish, wider than tall, right-aligned, filling the bar's full
+   height edge-to-edge (a real title bar's buttons never float with a gap
+   above/below them the way the bottom-anchored tabs/toolbar buttons do,
+   hence `align-self: stretch` overriding `#top-bar`'s own
+   `align-items: flex-end`). */
+.window-controls {
+  display: flex;
+  align-self: stretch;
+  flex-shrink: 0;
+  margin-left: auto;
+}
+.win-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  background: transparent;
+  border: none;
+  color: var(--muted);
+  cursor: pointer;
+  padding: 0;
+}
+.win-btn:hover {
+  background: var(--surface-raised);
+  color: var(--text);
+}
+.win-btn.win-close:hover {
+  background: var(--state-error);
+  color: #ffffff;
+}
+#tab-bar {
+  display: flex;
+  flex: 1;
+  height: 100%;
+  /* Tabs sit on the floor of the bar so the active one meets the editor
+     canvas below — the scrollbar is hidden and tabs scroll smoothly. */
+  align-items: flex-end;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+#tab-bar::-webkit-scrollbar {
+  height: 0;
+}
+.tab-bar-spacer {
+  flex: 1;
+}
+
+.tab {
+  flex-shrink: 0;
+  padding: 0 10px 0 12px;
+  /* #49: matches `#top-bar .icon-btn`'s height exactly. Both are
+     bottom-anchored (`#tab-bar`'s and `#top-bar`'s `align-items:
+     flex-end`), so equal heights are what makes their icons land on the
+     same row — the two need to move together if either ever changes. */
+  height: 32px;
+  margin: 0 1px;
+  border-radius: 6px 6px 0 0;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12px;
+  cursor: pointer;
+  background: transparent;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.tab:hover {
+  background: var(--surface-raised);
+  color: var(--text);
+}
+.tab-icon {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  opacity: 0.7;
+}
+.tab.active .tab-icon {
+  opacity: 1;
+  color: var(--tab-active-border);
+}
+.tab.scratch .tab-label {
+  font-style: italic;
+}
+/* #68: past/today/future get a distinct look, independent of which tab
+   is active — so today's tab (the one most work happens in) is easy to
+   spot among a restored session's leftover past tabs and any
+   pre-created future ones, even while looking at a different tab.
+   Deliberately just the icon's color/opacity, not the label — quiet
+   enough not to fight the existing active/hover treatment. */
+.tab.past .tab-icon {
+  opacity: 0.45;
+}
+.tab.today .tab-icon {
+  opacity: 1;
+  color: var(--tab-active-border);
+}
+.tab.future .tab-icon {
+  opacity: 1;
+  color: var(--state-ok);
+}
+/* #96: `.tab.active`'s top border (below) defaults to `--tab-active-border`,
+   the same color `.tab.today .tab-icon` already uses — so a selected
+   today-tab needs no override. A selected past/future tab's border is
+   brought in line with its own icon's color above, instead of always
+   showing the "today" accent regardless of which tab is actually active. */
+.tab.active.past {
+  box-shadow: inset 0 2px 0 color-mix(in srgb, var(--muted) 45%, transparent);
+}
+.tab.active.future {
+  box-shadow: inset 0 2px 0 var(--state-ok);
+}
+/* A small dot beside the tab label. Deliberately quiet: `mem` (grey) just
+   marks a scratchpad as memory-only, `err` (red) is the only attention-
+   grabbing state — a normal autosave shows nothing at all. */
+.tab-status-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.tab-status-dot.mem {
+  background: var(--muted);
+}
+.tab-status-dot.err {
+  background: var(--state-error);
+}
+.tab-group-divider {
+  width: 1.5px;
+  height: 20px;
+  background: var(--edge-strong);
+  flex-shrink: 0;
+  /* #49: #tab-bar bottom-anchors its children (`align-items: flex-end`),
+     same as the 32px tabs — this fixed-height (20px) sibling inherits
+     that anchor too, so the extra 6px bottom margin (half of 32 - 20)
+     centres it on the shared tab/icon-button row instead of sitting
+     lower, flush with the very bottom. */
+  margin: 0 7px 6px;
+}
+.tab-bar-new-btn {
+  /* height comes from the shared `#top-bar .icon-btn` rule below (higher
+     specificity than a bare class here would be anyway) — not restated. */
+  flex-shrink: 0;
+  margin-left: 4px;
+}
+.tab-scroll-btn {
+  flex-shrink: 0;
+  padding: 0 6px;
+}
+.tab.active {
+  background: var(--surface-canvas);
+  color: var(--text);
+  box-shadow: inset 0 2px 0 var(--tab-active-border);
+  font-weight: 600;
+  /* Bridge the 1px chrome border so the active tab reads as one surface
+     with the editor below it. */
+  position: relative;
+  z-index: 1;
+  margin-bottom: -1px;
+}
+.tab-close {
+  opacity: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3px 5px;
+  margin-left: 2px;
+  border-radius: 4px;
+  line-height: 1;
+}
+.tab:hover .tab-close,
+.tab.active .tab-close,
+.tab-close:focus-visible {
+  opacity: 0.55;
+}
+.tab-close:hover,
+.tab-close:focus-visible {
+  opacity: 1 !important;
+  background: var(--surface-raised);
+}
+
+.icon-btn {
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--text);
+  padding: 4px 8px;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 12px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+/* §103/#49: every control is a ≥28px hit target, and matches `.tab`'s
+   height exactly (both bottom-anchor in `#top-bar`/`#tab-bar`) so the
+   tab strip and the toolbar buttons read as one row, not two. */
+#top-bar .icon-btn {
+  height: 32px;
+  min-width: 32px;
+  justify-content: center;
+  padding: 0 8px;
+}
+/* Only the buttons that carry a pip are positioned: a blanket
+   `position: relative` on `#top-bar .icon-btn` (id specificity) overrode the
+   positioning other top-bar buttons rely on and broke the tab-strip/collapse layout. */
+.icon-btn.has-pip {
+  position: relative;
+}
+.icon-btn-pip {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--state-warn);
+  box-shadow: 0 0 0 1.5px var(--surface-chrome);
+  pointer-events: none;
+}
+.icon-btn:hover {
+  background: var(--surface-raised);
+  border-color: var(--edge-strong);
+}
+/* A disabled `.icon-btn` (the calendar-sync button waiting on
+   `.agenda.json`/a qualifying date, Settings' Export/Import mid-flight)
+   otherwise looks completely indistinguishable from an enabled one —
+   `color`/`background` never respond to `:disabled` on their own, and
+   the SVG icons theme with `currentColor` so they'd stay full-strength
+   too. Dimmed + no pointer/hover feedback, so "grayed out" actually
+   reads as grayed out. */
+.icon-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.icon-btn:disabled:hover {
+  background: transparent;
+  border-color: transparent;
+}
+/* §127: the icon set (`src/lib/icons/`) is `stroke: currentColor` SVG, so
+   it already themes with the button's own text colour in every light/dark
+   × colour/grayscale combination — no `filter: grayscale(1)` / `filter:
+   none` split needed (that was an emoji-only workaround, removed with the
+   emoji it existed for), and no baseline nudge on the label (§73's
+   `.icon-label { top: 1px }` fix was for an *emoji's* fallback-font
+   metrics sitting higher than plain text; an SVG icon's own box has no
+   such mismatch against `.icon-label`, both centre on the flex row's line
+   the same way). */
+.icon-btn .icon-label {
+  white-space: nowrap;
+}
+/* #61 follow-up: off-screen measurement clones (see TopBar.svelte) —
+   `position: fixed` removes them from #top-bar's own flex flow entirely,
+   `visibility: hidden` keeps them off the screen even though the browser
+   still lays them out (the whole point: `getBoundingClientRect()` needs
+   real layout to measure against). */
+.topbar-measure {
+  position: fixed;
+  top: -9999px;
+  left: -9999px;
+  visibility: hidden;
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+/* #56: the top bar's overflow popover — same anchored-non-modal shape as
+   `.datepicker-pop` (fixed position, measured against its trigger in JS,
+   no `.overlay` backdrop), sized to its content instead of a fixed width
+   since the row labels vary more than a calendar grid's fixed cells do. */
+.more-actions-pop {
+  position: fixed;
+  z-index: 250;
+  min-width: 220px;
+  width: max-content;
+  max-width: 320px;
+  background: var(--surface-overlay);
+  border: 1px solid var(--edge-strong);
+  border-radius: 8px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 16px 44px rgba(0, 0, 0, 0.5);
+  padding: 4px;
+  font-size: 12px;
+  color: var(--text);
+}
+.more-actions-item {
+  width: 100%;
+  background: transparent;
+  border: none;
+  border-radius: 5px;
+  color: inherit;
+  font-family: var(--font);
+  font-size: 12px;
+  text-align: left;
+  cursor: pointer;
+  padding: 7px 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.more-actions-item span {
+  flex: 1;
+}
+.more-actions-item:hover {
+  background: var(--surface-raised);
+}
+.more-actions-item:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.more-actions-item:disabled:hover {
+  background: transparent;
+}
+.more-actions-sep {
+  height: 1px;
+  margin: 4px 6px;
+  background: var(--edge-soft);
+}
+
+/* Tab Context Menu */
+.tab-context-menu {
+  position: fixed;
+  z-index: 300;
+  min-width: 180px;
+  width: max-content;
+  max-width: 280px;
+  background: var(--surface-overlay);
+  border: 1px solid var(--edge-strong);
+  border-radius: 8px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 16px 44px rgba(0, 0, 0, 0.5);
+  padding: 4px;
+  font-size: 12px;
+  color: var(--text);
+}
+.tab-context-item {
+  width: 100%;
+  background: transparent;
+  border: none;
+  border-radius: 5px;
+  color: inherit;
+  font-family: var(--font);
+  font-size: 12px;
+  text-align: left;
+  cursor: pointer;
+  padding: 6px 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.tab-context-item span {
+  flex: 1;
+}
+.tab-context-item:hover {
+  background: var(--surface-raised);
+}
+.tab-context-item:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.tab-context-item:disabled:hover {
+  background: transparent;
+}
+.tab-context-sep {
+  height: 1px;
+  margin: 4px 6px;
+  background: var(--edge-soft);
+}
+.tab-rename-input {
+  background: var(--surface-input, rgba(0, 0, 0, 0.2));
+  border: 1px solid var(--accent);
+  border-radius: 3px;
+  color: var(--text);
+  font-family: inherit;
+  font-size: 12px;
+  padding: 1px 4px;
+  margin: 0 -4px;
+  outline: none;
+  width: 110px;
+  max-width: 140px;
+}
+
