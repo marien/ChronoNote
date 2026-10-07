@@ -62,20 +62,20 @@ test.describe("in-document find bar (Ctrl/Cmd+F, §108)", () => {
     await expect(page.locator(".find-bar")).toBeHidden();
   });
 
-  test("Escape closes a modal opened over the find bar first; a second Escape closes the bar (overlay stack)", async ({ page }) => {
+  test("opening a modal closes the find bar, and one Escape then closes only the modal (overlay stack)", async ({ page }) => {
     await seedApp(page, { seed: { notes: { [todayFilename()]: NOTE } } });
     await editor(page).click();
     await page.keyboard.press("ControlOrMeta+f");
     await expect(page.locator(".find-bar")).toBeVisible();
 
+    // App.svelte closes the find bar whenever a modal opens (unchanged behaviour).
     await openViaShortcut(page, "ControlOrMeta+/", "shortcuts");
-    await expect(page.locator(".find-bar")).toBeVisible();
+    await expect(page.locator(".find-bar")).toBeHidden();
 
+    // One Escape closes the modal and nothing else: the find bar does not reappear.
     await page.keyboard.press("Escape");
     expect(await currentModal(page)).toBe("none");
-    await expect(page.locator(".find-bar")).toBeVisible();
-
-    await page.keyboard.press("Escape");
     await expect(page.locator(".find-bar")).toBeHidden();
+    await expect(page.locator(".cm-editor")).toBeVisible();
   });
 });
