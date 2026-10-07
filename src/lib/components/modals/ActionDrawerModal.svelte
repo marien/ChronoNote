@@ -24,9 +24,9 @@
     type PlacedRow,
   } from "./virtualList";
 
-  let filter = "";
-  let selectedIndex = 0;
-  let scope: "open" | "other" | "all" = "open";
+  let filter = $state("");
+  let selectedIndex = $state(0);
+  let scope: "open" | "other" | "all" = $state("open");
   let inputEl: HTMLInputElement;
   // #62: "All Files"/"Other Notes" share the same one-time-per-session
   // disk-read cost as Section History's drawer — usually already warm
@@ -34,7 +34,7 @@
   // either can still genuinely take a moment on a large notes folder, with
   // nothing to show that anything's happening otherwise (the toggle just
   // sits there).
-  let loadingAllFiles = false;
+  let loadingAllFiles = $state(false);
 
   // §42: open focused on whatever entry belongs to the currently active
   // tab, instead of always starting at the top of the (most-recent-first)
@@ -70,15 +70,17 @@
     inputEl?.select();
   }
 
-  $: showDelegated = filter.includes("@");
+  const showDelegated = $derived(filter.includes("@"));
 
-  $: liveSnapshot = $actionSnapshot.map((item) => {
-    const tab = $tabs.find((t) => t.id === item.tabId || t.filename === item.filename);
-    const line = tab ? (tab.content.split("\n")[item.lineIdx] ?? item.line) : item.line;
-    return { ...item, line, tabId: tab?.id ?? item.tabId };
-  });
+  const liveSnapshot = $derived(
+    $actionSnapshot.map((item) => {
+      const tab = $tabs.find((t) => t.id === item.tabId || t.filename === item.filename);
+      const line = tab ? (tab.content.split("\n")[item.lineIdx] ?? item.line) : item.line;
+      return { ...item, line, tabId: tab?.id ?? item.tabId };
+    }),
+  );
 
-  $: filtered = liveSnapshot.filter((item) => {
+  const filtered = $derived(liveSnapshot.filter((item) => {
     // §44: toggle between today's behavior (open/deferred/delegated) and
     // strictly open only — an open `# ` line, or an open `=> #`
     // consequence-action (§41); resolved states are never "open."
@@ -87,7 +89,7 @@
     if (isDelegated && !showDelegated) return false;
     if (!filter) return true;
     return item.line.toLowerCase().includes(filter.toLowerCase());
-  });
+  }));
 
   // Carrying each item's position as data (assigned once, here) rather
   // than looking it up per rendered row via flatList.indexOf(item) in the
@@ -102,9 +104,9 @@
     items: IndexedItem[];
   }
 
-  $: flatList = filtered.map((item, i): IndexedItem => ({ ...item, __flatIndex: i }));
+  const flatList = $derived(filtered.map((item, i): IndexedItem => ({ ...item, __flatIndex: i })));
 
-  $: groups = ((): Group[] => {
+  const groups = $derived.by((): Group[] => {
     const map = new Map<string, Group>();
     for (const item of flatList) {
       const key = item.tabId ?? item.filename;
@@ -112,12 +114,19 @@
       map.get(key)!.items.push(item);
     }
     return Array.from(map.values());
-  })();
-  $: uncompletedCount = flatList.filter((i) => {
-    const sym = innermostActionSymbol(i.line);
-    return sym !== "v" && sym !== "x";
-  }).length;
-  $: selectedIndex = clampIndex(selectedIndex, flatList.length);
+  });
+  const uncompletedCount = $derived(
+    flatList.filter((i) => {
+      const sym = innermostActionSymbol(i.line);
+      return sym !== "v" && sym !== "x";
+    }).length,
+  );
+  // Re-clamps the stored index (a shrunk list keeps it clamped persistently,
+  // as before); writes only when the value actually changes.
+  $effect.pre(() => {
+    const clamped = clampIndex(selectedIndex, flatList.length);
+    if (clamped !== selectedIndex) selectedIndex = clamped;
+  });
 
   // --- Virtualized rendering (§38) --- group-header-then-items list; the
   // window math is shared with Search / History via `./virtualList`. This
@@ -127,7 +136,8 @@
     | { type: "item"; key: string; item: IndexedItem; height: number };
   type Row = RawRow & PlacedRow;
 
-  $: rows = withTops<RawRow>(
+  const rows = $derived(
+    withTops<RawRow>(
     ((): RawRow[] => {
       const out: RawRow[] = [];
       let isFirst = true;
@@ -147,15 +157,18 @@
       }
       return out;
     })(),
-  ) as Row[];
-  $: totalHeight = stackHeight(rows);
+    ) as Row[],
+  );
+  const totalHeight = $derived(stackHeight(rows));
 
   let listEl: HTMLDivElement;
-  let scrollTop = 0;
-  let viewportHeight = 380;
+  let scrollTop = $state(0);
+  let viewportHeight = $state(380);
 
-  $: ({ start: windowStart, end: windowEnd } = visibleWindow(rows, scrollTop, viewportHeight));
-  $: visibleRows = rows.slice(windowStart, windowEnd);
+  const visibleRows = $derived.by(() => {
+    const { start, end } = visibleWindow(rows, scrollTop, viewportHeight);
+    return rows.slice(start, end);
+  });
 
   function onScroll() {
     if (listEl) scrollTop = listEl.scrollTop;
@@ -168,15 +181,15 @@
   // header of the group at the top of the viewport, pinned over it once the
   // group's real header has scrolled past.
   type HeaderRow = Row & { type: "header" };
-  $: headerRows = rows.filter((r): r is HeaderRow => r.type === "header");
-  $: stickyHeader = ((): HeaderRow | null => {
+  const headerRows = $derived(rows.filter((r): r is HeaderRow => r.type === "header"));
+  const stickyHeader = $derived.by((): HeaderRow | null => {
     let current: HeaderRow | null = null;
     for (const h of headerRows) {
       if (h.top < scrollTop) current = h;
       else break;
     }
     return current;
-  })();
+  });
 
   function scrollSelectedIntoView() {
     if (!listEl) return;
@@ -252,7 +265,7 @@
         placeholder={$t("actionDrawer.filterPlaceholder")}
         bind:value={filter}
         bind:this={inputEl}
-        on:keydown={onKeydown}
+        onkeydown={onKeydown}
         autocomplete="off"
       />
       <span class="modal-counter">{$t("actionDrawer.counter", { open: uncompletedCount, listed: flatList.length })}</span>
@@ -260,7 +273,7 @@
         type="button"
         class="icon-btn modal-close-btn"
         aria-label={$t("common.closeDialog")}
-        on:click={controller.closeAllModals}
+        onclick={controller.closeAllModals}
       >
         <Icon name="close" size={14} />
       </button>
@@ -291,7 +304,7 @@
       role="listbox"
       bind:this={listEl}
       bind:clientHeight={viewportHeight}
-      on:scroll={onScroll}
+      onscroll={onScroll}
       style="position: relative; overflow-y: auto;"
     >
       {#if flatList.length === 0}
@@ -342,9 +355,9 @@
               aria-selected={idx === selectedIndex}
               tabindex="0"
               style="position: absolute; top: {row.top}px; left: 0; right: 0; height: {row.height}px;"
-              on:click={() => controller.jumpToFileLine(item)}
-              on:mouseenter={() => (selectedIndex = idx)}
-              on:keydown={(e) => e.key === "Enter" && controller.jumpToFileLine(item)}
+              onclick={() => controller.jumpToFileLine(item)}
+              onmouseenter={() => (selectedIndex = idx)}
+              onkeydown={(e) => e.key === "Enter" && controller.jumpToFileLine(item)}
             >
               <div class="modal-item-main">
                 <span class={g.cls ?? ""}>{g.char}</span>
