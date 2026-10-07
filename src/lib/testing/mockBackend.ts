@@ -740,11 +740,6 @@ export class MockBackend {
 
     import_notes_bundle: ({ notes, mode }) => {
       const d = this.dir();
-      if (mode === "replace") {
-        for (const name of [...d.notes.keys()]) {
-          if (isValidNoteFilename(name)) d.notes.delete(name);
-        }
-      }
       let imported = 0;
       let skipped = 0;
       for (const [filename, content] of Object.entries(notes)) {
@@ -758,6 +753,12 @@ export class MockBackend {
         }
         d.notes.set(filename, normalizeNoteText(content));
         imported++;
+      }
+      if (mode === "replace") {
+        // Only after every note is written: old notes survive a failure part-way.
+        for (const name of [...d.notes.keys()]) {
+          if (isValidNoteFilename(name) && !Object.prototype.hasOwnProperty.call(notes, name)) d.notes.delete(name);
+        }
       }
       return { imported, skipped };
     },
