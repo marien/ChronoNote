@@ -9967,3 +9967,29 @@ Marien, after abandoning the idea of Peek reacting to Teams calls by itself (wat
 - The desktop app had no CSP (`"csp": null`), so any script that ever ran in the window could call every command. Now: scripts only from the app (plus the hashes Tauri adds for its own init scripts), styles from the app plus inline (CodeMirror and Svelte inject style elements, and components use inline style attributes), images self/data/blob, network only to the IPC endpoint, no frames, objects or form posts. Tauri is told not to add nonces to `style-src` (`dangerousDisableAssetCspModification`), because a nonce there would switch `'unsafe-inline'` off. `devCsp` also allows the Vite dev server.
 - Verified on a debug build with the embedded frontend, against a throwaway notes folder: the response header carries the policy as written; an injected inline script and an image from another site are blocked and reported; inline style attributes and style elements apply; all six drawers, saving, the conflict dialog on an outside change, a CRLF note left untouched, and Peek work, with no CSP violations and no console errors.
 - Gates for §300-§305 together: svelte-check 0, Vitest 788, cargo 124, clippy 0, Playwright 567.
+
+## 306. One tokenizer for the note grammar
+
+**Status: implemented, not yet released.** Refactor from `docs/design/line-tokenizer-design.md` (approved by Marien 2026-10-07), steps R1, R4, R7, R10; implemented by Sonnet 5.5 agents, reviewed and integrated by the orchestrator. No intended behaviour change.
+
+- The grammar (`# v > x o . ,`, bullets, `! `, `=> `, consequences, `@name`, `(@a, @b)`, `(topic)`) used to be parsed by separate regexes: two in the editor (`glyphs.ts`), a hand-mirrored copy for read-only views (`glyphLine.ts`), one per query in `tokens.ts`, and local copies of the action-symbol class in six files. Several past fixes (§120, §125, §126, §259, §268) were one copy drifting from another.
+- Now `src/lib/grammar/tokenize.ts` (`tokenizeLine`) is the one definition, with one glyph table (`grammar/glyphs.ts`) and one symbol list (`grammar/symbols.ts`). The editor's decorations and atomic ranges, the read-only glyph views and the per-line queries in `tokens.ts` are built on it. The editor rebuild is about 1.4× faster on a 2,000-line note.
+- **The proof:** before anything moved, `src/lib/grammar/golden.test.ts` recorded what the old code did for 249 scenario lines and 80 edge cases (read-only parts, every query, the editor's decorations and atomic ranges). Every later step had to pass it with the snapshot unchanged.
+- One deliberate difference: a bare `#` with nothing after it was counted as an open action in the status bar although the editor never drew it as one; the count now agrees with the editor. Topic symbols stay out of the counts (Marien's decision).
+- Snapshot files are pinned to LF in `.gitattributes`, and the snapshot test has a 60 s timeout (it builds one editor per line).
+
+## 307. The three big drawers on Svelte runes
+
+**Status: implemented, not yet released.** From `docs/design/svelte-runes-drawers-design.md`, steps R2, R5, R8. No intended behaviour change.
+
+- `SearchModal`, `ActionDrawerModal` and `HistoryModal` used 39 legacy `$:` blocks between them. Their ordering rules caused real bugs (§55/§56, §61/§62, §215, §270: History on the right date, showing the first occurrence's body).
+- Converted to runes: values are `$derived` (computed on read, so no ordering problem), side effects are `$effect`/`$effect.pre` reading only what they need, a block that reassigned its own input became a guarded `$effect.pre`, timers are cleared by effect cleanup.
+- New regression test: switching History's occurrences with the arrow keys keeps the date strip and the body in step.
+
+## 308. One overlay stack for everything open over the editor
+
+**Status: implemented, not yet released.** From `docs/design/overlay-state-design.md`, steps R3, R6, R9.
+
+- What was open lived in `modal` plus four separate flags (find bar, mobile tab drawer, OneDrive folder picker, sync popover), and what Escape and mobile Back closed was a fixed order of `if`s plus a capture-phase flag.
+- `src/lib/overlays.ts` now holds one stack. `modal` and the four flags are thin views of it with the old API, so none of the 72 places that write them changed. Escape records the top entry when the key goes down and dismisses only that one, and only if it didn't already close itself in its own handler; mobile Back uses the same.
+- Behaviour changes (all improvements): Escape closes the top-most overlay first instead of a fixed priority; Escape with the sync popover open no longer also ends Zen or Peek; mobile Back now closes the sync popover too.
