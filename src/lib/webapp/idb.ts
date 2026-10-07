@@ -29,6 +29,7 @@ export const IDB_META_KEYS = {
   ONEDRIVE_TOMBSTONES: "onedrive_tombstones",
   ONEDRIVE_ADVANCED: "onedrive_advanced",
   ONEDRIVE_STATUS: "onedrive_status",
+  ONEDRIVE_TEXT_FORMAT: "onedrive_text_format",
 } as const;
 
 export function openDb(name: string, version: number, storeNames: string[]): Promise<IDBDatabase> {

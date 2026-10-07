@@ -29,6 +29,7 @@ import {
 import { OneDriveClient } from "./oneDriveClient";
 import { merge3 } from "./lineMerge";
 import { describeApiError, toAppError } from "../apiError";
+import { normalizeNoteText } from "../noteText";
 
 export interface FileCacheEntry {
   id: string;
@@ -580,6 +581,54 @@ export class WebOneDriveSyncEngine {
     return this.executeSync();
   }
 
+  /**
+   * One-time migration to the LF / no-BOM text format (marker `2`). Notes,
+   * bases, held conflicts and the cache's `localHash` values were stored with
+   * whatever line endings OneDrive delivered; downloads are now normalized, so
+   * the old values must be normalized too or every synced note would look
+   * divergent. Order: work out the new hashes read-only, rewrite the sync
+   * bookkeeping, then the notes, then the marker. A failure part-way leaves the
+   * marker unset so the next sync retries; every step is idempotent.
+   */
+  private async migrateTextFormat(): Promise<void> {
+    const db = await this.getDb();
+    const done = await idbGet<number>(db, IDB_STORES.META, IDB_META_KEYS.ONEDRIVE_TEXT_FORMAT);
+    if (done === 2) return;
+
+    const rewrites: { store: string; key: IDBValidKey; note: StoredNote }[] = [];
+    const cloudHashes = new Map<string, { oldHash: string; newHash: string }>();
+    for (const store of [IDB_STORES.NOTES_CLOUD, IDB_STORES.NOTES_BROWSER]) {
+      for (const [key, note] of await idbGetAllEntries<StoredNote>(db, store)) {
+        const text = normalizeNoteText(note.content);
+        if (text === note.content) continue;
+        const newHash = await computeSha256Hex(text);
+        rewrites.push({ store, key, note: { ...note, content: text, contentHash: newHash } });
+        if (store === IDB_STORES.NOTES_CLOUD) cloudHashes.set(String(key), { oldHash: note.contentHash, newHash });
+      }
+    }
+
+    const bases = await this.loadBases();
+    for (const name of Object.keys(bases)) bases[name] = normalizeNoteText(bases[name]);
+
+    const cache = await this.loadCache();
+    for (const [name, entry] of Object.entries(cache.files)) {
+      if (bases[name] !== undefined) {
+        entry.localHash = await computeSha256Hex(bases[name]);
+      } else {
+        const changed = cloudHashes.get(name);
+        if (changed && entry.localHash === changed.oldHash) entry.localHash = changed.newHash;
+      }
+    }
+    for (const pending of Object.values(cache.conflicts)) {
+      pending.remoteContent = normalizeNoteText(pending.remoteContent);
+    }
+
+    await this.saveBases(bases);
+    await this.saveCache(cache);
+    for (const { store, key, note } of rewrites) await idbPut(db, store, key, note);
+    await idbPut(db, IDB_STORES.META, IDB_META_KEYS.ONEDRIVE_TEXT_FORMAT, 2);
+  }
+
   private async executeSync(): Promise<OneDriveSyncResult> {
     this.isSyncing = true;
     this.setStatus("syncing");
@@ -592,6 +641,11 @@ export class WebOneDriveSyncEngine {
       }
 
       const token = await this.getValidAccessToken();
+      try {
+        await this.migrateTextFormat();
+      } catch (e) {
+        console.error("OneDrive text-format migration failed; will retry next sync", e);
+      }
       const cache = await this.loadCache();
       const bases = await this.loadBases();
 
@@ -659,7 +713,7 @@ export class WebOneDriveSyncEngine {
           continue;
         }
 
-        const remoteContent = await this.client.downloadFileContent(token, item.id);
+        const remoteContent = normalizeNoteText(await this.client.downloadFileContent(token, item.id));
         const remoteHash = await computeSha256Hex(remoteContent);
         const localNote = await idbGet<StoredNote>(db, IDB_STORES.NOTES_CLOUD, filename);
         const localHash = localNote?.contentHash;

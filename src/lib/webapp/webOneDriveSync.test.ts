@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import {
   classifyRemoteChange,
+  computeSha256Hex,
   isSyncableFile,
   WebOneDriveSyncEngine,
   type FileCacheEntry,
@@ -273,6 +274,84 @@ describe("WebOneDriveSyncEngine lifecycle & sync", () => {
       id: "item-up",
       etag: "tag-up",
       localHash: "hash-123",
+    });
+  });
+
+  describe("line-ending normalization", () => {
+    function signedIn() {
+      mockStores.meta.set(IDB_META_KEYS.ONEDRIVE_AUTH, {
+        accessToken: "valid-tok",
+        refreshToken: "ref-tok",
+        expiresAt: Math.floor(Date.now() / 1000) + 3600,
+        account: { email: "a@b.com", displayName: "A" },
+      });
+      mockStores.meta.set(IDB_META_KEYS.ONEDRIVE_FOLDER, { folderId: "folder-xyz", folderPath: "/Notes" });
+    }
+    function remoteListing(text: string) {
+      (mockClient.getFolderDelta as any).mockResolvedValue({
+        changes: [{ id: "rem-1", name: "2026-09-19.txt", etag: "etag-new" }],
+        deltaLink: "d2",
+      });
+      (mockClient.downloadFileContent as any).mockResolvedValue(text);
+    }
+
+    it("stores a downloaded CRLF file as LF with the LF hash", async () => {
+      signedIn();
+      remoteListing("a\r\nb\r\n");
+      const res = await engine.syncNow();
+      expect(res.success).toBe(true);
+      const note = mockStores.notes_cloud.get("2026-09-19.txt");
+      expect(note.content).toBe("a\nb\n");
+      expect(note.contentHash).toBe(await computeSha256Hex("a\nb\n"));
+    });
+
+    it("migrates an already-synced CRLF note without a false conflict", async () => {
+      signedIn();
+      const raw = "x\r\ny\r\n";
+      const rawHash = await computeSha256Hex(raw);
+      mockStores.notes_cloud.set("2026-09-19.txt", { content: raw, contentHash: rawHash, modifiedMs: 1 });
+      mockStores.notes_browser.set("2026-09-18.txt", {
+        content: "b\r\n",
+        contentHash: await computeSha256Hex("b\r\n"),
+        modifiedMs: 1,
+      });
+      mockStores.meta.set(IDB_META_KEYS.ONEDRIVE_BASES, { "2026-09-19.txt": raw });
+      mockStores.meta.set(IDB_META_KEYS.ONEDRIVE_CACHE, {
+        files: { "2026-09-19.txt": { id: "rem-1", etag: "etag-old", localHash: rawHash } },
+        conflicts: {},
+      });
+      remoteListing(raw);
+
+      const res = await engine.syncNow();
+      expect(res.success).toBe(true);
+
+      const cache = mockStores.meta.get(IDB_META_KEYS.ONEDRIVE_CACHE);
+      expect(cache.conflicts).toEqual({});
+      const note = mockStores.notes_cloud.get("2026-09-19.txt");
+      expect(note.content).toBe("x\ny\n");
+      expect(note.contentHash).toBe(await computeSha256Hex("x\ny\n"));
+      expect(cache.files["2026-09-19.txt"].localHash).toBe(note.contentHash);
+      expect(mockStores.meta.get(IDB_META_KEYS.ONEDRIVE_BASES)["2026-09-19.txt"]).toBe("x\ny\n");
+      expect(mockStores.notes_browser.get("2026-09-18.txt").content).toBe("b\n");
+      expect(mockStores.meta.get(IDB_META_KEYS.ONEDRIVE_TEXT_FORMAT)).toBe(2);
+      expect(mockClient.uploadFileContent).not.toHaveBeenCalled();
+    });
+
+    it("running the migration twice changes nothing the second time", async () => {
+      const raw = "x\r\ny\r\n";
+      const rawHash = await computeSha256Hex(raw);
+      mockStores.notes_cloud.set("2026-09-19.txt", { content: raw, contentHash: rawHash, modifiedMs: 1 });
+      mockStores.meta.set(IDB_META_KEYS.ONEDRIVE_BASES, { "2026-09-19.txt": raw });
+      mockStores.meta.set(IDB_META_KEYS.ONEDRIVE_CACHE, {
+        files: { "2026-09-19.txt": { id: "rem-1", etag: "e", localHash: rawHash } },
+        conflicts: { "2026-09-19.txt": { remoteContent: raw, remoteId: "rem-1", remoteEtag: "e2" } },
+      });
+      const migrate = () => (engine as any).migrateTextFormat() as Promise<void>;
+      await migrate();
+      const snapshot = JSON.stringify([...mockStores.notes_cloud], null, 0) + JSON.stringify([...mockStores.meta]);
+      expect(mockStores.meta.get(IDB_META_KEYS.ONEDRIVE_CACHE).conflicts["2026-09-19.txt"].remoteContent).toBe("x\ny\n");
+      await migrate();
+      expect(JSON.stringify([...mockStores.notes_cloud], null, 0) + JSON.stringify([...mockStores.meta])).toBe(snapshot);
     });
   });
 });
