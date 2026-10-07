@@ -5,7 +5,15 @@
  * writes it, so components can keep importing either `./stores` or
  * `./controller`. Split out of `controller.ts` in the v0.5.0 refactor so
  * that file is about what happens, not what exists. */
-import { get, writable } from "svelte/store";
+import { get, writable, type Readable } from "svelte/store";
+import {
+  closeOverlay,
+  isOpen,
+  modalFromStack,
+  openOverlay,
+  overlays,
+  type NonModalOverlayKind,
+} from "./overlays";
 import { todayISO } from "./date";
 import type {
   ActionSnapshotItem,
@@ -103,7 +111,7 @@ export interface DroppedNoteConflict {
   dropped: string;
 }
 export const droppedConflicts = writable<DroppedNoteConflict[]>([]);
-export const syncHealthPopoverOpen = writable<boolean>(false);
+export const syncHealthPopoverOpen = overlayFlag("syncHealth");
 
 /** Whether the top bar should show icon+label (true) or icon-only (false) —
  * driven by the OS window being maximized or fullscreen. */
@@ -147,10 +155,29 @@ export const saveState = writable<SaveState>("idle");
  * the floating widget docked top-right of the editor; `findMatch` mirrors
  * "N of M" as the editor reports it. The editor stays fully live while
  * this is open — it's not a modal. */
-export const findOpen = writable<boolean>(false);
+export const findOpen = overlayFlag("find");
 export const findMatch = writable<{ current: number; total: number }>({ current: 0, total: 0 });
 
-export const modal = writable<ModalKind>("none");
+/** The overlay stack (`overlays.ts`) is the source of truth for what is open;
+ * `modal` and the four boolean flags below are views of it with the old
+ * writable API (`$modal`, `modal.set(k)`, `get(modal)`), so no reader or writer
+ * had to change. Only one modal is open at a time, as before: `set` replaces
+ * the modal entry (if any) and leaves find / drawer / popover entries alone. */
+const NON_MODAL_KINDS: ReadonlySet<string> = new Set(["find", "mobileTabs", "folderPicker", "syncHealth"]);
+function setModal(k: ModalKind): void {
+  overlays.update((s) => {
+    const rest = s.filter((o) => NON_MODAL_KINDS.has(o.kind));
+    // Keep the non-modal entries' relative order; the modal goes on top.
+    return k === "none" ? rest : [...rest, { kind: k, dismissable: k !== "conflict" }];
+  });
+}
+export const modal = {
+  subscribe: modalFromStack.subscribe,
+  set: setModal,
+  update(fn: (k: ModalKind) => ModalKind): void {
+    setModal(fn(get(modalFromStack)));
+  },
+};
 /** #71: which Settings tab to land on when Settings is opened next —
  * read once by `SettingsModal.svelte` as its initial `activeSettingsTab`
  * (falling back to the usual "appearance" default when unset), then
@@ -186,8 +213,18 @@ export const backendKind = writable<"desktop" | "demo" | "web">("desktop");
  * `App.svelte`'s `pointer: coarse` media-query listener on mount. */
 export const isMobile = writable<boolean>(false);
 
+/** A boolean view of one non-modal overlay kind, with a writable's API. */
+function overlayFlag(kind: NonModalOverlayKind): Readable<boolean> & {
+  set(v: boolean): void;
+  update(fn: (v: boolean) => boolean): void;
+} {
+  const open = isOpen(kind);
+  const set = (v: boolean): void => (v ? openOverlay({ kind, dismissable: true }) : closeOverlay(kind));
+  return { subscribe: open.subscribe, set, update: (fn) => set(fn(get(open))) };
+}
+
 /** Whether the mobile tab drawer (bottom sheet) is currently open. */
-export const mobileTabDrawerOpen = writable<boolean>(false);
+export const mobileTabDrawerOpen = overlayFlag("mobileTabs");
 
 /** Connected Microsoft account info for OneDrive sync. */
 export const oneDriveAccount = writable<{ email: string; displayName: string } | null>(null);
@@ -197,7 +234,7 @@ export const oneDriveFolder = writable<{ folderId: string; folderPath: string } 
 
 /** Whether the OneDrive folder picker is open outside Settings - right after a web
  * sign-in with no folder chosen yet, or from the status bar's "Choose a folder". */
-export const oneDriveFolderPickerOpen = writable(false);
+export const oneDriveFolderPickerOpen = overlayFlag("folderPicker");
 
 /** OneDrive synchronization status. */
 export const oneDriveSyncStatus = writable<"idle" | "syncing" | "offline" | "error">("idle");
