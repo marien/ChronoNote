@@ -701,6 +701,7 @@ export const de = {
   "mobileTabDrawer.openDateNote": () => "Datum öffnen",
 
   "toast.actions.forwardedToToday": () => "An die heutigen Top-Prioritäten weitergeleitet!",
+  "toast.actions.forwardFailed": () => "Die Aufgabe konnte nicht zur heutigen Notiz hinzugefügt werden; es wurde nichts geändert",
   "toast.boot.oneDrive.connected": () => "Mit OneDrive verbunden",
   "toast.boot.oneDrive.connectedChooseFolder": () => "Mit OneDrive verbunden — wähle jetzt einen Ordner zum Synchronisieren",
   "toast.boot.oneDrive.signInFailedPrefix": () => "OneDrive-Anmeldung fehlgeschlagen:",

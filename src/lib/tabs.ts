@@ -29,6 +29,7 @@ import {
   flushSave,
   flushScratchpadDrafts,
   noteClosingWithContent,
+  updateNoteOnDisk,
   writeNoteAndInvalidateCache,
 } from "./persistence";
 import { notifyTabClosed } from "./paste";
@@ -380,9 +381,17 @@ export async function promoteScratchpad(tabId: string) {
   if (existingTab) {
     cancelScheduledSave(existingTab.id);
   }
-  const existingToday = (existingTab ? existingTab.content : ((await api.readNote(todayFilename)) ?? "")).trimEnd();
-  const merged = existingToday ? `${existingToday}\n\n\n${scratchContent}\n` : `${scratchContent}\n`;
-  await writeNoteAndInvalidateCache(todayFilename, merged);
+  const mergeInto = (existing: string) => {
+    const trimmed = existing.trimEnd();
+    return trimmed ? `${trimmed}\n\n\n${scratchContent}\n` : `${scratchContent}\n`;
+  };
+  let merged: string;
+  if (existingTab) {
+    merged = mergeInto(existingTab.content);
+    await writeNoteAndInvalidateCache(todayFilename, merged, { kind: "tabBaseline" });
+  } else {
+    merged = await updateNoteOnDisk(todayFilename, mergeInto);
+  }
 
   const remaining = list.filter((t) => t.id !== tabId);
   let todayTab = remaining.find((t) => !t.isScratchpad && t.filename === todayFilename);

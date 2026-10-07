@@ -43,7 +43,7 @@ import {
   type CopyForwardPending,
 } from "./stores";
 import * as api from "./tauriApi";
-import { refreshAllNotesCache, writeNoteAndInvalidateCache, writeTabContent } from "./persistence";
+import { refreshAllNotesCache, updateNoteOnDisk, writeNoteAndInvalidateCache, writeTabContent } from "./persistence";
 import { extractSectionBody, findNextSectionOccurrenceOnDisk } from "./history";
 import { countOpenActionsInText, deferOpenActionsInText } from "./paste";
 import { getSectionHeaderForLine, normalizeHeaderTitle, titleForMatching } from "./tokens";
@@ -238,9 +238,10 @@ async function commitCopyForward(
           editorApi.jumpToLine(updated.insertedAtLine);
         }
       } else {
-        const existing = (await api.readNote(targetFilename)) ?? "";
-        const updated = insertIntoSection(existing, targetHeader, newSectionHeaderText, insertLines);
-        await writeNoteAndInvalidateCache(targetFilename, updated.content);
+        await updateNoteOnDisk(
+          targetFilename,
+          (existing) => insertIntoSection(existing, targetHeader, newSectionHeaderText, insertLines).content,
+        );
       }
     }
 

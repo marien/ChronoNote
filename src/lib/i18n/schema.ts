@@ -718,6 +718,7 @@ export type TranslationParams = {
   // concatenate a Rust/API-originated error message stay untranslated
   // in that trailing part, same Phase 2 deferral as everywhere else.
   "toast.actions.forwardedToToday": undefined;
+  "toast.actions.forwardFailed": undefined;
   "toast.boot.oneDrive.connected": undefined;
   "toast.boot.oneDrive.connectedChooseFolder": undefined;
   "toast.boot.oneDrive.signInFailedPrefix": undefined;

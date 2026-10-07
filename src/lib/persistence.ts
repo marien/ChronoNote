@@ -307,7 +307,24 @@ export function writeNoteAndInvalidateCache(
   return writeNoteRaw(filename, content, guard);
 }
 
-/** True for the error `write_note` / `delete_note` return when the file on disk is no longer
+/** Read-change-write for a note with no open tab, guarded by the hash read with it.
+ * Retries twice if the file changed in between. Returns the text that was written. */
+export async function updateNoteOnDisk(filename: string, change: (current: string) => string): Promise<string> {
+  for (let attempt = 1; ; attempt++) {
+    const { content, metadata } = await api.readNoteWithMetadata(filename);
+    const next = change(content ?? "");
+    // A file that doesn't exist yet has no hash to guard with; creating it is unguarded.
+    const guard: WriteGuard = metadata.contentHash ? { kind: "hash", hash: metadata.contentHash } : { kind: "none" };
+    try {
+      await writeNoteAndInvalidateCache(filename, next, guard);
+      return next;
+    } catch (e) {
+      if (!isWriteConflictError(e) || attempt >= 3) throw e;
+    }
+  }
+}
+
+/** True for the error `write_note`/ `delete_note` return when the file on disk is no longer
  * the version the caller expected (Rust: `CONFLICT_ERROR_PREFIX`; the TS backends throw the same text). */
 export function isWriteConflictError(err: unknown): boolean {
   const msg = err instanceof Error ? err.message : String(err);

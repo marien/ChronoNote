@@ -706,6 +706,7 @@ export const es = {
   "mobileTabDrawer.openDateNote": () => "Abrir nota con fecha",
 
   "toast.actions.forwardedToToday": () => "¡Transferido a las prioridades de hoy!",
+  "toast.actions.forwardFailed": () => "No se pudo añadir la tarea a la nota de hoy, así que no se cambió nada",
   "toast.boot.oneDrive.connected": () => "Conectado a OneDrive",
   "toast.boot.oneDrive.connectedChooseFolder": () => "Conectado a OneDrive — elija ahora una carpeta para sincronizar",
   "toast.boot.oneDrive.signInFailedPrefix": () => "Error de inicio de sesión en OneDrive:",

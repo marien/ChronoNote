@@ -25,7 +25,7 @@ import {
   type CalendarSyncRemoval,
   type CalendarSyncRemovalChoice,
 } from "./stores";
-import { writeTabContent, writeNoteAndInvalidateCache } from "./persistence";
+import { writeTabContent, updateNoteOnDisk } from "./persistence";
 import * as api from "./tauriApi";
 import { todayISO } from "./date";
 import { appendRemovedSectionTo, computeCalendarSync, flagRemovedSection } from "./calendarReconcile";
@@ -337,8 +337,7 @@ export async function confirmCalendarSync(): Promise<void> {
       list = writeTabContent(targetTab.id, appendRemovedSectionTo(targetTab.content, removal), list);
       tabs.set(list);
     } else {
-      const existing = (await api.readNote(targetFilename)) ?? "";
-      await writeNoteAndInvalidateCache(targetFilename, appendRemovedSectionTo(existing, removal));
+      await updateNoteOnDisk(targetFilename, (existing) => appendRemovedSectionTo(existing, removal));
     }
   }
 
