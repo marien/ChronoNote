@@ -47,46 +47,65 @@ async fn list_note_files(app: AppHandle) -> Result<Vec<String>, String> {
         .map_err(|e| e.to_string())?
 }
 
+// The note and session commands below run on the blocking pool, not the main (UI) thread: one
+// slow file (OneDrive, security software) must not freeze the window. The compare-and-swap
+// writes stay safe because `storage::NOTE_LOCK` serializes check + write.
 #[tauri::command]
-fn read_note(app: AppHandle, filename: String) -> Result<Option<String>, String> {
-    storage::read_note(&app, &filename)
+async fn read_note(app: AppHandle, filename: String) -> Result<Option<String>, String> {
+    tauri::async_runtime::spawn_blocking(move || storage::read_note(&app, &filename))
+        .await
+        .map_err(|e| e.to_string())?
 }
 
 #[tauri::command]
-fn write_note(
+async fn write_note(
     app: AppHandle,
     filename: String,
     content: String,
     expected_hash: Option<String>,
 ) -> Result<storage::FileMetadata, String> {
-    storage::write_note(&app, &filename, &content, expected_hash.as_deref())
+    tauri::async_runtime::spawn_blocking(move || {
+        storage::write_note(&app, &filename, &content, expected_hash.as_deref())
+    })
+    .await
+    .map_err(|e| e.to_string())?
 }
 
 #[tauri::command]
-fn delete_note(
+async fn delete_note(
     app: AppHandle,
     filename: String,
     expected_hash: Option<String>,
 ) -> Result<(), String> {
-    storage::delete_note(&app, &filename, expected_hash.as_deref())
+    tauri::async_runtime::spawn_blocking(move || {
+        storage::delete_note(&app, &filename, expected_hash.as_deref())
+    })
+    .await
+    .map_err(|e| e.to_string())?
 }
 
 #[tauri::command]
-fn get_file_metadata(app: AppHandle, filename: String) -> Result<storage::FileMetadata, String> {
-    storage::get_file_metadata(&app, &filename)
+async fn get_file_metadata(app: AppHandle, filename: String) -> Result<storage::FileMetadata, String> {
+    tauri::async_runtime::spawn_blocking(move || storage::get_file_metadata(&app, &filename))
+        .await
+        .map_err(|e| e.to_string())?
 }
 
 #[tauri::command]
-fn read_note_with_metadata(
+async fn read_note_with_metadata(
     app: AppHandle,
     filename: String,
 ) -> Result<storage::NoteWithMetadata, String> {
-    storage::read_note_with_metadata(&app, &filename)
+    tauri::async_runtime::spawn_blocking(move || storage::read_note_with_metadata(&app, &filename))
+        .await
+        .map_err(|e| e.to_string())?
 }
 
 #[tauri::command]
-fn write_conflict_copy(app: AppHandle, name: String, content: String) -> Result<String, String> {
-    storage::write_conflict_copy(&app, &name, &content)
+async fn write_conflict_copy(app: AppHandle, name: String, content: String) -> Result<String, String> {
+    tauri::async_runtime::spawn_blocking(move || storage::write_conflict_copy(&app, &name, &content))
+        .await
+        .map_err(|e| e.to_string())?
 }
 
 #[tauri::command]
@@ -101,8 +120,10 @@ async fn read_all_notes(app: AppHandle) -> Result<Vec<(String, String)>, String>
 }
 
 #[tauri::command]
-fn read_tab_session(app: AppHandle) -> Result<Option<storage::TabSession>, String> {
-    storage::read_tab_session(&app)
+async fn read_tab_session(app: AppHandle) -> Result<Option<storage::TabSession>, String> {
+    tauri::async_runtime::spawn_blocking(move || storage::read_tab_session(&app))
+        .await
+        .map_err(|e| e.to_string())?
 }
 
 /// Shared by the desktop app's "Import notes from a file" Settings entry
@@ -110,40 +131,50 @@ fn read_tab_session(app: AppHandle) -> Result<Option<storage::TabSession>, Strin
 /// and hand over just the `{filename -> content}` map. See
 /// `docs/design/webapp-roadmap.md`.
 #[tauri::command]
-fn import_notes_bundle(
+async fn import_notes_bundle(
     app: AppHandle,
     notes: std::collections::HashMap<String, String>,
     mode: storage::ImportMode,
 ) -> Result<storage::ImportResult, String> {
-    storage::import_notes_bundle(&app, &notes, mode)
+    tauri::async_runtime::spawn_blocking(move || storage::import_notes_bundle(&app, &notes, mode))
+        .await
+        .map_err(|e| e.to_string())?
 }
 
 #[tauri::command]
-fn write_tab_session(
+async fn write_tab_session(
     app: AppHandle,
     open_tabs: Vec<String>,
     active_tab: Option<String>,
     last_opened_date: Option<String>,
 ) -> Result<(), String> {
-    storage::write_tab_session(
-        &app,
-        &storage::TabSession { open_tabs, active_tab, last_opened_date },
-    )
+    tauri::async_runtime::spawn_blocking(move || {
+        storage::write_tab_session(
+            &app,
+            &storage::TabSession { open_tabs, active_tab, last_opened_date },
+        )
+    })
+    .await
+    .map_err(|e| e.to_string())?
 }
 
 #[tauri::command]
-fn save_scratchpad_drafts(
+async fn save_scratchpad_drafts(
     app: AppHandle,
     drafts: std::collections::HashMap<String, String>,
 ) -> Result<(), String> {
-    storage::save_scratchpad_drafts(&app, &drafts)
+    tauri::async_runtime::spawn_blocking(move || storage::save_scratchpad_drafts(&app, &drafts))
+        .await
+        .map_err(|e| e.to_string())?
 }
 
 #[tauri::command]
-fn load_scratchpad_drafts(
+async fn load_scratchpad_drafts(
     app: AppHandle,
 ) -> Result<std::collections::HashMap<String, String>, String> {
-    storage::load_scratchpad_drafts(&app)
+    tauri::async_runtime::spawn_blocking(move || storage::load_scratchpad_drafts(&app))
+        .await
+        .map_err(|e| e.to_string())?
 }
 
 /// Window starts hidden (see `tauri.conf.json`) so it can be shown only

@@ -526,6 +526,12 @@ fn resolve_workspace_path(workspace: &Path, rel: &Path) -> Result<PathBuf, Stora
 /// rename retry below only about *external* interference.
 static WRITE_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
 
+/// Held across a note's compare-and-swap check and the write or delete that follows, so two
+/// guarded operations on notes can't interleave once commands run off the main thread.
+/// Separate from `WRITE_LOCK`, which `atomic_write` takes itself (std mutexes aren't reentrant).
+/// Lock order: `NOTE_LOCK` first, then `WRITE_LOCK` inside `atomic_write`; never the reverse.
+static NOTE_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
+
 #[cfg(windows)]
 fn is_transient_rename_error(e: &std::io::Error) -> bool {
     // ERROR_ACCESS_DENIED (5) / ERROR_SHARING_VIOLATION (32) — the target
@@ -850,6 +856,7 @@ fn write_note_at(
     if !is_valid_note_filename(filename) {
         return Err(format!("Invalid note filename: {filename}"));
     }
+    let _guard = NOTE_LOCK.lock().unwrap_or_else(|p| p.into_inner());
     let content = normalize_note_text(content);
     fs::create_dir_all(root).map_err(|e| e.to_string())?;
 
@@ -891,6 +898,7 @@ fn delete_note_at(root: &Path, filename: &str, expected_hash: Option<&str>) -> R
     if !is_valid_note_filename(filename) {
         return Err(format!("Invalid note filename: {filename}"));
     }
+    let _guard = NOTE_LOCK.lock().unwrap_or_else(|p| p.into_inner());
     // Same compare-and-swap rule as `write_note_at`: when the caller passes the hash it last saw,
     // a file that changed since then (another device synced a new version in) is kept, not deleted.
     if let Some(expected) = expected_hash {
@@ -1946,6 +1954,38 @@ mod tests {
             .filter(|n| n != "2026-09-07.txt")
             .collect();
         assert!(stray.is_empty(), "stray temp files after concurrent writes: {stray:?}");
+    }
+
+    #[test]
+    fn guarded_concurrent_writes_let_exactly_one_win() {
+        // Commands run off the main thread now, so check + write must not interleave: of 8
+        // writers all holding the starting hash, one wins and the other 7 get the conflict error.
+        let dir = tempdir().unwrap();
+        let root = dir.path().to_path_buf();
+        write_note_at(&root, "2026-09-07.txt", "start", None).unwrap();
+        let h0 = hash_bytes(b"start");
+        let barrier = std::sync::Barrier::new(8);
+        let results: Vec<(usize, Result<FileMetadata, String>)> = std::thread::scope(|s| {
+            let handles: Vec<_> = (0..8)
+                .map(|w| {
+                    let (root, h0, barrier) = (&root, &h0, &barrier);
+                    s.spawn(move || {
+                        barrier.wait();
+                        (w, write_note_at(root, "2026-09-07.txt", &format!("writer {w}"), Some(h0)))
+                    })
+                })
+                .collect();
+            handles.into_iter().map(|h| h.join().unwrap()).collect()
+        });
+        let winners: Vec<usize> = results.iter().filter(|(_, r)| r.is_ok()).map(|(w, _)| *w).collect();
+        assert_eq!(winners.len(), 1, "expected exactly one winner: {results:?}");
+        for (_, r) in results.iter().filter(|(_, r)| r.is_err()) {
+            assert!(r.as_ref().unwrap_err().starts_with(CONFLICT_ERROR_PREFIX));
+        }
+        assert_eq!(
+            read_note_at(&root, "2026-09-07.txt").unwrap(),
+            Some(format!("writer {}", winners[0])),
+        );
     }
 
     #[test]
