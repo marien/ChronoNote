@@ -11,9 +11,9 @@
 
   // The gate is shared by the notes-folder switch (§39) and the app-close
   // barrier (§93); only the wording and which resolve handlers run differ.
-  $: isClose = $scratchpadGateContext === "close";
-  $: lead = isClose ? $t("unsavedScratchpads.leadClose") : $t("unsavedScratchpads.leadSwitch");
-  $: confirmLabel = isClose ? $t("unsavedScratchpads.confirmDiscardQuit") : $t("unsavedScratchpads.confirmDiscardSwitch");
+  const isClose = $derived($scratchpadGateContext === "close");
+  const lead = $derived(isClose ? $t("unsavedScratchpads.leadClose") : $t("unsavedScratchpads.leadSwitch"));
+  const confirmLabel = $derived(isClose ? $t("unsavedScratchpads.confirmDiscardQuit") : $t("unsavedScratchpads.confirmDiscardSwitch"));
   const cancel = () => (isClose ? controller.cancelAppClose() : controller.cancelDirectorySwitch());
   const confirm = () => (isClose ? controller.confirmDiscardAndClose() : controller.confirmDiscardAndSwitch());
 </script>
@@ -27,7 +27,7 @@
         type="button"
         class="icon-btn modal-close-btn"
         aria-label={$t("common.closeDialog")}
-        on:click={cancel}
+        onclick={cancel}
       >
         <Icon name="close" size={14} />
       </button>
@@ -41,8 +41,8 @@
       </ul>
     </div>
     <div class="modal-footer" style="justify-content: flex-end; gap: 8px;">
-      <button class="icon-btn" bind:this={cancelBtn} on:click={cancel}>{$t("common.cancel")}</button>
-      <button class="icon-btn btn-primary" on:click={confirm}>
+      <button class="icon-btn" bind:this={cancelBtn} onclick={cancel}>{$t("common.cancel")}</button>
+      <button class="icon-btn btn-primary" onclick={confirm}>
         {confirmLabel}
       </button>
     </div>
