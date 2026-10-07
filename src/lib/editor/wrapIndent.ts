@@ -16,6 +16,7 @@ import {
   numberedContinuationIndent,
   topicContinuationIndent,
 } from "../tokens";
+import { tokenizeLine } from "../grammar/tokenize";
 
 /**
  * Calculates the continuation indentation in characters (columns) for a line of text.
@@ -27,17 +28,15 @@ export function getLineWrapIndent(lineText: string): number {
   if (lineText.trim() === "") return 0;
 
   // 1. Follow-up / Consequence line: e.g. "=> text" or "=> # text" or indented
-  const follow = lineText.match(/^(\s*)=>\s(?:([#vx>])\s)?/);
-  if (follow) {
-    const [, indent, sym] = follow;
-    const expanded = indent.replace(/\t/g, "  ");
-    return expanded.length + 3 + (sym ? 2 : 0);
+  const [first, second] = tokenizeLine(lineText);
+  if (first?.kind === "arrow" && lineText.slice(0, first.from).trim() === "") {
+    const expanded = lineText.slice(0, first.from).replace(/\t/g, "  ");
+    return expanded.length + 3 + (second?.kind === "consequence" ? 2 : 0);
   }
 
   // 2. Action line: e.g. "# text", "  v text", "> deferred", "x cancelled"
-  const action = lineText.match(/^(\s*)([#vx>])\s/);
-  if (action) {
-    const expanded = action[1].replace(/\t/g, "  ");
+  if (first?.kind === "action") {
+    const expanded = lineText.slice(0, first.from).replace(/\t/g, "  ");
     return expanded.length + 2;
   }
 

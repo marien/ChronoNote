@@ -2,6 +2,8 @@
  * Pure and single pass. It reproduces exactly what the editor's `renderMatcher`
  * regex and the read-only `parseGlyphLine` recognise today; offsets are into
  * the original line. */
+import { ACTION_CLASS, BULLET_CLASS, TOPIC_CLASS } from "./symbols";
+
 export type TokenKind =
   | "action" // # v > x at line start (after indentation); includes the trailing space
   | "topic" // o . , at line start; includes the trailing space
@@ -27,14 +29,16 @@ export interface Token {
 
 /** Same pattern as `leadingTopicTag` in tokens.ts, kept here so the grammar has no
  * dependency on it. `(@name)` is a delegate, not a topic. */
-const TOPIC_TAG = /^(\s*[#vx>]\s+|.*?=>\s+[#vx>]\s+)(\((?!@)[^\s()]+\))/;
+const TOPIC_TAG = new RegExp(String.raw`^(\s*${ACTION_CLASS}\s+|.*?=>\s+${ACTION_CLASS}\s+)(\((?!@)[^\s()]+\))`);
 
-const LINE_START = /^(\s*)(?:([#vx>])|([o.,])|([-*]))\s/;
+const LINE_START = new RegExp(String.raw`^(\s*)(?:(${ACTION_CLASS})|(${TOPIC_CLASS})|(${BULLET_CLASS}))\s`);
 
 // Alternatives in the editor's order: `=> @name`, `=> <symbol> `, `=> `, `(@a, @b)`,
 // bare `@name` (not glued to a word, `@` or `/`), `(word)`.
-const INLINE =
-  /=>\s@([\w-]+)|=>\s([#vx>])\s|=>\s|\(@([\w-]+(?:[\s,]+@[\w-]+)*)\)|(?<![\w@/])@([\w-]+)|\(([^\s()]+)\)/g;
+const INLINE = new RegExp(
+  String.raw`=>\s@([\w-]+)|=>\s(${ACTION_CLASS})\s|=>\s|\(@([\w-]+(?:[\s,]+@[\w-]+)*)\)|(?<![\w@/])@([\w-]+)|\(([^\s()]+)\)`,
+  "g",
+);
 
 export function tokenizeLine(line: string): Token[] {
   const tokens: Token[] = [];

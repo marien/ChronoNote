@@ -7,7 +7,7 @@ import { actionSnapshot, allNotesCache, modal, showToast, tabs } from "./stores"
 import { refreshAllNotesCache, updateNoteOnDisk, writeTabContent } from "./persistence";
 import { openOrCreateDatedFile } from "./tabs";
 import { compareTabsByRecency, sortFilenamesByRecency } from "./tabSort";
-import { cycleActionSymbol, getSectionHeaderForLine, normalizeHeaderTitle } from "./tokens";
+import { cycleActionSymbol, getSectionHeaderForLine, innermostActionSymbol, normalizeHeaderTitle } from "./tokens";
 import { todayISO } from "./date";
 import { t } from "./i18n";
 import type { ActionSnapshotItem } from "./types";
@@ -20,7 +20,7 @@ import type { ActionSnapshotItem } from "./types";
  * turning that toggle off reveals `v `/`x ` lines too (previously
  * excluded from the drawer outright, regardless of the toggle). */
 function isActionLine(line: string): boolean {
-  return /^\s*[#>vx]\s/.test(line) || line.includes("=> @") || /=>\s[#>vx]\s/.test(line);
+  return innermostActionSymbol(line) !== null || line.includes("=> @");
 }
 
 export function buildActionSnapshotOpenTabs(): ActionSnapshotItem[] {
