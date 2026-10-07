@@ -10,14 +10,14 @@
 
   // The note being shown; falls back to the first when the selected one has
   // just been resolved and dropped out of the list.
-  let selectedName = "";
-  $: current = $syncConflicts.find((c) => c.name === selectedName) ?? $syncConflicts[0];
+  let selectedName = $state("");
+  const current = $derived($syncConflicts.find((c) => c.name === selectedName) ?? $syncConflicts[0]);
 
-  $: diff = current ? diffLines(current.local, current.remote) : { left: [], right: [] };
-  $: changedCount = diff.left.filter((r) => r.changed).length + diff.right.filter((r) => r.changed).length;
+  const diff = $derived(current ? diffLines(current.local, current.remote) : { left: [], right: [] });
+  const changedCount = $derived(diff.left.filter((r) => r.changed).length + diff.right.filter((r) => r.changed).length);
 
-  let busy = false;
-  let viewMode: "both" | "mine" | "theirs" = "both";
+  let busy = $state(false);
+  let viewMode = $state<"both" | "mine" | "theirs">("both");
   async function choose(resolution: SyncConflictResolution) {
     if (!current || busy) return;
     busy = true;
@@ -40,7 +40,7 @@
         type="button"
         class="icon-btn modal-close-btn"
         aria-label={$t("common.closeDialog")}
-        on:click={controller.closeAllModals}
+        onclick={controller.closeAllModals}
       >
         <Icon name="close" size={14} />
       </button>
@@ -57,7 +57,7 @@
             <button
               class="icon-btn"
               class:active={c.name === current.name}
-              on:click={() => (selectedName = c.name)}>{label(c.name)}</button
+              onclick={() => (selectedName = c.name)}>{label(c.name)}</button
             >
           {/each}
         </div>
@@ -69,7 +69,7 @@
           type="button"
           class="conflict-view-btn"
           class:active={viewMode === "both"}
-          on:click={() => (viewMode = "both")}
+          onclick={() => (viewMode = "both")}
         >
           {$t("droppedNotes.tab.sideBySide")}
         </button>
@@ -77,7 +77,7 @@
           type="button"
           class="conflict-view-btn"
           class:active={viewMode === "mine"}
-          on:click={() => (viewMode = "mine")}
+          onclick={() => (viewMode = "mine")}
         >
           {$t("syncConflicts.tab.thisDevice")}
         </button>
@@ -85,7 +85,7 @@
           type="button"
           class="conflict-view-btn"
           class:active={viewMode === "theirs"}
-          on:click={() => (viewMode = "theirs")}
+          onclick={() => (viewMode = "theirs")}
         >
           OneDrive
         </button>
@@ -106,11 +106,11 @@
       {/if}
 
       <div class="conflict-actions">
-        <button class="icon-btn btn-primary" disabled={busy} on:click={() => choose("mine")}>
+        <button class="icon-btn btn-primary" disabled={busy} onclick={() => choose("mine")}>
           {$t("syncConflicts.keepThisDevice")}
         </button>
-        <button class="icon-btn" disabled={busy} on:click={() => choose("theirs")}> {$t("syncConflicts.useOneDrive")} </button>
-        <button class="icon-btn" disabled={busy} on:click={() => choose("both")}> {$t("droppedNotes.keepBoth")} </button>
+        <button class="icon-btn" disabled={busy} onclick={() => choose("theirs")}> {$t("syncConflicts.useOneDrive")} </button>
+        <button class="icon-btn" disabled={busy} onclick={() => choose("both")}> {$t("droppedNotes.keepBoth")} </button>
       </div>
       <div class="settings-hint" style="padding: 0 12px 12px; margin: 0;">
         {$t("syncConflicts.keepBothHint", { keepBothLabel: $t("droppedNotes.keepBoth") })}
@@ -120,7 +120,7 @@
     {/if}
 
     <div class="modal-footer" style="padding: 8px 12px; display: flex; justify-content: flex-end;">
-      <button class="icon-btn" on:click={controller.closeAllModals}>{$t("common.close")}</button>
+      <button class="icon-btn" onclick={controller.closeAllModals}>{$t("common.close")}</button>
     </div>
   </div>
 </div>

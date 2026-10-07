@@ -9,10 +9,10 @@
   import EmptyState from "../EmptyState.svelte";
   import { t } from "../../i18n";
 
-  $: review = $calendarSyncReview;
+  const review = $derived($calendarSyncReview);
 
-  let syncBtn: HTMLButtonElement | undefined;
-  let listEl: HTMLDivElement | undefined;
+  let syncBtn = $state<HTMLButtonElement>();
+  let listEl = $state<HTMLDivElement>();
 
   // #78: opening the review puts focus on the Sync button, so Enter accepts the review as it stands.
   onMount(() => {
@@ -44,7 +44,7 @@
   }
 </script>
 
-<svelte:window on:keydown={onKeydown} />
+<svelte:window onkeydown={onKeydown} />
 
 {#if review}
   <div class="overlay" role="presentation" use:closeOnOutsideClick={cancel}>
@@ -56,7 +56,7 @@
           type="button"
           class="icon-btn modal-close-btn"
           aria-label={$t("common.closeDialog")}
-          on:click={cancel}
+          onclick={cancel}
         >
           <Icon name="close" size={14} />
         </button>
@@ -67,7 +67,7 @@
           {#each review.newItems as item, i (item.title + i)}
             <div class="modal-item" style="cursor: default;">
               <label class="sync-review-check">
-                <input type="checkbox" checked={item.checked} on:change={() => controller.toggleSyncNewItem(i)} />
+                <input type="checkbox" checked={item.checked} onchange={() => controller.toggleSyncNewItem(i)} />
                 {item.title}
               </label>
             </div>
@@ -108,7 +108,7 @@
                     type="date"
                     class="sync-review-date"
                     value={removal.moveDate}
-                    on:change={(e) => controller.setSyncRemovalMoveDate(i, e.currentTarget.value)}
+                    onchange={(e) => controller.setSyncRemovalMoveDate(i, e.currentTarget.value)}
                   />
                 {/if}
               </div>
@@ -125,8 +125,8 @@
         {/if}
       </div>
       <div class="modal-footer" style="justify-content: flex-end; gap: 8px;">
-        <button class="icon-btn" on:click={cancel}>{$t("common.cancel")}</button>
-        <button class="icon-btn btn-primary" bind:this={syncBtn} on:click={confirm}>{$t("calendarSyncReview.syncButton")}</button>
+        <button class="icon-btn" onclick={cancel}>{$t("common.cancel")}</button>
+        <button class="icon-btn btn-primary" bind:this={syncBtn} onclick={confirm}>{$t("calendarSyncReview.syncButton")}</button>
       </div>
     </div>
   </div>

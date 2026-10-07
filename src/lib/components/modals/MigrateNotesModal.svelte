@@ -4,14 +4,18 @@
   import Icon from "../../icons/Icon.svelte";
   import { t } from "../../i18n";
 
-  export let noteCount: number;
-  export let targetFolder: string;
-  export let onMigrate: () => Promise<void> | void;
-  export let onSkip: () => Promise<void> | void;
-  export let onCancel: () => void;
+  interface Props {
+    noteCount: number;
+    targetFolder: string;
+    onMigrate: () => Promise<void> | void;
+    onSkip: () => Promise<void> | void;
+    onCancel: () => void;
+  }
 
-  let migrating = false;
-  let skipping = false;
+  let { noteCount, targetFolder, onMigrate, onSkip, onCancel }: Props = $props();
+
+  let migrating = $state(false);
+  let skipping = $state(false);
 
   async function handleMigrate() {
     migrating = true;
@@ -38,7 +42,7 @@
   }
 </script>
 
-<svelte:window on:keydown={handleKeydown} />
+<svelte:window onkeydown={handleKeydown} />
 
 <div class="overlay" role="presentation" use:closeOnOutsideClick={onCancel}>
   <div
@@ -53,7 +57,7 @@
         <Icon name="cloud" size={16} />
         <span>{$t("migrateNotes.title")}</span>
       </div>
-      <button type="button" class="icon-btn modal-close-btn" aria-label={$t("common.closeDialog")} on:click={onCancel} disabled={migrating || skipping}>
+      <button type="button" class="icon-btn modal-close-btn" aria-label={$t("common.closeDialog")} onclick={onCancel} disabled={migrating || skipping}>
         <Icon name="close" size={14} />
       </button>
     </div>
@@ -72,7 +76,7 @@
         class="icon-btn btn-primary"
         style="justify-content: center; padding: 10px 16px; font-weight: 500;"
         disabled={migrating || skipping}
-        on:click={handleMigrate}
+        onclick={handleMigrate}
       >
         {#if migrating}
           <span class="modal-spinner">⟳</span> {$t("migrateNotes.moving")}
@@ -85,7 +89,7 @@
         class="icon-btn"
         style="justify-content: center; padding: 8px 16px;"
         disabled={migrating || skipping}
-        on:click={handleSkip}
+        onclick={handleSkip}
       >
         {#if skipping}
           <span class="modal-spinner">⟳</span> {$t("migrateNotes.switchingFolder")}
@@ -98,7 +102,7 @@
         class="icon-btn"
         style="justify-content: center; padding: 6px 16px; opacity: 0.8;"
         disabled={migrating || skipping}
-        on:click={onCancel}
+        onclick={onCancel}
       >
         {$t("common.cancel")}
       </button>
