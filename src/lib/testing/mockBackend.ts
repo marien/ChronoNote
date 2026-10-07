@@ -677,7 +677,8 @@ export class MockBackend {
       // §94: compare-and-swap when the caller passed the hash it last saw.
       if (typeof expectedHash === "string") {
         const current = this.dir().notes.get(filename);
-        const currentHash = current === undefined ? null : await sha256Hex(normalizeNoteText(current));
+        // A missing file matches the empty-content hash, like storage.rs.
+        const currentHash = await sha256Hex(current === undefined ? "" : normalizeNoteText(current));
         if (currentHash !== expectedHash) {
           throw new Error(`conflict: note changed on disk: ${filename}`);
         }

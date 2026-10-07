@@ -440,7 +440,8 @@ export class WebBackend {
       // §94: compare-and-swap, same contract as storage.rs's write_note_at.
       if (typeof expectedHash === "string") {
         const current = await idbGet<StoredNote>(db, store, filename);
-        if ((current?.contentHash ?? null) !== expectedHash) {
+        // A missing note matches the empty-content hash, like storage.rs.
+        if ((current?.contentHash ?? (await sha256Hex(""))) !== expectedHash) {
           throw new Error(`conflict: note changed on disk: ${filename}`);
         }
       }

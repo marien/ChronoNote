@@ -767,8 +767,10 @@ fn write_note_at(
     // refuse the write if the file has since changed — a blind overwrite
     // there would silently lose whatever landed on disk in between.
     if let Some(expected) = expected_hash {
-        let current = file_metadata_at(root, filename)?.content_hash;
-        if current.as_deref() != Some(expected) {
+        // A file that doesn't exist holds no text, so it matches the hash of empty content: that is
+        // the baseline of a tab opened for a day that has no note yet, and its first save must work.
+        let current = file_metadata_at(root, filename)?.content_hash.unwrap_or_else(|| hash_bytes(b""));
+        if current != expected {
             return Err(format!("{CONFLICT_ERROR_PREFIX}: {filename}"));
         }
     }
@@ -2015,6 +2017,16 @@ mod tests {
         let hash = m.content_hash.unwrap();
         write_note_at(dir.path(), "2026-09-07.txt", "v2", Some(&hash)).unwrap();
         assert_eq!(read_note_at(dir.path(), "2026-09-07.txt").unwrap(), Some("v2".to_string()));
+    }
+
+    #[test]
+    fn a_missing_file_matches_the_empty_content_hash() {
+        // A tab for a day with no note yet carries the empty-content baseline; its first guarded
+        // save must create the file, and any other expected hash must still be refused.
+        let dir = tempdir().unwrap();
+        assert!(write_note_at(dir.path(), "2026-09-08.txt", "x", Some(&hash_bytes(b"other"))).is_err());
+        write_note_at(dir.path(), "2026-09-08.txt", "first line", Some(&hash_bytes(b""))).unwrap();
+        assert_eq!(read_note_at(dir.path(), "2026-09-08.txt").unwrap(), Some("first line".to_string()));
     }
 
     #[test]
