@@ -854,11 +854,6 @@ fn import_notes_bundle_at(
     notes: &std::collections::HashMap<String, String>,
     mode: ImportMode,
 ) -> Result<ImportResult, String> {
-    if mode == ImportMode::Replace {
-        for f in list_note_files_at(root)? {
-            fs::remove_file(root.join(f)).map_err(|e| e.to_string())?;
-        }
-    }
     let mut imported = 0u32;
     let mut skipped = 0u32;
     for (filename, content) in notes {
@@ -872,6 +867,14 @@ fn import_notes_bundle_at(
         }
         write_note_at(root, filename, content, None)?;
         imported += 1;
+    }
+    if mode == ImportMode::Replace {
+        // Only after every note from the file is written: a failure part-way leaves the old notes in place.
+        for f in list_note_files_at(root)? {
+            if !notes.contains_key(&f) {
+                fs::remove_file(root.join(&f)).map_err(|e| e.to_string())?;
+            }
+        }
     }
     Ok(ImportResult { imported, skipped })
 }
@@ -2101,6 +2104,19 @@ mod tests {
         assert_eq!(result.skipped, 0);
         assert_eq!(read_note_at(dir.path(), "2026-09-01.txt").unwrap(), Some("restored".to_string()));
         assert_eq!(list_note_files_at(dir.path()).unwrap(), vec!["2026-09-01.txt"]);
+    }
+
+    #[test]
+    fn import_replace_writes_before_removing_old_notes() {
+        let dir = tempdir().unwrap();
+        fs::write(dir.path().join("2026-01-01.txt"), "old one").unwrap();
+        fs::write(dir.path().join("2026-01-02.txt"), "old two").unwrap();
+        let mut notes = HashMap::new();
+        notes.insert("2026-01-02.txt".to_string(), "new two".to_string());
+        let r = import_notes_bundle_at(dir.path(), &notes, ImportMode::Replace).unwrap();
+        assert_eq!(r.imported, 1);
+        assert!(!dir.path().join("2026-01-01.txt").exists());
+        assert_eq!(fs::read_to_string(dir.path().join("2026-01-02.txt")).unwrap(), "new two");
     }
 
     #[test]

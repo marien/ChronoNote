@@ -517,11 +517,6 @@ export class WebBackend {
     import_notes_bundle: async ({ notes, mode }) => {
       const db = await this.db();
       const store = await this.getActiveNotesStore();
-      if (mode === "replace") {
-        for (const key of await this.listValidFilenames()) {
-          await idbDelete(db, store, key);
-        }
-      }
       let imported = 0;
       let skipped = 0;
       for (const [filename, content] of Object.entries(notes)) {
@@ -539,6 +534,12 @@ export class WebBackend {
           modifiedMs: Date.now(),
         });
         imported++;
+      }
+      if (mode === "replace") {
+        // Only after every note is written: old notes survive a failure part-way.
+        for (const key of await this.listValidFilenames()) {
+          if (!Object.prototype.hasOwnProperty.call(notes, key)) await idbDelete(db, store, key);
+        }
       }
       return { imported, skipped };
     },
