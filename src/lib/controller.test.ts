@@ -2264,6 +2264,29 @@ describe("initApp", () => {
     vi.useRealTimers();
   });
 
+  it("an unreadable restored note is skipped with a toast instead of stopping startup", async () => {
+    vi.setSystemTime(new Date(2026, 8, 15));
+    apiMock.readTabSession.mockResolvedValue({
+      openTabs: ["2026-09-02.txt"],
+      activeTab: "2026-09-02.txt",
+      lastOpenedDate: "2026-09-15",
+    });
+    apiMock.readNoteWithMetadata.mockImplementation(async (filename: string) => {
+      if (filename === "2026-09-02.txt") throw new Error("locked");
+      return withMeta("");
+    });
+    const toasts: string[] = [];
+    const unsub = controller.toastMessage.subscribe((m) => toasts.push(m));
+    await expect(controller.initApp()).resolves.toBeUndefined();
+    const names = get(controller.tabs).map((t) => t.filename);
+    expect(names).not.toContain("2026-09-02.txt");
+    expect(names).toContain("2026-09-15.txt");
+    unsub();
+    // Later toasts (e.g. a drift check) may replace it, so look at everything shown.
+    expect(toasts.some((m) => m.includes("2026-09-02.txt"))).toBe(true);
+    vi.useRealTimers();
+  });
+
   it("#23: forces today's tab active on the very first launch after install", async () => {
     vi.setSystemTime(new Date(2026, 8, 15));
     apiMock.readTabSession.mockResolvedValue(null);

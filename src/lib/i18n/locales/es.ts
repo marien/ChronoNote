@@ -721,6 +721,7 @@ export const es = {
   "toast.boot.failedToSave.lineHeight": () => "Error al guardar la preferencia de interlineado",
   "toast.boot.failedToSave.pureBlack": () => "Error al guardar la preferencia de negro puro",
   "toast.boot.failedToSave.startup": () => "Error al guardar la preferencia de pestaña de inicio",
+  "toast.boot.couldntOpenNotes": ({ filenames }) => `No se pudieron abrir estas notas, así que siguen cerradas: ${filenames}`,
   "toast.calendarSync.noMeetingsOn": ({ date }) => `No hay reuniones el ${date}.`,
   "toast.calendarSync.synced": () => "Calendario sincronizado.",
   "toast.copyForward.destHere": () => "aquí",

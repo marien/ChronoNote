@@ -727,6 +727,7 @@ export const fr = {
   "toast.boot.failedToSave.pureBlack": () => "Échec de l'enregistrement du mode noir pur",
   "toast.boot.failedToSave.startup": () =>
     "Échec de l'enregistrement de la préférence d'onglet de démarrage",
+  "toast.boot.couldntOpenNotes": ({ filenames }) => `Impossible d'ouvrir ces notes ; elles restent fermées : ${filenames}`,
   "toast.calendarSync.noMeetingsOn": ({ date }) => `Aucune réunion le ${date}.`,
   "toast.calendarSync.synced": () => "Calendrier synchronisé.",
   "toast.copyForward.destHere": () => "ici",

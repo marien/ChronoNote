@@ -286,6 +286,18 @@ export function applyLocaleToDom(resolvedLocale: string) {
  * state to disk (§34). */
 let restoringTabs = false;
 
+/** A read that fails is retried a couple of times: OneDrive or a virus scanner can hold a file for a moment. */
+async function readWithRetry<T>(read: () => Promise<T>, attempts = 3): Promise<T> {
+  for (let i = 1; ; i++) {
+    try {
+      return await read();
+    } catch (e) {
+      if (i >= attempts) throw e;
+      await new Promise((r) => setTimeout(r, 300 * i));
+    }
+  }
+}
+
 /** Spec §34: restores the tabs and active tab this specific notes folder
  * had open last time (skipping any that no longer exist on disk), and
  * always force-opens today's dated tab as well — confirmed design
@@ -314,15 +326,22 @@ export async function restoreOrBootstrapTabs() {
     // of latency per tab before the editor became typable. §94:
     // `read_note_with_metadata` so each tab starts with a clean-hash
     // baseline for external-modification detection.
-    const [otherReads, todayRead] = await Promise.all([
-      Promise.all(otherFilenames.map((filename) => api.readNoteWithMetadata(filename))),
-      api.readNoteWithMetadata(todayFilename),
+    const [otherResults, todayRead] = await Promise.all([
+      Promise.allSettled(otherFilenames.map((f) => readWithRetry(() => api.readNoteWithMetadata(f)))),
+      // Today's tab must open with the real content, so a failure there still stops startup.
+      readWithRetry(() => api.readNoteWithMetadata(todayFilename)),
     ]);
 
     const restored: NoteTab[] = [];
     const cleanHashes: Array<[string, string | null]> = [];
+    const unreadable: string[] = [];
     otherFilenames.forEach((filename, i) => {
-      const { content, metadata } = otherReads[i];
+      const result = otherResults[i];
+      if (result.status === "rejected") {
+        unreadable.push(filename);
+        return;
+      }
+      const { content, metadata } = result.value;
       if (content === null) return; // file no longer exists — silently skip
       const id = `tab-${Date.now()}-${filename}`;
       restored.push({ id, filename, isScratchpad: false, content });
@@ -361,6 +380,9 @@ export async function restoreOrBootstrapTabs() {
 
     tabs.set(restored);
     for (const [id, hash] of cleanHashes) markTabClean(id, hash);
+    if (unreadable.length > 0) {
+      showToast(get(t)("toast.boot.couldntOpenNotes", { filenames: unreadable.join(", ") }));
+    }
     // #23: on the first launch of a new day (and the very first launch
     // after install, where `session` is null), open with today's note
     // active regardless of which tab was last active — the point of a

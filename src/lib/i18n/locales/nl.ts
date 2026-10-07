@@ -711,6 +711,7 @@ export const nl = {
   "toast.boot.failedToSave.lineHeight": () => "Opslaan van regelhoogtevoorkeur mislukt",
   "toast.boot.failedToSave.pureBlack": () => "Opslaan van puur-zwart-voorkeur mislukt",
   "toast.boot.failedToSave.startup": () => "Opslaan van voorkeur voor opstarttabblad mislukt",
+  "toast.boot.couldntOpenNotes": ({ filenames }) => `Deze notities konden niet worden geopend en blijven gesloten: ${filenames}`,
   "toast.calendarSync.noMeetingsOn": ({ date }) => `Geen afspraken op ${date}.`,
   "toast.calendarSync.synced": () => "Agenda gesynchroniseerd.",
   "toast.copyForward.destHere": () => "hier",

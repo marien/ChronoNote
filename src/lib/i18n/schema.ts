@@ -733,6 +733,7 @@ export type TranslationParams = {
   "toast.boot.failedToSave.lineHeight": undefined;
   "toast.boot.failedToSave.pureBlack": undefined;
   "toast.boot.failedToSave.startup": undefined;
+  "toast.boot.couldntOpenNotes": { filenames: string };
   "toast.calendarSync.noMeetingsOn": { date: string };
   "toast.calendarSync.synced": undefined;
   "toast.copyForward.destHere": undefined;

@@ -768,8 +768,11 @@ fn read_all_notes_at(root: &Path) -> Result<Vec<(String, String)>, String> {
     let files = list_note_files_at(root)?;
     let mut out = vec![];
     for f in files {
-        let content = fs::read_to_string(root.join(&f)).unwrap_or_default();
-        out.push((f, content));
+        match fs::read_to_string(root.join(&f)) {
+            Ok(content) => out.push((f, content)),
+            // Left out rather than reported as empty: callers treat each entry as the note's real text.
+            Err(e) => eprintln!("chrononote: skipped unreadable note {f}: {e}"),
+        }
     }
     Ok(out)
 }
@@ -1897,6 +1900,17 @@ mod tests {
         assert!(err.starts_with(CONFLICT_ERROR_PREFIX));
         // The file was NOT overwritten.
         assert_eq!(read_note_at(dir.path(), "2026-09-07.txt").unwrap(), Some("external edit".to_string()));
+    }
+
+    #[test]
+    fn read_all_notes_skips_a_file_that_is_not_valid_utf8() {
+        let dir = tempdir().unwrap();
+        fs::write(dir.path().join("2026-01-01.txt"), "ok").unwrap();
+        fs::write(dir.path().join("2026-01-02.txt"), [0xffu8, 0xfe, 0x41]).unwrap();
+        assert_eq!(
+            read_all_notes_at(dir.path()).unwrap(),
+            vec![("2026-01-01.txt".to_string(), "ok".to_string())],
+        );
     }
 
     #[test]
