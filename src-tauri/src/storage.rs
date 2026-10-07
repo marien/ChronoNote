@@ -668,23 +668,42 @@ fn file_metadata_at(root: &Path, filename: &str) -> Result<FileMetadata, String>
         }
         Err(e) => return Err(e.to_string()),
     };
-    let modified_ms = fs::metadata(&path)
+    Ok(metadata_from_bytes(&path, &bytes))
+}
+
+/// Metadata for bytes already read from `path` (so text and hash always describe the same version).
+fn metadata_from_bytes(path: &Path, bytes: &[u8]) -> FileMetadata {
+    let modified_ms = fs::metadata(path)
         .and_then(|m| m.modified())
         .ok()
         .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
         .map(|d| d.as_millis() as i64);
-    Ok(FileMetadata {
+    FileMetadata {
         exists: true,
-        content_hash: Some(hash_bytes(&bytes)),
+        content_hash: Some(hash_bytes(bytes)),
         size_bytes: Some(bytes.len() as u64),
         modified_ms,
-    })
+    }
 }
 
 fn read_note_with_metadata_at(root: &Path, filename: &str) -> Result<NoteWithMetadata, String> {
-    let content = read_note_at(root, filename)?;
-    let metadata = file_metadata_at(root, filename)?;
-    Ok(NoteWithMetadata { content, metadata })
+    if !is_valid_note_filename(filename) {
+        return Err(format!("Invalid note filename: {filename}"));
+    }
+    let path = root.join(filename);
+    let bytes = match fs::read(&path) {
+        Ok(b) => b,
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
+            return Ok(NoteWithMetadata {
+                content: None,
+                metadata: FileMetadata { exists: false, content_hash: None, size_bytes: None, modified_ms: None },
+            });
+        }
+        Err(e) => return Err(e.to_string()),
+    };
+    let metadata = metadata_from_bytes(&path, &bytes);
+    let content = String::from_utf8(bytes).map_err(|e| e.to_string())?;
+    Ok(NoteWithMetadata { content: Some(content), metadata })
 }
 
 /// Validates a conflict-copy filename from the frontend: a plain basename
@@ -1876,6 +1895,23 @@ mod tests {
         let r = read_note_with_metadata_at(dir.path(), "2026-09-07.txt").unwrap();
         assert_eq!(r.content, Some("body".to_string()));
         assert_eq!(r.metadata.content_hash, file_metadata_at(dir.path(), "2026-09-07.txt").unwrap().content_hash);
+    }
+
+    #[test]
+    fn read_note_with_metadata_hash_matches_the_content_it_returned() {
+        let dir = tempdir().unwrap();
+        fs::write(dir.path().join("2026-09-07.txt"), "abc").unwrap();
+        let r = read_note_with_metadata_at(dir.path(), "2026-09-07.txt").unwrap();
+        assert_eq!(r.content, Some("abc".to_string()));
+        assert_eq!(r.metadata.content_hash, Some(hash_bytes(b"abc")));
+    }
+
+    #[test]
+    fn read_note_with_metadata_of_a_missing_file_is_none_and_not_exists() {
+        let dir = tempdir().unwrap();
+        let r = read_note_with_metadata_at(dir.path(), "2026-09-08.txt").unwrap();
+        assert_eq!(r.content, None);
+        assert!(!r.metadata.exists);
     }
 
     #[test]
