@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount, onDestroy, tick } from "svelte";
+  import { onMount, onDestroy, tick, untrack } from "svelte";
   import * as controller from "../../controller";
   import { focusTrap } from "../../actions/focusTrap";
   import {
@@ -20,7 +20,7 @@
   import type { HistoryDestination, SectionOccurrence } from "../../types";
   import { clampIndex, wrapIndex } from "./virtualList";
 
-  let selectedIndex = 0;
+  let selectedIndex = $state(0);
 
   // Anchor/focus line-selection model (2026-09-25 redesign, from chat
   // feedback on the browse-and-carry-forward redesign): `selAnchor` is the
@@ -31,25 +31,30 @@
   // Shift+click model does. `lineSelection` (the `{from, to}` actually
   // used for rendering/take-over) is always derived from the two, never
   // set directly.
-  let selAnchor: number | null = null;
-  let focusLineIdx: number | null = null;
-  let lineSelection: { from: number; to: number } | null = null;
+  let selAnchor = $state<number | null>(null);
+  let focusLineIdx = $state<number | null>(null);
+  let lineSelection = $state<{ from: number; to: number } | null>(null);
   let isDraggingLines = false;
   // "agenda": copy the lines as they are with only the agenda topics reopened, leaving this note untouched.
-  let takeOverMode: "whole" | "action-only" | "agenda" = "whole";
+  let takeOverMode: "whole" | "action-only" | "agenda" = $state("whole");
 
-  $: occurrences = $historyOccurrences;
-  $: selectedIndex = clampIndex(selectedIndex, occurrences.length);
-  $: selectedOcc = occurrences[selectedIndex] as SectionOccurrence | undefined;
-  $: openedFromFilename = $tabs.find((t) => t.id === $historyOpenedFromTabId)?.filename;
+  const occurrences = $derived($historyOccurrences);
+  // Re-clamps the stored index when the list shrinks; writes only when the value actually changes.
+  // `.pre` so the body below never renders from an out-of-range index.
+  $effect.pre(() => {
+    const clamped = clampIndex(selectedIndex, occurrences.length);
+    if (clamped !== selectedIndex) selectedIndex = clamped;
+  });
+  const selectedOcc = $derived(occurrences[selectedIndex] as SectionOccurrence | undefined);
+  const openedFromFilename = $derived($tabs.find((t) => t.id === $historyOpenedFromTabId)?.filename);
 
   // Chat feedback: "keep today's tab button and destination section tab
   // button always in view in the tab bar, even when moving to earlier or
   // later dates" — these two indices identify which occurrence (if any)
   // each one is. `-1` (no match) is a legitimate, common case — e.g. no
   // section exists today yet — and simply means nothing gets pinned.
-  $: todayOccIndex = occurrences.findIndex((o) => o.date === $currentDateISO);
-  $: openedFromOccIndex = occurrences.findIndex((o) => o.filename === openedFromFilename);
+  const todayOccIndex = $derived(occurrences.findIndex((o) => o.date === $currentDateISO));
+  const openedFromOccIndex = $derived(occurrences.findIndex((o) => o.filename === openedFromFilename));
 
   /** The file a destination would actually write to — "here" always
    * targets the tab History was opened from, "today"/"next" a specific
@@ -73,9 +78,9 @@
   // file raced two separate read-modify-write passes against each other,
   // silently dropping the insertion and keeping only the source's own
   // deferred-line edit (a real, reported bug, not just a UX rough edge).
-  $: usableDestinations = selectedOcc
-    ? $historyDestinations.filter((d) => destinationFilename(d) !== selectedOcc!.filename)
-    : [];
+  const usableDestinations = $derived(
+    selectedOcc ? $historyDestinations.filter((d) => destinationFilename(d) !== selectedOcc.filename) : [],
+  );
 
   /** #68/#96 precedent, applied to the occurrence strip: a date's own
    * relationship to today, independent of whether it's the one currently
@@ -103,17 +108,18 @@
   // than the one History was opened from. Doing it here instead, the first
   // time the list actually has anything in it, means it always runs
   // against real data regardless of how long the read takes.
-  $: if (!hasFocusedOpenedFrom && occurrences.length > 0) {
-    hasFocusedOpenedFrom = true;
-    // The index is assigned HERE, in the reactive block itself, not inside the function below:
-    // Svelte orders reactive statements by the variables each one visibly assigns, and an
-    // assignment hidden in a called function is invisible to that. `selectedOcc` (the body) was
-    // then computed from the old index 0 in the same update while the strip, which reads
-    // `selectedIndex` directly, showed the right tab: highlighted date X, content of the first date.
-    const idx = occurrences.findIndex((o) => o.filename === openedFromFilename);
-    if (idx !== -1) selectedIndex = idx;
-    void focusOpenedFromOccurrence();
-  }
+  // Runs once, the first time the list has anything in it. `$effect.pre`: the index is written
+  // before anything renders, and `selectedOcc` (the body) is a `$derived` computed on read, so the
+  // strip and the body can no longer disagree (§215/§270). The index is still assigned here, not
+  // inside the helper; the helper only scrolls (untracked, so it adds no dependencies).
+  $effect.pre(() => {
+    if (!hasFocusedOpenedFrom && occurrences.length > 0) {
+      hasFocusedOpenedFrom = true;
+      const idx = occurrences.findIndex((o) => o.filename === openedFromFilename);
+      if (idx !== -1) selectedIndex = idx;
+      untrack(() => void focusOpenedFromOccurrence());
+    }
+  });
 
   /** Waits until the strip's own tab buttons actually match `occurrences`
    * — found by tracing a real bug: a single `await tick()` isn't always
@@ -183,24 +189,30 @@
   // Reset the line selection whenever the browsed occurrence changes —
   // it's meaningless carried over to a different occurrence's lines.
   let lastSelectedFilename: string | undefined;
-  $: if (selectedOcc?.filename !== lastSelectedFilename) {
-    lastSelectedFilename = selectedOcc?.filename;
-    selAnchor = null;
-    focusLineIdx = null;
-    lineSelection = null;
-    takeOverMode = "whole";
-  }
+  $effect.pre(() => {
+    const filename = selectedOcc?.filename;
+    if (filename !== lastSelectedFilename) {
+      lastSelectedFilename = filename;
+      selAnchor = null;
+      focusLineIdx = null;
+      lineSelection = null;
+      takeOverMode = "whole";
+    }
+  });
 
-  $: singleLineActionOnly =
+  const singleLineActionOnly = $derived(
     selectedOcc && lineSelection && lineSelection.from === lineSelection.to
       ? controller.historyActionOnlyText(selectedOcc.lines[lineSelection.from - selectedOcc.startLineIdx])
-      : null;
-  $: if (!singleLineActionOnly && takeOverMode === "action-only") takeOverMode = "whole";
-  $: takeOverOptions = [
+      : null,
+  );
+  $effect.pre(() => {
+    if (!singleLineActionOnly && takeOverMode === "action-only") takeOverMode = "whole";
+  });
+  const takeOverOptions = $derived([
     { value: "whole", label: $t("history.takeover.wholeLine") },
     ...(singleLineActionOnly ? [{ value: "action-only", label: $t("history.takeover.actionOnly") }] : []),
     { value: "agenda", label: $t("history.takeover.asAgenda"), title: $t("history.takeover.asAgendaTitle") },
-  ];
+  ]);
 
   function recomputeSelection() {
     lineSelection =
@@ -310,7 +322,7 @@
   // bar has" — the same scroll-the-strip-not-the-selection behavior as
   // `TopBar`'s own `.tab-scroll-btn`s (§52): only shown once the strip
   // genuinely overflows, wraps to the far end past either edge.
-  let stripOverflowing = false;
+  let stripOverflowing = $state(false);
   let stripResizeObserver: ResizeObserver | null = null;
   const STRIP_SCROLL_STEP = 160;
 
@@ -331,8 +343,8 @@
    * make room for it rather than floating above it. A tab that's already
    * on screen never gets a redundant second copy. */
   type PinState = "visible" | "off-left" | "off-right";
-  let todayPinState: PinState = "visible";
-  let sourcePinState: PinState = "visible";
+  let todayPinState: PinState = $state("visible");
+  let sourcePinState: PinState = $state("visible");
 
   function pinStateFor(index: number): PinState {
     if (index === -1 || !stripEl) return "visible";
@@ -355,8 +367,12 @@
     updatePinStates();
   }
 
-  $: refreshStripLayout(occurrences);
-  async function refreshStripLayout(_occs: SectionOccurrence[]) {
+  // Re-measures whenever the list changes; the helper awaits, so it runs untracked.
+  $effect(() => {
+    void occurrences;
+    untrack(() => void refreshStripLayout());
+  });
+  async function refreshStripLayout() {
     await waitForStripRendered();
     refreshStripChrome();
   }
@@ -372,7 +388,7 @@
     side: "left" | "right";
     classes: string;
   }
-  $: pinnedEntries = computePinnedEntries(todayOccIndex, openedFromOccIndex, todayPinState, sourcePinState);
+  const pinnedEntries = $derived(computePinnedEntries(todayOccIndex, openedFromOccIndex, todayPinState, sourcePinState));
   function computePinnedEntries(
     todayIdx: number,
     sourceIdx: number,
@@ -462,13 +478,17 @@
     }
   }
 
-  let bodyEl: HTMLDivElement;
+  let bodyEl: HTMLDivElement | undefined = $state();
   function scrollLineIntoView(abs: number) {
     bodyEl?.querySelector<HTMLElement>(`[data-line-idx="${abs}"]`)?.scrollIntoView({ block: "nearest" });
   }
 
-  $: scrollBodyToTop(selectedOcc);
-  async function scrollBodyToTop(_occ: SectionOccurrence | undefined) {
+  // Back to the top whenever the browsed occurrence changes (after the DOM has updated).
+  $effect(() => {
+    void selectedOcc;
+    untrack(() => void scrollBodyToTop());
+  });
+  async function scrollBodyToTop() {
     await tick();
     if (bodyEl) bodyEl.scrollTop = 0;
   }
@@ -541,7 +561,7 @@
         type="button"
         class="icon-btn modal-close-btn"
         aria-label={$t("common.closeDialog")}
-        on:click={controller.closeAllModals}
+        onclick={controller.closeAllModals}
       >
         <Icon name="close" size={14} />
       </button>
@@ -563,7 +583,7 @@
           type="button"
           class="icon-btn history-occ-scroll-btn"
           aria-label={$t("history.strip.scrollLeft")}
-          on:click={() => scrollOccStrip(-1)}
+          onclick={() => scrollOccStrip(-1)}
         >
           <Icon name="chevron-left" size={14} />
         </button>
@@ -586,8 +606,8 @@
           role="tab"
           aria-selected={p.index === selectedIndex}
           title={heat ? $t("history.occ.title.hasContent", { date: occ.date }) : $t("history.occ.title.empty", { date: occ.date })}
-          on:click={() => selectAndReveal(p.index)}
-          on:dblclick={() => controller.jumpToHistoryLine(occ)}
+          onclick={() => selectAndReveal(p.index)}
+          ondblclick={() => controller.jumpToHistoryLine(occ)}
         >
           <span class="history-occ-date">{occ.date}</span>
           {#if heat}<span class="occ-dot has-{heat}" aria-hidden="true"></span>{/if}
@@ -598,7 +618,7 @@
         role="tablist"
         aria-label={$t("history.strip.ariaLabel")}
         bind:this={stripEl}
-        on:scroll={updatePinStates}
+        onscroll={updatePinStates}
       >
         {#if $historyLoading}
           <span class="history-occ-loading"><span class="modal-spinner" aria-label={$t("common.loading")}>⟳</span> {$t("history.strip.loading")}</span>
@@ -615,11 +635,11 @@
               data-occ-index={index}
               tabindex="-1"
               title={heat ? $t("history.occ.title.hasContent", { date: occ.date }) : $t("history.occ.title.empty", { date: occ.date })}
-              on:click={() => {
+              onclick={() => {
                 selectedIndex = index;
                 bodyContainerEl?.focus();
               }}
-              on:dblclick={() => controller.jumpToHistoryLine(occ)}
+              ondblclick={() => controller.jumpToHistoryLine(occ)}
             >
               <span class="history-occ-date">{occ.date}</span>
               {#if heat}<span class="occ-dot has-{heat}" aria-hidden="true"></span>{/if}
@@ -636,8 +656,8 @@
           role="tab"
           aria-selected={p.index === selectedIndex}
           title={heat ? $t("history.occ.title.hasContent", { date: occ.date }) : $t("history.occ.title.empty", { date: occ.date })}
-          on:click={() => selectAndReveal(p.index)}
-          on:dblclick={() => controller.jumpToHistoryLine(occ)}
+          onclick={() => selectAndReveal(p.index)}
+          ondblclick={() => controller.jumpToHistoryLine(occ)}
         >
           <span class="history-occ-date">{occ.date}</span>
           {#if heat}<span class="occ-dot has-{heat}" aria-hidden="true"></span>{/if}
@@ -648,7 +668,7 @@
           type="button"
           class="icon-btn history-occ-scroll-btn"
           aria-label={$t("history.strip.scrollRight")}
-          on:click={() => scrollOccStrip(1)}
+          onclick={() => scrollOccStrip(1)}
         >
           <Icon name="chevron-right" size={14} />
         </button>
@@ -671,8 +691,11 @@
                   aria-selected={inSel}
                   tabindex="-1"
                   data-line-idx={abs}
-                  on:mousedown|preventDefault={(e) => startLineSelection(abs, e.shiftKey)}
-                  on:mouseenter={() => dragOverLine(abs)}
+                  onmousedown={(e) => {
+                    e.preventDefault();
+                    startLineSelection(abs, e.shiftKey);
+                  }}
+                  onmouseenter={() => dragOverLine(abs)}
                 >
                   {#each parseGlyphLine(line) as part}<span class={part.cls ?? ""}>{part.text}</span>{/each}
                 </div>
@@ -687,7 +710,7 @@
                 onChange={(v) => (takeOverMode = v as "whole" | "action-only" | "agenda")}
               />
               {#each usableDestinations as dest}
-                <button type="button" class="icon-btn btn-primary" on:click={() => takeOver(dest)}>{dest.label}</button>
+                <button type="button" class="icon-btn btn-primary" onclick={() => takeOver(dest)}>{dest.label}</button>
               {/each}
               <span class="history-takeover-hint">
                 {takeOverMode === "agenda" ? $t("history.takeover.agendaHint") : $t("history.takeover.hint")}
