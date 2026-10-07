@@ -1,6 +1,6 @@
 <script lang="ts">
   import { get } from "svelte/store";
-  import { onMount, tick } from "svelte";
+  import { onMount, tick, untrack } from "svelte";
   import * as controller from "../../controller";
   import { activeTabId, allNotesCache, copyForwardPending, isMobile, tabs } from "../../controller";
   import * as api from "../../tauriApi";
@@ -29,8 +29,8 @@
   let popEl: HTMLDivElement;
   let gridEl: HTMLDivElement;
   let inputEl: HTMLInputElement;
-  let jumpQuery = "";
-  let anchorStyle = "visibility:hidden"; // until measured against the trigger
+  let jumpQuery = $state("");
+  let anchorStyle = $state("visibility:hidden"); // until measured against the trigger
 
   /** Opens on the active tab's own date (and highlights it, via
    * `focusedIso` below) rather than always today's — a scratchpad, or no
@@ -47,17 +47,17 @@
   // Which month the grid is showing, and which day has keyboard focus.
   const initialIso = activeTabIso();
   const t0 = parseISODateLocal(initialIso);
-  let year = t0.getFullYear();
-  let month = t0.getMonth(); // 0-indexed
-  let focusedIso = initialIso;
+  let year = $state(t0.getFullYear());
+  let month = $state(t0.getMonth()); // 0-indexed
+  let focusedIso = $state(initialIso);
   // On a touch device the day the picker opened on isn't a selection - you pick by
   // tapping - so marking it (and re-marking it as you flip between months) only
   // confuses. The mark appears once the keyboard moves it: arrows/PageUp/PageDown in
   // the grid, or typing a date.
-  let movedByKeyboard = false;
-  $: showTarget = !$isMobile || movedByKeyboard;
+  let movedByKeyboard = $state(false);
+  const showTarget = $derived(!$isMobile || movedByKeyboard);
 
-  $: cells = monthGrid(year, month);
+  const cells = $derived(monthGrid(year, month));
 
   /** #46/§129's lesson applies here too: never guess at note content when
    * an open tab already has the true, possibly-unsaved version in memory
@@ -68,12 +68,24 @@
    * however much note history exists. Stops re-firing once that full
    * read lands (`loadingAll` flips false) — nothing left to gain by
    * re-fetching days `allNotesCache` already has. */
-  let loadingAll = true;
-  $: if (loadingAll) void controller.prefetchNotesForDates(cells.map((c) => `${c.iso}.txt`));
+  let loadingAll = $state(true);
+  $effect(() => {
+    if (loadingAll) {
+      const filenames = cells.map((c) => `${c.iso}.txt`);
+      untrack(() => {
+        void controller.prefetchNotesForDates(filenames);
+      });
+    }
+  });
 
   // Follow the query live: as you type a date (or a `YYYY-MM` prefix) the
   // grid jumps to it and marks the target — Enter then commits it.
-  $: followQuery(jumpQuery);
+  $effect(() => {
+    const q = jumpQuery;
+    untrack(() => {
+      followQuery(q);
+    });
+  });
   function followQuery(q: string) {
     if (q.trim() !== "") movedByKeyboard = true;
     const parsed = parseDateQuery(q);
@@ -98,7 +110,7 @@
    * just by visiting it, then never typed into — doesn't count as
    * "wrote something that day"), `openByIso` = the subset with ≥1 open
    * action, `heatByIso` = 3-tier completion heatmap state ("done", "pending", "log"). */
-  $: ({ noteByIso, openByIso, heatByIso } = (() => {
+  const notesHeatmap = $derived.by(() => {
     const noteByIso = new Set<string>();
     const openByIso = new Set<string>();
     const heatByIso = new Map<string, DayHeatState>();
@@ -114,9 +126,12 @@
       }
     }
     return { noteByIso, openByIso, heatByIso };
-  })());
+  });
+  const noteByIso = $derived(notesHeatmap.noteByIso);
+  const openByIso = $derived(notesHeatmap.openByIso);
+  const heatByIso = $derived(notesHeatmap.heatByIso);
 
-  let agendaDates = new Set<string>();
+  let agendaDates = $state(new Set<string>());
 
   onMount(async () => {
     positionUnderTrigger();
@@ -228,7 +243,7 @@
   }
 </script>
 
-<svelte:window on:mousedown={onOutsideMousedown} on:resize={positionUnderTrigger} />
+<svelte:window onmousedown={onOutsideMousedown} onresize={positionUnderTrigger} />
 
 <div
   class="datepicker-pop"
@@ -243,13 +258,13 @@
     bind:this={inputEl}
     placeholder={$t("datePicker.jumpPlaceholder")}
     bind:value={jumpQuery}
-    on:keydown={onJumpKeydown}
+    onkeydown={onJumpKeydown}
     autocomplete="off"
     aria-label={$t("datePicker.jumpAriaLabel")}
   />
 
   <div class="cal-head">
-    <button type="button" class="cal-nav" aria-label={$t("datePicker.previousMonth")} on:click={() => shiftMonth(-1)}>
+    <button type="button" class="cal-nav" aria-label={$t("datePicker.previousMonth")} onclick={() => shiftMonth(-1)}>
       <Icon name="chevron-left" size={14} />
     </button>
     <span class="cal-title-wrap">
@@ -258,7 +273,7 @@
         <span class="modal-spinner" title="{$t('datePicker.loadingOlderNotes')}…" aria-label={$t("datePicker.loadingOlderNotes")}>⟳</span>
       {/if}
     </span>
-    <button type="button" class="cal-nav" aria-label={$t("datePicker.nextMonth")} on:click={() => shiftMonth(1)}>
+    <button type="button" class="cal-nav" aria-label={$t("datePicker.nextMonth")} onclick={() => shiftMonth(1)}>
       <Icon name="chevron-right" size={14} />
     </button>
   </div>
@@ -267,7 +282,7 @@
     {#each WEEKDAY_INDICES as i}<span>{weekdayAbbrev($locale, i)}</span>{/each}
   </div>
 
-  <div class="cal-grid" role="grid" tabindex="-1" bind:this={gridEl} on:keydown={onGridKeydown}>
+  <div class="cal-grid" role="grid" tabindex="-1" bind:this={gridEl} onkeydown={onGridKeydown}>
     {#each cells as cell (cell.iso)}
       <button
         type="button"
@@ -297,7 +312,7 @@
                     : ""
         }`}
         aria-current={cell.iso === today ? "date" : undefined}
-        on:click={() => commit(cell.iso)}
+        onclick={() => commit(cell.iso)}
       >
         {cell.day}
       </button>
@@ -305,7 +320,7 @@
   </div>
 
   <div class="cal-foot">
-    <button type="button" class="cal-today-btn" on:click={goToday}>{$t("datePicker.today")}</button>
+    <button type="button" class="cal-today-btn" onclick={goToday}>{$t("datePicker.today")}</button>
     <span class="cal-hint">{$t("datePicker.escToClose")}</span>
   </div>
 </div>
