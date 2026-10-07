@@ -44,3 +44,6 @@ src-tauri/updater-signing-key-password.local
 
 .DS_Store
 Thumbs.db
+
+# Baselines of the opt-in CSS parity check: only valid on the machine that took them.
+tests/e2e/css-parity.spec.ts-snapshots/
