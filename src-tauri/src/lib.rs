@@ -158,23 +158,19 @@ async fn write_tab_session(
     .map_err(|e| e.to_string())?
 }
 
+// The scratchpad drafts stay on the main thread on purpose: they live in the local app-data folder
+// (not OneDrive), and running in order guarantees an older draft save can never land after a newer one.
 #[tauri::command]
-async fn save_scratchpad_drafts(
+fn save_scratchpad_drafts(
     app: AppHandle,
     drafts: std::collections::HashMap<String, String>,
 ) -> Result<(), String> {
-    tauri::async_runtime::spawn_blocking(move || storage::save_scratchpad_drafts(&app, &drafts))
-        .await
-        .map_err(|e| e.to_string())?
+    storage::save_scratchpad_drafts(&app, &drafts)
 }
 
 #[tauri::command]
-async fn load_scratchpad_drafts(
-    app: AppHandle,
-) -> Result<std::collections::HashMap<String, String>, String> {
-    tauri::async_runtime::spawn_blocking(move || storage::load_scratchpad_drafts(&app))
-        .await
-        .map_err(|e| e.to_string())?
+fn load_scratchpad_drafts(app: AppHandle) -> Result<std::collections::HashMap<String, String>, String> {
+    storage::load_scratchpad_drafts(&app)
 }
 
 /// Window starts hidden (see `tauri.conf.json`) so it can be shown only
