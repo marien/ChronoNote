@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount } from "svelte";
+  import { untrack } from "svelte";
   import * as api from "../../tauriApi";
   import * as controller from "../../controller";
   import { backendKind, oneDriveFolder, showToast } from "../../stores";
@@ -12,27 +12,32 @@
   import { get } from "svelte/store";
   import { describeFolderSwitchBlocked } from "../../apiError";
 
-  export let onClose: () => void;
+  interface Props {
+    onClose: () => void;
+  }
+
+  let { onClose }: Props = $props();
 
   interface Breadcrumb {
     id: string | null;
     name: string;
   }
 
-  let breadcrumbs: Breadcrumb[] = [{ id: null, name: get(t)("oneDrivePicker.rootBreadcrumb", undefined) }];
-  let folders: Array<{ id: string; name: string }> = [];
-  let loading = true;
-  let error: string | null = null;
+  let breadcrumbs = $state<Breadcrumb[]>([{ id: null, name: get(t)("oneDrivePicker.rootBreadcrumb", undefined) }]);
+  let folders = $state<Array<{ id: string; name: string }>>([]);
+  let loading = $state(true);
+  let error = $state<string | null>(null);
 
-  let showNewFolderInput = false;
-  let newFolderName = "";
-  let creatingFolder = false;
+  let showNewFolderInput = $state(false);
+  let newFolderName = $state("");
+  let creatingFolder = $state(false);
 
-  $: currentFolderId = breadcrumbs[breadcrumbs.length - 1].id;
-  $: currentFolderPath =
+  const currentFolderId = $derived(breadcrumbs[breadcrumbs.length - 1].id);
+  const currentFolderPath = $derived(
     breadcrumbs.length <= 1
       ? "/"
-      : "/" + breadcrumbs.slice(1).map((b) => b.name).join("/");
+      : "/" + breadcrumbs.slice(1).map((b) => b.name).join("/"),
+  );
 
   async function loadFolders(parentId: string | null) {
     loading = true;
@@ -47,25 +52,25 @@
     }
   }
 
-  onMount(() => {
-    loadFolders(null);
+  $effect(() => {
+    const parentId = currentFolderId;
+    untrack(() => {
+      void loadFolders(parentId);
+    });
   });
 
   function navigateTo(folder: { id: string; name: string }) {
     breadcrumbs = [...breadcrumbs, { id: folder.id, name: folder.name }];
-    loadFolders(folder.id);
   }
 
   function navigateToBreadcrumb(index: number) {
     if (index === breadcrumbs.length - 1) return;
     breadcrumbs = breadcrumbs.slice(0, index + 1);
-    loadFolders(breadcrumbs[breadcrumbs.length - 1].id);
   }
 
   function navigateUp() {
     if (breadcrumbs.length <= 1) return;
     breadcrumbs = breadcrumbs.slice(0, -1);
-    loadFolders(breadcrumbs[breadcrumbs.length - 1].id);
   }
 
   async function handleCreateFolder() {
@@ -85,7 +90,7 @@
     }
   }
 
-  let pendingMigration: { folderId: string; folderPath: string; noteCount: number } | null = null;
+  let pendingMigration = $state<{ folderId: string; folderPath: string; noteCount: number } | null>(null);
 
   async function finalizeFolderSelection(folderId: string, folderPath: string) {
     try {
@@ -191,7 +196,7 @@
   }
 </script>
 
-<svelte:window on:keydown={handleKeydown} />
+<svelte:window onkeydown={handleKeydown} />
 
 <div class="overlay" role="presentation" use:closeOnOutsideClick={onClose}>
   <div
@@ -206,7 +211,7 @@
         <Icon name="cloud" size={16} />
         <span>{$t("oneDrivePicker.title")}</span>
       </div>
-      <button type="button" class="icon-btn modal-close-btn" aria-label={$t("common.closeDialog")} on:click={onClose}>
+      <button type="button" class="icon-btn modal-close-btn" aria-label={$t("common.closeDialog")} onclick={onClose}>
         <Icon name="close" size={14} />
       </button>
     </div>
@@ -218,7 +223,7 @@
           type="button"
           class="icon-btn onedrive-back-btn"
           title={$t("oneDrivePicker.goUpFolder")}
-          on:click={navigateUp}
+          onclick={navigateUp}
         >
           <Icon name="chevron-left" size={14} />
         </button>
@@ -232,7 +237,7 @@
             type="button"
             class="onedrive-breadcrumb-item"
             class:active={i === breadcrumbs.length - 1}
-            on:click={() => navigateToBreadcrumb(i)}
+            onclick={() => navigateToBreadcrumb(i)}
           >
             {crumb.name}
           </button>
@@ -247,7 +252,7 @@
       {:else if error}
         <div class="onedrive-error-box">
           <div>{error}</div>
-          <button class="icon-btn" style="margin-top: 8px;" on:click={() => loadFolders(currentFolderId)}>
+          <button class="icon-btn" style="margin-top: 8px;" onclick={() => loadFolders(currentFolderId)}>
             {$t("oneDrivePicker.retry")}
           </button>
         </div>
@@ -261,7 +266,7 @@
             <button
               type="button"
               class="onedrive-folder-row"
-              on:click={() => navigateTo(folder)}
+              onclick={() => navigateTo(folder)}
             >
               <div class="onedrive-folder-icon">
                 <Icon name="folder" size={16} />
@@ -278,7 +283,10 @@
     {#if showNewFolderInput}
       <form
         class="onedrive-new-folder-form"
-        on:submit|preventDefault={handleCreateFolder}
+        onsubmit={(e) => {
+          e.preventDefault();
+          void handleCreateFolder();
+        }}
       >
         <input
           type="text"
@@ -299,7 +307,7 @@
           type="button"
           class="icon-btn"
           style="height: 32px; padding: 0 8px;"
-          on:click={() => {
+          onclick={() => {
             showNewFolderInput = false;
             newFolderName = "";
           }}
@@ -313,7 +321,7 @@
           type="button"
           class="icon-btn"
           style="font-size: 12px; gap: 4px;"
-          on:click={() => (showNewFolderInput = true)}
+          onclick={() => (showNewFolderInput = true)}
         >
           <span>+ {$t("oneDrivePicker.newSubfolder")}</span>
         </button>
@@ -326,13 +334,13 @@
         {$t("oneDrivePicker.currentTarget")} <strong>{currentFolderPath}</strong>
       </div>
       <div style="display: flex; gap: 8px;">
-        <button type="button" class="icon-btn" on:click={onClose}>
+        <button type="button" class="icon-btn" onclick={onClose}>
           {$t("common.cancel")}
         </button>
         <button
           type="button"
           class="icon-btn btn-primary"
-          on:click={handleSelectCurrentFolder}
+          onclick={handleSelectCurrentFolder}
         >
           {$t("oneDrivePicker.useThisFolder")}
         </button>
