@@ -9918,3 +9918,52 @@ Marien, after abandoning the idea of Peek reacting to Teams calls by itself (wat
 
 - The unsupported-drop message is translated (it was the one hard-coded English toast). `update.log` timestamps use `chrono` instead of hand-written date code. `cargo clippy --all-targets` is clean (was 4 warnings).
 - Gates for §291-§299 together on `integration/review-fixes`: svelte-check 0, Vitest 783, cargo 195, clippy 0, Playwright 567.
+
+## 300. The unused Rust OneDrive engine is removed
+
+**Status: implemented, not yet released.** Round 2 of the 2026-10-07 review (task K), Marien's decision.
+
+- `src-tauri/src/onedrive/` held a full OneDrive sync engine (auth, Graph client, three-way merge, sync: about 3,100 lines) from the removed Android app. The desktop app had no UI path to it, but it was compiled in with `reqwest`, `keyring`, `tokio`, `url`, `base64` and `rand`, and 14 of its commands were callable from the window. The web app has its own TypeScript sync.
+- Removed, with those dependencies (Cargo.lock shrinks by about 270 lines). The wire types in `onedrive/mod.rs` stay, because `cargo test` generates the web app's TypeScript types from them (the generated file is unchanged); `AppError` variants stay for the same reason. Every frontend call site of the OneDrive commands was checked to run only in the web app.
+- Tests: cargo 195 → 120 (the removed modules' own tests went with them).
+
+## 301. Copy-forward into a closed source note keeps both and warns
+
+**Status: implemented, not yet released.** Task M.
+
+- Copy to the next occurrence wrote a source note that has no open tab back without checking it had changed. Now the write is guarded with the hash read with it. If the source changed on disk: with a different target, the copy stays in the target, the source is left as it is, and a message says the items were not marked as moved; with the same file (one combined write), nothing is written and the message asks to try again.
+- Tests: 2 Vitest; two existing tests now mock `readNoteWithMetadata`.
+
+## 302. The web app's OneDrive sync cleans up line endings, with a one-time migration
+
+**Status: implemented, not yet released.** Task N.
+
+- §297 made notes LF without a byte-order mark everywhere except text the web app downloads from OneDrive, so a note edited in Notepad on a PC reached the web app with CRLF line endings.
+- Downloads are now normalized at the one point they enter the sync. A one-time migration (marker `onedrive_text_format` = 2) rewrites what earlier syncs stored: notes in both web stores, the merge bases, the cache's `localHash` values and held conflicts, bookkeeping first and notes last, so a failure part-way is retried on the next sync. Without it, every already-synced CRLF note would have looked like a conflict.
+- Known effect: an open note whose stored text the migration changes reloads once with the "changed on disk" message.
+- Tests: 3 Vitest (download normalized; migration of a CRLF note with base, cache and a stale etag gives no conflict and no upload; running it twice changes nothing).
+
+## 303. One `update_config` command instead of 15 setters
+
+**Status: implemented, not yet released.** Task O.
+
+- Fifteen near-identical setter commands, each written four times (Rust, `tauriApi`, test mock, web backend), are replaced by one `update_config(patch)` with a generated `ConfigPatch` type. The clamps (font size, line height, Peek) are kept in all three backends; `tauriApi` keeps every setter's name and signature, so no call site changed. `get_config` and `set_notes_dir` stay separate.
+- Side effect in the test mock only: calendar-sync and onboarding settings now persist across a simulated reload like every other setting (they didn't before; the real app always did).
+- Tests: 3 Rust.
+
+## 304. Note reads and writes run off the UI thread
+
+**Status: implemented, not yet released.** Task L.
+
+- Plain Tauri commands run on the main thread, which is the UI thread, so one slow file (OneDrive, security software) froze the window on a single save. `read_note`, `write_note`, `delete_note`, `get_file_metadata`, `read_note_with_metadata`, `write_conflict_copy`, `import_notes_bundle` and the tab-session commands now run on the blocking pool.
+- The main thread used to be what kept a guarded write's "has the file changed?" check and the write together. A new `NOTE_LOCK` in `storage.rs` now spans the check and the write or delete (lock order: `NOTE_LOCK`, then `WRITE_LOCK` inside `atomic_write`).
+- The scratchpad-draft commands stay on the main thread on purpose: they write to local app data, and running in order guarantees an older draft can't land after a newer one.
+- Tests: 1 Rust (8 writers start at the same moment with the same expected hash: exactly one wins; passed 5 runs in a row).
+
+## 305. Desktop Content Security Policy
+
+**Status: implemented, not yet released.** Task J, done and tested by the orchestrator.
+
+- The desktop app had no CSP (`"csp": null`), so any script that ever ran in the window could call every command. Now: scripts only from the app (plus the hashes Tauri adds for its own init scripts), styles from the app plus inline (CodeMirror and Svelte inject style elements, and components use inline style attributes), images self/data/blob, network only to the IPC endpoint, no frames, objects or form posts. Tauri is told not to add nonces to `style-src` (`dangerousDisableAssetCspModification`), because a nonce there would switch `'unsafe-inline'` off. `devCsp` also allows the Vite dev server.
+- Verified on a debug build with the embedded frontend, against a throwaway notes folder: the response header carries the policy as written; an injected inline script and an image from another site are blocked and reported; inline style attributes and style elements apply; all six drawers, saving, the conflict dialog on an outside change, a CRLF note left untouched, and Peek work, with no CSP violations and no console errors.
+- Gates for §300-§305 together: svelte-check 0, Vitest 788, cargo 124, clippy 0, Playwright 567.
