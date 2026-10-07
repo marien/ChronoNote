@@ -9852,3 +9852,69 @@ Marien, after abandoning the idea of Peek reacting to Teams calls by itself (wat
 - **Guard:** a unit test requires the default call shortcut to be a Ctrl+Alt chord on one of B/F/G/H/J/K/V. The in-app shortcuts already have a test that none is a Ctrl+Alt+letter chord (§289).
 - Docs, README, spec and the website guide say J again; the Peek toggle stays `Ctrl+Shift+P`.
 - Tests: cargo 184, Vitest 771, Playwright 562.
+
+## 291. Closing an empty tab no longer deletes a note that changed on disk
+
+**Status: implemented, not yet released.** From the 2026-10-07 architecture review (task A); implemented by a Sonnet 5.5 agent from a written brief, reviewed and integrated by the orchestrator.
+
+- A dated tab that closed with empty text deleted its file without looking at the disk (#63). The drift check only runs on tab activation and window focus, so a background tab never noticed that another device had synced the day's note in; closing it (middle-click, "Close tabs with no open actions") deleted that note, and OneDrive passed the deletion on.
+- `delete_note` now takes `expectedHash` (Rust, mock and web backends), the same compare-and-swap rule as `write_note`: the file is deleted only while it still has the tab's clean baseline. A changed file is kept, with a message ("changed on disk, so it was kept"). A tab with no baseline leaves its file alone. The OneDrive deletion is only recorded when the delete really happened.
+- Tests: 3 Rust, 2 Vitest (+ the four #63 tests now set a baseline), new `empty-tab-delete.spec.ts` (2).
+
+## 292. Autosave no longer overwrites a note that changed on disk
+
+**Status: implemented, not yet released.** Review task B.
+
+- `write_note` could already refuse a write when the file changed since it was last seen, but only "Keep mine" used it; autosave wrote blindly, so a version OneDrive brought in while the user was typing was overwritten by the next autosave.
+- Every write of an open tab now passes the tab's clean baseline. Writes to one file run one after another (`writeChains` in `persistence.ts`), so a second quick write reads its expected hash after the first one has landed. A refused write opens the existing conflict dialog for the active tab, or saves a background tab's text as a conflict copy (`handleWriteConflict` in `drift.ts`, wired from `boot.ts`); it no longer shows "Failed to save note".
+- **Integration fix:** a missing file now matches the empty-content hash in the guard (all three backends). A tab for a day with no note yet starts with that baseline; without this its first save was refused and the text lost. The brief had missed it; Playwright caught the shape of it and a Rust test now covers both directions.
+- Tests: 3 Vitest (baseline passed, queue order, conflict handler), 1 Rust, 1 Playwright in `concurrency.spec.ts`; existing `writeNote` assertions gained the third argument.
+
+## 293. Writes to notes without an open tab are guarded; forward-to-today reports failure
+
+**Status: implemented, not yet released.** Review task C.
+
+- Forward-to-today, a calendar-sync "move to another day", copy-to-next-occurrence into a closed note, and promoting a scratchpad into a closed today note all read the file and wrote it back unguarded. Forward-to-today also swallowed a failed write: the source line was marked as moved but the task never arrived.
+- New `updateNoteOnDisk(filename, change)` reads with the hash, writes guarded (creating a missing file is guarded as empty content) and retries twice on a conflict. Forward-to-today now restores the source line and says "Couldn't add the task to today's note, so nothing was changed". Copy-forward's own writes to a closed *source* note are unchanged (needs a decision: what if the source changed after the target was written).
+- Tests: 3 Vitest; the calendar-sync and copy-forward disk tests now mock `readNoteWithMetadata`.
+
+## 294. Switching notes folders waits for pending saves
+
+**Status: implemented, not yet released.** Review task D.
+
+- The folder switch started the pending saves without waiting for them. Rust resolves the notes folder per command, so a save arriving after `set_notes_dir` was written into the new folder, where it could replace that folder's note for the same date.
+- `performDirectorySwitch` now awaits `flushAllPendingSaves()` first. Tests: 1 Vitest (fails with the old loop).
+
+## 295. One unreadable note no longer stops the app from starting
+
+**Status: implemented, not yet released.** Review task E.
+
+- Startup read every restored tab with one `Promise.all`: one file briefly locked by OneDrive or antivirus (or not valid UTF-8) failed the whole boot. `read_all_notes` turned an unreadable file into empty text, so History, Search and the date picker treated a real note as empty.
+- Each read retries twice; a restored tab that still can't be read stays closed and is named in a message. Today's tab still has to load. `read_all_notes` leaves an unreadable file out. Tests: 1 Rust, 1 Vitest.
+
+## 296. A note and its hash come from the same read
+
+**Status: implemented, not yet released.** Review task F.
+
+- `read_note_with_metadata` read the file twice (text, then hash), so the two could describe different versions. It now reads the bytes once (`metadata_from_bytes`). Tests: 2 Rust.
+
+## 297. Notes with Windows line endings or a byte-order mark work
+
+**Status: implemented, not yet released.** Review task G.
+
+- Files from other editors can have CRLF line endings or a BOM. Many line rules end in `$`, which never matches before `\r`, so for example forward-to-today did nothing on such a line until the file was edited.
+- Notes are handled as LF text without a BOM: reads normalize, writes store the normalized text, and the content hash is taken over it (`normalize_note_text`/`note_hash` in Rust, `normalizeNoteText` in `noteText.ts` for the mock and web backends), so an unedited CRLF file still matches its tab and is not rewritten on open. The web app's OneDrive sync is deliberately unchanged (needs a decision: stored hashes of earlier syncs).
+- Tests: 3 Rust, 2 Vitest, new `crlf-notes.spec.ts` (2).
+
+## 298. Import "Replace" writes first and removes old notes last
+
+**Status: implemented, not yet released.** Review task H.
+
+- Replace mode deleted every note before writing the imported ones, so a failure part-way lost the old notes. It now writes all imported notes, then removes only the notes the file doesn't contain (all three backends). Tests: 1 Rust.
+
+## 299. Small fixes from the review
+
+**Status: implemented, not yet released.** Review task I.
+
+- The unsupported-drop message is translated (it was the one hard-coded English toast). `update.log` timestamps use `chrono` instead of hand-written date code. `cargo clippy --all-targets` is clean (was 4 warnings).
+- Gates for §291-§299 together on `integration/review-fixes`: svelte-check 0, Vitest 783, cargo 195, clippy 0, Playwright 567.
