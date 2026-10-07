@@ -10003,3 +10003,10 @@ Marien, after abandoning the idea of Peek reacting to Teams calls by itself (wat
 - **The proof here:** a new opt-in pixel-parity check, `tests/e2e/css-parity.spec.ts` (`CSS_PARITY=1`; baseline with `--update-snapshots` on the commit before, compare after; zero pixel tolerance; baselines git-ignored because they are only valid on the machine that took them). It covers the editor in both themes and all three palettes, eight drawers, every Settings tab, the find bar, a narrow window and the phone layout; it passed after every component and against an independent baseline. States it does not cover (tab context menu, rename input, scroll arrows) are covered by the full Playwright suite.
 - A status-bar test compared full `className`s and broke on Svelte's scoping class; it now compares the component class.
 - Gates for §306-§309 together: svelte-check 0, Vitest 828, cargo 124, clippy 0, Playwright 569.
+
+## 310. The date picker on Svelte runes
+
+**Status: implemented, not yet released.** Refactor R13, the same conversion as §307 for `DatePickerModal.svelte` (5 `$:` blocks). No intended behaviour change. The first change implemented by Gemini 3.8 Flash through the Antigravity CLI (orchestrated and reviewed like the Sonnet agents).
+
+- Values (`showTarget`, `cells`, the note/open/heat maps) are `$derived`; the two side effects (prefetching the visible month's notes, following the typed date) are `$effect`s that read only their inputs and call their functions inside `untrack`, so a function that writes state cannot re-trigger its own effect.
+- Gates: svelte-check 0, Vitest 828, Playwright 569.
