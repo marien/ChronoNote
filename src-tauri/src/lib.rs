@@ -183,16 +183,10 @@ fn write_note(
 #[tauri::command]
 fn delete_note(
     app: AppHandle,
-    mgr: tauri::State<'_, std::sync::Arc<onedrive::sync::OneDriveManager>>,
     filename: String,
     expected_hash: Option<String>,
 ) -> Result<(), String> {
-    storage::delete_note(&app, &filename, expected_hash.as_deref())?;
-    // With OneDrive sync on, the cloud copy of an emptied note goes too.
-    if let Ok(data_dir) = app.path().app_data_dir() {
-        mgr.record_local_delete(&data_dir, &filename);
-    }
-    Ok(())
+    storage::delete_note(&app, &filename, expected_hash.as_deref())
 }
 
 #[tauri::command]
@@ -270,165 +264,6 @@ fn load_scratchpad_drafts(
     storage::load_scratchpad_drafts(&app)
 }
 
-#[tauri::command]
-async fn onedrive_login(
-    app: AppHandle,
-    mgr: tauri::State<'_, std::sync::Arc<onedrive::sync::OneDriveManager>>,
-) -> Result<onedrive::OneDriveLoginResult, String> {
-    let data_dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
-    Ok(mgr.login_interactive(&app, &data_dir).await)
-}
-
-#[tauri::command]
-fn onedrive_logout(
-    app: AppHandle,
-    mgr: tauri::State<'_, std::sync::Arc<onedrive::sync::OneDriveManager>>,
-) -> Result<(), String> {
-    let data_dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
-    mgr.logout(&data_dir)
-}
-
-#[tauri::command]
-fn onedrive_get_account(
-    app: AppHandle,
-    mgr: tauri::State<'_, std::sync::Arc<onedrive::sync::OneDriveManager>>,
-) -> Result<Option<onedrive::OneDriveAccount>, String> {
-    let data_dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
-    Ok(mgr.get_account(&data_dir))
-}
-
-#[tauri::command]
-async fn onedrive_list_folders(
-    app: AppHandle,
-    mgr: tauri::State<'_, std::sync::Arc<onedrive::sync::OneDriveManager>>,
-    parent_id: Option<String>,
-) -> Result<Vec<onedrive::OneDriveFolderItem>, String> {
-    let data_dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
-    mgr.list_folders(&data_dir, parent_id.as_deref()).await
-}
-
-#[tauri::command]
-fn onedrive_set_folder(
-    app: AppHandle,
-    mgr: tauri::State<'_, std::sync::Arc<onedrive::sync::OneDriveManager>>,
-    folder_id: String,
-    folder_path: String,
-) -> Result<(), String> {
-    let data_dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
-    mgr.set_folder(&data_dir, &onedrive::OneDriveFolderConfig { folder_id, folder_path })
-}
-
-#[tauri::command]
-async fn onedrive_prepare_folder_switch(
-    app: AppHandle,
-    mgr: tauri::State<'_, std::sync::Arc<onedrive::sync::OneDriveManager>>,
-    new_folder_id: String,
-) -> Result<onedrive::FolderSwitchResult, String> {
-    let data_dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
-    let cfg = storage::load_config(&app)?;
-    let notes_dir = std::path::PathBuf::from(cfg.notes_dir);
-    mgr.prepare_folder_switch(&data_dir, &notes_dir, &new_folder_id).await
-}
-
-#[tauri::command]
-fn onedrive_get_folder(
-    app: AppHandle,
-    mgr: tauri::State<'_, std::sync::Arc<onedrive::sync::OneDriveManager>>,
-) -> Result<Option<onedrive::OneDriveFolderConfig>, String> {
-    let data_dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
-    Ok(mgr.get_folder(&data_dir))
-}
-
-#[tauri::command]
-async fn onedrive_sync_now(
-    app: AppHandle,
-    mgr: tauri::State<'_, std::sync::Arc<onedrive::sync::OneDriveManager>>,
-) -> Result<onedrive::OneDriveSyncResult, String> {
-    let data_dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
-    let cfg = storage::load_config(&app)?;
-    let notes_dir = std::path::PathBuf::from(cfg.notes_dir);
-    Ok(mgr.sync_now(&data_dir, &notes_dir).await)
-}
-
-#[tauri::command]
-fn get_sync_health(
-    app: AppHandle,
-    mgr: tauri::State<'_, std::sync::Arc<onedrive::sync::OneDriveManager>>,
-) -> Result<onedrive::SyncHealth, String> {
-    let data_dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
-    let cfg = storage::load_config(&app)?;
-    Ok(mgr.health(&data_dir, &std::path::PathBuf::from(cfg.notes_dir)))
-}
-
-#[tauri::command]
-fn onedrive_get_conflicts(
-    app: AppHandle,
-    mgr: tauri::State<'_, std::sync::Arc<onedrive::sync::OneDriveManager>>,
-) -> Result<Vec<onedrive::SyncConflict>, String> {
-    let data_dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
-    let cfg = storage::load_config(&app)?;
-    Ok(mgr.conflicts(&data_dir, &std::path::PathBuf::from(cfg.notes_dir)))
-}
-
-#[tauri::command]
-fn onedrive_resolve_conflict(
-    app: AppHandle,
-    mgr: tauri::State<'_, std::sync::Arc<onedrive::sync::OneDriveManager>>,
-    name: String,
-    resolution: String,
-) -> Result<(), error::AppError> {
-    let data_dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
-    let cfg = storage::load_config(&app)?;
-    mgr.resolve_conflict(&data_dir, &std::path::PathBuf::from(cfg.notes_dir), &name, &resolution)
-}
-
-#[tauri::command]
-async fn onedrive_create_folder(
-    app: AppHandle,
-    mgr: tauri::State<'_, std::sync::Arc<onedrive::sync::OneDriveManager>>,
-    parent_id: Option<String>,
-    name: String,
-) -> Result<onedrive::OneDriveFolderItem, String> {
-    let data_dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
-    mgr.create_folder(&data_dir, parent_id.as_deref(), &name).await
-}
-
-#[tauri::command]
-async fn onedrive_exchange_code(
-    app: AppHandle,
-    mgr: tauri::State<'_, std::sync::Arc<onedrive::sync::OneDriveManager>>,
-    code: String,
-) -> Result<onedrive::OneDriveLoginResult, String> {
-    let data_dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
-    Ok(mgr.exchange_code_direct(&data_dir, &code).await)
-}
-
-#[tauri::command]
-fn onedrive_get_sync_status(
-    mgr: tauri::State<'_, std::sync::Arc<onedrive::sync::OneDriveManager>>,
-) -> Result<onedrive::SyncStatus, String> {
-    Ok(mgr.get_status())
-}
-
-#[tauri::command]
-fn onedrive_get_advanced_config(
-    app: AppHandle,
-    mgr: tauri::State<'_, std::sync::Arc<onedrive::sync::OneDriveManager>>,
-) -> Result<onedrive::OneDriveAdvancedConfig, String> {
-    let data_dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
-    Ok(mgr.get_advanced_config(&data_dir))
-}
-
-#[tauri::command]
-fn onedrive_set_advanced_config(
-    app: AppHandle,
-    mgr: tauri::State<'_, std::sync::Arc<onedrive::sync::OneDriveManager>>,
-    config: onedrive::OneDriveAdvancedConfig,
-) -> Result<(), String> {
-    let data_dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
-    mgr.set_advanced_config(&data_dir, &config)
-}
-
 /// Window starts hidden (see `tauri.conf.json`) so it can be shown only
 /// once its background already matches the theme it's about to render —
 /// otherwise the OS paints the window's own default (white) canvas for
@@ -476,8 +311,6 @@ fn peek_set_transparent(window: tauri::WebviewWindow, transparent: bool, r: u8, 
 }
 
 pub fn run() {
-    let onedrive_mgr = std::sync::Arc::new(onedrive::sync::OneDriveManager::new());
-
     let builder = tauri::Builder::default()
         // Must be the first plugin registered (Tauri docs): a second launch
         // hands off to the running instance and exits before anything else
@@ -489,7 +322,6 @@ pub fn run() {
                 let _ = w.set_focus();
             }
         }))
-        .manage(onedrive_mgr)
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_process::init())
@@ -544,22 +376,6 @@ pub fn run() {
             agenda::agenda_file_exists,
             save_scratchpad_drafts,
             load_scratchpad_drafts,
-            onedrive_login,
-            onedrive_logout,
-            onedrive_get_account,
-            onedrive_list_folders,
-            onedrive_create_folder,
-            onedrive_set_folder,
-            onedrive_prepare_folder_switch,
-            onedrive_get_folder,
-            onedrive_sync_now,
-            get_sync_health,
-            onedrive_get_conflicts,
-            onedrive_resolve_conflict,
-            onedrive_get_sync_status,
-            onedrive_exchange_code,
-            onedrive_get_advanced_config,
-            onedrive_set_advanced_config
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -1,7 +1,6 @@
-pub mod auth;
-pub mod client;
-pub mod merge;
-pub mod sync;
+//! Wire types shared with the web app's TypeScript OneDrive sync (`src/lib/webapp/`). The desktop app has no OneDrive engine of its own; these types exist so `cargo test` can generate their TypeScript definitions.
+// Only the test build (TypeScript generation) constructs these types.
+#![cfg_attr(not(test), allow(dead_code))]
 
 use crate::error::AppError;
 use serde::{Deserialize, Serialize};
