@@ -7,10 +7,13 @@
    * Reading column). One bordered container with hairline dividers and a
    * filled selected segment, rather than N independent `.icon-btn.active`
    * buttons sitting side by side with no shared edge. */
-  export let options: { value: string; label: string; title?: string }[];
-  export let value: string;
-  export let onChange: (value: string) => void;
-  export let grid: boolean = false;
+  interface Props {
+    options: { value: string; label: string; title?: string }[];
+    value: string;
+    onChange: (value: string) => void;
+    grid?: boolean;
+  }
+  let { options, value, onChange, grid = false }: Props = $props();
 </script>
 
 <div class="segmented {grid ? 'segmented-grid' : ''}" role="radiogroup">
@@ -21,7 +24,7 @@
       role="radio"
       aria-checked={opt.value === value}
       title={opt.title}
-      on:click={() => opt.value !== value && onChange(opt.value)}
+      onclick={() => opt.value !== value && onChange(opt.value)}
     >
       {opt.label}
     </button>
