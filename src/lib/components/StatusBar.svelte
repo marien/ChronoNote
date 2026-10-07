@@ -38,20 +38,20 @@
   }
 
   // #37/#38: how many lines the selection covers (not a character count).
-  $: selectionLabel = $statusSelection ? $t("statusBar.selection", { count: $statusSelection.lines }) : "";
+  const selectionLabel = $derived($statusSelection ? $t("statusBar.selection", { count: $statusSelection.lines }) : "");
 
   // §merged-titlebar: which notes folder is active — moved here from
   // "Settings-only" now that the window title itself no longer renders
   // visibly (the merged title bar has no title text). Meaningless for the
   // web backend (no `notesDir`, IndexedDB-backed instead — the "Browser
   // storage" badge in the right zone already covers that case).
-  $: folderName = $notesDir ? folderNameFromPath($notesDir) : "";
+  const folderName = $derived($notesDir ? folderNameFromPath($notesDir) : "");
 
-  $: hasCentreMessage = Boolean(
+  const hasCentreMessage = $derived(Boolean(
     $justUpdatedToVersion ||
       ($toastMessage === $t(UPDATE_AVAILABLE_TOAST_KEY, undefined) && $updateStatus === "available") ||
       ($toastMessage && !$isMobile && $toastMessage.length <= LONG_TOAST_CHARS),
-  );
+  ));
 </script>
 
 <div id="status-bar" class:has-centre-message={hasCentreMessage}>
@@ -63,7 +63,7 @@
         class:stat-expired={$oneDriveSignInExpired}
         title={$oneDriveSignInExpired ? $t("statusBar.oneDrive.signInExpired") : $oneDriveAccount ? $t("statusBar.oneDrive.statusTitle", { path: $oneDriveFolder?.folderPath ?? "/", status: $oneDriveSyncStatus }) : $t("statusBar.oneDrive.connectPrompt")}
         aria-label={$t("statusBar.oneDrive.ariaLabel")}
-        on:click={onCloudClick}
+        onclick={onCloudClick}
       >
         {#if $oneDriveSyncing || $oneDriveSyncStatus === "syncing"}
           <!-- Not gated by stat-tier0 like the label, so a narrow screen still shows *something is happening*. -->
@@ -90,7 +90,7 @@
           id="stat-conflicts"
           class="status-folder-btn stat-conflicts"
           title={$t("statusBar.conflicts.title")}
-          on:click={controller.openSyncConflicts}
+          onclick={controller.openSyncConflicts}
         >
           ⚠ {$t("statusBar.conflicts.count", { count: $syncConflicts.length })}
         </button>
@@ -102,7 +102,7 @@
         class="status-folder-btn"
         title={$t("statusBar.browserStorage.title")}
         aria-label={$t("statusBar.browserStorage.label")}
-        on:click={controller.openSettingsOnNotesFolder}
+        onclick={controller.openSettingsOnNotesFolder}
       >
         <Icon name="folder" size={12} />
         <span class="stat-tier0 status-folder-name">{$t("statusBar.browserStorage.label")}</span>
@@ -114,7 +114,7 @@
         class="status-folder-btn"
         title={$notesDir}
         aria-label={$t("statusBar.changeFolderAriaLabel")}
-        on:click={controller.openSettingsOnNotesFolder}
+        onclick={controller.openSettingsOnNotesFolder}
       >
         <Icon name="folder" size={12} />
         <span class="stat-tier0 status-folder-name">{folderName}</span>
@@ -141,27 +141,30 @@
 
   <div class="status-zone status-centre">
     {#if $justUpdatedToVersion}
-      <!-- svelte-ignore a11y-click-events-have-key-events -->
-      <!-- svelte-ignore a11y-no-static-element-interactions -->
-      <!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
+      <!-- svelte-ignore a11y_click_events_have_key_events -->
+      <!-- svelte-ignore a11y_no_static_element_interactions -->
+      <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
       <span
         id="stat-updated"
         role="status"
         class="stat-dismissible"
-        on:click={controller.dismissJustUpdatedNotice}
+        onclick={controller.dismissJustUpdatedNotice}
         title={$t("statusBar.dismissUpdate")}
       >
         <span class="stat-updated-text">{$t("statusBar.updatedTo", { version: $justUpdatedToVersion })}</span>
         <button
           type="button"
           class="status-link"
-          on:click|stopPropagation={controller.openJustUpdatedReleaseNotes}
+          onclick={(e) => {
+            e.stopPropagation();
+            controller.openJustUpdatedReleaseNotes();
+          }}
         >
           {$t("statusBar.whatsNew")}
         </button>
       </span>
     {:else if $toastAction && $toastMessage && !$isMobile && $toastMessage.length <= LONG_TOAST_CHARS}
-      <button type="button" id="stat-message" class="status-link" on:click={controller.runToastAction}>
+      <button type="button" id="stat-message" class="status-link" onclick={controller.runToastAction}>
         {$toastMessage}
       </button>
     {:else if $toastMessage === $t(UPDATE_AVAILABLE_TOAST_KEY, undefined) && $updateStatus === "available"}
@@ -171,31 +174,31 @@
            persists long after the toast itself fades) so an unrelated
            toast firing while an update happens to be available doesn't
            also render as a misleading link. -->
-      <button type="button" id="stat-message" class="status-link" on:click={controller.openAbout}>
+      <button type="button" id="stat-message" class="status-link" onclick={controller.openAbout}>
         {$toastMessage}
       </button>
     {:else if $toastMessage && !$isMobile && $toastMessage.length <= LONG_TOAST_CHARS}
-      <!-- svelte-ignore a11y-click-events-have-key-events -->
-      <!-- svelte-ignore a11y-no-static-element-interactions -->
-      <!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
+      <!-- svelte-ignore a11y_click_events_have_key_events -->
+      <!-- svelte-ignore a11y_no_static_element_interactions -->
+      <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
       <span
         id="stat-message"
         role="status"
         class="stat-dismissible"
         title={$t("common.close")}
-        on:click={controller.dismissToast}
+        onclick={controller.dismissToast}
       >{$toastMessage}</span>
     {/if}
   </div>
 
   <div class="status-zone status-right">
     {#if $updateStatus === "available" && $backendKind !== "web"}
-      <button type="button" class="status-update-btn" title={$t("statusBar.updateAvailableTitle")} on:click={controller.openAbout}>
+      <button type="button" class="status-update-btn" title={$t("statusBar.updateAvailableTitle")} onclick={controller.openAbout}>
         <Icon name="update" size={12} />
       </button>
     {/if}
     {#if $appVersion}
-      <button type="button" id="stat-version" title={$t("shortcuts.openAbout.label")} on:click={controller.openAbout}>
+      <button type="button" id="stat-version" title={$t("shortcuts.openAbout.label")} onclick={controller.openAbout}>
         v{$appVersion}
       </button>
     {/if}
@@ -203,7 +206,7 @@
       type="button"
       class="status-help"
       title={$t("statusBar.shortcutsTitle", { combo: formatCombo(shortcutById('openShortcutsHelp').combos[0]) })}
-      on:click={controller.openShortcutsHelp}
+      onclick={controller.openShortcutsHelp}
     >
       ?
     </button>
@@ -214,7 +217,7 @@
       type="button"
       class="status-about-btn"
       title={$t("statusBar.aboutTitleWithCombo", { combo: formatShortcut('openAbout') })}
-      on:click={controller.openAbout}
+      onclick={controller.openAbout}
     >
       <Icon name="about" size={12} />
     </button>
