@@ -10040,7 +10040,7 @@ Marien, after abandoning the idea of Peek reacting to Teams calls by itself (wat
 
 ## 314. Peek: header hidden while the pointer is away, minimize buttons, naming an ad-hoc call
 
-**Status: on main, not released.** Marien's Peek feedback (2026-10-08). Implemented by Gemini 3.8 Flash from a brief, reviewed and integrated by the orchestrator.
+**Status: released in v0.29.0.** Marien's Peek feedback (2026-10-08). Implemented by Gemini 3.8 Flash from a brief, reviewed and integrated by the orchestrator.
 
 - **Header style "On hover" / "Hidden":** while the pointer is away from the Peek window nothing is drawn (no thin strip any more, no space reserved: the note starts at the very top). When the pointer is over the window, "On hover" draws the full bar and "Hidden" the 16px strip OVER the content, so nothing moves and the window never resizes. The past/today/future colour line is therefore only visible while the pointer is on the window. `headerPx` is 0 for both; `peekHeaderExpanded` now tracks the pointer in both modes; the spacer element is gone.
 - **Minimize:** a minimize button left of "Back to the full window" in the bar, and tiny minimize + back buttons (14px) at the right end of the 16px strip. Minimizing keeps Peek. The call shortcut (Ctrl+Alt+J) while Peek is minimized restores and focuses the window instead of leaving Peek (`isWindowMinimized` / `restoreAndFocusWindow` in `windowChrome.ts`; capability `core:window:allow-is-minimized` added).
@@ -10050,7 +10050,7 @@ Marien, after abandoning the idea of Peek reacting to Teams calls by itself (wat
 
 ## 315. Jump to next / previous open action: Ctrl+J / Ctrl+Shift+J
 
-**Status: on main, not released.** F2 needs Fn on Marien's laptops, so the jump (§78/§83) moves to `Ctrl+J` / `Ctrl+Shift+J` (`Cmd` on macOS), J for jump; F2 is now the Peek "name this call" key (§314). Ctrl+Shift+Up/Down was not free (it extends the selection, §89) and Alt+Up/Down moves lines. Shortcuts registry, editor keymap (`Mod-j` / `Mod-Shift-j`, handled before WebView2 sees Ctrl+J), the welcome note in 7 languages (`isPristineOnboardingNote` still recognises a welcome note with the old F2 wording), `spec.md` and the website guide updated. Implemented by Gemini 3.8 Flash.
+**Status: released in v0.29.0.** F2 needs Fn on Marien's laptops, so the jump (§78/§83) moves to `Ctrl+J` / `Ctrl+Shift+J` (`Cmd` on macOS), J for jump; F2 is now the Peek "name this call" key (§314). Ctrl+Shift+Up/Down was not free (it extends the selection, §89) and Alt+Up/Down moves lines. Shortcuts registry, editor keymap (`Mod-j` / `Mod-Shift-j`, handled before WebView2 sees Ctrl+J), the welcome note in 7 languages (`isPristineOnboardingNote` still recognises a welcome note with the old F2 wording), `spec.md` and the website guide updated. Implemented by Gemini 3.8 Flash.
 
 - Test note: Playwright's `Control+Shift+j` sends a lowercase key with Shift held, which CodeMirror matches as `Mod-j`; specs use `Control+Shift+KeyJ`.
 - Gates on the integration branch: svelte-check 0, Vitest 853, Playwright full suite green (call-note specs updated for the name field a new ad-hoc call opens with). Not verified natively: Ctrl+J in WebView2, minimize/restore with the real global shortcut, the look of the tiny strip buttons.
