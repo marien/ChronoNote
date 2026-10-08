@@ -25,6 +25,8 @@ async function seed(page: Page, opts: { hint?: boolean; openTabs?: string[] } = 
 /** Puts the caret on 0-based `line` of the active note. */
 async function goToLine(page: Page, line: number) {
   await editor(page).click();
+  // Out of the editor: a pointer resting on a section title shows the hint for that section instead of the caret's.
+  await page.mouse.move(0, 0);
   await page.keyboard.press("ControlOrMeta+Home");
   for (let i = 0; i < line; i++) await page.keyboard.press("ArrowDown");
 }
@@ -141,6 +143,34 @@ test.describe("the < (X/Y) > hint after the section title (setting)", () => {
     await hint.locator(".occ-hint-peek").dispatchEvent("mousedown");
     await expect(page.locator("body.peek-mode")).toBeVisible();
     await expect(page.locator("#peek-bar")).toContainText("Solo");
+  });
+
+  test("hovering a section title shows the hint and Peek button for that section, without clicking into it", async ({ page }) => {
+    await goToLine(page, 2); // the caret in "Standup", which occurs in every note
+    await expect(page.locator(".occ-hint")).toContainText("(2/3)");
+    const solo = editor(page).locator(".cm-line", { hasText: /^Solo$/ });
+    const box = (await solo.boundingBox())!;
+    await page.mouse.move(box.x + 10, box.y + box.height / 2);
+    // The hint moves to the hovered title: "Solo" occurs only here, so just the Peek button.
+    await expect(solo.locator(".occ-hint-peek")).toHaveCount(1);
+    await expect(page.locator(".occ-hint")).toHaveCount(1);
+    await solo.locator(".occ-hint-peek").dispatchEvent("mousedown");
+    await expect(page.locator("body.peek-mode")).toBeVisible();
+    await expect(page.locator("#peek-bar")).toContainText("Solo");
+  });
+
+  test("moving off the title puts the hint back on the caret's section", async ({ page }) => {
+    await goToLine(page, BODY);
+    const weekly = editor(page).locator(".cm-line", { hasText: /^Weekly sync/ });
+    const solo = editor(page).locator(".cm-line", { hasText: /^Solo$/ });
+    const sb = (await solo.boundingBox())!;
+    await page.mouse.move(sb.x + 10, sb.y + sb.height / 2);
+    await expect(solo.locator(".occ-hint")).toHaveCount(1);
+    const body = editor(page).locator(".cm-line", { hasText: "only here" });
+    const bb = (await body.boundingBox())!;
+    await page.mouse.move(bb.x + 10, bb.y + bb.height / 2);
+    await expect(weekly.locator(".occ-hint")).toContainText("(2/3)");
+    await expect(solo.locator(".occ-hint")).toHaveCount(0);
   });
 
   test("the shortcut keeps working with the hint on", async ({ page }) => {

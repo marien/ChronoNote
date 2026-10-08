@@ -105,6 +105,9 @@ export async function stepSectionOccurrence(direction: -1 | 1): Promise<void> {
 
 /** The section the caret is in (matching form), reported by the editor; null outside any section. */
 export const cursorSection = writable<string | null>(null);
+/** The section whose title line the mouse is over (matching form), reported by the editor; null otherwise. While set,
+ * the hint (and its Peek button) shows for that section instead of the caret's: no need to click into it first. */
+export const hoverSection = writable<string | null>(null);
 /** What the hint shows: the section the caret is in and where the shown note sits among its occurrences. Null when
  * the hint is off or nothing is known yet. A section that occurs only here (an ad-hoc call, a one-off meeting) has
  * `total` 1: the editor then shows just the Peek button, no arrows or count. */
@@ -117,7 +120,7 @@ export function wireOccurrenceHint(): () => void {
   let run = 0;
   const recompute = async () => {
     const mine = ++run;
-    const target = get(cursorSection);
+    const target = get(hoverSection) ?? get(cursorSection);
     const tab = get(tabs).find((x) => x.id === get(activeTabId));
     if (!get(occurrenceHint) || !target || !tab || tab.isScratchpad) {
       occurrenceInfo.set(null);
@@ -131,7 +134,12 @@ export function wireOccurrenceHint(): () => void {
     clearTimeout(timer);
     timer = setTimeout(() => void recompute(), 150);
   };
-  const unsubs = [occurrenceHint.subscribe(schedule), cursorSection.subscribe(schedule), activeTabId.subscribe(schedule)];
+  const unsubs = [
+    occurrenceHint.subscribe(schedule),
+    cursorSection.subscribe(schedule),
+    hoverSection.subscribe(schedule),
+    activeTabId.subscribe(schedule),
+  ];
   // Typing changes the open note (a new title, a section that now exists elsewhere): only matters while the hint is on.
   unsubs.push(tabs.subscribe(() => get(occurrenceHint) && schedule()));
   return () => {

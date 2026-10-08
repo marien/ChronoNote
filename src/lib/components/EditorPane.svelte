@@ -697,6 +697,26 @@
         paste: (event) => {
           controller.handlePasteIntoTab(controller.getActiveTabId(), event.clipboardData?.getData("text/plain"));
         },
+        // The occurrence hint (and its Peek button) also shows for a section whose title line or underline the mouse
+        // is over, so it can be used without clicking into the section first.
+        mousemove: (event, v) => {
+          if (!get(controller.occurrenceHint)) return;
+          const pos = v.posAtCoords({ x: event.clientX, y: event.clientY });
+          let target: string | null = null;
+          // Only when the pointer is really over the line (not in the empty space below the last one).
+          const block = pos !== null ? v.lineBlockAt(pos) : null;
+          const overLine = !!block && event.clientY >= v.documentTop + block.top && event.clientY <= v.documentTop + block.bottom;
+          if (pos !== null && overLine) {
+            const line = v.state.doc.lineAt(pos);
+            const onTitle = line.text.trim() !== "" && !isSetextUnderline(line.text) && isHeaderLine(v, line.number);
+            const onUnderline = isSetextUnderline(line.text) && line.number > 1 && isHeaderLine(v, line.number - 1);
+            if (onTitle || onUnderline) target = controller.sectionTargetAt(v.state.doc.toString(), line.number - 1);
+          }
+          if (get(controller.hoverSection) !== target) controller.hoverSection.set(target);
+        },
+        mouseleave: () => {
+          if (get(controller.hoverSection) !== null) controller.hoverSection.set(null);
+        },
       }),
     ];
 
