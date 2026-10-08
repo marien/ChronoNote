@@ -168,8 +168,14 @@ export const pl = {
     "Przełącz Peek (kompaktowe okno notatek na rozmowy)",
   "peek.toast.noSection": () =>
     "Umieść kursor w sekcji, aby w nią zerknąć.",
+  "peek.toast.titleExists": () =>
+    "Ta notatka ma już sekcję o tym tytule.",
   "peek.expand": () =>
     "Wróć do pełnego okna",
+  "peek.minimize": () =>
+    "Minimalizuj",
+  "peek.rename": () =>
+    "Kliknij, aby nazwać tę rozmowę",
   "peek.prev": () =>
     "Poprzednie wystąpienie",
   "peek.next": () =>

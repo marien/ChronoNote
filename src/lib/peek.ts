@@ -30,7 +30,9 @@ import {
   showToast,
   tabs,
 } from "./stores";
-import { exitCaretLine, findSectionRange } from "./peekSection";
+import { exitCaretLine, findSectionRange, listSections, retitleSection } from "./peekSection";
+import { underlineFor } from "./sectionFormat";
+import { writeTabContent } from "./persistence";
 import { setShortcutEnabled } from "./shortcuts";
 import { getSectionHeaderForLine, normalizeHeaderTitle, titleForMatching } from "./tokens";
 
@@ -41,17 +43,16 @@ export type PeekSettings = PeekConfig;
 export { PEEK_DEFAULTS };
 /** Most rows "fit the whole section" mode grows to. */
 export const PEEK_MAX_FIT_LINES = 20;
-/** Logical px of the header strip: the full strip, or the thin colour/drag strip it collapses to (when hidden, and
- * in "on hover" mode until the pointer is over the window). */
+/** Logical px of the header strip: the full strip (30px), or 0 when hidden / on hover (drawn as an overlay). */
 const HEADER_FULL_PX = 30;
-const HEADER_THIN_PX = 16;
-/** How long the pointer must be away before the "on hover" strip collapses again. */
+/** How long the pointer must be away before the header overlay collapses again. */
 const COLLAPSE_DELAY_MS = 150;
 /** Plus the editor's own padding. */
 const EDITOR_PADDING_PX = 12;
-/** The window only reserves the thin strip for "hidden" and "on hover": the full strip of "on hover" is drawn OVER the
- * content while the pointer is on the window (`.peek-bar.overlay`), so the window never changes size. */
-const headerPx = (header: PeekHeader) => (header === "always" ? HEADER_FULL_PX : HEADER_THIN_PX);
+/** The window only reserves layout space for the header in "always" mode (30px). For "hidden" and "on hover",
+ * the bar/strip is drawn OVER the content while the pointer is over the window (`.peek-bar.overlay`),
+ * so the editor starts at the top and the window never changes size. */
+const headerPx = (header: PeekHeader) => (header === "always" ? HEADER_FULL_PX : 0);
 
 export const peekSettings = writable<PeekSettings>({ ...PEEK_DEFAULTS });
 
@@ -79,8 +80,73 @@ export const peekMode = writable(false);
 export const peekTarget = writable<string | null>(null);
 /** Lines the section needs right now (reported by the editor), for fit-to-section sizing. */
 export const peekFitLines = writable(0);
-/** "On hover" header: true while the pointer is over the window and the thin strip has grown into the full header. */
+/** Header overlay expanded: true while the pointer is over the window in "hover" and "never" modes. */
 export const peekHeaderExpanded = writable(false);
+/** True while renaming an ad-hoc call section in the header bar. */
+export const peekRenaming = writable(false);
+export function startPeekRename(): void {
+  peekRenaming.set(true);
+}
+export function cancelPeekRename(): void {
+  peekRenaming.set(false);
+}
+/** Renames the current ad-hoc call section. Returns true if renamed, false if ignored/cancelled/duplicate. */
+export function renamePeekSection(subject: string): boolean {
+  if (!get(peekMode)) return false;
+  const currentTarget = get(peekTarget);
+  const tab = get(tabs).find((x) => x.id === get(activeTabId));
+  if (!currentTarget || !tab) {
+    peekRenaming.set(false);
+    return false;
+  }
+
+  const content = editorApi?.getContent ? editorApi.getContent() : tab.content;
+  const lines = content.split("\n");
+  const range = findSectionRange(lines, currentTarget);
+  if (!range) {
+    peekRenaming.set(false);
+    return false;
+  }
+
+  const trimmed = subject.trim();
+  if (!trimmed) {
+    peekRenaming.set(false);
+    return false;
+  }
+
+  const newTitle = `'${trimmed}`;
+  const oldTitle = lines[range.titleLine].trim();
+  const oldSubject = oldTitle.replace(/^['’]/, "").trim();
+  if (trimmed === oldSubject || newTitle === oldTitle) {
+    peekRenaming.set(false);
+    return false;
+  }
+
+  const newMatchingForm = titleForMatching(normalizeHeaderTitle(newTitle));
+  const otherSections = listSections(lines).filter((s) => s.titleLine !== range.titleLine);
+  const exists = otherSections.some(
+    (s) => titleForMatching(normalizeHeaderTitle(s.title)).toLowerCase() === newMatchingForm.toLowerCase(),
+  );
+  if (exists) {
+    showToast(get(t)("peek.toast.titleExists", undefined));
+    peekRenaming.set(false);
+    return false;
+  }
+
+  // ORDER MATTERS: Peek ends as soon as no section matches peekTarget (stayInSection in wirePeek).
+  // First update peekTarget, then execute the programmatic CodeMirror replaceLines transaction.
+  peekRenaming.set(false);
+  peekTarget.set(newMatchingForm);
+  const replacement = `${newTitle}\n${underlineFor(newTitle)}`;
+  if (editorApi?.replaceLines) {
+    editorApi.replaceLines(range.titleLine, range.titleLine + 1, replacement);
+  } else {
+    const newLines = retitleSection(lines, range, newTitle);
+    tabs.set(writeTabContent(tab.id, newLines.join("\n"), get(tabs)));
+  }
+  void refreshPosition();
+  return true;
+}
 /** True while Peek is "in focus": you typed, clicked or moved the pointer over it less than `fadeSeconds` ago. The
  * background then uses `opacityHover`; otherwise (and after the fade) `opacity`. */
 export const peekInFocus = writable(false);
@@ -166,6 +232,7 @@ export async function enterPeek(section?: string): Promise<boolean> {
     await whenZenSettled();
   }
   peekHeaderExpanded.set(false);
+  peekRenaming.set(false);
   peekOrigin = tab.id;
   peekSeen.clear();
   peekOpened.clear();
@@ -180,6 +247,7 @@ export async function enterPeek(section?: string): Promise<boolean> {
  * Used when a drawer or dialog opens: it works on the note you were looking at. */
 export function leavePeek(options: { keepTabs?: boolean } = {}): void {
   if (!get(peekMode)) return;
+  peekRenaming.set(false);
   const target = get(peekTarget);
   const shownTab = get(activeTabId);
   const caret = editorApi ? editorApi.getCursorLineIdx() : null;
@@ -306,12 +374,13 @@ export function wirePeek(): () => void {
   };
   cleanups.push(tabs.subscribe(stayInSection), activeTabId.subscribe(stayInSection));
 
-  // Header strip "on hover": the window never changes size. The thin strip stays where it is and, while the pointer is
-  // over the window, the full strip is drawn over the top of the content (`peekHeaderExpanded` -> `.peek-bar.overlay`).
-  // Growing the native window instead moved its top edge a frame before the page inside it caught up, which showed
-  // as a jump of the text and a flicker of the scrollbar.
+  // Header strip overlay in "hover" and "never" modes: the window never changes size and content never moves.
+  // The header (full bar in "hover", thin strip in "never") is drawn over the top of the content while the
+  // pointer is over the window (`peekHeaderExpanded` -> `.peek-bar.overlay`).
   const setHeaderExpanded = (on: boolean) => {
-    if (!get(peekMode) || get(peekSettings).header !== "hover") return;
+    if (!get(peekMode)) return;
+    const header = get(peekSettings).header;
+    if (header !== "hover" && header !== "never") return;
     peekHeaderExpanded.set(on);
   };
   // Collapsing waits a moment and is cancelled by any pointer movement over the window: resizing moves the window

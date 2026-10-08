@@ -154,7 +154,10 @@ export type TranslationParams = {
   "shortcuts.togglePeekMode.label": undefined;
   "commandPalette.togglePeekMode": undefined;
   "peek.toast.noSection": undefined;
+  "peek.toast.titleExists": undefined;
   "peek.expand": undefined;
+  "peek.minimize": undefined;
+  "peek.rename": undefined;
   "peek.prev": undefined;
   "peek.next": undefined;
   "peek.settings.callShortcut.label": undefined;

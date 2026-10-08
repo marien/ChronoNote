@@ -113,6 +113,8 @@ export interface MockSeed {
    * (`/Notes`); `null` = signed in but no folder chosen yet (the state right
    * after "Connect Microsoft Account" on a fresh install). */
   oneDriveFolder?: { folderId: string; folderPath: string } | null;
+  /** Whether the mock window reports being minimized. Defaults to false. */
+  isMinimized?: boolean;
 }
 
 interface MockDir {
@@ -278,6 +280,7 @@ export class MockBackend {
   oneDriveConflicts = new Map<string, string>();
   oneDriveSyncError: string | undefined;
   oneDriveFolder: { folderId: string; folderPath: string } | null = { folderId: "folder-2", folderPath: "/Notes" };
+  isMinimized: boolean = false;
 
   /** Every `invoke` call, in order — assert on persistence without
    * scraping the DOM. */
@@ -350,6 +353,7 @@ export class MockBackend {
     this.updateCheck = seed.updateCheck ?? "none";
     this.updateCheckVersion = seed.updateCheckVersion ?? "9.9.9";
     this.agendaJson = seed.agendaJson;
+    this.isMinimized = seed.isMinimized ?? false;
     for (const c of seed.oneDriveConflicts ?? []) this.oneDriveConflicts.set(c.name, c.remote);
     this.oneDriveSyncError = seed.oneDriveSyncError;
     if (seed.oneDriveFolder !== undefined) this.oneDriveFolder = seed.oneDriveFolder;
@@ -398,6 +402,7 @@ export class MockBackend {
       peek: this.peek,
       occurrenceHint: this.occurrenceHint,
       onboardingCompleted: this.onboardingCompleted,
+      isMinimized: this.isMinimized,
       recentNotesDirs: this.recentNotesDirs,
       appVersion: this.appVersion,
       agendaJson: this.agendaJson,
@@ -438,6 +443,7 @@ export class MockBackend {
         peek?: Partial<PeekConfig>;
         occurrenceHint?: boolean;
         onboardingCompleted?: boolean;
+        isMinimized?: boolean;
         recentNotesDirs: string[];
         appVersion: string;
         agendaJson?: string;
@@ -455,6 +461,7 @@ export class MockBackend {
       b.readableLineLength = s.readableLineLength ?? false;
       b.fontSize = s.fontSize ?? 13;
       b.lineHeight = s.lineHeight ?? 1.6;
+      b.isMinimized = s.isMinimized ?? false;
       b.pureBlack = s.pureBlack ?? false;
       b.peek = { ...PEEK_DEFAULTS, ...s.peek };
       b.occurrenceHint = s.occurrenceHint ?? false;
@@ -898,11 +905,47 @@ export class MockBackend {
           return null;
         }
         if (cmd.startsWith("plugin:window|") || cmd.startsWith("plugin:webview|")) {
-          return mockWindowCall(cmd);
+          return this.mockWindowCall(cmd);
         }
         // Unknown command — don't throw (that would surface as an unhandled
         // rejection and fail a test for the wrong reason); log loudly.
         console.warn(`[mockBackend] unhandled invoke: ${cmd}`, args);
+        return null;
+    }
+  }
+
+  /** Benign answers for the window-introspection calls
+   * `initWindowChromeWatcher` / `notesDir.subscribe(setTitle)` make. */
+  private mockWindowCall(cmd: string): unknown {
+    const method = cmd.split("|")[1] ?? "";
+    switch (method) {
+      case "is_fullscreen":
+      case "is_maximized":
+      case "is_focused":
+        return false;
+      case "is_minimized":
+        return this.isMinimized;
+      case "minimize":
+        this.isMinimized = true;
+        return null;
+      case "unminimize":
+        this.isMinimized = false;
+        return null;
+      case "set_focus":
+        return null;
+      case "inner_size":
+      case "outer_size":
+        return { width: 1100, height: 720 };
+      case "scale_factor":
+        return 1;
+      case "outer_position":
+        return { x: 0, y: 0 };
+      case "current_monitor":
+        return { name: "mock", size: { width: 1920, height: 1080 }, position: { x: 0, y: 0 }, scaleFactor: 1 };
+      case "theme":
+        return "light";
+      case "set_title":
+      default:
         return null;
     }
   }
@@ -915,33 +958,6 @@ export function pushRecentNotesDir(recent: string[], oldPath: string, newPath: s
   }
   recent.unshift(oldPath);
   recent.length = Math.min(recent.length, MAX_RECENT);
-}
-
-/** Benign answers for the window-introspection calls
- * `initWindowChromeWatcher` / `notesDir.subscribe(setTitle)` make. */
-function mockWindowCall(cmd: string): unknown {
-  const method = cmd.split("|")[1] ?? "";
-  switch (method) {
-    case "is_fullscreen":
-    case "is_maximized":
-    case "is_minimized":
-    case "is_focused":
-      return false;
-    case "inner_size":
-    case "outer_size":
-      return { width: 1100, height: 720 };
-    case "scale_factor":
-      return 1;
-    case "outer_position":
-      return { x: 0, y: 0 };
-    case "current_monitor":
-      return { name: "mock", size: { width: 1920, height: 1080 }, position: { x: 0, y: 0 }, scaleFactor: 1 };
-    case "theme":
-      return "light";
-    case "set_title":
-    default:
-      return null;
-  }
 }
 
 declare global {

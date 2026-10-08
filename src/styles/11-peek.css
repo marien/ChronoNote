@@ -66,6 +66,27 @@ body.peek-mode .cm-content {
   white-space: nowrap;
   text-align: right;
 }
+.peek-title.adhoc {
+  cursor: text;
+}
+.peek-title.adhoc:hover {
+  text-decoration: underline dotted;
+}
+.peek-title-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 22px;
+  background: var(--surface-raised);
+  color: var(--text);
+  border: 1px solid var(--tab-active-border);
+  border-radius: 3px;
+  padding: 1px 6px;
+  font: inherit;
+  font-size: 12px;
+  text-align: right;
+  outline: none;
+  box-sizing: border-box;
+}
 .peek-btn {
   background: transparent;
   border: none;
@@ -77,6 +98,16 @@ body.peek-mode .cm-content {
   border-radius: 4px;
   cursor: pointer;
 }
+.peek-btn.tiny {
+  width: 14px;
+  height: 14px;
+  padding: 0;
+  font-size: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 2px;
+}
 .peek-btn:hover:not(:disabled) {
   background: var(--surface-raised);
   color: var(--text);
@@ -85,22 +116,19 @@ body.peek-mode .cm-content {
   opacity: 0.3;
   cursor: default;
 }
-/* The collapsed strip is the only place to grab the window with the mouse, so it is not hair-thin: 16px, with a small
-   grip mark in the middle. (The colour line along its top edge is the past / today / future cue.) */
+/* The collapsed strip in "never" mode is 16px, with a small grip mark in the middle and tiny buttons at the right.
+   (The colour line along its top edge is the past / today / future cue.) */
 .peek-bar.thin {
   height: 16px;
-  padding: 0;
+  padding: 0 4px;
+  justify-content: flex-end;
+  gap: 2px;
   position: relative;
 }
-/* "On hover": the thin strip keeps its place; the full strip is drawn over the top of the content while the pointer is on
-   the window. The spacer takes the strip's 16px in the layout at the same moment, so the editor never moves. Nearly
-   opaque, since it covers text. */
+/* In "on hover" and "never" modes, the header (full bar or thin strip) is drawn over the top of the content
+   while the pointer is over the window. The editor starts at the top, so nothing underneath moves. */
 body.peek-mode #app {
   position: relative;
-}
-.peek-bar-spacer {
-  flex: 0 0 16px;
-  height: 16px;
 }
 .peek-bar.overlay {
   position: absolute;

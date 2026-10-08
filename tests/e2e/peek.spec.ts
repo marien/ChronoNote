@@ -59,6 +59,17 @@ test.describe("peek mode", () => {
     await expect(page.locator("#peek-bar")).toHaveClass(/\btoday\b/);
   });
 
+  test("full bar has a minimize button directly left of the expand button", async ({ page }) => {
+    await enterOnWeeklySync(page);
+    const minimizeBtn = page.locator("#peek-bar").getByRole("button", { name: "Minimize" });
+    const expandBtn = page.locator("#peek-bar").getByRole("button", { name: "Back to full window" });
+    await expect(minimizeBtn).toBeVisible();
+    await expect(expandBtn).toBeVisible();
+    const minBox = (await minimizeBtn.boundingBox())!;
+    const expBox = (await expandBtn.boundingBox())!;
+    expect(minBox.x + minBox.width).toBeLessThanOrEqual(expBox.x + 2);
+  });
+
   test("the shortcut again brings the full note back", async ({ page }) => {
     await enterOnWeeklySync(page);
     await page.waitForTimeout(300);
@@ -171,52 +182,74 @@ test.describe("peek mode: tests with their own seed", () => {
     await expect(bar).toContainText("Weekly sync");
   });
 
-  test('set to "Verborgen" (hidden) the strip shrinks to a thin one that keeps the past/today/future colour and the drag handle', async ({ page }) => {
+  test('set to "never" (hidden): pointer away has no bar; pointer over the window shows the thin strip with tiny minimize and expand buttons', async ({ page }) => {
     await seedApp(page, { seed: { ...today(), peek: { header: "never" } } });
     await enterOnWeeklySync(page);
     const bar = page.locator("#peek-bar");
+    await expect(bar).toHaveCount(0);
+    // Editor starts at the top
+    const editorTop = (await page.locator("#editor-container").boundingBox())!.y;
+    expect(editorTop).toBeLessThanOrEqual(1);
+
+    // Pointer over window
+    await page.evaluate(() => document.documentElement.dispatchEvent(new MouseEvent("mouseenter")));
+    await expect(bar).toBeVisible();
     await expect(bar).toHaveClass(/\bthin\b/);
+    await expect(bar).toHaveClass(/\boverlay\b/);
     await expect(bar).toHaveClass(/\btoday\b/);
-    await expect(bar).toHaveText("");
-    // Thin, but a real grab area (it is the only handle for moving the window).
+
     const height = (await bar.boundingBox())!.height;
-    expect(height).toBeGreaterThanOrEqual(14);
-    expect(height).toBeLessThan(20);
+    expect(height).toBe(16);
+
+    // Both tiny buttons exist at right end
+    const minBtn = bar.locator("button.peek-btn.tiny[aria-label='Minimize']");
+    const expBtn = bar.locator("button.peek-btn.tiny[aria-label='Back to full window']");
+    await expect(minBtn).toBeVisible();
+    await expect(expBtn).toBeVisible();
+
+    // Pointer leaves
+    await page.evaluate(() => document.documentElement.dispatchEvent(new MouseEvent("mouseleave")));
+    await expect(bar).toHaveCount(0);
   });
 
-  test('"On hover": the thin strip grows into the header while the pointer is over the window', async ({ page }) => {
+  test('"On hover": pointer away has no bar; pointer over window draws full bar overlay', async ({ page }) => {
     await seedApp(page, { seed: { ...today(), peek: { header: "hover" } } });
     await enterOnWeeklySync(page);
     const bar = page.locator("#peek-bar");
-    await expect(bar).toHaveClass(/\bthin\b/);
-    await expect(bar).toHaveText("");
+    await expect(bar).toHaveCount(0);
+    const editorTop = (await page.locator("#editor-container").boundingBox())!.y;
+    expect(editorTop).toBeLessThanOrEqual(1);
+
     await page.evaluate(() => document.documentElement.dispatchEvent(new MouseEvent("mouseenter")));
+    await expect(bar).toBeVisible();
     await expect(bar).not.toHaveClass(/\bthin\b/);
+    await expect(bar).toHaveClass(/\boverlay\b/);
     await expect(bar).toContainText("Weekly sync");
     await page.evaluate(() => document.documentElement.dispatchEvent(new MouseEvent("mouseleave")));
-    await expect(bar).toHaveClass(/\bthin\b/);
+    await expect(bar).toHaveCount(0);
   });
 
-  test('"On hover": a pointer that leaves and comes back (or moves on) at once does not flap the strip', async ({ page }) => {
+  test('"On hover": a pointer that leaves and comes back (or moves on) at once does not flap the bar', async ({ page }) => {
     await seedApp(page, { seed: { ...today(), peek: { header: "hover" } } });
     await enterOnWeeklySync(page);
     const bar = page.locator("#peek-bar");
     const fire = (type: string) => page.evaluate((t) => document.documentElement.dispatchEvent(new MouseEvent(t)), type);
     await fire("mouseenter");
+    await expect(bar).toBeVisible();
     await expect(bar).not.toHaveClass(/\bthin\b/);
     // Resizing the window moves it under a still pointer, which makes the browser report a leave and an enter.
     await fire("mouseleave");
     await fire("mouseenter");
     await page.waitForTimeout(400);
-    await expect(bar).not.toHaveClass(/\bthin\b/);
+    await expect(bar).toBeVisible();
     // A leave followed by movement over the window is not a real leave either.
     await fire("mouseleave");
     await fire("mousemove");
     await page.waitForTimeout(400);
-    await expect(bar).not.toHaveClass(/\bthin\b/);
+    await expect(bar).toBeVisible();
     // A real leave collapses it after a short delay.
     await fire("mouseleave");
-    await expect(bar).toHaveClass(/\bthin\b/);
+    await expect(bar).toHaveCount(0);
   });
 
   test('"On hover": the full strip is drawn OVER the content: nothing underneath moves and the window never changes size', async ({ page }) => {
@@ -224,31 +257,26 @@ test.describe("peek mode: tests with their own seed", () => {
     await seedApp(page, { seed: { ...today(), peek: { header: "hover" } } });
     await enterOnWeeklySync(page);
     const bar = page.locator("#peek-bar");
-    const geometry = async () => {
-      const editorBox = (await page.locator("#editor-container").boundingBox())!;
-      const barBox = (await bar.boundingBox())!;
-      return {
-        barTop: barBox.y,
-        barHeight: barBox.height,
-        editorTop: editorBox.y,
-        editorHeight: editorBox.height,
-        position: await bar.evaluate((el) => getComputedStyle(el).position),
-      };
-    };
-    await page.waitForTimeout(300); // let Peek's own layout settle
-    const collapsed = await geometry();
-    expect(collapsed).toMatchObject({ barHeight: 16, position: "relative" });
+    const editorEl = page.locator("#editor-container");
+    const editorBoxBefore = (await editorEl.boundingBox())!;
+    expect(editorBoxBefore.y).toBeLessThanOrEqual(1);
+
     await page.evaluate(() => document.documentElement.dispatchEvent(new MouseEvent("mouseenter")));
+    await expect(bar).toBeVisible();
     await expect(bar).toHaveClass(/\boverlay\b/);
-    const open = await geometry();
-    // 30px tall, over the top of the editor; the editor is exactly where it was.
-    expect(open).toMatchObject({ barHeight: 30, position: "absolute", barTop: collapsed.barTop });
-    expect(open.editorTop).toBe(collapsed.editorTop);
-    expect(open.editorHeight).toBe(collapsed.editorHeight);
-    expect(open.barTop + open.barHeight).toBeGreaterThan(open.editorTop); // it covers the first lines
+    const barBox = (await bar.boundingBox())!;
+    const editorBoxAfter = (await editorEl.boundingBox())!;
+
+    expect(barBox.height).toBe(30);
+    expect(await bar.evaluate((el) => getComputedStyle(el).position)).toBe("absolute");
+    expect(editorBoxAfter.y).toBe(editorBoxBefore.y);
+    expect(editorBoxAfter.height).toBe(editorBoxBefore.height);
+
     await page.evaluate(() => document.documentElement.dispatchEvent(new MouseEvent("mouseleave")));
-    await expect(bar).not.toHaveClass(/\boverlay\b/);
-    expect(await geometry()).toEqual(collapsed);
+    await expect(bar).toHaveCount(0);
+    const editorBoxLeft = (await editorEl.boundingBox())!;
+    expect(editorBoxLeft.y).toBe(editorBoxBefore.y);
+    expect(editorBoxLeft.height).toBe(editorBoxBefore.height);
   });
 
   test("the background opacity defaults to 50% (out of focus)", async ({ page }) => {
@@ -512,3 +540,108 @@ test.describe("peek feedback round 3 (#126)", () => {
     await expect.poll(() => mockNote(page, "2026-09-07.txt")).toContain("- todayZ");
   });
 });
+
+test.describe("ad-hoc call naming", () => {
+  const adhocNote = [
+    "'Call 14:05",
+    "===========",
+    "- discussed plan",
+    "",
+    "Standup",
+    "=======",
+    "# next",
+  ].join("\n");
+
+  test("ad-hoc title can be clicked and renamed; Enter commits with matching underline", async ({ page }) => {
+    await seedApp(page, {
+      seed: {
+        notes: { "2026-09-07.txt": adhocNote },
+        session: { openTabs: ["2026-09-07.txt"], activeTab: "2026-09-07.txt" },
+        peek: { header: "always" },
+      },
+    });
+    await editor(page).click();
+    await page.keyboard.press("ControlOrMeta+Home");
+    await page.keyboard.press("ArrowDown");
+    await page.keyboard.press("ArrowDown");
+    await page.keyboard.press("ControlOrMeta+Shift+KeyP");
+    await expect(page.locator("body.peek-mode")).toBeVisible();
+
+    const titleEl = page.locator(".peek-title");
+    await expect(titleEl).toHaveClass(/\badhoc\b/);
+    await expect(titleEl).toContainText("'Call 14:05");
+
+    await titleEl.click();
+    const input = page.locator(".peek-title-input");
+    await expect(input).toBeVisible();
+
+    // Typing replaces the selected "Call", keeping "14:05"
+    await page.keyboard.type("Budget Jan");
+    await page.keyboard.press("Enter");
+
+    await expect(input).toHaveCount(0);
+    await expect(page.locator("body.peek-mode")).toBeVisible();
+    await expect(page.locator(".peek-title")).toContainText("'Budget Jan 14:05");
+    expect(await editor(page).innerText()).toContain("discussed plan");
+
+    // Verify the note's text in storage has the new title and matching underline
+    const expectedUnderline = "=".repeat("'Budget Jan 14:05".length);
+    await expect
+      .poll(async () => (await mockNote(page, "2026-09-07.txt")) ?? "")
+      .toContain(`'Budget Jan 14:05\n${expectedUnderline}\n- discussed plan`);
+  });
+
+  test("Escape in the title input cancels rename and keeps Peek on", async ({ page }) => {
+    await seedApp(page, {
+      seed: {
+        notes: { "2026-09-07.txt": adhocNote },
+        session: { openTabs: ["2026-09-07.txt"], activeTab: "2026-09-07.txt" },
+        peek: { header: "always" },
+      },
+    });
+    await editor(page).click();
+    await page.keyboard.press("ControlOrMeta+Home");
+    await page.keyboard.press("ArrowDown");
+    await page.keyboard.press("ArrowDown");
+    await page.keyboard.press("ControlOrMeta+Shift+KeyP");
+    await expect(page.locator("body.peek-mode")).toBeVisible();
+
+    await page.locator(".peek-title").click();
+    const input = page.locator(".peek-title-input");
+    await expect(input).toBeVisible();
+
+    await page.keyboard.type("Something Else");
+    await page.keyboard.press("Escape");
+
+    await expect(input).toHaveCount(0);
+    await expect(page.locator("body.peek-mode")).toBeVisible();
+    await expect(page.locator(".peek-title")).toContainText("'Call 14:05");
+    await expect
+      .poll(async () => (await mockNote(page, "2026-09-07.txt")) ?? "")
+      .toContain("'Call 14:05\n===========\n- discussed plan");
+  });
+
+  test("a meeting section's title is not editable (no input appears on click)", async ({ page }) => {
+    await seedApp(page, {
+      seed: {
+        notes: { "2026-09-07.txt": adhocNote },
+        session: { openTabs: ["2026-09-07.txt"], activeTab: "2026-09-07.txt" },
+        peek: { header: "always" },
+      },
+    });
+    await editor(page).click();
+    await page.keyboard.press("ControlOrMeta+Home");
+    for (let i = 0; i < 6; i++) await page.keyboard.press("ArrowDown");
+    await page.keyboard.press("ControlOrMeta+Shift+KeyP");
+    await expect(page.locator("body.peek-mode")).toBeVisible();
+
+    const titleEl = page.locator(".peek-title");
+    await expect(titleEl).toContainText("Standup");
+    await expect(titleEl).not.toHaveClass(/\badhoc\b/);
+
+    await titleEl.click();
+    await expect(page.locator(".peek-title-input")).toHaveCount(0);
+    await expect(page.locator("body.peek-mode")).toBeVisible();
+  });
+});
+

@@ -1,5 +1,14 @@
-import { describe, expect, it } from "vitest";
-import { adhocMinutes, insertSection, listSections, pickMeeting, sectionMinutes, type AgendaEntry } from "./callNote";
+import { describe, expect, it, vi } from "vitest";
+import { get } from "svelte/store";
+import { backendKind, tabs, activeTabId } from "./stores";
+import { peekMode, peekRenaming, leavePeek } from "./peek";
+import { todayISO } from "./date";
+import { adhocMinutes, insertSection, listSections, noteCall, pickMeeting, sectionMinutes, type AgendaEntry } from "./callNote";
+
+vi.mock("./tauriApi", () => ({
+  readAllNotes: vi.fn().mockResolvedValue([]),
+  readAgendaEntriesForDate: vi.fn().mockResolvedValue([]),
+}));
 
 const at = (h: number, m = 0) => h * 60 + m;
 const day: AgendaEntry[] = [
@@ -124,3 +133,35 @@ describe("insertSection: a new section goes where it belongs in time", () => {
     expect(out.endsWith("o budget")).toBe(true);
   });
 });
+
+describe("noteCall: renaming newly inserted ad-hoc call vs reusing", () => {
+  it("starts renaming when inserting a new ad-hoc call section", async () => {
+    backendKind.set("desktop");
+    peekMode.set(false);
+    peekRenaming.set(false);
+    const date = todayISO();
+    tabs.set([{ id: "tab-test-1", filename: `${date}.txt`, content: "Standup\n=======\n# one\n", isScratchpad: false }]);
+    activeTabId.set("tab-test-1");
+
+    const entered = await noteCall(new Date(2026, 8, 7, 23, 15));
+    expect(entered).toBe(true);
+    expect(get(peekRenaming)).toBe(true);
+    leavePeek();
+  });
+
+  it("does not start renaming when reusing an existing ad-hoc call section", async () => {
+    backendKind.set("desktop");
+    peekMode.set(false);
+    peekRenaming.set(false);
+    const date = todayISO();
+    const existing = "Standup\n=======\n# one\n\n'Call 23:15\n===========\n- notes\n";
+    tabs.set([{ id: "tab-test-2", filename: `${date}.txt`, content: existing, isScratchpad: false }]);
+    activeTabId.set("tab-test-2");
+
+    const entered = await noteCall(new Date(2026, 8, 7, 23, 15));
+    expect(entered).toBe(true);
+    expect(get(peekRenaming)).toBe(false);
+    leavePeek();
+  });
+});
+

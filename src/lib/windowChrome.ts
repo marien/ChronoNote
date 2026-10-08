@@ -9,6 +9,16 @@ export async function minimizeWindow(): Promise<void> {
   await getCurrentWindow().minimize();
 }
 
+export async function isWindowMinimized(): Promise<boolean> {
+  return await getCurrentWindow().isMinimized();
+}
+
+export async function restoreAndFocusWindow(): Promise<void> {
+  const win = getCurrentWindow();
+  await win.unminimize();
+  await win.setFocus();
+}
+
 export async function toggleMaximizeWindow(): Promise<void> {
   await getCurrentWindow().toggleMaximize();
 }

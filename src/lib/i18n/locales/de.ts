@@ -169,8 +169,14 @@ export const de = {
     "Peek umschalten (kompaktes Notizfenster für Gespräche)",
   "peek.toast.noSection": () =>
     "Setze den Cursor in einen Abschnitt, um ihn anzuzeigen.",
+  "peek.toast.titleExists": () =>
+    "Diese Notiz hat bereits einen Abschnitt mit diesem Titel.",
   "peek.expand": () =>
     "Zurück zum vollständigen Fenster",
+  "peek.minimize": () =>
+    "Minimieren",
+  "peek.rename": () =>
+    "Klicken, um diesen Anruf zu benennen",
   "peek.prev": () =>
     "Vorheriges Vorkommen",
   "peek.next": () =>

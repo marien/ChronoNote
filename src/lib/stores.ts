@@ -499,6 +499,8 @@ export interface EditorApi {
   setTopicStateOnSelection?: (symbol: "o" | "." | ",") => boolean;
   jumpAdjacentOpenAction?: (direction: 1 | -1) => boolean;
   pulseLine?: (lineIdx: number) => void;
+  /** Programmatically replace lines fromLineIdx to toLineIdx (0-based inclusive) with text in one transaction. */
+  replaceLines?: (fromLineIdx: number, toLineIdx: number, text: string) => void;
 }
 
 
