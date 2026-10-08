@@ -329,7 +329,10 @@ export function wirePeek(): () => void {
     peekMode.subscribe((on) => {
       if (on === applied) return;
       applied = on;
-      if (on) markActive(); // starting Peek counts as activity
+      if (on) {
+        markActive(); // starting Peek counts as activity
+        showHeaderAtStart();
+      }
       void (async () => {
         const win = await controller();
         const s = get(peekSettings);
@@ -344,6 +347,7 @@ export function wirePeek(): () => void {
           });
         } else {
           peekHeaderExpanded.set(false);
+          clearTimeout(introTimer);
           clearTimeout(fadeTimer);
           peekInFocus.set(false);
           const compact = await win.leave();
@@ -375,42 +379,87 @@ export function wirePeek(): () => void {
   cleanups.push(tabs.subscribe(stayInSection), activeTabId.subscribe(stayInSection));
 
   // Header strip overlay in "hover" and "never" modes: the window never changes size and content never moves.
-  // The header (full bar in "hover", thin strip in "never") is drawn over the top of the content while the
-  // pointer is over the window (`peekHeaderExpanded` -> `.peek-bar.overlay`).
-  const setHeaderExpanded = (on: boolean) => {
-    if (!get(peekMode)) return;
+  // The header (full bar in "hover", thin strip in "never") is drawn over the top of the content
+  // (`peekHeaderExpanded` -> `.peek-bar.overlay`):
+  //  - when Peek starts, so you can see which section opened; it goes again after the fade time (`fadeSeconds`, the
+  //    same countdown as the background fade) unless the pointer is on the window;
+  //  - while the pointer is over the window;
+  //  - but NOT while you type: a key press hides it at once (it covers the top lines, where you may be typing), and
+  //    moving the pointer brings it back.
+  const overlayHeader = () => {
     const header = get(peekSettings).header;
-    if (header !== "hover" && header !== "never") return;
-    peekHeaderExpanded.set(on);
+    return header === "hover" || header === "never";
   };
+  const setHeaderExpanded = (on: boolean) => {
+    if (!get(peekMode) || !overlayHeader()) return;
+    if (get(peekHeaderExpanded) !== on) peekHeaderExpanded.set(on);
+  };
+  let pointerInside = false;
+  let introTimer: ReturnType<typeof setTimeout> | undefined;
+  function showHeaderAtStart() {
+    clearTimeout(introTimer);
+    // The window has just shrunk and moved: where the pointer is now is unknown until it enters or moves.
+    pointerInside = false;
+    lastScreen = null;
+    setHeaderExpanded(true);
+    const seconds = get(peekSettings).fadeSeconds;
+    if (seconds > 0) {
+      introTimer = setTimeout(() => {
+        if (!pointerInside) setHeaderExpanded(false);
+      }, seconds * 1000);
+    }
+  }
   // Collapsing waits a moment and is cancelled by any pointer movement over the window: resizing moves the window
   // under a pointer that stands still, and the enter/leave events that causes must not flap the strip.
   let collapseTimer: ReturnType<typeof setTimeout> | undefined;
   const onPointerEnter = () => {
+    pointerInside = true;
     clearTimeout(collapseTimer);
     markActive();
     setHeaderExpanded(true);
   };
   const onPointerLeave = () => {
+    pointerInside = false;
     clearTimeout(collapseTimer);
     collapseTimer = setTimeout(() => setHeaderExpanded(false), COLLAPSE_DELAY_MS);
   };
-  const onPointerMove = () => {
+  // Only a real movement counts: Chromium also sends a mousemove when the page scrolls or changes under a pointer that
+  // stands still (typing does that), and that must not bring the header back. Screen coordinates, because the window
+  // itself can move under the pointer.
+  let lastScreen: { x: number; y: number } | null = null;
+  const onPointerMove = (e: MouseEvent) => {
+    pointerInside = true;
     clearTimeout(collapseTimer);
     markActive();
+    const moved = !lastScreen || lastScreen.x !== e.screenX || lastScreen.y !== e.screenY;
+    lastScreen = { x: e.screenX, y: e.screenY };
+    if (moved) setHeaderExpanded(true);
+  };
+  // Typing hides the header. Shortcuts (Ctrl/Alt/Cmd + key) and modifier keys on their own are not typing, and the
+  // call-name field keeps the bar while you type in it.
+  const onKeyDown = (e: KeyboardEvent) => {
+    if (!get(peekMode) || !overlayHeader() || get(peekRenaming)) return;
+    if (e.ctrlKey || e.altKey || e.metaKey) return;
+    if (["Shift", "Control", "Alt", "Meta", "AltGraph", "CapsLock"].includes(e.key)) return;
+    clearTimeout(introTimer);
+    clearTimeout(collapseTimer);
+    setHeaderExpanded(false);
   };
   document.documentElement.addEventListener("mouseenter", onPointerEnter);
   document.documentElement.addEventListener("mouseleave", onPointerLeave);
   document.documentElement.addEventListener("mousemove", onPointerMove);
+  document.addEventListener("keydown", onKeyDown, true);
   // Typing, clicking and scrolling are activity too (capture phase: the editor handles these keys itself).
   const activityEvents = ["keydown", "mousedown", "wheel"] as const;
   for (const name of activityEvents) document.addEventListener(name, markActive, true);
   cleanups.push(() => {
     clearTimeout(collapseTimer);
+    clearTimeout(introTimer);
     clearTimeout(fadeTimer);
     document.documentElement.removeEventListener("mouseenter", onPointerEnter);
     document.documentElement.removeEventListener("mouseleave", onPointerLeave);
     document.documentElement.removeEventListener("mousemove", onPointerMove);
+    document.removeEventListener("keydown", onKeyDown, true);
     for (const name of activityEvents) document.removeEventListener(name, markActive, true);
   });
   // A changed fade time applies to the countdown that is running now.

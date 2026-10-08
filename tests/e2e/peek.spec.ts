@@ -182,10 +182,12 @@ test.describe("peek mode: tests with their own seed", () => {
     await expect(bar).toContainText("Weekly sync");
   });
 
-  test('set to "never" (hidden): pointer away has no bar; pointer over the window shows the thin strip with tiny minimize and expand buttons', async ({ page }) => {
-    await seedApp(page, { seed: { ...today(), peek: { header: "never" } } });
+  test('set to "never" (hidden): shown when Peek starts, gone after the fade time; pointer over the window shows the thin strip with tiny minimize and expand buttons', async ({ page }) => {
+    await seedApp(page, { seed: { ...today(), peek: { header: "never", fadeSeconds: 1 } } });
     await enterOnWeeklySync(page);
     const bar = page.locator("#peek-bar");
+    // Shown at the start (to see which section opened), then gone after the 1 s fade time.
+    await expect(bar).toBeVisible();
     await expect(bar).toHaveCount(0);
     // The top bar gives its space back with a 200 ms transition: wait for the editor to reach the top.
     await expect.poll(async () => (await page.locator("#editor-container").boundingBox())!.y).toBeLessThanOrEqual(1);
@@ -211,10 +213,12 @@ test.describe("peek mode: tests with their own seed", () => {
     await expect(bar).toHaveCount(0);
   });
 
-  test('"On hover": pointer away has no bar; pointer over window draws full bar overlay', async ({ page }) => {
-    await seedApp(page, { seed: { ...today(), peek: { header: "hover" } } });
+  test('"On hover": shown when Peek starts, gone after the fade time; pointer over window draws full bar overlay', async ({ page }) => {
+    await seedApp(page, { seed: { ...today(), peek: { header: "hover", fadeSeconds: 1 } } });
     await enterOnWeeklySync(page);
     const bar = page.locator("#peek-bar");
+    // Shown at the start (to see which section opened), then gone after the 1 s fade time.
+    await expect(bar).toBeVisible();
     await expect(bar).toHaveCount(0);
     // The top bar gives its space back with a 200 ms transition: wait for the editor to reach the top.
     await expect.poll(async () => (await page.locator("#editor-container").boundingBox())!.y).toBeLessThanOrEqual(1);
@@ -225,6 +229,40 @@ test.describe("peek mode: tests with their own seed", () => {
     await expect(bar).toHaveClass(/\boverlay\b/);
     await expect(bar).toContainText("Weekly sync");
     await page.evaluate(() => document.documentElement.dispatchEvent(new MouseEvent("mouseleave")));
+    await expect(bar).toHaveCount(0);
+  });
+
+  test('"On hover": typing hides the bar at once; a real pointer movement brings it back, a still pointer does not', async ({ page }) => {
+    await seedApp(page, { seed: { ...today(), peek: { header: "hover" } } });
+    await enterOnWeeklySync(page);
+    const bar = page.locator("#peek-bar");
+    await expect(bar).toBeVisible(); // shown at the start
+    await page.keyboard.type("x");
+    await expect(bar).toHaveCount(0);
+    // Chromium sends a mousemove at the same screen spot when the page changes under a still pointer: not movement.
+    const move = (x: number, y: number) =>
+      page.evaluate(([sx, sy]) => document.documentElement.dispatchEvent(new MouseEvent("mousemove", { screenX: sx, screenY: sy })), [x, y]);
+    await move(50, 50);
+    await expect(bar).toBeVisible();
+    await page.keyboard.type("y");
+    await expect(bar).toHaveCount(0);
+    await move(50, 50);
+    await page.waitForTimeout(300);
+    await expect(bar).toHaveCount(0);
+    await move(60, 52);
+    await expect(bar).toBeVisible();
+    // A shortcut is not typing.
+    await page.keyboard.press("ControlOrMeta+KeyJ");
+    await page.waitForTimeout(200);
+    await expect(bar).toBeVisible();
+  });
+
+  test('"Hidden": typing hides the strip too', async ({ page }) => {
+    await seedApp(page, { seed: { ...today(), peek: { header: "never" } } });
+    await enterOnWeeklySync(page);
+    const bar = page.locator("#peek-bar");
+    await expect(bar).toHaveClass(/\bthin\b/);
+    await page.keyboard.type("x");
     await expect(bar).toHaveCount(0);
   });
 
