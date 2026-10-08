@@ -51,6 +51,18 @@ describe("createPeekWindowController", () => {
     expect(f.log).toContain("min:240x80");
   });
 
+  it("monitors with different scaling: a forced height uses the scale of the monitor Peek goes to", async () => {
+    // Full window on a 125 % monitor; Peek remembered on a 100 % one next to it.
+    const left: MonitorArea = { work: SCREEN, current: true, scale: 1.25 };
+    const right: MonitorArea = { work: { x: 1920, y: 0, width: 1920, height: 1040 }, current: false, scale: 1 };
+    const f = fakeWindow({ scale: 1.25, monitors: [left, right] });
+    await createPeekWindowController(f.win).enter({
+      ...enterOpts,
+      geometry: { x: 2200, y: 600, width: 420, height: 150 },
+    });
+    expect(f.geo).toEqual({ x: 2200, y: 600, width: 420, height: 200 }); // 200 logical at 100 %, not 250
+  });
+
   it("it opens on the monitor the app is on, which need not be the first one", async () => {
     const second: PeekGeometry = { x: 1920, y: 0, width: 2560, height: 1400 };
     const f = fakeWindow({ monitors: [{ work: SCREEN, current: false }, { work: second, current: true }] });

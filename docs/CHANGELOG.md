@@ -10079,3 +10079,12 @@ Marien, after abandoning the idea of Peek reacting to Teams calls by itself (wat
 - **Keyboard:** Tab from the selected lines already reached Whole line / As agenda / Add to, but the modal's own keys swallowed them there: Enter on a focused "Add to" button jumped to the note instead of pressing it, and Left/Right switched occurrence. With the focus in the take-over bar, Enter/Space press the focused button, Left/Right move between (and select) the choices, Up/Down do nothing, and Shift+Tab from the first choice goes back to the lines.
 - **Visible focus:** the browser's focus outline was clipped by the segmented control (`overflow: hidden`) and invisible on the white primary button. `.segmented-option:focus-visible` now draws an inset two-tone ring (text colour + background colour), `.btn-primary:focus-visible` a background-colour gap plus a text-colour ring; both apply app-wide (Settings uses the same controls).
 - `spec.md` updated. New e2e test for the default and the keyboard flow (incl. the focus ring styles); svelte-check 0, Vitest 853, Playwright 581 (full suite).
+
+## 319. Peek across monitors with different display scaling
+
+**Status: on main, not released.** Marien (2026-10-08): with the full window on a 125 % monitor and Peek on a 100 % one (or the other way round), every Peek round trip made the window on the 125 % monitor larger and the one on the 100 % monitor smaller.
+
+- **Cause:** sizes are remembered and applied in physical pixels with one `SetWindowPos` (`peek_set_bounds`). When that move lands the window on a monitor with another DPI, Windows sends WM_DPICHANGED during the move and the window rescales itself by the ratio of the two scales (x1.25 or x0.8) AFTER our size was applied. The rescaled size was then remembered, so the error compounded.
+- **Fix (Rust, `peek_window.rs::place`):** after `SetWindowPos` the outer position and client size are read back; if they are not what was asked, the rectangle is applied again (up to 3 times). The second time the window is already on its monitor, so nothing rescales.
+- **Fix (TS, `peekWindow.ts`):** a forced Peek height (fit-to-section / the lines setting) is logical; it was converted with the full window's scale. It now uses the scale of the monitor Peek goes to (`MonitorArea.scale`, `monitorOf`). Unit test added.
+- Gates: cargo test 124, clippy clean, svelte-check 0, Vitest 854, Peek/call-note e2e green. **Not verified natively:** this machine has one monitor; needs a check on a two-monitor setup with different scaling.

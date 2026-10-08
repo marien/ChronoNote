@@ -8,6 +8,11 @@
 
 /// `width`/`height`: the size of the content area (what the page gets); `x`/`y`: the outer top-left corner (what
 /// `outerPosition` reports). All physical pixels.
+///
+/// Monitors with different scaling (100 % and 125 %, say): when a move lands the window on a monitor with another DPI,
+/// Windows sends WM_DPICHANGED during the move and the window resizes itself by the ratio of the two scales, AFTER our
+/// size was applied. Peek and the full window then came back a little smaller / larger on every round trip. So the
+/// rectangle is applied again until it sticks: the second time the window is already on its monitor, nothing rescales.
 #[cfg(windows)]
 fn place(hwnd: isize, x: i32, y: i32, width: i32, height: i32) -> Result<(), String> {
     use windows::Win32::Foundation::{HWND, RECT};
@@ -17,23 +22,37 @@ fn place(hwnd: isize, x: i32, y: i32, width: i32, height: i32) -> Result<(), Str
 
     let hwnd = HWND(hwnd as _);
     unsafe {
-        let mut outer = RECT::default();
-        let mut client = RECT::default();
-        GetWindowRect(hwnd, &mut outer).map_err(|e| e.to_string())?;
-        GetClientRect(hwnd, &mut client).map_err(|e| e.to_string())?;
-        // What the window adds around its content (frame, invisible resize border), measured as it is now.
-        let extra_w = (outer.right - outer.left) - (client.right - client.left);
-        let extra_h = (outer.bottom - outer.top) - (client.bottom - client.top);
-        SetWindowPos(
-            hwnd,
-            None,
-            x,
-            y,
-            (width + extra_w).max(1),
-            (height + extra_h).max(1),
-            SWP_NOZORDER | SWP_NOACTIVATE,
-        )
-        .map_err(|e| e.to_string())
+        for _ in 0..3 {
+            let mut outer = RECT::default();
+            let mut client = RECT::default();
+            GetWindowRect(hwnd, &mut outer).map_err(|e| e.to_string())?;
+            GetClientRect(hwnd, &mut client).map_err(|e| e.to_string())?;
+            // What the window adds around its content (frame, invisible resize border), measured as it is now.
+            let extra_w = (outer.right - outer.left) - (client.right - client.left);
+            let extra_h = (outer.bottom - outer.top) - (client.bottom - client.top);
+            SetWindowPos(
+                hwnd,
+                None,
+                x,
+                y,
+                (width + extra_w).max(1),
+                (height + extra_h).max(1),
+                SWP_NOZORDER | SWP_NOACTIVATE,
+            )
+            .map_err(|e| e.to_string())?;
+            let mut after_outer = RECT::default();
+            let mut after_client = RECT::default();
+            GetWindowRect(hwnd, &mut after_outer).map_err(|e| e.to_string())?;
+            GetClientRect(hwnd, &mut after_client).map_err(|e| e.to_string())?;
+            let landed = after_outer.left == x
+                && after_outer.top == y
+                && after_client.right - after_client.left == width
+                && after_client.bottom - after_client.top == height;
+            if landed {
+                break;
+            }
+        }
+        Ok(())
     }
 }
 

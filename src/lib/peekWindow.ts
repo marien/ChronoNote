@@ -18,6 +18,8 @@ export interface MonitorArea {
   work: PeekGeometry;
   /** The monitor the app window is on now. */
   current: boolean;
+  /** Its scale factor (Windows display scaling: 1.25 = 125 %). Unknown = the window's own. */
+  scale?: number;
 }
 
 /** At least this share of the window's own area has to be on a monitor for a remembered position to count as still
@@ -42,6 +44,20 @@ function insideWork(g: PeekGeometry, work: PeekGeometry): PeekGeometry {
     width,
     height,
   };
+}
+
+/** The monitor most of `g` is on (null when it is on none). */
+export function monitorOf(g: PeekGeometry, monitors: MonitorArea[]): MonitorArea | null {
+  let best: MonitorArea | null = null;
+  let bestOverlap = 0;
+  for (const m of monitors) {
+    const o = overlap(g, m.work);
+    if (o > bestOverlap) {
+      best = m;
+      bestOverlap = o;
+    }
+  }
+  return best;
 }
 
 /** A remembered window position, made safe for the monitors there are NOW: kept (nudged fully inside that monitor's
@@ -164,6 +180,12 @@ export function createPeekWindowController(win: PeekWin) {
               ...size,
             };
         }
+        // A forced height (fit-to-section, the lines setting) is logical, so it has to be converted with the scale of
+        // the monitor Peek goes to, which is not the full window's when they are on screens with different scaling.
+        const target = monitorOf(g, monitors);
+        if (o.forceHeight && target?.scale && target.scale !== scale) {
+          g = insideWork({ ...g, height: Math.round(o.logicalHeight * target.scale) }, target.work);
+        }
         await win.setBounds(g);
         await win.setAlwaysOnTop(o.alwaysOnTop);
         await win.reveal();
@@ -230,6 +252,7 @@ export async function nativePeekWindow(): Promise<PeekWin> {
       return all.map((m) => ({
         work: { x: m.workArea.position.x, y: m.workArea.position.y, width: m.workArea.size.width, height: m.workArea.size.height },
         current: !!now && now.position.x === m.position.x && now.position.y === m.position.y,
+        scale: m.scaleFactor,
       }));
     },
     isMaximized: () => w.isMaximized(),
