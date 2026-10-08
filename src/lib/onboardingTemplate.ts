@@ -35,7 +35,7 @@ Vervolgens doen — Ontdek je dagelijkse workflow
 ----------------------------------------------
 # Maak een kladblok voor snelle invoer (${mod}+N)
   => Kladblokken blijven in het geheugen tot ze worden opgeslagen met ${mod}+Shift+P
-# Spring tussen open acties in deze notitie (Druk op F2 of Shift+F2)
+# Spring tussen open acties in deze notitie (Druk op ${mod}+J of ${mod}+Shift+J)
 # Open de Actielade (${mod}+Shift+A)
   => Doorzoekt alle notities naar openstaande '#' acties
 # Open het Opdrachten- en Navigatiepalet (${mod}+K)
@@ -83,7 +83,7 @@ Als Nächstes — Täglicher Workflow
 ---------------------------------
 # Notizblock für schnelle Notizen erstellen (${mod}+N)
   => Notizblöcke bleiben im Speicher, bis sie mit ${mod}+Shift+P umgewandelt werden
-# Zwischen offenen Aufgaben in dieser Notiz springen (F2 oder Shift+F2)
+# Zwischen offenen Aufgaben in dieser Notiz springen (${mod}+J oder ${mod}+Shift+J)
 # Aktionsleiste öffnen (${mod}+Shift+A)
   => Durchsucht alle Notizen nach offenen '#'-Aufgaben
 # Befehls- und Navigationspalette öffnen (${mod}+K)
@@ -131,7 +131,7 @@ Siguiente paso — Descubre tu flujo diario
 -----------------------------------------
 # Crea un borrador rápido (${mod}+N)
   => Los borradores viven en memoria hasta que se guardan con ${mod}+Shift+P
-# Salta entre tareas abiertas en esta nota (Pulsa F2 o Shift+F2)
+# Salta entre tareas abiertas en esta nota (Pulsa ${mod}+J o ${mod}+Shift+J)
 # Abre el Panel de Acciones (${mod}+Shift+A)
   => Busca tareas '#' pendientes en todas las notas
 # Abre la Paleta de Comandos y Navegación (${mod}+K)
@@ -179,7 +179,7 @@ Ensuite — Découvrez votre flux quotidien
 ----------------------------------------
 # Créez un bloc-notes temporaire (${mod}+N)
   => Reste en mémoire jusqu'à sa promotion avec ${mod}+Shift+P
-# Naviguez entre les tâches ouvertes de cette note (Appuyez sur F2 ou Shift+F2)
+# Naviguez entre les tâches ouvertes de cette note (Appuyez sur ${mod}+J ou ${mod}+Shift+J)
 # Ouvrez le Tiroir d'actions (${mod}+Shift+A)
   => Analyse toutes les notes pour lister les tâches '#' en suspens
 # Ouvrez la Palette de commandes et navigation (${mod}+K)
@@ -227,7 +227,7 @@ Passaggi successivi — Scopri il tuo flusso quotidiano
 -----------------------------------------------------
 # Crea un blocco appunti rapido (${mod}+N)
   => I blocchi rimangono in memoria fino a quando non vengono promossi con ${mod}+Shift+P
-# Salta tra le attività aperte in questa nota (Premi F2 o Shift+F2)
+# Salta tra le attività aperte in questa nota (Premi ${mod}+J o ${mod}+Shift+J)
 # Apri il Pannello azioni (${mod}+Shift+A)
   => Cerca in tutte le note le attività '#' in sospeso
 # Apri la Tavolozza dei comandi e navigazione (${mod}+K)
@@ -275,7 +275,7 @@ Następnie — Poznaj codzienny tryb pracy
 ---------------------------------------
 # Utwórz brudnopis do szybkiego zapisu (${mod}+N)
   => Brudnopisy istnieją w pamięci do momentu zapisania za pomocą ${mod}+Shift+P
-# Przeskakuj między otwartymi zadaniami w tej notatce (Naciśnij F2 lub Shift+F2)
+# Przeskakuj między otwartymi zadaniami w tej notatce (Naciśnij ${mod}+J lub ${mod}+Shift+J)
 # Otwórz Szufladę akcji (${mod}+Shift+A)
   => Wyszukuje otwarte zadania '#' we wszystkich notatkach
 # Otwórz Paletę poleceń i nawigacji (${mod}+K)
@@ -324,7 +324,7 @@ Do Next — Discover Your Daily Workflow
 --------------------------------------
 # Create a scratchpad for quick capture (${mod}+N)
   => Scratchpads live in memory until promoted with ${mod}+Shift+P
-# Jump between open tasks in this note (Press F2 or Shift+F2)
+# Jump between open tasks in this note (Press ${mod}+J or ${mod}+Shift+J)
 # Open the Action Drawer (${mod}+Shift+A)
   => Scans all notes for outstanding '#' tasks
 # Open the Command & Navigation Palette (${mod}+K)
@@ -355,12 +355,23 @@ Tips: Press ${mod}+1 through 4 to toggle action types, or ${mod}+5 through 7 for
 
 const ONBOARDING_LANGS = ["en", "nl", "de", "es", "fr", "it", "pl"];
 
+/** Helper to convert a current onboarding template to its legacy wording
+ * where jumpAction was bound to F2 / Shift+F2 rather than Mod+J / Mod+Shift+J. */
+export function toLegacyOnboardingTemplate(template: string): string {
+  const mod = isMac ? "Cmd" : "Ctrl";
+  return template.replace(`${mod}+Shift+J`, "Shift+F2").replace(`${mod}+J`, "F2");
+}
+
 /** True while `content` is still exactly the untouched onboarding note (in any
  * language). Used so the web app's welcome scratchpad can be closed without the
  * "unsaved scratchpad" warning — nothing the user wrote would be lost. Once
- * they edit it, it is an ordinary scratchpad again. */
+ * they edit it, it is an ordinary scratchpad again. Also recognises welcome notes
+ * created before jumpAction was rebound from F2 / Shift+F2 to Mod+J / Mod+Shift+J. */
 export function isPristineOnboardingNote(content: string): boolean {
   // Template literals are LF-normalised by the language, whatever the source
   // file's line endings, so a plain comparison is enough.
-  return ONBOARDING_LANGS.some((l) => getOnboardingTemplate(l) === content);
+  return ONBOARDING_LANGS.some((l) => {
+    const current = getOnboardingTemplate(l);
+    return current === content || toLegacyOnboardingTemplate(current) === content;
+  });
 }

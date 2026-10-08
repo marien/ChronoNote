@@ -40,7 +40,7 @@ test.describe("status bar — three zones (§100/§110)", () => {
     await expect(page.locator("#stat-message")).toHaveCount(0);
 
     await editor(page).click();
-    await page.keyboard.press("F2"); // "No open actions in this note"
+    await page.keyboard.press("Control+j"); // "No open actions in this note"
     await expect(page.locator("#stat-message")).toContainText(/no open actions/i);
   });
 
@@ -122,7 +122,7 @@ test.describe("status bar — three zones (§100/§110)", () => {
     // An unrelated toast (still while an update happens to be available)
     // is plain text, not a link to About.
     await editor(page).click();
-    await page.keyboard.press("F2"); // "No open actions in this note"
+    await page.keyboard.press("Control+j"); // "No open actions in this note"
     await expect(page.locator("#stat-message")).toContainText(/no open actions/i);
     await expect(page.locator("button#stat-message")).toHaveCount(0);
   });
