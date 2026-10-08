@@ -32,22 +32,22 @@ test.describe("open-action navigation (Control+j / Control+Shift+j)", () => {
   });
 
   test("Control+j walks forward through the open actions and wraps", async ({ page }) => {
-    await page.keyboard.press("Control+j");
+    await page.keyboard.press("Control+KeyJ");
     expect(await cursorLine(page)).toBe(3); // # renew the cert
-    await page.keyboard.press("Control+j");
+    await page.keyboard.press("Control+KeyJ");
     expect(await cursorLine(page)).toBe(6); // indented # follow up
-    await page.keyboard.press("Control+j");
+    await page.keyboard.press("Control+KeyJ");
     expect(await cursorLine(page)).toBe(8); // => # consequence action
-    await page.keyboard.press("Control+j");
+    await page.keyboard.press("Control+KeyJ");
     expect(await cursorLine(page)).toBe(3); // wrapped back to the first
   });
 
   test("Control+Shift+j walks backward through the open actions and wraps", async ({ page }) => {
-    await page.keyboard.press("Control+Shift+j");
+    await page.keyboard.press("Control+Shift+KeyJ");
     expect(await cursorLine(page)).toBe(8); // wraps to the last open action
-    await page.keyboard.press("Control+Shift+j");
+    await page.keyboard.press("Control+Shift+KeyJ");
     expect(await cursorLine(page)).toBe(6);
-    await page.keyboard.press("Control+Shift+j");
+    await page.keyboard.press("Control+Shift+KeyJ");
     expect(await cursorLine(page)).toBe(3);
   });
 
@@ -62,15 +62,15 @@ test.describe("open-action navigation (Control+j / Control+Shift+j)", () => {
 
   test("skips resolved actions (v / x / >) and non-action lines", async ({ page }) => {
     // From line 5 (`v shipped`), forward should skip to line 6, not stop on 5.
-    await page.keyboard.press("Control+j"); // -> 3
-    await page.keyboard.press("Control+j"); // -> 6
+    await page.keyboard.press("Control+KeyJ"); // -> 3
+    await page.keyboard.press("Control+KeyJ"); // -> 6
     expect(await cursorLine(page)).toBe(6);
   });
 
   test("toast when the note has no open actions", async ({ page }) => {
     await setEditorText(page, "v done\n> deferred\njust notes");
     await editor(page).click();
-    await page.keyboard.press("Control+j");
+    await page.keyboard.press("Control+KeyJ");
     await expect(toast(page)).toContainText(/no open actions/i);
   });
 

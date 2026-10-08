@@ -46,7 +46,6 @@
   const isAdhoc = $derived(/^['’]/.test(title.trim()));
 
   let inputValue = $state("");
-  let cancelling = false;
 
   function initInput(node: HTMLInputElement) {
     const rawSubject = title.trim().replace(/^['’]/, "");
@@ -61,20 +60,26 @@
     queueMicrotask(focusAndSelect);
   }
 
+  // Enter, Tab, Escape and leaving the field all end the rename; whichever comes first clears `peekRenaming`, so the
+  // blur that moving the focus to the editor causes right after is a no-op. (No separate "cancelling" flag: the browser
+  // does not fire blur when the input is removed, so such a flag could stay set and swallow the next rename.)
   function commitRename() {
-    if (cancelling) {
-      cancelling = false;
-      return;
-    }
     if (!get(peekRenaming)) return;
     renamePeekSection(inputValue);
     editorApi?.focus();
   }
 
   function cancelRename() {
-    cancelling = true;
     cancelPeekRename();
     editorApi?.focus();
+  }
+
+  // F2: name the call (ad-hoc call sections only). The editor no longer binds F2 (open-action jumps are Ctrl+J).
+  function handleWindowKeydown(e: KeyboardEvent) {
+    if (e.key !== "F2" || e.ctrlKey || e.metaKey || e.altKey || e.shiftKey) return;
+    if (!isAdhoc || $peekRenaming) return;
+    e.preventDefault();
+    startPeekRename();
   }
 
   function handleInputKeydown(e: KeyboardEvent) {
@@ -89,6 +94,8 @@
     }
   }
 </script>
+
+<svelte:window onkeydown={handleWindowKeydown} />
 
 <!-- `data-tauri-drag-region` only applies to the element itself, so every non-interactive child carries it too. -->
 {#if visible}
@@ -152,7 +159,7 @@
           <!-- svelte-ignore a11y_no_static_element_interactions -->
           <span
             class="peek-title adhoc"
-            title={$t("peek.rename")}
+            title="{$t('peek.rename')} (F2)"
             onclick={() => startPeekRename()}>{title}</span
           >
         {:else}

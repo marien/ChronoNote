@@ -62,6 +62,10 @@ test.describe("Peek notes for the meeting that is on now", () => {
     await seed(page);
     await runFromPalette(page);
     await expect(page.locator("body.peek-mode")).toBeVisible();
+    // A new ad-hoc call opens with its name field focused (without the apostrophe); Enter keeps the name.
+    await expect(page.locator(".peek-title-input")).toBeFocused();
+    await expect(page.locator(".peek-title-input")).toHaveValue("Call 09:00");
+    await page.keyboard.press("Enter");
     await expect(page.locator("#peek-bar")).toContainText("'Call 09:00");
     expect(await editor(page).innerText()).not.toContain("slides");
     // In the note it sits after the 08:00 meeting and before the 11:00 one.
@@ -82,7 +86,7 @@ test.describe("Peek notes for the meeting that is on now", () => {
       notes: { [TODAY]: ["Standup", "=======", "o prepare", "", "'Call 08:40", "==========", "- a", "", "Design review", "=============", "o slides"].join("\n") },
     });
     await runFromPalette(page);
-    await expect(page.locator("#peek-bar")).toContainText("'Call 09:00");
+    await expect(page.locator(".peek-title-input")).toHaveValue("Call 09:00");
     await expect
       .poll(async () => {
         const saved = (await mockNote(page, TODAY)) ?? "";
@@ -92,10 +96,30 @@ test.describe("Peek notes for the meeting that is on now", () => {
       .toBe(true);
   });
 
+  test("a new ad-hoc call: type the subject over 'Call', Enter, then the notes go into the renamed section", async ({ page }) => {
+    await seed(page);
+    await runFromPalette(page);
+    await expect(page.locator(".peek-title-input")).toBeFocused();
+    await page.keyboard.type("Budget Jan");
+    await page.keyboard.press("Enter");
+    await expect(page.locator(".peek-title-input")).toHaveCount(0);
+    await expect(page.locator("#peek-bar")).toContainText("'Budget Jan 09:00");
+    await page.keyboard.type("asked about the date");
+    await expect.poll(() => mockNote(page, TODAY)).toMatch(/'Budget Jan 09:00\n={17}\nasked about the date/);
+    await expect(page.locator("body.peek-mode")).toBeVisible();
+  });
+
+  test("a meeting does not start naming", async ({ page }) => {
+    await seed(page, { agendaJson: agenda(["08:30", "10:00", "Planning"]) });
+    await runFromPalette(page);
+    await expect(page.locator("#peek-bar")).toContainText("Planning");
+    await expect(page.locator(".peek-title-input")).toHaveCount(0);
+  });
+
   test("without a calendar file it still gives an ad-hoc section", async ({ page }) => {
     await seed(page, { agendaJson: "" });
     await runFromPalette(page);
-    await expect(page.locator("#peek-bar")).toContainText("'Call 09:00");
+    await expect(page.locator(".peek-title-input")).toHaveValue("Call 09:00");
   });
 
   test("a meeting with no section in the note gets one, in its place in time", async ({ page }) => {

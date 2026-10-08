@@ -62,7 +62,7 @@ test.describe("peek mode", () => {
   test("full bar has a minimize button directly left of the expand button", async ({ page }) => {
     await enterOnWeeklySync(page);
     const minimizeBtn = page.locator("#peek-bar").getByRole("button", { name: "Minimize" });
-    const expandBtn = page.locator("#peek-bar").getByRole("button", { name: "Back to full window" });
+    const expandBtn = page.locator("#peek-bar").getByRole("button", { name: "Back to the full window" });
     await expect(minimizeBtn).toBeVisible();
     await expect(expandBtn).toBeVisible();
     const minBox = (await minimizeBtn.boundingBox())!;
@@ -187,9 +187,8 @@ test.describe("peek mode: tests with their own seed", () => {
     await enterOnWeeklySync(page);
     const bar = page.locator("#peek-bar");
     await expect(bar).toHaveCount(0);
-    // Editor starts at the top
-    const editorTop = (await page.locator("#editor-container").boundingBox())!.y;
-    expect(editorTop).toBeLessThanOrEqual(1);
+    // The top bar gives its space back with a 200 ms transition: wait for the editor to reach the top.
+    await expect.poll(async () => (await page.locator("#editor-container").boundingBox())!.y).toBeLessThanOrEqual(1);
 
     // Pointer over window
     await page.evaluate(() => document.documentElement.dispatchEvent(new MouseEvent("mouseenter")));
@@ -203,7 +202,7 @@ test.describe("peek mode: tests with their own seed", () => {
 
     // Both tiny buttons exist at right end
     const minBtn = bar.locator("button.peek-btn.tiny[aria-label='Minimize']");
-    const expBtn = bar.locator("button.peek-btn.tiny[aria-label='Back to full window']");
+    const expBtn = bar.locator("button.peek-btn.tiny[aria-label='Back to the full window']");
     await expect(minBtn).toBeVisible();
     await expect(expBtn).toBeVisible();
 
@@ -217,8 +216,8 @@ test.describe("peek mode: tests with their own seed", () => {
     await enterOnWeeklySync(page);
     const bar = page.locator("#peek-bar");
     await expect(bar).toHaveCount(0);
-    const editorTop = (await page.locator("#editor-container").boundingBox())!.y;
-    expect(editorTop).toBeLessThanOrEqual(1);
+    // The top bar gives its space back with a 200 ms transition: wait for the editor to reach the top.
+    await expect.poll(async () => (await page.locator("#editor-container").boundingBox())!.y).toBeLessThanOrEqual(1);
 
     await page.evaluate(() => document.documentElement.dispatchEvent(new MouseEvent("mouseenter")));
     await expect(bar).toBeVisible();
@@ -257,9 +256,10 @@ test.describe("peek mode: tests with their own seed", () => {
     await seedApp(page, { seed: { ...today(), peek: { header: "hover" } } });
     await enterOnWeeklySync(page);
     const bar = page.locator("#peek-bar");
+    // The top bar gives its space back with a 200 ms transition: wait for the editor to reach the top.
+    await expect.poll(async () => (await page.locator("#editor-container").boundingBox())!.y).toBeLessThanOrEqual(1);
     const editorEl = page.locator("#editor-container");
     const editorBoxBefore = (await editorEl.boundingBox())!;
-    expect(editorBoxBefore.y).toBeLessThanOrEqual(1);
 
     await page.evaluate(() => document.documentElement.dispatchEvent(new MouseEvent("mouseenter")));
     await expect(bar).toBeVisible();
@@ -619,6 +619,39 @@ test.describe("ad-hoc call naming", () => {
     await expect
       .poll(async () => (await mockNote(page, "2026-09-07.txt")) ?? "")
       .toContain("'Call 14:05\n===========\n- discussed plan");
+  });
+
+  test("F2 starts naming the call, also with the header hidden; a rename after an Escape still commits", async ({ page }) => {
+    await seedApp(page, {
+      seed: {
+        notes: { "2026-09-07.txt": adhocNote },
+        session: { openTabs: ["2026-09-07.txt"], activeTab: "2026-09-07.txt" },
+        peek: { header: "never" },
+      },
+    });
+    await editor(page).click();
+    await page.keyboard.press("ControlOrMeta+Home");
+    await page.keyboard.press("ArrowDown");
+    await page.keyboard.press("ArrowDown");
+    await page.keyboard.press("ControlOrMeta+Shift+KeyP");
+    await expect(page.locator("body.peek-mode")).toBeVisible();
+
+    const input = page.locator(".peek-title-input");
+    await page.keyboard.press("F2");
+    await expect(input).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(input).toHaveCount(0);
+    await expect(page.locator("body.peek-mode")).toBeVisible();
+
+    await page.keyboard.press("F2");
+    await expect(input).toBeVisible();
+    await page.keyboard.type("Budget Jan");
+    await page.keyboard.press("Enter");
+    await expect(input).toHaveCount(0);
+    await expect
+      .poll(async () => (await mockNote(page, "2026-09-07.txt")) ?? "")
+      .toContain("'Budget Jan 14:05\n");
+    await expect(page.locator("body.peek-mode")).toBeVisible();
   });
 
   test("a meeting section's title is not editable (no input appears on click)", async ({ page }) => {
