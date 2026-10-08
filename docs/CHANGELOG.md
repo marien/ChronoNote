@@ -10070,3 +10070,12 @@ Marien, after abandoning the idea of Peek reacting to Teams calls by itself (wat
 - **At the start** the bar ("On hover") or the strip ("Hidden") is shown, and goes after the fade time (`fadeSeconds`, the same countdown as the background fade; 0 = it stays until you type) unless the pointer is on the window. Where the pointer is after the window shrinks is unknown, so the pointer state is reset at the start and only a real enter/movement counts.
 - **Typing hides it at once** (any key without Ctrl/Alt/Cmd; modifier keys alone and shortcuts are not typing; not while the call-name field is open). **Moving the pointer brings it back.** Only real movement counts: Chromium also sends a mousemove at the same screen position when the page changes under a still pointer (typing does that), so `mousemove` compares screen coordinates with the last one.
 - Tests: the "On hover"/"Hidden" tests now expect the header at the start and gone after a 1 s fade time; new tests for type-to-hide, same-spot mousemove (stays hidden), real movement (comes back), and a shortcut (not typing). svelte-check 0, Vitest 853, Playwright 580 (full suite).
+
+## 318. Section History: "As agenda" is the default; the take-over bar works from the keyboard
+
+**Status: on main, not released.** Marien's feedback (2026-10-08).
+
+- **"As agenda" is the default** take-over choice (it was "Whole line"), also after switching occurrence and when "Action only" stops applying.
+- **Keyboard:** Tab from the selected lines already reached Whole line / As agenda / Add to, but the modal's own keys swallowed them there: Enter on a focused "Add to" button jumped to the note instead of pressing it, and Left/Right switched occurrence. With the focus in the take-over bar, Enter/Space press the focused button, Left/Right move between (and select) the choices, Up/Down do nothing, and Shift+Tab from the first choice goes back to the lines.
+- **Visible focus:** the browser's focus outline was clipped by the segmented control (`overflow: hidden`) and invisible on the white primary button. `.segmented-option:focus-visible` now draws an inset two-tone ring (text colour + background colour), `.btn-primary:focus-visible` a background-colour gap plus a text-colour ring; both apply app-wide (Settings uses the same controls).
+- `spec.md` updated. New e2e test for the default and the keyboard flow (incl. the focus ring styles); svelte-check 0, Vitest 853, Playwright 581 (full suite).

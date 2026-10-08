@@ -493,7 +493,10 @@ reachable from the top bar, a shortcut, or the command palette:
   prose). A third choice, "As agenda", does exactly what "Whole line" does
   (source and actions alike) and in addition opens every agenda topic in
   the new place, a discussed one included, so a past agenda can serve as a
-  template. `Ctrl/Cmd+A` selects every line of the occurrence. A destination is
+  template; it is the default choice. `Ctrl/Cmd+A` selects every line of the
+  occurrence; `Tab` from the lines goes to the choices and the Add to buttons
+  (`Left`/`Right` switch the choice, `Enter` presses a button, `Shift+Tab`
+  goes back to the lines). A destination is
   hidden whenever it would just write back to the file already being
   browsed — not only the note History was opened from (browsing *that* is
   fine when the destinations are elsewhere, e.g. opened from a past note

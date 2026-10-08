@@ -646,3 +646,9 @@ textarea.modal-input.import-textarea {
   background: var(--text);
   opacity: 0.85;
 }
+/* The button is filled with the text colour, so the browser's light focus outline disappeared against it: a gap in
+   the background colour, then a ring in the text colour. */
+.btn-primary:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--text);
+}

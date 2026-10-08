@@ -36,7 +36,7 @@
   let lineSelection = $state<{ from: number; to: number } | null>(null);
   let isDraggingLines = false;
   // "agenda": copy the lines as they are with only the agenda topics reopened, leaving this note untouched.
-  let takeOverMode: "whole" | "action-only" | "agenda" = $state("whole");
+  let takeOverMode: "whole" | "action-only" | "agenda" = $state("agenda");
 
   const occurrences = $derived($historyOccurrences);
   // Re-clamps the stored index when the list shrinks; writes only when the value actually changes.
@@ -196,7 +196,7 @@
       selAnchor = null;
       focusLineIdx = null;
       lineSelection = null;
-      takeOverMode = "whole";
+      takeOverMode = "agenda";
     }
   });
 
@@ -206,7 +206,7 @@
       : null,
   );
   $effect.pre(() => {
-    if (!singleLineActionOnly && takeOverMode === "action-only") takeOverMode = "whole";
+    if (!singleLineActionOnly && takeOverMode === "action-only") takeOverMode = "agenda";
   });
   const takeOverOptions = $derived([
     { value: "whole", label: $t("history.takeover.wholeLine") },
@@ -501,7 +501,37 @@
     recomputeSelection();
   }
 
+  /** Keys while the focus is on one of the take-over bar's controls (reached with Tab from the selected lines): the
+   * buttons get their own keys (Enter / Space press them, Left / Right move between Whole line / As agenda), and
+   * Shift+Tab from the first control goes back to the lines. Returns whether the key was handled here. */
+  function onTakeOverBarKeydown(e: KeyboardEvent, bar: HTMLElement): boolean {
+    const controls = [...bar.querySelectorAll<HTMLButtonElement>("button")];
+    const target = e.target as HTMLElement;
+    if (e.key === "Tab" && e.shiftKey && target === controls[0]) {
+      e.preventDefault();
+      e.stopPropagation(); // not the modal's focus trap: it would wrap to the last control
+      bodyContainerEl?.focus();
+      return true;
+    }
+    if (e.key === "Enter" || e.key === " ") return true; // the browser presses the focused button
+    if ((e.key === "ArrowLeft" || e.key === "ArrowRight") && target.classList.contains("segmented-option")) {
+      e.preventDefault();
+      const options = [...bar.querySelectorAll<HTMLButtonElement>(".segmented-option")];
+      const next = options[options.indexOf(target as HTMLButtonElement) + (e.key === "ArrowLeft" ? -1 : 1)];
+      next?.focus();
+      next?.click();
+      return true;
+    }
+    if (e.key === "ArrowLeft" || e.key === "ArrowRight" || e.key === "ArrowUp" || e.key === "ArrowDown") {
+      e.preventDefault();
+      return true;
+    }
+    return false;
+  }
+
   function onKeydown(e: KeyboardEvent) {
+    const bar = (e.target as HTMLElement | null)?.closest?.(".history-takeover-bar") as HTMLElement | null;
+    if (bar && onTakeOverBarKeydown(e, bar)) return;
     if ((e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey && e.key.toLowerCase() === "a") {
       e.preventDefault();
       selectAllLines();

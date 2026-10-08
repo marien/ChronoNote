@@ -334,7 +334,7 @@ test.describe("section history (Ctrl/Cmd+Shift+H)", () => {
     await expect.poll(() => cursorLine(page)).toBe(5);
   });
 
-  // "Whole line" (the default) and "As agenda" treat the source and the actions identically; the only
+  // "As agenda" (the default) and "Whole line" treat the source and the actions identically; the only
   // difference is that "As agenda" opens every agenda topic in the new place, a discussed one included.
   const agendaSource =
     "Weekly\n====\n. budget review\n, skipped item\n  . nested discussed\no still open\nv done thing\n> deferred thing\n# open action\nplain prose";
@@ -395,6 +395,53 @@ test.describe("section history (Ctrl/Cmd+Shift+H)", () => {
       await expect.poll(() => mockNote(page, "2026-09-05.txt")).toBe(agendaSourceAfter);
     });
   }
+
+  test("As agenda is the default; Tab from the selected lines reaches Whole line / As agenda / Add to, which work with the keyboard", async ({
+    page,
+  }) => {
+    await seedApp(page, {
+      seed: {
+        notes: { [todayFilename()]: "Weekly\n====\nprior", "2026-09-05.txt": "Weekly\n====\n. budget review\n# open action" },
+        session: { openTabs: [todayFilename()], activeTab: todayFilename() },
+      },
+    });
+    await editor(page).click();
+    await page.keyboard.press("ControlOrMeta+Home");
+    await page.keyboard.press("ControlOrMeta+Shift+H");
+    await occRow(page, "2026-09-05").click();
+    await page.keyboard.press("ControlOrMeta+a");
+    const bar = history(page).locator(".history-takeover-bar");
+    await expect(bar.getByRole("radio", { name: "As agenda" })).toHaveAttribute("aria-checked", "true");
+
+    await page.keyboard.press("Tab");
+    const whole = bar.getByRole("radio", { name: "Whole line" });
+    await expect(whole).toBeFocused();
+    // A visible ring: not the browser outline (clipped by the control), an inset two-tone shadow.
+    expect(await whole.evaluate((el) => getComputedStyle(el).boxShadow)).toContain("inset");
+    // Right / Left move between the modes and select them (not the occurrence strip).
+    await page.keyboard.press("ArrowRight");
+    await expect(bar.getByRole("radio", { name: "As agenda" })).toBeFocused();
+    await expect(history(page).locator(".history-occ-tab.active")).toContainText("2026-09-05");
+    await page.keyboard.press("ArrowLeft");
+    await expect(whole).toHaveAttribute("aria-checked", "true");
+    await page.keyboard.press("ArrowRight");
+    await expect(bar.getByRole("radio", { name: "As agenda" })).toHaveAttribute("aria-checked", "true");
+    // Shift+Tab from the first control goes back to the lines; Tab three times reaches the Add to button.
+    await page.keyboard.press("ArrowLeft"); // back on Whole line (now the chosen mode)
+    await expect(whole).toHaveAttribute("aria-checked", "true");
+    await page.keyboard.press("Shift+Tab");
+    await expect(history(page).locator(".history-body")).toBeFocused();
+    await page.keyboard.press("Tab");
+    await page.keyboard.press("Tab");
+    await page.keyboard.press("Tab");
+    const add = bar.getByRole("button", { name: "Add to today" });
+    await expect(add).toBeFocused();
+    expect(await add.evaluate((el) => getComputedStyle(el).boxShadow)).not.toBe("none");
+    // Enter presses the focused button (it used to jump to the note instead).
+    await page.keyboard.press("Enter");
+    await expect.poll(() => mockNote(page, todayFilename())).toContain("prior\n\n. budget review\n# open action"); // Whole line keeps the discussed topic
+    await expect(history(page)).toBeVisible();
+  });
 
   test("opened from a past note: selecting a line offers 'Add to today' and 'Add to next occurrence'", async ({ page }) => {
     await seedApp(page, {
