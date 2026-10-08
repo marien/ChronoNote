@@ -10082,7 +10082,7 @@ Marien, after abandoning the idea of Peek reacting to Teams calls by itself (wat
 
 ## 319. Peek across monitors with different display scaling
 
-**Status: on main, not released.** Marien (2026-10-08): with the full window on a 125 % monitor and Peek on a 100 % one (or the other way round), every Peek round trip made the window on the 125 % monitor larger and the one on the 100 % monitor smaller.
+**Status: released in v0.29.2.** Marien (2026-10-08): with the full window on a 125 % monitor and Peek on a 100 % one (or the other way round), every Peek round trip made the window on the 125 % monitor larger and the one on the 100 % monitor smaller.
 
 - **Cause:** sizes are remembered and applied in physical pixels with one `SetWindowPos` (`peek_set_bounds`). When that move lands the window on a monitor with another DPI, Windows sends WM_DPICHANGED during the move and the window rescales itself by the ratio of the two scales (x1.25 or x0.8) AFTER our size was applied. The rescaled size was then remembered, so the error compounded.
 - **Fix (Rust, `peek_window.rs::place`):** after `SetWindowPos` the outer position and client size are read back; if they are not what was asked, the rectangle is applied again (up to 3 times). The second time the window is already on its monitor, so nothing rescales.
@@ -10091,7 +10091,7 @@ Marien, after abandoning the idea of Peek reacting to Teams calls by itself (wat
 
 ## 320. Occurrence hint and Peek button on hovering a section title
 
-**Status: on main, not released.** Marien (2026-10-08): the hint (and its Peek button) only showed for the section the caret was in, so he had to click into a section first.
+**Status: released in v0.29.2.** Marien (2026-10-08): the hint (and its Peek button) only showed for the section the caret was in, so he had to click into a section first.
 
 - While the mouse is over a section's title line or underline, the hint shows for THAT section (new `hoverSection` store in `occurrences.ts`, preferred over `cursorSection`; set by an editor `mousemove` handler, cleared on `mouseleave` and when the pointer is off a title). Moving off the title puts the hint back on the caret's section. Only when the pointer is really over the line (`lineBlockAt`), not in the empty space below the text. As before: only with the hint setting on, and hidden while the caret is on that title line.
 - e2e: hover shows the Peek button on a one-off section and opens Peek from it; moving off restores the caret's hint. The `goToLine` helper now moves the mouse out of the editor after its click (a pointer resting on a title would otherwise take over the hint). Vitest 854, Playwright 583 (full suite).
