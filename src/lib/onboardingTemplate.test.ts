@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { getOnboardingTemplate } from "./onboardingTemplate";
+import { getOnboardingTemplate, isPristineOnboardingNote, toLegacyOnboardingTemplate } from "./onboardingTemplate";
 
 describe("getOnboardingTemplate", () => {
   const languages = ["en", "nl", "de", "es", "fr", "it", "pl"] as const;
@@ -34,5 +34,33 @@ describe("getOnboardingTemplate", () => {
     expect(getOnboardingTemplate("nl-NL")).toBe(getOnboardingTemplate("nl"));
     expect(getOnboardingTemplate("de-AT")).toBe(getOnboardingTemplate("de"));
     expect(getOnboardingTemplate("fr-FR")).toBe(getOnboardingTemplate("fr"));
+  });
+});
+
+describe("isPristineOnboardingNote", () => {
+  const languages = ["en", "nl", "de", "es", "fr", "it", "pl"] as const;
+
+  it.each(languages)("recognises current template for %s as pristine", (lang) => {
+    const template = getOnboardingTemplate(lang);
+    expect(isPristineOnboardingNote(template)).toBe(true);
+  });
+
+  it.each(languages)("recognises legacy template for %s (F2 / Shift+F2) as pristine", (lang) => {
+    const current = getOnboardingTemplate(lang);
+    const legacy = toLegacyOnboardingTemplate(current);
+    expect(legacy).not.toBe(current);
+    expect(legacy).toContain("F2");
+    expect(isPristineOnboardingNote(legacy)).toBe(true);
+  });
+
+  it("rejects an edited template as not pristine", () => {
+    const template = getOnboardingTemplate("en");
+    const edited = template + "\n# an extra task";
+    expect(isPristineOnboardingNote(edited)).toBe(false);
+  });
+
+  it("rejects arbitrary text", () => {
+    expect(isPristineOnboardingNote("just a note")).toBe(false);
+    expect(isPristineOnboardingNote("")).toBe(false);
   });
 });

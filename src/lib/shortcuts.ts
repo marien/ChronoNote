@@ -161,7 +161,10 @@ export const SHORTCUTS: ShortcutDef[] = [
   },
   {
     id: "jumpAction",
-    combos: [{ code: "F2" }, { shift: true, code: "F2" }],
+    combos: [
+      { mod: true, code: "KeyJ" },
+      { mod: true, shift: true, code: "KeyJ" },
+    ],
   },
   {
     id: "caretLineNav",

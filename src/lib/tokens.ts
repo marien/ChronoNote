@@ -73,8 +73,9 @@ export function openActionLineIndices(text: string): number[] {
  * (`dir` -1) relative to `fromLineIdx`, wrapping around at the ends.
  * `null` when the note has no open actions at all. When the cursor is
  * already on the only open action, returns that same line (nothing else
- * to move to). Shared by `EditorPane`'s `F2`/`Shift+F2` (§78, rebound off
- * `Ctrl+↓`/`Ctrl+↑` by §83 — see that binding's own comment for why). */
+ * to move to). Shared by `EditorPane`'s `Ctrl+J`/`Ctrl+Shift+J` (§78, rebound
+ * off F2 because F2 needs Fn on laptops; earlier rebound off `Ctrl+↓`/`Ctrl+↑`
+ * by §83 — see that binding's own comment for why). */
 export function adjacentOpenActionLine(text: string, fromLineIdx: number, dir: 1 | -1): number | null {
   const idxs = openActionLineIndices(text);
   if (idxs.length === 0) return null;

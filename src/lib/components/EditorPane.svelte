@@ -299,12 +299,13 @@
     return true;
   }
 
-  /** §78: `F2` / `Shift+F2` — move the cursor to the next / previous open
+  /** §78: `Ctrl+J` / `Ctrl+Shift+J` (macOS `Cmd+J` / `Cmd+Shift+J`) — move the cursor to the next / previous open
    * action (`# ` line, indented or not, plus `=> #` consequence-actions)
    * in this note, wrapping at the ends. Lands at the start of the line,
    * same as the Action Drawer's "jump to line". A no-op with a toast when
    * the note has none. (§83: moved off `Ctrl+↓`/`Ctrl+↑`, which now do
-   * caret-to-line-start explicitly — see §89 below.) */
+   * caret-to-line-start explicitly — see §89 below. Moved off F2 because
+   * F2 needs Fn on laptops.) */
   function jumpToAdjacentOpenAction(v: EditorView, dir: 1 | -1): boolean {
     const curLineIdx = v.state.doc.lineAt(v.state.selection.main.head).number - 1;
     const target = adjacentOpenActionLine(v.state.doc.toString(), curLineIdx, dir);
@@ -550,8 +551,8 @@
       // Option+Arrow is word movement - except in Peek, which has always used it there.
       { key: "Alt-ArrowLeft", run: () => occurrenceKey(-1) },
       { key: "Alt-ArrowRight", run: () => occurrenceKey(1) },
-      { key: "F2", run: (v) => jumpToAdjacentOpenAction(v, 1) },
-      { key: "Shift-F2", run: (v) => jumpToAdjacentOpenAction(v, -1) },
+      { key: "Mod-j", run: (v) => jumpToAdjacentOpenAction(v, 1) },
+      { key: "Mod-Shift-j", run: (v) => jumpToAdjacentOpenAction(v, -1) },
       {
         win: "Ctrl-ArrowUp",
         linux: "Ctrl-ArrowUp",

@@ -60,7 +60,7 @@ whole `=> ` token in one step, as if un-delegating the line.
 | `v ` | `☑` | **Completed Action (Self)** | **Resolved.** Counted in status bar (Closed). |
 | `> ` | `☐` (boxed, centered `›`) | **Deferred Action (Self)** | **Resolved for origin day.** Represents a task forwarded to another day (typically today). Does not block tab close. Counted in status bar (Forwarded). |
 | `x ` | `☒` | **Won't-Do Action (Self)** | **Resolved.** Distinct from `v ` (was done) — this one won't happen at all. Folds into the same status-bar bucket as `v ` (Closed). |
-| `o ` | `○` | **Meeting Topic — To Discuss** | Purely a discussion item, never an action — excluded from action counts, the calendar heatmap, and `F2`/`Shift+F2` jump navigation. `Enter` continues the list (plain, numbered, or bulleted, same rules as an action line); `Ctrl/Cmd+5` sets a line/selection to this state directly. |
+| `o ` | `○` | **Meeting Topic — To Discuss** | Purely a discussion item, never an action — excluded from action counts, the calendar heatmap, and `Ctrl/Cmd+J` / `Ctrl/Cmd+Shift+J` jump navigation. `Enter` continues the list (plain, numbered, or bulleted, same rules as an action line); `Ctrl/Cmd+5` sets a line/selection to this state directly. |
 | `. ` | `◉` (fisheye) | **Meeting Topic — Discussed** | Resolved for this meeting. Dimmed like a closed action, but still never counted as one. `Ctrl/Cmd+6`, or `Ctrl+Space` on an open topic. |
 | `, ` | `◌` (dashed ring) | **Meeting Topic — Not Discussed / Postponed** | Skipped this meeting, carried to the next one. Dimmed like a closed action, never counted as one. `Ctrl/Cmd+7`, or `Ctrl+Shift+Space` reopens it back to `o `. Copy/paste-deferral (below) defers an open topic `o ` to `, `, mirroring how an open action `# ` defers to `> `. |
 | `- ` or `* ` | `•` | **Bulleted List Item** | Purely structural — not an action, not counted anywhere, doesn't block tab close. May be indented in two-space increments to nest (see 2.4). `-` and `*` are interchangeable; both render identically. |
@@ -372,7 +372,7 @@ snapshot for reference, not the source of truth.
 | Peek on the meeting that is on now / a new call section; leaves Peek when it is showing (desktop app; system-wide; changeable in Settings) | `Ctrl+Alt+J` | `Cmd+Option+J` |
 | Previous / next occurrence of the section the cursor is in (anywhere in the section, title line included; also steps Peek) | `Alt+Left` / `Alt+Right` | Peek only (Option+Arrow is word movement) |
 | Occurrence hint after section titles: `< (X/Y) >` (a setting, off by default; Settings -> Appearance), plus a small Peek button (desktop app) that opens Peek on that section | click the arrows / the Peek button | click the arrows / the Peek button |
-| Jump to next / previous open action | `F2` / `Shift+F2` | `F2` / `Shift+F2` |
+| Jump to next / previous open action | `Ctrl+J` / `Ctrl+Shift+J` | `Cmd+J` / `Cmd+Shift+J` |
 | Caret to line start, then previous/next line start | `Ctrl+↑` / `Ctrl+↓` | *(not offered — Mac keeps the OS's own page-scroll on these keys)* |
 | Convert current line to a section header | `Ctrl+Shift+S` | `Cmd+Shift+S` |
 | Actions (cross-tab action drawer) | `Ctrl+Shift+A` | `Cmd+Shift+A` |

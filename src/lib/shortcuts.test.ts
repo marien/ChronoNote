@@ -19,4 +19,19 @@ describe("in-app shortcuts and AltGr", () => {
     );
     expect(offenders).toEqual([]);
   });
+
+  it("jumpAction uses Mod+J / Mod+Shift+J, freeing F2", () => {
+    const jump = SHORTCUTS.find((s) => s.id === "jumpAction")!;
+    expect(jump.combos).toEqual([
+      { mod: true, code: "KeyJ" },
+      { mod: true, shift: true, code: "KeyJ" },
+    ]);
+  });
+
+  it("no in-app shortcut uses F2 or Shift+F2 (F2 freed)", () => {
+    const usingF2 = SHORTCUTS.flatMap((s) =>
+      s.combos.filter((c) => c.code === "F2").map((c) => `${s.id}: ${c.code}`),
+    );
+    expect(usingF2).toEqual([]);
+  });
 });
