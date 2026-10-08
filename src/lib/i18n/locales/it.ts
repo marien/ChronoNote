@@ -167,8 +167,14 @@ export const it = {
     "Attiva/disattiva Peek (finestra di note compatta per le chiamate)",
   "peek.toast.noSection": () =>
     "Metti il cursore in una sezione per darle un'occhiata.",
+  "peek.toast.titleExists": () =>
+    "Questa nota ha già una sezione con quel titolo.",
   "peek.expand": () =>
     "Torna alla finestra completa",
+  "peek.minimize": () =>
+    "Riduci a icona",
+  "peek.rename": () =>
+    "Fai clic per assegnare un nome a questa chiamata",
   "peek.prev": () =>
     "Occorrenza precedente",
   "peek.next": () =>

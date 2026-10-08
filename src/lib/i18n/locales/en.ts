@@ -162,8 +162,14 @@ export const en = {
     "Toggle Peek (compact note window for calls)",
   "peek.toast.noSection": () =>
     "Put the cursor in a section to peek at it.",
+  "peek.toast.titleExists": () =>
+    "This note already has a section with that title.",
   "peek.expand": () =>
     "Back to the full window",
+  "peek.minimize": () =>
+    "Minimize",
+  "peek.rename": () =>
+    "Click to name this call",
   "peek.prev": () =>
     "Previous occurrence",
   "peek.next": () =>

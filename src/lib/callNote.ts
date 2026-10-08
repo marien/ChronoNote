@@ -14,9 +14,11 @@ import { todayISO } from "./date";
 import { extractSectionBody } from "./history";
 import { t } from "./i18n";
 import { createGlobalShortcutBinder } from "./globalShortcut";
-import { enterPeek, leavePeek, peekMode, peekSettings } from "./peek";
+import { enterPeek, leavePeek, peekMode, peekSettings, startPeekRename } from "./peek";
 import { writeTabContent } from "./persistence";
 import { underlineFor } from "./sectionFormat";
+import { isWindowMinimized, restoreAndFocusWindow } from "./windowChrome";
+import { listSections, type NoteSection } from "./peekSection";
 import { backendKind, tabs } from "./stores";
 import { jumpToFileLine, openOrCreateDatedFile } from "./tabs";
 import * as api from "./tauriApi";
@@ -60,21 +62,7 @@ export function adhocMinutes(title: string): number | null {
   return last ? Number(last[1]) * 60 + Number(last[2]) : null;
 }
 
-export interface NoteSection {
-  titleLine: number;
-  title: string;
-}
-
-/** Every section (Setext title + underline) of a note, in order. */
-export function listSections(lines: readonly string[]): NoteSection[] {
-  const out: NoteSection[] = [];
-  for (let i = 0; i + 1 < lines.length; i++) {
-    if (lines[i].trim() !== "" && isSetextUnderline(lines[i + 1]) && !isSetextUnderline(lines[i])) {
-      out.push({ titleLine: i, title: lines[i].trim() });
-    }
-  }
-  return out;
-}
+export { listSections, type NoteSection };
 
 const key = (title: string) => titleForMatching(normalizeHeaderTitle(title)).toLowerCase();
 
@@ -115,6 +103,10 @@ let busy = false;
 export async function noteCall(now: Date = new Date()): Promise<boolean> {
   if (get(backendKind) !== "desktop" || busy) return false;
   if (get(peekMode)) {
+    if (await isWindowMinimized()) {
+      await restoreAndFocusWindow();
+      return true;
+    }
     leavePeek();
     return false;
   }
@@ -142,15 +134,21 @@ export async function noteCall(now: Date = new Date()): Promise<boolean> {
 
     const target = titleForMatching(normalizeHeaderTitle(title));
     let content = tab.content;
+    let newlyInserted = false;
     if (!extractSectionBody(content.split("\n"), target)) {
       content = insertSection(content, title, minutes, entries);
       tabs.set(writeTabContent(tab.id, content, get(tabs)));
+      newlyInserted = true;
     }
     const body = extractSectionBody(content.split("\n"), target);
     await jumpToFileLine({ tabId: tab.id, filename, lineIdx: body ? body.startLineIdx : 0 });
     // Peek is told which section to show. Reading it back from where the caret landed showed the NEXT meeting
     // whenever a section had no empty line under its title (the first body line was the next title).
-    return await enterPeek(target);
+    const entered = await enterPeek(target);
+    if (entered && newlyInserted && !meeting) {
+      startPeekRename();
+    }
+    return entered;
   } finally {
     busy = false;
   }

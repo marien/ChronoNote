@@ -5,6 +5,7 @@
  * type it. `titleLine` / `lastLine` are 0-based, inclusive. Matching is the same date-insensitive comparison
  * Section History uses, so "Weekly sync - 2026-10-03" and "... - 2026-10-10" are the same recurring section. */
 import { isSetextUnderline, normalizeHeaderTitle, titleForMatching } from "./tokens";
+import { underlineFor } from "./sectionFormat";
 
 export interface SectionRange {
   titleLine: number;
@@ -104,3 +105,51 @@ export function editAllowed(span: SectionSpan, a: number, b: number, inserted: s
   }
   return a > span.headerEnd;
 }
+
+export interface NoteSection {
+  titleLine: number;
+  title: string;
+}
+
+/** Every section (Setext title + underline) of a note, in order. */
+export function listSections(lines: readonly string[]): NoteSection[] {
+  const out: NoteSection[] = [];
+  for (let i = 0; i + 1 < lines.length; i++) {
+    if (lines[i].trim() !== "" && isSetextUnderline(lines[i + 1]) && !isSetextUnderline(lines[i])) {
+      out.push({ titleLine: i, title: lines[i].trim() });
+    }
+  }
+  return out;
+}
+
+/** Rewrites a section's title and its setext underline to newTitle and underlineFor(newTitle). */
+export function retitleSection(
+  lines: readonly string[],
+  range: SectionRange,
+  newTitle: string,
+): string[] {
+  const next = [...lines];
+  next[range.titleLine] = newTitle;
+  next[range.titleLine + 1] = underlineFor(newTitle);
+  return next;
+}
+
+/** For an ad-hoc call title (without its leading apostrophe), returns the 0-based [start, end]
+ * index of the subject part to select on start. If there is a last HH:MM in it, only the trimmed
+ * subject before that time is selected; otherwise the whole text is selected. */
+export function adhocSubjectRange(text: string): [number, number] {
+  const all = [...text.matchAll(/(\d{1,2}):(\d{2})/g)];
+  const last = all[all.length - 1];
+  if (!last || last.index === undefined) {
+    return [0, text.length];
+  }
+  const before = text.slice(0, last.index);
+  const matchLeading = before.match(/^\s*/);
+  const leadingSpaces = matchLeading ? matchLeading[0].length : 0;
+  const matchTrailing = before.match(/\s*$/);
+  const trailingSpaces = matchTrailing ? matchTrailing[0].length : 0;
+  const start = leadingSpaces;
+  const end = Math.max(start, before.length - trailingSpaces);
+  return [start, end];
+}
+

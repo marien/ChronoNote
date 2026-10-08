@@ -166,8 +166,14 @@ export const nl = {
     "Peek omschakelen (compact notitievenster voor gesprekken)",
   "peek.toast.noSection": () =>
     "Zet de cursor in een sectie om die te bekijken.",
+  "peek.toast.titleExists": () =>
+    "Deze notitie heeft al een sectie met die titel.",
   "peek.expand": () =>
     "Terug naar het volledige venster",
+  "peek.minimize": () =>
+    "Minimaliseren",
+  "peek.rename": () =>
+    "Klik om dit gesprek een naam te geven",
   "peek.prev": () =>
     "Vorige keer",
   "peek.next": () =>

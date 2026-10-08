@@ -68,6 +68,9 @@ const tauriWindowMock = {
   onFocusChanged: vi.fn(),
   destroy: vi.fn(),
   minimize: vi.fn(),
+  isMinimized: vi.fn().mockResolvedValue(false),
+  unminimize: vi.fn(),
+  setFocus: vi.fn(),
   toggleMaximize: vi.fn(),
   close: vi.fn(),
 };

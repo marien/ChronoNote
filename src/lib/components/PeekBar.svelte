@@ -1,10 +1,25 @@
 <script lang="ts">
+  import { get } from "svelte/store";
   import * as controller from "../controller";
   import { activeTabId, currentDateISO, tabs } from "../controller";
-  import { peekDateClass, peekHeaderExpanded, peekPosition, peekSettings, peekTarget } from "../controller";
+  import {
+    cancelPeekRename,
+    editorApi,
+    leavePeek,
+    minimizeWindow,
+    peekDateClass,
+    peekHeaderExpanded,
+    peekPosition,
+    peekRenaming,
+    peekSettings,
+    peekTarget,
+    renamePeekSection,
+    startPeekRename,
+    stepPeekOccurrence,
+  } from "../controller";
   import Icon from "../icons/Icon.svelte";
   import { t } from "../i18n";
-  import { findSectionRange } from "../peekSection";
+  import { adhocSubjectRange, findSectionRange } from "../peekSection";
   import { normalizeHeaderTitle } from "../tokens";
 
   // The header strip of the compact window: drag handle, which occurrence is showing (coloured like the tab strip:
@@ -12,9 +27,14 @@
   const tab = $derived($tabs.find((x) => x.id === $activeTabId));
   const dateClass = $derived(peekDateClass(tab?.filename, $currentDateISO));
   const label = $derived(tab ? tab.filename.replace(/\.txt$/, "") : "");
-  // The thin strip: always when hidden; in "on hover" mode until the pointer is over the window.
-  const hidden = $derived($peekSettings.header === "never" || ($peekSettings.header === "hover" && !$peekHeaderExpanded));
-  const overlay = $derived($peekSettings.header === "hover" && $peekHeaderExpanded);
+
+  // Visible: always in "always" mode, or whenever pointer is over window or actively renaming.
+  const visible = $derived($peekSettings.header === "always" || $peekHeaderExpanded || $peekRenaming);
+  // Overlay: in "hover" and "never" modes the bar/strip is drawn over content.
+  const overlay = $derived($peekSettings.header !== "always");
+  // Thin strip: in "never" mode unless actively renaming (which expands the full bar).
+  const thin = $derived($peekSettings.header === "never" && !$peekRenaming);
+
   // The section's title as written in this note (without a date), since the title line itself is not drawn in Peek.
   const title = $derived.by(() => {
     if (!tab || !$peekTarget) return "";
@@ -22,51 +42,137 @@
     const range = findSectionRange(lines, $peekTarget);
     return range ? normalizeHeaderTitle(lines[range.titleLine].trim()) : $peekTarget;
   });
+
+  const isAdhoc = $derived(/^['’]/.test(title.trim()));
+
+  let inputValue = $state("");
+  let cancelling = false;
+
+  function initInput(node: HTMLInputElement) {
+    const rawSubject = title.trim().replace(/^['’]/, "");
+    inputValue = rawSubject;
+    node.value = rawSubject;
+    const focusAndSelect = () => {
+      node.focus();
+      const [start, end] = adhocSubjectRange(node.value);
+      node.setSelectionRange(start, end);
+    };
+    focusAndSelect();
+    queueMicrotask(focusAndSelect);
+  }
+
+  function commitRename() {
+    if (cancelling) {
+      cancelling = false;
+      return;
+    }
+    if (!get(peekRenaming)) return;
+    renamePeekSection(inputValue);
+    editorApi?.focus();
+  }
+
+  function cancelRename() {
+    cancelling = true;
+    cancelPeekRename();
+    editorApi?.focus();
+  }
+
+  function handleInputKeydown(e: KeyboardEvent) {
+    if (e.key === "Enter" || e.key === "Tab") {
+      e.preventDefault();
+      e.stopPropagation();
+      commitRename();
+    } else if (e.key === "Escape") {
+      e.preventDefault();
+      e.stopPropagation();
+      cancelRename();
+    }
+  }
 </script>
 
-<!-- "On hover": while the pointer is on the window the full strip is drawn OVER the content; this spacer keeps the thin
-     strip's place in the layout so nothing underneath moves. -->
-{#if overlay}
-  <div class="peek-bar-spacer" aria-hidden="true"></div>
-{/if}
 <!-- `data-tauri-drag-region` only applies to the element itself, so every non-interactive child carries it too. -->
-<div
-  id="peek-bar"
-  class="peek-bar {dateClass}"
-  class:thin={hidden}
-  class:overlay
-  data-tauri-drag-region
-  role="toolbar"
-  aria-label="Peek"
->
-  {#if !hidden}
-    <button
-      type="button"
-      class="peek-btn"
-      aria-label={$t("peek.prev")}
-      title="{$t('peek.prev')} (Alt+←)"
-      disabled={!$peekPosition || $peekPosition.index <= 1}
-      onclick={() => controller.stepPeekOccurrence(-1)}>‹</button
-    >
-    <span class="peek-date" data-tauri-drag-region>{label}</span>
-    {#if $peekPosition}
-      <span class="peek-count" data-tauri-drag-region>{$peekPosition.index}/{$peekPosition.total}</span>
+{#if visible}
+  <div
+    id="peek-bar"
+    class="peek-bar {dateClass}"
+    class:thin
+    class:overlay
+    data-tauri-drag-region
+    role="toolbar"
+    aria-label="Peek"
+  >
+    {#if thin}
+      <button
+        type="button"
+        class="peek-btn tiny"
+        aria-label={$t("peek.minimize")}
+        title={$t("peek.minimize")}
+        onclick={() => minimizeWindow()}><Icon name="minimize" size={10} /></button
+      >
+      <button
+        type="button"
+        class="peek-btn tiny"
+        aria-label={$t("peek.expand")}
+        title={$t("peek.expand")}
+        onclick={() => leavePeek()}><Icon name="maximize" size={10} /></button
+      >
+    {:else}
+      <button
+        type="button"
+        class="peek-btn"
+        aria-label={$t("peek.prev")}
+        title="{$t('peek.prev')} (Alt+←)"
+        disabled={!$peekPosition || $peekPosition.index <= 1}
+        onclick={() => stepPeekOccurrence(-1)}>‹</button
+      >
+      <span class="peek-date" data-tauri-drag-region>{label}</span>
+      {#if $peekPosition}
+        <span class="peek-count" data-tauri-drag-region>{$peekPosition.index}/{$peekPosition.total}</span>
+      {/if}
+      <button
+        type="button"
+        class="peek-btn"
+        aria-label={$t("peek.next")}
+        title="{$t('peek.next')} (Alt+→)"
+        disabled={!$peekPosition || $peekPosition.index >= $peekPosition.total}
+        onclick={() => stepPeekOccurrence(1)}>›</button
+      >
+      {#if $peekRenaming}
+        <input
+          use:initInput
+          type="text"
+          class="peek-title-input"
+          bind:value={inputValue}
+          onkeydown={handleInputKeydown}
+          onblur={commitRename}
+        />
+      {:else}
+        {#if isAdhoc}
+          <!-- svelte-ignore a11y_click_events_have_key_events -->
+          <!-- svelte-ignore a11y_no_static_element_interactions -->
+          <span
+            class="peek-title adhoc"
+            title={$t("peek.rename")}
+            onclick={() => startPeekRename()}>{title}</span
+          >
+        {:else}
+          <span class="peek-title" data-tauri-drag-region>{title}</span>
+        {/if}
+      {/if}
+      <button
+        type="button"
+        class="peek-btn"
+        aria-label={$t("peek.minimize")}
+        title={$t("peek.minimize")}
+        onclick={() => minimizeWindow()}><Icon name="minimize" size={13} /></button
+      >
+      <button
+        type="button"
+        class="peek-btn"
+        aria-label={$t("peek.expand")}
+        title={$t("peek.expand")}
+        onclick={() => leavePeek()}><Icon name="maximize" size={13} /></button
+      >
     {/if}
-    <button
-      type="button"
-      class="peek-btn"
-      aria-label={$t("peek.next")}
-      title="{$t('peek.next')} (Alt+→)"
-      disabled={!$peekPosition || $peekPosition.index >= $peekPosition.total}
-      onclick={() => controller.stepPeekOccurrence(1)}>›</button
-    >
-    <span class="peek-title" data-tauri-drag-region>{title}</span>
-    <button
-      type="button"
-      class="peek-btn"
-      aria-label={$t("peek.expand")}
-      title={$t("peek.expand")}
-      onclick={() => controller.leavePeek()}><Icon name="maximize" size={13} /></button
-    >
-  {/if}
-</div>
+  </div>
+{/if}

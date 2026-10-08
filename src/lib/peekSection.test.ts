@@ -1,5 +1,15 @@
 import { describe, expect, it } from "vitest";
-import { editAllowed, exitCaretLine, findSectionRange, gapLinesNeeded, sectionVisibleLineCount, visibleLastLine, type SectionSpan } from "./peekSection";
+import {
+  adhocSubjectRange,
+  editAllowed,
+  exitCaretLine,
+  findSectionRange,
+  gapLinesNeeded,
+  retitleSection,
+  sectionVisibleLineCount,
+  visibleLastLine,
+  type SectionSpan,
+} from "./peekSection";
 
 const note = [
   "Standup",
@@ -122,5 +132,35 @@ describe("visibleLastLine", () => {
   });
   it("shows the whole last section of a note", () => {
     expect(visibleLastLine(note, range(note, "other"))).toBe(12);
+  });
+});
+
+describe("retitleSection", () => {
+  it("rewrites the title line and underline with matching length", () => {
+    const lines = ["Standup", "=======", "body"];
+    const range = { titleLine: 0, lastLine: 2 };
+    const result = retitleSection(lines, range, "'Call 14:05");
+    expect(result[0]).toBe("'Call 14:05");
+    expect(result[1]).toBe("===========");
+    expect(result[2]).toBe("body");
+  });
+});
+
+describe("adhocSubjectRange", () => {
+  it("selects only the subject part before the last HH:MM", () => {
+    expect(adhocSubjectRange("Call 14:05")).toEqual([0, 4]);
+    expect(adhocSubjectRange("Weekly Sync 09:30")).toEqual([0, 11]);
+  });
+
+  it("selects trimmed subject before time with extra spaces", () => {
+    expect(adhocSubjectRange("  Quick call   10:00")).toEqual([2, 12]);
+  });
+
+  it("selects everything if there is no HH:MM time", () => {
+    expect(adhocSubjectRange("Quick call")).toEqual([0, 10]);
+  });
+
+  it("handles multiple times by taking the last HH:MM", () => {
+    expect(adhocSubjectRange("Call 09:00 to 10:00")).toEqual([0, 13]);
   });
 });

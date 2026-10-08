@@ -850,6 +850,17 @@
       pulseLine: (lineIdx: number) => {
         triggerLinePulse(lineIdx);
       },
+      replaceLines: (fromLineIdx: number, toLineIdx: number, text: string) => {
+        if (!view) return;
+        const lineCount = view.state.doc.lines;
+        const fromLine = Math.min(Math.max(1, fromLineIdx + 1), lineCount);
+        const toLine = Math.min(Math.max(1, toLineIdx + 1), lineCount);
+        const from = view.state.doc.line(fromLine).from;
+        const to = view.state.doc.line(toLine).to;
+        view.dispatch({
+          changes: { from, to, insert: text },
+        });
+      },
       scrollCaretIntoView: () => {
         if (!view) return;
         view.requestMeasure();

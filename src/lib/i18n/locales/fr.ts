@@ -168,8 +168,14 @@ export const fr = {
     "Activer/désactiver Peek (fenêtre de notes compacte pour les appels)",
   "peek.toast.noSection": () =>
     "Placez le curseur dans une section pour y jeter un coup d'œil.",
+  "peek.toast.titleExists": () =>
+    "Cette note contient déjà une section avec ce titre.",
   "peek.expand": () =>
     "Retour à la fenêtre complète",
+  "peek.minimize": () =>
+    "Réduire",
+  "peek.rename": () =>
+    "Cliquer pour nommer cet appel",
   "peek.prev": () =>
     "Occurrence précédente",
   "peek.next": () =>
