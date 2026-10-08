@@ -371,7 +371,7 @@ snapshot for reference, not the source of truth.
 | Peek: compact note window for the section at the caret (desktop app, in-app only) | `Ctrl+Shift+P` | `Cmd+Shift+P` |
 | Peek on the meeting that is on now / a new call section; leaves Peek when it is showing (desktop app; system-wide; changeable in Settings) | `Ctrl+Alt+J` | `Cmd+Option+J` |
 | Previous / next occurrence of the section the cursor is in (anywhere in the section, title line included; also steps Peek) | `Alt+Left` / `Alt+Right` | Peek only (Option+Arrow is word movement) |
-| Occurrence hint after section titles: `< (X/Y) >` (a setting, off by default; Settings -> Appearance), plus a small Peek button (desktop app) that opens Peek on that section | click the arrows / the Peek button | click the arrows / the Peek button |
+| Occurrence hint after section titles: `< (X/Y) >` (a setting, off by default; Settings -> Appearance), plus a small Peek button (desktop app) that opens Peek on that section; shown for the section the caret is in, or the one whose title the mouse is over (a section that occurs only once gets just the Peek button) | click the arrows / the Peek button | click the arrows / the Peek button |
 | Jump to next / previous open action | `Ctrl+J` / `Ctrl+Shift+J` | `Cmd+J` / `Cmd+Shift+J` |
 | Caret to line start, then previous/next line start | `Ctrl+↑` / `Ctrl+↓` | *(not offered — Mac keeps the OS's own page-scroll on these keys)* |
 | Convert current line to a section header | `Ctrl+Shift+S` | `Cmd+Shift+S` |
