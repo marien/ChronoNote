@@ -144,6 +144,11 @@
         disabled={!$peekPosition || $peekPosition.index >= $peekPosition.total}
         onclick={() => stepPeekOccurrence(1)}>›</button
       >
+      <!-- An ad-hoc call's title (and its field) only takes the width it needs: the rest of the bar is free space to
+           drag the window by. -->
+      {#if $peekRenaming || isAdhoc}
+        <span class="peek-drag-fill" data-tauri-drag-region></span>
+      {/if}
       {#if $peekRenaming}
         <input
           use:initInput

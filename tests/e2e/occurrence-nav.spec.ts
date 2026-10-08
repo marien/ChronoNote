@@ -130,10 +130,17 @@ test.describe("the < (X/Y) > hint after the section title (setting)", () => {
     await expect(hint.locator(".occ-hint-btn:not(.occ-hint-peek)").last()).toHaveClass(/\boff\b/);
   });
 
-  test("a section that occurs only once gets no hint", async ({ page }) => {
+  test("a section that occurs only once gets just the Peek button (no arrows, no count)", async ({ page }) => {
     await goToLine(page, SOLO_BODY);
     await expect(page.locator("#stat-pos")).toContainText("16");
-    await expect(page.locator(".occ-hint")).toHaveCount(0);
+    const hint = page.locator(".occ-hint");
+    await expect(hint).toHaveCount(1);
+    await expect(hint.locator(".occ-hint-peek")).toHaveCount(1);
+    await expect(hint.locator(".occ-hint-count")).toHaveCount(0);
+    await expect(hint.locator(".occ-hint-btn:not(.occ-hint-peek)")).toHaveCount(0);
+    await hint.locator(".occ-hint-peek").dispatchEvent("mousedown");
+    await expect(page.locator("body.peek-mode")).toBeVisible();
+    await expect(page.locator("#peek-bar")).toContainText("Solo");
   });
 
   test("the shortcut keeps working with the hint on", async ({ page }) => {

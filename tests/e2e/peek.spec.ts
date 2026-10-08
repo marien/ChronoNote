@@ -654,6 +654,34 @@ test.describe("ad-hoc call naming", () => {
     await expect(page.locator("body.peek-mode")).toBeVisible();
   });
 
+  test("the ad-hoc title and its field only take the width they need; the rest of the bar is a drag area", async ({ page }) => {
+    await seedApp(page, {
+      seed: {
+        notes: { "2026-09-07.txt": adhocNote },
+        session: { openTabs: ["2026-09-07.txt"], activeTab: "2026-09-07.txt" },
+        peek: { header: "always" },
+      },
+    });
+    await editor(page).click();
+    await page.keyboard.press("ControlOrMeta+Home");
+    await page.keyboard.press("ArrowDown");
+    await page.keyboard.press("ArrowDown");
+    await page.keyboard.press("ControlOrMeta+Shift+KeyP");
+    const bar = page.locator("#peek-bar");
+    const barWidth = (await bar.boundingBox())!.width;
+    const fill = bar.locator(".peek-drag-fill");
+    await expect(fill).toHaveAttribute("data-tauri-drag-region", "");
+    const titleWidth = (await bar.locator(".peek-title").boundingBox())!.width;
+    expect(titleWidth).toBeLessThan(barWidth / 3);
+    expect((await fill.boundingBox())!.width).toBeGreaterThan(barWidth / 3);
+
+    await bar.locator(".peek-title").click();
+    const input = page.locator(".peek-title-input");
+    await expect(input).toBeVisible();
+    expect((await input.boundingBox())!.width).toBeLessThan(barWidth / 3);
+    expect((await fill.boundingBox())!.width).toBeGreaterThan(barWidth / 3);
+  });
+
   test("a meeting section's title is not editable (no input appears on click)", async ({ page }) => {
     await seedApp(page, {
       seed: {

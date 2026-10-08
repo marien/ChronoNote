@@ -66,15 +66,26 @@ body.peek-mode .cm-content {
   white-space: nowrap;
   text-align: right;
 }
+/* An ad-hoc call's title is clickable, so it cannot be a drag handle: it shrinks to its text and `.peek-drag-fill`
+   takes the free space instead. */
+.peek-drag-fill {
+  flex: 1 1 auto;
+  min-width: 0;
+  align-self: stretch;
+}
 .peek-title.adhoc {
+  flex: 0 1 auto;
   cursor: text;
 }
 .peek-title.adhoc:hover {
   text-decoration: underline dotted;
 }
 .peek-title-input {
-  flex: 1 1 auto;
-  min-width: 0;
+  /* As wide as the text in it, never the whole bar. */
+  flex: 0 1 auto;
+  field-sizing: content;
+  min-width: 6ch;
+  max-width: 70%;
   height: 22px;
   background: var(--surface-raised);
   color: var(--text);

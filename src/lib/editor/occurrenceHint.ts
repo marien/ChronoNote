@@ -72,14 +72,17 @@ class HintWidget extends WidgetType {
       });
       return b;
     };
-    const count = document.createElement("span");
-    count.className = "occ-hint-count";
-    count.textContent = `(${index}/${total})`;
-    wrap.append(
-      button("‹", -1, this.labels.prev, index > 1),
-      count,
-      button("›", 1, this.labels.next, index < total),
-    );
+    // A section that occurs only in this note (an ad-hoc call, a one-off meeting) has nowhere to go: only the Peek button.
+    if (total > 1) {
+      const count = document.createElement("span");
+      count.className = "occ-hint-count";
+      count.textContent = `(${index}/${total})`;
+      wrap.append(
+        button("‹", -1, this.labels.prev, index > 1),
+        count,
+        button("›", 1, this.labels.next, index < total),
+      );
+    }
     if (this.peekable && this.peek) {
       const open = this.peek.open;
       const p = document.createElement("span");
@@ -129,7 +132,10 @@ export function occurrenceHintExtension(
       if (tr.state.selection.ranges.some((r) => r.from <= line.to && r.to >= line.from)) {
         return { info, decorations: Decoration.none };
       }
-      const widget = new HintWidget(info, labels(), step, peek, peek?.available() ?? false);
+      const peekable = peek?.available() ?? false;
+      // Nothing to show for a one-off section where Peek is not available (the web app).
+      if (info.total <= 1 && !peekable) return { info, decorations: Decoration.none };
+      const widget = new HintWidget(info, labels(), step, peek, peekable);
       return { info, decorations: Decoration.set([Decoration.widget({ widget, side: 1 }).range(line.to)]) };
     },
     provide: (f) => EditorView.decorations.from(f, (v) => v.decorations),

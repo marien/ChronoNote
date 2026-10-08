@@ -106,7 +106,8 @@ export async function stepSectionOccurrence(direction: -1 | 1): Promise<void> {
 /** The section the caret is in (matching form), reported by the editor; null outside any section. */
 export const cursorSection = writable<string | null>(null);
 /** What the hint shows: the section the caret is in and where the shown note sits among its occurrences. Null when
- * the hint is off, the section occurs only here, or nothing is known yet. */
+ * the hint is off or nothing is known yet. A section that occurs only here (an ad-hoc call, a one-off meeting) has
+ * `total` 1: the editor then shows just the Peek button, no arrows or count. */
 export const occurrenceInfo = writable<{ target: string; index: number; total: number } | null>(null);
 
 /** Keeps `occurrenceInfo` up to date while the hint is on. Call once at startup; returns a cleanup. Recomputing reads
@@ -124,7 +125,7 @@ export function wireOccurrenceHint(): () => void {
     }
     const pos = await occurrencePositionOf(target, tab);
     if (mine !== run) return; // a newer request superseded this one
-    occurrenceInfo.set(pos && pos.total > 1 ? { target, index: pos.index, total: pos.total } : null);
+    occurrenceInfo.set(pos && pos.total >= 1 ? { target, index: pos.index, total: pos.total } : null);
   };
   const schedule = () => {
     clearTimeout(timer);

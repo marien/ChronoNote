@@ -10054,3 +10054,11 @@ Marien, after abandoning the idea of Peek reacting to Teams calls by itself (wat
 
 - Test note: Playwright's `Control+Shift+j` sends a lowercase key with Shift held, which CodeMirror matches as `Mod-j`; specs use `Control+Shift+KeyJ`.
 - Gates on the integration branch: svelte-check 0, Vitest 853, Playwright full suite green (call-note specs updated for the name field a new ad-hoc call opens with). Not verified natively: Ctrl+J in WebView2, minimize/restore with the real global shortcut, the look of the tiny strip buttons.
+
+## 316. Peek button for one-off sections; the ad-hoc title no longer fills the Peek bar
+
+**Status: on main, not released.** Marien's feedback on v0.29.0 (2026-10-08).
+
+- **Peek button for sections that occur only once** (ad-hoc calls, one-off meetings): the occurrence hint used to show nothing for them (`total > 1`), so they had no Peek button in the main window. `occurrenceInfo` now also reports `total` 1, and the widget then shows only the Peek button (no arrows, no count). On the web app (no Peek) a one-off section still shows nothing. As before, the hint is a setting (Settings -> Appearance).
+- **The ad-hoc title in the Peek bar took the whole width** (`.peek-title` is `flex: 1`, and the clickable title cannot be a drag region), leaving almost nothing to move the window by. The ad-hoc title and its edit field now shrink to their text (`field-sizing: content` on the input, max 70%), and a new `.peek-drag-fill` (`data-tauri-drag-region`) takes the free space. Titles of other sections are unchanged (they are drag regions themselves).
+- Tests: the single-occurrence hint test now expects just the Peek button and opens Peek from it; a new Peek test measures title, field and drag area widths. svelte-check 0, Vitest 853, Playwright 578 (full suite).
