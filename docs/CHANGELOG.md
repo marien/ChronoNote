@@ -10057,7 +10057,7 @@ Marien, after abandoning the idea of Peek reacting to Teams calls by itself (wat
 
 ## 316. Peek button for one-off sections; the ad-hoc title no longer fills the Peek bar
 
-**Status: on main, not released.** Marien's feedback on v0.29.0 (2026-10-08).
+**Status: released in v0.29.1.** Marien's feedback on v0.29.0 (2026-10-08).
 
 - **Peek button for sections that occur only once** (ad-hoc calls, one-off meetings): the occurrence hint used to show nothing for them (`total > 1`), so they had no Peek button in the main window. `occurrenceInfo` now also reports `total` 1, and the widget then shows only the Peek button (no arrows, no count). On the web app (no Peek) a one-off section still shows nothing. As before, the hint is a setting (Settings -> Appearance).
 - **The ad-hoc title in the Peek bar took the whole width** (`.peek-title` is `flex: 1`, and the clickable title cannot be a drag region), leaving almost nothing to move the window by. The ad-hoc title and its edit field now shrink to their text (`field-sizing: content` on the input, max 70%), and a new `.peek-drag-fill` (`data-tauri-drag-region`) takes the free space. Titles of other sections are unchanged (they are drag regions themselves).
@@ -10065,7 +10065,7 @@ Marien, after abandoning the idea of Peek reacting to Teams calls by itself (wat
 
 ## 317. Peek header ("On hover" / "Hidden"): shown when Peek starts, hidden while typing
 
-**Status: on main, not released.** Marien's feedback (2026-10-08): to see whether the right section opened, and to see what he types in the top lines.
+**Status: released in v0.29.1.** Marien's feedback (2026-10-08): to see whether the right section opened, and to see what he types in the top lines.
 
 - **At the start** the bar ("On hover") or the strip ("Hidden") is shown, and goes after the fade time (`fadeSeconds`, the same countdown as the background fade; 0 = it stays until you type) unless the pointer is on the window. Where the pointer is after the window shrinks is unknown, so the pointer state is reset at the start and only a real enter/movement counts.
 - **Typing hides it at once** (any key without Ctrl/Alt/Cmd; modifier keys alone and shortcuts are not typing; not while the call-name field is open). **Moving the pointer brings it back.** Only real movement counts: Chromium also sends a mousemove at the same screen position when the page changes under a still pointer (typing does that), so `mousemove` compares screen coordinates with the last one.
@@ -10073,7 +10073,7 @@ Marien, after abandoning the idea of Peek reacting to Teams calls by itself (wat
 
 ## 318. Section History: "As agenda" is the default; the take-over bar works from the keyboard
 
-**Status: on main, not released.** Marien's feedback (2026-10-08).
+**Status: released in v0.29.1.** Marien's feedback (2026-10-08).
 
 - **"As agenda" is the default** take-over choice (it was "Whole line"), also after switching occurrence and when "Action only" stops applying.
 - **Keyboard:** Tab from the selected lines already reached Whole line / As agenda / Add to, but the modal's own keys swallowed them there: Enter on a focused "Add to" button jumped to the note instead of pressing it, and Left/Right switched occurrence. With the focus in the take-over bar, Enter/Space press the focused button, Left/Right move between (and select) the choices, Up/Down do nothing, and Shift+Tab from the first choice goes back to the lines.
