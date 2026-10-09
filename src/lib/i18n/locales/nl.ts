@@ -536,6 +536,8 @@ export const nl = {
   "datePicker.today": () => "Vandaag",
   "datePicker.escToClose": () => "Esc om te sluiten",
 
+  "moreActions.zen": () => "Zen-modus",
+  "moreActions.peek": () => "Peek",
   "moreActions.promote.label": () => "Promoveren naar de notitie van vandaag",
 
   "conflictModal.ariaLabel": () => "Notitie gewijzigd op schijf",

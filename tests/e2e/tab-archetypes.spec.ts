@@ -8,7 +8,7 @@ test.describe("tab archetypes (§103)", () => {
     // one daily tab to start
     const daily = page.locator("#tab-bar .tab.daily");
     await expect(daily).toHaveCount(1);
-    await expect(daily.locator(".tab-icon svg")).toBeVisible(); // calendar icon
+    await expect(daily.locator(".tab-dot")).toBeVisible(); // §B3: a date dot, not an icon
     await expect(page.locator("#tab-bar .tab-group-divider")).toHaveCount(0);
 
     // add a scratchpad → divider appears between the groups
@@ -54,50 +54,42 @@ test.describe("tab archetypes (§103)", () => {
     await expect(todayTab).toHaveCount(1);
     await expect(futureTab).toHaveCount(1);
 
-    const iconColor = (loc: ReturnType<typeof page.locator>) =>
-      loc.locator(".tab-icon").evaluate((el) => getComputedStyle(el).color);
-    const iconOpacity = (loc: ReturnType<typeof page.locator>) =>
-      loc.locator(".tab-icon").evaluate((el) => getComputedStyle(el).opacity);
-
-    // All three read as genuinely different treatments, not just "today"
-    // standing out from an undifferentiated rest.
-    expect(await iconOpacity(pastTab)).not.toBe(await iconOpacity(todayTab));
-    expect(await iconColor(todayTab)).not.toBe(await iconColor(futureTab));
-    expect(await iconColor(pastTab)).not.toBe(await iconColor(futureTab));
+    // §B3: the past/today/future cue is the dot's colour.
+    const dotColor = (loc: ReturnType<typeof page.locator>) =>
+      loc.locator(".tab-dot").evaluate((el) => getComputedStyle(el).backgroundColor);
+    expect(await dotColor(pastTab)).not.toBe(await dotColor(todayTab));
+    expect(await dotColor(todayTab)).not.toBe(await dotColor(futureTab));
+    expect(await dotColor(pastTab)).not.toBe(await dotColor(futureTab));
   });
 
-  test("#96: the selected tab's top border follows its own past/today/future color, not a fixed accent", async ({
-    page,
-  }) => {
+  test("§B3: the selected tab has no accent line and joins the canvas; its dot keeps its own date colour", async ({ page }) => {
     const past = "2026-09-05.txt";
-    const future = "2026-09-10.txt";
     await seedApp(page, {
       seed: {
-        notes: { [past]: "old", [todayFilename()]: "today", [future]: "later" },
-        session: { openTabs: [past, todayFilename(), future], activeTab: past },
+        notes: { [past]: "old", [todayFilename()]: "today" },
+        session: { openTabs: [past, todayFilename()], activeTab: past },
       },
     });
-
     const pastTab = page.locator("#tab-bar .tab.daily.past");
     const todayTab = page.locator("#tab-bar .tab.daily.today");
-    const futureTab = page.locator("#tab-bar .tab.daily.future");
-    const borderColor = (loc: typeof pastTab) => loc.evaluate((el) => getComputedStyle(el).boxShadow);
-
-    // Past is active first: its own border, not the "today" accent color.
     await expect(pastTab).toHaveClass(/active/);
-    const pastActiveBorder = await borderColor(pastTab);
-
+    expect(await pastTab.evaluate((el) => getComputedStyle(el).boxShadow)).toBe("none");
+    const canvas = await page.evaluate(() => {
+      const probe = document.createElement("div");
+      probe.style.background = "var(--surface-canvas)";
+      document.body.appendChild(probe);
+      const c = getComputedStyle(probe).backgroundColor;
+      probe.remove();
+      return c;
+    });
+    const tabBg = await pastTab.evaluate((el) => getComputedStyle(el).backgroundColor);
+    const dot = (loc: typeof pastTab) => loc.locator(".tab-dot").evaluate((el) => getComputedStyle(el).backgroundColor);
+    const pastDotActive = await dot(pastTab);
     await todayTab.click();
     await expect(todayTab).toHaveClass(/active/);
-    const todayActiveBorder = await borderColor(todayTab);
-
-    await futureTab.click();
-    await expect(futureTab).toHaveClass(/active/);
-    const futureActiveBorder = await borderColor(futureTab);
-
-    expect(pastActiveBorder).not.toBe(todayActiveBorder);
-    expect(todayActiveBorder).not.toBe(futureActiveBorder);
-    expect(pastActiveBorder).not.toBe(futureActiveBorder);
+    expect(await dot(todayTab)).not.toBe(pastDotActive);
+    // The active tab is drawn in the canvas colour, so it joins the note below.
+    expect(tabBg).toBe(canvas);
   });
 
   test("middle-click closes a tab (§110)", async ({ page }) => {

@@ -29,6 +29,7 @@
   let settlePendingAllowUpgrade = false;
   let scrollIntoViewToken = 0;
   let unmounted = false;
+  let maxBtnEl = $state<HTMLButtonElement>();
   /** Whether the command buttons are folded into More right now (§B2) — `MoreActionsModal`
    * lists them above Settings and the rest while this is true. Written only by `TopBar`. */
   export const commandsCollapsed = writable(false);
@@ -36,6 +37,7 @@
 
 <script lang="ts">
   import { onMount, tick } from "svelte";
+  import { wireSnapOverlay } from "../snapOverlay";
   import * as controller from "../controller";
   import {
     activeTabId,
@@ -673,7 +675,11 @@
     // §B3: friendly names can be shorter or longer than the ISO date, which can change what fits.
     const unsubLabelStyle = tabLabelStyle.subscribe(() => settleLayout());
 
+    // §B1: Windows 11 Snap Layouts on the maximize button (a native overlay, see snap_overlay.rs).
+    const stopSnap = isMergedTitlebar && maxBtnEl ? wireSnapOverlay(maxBtnEl) : () => {};
+
     return () => {
+      stopSnap();
       unmounted = true;
       resizeObserver?.disconnect();
       unsubTabs();
@@ -927,7 +933,8 @@
         <Icon name="minimize" size={12} />
       </button>
       <button
-        class="win-btn"
+        class="win-btn win-max"
+        bind:this={maxBtnEl}
         aria-label={$chromeExpanded ? $t("topBar.window.restore") : $t("topBar.window.maximize")}
         onclick={() => controller.toggleMaximizeWindow()}
       >
@@ -1223,7 +1230,7 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 44px;
+  width: 46px;
   background: transparent;
   border: none;
   color: var(--muted);
@@ -1231,14 +1238,26 @@
   padding: 0;
 }
 
-.win-btn:hover {
+/* `.snap-hover`: the maximize button's hover look while the native Snap Layouts overlay
+   (§B1) has the pointer; the page itself no longer sees it there. */
+.win-btn:hover,
+.win-btn.win-max:global(.snap-hover) {
   background: var(--surface-raised);
   color: var(--text);
 }
 
+/* Windows 11's own close-button red. */
 .win-btn.win-close:hover {
-  background: var(--state-error);
+  background: #c42b1c;
   color: #ffffff;
+}
+
+/* §B1: a window in the background dims its title bar, as Windows 11 does. */
+:global(body.window-inactive) #top-bar .app-icon,
+:global(body.window-inactive) #top-bar .tab-label,
+:global(body.window-inactive) #top-bar .icon-btn,
+:global(body.window-inactive) #top-bar .win-btn {
+  color: var(--text-tertiary);
 }
 
 #tab-bar {

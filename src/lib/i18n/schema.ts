@@ -531,6 +531,8 @@ export type TranslationParams = {
   "datePicker.escToClose": undefined;
 
   // More Actions popover (`MoreActionsModal.svelte`, #56 top-bar overflow).
+  "moreActions.zen": undefined;
+  "moreActions.peek": undefined;
   "moreActions.promote.label": undefined;
 
   // Conflict modal (`ConflictModal.svelte`) — a note changed on disk

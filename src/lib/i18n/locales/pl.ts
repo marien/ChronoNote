@@ -551,6 +551,8 @@ export const pl = {
   "datePicker.today": () => "Dzisiaj",
   "datePicker.escToClose": () => "Esc, aby zamknąć",
 
+  "moreActions.zen": () => "Tryb Zen",
+  "moreActions.peek": () => "Peek",
   "moreActions.promote.label": () => "Przenieś do dzisiejszej notatki",
 
   "conflictModal.ariaLabel": () => "Notatka zmieniona na dysku",

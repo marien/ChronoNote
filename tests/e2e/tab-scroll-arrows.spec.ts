@@ -27,6 +27,11 @@ test.describe("desktop tab strip", () => {
     // The newest tab is active, so the strip sits at its right edge:
     // scrolling right wraps back to the start...
     await expect.poll(() => scrollLeft(page)).toBeGreaterThan(0);
+    // Put the strip exactly at its right edge (the active tab only needs to be in view).
+    await page.evaluate(() => {
+      const bar = document.getElementById("tab-bar")!;
+      bar.scrollLeft = bar.scrollWidth;
+    });
     await right.click();
     await expect.poll(() => scrollLeft(page)).toBe(0);
     // ...and scrolling left from the start wraps to the far end.

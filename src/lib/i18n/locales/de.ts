@@ -541,6 +541,8 @@ export const de = {
   "datePicker.today": () => "Heute",
   "datePicker.escToClose": () => "Esc zum Schließen",
 
+  "moreActions.zen": () => "Zen-Modus",
+  "moreActions.peek": () => "Peek",
   "moreActions.promote.label": () => "Zur heutigen Notiz befördern",
 
   "conflictModal.ariaLabel": () => "Notiz auf der Festplatte geändert",

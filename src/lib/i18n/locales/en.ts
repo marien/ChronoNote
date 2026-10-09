@@ -532,6 +532,8 @@ export const en = {
   "datePicker.today": () => "Today",
   "datePicker.escToClose": () => "Esc to close",
 
+  "moreActions.zen": () => "Zen mode",
+  "moreActions.peek": () => "Peek",
   "moreActions.promote.label": () => "Promote into today's note",
 
   "conflictModal.ariaLabel": () => "Note changed on disk",

@@ -19,6 +19,11 @@ let applied = false;
 
 async function isWindows11(): Promise<boolean> {
   if (windows11 !== null) return windows11;
+  // The test/dev mock pretends to be the desktop app in a plain browser, which has no window effects.
+  if ((window as Window & { __CHRONO_MOCK__?: unknown }).__CHRONO_MOCK__) {
+    windows11 = false;
+    return windows11;
+  }
   const uad = (navigator as Navigator & {
     userAgentData?: { platform?: string; getHighEntropyValues?: (h: string[]) => Promise<{ platformVersion?: string }> };
   }).userAgentData;

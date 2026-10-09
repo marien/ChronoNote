@@ -550,6 +550,8 @@ export const fr = {
   "datePicker.today": () => "Aujourd'hui",
   "datePicker.escToClose": () => "Échap pour fermer",
 
+  "moreActions.zen": () => "Mode Zen",
+  "moreActions.peek": () => "Peek",
   "moreActions.promote.label": () => "Transférer dans la note d'aujourd'hui",
 
   "conflictModal.ariaLabel": () => "Note modifiée sur le disque",

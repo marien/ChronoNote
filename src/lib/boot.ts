@@ -194,6 +194,8 @@ function wireDriftDetection() {
   }
   getCurrentWindow()
     .onFocusChanged(({ payload: focused }) => {
+      // §B1: Windows 11 dims an inactive window's title bar; 02-top-bar.css reads this class.
+      document.body.classList.toggle("window-inactive", !focused);
       if (!focused) return;
       void checkActiveTabForDrift();
       // Same "regained focus" moment covers the sync button's gray-out

@@ -18,7 +18,7 @@
   import { commandsCollapsed } from "../TopBar.svelte";
   import { sheetSwipe } from "../../actions/sheetSwipe";
   import Icon from "../../icons/Icon.svelte";
-  import { formatShortcut } from "../../shortcuts";
+  import { formatCombo, formatShortcut, shortcutById } from "../../shortcuts";
   import { todayISO } from "../../date";
   import { t } from "../../i18n";
 
@@ -134,15 +134,15 @@
   </button>
   <button type="button" class="more-actions-item" role="menuitem" onclick={controller.openShortcutsHelp}>
     <Icon name="keyboard" size={14} /><span>{$t("shortcuts.modal.title")}</span>
-    <kbd>{formatShortcut("openShortcutsHelp")}</kbd>
+    <kbd>{formatCombo(shortcutById("openShortcutsHelp").combos[0])}</kbd>
   </button>
   <button type="button" class="more-actions-item" role="menuitem" onclick={toggleZen}>
-    <Icon name="maximize" size={14} /><span>{$t("shortcuts.toggleZenMode.label")}</span>
+    <Icon name="maximize" size={14} /><span>{$t("moreActions.zen")}</span>
     <kbd>{formatShortcut("toggleZenMode")}</kbd>
   </button>
   {#if $backendKind === "desktop"}
     <button type="button" class="more-actions-item" role="menuitem" onclick={peek}>
-      <Icon name="peek" size={14} /><span>{$t("commandPalette.togglePeekMode")}</span>
+      <Icon name="peek" size={14} /><span>{$t("moreActions.peek")}</span>
       <kbd>{formatShortcut("togglePeekMode")}</kbd>
     </button>
   {/if}

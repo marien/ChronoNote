@@ -3,7 +3,9 @@
  * single "More actions" button — `TopBar.svelte`'s `settleLayout`,
  * extended one tier past its existing label-collapse logic — freeing that
  * space back to the tab strip. New Scratchpad and Open Date Note stay
- * pinned regardless of width. `MoreActionsModal` is the resulting
+ * pinned regardless of width. Since §B2 the More button is always there
+ * (Settings, Shortcuts, Zen, Peek, About live in it); the collapsed commands
+ * are added on top of those. `MoreActionsModal` is the resulting
  * popover, anchored to the "More actions" button the same way
  * `DatePickerModal` anchors to its own trigger. About moved to the status
  * bar (#58) and is no longer part of this top-bar collapse group at
@@ -13,11 +15,12 @@ import { seedApp, modalCard, MODAL_LABELS, typeInEditor, editor } from "./helper
 import { scenario } from "../../src/lib/testing/scenarios";
 
 test.describe("top bar: collapsing secondary buttons on a narrow window (#56)", () => {
-  test("wide window: every action button is visible individually, no More button", async ({ page }) => {
+  test("wide window: every command button is visible individually; Settings lives in More (§B2)", async ({ page }) => {
     await seedApp(page, { seed: "busy-week" });
     await expect(page.getByTitle(/^Actions /)).toBeVisible();
-    await expect(page.getByTitle(/^Settings /)).toBeVisible();
-    await expect(page.getByTitle("More actions")).toHaveCount(0);
+    await expect(page.getByTitle(/^Section history /)).toBeVisible();
+    await expect(page.getByTitle(/^Settings /)).toHaveCount(0);
+    await expect(page.getByTitle("More actions")).toBeVisible();
   });
 
   test("narrow window: secondary buttons collapse into More; New Scratchpad and Open Date stay pinned", async ({
@@ -53,7 +56,8 @@ test.describe("top bar: collapsing secondary buttons on a narrow window (#56)", 
     await expect(menu.getByRole("menuitem", { name: /Cross-tab search.*Ctrl\+Shift\+F/s })).toBeVisible();
     await expect(menu.getByRole("menuitem", { name: /Sync calendar for this day.*Ctrl\+Shift\+C/s })).toBeVisible();
     await expect(menu.getByRole("menuitem", { name: /^Settings/ })).toBeVisible();
-    await expect(menu.getByRole("menuitem", { name: /About ChronoNote/ })).toHaveCount(0);
+    // §B2: About moved into More as well.
+    await expect(menu.getByRole("menuitem", { name: /About ChronoNote/ })).toBeVisible();
 
     await menu.getByRole("menuitem", { name: /^Settings/ }).click();
     await expect(modalCard(page, MODAL_LABELS.settings)).toBeVisible();
@@ -89,12 +93,11 @@ test.describe("top bar: collapsing secondary buttons on a narrow window (#56)", 
   test("widening the window back un-collapses the buttons", async ({ page }) => {
     await seedApp(page, { seed: "busy-week" });
     await page.setViewportSize({ width: 480, height: 720 });
-    await expect(page.getByTitle("More actions")).toBeVisible();
+    await expect(page.getByTitle(/^Actions /)).toHaveCount(0);
 
     await page.setViewportSize({ width: 1280, height: 800 });
-    await expect(page.getByTitle("More actions")).toHaveCount(0);
     await expect(page.getByTitle(/^Actions /)).toBeVisible();
-    await expect(page.getByTitle(/^Settings /)).toBeVisible();
+    await expect(page.getByTitle(/^Section history /)).toBeVisible();
   });
 });
 
@@ -122,13 +125,12 @@ test.describe("top bar: collapsing secondary buttons on a narrow window (#56)", 
  * `#top-bar`'s subtree: zero DOM mutations there while typing, in both
  * the icon-only/collapsed tier and the labeled tier. */
 test.describe("top bar: label/collapse state doesn't depend on window-maximized state, and doesn't flicker while typing (#57)", () => {
-  test("a wide-enough restored window shows action-button labels, purely from available width", async ({ page }) => {
+  test("§B2: command buttons never show text labels, even on a very wide window", async ({ page }) => {
     await seedApp(page, { seed: "busy-week" });
     await page.setViewportSize({ width: 2000, height: 720 });
-
-    await expect(page.locator(".icon-label")).not.toHaveCount(0);
-    await expect(page.getByTitle(/^Actions /)).toContainText("Actions");
-    await expect(page.getByTitle("More actions")).toHaveCount(0);
+    await expect(page.getByTitle(/^Actions /)).toBeVisible();
+    await expect(page.locator("#top-bar .icon-label")).toHaveCount(0);
+    await expect(page.getByTitle(/^Actions /)).toHaveText("");
   });
 
   // `settleLayout` converges over several `requestAnimationFrame` waits
@@ -172,15 +174,15 @@ test.describe("top bar: label/collapse state doesn't depend on window-maximized 
   test("typing doesn't touch the top bar at all, in the icon-only/collapsed tier", async ({ page }) => {
     await seedApp(page, { seed: "busy-week" });
     await page.setViewportSize({ width: 480, height: 720 });
-    await expect(page.getByTitle("More actions")).toBeVisible();
+    await expect(page.getByTitle(/^Actions /)).toHaveCount(0);
 
     expect(await countTopBarMutationsWhileTyping(page)).toBe(0);
   });
 
-  test("typing doesn't touch the top bar at all, in the labeled tier", async ({ page }) => {
+  test("typing doesn't touch the top bar at all, on a wide window", async ({ page }) => {
     await seedApp(page, { seed: "busy-week" });
     await page.setViewportSize({ width: 2000, height: 720 });
-    await expect(page.locator(".icon-label")).not.toHaveCount(0);
+    await expect(page.getByTitle(/^Actions /)).toBeVisible();
 
     expect(await countTopBarMutationsWhileTyping(page)).toBe(0);
   });
@@ -250,7 +252,7 @@ test.describe("top bar: tab-id collisions and resize flicker (#61)", () => {
     const states: boolean[] = [];
     for (let width = 2200; width >= 700; width -= 20) {
       await page.setViewportSize({ width, height: 700 });
-      states.push(await page.getByTitle("More actions").isVisible());
+      states.push(!(await page.getByTitle(/^Actions /).isVisible()));
     }
 
     // Once narrower, never briefly "recovers" to uncollapsed before
@@ -286,7 +288,7 @@ test.describe("top bar: tab-id collisions and resize flicker (#61)", () => {
     const states: boolean[] = [];
     for (let width = 700; width <= 2200; width += 20) {
       await page.setViewportSize({ width, height: 700 });
-      states.push(await page.getByTitle("More actions").isVisible());
+      states.push(!(await page.getByTitle(/^Actions /).isVisible()));
     }
 
     // Once uncollapsed, never briefly "reverts" to collapsed before
