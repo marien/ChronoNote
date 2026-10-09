@@ -199,3 +199,29 @@ test.describe("phone action buttons work on the symbol at the caret", () => {
     expect(await activeTabContent(page)).toBe("v do X => v wait");
   });
 });
+
+test.describe("Ctrl+1-7 on an empty line puts the caret after the new glyph", () => {
+  test("typing after Ctrl+1 / Ctrl+5 on an empty line follows the token", async ({ page }) => {
+    await seedApp(page, { seed: "empty" });
+    await setEditorText(page, "");
+    await editor(page).click();
+    await page.keyboard.press("ControlOrMeta+1");
+    await page.keyboard.type("abc");
+    expect(await activeTabContent(page)).toBe("# abc");
+
+    await setEditorText(page, "");
+    await editor(page).click();
+    await page.keyboard.press("ControlOrMeta+5");
+    await page.keyboard.type("abc");
+    expect(await activeTabContent(page)).toBe("o abc");
+  });
+
+  test("a caret at the start of a plain line stays in front of its text", async ({ page }) => {
+    await seedApp(page, { seed: "empty" });
+    await setEditorText(page, "text");
+    await page.keyboard.press("ControlOrMeta+Home");
+    await page.keyboard.press("ControlOrMeta+2");
+    await page.keyboard.type("X");
+    expect(await activeTabContent(page)).toBe("v Xtext");
+  });
+});

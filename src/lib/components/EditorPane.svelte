@@ -222,6 +222,15 @@
     return lineNumber < v.state.doc.lines && isSetextUnderline(v.state.doc.line(lineNumber + 1).text);
   }
 
+  /** Where `before` and `after` start to differ (the length of their common prefix). A caret at or after this
+   * point moves with the change, one before it stays: on an empty line `Ctrl+1` inserts `# ` at column 0 and the
+   * caret has to end up after it (it used to stay in front, because only a caret past column 0 was moved). */
+  function changedFrom(before: string, after: string): number {
+    let i = 0;
+    while (i < before.length && i < after.length && before[i] === after[i]) i++;
+    return i;
+  }
+
   /** #73: applies `transform` to the current line only — used for
    * Ctrl+Space's close/reopen pair, which (unlike `applyActionStateToSelection`
    * below) never touches more than one line at a time and never promotes
@@ -238,8 +247,9 @@
     const delta = updated.length - line.text.length;
     const anchorOffset = sel.anchor - line.from;
     const headOffset = sel.head - line.from;
-    const newAnchor = line.from + Math.max(0, Math.min(anchorOffset + (anchorOffset > 0 ? delta : 0), updated.length));
-    const newHead = line.from + Math.max(0, Math.min(headOffset + (headOffset > 0 ? delta : 0), updated.length));
+    const at = changedFrom(line.text, updated);
+    const newAnchor = line.from + Math.max(0, Math.min(anchorOffset + (anchorOffset >= at ? delta : 0), updated.length));
+    const newHead = line.from + Math.max(0, Math.min(headOffset + (headOffset >= at ? delta : 0), updated.length));
 
     v.dispatch({
       changes: { from: line.from, to: line.to, insert: updated },
@@ -286,8 +296,9 @@
       const delta = updatedText.length - origText.length;
       const anchorOffset = sel.anchor - firstLine.from;
       const headOffset = sel.head - firstLine.from;
-      const newAnchor = firstLine.from + Math.max(0, Math.min(anchorOffset + (anchorOffset > 0 ? delta : 0), updatedText.length));
-      const newHead = firstLine.from + Math.max(0, Math.min(headOffset + (headOffset > 0 ? delta : 0), updatedText.length));
+      const at = changedFrom(origText, updatedText);
+      const newAnchor = firstLine.from + Math.max(0, Math.min(anchorOffset + (anchorOffset >= at ? delta : 0), updatedText.length));
+      const newHead = firstLine.from + Math.max(0, Math.min(headOffset + (headOffset >= at ? delta : 0), updatedText.length));
       v.dispatch({
         changes: { from: firstLine.from, to: lastLine.to, insert: updatedText },
         selection: EditorSelection.range(newAnchor, newHead),
