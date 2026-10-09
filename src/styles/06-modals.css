@@ -676,3 +676,73 @@ textarea.modal-input.import-textarea {
   outline: none;
   box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--text);
 }
+
+/* §C2: Windows 11 ContentDialog layout for confirmation dialogs */
+.dialog-card {
+  padding: 0;
+  overflow: hidden;
+}
+
+.dialog-body {
+  padding: 22px 24px 18px;
+  font-size: var(--type-body);
+  line-height: 20px;
+  color: var(--muted);
+}
+
+.dialog-title {
+  margin: 0 0 10px;
+  font: 600 var(--type-subtitle)/28px var(--font-ui-display);
+  color: var(--text);
+}
+
+.dialog-list {
+  margin: 8px 0 0 20px;
+}
+
+.dialog-buttons {
+  display: flex;
+  gap: 8px;
+  padding: 20px 24px 24px;
+  background: var(--surface-chrome);
+  border-top: 1px solid var(--edge-soft);
+}
+
+.dialog-btn {
+  flex: 1 1 0;
+  min-height: 32px;
+  padding: 4px 11px;
+  border-radius: var(--radius-control);
+  border: 1px solid var(--edge-strong);
+  background: var(--surface-raised);
+  color: var(--text);
+  font: inherit;
+  font-size: var(--type-body);
+  cursor: pointer;
+}
+
+.dialog-btn:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--surface-raised) 85%, var(--text));
+}
+
+.dialog-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.dialog-btn.accent {
+  background: var(--selected-bg);
+  color: var(--selected-fg);
+  border-color: transparent;
+  font-weight: 600;
+}
+
+.dialog-btn.accent:hover:not(:disabled) {
+  filter: brightness(1.08);
+}
+
+.dialog-btn:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--text);
+}
+

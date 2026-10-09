@@ -3,7 +3,6 @@
   import * as controller from "../../controller";
   import { scratchpadGateContext, unsavedScratchpadNames } from "../../controller";
   import { focusTrap } from "../../actions/focusTrap";
-  import Icon from "../../icons/Icon.svelte";
   import { t } from "../../i18n";
 
   let cancelBtn: HTMLButtonElement;
@@ -19,30 +18,23 @@
 </script>
 
 <div class="overlay">
-  <div class="modal-card modal-sm" role="dialog" aria-modal="true" use:focusTrap aria-label={$t("unsavedScratchpads.ariaLabel")}>
-    <div class="modal-input-wrap modal-title">
-      <Icon name="warning" size={15} />
-      <span>{$t("unsavedScratchpads.title")}</span>
-      <button
-        type="button"
-        class="icon-btn modal-close-btn"
-        aria-label={$t("common.closeDialog")}
-        onclick={cancel}
-      >
-        <Icon name="close" size={14} />
+  <div class="modal-card modal-sm dialog-card" role="dialog" aria-modal="true" use:focusTrap aria-label={$t("unsavedScratchpads.ariaLabel")}>
+    <div class="dialog-body">
+      <h2 class="dialog-title">{$t("unsavedScratchpads.title")}</h2>
+      <div>
+        {lead}
+        <ul class="dialog-list">
+          {#each $unsavedScratchpadNames as name}
+            <li>{name}</li>
+          {/each}
+        </ul>
+      </div>
+    </div>
+    <div class="dialog-buttons">
+      <button class="dialog-btn accent" bind:this={cancelBtn} onclick={cancel}>
+        {$t("common.cancel")}
       </button>
-    </div>
-    <div style="padding: 16px; font-size: 13px; line-height: 1.5;">
-      {lead}
-      <ul style="margin: 8px 0 0 20px;">
-        {#each $unsavedScratchpadNames as name}
-          <li>{name}</li>
-        {/each}
-      </ul>
-    </div>
-    <div class="modal-footer" style="justify-content: flex-end; gap: 8px;">
-      <button class="icon-btn" bind:this={cancelBtn} onclick={cancel}>{$t("common.cancel")}</button>
-      <button class="icon-btn btn-primary" onclick={confirm}>
+      <button class="dialog-btn" onclick={confirm}>
         {confirmLabel}
       </button>
     </div>

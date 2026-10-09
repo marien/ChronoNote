@@ -1,7 +1,7 @@
 <script lang="ts">
+  import { onMount } from "svelte";
   import { closeOnOutsideClick } from "../../actions/closeOnOutsideClick";
   import { focusTrap } from "../../actions/focusTrap";
-  import Icon from "../../icons/Icon.svelte";
   import { t } from "../../i18n";
 
   interface Props {
@@ -13,6 +13,9 @@
   }
 
   let { noteCount, targetFolder, onMigrate, onSkip, onCancel }: Props = $props();
+
+  let migrateBtn = $state<HTMLButtonElement>();
+  onMount(() => migrateBtn?.focus());
 
   let migrating = $state(false);
   let skipping = $state(false);
@@ -46,35 +49,27 @@
 
 <div class="overlay" role="presentation" use:closeOnOutsideClick={onCancel}>
   <div
-    class="modal-card settings-modal-card modal-sm"
+    class="modal-card modal-sm dialog-card"
     role="dialog"
     aria-modal="true"
     use:focusTrap
     aria-label={$t("migrateNotes.ariaLabel")}
   >
-    <div class="modal-input-wrap modal-title" style="justify-content: space-between;">
-      <div style="display: flex; align-items: center; gap: 8px;">
-        <Icon name="cloud" size={16} />
-        <span>{$t("migrateNotes.title")}</span>
+    <div class="dialog-body">
+      <h2 class="dialog-title">{$t("migrateNotes.title")}</h2>
+      <div style="margin-bottom: 12px;">
+        {$t("migrateNotes.body.beforeCount")} <strong style="color: var(--text);">{$t("migrateNotes.noteCount", { count: noteCount })}</strong> {$t("migrateNotes.body.afterCount")}
+        {$t("migrateNotes.body.beforeFolder")}<strong style="color: var(--text);">{targetFolder}</strong>{$t("migrateNotes.body.afterFolder")}
       </div>
-      <button type="button" class="icon-btn modal-close-btn" aria-label={$t("common.closeDialog")} onclick={onCancel} disabled={migrating || skipping}>
-        <Icon name="close" size={14} />
-      </button>
+      <div>
+        {$t("migrateNotes.disclaimerHint")}
+      </div>
     </div>
 
-    <div style="font-size: 13px; color: var(--text-secondary); line-height: 1.5; margin-bottom: 14px;">
-      {$t("migrateNotes.body.beforeCount")} <strong style="color: var(--text);">{$t("migrateNotes.noteCount", { count: noteCount })}</strong> {$t("migrateNotes.body.afterCount")}
-      {$t("migrateNotes.body.beforeFolder")}<strong style="color: var(--text);">{targetFolder}</strong>{$t("migrateNotes.body.afterFolder")}
-    </div>
-
-    <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 20px; line-height: 1.4;">
-      {$t("migrateNotes.disclaimerHint")}
-    </div>
-
-    <div style="display: flex; flex-direction: column; gap: 10px;">
+    <div class="dialog-buttons">
       <button
-        class="icon-btn btn-primary"
-        style="justify-content: center; padding: 10px 16px; font-weight: 500;"
+        class="dialog-btn accent"
+        bind:this={migrateBtn}
         disabled={migrating || skipping}
         onclick={handleMigrate}
       >
@@ -86,8 +81,7 @@
       </button>
 
       <button
-        class="icon-btn"
-        style="justify-content: center; padding: 8px 16px;"
+        class="dialog-btn"
         disabled={migrating || skipping}
         onclick={handleSkip}
       >
@@ -99,8 +93,7 @@
       </button>
 
       <button
-        class="icon-btn"
-        style="justify-content: center; padding: 6px 16px; opacity: 0.8;"
+        class="dialog-btn"
         disabled={migrating || skipping}
         onclick={onCancel}
       >

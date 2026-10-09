@@ -88,7 +88,7 @@ test.describe("modal system modernization (Area 5.1 & 5.3)", () => {
     expect(await currentModal(page)).toBe("none");
   });
 
-  test("SafetyModal close button triggers safety cancel", async ({ page }) => {
+  test("SafetyModal dismisses on Escape", async ({ page }) => {
     await seedApp(page, {
       seed: { notes: { [todayFilename()]: "# open action to block closing" } },
     });
@@ -99,9 +99,7 @@ test.describe("modal system modernization (Area 5.1 & 5.3)", () => {
     await expect(safety).toBeVisible();
     await expect(safety).toHaveClass(/\bmodal-sm\b/);
 
-    const closeBtn = safety.locator(".modal-close-btn");
-    await expect(closeBtn).toBeVisible();
-    await closeBtn.click();
+    await page.keyboard.press("Escape");
     expect(await currentModal(page)).toBe("none");
   });
 });
