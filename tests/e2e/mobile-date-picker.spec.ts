@@ -13,7 +13,7 @@ const marked = (page: Page) => picker(page).locator(".cal-day.target");
 
 async function openPicker(page: Page) {
   await seedApp(page, { seed });
-  await page.getByTitle(/Open Date Note/).click();
+  await page.locator("[data-datepicker-trigger]").click();
   await expect(picker(page)).toBeVisible();
 }
 

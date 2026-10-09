@@ -861,4 +861,11 @@ export const pl = {
   "editorMenu.cut": () => "Wytnij",
   "editorMenu.copy": () => "Kopiuj",
   "editorMenu.paste": () => "Wklej",
+  "phoneNav.note": () => "Notatka",
+  "phoneNav.today": () => "Dzisiaj",
+  "phoneNav.yesterday": () => "Wczoraj",
+  "phoneNav.tomorrow": () => "Jutro",
+  "phoneNav.openCount": (params) => `${params?.count ?? 0} otwarte`,
+  "phoneNav.previous": () => "Poprzednia notatka",
+  "phoneNav.next": () => "Następna notatka",
 } satisfies Dictionary;

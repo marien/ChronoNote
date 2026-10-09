@@ -131,9 +131,9 @@ test.describe("mobile tabs drawer", () => {
     await drawer(page).locator(".drawer-tab-item", { hasText: "2026-09-03" }).click();
     await expect(chip).toContainText("2026-09-03");
 
-    // Tapping it opens the drawer too.
+    // Tapping the title button opens the date picker (§D2).
     await chip.click();
-    await expect(drawer(page)).toBeVisible();
+    await expect(page.locator(".datepicker-pop")).toBeVisible();
   });
 
   test("the top bar has room for the active tab's whole date", async ({ page }) => {

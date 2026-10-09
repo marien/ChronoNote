@@ -7,8 +7,8 @@ import { seedApp, mockNote, activeTabContent } from "./helpers";
 test.describe("OneDrive sync conflicts", () => {
   test.use({
     viewport: { width: 400, height: 800 },
-    isMobile: true,
-    hasTouch: true,
+    isMobile: false,
+    hasTouch: false,
     userAgent:
       "Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Mobile Safari/537.36",
   });

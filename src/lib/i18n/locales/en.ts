@@ -812,4 +812,11 @@ export const en = {
   "editorMenu.cut": () => "Cut",
   "editorMenu.copy": () => "Copy",
   "editorMenu.paste": () => "Paste",
+  "phoneNav.note": () => "Note",
+  "phoneNav.today": () => "Today",
+  "phoneNav.yesterday": () => "Yesterday",
+  "phoneNav.tomorrow": () => "Tomorrow",
+  "phoneNav.openCount": (params) => `${params?.count ?? 0} open`,
+  "phoneNav.previous": () => "Previous note",
+  "phoneNav.next": () => "Next note",
 } satisfies Dictionary;

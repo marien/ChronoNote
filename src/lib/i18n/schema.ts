@@ -824,6 +824,13 @@ export type TranslationParams = {
   "editorMenu.cut": undefined;
   "editorMenu.copy": undefined;
   "editorMenu.paste": undefined;
+  "phoneNav.note": undefined;
+  "phoneNav.today": undefined;
+  "phoneNav.yesterday": undefined;
+  "phoneNav.tomorrow": undefined;
+  "phoneNav.openCount": { count: number };
+  "phoneNav.previous": undefined;
+  "phoneNav.next": undefined;
 };
 
 export type TranslationKey = keyof TranslationParams;
