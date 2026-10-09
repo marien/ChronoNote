@@ -12,6 +12,7 @@ import {
   todayFilename,
 } from "./helpers";
 import { REFERENCE_TODAY } from "../../src/lib/testing/scenarios";
+import { isoWeek, isoWeekToMonday } from "../../src/lib/date";
 
 const pop = (page: Page) => datePicker(page);
 
@@ -60,6 +61,25 @@ test.describe("date picker — anchored calendar popover (Ctrl/Cmd+O, §104)", (
     expect(await withOpen.count()).toBeGreaterThan(0);
     // a day known to have none in the seed is not marked
     await expect(pop(page).locator('.cal-day[data-iso="2026-09-20"]')).not.toHaveClass(/\bhas\b/);
+  });
+
+  test("the picker shows a wk column and jumps to week 1 query on Enter (§C6)", async ({ page }) => {
+    // The picker shows a `wk` column header
+    await expect(pop(page).locator(".cal-week-col-head")).toHaveText("wk");
+
+    // First value matches isoWeek of the first row's Monday
+    const firstMondayIso = await pop(page).locator(".cal-day").first().getAttribute("data-iso");
+    expect(firstMondayIso).toBeTruthy();
+    const expectedWeek = isoWeek(firstMondayIso!);
+    await expect(pop(page).locator(".cal-week-num").first()).toHaveText(String(expectedWeek));
+
+    // Typing `wk 1` in the query input and Enter opens the Monday of week 1 of the current year
+    await pop(page).locator(".datepicker-jump").fill("wk 1");
+    await page.keyboard.press("Enter");
+    expect(await currentModal(page)).toBe("none");
+    const year = parseInt(REFERENCE_TODAY.split("-")[0], 10);
+    const expectedMon1 = isoWeekToMonday(year, 1);
+    await expect(activeTabLabel(page)).toHaveText(new RegExp(expectedMon1));
   });
 
 

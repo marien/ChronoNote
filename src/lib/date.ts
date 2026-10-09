@@ -49,9 +49,41 @@ export function parseDateQuery(input: string): string | null {
     d.setDate(d.getDate() + offset);
     return formatISO(d);
   }
+  const weekMatch = trimmed.match(/^(?:wk|w|week)\s*(\d{1,2})$/i);
+  if (weekMatch) {
+    const w = parseInt(weekMatch[1], 10);
+    if (w >= 1 && w <= 53) {
+      return isoWeekToMonday(base.getFullYear(), w);
+    }
+  }
   if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) return trimmed;
   if (/^\d{2}-\d{2}$/.test(trimmed)) return `${base.getFullYear()}-${trimmed}`;
   return null;
+}
+
+/** Computes the ISO 8601 week number (1–53) for a YYYY-MM-DD date string.
+ * Weeks start on Monday, and week 1 is the week with the year's first Thursday. */
+export function isoWeek(iso: string): number {
+  const [y, m, d] = iso.split("-").map(Number);
+  const dateUtc = new Date(Date.UTC(y, m - 1, d));
+  const day = dateUtc.getUTCDay() === 0 ? 7 : dateUtc.getUTCDay();
+  dateUtc.setUTCDate(dateUtc.getUTCDate() + 4 - day);
+  const thursdayYear = dateUtc.getUTCFullYear();
+  const jan4 = new Date(Date.UTC(thursdayYear, 0, 4));
+  const jan4Day = jan4.getUTCDay() === 0 ? 7 : jan4.getUTCDay();
+  const firstThursday = new Date(Date.UTC(thursdayYear, 0, 4 + 4 - jan4Day));
+  return 1 + Math.round((dateUtc.getTime() - firstThursday.getTime()) / 604800000);
+}
+
+/** Returns the Monday (YYYY-MM-DD) of a given ISO week in a given year. */
+export function isoWeekToMonday(year: number, week: number): string {
+  const jan4 = new Date(Date.UTC(year, 0, 4));
+  const jan4Day = jan4.getUTCDay() === 0 ? 7 : jan4.getUTCDay();
+  const mon = new Date(Date.UTC(year, 0, 4 - (jan4Day - 1) + (week - 1) * 7));
+  const y = mon.getUTCFullYear();
+  const m = String(mon.getUTCMonth() + 1).padStart(2, "0");
+  const d = String(mon.getUTCDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
 }
 
 // --- Month-grid helpers for the anchored calendar popover (§104) -------

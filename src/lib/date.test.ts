@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import { formatISO, todayISO, parseDateQuery, addMonths, monthGrid, parseISODateLocal, addDaysISO, monthName, weekdayAbbrev } from "./date";
+import { formatISO, todayISO, parseDateQuery, addMonths, monthGrid, parseISODateLocal, addDaysISO, monthName, weekdayAbbrev, isoWeek, isoWeekToMonday } from "./date";
 
 describe("formatISO", () => {
   it("formats as zero-padded YYYY-MM-DD", () => {
@@ -56,6 +56,20 @@ describe("time-dependent date helpers", () => {
     expect(parseDateQuery("12-25")).toBe("2026-12-25");
   });
 
+  it("parseDateQuery resolves week queries to the week's Monday", () => {
+    // Current fake time is 2026-09-15 (year 2026).
+    // ISO week 42 of 2026 starts on Monday 2026-10-12.
+    expect(parseDateQuery("wk 42")).toBe("2026-10-12");
+    expect(parseDateQuery("w42")).toBe("2026-10-12");
+    expect(parseDateQuery("week 42")).toBe("2026-10-12");
+    expect(parseDateQuery("wk42")).toBe("2026-10-12");
+    expect(parseDateQuery("WK 42")).toBe("2026-10-12");
+    expect(parseDateQuery("W42")).toBe("2026-10-12");
+    expect(parseDateQuery("WEEK 42")).toBe("2026-10-12");
+    // Week 1 of 2026 starts on Monday 2025-12-29.
+    expect(parseDateQuery("wk 1")).toBe("2025-12-29");
+  });
+
   it("parseDateQuery trims and lowercases free-text input", () => {
     expect(parseDateQuery("  TODAY  ")).toBe("2026-09-15");
   });
@@ -63,7 +77,20 @@ describe("time-dependent date helpers", () => {
   it("parseDateQuery returns null for unrecognized input", () => {
     expect(parseDateQuery("next tuesday")).toBeNull();
     expect(parseDateQuery("")).toBeNull();
+    expect(parseDateQuery("wk 0")).toBeNull();
+    expect(parseDateQuery("wk 54")).toBeNull();
     expect(parseDateQuery("2026-13-01")).toBe("2026-13-01"); // shape-only check, not calendar-valid — documents current behavior
+  });
+});
+
+describe("isoWeek", () => {
+  it("computes ISO 8601 week numbers per spec", () => {
+    expect(isoWeek("2026-01-01")).toBe(1);
+    expect(isoWeek("2025-12-29")).toBe(1);
+    expect(isoWeek("2026-12-31")).toBe(53);
+    expect(isoWeek("2027-01-03")).toBe(53);
+    expect(isoWeek("2027-01-04")).toBe(1);
+    expect(isoWeek("2021-01-03")).toBe(53);
   });
 });
 

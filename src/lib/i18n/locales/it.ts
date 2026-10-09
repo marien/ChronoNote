@@ -546,6 +546,7 @@ export const it = {
   "datePicker.day.agendaOnly": () => ", riunioni programmate",
   "datePicker.today": () => "Oggi",
   "datePicker.escToClose": () => "Esc per chiudere",
+  "datePicker.weekColumn": () => "sett",
 
   "moreActions.zen": () => "Modalità Zen",
   "moreActions.peek": () => "Peek",

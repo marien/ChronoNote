@@ -531,6 +531,7 @@ export const en = {
   "datePicker.day.agendaOnly": () => ", scheduled meetings",
   "datePicker.today": () => "Today",
   "datePicker.escToClose": () => "Esc to close",
+  "datePicker.weekColumn": () => "wk",
 
   "moreActions.zen": () => "Zen mode",
   "moreActions.peek": () => "Peek",
