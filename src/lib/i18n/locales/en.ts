@@ -692,6 +692,7 @@ export const en = {
   "mobileAccessory.dedentWord": () => "Dedent",
   "mobileAccessory.undo": () => "Undo",
   "mobileAccessory.redo": () => "Redo",
+  "mobileAccessory.more": () => "More",
 
   "mobileTabDrawer.ariaLabel": () => "Open tabs",
   "mobileTabDrawer.title": () => "Open Tabs",

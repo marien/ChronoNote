@@ -712,6 +712,7 @@ export const it = {
   "mobileAccessory.dedentWord": () => "Riduci",
   "mobileAccessory.undo": () => "Annulla",
   "mobileAccessory.redo": () => "Ripristina",
+  "mobileAccessory.more": () => "Altro",
 
   "mobileTabDrawer.ariaLabel": () => "Schede aperte",
   "mobileTabDrawer.title": () => "Schede aperte",

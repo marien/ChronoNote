@@ -1,11 +1,37 @@
 <script lang="ts">
-  import { editorApi, openCommandPalette } from "../../controller";
+  import { currentLineKind, editorApi, editorFocused, openCommandPalette } from "../../controller";
   import Icon from "../../icons/Icon.svelte";
   import { t } from "../../i18n";
 
-  function apply(token: "#" | "v" | ">" | "x" | "-" | "=>" | "!" | "o" | "." | ",") {
+  type Token = "#" | "v" | ">" | "x" | "o" | "." | "," | "-" | "=>" | "!";
+
+  const ALL_TOKENS: Token[] = ["#", "v", ">", "x", "o", ".", ",", "-", "=>", "!"];
+
+  let moreOpen = $state(false);
+
+  $effect(() => {
+    if (!$editorFocused) {
+      moreOpen = false;
+    }
+  });
+
+  function getBarTokens(kind: string): Token[] {
+    if (kind === "action") return ["#", "v", ">", "x"];
+    if (kind === "topic") return ["o", ".", ",", "#"];
+    return ["#", "o", "-", "=>"];
+  }
+
+  let barTokens = $derived(getBarTokens($currentLineKind));
+  let panelTokens = $derived(ALL_TOKENS.filter((tok) => !barTokens.includes(tok)));
+
+  function apply(token: Token) {
     editorApi?.applyToken?.(token);
     editorApi?.focus();
+  }
+
+  function applyFromPanel(token: Token) {
+    apply(token);
+    moreOpen = false;
   }
 
   function handleIndent(dedent = false) {
@@ -23,70 +49,162 @@
     editorApi?.focus();
   }
 
+  function handleRedoFromPanel() {
+    handleRedo();
+    moreOpen = false;
+  }
+
   function handleCommandPalette() {
     openCommandPalette();
+    moreOpen = false;
+  }
+
+  function toggleMore() {
+    moreOpen = !moreOpen;
+  }
+
+  function tokenAriaLabel(token: Token): string {
+    switch (token) {
+      case "#": return $t("mobileAccessory.openTask.ariaLabel");
+      case "v": return $t("mobileAccessory.completedTask.ariaLabel");
+      case ">": return $t("mobileAccessory.deferredTask.ariaLabel");
+      case "x": return $t("mobileAccessory.wontDoTask.ariaLabel");
+      case "o": return $t("mobileAccessory.topicToDiscuss.ariaLabel");
+      case ".": return $t("mobileAccessory.topicDiscussed.ariaLabel");
+      case ",": return $t("mobileAccessory.topicNotDiscussed.ariaLabel");
+      case "-": return $t("mobileAccessory.bulletList.ariaLabel");
+      case "=>": return $t("mobileAccessory.followUp.ariaLabel");
+      case "!": return $t("mobileAccessory.emphasis");
+    }
+  }
+
+  function tokenTitle(token: Token): string {
+    switch (token) {
+      case "#": return `${$t("mobileAccessory.openTask.titleWord")} ☐`;
+      case "v": return `${$t("mobileAccessory.completedTask.titleWord")} ☑`;
+      case ">": return `${$t("mobileAccessory.deferredTask.titleWord")} ☐`;
+      case "x": return `${$t("mobileAccessory.wontDoTask.titleWord")} ☒`;
+      case "o": return `${$t("mobileAccessory.topicToDiscuss.titleWord")} ○`;
+      case ".": return `${$t("mobileAccessory.topicDiscussed.titleWord")} ◉`;
+      case ",": return `${$t("mobileAccessory.topicNotDiscussed.titleWord")} ◌`;
+      case "-": return `${$t("mobileAccessory.bulletList.titleWord")} •`;
+      case "=>": return `${$t("mobileAccessory.followUp.titleWord")} ➔`;
+      case "!": return `${$t("mobileAccessory.emphasis")} !`;
+    }
   }
 </script>
 
-<div class="mobile-accessory-bar" role="toolbar" aria-label={$t("mobileAccessory.ariaLabel")}>
-  <div class="accessory-scroll">
-    <!-- Tokens -->
-    <button type="button" class="accessory-btn token-btn" onclick={() => apply("#")} aria-label={$t("mobileAccessory.openTask.ariaLabel")} title="{$t('mobileAccessory.openTask.titleWord')} ☐">
+{#snippet tokenButton(token: Token, inPanel: boolean)}
+  <button
+    type="button"
+    class="accessory-btn token-btn"
+    onpointerdown={(e) => e.preventDefault()}
+    onclick={() => (inPanel ? applyFromPanel(token) : apply(token))}
+    aria-label={tokenAriaLabel(token)}
+    title={tokenTitle(token)}
+  >
+    {#if token === "#"}
       <span class="token-glyph glyph-open">☐</span>
-    </button>
-    <button type="button" class="accessory-btn token-btn" onclick={() => apply("v")} aria-label={$t("mobileAccessory.completedTask.ariaLabel")} title="{$t('mobileAccessory.completedTask.titleWord')} ☑">
+    {:else if token === "v"}
       <span class="token-glyph glyph-done">☑</span>
-    </button>
-    <button type="button" class="accessory-btn token-btn" onclick={() => apply(">")} aria-label={$t("mobileAccessory.deferredTask.ariaLabel")} title="{$t('mobileAccessory.deferredTask.titleWord')} ☐">
+    {:else if token === ">"}
       <span class="token-glyph glyph-progress">☐</span>
-    </button>
-    <button type="button" class="accessory-btn token-btn" onclick={() => apply("x")} aria-label={$t("mobileAccessory.wontDoTask.ariaLabel")} title="{$t('mobileAccessory.wontDoTask.titleWord')} ☒">
+    {:else if token === "x"}
       <span class="token-glyph glyph-cancelled">☒</span>
-    </button>
-    <button type="button" class="accessory-btn token-btn" onclick={() => apply("o")} aria-label={$t("mobileAccessory.topicToDiscuss.ariaLabel")} title="{$t('mobileAccessory.topicToDiscuss.titleWord')} ○">
+    {:else if token === "o"}
       <span class="token-glyph glyph-topic-open">○</span>
-    </button>
-    <button type="button" class="accessory-btn token-btn" onclick={() => apply(".")} aria-label={$t("mobileAccessory.topicDiscussed.ariaLabel")} title="{$t('mobileAccessory.topicDiscussed.titleWord')} ◉">
+    {:else if token === "."}
       <span class="token-glyph glyph-topic-done">◉</span>
-    </button>
-    <button type="button" class="accessory-btn token-btn" onclick={() => apply(",")} aria-label={$t("mobileAccessory.topicNotDiscussed.ariaLabel")} title="{$t('mobileAccessory.topicNotDiscussed.titleWord')} ◌">
+    {:else if token === ","}
       <span class="token-glyph glyph-topic-skipped">◌</span>
-    </button>
-    <button type="button" class="accessory-btn token-btn" onclick={() => apply("-")} aria-label={$t("mobileAccessory.bulletList.ariaLabel")} title="{$t('mobileAccessory.bulletList.titleWord')} •">
+    {:else if token === "-"}
       <span class="token-glyph glyph-bullet">•</span>
-    </button>
-    <button type="button" class="accessory-btn token-btn" onclick={() => apply("=>")} aria-label={$t("mobileAccessory.followUp.ariaLabel")} title="{$t('mobileAccessory.followUp.titleWord')} ➔">
+    {:else if token === "=>"}
       <span class="token-glyph glyph-arrow glyph-followup">➔</span>
-    </button>
-    <button type="button" class="accessory-btn token-btn" onclick={() => apply("!")} aria-label={$t("mobileAccessory.emphasis")} title="{$t('mobileAccessory.emphasis')} !">
+    {:else if token === "!"}
       <span class="token-glyph glyph-emphasis">!</span>
-    </button>
+    {/if}
+  </button>
+{/snippet}
 
-    <div class="accessory-separator" aria-hidden="true"></div>
+<div class="mobile-accessory-bar" role="toolbar" aria-label={$t("mobileAccessory.ariaLabel")}>
+  {#if moreOpen}
+    <div class="accessory-more-panel" role="toolbar" aria-label={$t("mobileAccessory.more")}>
+      {#each panelTokens as token (token)}
+        {@render tokenButton(token, true)}
+      {/each}
+      <button
+        type="button"
+        class="accessory-btn icon-btn"
+        onpointerdown={(e) => e.preventDefault()}
+        onclick={handleRedoFromPanel}
+        aria-label={$t("mobileAccessory.redo")}
+        title={$t("mobileAccessory.redo")}
+      >
+        <Icon name="redo" size={15} />
+      </button>
+      <button
+        type="button"
+        class="accessory-btn icon-btn"
+        onpointerdown={(e) => e.preventDefault()}
+        onclick={handleCommandPalette}
+        aria-label={$t("commandPalette.modal.ariaLabel")}
+        title={$t("commandPalette.modal.ariaLabel")}
+      >
+        <Icon name="command" size={15} />
+      </button>
+    </div>
+  {/if}
 
-    <!-- Formatting & Indent -->
-    <button type="button" class="accessory-btn icon-btn" onclick={() => handleIndent(false)} aria-label={$t("mobileAccessory.indent.ariaLabel")} title={$t("mobileAccessory.indentWord")}>
-      <Icon name="indent" size={16} />
-    </button>
-    <button type="button" class="accessory-btn icon-btn" onclick={() => handleIndent(true)} aria-label={$t("mobileAccessory.dedent.ariaLabel")} title={$t("mobileAccessory.dedentWord")}>
-      <Icon name="dedent" size={16} />
-    </button>
+  <!-- 4 Line-dependent tokens -->
+  {#each barTokens as token (token)}
+    {@render tokenButton(token, false)}
+  {/each}
 
-    <div class="accessory-separator" aria-hidden="true"></div>
+  <!-- Formatting & Indent -->
+  <button
+    type="button"
+    class="accessory-btn icon-btn"
+    onpointerdown={(e) => e.preventDefault()}
+    onclick={() => handleIndent(true)}
+    aria-label={$t("mobileAccessory.dedent.ariaLabel")}
+    title={$t("mobileAccessory.dedentWord")}
+  >
+    <Icon name="dedent" size={16} />
+  </button>
+  <button
+    type="button"
+    class="accessory-btn icon-btn"
+    onpointerdown={(e) => e.preventDefault()}
+    onclick={() => handleIndent(false)}
+    aria-label={$t("mobileAccessory.indent.ariaLabel")}
+    title={$t("mobileAccessory.indentWord")}
+  >
+    <Icon name="indent" size={16} />
+  </button>
 
-    <!-- History / Undo -->
-    <button type="button" class="accessory-btn icon-btn" onclick={handleUndo} aria-label={$t("mobileAccessory.undo")} title={$t("mobileAccessory.undo")}>
-      <Icon name="undo" size={15} />
-    </button>
-    <button type="button" class="accessory-btn icon-btn" onclick={handleRedo} aria-label={$t("mobileAccessory.redo")} title={$t("mobileAccessory.redo")}>
-      <Icon name="redo" size={15} />
-    </button>
+  <!-- History / Undo -->
+  <button
+    type="button"
+    class="accessory-btn icon-btn"
+    onpointerdown={(e) => e.preventDefault()}
+    onclick={handleUndo}
+    aria-label={$t("mobileAccessory.undo")}
+    title={$t("mobileAccessory.undo")}
+  >
+    <Icon name="undo" size={15} />
+  </button>
 
-    <div class="accessory-separator" aria-hidden="true"></div>
-
-    <!-- Palette -->
-    <button type="button" class="accessory-btn icon-btn" onclick={handleCommandPalette} aria-label={$t("commandPalette.modal.ariaLabel")} title={$t("commandPalette.modal.ariaLabel")}>
-      <Icon name="command" size={15} />
-    </button>
-  </div>
+  <!-- More overflow button -->
+  <button
+    type="button"
+    class="accessory-btn icon-btn"
+    onpointerdown={(e) => e.preventDefault()}
+    onclick={toggleMore}
+    aria-label={$t("mobileAccessory.more")}
+    title={$t("mobileAccessory.more")}
+    aria-expanded={moreOpen}
+  >
+    <Icon name="more" size={16} />
+  </button>
 </div>

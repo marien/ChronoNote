@@ -189,8 +189,8 @@ test.describe("phone action buttons work on the symbol at the caret", () => {
 
   test("the done button at the end of the line sets the follow-up; at the start, the leading symbol", async ({ page }) => {
     await seedApp(page, { seed: "empty" });
-    await expect(page.locator(".mobile-accessory-bar")).toBeVisible();
     await setEditorText(page, LINE);
+    await expect(page.locator(".mobile-accessory-bar")).toBeVisible();
     await page.keyboard.press("End");
     await page.locator(".mobile-accessory-bar").getByRole("button", { name: /completed/i }).first().click();
     expect(await activeTabContent(page)).toBe("# do X => v wait");

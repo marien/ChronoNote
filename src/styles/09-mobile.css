@@ -66,35 +66,41 @@ body {
 
 /* Mobile Quick Action Accessory Bar (docked above keyboard / status bar) */
 .mobile-accessory-bar {
+  position: relative;
   flex-shrink: 0;
   width: 100%;
   z-index: 40;
   background: var(--surface-overlay);
   border-top: 1px solid var(--edge-strong);
   padding: 4px 6px;
-  display: flex;
-  align-items: center;
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 4px;
+  box-sizing: border-box;
   box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.2);
 }
-.accessory-scroll {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  overflow-x: auto;
-  scrollbar-width: none;
-  -webkit-overflow-scrolling: touch;
+.accessory-more-panel {
+  position: absolute;
+  bottom: 100%;
+  left: 0;
   width: 100%;
-}
-.accessory-scroll::-webkit-scrollbar {
-  display: none;
+  box-sizing: border-box;
+  background: var(--surface-overlay);
+  border-top: 1px solid var(--edge-strong);
+  padding: 4px 6px;
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 4px;
+  box-shadow: 0 -4px 10px rgba(0, 0, 0, 0.2);
 }
 .accessory-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 36px;
-  height: 36px;
-  padding: 0 6px;
+  min-width: 0;
+  min-height: 40px;
+  height: 40px;
+  padding: 0;
   background: var(--surface-raised);
   border: 1px solid var(--edge-strong);
   border-radius: 6px;
@@ -105,24 +111,17 @@ body {
   flex-shrink: 0;
   user-select: none;
   -webkit-tap-highlight-color: transparent;
+  box-sizing: border-box;
 }
 .accessory-btn:active {
   background: var(--surface-hover);
   transform: translateY(1px);
 }
 .accessory-btn.token-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 36px;
-  min-width: 36px;
-  height: 36px;
-  padding: 0;
   font-family: var(--font-mono, monospace);
   font-size: 15px;
   font-weight: 600;
   line-height: 1;
-  box-sizing: border-box;
 }
 
 .token-glyph {
@@ -205,13 +204,6 @@ body {
   font-size: 15px;
   font-weight: 700;
   line-height: 1;
-}
-.accessory-separator {
-  width: 1px;
-  height: 20px;
-  background: var(--edge-strong);
-  margin: 0 2px;
-  flex-shrink: 0;
 }
 
 /* Mobile Tab Drawer (Modal Card in Overlay) */
