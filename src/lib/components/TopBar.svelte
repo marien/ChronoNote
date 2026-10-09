@@ -1562,6 +1562,14 @@
   font-family: inherit;
 }
 
+/* The active tab is outlined on top and both sides (Windows 11 style): the canvas colour it shares with the
+   note is too close to the title bar's to find it by fill alone (Marien, after §335). */
+
+#tab-bar .tab.active {
+  border: 1px solid var(--edge-strong);
+  border-bottom: none;
+}
+
 /* The active tab joins the canvas below it with small outward curves at its base. */
 
 #tab-bar .tab.active::before,

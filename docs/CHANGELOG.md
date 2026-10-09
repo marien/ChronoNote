@@ -10205,3 +10205,7 @@ Marien, after abandoning the idea of Peek reacting to Teams calls by itself (wat
 ## 338. Ctrl+1-7 on an empty line: the caret lands after the new glyph
 
 **Status: on `ux/r1`, unreleased.** Marien (2026-10-09): on an empty line `Ctrl+1`-`7` put the glyph after the caret. Pre-existing: both line-rewriting helpers in `EditorPane.svelte` moved the caret by the length change only when it was past column 0, which was meant for swapping an existing symbol but left the caret in front of a token inserted at column 0. Now the caret moves when it is at or after the first column where the line changed (`changedFrom`): on an empty line it ends up after `# `, a caret at the start of `text` ends up in front of `text` (after the new token), a symbol swap is unchanged. Two e2e tests in `action-target.spec.ts`.
+
+## 339. The active tab is outlined
+
+**Status: on `ux/r1`, unreleased.** Marien (2026-10-09, after §335): the selected tab was hard to find, because the canvas colour it takes is close to the title bar's (#1e1e1e on #252526 in dark, white on #f3f3f3 in light). The active tab now has a 1px `--edge-strong` border on its top and sides (no bottom, so it still joins the note), as Windows 11 sets off its selected tab; label semibold in the full text colour as before. Tab, title bar, collapse and overflow specs green (26).
