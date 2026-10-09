@@ -434,16 +434,27 @@ textarea.modal-input.import-textarea {
   align-items: center;
   padding: 8px 14px;
   border-top: 1px solid var(--edge-soft);
+  font-family: var(--font-ui);
   font-size: var(--type-caption);
   color: var(--muted);
   background: var(--surface-chrome);
+  gap: 12px;
 }
-/* i18n: the trailing "Esc <close>" hint (Action Drawer, Section History,
-   Command Palette, Search) must never wrap onto a second line under the
-   <kbd> — Dutch/German's longer "Sluiten"/"Schließen" (vs. English
-   "Close") made it wrap once the leading hint list took up the rest of
-   the row. Keeping this div at its natural width lets the longer hint
-   list on the left wrap instead, which has more room to do so safely. */
+/* §C3: Drawer hint footers show at most three hints tailored to state on the
+   left (never wrapping, truncated with ellipsis if crowded) and a fixed
+   "Ctrl+/ All keys" hint on the right. */
+.modal-footer-hints {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+  flex: 1;
+}
+.modal-footer-all-keys {
+  white-space: nowrap;
+  flex-shrink: 0;
+  margin-left: auto;
+}
 .modal-footer > div:last-child {
   white-space: nowrap;
   flex-shrink: 0;

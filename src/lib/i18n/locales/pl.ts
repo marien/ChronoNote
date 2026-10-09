@@ -5,6 +5,7 @@ export const pl = {
   "common.system": () => "Systemowy",
   "common.close": () => "Zamknij",
   "common.closeDialog": () => "Zamknij okno",
+  "common.allKeys": () => "Wszystkie klawisze",
   "common.loading": () => "Ładowanie",
   "settings.modal.title": () => "Ustawienia",
   "settings.tabs.appearance": () => "Wygląd",
@@ -281,10 +282,9 @@ export const pl = {
   "actionDrawer.empty.allResolvedSubtitle": () =>
     "Brak oczekujących zadań. Dodaj nowe działania w swoich notatkach za pomocą #.",
   "actionDrawer.item.lineTag": ({ line }) => `Wrsz ${line}`,
-  "actionDrawer.footer.jump": () => "Przejdź",
+  "actionDrawer.footer.goToLine": () => "Do wiersza",
   "actionDrawer.footer.forwardToToday": () => "Przełóż na dzisiaj",
-  "actionDrawer.footer.cycle": () => "Zmień stan",
-  "actionDrawer.footer.cycleBack": () => "Poprzedni stan",
+  "actionDrawer.footer.changeState": () => "Zmień stan",
 
   "history.modal.ariaLabel": () => "Historia sekcji",
   "history.modal.titlePrefix": ({ header }) => `Historia sekcji: „${header}”`,
@@ -311,10 +311,9 @@ export const pl = {
   "history.takeover.none": () => "Brak innego miejsca do przeniesienia z tego wystąpienia.",
   "history.body.selectPrompt": () => "Wybierz wystąpienie, aby je przejrzeć.",
   "history.footer.selectLine": () => "Wybierz wiersz",
-  "history.footer.extend": () => "Rozszerz",
-  "history.footer.switchDate": () => "Zmień datę",
-  "history.footer.jumpToSource": () => "Przejdź do źródła",
-  "history.footer.dblClickHint": () => "datę, aby tam przejść",
+  "history.footer.switchDate": () => "Inna data",
+  "history.footer.openNote": () => "Otwórz notatkę",
+  "history.footer.choices": () => "Opcje",
 
   "history.destination.addToQuoted": ({ name }) => `Dodaj do „${name}”`,
   "history.destination.addToToday": () => "Dodaj do dzisiaj",
@@ -329,8 +328,9 @@ export const pl = {
   "commandPalette.legend.actions": () => "zadania",
   "commandPalette.legend.dates": () => "daty",
   "commandPalette.legend.shortcuts": () => "skróty",
-  "commandPalette.footer.navigate": () => "Nawiguj",
+  "commandPalette.footer.select": () => "Wybierz",
   "commandPalette.footer.run": () => "Uruchom",
+  "commandPalette.footer.filters": () => "Filtry",
   "commandPalette.noMatches": () => "Brak wyników.",
   "commandPalette.emptySubtitle": () =>
     "Spróbuj innego hasła wyszukiwania lub naciśnij klawisz Esc, aby zamknąć.",
@@ -519,7 +519,8 @@ export const pl = {
   "searchModal.noMatches": ({ query }) => `Brak wyników dla „${query}”.`,
   "searchModal.emptySubtitle": () =>
     "Sprawdź pisownię lub użyj operatorów wyszukiwania, takich jak is:open lub #tag.",
-  "searchModal.footer.jumpToMatch": () => "Przejdź do wyniku",
+  "searchModal.footer.open": () => "Otwórz",
+  "searchModal.footer.select": () => "Wybierz",
 
   "datePicker.ariaLabel": () => "Przejdź do daty",
   "datePicker.jumpPlaceholder": () => "Przejdź do daty — dzisiaj, -2, 2026-09-05…",
@@ -533,7 +534,9 @@ export const pl = {
   "datePicker.day.hasNote": () => ", zawiera notatkę",
   "datePicker.day.agendaOnly": () => ", zaplanowane spotkania",
   "datePicker.today": () => "Dzisiaj",
-  "datePicker.escToClose": () => "Esc, aby zamknąć",
+  "datePicker.footer.openDate": () => "Otwórz datę",
+  "datePicker.footer.move": () => "Przesuń",
+  "datePicker.footer.month": () => "Miesiąc",
 
   "moreActions.promote.label": () => "Przenieś do dzisiejszej notatki",
 

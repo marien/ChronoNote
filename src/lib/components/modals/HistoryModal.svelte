@@ -19,6 +19,10 @@
   import { t } from "../../i18n";
   import type { HistoryDestination, SectionOccurrence } from "../../types";
   import { clampIndex, wrapIndex } from "./virtualList";
+  import { isMobile } from "../../stores";
+  import { formatCombo, shortcutById } from "../../shortcuts";
+
+  const allKeysShortcut = formatCombo(shortcutById("openShortcutsHelp").combos[0]);
 
   let selectedIndex = $state(0);
 
@@ -761,17 +765,22 @@
       </div>
     </div>
 
-    <div class="modal-footer">
-      <div>
-        <kbd>↑/↓</kbd> {$t("history.footer.selectLine")} · <kbd>Shift+↑/↓</kbd> {$t("history.footer.extend")} ·
-        <kbd>←/→</kbd> {$t("history.footer.switchDate")} ·
-        <kbd>Enter</kbd> {$t("history.footer.jumpToSource")} · <kbd>Dbl-click</kbd> {$t("history.footer.dblClickHint")}
-        {#if lineSelection && usableDestinations[0]}
-          · <kbd>Shift+Enter</kbd> {usableDestinations[0].label}
-        {/if}
+    {#if !$isMobile}
+      <div class="modal-footer">
+        <div class="modal-footer-hints">
+          {#if lineSelection && usableDestinations[0]}
+            <kbd>Shift+Enter</kbd> {usableDestinations[0].label} · <kbd>Tab</kbd> {$t("history.footer.choices")} · <kbd>←/→</kbd> {$t("history.footer.switchDate")}
+          {:else if lineSelection}
+            <kbd>Tab</kbd> {$t("history.footer.choices")} · <kbd>←/→</kbd> {$t("history.footer.switchDate")} · <kbd>Enter</kbd> {$t("history.footer.openNote")}
+          {:else}
+            <kbd>↑/↓</kbd> {$t("history.footer.selectLine")} · <kbd>←/→</kbd> {$t("history.footer.switchDate")} · <kbd>Enter</kbd> {$t("history.footer.openNote")}
+          {/if}
+        </div>
+        <div class="modal-footer-all-keys">
+          <kbd>{allKeysShortcut}</kbd> {$t("common.allKeys")}
+        </div>
       </div>
-      <div><kbd>Esc</kbd> {$t("common.close")}</div>
-    </div>
+    {/if}
   </div>
 </div>
 
