@@ -24,9 +24,8 @@ export const de = {
   "settings.appearance.glyphs.label": () => "Glyphen",
   "settings.appearance.glyphs.color": () => "Farbe",
   "settings.appearance.glyphs.grayscale": () => "Graustufen",
-  "settings.appearance.glyphs.legacy": () => "Legacy",
-  "settings.appearance.glyphs.legacyHint": () =>
-    "Legacy stellt die Glyph-Farben von vor 0.6 wieder her — rot offen, gelb verschoben, grün erledigt.",
+  "settings.appearance.glyphs.hint": () =>
+    "Farbe: rot offen, gelb weitergeleitet, grün erledigt. Graustufen unterscheidet sie nur durch die Strichstärke.",
   "settings.appearance.pureBlack.label": () => "Reines Schwarz (OLED)",
   "settings.appearance.pureBlack.hint": () =>
     "Absolute #000000-Fläche für OLED-Displays und Akku-Ersparnis. Nur im dunklen Modus aktiv.",
@@ -371,7 +370,6 @@ export const de = {
   "commandPalette.readable.enable": () => "Lesbare Zeilenbreite aktivieren",
   "commandPalette.readable.disable": () => "Lesbare Zeilenbreite deaktivieren",
   "commandPalette.color.toColor": () => "Zu farbigen Symbolen wechseln",
-  "commandPalette.color.toLegacy": () => "Zu klassischen Symbolen wechseln (rot / gelb / grün)",
   "commandPalette.color.toGrayscale": () => "Zu Graustufen-Symbolen wechseln",
   "commandPalette.keyboardShortcuts": () => "Tastenkürzel",
   "commandPalette.symbolsLegend": () => "Symbole & Abschnitte Legende",

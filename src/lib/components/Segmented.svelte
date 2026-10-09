@@ -3,7 +3,7 @@
    * semantically distinct from `.toggle-switch` (a single on/off). Used
    * wherever the app offers a small fixed set of mutually-exclusive modes:
    * scan scope (Open Tabs / All Files), the glyph palette (Color /
-   * Grayscale / Legacy), and the editor-width control (Full / Wrap /
+   * Grayscale), and the editor-width control (Full / Wrap /
    * Reading column). One bordered container with hairline dividers and a
    * filled selected segment, rather than N independent `.icon-btn.active`
    * buttons sitting side by side with no shared edge. */

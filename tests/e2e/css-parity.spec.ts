@@ -42,7 +42,7 @@ async function same(page: Page, name: string) {
 }
 
 for (const theme of ["dark", "light"] as const) {
-  for (const colorMode of ["color", "grayscale", "legacy"] as const) {
+  for (const colorMode of ["color", "grayscale"] as const) {
     test(`editor tokens: ${theme} / ${colorMode}`, async ({ page }) => {
       await seedApp(page, { seed: { notes: {}, colorMode, themeMode: theme } });
       await setEditorText(page, SAMPLER);

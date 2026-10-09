@@ -2583,12 +2583,6 @@ describe("setColorMode", () => {
     expect(apiMock.setColorMode).toHaveBeenCalledWith("color");
   });
 
-  it("accepts the §111 legacy palette", async () => {
-    await controller.setColorMode("legacy");
-    expect(get(controller.colorMode)).toBe("legacy");
-    expect(document.documentElement.dataset.colorMode).toBe("legacy");
-    expect(apiMock.setColorMode).toHaveBeenCalledWith("legacy");
-  });
 });
 
 describe("setWordWrap (§80)", () => {

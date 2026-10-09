@@ -99,33 +99,17 @@ test.describe("settings (Ctrl/Cmd+,)", () => {
     await expect(page.locator("html")).toHaveAttribute("data-color-mode", "color");
   });
 
-  test("the Legacy palette is a third option and persists (§111)", async ({ page }) => {
-    await seedApp(page, { seed: { notes: { [todayFilename()]: "# an open action" } } });
+  test("Color is red open / amber deferred / green done, and there is no Legacy option any more (§328)", async ({ page }) => {
+    await seedApp(page, { seed: { notes: { [todayFilename()]: "# an open action" }, colorMode: "color", themeMode: "dark" } });
+    const open = await page
+      .locator(".cm-line .glyph-open")
+      .first()
+      .evaluate((el) => getComputedStyle(el).color);
+    expect(open).toBe("rgb(255, 107, 107)");
     await openSettings(page);
-
-    // grayscale by default → the open glyph is just --text
-    await settings(page).getByRole("radio", { name: "Grayscale", exact: true }).click();
-    const grayOpen = await page
-      .locator(".cm-line .glyph-open")
-      .first()
-      .evaluate((el) => getComputedStyle(el).color);
-
-    await page.keyboard.press("ControlOrMeta+Comma");
-    await settings(page).getByRole("radio", { name: "Legacy", exact: true }).click();
-    await expect(page.locator("html")).toHaveAttribute("data-color-mode", "legacy");
-    expect(await page.evaluate(() => window.__CHRONO_MOCK__!.colorMode)).toBe("legacy");
-
-    // The legacy palette drives the same structural --glyph-open-color the
-    // other two modes do — a hue, not grayscale's --text.
-    const legacyOpen = await page
-      .locator(".cm-line .glyph-open")
-      .first()
-      .evaluate((el) => getComputedStyle(el).color);
-    expect(legacyOpen).not.toBe(grayOpen);
-
-    // survives a reload (config is read on boot)
-    await page.reload();
-    await expect(page.locator("html")).toHaveAttribute("data-color-mode", "legacy");
+    await expect(settings(page).getByRole("radio", { name: "Color", exact: true })).toBeVisible();
+    await expect(settings(page).getByRole("radio", { name: "Grayscale", exact: true })).toBeVisible();
+    await expect(settings(page).getByRole("radio", { name: "Legacy", exact: true })).toHaveCount(0);
   });
 
   test("Editor width: Reading column force-enables wrap + caps + persists (§110/§127)", async ({ page }) => {

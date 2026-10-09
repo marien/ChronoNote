@@ -22,9 +22,8 @@ export const nl = {
   "settings.appearance.glyphs.label": () => "Glyphen",
   "settings.appearance.glyphs.color": () => "Kleur",
   "settings.appearance.glyphs.grayscale": () => "Grijswaarden",
-  "settings.appearance.glyphs.legacy": () => "Legacy",
-  "settings.appearance.glyphs.legacyHint": () =>
-    "Legacy herstelt de glyph-kleuren van vóór 0.6 — rood open, oranje uitgesteld, groen klaar.",
+  "settings.appearance.glyphs.hint": () =>
+    "Kleur: rood open, oranje doorgeschoven, groen klaar. Grijswaarden onderscheidt ze alleen door gewicht.",
   "settings.appearance.pureBlack.label": () => "Puur zwart (OLED)",
   "settings.appearance.pureBlack.hint": () =>
     "Absoluut #000000-canvas voor OLED-schermen en batterijbesparing. Alleen actief in donkere modus.",
@@ -366,7 +365,6 @@ export const nl = {
   "commandPalette.readable.enable": () => "Leesbare regelbreedte inschakelen",
   "commandPalette.readable.disable": () => "Leesbare regelbreedte uitschakelen",
   "commandPalette.color.toColor": () => "Overschakelen naar gekleurde symbolen",
-  "commandPalette.color.toLegacy": () => "Overschakelen naar klassieke symbolen (rood / amber / groen)",
   "commandPalette.color.toGrayscale": () => "Overschakelen naar grijstinten symbolen",
   "commandPalette.keyboardShortcuts": () => "Toetsenbordsneltoetsen",
   "commandPalette.symbolsLegend": () => "Symbolen & secties legenda",

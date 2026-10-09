@@ -21,9 +21,8 @@ export const pl = {
   "settings.appearance.glyphs.label": () => "Glify",
   "settings.appearance.glyphs.color": () => "Kolorowe",
   "settings.appearance.glyphs.grayscale": () => "Odcienie szarości",
-  "settings.appearance.glyphs.legacy": () => "Klasyczne",
-  "settings.appearance.glyphs.legacyHint": () =>
-    "Klasyczne przywracają kolory glifów sprzed wersji 0.6 — czerwony dla otwartych, bursztynowy dla odłożonych, zielony dla ukończonych.",
+  "settings.appearance.glyphs.hint": () =>
+    "Kolor: czerwone otwarte, bursztynowe przełożone, zielone wykonane. Odcienie szarości różnią je tylko grubością.",
   "settings.appearance.pureBlack.label": () => "Czysta czerń (OLED)",
   "settings.appearance.pureBlack.hint": () =>
     "Absolutne tło #000000 dla ekranów OLED i oszczędzania baterii. Działa tylko w trybie ciemnym.",
@@ -370,7 +369,6 @@ export const pl = {
   "commandPalette.readable.enable": () => "Włącz wygodną szerokość linii",
   "commandPalette.readable.disable": () => "Wyłącz wygodną szerokość linii",
   "commandPalette.color.toColor": () => "Włącz kolorowe glify",
-  "commandPalette.color.toLegacy": () => "Włącz klasyczne glify (czerwony / bursztynowy / zielony)",
   "commandPalette.color.toGrayscale": () => "Włącz glify w odcieniach szarości",
   "commandPalette.keyboardShortcuts": () => "Skróty klawiszowe",
   "commandPalette.symbolsLegend": () => "Legenda symboli i sekcji",

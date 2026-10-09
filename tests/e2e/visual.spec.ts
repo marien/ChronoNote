@@ -34,7 +34,7 @@ const TOKEN_SAMPLER = [
 ].join("\n");
 
 test.describe("visual — state gallery", () => {
-  test("editor with the full token vocabulary (grayscale + color + legacy)", async ({ page }) => {
+  test("editor with the full token vocabulary (grayscale + color)", async ({ page }) => {
     // Explicit — the app's own default is "color" now, but this gallery
     // wants a genuine grayscale shot first, not two color ones in a row.
     await seedApp(page, { seed: { notes: {}, colorMode: "grayscale" } });
@@ -48,11 +48,6 @@ test.describe("visual — state gallery", () => {
     await page.keyboard.press("Escape");
     await shot(page, "editor-tokens-color");
 
-    // §111: the restored pre-0.6 palette (red open / amber deferred / green done).
-    await page.keyboard.press("ControlOrMeta+Comma");
-    await settings().getByRole("radio", { name: "Legacy", exact: true }).click();
-    await page.keyboard.press("Escape");
-    await shot(page, "editor-tokens-legacy");
   });
 
   test("every modal, opened over a populated workspace", async ({ page }) => {

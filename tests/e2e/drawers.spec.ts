@@ -47,7 +47,7 @@ test.describe("info drawers", () => {
     expect(await currentModal(page)).toBe("shortcuts");
   });
 
-  test("legend glyphs render as plain inline text, aligned with the row (§88 / #19)", async ({ page }) => {
+  test("legend glyphs render as a plain glyph, not the editor's 2ch cell, aligned with the row (§88 / #19)", async ({ page }) => {
     await editor(page).click();
     await page.keyboard.press("ControlOrMeta+Shift+Slash");
     await expect(modalCard(page, MODAL_LABELS.shortcuts)).toBeVisible();
@@ -69,7 +69,9 @@ test.describe("info drawers", () => {
       };
     });
     expect(info).not.toBeNull();
-    expect(info!.display).toBe("inline");
+    // §327: box glyphs are a CSS-drawn inline-block box outside the editor
+    // too (like the topic circles), but without the editor's 2ch cell.
+    expect(info!.display).toBe("inline-block");
     expect(info!.transform).toBe("none");
     expect(info!.widthUnderOneAndAHalfCh).toBe(true);
     expect(info!.vDelta).toBeLessThan(4);
@@ -171,20 +173,22 @@ test.describe("Shortcuts & Symbols drawer is current", () => {
 
       const boxRect = box.getBoundingClientRect();
       const topicRect = topicOpen.getBoundingClientRect();
-      const deferredAfter = window.getComputedStyle(deferred, "::after").content;
+      const before = window.getComputedStyle(deferred, "::before");
+      const deferredMark = before.maskImage || before.webkitMaskImage;
 
       return {
         boxWidth: boxRect.width,
         boxHeight: boxRect.height,
         topicWidth: topicRect.width,
         topicHeight: topicRect.height,
-        deferredAfter,
+        deferredMark,
       };
     });
 
     expect(sizes).not.toBeNull();
-    // Deferred glyph has centered › chevron
-    expect(sizes!.deferredAfter).toContain("›");
+    // §327: the deferred glyph's chevron is an SVG mask inside the square
+    // (no separate "›" character any more).
+    expect(sizes!.deferredMark).toContain("data:image/svg+xml");
     // Topic circle width is in the same ballpark as the action box's —
     // .glyph-topic-open is a fixed 1em CSS box (pinned exactly, by
     // design, so it renders consistently everywhere), but .glyph-open

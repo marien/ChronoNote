@@ -22,9 +22,8 @@ export const en = {
   "settings.appearance.glyphs.label": () => "Glyphs",
   "settings.appearance.glyphs.color": () => "Color",
   "settings.appearance.glyphs.grayscale": () => "Grayscale",
-  "settings.appearance.glyphs.legacy": () => "Legacy",
-  "settings.appearance.glyphs.legacyHint": () =>
-    "Legacy restores the pre-0.6 glyph colours — red open, amber deferred, green done.",
+  "settings.appearance.glyphs.hint": () =>
+    "Color: red open, amber deferred, green done. Grayscale tells them apart by weight only.",
   "settings.appearance.pureBlack.label": () => "Pure black (OLED)",
   "settings.appearance.pureBlack.hint": () =>
     "Absolute #000000 canvas for OLED displays and battery savings. Only active in dark mode.",
@@ -362,7 +361,6 @@ export const en = {
   "commandPalette.readable.enable": () => "Enable readable line width",
   "commandPalette.readable.disable": () => "Disable readable line width",
   "commandPalette.color.toColor": () => "Switch to colored glyphs",
-  "commandPalette.color.toLegacy": () => "Switch to legacy glyphs (red / amber / green)",
   "commandPalette.color.toGrayscale": () => "Switch to grayscale glyphs",
   "commandPalette.keyboardShortcuts": () => "Keyboard shortcuts",
   "commandPalette.symbolsLegend": () => "Symbols & sections legend",

@@ -277,7 +277,8 @@ export class WebBackend {
     }
     return {
       notesDir: dir,
-      colorMode: cfg.colorMode,
+      // §328: the Legacy palette became Color; a browser may still have "legacy" stored.
+      colorMode: (cfg.colorMode as string) === "legacy" ? "color" : cfg.colorMode,
       themeMode: cfg.themeMode,
       languageMode: cfg.languageMode,
       wordWrap: cfg.wordWrap,

@@ -268,7 +268,7 @@ test.describe("glyph line layout", () => {
     const line1Buf = await line1.screenshot();
     const line2Buf = await line2.screenshot();
 
-    const scan = await page.evaluate(async ({ b1, b2 }) => {
+    const scan = await page.evaluate(async ({ b1, b2, cellEnd }) => {
       function getInkPixels(base64: string) {
         return new Promise<{ topY: number; bottomY: number; leftX: number; rightX: number; w: number; h: number }>((resolve) => {
           const img = new Image();
@@ -281,13 +281,16 @@ test.describe("glyph line layout", () => {
             ctx.drawImage(img, 0, 0);
             const d = ctx.getImageData(0, 0, img.width, img.height).data;
             let topY = 999, bottomY = -1, leftX = 999, rightX = -1;
-            // Scan x: 0..30 (the glyph)
+            // Scan only the glyph's own 2ch cell (6px line padding + 2ch);
+            // the text starts right after it, and ClearType's coloured
+            // fringes on the letters would otherwise count as glyph ink.
             for (let y = 0; y < img.height; y++) {
-              for (let x = 0; x < 30; x++) {
+              for (let x = 0; x < cellEnd; x++) {
                 const idx = (y * img.width + x) * 4;
                 const r = d[idx], g = d[idx+1], b = d[idx+2];
-                // Cyan color: high blue and green, lower red
-                if (b > 150 && r < 120) {
+                // §328: open actions and open topics are red in Color mode;
+                // the text next to them is not.
+                if (r > 150 && g < 140 && b < 140) {
                   if (y < topY) topY = y;
                   if (y > bottomY) bottomY = y;
                   if (x < leftX) leftX = x;
@@ -308,21 +311,21 @@ test.describe("glyph line layout", () => {
         circle2,
         topDiff: circle2.topY - box1.topY,
       };
-    }, { b1: line1Buf.toString("base64"), b2: line2Buf.toString("base64") });
+    }, {
+      b1: line1Buf.toString("base64"),
+      b2: line2Buf.toString("base64"),
+      cellEnd: await line1.evaluate((el) => {
+        const g = el.querySelector<HTMLElement>(".glyph-open")!;
+        return Math.floor(g.getBoundingClientRect().right - el.getBoundingClientRect().left);
+      }),
+    });
 
     // Assert top alignment within 1px (identical line height)
     expect(Math.abs(scan.topDiff)).toBeLessThanOrEqual(1);
-    // Assert width within 2px: unlike the baseline check above (comparing
-    // the same kind of box glyph against itself), this compares a
-    // font-rendered checkbox character (scaled 0.85, anti-aliased by
-    // whatever font the platform falls back to) against a CSS-drawn
-    // circle (a fixed 0.70em box with a border) — two different rendering
-    // paths that can legitimately land a pixel apart from each other on a
-    // different font stack. Confirmed failing at exactly this margin
-    // (received 2) on GitHub's Linux CI runner while passing reliably
-    // (5/5) on Windows — a real cross-platform rendering difference, not
-    // a fluke, so widened rather than just retried.
-    expect(Math.abs(scan.circle2.w - scan.box1.w)).toBeLessThanOrEqual(2);
+    // §327: the box and the circle are the same CSS box (0.70em, 1.4px
+    // border) since the box glyphs stopped using a font character, so their
+    // ink is the same width, within anti-aliasing.
+    expect(Math.abs(scan.circle2.w - scan.box1.w)).toBeLessThanOrEqual(1);
   });
 
   test("verify bottom of action and agenda topic glyphs touches the d baseline", async ({ page }) => {

@@ -21,9 +21,8 @@ export const fr = {
   "settings.appearance.glyphs.label": () => "Glyphes",
   "settings.appearance.glyphs.color": () => "Couleur",
   "settings.appearance.glyphs.grayscale": () => "Niveaux de gris",
-  "settings.appearance.glyphs.legacy": () => "Hérité",
-  "settings.appearance.glyphs.legacyHint": () =>
-    "Hérité rétablit les couleurs de glyphes antérieures à la version 0.6 — rouge pour ouvert, ambre pour reporté, vert pour terminé.",
+  "settings.appearance.glyphs.hint": () =>
+    "Couleur : rouge ouverte, ambre reportée, vert terminée. Niveaux de gris ne les distingue que par la graisse.",
   "settings.appearance.pureBlack.label": () => "Noir pur (OLED)",
   "settings.appearance.pureBlack.hint": () =>
     "Fond #000000 absolu pour écrans OLED et économie d'énergie. Actif uniquement en mode sombre.",
@@ -370,7 +369,6 @@ export const fr = {
   "commandPalette.readable.enable": () => "Activer la largeur de ligne de lecture",
   "commandPalette.readable.disable": () => "Désactiver la largeur de ligne de lecture",
   "commandPalette.color.toColor": () => "Passer aux glyphes en couleur",
-  "commandPalette.color.toLegacy": () => "Passer aux glyphes classiques (rouge / ambre / vert)",
   "commandPalette.color.toGrayscale": () => "Passer aux glyphes en niveaux de gris",
   "commandPalette.keyboardShortcuts": () => "Raccourcis clavier",
   "commandPalette.symbolsLegend": () => "Légende des symboles & sections",

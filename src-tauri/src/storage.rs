@@ -5,15 +5,13 @@ use std::path::{Component, Path, PathBuf};
 use tauri::{AppHandle, Manager};
 use ts_rs::TS;
 
-/// Editor glyph colouring. Three sets, all sharing the same structural
+/// Editor glyph colouring. Two sets, sharing the same structural
 /// `--glyph-*` CSS variables:
-///  - `Color` — the §105 semantic palette (cyan open · emerald done ·
-///    violet deferred · slate won't-do). The default (changed from
-///    `Grayscale` 2026-09-13 — Marien preferred launching in colour after
-///    noticing the demo's grayscale-by-default start).
+///  - `Color` — red open · amber deferred · green done · grey won't-do
+///    (§328: the former `Legacy` palette, which replaced §105's cyan set).
+///    The default (changed from `Grayscale` 2026-09-13). A config saved
+///    with the old `"legacy"` value loads as `Color`.
 ///  - `Grayscale` — weight/opacity only, no hue.
-///  - `Legacy` — the pre-0.6 palette (§111): red open · amber deferred ·
-///    green done, on the old VS-Code-blue chrome accent.
 ///
 /// Stored in `config.json`; deserialization rejects anything else (an
 /// invalid value trips the §97 corrupt-config recovery instead of silently
@@ -22,9 +20,9 @@ use ts_rs::TS;
 #[serde(rename_all = "lowercase")]
 pub enum ColorMode {
     #[default]
+    #[serde(alias = "legacy")]
     Color,
     Grayscale,
-    Legacy,
 }
 
 /// Light/dark mode (#48) — independent of `ColorMode` above (that's the
@@ -1419,37 +1417,17 @@ mod tests {
     }
 
     #[test]
-    fn color_mode_legacy_round_trips_through_json() {
-        // §111: the third palette must serialize as the lowercase
-        // `"legacy"` token and load back unchanged.
+    fn a_saved_legacy_color_mode_loads_as_color_and_is_written_back_as_color() {
+        // §328: the Legacy palette became Color; old configs still say "legacy".
         let dir = tempdir().unwrap();
         let path = dir.path().join("config.json");
-        let cfg = AppConfig {
-            notes_dir: "/n".to_string(),
-            color_mode: ColorMode::Legacy,
-            theme_mode: ThemeMode::default(),
-            word_wrap: false,
-            readable_line_length: false,
-            recent_notes_dirs: vec![],
-            auto_check_updates: true,
-            last_seen_version: None,
-            calendar_sync_enabled: false,
-            font_size: default_font_size(),
-            line_height: default_line_height(),
-            pure_black: false,
-            language_mode: LanguageMode::default(),
-            onboarding_completed: false,
-            startup_tab_mode: StartupTabMode::default(),
-            peek: PeekConfig::default(),
-            occurrence_hint: false,
-            status_bar_visible: true,
-        };
-        save_config_at(&path, &cfg).unwrap();
-        let on_disk = fs::read_to_string(&path).unwrap();
-        assert!(on_disk.contains("\"colorMode\""), "colorMode key missing: {on_disk}");
-        assert!(on_disk.contains("\"legacy\""), "legacy token not serialized: {on_disk}");
+        fs::write(&path, r#"{"notesDir":"/n","colorMode":"legacy"}"#).unwrap();
         let loaded = load_config_at(&path, &dir.path().join("Notes")).unwrap();
-        assert_eq!(loaded.color_mode, ColorMode::Legacy);
+        assert_eq!(loaded.color_mode, ColorMode::Color);
+        save_config_at(&path, &loaded).unwrap();
+        let on_disk = fs::read_to_string(&path).unwrap();
+        assert!(on_disk.contains("\"color\""), "color token not written: {on_disk}");
+        assert!(!on_disk.contains("\"legacy\""), "legacy token kept: {on_disk}");
     }
 
     #[test]

@@ -64,7 +64,7 @@ test.describe("command palette (Ctrl/Cmd+K, §107)", () => {
 
   test("Escape closes it and Arrow/Enter drive it from the keyboard", async ({ page }) => {
     // Explicit starting mode — the palette's colour command's label names
-    // the *next* mode in the grayscale → color → legacy cycle, so this
+    // the *other* mode (grayscale <-> color), so this
     // test (which searches for "colored" specifically) needs to start
     // from grayscale regardless of the app's own default.
     await seedApp(page, { seed: { ...scenario("busy-week"), colorMode: "grayscale" } });
@@ -76,12 +76,12 @@ test.describe("command palette (Ctrl/Cmd+K, §107)", () => {
     await page.keyboard.press("Enter"); // "Switch to colored glyphs"
     await expect(page.locator("html")).toHaveAttribute("data-color-mode", "color");
 
-    // §111: the palette command cycles grayscale → color → legacy → …
+    // §328: two palettes only, so the command toggles back.
     await page.keyboard.press("ControlOrMeta+k");
-    await palette(page).locator(".modal-input").fill(">legacy glyphs");
+    await palette(page).locator(".modal-input").fill(">grayscale glyphs");
     await expect(palette(page).locator('.modal-item[role="option"]')).toHaveCount(1);
-    await page.keyboard.press("Enter"); // "Switch to legacy glyphs (…)"
-    await expect(page.locator("html")).toHaveAttribute("data-color-mode", "legacy");
+    await page.keyboard.press("Enter"); // "Switch to grayscale glyphs"
+    await expect(page.locator("html")).toHaveAttribute("data-color-mode", "grayscale");
 
     await page.keyboard.press("ControlOrMeta+k");
     await page.keyboard.press("Escape");

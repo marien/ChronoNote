@@ -395,17 +395,14 @@ function commandItems(): PaletteItem[] {
     },
     {
       id: "cmd-color",
-      // Cycles grayscale → color → legacy → grayscale. The label names
-      // the *next* palette so it reads as an action.
+      // Toggles grayscale <-> color. The label names the *other* palette so
+      // it reads as an action.
       label:
         color === "grayscale"
           ? translate("commandPalette.color.toColor", undefined)
-          : color === "color"
-            ? translate("commandPalette.color.toLegacy", undefined)
-            : translate("commandPalette.color.toGrayscale", undefined),
+          : translate("commandPalette.color.toGrayscale", undefined),
       group: "Settings",
-      run: () =>
-        setColorMode(color === "grayscale" ? "color" : color === "color" ? "legacy" : "grayscale"),
+      run: () => setColorMode(color === "grayscale" ? "color" : "grayscale"),
     },
     {
       id: "cmd-settings",

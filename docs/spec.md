@@ -240,13 +240,13 @@ controls.
   (OLED)** toggle appears right below it (§3.7).
 - **Language:** System / English / Nederlands / Deutsch / Français /
   Polski / Español / Italiano; System follows the OS/browser language.
-- **Glyph palette:** Color / Grayscale / Legacy — a three-way choice
-  independent of the chrome theme above. Glyphs, tab/status-bar accents,
-  and search highlighting all follow it, including inside the action
-  drawer and section history. Color is the default for a fresh install;
-  Legacy restores the pre-0.6 per-action colour scheme (red open, amber
-  deferred, green done, grey won't-do, blue follow-up, yellow emphasis)
-  for anyone who prefers it.
+- **Glyph palette:** Color / Grayscale, independent of the chrome theme
+  above. Glyphs, tab/status-bar accents, and search highlighting all follow
+  it, including inside the action drawer and section history. Color (the
+  default) is red open, amber deferred, green done, grey won't-do, blue
+  follow-up, yellow emphasis; Grayscale tells states apart by weight and
+  opacity only. (Until §328 there was a third "Legacy" option with these
+  colours while Color used cyan/violet; a saved "legacy" now loads as Color.)
 - **Editor width:** Full / Wrap / Reading column — Full keeps every line
   unwrapped (for tables and aligned columns), Wrap breaks long lines to
   fit the window, Reading column additionally caps the text to a
@@ -752,7 +752,7 @@ Full detail on running and extending each layer lives in the project's
 ## Out of Scope / Not Yet Built
 
 - **`rainbow` colour mode** — an early proposal superseded by the
-  shipped Color/Grayscale/Legacy three-way palette (§3.4).
+  shipped Color/Grayscale palette (§3.4).
 - **Native (`tauri-driver`) end-to-end tests** — the Playwright suite
   against the mock backend (§8) covers interaction behavior; a real
   native-window E2E pass was considered and deferred, no concrete plan.

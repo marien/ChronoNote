@@ -20,9 +20,8 @@ export const es = {
   "settings.appearance.glyphs.label": () => "Glifos",
   "settings.appearance.glyphs.color": () => "Color",
   "settings.appearance.glyphs.grayscale": () => "Escala de grises",
-  "settings.appearance.glyphs.legacy": () => "Heredado",
-  "settings.appearance.glyphs.legacyHint": () =>
-    "Heredado restaura los colores de glifo anteriores a la versión 0.6: rojo para pendiente, ámbar para pospuesto, verde para completado.",
+  "settings.appearance.glyphs.hint": () =>
+    "Color: rojo pendiente, ámbar transferida, verde completada. Escala de grises solo las distingue por el grosor.",
   "settings.appearance.pureBlack.label": () => "Negro puro (OLED)",
   "settings.appearance.pureBlack.hint": () =>
     "Lienzo #000000 absoluto para pantallas OLED y ahorro de batería. Solo activo en modo oscuro.",
@@ -367,7 +366,6 @@ export const es = {
   "commandPalette.readable.enable": () => "Habilitar ancho de línea de lectura",
   "commandPalette.readable.disable": () => "Deshabilitar ancho de línea de lectura",
   "commandPalette.color.toColor": () => "Cambiar a glifos en color",
-  "commandPalette.color.toLegacy": () => "Cambiar a glifos heredados (rojo / ámbar / verde)",
   "commandPalette.color.toGrayscale": () => "Cambiar a glifos en escala de grises",
   "commandPalette.keyboardShortcuts": () => "Atajos de teclado",
   "commandPalette.symbolsLegend": () => "Leyenda de símbolos y secciones",

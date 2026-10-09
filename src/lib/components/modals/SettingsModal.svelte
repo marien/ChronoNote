@@ -403,12 +403,11 @@
             />
           </SettingRow>
           <SettingRow label={$t("settings.appearance.glyphs.label")}>
-            {#snippet description()}{$t("settings.appearance.glyphs.legacyHint")}{/snippet}
+            {#snippet description()}{$t("settings.appearance.glyphs.hint")}{/snippet}
             <Segmented
               options={[
                 { value: "color", label: $t("settings.appearance.glyphs.color") },
                 { value: "grayscale", label: $t("settings.appearance.glyphs.grayscale") },
-                { value: "legacy", label: $t("settings.appearance.glyphs.legacy") },
               ]}
               value={$colorMode}
               onChange={(v) => controller.setColorMode(v as ColorMode)}

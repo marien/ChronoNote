@@ -20,9 +20,8 @@ export const it = {
   "settings.appearance.glyphs.label": () => "Glifi",
   "settings.appearance.glyphs.color": () => "Colore",
   "settings.appearance.glyphs.grayscale": () => "Scala di grigi",
-  "settings.appearance.glyphs.legacy": () => "Tradizionale",
-  "settings.appearance.glyphs.legacyHint": () =>
-    "Tradizionale ripristina i colori dei glifi precedenti alla versione 0.6: rosso per aperto, ambra per rimandato, verde per completato.",
+  "settings.appearance.glyphs.hint": () =>
+    "Colore: rosso aperta, ambra inoltrata, verde completata. Scala di grigi le distingue solo per lo spessore.",
   "settings.appearance.pureBlack.label": () => "Nero assoluto (OLED)",
   "settings.appearance.pureBlack.hint": () =>
     "Sfondo #000000 puro per schermi OLED e risparmio batteria. Attivo solo in modalità scura.",
@@ -369,7 +368,6 @@ export const it = {
   "commandPalette.readable.enable": () => "Attiva larghezza colonna di lettura",
   "commandPalette.readable.disable": () => "Disattiva larghezza colonna di lettura",
   "commandPalette.color.toColor": () => "Passa a glifi a colori",
-  "commandPalette.color.toLegacy": () => "Passa a glifi tradizionali (rosso / ambra / verde)",
   "commandPalette.color.toGrayscale": () => "Passa a glifi in scala di grigi",
   "commandPalette.keyboardShortcuts": () => "Scorciatoie da tastiera",
   "commandPalette.symbolsLegend": () => "Legenda simboli e sezioni",

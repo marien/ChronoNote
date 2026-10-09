@@ -175,74 +175,16 @@
   }
 }
 
-/* Color theme (§105 refresh): the reviews' semantic glyph palette —
-   cyan = open/to-do, emerald = done, violet = deferred, slate = won't-do.
-   Amber is reserved for emphasis / warning only. Chrome accent stays the
-   option-B blue. Declared after :root so it wins on source order. */
+/* Color theme: red = open, amber = deferred, green = done, grey = won't do,
+   blue = follow-up, yellow = emphasis (§328: the pre-0.6 "legacy" glyph
+   colours, which Marien found easier to spot than §105's cyan/violet set;
+   the separate Legacy mode is gone). Chrome accent stays the option-B blue.
+   Declared after :root so it wins on source order. */
 [data-color-mode="color"] {
   --selected-bg: #0a84d8;
   --selected-fg: #ffffff;
   --highlight: rgba(245, 200, 66, 0.28);
   --tab-active-border: #38bdf8;
-
-  --glyph-open-color: #38bdf8;
-  --glyph-open-weight: bold;
-  --glyph-done-color: #10b981;
-  --glyph-done-weight: bold;
-  --glyph-done-opacity: 1;
-  --glyph-progress-color: #a855f7;
-  --glyph-progress-weight: bold;
-  --glyph-cancelled-color: #7c8794;
-  --glyph-cancelled-weight: bold;
-  --glyph-cancelled-opacity: 1;
-  --glyph-followup-color: #38bdf8;
-  --glyph-followup-weight: bold;
-  --glyph-assignee-bg: rgba(56, 189, 248, 0.16);
-  --glyph-assignee-color: #7fd4f5;
-  --glyph-emphasis-color: #f59e0b;
-}
-
-@media (prefers-color-scheme: light) {
-  [data-color-mode="color"]:not([data-theme="dark"]) {
-    --selected-bg: #0a6fc2;
-    --selected-fg: #ffffff;
-    --highlight: rgba(245, 200, 66, 0.45);
-    --tab-active-border: #0e7490;
-
-    --glyph-open-color: #0e7490;
-    --glyph-done-color: #047857;
-    --glyph-progress-color: #7e22ce;
-    --glyph-cancelled-color: #55606d;
-    --glyph-followup-color: #0e7490;
-    --glyph-assignee-bg: rgba(14, 116, 144, 0.12);
-    --glyph-assignee-color: #0e7490;
-    --glyph-emphasis-color: #b45309;
-  }
-}
-[data-color-mode="color"][data-theme="light"] {
-  --selected-bg: #0a6fc2;
-  --selected-fg: #ffffff;
-  --highlight: rgba(245, 200, 66, 0.45);
-  --tab-active-border: #0e7490;
-
-  --glyph-open-color: #0e7490;
-  --glyph-done-color: #047857;
-  --glyph-progress-color: #7e22ce;
-  --glyph-cancelled-color: #55606d;
-  --glyph-followup-color: #0e7490;
-  --glyph-assignee-bg: rgba(14, 116, 144, 0.12);
-  --glyph-assignee-color: #0e7490;
-  --glyph-emphasis-color: #b45309;
-}
-
-/* Legacy theme (§111): the pre-0.6 palette, restored on request — red =
-   open, amber = deferred (`> `), green = done, on the old VS-Code-blue
-   chrome accent. Same structural tokens as the other two modes. */
-[data-color-mode="legacy"] {
-  --selected-bg: #007acc;
-  --selected-fg: #ffffff;
-  --highlight: rgba(255, 213, 0, 0.25);
-  --tab-active-border: #007acc;
 
   --glyph-open-color: #ff6b6b;
   --glyph-open-weight: bold;
@@ -262,11 +204,11 @@
 }
 
 @media (prefers-color-scheme: light) {
-  [data-color-mode="legacy"]:not([data-theme="dark"]) {
-    --selected-bg: #0066b8;
+  [data-color-mode="color"]:not([data-theme="dark"]) {
+    --selected-bg: #0a6fc2;
     --selected-fg: #ffffff;
-    --highlight: rgba(255, 230, 0, 0.4);
-    --tab-active-border: #0066b8;
+    --highlight: rgba(245, 200, 66, 0.45);
+    --tab-active-border: #0e7490;
 
     --glyph-open-color: #d9383a;
     --glyph-done-color: #2b8a3e;
@@ -278,11 +220,11 @@
     --glyph-emphasis-color: #f08c00;
   }
 }
-[data-color-mode="legacy"][data-theme="light"] {
-  --selected-bg: #0066b8;
+[data-color-mode="color"][data-theme="light"] {
+  --selected-bg: #0a6fc2;
   --selected-fg: #ffffff;
-  --highlight: rgba(255, 230, 0, 0.4);
-  --tab-active-border: #0066b8;
+  --highlight: rgba(245, 200, 66, 0.45);
+  --tab-active-border: #0e7490;
 
   --glyph-open-color: #d9383a;
   --glyph-done-color: #2b8a3e;

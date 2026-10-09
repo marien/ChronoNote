@@ -34,8 +34,7 @@ export type TranslationParams = {
   "settings.appearance.glyphs.label": undefined;
   "settings.appearance.glyphs.color": undefined;
   "settings.appearance.glyphs.grayscale": undefined;
-  "settings.appearance.glyphs.legacy": undefined;
-  "settings.appearance.glyphs.legacyHint": undefined;
+  "settings.appearance.glyphs.hint": undefined;
   "settings.appearance.pureBlack.label": undefined;
   "settings.appearance.pureBlack.hint": undefined;
   "settings.appearance.statusBar.label": undefined;
@@ -340,7 +339,6 @@ export type TranslationParams = {
   "commandPalette.readable.enable": undefined;
   "commandPalette.readable.disable": undefined;
   "commandPalette.color.toColor": undefined;
-  "commandPalette.color.toLegacy": undefined;
   "commandPalette.color.toGrayscale": undefined;
   "commandPalette.keyboardShortcuts": undefined;
   "commandPalette.symbolsLegend": undefined;
