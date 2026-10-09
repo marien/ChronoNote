@@ -17,18 +17,20 @@
   gap: 4px;
   padding: 4px 4px 4px 8px;
   background: var(--surface-overlay);
+  background: color-mix(in srgb, var(--surface-overlay) 88%, transparent);
+  backdrop-filter: blur(20px) saturate(125%);
   border: 1px solid var(--edge-strong);
-  border-radius: 7px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
-  font-size: 12px;
+  border-radius: var(--radius-overlay);
+  box-shadow: var(--shadow-flyout);
+  font-size: var(--type-caption);
 }
 .find-input {
   width: 180px;
   background: var(--surface-raised);
   border: 1px solid var(--edge-soft);
-  border-radius: 4px;
+  border-radius: var(--radius-control);
   padding: 4px 7px;
-  font-family: var(--font);
+  font-family: var(--font-mono);
   font-size: 12px;
   color: var(--text);
   outline: none;
@@ -52,7 +54,7 @@
   font-size: 13px;
   width: 22px;
   height: 22px;
-  border-radius: 4px;
+  border-radius: var(--radius-control);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -228,7 +230,7 @@
   z-index: 10;
   user-select: none;
   opacity: 0;
-  transition: opacity 0.5s ease-out;
+  transition: opacity var(--motion-slow) ease-out;
   /* A marker near the bottom (an open action on the last lines) has a hit area that reaches past the pane; clipped
      here so it can never make the surrounding container grow its own native scrollbar. */
   overflow: hidden;
@@ -244,7 +246,7 @@ body.peek-mode .cm-overview-ruler {
 .cm-overview-ruler:hover {
   opacity: 1;
   pointer-events: auto;
-  transition: opacity 0.15s ease-in;
+  transition: opacity var(--motion-normal) ease-in;
 }
 
 .cm-ruler-marker {
@@ -256,7 +258,7 @@ body.peek-mode .cm-overview-ruler {
   pointer-events: auto;
   cursor: pointer;
   box-sizing: border-box;
-  transition: transform 0.1s ease, width 0.1s ease, right 0.1s ease;
+  transition: transform var(--motion-fast) ease, width var(--motion-fast) ease, right var(--motion-fast) ease;
 }
 
 /* Touch and click hit-area expansion for easy, reliable targeting.
@@ -598,18 +600,18 @@ body.peek-mode .cm-overview-ruler {
    parentheses simply left visible. */
 .glyph-topic {
   border: 1px solid var(--edge-strong);
-  border-radius: 4px;
+  border-radius: var(--radius-control);
   margin: 0 -1px;
   padding: 0;
   background: color-mix(in srgb, var(--text) 6%, transparent);
   color: var(--text);
   font-style: normal;
   font-weight: 500;
-  transition: border-color 150ms ease, background-color 150ms ease;
+  transition: border-color var(--motion-normal) ease, background-color var(--motion-normal) ease;
 }
 .glyph-topic .glyph-topic-paren {
   color: transparent;
-  transition: color 150ms ease;
+  transition: color var(--motion-normal) ease;
 }
 /* The line being edited (caret or selection on it), or hovered: show the literal `(topic)`. */
 .cm-line-touched .glyph-topic .glyph-topic-paren,
@@ -641,7 +643,7 @@ body.peek-mode .cm-overview-ruler {
   text-decoration-color: var(--edge-strong);
   text-underline-offset: 3px;
   cursor: pointer;
-  transition: color 100ms ease, text-decoration-color 100ms ease;
+  transition: color var(--motion-fast) ease, text-decoration-color var(--motion-fast) ease;
 }
 .cm-line .cm-link:hover {
   text-decoration-color: var(--text);
@@ -650,7 +652,7 @@ body.peek-mode .cm-overview-ruler {
 /* Area 2: Subtle resolved line muting */
 .cm-line.cm-line-resolved {
   opacity: 0.72;
-  transition: opacity 150ms ease;
+  transition: opacity var(--motion-normal) ease;
 }
 
 .cm-line.cm-line-resolved:hover,
@@ -662,7 +664,7 @@ body.peek-mode .cm-overview-ruler {
 /* A resolved topic with an open action after its arrow: only the topic part is muted. */
 .cm-line.cm-line-resolved-partial .cm-resolved-part {
   opacity: 0.72;
-  transition: opacity 150ms ease;
+  transition: opacity var(--motion-normal) ease;
 }
 .cm-line.cm-line-resolved-partial:hover .cm-resolved-part,
 .cm-line.cm-line-resolved-partial.cm-line-resolved-active .cm-resolved-part,
@@ -681,7 +683,7 @@ body.peek-mode .cm-overview-ruler {
   100% { background: transparent; }
 }
 .cm-line.cm-line-hit-pulse {
-  animation: searchHitPulse 1400ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: searchHitPulse var(--motion-slow) cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 /* §81: a Setext underline row (`====` under a section title) drawn as a
@@ -703,8 +705,8 @@ body.peek-mode .cm-overview-ruler {
 .cm-setext-rule {
   color: transparent;
   background-image:
-    linear-gradient(var(--muted), var(--muted)),
-    linear-gradient(var(--muted), var(--muted));
+    linear-gradient(var(--text-tertiary), var(--text-tertiary)),
+    linear-gradient(var(--text-tertiary), var(--text-tertiary));
   background-size: 100% 1px;
   background-repeat: no-repeat;
   background-position:

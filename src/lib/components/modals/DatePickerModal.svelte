@@ -335,11 +335,13 @@
   z-index: 250;
   width: 248px;
   background: var(--surface-overlay);
+  background: color-mix(in srgb, var(--surface-overlay) 88%, transparent);
+  backdrop-filter: blur(20px) saturate(125%);
   border: 1px solid var(--edge-strong);
-  border-radius: 8px;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 16px 44px rgba(0, 0, 0, 0.5);
+  border-radius: var(--radius-overlay);
+  box-shadow: var(--shadow-flyout);
   padding: 8px;
-  font-size: 12px;
+  font-size: 13px;
   color: var(--text);
   user-select: none;
 }
@@ -348,10 +350,9 @@
   width: 100%;
   background: var(--surface-raised);
   border: 1px solid var(--edge-soft);
-  border-radius: 5px;
+  border-radius: var(--radius-control);
   padding: 6px 8px;
-  font-family: var(--font);
-  font-size: 12px;
+  font-size: 13px;
   color: var(--text);
   outline: none;
   margin-bottom: 8px;
@@ -378,6 +379,7 @@
 }
 
 .cal-title {
+  font-size: 15px;
   font-weight: 600;
 }
 
@@ -394,7 +396,7 @@
   line-height: 1;
   width: 22px;
   height: 22px;
-  border-radius: 4px;
+  border-radius: var(--radius-control);
   font-family: inherit;
   display: flex;
   align-items: center;
@@ -420,7 +422,7 @@
 .cal-weekdays span {
   text-align: center;
   color: var(--muted);
-  font-size: 10px;
+  font-size: var(--type-caption);
   padding: 3px 0;
 }
 
@@ -429,7 +431,7 @@
   aspect-ratio: 1;
   background: transparent;
   border: 1px solid transparent;
-  border-radius: 6px;
+  border-radius: var(--radius-control);
   /* State D (Empty): plain dates are quiet backdrop */
   color: var(--muted);
   opacity: 0.35;
@@ -440,7 +442,7 @@
   align-items: center;
   justify-content: center;
   font-variant-numeric: tabular-nums;
-  transition: background 100ms ease, border-color 100ms ease, opacity 100ms ease, color 100ms ease;
+  transition: background var(--motion-fast) ease, border-color var(--motion-fast) ease, opacity var(--motion-fast) ease, color var(--motion-fast) ease;
   box-sizing: border-box;
 }
 
@@ -521,11 +523,6 @@
   opacity: 1 !important;
 }
 
-.cal-day:focus-visible {
-  outline: 2px solid var(--tab-active-border);
-  outline-offset: -1px;
-}
-
 .cal-foot {
   display: flex;
   align-items: center;
@@ -541,10 +538,10 @@
   color: var(--tab-active-border);
   cursor: pointer;
   font-family: inherit;
-  font-size: 11px;
+  font-size: var(--type-caption);
   font-weight: 600;
   padding: 2px 4px;
-  border-radius: 3px;
+  border-radius: var(--radius-control);
 }
 
 .cal-today-btn:hover {
@@ -553,6 +550,6 @@
 
 .cal-hint {
   color: var(--muted);
-  font-size: 10.5px;
+  font-size: var(--type-caption);
 }
 </style>

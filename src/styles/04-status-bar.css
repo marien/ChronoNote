@@ -7,14 +7,14 @@
 .conflict-view-btn {
   flex: 1;
   font-family: inherit;
-  font-size: 11px;
+  font-size: var(--type-caption);
   padding: 5px 8px;
-  border-radius: 6px;
+  border-radius: var(--radius-control);
   background: var(--surface-raised);
   border: 1px solid var(--edge-soft);
   color: var(--muted);
   cursor: pointer;
-  transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease;
+  transition: background var(--motion-normal) ease, border-color var(--motion-normal) ease, color var(--motion-normal) ease;
 }
 .conflict-view-btn.active {
   background: var(--surface-active, rgba(255, 255, 255, 0.1));
@@ -24,7 +24,7 @@
 }
 .conflict-badge {
   display: inline-block;
-  font-size: 11px;
+  font-size: var(--type-caption);
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.04em;
@@ -57,7 +57,7 @@
   gap: 4px;
 }
 .conflict-version-label {
-  font-size: 12px;
+  font-size: var(--type-caption);
   color: var(--text-muted, var(--text));
 }
 .conflict-text {
@@ -67,8 +67,8 @@
   overflow: auto;
   background: var(--surface-base, transparent);
   border: 1px solid var(--edge-soft);
-  border-radius: 6px;
-  font: inherit;
+  border-radius: var(--radius-control);
+  font-family: var(--font-mono);
   font-size: 13px;
 }
 /* One block per line so a differing line can be highlighted edge to edge;

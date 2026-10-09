@@ -374,7 +374,7 @@
     padding: 8px 10px;
     background: var(--surface-canvas);
     border: 1px solid var(--edge-soft);
-    border-radius: 6px;
+    border-radius: var(--radius-control);
     margin-bottom: 8px;
     overflow-x: auto;
   }
@@ -382,7 +382,7 @@
     display: flex;
     align-items: center;
     gap: 4px;
-    font-size: 12px;
+    font-size: var(--type-caption);
     white-space: nowrap;
   }
   .onedrive-breadcrumb-item {
@@ -390,10 +390,10 @@
     border: none;
     color: var(--muted);
     font-family: inherit;
-    font-size: 12px;
+    font-size: var(--type-caption);
     cursor: pointer;
     padding: 2px 4px;
-    border-radius: 4px;
+    border-radius: var(--radius-control);
   }
   .onedrive-breadcrumb-item:hover {
     color: var(--text);
@@ -416,7 +416,7 @@
     max-height: 280px;
     overflow-y: auto;
     border: 1px solid var(--edge-soft);
-    border-radius: 6px;
+    border-radius: var(--radius-control);
     background: var(--surface-canvas);
     margin-bottom: 8px;
   }

@@ -49,8 +49,8 @@ body {
   padding: 4px 8px;
   background: var(--surface-raised);
   border: 1px solid var(--edge-strong);
-  border-radius: 4px;
-  font-size: 11px;
+  border-radius: var(--radius-control);
+  font-size: var(--type-caption);
   font-weight: 600;
   color: var(--text);
   cursor: pointer;
@@ -242,7 +242,7 @@ body {
 .mobile-drawer-card {
   background: var(--surface-overlay);
   border: 1px solid var(--edge-strong);
-  border-radius: 12px;
+  border-radius: var(--radius-overlay);
   width: 100%;
   max-width: 480px;
   max-height: 85vh;
@@ -250,7 +250,7 @@ body {
   display: flex;
   flex-direction: column;
   padding: 16px;
-  box-shadow: 0 16px 44px rgba(0, 0, 0, 0.5);
+  box-shadow: var(--shadow-dialog);
 }
 .drawer-header {
   display: flex;
@@ -311,7 +311,7 @@ body {
   min-height: 44px;
   background: var(--surface-raised);
   border: 1px solid transparent;
-  border-radius: 8px;
+  border-radius: var(--radius-control);
   color: var(--text);
   font-size: 13px;
   cursor: pointer;
@@ -382,7 +382,7 @@ body {
    label text elsewhere in the app relies on. */
 .drawer-tab-open-count {
   margin-left: 6px;
-  font-size: 12px;
+  font-size: var(--type-caption);
   font-weight: 600;
   white-space: nowrap;
   color: var(--muted);
@@ -398,7 +398,7 @@ body {
   font-size: 10px;
   font-weight: 600;
   padding: 2px 6px;
-  border-radius: 4px;
+  border-radius: var(--radius-control);
   background: var(--surface-overlay);
   color: var(--text);
   text-transform: uppercase;
@@ -412,7 +412,7 @@ body {
   height: 28px;
   background: transparent;
   border: none;
-  border-radius: 4px;
+  border-radius: var(--radius-control);
   color: var(--muted);
   cursor: pointer;
 }
@@ -434,7 +434,7 @@ body {
   min-height: 44px;
   background: var(--surface-raised);
   border: 1px solid var(--edge-strong);
-  border-radius: 8px;
+  border-radius: var(--radius-control);
   color: var(--text);
   font-size: 13px;
   font-weight: 500;

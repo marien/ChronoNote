@@ -379,3 +379,13 @@
     </div>
   </div>
 </div>
+
+<style>
+.modal-group-header {
+  font-family: var(--font-mono);
+}
+.modal-item {
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+</style>

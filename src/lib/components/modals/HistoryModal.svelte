@@ -861,11 +861,11 @@
   height: 26px;
   padding: 0 9px;
   border: none;
-  border-radius: 5px;
+  border-radius: var(--radius-control);
   background: transparent;
   color: var(--muted);
-  font: inherit;
-  font-size: 11px;
+  font-family: var(--font-mono);
+  font-size: var(--type-caption);
   white-space: nowrap;
   cursor: pointer;
 }
@@ -991,7 +991,7 @@
 }
 
 .occ-dot:global(.has-log) {
-  background: var(--muted);
+  background: var(--text-tertiary);
   opacity: 0.45;
 }
 
@@ -1012,12 +1012,12 @@
 
 .hp-context {
   margin: 0;
-  font-family: var(--font);
+  font-family: var(--font-mono);
   font-size: 11px;
   line-height: 1.5;
   color: var(--muted);
   background: var(--surface-raised);
-  border-radius: 4px;
+  border-radius: var(--radius-control);
   padding: 7px 9px;
   flex: 1 1 auto;
   min-height: 0;
@@ -1042,7 +1042,7 @@
 
 .history-select-line {
   cursor: pointer;
-  border-radius: 3px;
+  border-radius: var(--radius-control);
   margin: 0 -4px;
   padding: 0 4px;
 }
@@ -1058,7 +1058,7 @@
 }
 
 .hp-note {
-  font-size: 11px;
+  font-size: var(--type-caption);
   color: var(--muted);
   flex-shrink: 0;
 }
@@ -1086,7 +1086,7 @@
  * them instead of relying on the button label alone to carry it. */
 
 .history-takeover-hint {
-  font-size: 10.5px;
+  font-size: var(--type-caption);
   color: var(--muted);
   flex-basis: 100%;
 }

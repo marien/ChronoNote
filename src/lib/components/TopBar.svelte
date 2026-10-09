@@ -1329,11 +1329,15 @@
   display: flex;
   align-items: center;
   gap: 7px;
-  font-size: 12px;
+  font-size: var(--type-caption);
   cursor: pointer;
   background: transparent;
   color: var(--muted);
   white-space: nowrap;
+}
+
+.tab.daily .tab-label {
+  font-family: var(--font-mono);
 }
 
 .tab:hover {
@@ -1401,7 +1405,7 @@
   justify-content: center;
   padding: 3px 5px;
   margin-left: 2px;
-  border-radius: 4px;
+  border-radius: var(--radius-control);
   line-height: 1;
 }
 
@@ -1453,11 +1457,13 @@
   width: max-content;
   max-width: 280px;
   background: var(--surface-overlay);
+  background: color-mix(in srgb, var(--surface-overlay) 88%, transparent);
+  backdrop-filter: blur(20px) saturate(125%);
   border: 1px solid var(--edge-strong);
-  border-radius: 8px;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 16px 44px rgba(0, 0, 0, 0.5);
+  border-radius: var(--radius-overlay);
+  box-shadow: var(--shadow-flyout);
   padding: 4px;
-  font-size: 12px;
+  font-size: 13px;
   color: var(--text);
 }
 
@@ -1465,10 +1471,9 @@
   width: 100%;
   background: transparent;
   border: none;
-  border-radius: 5px;
+  border-radius: var(--radius-control);
   color: inherit;
-  font-family: var(--font);
-  font-size: 12px;
+  font-size: 13px;
   text-align: left;
   cursor: pointer;
   padding: 6px 8px;
@@ -1488,6 +1493,7 @@
 .tab-context-item:disabled {
   opacity: 0.4;
   cursor: default;
+  color: var(--text-tertiary);
 }
 
 .tab-context-item:disabled:hover {
@@ -1503,7 +1509,7 @@
 .tab-rename-input {
   background: var(--surface-input, rgba(0, 0, 0, 0.2));
   border: 1px solid var(--accent);
-  border-radius: 3px;
+  border-radius: var(--radius-control);
   color: var(--text);
   font-family: inherit;
   font-size: 12px;
@@ -1521,7 +1527,7 @@
   min-width: 0;
   border: none;
   font: inherit;
-  font-size: 12px;
+  font-size: var(--type-caption);
   margin: 0 0 0 4px;
 }
 
