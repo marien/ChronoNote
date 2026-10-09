@@ -540,6 +540,7 @@ export const de = {
   "datePicker.day.agendaOnly": () => ", geplante Termine",
   "datePicker.today": () => "Heute",
   "datePicker.escToClose": () => "Esc zum Schließen",
+  "datePicker.weekColumn": () => "KW",
 
   "moreActions.zen": () => "Zen-Modus",
   "moreActions.peek": () => "Peek",

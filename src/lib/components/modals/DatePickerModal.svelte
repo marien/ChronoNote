@@ -11,8 +11,10 @@
     addDaysISO,
     addMonths,
     computeDayHeat,
+    type CalCell,
     type DayHeatState,
     formatISO,
+    isoWeek,
     monthGrid,
     monthName,
     weekdayAbbrev,
@@ -59,6 +61,18 @@
   const showTarget = $derived(!$isMobile || movedByKeyboard);
 
   const cells = $derived(monthGrid(year, month));
+
+  const weeks = $derived.by(() => {
+    const result: { weekNum: number; days: CalCell[] }[] = [];
+    for (let i = 0; i < cells.length; i += 7) {
+      const days = cells.slice(i, i + 7);
+      result.push({
+        weekNum: isoWeek(days[0].iso),
+        days,
+      });
+    }
+    return result;
+  });
 
   /** #46/§129's lesson applies here too: never guess at note content when
    * an open tab already has the true, possibly-unsaved version in memory
@@ -157,7 +171,7 @@
       return;
     }
     const r = trigger.getBoundingClientRect();
-    const w = popEl.offsetWidth || 248;
+    const w = popEl.offsetWidth || 284;
     // Right-align to the trigger, but never spill off the left edge.
     const left = Math.max(8, Math.min(r.right - w, window.innerWidth - w - 8));
     anchorStyle = `top:${r.bottom + 6}px; left:${left}px`;
@@ -281,43 +295,47 @@
   </div>
 
   <div class="cal-weekdays" aria-hidden="true">
+    <span class="cal-week-col-head">{$t("datePicker.weekColumn")}</span>
     {#each WEEKDAY_INDICES as i}<span>{weekdayAbbrev($locale, i)}</span>{/each}
   </div>
 
   <div class="cal-grid" role="grid" tabindex="-1" bind:this={gridEl} onkeydown={onGridKeydown}>
-    {#each cells as cell (cell.iso)}
-      <button
-        type="button"
-        class="cal-day"
-        class:out={!cell.inMonth}
-        class:today={cell.iso === today}
-        class:target={showTarget && cell.iso === focusedIso}
-        class:hasnote={noteByIso.has(cell.iso)}
-        class:has={openByIso.has(cell.iso)}
-        class:has-done={heatByIso.get(cell.iso) === "done"}
-        class:has-pending={heatByIso.get(cell.iso) === "pending"}
-        class:has-log={heatByIso.get(cell.iso) === "log"}
-        class:has-agenda={!noteByIso.has(cell.iso) && agendaDates.has(cell.iso)}
-        data-iso={cell.iso}
-        tabindex={cell.iso === focusedIso ? 0 : -1}
-        aria-label={`${cell.iso}${
-          heatByIso.get(cell.iso) === "pending"
-            ? $t("datePicker.day.pending")
-            : heatByIso.get(cell.iso) === "done"
-              ? $t("datePicker.day.allDone")
-              : heatByIso.get(cell.iso) === "log"
-                ? $t("datePicker.day.log")
-                : noteByIso.has(cell.iso)
-                  ? $t("datePicker.day.hasNote")
-                  : agendaDates.has(cell.iso)
-                    ? $t("datePicker.day.agendaOnly")
-                    : ""
-        }`}
-        aria-current={cell.iso === today ? "date" : undefined}
-        onclick={() => commit(cell.iso)}
-      >
-        {cell.day}
-      </button>
+    {#each weeks as week (week.days[0].iso)}
+      <span class="cal-week-num" aria-hidden="true">{week.weekNum}</span>
+      {#each week.days as cell (cell.iso)}
+        <button
+          type="button"
+          class="cal-day"
+          class:out={!cell.inMonth}
+          class:today={cell.iso === today}
+          class:target={showTarget && cell.iso === focusedIso}
+          class:hasnote={noteByIso.has(cell.iso)}
+          class:has={openByIso.has(cell.iso)}
+          class:has-done={heatByIso.get(cell.iso) === "done"}
+          class:has-pending={heatByIso.get(cell.iso) === "pending"}
+          class:has-log={heatByIso.get(cell.iso) === "log"}
+          class:has-agenda={!noteByIso.has(cell.iso) && agendaDates.has(cell.iso)}
+          data-iso={cell.iso}
+          tabindex={cell.iso === focusedIso ? 0 : -1}
+          aria-label={`${cell.iso}${
+            heatByIso.get(cell.iso) === "pending"
+              ? $t("datePicker.day.pending")
+              : heatByIso.get(cell.iso) === "done"
+                ? $t("datePicker.day.allDone")
+                : heatByIso.get(cell.iso) === "log"
+                  ? $t("datePicker.day.log")
+                  : noteByIso.has(cell.iso)
+                    ? $t("datePicker.day.hasNote")
+                    : agendaDates.has(cell.iso)
+                      ? $t("datePicker.day.agendaOnly")
+                      : ""
+          }`}
+          aria-current={cell.iso === today ? "date" : undefined}
+          onclick={() => commit(cell.iso)}
+        >
+          {cell.day}
+        </button>
+      {/each}
     {/each}
   </div>
 
@@ -335,21 +353,23 @@
 .datepicker-pop {
   position: fixed;
   z-index: 250;
-  width: 248px;
+  width: 284px;
   background: var(--surface-overlay);
   background: color-mix(in srgb, var(--surface-overlay) 88%, transparent);
   backdrop-filter: blur(20px) saturate(125%);
   border: 1px solid var(--edge-strong);
   border-radius: var(--radius-overlay);
   box-shadow: var(--shadow-flyout);
-  padding: 8px;
+  padding: 10px;
   font-size: 13px;
   color: var(--text);
   user-select: none;
+  box-sizing: border-box;
 }
 
 .datepicker-jump {
   width: 100%;
+  box-sizing: border-box;
   background: var(--surface-raised);
   border: 1px solid var(--edge-soft);
   border-radius: var(--radius-control);
@@ -413,8 +433,9 @@
 .cal-weekdays,
 .cal-grid {
   display: grid;
-  grid-template-columns: repeat(7, 1fr);
+  grid-template-columns: 26px repeat(7, 32px);
   gap: 2px;
+  justify-content: center;
 }
 
 .cal-weekdays {
@@ -426,103 +447,111 @@
   color: var(--muted);
   font-size: var(--type-caption);
   padding: 3px 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cal-weekdays span.cal-week-col-head {
+  color: var(--text-tertiary);
+  font-size: 10.5px;
+  font-weight: 600;
+}
+
+.cal-week-num {
+  color: var(--text-tertiary);
+  font-size: 10.5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-variant-numeric: tabular-nums;
+  user-select: none;
 }
 
 .cal-day {
   position: relative;
-  aspect-ratio: 1;
+  width: 32px;
+  height: 32px;
   background: transparent;
   border: 1px solid transparent;
-  border-radius: var(--radius-control);
-  /* State D (Empty): plain dates are quiet backdrop */
-  color: var(--muted);
-  opacity: 0.35;
-  font-family: inherit;
-  font-size: 11.5px;
+  border-radius: 50%;
+  color: var(--text);
+  font-family: var(--font-ui);
+  font-size: 12.5px;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
   font-variant-numeric: tabular-nums;
-  transition: background var(--motion-fast) ease, border-color var(--motion-fast) ease, opacity var(--motion-fast) ease, color var(--motion-fast) ease;
+  transition: background var(--motion-fast) ease, border-color var(--motion-fast) ease, opacity var(--motion-fast) ease, color var(--motion-fast) ease, box-shadow var(--motion-fast) ease;
   box-sizing: border-box;
+  padding: 0;
 }
 
 .cal-day:hover {
-  background: var(--surface-raised);
-  opacity: 0.85;
+  background: color-mix(in srgb, var(--text) 10%, transparent);
+}
+
+.cal-day:focus-visible {
+  outline: 2px solid var(--tab-active-border);
+  outline-offset: 2px;
 }
 
 .cal-day.out {
-  opacity: 0.25;
+  color: var(--text-tertiary);
+  opacity: 0.6;
 }
 
-/* State C (Agenda Only): Dashed bounding box placeholder */
-
+/* State C (Agenda Only): Dashed bounding ring placeholder */
 .cal-day.has-agenda {
   color: var(--muted);
-  opacity: 0.85;
   border: 1px dashed var(--edge-strong);
   font-weight: 500;
 }
 
 .cal-day.has-agenda:hover {
-  background: var(--surface-raised);
-  opacity: 1;
-  border-style: solid;
+  background: color-mix(in srgb, var(--text) 10%, transparent);
 }
 
-/* State A (Notes Recorded / Settled): Filled neutral chip */
-
+/* State A (Notes Recorded / Settled): Bold text on a faint fill */
 .cal-day.hasnote {
   color: var(--text);
-  font-weight: 600;
-  opacity: 1;
-  background: var(--surface-raised);
-  border: 1px solid var(--edge-soft);
+  font-weight: 700;
+  background: color-mix(in srgb, var(--text) 8%, transparent);
 }
 
 .cal-day.hasnote:hover {
-  background: color-mix(in srgb, var(--surface-raised) 85%, var(--text));
+  background: color-mix(in srgb, var(--text) 14%, transparent);
 }
 
-/* State B (Open Actions Pending): Neutral chip + Accent border */
-
+/* State B (Open Actions Pending): 1.5px warning ring */
 .cal-day.has-pending {
-  background: var(--surface-raised);
-  color: var(--text);
-  font-weight: 700;
-  opacity: 1;
-  border: 1.5px solid var(--state-warn);
+  box-shadow: inset 0 0 0 1.5px var(--state-warn);
 }
 
-.cal-day.has-pending:hover {
-  background: color-mix(in srgb, var(--surface-raised) 85%, var(--text));
-}
-
-/* Grayscale mode: State B distinguished by bold solid 1.5px white border */
-
+/* Grayscale mode: State B distinguished by solid 1.5px text-colored ring */
 :global([data-color-mode="grayscale"]) .cal-day.has-pending {
-  border: 1.5px solid var(--text);
+  box-shadow: inset 0 0 0 1.5px var(--text);
   font-weight: 800;
 }
 
-/* Today: Dedicated perimeter ring */
-
+/* Today: filled --selected-bg circle with --selected-fg text */
 .cal-day.today {
-  outline: 2px solid var(--tab-active-border);
-  outline-offset: -2px;
-  font-weight: 800;
+  background: var(--selected-bg);
+  color: var(--selected-fg);
+  font-weight: 600;
 }
 
-/* Where the typed query / keyboard cursor is pointing. */
-
+/* Target/selected: 2px --selected-bg ring */
 .cal-day.target {
-  background: var(--selected-bg) !important;
-  color: var(--selected-fg) !important;
-  border-color: var(--selected-bg) !important;
-  outline: none !important;
-  opacity: 1 !important;
+  box-shadow: inset 0 0 0 2px var(--selected-bg);
+}
+
+/* Both today and selected: fill plus an inner --selected-fg 1px ring */
+.cal-day.today.target {
+  background: var(--selected-bg);
+  color: var(--selected-fg);
+  box-shadow: inset 0 0 0 1px var(--selected-fg);
 }
 
 .cal-foot {

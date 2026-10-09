@@ -535,6 +535,7 @@ export const nl = {
   "datePicker.day.agendaOnly": () => ", geplande vergaderingen",
   "datePicker.today": () => "Vandaag",
   "datePicker.escToClose": () => "Esc om te sluiten",
+  "datePicker.weekColumn": () => "wk",
 
   "moreActions.zen": () => "Zen-modus",
   "moreActions.peek": () => "Peek",

@@ -529,6 +529,7 @@ export type TranslationParams = {
   "datePicker.day.agendaOnly": undefined;
   "datePicker.today": undefined;
   "datePicker.escToClose": undefined;
+  "datePicker.weekColumn": undefined;
 
   // More Actions popover (`MoreActionsModal.svelte`, #56 top-bar overflow).
   "moreActions.zen": undefined;
