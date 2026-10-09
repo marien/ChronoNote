@@ -750,3 +750,123 @@ body.peek-mode .cm-overview-ruler {
     0 calc(51% + 0.09em);
 }
 
+/* Editor Context Menu (proposal B5) */
+.editor-context-menu {
+  position: fixed;
+  z-index: 300;
+  width: 260px;
+  background: var(--surface-overlay);
+  background: color-mix(in srgb, var(--surface-overlay) 88%, transparent);
+  backdrop-filter: blur(20px) saturate(125%);
+  border: 1px solid var(--edge-strong);
+  border-radius: var(--radius-overlay);
+  box-shadow: var(--shadow-flyout);
+  padding: 4px;
+  font-family: var(--font-ui);
+  font-size: 13px;
+  color: var(--text);
+  box-sizing: border-box;
+}
+
+.editor-context-icon-row {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px;
+}
+
+.editor-context-icon-btn {
+  width: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-control);
+  color: inherit;
+  cursor: pointer;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+.editor-context-icon-btn:hover,
+.editor-context-icon-btn:focus-visible,
+.editor-context-icon-btn:focus {
+  background: var(--surface-raised);
+  outline: none;
+}
+
+.editor-context-icon-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+  color: var(--text-tertiary);
+}
+
+.editor-context-icon-btn:disabled:hover,
+.editor-context-icon-btn:disabled:focus {
+  background: transparent;
+}
+
+.editor-context-item {
+  width: 100%;
+  height: 32px;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-control);
+  color: inherit;
+  font-family: var(--font-ui);
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+  padding: 0 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-sizing: border-box;
+}
+
+.editor-context-item:hover,
+.editor-context-item:focus-visible,
+.editor-context-item:focus {
+  background: var(--surface-raised);
+  outline: none;
+}
+
+.editor-context-item:disabled {
+  opacity: 0.4;
+  cursor: default;
+  color: var(--text-tertiary);
+}
+
+.editor-context-item:disabled:hover,
+.editor-context-item:disabled:focus {
+  background: transparent;
+}
+
+.editor-context-item :is([class^="glyph-"], [class*=" glyph-"], .cn-icon) {
+  flex-shrink: 0;
+}
+
+.editor-context-label {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.editor-context-key {
+  color: var(--muted);
+  font-size: 12px;
+  white-space: nowrap;
+  margin-left: auto;
+  padding-left: 8px;
+  flex-shrink: 0;
+}
+
+.editor-context-sep {
+  height: 1px;
+  margin: 4px 6px;
+  background: var(--edge-soft);
+}
+

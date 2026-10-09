@@ -39,7 +39,7 @@
     topicLineEnter,
   } from "../tokens";
   import * as controller from "../controller";
-  import { findMatch, findOpen, readableLineLength, wordWrap } from "../controller";
+  import { editorContextMenu, findMatch, findOpen, readableLineLength, wordWrap } from "../controller";
 
   interface Props {
     content: string;
@@ -685,6 +685,14 @@
         }
       }),
       EditorView.domEventHandlers({
+        contextmenu: (event, v) => {
+          event.preventDefault();
+          const pos = v.posAtCoords({ x: event.clientX, y: event.clientY });
+          if (pos != null && v.state.selection.main.empty) v.dispatch({ selection: { anchor: pos } });
+          const line = v.state.doc.lineAt(v.state.selection.main.head).text;
+          editorContextMenu.set({ x: event.clientX, y: event.clientY, line });
+          return true;
+        },
         copy: (_event, v) => {
           const sel = v.state.sliceDoc(v.state.selection.main.from, v.state.selection.main.to);
           controller.recordCopiedAction(sel, controller.getActiveTabId(), v.state.selection.main.from);

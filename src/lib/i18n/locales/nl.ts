@@ -818,4 +818,7 @@ export const nl = {
   "error.oneDriveTokenExchangeRejected": ({ detail }) => `Microsoft heeft de aanmelding afgewezen: ${detail}`,
   "error.oneDriveTokenResponseUnparseable": ({ detail }) =>
     `Het antwoord van Microsoft bij het aanmelden was onbegrijpelijk: ${detail}`,
+  "editorMenu.cut": () => "Knippen",
+  "editorMenu.copy": () => "Kopiëren",
+  "editorMenu.paste": () => "Plakken",
 } satisfies Dictionary;

@@ -824,4 +824,7 @@ export const de = {
   "error.oneDriveTokenExchangeRejected": ({ detail }) => `Microsoft hat die Anmeldung abgelehnt: ${detail}`,
   "error.oneDriveTokenResponseUnparseable": ({ detail }) =>
     `Die Anmeldeantwort von Microsoft war nicht verständlich: ${detail}`,
+  "editorMenu.cut": () => "Ausschneiden",
+  "editorMenu.copy": () => "Kopieren",
+  "editorMenu.paste": () => "Einfügen",
 } satisfies Dictionary;
