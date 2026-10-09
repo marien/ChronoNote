@@ -27,12 +27,17 @@ export function overlayRect(r: { left: number; top: number; width: number; heigh
 /** Starts following `button`. Returns a cleanup that hides the overlay and stops listening. */
 export function wireSnapOverlay(button: HTMLElement): () => void {
   let last = "";
+  let warned = false;
   let frame = 0;
   const send = (rect: OverlayRect) => {
     const key = `${rect.x},${rect.y},${rect.width},${rect.height}`;
     if (key === last) return;
     last = key;
-    void invoke("snap_overlay_set_rect", { ...rect }).catch(() => {});
+    void invoke("snap_overlay_set_rect", { ...rect }).catch((e) => {
+      // Not fatal (the button still works as a plain button), but worth seeing in the console.
+      if (!warned) console.warn("Snap Layouts overlay:", e);
+      warned = true;
+    });
   };
   const update = () => {
     cancelAnimationFrame(frame);

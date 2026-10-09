@@ -1,4 +1,5 @@
-//! Windows 11 Snap Layouts for the custom maximize button (§B1).
+//! Windows 11 Snap Layouts for the custom maximize button (§B1). Recipe (and its pitfalls) after
+//! https://dev.to/zbrooklyn/windows-11-snap-layouts-in-a-frameless-tauri-app-the-part-every-guide-gets-wrong-2fjh
 //!
 //! The title bar is drawn by the page (`decorations: false`), so Windows never learns where the maximize button is:
 //! the Snap Layouts flyout appears when a window answers `WM_NCHITTEST` with `HTMAXBUTTON`, and here the WebView2
@@ -15,14 +16,15 @@ mod imp {
     use std::sync::{Mutex, OnceLock};
     use tauri::{AppHandle, Emitter, Manager};
     use windows::core::{w, PCWSTR};
-    use windows::Win32::Foundation::{COLORREF, HWND, LPARAM, LRESULT, WPARAM};
+    use windows::Win32::Foundation::{HWND, LPARAM, LRESULT, WPARAM};
+    use windows::Win32::Graphics::Gdi::{GetStockObject, HBRUSH, NULL_BRUSH};
     use windows::Win32::System::LibraryLoader::GetModuleHandleW;
     use windows::Win32::UI::Input::KeyboardAndMouse::{TrackMouseEvent, TME_LEAVE, TME_NONCLIENT, TRACKMOUSEEVENT};
     use windows::Win32::UI::WindowsAndMessaging::{
-        CreateWindowExW, DefWindowProcW, GetParent, IsZoomed, RegisterClassW, SetLayeredWindowAttributes,
-        SetWindowPos, ShowWindow, HTMAXBUTTON, HWND_TOP, LWA_ALPHA, SWP_HIDEWINDOW, SWP_NOACTIVATE, SWP_SHOWWINDOW,
-        SW_MAXIMIZE, SW_RESTORE, WM_NCHITTEST, WM_NCLBUTTONDBLCLK, WM_NCLBUTTONDOWN, WM_NCLBUTTONUP,
-        WM_NCMOUSELEAVE, WM_NCMOUSEMOVE, WNDCLASSW, WS_CHILD, WS_CLIPSIBLINGS, WS_EX_LAYERED, WS_EX_NOACTIVATE,
+        CreateWindowExW, DefWindowProcW, GetParent, IsZoomed, RegisterClassW, SetWindowPos, ShowWindow, HTMAXBUTTON,
+        HWND_TOP, SWP_HIDEWINDOW, SWP_NOACTIVATE, SWP_SHOWWINDOW, SW_MAXIMIZE, SW_RESTORE, WINDOW_EX_STYLE,
+        WM_ERASEBKGND, WM_NCHITTEST, WM_NCLBUTTONDBLCLK, WM_NCLBUTTONDOWN, WM_NCLBUTTONUP, WM_NCMOUSELEAVE,
+        WM_NCMOUSEMOVE, WNDCLASSW, WS_CHILD, WS_CLIPSIBLINGS,
     };
 
     /// The overlay's HWND (as isize so the static is Send), created on first use.
@@ -47,6 +49,8 @@ mod imp {
         match msg {
             // The one answer that makes Windows 11 offer Snap Layouts on hover.
             WM_NCHITTEST => LRESULT(HTMAXBUTTON as isize),
+            // Never paints (null brush, no erase), so the page's own button shows through.
+            WM_ERASEBKGND => LRESULT(1),
             WM_NCMOUSEMOVE => {
                 if !*HOVERING.lock().unwrap() {
                     let mut tme = TRACKMOUSEEVENT {
@@ -89,12 +93,15 @@ mod imp {
             lpfnWndProc: Some(wndproc),
             hInstance: instance.into(),
             lpszClassName: CLASS_NAME,
+            hbrBackground: HBRUSH(GetStockObject(NULL_BRUSH).0),
             ..Default::default()
         };
         // Registering twice (a second window) fails harmlessly; the class exists.
         RegisterClassW(&class);
+        // No extended styles: WS_EX_LAYERED makes Windows skip the window in the caption hit test (and a layered
+        // child also needs a Windows 8+ manifest), WS_EX_TRANSPARENT makes it hit-test-transparent outright.
         let hwnd = CreateWindowExW(
-            WS_EX_LAYERED | WS_EX_NOACTIVATE,
+            WINDOW_EX_STYLE(0),
             CLASS_NAME,
             w!(""),
             WS_CHILD | WS_CLIPSIBLINGS,
@@ -108,8 +115,6 @@ mod imp {
             None,
         )
         .map_err(|e| e.to_string())?;
-        // Practically invisible but still hit-testable (a fully transparent layered window is not).
-        SetLayeredWindowAttributes(hwnd, COLORREF(0), 1, LWA_ALPHA).map_err(|e| e.to_string())?;
         Ok(hwnd)
     }
 

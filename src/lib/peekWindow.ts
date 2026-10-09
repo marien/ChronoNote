@@ -117,7 +117,7 @@ export interface PeekWin {
 }
 
 export const PEEK_MIN_LOGICAL = { width: 240, height: 80 };
-export const FULL_MIN_LOGICAL = { width: 640, height: 420 };
+export const FULL_MIN_LOGICAL = { width: 500, height: 420 };
 
 export interface PeekEnterOptions {
   /** Where the compact window was last left; null = first time. */

@@ -98,7 +98,7 @@ describe("createPeekWindowController", () => {
     expect(f.geo).toEqual({ x: 329, y: 329, width: 1115, height: 729 });
     expect(f.log).toContain("top:false");
     expect(f.log).toContain("transparent:false");
-    expect(f.log).toContain("min:640x420");
+    expect(f.log).toContain("min:500x420");
   });
 
   it("a maximized window is un-maximized for Peek and maximized again afterwards", async () => {
