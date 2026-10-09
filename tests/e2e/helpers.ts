@@ -172,7 +172,8 @@ export function toast(page: Page): Locator {
 }
 
 export async function statusCounts(page: Page): Promise<{ open: number; closed: number; forwarded: number }> {
-  const text = async (id: string) => (await page.locator(`#${id}`).textContent()) ?? "";
+  // Each count button carries a full label and a compact number; read the number (§B4).
+  const text = async (id: string) => (await page.locator(`#${id} .stat-compact`).textContent()) ?? "";
   const num = (s: string) => Number(s.replace(/\D+/g, ""));
   return {
     open: num(await text("stat-open")),

@@ -447,7 +447,7 @@ export const it = {
   "statusBar.closedCount": ({ count }) => `Chiuse ${count}`,
   "statusBar.forwardedCount": ({ count }) => `Inoltrate ${count}`,
   "statusBar.labelOpen": ({ count }) => `${count} apert${count === 1 ? "a" : "e"}`,
-  "statusBar.labelDeferred": ({ count }) => `${count} rimandat${count === 1 ? "a" : "e"}`,
+  "statusBar.labelDeferred": ({ count }) => `${count} inoltrat${count === 1 ? "a" : "e"}`,
   "statusBar.labelDone": ({ count }) => `${count} completat${count === 1 ? "a" : "e"}`,
   "statusBar.jumpNextActionTooltip": ({ combo }) => `Passa all'azione aperta successiva (${combo})`,
   "statusBar.allActionsTooltip": () => "Apri pannello azioni (tutte le azioni)",

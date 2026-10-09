@@ -6,8 +6,8 @@ test.describe("status bar — three zones (§100/§110)", () => {
     await seedApp(page, { seed: { notes: { [todayFilename()]: "# open one\nv done two\nplain words here" } } });
 
     await expect(page.locator("#stat-words")).toHaveText("9 words");
-    await expect(page.locator("#stat-open")).toHaveText("Open 1");
-    await expect(page.locator("#stat-closed")).toHaveText("Closed 1");
+    await expect(page.locator("#stat-open .stat-full")).toHaveText("1 open");
+    await expect(page.locator("#stat-closed .stat-full")).toHaveText("1 done");
 
     await setEditorText(page, "just three words");
     await expect(page.locator("#stat-words")).toHaveText("3 words");
@@ -58,22 +58,16 @@ test.describe("status bar — three zones (§100/§110)", () => {
     await expect(page.locator("#stat-save")).toHaveCount(0);
   });
 
-  test("right zone: version and the ? shortcut trigger open the combined drawer", async ({ page }) => {
+  test("right zone: the ? shortcut trigger opens the combined drawer; the version is no longer shown (§B4)", async ({ page }) => {
     await seedApp(page, { seed: { notes: {}, appVersion: "9.9.9" } });
-    await expect(page.locator("#stat-version")).toHaveText("v9.9.9");
+    await expect(page.locator("#stat-version")).toHaveCount(0);
 
     await page.locator(".status-help").click();
     await expect(modalCard(page, MODAL_LABELS.shortcuts)).toBeVisible();
     await expect(modalCard(page, MODAL_LABELS.shortcuts)).toContainText("Symbols → glyphs");
   });
 
-  test("§update-check follow-up: clicking the version number opens About", async ({ page }) => {
-    await seedApp(page, { seed: { notes: {}, appVersion: "9.9.9", updateCheck: "none" } });
-    await page.locator("#stat-version").click();
-    await expect(modalCard(page, MODAL_LABELS.about)).toBeVisible();
-  });
-
-  test("#58: the About icon comes last - after the version number and the shortcuts trigger - and opens About", async ({
+  test("#58: the About icon comes last - after the shortcuts trigger - and opens About", async ({
     page,
   }) => {
     await seedApp(page, { seed: { notes: {}, appVersion: "9.9.9", updateCheck: "none" } });
@@ -84,7 +78,7 @@ test.describe("status bar — three zones (§100/§110)", () => {
         (n) => n.id || [...n.classList].find((c) => c === "status-help" || c === "status-about-btn"),
       ),
     );
-    expect(order).toEqual(["stat-version", "status-help", "status-about-btn"]);
+    expect(order).toEqual(["status-help", "status-about-btn"]);
 
     await page.locator(".status-about-btn").click();
     await expect(modalCard(page, MODAL_LABELS.about)).toBeVisible();
@@ -136,7 +130,7 @@ test.describe("status bar — three zones (§100/§110)", () => {
     await page.setViewportSize({ width: 1000, height: 700 });
     await expect(page.locator("#stat-pos")).toBeVisible();
     await expect(page.locator("#stat-words")).toBeVisible();
-    await expect(leftZone).toContainText("Open 1");
+    await expect(leftZone).toContainText("1 open");
     await expect(leftZone.locator(".stat-compact").first()).toBeHidden();
 
     // Tier 1 (<=680px): word count drops first; position stays.
@@ -150,18 +144,17 @@ test.describe("status bar — three zones (§100/§110)", () => {
     // actually rendered.
     await page.setViewportSize({ width: 500, height: 700 });
     await expect(page.locator("#stat-pos")).toBeHidden();
-    expect(await leftZone.evaluate((el) => (el as HTMLElement).innerText.replace(/\s+/g, " ").trim())).toBe(
-      "Open 1 · Closed 1 · Forwarded 1",
-    );
+    await expect(leftZone).toContainText("1 open");
+    await expect(leftZone).toContainText("1 deferred");
+    await expect(leftZone).toContainText("1 done");
 
     // Tier 3 (<=420px, phone width): counts switch to compact glyph form,
     // the version number disappears, and nothing overflows — the exact
     // scenario reported from a phone-width web app screenshot.
     await page.setViewportSize({ width: 390, height: 700 });
-    await expect(page.locator("#stat-open")).toBeHidden();
+    await expect(page.locator("#stat-open .stat-full")).toBeHidden();
     await expect(leftZone.locator(".stat-compact").first()).toBeVisible();
-    await expect(leftZone).toContainText("☐ 1");
-    await expect(page.locator("#stat-version")).toBeHidden();
+    await expect(page.locator("#stat-open .stat-compact")).toHaveText("1");
     const overflowing = await page
       .locator("#status-bar")
       .evaluate((el) => el.scrollWidth > el.clientWidth);
@@ -191,6 +184,36 @@ test.describe("status bar — three zones (§100/§110)", () => {
     await page.locator(".status-update-btn").click();
     await expect(modalCard(page, MODAL_LABELS.about)).toBeVisible();
     await expect(modalCard(page, MODAL_LABELS.about)).toContainText("9.9.9");
+  });
+});
+
+test.describe("§B4: clickable counts and the Show status bar setting", () => {
+  test("the open count jumps the caret to the next open action", async ({ page }) => {
+    await seedApp(page, { seed: { notes: { [todayFilename()]: "plain\nmore\n# first\nv done\n# second" } } });
+    await editor(page).click();
+    await page.keyboard.press("ControlOrMeta+Home");
+    await page.locator("#stat-open").click();
+    await expect(page.locator("#stat-pos")).toContainText("Ln 3,");
+  });
+
+  test("the done count opens the Action Drawer with every state listed", async ({ page }) => {
+    await seedApp(page, { seed: { notes: { [todayFilename()]: "# open one\nv done one" } } });
+    await page.locator("#stat-closed").click();
+    const drawer = modalCard(page, MODAL_LABELS.actions);
+    await expect(drawer).toBeVisible();
+    await expect(drawer).toContainText("done one");
+  });
+
+  test("turning the status bar off hides it and survives a reload", async ({ page }) => {
+    await seedApp(page, { seed: { notes: {} } });
+    await expect(page.locator("#status-bar")).toBeVisible();
+    await page.keyboard.press("ControlOrMeta+Comma");
+    await page.locator(".toggle-switch", { hasText: "Show status bar" }).click();
+    await page.getByRole("button", { name: "Close", exact: true }).click();
+    await expect(page.locator("#status-bar")).toHaveCount(0);
+    await page.reload();
+    await expect(page.locator(".cm-content")).toBeVisible();
+    await expect(page.locator("#status-bar")).toHaveCount(0);
   });
 });
 
@@ -239,7 +262,7 @@ test.describe("Dutch and German status bar collapse & center message non-overlap
 
     // Action counts must be visible in compact form
     await expect(left.locator(".stat-compact").first()).toBeVisible();
-    await expect(left).toContainText("☐ 1");
+    await expect(left.locator("#stat-open .stat-compact")).toHaveText("1");
 
     // Left and centre bounding boxes must not overlap
     const leftBox = (await left.boundingBox())!;
@@ -265,7 +288,7 @@ test.describe("Dutch and German status bar collapse & center message non-overlap
 
     // On 720px in German, verbose "Weitergeleitet" collapses to compact glyph format
     await expect(left.locator(".stat-compact").first()).toBeVisible();
-    await expect(left).toContainText("☐ 1");
+    await expect(left.locator("#stat-open .stat-compact")).toHaveText("1");
 
     // No overflow on status bar
     const overflowing = await bar.evaluate((el) => el.scrollWidth > el.clientWidth);
@@ -285,9 +308,9 @@ test.describe("Dutch and German status bar collapse & center message non-overlap
     const bar = page.locator("#status-bar");
     const statForwarded = bar.locator("#stat-forwarded");
     await expect(statForwarded).toBeVisible();
-    await expect(statForwarded).toContainText("Doorgeschoven 1");
-    await expect(bar.locator("#stat-open")).toContainText("Open 1");
-    await expect(bar.locator("#stat-closed")).toContainText("Voltooid 1");
+    await expect(statForwarded).toContainText("1 doorgeschoven");
+    await expect(bar.locator("#stat-open")).toContainText("1 open");
+    await expect(bar.locator("#stat-closed")).toContainText("1 voltooid");
 
     // Verify stat-forwarded is not clipped by the left zone's container
     const isClipped = await page.evaluate(() => {
@@ -299,9 +322,8 @@ test.describe("Dutch and German status bar collapse & center message non-overlap
 
     // Verify compact form uses boxed deferred glyph instead of »
     await page.setViewportSize({ width: 400, height: 600 });
-    const compactForwarded = bar.locator(".stat-compact").last();
-    await expect(compactForwarded).toBeVisible();
-    await expect(compactForwarded.locator(".glyph-progress")).toBeVisible();
+    await expect(bar.locator("#stat-forwarded .stat-compact")).toBeVisible();
+    await expect(bar.locator("#stat-forwarded .glyph-progress")).toBeVisible();
     expect(await bar.locator(".status-left").innerText()).not.toContain("»");
   });
 

@@ -445,7 +445,7 @@ export const es = {
   "statusBar.closedCount": ({ count }) => `Cerradas ${count}`,
   "statusBar.forwardedCount": ({ count }) => `Transferidas ${count}`,
   "statusBar.labelOpen": ({ count }) => `${count} pendiente${count === 1 ? "" : "s"}`,
-  "statusBar.labelDeferred": ({ count }) => `${count} pospuesta${count === 1 ? "" : "s"}`,
+  "statusBar.labelDeferred": ({ count }) => `${count} transferida${count === 1 ? "" : "s"}`,
   "statusBar.labelDone": ({ count }) => `${count} completada${count === 1 ? "" : "s"}`,
   "statusBar.jumpNextActionTooltip": ({ combo }) => `Saltar a la siguiente acción pendiente (${combo})`,
   "statusBar.allActionsTooltip": () => "Abrir panel de acciones (todas las acciones)",

@@ -1,6 +1,5 @@
 <script lang="ts">
   import {
-    appVersion,
     backendKind,
     folderNameFromPath,
     justUpdatedToVersion,
@@ -23,11 +22,22 @@
     UPDATE_AVAILABLE_TOAST_KEY,
     updateStatus,
   } from "../controller";
+  import { actionDrawerShowOnlyOpen, editorApi } from "../stores";
   import * as controller from "../controller";
   import Icon from "../icons/Icon.svelte";
   import SyncHealthPopover from "./SyncHealthPopover.svelte";
   import { formatCombo, formatShortcut, shortcutById } from "../shortcuts";
   import { t } from "../i18n";
+
+  function jumpToNextOpen() {
+    editorApi?.jumpAdjacentOpenAction?.(1);
+    editorApi?.focus();
+  }
+
+  function openAllActions() {
+    actionDrawerShowOnlyOpen.set(false);
+    controller.openActionDrawer();
+  }
 
   function onCloudClick() {
     if (!$oneDriveFolder) {
@@ -56,87 +66,17 @@
 
 <div id="status-bar" class:has-centre-message={hasCentreMessage}>
   <div class="status-zone status-left">
-    {#if $backendKind === "web" && $oneDriveAccount}
-      <button
-        id="stat-cloud"
-        class="status-folder-btn"
-        class:stat-expired={$oneDriveSignInExpired}
-        title={$oneDriveSignInExpired ? $t("statusBar.oneDrive.signInExpired") : $oneDriveAccount ? $t("statusBar.oneDrive.statusTitle", { path: $oneDriveFolder?.folderPath ?? "/", status: $oneDriveSyncStatus }) : $t("statusBar.oneDrive.connectPrompt")}
-        aria-label={$t("statusBar.oneDrive.ariaLabel")}
-        onclick={onCloudClick}
-      >
-        {#if $oneDriveSyncing || $oneDriveSyncStatus === "syncing"}
-          <!-- Not gated by stat-tier0 like the label, so a narrow screen still shows *something is happening*. -->
-          <span class="modal-spinner" aria-label={$t("statusBar.oneDrive.syncingAriaLabel")}>⟳</span>
-        {:else}
-          <span class="stat-cloud-icon-wrap">
-            <Icon name="cloud" size={12} />
-            {#if $oneDriveSignInExpired}
-              <span class="stat-cloud-dot" aria-hidden="true"></span>
-            {/if}
-          </span>
-        {/if}
-        <span class="stat-tier0 status-folder-name">
-          {#if $oneDriveAccount}
-            {$oneDriveSyncing || $oneDriveSyncStatus === "syncing" ? $t("statusBar.oneDrive.syncingText") : !$oneDriveFolder ? $t("statusBar.oneDrive.chooseFolder") : $oneDriveSignInExpired ? $t("statusBar.oneDrive.signInAgain") : $oneDriveSyncStatus === "error" ? $t("statusBar.oneDrive.syncError") : $oneDriveSyncStatus === "offline" ? $t("statusBar.oneDrive.offline") : ($oneDriveFolder.folderPath.split("/").filter(Boolean).pop() ?? $t("statusBar.oneDrive.defaultFolderName"))}
-          {:else}
-            OneDrive
-          {/if}
-        </span>
-      </button>
-      <span class="status-sep stat-tier0">·</span>
-      {#if $syncConflicts.length > 0}
-        <button
-          id="stat-conflicts"
-          class="status-folder-btn stat-conflicts"
-          title={$t("statusBar.conflicts.title")}
-          onclick={controller.openSyncConflicts}
-        >
-          ⚠ {$t("statusBar.conflicts.count", { count: $syncConflicts.length })}
-        </button>
-        <span class="status-sep">·</span>
-      {/if}
-    {:else if $backendKind === "web"}
-      <button
-        id="stat-storage"
-        class="status-folder-btn"
-        title={$t("statusBar.browserStorage.title")}
-        aria-label={$t("statusBar.browserStorage.label")}
-        onclick={controller.openSettingsOnNotesFolder}
-      >
-        <Icon name="folder" size={12} />
-        <span class="stat-tier0 status-folder-name">{$t("statusBar.browserStorage.label")}</span>
-      </button>
-      <span class="status-sep stat-tier0">·</span>
-    {:else if folderName}
-      <button
-        id="stat-folder"
-        class="status-folder-btn"
-        title={$notesDir}
-        aria-label={$t("statusBar.changeFolderAriaLabel")}
-        onclick={controller.openSettingsOnNotesFolder}
-      >
-        <Icon name="folder" size={12} />
-        <span class="stat-tier0 status-folder-name">{folderName}</span>
-      </button>
-      <span class="status-sep stat-tier0">·</span>
-    {/if}
-    <span id="stat-pos" class="stat-tier2">{$t("statusBar.position", { line: $statusPos.line, col: $statusPos.col })}</span>
-    {#if selectionLabel}
-      <span class="status-sep stat-tier2">·</span>
-      <span id="stat-selection" class="stat-tier2">{selectionLabel}</span>
-    {/if}
-    <span class="status-sep stat-tier1">·</span>
-    <span id="stat-words" class="stat-tier1">{$t("statusBar.wordCount", { count: $statusWordCount })}</span>
-    <span class="status-sep stat-tier2">·</span>
-    <span id="stat-open" class="stat-full">{$t("statusBar.openCount", { count: $statusCounts.open })}</span>
-    <span class="stat-compact">☐ {$statusCounts.open}</span>
-    <span class="status-sep">·</span>
-    <span id="stat-closed" class="stat-full">{$t("statusBar.closedCount", { count: $statusCounts.closed })}</span>
-    <span class="stat-compact">☑ {$statusCounts.closed}</span>
-    <span class="status-sep">·</span>
-    <span id="stat-forwarded" class="stat-full">{$t("statusBar.forwardedCount", { count: $statusCounts.forwarded })}</span>
-    <span class="stat-compact"><span class="glyph-progress">☐</span> {$statusCounts.forwarded}</span>
+    <!-- §B4: the action counts lead, as buttons: open jumps to the next open action (Ctrl+J), the other two open
+         the Action Drawer with every state listed. -->
+    <button type="button" id="stat-open" class="stat-count" title={$t("statusBar.jumpNextActionTooltip", { combo: formatShortcut("jumpAction") })} onclick={jumpToNextOpen}>
+      <span class="stat-glyph glyph-open">☐</span><span class="stat-full">{$t("statusBar.labelOpen", { count: $statusCounts.open })}</span><span class="stat-compact">{$statusCounts.open}</span>
+    </button>
+    <button type="button" id="stat-forwarded" class="stat-count" title={$t("statusBar.allActionsTooltip")} onclick={openAllActions}>
+      <span class="stat-glyph glyph-progress">☐</span><span class="stat-full">{$t("statusBar.labelDeferred", { count: $statusCounts.forwarded })}</span><span class="stat-compact">{$statusCounts.forwarded}</span>
+    </button>
+    <button type="button" id="stat-closed" class="stat-count" title={$t("statusBar.allActionsTooltip")} onclick={openAllActions}>
+      <span class="stat-glyph glyph-done">☑</span><span class="stat-full">{$t("statusBar.labelDone", { count: $statusCounts.closed })}</span><span class="stat-compact">{$statusCounts.closed}</span>
+    </button>
   </div>
 
   <div class="status-zone status-centre">
@@ -192,14 +132,80 @@
   </div>
 
   <div class="status-zone status-right">
+    <!-- §B4: Notepad's order, divided by thin rules. The version moved out (About shows it). -->
+    <span id="stat-pos" class="stat-tier2">{$t("statusBar.position", { line: $statusPos.line, col: $statusPos.col })}</span>
+    {#if selectionLabel}
+      <span class="status-sep stat-tier2" aria-hidden="true"></span>
+      <span id="stat-selection" class="stat-tier2">{selectionLabel}</span>
+    {/if}
+    <span class="status-sep stat-tier1" aria-hidden="true"></span>
+    <span id="stat-words" class="stat-tier1">{$t("statusBar.wordCount", { count: $statusWordCount })}</span>
+    <span class="status-sep" aria-hidden="true"></span>
+    {#if $backendKind === "web" && $oneDriveAccount}
+      <button
+        id="stat-cloud"
+        class="status-folder-btn"
+        class:stat-expired={$oneDriveSignInExpired}
+        title={$oneDriveSignInExpired ? $t("statusBar.oneDrive.signInExpired") : $oneDriveAccount ? $t("statusBar.oneDrive.statusTitle", { path: $oneDriveFolder?.folderPath ?? "/", status: $oneDriveSyncStatus }) : $t("statusBar.oneDrive.connectPrompt")}
+        aria-label={$t("statusBar.oneDrive.ariaLabel")}
+        onclick={onCloudClick}
+      >
+        {#if $oneDriveSyncing || $oneDriveSyncStatus === "syncing"}
+          <!-- Not gated by stat-tier0 like the label, so a narrow screen still shows *something is happening*. -->
+          <span class="modal-spinner" aria-label={$t("statusBar.oneDrive.syncingAriaLabel")}>⟳</span>
+        {:else}
+          <span class="stat-cloud-icon-wrap">
+            <Icon name="cloud" size={12} />
+            {#if $oneDriveSignInExpired}
+              <span class="stat-cloud-dot" aria-hidden="true"></span>
+            {/if}
+          </span>
+        {/if}
+        <span class="stat-tier0 status-folder-name">
+          {#if $oneDriveAccount}
+            {$oneDriveSyncing || $oneDriveSyncStatus === "syncing" ? $t("statusBar.oneDrive.syncingText") : !$oneDriveFolder ? $t("statusBar.oneDrive.chooseFolder") : $oneDriveSignInExpired ? $t("statusBar.oneDrive.signInAgain") : $oneDriveSyncStatus === "error" ? $t("statusBar.oneDrive.syncError") : $oneDriveSyncStatus === "offline" ? $t("statusBar.oneDrive.offline") : ($oneDriveFolder.folderPath.split("/").filter(Boolean).pop() ?? $t("statusBar.oneDrive.defaultFolderName"))}
+          {:else}
+            OneDrive
+          {/if}
+        </span>
+      </button>
+      {#if $syncConflicts.length > 0}
+        <button
+          id="stat-conflicts"
+          class="status-folder-btn stat-conflicts"
+          title={$t("statusBar.conflicts.title")}
+          onclick={controller.openSyncConflicts}
+        >
+          ⚠ {$t("statusBar.conflicts.count", { count: $syncConflicts.length })}
+        </button>
+      {/if}
+    {:else if $backendKind === "web"}
+      <button
+        id="stat-storage"
+        class="status-folder-btn"
+        title={$t("statusBar.browserStorage.title")}
+        aria-label={$t("statusBar.browserStorage.label")}
+        onclick={controller.openSettingsOnNotesFolder}
+      >
+        <Icon name="folder" size={12} />
+        <span class="stat-tier0 status-folder-name">{$t("statusBar.browserStorage.label")}</span>
+      </button>
+    {:else if folderName}
+      <button
+        id="stat-folder"
+        class="status-folder-btn"
+        title={$notesDir}
+        aria-label={$t("statusBar.changeFolderAriaLabel")}
+        onclick={controller.openSettingsOnNotesFolder}
+      >
+        <Icon name="folder" size={12} />
+        <span class="stat-tier0 status-folder-name">{folderName}</span>
+      </button>
+    {/if}
+    <span class="status-sep" aria-hidden="true"></span>
     {#if $updateStatus === "available" && $backendKind !== "web"}
       <button type="button" class="status-update-btn" title={$t("statusBar.updateAvailableTitle")} onclick={controller.openAbout}>
         <Icon name="update" size={12} />
-      </button>
-    {/if}
-    {#if $appVersion}
-      <button type="button" id="stat-version" title={$t("shortcuts.openAbout.label")} onclick={controller.openAbout}>
-        v{$appVersion}
       </button>
     {/if}
     <button
@@ -229,8 +235,8 @@
 </div>
 
 <style>
-/* Status Bar — three zones (§100): cursor/doc metrics · ambient save
-   state · version + help. A 1fr / auto / 1fr grid so the centre zone is
+/* Status Bar — three zones (§100, reordered in §B4): action counts ·
+   ambient save state · position, words, folder and help. A 1fr / auto / 1fr grid so the centre zone is
    optically centred regardless of how wide the side zones get. */
 
 #status-bar {
@@ -279,9 +285,36 @@
   color: var(--muted);
 }
 
+/* §B4: Notepad-style segment divider instead of a middle dot. */
 .status-sep {
-  color: var(--text-tertiary);
-  opacity: 0.4;
+  flex: 0 0 1px;
+  width: 1px;
+  height: 14px;
+  background: var(--edge-strong);
+}
+
+.stat-count {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 20px;
+  padding: 0 4px;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-control);
+  color: var(--muted);
+  font: inherit;
+  cursor: pointer;
+}
+
+.stat-count:hover {
+  background: var(--surface-raised);
+  color: var(--text);
+}
+
+.stat-glyph {
+  font-family: var(--font-mono);
+  font-weight: bold;
 }
 
 /* #71: a plain-text-look button (`#stat-version`'s own pattern), so the
@@ -374,12 +407,6 @@
   white-space: nowrap;
 }
 
-#stat-open,
-#stat-closed,
-#stat-forwarded {
-  color: var(--muted);
-}
-
 /* §147: narrow-window collapse, least-useful info first. Pure CSS
    breakpoints rather than a settleLayout-style measurement system (like
    §144's top-bar collapse) — this bar's content is a fixed, known set
@@ -443,9 +470,6 @@
   }
   .stat-compact {
     display: inline;
-  }
-  #stat-version {
-    display: none;
   }
 }
 
@@ -638,23 +662,5 @@
 .status-about-btn:hover {
   background: var(--surface-raised);
   border-color: var(--muted);
-}
-
-/* §update-check follow-up: the version number opens About too, same as
-   the update icon next to it — a plain-text look (no border/background)
-   so it doesn't read as a bigger control than it is. */
-
-#stat-version {
-  background: transparent;
-  border: none;
-  color: inherit;
-  font: inherit;
-  padding: 0;
-  margin: 0;
-  cursor: pointer;
-}
-
-#stat-version:hover {
-  color: var(--text);
 }
 </style>
