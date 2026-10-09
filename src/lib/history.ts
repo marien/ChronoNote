@@ -144,6 +144,31 @@ export async function openMeetingHistory() {
   historyLoading.set(false);
 }
 
+/** #z1-history-pane: follow the caret while docked and open — rebuild History
+ * for the section at the cursor without moving focus or opening/closing modals. */
+export async function refreshHistoryForCursor(): Promise<void> {
+  const tab = get(tabs).find((t) => t.id === get(activeTabId));
+  if (!tab) return;
+  const lines = tab.content.split("\n");
+  const cursorLineIdx = editorApi ? editorApi.getCursorLineIdx() : 0;
+  const rawHeader = getSectionHeaderForLine(lines, cursorLineIdx);
+  const sourceHeaderDisplay = normalizeHeaderTitle(rawHeader);
+  const targetHeader = titleForMatching(sourceHeaderDisplay);
+  if (!targetHeader) {
+    return;
+  }
+
+  historyTargetHeader.set(targetHeader);
+  historyOpenedFromTabId.set(tab.id);
+  historyOccurrences.set([]);
+  historyDestinations.set([]);
+  historyLoading.set(true);
+
+  historyOccurrences.set(await buildOccurrences(targetHeader));
+  historyDestinations.set(await computeHistoryDestinations(tab, targetHeader, sourceHeaderDisplay));
+  historyLoading.set(false);
+}
+
 /** Re-scans every note for the current `historyTargetHeader` — called
  * after a successful take-over so the drawer (kept open for continued
  * browsing) reflects the source line's new deferred state and any newly

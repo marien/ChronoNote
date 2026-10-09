@@ -6,16 +6,20 @@
   import {
     activeTabId,
     backendKind,
+    cursorSection,
     editorApi,
     editorFocused,
     findOpen,
     fontSize,
+    historyDocked,
+    historyTargetHeader,
     isMobile,
     isZenMode,
     lineHeight,
     modal,
     mobileTabDrawerOpen,
     scratchpadGateContext,
+    statusPos,
     tabs,
     toastAction,
     toastMessage,
@@ -23,6 +27,7 @@
     peekMode,
     peekInFocus,
     peekSettings,
+    windowWidth,
   } from "./lib/controller";
   import { matchesShortcut } from "./lib/shortcuts";
   import { isMac } from "./lib/platform";
@@ -106,7 +111,13 @@
       cycleTab: (e) => controller.cycleTab(e.shiftKey ? -1 : 1),
       reopenClosedTab: () => controller.reopenLastClosedTab(),
       openActions: () => controller.openActionDrawer(),
-      openHistory: () => controller.openMeetingHistory(),
+      openHistory: () => {
+        if (get(modal) === "history" && isHistoryDocked) {
+          document.querySelector<HTMLElement>(".history-pane .history-body")?.focus();
+        } else {
+          controller.openMeetingHistory();
+        }
+      },
       crossTabSearch: () => controller.openCrossTabSearch(),
       syncCalendar: () => controller.syncCalendarFromFile(),
       copyToNextOccurrence: () => controller.copySelectionToNextOccurrence(),
@@ -175,7 +186,33 @@
       }
     }
 
+    function modalOwnsKeyboard(e: KeyboardEvent): boolean {
+      if (get(modal) === "none") return false;
+      if (
+        get(modal) === "history" &&
+        isHistoryDocked &&
+        !(e.target instanceof Element && e.target.closest(".history-pane"))
+      ) {
+        return false;
+      }
+      return true;
+    }
+
     function onKeydown(e: KeyboardEvent) {
+      // F6: toggles focus between the editor and the History pane while it is docked
+      if (e.key === "F6" && !e.ctrlKey && !e.metaKey && !e.altKey && !e.shiftKey) {
+        if (get(modal) === "history" && isHistoryDocked) {
+          e.preventDefault();
+          const paneEl = document.querySelector(".history-pane");
+          if (paneEl && paneEl.contains(document.activeElement)) {
+            editorApi?.focus();
+          } else {
+            document.querySelector<HTMLElement>(".history-pane .history-body")?.focus();
+          }
+          return;
+        }
+      }
+
       // Alt+Left / Alt+Right: previous / next occurrence of the section the cursor is in. The editor handles the key
       // itself while it has focus (`EditorPane`); this is for the rest of the window. Peek on every platform; the main
       // window not on macOS, where Option+Arrow is the editor's word movement.
@@ -186,7 +223,7 @@
         !e.metaKey &&
         !e.shiftKey &&
         (e.key === "ArrowLeft" || e.key === "ArrowRight") &&
-        get(modal) === "none" &&
+        !modalOwnsKeyboard(e) &&
         !(e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement)
       ) {
         const direction = e.key === "ArrowLeft" ? -1 : 1;
@@ -220,13 +257,13 @@
       // overlay) — the one bit of behavior too bespoke for the generic
       // table below.
       if (matchesShortcut(e, "commandPalette")) {
-        if (get(modal) !== "none") return;
+        if (modalOwnsKeyboard(e)) return;
         e.preventDefault();
         controller.openCommandPalette();
         return;
       }
       if (matchesShortcut(e, "findInNote")) {
-        if (get(modal) !== "none") return;
+        if (modalOwnsKeyboard(e)) return;
         // Catches Ctrl/Cmd+F when focus is in the find input or elsewhere
         // outside the editor (the editor's own keymap covers the rest).
         e.preventDefault();
@@ -245,7 +282,7 @@
       // arrow keys then acted on that now-stale editor instead of the
       // modal). `commandPalette`/`findInNote` above already gate the same
       // way; this closes the same hole for every other entry in the table.
-      if (get(modal) !== "none") return;
+      if (modalOwnsKeyboard(e)) return;
 
       // `openShortcutsHelp`'s two combos (Ctrl/Cmd+/ and +Shift+/) both
       // land here — `openGlyphLegend` and `openShortcutsHelp` are the
@@ -268,10 +305,20 @@
     // that the mobile layout would otherwise replace.
     const mediaQuery = window.matchMedia("(pointer: coarse)");
     const updateMobile = () => isMobile.set(mediaQuery.matches);
+    const updateWidth = () => {
+      const w = window.innerWidth;
+      windowInnerWidth = w;
+      windowWidth.set(w);
+    };
+    const onWindowResize = () => {
+      updateMobile();
+      updateWidth();
+    };
     updateMobile();
+    updateWidth();
     mediaQuery.addEventListener("change", updateMobile);
-    window.addEventListener("resize", updateMobile);
-    window.addEventListener("orientationchange", updateMobile);
+    window.addEventListener("resize", onWindowResize);
+    window.addEventListener("orientationchange", onWindowResize);
 
     const unwireViewport = wireMobileViewport();
     const unwirePeek = controller.wirePeek();
@@ -354,8 +401,9 @@
       window.removeEventListener("dragover", onWindowDragOver);
       window.removeEventListener("drop", onWindowDrop);
       mediaQuery.removeEventListener("change", updateMobile);
-      window.removeEventListener("resize", updateMobile);
-      window.removeEventListener("orientationchange", updateMobile);
+      window.removeEventListener("resize", onWindowResize);
+      window.removeEventListener("orientationchange", onWindowResize);
+      clearTimeout(cursorDebounceTimer);
     };
   });
 
@@ -414,6 +462,51 @@
   });
 
   const activeTab = $derived($tabs.find((t) => t.id === $activeTabId));
+
+  let windowInnerWidth = $state(typeof window !== "undefined" ? window.innerWidth : 1200);
+  const isHistoryDocked = $derived(windowInnerWidth >= 1000 && !$isMobile && !$isZenMode && !$peekMode);
+
+  $effect(() => {
+    historyDocked.set(isHistoryDocked);
+  });
+
+  let wasHistoryDockedOpen = false;
+  $effect(() => {
+    const isDockedOpen = $modal === "history" && isHistoryDocked;
+    if (wasHistoryDockedOpen && !isDockedOpen && $modal === "history") {
+      controller.closeAllModals();
+    }
+    wasHistoryDockedOpen = isDockedOpen;
+  });
+
+  $effect(() => {
+    const pos = $statusPos;
+    const tab = activeTab;
+    if (tab && !tab.isScratchpad) {
+      const text = editorApi?.getContent() ?? tab.content;
+      const target = controller.sectionTargetAt(text, pos.line - 1);
+      cursorSection.set(target);
+    } else {
+      cursorSection.set(null);
+    }
+  });
+
+  let cursorDebounceTimer: ReturnType<typeof setTimeout> | undefined;
+  $effect(() => {
+    const curSec = $cursorSection;
+    const isDockedOpen = $modal === "history" && isHistoryDocked;
+    const currentTarget = $historyTargetHeader;
+    if (isDockedOpen && curSec && curSec.toLowerCase() !== currentTarget.toLowerCase()) {
+      clearTimeout(cursorDebounceTimer);
+      cursorDebounceTimer = setTimeout(() => {
+        if (get(modal) === "history" && isHistoryDocked) {
+          void controller.refreshHistoryForCursor();
+        }
+      }, 250);
+    } else if (!curSec) {
+      clearTimeout(cursorDebounceTimer);
+    }
+  });
 
   // §108: a modal opening over an open find bar leaves the bar stranded
   // behind the overlay — close it. (`find.clear()` is synchronous, so
@@ -524,20 +617,27 @@
     </div>
   {/if}
   <InfoBar />
-  <div
-    id="editor-container"
-    role="region"
-    aria-label="Editor notes area"
-    ontouchstart={handleTouchStart}
-    ontouchend={handleTouchEnd}
-  >
-    {#if activeTab}
-      {#key activeTab.id}
-        <EditorPane content={activeTab.content} tabId={activeTab.id} />
-      {/key}
-    {/if}
-    {#if $findOpen}
-      <FindBar />
+  <div class="workspace-row">
+    <div
+      id="editor-container"
+      role="region"
+      aria-label="Editor notes area"
+      ontouchstart={handleTouchStart}
+      ontouchend={handleTouchEnd}
+    >
+      {#if activeTab}
+        {#key activeTab.id}
+          <EditorPane content={activeTab.content} tabId={activeTab.id} />
+        {/key}
+      {/if}
+      {#if $findOpen}
+        <FindBar />
+      {/if}
+    </div>
+    {#if $modal === "history" && isHistoryDocked}
+      <aside class="history-pane" aria-label={$t("history.modal.ariaLabel")}>
+        <HistoryModal docked />
+      </aside>
     {/if}
   </div>
   {#if $isMobile && $editorFocused}
@@ -576,7 +676,7 @@
     <DatePickerModal />
   {:else if $modal === "actions"}
     <ActionDrawerModal />
-  {:else if $modal === "history"}
+  {:else if $modal === "history" && !isHistoryDocked}
     <HistoryModal />
   {:else if $modal === "search"}
     <SearchModal />

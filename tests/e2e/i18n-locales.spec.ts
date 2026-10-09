@@ -71,7 +71,7 @@ test.describe("multilanguage support", () => {
     await editor(page).click();
     await parkMouse(page);
     await page.keyboard.press("ControlOrMeta+Shift+h");
-    const history = page.locator(".history-modal-card");
+    const history = page.locator(".history-modal-card, aside.history-pane");
     await expect(history).toBeVisible();
     await expect(history).toHaveAttribute("aria-label", "Abschnittsverlauf");
 
