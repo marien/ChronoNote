@@ -70,10 +70,11 @@ describe("checkForUpdates", () => {
 });
 
 describe("checkForUpdatesOnLaunch (§update-check: the quiet boot-time check)", () => {
-  it("surfaces a status-bar message when it finds an update", async () => {
+  it("sets updateStatus to available without surfacing a launch toast", async () => {
     updaterMock.check.mockResolvedValue(fakeUpdate());
     await updates.checkForUpdatesOnLaunch();
-    expect(get(stores.toastMessage)).toContain("Update available");
+    expect(get(stores.updateStatus)).toBe("available");
+    expect(get(stores.toastMessage)).toBe("");
   });
 
   it("stays silent when already up to date", async () => {

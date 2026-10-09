@@ -163,13 +163,13 @@ test.describe("status bar — three zones (§100/§110)", () => {
     await expect(rightZone.locator(".status-help")).toBeVisible();
   });
 
-  test("§update-check: the update icon sits next to the version once one is found, and opens About", async ({
+  test("§update-check: finding an update shows the InfoBar and its action opens About", async ({
     page,
   }) => {
     await seedApp(page, {
       seed: { notes: {}, updateCheck: "none" },
     });
-    await expect(page.locator(".status-update-btn")).toHaveCount(0);
+    await expect(page.locator(".info-bar")).toHaveCount(0);
 
     await page.evaluate(() => {
       window.__CHRONO_MOCK__!.updateCheck = "available";
@@ -180,8 +180,10 @@ test.describe("status bar — three zones (§100/§110)", () => {
     await page.getByRole("button", { name: "Check now" }).click();
     await page.getByRole("button", { name: "Close", exact: true }).click();
 
-    await expect(page.locator(".status-update-btn")).toBeVisible();
-    await page.locator(".status-update-btn").click();
+    const infoBar = page.locator(".info-bar");
+    await expect(infoBar).toBeVisible();
+    await expect(infoBar).toContainText("ChronoNote 9.9.9 is available.");
+    await infoBar.locator(".info-bar-action").click();
     await expect(modalCard(page, MODAL_LABELS.about)).toBeVisible();
     await expect(modalCard(page, MODAL_LABELS.about)).toContainText("9.9.9");
   });
@@ -239,16 +241,16 @@ test.describe("long messages", () => {
 });
 
 test.describe("Dutch and German status bar collapse & center message non-overlap", () => {
-  test("Dutch locale with centre update notice keeps counts visible and does not overlap", async ({ page }) => {
+  test("Dutch locale with centre message keeps counts visible and does not overlap", async ({ page }) => {
     await page.setViewportSize({ width: 750, height: 600 });
     await seedApp(page, {
       seed: {
         notes: { [todayFilename()]: "# taak een\nv taak twee\n> taak drie" },
         languageMode: "nl",
-        appVersion: "0.16.0",
-        lastSeenVersion: "0.15.0",
       },
     });
+
+    await page.evaluate(() => window.__CHRONO_MOCK__!.debug!.showToast("Opgeslagen."));
 
     const bar = page.locator("#status-bar");
     await expect(bar).toHaveClass(/has-centre-message/);
@@ -257,8 +259,7 @@ test.describe("Dutch and German status bar collapse & center message non-overlap
     const centre = bar.locator(".status-centre");
 
     // Centre message is visible
-    await expect(centre).toContainText("Bijgewerkt naar v0.16.0");
-    await expect(centre).toContainText("Wat is er nieuw");
+    await expect(centre).toContainText("Opgeslagen.");
 
     // Action counts must be visible in compact form
     await expect(left.locator(".stat-compact").first()).toBeVisible();

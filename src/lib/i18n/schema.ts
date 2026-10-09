@@ -393,6 +393,12 @@ export type TranslationParams = {
   "topBar.contextMenu.copyDate": undefined;
   "topBar.contextMenu.copyPath": undefined;
 
+  // InfoBar (`InfoBar.svelte`, proposal C5).
+  "infoBar.updateAvailable": { version: string };
+  "infoBar.viewUpdate": undefined;
+  "infoBar.updated": { version: string };
+  "infoBar.resolve": undefined;
+
   // Status bar (`StatusBar.svelte`).
   "statusBar.oneDrive.signInExpired": undefined;
   "statusBar.oneDrive.statusTitle": { path: string; status: string };
@@ -421,10 +427,7 @@ export type TranslationParams = {
   "statusBar.labelDone": { count: number };
   "statusBar.jumpNextActionTooltip": { combo: string };
   "statusBar.allActionsTooltip": undefined;
-  "statusBar.updatedTo": { version: string };
   "statusBar.whatsNew": undefined;
-  "statusBar.dismissUpdate": undefined;
-  "statusBar.updateAvailableTitle": undefined;
   "statusBar.aboutTitleWithCombo": { combo: string };
   "statusBar.shortcutsTitle": { combo: string };
 
@@ -793,7 +796,6 @@ export type TranslationParams = {
   "toast.oneDriveSync.syncFailedPrefix": { message: string };
   "toast.oneDriveSync.couldntStartSignInPrefix": { message: string };
   "toast.oneDriveSync.signInExpired": undefined;
-  "toast.updates.updateAvailable": undefined;
   "toast.persistence.failedToSaveNote": undefined;
   "toast.persistence.keptChangedNote": { filename: string };
   "toast.onboarding.mobileHint": undefined;
