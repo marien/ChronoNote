@@ -246,7 +246,7 @@
   column-gap: 16px;
   align-items: center;
   padding: 0 12px;
-  font-size: 11px;
+  font-size: var(--type-caption);
   border-top: 1px solid var(--border);
   /* Stays lit above a modal's `.overlay` (z-index 200) so the save state
      and transient messages (§102, e.g. "Sections imported" fired from a
@@ -280,6 +280,7 @@
 }
 
 .status-sep {
+  color: var(--text-tertiary);
   opacity: 0.4;
 }
 
@@ -576,7 +577,7 @@
   background: transparent;
   border: 1px solid var(--border);
   color: var(--status-fg);
-  border-radius: 3px;
+  border-radius: var(--radius-control);
   width: 16px;
   height: 16px;
   line-height: 1;
@@ -624,7 +625,7 @@
   background: transparent;
   border: 1px solid var(--border);
   color: var(--status-fg);
-  border-radius: 3px;
+  border-radius: var(--radius-control);
   width: 16px;
   height: 16px;
   padding: 0;

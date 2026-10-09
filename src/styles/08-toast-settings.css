@@ -8,12 +8,11 @@
   padding: 8px 16px;
   background: var(--surface-raised);
   border: 1px solid var(--edge-strong);
-  border-radius: 20px;
+  border-radius: var(--radius-overlay);
   color: var(--text);
-  font-family: var(--font);
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 500;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+  box-shadow: var(--shadow-flyout);
   backdrop-filter: blur(8px);
   z-index: 1000;
   pointer-events: auto;
@@ -22,9 +21,8 @@
   white-space: normal;
   text-align: center;
   line-height: 1.4;
-  border-radius: 16px;
-  animation: mobile-toast-in 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-  transition: transform 0.15s ease, background 0.15s ease, border-color 0.15s ease;
+  animation: mobile-toast-in var(--motion-normal) cubic-bezier(0.16, 1, 0.3, 1);
+  transition: transform var(--motion-normal) ease, background var(--motion-normal) ease, border-color var(--motion-normal) ease;
 }
 .mobile-toast:active {
   transform: translate(-50%, 0) scale(0.97);
@@ -52,12 +50,13 @@
 kbd {
   background: rgba(128, 128, 128, 0.2);
   padding: 1px 5px;
-  border-radius: 3px;
-  font-family: inherit;
+  border-radius: var(--radius-control);
+  font-family: var(--font-mono);
+  font-size: var(--type-caption);
 }
 
 .settings-section-label {
-  font-size: 12px;
+  font-size: var(--type-caption);
   color: var(--muted);
   margin-bottom: 8px;
   text-transform: uppercase;
@@ -103,7 +102,7 @@ kbd {
    (Appearance: Theme + Glyphs) names each row so they're not mistaken for
    one one control. */
 .settings-inline-label {
-  font-size: 12px;
+  font-size: var(--type-caption);
   color: var(--muted);
   min-width: 50px;
   flex-shrink: 0;
@@ -125,7 +124,7 @@ kbd {
 .segmented {
   display: inline-flex;
   border: 1px solid var(--edge-soft);
-  border-radius: 5px;
+  border-radius: var(--radius-control);
   overflow: hidden;
 }
 .segmented-option {
@@ -135,7 +134,7 @@ kbd {
   color: var(--muted);
   padding: 5px 10px;
   font: inherit;
-  font-size: 12px;
+  font-size: 13px;
   cursor: pointer;
   white-space: nowrap;
 }
@@ -168,7 +167,7 @@ kbd {
   gap: 1px;
   background: var(--edge-soft);
   border: 1px solid var(--edge-soft);
-  border-radius: 6px;
+  border-radius: var(--radius-control);
   overflow: hidden;
   width: 100%;
 }
@@ -178,7 +177,7 @@ kbd {
   background: var(--surface-overlay);
   padding: 6px 4px;
   text-align: center;
-  font-size: 12px;
+  font-size: 13px;
   white-space: nowrap;
   min-height: 32px;
   display: flex;
@@ -206,7 +205,7 @@ kbd {
   }
   .segmented.segmented-grid .segmented-option {
     padding: 7px 6px;
-    font-size: 11.5px;
+    font-size: var(--type-caption);
   }
 }
 /* §43/§44 — a real on/off switch (not a button styled "active"), pushed
@@ -217,7 +216,7 @@ kbd {
   gap: 6px;
   margin-left: auto;
   cursor: pointer;
-  font-size: 12px;
+  font-size: var(--type-body);
   color: var(--text);
   user-select: none;
 }
@@ -237,7 +236,7 @@ kbd {
   height: 16px;
   border-radius: 8px;
   background: var(--border);
-  transition: background 0.15s ease;
+  transition: background var(--motion-normal) ease;
   flex-shrink: 0;
 }
 .toggle-switch-track::before {
@@ -249,7 +248,7 @@ kbd {
   height: 12px;
   border-radius: 50%;
   background: var(--muted);
-  transition: transform 0.15s ease, background 0.15s ease;
+  transition: transform var(--motion-normal) ease, background var(--motion-normal) ease;
 }
 .toggle-switch input:checked + .toggle-switch-track {
   background: var(--selected-bg);
@@ -269,11 +268,11 @@ kbd {
 }
 .settings-dir-path {
   flex: 1;
-  font-size: 12px;
+  font-size: 13px;
   overflow-wrap: anywhere;
 }
 .settings-hint {
-  font-size: 11px;
+  font-size: var(--type-caption);
   color: var(--muted);
   margin-top: 6px;
 }
@@ -303,12 +302,12 @@ kbd {
   flex: 1;
 }
 .s-label {
-  font-size: 12px;
+  font-size: var(--type-body);
   color: var(--text);
   overflow-wrap: anywhere;
 }
 .s-desc {
-  font-size: 11px;
+  font-size: var(--type-caption);
   color: var(--muted);
   overflow-wrap: anywhere;
 }
@@ -324,7 +323,7 @@ kbd {
   display: flex;
   margin-left: 0;
   gap: 16px;
-  font-size: 12px;
+  font-size: var(--type-body);
   align-items: center;
 }
 @media (max-width: 600px) {

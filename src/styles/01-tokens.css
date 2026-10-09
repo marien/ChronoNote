@@ -18,7 +18,8 @@
   --state-error: #d66b63;
 
   --text: #d4d4d4;
-  --muted: #858585;
+  --muted: #a6a6a6;
+  --text-tertiary: #858585;
   --selected-bg: #4a4a4a;
   --selected-fg: #ffffff;
   --status-fg: #f0f0f0;
@@ -30,7 +31,29 @@
      body text, any glyph color, any weight — so it doesn't get a themed
      color the way status-driven tokens do. */
   --editor-selection-bg: #454952;
+  --font-ui: "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, "Roboto", sans-serif;
+  --font-ui-display: "Segoe UI Variable Display", "Segoe UI", system-ui, -apple-system, "Roboto", sans-serif;
   --font: "Cascadia Code", "JetBrains Mono", "Consolas", monospace;
+  --font-mono: var(--font);
+
+  /* Type ramp (proposal A1) */
+  --type-caption: 12px;
+  --type-body: 14px;
+  --type-subtitle: 20px;
+
+  /* Fluent radii (proposal A2) */
+  --radius-control: 4px;
+  --radius-overlay: 8px;
+
+  /* Fluent elevation shadows (proposal A2) */
+  --shadow-flyout: 0 8px 16px rgba(0, 0, 0, 0.28);
+  --shadow-dialog: 0 32px 64px rgba(0, 0, 0, 0.37), 0 2px 21px rgba(0, 0, 0, 0.22);
+
+  /* Fluent motion (proposal A4) */
+  --motion-fast: 83ms;
+  --motion-normal: 167ms;
+  --motion-slow: 250ms;
+  --ease-decelerate: cubic-bezier(0, 0, 0, 1);
 
   /* Back-compat aliases — a lot of rules still read these names. */
   --bg: var(--surface-canvas);
@@ -81,13 +104,16 @@
     --state-error: #c4463e;
 
     --text: #1b1b1b;
-    --muted: #6e6e6e;
+    --muted: #5f5f5f;
+    --text-tertiary: #8a8a8a;
     --selected-bg: #d6d6d6;
     --selected-fg: #000000;
     --status-fg: #1b1b1b;
     --highlight: rgba(0, 0, 0, 0.15);
     --caret-color: #000000;
     --editor-selection-bg: #c8d3e0;
+    --shadow-flyout: 0 8px 16px rgba(0, 0, 0, 0.14);
+    --shadow-dialog: 0 32px 64px rgba(0, 0, 0, 0.18), 0 2px 21px rgba(0, 0, 0, 0.11);
   }
 }
 
@@ -106,13 +132,16 @@
   --state-error: #c4463e;
 
   --text: #1b1b1b;
-  --muted: #6e6e6e;
+  --muted: #5f5f5f;
+  --text-tertiary: #8a8a8a;
   --selected-bg: #d6d6d6;
   --selected-fg: #000000;
   --status-fg: #1b1b1b;
   --highlight: rgba(0, 0, 0, 0.15);
   --caret-color: #000000;
   --editor-selection-bg: #c8d3e0;
+  --shadow-flyout: 0 8px 16px rgba(0, 0, 0, 0.14);
+  --shadow-dialog: 0 32px 64px rgba(0, 0, 0, 0.18), 0 2px 21px rgba(0, 0, 0, 0.11);
 }
 
 /* §v0.12.2: Pure Black OLED Dark Theme (Area 10.2)
@@ -127,7 +156,8 @@
   --edge-soft: rgba(255, 255, 255, 0.10);
   --edge-strong: rgba(255, 255, 255, 0.18);
   --text: #e0e0e0;
-  --muted: #8e8e8e;
+  --muted: #a8a8a8;
+  --text-tertiary: #858585;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -140,7 +170,8 @@
     --edge-soft: rgba(255, 255, 255, 0.10);
     --edge-strong: rgba(255, 255, 255, 0.18);
     --text: #e0e0e0;
-    --muted: #8e8e8e;
+    --muted: #a8a8a8;
+    --text-tertiary: #858585;
   }
 }
 
@@ -277,7 +308,8 @@ body,
 }
 
 body {
-  font-family: var(--font);
+  font-family: var(--font-ui);
+  font-size: var(--type-body);
   background: var(--bg);
   color: var(--text);
   display: flex;
@@ -303,6 +335,45 @@ body {
   align-items: center;
   justify-content: center;
   color: var(--muted);
-  font-size: 12px;
+  font-size: var(--type-caption);
 }
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--text-tertiary);
+  opacity: 1;
+}
+
+/* Shared two-tone keyboard focus ring (proposal A4) */
+:is(
+  .btn-primary,
+  .icon-btn,
+  .settings-btn,
+  .telemetry-btn,
+  .find-btn,
+  .cal-nav,
+  .cal-today-btn,
+  .win-btn,
+  .modal-close-btn,
+  .tab-close,
+  .drawer-close-btn,
+  .drawer-tab-close,
+  .chip-remove-btn,
+  .tab,
+  .settings-tab,
+  .history-occ-tab,
+  .drawer-tab-item,
+  .shortcuts-tab-btn,
+  .modal-item,
+  .onedrive-folder-row,
+  .cal-day,
+  #top-bar .icon-btn,
+  #status-bar button
+):focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--text);
+  position: relative;
+  z-index: 2;
+}
+
 

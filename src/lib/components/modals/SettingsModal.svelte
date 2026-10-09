@@ -881,7 +881,7 @@
   margin-bottom: -1px;
   padding: 7px 12px;
   font: inherit;
-  font-size: 12px;
+  font-size: 13px;
   color: var(--muted);
   cursor: pointer;
   white-space: nowrap;
@@ -895,12 +895,6 @@
   color: var(--text);
   font-weight: 600;
   border-bottom-color: var(--tab-active-border);
-}
-
-.settings-tab:focus-visible {
-  outline: 2px solid var(--tab-active-border);
-  outline-offset: -2px;
-  border-radius: 3px;
 }
 
 @media (max-width: 600px) {
@@ -918,8 +912,8 @@
 }
 
 .settings-slider-val {
-  font-size: 12px;
-  font-family: var(--font);
+  font-size: var(--type-caption);
+  font-family: var(--font-mono);
   color: var(--muted);
 }
 
@@ -938,11 +932,11 @@
 
 .settings-recent-dir {
   text-align: left;
-  font-size: 12px;
+  font-size: 13px;
   color: var(--muted);
   background: transparent;
   border: 1px solid transparent;
-  border-radius: 4px;
+  border-radius: var(--radius-control);
   padding: 4px 8px;
   cursor: pointer;
   overflow-wrap: anywhere;
@@ -991,11 +985,11 @@
   gap: 6px;
   background: transparent;
   border: 1px solid var(--edge-strong);
-  border-radius: 5px;
+  border-radius: var(--radius-control);
   color: var(--text);
   padding: 5px 12px;
   font: inherit;
-  font-size: 12px;
+  font-size: 13px;
   cursor: pointer;
 }
 
@@ -1054,12 +1048,12 @@
 }
 
 .s-field-label {
-  font-size: 12px;
+  font-size: var(--type-caption);
   color: var(--muted);
 }
 
 .s-note {
-  font-size: 11px;
+  font-size: var(--type-caption);
   color: var(--muted);
   margin-top: 8px;
 }
@@ -1080,7 +1074,7 @@
   padding: 0;
   margin-top: 10px;
   font: inherit;
-  font-size: 11px;
+  font-size: var(--type-caption);
   color: var(--muted);
   text-decoration: underline;
   text-underline-offset: 2px;

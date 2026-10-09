@@ -16,8 +16,8 @@
 .modal-card {
   background: var(--surface-overlay);
   border: 1px solid var(--edge-strong);
-  border-radius: 8px;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 16px 44px rgba(0, 0, 0, 0.5);
+  border-radius: var(--radius-overlay);
+  box-shadow: var(--shadow-dialog);
   overflow: hidden;
   display: flex;
   flex-direction: column;
@@ -37,10 +37,10 @@
     justify-content: center;
   }
   .modal-card {
-    border-radius: 12px;
+    border-radius: var(--radius-overlay);
     max-height: min(90dvh, 85vh);
     max-width: calc(100vw - 16px);
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.65);
+    box-shadow: var(--shadow-dialog);
   }
   .modal-list {
     max-height: min(340px, 50dvh);
@@ -57,11 +57,11 @@
   border: none;
   background: transparent;
   color: var(--muted);
-  border-radius: 4px;
+  border-radius: var(--radius-control);
   cursor: pointer;
   flex-shrink: 0;
   margin-left: auto;
-  transition: background 120ms ease, color 120ms ease;
+  transition: background var(--motion-normal) ease, color var(--motion-normal) ease;
 }
 .modal-close-btn:hover {
   background: var(--surface-hover);
@@ -110,6 +110,7 @@
    marks the heading case explicitly instead of leaning on an inline
    `font-weight: bold` or an input nobody types into. */
 .modal-title {
+  font-size: 15px;
   font-weight: 600;
 }
 .modal-input {
@@ -117,11 +118,11 @@
   background: transparent;
   border: none;
   outline: none;
-  font-family: var(--font);
-  font-size: 12px;
+  font-size: 13px;
   color: var(--text);
 }
 textarea.modal-input.import-textarea {
+  font-family: var(--font-mono);
   min-height: 160px;
   resize: vertical;
   line-height: 1.5;
@@ -135,7 +136,7 @@ textarea.modal-input.import-textarea {
   flex-wrap: wrap;
   gap: 8px;
   padding: 6px 14px;
-  font-size: 11px;
+  font-size: var(--type-caption);
   color: var(--muted);
   background: var(--surface-chrome);
   border-bottom: 1px solid var(--edge-soft);
@@ -146,14 +147,14 @@ textarea.modal-input.import-textarea {
   gap: 4px;
   background: transparent;
   border: 1px solid transparent;
-  border-radius: 4px;
+  border-radius: var(--radius-control);
   padding: 2px 6px;
-  font-family: inherit;
-  font-size: inherit;
+  font-family: var(--font-mono);
+  font-size: var(--type-caption);
   color: var(--muted);
   cursor: pointer;
   user-select: none;
-  transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease;
+  transition: background var(--motion-normal) ease, border-color var(--motion-normal) ease, color var(--motion-normal) ease;
 }
 .palette-chip:hover {
   background: var(--surface-hover);
@@ -169,7 +170,7 @@ textarea.modal-input.import-textarea {
   margin-right: 0;
 }
 .modal-counter {
-  font-size: 12px;
+  font-size: var(--type-caption);
   font-weight: normal;
   color: var(--muted);
 }
@@ -207,13 +208,13 @@ textarea.modal-input.import-textarea {
 }
 .modal-item {
   padding: 8px 14px;
-  font-size: 12px;
+  font-size: 13px;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: space-between;
   border-bottom: 1px solid rgba(128, 128, 128, 0.08);
-  font-family: var(--font);
+  border-radius: var(--radius-control);
 }
 /* Deliberately driven only by the JS-tracked `.selected` state, not
  * `:hover` — mouseenter already updates the same selection index keyboard
@@ -275,7 +276,7 @@ textarea.modal-input.import-textarea {
   gap: 5px;
   background: var(--surface-raised);
   border: 1px solid var(--edge-strong);
-  border-radius: 12px;
+  border-radius: var(--radius-control);
   padding: 2px 8px;
   font-size: 11px;
   font-family: var(--font-mono);
@@ -301,6 +302,8 @@ textarea.modal-input.import-textarea {
 /* Area 8: 3-line search context */
 .modal-item.search-result-item {
   padding: 7px 14px;
+  font-family: var(--font-mono);
+  font-size: 12px;
 }
 .search-item-main {
   min-width: 0;
@@ -341,7 +344,7 @@ textarea.modal-input.import-textarea {
    positioned at a fixed height, and this keeps the change within that
    box rather than needing the list to actually reflow. */
 .item-breadcrumb {
-  font-size: 11px;
+  font-size: var(--type-caption);
   color: var(--muted);
   white-space: nowrap;
   margin-right: 8px;
@@ -351,8 +354,8 @@ textarea.modal-input.import-textarea {
   text-overflow: ellipsis;
   flex-shrink: 0;
   transition:
-    max-width 0.15s ease,
-    opacity 0.15s ease;
+    max-width var(--motion-normal) ease,
+    opacity var(--motion-normal) ease;
 }
 .modal-item:hover .item-breadcrumb {
   max-width: 0;
@@ -360,9 +363,12 @@ textarea.modal-input.import-textarea {
   margin-right: 0;
 }
 .item-tag {
-  font-size: 11px;
+  font-size: var(--type-caption);
   color: var(--muted);
   white-space: nowrap;
+}
+.item-tag.is-shortcut {
+  font-family: var(--font-mono);
 }
 .item-completed {
   opacity: 0.6;
@@ -386,7 +392,7 @@ textarea.modal-input.import-textarea {
 }
 .modal-group-header {
   padding: 6px 14px;
-  font-size: 11px;
+  font-size: var(--type-caption);
   font-weight: bold;
   text-transform: uppercase;
   background: rgba(128, 128, 128, 0.06);
@@ -417,7 +423,7 @@ textarea.modal-input.import-textarea {
   display: flex;
   align-items: center;
   padding: 2px 14px;
-  font-size: 11px;
+  font-size: var(--type-caption);
   font-style: italic;
   color: var(--muted);
 }
@@ -428,7 +434,7 @@ textarea.modal-input.import-textarea {
   align-items: center;
   padding: 8px 14px;
   border-top: 1px solid var(--edge-soft);
-  font-size: 11px;
+  font-size: var(--type-caption);
   color: var(--muted);
   background: var(--surface-chrome);
 }
@@ -456,7 +462,7 @@ textarea.modal-input.import-textarea {
   align-items: center;
   gap: 8px;
   font-size: 12px;
-  font-family: var(--font);
+  font-family: var(--font-mono);
   cursor: pointer;
 }
 .sync-review-removal {
@@ -484,12 +490,12 @@ textarea.modal-input.import-textarea {
   flex-shrink: 0;
 }
 .sync-review-date {
-  font-family: var(--font);
+  font-family: var(--font-mono);
   font-size: 11px;
   background: var(--surface-raised);
   color: var(--text);
   border: 1px solid var(--border);
-  border-radius: 3px;
+  border-radius: var(--radius-control);
   padding: 2px 4px;
 }
 
@@ -526,7 +532,7 @@ textarea.modal-input.import-textarea {
 }
 
 .empty-state-subtitle {
-  font-size: 11px;
+  font-size: var(--type-caption);
   color: var(--muted);
   line-height: 1.5;
   max-width: 360px;
@@ -578,14 +584,14 @@ textarea.modal-input.import-textarea {
 .shortcuts-tab-btn {
   flex: 1;
   font-family: inherit;
-  font-size: 11px;
+  font-size: var(--type-caption);
   padding: 6px 12px;
-  border-radius: 6px;
+  border-radius: var(--radius-control);
   background: transparent;
   border: 1px solid transparent;
   color: var(--muted);
   cursor: pointer;
-  transition: background 0.12s ease, color 0.12s ease;
+  transition: background var(--motion-normal) ease, color var(--motion-normal) ease;
 }
 .shortcuts-tab-btn.active {
   background: var(--surface-raised);
@@ -641,6 +647,8 @@ textarea.modal-input.import-textarea {
   background: var(--text);
   color: var(--bg);
   border-color: transparent;
+  border-radius: var(--radius-control);
+  font-size: 13px;
 }
 .btn-primary:hover {
   background: var(--text);

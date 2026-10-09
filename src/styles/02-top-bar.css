@@ -8,7 +8,7 @@
   flex-shrink: 0;
 }
 .tab-status-dot.mem {
-  background: var(--muted);
+  background: var(--text-tertiary);
 }
 .tab-status-dot.err {
   background: var(--state-error);
@@ -21,8 +21,8 @@
   padding: 4px 8px;
   cursor: pointer;
   font-family: inherit;
-  font-size: 12px;
-  border-radius: 4px;
+  font-size: 13px;
+  border-radius: var(--radius-control);
   display: flex;
   align-items: center;
   gap: 6px;
@@ -56,6 +56,7 @@
 .icon-btn:disabled {
   opacity: 0.4;
   cursor: default;
+  color: var(--text-tertiary);
 }
 .icon-btn:disabled:hover {
   background: transparent;
@@ -85,21 +86,22 @@
   width: max-content;
   max-width: 320px;
   background: var(--surface-overlay);
+  background: color-mix(in srgb, var(--surface-overlay) 88%, transparent);
+  backdrop-filter: blur(20px) saturate(125%);
   border: 1px solid var(--edge-strong);
-  border-radius: 8px;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 16px 44px rgba(0, 0, 0, 0.5);
+  border-radius: var(--radius-overlay);
+  box-shadow: var(--shadow-flyout);
   padding: 4px;
-  font-size: 12px;
+  font-size: 13px;
   color: var(--text);
 }
 .more-actions-item {
   width: 100%;
   background: transparent;
   border: none;
-  border-radius: 5px;
+  border-radius: var(--radius-control);
   color: inherit;
-  font-family: var(--font);
-  font-size: 12px;
+  font-size: 13px;
   text-align: left;
   cursor: pointer;
   padding: 7px 8px;
@@ -116,6 +118,7 @@
 .more-actions-item:disabled {
   opacity: 0.4;
   cursor: default;
+  color: var(--text-tertiary);
 }
 .more-actions-item:disabled:hover {
   background: transparent;

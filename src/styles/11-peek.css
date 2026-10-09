@@ -46,6 +46,7 @@ body.peek-mode .cm-content {
   border-top-color: var(--state-ok);
 }
 .peek-bar .peek-date {
+  font-family: var(--font-mono);
   font-weight: 600;
   color: var(--tab-active-border);
 }
@@ -90,7 +91,7 @@ body.peek-mode .cm-content {
   background: var(--surface-raised);
   color: var(--text);
   border: 1px solid var(--tab-active-border);
-  border-radius: 3px;
+  border-radius: var(--radius-control);
   padding: 1px 6px;
   font: inherit;
   font-size: 12px;
@@ -106,7 +107,7 @@ body.peek-mode .cm-content {
   font-size: 15px;
   line-height: 1;
   padding: 3px 6px;
-  border-radius: 4px;
+  border-radius: var(--radius-control);
   cursor: pointer;
 }
 .peek-btn.tiny {
@@ -160,7 +161,7 @@ body.peek-mode #app {
   height: 3px;
   margin: -1px 0 0 -14px;
   border-radius: 2px;
-  background: var(--muted);
+  background: var(--text-tertiary);
   opacity: 0.45;
   pointer-events: none;
 }
@@ -177,7 +178,7 @@ body.peek-mode #app {
   opacity: 0.55;
   user-select: none;
   -webkit-user-select: none;
-  transition: opacity 0.12s;
+  transition: opacity var(--motion-normal);
 }
 .occ-hint:hover {
   opacity: 0.95;
@@ -185,7 +186,7 @@ body.peek-mode #app {
 .occ-hint-btn {
   cursor: pointer;
   padding: 0 0.3em;
-  border-radius: 3px;
+  border-radius: var(--radius-control);
 }
 .occ-hint-btn:hover:not(.off) {
   background: color-mix(in srgb, var(--text) 12%, transparent);
