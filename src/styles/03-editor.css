@@ -379,71 +379,82 @@ body.peek-mode .cm-overview-ruler {
 .cm-line .glyph-followup {
   transform: translateY(0);
 }
-/* §327: the four box glyphs (open, done, won't do, deferred) are drawn as
-   SVG shapes, not taken from the fallback symbol font. The font's squares
-   sat at a different height depending on line height and display scaling,
-   and the deferred glyph's separately positioned "›" drifted onto the
-   square's border (at 150% even in the editor). The character stays in the
-   DOM, transparent, so the glyph keeps its width and copy, selection and
-   caret measuring are unchanged; the shape is a mask filled with the
-   glyph's colour token, centred in the glyph's own box, so square and mark
-   always come from one drawing. Same approach as the topic circles below. */
-.glyph-open,
-.glyph-done,
-.glyph-cancelled,
-.glyph-progress {
-  position: relative;
-  display: inline-block;
-}
-.glyph-open:not(:has(.glyph-ink)),
-.glyph-done:not(:has(.glyph-ink)),
-.glyph-cancelled:not(:has(.glyph-ink)),
-.glyph-progress:not(:has(.glyph-ink)),
-.glyph-open .glyph-ink,
-.glyph-done .glyph-ink,
-.glyph-cancelled .glyph-ink,
-.glyph-progress .glyph-ink {
-  color: transparent !important;
-}
-.glyph-open::before,
-.glyph-done::before,
-.glyph-cancelled::before,
-.glyph-progress::before {
-  content: "";
-  position: absolute;
-  left: 0;
-  top: 50%;
-  width: 0.8em;
-  height: 0.8em;
-  transform: translateY(-50%);
-  background-color: var(--glyph-box-color);
-  -webkit-mask: var(--glyph-box-shape) center / contain no-repeat;
-  mask: var(--glyph-box-shape) center / contain no-repeat;
-  pointer-events: none;
-}
+/* §327: the four box glyphs (open, done, won't do, deferred) are drawn the
+   same way as the topic circles below, not taken from the symbol fallback
+   font. The font's squares sat at different heights depending on line
+   height and display scaling, and the deferred glyph's separately placed "›"
+   drifted onto the square's border (at 150% even in the editor). The square
+   is the box's own 1.4px border, at exactly the circles' size and position in
+   each context (editor, drawers/status bar/legend, phone accessory bar), so
+   squares and circles line up; it starts on the token's first column (§87)
+   with the rest of the 2ch cell as the gap. The mark (check, cross, chevron)
+   is an SVG mask filling the square's inside. The character stays in the
+   DOM, transparent: width, copy, selection and caret measuring unchanged. */
 .glyph-open {
   --glyph-box-color: var(--glyph-open-color);
-  --glyph-box-shape: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='black' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='1.8' y='1.8' width='12.4' height='12.4' rx='0.6'/%3E%3C/svg%3E");
+  --glyph-box-mark: none;
 }
 .glyph-done {
   --glyph-box-color: var(--glyph-done-color);
-  --glyph-box-shape: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='black' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='1.8' y='1.8' width='12.4' height='12.4' rx='0.6'/%3E%3Cpath d='M4.6 8.3l2.4 2.4 4.5-5.4' stroke-width='1.9'/%3E%3C/svg%3E");
+  --glyph-box-mark: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='black' stroke-width='3.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 8.6l3.4 3.4 6.6-8'/%3E%3C/svg%3E");
 }
 .glyph-cancelled {
   --glyph-box-color: var(--glyph-cancelled-color);
-  --glyph-box-shape: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='black' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='1.8' y='1.8' width='12.4' height='12.4' rx='0.6'/%3E%3Cpath d='M5 5l6 6M11 5l-6 6' stroke-width='1.7'/%3E%3C/svg%3E");
+  --glyph-box-mark: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='black' stroke-width='3.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3.6 3.6l8.8 8.8M12.4 3.6l-8.8 8.8'/%3E%3C/svg%3E");
 }
 .glyph-progress {
   --glyph-box-color: var(--glyph-progress-color);
-  --glyph-box-shape: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='black' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='1.8' y='1.8' width='12.4' height='12.4' rx='0.6'/%3E%3Cpath d='M6.5 4.7l3.3 3.3-3.3 3.3' stroke-width='1.9'/%3E%3C/svg%3E");
+  --glyph-box-mark: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='black' stroke-width='3.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5.6 2.8l5.2 5.2-5.2 5.2'/%3E%3C/svg%3E");
 }
-/* The accessory bar's square buttons centre their glyph horizontally too. */
-.token-glyph.glyph-open::before,
-.token-glyph.glyph-done::before,
-.token-glyph.glyph-cancelled::before,
-.token-glyph.glyph-progress::before {
-  left: 50%;
-  transform: translate(-50%, -50%);
+/* Editor: the circles' 0.70em box, nudged down 0.20em. */
+.cm-line :is(.glyph-open, .glyph-done, .glyph-cancelled, .glyph-progress) .glyph-ink {
+  display: inline-block;
+  position: relative;
+  width: 0.70em;
+  height: 0.70em;
+  box-sizing: border-box;
+  border: 1.4px solid var(--glyph-box-color);
+  border-radius: 1.5px;
+  line-height: 1;
+  transform: translateY(0.20em);
+  color: transparent !important;
+  user-select: none;
+}
+/* Drawer rows, status bar, legends: the circles' 1em box there. */
+:is(.glyph-open, .glyph-done, .glyph-cancelled, .glyph-progress):not(.cm-line *):not(.token-glyph) {
+  display: inline-block;
+  position: relative;
+  width: 1em;
+  height: 1em;
+  box-sizing: border-box;
+  border: 1.4px solid var(--glyph-box-color);
+  border-radius: 1.5px;
+  vertical-align: -0.1em;
+  line-height: 1;
+  color: transparent !important;
+  user-select: none;
+}
+/* Phone accessory bar: the circles' 13.5px box there. */
+.token-glyph:is(.glyph-open, .glyph-done, .glyph-cancelled, .glyph-progress) {
+  width: 13.5px;
+  height: 13.5px;
+  box-sizing: border-box;
+  border: 1.4px solid var(--glyph-box-color);
+  border-radius: 1.5px;
+  line-height: 1;
+  color: transparent !important;
+  user-select: none;
+}
+/* The mark inside the square. */
+.cm-line :is(.glyph-done, .glyph-cancelled, .glyph-progress) .glyph-ink::before,
+:is(.glyph-done, .glyph-cancelled, .glyph-progress):not(.cm-line *)::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-color: var(--glyph-box-color);
+  -webkit-mask: var(--glyph-box-mark) center / contain no-repeat;
+  mask: var(--glyph-box-mark) center / contain no-repeat;
+  pointer-events: none;
 }
 
 .cm-line .glyph-topic-open .glyph-ink,

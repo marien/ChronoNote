@@ -51,29 +51,48 @@ test.describe("glyph line layout", () => {
     expect(Math.abs(heightWithTallFont - plainHeight)).toBeLessThan(0.5);
   });
 
-  test("the glyph is vertically aligned with the line's own text (§87 / #16)", async ({ page }) => {
+  test("box glyphs share the topic circles' box, start on the token's column, and sit on the text (§87 / §327)", async ({ page }) => {
     await seedApp(page, { seed: "empty" });
-    await setEditorText(page, "# open action");
+    await setEditorText(page, ["# open action", "v done", "> deferred", "x wont", "o topic", ". discussed", ", skipped"].join("\n"));
 
-    // Compare the glyph's vertical centre to the first real character
-    // after it, not to the line box — the two should track each other so
-    // the glyph reads as part of the line, not floating above it.
-    const delta = await page.evaluate(() => {
-      const g = document.querySelector<HTMLElement>(".glyph-open")!;
-      const line = g.closest(".cm-line")!;
-      const walker = document.createTreeWalker(line, NodeFilter.SHOW_TEXT);
-      let textNode: Node | null = null;
-      while ((textNode = walker.nextNode())) {
-        if (textNode.nodeValue && textNode.nodeValue.trim()) break;
-      }
-      const r = document.createRange();
-      r.setStart(textNode!, 0);
-      r.setEnd(textNode!, 1);
-      const cr = r.getBoundingClientRect();
-      const gr = g.getBoundingClientRect();
-      return gr.y + gr.height / 2 - (cr.y + cr.height / 2);
-    });
-    expect(Math.abs(delta)).toBeLessThan(1);
+    const rows = await page.evaluate(() =>
+      [...document.querySelectorAll<HTMLElement>(".cm-editor .cm-line")].map((line) => {
+        const ink = line.querySelector<HTMLElement>(".glyph-ink")!;
+        const lr = line.getBoundingClientRect();
+        const ir = ink.getBoundingClientRect();
+        // The first visible character after the glyph widget.
+        const widget = ink.closest<HTMLElement>("[class*='glyph-']:not(.glyph-ink)")!;
+        let n: Node | null = widget.nextSibling;
+        while (n && !(n.textContent ?? "").trim()) n = n.nextSibling;
+        const r = document.createRange();
+        const text = n!.nodeType === Node.TEXT_NODE ? n! : n!.firstChild!;
+        const at = (text.nodeValue ?? "").search(/\S/);
+        r.setStart(text, at);
+        r.setEnd(text, at + 1);
+        const cr = r.getBoundingClientRect();
+        const pad = parseFloat(getComputedStyle(line).paddingLeft);
+        return {
+          left: ir.left - lr.left - pad,
+          top: ir.top - lr.top,
+          w: ir.width,
+          h: ir.height,
+          centreVsText: ir.top + ir.height / 2 - (cr.top + cr.height / 2),
+          fontSize: parseFloat(getComputedStyle(line).fontSize),
+        };
+      }),
+    );
+    expect(rows).toHaveLength(7);
+    const [first] = rows;
+    for (const r of rows) {
+      // §87: on the token's first column; the rest of the cell is the gap.
+      expect(Math.abs(r.left)).toBeLessThan(0.5);
+      // Squares and circles: one box.
+      expect(r.top).toBeCloseTo(first.top, 1);
+      expect(r.w).toBeCloseTo(first.w, 1);
+      expect(r.h).toBeCloseTo(first.h, 1);
+      // On the text: centre within 0.15em of the next character's centre.
+      expect(Math.abs(r.centreVsText)).toBeLessThan(0.15 * r.fontSize);
+    }
   });
 
   test("#42: a delegated `@name` / `(topic)` badge doesn't shift text or lengthen the line", async ({ page }) => {
