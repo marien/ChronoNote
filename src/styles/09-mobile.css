@@ -231,6 +231,35 @@ body {
   padding: 16px;
   box-shadow: var(--shadow-dialog);
 }
+
+@media (max-width: 600px) and (pointer: coarse) {
+  .mobile-drawer-overlay {
+    align-items: flex-end;
+    justify-content: stretch;
+    padding: 0;
+  }
+  .mobile-drawer-card {
+    width: 100%;
+    max-width: 100%;
+    margin: 0;
+    border-radius: 16px 16px 0 0;
+    padding: 0 16px env(safe-area-inset-bottom, 16px);
+    box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.35);
+    animation: sheet-in var(--motion-slow) var(--ease-decelerate);
+    max-height: 92dvh;
+    box-sizing: border-box;
+  }
+  .mobile-drawer-card::before {
+    content: "";
+    display: block;
+    width: 36px;
+    height: 4px;
+    border-radius: 2px;
+    background: var(--edge-strong);
+    margin: 8px auto 4px;
+    flex-shrink: 0;
+  }
+}
 .drawer-header {
   display: flex;
   align-items: center;

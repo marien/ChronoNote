@@ -13,6 +13,7 @@
     tabs,
   } from "../../controller";
   import { focusTrap } from "../../actions/focusTrap";
+  import { sheetSwipe } from "../../actions/sheetSwipe";
   import Icon from "../../icons/Icon.svelte";
   import { formatShortcut } from "../../shortcuts";
   import { todayISO } from "../../date";
@@ -71,7 +72,7 @@
 
 <svelte:window onmousedown={onOutsideMousedown} onresize={positionUnderTrigger} />
 
-<div class="more-actions-pop" bind:this={popEl} role="menu" aria-label={$t("topBar.moreActions.title")} use:focusTrap style={anchorStyle}>
+<div class="more-actions-pop" bind:this={popEl} role="menu" aria-label={$t("topBar.moreActions.title")} use:focusTrap use:sheetSwipe style={anchorStyle}>
   <button type="button" class="more-actions-item" role="menuitem" onclick={controller.openActionDrawer}>
     <Icon name="actions" size={14} /><span>{$t("actionDrawer.modal.ariaLabel")}</span>
     <kbd>{formatShortcut("openActions")}</kbd>

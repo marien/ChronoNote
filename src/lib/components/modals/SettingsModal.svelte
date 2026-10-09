@@ -3,6 +3,7 @@
   import { get } from "svelte/store";
   import * as controller from "../../controller";
   import { focusTrap } from "../../actions/focusTrap";
+  import { sheetSwipe } from "../../actions/sheetSwipe";
   import {
     agendaFileExists,
     autoCheckUpdates,
@@ -333,6 +334,7 @@
     role="dialog"
     aria-modal="true"
     use:focusTrap
+    use:sheetSwipe
     aria-label={$t("settings.modal.title")}
   >
     <div class="modal-input-wrap modal-title">

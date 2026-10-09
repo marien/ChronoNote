@@ -4,6 +4,7 @@
   import type { PaletteItem } from "../../commandPalette";
   import { splitHighlighted, COMMAND_PALETTE_GROUP_KEYS } from "../../commandPalette";
   import { focusTrap } from "../../actions/focusTrap";
+  import { sheetSwipe } from "../../actions/sheetSwipe";
   import { closeOnOutsideClick } from "../../actions/closeOnOutsideClick";
   import Icon from "../../icons/Icon.svelte";
   import EmptyState from "../EmptyState.svelte";
@@ -132,7 +133,7 @@
 </script>
 
 <div class="overlay" role="presentation" use:closeOnOutsideClick={controller.closeAllModals}>
-  <div class="modal-card modal-md" role="dialog" aria-modal="true" use:focusTrap aria-label={$t("commandPalette.modal.ariaLabel")}>
+  <div class="modal-card modal-md" role="dialog" aria-modal="true" use:focusTrap use:sheetSwipe aria-label={$t("commandPalette.modal.ariaLabel")}>
     <div class="modal-input-wrap">
       <Icon name="command" size={15} />
       <input

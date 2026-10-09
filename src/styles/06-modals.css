@@ -30,6 +30,12 @@
 .modal-card.modal-lg { --modal-width: 720px; }
 .modal-card.modal-xl { --modal-width: 880px; }
 
+@keyframes sheet-in {
+  from {
+    transform: translateY(100%);
+  }
+}
+
 @media (max-width: 600px) {
   .overlay {
     padding: env(safe-area-inset-top, 12px) 12px env(safe-area-inset-bottom, 12px) 12px;
@@ -44,6 +50,74 @@
   }
   .modal-list {
     max-height: min(340px, 50dvh);
+  }
+}
+
+@media (max-width: 600px) and (pointer: coarse) {
+  .overlay {
+    position: fixed;
+    align-items: flex-end;
+    justify-content: stretch;
+    padding: 0;
+  }
+  .modal-card {
+    width: 100%;
+    max-width: 100%;
+    margin: 0;
+    border-radius: 16px 16px 0 0;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.35);
+    animation: sheet-in var(--motion-slow) var(--ease-decelerate);
+    max-height: 92dvh;
+    box-sizing: border-box;
+  }
+  .modal-card.modal-lg,
+  .modal-card.modal-xl,
+  .modal-card.history-modal-card {
+    height: 92dvh !important;
+    max-height: 92dvh !important;
+  }
+  .modal-card.modal-lg .modal-list,
+  .modal-card.modal-xl .modal-list {
+    flex: 1;
+    max-height: none;
+  }
+  .modal-card::before {
+    content: "";
+    display: block;
+    width: 36px;
+    height: 4px;
+    border-radius: 2px;
+    background: var(--edge-strong);
+    margin: 8px auto 4px;
+    flex-shrink: 0;
+  }
+  .datepicker-pop,
+  .more-actions-pop {
+    position: fixed !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    top: auto !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0;
+    border-radius: 16px 16px 0 0 !important;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.35);
+    animation: sheet-in var(--motion-slow) var(--ease-decelerate);
+    box-sizing: border-box;
+  }
+  .datepicker-pop::before,
+  .more-actions-pop::before {
+    content: "";
+    display: block;
+    width: 36px;
+    height: 4px;
+    border-radius: 2px;
+    background: var(--edge-strong);
+    margin: 8px auto 4px;
+    flex-shrink: 0;
   }
 }
 

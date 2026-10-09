@@ -1,6 +1,7 @@
 <script lang="ts">
   import * as controller from "../../controller";
   import { focusTrap } from "../../actions/focusTrap";
+  import { sheetSwipe } from "../../actions/sheetSwipe";
   import { closeOnOutsideClick } from "../../actions/closeOnOutsideClick";
   import { focusScrollableList, scrollableListKeys } from "../../actions/focusScrollableList";
   import Icon from "../../icons/Icon.svelte";
@@ -55,6 +56,7 @@
     role="dialog"
     aria-modal="true"
     use:focusTrap
+    use:sheetSwipe
     aria-label="Keyboard shortcuts"
   >
     <div class="modal-input-wrap modal-title">

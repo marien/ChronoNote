@@ -6,6 +6,7 @@
   import { todayISO } from "../../date";
   import { closeOnOutsideClick } from "../../actions/closeOnOutsideClick";
   import { focusTrap } from "../../actions/focusTrap";
+  import { sheetSwipe } from "../../actions/sheetSwipe";
   import { t } from "../../i18n";
   import { countActions } from "../../tokens";
 
@@ -62,7 +63,7 @@
   aria-label={$t("mobileTabDrawer.ariaLabel")}
   use:closeOnOutsideClick={closeDrawer}
 >
-  <div class="modal-card mobile-drawer-card" use:focusTrap>
+  <div class="modal-card mobile-drawer-card" use:focusTrap use:sheetSwipe>
     <div class="drawer-header">
       <div class="drawer-title-group">
         <Icon name="tabs" size={18} />

@@ -13,6 +13,7 @@
   } from "../../controller";
   import { closeOnOutsideClick } from "../../actions/closeOnOutsideClick";
   import { focusTrap } from "../../actions/focusTrap";
+  import { sheetSwipe } from "../../actions/sheetSwipe";
   import Icon from "../../icons/Icon.svelte";
   import { formatCombo, formatShortcut, shortcutById } from "../../shortcuts";
   import { t } from "../../i18n";
@@ -76,7 +77,7 @@
 </script>
 
 <div class="overlay" role="presentation" use:closeOnOutsideClick={controller.closeAllModals}>
-  <div class="modal-card modal-sm" role="dialog" aria-modal="true" use:focusTrap aria-label={$t("shortcuts.openAbout.label")}>
+  <div class="modal-card modal-sm" role="dialog" aria-modal="true" use:focusTrap use:sheetSwipe aria-label={$t("shortcuts.openAbout.label")}>
     <div class="modal-input-wrap modal-title">
       <Icon name="about" size={15} />
       <span>{$t("shortcuts.openAbout.label")}</span>

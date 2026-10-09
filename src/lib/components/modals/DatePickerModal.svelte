@@ -6,6 +6,7 @@
   import * as api from "../../tauriApi";
   import { agendaFileExists, calendarSyncEnabled } from "../../stores";
   import { focusTrap } from "../../actions/focusTrap";
+  import { sheetSwipe } from "../../actions/sheetSwipe";
   import {
     addDaysISO,
     addMonths,
@@ -251,6 +252,7 @@
   role="dialog"
   aria-label={$t("datePicker.ariaLabel")}
   use:focusTrap
+  use:sheetSwipe
   style={anchorStyle}
 >
   <input

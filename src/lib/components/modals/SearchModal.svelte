@@ -2,6 +2,7 @@
   import { onMount, tick } from "svelte";
   import * as controller from "../../controller";
   import { focusTrap } from "../../actions/focusTrap";
+  import { sheetSwipe } from "../../actions/sheetSwipe";
   import { searchResultsStore } from "../../controller";
   import { closeOnOutsideClick } from "../../actions/closeOnOutsideClick";
   import { renderResultLine } from "../../ui/resultRow";
@@ -212,7 +213,7 @@
 </script>
 
 <div class="overlay" role="presentation" use:closeOnOutsideClick={controller.closeAllModals}>
-  <div class="modal-card modal-lg" role="dialog" aria-modal="true" use:focusTrap aria-label={$t("shortcuts.crossTabSearch.label")}>
+  <div class="modal-card modal-lg" role="dialog" aria-modal="true" use:focusTrap use:sheetSwipe aria-label={$t("shortcuts.crossTabSearch.label")}>
     <div class="modal-input-wrap">
       <Icon name="search" size={15} />
       <input
