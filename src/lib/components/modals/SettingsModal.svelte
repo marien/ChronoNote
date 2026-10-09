@@ -28,6 +28,7 @@
     settingsInitialTab,
     startupTabMode,
     statusBarVisible,
+    tabLabelStyle,
     themeMode,
     updateAvailableVersion,
     updateDownloadProgress,
@@ -49,6 +50,7 @@
   import { t } from "../../i18n";
   import { describeApiError } from "../../apiError";
   import type { ColorMode, LanguageMode, StartupTabMode, ThemeMode } from "../../types";
+  import type { TabLabelStyle } from "../../generated/tauri-types";
   import { ExportBundleError, type ExportBundle } from "../../exportImport";
   import OneDriveFolderPickerModal from "./OneDriveFolderPickerModal.svelte";
 
@@ -422,6 +424,17 @@
           >
             {#snippet description()}{$t("settings.appearance.statusBar.hint")}{/snippet}
           </SettingToggle>
+          <SettingRow label={$t("settings.appearance.tabLabels.label")}>
+            {#snippet description()}{$t("settings.appearance.tabLabels.hint")}{/snippet}
+            <Segmented
+              options={[
+                { value: "iso", label: $t("settings.appearance.tabLabels.iso") },
+                { value: "friendly", label: $t("settings.appearance.tabLabels.friendly") },
+              ]}
+              value={$tabLabelStyle}
+              onChange={(v) => void controller.setTabLabelStyle(v as TabLabelStyle)}
+            />
+          </SettingRow>
         </section>
         <section class="s-group">
           <div class="settings-section-label">{$t("settings.editor.sectionLabel")}</div>

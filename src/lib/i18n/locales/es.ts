@@ -28,6 +28,11 @@ export const es = {
   "settings.appearance.statusBar.label": () => "Mostrar barra de estado",
   "settings.appearance.statusBar.hint": () =>
     "Mostrar línea, columna, recuento de palabras y métricas de acciones en la parte inferior",
+  "settings.appearance.tabLabels.label": () => "Etiquetas de pestañas",
+  "settings.appearance.tabLabels.hint": () =>
+    "Cómo se llaman las pestañas con fecha; la fecha completa siempre está en la información emergente.",
+  "settings.appearance.tabLabels.iso": () => "Fecha ISO",
+  "settings.appearance.tabLabels.friendly": () => "Legible",
   "settings.editor.sectionLabel": () => "Editor",
   "settings.editor.width.label": () => "Ancho del texto",
   "settings.editor.width.full": () => "Completo",
@@ -389,6 +394,7 @@ export const es = {
   "topBar.newScratchpad.title": ({ combo }) => `Nuevo borrador (${combo})`,
   "topBar.openDateNote.title": ({ combo }) => `Abrir nota con fecha (${combo})`,
   "topBar.label.date": () => "Fecha",
+  "topBar.newTabMenu": () => "Nuevo…",
   "topBar.moreActions.title": () => "Más acciones",
   "topBar.actions.title": ({ combo }) => `Acciones (${combo})`,
   "topBar.history.title": ({ combo }) => `Historial de sección (${combo})`,
@@ -741,6 +747,8 @@ export const es = {
   "toast.boot.failedToSave.startup": () => "Error al guardar la preferencia de pestaña de inicio",
   "toast.boot.failedToSave.statusBarVisible": () =>
     "Error al guardar la preferencia de la barra de estado",
+  "toast.boot.failedToSave.tabLabelStyle": () =>
+    "No se pudo guardar la preferencia de etiquetas de pestañas",
   "toast.boot.couldntOpenNotes": ({ filenames }) => `No se pudieron abrir estas notas, así que siguen cerradas: ${filenames}`,
   "toast.calendarSync.noMeetingsOn": ({ date }) => `No hay reuniones el ${date}.`,
   "toast.calendarSync.synced": () => "Calendario sincronizado.",

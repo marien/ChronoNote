@@ -10,6 +10,8 @@ export type LanguageMode = "en" | "nl" | "de" | "fr" | "pl" | "es" | "it" | "sys
 
 export type StartupTabMode = "today" | "smart_last_active";
 
+export type TabLabelStyle = "iso" | "friendly";
+
 export type PeekHeader = "always" | "hover" | "never";
 
 export type PeekGeometry = { x: number, y: number, width: number, height: number };
@@ -18,9 +20,9 @@ export type PeekConfig = { lines: number, opacity: number, opacityHover: number,
 
 export type FileMetadata = { exists: boolean, contentHash: string | null, sizeBytes: number | null, modifiedMs: number | null };
 
-export type AppConfig = { notesDir: string, colorMode: ColorMode, themeMode: ThemeMode, wordWrap: boolean, readableLineLength: boolean, recentNotesDirs: Array<string>, autoCheckUpdates: boolean, lastSeenVersion: string | null, calendarSyncEnabled: boolean, fontSize: number, lineHeight: number, pureBlack: boolean, languageMode: LanguageMode, onboardingCompleted: boolean, startupTabMode: StartupTabMode, peek: PeekConfig, occurrenceHint: boolean, statusBarVisible: boolean };
+export type AppConfig = { notesDir: string, colorMode: ColorMode, themeMode: ThemeMode, wordWrap: boolean, readableLineLength: boolean, recentNotesDirs: Array<string>, autoCheckUpdates: boolean, lastSeenVersion: string | null, calendarSyncEnabled: boolean, fontSize: number, lineHeight: number, pureBlack: boolean, languageMode: LanguageMode, onboardingCompleted: boolean, startupTabMode: StartupTabMode, peek: PeekConfig, occurrenceHint: boolean, statusBarVisible: boolean, tabLabelStyle: TabLabelStyle };
 
-export type ConfigPatch = { colorMode?: ColorMode, themeMode?: ThemeMode, languageMode?: LanguageMode, startupTabMode?: StartupTabMode, wordWrap?: boolean, readableLineLength?: boolean, autoCheckUpdates?: boolean, calendarSyncEnabled?: boolean, fontSize?: number, lineHeight?: number, occurrenceHint?: boolean, statusBarVisible?: boolean, pureBlack?: boolean, peek?: PeekConfig, lastSeenVersion?: string, onboardingCompleted?: boolean };
+export type ConfigPatch = { colorMode?: ColorMode, themeMode?: ThemeMode, languageMode?: LanguageMode, startupTabMode?: StartupTabMode, wordWrap?: boolean, readableLineLength?: boolean, autoCheckUpdates?: boolean, calendarSyncEnabled?: boolean, fontSize?: number, lineHeight?: number, occurrenceHint?: boolean, statusBarVisible?: boolean, tabLabelStyle?: TabLabelStyle, pureBlack?: boolean, peek?: PeekConfig, lastSeenVersion?: string, onboardingCompleted?: boolean };
 
 export type TabSession = { openTabs: Array<string>, activeTab: string | null, lastOpenedDate?: string | null };
 

@@ -71,6 +71,17 @@ pub enum StartupTabMode {
     SmartLastActive,
 }
 
+/// How a dated tab is named in the tab strip: `Iso` (default) shows 2026-10-09,
+/// `Friendly` shows Today / Yesterday / Tomorrow or a short weekday and date.
+/// The ISO date stays the tab's tooltip either way.
+#[derive(Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Debug, Default, TS)]
+#[serde(rename_all = "lowercase")]
+pub enum TabLabelStyle {
+    #[default]
+    Iso,
+    Friendly,
+}
+
 /// Peek mode (compact see-through note window for calls): how much of the header strip shows.
 #[derive(Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Debug, Default, TS)]
 #[serde(rename_all = "snake_case")]
@@ -302,6 +313,9 @@ pub struct AppConfig {
     /// On by default; old configs without this field load as true.
     #[serde(default = "default_true")]
     pub status_bar_visible: bool,
+    /// How dated tabs are labelled in the tab strip (§B3). Old configs load as ISO.
+    #[serde(default)]
+    pub tab_label_style: TabLabelStyle,
 }
 
 /// A partial update of `AppConfig` for the `update_config` command: only the
@@ -334,6 +348,8 @@ pub struct ConfigPatch {
     pub occurrence_hint: Option<bool>,
     #[ts(optional)]
     pub status_bar_visible: Option<bool>,
+    #[ts(optional)]
+    pub tab_label_style: Option<TabLabelStyle>,
     #[ts(optional)]
     pub pure_black: Option<bool>,
     #[ts(optional)]
@@ -382,6 +398,9 @@ impl ConfigPatch {
         }
         if let Some(v) = self.status_bar_visible {
             cfg.status_bar_visible = v;
+        }
+        if let Some(v) = self.tab_label_style {
+            cfg.tab_label_style = v;
         }
         if let Some(v) = self.pure_black {
             cfg.pure_black = v;
@@ -648,6 +667,7 @@ fn load_config_at(path: &Path, default_notes_dir: &Path) -> Result<AppConfig, St
         peek: PeekConfig::default(),
         occurrence_hint: false,
         status_bar_visible: true,
+        tab_label_style: TabLabelStyle::default(),
     };
     save_config_at(path, &cfg)?;
     Ok(cfg)
@@ -1182,6 +1202,7 @@ fn generate_typescript_bindings() {
         ThemeMode::decl(&cfg),
         LanguageMode::decl(&cfg),
         StartupTabMode::decl(&cfg),
+        TabLabelStyle::decl(&cfg),
         PeekHeader::decl(&cfg),
         PeekGeometry::decl(&cfg),
         PeekConfig::decl(&cfg),
@@ -1397,6 +1418,7 @@ mod tests {
             peek: PeekConfig::default(),
             occurrence_hint: false,
             status_bar_visible: true,
+            tab_label_style: TabLabelStyle::default(),
         };
         save_config_at(&path, &cfg).unwrap();
         let loaded = load_config_at(&path, &dir.path().join("Notes")).unwrap();
@@ -1460,6 +1482,7 @@ mod tests {
                 peek: PeekConfig::default(),
                 occurrence_hint: false,
                 status_bar_visible: true,
+                tab_label_style: TabLabelStyle::default(),
             };
             save_config_at(&path, &cfg).unwrap();
             let on_disk = fs::read_to_string(&path).unwrap();
@@ -1601,6 +1624,23 @@ mod tests {
         cfg.status_bar_visible = false;
         save_config_at(&path, &cfg).unwrap();
         assert!(!load_config_at(&path, dir.path()).unwrap().status_bar_visible);
+    }
+
+    #[test]
+    fn tab_label_style_is_iso_by_default_and_round_trips() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("config.json");
+        fs::write(&path, r#"{"notesDir":"/n"}"#).unwrap();
+        assert_eq!(load_config_at(&path, dir.path()).unwrap().tab_label_style, TabLabelStyle::Iso);
+        let mut cfg = load_config_at(&path, dir.path()).unwrap();
+        cfg.tab_label_style = TabLabelStyle::Friendly;
+        save_config_at(&path, &cfg).unwrap();
+        let on_disk: serde_json::Value = serde_json::from_str(&fs::read_to_string(&path).unwrap()).unwrap();
+        assert_eq!(on_disk["tabLabelStyle"], serde_json::json!("friendly"));
+        assert_eq!(
+            load_config_at(&path, dir.path()).unwrap().tab_label_style,
+            TabLabelStyle::Friendly
+        );
     }
 
     #[test]
@@ -2366,6 +2406,15 @@ mod tests {
         let (before, after) = patched(r#"{"statusBarVisible": false}"#);
         let mut expected = before.clone();
         expected["statusBarVisible"] = serde_json::json!(false);
+        assert_ne!(before, after);
+        assert_eq!(after, expected);
+    }
+
+    #[test]
+    fn config_patch_with_only_tab_label_style_changes_only_that_field() {
+        let (before, after) = patched(r#"{"tabLabelStyle": "friendly"}"#);
+        let mut expected = before.clone();
+        expected["tabLabelStyle"] = serde_json::json!("friendly");
         assert_ne!(before, after);
         assert_eq!(after, expected);
     }

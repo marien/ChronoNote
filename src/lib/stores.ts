@@ -29,6 +29,7 @@ import type {
   ThemeMode,
 } from "./types";
 import type { SyncConflict } from "./tauriCommands";
+import type { TabLabelStyle } from "./generated/tauri-types";
 
 export type ModalKind =
   | "none"
@@ -101,6 +102,8 @@ export const pureBlack = writable<boolean>(false);
 export const startupTabMode = writable<StartupTabMode>("today");
 /** Show status bar setting (on by default). Mirrors AppConfig.statusBarVisible. */
 export const statusBarVisible = writable<boolean>(true);
+/** How dated tabs are labelled in the tab strip. Mirrors AppConfig.tabLabelStyle. */
+export const tabLabelStyle = writable<TabLabelStyle>("iso");
 /** §v0.12.2: distraction-free Zen mode canvas. */
 export const isZenMode = writable<boolean>(false);
 

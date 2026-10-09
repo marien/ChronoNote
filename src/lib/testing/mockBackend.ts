@@ -31,6 +31,7 @@
  */
 import { activeAgendaDates, activeEntriesForDate, toLocalMeetings, activeTitlesAfterDate, activeTitlesForDate, removedTitlesForDate as removedTitlesForDateShared } from "../agendaTitles";
 import type { AppConfig, AppError, ColorMode, FileMetadata, LanguageMode, PeekConfig, StartupTabMode, TabSession, ThemeMode } from "../types";
+import type { TabLabelStyle } from "../generated/tauri-types";
 import { PEEK_DEFAULTS, clampPeek } from "../peekDefaults";
 import type { ToastOptions } from "../stores";
 import type { CommandArgs, CommandReturn, OneDriveAdvancedConfig, TauriCommand, TauriCommands } from "../tauriCommands";
@@ -67,6 +68,8 @@ export interface MockSeed {
   occurrenceHint?: boolean;
   /** Mirrors `AppConfig.statusBarVisible`, on by default. */
   statusBarVisible?: boolean;
+  /** Mirrors `AppConfig.tabLabelStyle`, ISO by default. */
+  tabLabelStyle?: TabLabelStyle;
   onboardingCompleted?: boolean;
   lastSyncSuccessMs?: number | null;
   backendKind?: "desktop" | "demo" | "web";
@@ -268,6 +271,7 @@ export class MockBackend {
   peek: PeekConfig;
   occurrenceHint: boolean;
   statusBarVisible: boolean;
+  tabLabelStyle: TabLabelStyle;
   onboardingCompleted: boolean;
   lastSyncSuccessMs: number | null = null;
   recentNotesDirs: string[];
@@ -350,6 +354,7 @@ export class MockBackend {
     this.peek = { ...PEEK_DEFAULTS, ...seed.peek };
     this.occurrenceHint = seed.occurrenceHint ?? false;
     this.statusBarVisible = seed.statusBarVisible ?? true;
+    this.tabLabelStyle = seed.tabLabelStyle ?? "iso";
     this.onboardingCompleted = seed.onboardingCompleted ?? true;
     this.lastSyncSuccessMs = seed.lastSyncSuccessMs ?? null;
     this.recentNotesDirs = seed.recentNotesDirs ? [...seed.recentNotesDirs] : [];
@@ -406,6 +411,7 @@ export class MockBackend {
       peek: this.peek,
       occurrenceHint: this.occurrenceHint,
       statusBarVisible: this.statusBarVisible,
+      tabLabelStyle: this.tabLabelStyle,
       onboardingCompleted: this.onboardingCompleted,
       isMinimized: this.isMinimized,
       recentNotesDirs: this.recentNotesDirs,
@@ -448,6 +454,7 @@ export class MockBackend {
         peek?: Partial<PeekConfig>;
         occurrenceHint?: boolean;
         statusBarVisible?: boolean;
+        tabLabelStyle?: TabLabelStyle;
         onboardingCompleted?: boolean;
         isMinimized?: boolean;
         recentNotesDirs: string[];
@@ -472,6 +479,7 @@ export class MockBackend {
       b.peek = { ...PEEK_DEFAULTS, ...s.peek };
       b.occurrenceHint = s.occurrenceHint ?? false;
       b.statusBarVisible = s.statusBarVisible ?? true;
+      b.tabLabelStyle = s.tabLabelStyle ?? "iso";
       b.onboardingCompleted = s.onboardingCompleted ?? true;
       b.recentNotesDirs = s.recentNotesDirs;
       b.appVersion = s.appVersion;
@@ -516,6 +524,7 @@ export class MockBackend {
       peek: this.peek,
       occurrenceHint: this.occurrenceHint,
       statusBarVisible: this.statusBarVisible,
+      tabLabelStyle: this.tabLabelStyle,
       onboardingCompleted: this.onboardingCompleted,
     };
   }
@@ -602,6 +611,7 @@ export class MockBackend {
       if (patch.lineHeight !== undefined) this.lineHeight = Math.min(1.8, Math.max(1.3, patch.lineHeight));
       if (patch.occurrenceHint !== undefined) this.occurrenceHint = patch.occurrenceHint;
       if (patch.statusBarVisible !== undefined) this.statusBarVisible = patch.statusBarVisible;
+      if (patch.tabLabelStyle !== undefined) this.tabLabelStyle = patch.tabLabelStyle;
       if (patch.pureBlack !== undefined) this.pureBlack = patch.pureBlack;
       if (patch.peek !== undefined) this.peek = clampPeek(patch.peek);
       if (patch.lastSeenVersion !== undefined) this.lastSeenVersion = patch.lastSeenVersion;

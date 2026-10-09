@@ -44,6 +44,7 @@ import {
   statusSelection,
   statusWordCount,
   statusBarVisible,
+  tabLabelStyle,
   startupTabMode,
   syncHealth,
   tabs,
@@ -74,6 +75,7 @@ import {
   writeMobileDefaultsApplied,
 } from "./webappLaunch";
 import type { ColorMode, LanguageMode, NoteTab, StartupTabMode, ThemeMode } from "./types";
+import type { TabLabelStyle } from "./generated/tauri-types";
 
 // --- Standing subscriptions (wired once, from initApp) -----------------
 
@@ -541,6 +543,7 @@ export async function initApp() {
   applyPeekConfig(cfg.peek);
   occurrenceHint.set(cfg.occurrenceHint ?? false);
   statusBarVisible.set(cfg.statusBarVisible ?? true);
+  tabLabelStyle.set(cfg.tabLabelStyle ?? "iso");
   if (cfg.calendarSyncEnabled && (get(backendKind) !== "web" || !!get(oneDriveAccount))) {
     await refreshAgendaFileExists();
   }
@@ -887,5 +890,14 @@ export async function setStatusBarVisible(enabled: boolean) {
     await api.setStatusBarVisible(enabled);
   } catch {
     showToast(get(t)("toast.boot.failedToSave.statusBarVisible", undefined));
+  }
+}
+
+export async function setTabLabelStyle(style: TabLabelStyle) {
+  tabLabelStyle.set(style);
+  try {
+    await api.setTabLabelStyle(style);
+  } catch {
+    showToast(get(t)("toast.boot.failedToSave.tabLabelStyle", undefined));
   }
 }
