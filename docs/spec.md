@@ -120,6 +120,18 @@ its own tab, even if the source tab isn't the active one.
 
 The visual chrome mirrors the uncluttered footprint of modern system text editors (e.g., Windows 11 Notepad). It matches the OS's Light or Dark mode by default, or an explicit Light/Dark choice in Settings (`Ctrl/Cmd+,`) overrides that.
 
+### 3.0 Type, Materials and Accessibility (§322-§323)
+
+The chrome uses the system UI face (Segoe UI Variable on Windows; SF / Roboto
+elsewhere) on a small type ramp (12 caption, 13-14 body); the editor and
+everything that shows note text, glyphs, ISO dates or keys stays monospace.
+Controls have 4px corners, overlays 8px; anchored popovers are slightly
+translucent with a blur (Acrylic) where supported. One two-tone ring marks
+keyboard focus everywhere. Animations use three durations (83/167/250 ms)
+and are switched off under the OS "reduce motion" setting; Windows contrast
+themes map glyphs, selection and focus to system colours. Secondary text
+meets WCAG AA contrast.
+
 ### 3.1 Iconography
 
 Every UI icon — the top bar, every modal header, the tab strip, the find
@@ -185,24 +197,24 @@ current state, require clearing a margin before flipping back):
 
 ### 3.3 Status Bar
 
-Three zones, left to right: the active notes folder's name, cursor
-line/column, and word count on the left (plus, while text is selected,
-how many lines the selection spans) — the folder name is the
-lowest-priority item here, first to hide as the window narrows, and
-shows the full path on hover; it moved here (from Settings-only) once
-the merged title bar stopped rendering a visible window title anywhere;
-a centre zone reserved for transient status messages (autosave
-confirmations, "nothing to import," etc.), empty otherwise — a message
-that points somewhere is clickable (sign-in expired opens the sync popover,
-"choose a folder" opens Settings, update available opens About) and any
-other message dismisses on click (§260); and a right
-zone showing Open / Closed / Forwarded action counts for the active
-note (`x`, won't-do, folds into Closed alongside `v`, done), the
-currently-running version number (clicking it opens About), an
-update-available icon when relevant (also opens About), the `?`
-Shortcuts & Symbols trigger, and — last — an About icon (moved here from
-the top bar, #58 — always reachable regardless of window width instead
-of competing with the tab strip for room).
+Three zones, left to right (reordered in §326, Windows Notepad style):
+the action counts for the active note as buttons — a glyph in its colour
+plus "3 open", "1 deferred", "4 done" (`x`, won't-do, folds into done;
+the number alone at narrow widths). Clicking the open count jumps to the
+next open action (as `Ctrl/Cmd+J`); clicking deferred or done opens the
+Action Drawer with "Only open" off. A centre zone reserved for transient
+status messages (autosave confirmations, "nothing to import," etc.), empty
+otherwise — a message that points somewhere is clickable (sign-in expired
+opens the sync popover, "choose a folder" opens Settings, update available
+opens About) and any other message dismisses on click (§260). A right zone
+in Notepad's order: cursor line/column (plus, while text is selected, how
+many lines it spans), word count, the notes folder (full path on hover;
+click opens Settings on it), the `?` Shortcuts & Symbols trigger, an
+update-available icon when relevant, and the About icon. Segments are
+divided by thin rules. As the window narrows the folder name hides first,
+then the word count, then the position; the counts never hide. The bar can
+be turned off (Settings → Appearance → Show status bar, or the command
+palette); the editor then takes its space.
 
 In the web app (§7.3), when OneDrive is connected, the left zone also
 carries a cloud item showing the sync state (folder name, "Syncing…",

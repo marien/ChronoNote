@@ -10095,3 +10095,47 @@ Marien, after abandoning the idea of Peek reacting to Teams calls by itself (wat
 
 - While the mouse is over a section's title line or underline, the hint shows for THAT section (new `hoverSection` store in `occurrences.ts`, preferred over `cursorSection`; set by an editor `mousemove` handler, cleared on `mouseleave` and when the pointer is off a title). Moving off the title puts the hint back on the caret's section. Only when the pointer is really over the line (`lineBlockAt`), not in the empty space below the text. As before: only with the hint setting on, and hidden while the caret is on that title line.
 - e2e: hover shows the Peek button on a one-off section and opens Peek from it; moving off restores the caret's hint. The `goToLine` helper now moves the mouse out of the editor after its click (a pointer resting on a title would otherwise take over the hint). Vitest 854, Playwright 583 (full suite).
+
+## 321. Windows 11 / phone UX review (design)
+
+**Status: design approved, being implemented in three releases.** Marien (2026-10-09) asked for a UX/UI review against Windows 11 and phone standards that keeps the premise (frictionless, uncluttered, keyboard first, history close at hand, content in focus). The review (`docs/design/ux-review-win11-mobile.html`) has 23 proposals, A1-D7; Marien approved all of them. Release 1 = A1-A4, B4, C3, D1, D7 (§322-§326). Release 2 = B1-B3, B5, C2, C5, D2-D5, plus Mica (moved from A2 because it needs a native check). Release 3 = C1, C4, B6, C6, D6.
+
+## 322. Chrome in Segoe UI with a type ramp; Fluent radii, shadows, motion; one focus ring; readable secondary text (A1, A2, A3, A4)
+
+**Status: on `ux/r1`, unreleased.**
+
+- **Two typefaces (A1):** new `--font-ui` / `--font-ui-display` (Segoe UI Variable, falling back to system-ui / SF / Roboto); `body` uses it at 14px, so all chrome (tabs, buttons, menus, dialogs, status bar) is proportional. Monospace (`--font-mono`, an alias of the old `--font`) stays for the editor, every glyph-rendered row (History body, Action Drawer and Search rows, previews, conflict views), ISO dates (dated tab labels, History strip, drawer headings), `kbd` chips and the find input. Type ramp tokens `--type-caption` 12 / `--type-body` 14 / `--type-subtitle` 20; modal titles stay at 15-16px until the dialog redesign (C2).
+- **Fluent tokens (A2 CSS part):** `--radius-control` 4px, `--radius-overlay` 8px, `--shadow-flyout`, `--shadow-dialog` (lighter in light theme). Anchored popovers (date picker, More menu, tab menu, find bar, sync popover) get an Acrylic look (88% overlay colour + `backdrop-filter: blur(20px)`), solid where unsupported. Modal cards stay solid.
+- **Motion (A4):** `--motion-fast/normal/slow` = 83/167/250ms (+ `--ease-decelerate`); every transition reads a token except the deliberate 600ms Peek fade and the spinner.
+- **Focus (A4):** one two-tone `:focus-visible` ring defined once in `01-tokens.css` for tabs, top-bar and status-bar buttons, list rows, close buttons, calendar days. The agent's draft also set `position: relative; z-index: 2` on focus; removed at integration because a blanket `position: relative` on top-bar buttons once broke the tab layout (§263).
+- **Contrast (A3):** `--muted` is now readable secondary text, #a6a6a6 dark (6.2:1 on the chrome grey, was #858585 at 4.1:1), #5f5f5f light; new `--text-tertiary` (#858585 / #8a8a8a) only for decoration (separators, disabled, placeholders).
+- Implemented by Gemini 3.8 Flash from a brief (U1), reviewed and integrated by the orchestrator. A Peek e2e test sampled the editor's position in the last frame of the bars' slide (now 167ms instead of 200ms); it now waits until the editor is fully at the top.
+
+## 323. Windows contrast themes and reduced motion (A3)
+
+**Status: on `ux/r1`, unreleased.** New `src/styles/12-accessibility.css`.
+
+- `prefers-reduced-motion: reduce`: motion tokens to 0ms plus a 0.01ms safety net on every animation/transition (0.01ms, not `none`, so `transitionend`/`animationend` still fire; nothing listens today). The loading spinner keeps turning slowly.
+- `forced-colors: active` (Windows contrast themes): glyphs in system colours (open = Highlight, resolved = GrayText, follow-up = LinkText, emphasis = bold underlined CanvasText), `@name` badges and topic pills outlined, the setext double rule kept visible, `Highlight` focus rings and selected rows, active-tab marker, disabled controls in GrayText.
+- New `tests/e2e/accessibility-modes.spec.ts` (emulated reduced motion and forced colours). Gemini 3.8 Flash (U2).
+
+## 324. Phone defaults and installed web app details (D1, D7)
+
+**Status: on `ux/r1`, unreleased.**
+
+- **D1:** in the web app on a touch device, once per browser (`localStorage` `chrononote.mobileDefaults.v1`), a config still at the factory values (no wrap, 13px) moves to word wrap + 16px. A later choice is kept. Desktop unchanged. Pure decision function `shouldApplyMobileDefaults` in `webappLaunch.ts`, unit-tested.
+- **D7:** two `theme-color` metas (chrome colours #252526 / #f3f3f3 by `prefers-color-scheme`), overridden by `applyThemeModeToDom` for an explicit in-app theme; manifest app shortcuts Today / Actions / Search (`?open=today|actions|search`, handled once after start by `handleWebappLaunch`, then removed from the URL with `replaceState`, history state kept); `display_override: window-controls-overlay` with drag regions in `13-pwa.css` for the web app installed on a PC; `launch_handler: focus-existing`; `overscroll-behavior: none` (no pull-to-refresh).
+- Not covered by e2e: the mock harness cannot start the web backend. Not verified on a real phone or an installed PWA. Gemini 3.8 Flash (U3); an unneeded re-export from `mobileViewport.ts` was dropped at integration.
+
+## 325. Drawer key hint footers on one line (C3)
+
+**Status: on `ux/r1`, unreleased.** Section History, Action Drawer, Search and the command palette show at most three hints that fit the current state (History changes them once lines are selected: `Shift+Enter` + the first destination, `Tab` choices, `Left/Right` other date) and, on the right, "`Ctrl+/` All keys". `Esc` is no longer listed. One line, truncated with an ellipsis, hidden on touch. New e2e: the History footer is one line at 900px. Gemini 3.8 Flash (U5). **Corrected at integration:** the agent also removed the date picker's Today button and rewrote its footer; that footer was already one line, so it was restored as it was (with `datePicker.escToClose`).
+
+## 326. Status bar: clickable counts, Notepad-style segments, Show status bar setting (B4)
+
+**Status: on `ux/r1`, unreleased.**
+
+- Left zone: the action counts as buttons, glyph in its colour + "3 open" / "1 deferred" / "4 done" (compact number below 420px, and earlier in de/nl as before). Open jumps to the next open action (same as `Ctrl+J`) and returns focus to the editor; deferred and done open the Action Drawer with "Only open" off. Right zone in Notepad's order: position (+ selection), words, folder / browser storage / OneDrive, then `?`, the update icon and About, separated by 1px rules instead of dots. The version text is gone from the status bar (About shows it; About itself moves into Settings with C4).
+- Deferred label uses each language's existing term for the state (doorgeschoven, weitergeleitet, przełożone, transferidas, inoltrate; the agent had chosen new words).
+- **Show status bar** (`AppConfig.statusBarVisible`, Rust `status_bar_visible`, serde default true): Settings -> Appearance toggle and a command-palette entry; when off the bar is not rendered. Mock and web backend persist it (the web backend's patch handler was missing it in the agent's draft).
+- The Gemini run (U4) hung once on a background command and timed out the second time after doing only the setting plumbing; the orchestrator reviewed that, fixed the web-backend gap and wrote the status bar part. Tests: `statusCounts` helper reads the compact number; status-bar specs rewritten for the new labels; new e2e for both click targets and the setting surviving a reload; Rust serde + patch tests.
