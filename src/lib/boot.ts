@@ -65,6 +65,12 @@ import { occurrenceHint } from "./occurrences";
 import { locale, t } from "./i18n";
 import { describeApiError } from "./apiError";
 import { getOnboardingTemplate } from "./onboardingTemplate";
+import {
+  handleWebappLaunch,
+  readMobileDefaultsApplied,
+  shouldApplyMobileDefaults,
+  writeMobileDefaultsApplied,
+} from "./webappLaunch";
 import type { ColorMode, LanguageMode, NoteTab, StartupTabMode, ThemeMode } from "./types";
 
 // --- Standing subscriptions (wired once, from initApp) -----------------
@@ -264,9 +270,34 @@ export function applyColorModeToDom(mode: ColorMode) {
  * `data-theme` attribute is removed rather than set to `"system"` (no CSS
  * selector matches that value; the attribute's mere *absence* is what the
  * bare `:root` / media-query blocks are written against). */
+const THEME_CHROME_COLORS: Record<"dark" | "light", string> = {
+  dark: "#252526",
+  light: "#f3f3f3",
+};
+
 export function applyThemeModeToDom(mode: ThemeMode) {
   if (mode === "system") delete document.documentElement.dataset.theme;
   else document.documentElement.dataset.theme = mode;
+
+  // §D7: update web app theme-color meta tags if present (desktop has none)
+  if (typeof document !== "undefined") {
+    const darkMeta = document.querySelector<HTMLMetaElement>(
+      'meta[name="theme-color"][media="(prefers-color-scheme: dark)"]',
+    );
+    const lightMeta = document.querySelector<HTMLMetaElement>(
+      'meta[name="theme-color"][media="(prefers-color-scheme: light)"]',
+    );
+    if (darkMeta && lightMeta) {
+      if (mode === "system") {
+        darkMeta.content = THEME_CHROME_COLORS.dark;
+        lightMeta.content = THEME_CHROME_COLORS.light;
+      } else {
+        const color = THEME_CHROME_COLORS[mode];
+        darkMeta.content = color;
+        lightMeta.content = color;
+      }
+    }
+  }
 }
 
 export function applyPureBlackToDom(pureBlack: boolean) {
@@ -477,6 +508,15 @@ export async function initApp() {
   wireDateRollover();
   initCalendarSyncDiffTracking();
   const cfg = await api.getConfig();
+  // §D1: on first launch on a phone in the web app, apply wrap and 16px font size defaults
+  const mobileDefaultsApplied = readMobileDefaultsApplied();
+  if (shouldApplyMobileDefaults(cfg, get(isMobile), get(backendKind), mobileDefaultsApplied)) {
+    writeMobileDefaultsApplied();
+    cfg.wordWrap = true;
+    cfg.fontSize = 16;
+    await setWordWrap(true);
+    await setFontSize(16);
+  }
   notesDir.set(cfg.notesDir);
   recentNotesDirs.set(cfg.recentNotesDirs);
   colorMode.set(cfg.colorMode);
@@ -592,6 +632,9 @@ export async function initApp() {
     void checkForUpdatesOnLaunch();
   }
   void initOneDriveSync();
+  if (get(backendKind) === "web") {
+    await handleWebappLaunch();
+  }
 }
 
 let oneDriveSyncWired = false;
