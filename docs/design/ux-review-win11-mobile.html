@@ -1,0 +1,774 @@
+<title>ChronoNote Win11 &amp; Mobile Review</title>
+<style>
+/* Layout: one reading column (~960px) of proposal cards; each card = text + a "Now / Proposed" mockup pair that stacks on phones. */
+:root {
+  --bg: #f3f4f6; --surface: #ffffff; --fg: #1a1c20; --muted: #5a606b; --line: #dde0e5;
+  --accent: #0a6fc2; --accent-fg: #ffffff; --ok: #1f8a5b; --warn: #a8650f; --bad: #b8433b;
+  --chip: #eceef2;
+  --ui: "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --display: "Segoe UI Variable Display", "Segoe UI", system-ui, sans-serif;
+  --mono: "Cascadia Code", "Cascadia Mono", Consolas, ui-monospace, monospace;
+  /* Mockup palette: ChronoNote's own dark tokens (src/styles/01-tokens.css). Fixed in both page themes. */
+  --m-desk: #3b4b5e; --m-canvas: #1e1e1e; --m-chrome: #252526; --m-overlay: #2d2d2e; --m-raised: #37373b;
+  --m-text: #d4d4d4; --m-muted: #858585; --m-sec: #a6a6a6; --m-edge: rgba(255,255,255,.08); --m-edge2: rgba(255,255,255,.14);
+  --m-open: #38bdf8; --m-done: #10b981; --m-def: #a855f7; --m-warn: #f59e0b; --m-acc: #0a84d8; --m-acc2: #4cc2ff; --m-err: #c42b1c;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #141518; --surface: #1d1f23; --fg: #e7e8eb; --muted: #a0a6b0; --line: #2f3238;
+  --accent: #4cc2ff; --accent-fg: #06223a; --ok: #4bbf87; --warn: #e0a94e; --bad: #e07b73; --chip: #272a30; color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --bg: #141518; --surface: #1d1f23; --fg: #e7e8eb; --muted: #a0a6b0; --line: #2f3238;
+  --accent: #4cc2ff; --accent-fg: #06223a; --ok: #4bbf87; --warn: #e0a94e; --bad: #e07b73; --chip: #272a30; color-scheme: dark; }
+
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--fg); font: 15px/1.55 var(--ui); }
+.wrap { max-width: 1000px; margin: 0 auto; padding-inline: 20px; padding-block: 32px 96px; }
+h1 { font: 600 32px/1.2 var(--display); margin: 0 0 8px; text-wrap: balance; letter-spacing: -.01em; }
+h2 { font: 600 22px/1.3 var(--display); margin: 56px 0 6px; text-wrap: balance; }
+h3 { font: 600 18px/1.35 var(--display); margin: 0; text-wrap: balance; }
+p { margin: 0 0 10px; max-width: 70ch; }
+.lede { font-size: 16.5px; color: var(--muted); max-width: 68ch; }
+.eyebrow { font: 600 11.5px/1 var(--ui); text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
+code, kbd { font-family: var(--mono); font-size: .86em; }
+kbd { background: var(--chip); border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 4px; padding: 0 5px; white-space: nowrap; }
+a { color: var(--accent); }
+ul { margin: 0 0 10px; padding-left: 20px; } li { margin: 3px 0; max-width: 70ch; }
+
+/* Premise box */
+.premise { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin: 24px 0; }
+.premise div { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 14px 16px; }
+.premise b { display: block; font: 600 14px var(--display); margin-bottom: 2px; }
+.premise span { font-size: 13.5px; color: var(--muted); }
+
+/* Toolbar: decisions summary */
+.bar { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 10; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 10px 14px; display: flex; flex-wrap: wrap; gap: 10px 18px; align-items: center; margin: 20px 0 8px; box-shadow: 0 6px 20px rgba(0,0,0,.06); }
+.bar .counts { display: flex; gap: 14px; font-size: 13.5px; font-variant-numeric: tabular-nums; flex-wrap: wrap; }
+.bar .counts b { font-weight: 600; }
+.bar .spacer { flex: 1; }
+.btn { font: 600 13.5px var(--ui); border-radius: 4px; padding: 6px 12px; border: 1px solid var(--line); background: var(--surface); color: var(--fg); cursor: pointer; }
+.btn.primary { background: var(--accent); color: var(--accent-fg); border-color: transparent; }
+.btn:focus-visible, .dec button:focus-visible, textarea:focus-visible { outline: 2px solid var(--fg); outline-offset: 2px; box-shadow: 0 0 0 4px var(--surface); }
+#copied { font-size: 13px; color: var(--ok); }
+
+/* Overview table */
+.tablewrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); }
+table { border-collapse: collapse; width: 100%; font-size: 13.5px; min-width: 640px; }
+th, td { text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font: 600 12px var(--ui); text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+tr:last-child td { border-bottom: none; }
+td a { text-decoration: none; font-weight: 600; }
+.tag { display: inline-block; font: 600 11.5px/1 var(--ui); padding: 4px 7px; border-radius: 999px; background: var(--chip); color: var(--fg); white-space: nowrap; }
+.tag.rec { background: color-mix(in srgb, var(--ok) 16%, transparent); color: var(--ok); }
+.tag.opt { background: color-mix(in srgb, var(--accent) 14%, transparent); color: var(--accent); }
+.tag.call { background: color-mix(in srgb, var(--warn) 16%, transparent); color: var(--warn); }
+.st { font-size: 12.5px; color: var(--muted); }
+
+/* Proposal card */
+.proposal { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 22px 22px 18px; margin: 18px 0; scroll-margin-top: 80px; }
+.phead { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: baseline; margin-bottom: 10px; }
+.pid { font: 600 13px var(--mono); color: var(--muted); }
+.meta { display: flex; gap: 6px; flex-wrap: wrap; margin-left: auto; }
+.cols { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 24px; margin: 8px 0 4px; }
+.cols > div { min-width: 0; }
+.cols h4 { font: 600 12px var(--ui); text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 0 0 4px; }
+@media (max-width: 720px) { .cols { grid-template-columns: 1fr; } }
+.why { font-size: 13.5px; color: var(--muted); border-left: 3px solid var(--line); padding-left: 12px; margin: 10px 0; max-width: 72ch; }
+
+/* Decision row */
+.dec { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; border-top: 1px solid var(--line); margin-top: 16px; padding-top: 14px; }
+.dec button { font: 600 13px var(--ui); padding: 5px 12px; border-radius: 999px; border: 1px solid var(--line); background: transparent; color: var(--fg); cursor: pointer; }
+.dec button[aria-pressed="true"][data-v="approve"] { background: var(--ok); border-color: var(--ok); color: #fff; }
+.dec button[aria-pressed="true"][data-v="discuss"] { background: var(--warn); border-color: var(--warn); color: #fff; }
+.dec button[aria-pressed="true"][data-v="reject"] { background: var(--bad); border-color: var(--bad); color: #fff; }
+.dec textarea { flex: 1 1 260px; min-width: 0; font: 13.5px/1.4 var(--ui); border: 1px solid var(--line); border-radius: 6px; padding: 6px 9px; background: var(--bg); color: var(--fg); resize: vertical; min-height: 34px; }
+
+/* Mockup stage */
+.stage { display: flex; flex-wrap: wrap; gap: 18px; margin: 14px 0 6px; }
+.stage.stack { flex-direction: column; }
+.shot { flex: 1 1 300px; min-width: 0; }
+.shot > .lbl { font: 600 11.5px var(--ui); text-transform: uppercase; letter-spacing: .07em; color: var(--muted); margin-bottom: 6px; display: flex; gap: 6px; align-items: center; }
+.shot > .lbl::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--muted); }
+.shot.new > .lbl { color: var(--accent); } .shot.new > .lbl::before { background: var(--accent); }
+.scroller { overflow-x: auto; padding-bottom: 4px; }
+.cap { font-size: 12.5px; color: var(--muted); margin-top: 6px; }
+
+/* ===== Mock primitives (fixed dark ChronoNote look) ===== */
+.ic { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0; }
+.desk { background: linear-gradient(135deg, #2b3a4f, #46566b 55%, #5b5268); padding: 14px; border-radius: 8px; }
+.win { background: var(--m-canvas); color: var(--m-text); border-radius: 8px; overflow: hidden; border: 1px solid rgba(255,255,255,.12); box-shadow: 0 16px 40px rgba(0,0,0,.45); font: 12px/1.5 var(--m-ui, "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif); min-width: 560px; position: relative; }
+.win.mono, .win .mono { font-family: var(--mono); }
+.tb { display: flex; align-items: flex-end; height: 40px; background: var(--m-chrome); border-bottom: 1px solid var(--m-edge); }
+.tb.mica { background: linear-gradient(90deg, #2c3138, #2a2c33 50%, #2f2b33); }
+.tb .appi { width: 40px; height: 32px; display: grid; place-items: center; color: var(--m-acc2); flex-shrink: 0; }
+.tab { height: 32px; display: flex; align-items: center; gap: 7px; padding: 0 10px 0 12px; color: var(--m-muted); border-radius: 6px 6px 0 0; white-space: nowrap; font-size: 12px; }
+.tab.on { background: var(--m-canvas); color: var(--m-text); box-shadow: inset 0 2px 0 var(--m-open); }
+.tab .x { opacity: .6; font-size: 11px; }
+.tab.f { border-radius: 8px 8px 0 0; position: relative; min-width: 108px; max-width: 200px; padding: 0 8px 0 10px; }
+.tab.f .t { flex: 1; overflow: hidden; text-overflow: ellipsis; }
+.tab.f.on { box-shadow: none; }
+.tab.f.on::before, .tab.f.on::after { content: ""; position: absolute; bottom: 0; width: 8px; height: 8px; background: radial-gradient(circle at 0 0, transparent 8px, var(--m-canvas) 8.5px); }
+.tab.f.on::before { left: -8px; background: radial-gradient(circle at 0 0, transparent 7.5px, var(--m-canvas) 8px); transform: scaleX(-1); }
+.tab.f.on::after { right: -8px; background: radial-gradient(circle at 0 0, transparent 7.5px, var(--m-canvas) 8px); }
+.tab.f:not(.on) + .tab.f:not(.on)::before { content: ""; position: absolute; left: -1px; top: 9px; bottom: 9px; width: 1px; background: var(--m-edge2); }
+.dot { width: 6px; height: 6px; border-radius: 50%; display: inline-block; }
+.cmd { height: 32px; display: flex; align-items: center; gap: 6px; padding: 0 8px; color: var(--m-text); border-radius: 4px; font-size: 12px; white-space: nowrap; }
+.cmd.sq { width: 36px; justify-content: center; padding: 0; }
+.cmd.hov { background: var(--m-raised); }
+.fill { flex: 1; align-self: stretch; }
+.caps { display: flex; align-self: stretch; }
+.caps span { width: 46px; display: grid; place-items: center; color: var(--m-sec); }
+.caps.old span { width: 44px; }
+.caps span.hov { background: rgba(255,255,255,.08); color: #fff; }
+.ed { padding: 14px 18px 16px; font-family: var(--mono); font-size: 12px; line-height: 1.75; color: var(--m-text); min-height: 150px; }
+.ed .h { color: var(--m-text); }
+.ed .rule { display: block; width: var(--w, 12ch); border-top: 3px double var(--m-muted); height: 6px; margin: 2px 0 4px; }
+.g-open { color: var(--m-open); font-weight: 700; } .g-done { color: var(--m-done); font-weight: 700; } .g-def { color: var(--m-def); font-weight: 700; }
+.g-arrow { color: var(--m-open); font-weight: 700; } .g-em { color: var(--m-warn); font-weight: 700; }
+.badge { background: rgba(56,189,248,.16); color: #7fd4f5; border-radius: 3px; padding: 0 3px; }
+.pill { border: 1px solid var(--m-edge2); border-radius: 4px; padding: 0 5px; color: var(--m-sec); }
+.dim { opacity: .55; }
+.sb { display: flex; align-items: center; gap: 10px; height: 26px; padding: 0 10px; background: var(--m-chrome); border-top: 1px solid var(--m-edge); color: var(--m-muted); font-size: 11px; white-space: nowrap; }
+.sb .sep { width: 1px; height: 14px; background: var(--m-edge2); }
+.sb b { color: var(--m-text); font-weight: 600; }
+.sb .r { margin-left: auto; display: flex; gap: 10px; align-items: center; }
+.sb.new { font-size: 12px; color: var(--m-sec); height: 28px; }
+.seg { padding: 0 8px; height: 100%; display: flex; align-items: center; gap: 5px; border-radius: 3px; }
+.seg.btnish:hover, .seg.hov { background: rgba(255,255,255,.07); }
+
+.flyout { position: absolute; background: rgba(44,44,46,.92); backdrop-filter: blur(20px); border: 1px solid var(--m-edge2); border-radius: 8px; box-shadow: 0 8px 28px rgba(0,0,0,.55); padding: 4px; color: var(--m-text); font-size: 12.5px; z-index: 3; }
+.mi { display: flex; align-items: center; gap: 10px; padding: 6px 10px; border-radius: 4px; min-width: 210px; }
+.mi .k { margin-left: auto; color: var(--m-muted); font-size: 11.5px; padding-left: 18px; }
+.mi.hov { background: rgba(255,255,255,.07); }
+.mi .ind { width: 3px; height: 14px; border-radius: 2px; background: transparent; margin-left: -6px; }
+.mi.hov .ind { background: var(--m-acc2); }
+.msep { height: 1px; background: var(--m-edge2); margin: 4px 0; }
+.tip { position: absolute; background: #2b2b2b; border: 1px solid var(--m-edge2); border-radius: 4px; padding: 5px 9px; font-size: 12px; color: var(--m-text); box-shadow: 0 4px 14px rgba(0,0,0,.4); white-space: nowrap; z-index: 4; }
+.tip .k { color: var(--m-muted); margin-left: 10px; }
+.kt { position: absolute; background: #e8e8e8; color: #111; font: 700 10px/1 var(--ui); padding: 3px 4px; border-radius: 3px; box-shadow: 0 1px 4px rgba(0,0,0,.5); }
+
+.dlg-scrim { position: absolute; inset: 40px 0 0; background: rgba(0,0,0,.45); display: grid; place-items: center; }
+.dlg { width: 360px; background: var(--m-overlay); border: 1px solid var(--m-edge2); border-radius: 8px; overflow: hidden; box-shadow: 0 24px 56px rgba(0,0,0,.6); }
+.dlg .body { padding: 22px 24px 18px; font-size: 13px; color: var(--m-sec); }
+.dlg .body h5 { margin: 0 0 10px; font: 600 18px/1.3 "Segoe UI Variable Display", "Segoe UI", system-ui, sans-serif; color: #fff; }
+.dlg .foot { display: flex; gap: 8px; padding: 18px 24px; background: var(--m-chrome); border-top: 1px solid var(--m-edge); }
+.dlg .foot span { flex: 1; text-align: center; padding: 6px 0; border-radius: 4px; background: var(--m-raised); border: 1px solid var(--m-edge2); font-size: 12.5px; color: var(--m-text); }
+.dlg .foot span.p { background: var(--m-acc2); color: #00243d; border-color: transparent; font-weight: 600; }
+.dlg.old { width: 340px; font-family: var(--mono); }
+.dlg.old .hdr { display: flex; justify-content: space-between; padding: 9px 12px; border-bottom: 1px solid var(--m-edge); font-size: 12px; color: var(--m-text); }
+.dlg.old .body { font-size: 11.5px; padding: 12px; }
+.dlg.old .foot { background: transparent; padding: 10px 12px; justify-content: flex-end; }
+.dlg.old .foot span { flex: 0 0 auto; padding: 4px 10px; font-size: 11px; }
+
+.hint { display: flex; flex-wrap: wrap; gap: 4px 10px; padding: 8px 12px; border-top: 1px solid var(--m-edge); color: var(--m-muted); font-size: 11px; font-family: var(--mono); }
+.hint i { font-style: normal; background: var(--m-raised); border-radius: 3px; padding: 0 4px; color: var(--m-text); }
+
+/* Phone */
+.phone { width: 270px; flex-shrink: 0; border-radius: 30px; background: #0c0c0d; padding: 10px; box-shadow: 0 14px 36px rgba(0,0,0,.4); }
+.scr { height: 520px; border-radius: 22px; overflow: hidden; background: var(--m-canvas); color: var(--m-text); display: flex; flex-direction: column; font: 13px/1.45 "Segoe UI Variable Text", "Segoe UI", Roboto, system-ui, sans-serif; position: relative; }
+.sysbar { height: 22px; display: flex; justify-content: space-between; padding: 4px 16px 0; font-size: 10.5px; color: #ddd; background: var(--m-chrome); flex-shrink: 0; }
+.ptop { display: flex; align-items: center; gap: 4px; height: 44px; padding: 0 6px; background: var(--m-chrome); border-bottom: 1px solid var(--m-edge); flex-shrink: 0; }
+.ptop .tt { flex: 1; text-align: center; font-weight: 600; font-size: 14.5px; }
+.ptop .tt small { display: block; font-weight: 400; font-size: 10.5px; color: var(--m-sec); margin-top: -2px; }
+.pb { width: 36px; height: 36px; display: grid; place-items: center; border-radius: 18px; color: var(--m-text); flex-shrink: 0; }
+.pb .ic { width: 19px; height: 19px; }
+.ped { flex: 1; padding: 12px 14px; font-family: var(--mono); font-size: 11px; line-height: 1.7; overflow: hidden; white-space: nowrap; }
+.ped.wrapd { white-space: normal; font-size: 13.5px; line-height: 1.55; }
+.ped.wrapd .ln { padding-left: 1.5em; text-indent: -1.5em; margin: 2px 0; }
+.pnav { display: flex; height: 62px; background: var(--m-chrome); border-top: 1px solid var(--m-edge); flex-shrink: 0; }
+.pnav div { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; font-size: 10.5px; color: var(--m-sec); position: relative; }
+.pnav div .pillw { width: 52px; height: 28px; border-radius: 14px; display: grid; place-items: center; }
+.pnav div.on { color: #fff; } .pnav div.on .pillw { background: rgba(76,194,255,.22); color: var(--m-acc2); }
+.pnav .ic { width: 19px; height: 19px; }
+.nb { position: absolute; top: 4px; left: calc(50% + 6px); background: var(--m-acc2); color: #00243d; font: 700 9.5px/1 var(--ui); padding: 2px 4px; border-radius: 8px; }
+.acc { display: flex; gap: 4px; padding: 5px 6px; background: var(--m-overlay); border-top: 1px solid var(--m-edge2); flex-shrink: 0; overflow: hidden; }
+.acc span { min-width: 34px; height: 34px; border-radius: 6px; background: var(--m-raised); display: grid; place-items: center; font-family: var(--mono); font-size: 14px; flex-shrink: 0; }
+.acc span.lbl2 { font-family: var(--ui); font-size: 11px; padding: 0 6px; }
+.kbd { height: 150px; background: #2a2a2c; flex-shrink: 0; display: grid; grid-template-columns: repeat(10, 1fr); gap: 4px; padding: 8px 5px; }
+.kbd i { background: #4a4a4d; border-radius: 4px; }
+.psb { display: flex; gap: 10px; align-items: center; height: 26px; padding: 0 12px; font-size: 10.5px; color: var(--m-muted); background: var(--m-chrome); border-top: 1px solid var(--m-edge); flex-shrink: 0; }
+.sheet { position: absolute; left: 0; right: 0; bottom: 0; background: var(--m-overlay); border-radius: 16px 16px 0 0; border-top: 1px solid var(--m-edge2); box-shadow: 0 -10px 30px rgba(0,0,0,.5); padding: 6px 0 12px; }
+.sheet .grab { width: 36px; height: 4px; border-radius: 2px; background: #6b6b6b; margin: 4px auto 10px; }
+.sheet h6 { margin: 0 16px 8px; font: 600 15px "Segoe UI Variable Display", "Segoe UI", system-ui, sans-serif; color: #fff; }
+.srow { display: flex; align-items: center; gap: 12px; padding: 0 16px; height: 48px; font-size: 13.5px; }
+.srow .k { margin-left: auto; color: var(--m-sec); font-size: 12px; }
+.srow.on { background: rgba(76,194,255,.12); box-shadow: inset 3px 0 0 var(--m-acc2); }
+.pscrim { position: absolute; inset: 0; background: rgba(0,0,0,.5); }
+
+/* Calendar mock */
+.cal { width: 250px; background: var(--m-overlay); border: 1px solid var(--m-edge2); border-radius: 8px; padding: 10px; color: var(--m-text); font-size: 12px; }
+.cal .ch { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; font-weight: 600; }
+.cal .grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; text-align: center; }
+.cal .grid.wk { grid-template-columns: 22px repeat(7, 1fr); }
+.cal .grid b { font-weight: 400; color: var(--m-muted); font-size: 10.5px; padding: 3px 0; }
+.cal .grid span { height: 28px; display: grid; place-items: center; border-radius: 50%; font-variant-numeric: tabular-nums; }
+.cal .grid span.w { color: var(--m-muted); font-size: 10px; border-radius: 0; }
+.cal .grid span.n { font-weight: 700; color: #fff; background: rgba(255,255,255,.06); }
+.cal .grid span.o { box-shadow: inset 0 0 0 1.5px var(--m-warn); font-weight: 700; color: #fff; }
+.cal .grid span.t { background: var(--m-acc2); color: #00243d; font-weight: 700; }
+.cal .grid span.mute { color: #555; }
+.cal.old { font-family: var(--mono); }
+.cal.old .grid span { border-radius: 4px; }
+.cal.old .grid span.t { background: var(--m-acc); color: #fff; }
+
+/* Settings page mock */
+.spage { padding: 16px 22px 20px; background: var(--m-canvas); min-height: 300px; }
+.spage .st1 { font: 600 20px "Segoe UI Variable Display", "Segoe UI", system-ui, sans-serif; color: #fff; margin: 0 0 14px; display: flex; align-items: center; gap: 10px; }
+.spage .gh { font-weight: 600; font-size: 12.5px; margin: 14px 0 6px; color: var(--m-text); }
+.card { display: flex; align-items: center; gap: 14px; background: #2b2b2b; border: 1px solid rgba(255,255,255,.05); border-radius: 6px; padding: 11px 14px; margin-bottom: 3px; }
+.card .ci { color: var(--m-text); }
+.card .ct { flex: 1; min-width: 0; } .card .ct b { display: block; font-weight: 400; font-size: 12.5px; color: var(--m-text); } .card .ct small { color: var(--m-sec); font-size: 11px; }
+.combo { border: 1px solid var(--m-edge2); border-bottom-color: rgba(255,255,255,.25); background: rgba(255,255,255,.05); border-radius: 4px; padding: 4px 10px; font-size: 12px; min-width: 150px; display: flex; justify-content: space-between; gap: 10px; }
+.tgl { width: 38px; height: 20px; border-radius: 10px; background: var(--m-acc2); position: relative; } .tgl::after { content: ""; position: absolute; right: 4px; top: 4px; width: 12px; height: 12px; border-radius: 50%; background: #00243d; }
+.segm { display: flex; border: 1px solid var(--m-edge2); border-radius: 4px; overflow: hidden; font-size: 11.5px; } .segm span { padding: 3px 9px; } .segm span.on { background: var(--m-acc2); color: #00243d; font-weight: 600; }
+.infobar { display: flex; align-items: center; gap: 10px; margin: 8px 10px 0; padding: 8px 12px; border-radius: 4px; background: #1f2d3a; border: 1px solid rgba(76,194,255,.25); font-size: 12px; }
+.infobar.warn { background: #3a2f1c; border-color: rgba(245,158,11,.3); }
+.infobar b { font-weight: 600; } .infobar .a { margin-left: auto; border: 1px solid var(--m-edge2); background: rgba(255,255,255,.06); border-radius: 4px; padding: 3px 10px; } .infobar .xx { color: var(--m-sec); }
+
+.swatches { display: flex; flex-wrap: wrap; gap: 10px; }
+.sw { flex: 1 1 200px; border-radius: 8px; padding: 12px 14px; font-size: 12px; font-family: var(--mono); }
+.sw .big { font: 600 13px var(--ui); display: block; margin-bottom: 4px; }
+.ramp { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 520px; }
+.ramp td { padding: 6px 10px; border-bottom: 1px solid var(--line); }
+
+.keep { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; }
+.keep div { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 14px 16px; font-size: 14px; }
+.keep b { display: block; font-family: var(--display); margin-bottom: 4px; }
+.phase { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 12px; }
+.phase div { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 14px 16px; font-size: 14px; }
+.phase b { font-family: var(--display); }
+@media (prefers-reduced-motion: no-preference) { html { scroll-behavior: smooth; } }
+</style>
+
+<svg style="display:none" aria-hidden="true">
+  <symbol id="i-cal" viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M9 3v4M15 3v4"/></symbol>
+  <symbol id="i-act" viewBox="0 0 24 24"><rect x="4" y="5" width="5" height="5" rx="1"/><path d="M12 7.5h8"/><rect x="4" y="14" width="5" height="5" rx="1"/><path d="M12 16.5h8"/></symbol>
+  <symbol id="i-hist" viewBox="0 0 24 24"><rect x="7" y="3" width="13" height="15" rx="2"/><path d="M4 7v12a2 2 0 0 0 2 2h10M10 8h7M10 12h7"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6"/><path d="M20 20l-4.5-4.5"/></symbol>
+  <symbol id="i-set" viewBox="0 0 24 24"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="i-down" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5"/></symbol>
+  <symbol id="i-left" viewBox="0 0 24 24"><path d="M14 6l-6 6 6 6"/></symbol>
+  <symbol id="i-right" viewBox="0 0 24 24"><path d="M10 6l6 6-6 6"/></symbol>
+  <symbol id="i-more" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.2"/><circle cx="12" cy="12" r="1.2"/><circle cx="19" cy="12" r="1.2"/></symbol>
+  <symbol id="i-min" viewBox="0 0 24 24"><path d="M7 12h10"/></symbol>
+  <symbol id="i-max" viewBox="0 0 24 24"><rect x="7" y="7" width="10" height="10" rx="1.5"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M7 7l10 10M17 7L7 17"/></symbol>
+  <symbol id="i-note" viewBox="0 0 24 24"><path d="M7 3h7l4 4v13a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z"/><path d="M14 3v4h4"/></symbol>
+  <symbol id="i-newpage" viewBox="0 0 24 24"><path d="M7 3h7l4 4v6M14 3v4h4M6 4v16a1 1 0 0 0 1 1h5"/><path d="M17 16v6M14 19h6"/></symbol>
+  <symbol id="i-tabs" viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="14" rx="2"/><path d="M9 5v14"/></symbol>
+  <symbol id="i-back" viewBox="0 0 24 24"><path d="M19 12H5M11 6l-6 6 6 6"/></symbol>
+  <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 11v5M12 8v.2"/></symbol>
+  <symbol id="i-cut" viewBox="0 0 24 24"><circle cx="7" cy="17" r="3"/><circle cx="17" cy="17" r="3"/><path d="M9 15L18 4M15 15L6 4"/></symbol>
+  <symbol id="i-copy" viewBox="0 0 24 24"><rect x="8" y="8" width="11" height="12" rx="2"/><path d="M5 16V5a1 1 0 0 1 1-1h9"/></symbol>
+  <symbol id="i-paste" viewBox="0 0 24 24"><rect x="5" y="5" width="14" height="16" rx="2"/><path d="M9 3h6v4H9z"/></symbol>
+  <symbol id="i-undo" viewBox="0 0 24 24"><path d="M9 7L4 12l5 5"/><path d="M4 12h11a5 5 0 0 1 0 10h-3"/></symbol>
+  <symbol id="i-indent" viewBox="0 0 24 24"><path d="M4 6h16M10 12h10M4 18h16M4 10l3 2-3 2"/></symbol>
+</svg>
+
+<div class="wrap">
+  <div class="eyebrow">ChronoNote design review · v0.29.2 · 9 October 2026</div>
+  <h1>ChronoNote Win11 &amp; Mobile Review</h1>
+  <p class="lede">A review of the desktop app against Windows 11 (Fluent) conventions and of the installed web app against phone conventions (Material 3 on Android, the iOS guidelines on iPhone). Every proposal below is something you can approve, discuss or reject on its own. Nothing is implemented yet.</p>
+
+  <div class="premise">
+    <div><b>Frictionless</b><span>Fewer steps between thought and text. No new mandatory dialogs.</span></div>
+    <div><b>Uncluttered</b><span>Every proposal must remove at least as much chrome as it adds.</span></div>
+    <div><b>Keyboard first</b><span>No shortcut changes. Mouse and touch paths should teach the keys.</span></div>
+    <div><b>History close at hand</b><span>Past occurrences should be readable while writing today's note.</span></div>
+    <div><b>Content in focus</b><span>The monospace canvas and the glyph language stay as they are.</span></div>
+  </div>
+
+  <p>The review covered <code>docs/spec.md</code>, the style sheets in <code>src/styles/</code>, and the running demo build at 1280×800 and 375×812 (screens captured in Dutch, the default language in my browser). The biggest gaps found:</p>
+  <ul>
+    <li><b>The app chrome is set in the editor's monospace font at 11–12&nbsp;px.</b> Windows 11 apps use Segoe UI Variable at 12–14&nbsp;px, so ChronoNote reads like a terminal and is harder to scan than it needs to be.</li>
+    <li><b>The custom title bar loses Windows 11 behaviour:</b> no Snap Layouts flyout on the maximize button, no inactive-window state, and caption buttons that are not the standard size.</li>
+    <li><b>The title bar is crowded.</b> Five labelled commands sit next to the tabs, which is why a four-tier collapse system is needed.</li>
+    <li><b>Phones get the desktop layout, shrunk:</b> no word wrap (text runs off the screen), an 11&nbsp;px editor, desktop shortcut labels in menus, a 15-button toolbar that scrolls sideways, and a desktop status bar.</li>
+    <li><b>No support for contrast themes or reduced motion</b>, and secondary text is below the WCAG AA contrast ratio for small text.</li>
+  </ul>
+
+  <div class="bar" role="region" aria-label="Your decisions">
+    <div class="counts"><span><b id="c-approve">0</b> approved</span><span><b id="c-discuss">0</b> discuss</span><span><b id="c-reject">0</b> rejected</span><span><b id="c-open">0</b> undecided</span></div>
+    <div class="spacer"></div>
+    <span id="copied" aria-live="polite"></span>
+    <button class="btn primary" id="copy" type="button">Copy decisions</button>
+  </div>
+  <p class="st">Your choices and notes are kept in this browser. When you're done, use "Copy decisions" and paste the result into the chat.</p>
+
+  <h2 id="overview">Overview</h2>
+  <p class="st"><span class="tag rec">Recommended</span> clear win, low risk · <span class="tag opt">Optional</span> good, but you can skip it · <span class="tag call">Your call</span> changes how you work. Effort: S = a day or less, M = a few days, L = a week or more.</p>
+  <div class="tablewrap"><table id="ovt"><thead><tr><th>ID</th><th>Proposal</th><th>Platform</th><th>Advice</th><th>Effort</th></tr></thead><tbody></tbody></table></div>
+
+  <!-- ================= A ================= -->
+  <h2 id="a">A · Foundations</h2>
+  <p>These change how everything looks without moving anything. They are the cheapest way to make the app feel at home on Windows 11, and the rest builds on them.</p>
+
+  <section class="proposal" data-id="A1" data-title="Two typefaces: Segoe UI for chrome, monospace for the canvas" data-plat="Both" data-adv="rec" data-eff="M">
+    <div class="phead"><span class="pid">A1</span><h3>Two typefaces: Segoe UI for chrome, monospace for the canvas</h3></div>
+    <div class="cols">
+      <div><h4>Now</h4><p>One font (Cascadia Code) for everything: tabs, buttons, menus, dialogs, the status bar. Chrome text is 11–12&nbsp;px. In the Dutch UI, "Sectiegeschiedenis" in monospace takes 18 character cells.</p></div>
+      <div><h4>Proposed</h4><p>Add a <code>--font-ui</code> token: <code>"Segoe UI Variable Text", "Segoe UI", system-ui</code>. Use the Windows 11 type scale for chrome: Caption 12, Body 14, Body Strong 14 semibold, Subtitle 20 for dialog titles. The editor, the glyph-rendered rows in drawers, dates in tabs and key hints stay monospace.</p></div>
+    </div>
+    <div class="stage">
+      <div class="shot"><div class="lbl">Now</div><div class="scroller"><div class="win mono" style="min-width:520px">
+        <div class="tb"><span class="tab on mono"><svg class="ic"><use href="#i-cal"/></svg>2026-10-09<span class="x">✕</span></span><span class="fill"></span><span class="cmd mono"><svg class="ic"><use href="#i-hist"/></svg>Sectiegeschiedenis</span><span class="cmd mono"><svg class="ic"><use href="#i-search"/></svg>Zoeken</span></div>
+        <div class="sb mono">notes · <b>Rg 13, Kol 38</b> · <b>62 woorden</b> · Open 3 · Voltooid 0 · Doorgeschoven 0</div>
+      </div></div></div>
+      <div class="shot new"><div class="lbl">Proposed</div><div class="scroller"><div class="win" style="min-width:520px">
+        <div class="tb"><span class="tab on"><svg class="ic"><use href="#i-cal"/></svg><span class="mono">2026-10-09</span><span class="x">✕</span></span><span class="fill"></span><span class="cmd" style="font-size:13px"><svg class="ic"><use href="#i-hist"/></svg>Sectiegeschiedenis</span><span class="cmd" style="font-size:13px"><svg class="ic"><use href="#i-search"/></svg>Zoeken</span></div>
+        <div class="sb new"><span>notes</span><span class="sep"></span><span>Rg 13, Kol 38</span><span class="sep"></span><span>62 woorden</span><span class="sep"></span><span>Open 3 · Voltooid 0 · Doorgeschoven 0</span></div>
+      </div></div></div>
+    </div>
+    <div class="tablewrap" style="margin-top:12px"><table class="ramp"><tbody>
+      <tr><td><b>Role</b></td><td><b>Font</b></td><td><b>Size / line</b></td><td><b>Used for</b></td></tr>
+      <tr><td>Caption</td><td>Segoe UI Variable Text</td><td>12 / 16</td><td>Status bar, tooltips, key hints, table headers</td></tr>
+      <tr><td>Body</td><td>Segoe UI Variable Text</td><td>14 / 20</td><td>Menus, buttons, setting labels, dialog text (tabs at 13)</td></tr>
+      <tr><td>Body Strong</td><td>Segoe UI Variable Text, 600</td><td>14 / 20</td><td>Group headers, dialog buttons</td></tr>
+      <tr><td>Subtitle</td><td>Segoe UI Variable Display, 600</td><td>20 / 28</td><td>Dialog and page titles</td></tr>
+      <tr><td>Canvas</td><td>Cascadia Code (unchanged)</td><td>13 default (user setting)</td><td>Editor, glyph rows, dates, <kbd>keys</kbd></td></tr>
+    </tbody></table></div>
+    <p class="why">Fluent's hierarchy comes from type. Proportional chrome text also takes about 35% less width, which helps B2 and the long Dutch, German and Polish labels you have already had overflow problems with (§267). On macOS the same token falls through to SF Pro, on Android to Roboto.</p>
+  </section>
+
+  <section class="proposal" data-id="A2" data-title="Fluent materials: Mica title bar, Acrylic flyouts, standard radii and shadows" data-plat="Desktop" data-adv="rec" data-eff="S">
+    <div class="phead"><span class="pid">A2</span><h3>Fluent materials: Mica title bar, Acrylic flyouts, standard radii and shadows</h3></div>
+    <div class="cols">
+      <div><h4>Now</h4><p>Flat VS Code greys (#252526 chrome). Radii vary by component: 4, 5, 6, 8 and 12&nbsp;px. Overlays share one heavy shadow.</p></div>
+      <div><h4>Proposed</h4><ul>
+        <li><b>Mica</b> behind the title bar and status bar on Windows 11 (Tauri <code>windowEffects: ["mica"]</code>). The window is already created transparent for Peek, so this is mostly config. The editor canvas stays a solid colour, so legibility doesn't change. Windows 10 falls back to today's grey.</li>
+        <li><b>Acrylic</b> (blur plus tint) for flyouts: the date picker, the More menu, the context menu (B5) and tooltips.</li>
+        <li><b>Two radii:</b> 8&nbsp;px for windows, dialogs and flyouts; 4&nbsp;px for buttons, inputs, chips and list items.</li>
+        <li><b>Two shadows:</b> flyout (8&nbsp;px blur) and dialog (32&nbsp;px blur), following Fluent's elevation steps.</li>
+      </ul></div>
+    </div>
+    <div class="stage">
+      <div class="shot new"><div class="lbl">Proposed: Mica bar, Acrylic flyout</div><div class="scroller"><div class="desk"><div class="win" style="min-width:540px">
+        <div class="tb mica"><span class="appi"><svg class="ic"><use href="#i-note"/></svg></span><span class="tab f on"><svg class="ic" style="color:var(--m-open)"><use href="#i-cal"/></svg><span class="t mono">2026-10-09</span><span class="x">✕</span></span><span class="fill"></span><span class="cmd sq hov"><svg class="ic"><use href="#i-cal"/></svg></span><span class="cmd sq"><svg class="ic"><use href="#i-act"/></svg></span><span class="caps"><span><svg class="ic"><use href="#i-min"/></svg></span><span><svg class="ic"><use href="#i-max"/></svg></span><span><svg class="ic"><use href="#i-x"/></svg></span></span></div>
+        <div class="ed" style="min-height:190px"><span class="h">Daily Standup</span><span class="rule" style="--w:13ch"></span><span class="g-open">☐</span> prep interview questions for the onsite round<br><span class="g-open">☐</span> <span class="pill">sync</span> decide on the conflict-resolution strategy</div>
+        <div class="flyout" style="right:130px;top:42px"><div class="cal" style="background:transparent;border:none;padding:4px;width:220px"><div class="ch"><span>‹</span><span style="font-family:var(--ui)">October 2026</span><span>›</span></div><div class="grid"><b>M</b><b>T</b><b>W</b><b>T</b><b>F</b><b>S</b><b>S</b><span class="mute">28</span><span class="o">29</span><span>30</span><span>1</span><span class="o">2</span><span>3</span><span class="o">4</span><span>5</span><span class="o">6</span><span>7</span><span>8</span><span class="t">9</span><span>10</span><span>11</span></div></div></div>
+      </div></div></div></div>
+    </div>
+  </section>
+
+  <section class="proposal" data-id="A3" data-title="Contrast: readable secondary text, contrast themes, reduced motion" data-plat="Both" data-adv="rec" data-eff="S">
+    <div class="phead"><span class="pid">A3</span><h3>Contrast: readable secondary text, contrast themes, reduced motion</h3></div>
+    <div class="cols">
+      <div><h4>Now</h4><ul>
+        <li><code>--muted</code> #858585 on the chrome grey #252526 is about 4.1:1. It is used for 11&nbsp;px status bar text and footer hints. WCAG AA asks for 4.5:1 for small text.</li>
+        <li>No <code>forced-colors</code> rules. With a Windows contrast theme on (Settings → Accessibility → Contrast themes), the glyph colours and focus rings can disappear.</li>
+        <li>No <code>prefers-reduced-motion</code> rules. The Zen slide, the Peek fade and the jump pulse always animate.</li>
+      </ul></div>
+      <div><h4>Proposed</h4><ul>
+        <li>Split <code>--muted</code> in two: <code>--text-secondary</code> #A6A6A6 (6.2:1) for anything you need to read, and <code>--text-tertiary</code> #858585 only for decoration such as separators and disabled items. Light theme: #5F5F5F on #F3F3F3.</li>
+        <li>A <code>@media (forced-colors: active)</code> block: glyphs use <code>CanvasText</code>/<code>Highlight</code>, open actions keep a visible box, focus rings use <code>Highlight</code>.</li>
+        <li>A <code>prefers-reduced-motion</code> block: switch transitions off and replace them with an instant change.</li>
+      </ul></div>
+    </div>
+    <div class="swatches" style="margin-top:12px">
+      <div class="sw" style="background:#252526;color:#858585"><span class="big" style="color:#d4d4d4">Now · #858585 on #252526</span>Open 3 · Voltooid 0 · Doorgeschoven 0 — 4.1:1</div>
+      <div class="sw" style="background:#252526;color:#a6a6a6"><span class="big" style="color:#d4d4d4">Proposed · #A6A6A6 on #252526</span>Open 3 · Voltooid 0 · Doorgeschoven 0 — 6.2:1</div>
+      <div class="sw" style="background:#000;color:#fff;border:2px solid #ffff00"><span class="big" style="color:#ffff00">Contrast theme (Night sky)</span><span style="color:#3ff23f">☐</span> open action stays visible, focus = system Highlight</div>
+    </div>
+  </section>
+
+  <section class="proposal" data-id="A4" data-title="Fluent motion and focus: one timing set, one focus ring" data-plat="Both" data-adv="opt" data-eff="S">
+    <div class="phead"><span class="pid">A4</span><h3>Fluent motion and focus: one timing set, one focus ring</h3></div>
+    <p>Fluent uses three durations (83&nbsp;ms for small changes, 167&nbsp;ms for flyouts, 250&nbsp;ms for dialogs) with a decelerate curve on entry. Dialogs scale in from 1.05 to 1.0; flyouts slide 8&nbsp;px from their anchor. ChronoNote already has a good two-tone focus ring on some controls (v0.29.1). This proposal makes it the only focus style, on every focusable element including tabs, status bar segments and list rows, and moves the timings into tokens so A3's reduced-motion switch can turn them all off in one place.</p>
+  </section>
+
+  <!-- ================= B ================= -->
+  <h2 id="b">B · Desktop window and chrome</h2>
+
+  <section class="proposal" data-id="B1" data-title="Title bar behaves like Windows 11: Snap Layouts, caption sizes, inactive state" data-plat="Desktop" data-adv="rec" data-eff="M">
+    <div class="phead"><span class="pid">B1</span><h3>Title bar behaves like Windows 11: Snap Layouts, caption sizes, inactive state</h3></div>
+    <div class="cols">
+      <div><h4>Now</h4><ul>
+        <li>The merged title bar (§154) removed the native one, and with it the <b>Snap Layouts</b> flyout you get by hovering the maximize button. Win+Z still works, but the mouse path is gone.</li>
+        <li>Caption buttons are 44&nbsp;px wide; the system standard is 46.</li>
+        <li>The bar looks the same when the window is in the background. Windows 11 dims the title bar text and icons of an inactive window.</li>
+      </ul></div>
+      <div><h4>Proposed</h4><ul>
+        <li>Bring Snap Layouts back by answering Windows' hit test (<code>WM_NCHITTEST</code>) with "maximize button" over our maximize button. This is the approach the decorum plugin for Tauri uses; a small Rust subclass in <code>windowChrome</code> is enough.</li>
+        <li>Caption buttons 46&nbsp;px wide, full bar height. Close turns #C42B1C on hover.</li>
+        <li>Add <code>body.window-inactive</code>, set from the existing <code>onFocusChanged</code> hook: title bar text and icons drop to tertiary, and the active tab loses its accent line.</li>
+      </ul></div>
+    </div>
+    <div class="stage">
+      <div class="shot new"><div class="lbl">Proposed: hovering maximize</div><div class="scroller"><div class="desk"><div class="win" style="min-width:560px">
+        <div class="tb mica"><span class="appi"><svg class="ic"><use href="#i-note"/></svg></span><span class="tab f on"><svg class="ic" style="color:var(--m-open)"><use href="#i-cal"/></svg><span class="t mono">2026-10-09</span></span><span class="fill"></span><span class="caps"><span><svg class="ic"><use href="#i-min"/></svg></span><span class="hov"><svg class="ic"><use href="#i-max"/></svg></span><span><svg class="ic"><use href="#i-x"/></svg></span></span></div>
+        <div class="ed" style="min-height:130px"><span class="h">Daily Standup</span><span class="rule" style="--w:13ch"></span><span class="g-open">☐</span> prep interview questions</div>
+        <div class="flyout" style="right:48px;top:42px;padding:10px;display:grid;grid-template-columns:repeat(3,58px);gap:8px">
+          <div style="display:flex;gap:3px;height:38px"><i style="flex:1;background:#4cc2ff;border-radius:3px"></i><i style="flex:1;background:#555;border-radius:3px"></i></div>
+          <div style="display:flex;gap:3px;height:38px"><i style="flex:2;background:#555;border-radius:3px"></i><i style="flex:1;background:#555;border-radius:3px"></i></div>
+          <div style="display:flex;gap:3px;height:38px"><i style="flex:1;background:#555;border-radius:3px"></i><i style="flex:1;background:#555;border-radius:3px"></i><i style="flex:1;background:#555;border-radius:3px"></i></div>
+        </div>
+      </div></div></div></div>
+      <div class="shot new"><div class="lbl">Proposed: window in the background</div><div class="scroller"><div class="win" style="min-width:420px">
+        <div class="tb mica" style="color:#6b6b6b"><span class="appi" style="color:#6b6b6b"><svg class="ic"><use href="#i-note"/></svg></span><span class="tab f on" style="color:#8a8a8a"><svg class="ic"><use href="#i-cal"/></svg><span class="t mono">2026-10-09</span></span><span class="fill"></span><span class="caps" style="opacity:.5"><span><svg class="ic"><use href="#i-min"/></svg></span><span><svg class="ic"><use href="#i-max"/></svg></span><span><svg class="ic"><use href="#i-x"/></svg></span></span></div>
+        <div class="ed" style="min-height:130px"><span class="h">Daily Standup</span><span class="rule" style="--w:13ch"></span><span class="g-open">☐</span> prep interview questions</div>
+      </div></div></div>
+    </div>
+  </section>
+
+  <section class="proposal" data-id="B2" data-title="A calmer title bar: tabs and a + button on the left, icon commands on the right" data-plat="Desktop" data-adv="rec" data-eff="M">
+    <div class="phead"><span class="pid">B2</span><h3>A calmer title bar: tabs and a + button on the left, icon commands on the right</h3></div>
+    <div class="cols">
+      <div><h4>Now</h4><p>New scratchpad is an icon among the commands, far from the tabs. Five labelled commands (Date, Actions, Section history, Search, Settings) compete with the tabs for width. To cope, the bar uses four tiers (labels, icons only, scroll arrows, a More button) that change as you resize, with a lot of measuring code behind them (§57, §61).</p></div>
+      <div><h4>Proposed</h4><ul>
+        <li>A <b>+ button directly after the last tab</b>, as in Notepad, Terminal and File Explorer. Click: new scratchpad (<kbd>Ctrl+N</kbd>). The ▾ next to it opens: New scratchpad, Open date… (<kbd>Ctrl+O</kbd>), Reopen closed tab (<kbd>Ctrl+Shift+T</kbd>).</li>
+        <li>On the right, <b>four icon-only commands</b>: Date, Actions, History, Search. Each tooltip shows the name and its shortcut, so hovering teaches the keys. Settings, Shortcuts &amp; symbols, Zen, Peek and About go into a <b>⋯</b> menu, as in Notepad.</li>
+        <li>That leaves two tiers instead of four: the tab strip scrolls, and below about 560&nbsp;px the four icons also move into ⋯.</li>
+      </ul></div>
+    </div>
+    <div class="stage stack">
+      <div class="shot"><div class="lbl">Now (1280 px, Dutch)</div><div class="scroller"><div class="win mono" style="min-width:900px">
+        <div class="tb"><span class="appi"><svg class="ic"><use href="#i-note"/></svg></span><span class="tab mono"><svg class="ic"><use href="#i-cal"/></svg>2026-10-04</span><span class="tab mono"><svg class="ic"><use href="#i-cal"/></svg>2026-10-06</span><span class="tab on mono"><svg class="ic" style="color:var(--m-open)"><use href="#i-cal"/></svg>2026-10-09<span class="x">✕</span></span><span class="fill"></span><span class="cmd sq"><svg class="ic"><use href="#i-newpage"/></svg></span><span class="cmd mono"><svg class="ic"><use href="#i-cal"/></svg>Datum</span><span class="cmd mono"><svg class="ic"><use href="#i-act"/></svg>Acties</span><span class="cmd mono"><svg class="ic"><use href="#i-hist"/></svg>Sectiegeschiedenis</span><span class="cmd mono"><svg class="ic"><use href="#i-search"/></svg>Zoeken</span><span class="cmd mono"><svg class="ic"><use href="#i-set"/></svg>Instellingen</span><span class="caps old"><span><svg class="ic"><use href="#i-min"/></svg></span><span><svg class="ic"><use href="#i-max"/></svg></span><span><svg class="ic"><use href="#i-x"/></svg></span></span></div>
+      </div></div></div>
+      <div class="shot new"><div class="lbl">Proposed (same width): tooltip on History, + menu open</div><div class="scroller"><div class="win" style="min-width:900px">
+        <div class="tb mica"><span class="appi"><svg class="ic"><use href="#i-note"/></svg></span><span class="tab f" style="color:var(--m-muted)"><span class="dot" style="background:#666"></span><span class="t mono">2026-10-04</span></span><span class="tab f"><span class="dot" style="background:#666"></span><span class="t mono">2026-10-06</span></span><span class="tab f on"><span class="dot" style="background:var(--m-open)"></span><span class="t mono">2026-10-09</span><span class="x">✕</span></span><span class="cmd sq" style="width:28px"><svg class="ic"><use href="#i-plus"/></svg></span><span class="cmd sq hov" style="width:22px"><svg class="ic" style="width:12px"><use href="#i-down"/></svg></span><span class="fill"></span><span class="cmd sq"><svg class="ic"><use href="#i-cal"/></svg></span><span class="cmd sq"><svg class="ic"><use href="#i-act"/></svg></span><span class="cmd sq hov"><svg class="ic"><use href="#i-hist"/></svg></span><span class="cmd sq"><svg class="ic"><use href="#i-search"/></svg></span><span class="cmd sq"><svg class="ic"><use href="#i-more"/></svg></span><span style="width:12px"></span><span class="caps"><span><svg class="ic"><use href="#i-min"/></svg></span><span><svg class="ic"><use href="#i-max"/></svg></span><span><svg class="ic"><use href="#i-x"/></svg></span></span></div>
+        <div class="ed" style="min-height:150px"><span class="h">Daily Standup</span><span class="rule" style="--w:13ch"></span><span class="g-open">☐</span> prep interview questions for the onsite round<br><span class="g-open">☐</span> <span class="pill">sync</span> decide on the conflict-resolution strategy<br><span class="g-em">! Onsite interviews are this week — confirm the room booking</span></div>
+        <div class="tip" style="right:236px;top:42px">Section history<span class="k">Ctrl+Shift+H</span></div>
+        <div class="flyout" style="left:378px;top:40px"><div class="mi hov"><span class="ind"></span><svg class="ic"><use href="#i-newpage"/></svg>New scratchpad<span class="k">Ctrl+N</span></div><div class="mi"><span class="ind"></span><svg class="ic"><use href="#i-cal"/></svg>Open date…<span class="k">Ctrl+O</span></div><div class="msep"></div><div class="mi"><span class="ind"></span><svg class="ic"><use href="#i-undo"/></svg>Reopen closed tab<span class="k">Ctrl+Shift+T</span></div></div>
+      </div></div></div>
+    </div>
+    <p class="why">This goes against the v0.7 choice to show labels for discoverability. My argument: anyone who uses ChronoNote daily works from the keyboard, the command palette finds everything by name, and tooltips with shortcuts teach better than labels without them. The labels cost the tabs, the main navigation, a lot of width.</p>
+  </section>
+
+  <section class="proposal" data-id="B3" data-title="Notepad-style tabs, with an optional friendly date label" data-plat="Desktop" data-adv="call" data-eff="S">
+    <div class="phead"><span class="pid">B3</span><h3>Notepad-style tabs, with an optional friendly date label</h3></div>
+    <div class="cols">
+      <div><h4>Now</h4><p>The active tab has a 2&nbsp;px top accent line and 6&nbsp;px corners. Inactive tabs have no separators, so a row of grey ISO dates is hard to scan. The past/today/future cue is the icon colour.</p></div>
+      <div><h4>Proposed</h4><ul>
+        <li>Shape as in Windows 11 Notepad and Terminal: 8&nbsp;px top corners, the active tab joins the canvas with small outward curves at its base, thin separators between inactive tabs, width between 108 and 200&nbsp;px, close button always on the active tab and on hover for the others.</li>
+        <li>The past/today/future cue becomes a small dot before the label (grey, accent, green). The colours stay the same, at a quarter of the size.</li>
+        <li><b>Your call:</b> a "Tab labels" setting: <i>ISO</i> (<code>2026-10-09</code>, today's behaviour) or <i>Friendly</i> (<code>Today</code>, <code>Yesterday</code>, <code>do 9 okt</code> in your locale), with the ISO date in the tooltip either way.</li>
+      </ul></div>
+    </div>
+    <div class="stage">
+      <div class="shot new"><div class="lbl">Proposed: ISO labels</div><div class="scroller"><div class="win" style="min-width:470px">
+        <div class="tb mica" style="padding-left:8px"><span class="tab f"><span class="dot" style="background:#666"></span><span class="t mono">2026-10-04</span></span><span class="tab f"><span class="dot" style="background:#666"></span><span class="t mono">2026-10-06</span></span><span class="tab f on"><span class="dot" style="background:var(--m-open)"></span><span class="t mono">2026-10-09</span><span class="x">✕</span></span><span class="tab f"><span class="dot" style="background:var(--m-done)"></span><span class="t mono">2026-10-12</span></span></div>
+        <div class="ed" style="min-height:60px"><span class="h">Daily Standup</span></div>
+      </div></div></div>
+      <div class="shot new"><div class="lbl">Proposed: friendly labels (option)</div><div class="scroller"><div class="win" style="min-width:470px">
+        <div class="tb mica" style="padding-left:8px"><span class="tab f"><span class="dot" style="background:#666"></span><span class="t">za 4 okt</span></span><span class="tab f"><span class="dot" style="background:#666"></span><span class="t">ma 6 okt</span></span><span class="tab f on"><span class="dot" style="background:var(--m-open)"></span><span class="t" style="font-weight:600">Vandaag</span><span class="x">✕</span></span><span class="tab f"><span class="dot" style="background:var(--m-done)"></span><span class="t">ma 12 okt</span></span></div>
+        <div class="ed" style="min-height:60px"><span class="h">Daily Standup</span></div>
+      </div></div></div>
+    </div>
+  </section>
+
+  <section class="proposal" data-id="B4" data-title="Status bar as Notepad segments, with counts you can click" data-plat="Desktop" data-adv="rec" data-eff="S">
+    <div class="phead"><span class="pid">B4</span><h3>Status bar as Notepad segments, with counts you can click</h3></div>
+    <div class="cols">
+      <div><h4>Now</h4><p>One dot-separated monospace line: folder, position, words, the three counts, then version, <kbd>?</kbd> and About on the right. The counts are the most useful information but sit in the middle in the lowest-contrast colour. The version and About icon take space on every screen for something you need a few times a year.</p></div>
+      <div><h4>Proposed</h4><ul>
+        <li>Counts on the left, as buttons: click <b>☐ 3 open</b> to jump to the next open action (<kbd>Ctrl+J</kbd>); click the deferred or done count to open Actions filtered to that state. Messages in the centre, as now.</li>
+        <li>Notepad's order on the right: <b>Ln 13, Col 38 | 62 words | notes | ?</b>, with 1&nbsp;px dividers and 12&nbsp;px Segoe text.</li>
+        <li>The version and About move into Settings (C4). An available update shows as an InfoBar (C5), not as an icon.</li>
+        <li>A <b>Show status bar</b> toggle in ⋯ and Settings (Notepad has the same), for people who want only the canvas without going into Zen.</li>
+      </ul></div>
+    </div>
+    <div class="stage stack">
+      <div class="shot"><div class="lbl">Now</div><div class="scroller"><div class="win mono" style="min-width:780px"><div class="sb mono"><span>▭ notes</span>·<b>Rg 13, Kol 38</b>·<b>62 woorden</b>·<span>Open 3</span>·<span>Voltooid 0</span>·<span>Doorgeschoven 0</span><span class="r"><span>v0.29.2</span><b>?</b><svg class="ic" style="width:13px"><use href="#i-info"/></svg></span></div></div></div></div>
+      <div class="shot new"><div class="lbl">Proposed (hover on "3 open")</div><div class="scroller"><div class="win" style="min-width:780px"><div class="sb new"><span class="seg hov"><span class="g-open mono">☐</span><b>3</b>open</span><span class="seg"><span class="g-def mono">☐</span>1 deferred</span><span class="seg"><span class="g-done mono">☑</span>4 done</span><span class="r"><span class="seg">Ln 13, Col 38</span><span class="sep"></span><span class="seg">62 words</span><span class="sep"></span><span class="seg">▭ notes</span><span class="sep"></span><span class="seg"><b>?</b></span></span></div></div></div></div>
+    </div>
+  </section>
+
+  <section class="proposal" data-id="B5" data-title="An editor context menu that teaches the shortcuts" data-plat="Desktop" data-adv="rec" data-eff="M">
+    <div class="phead"><span class="pid">B5</span><h3>An editor context menu that teaches the shortcuts</h3></div>
+    <div class="cols">
+      <div><h4>Now</h4><p>Right-clicking in the editor shows WebView2's own browser menu (with items like "Inspect" in dev builds). A mouse user has no way to find <kbd>Ctrl+1</kbd>–<kbd>7</kbd>, convert-to-section or copy-to-next-occurrence except the palette or the Shortcuts drawer.</p></div>
+      <div><h4>Proposed</h4><p>A Windows 11 style context menu (Acrylic, 8&nbsp;px corners, an icon row for Cut, Copy, Paste at the top, the same as File Explorer). Below it, the line commands, which change with the line under the caret: action states for an action line, topic states for a topic line, "Make it an action" for plain text. Then: Convert to section, Section history, Copy to next occurrence, Peek on this section. Every row shows its shortcut. The same command list feeds D6 on phones.</p></div>
+    </div>
+    <div class="stage">
+      <div class="shot new"><div class="lbl">Proposed: right-click on an open action</div><div class="scroller"><div class="win" style="min-width:560px">
+        <div class="tb mica"><span class="appi"><svg class="ic"><use href="#i-note"/></svg></span><span class="tab f on"><span class="dot" style="background:var(--m-open)"></span><span class="t mono">2026-10-09</span></span></div>
+        <div class="ed" style="min-height:330px"><span class="h">Daily Standup</span><span class="rule" style="--w:13ch"></span><span style="background:#454952"><span class="g-open">☐</span> prep interview questions for the onsite round</span><br><span class="g-open">☐</span> <span class="pill">sync</span> decide on the conflict-resolution strategy</div>
+        <div class="flyout" style="left:200px;top:92px">
+          <div style="display:flex;gap:2px;padding:2px 2px 4px;border-bottom:1px solid var(--m-edge2);margin-bottom:4px"><span class="cmd sq"><svg class="ic"><use href="#i-cut"/></svg></span><span class="cmd sq"><svg class="ic"><use href="#i-copy"/></svg></span><span class="cmd sq"><svg class="ic"><use href="#i-paste"/></svg></span></div>
+          <div class="mi hov"><span class="ind"></span><span class="g-done mono">☑</span>Mark done<span class="k">Ctrl+2</span></div>
+          <div class="mi"><span class="ind"></span><span class="g-def mono">☐</span>Defer<span class="k">Ctrl+3</span></div>
+          <div class="mi"><span class="ind"></span><span class="mono" style="color:#7c8794;font-weight:700">☒</span>Won't do<span class="k">Ctrl+4</span></div>
+          <div class="msep"></div>
+          <div class="mi"><span class="ind"></span><svg class="ic"><use href="#i-hist"/></svg>Section history<span class="k">Ctrl+Shift+H</span></div>
+          <div class="mi"><span class="ind"></span><span class="mono">»</span>Copy to next occurrence<span class="k">Ctrl+Shift+.</span></div>
+          <div class="mi"><span class="ind"></span><span class="mono">≡</span>Convert to section<span class="k">Ctrl+Shift+S</span></div>
+        </div>
+      </div></div></div>
+    </div>
+  </section>
+
+  <section class="proposal" data-id="B6" data-title="Alt key tips on the title bar commands" data-plat="Desktop" data-adv="opt" data-eff="S">
+    <div class="phead"><span class="pid">B6</span><h3>Alt key tips on the title bar commands</h3></div>
+    <p>Pressing and releasing <kbd>Alt</kbd> on its own shows a letter on each title bar command, as Office and other Windows apps do: <b>D</b>ate, <b>A</b>ctions, <b>H</b>istory, <b>S</b>earch, <b>N</b>ew, <b>M</b>ore. The next letter runs the command; <kbd>Esc</kbd> or any other key hides the tips. Once B2 removes the labels, this keeps every command reachable without remembering shortcuts. The tips trigger only on a lone <kbd>Alt</kbd> release with no Ctrl involved, so AltGr typing on US-International is unaffected, and <kbd>Alt+←/→</kbd> (occurrence navigation) keeps working.</p>
+    <div class="stage"><div class="shot new"><div class="lbl">Proposed: after tapping Alt</div><div class="scroller"><div class="win" style="min-width:560px">
+      <div class="tb mica"><span class="appi"><svg class="ic"><use href="#i-note"/></svg></span><span class="tab f on"><span class="dot" style="background:var(--m-open)"></span><span class="t mono">2026-10-09</span></span><span class="cmd sq" style="width:28px;position:relative"><svg class="ic"><use href="#i-plus"/></svg><span class="kt" style="right:-4px;bottom:-4px">N</span></span><span class="fill"></span><span class="cmd sq" style="position:relative"><svg class="ic"><use href="#i-cal"/></svg><span class="kt" style="right:0;bottom:-4px">D</span></span><span class="cmd sq" style="position:relative"><svg class="ic"><use href="#i-act"/></svg><span class="kt" style="right:0;bottom:-4px">A</span></span><span class="cmd sq" style="position:relative"><svg class="ic"><use href="#i-hist"/></svg><span class="kt" style="right:0;bottom:-4px">H</span></span><span class="cmd sq" style="position:relative"><svg class="ic"><use href="#i-search"/></svg><span class="kt" style="right:0;bottom:-4px">S</span></span><span class="cmd sq" style="position:relative"><svg class="ic"><use href="#i-more"/></svg><span class="kt" style="right:0;bottom:-4px">M</span></span><span class="caps"><span><svg class="ic"><use href="#i-min"/></svg></span><span><svg class="ic"><use href="#i-max"/></svg></span><span><svg class="ic"><use href="#i-x"/></svg></span></span></div>
+      <div class="ed" style="min-height:60px;opacity:.6"><span class="h">Daily Standup</span></div>
+    </div></div></div></div>
+  </section>
+
+  <!-- ================= C ================= -->
+  <h2 id="c">C · Drawers, dialogs and settings</h2>
+
+  <section class="proposal" data-id="C1" data-title="History and Actions as a docked side pane next to the note" data-plat="Desktop" data-adv="call" data-eff="L">
+    <div class="phead"><span class="pid">C1</span><h3>History and Actions as a docked side pane next to the note</h3></div>
+    <div class="cols">
+      <div><h4>Now</h4><p>Section History and Actions are centred dialogs over a dimmed note. While one is open you can't see or type in the note it belongs to. In a meeting you open History, read last week's open points, close it, type, and open it again. The dialog owns the keyboard (§209), which is the right choice for a dialog but makes this back-and-forth slow.</p></div>
+      <div><h4>Proposed</h4><ul>
+        <li>On windows wider than about 1000&nbsp;px, <kbd>Ctrl+Shift+H</kbd> and <kbd>Ctrl+Shift+A</kbd> open a <b>pane docked on the right</b> (about 380&nbsp;px, resizable), as Outlook's reading pane or VS Code's side bar do. The note stays visible and editable on the left.</li>
+        <li>Focus moves into the pane when it opens, so the keys behave as they do now (arrows, <kbd>Shift+Enter</kbd> to add to today). <kbd>F6</kbd> moves focus between note and pane, the Windows standard for panes. <kbd>Esc</kbd> closes the pane and returns to the caret.</li>
+        <li>With the pane open, History follows the caret: move to another section in the note and the pane switches to that section's history.</li>
+        <li>Narrow windows, Peek and phones keep today's dialog.</li>
+      </ul></div>
+    </div>
+    <div class="stage"><div class="shot new"><div class="lbl">Proposed: History docked while writing today's standup</div><div class="scroller"><div class="win" style="min-width:860px">
+      <div class="tb mica"><span class="appi"><svg class="ic"><use href="#i-note"/></svg></span><span class="tab f on"><span class="dot" style="background:var(--m-open)"></span><span class="t mono">2026-10-09</span><span class="x">✕</span></span><span class="cmd sq" style="width:28px"><svg class="ic"><use href="#i-plus"/></svg></span><span class="fill"></span><span class="cmd sq"><svg class="ic"><use href="#i-cal"/></svg></span><span class="cmd sq"><svg class="ic"><use href="#i-act"/></svg></span><span class="cmd sq" style="background:var(--m-raised);box-shadow:inset 0 -2px 0 var(--m-acc2)"><svg class="ic"><use href="#i-hist"/></svg></span><span class="cmd sq"><svg class="ic"><use href="#i-search"/></svg></span><span class="cmd sq"><svg class="ic"><use href="#i-more"/></svg></span><span class="caps"><span><svg class="ic"><use href="#i-min"/></svg></span><span><svg class="ic"><use href="#i-max"/></svg></span><span><svg class="ic"><use href="#i-x"/></svg></span></span></div>
+      <div style="display:flex;min-height:300px">
+        <div class="ed" style="flex:1;min-width:0"><span class="h">Daily Standup</span><span class="rule" style="--w:13ch"></span>• today: finalize interview questions<br><span class="g-open">☐</span> prep interview questions for the onsite round<br><span class="g-open">☐</span> <span class="pill">sync</span> decide on the conflict-resolution strategy<br><span class="g-open">☐</span> book room for Thursday<span style="border-left:2px solid #fff;margin-left:1px"></span></div>
+        <div style="width:330px;flex-shrink:0;background:var(--m-chrome);border-left:1px solid var(--m-edge2);display:flex;flex-direction:column">
+          <div style="display:flex;align-items:center;gap:8px;padding:10px 12px;font-weight:600;font-size:13px"><svg class="ic"><use href="#i-hist"/></svg>Daily Standup<span style="margin-left:auto;color:var(--m-sec);font-weight:400;font-size:11.5px">9 dates</span><svg class="ic" style="color:var(--m-sec)"><use href="#i-x"/></svg></div>
+          <div style="display:flex;gap:2px;padding:0 10px;font-family:var(--mono);font-size:10.5px;border-bottom:1px solid var(--m-edge)"><span style="padding:5px 7px;color:var(--m-muted)">10-02 <span class="dot" style="background:var(--m-warn)"></span></span><span style="padding:5px 7px;color:var(--m-muted)">10-04 <span class="dot" style="background:var(--m-warn)"></span></span><span style="padding:5px 7px;background:var(--m-canvas);border-radius:4px 4px 0 0;color:#fff">10-06 <span class="dot" style="background:var(--m-warn)"></span></span><span style="padding:5px 7px;color:var(--m-open)">10-09</span></div>
+          <div class="ed" style="background:var(--m-canvas);flex:1;font-size:11px;padding:10px 12px;min-height:0">• Priya out Thursday<br><span style="background:rgba(76,194,255,.16);display:block;margin:0 -12px;padding:0 12px"><span class="g-open">☐</span> prep interview questions for the onsite round</span><span class="g-done dim">☑</span><span class="dim"> send loop schedule to recruiting</span><br><span class="g-open">☐</span> chase legal on the NDA template</div>
+          <div style="padding:10px 12px;display:flex;gap:8px;align-items:center;border-top:1px solid var(--m-edge);font-size:12px"><span style="background:var(--m-acc2);color:#00243d;font-weight:600;padding:4px 10px;border-radius:4px">Add to today</span><span style="color:var(--m-sec)">Shift+Enter</span><span style="margin-left:auto;color:var(--m-sec)">F6 note</span></div>
+        </div>
+      </div>
+    </div></div></div></div>
+    <p class="why">Of all the proposals, this one does the most for "easy access to history", and it is also the biggest change. Recommended order: History first, Actions after you have used it for a while. Search stays a dialog, because it is a quick jump rather than a reference you keep reading.</p>
+  </section>
+
+  <section class="proposal" data-id="C2" data-title="Windows 11 dialog layout for confirmations" data-plat="Both" data-adv="rec" data-eff="S">
+    <div class="phead"><span class="pid">C2</span><h3>Windows 11 dialog layout for confirmations</h3></div>
+    <div class="cols">
+      <div><h4>Now</h4><p>The safety prompt (close with open actions), unsaved scratchpads, the disk conflict and the folder migration prompt share the drawer layout: a small header row with an icon and ✕, monospace text, small right-aligned buttons.</p></div>
+      <div><h4>Proposed</h4><p>Use the Windows 11 <i>ContentDialog</i> layout for these four only: a 20&nbsp;px title phrased as a question, 14&nbsp;px body, and a footer band in the chrome colour with full-width buttons. The recommended choice is the accent button and has focus, so <kbd>Enter</kbd> does the safe thing; <kbd>Esc</kbd> cancels. No ✕, because the footer already has Cancel. Drawers and the palette keep their current layout.</p></div>
+    </div>
+    <div class="stage">
+      <div class="shot"><div class="lbl">Now</div><div class="scroller"><div class="win mono" style="min-width:420px;height:250px"><div class="tb"></div><div class="dlg-scrim"><div class="dlg old"><div class="hdr"><span>⚠ Open actions</span><span>✕</span></div><div class="body">2026-10-09.txt has 3 open actions. Close it anyway?</div><div class="foot"><span>Cancel</span><span>Close anyway</span></div></div></div></div></div></div>
+      <div class="shot new"><div class="lbl">Proposed</div><div class="scroller"><div class="win" style="min-width:420px;height:250px"><div class="tb mica"></div><div class="dlg-scrim"><div class="dlg"><div class="body"><h5>Close a note with 3 open actions?</h5>Thursday 9 October still has 3 open actions. They stay in the file, but you won't see them in this tab.</div><div class="foot"><span class="p">Review actions</span><span>Close tab</span><span>Cancel</span></div></div></div></div></div></div>
+    </div>
+  </section>
+
+  <section class="proposal" data-id="C3" data-title="Key hint footers cut to one line" data-plat="Both" data-adv="rec" data-eff="S">
+    <div class="phead"><span class="pid">C3</span><h3>Key hint footers cut to one line</h3></div>
+    <div class="cols">
+      <div><h4>Now</h4><p>Every drawer ends in a footer listing all its keys. In Section History (Dutch) it wraps to two lines and lists six bindings plus Esc. That is a lot of text around a reading view.</p></div>
+      <div><h4>Proposed</h4><p>At most three hints, the ones you need right now (they change with the selection), plus "<kbd>Ctrl+/</kbd> all keys" on the right. The full list stays in the Shortcuts drawer, and B5's context menu shows the rest. On touch devices the footer disappears.</p></div>
+    </div>
+    <div class="stage stack">
+      <div class="shot"><div class="lbl">Now</div><div class="scroller"><div class="win" style="min-width:700px;background:var(--m-overlay)"><div class="hint"><span><i>↑/↓</i> Regel selecteren</span>·<span><i>Shift+↑/↓</i> Uitbreiden</span>·<span><i>←/→</i> Datum wisselen</span>·<span><i>Enter</i> Naar bron springen</span>·<span><i>Dbl-click</i> op een datum om erheen te springen</span><span style="margin-left:auto"><i>Esc</i> Sluiten</span></div></div></div></div>
+      <div class="shot new"><div class="lbl">Proposed (a line is selected)</div><div class="scroller"><div class="win" style="min-width:700px;background:var(--m-overlay)"><div class="hint" style="font-family:var(--ui);font-size:12px;color:var(--m-sec)"><span><i>Shift+Enter</i> Add to today</span><span><i>←/→</i> Other date</span><span><i>Enter</i> Open note</span><span style="margin-left:auto"><i>Ctrl+/</i> All keys</span></div></div></div></div>
+    </div>
+  </section>
+
+  <section class="proposal" data-id="C4" data-title="Settings as a page, with About inside it" data-plat="Both" data-adv="opt" data-eff="M">
+    <div class="phead"><span class="pid">C4</span><h3>Settings as a page, with About inside it</h3></div>
+    <div class="cols">
+      <div><h4>Now</h4><p>Settings is a 560&nbsp;px dialog with tabs and an inner scroll area. Language is an 8-option segmented grid. About is a separate dialog opened from the status bar.</p></div>
+      <div><h4>Proposed</h4><p>As in Windows 11 Notepad: Settings replaces the editor area as a page with a back arrow (<kbd>Esc</kbd> and <kbd>Ctrl+,</kbd> also go back). Settings are cards in groups (Appearance, Editor, Notes &amp; sync, Peek, Updates), each with an icon, title, one-line description and control. Language and theme become dropdowns, as Windows does for more than three choices. Segmented controls stay where there are two or three short options. The last group is <b>About ChronoNote</b>: version, check for updates, release notes, links. The About dialog and the status bar items go away.</p></div>
+    </div>
+    <div class="stage"><div class="shot new"><div class="lbl">Proposed</div><div class="scroller"><div class="win" style="min-width:620px">
+      <div class="tb mica"><span class="appi"><svg class="ic"><use href="#i-note"/></svg></span><span class="tab f on"><span class="dot" style="background:var(--m-open)"></span><span class="t mono">2026-10-09</span></span></div>
+      <div class="spage">
+        <div class="st1"><svg class="ic" style="width:18px;height:18px"><use href="#i-back"/></svg>Settings</div>
+        <div class="gh">Appearance</div>
+        <div class="card"><svg class="ic ci"><use href="#i-set"/></svg><div class="ct"><b>App theme</b><small>Light, dark or follow Windows</small></div><span class="combo">Use system setting <svg class="ic" style="width:12px"><use href="#i-down"/></svg></span></div>
+        <div class="card"><span class="mono ci">☐</span><div class="ct"><b>Glyph colours</b><small>How actions and topics are drawn</small></div><span class="segm"><span class="on">Color</span><span>Gray</span><span>Legacy</span></span></div>
+        <div class="card"><span class="mono ci">Aa</span><div class="ct"><b>Language</b><small>Follows Windows unless you pick one</small></div><span class="combo">Nederlands <svg class="ic" style="width:12px"><use href="#i-down"/></svg></span></div>
+        <div class="gh">About ChronoNote</div>
+        <div class="card"><svg class="ic ci"><use href="#i-info"/></svg><div class="ct"><b>ChronoNote 0.29.2</b><small>Up to date · checked today 09:12</small></div><span class="combo" style="min-width:0">Check for updates</span></div>
+      </div>
+    </div></div></div></div>
+  </section>
+
+  <section class="proposal" data-id="C5" data-title="InfoBars for messages that need you" data-plat="Both" data-adv="rec" data-eff="S">
+    <div class="phead"><span class="pid">C5</span><h3>InfoBars for messages that need you</h3></div>
+    <div class="cols">
+      <div><h4>Now</h4><p>Every message goes to the status bar centre (§260): "Update available", "Sign in again", "Calendar differs", a sync conflict. Some can be clicked, but they look like the autosave messages, which you learn to ignore.</p></div>
+      <div><h4>Proposed</h4><p>Two kinds of message. <b>Transient</b> confirmations stay in the status bar, as now. <b>Messages that need an action</b> become a slim Windows 11 InfoBar at the top of the canvas, with a severity colour, one action button and ✕ to dismiss. One at a time, never covering text, and never more than one line.</p></div>
+    </div>
+    <div class="stage"><div class="shot new"><div class="lbl">Proposed</div><div class="scroller"><div class="win" style="min-width:600px">
+      <div class="tb mica"><span class="appi"><svg class="ic"><use href="#i-note"/></svg></span><span class="tab f on"><span class="dot" style="background:var(--m-open)"></span><span class="t mono">2026-10-09</span></span></div>
+      <div class="infobar"><svg class="ic" style="color:var(--m-acc2)"><use href="#i-info"/></svg><b>ChronoNote 0.30.0 is available.</b><span style="color:var(--m-sec)">Installs when you restart.</span><span class="a">Restart now</span><span class="xx">✕</span></div>
+      <div class="ed" style="min-height:90px"><span class="h">Daily Standup</span><span class="rule" style="--w:13ch"></span><span class="g-open">☐</span> prep interview questions for the onsite round</div>
+    </div></div></div></div>
+  </section>
+
+  <section class="proposal" data-id="C6" data-title="Date picker in the Windows 11 calendar style, with week numbers" data-plat="Both" data-adv="opt" data-eff="S">
+    <div class="phead"><span class="pid">C6</span><h3>Date picker in the Windows 11 calendar style, with week numbers</h3></div>
+    <p>Keep the four-state day model (§262) but draw it like the Windows 11 CalendarView: round day cells, today as a filled accent circle, notes as bold text on a faint fill, open actions as an amber ring. Add an optional <b>ISO week number</b> column. Week numbers are how meetings are planned in the Netherlands and Germany, and the date field could also accept <code>wk 42</code>. Keyboard behaviour does not change.</p>
+    <div class="stage">
+      <div class="shot"><div class="lbl">Now</div><div class="cal old"><div class="ch"><span>‹</span><span>oktober 2026</span><span>›</span></div><div class="grid"><b>ma</b><b>di</b><b>wo</b><b>do</b><b>vr</b><b>za</b><b>zo</b><span class="mute">28</span><span class="o">29</span><span class="mute">30</span><span class="mute">1</span><span class="o">2</span><span class="mute">3</span><span class="o">4</span><span class="mute">5</span><span class="o">6</span><span class="mute">7</span><span class="mute">8</span><span class="t">9</span><span class="mute">10</span><span class="mute">11</span></div></div></div>
+      <div class="shot new"><div class="lbl">Proposed</div><div class="cal"><div class="ch"><span>‹</span><span style="font-family:var(--ui)">oktober 2026</span><span>›</span></div><div class="grid wk"><b>wk</b><b>ma</b><b>di</b><b>wo</b><b>do</b><b>vr</b><b>za</b><b>zo</b><span class="w">40</span><span>28</span><span class="o">29</span><span>30</span><span>1</span><span class="o">2</span><span>3</span><span class="o">4</span><span class="w">41</span><span>5</span><span class="o">6</span><span>7</span><span>8</span><span class="t">9</span><span>10</span><span>11</span></div></div></div>
+    </div>
+  </section>
+
+  <!-- ================= D ================= -->
+  <h2 id="d">D · Phone (installed web app)</h2>
+  <p>Today the phone gets the desktop layout scaled down. These proposals give it a phone layout while keeping one codebase: they switch on <code>pointer: coarse</code> together with a width under 600&nbsp;px, the same check <code>$isMobile</code> already makes.</p>
+
+  <section class="proposal" data-id="D1" data-title="Wrap lines and use a 16 px editor on phones" data-plat="Mobile" data-adv="rec" data-eff="S">
+    <div class="phead"><span class="pid">D1</span><h3>Wrap lines and use a 16 px editor on phones</h3></div>
+    <div class="cols">
+      <div><h4>Now</h4><p>The editor width defaults to "Full", so on a 375&nbsp;px phone every longer line runs off the right edge and the note scrolls sideways. The editor uses the desktop default of 13&nbsp;px. iOS Safari zooms the page in when you focus a text field under 16&nbsp;px.</p></div>
+      <div><h4>Proposed</h4><p>On phones, the defaults are <b>Wrap</b> and <b>16&nbsp;px</b> (the existing hanging indent keeps glyph lines aligned). Both are stored per device, so changing them on the phone doesn't change the desktop and the reverse.</p></div>
+    </div>
+    <div class="stage">
+      <div class="shot"><div class="lbl">Now</div><div class="phone"><div class="scr"><div class="sysbar"><span>9:41</span><span>▮▮▮</span></div><div class="ptop"><span class="pb"><svg class="ic"><use href="#i-tabs"/></svg></span><span class="tab on mono" style="height:30px">2026-10-09</span><span class="fill"></span><span class="pb"><svg class="ic"><use href="#i-newpage"/></svg></span><span class="pb"><svg class="ic"><use href="#i-cal"/></svg></span><span class="pb"><svg class="ic"><use href="#i-more"/></svg></span></div><div class="ped">Daily Standup<br><span style="color:var(--m-muted)">═══════════</span><br>• today: finalize interview questions, sync desig<br><span class="g-open">☐</span> prep interview questions for the onsite round<br><span class="g-open">☐</span> <span class="pill">sync</span> decide on the conflict-resolution strate<br><span class="g-em">! Onsite interviews are this week — confirm the r</span><br><br>1:1 — Priya<br><span style="color:var(--m-muted)">═══════════</span><br>• Priya reviewed the offline-mode doc<br><span class="g-arrow">➔</span> <span class="badge">@Priya</span> sign off on the conflict-resolution app</div><div class="acc"><span class="g-open">☐</span><span class="g-done">☑</span><span class="g-def">☐</span><span>☒</span><span style="color:var(--m-open)">○</span><span style="color:var(--m-done)">◉</span><span style="color:var(--m-def)">◌</span></div><div class="psb">▭ ☐ 3 · ☑ 0 · ☐ 0<span style="margin-left:auto">? ⓘ</span></div></div></div></div>
+      <div class="shot new"><div class="lbl">Proposed (with D2 and D3)</div><div class="phone"><div class="scr"><div class="sysbar"><span>9:41</span><span>▮▮▮</span></div><div class="ptop"><span class="pb"><svg class="ic"><use href="#i-tabs"/></svg></span><span class="pb"><svg class="ic"><use href="#i-left"/></svg></span><span class="tt">Vandaag<small>do 9 okt · 3 open</small></span><span class="pb"><svg class="ic"><use href="#i-right"/></svg></span><span class="pb"><svg class="ic"><use href="#i-more"/></svg></span></div><div class="ped wrapd"><div class="ln" style="text-indent:0;padding:0">Daily Standup</div><div style="width:13ch;border-top:3px double var(--m-muted);height:6px;font-family:var(--mono)"></div><div class="ln">• today: finalize interview questions, sync design review</div><div class="ln"><span class="g-open">☐</span> prep interview questions for the onsite round</div><div class="ln"><span class="g-open">☐</span> <span class="pill">sync</span> decide on the conflict-resolution strategy</div><div class="ln g-em">! Onsite interviews are this week — confirm the room booking</div></div><div class="pnav"><div class="on"><span class="pillw"><svg class="ic"><use href="#i-note"/></svg></span>Note</div><div><span class="pillw"><svg class="ic"><use href="#i-act"/></svg></span><span class="nb">3</span>Actions</div><div><span class="pillw"><svg class="ic"><use href="#i-hist"/></svg></span>History</div><div><span class="pillw"><svg class="ic"><use href="#i-search"/></svg></span>Search</div></div></div></div></div>
+    </div>
+  </section>
+
+  <section class="proposal" data-id="D2" data-title="A phone app bar: the date as the title, previous and next on either side" data-plat="Mobile" data-adv="rec" data-eff="M">
+    <div class="phead"><span class="pid">D2</span><h3>A phone app bar: the date as the title, previous and next on either side</h3></div>
+    <div class="cols">
+      <div><h4>Now</h4><p>The phone top bar is a shrunken desktop bar: a tab-count button, one desktop-style tab with an ISO date, and three unlabelled icons. Going to yesterday's note takes three taps: the tab drawer, then Open date, then the day.</p></div>
+      <div><h4>Proposed</h4><p>A Material 3 small top app bar. <b>Title</b>: "Today" / "Yesterday" / "do 9 okt", with a subtitle showing the open count. Tap it to open the date picker. <b>‹ ›</b> on either side go to the previous or next note that has content. On the left, the tabs button opens the tab sheet (D4); on the right, ⋯ holds New scratchpad, Zen, Settings and Shortcuts. The desktop tab shape disappears on phones.</p></div>
+    </div>
+    <p class="why">See the D1 mockup on the right. A swipe gesture for previous/next day is deliberately left out: horizontal swipes on a text area clash with selecting text and with the system back gesture.</p>
+  </section>
+
+  <section class="proposal" data-id="D3" data-title="A bottom navigation bar instead of the status bar" data-plat="Mobile" data-adv="rec" data-eff="M">
+    <div class="phead"><span class="pid">D3</span><h3>A bottom navigation bar instead of the status bar</h3></div>
+    <div class="cols">
+      <div><h4>Now</h4><p>Actions, Section history and Search are behind ⋯ in the top corner, which is the hardest place to reach with a thumb. The menu shows desktop shortcuts (<kbd>Ctrl+Shift+A</kbd>), which mean nothing on a phone. The bottom of the screen holds the desktop status bar (counts, <kbd>?</kbd>, About).</p></div>
+      <div><h4>Proposed</h4><p>A Material 3 navigation bar with four destinations: <b>Note</b>, <b>Actions</b> (with an open-count badge), <b>History</b> (for the section at the caret) and <b>Search</b>. It replaces the status bar on phones. Line, column and word count are dropped there; the open count lives in the badge and the title subtitle. The bar hides while the keyboard is up, and the accessory bar (D5) takes its place. Shortcut labels are hidden on touch devices everywhere, including menus.</p></div>
+    </div>
+    <p class="why">See the D1 mockup. This changes how often History is used on a phone: one tap instead of two, in thumb reach.</p>
+  </section>
+
+  <section class="proposal" data-id="D4" data-title="Bottom sheets instead of centred dialogs" data-plat="Mobile" data-adv="rec" data-eff="M">
+    <div class="phead"><span class="pid">D4</span><h3>Bottom sheets instead of centred dialogs</h3></div>
+    <div class="cols">
+      <div><h4>Now</h4><p>The tab drawer, the More menu and every drawer open as a dialog in the middle of the screen. They are hard to reach with a thumb and can only be closed with the ✕ or Back.</p></div>
+      <div><h4>Proposed</h4><p>On phones every drawer is a bottom sheet with a drag handle: half height for the tab list and menus, full height for Actions, History and Search. Swipe down or press Back to close (Back already works, §261). Rows are 48&nbsp;px high. The active tab has an accent bar, as on desktop.</p></div>
+    </div>
+    <div class="stage">
+      <div class="shot new"><div class="lbl">Proposed: tab sheet</div><div class="phone"><div class="scr"><div class="sysbar"><span>9:41</span><span>▮▮▮</span></div><div class="ptop"><span class="pb"><svg class="ic"><use href="#i-tabs"/></svg></span><span class="pb"><svg class="ic"><use href="#i-left"/></svg></span><span class="tt">Vandaag<small>do 9 okt · 3 open</small></span><span class="pb"><svg class="ic"><use href="#i-right"/></svg></span><span class="pb"><svg class="ic"><use href="#i-more"/></svg></span></div><div class="ped wrapd"><div class="ln">Daily Standup</div></div><div class="pscrim"></div><div class="sheet"><div class="grab"></div><h6>Open tabs</h6><div class="srow"><span class="dot" style="background:#666"></span>za 4 okt<span class="k"><span class="g-open mono">☐</span> 2</span></div><div class="srow"><span class="dot" style="background:#666"></span>ma 6 okt<span class="k"><span class="g-open mono">☐</span> 3</span></div><div class="srow on"><span class="dot" style="background:var(--m-open)"></span><b>Vandaag</b><span class="k"><span class="g-open mono">☐</span> 3</span></div><div style="display:flex;gap:8px;padding:10px 16px 0"><span style="flex:1;text-align:center;padding:10px;border-radius:20px;background:var(--m-raised);font-size:13px">+ Scratchpad</span><span style="flex:1;text-align:center;padding:10px;border-radius:20px;background:var(--m-acc2);color:#00243d;font-weight:600;font-size:13px">Open date</span></div></div></div></div></div>
+    </div>
+  </section>
+
+  <section class="proposal" data-id="D5" data-title="A shorter accessory bar that follows the line and only shows with the keyboard" data-plat="Mobile" data-adv="rec" data-eff="S">
+    <div class="phead"><span class="pid">D5</span><h3>A shorter accessory bar that follows the line and only shows with the keyboard</h3></div>
+    <div class="cols">
+      <div><h4>Now</h4><p>15 buttons in one row that scrolls sideways: 10 symbols, indent, outdent, undo, redo, palette. Undo and redo, which phone keyboards don't have, are off screen. The bar stays visible when the keyboard is closed.</p></div>
+      <div><h4>Proposed</h4><p>Visible only while the keyboard is up. Seven buttons with no scrolling: four symbols that depend on the line (action states on an action line, topic states on a topic line, ☐ ○ • ➔ on plain text), then outdent, indent and undo. A ⋯ at the end opens the full symbol set as a sheet. Redo moves into that sheet.</p></div>
+    </div>
+    <div class="stage">
+      <div class="shot"><div class="lbl">Now</div><div class="phone"><div class="scr" style="height:360px"><div class="ped" style="flex:1">…</div><div class="acc"><span class="g-open">☐</span><span class="g-done">☑</span><span class="g-def">☐</span><span>☒</span><span style="color:var(--m-open)">○</span><span style="color:var(--m-done)">◉</span><span style="color:var(--m-def)">◌</span><span>•</span></div><div class="kbd"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div></div></div></div>
+      <div class="shot new"><div class="lbl">Proposed: caret on an action line</div><div class="phone"><div class="scr" style="height:360px"><div class="ped" style="flex:1">…</div><div class="acc" style="justify-content:space-between"><span class="g-open">☐</span><span class="g-done">☑</span><span class="g-def">☐</span><span>☒</span><span><svg class="ic" style="transform:scaleX(-1)"><use href="#i-indent"/></svg></span><span><svg class="ic"><use href="#i-indent"/></svg></span><span><svg class="ic"><use href="#i-undo"/></svg></span><span><svg class="ic"><use href="#i-more"/></svg></span></div><div class="kbd"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div></div></div></div>
+    </div>
+  </section>
+
+  <section class="proposal" data-id="D6" data-title="Long-press a glyph for the line menu" data-plat="Mobile" data-adv="opt" data-eff="S">
+    <div class="phead"><span class="pid">D6</span><h3>Long-press a glyph for the line menu</h3></div>
+    <p>Tapping a glyph already toggles it (open ↔ done). Long-pressing the <b>glyph</b> opens a sheet with the same line commands as the desktop context menu (B5): every state, Section history, Copy to next occurrence, Convert to section. Long-press on the text itself keeps the phone's own selection behaviour, so text selection is not affected.</p>
+  </section>
+
+  <section class="proposal" data-id="D7" data-title="Installed-app details: theme colour, app shortcuts, no pull-to-refresh" data-plat="Mobile" data-adv="rec" data-eff="S">
+    <div class="phead"><span class="pid">D7</span><h3>Installed-app details: theme colour, app shortcuts, no pull-to-refresh</h3></div>
+    <ul>
+      <li><b>Theme colour per theme.</b> <code>theme-color</code> and the manifest are fixed at #1e1e1e, so in light mode the phone's status bar stays dark above a white app. Use two <code>&lt;meta name="theme-color" media="(prefers-color-scheme: …)"&gt;</code> tags, and update the tag from script when the in-app theme setting overrides the system.</li>
+      <li><b>App shortcuts</b> in the manifest (long-press the home screen icon): Today, Actions, Search. Each opens the app with a URL hash the boot code already understands or can be taught.</li>
+      <li><b><code>overscroll-behavior: none</code></b> on the app shell, so pulling down at the top of a note doesn't reload the page and drop the caret.</li>
+      <li><b><code>display_override: ["window-controls-overlay"]</code></b>, so when the web app is installed on a Windows PC it gets the same merged title bar as the desktop app instead of a browser-style one.</li>
+      <li><b><code>launch_handler: focus-existing</code></b>, the web-app version of the desktop's single-instance behaviour (§120).</li>
+    </ul>
+  </section>
+
+  <!-- ================= E ================= -->
+  <h2 id="e">E · What stays, and what I decided against</h2>
+  <div class="keep">
+    <div><b>Stays: the canvas</b>Monospace text, the glyph vocabulary, the setext section rules, plain-text files. All proposals change chrome only.</div>
+    <div><b>Stays: every shortcut</b>No binding changes. B6 and F6 are additions, chosen to avoid AltGr letters and function keys you would need Fn for.</div>
+    <div><b>Stays: Ctrl+K, Zen, Peek</b>The palette is the fastest way to everything; Zen and Peek already behave like Windows 11 compact overlays.</div>
+    <div><b>Not proposed: a menu bar</b>Notepad has File / Edit / View. It would add a whole row that the palette, ⋯ and the context menu (B5) already cover.</div>
+    <div><b>Not proposed: a Fluent component library</b>Fluent UI Web Components would be a heavy dependency fighting the existing CSS. Tokens and a few patterns give 90% of the look.</div>
+    <div><b>Not proposed: a left navigation rail on desktop</b>A rail (as in Mail or Settings) uses permanent width for navigation the keyboard already gives you. C1's pane appears only when asked for.</div>
+  </div>
+
+  <h2 id="f">Suggested order</h2>
+  <div class="phase">
+    <div><b>Release 1: look and feel</b><br>A1, A2, A3, A4, B4, C3, D1, D7. Mostly CSS and tokens, low risk; the visual audit specs need new baselines.</div>
+    <div><b>Release 2: structure</b><br>B1, B2, B3, B5, C2, C5, D2, D3, D4, D5. Title bar, menus and the phone layout. B1's Snap Layouts needs a native check on your machine.</div>
+    <div><b>Release 3: bigger changes</b><br>C1 (History first), C4, B6, C6, D6. Each is worth a short design round of its own after the earlier releases are in use.</div>
+  </div>
+  <p class="st" style="margin-top:24px">Mockups are drawn in HTML at about two-thirds of real size, using ChronoNote's own dark palette. They show layout and hierarchy, not exact pixels.</p>
+</div>
+
+<script>
+(function () {
+  var KEY = "chrononote-ux-review-v1";
+  var state = {};
+  try { state = JSON.parse(localStorage.getItem(KEY) || "{}") || {}; } catch (e) { state = {}; }
+  function save() { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {} }
+  var advText = { rec: "Recommended", opt: "Optional", call: "Your call" };
+  var platText = { Both: "Desktop + phone", Desktop: "Desktop", Mobile: "Phone" };
+  var cards = Array.prototype.slice.call(document.querySelectorAll(".proposal"));
+  var tbody = document.querySelector("#ovt tbody");
+
+  cards.forEach(function (card) {
+    var id = card.dataset.id;
+    card.id = "p-" + id;
+    var meta = document.createElement("div");
+    meta.className = "meta";
+    meta.innerHTML = '<span class="tag ' + card.dataset.adv + '">' + advText[card.dataset.adv] + '</span><span class="tag">' + platText[card.dataset.plat] + '</span><span class="tag">Effort ' + card.dataset.eff + '</span>';
+    card.querySelector(".phead").appendChild(meta);
+
+    var tr = document.createElement("tr");
+    tr.innerHTML = '<td><a href="#p-' + id + '">' + id + '</a></td><td>' + card.dataset.title + '</td><td>' + platText[card.dataset.plat] + '</td><td><span class="tag ' + card.dataset.adv + '">' + advText[card.dataset.adv] + '</span></td><td>' + card.dataset.eff + '</td>';
+    tbody.appendChild(tr);
+
+    var dec = document.createElement("div");
+    dec.className = "dec";
+    dec.innerHTML =
+      '<button type="button" data-v="approve" aria-pressed="false">Approve</button>' +
+      '<button type="button" data-v="discuss" aria-pressed="false">Discuss</button>' +
+      '<button type="button" data-v="reject" aria-pressed="false">Reject</button>' +
+      '<textarea id="note-' + id + '" rows="1" placeholder="Note for ' + id + ' (optional)" aria-label="Note for ' + id + '"></textarea>';
+    card.appendChild(dec);
+    var s = state[id] || {};
+    var ta = dec.querySelector("textarea");
+    ta.value = s.note || "";
+    function paint() {
+      dec.querySelectorAll("button").forEach(function (b) { b.setAttribute("aria-pressed", String((state[id] || {}).v === b.dataset.v)); });
+      count();
+    }
+    dec.querySelectorAll("button").forEach(function (b) {
+      b.addEventListener("click", function () {
+        var cur = state[id] || {};
+        cur.v = cur.v === b.dataset.v ? undefined : b.dataset.v;
+        state[id] = cur; save(); paint();
+      });
+    });
+    ta.addEventListener("input", function () { var cur = state[id] || {}; cur.note = ta.value; state[id] = cur; save(); });
+    paint();
+  });
+
+  function count() {
+    var c = { approve: 0, discuss: 0, reject: 0, open: 0 };
+    cards.forEach(function (card) { var v = (state[card.dataset.id] || {}).v; c[v || "open"]++; });
+    Object.keys(c).forEach(function (k) { var el = document.getElementById("c-" + k); if (el) el.textContent = c[k]; });
+  }
+  count();
+
+  document.getElementById("copy").addEventListener("click", function () {
+    var label = { approve: "APPROVE", discuss: "DISCUSS", reject: "REJECT" };
+    var lines = ["ChronoNote UX review decisions:"];
+    cards.forEach(function (card) {
+      var s = state[card.dataset.id] || {};
+      var line = card.dataset.id + " " + (s.v ? label[s.v] : "undecided") + " - " + card.dataset.title;
+      if (s.note && s.note.trim()) line += "\n   note: " + s.note.trim();
+      lines.push(line);
+    });
+    var text = lines.join("\n");
+    var out = document.getElementById("copied");
+    function fallback() {
+      var t = document.createElement("textarea"); t.value = text; t.style.width = "100%"; t.rows = 8;
+      out.textContent = "Copying is blocked here. Select the text below and copy it.";
+      document.querySelector(".bar").after(t); t.select();
+    }
+    try {
+      navigator.clipboard.writeText(text).then(function () { out.textContent = "Copied. Paste it into the chat."; }, fallback);
+    } catch (e) { fallback(); }
+  });
+})();
+</script>
