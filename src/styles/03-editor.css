@@ -401,6 +401,15 @@ body.peek-mode .cm-overview-ruler {
   transform: scale(0.85);
   transform-origin: left center;
 }
+/* The "›" overlay is placed at a fixed fraction of the glyph's box, and the
+   fallback font's square only sits where the overlay expects it in a box
+   that is 1.6 lines tall (the editor's own line box). Outside the editor
+   (status bar, drawer rows, legends) the box took the surrounding line
+   height and the "›" drifted up and right, onto the square's border. */
+.glyph-progress:not(:has(.glyph-ink)),
+.glyph-progress .glyph-ink {
+  line-height: 1.6;
+}
 .glyph-progress:not(:has(.glyph-ink))::after,
 .glyph-progress .glyph-ink::after {
   content: "›";

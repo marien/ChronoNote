@@ -10139,3 +10139,11 @@ Marien, after abandoning the idea of Peek reacting to Teams calls by itself (wat
 - Deferred label uses each language's existing term for the state (doorgeschoven, weitergeleitet, przełożone, transferidas, inoltrate; the agent had chosen new words).
 - **Show status bar** (`AppConfig.statusBarVisible`, Rust `status_bar_visible`, serde default true): Settings -> Appearance toggle and a command-palette entry; when off the bar is not rendered. Mock and web backend persist it (the web backend's patch handler was missing it in the agent's draft).
 - The Gemini run (U4) hung once on a background command and timed out the second time after doing only the setting plumbing; the orchestrator reviewed that, fixed the web-backend gap and wrote the status bar part. Tests: `statusCounts` helper reads the compact number; status-bar specs rewritten for the new labels; new e2e for both click targets and the setting surviving a reload; Rust serde + patch tests.
+
+## 327. Deferred glyph: the "›" landed on the square's border outside the editor
+
+**Status: on `ux/r1`, unreleased.** Marien (2026-10-09, screenshot of the new status bar): the deferred glyph's chevron sat up and to the right, over the square's border.
+
+- **Cause:** the deferred glyph is a ☐ with a "›" drawn over it (`::after` at 52% / 42% of the glyph's box). The ☐ comes from a symbol fallback font whose square sits at a different height in the box depending on the line height; the percentages only match in the editor, where the box is pinned to one 1.6 line. Elsewhere the box took the surrounding line height. It was there before in the status bar's narrow-width compact counts and the Shortcuts legend; §326 made it visible at every width.
+- **Fix:** a standalone deferred glyph (and `.glyph-ink`) gets `line-height: 1.6`, so the overlay lands centred wherever it is drawn (`03-editor.css`). The status-bar count buttons align on the baseline and give all three glyphs the same line height, so the squares stay on the text line. Legend glyphs (`.item-tag`) keep the monospace font: since §322 that line is in the UI font, whose fallback draws the square elsewhere.
+- Checked at 3-4x device scale in Color and Legacy: status bar, Action Drawer row, Shortcuts legend, phone accessory bar. glyph-layout / status-bar / editor-tokens / visual-audit / mobile / word-wrap specs green (86).

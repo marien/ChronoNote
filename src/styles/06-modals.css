@@ -370,6 +370,12 @@ textarea.modal-input.import-textarea {
 .item-tag.is-shortcut {
   font-family: var(--font-mono);
 }
+/* Glyphs in a legend line keep the editor's font: the symbol fallback behind
+   the UI font draws its squares at other positions, so the deferred glyph's
+   "›" overlay would no longer land inside its square (§327). */
+.item-tag [class^="glyph-"] {
+  font-family: var(--font-mono);
+}
 .item-completed {
   opacity: 0.6;
   text-decoration: line-through;
