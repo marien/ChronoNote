@@ -1,0 +1,214 @@
+/* ── Accessibility: Reduced Motion & Windows Contrast Themes (§A3) ──────────── */
+
+/* Reduced motion: respect the user's OS-level motion preference by zeroing out
+   animation/transition timings while preserving progress indicators. */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --motion-fast: 0ms;
+    --motion-normal: 0ms;
+    --motion-slow: 0ms;
+  }
+
+  /* Global safety net: 0.01ms rather than none so transitionend and animationend
+     events still fire for any script awaiting them. */
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  /* Progress indicator exception: keep the modal spinner turning slowly to signal work */
+  .modal-spinner {
+    animation-duration: 1.6s !important;
+    animation-iteration-count: infinite !important;
+  }
+}
+
+/* Windows Contrast Themes / forced-colors mode: map app semantics to system colours
+   and preserve essential outlines, borders, and selection contrast. */
+@media (forced-colors: active) {
+  :root {
+    --glyph-open-color: Highlight;
+    --glyph-done-color: GrayText;
+    --glyph-progress-color: GrayText;
+    --glyph-cancelled-color: GrayText;
+    --glyph-followup-color: LinkText;
+    --glyph-emphasis-color: CanvasText;
+    --tab-active-border: Highlight;
+  }
+
+  /* Open actions and open agenda topics */
+  .glyph-open,
+  .token-glyph.glyph-open {
+    color: Highlight;
+    forced-color-adjust: none;
+  }
+
+  .glyph-topic-open,
+  .glyph-topic-open .glyph-ink,
+  .token-glyph.glyph-topic-open {
+    color: Highlight;
+    border-color: Highlight;
+    forced-color-adjust: none;
+  }
+
+  /* Done, discussed, won't-do, deferred, skipped glyphs */
+  .glyph-done,
+  .token-glyph.glyph-done,
+  .glyph-cancelled,
+  .token-glyph.glyph-cancelled,
+  .glyph-progress,
+  .glyph-progress::after,
+  .glyph-progress .glyph-ink::after,
+  .token-glyph.glyph-progress,
+  .token-glyph.glyph-progress::after {
+    color: GrayText;
+    forced-color-adjust: none;
+  }
+
+  .glyph-topic-done,
+  .glyph-topic-done .glyph-ink,
+  .token-glyph.glyph-topic-done,
+  .glyph-topic-skipped,
+  .glyph-topic-skipped .glyph-ink,
+  .token-glyph.glyph-topic-skipped {
+    color: GrayText;
+    border-color: GrayText;
+    forced-color-adjust: none;
+  }
+
+  .glyph-topic-done::after,
+  .glyph-topic-done .glyph-ink::after,
+  .token-glyph.glyph-topic-done::after {
+    background-color: GrayText;
+    forced-color-adjust: none;
+  }
+
+  /* Follow-up arrow */
+  .glyph-followup,
+  .token-glyph.glyph-arrow,
+  .token-glyph.glyph-followup {
+    color: LinkText;
+    forced-color-adjust: none;
+  }
+
+  /* Emphasis line: distinctive bold underline using CanvasText */
+  .glyph-emphasis-line,
+  .token-glyph.glyph-emphasis {
+    color: CanvasText;
+    font-weight: bold;
+    text-decoration: underline;
+    forced-color-adjust: none;
+  }
+
+  /* Setext underline rule: keep double line visible against high contrast backdrop */
+  .cm-setext-rule {
+    background-image:
+      linear-gradient(CanvasText, CanvasText),
+      linear-gradient(CanvasText, CanvasText);
+    forced-color-adjust: none;
+  }
+
+  /* @name delegate badge and (topic) tag pill */
+  .glyph-assignee,
+  .glyph-topic {
+    background: transparent;
+    border: 1px solid CanvasText;
+  }
+
+  .glyph-topic .glyph-topic-paren {
+    color: transparent;
+    forced-color-adjust: none;
+  }
+
+  .cm-line-touched .glyph-topic .glyph-topic-paren,
+  .cm-line:hover .glyph-topic .glyph-topic-paren {
+    color: CanvasText;
+  }
+
+  /* Focus rings across interactive controls */
+  button:focus-visible,
+  [role="button"]:focus-visible,
+  .tab:focus-visible,
+  [role="tab"]:focus-visible,
+  .drawer-tab-item:focus-visible,
+  .modal-item:focus-visible,
+  [role="option"]:focus-visible,
+  input:focus-visible,
+  textarea:focus-visible,
+  select:focus-visible,
+  :focus-visible {
+    outline: 2px solid Highlight !important;
+  }
+
+  /* Selected list rows in drawers and command palette */
+  .modal-item.selected,
+  .modal-item[aria-selected="true"],
+  [role="option"].selected,
+  [role="option"][aria-selected="true"],
+  .cm-searchMatch-selected {
+    background: Highlight !important;
+    color: HighlightText !important;
+    forced-color-adjust: none;
+  }
+
+  .modal-item.selected *,
+  .modal-item[aria-selected="true"] *,
+  [role="option"].selected *,
+  [role="option"][aria-selected="true"] * {
+    color: HighlightText !important;
+    forced-color-adjust: none;
+  }
+
+  /* Active tab marker */
+  .tab.active {
+    border-top: 2px solid Highlight;
+    box-shadow: inset 0 2px 0 Highlight;
+  }
+
+  .drawer-tab-item.active {
+    border-left: 3px solid Highlight;
+    box-shadow: inset 3px 0 0 Highlight;
+  }
+
+  /* Disabled buttons */
+  button:disabled,
+  [role="button"]:disabled,
+  .icon-btn:disabled,
+  .btn:disabled,
+  .btn-primary:disabled,
+  .more-actions-item:disabled,
+  .tab-context-item:disabled,
+  .telemetry-btn:disabled,
+  .peek-btn:disabled {
+    color: GrayText !important;
+    border-color: GrayText !important;
+    forced-color-adjust: none;
+  }
+
+  button:disabled *,
+  [role="button"]:disabled *,
+  .icon-btn:disabled * {
+    color: GrayText !important;
+    stroke: GrayText !important;
+    forced-color-adjust: none;
+  }
+
+  /* Window close hover: high-contrast highlight state */
+  .win-btn.win-close:hover,
+  .win-close:hover {
+    background: Highlight !important;
+    color: HighlightText !important;
+    forced-color-adjust: none;
+  }
+
+  .win-btn.win-close:hover *,
+  .win-close:hover * {
+    color: HighlightText !important;
+    stroke: HighlightText !important;
+    forced-color-adjust: none;
+  }
+}
