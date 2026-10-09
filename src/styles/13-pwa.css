@@ -1,0 +1,24 @@
+/* §D7: installed web app details (overscroll-behavior and window controls overlay) */
+
+html,
+body {
+  overscroll-behavior: none;
+}
+
+@media (display-mode: window-controls-overlay) {
+  #top-bar {
+    height: env(titlebar-area-height, 40px);
+    padding-left: env(titlebar-area-x, 0);
+    padding-right: calc(100vw - env(titlebar-area-x, 0px) - env(titlebar-area-width, 100vw));
+    -webkit-app-region: drag;
+    app-region: drag;
+  }
+
+  #top-bar button,
+  #top-bar .tab,
+  #top-bar input,
+  #top-bar #tab-bar {
+    -webkit-app-region: no-drag;
+    app-region: no-drag;
+  }
+}

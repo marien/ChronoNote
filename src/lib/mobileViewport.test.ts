@@ -12,3 +12,12 @@ describe("keyboardHeight", () => {
     expect(keyboardHeight(800, 480)).toBe(320);
   });
 });
+
+describe("shouldApplyMobileDefaults (via mobileViewport)", () => {
+  it("exports and evaluates mobile defaults decision", async () => {
+    const { shouldApplyMobileDefaults } = await import("./mobileViewport");
+    expect(shouldApplyMobileDefaults({ wordWrap: false, fontSize: 13 }, true, "web", false)).toBe(true);
+    expect(shouldApplyMobileDefaults({ wordWrap: false, fontSize: 13 }, true, "desktop", false)).toBe(false);
+  });
+});
+

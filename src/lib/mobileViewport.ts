@@ -8,6 +8,7 @@
  * (`--app-vvh`, read by the height rules in app.css) and keep the caret in view. */
 import { get } from "svelte/store";
 import { editorApi, isMobile } from "./stores";
+export { shouldApplyMobileDefaults } from "./webappLaunch";
 
 /** Below this much lost height the visual viewport is just browser chrome
  * showing/hiding, not a keyboard. */
