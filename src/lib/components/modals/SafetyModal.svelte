@@ -3,7 +3,6 @@
   import * as controller from "../../controller";
   import { focusTrap } from "../../actions/focusTrap";
   import { safetyMessage } from "../../controller";
-  import Icon from "../../icons/Icon.svelte";
   import { t } from "../../i18n";
 
   let cancelBtn: HTMLButtonElement;
@@ -11,23 +10,18 @@
 </script>
 
 <div class="overlay">
-  <div class="modal-card modal-sm" role="dialog" aria-modal="true" use:focusTrap aria-label={$t("safetyModal.ariaLabel")}>
-    <div class="modal-input-wrap modal-title">
-      <Icon name="warning" size={15} />
-      <span>{$t("safetyModal.title")}</span>
-      <button
-        type="button"
-        class="icon-btn modal-close-btn"
-        aria-label={$t("common.closeDialog")}
-        onclick={controller.cancelSafetyClose}
-      >
-        <Icon name="close" size={14} />
-      </button>
+  <div class="modal-card modal-sm dialog-card" role="dialog" aria-modal="true" use:focusTrap aria-label={$t("safetyModal.ariaLabel")}>
+    <div class="dialog-body">
+      <h2 class="dialog-title">{$t("safetyModal.title")}</h2>
+      <div>{$safetyMessage}</div>
     </div>
-    <div style="padding: 16px; font-size: 13px; line-height: 1.5;">{$safetyMessage}</div>
-    <div class="modal-footer" style="justify-content: flex-end; gap: 8px;">
-      <button class="icon-btn" bind:this={cancelBtn} onclick={controller.cancelSafetyClose}>{$t("common.cancel")}</button>
-      <button class="icon-btn btn-primary" onclick={controller.confirmSafetyClose}>{$t("safetyModal.closeAnyway")}</button>
+    <div class="dialog-buttons">
+      <button class="dialog-btn accent" bind:this={cancelBtn} onclick={controller.cancelSafetyClose}>
+        {$t("common.cancel")}
+      </button>
+      <button class="dialog-btn" onclick={controller.confirmSafetyClose}>
+        {$t("safetyModal.closeAnyway")}
+      </button>
     </div>
   </div>
 </div>
