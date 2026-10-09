@@ -98,6 +98,8 @@ export const lineHeight = writable<number>(1.6);
 export const pureBlack = writable<boolean>(false);
 /** Startup tab preference on the first launch of the day ("today" | "smart_last_active"). */
 export const startupTabMode = writable<StartupTabMode>("today");
+/** Show status bar setting (on by default). Mirrors AppConfig.statusBarVisible. */
+export const statusBarVisible = writable<boolean>(true);
 /** §v0.12.2: distraction-free Zen mode canvas. */
 export const isZenMode = writable<boolean>(false);
 

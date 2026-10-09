@@ -43,6 +43,7 @@ import {
   statusPos,
   statusSelection,
   statusWordCount,
+  statusBarVisible,
   startupTabMode,
   syncHealth,
   tabs,
@@ -538,6 +539,7 @@ export async function initApp() {
   startupTabMode.set(cfg.startupTabMode ?? "today");
   applyPeekConfig(cfg.peek);
   occurrenceHint.set(cfg.occurrenceHint ?? false);
+  statusBarVisible.set(cfg.statusBarVisible ?? true);
   if (cfg.calendarSyncEnabled && (get(backendKind) !== "web" || !!get(oneDriveAccount))) {
     await refreshAgendaFileExists();
   }
@@ -874,5 +876,14 @@ export async function setStartupTabMode(mode: StartupTabMode) {
     await api.setStartupTabMode(mode);
   } catch {
     showToast(get(t)("toast.boot.failedToSave.startup", undefined));
+  }
+}
+
+export async function setStatusBarVisible(enabled: boolean) {
+  statusBarVisible.set(enabled);
+  try {
+    await api.setStatusBarVisible(enabled);
+  } catch {
+    showToast(get(t)("toast.boot.failedToSave.statusBarVisible", undefined));
   }
 }

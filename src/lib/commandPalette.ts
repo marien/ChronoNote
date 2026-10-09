@@ -26,6 +26,7 @@ import {
   oneDriveAccount,
   oneDriveFolder,
   readableLineLength,
+  statusBarVisible,
   tabs,
   wordWrap,
 } from "./stores";
@@ -50,7 +51,7 @@ import { noteCall } from "./callNote";
 import { openCrossTabSearch } from "./search";
 import { canSyncCalendarForActiveTab, syncCalendarFromFile } from "./calendarSyncActions";
 import { openAbout, openGlyphLegend, openSettings, openShortcutsHelp } from "./menu";
-import { setColorMode, setReadableLineLength, setWordWrap } from "./boot";
+import { setColorMode, setReadableLineLength, setStatusBarVisible, setWordWrap } from "./boot";
 import { checkForUpdates } from "./updates";
 import { formatCombo, formatShortcut, shortcutById } from "./shortcuts";
 import { exportAllNotesToFile } from "./exportImport";
@@ -268,6 +269,14 @@ function commandItems(): PaletteItem[] {
       group: "Commands",
       run: () => {
         isZenMode.update((v) => !v);
+      },
+    },
+    {
+      id: "cmd-toggle-status-bar",
+      label: translate("commandPalette.toggleStatusBar", undefined),
+      group: "Commands",
+      run: () => {
+        void setStatusBarVisible(!get(statusBarVisible));
       },
     },
     ...(get(backendKind) === "desktop"

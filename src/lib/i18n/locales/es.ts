@@ -26,6 +26,9 @@ export const es = {
   "settings.appearance.pureBlack.label": () => "Negro puro (OLED)",
   "settings.appearance.pureBlack.hint": () =>
     "Lienzo #000000 absoluto para pantallas OLED y ahorro de batería. Solo activo en modo oscuro.",
+  "settings.appearance.statusBar.label": () => "Mostrar barra de estado",
+  "settings.appearance.statusBar.hint": () =>
+    "Mostrar línea, columna, recuento de palabras y métricas de acciones en la parte inferior",
   "settings.editor.sectionLabel": () => "Editor",
   "settings.editor.width.label": () => "Ancho del texto",
   "settings.editor.width.full": () => "Completo",
@@ -164,6 +167,7 @@ export const es = {
     "Peek: ventana de notas compacta y translúcida para la sección del cursor",
   "commandPalette.togglePeekMode": () =>
     "Activar/desactivar Peek (ventana de notas compacta para llamadas)",
+  "commandPalette.toggleStatusBar": () => "Alternar barra de estado",
   "peek.toast.noSection": () =>
     "Coloque el cursor en una sección para echarle un vistazo.",
   "peek.toast.titleExists": () =>
@@ -440,6 +444,11 @@ export const es = {
   "statusBar.openCount": ({ count }) => `Pendientes ${count}`,
   "statusBar.closedCount": ({ count }) => `Cerradas ${count}`,
   "statusBar.forwardedCount": ({ count }) => `Transferidas ${count}`,
+  "statusBar.labelOpen": ({ count }) => `${count} pendiente${count === 1 ? "" : "s"}`,
+  "statusBar.labelDeferred": ({ count }) => `${count} pospuesta${count === 1 ? "" : "s"}`,
+  "statusBar.labelDone": ({ count }) => `${count} completada${count === 1 ? "" : "s"}`,
+  "statusBar.jumpNextActionTooltip": ({ combo }) => `Saltar a la siguiente acción pendiente (${combo})`,
+  "statusBar.allActionsTooltip": () => "Abrir panel de acciones (todas las acciones)",
   "statusBar.updatedTo": ({ version }) => `Actualizado a v${version} —`,
   "statusBar.whatsNew": () => "Novedades",
   "statusBar.dismissUpdate": () => "Haga clic para descartar",
@@ -729,6 +738,8 @@ export const es = {
   "toast.boot.failedToSave.lineHeight": () => "Error al guardar la preferencia de interlineado",
   "toast.boot.failedToSave.pureBlack": () => "Error al guardar la preferencia de negro puro",
   "toast.boot.failedToSave.startup": () => "Error al guardar la preferencia de pestaña de inicio",
+  "toast.boot.failedToSave.statusBarVisible": () =>
+    "Error al guardar la preferencia de la barra de estado",
   "toast.boot.couldntOpenNotes": ({ filenames }) => `No se pudieron abrir estas notas, así que siguen cerradas: ${filenames}`,
   "toast.calendarSync.noMeetingsOn": ({ date }) => `No hay reuniones el ${date}.`,
   "toast.calendarSync.synced": () => "Calendario sincronizado.",

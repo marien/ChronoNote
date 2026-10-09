@@ -38,6 +38,8 @@ export type TranslationParams = {
   "settings.appearance.glyphs.legacyHint": undefined;
   "settings.appearance.pureBlack.label": undefined;
   "settings.appearance.pureBlack.hint": undefined;
+  "settings.appearance.statusBar.label": undefined;
+  "settings.appearance.statusBar.hint": undefined;
   "settings.editor.sectionLabel": undefined;
   "settings.editor.width.label": undefined;
   "settings.editor.width.full": undefined;
@@ -321,6 +323,7 @@ export type TranslationParams = {
   "commandPalette.exportNotes.label": undefined;
   "commandPalette.exportNotes.hint": undefined;
   "commandPalette.toggleZenMode": undefined;
+  "commandPalette.toggleStatusBar": undefined;
   "commandPalette.line.closeOpenAction": undefined;
   "commandPalette.line.reopenDoneAction": undefined;
   "commandPalette.line.setOpen": undefined;
@@ -415,6 +418,11 @@ export type TranslationParams = {
   "statusBar.openCount": { count: number };
   "statusBar.closedCount": { count: number };
   "statusBar.forwardedCount": { count: number };
+  "statusBar.labelOpen": { count: number };
+  "statusBar.labelDeferred": { count: number };
+  "statusBar.labelDone": { count: number };
+  "statusBar.jumpNextActionTooltip": { combo: string };
+  "statusBar.allActionsTooltip": undefined;
   "statusBar.updatedTo": { version: string };
   "statusBar.whatsNew": undefined;
   "statusBar.dismissUpdate": undefined;
@@ -738,6 +746,7 @@ export type TranslationParams = {
   "toast.boot.failedToSave.lineHeight": undefined;
   "toast.boot.failedToSave.pureBlack": undefined;
   "toast.boot.failedToSave.startup": undefined;
+  "toast.boot.failedToSave.statusBarVisible": undefined;
   "toast.boot.couldntOpenNotes": { filenames: string };
   "toast.calendarSync.noMeetingsOn": { date: string };
   "toast.calendarSync.synced": undefined;

@@ -75,6 +75,7 @@ interface StoredConfig {
   startupTabMode?: StartupTabMode;
   peek?: PeekConfig;
   occurrenceHint?: boolean;
+  statusBarVisible?: boolean;
   onboardingCompleted?: boolean;
 }
 
@@ -256,6 +257,7 @@ export class WebBackend {
         pureBlack: false,
         onboardingCompleted: false,
         startupTabMode: "today",
+        statusBarVisible: true,
       }
     );
   }
@@ -291,6 +293,7 @@ export class WebBackend {
       startupTabMode: cfg.startupTabMode ?? "today",
       peek: cfg.peek ?? PEEK_DEFAULTS,
       occurrenceHint: cfg.occurrenceHint ?? false,
+      statusBarVisible: cfg.statusBarVisible ?? true,
     };
   }
 
@@ -328,6 +331,8 @@ export class WebBackend {
       if (patch.fontSize !== undefined) cfg.fontSize = Math.min(18, Math.max(12, patch.fontSize));
       if (patch.lineHeight !== undefined) cfg.lineHeight = Math.min(1.8, Math.max(1.3, patch.lineHeight));
       if (patch.occurrenceHint !== undefined) cfg.occurrenceHint = patch.occurrenceHint;
+      if (patch.statusBarVisible !== undefined) cfg.statusBarVisible = patch.statusBarVisible;
+      if (patch.statusBarVisible !== undefined) cfg.statusBarVisible = patch.statusBarVisible;
       if (patch.pureBlack !== undefined) cfg.pureBlack = patch.pureBlack;
       if (patch.peek !== undefined) cfg.peek = clampPeek(patch.peek);
       if (patch.lastSeenVersion !== undefined) cfg.lastSeenVersion = patch.lastSeenVersion;
