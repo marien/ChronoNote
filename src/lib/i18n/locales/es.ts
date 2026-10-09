@@ -834,4 +834,7 @@ export const es = {
   "error.oneDriveTokenExchangeRejected": ({ detail }) => `Microsoft rechazó el inicio de sesión: ${detail}`,
   "error.oneDriveTokenResponseUnparseable": ({ detail }) =>
     `La respuesta de inicio de sesión de Microsoft no es válida: ${detail}`,
+  "editorMenu.cut": () => "Cortar",
+  "editorMenu.copy": () => "Copiar",
+  "editorMenu.paste": () => "Pegar",
 } satisfies Dictionary;

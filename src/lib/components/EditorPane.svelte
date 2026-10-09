@@ -39,7 +39,7 @@
     topicLineEnter,
   } from "../tokens";
   import * as controller from "../controller";
-  import { findMatch, findOpen, readableLineLength, wordWrap } from "../controller";
+  import { editorContextMenu, findMatch, findOpen, readableLineLength, wordWrap } from "../controller";
   import { currentLineKind, editorFocused } from "../stores";
   import { lineKind } from "../lineKind";
 
@@ -688,6 +688,14 @@
         }
       }),
       EditorView.domEventHandlers({
+        contextmenu: (event, v) => {
+          event.preventDefault();
+          const pos = v.posAtCoords({ x: event.clientX, y: event.clientY });
+          if (pos != null && v.state.selection.main.empty) v.dispatch({ selection: { anchor: pos } });
+          const line = v.state.doc.lineAt(v.state.selection.main.head).text;
+          editorContextMenu.set({ x: event.clientX, y: event.clientY, line });
+          return true;
+        },
         focus: () => {
           editorFocused.set(true);
         },

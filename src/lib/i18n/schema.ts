@@ -817,6 +817,9 @@ export type TranslationParams = {
   "error.oneDriveTokenRequestFailed": { detail: string };
   "error.oneDriveTokenExchangeRejected": { detail: string };
   "error.oneDriveTokenResponseUnparseable": { detail: string };
+  "editorMenu.cut": undefined;
+  "editorMenu.copy": undefined;
+  "editorMenu.paste": undefined;
 };
 
 export type TranslationKey = keyof TranslationParams;

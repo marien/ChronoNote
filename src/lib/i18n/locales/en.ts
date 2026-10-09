@@ -807,4 +807,7 @@ export const en = {
   "error.oneDriveTokenRequestFailed": ({ detail }) => `Couldn't reach Microsoft to sign in: ${detail}`,
   "error.oneDriveTokenExchangeRejected": ({ detail }) => `Microsoft rejected the sign-in: ${detail}`,
   "error.oneDriveTokenResponseUnparseable": ({ detail }) => `Microsoft's sign-in response didn't make sense: ${detail}`,
+  "editorMenu.cut": () => "Cut",
+  "editorMenu.copy": () => "Copy",
+  "editorMenu.paste": () => "Paste",
 } satisfies Dictionary;

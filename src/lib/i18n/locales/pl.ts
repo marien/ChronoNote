@@ -856,4 +856,7 @@ export const pl = {
     `Firma Microsoft odrzuciła logowanie: ${detail}`,
   "error.oneDriveTokenResponseUnparseable": ({ detail }) =>
     `Odpowiedź logowania firmy Microsoft była nieczytelna: ${detail}`,
+  "editorMenu.cut": () => "Wytnij",
+  "editorMenu.copy": () => "Kopiuj",
+  "editorMenu.paste": () => "Wklej",
 } satisfies Dictionary;

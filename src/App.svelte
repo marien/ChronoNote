@@ -65,7 +65,8 @@
   import DroppedNotesModal from "./lib/components/modals/DroppedNotesModal.svelte";
   import SyncConflictsModal from "./lib/components/modals/SyncConflictsModal.svelte";
   import OneDriveFolderPickerModal from "./lib/components/modals/OneDriveFolderPickerModal.svelte";
-  import { oneDriveFolderPickerOpen, statusBarVisible, syncHealthPopoverOpen } from "./lib/stores";
+  import EditorContextMenu from "./lib/components/EditorContextMenu.svelte";
+  import { editorContextMenu, oneDriveFolderPickerOpen, statusBarVisible, syncHealthPopoverOpen } from "./lib/stores";
   import { overlays, topOverlay, type Overlay } from "./lib/overlays";
 
   let ready = $state(false);
@@ -542,6 +543,10 @@
 
   {#if $oneDriveFolderPickerOpen}
     <OneDriveFolderPickerModal onClose={() => oneDriveFolderPickerOpen.set(false)} />
+  {/if}
+
+  {#if $editorContextMenu}
+    <EditorContextMenu />
   {/if}
 
 

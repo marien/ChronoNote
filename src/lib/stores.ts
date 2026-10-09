@@ -594,3 +594,6 @@ export const conflictInfo = writable<{
   diskContent: string;
   diskHash: string;
 } | null>(null);
+
+/** B5: right-click editor context menu position and line content under caret. */
+export const editorContextMenu = writable<{ x: number; y: number; line: string } | null>(null);
