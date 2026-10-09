@@ -23,6 +23,10 @@
     wrapIndex,
     type PlacedRow,
   } from "./virtualList";
+  import { isMobile } from "../../stores";
+  import { formatCombo, shortcutById } from "../../shortcuts";
+
+  const allKeysShortcut = formatCombo(shortcutById("openShortcutsHelp").combos[0]);
 
   let filter = $state("");
   let selectedIndex = $state(0);
@@ -370,13 +374,16 @@
         {/each}
       </div>
     </div>
-    <div class="modal-footer">
-      <div>
-        <kbd>Enter</kbd> {$t("actionDrawer.footer.jump")} · <kbd>Shift+Enter</kbd> {$t("actionDrawer.footer.forwardToToday")} ·
-        <kbd>Ctrl+Space</kbd> {$t("actionDrawer.footer.cycle")} · <kbd>Ctrl+Shift+Space</kbd> {$t("actionDrawer.footer.cycleBack")}
+    {#if !$isMobile}
+      <div class="modal-footer">
+        <div class="modal-footer-hints">
+          <kbd>Enter</kbd> {$t("actionDrawer.footer.goToLine")} · <kbd>Shift+Enter</kbd> {$t("actionDrawer.footer.forwardToToday")} · <kbd>Ctrl+Space</kbd> {$t("actionDrawer.footer.changeState")}
+        </div>
+        <div class="modal-footer-all-keys">
+          <kbd>{allKeysShortcut}</kbd> {$t("common.allKeys")}
+        </div>
       </div>
-      <div><kbd>Esc</kbd> {$t("common.close")}</div>
-    </div>
+    {/if}
   </div>
 </div>
 

@@ -15,6 +15,7 @@ export type TranslationParams = {
    * `ActionDrawerModal`/`ShortcutsModal`/`SettingsModal` use this key so
    * far (the other 11 pick it up as their own batches are translated). */
   "common.closeDialog": undefined;
+  "common.allKeys": undefined;
   /** Shared spinner `aria-label`, currently used by `ActionDrawerModal`;
    * `HistoryModal` has the identical text and will pick this up in a
    * later batch. */
@@ -240,10 +241,9 @@ export type TranslationParams = {
   "actionDrawer.empty.allResolved": undefined;
   "actionDrawer.empty.allResolvedSubtitle": undefined;
   "actionDrawer.item.lineTag": { line: number };
-  "actionDrawer.footer.jump": undefined;
+  "actionDrawer.footer.goToLine": undefined;
   "actionDrawer.footer.forwardToToday": undefined;
-  "actionDrawer.footer.cycle": undefined;
-  "actionDrawer.footer.cycleBack": undefined;
+  "actionDrawer.footer.changeState": undefined;
 
   // Section History (`HistoryModal.svelte`, Ctrl/Cmd+Shift+H).
   "history.modal.ariaLabel": undefined;
@@ -270,10 +270,9 @@ export type TranslationParams = {
   "history.takeover.none": undefined;
   "history.body.selectPrompt": undefined;
   "history.footer.selectLine": undefined;
-  "history.footer.extend": undefined;
   "history.footer.switchDate": undefined;
-  "history.footer.jumpToSource": undefined;
-  "history.footer.dblClickHint": undefined;
+  "history.footer.openNote": undefined;
+  "history.footer.choices": undefined;
 
   // `history.ts`'s `HistoryDestination.label` — computed in a plain .ts
   // module (not a component), read via `get(t)(...)` at compute time
@@ -296,8 +295,9 @@ export type TranslationParams = {
   "commandPalette.legend.actions": undefined;
   "commandPalette.legend.dates": undefined;
   "commandPalette.legend.shortcuts": undefined;
-  "commandPalette.footer.navigate": undefined;
+  "commandPalette.footer.select": undefined;
   "commandPalette.footer.run": undefined;
+  "commandPalette.footer.filters": undefined;
   "commandPalette.noMatches": undefined;
   "commandPalette.emptySubtitle": undefined;
 
@@ -495,7 +495,8 @@ export type TranslationParams = {
   "searchModal.removeFilterAriaLabel": { label: string };
   "searchModal.noMatches": { query: string };
   "searchModal.emptySubtitle": undefined;
-  "searchModal.footer.jumpToMatch": undefined;
+  "searchModal.footer.open": undefined;
+  "searchModal.footer.select": undefined;
 
   // Date picker (`DatePickerModal.svelte`). Month/weekday names come from
   // `Intl.DateTimeFormat` (`date.ts`'s `monthName`/`weekdayAbbrev`), not
@@ -512,7 +513,9 @@ export type TranslationParams = {
   "datePicker.day.hasNote": undefined;
   "datePicker.day.agendaOnly": undefined;
   "datePicker.today": undefined;
-  "datePicker.escToClose": undefined;
+  "datePicker.footer.openDate": undefined;
+  "datePicker.footer.move": undefined;
+  "datePicker.footer.month": undefined;
 
   // More Actions popover (`MoreActionsModal.svelte`, #56 top-bar overflow).
   "moreActions.promote.label": undefined;

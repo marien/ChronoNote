@@ -22,6 +22,9 @@
   import { countActions } from "../../tokens";
   import Icon from "../../icons/Icon.svelte";
   import { t, locale } from "../../i18n";
+  import { formatCombo, shortcutById } from "../../shortcuts";
+
+  const allKeysShortcut = formatCombo(shortcutById("openShortcutsHelp").combos[0]);
 
   const WEEKDAY_INDICES = [0, 1, 2, 3, 4, 5, 6];
   const today = todayISO();
@@ -188,10 +191,6 @@
     focusFocusedDay();
   }
 
-  function goToday() {
-    moveFocus(today);
-  }
-
   function commit(iso: string) {
     // #66: "copy to next occurrence" reuses this same picker when its own
     // search finds nothing — resolve that instead of the picker's normal
@@ -319,10 +318,16 @@
     {/each}
   </div>
 
-  <div class="cal-foot">
-    <button type="button" class="cal-today-btn" onclick={goToday}>{$t("datePicker.today")}</button>
-    <span class="cal-hint">{$t("datePicker.escToClose")}</span>
-  </div>
+  {#if !$isMobile}
+    <div class="cal-foot">
+      <div class="cal-foot-hints">
+        <kbd>Enter</kbd> {$t("datePicker.footer.openDate")} · <kbd>Arrows</kbd> {$t("datePicker.footer.move")} · <kbd>PgUp/PgDn</kbd> {$t("datePicker.footer.month")}
+      </div>
+      <div class="cal-foot-all-keys">
+        <kbd>{allKeysShortcut}</kbd> {$t("common.allKeys")}
+      </div>
+    </div>
+  {/if}
 </div>
 
 <style>
@@ -530,26 +535,29 @@
   margin-top: 8px;
   padding-top: 7px;
   border-top: 1px solid var(--edge-soft);
-}
-
-.cal-today-btn {
-  background: transparent;
-  border: none;
-  color: var(--tab-active-border);
-  cursor: pointer;
-  font-family: inherit;
+  font-family: var(--font-ui);
   font-size: var(--type-caption);
-  font-weight: 600;
-  padding: 2px 4px;
-  border-radius: var(--radius-control);
-}
-
-.cal-today-btn:hover {
-  background: var(--surface-raised);
-}
-
-.cal-hint {
   color: var(--muted);
-  font-size: var(--type-caption);
+  gap: 8px;
+}
+
+.cal-foot-hints {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+  flex: 1;
+}
+
+.cal-foot-all-keys {
+  white-space: nowrap;
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+@media (pointer: coarse) {
+  .cal-foot {
+    display: none;
+  }
 }
 </style>

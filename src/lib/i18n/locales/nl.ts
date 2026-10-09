@@ -6,6 +6,7 @@ export const nl = {
   "common.system": () => "Systeem",
   "common.close": () => "Sluiten",
   "common.closeDialog": () => "Venster sluiten",
+  "common.allKeys": () => "Alle toetsen",
   "common.loading": () => "Laden",
   "settings.modal.title": () => "Instellingen",
   "settings.tabs.appearance": () => "Weergave",
@@ -278,10 +279,9 @@ export const nl = {
   "actionDrawer.empty.allResolvedSubtitle": () =>
     "Geen openstaande taken. Voeg nieuwe acties toe in je notities met #.",
   "actionDrawer.item.lineTag": ({ line }) => `Reg. ${line}`,
-  "actionDrawer.footer.jump": () => "Spring",
+  "actionDrawer.footer.goToLine": () => "Naar regel",
   "actionDrawer.footer.forwardToToday": () => "Doorschuiven naar vandaag",
-  "actionDrawer.footer.cycle": () => "Wissel",
-  "actionDrawer.footer.cycleBack": () => "Wissel terug",
+  "actionDrawer.footer.changeState": () => "Status wijzigen",
 
   "history.modal.ariaLabel": () => "Sectiegeschiedenis",
   "history.modal.titlePrefix": ({ header }) => `Sectiegeschiedenis: "${header}"`,
@@ -308,10 +308,9 @@ export const nl = {
   "history.takeover.none": () => "Er is nergens anders heen om dit vanuit deze gelegenheid over te zetten.",
   "history.body.selectPrompt": () => "Selecteer een gelegenheid om te bekijken.",
   "history.footer.selectLine": () => "Regel selecteren",
-  "history.footer.extend": () => "Uitbreiden",
-  "history.footer.switchDate": () => "Datum wisselen",
-  "history.footer.jumpToSource": () => "Naar bron springen",
-  "history.footer.dblClickHint": () => "op een datum om erheen te springen",
+  "history.footer.switchDate": () => "Andere datum",
+  "history.footer.openNote": () => "Notitie openen",
+  "history.footer.choices": () => "Keuzes",
 
   "history.destination.addToQuoted": ({ name }) => `Toevoegen aan "${name}"`,
   "history.destination.addToToday": () => "Toevoegen aan vandaag",
@@ -326,8 +325,9 @@ export const nl = {
   "commandPalette.legend.actions": () => "acties",
   "commandPalette.legend.dates": () => "datums",
   "commandPalette.legend.shortcuts": () => "sneltoetsen",
-  "commandPalette.footer.navigate": () => "Navigeren",
+  "commandPalette.footer.select": () => "Selecteren",
   "commandPalette.footer.run": () => "Uitvoeren",
+  "commandPalette.footer.filters": () => "Filters",
   "commandPalette.noMatches": () => "Geen overeenkomsten.",
   "commandPalette.emptySubtitle": () => "Probeer een andere zoekterm of druk op Esc om te sluiten.",
 
@@ -504,7 +504,8 @@ export const nl = {
   "searchModal.noMatches": ({ query }) => `Geen overeenkomsten voor "${query}".`,
   "searchModal.emptySubtitle": () =>
     "Controleer de spelling of gebruik zoekoperators zoals is:open of #tag.",
-  "searchModal.footer.jumpToMatch": () => "Naar overeenkomst springen",
+  "searchModal.footer.open": () => "Openen",
+  "searchModal.footer.select": () => "Selecteren",
 
   "datePicker.ariaLabel": () => "Naar datum springen",
   "datePicker.jumpPlaceholder": () => "Naar datum springen — vandaag, -2, 2026-09-05…",
@@ -518,7 +519,9 @@ export const nl = {
   "datePicker.day.hasNote": () => ", heeft een notitie",
   "datePicker.day.agendaOnly": () => ", geplande vergaderingen",
   "datePicker.today": () => "Vandaag",
-  "datePicker.escToClose": () => "Esc om te sluiten",
+  "datePicker.footer.openDate": () => "Datum openen",
+  "datePicker.footer.move": () => "Verplaatsen",
+  "datePicker.footer.month": () => "Maand",
 
   "moreActions.promote.label": () => "Promoveren naar de notitie van vandaag",
 

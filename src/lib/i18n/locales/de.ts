@@ -8,6 +8,7 @@ export const de = {
   "common.system": () => "System",
   "common.close": () => "Schließen",
   "common.closeDialog": () => "Dialog schließen",
+  "common.allKeys": () => "Alle Tasten",
   "common.loading": () => "Wird geladen",
   "settings.modal.title": () => "Einstellungen",
   "settings.tabs.appearance": () => "Darstellung",
@@ -282,10 +283,9 @@ export const de = {
   "actionDrawer.empty.allResolvedSubtitle": () =>
     "Keine ausstehenden Aufgaben. Erstelle neue Aktionen in deinen Notizen mit #.",
   "actionDrawer.item.lineTag": ({ line }) => `Z. ${line}`,
-  "actionDrawer.footer.jump": () => "Springen",
+  "actionDrawer.footer.goToLine": () => "Zur Zeile",
   "actionDrawer.footer.forwardToToday": () => "Auf heute verschieben",
-  "actionDrawer.footer.cycle": () => "Wechseln",
-  "actionDrawer.footer.cycleBack": () => "Zurückwechseln",
+  "actionDrawer.footer.changeState": () => "Status ändern",
 
   "history.modal.ariaLabel": () => "Abschnittsverlauf",
   "history.modal.titlePrefix": ({ header }) => `Abschnittsverlauf: "${header}"`,
@@ -312,10 +312,9 @@ export const de = {
   "history.takeover.none": () => "Von diesem Vorkommen aus gibt es nirgendwo anders hin zu übertragen.",
   "history.body.selectPrompt": () => "Wähle ein Vorkommen aus, um es anzusehen.",
   "history.footer.selectLine": () => "Zeile auswählen",
-  "history.footer.extend": () => "Erweitern",
-  "history.footer.switchDate": () => "Datum wechseln",
-  "history.footer.jumpToSource": () => "Zur Quelle springen",
-  "history.footer.dblClickHint": () => "auf ein Datum, um dorthin zu springen",
+  "history.footer.switchDate": () => "Anderes Datum",
+  "history.footer.openNote": () => "Notiz öffnen",
+  "history.footer.choices": () => "Auswahl",
 
   "history.destination.addToQuoted": ({ name }) => `Zu "${name}" hinzufügen`,
   "history.destination.addToToday": () => "Zu heute hinzufügen",
@@ -330,8 +329,9 @@ export const de = {
   "commandPalette.legend.actions": () => "Aktionen",
   "commandPalette.legend.dates": () => "Daten",
   "commandPalette.legend.shortcuts": () => "Tastenkürzel",
-  "commandPalette.footer.navigate": () => "Navigieren",
+  "commandPalette.footer.select": () => "Auswählen",
   "commandPalette.footer.run": () => "Ausführen",
+  "commandPalette.footer.filters": () => "Filter",
   "commandPalette.noMatches": () => "Keine Treffer.",
   "commandPalette.emptySubtitle": () =>
     "Probiere einen anderen Suchbegriff oder drücke Esc zum Schließen.",
@@ -509,7 +509,8 @@ export const de = {
   "searchModal.noMatches": ({ query }) => `Keine Treffer für "${query}".`,
   "searchModal.emptySubtitle": () =>
     "Überprüfe die Schreibweise oder verwende Suchoperatoren wie is:open oder #tag.",
-  "searchModal.footer.jumpToMatch": () => "Zum Treffer springen",
+  "searchModal.footer.open": () => "Öffnen",
+  "searchModal.footer.select": () => "Auswählen",
 
   "datePicker.ariaLabel": () => "Zu einem Datum springen",
   "datePicker.jumpPlaceholder": () => "Zu einem Datum springen — heute, -2, 2026-09-05…",
@@ -523,7 +524,9 @@ export const de = {
   "datePicker.day.hasNote": () => ", hat eine Notiz",
   "datePicker.day.agendaOnly": () => ", geplante Termine",
   "datePicker.today": () => "Heute",
-  "datePicker.escToClose": () => "Esc zum Schließen",
+  "datePicker.footer.openDate": () => "Datum öffnen",
+  "datePicker.footer.move": () => "Bewegen",
+  "datePicker.footer.month": () => "Monat",
 
   "moreActions.promote.label": () => "Zur heutigen Notiz befördern",
 

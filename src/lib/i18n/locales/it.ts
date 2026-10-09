@@ -4,6 +4,7 @@ export const it = {
   "common.system": () => "Sistema",
   "common.close": () => "Chiudi",
   "common.closeDialog": () => "Chiudi finestra di dialogo",
+  "common.allKeys": () => "Tutti i tasti",
   "common.loading": () => "Caricamento",
   "settings.modal.title": () => "Impostazioni",
   "settings.tabs.appearance": () => "Aspetto",
@@ -280,10 +281,9 @@ export const it = {
   "actionDrawer.empty.allResolvedSubtitle": () =>
     "Nessuna attività in sospeso. Aggiungi nuove azioni nelle tue note con #.",
   "actionDrawer.item.lineTag": ({ line }) => `Riga ${line}`,
-  "actionDrawer.footer.jump": () => "Vai",
+  "actionDrawer.footer.goToLine": () => "Vai alla riga",
   "actionDrawer.footer.forwardToToday": () => "Inoltra a oggi",
-  "actionDrawer.footer.cycle": () => "Alterna",
-  "actionDrawer.footer.cycleBack": () => "Alterna indietro",
+  "actionDrawer.footer.changeState": () => "Cambia stato",
 
   "history.modal.ariaLabel": () => "Cronologia sezione",
   "history.modal.titlePrefix": ({ header }) => `Cronologia sezione: "${header}"`,
@@ -310,10 +310,9 @@ export const it = {
   "history.takeover.none": () => "Nessun altro luogo a cui riportare questo da questa ricorrenza.",
   "history.body.selectPrompt": () => "Seleziona una ricorrenza per sfogliarla.",
   "history.footer.selectLine": () => "Seleziona riga",
-  "history.footer.extend": () => "Estendi",
-  "history.footer.switchDate": () => "Cambia data",
-  "history.footer.jumpToSource": () => "Vai alla sorgente",
-  "history.footer.dblClickHint": () => "una data per passare lì",
+  "history.footer.switchDate": () => "Altra data",
+  "history.footer.openNote": () => "Apri nota",
+  "history.footer.choices": () => "Scelte",
 
   "history.destination.addToQuoted": ({ name }) => `Aggiungi a "${name}"`,
   "history.destination.addToToday": () => "Aggiungi a oggi",
@@ -328,8 +327,9 @@ export const it = {
   "commandPalette.legend.actions": () => "azioni",
   "commandPalette.legend.dates": () => "date",
   "commandPalette.legend.shortcuts": () => "scorciatoie",
-  "commandPalette.footer.navigate": () => "Naviga",
   "commandPalette.footer.run": () => "Esegui",
+  "commandPalette.footer.select": () => "Seleziona",
+  "commandPalette.footer.filters": () => "Filtri",
   "commandPalette.noMatches": () => "Nessuna corrispondenza.",
   "commandPalette.emptySubtitle": () =>
     "Prova con un termine di ricerca diverso o premi Esc per chiudere.",
@@ -515,7 +515,8 @@ export const it = {
   "searchModal.noMatches": ({ query }) => `Nessuna corrispondenza per "${query}".`,
   "searchModal.emptySubtitle": () =>
     "Controlla l'ortografia o usa operatori di ricerca come is:open o #tag.",
-  "searchModal.footer.jumpToMatch": () => "Vai alla corrispondenza",
+  "searchModal.footer.open": () => "Apri",
+  "searchModal.footer.select": () => "Seleziona",
 
   "datePicker.ariaLabel": () => "Vai alla data",
   "datePicker.jumpPlaceholder": () => "Vai alla data — oggi, -2, 2026-09-05…",
@@ -529,7 +530,9 @@ export const it = {
   "datePicker.day.hasNote": () => ", contiene una nota",
   "datePicker.day.agendaOnly": () => ", riunioni programmate",
   "datePicker.today": () => "Oggi",
-  "datePicker.escToClose": () => "Esc per chiudere",
+  "datePicker.footer.openDate": () => "Apri data",
+  "datePicker.footer.move": () => "Sposta",
+  "datePicker.footer.month": () => "Mese",
 
   "moreActions.promote.label": () => "Promuovi nella nota di oggi",
 

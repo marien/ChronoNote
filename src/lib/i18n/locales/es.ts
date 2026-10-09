@@ -4,6 +4,7 @@ export const es = {
   "common.system": () => "Sistema",
   "common.close": () => "Cerrar",
   "common.closeDialog": () => "Cerrar diálogo",
+  "common.allKeys": () => "Todas las teclas",
   "common.loading": () => "Cargando",
   "settings.modal.title": () => "Ajustes",
   "settings.tabs.appearance": () => "Apariencia",
@@ -278,10 +279,9 @@ export const es = {
   "actionDrawer.empty.allResolvedSubtitle": () =>
     "No hay tareas pendientes. Agrega nuevas acciones en tus notas con #.",
   "actionDrawer.item.lineTag": ({ line }) => `Lín ${line}`,
-  "actionDrawer.footer.jump": () => "Ir",
+  "actionDrawer.footer.goToLine": () => "Ir a la línea",
   "actionDrawer.footer.forwardToToday": () => "Reenviar a hoy",
-  "actionDrawer.footer.cycle": () => "Alternar",
-  "actionDrawer.footer.cycleBack": () => "Alternar hacia atrás",
+  "actionDrawer.footer.changeState": () => "Cambiar estado",
 
   "history.modal.ariaLabel": () => "Historial de sección",
   "history.modal.titlePrefix": ({ header }) => `Historial de sección: "${header}"`,
@@ -308,10 +308,9 @@ export const es = {
   "history.takeover.none": () => "No hay otro lugar al que transferir esto desde esta aparición.",
   "history.body.selectPrompt": () => "Seleccione una aparición para explorarla.",
   "history.footer.selectLine": () => "Seleccionar línea",
-  "history.footer.extend": () => "Extender",
-  "history.footer.switchDate": () => "Cambiar fecha",
-  "history.footer.jumpToSource": () => "Ir a la fuente",
-  "history.footer.dblClickHint": () => "una fecha para ir allí",
+  "history.footer.switchDate": () => "Otra fecha",
+  "history.footer.openNote": () => "Abrir nota",
+  "history.footer.choices": () => "Opciones",
 
   "history.destination.addToQuoted": ({ name }) => `Añadir a "${name}"`,
   "history.destination.addToToday": () => "Añadir a hoy",
@@ -326,8 +325,9 @@ export const es = {
   "commandPalette.legend.actions": () => "acciones",
   "commandPalette.legend.dates": () => "fechas",
   "commandPalette.legend.shortcuts": () => "atajos",
-  "commandPalette.footer.navigate": () => "Navegar",
+  "commandPalette.footer.select": () => "Seleccionar",
   "commandPalette.footer.run": () => "Ejecutar",
+  "commandPalette.footer.filters": () => "Filtros",
   "commandPalette.noMatches": () => "Sin coincidencias.",
   "commandPalette.emptySubtitle": () =>
     "Prueba con otro término de búsqueda o presiona Esc para cerrar.",
@@ -513,7 +513,8 @@ export const es = {
   "searchModal.noMatches": ({ query }) => `Sin coincidencias para "${query}".`,
   "searchModal.emptySubtitle": () =>
     "Revisa la ortografía o usa operadores de búsqueda como is:open o #tag.",
-  "searchModal.footer.jumpToMatch": () => "Ir a la coincidencia",
+  "searchModal.footer.open": () => "Abrir",
+  "searchModal.footer.select": () => "Seleccionar",
 
   "datePicker.ariaLabel": () => "Ir a fecha",
   "datePicker.jumpPlaceholder": () => "Ir a fecha — hoy, -2, 2026-09-05…",
@@ -527,7 +528,9 @@ export const es = {
   "datePicker.day.hasNote": () => ", tiene una nota",
   "datePicker.day.agendaOnly": () => ", reuniones programadas",
   "datePicker.today": () => "Hoy",
-  "datePicker.escToClose": () => "Esc para cerrar",
+  "datePicker.footer.openDate": () => "Abrir fecha",
+  "datePicker.footer.move": () => "Mover",
+  "datePicker.footer.month": () => "Mes",
 
   "moreActions.promote.label": () => "Promover a la nota de hoy",
 

@@ -8,6 +8,10 @@
   import Icon from "../../icons/Icon.svelte";
   import EmptyState from "../EmptyState.svelte";
   import { t } from "../../i18n";
+  import { isMobile } from "../../stores";
+  import { formatCombo, shortcutById } from "../../shortcuts";
+
+  const allKeysShortcut = formatCombo(shortcutById("openShortcutsHelp").combos[0]);
 
   let query = $state("");
   let items = $state<PaletteItem[]>([]);
@@ -221,9 +225,15 @@
         />
       {/if}
     </div>
-    <div class="modal-footer">
-      <div><kbd>↑</kbd><kbd>↓</kbd> {$t("commandPalette.footer.navigate")} · <kbd>Enter</kbd> {$t("commandPalette.footer.run")}</div>
-      <div><kbd>Esc</kbd> {$t("common.close")}</div>
-    </div>
+    {#if !$isMobile}
+      <div class="modal-footer">
+        <div class="modal-footer-hints">
+          <kbd>Enter</kbd> {$t("commandPalette.footer.run")} · <kbd>↑/↓</kbd> {$t("commandPalette.footer.select")} · <kbd>&gt;</kbd> <kbd>@</kbd> <kbd>!</kbd> <kbd>?</kbd> {$t("commandPalette.footer.filters")}
+        </div>
+        <div class="modal-footer-all-keys">
+          <kbd>{allKeysShortcut}</kbd> {$t("common.allKeys")}
+        </div>
+      </div>
+    {/if}
   </div>
 </div>

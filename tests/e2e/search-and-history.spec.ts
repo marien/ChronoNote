@@ -1293,4 +1293,35 @@ test.describe("section history (Ctrl/Cmd+Shift+H)", () => {
     expect(shortHeight).toBeCloseTo(longHeight, 0);
     expect(shortHeight).toBeCloseTo(800 * 0.8, 0);
   });
+
+  test("at 900px width the Section History footer is a single line under 24px and contains the Ctrl+/ hint", async ({
+    page,
+  }) => {
+    await seedApp(page, {
+      seed: {
+        notes: {
+          [todayFilename()]: "Standup\n====\n# item 1",
+          "2026-09-05.txt": "Standup\n====\n# item 2",
+        },
+        session: { openTabs: [todayFilename()], activeTab: todayFilename() },
+      },
+    });
+    await page.setViewportSize({ width: 900, height: 700 });
+    await editor(page).click();
+    await page.keyboard.press("ControlOrMeta+Home");
+    await page.keyboard.press("ControlOrMeta+Shift+H");
+
+    const drawer = history(page);
+    await expect(drawer).toBeVisible();
+
+    const footer = drawer.locator(".modal-footer");
+    await expect(footer).toBeVisible();
+    await expect(footer).toContainText(/Ctrl\+\/|⌘\//);
+    await expect(footer).toContainText("All keys");
+
+    const hints = footer.locator(".modal-footer-hints");
+    const hintsBox = await hints.boundingBox();
+    expect(hintsBox).not.toBeNull();
+    expect(hintsBox!.height).toBeLessThan(24);
+  });
 });

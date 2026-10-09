@@ -5,6 +5,7 @@ export const fr = {
   "common.system": () => "Système",
   "common.close": () => "Fermer",
   "common.closeDialog": () => "Fermer la boîte de dialogue",
+  "common.allKeys": () => "Toutes les touches",
   "common.loading": () => "Chargement",
   "settings.modal.title": () => "Paramètres",
   "settings.tabs.appearance": () => "Apparence",
@@ -281,10 +282,9 @@ export const fr = {
   "actionDrawer.empty.allResolvedSubtitle": () =>
     "Aucune tâche en attente. Ajoutez de nouvelles actions dans vos notes avec #.",
   "actionDrawer.item.lineTag": ({ line }) => `Lg ${line}`,
-  "actionDrawer.footer.jump": () => "Aller",
+  "actionDrawer.footer.goToLine": () => "Aller à la ligne",
   "actionDrawer.footer.forwardToToday": () => "Reporter à aujourd'hui",
-  "actionDrawer.footer.cycle": () => "Changer d'état",
-  "actionDrawer.footer.cycleBack": () => "État précédent",
+  "actionDrawer.footer.changeState": () => "Changer d'état",
 
   "history.modal.ariaLabel": () => "Historique de section",
   "history.modal.titlePrefix": ({ header }) => `Historique de section : « ${header} »`,
@@ -311,10 +311,9 @@ export const fr = {
   "history.takeover.none": () => "Aucun autre emplacement vers lequel reporter depuis cette occurrence.",
   "history.body.selectPrompt": () => "Sélectionnez une occurrence pour la parcourir.",
   "history.footer.selectLine": () => "Sélectionner la ligne",
-  "history.footer.extend": () => "Étendre",
-  "history.footer.switchDate": () => "Changer de date",
-  "history.footer.jumpToSource": () => "Aller à la source",
-  "history.footer.dblClickHint": () => "une date pour y accéder",
+  "history.footer.switchDate": () => "Autre date",
+  "history.footer.openNote": () => "Ouvrir la note",
+  "history.footer.choices": () => "Choix",
 
   "history.destination.addToQuoted": ({ name }) => `Ajouter à « ${name} »`,
   "history.destination.addToToday": () => "Ajouter à aujourd'hui",
@@ -329,8 +328,9 @@ export const fr = {
   "commandPalette.legend.actions": () => "actions",
   "commandPalette.legend.dates": () => "dates",
   "commandPalette.legend.shortcuts": () => "raccourcis",
-  "commandPalette.footer.navigate": () => "Naviguer",
+  "commandPalette.footer.select": () => "Sélectionner",
   "commandPalette.footer.run": () => "Exécuter",
+  "commandPalette.footer.filters": () => "Filtres",
   "commandPalette.noMatches": () => "Aucun résultat.",
   "commandPalette.emptySubtitle": () =>
     "Essayez un autre terme de recherche ou appuyez sur Échap pour fermer.",
@@ -518,7 +518,8 @@ export const fr = {
   "searchModal.noMatches": ({ query }) => `Aucune correspondance pour « ${query} ».`,
   "searchModal.emptySubtitle": () =>
     "Vérifiez l'orthographe ou utilisez des opérateurs de recherche comme is:open ou #tag.",
-  "searchModal.footer.jumpToMatch": () => "Aller à la correspondance",
+  "searchModal.footer.open": () => "Ouvrir",
+  "searchModal.footer.select": () => "Sélectionner",
 
   "datePicker.ariaLabel": () => "Aller à la date",
   "datePicker.jumpPlaceholder": () => "Aller à la date — aujourd'hui, -2, 2026-09-05…",
@@ -532,7 +533,9 @@ export const fr = {
   "datePicker.day.hasNote": () => ", contient une note",
   "datePicker.day.agendaOnly": () => ", réunions prévues",
   "datePicker.today": () => "Aujourd'hui",
-  "datePicker.escToClose": () => "Échap pour fermer",
+  "datePicker.footer.openDate": () => "Ouvrir la date",
+  "datePicker.footer.move": () => "Déplacer",
+  "datePicker.footer.month": () => "Mois",
 
   "moreActions.promote.label": () => "Transférer dans la note d'aujourd'hui",
 
