@@ -533,9 +533,7 @@ export const fr = {
   "datePicker.day.hasNote": () => ", contient une note",
   "datePicker.day.agendaOnly": () => ", réunions prévues",
   "datePicker.today": () => "Aujourd'hui",
-  "datePicker.footer.openDate": () => "Ouvrir la date",
-  "datePicker.footer.move": () => "Déplacer",
-  "datePicker.footer.month": () => "Mois",
+  "datePicker.escToClose": () => "Échap pour fermer",
 
   "moreActions.promote.label": () => "Transférer dans la note d'aujourd'hui",
 

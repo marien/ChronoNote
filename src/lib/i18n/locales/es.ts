@@ -528,9 +528,7 @@ export const es = {
   "datePicker.day.hasNote": () => ", tiene una nota",
   "datePicker.day.agendaOnly": () => ", reuniones programadas",
   "datePicker.today": () => "Hoy",
-  "datePicker.footer.openDate": () => "Abrir fecha",
-  "datePicker.footer.move": () => "Mover",
-  "datePicker.footer.month": () => "Mes",
+  "datePicker.escToClose": () => "Esc para cerrar",
 
   "moreActions.promote.label": () => "Promover a la nota de hoy",
 

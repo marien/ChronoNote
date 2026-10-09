@@ -534,9 +534,7 @@ export const pl = {
   "datePicker.day.hasNote": () => ", zawiera notatkę",
   "datePicker.day.agendaOnly": () => ", zaplanowane spotkania",
   "datePicker.today": () => "Dzisiaj",
-  "datePicker.footer.openDate": () => "Otwórz datę",
-  "datePicker.footer.move": () => "Przesuń",
-  "datePicker.footer.month": () => "Miesiąc",
+  "datePicker.escToClose": () => "Esc, aby zamknąć",
 
   "moreActions.promote.label": () => "Przenieś do dzisiejszej notatki",
 

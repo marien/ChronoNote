@@ -515,9 +515,7 @@ export const en = {
   "datePicker.day.hasNote": () => ", has a note",
   "datePicker.day.agendaOnly": () => ", scheduled meetings",
   "datePicker.today": () => "Today",
-  "datePicker.footer.openDate": () => "Open date",
-  "datePicker.footer.move": () => "Move",
-  "datePicker.footer.month": () => "Month",
+  "datePicker.escToClose": () => "Esc to close",
 
   "moreActions.promote.label": () => "Promote into today's note",
 

@@ -519,9 +519,7 @@ export const nl = {
   "datePicker.day.hasNote": () => ", heeft een notitie",
   "datePicker.day.agendaOnly": () => ", geplande vergaderingen",
   "datePicker.today": () => "Vandaag",
-  "datePicker.footer.openDate": () => "Datum openen",
-  "datePicker.footer.move": () => "Verplaatsen",
-  "datePicker.footer.month": () => "Maand",
+  "datePicker.escToClose": () => "Esc om te sluiten",
 
   "moreActions.promote.label": () => "Promoveren naar de notitie van vandaag",
 

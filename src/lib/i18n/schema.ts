@@ -513,9 +513,7 @@ export type TranslationParams = {
   "datePicker.day.hasNote": undefined;
   "datePicker.day.agendaOnly": undefined;
   "datePicker.today": undefined;
-  "datePicker.footer.openDate": undefined;
-  "datePicker.footer.move": undefined;
-  "datePicker.footer.month": undefined;
+  "datePicker.escToClose": undefined;
 
   // More Actions popover (`MoreActionsModal.svelte`, #56 top-bar overflow).
   "moreActions.promote.label": undefined;
