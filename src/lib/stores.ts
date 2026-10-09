@@ -384,6 +384,9 @@ export const historyOpenedFromTabId = writable<string>("");
  * when it's in the past. Empty only transiently, while `historyLoading`. */
 export const historyDestinations = writable<HistoryDestination[]>([]);
 export const searchResultsStore = writable<SearchResultItem[]>([]);
+/** #z1-history-pane: tracked window width and whether Section History is docked side-by-side. */
+export const windowWidth = writable<number>(typeof window !== "undefined" ? window.innerWidth : 1200);
+export const historyDocked = writable<boolean>(false);
 
 /** Calendar sync review — the state of one pending "Sync from a list…" (or
  * the file-based "Sync calendar for this day") review, from submit to

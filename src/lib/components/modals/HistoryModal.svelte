@@ -20,12 +20,26 @@
   import { t } from "../../i18n";
   import type { HistoryDestination, SectionOccurrence } from "../../types";
   import { clampIndex, wrapIndex } from "./virtualList";
-  import { isMobile } from "../../stores";
+  import { isMobile, editorApi } from "../../stores";
   import { formatCombo, shortcutById } from "../../shortcuts";
+
+  interface Props {
+    docked?: boolean;
+  }
+  let { docked = false }: Props = $props();
 
   const allKeysShortcut = formatCombo(shortcutById("openShortcutsHelp").combos[0]);
 
+  let rootEl: HTMLElement | undefined = $state();
   let selectedIndex = $state(0);
+  let lastTargetHeader = $state("");
+  $effect.pre(() => {
+    if ($historyTargetHeader !== lastTargetHeader) {
+      lastTargetHeader = $historyTargetHeader;
+      hasFocusedOpenedFrom = false;
+      selectedIndex = 0;
+    }
+  });
 
   // Anchor/focus line-selection model (2026-09-25 redesign, from chat
   // feedback on the browse-and-carry-forward redesign): `selAnchor` is the
@@ -534,7 +548,17 @@
     return false;
   }
 
+  function handleClose() {
+    controller.closeAllModals();
+    if (docked) {
+      editorApi?.focus();
+    }
+  }
+
   function onKeydown(e: KeyboardEvent) {
+    if (docked && !rootEl?.contains(e.target as Node)) {
+      return;
+    }
     const bar = (e.target as HTMLElement | null)?.closest?.(".history-takeover-bar") as HTMLElement | null;
     if (bar && onTakeOverBarKeydown(e, bar)) return;
     if ((e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey && e.key.toLowerCase() === "a") {
@@ -571,37 +595,29 @@
         controller.jumpToHistoryLine(selectedOcc, lineSelection ? lineSelection.from : undefined);
       }
     } else if (e.key === "Escape") {
-      controller.closeAllModals();
+      handleClose();
     }
   }
 </script>
 
-<div class="overlay" role="presentation" use:closeOnOutsideClick={controller.closeAllModals}>
-  <div
-    class="modal-card history-modal-card modal-xl"
-    role="dialog"
-    aria-modal="true"
-    use:focusTrap
-    use:sheetSwipe
-    aria-label={$t("history.modal.ariaLabel")}
-  >
-    <div class="modal-input-wrap modal-title">
-      <Icon name="section-history" size={15} />
-      <div class="modal-input">{$t("history.modal.titlePrefix", { header: $historyTargetHeader })}</div>
-      {#if $historyLoading}
-        <span class="modal-counter"><span class="modal-spinner" aria-label={$t("common.loading")}>⟳</span> {$t("history.modal.loadingCounter")}</span>
-      {:else}
-        <span class="modal-counter">{$t("history.modal.dateCount", { count: occurrences.length })}</span>
-      {/if}
-      <button
-        type="button"
-        class="icon-btn modal-close-btn"
-        aria-label={$t("common.closeDialog")}
-        onclick={controller.closeAllModals}
-      >
-        <Icon name="close" size={14} />
-      </button>
-    </div>
+{#snippet modalContent()}
+  <div class="modal-input-wrap modal-title">
+    <Icon name="section-history" size={15} />
+    <div class="modal-input">{$t("history.modal.titlePrefix", { header: $historyTargetHeader })}</div>
+    {#if $historyLoading}
+      <span class="modal-counter"><span class="modal-spinner" aria-label={$t("common.loading")}>⟳</span> {$t("history.modal.loadingCounter")}</span>
+    {:else}
+      <span class="modal-counter">{$t("history.modal.dateCount", { count: occurrences.length })}</span>
+    {/if}
+    <button
+      type="button"
+      class="icon-btn modal-close-btn"
+      aria-label={$t("common.closeDialog")}
+      onclick={handleClose}
+    >
+      <Icon name="close" size={14} />
+    </button>
+  </div>
 
     <!-- 2026-09-25 redesign: occurrences as a compact horizontal strip
          (the same idea as the main window's tab strip, sized down) instead
@@ -783,8 +799,27 @@
         </div>
       </div>
     {/if}
+{/snippet}
+
+{#if docked}
+  <div class="history-pane-card" bind:this={rootEl}>
+    {@render modalContent()}
   </div>
-</div>
+{:else}
+  <div class="overlay" role="presentation" use:closeOnOutsideClick={controller.closeAllModals}>
+    <div
+      class="modal-card history-modal-card modal-xl"
+      role="dialog"
+      aria-modal="true"
+      use:focusTrap
+      use:sheetSwipe
+      aria-label={$t("history.modal.ariaLabel")}
+      bind:this={rootEl}
+    >
+      {@render modalContent()}
+    </div>
+  </div>
+{/if}
 
 <style>
 /* §154 bug: nothing capped the modal's overall height, so a long "From"

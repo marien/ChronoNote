@@ -185,7 +185,7 @@ export async function statusCounts(page: Page): Promise<{ open: number; closed: 
 // --- modals --------------------------------------------------------
 
 export function modalCard(page: Page, label: string): Locator {
-  return page.locator(`.modal-card[aria-label="${label}"]`);
+  return page.locator(`.modal-card[aria-label="${label}"], aside.history-pane[aria-label="${label}"]`);
 }
 
 /** §104: the date picker is an anchored calendar popover, not a

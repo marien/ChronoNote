@@ -134,8 +134,8 @@ test.describe("Visual layout & overflow audit across locales", () => {
       // 5. Section History Modal
       await editor(page).click();
       await page.keyboard.press("ControlOrMeta+Shift+h");
-      await page.waitForSelector(".history-modal-card, .modal-card");
-      issues = await findOverflows(page, ".modal-card", locale, "Section History");
+      await page.waitForSelector(".history-modal-card, aside.history-pane, .modal-card");
+      issues = await findOverflows(page, ".modal-card, aside.history-pane", locale, "Section History");
       allIssues.push(...issues);
       await page.keyboard.press("Escape");
       await page.waitForTimeout(150);
