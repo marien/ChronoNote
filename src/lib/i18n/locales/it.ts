@@ -836,6 +836,8 @@ export const it = {
   "error.oneDriveTokenExchangeRejected": ({ detail }) => `Microsoft ha rifiutato l'accesso: ${detail}`,
   "error.oneDriveTokenResponseUnparseable": ({ detail }) =>
     `La risposta di accesso di Microsoft non è valida: ${detail}`,
+  "editorMenu.ariaLabel": () => "Menu dell’editor",
+  "editorMenu.clipboard": () => "Appunti",
   "editorMenu.cut": () => "Taglia",
   "editorMenu.copy": () => "Copia",
   "editorMenu.paste": () => "Incolla",

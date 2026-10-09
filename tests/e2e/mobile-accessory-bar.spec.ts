@@ -61,7 +61,7 @@ test.describe("mobile accessory bar — caret after token insertion", () => {
 
   test("☒ on an empty line: the next typed text follows `x `", async ({ page }) => {
     // 'x' is not among the 4 primary tokens on a plain line; it lives in the More panel
-    await page.getByRole("button", { name: "More" }).click();
+    await page.getByRole("button", { name: "More", exact: true }).click();
     await page.getByRole("button", { name: "Won't do task (box)" }).click();
     await page.keyboard.type("skip this");
 
@@ -93,6 +93,8 @@ test.describe("mobile accessory bar — keyboard visibility and line kind adapta
 
   test("bar is hidden before focusing the editor, visible after", async ({ page }) => {
     await seedApp(page, { seed: "empty" });
+    // The app focuses the editor on start; take focus away first.
+    await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
     await expect(page.locator(".mobile-accessory-bar")).toHaveCount(0);
     await editor(page).click();
     await expect(page.locator(".mobile-accessory-bar")).toBeVisible();
@@ -111,7 +113,7 @@ test.describe("mobile accessory bar — keyboard visibility and line kind adapta
     // Move caret to second line (topic line)
     await page.keyboard.press("ArrowDown");
     const firstBtnTopic = page.locator(".mobile-accessory-bar > .accessory-btn").first();
-    await expect(firstBtnTopic).toHaveAttribute("aria-label", "Topic to discuss (circle)");
+    await expect(firstBtnTopic).toHaveAttribute("aria-label", "To discuss topic (circle)");
     await expect(firstBtnTopic.locator(".glyph-topic-open")).toBeVisible();
   });
 
@@ -122,7 +124,7 @@ test.describe("mobile accessory bar — keyboard visibility and line kind adapta
 
     // On plain text, '-' and '=>' are shown, while 'x' (wont do) is in the More panel
     await expect(page.locator(".accessory-more-panel")).toHaveCount(0);
-    await page.getByRole("button", { name: "More" }).click();
+    await page.getByRole("button", { name: "More", exact: true }).click();
     await expect(page.locator(".accessory-more-panel")).toBeVisible();
 
     await page.locator(".accessory-more-panel").getByRole("button", { name: "Won't do task (box)" }).click();

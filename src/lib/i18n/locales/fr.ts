@@ -842,6 +842,8 @@ export const fr = {
   "error.oneDriveTokenExchangeRejected": ({ detail }) => `Microsoft a rejeté la connexion : ${detail}`,
   "error.oneDriveTokenResponseUnparseable": ({ detail }) =>
     `La réponse de connexion de Microsoft est illisible : ${detail}`,
+  "editorMenu.ariaLabel": () => "Menu de l’éditeur",
+  "editorMenu.clipboard": () => "Presse-papiers",
   "editorMenu.cut": () => "Couper",
   "editorMenu.copy": () => "Copier",
   "editorMenu.paste": () => "Coller",

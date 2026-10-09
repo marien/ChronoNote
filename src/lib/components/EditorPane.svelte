@@ -696,11 +696,15 @@
           editorContextMenu.set({ x: event.clientX, y: event.clientY, line });
           return true;
         },
+        // Deferred: the browser also fires `blur` while Svelte is tearing this
+        // component down (tab or folder switch with the editor focused), and a
+        // store write at that moment throws `state_unsafe_mutation`, which broke
+        // the folder switch.
         focus: () => {
-          editorFocused.set(true);
+          queueMicrotask(() => editorFocused.set(true));
         },
         blur: () => {
-          editorFocused.set(false);
+          queueMicrotask(() => editorFocused.set(false));
         },
         copy: (_event, v) => {
           const sel = v.state.sliceDoc(v.state.selection.main.from, v.state.selection.main.to);

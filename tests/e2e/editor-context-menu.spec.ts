@@ -67,4 +67,18 @@ test.describe("editor context menu (proposal B5)", () => {
     const copyBtn = menu.locator('.editor-context-icon-btn[aria-label="Copy"]');
     await expect(copyBtn).toBeDisabled();
   });
+
+  test("Escape closes the menu first: in Zen mode the app stays in Zen", async ({ page }) => {
+    await seedApp(page, { seed: "empty" });
+    await setEditorText(page, "# Action item");
+    await page.locator(".cm-content").click();
+    await page.keyboard.press("Shift+F11");
+    await expect(page.locator("body")).toHaveClass(/zen-mode/);
+
+    await page.locator(".cm-content .cm-line").first().click({ button: "right" });
+    await expect(page.locator(".editor-context-menu")).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(page.locator(".editor-context-menu")).toHaveCount(0);
+    await expect(page.locator("body")).toHaveClass(/zen-mode/);
+  });
 });

@@ -63,6 +63,7 @@
   function handleKeydown(e: KeyboardEvent) {
     if (e.key === "Escape") {
       e.preventDefault();
+      e.stopImmediatePropagation();
       close();
       return;
     }
@@ -99,8 +100,10 @@
   }
 </script>
 
+<!-- Capture phase: the menu takes Escape before the app's own window handler,
+     which would otherwise also leave Zen or Peek on the same key press. -->
 <svelte:window
-  onkeydown={handleKeydown}
+  onkeydowncapture={handleKeydown}
   onpointerdown={handlePointerDown}
   onblur={close}
   onresize={close}
@@ -113,10 +116,10 @@
     style="top: {contextPos.y}px; left: {contextPos.x}px;"
     role="menu"
     tabindex="-1"
-    aria-label="Editor context menu"
+    aria-label={$t("editorMenu.ariaLabel")}
     oncontextmenu={(e) => e.preventDefault()}
   >
-    <div class="editor-context-icon-row" role="group" aria-label="Clipboard">
+    <div class="editor-context-icon-row" role="group" aria-label={$t("editorMenu.clipboard")}>
       <button
         type="button"
         class="editor-context-icon-btn"
