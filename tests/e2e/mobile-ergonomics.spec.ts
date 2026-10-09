@@ -5,6 +5,7 @@ import {
   openViaShortcut,
   todayFilename,
   REFERENCE_INSTANT,
+  activeTabContent,
 } from "./helpers";
 import { scenario } from "../../src/lib/testing/scenarios";
 
@@ -317,5 +318,104 @@ test.describe("bottom sheets on phones (D4)", () => {
     expect(Math.round(historyBox.y + historyBox.height)).toBe(844);
     expect(Math.round(historyBox.width)).toBe(390);
   });
+
+  test("long-press on a glyph opens line menu as bottom sheet, short tap toggles (D6)", async ({ page }) => {
+    await seedApp(page, {
+      seed: {
+        notes: {
+          [todayFilename()]: "# task\n",
+        },
+      },
+    });
+
+    const glyph = page.locator(".cm-line .glyph-open").first();
+    await expect(glyph).toBeVisible();
+
+    // Long-press the glyph: dispatch touchstart, wait 600ms, dispatch touchend
+    await glyph.evaluate(async (el) => {
+      const rect = el.getBoundingClientRect();
+      const clientX = rect.left + rect.width / 2;
+      const clientY = rect.top + rect.height / 2;
+      const touch = new Touch({
+        identifier: 1,
+        target: el,
+        clientX,
+        clientY,
+        pageX: clientX,
+        pageY: clientY,
+      });
+      el.dispatchEvent(
+        new TouchEvent("touchstart", {
+          bubbles: true,
+          cancelable: true,
+          touches: [touch],
+          targetTouches: [touch],
+          changedTouches: [touch],
+        }),
+      );
+      await new Promise((resolve) => setTimeout(resolve, 600));
+      el.dispatchEvent(
+        new TouchEvent("touchend", {
+          bubbles: true,
+          cancelable: true,
+          touches: [],
+          targetTouches: [],
+          changedTouches: [touch],
+        }),
+      );
+    });
+
+    // Expect .editor-context-menu visible and bottom-aligned
+    const menu = page.locator(".editor-context-menu");
+    await expect(menu).toBeVisible();
+    await menu.evaluate((el) => Promise.all(el.getAnimations().map((a) => a.finished)));
+
+    const menuBox = (await menu.boundingBox())!;
+    expect(Math.round(menuBox.width)).toBe(390);
+    expect(Math.round(menuBox.y + menuBox.height)).toBe(844);
+
+    // The line is still '# task' (not toggled)
+    expect(await activeTabContent(page)).toContain("# task");
+
+    // Close the menu so the glyph can be tapped
+    await page.keyboard.press("Escape");
+    await expect(menu).toBeHidden();
+
+    // A short tap still toggles to 'v task'
+    await glyph.evaluate((el) => {
+      const rect = el.getBoundingClientRect();
+      const clientX = rect.left + rect.width / 2;
+      const clientY = rect.top + rect.height / 2;
+      const touch = new Touch({
+        identifier: 2,
+        target: el,
+        clientX,
+        clientY,
+        pageX: clientX,
+        pageY: clientY,
+      });
+      el.dispatchEvent(
+        new TouchEvent("touchstart", {
+          bubbles: true,
+          cancelable: true,
+          touches: [touch],
+          targetTouches: [touch],
+          changedTouches: [touch],
+        }),
+      );
+      el.dispatchEvent(
+        new TouchEvent("touchend", {
+          bubbles: true,
+          cancelable: true,
+          touches: [],
+          targetTouches: [],
+          changedTouches: [touch],
+        }),
+      );
+    });
+
+    expect(await activeTabContent(page)).toContain("v task");
+  });
 });
+
 

@@ -259,6 +259,42 @@ body {
     margin: 8px auto 4px;
     flex-shrink: 0;
   }
+  /* §D6: Long-press glyph line menu as a bottom sheet on phones */
+  .editor-context-menu {
+    position: fixed !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    top: auto !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0;
+    border-radius: 16px 16px 0 0 !important;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.35);
+    animation: sheet-in var(--motion-slow) var(--ease-decelerate);
+    box-sizing: border-box;
+  }
+  .editor-context-menu::before {
+    content: "";
+    display: block;
+    width: 36px;
+    height: 4px;
+    border-radius: 2px;
+    background: var(--edge-strong);
+    margin: 8px auto 4px;
+    flex-shrink: 0;
+  }
+  .editor-context-menu .editor-context-item,
+  .editor-context-item {
+    height: 48px;
+  }
+  .editor-context-icon-row {
+    display: none;
+  }
+  .editor-context-icon-row + .editor-context-sep {
+    display: none;
+  }
 }
 .drawer-header {
   display: flex;
