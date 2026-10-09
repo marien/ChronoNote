@@ -189,8 +189,9 @@ test.describe("peek mode: tests with their own seed", () => {
     // Shown at the start (to see which section opened), then gone after the 1 s fade time.
     await expect(bar).toBeVisible();
     await expect(bar).toHaveCount(0);
-    // The top bar gives its space back with a 200 ms transition: wait for the editor to reach the top.
-    await expect.poll(async () => (await page.locator("#editor-container").boundingBox())!.y).toBeLessThanOrEqual(1);
+    // The top bar gives its space back with a short transition: wait until the editor is fully at the top
+    // (within 1px can still be the last frame of the slide).
+    await expect.poll(async () => (await page.locator("#editor-container").boundingBox())!.y).toBeLessThan(0.01);
 
     // Pointer over window
     await page.evaluate(() => document.documentElement.dispatchEvent(new MouseEvent("mouseenter")));
@@ -220,8 +221,9 @@ test.describe("peek mode: tests with their own seed", () => {
     // Shown at the start (to see which section opened), then gone after the 1 s fade time.
     await expect(bar).toBeVisible();
     await expect(bar).toHaveCount(0);
-    // The top bar gives its space back with a 200 ms transition: wait for the editor to reach the top.
-    await expect.poll(async () => (await page.locator("#editor-container").boundingBox())!.y).toBeLessThanOrEqual(1);
+    // The top bar gives its space back with a short transition: wait until the editor is fully at the top
+    // (within 1px can still be the last frame of the slide).
+    await expect.poll(async () => (await page.locator("#editor-container").boundingBox())!.y).toBeLessThan(0.01);
 
     await page.evaluate(() => document.documentElement.dispatchEvent(new MouseEvent("mouseenter")));
     await expect(bar).toBeVisible();
@@ -294,8 +296,9 @@ test.describe("peek mode: tests with their own seed", () => {
     await seedApp(page, { seed: { ...today(), peek: { header: "hover" } } });
     await enterOnWeeklySync(page);
     const bar = page.locator("#peek-bar");
-    // The top bar gives its space back with a 200 ms transition: wait for the editor to reach the top.
-    await expect.poll(async () => (await page.locator("#editor-container").boundingBox())!.y).toBeLessThanOrEqual(1);
+    // The top bar gives its space back with a short transition: wait until the editor is fully at the top
+    // (within 1px can still be the last frame of the slide).
+    await expect.poll(async () => (await page.locator("#editor-container").boundingBox())!.y).toBeLessThan(0.01);
     const editorEl = page.locator("#editor-container");
     const editorBoxBefore = (await editorEl.boundingBox())!;
 
