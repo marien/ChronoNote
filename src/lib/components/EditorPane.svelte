@@ -1082,7 +1082,10 @@
     // behavior run, which can override the `scrollTo` set above (or, for
     // a fresh/default cursor, is harmless but unnecessary). `preventScroll`
     // stops that so the initial scroll position sticks either way.
-    view.contentDOM.focus({ preventScroll: true });
+    // Not on a phone: there the editor's focus is what hides the bottom
+    // navigation bar (§D3), and a focus without a tap does not bring up the
+    // keyboard anyway.
+    if (!get(controller.isMobile)) view.contentDOM.focus({ preventScroll: true });
   });
 
   onDestroy(() => {

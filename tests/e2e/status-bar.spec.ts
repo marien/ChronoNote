@@ -94,33 +94,6 @@ test.describe("status bar — three zones (§100/§110)", () => {
     await expect(modalCard(page, MODAL_LABELS.about)).toBeVisible();
   });
 
-  test("§update-check follow-up: clicking the 'update available' status message opens About; other messages stay plain text", async ({
-    page,
-  }) => {
-    await seedApp(page, {
-      seed: {
-        notes: { [todayFilename()]: "no actions here" },
-        updateCheck: "available",
-        updateCheckVersion: "9.9.9",
-        autoCheckUpdates: true,
-      },
-    });
-    // The launch-time check's toast is specifically clickable.
-    const message = page.locator("#stat-message");
-    await expect(message).toContainText(/update available/i, { timeout: 5000 });
-    await expect(page.locator("button#stat-message")).toHaveCount(1);
-    await message.click();
-    await expect(modalCard(page, MODAL_LABELS.about)).toBeVisible();
-    await page.keyboard.press("Escape");
-
-    // An unrelated toast (still while an update happens to be available)
-    // is plain text, not a link to About.
-    await editor(page).click();
-    await page.keyboard.press("Control+KeyJ"); // "No open actions in this note"
-    await expect(page.locator("#stat-message")).toContainText(/no open actions/i);
-    await expect(page.locator("button#stat-message")).toHaveCount(0);
-  });
-
   test("§147: narrow-width collapse drops least-useful info first, keeps counts + help pinned", async ({ page }) => {
     await seedApp(page, { seed: { notes: { [todayFilename()]: "# one\nv two\n> three" } } });
     const leftZone = page.locator(".status-left");

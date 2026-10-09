@@ -46,6 +46,6 @@ test.describe("date picker on a touch device", () => {
   test("tapping a day still opens it", async ({ page }) => {
     await openPicker(page);
     await picker(page).locator('.cal-day[data-iso="2026-09-10"]').click();
-    await expect(page.locator(".mobile-active-tab")).toContainText("2026-09-10");
+    await expect(page.locator(".mobile-active-tab")).toHaveAttribute("data-date", "2026-09-10");
   });
 });

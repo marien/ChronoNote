@@ -125,11 +125,12 @@ test.describe("mobile tabs drawer", () => {
     await seedApp(page, { seed });
     const chip = page.locator(".mobile-active-tab");
     await expect(chip).toBeVisible();
-    await expect(chip).toContainText("2026-09-02");
+    // §D2: the phone title reads a friendly date; the ISO date is on data-date.
+    await expect(chip).toHaveAttribute("data-date", "2026-09-02");
 
     await page.getByRole("button", { name: /^Open tabs list/ }).click();
     await drawer(page).locator(".drawer-tab-item", { hasText: "2026-09-03" }).click();
-    await expect(chip).toContainText("2026-09-03");
+    await expect(chip).toHaveAttribute("data-date", "2026-09-03");
 
     // Tapping the title button opens the date picker (§D2).
     await chip.click();

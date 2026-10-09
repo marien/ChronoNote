@@ -28,8 +28,13 @@
     const r = trigger.getBoundingClientRect();
     const w = popEl.offsetWidth || 290;
     const left = Math.max(8, Math.min(r.left, window.innerWidth - w - 8));
-    const bottom = window.innerHeight - r.top + 6;
-    anchorStyle = `bottom:${bottom}px; left:${left}px`;
+    // Above a trigger in the status bar, below one in the phone app bar (§D3).
+    if (r.top < window.innerHeight / 2) {
+      anchorStyle = `top:${r.bottom + 6}px; left:${left}px`;
+    } else {
+      const bottom = window.innerHeight - r.top + 6;
+      anchorStyle = `bottom:${bottom}px; left:${left}px`;
+    }
   }
 
   /** `resolvedLocale`/`translate` are passed in explicitly from the

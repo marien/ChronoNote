@@ -45,6 +45,7 @@
   import TopBar from "./lib/components/TopBar.svelte";
   import StatusBar from "./lib/components/StatusBar.svelte";
   import InfoBar from "./lib/components/InfoBar.svelte";
+  import SyncHealthPopover from "./lib/components/SyncHealthPopover.svelte";
   import MobileAppBar from "./lib/components/mobile/MobileAppBar.svelte";
   import MobileNavBar from "./lib/components/mobile/MobileNavBar.svelte";
   import PeekBar from "./lib/components/PeekBar.svelte";
@@ -555,6 +556,10 @@
 
   {#if $oneDriveFolderPickerOpen}
     <OneDriveFolderPickerModal onClose={() => oneDriveFolderPickerOpen.set(false)} />
+  {/if}
+
+  {#if $syncHealthPopoverOpen}
+    <SyncHealthPopover />
   {/if}
 
   {#if $editorContextMenu}

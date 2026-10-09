@@ -80,7 +80,8 @@ test.describe("OneDrive first connect (mobile)", () => {
     // rather than boundingBox(): the spinner spins continuously, and a
     // rotated square's axis-aligned bounding box grows up to sqrt(2)x at
     // 45 degrees, which would make a width/height assertion flaky.
-    await expect(statusSpinner).toHaveCSS("font-size", "12px");
+    // On a phone the cloud button sits in the app bar with a 20px icon (§D3).
+    await expect(statusSpinner).toHaveCSS("font-size", "20px");
 
     await expect(dialog.getByRole("button", { name: /Sync now/ })).toBeEnabled({ timeout: 5000 });
     await expect(toast(page)).toContainText("OneDrive sync finished");

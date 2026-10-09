@@ -18,7 +18,7 @@
   }
 </script>
 
-<nav class="mobile-nav-bar" aria-label="Main Navigation">
+<nav class="mobile-nav-bar" aria-label={$t("phoneNav.ariaLabel")}>
   <button
     type="button"
     class="mobile-nav-dest"
@@ -45,7 +45,7 @@
         <span class="mobile-nav-badge">{$statusCounts.open}</span>
       {/if}
     </div>
-    <span class="mobile-nav-label">{$t("actionDrawer.modal.ariaLabel")}</span>
+    <span class="mobile-nav-label">{$t("phoneNav.actions")}</span>
   </button>
 
   <button
@@ -58,7 +58,7 @@
     <div class="mobile-nav-pill">
       <Icon name="section-history" size={20} />
     </div>
-    <span class="mobile-nav-label">{$t("history.modal.ariaLabel")}</span>
+    <span class="mobile-nav-label">{$t("phoneNav.history")}</span>
   </button>
 
   <button
@@ -71,7 +71,7 @@
     <div class="mobile-nav-pill">
       <Icon name="search" size={20} />
     </div>
-    <span class="mobile-nav-label">{$t("topBar.label.search")}</span>
+    <span class="mobile-nav-label">{$t("phoneNav.search")}</span>
   </button>
 </nav>
 

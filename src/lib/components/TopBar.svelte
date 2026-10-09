@@ -26,6 +26,7 @@
   // `settlePending` already applies to re-running at all.
   let settlePendingAllowUpgrade = false;
   let scrollIntoViewToken = 0;
+  let unmounted = false;
 </script>
 
 <script lang="ts">
@@ -537,6 +538,11 @@
         allowUpgrade = settlePendingAllowUpgrade;
         settlePendingAllowUpgrade = false;
       } while (settlePending);
+    } catch (e) {
+      // The bar can go away between two awaited frames (on a phone the app
+      // swaps it for MobileAppBar, §D2); measuring a removed element is not
+      // an error worth surfacing then.
+      if (!unmounted) throw e;
     } finally {
       settling = false;
     }
@@ -770,6 +776,7 @@
     const unsubActive = activeTabId.subscribe(() => scrollActiveTabIntoView());
 
     return () => {
+      unmounted = true;
       resizeObserver?.disconnect();
       unsubTabs();
       unsubActive();

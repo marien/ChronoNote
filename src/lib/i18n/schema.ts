@@ -394,6 +394,7 @@ export type TranslationParams = {
   "topBar.contextMenu.copyPath": undefined;
 
   // InfoBar (`InfoBar.svelte`, proposal C5).
+  "infoBar.dismiss": undefined;
   "infoBar.updateAvailable": { version: string };
   "infoBar.viewUpdate": undefined;
   "infoBar.updated": { version: string };
@@ -824,6 +825,10 @@ export type TranslationParams = {
   "editorMenu.cut": undefined;
   "editorMenu.copy": undefined;
   "editorMenu.paste": undefined;
+  "phoneNav.ariaLabel": undefined;
+  "phoneNav.actions": undefined;
+  "phoneNav.history": undefined;
+  "phoneNav.search": undefined;
   "phoneNav.note": undefined;
   "phoneNav.today": undefined;
   "phoneNav.yesterday": undefined;

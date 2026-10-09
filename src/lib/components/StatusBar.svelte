@@ -4,18 +4,13 @@
     folderNameFromPath,
     notesDir,
     oneDriveAccount,
-    oneDriveFolder,
-    oneDriveSignInExpired,
-    oneDriveSyncing,
     LONG_TOAST_CHARS,
-    oneDriveSyncStatus,
     isMobile,
     statusCounts,
     statusPos,
     statusSelection,
     statusWordCount,
     syncConflicts,
-    syncHealthPopoverOpen,
     toastAction,
     toastMessage,
     updateStatus,
@@ -23,7 +18,7 @@
   import { actionDrawerShowOnlyOpen, editorApi } from "../stores";
   import * as controller from "../controller";
   import Icon from "../icons/Icon.svelte";
-  import SyncHealthPopover from "./SyncHealthPopover.svelte";
+  import CloudStatusButton from "./CloudStatusButton.svelte";
   import { formatCombo, formatShortcut, shortcutById } from "../shortcuts";
   import { t } from "../i18n";
 
@@ -35,14 +30,6 @@
   function openAllActions() {
     actionDrawerShowOnlyOpen.set(false);
     controller.openActionDrawer();
-  }
-
-  function onCloudClick() {
-    if (!$oneDriveFolder) {
-      controller.openSettingsOnNotesFolder();
-      return;
-    }
-    syncHealthPopoverOpen.update((v) => !v);
   }
 
   // #37/#38: how many lines the selection covers (not a character count).
@@ -105,33 +92,7 @@
     <span id="stat-words" class="stat-tier1">{$t("statusBar.wordCount", { count: $statusWordCount })}</span>
     <span class="status-sep" aria-hidden="true"></span>
     {#if $backendKind === "web" && $oneDriveAccount}
-      <button
-        id="stat-cloud"
-        class="status-folder-btn"
-        class:stat-expired={$oneDriveSignInExpired}
-        title={$oneDriveSignInExpired ? $t("statusBar.oneDrive.signInExpired") : $oneDriveAccount ? $t("statusBar.oneDrive.statusTitle", { path: $oneDriveFolder?.folderPath ?? "/", status: $oneDriveSyncStatus }) : $t("statusBar.oneDrive.connectPrompt")}
-        aria-label={$t("statusBar.oneDrive.ariaLabel")}
-        onclick={onCloudClick}
-      >
-        {#if $oneDriveSyncing || $oneDriveSyncStatus === "syncing"}
-          <!-- Not gated by stat-tier0 like the label, so a narrow screen still shows *something is happening*. -->
-          <span class="modal-spinner" aria-label={$t("statusBar.oneDrive.syncingAriaLabel")}>⟳</span>
-        {:else}
-          <span class="stat-cloud-icon-wrap">
-            <Icon name="cloud" size={12} />
-            {#if $oneDriveSignInExpired}
-              <span class="stat-cloud-dot" aria-hidden="true"></span>
-            {/if}
-          </span>
-        {/if}
-        <span class="stat-tier0 status-folder-name">
-          {#if $oneDriveAccount}
-            {$oneDriveSyncing || $oneDriveSyncStatus === "syncing" ? $t("statusBar.oneDrive.syncingText") : !$oneDriveFolder ? $t("statusBar.oneDrive.chooseFolder") : $oneDriveSignInExpired ? $t("statusBar.oneDrive.signInAgain") : $oneDriveSyncStatus === "error" ? $t("statusBar.oneDrive.syncError") : $oneDriveSyncStatus === "offline" ? $t("statusBar.oneDrive.offline") : ($oneDriveFolder.folderPath.split("/").filter(Boolean).pop() ?? $t("statusBar.oneDrive.defaultFolderName"))}
-          {:else}
-            OneDrive
-          {/if}
-        </span>
-      </button>
+      <CloudStatusButton />
       {#if $syncConflicts.length > 0}
         <button
           id="stat-conflicts"
@@ -187,9 +148,6 @@
     </button>
   </div>
 
-  {#if $syncHealthPopoverOpen}
-    <SyncHealthPopover />
-  {/if}
 </div>
 
 <style>
@@ -284,7 +242,6 @@
 
 #stat-folder,
 #stat-storage,
-#stat-cloud,
 #stat-conflicts {
   display: inline-flex;
   align-items: center;
@@ -300,7 +257,6 @@
 
 #stat-folder:hover,
 #stat-storage:hover,
-#stat-cloud:hover,
 #stat-conflicts:hover {
   color: var(--text);
 }
@@ -311,47 +267,6 @@
 #stat-conflicts {
   color: var(--state-warn);
   white-space: nowrap;
-}
-
-/* OneDrive sign-in expired: the stored session can no longer be renewed
-   silently, so highlight the cloud control in amber with a dot badge. */
-
-#stat-cloud.stat-expired {
-  color: var(--state-warn);
-}
-
-#stat-cloud.stat-expired:hover {
-  color: var(--state-warn);
-  opacity: 0.85;
-}
-
-.stat-cloud-icon-wrap {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  line-height: 0;
-}
-
-.stat-cloud-dot {
-  position: absolute;
-  top: -2px;
-  right: -3px;
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background: var(--state-warn);
-  box-shadow: 0 0 0 1px var(--tab-bg);
-}
-
-/* #stat-cloud swaps its icon for a spinner while syncing (base
-   .modal-spinner is 14px, sized for a modal's own "Checking…" row) —
-   without this override it's 2px wider than the 12px `cloud` Icon it
-   replaces, so everything after it in the status bar visibly shifts
-   left the moment a sync finishes and the icon comes back. */
-
-#stat-cloud .modal-spinner {
-  font-size: 12px;
 }
 
 /* §merged-titlebar: the folder name shouldn't be able to crowd out

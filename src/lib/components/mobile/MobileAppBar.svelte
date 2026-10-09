@@ -4,12 +4,15 @@
   import {
     activeTabId,
     allNotesCache,
+    backendKind,
+    oneDriveAccount,
     isZenMode,
     mobileTabDrawerOpen,
     statusCounts,
     tabs,
   } from "../../controller";
   import Icon from "../../icons/Icon.svelte";
+  import CloudStatusButton from "../CloudStatusButton.svelte";
   import { parseISODateLocal, todayISO } from "../../date";
   import { locale, t } from "../../i18n";
   import { adjacentNoteDate, relativeDay } from "../../phoneNav";
@@ -154,6 +157,7 @@
     type="button"
     class="mobile-title-btn mobile-active-tab"
     data-datepicker-trigger
+    data-date={activeTab && !activeTab.isScratchpad ? activeTab.filename.replace(/\.txt$/, "") : undefined}
     title={$t("topBar.label.date")}
     onclick={controller.openDatePicker}
   >
@@ -177,6 +181,10 @@
   >
     <Icon name="chevron-right" size={20} />
   </button>
+
+  {#if $backendKind === "web" && $oneDriveAccount}
+    <CloudStatusButton compact />
+  {/if}
 
   <button
     type="button"

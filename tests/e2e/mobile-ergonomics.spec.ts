@@ -212,11 +212,22 @@ test.describe("narrow reflow: sync conflicts and calendar review (Area 5.4)", ()
     expect(controls.x + controls.width).toBeLessThanOrEqual(card.x + card.width + 1);
   });
 
+});
+
+test.describe("bottom sheets on phones (D4)", () => {
+  test.use({
+    viewport: { width: 390, height: 844 },
+    isMobile: true,
+    hasTouch: true,
+    userAgent:
+      "Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Mobile Safari/537.36",
+  });
+
   test("mobile toast is interactive, runs action on tap, and dismisses", async ({ page }) => {
+    // Runs under this block's touch-phone emulation, so phone mode is real
+    // (forcing it by hand raced with the viewport resize resetting it).
     await seedApp(page);
-    await page.setViewportSize({ width: 390, height: 844 });
     await page.evaluate(() => {
-      window.__CHRONO_MOCK__!.debug!.setMobile(true);
       window.__CHRONO_MOCK__!.debug!.showToast("Mobile Actionable Notice", {
         action: () => {
           (window as any).__MOBILE_ACTION_FIRED__ = true;
@@ -234,16 +245,6 @@ test.describe("narrow reflow: sync conflicts and calendar review (Area 5.4)", ()
     expect(fired).toBe(true);
     await expect(toast).toHaveCount(0);
   });
-});
-
-test.describe("bottom sheets on phones (D4)", () => {
-  test.use({
-    viewport: { width: 390, height: 844 },
-    isMobile: true,
-    hasTouch: true,
-    userAgent:
-      "Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Mobile Safari/537.36",
-  });
 
   test("Action Drawer and History open as bottom sheets, and swipe down closes Action Drawer", async ({ page }) => {
     await seedApp(page, {
@@ -259,6 +260,8 @@ test.describe("bottom sheets on phones (D4)", () => {
     // 1. Action Drawer card's bottom equals the viewport bottom and its width the viewport width
     const actionCard = await openViaShortcut(page, "ControlOrMeta+Shift+A", "actions");
     await expect(actionCard).toBeVisible();
+    // The sheet slides in; measure once that animation has finished.
+    await actionCard.evaluate((el) => Promise.all(el.getAnimations().map((a) => a.finished)));
 
     const actionBox = (await actionCard.boundingBox())!;
     expect(Math.round(actionBox.width)).toBe(390);
@@ -306,6 +309,7 @@ test.describe("bottom sheets on phones (D4)", () => {
     // 3. The History drawer is 92% of the viewport tall
     const historyCard = await openViaShortcut(page, "ControlOrMeta+Shift+h", "history");
     await expect(historyCard).toBeVisible();
+    await historyCard.evaluate((el) => Promise.all(el.getAnimations().map((a) => a.finished)));
 
     const historyBox = (await historyCard.boundingBox())!;
     const expectedHeight = 844 * 0.92;

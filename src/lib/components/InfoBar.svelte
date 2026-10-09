@@ -71,8 +71,8 @@
     <button
       type="button"
       class="info-bar-close"
-      aria-label={$t("common.close")}
-      title={$t("common.close")}
+      aria-label={$t("infoBar.dismiss")}
+      title={$t("infoBar.dismiss")}
       onclick={handleDismiss}
     >
       <Icon name="close" size={14} />
