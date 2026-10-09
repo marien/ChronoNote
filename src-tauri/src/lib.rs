@@ -2,6 +2,7 @@ mod agenda;
 mod error;
 mod onedrive;
 mod peek_window;
+mod snap_overlay;
 mod storage;
 mod update_install;
 mod zen_window;
@@ -248,6 +249,7 @@ pub fn run() {
             zen_window::zen_prepare_leave,
             peek_set_transparent,
             peek_window::peek_set_bounds,
+            snap_overlay::snap_overlay_set_rect,
             get_config,
             set_notes_dir,
             update_config,

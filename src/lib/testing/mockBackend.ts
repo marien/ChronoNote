@@ -860,6 +860,8 @@ export class MockBackend {
       case "peek_set_transparent":
       case "zen_cover_monitor":
       case "zen_prepare_leave":
+      // Rust `snap_overlay.rs` (§B1): a native child window; nothing to do here.
+      case "snap_overlay_set_rect":
         return null;
 
       case "plugin:resources|close":
