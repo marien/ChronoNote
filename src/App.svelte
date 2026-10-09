@@ -19,7 +19,6 @@
     modal,
     mobileTabDrawerOpen,
     scratchpadGateContext,
-    statusPos,
     tabs,
     toastAction,
     toastMessage,
@@ -276,6 +275,13 @@
         return;
       }
 
+      // Close Settings page when Ctrl+, is pressed while it is open on desktop
+      if (matchesShortcut(e, "openSettings") && !get(isMobile) && get(modal) === "settings") {
+        e.preventDefault();
+        controller.closeAllModals();
+        return;
+      }
+
       // A modal owns the keyboard while it's open — none of these should
       // reach the app underneath (found via a real bug report: Ctrl+Tab
       // switched the active tab while Section History was open, and the
@@ -462,6 +468,7 @@
   });
 
   const activeTab = $derived($tabs.find((t) => t.id === $activeTabId));
+  const settingsPage = $derived(!$isMobile && $modal === "settings");
 
   let windowInnerWidth = $state(typeof window !== "undefined" ? window.innerWidth : 1200);
   const isHistoryDocked = $derived(windowInnerWidth >= 1000 && !$isMobile && !$isZenMode && !$peekMode);
@@ -477,18 +484,6 @@
       controller.closeAllModals();
     }
     wasHistoryDockedOpen = isDockedOpen;
-  });
-
-  $effect(() => {
-    const pos = $statusPos;
-    const tab = activeTab;
-    if (tab && !tab.isScratchpad) {
-      const text = editorApi?.getContent() ?? tab.content;
-      const target = controller.sectionTargetAt(text, pos.line - 1);
-      cursorSection.set(target);
-    } else {
-      cursorSection.set(null);
-    }
   });
 
   let cursorDebounceTimer: ReturnType<typeof setTimeout> | undefined;
@@ -616,8 +611,13 @@
       {$toastMessage}
     </div>
   {/if}
-  <InfoBar />
-  <div class="workspace-row">
+  {#if settingsPage}
+    <SettingsModal page />
+  {:else}
+    <InfoBar />
+  {/if}
+  <!-- The Settings page covers the note area; the editor stays mounted underneath (undo history, scroll, caret). -->
+  <div class="workspace-row" style:display={settingsPage ? "none" : null}>
     <div
       id="editor-container"
       role="region"
@@ -682,11 +682,11 @@
     <SearchModal />
   {:else if $modal === "safety"}
     <SafetyModal />
-  {:else if $modal === "settings"}
+  {:else if $modal === "settings" && $isMobile}
     <SettingsModal />
   {:else if $modal === "shortcuts"}
     <ShortcutsModal />
-  {:else if $modal === "about"}
+  {:else if $modal === "about" && $isMobile}
     <AboutModal />
   {:else if $modal === "unsavedScratchpads"}
     <UnsavedScratchpadsModal />

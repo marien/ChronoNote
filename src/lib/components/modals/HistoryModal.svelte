@@ -32,6 +32,7 @@
 
   let rootEl: HTMLElement | undefined = $state();
   let selectedIndex = $state(0);
+  let hasFocusedOpenedFrom = false;
   let lastTargetHeader = $state("");
   $effect.pre(() => {
     if ($historyTargetHeader !== lastTargetHeader) {
@@ -114,7 +115,6 @@
   }
 
   let bodyContainerEl: HTMLDivElement;
-  let hasFocusedOpenedFrom = false;
 
   // 2026-09-27 bug fix: `historyOccurrences` always starts as `[]` and
   // fills in once the disk read resolves — genuinely *after* `onMount` in

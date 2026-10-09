@@ -4,21 +4,19 @@ import { seedApp, editor, openViaShortcut, modalCard, MODAL_LABELS, datePicker }
 /** §95: every modal traps Tab within its own controls and hands focus
  * back to the editor when it closes. */
 
-test("Tab stays inside the Settings modal and never lands on the editor behind it", async ({ page }) => {
+test("Tab never lands on the editor behind the Settings page", async ({ page }) => {
+  // §344: Settings is a page on desktop (the title bar stays reachable, like any page), so it no longer traps Tab;
+  // the note it covers must still be out of reach.
   await seedApp(page, { seed: "empty" });
-  const card = await openViaShortcut(page, "ControlOrMeta+Comma", "settings");
-
-  // Tab around a bunch — focus must always be inside the modal card.
-  for (let i = 0; i < 8; i++) {
+  await openViaShortcut(page, "ControlOrMeta+Comma", "settings");
+  const inEditor = () => page.evaluate(() => !!document.activeElement?.closest(".cm-editor"));
+  for (let i = 0; i < 12; i++) {
     await page.keyboard.press("Tab");
-    const insideCard = await card.evaluate((el) => el.contains(document.activeElement));
-    expect(insideCard).toBe(true);
+    expect(await inEditor()).toBe(false);
   }
-  // Shift+Tab too.
-  for (let i = 0; i < 4; i++) {
+  for (let i = 0; i < 6; i++) {
     await page.keyboard.press("Shift+Tab");
-    const insideCard = await card.evaluate((el) => el.contains(document.activeElement));
-    expect(insideCard).toBe(true);
+    expect(await inEditor()).toBe(false);
   }
 });
 

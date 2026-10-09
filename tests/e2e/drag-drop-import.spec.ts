@@ -138,6 +138,6 @@ test.describe("Dropped notes that differ from an existing note (Decision 6)", ()
       notes: { "2026-09-19.txt": "from the bundle" },
     });
     await drop(page, "export.json", bundle);
-    await expect(page.getByRole("dialog", { name: "Settings" })).toBeVisible();
+    await expect(page.getByRole("main", { name: "Settings" }) /* §344: a page on desktop */).toBeVisible();
   });
 });

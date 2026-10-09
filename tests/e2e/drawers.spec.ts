@@ -127,7 +127,8 @@ test.describe("info drawers", () => {
     for (const [combo, key] of [
       ["ControlOrMeta+Slash", "shortcuts"],
       ["ControlOrMeta+Shift+Slash", "shortcuts"],
-      ["ControlOrMeta+Shift+Comma", "about"],
+      // §344: About is a tab of the Settings page on desktop.
+      ["ControlOrMeta+Shift+Comma", "settings"],
     ] as const) {
       await editor(page).click();
       await page.keyboard.press(combo);

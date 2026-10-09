@@ -13,7 +13,7 @@ import {
 } from "./helpers";
 import { scenario } from "../../src/lib/testing/scenarios";
 
-const settings = (page: Page) => page.locator(".settings-modal-card");
+const settings = (page: Page) => page.locator(".settings-modal-card, .settings-page");
 
 async function openSettings(page: Page) {
   await editor(page).click();
@@ -22,9 +22,9 @@ async function openSettings(page: Page) {
 }
 
 /** Settings is tabbed (Appearance / Notes & Sync /
- * Updates) — always reopens on the first tab, so anything under the other
- * two needs an explicit switch first. */
-async function openSettingsTab(page: Page, label: "Appearance" | "Notes & Sync" | "Updates") {
+ * Updates / About) — always reopens on the first tab, so anything under the other
+ * tabs needs an explicit switch first. */
+async function openSettingsTab(page: Page, label: "Appearance" | "Notes & Sync" | "Updates" | "About") {
   await settings(page).getByRole("tab", { name: label, exact: true }).click();
 }
 
@@ -221,8 +221,8 @@ test.describe("settings (Ctrl/Cmd+,)", () => {
     await warn.getByRole("button", { name: "Cancel" }).click();
     expect(await page.evaluate(() => window.__CHRONO_MOCK__!.notesDir)).toBe("/work-notes");
 
-    // Try again, this time discard.
-    await page.keyboard.press("ControlOrMeta+Comma");
+    // Try again, this time discard. Cancel went back to Settings (Ctrl+, would now close the page, §344).
+    await expect(settings(page)).toBeVisible();
     await openSettingsTab(page, "Notes & Sync");
     await settings(page).getByRole("button", { name: "/personal-notes" }).click();
     await modalCard(page, MODAL_LABELS.unsavedScratchpads)
@@ -265,17 +265,15 @@ test.describe("settings (Ctrl/Cmd+,)", () => {
 
     const cardBox = (await settings(page).boundingBox())!;
     const statusBarBox = (await page.locator("#status-bar").boundingBox())!;
-    expect(cardBox.height).toBeLessThanOrEqual(500 * 0.8 + 1);
     expect(cardBox.y + cardBox.height).toBeLessThanOrEqual(statusBarBox.y + 1);
 
-    // Content overflows the (now bounded) section, so it scrolls
-    // internally rather than growing the card past its cap.
-    const section = settings(page).locator(".settings-section");
-    const [clientHeight, scrollHeight] = await section.evaluate((el) => [el.clientHeight, el.scrollHeight]);
+    // Content overflows the (now bounded) page, so it scrolls
+    // internally rather than growing past the status bar.
+    const [clientHeight, scrollHeight] = await settings(page).evaluate((el) => [el.clientHeight, el.scrollHeight]);
     expect(scrollHeight).toBeGreaterThan(clientHeight);
 
-    // Close stays reachable — the original bug this cap guards against.
-    await settings(page).getByRole("button", { name: "Close", exact: true }).click();
+    // Back button stays reachable — the original bug this cap guards against.
+    await settings(page).locator(".settings-back-btn").click();
     expect(await currentModal(page)).toBe("none");
   });
 
@@ -283,7 +281,7 @@ test.describe("settings (Ctrl/Cmd+,)", () => {
     await seedApp(page);
     await openSettings(page);
     const tabs = settings(page).getByRole("tab");
-    await expect(tabs).toHaveCount(3);
+    await expect(tabs).toHaveCount(4);
     await expect(settings(page).getByRole("tab", { name: "Appearance", exact: true })).toHaveAttribute("aria-selected", "true");
 
     await settings(page).getByRole("tab", { name: "Appearance", exact: true }).focus();
@@ -293,7 +291,7 @@ test.describe("settings (Ctrl/Cmd+,)", () => {
     await expect(settings(page).getByText("Startup", { exact: true })).toBeVisible();
     await page.keyboard.press("ArrowLeft");
     await page.keyboard.press("ArrowLeft"); // wraps round to the last tab
-    await expect(settings(page).getByRole("tab", { name: "Updates", exact: true })).toHaveAttribute("aria-selected", "true");
+    await expect(settings(page).getByRole("tab", { name: "About", exact: true })).toHaveAttribute("aria-selected", "true");
   });
 
   test("every setting is laid out the same way: a labelled row with its control", async ({ page }) => {
@@ -374,57 +372,108 @@ test.describe("settings (Ctrl/Cmd+,)", () => {
     await seedApp(page);
     await openSettings(page);
 
+    const langSelect = settings(page).locator("select.settings-select");
+
     // Switch to French
-    await settings(page).getByRole("radio", { name: "Français", exact: true }).click();
+    await langSelect.selectOption("fr");
     expect(await page.evaluate(() => window.__CHRONO_MOCK__!.languageMode)).toBe("fr");
-    await expect(settings(page).locator(".modal-title")).toContainText("Paramètres");
+    await expect(settings(page).locator(".settings-page-title, .modal-title")).toContainText("Paramètres");
 
     // Switch to Polish
-    await settings(page).getByRole("radio", { name: "Polski", exact: true }).click();
+    await langSelect.selectOption("pl");
     expect(await page.evaluate(() => window.__CHRONO_MOCK__!.languageMode)).toBe("pl");
-    await expect(settings(page).locator(".modal-title")).toContainText("Ustawienia");
+    await expect(settings(page).locator(".settings-page-title, .modal-title")).toContainText("Ustawienia");
 
     // Switch to Spanish
-    await settings(page).getByRole("radio", { name: "Español", exact: true }).click();
+    await langSelect.selectOption("es");
     expect(await page.evaluate(() => window.__CHRONO_MOCK__!.languageMode)).toBe("es");
-    await expect(settings(page).locator(".modal-title")).toContainText("Ajustes");
+    await expect(settings(page).locator(".settings-page-title, .modal-title")).toContainText("Ajustes");
 
     // Switch to Italian
-    await settings(page).getByRole("radio", { name: "Italiano", exact: true }).click();
+    await langSelect.selectOption("it");
     expect(await page.evaluate(() => window.__CHRONO_MOCK__!.languageMode)).toBe("it");
-    await expect(settings(page).locator(".modal-title")).toContainText("Impostazioni");
+    await expect(settings(page).locator(".settings-page-title, .modal-title")).toContainText("Impostazioni");
 
     // Survives reload
     await page.reload();
     await openSettings(page);
-    await expect(settings(page).locator(".modal-title")).toContainText("Impostazioni");
+    await expect(settings(page).locator(".settings-page-title, .modal-title")).toContainText("Impostazioni");
 
     // Switch back to English
-    await settings(page).getByRole("radio", { name: "English", exact: true }).click();
+    await settings(page).locator("select.settings-select").selectOption("en");
     expect(await page.evaluate(() => window.__CHRONO_MOCK__!.languageMode)).toBe("en");
-    await expect(settings(page).locator(".modal-title")).toContainText("Settings");
+    await expect(settings(page).locator(".settings-page-title, .modal-title")).toContainText("Settings");
   });
 
-  test("language control renders as a responsive grid fitting within narrow viewports without overflowing", async ({
+  test("language control renders as a ComboBox select fitting within narrow viewports without overflowing", async ({
     page,
   }) => {
     await seedApp(page);
     await page.setViewportSize({ width: 375, height: 667 });
     await openSettings(page);
 
-    const langGrid = settings(page).locator(".segmented-grid");
-    await expect(langGrid).toBeVisible();
+    const langSelect = settings(page).locator("select.settings-select");
+    await expect(langSelect).toBeVisible();
 
     const cardBox = (await settings(page).boundingBox())!;
-    const gridBox = (await langGrid.boundingBox())!;
+    const selectBox = (await langSelect.boundingBox())!;
 
     // Must be completely contained horizontally within the card (no overflow/clipping)
-    expect(gridBox.x).toBeGreaterThanOrEqual(cardBox.x);
-    expect(gridBox.x + gridBox.width).toBeLessThanOrEqual(cardBox.x + cardBox.width + 1);
+    expect(selectBox.x).toBeGreaterThanOrEqual(cardBox.x);
+    expect(selectBox.x + selectBox.width).toBeLessThanOrEqual(cardBox.x + cardBox.width + 1);
 
-    // All 8 language options are visible and reachable
+    // All 8 language options are present
+    const optionTexts = await langSelect.locator("option").allInnerTexts();
     for (const name of ["System", "English", "Nederlands", "Deutsch", "Français", "Polski", "Español", "Italiano"]) {
-      await expect(langGrid.getByRole("radio", { name, exact: true })).toBeVisible();
+      expect(optionTexts).toContain(name);
     }
+  });
+});
+
+test.describe("settings page mode and mobile sheet (§Z2)", () => {
+  test("desktop: Ctrl+, replaces editor with .settings-page, Escape restores editor", async ({ page }) => {
+    await seedApp(page);
+    await editor(page).click();
+    await expect(page.locator("#editor-container")).toBeVisible();
+
+    await page.keyboard.press("ControlOrMeta+Comma");
+    await expect(page.locator(".settings-page")).toBeVisible();
+    await expect(page.locator("#editor-container")).toBeHidden();
+
+    await page.keyboard.press("Escape");
+    await expect(page.locator(".settings-page")).toBeHidden();
+    await expect(page.locator("#editor-container")).toBeVisible();
+  });
+
+  test("desktop: Ctrl+Shift+, opens settings directly on About tab showing version card", async ({ page }) => {
+    await seedApp(page, { seed: { notes: {}, appVersion: "1.2.3" } });
+    await editor(page).click();
+
+    await page.keyboard.press("ControlOrMeta+Shift+Comma");
+    await expect(page.locator(".settings-page")).toBeVisible();
+    await expect(page.locator(".settings-page").getByRole("tab", { name: "About", exact: true })).toHaveAttribute("aria-selected", "true");
+    await expect(page.locator(".settings-page .about-version-card")).toBeVisible();
+    await expect(page.locator(".settings-page .about-version-card")).toContainText("1.2.3");
+  });
+
+  test.describe("mobile sheet behavior", () => {
+    test.use({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
+
+    test("on mobile, settings opens as a modal card sheet and about opens as a modal card sheet", async ({ page }) => {
+      await seedApp(page, { seed: { notes: {}, appVersion: "1.2.3" } });
+      await editor(page).click();
+
+      // Open settings on mobile
+      await page.keyboard.press("ControlOrMeta+Comma");
+      await expect(page.locator(".modal-card.settings-modal-card")).toBeVisible();
+      await expect(page.locator(".settings-page")).toHaveCount(0);
+      await page.getByRole("button", { name: "Close", exact: true }).click();
+      await expect(page.locator(".modal-card.settings-modal-card")).toBeHidden();
+
+      // Open about on mobile
+      await page.keyboard.press("ControlOrMeta+Shift+Comma");
+      await expect(page.locator(".modal-card.about-modal-card")).toBeVisible();
+      await expect(page.locator(".modal-card.about-modal-card .about-version-card")).toBeVisible();
+    });
   });
 });

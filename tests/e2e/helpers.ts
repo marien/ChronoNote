@@ -185,6 +185,12 @@ export async function statusCounts(page: Page): Promise<{ open: number; closed: 
 // --- modals --------------------------------------------------------
 
 export function modalCard(page: Page, label: string): Locator {
+  if (label === MODAL_LABELS.about) {
+    return page.locator(`.modal-card[aria-label="${label}"], .settings-page [role="tabpanel"]`);
+  }
+  if (label === MODAL_LABELS.settings) {
+    return page.locator(`.modal-card[aria-label="${label}"], main.settings-page[aria-label="${label}"]`);
+  }
   return page.locator(`.modal-card[aria-label="${label}"], aside.history-pane[aria-label="${label}"]`);
 }
 

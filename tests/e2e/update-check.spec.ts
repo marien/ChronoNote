@@ -244,7 +244,7 @@ test.describe("About: the version card", () => {
     await seedApp(page, seed({ updateCheck: "none" }));
     const about = await openViaShortcut(page, "ControlOrMeta+Shift+Comma", "about");
     await expect(about.locator(".modal-title .modal-counter")).toHaveCount(0);
-    await expect(about.locator(".modal-title")).not.toContainText("v0.3.0");
+    await expect(page.locator(".settings-page-title")).not.toContainText("v0.3.0");
     const card = about.locator(".about-version-card");
     await expect(card).toContainText("v0.3.0"); // the mock's default appVersion
     await expect(card).toContainText("Version");

@@ -15,19 +15,7 @@ test.describe("modal system modernization (Area 5.1 & 5.3)", () => {
   });
 
   test("modal sizing scale applies semantic 4-tier classes (.modal-sm, .modal-md, .modal-lg, .modal-xl)", async ({ page }) => {
-    // 1. AboutModal uses .modal-sm (440px max)
-    const about = await openViaShortcut(page, "ControlOrMeta+Shift+Comma", "about");
-    await expect(about).toHaveClass(/\bmodal-sm\b/);
-    const aboutWidth = await about.evaluate((el) => window.getComputedStyle(el).width);
-    expect(parseFloat(aboutWidth)).toBeLessThanOrEqual(440);
-    await page.keyboard.press("Escape");
-
-    // 2. SettingsModal uses .modal-md (560px max)
-    const settings = await openViaShortcut(page, "ControlOrMeta+,", "settings");
-    await expect(settings).toHaveClass(/\bmodal-md\b/);
-    const settingsWidth = await settings.evaluate((el) => window.getComputedStyle(el).width);
-    expect(parseFloat(settingsWidth)).toBeLessThanOrEqual(560);
-    await page.keyboard.press("Escape");
+    // §344: About and Settings are a page on desktop (sheets on a phone), so they are no longer in this scale.
 
     // 3. SearchModal uses .modal-lg (720px max)
     const search = await openViaShortcut(page, "ControlOrMeta+Shift+f", "search");
@@ -45,13 +33,7 @@ test.describe("modal system modernization (Area 5.1 & 5.3)", () => {
   });
 
   test("universal close affordance (.modal-close-btn) dismisses modals on click", async ({ page }) => {
-    // Test close button on AboutModal
-    const about = await openViaShortcut(page, "ControlOrMeta+Shift+Comma", "about");
-    const aboutCloseBtn = about.locator(".modal-close-btn");
-    await expect(aboutCloseBtn).toBeVisible();
-    await aboutCloseBtn.click();
-    expect(await currentModal(page)).toBe("none");
-
+    // (About used to be the first case here; since §344 it is a Settings tab on desktop.)
     // Test close button on CommandPaletteModal
     const palette = await openViaShortcut(page, "ControlOrMeta+k", "commandPalette");
     const paletteCloseBtn = palette.locator(".modal-close-btn");
@@ -73,9 +55,9 @@ test.describe("modal system modernization (Area 5.1 & 5.3)", () => {
     await searchCloseBtn.click();
     expect(await currentModal(page)).toBe("none");
 
-    // Test close button on SettingsModal
-    const settings = await openViaShortcut(page, "ControlOrMeta+,", "settings");
-    const settingsCloseBtn = settings.locator(".modal-close-btn");
+    // The Settings page (§344) closes with its back button
+    await openViaShortcut(page, "ControlOrMeta+,", "settings");
+    const settingsCloseBtn = page.locator(".settings-back-btn");
     await expect(settingsCloseBtn).toBeVisible();
     await settingsCloseBtn.click();
     expect(await currentModal(page)).toBe("none");

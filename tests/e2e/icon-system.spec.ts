@@ -29,7 +29,8 @@ test.describe("icon system (§127)", () => {
       await page.keyboard.press(combo);
       const card = modalCard(page, MODAL_LABELS[key]);
       await card.waitFor();
-      const headerText = await card.locator(".modal-input-wrap").first().innerText();
+      // §344: Settings/About are a page on desktop, with its own header row.
+      const headerText = await page.locator(".modal-input-wrap, .settings-page-header").first().innerText();
       expect(headerText, `${key} modal header`).not.toMatch(EMOJI_RE);
       await page.keyboard.press("Escape");
     }

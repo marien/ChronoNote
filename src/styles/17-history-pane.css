@@ -57,3 +57,9 @@
   min-height: 0;
   overflow-y: auto;
 }
+
+/* The pane is narrower than the dialog: let the key hints wrap instead of cutting them off. */
+.history-pane-card .modal-footer-hints {
+  white-space: normal;
+  overflow: visible;
+}

@@ -2552,10 +2552,17 @@ describe("modal open/close helpers", () => {
     ["openSettings", "settings"],
     ["openShortcutsHelp", "shortcuts"],
     ["openGlyphLegend", "shortcuts"], // §110: folded into the combined drawer
-    ["openAbout", "about"],
+    ["openAbout", "settings"], // §Z2: desktop redirects to Settings (About tab)
   ] as const)("%s sets modal to %s", (fn, expected) => {
     (controller as any)[fn]();
     expect(get(controller.modal)).toBe(expected);
+  });
+
+  it("openAbout sets modal to about on mobile (§Z2)", () => {
+    controller.isMobile.set(true);
+    controller.openAbout();
+    expect(get(controller.modal)).toBe("about");
+    controller.isMobile.set(false);
   });
 
   it("closeAllModals resets to none", () => {

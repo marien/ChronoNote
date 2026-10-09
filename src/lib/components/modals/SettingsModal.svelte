@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount, tick } from "svelte";
+  import { onDestroy, onMount, tick } from "svelte";
   import { get } from "svelte/store";
   import * as controller from "../../controller";
   import { focusTrap } from "../../actions/focusTrap";
@@ -45,6 +45,7 @@
   import Segmented from "../Segmented.svelte";
   import SettingRow from "../SettingRow.svelte";
   import SettingToggle from "../SettingToggle.svelte";
+  import AboutPanel from "../AboutPanel.svelte";
   import { PEEK_DEFAULTS, peekSettings, type PeekHeaderMode } from "../../peek";
   import { occurrenceHint, setOccurrenceHint } from "../../occurrences";
   import { t } from "../../i18n";
@@ -54,15 +55,26 @@
   import { ExportBundleError, type ExportBundle } from "../../exportImport";
   import OneDriveFolderPickerModal from "./OneDriveFolderPickerModal.svelte";
 
-  // Three tabs group what used to be one long scrolling list: Appearance/
-  // Editor are the "how it looks and feels while typing" settings; Notes
-  // location/Startup/Calendar/Data are the "where things come from and go" settings;
-  // Updates stands alone since it's neither. The same short labels on every
-  // platform (they were shortened on mobile first so every tab fits).
+  interface Props {
+    page?: boolean;
+  }
+  let { page = false }: Props = $props();
+
+  onDestroy(() => {
+    if (page) {
+      void tick().then(() => {
+        controller.editorApi?.focus();
+        document.querySelector<HTMLElement>(".cm-content")?.focus();
+      });
+    }
+  });
+
+  // Four tabs group settings: Appearance/Editor, Notes & Sync, Updates (desktop only), and About.
   const settingsTabs = $derived([
     { value: "appearance", label: $t("settings.tabs.appearance") },
     { value: "calendar", label: $t("settings.tabs.notesAndSync") },
     ...($backendKind === "desktop" ? [{ value: "updates", label: $t("settings.tabs.updates") }] : []),
+    { value: "about", label: $t("settings.tab.about") },
   ]);
   // Left/Right move between the tabs (and select them, as the tab pattern does).
   function onTabsKeydown(e: KeyboardEvent) {
@@ -330,42 +342,24 @@
     }
   }
 </script>
-<div class="overlay" role="presentation" use:closeOnOutsideClick={controller.closeAllModals}>
-  <div
-    class="modal-card settings-modal-card modal-md"
-    role="dialog"
-    aria-modal="true"
-    use:focusTrap
-    use:sheetSwipe
-    aria-label={$t("settings.modal.title")}
-  >
-    <div class="modal-input-wrap modal-title">
-      <Icon name="settings" size={15} />
-      <span>{$t("settings.modal.title")}</span>
+{#snippet tabsStrip()}
+  <div class="settings-tabs" role="tablist" tabindex="-1" onkeydown={onTabsKeydown}>
+    {#each settingsTabs as tab (tab.value)}
       <button
         type="button"
-        class="icon-btn modal-close-btn"
-        aria-label={$t("common.closeDialog")}
-        onclick={controller.closeAllModals}
+        role="tab"
+        class="settings-tab"
+        aria-selected={tab.value === activeSettingsTab}
+        tabindex={tab.value === activeSettingsTab ? 0 : -1}
+        onclick={() => (activeSettingsTab = tab.value)}
       >
-        <Icon name="close" size={14} />
+        {tab.label}
       </button>
-    </div>
-    <div class="settings-tabs" role="tablist" tabindex="-1" onkeydown={onTabsKeydown}>
-      {#each settingsTabs as tab (tab.value)}
-        <button
-          type="button"
-          role="tab"
-          class="settings-tab"
-          aria-selected={tab.value === activeSettingsTab}
-          tabindex={tab.value === activeSettingsTab ? 0 : -1}
-          onclick={() => (activeSettingsTab = tab.value)}
-        >
-          {tab.label}
-        </button>
-      {/each}
-    </div>
-    <div class="settings-section" role="tabpanel">
+    {/each}
+  </div>
+{/snippet}
+
+{#snippet tabContent()}
       {#if activeSettingsTab === "appearance"}
         <section class="s-group">
           <div class="settings-section-label">{$t("settings.appearance.sectionLabel")}</div>
@@ -389,22 +383,29 @@
               {#snippet description()}{$t("settings.appearance.pureBlack.hint")}{/snippet}
             </SettingToggle>
           {/if}
-          <SettingRow label={$t("settings.appearance.language.label")} stack>
-            <Segmented
-              grid
-              options={[
-                { value: "system", label: $t("common.system") },
-                { value: "en", label: "English" },
-                { value: "nl", label: "Nederlands" },
-                { value: "de", label: "Deutsch" },
-                { value: "fr", label: "Français" },
-                { value: "pl", label: "Polski" },
-                { value: "es", label: "Español" },
-                { value: "it", label: "Italiano" },
-              ]}
-              value={$languageMode}
-              onChange={(v) => controller.setLanguageMode(v as LanguageMode)}
-            />
+          <SettingRow label={$t("settings.appearance.language.label")}>
+            <div class="select-wrap">
+              <select
+                class="settings-select"
+                aria-label={$t("settings.appearance.language.label")}
+                value={$languageMode}
+                onchange={(e) => controller.setLanguageMode(e.currentTarget.value as LanguageMode)}
+              >
+                <option value="system">{$t("common.system")}</option>
+                <option value="en">English</option>
+                <option value="nl">Nederlands</option>
+                <option value="de">Deutsch</option>
+                <option value="fr">Français</option>
+                <option value="pl">Polski</option>
+                <option value="es">Español</option>
+                <option value="it">Italiano</option>
+              </select>
+              <span class="select-chevron" aria-hidden="true">
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M2.5 4.5L6 8L9.5 4.5" />
+                </svg>
+              </span>
+            </div>
           </SettingRow>
           <SettingRow label={$t("settings.appearance.glyphs.label")}>
             {#snippet description()}{$t("settings.appearance.glyphs.hint")}{/snippet}
@@ -862,13 +863,61 @@
             {/if}
           </div>
         </section>
+      {:else if activeSettingsTab === "about"}
+        <AboutPanel />
       {/if}
+{/snippet}
+
+{#if page}
+  <main class="settings-page" aria-label={$t("settings.modal.title")}>
+    <header class="settings-page-header">
+      <button
+        type="button"
+        class="icon-btn settings-back-btn"
+        aria-label={$t("settings.back")}
+        onclick={controller.closeAllModals}
+      >
+        <Icon name="chevron-left" size={18} />
+      </button>
+      <h1 class="modal-title settings-page-title">{$t("settings.modal.title")}</h1>
+    </header>
+    {@render tabsStrip()}
+    <div class="settings-section" role="tabpanel">
+      {@render tabContent()}
     </div>
-    <div class="modal-footer s-footer">
-      <button class="settings-btn" onclick={controller.closeAllModals}>{$t("common.close")}</button>
+  </main>
+{:else}
+  <div class="overlay" role="presentation" use:closeOnOutsideClick={controller.closeAllModals}>
+    <div
+      class="modal-card settings-modal-card modal-md"
+      role="dialog"
+      aria-modal="true"
+      use:focusTrap
+      use:sheetSwipe
+      aria-label={$t("settings.modal.title")}
+    >
+      <div class="modal-input-wrap modal-title">
+        <Icon name="settings" size={15} />
+        <span>{$t("settings.modal.title")}</span>
+        <button
+          type="button"
+          class="icon-btn modal-close-btn"
+          aria-label={$t("common.closeDialog")}
+          onclick={controller.closeAllModals}
+        >
+          <Icon name="close" size={14} />
+        </button>
+      </div>
+      {@render tabsStrip()}
+      <div class="settings-section" role="tabpanel">
+        {@render tabContent()}
+      </div>
+      <div class="modal-footer s-footer">
+        <button class="settings-btn" onclick={controller.closeAllModals}>{$t("common.close")}</button>
+      </div>
     </div>
   </div>
-</div>
+{/if}
 
 {#if showFolderPicker}
   <OneDriveFolderPickerModal onClose={() => (showFolderPicker = false)} />

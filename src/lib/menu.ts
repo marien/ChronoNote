@@ -5,7 +5,7 @@
  * `controller.ts` in the v0.5.0 refactor. */
 import { get } from "svelte/store";
 import * as api from "./tauriApi";
-import { appVersion, justUpdatedToVersion, modal, settingsInitialTab } from "./stores";
+import { appVersion, isMobile, justUpdatedToVersion, modal, settingsInitialTab } from "./stores";
 
 export function openSettings() {
   modal.set("settings");
@@ -44,7 +44,12 @@ export const PROJECT_URL = "https://github.com/marien/ChronoNote";
 export const WEBSITE_URL = "https://chrononote.mariendegelder.nl";
 
 export function openAbout() {
-  modal.set("about");
+  if (get(isMobile)) {
+    modal.set("about");
+  } else {
+    settingsInitialTab.set("about");
+    modal.set("settings");
+  }
 }
 
 /** Opens a link in the OS's default browser rather than inside the app's

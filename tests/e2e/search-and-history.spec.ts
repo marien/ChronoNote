@@ -728,6 +728,8 @@ test.describe("section history (Ctrl/Cmd+Shift+H)", () => {
     page,
   }) => {
     const longBody = Array.from({ length: 80 }, (_, i) => `line ${i + 1}`).join("\n");
+    // Narrower than 1000px: History is the dialog (wider windows dock it next to the note, §343).
+    await page.setViewportSize({ width: 900, height: 720 });
     await seedApp(page, {
       seed: {
         notes: { [todayFilename()]: `Standup\n=======\n${longBody}` },
@@ -764,7 +766,7 @@ test.describe("section history (Ctrl/Cmd+Shift+H)", () => {
     await seedApp(page, {
       seed: { notes, session: { openTabs: ["2026-08-20.txt"], activeTab: "2026-08-20.txt" } },
     });
-    await page.setViewportSize({ width: 1100, height: 900 });
+    await page.setViewportSize({ width: 960, height: 900 }); // < 1000px: the dialog, not the docked pane (§343)
     await editor(page).click();
     await page.keyboard.press("ControlOrMeta+Home");
     await page.keyboard.press("ArrowDown"); // into the "Standup" section
@@ -1280,7 +1282,7 @@ test.describe("section history (Ctrl/Cmd+Shift+H)", () => {
         session: { openTabs: [todayFilename()], activeTab: todayFilename() },
       },
     });
-    await page.setViewportSize({ width: 1000, height: 800 });
+    await page.setViewportSize({ width: 960, height: 800 }); // < 1000px: the dialog, not the docked pane (§343)
     await editor(page).click();
     await page.keyboard.press("ControlOrMeta+Home");
     await page.keyboard.press("ControlOrMeta+Shift+H");

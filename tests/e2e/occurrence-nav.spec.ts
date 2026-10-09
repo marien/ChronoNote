@@ -187,7 +187,7 @@ test.describe("the setting", () => {
     expect(await page.evaluate(() => window.__CHRONO_MOCK__!.occurrenceHint)).toBe(false);
     await goToLine(page, BODY);
     await page.keyboard.press("ControlOrMeta+Comma");
-    const settings = page.locator(".settings-modal-card");
+    const settings = page.locator(".settings-modal-card, .settings-page");
     await expect(settings).toBeVisible();
     await settings.locator("label.toggle-switch", { hasText: "occurrence hint" }).click();
     await expect.poll(() => page.evaluate(() => window.__CHRONO_MOCK__!.occurrenceHint)).toBe(true);

@@ -688,8 +688,9 @@
             const lines = u.state.doc.lineAt(main.to).number - u.state.doc.lineAt(main.from).number + 1;
             controller.setStatusSelection({ lines });
           }
-          // The section the caret is in, for the occurrence hint (only worked out while the hint is on).
-          if (get(controller.occurrenceHint)) {
+          // The section the caret is in, for the occurrence hint and the docked History pane, which follows the
+          // caret (only worked out while one of them needs it).
+          if (get(controller.occurrenceHint) || (get(controller.modal) === "history" && get(controller.historyDocked))) {
             const text = u.state.doc.toString();
             controller.cursorSection.set(controller.sectionTargetAt(text, u.state.doc.lineAt(pos).number - 1));
           }

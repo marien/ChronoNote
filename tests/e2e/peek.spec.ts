@@ -436,7 +436,7 @@ test.describe("peek mode: tests with their own seed", () => {
     test("Settings has the Peek settings and no enable switch", async ({ page }) => {
       await editor(page).click();
       await page.keyboard.press("ControlOrMeta+Comma");
-      const settings = page.locator(".settings-modal-card");
+      const settings = page.locator(".settings-modal-card, .settings-page");
       await expect(settings.getByLabel("Background opacity, out of focus", { exact: true })).toHaveCount(1);
       await expect(settings.getByLabel("Fit the window height to the section", { exact: true })).toHaveCount(1);
       await expect(settings.getByLabel(/Enable Peek/)).toHaveCount(0);
@@ -465,12 +465,12 @@ test.describe("peek mode: tests with their own seed", () => {
   });
 });
 
-const peekRange = (page: Page, label: string) => page.locator(".settings-modal-card").getByLabel(label, { exact: true });
+const peekRange = (page: Page, label: string) => page.locator(".settings-modal-card, .settings-page").getByLabel(label, { exact: true });
 
 async function openPeekSettings(page: Page) {
   await editor(page).click();
   await page.keyboard.press("ControlOrMeta+Comma");
-  await expect(page.locator(".settings-modal-card")).toBeVisible();
+  await expect(page.locator(".settings-modal-card, .settings-page")).toBeVisible();
   await peekRange(page, "Background opacity, out of focus").scrollIntoViewIfNeeded();
 }
 

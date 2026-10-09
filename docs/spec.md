@@ -210,7 +210,8 @@ opens About) and any other message dismisses on click (§260). A right zone
 in Notepad's order: cursor line/column (plus, while text is selected, how
 many lines it spans), word count, the notes folder (full path on hover;
 click opens Settings on it), the `?` Shortcuts & Symbols trigger, an
-update-available icon when relevant, and the About icon. Segments are
+and an update-available icon when relevant (About itself is a Settings
+tab, §3.4). Segments are
 divided by thin rules. As the window narrows the folder name hides first,
 then the word count, then the position; the counts never hide. The bar can
 be turned off (Settings → Appearance → Show status bar, or the command
@@ -224,10 +225,14 @@ conflict(s)" item that opens the Sync conflicts drawer (§5).
 
 ### 3.4 Settings
 
-Settings (`Ctrl/Cmd+,`) is a tabbed dialog — Appearance / Notes & Sync /
-Updates (the last dropped entirely in the web app, where nothing in it
-applies; the tab labels are the same on every platform) — grouping
-independent controls:
+Settings (`Ctrl/Cmd+,`) is a page that covers the note area (the title
+bar and status bar stay; the editor stays mounted underneath), with a
+back button, at most 760px wide, its rows drawn as Windows 11 setting
+cards; Back, `Escape` or `Ctrl/Cmd+,` again closes it and returns focus
+to the note (§344). On a phone it is a bottom sheet instead. It is
+tabbed — Appearance / Notes & Sync / Updates / About (Updates dropped
+entirely in the web app, where nothing in it applies; the tab labels are
+the same on every platform) — grouping independent controls:
 
 Every setting is one row — label and a one-line description on the left,
 the control on the right (stacked on a phone), rows divided by hairlines;
@@ -458,8 +463,13 @@ reachable from the top bar, a shortcut, or the command palette:
   heading of the group at the top of the list stays pinned while you
   scroll (#77), so an action deep in a long group never loses its date;
   keyboard navigation keeps the selected row clear of the pinned heading.
-- **Section History** (`Ctrl/Cmd+Shift+H`) — browses every dated note that
-  has the recurring section under the cursor, past and future, at a fixed
+- **Section History** (`Ctrl/Cmd+Shift+H`) — on a window 1000px or wider
+  (not a phone, Zen or Peek) a pane docked right of the note (§343): the
+  note stays editable and the app's shortcuts keep working in it, `F6`
+  moves focus between note and pane, the pane follows the caret into
+  another section (250ms debounce), and `Escape` closes it back to the
+  note. Narrower, it is a dialog. Either way it browses every dated note that
+  has the recurring section under the cursor, past and future, in the dialog at a fixed
   ~80% of the window's height regardless of how much content the browsed
   occurrence has (switching dates never resizes the modal). A compact
   horizontal strip of occurrence dates sits above the note body (modeled on
@@ -561,9 +571,8 @@ reachable from the top bar, a shortcut, or the command palette:
   scroll that column rather than the editor behind it, while every
   global shortcut (including `Escape`) keeps working regardless of
   where focus sits.
-- **About** (its icon lives in the status bar, §3.3, not the top bar —
-  #58 moved it there so it stays reachable regardless of window width) —
-  an
+- **About** (`Ctrl/Cmd+Shift+,`, the More menu, the palette; a tab of the
+  Settings page since §344, a bottom sheet on a phone) — an
   Updates section that opens with a version card (the currently-running
   version, read live, and a chip saying what the update check makes of it;
   up to date it links to this version's own release notes and shows when it
