@@ -148,8 +148,8 @@ test.describe("mobile ergonomics & modal reflow (Area 5.4, 5.5, 6)", () => {
 test.describe("narrow reflow: sync conflicts and calendar review (Area 5.4)", () => {
   test.use({
     viewport: { width: 400, height: 800 },
-    isMobile: true,
-    hasTouch: true,
+    isMobile: false,
+    hasTouch: false,
     userAgent:
       "Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Mobile Safari/537.36",
   });

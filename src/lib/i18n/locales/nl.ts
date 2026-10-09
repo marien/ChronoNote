@@ -824,4 +824,11 @@ export const nl = {
   "editorMenu.cut": () => "Knippen",
   "editorMenu.copy": () => "Kopiëren",
   "editorMenu.paste": () => "Plakken",
+  "phoneNav.note": () => "Notitie",
+  "phoneNav.today": () => "Vandaag",
+  "phoneNav.yesterday": () => "Gisteren",
+  "phoneNav.tomorrow": () => "Morgen",
+  "phoneNav.openCount": (params) => `${params?.count ?? 0} open`,
+  "phoneNav.previous": () => "Vorige notitie",
+  "phoneNav.next": () => "Volgende notitie",
 } satisfies Dictionary;

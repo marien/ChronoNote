@@ -44,6 +44,8 @@
   import Icon from "./lib/icons/Icon.svelte";
   import TopBar from "./lib/components/TopBar.svelte";
   import StatusBar from "./lib/components/StatusBar.svelte";
+  import MobileAppBar from "./lib/components/mobile/MobileAppBar.svelte";
+  import MobileNavBar from "./lib/components/mobile/MobileNavBar.svelte";
   import PeekBar from "./lib/components/PeekBar.svelte";
   import EditorPane from "./lib/components/EditorPane.svelte";
   import FindBar from "./lib/components/FindBar.svelte";
@@ -464,7 +466,11 @@
 </script>
 
 {#if ready}
-  <TopBar />
+  {#if $isMobile}
+    <MobileAppBar />
+  {:else}
+    <TopBar />
+  {/if}
   {#if $peekMode}
     <PeekBar />
   {/if}
@@ -533,7 +539,11 @@
   {#if $isMobile && $editorFocused}
     <MobileAccessoryBar />
   {/if}
-  {#if $statusBarVisible}
+  {#if $isMobile}
+    {#if !$editorFocused}
+      <MobileNavBar />
+    {/if}
+  {:else if $statusBarVisible}
     <StatusBar />
   {/if}
 
