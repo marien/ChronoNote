@@ -700,6 +700,7 @@ export const nl = {
   "mobileAccessory.dedentWord": () => "Uitspringen",
   "mobileAccessory.undo": () => "Ongedaan maken",
   "mobileAccessory.redo": () => "Opnieuw",
+  "mobileAccessory.more": () => "Meer",
 
   "mobileTabDrawer.ariaLabel": () => "Open tabs",
   "mobileTabDrawer.title": () => "Open Tabs",

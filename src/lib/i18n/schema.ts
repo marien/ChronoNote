@@ -712,6 +712,7 @@ export type TranslationParams = {
   "mobileAccessory.dedentWord": undefined;
   "mobileAccessory.undo": undefined;
   "mobileAccessory.redo": undefined;
+  "mobileAccessory.more": undefined;
 
   // Mobile tab drawer (`MobileTabDrawer.svelte`, touch devices).
   "mobileTabDrawer.ariaLabel": undefined;

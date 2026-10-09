@@ -40,6 +40,8 @@
   } from "../tokens";
   import * as controller from "../controller";
   import { findMatch, findOpen, readableLineLength, wordWrap } from "../controller";
+  import { currentLineKind, editorFocused } from "../stores";
+  import { lineKind } from "../lineKind";
 
   interface Props {
     content: string;
@@ -664,6 +666,7 @@
           const pos = u.state.selection.main.head;
           const line = u.state.doc.lineAt(pos);
           controller.setStatusPosition(line.number, pos - line.from + 1);
+          currentLineKind.set(lineKind(line.text));
           // #37/#38: how many document lines the selection spans (0 chars
           // selected across every multi-cursor range → nothing selected).
           const selChars = u.state.selection.ranges.reduce((n, r) => n + (r.to - r.from), 0);
@@ -685,6 +688,12 @@
         }
       }),
       EditorView.domEventHandlers({
+        focus: () => {
+          editorFocused.set(true);
+        },
+        blur: () => {
+          editorFocused.set(false);
+        },
         copy: (_event, v) => {
           const sel = v.state.sliceDoc(v.state.selection.main.from, v.state.selection.main.to);
           controller.recordCopiedAction(sel, controller.getActiveTabId(), v.state.selection.main.from);
@@ -1043,6 +1052,7 @@
     const initialPos = view.state.selection.main.head;
     const initialLine = view.state.doc.lineAt(initialPos);
     controller.setStatusPosition(initialLine.number, initialPos - initialLine.from + 1);
+    currentLineKind.set(lineKind(initialLine.text));
     const initChars = view.state.selection.ranges.reduce((n, r) => n + (r.to - r.from), 0);
     controller.setStatusSelection(
       initChars === 0

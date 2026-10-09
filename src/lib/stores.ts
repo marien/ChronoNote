@@ -15,6 +15,7 @@ import {
   type NonModalOverlayKind,
 } from "./overlays";
 import { todayISO } from "./date";
+import type { LineKind } from "./lineKind";
 import type {
   ActionSnapshotItem,
   ColorMode,
@@ -214,6 +215,8 @@ export const backendKind = writable<"desktop" | "demo" | "web">("desktop");
  * Accessory Bar and compact header with the Tab Drawer. Set for real in
  * `App.svelte`'s `pointer: coarse` media-query listener on mount. */
 export const isMobile = writable<boolean>(false);
+export const editorFocused = writable(false);
+export const currentLineKind = writable<LineKind>("plain");
 
 /** A boolean view of one non-modal overlay kind, with a writable's API. */
 function overlayFlag(kind: NonModalOverlayKind): Readable<boolean> & {

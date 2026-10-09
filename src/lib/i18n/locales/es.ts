@@ -710,6 +710,7 @@ export const es = {
   "mobileAccessory.dedentWord": () => "Reducir",
   "mobileAccessory.undo": () => "Deshacer",
   "mobileAccessory.redo": () => "Rehacer",
+  "mobileAccessory.more": () => "Más",
 
   "mobileTabDrawer.ariaLabel": () => "Pestañas abiertas",
   "mobileTabDrawer.title": () => "Pestañas abiertas",

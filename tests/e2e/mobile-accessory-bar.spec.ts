@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { seedApp, activeTabContent, setEditorText } from "./helpers";
+import { seedApp, activeTabContent, setEditorText, editor } from "./helpers";
 
 /** The Mobile Accessory Bar (shown on narrow / touch viewports) inserts
  * tokens through `EditorApi.applyToken`. Found testing on a real Android
@@ -14,6 +14,7 @@ test.describe("mobile accessory bar — caret after token insertion", () => {
 
   test.beforeEach(async ({ page }) => {
     await seedApp(page, { seed: "empty" });
+    await editor(page).click();
     await expect(page.locator(".mobile-accessory-bar")).toBeVisible();
   });
 
@@ -59,6 +60,8 @@ test.describe("mobile accessory bar — caret after token insertion", () => {
   });
 
   test("☒ on an empty line: the next typed text follows `x `", async ({ page }) => {
+    // 'x' is not among the 4 primary tokens on a plain line; it lives in the More panel
+    await page.getByRole("button", { name: "More" }).click();
     await page.getByRole("button", { name: "Won't do task (box)" }).click();
     await page.keyboard.type("skip this");
 
@@ -66,9 +69,9 @@ test.describe("mobile accessory bar — caret after token insertion", () => {
   });
 
   test("all token buttons in the mobile accessory bar share the same vertical centerline", async ({ page }) => {
-    const glyphs = page.locator(".accessory-btn.token-btn .token-glyph");
+    const glyphs = page.locator(".mobile-accessory-bar > .accessory-btn.token-btn .token-glyph");
     const count = await glyphs.count();
-    expect(count).toBe(10);
+    expect(count).toBe(4);
 
     const midpoints: number[] = [];
     for (let i = 0; i < count; i++) {
@@ -82,6 +85,49 @@ test.describe("mobile accessory bar — caret after token insertion", () => {
       // All glyph centerlines must align within 1.5px
       expect(Math.abs(midpoints[i] - baseline)).toBeLessThanOrEqual(1.5);
     }
+  });
+});
+
+test.describe("mobile accessory bar — keyboard visibility and line kind adaptations", () => {
+  test.use({ viewport: { width: 400, height: 800 }, isMobile: true, hasTouch: true });
+
+  test("bar is hidden before focusing the editor, visible after", async ({ page }) => {
+    await seedApp(page, { seed: "empty" });
+    await expect(page.locator(".mobile-accessory-bar")).toHaveCount(0);
+    await editor(page).click();
+    await expect(page.locator(".mobile-accessory-bar")).toBeVisible();
+  });
+
+  test("on an action line the first button is ☐-open, on a topic line ○", async ({ page }) => {
+    await seedApp(page, { seed: "empty" });
+    await setEditorText(page, "# an action line\no a topic line");
+
+    // Caret on first line (action line)
+    await page.keyboard.press("ControlOrMeta+Home");
+    const firstBtnAction = page.locator(".mobile-accessory-bar > .accessory-btn").first();
+    await expect(firstBtnAction).toHaveAttribute("aria-label", "Open task (box)");
+    await expect(firstBtnAction.locator(".glyph-open")).toBeVisible();
+
+    // Move caret to second line (topic line)
+    await page.keyboard.press("ArrowDown");
+    const firstBtnTopic = page.locator(".mobile-accessory-bar > .accessory-btn").first();
+    await expect(firstBtnTopic).toHaveAttribute("aria-label", "Topic to discuss (circle)");
+    await expect(firstBtnTopic.locator(".glyph-topic-open")).toBeVisible();
+  });
+
+  test("tapping More shows the panel and a panel token applies to the line", async ({ page }) => {
+    await seedApp(page, { seed: "empty" });
+    await setEditorText(page, "plain text");
+    await page.keyboard.press("ControlOrMeta+Home");
+
+    // On plain text, '-' and '=>' are shown, while 'x' (wont do) is in the More panel
+    await expect(page.locator(".accessory-more-panel")).toHaveCount(0);
+    await page.getByRole("button", { name: "More" }).click();
+    await expect(page.locator(".accessory-more-panel")).toBeVisible();
+
+    await page.locator(".accessory-more-panel").getByRole("button", { name: "Won't do task (box)" }).click();
+    await expect(page.locator(".accessory-more-panel")).toHaveCount(0);
+    expect(await activeTabContent(page)).toBe("x plain text");
   });
 });
 

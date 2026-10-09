@@ -718,6 +718,7 @@ export const pl = {
   "mobileAccessory.dedentWord": () => "Cofnij wcięcie",
   "mobileAccessory.undo": () => "Cofnij",
   "mobileAccessory.redo": () => "Ponów",
+  "mobileAccessory.more": () => "Więcej",
 
   "mobileTabDrawer.ariaLabel": () => "Otwarte karty",
   "mobileTabDrawer.title": () => "Otwarte karty",

@@ -705,6 +705,7 @@ export const de = {
   "mobileAccessory.dedentWord": () => "Ausrücken",
   "mobileAccessory.undo": () => "Rückgängig",
   "mobileAccessory.redo": () => "Wiederholen",
+  "mobileAccessory.more": () => "Mehr",
 
   "mobileTabDrawer.ariaLabel": () => "Offene Tabs",
   "mobileTabDrawer.title": () => "Offene Tabs",

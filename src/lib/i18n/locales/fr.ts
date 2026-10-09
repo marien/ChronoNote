@@ -715,6 +715,7 @@ export const fr = {
   "mobileAccessory.dedentWord": () => "Désindenter",
   "mobileAccessory.undo": () => "Annuler",
   "mobileAccessory.redo": () => "Rétablir",
+  "mobileAccessory.more": () => "Plus",
 
   "mobileTabDrawer.ariaLabel": () => "Onglets ouverts",
   "mobileTabDrawer.title": () => "Onglets ouverts",

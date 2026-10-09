@@ -7,6 +7,7 @@
     activeTabId,
     backendKind,
     editorApi,
+    editorFocused,
     findOpen,
     fontSize,
     isMobile,
@@ -528,7 +529,7 @@
       <FindBar />
     {/if}
   </div>
-  {#if $isMobile}
+  {#if $isMobile && $editorFocused}
     <MobileAccessoryBar />
   {/if}
   {#if $statusBarVisible}
