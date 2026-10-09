@@ -239,6 +239,13 @@
         return;
       }
 
+      // Close Settings page when Ctrl+, is pressed while it is open on desktop
+      if (matchesShortcut(e, "openSettings") && !get(isMobile) && get(modal) === "settings") {
+        e.preventDefault();
+        controller.closeAllModals();
+        return;
+      }
+
       // A modal owns the keyboard while it's open — none of these should
       // reach the app underneath (found via a real bug report: Ctrl+Tab
       // switched the active tab while Section History was open, and the
@@ -523,23 +530,27 @@
       {$toastMessage}
     </div>
   {/if}
-  <InfoBar />
-  <div
-    id="editor-container"
-    role="region"
-    aria-label="Editor notes area"
-    ontouchstart={handleTouchStart}
-    ontouchend={handleTouchEnd}
-  >
-    {#if activeTab}
-      {#key activeTab.id}
-        <EditorPane content={activeTab.content} tabId={activeTab.id} />
-      {/key}
-    {/if}
-    {#if $findOpen}
-      <FindBar />
-    {/if}
-  </div>
+  {#if !$isMobile && $modal === "settings"}
+    <SettingsModal page />
+  {:else}
+    <InfoBar />
+    <div
+      id="editor-container"
+      role="region"
+      aria-label="Editor notes area"
+      ontouchstart={handleTouchStart}
+      ontouchend={handleTouchEnd}
+    >
+      {#if activeTab}
+        {#key activeTab.id}
+          <EditorPane content={activeTab.content} tabId={activeTab.id} />
+        {/key}
+      {/if}
+      {#if $findOpen}
+        <FindBar />
+      {/if}
+    </div>
+  {/if}
   {#if $isMobile && $editorFocused}
     <MobileAccessoryBar />
   {/if}
@@ -582,11 +593,11 @@
     <SearchModal />
   {:else if $modal === "safety"}
     <SafetyModal />
-  {:else if $modal === "settings"}
+  {:else if $modal === "settings" && $isMobile}
     <SettingsModal />
   {:else if $modal === "shortcuts"}
     <ShortcutsModal />
-  {:else if $modal === "about"}
+  {:else if $modal === "about" && $isMobile}
     <AboutModal />
   {:else if $modal === "unsavedScratchpads"}
     <UnsavedScratchpadsModal />

@@ -135,17 +135,6 @@
     >
       ?
     </button>
-    <!-- #58: moved from the top bar (last, after Shortcuts & symbols) — always reachable here regardless of
-         window width, instead of competing for room with the tab strip
-         and folding into "More" once things got tight. -->
-    <button
-      type="button"
-      class="status-about-btn"
-      title={$t("statusBar.aboutTitleWithCombo", { combo: formatShortcut('openAbout') })}
-      onclick={controller.openAbout}
-    >
-      <Icon name="about" size={12} />
-    </button>
   </div>
 
 </div>
@@ -466,28 +455,4 @@
 }
 
 
-/* #58: About moved here from the top bar. Matches `.status-help`'s
-   boxed/outlined treatment (same 16px square, border, radius, hover
-   fill) right next to it, rather than `.status-update-btn`'s borderless
-   icon above — the two sit side by side reading as one pair of icon
-   buttons, not two different button styles. */
-
-.status-about-btn {
-  background: transparent;
-  border: 1px solid var(--border);
-  color: var(--status-fg);
-  border-radius: var(--radius-control);
-  width: 16px;
-  height: 16px;
-  padding: 0;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.status-about-btn:hover {
-  background: var(--surface-raised);
-  border-color: var(--muted);
-}
 </style>

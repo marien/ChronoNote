@@ -154,7 +154,7 @@ test.describe("Peek notes for the meeting that is on now", () => {
     await seed(page);
     await editor(page).click();
     await page.keyboard.press("ControlOrMeta+Comma");
-    const field = page.locator(".settings-modal-card").getByLabel("Shortcut: notes for the meeting that is on now (works from any app)");
+    const field = page.locator(".settings-modal-card, .settings-page").getByLabel("Shortcut: notes for the meeting that is on now (works from any app)");
     await field.scrollIntoViewIfNeeded();
     await field.fill("CommandOrControl+Alt+K");
     await field.blur();

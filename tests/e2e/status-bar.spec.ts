@@ -67,7 +67,7 @@ test.describe("status bar — three zones (§100/§110)", () => {
     await expect(modalCard(page, MODAL_LABELS.shortcuts)).toContainText("Symbols → glyphs");
   });
 
-  test("#58: the About icon comes last - after the shortcuts trigger - and opens About", async ({
+  test("#58: the About icon is removed from the status bar; About opens via Ctrl+Shift+,", async ({
     page,
   }) => {
     await seedApp(page, { seed: { notes: {}, appVersion: "9.9.9", updateCheck: "none" } });
@@ -78,19 +78,21 @@ test.describe("status bar — three zones (§100/§110)", () => {
         (n) => n.id || [...n.classList].find((c) => c === "status-help" || c === "status-about-btn"),
       ),
     );
-    expect(order).toEqual(["status-help", "status-about-btn"]);
+    expect(order).toEqual(["status-help"]);
+    await expect(page.locator(".status-about-btn")).toHaveCount(0);
 
-    await page.locator(".status-about-btn").click();
+    await page.keyboard.press("ControlOrMeta+Shift+Comma");
     await expect(modalCard(page, MODAL_LABELS.about)).toBeVisible();
   });
 
-  test("#58: the status-bar About icon stays reachable even on a narrow window, unlike the old top-bar button", async ({
+  test("#58: About opens via the More menu", async ({
     page,
   }) => {
     await seedApp(page, { seed: "busy-week" });
     await page.setViewportSize({ width: 480, height: 720 });
 
-    await page.locator(".status-about-btn").click();
+    await page.locator("[data-more-trigger]").click();
+    await page.getByRole("menuitem", { name: "About" }).click();
     await expect(modalCard(page, MODAL_LABELS.about)).toBeVisible();
   });
 
@@ -151,7 +153,7 @@ test.describe("status bar — three zones (§100/§110)", () => {
     await page.keyboard.press("ControlOrMeta+Comma");
     await page.getByRole("tab", { name: "Updates", exact: true }).click();
     await page.getByRole("button", { name: "Check now" }).click();
-    await page.getByRole("button", { name: "Close", exact: true }).click();
+    await page.locator(".settings-back-btn").click();
 
     const infoBar = page.locator(".info-bar");
     await expect(infoBar).toBeVisible();
@@ -184,7 +186,7 @@ test.describe("§B4: clickable counts and the Show status bar setting", () => {
     await expect(page.locator("#status-bar")).toBeVisible();
     await page.keyboard.press("ControlOrMeta+Comma");
     await page.locator(".toggle-switch", { hasText: "Show status bar" }).click();
-    await page.getByRole("button", { name: "Close", exact: true }).click();
+    await page.locator(".settings-back-btn").click();
     await expect(page.locator("#status-bar")).toHaveCount(0);
     await page.reload();
     await expect(page.locator(".cm-content")).toBeVisible();

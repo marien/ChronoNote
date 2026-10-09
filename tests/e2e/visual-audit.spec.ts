@@ -81,23 +81,23 @@ test.describe("Visual layout & overflow audit across locales", () => {
       // 1. Settings Modal - Appearance
       await editor(page).click();
       await page.keyboard.press("ControlOrMeta+Comma");
-      await page.waitForSelector(".settings-modal-card");
+      await page.waitForSelector(".settings-modal-card, .settings-page");
 
-      let issues = await findOverflows(page, ".settings-modal-card", locale, "Settings (Appearance)");
+      let issues = await findOverflows(page, ".settings-modal-card, .settings-page", locale, "Settings (Appearance)");
       allIssues.push(...issues);
 
       // Switch to Notes & Sync tab
       const tabButtons = page.locator(".settings-tab");
       await tabButtons.nth(1).click();
       await page.waitForTimeout(100);
-      issues = await findOverflows(page, ".settings-modal-card", locale, "Settings (Notes & Sync)");
+      issues = await findOverflows(page, ".settings-modal-card, .settings-page", locale, "Settings (Notes & Sync)");
       allIssues.push(...issues);
 
       // Switch to Updates tab if present
       if ((await tabButtons.count()) > 2) {
         await tabButtons.nth(2).click();
         await page.waitForTimeout(100);
-        issues = await findOverflows(page, ".settings-modal-card", locale, "Settings (Updates)");
+        issues = await findOverflows(page, ".settings-modal-card, .settings-page", locale, "Settings (Updates)");
         allIssues.push(...issues);
       }
 
@@ -187,13 +187,13 @@ test.describe("Visual layout & overflow audit across locales", () => {
       // Mobile Settings - Appearance and Notes & Sync
       await editor(page).click();
       await page.keyboard.press("ControlOrMeta+Comma");
-      await page.waitForSelector(".settings-modal-card");
-      issues = await findOverflows(page, ".settings-modal-card", locale, "Mobile Settings");
+      await page.waitForSelector(".settings-modal-card, .settings-page");
+      issues = await findOverflows(page, ".settings-modal-card, .settings-page", locale, "Mobile Settings");
       allIssues.push(...issues);
 
       await page.locator(".settings-tab").nth(1).click();
       await page.waitForTimeout(100);
-      issues = await findOverflows(page, ".settings-modal-card", locale, "Mobile Settings (Notes)");
+      issues = await findOverflows(page, ".settings-modal-card, .settings-page", locale, "Mobile Settings (Notes)");
       allIssues.push(...issues);
 
       await page.keyboard.press("Escape");

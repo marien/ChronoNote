@@ -8,7 +8,7 @@ import { scenario } from "../../src/lib/testing/scenarios";
 // pinned `en-US` browser locale, but wrong here on purpose: this file
 // deliberately seeds Dutch/German, and both modals' own accessible names
 // are themselves translated now. Locate by stable CSS class instead.
-const settings = (page: import("@playwright/test").Page) => page.locator(".settings-modal-card");
+const settings = (page: import("@playwright/test").Page) => page.locator(".settings-modal-card, .settings-page");
 
 async function openSettings(page: import("@playwright/test").Page) {
   await editor(page).click();
@@ -35,7 +35,7 @@ test.describe("multilanguage support", () => {
     await expect(settings(page).getByText("Taal", { exact: true })).toBeVisible();
     expect(await page.evaluate(() => document.documentElement.lang)).toBe("nl");
 
-    await settings(page).getByRole("radio", { name: "Deutsch", exact: true }).click();
+    await settings(page).locator("select.settings-select").selectOption("de");
     await expect(settings(page).locator(".settings-section-label").getByText("Darstellung", { exact: true })).toBeVisible();
     await expect(settings(page).getByText("Sprache", { exact: true })).toBeVisible();
     expect(await page.evaluate(() => document.documentElement.lang)).toBe("de");

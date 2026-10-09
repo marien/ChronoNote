@@ -24,6 +24,8 @@ export type TranslationParams = {
   "settings.tabs.appearance": undefined;
   "settings.tabs.notesAndSync": undefined;
   "settings.tabs.updates": undefined;
+  "settings.tab.about": undefined;
+  "settings.back": undefined;
   "settings.appearance.sectionLabel": undefined;
   "settings.appearance.theme.label": undefined;
   "settings.appearance.theme.light": undefined;
