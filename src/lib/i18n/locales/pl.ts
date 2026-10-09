@@ -29,6 +29,11 @@ export const pl = {
   "settings.appearance.statusBar.label": () => "Pokaż pasek stanu",
   "settings.appearance.statusBar.hint": () =>
     "Wyświetlaj wiersz, kolumnę, liczbę słów i stan zadań na dole okna",
+  "settings.appearance.tabLabels.label": () => "Etykiety kart",
+  "settings.appearance.tabLabels.hint": () =>
+    "Jak nazywane są karty z datą; pełna data jest zawsze w podpowiedzi.",
+  "settings.appearance.tabLabels.iso": () => "Data ISO",
+  "settings.appearance.tabLabels.friendly": () => "Czytelne",
   "settings.editor.sectionLabel": () => "Edytor",
   "settings.editor.width.label": () => "Szerokość tekstu",
   "settings.editor.width.full": () => "Pełna",
@@ -393,6 +398,7 @@ export const pl = {
   "topBar.newScratchpad.title": ({ combo }) => `Nowy brudnopis (${combo})`,
   "topBar.openDateNote.title": ({ combo }) => `Otwórz notatkę z datą (${combo})`,
   "topBar.label.date": () => "Data",
+  "topBar.newTabMenu": () => "Nowy…",
   "topBar.moreActions.title": () => "Więcej czynności",
   "topBar.actions.title": ({ combo }) => `Zadania (${combo})`,
   "topBar.history.title": ({ combo }) => `Historia sekcji (${combo})`,
@@ -750,6 +756,7 @@ export const pl = {
     "Nie udało się zapisać preferencji karty startowej",
   "toast.boot.failedToSave.statusBarVisible": () =>
     "Nie udało się zapisać ustawienia paska stanu",
+  "toast.boot.failedToSave.tabLabelStyle": () => "Nie udało się zapisać ustawienia etykiet kart",
   "toast.boot.couldntOpenNotes": ({ filenames }) => `Nie udało się otworzyć tych notatek, więc pozostają zamknięte: ${filenames}`,
   "toast.calendarSync.noMeetingsOn": ({ date }) => `Brak spotkań w dniu ${date}.`,
   "toast.calendarSync.synced": () => "Kalendarz zsynchronizowany.",

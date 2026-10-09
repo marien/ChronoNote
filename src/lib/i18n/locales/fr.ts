@@ -29,6 +29,11 @@ export const fr = {
   "settings.appearance.statusBar.label": () => "Afficher la barre d'état",
   "settings.appearance.statusBar.hint": () =>
     "Afficher la ligne, la colonne, le nombre de mots et les métriques d'action en bas",
+  "settings.appearance.tabLabels.label": () => "Libellés des onglets",
+  "settings.appearance.tabLabels.hint": () =>
+    "Nom des onglets datés ; la date complète est toujours dans l’infobulle.",
+  "settings.appearance.tabLabels.iso": () => "Date ISO",
+  "settings.appearance.tabLabels.friendly": () => "Lisible",
   "settings.editor.sectionLabel": () => "Éditeur",
   "settings.editor.width.label": () => "Largeur du texte",
   "settings.editor.width.full": () => "Plein",
@@ -392,6 +397,7 @@ export const fr = {
   "topBar.newScratchpad.title": ({ combo }) => `Nouveau brouillon (${combo})`,
   "topBar.openDateNote.title": ({ combo }) => `Ouvrir une note datée (${combo})`,
   "topBar.label.date": () => "Date",
+  "topBar.newTabMenu": () => "Nouveau…",
   "topBar.moreActions.title": () => "Autres actions",
   "topBar.actions.title": ({ combo }) => `Actions (${combo})`,
   "topBar.history.title": ({ combo }) => `Historique de section (${combo})`,
@@ -747,6 +753,8 @@ export const fr = {
     "Échec de l'enregistrement de la préférence d'onglet de démarrage",
   "toast.boot.failedToSave.statusBarVisible": () =>
     "Échec de l'enregistrement de la préférence de barre d'état",
+  "toast.boot.failedToSave.tabLabelStyle": () =>
+    "Échec de l’enregistrement du style des libellés d’onglets",
   "toast.boot.couldntOpenNotes": ({ filenames }) => `Impossible d'ouvrir ces notes ; elles restent fermées : ${filenames}`,
   "toast.calendarSync.noMeetingsOn": ({ date }) => `Aucune réunion le ${date}.`,
   "toast.calendarSync.synced": () => "Calendrier synchronisé.",

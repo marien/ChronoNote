@@ -8,22 +8,26 @@
     backendKind,
     calendarSyncEnabled,
     calendarSyncHasDiff,
+    isMobile,
+    isZenMode,
     oneDriveAccount,
     oneDriveFolder,
     tabs,
   } from "../../controller";
   import { focusTrap } from "../../actions/focusTrap";
+  import { commandsCollapsed } from "../TopBar.svelte";
   import { sheetSwipe } from "../../actions/sheetSwipe";
   import Icon from "../../icons/Icon.svelte";
   import { formatShortcut } from "../../shortcuts";
   import { todayISO } from "../../date";
   import { t } from "../../i18n";
 
-  /** #56: the top bar collapses its secondary action buttons into this
-   * popover once the window is too narrow for all of them (see
-   * `TopBar.svelte`'s `settleLayout`) — New Scratchpad and Open Date Note
-   * stay pinned outside it, being the two "start something" actions most
-   * central to daily use. Same anchored-non-modal-card shape as
+  /** The top bar's "More" popover (§B2: the button is always there). It always lists
+   * Settings, Shortcuts & symbols, Zen mode, Peek (desktop only) and About; #56: while the
+   * top bar has collapsed its secondary command buttons (see `TopBar.svelte`'s
+   * `settleLayout`) they are listed above those — Date and the + button stay pinned outside
+   * it, being the "start something" actions most central to daily use. Same
+   * anchored-non-modal-card shape as
    * `DatePickerModal` (down to the outside-click/trigger-attribute
    * pattern), not a centred `.overlay` card — this is a toolbar overflow
    * menu, not a dialog. */
@@ -61,6 +65,9 @@
     if (popEl && !popEl.contains(t)) controller.closeAllModals();
   }
 
+  // Collapsed commands are listed first; on a phone the bar always keeps them in here.
+  const showCollapsed = $derived($commandsCollapsed || $isMobile);
+
   function promote() {
     const tab = get(activeTabId);
     void controller.promoteScratchpad(tab);
@@ -68,49 +75,80 @@
     // change `modal` — close explicitly.
     controller.closeAllModals();
   }
+
+  // Zen and Peek don't open a modal of their own, so close this popover explicitly first.
+  function toggleZen() {
+    controller.closeAllModals();
+    isZenMode.update((v) => !v);
+  }
+
+  function peek() {
+    controller.closeAllModals();
+    controller.togglePeek();
+  }
 </script>
 
 <svelte:window onmousedown={onOutsideMousedown} onresize={positionUnderTrigger} />
 
 <div class="more-actions-pop" bind:this={popEl} role="menu" aria-label={$t("topBar.moreActions.title")} use:focusTrap use:sheetSwipe style={anchorStyle}>
-  <button type="button" class="more-actions-item" role="menuitem" onclick={controller.openActionDrawer}>
-    <Icon name="actions" size={14} /><span>{$t("actionDrawer.modal.ariaLabel")}</span>
-    <kbd>{formatShortcut("openActions")}</kbd>
-  </button>
-  <button type="button" class="more-actions-item" role="menuitem" onclick={controller.openMeetingHistory}>
-    <Icon name="section-history" size={14} /><span>{$t("history.modal.ariaLabel")}</span>
-    <kbd>{formatShortcut("openHistory")}</kbd>
-  </button>
-  <button type="button" class="more-actions-item" role="menuitem" onclick={controller.openCrossTabSearch}>
-    <Icon name="search" size={14} /><span>{$t("shortcuts.crossTabSearch.label")}</span>
-    <kbd>{formatShortcut("crossTabSearch")}</kbd>
-  </button>
-  {#if calendarSyncVisible}
-    <button
-      type="button"
-      class="more-actions-item"
-      role="menuitem"
-      disabled={!calendarSyncReady}
-      title={calendarSyncReady
-        ? ""
-        : !$agendaFileExists
-          ? $t("topBar.calendarSync.titleNoAgendaFile")
-          : $t("topBar.calendarSync.titleNotAvailable")}
-      onclick={controller.syncCalendarFromFile}
-    >
-      <Icon name="calendar-import" size={14} /><span>{$t("shortcuts.syncCalendar.label")}{#if calendarSyncReady && $calendarSyncHasDiff}<span class="more-actions-pip" aria-hidden="true"></span>{/if}</span>
-      <kbd>{formatShortcut("syncCalendar")}</kbd>
+  {#if showCollapsed}
+    <button type="button" class="more-actions-item" role="menuitem" onclick={controller.openActionDrawer}>
+      <Icon name="actions" size={14} /><span>{$t("actionDrawer.modal.ariaLabel")}</span>
+      <kbd>{formatShortcut("openActions")}</kbd>
     </button>
-  {/if}
-  {#if activeTab?.isScratchpad}
-    <button type="button" class="more-actions-item" role="menuitem" onclick={promote}>
-      <Icon name="promote" size={14} /><span>{$t("moreActions.promote.label")}</span>
+    <button type="button" class="more-actions-item" role="menuitem" onclick={controller.openMeetingHistory}>
+      <Icon name="section-history" size={14} /><span>{$t("history.modal.ariaLabel")}</span>
+      <kbd>{formatShortcut("openHistory")}</kbd>
     </button>
+    <button type="button" class="more-actions-item" role="menuitem" onclick={controller.openCrossTabSearch}>
+      <Icon name="search" size={14} /><span>{$t("shortcuts.crossTabSearch.label")}</span>
+      <kbd>{formatShortcut("crossTabSearch")}</kbd>
+    </button>
+    {#if calendarSyncVisible}
+      <button
+        type="button"
+        class="more-actions-item"
+        role="menuitem"
+        disabled={!calendarSyncReady}
+        title={calendarSyncReady
+          ? ""
+          : !$agendaFileExists
+            ? $t("topBar.calendarSync.titleNoAgendaFile")
+            : $t("topBar.calendarSync.titleNotAvailable")}
+        onclick={controller.syncCalendarFromFile}
+      >
+        <Icon name="calendar-import" size={14} /><span>{$t("shortcuts.syncCalendar.label")}{#if calendarSyncReady && $calendarSyncHasDiff}<span class="more-actions-pip" aria-hidden="true"></span>{/if}</span>
+        <kbd>{formatShortcut("syncCalendar")}</kbd>
+      </button>
+    {/if}
+    {#if activeTab?.isScratchpad}
+      <button type="button" class="more-actions-item" role="menuitem" onclick={promote}>
+        <Icon name="promote" size={14} /><span>{$t("moreActions.promote.label")}</span>
+      </button>
+    {/if}
+    <div class="more-actions-sep" role="separator"></div>
   {/if}
-  <div class="more-actions-sep" role="separator"></div>
   <button type="button" class="more-actions-item" role="menuitem" onclick={controller.openSettings}>
     <Icon name="settings" size={14} /><span>{$t("settings.modal.title")}</span>
     <kbd>{formatShortcut("openSettings")}</kbd>
+  </button>
+  <button type="button" class="more-actions-item" role="menuitem" onclick={controller.openShortcutsHelp}>
+    <Icon name="keyboard" size={14} /><span>{$t("shortcuts.modal.title")}</span>
+    <kbd>{formatShortcut("openShortcutsHelp")}</kbd>
+  </button>
+  <button type="button" class="more-actions-item" role="menuitem" onclick={toggleZen}>
+    <Icon name="maximize" size={14} /><span>{$t("shortcuts.toggleZenMode.label")}</span>
+    <kbd>{formatShortcut("toggleZenMode")}</kbd>
+  </button>
+  {#if $backendKind === "desktop"}
+    <button type="button" class="more-actions-item" role="menuitem" onclick={peek}>
+      <Icon name="peek" size={14} /><span>{$t("commandPalette.togglePeekMode")}</span>
+      <kbd>{formatShortcut("togglePeekMode")}</kbd>
+    </button>
+  {/if}
+  <button type="button" class="more-actions-item" role="menuitem" onclick={controller.openAbout}>
+    <Icon name="about" size={14} /><span>{$t("shortcuts.openAbout.label")}</span>
+    <kbd>{formatShortcut("openAbout")}</kbd>
   </button>
 </div>
 

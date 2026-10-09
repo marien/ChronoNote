@@ -28,6 +28,11 @@ export const it = {
   "settings.appearance.statusBar.label": () => "Mostra barra di stato",
   "settings.appearance.statusBar.hint": () =>
     "Mostra riga, colonna, conteggio parole e statistiche delle azioni in basso",
+  "settings.appearance.tabLabels.label": () => "Etichette delle schede",
+  "settings.appearance.tabLabels.hint": () =>
+    "Come si chiamano le schede con data; la data completa è sempre nel suggerimento.",
+  "settings.appearance.tabLabels.iso": () => "Data ISO",
+  "settings.appearance.tabLabels.friendly": () => "Leggibile",
   "settings.editor.sectionLabel": () => "Editor",
   "settings.editor.width.label": () => "Larghezza del testo",
   "settings.editor.width.full": () => "Intera",
@@ -391,6 +396,7 @@ export const it = {
   "topBar.newScratchpad.title": ({ combo }) => `Nuova bozza (${combo})`,
   "topBar.openDateNote.title": ({ combo }) => `Apri nota datata (${combo})`,
   "topBar.label.date": () => "Data",
+  "topBar.newTabMenu": () => "Nuovo…",
   "topBar.moreActions.title": () => "Altre azioni",
   "topBar.actions.title": ({ combo }) => `Azioni (${combo})`,
   "topBar.history.title": ({ combo }) => `Cronologia sezione (${combo})`,
@@ -743,6 +749,8 @@ export const it = {
   "toast.boot.failedToSave.startup": () => "Impossibile salvare la preferenza della scheda di avvio",
   "toast.boot.failedToSave.statusBarVisible": () =>
     "Impossibile salvare la preferenza della barra di stato",
+  "toast.boot.failedToSave.tabLabelStyle": () =>
+    "Impossibile salvare la preferenza delle etichette delle schede",
   "toast.boot.couldntOpenNotes": ({ filenames }) => `Impossibile aprire queste note, quindi restano chiuse: ${filenames}`,
   "toast.calendarSync.noMeetingsOn": ({ date }) => `Nessuna riunione il ${date}.`,
   "toast.calendarSync.synced": () => "Calendario sincronizzato.",

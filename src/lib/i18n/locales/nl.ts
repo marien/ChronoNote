@@ -30,6 +30,11 @@ export const nl = {
   "settings.appearance.statusBar.label": () => "Statusbalk weergeven",
   "settings.appearance.statusBar.hint": () =>
     "Regel, kolom, aantal woorden en actietellers onderaan weergeven",
+  "settings.appearance.tabLabels.label": () => "Tablabels",
+  "settings.appearance.tabLabels.hint": () =>
+    "Hoe tabs met een datum heten; de volledige datum staat altijd in de tooltip.",
+  "settings.appearance.tabLabels.iso": () => "ISO-datum",
+  "settings.appearance.tabLabels.friendly": () => "Leesbaar",
   "settings.editor.sectionLabel": () => "Editor",
   "settings.editor.width.label": () => "Tekstbreedte",
   "settings.editor.width.full": () => "Volledig",
@@ -388,6 +393,7 @@ export const nl = {
   "topBar.newScratchpad.title": ({ combo }) => `Nieuw kladblok (${combo})`,
   "topBar.openDateNote.title": ({ combo }) => `Gedateerde notitie openen (${combo})`,
   "topBar.label.date": () => "Datum",
+  "topBar.newTabMenu": () => "Nieuw…",
   "topBar.moreActions.title": () => "Meer acties",
   "topBar.actions.title": ({ combo }) => `Acties (${combo})`,
   "topBar.history.title": ({ combo }) => `Sectiegeschiedenis (${combo})`,
@@ -730,6 +736,7 @@ export const nl = {
   "toast.boot.failedToSave.pureBlack": () => "Opslaan van puur-zwart-voorkeur mislukt",
   "toast.boot.failedToSave.startup": () => "Opslaan van voorkeur voor opstarttabblad mislukt",
   "toast.boot.failedToSave.statusBarVisible": () => "Opslaan van statusbalk-voorkeur mislukt",
+  "toast.boot.failedToSave.tabLabelStyle": () => "Tablabelvoorkeur opslaan mislukt",
   "toast.boot.couldntOpenNotes": ({ filenames }) => `Deze notities konden niet worden geopend en blijven gesloten: ${filenames}`,
   "toast.calendarSync.noMeetingsOn": ({ date }) => `Geen afspraken op ${date}.`,
   "toast.calendarSync.synced": () => "Agenda gesynchroniseerd.",

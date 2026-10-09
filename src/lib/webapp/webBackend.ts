@@ -31,6 +31,7 @@
  */
 import { activeAgendaDates, activeEntriesForDate, activeTitlesAfterDate, activeTitlesForDate, removedTitlesForDate } from "../agendaTitles";
 import type { AppConfig, AppError, ColorMode, FileMetadata, LanguageMode, PeekConfig, StartupTabMode, TabSession, ThemeMode } from "../types";
+import type { TabLabelStyle } from "../generated/tauri-types";
 import { PEEK_DEFAULTS, clampPeek } from "../peekDefaults";
 import type { CommandArgs, CommandReturn, TauriCommand, TauriCommands } from "../tauriCommands";
 import { isValidNoteFilename } from "../noteFilename";
@@ -76,6 +77,7 @@ interface StoredConfig {
   peek?: PeekConfig;
   occurrenceHint?: boolean;
   statusBarVisible?: boolean;
+  tabLabelStyle?: TabLabelStyle;
   onboardingCompleted?: boolean;
 }
 
@@ -258,6 +260,7 @@ export class WebBackend {
         onboardingCompleted: false,
         startupTabMode: "today",
         statusBarVisible: true,
+        tabLabelStyle: "iso",
       }
     );
   }
@@ -295,6 +298,7 @@ export class WebBackend {
       peek: cfg.peek ?? PEEK_DEFAULTS,
       occurrenceHint: cfg.occurrenceHint ?? false,
       statusBarVisible: cfg.statusBarVisible ?? true,
+      tabLabelStyle: cfg.tabLabelStyle ?? "iso",
     };
   }
 
@@ -333,6 +337,7 @@ export class WebBackend {
       if (patch.lineHeight !== undefined) cfg.lineHeight = Math.min(1.8, Math.max(1.3, patch.lineHeight));
       if (patch.occurrenceHint !== undefined) cfg.occurrenceHint = patch.occurrenceHint;
       if (patch.statusBarVisible !== undefined) cfg.statusBarVisible = patch.statusBarVisible;
+      if (patch.tabLabelStyle !== undefined) cfg.tabLabelStyle = patch.tabLabelStyle;
       if (patch.statusBarVisible !== undefined) cfg.statusBarVisible = patch.statusBarVisible;
       if (patch.pureBlack !== undefined) cfg.pureBlack = patch.pureBlack;
       if (patch.peek !== undefined) cfg.peek = clampPeek(patch.peek);

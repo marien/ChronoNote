@@ -18,6 +18,7 @@ import type {
   StartupTabMode,
   PeekConfig,
 } from "./types";
+import type { TabLabelStyle } from "./generated/tauri-types";
 import type {
   CommandArgs,
   CommandReturn,
@@ -99,6 +100,10 @@ export function setOccurrenceHint(enabled: boolean): Promise<AppConfig> {
 
 export function setStatusBarVisible(enabled: boolean): Promise<AppConfig> {
   return updateConfig({ statusBarVisible: enabled });
+}
+
+export function setTabLabelStyle(style: TabLabelStyle): Promise<AppConfig> {
+  return updateConfig({ tabLabelStyle: style });
 }
 
 export function setPeek(peek: PeekConfig): Promise<AppConfig> {

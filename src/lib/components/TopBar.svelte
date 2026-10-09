@@ -1,4 +1,6 @@
 <script module lang="ts">
+  import { writable } from "svelte/store";
+
   // Re-entrance guards for `settleLayout`/`scrollActiveTabIntoView` live
   // here, in the module scope, rather than as ordinary component `let`s —
   // see the long comment on `settling` below for why. There's only ever
@@ -27,6 +29,9 @@
   let settlePendingAllowUpgrade = false;
   let scrollIntoViewToken = 0;
   let unmounted = false;
+  /** Whether the command buttons are folded into More right now (§B2) — `MoreActionsModal`
+   * lists them above Settings and the rest while this is true. Written only by `TopBar`. */
+  export const commandsCollapsed = writable(false);
 </script>
 
 <script lang="ts">
@@ -47,6 +52,7 @@
     oneDriveFolder,
     saveState,
     showToast,
+    tabLabelStyle,
     tabs,
   } from "../controller";
 
@@ -55,7 +61,10 @@
   import AppIcon from "./AppIcon.svelte";
   import { formatCombo, formatShortcut, shortcutById } from "../shortcuts";
   import { countActions } from "../tokens";
-  import { t } from "../i18n";
+  import { locale, t } from "../i18n";
+  import { focusTrap } from "../actions/focusTrap";
+  import { datedTabLabel } from "../tabLabel";
+  import type { TabLabelStyle } from "../generated/tauri-types";
 
   let contextMenuVisible = $state(false);
   let contextTab = $state<NoteTab | null>(null);
@@ -140,6 +149,19 @@
   /** Dated tabs show just the date; scratchpads keep their given name. */
   const tabLabel = (t: NoteTab) => (t.isScratchpad ? t.filename : t.filename.replace(/\.txt$/, ""));
 
+  // §B3: friendly labels ("Today", "do 9 okt"). `dayFormat` and `tabLabelWords` follow the language.
+  const dayFormat = $derived(new Intl.DateTimeFormat($locale, { weekday: "short", day: "numeric", month: "short" }));
+  const tabLabelWords = $derived({
+    today: $t("phoneNav.today"),
+    yesterday: $t("phoneNav.yesterday"),
+    tomorrow: $t("phoneNav.tomorrow"),
+  });
+  /** The label on a tab in the desktop strip. Style and today come in as parameters, like
+   * `tabDateClass` below, so the template re-renders when either changes. The tab's `title`
+   * is always the plain ISO name (`tabLabel`). */
+  const stripLabel = (t: NoteTab, style: TabLabelStyle, today: string): string =>
+    t.isScratchpad ? t.filename : datedTabLabel(tabLabel(t), style, today, tabLabelWords, (d) => dayFormat.format(d));
+
   /** #68/#72: a daily tab's date relative to today — past/today/future get
    * a distinct look (§68's own CSS) so today's tab, the one most work
    * happens in, stands out from yesterday's leftovers and next week's
@@ -159,15 +181,12 @@
 
   let topBarEl: HTMLDivElement;
   let tabBarEl = $state<HTMLDivElement>();
-  let showActionLabels = $state(false);
-  // #56: once even icon-only action buttons leave the tab strip too
-  // little room, collapse the secondary ones (Actions/History/Search/
-  // Sync calendar/Promote/Settings) into a single
-  // "More" button —
-  // `MoreActionsModal`. New Scratchpad and Open Date Note stay pinned
-  // regardless; see `settleLayout` for how this is decided. About moved
-  // to the status bar (#58) — it's always reachable there regardless of
-  // window width, so it no longer needs a place in this collapse group.
+  // #56: once the tab strip has too little room, the secondary command
+  // buttons (Actions/History/Search/Sync calendar/Promote) collapse into the
+  // always-present "More" button — `MoreActionsModal`, which lists them above
+  // Settings and the rest while this is set. Date and the + button stay pinned
+  // regardless; see `settleLayout` for how this is decided. About moved to the
+  // status bar (#58) and is now also in More.
   let buttonsCollapsed = $state(false);
   // §52: whether the tab bar is overflowing at all — drives whether the
   // scroll arrows show. Deliberately *not* derived from scroll position
@@ -180,22 +199,15 @@
   let resizeObserver: ResizeObserver | null = null;
 
   // #61 follow-up: refs into the off-screen measurement clones below —
-  // see the big comment on that markup, and on `predictLabelsWouldFit`/
-  // `predictUncollapseWouldFit`, for why these exist at all.
-  let labelDateEl: HTMLElement;
-  let labelActionsEl: HTMLElement;
-  let labelHistoryEl: HTMLElement;
-  let labelSearchEl: HTMLElement;
-  let labelCalendarSyncEl: HTMLElement;
-  let labelPromoteEl: HTMLElement;
-  let labelSettingsEl: HTMLElement;
+  // see the big comment on that markup, and on `predictUncollapseWouldFit`,
+  // for why these exist at all.
   let cloneActionsEl: HTMLElement;
   let cloneHistoryEl: HTMLElement;
   let cloneSearchEl: HTMLElement;
   let cloneCalendarSyncEl = $state<HTMLElement>();
   let clonePromoteEl = $state<HTMLElement>();
-  let cloneSettingsEl: HTMLElement;
-  let moreBtnEl = $state<HTMLElement>();
+  // The flexible drag gutter after the + button: whatever it has beyond its minimum is spare room.
+  let gutterEl = $state<HTMLElement>();
 
   // The horizontal tab strip is replaced by the tabs-drawer button on
   // touch-first devices only — NOT by window width: a narrow desktop/web
@@ -208,6 +220,9 @@
   // there's no room for the whole button row: the secondary buttons live in "More".
   $effect.pre(() => {
     if (!showHorizontalTabs) buttonsCollapsed = true;
+  });
+  $effect.pre(() => {
+    commandsCollapsed.set(buttonsCollapsed);
   });
 
   const activeTab = $derived($tabs.find((t) => t.id === $activeTabId));
@@ -248,68 +263,42 @@
     return new Promise((resolve) => requestAnimationFrame(() => resolve()));
   }
 
-  /** Priority order when space is tight: (1) everything fits → show
-   * action-button labels; (2) doesn't fit with labels shown → drop back
-   * to icon-only first, reclaiming the space the labels used; (3) still
-   * doesn't fit icon-only → collapse the secondary action buttons into
-   * "More" (#56), reclaiming *their* space for the tab strip; (4) still
-   * doesn't fit even then (many, many tabs) → that's when the scroll
-   * arrows are for. Re-run whenever the window resizes or the tab list
-   * changes (in a way that can actually affect this — see
-   * `layoutSignature` below).
+  /** Priority order when space is tight: (1) everything fits → nothing to do;
+   * (2) the tab strip overflows → collapse the secondary command buttons into
+   * "More" (#56), reclaiming their space for the tabs; (3) still overflowing
+   * (many, many tabs) → that's when the scroll arrows are for. Re-run whenever
+   * the window resizes or the tab list changes (in a way that can actually
+   * affect this — see `layoutSignature` below).
    *
-   * #57: labels used to also require the window be maximized/fullscreen
-   * (`chromeExpanded`) — a leftover from §26's original spec, before
-   * `docs/spec.md` was rewritten to describe this as purely width-driven.
-   * A normal restored window could never show labels at all, however
-   * wide, which read as a bug once the merged title bar (§154) made
-   * window-state changes something users trigger constantly. Dropped
-   * entirely — a resize from maximizing/restoring still re-triggers this
-   * via the `ResizeObserver` below (maximizing genuinely changes
-   * `#top-bar`'s width), so nothing here needs `chromeExpanded` at all
-   * any more; it's still read elsewhere for the maximize/restore icon.
+   * §B2 dropped the button labels (and with them the first tier): every command
+   * is icon-only and its tooltip carries the name and shortcut.
    *
-   * §56 fixed one cause of the labels flickering on/off forever (Svelte
+   * §56 fixed one cause of the layout flickering on/off forever (Svelte
    * re-rendering on every assignment even when reassigning the exact same
-   * value) by skipping writes that don't actually change anything — but
-   * it reappeared on a display where the fit boundary sits close enough
-   * to a whole pixel that `scrollWidth`/`clientWidth` (both figures
-   * Chromium rounds to a device pixel under non-100% display scaling) can
-   * land on either side of it from one measurement to the next, even with
-   * nothing meaningfully different about the layout. §56's guard only
-   * helps when the *decision* comes out identical; it does nothing when
-   * the measurement itself is genuinely noisy right at the line — every
-   * call would still flip the actual value back and forth forever.
+   * value) by skipping writes that don't actually change anything — but it
+   * reappeared on a display where the fit boundary sits close enough to a whole
+   * pixel that `scrollWidth`/`clientWidth` (both figures Chromium rounds to a
+   * device pixel under non-100% display scaling) can land on either side of it
+   * from one measurement to the next, even with nothing meaningfully different
+   * about the layout. Deciding from the *current* state, and requiring the
+   * measurement to clear a small margin (`FIT_MARGIN`) before flipping either
+   * direction, means a measurement wobbling by a pixel or two can no longer flip
+   * the decision on its own; it takes a real, clearly-more-than-noise change in
+   * available width to do that.
    *
-   * Starting fresh from "try labels on" on every call (the old approach)
-   * is what makes that noise visible: right at the boundary, one call's
-   * rounding says "fits" and turns labels on, the next says "doesn't" and
-   * turns them off, disagreeing with itself every time it's asked from
-   * scratch. Deciding from the *current* state instead, and requiring the
-   * measurement to clear a small margin — not just barely cross the exact
-   * line — before flipping either direction, means a measurement
-   * wobbling by a pixel or two can no longer flip the decision on its
-   * own; it takes a real, clearly-more-than-noise change in available
-   * width to do that.
-   *
-   * The "was off, does it now fit with labels?" branch can't use
-   * `scrollWidth` for that check, though, even with a margin —
-   * `scrollWidth` is defined as never less than `clientWidth` (an
-   * element with room to spare reports them as *equal*, not the
-   * content's actual, smaller width), so "how much spare room is there"
-   * isn't something `scrollWidth`/`clientWidth` can answer at all once
-   * content fits; only "is it overflowing, and by how much" is. Using it
-   * anyway made `scrollWidth > clientWidth - FIT_MARGIN` true essentially
-   * always whenever content fit (`clientWidth > clientWidth - 8` doesn't
-   * depend on the content), reverting labels the instant they were
-   * tried — a real regression (labels stopped appearing at all, even
-   * closing tabs down to one with plenty of room left) traced to exactly
-   * this. `tabsContentWidth()` sums the tabs' own rendered widths
-   * instead, which isn't floored the same way and actually shrinks when
-   * there's less content, however comfortably it fits. */
+   * The "was collapsed, does it fit uncollapsed now?" branch can't use
+   * `scrollWidth` for that check, though — `scrollWidth` is defined as never
+   * less than `clientWidth` (an element with room to spare reports them as
+   * *equal*, not the content's actual, smaller width), so "how much spare room is
+   * there" isn't something `scrollWidth`/`clientWidth` can answer at all once
+   * content fits; only "is it overflowing, and by how much" is.
+   * `tabsContentWidth()` sums the tabs' own rendered widths instead, which isn't
+   * floored the same way and actually shrinks when there's less content,
+   * however comfortably it fits. */
+  const TAB_BAR_PADDING = 16; // `#tab-bar`'s horizontal padding (room for the active tab's base curves)
   function tabsContentWidth(): number {
     if (!tabBarEl) return 0;
-    let w = 0;
+    let w = TAB_BAR_PADDING;
     for (const child of tabBarEl.children) w += (child as HTMLElement).offsetWidth;
     return w;
   }
@@ -318,101 +307,59 @@
   // §merged-titlebar follow-up: how much of a neighboring tab to leave
   // peeking in when scrolling the active tab into view at an edge.
   const TAB_EDGE_PEEK = 24;
-
-  // #61 follow-up: matches `.icon-btn`'s own CSS `gap: 6px` — that gap
-  // only manifests once a label span exists as a second flex child inside
-  // the button, so a button's real width-with-label is its current
-  // (icon-only) width plus exactly (label width + this gap). Duplicated
-  // here rather than read from computed style since it's cheap, stable,
-  // and already how `FIT_MARGIN` itself is handled in this file.
-  const ICON_LABEL_GAP = 6;
+  // Matches `.titlebar-commands`' `gap` (02-top-bar.css) — only manifests between buttons, so a
+  // collapsed button's real width in the row is its own plus this.
+  const COMMAND_GAP = 2;
+  // `.titlebar-drag-gutter`'s `min-width` — the part of it that is not spare room.
+  const GUTTER_MIN = 20;
 
   function rectWidth(el: HTMLElement | undefined): number {
     return el ? el.getBoundingClientRect().width : 0;
   }
 
-  /** #61 follow-up: `settleLayout`'s upgrade attempts used to unconditionally
-   * flip `showActionLabels`/`buttonsCollapsed` to measure a tier that isn't
-   * currently rendered, then revert if it turned out not to fit — the
-   * `allowUpgrade` gate above cut how *often* that ran, but every attempt
-   * that still fired painted one real frame of the wider tier before
-   * reverting (Svelte's DOM patch for the trial value lands via a
-   * microtask, which always resolves *before* the next `requestAnimationFrame`
-   * this function awaits — so the browser paints the trial state at least
-   * once, guaranteed, whenever a revert happens). Predicting the outcome
-   * first — using off-screen clones that are never part of the visible
-   * layout at all — means the live state only ever gets set to values
-   * already known to fit, so the flip-and-measure-and-maybe-revert code
-   * below stays as a safety net (kept, in case a prediction is ever off by
-   * a pixel) rather than the routine path. This function answers "if
-   * labels turned on right now, would the tab strip still fit?" without
-   * ever touching `showActionLabels`. */
-  function predictLabelsWouldFit(): boolean {
-    if (!tabBarEl) return false;
-    let delta = rectWidth(labelDateEl) + ICON_LABEL_GAP;
-    if (!buttonsCollapsed) {
-      delta +=
-        rectWidth(labelActionsEl) +
-        rectWidth(labelHistoryEl) +
-        rectWidth(labelSearchEl) +
-        rectWidth(labelSettingsEl) +
-        3 * ICON_LABEL_GAP;
-      if (calendarSyncVisible) delta += rectWidth(labelCalendarSyncEl) + ICON_LABEL_GAP;
-      if (activeTab?.isScratchpad) delta += rectWidth(labelPromoteEl) + ICON_LABEL_GAP;
-    }
-    return tabsContentWidth() <= tabBarEl.clientWidth - delta - FIT_MARGIN;
+  /** `#tab-bar` is only as wide as its tabs (the drag gutter takes the rest), so its own
+   * `clientWidth` is no longer "all the room the tabs could have". The room is its width plus
+   * whatever the gutter has beyond its minimum. */
+  function tabAreaWidth(): number {
+    if (!tabBarEl) return 0;
+    return tabBarEl.clientWidth + Math.max(0, rectWidth(gutterEl) - GUTTER_MIN);
   }
 
-  /** #61 follow-up: same idea as `predictLabelsWouldFit`, for the "More"
-   * button expanding back into the full secondary-action row (#56). Only
-   * meaningful (and only ever called) while `buttonsCollapsed` is true,
-   * since that's the only state where the real row doesn't exist in the
-   * DOM to measure directly — `cloneActionsEl` etc. are off-screen clones
-   * of that row. They mirror the *current* `showActionLabels` value (like
-   * the live row would), so `labelsOn` here is a hypothetical, not
-   * necessarily what's currently showing — each clone's label width
-   * (already known from the Block-A spans above) is added or subtracted
-   * from its measured width to get the width under the state actually
-   * being asked about. This mirrors the live fallback below it: uncollapsing
-   * is tried with labels in their current state first, and only with labels
-   * forced off if that alone doesn't fit — a real, previously-untested case
-   * (turning both buttonsCollapsed and showActionLabels off in the very
-   * same widen) needs both predicted, or the gate wrongly refuses an
-   * uncollapse that the live fallback would actually have found room for. */
-  function predictUncollapseWouldFit(labelsOn: boolean): boolean {
-    if (!tabBarEl || !moreBtnEl) return false;
-    const rows: [HTMLElement | undefined, HTMLElement][] = [
-      [cloneActionsEl, labelActionsEl],
-      [cloneHistoryEl, labelHistoryEl],
-      [cloneSearchEl, labelSearchEl],
-      [cloneSettingsEl, labelSettingsEl],
-    ];
-    if (calendarSyncVisible) rows.push([cloneCalendarSyncEl, labelCalendarSyncEl]);
-    if (activeTab?.isScratchpad) rows.push([clonePromoteEl, labelPromoteEl]);
-    let uncollapsedWidth = 0;
-    for (const [clone, label] of rows) {
-      const cloneWidth = rectWidth(clone);
-      const iconOnlyWidth = showActionLabels ? cloneWidth - rectWidth(label) - ICON_LABEL_GAP : cloneWidth;
-      uncollapsedWidth += labelsOn ? iconOnlyWidth + rectWidth(label) + ICON_LABEL_GAP : iconOnlyWidth;
-    }
-    const delta = uncollapsedWidth - rectWidth(moreBtnEl);
-    return tabsContentWidth() <= tabBarEl.clientWidth - delta - FIT_MARGIN;
+  /** #61 follow-up: `settleLayout`'s upgrade attempt used to unconditionally flip
+   * `buttonsCollapsed` to measure a tier that isn't currently rendered, then revert if it
+   * turned out not to fit — the `allowUpgrade` gate below cut how *often* that ran, but every
+   * attempt that still fired painted one real frame of the wider tier before reverting
+   * (Svelte's DOM patch for the trial value lands via a microtask, which always resolves
+   * *before* the next `requestAnimationFrame` this function awaits — so the browser paints the
+   * trial state at least once, guaranteed, whenever a revert happens). Predicting the outcome
+   * first — using off-screen clones that are never part of the visible layout at all — means
+   * the live state only ever gets set to values already known to fit, so the
+   * flip-and-measure-and-maybe-revert code below stays as a safety net (kept, in case a
+   * prediction is ever off by a pixel) rather than the routine path. This answers "if the
+   * collapsed buttons came back right now, would the tab strip still fit?" and is only
+   * meaningful (and only ever called) while `buttonsCollapsed` is true, since that's the only
+   * state where the real buttons don't exist in the DOM to measure directly. "More" stays in
+   * the row either way, so only the clones' widths are added. */
+  function predictUncollapseWouldFit(): boolean {
+    if (!tabBarEl) return false;
+    const clones: (HTMLElement | undefined)[] = [cloneActionsEl, cloneHistoryEl, cloneSearchEl];
+    if (calendarSyncVisible) clones.push(cloneCalendarSyncEl);
+    if (activeTab?.isScratchpad) clones.push(clonePromoteEl);
+    let delta = 0;
+    for (const clone of clones) delta += rectWidth(clone) + COMMAND_GAP;
+    return tabsContentWidth() <= tabAreaWidth() - delta - FIT_MARGIN;
   }
-  /** #61: an upgrade attempt (icon-only → labels, collapsed → uncollapsed)
-   * unconditionally flips the state to test it, which is the only way to
-   * measure a tier that isn't currently rendered — but doing that on
-   * *every* call, including ones triggered by the window getting
-   * *narrower*, flashes the wider tier on screen for a frame before
-   * reverting it, every single time, for the entire duration of a drag
-   * that's only ever making things tighter. `allowUpgrade` gates those
-   * attempts on there being an actual reason to think a wider tier might
-   * fit now — the `ResizeObserver` below passes `true` only when
-   * `#top-bar` just got *wider* than the last time it measured; the
-   * `tabs.subscribe` path (closing/renaming a tab can free room without
-   * `#top-bar` itself resizing at all) always passes `true`, since that
-   * path fires far less often than a continuous drag ever could. The
-   * *downgrade* checks (already-showing labels/buttons found to no longer
-   * fit) are never gated — shrinking must always be able to react. */
+  /** #61: an upgrade attempt (collapsed → uncollapsed) unconditionally flips the state to test
+   * it, which is the only way to measure a tier that isn't currently rendered — but doing that
+   * on *every* call, including ones triggered by the window getting *narrower*, flashes the
+   * wider tier on screen for a frame before reverting it, every single time, for the entire
+   * duration of a drag that's only ever making things tighter. `allowUpgrade` gates those
+   * attempts on there being an actual reason to think a wider tier might fit now — the
+   * `ResizeObserver` below passes `true` only when `#top-bar` just got *wider* than the last
+   * time it measured; the `tabs.subscribe` path (closing/renaming a tab can free room without
+   * `#top-bar` itself resizing at all) always passes `true`, since that path fires far less
+   * often than a continuous drag ever could. The *downgrade* check (already-showing buttons
+   * found to no longer fit) is never gated — shrinking must always be able to react. */
   async function settleLayout(allowUpgrade = true) {
     if (!tabBarEl) return;
     if (settling) {
@@ -437,95 +384,20 @@
       await nextFrame();
       do {
         settlePending = false;
-        if (showActionLabels) {
-          // Labels are currently showing — only hide them if clearly too
-          // tight, not just a hair over the line. Overflow (unlike "does
-          // it comfortably fit") is exactly what `scrollWidth` answers
-          // correctly, margin included.
-          if (tabBarEl.scrollWidth > tabBarEl.clientWidth + FIT_MARGIN) {
-            showActionLabels = false;
-            await nextFrame();
-          }
-        } else if (allowUpgrade && predictLabelsWouldFit()) {
-          // Icon-only currently — try labels, but only keep them if
-          // there's clearly enough spare room once they're shown, not
-          // just barely. `predictLabelsWouldFit()` already checked this
-          // off-screen, so this flip is expected to stick — the
-          // measure-and-revert below is a safety net, not the routine
-          // path (see its own comment for why that matters for flicker).
-          showActionLabels = true;
-          await nextFrame();
-          if (tabsContentWidth() > tabBarEl.clientWidth - FIT_MARGIN) {
-            showActionLabels = false;
-            await nextFrame();
-          }
-        }
-
-        // #56: same decide-from-current-state + margin discipline as
-        // the labels decision above, one rung further down the priority
-        // order — collapsing/uncollapsing the secondary action buttons
-        // changes `tabBarEl`'s own width the same way toggling labels
-        // does, so this has to run *after* the labels decision above has
-        // settled, not before.
-        //
-        // #57: labels must never be the reason buttons end up collapsed
-        // — the priority order above says labels are dropped *first*,
-        // buttons collapse only as a last resort. But by the time this
-        // runs, the labels decision above may have *just* turned labels
-        // on this same pass (they were off going in, e.g. a window
-        // widened from a narrow, collapsed state) — measuring "does it
-        // fit" here then means "does it fit with labels," understating
-        // how much room buttons actually have and collapsing them
-        // needlessly. If a fit check below fails while labels are on,
-        // retry it once with labels forced off before concluding buttons
-        // really do need to collapse — skipped entirely when labels are
-        // already off (the common case), so this adds no extra
-        // measurement/flicker there.
+        // #56: decide from the current state, with the margin discipline described above.
         if (!buttonsCollapsed) {
           if (tabBarEl.scrollWidth > tabBarEl.clientWidth + FIT_MARGIN) {
-            if (showActionLabels) {
-              showActionLabels = false;
-              await nextFrame();
-            }
-            if (tabBarEl.scrollWidth > tabBarEl.clientWidth + FIT_MARGIN) {
-              buttonsCollapsed = true;
-              await nextFrame();
-            }
-          }
-        } else if (allowUpgrade) {
-          // Collapsed currently — only bring the buttons back if there's
-          // clearly enough spare room once they're shown, not just
-          // barely (the same `tabsContentWidth` reasoning as the labels
-          // branch: `scrollWidth` can't tell "how much room to spare"
-          // once content already fits, only "is it overflowing"). Predict
-          // both the "uncollapse with labels as they are" and "uncollapse
-          // with labels forced off" outcomes off-screen first — the same
-          // two configurations the live fallback below would otherwise
-          // try one at a time — so labels only get turned off *before*
-          // the flip when that's actually the combination that works,
-          // instead of live-flashing "uncollapsed + still overflowing"
-          // for a frame first.
-          const fitsAsIs = predictUncollapseWouldFit(showActionLabels);
-          const fitsLabelsOff = !fitsAsIs && showActionLabels && predictUncollapseWouldFit(false);
-          if (fitsAsIs || fitsLabelsOff) {
-            if (fitsLabelsOff) {
-              showActionLabels = false;
-              await nextFrame();
-            }
-            buttonsCollapsed = false;
+            buttonsCollapsed = true;
             await nextFrame();
-            // Safety net in case a prediction was ever off by a pixel —
-            // not the routine path, see `predictUncollapseWouldFit`.
-            if (tabsContentWidth() > tabBarEl.clientWidth - FIT_MARGIN) {
-              if (showActionLabels) {
-                showActionLabels = false;
-                await nextFrame();
-              }
-              if (tabsContentWidth() > tabBarEl.clientWidth - FIT_MARGIN) {
-                buttonsCollapsed = true;
-                await nextFrame();
-              }
-            }
+          }
+        } else if (allowUpgrade && predictUncollapseWouldFit()) {
+          buttonsCollapsed = false;
+          await nextFrame();
+          // Safety net in case a prediction was ever off by a pixel — not the
+          // routine path, see `predictUncollapseWouldFit`.
+          if (tabBarEl.scrollWidth > tabBarEl.clientWidth + FIT_MARGIN) {
+            buttonsCollapsed = true;
+            await nextFrame();
           }
         }
 
@@ -576,8 +448,8 @@
     const targetTabId = $activeTabId;
     await nextFrame();
     // §merged-titlebar follow-up: `settleLayout` can take several frames
-    // to converge (it decides labels, then buttons-collapsed, then
-    // overflow, each gated behind its own `await nextFrame()`) — a single
+    // to converge (it decides buttons-collapsed, then overflow,
+    // each gated behind its own `await nextFrame()`) — a single
     // frame here isn't necessarily enough to know `tabBarEl.clientWidth`
     // has reached its *final* value, not a mid-sequence intermediate one.
     // Confirmed as a real, reproducible wrong-scroll-position bug (not
@@ -680,9 +552,33 @@
   }
   let lastTabsLayoutSignature: string | null = null;
 
+  // §B2: the + button's menu (New scratchpad / Open date / Reopen closed tab).
+  let newMenuOpen = $state(false);
+  let newMenuPos = $state({ x: 0, y: 0 });
+  let newMenuEl = $state<HTMLDivElement>();
+  let newSplitEl = $state<HTMLDivElement>();
+  const NEW_MENU_MAX_WIDTH = 320; // `.more-actions-pop`'s max-width: keeps it on screen near the right edge
+
+  function toggleNewMenu() {
+    if (newMenuOpen) {
+      newMenuOpen = false;
+      return;
+    }
+    if (!newSplitEl) return;
+    const r = newSplitEl.getBoundingClientRect();
+    newMenuPos = { x: Math.max(8, Math.min(r.left, window.innerWidth - NEW_MENU_MAX_WIDTH - 8)), y: r.bottom + 6 };
+    newMenuOpen = true;
+    tick().then(() => newMenuEl?.querySelector<HTMLElement>("button")?.focus());
+  }
+
+  function runNewMenuItem(action: () => unknown) {
+    newMenuOpen = false;
+    void action();
+  }
+
   onMount(() => {
     // Observe the outer row, not `tabBarEl` itself: `settleLayout()` (which
-    // this observer calls) toggles the action-button labels, the scroll
+    // this observer calls) collapses the command buttons, toggles the scroll
     // arrows, and the Promote button — all siblings of `#tab-bar` that live
     // inside `#top-bar`. Toggling them changes how much room is left for
     // `#tab-bar`, which would change `tabBarEl`'s own size too — observing
@@ -774,12 +670,15 @@
       settleLayout();
     });
     const unsubActive = activeTabId.subscribe(() => scrollActiveTabIntoView());
+    // §B3: friendly names can be shorter or longer than the ISO date, which can change what fits.
+    const unsubLabelStyle = tabLabelStyle.subscribe(() => settleLayout());
 
     return () => {
       unmounted = true;
       resizeObserver?.disconnect();
       unsubTabs();
       unsubActive();
+      unsubLabelStyle();
     };
   });
 </script>
@@ -818,6 +717,13 @@
       {/if}
     {/if}
     <div class="tab-bar-spacer"></div>
+    <button
+      class="icon-btn"
+      title={$t("topBar.newScratchpad.title", { combo: formatCombo(shortcutById('newScratchpad').combos[0]) })}
+      onclick={controller.createScratchpad}
+    >
+      <Icon name="new-scratchpad" />
+    </button>
   {:else}
     {#if isOverflowing}
       <button class="icon-btn tab-scroll-btn" aria-label={$t("topBar.scrollTabsLeft")} onclick={() => scrollTabBar(-1)}>
@@ -841,6 +747,7 @@
           role="tab"
           tabindex="0"
           data-tab-id={tab.id}
+          title={tab.isScratchpad ? undefined : tabLabel(tab)}
           aria-selected={tab.id === $activeTabId}
           onclick={() => controller.switchTab(tab.id)}
           ondblclick={() => tab.isScratchpad && startRenaming(tab)}
@@ -854,9 +761,12 @@
           }}
           onkeydown={(e) => e.key === "Enter" && controller.switchTab(tab.id)}
         >
-          <span class="tab-icon" aria-hidden="true">
-            <Icon name={tab.isScratchpad ? "tab-scratch" : "tab-daily"} size={13} />
-          </span>
+          {#if tab.isScratchpad}
+            <span class="tab-icon" aria-hidden="true"><Icon name="tab-scratch" size={13} /></span>
+          {:else}
+            <!-- §B3: the past/today/future cue is this dot's colour -->
+            <span class="tab-dot" aria-hidden="true"></span>
+          {/if}
           {#if renamingTabId === tab.id}
             <input
               type="text"
@@ -876,7 +786,7 @@
               onclick={(e) => e.stopPropagation()}
             />
           {:else}
-            <span class="tab-label">{tabLabel(tab)}</span>
+            <span class="tab-label" class:friendly={!tab.isScratchpad && $tabLabelStyle === "friendly"}>{stripLabel(tab, $tabLabelStyle, $currentDateISO)}</span>
           {/if}
           {#if tab.isScratchpad && tab.content.trim() !== ""}
             <span class="tab-status-dot mem" title={$t("topBar.tabStatus.memoryOnly")}></span>
@@ -907,100 +817,110 @@
         <Icon name="chevron-right" size={14} />
       </button>
     {/if}
-  {/if}
-  {#if isMergedTitlebar}
-    <!-- §merged-titlebar: a fixed drag territory that's always present
-         regardless of tab count — #tab-bar's own empty trailing space
-         (also draggable, above) shrinks to nothing once tabs overflow,
-         so the window still needs somewhere to grab. Sits between the
-         tab strip and the button cluster (not between the buttons and
-         the window controls) so New Scratchpad/Open Date/the toolbar/
-         window controls all read as one clustered group at the trailing
-         edge, the same way the app icon reads as one thing with the
-         tabs at the leading edge. -->
+    <!-- §B2: the split + button sits right after the tabs, as a sibling of the scrollable
+         #tab-bar rather than a child of it (§53), so it stays visible whatever the scroll
+         position. + creates a scratchpad; the chevron opens the small "new" menu. -->
+    <div class="tab-bar-split" bind:this={newSplitEl}>
+      <button
+        class="icon-btn tab-new-btn"
+        title={$t("topBar.newScratchpad.title", { combo: formatCombo(shortcutById('newScratchpad').combos[0]) })}
+        aria-label={$t("shortcuts.newScratchpad.label")}
+        onclick={controller.createScratchpad}
+      >
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true">
+          <path d="M7 2.5v9M2.5 7h9" />
+        </svg>
+      </button>
+      <button
+        class="icon-btn tab-new-menu-btn"
+        title={$t("topBar.newTabMenu")}
+        aria-label={$t("topBar.newTabMenu")}
+        aria-haspopup="menu"
+        aria-expanded={newMenuOpen}
+        onclick={toggleNewMenu}
+      >
+        <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M2 3.5 5 6.5 8 3.5" />
+        </svg>
+      </button>
+    </div>
+    <!-- §merged-titlebar: the drag territory, and now also the bar's free space — #tab-bar
+         only takes as much as its tabs need, so everything left over is this gutter and the
+         empty bar stays a window drag area. Its minimum keeps something to grab even once the
+         tabs overflow. Present in the web app too (without the drag attribute) so the
+         commands still sit at the trailing edge there. -->
     <div
       class="titlebar-drag-gutter"
-      data-tauri-drag-region
+      bind:this={gutterEl}
+      data-tauri-drag-region={isMergedTitlebar ? true : undefined}
       aria-hidden="true"
     ></div>
   {/if}
-  <!-- §53: always visible regardless of tab-bar scroll position — a
-       sibling of the scrollable #tab-bar rather than a child of it. -->
-  <button
-    class="icon-btn tab-bar-new-btn"
-
-    title={$t("topBar.newScratchpad.title", { combo: formatCombo(shortcutById('newScratchpad').combos[0]) })}
-    onclick={controller.createScratchpad}
-  >
-    <Icon name="new-scratchpad" />
-  </button>
-  <button
-    class="icon-btn"
-    title={$t("topBar.openDateNote.title", { combo: formatShortcut('openDateNote') })}
-    data-datepicker-trigger
-    onclick={controller.openDatePicker}
-  >
-    <Icon name="date-note" />{#if showActionLabels}<span class="icon-label">{$t("topBar.label.date")}</span>{/if}
-  </button>
-  {#if buttonsCollapsed}
-    <!-- #56: everything below this button collapses into it once the
-         window is too narrow — MoreActionsModal, anchored to
-         data-more-trigger the same way DatePickerModal anchors to
-         data-datepicker-trigger. -->
-    <button class="icon-btn has-pip" title={$t("topBar.moreActions.title")} data-more-trigger onclick={controller.openMoreActions} bind:this={moreBtnEl}>
+  <div class="titlebar-commands">
+    <button
+      class="icon-btn"
+      title={$t("topBar.openDateNote.title", { combo: formatShortcut('openDateNote') })}
+      data-datepicker-trigger
+      onclick={controller.openDatePicker}
+    >
+      <Icon name="date-note" />
+    </button>
+    {#if !buttonsCollapsed}
+      <button class="icon-btn" title={$t("topBar.actions.title", { combo: formatShortcut('openActions') })} onclick={controller.openActionDrawer}>
+        <Icon name="actions" />
+      </button>
+      <button
+        class="icon-btn"
+        title={$t("topBar.history.title", { combo: formatShortcut('openHistory') })}
+        onclick={controller.openMeetingHistory}
+      >
+        <Icon name="section-history" />
+      </button>
+      <button
+        class="icon-btn"
+        title={$t("topBar.search.title", { combo: formatShortcut('crossTabSearch') })}
+        onclick={controller.openCrossTabSearch}
+      >
+        <Icon name="search" />
+      </button>
+      {#if calendarSyncVisible}
+        <button
+          class="icon-btn has-pip"
+          title={calendarSyncReady
+            ? $t("topBar.calendarSync.titleReady", { combo: formatShortcut('syncCalendar') })
+            : !$agendaFileExists
+              ? $t("topBar.calendarSync.titleNoAgendaFile")
+              : $t("topBar.calendarSync.titleNotAvailable")}
+          disabled={!calendarSyncReady}
+          onclick={controller.syncCalendarFromFile}
+        >
+          <Icon name="calendar-import" />
+          {#if calendarSyncReady && $calendarSyncHasDiff}
+            <span class="icon-btn-pip" aria-hidden="true"></span>
+          {/if}
+        </button>
+      {/if}
+      {#if activeTab?.isScratchpad}
+        <button
+          class="icon-btn"
+          title={$t("topBar.promote.title")}
+          onclick={() => controller.promoteScratchpad(activeTab.id)}
+        >
+          <Icon name="promote" />
+        </button>
+      {/if}
+    {/if}
+    <!-- §B2: always present. MoreActionsModal, anchored to data-more-trigger the same way
+         DatePickerModal anchors to data-datepicker-trigger, lists Settings, Shortcuts, Zen,
+         Peek and About — and, above those, the commands that collapsed (#56). The pip
+         only shows here while the sync button itself is collapsed into this menu. -->
+    <button class="icon-btn has-pip" title={$t("topBar.moreActions.title")} data-more-trigger onclick={controller.openMoreActions}>
       <Icon name="more" />
-      {#if calendarSyncVisible && calendarSyncReady && $calendarSyncHasDiff}
+      {#if buttonsCollapsed && calendarSyncVisible && calendarSyncReady && $calendarSyncHasDiff}
         <span class="icon-btn-pip" aria-hidden="true"></span>
       {/if}
     </button>
-  {:else}
-    <button class="icon-btn" title={$t("topBar.actions.title", { combo: formatShortcut('openActions') })} onclick={controller.openActionDrawer}>
-      <Icon name="actions" />{#if showActionLabels}<span class="icon-label">{$t("actionDrawer.modal.ariaLabel")}</span>{/if}
-    </button>
-    <button
-      class="icon-btn"
-      title={$t("topBar.history.title", { combo: formatShortcut('openHistory') })}
-      onclick={controller.openMeetingHistory}
-    >
-      <Icon name="section-history" />{#if showActionLabels}<span class="icon-label">{$t("history.modal.ariaLabel")}</span>{/if}
-    </button>
-    <button
-      class="icon-btn"
-      title={$t("topBar.search.title", { combo: formatShortcut('crossTabSearch') })}
-      onclick={controller.openCrossTabSearch}
-    >
-      <Icon name="search" />{#if showActionLabels}<span class="icon-label">{$t("topBar.label.search")}</span>{/if}
-    </button>
-    {#if calendarSyncVisible}
-      <button
-        class="icon-btn has-pip"
-        title={calendarSyncReady
-          ? $t("topBar.calendarSync.titleReady", { combo: formatShortcut('syncCalendar') })
-          : !$agendaFileExists
-            ? $t("topBar.calendarSync.titleNoAgendaFile")
-            : $t("topBar.calendarSync.titleNotAvailable")}
-        disabled={!calendarSyncReady}
-        onclick={controller.syncCalendarFromFile}
-      >
-        <Icon name="calendar-import" />{#if showActionLabels}<span class="icon-label">{$t("topBar.label.calendarSync")}</span>{/if}
-        {#if calendarSyncReady && $calendarSyncHasDiff}
-          <span class="icon-btn-pip" aria-hidden="true"></span>
-        {/if}
-      </button>
-    {/if}
-    {#if activeTab?.isScratchpad}
-      <button
-        class="icon-btn"
-        title={$t("topBar.promote.title")}
-        onclick={() => controller.promoteScratchpad(activeTab.id)}
-      >
-        <Icon name="promote" />{#if showActionLabels}<span class="icon-label">{$t("topBar.label.promote")}</span>{/if}
-      </button>
-    {/if}
-    <button class="icon-btn" title={$t("topBar.settings.title", { combo: formatShortcut('openSettings') })} onclick={controller.openSettings}>
-      <Icon name="settings" />{#if showActionLabels}<span class="icon-label">{$t("settings.modal.title")}</span>{/if}
-    </button>
-  {/if}
+  </div>
   {#if isMergedTitlebar}
     <div class="window-controls">
       <button class="win-btn" aria-label={$t("topBar.window.minimize")} onclick={() => controller.minimizeWindow()}>
@@ -1018,72 +938,86 @@
       </button>
     </div>
   {/if}
-  <!-- #61 follow-up: off-screen measurement clones for `predictLabelsWouldFit`/
-       `predictUncollapseWouldFit` above — never painted (`.topbar-measure`
-       is `position: fixed` + `visibility: hidden`, so it's fully out of
-       `#top-bar`'s own layout and never reaches the screen), but still real
-       DOM the browser lays out, so `getBoundingClientRect()` on them is
-       accurate. `aria-hidden` + `inert` keep them out of the accessibility
-       tree and unreachable by keyboard/click even though they're
-       plain <button>/<span> markup. Deliberately NOT full copies of the
-       live buttons: no `data-*-trigger` attributes (so DatePickerModal's/
-       MoreActionsModal's anchor lookups can never match one of these
-       instead of the real, visible trigger) and no click handlers. If a
-       button's icon or label text changes, this has to change with it —
-       the same "keep two things in sync" caveat as `mockBackend.ts`
-       mirroring `storage.rs`.
-       Two groups: the bare label spans measure just the marginal width a
-       label would add to a button that's currently icon-only (used when
-       `showActionLabels` is off); the button clones measure the full
-       secondary-action row's width in the *current* labels state (used
-       only while `buttonsCollapsed` is true, since that's the only state
-       where the real row isn't in the DOM at all to measure directly). -->
-  <div class="icon-btn topbar-measure" aria-hidden="true" inert>
-    <span class="icon-label" bind:this={labelDateEl}>{$t("topBar.label.date")}</span>
-    <span class="icon-label" bind:this={labelActionsEl}>{$t("actionDrawer.modal.ariaLabel")}</span>
-    <span class="icon-label" bind:this={labelHistoryEl}>{$t("history.modal.ariaLabel")}</span>
-    <span class="icon-label" bind:this={labelSearchEl}>{$t("topBar.label.search")}</span>
-    <span class="icon-label" bind:this={labelCalendarSyncEl}>{$t("topBar.label.calendarSync")}</span>
-    <span class="icon-label" bind:this={labelPromoteEl}>{$t("topBar.label.promote")}</span>
-    <span class="icon-label" bind:this={labelSettingsEl}>{$t("settings.modal.title")}</span>
-  </div>
-  <div class="topbar-measure" aria-hidden="true" inert>
+  <!-- #61 follow-up: off-screen measurement clones of the collapsible command buttons, for
+       `predictUncollapseWouldFit` above — never painted (`.topbar-measure` is `position:
+       fixed` + `visibility: hidden`, so it's fully out of `#top-bar`'s own layout and never
+       reaches the screen), but still real DOM the browser lays out, so
+       `getBoundingClientRect()` on them is accurate. `aria-hidden` + `inert` keep them out of
+       the accessibility tree and unreachable by keyboard/click even though they're plain
+       <button> markup. Deliberately NOT full copies of the live buttons: no `data-*-trigger`
+       attributes (so DatePickerModal's/MoreActionsModal's anchor lookups can never match one
+       of these instead of the real, visible trigger) and no click handlers. If a button's icon
+       changes, this has to change with it — the same "keep two things in sync" caveat as
+       `mockBackend.ts` mirroring `storage.rs`. They carry `.titlebar-commands` so they get
+       the live buttons' exact width. -->
+  <div class="titlebar-commands topbar-measure" aria-hidden="true" inert>
     <button class="icon-btn" bind:this={cloneActionsEl} tabindex="-1">
-      <Icon name="actions" />{#if showActionLabels}<span class="icon-label">{$t("actionDrawer.modal.ariaLabel")}</span>{/if}
+      <Icon name="actions" />
     </button>
     <button class="icon-btn" bind:this={cloneHistoryEl} tabindex="-1">
-      <Icon name="section-history" />{#if showActionLabels}<span class="icon-label">{$t("history.modal.ariaLabel")}</span>{/if}
+      <Icon name="section-history" />
     </button>
     <button class="icon-btn" bind:this={cloneSearchEl} tabindex="-1">
-      <Icon name="search" />{#if showActionLabels}<span class="icon-label">{$t("topBar.label.search")}</span>{/if}
+      <Icon name="search" />
     </button>
     {#if calendarSyncVisible}
       <button class="icon-btn" bind:this={cloneCalendarSyncEl} tabindex="-1">
-        <Icon name="calendar-import" />{#if showActionLabels}<span class="icon-label">{$t("topBar.label.calendarSync")}</span>{/if}
+        <Icon name="calendar-import" />
       </button>
     {/if}
     {#if activeTab?.isScratchpad}
       <button class="icon-btn" bind:this={clonePromoteEl} tabindex="-1">
-        <Icon name="promote" />{#if showActionLabels}<span class="icon-label">{$t("topBar.label.promote")}</span>{/if}
+        <Icon name="promote" />
       </button>
     {/if}
-    <button class="icon-btn" bind:this={cloneSettingsEl} tabindex="-1">
-      <Icon name="settings" />{#if showActionLabels}<span class="icon-label">{$t("settings.modal.title")}</span>{/if}
-    </button>
   </div>
 </div>
+
+{#if newMenuOpen}
+  <!-- §B2: the + menu — same look as the More popover (`.more-actions-pop`), opened under the split button. -->
+  <div
+    class="more-actions-pop"
+    bind:this={newMenuEl}
+    role="menu"
+    aria-label={$t("topBar.newTabMenu")}
+    use:focusTrap
+    style="top: {newMenuPos.y}px; left: {newMenuPos.x}px;"
+  >
+    <button type="button" class="more-actions-item" role="menuitem" onclick={() => runNewMenuItem(controller.createScratchpad)}>
+      <Icon name="new-scratchpad" size={14} /><span>{$t("shortcuts.newScratchpad.label")}</span>
+      <kbd>{formatShortcut("newScratchpad")}</kbd>
+    </button>
+    <button type="button" class="more-actions-item" role="menuitem" onclick={() => runNewMenuItem(controller.openDatePicker)}>
+      <Icon name="date-note" size={14} /><span>{$t("shortcuts.openDateNote.label")}</span>
+      <kbd>{formatShortcut("openDateNote")}</kbd>
+    </button>
+    <div class="more-actions-sep" role="separator"></div>
+    <button type="button" class="more-actions-item" role="menuitem" onclick={() => runNewMenuItem(controller.reopenLastClosedTab)}>
+      <Icon name="undo" size={14} /><span>{$t("shortcuts.reopenClosedTab.label")}</span>
+      <kbd>{formatShortcut("reopenClosedTab")}</kbd>
+    </button>
+  </div>
+{/if}
 
 <svelte:window
   onmousedown={(e) => {
     if (contextMenuVisible && contextMenuEl && !contextMenuEl.contains(e.target as Node)) {
       closeContextMenu();
     }
+    // The chevron toggles the menu itself, so a press on the split button is not an outside click.
+    if (newMenuOpen && !newMenuEl?.contains(e.target as Node) && !newSplitEl?.contains(e.target as Node)) {
+      newMenuOpen = false;
+    }
   }}
   onkeydown={(e) => {
     if (e.key === "Escape" && contextMenuVisible) {
       closeContextMenu();
     }
+    if (e.key === "Escape" && newMenuOpen) {
+      newMenuOpen = false;
+    }
   }}
+  onresize={() => (newMenuOpen = false)}
 />
 
 {#if contextMenuVisible && contextTab}
@@ -1264,7 +1198,10 @@
    anchored like tabs/buttons. */
 
 .titlebar-drag-gutter {
-  flex: 0 0 20px;
+  /* §B2: takes whatever the tabs and commands leave over; the minimum (mirrored as
+     `GUTTER_MIN` in the script) keeps something to grab once the tabs overflow. */
+  flex: 1 1 20px;
+  min-width: 20px;
   align-self: stretch;
 }
 
@@ -1306,7 +1243,12 @@
 
 #tab-bar {
   display: flex;
-  flex: 1;
+  /* §B2: only as wide as its tabs (the + button then sits right after the last one);
+     the drag gutter takes the rest. The side padding keeps the active tab's outward
+     curves (§B3) from being clipped by the scroll container. */
+  flex: 0 1 auto;
+  min-width: 0;
+  padding: 0 8px;
   height: 100%;
   /* Tabs sit on the floor of the bar so the active one meets the editor
      canvas below — the scrollbar is hidden and tabs scroll smoothly. */
@@ -1381,13 +1323,6 @@
   margin: 0 7px 6px;
 }
 
-.tab-bar-new-btn {
-  /* height comes from the shared `#top-bar .icon-btn` rule below (higher
-     specificity than a bare class here would be anyway) — not restated. */
-  flex-shrink: 0;
-  margin-left: 4px;
-}
-
 .tab-scroll-btn {
   flex-shrink: 0;
   padding: 0 6px;
@@ -1396,7 +1331,6 @@
 .tab.active {
   background: var(--surface-canvas);
   color: var(--text);
-  box-shadow: inset 0 2px 0 var(--tab-active-border);
   font-weight: 600;
   /* Bridge the 1px chrome border so the active tab reads as one surface
      with the editor below it. */
@@ -1564,17 +1498,101 @@
   color: var(--state-ok);
 }
 
-/* #96: `.tab.active`'s top border (below) defaults to `--tab-active-border`,
+/* The desktop strip's active tab has no top accent line (§B3); the phone's chip keeps it. */
+
+.tab.mobile-active-tab.active {
+  box-shadow: inset 0 2px 0 var(--tab-active-border);
+}
+
+/* #96: `.tab.mobile-active-tab.active`'s top border (above) defaults to `--tab-active-border`,
    the same color `.tab.today .tab-icon` already uses — so a selected
    today-tab needs no override. A selected past/future tab's border is
    brought in line with its own icon's color above, instead of always
    showing the "today" accent regardless of which tab is actually active. */
 
-.tab.active:global(.past) {
+.tab.mobile-active-tab.active:global(.past) {
   box-shadow: inset 0 2px 0 color-mix(in srgb, var(--muted) 45%, transparent);
 }
 
-.tab.active:global(.future) {
+.tab.mobile-active-tab.active:global(.future) {
   box-shadow: inset 0 2px 0 var(--state-ok);
+}
+
+/* §B3: Notepad-style tabs in the desktop strip — 8px top corners, 108–200px wide, the label
+   truncates. (The phone's `.mobile-active-tab` chip keeps its flatter look.) */
+
+#tab-bar .tab {
+  position: relative;
+  min-width: 108px;
+  max-width: 200px;
+  margin: 0;
+  padding: 0 8px 0 10px;
+  border-radius: 8px 8px 0 0;
+}
+
+#tab-bar .tab .tab-label {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ISO dates stay monospace; friendly names use the UI font. */
+
+.tab.daily .tab-label.friendly {
+  font-family: inherit;
+}
+
+/* The active tab joins the canvas below it with small outward curves at its base. */
+
+#tab-bar .tab.active::before,
+#tab-bar .tab.active::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  width: 8px;
+  height: 8px;
+  pointer-events: none;
+}
+
+#tab-bar .tab.active::before {
+  left: -8px;
+  background: radial-gradient(circle at 0 0, transparent 7.5px, var(--surface-canvas) 8px);
+  transform: scaleX(-1);
+}
+
+#tab-bar .tab.active::after {
+  right: -8px;
+  background: radial-gradient(circle at 0 0, transparent 7.5px, var(--surface-canvas) 8px);
+}
+
+/* A hairline between two neighbouring inactive tabs, so a row of dates is easy to scan. */
+
+#tab-bar .tab:not(.active) + .tab:not(.active)::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 9px;
+  bottom: 9px;
+  width: 1px;
+  background: var(--edge-strong);
+}
+
+/* The past/today/future cue: a 6px dot before the label (grey, accent, green) instead of an icon colour. */
+
+.tab-dot {
+  width: 6px;
+  height: 6px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: var(--text-tertiary);
+}
+
+.tab:global(.today) .tab-dot {
+  background: var(--tab-active-border);
+}
+
+.tab:global(.future) .tab-dot {
+  background: var(--state-ok);
 }
 </style>

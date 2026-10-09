@@ -30,6 +30,11 @@ export const en = {
   "settings.appearance.statusBar.label": () => "Show status bar",
   "settings.appearance.statusBar.hint": () =>
     "Display line, column, word count, and action metrics at the bottom",
+  "settings.appearance.tabLabels.label": () => "Tab labels",
+  "settings.appearance.tabLabels.hint": () =>
+    "How dated tabs are named; the full date is always in the tooltip.",
+  "settings.appearance.tabLabels.iso": () => "ISO date",
+  "settings.appearance.tabLabels.friendly": () => "Friendly",
   "settings.editor.sectionLabel": () => "Editor",
   "settings.editor.width.label": () => "Text width",
   "settings.editor.width.full": () => "Full",
@@ -384,6 +389,7 @@ export const en = {
   "topBar.newScratchpad.title": ({ combo }) => `New Scratchpad (${combo})`,
   "topBar.openDateNote.title": ({ combo }) => `Open Date Note (${combo})`,
   "topBar.label.date": () => "Date",
+  "topBar.newTabMenu": () => "New…",
   "topBar.moreActions.title": () => "More actions",
   "topBar.actions.title": ({ combo }) => `Actions (${combo})`,
   "topBar.history.title": ({ combo }) => `Section history (${combo})`,
@@ -722,6 +728,7 @@ export const en = {
   "toast.boot.failedToSave.pureBlack": () => "Failed to save pure black preference",
   "toast.boot.failedToSave.startup": () => "Failed to save startup tab preference",
   "toast.boot.failedToSave.statusBarVisible": () => "Failed to save status bar preference",
+  "toast.boot.failedToSave.tabLabelStyle": () => "Failed to save tab label preference",
   "toast.boot.couldntOpenNotes": ({ filenames }) => `Couldn't open these notes, so they stay closed: ${filenames}`,
   "toast.calendarSync.noMeetingsOn": ({ date }) => `No meetings on ${date}.`,
   "toast.calendarSync.synced": () => "Calendar synced.",

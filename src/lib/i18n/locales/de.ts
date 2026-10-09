@@ -32,6 +32,11 @@ export const de = {
   "settings.appearance.statusBar.label": () => "Statusleiste anzeigen",
   "settings.appearance.statusBar.hint": () =>
     "Zeile, Spalte, Wortanzahl und Aktionsstatistiken unten anzeigen",
+  "settings.appearance.tabLabels.label": () => "Tab-Beschriftung",
+  "settings.appearance.tabLabels.hint": () =>
+    "Wie Tabs mit Datum heißen; das volle Datum steht immer im Tooltip.",
+  "settings.appearance.tabLabels.iso": () => "ISO-Datum",
+  "settings.appearance.tabLabels.friendly": () => "Lesbar",
   "settings.editor.sectionLabel": () => "Editor",
   "settings.editor.width.label": () => "Textbreite",
   "settings.editor.width.full": () => "Vollständig",
@@ -393,6 +398,7 @@ export const de = {
   "topBar.newScratchpad.title": ({ combo }) => `Neuer Notizblock (${combo})`,
   "topBar.openDateNote.title": ({ combo }) => `Datierte Notiz öffnen (${combo})`,
   "topBar.label.date": () => "Datum",
+  "topBar.newTabMenu": () => "Neu…",
   "topBar.moreActions.title": () => "Weitere Aktionen",
   "topBar.actions.title": ({ combo }) => `Aktionen (${combo})`,
   "topBar.history.title": ({ combo }) => `Abschnittsverlauf (${combo})`,
@@ -735,6 +741,7 @@ export const de = {
   "toast.boot.failedToSave.pureBlack": () => "Speichern der Reinschwarz-Einstellung fehlgeschlagen",
   "toast.boot.failedToSave.startup": () => "Speichern der Start-Tab-Einstellung fehlgeschlagen",
   "toast.boot.failedToSave.statusBarVisible": () => "Speichern der Statusleisten-Einstellung fehlgeschlagen",
+  "toast.boot.failedToSave.tabLabelStyle": () => "Tab-Beschriftung konnte nicht gespeichert werden",
   "toast.boot.couldntOpenNotes": ({ filenames }) => `Diese Notizen konnten nicht geöffnet werden und bleiben geschlossen: ${filenames}`,
   "toast.calendarSync.noMeetingsOn": ({ date }) => `Keine Termine am ${date}.`,
   "toast.calendarSync.synced": () => "Kalender synchronisiert.",

@@ -39,6 +39,10 @@ export type TranslationParams = {
   "settings.appearance.pureBlack.hint": undefined;
   "settings.appearance.statusBar.label": undefined;
   "settings.appearance.statusBar.hint": undefined;
+  "settings.appearance.tabLabels.label": undefined;
+  "settings.appearance.tabLabels.hint": undefined;
+  "settings.appearance.tabLabels.iso": undefined;
+  "settings.appearance.tabLabels.friendly": undefined;
   "settings.editor.sectionLabel": undefined;
   "settings.editor.width.label": undefined;
   "settings.editor.width.full": undefined;
@@ -367,6 +371,7 @@ export type TranslationParams = {
   "topBar.newScratchpad.title": { combo: string };
   "topBar.openDateNote.title": { combo: string };
   "topBar.label.date": undefined;
+  "topBar.newTabMenu": undefined;
   "topBar.moreActions.title": undefined;
   "topBar.actions.title": { combo: string };
   "topBar.history.title": { combo: string };
@@ -750,6 +755,7 @@ export type TranslationParams = {
   "toast.boot.failedToSave.pureBlack": undefined;
   "toast.boot.failedToSave.startup": undefined;
   "toast.boot.failedToSave.statusBarVisible": undefined;
+  "toast.boot.failedToSave.tabLabelStyle": undefined;
   "toast.boot.couldntOpenNotes": { filenames: string };
   "toast.calendarSync.noMeetingsOn": { date: string };
   "toast.calendarSync.synced": undefined;

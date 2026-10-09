@@ -129,3 +129,37 @@
   background: var(--edge-soft);
 }
 
+/* §B2: the + button right after the tabs, split into the + itself and a narrow chevron
+   that opens the "new" menu. Same 32px row as the tabs, so the icons line up. */
+.tab-bar-split {
+  display: flex;
+  align-items: flex-end;
+  flex-shrink: 0;
+}
+#top-bar .tab-bar-split .icon-btn {
+  padding: 0;
+}
+#top-bar .tab-bar-split .tab-new-btn {
+  width: 28px;
+  min-width: 28px;
+}
+#top-bar .tab-bar-split .tab-new-menu-btn {
+  width: 20px;
+  min-width: 20px;
+}
+
+/* §B2: the icon-only commands on the right (Date, Actions, History, Search, Calendar sync,
+   Promote, More): 36x32 each, 2px apart, and 8px of air before the window controls. The
+   off-screen measuring clones carry the class too, so they measure the same width. */
+.titlebar-commands {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  flex-shrink: 0;
+  margin-right: 8px;
+}
+#top-bar .titlebar-commands .icon-btn {
+  width: 36px;
+  min-width: 36px;
+  padding: 0;
+}
