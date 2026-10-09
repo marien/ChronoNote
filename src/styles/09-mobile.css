@@ -149,19 +149,6 @@ body {
   color: var(--glyph-progress-color);
   transform: none;
 }
-.token-glyph.glyph-progress::after {
-  content: "›";
-  position: absolute;
-  left: 52%;
-  top: 42%;
-  transform: translate(-50%, -50%);
-  font-size: 0.70em;
-  font-weight: 900;
-  line-height: 1;
-  color: var(--glyph-progress-color);
-  pointer-events: none;
-}
-
 /* Agenda topic glyphs in mobile accessory bar (centered & visually matched to action squares) */
 .token-glyph.glyph-topic-open,
 .token-glyph.glyph-topic-done,

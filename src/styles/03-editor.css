@@ -379,55 +379,71 @@ body.peek-mode .cm-overview-ruler {
 .cm-line .glyph-followup {
   transform: translateY(0);
 }
-.cm-line .glyph-open .glyph-ink,
-.cm-line .glyph-done .glyph-ink,
-.cm-line .glyph-cancelled .glyph-ink {
-  display: inline-block;
-  transform: scale(0.85);
-  transform-origin: left center;
-}
-
-/* Boxed Deferred Glyph (Option 1: ☐ with centered ›) */
+/* §327: the four box glyphs (open, done, won't do, deferred) are drawn as
+   SVG shapes, not taken from the fallback symbol font. The font's squares
+   sat at a different height depending on line height and display scaling,
+   and the deferred glyph's separately positioned "›" drifted onto the
+   square's border (at 150% even in the editor). The character stays in the
+   DOM, transparent, so the glyph keeps its width and copy, selection and
+   caret measuring are unchanged; the shape is a mask filled with the
+   glyph's colour token, centred in the glyph's own box, so square and mark
+   always come from one drawing. Same approach as the topic circles below. */
+.glyph-open,
+.glyph-done,
+.glyph-cancelled,
 .glyph-progress {
-  color: var(--glyph-progress-color);
-  font-weight: var(--glyph-progress-weight);
   position: relative;
   display: inline-block;
 }
-.cm-line .glyph-progress .glyph-ink,
-.glyph-progress .glyph-ink {
-  position: relative;
-  display: inline-block;
-  transform: scale(0.85);
-  transform-origin: left center;
-}
-/* The "›" overlay is placed at a fixed fraction of the glyph's box, and the
-   fallback font's square only sits where the overlay expects it in a box
-   that is 1.6 lines tall (the editor's own line box). Outside the editor
-   (status bar, drawer rows, legends) the box took the surrounding line
-   height and the "›" drifted up and right, onto the square's border. */
+.glyph-open:not(:has(.glyph-ink)),
+.glyph-done:not(:has(.glyph-ink)),
+.glyph-cancelled:not(:has(.glyph-ink)),
 .glyph-progress:not(:has(.glyph-ink)),
+.glyph-open .glyph-ink,
+.glyph-done .glyph-ink,
+.glyph-cancelled .glyph-ink,
 .glyph-progress .glyph-ink {
-  line-height: 1.6;
+  color: transparent !important;
 }
-.glyph-progress:not(:has(.glyph-ink))::after,
-.glyph-progress .glyph-ink::after {
-  content: "›";
+.glyph-open::before,
+.glyph-done::before,
+.glyph-cancelled::before,
+.glyph-progress::before {
+  content: "";
   position: absolute;
-  left: 52%;
-  top: 42%;
-  transform: translate(-50%, -50%);
-  font-size: 0.70em;
-  font-weight: 900;
-  line-height: 1;
-  color: var(--glyph-progress-color);
+  left: 0;
+  top: 50%;
+  width: 0.8em;
+  height: 0.8em;
+  transform: translateY(-50%);
+  background-color: var(--glyph-box-color);
+  -webkit-mask: var(--glyph-box-shape) center / contain no-repeat;
+  mask: var(--glyph-box-shape) center / contain no-repeat;
   pointer-events: none;
 }
-.stat-compact .glyph-progress {
-  color: inherit;
+.glyph-open {
+  --glyph-box-color: var(--glyph-open-color);
+  --glyph-box-shape: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='black' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='1.8' y='1.8' width='12.4' height='12.4' rx='0.6'/%3E%3C/svg%3E");
 }
-.stat-compact .glyph-progress::after {
-  color: inherit;
+.glyph-done {
+  --glyph-box-color: var(--glyph-done-color);
+  --glyph-box-shape: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='black' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='1.8' y='1.8' width='12.4' height='12.4' rx='0.6'/%3E%3Cpath d='M4.6 8.3l2.4 2.4 4.5-5.4' stroke-width='1.9'/%3E%3C/svg%3E");
+}
+.glyph-cancelled {
+  --glyph-box-color: var(--glyph-cancelled-color);
+  --glyph-box-shape: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='black' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='1.8' y='1.8' width='12.4' height='12.4' rx='0.6'/%3E%3Cpath d='M5 5l6 6M11 5l-6 6' stroke-width='1.7'/%3E%3C/svg%3E");
+}
+.glyph-progress {
+  --glyph-box-color: var(--glyph-progress-color);
+  --glyph-box-shape: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='black' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='1.8' y='1.8' width='12.4' height='12.4' rx='0.6'/%3E%3Cpath d='M6.5 4.7l3.3 3.3-3.3 3.3' stroke-width='1.9'/%3E%3C/svg%3E");
+}
+/* The accessory bar's square buttons centre their glyph horizontally too. */
+.token-glyph.glyph-open::before,
+.token-glyph.glyph-done::before,
+.token-glyph.glyph-cancelled::before,
+.token-glyph.glyph-progress::before {
+  left: 50%;
+  transform: translate(-50%, -50%);
 }
 
 .cm-line .glyph-topic-open .glyph-ink,

@@ -295,10 +295,7 @@
 
 .stat-count {
   display: inline-flex;
-  /* Baseline, not centre: the glyphs' boxes are 1.6 lines tall (see the
-     deferred glyph in 03-editor.css), and centring those boxes lifts the
-     squares above the text. */
-  align-items: baseline;
+  align-items: center;
   gap: 5px;
   height: 20px;
   padding: 0 4px;
@@ -318,7 +315,6 @@
 .stat-glyph {
   font-family: var(--font-mono);
   font-weight: bold;
-  line-height: 1.6;
 }
 
 /* #71: a plain-text-look button (`#stat-version`'s own pattern), so the
