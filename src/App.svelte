@@ -43,6 +43,7 @@
   };
   import Icon from "./lib/icons/Icon.svelte";
   import TopBar from "./lib/components/TopBar.svelte";
+  import KeyTips from "./lib/components/KeyTips.svelte";
   import StatusBar from "./lib/components/StatusBar.svelte";
   import InfoBar from "./lib/components/InfoBar.svelte";
   import SyncHealthPopover from "./lib/components/SyncHealthPopover.svelte";
@@ -564,6 +565,10 @@
 
   {#if $editorContextMenu}
     <EditorContextMenu />
+  {/if}
+
+  {#if !$isMobile && !isMac}
+    <KeyTips />
   {/if}
 
 

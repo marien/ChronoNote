@@ -1,0 +1,16 @@
+/* §B6: Alt key tips on the title bar commands */
+.keytip {
+  position: fixed;
+  background: var(--text);
+  color: var(--surface-canvas);
+  font: 700 10px/1 var(--font-ui);
+  padding: 3px 4px;
+  border-radius: 3px;
+  box-shadow: var(--shadow-flyout);
+  pointer-events: none;
+  user-select: none;
+  z-index: 10000;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}

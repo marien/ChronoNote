@@ -829,6 +829,7 @@
     <div class="tab-bar-split" bind:this={newSplitEl}>
       <button
         class="icon-btn tab-new-btn"
+        data-keytip="N"
         title={$t("topBar.newScratchpad.title", { combo: formatCombo(shortcutById('newScratchpad').combos[0]) })}
         aria-label={$t("shortcuts.newScratchpad.label")}
         onclick={controller.createScratchpad}
@@ -839,6 +840,7 @@
       </button>
       <button
         class="icon-btn tab-new-menu-btn"
+        data-keytip="W"
         title={$t("topBar.newTabMenu")}
         aria-label={$t("topBar.newTabMenu")}
         aria-haspopup="menu"
@@ -865,6 +867,7 @@
   <div class="titlebar-commands">
     <button
       class="icon-btn"
+      data-keytip="D"
       title={$t("topBar.openDateNote.title", { combo: formatShortcut('openDateNote') })}
       data-datepicker-trigger
       onclick={controller.openDatePicker}
@@ -872,11 +875,12 @@
       <Icon name="date-note" />
     </button>
     {#if !buttonsCollapsed}
-      <button class="icon-btn" title={$t("topBar.actions.title", { combo: formatShortcut('openActions') })} onclick={controller.openActionDrawer}>
+      <button class="icon-btn" data-keytip="A" title={$t("topBar.actions.title", { combo: formatShortcut('openActions') })} onclick={controller.openActionDrawer}>
         <Icon name="actions" />
       </button>
       <button
         class="icon-btn"
+        data-keytip="H"
         title={$t("topBar.history.title", { combo: formatShortcut('openHistory') })}
         onclick={controller.openMeetingHistory}
       >
@@ -884,6 +888,7 @@
       </button>
       <button
         class="icon-btn"
+        data-keytip="S"
         title={$t("topBar.search.title", { combo: formatShortcut('crossTabSearch') })}
         onclick={controller.openCrossTabSearch}
       >
@@ -892,6 +897,7 @@
       {#if calendarSyncVisible}
         <button
           class="icon-btn has-pip"
+          data-keytip="C"
           title={calendarSyncReady
             ? $t("topBar.calendarSync.titleReady", { combo: formatShortcut('syncCalendar') })
             : !$agendaFileExists
@@ -909,6 +915,7 @@
       {#if activeTab?.isScratchpad}
         <button
           class="icon-btn"
+          data-keytip="P"
           title={$t("topBar.promote.title")}
           onclick={() => controller.promoteScratchpad(activeTab.id)}
         >
@@ -920,7 +927,7 @@
          DatePickerModal anchors to data-datepicker-trigger, lists Settings, Shortcuts, Zen,
          Peek and About — and, above those, the commands that collapsed (#56). The pip
          only shows here while the sync button itself is collapsed into this menu. -->
-    <button class="icon-btn has-pip" title={$t("topBar.moreActions.title")} data-more-trigger onclick={controller.openMoreActions}>
+    <button class="icon-btn has-pip" data-keytip="M" title={$t("topBar.moreActions.title")} data-more-trigger onclick={controller.openMoreActions}>
       <Icon name="more" />
       {#if buttonsCollapsed && calendarSyncVisible && calendarSyncReady && $calendarSyncHasDiff}
         <span class="icon-btn-pip" aria-hidden="true"></span>
