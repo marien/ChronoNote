@@ -2,7 +2,6 @@
   import {
     backendKind,
     folderNameFromPath,
-    justUpdatedToVersion,
     notesDir,
     oneDriveAccount,
     oneDriveFolder,
@@ -19,7 +18,6 @@
     syncHealthPopoverOpen,
     toastAction,
     toastMessage,
-    UPDATE_AVAILABLE_TOAST_KEY,
     updateStatus,
   } from "../controller";
   import { actionDrawerShowOnlyOpen, editorApi } from "../stores";
@@ -58,9 +56,7 @@
   const folderName = $derived($notesDir ? folderNameFromPath($notesDir) : "");
 
   const hasCentreMessage = $derived(Boolean(
-    $justUpdatedToVersion ||
-      ($toastMessage === $t(UPDATE_AVAILABLE_TOAST_KEY, undefined) && $updateStatus === "available") ||
-      ($toastMessage && !$isMobile && $toastMessage.length <= LONG_TOAST_CHARS),
+    $toastMessage && !$isMobile && $toastMessage.length <= LONG_TOAST_CHARS,
   ));
 </script>
 
@@ -80,41 +76,8 @@
   </div>
 
   <div class="status-zone status-centre">
-    {#if $justUpdatedToVersion}
-      <!-- svelte-ignore a11y_click_events_have_key_events -->
-      <!-- svelte-ignore a11y_no_static_element_interactions -->
-      <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
-      <span
-        id="stat-updated"
-        role="status"
-        class="stat-dismissible"
-        onclick={controller.dismissJustUpdatedNotice}
-        title={$t("statusBar.dismissUpdate")}
-      >
-        <span class="stat-updated-text">{$t("statusBar.updatedTo", { version: $justUpdatedToVersion })}</span>
-        <button
-          type="button"
-          class="status-link"
-          onclick={(e) => {
-            e.stopPropagation();
-            controller.openJustUpdatedReleaseNotes();
-          }}
-        >
-          {$t("statusBar.whatsNew")}
-        </button>
-      </span>
-    {:else if $toastAction && $toastMessage && !$isMobile && $toastMessage.length <= LONG_TOAST_CHARS}
+    {#if $toastAction && $toastMessage && !$isMobile && $toastMessage.length <= LONG_TOAST_CHARS}
       <button type="button" id="stat-message" class="status-link" onclick={controller.runToastAction}>
-        {$toastMessage}
-      </button>
-    {:else if $toastMessage === $t(UPDATE_AVAILABLE_TOAST_KEY, undefined) && $updateStatus === "available"}
-      <!-- §update-check follow-up: this specific toast is a shortcut to
-           About, not the generic "read and forget" toast — matched by
-           exact text (not just `updateStatus === "available"`, which
-           persists long after the toast itself fades) so an unrelated
-           toast firing while an update happens to be available doesn't
-           also render as a misleading link. -->
-      <button type="button" id="stat-message" class="status-link" onclick={controller.openAbout}>
         {$toastMessage}
       </button>
     {:else if $toastMessage && !$isMobile && $toastMessage.length <= LONG_TOAST_CHARS}
@@ -203,11 +166,6 @@
       </button>
     {/if}
     <span class="status-sep" aria-hidden="true"></span>
-    {#if $updateStatus === "available" && $backendKind !== "web"}
-      <button type="button" class="status-update-btn" title={$t("statusBar.updateAvailableTitle")} onclick={controller.openAbout}>
-        <Icon name="update" size={12} />
-      </button>
-    {/if}
     <button
       type="button"
       class="status-help"
@@ -542,33 +500,6 @@
   opacity: 0.55;
 }
 
-/* #50: the one-time "Updated to vX.Y.Z" notice — same quiet dot-marker
-   look as #stat-message, but its own id since the two are mutually
-   exclusive in the same slot (StatusBar.svelte), not a shared style. */
-
-#stat-updated {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  color: var(--status-fg);
-  font-weight: 500;
-  cursor: pointer;
-  user-select: none;
-}
-
-#stat-updated:hover .stat-updated-text {
-  color: var(--text);
-}
-
-#stat-updated::before {
-  content: "";
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--text);
-  flex-shrink: 0;
-  opacity: 0.55;
-}
 
 .status-link {
   background: none;
@@ -619,25 +550,6 @@
   border-color: var(--muted);
 }
 
-/* §update-check: the down-arrow-into-a-tray mark (§127's icon set) next
-   to the version number, only while `updateStatus === "available"` —
-   a quiet, always-visible companion to the one-shot status-bar toast
-   that fired when the check first found it (`checkForUpdatesOnLaunch`),
-   so the fact stays visible even after that toast auto-clears. */
-
-.status-update-btn {
-  background: transparent;
-  border: none;
-  color: var(--status-fg);
-  display: inline-flex;
-  align-items: center;
-  padding: 0;
-  cursor: pointer;
-}
-
-.status-update-btn:hover {
-  color: var(--text);
-}
 
 /* #58: About moved here from the top bar. Matches `.status-help`'s
    boxed/outlined treatment (same 16px square, border, radius, hover

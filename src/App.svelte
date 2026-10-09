@@ -44,6 +44,7 @@
   import Icon from "./lib/icons/Icon.svelte";
   import TopBar from "./lib/components/TopBar.svelte";
   import StatusBar from "./lib/components/StatusBar.svelte";
+  import InfoBar from "./lib/components/InfoBar.svelte";
   import PeekBar from "./lib/components/PeekBar.svelte";
   import EditorPane from "./lib/components/EditorPane.svelte";
   import FindBar from "./lib/components/FindBar.svelte";
@@ -514,6 +515,7 @@
       {$toastMessage}
     </div>
   {/if}
+  <InfoBar />
   <div
     id="editor-container"
     role="region"

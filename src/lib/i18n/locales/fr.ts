@@ -418,6 +418,10 @@ export const fr = {
   "topBar.contextMenu.copyDate": () => "Copier la date",
   "topBar.contextMenu.copyPath": () => "Copier le chemin du fichier",
 
+  "infoBar.updateAvailable": ({ version }) => `ChronoNote ${version} est disponible.`,
+  "infoBar.viewUpdate": () => "Voir la mise à jour",
+  "infoBar.updated": ({ version }) => `Mis à jour vers ${version}.`,
+  "infoBar.resolve": () => "Résoudre",
   "statusBar.oneDrive.signInExpired": () =>
     "Votre connexion OneDrive a expiré. Cliquez pour vous reconnecter.",
   "statusBar.oneDrive.statusTitle": ({ path, status }) => `OneDrive : ${path} (${status})`,
@@ -450,10 +454,7 @@ export const fr = {
   "statusBar.labelDone": ({ count }) => `${count} terminée${count === 1 ? "" : "s"}`,
   "statusBar.jumpNextActionTooltip": ({ combo }) => `Aller à l'action ouverte suivante (${combo})`,
   "statusBar.allActionsTooltip": () => "Ouvrir le volet d'actions (toutes les actions)",
-  "statusBar.updatedTo": ({ version }) => `Mis à jour vers la v${version} —`,
   "statusBar.whatsNew": () => "Nouveautés",
-  "statusBar.dismissUpdate": () => "Cliquer pour masquer",
-  "statusBar.updateAvailableTitle": () => "Mise à jour disponible — voir À propos",
   "statusBar.aboutTitleWithCombo": ({ combo }) => `À propos de ChronoNote (${combo})`,
   "statusBar.shortcutsTitle": ({ combo }) => `Raccourcis & symboles (${combo})`,
 
@@ -809,7 +810,6 @@ export const fr = {
   "toast.oneDriveSync.syncFailedPrefix": ({ message }) => `Échec de la synchronisation OneDrive : ${message}`,
   "toast.oneDriveSync.couldntStartSignInPrefix": ({ message }) => `Impossible de démarrer la connexion : ${message}`,
   "toast.oneDriveSync.signInExpired": () => "Votre connexion OneDrive a expiré. Cliquez pour vous reconnecter.",
-  "toast.updates.updateAvailable": () => "Mise à jour disponible — voir À propos",
   "toast.persistence.failedToSaveNote": () => "Échec de l'enregistrement de la note",
   "toast.persistence.keptChangedNote": ({ filename }) => `${filename} a été modifié sur le disque ; il a donc été conservé au lieu d'être supprimé`,
   "toast.dragDrop.unsupportedFile": () => "Fichier non pris en charge. Déposez un export .json ou une note YYYY-MM-DD.txt.",

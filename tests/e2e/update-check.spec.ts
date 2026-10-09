@@ -69,7 +69,9 @@ test.describe("update check (§update-check)", () => {
     );
   });
 
-  test("the launch-time check surfaces a quiet status-bar message when it finds an update", async ({ page }) => {
+  test("the launch-time check surfaces an InfoBar when it finds an update, and View update opens About", async ({
+    page,
+  }) => {
     await seedApp(page, {
       seed: {
         notes: { [todayFilename()]: "hi" },
@@ -78,7 +80,19 @@ test.describe("update check (§update-check)", () => {
         autoCheckUpdates: true,
       },
     });
-    await expect(toast(page)).toContainText(/update available/i, { timeout: 5000 });
+    const infoBar = page.locator(".info-bar");
+    await expect(infoBar).toBeVisible({ timeout: 5000 });
+    await expect(infoBar).toContainText("ChronoNote 9.9.9 is available.");
+
+    // The editor container's top moves down by the bar's height (not covered)
+    const infoBarBox = (await infoBar.boundingBox())!;
+    const editorBox = (await page.locator("#editor-container").boundingBox())!;
+    expect(editorBox.y).toBeGreaterThanOrEqual(infoBarBox.y + infoBarBox.height);
+
+    await infoBar.locator(".info-bar-action").click();
+    const about = modalCard(page, MODAL_LABELS.about);
+    await expect(about).toBeVisible();
+    await expect(about).toContainText("9.9.9");
   });
 
   test("the launch-time check never fires when auto-check is off", async ({ page }) => {
@@ -86,12 +100,13 @@ test.describe("update check (§update-check)", () => {
       seed: {
         notes: { [todayFilename()]: "hi" },
         updateCheck: "available",
+        updateCheckVersion: "9.9.9",
         autoCheckUpdates: false,
       },
     });
     await editor(page).click();
     await page.waitForTimeout(400); // give an errant check a chance to fire
-    await expect(toast(page)).toHaveCount(0);
+    await expect(page.locator(".info-bar")).toHaveCount(0);
     expect(
       await page.evaluate(() => window.__CHRONO_MOCK__!.invokeLog.some((e) => e.cmd === "plugin:updater|check")),
     ).toBe(false);
@@ -161,17 +176,18 @@ test.describe("update check (§update-check)", () => {
 });
 
 test.describe("#50: first-launch-after-update notice", () => {
-  test("shows a status-bar link when the version differs from last seen, opens the releases list, and only shows once", async ({
+  test("shows an InfoBar when the version differs from last seen, opens the releases list, and only shows once", async ({
     page,
   }) => {
     await seedApp(page, {
       seed: { notes: {}, appVersion: "9.9.9", lastSeenVersion: "9.9.8", updateCheck: "none" },
     });
-    const notice = page.locator("#stat-updated");
-    await expect(notice).toContainText("Updated to v9.9.9");
+    const infoBar = page.locator(".info-bar");
+    await expect(infoBar).toBeVisible();
+    await expect(infoBar).toContainText("Updated to 9.9.9.");
 
-    await notice.getByRole("button", { name: "What's new" }).click();
-    await expect(notice).toHaveCount(0);
+    await infoBar.getByRole("button", { name: "What's new" }).click();
+    await expect(infoBar).toHaveCount(0);
     // §update-check follow-up: the full releases list, not a single tag —
     // a version gap (skipped a few releases) shouldn't need per-tag
     // navigation to see everything that changed.
@@ -182,12 +198,12 @@ test.describe("#50: first-launch-after-update notice", () => {
     expect(await page.evaluate(() => window.__CHRONO_MOCK__!.lastSeenVersion)).toBe("9.9.9");
     await page.reload();
     await expect(page.locator("#top-bar")).toBeVisible();
-    await expect(page.locator("#stat-updated")).toHaveCount(0);
+    await expect(page.locator(".info-bar")).toHaveCount(0);
   });
 
   test("shows nothing on a fresh install — no prior version to compare against", async ({ page }) => {
     await seedApp(page, { seed: { notes: {}, appVersion: "9.9.9", updateCheck: "none" } });
-    await expect(page.locator("#stat-updated")).toHaveCount(0);
+    await expect(page.locator(".info-bar")).toHaveCount(0);
     // Still recorded, so a genuine future update has something to compare against.
     expect(await page.evaluate(() => window.__CHRONO_MOCK__!.lastSeenVersion)).toBe("9.9.9");
   });
@@ -196,19 +212,20 @@ test.describe("#50: first-launch-after-update notice", () => {
     await seedApp(page, {
       seed: { notes: {}, appVersion: "9.9.9", lastSeenVersion: "9.9.9", updateCheck: "none" },
     });
-    await expect(page.locator("#stat-updated")).toHaveCount(0);
+    await expect(page.locator(".info-bar")).toHaveCount(0);
   });
 
-  test("clicking the notice text dismisses the notice without opening the releases list", async ({ page }) => {
+  test("clicking the close button dismisses the InfoBar without opening the releases list", async ({ page }) => {
     await seedApp(page, {
       seed: { notes: {}, appVersion: "9.9.9", lastSeenVersion: "9.9.8", updateCheck: "none" },
     });
-    const notice = page.locator("#stat-updated");
-    await expect(notice).toContainText("Updated to v9.9.9");
+    const infoBar = page.locator(".info-bar");
+    await expect(infoBar).toBeVisible();
+    await expect(infoBar).toContainText("Updated to 9.9.9.");
 
-    // Click the message text itself (not the button)
-    await notice.locator(".stat-updated-text").click();
-    await expect(notice).toHaveCount(0);
+    // Click the close button
+    await infoBar.locator(".info-bar-close").click();
+    await expect(infoBar).toHaveCount(0);
 
     // Releases list was not opened
     expect(await page.evaluate(() => window.__CHRONO_MOCK__!.openedUrls)).not.toContain(

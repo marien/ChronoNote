@@ -415,6 +415,10 @@ export const es = {
   "topBar.contextMenu.copyDate": () => "Copiar fecha",
   "topBar.contextMenu.copyPath": () => "Copiar ruta de archivo",
 
+  "infoBar.updateAvailable": ({ version }) => `ChronoNote ${version} está disponible.`,
+  "infoBar.viewUpdate": () => "Ver actualización",
+  "infoBar.updated": ({ version }) => `Actualizado a ${version}.`,
+  "infoBar.resolve": () => "Resolver",
   "statusBar.oneDrive.signInExpired": () =>
     "Su sesión de OneDrive ha caducado. Haga clic para iniciar sesión de nuevo.",
   "statusBar.oneDrive.statusTitle": ({ path, status }) => `OneDrive: ${path} (${status})`,
@@ -447,10 +451,7 @@ export const es = {
   "statusBar.labelDone": ({ count }) => `${count} completada${count === 1 ? "" : "s"}`,
   "statusBar.jumpNextActionTooltip": ({ combo }) => `Saltar a la siguiente acción pendiente (${combo})`,
   "statusBar.allActionsTooltip": () => "Abrir panel de acciones (todas las acciones)",
-  "statusBar.updatedTo": ({ version }) => `Actualizado a v${version} —`,
   "statusBar.whatsNew": () => "Novedades",
-  "statusBar.dismissUpdate": () => "Haga clic para descartar",
-  "statusBar.updateAvailableTitle": () => "Actualización disponible — ver Acerca de",
   "statusBar.aboutTitleWithCombo": ({ combo }) => `Acerca de ChronoNote (${combo})`,
   "statusBar.shortcutsTitle": ({ combo }) => `Atajos y símbolos (${combo})`,
 
@@ -802,7 +803,6 @@ export const es = {
   "toast.oneDriveSync.syncFailedPrefix": ({ message }) => `La sincronización de OneDrive falló: ${message}`,
   "toast.oneDriveSync.couldntStartSignInPrefix": ({ message }) => `No se pudo iniciar sesión: ${message}`,
   "toast.oneDriveSync.signInExpired": () => "Su sesión de OneDrive ha caducado. Haga clic para iniciar sesión de nuevo.",
-  "toast.updates.updateAvailable": () => "Actualización disponible — ver Acerca de",
   "toast.persistence.failedToSaveNote": () => "Error al guardar la nota",
   "toast.persistence.keptChangedNote": ({ filename }) => `${filename} cambió en el disco, así que se conservó en lugar de eliminarse`,
   "toast.dragDrop.unsupportedFile": () => "Archivo no compatible. Suelta una exportación .json o una nota YYYY-MM-DD.txt.",

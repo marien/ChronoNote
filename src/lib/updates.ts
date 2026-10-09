@@ -17,8 +17,6 @@ import { Channel, invoke } from "@tauri-apps/api/core";
 import { flushAllPendingSaves } from "./persistence";
 import { t } from "./i18n";
 import {
-  modal,
-  showToast,
   updateAvailableVersion,
   updateDownloadProgress,
   updateErrorDuring,
@@ -30,16 +28,6 @@ import {
 } from "./stores";
 
 let pendingUpdate: Update | null = null;
-
-/** §update-check follow-up: the exact text of the launch-time "found an
- * update" toast — `StatusBar.svelte` recognizes *this* toast specifically
- * (and renders it as a click-to-About link) without making every other
- * transient status message clickable too. i18n roadmap: both sides read
- * the same `toast.updates.updateAvailable` key rather than one shared
- * hardcoded string, so the identity check still holds once this text is
- * translated — the same reasoning as `SHORTCUT_LABEL_KEYS`/
- * `COMMAND_PALETTE_GROUP_KEYS`'s logic-vs-display split (§220/§223). */
-export const UPDATE_AVAILABLE_TOAST_KEY = "toast.updates.updateAvailable" as const;
 
 function errorMessage(e: unknown): string {
   return e instanceof Error ? e.message : String(e);
@@ -84,18 +72,10 @@ export async function checkForUpdates(): Promise<void> {
 }
 
 /** `boot.ts`'s launch-time check, gated on the `autoCheckUpdates`
- * setting. Identical to `checkForUpdates()` except it also surfaces a
- * quiet, auto-dismissing status-bar message when it finds something —
- * the one thing a purely background check needs to say out loud; "no
- * update" and a failed check both stay silent (About shows either, for
- * whoever goes looking). */
+ * setting. Runs `checkForUpdates()` in the background without raising a toast
+ * (InfoBar / About surface an available update). */
 export async function checkForUpdatesOnLaunch(): Promise<void> {
   await checkForUpdates();
-  if (get(updateStatus) === "available") {
-    showToast(get(t)(UPDATE_AVAILABLE_TOAST_KEY, undefined), {
-      action: () => modal.set("about"),
-    });
-  }
 }
 
 /** How long the installer gets to start once it's been launched. On Windows the

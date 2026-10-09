@@ -1,0 +1,121 @@
+/* §C5: InfoBar for messages that need an action (Windows 11 InfoBar look) */
+
+.info-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 6px 10px 0;
+  padding: 6px 8px 6px 12px;
+  border-radius: var(--radius-control);
+  font-size: var(--type-body);
+  line-height: 1.4;
+  box-sizing: border-box;
+  flex-shrink: 0;
+}
+
+/* Severity styles:
+   Border: 1px in the severity colour at 35%
+   Background: severity colour at 12% over var(--surface-canvas)
+   Colours:
+     info: var(--selected-bg)
+     success: var(--state-ok)
+     warning: var(--state-warn)
+     error: var(--state-error)
+*/
+
+.info-bar.info {
+  border: 1px solid color-mix(in srgb, var(--selected-bg) 35%, transparent);
+  background: color-mix(in srgb, var(--selected-bg) 12%, var(--surface-canvas));
+  color: var(--text);
+}
+.info-bar.info .info-bar-icon {
+  color: var(--text);
+}
+
+.info-bar.success {
+  border: 1px solid color-mix(in srgb, var(--state-ok) 35%, transparent);
+  background: color-mix(in srgb, var(--state-ok) 12%, var(--surface-canvas));
+  color: var(--text);
+}
+.info-bar.success .info-bar-icon {
+  color: var(--state-ok);
+}
+
+.info-bar.warning {
+  border: 1px solid color-mix(in srgb, var(--state-warn) 35%, transparent);
+  background: color-mix(in srgb, var(--state-warn) 12%, var(--surface-canvas));
+  color: var(--text);
+}
+.info-bar.warning .info-bar-icon {
+  color: var(--state-warn);
+}
+
+.info-bar.error {
+  border: 1px solid color-mix(in srgb, var(--state-error) 35%, transparent);
+  background: color-mix(in srgb, var(--state-error) 12%, var(--surface-canvas));
+  color: var(--text);
+}
+.info-bar.error .info-bar-icon {
+  color: var(--state-error);
+}
+
+.info-bar-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.info-bar-text {
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--text);
+}
+
+.info-bar-action {
+  height: 28px;
+  border-radius: var(--radius-control);
+  background: var(--surface-raised);
+  border: 1px solid var(--edge-strong);
+  color: var(--text);
+  font-family: inherit;
+  font-size: var(--type-body);
+  padding: 0 12px;
+  cursor: pointer;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+}
+
+.info-bar-action:hover {
+  background: color-mix(in srgb, var(--surface-raised) 80%, #ffffff);
+}
+
+.info-bar-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  color: var(--muted);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: var(--radius-control);
+  flex-shrink: 0;
+}
+
+.info-bar-close:hover {
+  background: var(--surface-raised);
+  color: var(--text);
+}
+
+/* Hidden in Zen and Peek modes */
+body.zen-mode .info-bar,
+body.peek-mode .info-bar {
+  display: none !important;
+}

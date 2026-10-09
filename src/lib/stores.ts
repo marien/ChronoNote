@@ -316,6 +316,9 @@ export const updateInstalling = writable(false);
  * immediately, so it's never shown again for that version. */
 export const justUpdatedToVersion = writable<string | null>(null);
 
+/** #w1-infobar: session-only set of dismissed InfoBar keys (e.g. `update:${version}`, `conflicts:${count}`). */
+export const dismissedInfoBars = writable<Set<string>>(new Set());
+
 export const pendingCloseTabId = writable<string | null>(null);
 export const pendingBatchCloseTabIds = writable<string[]>([]);
 export const safetyMessage = writable<string>("");
