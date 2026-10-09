@@ -26,6 +26,9 @@ export const fr = {
   "settings.appearance.pureBlack.label": () => "Noir pur (OLED)",
   "settings.appearance.pureBlack.hint": () =>
     "Fond #000000 absolu pour écrans OLED et économie d'énergie. Actif uniquement en mode sombre.",
+  "settings.appearance.statusBar.label": () => "Afficher la barre d'état",
+  "settings.appearance.statusBar.hint": () =>
+    "Afficher la ligne, la colonne, le nombre de mots et les métriques d'action en bas",
   "settings.editor.sectionLabel": () => "Éditeur",
   "settings.editor.width.label": () => "Largeur du texte",
   "settings.editor.width.full": () => "Plein",
@@ -350,6 +353,7 @@ export const fr = {
   "commandPalette.exportNotes.label": () => "Exporter toutes les notes vers un fichier (.json)",
   "commandPalette.exportNotes.hint": () => "Exporter",
   "commandPalette.toggleZenMode": () => "Basculer le mode Zen (espace sans distraction)",
+  "commandPalette.toggleStatusBar": () => "Basculer la barre d'état",
   "commandPalette.line.closeOpenAction": () => "Terminer l'action ouverte sur la ligne courante",
   "commandPalette.line.reopenDoneAction": () => "Rouvrir l'action terminée sur la ligne courante",
   "commandPalette.line.setOpen": () => "Définir la ligne/sélection sur Ouvert",
@@ -443,6 +447,11 @@ export const fr = {
   "statusBar.openCount": ({ count }) => `Ouvertes ${count}`,
   "statusBar.closedCount": ({ count }) => `Fermées ${count}`,
   "statusBar.forwardedCount": ({ count }) => `Reportées ${count}`,
+  "statusBar.labelOpen": ({ count }) => `${count} ouverte${count === 1 ? "" : "s"}`,
+  "statusBar.labelDeferred": ({ count }) => `${count} reportée${count === 1 ? "" : "s"}`,
+  "statusBar.labelDone": ({ count }) => `${count} terminée${count === 1 ? "" : "s"}`,
+  "statusBar.jumpNextActionTooltip": ({ combo }) => `Aller à l'action ouverte suivante (${combo})`,
+  "statusBar.allActionsTooltip": () => "Ouvrir le volet d'actions (toutes les actions)",
   "statusBar.updatedTo": ({ version }) => `Mis à jour vers la v${version} —`,
   "statusBar.whatsNew": () => "Nouveautés",
   "statusBar.dismissUpdate": () => "Cliquer pour masquer",
@@ -734,6 +743,8 @@ export const fr = {
   "toast.boot.failedToSave.pureBlack": () => "Échec de l'enregistrement du mode noir pur",
   "toast.boot.failedToSave.startup": () =>
     "Échec de l'enregistrement de la préférence d'onglet de démarrage",
+  "toast.boot.failedToSave.statusBarVisible": () =>
+    "Échec de l'enregistrement de la préférence de barre d'état",
   "toast.boot.couldntOpenNotes": ({ filenames }) => `Impossible d'ouvrir ces notes ; elles restent fermées : ${filenames}`,
   "toast.calendarSync.noMeetingsOn": ({ date }) => `Aucune réunion le ${date}.`,
   "toast.calendarSync.synced": () => "Calendrier synchronisé.",

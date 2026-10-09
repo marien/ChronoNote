@@ -65,6 +65,8 @@ export interface MockSeed {
   peek?: Partial<PeekConfig>;
   /** Mirrors `AppConfig.occurrenceHint`, off by default. */
   occurrenceHint?: boolean;
+  /** Mirrors `AppConfig.statusBarVisible`, on by default. */
+  statusBarVisible?: boolean;
   onboardingCompleted?: boolean;
   lastSyncSuccessMs?: number | null;
   backendKind?: "desktop" | "demo" | "web";
@@ -265,6 +267,7 @@ export class MockBackend {
   startupTabMode: StartupTabMode;
   peek: PeekConfig;
   occurrenceHint: boolean;
+  statusBarVisible: boolean;
   onboardingCompleted: boolean;
   lastSyncSuccessMs: number | null = null;
   recentNotesDirs: string[];
@@ -346,6 +349,7 @@ export class MockBackend {
     this.startupTabMode = seed.startupTabMode ?? "today";
     this.peek = { ...PEEK_DEFAULTS, ...seed.peek };
     this.occurrenceHint = seed.occurrenceHint ?? false;
+    this.statusBarVisible = seed.statusBarVisible ?? true;
     this.onboardingCompleted = seed.onboardingCompleted ?? true;
     this.lastSyncSuccessMs = seed.lastSyncSuccessMs ?? null;
     this.recentNotesDirs = seed.recentNotesDirs ? [...seed.recentNotesDirs] : [];
@@ -401,6 +405,7 @@ export class MockBackend {
       startupTabMode: this.startupTabMode,
       peek: this.peek,
       occurrenceHint: this.occurrenceHint,
+      statusBarVisible: this.statusBarVisible,
       onboardingCompleted: this.onboardingCompleted,
       isMinimized: this.isMinimized,
       recentNotesDirs: this.recentNotesDirs,
@@ -442,6 +447,7 @@ export class MockBackend {
         pureBlack?: boolean;
         peek?: Partial<PeekConfig>;
         occurrenceHint?: boolean;
+        statusBarVisible?: boolean;
         onboardingCompleted?: boolean;
         isMinimized?: boolean;
         recentNotesDirs: string[];
@@ -465,6 +471,7 @@ export class MockBackend {
       b.pureBlack = s.pureBlack ?? false;
       b.peek = { ...PEEK_DEFAULTS, ...s.peek };
       b.occurrenceHint = s.occurrenceHint ?? false;
+      b.statusBarVisible = s.statusBarVisible ?? true;
       b.onboardingCompleted = s.onboardingCompleted ?? true;
       b.recentNotesDirs = s.recentNotesDirs;
       b.appVersion = s.appVersion;
@@ -508,6 +515,7 @@ export class MockBackend {
       startupTabMode: this.startupTabMode,
       peek: this.peek,
       occurrenceHint: this.occurrenceHint,
+      statusBarVisible: this.statusBarVisible,
       onboardingCompleted: this.onboardingCompleted,
     };
   }
@@ -593,6 +601,7 @@ export class MockBackend {
       if (patch.fontSize !== undefined) this.fontSize = Math.min(18, Math.max(12, patch.fontSize));
       if (patch.lineHeight !== undefined) this.lineHeight = Math.min(1.8, Math.max(1.3, patch.lineHeight));
       if (patch.occurrenceHint !== undefined) this.occurrenceHint = patch.occurrenceHint;
+      if (patch.statusBarVisible !== undefined) this.statusBarVisible = patch.statusBarVisible;
       if (patch.pureBlack !== undefined) this.pureBlack = patch.pureBlack;
       if (patch.peek !== undefined) this.peek = clampPeek(patch.peek);
       if (patch.lastSeenVersion !== undefined) this.lastSeenVersion = patch.lastSeenVersion;

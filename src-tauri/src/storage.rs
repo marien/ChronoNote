@@ -300,6 +300,10 @@ pub struct AppConfig {
     /// occurrences. The Alt+Left / Alt+Right shortcuts work regardless. Off by default.
     #[serde(default)]
     pub occurrence_hint: bool,
+    /// Whether the status bar is visible at the bottom of the window (§B4).
+    /// On by default; old configs without this field load as true.
+    #[serde(default = "default_true")]
+    pub status_bar_visible: bool,
 }
 
 /// A partial update of `AppConfig` for the `update_config` command: only the
@@ -330,6 +334,8 @@ pub struct ConfigPatch {
     pub line_height: Option<f32>,
     #[ts(optional)]
     pub occurrence_hint: Option<bool>,
+    #[ts(optional)]
+    pub status_bar_visible: Option<bool>,
     #[ts(optional)]
     pub pure_black: Option<bool>,
     #[ts(optional)]
@@ -375,6 +381,9 @@ impl ConfigPatch {
         }
         if let Some(v) = self.occurrence_hint {
             cfg.occurrence_hint = v;
+        }
+        if let Some(v) = self.status_bar_visible {
+            cfg.status_bar_visible = v;
         }
         if let Some(v) = self.pure_black {
             cfg.pure_black = v;
@@ -640,6 +649,7 @@ fn load_config_at(path: &Path, default_notes_dir: &Path) -> Result<AppConfig, St
         startup_tab_mode: StartupTabMode::default(),
         peek: PeekConfig::default(),
         occurrence_hint: false,
+        status_bar_visible: true,
     };
     save_config_at(path, &cfg)?;
     Ok(cfg)
@@ -1388,6 +1398,7 @@ mod tests {
             startup_tab_mode: StartupTabMode::SmartLastActive,
             peek: PeekConfig::default(),
             occurrence_hint: false,
+            status_bar_visible: true,
         };
         save_config_at(&path, &cfg).unwrap();
         let loaded = load_config_at(&path, &dir.path().join("Notes")).unwrap();
@@ -1431,6 +1442,7 @@ mod tests {
             startup_tab_mode: StartupTabMode::default(),
             peek: PeekConfig::default(),
             occurrence_hint: false,
+            status_bar_visible: true,
         };
         save_config_at(&path, &cfg).unwrap();
         let on_disk = fs::read_to_string(&path).unwrap();
@@ -1469,6 +1481,7 @@ mod tests {
                 startup_tab_mode: StartupTabMode::default(),
                 peek: PeekConfig::default(),
                 occurrence_hint: false,
+                status_bar_visible: true,
             };
             save_config_at(&path, &cfg).unwrap();
             let on_disk = fs::read_to_string(&path).unwrap();
@@ -1598,6 +1611,18 @@ mod tests {
         cfg.occurrence_hint = true;
         save_config_at(&path, &cfg).unwrap();
         assert!(load_config_at(&path, dir.path()).unwrap().occurrence_hint);
+    }
+
+    #[test]
+    fn status_bar_visible_is_on_by_default_and_round_trips() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("config.json");
+        fs::write(&path, r#"{"notesDir":"/n"}"#).unwrap();
+        assert!(load_config_at(&path, dir.path()).unwrap().status_bar_visible);
+        let mut cfg = load_config_at(&path, dir.path()).unwrap();
+        cfg.status_bar_visible = false;
+        save_config_at(&path, &cfg).unwrap();
+        assert!(!load_config_at(&path, dir.path()).unwrap().status_bar_visible);
     }
 
     #[test]
@@ -2354,6 +2379,15 @@ mod tests {
         let (before, after) = patched(r#"{"wordWrap": true}"#);
         let mut expected = before.clone();
         expected["wordWrap"] = serde_json::json!(true);
+        assert_ne!(before, after);
+        assert_eq!(after, expected);
+    }
+
+    #[test]
+    fn config_patch_with_only_status_bar_visible_changes_only_that_field() {
+        let (before, after) = patched(r#"{"statusBarVisible": false}"#);
+        let mut expected = before.clone();
+        expected["statusBarVisible"] = serde_json::json!(false);
         assert_ne!(before, after);
         assert_eq!(after, expected);
     }

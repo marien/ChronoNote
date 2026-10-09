@@ -26,6 +26,9 @@ export const pl = {
   "settings.appearance.pureBlack.label": () => "Czysta czerń (OLED)",
   "settings.appearance.pureBlack.hint": () =>
     "Absolutne tło #000000 dla ekranów OLED i oszczędzania baterii. Działa tylko w trybie ciemnym.",
+  "settings.appearance.statusBar.label": () => "Pokaż pasek stanu",
+  "settings.appearance.statusBar.hint": () =>
+    "Wyświetlaj wiersz, kolumnę, liczbę słów i stan zadań na dole okna",
   "settings.editor.sectionLabel": () => "Edytor",
   "settings.editor.width.label": () => "Szerokość tekstu",
   "settings.editor.width.full": () => "Pełna",
@@ -350,6 +353,7 @@ export const pl = {
   "commandPalette.exportNotes.label": () => "Eksportuj wszystkie notatki do pliku (.json)",
   "commandPalette.exportNotes.hint": () => "Eksport",
   "commandPalette.toggleZenMode": () => "Przełącz tryb Zen (przestrzeń bez rozpraszaczy)",
+  "commandPalette.toggleStatusBar": () => "Przełącz pasek stanu",
   "commandPalette.line.closeOpenAction": () => "Ukończ otwarte zadanie w bieżącym wierszu",
   "commandPalette.line.reopenDoneAction": () => "Otwórz ponownie ukończone zadanie w bieżącym wierszu",
   "commandPalette.line.setOpen": () => "Ustaw wiersz/zaznaczenie jako Otwarte",
@@ -444,6 +448,11 @@ export const pl = {
   "statusBar.openCount": ({ count }) => `Otwarte ${count}`,
   "statusBar.closedCount": ({ count }) => `Zamknięte ${count}`,
   "statusBar.forwardedCount": ({ count }) => `Przełożone ${count}`,
+  "statusBar.labelOpen": ({ count }) => `${count} otwarte`,
+  "statusBar.labelDeferred": ({ count }) => `${count} odłożone`,
+  "statusBar.labelDone": ({ count }) => `${count} wykonane`,
+  "statusBar.jumpNextActionTooltip": ({ combo }) => `Przejdź do następnego otwartego zadania (${combo})`,
+  "statusBar.allActionsTooltip": () => "Otwórz panel zadań (wszystkie zadania)",
   "statusBar.updatedTo": ({ version }) => `Zaktualizowano do v${version} —`,
   "statusBar.whatsNew": () => "Co nowego",
   "statusBar.dismissUpdate": () => "Kliknij, aby zamknąć",
@@ -737,6 +746,8 @@ export const pl = {
   "toast.boot.failedToSave.pureBlack": () => "Nie udało się zapisać preferencji czystej czerni",
   "toast.boot.failedToSave.startup": () =>
     "Nie udało się zapisać preferencji karty startowej",
+  "toast.boot.failedToSave.statusBarVisible": () =>
+    "Nie udało się zapisać ustawienia paska stanu",
   "toast.boot.couldntOpenNotes": ({ filenames }) => `Nie udało się otworzyć tych notatek, więc pozostają zamknięte: ${filenames}`,
   "toast.calendarSync.noMeetingsOn": ({ date }) => `Brak spotkań w dniu ${date}.`,
   "toast.calendarSync.synced": () => "Kalendarz zsynchronizowany.",

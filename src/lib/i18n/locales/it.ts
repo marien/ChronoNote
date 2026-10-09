@@ -25,6 +25,9 @@ export const it = {
   "settings.appearance.pureBlack.label": () => "Nero assoluto (OLED)",
   "settings.appearance.pureBlack.hint": () =>
     "Sfondo #000000 puro per schermi OLED e risparmio batteria. Attivo solo in modalità scura.",
+  "settings.appearance.statusBar.label": () => "Mostra barra di stato",
+  "settings.appearance.statusBar.hint": () =>
+    "Mostra riga, colonna, conteggio parole e statistiche delle azioni in basso",
   "settings.editor.sectionLabel": () => "Editor",
   "settings.editor.width.label": () => "Larghezza del testo",
   "settings.editor.width.full": () => "Intera",
@@ -165,6 +168,7 @@ export const it = {
     "Peek: finestra di note compatta e semitrasparente per la sezione del cursore",
   "commandPalette.togglePeekMode": () =>
     "Attiva/disattiva Peek (finestra di note compatta per le chiamate)",
+  "commandPalette.toggleStatusBar": () => "Attiva/disattiva barra di stato",
   "peek.toast.noSection": () =>
     "Metti il cursore in una sezione per darle un'occhiata.",
   "peek.toast.titleExists": () =>
@@ -442,6 +446,11 @@ export const it = {
   "statusBar.openCount": ({ count }) => `Aperte ${count}`,
   "statusBar.closedCount": ({ count }) => `Chiuse ${count}`,
   "statusBar.forwardedCount": ({ count }) => `Inoltrate ${count}`,
+  "statusBar.labelOpen": ({ count }) => `${count} apert${count === 1 ? "a" : "e"}`,
+  "statusBar.labelDeferred": ({ count }) => `${count} rimandat${count === 1 ? "a" : "e"}`,
+  "statusBar.labelDone": ({ count }) => `${count} completat${count === 1 ? "a" : "e"}`,
+  "statusBar.jumpNextActionTooltip": ({ combo }) => `Passa all'azione aperta successiva (${combo})`,
+  "statusBar.allActionsTooltip": () => "Apri pannello azioni (tutte le azioni)",
   "statusBar.updatedTo": ({ version }) => `Aggiornato a v${version} —`,
   "statusBar.whatsNew": () => "Novità",
   "statusBar.dismissUpdate": () => "Fai clic per chiudere",
@@ -730,6 +739,8 @@ export const it = {
   "toast.boot.failedToSave.lineHeight": () => "Impossibile salvare la preferenza dell'interlinea",
   "toast.boot.failedToSave.pureBlack": () => "Impossibile salvare la preferenza per il nero assoluto",
   "toast.boot.failedToSave.startup": () => "Impossibile salvare la preferenza della scheda di avvio",
+  "toast.boot.failedToSave.statusBarVisible": () =>
+    "Impossibile salvare la preferenza della barra di stato",
   "toast.boot.couldntOpenNotes": ({ filenames }) => `Impossibile aprire queste note, quindi restano chiuse: ${filenames}`,
   "toast.calendarSync.noMeetingsOn": ({ date }) => `Nessuna riunione il ${date}.`,
   "toast.calendarSync.synced": () => "Calendario sincronizzato.",

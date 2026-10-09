@@ -97,6 +97,10 @@ export function setOccurrenceHint(enabled: boolean): Promise<AppConfig> {
   return updateConfig({ occurrenceHint: enabled });
 }
 
+export function setStatusBarVisible(enabled: boolean): Promise<AppConfig> {
+  return updateConfig({ statusBarVisible: enabled });
+}
+
 export function setPeek(peek: PeekConfig): Promise<AppConfig> {
   return updateConfig({ peek });
 }

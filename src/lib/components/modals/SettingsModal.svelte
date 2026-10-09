@@ -26,6 +26,7 @@
     recentNotesDirs,
     settingsInitialTab,
     startupTabMode,
+    statusBarVisible,
     themeMode,
     updateAvailableVersion,
     updateDownloadProgress,
@@ -413,6 +414,13 @@
               onChange={(v) => controller.setColorMode(v as ColorMode)}
             />
           </SettingRow>
+          <SettingToggle
+            label={$t("settings.appearance.statusBar.label")}
+            checked={$statusBarVisible}
+            onChange={(v) => void controller.setStatusBarVisible(v)}
+          >
+            {#snippet description()}{$t("settings.appearance.statusBar.hint")}{/snippet}
+          </SettingToggle>
         </section>
         <section class="s-group">
           <div class="settings-section-label">{$t("settings.editor.sectionLabel")}</div>
