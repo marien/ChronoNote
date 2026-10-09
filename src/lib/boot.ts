@@ -62,6 +62,7 @@ import { initCalendarSyncDiffTracking, maybeSilentSyncEmptyNote, refreshAgendaFi
 import { refreshSyncConflicts, syncOneDriveNow } from "./oneDriveSync";
 import { checkForUpdatesOnLaunch } from "./updates";
 import { applyPeekConfig } from "./peek";
+import { wireMica } from "./mica";
 import { occurrenceHint } from "./occurrences";
 import { locale, t } from "./i18n";
 import { describeApiError } from "./apiError";
@@ -634,6 +635,7 @@ export async function initApp() {
     void checkForUpdatesOnLaunch();
   }
   void initOneDriveSync();
+  if (get(backendKind) === "desktop") wireMica();
   if (get(backendKind) === "web") {
     await handleWebappLaunch();
   }

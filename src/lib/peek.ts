@@ -76,6 +76,9 @@ export function applyPeekConfig(cfg: PeekConfig | undefined): void {
 
 /** On while the compact window is showing. */
 export const peekMode = writable(false);
+/** Called once Peek has fully closed and the full window is back (its native transparency restored). Mica
+ * (`mica.ts`) re-applies itself here: it cannot do that from the `peekMode` change, which comes first. */
+export const onPeekLeft = new Set<() => void>();
 /** The matching form of the section's title (date-insensitive), or null when not in Peek. */
 export const peekTarget = writable<string | null>(null);
 /** Lines the section needs right now (reported by the editor), for fit-to-section sizing. */
@@ -354,6 +357,7 @@ export function wirePeek(): () => void {
           if (compact) peekSettings.update((x) => ({ ...x, geometry: compact, useLinesHeight: false }));
           await tick();
           restoreCaretAfterPeek();
+          onPeekLeft.forEach((f) => f());
         }
       })();
     }),

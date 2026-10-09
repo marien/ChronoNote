@@ -1,0 +1,15 @@
+/* Windows 11 Mica (desktop app only, set by mica.ts as :root[data-mica]): the native window effect shows through
+   the title bar and status bar; the note area stays a solid canvas so text contrast never depends on the wallpaper.
+   The bars keep a light wash of their own colour so they still read as chrome in both themes. */
+:root[data-mica] body {
+  background: transparent;
+}
+
+:root[data-mica] #top-bar,
+:root[data-mica] #status-bar {
+  background: color-mix(in srgb, var(--surface-chrome) 35%, transparent);
+}
+
+:root[data-mica] #editor-container {
+  background: var(--surface-canvas);
+}
