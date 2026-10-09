@@ -2,6 +2,7 @@
   import { onMount, tick } from "svelte";
   import * as controller from "../../controller";
   import { focusTrap } from "../../actions/focusTrap";
+  import { sheetSwipe } from "../../actions/sheetSwipe";
   import { actionDrawerShowOnlyOpen, actionSnapshot, activeTabId, tabs } from "../../controller";
   import { closeOnOutsideClick } from "../../actions/closeOnOutsideClick";
   import { innermostActionSymbol, stripLeadingToken } from "../../tokens";
@@ -261,7 +262,7 @@
 </script>
 
 <div class="overlay" role="presentation" use:closeOnOutsideClick={controller.closeAllModals}>
-  <div class="modal-card modal-lg" role="dialog" aria-modal="true" use:focusTrap aria-label={$t("actionDrawer.modal.ariaLabel")}>
+  <div class="modal-card modal-lg" role="dialog" aria-modal="true" use:focusTrap use:sheetSwipe aria-label={$t("actionDrawer.modal.ariaLabel")}>
     <div class="modal-input-wrap">
       <Icon name="actions" size={15} />
       <input

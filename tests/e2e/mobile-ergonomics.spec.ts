@@ -235,3 +235,83 @@ test.describe("narrow reflow: sync conflicts and calendar review (Area 5.4)", ()
     await expect(toast).toHaveCount(0);
   });
 });
+
+test.describe("bottom sheets on phones (D4)", () => {
+  test.use({
+    viewport: { width: 390, height: 844 },
+    isMobile: true,
+    hasTouch: true,
+    userAgent:
+      "Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Mobile Safari/537.36",
+  });
+
+  test("Action Drawer and History open as bottom sheets, and swipe down closes Action Drawer", async ({ page }) => {
+    await seedApp(page, {
+      seed: {
+        notes: {
+          [todayFilename()]: "Daily Sync\n====\n# Action 1\nv Done 1\n",
+          "2026-09-19.txt": "Daily Sync\n====\nv Past action\n",
+        },
+        session: { openTabs: [todayFilename(), "2026-09-19.txt"], activeTab: todayFilename() },
+      },
+    });
+
+    // 1. Action Drawer card's bottom equals the viewport bottom and its width the viewport width
+    const actionCard = await openViaShortcut(page, "ControlOrMeta+Shift+A", "actions");
+    await expect(actionCard).toBeVisible();
+
+    const actionBox = (await actionCard.boundingBox())!;
+    expect(Math.round(actionBox.width)).toBe(390);
+    expect(Math.round(actionBox.y + actionBox.height)).toBe(844);
+
+    // 2. A touch drag down of 120px from the card's top closes it
+    await actionCard.evaluate((el) => {
+      const rect = el.getBoundingClientRect();
+      const startX = rect.left + rect.width / 2;
+      const startY = rect.top + 20; // top 48px handle/title area
+      el.dispatchEvent(
+        new PointerEvent("pointerdown", {
+          bubbles: true,
+          cancelable: true,
+          pointerId: 1,
+          pointerType: "touch",
+          clientX: startX,
+          clientY: startY,
+        }),
+      );
+      el.dispatchEvent(
+        new PointerEvent("pointermove", {
+          bubbles: true,
+          cancelable: true,
+          pointerId: 1,
+          pointerType: "touch",
+          clientX: startX,
+          clientY: startY + 120,
+        }),
+      );
+      el.dispatchEvent(
+        new PointerEvent("pointerup", {
+          bubbles: true,
+          cancelable: true,
+          pointerId: 1,
+          pointerType: "touch",
+          clientX: startX,
+          clientY: startY + 120,
+        }),
+      );
+    });
+
+    await expect(actionCard).toBeHidden();
+
+    // 3. The History drawer is 92% of the viewport tall
+    const historyCard = await openViaShortcut(page, "ControlOrMeta+Shift+h", "history");
+    await expect(historyCard).toBeVisible();
+
+    const historyBox = (await historyCard.boundingBox())!;
+    const expectedHeight = 844 * 0.92;
+    expect(Math.abs(historyBox.height - expectedHeight)).toBeLessThanOrEqual(2);
+    expect(Math.round(historyBox.y + historyBox.height)).toBe(844);
+    expect(Math.round(historyBox.width)).toBe(390);
+  });
+});
+
