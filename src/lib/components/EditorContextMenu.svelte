@@ -54,7 +54,7 @@
     };
   });
 
-  function handlePointerDown(e: PointerEvent) {
+  function handlePointerDown(e: Event) {
     if (menuEl && !menuEl.contains(e.target as Node)) {
       close();
     }
@@ -105,6 +105,7 @@
 <svelte:window
   onkeydowncapture={handleKeydown}
   onpointerdown={handlePointerDown}
+  ontouchstart={handlePointerDown}
   onblur={close}
   onresize={close}
 />

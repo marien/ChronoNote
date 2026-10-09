@@ -3,6 +3,7 @@ import { Decoration, DecorationSet, EditorView, ViewPlugin, ViewUpdate, WidgetTy
 import { symbolAfterClick, toggleOpenClosedAtIndex } from "../tokens";
 import { ARROW_GLYPH, GLYPHS, glyphSpecForSymbol } from "../grammar/glyphs";
 import { tokenizeLine } from "../grammar/tokenize";
+import { editorContextMenu } from "../stores";
 
 
 /** Renders the raw plain-text tokens (spec 2.2) as their visual glyphs
@@ -76,8 +77,77 @@ class InlineGlyphWidget extends WidgetType {
           view.dispatch({ changes: { from: line.from, to: line.to, insert: updated } });
         }
       };
+
+      // §D6: On touchscreens, a 500ms long-press on a cyclable glyph opens the line
+      // context menu as a bottom sheet without toggling the glyph. Short tap toggles.
+      let touchStartX = 0;
+      let touchStartY = 0;
+      let longPressTimer: ReturnType<typeof setTimeout> | null = null;
+      let longPressed = false;
+
+      const clearTimer = () => {
+        if (longPressTimer !== null) {
+          clearTimeout(longPressTimer);
+          longPressTimer = null;
+        }
+      };
+
+      span.addEventListener("touchstart", (e: TouchEvent) => {
+        const touch = e.touches?.[0];
+        if (touch) {
+          touchStartX = touch.clientX;
+          touchStartY = touch.clientY;
+        }
+        longPressed = false;
+        clearTimer();
+        longPressTimer = setTimeout(() => {
+          longPressed = true;
+          longPressTimer = null;
+          try {
+            navigator.vibrate?.(10);
+          } catch {
+            // Vibrations may be disallowed or unsupported
+          }
+          try {
+            const pos = view.posAtDOM(span);
+            const line = view.state.doc.lineAt(pos);
+            view.dispatch({ selection: { anchor: pos } });
+            editorContextMenu.set({ x: touchStartX, y: touchStartY, line: line.text });
+          } catch {
+            // The view or node might have been torn down
+          }
+        }, 500);
+      });
+
+      span.addEventListener("touchmove", (e: TouchEvent) => {
+        if (longPressTimer !== null) {
+          const touch = e.touches?.[0];
+          if (touch) {
+            const dx = touch.clientX - touchStartX;
+            const dy = touch.clientY - touchStartY;
+            if (Math.hypot(dx, dy) > 10) {
+              clearTimer();
+            }
+          }
+        }
+      });
+
+      span.addEventListener("touchend", (e: TouchEvent) => {
+        if (longPressed) {
+          e.preventDefault();
+          longPressed = false;
+          return;
+        }
+        clearTimer();
+        handleCycle(e);
+      });
+
+      span.addEventListener("touchcancel", () => {
+        clearTimer();
+        longPressed = false;
+      });
+
       span.addEventListener("mousedown", handleCycle);
-      span.addEventListener("touchend", handleCycle);
     }
     return span;
   }
