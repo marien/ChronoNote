@@ -10209,3 +10209,17 @@ Marien, after abandoning the idea of Peek reacting to Teams calls by itself (wat
 ## 339. The active tab is outlined
 
 **Status: on `ux/r1`, unreleased.** Marien (2026-10-09, after §335): the selected tab was hard to find, because the canvas colour it takes is close to the title bar's (#1e1e1e on #252526 in dark, white on #f3f3f3 in light). The active tab now has a 1px `--edge-strong` border on its top and sides (no bottom, so it still joins the note), as Windows 11 sets off its selected tab; label semibold in the full text colour as before. Tab, title bar, collapse and overflow specs green (26).
+
+## 340. Date picker in the Windows 11 calendar style, with ISO week numbers (C6)
+
+**Status: on `ux/r1`, unreleased.** Round day cells in the UI font; today a filled accent circle, the selected day an accent ring, a day with a note bold on a faint fill, open actions an amber ring, agenda-only days a dashed ring (the §262 state model is unchanged, only the shapes). A `wk` column shows each row's ISO 8601 week number (`isoWeek` in `date.ts`, tested incl. year boundaries), outside the keyboard grid. The date field accepts `wk 42` / `w42` / `week 42` (the Monday of that ISO week this year). Gemini 3.8 Flash medium (Y1), 9 min.
+
+## 341. Alt key tips on the title bar (B6)
+
+**Status: on `ux/r1`, unreleased.** Tapping the left Alt on its own (no other key, no modifier, no repeat; Right Alt = AltGr never triggers, `Alt+Left/Right` unaffected) shows Office-style letter badges on the title bar commands: N (+), W (+ menu), D (date), A (Actions), H (History), S (Search), C (calendar sync), P (promote), M (More). The next letter runs that command; Escape, Alt, any other key, a click or blur hide them. A pure reducer (`keyTips.ts`, tested) behind `KeyTips.svelte`; not on a phone or macOS. Gemini 3.8 Flash medium (Y2), 11.3 min.
+
+## 342. Phone: long-press a glyph for the line menu (D6)
+
+**Status: on `ux/r1`, unreleased.** On a touch device a 500ms press on an action or topic glyph (cancelled by moving more than 10px) moves the caret to that line and opens the editor's line menu (§331) as a bottom sheet (its clipboard row hidden: the phone has its own); a short tap still toggles the glyph. Gemini 3.8 Flash medium (Y3), 8.1 min.
+
+All three merged without changes; full suite 611 green.
