@@ -32,6 +32,7 @@ export type TranslationParams = {
   "settings.appearance.theme.hint": undefined;
   "settings.appearance.language.label": undefined;
   "settings.appearance.language.hint": undefined;
+  "settings.appearance.language.community": undefined;
   "settings.appearance.glyphs.label": undefined;
   "settings.appearance.glyphs.color": undefined;
   "settings.appearance.glyphs.grayscale": undefined;

@@ -424,8 +424,16 @@ test.describe("settings (Ctrl/Cmd+,)", () => {
     // All 8 language options are present
     const optionTexts = await langSelect.locator("option").allInnerTexts();
     for (const name of ["System", "English", "Nederlands", "Deutsch", "Français", "Polski", "Español", "Italiano"]) {
-      expect(optionTexts).toContain(name);
+      expect(optionTexts.some((t) => t.startsWith(name))).toBe(true);
     }
+
+    // Community translations are marked; reviewed locales (English, Nederlands) are not
+    const deOption = optionTexts.find((t) => t.startsWith("Deutsch"));
+    const nlOption = optionTexts.find((t) => t.startsWith("Nederlands"));
+    const enOption = optionTexts.find((t) => t.startsWith("English"));
+    expect(deOption).toContain("(community translation)");
+    expect(nlOption).not.toContain("(community translation)");
+    expect(enOption).not.toContain("(community translation)");
   });
 });
 

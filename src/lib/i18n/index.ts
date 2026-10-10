@@ -19,6 +19,10 @@ export type SupportedLocale = "en" | "nl" | "de" | "fr" | "pl" | "es" | "it";
 
 export const SUPPORTED_LOCALES: SupportedLocale[] = ["en", "nl", "de", "fr", "pl", "es", "it"];
 
+/** English is the source; Dutch is checked by the maintainer in daily use;
+ * the others were drafted by AI. */
+export const REVIEWED_LOCALES: SupportedLocale[] = ["en", "nl"];
+
 // Cast to the shared `Dictionary` call signature — each locale module's
 // own inferred type keeps its literal zero-arg functions (so `satisfies
 // Dictionary` there still enforces the right key set/arity), but calling

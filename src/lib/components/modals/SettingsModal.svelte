@@ -42,7 +42,17 @@
   import AboutPanel from "../AboutPanel.svelte";
   import { PEEK_DEFAULTS, peekSettings, type PeekHeaderMode } from "../../peek";
   import { occurrenceHint, setOccurrenceHint } from "../../occurrences";
-  import { locale, t } from "../../i18n";
+  import { locale, t, REVIEWED_LOCALES, type SupportedLocale } from "../../i18n";
+
+  const LANGUAGE_OPTIONS: { value: SupportedLocale; label: string }[] = [
+    { value: "en", label: "English" },
+    { value: "nl", label: "Nederlands" },
+    { value: "de", label: "Deutsch" },
+    { value: "fr", label: "Français" },
+    { value: "pl", label: "Polski" },
+    { value: "es", label: "Español" },
+    { value: "it", label: "Italiano" },
+  ];
   import { describeApiError } from "../../apiError";
   import type { ColorMode, LanguageMode, StartupTabMode, ThemeMode } from "../../types";
   import type { TabLabelStyle } from "../../generated/tauri-types";
@@ -397,13 +407,13 @@
                 onchange={(e) => controller.setLanguageMode(e.currentTarget.value as LanguageMode)}
               >
                 <option value="system">{$t("common.system")}</option>
-                <option value="en">English</option>
-                <option value="nl">Nederlands</option>
-                <option value="de">Deutsch</option>
-                <option value="fr">Français</option>
-                <option value="pl">Polski</option>
-                <option value="es">Español</option>
-                <option value="it">Italiano</option>
+                {#each LANGUAGE_OPTIONS as opt (opt.value)}
+                  <option value={opt.value}>
+                    {REVIEWED_LOCALES.includes(opt.value)
+                      ? opt.label
+                      : `${opt.label} ${$t("settings.appearance.language.community")}`}
+                  </option>
+                {/each}
               </select>
               <span class="select-chevron" aria-hidden="true">
                 <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
