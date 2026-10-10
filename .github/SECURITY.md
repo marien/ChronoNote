@@ -2,12 +2,7 @@
 
 ## Supported Versions
 
-Only the latest release branch of ChronoNote is currently supported with security updates.
-
-| Version | Supported          |
-| ------- | ------------------ |
-| 0.12.x  | :white_check_mark: |
-| < 0.12  | :x:                |
+Only the latest release is supported. Please update before reporting.
 
 ## Reporting a Vulnerability
 

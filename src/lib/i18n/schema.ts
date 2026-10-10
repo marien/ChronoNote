@@ -483,6 +483,15 @@ export type TranslationParams = {
   "about.links.sectionLabel": undefined;
   "about.links.website": undefined;
   "about.links.project": undefined;
+  "about.reportProblem": undefined;
+  "about.reportProblemHint": undefined;
+  "about.privacy": undefined;
+  "about.privacyHint": undefined;
+  "about.licences": undefined;
+  "about.licencesHint": undefined;
+  "about.licencesShow": undefined;
+  "about.licencesHide": undefined;
+  "about.licencesLoading": undefined;
   /** Both hints sit right after their own `<kbd>` combo, never mid-sentence
    * (like §220's "Numbered list" case) — no rich-text schema needed. */
 

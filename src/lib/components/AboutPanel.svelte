@@ -19,6 +19,25 @@
   import { formatCombo, shortcutById } from "../shortcuts";
   import { t } from "../i18n";
 
+  let showLicences = $state(false);
+  let licencesText = $state<string | null>(null);
+  let licencesLoading = $state(false);
+
+  async function toggleLicences() {
+    showLicences = !showLicences;
+    if (showLicences && licencesText === null && !licencesLoading) {
+      licencesLoading = true;
+      try {
+        const text = (await import("../../assets/THIRD-PARTY-NOTICES.txt?raw")).default;
+        licencesText = text;
+      } catch {
+        licencesText = "";
+      } finally {
+        licencesLoading = false;
+      }
+    }
+  }
+
   // §update-check: kick off a check the moment About is opened if nothing
   // has run yet this session (the launch check may have been skipped —
   // auto-check off, or it hasn't resolved yet) — About is the one place a
@@ -250,6 +269,41 @@
       </button>
     </SettingRow>
 
+    <SettingRow label={$t("about.reportProblem")}>
+      {#snippet description()}{$t("about.reportProblemHint")}{/snippet}
+      <button
+        type="button"
+        class="settings-btn quiet icon-only"
+        onclick={controller.openReportProblem}
+        aria-label={$t("about.reportProblem")}
+      >
+        <Icon name="external" size={14} />
+      </button>
+    </SettingRow>
+
+    <SettingRow label={$t("about.privacy")}>
+      {#snippet description()}{$t("about.privacyHint")}{/snippet}
+      <button
+        type="button"
+        class="settings-btn quiet icon-only"
+        onclick={controller.openPrivacyPage}
+        aria-label={$t("about.privacy")}
+      >
+        <Icon name="external" size={14} />
+      </button>
+    </SettingRow>
+
+    <SettingRow label={$t("about.licences")}>
+      {#snippet description()}{$t("about.licencesHint")}{/snippet}
+      <button
+        type="button"
+        class="settings-btn quiet"
+        onclick={toggleLicences}
+      >
+        {showLicences ? $t("about.licencesHide") : $t("about.licencesShow")}
+      </button>
+    </SettingRow>
+
     <SettingRow label={$t("commandPalette.keyboardShortcuts")}>
       <div class="about-kbd-wrap">
         <kbd>{formatCombo(shortcutById("openShortcutsHelp").combos[0])}</kbd>
@@ -264,6 +318,11 @@
       </div>
     </SettingRow>
   </div>
+
+  {#if showLicences}
+    <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
+    <pre class="about-licences" tabindex="0">{licencesLoading ? $t("about.licencesLoading") : licencesText}</pre>
+  {/if}
 </div>
 
 <style>
@@ -503,5 +562,20 @@
       width: 100%;
       justify-content: space-between;
     }
+  }
+
+  .about-licences {
+    max-height: 50vh;
+    overflow: auto;
+    font-family: var(--font-mono, var(--font, monospace));
+    font-size: 12px;
+    white-space: pre-wrap;
+    background: var(--surface-sunken, var(--surface-canvas));
+    border: 1px solid var(--edge-soft);
+    border-radius: 6px;
+    padding: 12px;
+    margin: 0;
+    color: var(--text);
+    box-sizing: border-box;
   }
 </style>

@@ -499,6 +499,15 @@ export const nl = {
   "about.links.sectionLabel": () => "Links",
   "about.links.website": () => "Website:",
   "about.links.project": () => "Broncode",
+  "about.reportProblem": () => "Een probleem melden",
+  "about.reportProblemHint": () => "Opent een nieuwe melding op GitHub met de versie al ingevuld.",
+  "about.privacy": () => "Privacy",
+  "about.privacyHint": () => "Geen tracking. Je notities blijven in je map, browser of OneDrive.",
+  "about.licences": () => "Opensourcelicenties",
+  "about.licencesHint": () => "De software waarmee ChronoNote is gebouwd, en de licenties.",
+  "about.licencesShow": () => "Tonen",
+  "about.licencesHide": () => "Verbergen",
+  "about.licencesLoading": () => "Laden…",
 
   "common.cancel": () => "Annuleren",
 
