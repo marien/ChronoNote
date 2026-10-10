@@ -12,8 +12,20 @@ interface PerfBudgets {
   measured?: Record<string, number>;
 }
 
+/** The budgets were measured on the maintainer's laptop; GitHub's shared runners are about twice as slow, so CI gets
+ * twice the room. A real regression is usually several times slower, so this still catches it. */
+const CI_FACTOR = process.env.CI ? 2 : 1;
+
 function loadBudgets(): PerfBudgets {
-  return budgets;
+  const b = budgets as PerfBudgets;
+  return {
+    startupMs: b.startupMs * CI_FACTOR,
+    tabSwitchMs: b.tabSwitchMs * CI_FACTOR,
+    searchAllNotesMs: b.searchAllNotesMs * CI_FACTOR,
+    actionsDrawerAllFilesMs: b.actionsDrawerAllFilesMs * CI_FACTOR,
+    sectionHistoryMs: b.sectionHistoryMs * CI_FACTOR,
+    typingPerCharMs: b.typingPerCharMs * CI_FACTOR,
+  };
 }
 
 function median(values: number[]): number {
