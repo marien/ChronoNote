@@ -16,6 +16,7 @@ import {
 } from "./overlays";
 import { todayISO } from "./date";
 import type { LineKind } from "./lineKind";
+import type { LineSectionRole } from "./tokens";
 import type {
   ActionSnapshotItem,
   ColorMode,
@@ -609,4 +610,6 @@ export const conflictInfo = writable<{
 } | null>(null);
 
 /** B5: right-click editor context menu position and line content under caret. */
-export const editorContextMenu = writable<{ x: number; y: number; line: string } | null>(null);
+/** The line menu: where it opens, the line's text and its place in the note (section title, inside a section, or
+ * above the first one), which decides what the menu offers. */
+export const editorContextMenu = writable<{ x: number; y: number; line: string; role: LineSectionRole } | null>(null);

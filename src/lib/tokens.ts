@@ -630,6 +630,16 @@ export function getSectionHeaderForLine(lines: string[], lineIdx: number): strin
   return "";
 }
 
+/** Where a line sits for the line menu: a section's title or its `===` underline, a line inside a section, or a
+ * line above the first section. */
+export type LineSectionRole = "title" | "body" | "outside";
+
+export function lineSectionRole(lines: string[], lineIdx: number): LineSectionRole {
+  if (lineIdx + 1 < lines.length && isSetextUnderline(lines[lineIdx + 1]) && lines[lineIdx].trim() !== "") return "title";
+  if (lineIdx > 0 && isSetextUnderline(lines[lineIdx])) return "title";
+  return getSectionHeaderForLine(lines, lineIdx) ? "body" : "outside";
+}
+
 export function normalizeHeaderTitle(rawHeader: string): string {
   return rawHeader
     .replace(/^\[\d{2}:\d{2}\s*-\s*\d{2}:\d{2}\]\s*/, "")

@@ -98,3 +98,67 @@ test("no menu label is cut off, in the longest language (Marien, 2026-10-10)", a
     await page.keyboard.press("Escape");
   }
 });
+
+test.describe("right-click menus", () => {
+  // Marien, 2026-10-10: a right-click on a glyph showed the browser's menu (and toggled the glyph), and the browser
+  // menu also showed wherever ChronoNote has no menu of its own.
+  test("right-clicking a glyph opens the line menu and leaves the glyph as it is", async ({ page }) => {
+    await seedApp(page, { seed: "empty" });
+    await setEditorText(page, "# Action item");
+    const glyph = editor(page).locator(".cm-line .glyph-cyclable").first();
+    await page.evaluate(() => {
+      window.addEventListener("contextmenu", (e) => ((window as any).__menuPrevented = e.defaultPrevented), { once: true });
+    });
+    await glyph.click({ button: "right" });
+    await expect(page.locator(".editor-context-menu")).toBeVisible();
+    expect(await page.evaluate(() => (window as any).__menuPrevented)).toBe(true);
+    expect(await activeTabContent(page)).toBe("# Action item");
+  });
+
+  test("the browser's own menu does not show outside text fields", async ({ page }) => {
+    await seedApp(page, { seed: "empty" });
+    const prevented = (selector: string) =>
+      page.evaluate((sel) => {
+        const el = document.querySelector(sel)!;
+        const r = el.getBoundingClientRect();
+        const e = new MouseEvent("contextmenu", { bubbles: true, cancelable: true, clientX: r.left + 2, clientY: r.top + 2 });
+        el.dispatchEvent(e);
+        return e.defaultPrevented;
+      }, selector);
+    expect(await prevented("#top-bar .titlebar-drag-gutter")).toBe(true);
+    expect(await prevented("#status-bar")).toBe(true);
+    expect(await prevented(".cm-scroller")).toBe(true);
+    // Text fields keep it, for cut/copy/paste.
+    await page.keyboard.press("Control+f");
+    expect(await prevented(".find-bar input")).toBe(false);
+  });
+
+  // Marien, 2026-10-10: the menu offered action/topic states, Copy to next and Make section on a section title, and
+  // Section history, Copy to next occurrence and Peek above the first section.
+  test("the menu follows where the line sits: section title, inside a section, above the first section", async ({ page }) => {
+    await seedApp(page, { seed: "empty" });
+    await setEditorText(page, ["loose line", "", "Weekly Sync", "===========", "# task"].join(String.fromCharCode(10)));
+    const menu = page.locator(".editor-context-menu");
+    const items = async (text: string) => {
+      await editor(page).locator(".cm-line", { hasText: text }).first().click({ button: "right" });
+      await expect(menu).toBeVisible();
+      const list = await menu.locator(".editor-context-item").evaluateAll((els) =>
+        els.map((el) => `${(el as HTMLButtonElement).disabled ? "-" : "+"}${el.querySelector(".editor-context-label")?.textContent?.trim()}`),
+      );
+      await page.keyboard.press("Escape");
+      await expect(menu).toBeHidden();
+      return list;
+    };
+    const title = await items("Weekly Sync");
+    expect(title).toEqual(["+Section history", "+Peek at this section"]);
+    expect(await items("=====")).toEqual(title);
+    const body = await items("task");
+    expect(body.length).toBeGreaterThan(4);
+    expect(body).toContain("+Peek at this section");
+    const outside = await items("loose line");
+    expect(outside).toContain("-Peek at this section");
+    expect(outside).toContain("-Section history");
+    expect(outside).toContain("-Copy to next occurrence");
+    expect(outside).toContain("+Make section header");
+  });
+});

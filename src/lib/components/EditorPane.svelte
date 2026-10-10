@@ -37,6 +37,7 @@
     setTopicSymbolTo,
     topicContinuationIndent,
     topicLineEnter,
+    lineSectionRole,
   } from "../tokens";
   import * as controller from "../controller";
   import { editorContextMenu, findMatch, findOpen, readableLineLength, wordWrap } from "../controller";
@@ -718,8 +719,9 @@
           event.preventDefault();
           const pos = v.posAtCoords({ x: event.clientX, y: event.clientY });
           if (pos != null && v.state.selection.main.empty) v.dispatch({ selection: { anchor: pos } });
-          const line = v.state.doc.lineAt(v.state.selection.main.head).text;
-          editorContextMenu.set({ x: event.clientX, y: event.clientY, line });
+          const at = v.state.doc.lineAt(v.state.selection.main.head);
+          const role = lineSectionRole(v.state.doc.toString().split("\n"), at.number - 1);
+          editorContextMenu.set({ x: event.clientX, y: event.clientY, line: at.text, role });
           return true;
         },
         // Deferred: the browser also fires `blur` while Svelte is tearing this

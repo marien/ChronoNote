@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   countActions,
+  lineSectionRole,
   countWords,
   innermostActionSymbol,
   innermostTopicSymbol,
@@ -859,5 +860,23 @@ describe("Meeting Agenda Topics (o, ., ,)", () => {
     expect(symbolAfterClick("o")).toBe(".");
     expect(symbolAfterClick(".")).toBe("o");
     expect(symbolAfterClick(",")).toBe("o");
+  });
+});
+
+describe("lineSectionRole", () => {
+  const lines = ["a note line", "", "Weekly Sync", "===========", "# task", "", "Other", "=====", "o topic"];
+  it("a section's title and its underline are the title", () => {
+    expect(lineSectionRole(lines, 2)).toBe("title");
+    expect(lineSectionRole(lines, 3)).toBe("title");
+    expect(lineSectionRole(lines, 7)).toBe("title");
+  });
+  it("lines under a title are inside the section", () => {
+    expect(lineSectionRole(lines, 4)).toBe("body");
+    expect(lineSectionRole(lines, 5)).toBe("body");
+    expect(lineSectionRole(lines, 8)).toBe("body");
+  });
+  it("lines above the first section are outside", () => {
+    expect(lineSectionRole(lines, 0)).toBe("outside");
+    expect(lineSectionRole(lines, 1)).toBe("outside");
   });
 });

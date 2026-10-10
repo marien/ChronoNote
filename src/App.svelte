@@ -33,6 +33,7 @@
   import { t } from "./lib/i18n";
   import { wireMobileViewport } from "./lib/mobileViewport";
   import { wireMobileBackNavigation } from "./lib/mobileNavigation";
+  import { suppressesNativeContextMenu, wireContextMenuGuard } from "./lib/contextMenuGuard";
   import { invoke } from "@tauri-apps/api/core";
   import { createZenWindowController } from "./lib/zenWindow";
 
@@ -374,6 +375,10 @@
     const unwirePeek = controller.wirePeek();
     const unwireCallNote = controller.wireCallNote();
     const unwireOccurrenceHint = controller.wireOccurrenceHint();
+    const installedApp = window.matchMedia("(display-mode: standalone), (display-mode: window-controls-overlay)");
+    const unwireContextMenuGuard = wireContextMenuGuard(() =>
+      suppressesNativeContextMenu(get(backendKind), installedApp.matches),
+    );
 
     // §v0.12.2: Full-screen Drag and Drop file import (Area 4)
     let dragDepth = 0;
@@ -462,6 +467,7 @@
     return () => {
       unwireViewport();
       unwireOccurrenceHint();
+      unwireContextMenuGuard();
       unwireCallNote();
       backNav.destroy();
       window.removeEventListener("keydown", onKeydown);

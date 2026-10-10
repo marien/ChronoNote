@@ -1,6 +1,6 @@
 import { RangeSetBuilder } from "@codemirror/state";
 import { Decoration, DecorationSet, EditorView, ViewPlugin, ViewUpdate, WidgetType } from "@codemirror/view";
-import { symbolAfterClick, toggleOpenClosedAtIndex } from "../tokens";
+import { lineSectionRole, symbolAfterClick, toggleOpenClosedAtIndex } from "../tokens";
 import { ARROW_GLYPH, GLYPHS, glyphSpecForSymbol } from "../grammar/glyphs";
 import { tokenizeLine } from "../grammar/tokenize";
 import { editorContextMenu } from "../stores";
@@ -116,7 +116,12 @@ class InlineGlyphWidget extends WidgetType {
             const pos = view.posAtDOM(span);
             const line = view.state.doc.lineAt(pos);
             view.dispatch({ selection: { anchor: pos } });
-            editorContextMenu.set({ x: touchStartX, y: touchStartY, line: line.text });
+            editorContextMenu.set({
+              x: touchStartX,
+              y: touchStartY,
+              line: line.text,
+              role: lineSectionRole(view.state.doc.toString().split("\n"), line.number - 1),
+            });
           } catch {
             // The view or node might have been torn down
           }
@@ -151,16 +156,21 @@ class InlineGlyphWidget extends WidgetType {
         longPressed = false;
       });
 
-      span.addEventListener("mousedown", handleCycle);
+      // Only the main button toggles; a right-click opens the line menu (see ignoreEvent).
+      span.addEventListener("mousedown", (e) => {
+        if (e.button === 0) handleCycle(e);
+      });
     }
     return span;
   }
 
 
   // Our own `mousedown` handler above does the work — keep CodeMirror from
-  // also treating the click as a cursor placement into the atomic range.
-  ignoreEvent(): boolean {
-    return true;
+  // also treating the click as a cursor placement into the atomic range. A
+  // right-click goes to the editor's `contextmenu` handler, which opens the
+  // line menu (otherwise the browser's own menu showed on a glyph).
+  ignoreEvent(event: Event): boolean {
+    return event.type !== "contextmenu";
   }
 }
 

@@ -40,8 +40,14 @@
   const isAction = $derived(/^\s*(=>\s)?[#vx>]\s/.test(line));
   const isTopic = $derived(/^\s*[o.,]\s/.test(line));
 
-  const lineItemCount = $derived(isAction ? 4 : isTopic ? 3 : 2);
-  const otherItemCount = $derived($backendKind === "desktop" ? 4 : 3);
+  // A section's title and underline are not lines to turn into an action or topic, to copy forward or to make a
+  // section of; Section history, Copy to next occurrence and Peek need a section, so they are off above the first one.
+  const role = $derived($editorContextMenu?.role ?? "body");
+  const onTitle = $derived(role === "title");
+  const inSection = $derived(role !== "outside");
+
+  const lineItemCount = $derived(onTitle ? 0 : isAction ? 4 : isTopic ? 3 : 2);
+  const otherItemCount = $derived((onTitle ? 1 : 3) + ($backendKind === "desktop" ? 1 : 0));
   const itemCount = $derived(1 + lineItemCount + otherItemCount);
 
   // The menu sizes to its longest item; its measured width keeps it on screen.
@@ -176,7 +182,9 @@
 
     <div class="editor-context-sep" role="separator"></div>
 
-    {#if isAction}
+    {#if onTitle}
+      <!-- No line states on a section title or its underline. -->
+    {:else if isAction}
       <button
         type="button"
         class="editor-context-item"
@@ -271,12 +279,15 @@
       </button>
     {/if}
 
-    <div class="editor-context-sep" role="separator"></div>
+    {#if !onTitle}
+      <div class="editor-context-sep" role="separator"></div>
+    {/if}
 
     <button
       type="button"
       class="editor-context-item"
       role="menuitem"
+      disabled={!inSection}
       onclick={() => {
         close();
         controller.openMeetingHistory();
@@ -286,35 +297,39 @@
       <span class="editor-context-label">{$t("shortcuts.openHistory.label")}</span>
       <span class="editor-context-key">{formatShortcut("openHistory")}</span>
     </button>
-    <button
-      type="button"
-      class="editor-context-item"
-      role="menuitem"
-      onclick={() => {
-        close();
-        controller.copySelectionToNextOccurrence();
-      }}
-    >
-      <Icon name="copy" size={14} />
-      <!-- A short menu label; the full description (the palette/shortcut text) is the tooltip. -->
-      <span class="editor-context-label" title={$t("shortcuts.copyToNextOccurrence.label")}>{$t("editorMenu.copyToNext")}</span>
-      <span class="editor-context-key">{formatShortcut("copyToNextOccurrence")}</span>
-    </button>
-    <button
-      type="button"
-      class="editor-context-item"
-      role="menuitem"
-      onclick={() => run((api) => api.convertCurrentLineToSection?.())}
-    >
-      <Icon name="edit" size={14} />
-      <span class="editor-context-label" title={$t("shortcuts.convertToSection.label")}>{$t("editorMenu.toSection")}</span>
-      <span class="editor-context-key">{formatShortcut("convertToSection")}</span>
-    </button>
+    {#if !onTitle}
+      <button
+        type="button"
+        class="editor-context-item"
+        role="menuitem"
+        disabled={!inSection}
+        onclick={() => {
+          close();
+          controller.copySelectionToNextOccurrence();
+        }}
+      >
+        <Icon name="copy" size={14} />
+        <!-- A short menu label; the full description (the palette/shortcut text) is the tooltip. -->
+        <span class="editor-context-label" title={$t("shortcuts.copyToNextOccurrence.label")}>{$t("editorMenu.copyToNext")}</span>
+        <span class="editor-context-key">{formatShortcut("copyToNextOccurrence")}</span>
+      </button>
+      <button
+        type="button"
+        class="editor-context-item"
+        role="menuitem"
+        onclick={() => run((api) => api.convertCurrentLineToSection?.())}
+      >
+        <Icon name="edit" size={14} />
+        <span class="editor-context-label" title={$t("shortcuts.convertToSection.label")}>{$t("editorMenu.toSection")}</span>
+        <span class="editor-context-key">{formatShortcut("convertToSection")}</span>
+      </button>
+    {/if}
     {#if $backendKind === "desktop"}
       <button
         type="button"
         class="editor-context-item"
         role="menuitem"
+        disabled={!inSection}
         onclick={() => {
           close();
           controller.togglePeek();
