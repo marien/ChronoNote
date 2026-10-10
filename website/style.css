@@ -623,6 +623,9 @@ kbd {
 }
 .prose h2 {
   color: var(--bright);
+}
+/* The help pages (files, troubleshooting, privacy) put h2s straight in .prose; the guide's section heads keep theirs. */
+.prose > h2 {
   font-size: 24px;
   margin: 36px 0 12px;
 }
