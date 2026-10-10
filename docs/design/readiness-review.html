@@ -1,0 +1,431 @@
+<title>ChronoNote Readiness Review</title>
+<style>
+/* Layout: one reading column (~960px) of proposal cards grouped by area, a sticky decisions bar, an overview table. Same system as the Win11 & Mobile review. */
+:root {
+  --bg: #f3f4f6; --surface: #ffffff; --fg: #1a1c20; --muted: #5a606b; --line: #dde0e5;
+  --accent: #0a6fc2; --accent-fg: #ffffff; --ok: #1f8a5b; --warn: #a8650f; --bad: #b8433b;
+  --chip: #eceef2;
+  --ui: "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --display: "Segoe UI Variable Display", "Segoe UI", system-ui, sans-serif;
+  --mono: "Cascadia Code", "Cascadia Mono", Consolas, ui-monospace, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #141518; --surface: #1d1f23; --fg: #e7e8eb; --muted: #a0a6b0; --line: #2f3238;
+  --accent: #4cc2ff; --accent-fg: #06223a; --ok: #4bbf87; --warn: #e0a94e; --bad: #e07b73; --chip: #272a30; color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --bg: #141518; --surface: #1d1f23; --fg: #e7e8eb; --muted: #a0a6b0; --line: #2f3238;
+  --accent: #4cc2ff; --accent-fg: #06223a; --ok: #4bbf87; --warn: #e0a94e; --bad: #e07b73; --chip: #272a30; color-scheme: dark; }
+
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--fg); font: 15px/1.55 var(--ui); }
+.wrap { max-width: 1000px; margin: 0 auto; padding-inline: 20px; padding-block: 32px 96px; }
+h1 { font: 600 32px/1.2 var(--display); margin: 0 0 8px; text-wrap: balance; letter-spacing: -.01em; }
+h2 { font: 600 22px/1.3 var(--display); margin: 56px 0 6px; text-wrap: balance; }
+h3 { font: 600 18px/1.35 var(--display); margin: 0; text-wrap: balance; }
+p { margin: 0 0 10px; max-width: 70ch; }
+.lede { font-size: 16.5px; color: var(--muted); max-width: 68ch; }
+.eyebrow { font: 600 11.5px/1 var(--ui); text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
+code, kbd { font-family: var(--mono); font-size: .86em; }
+a { color: var(--accent); }
+ul, ol { margin: 0 0 10px; padding-left: 20px; } li { margin: 3px 0; max-width: 70ch; }
+
+.premise { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin: 24px 0; }
+.premise div { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 14px 16px; }
+.premise b { display: block; font: 600 14px var(--display); margin-bottom: 2px; }
+.premise span { font-size: 13.5px; color: var(--muted); }
+
+.bar { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 10; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 10px 14px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin: 24px 0 6px; }
+.bar .counts { display: flex; gap: 14px; font-size: 13.5px; font-variant-numeric: tabular-nums; flex-wrap: wrap; }
+.bar .counts b { font-weight: 600; }
+.bar .spacer { flex: 1; }
+.btn { font: 600 13.5px var(--ui); border-radius: 4px; padding: 6px 12px; border: 1px solid var(--line); background: var(--surface); color: var(--fg); cursor: pointer; }
+.btn.primary { background: var(--accent); color: var(--accent-fg); border-color: transparent; }
+.btn:focus-visible, .dec button:focus-visible, textarea:focus-visible { outline: 2px solid var(--fg); outline-offset: 2px; box-shadow: 0 0 0 4px var(--surface); }
+#copied { font-size: 13px; color: var(--ok); }
+
+.tablewrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); }
+table { border-collapse: collapse; width: 100%; font-size: 13.5px; min-width: 640px; }
+th, td { text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font: 600 12px var(--ui); text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+tr:last-child td { border-bottom: none; }
+td a { text-decoration: none; font-weight: 600; }
+.tag { display: inline-block; font: 600 11.5px/1 var(--ui); padding: 4px 7px; border-radius: 999px; background: var(--chip); color: var(--fg); white-space: nowrap; }
+.tag.rec { background: color-mix(in srgb, var(--ok) 16%, transparent); color: var(--ok); }
+.tag.opt { background: color-mix(in srgb, var(--accent) 14%, transparent); color: var(--accent); }
+.tag.call { background: color-mix(in srgb, var(--warn) 16%, transparent); color: var(--warn); }
+.st { font-size: 12.5px; color: var(--muted); }
+
+.proposal { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 22px 22px 18px; margin: 18px 0; scroll-margin-top: 80px; }
+.phead { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: baseline; margin-bottom: 10px; }
+.pid { font: 600 13px var(--mono); color: var(--muted); }
+.meta { display: flex; gap: 6px; flex-wrap: wrap; margin-left: auto; }
+.cols { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 24px; margin: 8px 0 4px; }
+.cols > div { min-width: 0; }
+.cols h4 { font: 600 12px var(--ui); text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 0 0 4px; }
+@media (max-width: 720px) { .cols { grid-template-columns: 1fr; } }
+.why { font-size: 13.5px; color: var(--muted); border-left: 3px solid var(--line); padding-left: 12px; margin: 10px 0; max-width: 72ch; }
+
+.dec { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; border-top: 1px solid var(--line); margin-top: 16px; padding-top: 14px; }
+.dec button { font: 600 13px var(--ui); padding: 5px 12px; border-radius: 999px; border: 1px solid var(--line); background: transparent; color: var(--fg); cursor: pointer; }
+.dec button[aria-pressed="true"][data-v="approve"] { background: var(--ok); border-color: var(--ok); color: var(--surface); }
+.dec button[aria-pressed="true"][data-v="discuss"] { background: var(--warn); border-color: var(--warn); color: var(--surface); }
+.dec button[aria-pressed="true"][data-v="reject"] { background: var(--bad); border-color: var(--bad); color: var(--surface); }
+.dec textarea { flex: 1 1 260px; min-width: 0; font: 13.5px/1.4 var(--ui); border: 1px solid var(--line); border-radius: 6px; padding: 6px 9px; background: var(--bg); color: var(--fg); resize: vertical; min-height: 34px; }
+
+.waves { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin: 14px 0; }
+.waves div { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 14px 16px; min-width: 0; }
+.waves b { display: block; font: 600 14px var(--display); margin-bottom: 4px; }
+.waves span { font-size: 13.5px; color: var(--muted); }
+.solid { columns: 2 280px; column-gap: 28px; font-size: 14px; }
+.solid li { break-inside: avoid; }
+@media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
+</style>
+
+<div class="wrap">
+  <div class="eyebrow">ChronoNote readiness review · v0.30.4 · 10 October 2026</div>
+  <h1>ChronoNote Readiness Review</h1>
+  <p class="lede">v0.27 and v0.28 covered the architecture and the code, v0.30 the design. This review looks at what it takes for people other than you to install, trust, keep using and get help with ChronoNote: distribution, recovering from mistakes, knowing what went wrong on someone else's machine, testing what the mock can't reach, and the release process. Features are left out, apart from two that are plainly missing.</p>
+
+  <div class="premise">
+    <div><b>Never lose a note</b><span>Prevention is in place. Add a way back when something goes wrong anyway.</span></div>
+    <div><b>Diagnosable at a distance</b><span>A stranger's bug report should contain enough to find the cause.</span></div>
+    <div><b>Trustworthy to install</b><span>Licences, privacy and security reporting in order before people ask.</span></div>
+    <div><b>Tested where users are</b><span>The real window, real settings, real data sizes, not only the mock at defaults.</span></div>
+    <div><b>Premise unchanged</b><span>No telemetry, no accounts, plain text files. Nothing here adds UI to the writing flow.</span></div>
+  </div>
+
+  <h2 id="solid">Already solid</h2>
+  <p>For calibration: these are in place and need no work.</p>
+  <ul class="solid">
+    <li>Atomic writes with a process-wide write lock and retries (§92, §97).</li>
+    <li>Guarded saves: a stale tab never overwrites a newer file; conflict copies in <code>.chrononote-conflicts/</code> (§94, §291-§293).</li>
+    <li>A corrupt <code>config.json</code> or session file is set aside, not fatal (§97).</li>
+    <li>Zero-loss exit barrier: pending saves finish before the window closes (§93).</li>
+    <li>Path-traversal and symlink-escape checks on every note path (§92).</li>
+    <li>Strict desktop CSP; the test harness provably absent from release builds (CI build guard).</li>
+    <li>944 unit tests, 657 browser tests, 129 Rust tests; CI on every push.</li>
+    <li>Dependabot, secret scanning, CodeQL, dependency review; signed updater manifests.</li>
+  </ul>
+
+  <p>The gaps found:</p>
+  <ul>
+    <li><b>Nothing can be undone at the file level.</b> A deleted note, an import "Replace" or a wrong conflict choice leaves no copy.</li>
+    <li><b>No record of what went wrong on someone's machine.</b> Only the updater writes a log; script errors go to a console nobody sees. The v0.30.1–v0.30.3 text-resize hunt needed you to paste console snippets.</li>
+    <li><b>Licences and policies are incomplete.</b> No third-party notices for the ~400 bundled packages, <code>SECURITY.md</code> still says 0.12.x is the supported version, no issue templates, no privacy statement for the web app's OneDrive access.</li>
+    <li><b>Testing stops at the mock.</b> The real window, the updater, upgrades between versions, large folders, contrast themes and screen readers are checked by hand or not at all.</li>
+    <li><b>The installers are unsigned</b> (parked by you), and the README lists macOS and Linux build prerequisites for builds nobody has made.</li>
+  </ul>
+
+  <div class="bar" role="region" aria-label="Your decisions">
+    <div class="counts"><span><b id="c-approve">0</b> approved</span><span><b id="c-discuss">0</b> discuss</span><span><b id="c-reject">0</b> rejected</span><span><b id="c-open">0</b> undecided</span></div>
+    <div class="spacer"></div>
+    <span id="copied" aria-live="polite"></span>
+    <button class="btn primary" id="copy" type="button">Copy decisions</button>
+  </div>
+  <p class="st">Your choices and notes are kept in this browser. When you're done, use "Copy decisions" and paste the result into the chat.</p>
+
+  <h2 id="overview">Overview</h2>
+  <p class="st"><span class="tag rec">Recommended</span> clear win, low risk · <span class="tag opt">Optional</span> good, but you can skip it · <span class="tag call">Your call</span> a decision only you can make. Effort: S = a day or less, M = a few days, L = a week or more.</p>
+  <div class="tablewrap"><table id="ovt"><thead><tr><th>ID</th><th>Proposal</th><th>Area</th><th>Advice</th><th>Effort</th></tr></thead><tbody></tbody></table></div>
+
+  <h2 id="order">Suggested order</h2>
+  <div class="waves">
+    <div><b>Wave 1 · protect and inform</b><span>A2, A3, A4, B3, C2, D2, F2, E3. Small, contained, mostly briefable to Gemini.</span></div>
+    <div><b>Wave 2 · recover and measure</b><span>C1, B1, B4, D4, D5. The app log first: it makes every later bug cheaper.</span></div>
+    <div><b>Wave 3 · bigger pieces</b><span>D1, B2, F1, D3, then G1/G2 if wanted.</span></div>
+    <div><b>Decisions only</b><span>A1 (signing) and E1 (platforms) change what the rest has to cover.</span></div>
+  </div>
+
+  <!-- ================= A ================= -->
+  <h2 id="a">A · Trust and distribution</h2>
+  <p>What a careful person checks before installing an app that holds their notes.</p>
+
+  <section class="proposal" data-id="A1" data-title="Code signing: keep parked or revisit" data-area="Trust" data-adv="call" data-eff="M">
+    <div class="phead"><span class="pid">A1</span><h3>Code signing: keep parked or revisit</h3></div>
+    <div class="cols">
+      <div><h4>Now</h4><p>Unsigned installers. Windows SmartScreen shows "Windows protected your PC" to every new user, and Smart App Control blocks the installer and the in-app updates outright (your second laptop, os error 4551). You parked signing on 2 October; the researched options (SignPath for open source, an OV certificate, Azure Trusted Signing, the Microsoft Store) are in memory.</p></div>
+      <div><h4>Proposed</h4><p>No work unless you say so. This card is here because, for strangers, it is the single largest barrier to installing ChronoNote, larger than anything else on this page. "Approve" means: reopen the comparison and pick one. "Reject" means: keep parked, and E3 documents the SmartScreen "More info → Run anyway" step instead.</p></div>
+    </div>
+  </section>
+
+  <section class="proposal" data-id="A2" data-title="Third-party licence notices" data-area="Trust" data-adv="rec" data-eff="S">
+    <div class="phead"><span class="pid">A2</span><h3>Third-party licence notices</h3></div>
+    <div class="cols">
+      <div><h4>Now</h4><p>The installer ships Tauri, CodeMirror, Svelte and roughly 400 Rust crates. Most are MIT or Apache-2.0, which require their copyright notice to travel with the binary. Nothing in the repo, the installer or the About tab carries them.</p></div>
+      <div><h4>Proposed</h4><p>Generate <code>THIRD-PARTY-NOTICES.txt</code> at release time from <code>cargo-about</code> (Rust) and <code>license-checker</code> (npm, production dependencies only), bundle it as a Tauri resource, and add "Open-source licences" to the About tab, which opens it. A CI step fails if a dependency arrives with a licence outside an allow-list (MIT, Apache-2.0, BSD, ISC, MPL-2.0, Zlib, Unicode).</p></div>
+    </div>
+    <p class="why">Cheap legal hygiene, and the allow-list also stops a copyleft dependency from slipping in through Dependabot.</p>
+  </section>
+
+  <section class="proposal" data-id="A3" data-title="Current SECURITY.md, issue templates and a Report a problem link" data-area="Trust" data-adv="rec" data-eff="S">
+    <div class="phead"><span class="pid">A3</span><h3>Current SECURITY.md, issue templates and a "Report a problem" link</h3></div>
+    <div class="cols">
+      <div><h4>Now</h4><p><code>.github/SECURITY.md</code> lists 0.12.x as the supported version. There are no issue templates, so reports from strangers arrive without a version, Windows build, scaling or language. The app has no route to report anything.</p></div>
+      <div><h4>Proposed</h4><ul>
+        <li>SECURITY.md: "the latest release" instead of a version table, so it can't go stale again.</li>
+        <li>Templates in <code>.github/ISSUE_TEMPLATE/</code>: Bug (version, desktop or web app, Windows version, display scaling, language, steps, expected, actual, the C1 diagnostics block), Feature request, Translation issue; blank issues off.</li>
+        <li>About tab: "Report a problem" opens the Bug template with the version pre-filled in the URL. No personal data in the URL.</li>
+      </ul></div>
+    </div>
+  </section>
+
+  <section class="proposal" data-id="A4" data-title="Privacy statement" data-area="Trust" data-adv="rec" data-eff="S">
+    <div class="phead"><span class="pid">A4</span><h3>Privacy statement</h3></div>
+    <div class="cols">
+      <div><h4>Now</h4><p>The web app asks for access to the user's OneDrive (read and write files, keep signed in). The desktop app checks GitHub for updates. Neither the website nor the app says what is collected, where notes live, or what the OneDrive permission is used for.</p></div>
+      <div><h4>Proposed</h4><p>A short <code>website/privacy.html</code>, linked from the website footer, the About tab and the OneDrive sign-in step: no telemetry or analytics; notes stay in your folder, your browser (IndexedDB) or your own OneDrive; the update check sends only a request for <code>latest.json</code> to GitHub; the OneDrive permission is used only for the chosen notes folder; the sign-in token is kept in the OS keychain or browser storage and removed on sign-out; how to delete everything.</p></div>
+    </div>
+    <p class="why">Microsoft's app registration also expects a privacy link once people outside your organisation sign in.</p>
+  </section>
+
+  <!-- ================= B ================= -->
+  <h2 id="b">B · Never lose a note: recovery</h2>
+  <p>Prevention is strong. These add a way back for the cases prevention can't cover: a user's own mistake, and bugs nobody has found yet.</p>
+
+  <section class="proposal" data-id="B1" data-title="Recently deleted: a trash folder for removed notes" data-area="Data safety" data-adv="rec" data-eff="M">
+    <div class="phead"><span class="pid">B1</span><h3>Recently deleted: a trash folder for removed notes</h3></div>
+    <div class="cols">
+      <div><h4>Now</h4><p>A dated note whose tab closes while empty is deleted from disk (#63, §169). On the web app, deletes go straight out of IndexedDB and are pushed to OneDrive. If the note was emptied by mistake (select all, delete, close), it is gone.</p></div>
+      <div><h4>Proposed</h4><p>Every delete moves the file to <code>.chrononote-trash/&lt;date&gt;_&lt;filename&gt;</code> in the notes folder (an IndexedDB store on the web app), and anything older than 30 days is removed at startup. Settings → Notes gets "Recently deleted": a list with Restore. An empty file is not worth keeping, so only files that had content on disk go to the trash; the #63 behaviour for truly empty notes stays as it is.</p></div>
+    </div>
+  </section>
+
+  <section class="proposal" data-id="B2" data-title="Earlier versions of a note" data-area="Data safety" data-adv="opt" data-eff="M">
+    <div class="phead"><span class="pid">B2</span><h3>Earlier versions of a note</h3></div>
+    <div class="cols">
+      <div><h4>Now</h4><p>Overwrites that are not the user's own typing leave no copy: import with Replace, a conflict resolved with "Keep mine", a newer file from OneDrive taken over an open tab, the copy-forward rewrite of a source note.</p></div>
+      <div><h4>Proposed</h4><p>Before any such overwrite, and at the first save of each day, keep the previous text in <code>.chrononote-versions/&lt;filename&gt;/&lt;timestamp&gt;.txt</code>; keep 30 days, at most 20 per note. A tab's context menu gets "Earlier versions…", showing the list with a side-by-side preview and Restore (which itself keeps a version first). Plain text files, so they also work outside the app.</p></div>
+    </div>
+    <p class="why">Turns a data-loss bug into a minor annoyance. Optional because B1 plus the existing conflict copies already cover the most likely losses; this covers the rest.</p>
+  </section>
+
+  <section class="proposal" data-id="B3" data-title="Settings survive a downgrade, and carry a version" data-area="Data safety" data-adv="rec" data-eff="S">
+    <div class="phead"><span class="pid">B3</span><h3>Settings survive a downgrade, and carry a version</h3></div>
+    <div class="cols">
+      <div><h4>Now</h4><p><code>config.json</code> and the session file have no version number. An older app reading a newer config ignores the fields it doesn't know and drops them on its next save, so going back a version (reinstalling an older installer, or a second PC still on an older release sharing a synced config) silently resets newer settings. Migrations are one-off flags (Peek's <code>defaults_version</code>).</p></div>
+      <div><h4>Proposed</h4><p>Add <code>schemaVersion</code> to both files and keep unknown fields: a <code>#[serde(flatten)] extra</code> map that is written back unchanged. Migrations run by version number in one place. A config newer than the app understands is loaded, kept, and a one-time message says "Settings were saved by a newer ChronoNote; some may not apply". Test fixtures: a real <code>config.json</code> from v0.20, v0.25 and v0.30 must load with nothing lost.</p></div>
+    </div>
+  </section>
+
+  <section class="proposal" data-id="B4" data-title="Upgrade test from every older release" data-area="Data safety" data-adv="rec" data-eff="S">
+    <div class="phead"><span class="pid">B4</span><h3>Upgrade test from every older release</h3></div>
+    <div class="cols">
+      <div><h4>Now</h4><p>Updating is the path every user takes, and it is checked only by you, by hand, on your machines. The mock tests always start from a config the current code wrote.</p></div>
+      <div><h4>Proposed</h4><p>A fixtures folder of real files from past releases (config, session, scratchpad drafts, agenda file, a notes folder with conflict copies and CRLF/BOM files), captured once per minor release by <code>release.sh</code>. Rust and Vitest tests load each and assert the result. Once D1 exists, the native smoke test also starts from the oldest fixture.</p></div>
+    </div>
+  </section>
+
+  <!-- ================= C ================= -->
+  <h2 id="c">C · Diagnosable at a distance</h2>
+
+  <section class="proposal" data-id="C1" data-title="An app log and Copy diagnostics" data-area="Diagnostics" data-adv="rec" data-eff="M">
+    <div class="phead"><span class="pid">C1</span><h3>An app log and "Copy diagnostics"</h3></div>
+    <div class="cols">
+      <div><h4>Now</h4><p>Only <code>update.log</code> exists. Save failures, sync errors, quarantined files and startup time are shown once in the status bar or not at all. Finding the tab-switch resize took console snippets run on your laptop.</p></div>
+      <div><h4>Proposed</h4><ul>
+        <li><code>app.log</code> in the app's log folder, rotated at 1 MB × 3: startup timing, errors, failed saves/reads, sync results, quarantines, update steps. Never note text or file content, only file names and error messages.</li>
+        <li>The web app keeps the last 500 lines in IndexedDB.</li>
+        <li>About tab: "Copy diagnostics" copies version, Windows build, display scaling, reduced motion, contrast theme, language, number of notes, enabled features and the last 100 log lines. A3's Bug template asks for it.</li>
+        <li>About tab: "Open log folder" on desktop.</li>
+      </ul></div>
+    </div>
+  </section>
+
+  <section class="proposal" data-id="C2" data-title="Catch every unexpected error" data-area="Diagnostics" data-adv="rec" data-eff="S">
+    <div class="phead"><span class="pid">C2</span><h3>Catch every unexpected error</h3></div>
+    <div class="cols">
+      <div><h4>Now</h4><p>Nothing listens for <code>window.onerror</code> or unhandled promise rejections, so an exception in a click handler fails silently. The Rust side builds with <code>panic = "abort"</code>; a panic ends the app with no record.</p></div>
+      <div><h4>Proposed</h4><p>Global <code>error</code> and <code>unhandledrejection</code> handlers write to the C1 log and show one status-bar message, "Something went wrong. Details are in About → Copy diagnostics", at most once a minute. A Rust panic hook writes the panic message and location to the log before the abort. Until C1 exists, the handler logs to the console only.</p></div>
+    </div>
+  </section>
+
+  <!-- ================= D ================= -->
+  <h2 id="d">D · Testing where users are</h2>
+
+  <section class="proposal" data-id="D1" data-title="Native smoke tests in CI" data-area="Testing" data-adv="rec" data-eff="L">
+    <div class="phead"><span class="pid">D1</span><h3>Native smoke tests in CI</h3></div>
+    <div class="cols">
+      <div><h4>Now</h4><p>Every browser test runs against the mock backend. The real window, Rust commands, the exit barrier, capabilities (the opener and window-destroy permissions both shipped broken once), Peek and the updater are only tested by you.</p></div>
+      <div><h4>Proposed</h4><p>A small suite on CI's Windows runner driving the real release build through <code>tauri-driver</code> (WebView2's Edge driver), against a throwaway notes folder: start, type, wait for save, check the file on disk; close the window and restart, check the session; open Settings and About; trigger a save failure; open a link (opener permission). Ten tests at most, run on every push to main.</p></div>
+    </div>
+    <p class="why">This was deferred twice as too heavy. It is the only way to catch the class of bug that has reached you most often: things that only fail outside the mock.</p>
+  </section>
+
+  <section class="proposal" data-id="D2" data-title="Test under real settings: an environment matrix" data-area="Testing" data-adv="rec" data-eff="S">
+    <div class="phead"><span class="pid">D2</span><h3>Test under real settings: an environment matrix</h3></div>
+    <div class="cols">
+      <div><h4>Now</h4><p>The suite runs at 1× scaling, motion on, normal contrast, English, on Linux fonts. v0.30.1–v0.30.4 were all bugs that only showed with another setting: reduced motion, 125–150% scaling, a phone, German on Linux fonts.</p></div>
+      <div><h4>Proposed</h4><p>Extra Playwright projects that run the visual audit, tab switching, menus and Settings under: reduced motion; device scale 1.5; forced colours (contrast theme); German; a 360 px phone. Most are one-line project options. Runs in CI on main only, to keep pull requests fast.</p></div>
+    </div>
+  </section>
+
+  <section class="proposal" data-id="D3" data-title="Random-input tests for the parsers and merge" data-area="Testing" data-adv="opt" data-eff="S">
+    <div class="phead"><span class="pid">D3</span><h3>Random-input tests for the parsers and merge</h3></div>
+    <div class="cols">
+      <div><h4>Now</h4><p>The tokenizer, the three-way merge, line-ending normalisation, list renumbering and paste deferral are pure functions with example-based tests and the golden snapshot.</p></div>
+      <div><h4>Proposed</h4><p>Property tests with <code>fast-check</code> (one dev dependency): the tokenizer never throws and covers every character of a line; merging a version with itself changes nothing; merge is symmetric for non-conflicting edits; normalising twice equals normalising once; renumbering keeps every non-list line unchanged. Thousands of generated inputs per run.</p></div>
+    </div>
+  </section>
+
+  <section class="proposal" data-id="D4" data-title="Performance budgets at real sizes" data-area="Testing" data-adv="rec" data-eff="M">
+    <div class="phead"><span class="pid">D4</span><h3>Performance budgets at real sizes</h3></div>
+    <div class="cols">
+      <div><h4>Now</h4><p>Your work folder has about 180 notes. Startup was measured once (§266). Someone who uses ChronoNote daily for five years has 1,800 notes; a long-running meeting note can reach thousands of lines. Nothing measures search, the Action drawer, History or tab switching at those sizes.</p></div>
+      <div><h4>Proposed</h4><p>A generated dataset of 2,000 notes plus one 5,000-line note, and a CI job measuring: time to a typeable editor, tab switch, search across all notes, Action drawer and History open, typing latency in the big note. Each has a budget about twice today's measurement, so a real regression fails the build and noise doesn't.</p></div>
+    </div>
+  </section>
+
+  <section class="proposal" data-id="D5" data-title="Accessibility: automated checks and one screen-reader pass" data-area="Testing" data-adv="rec" data-eff="S">
+    <div class="phead"><span class="pid">D5</span><h3>Accessibility: automated checks and one screen-reader pass</h3></div>
+    <div class="cols">
+      <div><h4>Now</h4><p>v0.30 added contrast-theme styles, focus rings and roles, but only one test touches accessibility (the date picker label). Nobody has used the app with a screen reader.</p></div>
+      <div><h4>Proposed</h4><p><code>axe-core</code> in Playwright over the main screen, every drawer and dialog, the menus and Settings, in light, dark and forced colours; serious violations fail the build. Then one pass with Narrator on Windows: write a note, mark an action done, find a past section, change a setting. Findings become their own fixes.</p></div>
+    </div>
+  </section>
+
+  <!-- ================= E ================= -->
+  <h2 id="e">E · Reach</h2>
+
+  <section class="proposal" data-id="E1" data-title="Platforms: Windows only, said clearly" data-area="Reach" data-adv="call" data-eff="S">
+    <div class="phead"><span class="pid">E1</span><h3>Platforms: Windows only, said clearly</h3></div>
+    <div class="cols">
+      <div><h4>Now</h4><p>Only Windows installers exist, and only Windows has been run. The README lists macOS and Linux build prerequisites, and some code paths (Mica, the Snap overlay, Peek's window placement, Zen) are Windows-specific with fallbacks nobody has seen run.</p></div>
+      <div><h4>Proposed</h4><p>Recommended: say "Windows 10 and 11; on other systems use the web app" in the README, the website and the release notes, and move the macOS/Linux prerequisites under "building from source, untested". The alternative is macOS and Linux CI builds plus a check of every Windows-only feature's fallback, published as "experimental": a week or more, and unsigned macOS apps are blocked by Gatekeeper.</p></div>
+    </div>
+  </section>
+
+  <section class="proposal" data-id="E2" data-title="Translation status and a glossary" data-area="Reach" data-adv="opt" data-eff="S">
+    <div class="phead"><span class="pid">E2</span><h3>Translation status and a glossary</h3></div>
+    <div class="cols">
+      <div><h4>Now</h4><p>English is the source; Dutch is reviewed by you in use; German, Spanish, French, Italian and Polish were drafted by AI without a native read. Agents have used inconsistent terms (an agent chose "uitgesteld" where the app says "doorgeschoven").</p></div>
+      <div><h4>Proposed</h4><p>The language picker marks unreviewed languages "(community)". A glossary file per language (open, done, deferred, won't do, section, topic, Peek) that briefs and agents must use, and a Vitest check that the glossary terms appear where expected. A3's "Translation issue" template invites corrections.</p></div>
+    </div>
+  </section>
+
+  <section class="proposal" data-id="E3" data-title="User documentation: your files, and troubleshooting" data-area="Reach" data-adv="rec" data-eff="S">
+    <div class="phead"><span class="pid">E3</span><h3>User documentation: your files, and troubleshooting</h3></div>
+    <div class="cols">
+      <div><h4>Now</h4><p>The website guide explains the token language and shortcuts well. It doesn't say where files are, how to back up, move to a new PC or uninstall, or what to do when something goes wrong.</p></div>
+      <div><h4>Proposed</h4><p>Two guide pages. <b>Your files:</b> the notes folder and its hidden folders, where settings live, backing up, moving to a new PC, what uninstalling leaves behind. <b>Troubleshooting:</b> the installer or an update is blocked (SmartScreen, Smart App Control), OneDrive conflict copies, a "settings were set aside" message (<code>.corrupt-*</code> files), a global shortcut that doesn't work (another app holds it), and how to send diagnostics (C1).</p></div>
+    </div>
+  </section>
+
+  <!-- ================= F ================= -->
+  <h2 id="f">F · Release process</h2>
+
+  <section class="proposal" data-id="F1" data-title="An early-updates channel" data-area="Process" data-adv="opt" data-eff="M">
+    <div class="phead"><span class="pid">F1</span><h3>An early-updates channel</h3></div>
+    <div class="cols">
+      <div><h4>Now</h4><p>Every release goes to every user at once. v0.30.0 needed four follow-up releases on the same day; with other users, each of those would have reached them too.</p></div>
+      <div><h4>Proposed</h4><p>Settings → About: "Get early updates" (off by default). Those installs also check a <code>latest-beta.json</code> on a rolling pre-release. <code>release.sh --beta</code> publishes there; promoting a beta to everyone is a second, quick command. Large UI releases go to early updates first for a few days, with you and any volunteers on it.</p></div>
+    </div>
+  </section>
+
+  <section class="proposal" data-id="F2" data-title="Release script refuses a red build and asks the checklist" data-area="Process" data-adv="rec" data-eff="S">
+    <div class="phead"><span class="pid">F2</span><h3>Release script refuses a red build and asks the checklist</h3></div>
+    <div class="cols">
+      <div><h4>Now</h4><p>CI was red from v0.30.0 to v0.30.2 without anyone noticing. The environment checklist from the v0.30 lessons lives only in my memory.</p></div>
+      <div><h4>Proposed</h4><p><code>release.sh</code> preflight: refuse when the last GitHub Test run on <code>main</code> failed (override with <code>--force-red</code> and a reason in the notes). For a minor version, print the environment checklist (reduced motion, 150%, phone, installed web app, contrast theme, right-click/long-press/focus) and ask for confirmation. After publishing, wait for the Test run on the release commit and print its result.</p></div>
+    </div>
+  </section>
+
+  <!-- ================= G ================= -->
+  <h2 id="g">G · Plainly missing</h2>
+  <p>Not new ideas: things users of a meeting-notes app ask for in the first week.</p>
+
+  <section class="proposal" data-id="G1" data-title="Export a note or a range as Markdown or HTML" data-area="Feature" data-adv="opt" data-eff="M">
+    <div class="phead"><span class="pid">G1</span><h3>Export a note or a range as Markdown or HTML</h3></div>
+    <div class="cols">
+      <div><h4>Now</h4><p>The files are plain text, and the only export is the app's own bundle for moving between the desktop and web app. Pasting notes into a ticket, an email or a wiki means converting tokens by hand.</p></div>
+      <div><h4>Proposed</h4><p>"Export…" in the More menu and the tab menu: this note, a section, or a date range, as Markdown (sections become <code>##</code>, actions <code>- [ ]</code> / <code>- [x]</code>, deferred and won't-do as struck or annotated items, <code>@name</code> kept) or as HTML with the glyphs. "Copy as Markdown" for a selection.</p></div>
+    </div>
+  </section>
+
+  <section class="proposal" data-id="G2" data-title="Print a note" data-area="Feature" data-adv="opt" data-eff="S">
+    <div class="phead"><span class="pid">G2</span><h3>Print a note</h3></div>
+    <div class="cols">
+      <div><h4>Now</h4><p>No way to print, or print to PDF, with the glyphs as they appear on screen.</p></div>
+      <div><h4>Proposed</h4><p>"Print…" (<kbd>Ctrl+P</kbd>) prints the active note through a print stylesheet: the note only, glyphs in their shapes, section titles as headings, light colours regardless of theme. Windows' own "Microsoft Print to PDF" covers PDF.</p></div>
+    </div>
+  </section>
+
+  <p class="st" style="margin-top:40px">Method: read <code>CLAUDE.local.md</code>, <code>docs/CHANGELOG.md</code> (§1–§357), the release workflow, CI workflows, <code>storage.rs</code>, the updater, <code>.github/</code> and the website; checked each "Now" against the code on 10 October 2026.</p>
+</div>
+
+<script>
+(function () {
+  var KEY = "chrononote-readiness-review-v1";
+  var state = {};
+  try { state = JSON.parse(localStorage.getItem(KEY) || "{}") || {}; } catch (e) { state = {}; }
+  function save() { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {} }
+  var advText = { rec: "Recommended", opt: "Optional", call: "Your call" };
+  var cards = Array.prototype.slice.call(document.querySelectorAll(".proposal"));
+  var tbody = document.querySelector("#ovt tbody");
+
+  cards.forEach(function (card) {
+    var id = card.dataset.id;
+    card.id = "p-" + id;
+    var meta = document.createElement("div");
+    meta.className = "meta";
+    meta.innerHTML = '<span class="tag ' + card.dataset.adv + '">' + advText[card.dataset.adv] + '</span><span class="tag">' + card.dataset.area + '</span><span class="tag">Effort ' + card.dataset.eff + '</span>';
+    card.querySelector(".phead").appendChild(meta);
+
+    var tr = document.createElement("tr");
+    tr.innerHTML = '<td><a href="#p-' + id + '">' + id + '</a></td><td>' + card.dataset.title + '</td><td>' + card.dataset.area + '</td><td><span class="tag ' + card.dataset.adv + '">' + advText[card.dataset.adv] + '</span></td><td>' + card.dataset.eff + '</td>';
+    tbody.appendChild(tr);
+
+    var dec = document.createElement("div");
+    dec.className = "dec";
+    dec.innerHTML =
+      '<button type="button" data-v="approve" aria-pressed="false">Approve</button>' +
+      '<button type="button" data-v="discuss" aria-pressed="false">Discuss</button>' +
+      '<button type="button" data-v="reject" aria-pressed="false">Reject</button>' +
+      '<textarea id="note-' + id + '" rows="1" placeholder="Note for ' + id + ' (optional)" aria-label="Note for ' + id + '"></textarea>';
+    card.appendChild(dec);
+    var s = state[id] || {};
+    var ta = dec.querySelector("textarea");
+    ta.value = s.note || "";
+    function paint() {
+      dec.querySelectorAll("button").forEach(function (b) { b.setAttribute("aria-pressed", String((state[id] || {}).v === b.dataset.v)); });
+      count();
+    }
+    dec.querySelectorAll("button").forEach(function (b) {
+      b.addEventListener("click", function () {
+        var cur = state[id] || {};
+        cur.v = cur.v === b.dataset.v ? undefined : b.dataset.v;
+        state[id] = cur; save(); paint();
+      });
+    });
+    ta.addEventListener("input", function () { var cur = state[id] || {}; cur.note = ta.value; state[id] = cur; save(); });
+    paint();
+  });
+
+  function count() {
+    var c = { approve: 0, discuss: 0, reject: 0, open: 0 };
+    cards.forEach(function (card) { var v = (state[card.dataset.id] || {}).v; c[v || "open"]++; });
+    Object.keys(c).forEach(function (k) { var el = document.getElementById("c-" + k); if (el) el.textContent = c[k]; });
+  }
+  count();
+
+  document.getElementById("copy").addEventListener("click", function () {
+    var label = { approve: "APPROVE", discuss: "DISCUSS", reject: "REJECT" };
+    var lines = ["ChronoNote readiness review decisions:"];
+    cards.forEach(function (card) {
+      var s = state[card.dataset.id] || {};
+      var line = card.dataset.id + " " + (s.v ? label[s.v] : "undecided") + " - " + card.dataset.title;
+      if (s.note && s.note.trim()) line += "\n   note: " + s.note.trim();
+      lines.push(line);
+    });
+    var text = lines.join("\n");
+    var out = document.getElementById("copied");
+    function fallback() {
+      var t = document.createElement("textarea"); t.value = text; t.style.width = "100%"; t.rows = 8;
+      out.textContent = "Copying is blocked here. Select the text below and copy it.";
+      document.querySelector(".bar").after(t); t.select();
+    }
+    try {
+      navigator.clipboard.writeText(text).then(function () { out.textContent = "Copied. Paste it into the chat."; }, fallback);
+    } catch (e) { fallback(); }
+  });
+})();
+</script>
