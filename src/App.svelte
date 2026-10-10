@@ -422,6 +422,26 @@
     window.addEventListener("keydown", onKeydown);
     window.addEventListener("dragenter", onWindowDragEnter);
     window.addEventListener("dragleave", onWindowDragLeave);
+    // Ctrl+wheel (Cmd+wheel on macOS) over the note: font size up/down by 1px per notch, within the Settings range.
+    // Saved once the wheel stops, not per notch. Also keeps the WebView from zooming the whole page.
+    let wheelAcc = 0;
+    let fontSaveTimer: ReturnType<typeof setTimeout> | undefined;
+    const onEditorWheel = (e: WheelEvent) => {
+      if (!(e.ctrlKey || e.metaKey)) return;
+      if (!(e.target instanceof Element && e.target.closest("#editor-container"))) return;
+      e.preventDefault();
+      wheelAcc += e.deltaY;
+      // A mouse notch is ~100; a touchpad pinch sends many small deltas, so add them up first.
+      if (Math.abs(wheelAcc) < 50) return;
+      const step = wheelAcc < 0 ? 1 : -1;
+      wheelAcc = 0;
+      const next = Math.min(18, Math.max(12, Math.round(get(fontSize)) + step));
+      if (next === get(fontSize)) return;
+      fontSize.set(next);
+      clearTimeout(fontSaveTimer);
+      fontSaveTimer = setTimeout(() => void controller.setFontSize(next), 400);
+    };
+    window.addEventListener("wheel", onEditorWheel, { passive: false });
     window.addEventListener("dragover", onWindowDragOver);
     window.addEventListener("drop", onWindowDrop);
 
@@ -441,6 +461,8 @@
       window.removeEventListener("keydown", noteEscapeStart, true);
       window.removeEventListener("dragenter", onWindowDragEnter);
       window.removeEventListener("dragleave", onWindowDragLeave);
+      window.removeEventListener("wheel", onEditorWheel);
+      clearTimeout(fontSaveTimer);
       window.removeEventListener("dragover", onWindowDragOver);
       window.removeEventListener("drop", onWindowDrop);
       mediaQuery.removeEventListener("change", updateMobile);
