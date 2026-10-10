@@ -220,6 +220,9 @@
 .stat-glyph {
   font-family: var(--font-mono);
   font-weight: bold;
+  /* The count is a flex row, which centres the box on the line instead of the digits; sit it on the digits like the
+     old ☐ character did (measured at 150% scaling). */
+  transform: translateY(0.13em);
 }
 
 /* #71: a plain-text-look button (`#stat-version`'s own pattern), so the

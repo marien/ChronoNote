@@ -10241,3 +10241,15 @@ All three merged without changes; full suite 611 green.
 - Long actions wrap instead of being cut off, with the section name below them.
 
 Gemini 3.8 Flash high (Z3). Found during review: the agent moved the drawer's key handling from the filter field to a document listener. That listener would also have caught Enter on the close button or a toggle, in the dialog too. List keys now apply only inside the drawer, and only in the filter field and the list (Escape works anywhere in it).
+
+## 346. Glyphs outside the editor back to the old ☐ size and position
+
+**Status: on `ux/r1`, unreleased.** Marien (2026-10-10): the glyphs looked slightly bigger than before the SVG change (§327), especially in the status bar. I measured the inked pixels at 150% scaling, on this branch and on the commit before §327:
+
+| | Before | After §327 | Now |
+|---|---|---|---|
+| Editor | 13 | 14 | 14 |
+| Status bar | 14 | 18 | 14 |
+| Shortcuts drawer | 14 | 18–19 | 14 |
+
+Physical pixels; the text next to the glyphs is 13. Outside the editor, the boxes had been made the topic circles' 1em size, but the old ☐ character drew its square at about 0.78em. Boxes and circles outside the editor now share `--glyph-outside-size: 0.78em`, so they stay equal to each other. `vertical-align: -0.23em` (was -0.1em) puts them level with the arrow in the Shortcuts drawer, where the old character sat (ink rows 205–218, the same as before). The status bar's counts are a flex row, which ignores `vertical-align`, so its glyph gets `translateY(0.13em)` and its bottom lines up with the digits' baseline again. The box's transparent character is moved out to the left with `text-indent`, so the overflow audit doesn't flag it; `overflow: hidden` would have moved the baseline. In the editor the box stays the circles' 0.70em, 1 physical pixel more than the old character, so squares and circles keep matching there.

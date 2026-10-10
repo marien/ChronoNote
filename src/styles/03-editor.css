@@ -420,17 +420,25 @@ body.peek-mode .cm-overview-ruler {
   color: transparent !important;
   user-select: none;
 }
-/* Drawer rows, status bar, legends: the circles' 1em box there. */
+:root {
+  --glyph-outside-size: 0.78em;
+}
+/* Drawer rows, status bar, legends: the size the old ☐ character drew its square at (0.78em, measured at 150%
+   scaling), shared with the topic circles below so squares and circles stay the same size. */
 :is(.glyph-open, .glyph-done, .glyph-cancelled, .glyph-progress):not(.cm-line *):not(.token-glyph) {
   display: inline-block;
   position: relative;
-  width: 1em;
-  height: 1em;
+  width: var(--glyph-outside-size);
+  height: var(--glyph-outside-size);
   box-sizing: border-box;
   border: 1.4px solid var(--glyph-box-color);
   border-radius: 1.5px;
-  vertical-align: -0.1em;
+  vertical-align: -0.23em;
   line-height: 1;
+  /* The (transparent) character is wider than the smaller box: move it out to the left, where it is not overflow.
+     Not overflow: hidden, which would move the box's baseline. */
+  text-indent: -2em;
+  white-space: nowrap;
   color: transparent !important;
   user-select: none;
 }
@@ -539,14 +547,18 @@ body.peek-mode .cm-overview-ruler {
 .glyph-topic-skipped:not(.cm-line *):not(.token-glyph) {
   display: inline-block;
   position: relative;
-  width: 1em;
-  height: 1em;
+  width: var(--glyph-outside-size);
+  height: var(--glyph-outside-size);
   border-radius: 50%;
   box-sizing: border-box;
   color: transparent !important;
   user-select: none;
-  vertical-align: -0.1em;
+  vertical-align: -0.23em;
   line-height: 1;
+  /* The (transparent) character is wider than the smaller box: move it out to the left, where it is not overflow.
+     Not overflow: hidden, which would move the box's baseline. */
+  text-indent: -2em;
+  white-space: nowrap;
 }
 .glyph-topic-open:not(.cm-line *):not(.token-glyph) {
   border: 1.4px solid var(--glyph-open-color);
