@@ -65,7 +65,7 @@ a:hover {
   text-decoration: underline;
 }
 
-code {
+.prose code {
   font-family: var(--font);
   font-size: 0.9em;
   background: var(--surface-raised);
