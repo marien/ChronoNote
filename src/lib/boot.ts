@@ -8,6 +8,7 @@ import { loadBaseline } from "./hash";
 import { get } from "svelte/store";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import * as api from "./tauriApi";
+import { installErrorReporting, logError, logInfo } from "./appLog";
 import { countActions, countWords } from "./tokens";
 import { todayISO } from "./date";
 import {
@@ -508,6 +509,8 @@ function persistTabSession() {
 }
 
 export async function initApp() {
+  const bootStart = typeof performance !== "undefined" ? performance.now() : Date.now();
+  installErrorReporting();
   wireStatusBarSync();
   wireWindowTitleSync();
   wireCloseBarrier();
@@ -598,6 +601,7 @@ export async function initApp() {
       }
     } catch (err) {
       console.error("Failed to seed onboarding note:", err);
+      logError(`Failed to seed onboarding note: ${err}`);
     }
   }
   await restoreOrBootstrapTabs();
@@ -648,6 +652,8 @@ export async function initApp() {
   if (get(backendKind) === "web") {
     await handleWebappLaunch();
   }
+  const elapsed = Math.round((typeof performance !== "undefined" ? performance.now() : Date.now()) - bootStart);
+  logInfo(`boot done in ${elapsed} ms, ${get(tabs).length} tabs`);
 }
 
 let oneDriveSyncWired = false;
@@ -755,6 +761,7 @@ export async function refreshSyncHealth(): Promise<void> {
     syncHealth.set(health);
   } catch (err) {
     console.error("Failed to fetch sync health:", err);
+    logError(`Failed to fetch sync health: ${err}`);
   }
 }
 

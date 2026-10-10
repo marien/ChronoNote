@@ -587,7 +587,9 @@ reachable from the top bar, a shortcut, or the command palette:
   page featuring a header card with the running version, live update status
   chip, and primary update action (check for updates, download progress, or
   restart). Setting cards below include the check-on-start toggle (desktop only),
-  release notes, links to the website and source code, Report a problem, Privacy,
+  release notes, links to the website and source code, Report a problem, Diagnostics
+  (copies system info and recent log lines without note text), Log folder (desktop only,
+  opens the log folder in the OS file manager), Privacy,
   an expandable Open-source licences viewer, and a keyboard shortcuts launcher.
   On phones, it renders as a clean bottom sheet with the same layout.
 

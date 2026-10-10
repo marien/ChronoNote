@@ -485,6 +485,11 @@ export type TranslationParams = {
   "about.links.project": undefined;
   "about.reportProblem": undefined;
   "about.reportProblemHint": undefined;
+  "about.diagnostics": undefined;
+  "about.diagnosticsHint": undefined;
+  "about.diagnosticsCopy": undefined;
+  "about.logFolder": undefined;
+  "about.logFolderHint": undefined;
   "about.privacy": undefined;
   "about.privacyHint": undefined;
   "about.licences": undefined;
@@ -754,6 +759,8 @@ export type TranslationParams = {
   // in that trailing part, same Phase 2 deferral as everywhere else.
   "toast.actions.forwardedToToday": undefined;
   "toast.actions.forwardFailed": undefined;
+  "toast.diagnosticsCopied": undefined;
+  "toast.unexpectedError": undefined;
   "toast.boot.oneDrive.connected": undefined;
   "toast.boot.oneDrive.connectedChooseFolder": undefined;
   "toast.boot.oneDrive.signInFailedPrefix": undefined;

@@ -18,10 +18,28 @@
   import SettingToggle from "./SettingToggle.svelte";
   import { formatCombo, shortcutById } from "../shortcuts";
   import { t } from "../i18n";
+  import { buildDiagnostics } from "../appLog";
+  import * as api from "../tauriApi";
 
   let showLicences = $state(false);
   let licencesText = $state<string | null>(null);
   let licencesLoading = $state(false);
+  let fallbackDiagnostics = $state<string | null>(null);
+
+  async function copyDiagnostics() {
+    try {
+      const text = await buildDiagnostics();
+      await navigator.clipboard.writeText(text);
+      controller.showToast($t("toast.diagnosticsCopied", undefined));
+      fallbackDiagnostics = null;
+    } catch {
+      try {
+        fallbackDiagnostics = await buildDiagnostics();
+      } catch {
+        fallbackDiagnostics = "";
+      }
+    }
+  }
 
   async function toggleLicences() {
     showLicences = !showLicences;
@@ -281,6 +299,31 @@
       </button>
     </SettingRow>
 
+    <SettingRow label={$t("about.diagnostics")}>
+      {#snippet description()}{$t("about.diagnosticsHint")}{/snippet}
+      <button
+        type="button"
+        class="settings-btn quiet"
+        onclick={copyDiagnostics}
+      >
+        {$t("about.diagnosticsCopy")}
+      </button>
+    </SettingRow>
+
+    {#if $backendKind === "desktop"}
+      <SettingRow label={$t("about.logFolder")}>
+        {#snippet description()}{$t("about.logFolderHint")}{/snippet}
+        <button
+          type="button"
+          class="settings-btn quiet icon-only"
+          onclick={() => void api.openLogFolder()}
+          aria-label={$t("about.logFolder")}
+        >
+          <Icon name="external" size={14} />
+        </button>
+      </SettingRow>
+    {/if}
+
     <SettingRow label={$t("about.privacy")}>
       {#snippet description()}{$t("about.privacyHint")}{/snippet}
       <button
@@ -318,6 +361,11 @@
       </div>
     </SettingRow>
   </div>
+
+  {#if fallbackDiagnostics !== null}
+    <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
+    <pre class="about-licences" tabindex="0">{fallbackDiagnostics}</pre>
+  {/if}
 
   {#if showLicences}
     <!-- svelte-ignore a11y_no_noninteractive_tabindex -->

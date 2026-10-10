@@ -299,6 +299,8 @@ export class MockBackend {
   /** URLs passed to `plugin:opener|open_url` (the About drawer's project
    * link) — nothing actually opens. */
   openedUrls: string[] = [];
+  /** Log lines accumulated by append_log. */
+  logLines: string[] = [];
   /** What `plugin:dialog|open` (the folder picker) returns next. `null`
    * = user cancelled. Set by tests before triggering a Browse. */
   nextDialogResult: string | string[] | null = null;
@@ -820,6 +822,16 @@ export class MockBackend {
       localNoteCount: this.listFiles().length,
       pendingUploadCount: 0,
     }),
+    append_log: ({ level, message }) => {
+      this.logLines.push(`${level} ${message}`);
+    },
+    read_log_tail: ({ lines }) => {
+      const slice = this.logLines.slice(-lines);
+      return slice.join("\n");
+    },
+    open_log_folder: () => {
+      this.openedUrls.push("log-folder");
+    },
   };
 
   private async dispatch(cmd: string, args: Record<string, unknown>): Promise<unknown> {
