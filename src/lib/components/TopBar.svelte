@@ -1175,6 +1175,18 @@
   padding-right: 8px;
 }
 
+/* §D7: the web app installed on a PC with the title bar hidden (window controls overlay). The
+   browser draws minimize/maximize/close over the page's top right; the env() values give the
+   free area, so the bar keeps its content out from under them. Lives here, not in
+   13-pwa.css, because this scoped rule outranks a global `#top-bar` one. */
+@media (display-mode: window-controls-overlay) {
+  #top-bar {
+    height: env(titlebar-area-height, 40px);
+    padding-left: env(titlebar-area-x, 0px);
+    padding-right: max(8px, calc(100vw - env(titlebar-area-x, 0px) - env(titlebar-area-width, 100vw)));
+  }
+}
+
 /* §merged-titlebar: the app icon at the bar's leading edge, replacing the
    native OS title bar's own icon. Same "32px box, bottom-anchored"
    treatment as `.tab`/`.icon-btn` (§49) rather than its own vertical

@@ -6,10 +6,9 @@ body {
 }
 
 @media (display-mode: window-controls-overlay) {
+  /* The bar's own height and the room for the window buttons are in TopBar.svelte: its scoped
+     `#top-bar` rule is more specific than one here and would win. */
   #top-bar {
-    height: env(titlebar-area-height, 40px);
-    padding-left: env(titlebar-area-x, 0);
-    padding-right: calc(100vw - env(titlebar-area-x, 0px) - env(titlebar-area-width, 100vw));
     -webkit-app-region: drag;
     app-region: drag;
   }
