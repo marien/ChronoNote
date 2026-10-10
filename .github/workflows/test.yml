@@ -49,6 +49,9 @@ jobs:
       - run: sudo rm -f /etc/apt/sources.list.d/*google* /etc/apt/sources.list.d/*chrome*
       - run: npx playwright install chromium
       - run: npm run test:e2e
+        env:
+          # D2: the reduced-motion / 150% / contrast-theme projects run on pushes to main, not on every PR.
+          E2E_MATRIX: ${{ github.event_name == 'push' && '1' || '0' }}
       - uses: actions/upload-artifact@v7
         if: ${{ !cancelled() }}
         with:

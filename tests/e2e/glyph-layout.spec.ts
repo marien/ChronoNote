@@ -377,10 +377,12 @@ test.describe("glyph line layout", () => {
       const d = ctx.getImageData(0, 0, img.width, img.height).data;
 
       function getInkBottom(box: DOMRect) {
-        const x0 = Math.max(0, Math.floor(box.left - cBox.x));
-        const x1 = Math.min(img.width - 1, Math.ceil(box.right - cBox.x));
-        const y0 = Math.max(0, Math.floor(box.top - cBox.y));
-        const y1 = Math.min(img.height - 1, Math.ceil(box.bottom - cBox.y));
+        // The screenshot is in device pixels; boxes are CSS pixels (differs at 125-150% scaling).
+        const s = window.devicePixelRatio;
+        const x0 = Math.max(0, Math.floor((box.left - cBox.x) * s));
+        const x1 = Math.min(img.width - 1, Math.ceil((box.right - cBox.x) * s));
+        const y0 = Math.max(0, Math.floor((box.top - cBox.y) * s));
+        const y1 = Math.min(img.height - 1, Math.ceil((box.bottom - cBox.y) * s));
 
         let bottomY = -1;
         for (let y = y0; y <= y1; y++) {
@@ -494,10 +496,11 @@ test.describe("glyph line layout", () => {
         const d = ctx.getImageData(0, 0, img.width, img.height).data;
 
         function getInkBottom(box: DOMRect) {
-          const x0 = Math.max(0, Math.floor(box.left - cBox.x));
-          const x1 = Math.min(img.width - 1, Math.ceil(box.right - cBox.x));
-          const y0 = Math.max(0, Math.floor(box.top - cBox.y));
-          const y1 = Math.min(img.height - 1, Math.ceil(box.bottom - cBox.y));
+          const s = window.devicePixelRatio;
+          const x0 = Math.max(0, Math.floor((box.left - cBox.x) * s));
+          const x1 = Math.min(img.width - 1, Math.ceil((box.right - cBox.x) * s));
+          const y0 = Math.max(0, Math.floor((box.top - cBox.y) * s));
+          const y1 = Math.min(img.height - 1, Math.ceil((box.bottom - cBox.y) * s));
 
           let bottomY = -1;
           for (let y = y0; y <= y1; y++) {

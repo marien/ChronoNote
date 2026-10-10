@@ -9,6 +9,27 @@ import { defineConfig, devices } from "@playwright/test";
  * The Rust storage layer and the pure TS logic are covered separately by
  * `cargo test` and the Vitest suite (`*.test.ts`); this config is only
  * for the browser-level behaviour those can't reach. */
+/** Specs that exercise layout, tabs, menus and settings: the ones the environment projects re-run. */
+const LAYOUT_SPECS = [
+  "tab-switch-width", "tab-archetypes", "titlebar", "merged-titlebar", "topbar-collapse", "editor-context-menu",
+  "glyph-layout", "word-wrap", "settings", "history-pane", "actions-pane", "pane-resize", "visual-audit",
+].map((name) => `**/${name}.spec.ts`);
+
+/** Specs that check colours or read screenshot pixels against a dark background: meaningless in a contrast theme, where
+ * Windows picks the colours. */
+const COLOUR_SPECS = ["settings", "tab-archetypes", "glyph-layout"].map((name) => `**/${name}.spec.ts`);
+
+// German (longer labels) is not a project: specs assert English text, and visual-audit already checks every language.
+const ENV_PROJECTS = [
+  { name: "reduced-motion", use: { ...devices["Desktop Chrome"], contextOptions: { reducedMotion: "reduce" as const } } },
+  { name: "scale-150", use: { ...devices["Desktop Chrome"], deviceScaleFactor: 1.5 } },
+  {
+    name: "forced-colors",
+    use: { ...devices["Desktop Chrome"], contextOptions: { forcedColors: "active" as const } },
+    testIgnore: COLOUR_SPECS,
+  },
+].map((p) => ({ ...p, testMatch: LAYOUT_SPECS }));
+
 export default defineConfig({
   testDir: "./tests/e2e",
   testMatch: "**/*.spec.ts",
@@ -41,6 +62,10 @@ export default defineConfig({
       name: "chromium",
       use: { ...devices["Desktop Chrome"] },
     },
+    // D2 (readiness review): the v0.30 follow-up bugs only showed under settings the default run never uses (Windows
+    // "Animation effects" off, 125-150% scaling, a contrast theme). These projects re-run the specs that touch layout,
+    // tabs and menus under each one. On by default; `E2E_MATRIX=0` runs the default project only (CI does that for PRs).
+    ...(process.env.E2E_MATRIX === "0" ? [] : ENV_PROJECTS),
   ],
 
   webServer: {
