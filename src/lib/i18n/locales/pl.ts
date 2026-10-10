@@ -884,4 +884,5 @@ export const pl = {
   "phoneNav.openCount": (params) => `${params?.count ?? 0} otwarte`,
   "phoneNav.previous": () => "Poprzednia notatka",
   "phoneNav.next": () => "Następna notatka",
+  "pane.resize": () => "Zmień rozmiar panelu",
 } satisfies Dictionary;

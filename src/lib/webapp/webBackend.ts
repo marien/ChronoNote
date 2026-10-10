@@ -78,6 +78,8 @@ interface StoredConfig {
   occurrenceHint?: boolean;
   statusBarVisible?: boolean;
   tabLabelStyle?: TabLabelStyle;
+  historyPaneShare?: number;
+  actionsPaneShare?: number;
   onboardingCompleted?: boolean;
 }
 
@@ -261,6 +263,8 @@ export class WebBackend {
         startupTabMode: "today",
         statusBarVisible: true,
         tabLabelStyle: "iso",
+        historyPaneShare: 0.30,
+        actionsPaneShare: 0.30,
       }
     );
   }
@@ -299,6 +303,8 @@ export class WebBackend {
       occurrenceHint: cfg.occurrenceHint ?? false,
       statusBarVisible: cfg.statusBarVisible ?? true,
       tabLabelStyle: cfg.tabLabelStyle ?? "iso",
+      historyPaneShare: cfg.historyPaneShare ?? 0.30,
+      actionsPaneShare: cfg.actionsPaneShare ?? 0.30,
     };
   }
 
@@ -338,7 +344,8 @@ export class WebBackend {
       if (patch.occurrenceHint !== undefined) cfg.occurrenceHint = patch.occurrenceHint;
       if (patch.statusBarVisible !== undefined) cfg.statusBarVisible = patch.statusBarVisible;
       if (patch.tabLabelStyle !== undefined) cfg.tabLabelStyle = patch.tabLabelStyle;
-      if (patch.statusBarVisible !== undefined) cfg.statusBarVisible = patch.statusBarVisible;
+      if (patch.historyPaneShare !== undefined) cfg.historyPaneShare = Math.min(0.60, Math.max(0.18, patch.historyPaneShare));
+      if (patch.actionsPaneShare !== undefined) cfg.actionsPaneShare = Math.min(0.60, Math.max(0.18, patch.actionsPaneShare));
       if (patch.pureBlack !== undefined) cfg.pureBlack = patch.pureBlack;
       if (patch.peek !== undefined) cfg.peek = clampPeek(patch.peek);
       if (patch.lastSeenVersion !== undefined) cfg.lastSeenVersion = patch.lastSeenVersion;

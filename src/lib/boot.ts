@@ -45,6 +45,8 @@ import {
   statusWordCount,
   statusBarVisible,
   tabLabelStyle,
+  historyPaneShare,
+  actionsPaneShare,
   startupTabMode,
   syncHealth,
   tabs,
@@ -546,6 +548,8 @@ export async function initApp() {
   occurrenceHint.set(cfg.occurrenceHint ?? false);
   statusBarVisible.set(cfg.statusBarVisible ?? true);
   tabLabelStyle.set(cfg.tabLabelStyle ?? "iso");
+  historyPaneShare.set(cfg.historyPaneShare ?? 0.30);
+  actionsPaneShare.set(cfg.actionsPaneShare ?? 0.30);
   if (cfg.calendarSyncEnabled && (get(backendKind) !== "web" || !!get(oneDriveAccount))) {
     await refreshAgendaFileExists();
   }
@@ -901,5 +905,25 @@ export async function setTabLabelStyle(style: TabLabelStyle) {
     await api.setTabLabelStyle(style);
   } catch {
     showToast(get(t)("toast.boot.failedToSave.tabLabelStyle", undefined));
+  }
+}
+
+export async function setHistoryPaneShare(share: number) {
+  const clamped = Math.min(0.60, Math.max(0.18, share));
+  historyPaneShare.set(clamped);
+  try {
+    await api.setHistoryPaneShare(clamped);
+  } catch {
+    // Best-effort persistence
+  }
+}
+
+export async function setActionsPaneShare(share: number) {
+  const clamped = Math.min(0.60, Math.max(0.18, share));
+  actionsPaneShare.set(clamped);
+  try {
+    await api.setActionsPaneShare(clamped);
+  } catch {
+    // Best-effort persistence
   }
 }

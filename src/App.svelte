@@ -75,7 +75,14 @@
   import SyncConflictsModal from "./lib/components/modals/SyncConflictsModal.svelte";
   import OneDriveFolderPickerModal from "./lib/components/modals/OneDriveFolderPickerModal.svelte";
   import EditorContextMenu from "./lib/components/EditorContextMenu.svelte";
-  import { editorContextMenu, oneDriveFolderPickerOpen, statusBarVisible, syncHealthPopoverOpen } from "./lib/stores";
+  import {
+    actionsPaneShare,
+    editorContextMenu,
+    historyPaneShare,
+    oneDriveFolderPickerOpen,
+    statusBarVisible,
+    syncHealthPopoverOpen,
+  } from "./lib/stores";
   import { overlays, topOverlay, type Overlay } from "./lib/overlays";
 
   let ready = $state(false);
@@ -533,6 +540,79 @@
   const paneDocked = $derived(windowInnerWidth >= 1000 && !$isMobile && !$isZenMode && !$peekMode);
   const dockedPane = $derived(($modal === "history" || $modal === "actions") && paneDocked ? $modal : null);
 
+  let isDraggingPane = $state<"history" | "actions" | null>(null);
+  let previousUserSelect = "";
+
+  function computePaneWidth(share: number, windowWidth: number): number {
+    const raw = share * windowWidth;
+    const minW = 300;
+    const maxW = Math.max(minW, windowWidth - 420);
+    return Math.min(maxW, Math.max(minW, raw));
+  }
+
+  function handlePointerDown(pane: "history" | "actions", e: PointerEvent) {
+    if (e.button !== 0) return;
+    const target = e.currentTarget as HTMLElement;
+    target.setPointerCapture(e.pointerId);
+    isDraggingPane = pane;
+    previousUserSelect = document.body.style.userSelect;
+    document.body.style.userSelect = "none";
+  }
+
+  function handlePointerMove(pane: "history" | "actions", e: PointerEvent) {
+    if (isDraggingPane !== pane) return;
+    const rawShare = (windowInnerWidth - e.clientX) / windowInnerWidth;
+    const minShare = Math.max(0.18, 300 / windowInnerWidth);
+    const maxShare = Math.min(0.60, (windowInnerWidth - 420) / windowInnerWidth);
+    const clampedShare = Math.min(maxShare, Math.max(minShare, rawShare));
+    if (pane === "history") {
+      historyPaneShare.set(clampedShare);
+    } else {
+      actionsPaneShare.set(clampedShare);
+    }
+  }
+
+  function handlePointerUp(pane: "history" | "actions", e: PointerEvent) {
+    if (isDraggingPane !== pane) return;
+    isDraggingPane = null;
+    document.body.style.userSelect = previousUserSelect;
+    try {
+      (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId);
+    } catch {
+      // ignore
+    }
+    if (pane === "history") {
+      void controller.setHistoryPaneShare(get(historyPaneShare));
+    } else {
+      void controller.setActionsPaneShare(get(actionsPaneShare));
+    }
+  }
+
+  function handleResizerKeyDown(pane: "history" | "actions", e: KeyboardEvent) {
+    if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
+      e.preventDefault();
+      const current = get(pane === "history" ? historyPaneShare : actionsPaneShare);
+      const delta = e.key === "ArrowLeft" ? 0.02 : -0.02;
+      const rawShare = current + delta;
+      const minShare = Math.max(0.18, 300 / windowInnerWidth);
+      const maxShare = Math.min(0.60, (windowInnerWidth - 420) / windowInnerWidth);
+      const clampedShare = Math.min(maxShare, Math.max(minShare, rawShare));
+      if (pane === "history") {
+        void controller.setHistoryPaneShare(clampedShare);
+      } else {
+        void controller.setActionsPaneShare(clampedShare);
+      }
+    }
+  }
+
+  function handleResizerDblClick(pane: "history" | "actions") {
+    if (pane === "history") {
+      void controller.setHistoryPaneShare(0.30);
+    } else {
+      void controller.setActionsPaneShare(0.30);
+    }
+  }
+
   $effect(() => {
     historyDocked.set(paneDocked);
   });
@@ -695,12 +775,52 @@
       {/if}
     </div>
     {#if dockedPane === "history"}
-      <aside class="history-pane" aria-label={$t("history.modal.ariaLabel")}>
+      <aside
+        class="history-pane"
+        aria-label={$t("history.modal.ariaLabel")}
+        style:width="{computePaneWidth($historyPaneShare, windowInnerWidth)}px"
+      >
+        <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
+        <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+        <div
+          class="pane-resizer"
+          class:dragging={isDraggingPane === "history"}
+          role="separator"
+          aria-orientation="vertical"
+          aria-label={$t("pane.resize")}
+          tabindex="0"
+          onpointerdown={(e) => handlePointerDown("history", e)}
+          onpointermove={(e) => handlePointerMove("history", e)}
+          onpointerup={(e) => handlePointerUp("history", e)}
+          onpointercancel={(e) => handlePointerUp("history", e)}
+          onkeydown={(e) => handleResizerKeyDown("history", e)}
+          ondblclick={() => handleResizerDblClick("history")}
+        ></div>
         <HistoryModal docked />
       </aside>
     {/if}
     {#if dockedPane === "actions"}
-      <aside class="actions-pane" aria-label={$t("actionDrawer.modal.ariaLabel")}>
+      <aside
+        class="actions-pane"
+        aria-label={$t("actionDrawer.modal.ariaLabel")}
+        style:width="{computePaneWidth($actionsPaneShare, windowInnerWidth)}px"
+      >
+        <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
+        <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+        <div
+          class="pane-resizer"
+          class:dragging={isDraggingPane === "actions"}
+          role="separator"
+          aria-orientation="vertical"
+          aria-label={$t("pane.resize")}
+          tabindex="0"
+          onpointerdown={(e) => handlePointerDown("actions", e)}
+          onpointermove={(e) => handlePointerMove("actions", e)}
+          onpointerup={(e) => handlePointerUp("actions", e)}
+          onpointercancel={(e) => handlePointerUp("actions", e)}
+          onkeydown={(e) => handleResizerKeyDown("actions", e)}
+          ondblclick={() => handleResizerDblClick("actions")}
+        ></div>
         <ActionDrawerModal docked />
       </aside>
     {/if}

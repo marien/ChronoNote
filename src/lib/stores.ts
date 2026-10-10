@@ -104,6 +104,10 @@ export const startupTabMode = writable<StartupTabMode>("today");
 export const statusBarVisible = writable<boolean>(true);
 /** How dated tabs are labelled in the tab strip. Mirrors AppConfig.tabLabelStyle. */
 export const tabLabelStyle = writable<TabLabelStyle>("iso");
+/** History pane width share of the window (0.18 - 0.60). Mirrors AppConfig.historyPaneShare. */
+export const historyPaneShare = writable<number>(0.30);
+/** Actions pane width share of the window (0.18 - 0.60). Mirrors AppConfig.actionsPaneShare. */
+export const actionsPaneShare = writable<number>(0.30);
 /** §v0.12.2: distraction-free Zen mode canvas. */
 export const isZenMode = writable<boolean>(false);
 
