@@ -209,6 +209,9 @@ impl PeekConfig {
     }
 }
 
+/// Bump when a migration is added; migrations run in `load_config_at`.
+pub const CONFIG_SCHEMA_VERSION: u32 = 1;
+
 /// Persisted app configuration. Lives outside the notes folder, in the
 /// OS-appropriate app config directory (e.g. %APPDATA%\com.chrononote.app on
 /// Windows, ~/.config/com.chrononote.app on Linux, ~/Library/Application
@@ -216,6 +219,8 @@ impl PeekConfig {
 #[derive(Serialize, Deserialize, Clone, TS)]
 #[serde(rename_all = "camelCase")]
 pub struct AppConfig {
+    #[serde(default)]
+    pub schema_version: u32,
     pub notes_dir: String,
     #[serde(default)]
     pub color_mode: ColorMode,
@@ -322,6 +327,9 @@ pub struct AppConfig {
     /// Share of the window width occupied by the Actions pane when docked.
     #[serde(default = "default_pane_share")]
     pub actions_pane_share: f32,
+    #[serde(flatten)]
+    #[ts(skip)]
+    pub extra: serde_json::Map<String, serde_json::Value>,
 }
 
 /// A partial update of `AppConfig` for the `update_config` command: only the
@@ -659,6 +667,12 @@ fn load_config_at(path: &Path, default_notes_dir: &Path) -> Result<AppConfig, St
         let raw = fs::read_to_string(path).map_err(|e| e.to_string())?;
         match serde_json::from_str::<AppConfig>(&raw) {
             Ok(mut cfg) => {
+                if cfg.schema_version < 1 {
+                    // nothing to migrate yet
+                }
+                if cfg.schema_version < CONFIG_SCHEMA_VERSION {
+                    cfg.schema_version = CONFIG_SCHEMA_VERSION;
+                }
                 cfg.peek = cfg.peek.migrated();
                 return Ok(cfg);
             }
@@ -669,6 +683,7 @@ fn load_config_at(path: &Path, default_notes_dir: &Path) -> Result<AppConfig, St
         }
     }
     let cfg = AppConfig {
+        schema_version: CONFIG_SCHEMA_VERSION,
         notes_dir: default_notes_dir.to_string_lossy().to_string(),
         color_mode: ColorMode::default(),
         theme_mode: ThemeMode::default(),
@@ -690,6 +705,7 @@ fn load_config_at(path: &Path, default_notes_dir: &Path) -> Result<AppConfig, St
         tab_label_style: TabLabelStyle::default(),
         history_pane_share: default_pane_share(),
         actions_pane_share: default_pane_share(),
+        extra: Default::default(),
     };
     save_config_at(path, &cfg)?;
     Ok(cfg)
@@ -1057,6 +1073,8 @@ const SESSION_FILENAME: &str = ".chrononote-session.json";
 #[serde(rename_all = "camelCase")]
 pub struct TabSession {
     #[serde(default)]
+    pub schema_version: u32,
+    #[serde(default)]
     pub open_tabs: Vec<String>,
     #[serde(default)]
     pub active_tab: Option<String>,
@@ -1067,6 +1085,9 @@ pub struct TabSession {
     #[serde(default)]
     #[ts(optional = nullable)]
     pub last_opened_date: Option<String>,
+    #[serde(flatten)]
+    #[ts(skip)]
+    pub extra: serde_json::Map<String, serde_json::Value>,
 }
 
 fn read_tab_session_at(root: &Path) -> Result<Option<TabSession>, String> {
@@ -1088,8 +1109,21 @@ fn read_tab_session_at(root: &Path) -> Result<Option<TabSession>, String> {
 
 fn write_tab_session_at(root: &Path, session: &TabSession) -> Result<(), String> {
     fs::create_dir_all(root).map_err(|e| e.to_string())?;
-    let raw = serde_json::to_string_pretty(session).map_err(|e| e.to_string())?;
-    atomic_write(&root.join(SESSION_FILENAME), raw.as_bytes()).map_err(|e| e.to_string())
+    let mut session = session.clone();
+    let path = root.join(SESSION_FILENAME);
+    if path.exists() {
+        if let Ok(raw) = fs::read_to_string(&path) {
+            if let Ok(existing) = serde_json::from_str::<TabSession>(&raw) {
+                for (k, v) in existing.extra {
+                    session.extra.entry(k).or_insert(v);
+                }
+                session.schema_version = session.schema_version.max(existing.schema_version);
+            }
+        }
+    }
+    session.schema_version = session.schema_version.max(CONFIG_SCHEMA_VERSION);
+    let raw = serde_json::to_string_pretty(&session).map_err(|e| e.to_string())?;
+    atomic_write(&path, raw.as_bytes()).map_err(|e| e.to_string())
 }
 
 fn read_scratchpad_drafts_at(
@@ -1422,6 +1456,7 @@ mod tests {
         let dir = tempdir().unwrap();
         let path = dir.path().join("config.json");
         let cfg = AppConfig {
+            schema_version: CONFIG_SCHEMA_VERSION,
             notes_dir: "/my/notes".to_string(),
             color_mode: ColorMode::Color,
             theme_mode: ThemeMode::Dark,
@@ -1443,6 +1478,7 @@ mod tests {
             tab_label_style: TabLabelStyle::default(),
             history_pane_share: 0.35,
             actions_pane_share: 0.45,
+            extra: Default::default(),
         };
         save_config_at(&path, &cfg).unwrap();
         let loaded = load_config_at(&path, &dir.path().join("Notes")).unwrap();
@@ -1490,6 +1526,7 @@ mod tests {
             let dir = tempdir().unwrap();
             let path = dir.path().join("config.json");
             let cfg = AppConfig {
+                schema_version: CONFIG_SCHEMA_VERSION,
                 notes_dir: "/n".to_string(),
                 color_mode: ColorMode::default(),
                 theme_mode: mode,
@@ -1511,6 +1548,7 @@ mod tests {
                 tab_label_style: TabLabelStyle::default(),
                 history_pane_share: default_pane_share(),
                 actions_pane_share: default_pane_share(),
+                extra: Default::default(),
             };
             save_config_at(&path, &cfg).unwrap();
             let on_disk = fs::read_to_string(&path).unwrap();
@@ -2309,9 +2347,11 @@ mod tests {
     fn write_then_read_tab_session_round_trips() {
         let dir = tempdir().unwrap();
         let session = TabSession {
+            schema_version: CONFIG_SCHEMA_VERSION,
             open_tabs: vec!["2026-09-01.txt".to_string(), "2026-09-02.txt".to_string()],
             active_tab: Some("2026-09-02.txt".to_string()),
             last_opened_date: Some("2026-09-02".to_string()),
+            extra: Default::default(),
         };
         write_tab_session_at(dir.path(), &session).unwrap();
         let loaded = read_tab_session_at(dir.path()).unwrap().unwrap();
@@ -2468,5 +2508,71 @@ mod tests {
     fn empty_config_patch_changes_nothing() {
         let (before, after) = patched("{}");
         assert_eq!(before, after);
+    }
+
+    #[test]
+    fn config_json_with_unknown_key_preserves_it_on_save() {
+        let dir = tempdir().unwrap();
+        let path = dir.path().join("config.json");
+        fs::write(
+            &path,
+            r#"{"notesDir":"/n","futureSetting":{"a":1}}"#,
+        )
+        .unwrap();
+        let cfg = load_config_at(&path, &dir.path().join("Notes")).unwrap();
+        assert_eq!(cfg.schema_version, CONFIG_SCHEMA_VERSION);
+        save_config_at(&path, &cfg).unwrap();
+        let on_disk = fs::read_to_string(&path).unwrap();
+        let parsed: serde_json::Value = serde_json::from_str(&on_disk).unwrap();
+        assert_eq!(parsed["futureSetting"]["a"], 1);
+    }
+
+    #[test]
+    fn config_with_higher_schema_version_is_preserved() {
+        let dir = tempdir().unwrap();
+        let path = dir.path().join("config.json");
+        fs::write(
+            &path,
+            r#"{"notesDir":"/n","schemaVersion":99}"#,
+        )
+        .unwrap();
+        let cfg = load_config_at(&path, &dir.path().join("Notes")).unwrap();
+        assert_eq!(cfg.schema_version, 99);
+        save_config_at(&path, &cfg).unwrap();
+        let on_disk = fs::read_to_string(&path).unwrap();
+        let parsed: serde_json::Value = serde_json::from_str(&on_disk).unwrap();
+        assert_eq!(parsed["schemaVersion"], 99);
+    }
+
+    #[test]
+    fn config_without_schema_version_loads_with_current_constant() {
+        let dir = tempdir().unwrap();
+        let path = dir.path().join("config.json");
+        fs::write(&path, r#"{"notesDir":"/n"}"#).unwrap();
+        let cfg = load_config_at(&path, &dir.path().join("Notes")).unwrap();
+        assert_eq!(cfg.schema_version, CONFIG_SCHEMA_VERSION);
+    }
+
+    #[test]
+    fn session_file_with_unknown_key_preserves_it_on_write() {
+        let dir = tempdir().unwrap();
+        fs::write(
+            dir.path().join(SESSION_FILENAME),
+            r#"{"openTabs":["2026-09-01.txt"],"schemaVersion":99,"futureField":"preserved"}"#,
+        )
+        .unwrap();
+        let new_session = TabSession {
+            schema_version: 0,
+            open_tabs: vec!["2026-09-02.txt".to_string()],
+            active_tab: Some("2026-09-02.txt".to_string()),
+            last_opened_date: Some("2026-09-02".to_string()),
+            extra: Default::default(),
+        };
+        write_tab_session_at(dir.path(), &new_session).unwrap();
+        let raw = fs::read_to_string(dir.path().join(SESSION_FILENAME)).unwrap();
+        let parsed: serde_json::Value = serde_json::from_str(&raw).unwrap();
+        assert_eq!(parsed["futureField"], "preserved");
+        assert_eq!(parsed["schemaVersion"], 99);
+        assert_eq!(parsed["openTabs"][0], "2026-09-02.txt");
     }
 }

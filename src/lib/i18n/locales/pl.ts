@@ -837,6 +837,7 @@ export const pl = {
   "toast.oneDriveSync.signInExpired": () => "Twoje logowanie do usługi OneDrive wygasło. Kliknij, aby zalogować się ponownie.",
   "toast.persistence.failedToSaveNote": () => "Nie udało się zapisać notatki",
   "toast.persistence.keptChangedNote": ({ filename }) => `Plik ${filename} zmienił się na dysku, więc został zachowany zamiast usunięty`,
+  "toast.boot.configFromNewerVersion": () => "Ustawienia zapisała nowsza wersja ChronoNote. Niektóre mogą nie działać.",
   "toast.dragDrop.unsupportedFile": () => "Nieobsługiwany plik. Upuść eksport .json lub notatkę YYYY-MM-DD.txt.",
   "onboarding.scratchpadName": () => "Witamy",
   "toast.onboarding.mobileHint": () =>

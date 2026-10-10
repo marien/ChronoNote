@@ -68,6 +68,7 @@ import { applyPeekConfig } from "./peek";
 import { wireMica } from "./mica";
 import { occurrenceHint } from "./occurrences";
 import { locale, t } from "./i18n";
+import { isFromNewerApp } from "./configSchema";
 import { describeApiError } from "./apiError";
 import { getOnboardingTemplate } from "./onboardingTemplate";
 import {
@@ -516,6 +517,9 @@ export async function initApp() {
   wireDateRollover();
   initCalendarSyncDiffTracking();
   const cfg = await api.getConfig();
+  if (isFromNewerApp(cfg.schemaVersion)) {
+    showToast(get(t)("toast.boot.configFromNewerVersion", undefined));
+  }
   // §D1: on first launch on a phone in the web app, apply wrap and 16px font size defaults
   const mobileDefaultsApplied = readMobileDefaultsApplied();
   if (shouldApplyMobileDefaults(cfg, get(isMobile), get(backendKind), mobileDefaultsApplied)) {

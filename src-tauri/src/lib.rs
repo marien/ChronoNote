@@ -152,7 +152,13 @@ async fn write_tab_session(
     tauri::async_runtime::spawn_blocking(move || {
         storage::write_tab_session(
             &app,
-            &storage::TabSession { open_tabs, active_tab, last_opened_date },
+            &storage::TabSession {
+                schema_version: storage::CONFIG_SCHEMA_VERSION,
+                open_tabs,
+                active_tab,
+                last_opened_date,
+                extra: Default::default(),
+            },
         )
     })
     .await

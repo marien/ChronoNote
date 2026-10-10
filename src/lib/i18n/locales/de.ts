@@ -812,6 +812,7 @@ export const de = {
   "toast.oneDriveSync.signInExpired": () => "Deine OneDrive-Anmeldung ist abgelaufen. Klicke, um dich erneut anzumelden.",
   "toast.persistence.failedToSaveNote": () => "Notiz konnte nicht gespeichert werden",
   "toast.persistence.keptChangedNote": ({ filename }) => `${filename} wurde auf der Festplatte geändert und deshalb behalten statt gelöscht`,
+  "toast.boot.configFromNewerVersion": () => "Einstellungen stammen von einem neueren ChronoNote. Manche wirken eventuell nicht.",
   "toast.dragDrop.unsupportedFile": () => "Nicht unterstützte Datei. Ziehen Sie einen .json-Export oder eine YYYY-MM-DD.txt-Notiz hierher.",
   "onboarding.scratchpadName": () => "Willkommen",
   "toast.onboarding.mobileHint": () =>

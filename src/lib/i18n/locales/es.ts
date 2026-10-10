@@ -819,6 +819,7 @@ export const es = {
   "toast.oneDriveSync.signInExpired": () => "Su sesión de OneDrive ha caducado. Haga clic para iniciar sesión de nuevo.",
   "toast.persistence.failedToSaveNote": () => "Error al guardar la nota",
   "toast.persistence.keptChangedNote": ({ filename }) => `${filename} cambió en el disco, así que se conservó en lugar de eliminarse`,
+  "toast.boot.configFromNewerVersion": () => "Los ajustes los guardó un ChronoNote más reciente. Algunos pueden no aplicarse.",
   "toast.dragDrop.unsupportedFile": () => "Archivo no compatible. Suelta una exportación .json o una nota YYYY-MM-DD.txt.",
   "onboarding.scratchpadName": () => "Bienvenida",
   "toast.onboarding.mobileHint": () =>

@@ -38,13 +38,26 @@ import type { CommandArgs, CommandReturn, OneDriveAdvancedConfig, TauriCommand, 
 import { isValidNoteFilename } from "../noteFilename";
 import { normalizeNoteText } from "../noteText";
 
+export type SeedTabSession = Omit<TabSession, "schemaVersion"> & { schemaVersion?: number };
+
+function toTabSession(s: SeedTabSession | null | undefined): TabSession | null {
+  if (!s) return null;
+  return {
+    schemaVersion: s.schemaVersion ?? 1,
+    openTabs: s.openTabs,
+    activeTab: s.activeTab,
+    lastOpenedDate: s.lastOpenedDate,
+  };
+}
+
 export interface MockSeed {
   /** Path used as the active notes directory. Default `/notes`. */
   notesDir?: string;
+  schemaVersion?: number;
   /** `filename -> contents` for the active notes directory. */
   notes?: Record<string, string>;
   /** Saved tab session for the active directory, or `null` for none. */
-  session?: TabSession | null;
+  session?: SeedTabSession | null;
   colorMode?: ColorMode;
   themeMode?: ThemeMode;
   languageMode?: LanguageMode;
@@ -81,7 +94,7 @@ export interface MockSeed {
   /** Extra directories the user can switch into, `path -> (filename ->
    * contents)`. Their session, if any, is under `sessions`. */
   otherDirs?: Record<string, Record<string, string>>;
-  sessions?: Record<string, TabSession>;
+  sessions?: Record<string, SeedTabSession>;
   /** Reported by `plugin:app|version` / the About drawer. Default `0.3.0`. */
   appVersion?: string;
   /** Invoke commands that should reject with an error, for testing
@@ -258,6 +271,7 @@ type CommandHandlers = {
 export class MockBackend {
   dirs = new Map<string, MockDir>();
   notesDir: string;
+  schemaVersion: number;
   colorMode: ColorMode;
   themeMode: ThemeMode;
   languageMode: LanguageMode;
@@ -343,6 +357,7 @@ export class MockBackend {
 
   constructor(seed: MockSeed = {}) {
     this.notesDir = seed.notesDir ?? "/notes";
+    this.schemaVersion = seed.schemaVersion ?? 1;
     this.colorMode = seed.colorMode ?? "color"; // mirrors storage.rs's ColorMode::default()
     this.themeMode = seed.themeMode ?? "system";
     this.languageMode = seed.languageMode ?? "system";
@@ -377,13 +392,13 @@ export class MockBackend {
 
     this.dirs.set(this.notesDir, {
       notes: new Map(Object.entries(seed.notes ?? {})),
-      session: seed.session ?? null,
+      session: toTabSession(seed.session),
       conflictCopies: new Map(),
     });
     for (const [path, notes] of Object.entries(seed.otherDirs ?? {})) {
       this.dirs.set(path, {
         notes: new Map(Object.entries(notes)),
-        session: seed.sessions?.[path] ?? null,
+        session: toTabSession(seed.sessions?.[path]),
         conflictCopies: new Map(),
       });
     }
@@ -401,6 +416,7 @@ export class MockBackend {
 
   private serialize(): string {
     return JSON.stringify({
+      schemaVersion: this.schemaVersion,
       notesDir: this.notesDir,
       colorMode: this.colorMode,
       themeMode: this.themeMode,
@@ -447,6 +463,7 @@ export class MockBackend {
     if (!raw) return null;
     try {
       const s = JSON.parse(raw) as {
+        schemaVersion?: number;
         notesDir: string;
         colorMode: ColorMode;
         themeMode?: ThemeMode;
@@ -473,6 +490,7 @@ export class MockBackend {
         dirs: [string, [string, string][], TabSession | null, [string, string][]?][];
       };
       const b = new MockBackend();
+      b.schemaVersion = s.schemaVersion ?? 1;
       b.notesDir = s.notesDir;
       b.colorMode = s.colorMode;
       b.themeMode = s.themeMode ?? "system";
@@ -519,6 +537,7 @@ export class MockBackend {
 
   private config(): AppConfig {
     return {
+      schemaVersion: this.schemaVersion,
       notesDir: this.notesDir,
       colorMode: this.colorMode,
       themeMode: this.themeMode,
@@ -706,6 +725,7 @@ export class MockBackend {
 
     write_tab_session: ({ openTabs, activeTab, lastOpenedDate }) => {
       this.dir().session = {
+        schemaVersion: 1,
         openTabs: openTabs ?? [],
         activeTab: activeTab ?? null,
         lastOpenedDate: lastOpenedDate ?? null,
