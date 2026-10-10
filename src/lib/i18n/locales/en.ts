@@ -471,6 +471,7 @@ export const en = {
   "about.web.hint": () =>
     "This is the browser version — it always runs whatever's currently deployed. Refresh the page to get the latest.",
   "about.releaseNotes": () => "Release notes",
+  "editor.ariaLabel": () => "Note editor",
   "about.checkingHint": () => "Looking for a newer version…",
   "about.isAvailable": () => "is available.",
   "about.whatsChanged": () => "What's changed",

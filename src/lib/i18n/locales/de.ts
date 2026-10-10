@@ -480,6 +480,7 @@ export const de = {
   "about.web.hint": () =>
     "Dies ist die Browser-Version — sie läuft immer mit der aktuell bereitgestellten Version. Lade die Seite neu, um die neueste Version zu erhalten.",
   "about.releaseNotes": () => "Versionshinweise",
+  "editor.ariaLabel": () => "Notizeditor",
   "about.checkingHint": () => "Suche nach einer neueren Version…",
   "about.isAvailable": () => "ist verfügbar.",
   "about.whatsChanged": () => "Was hat sich geändert",

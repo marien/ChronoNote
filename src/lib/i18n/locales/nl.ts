@@ -475,6 +475,7 @@ export const nl = {
   "about.web.hint": () =>
     "Dit is de browserversie — deze draait altijd de momenteel geïmplementeerde versie. Ververs de pagina om de nieuwste te krijgen.",
   "about.releaseNotes": () => "Releasenotities",
+  "editor.ariaLabel": () => "Notitie-editor",
   "about.checkingHint": () => "Op zoek naar een nieuwere versie…",
   "about.isAvailable": () => "is beschikbaar.",
   "about.whatsChanged": () => "Wat is er gewijzigd",

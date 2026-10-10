@@ -458,6 +458,7 @@ export type TranslationParams = {
   "about.chip.notCheckedYet": undefined;
   "about.web.hint": undefined;
   "about.releaseNotes": undefined;
+  "editor.ariaLabel": undefined;
   "about.checkingHint": undefined;
   "about.isAvailable": undefined;
   "about.whatsChanged": undefined;

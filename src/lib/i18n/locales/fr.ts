@@ -484,6 +484,7 @@ export const fr = {
   "about.web.hint": () =>
     "Version navigateur — exécute toujours la dernière version déployée. Actualisez la page pour obtenir les nouveautés.",
   "about.releaseNotes": () => "Notes de version",
+  "editor.ariaLabel": () => "Éditeur de note",
   "about.checkingHint": () => "Recherche d'une version plus récente…",
   "about.isAvailable": () => "est disponible.",
   "about.whatsChanged": () => "Ce qui a changé",

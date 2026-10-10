@@ -647,7 +647,7 @@
       // written for.
       drawSelection(),
       indentUnit.of("  "),
-      EditorView.contentAttributes.of({ "aria-label": "Note editor" }),
+      EditorView.contentAttributes.of({ "aria-label": get(t)("editor.ariaLabel", undefined) }),
       wrapCompartment.of(wrapExtension(get(wordWrap))),
       measureCompartment.of(measureExtension(measureActive(get(wordWrap), get(readableLineLength)))),
       liveGlyphs,

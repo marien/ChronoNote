@@ -481,6 +481,7 @@ export const es = {
   "about.web.hint": () =>
     "Esta es la versión web — siempre ejecuta la última versión desplegada. Recargue la página para obtener la más reciente.",
   "about.releaseNotes": () => "Notas de la versión",
+  "editor.ariaLabel": () => "Editor de nota",
   "about.checkingHint": () => "Buscando una versión más reciente…",
   "about.isAvailable": () => "está disponible.",
   "about.whatsChanged": () => "Qué hay de nuevo",

@@ -485,6 +485,7 @@ export const pl = {
   "about.web.hint": () =>
     "To jest wersja przeglądarkowa — zawsze uruchamia aktualnie wdrożoną wersję. Odśwież stronę, aby pobrać nowości.",
   "about.releaseNotes": () => "Informacje o wydaniu",
+  "editor.ariaLabel": () => "Edytor notatki",
   "about.checkingHint": () => "Szukanie nowszej wersji…",
   "about.isAvailable": () => "jest dostępna.",
   "about.whatsChanged": () => "Co się zmieniło",
