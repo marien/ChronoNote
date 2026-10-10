@@ -10294,3 +10294,6 @@ Gemini 3.8 Flash high (Z5). Found during review:
 - The About row "Project" is now "Source code" (Broncode, Quellcode, Code source, Kod źródłowy, Código fuente, Codice sorgente).
 - The "Ctrl+/ All keys" hint is gone from the Actions and History footers (drawer and pane), which leaves more room for their own hints; Ctrl+/ itself still works there.
 - The hints had become the footer's only child, so the `.modal-footer > div:last-child` rule (no shrink, no wrap) applied to them and made them overflow. They are now excluded from it and still truncate.
+
+**Native check (Marien, 2026-10-10), all fine in the real window:** Snap Layouts, Mica behind the bars, the dimmed title bar when inactive, the outlined active tab, dragging the pane edges, the Settings page and About tab, glyph alignment in the editor and status bar, Ctrl+scroll (WebView2 does not zoom the page), the line menu, Alt key tips, the wider drag area. Not yet tried on a real phone: the app bar, navigation bar, sheets and long-press.
+
