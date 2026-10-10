@@ -6,7 +6,7 @@
 #
 # Usage:
 #   scripts/release.sh <X.Y.Z> <notes-file> [--skip-gates] [--dry-run]
-#                      [--checklist-done] [--force-red]
+#                      [--checklist-done] [--force-red] [--beta]
 #
 #   <notes-file>   Markdown release notes (the GitHub release body).
 #   --skip-gates   Skip check/vitest/cargo test/playwright (only if they were
@@ -17,6 +17,15 @@
 #                  flag is missing, and the script stops).
 #   --force-red    Release although GitHub's last Test run on main failed.
 #                  Say why in the release notes.
+#   --beta         An early-updates build (F1): version X.Y.Z-N (N numeric;
+#                  the MSI bundler needs that), published as a GitHub
+#                  pre-release, announced only on the early channel
+#                  (latest-beta.json on the rolling `early` pre-release). No
+#                  web app/demo rebuild, no website-live promotion.
+#
+# Every release (stable or beta) also updates the early channel's manifest
+# when it is newer than what that manifest serves, so early users always get
+# the newest build of either kind.
 #
 # Env: RELEASE_CO_AUTHOR="Name <email>" adds a Co-Authored-By trailer to the
 #      bump and bundles commits (omitted when unset).
@@ -27,17 +36,22 @@
 set -euo pipefail
 
 VERSION="${1:-}"; NOTES="${2:-}"
-SKIP_GATES=0; DRY=0; CHECKLIST=0; FORCE_RED=0
+SKIP_GATES=0; DRY=0; CHECKLIST=0; FORCE_RED=0; BETA=0
 for a in "${@:3}"; do
   case "$a" in
     --skip-gates) SKIP_GATES=1 ;;
     --dry-run) DRY=1 ;;
     --checklist-done) CHECKLIST=1 ;;
     --force-red) FORCE_RED=1 ;;
+    --beta) BETA=1 ;;
     *) echo "unknown option: $a" >&2; exit 2 ;;
   esac
 done
-[[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "usage: $0 <X.Y.Z> <notes-file> [--skip-gates] [--dry-run]" >&2; exit 2; }
+if [[ $BETA == 1 ]]; then
+  [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+-[0-9]+$ ]] || { echo "a --beta version is X.Y.Z-N (numeric N)" >&2; exit 2; }
+else
+  [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "usage: $0 <X.Y.Z> <notes-file> [--skip-gates] [--dry-run]" >&2; exit 2; }
+fi
 [[ -f "$NOTES" ]] || { echo "notes file not found: $NOTES" >&2; exit 2; }
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"; cd "$ROOT"
@@ -96,7 +110,7 @@ fi
 
 # A minor release carries bigger UI changes: run the environment checklist
 # (the v0.30 lessons) before cutting it.
-if [[ "$VERSION" =~ \.0$ && $CHECKLIST == 0 && $BUMPED == 0 ]]; then
+if [[ "$VERSION" =~ \.0$ && $CHECKLIST == 0 && $BUMPED == 0 && $BETA == 0 ]]; then
   cat >&2 <<'LIST'
 Minor release: check these first, then re-run with --checklist-done.
   - Windows "Animation effects" off (prefers-reduced-motion): switch tabs, open drawers
@@ -191,6 +205,9 @@ ok "$(node -p "require('$(cygpath -m "$ASSETS/latest.json")').version")"
 
 # ------------------------------------------------------------------- bundles
 step "demo + web app bundles"
+if [[ $BETA == 1 ]]; then
+  ok "skipped for a beta (the web app follows stable releases)"
+else
 run build-demo   npm run build:demo
 run build-webapp npm run build:webapp
 if [[ -n "$(git status --porcelain website/demo-app website/webapp)" ]]; then
@@ -200,6 +217,7 @@ if [[ -n "$(git status --porcelain website/demo-app website/webapp)" ]]; then
 else
   ok "bundles already fresh"
 fi
+fi
 [[ -z "$(git status --porcelain)" ]] || { echo "unexpected uncommitted changes after build:" >&2; git status --short; exit 1; }
 
 # ------------------------------------------------------------------- publish
@@ -207,24 +225,57 @@ step "publish"
 git push -q origin main --follow-tags
 ok "pushed main + $TAG"
 cp "$EXE" "$MSI" "$ASSETS/"
-gh release create "$TAG" "$ASSETS/$(basename "$MSI")" "$ASSETS/$(basename "$EXE")" "$ASSETS/latest.json" \
-  --title "$TAG" --notes-file "$NOTES_ABS" >/dev/null
-ok "GitHub release $TAG created"
-git checkout -q website-live
-git merge -q --ff-only main
-git push -q origin website-live
-git checkout -q main
-ok "website-live fast-forwarded"
+if [[ $BETA == 1 ]]; then
+  gh release create "$TAG" "$ASSETS/$(basename "$MSI")" "$ASSETS/$(basename "$EXE")" \
+    --title "$TAG (early update)" --notes-file "$NOTES_ABS" --prerelease >/dev/null
+  ok "GitHub pre-release $TAG created"
+else
+  gh release create "$TAG" "$ASSETS/$(basename "$MSI")" "$ASSETS/$(basename "$EXE")" "$ASSETS/latest.json" \
+    --title "$TAG" --notes-file "$NOTES_ABS" >/dev/null
+  ok "GitHub release $TAG created"
+  git checkout -q website-live
+  git merge -q --ff-only main
+  git push -q origin website-live
+  git checkout -q main
+  ok "website-live fast-forwarded"
+fi
+
+# The early channel: latest-beta.json on the rolling `early` pre-release. Only moved forward, never back to an older
+# version (a stable hotfix must not pull early users off a newer beta). Semver: 0.31.0-2 < 0.31.0.
+EARLY_URL="https://github.com/marien/ChronoNote/releases/download/early/latest-beta.json"
+EARLY_NOW="$(curl -fsSL "$EARLY_URL" 2>/dev/null | node -p "JSON.parse(require('fs').readFileSync(0,'utf8')).version" 2>/dev/null || echo none)"
+NEWER="$(node -e '
+  const [a,b]=process.argv.slice(1);
+  if (b==="none") { console.log("yes"); process.exit(0); }
+  const p=v=>{const [core,pre]=v.split("-");return [...core.split(".").map(Number), pre===undefined?Infinity:Number(pre)];};
+  const x=p(a), y=p(b);
+  for (let i=0;i<4;i++){ if (x[i]!==y[i]) { console.log(x[i]>y[i]?"yes":"no"); process.exit(0);} }
+  console.log("no");
+' "$VERSION" "$EARLY_NOW")"
+if [[ "$NEWER" == "yes" ]]; then
+  cp "$ASSETS/latest.json" "$ASSETS/latest-beta.json"
+  gh release view early >/dev/null 2>&1 || gh release create early --prerelease --target main \
+    --title "Early updates channel" \
+    --notes "Holds latest-beta.json for ChronoNote's Get early updates setting. Not a release to download." >/dev/null
+  gh release upload early "$ASSETS/latest-beta.json" --clobber >/dev/null
+  ok "early channel now serves $VERSION (was $EARLY_NOW)"
+else
+  ok "early channel keeps $EARLY_NOW (newer than $VERSION)"
+fi
 
 # -------------------------------------------------------------------- verify
 step "verify"
 NAMES="$(gh release view "$TAG" --json assets -q '.assets[].name' | sort | tr '\n' ' ')"
 echo "   assets: $NAMES"
-for n in "ChronoNote_${VERSION}_x64-setup.exe" "ChronoNote_${VERSION}_x64_en-US.msi" latest.json; do
+EXPECT="ChronoNote_${VERSION}_x64-setup.exe ChronoNote_${VERSION}_x64_en-US.msi"
+[[ $BETA == 0 ]] && EXPECT="$EXPECT latest.json"
+for n in $EXPECT; do
   [[ "$NAMES" == *"$n "* ]] || { echo "   MISSING asset: $n" >&2; exit 1; }
 done
+if [[ $BETA == 0 ]]; then
 LIVE="$(curl -fsSL "https://github.com/marien/ChronoNote/releases/latest/download/latest.json" | node -p "JSON.parse(require('fs').readFileSync(0,'utf8')).version")"
 [[ "$LIVE" == "$VERSION" ]] && ok "releases/latest serves $LIVE" || echo "   WARNING: releases/latest serves $LIVE (expected $VERSION)"
+fi
 # The release commit gets its own Test run: wait for it, so a red build is
 # seen now and not at the next release.
 step "GitHub Test on the release commit"
