@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Troubleshooting — ChronoNote</title>
+  <meta name="description" content="Solutions for common setup questions, file conflicts, and shortcut issues in ChronoNote." />
+  <link rel="icon" href="assets/favicon.ico?v=0.12.5" sizes="any" />
+  <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png?v=0.12.5" />
+  <link rel="apple-touch-icon" href="assets/apple-touch-icon.png?v=0.12.5" />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://chrononote.mariendegelder.nl/troubleshooting.html" />
+  <meta property="og:title" content="Troubleshooting — ChronoNote" />
+  <meta property="og:description" content="Solutions for common setup questions, file conflicts, and shortcut issues in ChronoNote." />
+  <meta property="og:image" content="https://chrononote.mariendegelder.nl/assets/og-image.png" />
+  <meta name="twitter:card" content="summary" />
+  <meta name="twitter:title" content="Troubleshooting — ChronoNote" />
+  <meta name="twitter:description" content="Solutions for common setup questions, file conflicts, and shortcut issues in ChronoNote." />
+  <meta name="twitter:image" content="https://chrononote.mariendegelder.nl/assets/og-image.png" />
+  <link rel="stylesheet" href="style.css" />
+  <script src="shortcuts.js" defer></script>
+</head>
+<body>
+
+  <header class="site-nav">
+    <div class="wrap">
+      <a class="brand" href="index.html">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="4.5" y="5" width="15" height="14.5" rx="2"/><path d="M4.5 9h15"/><path d="M8.2 3v3M15.8 3v3"/><path d="M7.7 14l2.8 2.8L16.4 11"/></svg>
+        ChronoNote
+      </a>
+      <nav>
+        <a href="index.html">Home</a>
+        <a href="guide.html">Guide</a>
+        <a href="files.html">Your files</a>
+        <a class="current" href="troubleshooting.html">Troubleshooting</a>
+        <a href="index.html#demo">Demo</a>
+        <a class="cta" href="https://github.com/marien/ChronoNote" target="_blank" rel="noopener">GitHub ↗</a>
+      </nav>
+    </div>
+  </header>
+
+  <section style="padding-top: 48px; padding-bottom: 24px;">
+    <div class="wrap prose">
+      <h2 style="font-size: 32px; margin-bottom: 8px;">Troubleshooting</h2>
+      <p>
+        Here are solutions for common setup issues, conflicts, and shortcut problems in ChronoNote.
+      </p>
+    </div>
+  </section>
+
+  <section class="alt">
+    <div class="wrap prose">
+      <h2>The installer or an update is blocked</h2>
+      <p>
+        The desktop app runs on Windows 10 and 11.
+        The installer is not signed with a paid code-signing certificate.
+      </p>
+      <p>
+        When Windows SmartScreen shows "Windows protected your PC", click <strong>More info</strong>, then click <strong>Run anyway</strong>.
+      </p>
+      <p>
+        Smart App Control on Windows 11 blocks unsigned applications completely.
+        ChronoNote cannot run while Smart App Control is turned on.
+        Use the web app at <code>app.chrononote.mariendegelder.nl</code> instead.
+      </p>
+
+      <h2>"A note changed on disk" and the conflicts folder</h2>
+      <p>
+        This message appears when a note file was edited outside ChronoNote while the app had unsaved edits for the same note.
+      </p>
+      <p>
+        ChronoNote saves a copy in <code>.chrononote-conflicts\</code> inside your notes folder so you never lose typing.
+        Open that folder to see the previous text and copy over any lines you need.
+      </p>
+
+      <h2>"Settings were set aside" (.corrupt-* files)</h2>
+      <p>
+        If ChronoNote cannot read a damaged settings or session file, it renames the file to <code>&lt;name&gt;.corrupt-&lt;number&gt;</code> and starts with default settings.
+      </p>
+      <p>
+        The app keeps the old file for you in the same folder.
+        Open the corrupt file in a text editor to recover your old settings or tab history.
+      </p>
+
+      <h2>A global shortcut does nothing</h2>
+      <p>
+        The global shortcut <code>Ctrl+Alt+J</code> opens Peek for your current meeting or call from any application.
+      </p>
+      <p>
+        If pressing <code>Ctrl+Alt+J</code> does nothing, another running program holds that shortcut.
+        Change the shortcut in Settings → Appearance → Peek.
+      </p>
+
+      <h2>The web app lost its notes</h2>
+      <p>
+        The web app stores notes in your browser's IndexedDB storage on that device.
+        Clearing site data or cookies in your browser deletes those local notes.
+      </p>
+      <p>
+        If you connected OneDrive sync, your notes remain safe in your OneDrive account.
+        Open Settings → Notes &amp; Sync, sign in to Microsoft, and pick your notes folder to restore them.
+      </p>
+
+      <h2>How to report a problem</h2>
+      <p>
+        If you find a bug, open an issue using the GitHub issue form.
+      </p>
+      <p>
+        Include your ChronoNote version from Settings → About, your Windows version, your display scaling, and steps to reproduce the problem.
+      </p>
+    </div>
+  </section>
+
+  <footer>
+    <div class="wrap">
+      <span>ChronoNote — MIT licensed.</span>
+      <span>
+        <a href="index.html">Home</a> ·
+        <a href="guide.html">Guide</a> ·
+        <a href="https://github.com/marien/ChronoNote" target="_blank" rel="noopener">GitHub</a> ·
+        <a href="https://github.com/marien/ChronoNote/releases" target="_blank" rel="noopener">Releases</a> ·
+        <a href="privacy.html">Privacy</a>
+      </span>
+    </div>
+  </footer>
+
+</body>
+</html>

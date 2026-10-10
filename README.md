@@ -16,6 +16,8 @@ for the complete history of *why* each part is built the way it is.
 
 ## Get it
 
+ChronoNote runs on Windows 10 and 11. On other systems, use the web app.
+
 - **Windows:** the installers (`.msi` / `-setup.exe`) are on the
   [Releases page](https://github.com/marien/ChronoNote/releases/latest).
   The app checks GitHub for new versions and can install them for you.
@@ -30,6 +32,9 @@ for the complete history of *why* each part is built the way it is.
 - Node.js 18+ and npm
 - Rust (via [rustup](https://rustup.rs))
 - Windows: the "Desktop development with C++" workload (MSVC Build Tools)
+
+Building on macOS or Linux is untested:
+
 - macOS: Xcode Command Line Tools
 - Linux: see the [Tauri Linux prerequisites](https://tauri.app/start/prerequisites/)
 
