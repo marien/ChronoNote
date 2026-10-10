@@ -869,4 +869,11 @@ export const nl = {
   "phoneNav.previous": () => "Vorige notitie",
   "phoneNav.next": () => "Volgende notitie",
   "pane.resize": () => "Paneelgrootte wijzigen",
+  "settings.trash.label": () => "Onlangs verwijderd",
+  "settings.trash.hint": () => "Notities die de afgelopen 30 dagen zijn verwijderd. Oudere worden definitief gewist.",
+  "settings.trash.empty": () => "Niets recent verwijderd.",
+  "settings.trash.restore": () => "Terugzetten",
+  "settings.trash.deletedOn": (p) => (p?.when ? `Verwijderd ${p.when}` : "Verwijderd"),
+  "toast.trash.restored": (p) => (p?.filename ? `${p.filename} teruggezet` : "Teruggezet"),
+  "toast.trash.noteExists": (p) => (p?.filename ? `${p.filename} bevat al tekst. Terugzetten geannuleerd.` : "Notitie bevat al tekst. Terugzetten geannuleerd."),
 } satisfies Dictionary;

@@ -661,6 +661,9 @@ are written instead to a timestamped copy in a hidden
 silently discarded, and the user is shown a conflict modal to resolve it
 by hand.
 
+### 6.5 Recently Deleted Notes
+Notes deleted with content are moved to a hidden `.chrononote-trash/` subfolder for 30 days and can be restored from Settings.
+
 ---
 
 ## 7. Distribution, Backends & the Update Mechanism

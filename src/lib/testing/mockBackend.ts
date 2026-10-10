@@ -31,7 +31,7 @@
  */
 import { activeAgendaDates, activeEntriesForDate, toLocalMeetings, activeTitlesAfterDate, activeTitlesForDate, removedTitlesForDate as removedTitlesForDateShared } from "../agendaTitles";
 import type { AppConfig, AppError, ColorMode, FileMetadata, LanguageMode, PeekConfig, StartupTabMode, TabSession, ThemeMode } from "../types";
-import type { TabLabelStyle } from "../generated/tauri-types";
+import type { TabLabelStyle, TrashItem } from "../generated/tauri-types";
 import { PEEK_DEFAULTS, clampPeek } from "../peekDefaults";
 import type { ToastOptions } from "../stores";
 import type { CommandArgs, CommandReturn, OneDriveAdvancedConfig, TauriCommand, TauriCommands } from "../tauriCommands";
@@ -135,6 +135,15 @@ export interface MockSeed {
   oneDriveFolder?: { folderId: string; folderPath: string } | null;
   /** Whether the mock window reports being minimized. Defaults to false. */
   isMinimized?: boolean;
+  trash?: MockTrashEntry[];
+}
+
+export interface MockTrashEntry {
+  name: string;
+  originalFilename: string;
+  deletedMs: number;
+  preview: string;
+  content: string;
 }
 
 interface MockDir {
@@ -154,6 +163,8 @@ const MUTATING_COMMANDS = new Set([
   "set_notes_dir",
   "update_config",
   "write_note",
+  "delete_note",
+  "restore_from_trash",
   "write_conflict_copy",
   "write_tab_session",
   "import_notes_bundle",
@@ -306,6 +317,7 @@ export class MockBackend {
   oneDriveSyncError: string | undefined;
   oneDriveFolder: { folderId: string; folderPath: string } | null = { folderId: "folder-2", folderPath: "/Notes" };
   isMinimized: boolean = false;
+  trash: MockTrashEntry[] = [];
 
   /** Every `invoke` call, in order — assert on persistence without
    * scraping the DOM. */
@@ -358,6 +370,7 @@ export class MockBackend {
   delayCommands: Map<string, number>;
 
   constructor(seed: MockSeed = {}) {
+    this.trash = seed.trash ? [...seed.trash] : [];
     this.notesDir = seed.notesDir ?? "/notes";
     this.schemaVersion = seed.schemaVersion ?? 1;
     this.colorMode = seed.colorMode ?? "color"; // mirrors storage.rs's ColorMode::default()
@@ -443,6 +456,7 @@ export class MockBackend {
       recentNotesDirs: this.recentNotesDirs,
       appVersion: this.appVersion,
       agendaJson: this.agendaJson,
+      trash: this.trash,
       dirs: [...this.dirs].map(([path, d]) => [path, [...d.notes], d.session, [...d.conflictCopies]]),
     });
   }
@@ -516,6 +530,7 @@ export class MockBackend {
       b.recentNotesDirs = s.recentNotesDirs;
       b.appVersion = s.appVersion;
       b.agendaJson = s.agendaJson;
+      b.trash = (s as unknown as { trash?: MockTrashEntry[] }).trash ?? [];
       b.dirs = new Map(
         s.dirs.map(([path, notes, session, conflicts]) => [
           path,
@@ -697,8 +712,69 @@ export class MockBackend {
           throw new Error(`conflict: note changed on disk: ${filename}`);
         }
       }
-      this.dir().notes.delete(filename);
+      const raw = this.dir().notes.get(filename);
+      if (raw !== undefined) {
+        const text = normalizeNoteText(raw);
+        if (text.trim().length > 0) {
+          const now = Date.now();
+          const d = new Date(now);
+          const y = d.getUTCFullYear();
+          const m = String(d.getUTCMonth() + 1).padStart(2, "0");
+          const day = String(d.getUTCDate()).padStart(2, "0");
+          const h = String(d.getUTCHours()).padStart(2, "0");
+          const min = String(d.getUTCMinutes()).padStart(2, "0");
+          const s = String(d.getUTCSeconds()).padStart(2, "0");
+          const stamp = `${y}${m}${day}-${h}${min}${s}`;
+          const name = `${stamp}_${filename}`;
+          const firstLine = text.split("\n").map((l) => l.trim()).find((l) => l.length > 0) ?? "";
+          const preview = firstLine.slice(0, 80);
+          this.trash.push({
+            name,
+            originalFilename: filename,
+            deletedMs: now,
+            preview,
+            content: text,
+          });
+        }
+        this.dir().notes.delete(filename);
+      }
     },
+
+    list_trash: () => {
+      const KEEP_MS = 30 * 24 * 60 * 60 * 1000;
+      const now = Date.now();
+      this.trash = this.trash.filter((item) => now - item.deletedMs <= KEEP_MS);
+      return [...this.trash]
+        .sort((a, b) => b.deletedMs - a.deletedMs)
+        .map(({ name, originalFilename, deletedMs, preview }) => ({
+          name,
+          originalFilename,
+          deletedMs,
+          preview,
+        }));
+    },
+
+    restore_from_trash: ({ name }) => {
+      if (name.includes("/") || name.includes("\\")) throw new Error("Invalid trash name");
+      const parts = name.split("_");
+      if (parts.length !== 2) throw new Error("Invalid trash name");
+      const [stamp, orig] = parts;
+      if (!/^\d{8}-\d{6}$/.test(stamp) || !isValidNoteFilename(orig)) {
+        throw new Error("Invalid trash name");
+      }
+      const existing = this.dir().notes.get(orig);
+      if (existing !== undefined && existing.trim().length > 0) {
+        throw new Error("note-exists");
+      }
+      const idx = this.trash.findIndex((item) => item.name === name);
+      if (idx === -1) {
+        throw new Error(`Trash item not found: ${name}`);
+      }
+      const [item] = this.trash.splice(idx, 1);
+      this.dir().notes.set(orig, item.content);
+      return orig;
+    },
+
 
     get_file_metadata: ({ filename }) => {
       if (!isValidNoteFilename(filename)) throw new Error(`Invalid note filename: ${filename}`);

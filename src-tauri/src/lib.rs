@@ -87,6 +87,21 @@ async fn delete_note(
 }
 
 #[tauri::command]
+async fn list_trash(app: AppHandle) -> Result<Vec<storage::TrashItem>, String> {
+    tauri::async_runtime::spawn_blocking(move || storage::list_trash(&app))
+        .await
+        .map_err(|e| e.to_string())?
+}
+
+#[tauri::command]
+async fn restore_from_trash(app: AppHandle, name: String) -> Result<String, String> {
+    tauri::async_runtime::spawn_blocking(move || storage::restore_from_trash(&app, &name))
+        .await
+        .map_err(|e| e.to_string())?
+}
+
+
+#[tauri::command]
 async fn get_file_metadata(app: AppHandle, filename: String) -> Result<storage::FileMetadata, String> {
     tauri::async_runtime::spawn_blocking(move || storage::get_file_metadata(&app, &filename))
         .await
@@ -308,6 +323,8 @@ pub fn run() {
             read_note,
             write_note,
             delete_note,
+            list_trash,
+            restore_from_trash,
             get_file_metadata,
             read_note_with_metadata,
             write_conflict_copy,

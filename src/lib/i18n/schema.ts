@@ -869,6 +869,13 @@ export type TranslationParams = {
   "phoneNav.previous": undefined;
   "phoneNav.next": undefined;
   "pane.resize": undefined;
+  "settings.trash.label": undefined;
+  "settings.trash.hint": undefined;
+  "settings.trash.empty": undefined;
+  "settings.trash.restore": undefined;
+  "settings.trash.deletedOn": { when: string };
+  "toast.trash.restored": { filename: string };
+  "toast.trash.noteExists": { filename: string };
 };
 
 export type TranslationKey = keyof TranslationParams;

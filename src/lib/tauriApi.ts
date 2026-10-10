@@ -18,7 +18,7 @@ import type {
   StartupTabMode,
   PeekConfig,
 } from "./types";
-import type { TabLabelStyle } from "./generated/tauri-types";
+import type { TabLabelStyle, TrashItem } from "./generated/tauri-types";
 import type {
   CommandArgs,
   CommandReturn,
@@ -151,6 +151,14 @@ export function writeNote(
  * see `storage.rs::delete_note_at`'s own doc comment for why. */
 export function deleteNote(filename: string, expectedHash?: string): Promise<void> {
   return invoke("delete_note", { filename, expectedHash: expectedHash ?? null });
+}
+
+export function listTrash(): Promise<TrashItem[]> {
+  return invoke("list_trash", {});
+}
+
+export function restoreFromTrash(name: string): Promise<string> {
+  return invoke("restore_from_trash", { name });
 }
 
 export function getFileMetadata(filename: string): Promise<FileMetadata> {

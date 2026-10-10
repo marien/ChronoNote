@@ -906,4 +906,11 @@ export const pl = {
   "phoneNav.previous": () => "Poprzednia notatka",
   "phoneNav.next": () => "Następna notatka",
   "pane.resize": () => "Zmień rozmiar panelu",
+  "settings.trash.label": () => "Ostatnio usunięte",
+  "settings.trash.hint": () => "Notatki usunięte w ostatnich 30 dniach. Starsze są usuwane na stałe.",
+  "settings.trash.empty": () => "Nic nie usunięto ostatnio.",
+  "settings.trash.restore": () => "Przywróć",
+  "settings.trash.deletedOn": (p) => (p?.when ? `Usunięto ${p.when}` : "Usunięto"),
+  "toast.trash.restored": (p) => (p?.filename ? `Przywrócono ${p.filename}` : "Przywrócono"),
+  "toast.trash.noteExists": (p) => (p?.filename ? `${p.filename} ma już tekst. Przywracanie anulowane.` : "Notatka ma już tekst. Przywracanie anulowane."),
 } satisfies Dictionary;

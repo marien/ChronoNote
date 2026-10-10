@@ -857,4 +857,11 @@ export const en = {
   "phoneNav.previous": () => "Previous note",
   "phoneNav.next": () => "Next note",
   "pane.resize": () => "Resize pane",
+  "settings.trash.label": () => "Recently deleted",
+  "settings.trash.hint": () => "Notes removed in the last 30 days. Older ones are deleted for good.",
+  "settings.trash.empty": () => "Nothing deleted recently.",
+  "settings.trash.restore": () => "Restore",
+  "settings.trash.deletedOn": (p) => (p?.when ? `Deleted ${p.when}` : "Deleted"),
+  "toast.trash.restored": (p) => (p?.filename ? `Restored ${p.filename}` : "Restored"),
+  "toast.trash.noteExists": (p) => (p?.filename ? `${p.filename} already has text. Restore cancelled.` : "Note already has text. Restore cancelled."),
 } satisfies Dictionary;

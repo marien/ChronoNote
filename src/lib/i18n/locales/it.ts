@@ -887,4 +887,11 @@ export const it = {
   "phoneNav.previous": () => "Nota precedente",
   "phoneNav.next": () => "Nota successiva",
   "pane.resize": () => "Ridimensiona il pannello",
+  "settings.trash.label": () => "Eliminati di recente",
+  "settings.trash.hint": () => "Note eliminate negli ultimi 30 giorni. Quelle più vecchie vengono cancellate definitivamente.",
+  "settings.trash.empty": () => "Nulla eliminato di recente.",
+  "settings.trash.restore": () => "Ripristina",
+  "settings.trash.deletedOn": (p) => (p?.when ? `Eliminata ${p.when}` : "Eliminata"),
+  "toast.trash.restored": (p) => (p?.filename ? `${p.filename} ripristinata` : "Ripristinata"),
+  "toast.trash.noteExists": (p) => (p?.filename ? `${p.filename} contiene già del testo. Ripristino annullato.` : "Nota contiene già del testo. Ripristino annullato."),
 } satisfies Dictionary;

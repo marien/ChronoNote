@@ -893,4 +893,11 @@ export const fr = {
   "phoneNav.previous": () => "Note précédente",
   "phoneNav.next": () => "Note suivante",
   "pane.resize": () => "Redimensionner le volet",
+  "settings.trash.label": () => "Supprimés récemment",
+  "settings.trash.hint": () => "Notes supprimées ces 30 derniers jours. Les plus anciennes sont effacées définitivement.",
+  "settings.trash.empty": () => "Rien de supprimé récemment.",
+  "settings.trash.restore": () => "Restaurer",
+  "settings.trash.deletedOn": (p) => (p?.when ? `Supprimée ${p.when}` : "Supprimée"),
+  "toast.trash.restored": (p) => (p?.filename ? `${p.filename} restaurée` : "Restaurée"),
+  "toast.trash.noteExists": (p) => (p?.filename ? `${p.filename} contient déjà du texte. Restauration annulée.` : "Note contient déjà du texte. Restauration annulée."),
 } satisfies Dictionary;

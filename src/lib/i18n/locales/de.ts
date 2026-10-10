@@ -875,4 +875,11 @@ export const de = {
   "phoneNav.previous": () => "Vorherige Notiz",
   "phoneNav.next": () => "Nächste Notiz",
   "pane.resize": () => "Bereichsgröße ändern",
+  "settings.trash.label": () => "Zuletzt gelöscht",
+  "settings.trash.hint": () => "Notizen, die in den letzten 30 Tagen entfernt wurden. Ältere werden endgültig gelöscht.",
+  "settings.trash.empty": () => "Nichts kürzlich gelöscht.",
+  "settings.trash.restore": () => "Wiederherstellen",
+  "settings.trash.deletedOn": (p) => (p?.when ? `Gelöscht ${p.when}` : "Gelöscht"),
+  "toast.trash.restored": (p) => (p?.filename ? `${p.filename} wiederhergestellt` : "Wiederhergestellt"),
+  "toast.trash.noteExists": (p) => (p?.filename ? `${p.filename} enthält schon Text. Wiederherstellen abgebrochen.` : "Notiz enthält schon Text. Wiederherstellen abgebrochen."),
 } satisfies Dictionary;

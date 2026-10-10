@@ -885,4 +885,11 @@ export const es = {
   "phoneNav.previous": () => "Nota anterior",
   "phoneNav.next": () => "Nota siguiente",
   "pane.resize": () => "Cambiar tamaño del panel",
+  "settings.trash.label": () => "Eliminados recientemente",
+  "settings.trash.hint": () => "Notas eliminadas en los últimos 30 días. Las más antiguas se borran definitivamente.",
+  "settings.trash.empty": () => "Nada eliminado recientemente.",
+  "settings.trash.restore": () => "Restaurar",
+  "settings.trash.deletedOn": (p) => (p?.when ? `Eliminada ${p.when}` : "Eliminada"),
+  "toast.trash.restored": (p) => (p?.filename ? `${p.filename} restaurada` : "Restaurada"),
+  "toast.trash.noteExists": (p) => (p?.filename ? `${p.filename} ya tiene texto. Restauración cancelada.` : "Nota ya tiene texto. Restauración cancelada."),
 } satisfies Dictionary;

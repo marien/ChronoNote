@@ -22,6 +22,7 @@ import type {
   StartupTabMode,
   PeekConfig,
 } from "./types";
+import type { TrashItem } from "./generated/tauri-types";
 
 export type { OneDriveAdvancedConfig, OneDriveLoginResult, SyncConflict };
 
@@ -50,6 +51,8 @@ export interface TauriCommands {
   /** #63: removes a note file from disk. A missing file is not an error —
    * see `storage.rs::delete_note_at`'s own doc comment for why. */
   delete_note: { args: { filename: string; expectedHash: string | null }; returns: void };
+  list_trash: { args: NoArgs; returns: TrashItem[] };
+  restore_from_trash: { args: { name: string }; returns: string };
   get_file_metadata: { args: { filename: string }; returns: FileMetadata };
   read_note_with_metadata: { args: { filename: string }; returns: NoteWithMetadata };
   write_conflict_copy: { args: { name: string; content: string }; returns: string };

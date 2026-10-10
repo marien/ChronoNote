@@ -391,16 +391,91 @@ export class WebBackend {
       if (!isValidNoteFilename(filename)) throw new Error(`Invalid note filename: ${filename}`);
       const db = await this.db();
       const store = await this.getActiveNotesStore();
+      const current = await idbGet<StoredNote>(db, store, filename);
       if (typeof expectedHash === "string") {
-        const current = await idbGet<StoredNote>(db, store, filename);
         if (!current) return;
         if (current.contentHash !== expectedHash) throw new Error(`conflict: note changed on disk: ${filename}`);
+      }
+      if (current && current.content.trim().length > 0) {
+        const trash = (await idbGet<{ filename: string; content: string; deletedMs: number }[]>(db, STORE_META, "trash")) ?? [];
+        trash.push({ filename, content: current.content, deletedMs: Date.now() });
+        await idbPut(db, STORE_META, "trash", trash);
       }
       await idbDelete(db, store, filename);
       if (store === STORE_NOTES_CLOUD) {
         await this.syncEngine.recordLocalDelete(filename);
       }
     },
+
+    list_trash: async () => {
+      const db = await this.db();
+      const raw = (await idbGet<{ filename: string; content: string; deletedMs: number }[]>(db, STORE_META, "trash")) ?? [];
+      const KEEP_MS = 30 * 24 * 60 * 60 * 1000;
+      const now = Date.now();
+      const kept = raw.filter((item) => now - item.deletedMs <= KEEP_MS);
+      if (kept.length !== raw.length) {
+        await idbPut(db, STORE_META, "trash", kept);
+      }
+      return [...kept]
+        .sort((a, b) => b.deletedMs - a.deletedMs)
+        .map((item) => {
+          const d = new Date(item.deletedMs);
+          const y = d.getUTCFullYear();
+          const m = String(d.getUTCMonth() + 1).padStart(2, "0");
+          const day = String(d.getUTCDate()).padStart(2, "0");
+          const h = String(d.getUTCHours()).padStart(2, "0");
+          const min = String(d.getUTCMinutes()).padStart(2, "0");
+          const s = String(d.getUTCSeconds()).padStart(2, "0");
+          const stamp = `${y}${m}${day}-${h}${min}${s}`;
+          const name = `${stamp}_${item.filename}`;
+          const firstLine = item.content.split("\n").map((l) => l.trim()).find((l) => l.length > 0) ?? "";
+          const preview = firstLine.slice(0, 80);
+          return {
+            name,
+            originalFilename: item.filename,
+            deletedMs: item.deletedMs,
+            preview,
+          };
+        });
+    },
+
+    restore_from_trash: async ({ name }) => {
+      if (name.includes("/") || name.includes("\\")) throw new Error("Invalid trash name");
+      const parts = name.split("_");
+      if (parts.length !== 2) throw new Error("Invalid trash name");
+      const [stamp, orig] = parts;
+      if (!/^\d{8}-\d{6}$/.test(stamp) || !isValidNoteFilename(orig)) {
+        throw new Error("Invalid trash name");
+      }
+      const db = await this.db();
+      const store = await this.getActiveNotesStore();
+      const existing = await idbGet<StoredNote>(db, store, orig);
+      if (existing && existing.content.trim().length > 0) {
+        throw new Error("note-exists");
+      }
+      const trash = (await idbGet<{ filename: string; content: string; deletedMs: number }[]>(db, STORE_META, "trash")) ?? [];
+      const idx = trash.findIndex((item) => {
+        const d = new Date(item.deletedMs);
+        const y = d.getUTCFullYear();
+        const m = String(d.getUTCMonth() + 1).padStart(2, "0");
+        const day = String(d.getUTCDate()).padStart(2, "0");
+        const h = String(d.getUTCHours()).padStart(2, "0");
+        const min = String(d.getUTCMinutes()).padStart(2, "0");
+        const s = String(d.getUTCSeconds()).padStart(2, "0");
+        const itemStamp = `${y}${m}${day}-${h}${min}${s}`;
+        return `${itemStamp}_${item.filename}` === name;
+      });
+      if (idx === -1) {
+        throw new Error(`Trash item not found: ${name}`);
+      }
+      const [item] = trash.splice(idx, 1);
+      const text = normalizeNoteText(item.content);
+      const note: StoredNote = { content: text, contentHash: await sha256Hex(text), modifiedMs: Date.now() };
+      await idbPut(db, store, orig, note);
+      await idbPut(db, STORE_META, "trash", trash);
+      return orig;
+    },
+
 
     get_file_metadata: async ({ filename }) => {
       if (!isValidNoteFilename(filename)) throw new Error(`Invalid note filename: ${filename}`);

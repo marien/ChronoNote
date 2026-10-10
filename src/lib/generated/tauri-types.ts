@@ -32,6 +32,8 @@ export type ImportMode = "merge" | "replace";
 
 export type ImportResult = { imported: number, skipped: number };
 
+export type TrashItem = { name: string, originalFilename: string, deletedMs: number, preview: string };
+
 export type AppError = { "code": "agendaInvalid" } | { "code": "oneDriveSyncBusy" } | { "code": "oneDriveLoopbackBindFailed", detail: string } | { "code": "oneDriveBrowserOpenFailed", detail: string } | { "code": "oneDriveCallbackAcceptFailed", detail: string } | { "code": "oneDriveAuthTimedOut" } | { "code": "oneDriveNoAuthCode" } | { "code": "oneDriveNoPendingSession" } | { "code": "oneDriveKeychainSaveFailed", detail: string } | { "code": "oneDriveAuthStateSaveFailed", detail: string } | { "code": "oneDriveProfileFetchFailed", detail: string } | { "code": "oneDriveMissingRefreshTokenScope" } | { "code": "oneDriveTokenRequestFailed", detail: string } | { "code": "oneDriveTokenExchangeRejected", detail: string } | { "code": "oneDriveTokenResponseUnparseable", detail: string } | { "code": "other", detail: string };
 
 export type OneDriveAccount = { email: string, displayName: string };
