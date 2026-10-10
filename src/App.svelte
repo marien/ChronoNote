@@ -109,11 +109,18 @@
       closeTab: () => controller.requestTabClose(controller.getActiveTabId()),
       cycleTab: (e) => controller.cycleTab(e.shiftKey ? -1 : 1),
       reopenClosedTab: () => controller.reopenLastClosedTab(),
-      openActions: () => controller.openActionDrawer(),
+      openActions: () => {
+        if (dockedPane === "actions") {
+          if (document.querySelector(".actions-pane")?.contains(document.activeElement)) editorApi?.focus();
+          else document.querySelector<HTMLElement>(".actions-pane .modal-input")?.focus();
+        } else {
+          controller.openActionDrawer();
+        }
+      },
       openHistory: () => {
         // Docked: the shortcut switches focus between the note and the pane (as F6 does; F-keys need Fn on many
         // laptops, so this is the one to use there).
-        if (get(modal) === "history" && isHistoryDocked) {
+        if (dockedPane === "history") {
           if (document.querySelector(".history-pane")?.contains(document.activeElement)) editorApi?.focus();
           else document.querySelector<HTMLElement>(".history-pane .history-body")?.focus();
         } else {
@@ -191,9 +198,8 @@
     function modalOwnsKeyboard(e: KeyboardEvent): boolean {
       if (get(modal) === "none") return false;
       if (
-        get(modal) === "history" &&
-        isHistoryDocked &&
-        !(e.target instanceof Element && e.target.closest(".history-pane"))
+        dockedPane &&
+        !(e.target instanceof Element && e.target.closest(`.${dockedPane}-pane`))
       ) {
         return false;
       }
@@ -201,15 +207,25 @@
     }
 
     function onKeydown(e: KeyboardEvent) {
-      // F6: toggles focus between the editor and the History pane while it is docked
+      // F6: toggles focus between the editor and the docked pane
       if (e.key === "F6" && !e.ctrlKey && !e.metaKey && !e.altKey && !e.shiftKey) {
-        if (get(modal) === "history" && isHistoryDocked) {
+        if (dockedPane === "history") {
           e.preventDefault();
           const paneEl = document.querySelector(".history-pane");
           if (paneEl && paneEl.contains(document.activeElement)) {
             editorApi?.focus();
           } else {
             document.querySelector<HTMLElement>(".history-pane .history-body")?.focus();
+          }
+          return;
+        }
+        if (dockedPane === "actions") {
+          e.preventDefault();
+          const paneEl = document.querySelector(".actions-pane");
+          if (paneEl && paneEl.contains(document.activeElement)) {
+            editorApi?.focus();
+          } else {
+            document.querySelector<HTMLElement>(".actions-pane .modal-input")?.focus();
           }
           return;
         }
@@ -291,10 +307,15 @@
       // arrow keys then acted on that now-stale editor instead of the
       // modal). `commandPalette`/`findInNote` above already gate the same
       // way; this closes the same hole for every other entry in the table.
-      // The docked History pane: its own shortcut switches focus back to the note even from inside the pane.
-      if (matchesShortcut(e, "openHistory") && get(modal) === "history" && isHistoryDocked) {
+      // The docked pane: its own shortcut switches focus back to the note even from inside the pane.
+      if (matchesShortcut(e, "openHistory") && dockedPane === "history") {
         e.preventDefault();
         shortcutActions.openHistory(e);
+        return;
+      }
+      if (matchesShortcut(e, "openActions") && dockedPane === "actions") {
+        e.preventDefault();
+        shortcutActions.openActions(e);
         return;
       }
       if (modalOwnsKeyboard(e)) return;
@@ -480,30 +501,31 @@
   const settingsPage = $derived(!$isMobile && $modal === "settings");
 
   let windowInnerWidth = $state(typeof window !== "undefined" ? window.innerWidth : 1200);
-  const isHistoryDocked = $derived(windowInnerWidth >= 1000 && !$isMobile && !$isZenMode && !$peekMode);
+  const paneDocked = $derived(windowInnerWidth >= 1000 && !$isMobile && !$isZenMode && !$peekMode);
+  const dockedPane = $derived(($modal === "history" || $modal === "actions") && paneDocked ? $modal : null);
 
   $effect(() => {
-    historyDocked.set(isHistoryDocked);
+    historyDocked.set(paneDocked);
   });
 
-  let wasHistoryDockedOpen = false;
+  let wasDockedPane: "history" | "actions" | null = null;
   $effect(() => {
-    const isDockedOpen = $modal === "history" && isHistoryDocked;
-    if (wasHistoryDockedOpen && !isDockedOpen && $modal === "history") {
+    const current = dockedPane;
+    if (wasDockedPane !== null && current === null && $modal === wasDockedPane) {
       controller.closeAllModals();
     }
-    wasHistoryDockedOpen = isDockedOpen;
+    wasDockedPane = current;
   });
 
   let cursorDebounceTimer: ReturnType<typeof setTimeout> | undefined;
   $effect(() => {
     const curSec = $cursorSection;
-    const isDockedOpen = $modal === "history" && isHistoryDocked;
+    const isDockedOpen = dockedPane === "history";
     const currentTarget = $historyTargetHeader;
     if (isDockedOpen && curSec && curSec.toLowerCase() !== currentTarget.toLowerCase()) {
       clearTimeout(cursorDebounceTimer);
       cursorDebounceTimer = setTimeout(() => {
-        if (get(modal) === "history" && isHistoryDocked) {
+        if (dockedPane === "history") {
           void controller.refreshHistoryForCursor();
         }
       }, 250);
@@ -643,9 +665,14 @@
         <FindBar />
       {/if}
     </div>
-    {#if $modal === "history" && isHistoryDocked}
+    {#if dockedPane === "history"}
       <aside class="history-pane" aria-label={$t("history.modal.ariaLabel")}>
         <HistoryModal docked />
+      </aside>
+    {/if}
+    {#if dockedPane === "actions"}
+      <aside class="actions-pane" aria-label={$t("actionDrawer.modal.ariaLabel")}>
+        <ActionDrawerModal docked />
       </aside>
     {/if}
   </div>
@@ -683,9 +710,9 @@
 
   {#if $modal === "date"}
     <DatePickerModal />
-  {:else if $modal === "actions"}
+  {:else if $modal === "actions" && !paneDocked}
     <ActionDrawerModal />
-  {:else if $modal === "history" && !isHistoryDocked}
+  {:else if $modal === "history" && !paneDocked}
     <HistoryModal />
   {:else if $modal === "search"}
     <SearchModal />

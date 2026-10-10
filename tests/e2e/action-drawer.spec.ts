@@ -142,6 +142,7 @@ test.describe("action drawer (Ctrl/Cmd+Shift+A)", () => {
   });
 
   test("Enter jumps to the line: modal closes, the file opens, cursor lands on it", async ({ page }) => {
+    await page.setViewportSize({ width: 900, height: 720 });
     await seedApp(page, { seed: "delegation" });
     await openViaShortcut(page, "ControlOrMeta+Shift+A", "actions");
 

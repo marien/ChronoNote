@@ -453,7 +453,12 @@ reachable from the top bar, a shortcut, or the command palette:
   note.)
 - **Action Drawer** (`Ctrl/Cmd+Shift+A`) — lists actions across either
   just the open tabs or every file in the notes folder (a per-session
-  toggle), most-recent-first either way. A second toggle (remembered for
+  toggle), most-recent-first either way. On a window 1000px or wider
+  (not a phone, Zen or Peek) a pane docked right of the note sharing
+  Section History's docking: the note stays editable, `Enter` jumps to
+  the action and keeps the pane open, `Ctrl/Cmd+Shift+A` or `F6` switches
+  focus between note and pane, and `Escape` closes it back to the note.
+  Narrower, it opens as a dialog. A second toggle (remembered for
   the session, on by default) switches between showing every open/
   deferred/delegated/done/won't-do line or strictly open ones only.
   `Ctrl+Space` on a focused row cycles its state in place; `Enter` jumps

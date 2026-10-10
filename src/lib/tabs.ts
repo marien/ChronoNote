@@ -426,8 +426,13 @@ export async function commitDatePick(dateStr: string) {
 /** Shared by the action drawer, search, and section history: jump to a
  * line in a file, opening it first (reading fresh from disk) if it isn't
  * already an open tab. */
-export async function jumpToFileLine(item: { tabId?: string; filename: string; lineIdx: number }) {
-  modal.set("none");
+export async function jumpToFileLine(
+  item: { tabId?: string; filename: string; lineIdx: number },
+  opts?: { keepModal?: boolean },
+) {
+  if (!opts?.keepModal) {
+    modal.set("none");
+  }
   if (item.tabId) {
     switchTab(item.tabId);
   } else {

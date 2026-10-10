@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount, tick } from "svelte";
+  import { onMount, onDestroy, tick } from "svelte";
   import * as controller from "../../controller";
   import { focusTrap } from "../../actions/focusTrap";
   import { sheetSwipe } from "../../actions/sheetSwipe";
@@ -24,10 +24,18 @@
     wrapIndex,
     type PlacedRow,
   } from "./virtualList";
-  import { isMobile } from "../../stores";
+  import { isMobile, editorApi } from "../../stores";
   import { formatCombo, shortcutById } from "../../shortcuts";
 
+  interface Props {
+    docked?: boolean;
+  }
+  let { docked = false }: Props = $props();
+
   const allKeysShortcut = formatCombo(shortcutById("openShortcutsHelp").combos[0]);
+
+  let rootEl: HTMLElement | undefined = $state();
+  let mounted = false;
 
   let filter = $state("");
   let selectedIndex = $state(0);
@@ -52,7 +60,20 @@
     }
     inputEl?.focus();
     scrollSelectedIntoView();
+    mounted = true;
+    document.addEventListener("keydown", onKeydown);
   });
+
+  onDestroy(() => {
+    document.removeEventListener("keydown", onKeydown);
+  });
+
+  function handleClose() {
+    controller.closeAllModals();
+    if (docked) {
+      editorApi?.focus();
+    }
+  }
 
   async function setScope(next: "open" | "other" | "all") {
     if (scope === next) return;
@@ -73,6 +94,43 @@
     await tick();
     inputEl?.focus();
     inputEl?.select();
+  }
+
+  async function refreshSnapshot() {
+    const currentItem = flatList[selectedIndex];
+    const prevFilename = currentItem?.filename;
+    const prevLine = currentItem?.line;
+
+    if (scope !== "open") loadingAllFiles = true;
+    const nextSnapshot =
+      scope === "all"
+        ? await controller.buildActionSnapshotAllFiles()
+        : scope === "other"
+          ? await controller.buildActionSnapshotOtherNotes()
+          : controller.buildActionSnapshotOpenTabs();
+    actionSnapshot.set(nextSnapshot);
+    loadingAllFiles = false;
+    await tick();
+
+    if (prevFilename && prevLine) {
+      const nextIdx = flatList.findIndex(
+        (it) => it.filename === prevFilename && it.line === prevLine,
+      );
+      if (nextIdx !== -1) {
+        selectedIndex = nextIdx;
+        scrollSelectedIntoView();
+      }
+    }
+  }
+
+  function handleFocusIn(e: FocusEvent) {
+    if (!docked || !mounted) return;
+    const fromOutside =
+      !e.relatedTarget ||
+      !(e.relatedTarget instanceof Node && rootEl?.contains(e.relatedTarget));
+    if (fromOutside) {
+      void refreshSnapshot();
+    }
   }
 
   const showDelegated = $derived(filter.includes("@"));
@@ -229,6 +287,9 @@
   }
 
   function onKeydown(e: KeyboardEvent) {
+    if (docked && !rootEl?.contains(e.target as Node)) {
+      return;
+    }
     if (e.key === "ArrowDown") {
       e.preventDefault();
       selectedIndex = wrapIndex(selectedIndex, flatList.length, 1);
@@ -244,7 +305,7 @@
     } else if (e.key === "Enter") {
       e.preventDefault();
       const it = flatList[selectedIndex];
-      if (it) controller.jumpToFileLine(it);
+      if (it) controller.jumpToFileLine(it, docked ? { keepModal: true } : undefined);
     } else if (e.ctrlKey && e.shiftKey && e.code === "Space") {
       // §145: the reverse of the plain Ctrl+Space cycle below — checked
       // first since it would otherwise also match that broader condition.
@@ -256,137 +317,155 @@
       const it = flatList[selectedIndex];
       if (it) controller.toggleActionLineItem(it);
     } else if (e.key === "Escape") {
-      controller.closeAllModals();
+      e.preventDefault();
+      handleClose();
     }
   }
 </script>
 
-<div class="overlay" role="presentation" use:closeOnOutsideClick={controller.closeAllModals}>
-  <div class="modal-card modal-lg" role="dialog" aria-modal="true" use:focusTrap use:sheetSwipe aria-label={$t("actionDrawer.modal.ariaLabel")}>
-    <div class="modal-input-wrap">
-      <Icon name="actions" size={15} />
-      <input
-        class="modal-input"
-        placeholder={$t("actionDrawer.filterPlaceholder")}
-        bind:value={filter}
-        bind:this={inputEl}
-        onkeydown={onKeydown}
-        autocomplete="off"
-      />
-      <span class="modal-counter">{$t("actionDrawer.counter", { open: uncompletedCount, listed: flatList.length })}</span>
-      <button
-        type="button"
-        class="icon-btn modal-close-btn"
-        aria-label={$t("common.closeDialog")}
-        onclick={controller.closeAllModals}
-      >
-        <Icon name="close" size={14} />
-      </button>
-    </div>
-    <div class="modal-input-wrap">
-      <div class="settings-toggle-row">
-        <Segmented
-          options={[
-            { value: "open", label: $t("actionDrawer.scope.openTabs.label"), title: $t("actionDrawer.scope.openTabs.title") },
-            { value: "other", label: $t("actionDrawer.scope.otherNotes.label"), title: $t("actionDrawer.scope.otherNotes.title") },
-            { value: "all", label: $t("actionDrawer.scope.allFiles.label"), title: $t("actionDrawer.scope.allFiles.title") },
-          ]}
-          value={scope}
-          onChange={(v) => setScope(v as "open" | "other" | "all")}
-        />
-        {#if loadingAllFiles}
-          <span class="modal-spinner" aria-label={$t("common.loading")}>⟳</span>
-        {/if}
-        <label class="toggle-switch" title={$t("actionDrawer.onlyOpen.title")}>
-          <input type="checkbox" bind:checked={$actionDrawerShowOnlyOpen} />
-          <span class="toggle-switch-track"></span>
-          {$t("actionDrawer.onlyOpen.label")}
-        </label>
-      </div>
-    </div>
-    <div
-      class="modal-list"
-      role="listbox"
-      bind:this={listEl}
-      bind:clientHeight={viewportHeight}
-      onscroll={onScroll}
-      style="position: relative; overflow-y: auto;"
+{#snippet modalContent()}
+  <div class="modal-input-wrap">
+    <Icon name="actions" size={15} />
+    <input
+      class="modal-input"
+      placeholder={$t("actionDrawer.filterPlaceholder")}
+      bind:value={filter}
+      bind:this={inputEl}
+      autocomplete="off"
+    />
+    <span class="modal-counter">{$t("actionDrawer.counter", { open: uncompletedCount, listed: flatList.length })}</span>
+    <button
+      type="button"
+      class="icon-btn modal-close-btn"
+      aria-label={$t("common.closeDialog")}
+      onclick={handleClose}
     >
-      {#if flatList.length === 0}
-        {#if filter.trim()}
-          <EmptyState
-            icon="actions"
-            title={$t("actionDrawer.empty.noMatch", { filter })}
-            subtitle={$t("actionDrawer.empty.filterSubtitle")}
-          />
-        {:else}
-          <EmptyState
-            icon="actions"
-            title={$t("actionDrawer.empty.allResolved")}
-            subtitle={$t("actionDrawer.empty.allResolvedSubtitle")}
-          />
-        {/if}
+      <Icon name="close" size={14} />
+    </button>
+  </div>
+  <div class="modal-input-wrap">
+    <div class="settings-toggle-row">
+      <Segmented
+        options={[
+          { value: "open", label: $t("actionDrawer.scope.openTabs.label"), title: $t("actionDrawer.scope.openTabs.title") },
+          { value: "other", label: $t("actionDrawer.scope.otherNotes.label"), title: $t("actionDrawer.scope.otherNotes.title") },
+          { value: "all", label: $t("actionDrawer.scope.allFiles.label"), title: $t("actionDrawer.scope.allFiles.title") },
+        ]}
+        value={scope}
+        onChange={(v) => setScope(v as "open" | "other" | "all")}
+      />
+      {#if loadingAllFiles}
+        <span class="modal-spinner" aria-label={$t("common.loading")}>⟳</span>
       {/if}
-      {#if stickyHeader}
-        <!-- Zero net height (negative margin) so the scroll extent is unchanged. -->
-        <div
-          class="modal-group-header modal-group-header-sticky"
-          aria-hidden="true"
-          data-testid="sticky-date-header"
-          style="height: {MODAL_HEADER_ROW_HEIGHT}px; margin-bottom: -{MODAL_HEADER_ROW_HEIGHT}px;"
-        >
-          {groupHeaderLabel(stickyHeader.filename, stickyHeader.count)}
-        </div>
-      {/if}
-      <div style="position: relative; height: {totalHeight}px;">
-        {#each visibleRows as row (row.key)}
-          {#if row.type === "header"}
-            <div
-              class="modal-group-header"
-              style="position: absolute; top: {row.top}px; left: 0; right: 0; height: {row.height}px; border-top: {row.isFirst
-                ? 'none'
-                : '1px solid var(--border)'};"
-            >
-              {groupHeaderLabel(row.filename, row.count)}
-            </div>
-          {:else}
-            {@const item = row.item}
-            {@const idx = item.__flatIndex}
-            {@const g = glyphFor(item.line)}
-            {@const sym = innermostActionSymbol(item.line)}
-            <div
-              class="modal-item {idx === selectedIndex ? 'selected' : ''}"
-              role="option"
-              aria-selected={idx === selectedIndex}
-              tabindex="0"
-              style="position: absolute; top: {row.top}px; left: 0; right: 0; height: {row.height}px;"
-              onclick={() => controller.jumpToFileLine(item)}
-              onmouseenter={() => (selectedIndex = idx)}
-              onkeydown={(e) => e.key === "Enter" && controller.jumpToFileLine(item)}
-            >
-              <div class="modal-item-main">
-                <span class={g.cls ?? ""}>{g.char}</span>
-                <span class={sym === "v" || sym === "x" ? "item-completed" : ""} title={stripLeadingToken(item.line)}>{stripLeadingToken(item.line)}</span>
-              </div>
-              {#if item.header}<span class="item-breadcrumb">· {item.header}</span>{/if}
-              <div class="item-tag">{$t("actionDrawer.item.lineTag", { line: item.lineIdx + 1 })}</div>
-            </div>
-          {/if}
-        {/each}
-      </div>
+      <label class="toggle-switch" title={$t("actionDrawer.onlyOpen.title")}>
+        <input type="checkbox" bind:checked={$actionDrawerShowOnlyOpen} />
+        <span class="toggle-switch-track"></span>
+        {$t("actionDrawer.onlyOpen.label")}
+      </label>
     </div>
-    {#if !$isMobile}
-      <div class="modal-footer">
-        <div class="modal-footer-hints">
-          <kbd>Enter</kbd> {$t("actionDrawer.footer.goToLine")} · <kbd>Shift+Enter</kbd> {$t("actionDrawer.footer.forwardToToday")} · <kbd>Ctrl+Space</kbd> {$t("actionDrawer.footer.changeState")}
-        </div>
-        <div class="modal-footer-all-keys">
-          <kbd>{allKeysShortcut}</kbd> {$t("common.allKeys")}
-        </div>
+  </div>
+  <div
+    class="modal-list"
+    role="listbox"
+    bind:this={listEl}
+    bind:clientHeight={viewportHeight}
+    onscroll={onScroll}
+    style="position: relative; overflow-y: auto;"
+  >
+    {#if flatList.length === 0}
+      {#if filter.trim()}
+        <EmptyState
+          icon="actions"
+          title={$t("actionDrawer.empty.noMatch", { filter })}
+          subtitle={$t("actionDrawer.empty.filterSubtitle")}
+        />
+      {:else}
+        <EmptyState
+          icon="actions"
+          title={$t("actionDrawer.empty.allResolved")}
+          subtitle={$t("actionDrawer.empty.allResolvedSubtitle")}
+        />
+      {/if}
+    {/if}
+    {#if stickyHeader}
+      <!-- Zero net height (negative margin) so the scroll extent is unchanged. -->
+      <div
+        class="modal-group-header modal-group-header-sticky"
+        aria-hidden="true"
+        data-testid="sticky-date-header"
+        style="height: {MODAL_HEADER_ROW_HEIGHT}px; margin-bottom: -{MODAL_HEADER_ROW_HEIGHT}px;"
+      >
+        {groupHeaderLabel(stickyHeader.filename, stickyHeader.count)}
       </div>
     {/if}
+    <div style="position: relative; height: {totalHeight}px;">
+      {#each visibleRows as row (row.key)}
+        {#if row.type === "header"}
+          <div
+            class="modal-group-header"
+            style="position: absolute; top: {row.top}px; left: 0; right: 0; height: {row.height}px; border-top: {row.isFirst
+              ? 'none'
+              : '1px solid var(--border)'};"
+          >
+            {groupHeaderLabel(row.filename, row.count)}
+          </div>
+        {:else}
+          {@const item = row.item}
+          {@const idx = item.__flatIndex}
+          {@const g = glyphFor(item.line)}
+          {@const sym = innermostActionSymbol(item.line)}
+          <div
+            class="modal-item {idx === selectedIndex ? 'selected' : ''}"
+            role="option"
+            aria-selected={idx === selectedIndex}
+            tabindex="0"
+            style="position: absolute; top: {row.top}px; left: 0; right: 0; height: {row.height}px;"
+            onclick={() => controller.jumpToFileLine(item, docked ? { keepModal: true } : undefined)}
+            onmouseenter={() => (selectedIndex = idx)}
+            onkeydown={(e) => e.key === "Enter" && controller.jumpToFileLine(item, docked ? { keepModal: true } : undefined)}
+          >
+            <div class="modal-item-main">
+              <span class={g.cls ?? ""}>{g.char}</span>
+              <span class={sym === "v" || sym === "x" ? "item-completed" : ""} title={stripLeadingToken(item.line)}>{stripLeadingToken(item.line)}</span>
+            </div>
+            {#if item.header}<span class="item-breadcrumb">· {item.header}</span>{/if}
+            <div class="item-tag">{$t("actionDrawer.item.lineTag", { line: item.lineIdx + 1 })}</div>
+          </div>
+        {/if}
+      {/each}
+    </div>
   </div>
-</div>
+  {#if !$isMobile}
+    <div class="modal-footer">
+      <div class="modal-footer-hints">
+        <kbd>Enter</kbd> {$t("actionDrawer.footer.goToLine")} · <kbd>Shift+Enter</kbd> {$t("actionDrawer.footer.forwardToToday")} · <kbd>Ctrl+Space</kbd> {$t("actionDrawer.footer.changeState")}
+      </div>
+      <div class="modal-footer-all-keys">
+        <kbd>{allKeysShortcut}</kbd> {$t("common.allKeys")}
+      </div>
+    </div>
+  {/if}
+{/snippet}
+
+{#if docked}
+  <div class="actions-pane-card" bind:this={rootEl} onfocusin={handleFocusIn}>
+    {@render modalContent()}
+  </div>
+{:else}
+  <div class="overlay" role="presentation" use:closeOnOutsideClick={controller.closeAllModals}>
+    <div
+      class="modal-card modal-lg"
+      role="dialog"
+      aria-modal="true"
+      use:focusTrap
+      use:sheetSwipe
+      aria-label={$t("actionDrawer.modal.ariaLabel")}
+      bind:this={rootEl}
+    >
+      {@render modalContent()}
+    </div>
+  </div>
+{/if}
 
 <style>
 .modal-group-header {
