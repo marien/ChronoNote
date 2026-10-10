@@ -25,7 +25,7 @@ declare const __DEMO_APP_VERSION__: string | undefined;
  * date logic MUST pin their clock to this (helpers do it automatically). */
 export const REFERENCE_TODAY = "2026-09-07";
 
-export type ScenarioName = "empty" | "single-day" | "busy-week" | "heavy" | "delegation" | "dir-switch" | "demo";
+export type ScenarioName = "empty" | "single-day" | "busy-week" | "heavy" | "delegation" | "dir-switch" | "demo" | "perf";
 
 function build(name: ScenarioName): MockSeed {
   switch (name) {
@@ -269,6 +269,25 @@ function build(name: ScenarioName): MockSeed {
           },
         },
         recentNotesDirs: ["/personal-notes"],
+      };
+    }
+
+    case "perf": {
+      // D4: ~2,000 notes + one ~5,000-line note for performance budget benchmarks.
+      const bigNoteDate = addDaysISO(REFERENCE_TODAY, -1);
+      const ds = generateDataset({
+        today: REFERENCE_TODAY,
+        days: 2600,
+        seed: 42,
+        bigNoteDate,
+        bigNoteLines: 5000,
+      });
+      const bigNoteFilename = `${bigNoteDate}.txt`;
+      const otherTabs = ds.filenames.filter((f) => f !== ds.filenames[0] && f !== bigNoteFilename).slice(0, 3);
+      const open = [ds.filenames[0], bigNoteFilename, ...otherTabs];
+      return {
+        notes: ds.notes,
+        session: { openTabs: open, activeTab: ds.filenames[0] },
       };
     }
   }

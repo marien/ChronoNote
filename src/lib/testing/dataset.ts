@@ -23,6 +23,10 @@ export interface GenerateOptions {
   skipWeekends?: boolean;
   /** Include a file for `today` itself. Default true. */
   includeToday?: boolean;
+  /** Specific note date (YYYY-MM-DD) to generate at large size. */
+  bigNoteDate?: string;
+  /** Target lines for the big note. */
+  bigNoteLines?: number;
 }
 
 const PEOPLE = ["Priya", "Dana", "Sam", "Lena", "Marco", "Ines"] as const;
@@ -185,6 +189,31 @@ function dayFile(rng: Prng, date: Date, isToday: boolean): string {
   return blocks.join("\n\n\n") + "\n";
 }
 
+function bigDayFile(rng: Prng, date: Date, targetLines: number): string {
+  const iso = dateToIso(date);
+  const blocks: string[] = [];
+  const kinds = ["standup", "notes", "planning", "one-on-one", "project"] as const;
+  const sectionTitles = [
+    "Daily Standup",
+    "Inbox / Notes",
+    `Weekly Planning — ${iso}`,
+    "1:1 — Priya",
+    ...PROJECT_TOPICS,
+  ];
+  let currentLines = 0;
+  let i = 0;
+  while (currentLines < targetLines) {
+    const title = sectionTitles[i % sectionTitles.length];
+    const kind = kinds[i % kinds.length];
+    const body = sectionBody(rng, kind, iso);
+    const block = `${setext(title)}\n${body}`;
+    blocks.push(block);
+    currentLines += block.split("\n").length + (blocks.length > 1 ? 2 : 0);
+    i++;
+  }
+  return blocks.join("\n\n\n") + "\n";
+}
+
 export interface GeneratedDataset {
   /** `filename -> file contents`, e.g. `{ "2026-09-07.txt": "..." }`. */
   notes: Record<string, string>;
@@ -194,7 +223,7 @@ export interface GeneratedDataset {
 }
 
 export function generateDataset(opts: GenerateOptions): GeneratedDataset {
-  const { today, days, seed, skipWeekends = true, includeToday = true } = opts;
+  const { today, days, seed, skipWeekends = true, includeToday = true, bigNoteDate, bigNoteLines } = opts;
   const rng = new Prng(seed);
   const todayDate = isoToDate(today);
   const notes: Record<string, string> = {};
@@ -207,10 +236,19 @@ export function generateDataset(opts: GenerateOptions): GeneratedDataset {
     const isToday = offset === 0;
 
     if (isToday && !includeToday) continue;
-    // Skip ~80% of weekend days (leave the occasional Saturday note in).
-    if (!isToday && skipWeekends && (dow === 0 || dow === 6) && rng.chance(0.8)) continue;
+    // Skip ~80% of weekend days (leave the occasional Saturday note in),
+    // unless this day is explicitly requested as the big note.
+    if (!isToday && iso !== bigNoteDate && skipWeekends && (dow === 0 || dow === 6) && rng.chance(0.8)) continue;
 
-    notes[`${iso}.txt`] = dayFile(rng, date, isToday);
+    if (bigNoteDate && iso === bigNoteDate && bigNoteLines) {
+      notes[`${iso}.txt`] = bigDayFile(rng, date, bigNoteLines);
+    } else {
+      notes[`${iso}.txt`] = dayFile(rng, date, isToday);
+    }
+  }
+
+  if (bigNoteDate && bigNoteLines && !notes[`${bigNoteDate}.txt`]) {
+    notes[`${bigNoteDate}.txt`] = bigDayFile(rng, isoToDate(bigNoteDate), bigNoteLines);
   }
 
   const filenames = Object.keys(notes).sort().reverse();

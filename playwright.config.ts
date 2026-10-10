@@ -18,15 +18,16 @@ const LAYOUT_SPECS = [
 /** Specs that check colours or read screenshot pixels against a dark background: meaningless in a contrast theme, where
  * Windows picks the colours. */
 const COLOUR_SPECS = ["settings", "tab-archetypes", "glyph-layout"].map((name) => `**/${name}.spec.ts`);
+const PERF_SPEC = "**/perf.spec.ts";
 
 // German (longer labels) is not a project: specs assert English text, and visual-audit already checks every language.
 const ENV_PROJECTS = [
-  { name: "reduced-motion", use: { ...devices["Desktop Chrome"], contextOptions: { reducedMotion: "reduce" as const } } },
-  { name: "scale-150", use: { ...devices["Desktop Chrome"], deviceScaleFactor: 1.5 } },
+  { name: "reduced-motion", use: { ...devices["Desktop Chrome"], contextOptions: { reducedMotion: "reduce" as const } }, testIgnore: PERF_SPEC },
+  { name: "scale-150", use: { ...devices["Desktop Chrome"], deviceScaleFactor: 1.5 }, testIgnore: PERF_SPEC },
   {
     name: "forced-colors",
     use: { ...devices["Desktop Chrome"], contextOptions: { forcedColors: "active" as const } },
-    testIgnore: COLOUR_SPECS,
+    testIgnore: [...COLOUR_SPECS, PERF_SPEC],
   },
 ].map((p) => ({ ...p, testMatch: LAYOUT_SPECS }));
 
@@ -61,6 +62,12 @@ export default defineConfig({
     {
       name: "chromium",
       use: { ...devices["Desktop Chrome"] },
+      testIgnore: PERF_SPEC,
+    },
+    {
+      name: "perf",
+      use: { ...devices["Desktop Chrome"] },
+      testMatch: PERF_SPEC,
     },
     // D2 (readiness review): the v0.30 follow-up bugs only showed under settings the default run never uses (Windows
     // "Animation effects" off, 125-150% scaling, a contrast theme). These projects re-run the specs that touch layout,

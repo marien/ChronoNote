@@ -52,6 +52,9 @@ jobs:
         env:
           # D2: the reduced-motion / 150% / contrast-theme projects run on pushes to main, not on every PR.
           E2E_MATRIX: ${{ github.event_name == 'push' && '1' || '0' }}
+      # D4: performance budgets at real sizes (push to main only)
+      - run: npx playwright test --project=perf
+        if: github.event_name == 'push'
       - uses: actions/upload-artifact@v7
         if: ${{ !cancelled() }}
         with:

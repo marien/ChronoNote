@@ -1,0 +1,16 @@
+{
+  "startupMs": 3000,
+  "tabSwitchMs": 300,
+  "searchAllNotesMs": 800,
+  "actionsDrawerAllFilesMs": 300,
+  "sectionHistoryMs": 400,
+  "typingPerCharMs": 15,
+  "measured": {
+    "startupMs": 1422,
+    "tabSwitchMs": 131,
+    "searchAllNotesMs": 351,
+    "actionsDrawerAllFilesMs": 140,
+    "sectionHistoryMs": 189,
+    "typingPerCharMs": 6
+  }
+}
