@@ -6,11 +6,17 @@
 #
 # Usage:
 #   scripts/release.sh <X.Y.Z> <notes-file> [--skip-gates] [--dry-run]
+#                      [--checklist-done] [--force-red]
 #
 #   <notes-file>   Markdown release notes (the GitHub release body).
 #   --skip-gates   Skip check/vitest/cargo test/playwright (only if they were
 #                  just run on this exact commit).
 #   --dry-run      Run preflight + gates + print the plan; change nothing.
+#   --checklist-done  Required for a minor release (X.Y.0): confirms the
+#                  environment checklist below was run (it is printed when the
+#                  flag is missing, and the script stops).
+#   --force-red    Release although GitHub's last Test run on main failed.
+#                  Say why in the release notes.
 #
 # Env: RELEASE_CO_AUTHOR="Name <email>" adds a Co-Authored-By trailer to the
 #      bump and bundles commits (omitted when unset).
@@ -21,11 +27,13 @@
 set -euo pipefail
 
 VERSION="${1:-}"; NOTES="${2:-}"
-SKIP_GATES=0; DRY=0
+SKIP_GATES=0; DRY=0; CHECKLIST=0; FORCE_RED=0
 for a in "${@:3}"; do
   case "$a" in
     --skip-gates) SKIP_GATES=1 ;;
     --dry-run) DRY=1 ;;
+    --checklist-done) CHECKLIST=1 ;;
+    --force-red) FORCE_RED=1 ;;
     *) echo "unknown option: $a" >&2; exit 2 ;;
   esac
 done
@@ -69,6 +77,39 @@ fi
 gh release view "$TAG" >/dev/null 2>&1 && { echo "GitHub release $TAG already exists" >&2; exit 1; }
 ok "on main, clean, up to date; $CUR -> $VERSION"
 
+# CI must be green on what is being released (it was red from v0.30.0 to
+# v0.30.2 without anyone noticing). Skipped when this run is a resume after
+# the bump commit, which has no CI run of its own yet.
+if [[ $BUMPED == 0 ]]; then
+  CI="$(gh run list --workflow Test --branch main --limit 1 --json headSha,status,conclusion     -q '.[0] | "\(.headSha) \(.status) \(.conclusion)"')"
+  read -r CI_SHA CI_STATUS CI_CONCLUSION <<<"$CI"
+  if [[ "$CI_SHA" != "$(git rev-parse HEAD)" ]]; then
+    echo "   NOTE: the last Test run is for ${CI_SHA:0:7}, not HEAD; its result: $CI_STATUS $CI_CONCLUSION"
+  fi
+  if [[ "$CI_STATUS" != "completed" ]]; then
+    echo "GitHub Test run still $CI_STATUS; wait for it" >&2; exit 1
+  elif [[ "$CI_CONCLUSION" != "success" && $FORCE_RED == 0 ]]; then
+    echo "GitHub's last Test run on main: $CI_CONCLUSION. Fix it, or pass --force-red with a reason in the notes." >&2; exit 1
+  fi
+  ok "GitHub Test: $CI_CONCLUSION"
+fi
+
+# A minor release carries bigger UI changes: run the environment checklist
+# (the v0.30 lessons) before cutting it.
+if [[ "$VERSION" =~ \.0$ && $CHECKLIST == 0 && $BUMPED == 0 ]]; then
+  cat >&2 <<'LIST'
+Minor release: check these first, then re-run with --checklist-done.
+  - Windows "Animation effects" off (prefers-reduced-motion): switch tabs, open drawers
+  - Display scaling 125% and 150%
+  - A phone: keyboard, sheets, long-press, symbols bar on one row
+  - The web app installed on a PC (title bar hidden) and on a phone
+  - A Windows contrast theme
+  - German UI on CI's Linux fonts (GitHub Test run green)
+  - Right-click, long-press and focus on every part of the window
+LIST
+  exit 1
+fi
+
 # --------------------------------------------------------------------- gates
 if [[ $SKIP_GATES == 0 ]]; then
   step "gates (sequential; never run Playwright twice concurrently)"
@@ -100,6 +141,11 @@ if [[ $BUMPED == 0 ]]; then
     fs.writeFileSync("src-tauri/Cargo.toml",c.replace(/^version = "[^"]+"/m,`version = "${v}"`));
   ' "$VERSION"
   run cargo-lock bash -c 'cd src-tauri && cargo check'
+  # Third-party notices follow the dependencies of what ships (A2).
+  if node -e 'process.exit(require("./package.json").scripts.notices ? 0 : 1)'; then
+    run notices npm run notices
+    git add src/assets/THIRD-PARTY-NOTICES.txt
+  fi
   git add package.json src-tauri/tauri.conf.json src-tauri/Cargo.toml src-tauri/Cargo.lock
   git commit -q -m "Bump version to $VERSION$TRAILER"
   ok "committed"
@@ -179,6 +225,18 @@ for n in "ChronoNote_${VERSION}_x64-setup.exe" "ChronoNote_${VERSION}_x64_en-US.
 done
 LIVE="$(curl -fsSL "https://github.com/marien/ChronoNote/releases/latest/download/latest.json" | node -p "JSON.parse(require('fs').readFileSync(0,'utf8')).version")"
 [[ "$LIVE" == "$VERSION" ]] && ok "releases/latest serves $LIVE" || echo "   WARNING: releases/latest serves $LIVE (expected $VERSION)"
+# The release commit gets its own Test run: wait for it, so a red build is
+# seen now and not at the next release.
+step "GitHub Test on the release commit"
+sleep 20
+RUN_ID="$(gh run list --workflow Test --branch main --limit 1 --json databaseId,headSha   -q ".[] | select(.headSha==\"$(git rev-parse HEAD)\") | .databaseId")"
+if [[ -z "$RUN_ID" ]]; then
+  echo "   WARNING: no Test run found for $(git rev-parse --short HEAD); check GitHub Actions"
+elif gh run watch "$RUN_ID" --exit-status >/dev/null 2>&1; then
+  ok "Test run $RUN_ID green"
+else
+  echo "   WARNING: Test run $RUN_ID FAILED: gh run view $RUN_ID --log-failed"
+fi
 echo
 echo "Released $TAG: https://github.com/marien/ChronoNote/releases/tag/$TAG"
 echo "Remaining by hand: CHANGELOG/CLAUDE.local.md/memory notes, comment+close any issues."
