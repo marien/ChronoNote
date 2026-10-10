@@ -144,6 +144,7 @@
       <button
         type="button"
         class="editor-context-icon-btn"
+        role="menuitem"
         aria-label={$t("editorMenu.cut")}
         title={$t("editorMenu.cut")}
         disabled={isSelectionEmpty}
@@ -158,6 +159,7 @@
       <button
         type="button"
         class="editor-context-icon-btn"
+        role="menuitem"
         aria-label={$t("editorMenu.copy")}
         title={$t("editorMenu.copy")}
         disabled={isSelectionEmpty}
@@ -172,6 +174,7 @@
       <button
         type="button"
         class="editor-context-icon-btn"
+        role="menuitem"
         aria-label={$t("editorMenu.paste")}
         title={$t("editorMenu.paste")}
         onclick={handlePaste}
