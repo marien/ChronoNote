@@ -4,6 +4,7 @@ on:
   push:
     branches: [main]
   pull_request:
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -129,3 +130,20 @@ jobs:
       - run: npm ci
       - run: npm run notices:check
 
+  native:
+    name: Native smoke (real app, Windows)
+    # D1: the real debug build driven over WebView2's debugging port. Pushes to main and manual runs only (it builds
+    # the whole app, ~10 minutes).
+    if: github.event_name != 'pull_request'
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+      - uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87 # stable
+      - run: npm ci
+      - name: debug build of the app (no installer)
+        run: npm run tauri build -- --debug --no-bundle
+      - run: npx playwright test -c playwright.native.config.ts

@@ -7,5 +7,5 @@
     "noEmit": true,
     "checkJs": false
   },
-  "include": ["e2e/**/*.ts"]
+  "include": ["e2e/**/*.ts", "native/**/*.ts"]
 }
