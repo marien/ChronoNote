@@ -10309,3 +10309,10 @@ Gemini 3.8 Flash high (Z5). Found during review:
 - `tests/e2e/mobile-keyboard.spec.ts` (12 tests at 390 and 360px); 8 of them fail without the fixes.
 
 Also (desktop, Marien): **Ctrl+J did not always seem to follow.** The default `scrollIntoView` scrolls only just far enough, so every jump landed on the last visible line, against the status bar. Jumps (Ctrl+J and `jumpToLine`, used by Actions, History and Search) now leave a line that is already well inside the view (15–85%) where it is, and centre it otherwise (`jumpCaretTo`). `jump-scroll.spec.ts` checks it with word wrap off and on; it fails without the fix.
+
+## 351. Tab switch reflow and text rendering at 125%; arrow cursor on the title bar
+
+**Status: on `main`, unreleased.** Marien (2026-10-10, desktop):
+- **"The content briefly resizes after a tab switch."** A note longer than the window has a scrollbar and a short one does not, so the text width changed by the scrollbar (1240 → 1230px at 1280px) and the note reflowed. `.cm-scroller` now has `scrollbar-gutter: stable`. `tab-switch-width.spec.ts` runs with real scrollbars (Playwright hides them by default) and fails without the fix.
+- **"The actual text changes size"** (laptop at 125%). Measured frame by frame at 125% and 150%, the layout does not change: same font size, the same word width to two decimals, same line height. So the change happens when the text is drawn to the screen, which headless Chromium (no ClearType, no Mica) cannot show. Two likely causes, both changed in a way that cannot alter how anything looks: `.cm-editor` gets the opaque canvas background, so Chromium can keep ClearType on its scrolling layer when the window behind the page is see-through (Mica); and the overview ruler has `will-change: opacity`, so its fade-in after a switch no longer creates and drops a layer over the text. **Needs Marien's check at 125%.**
+- **Hand vs arrow cursor in the title bar.** Tabs and most buttons showed a hand, while the maximize button (covered by the native Snap Layouts window) showed the arrow. Everything in `#top-bar` now uses the arrow, as Windows does in title bars, with a text cursor in the tab-rename field.

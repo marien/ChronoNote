@@ -163,3 +163,14 @@
   min-width: 36px;
   padding: 0;
 }
+
+/* The title bar uses the normal arrow everywhere, as Windows does for title bar tabs and buttons (the hand is for
+   links). Before, tabs and most buttons showed a hand while the maximize button, covered by the native Snap Layouts
+   window, showed the arrow (Marien, 2026-10-10). The id selector outranks the components' own `cursor: pointer`. */
+#top-bar,
+#top-bar * {
+  cursor: default;
+}
+#top-bar input {
+  cursor: text;
+}
