@@ -60,6 +60,8 @@ export function installErrorReporting(): void {
 
   if (typeof window !== "undefined") {
     window.addEventListener("error", (event: ErrorEvent) => {
+      // Chromium reports a harmless "ResizeObserver loop ..." as an error event; it is not a bug in the app.
+      if (/ResizeObserver loop/.test(event.message ?? "")) return;
       logError(formatErrorWithStack(event.error, event.message));
       notifyUnexpectedError();
     });
