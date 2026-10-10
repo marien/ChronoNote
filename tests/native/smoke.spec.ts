@@ -6,7 +6,7 @@
  * ChronoNote (the single-instance plugin would hand off to a running one). So they run only on CI, or locally with
  * CHRONONOTE_NATIVE_OK=1 when no ChronoNote is running and you accept the config being replaced. */
 import { test, expect, chromium, type Browser, type Page } from "@playwright/test";
-import { spawn, type ChildProcess } from "node:child_process";
+import { execFile, spawn, type ChildProcess } from "node:child_process";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -38,6 +38,30 @@ function writeConfig() {
 let proc: ChildProcess | null = null;
 let browser: Browser | null = null;
 
+/** WebView2 may listen on IPv4 or IPv6 depending on the machine. */
+async function connectAny(): Promise<Browser> {
+  let last: unknown;
+  for (const host of ["127.0.0.1", "localhost", "[::1]"]) {
+    try {
+      return await chromium.connectOverCDP(`http://${host}:${PORT}`, { timeout: 5_000 });
+    } catch (e) {
+      last = e;
+    }
+  }
+  throw last;
+}
+
+/** The command lines of the app's WebView2 processes: shows whether the debugging argument reached them. */
+function webviewArgs(): Promise<string> {
+  return new Promise((resolve) =>
+    execFile(
+      "powershell",
+      ["-NoProfile", "-Command", "Get-CimInstance Win32_Process -Filter \"Name='msedgewebview2.exe'\" | Select-Object -First 3 -ExpandProperty CommandLine"],
+      (_err, out) => resolve(String(out).slice(0, 3000)),
+    ),
+  );
+}
+
 async function launch(): Promise<Page> {
   if (!fs.existsSync(EXE)) throw new Error(`app not built: ${EXE}`);
   let output = "";
@@ -53,11 +77,22 @@ async function launch(): Promise<Page> {
   const deadline = Date.now() + 90_000;
   for (;;) {
     try {
-      browser = await chromium.connectOverCDP(`http://127.0.0.1:${PORT}`, { timeout: 5_000 });
+      browser = await connectAny();
       break;
     } catch (e) {
       if (exitInfo || Date.now() > deadline) {
         const log = fs.existsSync(LOG) ? fs.readFileSync(LOG, "utf8").slice(-2000) : "(no app.log)";
+        const ports = await new Promise<string>((resolve) =>
+          execFile("netstat", ["-ano", "-p", "TCP"], (_err, out) =>
+            resolve(String(out).split("
+").filter((l) => /LISTEN/.test(l)).join("
+")),
+          ),
+        );
+        output += `
+listening TCP ports:
+${ports}
+webview processes: ${await webviewArgs()}`;
         throw new Error(
           `the app's WebView2 never opened its debugging port (${exitInfo ?? "still running"}; last error ${e}).
 ` +
