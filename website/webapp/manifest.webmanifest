@@ -5,13 +5,38 @@
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone"],
+  "launch_handler": { "client_mode": "focus-existing" },
   "orientation": "any",
   "background_color": "#1e1e1e",
   "theme_color": "#1e1e1e",
   "icons": [
-    { "src": "icons/icon-256.png?v=0.29.2", "sizes": "256x256", "type": "image/png", "purpose": "any" },
-    { "src": "icons/icon-512.png?v=0.29.2", "sizes": "512x512", "type": "image/png", "purpose": "any" },
-    { "src": "icons/icon-256-maskable.png?v=0.29.2", "sizes": "256x256", "type": "image/png", "purpose": "maskable" },
-    { "src": "icons/icon-512-maskable.png?v=0.29.2", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+    { "src": "icons/icon-256.png?v=0.30.0", "sizes": "256x256", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png?v=0.30.0", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-256-maskable.png?v=0.30.0", "sizes": "256x256", "type": "image/png", "purpose": "maskable" },
+    { "src": "icons/icon-512-maskable.png?v=0.30.0", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    {
+      "name": "Today",
+      "url": "./?open=today",
+      "icons": [
+        { "src": "icons/icon-256.png?v=0.30.0", "sizes": "256x256", "type": "image/png" }
+      ]
+    },
+    {
+      "name": "Actions",
+      "url": "./?open=actions",
+      "icons": [
+        { "src": "icons/icon-256.png?v=0.30.0", "sizes": "256x256", "type": "image/png" }
+      ]
+    },
+    {
+      "name": "Search",
+      "url": "./?open=search",
+      "icons": [
+        { "src": "icons/icon-256.png?v=0.30.0", "sizes": "256x256", "type": "image/png" }
+      ]
+    }
   ]
 }
