@@ -37,6 +37,11 @@ async function findOverflows(page: Page, rootSelector: string, locale: string, m
           continue;
         }
 
+        // Deliberate single-line truncation with an ellipsis (the full text is the element's tooltip).
+        if (style.textOverflow === "ellipsis" && style.overflowX === "hidden" && style.whiteSpace === "nowrap") {
+          continue;
+        }
+
         // Skip elements designed to truncate with ellipsis (§54: section breadcrumbs capped at 50% width)
         if (htmlEl.classList.contains("item-breadcrumb")) {
           continue;

@@ -318,6 +318,13 @@
         shortcutActions.openActions(e);
         return;
       }
+      // "Ctrl+/ All keys" is in the footer of the drawers and panes, so it has to work from inside them: the Shortcuts
+      // & symbols drawer takes the drawer's place (Marien, 2026-10-10: it did nothing).
+      if (matchesShortcut(e, "openShortcutsHelp") && get(modal) !== "shortcuts") {
+        e.preventDefault();
+        shortcutActions.openShortcutsHelp(e);
+        return;
+      }
       if (modalOwnsKeyboard(e)) return;
 
       // `openShortcutsHelp`'s two combos (Ctrl/Cmd+/ and +Shift+/) both

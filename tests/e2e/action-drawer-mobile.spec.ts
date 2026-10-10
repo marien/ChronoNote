@@ -13,7 +13,7 @@ test.describe("Action Drawer mobile portrait layout (§222)", () => {
 # Short action
 `;
 
-  test("desktop viewport shows line numbers and section breadcrumbs", async ({ page }) => {
+  test("desktop viewport shows section breadcrumbs and no line numbers (Marien, 2026-10-10)", async ({ page }) => {
     await page.setViewportSize({ width: 1024, height: 768 });
     await seedApp(page, {
       seed: {
@@ -26,7 +26,7 @@ test.describe("Action Drawer mobile portrait layout (§222)", () => {
     const item = drawer.locator('.modal-item[role="option"]').first();
 
     await expect(item).toBeVisible();
-    await expect(item.locator(".item-tag")).toBeVisible();
+    await expect(item.locator(".item-tag")).toHaveCount(0);
     await expect(item.locator(".item-breadcrumb")).toBeVisible();
     await expect(item.locator(".item-breadcrumb")).toHaveText("· Operations");
   });

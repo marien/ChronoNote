@@ -96,3 +96,28 @@ test.describe("Actions docked pane (Proposal C1)", () => {
     await expect(page.locator(".overlay")).toHaveCount(0);
   });
 });
+
+test.describe("Ctrl+/ from inside a drawer or pane (the footer's 'All keys' hint)", () => {
+  test.use({ viewport: { width: 1280, height: 800 } });
+  for (const [label, combo, width] of [
+    ["the docked Actions pane", "ControlOrMeta+Shift+A", 1280],
+    ["the Actions dialog", "ControlOrMeta+Shift+A", 900],
+    ["the docked History pane", "ControlOrMeta+Shift+H", 1280],
+  ] as const) {
+    test(`opens Shortcuts & symbols from ${label}`, async ({ page }) => {
+      await page.setViewportSize({ width, height: 800 });
+      await seedApp(page, {
+        seed: {
+          notes: { [todayFilename()]: ["Weekly Sync", "===========", "# one", "# two"].join("\n") },
+          session: { openTabs: [todayFilename()], activeTab: todayFilename() },
+        },
+      });
+      await editor(page).click();
+      await page.keyboard.press("ControlOrMeta+Home");
+      await page.keyboard.press(combo);
+      await expect.poll(() => currentModal(page)).not.toBe("none");
+      await page.keyboard.press("ControlOrMeta+Slash");
+      await expect.poll(() => currentModal(page)).toBe("shortcuts");
+    });
+  }
+});
