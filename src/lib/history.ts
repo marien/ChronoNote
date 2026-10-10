@@ -26,6 +26,7 @@ import {
 } from "./stores";
 import { tokenizeLine } from "./grammar/tokenize";
 import { refreshAllNotesCache } from "./persistence";
+import { cursorSection } from "./occurrences";
 import { jumpToFileLine } from "./tabs";
 import { findNextOccurrenceTarget } from "./copyForward";
 import { getSectionHeaderForLine, isSetextUnderline, normalizeHeaderTitle, openAgendaTopic, reopenDeferredAction, titleForMatching } from "./tokens";
@@ -134,6 +135,10 @@ export async function openMeetingHistory() {
 
   historyTargetHeader.set(targetHeader);
   historyOpenedFromTabId.set(tab.id);
+  // The docked pane follows `cursorSection`; it is only kept current while the pane is docked or the occurrence hint
+  // is on, so it can still name the section of an earlier visit. Set it to this section, or the pane would take the
+  // stale value for a caret move and rebuild the list (which jumped to the earliest date).
+  cursorSection.set(targetHeader);
   historyOccurrences.set([]);
   historyDestinations.set([]);
   historyLoading.set(true);
@@ -154,7 +159,8 @@ export async function refreshHistoryForCursor(): Promise<void> {
   const rawHeader = getSectionHeaderForLine(lines, cursorLineIdx);
   const sourceHeaderDisplay = normalizeHeaderTitle(rawHeader);
   const targetHeader = titleForMatching(sourceHeaderDisplay);
-  if (!targetHeader) {
+  // Outside any section, or still the same section: keep what is shown (and the selected date).
+  if (!targetHeader || targetHeader.toLowerCase() === get(historyTargetHeader).toLowerCase()) {
     return;
   }
 

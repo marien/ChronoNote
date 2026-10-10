@@ -144,4 +144,41 @@ test.describe("Section History docked pane (Proposal C1)", () => {
     await page.keyboard.press("ControlOrMeta+Shift+H");
     await expect.poll(inPane).toBe(true);
   });
+
+  test("reopening, or opening from a past note, stays on that note's date (no jump to the earliest)", async ({ page }) => {
+    const today = todayFilename();
+    await seedApp(page, {
+      seed: {
+        notes: {
+          "2026-08-25.txt": ["Weekly Sync", "===========", "# old a"].join("\n"),
+          "2026-09-04.txt": ["Weekly Sync", "===========", "# old c", "", "Other", "=====", "# o1"].join("\n"),
+          [today]: ["Weekly Sync", "===========", "# first", "", "Other", "=====", "# o2"].join("\n"),
+        },
+        session: { openTabs: ["2026-09-04.txt", today], activeTab: today },
+      },
+    });
+    const active = page.locator(".history-pane .history-occ-tab.active");
+    // Use the pane for "Other", close it, reopen it on "Weekly Sync": the stale caret section used to trigger a
+    // rebuild 250ms later that selected the earliest date.
+    await editor(page).locator(".cm-line", { hasText: "o2" }).click();
+    await page.keyboard.press("ControlOrMeta+Shift+H");
+    await expect(page.locator(".history-pane .modal-title")).toContainText("Other");
+    // A caret move while the pane is open records the caret's section ("Other").
+    await editor(page).locator(".cm-line", { hasText: "o2" }).click();
+    await page.waitForTimeout(400);
+    await page.keyboard.press("Escape");
+    await editor(page).locator(".cm-line", { hasText: "first" }).click();
+    await page.keyboard.press("ControlOrMeta+Shift+H");
+    await expect(active).toContainText(today.replace(".txt", ""));
+    await page.waitForTimeout(800);
+    await expect(active).toContainText(today.replace(".txt", ""));
+    await page.keyboard.press("Escape");
+
+    await page.locator("#tab-bar .tab", { hasText: "2026-09-04" }).click();
+    await editor(page).locator(".cm-line", { hasText: "old c" }).click();
+    await page.keyboard.press("ControlOrMeta+Shift+H");
+    await expect(active).toContainText("2026-09-04");
+    await page.waitForTimeout(800);
+    await expect(active).toContainText("2026-09-04");
+  });
 });
