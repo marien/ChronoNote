@@ -13,7 +13,6 @@ export const de = {
   "settings.modal.title": () => "Einstellungen",
   "settings.tabs.appearance": () => "Darstellung",
   "settings.tabs.notesAndSync": () => "Notizen & Sync",
-  "settings.tabs.updates": () => "Updates",
   "settings.tab.about": () => "Info",
   "settings.back": () => "Zurück",
   "settings.appearance.sectionLabel": () => "Darstellung",
@@ -493,6 +492,7 @@ export const de = {
   "about.error.downloadFromGithub": () => "Von GitHub herunterladen",
   "about.error.couldntCheckPrefix": () => "Die Suche nach Updates ist fehlgeschlagen.",
   "about.upToDate.running": () => "Du verwendest die neueste Version.",
+  "about.checkForUpdates": () => "Nach Updates suchen",
   "about.checkedJustNow": () => "Gerade eben geprüft",
   "about.checkedMinutesAgo": ({ minutes }) => `Vor ${minutes} Minute${minutes === 1 ? "" : "n"} geprüft`,
   "about.checkedHoursAgo": ({ hours }) => `Vor ${hours} Stunde${hours === 1 ? "" : "n"} geprüft`,
@@ -501,10 +501,6 @@ export const de = {
   "about.links.sectionLabel": () => "Links",
   "about.links.website": () => "Website:",
   "about.links.project": () => "Projekt:",
-  "about.learnMore.sectionLabel": () => "Mehr erfahren",
-  "about.learnMore.shortcutsHint": () =>
-    "öffnet das Fenster Tastenkürzel & Symbole — jedes Tastenkürzel und was jedes Editor-Symbol bedeutet.",
-  "about.learnMore.paletteHint": () => "ist die Befehlspalette.",
 
   "common.cancel": () => "Abbrechen",
 

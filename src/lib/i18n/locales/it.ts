@@ -9,7 +9,6 @@ export const it = {
   "settings.modal.title": () => "Impostazioni",
   "settings.tabs.appearance": () => "Aspetto",
   "settings.tabs.notesAndSync": () => "Note e sincronizzazione",
-  "settings.tabs.updates": () => "Aggiornamenti",
   "settings.tab.about": () => "Informazioni",
   "settings.back": () => "Indietro",
   "settings.appearance.sectionLabel": () => "Aspetto",
@@ -496,6 +495,7 @@ export const it = {
   "about.error.downloadFromGithub": () => "Scarica da GitHub",
   "about.error.couldntCheckPrefix": () => "Impossibile verificare gli aggiornamenti.",
   "about.upToDate.running": () => "Stai utilizzando l'ultima versione.",
+  "about.checkForUpdates": () => "Controlla aggiornamenti",
   "about.checkedJustNow": () => "Verificato proprio ora",
   "about.checkedMinutesAgo": ({ minutes }) =>
     `Verificato ${minutes} minut${minutes === 1 ? "o" : "i"} fa`,
@@ -506,10 +506,6 @@ export const it = {
   "about.links.sectionLabel": () => "Collegamenti",
   "about.links.website": () => "Sito web:",
   "about.links.project": () => "Progetto:",
-  "about.learnMore.sectionLabel": () => "Ulteriori informazioni",
-  "about.learnMore.shortcutsHint": () =>
-    "apre il pannello Scorciatoie e simboli — ogni scorciatoia da tastiera e il significato di ciascun glifo dell'editor.",
-  "about.learnMore.paletteHint": () => "è la tavolozza dei comandi.",
 
   "common.cancel": () => "Annulla",
 

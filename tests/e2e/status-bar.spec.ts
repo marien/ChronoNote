@@ -151,8 +151,8 @@ test.describe("status bar — three zones (§100/§110)", () => {
       window.__CHRONO_MOCK__!.updateCheckVersion = "9.9.9";
     });
     await page.keyboard.press("ControlOrMeta+Comma");
-    await page.getByRole("tab", { name: "Updates", exact: true }).click();
-    await page.getByRole("button", { name: "Check now" }).click();
+    await page.getByRole("tab", { name: "About", exact: true }).click();
+    await page.getByRole("button", { name: "Check for updates" }).click();
     await page.locator(".settings-back-btn").click();
 
     const infoBar = page.locator(".info-bar");

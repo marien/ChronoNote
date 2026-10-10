@@ -21,10 +21,9 @@ async function openSettings(page: Page) {
   await expect(settings(page)).toBeVisible();
 }
 
-/** Settings is tabbed (Appearance / Notes & Sync /
- * Updates / About) — always reopens on the first tab, so anything under the other
- * tabs needs an explicit switch first. */
-async function openSettingsTab(page: Page, label: "Appearance" | "Notes & Sync" | "Updates" | "About") {
+/** Settings is tabbed (Appearance / Notes & Sync / About) — always reopens on
+ * the first tab, so anything under the other tabs needs an explicit switch first. */
+async function openSettingsTab(page: Page, label: "Appearance" | "Notes & Sync" | "About") {
   await settings(page).getByRole("tab", { name: label, exact: true }).click();
 }
 

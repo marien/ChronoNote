@@ -409,8 +409,9 @@ kbd {
   gap: 16px;
 }
 
-/* Windows 11 setting CARDS inside .settings-page */
-.settings-page .s-group {
+/* Windows 11 setting CARDS inside .settings-page and .about-modal-card */
+.settings-page .s-group,
+.about-modal-card .s-group {
   gap: 3px;
 }
 
@@ -427,7 +428,8 @@ kbd {
   margin-top: 0;
 }
 
-.settings-page .s-row {
+.settings-page .s-row,
+.about-modal-card .s-row {
   background: color-mix(in srgb, var(--surface-raised) 60%, transparent);
   border: 1px solid var(--edge-soft);
   border-radius: var(--radius-control);
@@ -435,7 +437,8 @@ kbd {
   box-sizing: border-box;
 }
 
-.settings-page .s-group > .s-row + .s-row {
+.settings-page .s-group > .s-row + .s-row,
+.about-modal-card .s-group > .s-row + .s-row {
   border-top: 1px solid var(--edge-soft);
 }
 

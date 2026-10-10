@@ -11,7 +11,6 @@ export const en = {
   "settings.modal.title": () => "Settings",
   "settings.tabs.appearance": () => "Appearance",
   "settings.tabs.notesAndSync": () => "Notes & Sync",
-  "settings.tabs.updates": () => "Updates",
   "settings.tab.about": () => "About",
   "settings.back": () => "Back",
   "settings.appearance.sectionLabel": () => "Appearance",
@@ -484,6 +483,7 @@ export const en = {
   "about.error.downloadFromGithub": () => "Download from GitHub",
   "about.error.couldntCheckPrefix": () => "Couldn't check for updates.",
   "about.upToDate.running": () => "You're running the latest version.",
+  "about.checkForUpdates": () => "Check for updates",
   "about.checkedJustNow": () => "Checked just now",
   "about.checkedMinutesAgo": ({ minutes }) => `Checked ${minutes} minute${minutes === 1 ? "" : "s"} ago`,
   "about.checkedHoursAgo": ({ hours }) => `Checked ${hours} hour${hours === 1 ? "" : "s"} ago`,
@@ -492,10 +492,6 @@ export const en = {
   "about.links.sectionLabel": () => "Links",
   "about.links.website": () => "Website:",
   "about.links.project": () => "Project:",
-  "about.learnMore.sectionLabel": () => "Learn more",
-  "about.learnMore.shortcutsHint": () =>
-    "opens the Shortcuts & Symbols drawer — every keyboard shortcut plus what each editor glyph means.",
-  "about.learnMore.paletteHint": () => "is the command palette.",
 
   "common.cancel": () => "Cancel",
 
