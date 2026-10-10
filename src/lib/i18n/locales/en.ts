@@ -491,7 +491,7 @@ export const en = {
   "about.checkNow": () => "Check now",
   "about.links.sectionLabel": () => "Links",
   "about.links.website": () => "Website:",
-  "about.links.project": () => "Project:",
+  "about.links.project": () => "Source code",
 
   "common.cancel": () => "Cancel",
 

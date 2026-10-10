@@ -500,7 +500,7 @@ export const de = {
   "about.checkNow": () => "Jetzt prüfen",
   "about.links.sectionLabel": () => "Links",
   "about.links.website": () => "Website:",
-  "about.links.project": () => "Projekt:",
+  "about.links.project": () => "Quellcode",
 
   "common.cancel": () => "Abbrechen",
 

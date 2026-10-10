@@ -1296,7 +1296,7 @@ test.describe("section history (Ctrl/Cmd+Shift+H)", () => {
     expect(shortHeight).toBeCloseTo(800 * 0.8, 0);
   });
 
-  test("at 900px width the Section History footer is a single line under 24px and contains the Ctrl+/ hint", async ({
+  test("at 900px width the Section History footer is a single line under 24px, without an 'All keys' hint", async ({
     page,
   }) => {
     await seedApp(page, {
@@ -1318,8 +1318,8 @@ test.describe("section history (Ctrl/Cmd+Shift+H)", () => {
 
     const footer = drawer.locator(".modal-footer");
     await expect(footer).toBeVisible();
-    await expect(footer).toContainText(/Ctrl\+\/|⌘\//);
-    await expect(footer).toContainText("All keys");
+    // No "Ctrl+/ All keys" in this footer (Marien, 2026-10-10).
+    await expect(footer).not.toContainText("All keys");
 
     const hints = footer.locator(".modal-footer-hints");
     const hintsBox = await hints.boundingBox();

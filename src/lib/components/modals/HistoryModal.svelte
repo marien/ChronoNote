@@ -21,14 +21,12 @@
   import type { HistoryDestination, SectionOccurrence } from "../../types";
   import { clampIndex, wrapIndex } from "./virtualList";
   import { isMobile, editorApi } from "../../stores";
-  import { formatCombo, shortcutById } from "../../shortcuts";
 
   interface Props {
     docked?: boolean;
   }
   let { docked = false }: Props = $props();
 
-  const allKeysShortcut = formatCombo(shortcutById("openShortcutsHelp").combos[0]);
 
   let rootEl: HTMLElement | undefined = $state();
   let selectedIndex = $state(0);
@@ -793,9 +791,6 @@
           {:else}
             <kbd>↑/↓</kbd> {$t("history.footer.selectLine")} · <kbd>←/→</kbd> {$t("history.footer.switchDate")} · <kbd>Enter</kbd> {$t("history.footer.openNote")}
           {/if}
-        </div>
-        <div class="modal-footer-all-keys">
-          <kbd>{allKeysShortcut}</kbd> {$t("common.allKeys")}
         </div>
       </div>
     {/if}

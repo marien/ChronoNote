@@ -503,7 +503,7 @@ export const es = {
   "about.checkNow": () => "Comprobar ahora",
   "about.links.sectionLabel": () => "Enlaces",
   "about.links.website": () => "Sitio web:",
-  "about.links.project": () => "Proyecto:",
+  "about.links.project": () => "Código fuente",
 
   "common.cancel": () => "Cancelar",
 

@@ -495,7 +495,7 @@ export const nl = {
   "about.checkNow": () => "Nu controleren",
   "about.links.sectionLabel": () => "Links",
   "about.links.website": () => "Website:",
-  "about.links.project": () => "Project:",
+  "about.links.project": () => "Broncode",
 
   "common.cancel": () => "Annuleren",
 

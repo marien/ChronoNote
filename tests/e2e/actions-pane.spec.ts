@@ -97,7 +97,7 @@ test.describe("Actions docked pane (Proposal C1)", () => {
   });
 });
 
-test.describe("Ctrl+/ from inside a drawer or pane (the footer's 'All keys' hint)", () => {
+test.describe("Ctrl+/ from inside a drawer or pane opens Shortcuts & symbols", () => {
   test.use({ viewport: { width: 1280, height: 800 } });
   for (const [label, combo, width] of [
     ["the docked Actions pane", "ControlOrMeta+Shift+A", 1280],

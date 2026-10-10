@@ -25,14 +25,12 @@
     type PlacedRow,
   } from "./virtualList";
   import { isMobile, editorApi } from "../../stores";
-  import { formatCombo, shortcutById } from "../../shortcuts";
 
   interface Props {
     docked?: boolean;
   }
   let { docked = false }: Props = $props();
 
-  const allKeysShortcut = formatCombo(shortcutById("openShortcutsHelp").combos[0]);
 
   let rootEl: HTMLElement | undefined = $state();
   let mounted = false;
@@ -442,9 +440,6 @@
     <div class="modal-footer">
       <div class="modal-footer-hints">
         <kbd>Enter</kbd> {$t("actionDrawer.footer.goToLine")} · <kbd>Shift+Enter</kbd> {$t("actionDrawer.footer.forwardToToday")} · <kbd>Ctrl+Space</kbd> {$t("actionDrawer.footer.changeState")}
-      </div>
-      <div class="modal-footer-all-keys">
-        <kbd>{allKeysShortcut}</kbd> {$t("common.allKeys")}
       </div>
     </div>
   {/if}

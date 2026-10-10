@@ -10288,3 +10288,8 @@ Gemini 3.8 Flash high (Z5). Found during review:
 - The old global `.about-version-card` rule (`align-items: center`) centred the header's contents; the card now stretches them.
 - On a phone, the general "stack every row" rule put the link buttons under their labels; About's rows keep the button beside the label.
 - Tests the agent had not updated: three in `drawers.spec.ts` looked for the old Links section, `settings.spec.ts` expected four tabs, and two `update-check.spec.ts` tests expected "not checked yet". Opening About starts a check when none has run yet, so those now check the result instead.
+
+**Follow-up (Marien, same day):**
+- The About row "Project" is now "Source code" (Broncode, Quellcode, Code source, Kod źródłowy, Código fuente, Codice sorgente).
+- The "Ctrl+/ All keys" hint is gone from the Actions and History footers (drawer and pane), which leaves more room for their own hints; Ctrl+/ itself still works there.
+- The hints had become the footer's only child, so the `.modal-footer > div:last-child` rule (no shrink, no wrap) applied to them and made them overflow. They are now excluded from it and still truncate.

@@ -505,7 +505,7 @@ export const it = {
   "about.checkNow": () => "Verifica ora",
   "about.links.sectionLabel": () => "Collegamenti",
   "about.links.website": () => "Sito web:",
-  "about.links.project": () => "Progetto:",
+  "about.links.project": () => "Codice sorgente",
 
   "common.cancel": () => "Annulla",
 

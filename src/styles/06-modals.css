@@ -520,7 +520,7 @@ textarea.modal-input.import-textarea {
   gap: 12px;
 }
 /* §C3: Drawer hint footers show at most three hints tailored to state on the
-   left (never wrapping, truncated with ellipsis if crowded) and a fixed
+   left (never wrapping, truncated with ellipsis if crowded) and, except in Actions and History, a fixed
    "Ctrl+/ All keys" hint on the right. */
 .modal-footer-hints {
   white-space: nowrap;
@@ -534,7 +534,9 @@ textarea.modal-input.import-textarea {
   flex-shrink: 0;
   margin-left: auto;
 }
-.modal-footer > div:last-child {
+/* Not the hints themselves when they are the footer's only content (Actions and History have no "All keys"
+   hint any more): they must still shrink and truncate. */
+.modal-footer > div:last-child:not(.modal-footer-hints) {
   white-space: nowrap;
   flex-shrink: 0;
 }

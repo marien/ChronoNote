@@ -507,7 +507,7 @@ export const pl = {
   "about.checkNow": () => "Sprawdź teraz",
   "about.links.sectionLabel": () => "Linki",
   "about.links.website": () => "Strona internetowa:",
-  "about.links.project": () => "Projekt:",
+  "about.links.project": () => "Kod źródłowy",
 
   "common.cancel": () => "Anuluj",
 
