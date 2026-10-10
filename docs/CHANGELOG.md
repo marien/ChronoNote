@@ -10300,7 +10300,7 @@ Gemini 3.8 Flash high (Z5). Found during review:
 
 ## 350. Phone fixes from the first real-phone test; Ctrl+J centres its target
 
-**Status: on `main`, unreleased.** Marien tried v0.30.0 on a real phone (2026-10-10):
+**Status: released in v0.30.1.** Marien tried v0.30.0 on a real phone (2026-10-10):
 - **The keyboard kept popping up.** On a touch phone, three things put focus in a text field: closing a sheet handed focus back to the note (`focusTrap`); Actions and the date picker focused their filter field on open; jumping to an action focused the note. None of these happen on a phone any more. Search still focuses its field, since you open it to type. Desktop is unchanged.
 - **Getting back to the bottom bar while typing was hard** (it only returns when the note loses focus). The symbols bar gets a hide-keyboard button (`mobileAccessory.hideKeyboard`, 7 languages) at its end; it fits at 360px.
 - **Swipe-down stopped after a few pixels**, and touching the header focused the filter field. The browser turned the drag into a scroll and cancelled the pointer. Once a swipe starts on the header, `sheetSwipe` now blocks `touchmove`, so the sheet follows the finger and the drag does not become a tap on the field.
@@ -10312,7 +10312,7 @@ Also (desktop, Marien): **Ctrl+J did not always seem to follow.** The default `s
 
 ## 351. Tab switch reflow and text rendering at 125%; arrow cursor on the title bar
 
-**Status: on `main`, unreleased.** Marien (2026-10-10, desktop):
+**Status: released in v0.30.1.** Marien (2026-10-10, desktop):
 - **"The content briefly resizes after a tab switch."** A note longer than the window has a scrollbar and a short one does not, so the text width changed by the scrollbar (1240 → 1230px at 1280px) and the note reflowed. `.cm-scroller` now has `scrollbar-gutter: stable`. `tab-switch-width.spec.ts` runs with real scrollbars (Playwright hides them by default) and fails without the fix.
 - **"The actual text changes size"** (laptop at 125%). Measured frame by frame at 125% and 150%, the layout does not change: same font size, the same word width to two decimals, same line height. So the change happens when the text is drawn to the screen, which headless Chromium (no ClearType, no Mica) cannot show. Two likely causes, both changed in a way that cannot alter how anything looks: `.cm-editor` gets the opaque canvas background, so Chromium can keep ClearType on its scrolling layer when the window behind the page is see-through (Mica); and the overview ruler has `will-change: opacity`, so its fade-in after a switch no longer creates and drops a layer over the text. **Needs Marien's check at 125%.**
 - **Hand vs arrow cursor in the title bar.** Tabs and most buttons showed a hand, while the maximize button (covered by the native Snap Layouts window) showed the arrow. Everything in `#top-bar` now uses the arrow, as Windows does in title bars, with a text cursor in the tab-rename field.
