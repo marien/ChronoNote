@@ -128,4 +128,20 @@ test.describe("Section History docked pane (Proposal C1)", () => {
     await page.keyboard.press("ControlOrMeta+Shift+H");
     await expect(page.locator(".history-pane .history-body")).toBeFocused();
   });
+
+  test("Ctrl+Shift+H switches focus between the note and the docked pane (no F-key needed)", async ({ page }) => {
+    await seedApp(page, { seed: { notes: seedNotes, session: { openTabs: [todayFilename()], activeTab: todayFilename() } } });
+    await editor(page).click();
+    await page.keyboard.press("ControlOrMeta+Home");
+    await page.keyboard.press("ControlOrMeta+Shift+H");
+    const pane = page.locator(".history-pane");
+    await expect(pane).toBeVisible();
+    const inPane = () => page.evaluate(() => !!document.querySelector(".history-pane")?.contains(document.activeElement));
+    await expect.poll(inPane).toBe(true);
+    await page.keyboard.press("ControlOrMeta+Shift+H");
+    await expect(editor(page)).toBeFocused();
+    await expect(pane).toBeVisible();
+    await page.keyboard.press("ControlOrMeta+Shift+H");
+    await expect.poll(inPane).toBe(true);
+  });
 });

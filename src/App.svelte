@@ -111,8 +111,11 @@
       reopenClosedTab: () => controller.reopenLastClosedTab(),
       openActions: () => controller.openActionDrawer(),
       openHistory: () => {
+        // Docked: the shortcut switches focus between the note and the pane (as F6 does; F-keys need Fn on many
+        // laptops, so this is the one to use there).
         if (get(modal) === "history" && isHistoryDocked) {
-          document.querySelector<HTMLElement>(".history-pane .history-body")?.focus();
+          if (document.querySelector(".history-pane")?.contains(document.activeElement)) editorApi?.focus();
+          else document.querySelector<HTMLElement>(".history-pane .history-body")?.focus();
         } else {
           controller.openMeetingHistory();
         }
@@ -288,6 +291,12 @@
       // arrow keys then acted on that now-stale editor instead of the
       // modal). `commandPalette`/`findInNote` above already gate the same
       // way; this closes the same hole for every other entry in the table.
+      // The docked History pane: its own shortcut switches focus back to the note even from inside the pane.
+      if (matchesShortcut(e, "openHistory") && get(modal) === "history" && isHistoryDocked) {
+        e.preventDefault();
+        shortcutActions.openHistory(e);
+        return;
+      }
       if (modalOwnsKeyboard(e)) return;
 
       // `openShortcutsHelp`'s two combos (Ctrl/Cmd+/ and +Shift+/) both

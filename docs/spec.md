@@ -466,7 +466,7 @@ reachable from the top bar, a shortcut, or the command palette:
 - **Section History** (`Ctrl/Cmd+Shift+H`) — on a window 1000px or wider
   (not a phone, Zen or Peek) a pane docked right of the note (§343): the
   note stays editable and the app's shortcuts keep working in it, `F6`
-  moves focus between note and pane, the pane follows the caret into
+  or `Ctrl/Cmd+Shift+H` moves focus between note and pane, the pane follows the caret into
   another section (250ms debounce), and `Escape` closes it back to the
   note. Narrower, it is a dialog. Either way it browses every dated note that
   has the recurring section under the cursor, past and future, in the dialog at a fixed
