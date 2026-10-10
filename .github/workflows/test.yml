@@ -147,6 +147,8 @@ jobs:
           cache: npm
       - uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87 # stable
       - run: npm ci
-      - name: debug build of the app (no installer)
-        run: npm run tauri build -- --debug --no-bundle
+      - name: debug build of the app with a debugging port (no installer)
+        run: |
+          node scripts/native-test-config.mjs native-test.conf.json 9333
+          npm run tauri build -- --debug --no-bundle --config native-test.conf.json
       - run: npx playwright test -c playwright.native.config.ts
