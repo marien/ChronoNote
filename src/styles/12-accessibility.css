@@ -9,14 +9,19 @@
     --motion-slow: 0ms;
   }
 
-  /* Global safety net: 0.01ms rather than none so transitionend and animationend
-     events still fire for any script awaiting them. */
+  /* Global safety net. Animations: 0.01ms rather than none so animationend still fires for anything awaiting it
+     (animations only exist where one is declared). Transitions: none at all. A duration on `*` makes EVERY element
+     transition every property (an element without its own transition has `transition-property: all`), and a
+     transition holds the old value until the next frame: a freshly created editor showed the page's 14px text and
+     no padding for a frame or two before its own styles took over, on every tab switch, for anyone with Windows
+     "Animation effects" off (Marien, 2026-10-10). No code waits for transitionend. */
   *,
   *::before,
   *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
+    transition-duration: 0s !important;
+    transition-delay: 0s !important;
     scroll-behavior: auto !important;
   }
 

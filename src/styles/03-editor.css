@@ -79,9 +79,8 @@
 }
 .cm-editor {
   height: 100%;
-  /* Opaque, the same colour as the note area: with Mica the window behind the page is see-through, and Chromium
-     only keeps ClearType text on an opaque scrolling layer; a transparent editor could flip between ClearType and
-     grayscale as layers are rebuilt on a tab switch (Marien, 2026-10-10, 125% laptop: text briefly changed size). */
+  /* Opaque, the same colour as the note area, so the editor never depends on what is behind the page (Mica). (The
+     "text briefly changes size on a tab switch" report turned out to be the reduced-motion rule, §354.) */
   background: var(--surface-canvas);
   font-family: var(--font) !important;
   font-size: var(--editor-font-size, 13px) !important;
@@ -218,9 +217,6 @@
 
 /* Overview Ruler: scrollbar track markers for open actions and topics */
 .cm-overview-ruler {
-  /* Its own layer all the time: the fade-in after a tab switch otherwise created and dropped a layer over the text,
-     which can redraw the text without ClearType for the length of the fade. */
-  will-change: opacity;
   /* top+bottom (not an explicit height) so the browser's own layout keeps
      this box pixel-identical to .cm-editor's content box, always — a JS-
      measured height (the previous approach) can be off by a rounding
