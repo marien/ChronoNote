@@ -105,3 +105,9 @@ test.describe("tab archetypes (§103)", () => {
     expect(closedOrPrompted).toBe(true);
   });
 });
+
+test("the active tab has no outward curves at its base (they showed as dark wedges, 2026-10-10)", async ({ page }) => {
+  await seedApp(page, { seed: "busy-week" });
+  const pseudo = await page.locator("#tab-bar .tab.active").evaluate((el) => [getComputedStyle(el, "::before").content, getComputedStyle(el, "::after").content]);
+  expect(pseudo).toEqual(["none", "none"]);
+});

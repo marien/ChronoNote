@@ -47,12 +47,6 @@ async function findOverflows(page: Page, rootSelector: string, locale: string, m
           continue;
         }
 
-        // §B3: the active tab's outward base curves stick out 8px on purpose (absolutely positioned
-        // pseudo-elements), which counts towards its scrollWidth. Allow exactly that, nothing more.
-        if (htmlEl.matches("#tab-bar .tab.active") && htmlEl.scrollWidth - htmlEl.clientWidth <= 8) {
-          continue;
-        }
-
         // Check horizontal overflow on buttons, tabs, labels, headers, spans
         const isScrollable = style.overflowX === "auto" || style.overflowX === "scroll";
         if (!isScrollable) {

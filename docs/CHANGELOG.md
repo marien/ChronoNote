@@ -10342,3 +10342,7 @@ Lesson: a "*" rule with a transition or animation property is never harmless. Fo
 
 Confirmed by Marien (2026-10-10): with Windows "Animation effects" switched back on, the laptop no longer flickers on v0.30.2, which matches the diagnosis.
 
+
+## 355. No outward curves at the active tab's base
+
+**Status: on `main`, unreleased.** Marien (2026-10-10, screenshots): odd dark wedges to the left and right of the active tab. They were the tab's outward base curves (§B3, 8px pseudo-elements filled with the note colour, meant to let the tab flow into the note). Since the active tab got its outline (§339), and with Mica's see-through title bar, they showed as detached dark corners: the outline does not follow them, and they sit on a semi-transparent bar. They are removed; the outlined tab sits square on the note. The overflow audit's exception for them is removed too, and `tab-archetypes.spec.ts` checks the active tab has no `::before`/`::after`.

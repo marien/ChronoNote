@@ -1579,28 +1579,8 @@
   border-bottom: none;
 }
 
-/* The active tab joins the canvas below it with small outward curves at its base. */
-
-#tab-bar .tab.active::before,
-#tab-bar .tab.active::after {
-  content: "";
-  position: absolute;
-  bottom: 0;
-  width: 8px;
-  height: 8px;
-  pointer-events: none;
-}
-
-#tab-bar .tab.active::before {
-  left: -8px;
-  background: radial-gradient(circle at 0 0, transparent 7.5px, var(--surface-canvas) 8px);
-  transform: scaleX(-1);
-}
-
-#tab-bar .tab.active::after {
-  right: -8px;
-  background: radial-gradient(circle at 0 0, transparent 7.5px, var(--surface-canvas) 8px);
-}
+/* No outward curves at the active tab's base any more: with the outline (§339) and Mica's see-through title bar they
+   showed as dark wedges beside the tab (Marien, 2026-10-10). The outlined tab sits square on the note. */
 
 /* A hairline between two neighbouring inactive tabs, so a row of dates is easy to scan. */
 
