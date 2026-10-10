@@ -847,6 +847,7 @@ export type TranslationParams = {
   "phoneNav.openCount": { count: number };
   "phoneNav.previous": undefined;
   "phoneNav.next": undefined;
+  "pane.resize": undefined;
 };
 
 export type TranslationKey = keyof TranslationParams;

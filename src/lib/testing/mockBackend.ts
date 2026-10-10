@@ -70,6 +70,8 @@ export interface MockSeed {
   statusBarVisible?: boolean;
   /** Mirrors `AppConfig.tabLabelStyle`, ISO by default. */
   tabLabelStyle?: TabLabelStyle;
+  historyPaneShare?: number;
+  actionsPaneShare?: number;
   onboardingCompleted?: boolean;
   lastSyncSuccessMs?: number | null;
   backendKind?: "desktop" | "demo" | "web";
@@ -272,6 +274,8 @@ export class MockBackend {
   occurrenceHint: boolean;
   statusBarVisible: boolean;
   tabLabelStyle: TabLabelStyle;
+  historyPaneShare: number;
+  actionsPaneShare: number;
   onboardingCompleted: boolean;
   lastSyncSuccessMs: number | null = null;
   recentNotesDirs: string[];
@@ -355,6 +359,8 @@ export class MockBackend {
     this.occurrenceHint = seed.occurrenceHint ?? false;
     this.statusBarVisible = seed.statusBarVisible ?? true;
     this.tabLabelStyle = seed.tabLabelStyle ?? "iso";
+    this.historyPaneShare = seed.historyPaneShare ?? 0.30;
+    this.actionsPaneShare = seed.actionsPaneShare ?? 0.30;
     this.onboardingCompleted = seed.onboardingCompleted ?? true;
     this.lastSyncSuccessMs = seed.lastSyncSuccessMs ?? null;
     this.recentNotesDirs = seed.recentNotesDirs ? [...seed.recentNotesDirs] : [];
@@ -412,6 +418,8 @@ export class MockBackend {
       occurrenceHint: this.occurrenceHint,
       statusBarVisible: this.statusBarVisible,
       tabLabelStyle: this.tabLabelStyle,
+      historyPaneShare: this.historyPaneShare,
+      actionsPaneShare: this.actionsPaneShare,
       onboardingCompleted: this.onboardingCompleted,
       isMinimized: this.isMinimized,
       recentNotesDirs: this.recentNotesDirs,
@@ -455,6 +463,8 @@ export class MockBackend {
         occurrenceHint?: boolean;
         statusBarVisible?: boolean;
         tabLabelStyle?: TabLabelStyle;
+        historyPaneShare?: number;
+        actionsPaneShare?: number;
         onboardingCompleted?: boolean;
         isMinimized?: boolean;
         recentNotesDirs: string[];
@@ -480,6 +490,8 @@ export class MockBackend {
       b.occurrenceHint = s.occurrenceHint ?? false;
       b.statusBarVisible = s.statusBarVisible ?? true;
       b.tabLabelStyle = s.tabLabelStyle ?? "iso";
+      b.historyPaneShare = s.historyPaneShare ?? 0.30;
+      b.actionsPaneShare = s.actionsPaneShare ?? 0.30;
       b.onboardingCompleted = s.onboardingCompleted ?? true;
       b.recentNotesDirs = s.recentNotesDirs;
       b.appVersion = s.appVersion;
@@ -525,6 +537,8 @@ export class MockBackend {
       occurrenceHint: this.occurrenceHint,
       statusBarVisible: this.statusBarVisible,
       tabLabelStyle: this.tabLabelStyle,
+      historyPaneShare: this.historyPaneShare,
+      actionsPaneShare: this.actionsPaneShare,
       onboardingCompleted: this.onboardingCompleted,
     };
   }
@@ -612,6 +626,8 @@ export class MockBackend {
       if (patch.occurrenceHint !== undefined) this.occurrenceHint = patch.occurrenceHint;
       if (patch.statusBarVisible !== undefined) this.statusBarVisible = patch.statusBarVisible;
       if (patch.tabLabelStyle !== undefined) this.tabLabelStyle = patch.tabLabelStyle;
+      if (patch.historyPaneShare !== undefined) this.historyPaneShare = Math.min(0.60, Math.max(0.18, patch.historyPaneShare));
+      if (patch.actionsPaneShare !== undefined) this.actionsPaneShare = Math.min(0.60, Math.max(0.18, patch.actionsPaneShare));
       if (patch.pureBlack !== undefined) this.pureBlack = patch.pureBlack;
       if (patch.peek !== undefined) this.peek = clampPeek(patch.peek);
       if (patch.lastSeenVersion !== undefined) this.lastSeenVersion = patch.lastSeenVersion;

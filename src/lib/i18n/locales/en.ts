@@ -836,4 +836,5 @@ export const en = {
   "phoneNav.openCount": (params) => `${params?.count ?? 0} open`,
   "phoneNav.previous": () => "Previous note",
   "phoneNav.next": () => "Next note",
+  "pane.resize": () => "Resize pane",
 } satisfies Dictionary;

@@ -106,6 +106,14 @@ export function setTabLabelStyle(style: TabLabelStyle): Promise<AppConfig> {
   return updateConfig({ tabLabelStyle: style });
 }
 
+export function setHistoryPaneShare(share: number): Promise<AppConfig> {
+  return updateConfig({ historyPaneShare: share });
+}
+
+export function setActionsPaneShare(share: number): Promise<AppConfig> {
+  return updateConfig({ actionsPaneShare: share });
+}
+
 export function setPeek(peek: PeekConfig): Promise<AppConfig> {
   return updateConfig({ peek });
 }

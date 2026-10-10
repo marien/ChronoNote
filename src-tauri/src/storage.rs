@@ -316,6 +316,12 @@ pub struct AppConfig {
     /// How dated tabs are labelled in the tab strip (§B3). Old configs load as ISO.
     #[serde(default)]
     pub tab_label_style: TabLabelStyle,
+    /// Share of the window width occupied by the History pane when docked.
+    #[serde(default = "default_pane_share")]
+    pub history_pane_share: f32,
+    /// Share of the window width occupied by the Actions pane when docked.
+    #[serde(default = "default_pane_share")]
+    pub actions_pane_share: f32,
 }
 
 /// A partial update of `AppConfig` for the `update_config` command: only the
@@ -350,6 +356,10 @@ pub struct ConfigPatch {
     pub status_bar_visible: Option<bool>,
     #[ts(optional)]
     pub tab_label_style: Option<TabLabelStyle>,
+    #[ts(optional)]
+    pub history_pane_share: Option<f32>,
+    #[ts(optional)]
+    pub actions_pane_share: Option<f32>,
     #[ts(optional)]
     pub pure_black: Option<bool>,
     #[ts(optional)]
@@ -402,6 +412,12 @@ impl ConfigPatch {
         if let Some(v) = self.tab_label_style {
             cfg.tab_label_style = v;
         }
+        if let Some(v) = self.history_pane_share {
+            cfg.history_pane_share = v.clamp(0.18, 0.60);
+        }
+        if let Some(v) = self.actions_pane_share {
+            cfg.actions_pane_share = v.clamp(0.18, 0.60);
+        }
         if let Some(v) = self.pure_black {
             cfg.pure_black = v;
         }
@@ -419,6 +435,10 @@ impl ConfigPatch {
 
 fn default_true() -> bool {
     true
+}
+
+fn default_pane_share() -> f32 {
+    0.30
 }
 
 fn default_font_size() -> f32 {
@@ -668,6 +688,8 @@ fn load_config_at(path: &Path, default_notes_dir: &Path) -> Result<AppConfig, St
         occurrence_hint: false,
         status_bar_visible: true,
         tab_label_style: TabLabelStyle::default(),
+        history_pane_share: default_pane_share(),
+        actions_pane_share: default_pane_share(),
     };
     save_config_at(path, &cfg)?;
     Ok(cfg)
@@ -1419,6 +1441,8 @@ mod tests {
             occurrence_hint: false,
             status_bar_visible: true,
             tab_label_style: TabLabelStyle::default(),
+            history_pane_share: 0.35,
+            actions_pane_share: 0.45,
         };
         save_config_at(&path, &cfg).unwrap();
         let loaded = load_config_at(&path, &dir.path().join("Notes")).unwrap();
@@ -1436,6 +1460,8 @@ mod tests {
         assert_eq!(loaded.language_mode, LanguageMode::Nl);
         assert!(loaded.onboarding_completed);
         assert_eq!(loaded.startup_tab_mode, StartupTabMode::SmartLastActive);
+        assert_eq!(loaded.history_pane_share, 0.35);
+        assert_eq!(loaded.actions_pane_share, 0.45);
     }
 
     #[test]
@@ -1483,6 +1509,8 @@ mod tests {
                 occurrence_hint: false,
                 status_bar_visible: true,
                 tab_label_style: TabLabelStyle::default(),
+                history_pane_share: default_pane_share(),
+                actions_pane_share: default_pane_share(),
             };
             save_config_at(&path, &cfg).unwrap();
             let on_disk = fs::read_to_string(&path).unwrap();
@@ -2427,6 +2455,13 @@ mod tests {
         let (_, after) = patched(r#"{"peek": {"opacity": 1, "lines": 999}}"#);
         assert_eq!(after["peek"]["opacity"], serde_json::json!(PEEK_MIN_OPACITY));
         assert_eq!(after["peek"]["lines"], serde_json::json!(PEEK_MAX_LINES));
+    }
+
+    #[test]
+    fn config_patch_clamps_pane_shares() {
+        let (_, after) = patched(r#"{"historyPaneShare": 0.05, "actionsPaneShare": 0.95}"#);
+        assert_eq!(after["historyPaneShare"].as_f64().unwrap() as f32, 0.18_f32);
+        assert_eq!(after["actionsPaneShare"].as_f64().unwrap() as f32, 0.60_f32);
     }
 
     #[test]
