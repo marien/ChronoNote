@@ -835,6 +835,7 @@ export const fr = {
   "toast.oneDriveSync.signInExpired": () => "Votre connexion OneDrive a expiré. Cliquez pour vous reconnecter.",
   "toast.persistence.failedToSaveNote": () => "Échec de l'enregistrement de la note",
   "toast.persistence.keptChangedNote": ({ filename }) => `${filename} a été modifié sur le disque ; il a donc été conservé au lieu d'être supprimé`,
+  "toast.boot.configFromNewerVersion": () => "Réglages enregistrés par un ChronoNote plus récent. Certains peuvent ne pas s'appliquer.",
   "toast.dragDrop.unsupportedFile": () => "Fichier non pris en charge. Déposez un export .json ou une note YYYY-MM-DD.txt.",
   "onboarding.scratchpadName": () => "Bienvenue",
   "toast.onboarding.mobileHint": () =>

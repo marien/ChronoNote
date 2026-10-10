@@ -62,6 +62,7 @@ interface StoredNote {
 }
 
 interface StoredConfig {
+  schemaVersion?: number;
   colorMode: ColorMode;
   themeMode: ThemeMode;
   languageMode: LanguageMode;
@@ -248,6 +249,7 @@ export class WebBackend {
     const stored = await idbGet<StoredConfig>(db, STORE_META, CONFIG_KEY);
     return (
       stored ?? {
+        schemaVersion: 1,
         colorMode: "color", // mirrors storage.rs's ColorMode::default() (§140)
         themeMode: "system",
         languageMode: "system",
@@ -283,6 +285,7 @@ export class WebBackend {
       dir = folder?.folderPath || "OneDrive";
     }
     return {
+      schemaVersion: cfg.schemaVersion ?? 1,
       notesDir: dir,
       // §328: the Legacy palette became Color; a browser may still have "legacy" stored.
       colorMode: (cfg.colorMode as string) === "legacy" ? "color" : cfg.colorMode,
@@ -445,6 +448,7 @@ export class WebBackend {
       const db = await this.db();
       const key = await this.getActiveSessionKey();
       await idbPut(db, STORE_META, key, {
+        schemaVersion: 1,
         openTabs: openTabs ?? [],
         activeTab: activeTab ?? null,
         lastOpenedDate: lastOpenedDate ?? null,

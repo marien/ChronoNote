@@ -821,6 +821,7 @@ export type TranslationParams = {
   "toast.persistence.failedToSaveNote": undefined;
   "toast.persistence.keptChangedNote": { filename: string };
   "toast.onboarding.mobileHint": undefined;
+  "toast.boot.configFromNewerVersion": undefined;
   "toast.dragDrop.unsupportedFile": undefined;
   "onboarding.scratchpadName": undefined;
   // i18n Phase 2 (docs/design/i18n-roadmap.md): translated headlines for

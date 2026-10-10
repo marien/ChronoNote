@@ -816,6 +816,7 @@ export const nl = {
   "toast.oneDriveSync.signInExpired": () => "Je OneDrive-aanmelding is verlopen. Klik om opnieuw aan te melden.",
   "toast.persistence.failedToSaveNote": () => "Opslaan van notitie mislukt",
   "toast.persistence.keptChangedNote": ({ filename }) => `${filename} is op schijf gewijzigd en is daarom bewaard in plaats van verwijderd`,
+  "toast.boot.configFromNewerVersion": () => "Instellingen zijn opgeslagen door een nieuwere ChronoNote. Sommige werken mogelijk niet.",
   "toast.dragDrop.unsupportedFile": () => "Niet-ondersteund bestand. Sleep een .json-export of een YYYY-MM-DD.txt-notitie hierheen.",
   "onboarding.scratchpadName": () => "Welkom",
   "toast.onboarding.mobileHint": () =>
