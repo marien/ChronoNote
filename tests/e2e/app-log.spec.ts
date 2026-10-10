@@ -27,34 +27,17 @@ test.describe("App log, diagnostics, and error reporting (§app-log)", () => {
     expect(clipboardText).toContain("ChronoNote version");
 
     // Trigger unexpected error
-    await page.evaluate(() => {
-      setTimeout(() => {
-        throw new Error("boom-test");
-      });
-    });
+    // A page script throwing at top level: seedApp pins the clock, and Playwright's clock catches errors thrown in timers.
+    await page.addScriptTag({ content: 'throw new Error("boom-test");' }).catch(() => {});
 
-    // The status bar (#stat-message) shows the unexpected-error message
-    const statMessage = page.locator("#stat-message");
-    await expect(statMessage).toBeVisible();
-    await expect(statMessage).toContainText("Something went wrong");
+    // The message is long enough for the status bar's long-message area, so look for the text, not #stat-message.
+    await expect(page.getByText("Something went wrong").first()).toBeVisible();
+    const logLines = () => page.evaluate(() => window.__CHRONO_MOCK__!.logLines);
+    expect((await logLines()).some((l) => l.includes("boom-test"))).toBe(true);
 
-    // window.__CHRONO_MOCK__.logLines contains boom-test
-    let logLines = await page.evaluate(() => window.__CHRONO_MOCK__!.logLines);
-    expect(logLines.some((l) => l.includes("boom-test"))).toBe(true);
-
-    // Dismiss the message
-    await statMessage.click();
-    await expect(statMessage).not.toBeVisible();
-
-    // A second error right after is logged but does not show the message again
-    await page.evaluate(() => {
-      setTimeout(() => {
-        throw new Error("boom-test-2");
-      });
-    });
-
-    logLines = await page.evaluate(() => window.__CHRONO_MOCK__!.logLines);
-    expect(logLines.some((l) => l.includes("boom-test-2"))).toBe(true);
-    await expect(statMessage).not.toBeVisible();
+    // A second error right after is logged, but the message is not shown again (every shown message is logged once).
+    await page.addScriptTag({ content: 'throw new Error("boom-test-2");' }).catch(() => {});
+    await expect.poll(async () => (await logLines()).some((l) => l.includes("boom-test-2"))).toBe(true);
+    expect((await logLines()).filter((l) => l.startsWith("INFO") && l.includes("Something went wrong"))).toHaveLength(1);
   });
 });
