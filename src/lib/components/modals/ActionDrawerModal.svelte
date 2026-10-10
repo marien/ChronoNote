@@ -371,6 +371,7 @@
   <div
     class="modal-list"
     role="listbox"
+    aria-label={$t("actionDrawer.modal.ariaLabel")}
     bind:this={listEl}
     bind:clientHeight={viewportHeight}
     onscroll={onScroll}

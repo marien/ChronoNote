@@ -738,6 +738,8 @@
     {/if}
     <div
       id="tab-bar"
+      role="tablist"
+      aria-label={$t("topBar.openTabsList.ariaLabel", { count: displayTabs.length })}
       bind:this={tabBarEl}
       data-tauri-drag-region={isMergedTitlebar ? true : undefined}
     >
@@ -799,10 +801,9 @@
           {:else if tab.id === $activeTabId && $saveState === "error"}
             <span class="tab-status-dot err" title={$t("topBar.tabStatus.saveFailed")}></span>
           {/if}
+          <!-- svelte-ignore a11y_no_static_element_interactions -->
           <span
             class="tab-close"
-            role="button"
-            tabindex="0"
             aria-label={$t("topBar.closeTab")}
             onclick={(e) => {
               e.stopPropagation();

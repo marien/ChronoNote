@@ -683,7 +683,7 @@
               role="tab"
               aria-selected={index === selectedIndex}
               data-occ-index={index}
-              tabindex="-1"
+              tabindex={index === selectedIndex ? 0 : -1}
               title={heat ? $t("history.occ.title.hasContent", { date: occ.date }) : $t("history.occ.title.empty", { date: occ.date })}
               onclick={() => {
                 selectedIndex = index;
@@ -728,7 +728,13 @@
     <div class="history-body" tabindex="-1" bind:this={bodyContainerEl}>
       <div class="history-detail">
         {#if selectedOcc}
-          <div class="hp-context history-select-body" bind:this={bodyEl}>
+          <div
+            class="hp-context history-select-body"
+            bind:this={bodyEl}
+            role="listbox"
+            aria-multiselectable="true"
+            aria-label={$t("history.modal.ariaLabel")}
+          >
             {#if selectedOcc.lines.length === 0}
               <div class="hp-line hp-muted">{$t("history.body.emptySection")}</div>
             {:else}

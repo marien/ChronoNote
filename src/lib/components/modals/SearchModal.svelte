@@ -270,6 +270,7 @@
     <div
       class="modal-list"
       role="listbox"
+      aria-label={$t("shortcuts.crossTabSearch.label")}
       bind:this={listEl}
       bind:clientHeight={viewportHeight}
       onscroll={onScroll}

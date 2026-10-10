@@ -300,7 +300,8 @@
     {#each WEEKDAY_INDICES as i}<span>{weekdayAbbrev($locale, i)}</span>{/each}
   </div>
 
-  <div class="cal-grid" role="grid" tabindex="-1" bind:this={gridEl} onkeydown={onGridKeydown}>
+  <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+  <div class="cal-grid" role="group" aria-label={$t("datePicker.ariaLabel")} tabindex="-1" bind:this={gridEl} onkeydown={onGridKeydown}>
     {#each weeks as week (week.days[0].iso)}
       <span class="cal-week-num" aria-hidden="true">{week.weekNum}</span>
       {#each week.days as cell (cell.iso)}

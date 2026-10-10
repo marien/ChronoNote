@@ -794,6 +794,9 @@
           role="separator"
           aria-orientation="vertical"
           aria-label={$t("pane.resize")}
+          aria-valuenow={Math.round($historyPaneShare * 100)}
+          aria-valuemin={18}
+          aria-valuemax={60}
           tabindex="0"
           onpointerdown={(e) => handlePointerDown("history", e)}
           onpointermove={(e) => handlePointerMove("history", e)}
@@ -819,6 +822,9 @@
           role="separator"
           aria-orientation="vertical"
           aria-label={$t("pane.resize")}
+          aria-valuenow={Math.round($actionsPaneShare * 100)}
+          aria-valuemin={18}
+          aria-valuemax={60}
           tabindex="0"
           onpointerdown={(e) => handlePointerDown("actions", e)}
           onpointermove={(e) => handlePointerMove("actions", e)}
