@@ -23,7 +23,6 @@ export type TranslationParams = {
   "settings.modal.title": undefined;
   "settings.tabs.appearance": undefined;
   "settings.tabs.notesAndSync": undefined;
-  "settings.tabs.updates": undefined;
   "settings.tab.about": undefined;
   "settings.back": undefined;
   "settings.appearance.sectionLabel": undefined;
@@ -472,6 +471,7 @@ export type TranslationParams = {
   "about.upToDate.running": undefined;
   /** "Checked just now" / "Checked N minute(s)/hour(s) ago" —
    * `agoLabel()` in `AboutModal.svelte`. */
+  "about.checkForUpdates": undefined;
   "about.checkedJustNow": undefined;
   "about.checkedMinutesAgo": { minutes: number };
   "about.checkedHoursAgo": { hours: number };
@@ -480,11 +480,8 @@ export type TranslationParams = {
   "about.links.sectionLabel": undefined;
   "about.links.website": undefined;
   "about.links.project": undefined;
-  "about.learnMore.sectionLabel": undefined;
   /** Both hints sit right after their own `<kbd>` combo, never mid-sentence
    * (like §220's "Numbered list" case) — no rich-text schema needed. */
-  "about.learnMore.shortcutsHint": undefined;
-  "about.learnMore.paletteHint": undefined;
 
   "common.cancel": undefined;
   "common.browse": undefined;

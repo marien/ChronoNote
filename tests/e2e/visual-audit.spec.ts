@@ -99,11 +99,11 @@ test.describe("Visual layout & overflow audit across locales", () => {
       issues = await findOverflows(page, ".settings-modal-card, .settings-page", locale, "Settings (Notes & Sync)");
       allIssues.push(...issues);
 
-      // Switch to Updates tab if present
+      // Switch to About tab if present
       if ((await tabButtons.count()) > 2) {
         await tabButtons.nth(2).click();
         await page.waitForTimeout(100);
-        issues = await findOverflows(page, ".settings-modal-card, .settings-page", locale, "Settings (Updates)");
+        issues = await findOverflows(page, ".settings-modal-card, .settings-page", locale, "Settings (About)");
         allIssues.push(...issues);
       }
 

@@ -9,7 +9,6 @@ export const es = {
   "settings.modal.title": () => "Ajustes",
   "settings.tabs.appearance": () => "Apariencia",
   "settings.tabs.notesAndSync": () => "Notas y sincronización",
-  "settings.tabs.updates": () => "Actualizaciones",
   "settings.tab.about": () => "Acerca de",
   "settings.back": () => "Atrás",
   "settings.appearance.sectionLabel": () => "Apariencia",
@@ -494,6 +493,7 @@ export const es = {
   "about.error.downloadFromGithub": () => "Descargar desde GitHub",
   "about.error.couldntCheckPrefix": () => "No se pudieron buscar actualizaciones.",
   "about.upToDate.running": () => "Está usando la versión más reciente.",
+  "about.checkForUpdates": () => "Buscar actualizaciones",
   "about.checkedJustNow": () => "Comprobado justo ahora",
   "about.checkedMinutesAgo": ({ minutes }) =>
     `Comprobado hace ${minutes} minuto${minutes === 1 ? "" : "s"}`,
@@ -504,10 +504,6 @@ export const es = {
   "about.links.sectionLabel": () => "Enlaces",
   "about.links.website": () => "Sitio web:",
   "about.links.project": () => "Proyecto:",
-  "about.learnMore.sectionLabel": () => "Más información",
-  "about.learnMore.shortcutsHint": () =>
-    "abre el panel de Atajos y símbolos: todos los atajos de teclado más el significado de cada glifo del editor.",
-  "about.learnMore.paletteHint": () => "es la paleta de comandos.",
 
   "common.cancel": () => "Cancelar",
 

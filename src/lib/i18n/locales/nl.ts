@@ -11,7 +11,6 @@ export const nl = {
   "settings.modal.title": () => "Instellingen",
   "settings.tabs.appearance": () => "Weergave",
   "settings.tabs.notesAndSync": () => "Notities & sync",
-  "settings.tabs.updates": () => "Updates",
   "settings.tab.about": () => "Over",
   "settings.back": () => "Terug",
   "settings.appearance.sectionLabel": () => "Weergave",
@@ -488,6 +487,7 @@ export const nl = {
   "about.error.downloadFromGithub": () => "Downloaden van GitHub",
   "about.error.couldntCheckPrefix": () => "Controleren op updates is mislukt.",
   "about.upToDate.running": () => "Je gebruikt de nieuwste versie.",
+  "about.checkForUpdates": () => "Controleren op updates",
   "about.checkedJustNow": () => "Zojuist gecontroleerd",
   "about.checkedMinutesAgo": ({ minutes }) => `${minutes} ${minutes === 1 ? "minuut" : "minuten"} geleden gecontroleerd`,
   "about.checkedHoursAgo": ({ hours }) => `${hours} uur geleden gecontroleerd`,
@@ -496,10 +496,6 @@ export const nl = {
   "about.links.sectionLabel": () => "Links",
   "about.links.website": () => "Website:",
   "about.links.project": () => "Project:",
-  "about.learnMore.sectionLabel": () => "Meer informatie",
-  "about.learnMore.shortcutsHint": () =>
-    "opent het venster Sneltoetsen & symbolen — elke sneltoets plus wat elk symbool in de editor betekent.",
-  "about.learnMore.paletteHint": () => "is het opdrachtenpalet.",
 
   "common.cancel": () => "Annuleren",
 

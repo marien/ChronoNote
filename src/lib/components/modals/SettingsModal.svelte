@@ -6,7 +6,6 @@
   import { sheetSwipe } from "../../actions/sheetSwipe";
   import {
     agendaFileExists,
-    autoCheckUpdates,
     backendKind,
     calendarSyncEnabled,
     colorMode,
@@ -30,12 +29,6 @@
     statusBarVisible,
     tabLabelStyle,
     themeMode,
-    updateAvailableVersion,
-    updateDownloadProgress,
-    updateErrorDuring,
-    updateErrorMessage,
-    updateInstalling,
-    updateStatus,
     wordWrap,
   } from "../../controller";
 
@@ -69,11 +62,10 @@
     }
   });
 
-  // Four tabs group settings: Appearance/Editor, Notes & Sync, Updates (desktop only), and About.
+  // Three tabs group settings: Appearance/Editor, Notes & Sync, and About.
   const settingsTabs = $derived([
     { value: "appearance", label: $t("settings.tabs.appearance") },
     { value: "calendar", label: $t("settings.tabs.notesAndSync") },
-    ...($backendKind === "desktop" ? [{ value: "updates", label: $t("settings.tabs.updates") }] : []),
     { value: "about", label: $t("settings.tab.about") },
   ]);
   // Left/Right move between the tabs (and select them, as the tab pattern does).
@@ -146,15 +138,6 @@
     }
   });
 
-  // #64: the Updates tab's own status block mirrors About's — shares the
-  // same `updateStatus`/etc. stores (a click here updates the exact same
-  // state About reads), so both places always agree.
-  const progressLabel = $derived.by(() => {
-    const p = $updateDownloadProgress;
-    if (!p || !p.totalBytes) return "";
-    const mb = (n: number) => (n / (1024 * 1024)).toFixed(1);
-    return ` ${mb(p.doneBytes)} / ${mb(p.totalBytes)} MB`;
-  });
 
   // --- Data: export / import (web-app design doc, Phase 1) --------------
   //
@@ -811,58 +794,6 @@
             {/if}
           </section>
         {/if}
-      {:else if activeSettingsTab === "updates" && $backendKind !== "web"}
-        <section class="s-group">
-          <SettingToggle
-            label={$t("settings.updates.checkOnStart")}
-            checked={$autoCheckUpdates}
-            onChange={(v) => controller.setAutoCheckUpdates(v)}
-          >
-            {#snippet description()}{$t("settings.updates.checkOnStartHint")}{/snippet}
-          </SettingToggle>
-          <div class="s-status">
-            {#if $updateStatus === "checking"}
-              <div class="s-note"><span class="modal-spinner" aria-label={$t("about.chip.checking")}>⟳</span> {$t("about.checkingHint")}</div>
-            {:else if $updateStatus === "available"}
-              <div class="s-note"><strong class="s-strong">v{$updateAvailableVersion}</strong> {$t("about.isAvailable")}</div>
-              <div class="s-actions">
-                <button class="settings-btn" onclick={controller.openReleasesPage}>{$t("about.whatsChanged")}</button>
-                <button class="settings-btn primary" onclick={() => controller.downloadAndInstallUpdate()}>
-                  <Icon name="update" size={14} /> {$t("about.downloadAndInstall")}
-                </button>
-              </div>
-            {:else if $updateStatus === "downloading"}
-              <div class="s-note">
-                {#if $updateInstalling}{$t("about.downloading.startingInstaller")}{:else}{$t("about.downloading.downloading")}{progressLabel}{/if}
-              </div>
-            {:else if $updateStatus === "ready"}
-              <div class="s-note">{$t("about.ready.installed")}</div>
-              <div class="s-actions">
-                <button class="settings-btn primary" onclick={() => controller.restartToFinishUpdate()}>
-                  {$t("about.ready.restartNow")}
-                </button>
-              </div>
-            {:else if $updateStatus === "error"}
-              {#if $updateErrorDuring === "install"}
-                <div class="s-note error">{$t("about.error.installFailedPrefix")} {$updateErrorMessage ?? ""}</div>
-                <div class="s-actions">
-                  <button class="settings-btn" onclick={() => controller.downloadAndInstallUpdate()}>{$t("about.error.tryAgain")}</button>
-                  <button class="settings-btn primary" onclick={controller.openReleasesPage}>{$t("about.error.downloadFromGithub")}</button>
-                </div>
-              {:else}
-                <div class="s-note error">{$t("about.error.couldntCheckPrefix")} {$updateErrorMessage ?? ""}</div>
-                <div class="s-actions">
-                  <button class="settings-btn" onclick={() => controller.checkForUpdates()}>{$t("about.error.tryAgain")}</button>
-                </div>
-              {/if}
-            {:else}
-              <div class="s-note">{$updateStatus === "upToDate" ? $t("about.upToDate.running") : $t("about.chip.notCheckedYet")}</div>
-              <div class="s-actions">
-                <button class="settings-btn" onclick={() => controller.checkForUpdates()}>{$t("about.checkNow")}</button>
-              </div>
-            {/if}
-          </div>
-        </section>
       {:else if activeSettingsTab === "about"}
         <AboutPanel />
       {/if}
@@ -1129,14 +1060,6 @@
   margin-top: 8px;
 }
 
-.s-strong {
-  color: var(--text);
-}
-
-.s-status {
-  border-top: 1px solid var(--edge-soft);
-  padding-top: 2px;
-}
 
 .s-linkbtn {
   align-self: flex-start;

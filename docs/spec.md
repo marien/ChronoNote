@@ -230,8 +230,7 @@ bar and status bar stay; the editor stays mounted underneath), with a
 back button, at most 760px wide, its rows drawn as Windows 11 setting
 cards; Back, `Escape` or `Ctrl/Cmd+,` again closes it and returns focus
 to the note (§344). On a phone it is a bottom sheet instead. It is
-tabbed — Appearance / Notes & Sync / Updates / About (Updates dropped
-entirely in the web app, where nothing in it applies; the tab labels are
+tabbed — Appearance / Notes & Sync / About (the tab labels are
 the same on every platform) — grouping independent controls:
 
 Every setting is one row — label and a one-line description on the left,
@@ -289,9 +288,11 @@ controls.
   "Advanced" disclosure for a client-ID and tenant override for work/school
   accounts. See §7.3.
 
-**Updates** (desktop only — nothing to check for in the web app, where
-a page reload always serves the latest deployed version): an
-auto-check-on-launch toggle (on by default) and a "Check now" button.
+**About**: a header card with the app version and live update status (with check,
+download, or restart actions), followed by settings cards. On desktop, it holds
+the toggle to check for updates when ChronoNote starts. Setting cards link to
+release notes, the website, source code repository, and keyboard shortcuts.
+In the web app, the header confirms the build is always current with no update controls.
 
 ### 3.5 Launch Behavior
 
@@ -577,14 +578,12 @@ reachable from the top bar, a shortcut, or the command palette:
   global shortcut (including `Escape`) keeps working regardless of
   where focus sits.
 - **About** (`Ctrl/Cmd+Shift+,`, the More menu, the palette; a tab of the
-  Settings page since §344, a bottom sheet on a phone) — an
-  Updates section that opens with a version card (the currently-running
-  version, read live, and a chip saying what the update check makes of it;
-  up to date it links to this version's own release notes and shows when it
-  was last checked) and is where an available update is reviewed and
-  installed (§7.5), a Links section (the marketing website and the GitHub repo,
-  each labeled and opened in the OS's default browser), and a Learn More
-  section pointing at the Shortcuts drawer and command palette.
+  Settings page since §344, a bottom sheet on a phone) — a Windows 11 style
+  page featuring a header card with the running version, live update status
+  chip, and primary update action (check for updates, download progress, or
+  restart). Setting cards below include the check-on-start toggle (desktop only),
+  release notes, links to the website and source code, and a keyboard shortcuts
+  launcher. On phones, it renders as a clean bottom sheet with the same layout.
 
 - **Sync conflicts** (the web app; opened from the status bar's "⚠ N sync
   conflict(s)" item, §3.3) — for a note whose local and OneDrive versions

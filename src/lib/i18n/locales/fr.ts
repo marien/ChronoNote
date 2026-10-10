@@ -10,7 +10,6 @@ export const fr = {
   "settings.modal.title": () => "Paramètres",
   "settings.tabs.appearance": () => "Apparence",
   "settings.tabs.notesAndSync": () => "Notes & sync",
-  "settings.tabs.updates": () => "Mises à jour",
   "settings.tab.about": () => "À propos",
   "settings.back": () => "Retour",
   "settings.appearance.sectionLabel": () => "Apparence",
@@ -497,6 +496,7 @@ export const fr = {
   "about.error.downloadFromGithub": () => "Télécharger depuis GitHub",
   "about.error.couldntCheckPrefix": () => "Impossible de vérifier les mises à jour.",
   "about.upToDate.running": () => "Vous utilisez la dernière version.",
+  "about.checkForUpdates": () => "Vérifier les mises à jour",
   "about.checkedJustNow": () => "Vérifié à l'instant",
   "about.checkedMinutesAgo": ({ minutes }) =>
     `Vérifié il y a ${minutes} minute${minutes === 1 ? "" : "s"}`,
@@ -507,10 +507,6 @@ export const fr = {
   "about.links.sectionLabel": () => "Liens",
   "about.links.website": () => "Site web :",
   "about.links.project": () => "Projet :",
-  "about.learnMore.sectionLabel": () => "En savoir plus",
-  "about.learnMore.shortcutsHint": () =>
-    "ouvre le volet Raccourcis & symboles — tous les raccourcis clavier et la signification de chaque glyphe.",
-  "about.learnMore.paletteHint": () => "est la palette de commandes.",
 
   "common.cancel": () => "Annuler",
 

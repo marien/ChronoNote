@@ -112,12 +112,21 @@ test.describe("update check (§update-check)", () => {
     ).toBe(false);
   });
 
+  test("the Settings page has no Updates tab", async ({ page }) => {
+    await seedApp(page, { seed: { notes: {} } });
+    await editor(page).click();
+    await page.keyboard.press("ControlOrMeta+Comma");
+    const settings = modalCard(page, MODAL_LABELS.settings);
+    await expect(settings.getByRole("tab", { name: "Updates" })).toHaveCount(0);
+    await expect(settings.getByRole("tab", { name: "About" })).toBeVisible();
+  });
+
   test("Settings' toggle persists the preference across a reload", async ({ page }) => {
     await seedApp(page, { seed: { notes: {} } });
     await editor(page).click();
     await page.keyboard.press("ControlOrMeta+Comma");
     const settings = modalCard(page, MODAL_LABELS.settings);
-    await settings.getByRole("tab", { name: "Updates", exact: true }).click();
+    await settings.getByRole("tab", { name: "About", exact: true }).click();
     await settings.getByText("Check for updates when ChronoNote starts").click();
     expect(await page.evaluate(() => window.__CHRONO_MOCK__!.autoCheckUpdates)).toBe(false);
 
@@ -126,22 +135,19 @@ test.describe("update check (§update-check)", () => {
     expect(await page.evaluate(() => window.__CHRONO_MOCK__!.autoCheckUpdates)).toBe(false);
   });
 
-  test("Settings' 'Check now' re-checks; About reflects the result", async ({ page }) => {
+  test("Settings' 'Check for updates' re-checks; About reflects the result", async ({ page }) => {
     await seedApp(page, {
       seed: { notes: {}, updateCheck: "available", updateCheckVersion: "1.2.3", autoCheckUpdates: false },
     });
     await editor(page).click();
     await page.keyboard.press("ControlOrMeta+Comma");
     const settings = modalCard(page, MODAL_LABELS.settings);
-    await settings.getByRole("tab", { name: "Updates", exact: true }).click();
-    await settings.getByRole("button", { name: "Check now" }).click();
-    await page.keyboard.press("Escape");
-
-    const about = await openViaShortcut(page, "ControlOrMeta+Shift+Comma", "about");
-    await expect(about).toContainText("1.2.3");
+    await settings.getByRole("tab", { name: "About", exact: true }).click();
+    await settings.getByRole("button", { name: "Check for updates" }).click();
+    await expect(settings).toContainText("1.2.3");
   });
 
-  test("#64: Settings' own Updates tab shows the result of 'Check now', not just the status-bar icon", async ({
+  test("Settings' About tab shows the result of 'Check for updates', not just the status-bar icon", async ({
     page,
   }) => {
     await seedApp(page, {
@@ -150,12 +156,10 @@ test.describe("update check (§update-check)", () => {
     await editor(page).click();
     await page.keyboard.press("ControlOrMeta+Comma");
     const settings = modalCard(page, MODAL_LABELS.settings);
-    await settings.getByRole("tab", { name: "Updates", exact: true }).click();
+    await settings.getByRole("tab", { name: "About", exact: true }).click();
     await expect(settings).toContainText(/not checked yet/i);
 
-    await settings.getByRole("button", { name: "Check now" }).click();
-    // Previously nothing in the Settings modal itself reflected the
-    // result — only the status-bar's small update icon did.
+    await settings.getByRole("button", { name: "Check for updates" }).click();
     await expect(settings).toContainText("7.8.9");
     await expect(settings.getByRole("button", { name: /Download & install/i })).toBeVisible();
   });
@@ -240,7 +244,7 @@ test.describe("#50: first-launch-after-update notice", () => {
 test.describe("About: the version card", () => {
   const seed = (extra: Record<string, unknown> = {}) => ({ seed: { notes: { [todayFilename()]: "hi" }, ...extra } });
 
-  test("the title bar no longer carries the version; the Updates section does", async ({ page }) => {
+  test("the title bar no longer carries the version; the About header card does", async ({ page }) => {
     await seedApp(page, seed({ updateCheck: "none" }));
     const about = await openViaShortcut(page, "ControlOrMeta+Shift+Comma", "about");
     await expect(about.locator(".modal-title .modal-counter")).toHaveCount(0);
@@ -248,8 +252,7 @@ test.describe("About: the version card", () => {
     const card = about.locator(".about-version-card");
     await expect(card).toContainText("v0.3.0"); // the mock's default appVersion
     await expect(card).toContainText("Version");
-    // it sits inside the Updates section, not above it
-    await expect(about.locator(".settings-section-label", { hasText: "Updates" }).locator("xpath=..").locator(".about-version-card")).toHaveCount(1);
+    await expect(card).toBeVisible();
   });
 
   test("up to date: an ok chip, when it was checked, and a link to THIS version's release notes", async ({ page }) => {
@@ -265,18 +268,18 @@ test.describe("About: the version card", () => {
     );
   });
 
-  test("Check again runs another check", async ({ page }) => {
+  test("Check for updates runs another check", async ({ page }) => {
     await seedApp(page, seed({ updateCheck: "none" }));
     const about = await openViaShortcut(page, "ControlOrMeta+Shift+Comma", "about");
     await expect(about.locator(".about-status-chip")).toContainText("Up to date");
     const before = await page.evaluate(() => window.__CHRONO_MOCK__!.invokeLog.filter((e) => e.cmd === "plugin:updater|check").length);
-    await about.getByRole("button", { name: "Check again" }).click();
+    await about.getByRole("button", { name: "Check for updates" }).click();
     await expect
       .poll(() => page.evaluate(() => window.__CHRONO_MOCK__!.invokeLog.filter((e) => e.cmd === "plugin:updater|check").length))
       .toBeGreaterThan(before);
   });
 
-  test("an available update: an accent chip, the current version stays visible, no current-release link", async ({ page }) => {
+  test("an available update: an accent chip, the current version stays visible, release notes link present", async ({ page }) => {
     await seedApp(page, seed({ updateCheck: "available", updateCheckVersion: "9.9.9" }));
     const about = await openViaShortcut(page, "ControlOrMeta+Shift+Comma", "about");
     await expect(about.locator(".about-status-chip")).toContainText("Update available");
@@ -284,7 +287,7 @@ test.describe("About: the version card", () => {
     await expect(about.locator(".about-version-card")).toContainText("v0.3.0");
     await expect(about).toContainText("v9.9.9");
     await expect(about.getByRole("button", { name: "What's changed" })).toBeVisible();
-    await expect(about.getByRole("button", { name: /Release notes/ })).toHaveCount(0);
+    await expect(about.getByRole("button", { name: /Release notes/ })).toBeVisible();
   });
 
   test("a failed check: a warn chip, Try again, and still a way to this version's notes", async ({ page }) => {
@@ -332,3 +335,16 @@ test("About: a failed install says 'Install failed' on the chip, not 'Couldn't c
   await about.getByRole("button", { name: /Download & install/i }).click();
   await expect(about.locator(".about-status-chip")).toContainText("Install failed");
 });
+
+test.describe("phone viewport", () => {
+  test.use({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
+
+  test("at a phone viewport Ctrl+Shift+, shows the About sheet with the header card", async ({ page }) => {
+    await seedApp(page, { seed: { notes: {} } });
+    await editor(page).click();
+    await page.keyboard.press("ControlOrMeta+Shift+Comma");
+    await expect(page.locator(".modal-card.about-modal-card")).toBeVisible();
+    await expect(page.locator(".modal-card.about-modal-card .about-version-card")).toBeVisible();
+  });
+});
+

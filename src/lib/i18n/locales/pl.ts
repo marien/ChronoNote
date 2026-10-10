@@ -10,7 +10,6 @@ export const pl = {
   "settings.modal.title": () => "Ustawienia",
   "settings.tabs.appearance": () => "Wygląd",
   "settings.tabs.notesAndSync": () => "Notatki i synchronizacja",
-  "settings.tabs.updates": () => "Aktualizacje",
   "settings.tab.about": () => "O programie",
   "settings.back": () => "Wstecz",
   "settings.appearance.sectionLabel": () => "Wygląd",
@@ -498,6 +497,7 @@ export const pl = {
   "about.error.downloadFromGithub": () => "Pobierz z GitHuba",
   "about.error.couldntCheckPrefix": () => "Nie udało się sprawdzić aktualizacji.",
   "about.upToDate.running": () => "Używasz najnowszej wersji.",
+  "about.checkForUpdates": () => "Sprawdź dostępność aktualizacji",
   "about.checkedJustNow": () => "Sprawdzono przed chwilą",
   "about.checkedMinutesAgo": ({ minutes }) =>
     `Sprawdzono ${minutes} min temu`,
@@ -508,10 +508,6 @@ export const pl = {
   "about.links.sectionLabel": () => "Linki",
   "about.links.website": () => "Strona internetowa:",
   "about.links.project": () => "Projekt:",
-  "about.learnMore.sectionLabel": () => "Dowiedz się więcej",
-  "about.learnMore.shortcutsHint": () =>
-    "otwiera panel Skróty i symbole — wszystkie skróty klawiszowe oraz znaczenie każdego glifu.",
-  "about.learnMore.paletteHint": () => "to paleta poleceń.",
 
   "common.cancel": () => "Anuluj",
 
