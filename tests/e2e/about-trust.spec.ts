@@ -23,13 +23,13 @@ test.describe("About trust rows (§about-trust)", () => {
     opened = await page.evaluate(() => window.__CHRONO_MOCK__!.openedUrls);
     expect(opened.some((url) => url.endsWith("/privacy.html"))).toBe(true);
 
-    // Show reveals `.about-licences` with the placeholder text, Hide removes it
+    // Show reveals `.about-licences` with the generated notices, Hide removes it
     const licences = about.locator(".about-licences");
     await expect(licences).not.toBeVisible();
 
     await about.getByRole("button", { name: "Show" }).click();
     await expect(licences).toBeVisible();
-    await expect(licences).toContainText("Third-party notices are generated at release time (npm run notices).");
+    await expect(licences).toContainText("ChronoNote includes the following open-source software.");
 
     await about.getByRole("button", { name: "Hide" }).click();
     await expect(licences).not.toBeVisible();
