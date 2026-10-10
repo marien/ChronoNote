@@ -84,16 +84,14 @@ test.describe("info drawers", () => {
     await expect(about).toBeVisible();
     await expect(about).toContainText("0.3.0"); // mock's default appVersion
     await expect(about).toContainText("github.com/marien/ChronoNote");
-    // §follow-up: the marketing website, alongside the GitHub link, both
-    // under one "Links" section.
+    // The marketing website and the GitHub link, each its own row (§349).
     await expect(about).toContainText("chrononote.mariendegelder.nl");
-    await expect(about.locator(".settings-section-label", { hasText: "Links" })).toBeVisible();
   });
 
   test("the project link opens externally via the opener plugin, not the webview", async ({ page }) => {
     await editor(page).click();
     await page.keyboard.press("ControlOrMeta+Shift+Comma");
-    await modalCard(page, MODAL_LABELS.about).getByRole("button", { name: "github.com/marien/ChronoNote" }).click();
+    await modalCard(page, MODAL_LABELS.about).getByRole("button", { name: "Project", exact: true }).click();
 
     const opened = await page.evaluate(() => window.__CHRONO_MOCK__!.openedUrls);
     expect(opened).toEqual(["https://github.com/marien/ChronoNote"]);
@@ -103,7 +101,7 @@ test.describe("info drawers", () => {
     await editor(page).click();
     await page.keyboard.press("ControlOrMeta+Shift+Comma");
     await modalCard(page, MODAL_LABELS.about)
-      .getByRole("button", { name: "chrononote.mariendegelder.nl" })
+      .getByRole("button", { name: "Website", exact: true })
       .click();
 
     const opened = await page.evaluate(() => window.__CHRONO_MOCK__!.openedUrls);

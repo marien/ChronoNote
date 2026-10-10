@@ -335,6 +335,18 @@ kbd {
   .s-row:not(.toggle-switch) .s-control {
     flex-shrink: 1;
   }
+  /* About's rows hold one small button (open a link, open the shortcuts): it stays beside its label. */
+  .about-panel .s-row:not(.toggle-switch) {
+    flex-direction: row;
+    align-items: center;
+  }
+  .about-panel .s-text {
+    flex: 1;
+    min-width: 0;
+  }
+  .about-panel .s-desc {
+    overflow-wrap: anywhere;
+  }
 }
 .s-warn {
   color: var(--state-warn);

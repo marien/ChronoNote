@@ -277,6 +277,8 @@
   .about-version-card {
     display: flex;
     flex-direction: column;
+    /* The old global `.about-version-card` rule centres its children; the header runs the full width here. */
+    align-items: stretch;
     gap: 12px;
     padding: 16px;
     background: color-mix(in srgb, var(--surface-raised) 60%, transparent);
