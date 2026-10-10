@@ -39,17 +39,34 @@ let proc: ChildProcess | null = null;
 let browser: Browser | null = null;
 
 async function launch(): Promise<Page> {
+  if (!fs.existsSync(EXE)) throw new Error(`app not built: ${EXE}`);
+  let output = "";
+  let exitInfo: string | null = null;
   proc = spawn(EXE, [], {
     env: { ...process.env, WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS: `--remote-debugging-port=${PORT}` },
-    stdio: "ignore",
+    stdio: ["ignore", "pipe", "pipe"],
   });
+  proc.stdout?.on("data", (d) => (output += d));
+  proc.stderr?.on("data", (d) => (output += d));
+  proc.on("exit", (code, signal) => (exitInfo = `exit code ${code} signal ${signal}`));
+  proc.on("error", (e) => (exitInfo = `spawn error ${e.message}`));
   const deadline = Date.now() + 90_000;
   for (;;) {
     try {
-      browser = await chromium.connectOverCDP(`http://127.0.0.1:${PORT}`);
+      browser = await chromium.connectOverCDP(`http://127.0.0.1:${PORT}`, { timeout: 5_000 });
       break;
-    } catch {
-      if (Date.now() > deadline) throw new Error("the app's WebView2 never opened its debugging port");
+    } catch (e) {
+      if (exitInfo || Date.now() > deadline) {
+        const log = fs.existsSync(LOG) ? fs.readFileSync(LOG, "utf8").slice(-2000) : "(no app.log)";
+        throw new Error(
+          `the app's WebView2 never opened its debugging port (${exitInfo ?? "still running"}; last error ${e}).
+` +
+            `output:
+${output.slice(-2000)}
+app.log:
+${log}`,
+        );
+      }
       await new Promise((r) => setTimeout(r, 1000));
     }
   }
