@@ -313,7 +313,7 @@
   // collapsed button's real width in the row is its own plus this.
   const COMMAND_GAP = 2;
   // `.titlebar-drag-gutter`'s `min-width` — the part of it that is not spare room.
-  const GUTTER_MIN = 20;
+  const GUTTER_MIN = 48;
 
   function rectWidth(el: HTMLElement | undefined): number {
     return el ? el.getBoundingClientRect().width : 0;
@@ -1214,8 +1214,10 @@
 .titlebar-drag-gutter {
   /* §B2: takes whatever the tabs and commands leave over; the minimum (mirrored as
      `GUTTER_MIN` in the script) keeps something to grab once the tabs overflow. */
-  flex: 1 1 20px;
-  min-width: 20px;
+  /* 48px, about one caption button, like Notepad: always enough to grab and move the window
+     (Marien, 2026-10-10: 20px was too small to find). */
+  flex: 1 1 48px;
+  min-width: 48px;
   align-self: stretch;
 }
 

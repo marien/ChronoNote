@@ -244,3 +244,20 @@ test.describe("tab strip follows the active tab on resize (§merged-titlebar fol
     expect(scrollLeft).toBe(0);
   });
 });
+
+test.describe("drag area in the title bar (Marien, 2026-10-10)", () => {
+  for (const width of [640, 900, 1280]) {
+    test(`at ${width}px with many tabs there is still at least 48px to grab`, async ({ page }) => {
+      await page.setViewportSize({ width, height: 720 });
+      await seedApp(page, { seed: "busy-week" });
+      // Plenty of scratchpads so the tabs overflow.
+      for (let i = 0; i < 8; i++) {
+        await editor(page).click();
+        await page.keyboard.press("ControlOrMeta+n");
+      }
+      const gutter = page.locator(".titlebar-drag-gutter");
+      await expect(gutter).toHaveAttribute("data-tauri-drag-region", "true");
+      await expect.poll(async () => (await gutter.boundingBox())!.width).toBeGreaterThanOrEqual(47.5);
+    });
+  }
+});
