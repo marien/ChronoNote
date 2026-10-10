@@ -55,12 +55,19 @@ export function sheetSwipe(node: HTMLElement, param?: SheetSwipeParam) {
       // jsdom or unsupported
     }
 
+    // Once a swipe has started, keep the browser from turning the drag into a scroll: it would cancel the pointer
+    // (the sheet stopped after a few pixels) and a drag over the filter field would focus it (Marien, 2026-10-10).
+    window.addEventListener("touchmove", blockTouchScroll, { passive: false });
     node.addEventListener("pointermove", handlePointerMove);
     window.addEventListener("pointermove", handlePointerMove);
     node.addEventListener("pointerup", handlePointerUp);
     window.addEventListener("pointerup", handlePointerUp);
     node.addEventListener("pointercancel", handlePointerCancel);
     window.addEventListener("pointercancel", handlePointerCancel);
+  }
+
+  function blockTouchScroll(e: TouchEvent) {
+    if (activePointerId !== null && e.cancelable) e.preventDefault();
   }
 
   function handlePointerMove(e: PointerEvent) {
@@ -112,6 +119,7 @@ export function sheetSwipe(node: HTMLElement, param?: SheetSwipeParam) {
       }
       activePointerId = null;
     }
+    window.removeEventListener("touchmove", blockTouchScroll);
     node.removeEventListener("pointermove", handlePointerMove);
     window.removeEventListener("pointermove", handlePointerMove);
     node.removeEventListener("pointerup", handlePointerUp);

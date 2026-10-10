@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount, tick } from "svelte";
-  import { editorContextMenu, editorApi, backendKind, type EditorApi } from "../stores";
+  import { get } from "svelte/store";
+  import { editorContextMenu, editorApi, backendKind, isMobile, type EditorApi } from "../stores";
   import * as controller from "../controller";
   import { t } from "../i18n";
   import { formatShortcut } from "../shortcuts";
@@ -8,13 +9,24 @@
 
   let menuEl = $state<HTMLDivElement>();
 
+  // A long-press on a phone opens the menu while the browser is still finishing its own touch handling (focus moving,
+  // the page shifting); those side effects must not close it at once (Marien, 2026-10-10: it flashed and vanished).
+  const openedAt = Date.now();
+  const SETTLE_MS = 700;
+
   function close() {
     editorContextMenu.set(null);
   }
 
+  function closeUnlessSettling() {
+    if (get(isMobile) && Date.now() - openedAt < SETTLE_MS) return;
+    close();
+  }
+
   const run = (fn: (api: EditorApi) => void) => {
     close();
-    editorApi?.focus();
+    // Not on a phone: focusing the note raises the keyboard.
+    if (!get(isMobile)) editorApi?.focus();
     if (editorApi) fn(editorApi);
   };
 
@@ -49,9 +61,9 @@
     });
 
     const scroller = document.querySelector(".cm-scroller");
-    scroller?.addEventListener("scroll", close, { passive: true });
+    scroller?.addEventListener("scroll", closeUnlessSettling, { passive: true });
     return () => {
-      scroller?.removeEventListener("scroll", close);
+      scroller?.removeEventListener("scroll", closeUnlessSettling);
     };
   });
 
@@ -107,7 +119,7 @@
   onkeydowncapture={handleKeydown}
   onpointerdown={handlePointerDown}
   ontouchstart={handlePointerDown}
-  onblur={close}
+  onblur={closeUnlessSettling}
   onresize={close}
 />
 

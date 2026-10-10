@@ -728,6 +728,7 @@ export const fr = {
   "mobileAccessory.undo": () => "Annuler",
   "mobileAccessory.redo": () => "Rétablir",
   "mobileAccessory.more": () => "Plus",
+  "mobileAccessory.hideKeyboard": () => "Masquer le clavier",
 
   "mobileTabDrawer.ariaLabel": () => "Onglets ouverts",
   "mobileTabDrawer.title": () => "Onglets ouverts",

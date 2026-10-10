@@ -705,6 +705,7 @@ export const en = {
   "mobileAccessory.undo": () => "Undo",
   "mobileAccessory.redo": () => "Redo",
   "mobileAccessory.more": () => "More",
+  "mobileAccessory.hideKeyboard": () => "Hide keyboard",
 
   "mobileTabDrawer.ariaLabel": () => "Open tabs",
   "mobileTabDrawer.title": () => "Open Tabs",

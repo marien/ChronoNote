@@ -10297,3 +10297,15 @@ Gemini 3.8 Flash high (Z5). Found during review:
 
 **Native check (Marien, 2026-10-10), all fine in the real window:** Snap Layouts, Mica behind the bars, the dimmed title bar when inactive, the outlined active tab, dragging the pane edges, the Settings page and About tab, glyph alignment in the editor and status bar, Ctrl+scroll (WebView2 does not zoom the page), the line menu, Alt key tips, the wider drag area. Not yet tried on a real phone: the app bar, navigation bar, sheets and long-press.
 
+
+## 350. Phone fixes from the first real-phone test; Ctrl+J centres its target
+
+**Status: on `main`, unreleased.** Marien tried v0.30.0 on a real phone (2026-10-10):
+- **The keyboard kept popping up.** On a touch phone, three things put focus in a text field: closing a sheet handed focus back to the note (`focusTrap`); Actions and the date picker focused their filter field on open; jumping to an action focused the note. None of these happen on a phone any more. Search still focuses its field, since you open it to type. Desktop is unchanged.
+- **Getting back to the bottom bar while typing was hard** (it only returns when the note loses focus). The symbols bar gets a hide-keyboard button (`mobileAccessory.hideKeyboard`, 7 languages) at its end; it fits at 360px.
+- **Swipe-down stopped after a few pixels**, and touching the header focused the filter field. The browser turned the drag into a scroll and cancelled the pointer. Once a swipe starts on the header, `sheetSwipe` now blocks `touchmove`, so the sheet follows the finger and the drag does not become a tap on the field.
+- **The long-press menu flashed and vanished.** The browser's own long-press (text selection, focus, keyboard, page shift) ran alongside ours, and the menu closes on blur and on scroll. The glyph now calls `preventDefault` in a non-passive `touchstart` (taps are still handled on `touchend`), and the menu ignores blur and scroll for 700ms after opening on a phone. Not reproducible in touch emulation (no native long-press), so it needs a check on the phone.
+- **"Esc to close" in the date picker** is hidden on touch devices.
+- `tests/e2e/mobile-keyboard.spec.ts` (12 tests at 390 and 360px); 8 of them fail without the fixes.
+
+Also (desktop, Marien): **Ctrl+J did not always seem to follow.** The default `scrollIntoView` scrolls only just far enough, so every jump landed on the last visible line, against the status bar. Jumps (Ctrl+J and `jumpToLine`, used by Actions, History and Search) now leave a line that is already well inside the view (15–85%) where it is, and centre it otherwise (`jumpCaretTo`). `jump-scroll.spec.ts` checks it with word wrap off and on; it fails without the fix.

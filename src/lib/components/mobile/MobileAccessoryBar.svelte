@@ -207,4 +207,17 @@
   >
     <Icon name="more" size={16} />
   </button>
+
+  <!-- Closes the keyboard (the note loses focus), which brings the bottom navigation bar back (Marien, 2026-10-10:
+       hard to get from the symbols to Actions/History/Search). -->
+  <button
+    type="button"
+    class="accessory-btn icon-btn accessory-hide-keyboard"
+    onpointerdown={(e) => e.preventDefault()}
+    onclick={() => (document.activeElement as HTMLElement | null)?.blur?.()}
+    aria-label={$t("mobileAccessory.hideKeyboard")}
+    title={$t("mobileAccessory.hideKeyboard")}
+  >
+    <Icon name="keyboard" size={16} />
+  </button>
 </div>

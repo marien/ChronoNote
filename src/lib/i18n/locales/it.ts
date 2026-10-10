@@ -725,6 +725,7 @@ export const it = {
   "mobileAccessory.undo": () => "Annulla",
   "mobileAccessory.redo": () => "Ripristina",
   "mobileAccessory.more": () => "Altro",
+  "mobileAccessory.hideKeyboard": () => "Nascondi tastiera",
 
   "mobileTabDrawer.ariaLabel": () => "Schede aperte",
   "mobileTabDrawer.title": () => "Schede aperte",

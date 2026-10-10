@@ -151,7 +151,8 @@
   onMount(async () => {
     positionUnderTrigger();
     await tick();
-    inputEl?.focus(); // type-to-jump is the default, same as the other drawers
+    // Type-to-jump is the default, same as the other drawers; not on a phone, where it raises the keyboard.
+    if (!get(isMobile)) inputEl?.focus();
     if (get(calendarSyncEnabled) && get(agendaFileExists)) {
       try {
         const dates = await api.readAgendaDates();
@@ -341,7 +342,7 @@
 
   <div class="cal-foot">
     <button type="button" class="cal-today-btn" onclick={goToday}>{$t("datePicker.today")}</button>
-    <span class="cal-hint">{$t("datePicker.escToClose")}</span>
+    {#if !$isMobile}<span class="cal-hint">{$t("datePicker.escToClose")}</span>{/if}
   </div>
 </div>
 

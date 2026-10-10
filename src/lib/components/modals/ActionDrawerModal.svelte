@@ -56,7 +56,8 @@
       const idx = flatList.findIndex((it) => it.filename === active.filename);
       if (idx !== -1) selectedIndex = idx;
     }
-    inputEl?.focus();
+    // Not on a phone: focusing the filter raises the keyboard over the list.
+    if (!$isMobile) inputEl?.focus();
     scrollSelectedIntoView();
     mounted = true;
     document.addEventListener("keydown", onKeydown);
@@ -90,6 +91,7 @@
     // so typing immediately starts a fresh filter instead of needing an
     // extra click back into the field first.
     await tick();
+    if ($isMobile) return;
     inputEl?.focus();
     inputEl?.select();
   }

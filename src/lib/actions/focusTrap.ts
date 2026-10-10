@@ -79,6 +79,14 @@ export function focusTrap(node: HTMLElement) {
           // A chained modal is already open — its own focusTrap will take
           // over; don't yank focus to the editor between the two.
           prev.closest(".overlay") !== null);
+      // On a touch phone, focusing the note raises the keyboard (Marien, 2026-10-10: "the keyboard keeps
+      // popping up"): only restore focus to something that is not the note; otherwise just let it go.
+      const touchPhone = typeof window !== "undefined" && window.matchMedia?.("(pointer: coarse)").matches;
+      if (touchPhone) {
+        if (restorePrev && prev !== document.body && !prev.closest(".cm-editor")) prev.focus();
+        else (document.activeElement as HTMLElement | null)?.blur?.();
+        return;
+      }
       (restorePrev ? prev : editor)?.focus();
     },
   };

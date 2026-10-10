@@ -731,6 +731,7 @@ export const pl = {
   "mobileAccessory.undo": () => "Cofnij",
   "mobileAccessory.redo": () => "Ponów",
   "mobileAccessory.more": () => "Więcej",
+  "mobileAccessory.hideKeyboard": () => "Ukryj klawiaturę",
 
   "mobileTabDrawer.ariaLabel": () => "Otwarte karty",
   "mobileTabDrawer.title": () => "Otwarte karty",

@@ -93,6 +93,10 @@ class InlineGlyphWidget extends WidgetType {
       };
 
       span.addEventListener("touchstart", (e: TouchEvent) => {
+        // The glyph handles its own taps (touchend) and long-press: keep the browser from starting its own
+        // long-press (text selection, focus and keyboard, a native menu), which closed our menu at once on a
+        // real phone (Marien, 2026-10-10). Also suppresses the emulated mouse events, so a tap cycles once.
+        if (e.cancelable) e.preventDefault();
         const touch = e.touches?.[0];
         if (touch) {
           touchStartX = touch.clientX;
@@ -117,7 +121,7 @@ class InlineGlyphWidget extends WidgetType {
             // The view or node might have been torn down
           }
         }, 500);
-      });
+      }, { passive: false });
 
       span.addEventListener("touchmove", (e: TouchEvent) => {
         if (longPressTimer !== null) {

@@ -718,6 +718,7 @@ export const de = {
   "mobileAccessory.undo": () => "Rückgängig",
   "mobileAccessory.redo": () => "Wiederholen",
   "mobileAccessory.more": () => "Mehr",
+  "mobileAccessory.hideKeyboard": () => "Tastatur ausblenden",
 
   "mobileTabDrawer.ariaLabel": () => "Offene Tabs",
   "mobileTabDrawer.title": () => "Offene Tabs",

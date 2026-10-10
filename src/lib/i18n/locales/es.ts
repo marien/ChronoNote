@@ -723,6 +723,7 @@ export const es = {
   "mobileAccessory.undo": () => "Deshacer",
   "mobileAccessory.redo": () => "Rehacer",
   "mobileAccessory.more": () => "Más",
+  "mobileAccessory.hideKeyboard": () => "Ocultar teclado",
 
   "mobileTabDrawer.ariaLabel": () => "Pestañas abiertas",
   "mobileTabDrawer.title": () => "Pestañas abiertas",

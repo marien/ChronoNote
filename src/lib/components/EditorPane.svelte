@@ -319,6 +319,21 @@
    * the note has none. (§83: moved off `Ctrl+↓`/`Ctrl+↑`, which now do
    * caret-to-line-start explicitly — see §89 below. Moved off F2 because
    * F2 needs Fn on laptops.) */
+  /** Moves the caret to `pos` for a jump (Ctrl+J, Actions, History, Search). A line already well inside the view
+   * stays where it is; otherwise it is centred. The default `scrollIntoView` scrolls only just far enough, which left
+   * every jump on the very last visible line, against the status bar (Marien, 2026-10-10: "the scrollbar does not
+   * follow consistently"). */
+  function jumpCaretTo(v: EditorView, pos: number) {
+    const area = v.scrollDOM.getBoundingClientRect();
+    const at = v.coordsAtPos(pos);
+    const margin = area.height * 0.15;
+    const comfortable = !!at && at.top >= area.top + margin && at.bottom <= area.bottom - margin;
+    v.dispatch({
+      selection: { anchor: pos },
+      effects: comfortable ? [] : [EditorView.scrollIntoView(pos, { y: "center" })],
+    });
+  }
+
   function jumpToAdjacentOpenAction(v: EditorView, dir: 1 | -1): boolean {
     const curLineIdx = v.state.doc.lineAt(v.state.selection.main.head).number - 1;
     const target = adjacentOpenActionLine(v.state.doc.toString(), curLineIdx, dir);
@@ -326,8 +341,7 @@
       controller.showToast("No open actions in this note");
       return true;
     }
-    const line = v.state.doc.line(target + 1);
-    v.dispatch({ selection: { anchor: line.from }, scrollIntoView: true });
+    jumpCaretTo(v, v.state.doc.line(target + 1).from);
     return true;
   }
 
@@ -865,7 +879,7 @@
         if (!view) return;
         const lineNumber = Math.min(idx + 1, view.state.doc.lines);
         const lineInfo = view.state.doc.line(Math.max(1, lineNumber));
-        view.dispatch({ selection: { anchor: lineInfo.from }, scrollIntoView: true });
+        jumpCaretTo(view, lineInfo.from);
       },
       getCursorLineIdx: () => {
         if (!view) return 0;

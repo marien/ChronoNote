@@ -14,6 +14,7 @@ import {
   clearEditorViewState,
   clearTabCleanHash,
   editorApi,
+  isMobile,
   markTabClean,
   modal,
   pendingBatchCloseTabIds,
@@ -441,5 +442,6 @@ export async function jumpToFileLine(
   await tick();
   editorApi?.jumpToLine(item.lineIdx);
   editorApi?.pulseLine?.(item.lineIdx);
-  editorApi?.focus();
+  // On a phone, focusing the note raises the keyboard over the line just jumped to; tap the note to type.
+  if (!get(isMobile)) editorApi?.focus();
 }

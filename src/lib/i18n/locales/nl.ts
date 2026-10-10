@@ -713,6 +713,7 @@ export const nl = {
   "mobileAccessory.undo": () => "Ongedaan maken",
   "mobileAccessory.redo": () => "Opnieuw",
   "mobileAccessory.more": () => "Meer",
+  "mobileAccessory.hideKeyboard": () => "Toetsenbord verbergen",
 
   "mobileTabDrawer.ariaLabel": () => "Open tabs",
   "mobileTabDrawer.title": () => "Open Tabs",

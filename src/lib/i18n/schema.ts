@@ -727,6 +727,7 @@ export type TranslationParams = {
   "mobileAccessory.undo": undefined;
   "mobileAccessory.redo": undefined;
   "mobileAccessory.more": undefined;
+  "mobileAccessory.hideKeyboard": undefined;
 
   // Mobile tab drawer (`MobileTabDrawer.svelte`, touch devices).
   "mobileTabDrawer.ariaLabel": undefined;
