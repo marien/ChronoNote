@@ -73,3 +73,23 @@
   white-space: normal;
   overflow: visible;
 }
+
+/* In the narrow Actions pane an action wraps instead of being cut off; its section name drops below it. */
+.actions-pane-card .modal-item {
+  flex-wrap: wrap;
+  align-items: flex-start;
+  row-gap: 2px;
+}
+.actions-pane-card .modal-item-main {
+  white-space: normal;
+  align-items: flex-start;
+  margin-right: 0;
+  flex-basis: 100%;
+}
+.actions-pane-card .modal-item-main > span:last-child {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.actions-pane-card .modal-item .item-breadcrumb {
+  padding-left: 24px;
+}

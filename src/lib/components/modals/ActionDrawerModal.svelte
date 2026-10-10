@@ -287,9 +287,13 @@
   }
 
   function onKeydown(e: KeyboardEvent) {
-    if (docked && !rootEl?.contains(e.target as Node)) {
+    // Only keys pressed inside the drawer (a document listener sees the whole page).
+    if (!rootEl?.contains(e.target as Node)) {
       return;
     }
+    // List keys belong to the filter field and the list; a focused button or toggle keeps its own Enter/Space.
+    const onControl = e.target instanceof HTMLButtonElement || (e.target instanceof HTMLInputElement && e.target !== inputEl);
+    if (onControl && e.key !== "Escape") return;
     if (e.key === "ArrowDown") {
       e.preventDefault();
       selectedIndex = wrapIndex(selectedIndex, flatList.length, 1);
