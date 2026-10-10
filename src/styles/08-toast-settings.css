@@ -510,4 +510,18 @@ kbd {
   .settings-page .s-row {
     padding: 10px 12px;
   }
+  /* A choice control takes the whole row and its options share it; a long label wraps instead of overflowing
+     (German "Beim Darüberfahren" overflowed by 4px with CI's Linux fonts, 2026-10-10). */
+  .s-control .segmented:not(.segmented-grid) {
+    display: flex;
+    width: 100%;
+  }
+  .s-control .segmented:not(.segmented-grid) .segmented-option {
+    flex: 1 1 0;
+    min-width: 0;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    text-align: center;
+    padding: 5px 6px;
+  }
 }

@@ -19,8 +19,10 @@ let applied = false;
 
 async function isWindows11(): Promise<boolean> {
   if (windows11 !== null) return windows11;
-  // The test/dev mock pretends to be the desktop app in a plain browser, which has no window effects.
-  if ((window as Window & { __CHRONO_MOCK__?: unknown }).__CHRONO_MOCK__) {
+  // The test/dev mock pretends to be the desktop app in a plain browser, which has no window effects. The mock only
+  // exists in dev builds; the `DEV` guard lets the production build drop this check (and the mock's name) entirely,
+  // which CI's "no test harness in dist/" job asserts.
+  if (import.meta.env.DEV && (window as Window & { __CHRONO_MOCK__?: unknown }).__CHRONO_MOCK__) {
     windows11 = false;
     return windows11;
   }

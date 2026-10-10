@@ -10321,3 +10321,11 @@ Also (desktop, Marien): **Ctrl+J did not always seem to follow.** The default `s
 
 **Status: on `main`, unreleased.** Marien (2026-10-10, real phone): §350's hide-keyboard button was added without taking another one out, so the symbols bar had nine buttons and wrapped to two lines. Undo moved into the bar's More panel, next to Redo. Both now keep the panel open, so they can be pressed several times; Redo used to close it. The test in `mobile-keyboard.spec.ts` only checked that the new button stayed inside the bar. A new one checks that every button shares one row, on an action, a topic and a plain line, at 320, 360, 390 and 412px. Without the fix it fails: the ninth button lands 44px lower.
 
+## 353. CI red since v0.30.0: test harness name in the production build, German overflow with Linux fonts
+
+**Status: on `main`, unreleased.** The GitHub "Test" workflow failed on both release commits (v0.30.0, v0.30.1), in two jobs:
+- **"Prod build drops the test harness":** `mica.ts` skips Mica under the mock with `window.__CHRONO_MOCK__`, so that name ended up in `dist/`. Harmless in itself, but the guard rightly refuses any trace of the test harness. The check is now behind `import.meta.env.DEV` (the mock only exists in dev builds), so the production build drops it; `grep` over `dist/` is clean.
+- **Visual overflow audit [de]:** with CI's Linux fonts (a little wider than Windows ones), the German Peek header choices ("Immer / Beim Darüberfahren / Ausgeblendet") were 4px too wide on the 375px Settings page. It passed locally, so the release gates did not catch it. Below 600px, a choice control in a Settings row now takes the whole row, its options share it, and a long label wraps instead of overflowing. The new `settings-wide-fonts.spec.ts` widens every letter (`letter-spacing: 0.1em`) to reproduce the CI fonts on Windows; it fails without the fix (342 > 325px, the element CI reported).
+
+Lesson: CI was red on the v0.30.0 release commit and nobody looked. Check the Test run on GitHub after a release, not only Security Audit and CodeQL.
+
