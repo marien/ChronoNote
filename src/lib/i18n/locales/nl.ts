@@ -229,7 +229,7 @@ export const nl = {
   "shortcuts.stepOccurrence.label": () =>
     "Vorig / volgend voorkomen van deze sectie",
   "shortcuts.clickGlyph.label": () =>
-    "Sluit de actie van het symbool, of heropent deze als hij voltooid, uitgesteld of vervallen is (precies dat symbool); bij hover zie je een voorbeeld",
+    "Sluit de actie van het symbool, of heropent deze als hij voltooid, doorgeschoven of vervallen is (precies dat symbool); bij hover zie je een voorbeeld",
   "shortcuts.escape.label": () => "Sluit het geopende venster",
   "shortcuts.switchPane.label": () => "Focus wisselen tussen de notitie en het Geschiedenis- / Acties-paneel (de sneltoets van het paneel doet hetzelfde)",
   "shortcuts.zoomFont.label": () => "Grotere / kleinere tekst in de notitie (wordt bewaard)",
@@ -254,12 +254,12 @@ export const nl = {
   "shortcuts.modal.topicTag": () =>
     "Onderwerptag — groepeer acties per onderwerp, getekend als pil alleen direct na het actiesymbool; de haakjes zijn zichtbaar tijdens het bewerken van de regel",
   "shortcuts.modal.dimmedLines": () =>
-    "Voltooide, uitgestelde en vervallen regels, en besproken of uitgestelde agendapunten, worden gedimd weergegeven; open regels blijven op volle sterkte (een agendapunt met een open vervolgactie wordt alleen tot de pijl gedimd)",
+    "Voltooide, doorgeschoven en vervallen regels, en besproken of uitgestelde agendapunten, worden gedimd weergegeven; open regels blijven op volle sterkte (een agendapunt met een open vervolgactie wordt alleen tot de pijl gedimd)",
   "shortcuts.modal.boldEmphasis": () => "Vetgedrukte nadruk voor de rest van de regel",
   "shortcuts.modal.numberedList": () =>
     "Genummerd lijstitem — platte tekst, geen symbool. Enter gaat verder met het volgende nummer, een leeg item beëindigt de lijst, Tab springt twee spaties in; nummers worden nooit herschreven. Subitems:",
   "shortcuts.modal.consequenceAction": ({ shortcutHint }) =>
-    `Vervolgactie — een vervolg met een eigen open/voltooid/uitgesteld/vervallen-status, gewijzigd op dezelfde manier als elke actieregel (klik het symbool om te sluiten of te heropenen, of ${shortcutHint} om direct in te stellen)`,
+    `Vervolgactie — een vervolg met een eigen open/voltooid/doorgeschoven/vervallen-status, gewijzigd op dezelfde manier als elke actieregel (klik het symbool om te sluiten of te heropenen, of ${shortcutHint} om direct in te stellen)`,
   "shortcuts.modal.delegated.part1": () => "Gedelegeerd — vervolgactie toegewezen aan iemand. Een ",
   "shortcuts.modal.delegated.part2": () => " wordt overal gemarkeerd waar hij staat, op elke regel, en blijft echte, bewerkbare tekst; na een ",
   "shortcuts.modal.delegated.part3": () => " geeft het aan wie de vervolgactie oppakt. Meerdere personen: ",
@@ -707,8 +707,8 @@ export const nl = {
   "mobileAccessory.openTask.titleWord": () => "Taak",
   "mobileAccessory.completedTask.ariaLabel": () => "Voltooide taak (vinkje)",
   "mobileAccessory.completedTask.titleWord": () => "Voltooid",
-  "mobileAccessory.deferredTask.ariaLabel": () => "Uitgestelde taak (vakje)",
-  "mobileAccessory.deferredTask.titleWord": () => "Uitgesteld",
+  "mobileAccessory.deferredTask.ariaLabel": () => "Doorgeschoven taak (vakje)",
+  "mobileAccessory.deferredTask.titleWord": () => "Doorgeschoven",
   "mobileAccessory.wontDoTask.ariaLabel": () => "Vervallen taak (vakje)",
   "mobileAccessory.wontDoTask.titleWord": () => "Vervallen",
   "mobileAccessory.topicToDiscuss.ariaLabel": () => "Te bespreken agendapunt (cirkel)",
@@ -770,8 +770,8 @@ export const nl = {
   "toast.copyForward.sourceChanged": ({ dest, filename }) => `Gekopieerd ${dest}, maar ${filename} is op schijf gewijzigd, dus de items daarin zijn niet als verplaatst gemarkeerd.`,
   "toast.copyForward.copiedWithCount": ({ dest, count }) =>
     count === 1
-      ? `Gekopieerd ${dest} — 1 open actie hier als uitgesteld gemarkeerd.`
-      : `Gekopieerd ${dest} — ${count} open acties hier als uitgesteld gemarkeerd.`,
+      ? `Gekopieerd ${dest} — 1 open actie hier als doorgeschoven gemarkeerd.`
+      : `Gekopieerd ${dest} — ${count} open acties hier als doorgeschoven gemarkeerd.`,
   "toast.copyForward.notAvailableInScratchpad": () =>
     "Niet beschikbaar in een kladblok — er is geen volgende gelegenheid om naar te kopiëren.",
   "toast.copyForward.nothingToCopy": () => "Niets om te kopiëren — niets op deze regel, of in de selectie.",
@@ -800,14 +800,14 @@ export const nl = {
   "toast.history.cursorNotInSection": () => "De cursor staat niet op of in een benoemde sectie.",
   "toast.paste.deferRestored": ({ count, filename }) =>
     count > 1
-      ? `${count} uitgestelde taken op ${filename} hersteld naar open`
-      : `Uitgestelde taak op ${filename} hersteld naar open`,
+      ? `${count} doorgeschoven taken op ${filename} hersteld naar open`
+      : `Doorgeschoven taak op ${filename} hersteld naar open`,
   "toast.paste.deferredAgain": ({ count, filename }) =>
-    count > 1 ? `${count} taken op ${filename} opnieuw uitgesteld` : `Taak op ${filename} opnieuw uitgesteld`,
+    count > 1 ? `${count} taken op ${filename} opnieuw doorgeschoven` : `Taak op ${filename} opnieuw doorgeschoven`,
   "toast.paste.originalMarkedDeferred": ({ count, filename }) =>
     count > 1
-      ? `${count} oorspronkelijke taken op ${filename} als uitgesteld gemarkeerd`
-      : `Oorspronkelijke taak op ${filename} als uitgesteld gemarkeerd`,
+      ? `${count} oorspronkelijke taken op ${filename} als doorgeschoven gemarkeerd`
+      : `Oorspronkelijke taak op ${filename} als doorgeschoven gemarkeerd`,
   "toast.tabs.noRecentlyClosedTabs": () => "Geen recent gesloten tabbladen.",
   "toast.tabs.nothingToPromote": () => "Niets om te promoveren.",
   "toast.tabs.promotedScratchpad": ({ filename }) => `Kladblok gepromoveerd naar ${filename}`,
