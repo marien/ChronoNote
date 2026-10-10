@@ -31,6 +31,12 @@ async function findOverflows(page: Page, rootSelector: string, locale: string, m
           continue;
         }
 
+        // Drawn glyph boxes (§346): their character is transparent and clipped on purpose (`overflow: hidden` puts
+        // the box's bottom on the text baseline), so nothing visible spills over.
+        if (style.color === "rgba(0, 0, 0, 0)" && style.overflowX === "hidden") {
+          continue;
+        }
+
         // Skip elements designed to truncate with ellipsis (§54: section breadcrumbs capped at 50% width)
         if (htmlEl.classList.contains("item-breadcrumb")) {
           continue;

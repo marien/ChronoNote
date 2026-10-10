@@ -52,13 +52,13 @@
     <!-- §B4: the action counts lead, as buttons: open jumps to the next open action (Ctrl+J), the other two open
          the Action Drawer with every state listed. -->
     <button type="button" id="stat-open" class="stat-count" title={$t("statusBar.jumpNextActionTooltip", { combo: formatShortcut("jumpAction") })} onclick={jumpToNextOpen}>
-      <span class="stat-glyph glyph-open">☐</span><span class="stat-full">{$t("statusBar.labelOpen", { count: $statusCounts.open })}</span><span class="stat-compact">{$statusCounts.open}</span>
+      <span class="stat-line"><span class="stat-glyph glyph-open">☐</span><span class="stat-full">{$t("statusBar.labelOpen", { count: $statusCounts.open })}</span><span class="stat-compact">{$statusCounts.open}</span></span>
     </button>
     <button type="button" id="stat-forwarded" class="stat-count" title={$t("statusBar.allActionsTooltip")} onclick={openAllActions}>
-      <span class="stat-glyph glyph-progress">☐</span><span class="stat-full">{$t("statusBar.labelDeferred", { count: $statusCounts.forwarded })}</span><span class="stat-compact">{$statusCounts.forwarded}</span>
+      <span class="stat-line"><span class="stat-glyph glyph-progress">☐</span><span class="stat-full">{$t("statusBar.labelDeferred", { count: $statusCounts.forwarded })}</span><span class="stat-compact">{$statusCounts.forwarded}</span></span>
     </button>
     <button type="button" id="stat-closed" class="stat-count" title={$t("statusBar.allActionsTooltip")} onclick={openAllActions}>
-      <span class="stat-glyph glyph-done">☑</span><span class="stat-full">{$t("statusBar.labelDone", { count: $statusCounts.closed })}</span><span class="stat-compact">{$statusCounts.closed}</span>
+      <span class="stat-line"><span class="stat-glyph glyph-done">☑</span><span class="stat-full">{$t("statusBar.labelDone", { count: $statusCounts.closed })}</span><span class="stat-compact">{$statusCounts.closed}</span></span>
     </button>
   </div>
 
@@ -220,9 +220,12 @@
 .stat-glyph {
   font-family: var(--font-mono);
   font-weight: bold;
-  /* The count is a flex row, which centres the box on the line instead of the digits; sit it on the digits like the
-     old ☐ character did (measured at 150% scaling). */
-  transform: translateY(0.13em);
+  /* Inside `.stat-line`, plain text: the box stands on the baseline next to its label. */
+  margin-right: 5px;
+}
+/* Glyph and label in one line of text so they share a baseline (a flex row centres each item instead). */
+.stat-line {
+  white-space: nowrap;
 }
 
 /* #71: a plain-text-look button (`#stat-version`'s own pattern), so the

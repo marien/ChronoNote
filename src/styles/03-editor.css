@@ -406,7 +406,9 @@ body.peek-mode .cm-overview-ruler {
   --glyph-box-color: var(--glyph-progress-color);
   --glyph-box-mark: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='black' stroke-width='3.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5.6 2.8l5.2 5.2-5.2 5.2'/%3E%3C/svg%3E");
 }
-/* Editor: the circles' 0.70em box, nudged down 0.20em. */
+/* Editor: a 0.70em square standing on the text baseline (the bottom of a, d, o). `overflow: hidden` makes an
+   inline-block's baseline its bottom edge, so `vertical-align: baseline` puts that edge on the line's baseline at
+   any font size or scaling (Marien, 2026-10-10). */
 .cm-line :is(.glyph-open, .glyph-done, .glyph-cancelled, .glyph-progress) .glyph-ink {
   display: inline-block;
   position: relative;
@@ -416,12 +418,15 @@ body.peek-mode .cm-overview-ruler {
   border: 1.4px solid var(--glyph-box-color);
   border-radius: 1.5px;
   line-height: 1;
-  transform: translateY(0.20em);
+  overflow: hidden;
+  vertical-align: baseline;
   color: transparent !important;
   user-select: none;
 }
 :root {
   --glyph-outside-size: 0.78em;
+  /* Editor circles: a little smaller than the 0.70em squares (a circle of the same size reads larger); same left edge and baseline. */
+  --glyph-circle-size: 0.66em;
 }
 /* Drawer rows, status bar, legends: the size the old ☐ character drew its square at (0.78em, measured at 150%
    scaling), shared with the topic circles below so squares and circles stay the same size. */
@@ -433,10 +438,11 @@ body.peek-mode .cm-overview-ruler {
   box-sizing: border-box;
   border: 1.4px solid var(--glyph-box-color);
   border-radius: 1.5px;
-  vertical-align: -0.23em;
+  /* Bottom on the text baseline, as in the editor (`overflow: hidden` = baseline at the bottom edge). The
+     transparent character is moved out to the left so it does not count as overflow either. */
+  overflow: hidden;
+  vertical-align: baseline;
   line-height: 1;
-  /* The (transparent) character is wider than the smaller box: move it out to the left, where it is not overflow.
-     Not overflow: hidden, which would move the box's baseline. */
   text-indent: -2em;
   white-space: nowrap;
   color: transparent !important;
@@ -472,12 +478,13 @@ body.peek-mode .cm-overview-ruler {
   user-select: none;
   display: inline-block;
   position: relative;
-  width: 0.70em;
-  height: 0.70em;
+  width: var(--glyph-circle-size);
+  height: var(--glyph-circle-size);
   box-sizing: border-box;
   border-radius: 50%;
   line-height: 1;
-  transform: translateY(0.20em);
+  overflow: hidden;
+  vertical-align: baseline;
 }
 
 /* o: open circle (1.4px solid stroke) */
@@ -498,8 +505,8 @@ body.peek-mode .cm-overview-ruler {
   left: 50%;
   top: 50%;
   transform: translate(-50%, -50%);
-  width: 0.30em;
-  height: 0.30em;
+  width: 0.27em;
+  height: 0.27em;
   border-radius: 50%;
   background: var(--glyph-done-color);
 }
@@ -553,10 +560,11 @@ body.peek-mode .cm-overview-ruler {
   box-sizing: border-box;
   color: transparent !important;
   user-select: none;
-  vertical-align: -0.23em;
+  /* Bottom on the text baseline, as in the editor (`overflow: hidden` = baseline at the bottom edge). The
+     transparent character is moved out to the left so it does not count as overflow either. */
+  overflow: hidden;
+  vertical-align: baseline;
   line-height: 1;
-  /* The (transparent) character is wider than the smaller box: move it out to the left, where it is not overflow.
-     Not overflow: hidden, which would move the box's baseline. */
   text-indent: -2em;
   white-space: nowrap;
 }

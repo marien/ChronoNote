@@ -86,12 +86,20 @@ test.describe("glyph line layout", () => {
     for (const r of rows) {
       // §87: on the token's first column; the rest of the cell is the gap.
       expect(Math.abs(r.left)).toBeLessThan(0.5);
-      // Squares and circles: one box.
-      expect(r.top).toBeCloseTo(first.top, 1);
-      expect(r.w).toBeCloseTo(first.w, 1);
-      expect(r.h).toBeCloseTo(first.h, 1);
-      // On the text: centre within 0.15em of the next character's centre.
-      expect(Math.abs(r.centreVsText)).toBeLessThan(0.15 * r.fontSize);
+      // Squares and circles stand on the same line: the text baseline (§346, Marien: bottom-aligned with a, d, o).
+      expect(r.top + r.h).toBeCloseTo(first.top + first.h, 1);
+      // On the text: centre within 0.2em of the next character's centre.
+      expect(Math.abs(r.centreVsText)).toBeLessThan(0.2 * r.fontSize);
+    }
+    // The four squares share one size; the three circles share a slightly smaller one (a circle of the same size
+    // reads larger).
+    const squares = rows.slice(0, 4);
+    const circles = rows.slice(4);
+    for (const r of squares) expect(r.w).toBeCloseTo(first.w, 1);
+    for (const r of circles) {
+      expect(r.w).toBeCloseTo(circles[0].w, 1);
+      expect(r.w).toBeLessThan(first.w);
+      expect(r.w).toBeGreaterThan(first.w * 0.9);
     }
   });
 
