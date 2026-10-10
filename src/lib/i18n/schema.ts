@@ -836,6 +836,9 @@ export type TranslationParams = {
   "editorMenu.cut": undefined;
   "editorMenu.copy": undefined;
   "editorMenu.paste": undefined;
+  "editorMenu.copyToNext": undefined;
+  "editorMenu.peek": undefined;
+  "editorMenu.toSection": undefined;
   "phoneNav.ariaLabel": undefined;
   "phoneNav.actions": undefined;
   "phoneNav.history": undefined;

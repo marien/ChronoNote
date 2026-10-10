@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { seedApp, setEditorText, activeTabContent } from "./helpers";
+import { seedApp, setEditorText, activeTabContent, editor, todayFilename } from "./helpers";
 import { formatShortcut } from "../../src/lib/shortcuts";
 
 test.describe("editor context menu (proposal B5)", () => {
@@ -81,4 +81,20 @@ test.describe("editor context menu (proposal B5)", () => {
     await expect(page.locator(".editor-context-menu")).toHaveCount(0);
     await expect(page.locator("body")).toHaveClass(/zen-mode/);
   });
+});
+
+test("no menu label is cut off, in the longest language (Marien, 2026-10-10)", async ({ page }) => {
+  for (const lang of ["en", "nl", "de", "fr", "pl", "es", "it"]) {
+    await seedApp(page, { seed: { notes: { [todayFilename()]: "Weekly Sync\n===========\n# an action\n" }, languageMode: lang } as never });
+    await editor(page).locator(".cm-line", { hasText: "an action" }).click({ button: "right" });
+    const menu = page.locator(".editor-context-menu");
+    await expect(menu).toBeVisible();
+    const cut = await menu.evaluate((m) =>
+      [...m.querySelectorAll<HTMLElement>(".editor-context-label")].filter((l) => l.scrollWidth > l.clientWidth + 1).map((l) => l.textContent),
+    );
+    expect(cut, lang).toEqual([]);
+    const box = (await menu.boundingBox())!;
+    expect(box.x + box.width).toBeLessThanOrEqual(page.viewportSize()!.width);
+    await page.keyboard.press("Escape");
+  }
 });

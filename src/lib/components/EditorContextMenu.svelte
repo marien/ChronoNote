@@ -32,9 +32,10 @@
   const otherItemCount = $derived($backendKind === "desktop" ? 4 : 3);
   const itemCount = $derived(1 + lineItemCount + otherItemCount);
 
+  // The menu sizes to its longest item; its measured width keeps it on screen.
+  let menuWidth = $state(260);
   let contextPos = $derived.by(() => {
     if (!$editorContextMenu) return { x: 8, y: 8 };
-    const menuWidth = 260;
     const menuHeight = itemCount * 32 + 48;
     const x = Math.min($editorContextMenu.x, window.innerWidth - menuWidth - 8);
     const y = Math.min($editorContextMenu.y, window.innerHeight - menuHeight - 8);
@@ -114,6 +115,7 @@
   <div
     class="editor-context-menu"
     bind:this={menuEl}
+    bind:offsetWidth={menuWidth}
     style="top: {contextPos.y}px; left: {contextPos.x}px;"
     role="menu"
     tabindex="-1"
@@ -282,7 +284,8 @@
       }}
     >
       <Icon name="copy" size={14} />
-      <span class="editor-context-label">{$t("shortcuts.copyToNextOccurrence.label")}</span>
+      <!-- A short menu label; the full description (the palette/shortcut text) is the tooltip. -->
+      <span class="editor-context-label" title={$t("shortcuts.copyToNextOccurrence.label")}>{$t("editorMenu.copyToNext")}</span>
       <span class="editor-context-key">{formatShortcut("copyToNextOccurrence")}</span>
     </button>
     <button
@@ -292,7 +295,7 @@
       onclick={() => run((api) => api.convertCurrentLineToSection?.())}
     >
       <Icon name="edit" size={14} />
-      <span class="editor-context-label">{$t("shortcuts.convertToSection.label")}</span>
+      <span class="editor-context-label" title={$t("shortcuts.convertToSection.label")}>{$t("editorMenu.toSection")}</span>
       <span class="editor-context-key">{formatShortcut("convertToSection")}</span>
     </button>
     {#if $backendKind === "desktop"}
@@ -306,7 +309,7 @@
         }}
       >
         <Icon name="peek" size={14} />
-        <span class="editor-context-label">{$t("commandPalette.togglePeekMode")}</span>
+        <span class="editor-context-label" title={$t("commandPalette.togglePeekMode")}>{$t("editorMenu.peek")}</span>
         <span class="editor-context-key">{formatShortcut("togglePeekMode")}</span>
       </button>
     {/if}

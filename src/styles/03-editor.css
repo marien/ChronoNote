@@ -774,7 +774,10 @@ body.peek-mode .cm-overview-ruler {
 .editor-context-menu {
   position: fixed;
   z-index: 300;
-  width: 260px;
+  /* As wide as the longest item (Marien, 2026-10-10: labels were cut off at a fixed 260px, worst in Dutch/German). */
+  width: max-content;
+  min-width: 260px;
+  max-width: min(440px, calc(100vw - 16px));
   background: var(--surface-overlay);
   background: color-mix(in srgb, var(--surface-overlay) 88%, transparent);
   backdrop-filter: blur(20px) saturate(125%);
