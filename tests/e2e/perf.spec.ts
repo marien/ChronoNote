@@ -14,6 +14,7 @@ interface PerfBudgets {
 
 /** The budgets were measured on the maintainer's laptop; GitHub's shared runners are about twice as slow, so CI gets
  * twice the room. A real regression is usually several times slower, so this still catches it. */
+declare const process: { env: Record<string, string | undefined> };
 const CI_FACTOR = process.env.CI ? 2 : 1;
 
 function loadBudgets(): PerfBudgets {

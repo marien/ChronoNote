@@ -84,22 +84,13 @@ async function launch(): Promise<Page> {
         const log = fs.existsSync(LOG) ? fs.readFileSync(LOG, "utf8").slice(-2000) : "(no app.log)";
         const ports = await new Promise<string>((resolve) =>
           execFile("netstat", ["-ano", "-p", "TCP"], (_err, out) =>
-            resolve(String(out).split("
-").filter((l) => /LISTEN/.test(l)).join("
-")),
+            resolve(String(out).split("\n").filter((l) => /LISTEN/.test(l)).join("\n")),
           ),
         );
-        output += `
-listening TCP ports:
-${ports}
-webview processes: ${await webviewArgs()}`;
+        output += `\nlistening TCP ports:\n${ports}\nwebview processes: ${await webviewArgs()}`;
         throw new Error(
-          `the app's WebView2 never opened its debugging port (${exitInfo ?? "still running"}; last error ${e}).
-` +
-            `output:
-${output.slice(-2000)}
-app.log:
-${log}`,
+          `the app's WebView2 never opened its debugging port (${exitInfo ?? "still running"}; last error ${e}).\n` +
+            `output:\n${output.slice(-2000)}\napp.log:\n${log}`,
         );
       }
       await new Promise((r) => setTimeout(r, 1000));
