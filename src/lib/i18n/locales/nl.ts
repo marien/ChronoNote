@@ -230,6 +230,9 @@ export const nl = {
   "shortcuts.clickGlyph.label": () =>
     "Sluit de actie van het symbool, of heropent deze als hij voltooid, uitgesteld of vervallen is (precies dat symbool); bij hover zie je een voorbeeld",
   "shortcuts.escape.label": () => "Sluit het geopende venster",
+  "shortcuts.switchPane.label": () => "Focus wisselen tussen de notitie en het Geschiedenis- / Acties-paneel (de sneltoets van het paneel doet hetzelfde)",
+  "shortcuts.zoomFont.label": () => "Grotere / kleinere tekst in de notitie (wordt bewaard)",
+  "shortcuts.keyTips.label": () => "Alt aantikken: een letter op elke opdracht in de titelbalk; druk erop om de opdracht uit te voeren",
 
   "shortcuts.modal.title": () => "Sneltoetsen & symbolen",
   "shortcuts.modal.tab.shortcuts": () => "Sneltoetsen",

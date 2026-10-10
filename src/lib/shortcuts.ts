@@ -281,6 +281,9 @@ export const SHORTCUT_LABEL_KEYS = {
   clickGlyph: "shortcuts.clickGlyph.label",
   stepOccurrence: "shortcuts.stepOccurrence.label",
   escape: "shortcuts.escape.label",
+  switchPane: "shortcuts.switchPane.label",
+  zoomFont: "shortcuts.zoomFont.label",
+  keyTips: "shortcuts.keyTips.label",
 } satisfies Record<(typeof SHORTCUTS)[number]["id"] | "clickGlyph" | "stepOccurrence" | "escape", TranslationKey>;
 
 const BY_ID = new Map(SHORTCUTS.map((s) => [s.id, s]));
@@ -374,6 +377,8 @@ export function matchesShortcut(e: KeyboardEvent, id: string): boolean {
  * shortcut in the registry has a row (the drawer had quietly lost Zen mode). */
 export const DRAWER_ROWS: (string | [string, string])[] = [
   "commandPalette",
+  // Not Mac (no Alt key tips there).
+  ...(isMac ? [] : [["Alt", "keyTips"] as [string, string]]),
   "newScratchpad",
   "reopenClosedTab",
   "openDateNote",
@@ -381,6 +386,7 @@ export const DRAWER_ROWS: (string | [string, string])[] = [
   "cycleTab",
   "indentDedent",
   "undoRedo",
+  [isMac ? "Cmd+scroll" : "Ctrl+scroll", "zoomFont"],
   "cycleLineState",
   "cycleLineStateReverse",
   ["Click a glyph", "clickGlyph"],
@@ -400,6 +406,7 @@ export const DRAWER_ROWS: (string | [string, string])[] = [
   "copyToNextOccurrence",
   "openActions",
   "openHistory",
+  ["F6", "switchPane"],
   "findInNote",
   "crossTabSearch",
   "syncCalendar",

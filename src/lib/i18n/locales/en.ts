@@ -226,6 +226,9 @@ export const en = {
   "shortcuts.clickGlyph.label": () =>
     "Close the glyph's action, or reopen it if it is done, deferred or won't-do (exactly that glyph); hover previews the result",
   "shortcuts.escape.label": () => "Close whatever modal is open",
+  "shortcuts.switchPane.label": () => "Switch focus between the note and the History / Actions pane (the pane's own shortcut does the same)",
+  "shortcuts.zoomFont.label": () => "Bigger / smaller text in the note (saved)",
+  "shortcuts.keyTips.label": () => "Tap Alt: a letter on each title bar command; press it to run the command",
 
   "shortcuts.modal.title": () => "Shortcuts & Symbols",
   "shortcuts.modal.tab.shortcuts": () => "Shortcuts",

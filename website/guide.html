@@ -171,6 +171,7 @@
       </div>
       <div class="shortcut-grid">
         <div class="shortcut-row"><span>Command palette — run any command, jump to a tab, date or action</span><kbd>Ctrl+K</kbd></div>
+        <div class="shortcut-row"><span>Tap Alt: a letter appears on each title bar command — press it to run that command (desktop)</span><kbd>Alt</kbd></div>
         <div class="shortcut-row"><span>New scratchpad</span><kbd>Ctrl+N</kbd></div>
         <div class="shortcut-row"><span>Reopen most recently closed tab</span><kbd>Ctrl+Shift+T</kbd></div>
         <div class="shortcut-row"><span>Open / create a dated note</span><kbd>Ctrl+O</kbd></div>
@@ -178,6 +179,7 @@
         <div class="shortcut-row"><span>Next / previous tab</span><kbd>Ctrl+Tab</kbd></div>
         <div class="shortcut-row"><span>Indent / dedent a line or selection (two spaces)</span><kbd>Tab</kbd> / <kbd>Shift+Tab</kbd></div>
         <div class="shortcut-row"><span>Undo / redo (kept per tab)</span><kbd>Ctrl+Z</kbd> / <kbd>Ctrl+Shift+Z</kbd></div>
+        <div class="shortcut-row"><span>Bigger / smaller text in the note (remembered)</span><kbd>Ctrl+scroll</kbd></div>
         <div class="shortcut-row"><span>Close the open action at the caret</span><kbd>Ctrl+Space</kbd></div>
         <div class="shortcut-row"><span>Reopen the done action at the caret</span><kbd>Ctrl+Shift+Space</kbd></div>
         <div class="shortcut-row"><span>Open the action at the caret, or in each selected line</span><kbd>Ctrl+Shift+O</kbd></div>
@@ -191,6 +193,7 @@
         <div class="shortcut-row"><span>Copy this section to its next occurrence</span><kbd>Ctrl+Shift+.</kbd></div>
         <div class="shortcut-row"><span>Actions drawer</span><kbd>Ctrl+Shift+A</kbd></div>
         <div class="shortcut-row"><span>Section history</span><kbd>Ctrl+Shift+H</kbd></div>
+        <div class="shortcut-row"><span>With History or Actions open beside the note: switch between the note and the pane (the pane's own shortcut does the same)</span><kbd>F6</kbd></div>
         <div class="shortcut-row"><span>Find in this note</span><kbd>Ctrl+F</kbd></div>
         <div class="shortcut-row"><span>Cross-tab search</span><kbd>Ctrl+Shift+F</kbd></div>
         <div class="shortcut-row"><span>Sync calendar for this day (opt-in, desktop only)</span><kbd>Ctrl+Shift+C</kbd></div>
@@ -264,7 +267,9 @@
             <h3>Let recurring meetings remember themselves</h3>
             <p>Reuse the same section title tomorrow — "Daily Standup" again, or "1:1 — Priya" next week —
               and <kbd>Ctrl+Shift+H</kbd> pulls up every prior occurrence, aggregated, right from wherever
-              your cursor sits in the current one.</p>
+              your cursor sits in the current one. On a wide window it opens beside the note, so you can keep
+              typing while you read: move to another section and History follows; drag its edge to make it
+              wider or narrower. The Actions list (<kbd>Ctrl+Shift+A</kbd>) works the same way.</p>
             <p>Select lines in an occurrence (<kbd>↑</kbd>/<kbd>↓</kbd>, <kbd>Shift</kbd> to extend,
               <kbd>Ctrl+A</kbd> for all of them) and carry them forward with "Add to today" or "Add to next
               occurrence". The old lines are marked as forwarded, and whatever was deferred comes back open.
@@ -331,9 +336,11 @@
           <div>
             <h3>Write without distraction, your way</h3>
             <p><kbd>Shift+F11</kbd> hides the bars for Zen mode (<kbd>Esc</kbd> brings them back). In Settings, set the
-              editor's font size and line spacing, and switch on pure black in dark mode for OLED screens. The
-              date picker (<kbd>Ctrl+O</kbd>) shows at a glance which days have a note, which have open actions
-              (an accent border) and, with calendar sync on, which only have meetings so far (a dashed box).</p>
+              editor's font size (or <kbd>Ctrl</kbd>+scroll in the note) and line spacing, and switch on pure black in
+              dark mode for OLED screens. The date picker (<kbd>Ctrl+O</kbd>) shows at a glance which days have a
+              note (bold), which have open actions (an amber ring) and, with calendar sync on, which only have
+              meetings so far (a dashed ring), with ISO week numbers down the side; type <code>wk 42</code> to jump
+              to that week.</p>
           </div>
         </div>
         <div class="workflow-step">
@@ -398,8 +405,11 @@
       <p>
         The web app is the same editor with the same tokens and the same plain
         <code>.txt</code> files, with a touch accessory bar above the keyboard for the
-        symbols and actions. Installed to your home screen, it opens full-screen like
-        a native app — no store, no APK.
+        symbols and actions. The bar at the top shows which day you're on and its open
+        actions, with arrows to the previous and next note; the bar at the bottom takes you
+        to the note, Actions, History and Search. Long-press a glyph for that line's menu.
+        Installed to your home screen, it opens full-screen like a native app — no store,
+        no APK.
       </p>
 
       <h3>Installing it</h3>

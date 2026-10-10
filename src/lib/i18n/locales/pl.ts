@@ -232,6 +232,9 @@ export const pl = {
   "shortcuts.clickGlyph.label": () =>
     "Ukończ zadanie glifu lub otwórz je ponownie, jeśli jest ukończone, odłożone lub zaniechane; najechanie pokazuje podgląd",
   "shortcuts.escape.label": () => "Zamknij otwarte okno dialogowe",
+  "shortcuts.switchPane.label": () => "Przełącz fokus między notatką a panelem Historii / Działań (skrót panelu działa tak samo)",
+  "shortcuts.zoomFont.label": () => "Większy / mniejszy tekst w notatce (zapisywany)",
+  "shortcuts.keyTips.label": () => "Naciśnij Alt: litera przy każdym poleceniu paska tytułu; naciśnij ją, aby wykonać polecenie",
 
   "shortcuts.modal.title": () => "Skróty i symbole",
   "shortcuts.modal.tab.shortcuts": () => "Skróty",

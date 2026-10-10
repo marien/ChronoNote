@@ -233,6 +233,9 @@ export const de = {
   "shortcuts.clickGlyph.label": () =>
     "Schließt die Aktion des Symbols, oder öffnet es erneut, wenn es erledigt, verschoben ist oder entfällt (genau dieses Symbol); beim Hover wird das Ergebnis als Vorschau gezeigt",
   "shortcuts.escape.label": () => "Schließt das geöffnete Fenster",
+  "shortcuts.switchPane.label": () => "Fokus zwischen Notiz und Verlauf- / Aktionen-Bereich wechseln (das Tastenkürzel des Bereichs tut dasselbe)",
+  "shortcuts.zoomFont.label": () => "Größere / kleinere Schrift in der Notiz (wird gespeichert)",
+  "shortcuts.keyTips.label": () => "Alt antippen: ein Buchstabe an jedem Befehl der Titelleiste; drücken Sie ihn, um den Befehl auszuführen",
 
   "shortcuts.modal.title": () => "Tastenkürzel & Symbole",
   "shortcuts.modal.tab.shortcuts": () => "Tastenkürzel",

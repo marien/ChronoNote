@@ -232,6 +232,9 @@ export const it = {
   "shortcuts.clickGlyph.label": () =>
     "Completa l'azione del glifo o riaprila se completata, rimandata o annullata (esattamente quel glifo); passa il cursore per l'anteprima",
   "shortcuts.escape.label": () => "Chiudi qualsiasi finestra di dialogo aperta",
+  "shortcuts.switchPane.label": () => "Sposta il focus tra la nota e il pannello Cronologia / Azioni (la scorciatoia del pannello fa lo stesso)",
+  "shortcuts.zoomFont.label": () => "Testo più grande / più piccolo nella nota (salvato)",
+  "shortcuts.keyTips.label": () => "Premi Alt: una lettera su ogni comando della barra del titolo; premila per eseguirlo",
 
   "shortcuts.modal.title": () => "Scorciatoie e simboli",
   "shortcuts.modal.tab.shortcuts": () => "Scorciatoie",

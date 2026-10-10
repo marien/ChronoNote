@@ -232,6 +232,9 @@ export const fr = {
   "shortcuts.clickGlyph.label": () =>
     "Terminer l'action du glyphe, ou la rouvrir si elle est terminée, reportée ou abandonnée ; le survol affiche l'aperçu",
   "shortcuts.escape.label": () => "Fermer la boîte de dialogue ouverte",
+  "shortcuts.switchPane.label": () => "Basculer le focus entre la note et le volet Historique / Actions (le raccourci du volet fait de même)",
+  "shortcuts.zoomFont.label": () => "Texte plus grand / plus petit dans la note (enregistré)",
+  "shortcuts.keyTips.label": () => "Appuyez sur Alt : une lettre sur chaque commande de la barre de titre ; tapez-la pour l'exécuter",
 
   "shortcuts.modal.title": () => "Raccourcis & symboles",
   "shortcuts.modal.tab.shortcuts": () => "Raccourcis",

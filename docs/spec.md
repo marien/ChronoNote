@@ -132,6 +132,10 @@ and are switched off under the OS "reduce motion" setting; Windows contrast
 themes map glyphs, selection and focus to system colours. Secondary text
 meets WCAG AA contrast.
 
+On Windows 11 the desktop app puts Mica behind the title bar and status bar
+(tinted by the app's own theme; the note area stays solid). It is off in the
+web app, before Windows 11, with pure black, and while Peek is on (§337).
+
 ### 3.1 Iconography
 
 Every UI icon — the top bar, every modal header, the tab strip, the find
@@ -167,33 +171,29 @@ desktop build — the demo and web app have no OS window at all (an
 iframe / a browser tab) and keep a plain top bar with no icon, no window
 controls, no drag regions.
 
-The top bar hosts the tab strip and a row of action buttons (New
-Scratchpad, Open Date Note, Actions, Section History, Cross-Tab Search,
-Sync Calendar for This Day (only once turned on in Settings — see §3.4),
-Promote-scratchpad when applicable, Settings) as
-fixed-width siblings of the scrollable tab strip, not inside it. Tabs
-stay ordered chronologically (earliest to latest, left to right), with
-scratchpads always after every dated tab; the strip auto-scrolls to keep
-the active tab in view on every switch. Tab labels drop the `.txt`
-extension; middle-click closes a tab.
+The tabs come first, in the style of Windows 11 Notepad: the active tab
+takes the note's colour and a thin outline (§339), the others sit on the
+bar; a dot marks the tab's date (past / today / future). Tabs stay ordered
+chronologically (earliest to latest), scratchpads after every dated tab;
+the strip auto-scrolls to keep the active tab in view, and scroll arrows
+appear when it overflows. Labels are the ISO date, or, with Settings →
+Appearance → Tab labels set to Friendly, "Today" / "Yesterday" / "Tomorrow"
+and otherwise a short date ("Thu 9 Oct"), with the ISO date as tooltip. Middle-click closes a tab. Right after the last tab sits
+a `+` split button: `+` makes a new scratchpad, its `▾` menu offers New
+scratchpad, Open dated note and Reopen closed tab.
 
-A four-tier, measurement-driven responsive system keeps the bar usable
-as the window narrows, each tier only engaging once the previous one
-still doesn't leave enough room (re-evaluated on resize via a
-`ResizeObserver`, with an anti-flicker discipline — decide from the
-current state, require clearing a margin before flipping back):
-1. Full width: every button shows icon + label.
-2. Labels collapse to icon-only.
-3. If tabs still overflow, the scroll-arrow (`←`/`→`) pair appears at
-   the ends of the tab strip — clicking either at an edge wraps around
-   to the other end, the same cyclic behavior as cycling tabs by
-   keyboard.
-4. If icon-only buttons still leave the tab strip overflowing, every
-   secondary action button (Actions/History/Search/Import/Promote/
-   Settings) collapses into one "More actions" button, opening an
-   anchored, non-modal popover listing them with their shortcuts. New
-   Scratchpad and Open Date Note are never collapsed — they stay pinned
-   and visible at every tier.
+The commands on the right are icons only: Open date note, Actions, Section
+History, Search, Sync calendar for this day (only when turned on, §3.4) and
+Promote (for a scratchpad), then a More (`…`) menu that is always there
+(Settings, Shortcuts & symbols, Zen mode, Peek, About). When the window gets
+too narrow for the tabs, the command icons fold into More too. Tapping
+`Alt` on its own (left Alt; not AltGr, not on a Mac or phone) shows a letter
+on each command, and pressing that letter runs it (§341).
+
+Window controls are 46px wide with the Windows 11 close-button red; the bar
+dims when the window is inactive. Hovering the maximize button shows Windows
+11 Snap Layouts: an invisible native child window over the button answers
+Windows' hit test as the maximize button (`snap_overlay.rs`, §336).
 
 ### 3.3 Status Bar
 
@@ -312,8 +312,8 @@ textarea) are thin and theme-matched rather than the OS default.
 Every modal dialog conforms to a standardized 4-tier sizing scale, universal dismiss affordance, and responsive layout reflow:
 
 1. **Standardized Sizing Scale:** Semantic classes apply fluid max-width constraints (`min(100%, var(--modal-width, 720px))` and `max-width: calc(100vw - 24px)`):
-   * `.modal-sm` (440px): Compact single-choice prompts (`AboutModal`, `SafetyModal`, `UnsavedScratchpadsModal`, `MigrateNotesModal`).
-   * `.modal-md` (560px): Standard single-column settings and form views (`SettingsModal`, `ConflictModal`, `SyncConflictsModal`, `CommandPaletteModal`).
+   * `.modal-sm` (440px): Compact single-choice prompts (`SafetyModal`, `UnsavedScratchpadsModal`, `MigrateNotesModal`; `AboutModal` on a phone).
+   * `.modal-md` (560px): Standard single-column form views (`ConflictModal`, `SyncConflictsModal`, `CommandPaletteModal`; `SettingsModal` on a phone — on desktop Settings is a page, §3.4).
    * `.modal-lg` (720px): Multi-column list views and table searches (`ActionDrawerModal`, `SearchModal`, `CalendarSyncReviewModal`, `OneDriveFolderPickerModal`).
    * `.modal-xl` (880px): Deep data inspectors and wide single-column browsers (`HistoryModal`, `ShortcutsModal`).
 2. **Universal Dismiss Affordance:** Every dialog except the disk-conflict one (which needs an explicit choice) provides a monoline `✕` icon button (`.modal-close-btn`, 26×26px, expanded to 44×44px hit-box under coarse pointers) in the top-right corner, ensuring clear, accessible exit affordance for mouse and touch users alike. The title/search row itself (`.modal-input-wrap`) is a tight ~42px regardless of which modal it belongs to.
@@ -323,7 +323,8 @@ Every modal dialog conforms to a standardized 4-tier sizing scale, universal dis
    * `HistoryModal`: its occurrence strip and note body are already a single column (a horizontal tab strip above a full-width body, §213) — nothing to reflow at any width.
    * `SyncConflictsModal`: Replaces side-by-side split on small screens with a segmented view switcher (`[ Side-by-Side ] [ This Device ] [ OneDrive ]`).
    * `CalendarSyncReviewModal`: Reflows removal rows into a stacked two-row card.
-5. **Mobile Ergonomics & Dynamic Floating Toast:** On mobile form factors (`$isMobile`), transient messages float below the top bar in a pill banner (`.mobile-toast`, `role="status"`, `aria-live="polite"`), avoiding interference from on-screen keyboards. Modals and popovers feature dark mode luminance borders with inset highlights (`box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 16px 44px rgba(0, 0, 0, 0.5)`).
+5. **Phone layout (§333, §334, §342):** on a phone the web app has an app bar at the top (the tabs button with a count; arrows to the previous / next note; the title — Today / Yesterday / Tomorrow or a short date, with the date and open-action count below, tap for the date picker; the cloud status; and a More menu) and, in place of the status bar, a navigation bar at the bottom (Note, Actions with an open-count badge, History, Search; hidden while typing). Dialogs, drawers, the date picker and More open as bottom sheets with a handle that close on a downward swipe. Long-pressing a glyph (500ms) opens the line menu as a sheet, while a short tap still toggles it.
+6. **Mobile Ergonomics & Dynamic Floating Toast:** On mobile form factors (`$isMobile`), transient messages float below the top bar in a pill banner (`.mobile-toast`, `role="status"`, `aria-live="polite"`), avoiding interference from on-screen keyboards. Modals and popovers feature dark mode luminance borders with inset highlights (`box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 16px 44px rgba(0, 0, 0, 0.5)`).
 
 ### 3.7 Zen Mode, Drag-and-Drop Import, Sync Telemetry & Canvas Typography
 
@@ -343,7 +344,7 @@ Every modal dialog conforms to a standardized 4-tier sizing scale, universal dis
    * Displays real-time sync engine status (`● In sync`, `⟳ Syncing changes…`, `▲ Offline (cached)`, or `✕ Sync error`), humanized relative time since last sync, local cached note count, pending upload count, connected Microsoft account email, and target OneDrive folder path.
    * Provides immediate "Sync Now" button and an "Open Settings" link.
 4. **Canvas Density, Typography & Pure Black OLED Mode:**
-   * Customizable monospace font size slider (12px to 18px in 0.5px steps, default 13px) and line spacing slider (1.30 to 1.80 in 0.05 steps, default 1.60) in Settings, updating live via `--editor-font-size` and `--editor-line-height` CSS custom properties.
+   * Customizable monospace font size slider (12px to 18px in 0.5px steps, default 13px) and line spacing slider (1.30 to 1.80 in 0.05 steps, default 1.60) in Settings, updating live via `--editor-font-size` and `--editor-line-height` CSS custom properties. `Ctrl`+scroll (`Cmd`+scroll on macOS) over the note changes the font size by 1px per notch within the same range and saves it (§347); it no longer zooms the whole page.
    * Pure black OLED dark theme toggle (`pure_black: bool`) layers `data-pure-black` on top of the dark theme, mapping the canvas to absolute `#000000` for OLED battery savings and true zero-luminance black backgrounds.
 
 5. **Peek (desktop app only):** a compact, see-through, always-on-top note window for taking notes during a call.
@@ -445,11 +446,14 @@ reachable from the top bar, a shortcut, or the command palette:
   typing into it) doesn't count. Opens on the active tab's own month
   with that day highlighted (falling back to today for a scratchpad,
   which has no date of its own), rather than always defaulting to today.
-  Each day is a small container showing its state (§262): empty days are
-  flat and faint; days with a note are a neutral chip; days with open
-  actions add an accent border; today keeps a ring and the selected day is
-  filled. With calendar sync on and `.agenda.json` present, a day that only
-  has meetings so far (no note yet) is a dashed box. (There are no
+  Each day is a round cell in the Windows 11 calendar style showing its
+  state (§262, §340): empty days are plain; days with a note are bold on a
+  faint fill; days with open actions get an amber ring; today is a filled
+  accent circle and the selected day an accent ring. With calendar sync on
+  and `.agenda.json` present, a day that only has meetings so far (no note
+  yet) has a dashed ring. A narrow first column shows each row's ISO week
+  number, and the date field accepts `wk 42` / `w42` / `week 42` (the
+  Monday of that week this year). (There are no
   completion dots any more: an all-done day looks like any other day with a
   note.)
 - **Action Drawer** (`Ctrl/Cmd+Shift+A`) — lists actions across either

@@ -230,6 +230,9 @@ export const es = {
   "shortcuts.clickGlyph.label": () =>
     "Completar la acción del glifo, o reabrirla si está completada, pospuesta o descartada (exactamente ese glifo); pasar el cursor previsualiza el resultado",
   "shortcuts.escape.label": () => "Cerrar cualquier ventana modal abierta",
+  "shortcuts.switchPane.label": () => "Cambiar el foco entre la nota y el panel de Historial / Acciones (el atajo del panel hace lo mismo)",
+  "shortcuts.zoomFont.label": () => "Texto más grande / más pequeño en la nota (se guarda)",
+  "shortcuts.keyTips.label": () => "Pulse Alt: una letra en cada comando de la barra de título; púlsela para ejecutarlo",
 
   "shortcuts.modal.title": () => "Atajos y símbolos",
   "shortcuts.modal.tab.shortcuts": () => "Atajos",

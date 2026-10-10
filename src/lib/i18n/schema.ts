@@ -190,6 +190,9 @@ export type TranslationParams = {
   "shortcuts.clickGlyph.label": undefined;
   "shortcuts.stepOccurrence.label": undefined;
   "shortcuts.escape.label": undefined;
+  "shortcuts.switchPane.label": undefined;
+  "shortcuts.zoomFont.label": undefined;
+  "shortcuts.keyTips.label": undefined;
 
   // Shortcuts & Symbols drawer (`ShortcutsModal.svelte`) chrome and the
   // glyph-legend explanations. "Delegated" and the section-headers hint
