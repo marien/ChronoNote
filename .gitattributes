@@ -23,3 +23,7 @@ demo-src/*.html text eol=lf
 
 # Vitest writes snapshot files with LF; pin them so a test run never shows them as modified.
 **/__snapshots__/*.snap text eol=lf
+
+# Generated third-party notices must keep LF line endings.
+src/assets/THIRD-PARTY-NOTICES.txt text eol=lf
+
