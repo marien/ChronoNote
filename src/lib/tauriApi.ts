@@ -206,6 +206,18 @@ export function getAppVersion(): Promise<string> {
   return getVersion();
 }
 
+export function appendLog(level: string, message: string): Promise<void> {
+  return invoke("append_log", { level, message });
+}
+
+export function readLogTail(lines: number): Promise<string> {
+  return invoke("read_log_tail", { lines });
+}
+
+export function openLogFolder(): Promise<void> {
+  return invoke("open_log_folder", {});
+}
+
 /** Opens a URL in the OS's default browser (via `tauri-plugin-opener`)
  * rather than navigating the app's own webview to it. */
 export function openExternalUrl(url: string): Promise<void> {

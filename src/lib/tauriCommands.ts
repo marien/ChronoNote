@@ -171,6 +171,18 @@ export interface TauriCommands {
     args: NoArgs;
     returns: SyncHealth;
   };
+  append_log: {
+    args: { level: string; message: string };
+    returns: void;
+  };
+  read_log_tail: {
+    args: { lines: number };
+    returns: string;
+  };
+  open_log_folder: {
+    args: NoArgs;
+    returns: void;
+  };
 }
 
 export type TauriCommand = keyof TauriCommands;

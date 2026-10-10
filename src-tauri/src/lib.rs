@@ -1,4 +1,5 @@
 mod agenda;
+mod applog;
 mod error;
 mod onedrive;
 mod peek_window;
@@ -180,6 +181,33 @@ fn load_scratchpad_drafts(app: AppHandle) -> Result<std::collections::HashMap<St
     storage::load_scratchpad_drafts(&app)
 }
 
+#[tauri::command]
+fn append_log(level: String, message: String) {
+    let lvl = match level.as_str() {
+        "INFO" => "INFO",
+        "WARN" => "WARN",
+        "ERROR" => "ERROR",
+        _ => "WARN",
+    };
+    applog::write(lvl, &message);
+}
+
+#[tauri::command]
+fn read_log_tail(lines: u32) -> String {
+    let limit = lines.min(500) as usize;
+    applog::tail(limit)
+}
+
+#[tauri::command]
+fn open_log_folder(app: AppHandle) -> Result<(), String> {
+    use tauri_plugin_opener::OpenerExt;
+    let dir = app.path().app_log_dir().map_err(|e| e.to_string())?;
+    let _ = std::fs::create_dir_all(&dir);
+    app.opener()
+        .open_path(dir.to_string_lossy(), None::<&str>)
+        .map_err(|e| e.to_string())
+}
+
 /// Window starts hidden (see `tauri.conf.json`) so it can be shown only
 /// once its background already matches the theme it's about to render —
 /// otherwise the OS paints the window's own default (white) canvas for
@@ -246,6 +274,23 @@ pub fn run() {
 
     builder
         .setup(|app| {
+            if let Ok(dir) = app.path().app_log_dir() {
+                applog::init(dir);
+                applog::write(
+                    "INFO",
+                    &format!(
+                        "start ChronoNote {} ({} {})",
+                        app.package_info().version,
+                        std::env::consts::OS,
+                        std::env::consts::ARCH
+                    ),
+                );
+            }
+            let prev = std::panic::take_hook();
+            std::panic::set_hook(Box::new(move |info| {
+                applog::write("PANIC", &info.to_string());
+                prev(info);
+            }));
             show_window_without_flash(app);
             Ok(())
         })
@@ -279,6 +324,9 @@ pub fn run() {
             agenda::agenda_file_exists,
             save_scratchpad_drafts,
             load_scratchpad_drafts,
+            append_log,
+            read_log_tail,
+            open_log_folder,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

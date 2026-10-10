@@ -619,6 +619,22 @@ export class WebBackend {
       return this.migrateBrowserNotesToCloud();
     },
     get_sync_health: () => this.syncEngine.getSyncHealth(),
+    append_log: async ({ level, message }) => {
+      const db = await this.db();
+      const current = (await idbGet<string[]>(db, STORE_META, "app_log")) ?? [];
+      const flat = message.replace(/\r?\n/g, " | ").slice(0, 2000);
+      const stamp = new Date().toISOString().replace("T", " ").slice(0, 19);
+      current.push(`${stamp} UTC  ${level}  ${flat}`);
+      const trimmed = current.slice(-500);
+      await idbPut(db, STORE_META, "app_log", trimmed);
+    },
+    read_log_tail: async ({ lines }) => {
+      const db = await this.db();
+      const current = (await idbGet<string[]>(db, STORE_META, "app_log")) ?? [];
+      const count = Math.min(Math.max(0, lines), 500);
+      return current.slice(-count).join("\n");
+    },
+    open_log_folder: async () => {},
   };
 
   /** Erases everything (`notes`, `conflicts`, `config`, `session`) — the

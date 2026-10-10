@@ -658,7 +658,11 @@ fn quarantine_corrupt_file(path: &Path) {
     let mut aside = path.as_os_str().to_owned();
     aside.push(format!(".corrupt-{stamp}"));
     if let Err(e) = fs::rename(path, &aside) {
-        eprintln!("chrononote: could not quarantine corrupt {}: {e}", path.display());
+        crate::applog::write("WARN", &format!("could not quarantine corrupt {}: {e}", path.display()));
+    } else {
+        let old_name = path.file_name().and_then(|n| n.to_str()).unwrap_or("");
+        let new_name = Path::new(&aside).file_name().and_then(|n| n.to_str()).unwrap_or("");
+        crate::applog::write("WARN", &format!("set aside {old_name} as {new_name}"));
     }
 }
 
