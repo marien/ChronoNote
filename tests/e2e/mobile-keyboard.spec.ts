@@ -113,3 +113,26 @@ for (const width of [390, 360]) {
     });
   });
 }
+
+for (const width of [320, 360, 390, 412]) {
+  test.describe(`symbols bar at ${width}px`, () => {
+    test.use({ viewport: { width, height: 800 }, isMobile: true, hasTouch: true });
+    test("every button sits on one row (Marien, 2026-10-10: it wrapped to two lines)", async ({ page }) => {
+      await seedApp(page, {
+        seed: {
+          notes: { [todayFilename()]: ["# an action", "o a topic", "plain"].join(String.fromCharCode(10)) },
+          session: { openTabs: [todayFilename()], activeTab: todayFilename() },
+        },
+      });
+      for (const text of ["an action", "a topic", "plain"]) {
+        await editor(page).locator(".cm-line", { hasText: text }).click();
+        const tops = await page.locator(".mobile-accessory-bar > .accessory-btn").evaluateAll((els) =>
+          els.map((el) => Math.round(el.getBoundingClientRect().top)),
+        );
+        expect(tops.length).toBeGreaterThan(5);
+        expect(new Set(tops).size, `${text}: ${tops.join(",")}`).toBe(1);
+      }
+    });
+  });
+}
+

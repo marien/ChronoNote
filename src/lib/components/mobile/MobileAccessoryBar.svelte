@@ -49,11 +49,6 @@
     editorApi?.focus();
   }
 
-  function handleRedoFromPanel() {
-    handleRedo();
-    moreOpen = false;
-  }
-
   function handleCommandPalette() {
     openCommandPalette();
     moreOpen = false;
@@ -133,11 +128,23 @@
       {#each panelTokens as token (token)}
         {@render tokenButton(token, true)}
       {/each}
+      <!-- Undo moved here next to Redo to make room for the hide-keyboard button (one row on a phone). Both keep
+           the panel open, so they can be pressed several times. -->
       <button
         type="button"
         class="accessory-btn icon-btn"
         onpointerdown={(e) => e.preventDefault()}
-        onclick={handleRedoFromPanel}
+        onclick={handleUndo}
+        aria-label={$t("mobileAccessory.undo")}
+        title={$t("mobileAccessory.undo")}
+      >
+        <Icon name="undo" size={15} />
+      </button>
+      <button
+        type="button"
+        class="accessory-btn icon-btn"
+        onpointerdown={(e) => e.preventDefault()}
+        onclick={handleRedo}
         aria-label={$t("mobileAccessory.redo")}
         title={$t("mobileAccessory.redo")}
       >
@@ -181,18 +188,6 @@
     title={$t("mobileAccessory.indentWord")}
   >
     <Icon name="indent" size={16} />
-  </button>
-
-  <!-- History / Undo -->
-  <button
-    type="button"
-    class="accessory-btn icon-btn"
-    onpointerdown={(e) => e.preventDefault()}
-    onclick={handleUndo}
-    aria-label={$t("mobileAccessory.undo")}
-    title={$t("mobileAccessory.undo")}
-  >
-    <Icon name="undo" size={15} />
   </button>
 
   <!-- More overflow button -->
