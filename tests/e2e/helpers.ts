@@ -191,7 +191,9 @@ export function modalCard(page: Page, label: string): Locator {
   if (label === MODAL_LABELS.settings) {
     return page.locator(`.modal-card[aria-label="${label}"], main.settings-page[aria-label="${label}"]`);
   }
-  return page.locator(`.modal-card[aria-label="${label}"], aside.history-pane[aria-label="${label}"]`);
+  return page.locator(
+    `.modal-card[aria-label="${label}"], aside.history-pane[aria-label="${label}"], aside.actions-pane[aria-label="${label}"]`
+  );
 }
 
 /** §104: the date picker is an anchored calendar popover, not a
@@ -245,3 +247,10 @@ export async function openViaShortcut(page: Page, combo: string, modal: ModalKey
 export async function currentModal(page: Page): Promise<string> {
   return page.evaluate(() => window.__CHRONO_MOCK__?.debug?.modal() ?? "unknown");
 }
+
+/** Status bar reads "Ln N, Col C" (1-based). */
+export async function cursorLine(page: Page): Promise<number> {
+  const t = (await page.locator("#stat-pos").textContent()) ?? "";
+  return Number(t.match(/Ln\s+(\d+)/)?.[1] ?? 0);
+}
+

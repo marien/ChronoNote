@@ -1,4 +1,4 @@
-/* Section History docked side pane (Proposal C1) */
+/* Section History & Actions docked side panes (Proposal C1) */
 .workspace-row {
   display: flex;
   flex-direction: row;
@@ -14,7 +14,8 @@
   min-width: 0;
 }
 
-.history-pane {
+.history-pane,
+.actions-pane {
   display: flex;
   flex-direction: column;
   width: 380px;
@@ -28,7 +29,8 @@
   overflow: hidden;
 }
 
-.history-pane-card {
+.history-pane-card,
+.actions-pane-card {
   display: flex;
   flex-direction: column;
   flex: 1;
@@ -38,13 +40,15 @@
   background: transparent;
 }
 
-.history-pane-card .modal-input-wrap.modal-title {
+.history-pane-card .modal-input-wrap.modal-title,
+.actions-pane-card .modal-input-wrap.modal-title {
   padding: 10px 14px;
   border-bottom: 1px solid var(--edge-soft);
   flex-shrink: 0;
 }
 
-.history-pane-card .modal-title .modal-input {
+.history-pane-card .modal-title .modal-input,
+.actions-pane-card .modal-title .modal-input {
   flex: 1;
   min-width: 0;
   overflow: hidden;
@@ -52,14 +56,20 @@
   white-space: nowrap;
 }
 
-.history-pane-card .history-body {
+.history-pane-card .history-body,
+.actions-pane-card .modal-list {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
 }
 
+.actions-pane-card .modal-list {
+  max-height: none;
+}
+
 /* The pane is narrower than the dialog: let the key hints wrap instead of cutting them off. */
-.history-pane-card .modal-footer-hints {
+.history-pane-card .modal-footer-hints,
+.actions-pane-card .modal-footer-hints {
   white-space: normal;
   overflow: visible;
 }

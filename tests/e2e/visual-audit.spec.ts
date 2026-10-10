@@ -152,8 +152,8 @@ test.describe("Visual layout & overflow audit across locales", () => {
       // 7. Action Drawer
       await editor(page).click();
       await page.keyboard.press("ControlOrMeta+Shift+a");
-      await page.waitForSelector(".action-drawer-card, .modal-card");
-      issues = await findOverflows(page, ".modal-card", locale, "Action Drawer");
+      await page.waitForSelector(".actions-pane-card, aside.actions-pane, .modal-card");
+      issues = await findOverflows(page, ".modal-card, aside.actions-pane", locale, "Action Drawer");
       allIssues.push(...issues);
       await page.keyboard.press("Escape");
       await page.waitForTimeout(150);
