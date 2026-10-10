@@ -20,6 +20,7 @@ export const nl = {
   "settings.appearance.theme.hint": () => "Systeem volgt de licht/donker-instelling van je besturingssysteem.",
   "settings.appearance.language.label": () => "Taal",
   "settings.appearance.language.hint": () => "Systeem volgt de weergavetaal van je besturingssysteem.",
+  "settings.appearance.language.community": () => "(vertaling door de community)",
   "settings.appearance.glyphs.label": () => "Glyphen",
   "settings.appearance.glyphs.color": () => "Kleur",
   "settings.appearance.glyphs.grayscale": () => "Grijswaarden",
@@ -145,15 +146,15 @@ export const nl = {
   "shortcuts.setActionDone.label": () =>
     "De actie bij de cursor op voltooid zetten, of in elke geselecteerde regel; een gewone regel wordt een actie",
   "shortcuts.setActionDeferred.label": () =>
-    "De actie bij de cursor op uitgesteld zetten, of in elke geselecteerde regel; een gewone regel wordt een actie",
+    "De actie bij de cursor op doorgeschoven zetten, of in elke geselecteerde regel; een gewone regel wordt een actie",
   "shortcuts.setActionWontDo.label": () =>
     "De actie bij de cursor op vervallen zetten, of in elke geselecteerde regel; een gewone regel wordt een actie",
   "shortcuts.setTopicToDiscuss.label": () =>
-    "Het agendapunt bij de cursor op te bespreken zetten, of in elke geselecteerde regel; een gewone regel wordt een agendapunt",
+    "Het onderwerp bij de cursor op te bespreken zetten, of in elke geselecteerde regel; een gewone regel wordt een onderwerp",
   "shortcuts.setTopicDiscussed.label": () =>
-    "Het agendapunt bij de cursor op besproken zetten, of in elke geselecteerde regel; een gewone regel wordt een agendapunt",
+    "Het onderwerp bij de cursor op besproken zetten, of in elke geselecteerde regel; een gewone regel wordt een onderwerp",
   "shortcuts.setTopicNotDiscussed.label": () =>
-    "Het agendapunt bij de cursor op niet besproken zetten, of in elke geselecteerde regel; een gewone regel wordt een agendapunt",
+    "Het onderwerp bij de cursor op niet besproken zetten, of in elke geselecteerde regel; een gewone regel wordt een onderwerp",
   "shortcuts.jumpAction.label": () => "Naar volgende / vorige open actie springen (in editor, met terugloop)",
   "shortcuts.caretLineNav.label": () =>
     "Cursor naar begin van de regel, dan vorige regel / begin van volgende regel (in editor)",
@@ -242,7 +243,7 @@ export const nl = {
   "shortcuts.modal.group.sectionHeaders": () => "Sectiekoppen",
   "shortcuts.modal.glyph.open": () => "Open actie — nog te doen",
   "shortcuts.modal.glyph.done": () => "Voltooid",
-  "shortcuts.modal.glyph.deferred": () => "Uitgesteld — doorgeschoven naar een latere notitie",
+  "shortcuts.modal.glyph.deferred": () => "Doorgeschoven — verplaatst naar een latere notitie",
   "shortcuts.modal.glyph.wontDo": () => "Vervallen — gesloten zonder het te doen",
   "shortcuts.modal.glyph.toDiscuss": () => "Te bespreken — open agendapunt",
   "shortcuts.modal.glyph.discussed": () => "Besproken — agendapunt afgerond in dit overleg",
@@ -283,7 +284,7 @@ export const nl = {
   "actionDrawer.scope.allFiles.title": () => "Elke notitie, geopend in een tab of niet",
   "actionDrawer.onlyOpen.label": () => "Alleen open",
   "actionDrawer.onlyOpen.title": () =>
-    "Toon alleen onopgeloste (open) acties — verberg voltooide, uitgestelde en vervallen regels",
+    "Toon alleen onopgeloste (open) acties — verberg voltooide, doorgeschoven en vervallen regels",
   "actionDrawer.empty.noMatch": ({ filter }) => `Geen acties komen overeen met "${filter}".`,
   "actionDrawer.empty.filterSubtitle": () => "Probeer een ander trefwoord of wis het zoekfilter.",
   "actionDrawer.empty.allResolved": () => "Niets hier — elke actie is afgehandeld.",
@@ -362,7 +363,7 @@ export const nl = {
   "commandPalette.line.reopenDoneAction": () => "Voltooide actie op huidige regel heropenen",
   "commandPalette.line.setOpen": () => "Regel/selectie instellen op Open",
   "commandPalette.line.setDone": () => "Regel/selectie instellen op Voltooid",
-  "commandPalette.line.setDeferred": () => "Regel/selectie instellen op Uitgesteld",
+  "commandPalette.line.setDeferred": () => "Regel/selectie instellen op Doorgeschoven",
   "commandPalette.line.setWontDo": () => "Regel/selectie instellen op Vervallen",
   "commandPalette.line.setTopicToDiscuss": () => "Regel/selectie instellen op Te bespreken",
   "commandPalette.line.setTopicDiscussed": () => "Regel/selectie instellen op Besproken",

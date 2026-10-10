@@ -19,6 +19,7 @@ export const fr = {
   "settings.appearance.theme.hint": () => "Système suit le réglage clair/sombre de votre système d'exploitation.",
   "settings.appearance.language.label": () => "Langue",
   "settings.appearance.language.hint": () => "Système suit la langue d'affichage de votre système d'exploitation.",
+  "settings.appearance.language.community": () => "(traduction communautaire)",
   "settings.appearance.glyphs.label": () => "Glyphes",
   "settings.appearance.glyphs.color": () => "Couleur",
   "settings.appearance.glyphs.grayscale": () => "Niveaux de gris",

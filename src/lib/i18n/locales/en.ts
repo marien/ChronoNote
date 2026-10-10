@@ -20,6 +20,7 @@ export const en = {
   "settings.appearance.theme.hint": () => "System follows your OS's own light/dark setting.",
   "settings.appearance.language.label": () => "Language",
   "settings.appearance.language.hint": () => "System follows your OS's own display language.",
+  "settings.appearance.language.community": () => "(community translation)",
   "settings.appearance.glyphs.label": () => "Glyphs",
   "settings.appearance.glyphs.color": () => "Color",
   "settings.appearance.glyphs.grayscale": () => "Grayscale",

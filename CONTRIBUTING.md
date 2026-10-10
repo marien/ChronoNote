@@ -16,3 +16,9 @@ keep daily notes, and I maintain it on my own time.
   non-obvious decisions (and the reasoning behind them) are logged in
   `docs/CHANGELOG.md`, worth a search before re-proposing something that
   was already tried and reverted or reworked.
+
+## Translations
+
+English is the source language and Dutch is reviewed by the maintainer in daily use. The other languages are community translations.
+
+When contributing or updating translations, follow the core concept glossary in `src/lib/i18n/glossary.ts`. If you notice an incorrect translation, please report it with the Translation issue form.
