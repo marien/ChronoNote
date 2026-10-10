@@ -1,0 +1,1 @@
+Third-party notices are generated at release time (npm run notices).

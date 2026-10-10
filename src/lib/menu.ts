@@ -66,6 +66,20 @@ export function openWebsiteLink() {
   api.openExternalUrl(WEBSITE_URL).catch(() => {});
 }
 
+/** Opens the GitHub bug-report form with the running app version prefilled if known. */
+export function openReportProblem() {
+  const v = get(appVersion);
+  const url = v
+    ? `${PROJECT_URL}/issues/new?template=bug.yml&version=${encodeURIComponent(v)}`
+    : `${PROJECT_URL}/issues/new?template=bug.yml`;
+  api.openExternalUrl(url).catch(() => {});
+}
+
+/** Opens the website privacy policy page in the external browser. */
+export function openPrivacyPage() {
+  api.openExternalUrl(`${WEBSITE_URL}/privacy.html`).catch(() => {});
+}
+
 /** §update-check follow-up: the About drawer's "What's changed" link and
  * the "Updated to vX.Y.Z" launch banner's "What's new" link both open
  * here — the repo's full releases list, newest first, rather than a

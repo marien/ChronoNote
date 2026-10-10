@@ -1,0 +1,56 @@
+name: Bug
+description: Report a bug in ChronoNote
+labels: ["bug"]
+body:
+  - type: input
+    id: version
+    attributes:
+      label: "ChronoNote version, from Settings → About"
+    validations:
+      required: true
+  - type: dropdown
+    id: where
+    attributes:
+      label: Where
+      options:
+        - "Desktop app (Windows)"
+        - "Web app in a browser"
+        - "Web app installed on a phone"
+        - "Web app installed on a PC"
+    validations:
+      required: true
+  - type: input
+    id: windows
+    attributes:
+      label: "Windows version, e.g. Windows 11 24H2"
+  - type: input
+    id: scaling
+    attributes:
+      label: "Display scaling, e.g. 150%"
+  - type: input
+    id: language
+    attributes:
+      label: App language
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual
+    validations:
+      required: true
+  - type: textarea
+    id: diagnostics
+    attributes:
+      label: "Diagnostics: paste what About → Copy diagnostics gives you, if your version has it"
+      render: text

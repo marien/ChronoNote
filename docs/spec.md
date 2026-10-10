@@ -292,6 +292,7 @@ controls.
 download, or restart actions), followed by settings cards. On desktop, it holds
 the toggle to check for updates when ChronoNote starts. Setting cards link to
 release notes, the website, source code repository, and keyboard shortcuts.
+Additional rows link to Report a problem, Privacy, and open-source licences.
 In the web app, the header confirms the build is always current with no update controls.
 
 ### 3.5 Launch Behavior
@@ -586,8 +587,9 @@ reachable from the top bar, a shortcut, or the command palette:
   page featuring a header card with the running version, live update status
   chip, and primary update action (check for updates, download progress, or
   restart). Setting cards below include the check-on-start toggle (desktop only),
-  release notes, links to the website and source code, and a keyboard shortcuts
-  launcher. On phones, it renders as a clean bottom sheet with the same layout.
+  release notes, links to the website and source code, Report a problem, Privacy,
+  an expandable Open-source licences viewer, and a keyboard shortcuts launcher.
+  On phones, it renders as a clean bottom sheet with the same layout.
 
 - **Sync conflicts** (the web app; opened from the status bar's "⚠ N sync
   conflict(s)" item, §3.3) — for a note whose local and OneDrive versions

@@ -504,6 +504,15 @@ export const de = {
   "about.links.sectionLabel": () => "Links",
   "about.links.website": () => "Website:",
   "about.links.project": () => "Quellcode",
+  "about.reportProblem": () => "Problem melden",
+  "about.reportProblemHint": () => "Öffnet eine neue Meldung auf GitHub mit eingetragener Version.",
+  "about.privacy": () => "Datenschutz",
+  "about.privacyHint": () => "Kein Tracking. Deine Notizen bleiben in deinem Ordner, Browser oder OneDrive.",
+  "about.licences": () => "Open-Source-Lizenzen",
+  "about.licencesHint": () => "Die Software, mit der ChronoNote gebaut ist, und ihre Lizenzen.",
+  "about.licencesShow": () => "Anzeigen",
+  "about.licencesHide": () => "Ausblenden",
+  "about.licencesLoading": () => "Wird geladen…",
 
   "common.cancel": () => "Abbrechen",
 
