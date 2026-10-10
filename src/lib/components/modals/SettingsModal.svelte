@@ -29,6 +29,7 @@
     statusBarVisible,
     tabLabelStyle,
     themeMode,
+    trashItems,
     wordWrap,
   } from "../../controller";
 
@@ -41,7 +42,7 @@
   import AboutPanel from "../AboutPanel.svelte";
   import { PEEK_DEFAULTS, peekSettings, type PeekHeaderMode } from "../../peek";
   import { occurrenceHint, setOccurrenceHint } from "../../occurrences";
-  import { t } from "../../i18n";
+  import { locale, t } from "../../i18n";
   import { describeApiError } from "../../apiError";
   import type { ColorMode, LanguageMode, StartupTabMode, ThemeMode } from "../../types";
   import type { TabLabelStyle } from "../../generated/tauri-types";
@@ -153,6 +154,27 @@
   let importMode: "merge" | "replace" = $state("merge");
   let importing = $state(false);
   let exporting = $state(false);
+
+  let showTrash = $state(false);
+
+  async function toggleTrash() {
+    showTrash = !showTrash;
+    if (showTrash) {
+      await controller.loadTrash();
+    }
+  }
+
+  function formatRelative(ms: number): string {
+    const s = Math.round((ms - Date.now()) / 1000);
+    const m = Math.round(s / 60);
+    const h = Math.round(m / 60);
+    const d = Math.round(h / 24);
+    const rtf = new Intl.RelativeTimeFormat($locale, { numeric: "auto" });
+    if (Math.abs(s) < 45) return rtf.format(s, "second");
+    if (Math.abs(m) < 60) return rtf.format(m, "minute");
+    if (Math.abs(h) < 24) return rtf.format(h, "hour");
+    return rtf.format(d, "day");
+  }
 
   let loggingIn = $state(false);
 
@@ -754,6 +776,46 @@
               class="s-hidden-input"
               onchange={onFileChosen}
             />
+            <SettingRow label={$t("settings.trash.label")}>
+              {#snippet description()}{$t("settings.trash.hint")}{/snippet}
+              <button
+                type="button"
+                class="settings-btn quiet"
+                onclick={toggleTrash}
+              >
+                {showTrash ? $t("about.licencesHide") : $t("about.licencesShow")}
+              </button>
+            </SettingRow>
+            {#if showTrash}
+              <div class="trash-container">
+                {#if $trashItems.length === 0}
+                  <div class="trash-empty">{$t("settings.trash.empty")}</div>
+                {:else}
+                  <div class="trash-list">
+                    {#each $trashItems as item (item.name)}
+                      <div class="trash-row">
+                        <div class="trash-row-info">
+                          <div class="trash-row-header">
+                            <span class="trash-row-date">{item.originalFilename.replace(/\.txt$/, "")}</span>
+                            <span class="trash-row-when">{$t("settings.trash.deletedOn", { when: formatRelative(item.deletedMs) })}</span>
+                          </div>
+                          {#if item.preview}
+                            <div class="trash-row-preview">{item.preview}</div>
+                          {/if}
+                        </div>
+                        <button
+                          type="button"
+                          class="settings-btn quiet"
+                          onclick={() => controller.restoreTrashItem(item.name)}
+                        >
+                          {$t("settings.trash.restore")}
+                        </button>
+                      </div>
+                    {/each}
+                  </div>
+                {/if}
+              </div>
+            {/if}
             <SettingRow stack>
               {#snippet description()}
                 {$backendKind === "web" ? $t("settings.data.webHint") : $t("settings.data.desktopHint")}
@@ -1010,6 +1072,15 @@
   opacity: 0.85;
 }
 
+.settings-btn.quiet {
+  border-color: var(--edge-soft);
+}
+
+.settings-btn.quiet:hover {
+  background: var(--surface-raised);
+  border-color: var(--edge-strong);
+}
+
 .settings-btn:disabled {
   opacity: 0.4;
   cursor: default;
@@ -1102,5 +1173,74 @@
   .s-slider {
     width: 100%;
   }
+}
+
+.trash-container {
+  background: var(--surface-sunken, var(--surface-canvas));
+  border: 1px solid var(--edge-soft);
+  border-radius: var(--radius-control);
+  padding: 8px 12px;
+  margin-top: 4px;
+  margin-bottom: 8px;
+}
+
+.trash-empty {
+  font-size: var(--type-caption);
+  color: var(--muted);
+  padding: 8px 0;
+  text-align: center;
+}
+
+.trash-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.trash-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--edge-soft);
+}
+
+.trash-row:last-child {
+  border-bottom: none;
+}
+
+.trash-row-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+
+.trash-row-header {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.trash-row-date {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text);
+}
+
+.trash-row-when {
+  font-size: var(--type-caption);
+  color: var(--muted);
+}
+
+.trash-row-preview {
+  font-size: var(--type-caption);
+  color: var(--text-secondary, var(--muted));
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 </style>

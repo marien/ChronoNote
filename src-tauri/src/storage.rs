@@ -784,6 +784,35 @@ fn read_note_at(root: &Path, filename: &str) -> Result<Option<String>, String> {
 /// directory name and the timestamped `.txt` files it holds.
 const CONFLICTS_DIRNAME: &str = ".chrononote-conflicts";
 
+pub const TRASH_DIRNAME: &str = ".chrononote-trash";
+pub const TRASH_KEEP_DAYS: i64 = 30;
+
+#[derive(Serialize, Clone, PartialEq, Debug, TS)]
+#[serde(rename_all = "camelCase")]
+pub struct TrashItem {
+    pub name: String,
+    pub original_filename: String,
+    pub deleted_ms: i64,
+    pub preview: String,
+}
+
+fn parse_trash_filename(name: &str) -> Option<(i64, String)> {
+    if name.contains('/') || name.contains('\\') {
+        return None;
+    }
+    let (ts_part, orig) = name.split_once('_')?;
+    if ts_part.len() != 15 {
+        return None;
+    }
+    if !is_valid_note_filename(orig) {
+        return None;
+    }
+    let naive = chrono::NaiveDateTime::parse_from_str(ts_part, "%Y%m%d-%H%M%S").ok()?;
+    let ms = chrono::TimeZone::from_utc_datetime(&chrono::Utc, &naive).timestamp_millis();
+    Some((ms, orig.to_string()))
+}
+
+
 /// Prefix on the error returned by `write_note_at` when an `expected_hash`
 /// guard fails — the note on disk is no longer what the caller last saw.
 /// The frontend matches on this to re-open the conflict prompt instead of
@@ -981,12 +1010,105 @@ fn delete_note_at(root: &Path, filename: &str, expected_hash: Option<&str>) -> R
         }
     }
     let target = resolve_workspace_path(root, Path::new(filename)).map_err(String::from)?;
-    match fs::remove_file(&target) {
-        Ok(()) => Ok(()),
-        Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(()),
-        Err(e) => Err(e.to_string()),
+    let content = match fs::read_to_string(&target) {
+        Ok(c) => c,
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(()),
+        Err(e) => return Err(e.to_string()),
+    };
+    if content.trim().is_empty() {
+        match fs::remove_file(&target) {
+            Ok(()) => Ok(()),
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(()),
+            Err(e) => Err(e.to_string()),
+        }
+    } else {
+        let trash_dir = root.join(TRASH_DIRNAME);
+        fs::create_dir_all(&trash_dir).map_err(|e| e.to_string())?;
+        let stamp = chrono::Utc::now().format("%Y%m%d-%H%M%S");
+        let trash_filename = format!("{stamp}_{filename}");
+        let trash_target = resolve_workspace_path(&trash_dir, Path::new(&trash_filename)).map_err(String::from)?;
+        if trash_target.exists() {
+            let _ = fs::remove_file(&trash_target);
+        }
+        if let Err(_) = fs::rename(&target, &trash_target) {
+            atomic_write(&trash_target, content.as_bytes()).map_err(|e| e.to_string())?;
+            let _ = fs::remove_file(&target);
+        }
+        Ok(())
     }
 }
+
+fn list_trash_at(root: &Path) -> Result<Vec<TrashItem>, String> {
+    let trash_dir = root.join(TRASH_DIRNAME);
+    if !trash_dir.exists() {
+        return Ok(vec![]);
+    }
+    let now_ms = chrono::Utc::now().timestamp_millis();
+    let max_age_ms = TRASH_KEEP_DAYS * 24 * 60 * 60 * 1000;
+    let mut items = vec![];
+
+    let entries = match fs::read_dir(&trash_dir) {
+        Ok(e) => e,
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(vec![]),
+        Err(e) => return Err(e.to_string()),
+    };
+
+    for entry in entries {
+        let entry = entry.map_err(|e| e.to_string())?;
+        let path = entry.path();
+        if !path.is_file() {
+            continue;
+        }
+        let Some(name_str) = entry.file_name().to_str().map(String::from) else {
+            continue;
+        };
+        if let Some((deleted_ms, orig)) = parse_trash_filename(&name_str) {
+            if now_ms - deleted_ms > max_age_ms {
+                let _ = fs::remove_file(&path);
+            } else {
+                let preview = match fs::read_to_string(&path) {
+                    Ok(content) => content
+                        .lines()
+                        .map(|l| l.trim())
+                        .find(|l| !l.is_empty())
+                        .map(|l| l.chars().take(80).collect::<String>())
+                        .unwrap_or_default(),
+                    Err(_) => String::new(),
+                };
+                items.push(TrashItem {
+                    name: name_str,
+                    original_filename: orig,
+                    deleted_ms,
+                    preview,
+                });
+            }
+        }
+    }
+
+    items.sort_by(|a, b| b.deleted_ms.cmp(&a.deleted_ms).then_with(|| b.name.cmp(&a.name)));
+    Ok(items)
+}
+
+fn restore_from_trash_at(root: &Path, name: &str) -> Result<String, String> {
+    let Some((_, orig)) = parse_trash_filename(name) else {
+        return Err(format!("Invalid trash filename: {name}"));
+    };
+    let _guard = NOTE_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+    let note_path = resolve_workspace_path(root, Path::new(&orig)).map_err(String::from)?;
+    if note_path.exists() {
+        let content = fs::read_to_string(&note_path).map_err(|e| e.to_string())?;
+        if !content.trim().is_empty() {
+            return Err("note-exists".to_string());
+        }
+    }
+    let trash_dir = root.join(TRASH_DIRNAME);
+    let trash_path = resolve_workspace_path(&trash_dir, Path::new(name)).map_err(String::from)?;
+    let content = fs::read(&trash_path).map_err(|e| e.to_string())?;
+    atomic_write(&note_path, &content).map_err(|e| e.to_string())?;
+    fs::remove_file(&trash_path).map_err(|e| e.to_string())?;
+    Ok(orig)
+}
+
 
 fn read_all_notes_at(root: &Path) -> Result<Vec<(String, String)>, String> {
     let files = list_note_files_at(root)?;
@@ -1196,6 +1318,14 @@ pub fn delete_note(app: &AppHandle, filename: &str, expected_hash: Option<&str>)
     delete_note_at(&notes_root(app)?, filename, expected_hash)
 }
 
+pub fn list_trash(app: &AppHandle) -> Result<Vec<TrashItem>, String> {
+    list_trash_at(&notes_root(app)?)
+}
+
+pub fn restore_from_trash(app: &AppHandle, name: &str) -> Result<String, String> {
+    restore_from_trash_at(&notes_root(app)?, name)
+}
+
 pub fn get_file_metadata(app: &AppHandle, filename: &str) -> Result<FileMetadata, String> {
     file_metadata_at(&notes_root(app)?, filename)
 }
@@ -1273,6 +1403,8 @@ fn generate_typescript_bindings() {
         NoteWithMetadata::decl(&cfg),
         ImportMode::decl(&cfg),
         ImportResult::decl(&cfg),
+        TrashItem::decl(&cfg),
+
         // i18n Phase 2 (docs/design/i18n-roadmap.md): the small, stable
         // error-code shape a few commands/result fields return instead of
         // a bare `String`, so the frontend can translate the ones we
@@ -2579,4 +2711,123 @@ mod tests {
         assert_eq!(parsed["schemaVersion"], 99);
         assert_eq!(parsed["openTabs"][0], "2026-09-02.txt");
     }
+
+    #[test]
+    fn deleting_note_with_text_moves_it_to_trash() {
+        let dir = tempdir().unwrap();
+        let root = dir.path();
+        let filename = "2026-10-10.txt";
+        write_note_at(root, filename, "Hello trash", None).unwrap();
+        assert!(root.join(filename).exists());
+
+        delete_note_at(root, filename, None).unwrap();
+        assert!(!root.join(filename).exists());
+
+        let trash = list_trash_at(root).unwrap();
+        assert_eq!(trash.len(), 1);
+        assert_eq!(trash[0].original_filename, filename);
+        assert_eq!(trash[0].preview, "Hello trash");
+        assert!(root.join(TRASH_DIRNAME).join(&trash[0].name).exists());
+    }
+
+    #[test]
+    fn deleting_empty_note_is_just_removed() {
+        let dir = tempdir().unwrap();
+        let root = dir.path();
+        let filename = "2026-10-10.txt";
+        write_note_at(root, filename, "   \n\n  ", None).unwrap();
+        assert!(root.join(filename).exists());
+
+        delete_note_at(root, filename, None).unwrap();
+        assert!(!root.join(filename).exists());
+
+        let trash = list_trash_at(root).unwrap();
+        assert!(trash.is_empty());
+    }
+
+    #[test]
+    fn listing_trash_returns_right_original_filename_and_preview() {
+        let dir = tempdir().unwrap();
+        let root = dir.path();
+        let filename = "2026-10-11.txt";
+        write_note_at(root, filename, "\n\nFirst real line of text that has content\nSecond line", None).unwrap();
+        delete_note_at(root, filename, None).unwrap();
+
+        let trash = list_trash_at(root).unwrap();
+        assert_eq!(trash.len(), 1);
+        assert_eq!(trash[0].original_filename, filename);
+        assert_eq!(trash[0].preview, "First real line of text that has content");
+    }
+
+    #[test]
+    fn restore_puts_it_back_and_removes_it_from_trash() {
+        let dir = tempdir().unwrap();
+        let root = dir.path();
+        let filename = "2026-10-10.txt";
+        write_note_at(root, filename, "Restore me please", None).unwrap();
+        delete_note_at(root, filename, None).unwrap();
+
+        let trash = list_trash_at(root).unwrap();
+        assert_eq!(trash.len(), 1);
+        let trash_name = &trash[0].name;
+
+        let restored_filename = restore_from_trash_at(root, trash_name).unwrap();
+        assert_eq!(restored_filename, filename);
+        assert!(root.join(filename).exists());
+        assert_eq!(read_note_at(root, filename).unwrap().unwrap(), "Restore me please");
+
+        let trash_after = list_trash_at(root).unwrap();
+        assert!(trash_after.is_empty());
+        assert!(!root.join(TRASH_DIRNAME).join(trash_name).exists());
+    }
+
+    #[test]
+    fn restore_refuses_when_note_has_text() {
+        let dir = tempdir().unwrap();
+        let root = dir.path();
+        let filename = "2026-10-10.txt";
+        write_note_at(root, filename, "Original text", None).unwrap();
+        delete_note_at(root, filename, None).unwrap();
+
+        let trash = list_trash_at(root).unwrap();
+        assert_eq!(trash.len(), 1);
+        let trash_name = &trash[0].name;
+
+        // Create the note again with text
+        write_note_at(root, filename, "New existing text", None).unwrap();
+
+        let err = restore_from_trash_at(root, trash_name).unwrap_err();
+        assert_eq!(err, "note-exists");
+
+        // The trash item should still be in trash
+        let trash_still = list_trash_at(root).unwrap();
+        assert_eq!(trash_still.len(), 1);
+    }
+
+    #[test]
+    fn items_older_than_30_days_are_pruned() {
+        let dir = tempdir().unwrap();
+        let root = dir.path();
+        let trash_dir = root.join(TRASH_DIRNAME);
+        fs::create_dir_all(&trash_dir).unwrap();
+
+        // Write an old file (e.g. from 2020)
+        let old_name = "20200101-120000_2020-01-01.txt";
+        fs::write(trash_dir.join(old_name), "Very old note").unwrap();
+
+        // Write a fresh file
+        let filename = "2026-10-10.txt";
+        write_note_at(root, filename, "Fresh note", None).unwrap();
+        delete_note_at(root, filename, None).unwrap();
+
+        assert!(trash_dir.join(old_name).exists());
+
+        let trash = list_trash_at(root).unwrap();
+        assert_eq!(trash.len(), 1);
+        assert_eq!(trash[0].original_filename, filename);
+
+        // Old file should be deleted from disk
+        assert!(!trash_dir.join(old_name).exists());
+    }
 }
+
