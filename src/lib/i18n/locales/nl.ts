@@ -150,11 +150,11 @@ export const nl = {
   "shortcuts.setActionWontDo.label": () =>
     "De actie bij de cursor op vervallen zetten, of in elke geselecteerde regel; een gewone regel wordt een actie",
   "shortcuts.setTopicToDiscuss.label": () =>
-    "Het onderwerp bij de cursor op te bespreken zetten, of in elke geselecteerde regel; een gewone regel wordt een onderwerp",
+    "Het agendapunt bij de cursor op te bespreken zetten, of in elke geselecteerde regel; een gewone regel wordt een agendapunt",
   "shortcuts.setTopicDiscussed.label": () =>
-    "Het onderwerp bij de cursor op besproken zetten, of in elke geselecteerde regel; een gewone regel wordt een onderwerp",
+    "Het agendapunt bij de cursor op besproken zetten, of in elke geselecteerde regel; een gewone regel wordt een agendapunt",
   "shortcuts.setTopicNotDiscussed.label": () =>
-    "Het onderwerp bij de cursor op niet besproken zetten, of in elke geselecteerde regel; een gewone regel wordt een onderwerp",
+    "Het agendapunt bij de cursor op niet besproken zetten, of in elke geselecteerde regel; een gewone regel wordt een agendapunt",
   "shortcuts.jumpAction.label": () => "Naar volgende / vorige open actie springen (in editor, met terugloop)",
   "shortcuts.caretLineNav.label": () =>
     "Cursor naar begin van de regel, dan vorige regel / begin van volgende regel (in editor)",

@@ -1,5 +1,10 @@
 import type { SupportedLocale } from "./index";
 
+/** E2 (readiness review): the agreed word for each core concept, per language, taken from what the app already uses
+ * most. Translations (and agents writing them) must use these; glossary.test.ts checks the key texts contain them,
+ * case-insensitively. Where a language inflects the word, the entry is a stem (e.g. Polish "sekcj"). Dutch is
+ * reviewed by the maintainer: deferred = "doorgeschoven", topic = "agendapunt". */
+
 export type Concept =
   | "open"
   | "done"
@@ -41,7 +46,7 @@ export const GLOSSARY: Record<SupportedLocale, Record<Concept, string>> = {
     deferred: "doorgeschoven",
     wontDo: "vervallen",
     section: "sectie",
-    topic: "onderwerp",
+    topic: "agendapunt",
     peek: "peek",
     scratchpad: "kladblok",
     notesFolder: "notitiemap",
@@ -73,7 +78,7 @@ export const GLOSSARY: Record<SupportedLocale, Record<Concept, string>> = {
     done: "wykonane",
     deferred: "odłożone",
     wontDo: "zaniechane",
-    section: "sekcja",
+    section: "sekcj", // stem: sekcja / sekcji / sekcję
     topic: "temat",
     peek: "peek",
     scratchpad: "brudnopis",
@@ -91,7 +96,7 @@ export const GLOSSARY: Record<SupportedLocale, Record<Concept, string>> = {
     notesFolder: "carpeta de notas",
   },
   it: {
-    open: "aperta",
+    open: "apert", // stem: aperta / aperte
     done: "completata",
     deferred: "rimandata",
     wontDo: "annullata",

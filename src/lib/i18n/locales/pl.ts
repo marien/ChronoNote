@@ -160,7 +160,7 @@ export const pl = {
   "shortcuts.jumpAction.label": () => "Przejdź do następnego / poprzedniego otwartego zadania (w edytorze, w pętli)",
   "shortcuts.caretLineNav.label": () =>
     "Kursor na początek wiersza, potem poprzedni wiersz / początek następnego wiersza (w edytorze)",
-  "shortcuts.convertToSection.label": () => "Przekształć bieżący wiersz w nagłówek sekcji (sekcja)",
+  "shortcuts.convertToSection.label": () => "Przekształć bieżący wiersz w nagłówek sekcji",
   "shortcuts.openActions.label": () => "Zadania",
   "shortcuts.openHistory.label": () => "Historia sekcji",
   "shortcuts.findInNote.label": () => "Znajdź w tej notatce (pasek podręczny; Enter / Shift+Enter aby przejść)",

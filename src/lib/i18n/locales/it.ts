@@ -284,7 +284,7 @@ export const it = {
   "actionDrawer.scope.otherNotes.title": () => "Note su disco non aperte in una scheda",
   "actionDrawer.scope.allFiles.label": () => "Tutti i file",
   "actionDrawer.scope.allFiles.title": () => "Ogni nota, indipendentemente dal fatto che sia aperta in una scheda",
-  "actionDrawer.onlyOpen.label": () => "Solo aperta",
+  "actionDrawer.onlyOpen.label": () => "Solo aperte",
   "actionDrawer.onlyOpen.title": () =>
     "Mostra solo le azioni non risolte (aperte) — nascondi righe completate, rimandate e annullate",
   "actionDrawer.empty.noMatch": ({ filter }) => `Nessuna azione corrisponde a "${filter}".`,
