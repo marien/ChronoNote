@@ -280,7 +280,7 @@ test.describe("settings (Ctrl/Cmd+,)", () => {
     await seedApp(page);
     await openSettings(page);
     const tabs = settings(page).getByRole("tab");
-    await expect(tabs).toHaveCount(4);
+    await expect(tabs).toHaveCount(3); // Appearance, Notes & Sync, About (the Updates tab moved into About, §349)
     await expect(settings(page).getByRole("tab", { name: "Appearance", exact: true })).toHaveAttribute("aria-selected", "true");
 
     await settings(page).getByRole("tab", { name: "Appearance", exact: true }).focus();

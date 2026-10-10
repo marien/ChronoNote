@@ -135,21 +135,7 @@ test.describe("update check (§update-check)", () => {
     expect(await page.evaluate(() => window.__CHRONO_MOCK__!.autoCheckUpdates)).toBe(false);
   });
 
-  test("Settings' 'Check for updates' re-checks; About reflects the result", async ({ page }) => {
-    await seedApp(page, {
-      seed: { notes: {}, updateCheck: "available", updateCheckVersion: "1.2.3", autoCheckUpdates: false },
-    });
-    await editor(page).click();
-    await page.keyboard.press("ControlOrMeta+Comma");
-    const settings = modalCard(page, MODAL_LABELS.settings);
-    await settings.getByRole("tab", { name: "About", exact: true }).click();
-    await settings.getByRole("button", { name: "Check for updates" }).click();
-    await expect(settings).toContainText("1.2.3");
-  });
-
-  test("Settings' About tab shows the result of 'Check for updates', not just the status-bar icon", async ({
-    page,
-  }) => {
+  test("opening About checks for updates when nothing has run yet, and shows the result (§349)", async ({ page }) => {
     await seedApp(page, {
       seed: { notes: {}, updateCheck: "available", updateCheckVersion: "7.8.9", autoCheckUpdates: false },
     });
@@ -157,11 +143,21 @@ test.describe("update check (§update-check)", () => {
     await page.keyboard.press("ControlOrMeta+Comma");
     const settings = modalCard(page, MODAL_LABELS.settings);
     await settings.getByRole("tab", { name: "About", exact: true }).click();
-    await expect(settings).toContainText(/not checked yet/i);
-
-    await settings.getByRole("button", { name: "Check for updates" }).click();
     await expect(settings).toContainText("7.8.9");
     await expect(settings.getByRole("button", { name: /Download & install/i })).toBeVisible();
+  });
+
+  test("About's 'Check for updates' runs the check again", async ({ page }) => {
+    await seedApp(page, {
+      seed: { notes: {}, updateCheck: "none", autoCheckUpdates: false },
+    });
+    await editor(page).click();
+    await page.keyboard.press("ControlOrMeta+Comma");
+    const settings = modalCard(page, MODAL_LABELS.settings);
+    await settings.getByRole("tab", { name: "About", exact: true }).click();
+    await expect(settings.locator(".about-status-chip")).toContainText(/up to date/i);
+    await settings.getByRole("button", { name: "Check for updates" }).click();
+    await expect(settings.locator(".about-status-chip")).toContainText(/up to date/i);
   });
 
   test("the command palette can trigger a check and opens About", async ({ page }) => {

@@ -10266,3 +10266,25 @@ Physical pixels; the text next to the glyphs is 13. Outside the editor, the boxe
 - **Line menu text was cut off.** The menu now sizes to its longest item (`width: max-content`, 260–440px, kept on screen by its measured width). Three items used palette or shortcut descriptions that are full sentences. They get short menu labels (`editorMenu.copyToNext`, `editorMenu.peek`, `editorMenu.toSection`, all 7 languages), with the full text as tooltip. A test checks no label is cut off in any language.
 - **Peek: no coloured strip at the top.** The date's colour already says past/today/future. The border is transparent rather than removed, so the bar keeps its height.
 - **Ctrl+scroll in the note changes the font size** (Cmd+scroll on macOS): 1px per notch, within the Settings range 12–18. A touchpad pinch's small deltas are summed first. The size is saved 400ms after the last step, and the WebView no longer zooms the whole page.
+
+## 348. The History and Actions panes can be resized
+
+**Status: on `ux/r1`, unreleased. Not verified natively yet.** Marien (2026-10-10) asked for resizable panes, with the size stored between sessions and kept relative while the window is resized. Each pane gets a 6px drag handle on its left edge (`.pane-resizer`, `role="separator"`); a 2px accent line shows on hover, focus and drag. Each pane's width is stored as its own share of the window:
+- config `history_pane_share` / `actions_pane_share`, default 0.30, clamped to 0.18–0.60 in `ConfigPatch`;
+- mirrored in the mock and web backends;
+- the pane is `share × window width` px, at least 300px, always leaving the note 420px;
+- dragging updates the share live and saves once on release;
+- Left/Right arrows on the handle step 0.02, and a double-click resets it to 0.30.
+
+Gemini 3.8 Flash high (Z4). Tests in `pane-resize.spec.ts` (drag, persisted share, window resize keeps the share, reload, keyboard), plus a Rust clamp test.
+
+## 349. Settings: no Updates tab; a cleaner About tab
+
+**Status: on `ux/r1`, unreleased. Not verified natively yet.** Marien (2026-10-10) asked to drop the Updates tab, move the check-on-start option to About and clean up About ("It looks the least professional"). Settings now has three tabs. `AboutPanel.svelte` was rewritten in the Windows 11 Settings > About style, with no inline styles:
+- A header card: app icon, name, "Version …" and "Checked …" on the left; on the right, the status chip and one action for the state (Check for updates / Download & install + What's changed / a progress bar / Restart now / Try again).
+- Setting cards: check-for-updates-on-start (desktop), Release notes, Website, Project (URL as the description, an open-externally button) and Keyboard shortcuts.
+
+Gemini 3.8 Flash high (Z5). Found during review:
+- The old global `.about-version-card` rule (`align-items: center`) centred the header's contents; the card now stretches them.
+- On a phone, the general "stack every row" rule put the link buttons under their labels; About's rows keep the button beside the label.
+- Tests the agent had not updated: three in `drawers.spec.ts` looked for the old Links section, `settings.spec.ts` expected four tabs, and two `update-check.spec.ts` tests expected "not checked yet". Opening About starts a check when none has run yet, so those now check the result instead.
