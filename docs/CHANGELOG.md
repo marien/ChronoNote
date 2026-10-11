@@ -10362,7 +10362,7 @@ Tests: `contextMenuGuard.test.ts`, `lineSectionRole` in `tokens.test.ts`, and th
 
 ## 358. Readiness review, Wave 1: trust, recovery, diagnostics, testing and releases
 
-**Status: on branch `readiness/w1`, unreleased (Waves 2 and 3: §359).** The readiness review (`docs/design/readiness-review.html`, 2026-10-10) looked at what it takes for other people to install, trust, keep using and get help with ChronoNote. Marien approved 21 of 22 proposals; code signing (A1) stays parked. Wave 1, implemented by Gemini 3.8 Flash agents from briefs (`agent-tools/briefs/make_readiness_w1_briefs.py`) plus D2 and F2 by the orchestrator:
+**Status: released in v0.31.0 (betas 0.31.0-1/-2 first).** The readiness review (`docs/design/readiness-review.html`, 2026-10-10) looked at what it takes for other people to install, trust, keep using and get help with ChronoNote. Marien approved 21 of 22 proposals; code signing (A1) stays parked. Wave 1, implemented by Gemini 3.8 Flash agents from briefs (`agent-tools/briefs/make_readiness_w1_briefs.py`) plus D2 and F2 by the orchestrator:
 
 - **A2 Third-party licence notices.** `scripts/gen-notices.mjs` (`npm run notices`) writes `src/assets/THIRD-PARTY-NOTICES.txt` from `cargo-about` (Rust, 273 crates; config and template in `scripts/notices/`) and the npm packages that ship in the bundle (production dependencies plus `svelte`'s runtime, 21 packages). A licence outside the allow-list (MIT, Apache-2.0, BSD, ISC, MPL-2.0, Zlib, Unicode, BSL, CC0, 0BSD, Unlicense, CDLA-Permissive) fails `npm run notices:check`, which CI's Rust job runs. About → "Open-source licences" shows the file, loaded on first use (its own chunk). `release.sh` regenerates it with every version bump.
 - **A3** `.github/SECURITY.md` says "the latest release" instead of a stale version table; issue forms for bugs (version, where, Windows version, scaling, language, steps, diagnostics), features and translations, blank issues off, security reports pointed at private advisories. About → "Report a problem" opens the bug form with the version filled in.
@@ -10378,7 +10378,7 @@ Test lessons: Playwright's pinned clock (`seedApp` → `clock.setFixedTime`) cat
 
 ## 359. Readiness review, Waves 2 and 3: recovery, testing at real sizes and settings, reach, export and print
 
-**Status: on branch `readiness/w1`, unreleased.** The rest of the approved readiness proposals (§358 has Wave 1). Implemented by Gemini 3.8 Flash agents from briefs (`agent-tools/briefs/readiness_w2.py`, `readiness_w3.py`), D1 and F1's script side by the orchestrator; every diff reviewed.
+**Status: released in v0.31.0 (betas 0.31.0-1/-2 first).** The rest of the approved readiness proposals (§358 has Wave 1). Implemented by Gemini 3.8 Flash agents from briefs (`agent-tools/briefs/readiness_w2.py`, `readiness_w3.py`), D1 and F1's script side by the orchestrator; every diff reviewed.
 
 - **B1 Recently deleted.** A note deleted with text in it (closing an emptied dated tab) moves to `.chrononote-trash/<UTC stamp>_<file>` instead of being removed; an empty file is still just removed. Items older than 30 days are pruned when the list is read. Settings → Notes & Sync → Recently deleted lists them with a preview and Restore (refused while that day's note has text). Mock and web backend keep the same rules (web: IndexedDB).
 - **B2 Earlier versions.** `write_note_at` keeps the previous text in `.chrononote-versions/<date>/<local stamp>.txt` on the first save of each day and on every write without an expected hash (the conflict "keep mine" path); import Replace keeps what it replaces; identical text is not kept twice; 30 days, at most 20 per note. Tab menu → "Earlier versions…" opens a dialog with the list, a side-by-side diff against the current text and Restore (which keeps the current text as a version first).
@@ -10396,7 +10396,7 @@ Not verified natively yet: printing in WebView2 under the desktop CSP, the save 
 
 ## 360. Readiness follow-up from the first native check
 
-**Status: on branch `readiness/w1`, unreleased.** Marien's native test of §358/§359 (2026-10-11): About's new rows, Copy as Markdown and Earlier versions worked. Fixed:
+**Status: released in v0.31.0 (betas 0.31.0-1/-2 first).** Marien's native test of §358/§359 (2026-10-11): About's new rows, Copy as Markdown and Earlier versions worked. Fixed:
 
 - **Export Save did nothing:** the app's capability only granted `dialog:allow-open`; `dialog:allow-save` added. (Mock-based tests cannot see Tauri permissions; the same class as §135.)
 - **Export:** `Ctrl/Cmd+Shift+E` opens it; Save… and Cancel in the button band like every other dialog, Copy as Markdown as a body button; the date fields used colour names this app does not define and their native parts followed Windows' theme rather than the app's (`color-scheme` now follows `data-theme`).
@@ -10406,7 +10406,7 @@ Not verified natively yet: printing in WebView2 under the desktop CSP, the save 
 
 ## 361. Settings closes when you go to a note; screen-reader pass; contrast to WCAG AA
 
-**Status: on branch `readiness/w1`, unreleased.**
+**Status: released in v0.31.0 (betas 0.31.0-1/-2 first).**
 
 - **Settings page and tabs (Marien, from v0.30):** the tabs stay clickable while Settings covers the note, but clicking one left Settings in front. Going to a note (a tab click, Ctrl+Tab, a new or opened note, reopening a closed tab) now leaves the Settings page (`leaveSettingsPage` in `tabs.ts`). Test in `settings.spec.ts` (fails without the fix).
 - **Screen-reader pass (D5),** done as a keyboard-only walkthrough of the accessibility tree (what Narrator reads from WebView2) through Marien's four flows: write a note, mark an action done, find a past section, change a setting. Found and fixed:
@@ -10421,7 +10421,7 @@ Not verified natively yet: printing in WebView2 under the desktop CSP, the save 
 
 ## 362. The discussed glyph looks the same everywhere
 
-**Status: on `main`, unreleased (after beta 0.31.0-2).**
+**Status: released in v0.31.0.**
 
 - **Marien:** the discussed glyph (`. `) drew differently in the editor and in the Shortcuts legend. Both drew the ring as a border and the inner dot as a separate `::after` centred with `translate(-50%, -50%)` (three copies: editor 0.27em, drawers/legends 0.32em, phone symbols bar 4.5px). At 125%/150% scaling the dot snapped to other device pixels than the ring and sat off-centre by a different amount in each place (seen in 16x enlargements at 1x/1.25x/1.5x).
 - **Fix:** the dot is the circle's own background, `radial-gradient(circle closest-side, …)`, one rule for the editor, drawers/legends and the phone symbols bar; the ring and dot rasterize together and stay concentric. The contrast theme sets `--glyph-dot-color: GrayText` instead of colouring the old `::after`. The editor glyph is still dimmer on a concluded topic: that is the resolved-line dimming, on purpose.
