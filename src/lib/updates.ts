@@ -11,7 +11,7 @@
  * a Rust-side id) — kept in this module's own variable rather than a
  * store, which should only ever hold plain, serializable-ish state. */
 import { get } from "svelte/store";
-import { check } from "@tauri-apps/plugin-updater";
+import * as api from "./tauriApi";
 import { relaunch } from "@tauri-apps/plugin-process";
 import { Channel, invoke } from "@tauri-apps/api/core";
 import { flushAllPendingSaves } from "./persistence";
@@ -27,11 +27,6 @@ import {
   updateReleaseNotes,
   updateStatus,
 } from "./stores";
-
-interface UpdateInfo {
-  version: string;
-  body?: string | null;
-}
 
 function errorMessage(e: unknown): string {
   return e instanceof Error ? e.message : String(e);
@@ -55,16 +50,8 @@ export async function checkForUpdates(): Promise<void> {
   updateErrorMessage.set(null);
   updateErrorDuring.set("check");
   try {
-    const early = get(earlyUpdates);
-    // In Vitest unit tests (updates.test.ts, controller.test.ts), @tauri-apps/plugin-updater's check()
-    // is mocked directly via vi.mock and asserted on.
-    const isMocked = Boolean((check as unknown as { mock?: unknown })?.mock);
-    const result: UpdateInfo | null = isMocked
-      ? await (async () => {
-          const r = await check();
-          return r ? { version: r.version, body: r.body ?? null } : null;
-        })()
-      : await invoke<UpdateInfo | null>("check_update", { early });
+    // Rust `check_update` (update_install.rs): the stable or the early channel's manifest.
+    const result = await api.checkUpdate(get(earlyUpdates));
     if (result) {
       updateAvailableVersion.set(result.version);
       updateReleaseNotes.set(result.body ?? null);

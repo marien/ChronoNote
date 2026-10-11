@@ -10,6 +10,7 @@ import { SIGN_IN_EXPIRED_MESSAGE } from "./signInExpired";
  * `beforeEach` can reset them directly without depending on the factory
  * being re-invoked. */
 const apiMock = {
+  checkUpdate: vi.fn((early: boolean) => updaterMock.check(early).then((r: { version: string; body?: string | null } | null) => (r ? { version: r.version, body: r.body ?? null } : null))),
   getConfig: vi.fn(),
   setNotesDir: vi.fn(),
   setColorMode: vi.fn(),

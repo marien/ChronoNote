@@ -230,6 +230,11 @@ export function openLogFolder(): Promise<void> {
   return invoke("open_log_folder", {});
 }
 
+/** F1: is there a newer version? Asks the stable manifest, or the early channel's when `early` is on. */
+export function checkUpdate(early: boolean): Promise<{ version: string; body: string | null } | null> {
+  return invoke("check_update", { early });
+}
+
 /** Opens a URL in the OS's default browser (via `tauri-plugin-opener`)
  * rather than navigating the app's own webview to it. */
 export function openExternalUrl(url: string): Promise<void> {

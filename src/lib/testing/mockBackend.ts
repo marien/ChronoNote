@@ -645,6 +645,15 @@ export class MockBackend {
    * type-checked against the `TauriCommands` contract. Plugin calls
    * (`plugin:*`) are not commands and stay in `dispatch`'s switch. */
   private readonly core: CommandHandlers = {
+    // F1: the update check (Rust `check_update`); records which channel was asked.
+    check_update: ({ early }) => {
+      this.lastCheckUpdateEarly = early;
+      this.lastCheckEarly = early;
+      if (this.updateCheck === "available") {
+        return { version: this.updateCheckVersion, body: "Mock release notes for the test suite." };
+      }
+      return null;
+    },
     get_config: () => this.config(),
 
     set_notes_dir: ({ path }) => {
@@ -972,19 +981,6 @@ export class MockBackend {
       // live `Channel` instance the frontend passed to `downloadAndInstall`
       // — calling `.onmessage(...)` on it drives the caller's own progress
       // handler directly, no transformCallback plumbing needed.
-      case "check_update": {
-        const early = Boolean((args as { early?: boolean })?.early);
-        this.lastCheckUpdateEarly = early;
-        this.lastCheckEarly = early;
-        if (this.updateCheck === "available") {
-          return {
-            version: this.updateCheckVersion,
-            body: "Mock release notes for the test suite.",
-          };
-        }
-        return null;
-      }
-
       case "plugin:updater|download_and_install": {
         const channel = args.onEvent as { onmessage?: (e: unknown) => void } | undefined;
         channel?.onmessage?.({ event: "Started", data: { contentLength: 1000 } });

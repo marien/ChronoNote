@@ -39,6 +39,7 @@ export type SyncConflictResolution = "mine" | "theirs" | "both";
  * types themselves come from the Rust-generated `./types`. */
 export interface TauriCommands {
   get_config: { args: NoArgs; returns: AppConfig };
+  check_update: { args: { early: boolean }; returns: { version: string; body: string | null } | null };
   set_notes_dir: { args: { path: string }; returns: AppConfig };
   /** Partial settings update: only the fields present in `patch` change. */
   update_config: { args: { patch: ConfigPatch }; returns: AppConfig };
