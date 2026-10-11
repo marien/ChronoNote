@@ -2861,5 +2861,256 @@ mod tests {
         // Old file should be deleted from disk
         assert!(!trash_dir.join(old_name).exists());
     }
+
+    // --- upgrade fixtures (B4) ---
+
+    #[test]
+    fn upgrade_fixture_v0_20_0_config_roundtrips_without_data_loss() {
+        let raw = include_str!("../tests/fixtures/v0.20.0/config.json");
+        let dir = tempdir().unwrap();
+        let path = dir.path().join("config.json");
+        fs::write(&path, raw).unwrap();
+
+        let cfg = load_config_at(&path, &dir.path().join("Notes")).unwrap();
+
+        // Every value from the v0.20.0 fixture came through
+        assert_eq!(cfg.notes_dir, "/test/fixtures/notes");
+        assert_eq!(cfg.color_mode, ColorMode::Grayscale);
+        assert_eq!(cfg.theme_mode, ThemeMode::Dark);
+        assert!(cfg.word_wrap);
+        assert!(cfg.readable_line_length);
+        assert_eq!(
+            cfg.recent_notes_dirs,
+            vec!["/test/fixtures/notes-old", "/test/fixtures/notes-archive"]
+        );
+        assert!(!cfg.auto_check_updates);
+        assert_eq!(cfg.last_seen_version.as_deref(), Some("0.20.0"));
+        assert!(cfg.calendar_sync_enabled);
+        assert_eq!(cfg.font_size, 14.5);
+        assert_eq!(cfg.line_height, 1.7);
+        assert!(cfg.pure_black);
+        assert_eq!(cfg.language_mode, LanguageMode::Nl);
+        assert!(cfg.onboarding_completed);
+
+        // Later fields defaulted safely
+        assert_eq!(cfg.schema_version, CONFIG_SCHEMA_VERSION);
+        assert_eq!(cfg.startup_tab_mode, StartupTabMode::Today);
+        assert!(!cfg.occurrence_hint);
+        assert!(cfg.status_bar_visible);
+        assert_eq!(cfg.tab_label_style, TabLabelStyle::Iso);
+        assert!(!cfg.early_updates);
+
+        save_config_at(&path, &cfg).unwrap();
+
+        // No key from the fixture was dropped
+        let saved_str = fs::read_to_string(&path).unwrap();
+        let orig: serde_json::Map<String, serde_json::Value> = serde_json::from_str(raw).unwrap();
+        let saved: serde_json::Map<String, serde_json::Value> = serde_json::from_str(&saved_str).unwrap();
+        for (k, _) in &orig {
+            assert!(saved.contains_key(k), "key {k} was dropped after save");
+        }
+    }
+
+    #[test]
+    fn upgrade_fixture_v0_25_0_config_roundtrips_without_data_loss() {
+        let raw = include_str!("../tests/fixtures/v0.25.0/config.json");
+        let dir = tempdir().unwrap();
+        let path = dir.path().join("config.json");
+        fs::write(&path, raw).unwrap();
+
+        let cfg = load_config_at(&path, &dir.path().join("Notes")).unwrap();
+
+        // Values from v0.25.0 fixture came through
+        assert_eq!(cfg.notes_dir, "/test/fixtures/notes");
+        assert_eq!(cfg.color_mode, ColorMode::Grayscale);
+        assert_eq!(cfg.theme_mode, ThemeMode::Dark);
+        assert!(cfg.word_wrap);
+        assert!(cfg.readable_line_length);
+        assert_eq!(
+            cfg.recent_notes_dirs,
+            vec!["/test/fixtures/notes-old", "/test/fixtures/notes-archive"]
+        );
+        assert!(!cfg.auto_check_updates);
+        assert_eq!(cfg.last_seen_version.as_deref(), Some("0.25.0"));
+        assert!(cfg.calendar_sync_enabled);
+        assert_eq!(cfg.font_size, 14.5);
+        assert_eq!(cfg.line_height, 1.7);
+        assert!(cfg.pure_black);
+        assert_eq!(cfg.language_mode, LanguageMode::Nl);
+        assert!(cfg.onboarding_completed);
+        assert_eq!(cfg.startup_tab_mode, StartupTabMode::SmartLastActive);
+        assert!(cfg.occurrence_hint);
+
+        // Peek settings came through, with documented migration (shortcut dropped, defaultsVersion bumped)
+        assert_eq!(cfg.peek.lines, 5);
+        assert_eq!(cfg.peek.opacity, 60);
+        assert!(!cfg.peek.always_on_top);
+        assert_eq!(cfg.peek.header, PeekHeader::Hover);
+        assert!(cfg.peek.use_lines_height);
+        assert_eq!(cfg.peek.call_shortcut, "CommandOrControl+Alt+J");
+        assert_eq!(cfg.peek.defaults_version, PEEK_DEFAULTS_VERSION);
+        assert_eq!(
+            cfg.peek.geometry,
+            Some(PeekGeometry {
+                x: 100,
+                y: 150,
+                width: 500,
+                height: 280
+            })
+        );
+
+        save_config_at(&path, &cfg).unwrap();
+
+        // No top-level key from the fixture was dropped
+        let saved_str = fs::read_to_string(&path).unwrap();
+        let orig: serde_json::Map<String, serde_json::Value> = serde_json::from_str(raw).unwrap();
+        let saved: serde_json::Map<String, serde_json::Value> = serde_json::from_str(&saved_str).unwrap();
+        for (k, _) in &orig {
+            assert!(saved.contains_key(k), "key {k} was dropped after save");
+        }
+    }
+
+    #[test]
+    fn upgrade_fixture_v0_30_0_config_roundtrips_without_data_loss() {
+        let raw = include_str!("../tests/fixtures/v0.30.0/config.json");
+        let dir = tempdir().unwrap();
+        let path = dir.path().join("config.json");
+        fs::write(&path, raw).unwrap();
+
+        let cfg = load_config_at(&path, &dir.path().join("Notes")).unwrap();
+
+        assert_eq!(cfg.notes_dir, "/test/fixtures/notes");
+        assert_eq!(cfg.color_mode, ColorMode::Grayscale);
+        assert_eq!(cfg.theme_mode, ThemeMode::Dark);
+        assert!(cfg.word_wrap);
+        assert!(cfg.readable_line_length);
+        assert_eq!(
+            cfg.recent_notes_dirs,
+            vec!["/test/fixtures/notes-old", "/test/fixtures/notes-archive"]
+        );
+        assert!(!cfg.auto_check_updates);
+        assert_eq!(cfg.last_seen_version.as_deref(), Some("0.30.0"));
+        assert!(cfg.calendar_sync_enabled);
+        assert_eq!(cfg.font_size, 14.5);
+        assert_eq!(cfg.line_height, 1.7);
+        assert!(cfg.pure_black);
+        assert_eq!(cfg.language_mode, LanguageMode::Nl);
+        assert!(cfg.onboarding_completed);
+        assert_eq!(cfg.startup_tab_mode, StartupTabMode::SmartLastActive);
+        assert!(cfg.occurrence_hint);
+        assert!(!cfg.status_bar_visible);
+        assert_eq!(cfg.tab_label_style, TabLabelStyle::Friendly);
+        assert_eq!(cfg.history_pane_share, 0.35);
+        assert_eq!(cfg.actions_pane_share, 0.25);
+
+        // Peek settings
+        assert_eq!(cfg.peek.lines, 5);
+        assert_eq!(cfg.peek.opacity, 40);
+        assert_eq!(cfg.peek.opacity_hover, 90);
+        assert_eq!(cfg.peek.fade_seconds, 4);
+        assert!(!cfg.peek.always_on_top);
+        assert_eq!(cfg.peek.header, PeekHeader::Hover);
+        assert!(cfg.peek.use_lines_height);
+        assert_eq!(cfg.peek.call_shortcut, "CommandOrControl+Alt+J");
+        assert_eq!(cfg.peek.defaults_version, 5);
+        assert_eq!(
+            cfg.peek.geometry,
+            Some(PeekGeometry {
+                x: 120,
+                y: 180,
+                width: 520,
+                height: 300
+            })
+        );
+
+        save_config_at(&path, &cfg).unwrap();
+
+        // No key from the fixture was dropped
+        let saved_str = fs::read_to_string(&path).unwrap();
+        let orig: serde_json::Map<String, serde_json::Value> = serde_json::from_str(raw).unwrap();
+        let saved: serde_json::Map<String, serde_json::Value> = serde_json::from_str(&saved_str).unwrap();
+        for (k, _) in &orig {
+            assert!(saved.contains_key(k), "key {k} was dropped after save");
+        }
+    }
+
+    #[test]
+    fn upgrade_fixture_tab_sessions_roundtrip_without_data_loss() {
+        let tags = [
+            ("v0.20.0", include_str!("../tests/fixtures/v0.20.0/.chrononote-session.json")),
+            ("v0.25.0", include_str!("../tests/fixtures/v0.25.0/.chrononote-session.json")),
+            ("v0.30.0", include_str!("../tests/fixtures/v0.30.0/.chrononote-session.json")),
+        ];
+
+        for (tag, raw) in tags {
+            let dir = tempdir().unwrap();
+            let session_path = dir.path().join(SESSION_FILENAME);
+            fs::write(&session_path, raw).unwrap();
+
+            let session = read_tab_session_at(dir.path()).unwrap().expect("session should load");
+            assert_eq!(
+                session.open_tabs,
+                vec!["2026-09-01.txt", "2026-09-02.txt", "2026-09-03.txt"],
+                "mismatched open_tabs for {tag}"
+            );
+            assert_eq!(
+                session.active_tab.as_deref(),
+                Some("2026-09-02.txt"),
+                "mismatched active_tab for {tag}"
+            );
+            assert_eq!(
+                session.last_opened_date.as_deref(),
+                Some("2026-09-02"),
+                "mismatched last_opened_date for {tag}"
+            );
+
+            write_tab_session_at(dir.path(), &session).unwrap();
+
+            let saved_str = fs::read_to_string(&session_path).unwrap();
+            let orig: serde_json::Map<String, serde_json::Value> = serde_json::from_str(raw).unwrap();
+            let saved: serde_json::Map<String, serde_json::Value> = serde_json::from_str(&saved_str).unwrap();
+            for (k, _) in &orig {
+                assert!(saved.contains_key(k), "key {k} in session dropped for {tag}");
+            }
+        }
+    }
+
+    #[test]
+    fn upgrade_fixture_notes_folder_lists_and_normalizes() {
+        let manifest_dir = Path::new(env!("CARGO_MANIFEST_DIR"));
+        let notes_dir = manifest_dir.join("tests/fixtures/notes");
+
+        // 1. Listing returns exactly the three dated notes, ignoring .chrononote-conflicts and .agenda.json
+        let mut notes = list_note_files_at(&notes_dir).unwrap();
+        notes.sort();
+        assert_eq!(
+            notes,
+            vec!["2026-09-01.txt", "2026-09-02.txt", "2026-09-03.txt"]
+        );
+
+        // 2. Reading LF note
+        let lf_note = read_note_at(&notes_dir, "2026-09-01.txt").unwrap().unwrap();
+        assert_eq!(lf_note, "# 2026-09-01\n\nDaily log with LF line endings.\n");
+
+        // 3. Reading CRLF note returns normalized text (no \r)
+        let crlf_note = read_note_at(&notes_dir, "2026-09-02.txt").unwrap().unwrap();
+        assert_eq!(crlf_note, "# 2026-09-02\n\nDaily log with CRLF line endings.\n");
+        assert!(!crlf_note.contains('\r'));
+
+        // 4. Reading UTF-8 BOM note returns normalized text (no BOM)
+        let bom_note = read_note_at(&notes_dir, "2026-09-03.txt").unwrap().unwrap();
+        assert_eq!(bom_note, "# 2026-09-03\n\nDaily log with UTF-8 BOM.\n");
+        assert!(!bom_note.starts_with('\u{feff}'));
+    }
+
+    #[test]
+    fn upgrade_fixture_legacy_color_mode_migrates_to_color() {
+        let dir = tempdir().unwrap();
+        let path = dir.path().join("config.json");
+        fs::write(&path, r#"{"notesDir":"/test/notes","colorMode":"legacy"}"#).unwrap();
+
+        let cfg = load_config_at(&path, &dir.path().join("Notes")).unwrap();
+        assert_eq!(cfg.color_mode, ColorMode::Color);
+    }
 }
 
