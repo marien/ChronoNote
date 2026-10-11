@@ -10393,3 +10393,13 @@ Test lessons: Playwright's pinned clock (`seedApp` → `clock.setFixedTime`) cat
 - **G2 Print** (`Ctrl+P`, More menu, tab menu): the note's HTML export in a hidden iframe, printed from there.
 
 Not verified natively yet: printing in WebView2 under the desktop CSP, the save dialog for export, Recently deleted and Earlier versions against a real notes folder, the early channel end to end (needs a first `--beta` release). The screen-reader pass of D5 has not been done.
+
+## 360. Readiness follow-up from the first native check
+
+**Status: on branch `readiness/w1`, unreleased.** Marien's native test of §358/§359 (2026-10-11): About's new rows, Copy as Markdown and Earlier versions worked. Fixed:
+
+- **Export Save did nothing:** the app's capability only granted `dialog:allow-open`; `dialog:allow-save` added. (Mock-based tests cannot see Tauri permissions; the same class as §135.)
+- **Export:** `Ctrl/Cmd+Shift+E` opens it; Save… and Cancel in the button band like every other dialog, Copy as Markdown as a body button; the date fields used colour names this app does not define and their native parts followed Windows' theme rather than the app's (`color-scheme` now follows `data-theme`).
+- **Print to PDF named the file "ChronoNote":** Windows suggests the page title; the printed document and, while printing, the window are titled "ChronoNote <date>".
+- **Earlier versions during the day:** a version when the newest one is more than 5 minutes old, and always when a note is emptied or written without an expected hash. A clean-up (`clean_up_versions_and_trash`, a command the frontend calls once after start; a blocking worker on desktop, never the main thread or a save) keeps every version of today, the newest of each earlier day, 30 days; and drops trash items older than 30 days (no longer while listing). Mock and web backend follow the same rules.
+- **Recently deleted stayed empty:** autosave had already written the emptied text when the tab closed, so the delete found an empty file. Deleting an empty note now puts its newest version in the trash. `trash.spec.ts` covers Marien's flow (empty, autosave, close, restore).
