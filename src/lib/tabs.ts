@@ -61,7 +61,14 @@ function generateTabId(): string {
   return `tab-${crypto.randomUUID()}`;
 }
 
+/** Settings is a page over the note on desktop (§C4) while the tabs stay clickable: going to a note (a tab click,
+ * Ctrl+Tab, a new or opened note) leaves it, so the note is not hidden behind Settings (Marien, 2026-10-11). */
+function leaveSettingsPage() {
+  if (get(modal) === "settings") modal.set("none");
+}
+
 export function switchTab(id: string) {
+  leaveSettingsPage();
   const prev = get(activeTabId);
   if (prev && prev !== id) flushSave(prev);
   activeTabId.set(id);
@@ -96,6 +103,7 @@ export function createScratchpadWith(content: string): NoteTab {
   const n = list.filter((t) => t.isScratchpad).length + 1;
   const newTab: NoteTab = { id: generateTabId(), filename: `Scratchpad ${n}`, isScratchpad: true, content };
   tabs.set([...list, newTab]);
+  leaveSettingsPage();
   activeTabId.set(newTab.id);
   return newTab;
 }
@@ -113,6 +121,7 @@ export async function openOrCreateDatedFile(dateStr: string) {
   const newTab: NoteTab = { id: generateTabId(), filename, isScratchpad: false, content: content ?? "" };
   tabs.set([...list, newTab]);
   markTabClean(newTab.id, loadBaseline(metadata)); // §94 baseline
+  leaveSettingsPage();
   activeTabId.set(newTab.id);
   void maybeSilentSyncEmptyNote(newTab);
 }
@@ -260,6 +269,7 @@ export async function reopenLastClosedTab() {
       content: snapshot.content,
     };
     tabs.set([...list, newTab]);
+    leaveSettingsPage();
     activeTabId.set(newTab.id);
   } else {
     await openOrCreateDatedFile(snapshot.filename.replace(/\.txt$/, ""));

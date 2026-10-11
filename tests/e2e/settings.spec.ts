@@ -484,3 +484,18 @@ test.describe("settings page mode and mobile sheet (§Z2)", () => {
     });
   });
 });
+
+// Marien, 2026-10-11: Settings is a page over the note while the tabs stay clickable; clicking a tab showed the other
+// note's tab as active but left Settings covering it.
+test("clicking a tab leaves the Settings page", async ({ page }) => {
+  await seedApp(page, {
+    seed: {
+      notes: { "2026-09-06.txt": "# yesterday", "2026-09-07.txt": "# today" },
+      session: { openTabs: ["2026-09-06.txt", "2026-09-07.txt"], activeTab: "2026-09-07.txt" },
+    },
+  });
+  await openSettings(page);
+  await page.locator(".tab", { hasText: "2026-09-06" }).click();
+  await expect(settings(page)).toHaveCount(0);
+  await expect(page.locator(".cm-content")).toContainText("yesterday");
+});
