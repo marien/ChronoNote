@@ -314,7 +314,7 @@ Every modal dialog conforms to a standardized 4-tier sizing scale, universal dis
 
 1. **Standardized Sizing Scale:** Semantic classes apply fluid max-width constraints (`min(100%, var(--modal-width, 720px))` and `max-width: calc(100vw - 24px)`):
    * `.modal-sm` (440px): Compact single-choice prompts (`SafetyModal`, `UnsavedScratchpadsModal`, `MigrateNotesModal`; `AboutModal` on a phone).
-   * `.modal-md` (560px): Standard single-column form views (`ConflictModal`, `SyncConflictsModal`, `CommandPaletteModal`; `SettingsModal` on a phone — on desktop Settings is a page, §3.4).
+   * `.modal-md` (560px): Standard single-column form views (`ConflictModal`, `SyncConflictsModal`, `CommandPaletteModal`, `VersionsModal`; `SettingsModal` on a phone — on desktop Settings is a page, §3.4).
    * `.modal-lg` (720px): Multi-column list views and table searches (`ActionDrawerModal`, `SearchModal`, `CalendarSyncReviewModal`, `OneDriveFolderPickerModal`).
    * `.modal-xl` (880px): Deep data inspectors and wide single-column browsers (`HistoryModal`, `ShortcutsModal`).
 2. **Universal Dismiss Affordance:** Every dialog except the disk-conflict one (which needs an explicit choice) provides a monoline `✕` icon button (`.modal-close-btn`, 26×26px, expanded to 44×44px hit-box under coarse pointers) in the top-right corner, ensuring clear, accessible exit affordance for mouse and touch users alike. The title/search row itself (`.modal-input-wrap`) is a tight ~42px regardless of which modal it belongs to.
@@ -663,6 +663,9 @@ by hand.
 
 ### 6.5 Recently Deleted Notes
 Notes deleted with content are moved to a hidden `.chrononote-trash/` subfolder for 30 days and can be restored from Settings.
+
+### 6.6 Earlier Versions of a Note
+Before an overwrite that is not the user's typing (the first save of each day, import with Replace, or a conflict resolved with "Keep mine"), the note's previous text is saved to a hidden `.chrononote-versions/<filename>/<timestamp>.txt` subfolder (kept for 30 days, at most 20 per note). A tab's context menu provides "Earlier versions…", showing the list with a side-by-side diff against the current text and a restore action (which keeps the current text first). The web app keeps equivalent records in IndexedDB.
 
 ---
 

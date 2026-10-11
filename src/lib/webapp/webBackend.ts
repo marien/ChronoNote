@@ -31,7 +31,7 @@
  */
 import { activeAgendaDates, activeEntriesForDate, activeTitlesAfterDate, activeTitlesForDate, removedTitlesForDate } from "../agendaTitles";
 import type { AppConfig, AppError, ColorMode, FileMetadata, LanguageMode, PeekConfig, StartupTabMode, TabSession, ThemeMode } from "../types";
-import type { TabLabelStyle } from "../generated/tauri-types";
+import type { TabLabelStyle, NoteVersion } from "../generated/tauri-types";
 import { PEEK_DEFAULTS, clampPeek } from "../peekDefaults";
 import type { CommandArgs, CommandReturn, TauriCommand, TauriCommands } from "../tauriCommands";
 import { isValidNoteFilename } from "../noteFilename";
@@ -59,6 +59,13 @@ interface StoredNote {
   content: string;
   contentHash: string;
   modifiedMs: number;
+}
+
+interface StoredVersionEntry {
+  name: string;
+  savedMs: number;
+  sizeBytes: number;
+  content: string;
 }
 
 interface StoredConfig {
@@ -318,6 +325,54 @@ export class WebBackend {
     return (keys as string[]).filter(isValidNoteFilename).sort();
   }
 
+  private formatVersionStamp(d = new Date()): string {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    const h = String(d.getHours()).padStart(2, "0");
+    const min = String(d.getMinutes()).padStart(2, "0");
+    const s = String(d.getSeconds()).padStart(2, "0");
+    return `${y}${m}${day}-${h}${min}${s}`;
+  }
+
+  private async hasVersionToday(filename: string): Promise<boolean> {
+    const db = await this.db();
+    const vers = (await idbGet<StoredVersionEntry[]>(db, STORE_META, `versions:${filename}`)) ?? [];
+    const todayPrefix = this.formatVersionStamp().slice(0, 8);
+    return vers.some((v) => v.name.startsWith(todayPrefix));
+  }
+
+  private async keepVersion(filename: string, content: string): Promise<void> {
+    if (!content || !content.trim()) return;
+    const norm = normalizeNoteText(content);
+    const db = await this.db();
+    let vers = (await idbGet<StoredVersionEntry[]>(db, STORE_META, `versions:${filename}`)) ?? [];
+    if (vers.length > 0 && normalizeNoteText(vers[0].content) === norm) {
+      return;
+    }
+    let d = new Date();
+    let stamp = this.formatVersionStamp(d);
+    while (vers.some((v) => v.name === stamp)) {
+      d = new Date(d.getTime() + 1000);
+      stamp = this.formatVersionStamp(d);
+    }
+    const entry: StoredVersionEntry = {
+      name: stamp,
+      savedMs: d.getTime(),
+      sizeBytes: new TextEncoder().encode(norm).length,
+      content: norm,
+    };
+    vers = [entry, ...vers];
+    vers.sort((a, b) => b.savedMs - a.savedMs || b.name.localeCompare(a.name));
+    const KEEP_MS = 30 * 24 * 60 * 60 * 1000;
+    const now = Date.now();
+    vers = vers.filter((v) => now - v.savedMs <= KEEP_MS);
+    if (vers.length > 20) {
+      vers = vers.slice(0, 20);
+    }
+    await idbPut(db, STORE_META, `versions:${filename}`, vers);
+  }
+
   private readonly core: CommandHandlers = {
     get_config: async () => this.toAppConfig(await this.loadConfig()),
 
@@ -371,9 +426,14 @@ export class WebBackend {
       if (!isValidNoteFilename(filename)) throw new Error(`Invalid note filename: ${filename}`);
       const db = await this.db();
       const store = await this.getActiveNotesStore();
+      const current = await idbGet<StoredNote>(db, store, filename);
+      if (current && current.content.trim().length > 0) {
+        if (expectedHash === null || !(await this.hasVersionToday(filename))) {
+          await this.keepVersion(filename, current.content);
+        }
+      }
       // §94: compare-and-swap, same contract as storage.rs's write_note_at.
       if (typeof expectedHash === "string") {
-        const current = await idbGet<StoredNote>(db, store, filename);
         // A missing note matches the empty-content hash, like storage.rs.
         if ((current?.contentHash ?? (await sha256Hex(""))) !== expectedHash) {
           throw new Error(`conflict: note changed on disk: ${filename}`);
@@ -476,6 +536,48 @@ export class WebBackend {
       return orig;
     },
 
+    list_versions: async ({ filename }) => {
+      if (!isValidNoteFilename(filename)) throw new Error(`Invalid note filename: ${filename}`);
+      const db = await this.db();
+      const raw = (await idbGet<StoredVersionEntry[]>(db, STORE_META, `versions:${filename}`)) ?? [];
+      const KEEP_MS = 30 * 24 * 60 * 60 * 1000;
+      const now = Date.now();
+      let kept = raw.filter((item) => now - item.savedMs <= KEEP_MS);
+      if (kept.length > 20) kept = kept.slice(0, 20);
+      if (kept.length !== raw.length) {
+        await idbPut(db, STORE_META, `versions:${filename}`, kept);
+      }
+      return kept.map(({ name, savedMs, sizeBytes }) => ({ name, savedMs, sizeBytes }));
+    },
+
+    read_version: async ({ filename, name }) => {
+      if (!isValidNoteFilename(filename)) throw new Error(`Invalid note filename: ${filename}`);
+      const baseName = name.endsWith(".txt") ? name.slice(0, -4) : name;
+      const db = await this.db();
+      const vers = (await idbGet<StoredVersionEntry[]>(db, STORE_META, `versions:${filename}`)) ?? [];
+      const v = vers.find((x) => x.name === baseName);
+      if (!v) throw new Error(`Version not found: ${name}`);
+      return normalizeNoteText(v.content);
+    },
+
+    restore_version: async ({ filename, name }) => {
+      if (!isValidNoteFilename(filename)) throw new Error(`Invalid note filename: ${filename}`);
+      const baseName = name.endsWith(".txt") ? name.slice(0, -4) : name;
+      const db = await this.db();
+      const vers = (await idbGet<StoredVersionEntry[]>(db, STORE_META, `versions:${filename}`)) ?? [];
+      const v = vers.find((x) => x.name === baseName);
+      if (!v) throw new Error(`Version not found: ${name}`);
+      const store = await this.getActiveNotesStore();
+      const current = await idbGet<StoredNote>(db, store, filename);
+      if (current && current.content.trim().length > 0) {
+        await this.keepVersion(filename, current.content);
+      }
+      const text = normalizeNoteText(v.content);
+      const note: StoredNote = { content: text, contentHash: await sha256Hex(text), modifiedMs: Date.now() };
+      await idbPut(db, store, filename, note);
+      return metadataOf(note);
+    },
+
 
     get_file_metadata: async ({ filename }) => {
       if (!isValidNoteFilename(filename)) throw new Error(`Invalid note filename: ${filename}`);
@@ -544,6 +646,12 @@ export class WebBackend {
           skipped++;
           continue;
         }
+        if (mode === "replace") {
+          const current = await idbGet<StoredNote>(db, store, filename);
+          if (current && current.content.trim().length > 0) {
+            await this.keepVersion(filename, current.content);
+          }
+        }
         await idbPut(db, store, filename, {
           content: normalizeNoteText(content),
           contentHash: await sha256Hex(normalizeNoteText(content)),
@@ -554,7 +662,13 @@ export class WebBackend {
       if (mode === "replace") {
         // Only after every note is written: old notes survive a failure part-way.
         for (const key of await this.listValidFilenames()) {
-          if (!Object.prototype.hasOwnProperty.call(notes, key)) await idbDelete(db, store, key);
+          if (!Object.prototype.hasOwnProperty.call(notes, key)) {
+            const current = await idbGet<StoredNote>(db, store, key);
+            if (current && current.content.trim().length > 0) {
+              await this.keepVersion(key, current.content);
+            }
+            await idbDelete(db, store, key);
+          }
         }
       }
       return { imported, skipped };

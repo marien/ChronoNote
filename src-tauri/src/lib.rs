@@ -100,6 +100,27 @@ async fn restore_from_trash(app: AppHandle, name: String) -> Result<String, Stri
         .map_err(|e| e.to_string())?
 }
 
+#[tauri::command]
+async fn list_versions(app: AppHandle, filename: String) -> Result<Vec<storage::NoteVersion>, String> {
+    tauri::async_runtime::spawn_blocking(move || storage::list_versions(&app, &filename))
+        .await
+        .map_err(|e| e.to_string())?
+}
+
+#[tauri::command]
+async fn read_version(app: AppHandle, filename: String, name: String) -> Result<String, String> {
+    tauri::async_runtime::spawn_blocking(move || storage::read_version(&app, &filename, &name))
+        .await
+        .map_err(|e| e.to_string())?
+}
+
+#[tauri::command]
+async fn restore_version(app: AppHandle, filename: String, name: String) -> Result<storage::FileMetadata, String> {
+    tauri::async_runtime::spawn_blocking(move || storage::restore_version(&app, &filename, &name))
+        .await
+        .map_err(|e| e.to_string())?
+}
+
 
 #[tauri::command]
 async fn get_file_metadata(app: AppHandle, filename: String) -> Result<storage::FileMetadata, String> {
@@ -325,6 +346,9 @@ pub fn run() {
             delete_note,
             list_trash,
             restore_from_trash,
+            list_versions,
+            read_version,
+            restore_version,
             get_file_metadata,
             read_note_with_metadata,
             write_conflict_copy,

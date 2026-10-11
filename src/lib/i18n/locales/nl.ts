@@ -878,4 +878,11 @@ export const nl = {
   "settings.trash.deletedOn": (p) => (p?.when ? `Verwijderd ${p.when}` : "Verwijderd"),
   "toast.trash.restored": (p) => (p?.filename ? `${p.filename} teruggezet` : "Teruggezet"),
   "toast.trash.noteExists": (p) => (p?.filename ? `${p.filename} bevat al tekst. Terugzetten geannuleerd.` : "Notitie bevat al tekst. Terugzetten geannuleerd."),
+  "versions.title": () => "Eerdere versies",
+  "versions.menuItem": () => "Eerdere versies…",
+  "versions.empty": () => "Nog geen eerdere versies van deze notitie.",
+  "versions.restore": () => "Deze versie terugzetten",
+  "versions.current": () => "Huidig",
+  "versions.hint": () => "30 dagen bewaard: de eerste versie van elke dag en elke versie die door een import of conflictkeuze is vervangen.",
+  "toast.versions.restored": () => "Versie teruggezet",
 } satisfies Dictionary;

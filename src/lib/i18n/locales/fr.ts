@@ -902,4 +902,11 @@ export const fr = {
   "settings.trash.deletedOn": (p) => (p?.when ? `Supprimée ${p.when}` : "Supprimée"),
   "toast.trash.restored": (p) => (p?.filename ? `${p.filename} restaurée` : "Restaurée"),
   "toast.trash.noteExists": (p) => (p?.filename ? `${p.filename} contient déjà du texte. Restauration annulée.` : "Note contient déjà du texte. Restauration annulée."),
+  "versions.title": () => "Versions précédentes",
+  "versions.menuItem": () => "Versions précédentes…",
+  "versions.empty": () => "Pas encore de version précédente de cette note.",
+  "versions.restore": () => "Restaurer cette version",
+  "versions.current": () => "Actuelle",
+  "versions.hint": () => "Conservées 30 jours : la première version de chaque jour et toute version remplacée par un import ou un choix de conflit.",
+  "toast.versions.restored": () => "Version restaurée",
 } satisfies Dictionary;

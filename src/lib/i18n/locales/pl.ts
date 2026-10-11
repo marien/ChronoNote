@@ -915,4 +915,11 @@ export const pl = {
   "settings.trash.deletedOn": (p) => (p?.when ? `Usunięto ${p.when}` : "Usunięto"),
   "toast.trash.restored": (p) => (p?.filename ? `Przywrócono ${p.filename}` : "Przywrócono"),
   "toast.trash.noteExists": (p) => (p?.filename ? `${p.filename} ma już tekst. Przywracanie anulowane.` : "Notatka ma już tekst. Przywracanie anulowane."),
+  "versions.title": () => "Wcześniejsze wersje",
+  "versions.menuItem": () => "Wcześniejsze wersje…",
+  "versions.empty": () => "Brak jeszcze wcześniejszych wersji tej notatki.",
+  "versions.restore": () => "Przywróć tę wersję",
+  "versions.current": () => "Bieżąca",
+  "versions.hint": () => "Przechowywane 30 dni: pierwsza wersja każdego dnia i każda wersja zastąpiona importem lub wyborem w konflikcie.",
+  "toast.versions.restored": () => "Przywrócono wersję",
 } satisfies Dictionary;

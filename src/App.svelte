@@ -75,6 +75,7 @@
   import DroppedNotesModal from "./lib/components/modals/DroppedNotesModal.svelte";
   import SyncConflictsModal from "./lib/components/modals/SyncConflictsModal.svelte";
   import OneDriveFolderPickerModal from "./lib/components/modals/OneDriveFolderPickerModal.svelte";
+  import VersionsModal from "./lib/components/modals/VersionsModal.svelte";
   import EditorContextMenu from "./lib/components/EditorContextMenu.svelte";
   import {
     actionsPaneShare,
@@ -899,6 +900,8 @@
     <SyncConflictsModal />
   {:else if $modal === "droppedNotes"}
     <DroppedNotesModal />
+  {:else if $modal === "versions"}
+    <VersionsModal />
   {/if}
 {:else if bootError}
   <div class="boot-loading" role="alert">

@@ -22,9 +22,9 @@ import type {
   StartupTabMode,
   PeekConfig,
 } from "./types";
-import type { TrashItem } from "./generated/tauri-types";
+import type { TrashItem, NoteVersion } from "./generated/tauri-types";
 
-export type { OneDriveAdvancedConfig, OneDriveLoginResult, SyncConflict };
+export type { OneDriveAdvancedConfig, OneDriveLoginResult, SyncConflict, NoteVersion };
 
 type NoArgs = Record<string, never>;
 
@@ -53,6 +53,9 @@ export interface TauriCommands {
   delete_note: { args: { filename: string; expectedHash: string | null }; returns: void };
   list_trash: { args: NoArgs; returns: TrashItem[] };
   restore_from_trash: { args: { name: string }; returns: string };
+  list_versions: { args: { filename: string }; returns: NoteVersion[] };
+  read_version: { args: { filename: string; name: string }; returns: string };
+  restore_version: { args: { filename: string; name: string }; returns: FileMetadata };
   get_file_metadata: { args: { filename: string }; returns: FileMetadata };
   read_note_with_metadata: { args: { filename: string }; returns: NoteWithMetadata };
   write_conflict_copy: { args: { name: string; content: string }; returns: string };

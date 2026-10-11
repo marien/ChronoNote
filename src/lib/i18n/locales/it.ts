@@ -896,4 +896,11 @@ export const it = {
   "settings.trash.deletedOn": (p) => (p?.when ? `Eliminata ${p.when}` : "Eliminata"),
   "toast.trash.restored": (p) => (p?.filename ? `${p.filename} ripristinata` : "Ripristinata"),
   "toast.trash.noteExists": (p) => (p?.filename ? `${p.filename} contiene già del testo. Ripristino annullato.` : "Nota contiene già del testo. Ripristino annullato."),
+  "versions.title": () => "Versioni precedenti",
+  "versions.menuItem": () => "Versioni precedenti…",
+  "versions.empty": () => "Nessuna versione precedente di questa nota.",
+  "versions.restore": () => "Ripristina questa versione",
+  "versions.current": () => "Attuale",
+  "versions.hint": () => "Conservate 30 giorni: la prima versione di ogni giorno e ogni versione sostituita da un'importazione o un conflitto.",
+  "toast.versions.restored": () => "Versione ripristinata",
 } satisfies Dictionary;

@@ -54,7 +54,9 @@ export type ModalKind =
   // merged automatically, waiting on the user's choice.
   | "syncConflicts"
   // A dropped YYYY-MM-DD.txt that differs from the note already there: the user picks what to keep.
-  | "droppedNotes";
+  | "droppedNotes"
+  // Earlier versions of a note (Proposal B2).
+  | "versions";
 
 export const tabs = writable<NoteTab[]>([]);
 export const activeTabId = writable<string>("");
