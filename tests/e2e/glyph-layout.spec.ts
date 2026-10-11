@@ -324,16 +324,17 @@ test.describe("glyph line layout", () => {
       b2: line2Buf.toString("base64"),
       cellEnd: await line1.evaluate((el) => {
         const g = el.querySelector<HTMLElement>(".glyph-open")!;
-        return Math.floor(g.getBoundingClientRect().right - el.getBoundingClientRect().left);
+        // The screenshot is in device pixels (1.5x at 150% scaling).
+        return Math.floor((g.getBoundingClientRect().right - el.getBoundingClientRect().left) * window.devicePixelRatio);
       }),
     });
 
-    // Assert top alignment within 1px (identical line height)
-    expect(Math.abs(scan.topDiff)).toBeLessThanOrEqual(1);
-    // §327: the box and the circle are the same CSS box (0.70em, 1.4px
-    // border) since the box glyphs stopped using a font character, so their
-    // ink is the same width, within anti-aliasing.
-    expect(Math.abs(scan.circle2.w - scan.box1.w)).toBeLessThanOrEqual(1);
+    // One CSS pixel of rounding, in device pixels: 1 at 100%, 2 at 150%.
+    const tolerance = Math.max(1, Math.ceil(await page.evaluate(() => window.devicePixelRatio)));
+    // Tops within a pixel: the circle (0.66em) is a little smaller than the box (0.70em, §346), both on the baseline.
+    expect(Math.abs(scan.topDiff)).toBeLessThanOrEqual(tolerance);
+    // Ink width differs by the same small amount.
+    expect(Math.abs(scan.circle2.w - scan.box1.w)).toBeLessThanOrEqual(tolerance);
   });
 
   test("verify bottom of action and agenda topic glyphs touches the d baseline", async ({ page }) => {
