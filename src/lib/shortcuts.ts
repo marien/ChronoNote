@@ -235,6 +235,10 @@ export const SHORTCUTS: ShortcutDef[] = [
     // a diaeresis on the US-International layout, so it would swallow that letter in the editor.
     combos: [{ mod: true, shift: true, code: "KeyP" }],
   },
+  {
+    id: "printNote",
+    combos: [{ mod: true, code: "KeyP" }],
+  },
 ];
 
 /** i18n roadmap: the Shortcuts & Symbols drawer's translation key for
@@ -278,6 +282,7 @@ export const SHORTCUT_LABEL_KEYS = {
   copyToNextOccurrence: "shortcuts.copyToNextOccurrence.label",
   toggleZenMode: "shortcuts.toggleZenMode.label",
   togglePeekMode: "shortcuts.togglePeekMode.label",
+  printNote: "print.menuItem",
   clickGlyph: "shortcuts.clickGlyph.label",
   stepOccurrence: "shortcuts.stepOccurrence.label",
   escape: "shortcuts.escape.label",
@@ -412,6 +417,7 @@ export const DRAWER_ROWS: (string | [string, string])[] = [
   "syncCalendar",
   "toggleZenMode",
   "togglePeekMode",
+  "printNote",
   "openSettings",
   "openAbout",
   "openShortcutsHelp",

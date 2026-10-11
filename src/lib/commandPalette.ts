@@ -55,6 +55,7 @@ import { setColorMode, setReadableLineLength, setStatusBarVisible, setWordWrap }
 import { checkForUpdates } from "./updates";
 import { formatCombo, formatShortcut, shortcutById } from "./shortcuts";
 import { exportAllNotesToFile } from "./exportImport";
+import { openExportModal, printActiveNote } from "./exportNotes";
 import { t } from "./i18n";
 import type { TranslationKey } from "./i18n/schema";
 
@@ -260,6 +261,23 @@ function commandItems(): PaletteItem[] {
       group: "Commands",
       run: async () => {
         await exportAllNotesToFile();
+      },
+    },
+    {
+      id: "cmd-export",
+      label: translate("export.menuItem", undefined),
+      group: "Commands",
+      run: () => {
+        openExportModal();
+      },
+    },
+    {
+      id: "cmd-print",
+      label: translate("print.menuItem", undefined),
+      hint: formatShortcut("printNote"),
+      group: "Commands",
+      run: () => {
+        printActiveNote();
       },
     },
     {

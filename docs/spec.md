@@ -114,6 +114,28 @@ its own tab, even if the source tab isn't the active one.
 * **Numbered Lists:** A marker such as `1.`, `2)`, or a numbered sub-item such as `1.1.` / `1.2.3)` as the first non-blank character of a line, followed by a space (positive numbers only, ending in `.` or `)`; `3.5 hours` is prose). No styling. `Enter` continues with the next number (the last number plus one, parents and delimiter kept), an empty item exits, `Shift+Enter` aligns a continuation line under the text, and `Tab`/`Shift+Tab` indent by two spaces like bullets. Numbers are never rewritten, except that `Enter` in the middle of a list pushes the numbers after the new item down by one (up to a blank line or a number that does not collide; sub-items follow their parent). A bullet and a numbered item are exclusive per line (`- 1. x` is a bullet), and a numbered item is left alone by `Ctrl/Cmd+1`-`4` like a bullet.
 * **List Continuation:** Inside a bulleted line, `Enter` continues the list with a fresh bullet at the same indentation (or exits the list if the current bullet is empty); `Shift+Enter` adds a plain continuation line indented two spaces *past* the bullet's own indentation — aligned under the bullet's text, not the marker — with no new bullet. `Enter` on a leading-symbol action line continues it as a fresh open `# ` action at the same indent (empty line + `Enter` exits); `Enter` on a `=> ` follow-up continues as another plain `=> `, or as `=> # ` if the line was itself a `=> <symbol>` consequence-action.
 
+### 2.5 Export & Print
+* **Scope & Formats:** A single note or a date range can be exported as standard Markdown (`.md`) or self-contained HTML (`.html`).
+* **Markdown Translation:**
+  * Setext section headings convert to Markdown `## Heading` titles (underlines dropped).
+  * Open actions (`# `) translate to `- [ ] ` checkboxes.
+  * Completed actions (`v `) translate to `- [x] ` checkboxes.
+  * Deferred actions (`> `) translate to `- [ ] *(deferred)*`.
+  * Won't-do actions (`x `) translate to `- [x] ~~task~~ *(won't do)*`.
+  * Meeting topics convert to bullet points: `o ` becomes `- `, `. ` becomes `- *(discussed)*`, `, ` becomes `- *(not discussed)*`.
+  * Emphasis lines (`! `) convert to `**text**`.
+  * Follow-up arrows (`=> `) convert to `→ `.
+  * Indentation, bullets, numbered lists, and `@name` tags are preserved. Plain lines escape Markdown-special characters only at line starts where meaning would change.
+  * Multi-note ranges separate notes with `# YYYY-MM-DD` headings.
+* **HTML & Print:**
+  * Exported HTML is a complete standalone document with inline styling, app-style glyph representations, monospace body typography, and `@media print` rules.
+  * Printing a note (`Ctrl/Cmd+P`) renders the note as HTML and dispatches to the browser/OS print dialogue via an off-screen iframe.
+* **Entry Points:**
+  * More menu (`…`) → "Export…" and "Print…".
+  * Tab right-click menu → "Export…" and "Print…".
+  * Command palette (`Ctrl/Cmd+K`) → "Export…" and "Print…".
+  * Editor right-click menu → "Copy as Markdown" (when a selection exists).
+
 ---
 
 ## 3. Visual Design & Chrome Layout

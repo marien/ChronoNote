@@ -710,7 +710,9 @@ export class WebBackend {
       return current.slice(-count).join("\n");
     },
     open_log_folder: async () => {},
+    write_export_file: async () => {},
   };
+
 
   /** Erases everything (`notes`, `conflicts`, `config`, `session`) — the
    * "replace everything" import mode reuses the narrower per-store clear

@@ -878,6 +878,18 @@ export type TranslationParams = {
   "settings.trash.deletedOn": { when: string };
   "toast.trash.restored": { filename: string };
   "toast.trash.noteExists": { filename: string };
+  "export.menuItem": undefined;
+  "export.title": undefined;
+  "export.scope.note": undefined;
+  "export.scope.range": undefined;
+  "export.from": undefined;
+  "export.to": undefined;
+  "export.format": undefined;
+  "export.save": undefined;
+  "export.copyMarkdown": undefined;
+  "toast.export.saved": { filename: string };
+  "toast.export.copied": undefined;
+  "print.menuItem": undefined;
 };
 
 export type TranslationKey = keyof TranslationParams;

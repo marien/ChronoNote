@@ -1,11 +1,12 @@
 <script lang="ts">
   import { onMount, tick } from "svelte";
   import { get } from "svelte/store";
-  import { editorContextMenu, editorApi, backendKind, isMobile, type EditorApi } from "../stores";
+  import { editorContextMenu, editorApi, backendKind, isMobile, showToast, type EditorApi } from "../stores";
   import * as controller from "../controller";
   import { t } from "../i18n";
   import { formatShortcut } from "../shortcuts";
   import Icon from "../icons/Icon.svelte";
+  import { noteToMarkdown } from "../exportFormats";
 
   let menuEl = $state<HTMLDivElement>();
 
@@ -47,7 +48,7 @@
   const inSection = $derived(role !== "outside");
 
   const lineItemCount = $derived(onTitle ? 0 : isAction ? 4 : isTopic ? 3 : 2);
-  const otherItemCount = $derived((onTitle ? 1 : 3) + ($backendKind === "desktop" ? 1 : 0));
+  const otherItemCount = $derived((onTitle ? 1 : 3) + ($backendKind === "desktop" ? 1 : 0) + (!isSelectionEmpty ? 1 : 0));
   const itemCount = $derived(1 + lineItemCount + otherItemCount);
 
   // The menu sizes to its longest item; its measured width keeps it on screen.
@@ -325,6 +326,35 @@
         <Icon name="edit" size={14} />
         <span class="editor-context-label" title={$t("shortcuts.convertToSection.label")}>{$t("editorMenu.toSection")}</span>
         <span class="editor-context-key">{formatShortcut("convertToSection")}</span>
+      </button>
+    {/if}
+    {#if !isSelectionEmpty}
+      <button
+        type="button"
+        class="editor-context-item"
+        role="menuitem"
+        onclick={async () => {
+          const selText = editorApi?.getSelection?.()?.text;
+          close();
+          if (!get(isMobile)) editorApi?.focus();
+          if (selText) {
+            const md = noteToMarkdown(selText);
+            try {
+              await navigator.clipboard.writeText(md);
+            } catch {
+              const ta = document.createElement("textarea");
+              ta.value = md;
+              document.body.appendChild(ta);
+              ta.select();
+              document.execCommand("copy");
+              document.body.removeChild(ta);
+            }
+            showToast(get(t)("toast.export.copied"));
+          }
+        }}
+      >
+        <Icon name="copy" size={14} />
+        <span class="editor-context-label">{$t("export.copyMarkdown")}</span>
       </button>
     {/if}
     {#if $backendKind === "desktop"}

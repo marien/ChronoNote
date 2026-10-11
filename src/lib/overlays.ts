@@ -3,7 +3,7 @@
 import { derived, get, writable, type Readable } from "svelte/store";
 import type { ModalKind } from "./stores";
 
-export type NonModalOverlayKind = "find" | "mobileTabs" | "folderPicker" | "syncHealth";
+export type NonModalOverlayKind = "find" | "mobileTabs" | "folderPicker" | "syncHealth" | "export";
 export type OverlayKind = Exclude<ModalKind, "none"> | NonModalOverlayKind;
 
 export interface Overlay {
@@ -17,6 +17,7 @@ const NON_MODAL: ReadonlySet<OverlayKind> = new Set<OverlayKind>([
   "mobileTabs",
   "folderPicker",
   "syncHealth",
+  "export",
 ]);
 
 export const overlays = writable<Overlay[]>([]);
@@ -57,3 +58,16 @@ export const modalFromStack: Readable<ModalKind> = derived(overlays, (s) => {
 export function isOpen(kind: OverlayKind): Readable<boolean> {
   return derived(overlays, (s) => s.some((x) => x.kind === kind));
 }
+
+export const exportModalOpen: Readable<boolean> & {
+  set(v: boolean): void;
+  update(fn: (v: boolean) => boolean): void;
+} = {
+  subscribe: isOpen("export").subscribe,
+  set: (v: boolean) => (v ? openOverlay({ kind: "export", dismissable: true }) : closeOverlay("export")),
+  update: (fn) => {
+    const next = fn(get(isOpen("export")));
+    next ? openOverlay({ kind: "export", dismissable: true }) : closeOverlay("export");
+  },
+};
+
