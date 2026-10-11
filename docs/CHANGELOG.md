@@ -10403,3 +10403,18 @@ Not verified natively yet: printing in WebView2 under the desktop CSP, the save 
 - **Print to PDF named the file "ChronoNote":** Windows suggests the page title; the printed document and, while printing, the window are titled "ChronoNote <date>".
 - **Earlier versions during the day:** a version when the newest one is more than 5 minutes old, and always when a note is emptied or written without an expected hash. A clean-up (`clean_up_versions_and_trash`, a command the frontend calls once after start; a blocking worker on desktop, never the main thread or a save) keeps every version of today, the newest of each earlier day, 30 days; and drops trash items older than 30 days (no longer while listing). Mock and web backend follow the same rules.
 - **Recently deleted stayed empty:** autosave had already written the emptied text when the tab closed, so the delete found an empty file. Deleting an empty note now puts its newest version in the trash. `trash.spec.ts` covers Marien's flow (empty, autosave, close, restore).
+
+## 361. Settings closes when you go to a note; screen-reader pass; contrast to WCAG AA
+
+**Status: on branch `readiness/w1`, unreleased.**
+
+- **Settings page and tabs (Marien, from v0.30):** the tabs stay clickable while Settings covers the note, but clicking one left Settings in front. Going to a note (a tab click, Ctrl+Tab, a new or opened note, reopening a closed tab) now leaves the Settings page (`leaveSettingsPage` in `tabs.ts`). Test in `settings.spec.ts` (fails without the fix).
+- **Screen-reader pass (D5),** done as a keyboard-only walkthrough of the accessibility tree (what Narrator reads from WebView2) through Marien's four flows: write a note, mark an action done, find a past section, change a setting. Found and fixed:
+  - the desktop Settings page took no focus (focus fell to `<body>`, Tab went to the status bar and never into Settings): it now focuses the selected settings tab;
+  - History's focused container read as one block of text and Tab could leave the dialog: it is a named group with `aria-activedescendant` on the current line, and `focusTrap` keeps focus in the card when it sits on a non-tabbable container;
+  - the Actions filter had no name and the selected row was not exposed: named, `aria-controls`/`aria-activedescendant` to the row;
+  - glyphs read only as "☐" (open and deferred identical): each has an `aria-label` (Open action, Done, Deferred, Won't do, the three topic states, Follow-up), and a state change through a command or a glyph click is announced (`EditorView.announce`, "Line set to Done");
+  - status counts read twice ("☐ 8 open 8"): the button is named by the full label.
+  Gemini's first version also rewrote how History and Actions move focus (and dropped a comment explaining an earlier bug fix); those two files were reverted and given only the attributes above. `a11y-keyboard.spec.ts` covers the five points.
+- **History threw on every open:** a `$effect.pre` reached `stripEl` before its `let` had run (an unhandled rejection that error reporting, §358 C2, would now show as "Something went wrong"). The declaration moved to the top.
+- **Contrast (Marien: fix all with the smallest change):** every text pair now reaches 4.5:1 and `a11y-known.ts` has no contrast exceptions: tertiary text `#949494` dark / `#757575` light, the dark accent fill `#0a74c2` (was `#0a84d8`, white text 3.95:1), light green `#257b53`, light teal `#0d6f8a`, dark `@name` `#29a8ff`, keyboard badges in the text colour, tags on a selected row without the 0.85 opacity, History's past dates and the calendar's other-month days without extra opacity.
