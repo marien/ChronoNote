@@ -112,19 +112,6 @@
     return occ.date < today ? "past" : occ.date > today ? "future" : "today";
   }
 
-  let bodyContainerEl: HTMLDivElement;
-
-  // 2026-09-27 bug fix: `historyOccurrences` always starts as `[]` and
-  // fills in once the disk read resolves — genuinely *after* `onMount` in
-  // every case, since `openMeetingHistory()` clears it and opens the modal
-  // before awaiting that read (the whole point of #62's spinner). Doing
-  // this focus-on-open logic in `onMount` (the previous approach, `await
-  // tick()` then search) ran while `occurrences` was still empty, found no
-  // match, and silently left `selectedIndex` at its default of 0 — which,
-  // now that the strip sorts oldest-first, is the *oldest* date rather
-  // than the one History was opened from. Doing it here instead, the first
-  // time the list actually has anything in it, means it always runs
-  // against real data regardless of how long the read takes.
   // Runs once, the first time the list has anything in it. `$effect.pre`: the index is written
   // before anything renders, and `selectedOcc` (the body) is a `$derived` computed on read, so the
   // strip and the body can no longer disagree (§215/§270). The index is still assigned here, not
@@ -164,10 +151,11 @@
     updateStripOverflow();
     await tick();
     scrollOccIntoView();
+    bodyEl?.focus();
   }
 
   onMount(() => {
-    bodyContainerEl?.focus();
+    bodyEl?.focus();
     // A drag started with the mouse still down when it leaves the line
     // list (over the takeover bar, or right off the modal) must still
     // stop on mouseup — listen on the window, not just the list itself.
@@ -205,15 +193,21 @@
 
   // Reset the line selection whenever the browsed occurrence changes —
   // it's meaningless carried over to a different occurrence's lines.
-  let lastSelectedFilename: string | undefined;
+  let lastSelectedFilename: string | undefined = "";
   $effect.pre(() => {
     const filename = selectedOcc?.filename;
     if (filename !== lastSelectedFilename) {
+      const isInitial = lastSelectedFilename === "";
       lastSelectedFilename = filename;
       selAnchor = null;
       focusLineIdx = null;
       lineSelection = null;
       takeOverMode = "agenda";
+      if (isInitial && selectedOcc && selectedOcc.lines.length > 0) {
+        focusLineIdx = selectedOcc.startLineIdx;
+        selAnchor = selectedOcc.startLineIdx;
+        recomputeSelection();
+      }
     }
   });
 
@@ -438,7 +432,7 @@
    * it's already visible, or it wouldn't be clickable). */
   function selectAndReveal(index: number) {
     selectedIndex = index;
-    bodyContainerEl?.focus();
+    bodyEl?.focus();
     scrollOccIntoView();
   }
 
@@ -527,7 +521,7 @@
     if (e.key === "Tab" && e.shiftKey && target === controls[0]) {
       e.preventDefault();
       e.stopPropagation(); // not the modal's focus trap: it would wrap to the last control
-      bodyContainerEl?.focus();
+      bodyEl?.focus();
       return true;
     }
     if (e.key === "Enter" || e.key === " ") return true; // the browser presses the focused button
@@ -687,7 +681,7 @@
               title={heat ? $t("history.occ.title.hasContent", { date: occ.date }) : $t("history.occ.title.empty", { date: occ.date })}
               onclick={() => {
                 selectedIndex = index;
-                bodyContainerEl?.focus();
+                bodyEl?.focus();
               }}
               ondblclick={() => controller.jumpToHistoryLine(occ)}
             >
@@ -725,23 +719,26 @@
       {/if}
     </div>
 
-    <div class="history-body" tabindex="-1" bind:this={bodyContainerEl}>
+    <div class="history-body">
       <div class="history-detail">
         {#if selectedOcc}
           <div
             class="hp-context history-select-body"
             bind:this={bodyEl}
             role="listbox"
+            tabindex="0"
             aria-multiselectable="true"
             aria-label={$t("history.modal.ariaLabel")}
+            aria-activedescendant={focusLineIdx !== null ? `history-line-${focusLineIdx}` : undefined}
           >
             {#if selectedOcc.lines.length === 0}
-              <div class="hp-line hp-muted">{$t("history.body.emptySection")}</div>
+              <div class="hp-line hp-muted" role="presentation">{$t("history.body.emptySection")}</div>
             {:else}
               {#each selectedOcc.lines as line, i}
                 {@const abs = selectedOcc.startLineIdx + i}
                 {@const inSel = !!lineSelection && abs >= lineSelection.from && abs <= lineSelection.to}
                 <div
+                  id="history-line-{abs}"
                   class="hp-line history-select-line {inSel ? 'history-line-selected' : ''}"
                   role="option"
                   aria-selected={inSel}

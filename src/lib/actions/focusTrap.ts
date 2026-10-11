@@ -61,6 +61,22 @@ export function focusTrap(node: HTMLElement) {
     } else if (!e.shiftKey && active === last) {
       e.preventDefault();
       first.focus();
+    } else if (!items.includes(active as HTMLElement)) {
+      // Focus is inside the modal card but on an element not in focusables()
+      // (e.g. a list container with tabindex="-1"). Keep Tab from wandering outside.
+      if (e.shiftKey) {
+        const pos = first.compareDocumentPosition(active as Node);
+        if (pos & Node.DOCUMENT_POSITION_PRECEDING) {
+          e.preventDefault();
+          last.focus();
+        }
+      } else {
+        const pos = last.compareDocumentPosition(active as Node);
+        if (pos & Node.DOCUMENT_POSITION_FOLLOWING) {
+          e.preventDefault();
+          first.focus();
+        }
+      }
     }
   }
 

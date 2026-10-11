@@ -6,7 +6,7 @@
   import { defaultKeymap, history, historyField, historyKeymap, indentWithTab, redo, undo } from "@codemirror/commands";
   import { indentUnit } from "@codemirror/language";
   import { findNext, findPrevious, search, SearchCursor, SearchQuery, setSearchQuery } from "@codemirror/search";
-  import { glyphAtomicRanges, liveGlyphs } from "../editor/glyphs";
+  import { glyphAtomicRanges, liveGlyphs, lineStateAnnouncement } from "../editor/glyphs";
   import { setextRule } from "../editor/setextRule";
   import { resolvedLinesPlugin } from "../editor/resolvedLines";
   import { activeLinesPlugin } from "../editor/activeLines";
@@ -22,6 +22,8 @@
     actionLineEnter,
     adjacentOpenActionLine,
     closeOpenAction,
+    innermostActionSymbol,
+    innermostTopicSymbol,
     isSetextUnderline,
     isTopicLikeLine,
     leadingMarkerIndent,
@@ -251,12 +253,14 @@
     const at = changedFrom(line.text, updated);
     const newAnchor = line.from + Math.max(0, Math.min(anchorOffset + (anchorOffset >= at ? delta : 0), updated.length));
     const newHead = line.from + Math.max(0, Math.min(headOffset + (headOffset >= at ? delta : 0), updated.length));
+    const sym = innermostActionSymbol(updated) ?? innermostTopicSymbol(updated);
 
     v.dispatch({
       changes: { from: line.from, to: line.to, insert: updated },
       selection: EditorSelection.range(newAnchor, newHead),
       scrollIntoView: true,
       userEvent: "input",
+      effects: sym ? [EditorView.announce.of(lineStateAnnouncement(sym))] : [],
     });
     return true;
   }
@@ -275,7 +279,11 @@
    * caller has the document context (the *next* line) to tell. One
    * transaction for the whole span, so it undoes as a single step. A
    * no-op (returns `false`) when nothing in the span changed at all. */
-  function applyActionStateToSelection(v: EditorView, transform: (line: string, col: number) => string | null): boolean {
+  function applyActionStateToSelection(
+    v: EditorView,
+    transform: (line: string, col: number) => string | null,
+    targetSymbol?: string,
+  ): boolean {
     const sel = v.state.selection.main;
     const { from, to } = sel;
     const firstLine = v.state.doc.lineAt(from);
@@ -291,6 +299,13 @@
     }
     if (!changed) return false;
 
+    const sym =
+      targetSymbol ??
+      (lines.length > 0
+        ? innermostActionSymbol(lines[0]) ?? innermostTopicSymbol(lines[0])
+        : null);
+    const announceEffect = sym ? [EditorView.announce.of(lineStateAnnouncement(sym))] : [];
+
     if (firstLine.number === lastLine.number) {
       const origText = firstLine.text;
       const updatedText = lines[0];
@@ -305,11 +320,15 @@
         selection: EditorSelection.range(newAnchor, newHead),
         scrollIntoView: true,
         userEvent: "input",
+        effects: announceEffect,
       });
       return true;
     }
 
-    v.dispatch({ changes: { from: firstLine.from, to: lastLine.to, insert: lines.join("\n") } });
+    v.dispatch({
+      changes: { from: firstLine.from, to: lastLine.to, insert: lines.join("\n") },
+      effects: announceEffect,
+    });
     return true;
   }
 
@@ -563,17 +582,17 @@
       // #73/#257: Ctrl+Shift+O sets every line in the selection to open (# or o)
       // without #69's plain-line promotion — `setActionSymbolOpen`, not
       // `setActionSymbolTo`, is what keeps it distinct from Ctrl+1 below.
-      { key: "Mod-Shift-o", run: (v) => applyActionStateToSelection(v, setActionSymbolOpen) },
+      { key: "Mod-Shift-o", run: (v) => applyActionStateToSelection(v, setActionSymbolOpen, "#") },
       // #70: Ctrl+1-4 set every action in the selection directly to
       // open/done/deferred/won't-do, matching `ACTION_CYCLE_ORDER`
       // (tokens.ts).
-      { key: "Mod-1", run: (v) => applyActionStateToSelection(v, (line, col) => setActionSymbolTo(line, "#", col)) },
-      { key: "Mod-2", run: (v) => applyActionStateToSelection(v, (line, col) => setActionSymbolTo(line, "v", col)) },
-      { key: "Mod-3", run: (v) => applyActionStateToSelection(v, (line, col) => setActionSymbolTo(line, ">", col)) },
-      { key: "Mod-4", run: (v) => applyActionStateToSelection(v, (line, col) => setActionSymbolTo(line, "x", col)) },
-      { key: "Mod-5", run: (v) => applyActionStateToSelection(v, (line, col) => setTopicSymbolTo(line, "o", col)) },
-      { key: "Mod-6", run: (v) => applyActionStateToSelection(v, (line, col) => setTopicSymbolTo(line, ".", col)) },
-      { key: "Mod-7", run: (v) => applyActionStateToSelection(v, (line, col) => setTopicSymbolTo(line, ",", col)) },
+      { key: "Mod-1", run: (v) => applyActionStateToSelection(v, (line, col) => setActionSymbolTo(line, "#", col), "#") },
+      { key: "Mod-2", run: (v) => applyActionStateToSelection(v, (line, col) => setActionSymbolTo(line, "v", col), "v") },
+      { key: "Mod-3", run: (v) => applyActionStateToSelection(v, (line, col) => setActionSymbolTo(line, ">", col), ">") },
+      { key: "Mod-4", run: (v) => applyActionStateToSelection(v, (line, col) => setActionSymbolTo(line, "x", col), "x") },
+      { key: "Mod-5", run: (v) => applyActionStateToSelection(v, (line, col) => setTopicSymbolTo(line, "o", col), "o") },
+      { key: "Mod-6", run: (v) => applyActionStateToSelection(v, (line, col) => setTopicSymbolTo(line, ".", col), ".") },
+      { key: "Mod-7", run: (v) => applyActionStateToSelection(v, (line, col) => setTopicSymbolTo(line, ",", col), ",") },
       // Alt+Left / Alt+Right: previous / next occurrence of the section the cursor is in. Taken only when there is
       // one; otherwise the key falls through to the default (syntax-aware caret movement). Not on macOS, where
       // Option+Arrow is word movement - except in Peek, which has always used it there.
@@ -914,9 +933,9 @@
       reopenCurrentDoneAction: () => (view ? applyToCurrentLine(view, reopenDoneAction) : false),
       convertCurrentLineToSection: () => (view ? convertLineToSection(view) : false),
       setActionStateOnSelection: (symbol: "#" | "v" | ">" | "x") =>
-        view ? applyActionStateToSelection(view, (line, col) => setActionSymbolTo(line, symbol, col)) : false,
+        view ? applyActionStateToSelection(view, (line, col) => setActionSymbolTo(line, symbol, col), symbol) : false,
       setTopicStateOnSelection: (symbol: "o" | "." | ",") =>
-        view ? applyActionStateToSelection(view, (line, col) => setTopicSymbolTo(line, symbol, col)) : false,
+        view ? applyActionStateToSelection(view, (line, col) => setTopicSymbolTo(line, symbol, col), symbol) : false,
       jumpAdjacentOpenAction: (direction: 1 | -1) => (view ? jumpToAdjacentOpenAction(view, direction) : false),
       pulseLine: (lineIdx: number) => {
         triggerLinePulse(lineIdx);

@@ -1,3 +1,5 @@
+import { get } from "svelte/store";
+import { t } from "../i18n";
 import { RangeSetBuilder } from "@codemirror/state";
 import { Decoration, DecorationSet, EditorView, ViewPlugin, ViewUpdate, WidgetType } from "@codemirror/view";
 import { lineSectionRole, symbolAfterClick, toggleOpenClosedAtIndex } from "../tokens";
@@ -5,6 +7,34 @@ import { ARROW_GLYPH, GLYPHS, glyphSpecForSymbol } from "../grammar/glyphs";
 import { tokenizeLine } from "../grammar/tokenize";
 import { editorContextMenu } from "../stores";
 
+export function glyphAriaLabel(sym: string): string | undefined {
+  const dict = get(t);
+  switch (sym) {
+    case "#":
+      return dict("a11y.glyph.open", undefined);
+    case "v":
+      return dict("a11y.glyph.done", undefined);
+    case ">":
+      return dict("a11y.glyph.deferred", undefined);
+    case "x":
+      return dict("a11y.glyph.wontDo", undefined);
+    case "o":
+      return dict("a11y.glyph.topicOpen", undefined);
+    case ".":
+      return dict("a11y.glyph.topicDone", undefined);
+    case ",":
+      return dict("a11y.glyph.topicSkipped", undefined);
+    case "=>":
+      return dict("a11y.glyph.followUp", undefined);
+    default:
+      return undefined;
+  }
+}
+
+export function lineStateAnnouncement(sym: string): string {
+  const label = glyphAriaLabel(sym) ?? sym;
+  return get(t)("a11y.lineState", { state: label });
+}
 
 /** Renders the raw plain-text tokens (spec 2.2) as their visual glyphs
  * without changing a single byte on disk: the underlying document always
@@ -43,6 +73,8 @@ class InlineGlyphWidget extends WidgetType {
   toDOM(view: EditorView): HTMLElement {
     const span = document.createElement("span");
     span.className = this.className;
+    const initialLabel = glyphAriaLabel(this.symbol);
+    if (initialLabel) span.setAttribute("aria-label", initialLabel);
     // #93: the drawn character lives in its own nested span so a shrinking
     // transform (app.css's `.glyph-ink` rule) never touches this outer
     // span's own box — CodeMirror measures THIS node to place the cursor
@@ -54,17 +86,22 @@ class InlineGlyphWidget extends WidgetType {
     span.appendChild(ink);
     if (this.cyclable) {
       span.classList.add("glyph-cyclable");
-      const { char: nextChar, cls: nextClass } = glyphSpecForSymbol(symbolAfterClick(this.symbol));
+      const nextSym = symbolAfterClick(this.symbol);
+      const { char: nextChar, cls: nextClass } = glyphSpecForSymbol(nextSym);
       // #34: on hover, morph into the glyph a click will produce so you can
       // see what it will do; revert on leave. Bypassed on touchscreens.
       span.addEventListener("mouseenter", () => {
         if (window.matchMedia?.("(pointer: coarse)").matches) return;
         ink.textContent = nextChar;
         span.className = `${nextClass} glyph-cyclable glyph-cyclable-preview`;
+        const nextLabel = glyphAriaLabel(nextSym);
+        if (nextLabel) span.setAttribute("aria-label", nextLabel);
       });
       span.addEventListener("mouseleave", () => {
         ink.textContent = this.label;
         span.className = `${this.className} glyph-cyclable`;
+        if (initialLabel) span.setAttribute("aria-label", initialLabel);
+        else span.removeAttribute("aria-label");
       });
       const handleCycle = (e: Event) => {
         // Don't let the click place the editor cursor or steal focus.
@@ -74,7 +111,10 @@ class InlineGlyphWidget extends WidgetType {
         // Exactly the glyph that was hit: its position in the line is where its symbol sits.
         const updated = toggleOpenClosedAtIndex(line.text, pos - line.from);
         if (updated !== null && updated !== line.text) {
-          view.dispatch({ changes: { from: line.from, to: line.to, insert: updated } });
+          view.dispatch({
+            changes: { from: line.from, to: line.to, insert: updated },
+            effects: [EditorView.announce.of(lineStateAnnouncement(nextSym))],
+          });
         }
       };
 
@@ -209,7 +249,7 @@ export function buildGlyphDecorations(view: EditorView): { decorations: Decorati
             deco.add(a, line.to, MARK_EMPHASIS);
             break;
           case "arrow":
-            deco.add(a, b, Decoration.replace({ widget: new InlineGlyphWidget(ARROW_GLYPH.char, ARROW_GLYPH.cls) }));
+            deco.add(a, b, Decoration.replace({ widget: new InlineGlyphWidget(ARROW_GLYPH.char, ARROW_GLYPH.cls, false, "=>") }));
             break;
           case "bullet":
             deco.add(a, b, Decoration.replace({ widget: new InlineGlyphWidget(GLYPHS.bullet.char, GLYPHS.bullet.cls) }));
