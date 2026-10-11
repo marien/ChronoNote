@@ -21,6 +21,7 @@
   import { formatCombo, formatShortcut, shortcutById } from "../../shortcuts";
   import { todayISO } from "../../date";
   import { t } from "../../i18n";
+  import { openExportModal, printActiveNote } from "../../exportNotes";
 
   /** The top bar's "More" popover (§B2: the button is always there). It always lists
    * Settings, Shortcuts & symbols, Zen mode, Peek (desktop only) and About; #56: while the
@@ -86,6 +87,16 @@
     controller.closeAllModals();
     controller.togglePeek();
   }
+
+  function exportNotes() {
+    controller.closeAllModals();
+    openExportModal();
+  }
+
+  function print() {
+    controller.closeAllModals();
+    printActiveNote();
+  }
 </script>
 
 <svelte:window onmousedown={onOutsideMousedown} onresize={positionUnderTrigger} />
@@ -128,6 +139,13 @@
     {/if}
     <div class="more-actions-sep" role="separator"></div>
   {/if}
+  <button type="button" class="more-actions-item" role="menuitem" onclick={exportNotes}>
+    <Icon name="external" size={14} /><span>{$t("export.menuItem")}</span>
+  </button>
+  <button type="button" class="more-actions-item" role="menuitem" onclick={print}>
+    <Icon name="tab-scratch" size={14} /><span>{$t("print.menuItem")}</span>
+    <kbd>{formatShortcut("printNote")}</kbd>
+  </button>
   <button type="button" class="more-actions-item" role="menuitem" onclick={controller.openSettings}>
     <Icon name="settings" size={14} /><span>{$t("settings.modal.title")}</span>
     <kbd>{formatShortcut("openSettings")}</kbd>

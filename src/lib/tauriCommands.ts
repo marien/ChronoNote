@@ -186,6 +186,10 @@ export interface TauriCommands {
     args: NoArgs;
     returns: void;
   };
+  write_export_file: {
+    args: { path: string; contents: string };
+    returns: void;
+  };
 }
 
 export type TauriCommand = keyof TauriCommands;

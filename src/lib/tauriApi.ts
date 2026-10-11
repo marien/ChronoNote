@@ -341,3 +341,8 @@ export function getSyncHealth(): Promise<SyncHealth> {
   return invoke("get_sync_health", {});
 }
 
+export function writeExportFile(path: string, contents: string): Promise<void> {
+  return invoke("write_export_file", { path, contents });
+}
+
+

@@ -75,6 +75,7 @@
   import DroppedNotesModal from "./lib/components/modals/DroppedNotesModal.svelte";
   import SyncConflictsModal from "./lib/components/modals/SyncConflictsModal.svelte";
   import OneDriveFolderPickerModal from "./lib/components/modals/OneDriveFolderPickerModal.svelte";
+  import ExportModal from "./lib/components/modals/ExportModal.svelte";
   import EditorContextMenu from "./lib/components/EditorContextMenu.svelte";
   import {
     actionsPaneShare,
@@ -84,7 +85,8 @@
     statusBarVisible,
     syncHealthPopoverOpen,
   } from "./lib/stores";
-  import { overlays, topOverlay, type Overlay } from "./lib/overlays";
+  import { exportModalOpen, overlays, topOverlay, type Overlay } from "./lib/overlays";
+  import { printActiveNote } from "./lib/exportNotes";
 
   let ready = $state(false);
   let bootError = $state("");
@@ -143,6 +145,7 @@
       openShortcutsHelp: () => controller.openShortcutsHelp(),
       toggleZenMode: () => isZenMode.update((v) => !v),
       togglePeekMode: () => controller.togglePeek(),
+      printNote: () => printActiveNote(),
     };
 
     // A modal, the find bar or the sync-health popover handles Esc in its own handler, which runs before this
@@ -174,6 +177,9 @@
       switch (top.kind) {
         case "folderPicker":
           oneDriveFolderPickerOpen.set(false);
+          return true;
+        case "export":
+          exportModalOpen.set(false);
           return true;
         case "mobileTabs":
           mobileTabDrawerOpen.set(false);
@@ -855,6 +861,11 @@
   {#if $oneDriveFolderPickerOpen}
     <OneDriveFolderPickerModal onClose={() => oneDriveFolderPickerOpen.set(false)} />
   {/if}
+
+  {#if $exportModalOpen}
+    <ExportModal />
+  {/if}
+
 
   {#if $syncHealthPopoverOpen}
     <SyncHealthPopover />

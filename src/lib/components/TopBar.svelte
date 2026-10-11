@@ -67,6 +67,7 @@
   import { focusTrap } from "../actions/focusTrap";
   import { datedTabLabel } from "../tabLabel";
   import type { TabLabelStyle } from "../generated/tauri-types";
+  import { openExportModal, printNote } from "../exportNotes";
 
   let contextMenuVisible = $state(false);
   let contextTab = $state<NoteTab | null>(null);
@@ -1153,6 +1154,35 @@
         <span>{$t("topBar.contextMenu.copyPath")}</span>
       </button>
     {/if}
+
+    <div class="tab-context-sep" role="separator"></div>
+
+    <button
+      type="button"
+      class="tab-context-item"
+      role="menuitem"
+      onclick={() => {
+        const t = contextTab;
+        closeContextMenu();
+        if (t) openExportModal(t);
+      }}
+    >
+      <Icon name="external" size={13} />
+      <span>{$t("export.menuItem")}</span>
+    </button>
+    <button
+      type="button"
+      class="tab-context-item"
+      role="menuitem"
+      onclick={() => {
+        const t = contextTab;
+        closeContextMenu();
+        if (t) printNote(t.content);
+      }}
+    >
+      <Icon name="tab-scratch" size={13} />
+      <span>{$t("print.menuItem")}</span>
+    </button>
   </div>
 {/if}
 

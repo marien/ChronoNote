@@ -214,6 +214,14 @@ fn read_log_tail(lines: u32) -> String {
 }
 
 #[tauri::command]
+fn write_export_file(path: String, contents: String) -> Result<(), String> {
+    if !path.ends_with(".md") && !path.ends_with(".html") {
+        return Err("Export file path must end with .md or .html".to_string());
+    }
+    std::fs::write(&path, contents).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
 fn open_log_folder(app: AppHandle) -> Result<(), String> {
     use tauri_plugin_opener::OpenerExt;
     let dir = app.path().app_log_dir().map_err(|e| e.to_string())?;
@@ -344,7 +352,43 @@ pub fn run() {
             append_log,
             read_log_tail,
             open_log_folder,
+            write_export_file,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_write_export_file_valid_md() {
+        let temp_dir = std::env::temp_dir();
+        let target = temp_dir.join("chrononote_test_export.md");
+        let path_str = target.to_str().unwrap().to_string();
+        let res = write_export_file(path_str.clone(), "# Hello".to_string());
+        assert!(res.is_ok());
+        assert_eq!(std::fs::read_to_string(&target).unwrap(), "# Hello");
+        let _ = std::fs::remove_file(target);
+    }
+
+    #[test]
+    fn test_write_export_file_valid_html() {
+        let temp_dir = std::env::temp_dir();
+        let target = temp_dir.join("chrononote_test_export.html");
+        let path_str = target.to_str().unwrap().to_string();
+        let res = write_export_file(path_str.clone(), "<h1>Hello</h1>".to_string());
+        assert!(res.is_ok());
+        assert_eq!(std::fs::read_to_string(&target).unwrap(), "<h1>Hello</h1>");
+        let _ = std::fs::remove_file(target);
+    }
+
+    #[test]
+    fn test_write_export_file_rejects_invalid_extension() {
+        let res = write_export_file("some/path/test.txt".to_string(), "hello".to_string());
+        assert!(res.is_err());
+        let res2 = write_export_file("some/path/test.exe".to_string(), "hello".to_string());
+        assert!(res2.is_err());
+    }
 }

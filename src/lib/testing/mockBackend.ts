@@ -928,6 +928,11 @@ export class MockBackend {
     open_log_folder: () => {
       this.openedUrls.push("log-folder");
     },
+    write_export_file: ({ path }) => {
+      if (!path.endsWith(".md") && !path.endsWith(".html")) {
+        throw new Error("Export file path must end with .md or .html");
+      }
+    },
   };
 
   private async dispatch(cmd: string, args: Record<string, unknown>): Promise<unknown> {
@@ -944,7 +949,8 @@ export class MockBackend {
         this.openedUrls.push(String(args.url ?? (args as Record<string, unknown>).path));
         return null;
 
-      case "plugin:dialog|open": {
+      case "plugin:dialog|open":
+      case "plugin:dialog|save": {
         const r = this.nextDialogResult;
         this.nextDialogResult = null;
         return r;
