@@ -64,11 +64,11 @@ export default defineConfig({
       use: { ...devices["Desktop Chrome"] },
       testIgnore: PERF_SPEC,
     },
-    {
-      name: "perf",
-      use: { ...devices["Desktop Chrome"] },
-      testMatch: PERF_SPEC,
-    },
+    // D4: timing budgets mean nothing while other tests load the machine, so the perf project only exists when asked
+    // for: `PERF=1 npx playwright test --project=perf --workers=1` (CI does that on pushes to main).
+    ...(process.env.PERF === "1"
+      ? [{ name: "perf", use: { ...devices["Desktop Chrome"] }, testMatch: PERF_SPEC }]
+      : []),
     // D2 (readiness review): the v0.30 follow-up bugs only showed under settings the default run never uses (Windows
     // "Animation effects" off, 125-150% scaling, a contrast theme). These projects re-run the specs that touch layout,
     // tabs and menus under each one. On by default; `E2E_MATRIX=0` runs the default project only (CI does that for PRs).
