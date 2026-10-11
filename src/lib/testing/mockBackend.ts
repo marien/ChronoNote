@@ -671,14 +671,29 @@ export class MockBackend {
     return vers.some((v) => v.name.startsWith(todayPrefix));
   }
 
-  keepVersion(filename: string, content: string, dirPath = this.notesDir): void {
+  shouldKeepVersion(
+    filename: string,
+    newContent: string,
+    expectedHash: string | null,
+    now = Date.now(),
+    dirPath = this.notesDir,
+  ): boolean {
+    if (expectedHash === null || newContent.trim().length === 0) {
+      return true;
+    }
+    const vers = this.dir(dirPath).versions.get(filename) ?? [];
+    if (vers.length === 0) return true;
+    return now - vers[0].savedMs > 5 * 60 * 1000;
+  }
+
+  keepVersion(filename: string, content: string, dirPath = this.notesDir, now = Date.now()): void {
     if (!content || !content.trim()) return;
     const norm = normalizeNoteText(content);
     let vers = this.dir(dirPath).versions.get(filename) ?? [];
     if (vers.length > 0 && normalizeNoteText(vers[0].content) === norm) {
       return;
     }
-    let d = new Date();
+    let d = new Date(now);
     let stamp = this.formatVersionStamp(d);
     while (vers.some((v) => v.name === stamp)) {
       d = new Date(d.getTime() + 1000);
@@ -692,13 +707,50 @@ export class MockBackend {
     };
     vers = [entry, ...vers];
     vers.sort((a, b) => b.savedMs - a.savedMs || b.name.localeCompare(a.name));
-    const KEEP_MS = 30 * 24 * 60 * 60 * 1000;
-    const now = Date.now();
-    vers = vers.filter((v) => now - v.savedMs <= KEEP_MS);
-    if (vers.length > 20) {
-      vers = vers.slice(0, 20);
-    }
     this.dir(dirPath).versions.set(filename, vers);
+  }
+
+  cleanUpVersionsAndTrash(now = Date.now()): void {
+    const KEEP_MS = 30 * 24 * 60 * 60 * 1000;
+    const todayPrefix = this.formatVersionStamp(new Date(now)).slice(0, 8);
+
+    for (const [, dir] of this.dirs) {
+      for (const [filename, vers] of [...dir.versions.entries()]) {
+        const todayVersions: MockVersionEntry[] = [];
+        const earlierByDay = new Map<string, MockVersionEntry[]>();
+
+        for (const v of vers) {
+          if (now - v.savedMs > KEEP_MS) {
+            continue;
+          }
+          const dayPrefix = this.formatVersionStamp(new Date(v.savedMs)).slice(0, 8);
+          if (dayPrefix === todayPrefix) {
+            todayVersions.push(v);
+          } else {
+            const list = earlierByDay.get(dayPrefix) ?? [];
+            list.push(v);
+            earlierByDay.set(dayPrefix, list);
+          }
+        }
+
+        const kept: MockVersionEntry[] = [...todayVersions];
+        for (const [, dayList] of earlierByDay) {
+          dayList.sort((a, b) => b.savedMs - a.savedMs);
+          if (dayList.length > 0) {
+            kept.push(dayList[0]);
+          }
+        }
+        kept.sort((a, b) => b.savedMs - a.savedMs || b.name.localeCompare(a.name));
+
+        if (kept.length === 0) {
+          dir.versions.delete(filename);
+        } else {
+          dir.versions.set(filename, kept);
+        }
+      }
+    }
+
+    this.trash = this.trash.filter((item) => now - item.deletedMs <= KEEP_MS);
   }
 
   getVersions(filename: string, dirPath = this.notesDir): MockVersionEntry[] {
@@ -784,7 +836,7 @@ export class MockBackend {
       }
       const existing = this.dir().notes.get(filename);
       if (existing !== undefined && existing.trim().length > 0) {
-        if (expectedHash === null || !this.hasVersionToday(filename)) {
+        if (this.shouldKeepVersion(filename, content, expectedHash ?? null)) {
           this.keepVersion(filename, existing);
         }
       }
@@ -816,37 +868,62 @@ export class MockBackend {
         }
       }
       const raw = this.dir().notes.get(filename);
-      if (raw !== undefined) {
-        const text = normalizeNoteText(raw);
-        if (text.trim().length > 0) {
-          const now = Date.now();
-          const d = new Date(now);
-          const y = d.getUTCFullYear();
-          const m = String(d.getUTCMonth() + 1).padStart(2, "0");
-          const day = String(d.getUTCDate()).padStart(2, "0");
-          const h = String(d.getUTCHours()).padStart(2, "0");
-          const min = String(d.getUTCMinutes()).padStart(2, "0");
-          const s = String(d.getUTCSeconds()).padStart(2, "0");
-          const stamp = `${y}${m}${day}-${h}${min}${s}`;
-          const name = `${stamp}_${filename}`;
-          const firstLine = text.split("\n").map((l) => l.trim()).find((l) => l.length > 0) ?? "";
-          const preview = firstLine.slice(0, 80);
-          this.trash.push({
-            name,
-            originalFilename: filename,
-            deletedMs: now,
-            preview,
-            content: text,
-          });
+      const text = raw !== undefined ? normalizeNoteText(raw) : "";
+      if (raw === undefined || text.trim().length === 0) {
+        const vers = this.dir().versions.get(filename) ?? [];
+        if (vers.length > 0) {
+          const newest = vers[0];
+          const versionText = normalizeNoteText(newest.content);
+          if (versionText.trim().length > 0) {
+            const now = Date.now();
+            const d = new Date(now);
+            const y = d.getUTCFullYear();
+            const m = String(d.getUTCMonth() + 1).padStart(2, "0");
+            const day = String(d.getUTCDate()).padStart(2, "0");
+            const h = String(d.getUTCHours()).padStart(2, "0");
+            const min = String(d.getUTCMinutes()).padStart(2, "0");
+            const s = String(d.getUTCSeconds()).padStart(2, "0");
+            const stamp = `${y}${m}${day}-${h}${min}${s}`;
+            const name = `${stamp}_${filename}`;
+            const firstLine = versionText.split("\n").map((l) => l.trim()).find((l) => l.length > 0) ?? "";
+            const preview = firstLine.slice(0, 80);
+            this.trash.push({
+              name,
+              originalFilename: filename,
+              deletedMs: now,
+              preview,
+              content: versionText,
+            });
+          }
         }
+        if (raw !== undefined) {
+          this.dir().notes.delete(filename);
+        }
+      } else {
+        const now = Date.now();
+        const d = new Date(now);
+        const y = d.getUTCFullYear();
+        const m = String(d.getUTCMonth() + 1).padStart(2, "0");
+        const day = String(d.getUTCDate()).padStart(2, "0");
+        const h = String(d.getUTCHours()).padStart(2, "0");
+        const min = String(d.getUTCMinutes()).padStart(2, "0");
+        const s = String(d.getUTCSeconds()).padStart(2, "0");
+        const stamp = `${y}${m}${day}-${h}${min}${s}`;
+        const name = `${stamp}_${filename}`;
+        const firstLine = text.split("\n").map((l) => l.trim()).find((l) => l.length > 0) ?? "";
+        const preview = firstLine.slice(0, 80);
+        this.trash.push({
+          name,
+          originalFilename: filename,
+          deletedMs: now,
+          preview,
+          content: text,
+        });
         this.dir().notes.delete(filename);
       }
     },
 
     list_trash: () => {
-      const KEEP_MS = 30 * 24 * 60 * 60 * 1000;
-      const now = Date.now();
-      this.trash = this.trash.filter((item) => now - item.deletedMs <= KEEP_MS);
       return [...this.trash]
         .sort((a, b) => b.deletedMs - a.deletedMs)
         .map(({ name, originalFilename, deletedMs, preview }) => ({
@@ -880,12 +957,7 @@ export class MockBackend {
 
     list_versions: ({ filename }) => {
       if (!isValidNoteFilename(filename)) throw new Error(`Invalid note filename: ${filename}`);
-      const KEEP_MS = 30 * 24 * 60 * 60 * 1000;
-      const now = Date.now();
-      let vers = this.dir().versions.get(filename) ?? [];
-      vers = vers.filter((item) => now - item.savedMs <= KEEP_MS);
-      if (vers.length > 20) vers = vers.slice(0, 20);
-      this.dir().versions.set(filename, vers);
+      const vers = this.dir().versions.get(filename) ?? [];
       return vers.map(({ name, savedMs, sizeBytes }) => ({ name, savedMs, sizeBytes }));
     },
 

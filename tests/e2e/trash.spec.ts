@@ -69,6 +69,57 @@ test.describe("recently deleted notes trash", () => {
     await expect(editor(page)).toContainText("Meeting notes for planning");
   });
 
+  test("Marien's flow: seed note with text, delete, wait for autosave, close tab -> Recently deleted lists old text -> Restore", async ({ page }) => {
+    const seed: SeedApp = {
+      seed: {
+        notes: {
+          "2026-10-10.txt": "Meeting notes for planning\nSecond line here\n",
+          "2026-10-11.txt": "Other open note\n",
+        },
+        session: {
+          openTabs: ["2026-10-10.txt", "2026-10-11.txt"],
+          activeTab: "2026-10-10.txt",
+        },
+      },
+    };
+
+    await seedApp(page, seed);
+
+    // Select all and delete text
+    await editor(page).click();
+    await page.keyboard.press("ControlOrMeta+A");
+    await page.keyboard.press("Delete");
+
+    // Wait for the autosave to persist the empty note to disk
+    await expect.poll(() => mockNote(page, "2026-10-10.txt")).toBe("");
+
+    // Close the tab
+    await tab(page, "2026-10-10.txt").click({ button: "middle" });
+    await expect(tab(page, "2026-10-10.txt")).not.toBeVisible();
+    await expect.poll(() => mockNote(page, "2026-10-10.txt")).toBeNull();
+
+    // Settings -> Notes & Sync -> Recently deleted -> Show
+    await openSettings(page);
+    await openSettingsTab(page, "Notes & Sync");
+    await settings(page).getByRole("button", { name: "Show" }).click();
+
+    // Lists it with old text as preview (copied from last kept version)
+    const trashRow = settings(page).locator(".trash-row");
+    await expect(trashRow).toBeVisible();
+    await expect(trashRow.locator(".trash-row-date")).toHaveText("2026-10-10");
+    await expect(trashRow.locator(".trash-row-preview")).toHaveText("Meeting notes for planning");
+
+    // Restore brings the text back
+    await trashRow.getByRole("button", { name: "Restore" }).click();
+    await expect(toast(page)).toContainText("Restored 2026-10-10.txt");
+
+    // Close Settings and verify note tab and restored content
+    await page.keyboard.press("Escape");
+    await expect(settings(page)).not.toBeVisible();
+    await expect(tab(page, "2026-10-10.txt")).toBeVisible();
+    await expect(editor(page)).toContainText("Meeting notes for planning");
+  });
+
   test("restoring when a note with text exists for that date shows already has text message", async ({ page }) => {
     const seed: SeedApp = {
       seed: {

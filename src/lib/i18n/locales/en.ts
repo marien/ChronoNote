@@ -885,6 +885,6 @@ export const en = {
   "versions.empty": () => "No earlier versions of this note yet.",
   "versions.restore": () => "Restore this version",
   "versions.current": () => "Current",
-  "versions.hint": () => "Kept for 30 days: the first version of each day and every version replaced by an import or a conflict choice.",
+  "versions.hint": () => "Kept for 30 days: a version every few minutes while you edit today, one per earlier day, and every version replaced by an import or a conflict choice.",
   "toast.versions.restored": () => "Version restored",
 } satisfies Dictionary;

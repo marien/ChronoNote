@@ -913,6 +913,6 @@ export const es = {
   "versions.empty": () => "Aún no hay versiones anteriores de esta nota.",
   "versions.restore": () => "Restaurar esta versión",
   "versions.current": () => "Actual",
-  "versions.hint": () => "Se guardan 30 días: la primera versión de cada día y cada versión sustituida por una importación o un conflicto.",
+  "versions.hint": () => "Se guardan 30 días: una versión cada pocos minutos mientras editas hoy, una por cada día anterior y cada versión sustituida por una importación o un conflicto.",
   "toast.versions.restored": () => "Versión restaurada",
 } satisfies Dictionary;

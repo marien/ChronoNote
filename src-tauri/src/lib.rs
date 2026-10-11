@@ -335,6 +335,12 @@ pub fn run() {
                 applog::write("PANIC", &info.to_string());
                 prev(info);
             }));
+            let app_handle = app.handle().clone();
+            std::thread::spawn(move || {
+                if let Err(e) = storage::clean_up_versions_and_trash(&app_handle) {
+                    applog::write("WARN", &format!("clean up versions and trash failed: {e}"));
+                }
+            });
             show_window_without_flash(app);
             Ok(())
         })

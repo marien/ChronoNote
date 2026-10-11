@@ -837,26 +837,48 @@ fn versions_dir_for(root: &Path, filename: &str) -> PathBuf {
     root.join(VERSIONS_DIRNAME).join(note_stem(filename))
 }
 
-fn note_has_version_today_at(root: &Path, filename: &str) -> bool {
+fn newest_version_timestamp_at(root: &Path, filename: &str) -> Option<(i64, chrono::NaiveDateTime)> {
     let dir = versions_dir_for(root, filename);
     if !dir.exists() {
-        return false;
+        return None;
     }
-    let today_prefix = chrono::Local::now().format("%Y%m%d").to_string();
-    let Ok(entries) = fs::read_dir(&dir) else {
-        return false;
-    };
+    let entries = fs::read_dir(&dir).ok()?;
+    let mut newest: Option<(i64, chrono::NaiveDateTime)> = None;
     for entry in entries.flatten() {
         if let Some(name) = entry.file_name().to_str() {
-            if name.starts_with(&today_prefix) && is_valid_version_name(name) {
-                return true;
+            if let Some((ms, naive)) = parse_version_filename(name) {
+                match &newest {
+                    Some((best_ms, _)) if *best_ms >= ms => {}
+                    _ => newest = Some((ms, naive)),
+                }
             }
         }
     }
-    false
+    newest
 }
 
-fn keep_version_at(root: &Path, filename: &str, previous: &str) -> Result<(), String> {
+pub fn should_keep_version_at(
+    root: &Path,
+    filename: &str,
+    expected_hash: Option<&str>,
+    new_content: &str,
+    now: chrono::DateTime<chrono::Local>,
+) -> bool {
+    if expected_hash.is_none() || new_content.trim().is_empty() {
+        return true;
+    }
+    match newest_version_timestamp_at(root, filename) {
+        None => true,
+        Some((ms, _)) => now.timestamp_millis() - ms > 5 * 60 * 1000,
+    }
+}
+
+fn keep_version_at_time(
+    root: &Path,
+    filename: &str,
+    previous: &str,
+    now: chrono::DateTime<chrono::Local>,
+) -> Result<(), String> {
     if previous.trim().is_empty() {
         return Ok(());
     }
@@ -885,7 +907,7 @@ fn keep_version_at(root: &Path, filename: &str, previous: &str) -> Result<(), St
         }
     }
 
-    let mut dt = chrono::Local::now();
+    let mut dt = now;
     let mut stamp = dt.format("%Y%m%d-%H%M%S").to_string();
     let mut candidate = dir.join(format!("{stamp}.txt"));
     while candidate.exists() {
@@ -894,34 +916,90 @@ fn keep_version_at(root: &Path, filename: &str, previous: &str) -> Result<(), St
         candidate = dir.join(format!("{stamp}.txt"));
     }
     let prev_norm = normalize_note_text(previous);
-    atomic_write(&candidate, prev_norm.as_bytes()).map_err(|e| e.to_string())?;
+    atomic_write(&candidate, prev_norm.as_bytes()).map_err(|e| e.to_string())
+}
 
-    // Prune: older than 30 days, then oldest beyond 20
-    let now_ms = chrono::Local::now().timestamp_millis();
-    let max_age_ms = VERSIONS_KEEP_DAYS * 24 * 60 * 60 * 1000;
-    let mut kept: Vec<(String, i64, PathBuf)> = Vec::new();
-    if let Ok(entries) = fs::read_dir(&dir) {
-        for entry in entries.flatten() {
-            let path = entry.path();
-            if path.is_file() {
-                if let Some(name) = entry.file_name().to_str() {
-                    if let Some((ms, _)) = parse_version_filename(name) {
-                        if now_ms - ms > max_age_ms {
-                            let _ = fs::remove_file(&path);
-                        } else {
-                            kept.push((name.to_string(), ms, path));
+fn keep_version_at(root: &Path, filename: &str, previous: &str) -> Result<(), String> {
+    keep_version_at_time(root, filename, previous, chrono::Local::now())
+}
+
+pub fn clean_up_versions_and_trash_at(
+    root: &Path,
+    now: chrono::DateTime<chrono::Local>,
+) -> Result<(), String> {
+    let now_ms = now.timestamp_millis();
+    let today = now.date_naive();
+    let max_version_age_ms = VERSIONS_KEEP_DAYS * 24 * 60 * 60 * 1000;
+
+    let vroot = root.join(VERSIONS_DIRNAME);
+    if vroot.exists() {
+        if let Ok(note_dirs) = fs::read_dir(&vroot) {
+            for entry in note_dirs.flatten() {
+                let path = entry.path();
+                if path.is_dir() {
+                    let mut earlier_by_day: std::collections::BTreeMap<
+                        chrono::NaiveDate,
+                        Vec<(i64, PathBuf)>,
+                    > = std::collections::BTreeMap::new();
+
+                    if let Ok(files) = fs::read_dir(&path) {
+                        for file_entry in files.flatten() {
+                            let fpath = file_entry.path();
+                            if fpath.is_file() {
+                                if let Some(name) = file_entry.file_name().to_str() {
+                                    if let Some((ms, naive)) = parse_version_filename(name) {
+                                        let file_date = naive.date();
+                                        if now_ms - ms > max_version_age_ms {
+                                            let _ = fs::remove_file(&fpath);
+                                        } else if file_date < today {
+                                            earlier_by_day
+                                                .entry(file_date)
+                                                .or_default()
+                                                .push((ms, fpath));
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    for (_day, mut versions) in earlier_by_day {
+                        versions.sort_by(|a, b| b.0.cmp(&a.0));
+                        for (_, old_path) in versions.into_iter().skip(1) {
+                            let _ = fs::remove_file(old_path);
+                        }
+                    }
+
+                    let is_empty = fs::read_dir(&path)
+                        .map(|mut it| it.next().is_none())
+                        .unwrap_or(false);
+                    if is_empty {
+                        let _ = fs::remove_dir(&path);
+                    }
+                }
+            }
+        }
+    }
+
+    let trash_dir = root.join(TRASH_DIRNAME);
+    if trash_dir.exists() {
+        let max_trash_age_ms = TRASH_KEEP_DAYS * 24 * 60 * 60 * 1000;
+        if let Ok(entries) = fs::read_dir(&trash_dir) {
+            for entry in entries.flatten() {
+                let fpath = entry.path();
+                if fpath.is_file() {
+                    if let Some(name) = entry.file_name().to_str() {
+                        if let Some((deleted_ms, _)) = parse_trash_filename(name) {
+                            if now_ms - deleted_ms > max_trash_age_ms {
+                                let _ = fs::remove_file(&fpath);
+                            }
                         }
                     }
                 }
             }
         }
     }
-    kept.sort_by(|a, b| b.1.cmp(&a.1).then_with(|| b.0.cmp(&a.0)));
-    if kept.len() > VERSIONS_MAX_PER_NOTE {
-        for (_, _, path) in &kept[VERSIONS_MAX_PER_NOTE..] {
-            let _ = fs::remove_file(path);
-        }
-    }
+
     Ok(())
 }
 
@@ -1087,11 +1165,12 @@ fn write_conflict_copy_at(root: &Path, name: &str, content: &str) -> Result<Stri
     Ok(target.to_string_lossy().into_owned())
 }
 
-fn write_note_at(
+pub fn write_note_at_time(
     root: &Path,
     filename: &str,
     content: &str,
     expected_hash: Option<&str>,
+    now: chrono::DateTime<chrono::Local>,
 ) -> Result<FileMetadata, String> {
     if !is_valid_note_filename(filename) {
         return Err(format!("Invalid note filename: {filename}"));
@@ -1116,9 +1195,9 @@ fn write_note_at(
     if target.exists() {
         if let Ok(curr) = fs::read_to_string(&target) {
             if !curr.trim().is_empty() {
-                let should_keep = expected_hash.is_none() || !note_has_version_today_at(root, filename);
+                let should_keep = should_keep_version_at(root, filename, expected_hash, &content, now);
                 if should_keep {
-                    keep_version_at(root, filename, &curr)?;
+                    keep_version_at_time(root, filename, &curr, now)?;
                 }
             }
         }
@@ -1134,6 +1213,15 @@ fn write_note_at(
             .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
             .map(|d| d.as_millis() as i64),
     })
+}
+
+fn write_note_at(
+    root: &Path,
+    filename: &str,
+    content: &str,
+    expected_hash: Option<&str>,
+) -> Result<FileMetadata, String> {
+    write_note_at_time(root, filename, content, expected_hash, chrono::Local::now())
 }
 
 /// #63: deletes a note file from disk — used when a dated tab closes
@@ -1163,14 +1251,36 @@ fn delete_note_at(root: &Path, filename: &str, expected_hash: Option<&str>) -> R
     let target = resolve_workspace_path(root, Path::new(filename)).map_err(String::from)?;
     let content = match fs::read_to_string(&target) {
         Ok(c) => c,
-        Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(()),
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => String::new(),
         Err(e) => return Err(e.to_string()),
     };
     if content.trim().is_empty() {
-        match fs::remove_file(&target) {
-            Ok(()) => Ok(()),
-            Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(()),
-            Err(e) => Err(e.to_string()),
+        // When the file is empty (or missing) but the note has a kept version,
+        // copy the NEWEST version's text into the trash as <UTC stamp>_<filename>
+        let versions = list_versions_at(root, filename).unwrap_or_default();
+        if let Some(newest) = versions.first() {
+            if let Ok(vtext) = read_version_at(root, filename, &newest.name) {
+                if !vtext.trim().is_empty() {
+                    let trash_dir = root.join(TRASH_DIRNAME);
+                    fs::create_dir_all(&trash_dir).map_err(|e| e.to_string())?;
+                    let stamp = chrono::Utc::now().format("%Y%m%d-%H%M%S");
+                    let trash_filename = format!("{stamp}_{filename}");
+                    let trash_target = resolve_workspace_path(&trash_dir, Path::new(&trash_filename)).map_err(String::from)?;
+                    if trash_target.exists() {
+                        let _ = fs::remove_file(&trash_target);
+                    }
+                    atomic_write(&trash_target, vtext.as_bytes()).map_err(|e| e.to_string())?;
+                }
+            }
+        }
+        if target.exists() {
+            match fs::remove_file(&target) {
+                Ok(()) => Ok(()),
+                Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(()),
+                Err(e) => Err(e.to_string()),
+            }
+        } else {
+            Ok(())
         }
     } else {
         let trash_dir = root.join(TRASH_DIRNAME);
@@ -1194,8 +1304,6 @@ fn list_trash_at(root: &Path) -> Result<Vec<TrashItem>, String> {
     if !trash_dir.exists() {
         return Ok(vec![]);
     }
-    let now_ms = chrono::Utc::now().timestamp_millis();
-    let max_age_ms = TRASH_KEEP_DAYS * 24 * 60 * 60 * 1000;
     let mut items = vec![];
 
     let entries = match fs::read_dir(&trash_dir) {
@@ -1214,25 +1322,21 @@ fn list_trash_at(root: &Path) -> Result<Vec<TrashItem>, String> {
             continue;
         };
         if let Some((deleted_ms, orig)) = parse_trash_filename(&name_str) {
-            if now_ms - deleted_ms > max_age_ms {
-                let _ = fs::remove_file(&path);
-            } else {
-                let preview = match fs::read_to_string(&path) {
-                    Ok(content) => content
-                        .lines()
-                        .map(|l| l.trim())
-                        .find(|l| !l.is_empty())
-                        .map(|l| l.chars().take(80).collect::<String>())
-                        .unwrap_or_default(),
-                    Err(_) => String::new(),
-                };
-                items.push(TrashItem {
-                    name: name_str,
-                    original_filename: orig,
-                    deleted_ms,
-                    preview,
-                });
-            }
+            let preview = match fs::read_to_string(&path) {
+                Ok(content) => content
+                    .lines()
+                    .map(|l| l.trim())
+                    .find(|l| !l.is_empty())
+                    .map(|l| l.chars().take(80).collect::<String>())
+                    .unwrap_or_default(),
+                Err(_) => String::new(),
+            };
+            items.push(TrashItem {
+                name: name_str,
+                original_filename: orig,
+                deleted_ms,
+                preview,
+            });
         }
     }
 
@@ -1630,6 +1734,10 @@ pub fn read_version(app: &AppHandle, filename: &str, name: &str) -> Result<Strin
 
 pub fn restore_version(app: &AppHandle, filename: &str, name: &str) -> Result<FileMetadata, String> {
     restore_version_at(&notes_root(app)?, filename, name)
+}
+
+pub fn clean_up_versions_and_trash(app: &AppHandle) -> Result<(), String> {
+    clean_up_versions_and_trash_at(&notes_root(app)?, chrono::Local::now())
 }
 
 // --- TS binding generation (§98) ---------------------------------------
@@ -3109,6 +3217,9 @@ mod tests {
 
         assert!(trash_dir.join(old_name).exists());
 
+        // Clean-up removes old trash items
+        clean_up_versions_and_trash_at(root, chrono::Local::now()).unwrap();
+
         let trash = list_trash_at(root).unwrap();
         assert_eq!(trash.len(), 1);
         assert_eq!(trash[0].original_filename, filename);
@@ -3117,30 +3228,92 @@ mod tests {
         assert!(!trash_dir.join(old_name).exists());
     }
 
-    // --- Earlier Versions of a Note ---
-
     #[test]
-    fn version_first_write_of_day_keeps_version_and_second_does_not() {
+    fn deleting_emptied_note_puts_last_version_in_trash() {
         let dir = tempdir().unwrap();
         let root = dir.path();
         let filename = "2026-10-11.txt";
 
+        // Write note with content
+        let m1 = write_note_at(root, filename, "Important text", None).unwrap();
+        // Empty note (keeps previous text as version)
+        write_note_at(root, filename, "   ", m1.content_hash.as_deref()).unwrap();
+
+        // Note file on disk is empty
+        assert!(root.join(filename).exists());
+        assert_eq!(fs::read_to_string(root.join(filename)).unwrap().trim(), "");
+
+        // Delete the emptied note
+        delete_note_at(root, filename, None).unwrap();
+        assert!(!root.join(filename).exists());
+
+        // Last version's text was copied into trash
+        let trash = list_trash_at(root).unwrap();
+        assert_eq!(trash.len(), 1);
+        assert_eq!(trash[0].original_filename, filename);
+        assert_eq!(trash[0].preview, "Important text");
+
+        // Can restore it from trash
+        let restored = restore_from_trash_at(root, &trash[0].name).unwrap();
+        assert_eq!(restored, filename);
+        assert_eq!(read_note_at(root, filename).unwrap().unwrap(), "Important text");
+    }
+
+    // --- Earlier Versions of a Note ---
+
+    #[test]
+    fn version_saves_five_minute_rule_and_exceptions() {
+        let dir = tempdir().unwrap();
+        let root = dir.path();
+        let filename = "2026-10-11.txt";
+
+        let naive_base = chrono::NaiveDateTime::parse_from_str("20261011-100000", "%Y%m%d-%H%M%S").unwrap();
+        let t0 = chrono::Local.from_local_datetime(&naive_base).unwrap();
+
         // Initial creation of note (target did not exist before, so no previous version to keep)
-        let m1 = write_note_at(root, filename, "Initial draft", None).unwrap();
-        let vers = list_versions_at(root, filename).unwrap();
-        assert_eq!(vers.len(), 0);
+        let m0 = write_note_at_time(root, filename, "Draft 0", None, t0).unwrap();
+        assert_eq!(list_versions_at(root, filename).unwrap().len(), 0);
 
-        // First edit of the day (with expected_hash) keeps the initial draft as a version
-        let m2 = write_note_at(root, filename, "Second draft", m1.content_hash.as_deref()).unwrap();
-        let vers = list_versions_at(root, filename).unwrap();
-        assert_eq!(vers.len(), 1);
-        let content = read_version_at(root, filename, &vers[0].name).unwrap();
-        assert_eq!(content, "Initial draft");
+        // Three saves 1 minute apart:
+        // Save 1 at t0 + 1m: keeps Draft 0 as version
+        let t1 = t0 + chrono::Duration::minutes(1);
+        let m1 = write_note_at_time(root, filename, "Draft 1", m0.content_hash.as_deref(), t1).unwrap();
+        let vers1 = list_versions_at(root, filename).unwrap();
+        assert_eq!(vers1.len(), 1);
+        assert_eq!(read_version_at(root, filename, &vers1[0].name).unwrap(), "Draft 0");
 
-        // Second edit of the same day (with expected_hash) does NOT keep another version
-        write_note_at(root, filename, "Third draft", m2.content_hash.as_deref()).unwrap();
-        let vers_after = list_versions_at(root, filename).unwrap();
-        assert_eq!(vers_after.len(), 1);
+        // Save 2 at t0 + 2m (1 min after last version): within 5 min, does not keep a version
+        let t2 = t0 + chrono::Duration::minutes(2);
+        let m2 = write_note_at_time(root, filename, "Draft 2", m1.content_hash.as_deref(), t2).unwrap();
+        assert_eq!(list_versions_at(root, filename).unwrap().len(), 1);
+
+        // Save 3 at t0 + 3m (2 min after last version): within 5 min, does not keep a version
+        let t3 = t0 + chrono::Duration::minutes(3);
+        let m3 = write_note_at_time(root, filename, "Draft 3", m2.content_hash.as_deref(), t3).unwrap();
+        assert_eq!(list_versions_at(root, filename).unwrap().len(), 1);
+
+        // A save 6 minutes after the last version (t1 + 6m = t0 + 7m) keeps a second version
+        let t4 = t0 + chrono::Duration::minutes(7);
+        let m4 = write_note_at_time(root, filename, "Draft 4", m3.content_hash.as_deref(), t4).unwrap();
+        let vers2 = list_versions_at(root, filename).unwrap();
+        assert_eq!(vers2.len(), 2);
+        assert_eq!(read_version_at(root, filename, &vers2[0].name).unwrap(), "Draft 3");
+
+        // Emptying the note keeps a version even within 5 minutes (at t0 + 8m, 1 min after last version)
+        let t5 = t0 + chrono::Duration::minutes(8);
+        let m5 = write_note_at_time(root, filename, "   ", m4.content_hash.as_deref(), t5).unwrap();
+        let vers3 = list_versions_at(root, filename).unwrap();
+        assert_eq!(vers3.len(), 3);
+        assert_eq!(read_version_at(root, filename, &vers3[0].name).unwrap(), "Draft 4");
+
+        // A no-hash write always keeps one (deliberate overwrite)
+        let t6 = t0 + chrono::Duration::minutes(9);
+        write_note_at_time(root, filename, "Draft 5", None, t6).unwrap();
+        let t7 = t0 + chrono::Duration::minutes(10);
+        write_note_at_time(root, filename, "Draft 6", None, t7).unwrap();
+        let vers4 = list_versions_at(root, filename).unwrap();
+        assert_eq!(vers4.len(), 4);
+        assert_eq!(read_version_at(root, filename, &vers4[0].name).unwrap(), "Draft 5");
     }
 
     #[test]
@@ -3179,36 +3352,67 @@ mod tests {
     }
 
     #[test]
-    fn version_pruning_by_age_and_count() {
+    fn cleanup_keeps_day_d_and_newest_of_earlier_days_and_prunes_old() {
         let dir = tempdir().unwrap();
         let root = dir.path();
-        let filename = "2026-10-11.txt";
-        let v_dir = root.join(VERSIONS_DIRNAME).join("2026-10-11");
+        let filename = "2026-10-15.txt";
+        let v_dir = root.join(VERSIONS_DIRNAME).join("2026-10-15");
         fs::create_dir_all(&v_dir).unwrap();
 
-        // 1. Old version (> 30 days)
-        let old_name = "20200101-120000.txt";
-        fs::write(v_dir.join(old_name), "Very old version").unwrap();
+        // Fixed now: Day D is 2026-10-15 18:00:00
+        let naive_now = chrono::NaiveDateTime::parse_from_str("20261015-180000", "%Y%m%d-%H%M%S").unwrap();
+        let now = chrono::Local.from_local_datetime(&naive_now).unwrap();
 
-        // Keep a fresh version
-        keep_version_at(root, filename, "Fresh version 1").unwrap();
+        // Versions on Day D: all kept
+        fs::write(v_dir.join("20261015-090000.txt"), "D 9am").unwrap();
+        fs::write(v_dir.join("20261015-140000.txt"), "D 2pm").unwrap();
 
-        // Check old file was pruned
-        assert!(!v_dir.join(old_name).exists());
-        let vers = list_versions_at(root, filename).unwrap();
-        assert_eq!(vers.len(), 1);
+        // Versions on Day D-1 (2026-10-14): keep newest (16:00:00), remove older (10:00:00)
+        fs::write(v_dir.join("20261014-100000.txt"), "D-1 10am").unwrap();
+        fs::write(v_dir.join("20261014-160000.txt"), "D-1 4pm").unwrap();
 
-        // 2. Count limit (> 20)
-        // Add 25 versions with synthetic names
-        for i in 1..=25 {
-            let name = format!("20261001-{:06}.txt", i);
-            fs::write(v_dir.join(&name), format!("Version {}", i)).unwrap();
-        }
+        // Versions on Day D-2 (2026-10-13): keep newest (15:00:00), remove older (08:00:00)
+        fs::write(v_dir.join("20261013-080000.txt"), "D-2 8am").unwrap();
+        fs::write(v_dir.join("20261013-150000.txt"), "D-2 3pm").unwrap();
 
-        // Trigger prune via keep_version_at
-        keep_version_at(root, filename, "Fresh version 2").unwrap();
-        let vers2 = list_versions_at(root, filename).unwrap();
-        assert_eq!(vers2.len(), VERSIONS_MAX_PER_NOTE);
+        // Version older than 30 days: removed
+        fs::write(v_dir.join("20260901-120000.txt"), "Old >30d").unwrap();
+
+        // Empty note folder in .chrononote-versions
+        let empty_vdir = root.join(VERSIONS_DIRNAME).join("empty-note");
+        fs::create_dir_all(&empty_vdir).unwrap();
+
+        // Trash setup
+        let trash_dir = root.join(TRASH_DIRNAME);
+        fs::create_dir_all(&trash_dir).unwrap();
+        // Recent trash (< 30 days)
+        fs::write(trash_dir.join("20261010-120000_2026-10-10.txt"), "Recent trash").unwrap();
+        // Old trash (> 30 days)
+        fs::write(trash_dir.join("20260901-120000_2026-09-01.txt"), "Old trash").unwrap();
+
+        clean_up_versions_and_trash_at(root, now).unwrap();
+
+        // Day D versions both kept
+        assert!(v_dir.join("20261015-090000.txt").exists());
+        assert!(v_dir.join("20261015-140000.txt").exists());
+
+        // Day D-1 newest kept, older removed
+        assert!(v_dir.join("20261014-160000.txt").exists());
+        assert!(!v_dir.join("20261014-100000.txt").exists());
+
+        // Day D-2 newest kept, older removed
+        assert!(v_dir.join("20261013-150000.txt").exists());
+        assert!(!v_dir.join("20261013-080000.txt").exists());
+
+        // Older than 30 days removed
+        assert!(!v_dir.join("20260901-120000.txt").exists());
+
+        // Empty folder removed
+        assert!(!empty_vdir.exists());
+
+        // Trash items older than 30 days removed, recent kept
+        assert!(trash_dir.join("20261010-120000_2026-10-10.txt").exists());
+        assert!(!trash_dir.join("20260901-120000_2026-09-01.txt").exists());
     }
 
     #[test]
