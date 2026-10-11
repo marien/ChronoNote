@@ -775,6 +775,7 @@ export class MockBackend {
    * type-checked against the `TauriCommands` contract. Plugin calls
    * (`plugin:*`) are not commands and stay in `dispatch`'s switch. */
   private readonly core: CommandHandlers = {
+    clean_up_versions_and_trash: () => this.cleanUpVersionsAndTrash(),
     // F1: the update check (Rust `check_update`); records which channel was asked.
     check_update: ({ early }) => {
       this.lastCheckUpdateEarly = early;

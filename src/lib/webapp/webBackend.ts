@@ -430,6 +430,7 @@ export class WebBackend {
   private readonly core: CommandHandlers = {
     // The web app has no updater: a page load always serves the current version.
     check_update: async () => null,
+    clean_up_versions_and_trash: () => this.cleanUpVersionsAndTrash(),
     get_config: async () => this.toAppConfig(await this.loadConfig()),
 
     set_notes_dir: async ({ path }) => {

@@ -73,6 +73,21 @@ async fn write_note(
     .map_err(|e| e.to_string())?
 }
 
+/// B1/B2: collapses earlier days' versions to one per day and drops versions and trash items older than 30 days.
+/// Called once by the frontend after start; runs on a blocking worker, never on the main thread or a save.
+#[tauri::command]
+async fn clean_up_versions_and_trash(app: AppHandle) -> Result<(), String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        let result = storage::clean_up_versions_and_trash(&app);
+        if let Err(e) = &result {
+            applog::write("WARN", &format!("clean up versions and trash failed: {e}"));
+        }
+        result
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
 #[tauri::command]
 async fn delete_note(
     app: AppHandle,
@@ -335,12 +350,6 @@ pub fn run() {
                 applog::write("PANIC", &info.to_string());
                 prev(info);
             }));
-            let app_handle = app.handle().clone();
-            std::thread::spawn(move || {
-                if let Err(e) = storage::clean_up_versions_and_trash(&app_handle) {
-                    applog::write("WARN", &format!("clean up versions and trash failed: {e}"));
-                }
-            });
             show_window_without_flash(app);
             Ok(())
         })
@@ -359,6 +368,7 @@ pub fn run() {
             read_note,
             write_note,
             delete_note,
+            clean_up_versions_and_trash,
             list_trash,
             restore_from_trash,
             list_versions,

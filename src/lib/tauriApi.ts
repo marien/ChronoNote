@@ -242,6 +242,11 @@ export function openLogFolder(): Promise<void> {
   return invoke("open_log_folder", {});
 }
 
+/** B1/B2: once after start; the backend collapses old versions and empties the 30-day trash. */
+export function cleanUpVersionsAndTrash(): Promise<void> {
+  return invoke("clean_up_versions_and_trash", {});
+}
+
 /** F1: is there a newer version? Asks the stable manifest, or the early channel's when `early` is on. */
 export function checkUpdate(early: boolean): Promise<{ version: string; body: string | null } | null> {
   return invoke("check_update", { early });

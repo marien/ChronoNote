@@ -8,7 +8,7 @@ import { loadBaseline } from "./hash";
 import { get } from "svelte/store";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import * as api from "./tauriApi";
-import { installErrorReporting, logError, logInfo } from "./appLog";
+import { installErrorReporting, logError, logInfo, logWarn } from "./appLog";
 import { countActions, countWords } from "./tokens";
 import { todayISO } from "./date";
 import {
@@ -654,10 +654,8 @@ export async function initApp() {
     void checkForUpdatesOnLaunch();
   }
   void initOneDriveSync();
-  if (typeof window !== "undefined") {
-    if (window.__CHRONO_MOCK__) void window.__CHRONO_MOCK__.cleanUpVersionsAndTrash();
-    if (window.__CHRONO_WEBAPP__) void window.__CHRONO_WEBAPP__.cleanUpVersionsAndTrash();
-  }
+  // B1/B2: collapse earlier days' versions and empty the 30-day trash, in the background (every backend).
+  void api.cleanUpVersionsAndTrash().catch((e) => logWarn(`clean up versions and trash failed: ${e}`));
   if (get(backendKind) === "desktop") wireMica();
   if (get(backendKind) === "web") {
     await handleWebappLaunch();
