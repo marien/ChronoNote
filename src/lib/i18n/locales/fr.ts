@@ -471,6 +471,8 @@ export const fr = {
   "statusBar.shortcutsTitle": ({ combo }) => `Raccourcis & symboles (${combo})`,
 
   "about.updates.sectionLabel": () => "Mises à jour",
+  "about.earlyUpdates": () => "Recevoir les mises à jour anticipées",
+  "about.earlyUpdatesHint": () => "Essayez les nouvelles versions quelques jours avant les autres. Elles peuvent contenir plus de bogues.",
   "about.version.label": () => "Version",
   "about.chip.alwaysCurrent": () => "Toujours à jour",
   "about.chip.checking": () => "Vérification…",

@@ -470,6 +470,8 @@ export const it = {
   "statusBar.shortcutsTitle": ({ combo }) => `Scorciatoie e simboli (${combo})`,
 
   "about.updates.sectionLabel": () => "Aggiornamenti",
+  "about.earlyUpdates": () => "Ricevi aggiornamenti anticipati",
+  "about.earlyUpdatesHint": () => "Prova le nuove versioni qualche giorno prima degli altri. Possono avere più errori.",
   "about.version.label": () => "Versione",
   "about.chip.alwaysCurrent": () => "Sempre aggiornato",
   "about.chip.checking": () => "Controllo…",

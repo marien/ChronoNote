@@ -64,6 +64,7 @@ export interface MockSeed {
   wordWrap?: boolean;
   readableLineLength?: boolean;
   autoCheckUpdates?: boolean;
+  earlyUpdates?: boolean;
   /** #50: the version this config last recorded seeing — seed a value
    * different from `appVersion` to simulate "first launch after an
    * update" in a test. `undefined`/omitted mirrors a fresh install or a
@@ -289,6 +290,9 @@ export class MockBackend {
   wordWrap: boolean;
   readableLineLength: boolean;
   autoCheckUpdates: boolean;
+  earlyUpdates: boolean = false;
+  lastCheckUpdateEarly: boolean | null = null;
+  lastCheckEarly: boolean | null = null;
   lastSeenVersion: string | null;
   calendarSyncEnabled: boolean;
   fontSize: number;
@@ -379,6 +383,7 @@ export class MockBackend {
     this.wordWrap = seed.wordWrap ?? false;
     this.readableLineLength = seed.readableLineLength ?? false;
     this.autoCheckUpdates = seed.autoCheckUpdates ?? true;
+    this.earlyUpdates = seed.earlyUpdates ?? false;
     this.lastSeenVersion = seed.lastSeenVersion ?? null;
     this.calendarSyncEnabled = seed.calendarSyncEnabled ?? false;
     this.fontSize = seed.fontSize ?? 13;
@@ -439,6 +444,7 @@ export class MockBackend {
       wordWrap: this.wordWrap,
       readableLineLength: this.readableLineLength,
       autoCheckUpdates: this.autoCheckUpdates,
+      earlyUpdates: this.earlyUpdates,
       lastSeenVersion: this.lastSeenVersion,
       calendarSyncEnabled: this.calendarSyncEnabled,
       fontSize: this.fontSize,
@@ -487,6 +493,7 @@ export class MockBackend {
         wordWrap?: boolean;
         readableLineLength?: boolean;
         autoCheckUpdates?: boolean;
+        earlyUpdates?: boolean;
         lastSeenVersion?: string | null;
         calendarSyncEnabled?: boolean;
         fontSize?: number;
@@ -513,6 +520,7 @@ export class MockBackend {
       b.languageMode = s.languageMode ?? "system";
       b.wordWrap = s.wordWrap ?? false;
       b.autoCheckUpdates = s.autoCheckUpdates ?? true;
+      b.earlyUpdates = s.earlyUpdates ?? false;
       b.lastSeenVersion = s.lastSeenVersion ?? null;
       b.calendarSyncEnabled = s.calendarSyncEnabled ?? false;
       b.readableLineLength = s.readableLineLength ?? false;
@@ -563,6 +571,7 @@ export class MockBackend {
       readableLineLength: this.readableLineLength,
       recentNotesDirs: [...this.recentNotesDirs],
       autoCheckUpdates: this.autoCheckUpdates,
+      earlyUpdates: this.earlyUpdates,
       lastSeenVersion: this.lastSeenVersion,
       calendarSyncEnabled: this.calendarSyncEnabled,
       fontSize: this.fontSize,
@@ -656,6 +665,7 @@ export class MockBackend {
       if (patch.wordWrap !== undefined) this.wordWrap = patch.wordWrap;
       if (patch.readableLineLength !== undefined) this.readableLineLength = patch.readableLineLength;
       if (patch.autoCheckUpdates !== undefined) this.autoCheckUpdates = patch.autoCheckUpdates;
+      if (patch.earlyUpdates !== undefined) this.earlyUpdates = patch.earlyUpdates;
       if (patch.calendarSyncEnabled !== undefined) this.calendarSyncEnabled = patch.calendarSyncEnabled;
       if (patch.fontSize !== undefined) this.fontSize = Math.min(18, Math.max(12, patch.fontSize));
       if (patch.lineHeight !== undefined) this.lineHeight = Math.min(1.8, Math.max(1.3, patch.lineHeight));
@@ -962,18 +972,18 @@ export class MockBackend {
       // live `Channel` instance the frontend passed to `downloadAndInstall`
       // — calling `.onmessage(...)` on it drives the caller's own progress
       // handler directly, no transformCallback plumbing needed.
-      case "plugin:updater|check":
+      case "check_update": {
+        const early = Boolean((args as { early?: boolean })?.early);
+        this.lastCheckUpdateEarly = early;
+        this.lastCheckEarly = early;
         if (this.updateCheck === "available") {
           return {
-            rid: 1,
-            currentVersion: this.appVersion,
             version: this.updateCheckVersion,
-            date: undefined,
             body: "Mock release notes for the test suite.",
-            rawJson: {},
           };
         }
         return null;
+      }
 
       case "plugin:updater|download_and_install": {
         const channel = args.onEvent as { onmessage?: (e: unknown) => void } | undefined;

@@ -4,6 +4,7 @@
     appVersion,
     autoCheckUpdates,
     backendKind,
+    earlyUpdates,
     updateAvailableVersion,
     updateDownloadProgress,
     updateErrorDuring,
@@ -249,6 +250,16 @@
         onChange={(v) => controller.setAutoCheckUpdates(v)}
       >
         {#snippet description()}{$t("settings.updates.checkOnStartHint")}{/snippet}
+      </SettingToggle>
+      <SettingToggle
+        label={$t("about.earlyUpdates")}
+        checked={$earlyUpdates}
+        onChange={(v) => {
+          controller.setEarlyUpdates(v);
+          void controller.checkForUpdates();
+        }}
+      >
+        {#snippet description()}{$t("about.earlyUpdatesHint")}{/snippet}
       </SettingToggle>
     {/if}
 

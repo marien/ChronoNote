@@ -327,6 +327,9 @@ pub struct AppConfig {
     /// Share of the window width occupied by the Actions pane when docked.
     #[serde(default = "default_pane_share")]
     pub actions_pane_share: f32,
+    /// Whether to check the early-updates channel (§F1). Off by default.
+    #[serde(default)]
+    pub early_updates: bool,
     #[serde(flatten)]
     #[ts(skip)]
     pub extra: serde_json::Map<String, serde_json::Value>,
@@ -376,6 +379,8 @@ pub struct ConfigPatch {
     pub last_seen_version: Option<String>,
     #[ts(optional)]
     pub onboarding_completed: Option<bool>,
+    #[ts(optional)]
+    pub early_updates: Option<bool>,
 }
 
 impl ConfigPatch {
@@ -437,6 +442,9 @@ impl ConfigPatch {
         }
         if let Some(v) = self.onboarding_completed {
             cfg.onboarding_completed = v;
+        }
+        if let Some(v) = self.early_updates {
+            cfg.early_updates = v;
         }
     }
 }
@@ -709,6 +717,7 @@ fn load_config_at(path: &Path, default_notes_dir: &Path) -> Result<AppConfig, St
         tab_label_style: TabLabelStyle::default(),
         history_pane_share: default_pane_share(),
         actions_pane_share: default_pane_share(),
+        early_updates: false,
         extra: Default::default(),
     };
     save_config_at(path, &cfg)?;
@@ -1614,6 +1623,7 @@ mod tests {
             tab_label_style: TabLabelStyle::default(),
             history_pane_share: 0.35,
             actions_pane_share: 0.45,
+            early_updates: false,
             extra: Default::default(),
         };
         save_config_at(&path, &cfg).unwrap();
@@ -1684,6 +1694,7 @@ mod tests {
                 tab_label_style: TabLabelStyle::default(),
                 history_pane_share: default_pane_share(),
                 actions_pane_share: default_pane_share(),
+                early_updates: false,
                 extra: Default::default(),
             };
             save_config_at(&path, &cfg).unwrap();
@@ -1826,6 +1837,18 @@ mod tests {
         cfg.status_bar_visible = false;
         save_config_at(&path, &cfg).unwrap();
         assert!(!load_config_at(&path, dir.path()).unwrap().status_bar_visible);
+    }
+
+    #[test]
+    fn early_updates_is_off_by_default_and_round_trips() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("config.json");
+        fs::write(&path, r#"{"notesDir":"/n"}"#).unwrap();
+        assert!(!load_config_at(&path, dir.path()).unwrap().early_updates);
+        let mut cfg = load_config_at(&path, dir.path()).unwrap();
+        cfg.early_updates = true;
+        save_config_at(&path, &cfg).unwrap();
+        assert!(load_config_at(&path, dir.path()).unwrap().early_updates);
     }
 
     #[test]
@@ -2610,6 +2633,15 @@ mod tests {
         let (before, after) = patched(r#"{"statusBarVisible": false}"#);
         let mut expected = before.clone();
         expected["statusBarVisible"] = serde_json::json!(false);
+        assert_ne!(before, after);
+        assert_eq!(after, expected);
+    }
+
+    #[test]
+    fn config_patch_with_only_early_updates_changes_only_that_field() {
+        let (before, after) = patched(r#"{"earlyUpdates": true}"#);
+        let mut expected = before.clone();
+        expected["earlyUpdates"] = serde_json::json!(true);
         assert_ne!(before, after);
         assert_eq!(after, expected);
     }

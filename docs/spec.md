@@ -760,6 +760,12 @@ navigating tag-by-tag. Every release artifact is signed
 (`tauri-plugin-updater`'s own keypair), and the downloaded installer's
 signature is verified before it runs.
 
+An "Early updates" toggle in About (off by default) switches the
+update check to the early channel manifest (`latest-beta.json` on the
+`early` rolling pre-release) instead of `latest.json`. When enabled,
+checks and installs read only that manifest to receive versions a
+few days early.
+
 ---
 
 ## 8. Testing Strategy

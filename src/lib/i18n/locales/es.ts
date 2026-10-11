@@ -468,6 +468,8 @@ export const es = {
   "statusBar.shortcutsTitle": ({ combo }) => `Atajos y símbolos (${combo})`,
 
   "about.updates.sectionLabel": () => "Actualizaciones",
+  "about.earlyUpdates": () => "Recibir actualizaciones anticipadas",
+  "about.earlyUpdatesHint": () => "Prueba versiones nuevas unos días antes que los demás. Pueden tener más errores.",
   "about.version.label": () => "Versión",
   "about.chip.alwaysCurrent": () => "Siempre al día",
   "about.chip.checking": () => "Buscando…",

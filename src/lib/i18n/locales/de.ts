@@ -467,6 +467,8 @@ export const de = {
   "statusBar.shortcutsTitle": ({ combo }) => `Tastenkürzel & Symbole (${combo})`,
 
   "about.updates.sectionLabel": () => "Updates",
+  "about.earlyUpdates": () => "Frühe Updates erhalten",
+  "about.earlyUpdatesHint": () => "Neue Versionen ein paar Tage früher testen. Sie können mehr Fehler haben.",
   "about.version.label": () => "Version",
   "about.chip.alwaysCurrent": () => "Immer aktuell",
   "about.chip.checking": () => "Wird geprüft…",

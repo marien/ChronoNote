@@ -458,6 +458,8 @@ export const en = {
   "statusBar.shortcutsTitle": ({ combo }) => `Shortcuts & symbols (${combo})`,
 
   "about.updates.sectionLabel": () => "Updates",
+  "about.earlyUpdates": () => "Get early updates",
+  "about.earlyUpdatesHint": () => "Try new versions a few days before everyone else. They may have more bugs.",
   "about.version.label": () => "Version",
   "about.chip.alwaysCurrent": () => "Always current",
   "about.chip.checking": () => "Checking…",
