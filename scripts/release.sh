@@ -82,10 +82,23 @@ git fetch -q origin
 gh auth status >/dev/null 2>&1 || { echo "gh not authenticated" >&2; exit 1; }
 [[ -f src-tauri/updater-signing-key.local && -f src-tauri/updater-signing-key-password.local ]] \
   || { echo "updater signing key files missing" >&2; exit 1; }
+# "yes" when $1 is newer than $2 (X.Y.Z or X.Y.Z-N; semver: 0.31.0-2 < 0.31.0; $2 "none" = nothing yet).
+# Not `sort -V`, which puts 0.31.0-2 after 0.31.0.
+semver_newer() {
+  node -e '
+    const [a,b]=process.argv.slice(1);
+    if (b==="none") { console.log("yes"); process.exit(0); }
+    const p=v=>{const [core,pre]=v.split("-");return [...core.split(".").map(Number), pre===undefined?Infinity:Number(pre)];};
+    const x=p(a), y=p(b);
+    for (let i=0;i<4;i++){ if (x[i]!==y[i]) { console.log(x[i]>y[i]?"yes":"no"); process.exit(0);} }
+    console.log("no");
+  ' "$1" "$2"
+}
+
 CUR="$(node -p "require('./package.json').version")"
 BUMPED=0; [[ "$CUR" == "$VERSION" ]] && BUMPED=1
 if [[ $BUMPED == 0 ]]; then
-  [[ "$(printf '%s\n%s\n' "$CUR" "$VERSION" | sort -V | tail -1)" == "$VERSION" ]] \
+  [[ "$(semver_newer "$VERSION" "$CUR")" == "yes" ]] \
     || { echo "$VERSION is not newer than current $CUR" >&2; exit 1; }
 fi
 gh release view "$TAG" >/dev/null 2>&1 && { echo "GitHub release $TAG already exists" >&2; exit 1; }
@@ -244,14 +257,7 @@ fi
 # version (a stable hotfix must not pull early users off a newer beta). Semver: 0.31.0-2 < 0.31.0.
 EARLY_URL="https://github.com/marien/ChronoNote/releases/download/early/latest-beta.json"
 EARLY_NOW="$(curl -fsSL "$EARLY_URL" 2>/dev/null | node -p "JSON.parse(require('fs').readFileSync(0,'utf8')).version" 2>/dev/null || echo none)"
-NEWER="$(node -e '
-  const [a,b]=process.argv.slice(1);
-  if (b==="none") { console.log("yes"); process.exit(0); }
-  const p=v=>{const [core,pre]=v.split("-");return [...core.split(".").map(Number), pre===undefined?Infinity:Number(pre)];};
-  const x=p(a), y=p(b);
-  for (let i=0;i<4;i++){ if (x[i]!==y[i]) { console.log(x[i]>y[i]?"yes":"no"); process.exit(0);} }
-  console.log("no");
-' "$VERSION" "$EARLY_NOW")"
+NEWER="$(semver_newer "$VERSION" "$EARLY_NOW")"
 if [[ "$NEWER" == "yes" ]]; then
   cp "$ASSETS/latest.json" "$ASSETS/latest-beta.json"
   gh release view early >/dev/null 2>&1 || gh release create early --prerelease --target main \
