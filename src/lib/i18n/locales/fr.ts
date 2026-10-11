@@ -916,4 +916,11 @@ export const fr = {
   "toast.export.saved": (p) => `${p?.filename ?? "fichier"} enregistré`,
   "toast.export.copied": () => "Copié en Markdown",
   "print.menuItem": () => "Imprimer…",
+  "versions.title": () => "Versions précédentes",
+  "versions.menuItem": () => "Versions précédentes…",
+  "versions.empty": () => "Pas encore de version précédente de cette note.",
+  "versions.restore": () => "Restaurer cette version",
+  "versions.current": () => "Actuelle",
+  "versions.hint": () => "Conservées 30 jours : la première version de chaque jour et toute version remplacée par un import ou un choix de conflit.",
+  "toast.versions.restored": () => "Version restaurée",
 } satisfies Dictionary;

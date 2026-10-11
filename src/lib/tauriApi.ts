@@ -18,7 +18,7 @@ import type {
   StartupTabMode,
   PeekConfig,
 } from "./types";
-import type { TabLabelStyle, TrashItem } from "./generated/tauri-types";
+import type { TabLabelStyle, TrashItem, NoteVersion } from "./generated/tauri-types";
 import type {
   CommandArgs,
   CommandReturn,
@@ -163,6 +163,18 @@ export function listTrash(): Promise<TrashItem[]> {
 
 export function restoreFromTrash(name: string): Promise<string> {
   return invoke("restore_from_trash", { name });
+}
+
+export function listVersions(filename: string): Promise<NoteVersion[]> {
+  return invoke("list_versions", { filename });
+}
+
+export function readVersion(filename: string, name: string): Promise<string> {
+  return invoke("read_version", { filename, name });
+}
+
+export function restoreVersion(filename: string, name: string): Promise<FileMetadata> {
+  return invoke("restore_version", { filename, name });
 }
 
 export function getFileMetadata(filename: string): Promise<FileMetadata> {

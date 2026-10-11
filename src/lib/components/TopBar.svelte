@@ -68,6 +68,7 @@
   import { datedTabLabel } from "../tabLabel";
   import type { TabLabelStyle } from "../generated/tauri-types";
   import { openExportModal, printNote } from "../exportNotes";
+  import { openVersions } from "../versions";
 
   let contextMenuVisible = $state(false);
   let contextTab = $state<NoteTab | null>(null);
@@ -1152,6 +1153,19 @@
       >
         <Icon name="copy" size={13} />
         <span>{$t("topBar.contextMenu.copyPath")}</span>
+      </button>
+      <button
+        type="button"
+        class="tab-context-item"
+        role="menuitem"
+        onclick={() => {
+          const t = contextTab;
+          closeContextMenu();
+          if (t) openVersions(t.filename);
+        }}
+      >
+        <Icon name="section-history" size={13} />
+        <span>{$t("versions.menuItem")}</span>
       </button>
     {/if}
 

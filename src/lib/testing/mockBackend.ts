@@ -27,11 +27,10 @@
  *     the same clamps), persist, return the whole `AppConfig`.
  *   - `read_note` returns `null` (not an error) for a missing file.
  *   - the session file lives *inside* the notes dir and is never returned
- *     by `list_note_files` / `read_all_notes`.
  */
 import { activeAgendaDates, activeEntriesForDate, toLocalMeetings, activeTitlesAfterDate, activeTitlesForDate, removedTitlesForDate as removedTitlesForDateShared } from "../agendaTitles";
 import type { AppConfig, AppError, ColorMode, FileMetadata, LanguageMode, PeekConfig, StartupTabMode, TabSession, ThemeMode } from "../types";
-import type { TabLabelStyle, TrashItem } from "../generated/tauri-types";
+import type { TabLabelStyle, TrashItem, NoteVersion } from "../generated/tauri-types";
 import { PEEK_DEFAULTS, clampPeek } from "../peekDefaults";
 import type { ToastOptions } from "../stores";
 import type { CommandArgs, CommandReturn, OneDriveAdvancedConfig, TauriCommand, TauriCommands } from "../tauriCommands";
@@ -137,6 +136,7 @@ export interface MockSeed {
   /** Whether the mock window reports being minimized. Defaults to false. */
   isMinimized?: boolean;
   trash?: MockTrashEntry[];
+  versions?: Record<string, MockVersionEntry[]>;
 }
 
 export interface MockTrashEntry {
@@ -147,12 +147,20 @@ export interface MockTrashEntry {
   content: string;
 }
 
+export interface MockVersionEntry {
+  name: string;
+  savedMs: number;
+  sizeBytes: number;
+  content: string;
+}
+
 interface MockDir {
   notes: Map<string, string>;
   session: TabSession | null;
   /** `.chrononote-conflicts/<name>` copies written by `write_conflict_copy`
    * (§94). Kept separate from `notes` so they never surface as note files. */
   conflictCopies: Map<string, string>;
+  versions: Map<string, MockVersionEntry[]>;
 }
 
 const MAX_RECENT = 5;
@@ -166,6 +174,7 @@ const MUTATING_COMMANDS = new Set([
   "write_note",
   "delete_note",
   "restore_from_trash",
+  "restore_version",
   "write_conflict_copy",
   "write_tab_session",
   "import_notes_bundle",
@@ -414,12 +423,14 @@ export class MockBackend {
       notes: new Map(Object.entries(seed.notes ?? {})),
       session: toTabSession(seed.session),
       conflictCopies: new Map(),
+      versions: new Map(Object.entries(seed.versions ?? {})),
     });
     for (const [path, notes] of Object.entries(seed.otherDirs ?? {})) {
       this.dirs.set(path, {
         notes: new Map(Object.entries(notes)),
         session: toTabSession(seed.sessions?.[path]),
         conflictCopies: new Map(),
+        versions: new Map(),
       });
     }
   }
@@ -463,7 +474,13 @@ export class MockBackend {
       appVersion: this.appVersion,
       agendaJson: this.agendaJson,
       trash: this.trash,
-      dirs: [...this.dirs].map(([path, d]) => [path, [...d.notes], d.session, [...d.conflictCopies]]),
+      dirs: [...this.dirs].map(([path, d]) => [
+        path,
+        [...d.notes],
+        d.session,
+        [...d.conflictCopies],
+        [...d.versions].map(([f, vs]) => [f, vs]),
+      ]),
     });
   }
 
@@ -510,7 +527,13 @@ export class MockBackend {
         recentNotesDirs: string[];
         appVersion: string;
         agendaJson?: string;
-        dirs: [string, [string, string][], TabSession | null, [string, string][]?][];
+        dirs: [
+          string,
+          [string, string][],
+          TabSession | null,
+          [string, string][]?,
+          [string, MockVersionEntry[]][]?,
+        ][];
       };
       const b = new MockBackend();
       b.schemaVersion = s.schemaVersion ?? 1;
@@ -540,9 +563,14 @@ export class MockBackend {
       b.agendaJson = s.agendaJson;
       b.trash = (s as unknown as { trash?: MockTrashEntry[] }).trash ?? [];
       b.dirs = new Map(
-        s.dirs.map(([path, notes, session, conflicts]) => [
+        s.dirs.map(([path, notes, session, conflicts, versions]) => [
           path,
-          { notes: new Map(notes), session, conflictCopies: new Map(conflicts ?? []) },
+          {
+            notes: new Map(notes),
+            session,
+            conflictCopies: new Map(conflicts ?? []),
+            versions: new Map(versions ?? []),
+          },
         ]),
       );
       return b;
@@ -554,7 +582,7 @@ export class MockBackend {
   private dir(path = this.notesDir): MockDir {
     let d = this.dirs.get(path);
     if (!d) {
-      d = { notes: new Map(), session: null, conflictCopies: new Map() };
+      d = { notes: new Map(), session: null, conflictCopies: new Map(), versions: new Map() };
       this.dirs.set(path, d);
     }
     return d;
@@ -625,6 +653,56 @@ export class MockBackend {
 
   conflictCopy(name: string): string | null {
     return this.dir().conflictCopies.get(name) ?? null;
+  }
+
+  formatVersionStamp(d = new Date()): string {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    const h = String(d.getHours()).padStart(2, "0");
+    const min = String(d.getMinutes()).padStart(2, "0");
+    const s = String(d.getSeconds()).padStart(2, "0");
+    return `${y}${m}${day}-${h}${min}${s}`;
+  }
+
+  hasVersionToday(filename: string, dirPath = this.notesDir): boolean {
+    const todayPrefix = this.formatVersionStamp().slice(0, 8);
+    const vers = this.dir(dirPath).versions.get(filename) ?? [];
+    return vers.some((v) => v.name.startsWith(todayPrefix));
+  }
+
+  keepVersion(filename: string, content: string, dirPath = this.notesDir): void {
+    if (!content || !content.trim()) return;
+    const norm = normalizeNoteText(content);
+    let vers = this.dir(dirPath).versions.get(filename) ?? [];
+    if (vers.length > 0 && normalizeNoteText(vers[0].content) === norm) {
+      return;
+    }
+    let d = new Date();
+    let stamp = this.formatVersionStamp(d);
+    while (vers.some((v) => v.name === stamp)) {
+      d = new Date(d.getTime() + 1000);
+      stamp = this.formatVersionStamp(d);
+    }
+    const entry: MockVersionEntry = {
+      name: stamp,
+      savedMs: d.getTime(),
+      sizeBytes: new TextEncoder().encode(norm).length,
+      content: norm,
+    };
+    vers = [entry, ...vers];
+    vers.sort((a, b) => b.savedMs - a.savedMs || b.name.localeCompare(a.name));
+    const KEEP_MS = 30 * 24 * 60 * 60 * 1000;
+    const now = Date.now();
+    vers = vers.filter((v) => now - v.savedMs <= KEEP_MS);
+    if (vers.length > 20) {
+      vers = vers.slice(0, 20);
+    }
+    this.dir(dirPath).versions.set(filename, vers);
+  }
+
+  getVersions(filename: string, dirPath = this.notesDir): MockVersionEntry[] {
+    return [...(this.dir(dirPath).versions.get(filename) ?? [])];
   }
 
   // --- the invoke dispatcher -------------------------------------------
@@ -703,6 +781,12 @@ export class MockBackend {
     write_note: async ({ filename, content, expectedHash }) => {
       if (!isValidNoteFilename(filename)) {
         throw new Error(`Invalid note filename: ${filename}`);
+      }
+      const existing = this.dir().notes.get(filename);
+      if (existing !== undefined && existing.trim().length > 0) {
+        if (expectedHash === null || !this.hasVersionToday(filename)) {
+          this.keepVersion(filename, existing);
+        }
       }
       // §94: compare-and-swap when the caller passed the hash it last saw.
       if (typeof expectedHash === "string") {
@@ -794,6 +878,41 @@ export class MockBackend {
       return orig;
     },
 
+    list_versions: ({ filename }) => {
+      if (!isValidNoteFilename(filename)) throw new Error(`Invalid note filename: ${filename}`);
+      const KEEP_MS = 30 * 24 * 60 * 60 * 1000;
+      const now = Date.now();
+      let vers = this.dir().versions.get(filename) ?? [];
+      vers = vers.filter((item) => now - item.savedMs <= KEEP_MS);
+      if (vers.length > 20) vers = vers.slice(0, 20);
+      this.dir().versions.set(filename, vers);
+      return vers.map(({ name, savedMs, sizeBytes }) => ({ name, savedMs, sizeBytes }));
+    },
+
+    read_version: ({ filename, name }) => {
+      if (!isValidNoteFilename(filename)) throw new Error(`Invalid note filename: ${filename}`);
+      const baseName = name.endsWith(".txt") ? name.slice(0, -4) : name;
+      const vers = this.dir().versions.get(filename) ?? [];
+      const v = vers.find((x) => x.name === baseName);
+      if (!v) throw new Error(`Version not found: ${name}`);
+      return normalizeNoteText(v.content);
+    },
+
+    restore_version: async ({ filename, name }) => {
+      if (!isValidNoteFilename(filename)) throw new Error(`Invalid note filename: ${filename}`);
+      const baseName = name.endsWith(".txt") ? name.slice(0, -4) : name;
+      const vers = this.dir().versions.get(filename) ?? [];
+      const v = vers.find((x) => x.name === baseName);
+      if (!v) throw new Error(`Version not found: ${name}`);
+      const current = this.dir().notes.get(filename);
+      if (current !== undefined && current.trim().length > 0) {
+        this.keepVersion(filename, current);
+      }
+      const restored = normalizeNoteText(v.content);
+      this.dir().notes.set(filename, restored);
+      return fileMetadata(restored);
+    },
+
 
     get_file_metadata: ({ filename }) => {
       if (!isValidNoteFilename(filename)) throw new Error(`Invalid note filename: ${filename}`);
@@ -844,13 +963,25 @@ export class MockBackend {
           skipped++;
           continue;
         }
+        if (mode === "replace" && d.notes.has(filename)) {
+          const curr = d.notes.get(filename);
+          if (curr && curr.trim().length > 0) {
+            this.keepVersion(filename, curr);
+          }
+        }
         d.notes.set(filename, normalizeNoteText(content));
         imported++;
       }
       if (mode === "replace") {
         // Only after every note is written: old notes survive a failure part-way.
         for (const name of [...d.notes.keys()]) {
-          if (isValidNoteFilename(name) && !Object.prototype.hasOwnProperty.call(notes, name)) d.notes.delete(name);
+          if (isValidNoteFilename(name) && !Object.prototype.hasOwnProperty.call(notes, name)) {
+            const curr = d.notes.get(name);
+            if (curr && curr.trim().length > 0) {
+              this.keepVersion(name, curr);
+            }
+            d.notes.delete(name);
+          }
         }
       }
       return { imported, skipped };

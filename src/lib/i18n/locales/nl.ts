@@ -892,4 +892,11 @@ export const nl = {
   "toast.export.saved": (p) => `${p?.filename ?? "bestand"} opgeslagen`,
   "toast.export.copied": () => "Gekopieerd als Markdown",
   "print.menuItem": () => "Afdrukken…",
+  "versions.title": () => "Eerdere versies",
+  "versions.menuItem": () => "Eerdere versies…",
+  "versions.empty": () => "Nog geen eerdere versies van deze notitie.",
+  "versions.restore": () => "Deze versie terugzetten",
+  "versions.current": () => "Huidig",
+  "versions.hint": () => "30 dagen bewaard: de eerste versie van elke dag en elke versie die door een import of conflictkeuze is vervangen.",
+  "toast.versions.restored": () => "Versie teruggezet",
 } satisfies Dictionary;

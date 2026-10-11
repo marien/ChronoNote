@@ -4,6 +4,7 @@ use std::io::Write;
 use std::path::{Component, Path, PathBuf};
 use tauri::{AppHandle, Manager};
 use ts_rs::TS;
+use chrono::TimeZone;
 
 /// Editor glyph colouring. Two sets, sharing the same structural
 /// `--glyph-*` CSS variables:
@@ -793,6 +794,137 @@ fn read_note_at(root: &Path, filename: &str) -> Result<Option<String>, String> {
 /// directory name and the timestamped `.txt` files it holds.
 const CONFLICTS_DIRNAME: &str = ".chrononote-conflicts";
 
+pub const VERSIONS_DIRNAME: &str = ".chrononote-versions";
+pub const VERSIONS_KEEP_DAYS: i64 = 30;
+pub const VERSIONS_MAX_PER_NOTE: usize = 20;
+
+#[derive(Serialize, Clone, PartialEq, Debug, TS)]
+#[serde(rename_all = "camelCase")]
+pub struct NoteVersion {
+    pub name: String,
+    pub saved_ms: i64,
+    pub size_bytes: u64,
+}
+
+fn note_stem(filename: &str) -> &str {
+    filename.strip_suffix(".txt").unwrap_or(filename)
+}
+
+fn parse_version_filename(name: &str) -> Option<(i64, chrono::NaiveDateTime)> {
+    if name.contains('/') || name.contains('\\') || name.contains("..") {
+        return None;
+    }
+    let stem = name.strip_suffix(".txt").unwrap_or(name);
+    if stem.len() != 15 {
+        return None;
+    }
+    let naive = chrono::NaiveDateTime::parse_from_str(stem, "%Y%m%d-%H%M%S").ok()?;
+    let ms = chrono::Local
+        .from_local_datetime(&naive)
+        .earliest()
+        .map(|dt| dt.timestamp_millis())
+        .unwrap_or_else(|| {
+            chrono::TimeZone::from_utc_datetime(&chrono::Utc, &naive).timestamp_millis()
+        });
+    Some((ms, naive))
+}
+
+fn is_valid_version_name(name: &str) -> bool {
+    parse_version_filename(name).is_some()
+}
+
+fn versions_dir_for(root: &Path, filename: &str) -> PathBuf {
+    root.join(VERSIONS_DIRNAME).join(note_stem(filename))
+}
+
+fn note_has_version_today_at(root: &Path, filename: &str) -> bool {
+    let dir = versions_dir_for(root, filename);
+    if !dir.exists() {
+        return false;
+    }
+    let today_prefix = chrono::Local::now().format("%Y%m%d").to_string();
+    let Ok(entries) = fs::read_dir(&dir) else {
+        return false;
+    };
+    for entry in entries.flatten() {
+        if let Some(name) = entry.file_name().to_str() {
+            if name.starts_with(&today_prefix) && is_valid_version_name(name) {
+                return true;
+            }
+        }
+    }
+    false
+}
+
+fn keep_version_at(root: &Path, filename: &str, previous: &str) -> Result<(), String> {
+    if previous.trim().is_empty() {
+        return Ok(());
+    }
+    let dir = versions_dir_for(root, filename);
+    fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
+
+    let mut existing: Vec<(String, i64, PathBuf)> = Vec::new();
+    if let Ok(entries) = fs::read_dir(&dir) {
+        for entry in entries.flatten() {
+            let path = entry.path();
+            if path.is_file() {
+                if let Some(name) = entry.file_name().to_str() {
+                    if let Some((ms, _)) = parse_version_filename(name) {
+                        existing.push((name.to_string(), ms, path));
+                    }
+                }
+            }
+        }
+    }
+    existing.sort_by(|a, b| b.1.cmp(&a.1).then_with(|| b.0.cmp(&a.0)));
+    if let Some((_, _, newest_path)) = existing.first() {
+        if let Ok(newest_content) = fs::read_to_string(newest_path) {
+            if normalize_note_text(&newest_content) == normalize_note_text(previous) {
+                return Ok(());
+            }
+        }
+    }
+
+    let mut dt = chrono::Local::now();
+    let mut stamp = dt.format("%Y%m%d-%H%M%S").to_string();
+    let mut candidate = dir.join(format!("{stamp}.txt"));
+    while candidate.exists() {
+        dt += chrono::Duration::seconds(1);
+        stamp = dt.format("%Y%m%d-%H%M%S").to_string();
+        candidate = dir.join(format!("{stamp}.txt"));
+    }
+    let prev_norm = normalize_note_text(previous);
+    atomic_write(&candidate, prev_norm.as_bytes()).map_err(|e| e.to_string())?;
+
+    // Prune: older than 30 days, then oldest beyond 20
+    let now_ms = chrono::Local::now().timestamp_millis();
+    let max_age_ms = VERSIONS_KEEP_DAYS * 24 * 60 * 60 * 1000;
+    let mut kept: Vec<(String, i64, PathBuf)> = Vec::new();
+    if let Ok(entries) = fs::read_dir(&dir) {
+        for entry in entries.flatten() {
+            let path = entry.path();
+            if path.is_file() {
+                if let Some(name) = entry.file_name().to_str() {
+                    if let Some((ms, _)) = parse_version_filename(name) {
+                        if now_ms - ms > max_age_ms {
+                            let _ = fs::remove_file(&path);
+                        } else {
+                            kept.push((name.to_string(), ms, path));
+                        }
+                    }
+                }
+            }
+        }
+    }
+    kept.sort_by(|a, b| b.1.cmp(&a.1).then_with(|| b.0.cmp(&a.0)));
+    if kept.len() > VERSIONS_MAX_PER_NOTE {
+        for (_, _, path) in &kept[VERSIONS_MAX_PER_NOTE..] {
+            let _ = fs::remove_file(path);
+        }
+    }
+    Ok(())
+}
+
 pub const TRASH_DIRNAME: &str = ".chrononote-trash";
 pub const TRASH_KEEP_DAYS: i64 = 30;
 
@@ -981,6 +1113,16 @@ fn write_note_at(
     }
 
     let target = resolve_workspace_path(root, Path::new(filename)).map_err(String::from)?;
+    if target.exists() {
+        if let Ok(curr) = fs::read_to_string(&target) {
+            if !curr.trim().is_empty() {
+                let should_keep = expected_hash.is_none() || !note_has_version_today_at(root, filename);
+                if should_keep {
+                    keep_version_at(root, filename, &curr)?;
+                }
+            }
+        }
+    }
     atomic_write(&target, content.as_bytes()).map_err(|e| e.to_string())?;
     Ok(FileMetadata {
         exists: true,
@@ -1118,6 +1260,99 @@ fn restore_from_trash_at(root: &Path, name: &str) -> Result<String, String> {
     Ok(orig)
 }
 
+fn list_versions_at(root: &Path, filename: &str) -> Result<Vec<NoteVersion>, String> {
+    if !is_valid_note_filename(filename) {
+        return Err(format!("Invalid note filename: {filename}"));
+    }
+    let dir = versions_dir_for(root, filename);
+    if !dir.exists() {
+        return Ok(vec![]);
+    }
+    let mut items = Vec::new();
+    let entries = fs::read_dir(&dir).map_err(|e| e.to_string())?;
+    for entry in entries {
+        let entry = entry.map_err(|e| e.to_string())?;
+        let path = entry.path();
+        if path.is_file() {
+            if let Some(name_str) = entry.file_name().to_str() {
+                if let Some((saved_ms, _)) = parse_version_filename(name_str) {
+                    let size_bytes = fs::metadata(&path).map(|m| m.len()).unwrap_or(0);
+                    let name = if name_str.ends_with(".txt") {
+                        name_str.to_string()
+                    } else {
+                        format!("{name_str}.txt")
+                    };
+                    items.push(NoteVersion {
+                        name,
+                        saved_ms,
+                        size_bytes,
+                    });
+                }
+            }
+        }
+    }
+    items.sort_by(|a, b| b.saved_ms.cmp(&a.saved_ms).then_with(|| b.name.cmp(&a.name)));
+    Ok(items)
+}
+
+fn read_version_at(root: &Path, filename: &str, name: &str) -> Result<String, String> {
+    if !is_valid_note_filename(filename) {
+        return Err(format!("Invalid note filename: {filename}"));
+    }
+    if !is_valid_version_name(name) {
+        return Err(format!("Invalid version name: {name}"));
+    }
+    let file_name = if name.ends_with(".txt") {
+        name.to_string()
+    } else {
+        format!("{name}.txt")
+    };
+    let dir = versions_dir_for(root, filename);
+    let path = resolve_workspace_path(&dir, Path::new(&file_name)).map_err(String::from)?;
+    let content = fs::read_to_string(path).map_err(|e| e.to_string())?;
+    Ok(normalize_note_text(&content).into_owned())
+}
+
+fn restore_version_at(root: &Path, filename: &str, name: &str) -> Result<FileMetadata, String> {
+    if !is_valid_note_filename(filename) {
+        return Err(format!("Invalid note filename: {filename}"));
+    }
+    if !is_valid_version_name(name) {
+        return Err(format!("Invalid version name: {name}"));
+    }
+    let _guard = NOTE_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+    let file_name = if name.ends_with(".txt") {
+        name.to_string()
+    } else {
+        format!("{name}.txt")
+    };
+    let dir = versions_dir_for(root, filename);
+    let version_path = resolve_workspace_path(&dir, Path::new(&file_name)).map_err(String::from)?;
+    let version_text = fs::read_to_string(&version_path).map_err(|e| e.to_string())?;
+    let version_text = normalize_note_text(&version_text).into_owned();
+
+    let target = resolve_workspace_path(root, Path::new(filename)).map_err(String::from)?;
+    if target.exists() {
+        if let Ok(curr) = fs::read_to_string(&target) {
+            if !curr.trim().is_empty() {
+                keep_version_at(root, filename, &curr)?;
+            }
+        }
+    }
+
+    atomic_write(&target, version_text.as_bytes()).map_err(|e| e.to_string())?;
+    Ok(FileMetadata {
+        exists: true,
+        content_hash: Some(hash_bytes(version_text.as_bytes())),
+        size_bytes: Some(version_text.len() as u64),
+        modified_ms: fs::metadata(&target)
+            .and_then(|m| m.modified())
+            .ok()
+            .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
+            .map(|d| d.as_millis() as i64),
+    })
+}
+
 
 fn read_all_notes_at(root: &Path) -> Result<Vec<(String, String)>, String> {
     let files = list_note_files_at(root)?;
@@ -1187,6 +1422,11 @@ fn import_notes_bundle_at(
         // Only after every note from the file is written: a failure part-way leaves the old notes in place.
         for f in list_note_files_at(root)? {
             if !notes.contains_key(&f) {
+                if let Ok(curr) = fs::read_to_string(root.join(&f)) {
+                    if !curr.trim().is_empty() {
+                        let _ = keep_version_at(root, &f, &curr);
+                    }
+                }
                 fs::remove_file(root.join(&f)).map_err(|e| e.to_string())?;
             }
         }
@@ -1380,6 +1620,18 @@ pub fn save_scratchpad_drafts(
     write_scratchpad_drafts_at(&scratchpad_drafts_path(app)?, drafts)
 }
 
+pub fn list_versions(app: &AppHandle, filename: &str) -> Result<Vec<NoteVersion>, String> {
+    list_versions_at(&notes_root(app)?, filename)
+}
+
+pub fn read_version(app: &AppHandle, filename: &str, name: &str) -> Result<String, String> {
+    read_version_at(&notes_root(app)?, filename, name)
+}
+
+pub fn restore_version(app: &AppHandle, filename: &str, name: &str) -> Result<FileMetadata, String> {
+    restore_version_at(&notes_root(app)?, filename, name)
+}
+
 // --- TS binding generation (§98) ---------------------------------------
 //
 // The Rust payload structs are the single source of truth for their
@@ -1413,6 +1665,7 @@ fn generate_typescript_bindings() {
         ImportMode::decl(&cfg),
         ImportResult::decl(&cfg),
         TrashItem::decl(&cfg),
+        NoteVersion::decl(&cfg),
 
         // i18n Phase 2 (docs/design/i18n-roadmap.md): the small, stable
         // error-code shape a few commands/result fields return instead of
@@ -2219,7 +2472,7 @@ mod tests {
             .unwrap()
             .filter_map(|e| e.ok())
             .map(|e| e.file_name().to_string_lossy().into_owned())
-            .filter(|n| n != "2026-09-07.txt")
+            .filter(|n| n != "2026-09-07.txt" && n != VERSIONS_DIRNAME)
             .collect();
         assert!(stray.is_empty(), "stray temp files after concurrent writes: {stray:?}");
     }
@@ -2266,11 +2519,13 @@ mod tests {
             Some("updated".to_string()),
         );
         // No stray temp files in the notes dir after repeated writes.
-        let names: Vec<String> = fs::read_dir(dir.path())
+        let mut names: Vec<String> = fs::read_dir(dir.path())
             .unwrap()
             .filter_map(|e| e.ok())
             .map(|e| e.file_name().to_string_lossy().into_owned())
+            .filter(|n| n != VERSIONS_DIRNAME)
             .collect();
+        names.sort();
         assert_eq!(names, vec!["2026-09-07.txt"]);
     }
 
@@ -2860,6 +3115,156 @@ mod tests {
 
         // Old file should be deleted from disk
         assert!(!trash_dir.join(old_name).exists());
+    }
+
+    // --- Earlier Versions of a Note ---
+
+    #[test]
+    fn version_first_write_of_day_keeps_version_and_second_does_not() {
+        let dir = tempdir().unwrap();
+        let root = dir.path();
+        let filename = "2026-10-11.txt";
+
+        // Initial creation of note (target did not exist before, so no previous version to keep)
+        let m1 = write_note_at(root, filename, "Initial draft", None).unwrap();
+        let vers = list_versions_at(root, filename).unwrap();
+        assert_eq!(vers.len(), 0);
+
+        // First edit of the day (with expected_hash) keeps the initial draft as a version
+        let m2 = write_note_at(root, filename, "Second draft", m1.content_hash.as_deref()).unwrap();
+        let vers = list_versions_at(root, filename).unwrap();
+        assert_eq!(vers.len(), 1);
+        let content = read_version_at(root, filename, &vers[0].name).unwrap();
+        assert_eq!(content, "Initial draft");
+
+        // Second edit of the same day (with expected_hash) does NOT keep another version
+        write_note_at(root, filename, "Third draft", m2.content_hash.as_deref()).unwrap();
+        let vers_after = list_versions_at(root, filename).unwrap();
+        assert_eq!(vers_after.len(), 1);
+    }
+
+    #[test]
+    fn version_deliberate_overwrite_always_keeps_version() {
+        let dir = tempdir().unwrap();
+        let root = dir.path();
+        let filename = "2026-10-11.txt";
+
+        write_note_at(root, filename, "Version 0", None).unwrap();
+        // expected_hash: None is a deliberate overwrite
+        write_note_at(root, filename, "Version 1", None).unwrap();
+        write_note_at(root, filename, "Version 2", None).unwrap();
+
+        let vers = list_versions_at(root, filename).unwrap();
+        assert_eq!(vers.len(), 2);
+        assert_eq!(read_version_at(root, filename, &vers[0].name).unwrap(), "Version 1");
+        assert_eq!(read_version_at(root, filename, &vers[1].name).unwrap(), "Version 0");
+    }
+
+    #[test]
+    fn version_identical_content_not_kept_twice() {
+        let dir = tempdir().unwrap();
+        let root = dir.path();
+        let filename = "2026-10-11.txt";
+
+        write_note_at(root, filename, "Same content", None).unwrap();
+        write_note_at(root, filename, "Different content", None).unwrap();
+        let vers = list_versions_at(root, filename).unwrap();
+        assert_eq!(vers.len(), 1);
+        assert_eq!(read_version_at(root, filename, &vers[0].name).unwrap(), "Same content");
+
+        // Try to keep "Same content" again directly
+        keep_version_at(root, filename, "Same content").unwrap();
+        let vers_after = list_versions_at(root, filename).unwrap();
+        assert_eq!(vers_after.len(), 1);
+    }
+
+    #[test]
+    fn version_pruning_by_age_and_count() {
+        let dir = tempdir().unwrap();
+        let root = dir.path();
+        let filename = "2026-10-11.txt";
+        let v_dir = root.join(VERSIONS_DIRNAME).join("2026-10-11");
+        fs::create_dir_all(&v_dir).unwrap();
+
+        // 1. Old version (> 30 days)
+        let old_name = "20200101-120000.txt";
+        fs::write(v_dir.join(old_name), "Very old version").unwrap();
+
+        // Keep a fresh version
+        keep_version_at(root, filename, "Fresh version 1").unwrap();
+
+        // Check old file was pruned
+        assert!(!v_dir.join(old_name).exists());
+        let vers = list_versions_at(root, filename).unwrap();
+        assert_eq!(vers.len(), 1);
+
+        // 2. Count limit (> 20)
+        // Add 25 versions with synthetic names
+        for i in 1..=25 {
+            let name = format!("20261001-{:06}.txt", i);
+            fs::write(v_dir.join(&name), format!("Version {}", i)).unwrap();
+        }
+
+        // Trigger prune via keep_version_at
+        keep_version_at(root, filename, "Fresh version 2").unwrap();
+        let vers2 = list_versions_at(root, filename).unwrap();
+        assert_eq!(vers2.len(), VERSIONS_MAX_PER_NOTE);
+    }
+
+    #[test]
+    fn version_import_replace_keeps_existing_content() {
+        let dir = tempdir().unwrap();
+        let root = dir.path();
+        let file1 = "2026-10-11.txt";
+        let file2 = "2026-10-12.txt";
+
+        write_note_at(root, file1, "Existing file 1", None).unwrap();
+        write_note_at(root, file2, "Existing file 2", None).unwrap();
+
+        let mut bundle = std::collections::HashMap::new();
+        bundle.insert(file1.to_string(), "Overwritten file 1".to_string());
+        // file2 is omitted from bundle, so Replace mode will delete file2
+
+        let res = import_notes_bundle_at(root, &bundle, ImportMode::Replace).unwrap();
+        assert_eq!(res.imported, 1);
+
+        // file1 was overwritten: check its old content was kept as a version
+        let vers1 = list_versions_at(root, file1).unwrap();
+        assert_eq!(vers1.len(), 1);
+        assert_eq!(read_version_at(root, file1, &vers1[0].name).unwrap(), "Existing file 1");
+
+        // file2 was deleted: check its content was kept as a version in .chrononote-versions/2026-10-12/
+        let vers2 = list_versions_at(root, file2).unwrap();
+        assert_eq!(vers2.len(), 1);
+        assert_eq!(read_version_at(root, file2, &vers2[0].name).unwrap(), "Existing file 2");
+    }
+
+    #[test]
+    fn version_restore_keeps_current_content_and_returns_metadata() {
+        let dir = tempdir().unwrap();
+        let root = dir.path();
+        let filename = "2026-10-11.txt";
+
+        write_note_at(root, filename, "Original text", None).unwrap();
+        write_note_at(root, filename, "Current modified text", None).unwrap();
+
+        let vers = list_versions_at(root, filename).unwrap();
+        assert_eq!(vers.len(), 1);
+        let original_version_name = vers[0].name.clone();
+
+        // Restore the original text
+        let meta = restore_version_at(root, filename, &original_version_name).unwrap();
+        assert!(meta.exists);
+
+        // Disk content should now be original text
+        let content = fs::read_to_string(root.join(filename)).unwrap();
+        assert_eq!(content, "Original text");
+        assert_eq!(meta.content_hash, Some(hash_bytes(b"Original text")));
+
+        // Versions list should now include the text prior to restore ("Current modified text")
+        let vers_after = list_versions_at(root, filename).unwrap();
+        assert_eq!(vers_after.len(), 2);
+        assert_eq!(read_version_at(root, filename, &vers_after[0].name).unwrap(), "Current modified text");
     }
 }
 

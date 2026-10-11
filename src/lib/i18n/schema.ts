@@ -892,6 +892,13 @@ export type TranslationParams = {
   "toast.export.saved": { filename: string };
   "toast.export.copied": undefined;
   "print.menuItem": undefined;
+  "versions.title": undefined;
+  "versions.menuItem": undefined;
+  "versions.empty": undefined;
+  "versions.restore": undefined;
+  "versions.current": undefined;
+  "versions.hint": undefined;
+  "toast.versions.restored": undefined;
 };
 
 export type TranslationKey = keyof TranslationParams;

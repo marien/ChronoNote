@@ -929,4 +929,11 @@ export const pl = {
   "toast.export.saved": (p) => `Zapisano ${p?.filename ?? "plik"}`,
   "toast.export.copied": () => "Skopiowano jako Markdown",
   "print.menuItem": () => "Drukuj…",
+  "versions.title": () => "Wcześniejsze wersje",
+  "versions.menuItem": () => "Wcześniejsze wersje…",
+  "versions.empty": () => "Brak jeszcze wcześniejszych wersji tej notatki.",
+  "versions.restore": () => "Przywróć tę wersję",
+  "versions.current": () => "Bieżąca",
+  "versions.hint": () => "Przechowywane 30 dni: pierwsza wersja każdego dnia i każda wersja zastąpiona importem lub wyborem w konflikcie.",
+  "toast.versions.restored": () => "Przywrócono wersję",
 } satisfies Dictionary;
