@@ -1,0 +1,38 @@
+{
+  "notesDir": "/test/fixtures/notes",
+  "colorMode": "grayscale",
+  "themeMode": "dark",
+  "wordWrap": true,
+  "readableLineLength": true,
+  "recentNotesDirs": [
+    "/test/fixtures/notes-old",
+    "/test/fixtures/notes-archive"
+  ],
+  "autoCheckUpdates": false,
+  "lastSeenVersion": "0.25.0",
+  "calendarSyncEnabled": true,
+  "fontSize": 14.5,
+  "lineHeight": 1.7,
+  "pureBlack": true,
+  "languageMode": "nl",
+  "onboardingCompleted": true,
+  "startupTabMode": "smart_last_active",
+  "peek": {
+    "enabled": true,
+    "lines": 5,
+    "opacity": 60,
+    "alwaysOnTop": false,
+    "header": "hover",
+    "shortcut": "CommandOrControl+Alt+Space",
+    "geometry": {
+      "x": 100,
+      "y": 150,
+      "width": 500,
+      "height": 280
+    },
+    "useLinesHeight": true,
+    "defaultsVersion": 2,
+    "callShortcut": "CommandOrControl+Alt+J"
+  },
+  "occurrenceHint": true
+}

@@ -27,3 +27,6 @@ demo-src/*.html text eol=lf
 # Generated third-party notices must keep LF line endings.
 src/assets/THIRD-PARTY-NOTICES.txt text eol=lf
 
+# Upgrade test fixtures: keep CRLF and BOM bytes exactly as written
+src-tauri/tests/fixtures/** -text
+

@@ -1,0 +1,14 @@
+[
+  {
+    "date": "2026-09-01",
+    "start": "09:30",
+    "end": "10:00",
+    "title": "Daily Standup"
+  },
+  {
+    "date": "2026-09-02",
+    "start": "14:00",
+    "end": "15:00",
+    "title": "Sprint Planning"
+  }
+]

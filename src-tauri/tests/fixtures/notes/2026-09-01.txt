@@ -1,0 +1,3 @@
+# 2026-09-01
+
+Daily log with LF line endings.

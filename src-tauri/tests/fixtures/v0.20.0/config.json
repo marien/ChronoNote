@@ -1,0 +1,19 @@
+{
+  "notesDir": "/test/fixtures/notes",
+  "colorMode": "grayscale",
+  "themeMode": "dark",
+  "wordWrap": true,
+  "readableLineLength": true,
+  "recentNotesDirs": [
+    "/test/fixtures/notes-old",
+    "/test/fixtures/notes-archive"
+  ],
+  "autoCheckUpdates": false,
+  "lastSeenVersion": "0.20.0",
+  "calendarSyncEnabled": true,
+  "fontSize": 14.5,
+  "lineHeight": 1.7,
+  "pureBlack": true,
+  "languageMode": "nl",
+  "onboardingCompleted": true
+}
