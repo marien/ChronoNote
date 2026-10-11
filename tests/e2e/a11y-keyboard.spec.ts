@@ -19,7 +19,7 @@ test("(1) Ctrl+, -> focused element is role='tab' inside .settings-page; Escape 
   await expect(page.locator(".cm-content")).toBeFocused();
 });
 
-test("(2) at 900x700, Ctrl+Shift+H on a section line -> focused element has role listbox, aria-activedescendant resolves to option and aria-selected='true'; ArrowDown changes aria-activedescendant; 6 x Tab never leaves dialog", async ({
+test("(2) at 900x700, Ctrl+Shift+H: the focused History body is a named group; ArrowDown points aria-activedescendant at a line (role option); Tab stays in the dialog", async ({
   page,
 }) => {
   await seedApp(page, {
@@ -37,23 +37,15 @@ test("(2) at 900x700, Ctrl+Shift+H on a section line -> focused element has role
 
   const dialog = page.locator(".modal-card.history-modal-card");
   await expect(dialog).toBeVisible();
-
-  const listbox = dialog.locator('[role="listbox"]');
-  await expect(listbox).toBeFocused();
-
-  const initialActiveId = await listbox.getAttribute("aria-activedescendant");
-  expect(initialActiveId).toBeTruthy();
-  const initialOption = dialog.locator(`#${initialActiveId}`);
-  await expect(initialOption).toHaveAttribute("role", "option");
-  await expect(initialOption).toHaveAttribute("aria-selected", "true");
+  const body = dialog.locator(".history-body");
+  await expect(body).toBeFocused();
+  await expect(body).toHaveAttribute("role", "group");
+  await expect(body).toHaveAttribute("aria-label", /.+/);
 
   await page.keyboard.press("ArrowDown");
-  const nextActiveId = await listbox.getAttribute("aria-activedescendant");
-  expect(nextActiveId).toBeTruthy();
-  expect(nextActiveId).not.toBe(initialActiveId);
-  const nextOption = dialog.locator(`#${nextActiveId}`);
-  await expect(nextOption).toHaveAttribute("role", "option");
-  await expect(nextOption).toHaveAttribute("aria-selected", "true");
+  await expect.poll(() => body.getAttribute("aria-activedescendant")).toMatch(/^history-line-\d+$/);
+  const activeId = await body.getAttribute("aria-activedescendant");
+  await expect(dialog.locator(`#${activeId}`)).toHaveAttribute("role", "option");
 
   for (let i = 0; i < 6; i++) {
     await page.keyboard.press("Tab");

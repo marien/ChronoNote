@@ -332,10 +332,10 @@
     <Icon name="actions" size={15} />
     <input
       class="modal-input"
-      placeholder={$t("actionDrawer.filterPlaceholder")}
       aria-label={$t("actionDrawer.filter.ariaLabel")}
       aria-controls="action-drawer-list"
-      aria-activedescendant={flatList.length > 0 && selectedIndex >= 0 ? `action-drawer-item-${selectedIndex}` : undefined}
+      aria-activedescendant={flatList.length > 0 ? `action-drawer-item-${selectedIndex}` : undefined}
+      placeholder={$t("actionDrawer.filterPlaceholder")}
       bind:value={filter}
       bind:this={inputEl}
       autocomplete="off"
@@ -372,8 +372,8 @@
     </div>
   </div>
   <div
-    id="action-drawer-list"
     class="modal-list"
+    id="action-drawer-list"
     role="listbox"
     aria-label={$t("actionDrawer.modal.ariaLabel")}
     bind:this={listEl}
@@ -412,7 +412,6 @@
         {#if row.type === "header"}
           <div
             class="modal-group-header"
-            role="presentation"
             style="position: absolute; top: {row.top}px; left: 0; right: 0; height: {row.height}px; border-top: {row.isFirst
               ? 'none'
               : '1px solid var(--border)'};"
@@ -425,11 +424,11 @@
           {@const g = glyphFor(item.line)}
           {@const sym = innermostActionSymbol(item.line)}
           <div
-            id="action-drawer-item-{idx}"
             class="modal-item {idx === selectedIndex ? 'selected' : ''}"
             role="option"
+            id="action-drawer-item-{idx}"
             aria-selected={idx === selectedIndex}
-            tabindex="-1"
+            tabindex="0"
             style="position: absolute; top: {row.top}px; left: 0; right: 0; height: {row.height}px;"
             onclick={() => controller.jumpToFileLine(item, docked ? { keepModal: true } : undefined)}
             onmouseenter={() => (selectedIndex = idx)}
