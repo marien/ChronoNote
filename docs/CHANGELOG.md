@@ -10418,3 +10418,11 @@ Not verified natively yet: printing in WebView2 under the desktop CSP, the save 
   Gemini's first version also rewrote how History and Actions move focus (and dropped a comment explaining an earlier bug fix); those two files were reverted and given only the attributes above. `a11y-keyboard.spec.ts` covers the five points.
 - **History threw on every open:** a `$effect.pre` reached `stripEl` before its `let` had run (an unhandled rejection that error reporting, §358 C2, would now show as "Something went wrong"). The declaration moved to the top.
 - **Contrast (Marien: fix all with the smallest change):** every text pair now reaches 4.5:1 and `a11y-known.ts` has no contrast exceptions: tertiary text `#949494` dark / `#757575` light, the dark accent fill `#0a74c2` (was `#0a84d8`, white text 3.95:1), light green `#257b53`, light teal `#0d6f8a`, dark `@name` `#29a8ff`, keyboard badges in the text colour, tags on a selected row without the 0.85 opacity, History's past dates and the calendar's other-month days without extra opacity.
+
+## 362. The discussed glyph looks the same everywhere
+
+**Status: on `main`, unreleased (after beta 0.31.0-2).**
+
+- **Marien:** the discussed glyph (`. `) drew differently in the editor and in the Shortcuts legend. Both drew the ring as a border and the inner dot as a separate `::after` centred with `translate(-50%, -50%)` (three copies: editor 0.27em, drawers/legends 0.32em, phone symbols bar 4.5px). At 125%/150% scaling the dot snapped to other device pixels than the ring and sat off-centre by a different amount in each place (seen in 16x enlargements at 1x/1.25x/1.5x).
+- **Fix:** the dot is the circle's own background, `radial-gradient(circle closest-side, …)`, one rule for the editor, drawers/legends and the phone symbols bar; the ring and dot rasterize together and stay concentric. The contrast theme sets `--glyph-dot-color: GrayText` instead of colouring the old `::after`. The editor glyph is still dimmer on a concluded topic: that is the resolved-line dimming, on purpose.
+- Test in `glyph-layout.spec.ts` (editor and legend: gradient dot, no `::after`).

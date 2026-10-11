@@ -553,5 +553,26 @@ test.describe("glyph line layout", () => {
       }
     }
   });
+
+  test("the discussed dot is part of the circle itself, in the editor and in drawers (no separately placed dot)", async ({ page }) => {
+    // A dot positioned on its own snapped to other device pixels than the ring at 125%/150% scaling and sat
+    // off-centre, so the same glyph looked different in the editor and in the Shortcuts legend.
+    await seedApp(page, { seed: "empty" });
+    await setEditorText(page, ["Talk", "====", ". discussed topic", "plain line"].join("\n"));
+    await page.locator(".cm-line").last().click();
+    const look = (sel: string) =>
+      page.locator(sel).first().evaluate((el) => ({
+        bg: getComputedStyle(el).backgroundImage,
+        after: getComputedStyle(el, "::after").content,
+      }));
+    const ed = await look(".cm-line .glyph-topic-done .glyph-ink");
+    expect(ed.bg).toContain("radial-gradient");
+    expect(ed.after).toBe("none");
+
+    await page.keyboard.press("Control+Slash");
+    const lg = await look(".item-tag .glyph-topic-done");
+    expect(lg.bg).toContain("radial-gradient");
+    expect(lg.after).toBe("none");
+  });
 });
 

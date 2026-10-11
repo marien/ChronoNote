@@ -504,17 +504,14 @@ body.peek-mode .cm-overview-ruler {
 .glyph-topic-done.glyph-cyclable-preview .glyph-ink {
   border: 1.4px solid var(--glyph-done-color);
 }
-.cm-line .glyph-topic-done .glyph-ink::after,
-.glyph-topic-done.glyph-cyclable-preview .glyph-ink::after {
-  content: "";
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  transform: translate(-50%, -50%);
-  width: 0.27em;
-  height: 0.27em;
-  border-radius: 50%;
-  background: var(--glyph-done-color);
+/* The inner dot is the circle's own background, not a separately positioned element: at 125%/150% scaling a
+   separate dot snapped to other device pixels than the ring and sat off-centre. Shared by the editor, drawers,
+   legends and the phone symbols bar. */
+.cm-line .glyph-topic-done .glyph-ink,
+.glyph-topic-done.glyph-cyclable-preview .glyph-ink,
+.glyph-topic-done:not(.cm-line *):not(.token-glyph),
+.token-glyph.glyph-topic-done {
+  background: radial-gradient(circle closest-side, var(--glyph-dot-color, var(--glyph-done-color)) 52%, transparent 66%);
 }
 
 /* ,: not discussed / postponed (1.4px dashed circular ring) */
@@ -579,17 +576,6 @@ body.peek-mode .cm-overview-ruler {
 }
 .glyph-topic-done:not(.cm-line *):not(.token-glyph) {
   border: 1.4px solid var(--glyph-done-color);
-}
-.glyph-topic-done:not(.cm-line *):not(.token-glyph)::after {
-  content: "";
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  transform: translate(-50%, -50%);
-  width: 0.32em;
-  height: 0.32em;
-  border-radius: 50%;
-  background: var(--glyph-done-color);
 }
 .glyph-topic-skipped:not(.cm-line *):not(.token-glyph) {
   border: 1.4px dashed var(--glyph-progress-color);

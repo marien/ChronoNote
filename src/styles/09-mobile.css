@@ -167,17 +167,6 @@ body {
 .token-glyph.glyph-topic-done {
   border: 1.4px solid var(--glyph-done-color);
 }
-.token-glyph.glyph-topic-done::after {
-  content: "";
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  transform: translate(-50%, -50%);
-  width: 4.5px;
-  height: 4.5px;
-  border-radius: 50%;
-  background: var(--glyph-done-color);
-}
 .token-glyph.glyph-topic-skipped {
   border: 1.4px dashed var(--glyph-progress-color);
 }

@@ -85,11 +85,8 @@
     forced-color-adjust: none;
   }
 
-  .glyph-topic-done::after,
-  .glyph-topic-done .glyph-ink::after,
-  .token-glyph.glyph-topic-done::after {
-    background-color: GrayText;
-    forced-color-adjust: none;
+  .glyph-topic-done {
+    --glyph-dot-color: GrayText;
   }
 
   /* Follow-up arrow */
