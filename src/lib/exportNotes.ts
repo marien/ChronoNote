@@ -125,9 +125,19 @@ export async function copyExportMarkdown(options: {
   closeExportModal();
 }
 
-/** Prints a note by rendering it as HTML into a hidden iframe and triggering window.print(). */
-export function printNote(text: string): void {
-  const html = noteToHtml(text);
+/** "ChronoNote 2026-10-11" for a dated note, "ChronoNote <name>" for a scratchpad: Windows' Print to PDF suggests
+ * the page title as the file name. */
+export function printTitle(filename?: string): string {
+  const name = (filename ?? "").replace(/\.txt$/, "");
+  return name ? `ChronoNote ${name}` : "ChronoNote";
+}
+
+/** Prints a note by rendering it as HTML into a hidden iframe and triggering window.print(). The main document's
+ * title is set too while printing, since WebView2 may take the name from the top-level page. */
+export function printNote(text: string, title = "ChronoNote"): void {
+  const html = noteToHtml(text, title);
+  const previousTitle = document.title;
+  document.title = title;
   const iframe = document.createElement("iframe");
   iframe.style.position = "fixed";
   iframe.style.right = "0";
@@ -143,6 +153,7 @@ export function printNote(text: string): void {
     if (cleaned) return;
     cleaned = true;
     iframe.remove();
+    document.title = previousTitle;
   };
 
   const timer = setTimeout(cleanup, 60000);
@@ -171,6 +182,6 @@ export function printActiveNote(): void {
   const activeId = get(activeTabId);
   const active = currentTabs.find((t) => t.id === activeId) ?? currentTabs[0];
   if (active) {
-    printNote(active.content);
+    printNote(active.content, printTitle(active.filename));
   }
 }

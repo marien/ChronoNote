@@ -124,6 +124,10 @@
           onChange={(v) => (format = v as "md" | "html")}
         />
       </div>
+
+      <div class="export-section export-copy-row">
+        <button type="button" class="dialog-btn export-copy-btn" onclick={handleCopy}>{$t("export.copyMarkdown")}</button>
+      </div>
     </div>
 
     <div class="dialog-buttons">
@@ -134,13 +138,6 @@
         onclick={handleSave}
       >
         {$t("export.save")}
-      </button>
-      <button
-        type="button"
-        class="dialog-btn"
-        onclick={handleCopy}
-      >
-        {$t("export.copyMarkdown")}
       </button>
       <button
         type="button"
@@ -181,15 +178,33 @@
     font-weight: 500;
   }
 
+  .export-copy-row {
+    align-items: flex-start;
+  }
+  .export-copy-btn {
+    flex: 0 0 auto;
+    width: auto;
+    padding-inline: 16px;
+  }
+
+  /* The app's own colour tokens; the native date parts (calendar icon, picker) follow the app's theme, which can
+     differ from Windows' (an explicit Light/Dark choice in Settings). */
   .modal-input {
     width: 100%;
     box-sizing: border-box;
     padding: 6px 8px;
     border-radius: var(--radius-control);
-    border: 1px solid var(--line);
-    background: var(--bg);
-    color: var(--fg);
+    border: 1px solid var(--edge-strong);
+    background: var(--surface-canvas);
+    color: var(--text);
     font-family: inherit;
     font-size: 13px;
+    color-scheme: light dark;
+  }
+  :global(:root[data-theme="dark"]) .modal-input {
+    color-scheme: dark;
+  }
+  :global(:root[data-theme="light"]) .modal-input {
+    color-scheme: light;
   }
 </style>

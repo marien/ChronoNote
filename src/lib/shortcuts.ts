@@ -239,6 +239,10 @@ export const SHORTCUTS: ShortcutDef[] = [
     id: "printNote",
     combos: [{ mod: true, code: "KeyP" }],
   },
+  {
+    id: "openExport",
+    combos: [{ mod: true, shift: true, code: "KeyE" }],
+  },
 ];
 
 /** i18n roadmap: the Shortcuts & Symbols drawer's translation key for
@@ -283,6 +287,7 @@ export const SHORTCUT_LABEL_KEYS = {
   toggleZenMode: "shortcuts.toggleZenMode.label",
   togglePeekMode: "shortcuts.togglePeekMode.label",
   printNote: "print.menuItem",
+  openExport: "export.menuItem",
   clickGlyph: "shortcuts.clickGlyph.label",
   stepOccurrence: "shortcuts.stepOccurrence.label",
   escape: "shortcuts.escape.label",
@@ -418,6 +423,7 @@ export const DRAWER_ROWS: (string | [string, string])[] = [
   "toggleZenMode",
   "togglePeekMode",
   "printNote",
+  "openExport",
   "openSettings",
   "openAbout",
   "openShortcutsHelp",

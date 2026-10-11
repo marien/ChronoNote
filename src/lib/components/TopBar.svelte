@@ -67,7 +67,7 @@
   import { focusTrap } from "../actions/focusTrap";
   import { datedTabLabel } from "../tabLabel";
   import type { TabLabelStyle } from "../generated/tauri-types";
-  import { openExportModal, printNote } from "../exportNotes";
+  import { openExportModal, printNote, printTitle } from "../exportNotes";
   import { openVersions } from "../versions";
 
   let contextMenuVisible = $state(false);
@@ -1191,7 +1191,7 @@
       onclick={() => {
         const t = contextTab;
         closeContextMenu();
-        if (t) printNote(t.content);
+        if (t) printNote(t.content, printTitle(t.filename));
       }}
     >
       <Icon name="tab-scratch" size={13} />

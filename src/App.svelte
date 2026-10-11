@@ -87,7 +87,7 @@
     syncHealthPopoverOpen,
   } from "./lib/stores";
   import { exportModalOpen, overlays, topOverlay, type Overlay } from "./lib/overlays";
-  import { printActiveNote } from "./lib/exportNotes";
+  import { openExportModal, printActiveNote } from "./lib/exportNotes";
 
   let ready = $state(false);
   let bootError = $state("");
@@ -147,6 +147,7 @@
       toggleZenMode: () => isZenMode.update((v) => !v),
       togglePeekMode: () => controller.togglePeek(),
       printNote: () => printActiveNote(),
+      openExport: () => openExportModal(),
     };
 
     // A modal, the find bar or the sync-health popover handles Esc in its own handler, which runs before this
