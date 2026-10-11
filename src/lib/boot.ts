@@ -654,6 +654,10 @@ export async function initApp() {
     void checkForUpdatesOnLaunch();
   }
   void initOneDriveSync();
+  if (typeof window !== "undefined") {
+    if (window.__CHRONO_MOCK__) void window.__CHRONO_MOCK__.cleanUpVersionsAndTrash();
+    if (window.__CHRONO_WEBAPP__) void window.__CHRONO_WEBAPP__.cleanUpVersionsAndTrash();
+  }
   if (get(backendKind) === "desktop") wireMica();
   if (get(backendKind) === "web") {
     await handleWebappLaunch();

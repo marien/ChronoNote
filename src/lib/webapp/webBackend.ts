@@ -338,14 +338,22 @@ export class WebBackend {
     return `${y}${m}${day}-${h}${min}${s}`;
   }
 
-  private async hasVersionToday(filename: string): Promise<boolean> {
+  async shouldKeepVersion(
+    filename: string,
+    newContent: string,
+    expectedHash: string | null,
+    now = Date.now(),
+  ): Promise<boolean> {
+    if (expectedHash === null || newContent.trim().length === 0) {
+      return true;
+    }
     const db = await this.db();
     const vers = (await idbGet<StoredVersionEntry[]>(db, STORE_META, `versions:${filename}`)) ?? [];
-    const todayPrefix = this.formatVersionStamp().slice(0, 8);
-    return vers.some((v) => v.name.startsWith(todayPrefix));
+    if (vers.length === 0) return true;
+    return now - vers[0].savedMs > 5 * 60 * 1000;
   }
 
-  private async keepVersion(filename: string, content: string): Promise<void> {
+  async keepVersion(filename: string, content: string, now = Date.now()): Promise<void> {
     if (!content || !content.trim()) return;
     const norm = normalizeNoteText(content);
     const db = await this.db();
@@ -353,7 +361,7 @@ export class WebBackend {
     if (vers.length > 0 && normalizeNoteText(vers[0].content) === norm) {
       return;
     }
-    let d = new Date();
+    let d = new Date(now);
     let stamp = this.formatVersionStamp(d);
     while (vers.some((v) => v.name === stamp)) {
       d = new Date(d.getTime() + 1000);
@@ -367,13 +375,56 @@ export class WebBackend {
     };
     vers = [entry, ...vers];
     vers.sort((a, b) => b.savedMs - a.savedMs || b.name.localeCompare(a.name));
-    const KEEP_MS = 30 * 24 * 60 * 60 * 1000;
-    const now = Date.now();
-    vers = vers.filter((v) => now - v.savedMs <= KEEP_MS);
-    if (vers.length > 20) {
-      vers = vers.slice(0, 20);
-    }
     await idbPut(db, STORE_META, `versions:${filename}`, vers);
+  }
+
+  async cleanUpVersionsAndTrash(now = Date.now()): Promise<void> {
+    const db = await this.db();
+    const KEEP_MS = 30 * 24 * 60 * 60 * 1000;
+    const todayPrefix = this.formatVersionStamp(new Date(now)).slice(0, 8);
+
+    const metaKeys = await idbGetAllKeys(db, STORE_META);
+    for (const key of metaKeys) {
+      if (typeof key !== "string" || !key.startsWith("versions:")) continue;
+      const vers = (await idbGet<StoredVersionEntry[]>(db, STORE_META, key)) ?? [];
+      const todayVersions: StoredVersionEntry[] = [];
+      const earlierByDay = new Map<string, StoredVersionEntry[]>();
+
+      for (const v of vers) {
+        if (now - v.savedMs > KEEP_MS) {
+          continue;
+        }
+        const dayPrefix = this.formatVersionStamp(new Date(v.savedMs)).slice(0, 8);
+        if (dayPrefix === todayPrefix) {
+          todayVersions.push(v);
+        } else {
+          const list = earlierByDay.get(dayPrefix) ?? [];
+          list.push(v);
+          earlierByDay.set(dayPrefix, list);
+        }
+      }
+
+      const kept: StoredVersionEntry[] = [...todayVersions];
+      for (const [, dayList] of earlierByDay) {
+        dayList.sort((a, b) => b.savedMs - a.savedMs);
+        if (dayList.length > 0) {
+          kept.push(dayList[0]);
+        }
+      }
+      kept.sort((a, b) => b.savedMs - a.savedMs || b.name.localeCompare(a.name));
+
+      if (kept.length === 0) {
+        await idbDelete(db, STORE_META, key);
+      } else {
+        await idbPut(db, STORE_META, key, kept);
+      }
+    }
+
+    const trash = (await idbGet<{ filename: string; content: string; deletedMs: number }[]>(db, STORE_META, "trash")) ?? [];
+    const keptTrash = trash.filter((item) => now - item.deletedMs <= KEEP_MS);
+    if (keptTrash.length !== trash.length) {
+      await idbPut(db, STORE_META, "trash", keptTrash);
+    }
   }
 
   private readonly core: CommandHandlers = {
@@ -434,7 +485,7 @@ export class WebBackend {
       const store = await this.getActiveNotesStore();
       const current = await idbGet<StoredNote>(db, store, filename);
       if (current && current.content.trim().length > 0) {
-        if (expectedHash === null || !(await this.hasVersionToday(filename))) {
+        if (await this.shouldKeepVersion(filename, content, expectedHash ?? null)) {
           await this.keepVersion(filename, current.content);
         }
       }
@@ -462,12 +513,27 @@ export class WebBackend {
         if (!current) return;
         if (current.contentHash !== expectedHash) throw new Error(`conflict: note changed on disk: ${filename}`);
       }
-      if (current && current.content.trim().length > 0) {
+      const text = current ? normalizeNoteText(current.content) : "";
+      if (!current || text.trim().length === 0) {
+        const vers = (await idbGet<StoredVersionEntry[]>(db, STORE_META, `versions:${filename}`)) ?? [];
+        if (vers.length > 0) {
+          const newest = vers[0];
+          const versionText = normalizeNoteText(newest.content);
+          if (versionText.trim().length > 0) {
+            const trash = (await idbGet<{ filename: string; content: string; deletedMs: number }[]>(db, STORE_META, "trash")) ?? [];
+            trash.push({ filename, content: versionText, deletedMs: Date.now() });
+            await idbPut(db, STORE_META, "trash", trash);
+          }
+        }
+        if (current) {
+          await idbDelete(db, store, filename);
+        }
+      } else {
         const trash = (await idbGet<{ filename: string; content: string; deletedMs: number }[]>(db, STORE_META, "trash")) ?? [];
-        trash.push({ filename, content: current.content, deletedMs: Date.now() });
+        trash.push({ filename, content: text, deletedMs: Date.now() });
         await idbPut(db, STORE_META, "trash", trash);
+        await idbDelete(db, store, filename);
       }
-      await idbDelete(db, store, filename);
       if (store === STORE_NOTES_CLOUD) {
         await this.syncEngine.recordLocalDelete(filename);
       }
@@ -476,13 +542,7 @@ export class WebBackend {
     list_trash: async () => {
       const db = await this.db();
       const raw = (await idbGet<{ filename: string; content: string; deletedMs: number }[]>(db, STORE_META, "trash")) ?? [];
-      const KEEP_MS = 30 * 24 * 60 * 60 * 1000;
-      const now = Date.now();
-      const kept = raw.filter((item) => now - item.deletedMs <= KEEP_MS);
-      if (kept.length !== raw.length) {
-        await idbPut(db, STORE_META, "trash", kept);
-      }
-      return [...kept]
+      return [...raw]
         .sort((a, b) => b.deletedMs - a.deletedMs)
         .map((item) => {
           const d = new Date(item.deletedMs);
@@ -546,14 +606,7 @@ export class WebBackend {
       if (!isValidNoteFilename(filename)) throw new Error(`Invalid note filename: ${filename}`);
       const db = await this.db();
       const raw = (await idbGet<StoredVersionEntry[]>(db, STORE_META, `versions:${filename}`)) ?? [];
-      const KEEP_MS = 30 * 24 * 60 * 60 * 1000;
-      const now = Date.now();
-      let kept = raw.filter((item) => now - item.savedMs <= KEEP_MS);
-      if (kept.length > 20) kept = kept.slice(0, 20);
-      if (kept.length !== raw.length) {
-        await idbPut(db, STORE_META, `versions:${filename}`, kept);
-      }
-      return kept.map(({ name, savedMs, sizeBytes }) => ({ name, savedMs, sizeBytes }));
+      return raw.map(({ name, savedMs, sizeBytes }) => ({ name, savedMs, sizeBytes }));
     },
 
     read_version: async ({ filename, name }) => {

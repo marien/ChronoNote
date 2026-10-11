@@ -934,6 +934,6 @@ export const pl = {
   "versions.empty": () => "Brak jeszcze wcześniejszych wersji tej notatki.",
   "versions.restore": () => "Przywróć tę wersję",
   "versions.current": () => "Bieżąca",
-  "versions.hint": () => "Przechowywane 30 dni: pierwsza wersja każdego dnia i każda wersja zastąpiona importem lub wyborem w konflikcie.",
+  "versions.hint": () => "Przechowywane 30 dni: wersja co kilka minut podczas dzisiejszej edycji, jedna na każdy wcześniejszy dzień i każda wersja zastąpiona importem lub wyborem w konflikcie.",
   "toast.versions.restored": () => "Przywrócono wersję",
 } satisfies Dictionary;

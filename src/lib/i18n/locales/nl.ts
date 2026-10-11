@@ -897,6 +897,6 @@ export const nl = {
   "versions.empty": () => "Nog geen eerdere versies van deze notitie.",
   "versions.restore": () => "Deze versie terugzetten",
   "versions.current": () => "Huidig",
-  "versions.hint": () => "30 dagen bewaard: de eerste versie van elke dag en elke versie die door een import of conflictkeuze is vervangen.",
+  "versions.hint": () => "30 dagen bewaard: elke paar minuten een versie terwijl je vandaag bewerkt, één per eerdere dag, en elke versie die door een import of conflictkeuze is vervangen.",
   "toast.versions.restored": () => "Versie teruggezet",
 } satisfies Dictionary;

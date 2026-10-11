@@ -684,10 +684,10 @@ silently discarded, and the user is shown a conflict modal to resolve it
 by hand.
 
 ### 6.5 Recently Deleted Notes
-Notes deleted with content are moved to a hidden `.chrononote-trash/` subfolder for 30 days and can be restored from Settings.
+Notes deleted with content are moved to a hidden `.chrononote-trash/` subfolder for 30 days and can be restored from Settings. When an emptied note with earlier versions is deleted, its newest version text is moved to `.chrononote-trash/`. Trash items older than 30 days are removed by a background clean-up.
 
 ### 6.6 Earlier Versions of a Note
-Before an overwrite that is not the user's typing (the first save of each day, import with Replace, or a conflict resolved with "Keep mine"), the note's previous text is saved to a hidden `.chrononote-versions/<filename>/<timestamp>.txt` subfolder (kept for 30 days, at most 20 per note). A tab's context menu provides "Earlier versions…", showing the list with a side-by-side diff against the current text and a restore action (which keeps the current text first). The web app keeps equivalent records in IndexedDB.
+Before an overwrite (when the note is emptied, when saved without an expected hash, on an import with Replace, or on a conflict resolved with "Keep mine"), or when editing if the newest version is more than 5 minutes old, the note's previous text is saved to a hidden `.chrononote-versions/<filename>/<timestamp>.txt` subfolder. A background clean-up keeps every version saved today, collapses earlier days to the newest version per day, and removes versions older than 30 days along with empty folders. A tab's context menu provides "Earlier versions…", showing the list with a side-by-side diff against the current text and a restore action (which keeps the current text first). The web app keeps equivalent records in IndexedDB.
 
 ---
 
