@@ -69,8 +69,42 @@ fn policy_block_code(err: &str) -> Option<u32> {
     })
 }
 
+pub const EARLY_ENDPOINT: &str =
+    "https://github.com/marien/ChronoNote/releases/download/early/latest-beta.json";
+
+#[derive(Clone, Serialize, Debug, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct UpdateInfo {
+    pub version: String,
+    pub body: Option<String>,
+}
+
+/// Endpoint override for the updater. Early updates point to `EARLY_ENDPOINT`;
+/// stable updates use the default manifest in `tauri.conf.json`.
+pub fn updater_endpoints(early: bool) -> Option<Vec<tauri::Url>> {
+    if early {
+        Some(vec![EARLY_ENDPOINT.parse().unwrap()])
+    } else {
+        None
+    }
+}
+
 #[tauri::command]
-pub async fn install_update(app: AppHandle, on_event: Channel<InstallEvent>) -> Result<(), String> {
+pub async fn check_update(app: AppHandle, early: bool) -> Result<Option<UpdateInfo>, String> {
+    let mut builder = app.updater_builder();
+    if let Some(endpoints) = updater_endpoints(early) {
+        builder = builder.endpoints(endpoints).map_err(|e| e.to_string())?;
+    }
+    let updater = builder.build().map_err(|e| e.to_string())?;
+    let update = updater.check().await.map_err(|e| e.to_string())?;
+    Ok(update.map(|u| UpdateInfo {
+        version: u.version,
+        body: u.body,
+    }))
+}
+
+#[tauri::command]
+pub async fn install_update(app: AppHandle, early: bool, on_event: Channel<InstallEvent>) -> Result<(), String> {
     let exe = std::env::current_exe().map(|p| p.display().to_string()).unwrap_or_else(|_| "?".into());
     log(
         &app,
@@ -84,9 +118,13 @@ pub async fn install_update(app: AppHandle, on_event: Channel<InstallEvent>) -> 
 
     // A no-op before-exit hook: the plugin's default one destroys every window,
     // which is exactly what hides a failed launch (see the module comment).
-    let updater = app
-        .updater_builder()
-        .on_before_exit(|| {})
+    let mut builder = app.updater_builder().on_before_exit(|| {});
+    if let Some(endpoints) = updater_endpoints(early) {
+        builder = builder
+            .endpoints(endpoints)
+            .map_err(|e| fail(&app, "couldn't set up the updater", e.to_string()))?;
+    }
+    let updater = builder
         .build()
         .map_err(|e| fail(&app, "couldn't set up the updater", e.to_string()))?;
 
@@ -184,5 +222,13 @@ mod tests {
         assert_eq!(utc_stamp(0), "1970-01-01 00:00:00");
         assert_eq!(utc_stamp(1_789_884_960), "2026-09-20 06:16:00");
         assert_eq!(utc_stamp(951_782_400), "2000-02-29 00:00:00"); // a leap day
+    }
+
+    #[test]
+    fn endpoint_choice_returns_early_manifest_only_when_requested() {
+        assert!(super::updater_endpoints(false).is_none());
+        let endpoints = super::updater_endpoints(true).expect("endpoints when early");
+        assert_eq!(endpoints.len(), 1);
+        assert_eq!(endpoints[0].as_str(), super::EARLY_ENDPOINT);
     }
 }

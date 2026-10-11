@@ -311,6 +311,7 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             update_install::install_update,
+            update_install::check_update,
             zen_window::zen_cover_monitor,
             zen_window::zen_prepare_leave,
             peek_set_transparent,

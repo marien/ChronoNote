@@ -78,6 +78,7 @@ interface StoredConfig {
   peek?: PeekConfig;
   occurrenceHint?: boolean;
   statusBarVisible?: boolean;
+  earlyUpdates?: boolean;
   tabLabelStyle?: TabLabelStyle;
   historyPaneShare?: number;
   actionsPaneShare?: number;
@@ -264,6 +265,7 @@ export class WebBackend {
         onboardingCompleted: false,
         startupTabMode: "today",
         statusBarVisible: true,
+        earlyUpdates: false,
         tabLabelStyle: "iso",
         historyPaneShare: 0.30,
         actionsPaneShare: 0.30,
@@ -305,6 +307,7 @@ export class WebBackend {
       peek: cfg.peek ?? PEEK_DEFAULTS,
       occurrenceHint: cfg.occurrenceHint ?? false,
       statusBarVisible: cfg.statusBarVisible ?? true,
+      earlyUpdates: cfg.earlyUpdates ?? false,
       tabLabelStyle: cfg.tabLabelStyle ?? "iso",
       historyPaneShare: cfg.historyPaneShare ?? 0.30,
       actionsPaneShare: cfg.actionsPaneShare ?? 0.30,
@@ -346,6 +349,7 @@ export class WebBackend {
       if (patch.lineHeight !== undefined) cfg.lineHeight = Math.min(1.8, Math.max(1.3, patch.lineHeight));
       if (patch.occurrenceHint !== undefined) cfg.occurrenceHint = patch.occurrenceHint;
       if (patch.statusBarVisible !== undefined) cfg.statusBarVisible = patch.statusBarVisible;
+      if (patch.earlyUpdates !== undefined) cfg.earlyUpdates = patch.earlyUpdates;
       if (patch.tabLabelStyle !== undefined) cfg.tabLabelStyle = patch.tabLabelStyle;
       if (patch.historyPaneShare !== undefined) cfg.historyPaneShare = Math.min(0.60, Math.max(0.18, patch.historyPaneShare));
       if (patch.actionsPaneShare !== undefined) cfg.actionsPaneShare = Math.min(0.60, Math.max(0.18, patch.actionsPaneShare));

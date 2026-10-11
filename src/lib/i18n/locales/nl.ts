@@ -462,6 +462,8 @@ export const nl = {
   "statusBar.shortcutsTitle": ({ combo }) => `Sneltoetsen & symbolen (${combo})`,
 
   "about.updates.sectionLabel": () => "Updates",
+  "about.earlyUpdates": () => "Vroege updates ontvangen",
+  "about.earlyUpdatesHint": () => "Probeer nieuwe versies een paar dagen eerder dan anderen. Ze kunnen meer fouten hebben.",
   "about.version.label": () => "Versie",
   "about.chip.alwaysCurrent": () => "Altijd actueel",
   "about.chip.checking": () => "Controleren…",

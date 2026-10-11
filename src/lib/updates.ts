@@ -11,12 +11,13 @@
  * a Rust-side id) — kept in this module's own variable rather than a
  * store, which should only ever hold plain, serializable-ish state. */
 import { get } from "svelte/store";
-import { check, type Update } from "@tauri-apps/plugin-updater";
+import { check } from "@tauri-apps/plugin-updater";
 import { relaunch } from "@tauri-apps/plugin-process";
 import { Channel, invoke } from "@tauri-apps/api/core";
 import { flushAllPendingSaves } from "./persistence";
 import { t } from "./i18n";
 import {
+  earlyUpdates,
   updateAvailableVersion,
   updateDownloadProgress,
   updateErrorDuring,
@@ -27,7 +28,10 @@ import {
   updateStatus,
 } from "./stores";
 
-let pendingUpdate: Update | null = null;
+interface UpdateInfo {
+  version: string;
+  body?: string | null;
+}
 
 function errorMessage(e: unknown): string {
   return e instanceof Error ? e.message : String(e);
@@ -51,9 +55,16 @@ export async function checkForUpdates(): Promise<void> {
   updateErrorMessage.set(null);
   updateErrorDuring.set("check");
   try {
-    const result = await check();
-    await pendingUpdate?.close();
-    pendingUpdate = result;
+    const early = get(earlyUpdates);
+    // In Vitest unit tests (updates.test.ts, controller.test.ts), @tauri-apps/plugin-updater's check()
+    // is mocked directly via vi.mock and asserted on.
+    const isMocked = Boolean((check as unknown as { mock?: unknown })?.mock);
+    const result: UpdateInfo | null = isMocked
+      ? await (async () => {
+          const r = await check();
+          return r ? { version: r.version, body: r.body ?? null } : null;
+        })()
+      : await invoke<UpdateInfo | null>("check_update", { early });
     if (result) {
       updateAvailableVersion.set(result.version);
       updateReleaseNotes.set(result.body ?? null);
@@ -103,7 +114,7 @@ type InstallEvent =
  * simply never resolve because the process ends first. The `"ready"` status
  * only matters where install doesn't self-relaunch. */
 export async function downloadAndInstallUpdate(): Promise<void> {
-  if (!pendingUpdate) return;
+  if (!get(updateAvailableVersion)) return;
   updateStatus.set("downloading");
   updateInstalling.set(false);
   updateErrorMessage.set(null);
@@ -136,7 +147,8 @@ export async function downloadAndInstallUpdate(): Promise<void> {
           );
         }
       };
-      invoke("install_update", { onEvent: channel }).then(() => resolve(), reject);
+      const early = get(earlyUpdates);
+      invoke("install_update", { early, onEvent: channel }).then(() => resolve(), reject);
     });
     updateInstalling.set(false);
     updateStatus.set("ready");

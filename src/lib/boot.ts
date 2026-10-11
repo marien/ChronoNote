@@ -17,6 +17,7 @@ import {
   appVersion,
   autoCheckUpdates,
   backendKind,
+  earlyUpdates,
   calendarSyncEnabled,
   chromeExpanded,
   colorMode,
@@ -545,6 +546,7 @@ export async function initApp() {
   readableLineLength.set(cfg.readableLineLength);
   wordWrap.set(cfg.wordWrap || cfg.readableLineLength);
   autoCheckUpdates.set(cfg.autoCheckUpdates);
+  earlyUpdates.set(cfg.earlyUpdates ?? false);
   calendarSyncEnabled.set(cfg.calendarSyncEnabled);
   fontSize.set(cfg.fontSize ?? 13);
   lineHeight.set(cfg.lineHeight ?? 1.6);
@@ -845,6 +847,15 @@ export async function setAutoCheckUpdates(enabled: boolean) {
   autoCheckUpdates.set(enabled);
   try {
     await api.setAutoCheckUpdates(enabled);
+  } catch {
+    showToast(get(t)("toast.boot.failedToSave.updateCheck", undefined));
+  }
+}
+
+export async function setEarlyUpdates(enabled: boolean) {
+  earlyUpdates.set(enabled);
+  try {
+    await api.setEarlyUpdates(enabled);
   } catch {
     showToast(get(t)("toast.boot.failedToSave.updateCheck", undefined));
   }

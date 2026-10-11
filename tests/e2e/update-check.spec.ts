@@ -41,7 +41,7 @@ test.describe("update check (§update-check)", () => {
 
   test("a failed check reads as an error, with a way to try again", async ({ page }) => {
     await seedApp(page, {
-      seed: { notes: { [todayFilename()]: "hi" }, throwOnCommands: ["plugin:updater|check"] },
+      seed: { notes: { [todayFilename()]: "hi" }, throwOnCommands: ["check_update"] },
     });
     const about = await openViaShortcut(page, "ControlOrMeta+Shift+Comma", "about");
     await expect(about).toContainText(/couldn.t check/i);
@@ -108,7 +108,7 @@ test.describe("update check (§update-check)", () => {
     await page.waitForTimeout(400); // give an errant check a chance to fire
     await expect(page.locator(".info-bar")).toHaveCount(0);
     expect(
-      await page.evaluate(() => window.__CHRONO_MOCK__!.invokeLog.some((e) => e.cmd === "plugin:updater|check")),
+      await page.evaluate(() => window.__CHRONO_MOCK__!.invokeLog.some((e) => e.cmd === "check_update")),
     ).toBe(false);
   });
 
@@ -133,6 +133,32 @@ test.describe("update check (§update-check)", () => {
     await page.reload();
     await expect(page.locator("#top-bar")).toBeVisible();
     expect(await page.evaluate(() => window.__CHRONO_MOCK__!.autoCheckUpdates)).toBe(false);
+  });
+
+  test("Early updates toggle persists across reload and the next check is made with early: true", async ({ page }) => {
+    await seedApp(page, { seed: { notes: {}, updateCheck: "none" } });
+    const about = await openViaShortcut(page, "ControlOrMeta+Shift+Comma", "about");
+    await expect(about.locator(".about-status-chip")).toContainText(/up to date/i);
+
+    // Initial check had early: false
+    expect(await page.evaluate(() => window.__CHRONO_MOCK__!.lastCheckUpdateEarly)).toBe(false);
+
+    // Turn on early updates
+    await about.getByText("Get early updates").click();
+    expect(await page.evaluate(() => window.__CHRONO_MOCK__!.earlyUpdates)).toBe(true);
+
+    // Changing it re-runs the check with early: true
+    await expect.poll(() => page.evaluate(() => window.__CHRONO_MOCK__!.lastCheckUpdateEarly)).toBe(true);
+
+    // Persists across reload
+    await page.reload();
+    await expect(page.locator("#top-bar")).toBeVisible();
+    expect(await page.evaluate(() => window.__CHRONO_MOCK__!.earlyUpdates)).toBe(true);
+
+    // The next check is made with early: true
+    const aboutAfterReload = await openViaShortcut(page, "ControlOrMeta+Shift+Comma", "about");
+    await aboutAfterReload.getByRole("button", { name: "Check for updates" }).click();
+    await expect.poll(() => page.evaluate(() => window.__CHRONO_MOCK__!.lastCheckUpdateEarly)).toBe(true);
   });
 
   test("opening About checks for updates when nothing has run yet, and shows the result (§349)", async ({ page }) => {
@@ -268,10 +294,10 @@ test.describe("About: the version card", () => {
     await seedApp(page, seed({ updateCheck: "none" }));
     const about = await openViaShortcut(page, "ControlOrMeta+Shift+Comma", "about");
     await expect(about.locator(".about-status-chip")).toContainText("Up to date");
-    const before = await page.evaluate(() => window.__CHRONO_MOCK__!.invokeLog.filter((e) => e.cmd === "plugin:updater|check").length);
+    const before = await page.evaluate(() => window.__CHRONO_MOCK__!.invokeLog.filter((e) => e.cmd === "check_update").length);
     await about.getByRole("button", { name: "Check for updates" }).click();
     await expect
-      .poll(() => page.evaluate(() => window.__CHRONO_MOCK__!.invokeLog.filter((e) => e.cmd === "plugin:updater|check").length))
+      .poll(() => page.evaluate(() => window.__CHRONO_MOCK__!.invokeLog.filter((e) => e.cmd === "check_update").length))
       .toBeGreaterThan(before);
   });
 
@@ -287,7 +313,7 @@ test.describe("About: the version card", () => {
   });
 
   test("a failed check: a warn chip, Try again, and still a way to this version's notes", async ({ page }) => {
-    await seedApp(page, seed({ throwOnCommands: ["plugin:updater|check"] }));
+    await seedApp(page, seed({ throwOnCommands: ["check_update"] }));
     const about = await openViaShortcut(page, "ControlOrMeta+Shift+Comma", "about");
     await expect(about.locator(".about-version-card")).toHaveAttribute("data-tone", "warn");
     await expect(about.getByRole("button", { name: /Try again/ })).toBeVisible();

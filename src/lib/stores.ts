@@ -275,6 +275,10 @@ export const oneDriveSignInExpired = writable<boolean>(false);
  * default (disclosed + toggleable in Settings). */
 export const autoCheckUpdates = writable<boolean>(true);
 
+/** §F1: whether ChronoNote checks the early-updates channel for newer releases.
+ * Mirrors `AppConfig.earlyUpdates` — off by default. */
+export const earlyUpdates = writable<boolean>(false);
+
 /** Calendar sync's "Sync calendar for this day" button is opt-in — hidden
  * from the top bar/More actions/command palette entirely until turned on
  * in Settings. Mirrors `AppConfig.calendarSyncEnabled`, off by default. */

@@ -66,6 +66,10 @@ export function setAutoCheckUpdates(enabled: boolean): Promise<AppConfig> {
   return updateConfig({ autoCheckUpdates: enabled });
 }
 
+export function setEarlyUpdates(enabled: boolean): Promise<AppConfig> {
+  return updateConfig({ earlyUpdates: enabled });
+}
+
 export function setThemeMode(mode: ThemeMode): Promise<AppConfig> {
   return updateConfig({ themeMode: mode });
 }

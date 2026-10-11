@@ -472,6 +472,8 @@ export const pl = {
   "statusBar.shortcutsTitle": ({ combo }) => `Skróty i symbole (${combo})`,
 
   "about.updates.sectionLabel": () => "Aktualizacje",
+  "about.earlyUpdates": () => "Otrzymuj wczesne aktualizacje",
+  "about.earlyUpdatesHint": () => "Wypróbuj nowe wersje kilka dni przed innymi. Mogą mieć więcej błędów.",
   "about.version.label": () => "Wersja",
   "about.chip.alwaysCurrent": () => "Zawsze aktualne",
   "about.chip.checking": () => "Sprawdzanie…",

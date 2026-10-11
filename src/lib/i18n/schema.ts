@@ -446,6 +446,8 @@ export type TranslationParams = {
   // and hint sentences below correspond 1:1 to `AboutModal`'s own state
   // machine (§update-check) — see that file for which state renders which.
   "about.updates.sectionLabel": undefined;
+  "about.earlyUpdates": undefined;
+  "about.earlyUpdatesHint": undefined;
   "about.version.label": undefined;
   "about.chip.alwaysCurrent": undefined;
   "about.chip.checking": undefined;
