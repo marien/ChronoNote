@@ -124,6 +124,12 @@
   const isDarkResolved = $derived($themeMode === "dark" || ($themeMode === "system" && prefersDark));
 
   onMount(async () => {
+    if (page && !openedOnNotesFolder) {
+      void tick().then(() => {
+        document.querySelector<HTMLElement>('.settings-page [role="tab"][aria-selected="true"]')?.focus();
+      });
+    }
+
     if ($backendKind === "web") {
       const advanced = await api.oneDriveGetAdvancedConfig();
       clientIdOverride = advanced.clientIdOverride ?? "";

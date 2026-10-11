@@ -51,14 +51,35 @@
   <div class="status-zone status-left">
     <!-- §B4: the action counts lead, as buttons: open jumps to the next open action (Ctrl+J), the other two open
          the Action Drawer with every state listed. -->
-    <button type="button" id="stat-open" class="stat-count" title={$t("statusBar.jumpNextActionTooltip", { combo: formatShortcut("jumpAction") })} onclick={jumpToNextOpen}>
-      <span class="stat-line"><span class="stat-glyph glyph-open">☐</span><span class="stat-full">{$t("statusBar.labelOpen", { count: $statusCounts.open })}</span><span class="stat-compact">{$statusCounts.open}</span></span>
+    <button
+      type="button"
+      id="stat-open"
+      class="stat-count"
+      aria-label={$t("statusBar.labelOpen", { count: $statusCounts.open })}
+      title={$t("statusBar.jumpNextActionTooltip", { combo: formatShortcut("jumpAction") })}
+      onclick={jumpToNextOpen}
+    >
+      <span class="stat-line" aria-hidden="true"><span class="stat-glyph glyph-open" aria-hidden="true">☐</span><span class="stat-full" aria-hidden="true">{$t("statusBar.labelOpen", { count: $statusCounts.open })}</span><span class="stat-compact" aria-hidden="true">{$statusCounts.open}</span></span>
     </button>
-    <button type="button" id="stat-forwarded" class="stat-count" title={$t("statusBar.allActionsTooltip")} onclick={openAllActions}>
-      <span class="stat-line"><span class="stat-glyph glyph-progress">☐</span><span class="stat-full">{$t("statusBar.labelDeferred", { count: $statusCounts.forwarded })}</span><span class="stat-compact">{$statusCounts.forwarded}</span></span>
+    <button
+      type="button"
+      id="stat-forwarded"
+      class="stat-count"
+      aria-label={$t("statusBar.labelDeferred", { count: $statusCounts.forwarded })}
+      title={$t("statusBar.allActionsTooltip")}
+      onclick={openAllActions}
+    >
+      <span class="stat-line" aria-hidden="true"><span class="stat-glyph glyph-progress" aria-hidden="true">☐</span><span class="stat-full" aria-hidden="true">{$t("statusBar.labelDeferred", { count: $statusCounts.forwarded })}</span><span class="stat-compact" aria-hidden="true">{$statusCounts.forwarded}</span></span>
     </button>
-    <button type="button" id="stat-closed" class="stat-count" title={$t("statusBar.allActionsTooltip")} onclick={openAllActions}>
-      <span class="stat-line"><span class="stat-glyph glyph-done">☑</span><span class="stat-full">{$t("statusBar.labelDone", { count: $statusCounts.closed })}</span><span class="stat-compact">{$statusCounts.closed}</span></span>
+    <button
+      type="button"
+      id="stat-closed"
+      class="stat-count"
+      aria-label={$t("statusBar.labelDone", { count: $statusCounts.closed })}
+      title={$t("statusBar.allActionsTooltip")}
+      onclick={openAllActions}
+    >
+      <span class="stat-line" aria-hidden="true"><span class="stat-glyph glyph-done" aria-hidden="true">☑</span><span class="stat-full" aria-hidden="true">{$t("statusBar.labelDone", { count: $statusCounts.closed })}</span><span class="stat-compact" aria-hidden="true">{$statusCounts.closed}</span></span>
     </button>
   </div>
 

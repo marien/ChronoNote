@@ -899,6 +899,16 @@ export type TranslationParams = {
   "versions.current": undefined;
   "versions.hint": undefined;
   "toast.versions.restored": undefined;
+  "a11y.glyph.open": undefined;
+  "a11y.glyph.done": undefined;
+  "a11y.glyph.deferred": undefined;
+  "a11y.glyph.wontDo": undefined;
+  "a11y.glyph.topicOpen": undefined;
+  "a11y.glyph.topicDone": undefined;
+  "a11y.glyph.topicSkipped": undefined;
+  "a11y.glyph.followUp": undefined;
+  "a11y.lineState": { state: string };
+  "actionDrawer.filter.ariaLabel": undefined;
 };
 
 export type TranslationKey = keyof TranslationParams;
