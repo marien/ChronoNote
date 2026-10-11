@@ -119,13 +119,13 @@
     role="dialog"
     aria-modal="true"
     use:focusTrap
-    aria-label={$t("versions.title", { filename })}
+    aria-label={`${$t("versions.title", { filename })} · ${filename.replace(/\.txt$/, "")}`}
     onkeydown={handleKeyDown}
     tabindex="-1"
   >
     <div class="modal-input-wrap modal-title">
       <Icon name="section-history" size={15} />
-      <span>{$t("versions.title", { filename })}</span>
+      <span>{$t("versions.title", { filename })} · {filename.replace(/\.txt$/, "")}</span>
       <button
         type="button"
         class="icon-btn modal-close-btn"

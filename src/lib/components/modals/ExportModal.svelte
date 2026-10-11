@@ -76,7 +76,7 @@
 
 <div class="overlay" role="presentation" use:closeOnOutsideClick={closeExportModal}>
   <div
-    class="modal-card modal-sm dialog-card"
+    class="modal-card modal-sm dialog-card export-modal"
     role="dialog"
     aria-modal="true"
     use:focusTrap

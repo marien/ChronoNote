@@ -52,7 +52,7 @@ test.describe("earlier versions of a note", () => {
     // Earlier versions modal opens with expected title
     const modal = page.locator(".modal-card[role='dialog']");
     await expect(modal).toBeVisible();
-    await expect(modal.locator(".modal-title")).toContainText("Earlier versions of 2026-10-10.txt");
+    await expect(modal.locator(".modal-title")).toContainText("Earlier versions · 2026-10-10");
 
     // Shows at least one version entry
     const versionEntries = modal.locator('[data-testid="version-entry"]');
@@ -76,7 +76,7 @@ test.describe("earlier versions of a note", () => {
     await expect(modal).not.toBeVisible();
 
     // Toast message confirms restoration
-    await expect(toast(page)).toContainText("Restored earlier version of 2026-10-10.txt");
+    await expect(toast(page)).toContainText("Version restored");
 
     // Editor content is restored to initial content
     await expect(editor(page)).toContainText("Initial morning notes");
