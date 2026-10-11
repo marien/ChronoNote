@@ -500,8 +500,8 @@
 }
 
 .cal-day.out {
+  /* D5: the tertiary colour alone marks other-month days; opacity on top fell below 4.5:1. */
   color: var(--text-tertiary);
-  opacity: 0.6;
 }
 
 /* State C (Agenda Only): Dashed bounding ring placeholder */

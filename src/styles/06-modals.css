@@ -304,7 +304,13 @@ textarea.modal-input.import-textarea {
 .modal-item.selected .item-tag,
 .modal-item.selected .item-breadcrumb {
   color: var(--selected-fg);
-  opacity: 0.85;
+}
+/* D5: keyboard badges read at 4.5:1 or better; on a selected row they take the row's colour. */
+.item-tag kbd {
+  color: var(--text);
+}
+.modal-item.selected .item-tag kbd {
+  color: inherit;
 }
 .modal-item-main {
   display: flex;

@@ -973,7 +973,8 @@
  * its date. */
 
 .history-occ-tab:global(.past):not(.active) .history-occ-date {
-  opacity: 0.55;
+  /* D5: dimmed with the secondary text colour (4.5:1 on the grey tab) instead of opacity, which fell to 2.3:1. */
+  color: var(--text-secondary);
 }
 
 .history-occ-tab.today .history-occ-date {

@@ -19,7 +19,7 @@
 
   --text: #d4d4d4;
   --muted: #a6a6a6;
-  --text-tertiary: #858585;
+  --text-tertiary: #949494; /* D5: 4.6:1 on the dark raised surfaces */
   --selected-bg: #4a4a4a;
   --selected-fg: #ffffff;
   --status-fg: #f0f0f0;
@@ -99,13 +99,13 @@
     --surface-raised: #e7e7e7;
     --edge-soft: rgba(0, 0, 0, 0.09);
     --edge-strong: rgba(0, 0, 0, 0.16);
-    --state-ok: #2f9e6b;
+    --state-ok: #257b53; /* D5: 4.6:1 on the light chrome */
     --state-warn: #b5771f;
     --state-error: #c4463e;
 
     --text: #1b1b1b;
     --muted: #5f5f5f;
-    --text-tertiary: #8a8a8a;
+    --text-tertiary: #757575; /* D5: 4.6:1 on white */
     --selected-bg: #d6d6d6;
     --selected-fg: #000000;
     --status-fg: #1b1b1b;
@@ -127,13 +127,13 @@
   --surface-raised: #e7e7e7;
   --edge-soft: rgba(0, 0, 0, 0.09);
   --edge-strong: rgba(0, 0, 0, 0.16);
-  --state-ok: #2f9e6b;
+  --state-ok: #257b53; /* D5: 4.6:1 on the light chrome */
   --state-warn: #b5771f;
   --state-error: #c4463e;
 
   --text: #1b1b1b;
   --muted: #5f5f5f;
-  --text-tertiary: #8a8a8a;
+  --text-tertiary: #757575; /* D5: 4.6:1 on white */
   --selected-bg: #d6d6d6;
   --selected-fg: #000000;
   --status-fg: #1b1b1b;
@@ -157,7 +157,7 @@
   --edge-strong: rgba(255, 255, 255, 0.18);
   --text: #e0e0e0;
   --muted: #a8a8a8;
-  --text-tertiary: #858585;
+  --text-tertiary: #949494; /* D5: 4.6:1 on the dark raised surfaces */
 }
 
 @media (prefers-color-scheme: dark) {
@@ -171,7 +171,7 @@
     --edge-strong: rgba(255, 255, 255, 0.18);
     --text: #e0e0e0;
     --muted: #a8a8a8;
-    --text-tertiary: #858585;
+    --text-tertiary: #949494; /* D5: 4.6:1 on the dark raised surfaces */
   }
 }
 
@@ -181,7 +181,7 @@
    the separate Legacy mode is gone). Chrome accent stays the option-B blue.
    Declared after :root so it wins on source order. */
 [data-color-mode="color"] {
-  --selected-bg: #0a84d8;
+  --selected-bg: #0a74c2; /* D5: white text 4.9:1 (was 3.95) */
   --selected-fg: #ffffff;
   --highlight: rgba(245, 200, 66, 0.28);
   --tab-active-border: #38bdf8;
@@ -199,7 +199,7 @@
   --glyph-followup-color: #0098ff;
   --glyph-followup-weight: bold;
   --glyph-assignee-bg: rgba(0, 122, 204, 0.15);
-  --glyph-assignee-color: #0098ff;
+  --glyph-assignee-color: #29a8ff; /* D5: 4.6:1 on its badge */
   --glyph-emphasis-color: #ffd43b;
 }
 
@@ -208,7 +208,7 @@
     --selected-bg: #0a6fc2;
     --selected-fg: #ffffff;
     --highlight: rgba(245, 200, 66, 0.45);
-    --tab-active-border: #0e7490;
+    --tab-active-border: #0d6f8a; /* D5 */
 
     --glyph-open-color: #d9383a;
     --glyph-done-color: #2b8a3e;
@@ -224,7 +224,7 @@
   --selected-bg: #0a6fc2;
   --selected-fg: #ffffff;
   --highlight: rgba(245, 200, 66, 0.45);
-  --tab-active-border: #0e7490;
+  --tab-active-border: #0d6f8a; /* D5 */
 
   --glyph-open-color: #d9383a;
   --glyph-done-color: #2b8a3e;
