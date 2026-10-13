@@ -158,9 +158,9 @@ test.describe("keyboard commands change the symbol at the caret", () => {
     await page.keyboard.press("ArrowDown");
     await page.keyboard.press("ControlOrMeta+3");
     expect(await activeTabContent(page)).toBe("v plain text\n=> > a follow-up\n- a bullet");
-    await page.keyboard.press("ArrowDown"); // a bullet is left alone
+    await page.keyboard.press("ArrowDown"); // a bullet gets the symbol in front (§367)
     await page.keyboard.press("ControlOrMeta+1");
-    expect(await activeTabContent(page)).toBe("v plain text\n=> > a follow-up\n- a bullet");
+    expect(await activeTabContent(page)).toBe("v plain text\n=> > a follow-up\n# - a bullet");
   });
 
   test("a multi-line selection: each line by its own reference column", async ({ page }) => {

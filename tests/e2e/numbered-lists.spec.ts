@@ -301,7 +301,7 @@ test.describe("things that are NOT numbered lists", () => {
     await setEditorText(page, "# 1. an action");
     await page.keyboard.press("End");
     await page.keyboard.press("Enter");
-    expect(await activeTabContent(page)).toBe("# 1. an action\n# "); // continued as an action, not as a numbered item
+    expect(await activeTabContent(page)).toBe("# 1. an action\n# 2. "); // an action continues with the next number (§367)
   });
 });
 
@@ -317,14 +317,14 @@ test.describe("numbered lists: everything else stays as it was", () => {
     expect(await statusCounts(page)).toMatchObject({ open: 0, closed: 0, forwarded: 0 });
   });
 
-  test("Ctrl+1 leaves a numbered item alone (like a bullet) but promotes prose that merely starts with a number", async ({ page }) => {
+  test("Ctrl+1 puts the symbol in front of a numbered item (§367) and promotes prose that merely starts with a number", async ({ page }) => {
     await setEditorText(page, "1. item\n3.5 hours");
     await page.keyboard.press("ControlOrMeta+Home");
     await page.keyboard.press("ControlOrMeta+1");
-    expect(await activeTabContent(page)).toBe("1. item\n3.5 hours");
+    expect(await activeTabContent(page)).toBe("# 1. item\n3.5 hours");
     await page.keyboard.press("ArrowDown");
     await page.keyboard.press("ControlOrMeta+1");
-    expect(await activeTabContent(page)).toBe("1. item\n# 3.5 hours");
+    expect(await activeTabContent(page)).toBe("# 1. item\n# 3.5 hours");
   });
 
   test("a numbered line that is a section title keeps its underline: Enter does not insert a number between them", async ({ page }) => {
