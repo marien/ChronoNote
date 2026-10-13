@@ -70,6 +70,7 @@ whole `=> ` token in one step, as if un-delegating the line.
 | `(topic)` (right after the action symbol) | `(topic)` as an upright rounded pill (parentheses hidden until the line is edited or hovered, without shifting the text) | **Topic tag** | Groups actions by subject. Only recognised immediately after a leading `# `/`v `/`> `/`x ` or a `=> <symbol> `; a parenthesised word anywhere else, or in prose, stays plain text. Not counted anywhere. |
 | `! ` | rest of line rendered bold, in an emphasis color | **Emphasis / Remember** | Purely informational — not an action, not counted anywhere, doesn't block tab close. Searchable like any other line via Cross-Tab Search; no dedicated drawer. |
 | `Heading\n====` | Setext H1 Display | **Section / Meeting Header** | Section delimiter for manual section import and meeting action history. |
+| `Heading\n----` | the `-` line drawn as a single rule | **Sub-section header** | Purely visual: a line of three or more `-` under a title inside a section. Not a section for Section History, Peek or the line menu (§366). |
 
 A line that is no longer open (done `v `, deferred `> `, won't-do `x `, a discussed `. ` or postponed `, ` topic, or a `=> v `/`=> > `/`=> x ` follow-up) is drawn slightly
 dimmed so open work stands out; it returns to full strength on hover and while the caret or selection is on the line.
