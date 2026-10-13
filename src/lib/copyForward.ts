@@ -52,7 +52,7 @@ import {
   type WriteGuard,
 } from "./persistence";
 import { extractSectionBody, findNextSectionOccurrenceOnDisk } from "./history";
-import { countOpenActionsInText, deferOpenActionsInText } from "./paste";
+import { countOpenActionsInText, deferOpenActionsInText, forwardLink, OPEN_ACTION_LINE, withFromLink } from "./paste";
 import { getSectionHeaderForLine, normalizeHeaderTitle, titleForMatching } from "./tokens";
 import { underlineFor } from "./sectionFormat";
 import { t } from "./i18n";
@@ -192,15 +192,47 @@ async function commitCopyForward(
   // A source that is not open is written back only if it is still what we read.
   const srcGuard: WriteGuard = srcDiskHash ? { kind: "hash", hash: srcDiskHash } : { kind: "none" };
 
-  const srcLines = srcContent.split("\n");
-  const selectedLines = srcLines.slice(fromLine, toLine + 1);
-  const selectedText = selectedLines.join("\n");
-  const deferredLines = deferOpenActionsInText(selectedText).split("\n");
-  const insertLines = insertLinesOverride ?? selectedLines;
-
   if (target.kind === "tab" && !list0.find((t) => t.id === target.tabId)) return;
   const targetFilename =
     target.kind === "tab" ? list0.find((t) => t.id === target.tabId)!.filename : `${target.dateIso}.txt`;
+
+  let targetContent: string | null = null;
+  if (targetFilename === sourceFilename) {
+    targetContent = srcContent;
+  } else if (target.kind === "tab") {
+    targetContent = list0.find((t) => t.id === target.tabId)?.content ?? null;
+  } else {
+    const tTab = list0.find((t) => t.filename === targetFilename);
+    if (tTab) {
+      targetContent = tTab.content;
+    } else {
+      try {
+        const read = await api.readNoteWithMetadata(targetFilename);
+        targetContent = read.content;
+      } catch {
+        targetContent = null;
+      }
+    }
+  }
+
+  const isNewSection = !targetContent || extractSectionBody(targetContent.split("\n"), targetHeader) === null;
+  const targetDate = targetFilename.replace(/\.txt$/, "");
+  const targetSection = (isNewSection ? newSectionHeaderText : targetHeader).trim();
+  const toSuffix = forwardLink(">", targetDate, targetSection);
+
+  const srcLines = srcContent.split("\n");
+  const selectedLines = srcLines.slice(fromLine, toLine + 1);
+  const selectedText = selectedLines.join("\n");
+  const deferredLines = deferOpenActionsInText(selectedText, toSuffix).split("\n");
+
+  const srcDate = sourceFilename.replace(/\.txt$/, "");
+  const baseInsertLines = insertLinesOverride ?? selectedLines;
+  const insertLines = baseInsertLines.map((line, i) => {
+    if (!OPEN_ACTION_LINE.test(line)) return line;
+    const srcSection = getSectionHeaderForLine(srcLines, fromLine + i).trim();
+    const fromSuffix = forwardLink("<", srcDate, srcSection);
+    return withFromLink(line, fromSuffix);
+  });
 
   let list = list0;
   let sourceKept = false;

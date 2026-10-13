@@ -14,7 +14,7 @@ import { isSetextUnderline } from "../tokens";
 import { locale, t } from "../i18n";
 
 export const DATE_LINK_REGEX =
-  /(?<=\([<>])\d{4}-\d{2}-\d{2}(?:#[^)\r\n]+)?(?=\))|(?<![a-zA-Z0-9])\d{4}-\d{2}-\d{2}(?:#[^\s\r\n]+)?(?![a-zA-Z0-9])/g;
+  /(?<=\([<>]?)\d{4}-\d{2}-\d{2}(?:#[^)\r\n]+)?(?=\))|(?<![a-zA-Z0-9])\d{4}-\d{2}-\d{2}(?![a-zA-Z0-9])/g;
 
 const dateLinkMatcher = new MatchDecorator({
   regexp: DATE_LINK_REGEX,
@@ -37,13 +37,17 @@ const dateLinkMatcher = new MatchDecorator({
     const title =
       isMac && get(locale) === "en" ? "Cmd+Click to open this day" : get(t)("editor.dateLink.title");
 
+    const prevChar = from > 0 ? view.state.doc.sliceString(from - 1, from) : "";
+    const isBracketed = prevChar === "(" || prevChar === "<" || prevChar === ">";
+    const dateTarget = isBracketed ? `(${matchedText})` : matchedText;
+
     add(
       from,
       from + matchedText.length,
       Decoration.mark({
         class: "cm-link cm-date-link",
         attributes: {
-          "data-date-target": matchedText,
+          "data-date-target": dateTarget,
           title,
         },
       }),

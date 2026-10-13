@@ -927,6 +927,8 @@ export type TranslationParams = {
   "commandPalette.sectionsGroup": undefined;
   "shortcuts.navigateBack.label": undefined;
   "statusBar.backTo": { date: string };
+  "shortcuts.navigateForward.label": undefined;
+  "statusBar.forwardTo": { date: string };
   "editor.dateLink.title": undefined;
   "toast.dateLink.sectionNotFound": { section: string };
 };

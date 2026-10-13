@@ -1,5 +1,5 @@
 import { get } from "svelte/store";
-import { activeTabId, backStack, type BackStackEntry, editorApi, showToast, tabs } from "./stores";
+import { activeTabId, backStack, forwardStack, type BackStackEntry, editorApi, showToast, tabs } from "./stores";
 import { jumpToFileLine, openOrCreateDatedFile } from "./tabs";
 import { isSetextUnderline, normalizeHeaderTitle, titleForMatching } from "./tokens";
 import { t } from "./i18n";
@@ -15,17 +15,20 @@ export function parseDateLink(text: string): { date: string; section?: string } 
   let dateStr = "";
   let sectionRaw: string | undefined;
 
-  // A forward link: "(>2026-10-14#Weekly Sync)" (where it went) or "(<2026-10-13)" (where it came from).
-  const fromToMatch = /^\(?[<>](\d{4}-\d{2}-\d{2})(?:#([^)]*))?\)?$/.exec(trimmed);
-  if (fromToMatch) {
-    dateStr = fromToMatch[1];
-    sectionRaw = fromToMatch[2];
+  // A date with a section is a link ONLY in brackets: "(2026-10-03#Weekly Sync)", "(>2026-10-14#Weekly Sync)", "(<2026-10-13#Standup)".
+  // "(2026-10-03)" is also a link to the day.
+  if (trimmed.startsWith("(") && trimmed.endsWith(")")) {
+    const inner = trimmed.slice(1, -1).trim();
+    const innerMatch = /^[<>]?(\d{4}-\d{2}-\d{2})(?:#([^)]*))?$/.exec(inner);
+    if (!innerMatch) return null;
+    dateStr = innerMatch[1];
+    sectionRaw = innerMatch[2];
   } else {
-    // Pure date link: "2026-10-03" or "2026-10-03#Standup"
-    const bareMatch = /^(\d{4}-\d{2}-\d{2})(?:#(.*))?$/.exec(trimmed);
+    // Bare date: "2026-10-03". A bare "2026-10-03#Standup" links only to the date (day); the section stays plain text.
+    const bareMatch = /^(\d{4}-\d{2}-\d{2})(?:#.*)?$/.exec(trimmed);
     if (!bareMatch) return null;
     dateStr = bareMatch[1];
-    sectionRaw = bareMatch[2];
+    sectionRaw = undefined;
   }
 
   const parts = dateStr.split("-").map((p) => parseInt(p, 10));
@@ -61,6 +64,14 @@ export function pushBackStack(entry: BackStackEntry) {
   });
 }
 
+export function pushForwardStack(entry: BackStackEntry) {
+  forwardStack.update((stack) => {
+    const next = [...stack, entry];
+    if (next.length > 50) return next.slice(next.length - 50);
+    return next;
+  });
+}
+
 export async function openDateLink(target: string | { date: string; section?: string }) {
   const parsed = typeof target === "string" ? parseDateLink(target) : target;
   if (!parsed) return;
@@ -71,6 +82,7 @@ export async function openDateLink(target: string | { date: string; section?: st
     const lineIdx = editorApi ? editorApi.getCursorLineIdx() : 0;
     pushBackStack({ filename: currentTab.filename, lineIdx });
   }
+  forwardStack.set([]);
 
   const filename = `${parsed.date}.txt`;
   await openOrCreateDatedFile(parsed.date);
@@ -88,6 +100,12 @@ export async function openDateLink(target: string | { date: string; section?: st
 }
 
 export async function navigateBack() {
+  const currentTabId = get(activeTabId);
+  const currentTab = get(tabs).find((t) => t.id === currentTabId);
+  const currentPlace: BackStackEntry | null = currentTab
+    ? { filename: currentTab.filename, lineIdx: editorApi ? editorApi.getCursorLineIdx() : 0 }
+    : null;
+
   const stack = [...get(backStack)];
   let target: BackStackEntry | null = null;
   while (stack.length > 0) {
@@ -102,6 +120,44 @@ export async function navigateBack() {
   backStack.set(stack);
 
   if (target) {
+    if (currentPlace) {
+      pushForwardStack(currentPlace);
+    }
+    const entry: BackStackEntry = target;
+    const list = get(tabs);
+    const existing = list.find((t) => t.filename === entry.filename);
+    await jumpToFileLine({
+      tabId: existing?.id,
+      filename: entry.filename,
+      lineIdx: entry.lineIdx,
+    });
+  }
+}
+
+export async function navigateForward() {
+  const currentTabId = get(activeTabId);
+  const currentTab = get(tabs).find((t) => t.id === currentTabId);
+  const currentPlace: BackStackEntry | null = currentTab
+    ? { filename: currentTab.filename, lineIdx: editorApi ? editorApi.getCursorLineIdx() : 0 }
+    : null;
+
+  const stack = [...get(forwardStack)];
+  let target: BackStackEntry | null = null;
+  while (stack.length > 0) {
+    const entry = stack.pop()!;
+    const list = get(tabs);
+    const existing = list.find((t) => t.filename === entry.filename);
+    if (existing || /^\d{4}-\d{2}-\d{2}(\.txt)?$/.test(entry.filename)) {
+      target = entry;
+      break;
+    }
+  }
+  forwardStack.set(stack);
+
+  if (target) {
+    if (currentPlace) {
+      pushBackStack(currentPlace);
+    }
     const entry: BackStackEntry = target;
     const list = get(tabs);
     const existing = list.find((t) => t.filename === entry.filename);

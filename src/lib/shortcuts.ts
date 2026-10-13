@@ -82,6 +82,13 @@ export const SHORTCUTS: ShortcutDef[] = [
     ],
   },
   {
+    id: "navigateForward",
+    combos: [
+      { mod: true, alt: true, code: "ArrowRight", platforms: ["other"] },
+      { mod: true, code: "BracketRight", platforms: ["mac"] },
+    ],
+  },
+  {
     id: "closeTab",
     combos: [{ mod: true, code: "KeyW" }],
     extra: "middle-click",
@@ -274,6 +281,7 @@ export const SHORTCUT_LABEL_KEYS = {
   reopenClosedTab: "shortcuts.reopenClosedTab.label",
   openDateNote: "shortcuts.openDateNote.label",
   navigateBack: "shortcuts.navigateBack.label",
+  navigateForward: "shortcuts.navigateForward.label",
   closeTab: "shortcuts.closeTab.label",
   cycleTab: "shortcuts.cycleTab.label",
   indentDedent: "shortcuts.indentDedent.label",
@@ -413,6 +421,7 @@ export const DRAWER_ROWS: (string | [string, string])[] = [
   "reopenClosedTab",
   "openDateNote",
   "navigateBack",
+  "navigateForward",
   "closeTab",
   "cycleTab",
   "indentDedent",

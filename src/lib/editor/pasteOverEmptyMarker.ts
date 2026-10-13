@@ -1,7 +1,7 @@
 import { EditorState } from "@codemirror/state";
 import { ACTION_CLASS, BULLET_CLASS, TOPIC_CLASS } from "../grammar/symbols";
 import { stateFirst } from "../tokens";
-import { OPEN_ITEM_LINE, TRAILING_LINKS, takePendingPasteFrom } from "../paste";
+import { OPEN_ACTION_LINE, takePendingPasteFrom, withFromLink } from "../paste";
 
 /** A line that so far holds only a symbol (`# `, `o `, `- `), with nothing typed after it. */
 const EMPTY_MARKER = new RegExp(String.raw`^(\s*)(?:${ACTION_CLASS}|${TOPIC_CLASS}|${BULLET_CLASS})\s+$`);
@@ -16,7 +16,7 @@ export function rewritePasted(text: string, fromSuffixes?: string[]): string {
     .map((line, i) => {
       let l = stateFirst(line) ?? line;
       const suffix = fromSuffixes?.[i];
-      if (suffix && new RegExp(OPEN_ITEM_LINE).test(l)) l = l.replace(TRAILING_LINKS, "") + suffix;
+      if (suffix && OPEN_ACTION_LINE.test(l)) l = withFromLink(l, suffix);
       return l;
     })
     .join("\n");

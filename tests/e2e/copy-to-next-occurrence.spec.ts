@@ -30,10 +30,12 @@ test.describe("copy to next occurrence (#66)", () => {
     await page.keyboard.press("Shift+End");
     await page.keyboard.press("ControlOrMeta+Shift+Period");
 
-    await expect.poll(() => mockNote(page, "2026-09-01.txt")).toBe("Weekly Sync\n============\n> renew the TLS cert");
+    await expect
+      .poll(() => mockNote(page, "2026-09-01.txt"))
+      .toBe("Weekly Sync\n============\n> renew the TLS cert (>2026-09-08#Weekly Sync)");
     await expect
       .poll(() => mockNote(page, "2026-09-08.txt"))
-      .toBe("Weekly Sync\n============\n- prior notes\n\n# renew the TLS cert");
+      .toBe("Weekly Sync\n============\n- prior notes\n\n# renew the TLS cert (<2026-09-01#Weekly Sync)");
   });
 
   test("#75: keeps the cursor on the line just marked deferred, instead of jumping to the top of the document", async ({
@@ -57,7 +59,9 @@ test.describe("copy to next occurrence (#66)", () => {
     await page.keyboard.press("Shift+End");
     await page.keyboard.press("ControlOrMeta+Shift+Period");
 
-    await expect.poll(() => mockNote(page, "2026-09-01.txt")).toBe("Weekly Sync\n============\n> renew the TLS cert");
+    await expect
+      .poll(() => mockNote(page, "2026-09-01.txt"))
+      .toBe("Weekly Sync\n============\n> renew the TLS cert (>2026-09-08#Weekly Sync)");
 
     // Typing right after the copy should land on the (now-deferred) third
     // line — before the fix, the full-document content push reset the
@@ -66,7 +70,7 @@ test.describe("copy to next occurrence (#66)", () => {
     await page.keyboard.type("X");
     await expect
       .poll(() => mockNote(page, "2026-09-01.txt"))
-      .toBe("Weekly Sync\n============\nX> renew the TLS cert");
+      .toBe("Weekly Sync\n============\nX> renew the TLS cert (>2026-09-08#Weekly Sync)");
   });
 
   test("nothing found (no calendar, nothing on disk) prompts for a date; picking one creates the file and section", async ({
@@ -92,10 +96,12 @@ test.describe("copy to next occurrence (#66)", () => {
     await picker.locator(".datepicker-jump").fill("2026-09-20");
     await page.keyboard.press("Enter");
 
-    await expect.poll(() => mockNote(page, "2026-09-01.txt")).toBe("Weekly Sync\n===========\n> renew the TLS cert");
+    await expect
+      .poll(() => mockNote(page, "2026-09-01.txt"))
+      .toBe("Weekly Sync\n===========\n> renew the TLS cert (>2026-09-20#Weekly Sync)");
     await expect
       .poll(() => mockNote(page, "2026-09-20.txt"))
-      .toBe("Weekly Sync\n===========\n# renew the TLS cert\n");
+      .toBe("Weekly Sync\n===========\n# renew the TLS cert (<2026-09-01#Weekly Sync)\n");
     expect(await mockFiles(page)).toContain("2026-09-20.txt");
   });
 
@@ -122,10 +128,12 @@ test.describe("copy to next occurrence (#66)", () => {
 
     // No note existed yet for 2026-09-08 — a brand-new section is created
     // there, titled from the calendar's own entry.
-    await expect.poll(() => mockNote(page, "2026-09-01.txt")).toBe("Weekly Sync\n===========\n> renew the TLS cert");
+    await expect
+      .poll(() => mockNote(page, "2026-09-01.txt"))
+      .toBe("Weekly Sync\n===========\n> renew the TLS cert (>2026-09-08#Weekly Sync)");
     await expect
       .poll(() => mockNote(page, "2026-09-08.txt"))
-      .toBe("Weekly Sync\n===========\n# renew the TLS cert\n");
+      .toBe("Weekly Sync\n===========\n# renew the TLS cert (<2026-09-01#Weekly Sync)\n");
   });
 
   test("cancelling the prompt (Escape) abandons the copy — the source is left untouched", async ({ page }) => {

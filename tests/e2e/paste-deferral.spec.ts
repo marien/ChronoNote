@@ -107,7 +107,7 @@ test.describe("copy/paste deferral", () => {
     // The open topic is deferred (`,`), the open action too (`>`); the discussed one is left alone.
     await expect
       .poll(() => mockNote(page, "2026-09-03.txt"))
-      .toBe("Weekly\n======\n, discuss the budget (>2026-09-07#Top priorities)\n. already discussed\n> send the numbers (>2026-09-07#Top priorities)\n- other stuff");
+      .toBe("Weekly\n======\n, discuss the budget\n. already discussed\n> send the numbers (>2026-09-07#Top priorities)\n- other stuff");
     // ...and the pasted copy keeps them open.
     await expect.poll(() => mockNote(page, "2026-09-07.txt")).toContain("o discuss the budget");
   });

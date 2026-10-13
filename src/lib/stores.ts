@@ -65,6 +65,7 @@ export interface BackStackEntry {
   lineIdx: number;
 }
 export const backStack = writable<BackStackEntry[]>([]);
+export const forwardStack = writable<BackStackEntry[]>([]);
 /** #72: today's date, kept live via `boot.ts`'s `wireDateRollover()` — a
  * plain `todayISO()` call inside a template expression (as the top bar's
  * past/today/future tab colouring used to do) only ever re-evaluates when

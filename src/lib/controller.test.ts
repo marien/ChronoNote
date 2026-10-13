@@ -1030,8 +1030,21 @@ describe("toggleActionLine / forwardActionToToday", () => {
     vi.setSystemTime(new Date(2026, 8, 15));
     controller.forwardActionToToday("src", 0);
     const list = get(controller.tabs);
-    expect(list.find((t) => t.id === "src")!.content).toBe("> call the client");
-    expect(list.find((t) => t.id === "today")!.content).toBe("# call the client\nexisting note");
+    expect(list.find((t) => t.id === "src")!.content).toBe("> call the client (>2026-09-15)");
+    expect(list.find((t) => t.id === "today")!.content).toBe("# call the client (<2026-08-01)\nexisting note");
+    vi.useRealTimers();
+  });
+
+  it("forwards an action from under a section, including the source section in the from-link", () => {
+    controller.tabs.set([
+      tab({ id: "src", filename: "2026-08-01.txt", content: "Standup\n=======\n# call the client" }),
+      tab({ id: "today", filename: "2026-09-15.txt", content: "existing note" }),
+    ]);
+    vi.setSystemTime(new Date(2026, 8, 15));
+    controller.forwardActionToToday("src", 2);
+    const list = get(controller.tabs);
+    expect(list.find((t) => t.id === "src")!.content).toBe("Standup\n=======\n> call the client (>2026-09-15)");
+    expect(list.find((t) => t.id === "today")!.content).toBe("# call the client (<2026-08-01#Standup)\nexisting note");
     vi.useRealTimers();
   });
 
@@ -1040,7 +1053,7 @@ describe("toggleActionLine / forwardActionToToday", () => {
     vi.setSystemTime(new Date(2026, 8, 15));
     apiMock.readNoteWithMetadata.mockResolvedValue(withMeta("old\n"));
     controller.forwardActionToToday("src", 0);
-    await vi.waitFor(() => expect(apiMock.writeNote).toHaveBeenCalledWith("2026-09-15.txt", "# task\nold\n", "h:old\n"));
+    await vi.waitFor(() => expect(apiMock.writeNote).toHaveBeenCalledWith("2026-09-15.txt", "# task (<2026-08-01)\nold\n", "h:old\n"));
     vi.useRealTimers();
   });
 
@@ -1369,6 +1382,37 @@ describe("recordCopiedAction / handlePasteIntoTab (§64)", () => {
       "Sync\n====\n> call vendor (<2026-08-01#Standup) (>2026-09-15#Planning)",
     );
     expect(rewritePasted(copied, fromText!)).toBe("# call vendor (<2026-08-10#Sync)");
+  });
+
+  it("withToLink / withFromLink replace vs keep rules", () => {
+    // withToLink replaces trailing (>…), keeping any (<…)
+    expect(controller.withToLink("> task", "(>2026-10-15#Planning)")).toBe("> task (>2026-10-15#Planning)");
+    expect(controller.withToLink("> task (>2026-10-10#Old)", "(>2026-10-15#Planning)")).toBe("> task (>2026-10-15#Planning)");
+    expect(controller.withToLink("> task (<2026-10-05#Start)", "(>2026-10-15#Planning)")).toBe("> task (<2026-10-05#Start) (>2026-10-15#Planning)");
+    expect(controller.withToLink("> task (<2026-10-05#Start) (>2026-10-10#Old)", "(>2026-10-15#Planning)")).toBe("> task (<2026-10-05#Start) (>2026-10-15#Planning)");
+
+    // withFromLink replaces all trailing links
+    expect(controller.withFromLink("# task", "(<2026-10-05#Start)")).toBe("# task (<2026-10-05#Start)");
+    expect(controller.withFromLink("# task (<2026-10-01#Older)", "(<2026-10-05#Start)")).toBe("# task (<2026-10-05#Start)");
+    expect(controller.withFromLink("# task (>2026-10-01#Next)", "(<2026-10-05#Start)")).toBe("# task (<2026-10-05#Start)");
+    expect(controller.withFromLink("# task (<2026-10-01#Older) (>2026-10-03#Next)", "(<2026-10-05#Start)")).toBe("# task (<2026-10-05#Start)");
+  });
+
+  it("pasting an open topic forwards it to skipped (', ') without any links, while open actions get links", () => {
+    controller.tabs.set([
+      tab({ id: "src", filename: "2026-08-01.txt", content: "Weekly\n======\no topic\n# action" }),
+      tab({ id: "today", filename: "2026-09-15.txt", content: "Notes\n=====\n" }),
+    ]);
+    vi.setSystemTime(new Date(2026, 8, 15));
+    const copied = "o topic\n# action";
+    controller.recordCopiedAction(copied, "src", 14);
+    const fromText = controller.handlePasteIntoTab("today", copied);
+    vi.useRealTimers();
+
+    expect(fromText).toEqual(["", " (<2026-08-01#Weekly)"]);
+    expect(get(controller.tabs).find((t) => t.id === "src")!.content).toBe(
+      "Weekly\n======\n, topic\n> action (>2026-09-15#Notes)",
+    );
   });
 });
 
@@ -1736,9 +1780,11 @@ describe("copySelectionToNextOccurrence (#66)", () => {
 
     await controller.copySelectionToNextOccurrence();
 
-    expect(get(controller.tabs).find((t) => t.id === "src")!.content).toBe("Weekly Sync\n====\n> renew the cert");
+    expect(get(controller.tabs).find((t) => t.id === "src")!.content).toBe(
+      "Weekly Sync\n====\n> renew the cert (>2026-09-08#Weekly Sync)",
+    );
     expect(get(controller.tabs).find((t) => t.id === "future")!.content).toBe(
-      "Weekly Sync\n====\n- prior notes\n\n# renew the cert",
+      "Weekly Sync\n====\n- prior notes\n\n# renew the cert (<2026-09-01#Weekly Sync)",
     );
     expect(apiMock.readAgendaAfter).not.toHaveBeenCalled();
   });
@@ -1757,12 +1803,14 @@ describe("copySelectionToNextOccurrence (#66)", () => {
     await controller.copySelectionToNextOccurrence();
 
     expect(apiMock.readAgendaAfter).toHaveBeenCalledWith("2026-09-01");
-    expect(get(controller.tabs).find((t) => t.id === "src")!.content).toBe("Weekly Sync\n====\n> renew the cert");
+    expect(get(controller.tabs).find((t) => t.id === "src")!.content).toBe(
+      "Weekly Sync\n====\n> renew the cert (>2026-09-08#Weekly Sync)",
+    );
     // No open tab and nothing on disk for 2026-09-08.txt — written straight
     // to disk as a brand-new section, underlined to the header's own length.
     expect(apiMock.writeNote).toHaveBeenCalledWith(
       "2026-09-08.txt",
-      "Weekly Sync\n===========\n# renew the cert\n",
+      "Weekly Sync\n===========\n# renew the cert (<2026-09-01#Weekly Sync)\n",
       EMPTY_CONTENT_HASH, // a new file: its creation is guarded as empty content
     );
     controller.agendaFileExists.set(false);
@@ -1782,7 +1830,7 @@ describe("copySelectionToNextOccurrence (#66)", () => {
     await controller.copySelectionToNextOccurrence();
 
     expect(get(controller.tabs).find((t) => t.id === "future")!.content).toBe(
-      "Weekly Sync\n====\n- prior notes\n\n# renew the cert",
+      "Weekly Sync\n====\n- prior notes\n\n# renew the cert (<2026-09-01#Weekly Sync)",
     );
     controller.agendaFileExists.set(false);
   });
@@ -1807,10 +1855,12 @@ describe("copySelectionToNextOccurrence (#66)", () => {
 
     await controller.resolveCopyForwardPending("2026-09-20");
 
-    expect(get(controller.tabs).find((t) => t.id === "src")!.content).toBe("Weekly Sync\n====\n> renew the cert");
+    expect(get(controller.tabs).find((t) => t.id === "src")!.content).toBe(
+      "Weekly Sync\n====\n> renew the cert (>2026-09-20#Weekly Sync)",
+    );
     expect(apiMock.writeNote).toHaveBeenCalledWith(
       "2026-09-20.txt",
-      "Weekly Sync\n===========\n# renew the cert\n",
+      "Weekly Sync\n===========\n# renew the cert (<2026-09-01#Weekly Sync)\n",
       EMPTY_CONTENT_HASH, // a new file: its creation is guarded as empty content
     );
   });
@@ -1839,10 +1889,10 @@ describe("copySelectionToNextOccurrence (#66)", () => {
     await controller.copySelectionToNextOccurrence();
 
     expect(get(controller.tabs).find((t) => t.id === "src")!.content).toBe(
-      "Weekly Sync\n====\nTalked to Sam => > follow up",
+      "Weekly Sync\n====\nTalked to Sam => > follow up (>2026-09-08#Weekly Sync)",
     );
     expect(get(controller.tabs).find((t) => t.id === "future")!.content).toBe(
-      "Weekly Sync\n====\nTalked to Sam => # follow up",
+      "Weekly Sync\n====\nTalked to Sam => # follow up (<2026-09-01#Weekly Sync)",
     );
   });
 
@@ -1857,10 +1907,28 @@ describe("copySelectionToNextOccurrence (#66)", () => {
     await controller.copySelectionToNextOccurrence();
 
     expect(get(controller.tabs).find((t) => t.id === "src")!.content).toBe(
-      "Weekly Sync\n====\n> first\nplain\n> second",
+      "Weekly Sync\n====\n> first (>2026-09-08#Weekly Sync)\nplain\n> second (>2026-09-08#Weekly Sync)",
     );
     expect(get(controller.tabs).find((t) => t.id === "future")!.content).toBe(
-      "Weekly Sync\n====\n# first\nplain\n# second",
+      "Weekly Sync\n====\n# first (<2026-09-01#Weekly Sync)\nplain\n# second (<2026-09-01#Weekly Sync)",
+    );
+  });
+
+  it("copying an open topic defers it without links", async () => {
+    controller.tabs.set([
+      tab({ id: "src", filename: "2026-09-01.txt", content: "Weekly Sync\n====\no a topic" }),
+      tab({ id: "future", filename: "2026-09-08.txt", content: "Weekly Sync\n====\n" }),
+    ]);
+    controller.activeTabId.set("src");
+    selectFrom("o a topic", 2, 2);
+
+    await controller.copySelectionToNextOccurrence();
+
+    expect(get(controller.tabs).find((t) => t.id === "src")!.content).toBe(
+      "Weekly Sync\n====\n, a topic",
+    );
+    expect(get(controller.tabs).find((t) => t.id === "future")!.content).toBe(
+      "Weekly Sync\n====\no a topic",
     );
   });
 
@@ -1903,9 +1971,11 @@ describe("carryHistorySelectionForward (2026-09-24 redesign, Section History tak
       { kind: "here", tabId: "here" },
       ["# renew the cert"],
     );
-    expect(get(controller.tabs).find((t) => t.id === "src")!.content).toBe("Sync\n====\n> renew the cert");
+    expect(get(controller.tabs).find((t) => t.id === "src")!.content).toBe(
+      "Sync\n====\n> renew the cert (>2026-09-10#sync)",
+    );
     expect(get(controller.tabs).find((t) => t.id === "here")!.content).toBe(
-      "Sync\n====\n- prior notes\n\n# renew the cert",
+      "Sync\n====\n- prior notes\n\n# renew the cert (<2026-09-01#Sync)",
     );
   });
 
@@ -1924,10 +1994,14 @@ describe("carryHistorySelectionForward (2026-09-24 redesign, Section History tak
     );
     expect(apiMock.writeNote).toHaveBeenCalledWith(
       "2026-08-01.txt",
-      "Sync\n====\n> an old action",
+      "Sync\n====\n> an old action (>2026-09-12#Sync)",
       "h:Sync\n====\n# an old action",
     );
-    expect(apiMock.writeNote).toHaveBeenCalledWith("2026-09-12.txt", "Sync\n====\n# an old action\n", EMPTY_CONTENT_HASH);
+    expect(apiMock.writeNote).toHaveBeenCalledWith(
+      "2026-09-12.txt",
+      "Sync\n====\n# an old action (<2026-08-01#Sync)\n",
+      EMPTY_CONTENT_HASH,
+    );
   });
 
   it("uses insertLinesOverride (e.g. 'action only') instead of the verbatim source lines", async () => {
@@ -1945,10 +2019,12 @@ describe("carryHistorySelectionForward (2026-09-24 redesign, Section History tak
     );
     // The source's whole line is what gets deferred (still has the prose)...
     expect(get(controller.tabs).find((t) => t.id === "src")!.content).toBe(
-      "Sync\n====\nTalked to Sam => > follow up",
+      "Sync\n====\nTalked to Sam => > follow up (>2026-09-10#sync)",
     );
     // ...but only the extracted action lands in the target.
-    expect(get(controller.tabs).find((t) => t.id === "here")!.content).toBe("Sync\n====\n# follow up");
+    expect(get(controller.tabs).find((t) => t.id === "here")!.content).toBe(
+      "Sync\n====\n# follow up (<2026-09-01#Sync)",
+    );
   });
 
   // 2026-09-26: a real bug, found in chat — opened from a past note,
@@ -1971,7 +2047,7 @@ describe("carryHistorySelectionForward (2026-09-24 redesign, Section History tak
       ["# renew the cert"],
     );
     expect(get(controller.tabs).find((t) => t.id === "today")!.content).toBe(
-      "Sync\n====\n> renew the cert\n\n# renew the cert",
+      "Sync\n====\n> renew the cert (>2026-09-12#sync)\n\n# renew the cert (<2026-09-12#Sync)",
     );
   });
 
@@ -1991,7 +2067,7 @@ describe("carryHistorySelectionForward (2026-09-24 redesign, Section History tak
     expect(apiMock.writeNote).toHaveBeenCalledTimes(1);
     expect(apiMock.writeNote).toHaveBeenCalledWith(
       "2026-08-01.txt",
-      "Sync\n====\n> an old action\n\n# an old action",
+      "Sync\n====\n> an old action (>2026-08-01#sync)\n\n# an old action (<2026-08-01#Sync)",
       "h:Sync\n====\n# an old action",
     );
   });
@@ -2012,7 +2088,11 @@ describe("carryHistorySelectionForward (2026-09-24 redesign, Section History tak
       { kind: "today", date: "2026-09-12", headerText: "Sync" },
       ["# an old action"],
     );
-    expect(apiMock.writeNote).toHaveBeenCalledWith("2026-09-12.txt", "Sync\n====\n# an old action\n", EMPTY_CONTENT_HASH);
+    expect(apiMock.writeNote).toHaveBeenCalledWith(
+      "2026-09-12.txt",
+      "Sync\n====\n# an old action (<2026-08-01#Sync)\n",
+      EMPTY_CONTENT_HASH,
+    );
     expect(get(controller.toastMessage)).toMatch(/changed on disk, so its items were not marked/);
   });
 

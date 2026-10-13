@@ -40,6 +40,7 @@ export function takePendingPasteFrom(): string[] | null {
  * Capture group 1 is the prefix to preserve as-is (indentation, or the
  * `=> `); group 2 is the trailing space, also preserved. */
 export const OPEN_ITEM_LINE = /(^\s*|=>\s)([#o])(\s)/;
+export const OPEN_ACTION_LINE = /(^\s*|=>\s)#\s/;
 
 /** The forward links a paste adds (§371): `(>2026-10-14#Weekly Sync)` on the source line (where it went) and
  * `(<2026-10-13#Standup)` on the pasted line (where it came from). Ordinary note text, always at the end of the line. */
@@ -47,16 +48,28 @@ export function forwardLink(dir: ">" | "<", date: string, section: string): stri
   return ` (${dir}${date}${section ? `#${section}` : ""})`;
 }
 /** A trailing `(>…)` link, replaced (not doubled) when a line is forwarded again. */
-const TRAILING_TO = /\s*\(>\d{4}-\d{2}-\d{2}(?:#[^)]*)?\)$/;
+export const TRAILING_TO = /\s*\(>\d{4}-\d{2}-\d{2}(?:#[^)]*)?\)$/;
 /** Every trailing `(<…)`/`(>…)` link: a pasted line keeps only the new `(<…)` (the chain stays reachable through
  * the source line's own `(<…)`). */
 export const TRAILING_LINKS = /(?:\s*\([<>]\d{4}-\d{2}-\d{2}(?:#[^)]*)?\))+$/;
 
+export function withToLink(line: string, link: string): string {
+  if (!link || !link.trim()) return line;
+  const suffix = link.startsWith(" ") ? link : ` ${link}`;
+  return line.replace(TRAILING_TO, "").trimEnd() + suffix;
+}
+
+export function withFromLink(line: string, link: string): string {
+  if (!link || !link.trim()) return line;
+  const suffix = link.startsWith(" ") ? link : ` ${link}`;
+  return line.replace(TRAILING_LINKS, "").trimEnd() + suffix;
+}
+
 /** Flips every open action within `text` (a leading `# `, or a `=> #`
  * consequence-action) to deferred `> ` / `=> > `, and open topics `o ` to skipped `, `,
  * leaving everything else byte-for-byte unchanged. When `toSuffix` is passed, appends
- * the `(>…)` link to each deferred line, replacing an existing trailing `(>…)`; a `(<…)` stays, so a line forwarded
- * again reads `> task (<where it came from) (>where it went)`. */
+ * the `(>…)` link only to lines where an action was deferred, replacing an existing trailing `(>…)`;
+ * a `(<…)` stays, so a line forwarded again reads `> task (<where it came from) (>where it went)`. */
 export function deferOpenActionsInText(text: string, toSuffix?: string): string {
   if (!toSuffix) {
     return text.replace(new RegExp(OPEN_ITEM_LINE, "gm"), (_m, p1, sym, p2) => {
@@ -67,14 +80,16 @@ export function deferOpenActionsInText(text: string, toSuffix?: string): string 
   return text
     .split("\n")
     .map((line) => {
+      let isAction = false;
       let replaced = false;
       let deferred = line.replace(new RegExp(OPEN_ITEM_LINE, "g"), (_m, p1, sym, p2) => {
         replaced = true;
+        if (sym === "#") isAction = true;
         const replacement = sym === "#" ? ">" : ",";
         return `${p1}${replacement}${p2}`;
       });
-      if (replaced) {
-        deferred = deferred.replace(TRAILING_TO, "") + toSuffix;
+      if (replaced && isAction) {
+        deferred = withToLink(deferred, toSuffix);
       }
       return deferred;
     })
@@ -267,9 +282,14 @@ export function handlePasteIntoTab(
         ? srcTab.content.slice(0, effectiveOffset).split("\n").length - 1
         : 0;
     // One `(<…)` per copied line, each with the section that line was in: a multi-line copy can span sections.
+    // Open agenda topics get no links; only open actions get from-links.
     const fromSuffixes = copied.text
       .split("\n")
-      .map((_l, i) => forwardLink("<", srcDate, getSectionHeaderForLine(srcLines, srcStartLineIdx + i).trim()));
+      .map((l, i) =>
+        OPEN_ACTION_LINE.test(l)
+          ? forwardLink("<", srcDate, getSectionHeaderForLine(srcLines, srcStartLineIdx + i).trim())
+          : "",
+      );
 
     // Defer every open action *within* the copied block, not just one at
     // its start — pasting a multi-line copy that happens to carry several
@@ -301,8 +321,8 @@ export function handlePasteIntoTab(
     const pastedBlock = copied.text
       .split("\n")
       .map((line, i) => {
-        if (!new RegExp(OPEN_ITEM_LINE).test(line)) return line;
-        return line.replace(TRAILING_LINKS, "") + fromSuffixes[i];
+        if (!OPEN_ACTION_LINE.test(line) || !fromSuffixes[i]) return line;
+        return withFromLink(line, fromSuffixes[i]);
       })
       .join("\n");
 

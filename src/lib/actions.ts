@@ -9,6 +9,7 @@ import { openOrCreateDatedFile } from "./tabs";
 import { compareTabsByRecency, sortFilenamesByRecency } from "./tabSort";
 import { cycleActionSymbol, getSectionHeaderForLine, innermostActionSymbol, normalizeHeaderTitle } from "./tokens";
 import { todayISO } from "./date";
+import { forwardLink, withFromLink, withToLink } from "./paste";
 import { t } from "./i18n";
 import type { ActionSnapshotItem } from "./types";
 
@@ -126,12 +127,16 @@ export function forwardActionToToday(tabId: string, lineIdx: number) {
   if (!match) return;
   const [, indent, , rest] = match;
 
-  lines[lineIdx] = indent + ">" + rest;
+  const todayDate = todayISO();
+  const todayFilename = todayDate + ".txt";
+  const srcDate = src.filename.replace(/\.txt$/, "");
+  const srcSection = getSectionHeaderForLine(lines, lineIdx).trim();
+
+  lines[lineIdx] = withToLink(indent + ">" + rest, forwardLink(">", todayDate, ""));
   // The forwarded copy starts fresh at today's top level — the source's
   // indentation was relative to structure (a bullet, a section) that has
   // no meaning in today's note.
-  const taskText = "#" + rest;
-  const todayFilename = todayISO() + ".txt";
+  const taskText = withFromLink("#" + rest, forwardLink("<", srcDate, srcSection));
 
   let next = writeTabContent(tabId, lines.join("\n"), list);
   const todayTab = next.find((t) => t.filename === todayFilename);

@@ -945,6 +945,8 @@ export const es = {
 
   "shortcuts.navigateBack.label": () => "Volver",
   "statusBar.backTo": (p) => `Volver a ${p?.date ?? `date`}`,
+  "shortcuts.navigateForward.label": () => "Avanzar",
+  "statusBar.forwardTo": (p) => `Avanzar a ${p?.date ?? `date`}`,
   "editor.dateLink.title": () => "Ctrl+clic para abrir este día",
   "toast.dateLink.sectionNotFound": (p) => `Sección no encontrada: ${p?.section ?? `section`}`,
 } satisfies Dictionary;

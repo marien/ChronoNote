@@ -150,6 +150,7 @@
       printNote: () => printActiveNote(),
       openExport: () => openExportModal(),
       navigateBack: () => void controller.navigateBack(),
+      navigateForward: () => void controller.navigateForward(),
     };
 
     // A modal, the find bar or the sync-health popover handles Esc in its own handler, which runs before this
@@ -492,14 +493,17 @@
     window.addEventListener("dragover", onWindowDragOver);
     window.addEventListener("drop", onWindowDrop);
 
-    const onMouseBack = (e: MouseEvent) => {
+    const onMouseNav = (e: MouseEvent) => {
       if (e.button === 3) {
         e.preventDefault();
         void controller.navigateBack();
+      } else if (e.button === 4) {
+        e.preventDefault();
+        void controller.navigateForward();
       }
     };
-    window.addEventListener("mouseup", onMouseBack);
-    window.addEventListener("auxclick", onMouseBack);
+    window.addEventListener("mouseup", onMouseNav);
+    window.addEventListener("auxclick", onMouseNav);
 
     const backNav = wireMobileBackNavigation({
       hasOpenOverlay: () => get(overlays).length > 0 || get(isZenMode),
@@ -514,8 +518,8 @@
       unwireContextMenuGuard();
       unwireCallNote();
       backNav.destroy();
-      window.removeEventListener("mouseup", onMouseBack);
-      window.removeEventListener("auxclick", onMouseBack);
+      window.removeEventListener("mouseup", onMouseNav);
+      window.removeEventListener("auxclick", onMouseNav);
       window.removeEventListener("keydown", onKeydown);
       window.removeEventListener("keydown", noteEscapeStart, true);
       window.removeEventListener("dragenter", onWindowDragEnter);
