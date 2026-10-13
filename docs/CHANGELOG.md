@@ -10523,3 +10523,10 @@ Marien's review of the D choices (2026-10-13), implemented by Gemini 3.8 Flash (
 - **Forward:** `Ctrl+Alt+Right` (`Cmd+]`), the mouse forward button, palette "Go forward", a forward button next to Back in the status bar while there is somewhere to go; a new link jump clears it.
 - Kept as built (Marien): full section title in links, the partial-line rule, any date is a link, a date without a note opens an empty one, section not found opens at the top, Back/Forward not kept across restarts, Replace in the current note only, Go to section via `#` in the palette, Shift+right-click for spelling suggestions. **Future improvement:** an in-app spell-check language.
 - Found at integration (full browser suite): 7 Section History specs still expected copies without links; updated.
+
+## 374. Back and Forward as a small dismissible toast; spell check diagnosis
+
+**Status: on `main`, unreleased (after beta 0.32.0-2).**
+
+- **Marien (0.32.0-2):** the Back/Forward buttons stayed in the status bar long after they were needed. They are now a small card at the top right (`NavToast.svelte`): Back (and Forward when there is somewhere to go) plus a close button. A link jump shows it (again, also after it was closed); the keyboard shortcuts and mouse buttons keep working while it is hidden and do not bring it back; it hides by itself when there is nowhere to go. Gemini 3.8 Flash (brief H5). Tests: `date-links.spec.ts`.
+- **Spell check "does nothing" (Marien, one system):** a native check on an isolated debug build (own app identifier, throwaway notes folder, attached over CDP) showed WebView2 does underline misspelled words, but against the page language (`<html lang>` = the app's display language): with Dutch UI, English words were flagged. A display language without a Windows spelling dictionary therefore checks nothing, the likely cause. After attribute experiments the spell checker stopped marking anything until all WebView2 processes ended, so further results were not reliable. Waiting for Marien's checks on that system before changing which language the editor uses.
