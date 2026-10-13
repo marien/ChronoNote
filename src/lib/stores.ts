@@ -542,6 +542,9 @@ export interface EditorApi {
   pulseLine?: (lineIdx: number) => void;
   /** Programmatically replace lines fromLineIdx to toLineIdx (0-based inclusive) with text in one transaction. */
   replaceLines?: (fromLineIdx: number, toLineIdx: number, text: string) => void;
+  /** Programmatically replace range [from, to] with text in one transaction. */
+  replaceRange?: (from: number, to: number, text: string) => void;
+  getView?: () => any;
 }
 
 
@@ -634,4 +637,12 @@ export const conflictInfo = writable<{
 /** B5: right-click editor context menu position and line content under caret. */
 /** The line menu: where it opens, the line's text and its place in the note (section title, inside a section, or
  * above the first one), which decides what the menu offers. */
-export const editorContextMenu = writable<{ x: number; y: number; line: string; role: LineSectionRole } | null>(null);
+export interface EditorContextMenuState {
+  x: number;
+  y: number;
+  line: string;
+  role: LineSectionRole;
+  misspelled?: { word: string; from: number; to: number } | null;
+}
+
+export const editorContextMenu = writable<EditorContextMenuState | null>(null);

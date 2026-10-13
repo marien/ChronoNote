@@ -179,6 +179,8 @@ const MUTATING_COMMANDS = new Set([
   "write_conflict_copy",
   "write_tab_session",
   "import_notes_bundle",
+  "spell_add",
+  "spell_ignore",
 ]);
 
 /** SHA-256 hex — the exact digest `storage.rs`'s `sha2` produces and
@@ -290,7 +292,15 @@ type CommandHandlers = {
   ) => CommandReturn<K> | Promise<CommandReturn<K>>;
 };
 
+const MOCK_SPELL_SUGGESTIONS: Record<string, string[]> = {
+  teh: ["the", "ten"],
+  wrods: ["words", "rods"],
+  mispeled: ["misspelled"],
+  sentense: ["sentence"],
+};
+
 export class MockBackend {
+  spellMisspelled = new Set<string>(["teh", "wrods", "mispeled", "sentense"]);
   dirs = new Map<string, MockDir>();
   notesDir: string;
   schemaVersion: number;
@@ -1163,6 +1173,32 @@ export class MockBackend {
       if (!path.endsWith(".md") && !path.endsWith(".html")) {
         throw new Error("Export file path must end with .md or .html");
       }
+    },
+    spell_languages: () => ["en-US"],
+    spell_check_lines: ({ lines }) => {
+      return lines.map((line) => {
+        if (this.spellMisspelled.size === 0) return [];
+        const ranges: [number, number][] = [];
+        const regex = /\b[A-Za-z]+\b/g;
+        let match: RegExpExecArray | null;
+        while ((match = regex.exec(line)) !== null) {
+          if (this.spellMisspelled.has(match[0].toLowerCase())) {
+            ranges.push([match.index, match.index + match[0].length]);
+          }
+        }
+        return ranges;
+      });
+    },
+    spell_suggest: ({ word }) => {
+      return MOCK_SPELL_SUGGESTIONS[word.toLowerCase()] ?? [];
+    },
+    spell_add: ({ word }) => {
+      this.spellMisspelled.delete(word.toLowerCase());
+      return null;
+    },
+    spell_ignore: ({ word }) => {
+      this.spellMisspelled.delete(word.toLowerCase());
+      return null;
     },
   };
 

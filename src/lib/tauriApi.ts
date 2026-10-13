@@ -375,4 +375,24 @@ export function writeExportFile(path: string, contents: string): Promise<void> {
   return invoke("write_export_file", { path, contents });
 }
 
+export function spellLanguages(): Promise<string[]> {
+  return invoke("spell_languages", {});
+}
+
+export function spellCheckLines(lines: string[]): Promise<[number, number][][]> {
+  return invoke("spell_check_lines", { lines });
+}
+
+export function spellSuggest(word: string): Promise<string[]> {
+  return invoke("spell_suggest", { word });
+}
+
+export function spellAdd(word: string): Promise<null> {
+  return invoke("spell_add", { word });
+}
+
+export function spellIgnore(word: string): Promise<null> {
+  return invoke("spell_ignore", { word });
+}
+
 

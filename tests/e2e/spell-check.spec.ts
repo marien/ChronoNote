@@ -1,81 +1,90 @@
-import { test, expect, type Page } from "@playwright/test";
-import { seedApp, editor, setEditorText, modalCard, MODAL_LABELS } from "./helpers";
-
-const settings = (page: Page) => modalCard(page, MODAL_LABELS.settings);
-
-async function openSettings(page: Page) {
-  await editor(page).click();
-  await page.keyboard.press("ControlOrMeta+Comma");
-  await expect(settings(page)).toBeVisible();
-}
+import { test, expect } from "@playwright/test";
+import { seedApp, editor, setEditorText } from "./helpers";
 
 test.describe("spell check (proposal D2)", () => {
-  test("spell check is off by default: .cm-content has spellcheck='false'", async ({ page }) => {
+  test("off by default: no marks and .cm-content has spellcheck='false' on desktop", async ({ page }) => {
     await seedApp(page, { seed: "empty" });
+    await setEditorText(page, "Here is teh wrods to test.");
     const content = page.locator(".cm-content");
     await expect(content).toHaveAttribute("spellcheck", "false");
-    expect(await page.evaluate(() => window.__CHRONO_MOCK__!.spellCheck)).toBe(false);
+    await page.waitForTimeout(400);
+    await expect(page.locator(".cm-misspelled")).toHaveCount(0);
   });
 
-  test("turning the setting on in Settings sets spellcheck='true' and survives reload", async ({ page }) => {
-    await seedApp(page, { seed: "empty" });
-    await openSettings(page);
+  test("with spell check on (mock), a 120-line note shows marks that survive scrolling to bottom and back", async ({ page }) => {
+    await seedApp(page, { seed: { spellCheck: true } });
+    const lines = Array.from({ length: 120 }, (_, i) => `teh wrods on line ${i + 1}`).join("\n");
+    await setEditorText(page, lines);
 
-    const toggle = settings(page).locator(".toggle-switch", { hasText: "Spell check" });
-    await expect(toggle).toBeVisible();
-    const input = toggle.locator("input");
-    await expect(input).not.toBeChecked();
+    const firstMisspelled = page.locator(".cm-misspelled").first();
+    await expect(firstMisspelled).toBeVisible();
+    await expect(page.locator(".cm-content")).toHaveAttribute("spellcheck", "false");
 
-    await toggle.click();
-    await expect(input).toBeChecked();
-    expect(await page.evaluate(() => window.__CHRONO_MOCK__!.spellCheck)).toBe(true);
+    const scroller = page.locator(".cm-scroller");
+    await scroller.evaluate((el) => {
+      el.scrollTop = el.scrollHeight;
+    });
+    await page.waitForTimeout(400);
 
-    await page.keyboard.press("Escape");
-    const content = page.locator(".cm-content");
-    await expect(content).toHaveAttribute("spellcheck", "true");
-
-    await page.reload();
-    await expect(editor(page)).toBeVisible();
-    await expect(page.locator(".cm-content")).toHaveAttribute("spellcheck", "true");
-    expect(await page.evaluate(() => window.__CHRONO_MOCK__!.spellCheck)).toBe(true);
+    await scroller.evaluate((el) => {
+      el.scrollTop = 0;
+    });
+    await expect(firstMisspelled).toBeVisible();
   });
 
-  test("an @name badge and a link have spellcheck='false'", async ({ page }) => {
-    await seedApp(page, { seed: "empty" });
-    await setEditorText(page, "Meeting with @alice at https://example.com/notes");
+  test("tokens (# , @teh, a URL with teh) are not marked", async ({ page }) => {
+    await seedApp(page, { seed: { spellCheck: true } });
+    await setEditorText(page, "# first action\n@teh assignee\nhttps://example.com/teh\nregular teh");
 
-    const badge = page.locator(".glyph-assignee");
-    await expect(badge).toBeVisible();
-    await expect(badge).toHaveAttribute("spellcheck", "false");
+    await page.waitForTimeout(400);
 
-    const link = page.locator(".cm-link");
-    await expect(link).toBeVisible();
-    await expect(link).toHaveAttribute("spellcheck", "false");
+    const marks = page.locator(".cm-misspelled");
+    await expect(marks).toHaveCount(1);
+    await expect(marks.first()).toHaveText("teh");
+
+    await expect(page.locator(".glyph-assignee .cm-misspelled")).toHaveCount(0);
+    await expect(page.locator(".cm-link .cm-misspelled")).toHaveCount(0);
   });
 
-  test("with spell check on, Shift+right-click does not open the line menu and plain right-click does", async ({ page }) => {
-    await seedApp(page, { seed: "empty" });
-    await setEditorText(page, "# Action line to test right click");
+  test("right-click on wrods shows words at the top of the line menu, choosing it replaces the word (one Ctrl+Z restores it)", async ({ page }) => {
+    await seedApp(page, { seed: { spellCheck: true } });
+    await setEditorText(page, "Here is teh wrods in note.");
 
-    // Turn spell check on
-    await openSettings(page);
-    const toggle = settings(page).locator(".toggle-switch", { hasText: "Spell check" });
-    await toggle.click();
-    await page.keyboard.press("Escape");
-    await expect(page.locator(".cm-content")).toHaveAttribute("spellcheck", "true");
+    const wrodsMark = page.locator(".cm-misspelled", { hasText: "wrods" });
+    await expect(wrodsMark).toBeVisible();
 
-    // Plain right-click opens the editor context menu
-    const line = page.locator(".cm-content .cm-line").first();
-    await line.click({ button: "right" });
+    await wrodsMark.click({ button: "right" });
     const menu = page.locator(".editor-context-menu");
     await expect(menu).toBeVisible();
 
-    // Close context menu
-    await page.keyboard.press("Escape");
+    const firstMenuItem = menu.locator("button.editor-context-item").first();
+    await expect(firstMenuItem).toHaveText("words");
+
+    await firstMenuItem.click();
     await expect(menu).toHaveCount(0);
 
-    // Shift+right-click does NOT open the line menu (.editor-context-menu count 0)
-    await line.click({ button: "right", modifiers: ["Shift"] });
+    await expect(page.locator(".cm-content")).toContainText("Here is teh words in note.");
+
+    await page.keyboard.press("ControlOrMeta+z");
+    await expect(page.locator(".cm-content")).toContainText("Here is teh wrods in note.");
+  });
+
+  test("'Ignore' removes the mark", async ({ page }) => {
+    await seedApp(page, { seed: { spellCheck: true } });
+    await setEditorText(page, "This word is mispeled here.");
+
+    const mispeledMark = page.locator(".cm-misspelled", { hasText: "mispeled" });
+    await expect(mispeledMark).toBeVisible();
+
+    await mispeledMark.click({ button: "right" });
+    const menu = page.locator(".editor-context-menu");
+    await expect(menu).toBeVisible();
+
+    const ignoreBtn = menu.locator("button.editor-context-item", { hasText: "Ignore" });
+    await expect(ignoreBtn).toBeVisible();
+    await ignoreBtn.click();
     await expect(menu).toHaveCount(0);
+
+    await expect(page.locator(".cm-misspelled")).toHaveCount(0);
   });
 });

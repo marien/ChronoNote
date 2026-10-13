@@ -53,6 +53,7 @@ export type TranslationParams = {
   "settings.editor.width.hint": undefined;
   "settings.editor.spellCheck.label": undefined;
   "settings.editor.spellCheck.hint": undefined;
+  "settings.editor.spellCheck.hintWeb": undefined;
   "settings.editor.fontSize.label": undefined;
   "settings.editor.fontSize.ariaLabel": undefined;
   "settings.editor.lineSpacing.label": undefined;
@@ -866,6 +867,10 @@ export type TranslationParams = {
   "editorMenu.copyToNext": undefined;
   "editorMenu.peek": undefined;
   "editorMenu.toSection": undefined;
+  "editorMenu.spell.addToDictionary": undefined;
+  "editorMenu.spell.ignore": undefined;
+  "editorMenu.spell.noSuggestions": undefined;
+  "editorMenu.spell.loading": undefined;
   "phoneNav.ariaLabel": undefined;
   "phoneNav.actions": undefined;
   "phoneNav.history": undefined;

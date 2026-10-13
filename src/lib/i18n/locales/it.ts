@@ -44,6 +44,8 @@ export const it = {
     "Intera mantiene ogni riga senza a capo: la griglia a spaziatura fissa resta intatta per tabelle e colonne allineate. A capo adatta le righe lunghe alla larghezza della finestra. Colonna di lettura imposta inoltre una larghezza centrata ottimale per la lettura del testo continuo.",
   "settings.editor.spellCheck.label": () => "Controllo ortografico",
   "settings.editor.spellCheck.hint": () =>
+    "Sottolinea le parole scritte male, controllate con le tue lingue di Windows. Clic destro su una parola segnata per i suggerimenti.",
+  "settings.editor.spellCheck.hintWeb": () =>
     "Sottolinea le parole scritte male, con le lingue impostate in Windows. Maiusc+clic destro su una parola per i suggerimenti.",
   "settings.editor.fontSize.label": () => "Dimensione carattere",
   "settings.editor.fontSize.ariaLabel": () => "Dimensione carattere dell'editor",
@@ -885,6 +887,10 @@ export const it = {
   "editorMenu.copyToNext": () => "Copia nella prossima occorrenza",
   "editorMenu.peek": () => "Questa sezione in Peek",
   "editorMenu.toSection": () => "Rendi intestazione di sezione",
+  "editorMenu.spell.addToDictionary": () => "Aggiungi al dizionario",
+  "editorMenu.spell.ignore": () => "Ignora",
+  "editorMenu.spell.noSuggestions": () => "Nessun suggerimento",
+  "editorMenu.spell.loading": () => "Ricerca suggerimenti…",
   "phoneNav.ariaLabel": () => "Navigazione principale",
   "phoneNav.actions": () => "Azioni",
   "phoneNav.history": () => "Cronologia",

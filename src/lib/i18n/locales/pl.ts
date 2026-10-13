@@ -45,6 +45,8 @@ export const pl = {
     "Pełna zachowuje linie bez zawijania — siatka o stałej szerokości pozostaje nienaruszona dla tabel i kolumn. Zawijanie dopasowuje długie wiersze do okna. Kolumna do czytania ogranicza tekst do wygodnej, wyśrodkowanej szerokości.",
   "settings.editor.spellCheck.label": () => "Sprawdzanie pisowni",
   "settings.editor.spellCheck.hint": () =>
+    "Podkreślaj błędnie zapisane słowa, sprawdzane w językach systemu Windows. Kliknij prawym przyciskiem zaznaczone słowo, aby zobaczyć podpowiedzi.",
+  "settings.editor.spellCheck.hintWeb": () =>
     "Podkreślaj błędnie zapisane słowa, w językach ustawionych w systemie Windows. Shift+prawy klik na słowie pokazuje podpowiedzi.",
   "settings.editor.fontSize.label": () => "Rozmiar czcionki",
   "settings.editor.fontSize.ariaLabel": () => "Rozmiar czcionki edytora",
@@ -904,6 +906,10 @@ export const pl = {
   "editorMenu.copyToNext": () => "Kopiuj do następnego wystąpienia",
   "editorMenu.peek": () => "Ta sekcja w Peek",
   "editorMenu.toSection": () => "Zamień w nagłówek sekcji",
+  "editorMenu.spell.addToDictionary": () => "Dodaj do słownika",
+  "editorMenu.spell.ignore": () => "Ignoruj",
+  "editorMenu.spell.noSuggestions": () => "Brak podpowiedzi",
+  "editorMenu.spell.loading": () => "Szukam podpowiedzi…",
   "phoneNav.ariaLabel": () => "Nawigacja główna",
   "phoneNav.actions": () => "Akcje",
   "phoneNav.history": () => "Historia",

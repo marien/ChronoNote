@@ -46,6 +46,8 @@ export const en = {
     "Full keeps every line unwrapped — the monospace grid stays intact for tables and aligned columns. Wrap breaks long lines to fit the window. Reading column also caps the text to a comfortable centred measure, for a single prose-reading mode.",
   "settings.editor.spellCheck.label": () => "Spell check",
   "settings.editor.spellCheck.hint": () =>
+    "Underline misspelled words, checked against your Windows languages. Right-click a marked word for suggestions.",
+  "settings.editor.spellCheck.hintWeb": () =>
     "Underline misspelled words, using the languages set in Windows. Shift+right-click a word for suggestions.",
   "settings.editor.fontSize.label": () => "Font size",
   "settings.editor.fontSize.ariaLabel": () => "Editor font size",
@@ -855,6 +857,10 @@ export const en = {
   "editorMenu.copyToNext": () => "Copy to next occurrence",
   "editorMenu.peek": () => "Peek at this section",
   "editorMenu.toSection": () => "Make section header",
+  "editorMenu.spell.addToDictionary": () => "Add to dictionary",
+  "editorMenu.spell.ignore": () => "Ignore",
+  "editorMenu.spell.noSuggestions": () => "No suggestions",
+  "editorMenu.spell.loading": () => "Looking for suggestions…",
   "phoneNav.ariaLabel": () => "Main navigation",
   "phoneNav.actions": () => "Actions",
   "phoneNav.history": () => "History",

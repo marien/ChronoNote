@@ -889,6 +889,11 @@ export class WebBackend {
     },
     open_log_folder: async () => {},
     write_export_file: async () => {},
+    spell_languages: async () => [],
+    spell_check_lines: async ({ lines }) => lines.map(() => []),
+    spell_suggest: async () => [],
+    spell_add: async () => null,
+    spell_ignore: async () => null,
   };
 
 

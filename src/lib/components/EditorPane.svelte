@@ -18,6 +18,7 @@
   import { wrapIndentExtension } from "../editor/wrapIndent";
   import { sectionFocus } from "../editor/sectionFocus";
   import { occurrenceHintExtension, setOccurrenceInfo } from "../editor/occurrenceHint";
+  import { spellcheckExtension, misspelledAt } from "../editor/spellcheck";
   import { isMac } from "../platform";
   import { t } from "../i18n";
   import { underlineFor } from "../sectionFormat";
@@ -81,8 +82,15 @@
   /** Spell check (D2). Compartment holds contentAttributes toggled live
    * when the `spellCheck` store changes. Off by default. */
   const spellCompartment = new Compartment();
-  const spellExtension = (on: boolean) =>
-    EditorView.contentAttributes.of({ spellcheck: on ? "true" : "false", autocorrect: "off", autocapitalize: "off" });
+  const spellExtension = (on: boolean) => {
+    if (get(controller.backendKind) === "web") {
+      return EditorView.contentAttributes.of({ spellcheck: on ? "true" : "false", autocorrect: "off", autocapitalize: "off" });
+    }
+    return [
+      EditorView.contentAttributes.of({ spellcheck: "false", autocorrect: "off", autocapitalize: "off" }),
+      ...(on ? spellcheckExtension() : []),
+    ];
+  };
   let unsubscribeSpell: (() => void) | undefined;
 
   /** Peek mode (compact note window): only one section of the document is shown. A compartment so entering and
@@ -781,13 +789,14 @@
       }),
       EditorView.domEventHandlers({
         contextmenu: (event, v) => {
-          if (event.shiftKey && get(spellCheck)) return false;
+          if (event.shiftKey && get(spellCheck) && get(controller.backendKind) === "web") return false;
           event.preventDefault();
           const pos = v.posAtCoords({ x: event.clientX, y: event.clientY });
           if (pos != null && v.state.selection.main.empty) v.dispatch({ selection: { anchor: pos } });
           const at = v.state.doc.lineAt(v.state.selection.main.head);
           const role = lineSectionRole(v.state.doc.toString().split("\n"), at.number - 1);
-          editorContextMenu.set({ x: event.clientX, y: event.clientY, line: at.text, role });
+          const misspelled = (get(controller.backendKind) !== "web" && pos != null) ? misspelledAt(v.state, pos) : null;
+          editorContextMenu.set({ x: event.clientX, y: event.clientY, line: at.text, role, misspelled });
           return true;
         },
         // Deferred: the browser also fires `blur` while Svelte is tearing this
@@ -1010,6 +1019,15 @@
           changes: { from, to, insert: text },
         });
       },
+      replaceRange: (from: number, to: number, text: string) => {
+        if (!view) return;
+        view.dispatch({
+          changes: { from, to, insert: text },
+          selection: { anchor: from + text.length },
+          userEvent: "input.replace",
+        });
+      },
+      getView: () => view,
       scrollCaretIntoView: () => {
         if (!view) return;
         view.requestMeasure();

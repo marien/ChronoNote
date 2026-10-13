@@ -937,3 +937,9 @@ body.peek-mode .cm-overview-ruler {
   background: var(--edge-soft);
 }
 
+.cm-misspelled {
+  text-decoration: underline wavy var(--spell-error);
+  text-decoration-skip-ink: none;
+  text-underline-offset: 2px;
+}
+

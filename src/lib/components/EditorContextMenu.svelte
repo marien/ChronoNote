@@ -7,8 +7,41 @@
   import { formatShortcut } from "../shortcuts";
   import Icon from "../icons/Icon.svelte";
   import { noteToMarkdown } from "../exportFormats";
+  import { spellSuggest, spellAdd, spellIgnore } from "../tauriApi";
+  import { recheckAll } from "../editor/spellcheck";
 
   let menuEl = $state<HTMLDivElement>();
+
+  const misspelled = $derived($editorContextMenu?.misspelled ?? null);
+  let suggestions = $state<string[] | null>(null);
+  let loadingSuggestions = $state(false);
+
+  $effect(() => {
+    if (misspelled) {
+      loadingSuggestions = true;
+      suggestions = null;
+      spellSuggest(misspelled.word)
+        .then((suggs) => {
+          suggestions = suggs;
+          tick().then(() => {
+            const items = Array.from(menuEl?.querySelectorAll<HTMLButtonElement>("button:not(:disabled)") ?? []);
+            const current = document.activeElement as HTMLButtonElement | null;
+            if (!current || !menuEl?.contains(current) || current.textContent === get(t)("editorMenu.spell.addToDictionary")) {
+              items[0]?.focus();
+            }
+          });
+        })
+        .catch(() => {
+          suggestions = [];
+        })
+        .finally(() => {
+          loadingSuggestions = false;
+        });
+    } else {
+      suggestions = null;
+      loadingSuggestions = false;
+    }
+  });
 
   // A long-press on a phone opens the menu while the browser is still finishing its own touch handling (focus moving,
   // the page shifting); those side effects must not close it at once (Marien, 2026-10-10: it flashed and vanished).
@@ -49,7 +82,8 @@
 
   const lineItemCount = $derived(onTitle ? 0 : isAction ? 4 : isTopic ? 3 : 2);
   const otherItemCount = $derived((onTitle ? 1 : 3) + ($backendKind === "desktop" ? 1 : 0) + (!isSelectionEmpty ? 1 : 0));
-  const itemCount = $derived(1 + lineItemCount + otherItemCount);
+  const spellItemCount = $derived(misspelled ? (suggestions ? Math.max(1, suggestions.length) : 1) + 2 : 0);
+  const itemCount = $derived(1 + lineItemCount + otherItemCount + spellItemCount);
 
   // The menu sizes to its longest item; its measured width keeps it on screen.
   let menuWidth = $state(260);
@@ -141,6 +175,68 @@
     aria-label={$t("editorMenu.ariaLabel")}
     oncontextmenu={(e) => e.preventDefault()}
   >
+    {#if misspelled}
+      {#if loadingSuggestions}
+        <button type="button" class="editor-context-item disabled" role="menuitem" disabled>
+          <span class="editor-context-label">{$t("editorMenu.spell.loading")}</span>
+        </button>
+      {:else if suggestions && suggestions.length > 0}
+        {#each suggestions as sugg}
+          <button
+            type="button"
+            class="editor-context-item"
+            style="font-weight: 600;"
+            role="menuitem"
+            onclick={() => {
+              const range = misspelled;
+              close();
+              if (!get(isMobile)) editorApi?.focus();
+              if (range) {
+                editorApi?.replaceRange?.(range.from, range.to, sugg);
+              }
+            }}
+          >
+            <span class="editor-context-label">{sugg}</span>
+          </button>
+        {/each}
+      {:else}
+        <button type="button" class="editor-context-item disabled" role="menuitem" disabled>
+          <span class="editor-context-label">{$t("editorMenu.spell.noSuggestions")}</span>
+        </button>
+      {/if}
+      <button
+        type="button"
+        class="editor-context-item"
+        role="menuitem"
+        onclick={async () => {
+          const word = misspelled.word;
+          close();
+          if (!get(isMobile)) editorApi?.focus();
+          await spellAdd(word);
+          const v = editorApi?.getView?.();
+          if (v) recheckAll(v);
+        }}
+      >
+        <span class="editor-context-label">{$t("editorMenu.spell.addToDictionary")}</span>
+      </button>
+      <button
+        type="button"
+        class="editor-context-item"
+        role="menuitem"
+        onclick={async () => {
+          const word = misspelled.word;
+          close();
+          if (!get(isMobile)) editorApi?.focus();
+          await spellIgnore(word);
+          const v = editorApi?.getView?.();
+          if (v) recheckAll(v);
+        }}
+      >
+        <span class="editor-context-label">{$t("editorMenu.spell.ignore")}</span>
+      </button>
+      <div class="editor-context-sep" role="separator"></div>
+    {/if}
+
     <div class="editor-context-icon-row" role="group" aria-label={$t("editorMenu.clipboard")}>
       <button
         type="button"

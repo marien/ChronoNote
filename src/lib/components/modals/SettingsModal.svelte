@@ -478,7 +478,7 @@
             checked={$spellCheck}
             onChange={(v) => void controller.setSpellCheck(v)}
           >
-            {#snippet description()}{$t("settings.editor.spellCheck.hint")}{/snippet}
+            {#snippet description()}{$backendKind === "web" ? $t("settings.editor.spellCheck.hintWeb") : $t("settings.editor.spellCheck.hint")}{/snippet}
           </SettingToggle>
           <SettingRow label={$t("settings.editor.fontSize.label")}>
             <div class="s-slider">

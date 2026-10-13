@@ -46,6 +46,8 @@ export const nl = {
     "Volledig laat elke regel onafgebroken — het monospace-raster blijft intact voor tabellen en uitgelijnde kolommen. Omslaan breekt lange regels af om in het venster te passen. Leeskolom beperkt de tekst ook tot een prettige gecentreerde breedte, voor een pure leesmodus.",
   "settings.editor.spellCheck.label": () => "Spellingcontrole",
   "settings.editor.spellCheck.hint": () =>
+    "Onderstreep verkeerd gespelde woorden, gecontroleerd met je Windows-talen. Klik met rechts op een gemarkeerd woord voor suggesties.",
+  "settings.editor.spellCheck.hintWeb": () =>
     "Onderstreep verkeerd gespelde woorden, met de talen die in Windows zijn ingesteld. Shift+rechtsklik op een woord voor suggesties.",
   "settings.editor.fontSize.label": () => "Lettergrootte",
   "settings.editor.fontSize.ariaLabel": () => "Lettergrootte editor",
@@ -867,6 +869,10 @@ export const nl = {
   "editorMenu.copyToNext": () => "Kopiëren naar volgende keer",
   "editorMenu.peek": () => "Deze sectie in Peek",
   "editorMenu.toSection": () => "Sectiekop maken",
+  "editorMenu.spell.addToDictionary": () => "Toevoegen aan woordenlijst",
+  "editorMenu.spell.ignore": () => "Negeren",
+  "editorMenu.spell.noSuggestions": () => "Geen suggesties",
+  "editorMenu.spell.loading": () => "Suggesties zoeken…",
   "phoneNav.ariaLabel": () => "Hoofdnavigatie",
   "phoneNav.actions": () => "Acties",
   "phoneNav.history": () => "Historie",

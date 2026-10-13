@@ -45,6 +45,8 @@ export const fr = {
     "Plein conserve chaque ligne sans coupure — la grille monospace reste intacte pour les tableaux et colonnes alignées. Retour à la ligne ajuste les longues lignes à la fenêtre. Colonne de lecture limite également le texte à une largeur centrée confortable pour la lecture.",
   "settings.editor.spellCheck.label": () => "Correcteur orthographique",
   "settings.editor.spellCheck.hint": () =>
+    "Souligner les mots mal orthographiés, vérifiés avec vos langues Windows. Clic droit sur un mot marqué pour des suggestions.",
+  "settings.editor.spellCheck.hintWeb": () =>
     "Souligner les mots mal orthographiés, avec les langues définies dans Windows. Maj+clic droit sur un mot pour des suggestions.",
   "settings.editor.fontSize.label": () => "Taille de police",
   "settings.editor.fontSize.ariaLabel": () => "Taille de police de l'éditeur",
@@ -891,6 +893,10 @@ export const fr = {
   "editorMenu.copyToNext": () => "Copier vers la prochaine occurrence",
   "editorMenu.peek": () => "Cette section dans Peek",
   "editorMenu.toSection": () => "En faire un titre de section",
+  "editorMenu.spell.addToDictionary": () => "Ajouter au dictionnaire",
+  "editorMenu.spell.ignore": () => "Ignorer",
+  "editorMenu.spell.noSuggestions": () => "Aucune suggestion",
+  "editorMenu.spell.loading": () => "Recherche de suggestions…",
   "phoneNav.ariaLabel": () => "Navigation principale",
   "phoneNav.actions": () => "Actions",
   "phoneNav.history": () => "Historique",

@@ -118,6 +118,11 @@
     forced-color-adjust: none;
   }
 
+  .cm-misspelled {
+    text-decoration-color: CanvasText;
+    forced-color-adjust: none;
+  }
+
   /* @name delegate badge and (topic) tag pill */
   .glyph-assignee,
   .glyph-topic {

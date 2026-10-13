@@ -16,6 +16,7 @@
   --state-ok: #4bbf87;
   --state-warn: #d8a24a;
   --state-error: #d66b63;
+  --spell-error: #ea5e5e;
 
   --text: #d4d4d4;
   --muted: #a6a6a6;
@@ -102,6 +103,7 @@
     --state-ok: #257b53; /* D5: 4.6:1 on the light chrome */
     --state-warn: #b5771f;
     --state-error: #c4463e;
+    --spell-error: #c4463e;
 
     --text: #1b1b1b;
     --muted: #5f5f5f;
@@ -130,6 +132,7 @@
   --state-ok: #257b53; /* D5: 4.6:1 on the light chrome */
   --state-warn: #b5771f;
   --state-error: #c4463e;
+  --spell-error: #c4463e;
 
   --text: #1b1b1b;
   --muted: #5f5f5f;

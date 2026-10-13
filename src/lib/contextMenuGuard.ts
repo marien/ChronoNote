@@ -1,5 +1,5 @@
 import { get } from "svelte/store";
-import { spellCheck } from "./stores";
+import { backendKind, spellCheck } from "./stores";
 
 /** The browser's own right-click menu (Back, Refresh, Save as, Print, Inspect) is not ChronoNote's: in the desktop
  * app and the installed web app it showed wherever the app has no menu of its own (top bar outside the tabs, status
@@ -24,7 +24,7 @@ export function suppressesNativeContextMenu(backend: "desktop" | "demo" | "web",
 export function wireContextMenuGuard(enabled: () => boolean): () => void {
   const onContextMenu = (e: MouseEvent) => {
     if (e.defaultPrevented || !enabled()) return;
-    if (e.shiftKey && get(spellCheck) && e.target instanceof Element && e.target.closest(".cm-content")) return;
+    if (e.shiftKey && get(spellCheck) && get(backendKind) === "web" && e.target instanceof Element && e.target.closest(".cm-content")) return;
     if (!allowsNativeContextMenu(e.target)) e.preventDefault();
   };
   window.addEventListener("contextmenu", onContextMenu);

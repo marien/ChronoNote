@@ -195,6 +195,11 @@ export interface TauriCommands {
     args: { path: string; contents: string };
     returns: void;
   };
+  spell_languages: { args: NoArgs; returns: string[] };
+  spell_check_lines: { args: { lines: string[] }; returns: [number, number][][] };
+  spell_suggest: { args: { word: string }; returns: string[] };
+  spell_add: { args: { word: string }; returns: null };
+  spell_ignore: { args: { word: string }; returns: null };
 }
 
 export type TauriCommand = keyof TauriCommands;

@@ -44,6 +44,8 @@ export const es = {
     "Completo mantiene cada línea sin salto: la cuadrícula monoespaciada se conserva para tablas y columnas alineadas. Ajuste divide las líneas largas para adaptarse a la ventana. Columna de lectura además limita el texto a un ancho cómodo y centrado para un modo de lectura de prosa fluida.",
   "settings.editor.spellCheck.label": () => "Corrector ortográfico",
   "settings.editor.spellCheck.hint": () =>
+    "Subraya las palabras mal escritas, revisadas con tus idiomas de Windows. Haz clic derecho en una palabra marcada para ver sugerencias.",
+  "settings.editor.spellCheck.hintWeb": () =>
     "Subraya las palabras mal escritas, con los idiomas configurados en Windows. Mayús+clic derecho en una palabra para ver sugerencias.",
   "settings.editor.fontSize.label": () => "Tamaño de fuente",
   "settings.editor.fontSize.ariaLabel": () => "Tamaño de fuente del editor",
@@ -883,6 +885,10 @@ export const es = {
   "editorMenu.copyToNext": () => "Copiar a la próxima aparición",
   "editorMenu.peek": () => "Esta sección en Peek",
   "editorMenu.toSection": () => "Convertir en encabezado",
+  "editorMenu.spell.addToDictionary": () => "Añadir al diccionario",
+  "editorMenu.spell.ignore": () => "Ignorar",
+  "editorMenu.spell.noSuggestions": () => "Sin sugerencias",
+  "editorMenu.spell.loading": () => "Buscando sugerencias…",
   "phoneNav.ariaLabel": () => "Navegación principal",
   "phoneNav.actions": () => "Acciones",
   "phoneNav.history": () => "Historial",

@@ -48,6 +48,8 @@ export const de = {
     "Vollständig lässt jede Zeile unverändert — das Monospace-Raster bleibt für Tabellen und ausgerichtete Spalten erhalten. Umbrechen bricht lange Zeilen um, damit sie ins Fenster passen. Lesespalte begrenzt den Text zusätzlich auf eine angenehme zentrierte Breite, für einen reinen Lesemodus.",
   "settings.editor.spellCheck.label": () => "Rechtschreibprüfung",
   "settings.editor.spellCheck.hint": () =>
+    "Falsch geschriebene Wörter unterstreichen, geprüft mit deinen Windows-Sprachen. Rechtsklick auf ein markiertes Wort zeigt Vorschläge.",
+  "settings.editor.spellCheck.hintWeb": () =>
     "Falsch geschriebene Wörter unterstreichen, mit den in Windows eingestellten Sprachen. Umschalt+Rechtsklick auf ein Wort zeigt Vorschläge.",
   "settings.editor.fontSize.label": () => "Schriftgröße",
   "settings.editor.fontSize.ariaLabel": () => "Schriftgröße des Editors",
@@ -873,6 +875,10 @@ export const de = {
   "editorMenu.copyToNext": () => "In nächstes Vorkommen kopieren",
   "editorMenu.peek": () => "Diesen Abschnitt in Peek",
   "editorMenu.toSection": () => "Zur Abschnittsüberschrift machen",
+  "editorMenu.spell.addToDictionary": () => "Zum Wörterbuch hinzufügen",
+  "editorMenu.spell.ignore": () => "Ignorieren",
+  "editorMenu.spell.noSuggestions": () => "Keine Vorschläge",
+  "editorMenu.spell.loading": () => "Vorschläge werden gesucht…",
   "phoneNav.ariaLabel": () => "Hauptnavigation",
   "phoneNav.actions": () => "Aktionen",
   "phoneNav.history": () => "Verlauf",
