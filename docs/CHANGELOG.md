@@ -10477,3 +10477,28 @@ Marien: actions, agenda topics, follow-ups and lists should work independently, 
 **Status: on `main`, unreleased.**
 
 - Since §268 every `@name` is badged on any line, so `(@dana, @lee)` already looked the same as bare names. The tokenizer's separate `assigneeList` token and the read-only view's code for it are removed: each name in parentheses is an ordinary `@name`. `(word)` never matches `(@…)`, so `# (@dana) task` is still not a topic tag. Nothing looks different (golden snapshot: only the read-only view's split of `)` from the following text changed).
+
+## 369. Replace in the current note, and Go to section (feature review D1, D3)
+
+**Status: on `main`, unreleased (after beta 0.32.0-1).**
+
+- **Replace (D1):** `Ctrl/Cmd+H` opens the find bar with a Replace row (a chevron at its left shows/hides it, like Notepad). Replace (Enter in the replace field) replaces the current match and moves on; Replace all (`Ctrl+Alt+Enter`) is one undo step and reports "Replaced N". Match case and Whole word toggles; the highlight and the count follow them. Built on `@codemirror/search` (`replaceNext`, `replaceAll`); `editorApi.find` gained `setReplace`, `setOptions`, `replace`, `replaceAll`.
+- **Go to section (D3):** `Ctrl/Cmd+G` opens the command palette with `#`: the note's sections in order, each with its open-action count, type to filter, Enter jumps to the title. `#` typed in `Ctrl+K` does the same. `listSections` in `tokens.ts` (a `---` sub-section is not a section).
+- Gemini 3.8 Flash (brief H1, `agent-tools/briefs/make_d_briefs.py`). Tests: `find-replace.spec.ts`, `go-to-section.spec.ts`, `listSections` and palette unit tests.
+
+## 370. Spell check, off by default (feature review D2)
+
+**Status: on `main`, unreleased (after beta 0.32.0-1).**
+
+- New setting Editor -> Spell check (`AppConfig.spellCheck`, all three backends, old configs load with false). On: the editor's content gets `spellcheck="true"` and WebView2/the browser underlines misspelled words in the system's languages. `@name` badges, topic tags and URL links are not checked. Shift+right-click on a word shows the browser's own menu with suggestions (`EditorPane` and `contextMenuGuard.ts` let it through); a plain right-click still opens the line menu.
+- Gemini 3.8 Flash (brief H2). Tests: `spell-check.spec.ts`, config round-trip and upgrade-fixture tests. **Not verified natively:** that WebView2 underlines and offers suggestions in the installed app.
+
+## 371. Links to other days and sections, Back, and from/to links when an action is forwarded (feature review D4)
+
+**Status: on `main`, unreleased (after beta 0.32.0-1).**
+
+- **Date links:** a full date `YYYY-MM-DD` (a real calendar date) in a note is a link; `2026-10-03#Standup` also lands on that section (titles compared with `titleForMatching`; not found -> top of the note and a message). Ctrl/Cmd+Click, middle-click, or a tap on a phone opens it. A date in a section title is not a link. `editor/dateLinks.ts`, `dateLinks.ts`.
+- **Back (Marien: "a way to go back to where you came from"):** every link jump remembers where you were (50 places). `Ctrl+Alt+Left` (`Cmd+[` on Mac; plain Alt+Left stays occurrence stepping), the mouse's back button, the palette's "Go back", and a "Back to <date>" button at the left of the status bar while there is somewhere to go back to.
+- **From/to links (Marien's idea):** when a paste forwards an action or topic, the source line gets ` (to YYYY-MM-DD#Section)` (the target date and the section the paste lands in) and the pasted line ` (from YYYY-MM-DD#Section)`; both are links. An existing `(to …)`/`(from …)` at the end is replaced, not doubled. The words are fixed English (note text, parsed in any UI language). One undo of the paste restores the source exactly. Added at review: a copy of only part of a line is deferred without a `(to …)` link, which would otherwise land in the middle of the line. Not added (yet) for Shift+Enter forwarding in Actions or Copy to next occurrence.
+- Gemini 3.8 Flash (brief H3). Tests: `date-links.spec.ts`, `dateLinks.test.ts`, paste unit tests (incl. the partial-line case); `paste-deferral.spec.ts` and `controller.test.ts` expectations now include the `(to …)` text.
+- Integration: the three agents ran in parallel; the only conflicts were in the translation files (both sides kept). Full gates on the merged tree: svelte-check 0, Vitest 1159, cargo 164, Playwright chromium 738.
