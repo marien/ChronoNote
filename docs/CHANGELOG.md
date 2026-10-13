@@ -10556,3 +10556,9 @@ Marien's review of the D choices (2026-10-13), implemented by Gemini 3.8 Flash (
 - **Found on CI's English-only Windows runner** with a new native test (`tests/native/smoke.spec.ts`: spell check on, the real Rust commands, the editor's marks, console and app log as diagnostics): Rust flagged the words correctly, the editor showed none, and the console said `Check failed for en-US: The parameter is incorrect (0x80070057)`. `ISpellChecker::Check` rejects an EMPTY string, the editor sends all visible lines in one batch, and one failure failed the whole batch: any note with an empty line on screen got no marks. The native check on this machine (§376) passed only because its long test note had no empty line in view.
 - **Fix:** `spell.rs` skips blank lines and a failing line only loses its own marks (logged once); the editor does not send blank lines; and the editor also re-checks when it gets its size (the window starts hidden) and retries briefly while nothing is laid out. On the runner: 3 marks at start, 5 after typing; the real-API smoke test now also checks a batch with blank lines.
 - **Lesson:** a native check must use realistic notes (empty lines, short notes) and the target OS setup (English-only); the new native test runs on every push to main.
+
+## 378. Add to dictionary takes effect at once
+
+**Status: on `main`, unreleased (after beta 0.32.0-4).**
+
+- **Marien (0.32.0-4):** after Add to dictionary the word stayed marked; it only passed once another word was added. Windows applies an `ISpellChecker::Add` to the user dictionary in the background, so the re-check that follows still flagged it. `spell.rs` now also calls `Ignore` (this session, immediate) right after `Add`; the dictionary entry persists for later sessions as before. The real-API smoke test now checks that an ignored word is accepted on the very next check (Add itself is not tested against the real API, to keep this PC's user dictionary untouched).

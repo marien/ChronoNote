@@ -494,6 +494,12 @@ fn add(checkers: &[ActiveChecker], word: &str) -> Result<(), String> {
                 .checker
                 .Add(&wide_word)
                 .map_err(|e| format!("Add failed for {}: {e}", active.tag))?;
+            // Windows applies a user-dictionary Add in the background, so the re-check right after still flagged the
+            // word until a later Add (Marien, 0.32.0-4). Ignore takes effect at once; the dictionary entry persists.
+            active
+                .checker
+                .Ignore(&wide_word)
+                .map_err(|e| format!("Ignore after Add failed for {}: {e}", active.tag))?;
         }
     }
     Ok(())
@@ -846,6 +852,11 @@ mod tests {
             assert_eq!(res.len(), 4);
             assert!(res[1].is_empty() && res[2].is_empty(), "blank lines have no marks: {res:?}");
             assert!(!res[0].is_empty() && !res[3].is_empty(), "the other lines are still checked: {res:?}");
+
+            // Ignore (also done right after Add) must take effect for the very next check, not later.
+            tauri::async_runtime::block_on(spell_ignore("wrods".to_string())).expect("ignore failed");
+            let after = tauri::async_runtime::block_on(spell_check_lines(vec!["wrods".to_string()])).expect("check failed");
+            assert!(after[0].is_empty(), "an ignored word is accepted at once: {after:?}");
         }
     }
 }
