@@ -176,4 +176,30 @@ test.describe("copy/paste deferral", () => {
     expect(await mockNote(page, "2026-08-20.txt")).toContain("# chase the invoice");
     expect(await mockNote(page, "2026-08-20.txt")).not.toContain("> chase the invoice");
   });
+
+  test("pasting an action onto an empty open action gives one symbol, not '# # ', and still defers the original", async ({ page }) => {
+    await seedApp(page, {
+      seed: {
+        notes: {
+          "2026-09-07.txt": "Top priorities\n==============\n",
+          "2026-09-03.txt": "# call the vendor back\n- other stuff",
+        },
+        session: { openTabs: ["2026-09-03.txt", "2026-09-07.txt"], activeTab: "2026-09-03.txt" },
+      },
+    });
+    await editor(page).click();
+    await page.keyboard.press("ControlOrMeta+Home");
+    await page.keyboard.press("Shift+End");
+    await page.keyboard.press("ControlOrMeta+C");
+
+    await tab(page, "2026-09-07.txt").click();
+    await editor(page).click();
+    await page.keyboard.press("ControlOrMeta+End");
+    await page.keyboard.type("# ");
+    await page.keyboard.press("ControlOrMeta+V");
+
+    await expect.poll(() => mockNote(page, "2026-09-07.txt")).toContain("\n# call the vendor back");
+    expect(await mockNote(page, "2026-09-07.txt")).not.toContain("# # call");
+    await expect.poll(() => mockNote(page, "2026-09-03.txt")).toContain("> call the vendor back");
+  });
 });

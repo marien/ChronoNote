@@ -106,6 +106,12 @@ scratchpad or a past-dated note does not trigger this. Undoing or
 redoing the paste correctly un-defers or re-defers the source line in
 its own tab, even if the source tab isn't the active one.
 
+**Pasting onto an empty symbol:** pasting text whose first line starts with a
+symbol (`# call Dana`, `v sent`, `o budget`, `- item`) onto a line that holds
+only an empty symbol (`# ` with nothing after the caret) replaces that empty
+symbol instead of giving `# # call Dana`; the pasted line keeps its own symbol
+at the line's indentation (§363).
+
 ### 2.3 Structural Spacing Rules
 * **Inter-Section Spacing:** All automated insertions (section import, templating) must enforce **two blank lines** (`\n\n\n`) between the end of a section body and the subsequent Setext heading line.
 

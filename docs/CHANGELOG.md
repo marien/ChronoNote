@@ -10426,3 +10426,11 @@ Not verified natively yet: printing in WebView2 under the desktop CSP, the save 
 - **Marien:** the discussed glyph (`. `) drew differently in the editor and in the Shortcuts legend. Both drew the ring as a border and the inner dot as a separate `::after` centred with `translate(-50%, -50%)` (three copies: editor 0.27em, drawers/legends 0.32em, phone symbols bar 4.5px). At 125%/150% scaling the dot snapped to other device pixels than the ring and sat off-centre by a different amount in each place (seen in 16x enlargements at 1x/1.25x/1.5x).
 - **Fix:** the dot is the circle's own background, `radial-gradient(circle closest-side, …)`, one rule for the editor, drawers/legends and the phone symbols bar; the ring and dot rasterize together and stay concentric. The contrast theme sets `--glyph-dot-color: GrayText` instead of colouring the old `::after`. The editor glyph is still dimmer on a concluded topic: that is the resolved-line dimming, on purpose.
 - Test in `glyph-layout.spec.ts` (editor and legend: gradient dot, no `::after`).
+
+## 363. Pasting onto an empty symbol gives one symbol
+
+**Status: on `main`, unreleased.**
+
+- **Marien:** pasting an open action right after an empty open-action glyph gave an extra `#` (`# # call Dana`) that had to be removed by hand.
+- **Fix:** a transaction filter on paste (`editor/pasteOverEmptyMarker.ts`). When the line before the caret is only a symbol (action, topic or bullet, indented or not), nothing follows the caret, and the pasted text starts with a symbol of its own, the empty symbol is replaced: the pasted line keeps its own symbol (`v sent` onto `# ` gives `v sent`) at the line's indentation. Multi-line pastes keep every line; typing, a paste without a symbol, a line with text, or several cursors are left alone. One undo step brings the empty symbol back. Copy/paste deferral of the source is unchanged.
+- Tests: `pasteOverEmptyMarker.test.ts` (7), and a real copy/paste in `paste-deferral.spec.ts` (one symbol, source still deferred).
