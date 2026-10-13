@@ -36,6 +36,8 @@ describe("getLineWrapIndent", () => {
     expect(getLineWrapIndent("  v Indented done")).toBe(4);
     expect(getLineWrapIndent("  > Indented deferred")).toBe(4);
     expect(getLineWrapIndent("  x Indented cancelled")).toBe(4);
+    expect(getLineWrapIndent("# - Bulleted action item")).toBe(4);
+    expect(getLineWrapIndent("  # - Indented bulleted action")).toBe(6);
   });
 
   it("returns marker offset for consequence lines (=>)", () => {
@@ -44,6 +46,8 @@ describe("getLineWrapIndent", () => {
     expect(getLineWrapIndent("=> # Follow-up action")).toBe(5);
     expect(getLineWrapIndent("  => # Indented follow-up action")).toBe(7);
     expect(getLineWrapIndent("  => v Indented consequence done")).toBe(7);
+    expect(getLineWrapIndent("=> o Follow-up topic")).toBe(5);
+    expect(getLineWrapIndent("  => o Indented follow-up topic")).toBe(7);
   });
 
   it("returns marker offset for bullet and emphasis items (-, *, !)", () => {
@@ -75,6 +79,7 @@ describe("getLineWrapIndent", () => {
     expect(getLineWrapIndent("  o Indented topic item")).toBe(4);
     expect(getLineWrapIndent("o - Bulleted topic item")).toBe(4);
     expect(getLineWrapIndent("o * Star bulleted topic item")).toBe(4);
+    expect(getLineWrapIndent("  o - Indented bulleted topic")).toBe(6);
     expect(getLineWrapIndent("o 1. Numbered topic item")).toBe(5);
     expect(getLineWrapIndent("o 10. Numbered topic item")).toBe(6);
   });

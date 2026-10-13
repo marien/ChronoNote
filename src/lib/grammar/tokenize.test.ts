@@ -27,9 +27,9 @@ describe("tokenizeLine", () => {
     expect(tokenizeLine("  * a")[0]).toMatchObject({ kind: "bullet", from: 2, to: 4, symbol: "*" });
   });
 
-  it("emphasis covers the whole line and is not replaced", () => {
+  it("emphasis covers to the end of line and is not replaced", () => {
     expect(tokenizeLine("! hi")).toEqual([{ kind: "emphasis", from: 0, to: 4, symbol: "!", replaced: false }]);
-    expect(tokenizeLine("  ! hi")).toEqual([]);
+    expect(tokenizeLine("  ! hi")).toEqual([{ kind: "emphasis", from: 2, to: 6, symbol: "!", replaced: false }]);
     expect(tokenizeLine("!hi")).toEqual([]);
   });
 
@@ -42,8 +42,10 @@ describe("tokenizeLine", () => {
       { kind: "arrow", from: 2, to: 5, replaced: true },
       { kind: "consequence", from: 5, to: 7, symbol: "#", replaced: true },
     ]);
-    // only the four action symbols can be a consequence
-    expect(kinds("a => o b")).toEqual(["arrow"]);
+    expect(tokenizeLine("a => o b")).toEqual([
+      { kind: "arrow", from: 2, to: 5, replaced: true },
+      { kind: "consequenceTopic", from: 5, to: 7, symbol: "o", replaced: true },
+    ]);
   });
 
   it("arrow with an assignee", () => {
@@ -69,11 +71,12 @@ describe("tokenizeLine", () => {
     expect(kinds("(@a)")).toEqual(["assigneeList", "assignee"]);
   });
 
-  it("topic tag only right after the action symbol or a consequence", () => {
+  it("topic tag right after an action symbol, a topic symbol, or a consequence", () => {
     expect(tokenizeLine("# (topic) text")[1]).toEqual({ kind: "topicTag", from: 2, to: 9, replaced: false });
     expect(tokenizeLine("a => # (t) x").at(-1)).toEqual({ kind: "topicTag", from: 7, to: 10, replaced: false });
+    expect(tokenizeLine("o (topic) text")[1]).toEqual({ kind: "topicTag", from: 2, to: 9, replaced: false });
+    expect(tokenizeLine("a => o (t) x").at(-1)).toEqual({ kind: "topicTag", from: 7, to: 10, replaced: false });
     expect(kinds("# text (topic)")).toEqual(["action", "paren"]);
-    expect(kinds("o (topic)")).toEqual(["topic", "paren"]);
     expect(kinds("(word) at the start")).toEqual(["paren"]);
   });
 
@@ -88,6 +91,69 @@ describe("tokenizeLine", () => {
 
   it("continues scanning after the emphasis marker", () => {
     expect(kinds("! see @sam")).toEqual(["emphasis", "assignee"]);
+  });
+
+  it("rule cases and plain cases from grammar brief", () => {
+    // 1. Bullet after state symbol
+    expect(tokenizeLine("# - task")).toEqual([
+      { kind: "action", from: 0, to: 2, symbol: "#", replaced: true },
+      { kind: "bullet", from: 2, to: 4, symbol: "-", replaced: true },
+    ]);
+    expect(tokenizeLine("o * topic")).toEqual([
+      { kind: "topic", from: 0, to: 2, symbol: "o", replaced: true },
+      { kind: "bullet", from: 2, to: 4, symbol: "*", replaced: true },
+    ]);
+    expect(tokenizeLine("- # task")).toEqual([
+      { kind: "bullet", from: 0, to: 2, symbol: "-", replaced: true },
+    ]);
+    expect(tokenizeLine("# 1. task")).toEqual([
+      { kind: "action", from: 0, to: 2, symbol: "#", replaced: true },
+    ]);
+
+    // 2. Emphasis in more places
+    expect(tokenizeLine("  ! remember")).toEqual([
+      { kind: "emphasis", from: 2, to: 12, symbol: "!", replaced: false },
+    ]);
+    expect(tokenizeLine("# ! urgent")).toEqual([
+      { kind: "action", from: 0, to: 2, symbol: "#", replaced: true },
+      { kind: "emphasis", from: 2, to: 10, symbol: "!", replaced: false },
+    ]);
+    expect(tokenizeLine("o ! discuss")).toEqual([
+      { kind: "topic", from: 0, to: 2, symbol: "o", replaced: true },
+      { kind: "emphasis", from: 2, to: 11, symbol: "!", replaced: false },
+    ]);
+    expect(tokenizeLine("- ! x")).toEqual([
+      { kind: "bullet", from: 0, to: 2, symbol: "-", replaced: true },
+    ]);
+    expect(tokenizeLine("text ! x")).toEqual([]);
+
+    // 3. Agenda topic after follow-up arrow
+    expect(tokenizeLine("text => o topic")).toEqual([
+      { kind: "arrow", from: 5, to: 8, replaced: true },
+      { kind: "consequenceTopic", from: 8, to: 10, symbol: "o", replaced: true },
+    ]);
+    expect(tokenizeLine("text => . done")).toEqual([
+      { kind: "arrow", from: 5, to: 8, replaced: true },
+      { kind: "consequenceTopic", from: 8, to: 10, symbol: ".", replaced: true },
+    ]);
+
+    // 4. Topic tag after topic symbol
+    expect(tokenizeLine("=> o (budget) x")).toEqual([
+      { kind: "arrow", from: 0, to: 3, replaced: true },
+      { kind: "consequenceTopic", from: 3, to: 5, symbol: "o", replaced: true },
+      { kind: "topicTag", from: 5, to: 13, replaced: false },
+    ]);
+    expect(tokenizeLine("o (budget) x")).toEqual([
+      { kind: "topic", from: 0, to: 2, symbol: "o", replaced: true },
+      { kind: "topicTag", from: 2, to: 10, replaced: false },
+    ]);
+
+    // Still plain / unchanged
+    expect(tokenizeLine("=> @dana x")).toEqual([
+      { kind: "arrow", from: 0, to: 3, replaced: true },
+      { kind: "assignee", from: 3, to: 8, replaced: false },
+    ]);
+    expect(tokenizeLine("text o x")).toEqual([]);
   });
 });
 

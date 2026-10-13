@@ -458,5 +458,34 @@ test.describe("editor — token glyphs", () => {
     await page.keyboard.press("Enter");
     expect(await activeTabContent(page)).toBe("o 1. First\no 2. Second\no - Bullet\no - ");
   });
+
+  test("bullet after state symbol: # - task shows two glyphs and counts 1 open", async ({ page }) => {
+    await setEditorText(page, "# - task");
+    await expect(editor(page).locator(".glyph-open")).toHaveCount(1);
+    await expect(editor(page).locator(".glyph-bullet")).toHaveCount(1);
+    expect((await statusCounts(page)).open).toBe(1);
+  });
+
+  test("agenda topic after follow-up: Notes => o raise it shows topic glyph and click toggles to .", async ({ page }) => {
+    await setEditorText(page, "Notes => o raise it");
+    await expect(editor(page).locator(".glyph-followup")).toHaveCount(1);
+    await expect(editor(page).locator(".glyph-topic-open")).toHaveCount(1);
+    await editor(page).locator(".glyph-topic-open").click();
+    expect(await activeTabContent(page)).toBe("Notes => . raise it");
+  });
+
+  test("emphasis indented and after action symbol: marked from ! on, counts 1 open", async ({ page }) => {
+    await setEditorText(page, "  ! remember\n# ! urgent");
+    const lines = editor(page).locator(".cm-line");
+    await expect(lines.nth(0).locator(".glyph-emphasis-line")).toHaveText("! remember");
+    await expect(lines.nth(1).locator(".glyph-emphasis-line")).toHaveText("! urgent");
+    expect((await statusCounts(page)).open).toBe(1);
+  });
+
+  test("topic tag after topic symbol: o (budget) item shows topic pill", async ({ page }) => {
+    await setEditorText(page, "o (budget) item");
+    await expect(editor(page).locator(".glyph-topic-open")).toHaveCount(1);
+    await expect(editor(page).locator(".glyph-topic")).toHaveText("(budget)");
+  });
 });
 

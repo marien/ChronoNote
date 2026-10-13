@@ -37,11 +37,23 @@ describe("parseGlyphLine", () => {
     expect(classed("* another")).toEqual([["glyph-bullet", "•"]]);
   });
 
-  it("bolds the whole line for `! `", () => {
+  it("bolds the line from `! ` for leading, indented, and following emphasis", () => {
     expect(classed("! important")).toEqual([["glyph-emphasis-line", "! important"]]);
+    expect(classed("  ! indented")).toEqual([["glyph-emphasis-line", "! indented"]]);
+    expect(text("  ! indented")).toBe("  ! indented");
+    expect(classed("# ! urgent")).toEqual([["glyph-open", "☐"], ["glyph-emphasis-line", "! urgent"]]);
+    expect(text("# ! urgent")).toBe("☐ ! urgent");
+    expect(classed("o ! discuss")).toEqual([["glyph-topic-open", "○"], ["glyph-emphasis-line", "! discuss"]]);
   });
 
-  it("renders `=> ` follow-up forms", () => {
+  it("renders bullet after an action or topic symbol", () => {
+    expect(text("# - task")).toBe("☐ • task");
+    expect(classed("# - task")).toEqual([["glyph-open", "☐"], ["glyph-bullet", "•"]]);
+    expect(text("o * topic")).toBe("○ • topic");
+    expect(classed("o * topic")).toEqual([["glyph-topic-open", "○"], ["glyph-bullet", "•"]]);
+  });
+
+  it("renders `=> ` follow-up forms and consequence topic", () => {
     expect(text("=> chase it")).toBe("➔ chase it");
     expect(text("=> @sam owns it")).toBe("➔ @sam owns it");
     expect(classed("=> @sam owns it")).toEqual([
@@ -49,6 +61,15 @@ describe("parseGlyphLine", () => {
       ["glyph-assignee", "@sam"],
     ]);
     expect(text("=> # open consequence")).toBe("➔ ☐ open consequence");
+    expect(text("=> o topic consequence")).toBe("➔ ○ topic consequence");
+    expect(classed("=> o topic consequence")).toEqual([
+      ["glyph-followup", "➔"],
+      ["glyph-topic-open", "○"],
+    ]);
+    expect(classed("Talked to Sam => . done")).toEqual([
+      ["glyph-followup", "➔"],
+      ["glyph-topic-done", "◉"],
+    ]);
   });
 
   it("#35: highlights every @name on a delegation line, not just after the arrow", () => {

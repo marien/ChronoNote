@@ -1231,12 +1231,23 @@ exports[`token behaviour snapshot (refactor R1) > edge cases 1`] = `
     "cycleActionSymbol": null,
     "editor": {
       "atomic": [],
-      "decorations": [],
+      "decorations": [
+        {
+          "class": "glyph-emphasis-line",
+          "from": 2,
+          "kind": "mark",
+          "to": 21,
+        },
+      ],
     },
     "findActionSymbols": [],
     "glyphLine": [
       {
-        "text": "  ! indented emphasis",
+        "text": "  ",
+      },
+      {
+        "cls": "glyph-emphasis-line",
+        "text": "! indented emphasis",
       },
     ],
     "innermostActionSymbol": null,
@@ -2916,6 +2927,24 @@ exports[`token behaviour snapshot (refactor R1) > edge cases 1`] = `
           "label": "○",
           "to": 2,
         },
+        {
+          "class": "glyph-topic-paren",
+          "from": 2,
+          "kind": "mark",
+          "to": 3,
+        },
+        {
+          "class": "glyph-topic",
+          "from": 2,
+          "kind": "mark",
+          "to": 9,
+        },
+        {
+          "class": "glyph-topic-paren",
+          "from": 8,
+          "kind": "mark",
+          "to": 9,
+        },
       ],
     },
     "findActionSymbols": [
@@ -2933,6 +2962,7 @@ exports[`token behaviour snapshot (refactor R1) > edge cases 1`] = `
         "text": " ",
       },
       {
+        "cls": "glyph-topic",
         "text": "(topic)",
       },
       {
@@ -2943,7 +2973,10 @@ exports[`token behaviour snapshot (refactor R1) > edge cases 1`] = `
     "innermostTopicSymbol": "o",
     "isSetextUnderline": false,
     "isTopicLikeLine": true,
-    "leadingTopicTag": null,
+    "leadingTopicTag": {
+      "from": 2,
+      "to": 9,
+    },
     "line": "o (topic) agenda",
     "parseNumberedItem": null,
     "stripLeadingToken": "o (topic) agenda",

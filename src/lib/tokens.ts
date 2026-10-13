@@ -337,9 +337,8 @@ export function cycleActionSymbol(line: string, direction: 1 | -1 = 1): string |
  * the others. Same line shapes as `cycleActionSymbol` (a plain leading symbol, or a `=> <symbol>`
  * consequence action); `null` when the line has no action symbol. */
 export function innermostTopicSymbol(line: string): "o" | "." | "," | null {
-  const plain = line.match(/^\s*([o.,])\s/);
-  if (plain) return plain[1] as "o" | "." | ",";
-  return null;
+  const topics = tokenizeLine(line).filter((t) => t.kind === "topic" || t.kind === "consequenceTopic");
+  return (topics.at(-1)?.symbol as "o" | "." | "," | undefined) ?? null;
 }
 
 export function isTopicLikeLine(line: string): boolean {
@@ -472,7 +471,9 @@ export function reopenDeferredAction(line: string, col?: number): string | null 
  * its indentation and text; every other line, including any action (`#`/`v`/`>`/`x`), is returned untouched.
  * For reusing a past agenda as a template: only the topics are reset, the rest is copied as it was. */
 export function openAgendaTopic(line: string): string {
-  return line.replace(/^(\s*)[.,](\s)/, "$1o$2");
+  return line
+    .replace(/^(\s*)[.,](\s)/, "$1o$2")
+    .replace(/(=>\s+)[.,](\s)/g, "$1o$2");
 }
 
 /** Shared line-matching for the symbol transforms above — a plain
@@ -488,7 +489,9 @@ export interface ActionSymbolRef {
 export function findActionSymbols(line: string): ActionSymbolRef[] {
   const out: ActionSymbolRef[] = [];
   for (const t of tokenizeLine(line)) {
-    if (t.kind === "action" || t.kind === "topic" || t.kind === "consequence") out.push({ index: t.from, sym: t.symbol! });
+    if (t.kind === "action" || t.kind === "topic" || t.kind === "consequence" || t.kind === "consequenceTopic") {
+      out.push({ index: t.from, sym: t.symbol! });
+    }
   }
   return out;
 }

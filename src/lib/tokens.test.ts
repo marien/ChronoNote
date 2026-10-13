@@ -551,6 +551,7 @@ describe("toggleOpenClosed (click on a glyph)", () => {
     expect(toggleOpenClosed("Talked to Sam => v follow up")).toBe("Talked to Sam => # follow up");
     // with two action symbols on a line, the innermost (the consequence action) is the one that toggles
     expect(toggleOpenClosed("# do X => > wait")).toBe("# do X => # wait");
+    expect(toggleOpenClosed("a => o b")).toBe("a => . b");
   });
 
   it("does nothing to lines that are not actions", () => {
@@ -583,6 +584,7 @@ describe("findActionSymbols: every action symbol on a line, left to right", () =
     expect(at("# do X => # wait")).toEqual([[0, "#"], [10, "#"]]);
     expect(at("> => x y")).toEqual([[0, ">"], [5, "x"]]);
     expect(at("# a => v b => x c")).toEqual([[0, "#"], [7, "v"], [14, "x"]]);
+    expect(findActionSymbols("a => o b")).toEqual([{ index: 5, sym: "o" }]);
   });
 
   it("finds nothing on lines that are not actions", () => {
@@ -762,6 +764,9 @@ describe("Meeting Agenda Topics (o, ., ,)", () => {
     expect(innermostTopicSymbol(", Postponed topic")).toBe(",");
     expect(innermostTopicSymbol("# Action item")).toBeNull();
     expect(innermostTopicSymbol("plain prose")).toBeNull();
+    expect(innermostTopicSymbol("a => o b")).toBe("o");
+    expect(innermostTopicSymbol("a => . b")).toBe(".");
+    expect(innermostTopicSymbol("o Discuss => . resolved")).toBe(".");
 
     expect(isTopicLikeLine("o Topic")).toBe(true);
     expect(isTopicLikeLine("  . Topic")).toBe(true);
@@ -782,6 +787,7 @@ describe("Meeting Agenda Topics (o, ., ,)", () => {
     expect(counts.open).toBe(1);
     expect(counts.closed).toBe(1);
     expect(counts.forwarded).toBe(0);
+    expect(countActions("a => o b").open).toBe(0);
   });
 
   it("closeOpenAction and reopenDoneAction toggle topic states (o <-> .)", () => {
@@ -820,6 +826,7 @@ describe("Meeting Agenda Topics (o, ., ,)", () => {
     expect(openAgendaTopic(", Skipped topic")).toBe("o Skipped topic");
     expect(openAgendaTopic("  . Nested discussed")).toBe("  o Nested discussed");
     expect(openAgendaTopic("o Already open")).toBe("o Already open");
+    expect(openAgendaTopic("x => , y")).toBe("x => o y");
     // Actions keep their state, and prose / bullets / a dot that is not a symbol are untouched.
     for (const line of ["v Done", "> Deferred", "x Won't do", "# Open", "- bullet", "plain. text", ".hidden", "3.5 estimate", ""]) {
       expect(openAgendaTopic(line)).toBe(line);

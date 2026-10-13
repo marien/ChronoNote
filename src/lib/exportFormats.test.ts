@@ -37,13 +37,20 @@ describe("exportFormats", () => {
       expect(noteToMarkdown(input)).toBe(expected);
     });
 
-    it("converts emphasis (! x -> **x**)", () => {
+    it("converts emphasis (! x -> **x**) including indented and after action/topic", () => {
       expect(noteToMarkdown("! Important announcement")).toBe("**Important announcement**");
+      expect(noteToMarkdown("  ! Indented announcement")).toBe("  **Indented announcement**");
+      expect(noteToMarkdown("# ! Urgent task")).toBe("- [ ] **Urgent task**");
+      expect(noteToMarkdown("v ! Done urgent")).toBe("- [x] **Done urgent**");
+      expect(noteToMarkdown("o ! Must discuss")).toBe("- **Must discuss**");
+      expect(noteToMarkdown(". ! Discussed urgent")).toBe("- **Discussed urgent** *(discussed)*");
     });
 
-    it("converts arrows (=> -> →) and preserves @name", () => {
+    it("converts arrows (=> -> →), consequenceTopic, and preserves @name", () => {
       const input = "Talk to @alex => # new task => @bob";
       expect(noteToMarkdown(input)).toBe("Talk to @alex → # new task → @bob");
+      const topicConsequence = "Talk to @alex => o team sync => . done";
+      expect(noteToMarkdown(topicConsequence)).toBe("Talk to @alex → o team sync → . done");
     });
 
     it("keeps bullets and numbered lists", () => {
@@ -173,7 +180,11 @@ describe("exportFormats", () => {
         ", skipped topic",
         "- bullet item",
         "Task => @assignee",
+        "Task => o next topic",
         "! announcement",
+        "  ! indented announcement",
+        "# ! urgent action",
+        "o ! must discuss",
       ].join("\n");
 
       const html = noteToHtml(input);
@@ -186,7 +197,11 @@ describe("exportFormats", () => {
       expect(html).toContain("◌ skipped topic");
       expect(html).toContain("• bullet item");
       expect(html).toContain("➔ @assignee");
+      expect(html).toContain("Task ➔ o next topic");
       expect(html).toContain("<strong>announcement</strong>");
+      expect(html).toContain("  <strong>indented announcement</strong>");
+      expect(html).toContain("☐ <strong>urgent action</strong>");
+      expect(html).toContain("○ <strong>must discuss</strong>");
     });
 
     it("includes inline style, fonts, and print media rules for page breaks", () => {

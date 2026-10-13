@@ -33,9 +33,6 @@ export function glyphForSymbol(sym: string): GlyphPart {
  * part per gap. */
 export function parseGlyphLine(line: string): GlyphPart[] {
   const tokens = tokenizeLine(line);
-  // `! ` — bold the whole line, token and all (matches glyphs.ts: the
-  // `!` stays visible, it isn't replaced). Nothing else is rendered.
-  if (tokens[0]?.kind === "emphasis") return [{ text: line, cls: "glyph-emphasis-line" }];
 
   const parts: GlyphPart[] = [];
   let at = 0; // chars of `line` already emitted
@@ -47,9 +44,14 @@ export function parseGlyphLine(line: string): GlyphPart[] {
     const t = tokens[i];
     gap(t.from);
     switch (t.kind) {
+      case "emphasis":
+        // Emit the rest of the line from the emphasis token's `from` as ONE part and stop.
+        parts.push({ text: line.slice(t.from), cls: "glyph-emphasis-line" });
+        return parts;
       case "action":
       case "topic":
       case "consequence":
+      case "consequenceTopic":
         parts.push(glyphForSymbol(t.symbol!), { text: " " });
         break;
       case "bullet":

@@ -41,16 +41,20 @@ export function noteToMarkdown(text: string, title?: string): string {
 
     const tokens = tokenizeLine(line);
     const first = tokens[0];
+    const second = tokens[1];
 
     if (first?.kind === "emphasis") {
-      const rest = line.slice(2).replaceAll("=> ", "→ ");
-      out.push(`**${rest}**`);
+      const indent = line.slice(0, first.from);
+      const rest = line.slice(first.from + 2).replaceAll("=> ", "→ ");
+      out.push(`${indent}**${rest}**`);
       continue;
     }
 
     if (first?.kind === "action") {
       const indent = line.slice(0, first.from);
-      const rest = line.slice(first.to).replaceAll("=> ", "→ ");
+      const isEmphasis = second?.kind === "emphasis";
+      const rawRest = line.slice(isEmphasis ? second.from + 2 : first.to).replaceAll("=> ", "→ ");
+      const rest = isEmphasis ? `**${rawRest}**` : rawRest;
       switch (first.symbol) {
         case "#":
           out.push(`${indent}- [ ] ${rest}`);
@@ -70,7 +74,9 @@ export function noteToMarkdown(text: string, title?: string): string {
 
     if (first?.kind === "topic") {
       const indent = line.slice(0, first.from);
-      const rest = line.slice(first.to).replaceAll("=> ", "→ ");
+      const isEmphasis = second?.kind === "emphasis";
+      const rawRest = line.slice(isEmphasis ? second.from + 2 : first.to).replaceAll("=> ", "→ ");
+      const rest = isEmphasis ? `**${rawRest}**` : rawRest;
       switch (first.symbol) {
         case "o":
           out.push(`${indent}- ${rest}`);
@@ -145,30 +151,36 @@ function renderNoteContentHtml(text: string): string {
 
     const tokens = tokenizeLine(line);
     const first = tokens[0];
+    const second = tokens[1];
 
     if (first?.kind === "emphasis") {
-      const rest = line.slice(2).replaceAll("=> ", "➔ ");
-      bodyLines.push(`<div class="note-line"><strong>${escapeHtml(rest)}</strong></div>`);
+      const indent = line.slice(0, first.from);
+      const rest = line.slice(first.from + 2).replaceAll("=> ", "➔ ");
+      bodyLines.push(`<div class="note-line">${escapeHtml(indent)}<strong>${escapeHtml(rest)}</strong></div>`);
       continue;
     }
 
     if (first?.kind === "action") {
       const indent = line.slice(0, first.from);
-      const rest = line.slice(first.to).replaceAll("=> ", "➔ ");
+      const isEmphasis = second?.kind === "emphasis";
+      const rawRest = line.slice(isEmphasis ? second.from + 2 : first.to).replaceAll("=> ", "➔ ");
+      const restHtml = isEmphasis ? `<strong>${escapeHtml(rawRest)}</strong>` : escapeHtml(rawRest);
       let glyph = "☐";
       if (first.symbol === "v") glyph = "☑";
       else if (first.symbol === "x") glyph = "☒";
-      bodyLines.push(`<div class="note-line">${escapeHtml(indent)}${glyph} ${escapeHtml(rest)}</div>`);
+      bodyLines.push(`<div class="note-line">${escapeHtml(indent)}${glyph} ${restHtml}</div>`);
       continue;
     }
 
     if (first?.kind === "topic") {
       const indent = line.slice(0, first.from);
-      const rest = line.slice(first.to).replaceAll("=> ", "➔ ");
+      const isEmphasis = second?.kind === "emphasis";
+      const rawRest = line.slice(isEmphasis ? second.from + 2 : first.to).replaceAll("=> ", "➔ ");
+      const restHtml = isEmphasis ? `<strong>${escapeHtml(rawRest)}</strong>` : escapeHtml(rawRest);
       let glyph = "○";
       if (first.symbol === ".") glyph = "◉";
       else if (first.symbol === ",") glyph = "◌";
-      bodyLines.push(`<div class="note-line">${escapeHtml(indent)}${glyph} ${escapeHtml(rest)}</div>`);
+      bodyLines.push(`<div class="note-line">${escapeHtml(indent)}${glyph} ${restHtml}</div>`);
       continue;
     }
 

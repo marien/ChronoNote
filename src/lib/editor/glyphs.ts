@@ -256,7 +256,8 @@ export function buildGlyphDecorations(view: EditorView): { decorations: Decorati
             break;
           case "action":
           case "topic":
-          case "consequence": {
+          case "consequence":
+          case "consequenceTopic": {
             // Action, agenda-topic and consequence symbols cycle on click; the arrow and bullet do not.
             const g = glyphSpecForSymbol(t.symbol!);
             deco.add(a, b, Decoration.replace({ widget: new InlineGlyphWidget(g.char, g.cls, true, t.symbol) }));

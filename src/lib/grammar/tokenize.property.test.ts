@@ -14,6 +14,8 @@ const realisticLineArb = fc
       " => v done",
       " => > later",
       " => x won't do",
+      " => o topic",
+      " => . discussed",
       " => plain step",
       " (@bob, @carol)",
       " @dana",
@@ -67,9 +69,15 @@ function assertTokenInvariants(line: string, tokens: Token[]) {
       case "emphasis":
         expect(token.replaced).toBe(false);
         expect(token.symbol).toBe("!");
-        expect(token.from).toBe(0);
         expect(token.to).toBe(line.length);
-        expect(/^!\s/.test(line)).toBe(true);
+        expect(/^!\s/.test(line.slice(token.from))).toBe(true);
+        break;
+      case "consequenceTopic":
+        expect(token.replaced).toBe(true);
+        expect(["o", ".", ","]).toContain(token.symbol);
+        expect(slice.length).toBe(2);
+        expect(slice[0]).toBe(token.symbol);
+        expect(/\s/.test(slice[1])).toBe(true);
         break;
       case "arrow":
         expect(token.replaced).toBe(true);

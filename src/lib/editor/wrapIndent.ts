@@ -31,17 +31,21 @@ export function getLineWrapIndent(lineText: string): number {
   const [first, second] = tokenizeLine(lineText);
   if (first?.kind === "arrow" && lineText.slice(0, first.from).trim() === "") {
     const expanded = lineText.slice(0, first.from).replace(/\t/g, "  ");
-    return expanded.length + 3 + (second?.kind === "consequence" ? 2 : 0);
+    return expanded.length + 3 + (second?.kind === "consequence" || second?.kind === "consequenceTopic" ? 2 : 0);
   }
 
   // 2. Action line: e.g. "# text", "  v text", "> deferred", "x cancelled"
   if (first?.kind === "action") {
     const expanded = lineText.slice(0, first.from).replace(/\t/g, "  ");
-    return expanded.length + 2;
+    return expanded.length + 2 + (second?.kind === "bullet" ? 2 : 0);
   }
 
   // 3. Agenda topic line: e.g. "o text", "o - text", "o 1. text"
   if (isTopicLikeLine(lineText)) {
+    if (second?.kind === "bullet") {
+      const expanded = lineText.slice(0, first.from).replace(/\t/g, "  ");
+      return expanded.length + 4;
+    }
     const pad = topicContinuationIndent(lineText);
     if (pad !== null) {
       return pad.replace(/\t/g, "  ").length;
