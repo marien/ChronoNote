@@ -4,6 +4,7 @@ mod error;
 mod onedrive;
 mod peek_window;
 mod snap_overlay;
+mod spell;
 mod storage;
 mod update_install;
 mod zen_window;
@@ -394,6 +395,11 @@ pub fn run() {
             read_log_tail,
             open_log_folder,
             write_export_file,
+            spell::spell_languages,
+            spell::spell_check_lines,
+            spell::spell_suggest,
+            spell::spell_add,
+            spell::spell_ignore,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
