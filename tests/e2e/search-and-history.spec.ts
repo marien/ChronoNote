@@ -325,7 +325,7 @@ test.describe("section history (Ctrl/Cmd+Shift+H)", () => {
     // drawer stays open with the source's new state reflected.
     await expect(detailLine(page, "renew the cert")).toContainText("☐"); // deferred glyph
     await expect.poll(() => mockNote(page, "2026-09-05.txt")).toContain("> renew the cert");
-    await expect.poll(() => mockNote(page, todayFilename())).toBe("Standup\n====\n- prior notes\n\n# renew the cert");
+    await expect.poll(() => mockNote(page, todayFilename())).toBe("Standup\n====\n- prior notes\n\n# renew the cert (<2026-09-05#Standup)"); // §371: the copy links back
     // 2026-09-28 bug fix: the target tab (today, active here) is a *different*
     // file from the source, so `writeTabContent`'s full-document replace has
     // nothing else to restore the caret from — it used to collapse to line 1
@@ -339,8 +339,9 @@ test.describe("section history (Ctrl/Cmd+Shift+H)", () => {
   const agendaSource =
     "Weekly\n====\n. budget review\n, skipped item\n  . nested discussed\no still open\nv done thing\n> deferred thing\n# open action\nplain prose";
   // In the source, whichever mode: open items are marked forwarded (`o` -> `,`, `#` -> `>`), nothing else changes.
-  const agendaSourceAfter =
-    "Weekly\n====\n. budget review\n, skipped item\n  . nested discussed\n, still open\nv done thing\n> deferred thing\n> open action\nplain prose";
+  // §371: the forwarded open action links to where it went (topics get no links).
+  const agendaSourceAfter = () =>
+    `Weekly\n====\n. budget review\n, skipped item\n  . nested discussed\n, still open\nv done thing\n> deferred thing\n> open action (>${todayFilename().replace(".txt", "")}#Weekly)\nplain prose`;
   const agendaCases = [
     {
       mode: "Whole line",
@@ -350,8 +351,8 @@ test.describe("section history (Ctrl/Cmd+Shift+H)", () => {
         "  . nested discussed",
         "o still open",
         "v done thing",
-        "# deferred thing", // a deferred action comes back open
-        "# open action",
+        "# deferred thing (<2026-09-05#Weekly)", // a deferred action comes back open
+        "# open action (<2026-09-05#Weekly)", // open actions link back (topics do not)
         "plain prose",
       ],
     },
@@ -363,8 +364,8 @@ test.describe("section history (Ctrl/Cmd+Shift+H)", () => {
         "  o nested discussed",
         "o still open",
         "v done thing",
-        "# deferred thing",
-        "# open action",
+        "# deferred thing (<2026-09-05#Weekly)",
+        "# open action (<2026-09-05#Weekly)",
         "plain prose",
       ],
     },
@@ -392,7 +393,7 @@ test.describe("section history (Ctrl/Cmd+Shift+H)", () => {
       await bar.getByRole("button", { name: "Add to today" }).click();
 
       await expect.poll(() => mockNote(page, todayFilename())).toContain(landed.join("\n"));
-      await expect.poll(() => mockNote(page, "2026-09-05.txt")).toBe(agendaSourceAfter);
+      await expect.poll(() => mockNote(page, "2026-09-05.txt")).toBe(agendaSourceAfter());
     });
   }
 
@@ -603,7 +604,7 @@ test.describe("section history (Ctrl/Cmd+Shift+H)", () => {
 
     await history(page).getByRole("button", { name: "Add to today" }).click();
     await expect.poll(() => mockNote(page, todayFilename())).toBe(
-      "Standup\n====\n# first\nplain middle line\n# second",
+      "Standup\n====\n# first (<2026-09-05#Standup)\nplain middle line\n# second (<2026-09-05#Standup)",
     );
   });
 
@@ -631,7 +632,7 @@ test.describe("section history (Ctrl/Cmd+Shift+H)", () => {
     await bar.getByRole("radio", { name: "Action only" }).click();
     await bar.getByRole("button", { name: "Add to today" }).click();
 
-    await expect.poll(() => mockNote(page, todayFilename())).toBe("Standup\n====\n# chase the invoice");
+    await expect.poll(() => mockNote(page, todayFilename())).toBe("Standup\n====\n# chase the invoice (<2026-09-05#Standup)");
   });
 
   test("a plain leading action line has no 'Action only' choice — nothing to strip (only Whole line / As agenda)", async ({ page }) => {
@@ -671,7 +672,7 @@ test.describe("section history (Ctrl/Cmd+Shift+H)", () => {
     await occRow(page, "2026-09-05").click();
     await detailLine(page, "chase the flaky test").click();
     await history(page).getByRole("button", { name: "Add to today" }).click();
-    await expect.poll(() => mockNote(page, todayFilename())).toBe("Standup\n====\n# chase the flaky test");
+    await expect.poll(() => mockNote(page, todayFilename())).toBe("Standup\n====\n# chase the flaky test (<2026-09-05#Standup)");
   });
 
   test("browsing the note History was opened from offers no take-over — nowhere to carry it to", async ({ page }) => {
@@ -1266,7 +1267,7 @@ test.describe("section history (Ctrl/Cmd+Shift+H)", () => {
 
     await page.keyboard.press("Shift+Enter");
     await expect.poll(() => mockNote(page, "2026-09-05.txt")).toContain("> renew the cert");
-    await expect.poll(() => mockNote(page, todayFilename())).toBe("Standup\n====\n# renew the cert");
+    await expect.poll(() => mockNote(page, todayFilename())).toBe("Standup\n====\n# renew the cert (<2026-09-05#Standup)");
   });
 
   test("the modal height stays constant (~80% of the window) switching between a short and a long occurrence", async ({

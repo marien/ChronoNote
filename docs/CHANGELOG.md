@@ -10511,3 +10511,15 @@ Marien: actions, agenda topics, follow-ups and lists should work independently, 
 - **Several lines:** every open action or topic in a multi-line copy gets its own links; each pasted line's `(<…)` now carries the section that line was in (a copy can span sections; it used the first line's section for all).
 - **Forwarded again:** copying a line that already came from somewhere (`# call vendor (<08-01#Standup)` on 08-10) and pasting it later leaves the middle day as `> call vendor (<08-01#Standup) (>09-15#Planning)` and gives the new copy `(<08-10#Sync)` only: each day links one step back and one step forward. A trailing `(>…)` is replaced, never doubled.
 - Tests: `controller.test.ts` (multi-line across sections, second forward), `dateLinks.test.ts`, `date-links.spec.ts`, `paste-deferral.spec.ts` (new format).
+
+## 373. D section decisions: forward links on every way of forwarding, open actions only, bracketed sections, Forward
+
+**Status: on `main`, unreleased (after beta 0.32.0-1).**
+
+Marien's review of the D choices (2026-10-13), implemented by Gemini 3.8 Flash (brief H4), integrated by the orchestrator:
+- **All forwarding adds links:** Shift+Enter in Actions (`forwardActionToToday`: `(>today)`, the copy at the top of today gets `(<date#section)`), Copy to next occurrence and Section History's take-over (`commitCopyForward`: the target section, also a new one and the same-file case), and paste. One rule in `withToLink`/`withFromLink` (`paste.ts`). A line History re-adopts after it was deferred earlier gets its `(<…)`; its source line is not changed by the take-over, so it gains no `(>…)`.
+- **Open actions only:** forwarding an agenda topic still marks it `, ` but adds no links (`OPEN_ACTION_LINE`).
+- **A date with a section needs brackets:** `(2026-10-03#Weekly Sync)` (spaces allowed); a bare `2026-10-03` is still a link to the day; in a bare `2026-10-03#Standup` only the date is a link.
+- **Forward:** `Ctrl+Alt+Right` (`Cmd+]`), the mouse forward button, palette "Go forward", a forward button next to Back in the status bar while there is somewhere to go; a new link jump clears it.
+- Kept as built (Marien): full section title in links, the partial-line rule, any date is a link, a date without a note opens an empty one, section not found opens at the top, Back/Forward not kept across restarts, Replace in the current note only, Go to section via `#` in the palette, Shift+right-click for spelling suggestions. **Future improvement:** an in-app spell-check language.
+- Found at integration (full browser suite): 7 Section History specs still expected copies without links; updated.
