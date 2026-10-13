@@ -201,6 +201,17 @@ test("spell check: the Windows checker flags misspelled words and the editor und
       check: await safe("spell_check_lines", { lines: ["teh wrods are mispeled here"] }),
     };
   });
+  const consoleLines: string[] = [];
+  page.on("console", (m) => consoleLines.push(`${m.type()}: ${m.text()}`));
+  page.on("pageerror", (e) => consoleLines.push(`pageerror: ${e.message}`));
+  await page.waitForTimeout(3000);
+  const marksBeforeTyping = await page.locator(".cm-misspelled").count();
+  const editorText = await page.locator(".cm-content").innerText();
+  // Type at the end of the misspelled line: a doc change must trigger a check whatever happened at start-up.
+  await page.locator(".cm-line", { hasText: "mispeled" }).click();
+  await page.keyboard.press("End");
+  await page.keyboard.type(" and moar wrods");
+  await page.keyboard.press("Enter");
   await page.waitForTimeout(3000);
   const after = await page.evaluate(async () => ({
     active: await (window as any).__TAURI_INTERNALS__.invoke("spell_languages").catch((e: unknown) => `ERROR ${e}`),
@@ -208,7 +219,7 @@ test("spell check: the Windows checker flags misspelled words and the editor und
     attr: document.querySelector(".cm-content")?.getAttribute("spellcheck"),
   }));
   const log = fs.existsSync(LOG) ? fs.readFileSync(LOG, "utf8").split("\n").filter((l) => /spell|Spell/.test(l)).join("\n") : "";
-  const report = JSON.stringify({ diag, after, spellLog: log }, null, 2);
+  const report = JSON.stringify({ diag, marksBeforeTyping, editorText, after, spellLog: log, console: consoleLines }, null, 2);
   console.log(report);
   await testInfo.attach("spell-diagnostics", { body: report, contentType: "application/json" });
   await expect.poll(() => page.locator(".cm-misspelled").count(), { timeout: 15_000 }).toBeGreaterThan(0);
