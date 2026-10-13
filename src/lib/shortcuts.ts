@@ -75,6 +75,13 @@ export const SHORTCUTS: ShortcutDef[] = [
     combos: [{ mod: true, code: "KeyO" }],
   },
   {
+    id: "navigateBack",
+    combos: [
+      { mod: true, alt: true, code: "ArrowLeft", platforms: ["other"] },
+      { mod: true, code: "BracketLeft", platforms: ["mac"] },
+    ],
+  },
+  {
     id: "closeTab",
     combos: [{ mod: true, code: "KeyW" }],
     extra: "middle-click",
@@ -266,6 +273,7 @@ export const SHORTCUT_LABEL_KEYS = {
   newScratchpad: "shortcuts.newScratchpad.label",
   reopenClosedTab: "shortcuts.reopenClosedTab.label",
   openDateNote: "shortcuts.openDateNote.label",
+  navigateBack: "shortcuts.navigateBack.label",
   closeTab: "shortcuts.closeTab.label",
   cycleTab: "shortcuts.cycleTab.label",
   indentDedent: "shortcuts.indentDedent.label",
@@ -339,6 +347,8 @@ const KEY_LABELS: Record<string, string> = {
   Period: ".",
   ArrowUp: "↑",
   ArrowDown: "↓",
+  ArrowLeft: "Left",
+  BracketLeft: "[",
 };
 
 function keyLabel(code: string): string {
@@ -402,6 +412,7 @@ export const DRAWER_ROWS: (string | [string, string])[] = [
   "newScratchpad",
   "reopenClosedTab",
   "openDateNote",
+  "navigateBack",
   "closeTab",
   "cycleTab",
   "indentDedent",

@@ -925,6 +925,10 @@ export type TranslationParams = {
   "toast.findBar.replaced": { count: number };
   "commandPalette.noSections": undefined;
   "commandPalette.sectionsGroup": undefined;
+  "shortcuts.navigateBack.label": undefined;
+  "statusBar.backTo": { date: string };
+  "editor.dateLink.title": undefined;
+  "toast.dateLink.sectionNotFound": { section: string };
 };
 
 export type TranslationKey = keyof TranslationParams;

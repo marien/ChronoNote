@@ -36,6 +36,7 @@ import { sortFilenamesByRecency } from "./tabSort";
 import { refreshAllNotesCache } from "./persistence";
 import { listSections, openActionLineIndices, stripLeadingToken } from "./tokens";
 import { parseDateQuery } from "./date";
+import { navigateBack } from "./dateLinks";
 import {
   commitDatePick,
   createScratchpad,
@@ -218,6 +219,13 @@ function commandItems(): PaletteItem[] {
       hint: formatCombo(shortcutById("cycleTab").combos[1]),
       group: "Commands",
       run: () => cycleTab(-1),
+    },
+    {
+      id: "cmd-back",
+      label: translate("shortcuts.navigateBack.label", undefined),
+      hint: formatShortcut("navigateBack"),
+      group: "Commands",
+      run: navigateBack,
     },
     {
       id: "cmd-date",

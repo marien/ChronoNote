@@ -5,12 +5,23 @@
  * v0.5.0 refactor — depends only on `./stores`, `./persistence`, `./date`
  * and types. `tabs.ts` calls `notifyTabClosed` from `closeTab`. */
 import { get } from "svelte/store";
-import { showToast, tabs } from "./stores";
+import { editorApi, showToast, tabs } from "./stores";
 import { writeTabContent } from "./persistence";
 import { todayISO } from "./date";
+import { getSectionHeaderForLine } from "./tokens";
 import { t } from "./i18n";
 
 let lastCopiedAction: { text: string; sourceTabId: string; sourceOffset?: number } | null = null;
+
+let pendingPasteFrom: string | null = null;
+export function setPendingPasteFrom(val: string | null) {
+  pendingPasteFrom = val;
+}
+export function takePendingPasteFrom(): string | null {
+  const val = pendingPasteFrom;
+  pendingPasteFrom = null;
+  return val;
+}
 
 /** Indentation-tolerant (§50, same as everywhere else an open-action
  * symbol is recognized) and multi-line: a copied block only needs *some*
@@ -28,16 +39,34 @@ let lastCopiedAction: { text: string; sourceTabId: string; sourceOffset?: number
  * the `#`, so a bare `#` elsewhere on the line never matches either way.
  * Capture group 1 is the prefix to preserve as-is (indentation, or the
  * `=> `); group 2 is the trailing space, also preserved. */
-const OPEN_ITEM_LINE = /(^\s*|=>\s)([#o])(\s)/;
+export const OPEN_ITEM_LINE = /(^\s*|=>\s)([#o])(\s)/;
 
 /** Flips every open action within `text` (a leading `# `, or a `=> #`
  * consequence-action) to deferred `> ` / `=> > `, and open topics `o ` to skipped `, `,
- * leaving everything else byte-for-byte unchanged. */
-export function deferOpenActionsInText(text: string): string {
-  return text.replace(new RegExp(OPEN_ITEM_LINE, "gm"), (_m, p1, sym, p2) => {
-    const replacement = sym === "#" ? ">" : ",";
-    return `${p1}${replacement}${p2}`;
-  });
+ * leaving everything else byte-for-byte unchanged. When `toSuffix` is passed, appends
+ * the (to ...) link, replacing any existing (to ...) link on deferred lines. */
+export function deferOpenActionsInText(text: string, toSuffix?: string): string {
+  if (!toSuffix) {
+    return text.replace(new RegExp(OPEN_ITEM_LINE, "gm"), (_m, p1, sym, p2) => {
+      const replacement = sym === "#" ? ">" : ",";
+      return `${p1}${replacement}${p2}`;
+    });
+  }
+  return text
+    .split("\n")
+    .map((line) => {
+      let replaced = false;
+      let deferred = line.replace(new RegExp(OPEN_ITEM_LINE, "g"), (_m, p1, sym, p2) => {
+        replaced = true;
+        const replacement = sym === "#" ? ">" : ",";
+        return `${p1}${replacement}${p2}`;
+      });
+      if (replaced) {
+        deferred = deferred.replace(/\s*\(to\s+[^)]+\)$/, "") + toSuffix;
+      }
+      return deferred;
+    })
+    .join("\n");
 }
 
 /** How many open actions or topics `deferOpenActionsInText` would flip in `text`. */
@@ -66,6 +95,7 @@ interface PasteDeferLink {
   sourceTabId: string;
   openBlock: string;
   deferredBlock: string;
+  pastedBlock?: string;
   sourceOffset?: number;
   reverted: boolean;
 }
@@ -98,7 +128,11 @@ export function onEditorUndo(activeTabId: string, before: string, after: string)
   if (!link || link.reverted || link.targetTabId !== activeTabId) return;
   // Only the undo step that actually removes the pasted block should fire —
   // earlier undos (of edits made after the paste) leave it in place.
-  if (!before.includes(link.openBlock) || after.includes(link.openBlock)) return;
+  const checkBlock = link.pastedBlock ?? link.openBlock;
+  const removed =
+    (before.includes(checkBlock) && !after.includes(checkBlock)) ||
+    (before.includes(link.openBlock) && !after.includes(link.openBlock));
+  if (!removed) return;
 
   const list = get(tabs);
   const src = list.find((t) => t.id === link.sourceTabId);
@@ -128,7 +162,11 @@ export function onEditorUndo(activeTabId: string, before: string, after: string)
 export function onEditorRedo(activeTabId: string, before: string, after: string) {
   const link = pasteDeferLink;
   if (!link || !link.reverted || link.targetTabId !== activeTabId) return;
-  if (before.includes(link.openBlock) || !after.includes(link.openBlock)) return;
+  const checkBlock = link.pastedBlock ?? link.openBlock;
+  const restored =
+    (!before.includes(checkBlock) && after.includes(checkBlock)) ||
+    (!before.includes(link.openBlock) && after.includes(link.openBlock));
+  if (!restored) return;
 
   const list = get(tabs);
   const src = list.find((t) => t.id === link.sourceTabId);
@@ -160,11 +198,21 @@ const normalizeClipboardText = (text: string) => text.split(String.fromCharCode(
 /** `pastedText`: what is being pasted (the clipboard's text), when known. The remembered copy only counts when that IS
  * the text copied in ChronoNote: copy in ChronoNote, paste in another app, copy something else there and paste it
  * here must not defer the original. Without it (no clipboard data on the event) the old rule applies. */
-export function handlePasteIntoTab(targetTabId: string, pastedText?: string) {
-  if (!lastCopiedAction) return;
+export function handlePasteIntoTab(
+  targetTabId: string,
+  pastedText?: string,
+  opts?: { targetLineIdx?: number; targetDocText?: string },
+): string | null {
+  if (!lastCopiedAction) {
+    setPendingPasteFrom(null);
+    return null;
+  }
   const copied = lastCopiedAction;
   lastCopiedAction = null;
-  if (pastedText !== undefined && normalizeClipboardText(pastedText) !== normalizeClipboardText(copied.text)) return;
+  if (pastedText !== undefined && normalizeClipboardText(pastedText) !== normalizeClipboardText(copied.text)) {
+    setPendingPasteFrom(null);
+    return null;
+  }
 
   const todayFilename = todayISO() + ".txt";
   const targetTab = get(tabs).find((t) => t.id === targetTabId);
@@ -179,19 +227,48 @@ export function handlePasteIntoTab(targetTabId: string, pastedText?: string) {
     targetTab.filename < todayFilename ||
     copied.sourceTabId === targetTabId
   ) {
-    return;
+    setPendingPasteFrom(null);
+    return null;
   }
 
   const list = get(tabs);
   const srcTab = list.find((t) => t.id === copied.sourceTabId);
   if (srcTab && srcTab.content.includes(copied.text)) {
+    const targetDate = targetTab.filename.replace(/\.txt$/, "");
+    const targetLines = (opts?.targetDocText ?? targetTab.content).split("\n");
+    const targetLineIdx = opts?.targetLineIdx ?? (editorApi ? editorApi.getCursorLineIdx() : 0);
+    const targetSection = getSectionHeaderForLine(targetLines, targetLineIdx).trim();
+    const toSuffix = targetSection ? ` (to ${targetDate}#${targetSection})` : ` (to ${targetDate})`;
+
+    const srcDate = srcTab.filename.replace(/\.txt$/, "");
+    const srcLines = srcTab.content.split("\n");
+    let effectiveOffset = copied.sourceOffset;
+    if (
+      effectiveOffset === undefined ||
+      srcTab.content.slice(effectiveOffset, effectiveOffset + copied.text.length) !== copied.text
+    ) {
+      const idx = srcTab.content.indexOf(copied.text);
+      effectiveOffset = idx >= 0 ? idx : undefined;
+    }
+    const srcStartLineIdx =
+      effectiveOffset !== undefined
+        ? srcTab.content.slice(0, effectiveOffset).split("\n").length - 1
+        : 0;
+    const srcSection = getSectionHeaderForLine(srcLines, srcStartLineIdx).trim();
+    const fromSuffix = srcSection ? ` (from ${srcDate}#${srcSection})` : ` (from ${srcDate})`;
+
     // Defer every open action *within* the copied block, not just one at
     // its start — pasting a multi-line copy that happens to carry several
     // "# " lines (or one indented past the block's first line) should
     // forward all of them, the same as pasting just one always has.
-    const deferredBlock = deferOpenActionsInText(copied.text);
+    // The `(to …)` link goes at the end of the line, so only when the copy reaches the end of its line; a copy of part
+    // of a line is deferred without one (appending would put the link in the middle of the line).
+    const copyEnd = effectiveOffset !== undefined ? effectiveOffset + copied.text.length : -1;
+    const endsAtLineEnd =
+      copied.text.endsWith("\n") || copyEnd === srcTab.content.length || srcTab.content[copyEnd] === "\n" ||
+      srcTab.content[copyEnd] === "\r";
+    const deferredBlock = deferOpenActionsInText(copied.text, endsAtLineEnd ? toSuffix : undefined);
     let newSrcContent: string;
-    let effectiveOffset = copied.sourceOffset;
     if (
       effectiveOffset !== undefined &&
       srcTab.content.slice(effectiveOffset, effectiveOffset + copied.text.length) === copied.text
@@ -206,6 +283,15 @@ export function handlePasteIntoTab(targetTabId: string, pastedText?: string) {
       effectiveOffset = idx >= 0 ? idx : undefined;
     }
     tabs.set(writeTabContent(srcTab.id, newSrcContent, list));
+
+    const pastedBlock = copied.text
+      .split("\n")
+      .map((line) => {
+        if (!new RegExp(OPEN_ITEM_LINE).test(line)) return line;
+        return line.replace(/\s*\((?:from|to)\s+[^)]+\)$/, "") + fromSuffix;
+      })
+      .join("\n");
+
     // §86 (#9): remember this defer so an undo of the paste in the target
     // tab can flip it back.
     pasteDeferLink = {
@@ -213,10 +299,15 @@ export function handlePasteIntoTab(targetTabId: string, pastedText?: string) {
       sourceTabId: srcTab.id,
       openBlock: copied.text,
       deferredBlock,
+      pastedBlock,
       sourceOffset: effectiveOffset,
       reverted: false,
     };
     const count = countOpenActionsInText(copied.text);
     showToast(get(t)("toast.paste.originalMarkedDeferred", { count, filename: srcTab.filename }));
+    setPendingPasteFrom(fromSuffix);
+    return fromSuffix;
   }
+  setPendingPasteFrom(null);
+  return null;
 }

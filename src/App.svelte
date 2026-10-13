@@ -149,6 +149,7 @@
       togglePeekMode: () => controller.togglePeek(),
       printNote: () => printActiveNote(),
       openExport: () => openExportModal(),
+      navigateBack: () => void controller.navigateBack(),
     };
 
     // A modal, the find bar or the sync-health popover handles Esc in its own handler, which runs before this
@@ -491,6 +492,15 @@
     window.addEventListener("dragover", onWindowDragOver);
     window.addEventListener("drop", onWindowDrop);
 
+    const onMouseBack = (e: MouseEvent) => {
+      if (e.button === 3) {
+        e.preventDefault();
+        void controller.navigateBack();
+      }
+    };
+    window.addEventListener("mouseup", onMouseBack);
+    window.addEventListener("auxclick", onMouseBack);
+
     const backNav = wireMobileBackNavigation({
       hasOpenOverlay: () => get(overlays).length > 0 || get(isZenMode),
       closeActiveOverlay: () => {
@@ -504,6 +514,8 @@
       unwireContextMenuGuard();
       unwireCallNote();
       backNav.destroy();
+      window.removeEventListener("mouseup", onMouseBack);
+      window.removeEventListener("auxclick", onMouseBack);
       window.removeEventListener("keydown", onKeydown);
       window.removeEventListener("keydown", noteEscapeStart, true);
       window.removeEventListener("dragenter", onWindowDragEnter);

@@ -915,4 +915,8 @@ export const en = {
   "commandPalette.noSections": () => "No sections in this note",
   "commandPalette.sectionsGroup": () => "Sections",
 
+  "shortcuts.navigateBack.label": () => "Go back",
+  "statusBar.backTo": (p) => `Back to ${p?.date ?? `date`}`,
+  "editor.dateLink.title": () => "Ctrl+Click to open this day",
+  "toast.dateLink.sectionNotFound": (p) => `Section not found: ${p?.section ?? `section`}`,
 } satisfies Dictionary;

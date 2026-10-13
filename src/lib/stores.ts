@@ -60,6 +60,11 @@ export type ModalKind =
 
 export const tabs = writable<NoteTab[]>([]);
 export const activeTabId = writable<string>("");
+export interface BackStackEntry {
+  filename: string;
+  lineIdx: number;
+}
+export const backStack = writable<BackStackEntry[]>([]);
 /** #72: today's date, kept live via `boot.ts`'s `wireDateRollover()` — a
  * plain `todayISO()` call inside a template expression (as the top bar's
  * past/today/future tab colouring used to do) only ever re-evaluates when

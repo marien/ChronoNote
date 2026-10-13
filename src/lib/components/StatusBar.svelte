@@ -14,6 +14,7 @@
     toastAction,
     toastMessage,
     updateStatus,
+    backStack,
   } from "../controller";
   import { actionDrawerShowOnlyOpen, editorApi } from "../stores";
   import * as controller from "../controller";
@@ -49,6 +50,22 @@
 
 <div id="status-bar" class:has-centre-message={hasCentreMessage}>
   <div class="status-zone status-left">
+    {#if $backStack.length > 0}
+      {@const backTarget = $backStack[$backStack.length - 1]}
+      {@const backDate = backTarget.filename.replace(/\.txt$/, "")}
+      {@const backLabel = $t("statusBar.backTo", { date: backDate })}
+      {@const shortcutText = formatShortcut("navigateBack")}
+      <button
+        type="button"
+        id="stat-back"
+        aria-label={backLabel}
+        title={shortcutText ? `${backLabel} (${shortcutText})` : backLabel}
+        onclick={controller.navigateBack}
+      >
+        <Icon name="chevron-left" size={12} />
+        <span>{backDate}</span>
+      </button>
+    {/if}
     <!-- §B4: the action counts lead, as buttons: open jumps to the next open action (Ctrl+J), the other two open
          the Action Drawer with every state listed. -->
     <button
@@ -255,6 +272,25 @@
    `currentColor`) isn't itself gated by `stat-tier0`, so it survives the
    folder-name collapse below and stays a click target even at the
    narrowest width the name is shown at all. */
+
+#stat-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: transparent;
+  border: none;
+  color: inherit;
+  font: inherit;
+  padding: 0 4px;
+  margin: 0;
+  cursor: pointer;
+  border-radius: var(--radius-control);
+}
+
+#stat-back:hover {
+  background: var(--surface-raised);
+  color: var(--text);
+}
 
 #stat-folder,
 #stat-storage,

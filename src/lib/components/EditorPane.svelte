@@ -11,6 +11,7 @@
   import { resolvedLinesPlugin } from "../editor/resolvedLines";
   import { activeLinesPlugin } from "../editor/activeLines";
   import { clickableLinksPlugin } from "../editor/clickableLinks";
+  import { dateLinksPlugin } from "../editor/dateLinks";
   import { pasteOverEmptyMarker } from "../editor/pasteOverEmptyMarker";
   import { stateFirstFilter } from "../editor/stateFirst";
   import { overviewRuler } from "../editor/overviewRuler";
@@ -716,6 +717,7 @@
       resolvedLinesPlugin,
       activeLinesPlugin,
       clickableLinksPlugin,
+      dateLinksPlugin,
       pasteOverEmptyMarker,
       stateFirstFilter,
       overviewRuler({ onJump: (lineIdx) => triggerLinePulse(lineIdx) }),
@@ -807,8 +809,13 @@
           // so cutting text cannot defer a stale previous copy.
           controller.recordCopiedAction("", controller.getActiveTabId());
         },
-        paste: (event) => {
-          controller.handlePasteIntoTab(controller.getActiveTabId(), event.clipboardData?.getData("text/plain"));
+        paste: (event, v) => {
+          const lineIdx = v.state.doc.lineAt(v.state.selection.main.head).number - 1;
+          const docText = v.state.doc.toString();
+          controller.handlePasteIntoTab(controller.getActiveTabId(), event.clipboardData?.getData("text/plain"), {
+            targetLineIdx: lineIdx,
+            targetDocText: docText,
+          });
         },
         // The occurrence hint (and its Peek button) also shows for a section whose title line or underline the mouse
         // is over, so it can be used without clicking into the section first.
