@@ -39,4 +39,7 @@ describe("pasteOverEmptyMarker filter", () => {
     const state = EditorState.create({ doc: "# ", selection: { anchor: 2 }, extensions: [pasteOverEmptyMarker] });
     expect(state.update({ changes: { from: 2, insert: "# x" }, userEvent: "input.type" }).state.doc.toString()).toBe("# # x");
   });
+  it("rewrites list marker then state symbol on each pasted line", () => {
+    expect(paste("", 0, "- # a\n1. o b")).toEqual({ doc: "# - a\no 1. b", caret: 12 });
+  });
 });

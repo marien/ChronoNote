@@ -31,6 +31,7 @@ import {
   getSectionHeaderForLine,
   normalizeHeaderTitle,
   titleForMatching,
+  stateFirst,
 } from "./tokens";
 
 describe("countActions", () => {
@@ -275,6 +276,13 @@ describe("setActionSymbolTo (#70)", () => {
     expect(setActionSymbolTo("just prose", "v")).toBe("v just prose");
     expect(setActionSymbolTo("Talked to Sam => let's regroup", "x")).toBe("Talked to Sam => x let's regroup");
   });
+
+  it("promotes bullet, numbered and emphasis lines with symbol in front", () => {
+    expect(setActionSymbolTo("- item", "#")).toBe("# - item");
+    expect(setActionSymbolTo("  * item", "#")).toBe("  # * item");
+    expect(setActionSymbolTo("1. item", "#")).toBe("# 1. item");
+    expect(setActionSymbolTo("! note", "#")).toBe("# ! note");
+  });
 });
 
 describe("closeOpenAction (#73)", () => {
@@ -357,6 +365,26 @@ describe("actionLineEnter", () => {
 
   it("#34: a mid-line `=> ` is not a follow-up line — still null", () => {
     expect(actionLineEnter("Talked to Sam => # follow up")).toBeNull();
+  });
+
+  it("continues bulleted and numbered actions, and exits on empty", () => {
+    expect(actionLineEnter("# - task")).toEqual({ insert: "\n# - " });
+    expect(actionLineEnter("  v * task")).toEqual({ insert: "\n  # * " });
+    expect(actionLineEnter("# - ")).toEqual({ removeSymbol: true });
+    expect(actionLineEnter("# 1. task")).toEqual({ insert: "\n# 2. " });
+    expect(actionLineEnter("# 1.1. task")).toEqual({ insert: "\n# 1.2. " });
+    expect(actionLineEnter("v 2) task")).toEqual({ insert: "\n# 3) " });
+    expect(actionLineEnter("# 3. ")).toEqual({ removeSymbol: true });
+    expect(actionLineEnter("# 1. task", 2)).toEqual({ plain: true });
+    expect(actionLineEnter("# 1. task", 5, "===")).toEqual({ plain: true });
+  });
+
+  it("handles consequence topic follow-ups", () => {
+    expect(actionLineEnter("=> o raise it")).toEqual({ insert: "\n=> o " });
+    expect(actionLineEnter("=> . raise it")).toEqual({ insert: "\n=> o " });
+    expect(actionLineEnter("=> o")).toEqual({ removeSymbol: true });
+    expect(actionLineEnter("=> .")).toEqual({ removeSymbol: true });
+    expect(actionLineEnter("Notes => o raise it")).toBeNull();
   });
 });
 
@@ -680,8 +708,8 @@ describe("caret-aware transforms", () => {
     expect(setActionSymbolTo("  indented text", "#", 5)).toBe("  # indented text");
     expect(setActionSymbolTo("=> a follow-up", "x", 6)).toBe("=> x a follow-up");
     expect(setActionSymbolTo("Talked to Sam => a follow-up", ">", 2)).toBe("Talked to Sam => > a follow-up");
-    expect(setActionSymbolTo("- bullet", "#", 2)).toBeNull();
-    expect(setActionSymbolTo("! remember", "#", 2)).toBeNull();
+    expect(setActionSymbolTo("- bullet", "#", 2)).toBe("# - bullet");
+    expect(setActionSymbolTo("! remember", "#", 2)).toBe("# ! remember");
     expect(setActionSymbolTo("=> @sam do it", "#", 2)).toBeNull();
     expect(setActionSymbolTo("=====", "#", 2)).toBeNull();
   });
@@ -819,6 +847,9 @@ describe("Meeting Agenda Topics (o, ., ,)", () => {
     expect(setTopicSymbolTo("# Action item", "o")).toBe("o Action item");
     expect(setTopicSymbolTo("1. First numbered topic", "o")).toBe("o 1. First numbered topic");
     expect(setTopicSymbolTo("- Bulleted topic", "o")).toBe("o - Bulleted topic");
+    expect(setTopicSymbolTo("text => follow", "o")).toBe("text => o follow");
+    expect(setTopicSymbolTo("text => @name", "o")).toBeNull();
+    expect(setTopicSymbolTo("text => ", "o")).toBeNull();
   });
 
   it("openAgendaTopic reopens only discussed/skipped topics and leaves every other line alone", () => {
@@ -885,5 +916,25 @@ describe("lineSectionRole", () => {
   it("lines above the first section are outside", () => {
     expect(lineSectionRole(lines, 0)).toBe("outside");
     expect(lineSectionRole(lines, 1)).toBe("outside");
+  });
+});
+
+describe("stateFirst", () => {
+  it("rewrites list marker then state symbol to state first", () => {
+    expect(stateFirst("- # task")).toBe("# - task");
+    expect(stateFirst("  * o topic")).toBe("  o * topic");
+    expect(stateFirst("1. # task")).toBe("# 1. task");
+    expect(stateFirst("2) v done")).toBe("v 2) done");
+    expect(stateFirst("1.2. , item")).toBe(", 1.2. item");
+  });
+
+  it("returns null for unchanged cases", () => {
+    expect(stateFirst("- item")).toBeNull();
+    expect(stateFirst("# - task")).toBeNull();
+    expect(stateFirst("text - # x")).toBeNull();
+    expect(stateFirst("- #hashtag")).toBeNull();
+    expect(stateFirst("1. #hashtag")).toBeNull();
+    expect(stateFirst("===")).toBeNull();
+    expect(stateFirst("---")).toBeNull();
   });
 });

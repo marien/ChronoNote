@@ -500,5 +500,44 @@ test.describe("editor — token glyphs", () => {
     await expect(editor(page).locator(".glyph-topic-open")).toHaveCount(1);
     await expect(editor(page).locator(".glyph-topic")).toHaveText("(budget)");
   });
+
+  test("state shortcuts work on list and follow-up lines", async ({ page }) => {
+    await setEditorText(page, "- item\n1. item\nNotes => later");
+    const lines = editor(page).locator(".cm-line");
+
+    await lines.nth(0).click();
+    await page.keyboard.press("ControlOrMeta+1");
+    expect((await activeTabContent(page)).split("\n")[0]).toBe("# - item");
+
+    await lines.nth(1).click();
+    await page.keyboard.press("ControlOrMeta+5");
+    expect((await activeTabContent(page)).split("\n")[1]).toBe("o 1. item");
+
+    await lines.nth(2).click();
+    await page.keyboard.press("ControlOrMeta+5");
+    expect((await activeTabContent(page)).split("\n")[2]).toBe("Notes => o later");
+  });
+
+  test("reordering list-then-state when caret leaves the line and undo restores it", async ({ page }) => {
+    await typeInEditor(page, "- # task");
+    await page.clock.fastForward(1000);
+    await page.keyboard.press("Enter");
+    expect((await activeTabContent(page)).split("\n")[0]).toBe("# - task");
+    await page.keyboard.press("ControlOrMeta+z");
+    expect(await activeTabContent(page)).toBe("- # task");
+  });
+
+  test("Enter continues combined numbered and bullet lines, and exits on empty", async ({ page }) => {
+    await typeInEditor(page, "# 1. first");
+    await page.keyboard.press("Enter");
+    expect(await activeTabContent(page)).toBe("# 1. first\n# 2. ");
+
+    await setEditorText(page, "");
+    await typeInEditor(page, "# - a");
+    await page.keyboard.press("Enter");
+    expect(await activeTabContent(page)).toBe("# - a\n# - ");
+    await page.keyboard.press("Enter");
+    expect(await activeTabContent(page)).toBe("# - a\n");
+  });
 });
 

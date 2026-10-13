@@ -12,6 +12,7 @@
   import { activeLinesPlugin } from "../editor/activeLines";
   import { clickableLinksPlugin } from "../editor/clickableLinks";
   import { pasteOverEmptyMarker } from "../editor/pasteOverEmptyMarker";
+  import { stateFirstFilter } from "../editor/stateFirst";
   import { overviewRuler } from "../editor/overviewRuler";
   import { wrapIndentExtension } from "../editor/wrapIndent";
   import { sectionFocus } from "../editor/sectionFocus";
@@ -520,15 +521,19 @@
           return true;
         }
         // §85 (#12): Enter on an action line continues it as a new open action.
-        const edit = actionLineEnter(line.text);
+        const nextLine = line.number < v.state.doc.lines ? v.state.doc.line(line.number + 1).text : undefined;
+        const edit = actionLineEnter(line.text, pos - line.from, nextLine);
         if (edit === null) return false;
         if ("removeSymbol" in edit) {
           v.dispatch({ changes: { from: line.from, to: line.to, insert: "" }, selection: { anchor: line.from } });
+        } else if ("plain" in edit) {
+          v.dispatch({ changes: { from: pos, to: pos, insert: "\n" }, selection: { anchor: pos + 1 }, scrollIntoView: true });
         } else {
           v.dispatch({
             changes: { from: pos, to: pos, insert: edit.insert },
             selection: { anchor: pos + edit.insert.length },
             scrollIntoView: true,
+            userEvent: "input",
           });
         }
         return true;
@@ -545,6 +550,7 @@
         changes: { from: pos, to: pos, insert: insertText },
         selection: { anchor: pos + insertText.length },
         scrollIntoView: true,
+        userEvent: "input",
       });
       return true;
     };
@@ -677,6 +683,7 @@
       activeLinesPlugin,
       clickableLinksPlugin,
       pasteOverEmptyMarker,
+      stateFirstFilter,
       overviewRuler({ onJump: (lineIdx) => triggerLinePulse(lineIdx) }),
       pulseField,
       // §108: search state for findNext/findPrevious; its own panel is
@@ -1036,13 +1043,7 @@
           const line = view.state.doc.line(l);
           let updated: string | null = null;
           if (token === "#" || token === "v" || token === ">" || token === "x") {
-            if (/^\s*[-*!]\s/.test(line.text)) {
-              const indent = line.text.match(/^(\s*)/)?.[1] ?? "";
-              const stripped = withoutLineMarker(line.text);
-              updated = `${indent}${token} ${stripped}`;
-            } else {
-              updated = setActionSymbolTo(line.text, token, referenceColumn(sel, line));
-            }
+            updated = setActionSymbolTo(line.text, token, referenceColumn(sel, line));
           } else if (token === "-") {
             if (/^\s*[-*]\s/.test(line.text)) {
               updated = line.text.replace(/^(\s*)[-*]\s/, "$1");

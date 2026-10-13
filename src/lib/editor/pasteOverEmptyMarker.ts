@@ -1,10 +1,18 @@
 import { EditorState } from "@codemirror/state";
 import { ACTION_CLASS, BULLET_CLASS, TOPIC_CLASS } from "../grammar/symbols";
+import { stateFirst } from "../tokens";
 
 /** A line that so far holds only a symbol (`# `, `o `, `- `), with nothing typed after it. */
 const EMPTY_MARKER = new RegExp(String.raw`^(\s*)(?:${ACTION_CLASS}|${TOPIC_CLASS}|${BULLET_CLASS})\s+$`);
 /** Pasted text whose first line starts with a symbol of its own. */
 const PASTED_MARKER = new RegExp(String.raw`^\s*(?:${ACTION_CLASS}|${TOPIC_CLASS}|${BULLET_CLASS})\s`);
+
+function rewritePasted(text: string): string {
+  return text
+    .split("\n")
+    .map((line) => stateFirst(line) ?? line)
+    .join("\n");
+}
 
 /** Pasting `# call Dana` onto an empty `# ` used to give `# # call Dana`. When the line before the caret is only a
  * symbol, nothing follows the caret, and the pasted text brings its own symbol, the empty symbol goes and the pasted
@@ -17,8 +25,9 @@ export function mergePasteOverEmptyMarker(
 ): { deleteBefore: number; insert: string } | null {
   if (lineAfter.trim() !== "") return null;
   const m = EMPTY_MARKER.exec(lineBefore);
-  if (!m || !PASTED_MARKER.test(pasted)) return null;
-  return { deleteBefore: lineBefore.length - m[1].length, insert: pasted.replace(/^[ \t]+/, "") };
+  const rewritten = rewritePasted(pasted);
+  if (!m || !PASTED_MARKER.test(rewritten)) return null;
+  return { deleteBefore: lineBefore.length - m[1].length, insert: rewritten.replace(/^[ \t]+/, "") };
 }
 
 export const pasteOverEmptyMarker = EditorState.transactionFilter.of((tr) => {
@@ -28,11 +37,21 @@ export const pasteOverEmptyMarker = EditorState.transactionFilter.of((tr) => {
   tr.changes.iterChanges((fromA, toA, _fromB, _toB, inserted) => {
     const doc = tr.startState.doc;
     const line = doc.lineAt(fromA);
+    const raw = inserted.toString();
     const merged =
       doc.lineAt(toA).number === line.number
-        ? mergePasteOverEmptyMarker(doc.sliceString(line.from, fromA), doc.sliceString(toA, line.to), inserted.toString())
+        ? mergePasteOverEmptyMarker(doc.sliceString(line.from, fromA), doc.sliceString(toA, line.to), raw)
         : null;
-    specs.push(merged && { from: fromA - merged.deleteBefore, to: toA, insert: merged.insert });
+    if (merged) {
+      specs.push({ from: fromA - merged.deleteBefore, to: toA, insert: merged.insert });
+    } else {
+      const rewritten = rewritePasted(raw);
+      if (rewritten !== raw) {
+        specs.push({ from: fromA, to: toA, insert: rewritten });
+      } else {
+        specs.push(null);
+      }
+    }
   });
   const spec = specs.length === 1 ? specs[0] : null;
   if (!spec) return tr;

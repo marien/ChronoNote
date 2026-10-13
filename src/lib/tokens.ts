@@ -107,7 +107,31 @@ export function adjacentOpenActionLine(text: string, fromLineIdx: number, dir: 1
  * The insert is placed at the cursor, so pressing Enter mid-line splits
  * the line in two, the tail becoming its own continued action —
  * mirroring `bulletContinuation`'s split-anywhere behaviour. */
-export function actionLineEnter(lineText: string): { removeSymbol: true } | { insert: string } | null {
+export function actionLineEnter(
+  lineText: string,
+  col?: number,
+  nextLine?: string,
+): { removeSymbol: true } | { plain: true } | { insert: string } | null {
+  const actionNumbered = lineText.match(/^(\s*)([#vx>])\s+((?:[1-9]\d{0,8})(?:\.[1-9]\d{0,8})*)([.)])(\s|$)(.*)$/);
+  if (actionNumbered) {
+    const [, indent, sym, numStr, delim, , text] = actionNumbered;
+    if (text.trim() === "") return { removeSymbol: true };
+    const markerEnd = indent.length + sym.length + 1 + numStr.length + delim.length;
+    if (col !== undefined && col <= markerEnd) return { plain: true };
+    if (nextLine !== undefined && isSetextUnderline(nextLine)) return { plain: true };
+    const numbers = numStr.split(".").map(Number);
+    numbers[numbers.length - 1] += 1;
+    const nextMarker = numbers.join(".") + delim;
+    return { insert: `\n${indent}# ${nextMarker} ` };
+  }
+
+  const actionBullet = lineText.match(/^(\s*)([#vx>])\s+([-*])(\s|$)(.*)$/);
+  if (actionBullet) {
+    const [, indent, , marker, , text] = actionBullet;
+    if (text.trim() === "") return { removeSymbol: true };
+    return { insert: `\n${indent}# ${marker} ` };
+  }
+
   const [first, second] = tokenizeLine(lineText);
   if (first?.kind === "action") {
     if (lineText.trim() === first.symbol) return { removeSymbol: true };
@@ -115,9 +139,11 @@ export function actionLineEnter(lineText: string): { removeSymbol: true } | { in
   }
   if (first?.kind === "arrow" && lineText.slice(0, first.from).trim() === "") {
     const trimmed = lineText.trim();
-    if (trimmed === "=>" || trimmed === "=> #") return { removeSymbol: true };
+    if (trimmed === "=>" || /^=>\s*[#vx>o.,]$/.test(trimmed)) return { removeSymbol: true };
     const consequenceAction = second?.kind === "consequence";
-    return { insert: `\n${lineText.slice(0, first.from)}=> ${consequenceAction ? "# " : ""}` };
+    const consequenceTopic = second?.kind === "consequenceTopic";
+    const sym = consequenceAction ? "# " : consequenceTopic ? "o " : "";
+    return { insert: `\n${lineText.slice(0, first.from)}=> ${sym}` };
   }
   return null;
 }
@@ -405,11 +431,16 @@ export function setActionSymbolTo(line: string, symbol: "#" | "v" | ">" | "x", c
 }
 
 /** Sets a line or selection directly to topic state `o`, `.`, or `,` (`Ctrl/Cmd+5`-`7`).
- * Promotes a plain line or list item to the target topic state by prepending it. */
+ * Promotes a plain line, list item or unstated follow-up to the target topic state. */
 export function setTopicSymbolTo(line: string, symbol: "o" | "." | ",", col?: number): string | null {
   const m = matchActionSymbol(line, col);
   if (m) {
     return m.rebuild(symbol);
+  }
+  const followMatch = line.match(/^(.*=>\s)(?!@)(\S.*)$/);
+  if (followMatch) {
+    const [, prefix, rest] = followMatch;
+    return `${prefix}${symbol} ${rest}`;
   }
   if (/=>/.test(line)) return null;
   if (isSetextUnderline(line)) return null;
@@ -536,22 +567,20 @@ function matchActionSymbol(line: string, col?: number): { sym: string; rebuild: 
  * leaving it alone — "a direct state shortcut converts a non-action line
  * into an action line." Two promotable shapes: a `=> text` follow-up with
  * no state of its own gets `createAs` inserted right after the arrow
- * (`=> text` → `=> # text`); anything else with no recognized token at
- * all (no bullet, no emphasis, no follow-up/delegate) gets `createAs`
- * prepended as a fresh leading symbol. Left alone regardless of
- * `createAs`: a bullet (`- `/`* `) or emphasis (`! `) line — their own,
- * equally deliberate structural tokens, not "actions waiting to happen"
- * — and a `=> @name` delegated line, whose whole point is having no
- * state of its own (§41's "mutually exclusive with delegating to a
- * person") — and the setext `====` underline itself. A section-header
- * *title* line (the one above the underline) has no way to be recognized
- * from a single line in isolation — callers with document context
- * (`EditorPane.svelte`) check that themselves and skip the line entirely
- * before ever calling this. Omitting `createAs` restores the original
- * "leave it alone" behavior, for any caller that shouldn't promote plain
- * lines (`cycleActionSymbol`, `setActionSymbolOpen`,
- * `closeOpenAction`/`reopenDoneAction`, all via `matchActionSymbol`
- * directly instead of this function). */
+ * (`=> text` → `=> # text`); anything else with no recognized state
+ * symbol (including bullets, numbered items, and emphasis lines) gets
+ * `createAs` prepended in front, preserving indentation. Left alone
+ * regardless of `createAs`: a `=> @name` delegated line, whose whole
+ * point is having no state of its own (§41's "mutually exclusive with
+ * delegating to a person") — an empty `=> ` — and the setext `====`
+ * underline itself. A section-header *title* line (the one above the
+ * underline) has no way to be recognized from a single line in
+ * isolation — callers with document context (`EditorPane.svelte`) check
+ * that themselves and skip the line entirely before ever calling this.
+ * Omitting `createAs` restores the original "leave it alone" behavior,
+ * for any caller that shouldn't promote plain lines (`cycleActionSymbol`,
+ * `setActionSymbolOpen`, `closeOpenAction`/`reopenDoneAction`, all via
+ * `matchActionSymbol` directly instead of this function). */
 function replaceActionSymbol(line: string, next: (sym: string) => string, createAs?: string, col?: number): string | null {
   const m = matchActionSymbol(line, col);
   if (m) return m.rebuild(next(m.sym));
@@ -562,11 +591,31 @@ function replaceActionSymbol(line: string, next: (sym: string) => string, create
     return `${prefix}${createAs} ${rest}`;
   }
   if (/=>/.test(line)) return null; // a delegated (`=> @name`) or empty (`=> `) follow-up — leave alone
-  if (/^\s*[-*!]\s/.test(line)) return null; // a bullet or emphasis line — leave alone
-  if (parseNumberedItem(line) !== null) return null; // a numbered item is structure too — leave alone
   if (isSetextUnderline(line)) return null; // the `====` itself, not just the title line above it — leave alone
   const [, indent, rest] = line.match(/^(\s*)(.*)$/s)!;
   return `${indent}${createAs} ${rest}`;
+}
+
+/** Reorders a leading list marker followed by a state symbol to state-first:
+ * `- # task` -> `# - task`, `  * o topic` -> `  o * topic`, `1. # task` -> `# 1. task`,
+ * `2) v done` -> `v 2) done`, `1.2. , item` -> `, 1.2. item`.
+ * Returns null when the line is already state-first or not a list-marker-then-state line. */
+export function stateFirst(line: string): string | null {
+  const bulletMatch = line.match(/^(\s*)([-*])\s+([#vx>o.,])\s(.*)$/s);
+  if (bulletMatch) {
+    const [, indent, marker, sym, rest] = bulletMatch;
+    return `${indent}${sym} ${marker} ${rest}`;
+  }
+  const item = parseNumberedItem(line);
+  if (item) {
+    const after = line.slice(item.indent.length + item.marker.length);
+    const m = after.match(/^\s+([#vx>o.,])\s(.*)$/s);
+    if (m) {
+      const [, sym, rest] = m;
+      return `${item.indent}${sym} ${item.marker} ${rest}`;
+    }
+  }
+  return null;
 }
 
 /** Strips a line's leading token(s) for display in the Action Drawer/

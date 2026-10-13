@@ -175,13 +175,15 @@ describe("numberedContinuationIndent: Shift+Enter aligns under the text", () => 
 });
 
 describe("numbered items next to actions and bullets", () => {
-  it("a numbered item is structure: Ctrl+1-4 do not turn it into an action (like a bullet)", () => {
+  it("a numbered item gets a state symbol in front with Ctrl+1-4", () => {
     for (const line of ["1. buy milk", "  2) call Sam", "1.1. sub item", "3. "]) {
-      expect(setActionSymbolTo(line, "#")).toBeNull();
+      const indent = line.match(/^(\s*)/)![1];
+      const rest = line.slice(indent.length);
+      expect(setActionSymbolTo(line, "#")).toBe(`${indent}# ${rest}`);
     }
   });
-  it("a bullet stays left alone and prose that only looks numeric is still promoted", () => {
-    expect(setActionSymbolTo("- bullet", "#")).toBeNull();
+  it("a bullet gets a state symbol in front and prose that only looks numeric is still promoted", () => {
+    expect(setActionSymbolTo("- bullet", "#")).toBe("# - bullet");
     expect(setActionSymbolTo("3.5 hours of work", "#")).toBe("# 3.5 hours of work");
     expect(setActionSymbolTo("1.5", "v")).toBe("v 1.5");
     expect(setActionSymbolTo("1.", "#")).toBe("# 1.");
