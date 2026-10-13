@@ -90,6 +90,10 @@ export const languageMode = writable<LanguageMode>("system");
  * `EditorPane` subscribes to it and reconfigures a CodeMirror compartment
  * live, so toggling takes effect without a remount. Off by default. */
 export const wordWrap = writable<boolean>(false);
+/** Spell check in the editor (D2). Mirrors `AppConfig.spellCheck`;
+ * `EditorPane` subscribes to it and reconfigures a CodeMirror compartment
+ * live. Off by default. */
+export const spellCheck = writable<boolean>(false);
 /** §99: cap the editor text column to a ~720px reading measure. Mirrors
  * `AppConfig.readableLineLength`; `EditorPane` reads it (with `wordWrap`)
  * to toggle a max-width wrapper live. On by default, but only visible

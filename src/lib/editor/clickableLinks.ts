@@ -49,6 +49,7 @@ const linkMatcher = new MatchDecorator({
         attributes: {
           "data-url": cleaned.url,
           title,
+          spellcheck: "false",
         },
       }),
     );

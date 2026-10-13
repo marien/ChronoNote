@@ -58,6 +58,10 @@ export function setWordWrap(enabled: boolean): Promise<AppConfig> {
   return updateConfig({ wordWrap: enabled });
 }
 
+export function setSpellCheck(enabled: boolean): Promise<AppConfig> {
+  return updateConfig({ spellCheck: enabled });
+}
+
 export function setReadableLineLength(enabled: boolean): Promise<AppConfig> {
   return updateConfig({ readableLineLength: enabled });
 }

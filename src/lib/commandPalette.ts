@@ -27,6 +27,7 @@ import {
   oneDriveAccount,
   oneDriveFolder,
   readableLineLength,
+  spellCheck,
   statusBarVisible,
   tabs,
   wordWrap,
@@ -52,7 +53,7 @@ import { noteCall } from "./callNote";
 import { openCrossTabSearch } from "./search";
 import { canSyncCalendarForActiveTab, syncCalendarFromFile } from "./calendarSyncActions";
 import { openAbout, openGlyphLegend, openSettings, openShortcutsHelp } from "./menu";
-import { setColorMode, setReadableLineLength, setStatusBarVisible, setWordWrap } from "./boot";
+import { setColorMode, setReadableLineLength, setSpellCheck, setStatusBarVisible, setWordWrap } from "./boot";
 import { checkForUpdates } from "./updates";
 import { formatCombo, formatShortcut, shortcutById } from "./shortcuts";
 import { exportAllNotesToFile } from "./exportImport";
@@ -171,6 +172,7 @@ export function runPaletteLineAction(actionFn: (api: EditorApi) => boolean | voi
  * toggle labels reflect current state. */
 function commandItems(): PaletteItem[] {
   const wrap = get(wordWrap);
+  const spell = get(spellCheck);
   const readable = get(readableLineLength);
   const color = get(colorMode);
   const translate = get(t);
@@ -412,6 +414,12 @@ function commandItems(): PaletteItem[] {
       label: translate(wrap ? "commandPalette.wrap.disable" : "commandPalette.wrap.enable", undefined),
       group: "Settings",
       run: () => setWordWrap(!wrap),
+    },
+    {
+      id: "cmd-spell-check",
+      label: translate(spell ? "commandPalette.spellCheck.disable" : "commandPalette.spellCheck.enable", undefined),
+      group: "Settings",
+      run: () => setSpellCheck(!spell),
     },
     {
       id: "cmd-readable",

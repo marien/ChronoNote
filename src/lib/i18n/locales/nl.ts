@@ -44,6 +44,9 @@ export const nl = {
   "settings.editor.width.readingColumn": () => "Leeskolom",
   "settings.editor.width.hint": () =>
     "Volledig laat elke regel onafgebroken — het monospace-raster blijft intact voor tabellen en uitgelijnde kolommen. Omslaan breekt lange regels af om in het venster te passen. Leeskolom beperkt de tekst ook tot een prettige gecentreerde breedte, voor een pure leesmodus.",
+  "settings.editor.spellCheck.label": () => "Spellingcontrole",
+  "settings.editor.spellCheck.hint": () =>
+    "Onderstreep verkeerd gespelde woorden, met de talen die in Windows zijn ingesteld. Shift+rechtsklik op een woord voor suggesties.",
   "settings.editor.fontSize.label": () => "Lettergrootte",
   "settings.editor.fontSize.ariaLabel": () => "Lettergrootte editor",
   "settings.editor.lineSpacing.label": () => "Regelafstand",
@@ -372,6 +375,8 @@ export const nl = {
   "commandPalette.line.jumpPrev": () => "Naar vorige open actie springen",
   "commandPalette.wrap.enable": () => "Woordafbreking inschakelen",
   "commandPalette.wrap.disable": () => "Woordafbreking uitschakelen",
+  "commandPalette.spellCheck.enable": () => "Spellingcontrole inschakelen",
+  "commandPalette.spellCheck.disable": () => "Spellingcontrole uitschakelen",
   "commandPalette.readable.enable": () => "Leesbare regelbreedte inschakelen",
   "commandPalette.readable.disable": () => "Leesbare regelbreedte uitschakelen",
   "commandPalette.color.toColor": () => "Overschakelen naar gekleurde symbolen",
@@ -753,6 +758,7 @@ export const nl = {
   "toast.boot.failedToSave.lightDark": () => "Opslaan van licht/donker-voorkeur mislukt",
   "toast.boot.failedToSave.language": () => "Opslaan van taalvoorkeur mislukt",
   "toast.boot.failedToSave.wordWrap": () => "Opslaan van woordafbrekingsvoorkeur mislukt",
+  "toast.boot.failedToSave.spellCheck": () => "Opslaan van spellingcontrolevoorkeur mislukt",
   "toast.boot.failedToSave.readingWidth": () => "Opslaan van leesbreedtevoorkeur mislukt",
   "toast.boot.failedToSave.updateCheck": () => "Opslaan van updatecontrolevoorkeur mislukt",
   "toast.boot.failedToSave.calendarSync": () => "Opslaan van agendasyncvoorkeur mislukt",

@@ -44,7 +44,7 @@
     lineSectionRole,
   } from "../tokens";
   import * as controller from "../controller";
-  import { editorContextMenu, findMatch, findOpen, readableLineLength, wordWrap } from "../controller";
+  import { editorContextMenu, findMatch, findOpen, readableLineLength, spellCheck, wordWrap } from "../controller";
   import { currentLineKind, editorFocused } from "../stores";
   import { lineKind } from "../lineKind";
 
@@ -76,6 +76,13 @@
   const wrapCompartment = new Compartment();
   const wrapExtension = (on: boolean) => (on ? [EditorView.lineWrapping, wrapIndentExtension()] : []);
   let unsubscribeWrap: (() => void) | undefined;
+
+  /** Spell check (D2). Compartment holds contentAttributes toggled live
+   * when the `spellCheck` store changes. Off by default. */
+  const spellCompartment = new Compartment();
+  const spellExtension = (on: boolean) =>
+    EditorView.contentAttributes.of({ spellcheck: on ? "true" : "false", autocorrect: "off", autocapitalize: "off" });
+  let unsubscribeSpell: (() => void) | undefined;
 
   /** Peek mode (compact note window): only one section of the document is shown. A compartment so entering and
    * leaving Peek reconfigures this one extension in place, with the same document, cursor and undo history. */
@@ -701,6 +708,7 @@
       indentUnit.of("  "),
       EditorView.contentAttributes.of({ "aria-label": get(t)("editor.ariaLabel", undefined) }),
       wrapCompartment.of(wrapExtension(get(wordWrap))),
+      spellCompartment.of(spellExtension(get(spellCheck))),
       measureCompartment.of(measureExtension(measureActive(get(wordWrap), get(readableLineLength)))),
       liveGlyphs,
       glyphAtomicRanges,
@@ -771,6 +779,7 @@
       }),
       EditorView.domEventHandlers({
         contextmenu: (event, v) => {
+          if (event.shiftKey && get(spellCheck)) return false;
           event.preventDefault();
           const pos = v.posAtCoords({ x: event.clientX, y: event.clientY });
           if (pos != null && v.state.selection.main.empty) v.dispatch({ selection: { anchor: pos } });
@@ -879,6 +888,14 @@
       // §99: the reading measure only applies with wrap on, so a wrap
       // toggle can turn it on or off too.
       reconfigureMeasure();
+    });
+    let firstSpell = true;
+    unsubscribeSpell = spellCheck.subscribe((on) => {
+      if (firstSpell) {
+        firstSpell = false;
+        return;
+      }
+      view?.dispatch({ effects: spellCompartment.reconfigure(spellExtension(on)) });
     });
     let firstPeek = true;
     unsubscribePeek = controller.peekTarget.subscribe((target) => {
@@ -1191,6 +1208,7 @@
   onDestroy(() => {
     if (pulseTimer) clearTimeout(pulseTimer);
     unsubscribeWrap?.();
+    unsubscribeSpell?.();
     unsubscribePeek?.();
     unsubscribeOccurrence.forEach((u) => u());
     unsubscribeMeasure?.();

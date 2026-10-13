@@ -61,6 +61,7 @@ export interface MockSeed {
   themeMode?: ThemeMode;
   languageMode?: LanguageMode;
   wordWrap?: boolean;
+  spellCheck?: boolean;
   readableLineLength?: boolean;
   autoCheckUpdates?: boolean;
   earlyUpdates?: boolean;
@@ -297,6 +298,7 @@ export class MockBackend {
   themeMode: ThemeMode;
   languageMode: LanguageMode;
   wordWrap: boolean;
+  spellCheck: boolean;
   readableLineLength: boolean;
   autoCheckUpdates: boolean;
   earlyUpdates: boolean = false;
@@ -390,6 +392,7 @@ export class MockBackend {
     this.themeMode = seed.themeMode ?? "system";
     this.languageMode = seed.languageMode ?? "system";
     this.wordWrap = seed.wordWrap ?? false;
+    this.spellCheck = seed.spellCheck ?? false;
     this.readableLineLength = seed.readableLineLength ?? false;
     this.autoCheckUpdates = seed.autoCheckUpdates ?? true;
     this.earlyUpdates = seed.earlyUpdates ?? false;
@@ -453,6 +456,7 @@ export class MockBackend {
       themeMode: this.themeMode,
       languageMode: this.languageMode,
       wordWrap: this.wordWrap,
+      spellCheck: this.spellCheck,
       readableLineLength: this.readableLineLength,
       autoCheckUpdates: this.autoCheckUpdates,
       earlyUpdates: this.earlyUpdates,
@@ -508,6 +512,7 @@ export class MockBackend {
         themeMode?: ThemeMode;
         languageMode?: LanguageMode;
         wordWrap?: boolean;
+        spellCheck?: boolean;
         readableLineLength?: boolean;
         autoCheckUpdates?: boolean;
         earlyUpdates?: boolean;
@@ -542,6 +547,7 @@ export class MockBackend {
       b.themeMode = s.themeMode ?? "system";
       b.languageMode = s.languageMode ?? "system";
       b.wordWrap = s.wordWrap ?? false;
+      b.spellCheck = s.spellCheck ?? false;
       b.autoCheckUpdates = s.autoCheckUpdates ?? true;
       b.earlyUpdates = s.earlyUpdates ?? false;
       b.lastSeenVersion = s.lastSeenVersion ?? null;
@@ -596,6 +602,7 @@ export class MockBackend {
       themeMode: this.themeMode,
       languageMode: this.languageMode,
       wordWrap: this.wordWrap,
+      spellCheck: this.spellCheck,
       readableLineLength: this.readableLineLength,
       recentNotesDirs: [...this.recentNotesDirs],
       autoCheckUpdates: this.autoCheckUpdates,
@@ -803,6 +810,7 @@ export class MockBackend {
       if (patch.languageMode !== undefined) this.languageMode = patch.languageMode;
       if (patch.startupTabMode !== undefined) this.startupTabMode = patch.startupTabMode;
       if (patch.wordWrap !== undefined) this.wordWrap = patch.wordWrap;
+      if (patch.spellCheck !== undefined) this.spellCheck = patch.spellCheck;
       if (patch.readableLineLength !== undefined) this.readableLineLength = patch.readableLineLength;
       if (patch.autoCheckUpdates !== undefined) this.autoCheckUpdates = patch.autoCheckUpdates;
       if (patch.earlyUpdates !== undefined) this.earlyUpdates = patch.earlyUpdates;

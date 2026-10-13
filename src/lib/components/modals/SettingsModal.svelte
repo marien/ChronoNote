@@ -31,6 +31,7 @@
     themeMode,
     trashItems,
     wordWrap,
+    spellCheck,
   } from "../../controller";
 
   import * as api from "../../tauriApi";
@@ -472,6 +473,13 @@
               onChange={setEditorWidth}
             />
           </SettingRow>
+          <SettingToggle
+            label={$t("settings.editor.spellCheck.label")}
+            checked={$spellCheck}
+            onChange={(v) => void controller.setSpellCheck(v)}
+          >
+            {#snippet description()}{$t("settings.editor.spellCheck.hint")}{/snippet}
+          </SettingToggle>
           <SettingRow label={$t("settings.editor.fontSize.label")}>
             <div class="s-slider">
               <input

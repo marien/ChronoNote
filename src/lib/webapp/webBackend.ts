@@ -74,6 +74,7 @@ interface StoredConfig {
   themeMode: ThemeMode;
   languageMode: LanguageMode;
   wordWrap: boolean;
+  spellCheck?: boolean;
   readableLineLength: boolean;
   autoCheckUpdates: boolean;
   lastSeenVersion: string | null;
@@ -262,6 +263,7 @@ export class WebBackend {
         themeMode: "system",
         languageMode: "system",
         wordWrap: false,
+        spellCheck: false,
         readableLineLength: false,
         autoCheckUpdates: true,
         lastSeenVersion: null,
@@ -301,6 +303,7 @@ export class WebBackend {
       themeMode: cfg.themeMode,
       languageMode: cfg.languageMode,
       wordWrap: cfg.wordWrap,
+      spellCheck: cfg.spellCheck ?? false,
       readableLineLength: cfg.readableLineLength,
       recentNotesDirs: [],
       autoCheckUpdates: cfg.autoCheckUpdates,
@@ -451,6 +454,7 @@ export class WebBackend {
       if (patch.languageMode !== undefined) cfg.languageMode = patch.languageMode;
       if (patch.startupTabMode !== undefined) cfg.startupTabMode = patch.startupTabMode;
       if (patch.wordWrap !== undefined) cfg.wordWrap = patch.wordWrap;
+      if (patch.spellCheck !== undefined) cfg.spellCheck = patch.spellCheck;
       if (patch.readableLineLength !== undefined) cfg.readableLineLength = patch.readableLineLength;
       if (patch.autoCheckUpdates !== undefined) cfg.autoCheckUpdates = patch.autoCheckUpdates;
       if (patch.calendarSyncEnabled !== undefined) cfg.calendarSyncEnabled = patch.calendarSyncEnabled;

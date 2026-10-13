@@ -55,6 +55,7 @@ import {
   themeMode,
   unsavedScratchpadNames,
   wordWrap,
+  spellCheck,
 } from "./stores";
 import {
   flushAllPendingSaves,
@@ -545,6 +546,7 @@ export async function initApp() {
   // (from the version where the two were gated the other way round).
   readableLineLength.set(cfg.readableLineLength);
   wordWrap.set(cfg.wordWrap || cfg.readableLineLength);
+  spellCheck.set(cfg.spellCheck ?? false);
   autoCheckUpdates.set(cfg.autoCheckUpdates);
   earlyUpdates.set(cfg.earlyUpdates ?? false);
   calendarSyncEnabled.set(cfg.calendarSyncEnabled);
@@ -830,6 +832,15 @@ export async function setWordWrap(enabled: boolean) {
     await api.setWordWrap(enabled);
   } catch {
     showToast(get(t)("toast.boot.failedToSave.wordWrap", undefined));
+  }
+}
+
+export async function setSpellCheck(enabled: boolean) {
+  spellCheck.set(enabled);
+  try {
+    await api.setSpellCheck(enabled);
+  } catch {
+    showToast(get(t)("toast.boot.failedToSave.spellCheck", undefined));
   }
 }
 

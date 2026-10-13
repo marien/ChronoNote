@@ -44,6 +44,9 @@ export const en = {
   "settings.editor.width.readingColumn": () => "Reading column",
   "settings.editor.width.hint": () =>
     "Full keeps every line unwrapped — the monospace grid stays intact for tables and aligned columns. Wrap breaks long lines to fit the window. Reading column also caps the text to a comfortable centred measure, for a single prose-reading mode.",
+  "settings.editor.spellCheck.label": () => "Spell check",
+  "settings.editor.spellCheck.hint": () =>
+    "Underline misspelled words, using the languages set in Windows. Shift+right-click a word for suggestions.",
   "settings.editor.fontSize.label": () => "Font size",
   "settings.editor.fontSize.ariaLabel": () => "Editor font size",
   "settings.editor.lineSpacing.label": () => "Line spacing",
@@ -368,6 +371,8 @@ export const en = {
   "commandPalette.line.jumpPrev": () => "Jump to previous open action",
   "commandPalette.wrap.enable": () => "Enable word wrap",
   "commandPalette.wrap.disable": () => "Disable word wrap",
+  "commandPalette.spellCheck.enable": () => "Enable spell check",
+  "commandPalette.spellCheck.disable": () => "Disable spell check",
   "commandPalette.readable.enable": () => "Enable readable line width",
   "commandPalette.readable.disable": () => "Disable readable line width",
   "commandPalette.color.toColor": () => "Switch to colored glyphs",
@@ -745,6 +750,7 @@ export const en = {
   "toast.boot.failedToSave.lightDark": () => "Failed to save light/dark preference",
   "toast.boot.failedToSave.language": () => "Failed to save language preference",
   "toast.boot.failedToSave.wordWrap": () => "Failed to save word-wrap preference",
+  "toast.boot.failedToSave.spellCheck": () => "Failed to save spell-check preference",
   "toast.boot.failedToSave.readingWidth": () => "Failed to save reading-width preference",
   "toast.boot.failedToSave.updateCheck": () => "Failed to save update-check preference",
   "toast.boot.failedToSave.calendarSync": () => "Failed to save calendar-sync preference",

@@ -46,6 +46,9 @@ export const de = {
   "settings.editor.width.readingColumn": () => "Lesespalte",
   "settings.editor.width.hint": () =>
     "Vollständig lässt jede Zeile unverändert — das Monospace-Raster bleibt für Tabellen und ausgerichtete Spalten erhalten. Umbrechen bricht lange Zeilen um, damit sie ins Fenster passen. Lesespalte begrenzt den Text zusätzlich auf eine angenehme zentrierte Breite, für einen reinen Lesemodus.",
+  "settings.editor.spellCheck.label": () => "Rechtschreibprüfung",
+  "settings.editor.spellCheck.hint": () =>
+    "Falsch geschriebene Wörter unterstreichen, mit den in Windows eingestellten Sprachen. Umschalt+Rechtsklick auf ein Wort zeigt Vorschläge.",
   "settings.editor.fontSize.label": () => "Schriftgröße",
   "settings.editor.fontSize.ariaLabel": () => "Schriftgröße des Editors",
   "settings.editor.lineSpacing.label": () => "Zeilenabstand",
@@ -377,6 +380,8 @@ export const de = {
   "commandPalette.line.jumpPrev": () => "Zur vorherigen offenen Aktion springen",
   "commandPalette.wrap.enable": () => "Zeilenumbruch aktivieren",
   "commandPalette.wrap.disable": () => "Zeilenumbruch deaktivieren",
+  "commandPalette.spellCheck.enable": () => "Rechtschreibprüfung aktivieren",
+  "commandPalette.spellCheck.disable": () => "Rechtschreibprüfung deaktivieren",
   "commandPalette.readable.enable": () => "Lesbare Zeilenbreite aktivieren",
   "commandPalette.readable.disable": () => "Lesbare Zeilenbreite deaktivieren",
   "commandPalette.color.toColor": () => "Zu farbigen Symbolen wechseln",
@@ -758,6 +763,7 @@ export const de = {
   "toast.boot.failedToSave.lightDark": () => "Speichern der Hell/Dunkel-Einstellung fehlgeschlagen",
   "toast.boot.failedToSave.language": () => "Speichern der Spracheinstellung fehlgeschlagen",
   "toast.boot.failedToSave.wordWrap": () => "Speichern der Zeilenumbruch-Einstellung fehlgeschlagen",
+  "toast.boot.failedToSave.spellCheck": () => "Speichern der Rechtschreibprüfung-Einstellung fehlgeschlagen",
   "toast.boot.failedToSave.readingWidth": () => "Speichern der Lesebreite-Einstellung fehlgeschlagen",
   "toast.boot.failedToSave.updateCheck": () => "Speichern der Update-Prüfungseinstellung fehlgeschlagen",
   "toast.boot.failedToSave.calendarSync": () => "Speichern der Kalender-Sync-Einstellung fehlgeschlagen",

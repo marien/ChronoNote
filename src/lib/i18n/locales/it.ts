@@ -42,6 +42,9 @@ export const it = {
   "settings.editor.width.readingColumn": () => "Colonna di lettura",
   "settings.editor.width.hint": () =>
     "Intera mantiene ogni riga senza a capo: la griglia a spaziatura fissa resta intatta per tabelle e colonne allineate. A capo adatta le righe lunghe alla larghezza della finestra. Colonna di lettura imposta inoltre una larghezza centrata ottimale per la lettura del testo continuo.",
+  "settings.editor.spellCheck.label": () => "Controllo ortografico",
+  "settings.editor.spellCheck.hint": () =>
+    "Sottolinea le parole scritte male, con le lingue impostate in Windows. Maiusc+clic destro su una parola per i suggerimenti.",
   "settings.editor.fontSize.label": () => "Dimensione carattere",
   "settings.editor.fontSize.ariaLabel": () => "Dimensione carattere dell'editor",
   "settings.editor.lineSpacing.label": () => "Interlinea",
@@ -375,6 +378,8 @@ export const it = {
   "commandPalette.line.jumpPrev": () => "Passa all'azione aperta precedente",
   "commandPalette.wrap.enable": () => "Attiva a capo automatico",
   "commandPalette.wrap.disable": () => "Disattiva a capo automatico",
+  "commandPalette.spellCheck.enable": () => "Attiva controllo ortografico",
+  "commandPalette.spellCheck.disable": () => "Disattiva controllo ortografico",
   "commandPalette.readable.enable": () => "Attiva larghezza colonna di lettura",
   "commandPalette.readable.disable": () => "Disattiva larghezza colonna di lettura",
   "commandPalette.color.toColor": () => "Passa a glifi a colori",
@@ -765,6 +770,7 @@ export const it = {
   "toast.boot.failedToSave.lightDark": () => "Impossibile salvare la preferenza chiaro/scuro",
   "toast.boot.failedToSave.language": () => "Impossibile salvare la preferenza della lingua",
   "toast.boot.failedToSave.wordWrap": () => "Impossibile salvare la preferenza per il ritorno a capo",
+  "toast.boot.failedToSave.spellCheck": () => "Impossibile salvare la preferenza per il controllo ortografico",
   "toast.boot.failedToSave.readingWidth": () => "Impossibile salvare la preferenza per la larghezza di lettura",
   "toast.boot.failedToSave.updateCheck": () => "Impossibile salvare la preferenza di verifica aggiornamenti",
   "toast.boot.failedToSave.calendarSync": () => "Impossibile salvare la preferenza di sincronizzazione calendario",

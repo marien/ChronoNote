@@ -43,6 +43,9 @@ export const pl = {
   "settings.editor.width.readingColumn": () => "Kolumna do czytania",
   "settings.editor.width.hint": () =>
     "Pełna zachowuje linie bez zawijania — siatka o stałej szerokości pozostaje nienaruszona dla tabel i kolumn. Zawijanie dopasowuje długie wiersze do okna. Kolumna do czytania ogranicza tekst do wygodnej, wyśrodkowanej szerokości.",
+  "settings.editor.spellCheck.label": () => "Sprawdzanie pisowni",
+  "settings.editor.spellCheck.hint": () =>
+    "Podkreślaj błędnie zapisane słowa, w językach ustawionych w systemie Windows. Shift+prawy klik na słowie pokazuje podpowiedzi.",
   "settings.editor.fontSize.label": () => "Rozmiar czcionki",
   "settings.editor.fontSize.ariaLabel": () => "Rozmiar czcionki edytora",
   "settings.editor.lineSpacing.label": () => "Interlinia",
@@ -376,6 +379,8 @@ export const pl = {
   "commandPalette.line.jumpPrev": () => "Przejdź do poprzedniego otwartego zadania",
   "commandPalette.wrap.enable": () => "Włącz zawijanie wierszy",
   "commandPalette.wrap.disable": () => "Wyłącz zawijanie wierszy",
+  "commandPalette.spellCheck.enable": () => "Włącz sprawdzanie pisowni",
+  "commandPalette.spellCheck.disable": () => "Wyłącz sprawdzanie pisowni",
   "commandPalette.readable.enable": () => "Włącz wygodną szerokość linii",
   "commandPalette.readable.disable": () => "Wyłącz wygodną szerokość linii",
   "commandPalette.color.toColor": () => "Włącz kolorowe glify",
@@ -771,6 +776,7 @@ export const pl = {
   "toast.boot.failedToSave.lightDark": () => "Nie udało się zapisać preferencji jasnego/ciemnego motywu",
   "toast.boot.failedToSave.language": () => "Nie udało się zapisać preferencji języka",
   "toast.boot.failedToSave.wordWrap": () => "Nie udało się zapisać preferencji zawijania wierszy",
+  "toast.boot.failedToSave.spellCheck": () => "Nie udało się zapisać preferencji sprawdzania pisowni",
   "toast.boot.failedToSave.readingWidth": () => "Nie udało się zapisać preferencji szerokości czytania",
   "toast.boot.failedToSave.updateCheck": () => "Nie udało się zapisać preferencji sprawdzania aktualizacji",
   "toast.boot.failedToSave.calendarSync": () => "Nie udało się zapisać preferencji synchronizacji kalendarza",

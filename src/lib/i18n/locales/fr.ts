@@ -43,6 +43,9 @@ export const fr = {
   "settings.editor.width.readingColumn": () => "Colonne de lecture",
   "settings.editor.width.hint": () =>
     "Plein conserve chaque ligne sans coupure — la grille monospace reste intacte pour les tableaux et colonnes alignées. Retour à la ligne ajuste les longues lignes à la fenêtre. Colonne de lecture limite également le texte à une largeur centrée confortable pour la lecture.",
+  "settings.editor.spellCheck.label": () => "Correcteur orthographique",
+  "settings.editor.spellCheck.hint": () =>
+    "Souligner les mots mal orthographiés, avec les langues définies dans Windows. Maj+clic droit sur un mot pour des suggestions.",
   "settings.editor.fontSize.label": () => "Taille de police",
   "settings.editor.fontSize.ariaLabel": () => "Taille de police de l'éditeur",
   "settings.editor.lineSpacing.label": () => "Interligne",
@@ -376,6 +379,8 @@ export const fr = {
   "commandPalette.line.jumpPrev": () => "Aller à l'action ouverte précédente",
   "commandPalette.wrap.enable": () => "Activer le retour à la ligne",
   "commandPalette.wrap.disable": () => "Désactiver le retour à la ligne",
+  "commandPalette.spellCheck.enable": () => "Activer le correcteur orthographique",
+  "commandPalette.spellCheck.disable": () => "Désactiver le correcteur orthographique",
   "commandPalette.readable.enable": () => "Activer la largeur de ligne de lecture",
   "commandPalette.readable.disable": () => "Désactiver la largeur de ligne de lecture",
   "commandPalette.color.toColor": () => "Passer aux glyphes en couleur",
@@ -768,6 +773,7 @@ export const fr = {
   "toast.boot.failedToSave.lightDark": () => "Échec de l'enregistrement de la préférence clair/sombre",
   "toast.boot.failedToSave.language": () => "Échec de l'enregistrement de la préférence de langue",
   "toast.boot.failedToSave.wordWrap": () => "Échec de l'enregistrement du retour à la ligne",
+  "toast.boot.failedToSave.spellCheck": () => "Échec de l'enregistrement du correcteur orthographique",
   "toast.boot.failedToSave.readingWidth": () => "Échec de l'enregistrement de la largeur de lecture",
   "toast.boot.failedToSave.updateCheck": () => "Échec de l'enregistrement de la vérification des mises à jour",
   "toast.boot.failedToSave.calendarSync": () => "Échec de l'enregistrement de la synchronisation calendrier",

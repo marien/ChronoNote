@@ -215,8 +215,8 @@ class InlineGlyphWidget extends WidgetType {
 }
 
 const MARK_EMPHASIS = Decoration.mark({ class: "glyph-emphasis-line" });
-const MARK_ASSIGNEE = Decoration.mark({ class: "glyph-assignee" });
-const MARK_TOPIC = Decoration.mark({ class: "glyph-topic" });
+const MARK_ASSIGNEE = Decoration.mark({ class: "glyph-assignee", attributes: { spellcheck: "false" } });
+const MARK_TOPIC = Decoration.mark({ class: "glyph-topic", attributes: { spellcheck: "false" } });
 // The parentheses of a `(topic)` stay real text (each exactly 1ch) but are drawn transparent, so they act
 // as the pill's inner padding: hidden pill = same width as the raw text, zero column shift. CSS shows them
 // again on the line being edited or hovered.

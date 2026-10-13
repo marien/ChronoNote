@@ -42,6 +42,9 @@ export const es = {
   "settings.editor.width.readingColumn": () => "Columna de lectura",
   "settings.editor.width.hint": () =>
     "Completo mantiene cada línea sin salto: la cuadrícula monoespaciada se conserva para tablas y columnas alineadas. Ajuste divide las líneas largas para adaptarse a la ventana. Columna de lectura además limita el texto a un ancho cómodo y centrado para un modo de lectura de prosa fluida.",
+  "settings.editor.spellCheck.label": () => "Corrector ortográfico",
+  "settings.editor.spellCheck.hint": () =>
+    "Subraya las palabras mal escritas, con los idiomas configurados en Windows. Mayús+clic derecho en una palabra para ver sugerencias.",
   "settings.editor.fontSize.label": () => "Tamaño de fuente",
   "settings.editor.fontSize.ariaLabel": () => "Tamaño de fuente del editor",
   "settings.editor.lineSpacing.label": () => "Interlineado",
@@ -373,6 +376,8 @@ export const es = {
   "commandPalette.line.jumpPrev": () => "Saltar a la acción pendiente anterior",
   "commandPalette.wrap.enable": () => "Habilitar ajuste de línea",
   "commandPalette.wrap.disable": () => "Deshabilitar ajuste de línea",
+  "commandPalette.spellCheck.enable": () => "Habilitar corrector ortográfico",
+  "commandPalette.spellCheck.disable": () => "Deshabilitar corrector ortográfico",
   "commandPalette.readable.enable": () => "Habilitar ancho de línea de lectura",
   "commandPalette.readable.disable": () => "Deshabilitar ancho de línea de lectura",
   "commandPalette.color.toColor": () => "Cambiar a glifos en color",
@@ -763,6 +768,7 @@ export const es = {
   "toast.boot.failedToSave.lightDark": () => "Error al guardar la preferencia claro/oscuro",
   "toast.boot.failedToSave.language": () => "Error al guardar la preferencia de idioma",
   "toast.boot.failedToSave.wordWrap": () => "Error al guardar la preferencia de ajuste de línea",
+  "toast.boot.failedToSave.spellCheck": () => "Error al guardar la preferencia de corrector ortográfico",
   "toast.boot.failedToSave.readingWidth": () => "Error al guardar la preferencia de ancho de lectura",
   "toast.boot.failedToSave.updateCheck": () => "Error al guardar la preferencia de búsqueda de actualizaciones",
   "toast.boot.failedToSave.calendarSync": () => "Error al guardar la preferencia de sincronización del calendario",

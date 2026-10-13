@@ -43,6 +43,7 @@ describe("upgrade fixtures - web backend config handling", () => {
     expect(cfg.statusBarVisible).toBe(true);
     expect(cfg.tabLabelStyle).toBe("iso");
     expect(cfg.earlyUpdates).toBe(false);
+    expect(cfg.spellCheck).toBe(false);
     expect(cfg.historyPaneShare).toBe(0.30);
     expect(cfg.actionsPaneShare).toBe(0.30);
     expect(cfg.notesDir).toBe("Browser storage");
@@ -74,6 +75,7 @@ describe("upgrade fixtures - web backend config handling", () => {
     expect(cfg.statusBarVisible).toBe(true);
     expect(cfg.tabLabelStyle).toBe("iso");
     expect(cfg.earlyUpdates).toBe(false);
+    expect(cfg.spellCheck).toBe(false);
   });
 
   it("loads v0.30.0 config fixture and preserves every field", async () => {
@@ -102,6 +104,7 @@ describe("upgrade fixtures - web backend config handling", () => {
     expect(cfg.historyPaneShare).toBe(raw.historyPaneShare);
     expect(cfg.actionsPaneShare).toBe(raw.actionsPaneShare);
     expect(cfg.earlyUpdates).toBe(false);
+    expect(cfg.spellCheck).toBe(false);
   });
 
   it("migrates legacy colorMode to color", async () => {

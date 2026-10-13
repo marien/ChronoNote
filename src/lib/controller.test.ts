@@ -19,6 +19,7 @@ const apiMock = {
   setLastSeenVersion: vi.fn(),
   setOnboardingCompleted: vi.fn(),
   setWordWrap: vi.fn(),
+  setSpellCheck: vi.fn(),
   setReadableLineLength: vi.fn(),
   setAutoCheckUpdates: vi.fn(),
   listNoteFiles: vi.fn(),
@@ -2603,6 +2604,18 @@ describe("setWordWrap (§80)", () => {
     await controller.setWordWrap(false);
     expect(get(controller.wordWrap)).toBe(false);
     expect(apiMock.setWordWrap).toHaveBeenLastCalledWith(false);
+  });
+});
+
+describe("setSpellCheck (D2)", () => {
+  it("updates the store and persists via the API", async () => {
+    await controller.setSpellCheck(true);
+    expect(get(controller.spellCheck)).toBe(true);
+    expect(apiMock.setSpellCheck).toHaveBeenCalledWith(true);
+
+    await controller.setSpellCheck(false);
+    expect(get(controller.spellCheck)).toBe(false);
+    expect(apiMock.setSpellCheck).toHaveBeenLastCalledWith(false);
   });
 });
 

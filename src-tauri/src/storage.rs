@@ -235,6 +235,10 @@ pub struct AppConfig {
     /// for a config written before this field existed.
     #[serde(default)]
     pub word_wrap: bool,
+    /// Spell check in the editor (D2). Off by default. `#[serde(default)]` gives
+    /// `false` for a config written before this field existed.
+    #[serde(default)]
+    pub spell_check: bool,
     /// §99/§110: a single opt-in that wraps lines *and* caps the column to
     /// a comfortable ~720px centred measure. Off by default (the app's
     /// monospace-grid tenet keeps the editor full-width and unwrapped);
@@ -353,6 +357,8 @@ pub struct ConfigPatch {
     #[ts(optional)]
     pub word_wrap: Option<bool>,
     #[ts(optional)]
+    pub spell_check: Option<bool>,
+    #[ts(optional)]
     pub readable_line_length: Option<bool>,
     #[ts(optional)]
     pub auto_check_updates: Option<bool>,
@@ -401,6 +407,9 @@ impl ConfigPatch {
         }
         if let Some(v) = self.word_wrap {
             cfg.word_wrap = v;
+        }
+        if let Some(v) = self.spell_check {
+            cfg.spell_check = v;
         }
         if let Some(v) = self.readable_line_length {
             cfg.readable_line_length = v;
@@ -701,6 +710,7 @@ fn load_config_at(path: &Path, default_notes_dir: &Path) -> Result<AppConfig, St
         color_mode: ColorMode::default(),
         theme_mode: ThemeMode::default(),
         word_wrap: false,
+        spell_check: false,
         readable_line_length: false,
         recent_notes_dirs: Vec::new(),
         auto_check_updates: true,
@@ -1967,6 +1977,7 @@ mod tests {
             color_mode: ColorMode::Color,
             theme_mode: ThemeMode::Dark,
             word_wrap: true,
+            spell_check: true,
             readable_line_length: false,
             recent_notes_dirs: vec!["/old1".to_string(), "/old2".to_string()],
             auto_check_updates: false,
@@ -1993,6 +2004,7 @@ mod tests {
         assert_eq!(loaded.color_mode, ColorMode::Color);
         assert_eq!(loaded.theme_mode, ThemeMode::Dark);
         assert!(loaded.word_wrap);
+        assert!(loaded.spell_check);
         assert!(!loaded.readable_line_length);
         assert_eq!(loaded.recent_notes_dirs, vec!["/old1", "/old2"]);
         assert!(!loaded.auto_check_updates);
@@ -2038,6 +2050,7 @@ mod tests {
                 color_mode: ColorMode::default(),
                 theme_mode: mode,
                 word_wrap: false,
+                spell_check: false,
                 readable_line_length: false,
                 recent_notes_dirs: vec![],
                 auto_check_updates: true,
@@ -2352,6 +2365,7 @@ mod tests {
         assert_eq!(loaded.color_mode, ColorMode::Color);
         assert_eq!(loaded.theme_mode, ThemeMode::System);
         assert!(!loaded.word_wrap);
+        assert!(!loaded.spell_check);
         // Omitted from an older config → off (§110: it's an opt-in).
         assert!(!loaded.readable_line_length);
         assert!(loaded.recent_notes_dirs.is_empty());
@@ -2992,6 +3006,24 @@ mod tests {
     }
 
     #[test]
+    fn config_patch_with_only_spell_check_changes_only_that_field() {
+        let (before, after) = patched(r#"{"spellCheck": true}"#);
+        let mut expected = before.clone();
+        expected["spellCheck"] = serde_json::json!(true);
+        assert_ne!(before, after);
+        assert_eq!(after, expected);
+    }
+
+    #[test]
+    fn config_without_spell_check_field_loads_with_default_false() {
+        let dir = tempdir().unwrap();
+        let path = dir.path().join("config.json");
+        fs::write(&path, r#"{"notesDir":"/n"}"#).unwrap();
+        let loaded = load_config_at(&path, &dir.path().join("Notes")).unwrap();
+        assert!(!loaded.spell_check);
+    }
+
+    #[test]
     fn config_patch_with_only_status_bar_visible_changes_only_that_field() {
         let (before, after) = patched(r#"{"statusBarVisible": false}"#);
         let mut expected = before.clone();
@@ -3508,6 +3540,7 @@ mod tests {
         assert!(cfg.status_bar_visible);
         assert_eq!(cfg.tab_label_style, TabLabelStyle::Iso);
         assert!(!cfg.early_updates);
+        assert!(!cfg.spell_check);
 
         save_config_at(&path, &cfg).unwrap();
 
@@ -3549,6 +3582,7 @@ mod tests {
         assert!(cfg.onboarding_completed);
         assert_eq!(cfg.startup_tab_mode, StartupTabMode::SmartLastActive);
         assert!(cfg.occurrence_hint);
+        assert!(!cfg.spell_check);
 
         // Peek settings came through, with documented migration (shortcut dropped, defaultsVersion bumped)
         assert_eq!(cfg.peek.lines, 5);
@@ -3611,6 +3645,7 @@ mod tests {
         assert_eq!(cfg.tab_label_style, TabLabelStyle::Friendly);
         assert_eq!(cfg.history_pane_share, 0.35);
         assert_eq!(cfg.actions_pane_share, 0.25);
+        assert!(!cfg.spell_check);
 
         // Peek settings
         assert_eq!(cfg.peek.lines, 5);

@@ -51,6 +51,8 @@ export type TranslationParams = {
   "settings.editor.width.wrap": undefined;
   "settings.editor.width.readingColumn": undefined;
   "settings.editor.width.hint": undefined;
+  "settings.editor.spellCheck.label": undefined;
+  "settings.editor.spellCheck.hint": undefined;
   "settings.editor.fontSize.label": undefined;
   "settings.editor.fontSize.ariaLabel": undefined;
   "settings.editor.lineSpacing.label": undefined;
@@ -345,6 +347,8 @@ export type TranslationParams = {
   "commandPalette.line.jumpPrev": undefined;
   "commandPalette.wrap.enable": undefined;
   "commandPalette.wrap.disable": undefined;
+  "commandPalette.spellCheck.enable": undefined;
+  "commandPalette.spellCheck.disable": undefined;
   "commandPalette.readable.enable": undefined;
   "commandPalette.readable.disable": undefined;
   "commandPalette.color.toColor": undefined;
@@ -773,6 +777,7 @@ export type TranslationParams = {
   "toast.boot.failedToSave.lightDark": undefined;
   "toast.boot.failedToSave.language": undefined;
   "toast.boot.failedToSave.wordWrap": undefined;
+  "toast.boot.failedToSave.spellCheck": undefined;
   "toast.boot.failedToSave.readingWidth": undefined;
   "toast.boot.failedToSave.updateCheck": undefined;
   "toast.boot.failedToSave.calendarSync": undefined;
