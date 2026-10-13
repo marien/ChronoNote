@@ -10451,3 +10451,11 @@ Not verified natively yet: printing in WebView2 under the desktop CSP, the save 
 - **Marien:** dim only the part of a line that is dealt with, also with several follow-ups, topics and actions on one line; the follow-up arrow works as a separator.
 - **Fix:** `resolvedParts` in `editor/resolvedLines.ts` (from the tokenizer). Each `=> ` starts a part; a part is dimmed when its own symbol (the leading one, or the action/topic right after its arrow, the new `=> o` included) is done, deferred, won't do, discussed or not discussed. A follow-up without a symbol (`=> he agreed`, `=> @dana`) belongs to the part before it, so `v call Sam => he agreed` stays fully dimmed as before. A fully dealt-with line keeps the whole-line dimming; otherwise each dimmed part is its own span. Replaces the single special case of §269 (a resolved topic with an open `=> #`). Changed: `# ask Sam => v mailed` now dims the follow-up (was not dimmed); `Talked to Sam => v done` dims only the follow-up (was the whole line). The leading glyph is now inside its part's span (`inclusiveStart`), so a discussed topic's ◉ dims with its text (it stayed bright before).
 - Tests: `resolvedLines.test.ts` (`resolvedParts`, several parts per line), `editor-tokens.spec.ts` (three parts on one line, glyphs dimmed with their part).
+
+## 366. Sub-section headers: a line of - drawn as a single rule
+
+**Status: on `main`, unreleased.**
+
+- **Marien:** sub-sections inside a section are marked with a line of `-` under their title; draw it as a single line, the way a line of `=` is drawn as a double one. No other function yet.
+- **Done:** `setextRule.ts` also marks a line of three or more `-` (`isSubsectionUnderline`) with `.cm-subsection-rule`: one 1px line through where the `-` ink sits, same colour as the double rule, `CanvasText` in a contrast theme. Like the `===` rule it shows the literal, editable dashes while the caret, a selection or the mouse is on the row. A bullet (`- ` with a space) and dashes inside text are not rules. Sections, Section History, Peek and the line menu ignore sub-sections.
+- Tests: `setext-rule.spec.ts` (single rule only on the dash line, reveal on caret and hover, the title is not a section).

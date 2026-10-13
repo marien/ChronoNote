@@ -85,3 +85,42 @@ test.describe("setext underline rule (§81)", () => {
     );
   });
 });
+
+/** A sub-section's `---` underline is drawn as a single rule, the same way; it is purely visual. */
+test.describe("sub-section underline rule", () => {
+  const SUB = ["Weekly Planning", "===============", "Budget", "------", "- a bullet, not a rule", "# plan --- not a rule"].join("\n");
+  const single = (page: Page) => editor(page).locator(".cm-subsection-rule");
+
+  test.beforeEach(async ({ page }) => {
+    await seedApp(page, { seed: "empty" });
+    await setEditorText(page, SUB);
+    await editor(page).click();
+    await page.keyboard.press("ControlOrMeta+Home");
+    await parkMouse(page);
+  });
+
+  test("a line of - under a title is a single rule; bullets and dashes in text are not", async ({ page }) => {
+    await expect(single(page)).toHaveCount(1);
+    await expect(single(page)).toHaveText("------");
+    await expect(rules(page)).toHaveCount(1); // the section's double rule is still its own
+    const bg = await single(page).evaluate((el) => getComputedStyle(el).backgroundImage);
+    expect(bg.match(/linear-gradient/g)?.length).toBe(1);
+  });
+
+  test("caret or hover on the row shows the dashes, editable", async ({ page }) => {
+    await cmLine(page, 4).click();
+    await parkMouse(page);
+    await expect(single(page)).toHaveCount(0);
+    await cmLine(page, 1).click();
+    await parkMouse(page);
+    await expect(single(page)).toHaveCount(1);
+    await cmLine(page, 4).hover();
+    await expect(single(page)).toHaveCount(0);
+  });
+
+  test("a sub-section is not a section: History and the section count ignore it", async ({ page }) => {
+    // The title above `---` gets no occurrence hint or section role; the line menu treats it as a body line.
+    await cmLine(page, 3).click({ button: "right" });
+    await expect(page.getByRole("menuitem", { name: /Make section/i })).toBeVisible();
+  });
+});

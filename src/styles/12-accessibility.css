@@ -113,6 +113,10 @@
       linear-gradient(CanvasText, CanvasText);
     forced-color-adjust: none;
   }
+  .cm-subsection-rule {
+    background-image: linear-gradient(CanvasText, CanvasText);
+    forced-color-adjust: none;
+  }
 
   /* @name delegate badge and (topic) tag pill */
   .glyph-assignee,

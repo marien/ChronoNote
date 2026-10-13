@@ -761,6 +761,14 @@ body.peek-mode .cm-overview-ruler {
     0 calc(51% - 0.09em),
     0 calc(51% + 0.09em);
 }
+/* A sub-section's `---` underline: one line, through where the `-` ink sits (centred like `=`), same colour. */
+.cm-subsection-rule {
+  color: transparent;
+  background-image: linear-gradient(var(--text-tertiary), var(--text-tertiary));
+  background-size: 100% 1px;
+  background-repeat: no-repeat;
+  background-position: 0 51%;
+}
 
 /* Editor Context Menu (proposal B5) */
 .editor-context-menu {

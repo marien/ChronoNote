@@ -37,6 +37,18 @@ const hoveredUnderlineField = StateField.define<number>({
 });
 
 const ruleMark = Decoration.mark({ class: "cm-setext-rule" });
+const subsectionRuleMark = Decoration.mark({ class: "cm-subsection-rule" });
+
+/** A sub-section underline: a line of three or more `-` under a sub-section title, drawn as a single rule the same way
+ * a section's `===` is drawn as a double one. Purely visual for now: sections, Section History and Peek ignore it.
+ * Never a bullet (a bullet needs a space after its `-`). */
+export function isSubsectionUnderline(line: string): boolean {
+  return /^-{3,}$/.test(line.trim());
+}
+
+function isRuleLine(text: string): boolean {
+  return isSetextUnderline(text) || isSubsectionUnderline(text);
+}
 
 function buildDecorations(view: EditorView): DecorationSet {
   const builder = new RangeSetBuilder<Decoration>();
@@ -47,17 +59,16 @@ function buildDecorations(view: EditorView): DecorationSet {
     let pos = from;
     while (pos <= to) {
       const line = view.state.doc.lineAt(pos);
-      if (line.length > 0 && isSetextUnderline(line.text)) {
+      if (line.length > 0 && isRuleLine(line.text)) {
         const active =
           line.number === hovered ||
           ranges.some((r) => r.from <= line.to && r.to >= line.from);
         if (!active) {
-          // isSetextUnderline tolerates surrounding whitespace — draw the
-          // rule over just the run of `=`.
-          const m = line.text.match(/^(\s*)(=+)/);
+          // The checks tolerate surrounding whitespace — draw the rule over just the run of `=` or `-`.
+          const m = line.text.match(/^(\s*)(=+|-+)/);
           if (m) {
             const start = line.from + m[1].length;
-            builder.add(start, start + m[2].length, ruleMark);
+            builder.add(start, start + m[2].length, m[2][0] === "=" ? ruleMark : subsectionRuleMark);
           }
         }
       }
@@ -99,7 +110,7 @@ const setextHoverHandlers = EditorView.domEventHandlers({
     let lineNo = -1;
     if (pos !== null) {
       const line = view.state.doc.lineAt(pos);
-      if (isSetextUnderline(line.text)) lineNo = line.number;
+      if (isRuleLine(line.text)) lineNo = line.number;
     }
     if (view.state.field(hoveredUnderlineField) !== lineNo) {
       view.dispatch({ effects: setHoveredUnderline.of(lineNo) });
