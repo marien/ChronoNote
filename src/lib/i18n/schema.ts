@@ -931,6 +931,8 @@ export type TranslationParams = {
   "statusBar.forwardTo": { date: string };
   "editor.dateLink.title": undefined;
   "toast.dateLink.sectionNotFound": { section: string };
+  "navToast.dismiss": undefined;
+  "navToast.ariaLabel": undefined;
 };
 
 export type TranslationKey = keyof TranslationParams;

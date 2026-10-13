@@ -939,4 +939,6 @@ export const de = {
   "statusBar.forwardTo": (p) => `Vorwärts zu ${p?.date ?? `date`}`,
   "editor.dateLink.title": () => "Strg+Klick öffnet diesen Tag",
   "toast.dateLink.sectionNotFound": (p) => `Abschnitt nicht gefunden: ${p?.section ?? `section`}`,
+  "navToast.dismiss": () => "Schließen",
+  "navToast.ariaLabel": () => "Zurück und vorwärts",
 } satisfies Dictionary;

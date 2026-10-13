@@ -1,5 +1,5 @@
 import { get } from "svelte/store";
-import { activeTabId, backStack, forwardStack, type BackStackEntry, editorApi, showToast, tabs } from "./stores";
+import { activeTabId, backStack, forwardStack, type BackStackEntry, editorApi, showToast, tabs, navToastVisible } from "./stores";
 import { jumpToFileLine, openOrCreateDatedFile } from "./tabs";
 import { isSetextUnderline, normalizeHeaderTitle, titleForMatching } from "./tokens";
 import { t } from "./i18n";
@@ -75,6 +75,8 @@ export function pushForwardStack(entry: BackStackEntry) {
 export async function openDateLink(target: string | { date: string; section?: string }) {
   const parsed = typeof target === "string" ? parseDateLink(target) : target;
   if (!parsed) return;
+
+  navToastVisible.set(true);
 
   const currentTabId = get(activeTabId);
   const currentTab = get(tabs).find((t) => t.id === currentTabId);

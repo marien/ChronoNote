@@ -949,4 +949,6 @@ export const es = {
   "statusBar.forwardTo": (p) => `Avanzar a ${p?.date ?? `date`}`,
   "editor.dateLink.title": () => "Ctrl+clic para abrir este día",
   "toast.dateLink.sectionNotFound": (p) => `Sección no encontrada: ${p?.section ?? `section`}`,
+  "navToast.dismiss": () => "Cerrar",
+  "navToast.ariaLabel": () => "Atrás y adelante",
 } satisfies Dictionary;

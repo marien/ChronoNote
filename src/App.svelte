@@ -52,6 +52,7 @@
   import KeyTips from "./lib/components/KeyTips.svelte";
   import StatusBar from "./lib/components/StatusBar.svelte";
   import InfoBar from "./lib/components/InfoBar.svelte";
+  import NavToast from "./lib/components/NavToast.svelte";
   import SyncHealthPopover from "./lib/components/SyncHealthPopover.svelte";
   import MobileAppBar from "./lib/components/mobile/MobileAppBar.svelte";
   import MobileNavBar from "./lib/components/mobile/MobileNavBar.svelte";
@@ -812,6 +813,7 @@
   {:else}
     <InfoBar />
   {/if}
+  <NavToast />
   <!-- The Settings page covers the note area; the editor stays mounted underneath (undo history, scroll, caret). -->
   <div class="workspace-row" style:display={settingsPage ? "none" : null}>
     <div

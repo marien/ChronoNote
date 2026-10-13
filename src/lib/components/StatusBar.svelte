@@ -14,8 +14,6 @@
     toastAction,
     toastMessage,
     updateStatus,
-    backStack,
-    forwardStack,
   } from "../controller";
   import { actionDrawerShowOnlyOpen, editorApi } from "../stores";
   import * as controller from "../controller";
@@ -51,38 +49,6 @@
 
 <div id="status-bar" class:has-centre-message={hasCentreMessage}>
   <div class="status-zone status-left">
-    {#if $backStack.length > 0}
-      {@const backTarget = $backStack[$backStack.length - 1]}
-      {@const backDate = backTarget.filename.replace(/\.txt$/, "")}
-      {@const backLabel = $t("statusBar.backTo", { date: backDate })}
-      {@const shortcutText = formatShortcut("navigateBack")}
-      <button
-        type="button"
-        id="stat-back"
-        aria-label={backLabel}
-        title={shortcutText ? `${backLabel} (${shortcutText})` : backLabel}
-        onclick={controller.navigateBack}
-      >
-        <Icon name="chevron-left" size={12} />
-        <span>{backDate}</span>
-      </button>
-    {/if}
-    {#if $forwardStack.length > 0}
-      {@const forwardTarget = $forwardStack[$forwardStack.length - 1]}
-      {@const forwardDate = forwardTarget.filename.replace(/\.txt$/, "")}
-      {@const forwardLabel = $t("statusBar.forwardTo", { date: forwardDate })}
-      {@const shortcutText = formatShortcut("navigateForward")}
-      <button
-        type="button"
-        id="stat-forward"
-        aria-label={forwardLabel}
-        title={shortcutText ? `${forwardLabel} (${shortcutText})` : forwardLabel}
-        onclick={controller.navigateForward}
-      >
-        <Icon name="chevron-right" size={12} />
-        <span>{forwardDate}</span>
-      </button>
-    {/if}
     <!-- §B4: the action counts lead, as buttons: open jumps to the next open action (Ctrl+J), the other two open
          the Action Drawer with every state listed. -->
     <button
@@ -289,27 +255,6 @@
    `currentColor`) isn't itself gated by `stat-tier0`, so it survives the
    folder-name collapse below and stays a click target even at the
    narrowest width the name is shown at all. */
-
-#stat-back,
-#stat-forward {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  background: transparent;
-  border: none;
-  color: inherit;
-  font: inherit;
-  padding: 0 4px;
-  margin: 0;
-  cursor: pointer;
-  border-radius: var(--radius-control);
-}
-
-#stat-back:hover,
-#stat-forward:hover {
-  background: var(--surface-raised);
-  color: var(--text);
-}
 
 #stat-folder,
 #stat-storage,

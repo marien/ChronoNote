@@ -933,4 +933,6 @@ export const nl = {
   "statusBar.forwardTo": (p) => `Vooruit naar ${p?.date ?? `date`}`,
   "editor.dateLink.title": () => "Ctrl+klik om deze dag te openen",
   "toast.dateLink.sectionNotFound": (p) => `Sectie niet gevonden: ${p?.section ?? `section`}`,
+  "navToast.dismiss": () => "Sluiten",
+  "navToast.ariaLabel": () => "Terug en vooruit",
 } satisfies Dictionary;

@@ -42,14 +42,43 @@ test.describe("date links and navigation", () => {
     // "Standup" is on line 5 (1-based)
     await expect.poll(() => cursorLine(page)).toBe(5);
 
-    // The Back button appears in the status bar
-    const backBtn = page.locator("#stat-back");
-    const forwardBtn = page.locator("#stat-forward");
+    // The status bar has no #stat-back any more
+    await expect(page.locator("#stat-back")).toHaveCount(0);
+    await expect(page.locator("#stat-forward")).toHaveCount(0);
+
+    // The toast (.nav-toast) appears after a Ctrl+Click on a date link
+    const navToast = page.locator(".nav-toast");
+    await expect(navToast).toBeVisible();
+
+    const backBtn = navToast.locator(".nav-toast-back");
+    const forwardBtn = navToast.locator(".nav-toast-forward");
+    const closeBtn = navToast.locator(".nav-toast-dismiss");
+
     await expect(backBtn).toBeVisible();
     await expect(backBtn).toContainText("2026-09-07");
     await expect(forwardBtn).toBeHidden();
 
-    // Ctrl+Alt+Left (or Cmd+[ on Mac) returns to the first note and line
+    // Its Back button returns
+    await backBtn.click();
+    await expect(activeTabLabel(page)).toHaveText("2026-09-07");
+    await expect.poll(() => cursorLine(page)).toBe(3);
+
+    // Forward appears after going back
+    await expect(forwardBtn).toBeVisible();
+    await expect(forwardBtn).toContainText("2026-09-03");
+    await expect(backBtn).toBeHidden();
+
+    // Forward returns to the target note
+    await forwardBtn.click();
+    await expect(activeTabLabel(page)).toHaveText("2026-09-03");
+    await expect.poll(() => cursorLine(page)).toBe(5);
+    await expect(backBtn).toBeVisible();
+
+    // The close button hides it
+    await closeBtn.click();
+    await expect(navToast).toBeHidden();
+
+    // Ctrl+Alt+Left still works while it is hidden and does not bring it back
     const isMac = await page.evaluate(() => /Mac|iPod|iPhone|iPad/.test(navigator.platform));
     if (isMac) {
       await page.keyboard.press("Meta+BracketLeft");
@@ -59,31 +88,15 @@ test.describe("date links and navigation", () => {
 
     await expect(activeTabLabel(page)).toHaveText("2026-09-07");
     await expect.poll(() => cursorLine(page)).toBe(3);
-    await expect(backBtn).toBeHidden();
-    await expect(forwardBtn).toBeVisible();
-    await expect(forwardBtn).toContainText("2026-09-03");
+    await expect(navToast).toBeHidden();
 
-    // Forward with shortcut: Ctrl+Alt+Right or Cmd+]
-    if (isMac) {
-      await page.keyboard.press("Meta+BracketRight");
-    } else {
-      await page.keyboard.press("Control+Alt+ArrowRight");
-    }
-
+    // A new link click shows it again
+    await link.click({ modifiers: ["ControlOrMeta"] });
     await expect(activeTabLabel(page)).toHaveText("2026-09-03");
     await expect.poll(() => cursorLine(page)).toBe(5);
-    await expect(forwardBtn).toBeHidden();
+    await expect(navToast).toBeVisible();
     await expect(backBtn).toBeVisible();
-
-    // Now test clicking the status bar buttons
-    await backBtn.click();
-    await expect(activeTabLabel(page)).toHaveText("2026-09-07");
-    await expect.poll(() => cursorLine(page)).toBe(3);
-    await expect(forwardBtn).toBeVisible();
-
-    await forwardBtn.click();
-    await expect(activeTabLabel(page)).toHaveText("2026-09-03");
-    await expect.poll(() => cursorLine(page)).toBe(5);
+    await expect(page.locator("#stat-back")).toHaveCount(0);
   });
 
   test("bare 2026-09-03#Standup links only to date (opens day at top); (2026-09-03#Standup) lands on section", async ({
@@ -278,5 +291,27 @@ test.describe("date links and navigation", () => {
     await expect
       .poll(() => mockNote(page, "2026-09-03.txt"))
       .toBe("Source Section\n==============\n# send report to client\n- other note");
+  });
+
+  test("Escape while focus is inside the toast closes it", async ({ page }) => {
+    await seedApp(page, {
+      seed: {
+        notes: {
+          "2026-09-07.txt": "Today\n=====\nCheck (2026-09-03#Standup) for notes",
+          "2026-09-03.txt": "Intro\n=====\nSome intro text\n\nStandup\n=======\n# discuss roadmap",
+        },
+        session: { openTabs: ["2026-09-07.txt"], activeTab: "2026-09-07.txt" },
+      },
+    });
+
+    const link = editor(page).locator(".cm-date-link");
+    await link.click({ modifiers: ["ControlOrMeta"] });
+    const navToast = page.locator(".nav-toast");
+    await expect(navToast).toBeVisible();
+
+    const backBtn = navToast.locator(".nav-toast-back");
+    await backBtn.focus();
+    await page.keyboard.press("Escape");
+    await expect(navToast).toBeHidden();
   });
 });
