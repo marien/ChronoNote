@@ -10440,6 +10440,6 @@ Not verified natively yet: printing in WebView2 under the desktop CSP, the save 
 **Status: on `main`, unreleased.**
 
 - **Marien (web app):** when the OneDrive sign-in expired, a toast said "Click to sign in again", but clicking it only opened the sync status popover. He asked for the sign-in to start from the message, and for the message to look like the "Updated to" one, which has a real button.
-- **Cause:** two messages appeared at once. The info bar (the same component as "Updated to", §335) already had a Sign in again button that starts the sign-in; a separate toast repeated the text with a click that went elsewhere.
+- **Cause:** two messages appeared at once. The info bar (the same component as "Updated to", §332) already had a Sign in again button that starts the sign-in; a separate toast repeated the text with a click that went elsewhere.
 - **Fix:** the toast is gone; the info bar is the one message (`oneDriveSync.ts`). Its text is now just "Your OneDrive sign-in has expired." (new key `infoBar.signInExpired` in 7 locales, replacing `toast.oneDriveSync.signInExpired`), since the button says what to do. A new expiry brings the bar back even if it was dismissed earlier in the session. The cloud button, the status popover and Settings keep their own Sign in again.
 - Tests: `controller.test.ts` (no toast, dismissed bar returns), `sync-health-popover.spec.ts` (the bar's button renews the sign-in, no toast).
