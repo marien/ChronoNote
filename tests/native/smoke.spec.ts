@@ -176,3 +176,41 @@ test("an unreadable config.json is set aside and the app still starts", async ()
   await expect.poll(() => fs.readFileSync(LOG, "utf8"), { timeout: 10_000 }).toContain("set aside config.json");
   await closeApp(page);
 });
+
+/** Spell check against the real Windows Spell Checking API (§375/§376). CI's runner has English only, like Marien's
+ * work laptop where no word was underlined in 0.32.0-3; the diagnostics are attached either way. */
+test("spell check: the Windows checker flags misspelled words and the editor underlines them", async ({}, testInfo) => {
+  fs.mkdirSync(CONFIG_DIR, { recursive: true });
+  const cfg = { notesDir: NOTES, onboardingCompleted: true, autoCheckUpdates: false, lastSeenVersion: VERSION, spellCheck: true };
+  fs.writeFileSync(CONFIG, JSON.stringify(cfg, null, 2), { encoding: "utf8" });
+  fs.writeFileSync(path.join(NOTES, TODAY), "Weekly Sync\n===========\nteh wrods are mispeled here\n");
+  const page = await launch();
+  const diag = await page.evaluate(async () => {
+    const inv = (window as any).__TAURI_INTERNALS__.invoke as (cmd: string, args?: unknown) => Promise<unknown>;
+    const safe = async (cmd: string, args?: unknown) => {
+      try {
+        return await inv(cmd, args);
+      } catch (e) {
+        return `ERROR ${String(e)}`;
+      }
+    };
+    return {
+      available: await safe("spell_available_languages"),
+      windows: await safe("spell_windows_languages"),
+      activeBefore: await safe("spell_languages"),
+      check: await safe("spell_check_lines", { lines: ["teh wrods are mispeled here"] }),
+    };
+  });
+  await page.waitForTimeout(3000);
+  const after = await page.evaluate(async () => ({
+    active: await (window as any).__TAURI_INTERNALS__.invoke("spell_languages").catch((e: unknown) => `ERROR ${e}`),
+    marks: document.querySelectorAll(".cm-misspelled").length,
+    attr: document.querySelector(".cm-content")?.getAttribute("spellcheck"),
+  }));
+  const log = fs.existsSync(LOG) ? fs.readFileSync(LOG, "utf8").split("\n").filter((l) => /spell|Spell/.test(l)).join("\n") : "";
+  const report = JSON.stringify({ diag, after, spellLog: log }, null, 2);
+  console.log(report);
+  await testInfo.attach("spell-diagnostics", { body: report, contentType: "application/json" });
+  await expect.poll(() => page.locator(".cm-misspelled").count(), { timeout: 15_000 }).toBeGreaterThan(0);
+  await closeApp(page);
+});
