@@ -909,6 +909,17 @@ export type TranslationParams = {
   "a11y.glyph.followUp": undefined;
   "a11y.lineState": { state: string };
   "actionDrawer.filter.ariaLabel": undefined;
+  "shortcuts.replaceInNote.label": undefined;
+  "shortcuts.goToSection.label": undefined;
+  "findBar.replacePlaceholder": undefined;
+  "findBar.replace": undefined;
+  "findBar.replaceAll": undefined;
+  "findBar.toggleReplace": undefined;
+  "findBar.matchCase": undefined;
+  "findBar.wholeWord": undefined;
+  "toast.findBar.replaced": { count: number };
+  "commandPalette.noSections": undefined;
+  "commandPalette.sectionsGroup": undefined;
 };
 
 export type TranslationKey = keyof TranslationParams;

@@ -14,7 +14,7 @@
 
   const allKeysShortcut = formatCombo(shortcutById("openShortcutsHelp").combos[0]);
 
-  let query = $state("");
+  let query = $state(controller.paletteInitialQuery || "");
   let items = $state<PaletteItem[]>([]);
   /** The query `items` were actually built for — `commit()` refuses to
    * run against a result set that's a keystroke or two stale (the `!`/`@`
@@ -26,8 +26,12 @@
   let seq = 0;
   let debounce: ReturnType<typeof setTimeout> | undefined;
 
-  onMount(() => {
+  onMount(async () => {
     inputEl?.focus();
+    if (query) {
+      inputEl?.setSelectionRange(query.length, query.length);
+    }
+    controller.setPaletteInitialQuery("");
     void runRefresh(query);
   });
 
@@ -40,11 +44,11 @@
     selected = 0;
   }
 
-  // The `!`/`#`/`@` prefixes scan the whole notes cache, so those are
-  // debounced; plain command / tab filtering is cheap and runs at once.
+  // The `!`/`@` prefixes scan the whole notes cache, so those are
+  // debounced; plain command / tab / section filtering is cheap and runs at once.
   function scheduleRefresh(q: string) {
     clearTimeout(debounce);
-    if (/^\s*[!#@]/.test(q)) {
+    if (/^\s*[!@]/.test(q)) {
       debounce = setTimeout(() => runRefresh(q), 120);
     } else {
       void runRefresh(q);
@@ -167,7 +171,7 @@
       <button
         type="button"
         class="palette-chip"
-        class:active={query.trim().startsWith("!") || query.trim().startsWith("#")}
+        class:active={query.trim().startsWith("!")}
         onclick={() => setPrefix("!")}
       ><kbd>!</kbd> {$t("commandPalette.legend.actions")}</button>
       <button
@@ -191,6 +195,7 @@
         {:else}
           <div
             class="modal-item {row.idx === selected ? 'selected' : ''}"
+            class:muted-row={row.item.id === "no-sections"}
             role="option"
             aria-selected={row.idx === selected}
             data-idx={row.idx}

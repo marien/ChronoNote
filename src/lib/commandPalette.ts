@@ -6,7 +6,8 @@
  * Prefix routing on the query:
  *   (none)  commands + open-tab titles
  *   >       application commands only
- *   ! or #  open actions across every daily note
+ *   !       open actions across every daily note
+ *   #       sections in this note
  *   @       date navigation (the `parseDateQuery` grammar + recent dates)
  *   ?       hand off to the keyboard-shortcuts drawer
  */
@@ -32,7 +33,7 @@ import {
 } from "./stores";
 import { sortFilenamesByRecency } from "./tabSort";
 import { refreshAllNotesCache } from "./persistence";
-import { openActionLineIndices, stripLeadingToken } from "./tokens";
+import { listSections, openActionLineIndices, stripLeadingToken } from "./tokens";
 import { parseDateQuery } from "./date";
 import {
   commitDatePick,
@@ -73,6 +74,7 @@ export const COMMAND_PALETTE_GROUP_KEYS: Record<string, TranslationKey> = {
   "Open tabs": "commandPalette.group.openTabs",
   "Open actions": "commandPalette.group.openActions",
   Dates: "commandPalette.group.dates",
+  Sections: "commandPalette.sectionsGroup",
 };
 
 export interface PaletteItem {
@@ -142,9 +144,15 @@ export function splitHighlighted(
 }
 
 export let paletteSelectionSnapshot: { anchor: number; head: number } | null = null;
+export let paletteInitialQuery = "";
 
-export function openCommandPalette() {
+export function setPaletteInitialQuery(q: string) {
+  paletteInitialQuery = q;
+}
+
+export function openCommandPalette(initialQuery = "") {
   paletteSelectionSnapshot = editorApi?.getSelectionRange ? editorApi.getSelectionRange() : null;
+  paletteInitialQuery = initialQuery;
   modal.set("commandPalette");
 }
 
@@ -497,7 +505,57 @@ export async function buildPaletteResults(query: string): Promise<PaletteItem[]>
     ];
   }
 
-  if (q.startsWith("!") || q.startsWith("#")) {
+  if (q.startsWith("#")) {
+    const term = q.slice(1).trim().toLowerCase();
+    const content = editorApi?.getContent
+      ? editorApi.getContent()
+      : (get(tabs).find((t) => t.id === get(activeTabId))?.content ?? "");
+    const sections = listSections(content);
+    if (sections.length === 0) {
+      return [
+        {
+          id: "no-sections",
+          label: translate("commandPalette.noSections", undefined),
+          group: "Sections",
+          run: () => {},
+        },
+      ];
+    }
+    const out: PaletteItem[] = [];
+    for (let idx = 0; idx < sections.length; idx++) {
+      const s = sections[idx];
+      const lower = s.title.toLowerCase();
+      if (term) {
+        const matchIdx = lower.indexOf(term);
+        if (matchIdx < 0) continue;
+        const matchedIndices = Array.from({ length: term.length }, (_, k) => matchIdx + k);
+        out.push({
+          id: `section-${idx}-${s.lineIdx}`,
+          label: s.title,
+          hint: s.open > 0 ? `☐ ${s.open}` : undefined,
+          group: "Sections",
+          matchedIndices,
+          run: () => {
+            editorApi?.jumpToLine(s.lineIdx);
+          },
+        });
+      } else {
+        out.push({
+          id: `section-${idx}-${s.lineIdx}`,
+          label: s.title,
+          hint: s.open > 0 ? `☐ ${s.open}` : undefined,
+          group: "Sections",
+          matchedIndices: [],
+          run: () => {
+            editorApi?.jumpToLine(s.lineIdx);
+          },
+        });
+      }
+    }
+    return out;
+  }
+
+  if (q.startsWith("!")) {
     const term = q.slice(1).trim();
     await refreshAllNotesCache();
     const cache = get(allNotesCache);

@@ -10,6 +10,7 @@
     editorApi,
     editorFocused,
     findOpen,
+    findReplaceOpen,
     fontSize,
     historyDocked,
     historyTargetHeader,
@@ -296,17 +297,42 @@
         controller.openCommandPalette();
         return;
       }
+      if (matchesShortcut(e, "goToSection")) {
+        if (modalOwnsKeyboard(e)) return;
+        e.preventDefault();
+        controller.openCommandPalette("#");
+        return;
+      }
       if (matchesShortcut(e, "findInNote")) {
         if (modalOwnsKeyboard(e)) return;
         // Catches Ctrl/Cmd+F when focus is in the find input or elsewhere
         // outside the editor (the editor's own keymap covers the rest).
         e.preventDefault();
         findOpen.set(true);
+        findReplaceOpen.set(false);
         // The bar isn't mounted in this tick — re-select on the next frame
         // so a second Ctrl/Cmd+F re-focuses the query.
         requestAnimationFrame(() =>
           document.querySelector<HTMLInputElement>(".find-bar .find-input")?.select(),
         );
+        return;
+      }
+      if (matchesShortcut(e, "replaceInNote")) {
+        if (modalOwnsKeyboard(e)) return;
+        e.preventDefault();
+        findOpen.set(true);
+        findReplaceOpen.set(true);
+        requestAnimationFrame(() => {
+          const findInput = document.querySelector<HTMLInputElement>(".find-bar .find-input");
+          const replaceInput = document.querySelector<HTMLInputElement>(".find-bar .find-replace-input");
+          if (findInput && findInput.value.length > 0 && replaceInput) {
+            replaceInput.focus();
+            replaceInput.select();
+          } else if (findInput) {
+            findInput.focus();
+            findInput.select();
+          }
+        });
         return;
       }
 

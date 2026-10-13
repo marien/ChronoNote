@@ -946,4 +946,16 @@ export const pl = {
   "a11y.glyph.followUp": () => "Następny krok",
   "a11y.lineState": (p) => `Wiersz ustawiony na: ${p?.state ?? ""}`,
   "actionDrawer.filter.ariaLabel": () => "Filtruj zadania",
+  "shortcuts.replaceInNote.label": () => "Zamień w notatce",
+  "shortcuts.goToSection.label": () => "Przejdź do sekcji",
+  "findBar.replacePlaceholder": () => "Zamień na",
+  "findBar.replace": () => "Zamień",
+  "findBar.replaceAll": () => "Zamień wszystko",
+  "findBar.toggleReplace": () => "Pokaż zamianę",
+  "findBar.matchCase": () => "Uwzględnij wielkość liter",
+  "findBar.wholeWord": () => "Całe wyrazy",
+  "toast.findBar.replaced": (p) => `Zamieniono: ${p?.count ?? 0}`,
+  "commandPalette.noSections": () => "Brak sekcji w tej notatce",
+  "commandPalette.sectionsGroup": () => "Sekcje",
+
 } satisfies Dictionary;

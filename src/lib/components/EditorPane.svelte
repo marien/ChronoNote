@@ -5,7 +5,7 @@
   import { Decoration, type DecorationSet, drawSelection, EditorView, keymap, ViewPlugin } from "@codemirror/view";
   import { defaultKeymap, history, historyField, historyKeymap, indentWithTab, redo, undo } from "@codemirror/commands";
   import { indentUnit } from "@codemirror/language";
-  import { findNext, findPrevious, search, SearchCursor, SearchQuery, setSearchQuery } from "@codemirror/search";
+  import { findNext, findPrevious, replaceNext, replaceAll, search, SearchCursor, SearchQuery, setSearchQuery } from "@codemirror/search";
   import { glyphAtomicRanges, liveGlyphs, lineStateAnnouncement } from "../editor/glyphs";
   import { setextRule } from "../editor/setextRule";
   import { resolvedLinesPlugin } from "../editor/resolvedLines";
@@ -118,9 +118,9 @@
    * highlighter, swapped in via a compartment as the query changes. */
   const findHiCompartment = new Compartment();
   const findMatchMark = Decoration.mark({ class: "cm-searchMatch" });
-  function findHighlight(query: string) {
+  function findHighlight(query: string, caseSensitive = false, wholeWord = false) {
     if (!query) return [];
-    const norm = (s: string) => s.toLowerCase();
+    const sq = new SearchQuery({ search: query, caseSensitive, wholeWord });
     return ViewPlugin.fromClass(
       class {
         decorations: ReturnType<RangeSetBuilder<Decoration>["finish"]>;
@@ -133,8 +133,10 @@
         build(v: EditorView) {
           const b = new RangeSetBuilder<Decoration>();
           for (const { from, to } of v.visibleRanges) {
-            const cur = new SearchCursor(v.state.doc, query, from, to, norm);
-            while (!cur.next().done) b.add(cur.value.from, cur.value.to, findMatchMark);
+            const cur = sq.getCursor(v.state, from, to);
+            for (let res = cur.next(); !res.done; res = cur.next()) {
+              b.add(res.value.from, res.value.to, findMatchMark);
+            }
           }
           return b.finish();
         }
@@ -194,27 +196,51 @@
   let lastScrollEffect: StateEffect<unknown> | null = null;
 
   /** §108: mirror "N of M" into the `findMatch` store after every query
-   * change or next/prev. Counts case-insensitively, matching the
-   * `SearchQuery({ caseSensitive: false })` the bar sets. */
+   * change or next/prev. Respects caseSensitive and wholeWord options. */
   let lastFindQuery = "";
+  let lastReplaceText = "";
+  let findCaseSensitive = false;
+  let findWholeWord = false;
+
   function recomputeFindMatch() {
     if (!view || !lastFindQuery) {
       findMatch.set({ current: 0, total: 0 });
       return;
     }
-    const doc = view.state.doc;
-    const norm = (s: string) => s.toLowerCase();
-    const cursor = new SearchCursor(doc, lastFindQuery, 0, doc.length, norm);
+    const sq = new SearchQuery({
+      search: lastFindQuery,
+      caseSensitive: findCaseSensitive,
+      wholeWord: findWholeWord,
+    });
+    const cursor = sq.getCursor(view.state);
     const selFrom = view.state.selection.main.from;
     let total = 0;
     // The match the caret sits on, or the last one before it (so a click
     // between matches still shows a sensible "k of N", never "– of N").
     let atOrBefore = 0;
-    while (!cursor.next().done) {
+    for (let res = cursor.next(); !res.done; res = cursor.next()) {
       total++;
-      if (cursor.value.from <= selFrom) atOrBefore = total;
+      if (res.value.from <= selFrom) atOrBefore = total;
     }
     findMatch.set({ current: total === 0 ? 0 : Math.max(1, atOrBefore), total });
+  }
+
+  function applySearchQuery(jump = false) {
+    if (!view) return;
+    const sq = new SearchQuery({
+      search: lastFindQuery,
+      replace: lastReplaceText,
+      caseSensitive: findCaseSensitive,
+      wholeWord: findWholeWord,
+    });
+    view.dispatch({
+      effects: [
+        setSearchQuery.of(sq),
+        findHiCompartment.reconfigure(findHighlight(lastFindQuery, findCaseSensitive, findWholeWord)),
+      ],
+    });
+    if (lastFindQuery && jump) findNext(view);
+    recomputeFindMatch();
   }
 
   /** True if `lineNumber` (1-based) is a section's title line — the line
@@ -972,18 +998,17 @@
       },
       find: {
         setQuery: (q: string) => {
-          if (!view) return;
           lastFindQuery = q;
-          view.dispatch({
-            effects: [
-              setSearchQuery.of(new SearchQuery({ search: q, caseSensitive: false })),
-              findHiCompartment.reconfigure(findHighlight(q)),
-            ],
-          });
-          // Jump to the first match at/after the caret without stealing
-          // focus from the find input.
-          if (q) findNext(view);
-          recomputeFindMatch();
+          applySearchQuery(true);
+        },
+        setReplace: (text: string) => {
+          lastReplaceText = text;
+          applySearchQuery(false);
+        },
+        setOptions: (opts: { caseSensitive?: boolean; wholeWord?: boolean }) => {
+          if (opts.caseSensitive !== undefined) findCaseSensitive = opts.caseSensitive;
+          if (opts.wholeWord !== undefined) findWholeWord = opts.wholeWord;
+          applySearchQuery(false);
         },
         next: () => {
           if (view) findNext(view);
@@ -993,8 +1018,32 @@
           if (view) findPrevious(view);
           recomputeFindMatch();
         },
+        replace: () => {
+          if (view) {
+            replaceNext(view);
+            recomputeFindMatch();
+          }
+        },
+        replaceAll: () => {
+          if (!view || !lastFindQuery) return 0;
+          const sq = new SearchQuery({
+            search: lastFindQuery,
+            replace: lastReplaceText,
+            caseSensitive: findCaseSensitive,
+            wholeWord: findWholeWord,
+          });
+          const cur = sq.getCursor(view.state);
+          let count = 0;
+          for (let res = cur.next(); !res.done; res = cur.next()) count++;
+          if (count > 0) {
+            replaceAll(view);
+            recomputeFindMatch();
+          }
+          return count;
+        },
         clear: () => {
           lastFindQuery = "";
+          lastReplaceText = "";
           if (view) {
             view.dispatch({
               effects: [

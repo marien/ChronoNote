@@ -70,17 +70,63 @@ describe("buildPaletteResults prefix query modes", () => {
     expect(scratch?.matchedIndices!.length).toBeGreaterThan(0);
   });
 
-  it("handles '!' and '#' prefix for open actions with match highlighting", async () => {
+  it("handles '!' prefix for open actions with match highlighting", async () => {
     const items1 = await buildPaletteResults("!milk");
     expect(items1.length).toBe(1);
     expect(items1[0].label).toBe("Buy milk");
     expect(items1[0].group).toBe("Open actions");
     expect(items1[0].matchedIndices).toBeDefined();
+  });
 
-    const items2 = await buildPaletteResults("#sprint");
-    expect(items2.length).toBe(1);
-    expect(items2[0].label).toBe("Plan sprint");
-    expect(items2[0].matchedIndices).toBeDefined();
+  it("handles '#' prefix for note sections with counts and substring filtering", async () => {
+    const content = [
+      "Standup",
+      "=======",
+      "# action 1",
+      "",
+      "Sprint Review",
+      "=============",
+      "# action 2",
+      "# action 3",
+    ].join("\n");
+    let jumped = -1;
+    registerEditorApi({
+      getContent: () => content,
+      setContent: () => {},
+      insertAtCursor: () => {},
+      jumpToLine: (idx) => {
+        jumped = idx;
+      },
+      getCursorLineIdx: () => 0,
+      getSelection: () => ({ text: "", fromLine: 0, toLine: 0 }),
+      focus: () => {},
+      find: {
+        setQuery: () => {},
+        setReplace: () => {},
+        setOptions: () => {},
+        next: () => {},
+        prev: () => {},
+        replace: () => {},
+        replaceAll: () => 0,
+        clear: () => {},
+      },
+    });
+
+    const items = await buildPaletteResults("#");
+    expect(items.length).toBe(2);
+    expect(items[0].label).toBe("Standup");
+    expect(items[0].hint).toBe("☐ 1");
+    expect(items[0].group).toBe("Sections");
+    expect(items[1].label).toBe("Sprint Review");
+    expect(items[1].hint).toBe("☐ 2");
+
+    const filtered = await buildPaletteResults("#rev");
+    expect(filtered.length).toBe(1);
+    expect(filtered[0].label).toBe("Sprint Review");
+    expect(filtered[0].matchedIndices).toEqual([7, 8, 9]);
+
+    await filtered[0].run();
+    expect(jumped).toBe(4);
   });
 
   it("handles '@' prefix for date navigation with substring match highlighting", async () => {

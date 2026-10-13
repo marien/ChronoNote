@@ -933,4 +933,16 @@ export const fr = {
   "a11y.glyph.followUp": () => "Suite",
   "a11y.lineState": (p) => `Ligne passée à ${p?.state ?? ""}`,
   "actionDrawer.filter.ariaLabel": () => "Filtrer les actions",
+  "shortcuts.replaceInNote.label": () => "Remplacer dans la note",
+  "shortcuts.goToSection.label": () => "Aller à la section",
+  "findBar.replacePlaceholder": () => "Remplacer par",
+  "findBar.replace": () => "Remplacer",
+  "findBar.replaceAll": () => "Tout remplacer",
+  "findBar.toggleReplace": () => "Afficher le remplacement",
+  "findBar.matchCase": () => "Respecter la casse",
+  "findBar.wholeWord": () => "Mot entier",
+  "toast.findBar.replaced": (p) => `${p?.count ?? 0} remplacé(s)`,
+  "commandPalette.noSections": () => "Aucune section dans cette note",
+  "commandPalette.sectionsGroup": () => "Sections",
+
 } satisfies Dictionary;

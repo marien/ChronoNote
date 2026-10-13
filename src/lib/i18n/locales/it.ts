@@ -927,4 +927,16 @@ export const it = {
   "a11y.glyph.followUp": () => "Seguito",
   "a11y.lineState": (p) => `Riga impostata su ${p?.state ?? ""}`,
   "actionDrawer.filter.ariaLabel": () => "Filtra le azioni",
+  "shortcuts.replaceInNote.label": () => "Sostituisci nella nota",
+  "shortcuts.goToSection.label": () => "Vai alla sezione",
+  "findBar.replacePlaceholder": () => "Sostituisci con",
+  "findBar.replace": () => "Sostituisci",
+  "findBar.replaceAll": () => "Sostituisci tutto",
+  "findBar.toggleReplace": () => "Mostra sostituisci",
+  "findBar.matchCase": () => "Maiuscole/minuscole",
+  "findBar.wholeWord": () => "Parola intera",
+  "toast.findBar.replaced": (p) => `${p?.count ?? 0} sostituiti`,
+  "commandPalette.noSections": () => "Nessuna sezione in questa nota",
+  "commandPalette.sectionsGroup": () => "Sezioni",
+
 } satisfies Dictionary;

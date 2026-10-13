@@ -32,6 +32,7 @@ import {
   normalizeHeaderTitle,
   titleForMatching,
   stateFirst,
+  listSections,
 } from "./tokens";
 
 describe("countActions", () => {
@@ -936,5 +937,55 @@ describe("stateFirst", () => {
     expect(stateFirst("1. #hashtag")).toBeNull();
     expect(stateFirst("===")).toBeNull();
     expect(stateFirst("---")).toBeNull();
+  });
+});
+
+describe("listSections", () => {
+  it("extracts sections with title, lineIdx, and open action count", () => {
+    const text = [
+      "Header 1",
+      "========",
+      "Some notes",
+      "# action 1",
+      "v closed action",
+      "# action 2",
+      "",
+      "Header 2",
+      "===",
+      "v done only",
+      "",
+      "Header 3",
+      "======",
+      "# action 3",
+    ].join("\n");
+
+    const sections = listSections(text);
+    expect(sections).toEqual([
+      { title: "Header 1", lineIdx: 0, open: 2 },
+      { title: "Header 2", lineIdx: 7, open: 0 },
+      { title: "Header 3", lineIdx: 11, open: 1 },
+    ]);
+  });
+
+  it("treats a '---' sub-section line as body, NOT as a section title", () => {
+    const text = [
+      "Main Section",
+      "============",
+      "Some text",
+      "# main open",
+      "Sub section",
+      "-----------",
+      "# sub open",
+    ].join("\n");
+
+    const sections = listSections(text);
+    expect(sections).toEqual([
+      { title: "Main Section", lineIdx: 0, open: 2 },
+    ]);
+  });
+
+  it("returns empty array for empty note or note without sections", () => {
+    expect(listSections("")).toEqual([]);
+    expect(listSections("Just some text\nwith # an action\nand no headings")).toEqual([]);
   });
 });

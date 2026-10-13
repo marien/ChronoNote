@@ -909,4 +909,16 @@ export const nl = {
   "a11y.glyph.followUp": () => "Vervolg",
   "a11y.lineState": (p) => `Regel op ${p?.state ?? ""} gezet`,
   "actionDrawer.filter.ariaLabel": () => "Acties filteren",
+  "shortcuts.replaceInNote.label": () => "Vervangen in notitie",
+  "shortcuts.goToSection.label": () => "Naar sectie",
+  "findBar.replacePlaceholder": () => "Vervangen door",
+  "findBar.replace": () => "Vervangen",
+  "findBar.replaceAll": () => "Alles vervangen",
+  "findBar.toggleReplace": () => "Vervangen tonen",
+  "findBar.matchCase": () => "Hoofdlettergevoelig",
+  "findBar.wholeWord": () => "Heel woord",
+  "toast.findBar.replaced": (p) => `${p?.count ?? 0} vervangen`,
+  "commandPalette.noSections": () => "Geen secties in deze notitie",
+  "commandPalette.sectionsGroup": () => "Secties",
+
 } satisfies Dictionary;

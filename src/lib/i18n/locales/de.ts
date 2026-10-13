@@ -915,4 +915,16 @@ export const de = {
   "a11y.glyph.followUp": () => "Folgeaktion",
   "a11y.lineState": (p) => `Zeile auf ${p?.state ?? ""} gesetzt`,
   "actionDrawer.filter.ariaLabel": () => "Aktionen filtern",
+  "shortcuts.replaceInNote.label": () => "In Notiz ersetzen",
+  "shortcuts.goToSection.label": () => "Zu Abschnitt springen",
+  "findBar.replacePlaceholder": () => "Ersetzen durch",
+  "findBar.replace": () => "Ersetzen",
+  "findBar.replaceAll": () => "Alle ersetzen",
+  "findBar.toggleReplace": () => "Ersetzen anzeigen",
+  "findBar.matchCase": () => "Groß-/Kleinschreibung beachten",
+  "findBar.wholeWord": () => "Ganzes Wort",
+  "toast.findBar.replaced": (p) => `${p?.count ?? 0} ersetzt`,
+  "commandPalette.noSections": () => "Keine Abschnitte in dieser Notiz",
+  "commandPalette.sectionsGroup": () => "Abschnitte",
+
 } satisfies Dictionary;

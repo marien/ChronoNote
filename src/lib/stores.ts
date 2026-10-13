@@ -169,6 +169,7 @@ export const saveState = writable<SaveState>("idle");
  * "N of M" as the editor reports it. The editor stays fully live while
  * this is open — it's not a modal. */
 export const findOpen = overlayFlag("find");
+export const findReplaceOpen = writable<boolean>(false);
 export const findMatch = writable<{ current: number; total: number }>({ current: 0, total: 0 });
 
 /** The overlay stack (`overlays.ts`) is the source of truth for what is open;
@@ -507,8 +508,12 @@ export interface EditorApi {
   /** §108: in-document find, driven by the floating `FindBar`. */
   find: {
     setQuery: (q: string) => void;
+    setReplace?: (text: string) => void;
+    setOptions?: (opts: { caseSensitive?: boolean; wholeWord?: boolean }) => void;
     next: () => void;
     prev: () => void;
+    replace?: () => void;
+    replaceAll?: () => number;
     clear: () => void;
   };
   applyToken?: (token: "#" | "v" | ">" | "x" | "-" | "=>" | "!" | "o" | "." | ",") => void;

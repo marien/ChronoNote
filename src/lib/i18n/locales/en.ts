@@ -897,4 +897,16 @@ export const en = {
   "a11y.glyph.followUp": () => "Follow-up",
   "a11y.lineState": (p) => `Line set to ${p?.state ?? ""}`,
   "actionDrawer.filter.ariaLabel": () => "Filter actions",
+  "shortcuts.replaceInNote.label": () => "Replace in note",
+  "shortcuts.goToSection.label": () => "Go to section",
+  "findBar.replacePlaceholder": () => "Replace with",
+  "findBar.replace": () => "Replace",
+  "findBar.replaceAll": () => "Replace all",
+  "findBar.toggleReplace": () => "Show replace",
+  "findBar.matchCase": () => "Match case",
+  "findBar.wholeWord": () => "Whole word",
+  "toast.findBar.replaced": (p) => `Replaced ${p?.count ?? 0}`,
+  "commandPalette.noSections": () => "No sections in this note",
+  "commandPalette.sectionsGroup": () => "Sections",
+
 } satisfies Dictionary;

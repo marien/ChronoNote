@@ -715,3 +715,38 @@ export function titleForMatching(normalizedTitle: string): string {
     .replace(/\s*[-:]?\s*\d{4}-\d{2}-\d{2}$/, "")
     .trim();
 }
+
+export interface SectionItem {
+  title: string;
+  lineIdx: number;
+  open: number;
+}
+
+/** Lists all setext sections in document order with their 0-based title line index
+ * and the count of open actions in their body. */
+export function listSections(text: string): SectionItem[] {
+  const lines = text.split("\n");
+  const headers: { title: string; lineIdx: number; bodyStart: number }[] = [];
+  for (let i = 0; i < lines.length - 1; i++) {
+    if (isSetextUnderline(lines[i + 1]) && !isSetextUnderline(lines[i]) && lines[i].trim() !== "") {
+      headers.push({
+        title: lines[i].trim(),
+        lineIdx: i,
+        bodyStart: i + 2,
+      });
+    }
+  }
+
+  const result: SectionItem[] = [];
+  for (let h = 0; h < headers.length; h++) {
+    const start = headers[h].bodyStart;
+    const end = h + 1 < headers.length ? headers[h + 1].lineIdx : lines.length;
+    const bodyText = lines.slice(start, end).join("\n");
+    result.push({
+      title: headers[h].title,
+      lineIdx: headers[h].lineIdx,
+      open: countActions(bodyText).open,
+    });
+  }
+  return result;
+}

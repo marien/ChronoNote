@@ -925,4 +925,16 @@ export const es = {
   "a11y.glyph.followUp": () => "Seguimiento",
   "a11y.lineState": (p) => `Línea cambiada a ${p?.state ?? ""}`,
   "actionDrawer.filter.ariaLabel": () => "Filtrar acciones",
+  "shortcuts.replaceInNote.label": () => "Reemplazar en la nota",
+  "shortcuts.goToSection.label": () => "Ir a la sección",
+  "findBar.replacePlaceholder": () => "Reemplazar por",
+  "findBar.replace": () => "Reemplazar",
+  "findBar.replaceAll": () => "Reemplazar todo",
+  "findBar.toggleReplace": () => "Mostrar reemplazar",
+  "findBar.matchCase": () => "Coincidir mayúsculas",
+  "findBar.wholeWord": () => "Palabra completa",
+  "toast.findBar.replaced": (p) => `${p?.count ?? 0} reemplazado(s)`,
+  "commandPalette.noSections": () => "No hay secciones en esta nota",
+  "commandPalette.sectionsGroup": () => "Secciones",
+
 } satisfies Dictionary;

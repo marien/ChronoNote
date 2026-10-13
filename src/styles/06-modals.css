@@ -290,6 +290,14 @@ textarea.modal-input.import-textarea {
   border-bottom: 1px solid rgba(128, 128, 128, 0.08);
   border-radius: var(--radius-control);
 }
+.modal-item.muted-row {
+  color: var(--muted);
+  cursor: default;
+}
+.modal-item.muted-row.selected {
+  background: transparent;
+  color: var(--muted) !important;
+}
 /* Deliberately driven only by the JS-tracked `.selected` state, not
  * `:hover` — mouseenter already updates the same selection index keyboard
  * navigation uses, so keeping both as independent highlight sources let

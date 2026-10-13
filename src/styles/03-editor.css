@@ -13,9 +13,9 @@
   right: 14px;
   z-index: 20;
   display: flex;
-  align-items: center;
+  flex-direction: column;
   gap: 4px;
-  padding: 4px 4px 4px 8px;
+  padding: 4px 6px;
   background: var(--surface-overlay);
   background: color-mix(in srgb, var(--surface-overlay) 88%, transparent);
   backdrop-filter: blur(20px) saturate(125%);
@@ -23,6 +23,50 @@
   border-radius: var(--radius-overlay);
   box-shadow: var(--shadow-flyout);
   font-size: var(--type-caption);
+}
+.find-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.find-toggle-spacer {
+  width: 22px;
+  flex-shrink: 0;
+}
+.find-toggle-btn .cn-icon {
+  transition: transform 0.12s ease;
+}
+.find-toggle-btn.rotated .cn-icon {
+  transform: rotate(90deg);
+}
+.find-opt-btn {
+  font-size: 11px;
+  font-family: var(--font-mono);
+  font-weight: 500;
+}
+.find-opt-btn[aria-pressed="true"],
+.find-opt-btn.active {
+  background: var(--accent);
+  color: var(--accent-fg);
+}
+.find-action-btn {
+  background: var(--surface-raised);
+  border: 1px solid var(--edge-soft);
+  border-radius: var(--radius-control);
+  padding: 2px 8px;
+  font-family: inherit;
+  font-size: 12px;
+  color: var(--text);
+  cursor: pointer;
+  white-space: nowrap;
+  height: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.find-action-btn:hover {
+  background: var(--surface-hover, var(--surface-active));
+  color: var(--text);
 }
 .find-input {
   width: 180px;

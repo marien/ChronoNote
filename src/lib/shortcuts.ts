@@ -193,6 +193,14 @@ export const SHORTCUTS: ShortcutDef[] = [
     combos: [{ mod: true, code: "KeyF" }],
   },
   {
+    id: "replaceInNote",
+    combos: [{ mod: true, code: "KeyH" }],
+  },
+  {
+    id: "goToSection",
+    combos: [{ mod: true, code: "KeyG" }],
+  },
+  {
     id: "crossTabSearch",
     combos: [{ mod: true, shift: true, code: "KeyF" }],
   },
@@ -278,6 +286,8 @@ export const SHORTCUT_LABEL_KEYS = {
   openActions: "shortcuts.openActions.label",
   openHistory: "shortcuts.openHistory.label",
   findInNote: "shortcuts.findInNote.label",
+  replaceInNote: "shortcuts.replaceInNote.label",
+  goToSection: "shortcuts.goToSection.label",
   crossTabSearch: "shortcuts.crossTabSearch.label",
   syncCalendar: "shortcuts.syncCalendar.label",
   openSettings: "shortcuts.openSettings.label",
@@ -418,6 +428,8 @@ export const DRAWER_ROWS: (string | [string, string])[] = [
   "openHistory",
   ["F6", "switchPane"],
   "findInNote",
+  "replaceInNote",
+  "goToSection",
   "crossTabSearch",
   "syncCalendar",
   "toggleZenMode",
