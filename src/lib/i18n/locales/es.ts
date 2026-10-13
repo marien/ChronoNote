@@ -49,6 +49,7 @@ export const es = {
     "Subraya las palabras mal escritas, con los idiomas configurados en Windows. Mayús+clic derecho en una palabra para ver sugerencias.",
     "settings.editor.spellLanguages.label": () => "Idiomas del corrector",
   "settings.editor.spellLanguages.hint": () => "Una palabra se marca solo si ninguno de los idiomas marcados la conoce.",
+  "settings.editor.spellLanguages.missing": () => "¿Falta un idioma? Añádelo en Windows en Configuración > Hora e idioma > Idioma y región; Windows instalará entonces su diccionario.",
   "settings.editor.fontSize.label": () => "Tamaño de fuente",
   "settings.editor.fontSize.ariaLabel": () => "Tamaño de fuente del editor",
   "settings.editor.lineSpacing.label": () => "Interlineado",

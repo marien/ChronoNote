@@ -56,6 +56,7 @@ export type TranslationParams = {
   "settings.editor.spellCheck.hintWeb": undefined;
   "settings.editor.spellLanguages.label": undefined;
   "settings.editor.spellLanguages.hint": undefined;
+  "settings.editor.spellLanguages.missing": undefined;
   "settings.editor.fontSize.label": undefined;
   "settings.editor.fontSize.ariaLabel": undefined;
   "settings.editor.lineSpacing.label": undefined;

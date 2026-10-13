@@ -50,6 +50,7 @@ export const pl = {
     "Podkreślaj błędnie zapisane słowa, w językach ustawionych w systemie Windows. Shift+prawy klik na słowie pokazuje podpowiedzi.",
     "settings.editor.spellLanguages.label": () => "Języki sprawdzania pisowni",
   "settings.editor.spellLanguages.hint": () => "Słowo jest zaznaczane tylko wtedy, gdy żaden z zaznaczonych języków go nie zna.",
+  "settings.editor.spellLanguages.missing": () => "Brakuje języka? Dodaj go w systemie Windows w Ustawienia > Czas i język > Język i region; Windows zainstaluje wtedy słownik.",
   "settings.editor.fontSize.label": () => "Rozmiar czcionki",
   "settings.editor.fontSize.ariaLabel": () => "Rozmiar czcionki edytora",
   "settings.editor.lineSpacing.label": () => "Interlinia",

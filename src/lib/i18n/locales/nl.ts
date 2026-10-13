@@ -51,6 +51,7 @@ export const nl = {
     "Onderstreep verkeerd gespelde woorden, met de talen die in Windows zijn ingesteld. Shift+rechtsklik op een woord voor suggesties.",
     "settings.editor.spellLanguages.label": () => "Talen voor spellingcontrole",
   "settings.editor.spellLanguages.hint": () => "Een woord wordt alleen gemarkeerd als geen van de aangevinkte talen het kent.",
+  "settings.editor.spellLanguages.missing": () => "Mist er een taal? Voeg die in Windows toe via Instellingen > Tijd en taal > Taal en regio; Windows installeert dan de woordenlijst.",
   "settings.editor.fontSize.label": () => "Lettergrootte",
   "settings.editor.fontSize.ariaLabel": () => "Lettergrootte editor",
   "settings.editor.lineSpacing.label": () => "Regelafstand",

@@ -543,6 +543,8 @@
                 {/each}
               </div>
               <div class="settings-hint">{$t("settings.editor.spellLanguages.hint")}</div>
+              <!-- Windows only lists languages whose spelling dictionary is installed; it installs one when the language is added. -->
+              <div class="settings-hint">{$t("settings.editor.spellLanguages.missing")}</div>
             </SettingRow>
           {/if}
           <SettingRow label={$t("settings.editor.fontSize.label")}>

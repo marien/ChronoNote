@@ -50,6 +50,7 @@ export const fr = {
     "Souligner les mots mal orthographiés, avec les langues définies dans Windows. Maj+clic droit sur un mot pour des suggestions.",
     "settings.editor.spellLanguages.label": () => "Langues du correcteur",
   "settings.editor.spellLanguages.hint": () => "Un mot n'est signalé que si aucune des langues cochées ne le connaît.",
+  "settings.editor.spellLanguages.missing": () => "Une langue manque ? Ajoutez-la dans Windows sous Paramètres > Heure et langue > Langue et région ; Windows installe alors son dictionnaire.",
   "settings.editor.fontSize.label": () => "Taille de police",
   "settings.editor.fontSize.ariaLabel": () => "Taille de police de l'éditeur",
   "settings.editor.lineSpacing.label": () => "Interligne",

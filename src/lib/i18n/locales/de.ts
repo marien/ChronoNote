@@ -53,6 +53,7 @@ export const de = {
     "Falsch geschriebene Wörter unterstreichen, mit den in Windows eingestellten Sprachen. Umschalt+Rechtsklick auf ein Wort zeigt Vorschläge.",
     "settings.editor.spellLanguages.label": () => "Sprachen für die Rechtschreibprüfung",
   "settings.editor.spellLanguages.hint": () => "Ein Wort wird nur markiert, wenn keine der ausgewählten Sprachen es kennt.",
+  "settings.editor.spellLanguages.missing": () => "Fehlt eine Sprache? Füge sie in Windows unter Einstellungen > Zeit und Sprache > Sprache und Region hinzu; Windows installiert dann das Wörterbuch.",
   "settings.editor.fontSize.label": () => "Schriftgröße",
   "settings.editor.fontSize.ariaLabel": () => "Schriftgröße des Editors",
   "settings.editor.lineSpacing.label": () => "Zeilenabstand",

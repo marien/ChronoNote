@@ -49,6 +49,7 @@ export const it = {
     "Sottolinea le parole scritte male, con le lingue impostate in Windows. Maiusc+clic destro su una parola per i suggerimenti.",
     "settings.editor.spellLanguages.label": () => "Lingue del controllo ortografico",
   "settings.editor.spellLanguages.hint": () => "Una parola viene segnata solo se nessuna delle lingue selezionate la conosce.",
+  "settings.editor.spellLanguages.missing": () => "Manca una lingua? Aggiungila in Windows in Impostazioni > Data/ora e lingua > Lingua e area geografica; Windows installerà il dizionario.",
   "settings.editor.fontSize.label": () => "Dimensione carattere",
   "settings.editor.fontSize.ariaLabel": () => "Dimensione carattere dell'editor",
   "settings.editor.lineSpacing.label": () => "Interlinea",
