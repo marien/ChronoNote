@@ -89,6 +89,19 @@ reopens to `#`/`o` respectively); hovering it first previews the result
 without committing it. The other action states are reached with
 `Ctrl/Cmd+1`-`4`, the other topic states with `Ctrl/Cmd+5`-`7`.
 
+**Combining symbols (§367):** a line reads state symbol first, then an optional
+list marker, then the text, then any follow-ups: `# - task`, `o 1. topic`,
+`# ! urgent`, `. budget => # send numbers => o raise again`. An agenda topic is
+always the first glyph of a line or the first one right after a `=> `; an action in
+the middle of a line needs a `=> ` before it. `! ` is emphasis from the `!` to the
+end of the line when it is the first non-blank character or directly after an
+action or topic symbol. `(topic)` is a tag right after an action or topic symbol.
+State shortcuts put the symbol in front of a list or emphasis line
+(`- item` + `Ctrl/Cmd+1` gives `# - item`), a line typed list-first (`- # task`) is
+rewritten state-first when the caret leaves it or when it is pasted, and Enter
+continues `# 1.`, `# -` and `=> o` lines. Names in parentheses (`(@dana, @lee)`)
+are ordinary `@name`s (§368).
+
 **Which symbol** when a line holds several (`# do X => # wait`): a click or tap
 changes exactly the glyph clicked. Keyboard shortcuts, palette commands and the
 phone buttons change the symbol nearest to the left of the caret, or, with none
