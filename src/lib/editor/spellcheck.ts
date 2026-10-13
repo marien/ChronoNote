@@ -411,6 +411,11 @@ class SpellCheckPluginValue {
 
     for (let i = 0; i < linesToCheck.length; i++) {
       const line = linesToCheck[i];
+      // Blank lines have nothing to check (and Windows rejects an empty string).
+      if (line.text.trim() === "") {
+        lineRangesMap.set(i, []);
+        continue;
+      }
       const cached = spellCache.get(line.text);
       if (cached !== undefined) {
         lineRangesMap.set(i, cached);

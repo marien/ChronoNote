@@ -20,7 +20,7 @@ use windows::Win32::Globalization::{
 #[cfg(windows)]
 use windows::Win32::System::Com::{
     CoCreateInstance, CoInitializeEx, CoTaskMemFree, CoUninitialize, CLSCTX_INPROC_SERVER,
-    COINIT_MULTITHREADED, IEnumString,
+    COINIT_MULTITHREADED,
 };
 
 /// Intersects error ranges across multiple languages.
@@ -383,45 +383,67 @@ fn check_lines(checkers: &[ActiveChecker], lines: Vec<String>) -> Result<Vec<Vec
     }
 
     let mut result = Vec::with_capacity(lines.len());
+    let mut logged = false;
     for line in lines {
-        let wide_line = HSTRING::from(line.as_str());
-        let mut per_lang_errors = Vec::with_capacity(checkers.len());
-
-        for active in checkers {
-            let enum_errors = unsafe { active.checker.Check(&wide_line) }
-                .map_err(|e| format!("Check failed for {}: {e}", active.tag))?;
-
-            let mut lang_errors = Vec::new();
-            let mut current: Option<ISpellingError> = None;
-            loop {
-                let hr = unsafe { enum_errors.Next(&mut current) };
-                if hr.is_err() {
-                    return Err(format!("Next spelling error failed: {hr}"));
-                }
-                if hr != windows::core::HRESULT(0) {
-                    break;
-                }
-                let Some(error) = current.take() else {
-                    break;
-                };
-                let action = unsafe { error.CorrectiveAction() }
-                    .map_err(|e| format!("CorrectiveAction failed: {e}"))?;
-                if action == CORRECTIVE_ACTION_NONE {
-                    continue;
-                }
-                let start = unsafe { error.StartIndex() }
-                    .map_err(|e| format!("StartIndex failed: {e}"))?;
-                let length = unsafe { error.Length() }
-                    .map_err(|e| format!("Length failed: {e}"))?;
-                lang_errors.push((start, start + length));
-            }
-            per_lang_errors.push(lang_errors);
+        // ISpellChecker::Check rejects an empty string with E_INVALIDARG; one such line used to fail the whole batch,
+        // so a note with an empty line on screen showed no marks at all (0.32.0-3, English-only Windows).
+        if line.trim().is_empty() {
+            result.push(Vec::new());
+            continue;
         }
-
-        result.push(intersect_ranges(&per_lang_errors));
+        match check_line(checkers, &line) {
+            Ok(ranges) => result.push(ranges),
+            Err(e) => {
+                // A failing line gets no marks; the rest of the batch is still checked.
+                if !logged {
+                    crate::applog::write("WARN", &format!("spell check of a line failed: {e}"));
+                    logged = true;
+                }
+                result.push(Vec::new());
+            }
+        }
     }
 
     Ok(result)
+}
+
+#[cfg(windows)]
+fn check_line(checkers: &[ActiveChecker], line: &str) -> Result<Vec<(u32, u32)>, String> {
+    let wide_line = HSTRING::from(line);
+    let mut per_lang_errors = Vec::with_capacity(checkers.len());
+
+    for active in checkers {
+        let enum_errors = unsafe { active.checker.Check(&wide_line) }
+            .map_err(|e| format!("Check failed for {}: {e}", active.tag))?;
+
+        let mut lang_errors = Vec::new();
+        let mut current: Option<ISpellingError> = None;
+        loop {
+            let hr = unsafe { enum_errors.Next(&mut current) };
+            if hr.is_err() {
+                return Err(format!("Next spelling error failed: {hr}"));
+            }
+            if hr != windows::core::HRESULT(0) {
+                break;
+            }
+            let Some(error) = current.take() else {
+                break;
+            };
+            let action = unsafe { error.CorrectiveAction() }
+                .map_err(|e| format!("CorrectiveAction failed: {e}"))?;
+            if action == CORRECTIVE_ACTION_NONE {
+                continue;
+            }
+            let start = unsafe { error.StartIndex() }
+                .map_err(|e| format!("StartIndex failed: {e}"))?;
+            let length = unsafe { error.Length() }
+                .map_err(|e| format!("Length failed: {e}"))?;
+            lang_errors.push((start, start + length));
+        }
+        per_lang_errors.push(lang_errors);
+    }
+
+    Ok(intersect_ranges(&per_lang_errors))
 }
 
 #[cfg(windows)]
@@ -815,6 +837,15 @@ mod tests {
             );
         } else {
             println!("Skipping smoke test: no spell checker available");
+        }
+
+        // An empty or blank line in the batch must not fail the whole batch (E_INVALIDARG from ISpellChecker::Check).
+        if !langs.is_empty() {
+            let batch = vec!["teh wrods".to_string(), String::new(), "   ".to_string(), "wrods".to_string()];
+            let res = tauri::async_runtime::block_on(spell_check_lines(batch)).expect("batch with empty lines failed");
+            assert_eq!(res.len(), 4);
+            assert!(res[1].is_empty() && res[2].is_empty(), "blank lines have no marks: {res:?}");
+            assert!(!res[0].is_empty() && !res[3].is_empty(), "the other lines are still checked: {res:?}");
         }
     }
 }
