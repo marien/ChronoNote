@@ -48,6 +48,8 @@ export const fr = {
     "Souligner les mots mal orthographiés, vérifiés avec vos langues Windows. Clic droit sur un mot marqué pour des suggestions.",
   "settings.editor.spellCheck.hintWeb": () =>
     "Souligner les mots mal orthographiés, avec les langues définies dans Windows. Maj+clic droit sur un mot pour des suggestions.",
+    "settings.editor.spellLanguages.label": () => "Langues du correcteur",
+  "settings.editor.spellLanguages.hint": () => "Un mot n'est signalé que si aucune des langues cochées ne le connaît.",
   "settings.editor.fontSize.label": () => "Taille de police",
   "settings.editor.fontSize.ariaLabel": () => "Taille de police de l'éditeur",
   "settings.editor.lineSpacing.label": () => "Interligne",
@@ -776,6 +778,7 @@ export const fr = {
   "toast.boot.failedToSave.language": () => "Échec de l'enregistrement de la préférence de langue",
   "toast.boot.failedToSave.wordWrap": () => "Échec de l'enregistrement du retour à la ligne",
   "toast.boot.failedToSave.spellCheck": () => "Échec de l'enregistrement du correcteur orthographique",
+  "toast.boot.failedToSave.spellLanguages": () => "Échec de l'enregistrement des langues du correcteur",
   "toast.boot.failedToSave.readingWidth": () => "Échec de l'enregistrement de la largeur de lecture",
   "toast.boot.failedToSave.updateCheck": () => "Échec de l'enregistrement de la vérification des mises à jour",
   "toast.boot.failedToSave.calendarSync": () => "Échec de l'enregistrement de la synchronisation calendrier",

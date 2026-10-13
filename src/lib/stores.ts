@@ -101,6 +101,9 @@ export const wordWrap = writable<boolean>(false);
  * `EditorPane` subscribes to it and reconfigures a CodeMirror compartment
  * live. Off by default. */
 export const spellCheck = writable<boolean>(false);
+/** Spell check languages override (L1). Mirrors AppConfig.spellLanguages.
+ * null = not chosen yet (use default). */
+export const spellLanguages = writable<string[] | null>(null);
 /** §99: cap the editor text column to a ~720px reading measure. Mirrors
  * `AppConfig.readableLineLength`; `EditorPane` reads it (with `wordWrap`)
  * to toggle a max-width wrapper live. On by default, but only visible

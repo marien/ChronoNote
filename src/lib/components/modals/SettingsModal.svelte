@@ -32,9 +32,11 @@
     trashItems,
     wordWrap,
     spellCheck,
+    spellLanguages,
   } from "../../controller";
 
   import * as api from "../../tauriApi";
+  import { computeEffectiveSpellLanguages, orderSpellLanguages } from "../../editor/spellcheck";
   import { closeOnOutsideClick } from "../../actions/closeOnOutsideClick";
   import Icon from "../../icons/Icon.svelte";
   import Segmented from "../Segmented.svelte";
@@ -124,7 +126,44 @@
   }
   const isDarkResolved = $derived($themeMode === "dark" || ($themeMode === "system" && prefersDark));
 
+  let availableSpellLangs = $state<string[]>([]);
+  let windowsSpellLangs = $state<string[]>([]);
+
+  async function loadSpellLanguages() {
+    if ($backendKind === "web") return;
+    try {
+      const [avail, win] = await Promise.all([
+        api.spellAvailableLanguages(),
+        api.spellWindowsLanguages(),
+      ]);
+      availableSpellLangs = avail;
+      windowsSpellLangs = win;
+    } catch (e) {
+      console.warn("Failed to load spell check languages", e);
+    }
+  }
+
+  const effectiveLanguages = $derived(
+    computeEffectiveSpellLanguages($spellLanguages, windowsSpellLangs, availableSpellLangs),
+  );
+
+  const orderedLanguages = $derived(
+    orderSpellLanguages(availableSpellLangs, effectiveLanguages, windowsSpellLangs, $locale),
+  );
+
+  function toggleSpellLanguage(tag: string, currentlyChecked: boolean) {
+    if (currentlyChecked) {
+      if (effectiveLanguages.length <= 1) return;
+      const next = effectiveLanguages.filter((t) => t.toLowerCase() !== tag.toLowerCase());
+      void controller.setSpellLanguages(next);
+    } else {
+      const next = [...effectiveLanguages.filter((t) => t.toLowerCase() !== tag.toLowerCase()), tag];
+      void controller.setSpellLanguages(next);
+    }
+  }
+
   onMount(async () => {
+    void loadSpellLanguages();
     if (page && !openedOnNotesFolder) {
       void tick().then(() => {
         document.querySelector<HTMLElement>('.settings-page [role="tab"][aria-selected="true"]')?.focus();
@@ -476,10 +515,36 @@
           <SettingToggle
             label={$t("settings.editor.spellCheck.label")}
             checked={$spellCheck}
-            onChange={(v) => void controller.setSpellCheck(v)}
+            onChange={(v) => {
+              void controller.setSpellCheck(v);
+              if (v && availableSpellLangs.length === 0) void loadSpellLanguages();
+            }}
           >
             {#snippet description()}{$backendKind === "web" ? $t("settings.editor.spellCheck.hintWeb") : $t("settings.editor.spellCheck.hint")}{/snippet}
           </SettingToggle>
+          {#if $spellCheck && $backendKind !== "web"}
+            <SettingRow label={$t("settings.editor.spellLanguages.label")} stack>
+              <div class="spell-languages-box" role="group" aria-label={$t("settings.editor.spellLanguages.label")}>
+                {#each orderedLanguages as lang (lang.tag)}
+                  <label
+                    class="spell-language-row"
+                    class:disabled={lang.checked && effectiveLanguages.length === 1}
+                  >
+                    <input
+                      type="checkbox"
+                      class="spell-language-checkbox"
+                      checked={lang.checked}
+                      disabled={lang.checked && effectiveLanguages.length === 1}
+                      onchange={() => toggleSpellLanguage(lang.tag, lang.checked)}
+                    />
+                    <span class="spell-language-name">{lang.name}</span>
+                    <span class="spell-language-tag">({lang.tag})</span>
+                  </label>
+                {/each}
+              </div>
+              <div class="settings-hint">{$t("settings.editor.spellLanguages.hint")}</div>
+            </SettingRow>
+          {/if}
           <SettingRow label={$t("settings.editor.fontSize.label")}>
             <div class="s-slider">
               <input
@@ -1266,5 +1331,58 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.spell-languages-box {
+  width: 100%;
+  background: var(--surface-sunken, var(--surface-canvas));
+  border: 1px solid var(--edge-soft);
+  border-radius: var(--radius-control);
+  max-height: 180px;
+  overflow-y: auto;
+  padding: 4px 8px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+}
+
+.spell-language-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 4px;
+  border-bottom: 1px solid var(--edge-soft);
+  font-size: 13px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.spell-language-row:last-child {
+  border-bottom: none;
+}
+
+.spell-language-row.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.spell-language-checkbox {
+  cursor: pointer;
+  accent-color: var(--glyph-open-color);
+}
+
+.spell-language-checkbox:disabled {
+  cursor: not-allowed;
+}
+
+.spell-language-name {
+  color: var(--text);
+  flex: 1;
+}
+
+.spell-language-tag {
+  color: var(--muted);
+  font-size: var(--type-caption);
+  font-family: var(--font-mono, monospace);
 }
 </style>

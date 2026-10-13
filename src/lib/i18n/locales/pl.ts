@@ -48,6 +48,8 @@ export const pl = {
     "Podkreślaj błędnie zapisane słowa, sprawdzane w językach systemu Windows. Kliknij prawym przyciskiem zaznaczone słowo, aby zobaczyć podpowiedzi.",
   "settings.editor.spellCheck.hintWeb": () =>
     "Podkreślaj błędnie zapisane słowa, w językach ustawionych w systemie Windows. Shift+prawy klik na słowie pokazuje podpowiedzi.",
+    "settings.editor.spellLanguages.label": () => "Języki sprawdzania pisowni",
+  "settings.editor.spellLanguages.hint": () => "Słowo jest zaznaczane tylko wtedy, gdy żaden z zaznaczonych języków go nie zna.",
   "settings.editor.fontSize.label": () => "Rozmiar czcionki",
   "settings.editor.fontSize.ariaLabel": () => "Rozmiar czcionki edytora",
   "settings.editor.lineSpacing.label": () => "Interlinia",
@@ -779,6 +781,7 @@ export const pl = {
   "toast.boot.failedToSave.language": () => "Nie udało się zapisać preferencji języka",
   "toast.boot.failedToSave.wordWrap": () => "Nie udało się zapisać preferencji zawijania wierszy",
   "toast.boot.failedToSave.spellCheck": () => "Nie udało się zapisać preferencji sprawdzania pisowni",
+  "toast.boot.failedToSave.spellLanguages": () => "Nie udało się zapisać preferencji języków sprawdzania pisowni",
   "toast.boot.failedToSave.readingWidth": () => "Nie udało się zapisać preferencji szerokości czytania",
   "toast.boot.failedToSave.updateCheck": () => "Nie udało się zapisać preferencji sprawdzania aktualizacji",
   "toast.boot.failedToSave.calendarSync": () => "Nie udało się zapisać preferencji synchronizacji kalendarza",

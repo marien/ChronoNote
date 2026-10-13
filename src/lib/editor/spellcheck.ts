@@ -143,6 +143,117 @@ export const spellCache = new SpellCache(2000);
 let spellLanguagesLoaded = false;
 let sessionLanguages: string[] = [];
 
+/** Computes the effective spell check language list.
+ * Stored list wins if set; otherwise DEFAULT: Windows languages plus English
+ * (en-US if available, else first available en-*), without duplicates. */
+export function computeEffectiveSpellLanguages(
+  stored: string[] | null | undefined,
+  windowsLanguages: string[],
+  availableLanguages: string[],
+): string[] {
+  if (stored !== null && stored !== undefined) {
+    return [...stored];
+  }
+
+  let englishTag: string | undefined;
+  if (availableLanguages.some((l) => l.toLowerCase() === "en-us")) {
+    englishTag = availableLanguages.find((l) => l.toLowerCase() === "en-us");
+  } else {
+    englishTag = availableLanguages.find((l) => l.toLowerCase().startsWith("en-"));
+  }
+
+  const result: string[] = [];
+  const seen = new Set<string>();
+
+  for (const tag of windowsLanguages) {
+    const key = tag.toLowerCase();
+    if (!seen.has(key)) {
+      seen.add(key);
+      result.push(tag);
+    }
+  }
+
+  if (englishTag && !seen.has(englishTag.toLowerCase())) {
+    seen.add(englishTag.toLowerCase());
+    result.push(englishTag);
+  }
+
+  return result;
+}
+
+export function getLanguageDisplayName(tag: string, uiLocale: string): string {
+  try {
+    const dn = new Intl.DisplayNames([uiLocale], { type: "language" });
+    return dn.of(tag) || tag;
+  } catch {
+    return tag;
+  }
+}
+
+export interface OrderedSpellLanguage {
+  tag: string;
+  name: string;
+  checked: boolean;
+}
+
+/** Orders available languages: effective (ticked) first in their order,
+ * then Windows languages, then the rest alphabetically by name. */
+export function orderSpellLanguages(
+  available: string[],
+  effective: string[],
+  windows: string[],
+  uiLocale: string,
+): OrderedSpellLanguage[] {
+  const result: OrderedSpellLanguage[] = [];
+  const seen = new Set<string>();
+
+  // 1. Effective (ticked) languages in their order
+  for (const tag of effective) {
+    const key = tag.toLowerCase();
+    if (!seen.has(key)) {
+      seen.add(key);
+      result.push({
+        tag,
+        name: getLanguageDisplayName(tag, uiLocale),
+        checked: true,
+      });
+    }
+  }
+
+  // 2. Windows languages that are available and not yet included
+  for (const tag of windows) {
+    const key = tag.toLowerCase();
+    if (!seen.has(key) && available.some((a) => a.toLowerCase() === key)) {
+      seen.add(key);
+      const availTag = available.find((a) => a.toLowerCase() === key) ?? tag;
+      result.push({
+        tag: availTag,
+        name: getLanguageDisplayName(availTag, uiLocale),
+        checked: false,
+      });
+    }
+  }
+
+  // 3. The rest of available languages, sorted alphabetically by name
+  const rest: OrderedSpellLanguage[] = [];
+  for (const tag of available) {
+    const key = tag.toLowerCase();
+    if (!seen.has(key)) {
+      seen.add(key);
+      rest.push({
+        tag,
+        name: getLanguageDisplayName(tag, uiLocale),
+        checked: false,
+      });
+    }
+  }
+
+  rest.sort((a, b) => a.name.localeCompare(b.name, uiLocale));
+  result.push(...rest);
+
+  return result;
+}
+
 export async function initSpellLanguages(): Promise<string[]> {
   if (!spellLanguagesLoaded) {
     try {
@@ -157,6 +268,29 @@ export async function initSpellLanguages(): Promise<string[]> {
 
 export function hasSpellLanguages(): boolean {
   return sessionLanguages.length > 0;
+}
+
+const activeSpellPlugins = new Set<SpellCheckPluginValue>();
+
+/** Re-reads spellLanguages() from backend, clears line cache, and re-checks visible lines. */
+export async function languagesChanged(view?: EditorView): Promise<void> {
+  try {
+    sessionLanguages = await spellLanguages();
+  } catch {
+    sessionLanguages = [];
+  }
+  spellLanguagesLoaded = true;
+  spellCache.clear();
+  if (view) {
+    const plugin = view.plugin(spellViewPlugin);
+    if (plugin) {
+      void plugin.runCheck(true);
+    }
+  } else {
+    for (const plugin of activeSpellPlugins) {
+      void plugin.runCheck(true);
+    }
+  }
 }
 
 const setSpellDecorations = StateEffect.define<{
@@ -199,6 +333,7 @@ class SpellCheckPluginValue {
 
   constructor(view: EditorView) {
     this.view = view;
+    activeSpellPlugins.add(this);
     this.scheduleCheck(true);
   }
 
@@ -345,6 +480,7 @@ class SpellCheckPluginValue {
 
   destroy() {
     this.isDestroyed = true;
+    activeSpellPlugins.delete(this);
     if (this.timer) {
       clearTimeout(this.timer);
       this.timer = null;

@@ -75,6 +75,7 @@ interface StoredConfig {
   languageMode: LanguageMode;
   wordWrap: boolean;
   spellCheck?: boolean;
+  spellLanguages?: string[] | null;
   readableLineLength: boolean;
   autoCheckUpdates: boolean;
   lastSeenVersion: string | null;
@@ -264,6 +265,7 @@ export class WebBackend {
         languageMode: "system",
         wordWrap: false,
         spellCheck: false,
+        spellLanguages: null,
         readableLineLength: false,
         autoCheckUpdates: true,
         lastSeenVersion: null,
@@ -304,6 +306,7 @@ export class WebBackend {
       languageMode: cfg.languageMode,
       wordWrap: cfg.wordWrap,
       spellCheck: cfg.spellCheck ?? false,
+      spellLanguages: cfg.spellLanguages ?? null,
       readableLineLength: cfg.readableLineLength,
       recentNotesDirs: [],
       autoCheckUpdates: cfg.autoCheckUpdates,
@@ -455,6 +458,7 @@ export class WebBackend {
       if (patch.startupTabMode !== undefined) cfg.startupTabMode = patch.startupTabMode;
       if (patch.wordWrap !== undefined) cfg.wordWrap = patch.wordWrap;
       if (patch.spellCheck !== undefined) cfg.spellCheck = patch.spellCheck;
+      if (patch.spellLanguages !== undefined) cfg.spellLanguages = patch.spellLanguages;
       if (patch.readableLineLength !== undefined) cfg.readableLineLength = patch.readableLineLength;
       if (patch.autoCheckUpdates !== undefined) cfg.autoCheckUpdates = patch.autoCheckUpdates;
       if (patch.calendarSyncEnabled !== undefined) cfg.calendarSyncEnabled = patch.calendarSyncEnabled;
@@ -889,6 +893,9 @@ export class WebBackend {
     },
     open_log_folder: async () => {},
     write_export_file: async () => {},
+    spell_available_languages: async () => [],
+    spell_windows_languages: async () => [],
+    spell_set_languages: async ({ tags }: { tags: string[] }) => tags,
     spell_languages: async () => [],
     spell_check_lines: async ({ lines }) => lines.map(() => []),
     spell_suggest: async () => [],

@@ -62,6 +62,7 @@ export interface MockSeed {
   languageMode?: LanguageMode;
   wordWrap?: boolean;
   spellCheck?: boolean;
+  spellLanguages?: string[] | null;
   readableLineLength?: boolean;
   autoCheckUpdates?: boolean;
   earlyUpdates?: boolean;
@@ -181,6 +182,7 @@ const MUTATING_COMMANDS = new Set([
   "import_notes_bundle",
   "spell_add",
   "spell_ignore",
+  "spell_set_languages",
 ]);
 
 /** SHA-256 hex — the exact digest `storage.rs`'s `sha2` produces and
@@ -309,6 +311,8 @@ export class MockBackend {
   languageMode: LanguageMode;
   wordWrap: boolean;
   spellCheck: boolean;
+  spellLanguages: string[] | null = null;
+  mockSpellLanguages: string[] = ["nl-NL"];
   readableLineLength: boolean;
   autoCheckUpdates: boolean;
   earlyUpdates: boolean = false;
@@ -403,6 +407,8 @@ export class MockBackend {
     this.languageMode = seed.languageMode ?? "system";
     this.wordWrap = seed.wordWrap ?? false;
     this.spellCheck = seed.spellCheck ?? false;
+    this.spellLanguages = seed.spellLanguages ?? null;
+    this.mockSpellLanguages = this.spellLanguages ? [...this.spellLanguages] : ["nl-NL"];
     this.readableLineLength = seed.readableLineLength ?? false;
     this.autoCheckUpdates = seed.autoCheckUpdates ?? true;
     this.earlyUpdates = seed.earlyUpdates ?? false;
@@ -467,6 +473,8 @@ export class MockBackend {
       languageMode: this.languageMode,
       wordWrap: this.wordWrap,
       spellCheck: this.spellCheck,
+      spellLanguages: this.spellLanguages,
+      mockSpellLanguages: this.mockSpellLanguages,
       readableLineLength: this.readableLineLength,
       autoCheckUpdates: this.autoCheckUpdates,
       earlyUpdates: this.earlyUpdates,
@@ -523,6 +531,8 @@ export class MockBackend {
         languageMode?: LanguageMode;
         wordWrap?: boolean;
         spellCheck?: boolean;
+        spellLanguages?: string[] | null;
+        mockSpellLanguages?: string[];
         readableLineLength?: boolean;
         autoCheckUpdates?: boolean;
         earlyUpdates?: boolean;
@@ -558,6 +568,8 @@ export class MockBackend {
       b.languageMode = s.languageMode ?? "system";
       b.wordWrap = s.wordWrap ?? false;
       b.spellCheck = s.spellCheck ?? false;
+      b.spellLanguages = s.spellLanguages ?? null;
+      b.mockSpellLanguages = s.mockSpellLanguages ?? (b.spellLanguages ? [...b.spellLanguages] : ["nl-NL"]);
       b.autoCheckUpdates = s.autoCheckUpdates ?? true;
       b.earlyUpdates = s.earlyUpdates ?? false;
       b.lastSeenVersion = s.lastSeenVersion ?? null;
@@ -613,6 +625,7 @@ export class MockBackend {
       languageMode: this.languageMode,
       wordWrap: this.wordWrap,
       spellCheck: this.spellCheck,
+      spellLanguages: this.spellLanguages,
       readableLineLength: this.readableLineLength,
       recentNotesDirs: [...this.recentNotesDirs],
       autoCheckUpdates: this.autoCheckUpdates,
@@ -821,6 +834,7 @@ export class MockBackend {
       if (patch.startupTabMode !== undefined) this.startupTabMode = patch.startupTabMode;
       if (patch.wordWrap !== undefined) this.wordWrap = patch.wordWrap;
       if (patch.spellCheck !== undefined) this.spellCheck = patch.spellCheck;
+      if (patch.spellLanguages !== undefined) this.spellLanguages = patch.spellLanguages;
       if (patch.readableLineLength !== undefined) this.readableLineLength = patch.readableLineLength;
       if (patch.autoCheckUpdates !== undefined) this.autoCheckUpdates = patch.autoCheckUpdates;
       if (patch.earlyUpdates !== undefined) this.earlyUpdates = patch.earlyUpdates;
@@ -1174,7 +1188,13 @@ export class MockBackend {
         throw new Error("Export file path must end with .md or .html");
       }
     },
-    spell_languages: () => ["en-US"],
+    spell_available_languages: () => ["de-DE", "en-GB", "en-US", "fr-FR", "nl-NL"],
+    spell_windows_languages: () => ["nl-NL"],
+    spell_set_languages: ({ tags }) => {
+      this.mockSpellLanguages = [...tags];
+      return this.mockSpellLanguages;
+    },
+    spell_languages: () => this.mockSpellLanguages,
     spell_check_lines: ({ lines }) => {
       return lines.map((line) => {
         if (this.spellMisspelled.size === 0) return [];

@@ -196,6 +196,9 @@ export interface TauriCommands {
     returns: void;
   };
   spell_languages: { args: NoArgs; returns: string[] };
+  spell_available_languages: { args: NoArgs; returns: string[] };
+  spell_windows_languages: { args: NoArgs; returns: string[] };
+  spell_set_languages: { args: { tags: string[] }; returns: string[] };
   spell_check_lines: { args: { lines: string[] }; returns: [number, number][][] };
   spell_suggest: { args: { word: string }; returns: string[] };
   spell_add: { args: { word: string }; returns: null };

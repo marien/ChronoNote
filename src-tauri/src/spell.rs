@@ -20,7 +20,7 @@ use windows::Win32::Globalization::{
 #[cfg(windows)]
 use windows::Win32::System::Com::{
     CoCreateInstance, CoInitializeEx, CoTaskMemFree, CoUninitialize, CLSCTX_INPROC_SERVER,
-    COINIT_MULTITHREADED,
+    COINIT_MULTITHREADED, IEnumString,
 };
 
 /// Intersects error ranges across multiple languages.
@@ -54,6 +54,18 @@ pub fn deduplicate_suggestions(suggestions: Vec<String>, limit: usize) -> Vec<St
     result
 }
 
+/// Deduplicates language tags preserving first-seen order (case-insensitive deduplication).
+pub fn deduplicate_language_tags(tags: Vec<String>) -> Vec<String> {
+    let mut result = Vec::new();
+    let mut seen = std::collections::HashSet::new();
+    for tag in tags {
+        if seen.insert(tag.to_lowercase()) {
+            result.push(tag);
+        }
+    }
+    result
+}
+
 // ---------------------------------------------------------------------------
 // Windows Implementation
 // ---------------------------------------------------------------------------
@@ -70,6 +82,16 @@ type LineRanges = Vec<Vec<(u32, u32)>>;
 #[cfg(windows)]
 enum SpellRequest {
     Languages {
+        reply: mpsc::Sender<Result<Vec<String>, String>>,
+    },
+    AvailableLanguages {
+        reply: mpsc::Sender<Result<Vec<String>, String>>,
+    },
+    WindowsLanguages {
+        reply: mpsc::Sender<Result<Vec<String>, String>>,
+    },
+    SetLanguages {
+        tags: Vec<String>,
         reply: mpsc::Sender<Result<Vec<String>, String>>,
     },
     CheckLines {
@@ -122,7 +144,10 @@ fn run_spell_thread(rx: mpsc::Receiver<SpellRequest>) {
             crate::applog::write("ERROR", &format!("CoInitializeEx failed: {hr:?}"));
             while let Ok(req) = rx.recv() {
                 match req {
-                    SpellRequest::Languages { reply } => {
+                    SpellRequest::Languages { reply }
+                    | SpellRequest::AvailableLanguages { reply }
+                    | SpellRequest::WindowsLanguages { reply }
+                    | SpellRequest::SetLanguages { reply, .. } => {
                         let _ = reply.send(Ok(Vec::new()));
                     }
                     SpellRequest::CheckLines { lines, reply } => {
@@ -143,13 +168,42 @@ fn run_spell_thread(rx: mpsc::Receiver<SpellRequest>) {
         }
     }
 
-    let checkers = init_checkers();
+    let factory: Option<ISpellCheckerFactory> = match unsafe {
+        CoCreateInstance(&SpellCheckerFactory, None, CLSCTX_INPROC_SERVER)
+    } {
+        Ok(f) => Some(f),
+        Err(e) => {
+            crate::applog::write("WARN", &format!("CoCreateInstance SpellCheckerFactory failed: {e}"));
+            None
+        }
+    };
+
+    let mut checkers = if let Some(ref f) = factory {
+        create_checkers_from_tags(f, &get_user_languages())
+    } else {
+        Vec::new()
+    };
 
     while let Ok(req) = rx.recv() {
         match req {
             SpellRequest::Languages { reply } => {
                 let tags = checkers.iter().map(|c| c.tag.clone()).collect();
                 let _ = reply.send(Ok(tags));
+            }
+            SpellRequest::AvailableLanguages { reply } => {
+                let tags = factory.as_ref().map(get_available_languages).unwrap_or_default();
+                let _ = reply.send(Ok(tags));
+            }
+            SpellRequest::WindowsLanguages { reply } => {
+                let tags = factory.as_ref().map(get_supported_windows_languages).unwrap_or_default();
+                let _ = reply.send(Ok(tags));
+            }
+            SpellRequest::SetLanguages { tags, reply } => {
+                if let Some(ref f) = factory {
+                    checkers = create_checkers_from_tags(f, &tags);
+                }
+                let active_tags = checkers.iter().map(|c| c.tag.clone()).collect();
+                let _ = reply.send(Ok(active_tags));
             }
             SpellRequest::CheckLines { lines, reply } => {
                 let res = check_lines(&checkers, lines);
@@ -239,28 +293,68 @@ fn get_user_languages() -> Vec<String> {
 }
 
 #[cfg(windows)]
-fn init_checkers() -> Vec<ActiveChecker> {
-    let factory: ISpellCheckerFactory = match unsafe {
-        CoCreateInstance(&SpellCheckerFactory, None, CLSCTX_INPROC_SERVER)
-    } {
-        Ok(f) => f,
+fn read_enum_strings(enum_strings: &windows::Win32::System::Com::IEnumString) -> Vec<String> {
+    let mut strings = Vec::new();
+    let mut pwstr = [PWSTR::null()];
+    loop {
+        pwstr[0] = PWSTR::null();
+        let mut fetched: u32 = 0;
+        let hr = unsafe { enum_strings.Next(&mut pwstr, Some(&mut fetched)) };
+        if hr.is_err() || hr != windows::core::HRESULT(0) || fetched == 0 {
+            break;
+        }
+        let ptr = pwstr[0];
+        if !ptr.is_null() {
+            if let Ok(s) = unsafe { ptr.to_string() } {
+                strings.push(s);
+            }
+            unsafe {
+                CoTaskMemFree(Some(ptr.as_ptr() as *const std::ffi::c_void));
+            }
+        }
+    }
+    strings
+}
+
+#[cfg(windows)]
+fn get_available_languages(factory: &ISpellCheckerFactory) -> Vec<String> {
+    match unsafe { factory.SupportedLanguages() } {
+        Ok(enum_strings) => {
+            let mut langs = read_enum_strings(&enum_strings);
+            langs.sort();
+            langs
+        }
         Err(e) => {
-            crate::applog::write("WARN", &format!("CoCreateInstance SpellCheckerFactory failed: {e}"));
-            return Vec::new();
+            crate::applog::write("WARN", &format!("SupportedLanguages failed: {e}"));
+            Vec::new()
         }
-    };
+    }
+}
 
+#[cfg(windows)]
+fn get_supported_windows_languages(factory: &ISpellCheckerFactory) -> Vec<String> {
     let user_langs = get_user_languages();
-    let mut checkers = Vec::new();
-    let mut seen = std::collections::HashSet::new();
-
-    for tag in user_langs {
-        if !seen.insert(tag.clone()) {
-            continue;
-        }
+    let deduped = deduplicate_language_tags(user_langs);
+    let mut supported = Vec::new();
+    for tag in deduped {
         let wide_tag = HSTRING::from(tag.as_str());
-        let supported = unsafe { factory.IsSupported(&wide_tag) };
-        match supported {
+        match unsafe { factory.IsSupported(&wide_tag) } {
+            Ok(is_sup) if is_sup.as_bool() => {
+                supported.push(tag);
+            }
+            _ => {}
+        }
+    }
+    supported
+}
+
+#[cfg(windows)]
+fn create_checkers_from_tags(factory: &ISpellCheckerFactory, tags: &[String]) -> Vec<ActiveChecker> {
+    let deduped = deduplicate_language_tags(tags.to_vec());
+    let mut checkers = Vec::new();
+    for tag in deduped {
+        let wide_tag = HSTRING::from(tag.as_str());
+        match unsafe { factory.IsSupported(&wide_tag) } {
             Ok(is_sup) if is_sup.as_bool() => {
                 match unsafe { factory.CreateSpellChecker(&wide_tag) } {
                     Ok(checker) => {
@@ -279,7 +373,6 @@ fn init_checkers() -> Vec<ActiveChecker> {
             }
         }
     }
-
     checkers
 }
 
@@ -421,6 +514,57 @@ pub async fn spell_languages() -> Result<Vec<String>, String> {
 
 #[cfg(windows)]
 #[tauri::command]
+pub async fn spell_available_languages() -> Result<Vec<String>, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        let Some(sender) = get_sender() else {
+            return Ok(Vec::new());
+        };
+        let (reply, rx) = mpsc::channel();
+        if sender.send(SpellRequest::AvailableLanguages { reply }).is_err() {
+            return Ok(Vec::new());
+        }
+        rx.recv().unwrap_or_else(|_| Ok(Vec::new()))
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
+#[cfg(windows)]
+#[tauri::command]
+pub async fn spell_windows_languages() -> Result<Vec<String>, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        let Some(sender) = get_sender() else {
+            return Ok(Vec::new());
+        };
+        let (reply, rx) = mpsc::channel();
+        if sender.send(SpellRequest::WindowsLanguages { reply }).is_err() {
+            return Ok(Vec::new());
+        }
+        rx.recv().unwrap_or_else(|_| Ok(Vec::new()))
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
+#[cfg(windows)]
+#[tauri::command]
+pub async fn spell_set_languages(tags: Vec<String>) -> Result<Vec<String>, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        let Some(sender) = get_sender() else {
+            return Ok(Vec::new());
+        };
+        let (reply, rx) = mpsc::channel();
+        if sender.send(SpellRequest::SetLanguages { tags, reply }).is_err() {
+            return Ok(Vec::new());
+        }
+        rx.recv().unwrap_or_else(|_| Ok(Vec::new()))
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
+#[cfg(windows)]
+#[tauri::command]
 pub async fn spell_check_lines(lines: Vec<String>) -> Result<Vec<Vec<(u32, u32)>>, String> {
     tauri::async_runtime::spawn_blocking(move || {
         let Some(sender) = get_sender() else {
@@ -495,6 +639,24 @@ pub async fn spell_ignore(word: String) -> Result<(), String> {
 #[cfg(not(windows))]
 #[tauri::command]
 pub async fn spell_languages() -> Result<Vec<String>, String> {
+    Ok(Vec::new())
+}
+
+#[cfg(not(windows))]
+#[tauri::command]
+pub async fn spell_available_languages() -> Result<Vec<String>, String> {
+    Ok(Vec::new())
+}
+
+#[cfg(not(windows))]
+#[tauri::command]
+pub async fn spell_windows_languages() -> Result<Vec<String>, String> {
+    Ok(Vec::new())
+}
+
+#[cfg(not(windows))]
+#[tauri::command]
+pub async fn spell_set_languages(_tags: Vec<String>) -> Result<Vec<String>, String> {
     Ok(Vec::new())
 }
 
@@ -593,12 +755,44 @@ mod tests {
     }
 
     #[test]
+    fn test_deduplicate_language_tags() {
+        let input = vec![
+            "nl-NL".to_string(),
+            "en-US".to_string(),
+            "nl-NL".to_string(),
+            "de-DE".to_string(),
+            "en-us".to_string(),
+        ];
+        let result = deduplicate_language_tags(input);
+        assert_eq!(result, vec!["nl-NL".to_string(), "en-US".to_string(), "de-DE".to_string()]);
+    }
+
+    #[test]
     #[ignore]
     #[cfg(windows)]
     fn test_smoke_spell_check_teh_wrods() {
+        let avail = tauri::async_runtime::block_on(spell_available_languages()).expect("spell_available_languages failed");
+        println!("Available spell languages: {:?}", avail);
+
         let langs = tauri::async_runtime::block_on(spell_languages()).expect("spell_languages failed");
-        println!("Available spell languages: {:?}", langs);
-        if langs.iter().any(|l| l.to_lowercase().starts_with("en")) {
+        println!("Active spell languages: {:?}", langs);
+
+        let has_nl = avail.iter().any(|l| l.eq_ignore_ascii_case("nl-nl"));
+        let has_en = avail.iter().any(|l| l.eq_ignore_ascii_case("en-us"));
+        if has_nl && has_en {
+            let active = tauri::async_runtime::block_on(spell_set_languages(vec!["nl-NL".to_string(), "en-US".to_string()]))
+                .expect("spell_set_languages failed");
+            println!("Active spell languages after setting nl-NL and en-US: {:?}", active);
+            let res = tauri::async_runtime::block_on(spell_check_lines(vec!["the wrods".to_string()]))
+                .expect("spell_check_lines failed");
+            assert_eq!(res.len(), 1);
+            assert_eq!(
+                res[0],
+                vec![(4, 9)],
+                "Expected only 'wrods' to be flagged for 'the wrods', got {:?}",
+                res[0]
+            );
+        } else if langs.iter().any(|l| l.to_lowercase().starts_with("en")) {
             let res = tauri::async_runtime::block_on(spell_check_lines(vec!["teh wrods".to_string()]))
                 .expect("spell_check_lines failed");
             assert_eq!(res.len(), 1);

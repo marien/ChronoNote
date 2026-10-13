@@ -49,6 +49,8 @@ export const en = {
     "Underline misspelled words, checked against your Windows languages. Right-click a marked word for suggestions.",
   "settings.editor.spellCheck.hintWeb": () =>
     "Underline misspelled words, using the languages set in Windows. Shift+right-click a word for suggestions.",
+    "settings.editor.spellLanguages.label": () => "Spell check languages",
+  "settings.editor.spellLanguages.hint": () => "A word is marked only when none of the ticked languages knows it.",
   "settings.editor.fontSize.label": () => "Font size",
   "settings.editor.fontSize.ariaLabel": () => "Editor font size",
   "settings.editor.lineSpacing.label": () => "Line spacing",
@@ -753,6 +755,7 @@ export const en = {
   "toast.boot.failedToSave.language": () => "Failed to save language preference",
   "toast.boot.failedToSave.wordWrap": () => "Failed to save word-wrap preference",
   "toast.boot.failedToSave.spellCheck": () => "Failed to save spell-check preference",
+  "toast.boot.failedToSave.spellLanguages": () => "Failed to save spell-check languages preference",
   "toast.boot.failedToSave.readingWidth": () => "Failed to save reading-width preference",
   "toast.boot.failedToSave.updateCheck": () => "Failed to save update-check preference",
   "toast.boot.failedToSave.calendarSync": () => "Failed to save calendar-sync preference",

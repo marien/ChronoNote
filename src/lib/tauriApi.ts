@@ -62,6 +62,10 @@ export function setSpellCheck(enabled: boolean): Promise<AppConfig> {
   return updateConfig({ spellCheck: enabled });
 }
 
+export function setSpellLanguagesConfig(languages: string[] | null): Promise<AppConfig> {
+  return updateConfig({ spellLanguages: languages ?? undefined });
+}
+
 export function setReadableLineLength(enabled: boolean): Promise<AppConfig> {
   return updateConfig({ readableLineLength: enabled });
 }
@@ -377,6 +381,18 @@ export function writeExportFile(path: string, contents: string): Promise<void> {
 
 export function spellLanguages(): Promise<string[]> {
   return invoke("spell_languages", {});
+}
+
+export function spellAvailableLanguages(): Promise<string[]> {
+  return invoke("spell_available_languages", {});
+}
+
+export function spellWindowsLanguages(): Promise<string[]> {
+  return invoke("spell_windows_languages", {});
+}
+
+export function spellSetLanguages(tags: string[]): Promise<string[]> {
+  return invoke("spell_set_languages", { tags });
 }
 
 export function spellCheckLines(lines: string[]): Promise<[number, number][][]> {

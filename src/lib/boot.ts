@@ -56,7 +56,9 @@ import {
   unsavedScratchpadNames,
   wordWrap,
   spellCheck,
+  spellLanguages,
 } from "./stores";
+import { computeEffectiveSpellLanguages, languagesChanged } from "./editor/spellcheck";
 import {
   flushAllPendingSaves,
   recomputeSaveState,
@@ -547,6 +549,12 @@ export async function initApp() {
   readableLineLength.set(cfg.readableLineLength);
   wordWrap.set(cfg.wordWrap || cfg.readableLineLength);
   spellCheck.set(cfg.spellCheck ?? false);
+  spellLanguages.set(cfg.spellLanguages ?? null);
+  if (get(backendKind) !== "web") {
+    spellLanguages.subscribe(() => {
+      void syncSpellLanguages();
+    });
+  }
   autoCheckUpdates.set(cfg.autoCheckUpdates);
   earlyUpdates.set(cfg.earlyUpdates ?? false);
   calendarSyncEnabled.set(cfg.calendarSyncEnabled);
@@ -841,6 +849,36 @@ export async function setSpellCheck(enabled: boolean) {
     await api.setSpellCheck(enabled);
   } catch {
     showToast(get(t)("toast.boot.failedToSave.spellCheck", undefined));
+  }
+}
+
+let isSyncingSpellLanguages = false;
+export async function syncSpellLanguages(): Promise<void> {
+  if (get(backendKind) === "web") return;
+  if (isSyncingSpellLanguages) return;
+  isSyncingSpellLanguages = true;
+  try {
+    const [avail, win] = await Promise.all([
+      api.spellAvailableLanguages(),
+      api.spellWindowsLanguages(),
+    ]);
+    const stored = get(spellLanguages);
+    const effective = computeEffectiveSpellLanguages(stored, win, avail);
+    await api.spellSetLanguages(effective);
+    await languagesChanged();
+  } catch (err) {
+    console.error("Failed to sync spell languages", err);
+  } finally {
+    isSyncingSpellLanguages = false;
+  }
+}
+
+export async function setSpellLanguages(languages: string[] | null) {
+  spellLanguages.set(languages);
+  try {
+    await api.setSpellLanguagesConfig(languages);
+  } catch {
+    showToast(get(t)("toast.boot.failedToSave.spellLanguages", undefined));
   }
 }
 

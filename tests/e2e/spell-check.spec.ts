@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { seedApp, editor, setEditorText } from "./helpers";
+import { seedApp, editor, setEditorText, readMock } from "./helpers";
 
 test.describe("spell check (proposal D2)", () => {
   test("off by default: no marks and .cm-content has spellcheck='false' on desktop", async ({ page }) => {
@@ -86,5 +86,85 @@ test.describe("spell check (proposal D2)", () => {
     await expect(menu).toHaveCount(0);
 
     await expect(page.locator(".cm-misspelled")).toHaveCount(0);
+  });
+
+  test("with spell check on (mock), Settings shows languages list with Dutch and English ticked by default", async ({ page }) => {
+    await seedApp(page, { seed: { spellCheck: true } });
+    await editor(page).click();
+    await page.keyboard.press("ControlOrMeta+Comma");
+
+    const langBox = page.locator(".spell-languages-box");
+    await expect(langBox).toBeVisible();
+
+    const nlCheckbox = langBox.locator(".spell-language-row", { hasText: "(nl-NL)" }).locator("input[type='checkbox']");
+    const enCheckbox = langBox.locator(".spell-language-row", { hasText: "(en-US)" }).locator("input[type='checkbox']");
+
+    await expect(nlCheckbox).toBeChecked();
+    await expect(enCheckbox).toBeChecked();
+  });
+
+  test("unticking English saves to config and survives a reload", async ({ page }) => {
+    await seedApp(page, { seed: { spellCheck: true } });
+    await editor(page).click();
+    await page.keyboard.press("ControlOrMeta+Comma");
+
+    const langBox = page.locator(".spell-languages-box");
+    await expect(langBox).toBeVisible();
+
+    const enRow = langBox.locator(".spell-language-row", { hasText: "(en-US)" });
+    const enCheckbox = enRow.locator("input[type='checkbox']");
+    await expect(enCheckbox).toBeChecked();
+
+    // Untick English
+    await enCheckbox.click();
+    await expect(enCheckbox).not.toBeChecked();
+
+    // Check mock backend config
+    const spellLangs = await readMock(page, () => window.__CHRONO_MOCK__!.spellLanguages);
+    expect(spellLangs).toEqual(["nl-NL"]);
+
+    // Reload and reopen settings
+    await page.reload();
+    await expect(page.locator("#top-bar")).toBeVisible();
+    await editor(page).click();
+    await page.keyboard.press("ControlOrMeta+Comma");
+
+    const reloadedBox = page.locator(".spell-languages-box");
+    await expect(reloadedBox).toBeVisible();
+    const reloadedEn = reloadedBox.locator(".spell-language-row", { hasText: "(en-US)" }).locator("input[type='checkbox']");
+    const reloadedNl = reloadedBox.locator(".spell-language-row", { hasText: "(nl-NL)" }).locator("input[type='checkbox']");
+    await expect(reloadedEn).not.toBeChecked();
+    await expect(reloadedNl).toBeChecked();
+  });
+
+  test("last ticked language's checkbox is disabled", async ({ page }) => {
+    await seedApp(page, { seed: { spellCheck: true, spellLanguages: ["nl-NL"] } });
+    await editor(page).click();
+    await page.keyboard.press("ControlOrMeta+Comma");
+
+    const langBox = page.locator(".spell-languages-box");
+    await expect(langBox).toBeVisible();
+
+    const nlCheckbox = langBox.locator(".spell-language-row", { hasText: "(nl-NL)" }).locator("input[type='checkbox']");
+    await expect(nlCheckbox).toBeChecked();
+    await expect(nlCheckbox).toBeDisabled();
+  });
+
+  test("with spell check off, languages list is hidden", async ({ page }) => {
+    await seedApp(page, { seed: { spellCheck: false } });
+    await editor(page).click();
+    await page.keyboard.press("ControlOrMeta+Comma");
+
+    const langBox = page.locator(".spell-languages-box");
+    await expect(langBox).toHaveCount(0);
+  });
+
+  test("in web backend, no languages list is shown even when spell check is on", async ({ page }) => {
+    await seedApp(page, { seed: { backendKind: "web", spellCheck: true } });
+    await editor(page).click();
+    await page.keyboard.press("ControlOrMeta+Comma");
+
+    const langBox = page.locator(".spell-languages-box");
+    await expect(langBox).toHaveCount(0);
   });
 });

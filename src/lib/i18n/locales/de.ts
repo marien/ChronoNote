@@ -51,6 +51,8 @@ export const de = {
     "Falsch geschriebene Wörter unterstreichen, geprüft mit deinen Windows-Sprachen. Rechtsklick auf ein markiertes Wort zeigt Vorschläge.",
   "settings.editor.spellCheck.hintWeb": () =>
     "Falsch geschriebene Wörter unterstreichen, mit den in Windows eingestellten Sprachen. Umschalt+Rechtsklick auf ein Wort zeigt Vorschläge.",
+    "settings.editor.spellLanguages.label": () => "Sprachen für die Rechtschreibprüfung",
+  "settings.editor.spellLanguages.hint": () => "Ein Wort wird nur markiert, wenn keine der ausgewählten Sprachen es kennt.",
   "settings.editor.fontSize.label": () => "Schriftgröße",
   "settings.editor.fontSize.ariaLabel": () => "Schriftgröße des Editors",
   "settings.editor.lineSpacing.label": () => "Zeilenabstand",
@@ -766,6 +768,7 @@ export const de = {
   "toast.boot.failedToSave.language": () => "Speichern der Spracheinstellung fehlgeschlagen",
   "toast.boot.failedToSave.wordWrap": () => "Speichern der Zeilenumbruch-Einstellung fehlgeschlagen",
   "toast.boot.failedToSave.spellCheck": () => "Speichern der Rechtschreibprüfung-Einstellung fehlgeschlagen",
+  "toast.boot.failedToSave.spellLanguages": () => "Speichern der Rechtschreibprüfung-Sprachen-Einstellung fehlgeschlagen",
   "toast.boot.failedToSave.readingWidth": () => "Speichern der Lesebreite-Einstellung fehlgeschlagen",
   "toast.boot.failedToSave.updateCheck": () => "Speichern der Update-Prüfungseinstellung fehlgeschlagen",
   "toast.boot.failedToSave.calendarSync": () => "Speichern der Kalender-Sync-Einstellung fehlgeschlagen",

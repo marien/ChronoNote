@@ -47,6 +47,8 @@ export const es = {
     "Subraya las palabras mal escritas, revisadas con tus idiomas de Windows. Haz clic derecho en una palabra marcada para ver sugerencias.",
   "settings.editor.spellCheck.hintWeb": () =>
     "Subraya las palabras mal escritas, con los idiomas configurados en Windows. Mayús+clic derecho en una palabra para ver sugerencias.",
+    "settings.editor.spellLanguages.label": () => "Idiomas del corrector",
+  "settings.editor.spellLanguages.hint": () => "Una palabra se marca solo si ninguno de los idiomas marcados la conoce.",
   "settings.editor.fontSize.label": () => "Tamaño de fuente",
   "settings.editor.fontSize.ariaLabel": () => "Tamaño de fuente del editor",
   "settings.editor.lineSpacing.label": () => "Interlineado",
@@ -771,6 +773,7 @@ export const es = {
   "toast.boot.failedToSave.language": () => "Error al guardar la preferencia de idioma",
   "toast.boot.failedToSave.wordWrap": () => "Error al guardar la preferencia de ajuste de línea",
   "toast.boot.failedToSave.spellCheck": () => "Error al guardar la preferencia de corrector ortográfico",
+  "toast.boot.failedToSave.spellLanguages": () => "Error al guardar la preferencia de idiomas del corrector",
   "toast.boot.failedToSave.readingWidth": () => "Error al guardar la preferencia de ancho de lectura",
   "toast.boot.failedToSave.updateCheck": () => "Error al guardar la preferencia de búsqueda de actualizaciones",
   "toast.boot.failedToSave.calendarSync": () => "Error al guardar la preferencia de sincronización del calendario",

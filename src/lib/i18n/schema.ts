@@ -54,6 +54,8 @@ export type TranslationParams = {
   "settings.editor.spellCheck.label": undefined;
   "settings.editor.spellCheck.hint": undefined;
   "settings.editor.spellCheck.hintWeb": undefined;
+  "settings.editor.spellLanguages.label": undefined;
+  "settings.editor.spellLanguages.hint": undefined;
   "settings.editor.fontSize.label": undefined;
   "settings.editor.fontSize.ariaLabel": undefined;
   "settings.editor.lineSpacing.label": undefined;
@@ -779,6 +781,7 @@ export type TranslationParams = {
   "toast.boot.failedToSave.language": undefined;
   "toast.boot.failedToSave.wordWrap": undefined;
   "toast.boot.failedToSave.spellCheck": undefined;
+  "toast.boot.failedToSave.spellLanguages": undefined;
   "toast.boot.failedToSave.readingWidth": undefined;
   "toast.boot.failedToSave.updateCheck": undefined;
   "toast.boot.failedToSave.calendarSync": undefined;

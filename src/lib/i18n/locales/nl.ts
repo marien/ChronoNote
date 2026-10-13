@@ -49,6 +49,8 @@ export const nl = {
     "Onderstreep verkeerd gespelde woorden, gecontroleerd met je Windows-talen. Klik met rechts op een gemarkeerd woord voor suggesties.",
   "settings.editor.spellCheck.hintWeb": () =>
     "Onderstreep verkeerd gespelde woorden, met de talen die in Windows zijn ingesteld. Shift+rechtsklik op een woord voor suggesties.",
+    "settings.editor.spellLanguages.label": () => "Talen voor spellingcontrole",
+  "settings.editor.spellLanguages.hint": () => "Een woord wordt alleen gemarkeerd als geen van de aangevinkte talen het kent.",
   "settings.editor.fontSize.label": () => "Lettergrootte",
   "settings.editor.fontSize.ariaLabel": () => "Lettergrootte editor",
   "settings.editor.lineSpacing.label": () => "Regelafstand",
@@ -761,6 +763,7 @@ export const nl = {
   "toast.boot.failedToSave.language": () => "Opslaan van taalvoorkeur mislukt",
   "toast.boot.failedToSave.wordWrap": () => "Opslaan van woordafbrekingsvoorkeur mislukt",
   "toast.boot.failedToSave.spellCheck": () => "Opslaan van spellingcontrolevoorkeur mislukt",
+  "toast.boot.failedToSave.spellLanguages": () => "Opslaan van spellingcontroletalenvoorkeur mislukt",
   "toast.boot.failedToSave.readingWidth": () => "Opslaan van leesbreedtevoorkeur mislukt",
   "toast.boot.failedToSave.updateCheck": () => "Opslaan van updatecontrolevoorkeur mislukt",
   "toast.boot.failedToSave.calendarSync": () => "Opslaan van agendasyncvoorkeur mislukt",

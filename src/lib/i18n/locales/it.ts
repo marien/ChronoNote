@@ -47,6 +47,8 @@ export const it = {
     "Sottolinea le parole scritte male, controllate con le tue lingue di Windows. Clic destro su una parola segnata per i suggerimenti.",
   "settings.editor.spellCheck.hintWeb": () =>
     "Sottolinea le parole scritte male, con le lingue impostate in Windows. Maiusc+clic destro su una parola per i suggerimenti.",
+    "settings.editor.spellLanguages.label": () => "Lingue del controllo ortografico",
+  "settings.editor.spellLanguages.hint": () => "Una parola viene segnata solo se nessuna delle lingue selezionate la conosce.",
   "settings.editor.fontSize.label": () => "Dimensione carattere",
   "settings.editor.fontSize.ariaLabel": () => "Dimensione carattere dell'editor",
   "settings.editor.lineSpacing.label": () => "Interlinea",
@@ -773,6 +775,7 @@ export const it = {
   "toast.boot.failedToSave.language": () => "Impossibile salvare la preferenza della lingua",
   "toast.boot.failedToSave.wordWrap": () => "Impossibile salvare la preferenza per il ritorno a capo",
   "toast.boot.failedToSave.spellCheck": () => "Impossibile salvare la preferenza per il controllo ortografico",
+  "toast.boot.failedToSave.spellLanguages": () => "Impossibile salvare la preferenza per le lingue del controllo ortografico",
   "toast.boot.failedToSave.readingWidth": () => "Impossibile salvare la preferenza per la larghezza di lettura",
   "toast.boot.failedToSave.updateCheck": () => "Impossibile salvare la preferenza di verifica aggiornamenti",
   "toast.boot.failedToSave.calendarSync": () => "Impossibile salvare la preferenza di sincronizzazione calendario",

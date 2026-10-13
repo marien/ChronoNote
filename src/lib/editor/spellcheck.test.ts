@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { filterMisspelledRanges, SpellCache } from "./spellcheck";
+import { computeEffectiveSpellLanguages, filterMisspelledRanges, orderSpellLanguages, SpellCache } from "./spellcheck";
 
 describe("filterMisspelledRanges", () => {
   it("filters out all ranges on setext underline lines", () => {
@@ -121,5 +121,68 @@ describe("SpellCache", () => {
     cache.clear();
     expect(cache.size).toBe(0);
     expect(cache.get("a")).toBeUndefined();
+  });
+});
+
+describe("computeEffectiveSpellLanguages", () => {
+  it("uses stored languages when set", () => {
+    expect(computeEffectiveSpellLanguages(["de-DE"], ["nl-NL"], ["nl-NL", "en-US", "de-DE"])).toEqual(["de-DE"]);
+    expect(computeEffectiveSpellLanguages([], ["nl-NL"], ["nl-NL", "en-US"])).toEqual([]);
+  });
+
+  it("defaults to Windows languages + en-US when stored is null and en-US is available", () => {
+    expect(
+      computeEffectiveSpellLanguages(null, ["nl-NL"], ["de-DE", "en-GB", "en-US", "fr-FR", "nl-NL"]),
+    ).toEqual(["nl-NL", "en-US"]);
+  });
+
+  it("defaults to Windows languages + first en-* when en-US is not available", () => {
+    expect(
+      computeEffectiveSpellLanguages(null, ["nl-NL"], ["de-DE", "en-GB", "fr-FR", "nl-NL"]),
+    ).toEqual(["nl-NL", "en-GB"]);
+  });
+
+  it("does not duplicate English if already in Windows languages", () => {
+    expect(
+      computeEffectiveSpellLanguages(null, ["en-US", "nl-NL"], ["de-DE", "en-US", "nl-NL"]),
+    ).toEqual(["en-US", "nl-NL"]);
+    expect(
+      computeEffectiveSpellLanguages(null, ["en-us", "nl-NL"], ["de-DE", "en-US", "nl-NL"]),
+    ).toEqual(["en-us", "nl-NL"]);
+  });
+
+  it("returns Windows languages only if no English variant is available", () => {
+    expect(
+      computeEffectiveSpellLanguages(null, ["nl-NL", "de-DE"], ["nl-NL", "de-DE", "fr-FR"]),
+    ).toEqual(["nl-NL", "de-DE"]);
+  });
+
+  it("returns empty array if both stored and windows languages are empty/null", () => {
+    expect(computeEffectiveSpellLanguages(null, [], [])).toEqual([]);
+    expect(computeEffectiveSpellLanguages(undefined, [], [])).toEqual([]);
+  });
+});
+
+describe("orderSpellLanguages", () => {
+  it("places effective languages first in order, then Windows languages, then remaining alphabetically", () => {
+    const available = ["de-DE", "en-GB", "en-US", "fr-FR", "nl-NL"];
+    const effective = ["en-US", "nl-NL"];
+    const windows = ["nl-NL", "de-DE"];
+    const ordered = orderSpellLanguages(available, effective, windows, "en");
+
+    expect(ordered.map((o) => o.tag)).toEqual(["en-US", "nl-NL", "de-DE", "en-GB", "fr-FR"]);
+    expect(ordered.map((o) => o.checked)).toEqual([true, true, false, false, false]);
+  });
+
+  it("correctly sets display names and checked status", () => {
+    const available = ["en-US", "nl-NL"];
+    const effective = ["nl-NL"];
+    const windows = ["nl-NL"];
+    const ordered = orderSpellLanguages(available, effective, windows, "en");
+
+    expect(ordered).toEqual([
+      { tag: "nl-NL", name: expect.any(String), checked: true },
+      { tag: "en-US", name: expect.any(String), checked: false },
+    ]);
   });
 });
