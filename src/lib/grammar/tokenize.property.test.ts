@@ -94,11 +94,6 @@ function assertTokenInvariants(line: string, tokens: Token[]) {
         expect(token.replaced).toBe(false);
         expect(slice.startsWith("@")).toBe(true);
         break;
-      case "assigneeList":
-        expect(token.replaced).toBe(false);
-        expect(slice.startsWith("(@")).toBe(true);
-        expect(slice.endsWith(")")).toBe(true);
-        break;
       case "topicTag":
       case "paren":
         expect(token.replaced).toBe(false);

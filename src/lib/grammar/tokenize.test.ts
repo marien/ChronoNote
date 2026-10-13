@@ -62,13 +62,13 @@ describe("tokenizeLine", () => {
     expect(tokenizeLine("see https://x.y/@user")).toEqual([]);
   });
 
-  it("parenthesised assignee list: a list token, then one token per name", () => {
+  it("names in parentheses are plain assignees; the parentheses have no meaning of their own", () => {
     expect(tokenizeLine("(@a, @b) x")).toEqual([
-      { kind: "assigneeList", from: 0, to: 8, replaced: false },
       { kind: "assignee", from: 1, to: 3, replaced: false },
       { kind: "assignee", from: 5, to: 7, replaced: false },
     ]);
-    expect(kinds("(@a)")).toEqual(["assigneeList", "assignee"]);
+    expect(kinds("(@a)")).toEqual(["assignee"]);
+    expect(kinds("# (@dana) task")).toEqual(["action", "assignee"]); // a name is never a topic tag
   });
 
   it("topic tag right after an action symbol, a topic symbol, or a consequence", () => {

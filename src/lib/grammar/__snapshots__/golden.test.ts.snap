@@ -2315,10 +2315,7 @@ exports[`token behaviour snapshot (refactor R1) > edge cases 1`] = `
         "text": "@a",
       },
       {
-        "text": ")",
-      },
-      {
-        "text": " owns this",
+        "text": ") owns this",
       },
     ],
     "innermostActionSymbol": null,
@@ -2385,10 +2382,7 @@ exports[`token behaviour snapshot (refactor R1) > edge cases 1`] = `
         "text": "@c",
       },
       {
-        "text": ")",
-      },
-      {
-        "text": " own this",
+        "text": ") own this",
       },
     ],
     "innermostActionSymbol": null,
@@ -15417,10 +15411,7 @@ exports[`token behaviour snapshot (refactor R1) > scenario corpus 1`] = `
         "text": "@Dana",
       },
       {
-        "text": ")",
-      },
-      {
-        "text": " send the signed offer letter once approved",
+        "text": ") send the signed offer letter once approved",
       },
     ],
     "innermostActionSymbol": null,

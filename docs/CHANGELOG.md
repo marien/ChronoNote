@@ -10471,3 +10471,9 @@ Marien: actions, agenda topics, follow-ups and lists should work independently, 
 - **Reordering (`editor/stateFirst.ts`, `stateFirst` in `tokens.ts`):** a line written list-first (`- # task`, `2) v done`) is rewritten state-first when the caret leaves it (one undo step with the move) and on paste. Only for the user's own typing and caret moves (added at review: the agent's filter also ran on programmatic transactions, so a note loaded or synced in could have been rewritten).
 - **Enter:** `# 1. task` continues `# 2. ` (`1.1.` -> `1.2.`, `)` kept), `# - a` continues `# - `, an empty one exits; `=> o x` continues `=> o `. New lines start open.
 - Tests: tokenizer, tokens, stateFirst, glyphLine, wrapIndent, export unit tests; `editor-tokens.spec.ts` (rendering, shortcuts on list lines, reorder + undo, Enter).
+
+## 368. Names in parentheses have no separate meaning any more
+
+**Status: on `main`, unreleased.**
+
+- Since §268 every `@name` is badged on any line, so `(@dana, @lee)` already looked the same as bare names. The tokenizer's separate `assigneeList` token and the read-only view's code for it are removed: each name in parentheses is an ordinary `@name`. `(word)` never matches `(@…)`, so `# (@dana) task` is still not a topic tag. Nothing looks different (golden snapshot: only the read-only view's split of `)` from the following text changed).

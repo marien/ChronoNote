@@ -272,7 +272,7 @@ export function buildGlyphDecorations(view: EditorView): { decorations: Decorati
             deco.add(a, a + 1, MARK_TOPIC_PAREN);
             deco.add(b - 1, b, MARK_TOPIC_PAREN);
             break;
-          // assigneeList and paren draw nothing in the editor (an assigneeList only through its assignees).
+          // paren draws nothing in the editor.
         }
       }
     }

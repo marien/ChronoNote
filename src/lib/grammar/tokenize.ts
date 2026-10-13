@@ -13,7 +13,6 @@ export type TokenKind =
   | "consequence" // the # v > x after `=> `, with its trailing space
   | "consequenceTopic" // the o . , after `=> `, with its trailing space
   | "assignee" // @name: after `=> `, bare, or inside a (@a, @b) list
-  | "assigneeList" // the whole `(@a)` / `(@a, @b)`; its assignee tokens follow it
   | "topicTag" // (topic) right after an action or topic symbol
   | "paren"; // any other `(word)`: recognised (and consumed) but not decorated
 
@@ -38,10 +37,10 @@ const LINE_START = new RegExp(String.raw`^(\s*)(?:(${ACTION_CLASS})|(${TOPIC_CLA
 
 const BULLET_AFTER_STATE = new RegExp(String.raw`^(${BULLET_CLASS})\s`);
 
-// Alternatives in the editor's order: `=> @name`, `=> <symbol> `, `=> <topic> `, `=> `, `(@a, @b)`,
-// bare `@name` (not glued to a word, `@` or `/`), `(word)`.
+// Alternatives in the editor's order: `=> @name`, `=> <symbol> `, `=> <topic> `, `=> `, bare `@name` (not glued to a
+// word, `@` or `/`; also each name in `(@a, @b)`, which has no meaning of its own), `(word)` (never `(@…)`).
 const INLINE = new RegExp(
-  String.raw`=>\s@([\w-]+)|=>\s(${ACTION_CLASS})\s|=>\s(${TOPIC_CLASS})\s|=>\s|\(@([\w-]+(?:[\s,]+@[\w-]+)*)\)|(?<![\w@/])@([\w-]+)|\(([^\s()]+)\)`,
+  String.raw`=>\s@([\w-]+)|=>\s(${ACTION_CLASS})\s|=>\s(${TOPIC_CLASS})\s|=>\s|(?<![\w@/])@([\w-]+)|\((?!@)([^\s()]+)\)`,
   "g",
 );
 
@@ -112,11 +111,6 @@ export function tokenizeLine(line: string): Token[] {
     } else if (m[0].startsWith("=>")) {
       tokens.push({ kind: "arrow", from, to, replaced: true });
     } else if (m[4] !== undefined) {
-      tokens.push({ kind: "assigneeList", from, to, replaced: false });
-      for (const n of m[0].matchAll(/@[\w-]+/g)) {
-        tokens.push({ kind: "assignee", from: from + n.index!, to: from + n.index! + n[0].length, replaced: false });
-      }
-    } else if (m[5] !== undefined) {
       tokens.push({ kind: "assignee", from, to, replaced: false });
     } else {
       tokens.push({ kind: from === tagFrom ? "topicTag" : "paren", from, to, replaced: false });

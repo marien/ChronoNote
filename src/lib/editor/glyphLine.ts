@@ -63,18 +63,6 @@ export function parseGlyphLine(line: string): GlyphPart[] {
       case "assignee":
         parts.push({ text: line.slice(t.from, t.to), cls: "glyph-assignee" });
         break;
-      case "assigneeList":
-        // Every name is its own badge; the parens and separators stay plain.
-        parts.push({ text: "(" });
-        at = t.from + 1;
-        while (tokens[i + 1]?.kind === "assignee" && tokens[i + 1].to <= t.to) {
-          const c = tokens[++i];
-          gap(c.from);
-          parts.push({ text: line.slice(c.from, c.to), cls: "glyph-assignee" });
-          at = c.to;
-        }
-        parts.push({ text: ")" });
-        break;
       case "topicTag":
         parts.push({ text: line.slice(t.from, t.to), cls: "glyph-topic" });
         break;
