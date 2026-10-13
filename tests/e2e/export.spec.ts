@@ -56,17 +56,21 @@ test.describe("export and print (proposals G1 and G2)", () => {
     const iframe = page.locator("iframe");
     await expect(iframe).toBeAttached();
 
-    // Check iframe content contains the note's first line
-    const content = await page.evaluate(() => {
-      const el = document.querySelector("iframe");
-      return (
-        el?.contentDocument?.body?.innerText ||
-        el?.contentDocument?.documentElement?.innerHTML ||
-        el?.getAttribute("srcdoc") ||
-        ""
-      );
-    });
-    expect(content).toContain("Special First Line of Note");
+    // Check iframe content contains the note's first line. Polled: the iframe exists before its document is written,
+    // and on a slow CI runner a single read saw only the empty `<head>`.
+    await expect
+      .poll(() =>
+        page.evaluate(() => {
+          const el = document.querySelector("iframe");
+          return (
+            el?.contentDocument?.body?.innerText ||
+            el?.contentDocument?.documentElement?.innerHTML ||
+            el?.getAttribute("srcdoc") ||
+            ""
+          );
+        }),
+      )
+      .toContain("Special First Line of Note");
   });
 
   test("editor context menu shows Copy as Markdown only with a selection", async ({ page, context }) => {
