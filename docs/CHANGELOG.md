@@ -10434,3 +10434,12 @@ Not verified natively yet: printing in WebView2 under the desktop CSP, the save 
 - **Marien:** pasting an open action right after an empty open-action glyph gave an extra `#` (`# # call Dana`) that had to be removed by hand.
 - **Fix:** a transaction filter on paste (`editor/pasteOverEmptyMarker.ts`). When the line before the caret is only a symbol (action, topic or bullet, indented or not), nothing follows the caret, and the pasted text starts with a symbol of its own, the empty symbol is replaced: the pasted line keeps its own symbol (`v sent` onto `# ` gives `v sent`) at the line's indentation. Multi-line pastes keep every line; typing, a paste without a symbol, a line with text, or several cursors are left alone. One undo step brings the empty symbol back. Copy/paste deferral of the source is unchanged.
 - Tests: `pasteOverEmptyMarker.test.ts` (7), and a real copy/paste in `paste-deferral.spec.ts` (one symbol, source still deferred).
+
+## 364. An expired OneDrive sign-in has one message, with a button that signs in
+
+**Status: on `main`, unreleased.**
+
+- **Marien (web app):** when the OneDrive sign-in expired, a toast said "Click to sign in again", but clicking it only opened the sync status popover. He asked for the sign-in to start from the message, and for the message to look like the "Updated to" one, which has a real button.
+- **Cause:** two messages appeared at once. The info bar (the same component as "Updated to", §335) already had a Sign in again button that starts the sign-in; a separate toast repeated the text with a click that went elsewhere.
+- **Fix:** the toast is gone; the info bar is the one message (`oneDriveSync.ts`). Its text is now just "Your OneDrive sign-in has expired." (new key `infoBar.signInExpired` in 7 locales, replacing `toast.oneDriveSync.signInExpired`), since the button says what to do. A new expiry brings the bar back even if it was dismissed earlier in the session. The cloud button, the status popover and Settings keep their own Sign in again.
+- Tests: `controller.test.ts` (no toast, dismissed bar returns), `sync-health-popover.spec.ts` (the bar's button renews the sign-in, no toast).

@@ -8,7 +8,7 @@
  * (which is itself a caller). */
 import { get } from "svelte/store";
 import * as api from "./tauriApi";
-import { oneDriveAccount, oneDriveConnecting, oneDriveFolder, oneDriveSignInExpired, oneDriveSyncing, showToast, syncConflicts, syncHealthPopoverOpen } from "./stores";
+import { dismissedInfoBars, oneDriveAccount, oneDriveConnecting, oneDriveFolder, oneDriveSignInExpired, oneDriveSyncing, showToast, syncConflicts, syncHealthPopoverOpen } from "./stores";
 import { openSettingsOnNotesFolder } from "./menu";
 import { SIGN_IN_EXPIRED_MESSAGE } from "./signInExpired";
 import { checkActiveTabForDrift } from "./drift";
@@ -76,11 +76,18 @@ export function syncOneDriveNow(opts: { notify?: boolean } = {}): Promise<void> 
       // `AppError.Other` carrying this exact text (its refresh token isn't
       // renewable) — Rust's own sync never produces it.
       else if (result.message?.code === "other" && result.message.detail === SIGN_IN_EXPIRED_MESSAGE) {
-        const wasExpired = get(oneDriveSignInExpired);
-        oneDriveSignInExpired.set(true);
-        if (!wasExpired && !announce) {
-          showToast(get(t)("toast.oneDriveSync.signInExpired", undefined), { action: openOneDriveStatus });
+        // The info bar is the one message for this, with a Sign in again button that starts the sign-in at once
+        // (a toast used to say the same with a click that only opened the status popover). A new expiry shows the
+        // bar again even if it was dismissed earlier in the session.
+        if (!get(oneDriveSignInExpired)) {
+          dismissedInfoBars.update((set) => {
+            if (!set.has("signin-expired")) return set;
+            const next = new Set(set);
+            next.delete("signin-expired");
+            return next;
+          });
         }
+        oneDriveSignInExpired.set(true);
       }
       await refreshSyncConflicts();
       syncHooks.invalidateCache?.();

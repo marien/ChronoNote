@@ -828,7 +828,7 @@ export type TranslationParams = {
   "toast.oneDriveSync.syncFinished": undefined;
   "toast.oneDriveSync.syncFailedPrefix": { message: string };
   "toast.oneDriveSync.couldntStartSignInPrefix": { message: string };
-  "toast.oneDriveSync.signInExpired": undefined;
+  "infoBar.signInExpired": undefined;
   "toast.persistence.failedToSaveNote": undefined;
   "toast.persistence.keptChangedNote": { filename: string };
   "toast.onboarding.mobileHint": undefined;

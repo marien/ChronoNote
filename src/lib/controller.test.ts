@@ -3021,7 +3021,8 @@ describe("beginFolderSwitch", () => {
       controller.toastMessage.set("");
     });
 
-    it("sets oneDriveSignInExpired and triggers toast on transition during background sync", async () => {
+    it("sets oneDriveSignInExpired on transition, shows no toast (the info bar is the message) and brings back a dismissed bar", async () => {
+      controller.dismissedInfoBars.set(new Set(["signin-expired", "conflicts:2"]));
       apiMock.oneDriveSyncNow.mockResolvedValueOnce({
         success: false,
         message: { code: "other", detail: SIGN_IN_EXPIRED_MESSAGE },
@@ -3030,8 +3031,8 @@ describe("beginFolderSwitch", () => {
       await controller.syncOneDriveNow();
 
       expect(get(controller.oneDriveSignInExpired)).toBe(true);
-      expect(get(controller.toastMessage)).toBe("Your OneDrive sign-in has expired. Click to sign in again.");
-      expect(get(controller.toastAction)).not.toBeNull();
+      expect(get(controller.toastMessage)).toBe("");
+      expect([...get(controller.dismissedInfoBars)]).toEqual(["conflicts:2"]);
     });
 
     it("does not re-trigger toast on subsequent background sync if already expired", async () => {

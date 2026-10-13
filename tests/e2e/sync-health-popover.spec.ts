@@ -102,4 +102,17 @@ test.describe("Expired OneDrive sign-in", () => {
     await expect(settings.getByRole("alert")).toHaveCount(0);
     await expect(page.locator("#stat-cloud")).not.toContainText("Sign in again");
   });
+
+  test("one message: the info bar's Sign in again button renews the sign-in at once, and no toast repeats it", async ({ page }) => {
+    await seedApp(page, { seed: { backendKind: "web", oneDriveSyncError: EXPIRED } });
+
+    const bar = page.locator(".info-bar");
+    await expect(bar).toContainText("Your OneDrive sign-in has expired.");
+    await expect(bar).not.toContainText("Click to");
+    await expect(page.locator(".mobile-toast, .long-toast")).toHaveCount(0);
+
+    await bar.getByRole("button", { name: "Sign in again" }).click();
+    await expect(page.locator(".info-bar")).toHaveCount(0);
+    await expect(page.locator("#stat-cloud")).not.toContainText("Sign in again");
+  });
 });

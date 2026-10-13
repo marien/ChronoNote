@@ -32,7 +32,7 @@
         translate: {
           conflictsText: (count: number) => $t("statusBar.conflicts.count", { count }),
           resolveLabel: () => $t("infoBar.resolve"),
-          signInExpiredText: () => $t("statusBar.oneDrive.signInExpired"),
+          signInExpiredText: () => $t("infoBar.signInExpired"),
           signInAgainLabel: () => $t("statusBar.oneDrive.signInAgain"),
           updateAvailableText: (version: string) => $t("infoBar.updateAvailable", { version }),
           viewUpdateLabel: () => $t("infoBar.viewUpdate"),
