@@ -15,8 +15,8 @@ export function parseDateLink(text: string): { date: string; section?: string } 
   let dateStr = "";
   let sectionRaw: string | undefined;
 
-  // Handles "(to 2026-10-14#Weekly Sync)", "(from 2026-10-13)", or without parens "to 2026-10-14#..."
-  const fromToMatch = /^\(?\s*(?:to|from)\s+(\d{4}-\d{2}-\d{2})(?:#([^)]*))?\)?$/.exec(trimmed);
+  // A forward link: "(>2026-10-14#Weekly Sync)" (where it went) or "(<2026-10-13)" (where it came from).
+  const fromToMatch = /^\(?[<>](\d{4}-\d{2}-\d{2})(?:#([^)]*))?\)?$/.exec(trimmed);
   if (fromToMatch) {
     dateStr = fromToMatch[1];
     sectionRaw = fromToMatch[2];

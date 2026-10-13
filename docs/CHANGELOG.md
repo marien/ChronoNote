@@ -10502,3 +10502,12 @@ Marien: actions, agenda topics, follow-ups and lists should work independently, 
 - **From/to links (Marien's idea):** when a paste forwards an action or topic, the source line gets ` (to YYYY-MM-DD#Section)` (the target date and the section the paste lands in) and the pasted line ` (from YYYY-MM-DD#Section)`; both are links. An existing `(to …)`/`(from …)` at the end is replaced, not doubled. The words are fixed English (note text, parsed in any UI language). One undo of the paste restores the source exactly. Added at review: a copy of only part of a line is deferred without a `(to …)` link, which would otherwise land in the middle of the line. Not added (yet) for Shift+Enter forwarding in Actions or Copy to next occurrence.
 - Gemini 3.8 Flash (brief H3). Tests: `date-links.spec.ts`, `dateLinks.test.ts`, paste unit tests (incl. the partial-line case); `paste-deferral.spec.ts` and `controller.test.ts` expectations now include the `(to …)` text.
 - Integration: the three agents ran in parallel; the only conflicts were in the translation files (both sides kept). Full gates on the merged tree: svelte-check 0, Vitest 1159, cargo 164, Playwright chromium 738.
+
+## 372. Forward links as (>date#section) and (<date#section); per-line sections; a second forward chains
+
+**Status: on `main`, unreleased (after beta 0.32.0-1).**
+
+- **Marien:** use `>` and `<` without a space instead of the words: the source line gets `(>2026-10-14#Weekly Sync)` (where it went), the pasted line `(<2026-10-13#Standup)` (where it came from). Replaces §371's `(to …)`/`(from …)`, which never shipped. `forwardLink`, `TRAILING_LINKS` in `paste.ts`; the editor's link regex and `parseDateLink` follow.
+- **Several lines:** every open action or topic in a multi-line copy gets its own links; each pasted line's `(<…)` now carries the section that line was in (a copy can span sections; it used the first line's section for all).
+- **Forwarded again:** copying a line that already came from somewhere (`# call vendor (<08-01#Standup)` on 08-10) and pasting it later leaves the middle day as `> call vendor (<08-01#Standup) (>09-15#Planning)` and gives the new copy `(<08-10#Sync)` only: each day links one step back and one step forward. A trailing `(>…)` is replaced, never doubled.
+- Tests: `controller.test.ts` (multi-line across sections, second forward), `dateLinks.test.ts`, `date-links.spec.ts`, `paste-deferral.spec.ts` (new format).

@@ -84,15 +84,15 @@ test.describe("date links and navigation", () => {
     await page.keyboard.press("ControlOrMeta+End");
     await page.keyboard.press("ControlOrMeta+V");
 
-    // Source line ends with (to <today>#<target section>) and is deferred (> )
+    // Source line ends with (>today#target section) and is deferred (> )
     await expect
       .poll(() => mockNote(page, "2026-09-03.txt"))
-      .toContain("> send report to client (to 2026-09-07#Target Section)");
+      .toContain("> send report to client (>2026-09-07#Target Section)");
 
-    // Pasted line ends with (from <past date>#<source section>)
+    // Pasted line ends with (<past date#source section)
     await expect
       .poll(() => mockNote(page, "2026-09-07.txt"))
-      .toContain("# send report to client (from 2026-09-03#Source Section)");
+      .toContain("# send report to client (<2026-09-03#Source Section)");
 
     // Clicking the from-link jumps to the source line's note and section
     const fromLink = editor(page).locator(".cm-date-link");

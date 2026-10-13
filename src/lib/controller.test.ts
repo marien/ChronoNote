@@ -1080,12 +1080,12 @@ describe("recordCopiedAction / handlePasteIntoTab (§64)", () => {
     controller.recordCopiedAction("# do the thing", "src");
     controller.handlePasteIntoTab("today");
     expect(get(controller.tabs).find((t) => t.id === "src")!.content).toBe(
-      "before\n> do the thing (to 2026-09-15)\nafter",
+      "before\n> do the thing (>2026-09-15)\nafter",
     );
     vi.useRealTimers();
   });
 
-  it("a copy of part of a line is deferred without a (to …) link, which would land mid-line", () => {
+  it("a copy of part of a line is deferred without a (>…) link, which would land mid-line", () => {
     controller.tabs.set([
       tab({ id: "src", filename: "2026-08-01.txt", content: "before\n# do the thing today\nafter" }),
       tab({ id: "today", filename: "2026-09-15.txt", content: "" }),
@@ -1121,7 +1121,7 @@ describe("recordCopiedAction / handlePasteIntoTab (§64)", () => {
     controller.recordCopiedAction("# first\nplain\n# second", "src");
     controller.handlePasteIntoTab("today", "# first\r\nplain\r\n# second\r\n");
     expect(get(controller.tabs).find((t) => t.id === "src")!.content).toBe(
-      "> first (to 2026-09-15)\nplain\n> second (to 2026-09-15)",
+      "> first (>2026-09-15)\nplain\n> second (>2026-09-15)",
     );
     vi.useRealTimers();
   });
@@ -1139,7 +1139,7 @@ describe("recordCopiedAction / handlePasteIntoTab (§64)", () => {
     controller.handlePasteIntoTab("today", "# Buy milk");
     const updated = get(controller.tabs).find((t) => t.id === "src")!.content;
     expect(updated).toBe(
-      "Section 1\n=========\n# Buy milk\n\nSection 2\n=========\n> Buy milk (to 2026-09-15)",
+      "Section 1\n=========\n# Buy milk\n\nSection 2\n=========\n> Buy milk (>2026-09-15)",
     );
 
     // Undoing in the target tab restores the SECOND occurrence
@@ -1149,7 +1149,7 @@ describe("recordCopiedAction / handlePasteIntoTab (§64)", () => {
     // Redoing in the target tab defers the SECOND occurrence again
     controller.onEditorRedo("today", "", "# Buy milk");
     expect(get(controller.tabs).find((t) => t.id === "src")!.content).toBe(
-      "Section 1\n=========\n# Buy milk\n\nSection 2\n=========\n> Buy milk (to 2026-09-15)",
+      "Section 1\n=========\n# Buy milk\n\nSection 2\n=========\n> Buy milk (>2026-09-15)",
     );
     vi.useRealTimers();
   });
@@ -1177,7 +1177,7 @@ describe("recordCopiedAction / handlePasteIntoTab (§64)", () => {
     controller.recordCopiedAction("# first\nplain\n# second", "src");
     controller.handlePasteIntoTab("today");
     expect(get(controller.tabs).find((t) => t.id === "src")!.content).toBe(
-      "> first (to 2026-09-15)\nplain\n> second (to 2026-09-15)",
+      "> first (>2026-09-15)\nplain\n> second (>2026-09-15)",
     );
     vi.useRealTimers();
   });
@@ -1191,7 +1191,7 @@ describe("recordCopiedAction / handlePasteIntoTab (§64)", () => {
     controller.recordCopiedAction("Talked to Sam => # follow up\nplain\n# also this", "src");
     controller.handlePasteIntoTab("today");
     expect(get(controller.tabs).find((t) => t.id === "src")!.content).toBe(
-      "Talked to Sam => > follow up (to 2026-09-15)\nplain\n> also this (to 2026-09-15)",
+      "Talked to Sam => > follow up (>2026-09-15)\nplain\n> also this (>2026-09-15)",
     );
     vi.useRealTimers();
   });
@@ -1205,7 +1205,7 @@ describe("recordCopiedAction / handlePasteIntoTab (§64)", () => {
     controller.recordCopiedAction("Talked to Sam => # follow up", "src");
     controller.handlePasteIntoTab("today");
     expect(get(controller.tabs).find((t) => t.id === "src")!.content).toBe(
-      "Talked to Sam => > follow up (to 2026-09-15)",
+      "Talked to Sam => > follow up (>2026-09-15)",
     );
     vi.useRealTimers();
   });
@@ -1288,11 +1288,11 @@ describe("recordCopiedAction / handlePasteIntoTab (§64)", () => {
     controller.handlePasteIntoTab("today");
 
     expect(get(controller.tabs).find((t) => t.id === "old")!.content).toBe("# old task");
-    expect(get(controller.tabs).find((t) => t.id === "recent")!.content).toBe("> recent task (to 2026-09-15)");
+    expect(get(controller.tabs).find((t) => t.id === "recent")!.content).toBe("> recent task (>2026-09-15)");
     vi.useRealTimers();
   });
 
-  it("appends (to …) on source with target section and returns (from …) with source section", () => {
+  it("appends (>…) on source with target section and returns (<…) with source section", () => {
     controller.tabs.set([
       tab({ id: "src", filename: "2026-08-01.txt", content: "Standup\n=======\n# call vendor" }),
       tab({ id: "today", filename: "2026-09-15.txt", content: "Planning\n========\n" }),
@@ -1302,30 +1302,73 @@ describe("recordCopiedAction / handlePasteIntoTab (§64)", () => {
     const fromText = controller.handlePasteIntoTab("today", "# call vendor", { targetLineIdx: 2 });
     vi.useRealTimers();
 
-    expect(fromText).toBe(" (from 2026-08-01#Standup)");
+    expect(fromText).toEqual([" (<2026-08-01#Standup)"]);
     expect(get(controller.tabs).find((t) => t.id === "src")!.content).toBe(
-      "Standup\n=======\n> call vendor (to 2026-09-15#Planning)",
+      "Standup\n=======\n> call vendor (>2026-09-15#Planning)",
     );
   });
 
-  it("replaces existing (to …) on the source without doubling and undo restores it exactly", () => {
-    const original = "Standup\n=======\n# call vendor (to 2026-08-10#Sync)";
+  it("replaces existing (>…) on the source without doubling and undo restores it exactly", () => {
+    const original = "Standup\n=======\n# call vendor (>2026-08-10#Sync)";
     controller.tabs.set([
       tab({ id: "src", filename: "2026-08-01.txt", content: original }),
       tab({ id: "today", filename: "2026-09-15.txt", content: "" }),
     ]);
     vi.setSystemTime(new Date(2026, 8, 15));
-    controller.recordCopiedAction("# call vendor (to 2026-08-10#Sync)", "src");
+    controller.recordCopiedAction("# call vendor (>2026-08-10#Sync)", "src");
     const fromText = controller.handlePasteIntoTab("today");
     vi.useRealTimers();
 
-    expect(fromText).toBe(" (from 2026-08-01#Standup)");
+    expect(fromText).toEqual([" (<2026-08-01#Standup)"]);
     expect(get(controller.tabs).find((t) => t.id === "src")!.content).toBe(
-      "Standup\n=======\n> call vendor (to 2026-09-15)",
+      "Standup\n=======\n> call vendor (>2026-09-15)",
     );
 
-    controller.onEditorUndo("today", "# call vendor (from 2026-08-01#Standup)", "");
+    controller.onEditorUndo("today", "# call vendor (<2026-08-01#Standup)", "");
     expect(get(controller.tabs).find((t) => t.id === "src")!.content).toBe(original);
+  });
+
+  it("a multi-line copy across sections: each line gets the section it was in, plain lines get nothing", async () => {
+    const { rewritePasted } = await import("./editor/pasteOverEmptyMarker");
+    const content = "Standup\n=======\n# one\n\nBudget\n======\n# two\nnote";
+    controller.tabs.set([
+      tab({ id: "src", filename: "2026-08-01.txt", content }),
+      tab({ id: "today", filename: "2026-09-15.txt", content: "" }),
+    ]);
+    vi.setSystemTime(new Date(2026, 8, 15));
+    const copied = "# one\n\nBudget\n======\n# two\nnote";
+    controller.recordCopiedAction(copied, "src", content.indexOf("# one"));
+    const fromText = controller.handlePasteIntoTab("today", copied);
+    vi.useRealTimers();
+
+    expect(fromText![0]).toBe(" (<2026-08-01#Standup)");
+    expect(fromText![4]).toBe(" (<2026-08-01#Budget)");
+    expect(rewritePasted(copied, fromText!)).toBe(
+      "# one (<2026-08-01#Standup)\n\nBudget\n======\n# two (<2026-08-01#Budget)\nnote",
+    );
+    expect(get(controller.tabs).find((t) => t.id === "src")!.content).toBe(
+      "Standup\n=======\n> one (>2026-09-15)\n\nBudget\n======\n> two (>2026-09-15)\nnote",
+    );
+  });
+
+  it("an action forwarded a second time: the middle day keeps its (<…) and gains a (>…); the new copy comes from the middle day", async () => {
+    const { rewritePasted } = await import("./editor/pasteOverEmptyMarker");
+    // Day 2 holds the copy that came from day 1.
+    const day2 = "Sync\n====\n# call vendor (<2026-08-01#Standup)";
+    controller.tabs.set([
+      tab({ id: "src", filename: "2026-08-10.txt", content: day2 }),
+      tab({ id: "today", filename: "2026-09-15.txt", content: "Planning\n========\n" }),
+    ]);
+    vi.setSystemTime(new Date(2026, 8, 15));
+    const copied = "# call vendor (<2026-08-01#Standup)";
+    controller.recordCopiedAction(copied, "src", day2.indexOf("# call"));
+    const fromText = controller.handlePasteIntoTab("today", copied, { targetLineIdx: 2 });
+    vi.useRealTimers();
+
+    expect(get(controller.tabs).find((t) => t.id === "src")!.content).toBe(
+      "Sync\n====\n> call vendor (<2026-08-01#Standup) (>2026-09-15#Planning)",
+    );
+    expect(rewritePasted(copied, fromText!)).toBe("# call vendor (<2026-08-10#Sync)");
   });
 });
 
@@ -1350,14 +1393,14 @@ describe("paste-forward undo link (§86 / #9)", () => {
       targetTabId: "today",
       sourceTabId: "src",
       openBlock: "# do the thing",
-      deferredBlock: "> do the thing (to 2026-09-15)",
+      deferredBlock: "> do the thing (>2026-09-15)",
       reverted: false,
     });
   });
 
   it("undoing the paste in the target tab flips the source's `> ` back to `# `", () => {
     seedAndPaste();
-    expect(src()).toBe("notes\n> do the thing (to 2026-09-15)\nmore notes");
+    expect(src()).toBe("notes\n> do the thing (>2026-09-15)\nmore notes");
     // The undo that removes the pasted block from the target.
     controller.onEditorUndo("today", "# do the thing", "");
     expect(src()).toBe(srcContent);
@@ -1368,7 +1411,7 @@ describe("paste-forward undo link (§86 / #9)", () => {
     seedAndPaste();
     controller.onEditorUndo("today", "# do the thing", "");
     controller.onEditorRedo("today", "", "# do the thing");
-    expect(src()).toBe("notes\n> do the thing (to 2026-09-15)\nmore notes");
+    expect(src()).toBe("notes\n> do the thing (>2026-09-15)\nmore notes");
     expect(controller._pasteDeferLinkForTest()!.reverted).toBe(false);
   });
 
@@ -1376,14 +1419,14 @@ describe("paste-forward undo link (§86 / #9)", () => {
     seedAndPaste();
     // Undo of some edit made after the paste: the block is still there before and after.
     controller.onEditorUndo("today", "# do the thing\ntyped extra", "# do the thing");
-    expect(src()).toBe("notes\n> do the thing (to 2026-09-15)\nmore notes"); // still deferred
+    expect(src()).toBe("notes\n> do the thing (>2026-09-15)\nmore notes"); // still deferred
     expect(controller._pasteDeferLinkForTest()!.reverted).toBe(false);
   });
 
   it("ignores an undo in a different tab", () => {
     seedAndPaste();
     controller.onEditorUndo("src", "# do the thing", "");
-    expect(src()).toBe("notes\n> do the thing (to 2026-09-15)\nmore notes");
+    expect(src()).toBe("notes\n> do the thing (>2026-09-15)\nmore notes");
   });
 
   it("drops the link (no revert) when the source's `> ` block was since hand-edited away", () => {
@@ -1411,7 +1454,7 @@ describe("paste-forward undo link (§86 / #9)", () => {
     controller.recordCopiedAction("# one\nplain\n# two", "src");
     controller.handlePasteIntoTab("today");
     vi.useRealTimers();
-    expect(src()).toBe("> one (to 2026-09-15)\nplain\n> two (to 2026-09-15)");
+    expect(src()).toBe("> one (>2026-09-15)\nplain\n> two (>2026-09-15)");
     controller.onEditorUndo("today", "# one\nplain\n# two", "");
     expect(src()).toBe("# one\nplain\n# two");
   });

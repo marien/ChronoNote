@@ -14,7 +14,7 @@ import { isSetextUnderline } from "../tokens";
 import { locale, t } from "../i18n";
 
 export const DATE_LINK_REGEX =
-  /(?<=\((?:to|from)\s+)\d{4}-\d{2}-\d{2}(?:#[^)\r\n]+)?(?=\))|(?<![a-zA-Z0-9])\d{4}-\d{2}-\d{2}(?:#[^\s\r\n]+)?(?![a-zA-Z0-9])/g;
+  /(?<=\([<>])\d{4}-\d{2}-\d{2}(?:#[^)\r\n]+)?(?=\))|(?<![a-zA-Z0-9])\d{4}-\d{2}-\d{2}(?:#[^\s\r\n]+)?(?![a-zA-Z0-9])/g;
 
 const dateLinkMatcher = new MatchDecorator({
   regexp: DATE_LINK_REGEX,

@@ -123,6 +123,11 @@ scratchpad or a past-dated note does not trigger this. Undoing or
 redoing the paste correctly un-defers or re-defers the source line in
 its own tab, even if the source tab isn't the active one.
 
+**Forward links (§371, §372):** a paste that forwards an action or topic appends `(>YYYY-MM-DD#Section)` to
+the source line (where it went) and `(<YYYY-MM-DD#Section)` to the pasted line (where it came from), each line with
+the section it is in. Both are date links (Ctrl/Cmd+Click opens that day at that section; Ctrl+Alt+Left goes back).
+Forwarding again keeps the chain: the middle day reads `> task (<earlier) (>later)`. A full date anywhere is a link too.
+
 **Pasting onto an empty symbol:** pasting text whose first line starts with a
 symbol (`# call Dana`, `v sent`, `o budget`, `- item`) onto a line that holds
 only an empty symbol (`# ` with nothing after the caret) replaces that empty

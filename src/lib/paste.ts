@@ -13,11 +13,11 @@ import { t } from "./i18n";
 
 let lastCopiedAction: { text: string; sourceTabId: string; sourceOffset?: number } | null = null;
 
-let pendingPasteFrom: string | null = null;
-export function setPendingPasteFrom(val: string | null) {
+let pendingPasteFrom: string[] | null = null; // one `(<…)` per copied line
+export function setPendingPasteFrom(val: string[] | null) {
   pendingPasteFrom = val;
 }
-export function takePendingPasteFrom(): string | null {
+export function takePendingPasteFrom(): string[] | null {
   const val = pendingPasteFrom;
   pendingPasteFrom = null;
   return val;
@@ -41,10 +41,22 @@ export function takePendingPasteFrom(): string | null {
  * `=> `); group 2 is the trailing space, also preserved. */
 export const OPEN_ITEM_LINE = /(^\s*|=>\s)([#o])(\s)/;
 
+/** The forward links a paste adds (§371): `(>2026-10-14#Weekly Sync)` on the source line (where it went) and
+ * `(<2026-10-13#Standup)` on the pasted line (where it came from). Ordinary note text, always at the end of the line. */
+export function forwardLink(dir: ">" | "<", date: string, section: string): string {
+  return ` (${dir}${date}${section ? `#${section}` : ""})`;
+}
+/** A trailing `(>…)` link, replaced (not doubled) when a line is forwarded again. */
+const TRAILING_TO = /\s*\(>\d{4}-\d{2}-\d{2}(?:#[^)]*)?\)$/;
+/** Every trailing `(<…)`/`(>…)` link: a pasted line keeps only the new `(<…)` (the chain stays reachable through
+ * the source line's own `(<…)`). */
+export const TRAILING_LINKS = /(?:\s*\([<>]\d{4}-\d{2}-\d{2}(?:#[^)]*)?\))+$/;
+
 /** Flips every open action within `text` (a leading `# `, or a `=> #`
  * consequence-action) to deferred `> ` / `=> > `, and open topics `o ` to skipped `, `,
  * leaving everything else byte-for-byte unchanged. When `toSuffix` is passed, appends
- * the (to ...) link, replacing any existing (to ...) link on deferred lines. */
+ * the `(>…)` link to each deferred line, replacing an existing trailing `(>…)`; a `(<…)` stays, so a line forwarded
+ * again reads `> task (<where it came from) (>where it went)`. */
 export function deferOpenActionsInText(text: string, toSuffix?: string): string {
   if (!toSuffix) {
     return text.replace(new RegExp(OPEN_ITEM_LINE, "gm"), (_m, p1, sym, p2) => {
@@ -62,7 +74,7 @@ export function deferOpenActionsInText(text: string, toSuffix?: string): string 
         return `${p1}${replacement}${p2}`;
       });
       if (replaced) {
-        deferred = deferred.replace(/\s*\(to\s+[^)]+\)$/, "") + toSuffix;
+        deferred = deferred.replace(TRAILING_TO, "") + toSuffix;
       }
       return deferred;
     })
@@ -202,7 +214,7 @@ export function handlePasteIntoTab(
   targetTabId: string,
   pastedText?: string,
   opts?: { targetLineIdx?: number; targetDocText?: string },
-): string | null {
+): string[] | null {
   if (!lastCopiedAction) {
     setPendingPasteFrom(null);
     return null;
@@ -238,7 +250,7 @@ export function handlePasteIntoTab(
     const targetLines = (opts?.targetDocText ?? targetTab.content).split("\n");
     const targetLineIdx = opts?.targetLineIdx ?? (editorApi ? editorApi.getCursorLineIdx() : 0);
     const targetSection = getSectionHeaderForLine(targetLines, targetLineIdx).trim();
-    const toSuffix = targetSection ? ` (to ${targetDate}#${targetSection})` : ` (to ${targetDate})`;
+    const toSuffix = forwardLink(">", targetDate, targetSection);
 
     const srcDate = srcTab.filename.replace(/\.txt$/, "");
     const srcLines = srcTab.content.split("\n");
@@ -254,8 +266,10 @@ export function handlePasteIntoTab(
       effectiveOffset !== undefined
         ? srcTab.content.slice(0, effectiveOffset).split("\n").length - 1
         : 0;
-    const srcSection = getSectionHeaderForLine(srcLines, srcStartLineIdx).trim();
-    const fromSuffix = srcSection ? ` (from ${srcDate}#${srcSection})` : ` (from ${srcDate})`;
+    // One `(<…)` per copied line, each with the section that line was in: a multi-line copy can span sections.
+    const fromSuffixes = copied.text
+      .split("\n")
+      .map((_l, i) => forwardLink("<", srcDate, getSectionHeaderForLine(srcLines, srcStartLineIdx + i).trim()));
 
     // Defer every open action *within* the copied block, not just one at
     // its start — pasting a multi-line copy that happens to carry several
@@ -286,9 +300,9 @@ export function handlePasteIntoTab(
 
     const pastedBlock = copied.text
       .split("\n")
-      .map((line) => {
+      .map((line, i) => {
         if (!new RegExp(OPEN_ITEM_LINE).test(line)) return line;
-        return line.replace(/\s*\((?:from|to)\s+[^)]+\)$/, "") + fromSuffix;
+        return line.replace(TRAILING_LINKS, "") + fromSuffixes[i];
       })
       .join("\n");
 
@@ -305,8 +319,8 @@ export function handlePasteIntoTab(
     };
     const count = countOpenActionsInText(copied.text);
     showToast(get(t)("toast.paste.originalMarkedDeferred", { count, filename: srcTab.filename }));
-    setPendingPasteFrom(fromSuffix);
-    return fromSuffix;
+    setPendingPasteFrom(fromSuffixes);
+    return fromSuffixes;
   }
   setPendingPasteFrom(null);
   return null;

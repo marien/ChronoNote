@@ -13,15 +13,15 @@ describe("parseDateLink", () => {
     });
   });
 
-  it("parses (to YYYY-MM-DD#Section) form", () => {
-    expect(parseDateLink("(to 2026-10-14#Weekly Sync)")).toEqual({
+  it("parses (>YYYY-MM-DD#Section) form", () => {
+    expect(parseDateLink("(>2026-10-14#Weekly Sync)")).toEqual({
       date: "2026-10-14",
       section: "Weekly Sync",
     });
   });
 
-  it("parses (from YYYY-MM-DD) form", () => {
-    expect(parseDateLink("(from 2026-10-13)")).toEqual({
+  it("parses (<YYYY-MM-DD) form", () => {
+    expect(parseDateLink("(<2026-10-13)")).toEqual({
       date: "2026-10-13",
     });
   });
