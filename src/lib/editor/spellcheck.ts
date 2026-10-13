@@ -330,6 +330,7 @@ class SpellCheckPluginValue {
   private view: EditorView;
   private isDestroyed = false;
   private isTyping = false;
+  private emptyRetries = 0;
 
   constructor(view: EditorView) {
     this.view = view;
@@ -341,7 +342,9 @@ class SpellCheckPluginValue {
     if (update.docChanged) {
       this.isTyping = true;
       this.scheduleCheck();
-    } else if (update.viewportChanged) {
+    } else if (update.viewportChanged || update.geometryChanged) {
+      // geometryChanged: the window starts hidden and the editor gets its size only when it is shown; without this the
+      // first check found no visible lines and nothing checked again until the user typed or scrolled (0.32.0-3).
       this.scheduleCheck();
     } else if (update.selectionSet && this.isTyping) {
       // Caret moved after typing: re-evaluate caret exclusion
@@ -370,7 +373,12 @@ class SpellCheckPluginValue {
     if (langs.length === 0) return;
 
     const visibleRanges = this.view.visibleRanges;
-    if (visibleRanges.length === 0) return;
+    // Not laid out yet (hidden window, Settings page covering the note): try again shortly, a bounded number of times.
+    if (visibleRanges.length === 0 || this.view.contentDOM.offsetHeight === 0) {
+      if (this.emptyRetries++ < 20) this.scheduleCheck();
+      return;
+    }
+    this.emptyRetries = 0;
 
     const doc = this.view.state.doc;
     const linesToCheck: { number: number; from: number; to: number; text: string }[] = [];
