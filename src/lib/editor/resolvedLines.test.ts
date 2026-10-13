@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { EditorState } from "@codemirror/state";
 import { EditorView } from "@codemirror/view";
-import { buildResolvedLineDecorations, resolvedLinesPlugin } from "./resolvedLines";
+import { buildResolvedLineDecorations, resolvedLinesPlugin, resolvedParts } from "./resolvedLines";
 
 function getResolvedLineIndices(doc: string): number[] {
   const state = EditorState.create({ doc });
@@ -119,5 +119,42 @@ describe("resolvedLinesPlugin", () => {
 
     const indices = getResolvedLineIndices(doc);
     expect(indices).toEqual([1, 2, 3]);
+  });
+});
+
+describe("resolvedParts: every => starts a part dimmed by its own state", () => {
+  const slices = (line: string) => {
+    const r = resolvedParts(line);
+    return r === "all" ? "all" : r.map((p) => line.slice(p.from, p.to));
+  };
+
+  it("one state: the whole line or nothing", () => {
+    expect(slices("v done")).toBe("all");
+    expect(slices(". discussed")).toBe("all");
+    expect(slices("# open")).toEqual([]);
+    expect(slices("plain text")).toEqual([]);
+  });
+
+  it("a follow-up without a symbol belongs to the part before it", () => {
+    expect(slices("v call Sam => he agreed")).toBe("all");
+    expect(slices("x drop it => @dana knows")).toBe("all");
+    expect(slices("# call Sam => he is away")).toEqual([]);
+  });
+
+  it("an open part keeps full strength next to dealt-with parts", () => {
+    expect(slices(". budget => # send numbers")).toEqual([". budget "]);
+    expect(slices("# ask Sam => v sent the mail")).toEqual(["=> v sent the mail"]);
+    expect(slices(". budget => o raise again")).toEqual([". budget "]);
+    expect(slices("Talked to Sam => v follow up done")).toEqual(["=> v follow up done"]);
+  });
+
+  it("several follow-ups, topics and actions on one line", () => {
+    expect(slices(". budget => v sent => # check reply => , agenda next week")).toEqual([
+      ". budget ",
+      "=> v sent ",
+      "=> , agenda next week",
+    ]);
+    expect(slices("v done => . discussed => x dropped")).toBe("all");
+    expect(slices("o topic => v done => he agreed => # next")).toEqual(["=> v done ", "=> he agreed "]);
   });
 });

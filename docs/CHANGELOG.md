@@ -10443,3 +10443,11 @@ Not verified natively yet: printing in WebView2 under the desktop CSP, the save 
 - **Cause:** two messages appeared at once. The info bar (the same component as "Updated to", §332) already had a Sign in again button that starts the sign-in; a separate toast repeated the text with a click that went elsewhere.
 - **Fix:** the toast is gone; the info bar is the one message (`oneDriveSync.ts`). Its text is now just "Your OneDrive sign-in has expired." (new key `infoBar.signInExpired` in 7 locales, replacing `toast.oneDriveSync.signInExpired`), since the button says what to do. A new expiry brings the bar back even if it was dismissed earlier in the session. The cloud button, the status popover and Settings keep their own Sign in again.
 - Tests: `controller.test.ts` (no toast, dismissed bar returns), `sync-health-popover.spec.ts` (the bar's button renews the sign-in, no toast).
+
+## 365. Dimming per follow-up part
+
+**Status: on `main`, unreleased.**
+
+- **Marien:** dim only the part of a line that is dealt with, also with several follow-ups, topics and actions on one line; the follow-up arrow works as a separator.
+- **Fix:** `resolvedParts` in `editor/resolvedLines.ts` (from the tokenizer). Each `=> ` starts a part; a part is dimmed when its own symbol (the leading one, or the action/topic right after its arrow, §363's `=> o` included) is done, deferred, won't do, discussed or not discussed. A follow-up without a symbol (`=> he agreed`, `=> @dana`) belongs to the part before it, so `v call Sam => he agreed` stays fully dimmed as before. A fully dealt-with line keeps the whole-line dimming; otherwise each dimmed part is its own span. Replaces the single special case of §269 (a resolved topic with an open `=> #`). Changed: `# ask Sam => v mailed` now dims the follow-up (was not dimmed); `Talked to Sam => v done` dims only the follow-up (was the whole line). The leading glyph is now inside its part's span (`inclusiveStart`), so a discussed topic's ◉ dims with its text (it stayed bright before).
+- Tests: `resolvedLines.test.ts` (`resolvedParts`, several parts per line), `editor-tokens.spec.ts` (three parts on one line, glyphs dimmed with their part).

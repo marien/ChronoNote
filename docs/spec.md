@@ -73,8 +73,11 @@ whole `=> ` token in one step, as if un-delegating the line.
 
 A line that is no longer open (done `v `, deferred `> `, won't-do `x `, a discussed `. ` or postponed `, ` topic, or a `=> v `/`=> > `/`=> x ` follow-up) is drawn slightly
 dimmed so open work stands out; it returns to full strength on hover and while the caret or selection is on the line.
-Section titles are never dimmed. Exception: a discussed/postponed topic that has an **open** follow-up (`. topic => # follow up`) is dimmed only
-up to the arrow, so the open action itself stays at full strength.
+Section titles are never dimmed. Each `=> ` starts a new part of the line, and each part is dimmed by its own
+state: its leading symbol, or the action or topic right after its arrow. A follow-up without a symbol of its own
+(`=> he agreed`, `=> @dana`) belongs to the part before it. So `. budget => # send numbers` dims only the topic,
+`# ask Sam => v mailed` only the follow-up, and `. budget => v sent => # check reply` everything but the open
+action (§365).
 
 All four action symbols (`# `/`v `/`> `/`x `) and the three topic symbols
 (`o `/`. `/`, `) may be indented in two-space increments, the same as

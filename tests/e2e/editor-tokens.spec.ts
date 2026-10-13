@@ -398,6 +398,19 @@ test.describe("editor — token glyphs", () => {
     await expect(lines.nth(2)).toHaveClass(/(^|\s)cm-line-resolved(\s|$)/);
   });
 
+  test("every => starts a part dimmed by its own state: open parts keep full strength between dealt-with ones", async ({ page }) => {
+    await setEditorText(page, "first line\n. budget => v sent => # check reply => , next week\n# ask Sam => v mailed");
+    const lines = editor(page).locator(".cm-line");
+    const opacity = (loc: ReturnType<typeof lines.nth>) => loc.evaluate((el) => Number(getComputedStyle(el).opacity));
+    const parts = lines.nth(1).locator(".cm-resolved-part");
+    await expect.poll(() => parts.allTextContents()).toEqual(["◉budget ", "➔☑sent ", "➔◌next week"]); // each part with its own glyph
+    expect(await opacity(lines.nth(1).locator(".glyph-open"))).toBe(1);
+    await expect(lines.nth(1).locator(".cm-resolved-part .glyph-open")).toHaveCount(0);
+    // An open action with a done follow-up: only the follow-up is dimmed.
+    await expect(lines.nth(2).locator(".cm-resolved-part")).toHaveText(["➔☑mailed"]);
+    await expect.poll(() => opacity(lines.nth(2).locator(".cm-resolved-part"))).toBeLessThan(1);
+  });
+
   test("meeting topics: rendering glyphs, zero action counts, and dimming", async ({ page }) => {
     await setEditorText(page, "o to discuss\n. discussed\n, skipped");
 
