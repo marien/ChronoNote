@@ -4,6 +4,10 @@ import { stateFirst } from "../tokens";
 /** Transaction filter that rewrites a line to state-first when the selection head leaves it.
  * Appends a change for the previous line so it forms a single undo step with the movement. */
 export const stateFirstFilter = EditorState.transactionFilter.of((tr) => {
+  // Only the user's own typing and caret moves: a note loaded from disk, a sync or a drawer edit is never rewritten.
+  if (!(tr.isUserEvent("input") || tr.isUserEvent("select") || tr.isUserEvent("delete") || tr.isUserEvent("move"))) {
+    return tr;
+  }
   if (tr.startState.selection.ranges.length > 1 || tr.newSelection.ranges.length > 1) {
     return tr;
   }

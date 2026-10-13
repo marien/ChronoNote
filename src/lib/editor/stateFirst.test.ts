@@ -15,8 +15,17 @@ describe("stateFirstFilter", () => {
   it("rewrites list-then-state when caret leaves the line", () => {
     let state = makeState("- # task\n", 8);
     // Move caret to line 2
-    state = state.update({ selection: { anchor: 9 } }).state;
+    state = state.update({ selection: { anchor: 9 }, userEvent: "select" }).state;
     expect(state.doc.line(1).text).toBe("# - task");
+  });
+
+  it("leaves a line alone when the move is not the user's (a note loaded or synced in)", () => {
+    let state = makeState("- # task\n", 8);
+    state = state.update({ selection: { anchor: 9 } }).state;
+    expect(state.doc.line(1).text).toBe("- # task");
+    state = makeState("x\n", 0);
+    state = state.update({ changes: { from: 0, to: 2, insert: "- # loaded\nnext" }, selection: { anchor: 13 } }).state;
+    expect(state.doc.line(1).text).toBe("- # loaded");
   });
 
   it("rewrites on Enter leaving the line, and one undo restores original", () => {
