@@ -10429,7 +10429,7 @@ Not verified natively yet: printing in WebView2 under the desktop CSP, the save 
 
 ## 363. Pasting onto an empty symbol gives one symbol
 
-**Status: on `main`, unreleased.**
+**Status: released in v0.32.0.**
 
 - **Marien:** pasting an open action right after an empty open-action glyph gave an extra `#` (`# # call Dana`) that had to be removed by hand.
 - **Fix:** a transaction filter on paste (`editor/pasteOverEmptyMarker.ts`). When the line before the caret is only a symbol (action, topic or bullet, indented or not), nothing follows the caret, and the pasted text starts with a symbol of its own, the empty symbol is replaced: the pasted line keeps its own symbol (`v sent` onto `# ` gives `v sent`) at the line's indentation. Multi-line pastes keep every line; typing, a paste without a symbol, a line with text, or several cursors are left alone. One undo step brings the empty symbol back. Copy/paste deferral of the source is unchanged.
@@ -10437,7 +10437,7 @@ Not verified natively yet: printing in WebView2 under the desktop CSP, the save 
 
 ## 364. An expired OneDrive sign-in has one message, with a button that signs in
 
-**Status: on `main`, unreleased.**
+**Status: released in v0.32.0.**
 
 - **Marien (web app):** when the OneDrive sign-in expired, a toast said "Click to sign in again", but clicking it only opened the sync status popover. He asked for the sign-in to start from the message, and for the message to look like the "Updated to" one, which has a real button.
 - **Cause:** two messages appeared at once. The info bar (the same component as "Updated to", §332) already had a Sign in again button that starts the sign-in; a separate toast repeated the text with a click that went elsewhere.
@@ -10446,7 +10446,7 @@ Not verified natively yet: printing in WebView2 under the desktop CSP, the save 
 
 ## 365. Dimming per follow-up part
 
-**Status: on `main`, unreleased.**
+**Status: released in v0.32.0.**
 
 - **Marien:** dim only the part of a line that is dealt with, also with several follow-ups, topics and actions on one line; the follow-up arrow works as a separator.
 - **Fix:** `resolvedParts` in `editor/resolvedLines.ts` (from the tokenizer). Each `=> ` starts a part; a part is dimmed when its own symbol (the leading one, or the action/topic right after its arrow, the new `=> o` included) is done, deferred, won't do, discussed or not discussed. A follow-up without a symbol (`=> he agreed`, `=> @dana`) belongs to the part before it, so `v call Sam => he agreed` stays fully dimmed as before. A fully dealt-with line keeps the whole-line dimming; otherwise each dimmed part is its own span. Replaces the single special case of §269 (a resolved topic with an open `=> #`). Changed: `# ask Sam => v mailed` now dims the follow-up (was not dimmed); `Talked to Sam => v done` dims only the follow-up (was the whole line). The leading glyph is now inside its part's span (`inclusiveStart`), so a discussed topic's ◉ dims with its text (it stayed bright before).
@@ -10454,7 +10454,7 @@ Not verified natively yet: printing in WebView2 under the desktop CSP, the save 
 
 ## 366. Sub-section headers: a line of - drawn as a single rule
 
-**Status: on `main`, unreleased.**
+**Status: released in v0.32.0.**
 
 - **Marien:** sub-sections inside a section are marked with a line of `-` under their title; draw it as a single line, the way a line of `=` is drawn as a double one. No other function yet.
 - **Done:** `setextRule.ts` also marks a line of three or more `-` (`isSubsectionUnderline`) with `.cm-subsection-rule`: one 1px line through where the `-` ink sits, same colour as the double rule, `CanvasText` in a contrast theme. Like the `===` rule it shows the literal, editable dashes while the caret, a selection or the mouse is on the row. A bullet (`- ` with a space) and dashes inside text are not rules. Sections, Section History, Peek and the line menu ignore sub-sections.
@@ -10462,7 +10462,7 @@ Not verified natively yet: printing in WebView2 under the desktop CSP, the save 
 
 ## 367. Glyph combinations: actions, topics, follow-ups, lists and emphasis work together
 
-**Status: on `main`, unreleased.**
+**Status: released in v0.32.0.**
 
 Marien: actions, agenda topics, follow-ups and lists should work independently, so anything can be made an action or a topic; topics stay the first glyph of a line (now also allowed right after `=> `, to mark a follow-up still to discuss), and a mid-line action still needs a `=> `. Analysis of 45 combinations found list-then-state lines (`- # task`, `1. o topic`) plain text, state shortcuts doing nothing on list lines, `# - task` showing a raw dash, no number continuation on action lines, and `!` only at column 0. One order now: state symbol first, then an optional list marker, then text, then follow-ups. Implemented by Gemini 3.8 Flash in two briefs (G1 grammar, G2 commands; `agent-tools/briefs/g1-glyph-grammar.md`, `g2-glyph-commands.md`), reviewed and integrated by the orchestrator.
 
@@ -10474,13 +10474,13 @@ Marien: actions, agenda topics, follow-ups and lists should work independently, 
 
 ## 368. Names in parentheses have no separate meaning any more
 
-**Status: on `main`, unreleased.**
+**Status: released in v0.32.0.**
 
 - Since §268 every `@name` is badged on any line, so `(@dana, @lee)` already looked the same as bare names. The tokenizer's separate `assigneeList` token and the read-only view's code for it are removed: each name in parentheses is an ordinary `@name`. `(word)` never matches `(@…)`, so `# (@dana) task` is still not a topic tag. Nothing looks different (golden snapshot: only the read-only view's split of `)` from the following text changed).
 
 ## 369. Replace in the current note, and Go to section (feature review D1, D3)
 
-**Status: on `main`, unreleased (after beta 0.32.0-1).**
+**Status: released in v0.32.0.**
 
 - **Replace (D1):** `Ctrl/Cmd+H` opens the find bar with a Replace row (a chevron at its left shows/hides it, like Notepad). Replace (Enter in the replace field) replaces the current match and moves on; Replace all (`Ctrl+Alt+Enter`) is one undo step and reports "Replaced N". Match case and Whole word toggles; the highlight and the count follow them. Built on `@codemirror/search` (`replaceNext`, `replaceAll`); `editorApi.find` gained `setReplace`, `setOptions`, `replace`, `replaceAll`.
 - **Go to section (D3):** `Ctrl/Cmd+G` opens the command palette with `#`: the note's sections in order, each with its open-action count, type to filter, Enter jumps to the title. `#` typed in `Ctrl+K` does the same. `listSections` in `tokens.ts` (a `---` sub-section is not a section).
@@ -10488,14 +10488,14 @@ Marien: actions, agenda topics, follow-ups and lists should work independently, 
 
 ## 370. Spell check, off by default (feature review D2)
 
-**Status: on `main`, unreleased (after beta 0.32.0-1).**
+**Status: released in v0.32.0.**
 
 - New setting Editor -> Spell check (`AppConfig.spellCheck`, all three backends, old configs load with false). On: the editor's content gets `spellcheck="true"` and WebView2/the browser underlines misspelled words in the system's languages. `@name` badges, topic tags and URL links are not checked. Shift+right-click on a word shows the browser's own menu with suggestions (`EditorPane` and `contextMenuGuard.ts` let it through); a plain right-click still opens the line menu.
 - Gemini 3.8 Flash (brief H2). Tests: `spell-check.spec.ts`, config round-trip and upgrade-fixture tests. **Not verified natively:** that WebView2 underlines and offers suggestions in the installed app.
 
 ## 371. Links to other days and sections, Back, and from/to links when an action is forwarded (feature review D4)
 
-**Status: on `main`, unreleased (after beta 0.32.0-1).**
+**Status: released in v0.32.0.**
 
 - **Date links:** a full date `YYYY-MM-DD` (a real calendar date) in a note is a link; `2026-10-03#Standup` also lands on that section (titles compared with `titleForMatching`; not found -> top of the note and a message). Ctrl/Cmd+Click, middle-click, or a tap on a phone opens it. A date in a section title is not a link. `editor/dateLinks.ts`, `dateLinks.ts`.
 - **Back (Marien: "a way to go back to where you came from"):** every link jump remembers where you were (50 places). `Ctrl+Alt+Left` (`Cmd+[` on Mac; plain Alt+Left stays occurrence stepping), the mouse's back button, the palette's "Go back", and a "Back to <date>" button at the left of the status bar while there is somewhere to go back to.
@@ -10505,7 +10505,7 @@ Marien: actions, agenda topics, follow-ups and lists should work independently, 
 
 ## 372. Forward links as (>date#section) and (<date#section); per-line sections; a second forward chains
 
-**Status: on `main`, unreleased (after beta 0.32.0-1).**
+**Status: released in v0.32.0.**
 
 - **Marien:** use `>` and `<` without a space instead of the words: the source line gets `(>2026-10-14#Weekly Sync)` (where it went), the pasted line `(<2026-10-13#Standup)` (where it came from). Replaces §371's `(to …)`/`(from …)`, which never shipped. `forwardLink`, `TRAILING_LINKS` in `paste.ts`; the editor's link regex and `parseDateLink` follow.
 - **Several lines:** every open action or topic in a multi-line copy gets its own links; each pasted line's `(<…)` now carries the section that line was in (a copy can span sections; it used the first line's section for all).
@@ -10514,7 +10514,7 @@ Marien: actions, agenda topics, follow-ups and lists should work independently, 
 
 ## 373. D section decisions: forward links on every way of forwarding, open actions only, bracketed sections, Forward
 
-**Status: on `main`, unreleased (after beta 0.32.0-1).**
+**Status: released in v0.32.0.**
 
 Marien's review of the D choices (2026-10-13), implemented by Gemini 3.8 Flash (brief H4), integrated by the orchestrator:
 - **All forwarding adds links:** Shift+Enter in Actions (`forwardActionToToday`: `(>today)`, the copy at the top of today gets `(<date#section)`), Copy to next occurrence and Section History's take-over (`commitCopyForward`: the target section, also a new one and the same-file case), and paste. One rule in `withToLink`/`withFromLink` (`paste.ts`). A line History re-adopts after it was deferred earlier gets its `(<…)`; its source line is not changed by the take-over, so it gains no `(>…)`.
@@ -10526,14 +10526,14 @@ Marien's review of the D choices (2026-10-13), implemented by Gemini 3.8 Flash (
 
 ## 374. Back and Forward as a small dismissible toast; spell check diagnosis
 
-**Status: on `main`, unreleased (after beta 0.32.0-2).**
+**Status: released in v0.32.0.**
 
 - **Marien (0.32.0-2):** the Back/Forward buttons stayed in the status bar long after they were needed. They are now a small card at the top right (`NavToast.svelte`): Back (and Forward when there is somewhere to go) plus a close button. A link jump shows it (again, also after it was closed); the keyboard shortcuts and mouse buttons keep working while it is hidden and do not bring it back; it hides by itself when there is nowhere to go. Gemini 3.8 Flash (brief H5). Tests: `date-links.spec.ts`.
 - **Spell check "does nothing" (Marien, one system):** a native check on an isolated debug build (own app identifier, throwaway notes folder, attached over CDP) showed WebView2 does underline misspelled words, but against the page language (`<html lang>` = the app's display language): with Dutch UI, English words were flagged. A display language without a Windows spelling dictionary therefore checks nothing, the likely cause. After attribute experiments the spell checker stopped marking anything until all WebView2 processes ended, so further results were not reliable. Waiting for Marien's checks on that system before changing which language the editor uses.
 
 ## 375. Spell check on the Windows spell checker, with its own underlines and suggestions
 
-**Status: on `main`, unreleased (after beta 0.32.0-2).**
+**Status: released in v0.32.0.**
 
 - **Why (Marien, 0.32.0-2):** the browser's spell checker underlined words only some of the time and lost them when scrolling. Native tests on an isolated build (long note, scroll, fresh WebView2 profile) showed the cause: WebView2 only checks text it sees being typed, and CodeMirror rebuilds line elements on scroll, caret moves and decoration updates, which drops the marks. It also checks against the page language (the app's display language).
 - **Now:** Rust `spell.rs` (Gemini, brief S1) talks to the Windows Spell Checking API (ISpellCheckerFactory/ISpellChecker on one COM thread, commands off the UI thread): `spell_languages`, `spell_check_lines` (a word is wrong only when every active language flags it), `spell_suggest`, `spell_add` (Windows user dictionary), `spell_ignore` (this session). The editor (`editor/spellcheck.ts`, brief S2) checks the visible lines (debounced, cached per line text) and draws its own wavy underline decorations, which survive redraws; it skips symbols, `@names`, topic tags, URLs, dates, words with digits, `===` lines and the word being typed. Right-clicking a marked word puts suggestions, Add to dictionary and Ignore at the top of ChronoNote's line menu (one undo step to replace). The web app keeps the browser checker (Shift+right-click).
@@ -10542,7 +10542,7 @@ Marien's review of the D choices (2026-10-13), implemented by Gemini 3.8 Flash (
 
 ## 376. Spell check language picker
 
-**Status: on `main`, unreleased (after beta 0.32.0-2).**
+**Status: released in v0.32.0.**
 
 - **Marien:** his Windows language list holds only Dutch, so English text was flagged; he chose a language picker in ChronoNote. Settings > Editor > Spell check languages lists every language Windows can spell check (`spell_available_languages`), with the chosen ones first; default = the Windows languages plus English when Windows has it; a word is marked only when none of the ticked languages knows it; the last ticked one cannot be unticked. Stored as `AppConfig.spellLanguages` (all backends; `None` = default). Rust: the factory stays alive; `spell_windows_languages`, `spell_set_languages` rebuild the checkers. Gemini 3.8 Flash (brief L1).
 - **Found at integration:** Windows only offers languages whose spelling dictionary is installed; on this machine that is `nl-BE` and `nl-NL`, so English cannot be ticked until it is added in Windows (Settings > Time & language > Language & region; it does not have to become the display language). The picker now says so (`settings.editor.spellLanguages.missing`, 7 locales).
@@ -10550,7 +10550,7 @@ Marien's review of the D choices (2026-10-13), implemented by Gemini 3.8 Flash (
 
 ## 377. Spell check: an empty line no longer stops all marks (English-only Windows)
 
-**Status: on `main`, unreleased (after beta 0.32.0-3).**
+**Status: released in v0.32.0.**
 
 - **Marien (0.32.0-3, work laptop with English only):** the language picker listed the English variants, but no word was underlined.
 - **Found on CI's English-only Windows runner** with a new native test (`tests/native/smoke.spec.ts`: spell check on, the real Rust commands, the editor's marks, console and app log as diagnostics): Rust flagged the words correctly, the editor showed none, and the console said `Check failed for en-US: The parameter is incorrect (0x80070057)`. `ISpellChecker::Check` rejects an EMPTY string, the editor sends all visible lines in one batch, and one failure failed the whole batch: any note with an empty line on screen got no marks. The native check on this machine (§376) passed only because its long test note had no empty line in view.
@@ -10559,6 +10559,6 @@ Marien's review of the D choices (2026-10-13), implemented by Gemini 3.8 Flash (
 
 ## 378. Add to dictionary takes effect at once
 
-**Status: on `main`, unreleased (after beta 0.32.0-4).**
+**Status: released in v0.32.0.**
 
 - **Marien (0.32.0-4):** after Add to dictionary the word stayed marked; it only passed once another word was added. Windows applies an `ISpellChecker::Add` to the user dictionary in the background, so the re-check that follows still flagged it. `spell.rs` now also calls `Ignore` (this session, immediate) right after `Add`; the dictionary entry persists for later sessions as before. The real-API smoke test now checks that an ignored word is accepted on the very next check (Add itself is not tested against the real API, to keep this PC's user dictionary untouched).
