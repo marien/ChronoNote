@@ -360,6 +360,15 @@ body.peek-mode .cm-overview-ruler {
 .cm-focused .cm-selectionBackground {
   background: var(--editor-selection-bg) !important;
 }
+/* @codemirror/view 6.43.14 moved its zero-width widget buffers (an `img` of
+   1em around every glyph widget) from `text-top` to `baseline`, for the
+   native cursor. We draw our own cursor (drawSelection), and on `baseline`
+   the 1em image stood glyph lines' ink 1px off the text at 150% scaling
+   (glyph-layout.spec.ts "baseline alignment"). Kept on the old alignment.
+   Three classes: CodeMirror's own rule is scoped with two and injected later. */
+.cm-editor .cm-content .cm-widgetBuffer {
+  vertical-align: text-top;
+}
 .cm-cursor,
 .cm-dropCursor,
 .cm-editor .cm-cursor-primary,
