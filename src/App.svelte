@@ -702,7 +702,7 @@
 
   // §108: a modal opening over an open find bar leaves the bar stranded
   // behind the overlay — close it. (`find.clear()` is synchronous, so
-  // this can't retrigger itself the way an awaited `$:` block can.)
+  // this effect can't retrigger itself the way one that awaits can.)
   $effect(() => {
     if ($modal !== "none" && $findOpen) {
       editorApi?.find.clear();

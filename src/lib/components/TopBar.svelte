@@ -250,8 +250,9 @@
 
   /** Waits for the next paint frame — used instead of Svelte's own `tick()`
    * everywhere below. `tick()` resolves via Svelte's reactive scheduler,
-   * and awaiting it inside a function invoked from a `$:` reactive
-   * statement (as both `settleLayout` and `scrollActiveTabIntoView` are)
+   * and awaiting it inside a function invoked from a reactive block (a
+   * `$:` statement when this was written, an `$effect` since runes; both
+   * `settleLayout` and `scrollActiveTabIntoView` were called that way)
    * hands control back to that same scheduler on resume — which can decide
    * the originating statement is still "active" and re-run it, and if the
    * resumed code does anything that looks like more reactive work, this
@@ -503,6 +504,9 @@
     }
   }
 
+  // Written before the runes migration (§312), so it says `$:` blocks; the
+  // same holds for `$effect`: keep these two as plain store subscriptions.
+  //
   // §55/§56/§60/§61 each fixed a real cause of the same underlying bug
   // (the top bar's labels flickering on/off, sometimes forever) and each
   // time it came back — most recently reported still happening on *middle*
@@ -524,14 +528,14 @@
   // confirmed from its source, but consistent with every partial fix
   // simply moving the boundary rather than removing it.
   //
-  // Store subscriptions are not `$:` blocks at all — Svelte 3/4's older,
-  // plain callback-based pub/sub, predating and unrelated to the signals
-  // engine — so a write inside a subscription callback (or inside
-  // something it awaits) has no reactive statement to ever be attributed
-  // back to. Using `tabs.subscribe`/`activeTabId.subscribe` directly here,
-  // instead of `$:` blocks that call these same functions, removes the
-  // retrigger channel entirely rather than papering over wherever it was
-  // last observed.
+  // Store subscriptions are not reactive blocks (`$:` or `$effect`) at
+  // all — Svelte 3/4's older, plain callback-based pub/sub, predating and
+  // unrelated to the signals engine — so a write inside a subscription
+  // callback (or inside something it awaits) has no reactive statement to
+  // ever be attributed back to. Using `tabs.subscribe`/
+  // `activeTabId.subscribe` directly here, instead of reactive blocks that
+  // call these same functions, removes the retrigger channel entirely
+  // rather than papering over wherever it was last observed.
   //
   // #57: `tabs.subscribe` on its own over-fires, though — every keystroke
   // calls `updateActiveTabContent()`, which is a `tabs.set()` on every

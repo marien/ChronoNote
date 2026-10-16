@@ -884,8 +884,8 @@
 
     // Reconfigure the wrap compartment whenever Settings toggles it. Fires
     // immediately with the current value too, which harmlessly re-applies
-    // what the initial state already set. Plain store subscription, not a
-    // `$:` block — see TopBar.svelte's long note on why that matters near
+    // what the initial state already set. Plain store subscription, not an
+    // `$effect` — see TopBar.svelte's long note on why that matters near
     // CodeMirror.
     const reconfigureMeasure = () => {
       view?.dispatch({

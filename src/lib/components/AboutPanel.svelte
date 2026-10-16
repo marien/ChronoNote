@@ -73,7 +73,7 @@
   });
 
   /** "Checked just now / 3 minutes ago / 2 hours ago" for the last completed update check.
-   * A `$:` block (not a plain function called from the template) so Svelte tracks `$t` as a
+   * A `$derived.by` (not a plain function called from the template) so Svelte tracks `$t` as a
    * real reactive dependency here too — a plain helper function's own internal `$t` reference
    * wouldn't otherwise make the template re-render on a language change while this stays open. */
   const agoText = $derived.by(() => {

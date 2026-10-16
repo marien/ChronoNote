@@ -68,7 +68,7 @@
   }
 
   // "All Files" scans every line of every cached file — re-running that on
-  // every keystroke (which a plain `$: controller.runSearch(...)` would do)
+  // every keystroke (which an `$effect` calling `controller.runSearch(...)` would do)
   // is what caused the multi-second near-freeze found during large-dataset
   // stress testing (§38): typing a few characters fired a full rescan of
   // tens of thousands of lines several times in a row. Debouncing "all"
