@@ -40,7 +40,7 @@ sha2 = "0.10"
 # shapes; a `cargo test` regenerates `src/lib/generated/tauri-types.ts`
 # from the `#[derive(TS)]` types (§98). Only the derive macro is used at
 # compile time; nothing ts-rs ships in the release binary.
-ts-rs = "12"
+ts-rs = { version = "12", features = ["no-serde-warnings"] }
 
 [profile.release]
 panic = "abort"

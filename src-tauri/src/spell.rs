@@ -729,7 +729,7 @@ mod tests {
     #[test]
     fn test_intersect_ranges_single_language() {
         let lang1 = vec![(0, 3), (5, 10)];
-        assert_eq!(intersect_ranges(&[lang1.clone()]), lang1);
+        assert_eq!(intersect_ranges(std::slice::from_ref(&lang1)), lang1);
     }
 
     #[test]

@@ -10579,3 +10579,11 @@ Marien's review of the D choices (2026-10-13), implemented by Gemini 3.8 Flash (
 - **Cause (not layout):** the test seeds twice (the describe's `beforeEach` seeds `single-day`, the test seeds its own two notes). The failure snapshot showed the app running on the `single-day` note ("Weekly Planning"), not the new seed. `seedApp()` cleared `sessionStorage` on the old page and then navigated, but the old page keeps running until the navigation commits; a mock write it made in that window (a save, the tab session) put the old state back, and the mock prefers saved state over the seed on load. With two workers this happened 3 times in 10 runs.
 - **Fix:** every `seedApp()` call gives its seed a fresh `seedId`; the mock saves it with its state and only hydrates saved state with the same id (`MockSeed.seedId`, `tryHydrate(seedId)`). A reload within one seed still restores state as before.
 - **Verified:** the test 10/10 with `--repeat-each=10` (2 workers and 1 worker; 7/10 before), and the full chromium suite.
+
+## 381. Rust code-quality warnings cleared (clippy 13 -> 0)
+
+**Status: on `main`, unreleased.**
+
+- Leftovers from earlier work, none from the §379 updates: the unused `VERSIONS_MAX_PER_NOTE` (the cap of 20 from §358, replaced in §360 by "every version of today, the newest of each earlier day, 30 days"; no backend used it), two unused test bindings (one now builds the test's versions folder from the filename), `sort_by_key`, `is_err()`, one `replace` call with both line breaks, `slice::from_ref` in a spell test.
+- **The app-log reader** (About → app log) used `lines().flatten()`, which clippy flags because a repeating read error loops forever. The obvious `map_while(Result::ok)` would instead hide everything after one line with invalid UTF-8, so it now reads raw lines and decodes them leniently: a broken line shows with a replacement character, a read error ends that file. New test.
+- ts-rs's note that it ignores serde's `alias` (kept so old configs with `legacy` load) is off via its `no-serde-warnings` feature; the generated TypeScript types are unchanged.

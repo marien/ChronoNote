@@ -815,7 +815,6 @@ const CONFLICTS_DIRNAME: &str = ".chrononote-conflicts";
 
 pub const VERSIONS_DIRNAME: &str = ".chrononote-versions";
 pub const VERSIONS_KEEP_DAYS: i64 = 30;
-pub const VERSIONS_MAX_PER_NOTE: usize = 20;
 
 #[derive(Serialize, Clone, PartialEq, Debug, TS)]
 #[serde(rename_all = "camelCase")]
@@ -983,7 +982,7 @@ pub fn clean_up_versions_and_trash_at(
                     }
 
                     for (_day, mut versions) in earlier_by_day {
-                        versions.sort_by(|a, b| b.0.cmp(&a.0));
+                        versions.sort_by_key(|v| std::cmp::Reverse(v.0));
                         for (_, old_path) in versions.into_iter().skip(1) {
                             let _ = fs::remove_file(old_path);
                         }
@@ -1310,7 +1309,7 @@ fn delete_note_at(root: &Path, filename: &str, expected_hash: Option<&str>) -> R
         if trash_target.exists() {
             let _ = fs::remove_file(&trash_target);
         }
-        if let Err(_) = fs::rename(&target, &trash_target) {
+        if fs::rename(&target, &trash_target).is_err() {
             atomic_write(&trash_target, content.as_bytes()).map_err(|e| e.to_string())?;
             let _ = fs::remove_file(&target);
         }
@@ -3367,7 +3366,7 @@ mod tests {
 
         // Emptying the note keeps a version even within 5 minutes (at t0 + 8m, 1 min after last version)
         let t5 = t0 + chrono::Duration::minutes(8);
-        let m5 = write_note_at_time(root, filename, "   ", m4.content_hash.as_deref(), t5).unwrap();
+        write_note_at_time(root, filename, "   ", m4.content_hash.as_deref(), t5).unwrap();
         let vers3 = list_versions_at(root, filename).unwrap();
         assert_eq!(vers3.len(), 3);
         assert_eq!(read_version_at(root, filename, &vers3[0].name).unwrap(), "Draft 4");
@@ -3422,7 +3421,7 @@ mod tests {
         let dir = tempdir().unwrap();
         let root = dir.path();
         let filename = "2026-10-15.txt";
-        let v_dir = root.join(VERSIONS_DIRNAME).join("2026-10-15");
+        let v_dir = root.join(VERSIONS_DIRNAME).join(note_stem(filename));
         fs::create_dir_all(&v_dir).unwrap();
 
         // Fixed now: Day D is 2026-10-15 18:00:00

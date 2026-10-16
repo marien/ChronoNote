@@ -16,7 +16,7 @@ pub fn init(dir: PathBuf) {
 
 /// Sanitizes a log message: newlines become ` | `, and the string is cut to 2000 chars.
 pub fn sanitize_message(msg: &str) -> String {
-    let flat = msg.replace("\r\n", " | ").replace('\n', " | ").replace('\r', " | ");
+    let flat = msg.replace("\r\n", " | ").replace(['\n', '\r'], " | ");
     flat.chars().take(2000).collect()
 }
 
@@ -59,19 +59,12 @@ pub fn tail_at(dir: &Path, lines: usize) -> String {
     }
     let mut all_lines = Vec::new();
 
-    let log_1 = dir.join("app.log.1");
-    if let Ok(f) = fs::File::open(&log_1) {
-        let reader = BufReader::new(f);
-        for line in reader.lines().flatten() {
-            all_lines.push(line);
-        }
-    }
-
-    let log_file = dir.join("app.log");
-    if let Ok(f) = fs::File::open(&log_file) {
-        let reader = BufReader::new(f);
-        for line in reader.lines().flatten() {
-            all_lines.push(line);
+    for name in ["app.log.1", "app.log"] {
+        if let Ok(f) = fs::File::open(dir.join(name)) {
+            // Raw lines, decoded leniently: a line with invalid UTF-8 still shows; a read error ends the file.
+            for line in BufReader::new(f).split(b'\n').map_while(Result::ok) {
+                all_lines.push(String::from_utf8_lossy(&line).trim_end_matches('\r').to_string());
+            }
         }
     }
 
@@ -152,6 +145,15 @@ mod tests {
         assert_eq!(lines_two.len(), 2);
         assert!(lines_two[0].contains("msg2"));
         assert!(lines_two[1].contains("msg3"));
+    }
+
+    #[test]
+    fn test_tail_keeps_lines_after_invalid_utf8_and_strips_crlf() {
+        let tmp = tempfile::tempdir().unwrap();
+        let dir = tmp.path();
+        fs::write(dir.join("app.log"), b"first\r\nbad \xff byte\nlast\n").unwrap();
+        let lines: Vec<String> = tail_at(dir, 10).lines().map(String::from).collect();
+        assert_eq!(lines, vec!["first".to_string(), "bad \u{fffd} byte".to_string(), "last".to_string()]);
     }
 
     #[test]
