@@ -5,8 +5,8 @@
 **[`refactoring-review-oct16-2026.md`](refactoring-review-oct16-2026.md)** — approved 2026-10-16:
 review of an external agent's 8 refactoring tasks against the code. Phase A: remove dead OneDrive
 error codes, one derived sync-status store, a shared Vite version helper. Phase B: one storage
-conformance case table run against `storage.rs`, the mock and the web backend. Release-in-CI needs a
-decision; command-registration split, async theme load and a CodeMirror adapter rewrite dropped.
+conformance case table run against `storage.rs`, the mock and the web backend. Release-in-CI decided
+against for now (stays local); command-registration split, async theme load and a CodeMirror adapter rewrite dropped.
 
 ## Agenda: Notification pip, ad-hoc calls, silent empty-note sync, and startup tab preference
 

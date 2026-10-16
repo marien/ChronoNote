@@ -4,7 +4,7 @@ Status: **approved 2026-10-16** (Marien: "continue as you suggested").
 
 Review of an external agent's `REFactoring_TASKS.md` (8 tasks), checked
 against the code on `main` at `197426a`. Verdict: 3 tasks worth doing in a
-smaller form, 1 needs a decision, 4 dropped. Some premises in the source
+smaller form, 1 decided against for now (release in CI), 4 dropped. Some premises in the source
 document did not match the code: the editor is
 `src/lib/components/EditorPane.svelte` (not `src/components/Editor.svelte`),
 and OneDrive is not a Rust concern since the desktop engine was removed
@@ -64,14 +64,26 @@ Vitest against `mockBackend`, Vitest against `webBackend` (with
 `fake-indexeddb` as a dev dependency), and `cargo test` against `storage.rs`.
 Expect the first run to find real drift.
 
-## Needs a decision — source Task 3 (release workflow in GitHub Actions)
+## Decided 2026-10-16 — source Task 3 (release workflow in GitHub Actions): stay local
 
-Signing in CI means putting the updater signing key into GitHub Secrets; today
-it exists only on Marien's machine, by design. `scripts/release.sh` also does
-things a tag-triggered workflow would not easily cover (early-updates
-manifest, red-Test-run preflight, `website-live` promotion, checklist flags).
-Middle option: CI builds unsigned artifacts on a tag as a clean-room check;
-signing and publishing stay local. Recommendation: keep it local for now.
+Marien's decision: releases keep running locally with `scripts/release.sh`.
+
+- Signing in CI means putting the updater signing key into GitHub Secrets.
+  Fork PRs can't read secrets and only Marien pushes tags, so the risk is
+  moderate, but today the key never leaves his machine. With the key plus
+  repo write access (e.g. through a compromised third-party action) someone
+  could ship an update every install trusts.
+- A secret can't be read back, so it would not be a backup of the key.
+- `release.sh` does things a workflow would have to rebuild and re-test: the
+  early-updates manifest, the red-Test-run preflight, `--checklist-done`,
+  `website-live` promotion. The one environment problem a clean build would
+  have caught (§207, stale `node_modules`) is already guarded.
+- A half step (CI builds unsigned artifacts on a tag as a check) is not
+  worth it: what ships is still built locally.
+
+**Revisit when:** releases must be cut from another machine, this PC becomes
+unreliable for builds, or local build problems recur despite the script's
+checks. Then move signing and publishing to CI in one go.
 
 ## Dropped
 
