@@ -33,7 +33,9 @@ function extractPath(obj: unknown, path: string): unknown {
 
 function substituteArgs(val: unknown, vars: Record<string, unknown>): unknown {
   if (typeof val === "string") {
-    if (val.startsWith("$") && val.slice(1) in vars) {
+    if (val.startsWith("$")) {
+      // An unknown name would otherwise pass through as a literal and make an "error" step pass vacuously.
+      if (!(val.slice(1) in vars)) throw new Error(`Unknown capture variable ${val}`);
       return vars[val.slice(1)];
     }
     return val;

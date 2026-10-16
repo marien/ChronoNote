@@ -3802,9 +3802,9 @@ mod tests {
         match val {
             serde_json::Value::String(s) => {
                 if let Some(var_name) = s.strip_prefix('$') {
-                    if let Some(replacement) = vars.get(var_name) {
-                        *val = replacement.clone();
-                    }
+                    // An unknown name would otherwise stay a literal and make an "error" step pass vacuously.
+                    let replacement = vars.get(var_name).unwrap_or_else(|| panic!("unknown capture variable ${var_name}"));
+                    *val = replacement.clone();
                 }
             }
             serde_json::Value::Array(arr) => {
