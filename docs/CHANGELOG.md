@@ -10565,7 +10565,7 @@ Marien's review of the D choices (2026-10-13), implemented by Gemini 3.8 Flash (
 
 ## 379. Dependency updates (Dependabot #148-#163), and glyphs kept on the text baseline
 
-**Status: on `main`, unreleased.**
+**Status: released in v0.32.1 (betas 0.32.1-1/-2 first).**
 
 - **The 16 Dependabot PRs of 2026-10-14 taken together on one branch** (not merged one by one, as in §284): Tauri 2.12.4 (tauri-build 2.7.3), plugins dialog 2.8.3, opener 2.7.2, updater 2.14.0, global-shortcut 2.4.1, single-instance 2.5.4 and the matching `@tauri-apps/*` JS packages (Tauri requires the JS and Rust plugin versions to match, and npm resolved newer patch versions than the PRs named, so both sides moved to the newest), serde_json 1.0.154, `@codemirror/view` 6.43.14, Playwright 1.64.1, Svelte 5.57.2, Vite 8.3.4, jsdom 30.1.3, Tauri CLI 2.12.3, the taiki-e action pin.
 - **A regression found by the local suite, not by CI:** `glyph-layout.spec.ts` "baseline alignment" failed every time in the `scale-150` project (2 device pixels off; tolerance 1). Bisected to `@codemirror/view` 6.43.14 (passes with 6.43.13 and with main's packages; Playwright's newer Chromium was ruled out). That release moved `.cm-widgetBuffer` (the zero-width 1em `img` CodeMirror puts around uneditable widgets) from `vertical-align: text-top` to `baseline`, to align the native cursor. ChronoNote draws its own cursor (`drawSelection`), so `03-editor.css` keeps the buffers on `text-top`. CI's Linux fonts did not show it.
@@ -10582,7 +10582,7 @@ Marien's review of the D choices (2026-10-13), implemented by Gemini 3.8 Flash (
 
 ## 381. Rust code-quality warnings cleared (clippy 13 -> 0)
 
-**Status: on `main`, unreleased.**
+**Status: released in v0.32.1 (betas 0.32.1-1/-2 first).**
 
 - Leftovers from earlier work, none from the §379 updates: the unused `VERSIONS_MAX_PER_NOTE` (the cap of 20 from §358, replaced in §360 by "every version of today, the newest of each earlier day, 30 days"; no backend used it), two unused test bindings (one now builds the test's versions folder from the filename), `sort_by_key`, `is_err()`, one `replace` call with both line breaks, `slice::from_ref` in a spell test.
 - **The app-log reader** (About → app log) used `lines().flatten()`, which clippy flags because a repeating read error loops forever. The obvious `map_while(Result::ok)` would instead hide everything after one line with invalid UTF-8, so it now reads raw lines and decodes them leniently: a broken line shows with a replacement character, a read error ends that file. New test.
@@ -10590,6 +10590,6 @@ Marien's review of the D choices (2026-10-13), implemented by Gemini 3.8 Flash (
 
 ## 382. rustls 0.23.46 (RUSTSEC-2026-0346 to -0349)
 
-**Status: on `main`, unreleased.**
+**Status: released in v0.32.1 (betas 0.32.1-1/-2 first).**
 
 - The Security Audit went red on the 0.32.1-1 release commit: four rustls advisories published 2026-10-16 (one medium: `Debug` output of client sessions can show TLS secrets; three low: ECH rejection, Brotli certificate decompression, a ServerHello downgrade). rustls is the TLS layer of the updater's downloads (`tauri-plugin-updater` → reqwest). `cargo update -p rustls` 0.23.45 → 0.23.46, the fixed version; nothing else moved.
