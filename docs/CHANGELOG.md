@@ -10587,3 +10587,9 @@ Marien's review of the D choices (2026-10-13), implemented by Gemini 3.8 Flash (
 - Leftovers from earlier work, none from the §379 updates: the unused `VERSIONS_MAX_PER_NOTE` (the cap of 20 from §358, replaced in §360 by "every version of today, the newest of each earlier day, 30 days"; no backend used it), two unused test bindings (one now builds the test's versions folder from the filename), `sort_by_key`, `is_err()`, one `replace` call with both line breaks, `slice::from_ref` in a spell test.
 - **The app-log reader** (About → app log) used `lines().flatten()`, which clippy flags because a repeating read error loops forever. The obvious `map_while(Result::ok)` would instead hide everything after one line with invalid UTF-8, so it now reads raw lines and decodes them leniently: a broken line shows with a replacement character, a read error ends that file. New test.
 - ts-rs's note that it ignores serde's `alias` (kept so old configs with `legacy` load) is off via its `no-serde-warnings` feature; the generated TypeScript types are unchanged.
+
+## 382. rustls 0.23.46 (RUSTSEC-2026-0346 to -0349)
+
+**Status: on `main`, unreleased.**
+
+- The Security Audit went red on the 0.32.1-1 release commit: four rustls advisories published 2026-10-16 (one medium: `Debug` output of client sessions can show TLS secrets; three low: ECH rejection, Brotli certificate decompression, a ServerHello downgrade). rustls is the TLS layer of the updater's downloads (`tauri-plugin-updater` → reqwest). `cargo update -p rustls` 0.23.45 → 0.23.46, the fixed version; nothing else moved.
