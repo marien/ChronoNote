@@ -45,6 +45,10 @@ export async function seedApp(page: Page, opts: SeedApp = {}): Promise<void> {
     );
   }
 
+  // A fresh id per call: state the previous page saved under another id is
+  // not hydrated (see the sessionStorage note below).
+  seed.seedId = `seed-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+
   await page.clock.setFixedTime(opts.now ?? REFERENCE_INSTANT);
   await page.addInitScript((s) => {
     (window as unknown as { __CHRONO_SEED__: unknown }).__CHRONO_SEED__ = s;
@@ -55,7 +59,12 @@ export async function seedApp(page: Page, opts: SeedApp = {}): Promise<void> {
   // "…survives a restart"). A test that calls `seedApp()` a second time
   // wants the opposite — a genuinely fresh start under the new seed — so
   // clear any state a previous `seedApp()` call on this same page left
-  // behind first. A no-op on the very first call (nothing's been
+  // behind first. The clear alone was not enough: the old page keeps
+  // running until the navigation commits, and a write it makes in that
+  // window (a save, the tab session) put the old state back, so under load
+  // the new page booted on the previous seed (§380). The `seedId` above
+  // makes the mock ignore such leftovers; the clear stays as tidiness.
+  // A no-op on the very first call (nothing's been
   // navigated to yet) or under `expectBootFailure` seeds with no
   // storage access.
   await page.evaluate(() => {

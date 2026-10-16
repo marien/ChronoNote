@@ -50,6 +50,11 @@ function toTabSession(s: SeedTabSession | null | undefined): TabSession | null {
 }
 
 export interface MockSeed {
+  /** Identifies one `seedApp()` call. State saved to `sessionStorage` under
+   * a different id belongs to an earlier seed on the same page and is not
+   * hydrated (a late write from the old page can land after the helper
+   * cleared the storage). Absent = hydrate whatever is saved. */
+  seedId?: string;
   /** Path used as the active notes directory. Default `/notes`. */
   notesDir?: string;
   schemaVersion?: number;
@@ -398,7 +403,11 @@ export class MockBackend {
   /** Commands seeded to artificially delay (`MockSeed.delayCommands`). */
   delayCommands: Map<string, number>;
 
+  /** `MockSeed.seedId` this state came from, saved with it. */
+  seedId: string | undefined;
+
   constructor(seed: MockSeed = {}) {
+    this.seedId = seed.seedId;
     this.trash = seed.trash ? [...seed.trash] : [];
     this.notesDir = seed.notesDir ?? "/notes";
     this.schemaVersion = seed.schemaVersion ?? 1;
@@ -466,6 +475,7 @@ export class MockBackend {
 
   private serialize(): string {
     return JSON.stringify({
+      seedId: this.seedId,
       schemaVersion: this.schemaVersion,
       notesDir: this.notesDir,
       colorMode: this.colorMode,
@@ -514,7 +524,7 @@ export class MockBackend {
     }
   }
 
-  static tryHydrate(): MockBackend | null {
+  static tryHydrate(seedId?: string): MockBackend | null {
     let raw: string | null = null;
     try {
       raw = sessionStorage.getItem(MockBackend.STORAGE_KEY);
@@ -524,6 +534,7 @@ export class MockBackend {
     if (!raw) return null;
     try {
       const s = JSON.parse(raw) as {
+        seedId?: string;
         schemaVersion?: number;
         notesDir: string;
         colorMode: ColorMode;
@@ -560,7 +571,9 @@ export class MockBackend {
           [string, MockVersionEntry[]][]?,
         ][];
       };
+      if (seedId !== undefined && s.seedId !== seedId) return null;
       const b = new MockBackend();
+      b.seedId = s.seedId;
       b.schemaVersion = s.schemaVersion ?? 1;
       b.notesDir = s.notesDir;
       b.colorMode = s.colorMode;
@@ -1400,7 +1413,8 @@ declare global {
  * On a reload, state saved to `sessionStorage` by the previous page wins
  * over the seed — so "…persists across a restart" is actually testable. */
 export function installMockTauri(seed?: MockSeed): MockBackend {
-  const backend = MockBackend.tryHydrate() ?? new MockBackend(seed ?? window.__CHRONO_SEED__ ?? {});
+  const source = seed ?? window.__CHRONO_SEED__ ?? {};
+  const backend = MockBackend.tryHydrate(source.seedId) ?? new MockBackend(source);
 
   const callbacks = new Map<number, (payload: unknown) => void>();
   let nextCallbackId = 1;
