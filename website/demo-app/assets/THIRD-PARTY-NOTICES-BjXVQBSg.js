@@ -110,7 +110,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 
 ================================================================================
-@codemirror/view 6.43.13
+@codemirror/view 6.43.14
 MIT
 
 MIT License
@@ -266,7 +266,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
 ================================================================================
-@tauri-apps/api 2.12.1
+@tauri-apps/api 2.12.4
 Apache-2.0 OR MIT
 
 SPDXVersion: SPDX-2.1
@@ -291,7 +291,7 @@ PackageDownloadLocation: git+ssh://github.com/tauri-apps/tauri.git
 Creator: Person: Daniel Thompson-Yvetot
 
 ================================================================================
-@tauri-apps/plugin-dialog 2.8.1
+@tauri-apps/plugin-dialog 2.8.3
 MIT OR Apache-2.0
 
 SPDXVersion: SPDX-2.1
@@ -316,7 +316,7 @@ PackageDownloadLocation: git+ssh://github.com/tauri-apps/tauri.git
 Creator: Person: Daniel Thompson-Yvetot
 
 ================================================================================
-@tauri-apps/plugin-global-shortcut 2.4.0
+@tauri-apps/plugin-global-shortcut 2.4.1
 MIT OR Apache-2.0
 
 SPDXVersion: SPDX-2.1
@@ -341,7 +341,7 @@ PackageDownloadLocation: git+ssh://github.com/tauri-apps/tauri.git
 Creator: Person: Daniel Thompson-Yvetot
 
 ================================================================================
-@tauri-apps/plugin-opener 2.7.0
+@tauri-apps/plugin-opener 2.7.2
 MIT OR Apache-2.0
 
 SPDXVersion: SPDX-2.1
@@ -391,7 +391,7 @@ PackageDownloadLocation: git+ssh://github.com/tauri-apps/tauri.git
 Creator: Person: Daniel Thompson-Yvetot
 
 ================================================================================
-@tauri-apps/plugin-updater 2.13.1
+@tauri-apps/plugin-updater 2.14.0
 MIT OR Apache-2.0
 
 SPDXVersion: SPDX-2.1
@@ -464,7 +464,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 
 ================================================================================
-svelte 5.57.1
+svelte 5.57.2
 MIT
 
 Copyright (c) 2016-2025 [Svelte Contributors](https://github.com/sveltejs/svelte/graphs/contributors)
@@ -2756,7 +2756,7 @@ DEALINGS IN THE SOFTWARE.
 MIT License
 
 hyper-rustls 0.27.9
-rustls 0.23.45
+rustls 0.23.46
 
 Copyright (c) 2016 Joseph Birr-Pixton <jpixton@gmail.com>
 
@@ -4079,12 +4079,12 @@ DEALINGS IN THE SOFTWARE.
 ================================================================================
 MIT License
 
-tauri-codegen 2.7.1
-tauri-macros 2.7.1
-tauri-runtime-wry 2.12.1
-tauri-runtime 2.12.1
-tauri-utils 2.10.1
-tauri 2.12.1
+tauri-codegen 2.7.3
+tauri-macros 2.7.3
+tauri-runtime-wry 2.12.2
+tauri-runtime 2.12.2
+tauri-utils 2.10.2
+tauri 2.12.4
 
 MIT License
 
@@ -4654,20 +4654,20 @@ SOFTWARE.
 ================================================================================
 MIT License
 
-chrononote 0.32.0
+chrononote 0.32.1
 brotli-decompressor 6.0.1
 chrono-tz 0.10.4
 chrono 0.4.45
 dpi 0.1.2
-minisign-verify 0.2.5
+minisign-verify 0.3.0
 siphasher 1.0.3
-tauri-plugin-dialog 2.8.1
-tauri-plugin-fs 2.6.0
-tauri-plugin-global-shortcut 2.4.0
-tauri-plugin-opener 2.7.0
+tauri-plugin-dialog 2.8.3
+tauri-plugin-fs 2.7.1
+tauri-plugin-global-shortcut 2.4.1
+tauri-plugin-opener 2.7.2
 tauri-plugin-process 2.4.0
-tauri-plugin-single-instance 2.5.2
-tauri-plugin-updater 2.13.1
+tauri-plugin-single-instance 2.5.4
+tauri-plugin-updater 2.14.0
 ts-rs-macros 12.0.1
 ts-rs 12.0.1
 webview2-com-macros 0.8.1
@@ -4948,7 +4948,7 @@ serde 1.0.229
 serde_core 1.0.229
 serde_derive 1.0.229
 serde_derive_internals 0.29.1
-serde_json 1.0.151
+serde_json 1.0.154
 serde_repr 0.1.21
 servo_arc 0.4.3
 syn 2.0.119
@@ -5319,6 +5319,34 @@ CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
 OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR
 IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
+
+
+================================================================================
+MIT License
+
+base64 0.23.1
+
+The MIT License (MIT)
+
+Copyright (c) 2025 Alice Maz, Marshall Pierce
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
 
 
 ================================================================================
