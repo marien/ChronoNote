@@ -3792,5 +3792,266 @@ mod tests {
         let cfg = load_config_at(&path, &dir.path().join("Notes")).unwrap();
         assert_eq!(cfg.color_mode, ColorMode::Color);
     }
+
+    // --- Conformance cases runner ---
+
+    fn substitute_args(
+        val: &mut serde_json::Value,
+        vars: &std::collections::HashMap<String, serde_json::Value>,
+    ) {
+        match val {
+            serde_json::Value::String(s) => {
+                if let Some(var_name) = s.strip_prefix('$') {
+                    if let Some(replacement) = vars.get(var_name) {
+                        *val = replacement.clone();
+                    }
+                }
+            }
+            serde_json::Value::Array(arr) => {
+                for item in arr {
+                    substitute_args(item, vars);
+                }
+            }
+            serde_json::Value::Object(map) => {
+                for (_, v) in map {
+                    substitute_args(v, vars);
+                }
+            }
+            _ => {}
+        }
+    }
+
+    fn extract_path(val: &serde_json::Value, path: &str) -> Option<serde_json::Value> {
+        let mut curr = val;
+        for part in path.split('.') {
+            if let Ok(idx) = part.parse::<usize>() {
+                curr = curr.get(idx)?;
+            } else {
+                curr = curr.get(part)?;
+            }
+        }
+        Some(curr.clone())
+    }
+
+    fn check_fields_rust(
+        actual: &serde_json::Value,
+        expected_fields: &serde_json::Map<String, serde_json::Value>,
+        case_name: &str,
+        step_idx: usize,
+        cmd: &str,
+    ) -> Result<(), String> {
+        if let Some(arr) = actual.as_array() {
+            if let Some(len_val) = expected_fields.get("length") {
+                let expected_len = len_val.as_u64().ok_or_else(|| {
+                    format!("Case '{case_name}', step {step_idx} ({cmd}): length must be an integer")
+                })? as usize;
+                if arr.len() != expected_len {
+                    return Err(format!(
+                        "Case '{case_name}', step {step_idx} ({cmd}): array length mismatch. Expected {expected_len}, got {}",
+                        arr.len()
+                    ));
+                }
+            }
+            if let Some(contains_val) = expected_fields.get("contains") {
+                let found = arr.iter().any(|item| item == contains_val);
+                if !found {
+                    return Err(format!(
+                        "Case '{case_name}', step {step_idx} ({cmd}): array does not contain {contains_val:?}"
+                    ));
+                }
+            }
+            return Ok(());
+        }
+
+        let Some(obj) = actual.as_object() else {
+            return Err(format!(
+                "Case '{case_name}', step {step_idx} ({cmd}): expected object or array for fields check, got {actual:?}"
+            ));
+        };
+
+        for (k, expected_v) in expected_fields {
+            let Some(actual_v) = obj.get(k) else {
+                return Err(format!(
+                    "Case '{case_name}', step {step_idx} ({cmd}): missing field '{k}' in result {actual:?}"
+                ));
+            };
+            if let Some(expected_sub) = expected_v.as_object() {
+                if actual_v.is_object() {
+                    check_fields_rust(actual_v, expected_sub, case_name, step_idx, cmd)?;
+                } else {
+                    return Err(format!(
+                        "Case '{case_name}', step {step_idx} ({cmd}): field '{k}' expected object, got {actual_v:?}"
+                    ));
+                }
+            } else if actual_v != expected_v {
+                return Err(format!(
+                    "Case '{case_name}', step {step_idx} ({cmd}): field '{k}' mismatch. Expected {expected_v:?}, got {actual_v:?}"
+                ));
+            }
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn conformance_cases() {
+        let raw_json = include_str!("../../src/lib/conformance/storage-cases.json");
+        let cases: serde_json::Value =
+            serde_json::from_str(raw_json).expect("valid json in storage-cases.json");
+        let cases_arr = cases.as_array().expect("storage-cases.json root must be array");
+
+        let mut failures = Vec::new();
+
+        for case in cases_arr {
+            let case_name = case.get("name").and_then(|n| n.as_str()).unwrap_or("unnamed");
+            if case.get("skip").and_then(|s| s.get("rust")).is_some() {
+                continue;
+            }
+
+            let dir = tempdir().expect("tempdir creation");
+            let root = dir.path();
+            let mut vars = std::collections::HashMap::new();
+
+            let Some(steps) = case.get("steps").and_then(|s| s.as_array()) else {
+                failures.push(format!("Case '{case_name}': missing or invalid 'steps' array"));
+                continue;
+            };
+
+            for (step_idx, step) in steps.iter().enumerate() {
+                let Some(cmd) = step.get("cmd").and_then(|c| c.as_str()) else {
+                    failures.push(format!("Case '{case_name}', step {step_idx}: missing 'cmd'"));
+                    break;
+                };
+
+                let mut args = step.get("args").cloned().unwrap_or(serde_json::json!({}));
+                substitute_args(&mut args, &vars);
+
+                let call_res = match cmd {
+                    "read_note" => {
+                        let filename = args.get("filename").and_then(|v| v.as_str()).unwrap_or("");
+                        read_note_at(root, filename).map(|opt| serde_json::to_value(&opt).unwrap())
+                    }
+                    "write_note" => {
+                        let filename = args.get("filename").and_then(|v| v.as_str()).unwrap_or("");
+                        let content = args.get("content").and_then(|v| v.as_str()).unwrap_or("");
+                        let expected_hash = args.get("expectedHash").and_then(|v| v.as_str());
+                        write_note_at(root, filename, content, expected_hash)
+                            .map(|meta| serde_json::to_value(&meta).unwrap())
+                    }
+                    "delete_note" => {
+                        let filename = args.get("filename").and_then(|v| v.as_str()).unwrap_or("");
+                        let expected_hash = args.get("expectedHash").and_then(|v| v.as_str());
+                        delete_note_at(root, filename, expected_hash).map(|()| serde_json::Value::Null)
+                    }
+                    "list_note_files" => {
+                        list_note_files_at(root).map(|files| serde_json::to_value(&files).unwrap())
+                    }
+                    "get_file_metadata" => {
+                        let filename = args.get("filename").and_then(|v| v.as_str()).unwrap_or("");
+                        file_metadata_at(root, filename).map(|meta| serde_json::to_value(&meta).unwrap())
+                    }
+                    "read_note_with_metadata" => {
+                        let filename = args.get("filename").and_then(|v| v.as_str()).unwrap_or("");
+                        read_note_with_metadata_at(root, filename)
+                            .map(|res| serde_json::to_value(&res).unwrap())
+                    }
+                    "read_tab_session" => {
+                        read_tab_session_at(root).map(|opt| serde_json::to_value(&opt).unwrap())
+                    }
+                    "write_tab_session" => {
+                        let open_tabs: Vec<String> = serde_json::from_value(
+                            args.get("openTabs").cloned().unwrap_or(serde_json::json!([])),
+                        )
+                        .unwrap_or_default();
+                        let active_tab = args.get("activeTab").and_then(|v| v.as_str().map(String::from));
+                        let last_opened_date =
+                            args.get("lastOpenedDate").and_then(|v| v.as_str().map(String::from));
+                        let session = TabSession {
+                            schema_version: CONFIG_SCHEMA_VERSION,
+                            open_tabs,
+                            active_tab,
+                            last_opened_date,
+                            extra: Default::default(),
+                        };
+                        write_tab_session_at(root, &session).map(|()| serde_json::Value::Null)
+                    }
+                    "list_trash" => {
+                        list_trash_at(root).map(|items| serde_json::to_value(&items).unwrap())
+                    }
+                    "restore_from_trash" => {
+                        let name = args.get("name").and_then(|v| v.as_str()).unwrap_or("");
+                        restore_from_trash_at(root, name).map(|orig| serde_json::to_value(&orig).unwrap())
+                    }
+                    other => {
+                        failures.push(format!("Case '{case_name}', step {step_idx}: unknown cmd '{other}'"));
+                        break;
+                    }
+                };
+
+                let expect_spec = step.get("expect");
+                let expect_error = expect_spec
+                    .and_then(|e| e.get("error"))
+                    .and_then(|e| e.as_bool())
+                    .unwrap_or(false);
+
+                let actual_val = match call_res {
+                    Ok(val) => {
+                        if expect_error {
+                            failures.push(format!(
+                                "Case '{case_name}', step {step_idx} ({cmd}): expected error, but call succeeded with {val:?}"
+                            ));
+                            break;
+                        }
+                        val
+                    }
+                    Err(err) => {
+                        if !expect_error {
+                            failures.push(format!(
+                                "Case '{case_name}', step {step_idx} ({cmd}): call failed unexpectedly with error: {err}"
+                            ));
+                            break;
+                        }
+                        serde_json::Value::Null
+                    }
+                };
+
+                if let Some(expect) = expect_spec {
+                    if let Some(expected_result) = expect.get("result") {
+                        if &actual_val != expected_result {
+                            failures.push(format!(
+                                "Case '{case_name}', step {step_idx} ({cmd}): result mismatch.\nExpected: {expected_result}\nActual:   {actual_val}"
+                            ));
+                            break;
+                        }
+                    } else if let Some(expected_fields) = expect.get("fields").and_then(|f| f.as_object()) {
+                        if let Err(err) =
+                            check_fields_rust(&actual_val, expected_fields, case_name, step_idx, cmd)
+                        {
+                            failures.push(err);
+                            break;
+                        }
+                    }
+                }
+
+                if let Some(capture) = step.get("capture").and_then(|c| c.as_object()) {
+                    for (var_name, path_val) in capture {
+                        if let Some(path_str) = path_val.as_str() {
+                            if let Some(extracted) = extract_path(&actual_val, path_str) {
+                                vars.insert(var_name.clone(), extracted);
+                            } else {
+                                failures.push(format!(
+                                    "Case '{case_name}', step {step_idx} ({cmd}): capture path '{path_str}' not found in {actual_val:?}"
+                                ));
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        if !failures.is_empty() {
+            panic!("Conformance failures ({}):\n{}", failures.len(), failures.join("\n"));
+        }
+    }
 }
 

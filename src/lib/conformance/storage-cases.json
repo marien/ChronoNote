@@ -1,0 +1,413 @@
+[
+  {
+    "name": "filename validation rejects path traversal",
+    "steps": [
+      { "cmd": "read_note", "args": { "filename": "../2026-01-05.txt" }, "expect": { "error": true } },
+      { "cmd": "write_note", "args": { "filename": "../2026-01-05.txt", "content": "x", "expectedHash": null }, "expect": { "error": true } },
+      { "cmd": "delete_note", "args": { "filename": "../2026-01-05.txt", "expectedHash": null }, "expect": { "error": true } }
+    ]
+  },
+  {
+    "name": "filename validation rejects non-padded date",
+    "steps": [
+      { "cmd": "read_note", "args": { "filename": "2026-1-5.txt" }, "expect": { "error": true } },
+      { "cmd": "write_note", "args": { "filename": "2026-1-5.txt", "content": "x", "expectedHash": null }, "expect": { "error": true } },
+      { "cmd": "delete_note", "args": { "filename": "2026-1-5.txt", "expectedHash": null }, "expect": { "error": true } }
+    ]
+  },
+  {
+    "name": "filename validation rejects non-txt extension",
+    "steps": [
+      { "cmd": "read_note", "args": { "filename": "2026-01-05.md" }, "expect": { "error": true } },
+      { "cmd": "write_note", "args": { "filename": "2026-01-05.md", "content": "x", "expectedHash": null }, "expect": { "error": true } },
+      { "cmd": "delete_note", "args": { "filename": "2026-01-05.md", "expectedHash": null }, "expect": { "error": true } }
+    ]
+  },
+  {
+    "name": "filename validation rejects arbitrary filename",
+    "steps": [
+      { "cmd": "read_note", "args": { "filename": "notes.txt" }, "expect": { "error": true } },
+      { "cmd": "write_note", "args": { "filename": "notes.txt", "content": "x", "expectedHash": null }, "expect": { "error": true } },
+      { "cmd": "delete_note", "args": { "filename": "notes.txt", "expectedHash": null }, "expect": { "error": true } }
+    ]
+  },
+  {
+    "name": "filename validation rejects empty filename",
+    "steps": [
+      { "cmd": "read_note", "args": { "filename": "" }, "expect": { "error": true } },
+      { "cmd": "write_note", "args": { "filename": "", "content": "x", "expectedHash": null }, "expect": { "error": true } },
+      { "cmd": "delete_note", "args": { "filename": "", "expectedHash": null }, "expect": { "error": true } }
+    ]
+  },
+  {
+    "name": "filename validation rejects tab session filename",
+    "steps": [
+      { "cmd": "read_note", "args": { "filename": ".chrononote-session.json" }, "expect": { "error": true } },
+      { "cmd": "write_note", "args": { "filename": ".chrononote-session.json", "content": "x", "expectedHash": null }, "expect": { "error": true } },
+      { "cmd": "delete_note", "args": { "filename": ".chrononote-session.json", "expectedHash": null }, "expect": { "error": true } }
+    ]
+  },
+  {
+    "name": "read_note of missing file returns null",
+    "steps": [
+      { "cmd": "read_note", "args": { "filename": "2026-01-05.txt" }, "expect": { "result": null } }
+    ]
+  },
+  {
+    "name": "delete_note of missing file succeeds",
+    "steps": [
+      { "cmd": "delete_note", "args": { "filename": "2026-01-05.txt", "expectedHash": null } }
+    ]
+  },
+  {
+    "name": "write_note and read_note round trip",
+    "steps": [
+      { "cmd": "write_note", "args": { "filename": "2026-01-05.txt", "content": "hello world", "expectedHash": null } },
+      { "cmd": "read_note", "args": { "filename": "2026-01-05.txt" }, "expect": { "result": "hello world" } }
+    ]
+  },
+  {
+    "name": "list_note_files lists written note",
+    "steps": [
+      { "cmd": "write_note", "args": { "filename": "2026-01-05.txt", "content": "hello", "expectedHash": null } },
+      { "cmd": "list_note_files", "args": {}, "expect": { "result": ["2026-01-05.txt"] } }
+    ]
+  },
+  {
+    "name": "list_note_files returns sorted order for multiple notes",
+    "steps": [
+      { "cmd": "write_note", "args": { "filename": "2026-01-05.txt", "content": "second", "expectedHash": null } },
+      { "cmd": "write_note", "args": { "filename": "2026-01-02.txt", "content": "first", "expectedHash": null } },
+      { "cmd": "list_note_files", "args": {}, "expect": { "result": ["2026-01-02.txt", "2026-01-05.txt"] } }
+    ]
+  },
+  {
+    "name": "read_tab_session on empty folder returns null",
+    "steps": [
+      { "cmd": "read_tab_session", "args": {}, "expect": { "result": null } }
+    ]
+  },
+  {
+    "name": "write_tab_session persists and reads back",
+    "steps": [
+      {
+        "cmd": "write_tab_session",
+        "args": {
+          "openTabs": ["2026-01-05.txt"],
+          "activeTab": "2026-01-05.txt",
+          "lastOpenedDate": "2026-01-05"
+        }
+      },
+      {
+        "cmd": "read_tab_session",
+        "args": {},
+        "expect": {
+          "fields": {
+            "schemaVersion": 1,
+            "openTabs": ["2026-01-05.txt"],
+            "activeTab": "2026-01-05.txt",
+            "lastOpenedDate": "2026-01-05"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "write_tab_session is excluded from list_note_files",
+    "steps": [
+      {
+        "cmd": "write_tab_session",
+        "args": {
+          "openTabs": ["2026-01-05.txt"],
+          "activeTab": "2026-01-05.txt",
+          "lastOpenedDate": "2026-01-05"
+        }
+      },
+      { "cmd": "list_note_files", "args": {}, "expect": { "result": [] } }
+    ]
+  },
+  {
+    "name": "write_note with matching expected hash succeeds",
+    "steps": [
+      {
+        "cmd": "write_note",
+        "args": { "filename": "2026-01-05.txt", "content": "v1", "expectedHash": null },
+        "capture": { "h1": "contentHash" }
+      },
+      {
+        "cmd": "write_note",
+        "args": { "filename": "2026-01-05.txt", "content": "v2", "expectedHash": "$h1" }
+      },
+      {
+        "cmd": "read_note",
+        "args": { "filename": "2026-01-05.txt" },
+        "expect": { "result": "v2" }
+      }
+    ]
+  },
+  {
+    "name": "write_note with stale expected hash fails",
+    "steps": [
+      {
+        "cmd": "write_note",
+        "args": { "filename": "2026-01-05.txt", "content": "v1", "expectedHash": null },
+        "capture": { "h1": "contentHash" }
+      },
+      {
+        "cmd": "write_note",
+        "args": { "filename": "2026-01-05.txt", "content": "v2", "expectedHash": null }
+      },
+      {
+        "cmd": "write_note",
+        "args": { "filename": "2026-01-05.txt", "content": "v3", "expectedHash": "$h1" },
+        "expect": { "error": true }
+      }
+    ]
+  },
+  {
+    "name": "write_note on missing file accepts empty content hash",
+    "steps": [
+      {
+        "cmd": "write_note",
+        "args": { "filename": "2026-01-01.txt", "content": "", "expectedHash": null },
+        "capture": { "emptyHash": "contentHash" }
+      },
+      {
+        "cmd": "write_note",
+        "args": { "filename": "2026-01-05.txt", "content": "initial", "expectedHash": "$emptyHash" }
+      },
+      {
+        "cmd": "read_note",
+        "args": { "filename": "2026-01-05.txt" },
+        "expect": { "result": "initial" }
+      }
+    ]
+  },
+  {
+    "name": "write_note on missing file refuses non-empty expected hash",
+    "steps": [
+      {
+        "cmd": "write_note",
+        "args": { "filename": "2026-01-01.txt", "content": "non-empty content", "expectedHash": null },
+        "capture": { "nonEmptyHash": "contentHash" }
+      },
+      {
+        "cmd": "write_note",
+        "args": { "filename": "2026-01-05.txt", "content": "fail", "expectedHash": "$nonEmptyHash" },
+        "expect": { "error": true }
+      }
+    ]
+  },
+  {
+    "name": "delete_note with matching expected hash succeeds",
+    "steps": [
+      {
+        "cmd": "write_note",
+        "args": { "filename": "2026-01-05.txt", "content": "to delete", "expectedHash": null },
+        "capture": { "h": "contentHash" }
+      },
+      {
+        "cmd": "delete_note",
+        "args": { "filename": "2026-01-05.txt", "expectedHash": "$h" }
+      },
+      {
+        "cmd": "read_note",
+        "args": { "filename": "2026-01-05.txt" },
+        "expect": { "result": null }
+      }
+    ]
+  },
+  {
+    "name": "delete_note with stale expected hash fails",
+    "steps": [
+      {
+        "cmd": "write_note",
+        "args": { "filename": "2026-01-05.txt", "content": "v1", "expectedHash": null },
+        "capture": { "h1": "contentHash" }
+      },
+      {
+        "cmd": "write_note",
+        "args": { "filename": "2026-01-05.txt", "content": "v2", "expectedHash": null }
+      },
+      {
+        "cmd": "delete_note",
+        "args": { "filename": "2026-01-05.txt", "expectedHash": "$h1" },
+        "expect": { "error": true }
+      }
+    ]
+  },
+  {
+    "name": "delete_note on missing file with expected hash succeeds",
+    "steps": [
+      {
+        "cmd": "write_note",
+        "args": { "filename": "2026-01-01.txt", "content": "dummy", "expectedHash": null },
+        "capture": { "h": "contentHash" }
+      },
+      {
+        "cmd": "delete_note",
+        "args": { "filename": "2026-01-05.txt", "expectedHash": "$h" }
+      },
+      {
+        "cmd": "read_note",
+        "args": { "filename": "2026-01-05.txt" },
+        "expect": { "result": null }
+      }
+    ]
+  },
+  {
+    "name": "CRLF line endings are normalized to LF",
+    "steps": [
+      {
+        "cmd": "write_note",
+        "args": { "filename": "2026-01-01.txt", "content": "a\nb", "expectedHash": null },
+        "capture": { "lfHash": "contentHash" }
+      },
+      {
+        "cmd": "write_note",
+        "args": { "filename": "2026-01-05.txt", "content": "a\r\nb", "expectedHash": null }
+      },
+      {
+        "cmd": "read_note",
+        "args": { "filename": "2026-01-05.txt" },
+        "expect": { "result": "a\nb" }
+      },
+      {
+        "cmd": "write_note",
+        "args": { "filename": "2026-01-05.txt", "content": "updated", "expectedHash": "$lfHash" }
+      }
+    ]
+  },
+  {
+    "name": "BOM is stripped and normalized",
+    "steps": [
+      {
+        "cmd": "write_note",
+        "args": { "filename": "2026-01-01.txt", "content": "a", "expectedHash": null },
+        "capture": { "cleanHash": "contentHash" }
+      },
+      {
+        "cmd": "write_note",
+        "args": { "filename": "2026-01-05.txt", "content": "\uFEFFa", "expectedHash": null }
+      },
+      {
+        "cmd": "read_note",
+        "args": { "filename": "2026-01-05.txt" },
+        "expect": { "result": "a" }
+      },
+      {
+        "cmd": "write_note",
+        "args": { "filename": "2026-01-05.txt", "content": "updated", "expectedHash": "$cleanHash" }
+      }
+    ]
+  },
+  {
+    "name": "get_file_metadata on missing and existing note",
+    "steps": [
+      {
+        "cmd": "get_file_metadata",
+        "args": { "filename": "2026-01-05.txt" },
+        "expect": { "fields": { "exists": false, "contentHash": null, "sizeBytes": null } }
+      },
+      {
+        "cmd": "write_note",
+        "args": { "filename": "2026-01-05.txt", "content": "hello", "expectedHash": null }
+      },
+      {
+        "cmd": "get_file_metadata",
+        "args": { "filename": "2026-01-05.txt" },
+        "expect": { "fields": { "exists": true, "sizeBytes": 5 } }
+      }
+    ]
+  },
+  {
+    "name": "read_note_with_metadata on missing note",
+    "steps": [
+      {
+        "cmd": "read_note_with_metadata",
+        "args": { "filename": "2026-01-05.txt" },
+        "expect": {
+          "fields": {
+            "content": null,
+            "metadata": { "exists": false, "contentHash": null, "sizeBytes": null }
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "read_note_with_metadata on existing note",
+    "steps": [
+      {
+        "cmd": "write_note",
+        "args": { "filename": "2026-01-05.txt", "content": "hello world", "expectedHash": null }
+      },
+      {
+        "cmd": "read_note_with_metadata",
+        "args": { "filename": "2026-01-05.txt" },
+        "expect": {
+          "fields": {
+            "content": "hello world",
+            "metadata": { "exists": true, "sizeBytes": 11 }
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "delete_note moves to trash and restore_from_trash recovers note",
+    "steps": [
+      {
+        "cmd": "write_note",
+        "args": { "filename": "2026-01-05.txt", "content": "recoverable note", "expectedHash": null }
+      },
+      {
+        "cmd": "delete_note",
+        "args": { "filename": "2026-01-05.txt", "expectedHash": null }
+      },
+      {
+        "cmd": "list_trash",
+        "args": {},
+        "expect": { "fields": { "length": 1 } },
+        "capture": { "trashName": "0.name" }
+      },
+      {
+        "cmd": "restore_from_trash",
+        "args": { "name": "$trashName" },
+        "expect": { "result": "2026-01-05.txt" }
+      },
+      {
+        "cmd": "read_note",
+        "args": { "filename": "2026-01-05.txt" },
+        "expect": { "result": "recoverable note" }
+      }
+    ]
+  },
+  {
+    "name": "restore_from_trash fails when note already exists",
+    "steps": [
+      {
+        "cmd": "write_note",
+        "args": { "filename": "2026-01-05.txt", "content": "first note", "expectedHash": null }
+      },
+      {
+        "cmd": "delete_note",
+        "args": { "filename": "2026-01-05.txt", "expectedHash": null }
+      },
+      {
+        "cmd": "list_trash",
+        "args": {},
+        "capture": { "trashName": "0.name" }
+      },
+      {
+        "cmd": "write_note",
+        "args": { "filename": "2026-01-05.txt", "content": "new note", "expectedHash": null }
+      },
+      {
+        "cmd": "restore_from_trash",
+        "args": { "name": "$trashName" },
+        "expect": { "error": true }
+      }
+    ]
+  }
+]
