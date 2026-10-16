@@ -10596,7 +10596,7 @@ Marien's review of the D choices (2026-10-13), implemented by Gemini 3.8 Flash (
 
 ## 383. Refactoring review, phase A: dead error codes removed, one sync state
 
-**Status: on branch `refactor/cleanup-a`, unreleased. No intended behaviour change.**
+**Status: released in beta v0.32.2-1 (early channel). No intended behaviour change.**
 
 - From `docs/design/refactoring-review-oct16-2026.md` (a review of an external agent's 8 refactoring tasks; 3 kept in a smaller form, 1 waits for a decision, 4 dropped).
 - **Nine `AppError` codes nothing produced** (`oneDriveLoopbackBindFailed`, `oneDriveBrowserOpenFailed`, `oneDriveCallbackAcceptFailed`, `oneDriveAuthTimedOut`, `oneDriveNoAuthCode`, `oneDriveKeychainSaveFailed`, `oneDriveAuthStateSaveFailed`, `oneDriveProfileFetchFailed`, `oneDriveTokenResponseUnparseable`) were removed with their `apiError.ts` cases and i18n keys in all 7 locales. They came from the Rust OAuth flow removed in §300; only the web app's sign-in produces OneDrive codes now (5 remain). Stale comments in `error.rs` (loopback port, keychain) rewritten.
@@ -10605,7 +10605,7 @@ Marien's review of the D choices (2026-10-13), implemented by Gemini 3.8 Flash (
 
 ## 384. Refactoring review, phase B: one storage conformance table for all three backends
 
-**Status: on branch `refactor/cleanup-a`, unreleased. Test-only, nothing ships.**
+**Status: released in beta v0.32.2-1 (test-only, nothing ships).**
 
 - Note storage exists three times (`storage.rs`, the test/demo `MockBackend`, the web app's IndexedDB `WebBackend`) and was kept in agreement only by convention. New `src/lib/conformance/storage-cases.json`: 28 cases as data (steps of command + arguments + expected result or error; error text is never compared), covering filename validation incl. path traversal and the session file, missing file, round trip and list order, tab session, the expected-hash check on write and delete (hashes captured from earlier steps, never written as literals), CRLF and BOM normalisation, metadata, trash and restore.
 - Run three times: `storageConformance.test.ts` (Vitest) against the mock and the web backend, `conformance_cases` in `storage.rs`'s tests against the real `*_at` functions. The IndexedDB stub moved out of `webBackend.test.ts` into `src/lib/testing/idbStub.ts` so both use it.
