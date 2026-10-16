@@ -5,7 +5,7 @@
  * writes it, so components can keep importing either `./stores` or
  * `./controller`. Split out of `controller.ts` in the v0.5.0 refactor so
  * that file is about what happens, not what exists. */
-import { get, writable, type Readable } from "svelte/store";
+import { derived, get, writable, type Readable } from "svelte/store";
 import {
   closeOverlay,
   isOpen,
@@ -286,6 +286,26 @@ export const oneDriveConnecting = writable<boolean>(false);
  * on this device are untouched; Settings and the cloud popover offer "Sign in again". Cleared by
  * a successful sync or a new sign-in. */
 export const oneDriveSignInExpired = writable<boolean>(false);
+
+/** The one OneDrive sync state the UI shows (the status-bar cloud button and the sync health popover
+ * both read this, so they cannot disagree). Precedence: an expired sign-in first (nothing can sync until
+ * the user signs in again), then a running sync, then the engine's last reported status. */
+export type OneDriveSyncState = "signInExpired" | "syncing" | "offline" | "error" | "idle";
+
+export function oneDriveSyncStateOf(
+  signInExpired: boolean,
+  syncing: boolean,
+  status: "idle" | "syncing" | "offline" | "error",
+): OneDriveSyncState {
+  if (signInExpired) return "signInExpired";
+  if (syncing || status === "syncing") return "syncing";
+  return status;
+}
+
+export const oneDriveSyncState: Readable<OneDriveSyncState> = derived(
+  [oneDriveSignInExpired, oneDriveSyncing, oneDriveSyncStatus],
+  ([expired, syncing, status]) => oneDriveSyncStateOf(expired, syncing, status),
+);
 
 /** §update-check: whether ChronoNote silently checks github.com for a
  * newer release on launch. Mirrors `AppConfig.autoCheckUpdates` — on by

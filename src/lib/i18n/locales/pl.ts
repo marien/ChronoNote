@@ -877,31 +877,14 @@ export const pl = {
   "error.agendaInvalid": () =>
     "Plik kalendarza (.agenda.json) jest nieobecny, pusty lub nieprawidłowy — sprawdź proces synchronizacji.",
   "error.oneDriveSyncBusy": () => "Trwa synchronizacja — spróbuj ponownie za chwilę",
-  "error.oneDriveLoopbackBindFailed": ({ detail }) =>
-    `Nie udało się uruchomić lokalnego odbiornika logowania: ${detail}`,
-  "error.oneDriveBrowserOpenFailed": ({ detail }) =>
-    `Nie udało się otworzyć przeglądarki do logowania: ${detail}`,
-  "error.oneDriveCallbackAcceptFailed": ({ detail }) =>
-    `Wystąpił błąd podczas oczekiwania na odpowiedź logowania: ${detail}`,
-  "error.oneDriveAuthTimedOut": () =>
-    "Przekroczono limit czasu logowania — nie ukończono autoryzacji w przeglądarce na czas.",
-  "error.oneDriveNoAuthCode": () => "We wklejonym tekście nie znaleziono kodu autoryzacji.",
   "error.oneDriveNoPendingSession": () =>
     'Brak trwającego logowania — najpierw kliknij „Połącz konto Microsoft”.',
-  "error.oneDriveKeychainSaveFailed": ({ detail }) =>
-    `Zalogowano pomyślnie, ale nie udało się bezpiecznie zapisać poświadczeń: ${detail}`,
-  "error.oneDriveAuthStateSaveFailed": ({ detail }) =>
-    `Zalogowano pomyślnie, ale nie udało się zapisać stanu logowania: ${detail}`,
-  "error.oneDriveProfileFetchFailed": ({ detail }) =>
-    `Zalogowano pomyślnie, ale nie udało się pobrać danych konta: ${detail}`,
   "error.oneDriveMissingRefreshTokenScope": () =>
     "Firma Microsoft nie przyznała trwałego dostępu — upewnij się, że rejestracja aplikacji żąda uprawnienia offline_access.",
   "error.oneDriveTokenRequestFailed": ({ detail }) =>
     `Nie udało się nawiązać połączenia z firmą Microsoft w celu logowania: ${detail}`,
   "error.oneDriveTokenExchangeRejected": ({ detail }) =>
     `Firma Microsoft odrzuciła logowanie: ${detail}`,
-  "error.oneDriveTokenResponseUnparseable": ({ detail }) =>
-    `Odpowiedź logowania firmy Microsoft była nieczytelna: ${detail}`,
   "editorMenu.ariaLabel": () => "Menu edytora",
   "editorMenu.clipboard": () => "Schowek",
   "editorMenu.cut": () => "Wytnij",

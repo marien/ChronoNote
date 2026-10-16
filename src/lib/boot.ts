@@ -777,6 +777,8 @@ export async function refreshSyncHealth(): Promise<void> {
   try {
     const health = await api.getSyncHealth();
     syncHealth.set(health);
+    // Same engine status `onedrive_get_sync_status` reports; keep the one store the UI reads current.
+    oneDriveSyncStatus.set(health.status);
   } catch (err) {
     console.error("Failed to fetch sync health:", err);
     logError(`Failed to fetch sync health: ${err}`);

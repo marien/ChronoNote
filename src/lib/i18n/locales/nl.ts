@@ -846,25 +846,11 @@ export const nl = {
     "Tik op een markering in de onderbalk om regels om te zetten in acties of agendapunten.",
   "error.agendaInvalid": () => "Het agendabestand (.agenda.json) ontbreekt, is leeg of ongeldig — controleer wat het synchroniseert.",
   "error.oneDriveSyncBusy": () => "Er wordt al gesynchroniseerd — probeer het over een moment opnieuw",
-  "error.oneDriveLoopbackBindFailed": ({ detail }) => `Kon de lokale aanmeldlistener niet starten: ${detail}`,
-  "error.oneDriveBrowserOpenFailed": ({ detail }) => `Kon je browser niet openen om in te loggen: ${detail}`,
-  "error.oneDriveCallbackAcceptFailed": ({ detail }) =>
-    `Er ging iets mis tijdens het wachten op de aanmelding: ${detail}`,
-  "error.oneDriveAuthTimedOut": () => "Aanmelden verlopen — je hebt het niet op tijd goedgekeurd in de browser.",
-  "error.oneDriveNoAuthCode": () => "Er is geen autorisatiecode gevonden in wat je hebt geplakt.",
   "error.oneDriveNoPendingSession": () => 'Er is geen aanmelding actief — klik eerst op "Microsoft-account verbinden".',
-  "error.oneDriveKeychainSaveFailed": ({ detail }) =>
-    `Ingelogd, maar je gegevens konden niet veilig worden opgeslagen: ${detail}`,
-  "error.oneDriveAuthStateSaveFailed": ({ detail }) =>
-    `Ingelogd, maar de aanmeldgegevens konden niet worden opgeslagen: ${detail}`,
-  "error.oneDriveProfileFetchFailed": ({ detail }) =>
-    `Ingelogd, maar je accountgegevens konden niet worden opgehaald: ${detail}`,
   "error.oneDriveMissingRefreshTokenScope": () =>
     "Microsoft heeft geen blijvende toegang verleend — controleer of de app-registratie de offline_access-scope aanvraagt.",
   "error.oneDriveTokenRequestFailed": ({ detail }) => `Kon Microsoft niet bereiken om in te loggen: ${detail}`,
   "error.oneDriveTokenExchangeRejected": ({ detail }) => `Microsoft heeft de aanmelding afgewezen: ${detail}`,
-  "error.oneDriveTokenResponseUnparseable": ({ detail }) =>
-    `Het antwoord van Microsoft bij het aanmelden was onbegrijpelijk: ${detail}`,
   "editorMenu.ariaLabel": () => "Editormenu",
   "editorMenu.clipboard": () => "Klembord",
   "editorMenu.cut": () => "Knippen",

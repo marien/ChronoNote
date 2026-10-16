@@ -6,8 +6,7 @@
     oneDriveAccount,
     oneDriveFolder,
     oneDriveSignInExpired,
-    oneDriveSyncing,
-    oneDriveSyncStatus,
+    oneDriveSyncState,
     syncHealth,
     syncHealthPopoverOpen,
   } from "../controller";
@@ -96,12 +95,12 @@
     controller.openSettingsOnNotesFolder();
   }
 
-  const isSyncing = $derived($oneDriveSyncing || $oneDriveSyncStatus === "syncing" || $syncHealth?.status === "syncing");
-  const isOffline = $derived($oneDriveSyncStatus === "offline" || $syncHealth?.status === "offline");
-  const isError = $derived($oneDriveSignInExpired || $oneDriveSyncStatus === "error" || $syncHealth?.status === "error");
+  const isSyncing = $derived($oneDriveSyncState === "syncing");
+  const isOffline = $derived($oneDriveSyncState === "offline");
+  const isError = $derived($oneDriveSyncState === "error" || $oneDriveSyncState === "signInExpired");
 
   const statusLabel = $derived(
-    $oneDriveSignInExpired
+    $oneDriveSyncState === "signInExpired"
       ? $t("syncHealth.status.signInExpired")
       : isSyncing
       ? $t("syncHealth.status.syncingChanges")

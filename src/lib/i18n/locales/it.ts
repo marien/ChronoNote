@@ -861,28 +861,12 @@ export const it = {
   "error.agendaInvalid": () =>
     "Il file del calendario (.agenda.json) è mancante, vuoto o non valido — controlla il processo di sincronizzazione.",
   "error.oneDriveSyncBusy": () => "Una sincronizzazione è in corso — riprova tra un istante",
-  "error.oneDriveLoopbackBindFailed": ({ detail }) =>
-    `Impossibile avviare il listener locale per l'accesso: ${detail}`,
-  "error.oneDriveBrowserOpenFailed": ({ detail }) => `Impossibile aprire il browser per l'accesso: ${detail}`,
-  "error.oneDriveCallbackAcceptFailed": ({ detail }) =>
-    `Si è verificato un errore durante l'attesa della risposta di accesso: ${detail}`,
-  "error.oneDriveAuthTimedOut": () =>
-    "Accesso scaduto — l'autorizzazione non è stata approvata nel browser in tempo utile.",
-  "error.oneDriveNoAuthCode": () => "Nessun codice di autorizzazione trovato in ciò che hai incollato.",
   "error.oneDriveNoPendingSession": () =>
     'Nessun accesso in corso — fai prima clic su "Connetti account Microsoft".',
-  "error.oneDriveKeychainSaveFailed": ({ detail }) =>
-    `Accesso effettuato, ma impossibile salvare le credenziali in modo sicuro: ${detail}`,
-  "error.oneDriveAuthStateSaveFailed": ({ detail }) =>
-    `Accesso effettuato, ma impossibile salvare i dettagli dell'accesso: ${detail}`,
-  "error.oneDriveProfileFetchFailed": ({ detail }) =>
-    `Accesso effettuato, ma impossibile recuperare i dettagli dell'account: ${detail}`,
   "error.oneDriveMissingRefreshTokenScope": () =>
     "Microsoft non ha concesso un accesso permanente — verifica che la registrazione app richieda l'ambito offline_access.",
   "error.oneDriveTokenRequestFailed": ({ detail }) => `Impossibile contattare Microsoft per l'accesso: ${detail}`,
   "error.oneDriveTokenExchangeRejected": ({ detail }) => `Microsoft ha rifiutato l'accesso: ${detail}`,
-  "error.oneDriveTokenResponseUnparseable": ({ detail }) =>
-    `La risposta di accesso di Microsoft non è valida: ${detail}`,
   "editorMenu.ariaLabel": () => "Menu dell’editor",
   "editorMenu.clipboard": () => "Appunti",
   "editorMenu.cut": () => "Taglia",

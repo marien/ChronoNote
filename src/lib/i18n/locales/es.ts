@@ -859,28 +859,12 @@ export const es = {
   "error.agendaInvalid": () =>
     "El archivo de calendario (.agenda.json) falta, está vacío o es inválido — revise el proceso que lo sincronice.",
   "error.oneDriveSyncBusy": () => "Hay una sincronización en curso — inténtelo de nuevo en un momento",
-  "error.oneDriveLoopbackBindFailed": ({ detail }) =>
-    `No se pudo iniciar el receptor local de inicio de sesión: ${detail}`,
-  "error.oneDriveBrowserOpenFailed": ({ detail }) => `No se pudo abrir su navegador para iniciar sesión: ${detail}`,
-  "error.oneDriveCallbackAcceptFailed": ({ detail }) =>
-    `Se produjo un error al esperar la respuesta del inicio de sesión: ${detail}`,
-  "error.oneDriveAuthTimedOut": () =>
-    "Tiempo de inicio de sesión agotado: no aprobó la autorización en el navegador a tiempo.",
-  "error.oneDriveNoAuthCode": () => "No se encontró ningún código de autorización en lo que pegó.",
   "error.oneDriveNoPendingSession": () =>
     'No hay ningún inicio de sesión en curso — haga clic primero en "Conectar cuenta de Microsoft".',
-  "error.oneDriveKeychainSaveFailed": ({ detail }) =>
-    `Sesión iniciada, pero no se pudieron guardar sus credenciales de forma segura: ${detail}`,
-  "error.oneDriveAuthStateSaveFailed": ({ detail }) =>
-    `Sesión iniciada, pero no se pudieron guardar los detalles del inicio de sesión: ${detail}`,
-  "error.oneDriveProfileFetchFailed": ({ detail }) =>
-    `Sesión iniciada, pero no se pudieron obtener los detalles de su cuenta: ${detail}`,
   "error.oneDriveMissingRefreshTokenScope": () =>
     "Microsoft no otorgó acceso duradero: verifique que el registro de la aplicación solicite el permiso offline_access.",
   "error.oneDriveTokenRequestFailed": ({ detail }) => `No se pudo conectar con Microsoft para iniciar sesión: ${detail}`,
   "error.oneDriveTokenExchangeRejected": ({ detail }) => `Microsoft rechazó el inicio de sesión: ${detail}`,
-  "error.oneDriveTokenResponseUnparseable": ({ detail }) =>
-    `La respuesta de inicio de sesión de Microsoft no es válida: ${detail}`,
   "editorMenu.ariaLabel": () => "Menú del editor",
   "editorMenu.clipboard": () => "Portapapeles",
   "editorMenu.cut": () => "Cortar",

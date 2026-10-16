@@ -850,19 +850,10 @@ export type TranslationParams = {
   // sentences (src-tauri/src/error.rs) — see `apiError.ts`.
   "error.agendaInvalid": undefined;
   "error.oneDriveSyncBusy": undefined;
-  "error.oneDriveLoopbackBindFailed": { detail: string };
-  "error.oneDriveBrowserOpenFailed": { detail: string };
-  "error.oneDriveCallbackAcceptFailed": { detail: string };
-  "error.oneDriveAuthTimedOut": undefined;
-  "error.oneDriveNoAuthCode": undefined;
   "error.oneDriveNoPendingSession": undefined;
-  "error.oneDriveKeychainSaveFailed": { detail: string };
-  "error.oneDriveAuthStateSaveFailed": { detail: string };
-  "error.oneDriveProfileFetchFailed": { detail: string };
   "error.oneDriveMissingRefreshTokenScope": undefined;
   "error.oneDriveTokenRequestFailed": { detail: string };
   "error.oneDriveTokenExchangeRejected": { detail: string };
-  "error.oneDriveTokenResponseUnparseable": { detail: string };
   "editorMenu.ariaLabel": undefined;
   "editorMenu.clipboard": undefined;
   "editorMenu.cut": undefined;

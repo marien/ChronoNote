@@ -851,26 +851,11 @@ export const de = {
     "Tippen Sie auf ein Token in der unteren Leiste, um Zeilen in Aufgaben oder Themen umzuwandeln.",
   "error.agendaInvalid": () => "Die Kalenderdatei (.agenda.json) fehlt, ist leer oder ungültig — prüfe, was sie synchronisiert.",
   "error.oneDriveSyncBusy": () => "Es läuft bereits eine Synchronisierung — versuche es gleich noch einmal",
-  "error.oneDriveLoopbackBindFailed": ({ detail }) => `Der lokale Anmelde-Listener konnte nicht gestartet werden: ${detail}`,
-  "error.oneDriveBrowserOpenFailed": ({ detail }) => `Der Browser konnte zur Anmeldung nicht geöffnet werden: ${detail}`,
-  "error.oneDriveCallbackAcceptFailed": ({ detail }) =>
-    `Beim Warten auf die Anmeldung ist etwas schiefgelaufen: ${detail}`,
-  "error.oneDriveAuthTimedOut": () =>
-    "Zeitüberschreitung bei der Anmeldung — sie wurde nicht rechtzeitig im Browser bestätigt.",
-  "error.oneDriveNoAuthCode": () => "In dem Eingefügten wurde kein Autorisierungscode gefunden.",
   "error.oneDriveNoPendingSession": () => 'Es läuft keine Anmeldung — klicke zuerst auf "Microsoft-Konto verbinden".',
-  "error.oneDriveKeychainSaveFailed": ({ detail }) =>
-    `Angemeldet, aber die Anmeldedaten konnten nicht sicher gespeichert werden: ${detail}`,
-  "error.oneDriveAuthStateSaveFailed": ({ detail }) =>
-    `Angemeldet, aber der Anmeldestatus konnte nicht gespeichert werden: ${detail}`,
-  "error.oneDriveProfileFetchFailed": ({ detail }) =>
-    `Angemeldet, aber die Kontodaten konnten nicht abgerufen werden: ${detail}`,
   "error.oneDriveMissingRefreshTokenScope": () =>
     "Microsoft hat keinen dauerhaften Zugriff gewährt — prüfe, ob die App-Registrierung den Bereich offline_access anfordert.",
   "error.oneDriveTokenRequestFailed": ({ detail }) => `Microsoft konnte für die Anmeldung nicht erreicht werden: ${detail}`,
   "error.oneDriveTokenExchangeRejected": ({ detail }) => `Microsoft hat die Anmeldung abgelehnt: ${detail}`,
-  "error.oneDriveTokenResponseUnparseable": ({ detail }) =>
-    `Die Anmeldeantwort von Microsoft war nicht verständlich: ${detail}`,
   "editorMenu.ariaLabel": () => "Editormenü",
   "editorMenu.clipboard": () => "Zwischenablage",
   "editorMenu.cut": () => "Ausschneiden",

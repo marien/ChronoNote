@@ -41,32 +41,14 @@ export function describeApiError(e: unknown): string {
         return translate("error.agendaInvalid", undefined);
       case "oneDriveSyncBusy":
         return translate("error.oneDriveSyncBusy", undefined);
-      case "oneDriveLoopbackBindFailed":
-        return translate("error.oneDriveLoopbackBindFailed", { detail: e.detail });
-      case "oneDriveBrowserOpenFailed":
-        return translate("error.oneDriveBrowserOpenFailed", { detail: e.detail });
-      case "oneDriveCallbackAcceptFailed":
-        return translate("error.oneDriveCallbackAcceptFailed", { detail: e.detail });
-      case "oneDriveAuthTimedOut":
-        return translate("error.oneDriveAuthTimedOut", undefined);
-      case "oneDriveNoAuthCode":
-        return translate("error.oneDriveNoAuthCode", undefined);
       case "oneDriveNoPendingSession":
         return translate("error.oneDriveNoPendingSession", undefined);
-      case "oneDriveKeychainSaveFailed":
-        return translate("error.oneDriveKeychainSaveFailed", { detail: e.detail });
-      case "oneDriveAuthStateSaveFailed":
-        return translate("error.oneDriveAuthStateSaveFailed", { detail: e.detail });
-      case "oneDriveProfileFetchFailed":
-        return translate("error.oneDriveProfileFetchFailed", { detail: e.detail });
       case "oneDriveMissingRefreshTokenScope":
         return translate("error.oneDriveMissingRefreshTokenScope", undefined);
       case "oneDriveTokenRequestFailed":
         return translate("error.oneDriveTokenRequestFailed", { detail: e.detail });
       case "oneDriveTokenExchangeRejected":
         return translate("error.oneDriveTokenExchangeRejected", { detail: e.detail });
-      case "oneDriveTokenResponseUnparseable":
-        return translate("error.oneDriveTokenResponseUnparseable", { detail: e.detail });
       case "other":
         return e.detail;
     }

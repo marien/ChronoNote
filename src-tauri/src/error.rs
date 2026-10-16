@@ -25,14 +25,13 @@
 //! this one, given its own pluralization opportunity and a parallel
 //! implementation in the web app's `webOneDriveSync.ts` to keep in sync.
 //!
-//! The OneDrive sign-in flow's own fixed sentences (produced by the web
-//! app's `webOneDriveAuth.ts`/`webOneDriveSync.ts`; the desktop app has no
-//! OneDrive engine) *are* covered — note that
-//! `refresh_access_token` (used only by a background sync's own token
-//! refresh, never by `OneDriveLoginResult`) is deliberately NOT among
-//! them: its failures were always going to fold into `Other` regardless,
-//! since they surface via `OneDriveSyncResult.message`'s already-generic
-//! bucket, not a dedicated field of their own.
+//! The `OneDrive*` codes are produced only by the web app
+//! (`webOneDriveAuth.ts`/`webOneDriveSync.ts`); the desktop app has no
+//! OneDrive engine. They live here so the shared `AppError` type
+//! (generated to TypeScript via ts-rs) covers them. Codes from the removed
+//! Rust OAuth flow (loopback listener, keychain, ...) were deleted in
+//! October 2026 (`docs/design/refactoring-review-oct16-2026.md`); add a
+//! code back only when something actually produces it.
 
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
@@ -45,53 +44,26 @@ pub enum AppError {
     /// none can be trusted as "no meetings today" (see that module's own
     /// doc comment).
     AgendaInvalid,
-    /// the web app's `webOneDriveSync.ts`/`webOneDriveAuth.ts`: a sync was already running when another sync-
-    /// affecting operation (a further sync, or resolving a held conflict)
-    /// was attempted. One shared code for both guards — the user-facing
-    /// meaning ("try again in a moment") is identical either way.
+    /// `webOneDriveSync.ts`: a sync was already running when another
+    /// sync-affecting operation (a further sync, or resolving a held
+    /// conflict) was attempted. One shared code for both guards — the
+    /// user-facing meaning ("try again in a moment") is identical either way.
     OneDriveSyncBusy,
-    /// the web app's `webOneDriveSync.ts`/`webOneDriveAuth.ts`: couldn't bind the local OAuth
-    /// loopback listener (port 8765 already in use, most likely).
-    OneDriveLoopbackBindFailed { detail: String },
-    /// the web app's `webOneDriveSync.ts`/`webOneDriveAuth.ts`: couldn't open the system
-    /// browser to start the Microsoft sign-in page.
-    OneDriveBrowserOpenFailed { detail: String },
-    /// the web app's `webOneDriveSync.ts`/`webOneDriveAuth.ts`: a real error (not just no
-    /// connection yet) while waiting for the loopback callback.
-    OneDriveCallbackAcceptFailed { detail: String },
-    /// the web app's `webOneDriveSync.ts`/`webOneDriveAuth.ts`: the user never completed the
-    /// browser sign-in within the 120-second window.
-    OneDriveAuthTimedOut,
-    /// the web app's `webOneDriveSync.ts`/`webOneDriveAuth.ts`: the manual-paste fallback
-    /// was given text with no recognizable authorization code in it.
-    OneDriveNoAuthCode,
-    /// the web app's `webOneDriveSync.ts`/`webOneDriveAuth.ts`: pasted a code with no
-    /// matching `login_interactive` PKCE session to exchange it against.
+    /// `webOneDriveSync.ts`: the sign-in redirect came back with no
+    /// matching PKCE session to exchange its code against.
     OneDriveNoPendingSession,
-    /// the web app's `webOneDriveSync.ts`/`webOneDriveAuth.ts`: got tokens from Microsoft but
-    /// couldn't put the refresh token in the OS keychain.
-    OneDriveKeychainSaveFailed { detail: String },
-    /// the web app's `webOneDriveSync.ts`/`webOneDriveAuth.ts`: couldn't persist the (non-
-    /// sensitive) auth state file alongside the keychain entry.
-    OneDriveAuthStateSaveFailed { detail: String },
-    /// the web app's `webOneDriveSync.ts`/`webOneDriveAuth.ts`: signed in, but the follow-up
-    /// Graph API call for the account's own profile failed.
-    OneDriveProfileFetchFailed { detail: String },
-    /// the web app's `webOneDriveSync.ts`/`webOneDriveAuth.ts`: Microsoft's token endpoint didn't
-    /// include a refresh token in its response — almost always a missing
+    /// `webOneDriveAuth.ts`: Microsoft's token endpoint didn't include a
+    /// refresh token in its response — almost always a missing
     /// `offline_access` scope on the app registration.
     OneDriveMissingRefreshTokenScope,
-    /// the web app's `webOneDriveSync.ts`/`webOneDriveAuth.ts`: the HTTP request to Microsoft's
-    /// token endpoint itself failed (DNS, connection, TLS — before any
-    /// response body exists to inspect).
+    /// `webOneDriveAuth.ts`: the HTTP request to Microsoft's token endpoint
+    /// itself failed (DNS, connection, TLS — before any response body
+    /// exists to inspect).
     OneDriveTokenRequestFailed { detail: String },
-    /// the web app's `webOneDriveSync.ts`/`webOneDriveAuth.ts`: Microsoft's token endpoint
-    /// responded, but rejected the exchange (a non-2xx status) — `detail`
-    /// is whatever error body it returned, Microsoft's own English text.
+    /// `webOneDriveAuth.ts`: Microsoft's token endpoint responded, but
+    /// rejected the exchange (a non-2xx status) — `detail` is whatever
+    /// error body it returned, Microsoft's own English text.
     OneDriveTokenExchangeRejected { detail: String },
-    /// the web app's `webOneDriveSync.ts`/`webOneDriveAuth.ts`: got a 2xx response that isn't the
-    /// JSON shape a token response should be.
-    OneDriveTokenResponseUnparseable { detail: String },
     /// Anything else: a raw, untranslated diagnostic string — usually a
     /// `std::io::Error`/network error's own `Display` text, or a lower-
     /// level `String` error propagated up through a `?` chain. See the
@@ -116,28 +88,15 @@ impl std::fmt::Display for AppError {
                 write!(f, "The calendar file (.agenda.json) is missing, empty, or invalid — check whatever syncs it.")
             }
             AppError::OneDriveSyncBusy => write!(f, "A sync is running — try again in a moment"),
-            AppError::OneDriveLoopbackBindFailed { detail } => write!(f, "Could not bind local OAuth port 8765: {detail}"),
-            AppError::OneDriveBrowserOpenFailed { detail } => write!(f, "Failed to open system browser: {detail}"),
-            AppError::OneDriveCallbackAcceptFailed { detail } => write!(f, "Error accepting OAuth callback: {detail}"),
-            AppError::OneDriveAuthTimedOut => write!(f, "Authentication timed out waiting for user approval"),
-            AppError::OneDriveNoAuthCode => write!(f, "No authorization code provided"),
             AppError::OneDriveNoPendingSession => {
                 write!(f, "No pending login session found. Please tap 'Connect Microsoft Account' first.")
             }
-            AppError::OneDriveKeychainSaveFailed { detail } => {
-                write!(f, "Failed to save credentials to the OS keychain: {detail}")
-            }
-            AppError::OneDriveAuthStateSaveFailed { detail } => write!(f, "Failed to save auth state: {detail}"),
-            AppError::OneDriveProfileFetchFailed { detail } => write!(f, "Failed to fetch user profile: {detail}"),
             AppError::OneDriveMissingRefreshTokenScope => write!(
                 f,
                 "Microsoft didn't return a refresh token — check the app registration requests the offline_access scope."
             ),
             AppError::OneDriveTokenRequestFailed { detail } => write!(f, "Failed to send token request: {detail}"),
             AppError::OneDriveTokenExchangeRejected { detail } => write!(f, "OAuth token exchange failed: {detail}"),
-            AppError::OneDriveTokenResponseUnparseable { detail } => {
-                write!(f, "Failed to parse token response: {detail}")
-            }
             AppError::Other { detail } => write!(f, "{detail}"),
         }
     }
@@ -161,8 +120,8 @@ mod tests {
 
     #[test]
     fn a_unit_sign_in_code_serializes_with_no_extra_fields() {
-        let v = serde_json::to_value(AppError::OneDriveAuthTimedOut).unwrap();
-        assert_eq!(v, serde_json::json!({ "code": "oneDriveAuthTimedOut" }));
+        let v = serde_json::to_value(AppError::OneDriveMissingRefreshTokenScope).unwrap();
+        assert_eq!(v, serde_json::json!({ "code": "oneDriveMissingRefreshTokenScope" }));
     }
 
     #[test]

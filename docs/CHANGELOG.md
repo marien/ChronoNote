@@ -10593,3 +10593,12 @@ Marien's review of the D choices (2026-10-13), implemented by Gemini 3.8 Flash (
 **Status: released in v0.32.1 (betas 0.32.1-1/-2 first).**
 
 - The Security Audit went red on the 0.32.1-1 release commit: four rustls advisories published 2026-10-16 (one medium: `Debug` output of client sessions can show TLS secrets; three low: ECH rejection, Brotli certificate decompression, a ServerHello downgrade). rustls is the TLS layer of the updater's downloads (`tauri-plugin-updater` → reqwest). `cargo update -p rustls` 0.23.45 → 0.23.46, the fixed version; nothing else moved.
+
+## 383. Refactoring review, phase A: dead error codes removed, one sync state
+
+**Status: on branch `refactor/cleanup-a`, unreleased. No intended behaviour change.**
+
+- From `docs/design/refactoring-review-oct16-2026.md` (a review of an external agent's 8 refactoring tasks; 3 kept in a smaller form, 1 waits for a decision, 4 dropped).
+- **Nine `AppError` codes nothing produced** (`oneDriveLoopbackBindFailed`, `oneDriveBrowserOpenFailed`, `oneDriveCallbackAcceptFailed`, `oneDriveAuthTimedOut`, `oneDriveNoAuthCode`, `oneDriveKeychainSaveFailed`, `oneDriveAuthStateSaveFailed`, `oneDriveProfileFetchFailed`, `oneDriveTokenResponseUnparseable`) were removed with their `apiError.ts` cases and i18n keys in all 7 locales. They came from the Rust OAuth flow removed in §300; only the web app's sign-in produces OneDrive codes now (5 remain). Stale comments in `error.rs` (loopback port, keychain) rewritten.
+- **One sync state for the UI:** the status-bar cloud button and the sync health popover each combined `oneDriveSyncing`, `oneDriveSyncStatus` and (popover only) `syncHealth.status` themselves, in different orders, so they could disagree. New derived store `oneDriveSyncState` (`stores.ts`, precedence: sign-in expired, then a running sync, then the engine's status) that both read. `syncHealth.status` is the same engine value as `onedrive_get_sync_status`, so `refreshSyncHealth` now also updates `oneDriveSyncStatus` (opening the popover refreshes both). Small visible difference: while the sign-in is expired the button now says "Sign in again" even during a sync attempt (it showed "Syncing" first before). New `syncState.test.ts`.
+- **Not done:** a shared Vite base config (the three configs share one line). The release workflow in GitHub Actions waits for Marien's decision on moving the signing key.

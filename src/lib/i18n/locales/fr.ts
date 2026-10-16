@@ -866,29 +866,12 @@ export const fr = {
   "error.agendaInvalid": () =>
     "Le fichier d'agenda (.agenda.json) est manquant, vide ou invalide — vérifiez le processus qui le synchronise.",
   "error.oneDriveSyncBusy": () => "Une synchronisation est en cours — réessayez dans un instant",
-  "error.oneDriveLoopbackBindFailed": ({ detail }) =>
-    `Impossible de démarrer le récepteur local de connexion : ${detail}`,
-  "error.oneDriveBrowserOpenFailed": ({ detail }) =>
-    `Impossible d'ouvrir votre navigateur pour la connexion : ${detail}`,
-  "error.oneDriveCallbackAcceptFailed": ({ detail }) =>
-    `Une erreur est survenue lors de l'attente du retour de connexion : ${detail}`,
-  "error.oneDriveAuthTimedOut": () =>
-    "Délai de connexion dépassé — vous n'avez pas validé l'autorisation à temps dans le navigateur.",
-  "error.oneDriveNoAuthCode": () => "Aucun code d'autorisation trouvé dans le texte collé.",
   "error.oneDriveNoPendingSession": () =>
     'Aucune connexion en cours — cliquez d\'abord sur « Connecter un compte Microsoft ».',
-  "error.oneDriveKeychainSaveFailed": ({ detail }) =>
-    `Connecté, mais impossible d'enregistrer vos identifiants en toute sécurité : ${detail}`,
-  "error.oneDriveAuthStateSaveFailed": ({ detail }) =>
-    `Connecté, mais impossible d'enregistrer les détails de connexion : ${detail}`,
-  "error.oneDriveProfileFetchFailed": ({ detail }) =>
-    `Connecté, mais impossible de récupérer les informations de votre compte : ${detail}`,
   "error.oneDriveMissingRefreshTokenScope": () =>
     "Microsoft n'a pas accordé d'accès persistant — vérifiez que l'enregistrement d'application demande bien l'autorisation offline_access.",
   "error.oneDriveTokenRequestFailed": ({ detail }) => `Impossible de contacter Microsoft pour la connexion : ${detail}`,
   "error.oneDriveTokenExchangeRejected": ({ detail }) => `Microsoft a rejeté la connexion : ${detail}`,
-  "error.oneDriveTokenResponseUnparseable": ({ detail }) =>
-    `La réponse de connexion de Microsoft est illisible : ${detail}`,
   "editorMenu.ariaLabel": () => "Menu de l’éditeur",
   "editorMenu.clipboard": () => "Presse-papiers",
   "editorMenu.cut": () => "Couper",

@@ -108,15 +108,8 @@ const SAMPLE_PARAMS: Partial<Record<TranslationKey, unknown>> = {
   "toast.syncConflicts.keptThisDeviceVersion": { name: "2026-09-26.txt" },
   "toast.oneDriveSync.syncFailedPrefix": { message: "network error" },
   "toast.oneDriveSync.couldntStartSignInPrefix": { message: "network error" },
-  "error.oneDriveLoopbackBindFailed": { detail: "address in use" },
-  "error.oneDriveBrowserOpenFailed": { detail: "no browser found" },
-  "error.oneDriveCallbackAcceptFailed": { detail: "connection reset" },
-  "error.oneDriveKeychainSaveFailed": { detail: "access denied" },
-  "error.oneDriveAuthStateSaveFailed": { detail: "disk full" },
-  "error.oneDriveProfileFetchFailed": { detail: "network error" },
   "error.oneDriveTokenRequestFailed": { detail: "network error" },
   "error.oneDriveTokenExchangeRejected": { detail: "invalid_grant" },
-  "error.oneDriveTokenResponseUnparseable": { detail: "unexpected token" },
 };
 
 /** Defense in depth beyond the `satisfies Dictionary` compile-time check

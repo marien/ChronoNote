@@ -7,7 +7,7 @@
     oneDriveAccount,
     oneDriveFolder,
     oneDriveSignInExpired,
-    oneDriveSyncing,
+    oneDriveSyncState,
     oneDriveSyncStatus,
     syncHealthPopoverOpen,
   } from "../controller";
@@ -28,19 +28,19 @@
     syncHealthPopoverOpen.update((v) => !v);
   }
 
-  const syncing = $derived($oneDriveSyncing || $oneDriveSyncStatus === "syncing");
+  const syncing = $derived($oneDriveSyncState === "syncing");
   const label = $derived(
     !$oneDriveAccount
       ? "OneDrive"
-      : syncing
-        ? $t("statusBar.oneDrive.syncingText")
-        : !$oneDriveFolder
-          ? $t("statusBar.oneDrive.chooseFolder")
-          : $oneDriveSignInExpired
-            ? $t("statusBar.oneDrive.signInAgain")
-            : $oneDriveSyncStatus === "error"
+      : !$oneDriveFolder
+        ? $t("statusBar.oneDrive.chooseFolder")
+        : $oneDriveSyncState === "signInExpired"
+          ? $t("statusBar.oneDrive.signInAgain")
+          : $oneDriveSyncState === "syncing"
+            ? $t("statusBar.oneDrive.syncingText")
+            : $oneDriveSyncState === "error"
               ? $t("statusBar.oneDrive.syncError")
-              : $oneDriveSyncStatus === "offline"
+              : $oneDriveSyncState === "offline"
                 ? $t("statusBar.oneDrive.offline")
                 : ($oneDriveFolder.folderPath.split("/").filter(Boolean).pop() ?? $t("statusBar.oneDrive.defaultFolderName")),
   );

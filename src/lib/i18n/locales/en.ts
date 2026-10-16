@@ -837,22 +837,11 @@ export const en = {
     "Tap any token in the bottom bar to convert lines into actions or meeting topics.",
   "error.agendaInvalid": () => "The calendar file (.agenda.json) is missing, empty, or invalid — check whatever syncs it.",
   "error.oneDriveSyncBusy": () => "A sync is running — try again in a moment",
-  "error.oneDriveLoopbackBindFailed": ({ detail }) => `Couldn't start the local sign-in listener: ${detail}`,
-  "error.oneDriveBrowserOpenFailed": ({ detail }) => `Couldn't open your browser to sign in: ${detail}`,
-  "error.oneDriveCallbackAcceptFailed": ({ detail }) =>
-    `Something went wrong while waiting for the sign-in to come back: ${detail}`,
-  "error.oneDriveAuthTimedOut": () => "Sign-in timed out — you didn't finish approving it in the browser in time.",
-  "error.oneDriveNoAuthCode": () => "No authorization code was found in what you pasted.",
   "error.oneDriveNoPendingSession": () => 'No sign-in is in progress — click "Connect Microsoft Account" first.',
-  "error.oneDriveKeychainSaveFailed": ({ detail }) =>
-    `Signed in, but couldn't save your credentials securely: ${detail}`,
-  "error.oneDriveAuthStateSaveFailed": ({ detail }) => `Signed in, but couldn't save the sign-in details: ${detail}`,
-  "error.oneDriveProfileFetchFailed": ({ detail }) => `Signed in, but couldn't fetch your account details: ${detail}`,
   "error.oneDriveMissingRefreshTokenScope": () =>
     "Microsoft didn't grant lasting access — check that the app registration requests the offline_access scope.",
   "error.oneDriveTokenRequestFailed": ({ detail }) => `Couldn't reach Microsoft to sign in: ${detail}`,
   "error.oneDriveTokenExchangeRejected": ({ detail }) => `Microsoft rejected the sign-in: ${detail}`,
-  "error.oneDriveTokenResponseUnparseable": ({ detail }) => `Microsoft's sign-in response didn't make sense: ${detail}`,
   "editorMenu.ariaLabel": () => "Editor menu",
   "editorMenu.clipboard": () => "Clipboard",
   "editorMenu.cut": () => "Cut",
