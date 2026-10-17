@@ -10717,3 +10717,10 @@ From a test-coverage review (2026-10-17): Vitest covers 41% of `src/lib` lines a
 - **Header:** a button left of minimize (also in the thin "hidden" strip) shows `peek-dock` (a window with a band along its bottom, "Dock to the bottom of the screen") while floating and `peek-float` (a small window above a baseline, "Float the window") while docked; labels in 7 languages. The Settings switch and its texts are gone; `PeekConfig.dockBottom` now records the last mode.
 - **Switching inside Peek** (`togglePeekDock`, `peekWindow.ts` `dock()` / `float()`): docking remembers the floating geometry first; floating releases the strip (`peek_undock`, which also removes the window hook and restores the corners) and places the window the way a floating Peek opens. `enter()` shares the same placement code (`placeFloating`, `dockAt`).
 - **Checked natively** (isolated debug build, English UI): floating 630x251 above the taskbar; the button docked it (work area 1392 -> 1192, full width) and saved the mode; the button floated it back to the exact same spot and released the strip; it then moved freely; docked + `Esc` + reopen opened docked; closing restored the screen. Tests: controller dock/float unit tests; e2e for the button, the remembered mode, and no setting.
+
+## 397. Grammar performance test measures old and new in alternating rounds
+
+**Status: on `main` (test only).**
+
+- CI's Test run on the 0.32.4-5 release commit (a version bump only) failed `perf.test.ts`: the tokenizer measured 106 ms against 68 ms for the old regexes, over the 1.5x limit. The eleven runs before it on CI had the tokenizer as fast or faster (38-80 ms against 57-98 ms), including every run since §387's Unicode name pattern, and locally it is 55 ms against 69 ms: one slow stretch on a shared runner, landing on whichever was measured second.
+- `bestOfBoth` times the two in alternating rounds (best of 9 instead of 5), so a slow stretch hits both. The limit and the code under test are unchanged. The published beta was not affected.

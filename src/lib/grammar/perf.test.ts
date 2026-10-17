@@ -69,14 +69,22 @@ function bigDoc(): string {
   return out.join("\n");
 }
 
-function best(fn: () => void, rounds = 5, reps = 50): number {
-  let min = Infinity;
-  for (let i = 0; i < rounds; i++) {
+/** Best time of `rounds` rounds of `reps` calls, for two functions measured in alternating rounds: a slow stretch on a
+ * shared CI machine then hits both instead of only whichever was measured second (one run measured 106 ms against
+ * 68 ms for identical code, while every other run had the new code as fast or faster). */
+function bestOfBoth(a: () => void, b: () => void, rounds = 9, reps = 50): [number, number] {
+  let minA = Infinity;
+  let minB = Infinity;
+  const time = (fn: () => void) => {
     const t0 = performance.now();
     for (let r = 0; r < reps; r++) fn();
-    min = Math.min(min, performance.now() - t0);
+    return performance.now() - t0;
+  };
+  for (let i = 0; i < rounds; i++) {
+    minA = Math.min(minA, time(a));
+    minB = Math.min(minB, time(b));
   }
-  return min;
+  return [minA, minB];
 }
 
 describe("editor glyph decorations: tokenizer vs the old regexes (refactor R7)", () => {
@@ -92,11 +100,13 @@ describe("editor glyph decorations: tokenizer vs the old regexes (refactor R7)",
       expect(count(fresh.decorations)).toBeGreaterThan(100);
       // Same number of atomic ranges as the regex found.
       expect(count(fresh.atomic)).toBe(count(oldAtomic.createDeco(view)));
-      const oldMs = best(() => {
-        oldRender.createDeco(view);
-        oldAtomic.createDeco(view);
-      });
-      const newMs = best(() => buildGlyphDecorations(view));
+      const [oldMs, newMs] = bestOfBoth(
+        () => {
+          oldRender.createDeco(view);
+          oldAtomic.createDeco(view);
+        },
+        () => buildGlyphDecorations(view),
+      );
       console.log(`50 rebuilds, ${view.state.doc.lines} lines: old ${oldMs.toFixed(1)} ms, new ${newMs.toFixed(1)} ms`);
       expect(newMs).toBeLessThan(oldMs * 1.5);
     }
