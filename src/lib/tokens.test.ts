@@ -423,6 +423,7 @@ describe("stripLeadingToken", () => {
   it("keeps a delegated @name intact, stripping only the arrow", () => {
     expect(stripLeadingToken("Talked to Sam => @alice")).toBe("Talked to Sam @alice");
     expect(stripLeadingToken("Talked to Sam => @jean-luc has it")).toBe("Talked to Sam @jean-luc has it"); // #125
+    expect(stripLeadingToken("Talked to Sam => @René has it")).toBe("Talked to Sam @René has it");
   });
 
   it("strips a plain follow-up arrow, keeping its text", () => {

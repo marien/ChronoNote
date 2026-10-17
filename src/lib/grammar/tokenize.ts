@@ -2,7 +2,7 @@
  * Pure and single pass. It reproduces exactly what the editor's `renderMatcher`
  * regex and the read-only `parseGlyphLine` recognise today; offsets are into
  * the original line. */
-import { ACTION_CLASS, BULLET_CLASS, TOPIC_CLASS } from "./symbols";
+import { ACTION_CLASS, BULLET_CLASS, NAME_CHAR, NAME_GLUE, TOPIC_CLASS } from "./symbols";
 
 export type TokenKind =
   | "action" // # v > x at line start (after indentation); includes the trailing space
@@ -40,8 +40,8 @@ const BULLET_AFTER_STATE = new RegExp(String.raw`^(${BULLET_CLASS})\s`);
 // Alternatives in the editor's order: `=> @name`, `=> <symbol> `, `=> <topic> `, `=> `, bare `@name` (not glued to a
 // word, `@` or `/`; also each name in `(@a, @b)`, which has no meaning of its own), `(word)` (never `(@…)`).
 const INLINE = new RegExp(
-  String.raw`=>\s@([\w-]+)|=>\s(${ACTION_CLASS})\s|=>\s(${TOPIC_CLASS})\s|=>\s|(?<![\w@/])@([\w-]+)|\((?!@)([^\s()]+)\)`,
-  "g",
+  String.raw`=>\s@(${NAME_CHAR}+)|=>\s(${ACTION_CLASS})\s|=>\s(${TOPIC_CLASS})\s|=>\s|(?<!${NAME_GLUE})@(${NAME_CHAR}+)|\((?!@)([^\s()]+)\)`,
+  "gu",
 );
 
 export function tokenizeLine(line: string): Token[] {

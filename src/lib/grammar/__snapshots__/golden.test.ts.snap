@@ -3695,6 +3695,12 @@ exports[`token behaviour snapshot (refactor R1) > edge cases 1`] = `
           "label": "➔",
           "to": 9,
         },
+        {
+          "class": "glyph-assignee",
+          "from": 9,
+          "kind": "mark",
+          "to": 12,
+        },
       ],
     },
     "findActionSymbols": [
@@ -3722,7 +3728,11 @@ exports[`token behaviour snapshot (refactor R1) > edge cases 1`] = `
         "text": " ",
       },
       {
-        "text": "@田中 確認",
+        "cls": "glyph-assignee",
+        "text": "@田中",
+      },
+      {
+        "text": " 確認",
       },
     ],
     "innermostActionSymbol": "#",

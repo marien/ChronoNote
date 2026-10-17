@@ -62,6 +62,19 @@ describe("tokenizeLine", () => {
     expect(tokenizeLine("see https://x.y/@user")).toEqual([]);
   });
 
+  it("names with letters from any script, accents included (\\w alone is ASCII-only)", () => {
+    const names = (line: string) =>
+      tokenizeLine(line).filter((t) => t.kind === "assignee").map((t) => line.slice(t.from, t.to));
+    expect(names("ask @René now")).toEqual(["@René"]);
+    expect(names("@Zoë and @Łukasz and @José-Luis")).toEqual(["@Zoë", "@Łukasz", "@José-Luis"]);
+    expect(names("ping @田中")).toEqual(["@田中"]);
+    // A combining accent (e + U+0301) belongs to the name too.
+    expect(names("ask @René now")).toEqual(["@René"]);
+    expect(names("# t => @René x")).toEqual(["@René"]);
+    // An accented letter before the @ is still an email address, not a name.
+    expect(names("mail josé@example.com")).toEqual([]);
+  });
+
   it("names in parentheses are plain assignees; the parentheses have no meaning of their own", () => {
     expect(tokenizeLine("(@a, @b) x")).toEqual([
       { kind: "assignee", from: 1, to: 3, replaced: false },

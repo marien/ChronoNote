@@ -2,7 +2,7 @@
  * editor's glyph rendering, the action drawer, and section history. The per-line
  * questions are answered from `tokenizeLine` (grammar/), so there is one definition
  * of each token. */
-import { ACTION_CLASS, BULLET_CLASS } from "./grammar/symbols";
+import { ACTION_CLASS, BULLET_CLASS, NAME_CHAR } from "./grammar/symbols";
 import { tokenizeLine } from "./grammar/tokenize";
 
 // Kept as regexes: stripLeadingToken splices around the *last* arrow, which a token list would only make longer.
@@ -618,6 +618,8 @@ export function stateFirst(line: string): string | null {
   return null;
 }
 
+const DELEGATED_FOLLOW_UP = new RegExp(String.raw`^(.*)=>\s(@${NAME_CHAR}+\s.*)$`, "u");
+
 /** Strips a line's leading token(s) for display in the Action Drawer/
  * Section History (§45), which already show the equivalent glyph
  * separately — showing the raw character too was a duplicate, confusing
@@ -641,7 +643,7 @@ export function stripLeadingToken(line: string): string {
   const withoutLeading = line.replace(LEADING_ACTION, "$1");
   const consequence = withoutLeading.match(CONSEQUENCE_ACTION);
   if (consequence) return consequence[1] + consequence[2];
-  const delegated = withoutLeading.match(/^(.*)=>\s(@[\w-]+\s.*)$/);
+  const delegated = withoutLeading.match(DELEGATED_FOLLOW_UP);
   if (delegated) return delegated[1] + delegated[2];
   const followUp = withoutLeading.match(/^(.*)=>\s(.*)$/);
   if (followUp) return followUp[1] + followUp[2];
