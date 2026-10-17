@@ -65,6 +65,28 @@ jobs:
           path: playwright-report/
           retention-days: 14
 
+  e2e-windows-layout:
+    name: E2E layout (Windows fonts, 100/125/150%)
+    # The Linux run above uses Linux fonts and missed a glyph shift that only showed with Windows fonts at 150% (§379).
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install chromium
+      - run: npx playwright test --workers=2
+        env:
+          E2E_WINDOWS_LAYOUT: "1"
+      - uses: actions/upload-artifact@v7
+        if: ${{ failure() }}
+        with:
+          name: playwright-report-windows-layout
+          path: playwright-report/
+          retention-days: 14
+
   build-guard:
     name: Prod build drops the test harness
     runs-on: ubuntu-latest

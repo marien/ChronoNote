@@ -31,6 +31,15 @@ const ENV_PROJECTS = [
   },
 ].map((p) => ({ ...p, testMatch: LAYOUT_SPECS }));
 
+/** CI's Windows layout job (`E2E_WINDOWS_LAYOUT=1`): only the layout specs, with Windows fonts, at the scales Marien's
+ * laptops use. The Linux run missed the @codemirror/view 6.43.14 glyph shift at 150% (§379); only a local Windows run
+ * caught it. */
+const WINDOWS_LAYOUT_PROJECTS = [
+  { name: "win-100", use: { ...devices["Desktop Chrome"] } },
+  { name: "win-125", use: { ...devices["Desktop Chrome"], deviceScaleFactor: 1.25 } },
+  { name: "win-150", use: { ...devices["Desktop Chrome"], deviceScaleFactor: 1.5 } },
+].map((p) => ({ ...p, testMatch: LAYOUT_SPECS }));
+
 export default defineConfig({
   testDir: "./tests/e2e",
   testMatch: "**/*.spec.ts",
@@ -58,7 +67,7 @@ export default defineConfig({
     locale: "en-US",
   },
 
-  projects: [
+  projects: process.env.E2E_WINDOWS_LAYOUT === "1" ? WINDOWS_LAYOUT_PROJECTS : [
     {
       name: "chromium",
       use: { ...devices["Desktop Chrome"] },
