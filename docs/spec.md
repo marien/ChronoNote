@@ -731,7 +731,7 @@ version):
 
 | Target | Build config | Storage backend | Where it lives |
 | :--- | :--- | :--- | :--- |
-| **Desktop app** | `vite.config.ts` → `dist/` | Real files via Tauri IPC | Installed `.msi`/`.exe` |
+| **Desktop app** | `vite.config.ts` → `dist/` | Real files via Tauri IPC | Installed `-setup.exe` (NSIS) |
 | **Public demo** | `vite.demo.config.ts` → `website/demo-app/` | In-memory mock, resets every load | `chrononote.mariendegelder.nl` (embedded + full-screen) |
 | **Web app** | `vite.webapp.config.ts` → `website/webapp/` | IndexedDB, persists across reloads | `app.chrononote.mariendegelder.nl` |
 

@@ -17,8 +17,8 @@
 #                  flag is missing, and the script stops).
 #   --force-red    Release although GitHub's last Test run on main failed.
 #                  Say why in the release notes.
-#   --beta         An early-updates build (F1): version X.Y.Z-N (N numeric;
-#                  the MSI bundler needs that), published as a GitHub
+#   --beta         An early-updates build (F1): version X.Y.Z-N (N numeric, so
+#                  the early channel's version comparison orders it), published as a GitHub
 #                  pre-release, announced only on the early channel
 #                  (latest-beta.json on the rolling `early` pre-release). No
 #                  web app/demo rebuild, no website-live promotion.
@@ -187,8 +187,8 @@ TARGET="$(grep -E '^\s*target-dir' src-tauri/.cargo/config.toml 2>/dev/null | se
 [[ -n "$TARGET" ]] || TARGET="$ROOT/src-tauri/target"
 BUNDLE="$TARGET/release/bundle"
 EXE="$BUNDLE/nsis/ChronoNote_${VERSION}_x64-setup.exe"
-MSI="$BUNDLE/msi/ChronoNote_${VERSION}_x64_en-US.msi"
-if [[ -f "$EXE" && -f "$EXE.sig" && -f "$MSI" ]]; then
+# Only the NSIS installer is built and published (§389: the .msi was not downloaded after v0.23.0).
+if [[ -f "$EXE" && -f "$EXE.sig" ]]; then
   ok "installers for $VERSION already built"
 else
   # stale dev instances interfere with the release build; the *installed* app
@@ -197,7 +197,7 @@ else
   export TAURI_SIGNING_PRIVATE_KEY_PASSWORD="$(cat src-tauri/updater-signing-key-password.local)"
   run tauri-build npm run tauri build
 fi
-[[ -f "$EXE" && -f "$EXE.sig" && -f "$MSI" ]] || { echo "expected installers missing under $BUNDLE" >&2; exit 1; }
+[[ -f "$EXE" && -f "$EXE.sig" ]] || { echo "expected installer missing under $BUNDLE" >&2; exit 1; }
 
 # --------------------------------------------------------------- latest.json
 # Must be named exactly latest.json on disk: `gh release create path#label`
@@ -237,13 +237,13 @@ fi
 step "publish"
 git push -q origin main --follow-tags
 ok "pushed main + $TAG"
-cp "$EXE" "$MSI" "$ASSETS/"
+cp "$EXE" "$ASSETS/"
 if [[ $BETA == 1 ]]; then
-  gh release create "$TAG" "$ASSETS/$(basename "$MSI")" "$ASSETS/$(basename "$EXE")" \
+  gh release create "$TAG" "$ASSETS/$(basename "$EXE")" \
     --title "$TAG (early update)" --notes-file "$NOTES_ABS" --prerelease >/dev/null
   ok "GitHub pre-release $TAG created"
 else
-  gh release create "$TAG" "$ASSETS/$(basename "$MSI")" "$ASSETS/$(basename "$EXE")" "$ASSETS/latest.json" \
+  gh release create "$TAG" "$ASSETS/$(basename "$EXE")" "$ASSETS/latest.json" \
     --title "$TAG" --notes-file "$NOTES_ABS" >/dev/null
   ok "GitHub release $TAG created"
   git checkout -q website-live
@@ -273,7 +273,7 @@ fi
 step "verify"
 NAMES="$(gh release view "$TAG" --json assets -q '.assets[].name' | sort | tr '\n' ' ')"
 echo "   assets: $NAMES"
-EXPECT="ChronoNote_${VERSION}_x64-setup.exe ChronoNote_${VERSION}_x64_en-US.msi"
+EXPECT="ChronoNote_${VERSION}_x64-setup.exe"
 [[ $BETA == 0 ]] && EXPECT="$EXPECT latest.json"
 for n in $EXPECT; do
   [[ "$NAMES" == *"$n "* ]] || { echo "   MISSING asset: $n" >&2; exit 1; }

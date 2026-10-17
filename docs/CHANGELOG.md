@@ -10645,3 +10645,10 @@ From a test-coverage review (2026-10-17): Vitest covers 41% of `src/lib` lines a
 
 - The Security Audit went red on 2026-10-17: three advisories for `zip` 4.6.1 (one critical, path and permission handling when extracting). `zip` came in only through `tauri-plugin-updater` 2.14.0, the newest stable release (no 2.x with zip 9 yet), via its default `zip` feature, which lets an update be a zip archive.
 - ChronoNote's update is always the NSIS installer itself (`latest.json` and the early manifest point at `..._x64-setup.exe`), so `Cargo.toml` now takes the updater with `default-features = false, features = ["rustls-tls", "system-proxy"]`. Without the feature the plugin's Windows `extract` goes straight to `extract_exe`, the path every update already took. `zip` is no longer in the build. The extraction code never ran for us, and downloads are signature-checked before install, so the advisories were not reachable; this clears the audit without waiting for a plugin release.
+
+## 389. Only the NSIS installer is built and published (no more .msi)
+
+**Status: on `main`, takes effect with the next release.**
+
+- GitHub's download counts (2026-10-17): `latest.json` 459 (the updater's checks), `-setup.exe` 169, `.msi` 17 in all, spread over 12 releases, none after v0.23.0 (2026-10-03). The updater always installs the `-setup.exe`, also on an MSI install, so nobody depends on the MSI. Building it took ~5-8 seconds of a ~10-minute release (timed with `tauri bundle` per target), so this is tidiness, not speed: one asset less to build, sign, upload and check.
+- `tauri.conf.json` `bundle.targets` `"all"` → `["nsis"]`; `release.sh` no longer expects, copies, uploads or verifies the MSI; README and spec name the `-setup.exe` only. Beta versions stay `X.Y.Z-N` with a numeric N (the reason given is now the early channel's version comparison; the MSI bundler's own rule no longer applies). Earlier releases keep their MSI assets.

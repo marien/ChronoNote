@@ -18,7 +18,7 @@ for the complete history of *why* each part is built the way it is.
 
 ChronoNote runs on Windows 10 and 11. On other systems, use the web app.
 
-- **Windows:** the installers (`.msi` / `-setup.exe`) are on the
+- **Windows:** the installer (`ChronoNote_<version>_x64-setup.exe`) is on the
   [Releases page](https://github.com/marien/ChronoNote/releases/latest).
   The app checks GitHub for new versions and can install them for you.
 - **In a browser, or on your phone:** [chrononote.mariendegelder.nl](https://chrononote.mariendegelder.nl)
