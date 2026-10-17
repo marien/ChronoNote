@@ -502,24 +502,19 @@ export function wirePeek(): () => void {
     }),
   );
 
-  // §393: dragging a docked Peek's top edge changes the strip's height. The window reports every step of the drag;
-  // once it settles, the strip is reserved again at the new height and that height is remembered.
-  let redockTimer: ReturnType<typeof setTimeout> | undefined;
+  // §393/§394: dragging a docked Peek's top edge changes the strip's height. Windows keeps the window on the strip
+  // while it is dragged; when the drag ends, Rust reserves the strip again at the new height and reports it
+  // (`peek-dock-height`, physical pixels), which is remembered here.
   void (async () => {
     try {
-      const { getCurrentWindow } = await import("@tauri-apps/api/window");
-      const unlisten = await getCurrentWindow().onResized(({ payload }) => {
+      const { listen } = await import("@tauri-apps/api/event");
+      const unlisten = await listen<number>("peek-dock-height", async ({ payload }) => {
         if (!get(peekMode) || !get(peekDocked)) return;
-        clearTimeout(redockTimer);
-        redockTimer = setTimeout(async () => {
-          const logical = await (await controller()).redock(payload.height);
-          if (logical !== null) peekSettings.update((x) => ({ ...x, dockHeight: logical }));
-        }, 300);
+        const { getCurrentWindow } = await import("@tauri-apps/api/window");
+        const scale = (await getCurrentWindow().scaleFactor()) || 1;
+        peekSettings.update((x) => ({ ...x, dockHeight: Math.round(payload / scale) }));
       });
-      cleanups.push(() => {
-        clearTimeout(redockTimer);
-        unlisten();
-      });
+      cleanups.push(unlisten);
     } catch {
       // No window events (tests): nothing to follow.
     }

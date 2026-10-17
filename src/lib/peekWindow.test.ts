@@ -197,15 +197,6 @@ describe("createPeekWindowController", () => {
       expect(peek.isDocked()).toBe(false);
     });
 
-    it("dragging the top edge re-docks at the new height and reports it in logical pixels; tiny changes are ignored", async () => {
-      const f = fakeWindow({ scale: 2 });
-      const peek = createPeekWindowController(f.win);
-      await peek.enter({ ...enterOpts, dockLogicalHeight: 150 });
-      expect(await peek.redock(301)).toBeNull();
-      expect(await peek.redock(500)).toBe(250);
-      expect(f.geo.height).toBe(500);
-    });
-
     it("the lines setting does not resize a docked strip", async () => {
       const f = fakeWindow();
       const peek = createPeekWindowController(f.win);

@@ -242,18 +242,6 @@ export function createPeekWindowController(win: PeekWin) {
       }, null);
     },
 
-    /** Docked: the strip's height after its top edge was dragged (physical pixels, as the window reports it). Re-docks at
-     * that height and resolves to it in logical pixels (to remember), or null when nothing changed. */
-    redock(physicalHeight: number): Promise<number | null> {
-      return run(async () => {
-        if (!full || !docked) return null;
-        if (Math.abs(physicalHeight - docked.height) <= 2) return null;
-        docked = await win.dockBottom(physicalHeight);
-        const scale = (await win.scaleFactor()) || 1;
-        return Math.round(docked.height / scale);
-      }, null);
-    },
-
     /** Whether Peek is docked now. */
     isDocked(): boolean {
       return docked !== null;
