@@ -174,6 +174,9 @@ pub async fn install_update(app: AppHandle, early: bool, on_event: Channel<Insta
     let app_for_install = app.clone();
     let result = tauri::async_runtime::spawn_blocking(move || {
         let _ = &app_for_install;
+        // The installer runs quietly (installMode "quiet", no window of its own), so About's
+        // "closes and reopens in a moment" line is the only notice: give it time to be read.
+        std::thread::sleep(std::time::Duration::from_millis(1500));
         update.install(bytes)
     })
     .await

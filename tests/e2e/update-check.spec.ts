@@ -227,6 +227,25 @@ test.describe("#50: first-launch-after-update notice", () => {
     await expect(page.locator(".info-bar")).toHaveCount(0);
   });
 
+  test("a first start after an update brings the window to the front once; a normal start does not", async ({ page }) => {
+    // The installer starts the app, and Windows keeps a process started that way from taking the foreground.
+    const raised = () =>
+      page.evaluate(() =>
+        window.__CHRONO_MOCK__!.windowCalls.filter((c) => c.startsWith("set_always_on_top") || c === "set_focus"),
+      );
+    await seedApp(page, {
+      seed: { notes: {}, appVersion: "9.9.9", lastSeenVersion: "9.9.8", updateCheck: "none" },
+    });
+    await expect(page.locator(".info-bar")).toBeVisible();
+    await expect.poll(raised).toEqual(["set_always_on_top true", "set_always_on_top false", "set_focus"]);
+
+    await page.evaluate(() => (window.__CHRONO_MOCK__!.windowCalls = []));
+    await page.reload();
+    await expect(page.locator("#top-bar")).toBeVisible();
+    await page.waitForTimeout(300);
+    expect(await raised()).toEqual([]);
+  });
+
   test("shows nothing on a fresh install — no prior version to compare against", async ({ page }) => {
     await seedApp(page, { seed: { notes: {}, appVersion: "9.9.9", updateCheck: "none" } });
     await expect(page.locator(".info-bar")).toHaveCount(0);

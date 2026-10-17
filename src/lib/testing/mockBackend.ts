@@ -359,6 +359,8 @@ export class MockBackend {
   /** URLs passed to `plugin:opener|open_url` (the About drawer's project
    * link) — nothing actually opens. */
   openedUrls: string[] = [];
+  /** Test-only record of window commands that change the window (`set_always_on_top true`, `set_focus`, ...). */
+  windowCalls: string[] = [];
   /** Log lines accumulated by append_log. */
   logLines: string[] = [];
   /** What `plugin:dialog|open` (the folder picker) returns next. `null`
@@ -1336,7 +1338,7 @@ export class MockBackend {
           return null;
         }
         if (cmd.startsWith("plugin:window|") || cmd.startsWith("plugin:webview|")) {
-          return this.mockWindowCall(cmd);
+          return this.mockWindowCall(cmd, args);
         }
         // Unknown command — don't throw (that would surface as an unhandled
         // rejection and fail a test for the wrong reason); log loudly.
@@ -1347,8 +1349,9 @@ export class MockBackend {
 
   /** Benign answers for the window-introspection calls
    * `initWindowChromeWatcher` / `notesDir.subscribe(setTitle)` make. */
-  private mockWindowCall(cmd: string): unknown {
+  private mockWindowCall(cmd: string, args: Record<string, unknown> = {}): unknown {
     const method = cmd.split("|")[1] ?? "";
+    if (method.startsWith("set_")) this.windowCalls.push("value" in args ? `${method} ${String(args.value)}` : method);
     switch (method) {
       case "is_fullscreen":
       case "is_maximized":

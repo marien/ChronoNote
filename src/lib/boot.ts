@@ -139,6 +139,20 @@ function wireWindowTitleSync() {
   });
 }
 
+/** After an in-app update the installer starts the app, and Windows keeps a process started that way from taking
+ * the foreground: the window opened behind whatever was on top. Being topmost for a moment puts it at the top of the
+ * window stack (Windows allows that), then the normal order resumes with this window first. Desktop app only. */
+async function bringToFrontAfterUpdate(): Promise<void> {
+  try {
+    const win = getCurrentWindow();
+    await win.setAlwaysOnTop(true);
+    await win.setAlwaysOnTop(false);
+    await win.setFocus();
+  } catch {
+    // Cosmetic: a window that stays behind is no worse than before.
+  }
+}
+
 // --- §93: zero-loss exit barrier -------------------------------------
 //
 // The autosave debounce (400ms) means the last burst of typing before an
@@ -649,6 +663,7 @@ export async function initApp() {
   // just means "record the current version, nothing to announce."
   if (cfg.lastSeenVersion && cfg.lastSeenVersion !== version) {
     justUpdatedToVersion.set(version);
+    if (get(backendKind) === "desktop") void bringToFrontAfterUpdate();
   }
   if (cfg.lastSeenVersion !== version) {
     api.setLastSeenVersion(version).catch(() => {
