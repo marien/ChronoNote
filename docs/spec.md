@@ -4,8 +4,8 @@
 released as of v0.10.0) was dropped in favor of the PWA-installable web
 app; OneDrive sync continues as a web app feature (§7.3, shipped
 independently as of v0.11.0))
-**Target Environment:** Cross-platform native desktop (Windows / macOS /
-Linux), plus a browser-storage web app (installable as a PWA on a phone)
+**Target Environment:** Desktop app for Windows 10 and 11 (macOS and Linux
+builds are untested), plus a browser-storage web app (installable as a PWA on a phone)
 and a zero-retention public demo
 **Reference Architecture:** Tauri v2 (Rust) + Svelte 5 / TypeScript +
 CodeMirror 6
@@ -163,6 +163,17 @@ at the line's indentation (§363).
   * Tab right-click menu → "Export…" and "Print…".
   * Command palette (`Ctrl/Cmd+K`) → "Export…" and "Print…".
   * Editor right-click menu → "Copy as Markdown" (when a selection exists).
+
+### 2.6 Spell Check (§370, §375-§378)
+* **Off by default;** Settings → Appearance → "Spell check".
+* **Desktop:** the Windows Spell Checking API in Rust (`spell.rs`, one COM thread). The editor checks the visible
+  lines (debounced, cached; blank lines skipped) and draws its own underlines (`cm-misspelled`), so they survive
+  CodeMirror redraws and scrolling. Right-clicking a marked word offers suggestions, "Add to dictionary" (also
+  ignored for the session at once, because Windows applies the dictionary addition in the background) and "Ignore".
+* **Languages:** "Spell check languages" lists every language Windows can check; the default is the Windows
+  languages plus English when available. A word is marked only when none of the ticked languages knows it. A
+  missing language is added in Windows (Settings > Time & language > Language & region).
+* **Web app:** the browser's own spell check (Shift+right-click for its suggestions).
 
 ---
 
@@ -448,6 +459,9 @@ snapshot for reference, not the source of truth.
 | Actions (cross-tab action drawer) | `Ctrl+Shift+A` | `Cmd+Shift+A` |
 | Section history | `Ctrl+Shift+H` | `Cmd+Shift+H` |
 | Find in this note | `Ctrl+F` | `Cmd+F` |
+| Replace in this note | `Ctrl+H` | `Cmd+H` |
+| Go to section (list of this note's sections) | `Ctrl+G` | `Cmd+G` |
+| Back / forward after following a date link | `Ctrl+Alt+Left` / `Ctrl+Alt+Right` | `Cmd+[` / `Cmd+]` |
 | Cross-tab search | `Ctrl+Shift+F` | `Cmd+Shift+F` |
 | Sync calendar for this day | `Ctrl+Shift+C` | `Cmd+Shift+C` |
 | Settings | `Ctrl+,` | `Cmd+,` |

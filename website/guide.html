@@ -197,6 +197,9 @@
         <div class="shortcut-row"><span>Section history</span><kbd>Ctrl+Shift+H</kbd></div>
         <div class="shortcut-row"><span>With History or Actions open beside the note: switch between the note and the pane (the pane's own shortcut does the same)</span><kbd>F6</kbd></div>
         <div class="shortcut-row"><span>Find in this note</span><kbd>Ctrl+F</kbd></div>
+        <div class="shortcut-row"><span>Replace in this note</span><kbd>Ctrl+H</kbd></div>
+        <div class="shortcut-row"><span>Go to a section of this note</span><kbd>Ctrl+G</kbd></div>
+        <div class="shortcut-row"><span>Back / forward after following a date link</span><kbd>Ctrl+Alt+←</kbd> / <kbd>Ctrl+Alt+→</kbd></div>
         <div class="shortcut-row"><span>Cross-tab search</span><kbd>Ctrl+Shift+F</kbd></div>
         <div class="shortcut-row"><span>Sync calendar for this day (opt-in, desktop only)</span><kbd>Ctrl+Shift+C</kbd></div>
         <div class="shortcut-row"><span>Previous / next occurrence of the section at the caret (also inside Peek; not on a Mac)</span><kbd>Alt+←</kbd> / <kbd>Alt+→</kbd></div>
@@ -343,6 +346,10 @@
               note (bold), which have open actions (an amber ring) and, with calendar sync on, which only have
               meetings so far (a dashed ring), with ISO week numbers down the side; type <code>wk 42</code> to jump
               to that week.</p>
+            <p>Spell check is off until you switch it on (Settings → Appearance). The desktop app uses the Windows
+              spell checker: pick the languages it checks, and right-click a marked word for suggestions,
+              <strong>Add to dictionary</strong> or <strong>Ignore</strong>. In the web app your browser does the
+              checking (<kbd>Shift</kbd>+right-click for its suggestions).</p>
           </div>
         </div>
         <div class="workflow-step">
@@ -366,7 +373,50 @@
               Settings.</p>
           </div>
         </div>
+        <div class="workflow-step">
+          <div class="num">10</div>
+          <div>
+            <h3>Follow an action from day to day</h3>
+            <p>Copy an open action and paste it into a later note, and the original is marked as forwarded. Both
+              lines also get a link: the old one points to where it went, the new one to where it came from. Forward
+              it again and the chain carries on, so you can always trace where something started.</p>
+            <div class="snippet-pair">
+              <div>
+                <div class="snippet-pair-label">The earlier note</div>
+                <div class="snippet">&gt; book the venue (&gt;2026-10-14#Team Sync)</div>
+              </div>
+              <div>
+                <div class="snippet-pair-label">The later note</div>
+                <div class="snippet"># book the venue (&lt;2026-10-13#Team Sync)</div>
+              </div>
+            </div>
+            <p><kbd>Ctrl</kbd>+click a link to open that day at that section. Any date in brackets works the
+              same way, so <code>(2026-10-02#Budget review)</code> is a link you can type yourself.
+              <kbd>Ctrl+Alt+←</kbd> takes you back to where you were (and a small card at the top right offers
+              Back and Forward until you close it). <kbd>Ctrl+G</kbd> jumps to any section of the open note, and
+              <kbd>Ctrl+H</kbd> replaces text in it.</p>
+          </div>
+        </div>
       </div>
+    </div>
+  </section>
+
+  <section id="recover">
+    <div class="wrap prose">
+      <div class="section-head">
+        <span class="eyebrow">Safety nets</span>
+        <h2>Getting text back</h2>
+      </div>
+      <p>
+        ChronoNote keeps <strong>earlier versions</strong> of each note: one every few minutes while you edit today,
+        then one per day, for 30 days. Right-click a tab and choose <strong>Earlier versions…</strong> to compare any of
+        them side by side with the current text and restore it (the current text is kept as a version first).
+      </p>
+      <p>
+        A note you delete with text in it goes to <strong>Recently deleted</strong> (in Settings) for 30 days, where you
+        can restore it. In the desktop app both are hidden folders inside your notes folder, so they travel with it; the
+        web app keeps them in the browser's storage.
+      </p>
     </div>
   </section>
 

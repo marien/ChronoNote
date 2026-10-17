@@ -250,7 +250,8 @@ function build(name: ScenarioName): MockSeed {
         // See the module doc-comment on __DEMO_APP_VERSION__ above —
         // `undefined` here (every context but the built demo bundle)
         // just falls through to the mock's own default ("0.3.0").
-        appVersion: __DEMO_APP_VERSION__,
+        // `typeof`: outside the demo bundle the name is not defined at all, and a bare reference would throw.
+        appVersion: typeof __DEMO_APP_VERSION__ === "undefined" ? undefined : __DEMO_APP_VERSION__,
       };
     }
 
