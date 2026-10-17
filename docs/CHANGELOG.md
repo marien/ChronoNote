@@ -10613,3 +10613,12 @@ Marien's review of the D choices (2026-10-13), implemented by Gemini 3.8 Flash (
 - Noted, not changed: `delete_note` on a missing file succeeds whatever expected hash is passed (in all three), while `write_note` on a missing file accepts only the empty-content hash. Harmless (deleting something already gone is the wanted end state).
 - Left out: note versions (Rust keeps them by wall-clock time, not deterministic in a table).
 - Implemented by Gemini 3.8 Flash from a brief (`agent-tools/briefs/b1-storage-conformance.md`), reviewed and the capture check added by the orchestrator.
+
+## 385. Tests: permissions checked in the real app, layout checked with Windows fonts
+
+**Status: on `main` (test and CI only, nothing ships).**
+
+From a test-coverage review (2026-10-17): Vitest covers 41% of `src/lib` lines and the 89 Playwright specs cover every feature area, so the gaps were bug classes no layer could see, not low percentages.
+
+- **Capabilities, in the native smoke test.** The mock allows every command, so a missing permission only showed in the installed app (§93 `destroy` hung the window, §135 the About links did nothing). The new test derives the window commands the app calls from its source (Tauri's `window.js` command names whose JS method appears in `src/`) and probes each one plus the plugin calls the app imports (dialog open/save, opener, global shortcut, app version, events). Tauri checks the permission before it reads the arguments, so window commands target a window that does not exist and plugin commands get wrong argument types: nothing runs, only "not allowed" fails. A control (`set_icon`, not granted) must be refused, or the probe proves nothing. `relaunch` takes no arguments and is checked in the capabilities file instead. A plugin package imported without a probe entry fails the test. First run: 24 window commands, all allowed; two name-only matches on other objects (`create` = CodeMirror's `EditorState.create`, `hide` = the overview ruler) are listed as exclusions with the reason.
+- **Layout with Windows fonts in CI.** CI's Playwright runs on Linux and missed the §379 glyph shift that only showed with Windows fonts at 150%. New job `E2E layout (Windows fonts, 100/125/150%)`: `E2E_WINDOWS_LAYOUT=1` runs only the 13 layout specs as projects `win-100`/`win-125`/`win-150` (300 tests, ~3.5 minutes locally, also on pull requests). Checked that it catches the §379 regression: with the widget-buffer fix reverted, `win-150` fails `glyph-layout` "baseline alignment".
