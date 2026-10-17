@@ -151,6 +151,71 @@ test("About shows the running version, read from the real app", async () => {
   await page.keyboard.press("Escape");
 });
 
+/** Every window and plugin call the frontend makes is allowed by the capabilities. The mock backend allows everything,
+ * so a missing permission only showed in the installed app (§93 `destroy`, §135 opener). Tauri checks the permission
+ * before it reads the arguments, so each command is called so it cannot act: window commands on a window that does not
+ * exist, plugin commands with arguments of the wrong type. Only "not allowed" fails the test. */
+test("every window and plugin command the app uses is allowed by the capabilities", async () => {
+  const page = (globalThis as any).__page as Page;
+  const appSource = (dir: string): string[] =>
+    fs.readdirSync(dir, { withFileTypes: true }).flatMap((e) => {
+      const p = path.join(dir, e.name);
+      if (e.isDirectory()) return e.name === "testing" || e.name === "webapp" ? [] : appSource(p);
+      return /\.(ts|svelte)$/.test(e.name) && !/\.test\.ts$/.test(e.name) ? [fs.readFileSync(p, "utf8")] : [];
+    });
+  const src = appSource("src").join("\n");
+
+  // Window commands: every command in Tauri's window module whose JS method the app calls (`.setTitle(` -> set_title).
+  const windowJs = fs.readFileSync("node_modules/@tauri-apps/api/window.js", "utf8");
+  const windowCmds = [...new Set(windowJs.match(/plugin:window\|[a-z_]+/g) ?? [])]
+    .map((c) => c.slice("plugin:window|".length))
+    .filter((c) => src.includes(`.${c.replace(/_([a-z])/g, (_m, l: string) => l.toUpperCase())}(`));
+  expect(windowCmds).toContain("destroy");
+
+  // Plugin commands, by the functions the app imports. Keep in step with the import check below.
+  const pluginProbes: Record<string, Record<string, unknown>> = {
+    "plugin:dialog|open": { options: 0 },
+    "plugin:dialog|save": { options: 0 },
+    "plugin:opener|open_url": { url: 0 },
+    "plugin:global-shortcut|register": { shortcuts: 0, handler: 0 },
+    "plugin:global-shortcut|unregister": { shortcuts: 0 },
+    "plugin:app|version": {},
+    "plugin:event|listen": { event: 0 },
+    "plugin:event|unlisten": { event: 0 },
+  };
+  const probedPackages = ["plugin-dialog", "plugin-opener", "plugin-global-shortcut", "plugin-process"];
+  const imported = [...new Set([...src.matchAll(/["']@tauri-apps\/(plugin-[a-z-]+)["']/g)].map((m) => m[1]))];
+  expect(imported.filter((p) => !probedPackages.includes(p)), "a plugin package the probe table does not cover").toEqual([]);
+
+  const denied = await page.evaluate(
+    async ({ windowCmds, pluginProbes }) => {
+      const inv = (window as any).__TAURI_INTERNALS__.invoke as (cmd: string, args: unknown) => Promise<unknown>;
+      const out: string[] = [];
+      const probe = async (cmd: string, args: unknown) => {
+        try {
+          await inv(cmd, args);
+        } catch (e) {
+          if (/not allowed/i.test(String(e))) out.push(`${cmd}: ${String(e).slice(0, 160)}`);
+        }
+      };
+      // Control: a command the capabilities do not grant must come back "not allowed", or the probe proves nothing.
+      await probe("plugin:window|set_icon", { label: "__acl_probe__", value: 0 });
+      const control = out.splice(0).length === 1;
+      for (const c of windowCmds) await probe(`plugin:window|${c}`, { label: "__acl_probe__", value: 0 });
+      for (const [cmd, args] of Object.entries(pluginProbes)) await probe(cmd, args);
+      return { control, out };
+    },
+    { windowCmds, pluginProbes },
+  );
+  console.log(`probed ${windowCmds.length} window commands: ${windowCmds.join(" ")}`);
+  expect(denied.control, "set_icon (not granted) should be refused; the probe is not reaching the permission check").toBe(true);
+  expect(denied.out).toEqual([]);
+
+  // `relaunch` (process|restart) takes no arguments, so it cannot be probed without restarting: check the file instead.
+  const caps = JSON.parse(fs.readFileSync("src-tauri/capabilities/default.json", "utf8")).permissions as string[];
+  expect(caps.some((p) => p === "process:allow-restart" || p === "process:default")).toBe(true);
+});
+
 test("closing through the title bar ends the process; a restart restores the tab and its text", async () => {
   const page = (globalThis as any).__page as Page;
   await closeApp(page);
