@@ -10638,3 +10638,10 @@ From a test-coverage review (2026-10-17): Vitest covers 41% of `src/lib` lines a
 - **Marien:** `@Rene` was badged as a name, `@René` was not. Names were matched with `[\w-]+`, and `\w` is ASCII-only in JavaScript, so a name stopped at the first accented letter (`@Ren`). The guard against email addresses had the same gap (`josé@…` did not count as glued to a word).
 - `grammar/symbols.ts` gains `NAME_CHAR` (`[\p{L}\p{M}\p{N}_-]`: letters, combining accents and digits in any script, `_`, `-`) and `NAME_GLUE` for the email/URL guard; the tokenizer's inline pattern (now with the `u` flag) and `stripLeadingToken`'s delegated follow-up use them. The editor, the read-only views (History, Actions, search) and the counts all read the one tokenizer, so they follow.
 - The golden snapshot changed in one place, deliberately: an existing fixture with `@田中` now gets its name badge. New tests: accented, Polish, hyphenated and CJK names, a combining accent (`e` + U+0301), `=> @René`, and `josé@example.com` staying an email address.
+
+## 388. Updater without its zip support (RUSTSEC-2026-0367 to -0369)
+
+**Status: on `main`, unreleased.**
+
+- The Security Audit went red on 2026-10-17: three advisories for `zip` 4.6.1 (one critical, path and permission handling when extracting). `zip` came in only through `tauri-plugin-updater` 2.14.0, the newest stable release (no 2.x with zip 9 yet), via its default `zip` feature, which lets an update be a zip archive.
+- ChronoNote's update is always the NSIS installer itself (`latest.json` and the early manifest point at `..._x64-setup.exe`), so `Cargo.toml` now takes the updater with `default-features = false, features = ["rustls-tls", "system-proxy"]`. Without the feature the plugin's Windows `extract` goes straight to `extract_exe`, the path every update already took. `zip` is no longer in the build. The extraction code never ran for us, and downloads are signature-checked before install, so the advisories were not reachable; this clears the audit without waiting for a plugin release.
