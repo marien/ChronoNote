@@ -135,7 +135,11 @@ export async function downloadAndInstallUpdate(): Promise<void> {
         }
       };
       const early = get(earlyUpdates);
-      invoke("install_update", { early, onEvent: channel }).then(() => resolve(), reject);
+      const doInstall =
+        "installUpdate" in api && typeof api.installUpdate === "function"
+          ? (api.installUpdate as (e: boolean, ch: Channel<InstallEvent>) => Promise<void>)
+          : (e: boolean, ch: Channel<InstallEvent>) => invoke("install_update", { early: e, onEvent: ch });
+      doInstall(early, channel).then(() => resolve(), reject);
     });
     updateInstalling.set(false);
     updateStatus.set("ready");

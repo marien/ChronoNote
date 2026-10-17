@@ -1233,6 +1233,19 @@ export class MockBackend {
       this.spellMisspelled.delete(word.toLowerCase());
       return null;
     },
+    peek_set_bounds: () => {},
+    peek_set_transparent: () => {},
+    snap_overlay_set_rect: () => {},
+    zen_cover_monitor: () => {},
+    zen_prepare_leave: () => {},
+    install_update: ({ onEvent }) => {
+      const channel = onEvent as { onmessage?: (e: unknown) => void } | undefined;
+      channel?.onmessage?.({ event: "started", data: { contentLength: 1000 } });
+      channel?.onmessage?.({ event: "progress", data: { chunkLength: 600 } });
+      channel?.onmessage?.({ event: "progress", data: { chunkLength: 400 } });
+      channel?.onmessage?.({ event: "finished" });
+      channel?.onmessage?.({ event: "launching" });
+    },
   };
 
   private async dispatch(cmd: string, args: Record<string, unknown>): Promise<unknown> {
@@ -1270,26 +1283,6 @@ export class MockBackend {
         channel?.onmessage?.({ event: "Finished" });
         return null;
       }
-
-      // Rust's `install_update` (update_install.rs): same idea as the plugin's
-      // download_and_install above, with its own (camelCase) event names.
-      case "install_update": {
-        const channel = args.onEvent as { onmessage?: (e: unknown) => void } | undefined;
-        channel?.onmessage?.({ event: "started", data: { contentLength: 1000 } });
-        channel?.onmessage?.({ event: "progress", data: { chunkLength: 600 } });
-        channel?.onmessage?.({ event: "progress", data: { chunkLength: 400 } });
-        channel?.onmessage?.({ event: "finished" });
-        channel?.onmessage?.({ event: "launching" });
-        return null;
-      }
-
-      // Rust `zen_window.rs`: no windowing in the mock.
-      case "peek_set_transparent":
-      case "zen_cover_monitor":
-      case "zen_prepare_leave":
-      // Rust `snap_overlay.rs` (§B1): a native child window; nothing to do here.
-      case "snap_overlay_set_rect":
-        return null;
 
       case "plugin:resources|close":
         return null;

@@ -35,7 +35,7 @@
   import { wireMobileViewport } from "./lib/mobileViewport";
   import { wireMobileBackNavigation } from "./lib/mobileNavigation";
   import { suppressesNativeContextMenu, wireContextMenuGuard } from "./lib/contextMenuGuard";
-  import { invoke } from "@tauri-apps/api/core";
+  import { zenCoverMonitor, zenPrepareLeave } from "./lib/tauriApi";
   import { createZenWindowController } from "./lib/zenWindow";
 
   const nativeZenWindow = () => {
@@ -43,8 +43,8 @@
     return {
       isMaximized: () => w.isMaximized(),
       setFullscreen: (on: boolean) => w.setFullscreen(on),
-      coverMonitor: () => invoke<void>("zen_cover_monitor"),
-      prepareLeave: () => invoke<void>("zen_prepare_leave"),
+      coverMonitor: () => zenCoverMonitor(),
+      prepareLeave: () => zenPrepareLeave(),
     };
   };
   import Icon from "./lib/icons/Icon.svelte";

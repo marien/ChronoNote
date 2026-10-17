@@ -6,6 +6,8 @@
  * a quick double toggle cannot interleave, and nothing here ever rejects (a window error must not break the app).
  * Sizes and positions are PHYSICAL pixels (what the OS reports), minimum sizes are LOGICAL. */
 
+import { peekSetBounds, peekSetTransparent } from "./tauriApi";
+
 export interface PeekGeometry {
   x: number;
   y: number;
@@ -241,7 +243,6 @@ export async function nativePeekWindow(): Promise<PeekWin> {
   const { getCurrentWindow, LogicalSize, PhysicalPosition, PhysicalSize, availableMonitors, currentMonitor } = await import(
     "@tauri-apps/api/window"
   );
-  const { invoke } = await import("@tauri-apps/api/core");
   const w = getCurrentWindow();
   return {
     outerPosition: () => w.outerPosition(),
@@ -261,7 +262,7 @@ export async function nativePeekWindow(): Promise<PeekWin> {
     setBounds: async (g) => {
       // One native call (Windows): size and position change together, nothing in between is ever shown.
       try {
-        await invoke("peek_set_bounds", { x: g.x, y: g.y, width: g.width, height: g.height });
+        await peekSetBounds(g.x, g.y, g.width, g.height);
         return;
       } catch {
         // fall through to the two-call version below
@@ -289,7 +290,7 @@ export async function nativePeekWindow(): Promise<PeekWin> {
       const m = /(\d+)[, ]+(\d+)[, ]+(\d+)/.exec(getComputedStyle(probe).backgroundColor);
       probe.remove();
       const [r, g, b] = m ? [Number(m[1]), Number(m[2]), Number(m[3])] : [0x1e, 0x1e, 0x1e];
-      await invoke("peek_set_transparent", { transparent: on, r, g, b });
+      await peekSetTransparent(on, r, g, b);
     },
   };
 }

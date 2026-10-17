@@ -1,4 +1,4 @@
-import { invoke as coreInvoke } from "@tauri-apps/api/core";
+import { invoke as coreInvoke, type Channel } from "@tauri-apps/api/core";
 import { getVersion } from "@tauri-apps/api/app";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import type {
@@ -409,6 +409,30 @@ export function spellAdd(word: string): Promise<null> {
 
 export function spellIgnore(word: string): Promise<null> {
   return invoke("spell_ignore", { word });
+}
+
+export function peekSetBounds(x: number, y: number, width: number, height: number): Promise<void> {
+  return invoke("peek_set_bounds", { x, y, width, height });
+}
+
+export function peekSetTransparent(transparent: boolean, r: number, g: number, b: number): Promise<void> {
+  return invoke("peek_set_transparent", { transparent, r, g, b });
+}
+
+export function snapOverlaySetRect(x: number, y: number, width: number, height: number): Promise<void> {
+  return invoke("snap_overlay_set_rect", { x, y, width, height });
+}
+
+export function zenCoverMonitor(): Promise<void> {
+  return invoke("zen_cover_monitor", {});
+}
+
+export function zenPrepareLeave(): Promise<void> {
+  return invoke("zen_prepare_leave", {});
+}
+
+export function installUpdate<T = unknown>(early: boolean, onEvent: Channel<T>): Promise<void> {
+  return invoke("install_update", { early, onEvent: onEvent as Channel<unknown> });
 }
 
 

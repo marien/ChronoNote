@@ -8,7 +8,7 @@
  * Not used: outside the desktop app, before Windows 11, in pure black (OLED) mode (that wants true black), and while
  * Peek is on (Peek owns the window's transparency then; Mica re-applies itself through `onPeekLeft` once Peek has
  * fully closed). */
-import { invoke } from "@tauri-apps/api/core";
+import { peekSetTransparent } from "./tauriApi";
 import { getCurrentWindow, Effect } from "@tauri-apps/api/window";
 import { get } from "svelte/store";
 import { backendKind, pureBlack, themeMode } from "./stores";
@@ -67,7 +67,7 @@ export async function refreshMica(): Promise<void> {
     if (wanted) {
       const dark = resolvedDark(get(themeMode), window.matchMedia("(prefers-color-scheme: dark)").matches);
       root.dataset.mica = "";
-      await invoke("peek_set_transparent", { transparent: true, r: 0, g: 0, b: 0 });
+      await peekSetTransparent(true, 0, 0, 0);
       // Mica takes its light/dark tint from the window's theme; set it to the app's own.
       await win.setTheme(dark ? "dark" : "light");
       await win.setEffects({ effects: [Effect.Mica] });
@@ -81,7 +81,7 @@ export async function refreshMica(): Promise<void> {
       if (!peek) {
         const m = /(\d+)[, ]+(\d+)[, ]+(\d+)/.exec(getComputedStyle(document.body).backgroundColor);
         const [r, g, b] = m ? [Number(m[1]), Number(m[2]), Number(m[3])] : [0x1e, 0x1e, 0x1e];
-        await invoke("peek_set_transparent", { transparent: false, r, g, b });
+        await peekSetTransparent(false, r, g, b);
       }
     }
   } catch {

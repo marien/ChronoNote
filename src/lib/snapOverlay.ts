@@ -2,7 +2,7 @@
  * invisible child window over the button that tells Windows "this is the maximize button"; this module keeps that
  * window on the button (it reports the button's rectangle whenever the layout changes) and mirrors its hover state
  * onto the button, because the page no longer sees the pointer there. Desktop app only. */
-import { invoke } from "@tauri-apps/api/core";
+import { snapOverlaySetRect } from "./tauriApi";
 import { listen } from "@tauri-apps/api/event";
 
 export interface OverlayRect {
@@ -33,7 +33,7 @@ export function wireSnapOverlay(button: HTMLElement): () => void {
     const key = `${rect.x},${rect.y},${rect.width},${rect.height}`;
     if (key === last) return;
     last = key;
-    void invoke("snap_overlay_set_rect", { ...rect }).catch((e) => {
+    void snapOverlaySetRect(rect.x, rect.y, rect.width, rect.height).catch((e) => {
       // Not fatal (the button still works as a plain button), but worth seeing in the console.
       if (!warned) console.warn("Snap Layouts overlay:", e);
       warned = true;
@@ -74,6 +74,6 @@ export function wireSnapOverlay(button: HTMLElement): () => void {
     window.removeEventListener("resize", update);
     unlisten?.();
     button.classList.remove("snap-hover");
-    void invoke("snap_overlay_set_rect", { x: 0, y: 0, width: 0, height: 0 }).catch(() => {});
+    void snapOverlaySetRect(0, 0, 0, 0).catch(() => {});
   };
 }
