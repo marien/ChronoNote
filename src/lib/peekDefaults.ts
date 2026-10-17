@@ -6,6 +6,8 @@ import type { PeekConfig } from "./types";
 export const PEEK_MAX_LINES = 15;
 export const PEEK_MIN_OPACITY = 20;
 export const PEEK_MAX_FADE_SECONDS = 60;
+export const PEEK_MIN_DOCK_HEIGHT = 60;
+export const PEEK_MAX_DOCK_HEIGHT = 1200;
 
 export const PEEK_DEFAULTS: PeekConfig = {
   lines: 6,
@@ -18,6 +20,8 @@ export const PEEK_DEFAULTS: PeekConfig = {
   useLinesHeight: false,
   defaultsVersion: 5,
   callShortcut: "CommandOrControl+Alt+J",
+  dockBottom: false,
+  dockHeight: 220,
 };
 
 export function clampPeek(peek: PeekConfig): PeekConfig {
@@ -27,5 +31,6 @@ export function clampPeek(peek: PeekConfig): PeekConfig {
     opacity: Math.min(Math.max(PEEK_MIN_OPACITY, Math.round(peek.opacity)), 100),
     opacityHover: Math.min(Math.max(PEEK_MIN_OPACITY, Math.round(peek.opacityHover)), 100),
     fadeSeconds: Math.min(Math.max(0, Math.round(peek.fadeSeconds)), PEEK_MAX_FADE_SECONDS),
+    dockHeight: Math.min(Math.max(PEEK_MIN_DOCK_HEIGHT, Math.round(peek.dockHeight)), PEEK_MAX_DOCK_HEIGHT),
   };
 }

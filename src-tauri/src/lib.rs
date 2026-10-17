@@ -2,6 +2,7 @@ mod agenda;
 mod applog;
 mod error;
 mod onedrive;
+mod peek_dock;
 mod peek_window;
 mod snap_overlay;
 mod spell;
@@ -333,6 +334,12 @@ pub fn run() {
         .plugin(tauri_plugin_updater::Builder::new().build());
 
     builder
+        // §393: a docked Peek must never leave its screen strip reserved behind a closed window.
+        .on_window_event(|window, event| {
+            if let tauri::WindowEvent::Destroyed = event {
+                peek_dock::release(window);
+            }
+        })
         .setup(|app| {
             if let Ok(dir) = app.path().app_log_dir() {
                 applog::init(dir);
@@ -361,6 +368,8 @@ pub fn run() {
             zen_window::zen_prepare_leave,
             peek_set_transparent,
             peek_window::peek_set_bounds,
+            peek_dock::peek_dock_bottom,
+            peek_dock::peek_undock,
             snap_overlay::snap_overlay_set_rect,
             get_config,
             set_notes_dir,

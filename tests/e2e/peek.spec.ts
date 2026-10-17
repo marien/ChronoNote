@@ -747,3 +747,45 @@ test.describe("ad-hoc call naming", () => {
   });
 });
 
+
+/** §393 (experimental): Peek docked to the bottom of the screen. The reserved strip itself is native (an AppBar), so
+ * this covers what the page does: it asks for the strip at the remembered height, gives it back on leaving, and the
+ * background is solid while docked (nothing is behind it). */
+test.describe("docked peek", () => {
+  test("docks at the remembered height, is solid, and gives the strip back on leaving", async ({ page }) => {
+    await seedApp(page, { seed: { ...today(), peek: { dockBottom: true, dockHeight: 240, opacity: 40, opacityHover: 60 } } });
+    await enterOnWeeklySync(page);
+    await expect(page.locator("body.peek-mode")).toBeVisible();
+    await expect
+      .poll(() => page.evaluate(() => window.__CHRONO_MOCK__!.windowCalls.filter((c) => c.startsWith("dock"))))
+      .toEqual(["dock 240"]);
+    await expect
+      .poll(() => page.evaluate(() => document.documentElement.style.getPropertyValue("--peek-opacity")))
+      .toBe("100");
+    await page.keyboard.press("Escape");
+    await expect(page.locator("body.peek-mode")).toHaveCount(0);
+    await expect.poll(() => page.evaluate(() => window.__CHRONO_MOCK__!.windowCalls.includes("undock"))).toBe(true);
+  });
+
+  test("off by default: Peek floats and keeps its see-through background", async ({ page }) => {
+    await seedApp(page, { seed: { ...today(), peek: { opacity: 40, opacityHover: 60, fadeSeconds: 0 } } });
+    await enterOnWeeklySync(page);
+    await expect(page.locator("body.peek-mode")).toBeVisible();
+    expect(await page.evaluate(() => window.__CHRONO_MOCK__!.windowCalls.some((c) => c.startsWith("dock")))).toBe(false);
+    await expect
+      .poll(() => page.evaluate(() => document.documentElement.style.getPropertyValue("--peek-opacity")))
+      .toBe("60");
+  });
+
+  test("Settings has the experimental switch", async ({ page }) => {
+    await seedApp(page, { seed: { ...today(), peek: {} } });
+    await page.keyboard.press("ControlOrMeta+Comma");
+    // The switch's input is visually hidden; click the row, like the other Settings switches.
+    const row = page.locator(".toggle-switch", { hasText: "Dock to the bottom of the screen (experimental)" });
+    await row.scrollIntoViewIfNeeded();
+    await expect(row.locator("input")).not.toBeChecked();
+    await row.click();
+    await expect(row.locator("input")).toBeChecked();
+    await expect.poll(() => page.evaluate(() => window.__CHRONO_MOCK__!.peek.dockBottom)).toBe(true);
+  });
+});

@@ -224,6 +224,9 @@ export const nl = {
     "Nooit",
   "peek.settings.alwaysOnTop.label": () =>
     "Boven andere vensters houden",
+  "peek.settings.dockBottom.label": () => "Onderaan het scherm vastzetten (experimenteel)",
+  "peek.settings.dockBottom.hint": () =>
+    "Peek neemt een strook onderaan het scherm in, en gemaximaliseerde vensters, zoals een Teams-gesprek, gebruiken de ruimte erboven. Sleep de bovenrand om de hoogte te wijzigen. Geldt vanaf de volgende keer dat Peek opent.",
   "peek.settings.header.label": () =>
     "Kopstrook",
   "peek.settings.header.always": () =>

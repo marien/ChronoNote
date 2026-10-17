@@ -12,7 +12,9 @@ import {
 const SCREEN: PeekGeometry = { x: 0, y: 0, width: 1920, height: 1040 };
 
 /** A fake window that records what the controller does to it. */
-function fakeWindow(opts: { geometry?: PeekGeometry; maximized?: boolean; scale?: number; monitors?: MonitorArea[] } = {}) {
+function fakeWindow(
+  opts: { geometry?: PeekGeometry; maximized?: boolean; scale?: number; monitors?: MonitorArea[]; noDock?: boolean } = {},
+) {
   let geo: PeekGeometry = opts.geometry ?? { x: 100, y: 100, width: 1100, height: 700 };
   let maximized = opts.maximized ?? false;
   const log: string[] = [];
@@ -34,6 +36,14 @@ function fakeWindow(opts: { geometry?: PeekGeometry; maximized?: boolean; scale?
     setAlwaysOnTop: async (on) => void log.push(`top:${on}`),
     reveal: async () => void log.push("reveal"),
     setTransparent: async (on) => void log.push(`transparent:${on}`),
+    // A 1920x1080 screen with a 40 px taskbar: the strip ends at 1040 (Windows moves it above the taskbar).
+    dockBottom: async (height) => {
+      if (opts.noDock) throw new Error("not available");
+      log.push(`dock:${height}`);
+      geo = { x: 0, y: 1040 - height, width: 1920, height };
+      return geo;
+    },
+    undock: async () => void log.push("undock"),
   };
   return { win, log, get geo() { return geo; } };
 }
@@ -152,6 +162,8 @@ describe("createPeekWindowController", () => {
       setAlwaysOnTop: async () => {},
       reveal: async () => {},
       setTransparent: async () => {},
+      dockBottom: async () => screen,
+      undock: async () => {},
     };
     const peek = createPeekWindowController(win);
     await peek.enter(enterOpts);
@@ -161,6 +173,54 @@ describe("createPeekWindowController", () => {
     // Restoring (un-maximizing) afterwards goes back to the size it had before, not to almost full screen.
     maximized = false;
     expect(normal).toEqual({ x: 300, y: 200, width: 1000, height: 600 });
+  });
+
+  describe("docked to the bottom of the screen (§393)", () => {
+    it("reserves a full-width strip at the logical height times the scale, on top, and does not float", async () => {
+      const f = fakeWindow({ scale: 1.25 });
+      const peek = createPeekWindowController(f.win);
+      await peek.enter({ ...enterOpts, dockLogicalHeight: 200 });
+      expect(f.log).toContain("dock:250");
+      expect(f.log.some((l) => l.startsWith("bounds:"))).toBe(false);
+      expect(f.log).toContain("top:true");
+      expect(f.geo).toEqual({ x: 0, y: 790, width: 1920, height: 250 });
+      expect(peek.isDocked()).toBe(true);
+    });
+
+    it("leaving gives the strip back first, restores the full window, and reports no floating position to remember", async () => {
+      const f = fakeWindow();
+      const peek = createPeekWindowController(f.win);
+      await peek.enter({ ...enterOpts, dockLogicalHeight: 200 });
+      expect(await peek.leave()).toBeNull();
+      expect(f.log.indexOf("undock")).toBeLessThan(f.log.lastIndexOf("bounds:100,100 1100x700"));
+      expect(f.geo).toEqual({ x: 100, y: 100, width: 1100, height: 700 });
+      expect(peek.isDocked()).toBe(false);
+    });
+
+    it("dragging the top edge re-docks at the new height and reports it in logical pixels; tiny changes are ignored", async () => {
+      const f = fakeWindow({ scale: 2 });
+      const peek = createPeekWindowController(f.win);
+      await peek.enter({ ...enterOpts, dockLogicalHeight: 150 });
+      expect(await peek.redock(301)).toBeNull();
+      expect(await peek.redock(500)).toBe(250);
+      expect(f.geo.height).toBe(500);
+    });
+
+    it("the lines setting does not resize a docked strip", async () => {
+      const f = fakeWindow();
+      const peek = createPeekWindowController(f.win);
+      await peek.enter({ ...enterOpts, dockLogicalHeight: 200 });
+      await peek.setLogicalHeight(90);
+      expect(f.geo.height).toBe(200);
+    });
+
+    it("where docking is not available, Peek floats as usual", async () => {
+      const f = fakeWindow({ noDock: true });
+      const peek = createPeekWindowController(f.win);
+      await peek.enter({ ...enterOpts, dockLogicalHeight: 200 });
+      expect(peek.isDocked()).toBe(false);
+      expect(f.log.some((l) => l.startsWith("bounds:"))).toBe(true);
+    });
   });
 
   it("setLogicalHeight keeps position and width, only while in Peek", async () => {

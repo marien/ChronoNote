@@ -226,6 +226,9 @@ export const fr = {
     "Jamais",
   "peek.settings.alwaysOnTop.label": () =>
     "Garder au-dessus des autres fenêtres",
+  "peek.settings.dockBottom.label": () => "Ancrer en bas de l'écran (expérimental)",
+  "peek.settings.dockBottom.hint": () =>
+    "Peek occupe une bande en bas de l'écran, et les fenêtres agrandies, comme un appel Teams, utilisent l'espace au-dessus. Faites glisser le bord supérieur pour changer la hauteur. S'applique à la prochaine ouverture de Peek.",
   "peek.settings.header.label": () =>
     "Bandeau d'en-tête",
   "peek.settings.header.always": () =>

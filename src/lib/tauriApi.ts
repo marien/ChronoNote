@@ -419,6 +419,14 @@ export function peekSetTransparent(transparent: boolean, r: number, g: number, b
   return invoke("peek_set_transparent", { transparent, r, g, b });
 }
 
+export function peekDockBottom(height: number): Promise<{ x: number; y: number; width: number; height: number }> {
+  return invoke("peek_dock_bottom", { height });
+}
+
+export function peekUndock(): Promise<void> {
+  return invoke("peek_undock", {});
+}
+
 export function snapOverlaySetRect(x: number, y: number, width: number, height: number): Promise<void> {
   return invoke("snap_overlay_set_rect", { x, y, width, height });
 }

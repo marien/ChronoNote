@@ -131,9 +131,17 @@ pub struct PeekConfig {
     /// section) and leaves Peek again. No function key (they need Fn on a laptop). Peek on the section the cursor is in
     /// is an in-app shortcut only (`Ctrl+Alt+P`, fixed like every other in-app shortcut).
     pub call_shortcut: String,
+    /// §393 (experimental): Peek docks to the bottom of its screen as a reserved strip; other windows (a maximized
+    /// call) fill the rest. Desktop app on Windows only.
+    pub dock_bottom: bool,
+    /// Height of the docked strip, logical pixels. Its top edge can be dragged; the new height is remembered.
+    pub dock_height: u32,
 }
 
 pub const PEEK_MAX_LINES: u32 = 15;
+pub const PEEK_DEFAULT_DOCK_HEIGHT: u32 = 220;
+pub const PEEK_MIN_DOCK_HEIGHT: u32 = 60;
+pub const PEEK_MAX_DOCK_HEIGHT: u32 = 1200;
 /// Bumped when Peek's defaults change; see `PeekConfig::migrated`.
 pub const PEEK_DEFAULTS_VERSION: u32 = 5;
 /// The call shortcut default has been J (v0.25, v0.26.0), N for a day (v0.26.1) and is J again: N types an n with a
@@ -157,6 +165,8 @@ impl Default for PeekConfig {
             use_lines_height: false,
             defaults_version: PEEK_DEFAULTS_VERSION,
             call_shortcut: PEEK_DEFAULT_CALL_SHORTCUT.to_string(),
+            dock_bottom: false,
+            dock_height: PEEK_DEFAULT_DOCK_HEIGHT,
         }
     }
 }
@@ -206,6 +216,7 @@ impl PeekConfig {
         self.opacity = self.opacity.clamp(PEEK_MIN_OPACITY, 100);
         self.opacity_hover = self.opacity_hover.clamp(PEEK_MIN_OPACITY, 100);
         self.fade_seconds = self.fade_seconds.min(PEEK_MAX_FADE_SECONDS);
+        self.dock_height = self.dock_height.clamp(PEEK_MIN_DOCK_HEIGHT, PEEK_MAX_DOCK_HEIGHT);
         self
     }
 }
@@ -2162,6 +2173,8 @@ mod tests {
             use_lines_height: true,
             defaults_version: PEEK_DEFAULTS_VERSION,
             call_shortcut: "Ctrl+Alt+K".to_string(),
+            dock_bottom: true,
+            dock_height: 300,
         };
         save_config_at(&path, &AppConfig { peek: peek.clone(), ..base }).unwrap();
         let on_disk = fs::read_to_string(&path).unwrap();

@@ -6,7 +6,7 @@
  * a quick double toggle cannot interleave, and nothing here ever rejects (a window error must not break the app).
  * Sizes and positions are PHYSICAL pixels (what the OS reports), minimum sizes are LOGICAL. */
 
-import { peekSetBounds, peekSetTransparent } from "./tauriApi";
+import { peekDockBottom, peekSetBounds, peekSetTransparent, peekUndock } from "./tauriApi";
 
 export interface PeekGeometry {
   x: number;
@@ -116,6 +116,11 @@ export interface PeekWin {
   reveal(): Promise<void>;
   /** Rust `peek_set_transparent`: clear (true) or restore (false) the opaque colour under the page. */
   setTransparent(on: boolean): Promise<void>;
+  /** §393: Rust `peek_dock_bottom`: reserve a strip `height` physical pixels tall along the bottom of the window's
+   * monitor (an AppBar) and fill it; resolves to the strip. Rejects where docking is not available. */
+  dockBottom(height: number): Promise<PeekGeometry>;
+  /** Rust `peek_undock`: give the strip back. */
+  undock(): Promise<void>;
 }
 
 export const PEEK_MIN_LOGICAL = { width: 240, height: 80 };
@@ -130,11 +135,15 @@ export interface PeekEnterOptions {
   /** Ignore the remembered height and use `logicalHeight` (the "lines" setting or fit-to-section). */
   forceHeight: boolean;
   alwaysOnTop: boolean;
+  /** §393: dock to the bottom of the screen at this logical height instead of floating. */
+  dockLogicalHeight?: number;
 }
 
 export function createPeekWindowController(win: PeekWin) {
   let queue: Promise<unknown> = Promise.resolve();
   let full: { geometry: PeekGeometry; maximized: boolean } | null = null;
+  /** The strip Peek fills while docked; null when floating (or not in Peek). */
+  let docked: PeekGeometry | null = null;
 
   const run = <T>(job: () => Promise<T>, fallback: T): Promise<T> => {
     const next = queue.then(job).catch(() => fallback);
@@ -161,6 +170,17 @@ export function createPeekWindowController(win: PeekWin) {
         await win.setTransparent(true);
         await win.setMinSize(PEEK_MIN_LOGICAL.width, PEEK_MIN_LOGICAL.height);
         const scale = (await win.scaleFactor()) || 1;
+        if (o.dockLogicalHeight !== undefined) {
+          try {
+            docked = await win.dockBottom(Math.round(o.dockLogicalHeight * scale));
+            await win.setAlwaysOnTop(o.alwaysOnTop);
+            await win.reveal();
+            return;
+          } catch {
+            // Docking is not available here: float as usual.
+            docked = null;
+          }
+        }
         const h = Math.round(o.logicalHeight * scale);
         const monitors = await win.monitors();
         // The remembered position if it is still on a screen; else the lower centre of the current monitor, just above
@@ -201,6 +221,11 @@ export function createPeekWindowController(win: PeekWin) {
         const compact = await currentGeometry();
         const back = full;
         full = null;
+        const wasDocked = docked !== null;
+        if (wasDocked) {
+          docked = null;
+          await win.undock();
+        }
         await win.setAlwaysOnTop(false);
         await win.setTransparent(false);
         await win.setMinSize(FULL_MIN_LOGICAL.width, FULL_MIN_LOGICAL.height);
@@ -212,14 +237,33 @@ export function createPeekWindowController(win: PeekWin) {
         await win.setBounds(home);
         if (back.maximized) await win.setMaximized(true);
         await win.reveal();
-        return compact;
+        // A docked strip is not a floating position to come back to.
+        return wasDocked ? null : compact;
       }, null);
+    },
+
+    /** Docked: the strip's height after its top edge was dragged (physical pixels, as the window reports it). Re-docks at
+     * that height and resolves to it in logical pixels (to remember), or null when nothing changed. */
+    redock(physicalHeight: number): Promise<number | null> {
+      return run(async () => {
+        if (!full || !docked) return null;
+        if (Math.abs(physicalHeight - docked.height) <= 2) return null;
+        docked = await win.dockBottom(physicalHeight);
+        const scale = (await win.scaleFactor()) || 1;
+        return Math.round(docked.height / scale);
+      }, null);
+    },
+
+    /** Whether Peek is docked now. */
+    isDocked(): boolean {
+      return docked !== null;
     },
 
     /** Height changed by a setting or by the section growing: keep position and width. */
     setLogicalHeight(logicalHeight: number): Promise<void> {
       return run(async () => {
-        if (!full) return;
+        // Docked, the strip keeps its own height (dragged by its top edge).
+        if (!full || docked) return;
         const [g, scale] = [await currentGeometry(), (await win.scaleFactor()) || 1];
         await win.setBounds({ ...g, height: Math.round(logicalHeight * scale) });
       }, undefined);
@@ -292,5 +336,7 @@ export async function nativePeekWindow(): Promise<PeekWin> {
       const [r, g, b] = m ? [Number(m[1]), Number(m[2]), Number(m[3])] : [0x1e, 0x1e, 0x1e];
       await peekSetTransparent(on, r, g, b);
     },
+    dockBottom: (height) => peekDockBottom(height),
+    undock: () => peekUndock(),
   };
 }

@@ -1237,6 +1237,14 @@ export class MockBackend {
     },
     peek_set_bounds: () => {},
     peek_set_transparent: () => {},
+    // §393: a 1100x720 "screen"; the strip is full width at its bottom. Recorded for the tests.
+    peek_dock_bottom: ({ height }) => {
+      this.windowCalls.push(`dock ${height}`);
+      return { x: 0, y: 720 - height, width: 1100, height };
+    },
+    peek_undock: () => {
+      this.windowCalls.push("undock");
+    },
     snap_overlay_set_rect: () => {},
     zen_cover_monitor: () => {},
     zen_prepare_leave: () => {},

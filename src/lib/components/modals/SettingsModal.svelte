@@ -647,6 +647,13 @@
               checked={$peekSettings.alwaysOnTop}
               onChange={(v) => peekSettings.update((s) => ({ ...s, alwaysOnTop: v }))}
             />
+            <SettingToggle
+              label={$t("peek.settings.dockBottom.label")}
+              checked={$peekSettings.dockBottom}
+              onChange={(v) => peekSettings.update((s) => ({ ...s, dockBottom: v }))}
+            >
+              {#snippet description()}{$t("peek.settings.dockBottom.hint")}{/snippet}
+            </SettingToggle>
             <SettingRow label={$t("peek.settings.header.label")}>
               <Segmented
                 options={[

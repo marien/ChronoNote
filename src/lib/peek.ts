@@ -153,6 +153,8 @@ export function renamePeekSection(subject: string): boolean {
 /** True while Peek is "in focus": you typed, clicked or moved the pointer over it less than `fadeSeconds` ago. The
  * background then uses `opacityHover`; otherwise (and after the fade) `opacity`. */
 export const peekInFocus = writable(false);
+/** §393: Peek is docked to the bottom of the screen now (nothing behind it, so its background is solid). */
+export const peekDocked = writable(false);
 /** Position of the shown occurrence among all occurrences of the section (1-based), for the header. */
 export const peekPosition = writable<{ index: number; total: number } | null>(null);
 
@@ -347,12 +349,15 @@ export function wirePeek(): () => void {
             logicalHeight: logicalHeight(s, get(peekFitLines)),
             forceHeight: s.lines === 0 || s.geometry === null || s.useLinesHeight,
             alwaysOnTop: s.alwaysOnTop,
+            dockLogicalHeight: s.dockBottom ? s.dockHeight : undefined,
           });
+          peekDocked.set(win.isDocked());
         } else {
           peekHeaderExpanded.set(false);
           clearTimeout(introTimer);
           clearTimeout(fadeTimer);
           peekInFocus.set(false);
+          peekDocked.set(false);
           const compact = await win.leave();
           if (compact) peekSettings.update((x) => ({ ...x, geometry: compact, useLinesHeight: false }));
           await tick();
@@ -496,6 +501,29 @@ export function wirePeek(): () => void {
       if (get(peekMode)) void controller().then((w) => w.setAlwaysOnTop(s.alwaysOnTop));
     }),
   );
+
+  // §393: dragging a docked Peek's top edge changes the strip's height. The window reports every step of the drag;
+  // once it settles, the strip is reserved again at the new height and that height is remembered.
+  let redockTimer: ReturnType<typeof setTimeout> | undefined;
+  void (async () => {
+    try {
+      const { getCurrentWindow } = await import("@tauri-apps/api/window");
+      const unlisten = await getCurrentWindow().onResized(({ payload }) => {
+        if (!get(peekMode) || !get(peekDocked)) return;
+        clearTimeout(redockTimer);
+        redockTimer = setTimeout(async () => {
+          const logical = await (await controller()).redock(payload.height);
+          if (logical !== null) peekSettings.update((x) => ({ ...x, dockHeight: logical }));
+        }, 300);
+      });
+      cleanups.push(() => {
+        clearTimeout(redockTimer);
+        unlisten();
+      });
+    } catch {
+      // No window events (tests): nothing to follow.
+    }
+  })();
 
   // Peek is part of the desktop app: its in-app shortcut is listed and active from startup (it stays off on the web).
   setShortcutEnabled("togglePeekMode", true);

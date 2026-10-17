@@ -213,6 +213,12 @@ export interface TauriCommands {
     args: { transparent: boolean; r: number; g: number; b: number };
     returns: void;
   };
+  /** §393: Peek docked to the bottom of its screen (a reserved AppBar strip, physical pixels). */
+  peek_dock_bottom: {
+    args: { height: number };
+    returns: { x: number; y: number; width: number; height: number };
+  };
+  peek_undock: { args: NoArgs; returns: void };
   /** Native child window for Windows 11 Snap Layouts (§B1). */
   snap_overlay_set_rect: {
     args: { x: number; y: number; width: number; height: number };

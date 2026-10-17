@@ -226,6 +226,9 @@ export const pl = {
     "Nigdy",
   "peek.settings.alwaysOnTop.label": () =>
     "Trzymaj nad innymi oknami",
+  "peek.settings.dockBottom.label": () => "Przypnij do dołu ekranu (eksperymentalne)",
+  "peek.settings.dockBottom.hint": () =>
+    "Peek zajmuje pasek u dołu ekranu, a zmaksymalizowane okna, takie jak rozmowa w Teams, korzystają z miejsca nad nim. Przeciągnij górną krawędź, aby zmienić wysokość. Działa od następnego otwarcia Peek.",
   "peek.settings.header.label": () =>
     "Pasek nagłówka",
   "peek.settings.header.always": () =>

@@ -26,6 +26,7 @@
     LONG_TOAST_CHARS,
     peekMode,
     peekInFocus,
+    peekDocked,
     peekSettings,
     windowWidth,
   } from "./lib/controller";
@@ -584,7 +585,8 @@
       // In focus (you typed or moved the pointer over it recently) the background is (usually) more solid and fades
       // back after `fadeSeconds`; the header strip is 5 points more solid than the background so it stays readable.
       document.body.classList.toggle("peek-in-focus", $peekInFocus);
-      const peekOpacity = $peekInFocus ? $peekSettings.opacityHover : $peekSettings.opacity;
+      // §393: docked, nothing is behind Peek, so its background is solid.
+      const peekOpacity = $peekDocked ? 100 : $peekInFocus ? $peekSettings.opacityHover : $peekSettings.opacity;
       document.documentElement.style.setProperty("--peek-opacity", String(peekOpacity));
       document.documentElement.style.setProperty("--peek-bar-opacity", String(Math.min(100, peekOpacity + 5)));
     }
