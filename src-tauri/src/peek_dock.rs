@@ -72,8 +72,9 @@ mod native {
         ABM_SETPOS, APPBARDATA,
     };
     use windows::Win32::UI::WindowsAndMessaging::{
-        GetClientRect, GetWindowRect, SetWindowPos, SWP_NOACTIVATE, SWP_NOMOVE, SWP_NOSIZE, SWP_NOZORDER, WINDOWPOS, WM_APP,
-        WM_ENTERSIZEMOVE, WM_EXITSIZEMOVE, WM_NCDESTROY, WM_WINDOWPOSCHANGED, WM_WINDOWPOSCHANGING,
+        GetClientRect, GetWindowRect, IsIconic, SetWindowPos, SIZE_MINIMIZED, SWP_NOACTIVATE, SWP_NOMOVE, SWP_NOSIZE,
+        SWP_NOZORDER, WINDOWPOS, WM_APP, WM_ENTERSIZEMOVE, WM_EXITSIZEMOVE, WM_NCDESTROY, WM_SIZE, WM_WINDOWPOSCHANGED,
+        WM_WINDOWPOSCHANGING,
     };
 
     const SUBCLASS_ID: usize = 0x5045_454b; // "PEEK"
@@ -86,6 +87,8 @@ mod native {
         height: i32,
         /// Inside a mouse move/resize (between WM_ENTERSIZEMOVE and WM_EXITSIZEMOVE).
         dragging: bool,
+        /// Registered as an AppBar now. False while the window is minimized (§395): a minimized Peek reserves nothing.
+        registered: bool,
         /// For telling the page the new height after a drag.
         window: tauri::WebviewWindow,
     }
@@ -215,7 +218,7 @@ mod native {
         _data: usize,
     ) -> LRESULT {
         match msg {
-            WM_WINDOWPOSCHANGING => {
+            WM_WINDOWPOSCHANGING if !unsafe { IsIconic(hwnd) }.as_bool() => {
                 let anchor = STATE.lock().ok().and_then(|s| s.as_ref().and_then(|s| s.anchor));
                 if let Some(a) = anchor {
                     let wp = unsafe { &mut *(lparam.0 as *mut WINDOWPOS) };
@@ -255,7 +258,8 @@ mod native {
                 // A size change outside a mouse drag (a keyboard shortcut, another program): follow it as well.
                 let changed = STATE.lock().ok().and_then(|s| {
                     s.as_ref().and_then(|s| {
-                        if s.anchor.is_none() || s.dragging {
+                        // Minimized, the window reports a height of 0: that is not a new strip height.
+                        if s.anchor.is_none() || s.dragging || !s.registered || unsafe { IsIconic(hwnd) }.as_bool() {
                             return None;
                         }
                         let mut client = RECT::default();
@@ -266,6 +270,39 @@ mod native {
                 let result = unsafe { DefSubclassProc(hwnd, msg, wparam, lparam) };
                 if let Some(window) = changed {
                     rereserve(hwnd, &window);
+                }
+                return result;
+            }
+            WM_SIZE => {
+                // §395: minimizing gives the strip back; restoring reserves it again at the height it had.
+                let minimized = wparam.0 as u32 == SIZE_MINIMIZED;
+                let action = STATE.lock().ok().and_then(|mut s| {
+                    s.as_mut().and_then(|s| {
+                        if s.anchor.is_none() {
+                            None
+                        } else if minimized && s.registered {
+                            s.registered = false;
+                            Some((false, s.height, s.window.clone()))
+                        } else if !minimized && !s.registered {
+                            s.registered = true;
+                            Some((true, s.height, s.window.clone()))
+                        } else {
+                            None
+                        }
+                    })
+                });
+                let result = unsafe { DefSubclassProc(hwnd, msg, wparam, lparam) };
+                match action {
+                    Some((false, _, _)) => unsafe {
+                        let mut abd = data(hwnd);
+                        SHAppBarMessage(ABM_REMOVE, &mut abd);
+                    },
+                    Some((true, height, _window)) => unsafe {
+                        let mut abd = data(hwnd);
+                        SHAppBarMessage(ABM_NEW, &mut abd);
+                        let _ = reserve(hwnd, height);
+                    },
+                    None => {}
                 }
                 return result;
             }
@@ -300,7 +337,7 @@ mod native {
                     let _ = SetWindowSubclass(h, Some(subclass_proc), SUBCLASS_ID, 0);
                 }
                 set_corners(h, true);
-                *state = Some(State { hwnd, anchor: None, height, dragging: false, window });
+                *state = Some(State { hwnd, anchor: None, height, dragging: false, registered: true, window });
             }
         }
         reserve(h, height)
@@ -313,8 +350,10 @@ mod native {
             let _ = hwnd;
             unsafe {
                 let _ = RemoveWindowSubclass(h, Some(subclass_proc), SUBCLASS_ID);
-                let mut abd = data(h);
-                SHAppBarMessage(ABM_REMOVE, &mut abd);
+                if s.registered {
+                    let mut abd = data(h);
+                    SHAppBarMessage(ABM_REMOVE, &mut abd);
+                }
             }
             set_corners(h, false);
         }
