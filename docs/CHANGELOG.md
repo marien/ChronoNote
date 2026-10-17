@@ -10633,7 +10633,7 @@ From a test-coverage review (2026-10-17): Vitest covers 41% of `src/lib` lines a
 
 ## 387. Names after @ may use letters from any script (@René, @Zoë, @Łukasz)
 
-**Status: on `main`, unreleased.**
+**Status: released in v0.32.3 (betas 0.32.3-1/-2 first).**
 
 - **Marien:** `@Rene` was badged as a name, `@René` was not. Names were matched with `[\w-]+`, and `\w` is ASCII-only in JavaScript, so a name stopped at the first accented letter (`@Ren`). The guard against email addresses had the same gap (`josé@…` did not count as glued to a word).
 - `grammar/symbols.ts` gains `NAME_CHAR` (`[\p{L}\p{M}\p{N}_-]`: letters, combining accents and digits in any script, `_`, `-`) and `NAME_GLUE` for the email/URL guard; the tokenizer's inline pattern (now with the `u` flag) and `stripLeadingToken`'s delegated follow-up use them. The editor, the read-only views (History, Actions, search) and the counts all read the one tokenizer, so they follow.
@@ -10641,21 +10641,21 @@ From a test-coverage review (2026-10-17): Vitest covers 41% of `src/lib` lines a
 
 ## 388. Updater without its zip support (RUSTSEC-2026-0367 to -0369)
 
-**Status: on `main`, unreleased.**
+**Status: released in v0.32.3 (betas 0.32.3-1/-2 first).**
 
 - The Security Audit went red on 2026-10-17: three advisories for `zip` 4.6.1 (one critical, path and permission handling when extracting). `zip` came in only through `tauri-plugin-updater` 2.14.0, the newest stable release (no 2.x with zip 9 yet), via its default `zip` feature, which lets an update be a zip archive.
 - ChronoNote's update is always the NSIS installer itself (`latest.json` and the early manifest point at `..._x64-setup.exe`), so `Cargo.toml` now takes the updater with `default-features = false, features = ["rustls-tls", "system-proxy"]`. Without the feature the plugin's Windows `extract` goes straight to `extract_exe`, the path every update already took. `zip` is no longer in the build. The extraction code never ran for us, and downloads are signature-checked before install, so the advisories were not reachable; this clears the audit without waiting for a plugin release.
 
 ## 389. Only the NSIS installer is built and published (no more .msi)
 
-**Status: on `main`, takes effect with the next release.**
+**Status: released in v0.32.3 (first release with the setup.exe only).**
 
 - GitHub's download counts (2026-10-17): `latest.json` 459 (the updater's checks), `-setup.exe` 169, `.msi` 17 in all, spread over 12 releases, none after v0.23.0 (2026-10-03). The updater always installs the `-setup.exe`, also on an MSI install, so nobody depends on the MSI. Building it took ~5-8 seconds of a ~10-minute release (timed with `tauri bundle` per target), so this is tidiness, not speed: one asset less to build, sign, upload and check.
 - `tauri.conf.json` `bundle.targets` `"all"` → `["nsis"]`; `release.sh` no longer expects, copies, uploads or verifies the MSI; README and spec name the `-setup.exe` only. Beta versions stay `X.Y.Z-N` with a numeric N (the reason given is now the early channel's version comparison; the MSI bundler's own rule no longer applies). Earlier releases keep their MSI assets.
 
 ## 390. In-app updates: no installer screens, and the window comes back on top
 
-**Status: on `main`, unreleased (needs a real update to verify: beta N installs N+1).**
+**Status: released in v0.32.3; confirmed by Marien on the 0.32.3-1 -> 0.32.3-2 update (no installer screens, reopened on top).**
 
 - **Marien:** after closing for an update, several installer screens popped up; and after the update ChronoNote opened under other windows.
 - **Installer:** `plugins.updater.windows.installMode` `"passive"` → `"quiet"`: the NSIS installer runs with `/S /UPDATE /R` instead of `/P ...`, so it shows no window and starts the app when done. ChronoNote installs per user, so quiet needs no administrator prompt. To keep the gap from being a surprise, About's install line now says "Installing the update. ChronoNote closes and reopens in a moment." (7 languages; chip "Installing update"), and `install_update` waits 1.5 s after the download before starting the installer so it can be read. A failure to start the installer (Smart App Control and the like) is still caught and shown before the app exits; a failure inside a quiet install would show nothing and the app would not reopen (has not happened so far; `update.log` still records the launch).
