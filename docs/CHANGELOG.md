@@ -10671,3 +10671,12 @@ From a test-coverage review (2026-10-17): Vitest covers 41% of `src/lib` lines a
 - **Spec:** the target line says Windows 10/11 (macOS/Linux untested), the shortcut table has Replace, Go to section and Back/Forward, and a new §2.6 Spell check.
 - `docs/CHANGELOG.md` keeps its name (Marien) and is described as the decision log; `docs/PR_REVIEW_WEBAPP_ONEDRIVE.md` (a one-off review from September) removed.
 - Found on the way: `?mock&scenario=demo` crashed the dev server (`__DEMO_APP_VERSION__ is not defined`): outside the demo bundle the name does not exist, so `scenarios.ts` now checks it with `typeof`.
+
+## 392. Tab strip: drag to scroll, and arrows that stop at the ends
+
+**Status: on `main`, unreleased.**
+
+- **Marien:** drag the tabs to scroll the strip, like the arrow buttons do; and the arrows should no longer wrap around: grey out the left arrow once the first tab is fully visible, the right one once the last tab is.
+- **Arrows:** §52 made them wrap (‹ at the start jumped to the far end). Now they only scroll by about a tab, and `canScrollLeft`/`canScrollRight` disable them. The check is whether the first / last `.tab` is fully inside the strip, not the scroll position: the strip's 8px side padding meant "scrolled to the very end" and "last tab visible" differed, and the right arrow stayed active while the newest tab was in view.
+- **Drag:** a mouse or pen press on a tab that moves 5px or more scrolls the strip (pointer capture), and the release does not switch to or close the tab under the pointer (a capture-phase click is swallowed once). A press without movement stays a normal click; middle-click still closes. The strip's empty space is untouched (it is the window's drag region); touch already scrolls natively. Listeners are attached in an `$effect`, because the tablist itself is not focusable.
+- Tests: `tab-scroll-arrows.spec.ts` rewritten (disabled at both ends, including the natural padding case; no wrap; drag scrolls without switching; a click still switches). Full Playwright 1012 passed.

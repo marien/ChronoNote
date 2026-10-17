@@ -193,13 +193,78 @@
   // status bar (#58) and is now also in More.
   let buttonsCollapsed = $state(false);
   // §52: whether the tab bar is overflowing at all — drives whether the
-  // scroll arrows show. Deliberately *not* derived from scroll position
-  // (the way `canScrollLeft`/`canScrollRight` used to work) — that made
-  // an arrow disappear once you'd scrolled all the way in that direction,
-  // which is the opposite of what's wanted now: both arrows stay visible
-  // the whole time the bar is overflowing, and clicking one at an edge
-  // wraps to the other end instead of the arrow just vanishing.
+  // scroll arrows show. Both arrows stay visible the whole time the bar is
+  // overflowing; §392: an arrow is disabled (greyed) once the first or last
+  // tab is fully in view, instead of wrapping to the other end.
   let isOverflowing = $state(false);
+  let canScrollLeft = $state(false);
+  let canScrollRight = $state(false);
+  // Judged by whether the first / last tab is fully in view, not by the scroll position: the strip has side padding,
+  // so "the last tab is visible" and "scrolled to the very end" differ by a few pixels.
+  function updateScrollEdges() {
+    if (!tabBarEl) return;
+    const tabEls = tabBarEl.querySelectorAll<HTMLElement>(".tab");
+    if (tabEls.length === 0) return;
+    const bar = tabBarEl.getBoundingClientRect();
+    const left = tabEls[0].getBoundingClientRect().left < bar.left - 0.5;
+    const right = tabEls[tabEls.length - 1].getBoundingClientRect().right > bar.right + 0.5;
+    if (left !== canScrollLeft) canScrollLeft = left;
+    if (right !== canScrollRight) canScrollRight = right;
+  }
+
+  // §392: dragging over the tabs scrolls the strip (mouse and pen; touch scrolls natively). A press that moves
+  // less than DRAG_THRESHOLD stays a click. The strip's empty space is the window's drag region and is left alone.
+  const DRAG_THRESHOLD = 5;
+  let tabDrag: { pointerId: number; startX: number; startScroll: number; moved: boolean } | null = null;
+  let suppressTabClick = false;
+  function onTabBarPointerDown(e: PointerEvent) {
+    if (!tabBarEl || !isOverflowing || e.button !== 0 || e.pointerType === "touch") return;
+    if (e.target === tabBarEl || (e.target as HTMLElement).closest(".tab-rename-input")) return;
+    tabDrag = { pointerId: e.pointerId, startX: e.clientX, startScroll: tabBarEl.scrollLeft, moved: false };
+  }
+  function onTabBarPointerMove(e: PointerEvent) {
+    if (!tabDrag || !tabBarEl || e.pointerId !== tabDrag.pointerId) return;
+    const dx = e.clientX - tabDrag.startX;
+    if (!tabDrag.moved) {
+      if (Math.abs(dx) < DRAG_THRESHOLD) return;
+      tabDrag.moved = true;
+      tabBarEl.setPointerCapture(e.pointerId);
+    }
+    tabBarEl.scrollLeft = tabDrag.startScroll - dx;
+  }
+  function onTabBarPointerUp(e: PointerEvent) {
+    if (!tabDrag || e.pointerId !== tabDrag.pointerId) return;
+    if (tabDrag.moved) {
+      // The release after a drag must not also switch to (or close) the tab under the pointer.
+      suppressTabClick = true;
+      setTimeout(() => (suppressTabClick = false), 0);
+    }
+    tabDrag = null;
+  }
+  function onTabBarClickCapture(e: MouseEvent) {
+    if (!suppressTabClick) return;
+    suppressTabClick = false;
+    e.stopPropagation();
+    e.preventDefault();
+  }
+  // Attached here rather than as attributes: the tablist itself is not focusable (its tabs are), and the a11y
+  // check wants interactive handlers only on focusable elements.
+  $effect(() => {
+    const el = tabBarEl;
+    if (!el) return;
+    el.addEventListener("pointerdown", onTabBarPointerDown);
+    el.addEventListener("pointermove", onTabBarPointerMove);
+    el.addEventListener("pointerup", onTabBarPointerUp);
+    el.addEventListener("pointercancel", onTabBarPointerUp);
+    el.addEventListener("click", onTabBarClickCapture, true);
+    return () => {
+      el.removeEventListener("pointerdown", onTabBarPointerDown);
+      el.removeEventListener("pointermove", onTabBarPointerMove);
+      el.removeEventListener("pointerup", onTabBarPointerUp);
+      el.removeEventListener("pointercancel", onTabBarPointerUp);
+      el.removeEventListener("click", onTabBarClickCapture, true);
+    };
+  });
   let resizeObserver: ResizeObserver | null = null;
 
   // #61 follow-up: refs into the off-screen measurement clones below —
@@ -408,6 +473,7 @@
 
         const nowOverflowing = tabBarEl.scrollWidth > tabBarEl.clientWidth;
         if (nowOverflowing !== isOverflowing) isOverflowing = nowOverflowing;
+        updateScrollEdges();
         // If another call came in while the above was awaiting a frame,
         // loop once more on the now-current state instead of returning
         // with it unevaluated — using whatever `allowUpgrade` that (or any
@@ -425,21 +491,11 @@
     }
   }
 
-  /** §52: once overflowing, scrolling past an edge wraps to the other end
-   * — the same cyclic behavior `Ctrl/Cmd+Tab`/`Ctrl/Cmd+Shift+Tab` already has for
-   * switching tabs, just applied to scroll position. */
+  /** §52: the ‹ › arrows scroll the strip by about a tab. §392: they stop at the ends (the arrow is disabled
+   * there) rather than wrapping to the other end. */
   function scrollTabBar(direction: 1 | -1) {
     if (!tabBarEl) return;
-    const maxScroll = tabBarEl.scrollWidth - tabBarEl.clientWidth;
-    const atLeftEdge = tabBarEl.scrollLeft <= 0;
-    const atRightEdge = tabBarEl.scrollLeft >= maxScroll - 1;
-    if (direction === -1 && atLeftEdge) {
-      tabBarEl.scrollTo({ left: maxScroll, behavior: "smooth" });
-    } else if (direction === 1 && atRightEdge) {
-      tabBarEl.scrollTo({ left: 0, behavior: "smooth" });
-    } else {
-      tabBarEl.scrollBy({ left: direction * 160, behavior: "smooth" });
-    }
+    tabBarEl.scrollBy({ left: direction * 160, behavior: "smooth" });
   }
 
   /** §48: switching tabs (keyboard, Date picker, Search, etc.) can move
@@ -738,7 +794,12 @@
     </button>
   {:else}
     {#if isOverflowing}
-      <button class="icon-btn tab-scroll-btn" aria-label={$t("topBar.scrollTabsLeft")} onclick={() => scrollTabBar(-1)}>
+      <button
+        class="icon-btn tab-scroll-btn"
+        aria-label={$t("topBar.scrollTabsLeft")}
+        disabled={!canScrollLeft}
+        onclick={() => scrollTabBar(-1)}
+      >
         <Icon name="chevron-left" size={14} />
       </button>
     {/if}
@@ -748,6 +809,7 @@
       aria-label={$t("topBar.openTabsList.ariaLabel", { count: displayTabs.length })}
       bind:this={tabBarEl}
       data-tauri-drag-region={isMergedTitlebar ? true : undefined}
+      onscroll={updateScrollEdges}
     >
       {#each displayTabs as tab, i (tab.id)}
         {#if i > 0 && tab.isScratchpad && !displayTabs[i - 1].isScratchpad}
@@ -826,7 +888,12 @@
       {/each}
     </div>
     {#if isOverflowing}
-      <button class="icon-btn tab-scroll-btn" aria-label={$t("topBar.scrollTabsRight")} onclick={() => scrollTabBar(1)}>
+      <button
+        class="icon-btn tab-scroll-btn"
+        aria-label={$t("topBar.scrollTabsRight")}
+        disabled={!canScrollRight}
+        onclick={() => scrollTabBar(1)}
+      >
         <Icon name="chevron-right" size={14} />
       </button>
     {/if}

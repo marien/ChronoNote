@@ -237,7 +237,7 @@ takes the note's colour and a thin outline (§339), the others sit on the
 bar; a dot marks the tab's date (past / today / future). Tabs stay ordered
 chronologically (earliest to latest), scratchpads after every dated tab;
 the strip auto-scrolls to keep the active tab in view, and scroll arrows
-appear when it overflows. Labels are the ISO date, or, with Settings →
+appear when it overflows; an arrow is greyed out once the first / last tab is fully visible (no wrapping), and dragging over the tabs with the mouse scrolls the strip (§392). Labels are the ISO date, or, with Settings →
 Appearance → Tab labels set to Friendly, "Today" / "Yesterday" / "Tomorrow"
 and otherwise a short date ("Thu 9 Oct"), with the ISO date as tooltip. Middle-click closes a tab. Right after the last tab sits
 a `+` split button: `+` makes a new scratchpad, its `▾` menu offers New
