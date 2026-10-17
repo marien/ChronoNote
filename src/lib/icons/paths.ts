@@ -47,6 +47,10 @@ export const ICONS = {
   // pair of squares for restore — `close` above is reused as-is, same
   // mark the tab/modal close buttons already draw).
   minimize: `<path d="M6 17h12"/>`,
+  // §396: Peek docked to the bottom of the screen (a window with a band along its bottom) / floating (a small window
+  // above a baseline).
+  "peek-dock": `<rect x="4" y="5" width="16" height="14" rx="2"/><path d="M4 14h16"/><path d="M7 16.5h10" stroke-width="2.2"/>`,
+  "peek-float": `<rect x="7" y="5" width="11" height="9" rx="1.5"/><path d="M4 19h16"/>`,
   maximize: `<rect x="6" y="6" width="12" height="12" rx="1"/>`,
   restore: `<path d="M9 6h9v9h-3"/><rect x="6" y="9" width="9" height="9" rx="1"/>`,
   undo: `<path d="M9 14L4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5v1"/>`,

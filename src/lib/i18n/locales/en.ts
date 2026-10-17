@@ -186,6 +186,8 @@ export const en = {
     "Back to the full window",
   "peek.minimize": () =>
     "Minimize",
+  "peek.dock": () => "Dock to the bottom of the screen",
+  "peek.float": () => "Float the window",
   "peek.rename": () =>
     "Click to name this call",
   "peek.prev": () =>
@@ -220,9 +222,6 @@ export const en = {
     "Never",
   "peek.settings.alwaysOnTop.label": () =>
     "Keep on top of other windows",
-  "peek.settings.dockBottom.label": () => "Dock to the bottom of the screen (experimental)",
-  "peek.settings.dockBottom.hint": () =>
-    "Peek takes a strip along the bottom of its screen, and maximized windows, such as a Teams call, use the space above it. Drag its top edge to change the height. Applies the next time Peek opens.",
   "peek.settings.header.label": () =>
     "Header strip",
   "peek.settings.header.always": () =>

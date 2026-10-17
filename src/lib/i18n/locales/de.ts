@@ -193,6 +193,8 @@ export const de = {
     "Zurück zum vollständigen Fenster",
   "peek.minimize": () =>
     "Minimieren",
+  "peek.dock": () => "Am unteren Bildschirmrand andocken",
+  "peek.float": () => "Frei schweben lassen",
   "peek.rename": () =>
     "Klicken, um diesen Anruf zu benennen",
   "peek.prev": () =>
@@ -227,9 +229,6 @@ export const de = {
     "Nie",
   "peek.settings.alwaysOnTop.label": () =>
     "Über anderen Fenstern halten",
-  "peek.settings.dockBottom.label": () => "Am unteren Bildschirmrand andocken (experimentell)",
-  "peek.settings.dockBottom.hint": () =>
-    "Peek belegt einen Streifen am unteren Rand des Bildschirms, und maximierte Fenster wie ein Teams-Anruf nutzen den Platz darüber. Ziehen Sie den oberen Rand, um die Höhe zu ändern. Gilt beim nächsten Öffnen von Peek.",
   "peek.settings.header.label": () =>
     "Kopfleiste",
   "peek.settings.header.always": () =>

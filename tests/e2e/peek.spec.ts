@@ -777,15 +777,36 @@ test.describe("docked peek", () => {
       .toBe("60");
   });
 
-  test("Settings has the experimental switch", async ({ page }) => {
+  test("the header button switches between docked and floating, and Peek opens in the mode it was last in", async ({ page }) => {
+    await seedApp(page, { seed: { ...today(), peek: { header: "always", opacity: 40, opacityHover: 60, fadeSeconds: 0 } } });
+    const calls = () => page.evaluate(() => window.__CHRONO_MOCK__!.windowCalls.filter((c) => c === "undock" || c.startsWith("dock")));
+    const opacity = () => page.evaluate(() => document.documentElement.style.getPropertyValue("--peek-opacity"));
+    await enterOnWeeklySync(page);
+    const dock = page.locator("#peek-bar").getByRole("button", { name: "Dock to the bottom of the screen" });
+    await expect(dock).toBeVisible();
+    await dock.click();
+    await expect.poll(calls).toEqual(["dock 220"]);
+    await expect.poll(opacity).toBe("100");
+    await expect.poll(() => page.evaluate(() => window.__CHRONO_MOCK__!.peek.dockBottom)).toBe(true);
+
+    const float = page.locator("#peek-bar").getByRole("button", { name: "Float the window" });
+    await float.click();
+    await expect.poll(calls).toEqual(["dock 220", "undock"]);
+    await expect.poll(opacity).toBe("60");
+    await expect.poll(() => page.evaluate(() => window.__CHRONO_MOCK__!.peek.dockBottom)).toBe(false);
+
+    // Docked again, leave, and open Peek again: it opens docked.
+    await page.locator("#peek-bar").getByRole("button", { name: "Dock to the bottom of the screen" }).click();
+    await page.keyboard.press("Escape");
+    await expect(page.locator("body.peek-mode")).toHaveCount(0);
+    await enterOnWeeklySync(page);
+    await expect.poll(calls).toEqual(["dock 220", "undock", "dock 220", "undock", "dock 220"]);
+  });
+
+  test("docking is not a setting", async ({ page }) => {
     await seedApp(page, { seed: { ...today(), peek: {} } });
     await page.keyboard.press("ControlOrMeta+Comma");
-    // The switch's input is visually hidden; click the row, like the other Settings switches.
-    const row = page.locator(".toggle-switch", { hasText: "Dock to the bottom of the screen (experimental)" });
-    await row.scrollIntoViewIfNeeded();
-    await expect(row.locator("input")).not.toBeChecked();
-    await row.click();
-    await expect(row.locator("input")).toBeChecked();
-    await expect.poll(() => page.evaluate(() => window.__CHRONO_MOCK__!.peek.dockBottom)).toBe(true);
+    await expect(page.locator(".settings-modal-card, .settings-page")).toBeVisible();
+    await expect(page.getByText("Dock to the bottom of the screen")).toHaveCount(0);
   });
 });

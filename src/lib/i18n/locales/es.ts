@@ -190,6 +190,8 @@ export const es = {
     "Volver a la ventana completa",
   "peek.minimize": () =>
     "Minimizar",
+  "peek.dock": () => "Acoplar en la parte inferior de la pantalla",
+  "peek.float": () => "Ventana flotante",
   "peek.rename": () =>
     "Haz clic para nombrar esta llamada",
   "peek.prev": () =>
@@ -224,9 +226,6 @@ export const es = {
     "Nunca",
   "peek.settings.alwaysOnTop.label": () =>
     "Mantener encima de otras ventanas",
-  "peek.settings.dockBottom.label": () => "Acoplar en la parte inferior de la pantalla (experimental)",
-  "peek.settings.dockBottom.hint": () =>
-    "Peek ocupa una franja en la parte inferior de la pantalla y las ventanas maximizadas, como una llamada de Teams, usan el espacio de encima. Arrastra el borde superior para cambiar la altura. Se aplica la próxima vez que se abra Peek.",
   "peek.settings.header.label": () =>
     "Barra de cabecera",
   "peek.settings.header.always": () =>

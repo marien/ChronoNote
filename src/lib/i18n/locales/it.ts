@@ -192,6 +192,8 @@ export const it = {
     "Torna alla finestra completa",
   "peek.minimize": () =>
     "Riduci a icona",
+  "peek.dock": () => "Aggancia in fondo allo schermo",
+  "peek.float": () => "Finestra mobile",
   "peek.rename": () =>
     "Fai clic per assegnare un nome a questa chiamata",
   "peek.prev": () =>
@@ -226,9 +228,6 @@ export const it = {
     "Mai",
   "peek.settings.alwaysOnTop.label": () =>
     "Mantieni sopra le altre finestre",
-  "peek.settings.dockBottom.label": () => "Aggancia in fondo allo schermo (sperimentale)",
-  "peek.settings.dockBottom.hint": () =>
-    "Peek occupa una striscia in fondo allo schermo e le finestre ingrandite, come una chiamata Teams, usano lo spazio sopra. Trascina il bordo superiore per cambiare l'altezza. Vale dalla prossima apertura di Peek.",
   "peek.settings.header.label": () =>
     "Barra di intestazione",
   "peek.settings.header.always": () =>

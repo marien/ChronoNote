@@ -156,6 +156,50 @@ export function createPeekWindowController(win: PeekWin) {
     return { x: p.x, y: p.y, width: s.width, height: s.height };
   };
 
+  /** Docks at `logicalHeight` (true), or reports that docking is not available here (false). */
+  const dockAt = async (logicalHeight: number): Promise<boolean> => {
+    const scale = (await win.scaleFactor()) || 1;
+    try {
+      docked = await win.dockBottom(Math.round(logicalHeight * scale));
+      return true;
+    } catch {
+      docked = null;
+      return false;
+    }
+  };
+
+  /** Places the floating compact window: where it was last left if that is still on a screen; else the lower centre of
+   * the current monitor, just above the taskbar. */
+  const placeFloating = async (o: PeekEnterOptions): Promise<void> => {
+    const scale = (await win.scaleFactor()) || 1;
+    const h = Math.round(o.logicalHeight * scale);
+    const monitors = await win.monitors();
+    let g: PeekGeometry | null = null;
+    if (o.geometry) {
+      const wanted = { ...o.geometry, height: o.forceHeight ? h : o.geometry.height };
+      g = monitors.length > 0 ? fitToMonitors(wanted, monitors) : wanted;
+    }
+    if (!g) {
+      const size = {
+        width: o.geometry?.width ?? Math.round(o.logicalWidth * scale),
+        height: o.forceHeight ? h : (o.geometry?.height ?? h),
+      };
+      g =
+        defaultPeekGeometry(size, monitors, Math.round(12 * scale)) ?? {
+          x: full!.geometry.x,
+          y: full!.geometry.y,
+          ...size,
+        };
+    }
+    // A forced height (fit-to-section, the lines setting) is logical, so it has to be converted with the scale of
+    // the monitor Peek goes to, which is not the full window's when they are on screens with different scaling.
+    const target = monitorOf(g, monitors);
+    if (o.forceHeight && target?.scale && target.scale !== scale) {
+      g = insideWork({ ...g, height: Math.round(o.logicalHeight * target.scale) }, target.work);
+    }
+    await win.setBounds(g);
+  };
+
   return {
     enter(o: PeekEnterOptions): Promise<void> {
       return run(async () => {
@@ -169,46 +213,32 @@ export function createPeekWindowController(win: PeekWin) {
         }
         await win.setTransparent(true);
         await win.setMinSize(PEEK_MIN_LOGICAL.width, PEEK_MIN_LOGICAL.height);
-        const scale = (await win.scaleFactor()) || 1;
-        if (o.dockLogicalHeight !== undefined) {
-          try {
-            docked = await win.dockBottom(Math.round(o.dockLogicalHeight * scale));
-            await win.setAlwaysOnTop(o.alwaysOnTop);
-            await win.reveal();
-            return;
-          } catch {
-            // Docking is not available here: float as usual.
-            docked = null;
-          }
-        }
-        const h = Math.round(o.logicalHeight * scale);
-        const monitors = await win.monitors();
-        // The remembered position if it is still on a screen; else the lower centre of the current monitor, just above
-        // the taskbar.
-        let g: PeekGeometry | null = null;
-        if (o.geometry) {
-          const wanted = { ...o.geometry, height: o.forceHeight ? h : o.geometry.height };
-          g = monitors.length > 0 ? fitToMonitors(wanted, monitors) : wanted;
-        }
-        if (!g) {
-          const size = {
-            width: o.geometry?.width ?? Math.round(o.logicalWidth * scale),
-            height: o.forceHeight ? h : (o.geometry?.height ?? h),
-          };
-          g =
-            defaultPeekGeometry(size, monitors, Math.round(12 * scale)) ?? {
-              x: full.geometry.x,
-              y: full.geometry.y,
-              ...size,
-            };
-        }
-        // A forced height (fit-to-section, the lines setting) is logical, so it has to be converted with the scale of
-        // the monitor Peek goes to, which is not the full window's when they are on screens with different scaling.
-        const target = monitorOf(g, monitors);
-        if (o.forceHeight && target?.scale && target.scale !== scale) {
-          g = insideWork({ ...g, height: Math.round(o.logicalHeight * target.scale) }, target.work);
-        }
-        await win.setBounds(g);
+        if (o.dockLogicalHeight === undefined || !(await dockAt(o.dockLogicalHeight))) await placeFloating(o);
+        await win.setAlwaysOnTop(o.alwaysOnTop);
+        await win.reveal();
+      }, undefined);
+    },
+
+    /** §396: while in Peek, switch to docked. Resolves to the floating geometry it had (to remember for the way back),
+     * or null when it was not floating or docking is not available. */
+    dock(logicalHeight: number, alwaysOnTop: boolean): Promise<PeekGeometry | null> {
+      return run(async () => {
+        if (!full || docked) return null;
+        const floating = await currentGeometry();
+        if (!(await dockAt(logicalHeight))) return null;
+        await win.setAlwaysOnTop(alwaysOnTop);
+        await win.reveal();
+        return floating;
+      }, null);
+    },
+
+    /** §396: while in Peek, switch from docked to floating, placed like a floating Peek opens. */
+    float(o: PeekEnterOptions): Promise<void> {
+      return run(async () => {
+        if (!full || !docked) return;
+        docked = null;
+        await win.undock();
+        await placeFloating(o);
         await win.setAlwaysOnTop(o.alwaysOnTop);
         await win.reveal();
       }, undefined);

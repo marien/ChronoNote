@@ -8,6 +8,7 @@
     leavePeek,
     minimizeWindow,
     peekDateClass,
+    peekDocked,
     peekHeaderExpanded,
     peekPosition,
     peekRenaming,
@@ -16,6 +17,7 @@
     renamePeekSection,
     startPeekRename,
     stepPeekOccurrence,
+    togglePeekDock,
   } from "../controller";
   import Icon from "../icons/Icon.svelte";
   import { t } from "../i18n";
@@ -112,6 +114,13 @@
       <button
         type="button"
         class="peek-btn tiny"
+        aria-label={$peekDocked ? $t("peek.float") : $t("peek.dock")}
+        title={$peekDocked ? $t("peek.float") : $t("peek.dock")}
+        onclick={() => togglePeekDock()}><Icon name={$peekDocked ? "peek-float" : "peek-dock"} size={10} /></button
+      >
+      <button
+        type="button"
+        class="peek-btn tiny"
         aria-label={$t("peek.minimize")}
         title={$t("peek.minimize")}
         onclick={() => minimizeWindow()}><Icon name="minimize" size={10} /></button
@@ -171,6 +180,13 @@
           <span class="peek-title" data-tauri-drag-region>{title}</span>
         {/if}
       {/if}
+      <button
+        type="button"
+        class="peek-btn"
+        aria-label={$peekDocked ? $t("peek.float") : $t("peek.dock")}
+        title={$peekDocked ? $t("peek.float") : $t("peek.dock")}
+        onclick={() => togglePeekDock()}><Icon name={$peekDocked ? "peek-float" : "peek-dock"} size={13} /></button
+      >
       <button
         type="button"
         class="peek-btn"

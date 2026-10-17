@@ -205,6 +205,31 @@ describe("createPeekWindowController", () => {
       expect(f.geo.height).toBe(200);
     });
 
+    it("switching while in Peek: dock remembers the floating position, float puts it back there", async () => {
+      const f = fakeWindow();
+      const peek = createPeekWindowController(f.win);
+      const kept = { x: 700, y: 400, width: 630, height: 250 };
+      await peek.enter({ ...enterOpts, geometry: kept, forceHeight: false });
+      expect(f.geo).toEqual(kept);
+      expect(await peek.dock(200, true)).toEqual(kept);
+      expect(peek.isDocked()).toBe(true);
+      expect(f.geo).toEqual({ x: 0, y: 840, width: 1920, height: 200 });
+      await peek.float({ ...enterOpts, geometry: kept, forceHeight: false });
+      expect(f.log.slice(-4)).toContain("undock");
+      expect(peek.isDocked()).toBe(false);
+      expect(f.geo).toEqual(kept);
+    });
+
+    it("dock and float do nothing outside Peek or when already in that mode", async () => {
+      const f = fakeWindow();
+      const peek = createPeekWindowController(f.win);
+      expect(await peek.dock(200, true)).toBeNull();
+      await peek.float(enterOpts);
+      expect(f.log).toEqual([]);
+      await peek.enter({ ...enterOpts, dockLogicalHeight: 200 });
+      expect(await peek.dock(200, true)).toBeNull();
+    });
+
     it("where docking is not available, Peek floats as usual", async () => {
       const f = fakeWindow({ noDock: true });
       const peek = createPeekWindowController(f.win);

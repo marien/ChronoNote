@@ -171,6 +171,8 @@ export type TranslationParams = {
   "peek.toast.titleExists": undefined;
   "peek.expand": undefined;
   "peek.minimize": undefined;
+  "peek.dock": undefined;
+  "peek.float": undefined;
   "peek.rename": undefined;
   "peek.prev": undefined;
   "peek.next": undefined;
@@ -189,8 +191,6 @@ export type TranslationParams = {
   "peek.settings.fadeSeconds.label": undefined;
   "peek.settings.fadeSeconds.never": undefined;
   "peek.settings.alwaysOnTop.label": undefined;
-  "peek.settings.dockBottom.label": undefined;
-  "peek.settings.dockBottom.hint": undefined;
   "peek.settings.header.label": undefined;
   "peek.settings.header.always": undefined;
   "peek.settings.header.hover": undefined;

@@ -184,6 +184,32 @@ async function refreshPosition(): Promise<string[]> {
   return files;
 }
 
+/** §396: the dock/undock button in Peek's header. Switches between docked to the bottom of the screen and floating,
+ * and remembers the choice (`dockBottom`): Peek opens in the mode it was last in. */
+export async function togglePeekDock(): Promise<void> {
+  const s = get(peekSettings);
+  const dock = !s.dockBottom;
+  peekSettings.update((x) => ({ ...x, dockBottom: dock }));
+  if (!get(peekMode)) return;
+  const win = await controller();
+  if (dock) {
+    // Remember where the floating window was, for switching back.
+    const floating = await win.dock(s.dockHeight, s.alwaysOnTop);
+    if (floating) peekSettings.update((x) => ({ ...x, geometry: floating, useLinesHeight: false }));
+    // Docking is not available here: stay floating.
+    if (!win.isDocked()) peekSettings.update((x) => ({ ...x, dockBottom: false }));
+  } else {
+    await win.float({
+      geometry: s.geometry,
+      logicalWidth: 420,
+      logicalHeight: logicalHeight(s, get(peekFitLines)),
+      forceHeight: s.lines === 0 || s.geometry === null || s.useLinesHeight,
+      alwaysOnTop: s.alwaysOnTop,
+    });
+  }
+  peekDocked.set(win.isDocked());
+}
+
 export function togglePeek(): void {
   if (!desktop()) return;
   if (get(peekMode)) leavePeek();
