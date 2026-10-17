@@ -901,6 +901,13 @@ export class WebBackend {
     spell_suggest: async () => [],
     spell_add: async () => null,
     spell_ignore: async () => null,
+    // Desktop window commands (Peek, Snap Layouts, Zen, installer): the web app never calls them.
+    peek_set_bounds: async () => {},
+    peek_set_transparent: async () => {},
+    snap_overlay_set_rect: async () => {},
+    zen_cover_monitor: async () => {},
+    zen_prepare_leave: async () => {},
+    install_update: async () => {},
   };
 
 

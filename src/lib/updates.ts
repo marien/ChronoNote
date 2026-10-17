@@ -13,7 +13,7 @@
 import { get } from "svelte/store";
 import * as api from "./tauriApi";
 import { relaunch } from "@tauri-apps/plugin-process";
-import { Channel, invoke } from "@tauri-apps/api/core";
+import { Channel } from "@tauri-apps/api/core";
 import { flushAllPendingSaves } from "./persistence";
 import { t } from "./i18n";
 import {
@@ -135,11 +135,7 @@ export async function downloadAndInstallUpdate(): Promise<void> {
         }
       };
       const early = get(earlyUpdates);
-      const doInstall =
-        "installUpdate" in api && typeof api.installUpdate === "function"
-          ? (api.installUpdate as (e: boolean, ch: Channel<InstallEvent>) => Promise<void>)
-          : (e: boolean, ch: Channel<InstallEvent>) => invoke("install_update", { early: e, onEvent: ch });
-      doInstall(early, channel).then(() => resolve(), reject);
+      api.installUpdate(early, channel).then(() => resolve(), reject);
     });
     updateInstalling.set(false);
     updateStatus.set("ready");

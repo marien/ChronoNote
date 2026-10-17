@@ -4,7 +4,9 @@ import { get } from "svelte/store";
 const updaterMock = { check: vi.fn() };
 vi.mock("@tauri-apps/plugin-updater", () => updaterMock);
 // The check is Rust `check_update` via tauriApi; tests keep `updaterMock.check` as the source of what it finds.
-vi.mock("./tauriApi", () => ({ checkUpdate: (early: boolean) => updaterMock.check(early).then((r: { version: string; body?: string | null } | null) => (r ? { version: r.version, body: r.body ?? null } : null)) }));
+vi.mock("./tauriApi", () => ({
+  installUpdate: (early: boolean, onEvent: unknown) => coreMock.invoke("install_update", { early, onEvent }),
+  checkUpdate: (early: boolean) => updaterMock.check(early).then((r: { version: string; body?: string | null } | null) => (r ? { version: r.version, body: r.body ?? null } : null)) }));
 
 const processMock = { relaunch: vi.fn() };
 vi.mock("@tauri-apps/plugin-process", () => processMock);

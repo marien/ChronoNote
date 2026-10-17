@@ -205,29 +205,29 @@ export interface TauriCommands {
   spell_add: { args: { word: string }; returns: null };
   spell_ignore: { args: { word: string }; returns: null };
   /** Native window handling for Peek mode. */
-  peek_set_bounds?: {
+  peek_set_bounds: {
     args: { x: number; y: number; width: number; height: number };
     returns: void;
   };
-  peek_set_transparent?: {
+  peek_set_transparent: {
     args: { transparent: boolean; r: number; g: number; b: number };
     returns: void;
   };
   /** Native child window for Windows 11 Snap Layouts (§B1). */
-  snap_overlay_set_rect?: {
+  snap_overlay_set_rect: {
     args: { x: number; y: number; width: number; height: number };
     returns: void;
   };
   /** Zen mode monitor coverage and leave preparation. */
-  zen_cover_monitor?: { args: NoArgs; returns: void };
-  zen_prepare_leave?: { args: NoArgs; returns: void };
+  zen_cover_monitor: { args: NoArgs; returns: void };
+  zen_prepare_leave: { args: NoArgs; returns: void };
   /** Downloads and launches the Windows installer for self-updating (§update-check). */
-  install_update?: {
+  install_update: {
     args: { early: boolean; onEvent: Channel<unknown> };
     returns: void;
   };
 }
 
 export type TauriCommand = keyof TauriCommands;
-export type CommandArgs<K extends TauriCommand> = NonNullable<TauriCommands[K]>["args"];
-export type CommandReturn<K extends TauriCommand> = NonNullable<TauriCommands[K]>["returns"];
+export type CommandArgs<K extends TauriCommand> = TauriCommands[K]["args"];
+export type CommandReturn<K extends TauriCommand> = TauriCommands[K]["returns"];
