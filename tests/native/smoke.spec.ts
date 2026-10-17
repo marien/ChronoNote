@@ -166,9 +166,15 @@ test("every window and plugin command the app uses is allowed by the capabilitie
   const src = appSource("src").join("\n");
 
   // Window commands: every command in Tauri's window module whose JS method the app calls (`.setTitle(` -> set_title).
+  // The scan matches by method name only; these names are calls on other objects, never on a Tauri window.
+  const notWindowCalls: Record<string, string> = {
+    create: "CodeMirror's EditorState.create / EditorSelection.create",
+    hide: "the overview ruler's own hide()",
+  };
   const windowJs = fs.readFileSync("node_modules/@tauri-apps/api/window.js", "utf8");
   const windowCmds = [...new Set(windowJs.match(/plugin:window\|[a-z_]+/g) ?? [])]
     .map((c) => c.slice("plugin:window|".length))
+    .filter((c) => !(c in notWindowCalls))
     .filter((c) => src.includes(`.${c.replace(/_([a-z])/g, (_m, l: string) => l.toUpperCase())}(`));
   expect(windowCmds).toContain("destroy");
 
