@@ -1,0 +1,1 @@
+export{f as LogicalSize,p as PhysicalPosition,m as PhysicalSize,s as availableMonitors,c as currentMonitor,u as getCurrentWindow}from"./window-COHHr8fS.js";
