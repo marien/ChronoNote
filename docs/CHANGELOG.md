@@ -10674,7 +10674,7 @@ From a test-coverage review (2026-10-17): Vitest covers 41% of `src/lib` lines a
 
 ## 392. Tab strip: drag to scroll, and arrows that stop at the ends
 
-**Status: on `main`, unreleased.**
+**Status: released in v0.32.4 (betas 0.32.4-1 to -5 first).**
 
 - **Marien:** drag the tabs to scroll the strip, like the arrow buttons do; and the arrows should no longer wrap around: grey out the left arrow once the first tab is fully visible, the right one once the last tab is.
 - **Arrows:** §52 made them wrap (‹ at the start jumped to the far end). Now they only scroll by about a tab, and `canScrollLeft`/`canScrollRight` disable them. The check is whether the first / last `.tab` is fully inside the strip, not the scroll position: the strip's 8px side padding meant "scrolled to the very end" and "last tab visible" differed, and the right arrow stayed active while the newest tab was in view.
@@ -10683,7 +10683,7 @@ From a test-coverage review (2026-10-17): Vitest covers 41% of `src/lib` lines a
 
 ## 393. Peek docked to the bottom of the screen (experimental)
 
-**Status: on `main`, unreleased.**
+**Status: released in v0.32.4 (betas 0.32.4-1 to -5 first).**
 
 - **Marien:** for Teams calls, Peek should take the bottom of the screen while the call window takes the top. Windows 11's Snap Layouts only offer top/bottom rows on a portrait monitor and apps cannot add layouts; the Windows mechanism that does this is the application desktop toolbar (AppBar), the same one the taskbar uses. Marien's decisions: experimental and off by default; solid background while docked; the header follows the normal Peek setting; the height changes by dragging the top edge.
 - **Native (`peek_dock.rs`):** `peek_dock_bottom(height)` registers the window as an AppBar (`ABM_NEW`) on its monitor, asks Windows for a full-width bottom strip (`ABM_QUERYPOS`, which moves it above the taskbar), reserves it (`ABM_SETPOS`) and places the window's content exactly on it (the invisible frame is measured and added outside, repeated for monitors with other scaling). `peek_undock` releases it (`ABM_REMOVE`); `lib.rs` also releases it on the window's `Destroyed` event, so a closed window never leaves the space reserved. Height clamped to 60 px .. half the monitor. Needs the `Win32_UI_Shell` feature.
@@ -10693,7 +10693,7 @@ From a test-coverage review (2026-10-17): Vitest covers 41% of `src/lib` lines a
 
 ## 394. Docked Peek: cannot be moved, resizes from its bottom, square corners
 
-**Status: on `main`, unreleased (found testing beta 0.32.4-2).**
+**Status: released in v0.32.4 (betas 0.32.4-1 to -5 first) (found testing beta 0.32.4-2).**
 
 - **Marien:** resizing docked Peek moved the whole window up, and the next resize moved it back down; the docked window could also be dragged around while the bottom area stayed reserved; and it had rounded corners where a maximized-looking window has square ones.
 - **Cause:** §393 only reacted after the fact: a timer 300 ms after the last resize event re-docked at the new height, and nothing followed a move. Windows' own move/resize loop could put the window anywhere in between, and a re-dock that fired during a pause in the drag fought the loop.
@@ -10702,7 +10702,7 @@ From a test-coverage review (2026-10-17): Vitest covers 41% of `src/lib` lines a
 
 ## 395. Docked Peek: minimizing gives the screen space back
 
-**Status: on `main`, unreleased (found testing beta 0.32.4-3).**
+**Status: released in v0.32.4 (betas 0.32.4-1 to -5 first) (found testing beta 0.32.4-3).**
 
 - **Marien:** minimizing a docked Peek left part of the screen reserved; restoring it, or closing it while minimized, released it.
 - **Cause:** §394's "follow a size change outside a drag" (`WM_WINDOWPOSCHANGED`) also saw the minimize: a minimized window reports a content height of 0, so the strip was reserved again at the minimum height (60 px), and that height was also sent to the page, overwriting the remembered dock height.
@@ -10711,7 +10711,7 @@ From a test-coverage review (2026-10-17): Vitest covers 41% of `src/lib` lines a
 
 ## 396. Peek: a dock/float button in the header instead of a setting
 
-**Status: on `main`, unreleased.**
+**Status: released in v0.32.4 (betas 0.32.4-1 to -5 first).**
 
 - **Marien (after confirming 0.32.4-4: minimize/restore, square corners, a Teams call and a second monitor all work):** put docking on a button in Peek's header next to minimize and restore; Peek opens in the mode it was last in; the button switches between docked and floating; restore or `Esc` still leaves Peek; docking is no longer a setting.
 - **Header:** a button left of minimize (also in the thin "hidden" strip) shows `peek-dock` (a window with a band along its bottom, "Dock to the bottom of the screen") while floating and `peek-float` (a small window above a baseline, "Float the window") while docked; labels in 7 languages. The Settings switch and its texts are gone; `PeekConfig.dockBottom` now records the last mode.
