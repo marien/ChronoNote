@@ -10724,3 +10724,13 @@ From a test-coverage review (2026-10-17): Vitest covers 41% of `src/lib` lines a
 
 - CI's Test run on the 0.32.4-5 release commit (a version bump only) failed `perf.test.ts`: the tokenizer measured 106 ms against 68 ms for the old regexes, over the 1.5x limit. The eleven runs before it on CI had the tokenizer as fast or faster (38-80 ms against 57-98 ms), including every run since §387's Unicode name pattern, and locally it is 55 ms against 69 ms: one slow stretch on a shared runner, landing on whichever was measured second.
 - `bestOfBoth` times the two in alternating rounds (best of 9 instead of 5), so a slow stretch hits both. The limit and the code under test are unchanged. The published beta was not affected.
+
+## 398. Docked Peek floats when the screens change
+
+**Status: on `main`, unreleased.**
+
+- **Marien:** with Peek docked, disconnecting the external monitors left Peek on about half the reserved strip and then it disappeared until Esc; reconnecting the screens sometimes brought it back, sometimes not. Suggested leaving docked Peek as soon as the number of screens changes.
+- **Cause (not reproduced; this dev machine has one monitor):** when monitors come or go, Windows moves every reserved AppBar strip on its own and sends the AppBar a notification that `peek_dock.rs` never handled (`uCallbackMessage` was noted as "not handled (yet)"), while the window hook kept anchoring the window to the old strip's coordinates. The strip, the anchor and the window ended up disagreeing.
+- **Fix, native (`peek_dock.rs`):** each reservation records the monitor count (`SM_CMONITORS`) and the rectangle of the strip's monitor. On `WM_DISPLAYCHANGE` the hook compares (`screens_changed`): if a monitor came or went, or the strip's monitor moved or changed size, it gives the strip back at once (`undock`: `ABM_REMOVE`, hook removed, normal corners) and emits `peek-dock-lost`. A display change that leaves both the same (such as another monitor changing resolution) keeps the dock.
+- **Frontend (`peek.ts`):** `onPeekDockLost` floats Peek the same way the header's float button does (at the remembered floating position if it is still on a screen, else above the taskbar of the current monitor). The docked choice (`dockBottom`) is kept, so the next Peek opens docked again on the new screen layout. No toast: the status bar is hidden in Peek.
+- Tests: Rust `screens_changed`; e2e `peek.spec.ts` (the event floats a docked Peek, keeps `dockBottom`, and the next Peek docks again). Not checked natively: unplugging/replugging real monitors.

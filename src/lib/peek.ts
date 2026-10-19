@@ -199,15 +199,30 @@ export async function togglePeekDock(): Promise<void> {
     // Docking is not available here: stay floating.
     if (!win.isDocked()) peekSettings.update((x) => ({ ...x, dockBottom: false }));
   } else {
-    await win.float({
-      geometry: s.geometry,
-      logicalWidth: 420,
-      logicalHeight: logicalHeight(s, get(peekFitLines)),
-      forceHeight: s.lines === 0 || s.geometry === null || s.useLinesHeight,
-      alwaysOnTop: s.alwaysOnTop,
-    });
+    await floatPeek();
   }
   peekDocked.set(win.isDocked());
+}
+
+/** Switches a docked Peek to floating, placed where the floating window was last left (if still on a screen). */
+async function floatPeek(): Promise<void> {
+  const s = get(peekSettings);
+  const win = await controller();
+  await win.float({
+    geometry: s.geometry,
+    logicalWidth: 420,
+    logicalHeight: logicalHeight(s, get(peekFitLines)),
+    forceHeight: s.lines === 0 || s.geometry === null || s.useLinesHeight,
+    alwaysOnTop: s.alwaysOnTop,
+  });
+  peekDocked.set(win.isDocked());
+}
+
+/** §398: the screens changed while Peek was docked (a monitor plugged in or out). Rust has already given the strip
+ * back; Peek floats for the rest of this Peek. The docked choice itself is kept: the next Peek opens docked again. */
+export async function onPeekDockLost(): Promise<void> {
+  if (!get(peekMode) || !get(peekDocked)) return;
+  await floatPeek();
 }
 
 export function togglePeek(): void {
@@ -541,6 +556,7 @@ export function wirePeek(): () => void {
         peekSettings.update((x) => ({ ...x, dockHeight: Math.round(payload / scale) }));
       });
       cleanups.push(unlisten);
+      cleanups.push(await listen("peek-dock-lost", () => void onPeekDockLost()));
     } catch {
       // No window events (tests): nothing to follow.
     }

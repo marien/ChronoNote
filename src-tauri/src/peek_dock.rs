@@ -7,6 +7,10 @@
 //! height, live), and when the drag ends the strip is reserved again at the new height, which is sent to the page
 //! (`peek-dock-height`) to remember. Corners are square while docked, like a maximized window.
 //!
+//! When the screens change while docked (a monitor plugged in or out, §398), the strip is given back at once and the
+//! page is told (`peek-dock-lost`) so it floats Peek instead: Windows rearranges reserved strips on its own then, and
+//! the result was erratic (half the strip, Peek gone until Esc, sometimes back after reconnecting).
+//!
 //! The strip must always be given back (`peek_undock`, and `release` when the window is destroyed): a registration
 //! that outlives the window can leave the space reserved until Explorer notices.
 
@@ -57,6 +61,20 @@ pub fn anchored(a: Anchor, current_cy: i32, req: (i32, i32, i32, i32), sizes: bo
     }
 }
 
+/// What the screens looked like when the strip was reserved: how many monitors, and the rectangle (`left, top, right,
+/// bottom`) of the one the strip is on.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct Screens {
+    pub count: i32,
+    pub monitor: (i32, i32, i32, i32),
+}
+
+/// Whether a display change means the docked strip has to go (§398): a monitor came or went, or the strip's own
+/// monitor moved or changed size. `None` = the strip's monitor could not be read any more.
+pub fn screens_changed(before: Screens, now: Option<Screens>) -> bool {
+    now != Some(before)
+}
+
 #[cfg(windows)]
 mod native {
     use super::*;
@@ -72,7 +90,7 @@ mod native {
         ABM_SETPOS, APPBARDATA,
     };
     use windows::Win32::UI::WindowsAndMessaging::{
-        GetClientRect, GetWindowRect, IsIconic, SetWindowPos, SIZE_MINIMIZED, SWP_NOACTIVATE, SWP_NOMOVE, SWP_NOSIZE,
+        GetClientRect, GetSystemMetrics, GetWindowRect, IsIconic, SetWindowPos, SIZE_MINIMIZED, SM_CMONITORS, WM_DISPLAYCHANGE, SWP_NOACTIVATE, SWP_NOMOVE, SWP_NOSIZE,
         SWP_NOZORDER, WINDOWPOS, WM_APP, WM_ENTERSIZEMOVE, WM_EXITSIZEMOVE, WM_NCDESTROY, WM_SIZE, WM_WINDOWPOSCHANGED,
         WM_WINDOWPOSCHANGING,
     };
@@ -91,6 +109,8 @@ mod native {
         registered: bool,
         /// For telling the page the new height after a drag.
         window: tauri::WebviewWindow,
+        /// The screens when the strip was last reserved (§398).
+        screens: Option<Screens>,
     }
 
     static STATE: Mutex<Option<State>> = Mutex::new(None);
@@ -99,7 +119,8 @@ mod native {
         APPBARDATA {
             cbSize: std::mem::size_of::<APPBARDATA>() as u32,
             hWnd: hwnd,
-            // Windows sends this when the taskbar or the screen layout changes; not handled (yet).
+            // Windows sends this when the taskbar or the screen layout changes; not handled: a screen change is caught by
+            // WM_DISPLAYCHANGE instead (§398).
             uCallbackMessage: WM_APP + 0x51,
             uEdge: ABE_BOTTOM,
             ..Default::default()
@@ -165,6 +186,19 @@ mod native {
         }
     }
 
+    /// The monitor count and the rectangle of the monitor the window is on now.
+    fn screens_now(hwnd: HWND) -> Option<Screens> {
+        unsafe {
+            let monitor = MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST);
+            let mut info = MONITORINFO { cbSize: std::mem::size_of::<MONITORINFO>() as u32, ..Default::default() };
+            if !GetMonitorInfoW(monitor, &mut info).as_bool() {
+                return None;
+            }
+            let m = info.rcMonitor;
+            Some(Screens { count: GetSystemMetrics(SM_CMONITORS), monitor: (m.left, m.top, m.right, m.bottom) })
+        }
+    }
+
     /// Reserves the strip at `height` (content pixels) and places the window on it. Called on the UI thread.
     fn reserve(hwnd: HWND, height: i32) -> Result<DockRect, String> {
         unsafe {
@@ -199,6 +233,7 @@ mod native {
             if let Some(s) = STATE.lock().unwrap().as_mut() {
                 s.anchor = Some(anchor);
                 s.height = abd.rc.bottom - abd.rc.top;
+                s.screens = Some(Screens { count: GetSystemMetrics(SM_CMONITORS), monitor: (m.left, m.top, m.right, m.bottom) });
             }
             Ok(DockRect {
                 x: abd.rc.left,
@@ -306,6 +341,19 @@ mod native {
                 }
                 return result;
             }
+            WM_DISPLAYCHANGE => {
+                // §398: a monitor came or went (or the strip's monitor changed): give the strip back now, before
+                // Windows shuffles it, and let the page float Peek.
+                let before = STATE.lock().ok().and_then(|s| s.as_ref().and_then(|s| s.screens.map(|b| (b, s.window.clone()))));
+                let result = unsafe { DefSubclassProc(hwnd, msg, wparam, lparam) };
+                if let Some((before, window)) = before {
+                    if screens_changed(before, screens_now(hwnd)) {
+                        undock(hwnd.0 as isize);
+                        let _ = window.emit("peek-dock-lost", ());
+                    }
+                }
+                return result;
+            }
             WM_NCDESTROY => {
                 let _ = unsafe { RemoveWindowSubclass(hwnd, Some(subclass_proc), SUBCLASS_ID) };
             }
@@ -337,7 +385,7 @@ mod native {
                     let _ = SetWindowSubclass(h, Some(subclass_proc), SUBCLASS_ID, 0);
                 }
                 set_corners(h, true);
-                *state = Some(State { hwnd, anchor: None, height, dragging: false, registered: true, window });
+                *state = Some(State { hwnd, anchor: None, height, dragging: false, registered: true, window, screens: None });
             }
         }
         reserve(h, height)
@@ -444,6 +492,16 @@ mod tests {
     fn the_height_stays_between_the_limits_while_dragging() {
         assert_eq!(anchored(A, 250, (-11, 0, 1942, 2000), true, true), (-11, 1051 - 550, 1942, 550, true));
         assert_eq!(anchored(A, 250, (-11, 1040, 1942, 11), true, true), (-11, 1051 - 70, 1942, 70, true));
+    }
+
+    #[test]
+    fn a_monitor_coming_or_going_or_changing_releases_the_strip() {
+        let b = Screens { count: 2, monitor: (0, 0, 1920, 1080) };
+        assert!(!screens_changed(b, Some(b)));
+        assert!(screens_changed(b, Some(Screens { count: 1, ..b })));
+        assert!(screens_changed(b, Some(Screens { count: 3, ..b })));
+        assert!(screens_changed(b, Some(Screens { count: 2, monitor: (1920, 0, 4480, 1440) })));
+        assert!(screens_changed(b, None));
     }
 
     #[test]

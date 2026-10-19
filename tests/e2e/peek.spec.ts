@@ -803,6 +803,25 @@ test.describe("docked peek", () => {
     await expect.poll(calls).toEqual(["dock 220", "undock", "dock 220", "undock", "dock 220"]);
   });
 
+  test("§398: when the screens change while docked, Peek floats and still opens docked next time", async ({ page }) => {
+    await seedApp(page, { seed: { ...today(), peek: { dockBottom: true, dockHeight: 240, header: "always", opacity: 40, opacityHover: 60, fadeSeconds: 0 } } });
+    const calls = () => page.evaluate(() => window.__CHRONO_MOCK__!.windowCalls.filter((c) => c === "undock" || c.startsWith("dock")));
+    await enterOnWeeklySync(page);
+    await expect.poll(calls).toEqual(["dock 240"]);
+    // Rust has given the strip back itself and reports it.
+    await page.evaluate(() => window.__CHRONO_MOCK__!.emitEvent("peek-dock-lost"));
+    await expect(page.locator("body.peek-mode")).toBeVisible();
+    await expect(page.locator("#peek-bar").getByRole("button", { name: "Dock to the bottom of the screen" })).toBeVisible();
+    await expect
+      .poll(() => page.evaluate(() => document.documentElement.style.getPropertyValue("--peek-opacity")))
+      .toBe("60");
+    expect(await page.evaluate(() => window.__CHRONO_MOCK__!.peek.dockBottom)).toBe(true);
+    await page.keyboard.press("Escape");
+    await expect(page.locator("body.peek-mode")).toHaveCount(0);
+    await enterOnWeeklySync(page);
+    await expect.poll(calls).toEqual(["dock 240", "undock", "dock 240"]);
+  });
+
   test("docking is not a setting", async ({ page }) => {
     await seedApp(page, { seed: { ...today(), peek: {} } });
     await page.keyboard.press("ControlOrMeta+Comma");
