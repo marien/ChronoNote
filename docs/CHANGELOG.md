@@ -10727,7 +10727,7 @@ From a test-coverage review (2026-10-17): Vitest covers 41% of `src/lib` lines a
 
 ## 398. Docked Peek floats when the screens change
 
-**Status: on `main`, unreleased.**
+**Status: released in beta 0.32.5-1 (early channel only).**
 
 - **Marien:** with Peek docked, disconnecting the external monitors left Peek on about half the reserved strip and then it disappeared until Esc; reconnecting the screens sometimes brought it back, sometimes not. Suggested leaving docked Peek as soon as the number of screens changes.
 - **Cause (not reproduced; this dev machine has one monitor):** when monitors come or go, Windows moves every reserved AppBar strip on its own and sends the AppBar a notification that `peek_dock.rs` never handled (`uCallbackMessage` was noted as "not handled (yet)"), while the window hook kept anchoring the window to the old strip's coordinates. The strip, the anchor and the window ended up disagreeing.
