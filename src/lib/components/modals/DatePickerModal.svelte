@@ -17,6 +17,7 @@
     isoWeek,
     monthGrid,
     monthName,
+    longDate,
     weekdayAbbrev,
     parseDateQuery,
     parseISODateLocal,
@@ -319,7 +320,7 @@
           class:has-agenda={!noteByIso.has(cell.iso) && agendaDates.has(cell.iso)}
           data-iso={cell.iso}
           tabindex={cell.iso === focusedIso ? 0 : -1}
-          aria-label={`${cell.iso}${
+          aria-label={`${longDate($locale, cell.iso)}${
             heatByIso.get(cell.iso) === "pending"
               ? $t("datePicker.day.pending")
               : heatByIso.get(cell.iso) === "done"

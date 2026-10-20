@@ -37,12 +37,15 @@
     class="mobile-nav-dest"
     class:active={activeDestination === "actions"}
     onclick={controller.openActionDrawer}
-    aria-label={$t("actionDrawer.modal.ariaLabel")}
+    aria-label={$statusCounts.open > 0
+      ? `${$t("actionDrawer.modal.ariaLabel")}, ${$t("statusBar.labelOpen", { count: $statusCounts.open })}`
+      : $t("actionDrawer.modal.ariaLabel")}
   >
     <div class="mobile-nav-pill">
       <Icon name="actions" size={20} />
       {#if $statusCounts.open > 0}
-        <span class="mobile-nav-badge">{$statusCounts.open}</span>
+        <!-- The count is in the label ("Actions, 8 open"); the badge draws it with CSS (09-mobile.css, §401). -->
+        <span class="mobile-nav-badge" data-count={$statusCounts.open} aria-hidden="true"></span>
       {/if}
     </div>
     <span class="mobile-nav-label">{$t("phoneNav.actions")}</span>

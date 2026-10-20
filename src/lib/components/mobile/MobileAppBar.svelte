@@ -139,7 +139,8 @@
     onclick={() => mobileTabDrawerOpen.set(true)}
   >
     <Icon name="tabs" size={20} />
-    <span class="mobile-tab-count mobile-tab-badge">{$tabs.length}</span>
+    <!-- The count is in the label ("Open tabs list (4 open)"); the badge draws it with CSS (09-mobile.css, §401). -->
+    <span class="mobile-tab-count mobile-tab-badge" data-count={$tabs.length} aria-hidden="true"></span>
   </button>
 
   <button

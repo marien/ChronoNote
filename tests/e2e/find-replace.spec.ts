@@ -83,13 +83,13 @@ test.describe("find and replace (Ctrl/Cmd+H)", () => {
     await expect(bar.locator(".find-count")).toHaveText("1 of 4");
 
     // Toggle match case: only "words" and "word" match
-    const caseBtn = bar.locator(".find-opt-btn", { hasText: "Aa" });
+    const caseBtn = bar.getByRole("button", { name: "Match case" });
     await caseBtn.click();
     await expect(caseBtn).toHaveAttribute("aria-pressed", "true");
     await expect(bar.locator(".find-count")).toHaveText("1 of 2");
 
     // Toggle whole word: only exact "word" matches
-    const wordBtn = bar.locator(".find-opt-btn", { hasText: "ab|" });
+    const wordBtn = bar.getByRole("button", { name: "Whole word" });
     await wordBtn.click();
     await expect(wordBtn).toHaveAttribute("aria-pressed", "true");
     await expect(bar.locator(".find-count")).toHaveText("1 of 1");

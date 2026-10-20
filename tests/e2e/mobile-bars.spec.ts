@@ -71,7 +71,9 @@ test.describe("mobile app bar and bottom nav bar (§D2, §D3)", () => {
     await expect(actionsDest).toBeVisible();
     const badge = actionsDest.locator(".mobile-nav-badge");
     await expect(badge).toBeVisible();
-    await expect(badge).toHaveText("2");
+    // §401: the badge draws its number with CSS; the button's name carries it.
+    await expect(badge).toHaveAttribute("data-count", "2");
+    await expect(actionsDest).toHaveAttribute("aria-label", "Actions, 2 open");
 
     await actionsDest.click();
     const drawer = page.getByRole("dialog", { name: "Actions" });

@@ -134,6 +134,14 @@ export function monthName(locale: string, month: number): string {
   return new Intl.DateTimeFormat(locale, { month: "long" }).format(new Date(2000, month, 1));
 }
 
+/** A `YYYY-MM-DD` date written out in `locale` ("September 8, 2026", "8 september 2026"): the date picker's day
+ * buttons use it as their name, so the number they show is part of what a screen reader or voice control says
+ * (WCAG 2.5.3, label in name). */
+export function longDate(locale: string, iso: string): string {
+  const [y, m, d] = iso.split("-").map(Number);
+  return new Intl.DateTimeFormat(locale, { day: "numeric", month: "long", year: "numeric" }).format(new Date(y, m - 1, d));
+}
+
 /** `weekdayIndex` is 0 = Monday ... 6 = Sunday, matching `monthGrid`'s own
  * Monday-first convention. 2024-01-01 was a Monday — used as a fixed,
  * arbitrary reference date purely to land on the right day of the week. */

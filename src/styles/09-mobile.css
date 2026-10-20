@@ -63,6 +63,12 @@ body {
   font-size: 10px;
   opacity: 0.85;
 }
+/* §401: count badges show their number through CSS; the button's name carries it ("Open tabs list (4 open)",
+   "Actions, 8 open"), and visible text that is not in the name fails WCAG 2.5.3 (axe counts it even when aria-hidden). */
+.mobile-tab-count::before,
+.mobile-nav-badge::before {
+  content: attr(data-count);
+}
 
 /* Mobile Quick Action Accessory Bar (docked above keyboard / status bar) */
 .mobile-accessory-bar {

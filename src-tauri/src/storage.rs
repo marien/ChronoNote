@@ -1884,6 +1884,15 @@ mod tests {
     use super::*;
     use tempfile::tempdir;
 
+    /// The frontend hashes the same text with WebCrypto (`src/lib/hash.ts`) and compares it with this hash to tell
+    /// whether a file changed on disk, so the output must stay standard SHA-256 in lowercase hex whatever the `sha2`
+    /// version (pinned when moving to sha2 0.11).
+    #[test]
+    fn hash_bytes_is_standard_sha256_hex() {
+        assert_eq!(hash_bytes(b""), "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855");
+        assert_eq!(hash_bytes(b"abc"), "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad");
+    }
+
     // --- is_valid_note_filename ---
 
     #[test]

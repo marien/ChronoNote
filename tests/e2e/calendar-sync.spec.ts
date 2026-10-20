@@ -329,7 +329,8 @@ test.describe("sync review improvements (#78)", () => {
     // The future date with agenda has .has-agenda and proper aria-label
     const futureDay = pop.locator(`.cal-day[data-iso="${futureDate}"]`);
     await expect(futureDay).toHaveClass(/\bhas-agenda\b/);
-    await expect(futureDay).toHaveAttribute("aria-label", new RegExp(`${futureDate}.*scheduled meetings`));
+    // §401: day buttons are named with the date written out, so the visible day number is part of the name.
+    await expect(futureDay).toHaveAttribute("aria-label", /^September 25, 2026.*scheduled meetings/);
 
     // Today has note with open actions -> has-pending
     const todayDay = pop.locator(`.cal-day[data-iso="${today}"]`);

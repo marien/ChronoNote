@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import { formatISO, todayISO, parseDateQuery, addMonths, monthGrid, parseISODateLocal, addDaysISO, monthName, weekdayAbbrev, isoWeek, isoWeekToMonday } from "./date";
+import { formatISO, todayISO, parseDateQuery, addMonths, monthGrid, parseISODateLocal, addDaysISO, monthName, longDate, weekdayAbbrev, isoWeek, isoWeekToMonday } from "./date";
 
 describe("formatISO", () => {
   it("formats as zero-padded YYYY-MM-DD", () => {
@@ -164,6 +164,12 @@ describe("monthGrid", () => {
 // i18n roadmap: locale-aware month/weekday names via Intl.DateTimeFormat,
 // replacing the old hand-translated MONTH_NAMES array.
 describe("monthName / weekdayAbbrev (i18n roadmap)", () => {
+  it("longDate writes the date out with the day number as a word of its own", () => {
+    expect(longDate("en", "2026-09-08")).toBe("September 8, 2026");
+    expect(longDate("nl", "2026-09-08")).toBe("8 september 2026");
+    expect(longDate("en", "2026-01-31")).toBe("January 31, 2026");
+  });
+
   it("returns the full month name in the given locale", () => {
     expect(monthName("en", 0)).toBe("January");
     expect(monthName("en", 11)).toBe("December");

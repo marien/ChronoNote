@@ -138,7 +138,9 @@
       title={$t("findBar.matchCase")}
       aria-label={$t("findBar.matchCase")}
     >
-      Aa
+      <!-- The symbol pictures the option and is drawn by CSS (03-editor.css), so the button's only text is its name:
+           axe 4.14 counts any visible text, even aria-hidden, against the name (WCAG 2.5.3, label in name; §401). -->
+      <span class="find-opt-glyph" data-glyph="Aa" aria-hidden="true"></span>
     </button>
     <button
       type="button"
@@ -149,7 +151,7 @@
       title={$t("findBar.wholeWord")}
       aria-label={$t("findBar.wholeWord")}
     >
-      ab|
+      <span class="find-opt-glyph" data-glyph="ab|" aria-hidden="true"></span>
     </button>
     <button
       type="button"

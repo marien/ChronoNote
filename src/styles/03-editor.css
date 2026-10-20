@@ -44,6 +44,10 @@
   font-family: var(--font-mono);
   font-weight: 500;
 }
+/* §401: the option symbols ("Aa", "ab|") are drawn here, not as text, so the button's name is its only text. */
+.find-opt-glyph::before {
+  content: attr(data-glyph);
+}
 .find-opt-btn[aria-pressed="true"],
 .find-opt-btn.active {
   background: var(--accent);

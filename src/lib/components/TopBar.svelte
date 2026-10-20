@@ -769,7 +769,7 @@
         onclick={() => mobileTabDrawerOpen.set(true)}
       >
         <Icon name="tabs" size={16} />
-        <span class="mobile-tab-count">{$tabs.length}</span>
+        <span class="mobile-tab-count" data-count={$tabs.length} aria-hidden="true"></span>
       </button>
       {#if mobileActiveTab}
         <button
