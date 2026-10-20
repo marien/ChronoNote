@@ -347,7 +347,10 @@ class SpellCheckPluginValue {
       // first check found no visible lines and nothing checked again until the user typed or scrolled (0.32.0-3).
       this.scheduleCheck();
     } else if (update.selectionSet && this.isTyping) {
-      // Caret moved after typing: re-evaluate caret exclusion
+      // The caret moved without an edit (click, arrow keys): typing is over, so the word it was in is marked again and
+      // the word it moves into keeps its mark and its corrections in the line menu. Leaving isTyping on here hid the
+      // mark of every word the caret entered after the first edit of the session (#167, §402).
+      this.isTyping = false;
       this.scheduleCheck();
     }
   }

@@ -69,6 +69,41 @@ test.describe("spell check (proposal D2)", () => {
     await expect(page.locator(".cm-content")).toContainText("Here is teh wrods in note.");
   });
 
+  // #167: after any edit, putting the caret into a misspelled word (click or arrow keys) hid its underline about 300 ms
+  // later, and with it the corrections in the line menu. Only the word being typed may go unmarked.
+  test("#167: a word the caret moves into stays marked and keeps its corrections", async ({ page }) => {
+    await seedApp(page, { seed: { spellCheck: true } });
+    await setEditorText(page, "Here is teh wrods in note.\nsecond line");
+    await expect(page.locator(".cm-misspelled", { hasText: "wrods" })).toBeVisible();
+
+    // Type somewhere else first: that is what used to switch on the "typing" exclusion for good.
+    await page.locator(".cm-line", { hasText: "second line" }).click();
+    await page.keyboard.press("End");
+    await page.keyboard.type(" more");
+
+    // Caret into the misspelled word with the mouse, then wait past the 300 ms recheck.
+    await page.locator(".cm-misspelled", { hasText: "wrods" }).click();
+    await page.waitForTimeout(700);
+    const wrods = page.locator(".cm-misspelled", { hasText: "wrods" });
+    await expect(wrods).toBeVisible();
+
+    // Moving inside it with the keyboard does not hide it either.
+    await page.keyboard.press("ArrowRight");
+    await page.waitForTimeout(700);
+    await expect(wrods).toBeVisible();
+
+    await wrods.click({ button: "right" });
+    await expect(page.locator(".editor-context-menu button.editor-context-item").first()).toHaveText("words");
+    await page.keyboard.press("Escape");
+
+    // Typing in the word still hides the mark while typing (no red line under a half-typed word).
+    await wrods.click();
+    await page.keyboard.type("x");
+    await expect(page.locator(".cm-line").first()).toContainText("x"); // the line had no "x" before
+    await page.waitForTimeout(700);
+    await expect(page.locator(".cm-misspelled", { hasText: /x/ })).toHaveCount(0);
+  });
+
   test("'Ignore' removes the mark", async ({ page }) => {
     await seedApp(page, { seed: { spellCheck: true } });
     await setEditorText(page, "This word is mispeled here.");
