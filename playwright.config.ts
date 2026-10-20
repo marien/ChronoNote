@@ -40,6 +40,14 @@ const WINDOWS_LAYOUT_PROJECTS = [
   { name: "win-150", use: { ...devices["Desktop Chrome"], deviceScaleFactor: 1.5 } },
 ].map((p) => ({ ...p, testMatch: LAYOUT_SPECS }));
 
+/** `E2E_PORT` runs the suite on its own fresh Vite server on that port (never a reused one): the visual review
+ * (`scripts/visual-review.mjs`) captures the working tree and an older commit this way, one after the other, and a dev
+ * server that has been running with HMR for hours cannot leak stale module state into the run (the v0.30.0 release
+ * gotcha). `E2E_VITE_CONFIG` picks another Vite config for that server (the review's older-commit capture uses one that
+ * keeps Vite's cache out of the shared node_modules). */
+const PORT = Number(process.env.E2E_PORT) || 1420;
+const VITE_CONFIG = process.env.E2E_VITE_CONFIG ? ` --config ${process.env.E2E_VITE_CONFIG}` : "";
+
 export default defineConfig({
   testDir: "./tests/e2e",
   testMatch: "**/*.spec.ts",
@@ -52,7 +60,7 @@ export default defineConfig({
   outputDir: "./test-results/e2e",
 
   use: {
-    baseURL: "http://localhost:1420",
+    baseURL: `http://localhost:${PORT}`,
     trace: "on-first-retry",
     screenshot: "only-on-failure",
     // The app targets a 1100x720 Tauri window (tauri.conf.json).
@@ -85,9 +93,9 @@ export default defineConfig({
   ],
 
   webServer: {
-    command: "npm run dev",
-    url: "http://localhost:1420",
-    reuseExistingServer: !process.env.CI,
+    command: PORT === 1420 ? "npm run dev" : `npx vite --port ${PORT} --strictPort${VITE_CONFIG}`,
+    url: `http://localhost:${PORT}`,
+    reuseExistingServer: !process.env.CI && PORT === 1420,
     timeout: 120_000,
     stdout: "ignore",
     stderr: "pipe",

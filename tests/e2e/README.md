@@ -123,3 +123,17 @@ Scenarios: `empty`, `single-day`, `busy-week`, `heavy` (~10 weeks),
 | `drawers` | shortcuts / legend / about, external link, focus capture, Escape |
 | `paste-deferral` | copy `# ` → paste into today defers source to `> ` |
 | `visual` | screenshot gallery (artifacts only) |
+| `visual-gallery` | the larger gallery for the model-based visual review; skipped unless `VISUAL_GALLERY=1` (§399) |
+
+## Visual review by a model (§399)
+
+`npm run visual:review -- --before main` captures `visual-gallery.spec.ts` (5 environments: dark, light, German,
+150% scaling, phone; about 60 screens) for the current tree and for `main`, puts each pair side by side on contact
+sheets, and has Gemini (through the Antigravity CLI, `agy`) report clipped, overlapping, misaligned or unreadable UI.
+Report: `test-results/visual/review.md`. About 7 minutes and 300k Gemini tokens for a full run; `--only phone,german`
+for less. Findings are leads, not verdicts: check each one against its screenshot before acting (the model still
+reports the odd false alarm). It runs locally only (agy uses a personal sign-in), not in CI.
+
+Why contact sheets: an agent that opens screenshots one by one carries every image into its next step, so the cost
+grows fast (11 screens: 320k tokens); a few sheets opened in one step cost about 55k per environment. Don't reference
+images with `@file` in an agy prompt: that does not attach them, and a low-effort model then invents what it "sees".

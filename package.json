@@ -16,6 +16,8 @@
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:report": "playwright show-report",
+    "test:native": "node scripts/native-test.mjs",
+    "visual:review": "node scripts/visual-review.mjs",
     "check:e2e": "tsc -p tests/tsconfig.json",
     "notices": "node scripts/gen-notices.mjs",
     "notices:check": "node scripts/gen-notices.mjs --check",
