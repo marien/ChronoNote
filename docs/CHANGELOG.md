@@ -10727,7 +10727,7 @@ From a test-coverage review (2026-10-17): Vitest covers 41% of `src/lib` lines a
 
 ## 398. Docked Peek floats when the screens change
 
-**Status: released in beta 0.32.5-1 (early channel only).**
+**Status: released in beta 0.32.5-1 (early channel only), also in 0.32.5-2.**
 
 - **Marien:** with Peek docked, disconnecting the external monitors left Peek on about half the reserved strip and then it disappeared until Esc; reconnecting the screens sometimes brought it back, sometimes not. Suggested leaving docked Peek as soon as the number of screens changes.
 - **Cause (not reproduced; this dev machine has one monitor):** when monitors come or go, Windows moves every reserved AppBar strip on its own and sends the AppBar a notification that `peek_dock.rs` never handled (`uCallbackMessage` was noted as "not handled (yet)"), while the window hook kept anchoring the window to the old strip's coordinates. The strip, the anchor and the window ended up disagreeing.
@@ -10757,7 +10757,7 @@ From a test-coverage review (2026-10-17): Vitest covers 41% of `src/lib` lines a
 
 ## 401. Dependabot #164-#166 together; button names that include their visible text
 
-**Status: on `main`, unreleased.**
+**Status: released in beta 0.32.5-2 (early channel only).**
 
 - **Applied on one branch** (the batch method): `taiki-e/install-action` 2.87.29 (CI only), `sha2` 0.10 -> 0.11.1 (Rust, the file-change hash), and the dev tools `@axe-core/playwright` 4.14.0, `svelte-check` 4.7.7, `vitest` 5.0.5. The PRs were closed with a comment pointing here.
 - **sha2:** the app compares the Rust hash of a file with the frontend's WebCrypto hash of the same text, so a changed output would make every note look changed on disk. A new Rust test pins the standard SHA-256 hex of two known inputs (`hash_bytes_is_standard_sha256_hex`); it passes on 0.11.
@@ -10766,9 +10766,16 @@ From a test-coverage review (2026-10-17): Vitest covers 41% of `src/lib` lines a
 
 ## 402. Spell check: a word keeps its underline and corrections when the caret moves into it (#167)
 
-**Status: on `main`, unreleased.**
+**Status: released in beta 0.32.5-2 (early channel only).**
 
 - **Marien (#167, on 0.32.5-1):** with spell check on, clicking into a misspelled word (or moving into it with the keyboard) made its underline disappear almost at once, and the line menu then offered no corrections. Hovering over the word and right-clicking without moving the caret first did work.
 - **Cause (`src/lib/editor/spellcheck.ts`):** the word at the caret is deliberately left unmarked while typing (no red line under a half-typed word). The flag behind it, `isTyping`, was set by the first edit and never cleared, so from then on every caret move re-ran the check about 300 ms later with the caret's word excluded. The line menu only offers corrections for a marked word.
 - **Fix:** a caret move without an edit ends typing mode (`isTyping = false`) before the recheck. A word is now left unmarked only while it is actually being typed in.
 - Test: `spell-check.spec.ts` "#167": after an edit elsewhere, clicking and arrowing into a misspelled word keeps the mark and the menu's suggestion; typing in it still hides the mark. It failed on the old code. Not checked yet: the real Windows spell checker in the app.
+
+## 403. Certificate checking: rustls-webpki 0.103.16, webpki-root-certs 1.0.10
+
+**Status: on `main`, unreleased (after beta 0.32.5-2).**
+
+- The Security Audit went red on the 0.32.5-2 release commit: two advisories published the same day, RUSTSEC-2026-0370..0372 (rustls-webpki 0.103.15 may accept distrusted intermediate certificates) and RUSTSEC-2026-0382/0383 (webpki-root-certs bundled roots that are now distrusted). Both sit under the app's HTTPS connections (the updater talking to GitHub). The beta itself carries the old versions.
+- `cargo update -p rustls-webpki -p webpki-root-certs`: only `Cargo.lock` changes (0.103.15 -> 0.103.16, 1.0.9 -> 1.0.10). Same pattern as §382 (rustls). The four "unmaintained" notices in the same run (proc-macro-error, zbus_names, zvariant, zvariant_derive; Linux-only or build-time) are warnings, not failures.
