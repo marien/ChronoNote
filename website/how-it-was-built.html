@@ -1,0 +1,567 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>How ChronoNote Was Built</title>
+  <meta name="description" content="Six weeks of building a desktop and web app with AI, without writing code: what worked, what didn't, and how the way of working grew." />
+  <link rel="icon" href="assets/favicon.ico?v=0.12.5" sizes="any" />
+  <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png?v=0.12.5" />
+  <link rel="apple-touch-icon" href="assets/apple-touch-icon.png?v=0.12.5" />
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    /* ---- Page mode ---------------------------------------------------- */
+    .story { padding: 24px 0 64px; }
+    .story-intro { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; margin: 8px 0 24px; }
+    .story-intro p { margin: 0; color: var(--muted); font-size: 14px; }
+    .present-btn {
+      font: inherit; font-size: 14px; color: var(--bright); background: var(--surface-raised);
+      border: 1px solid var(--edge-strong); border-radius: 4px; padding: 6px 14px; cursor: pointer;
+    }
+    .present-btn:hover { background: var(--surface-overlay); }
+    .present-btn:focus-visible, .deck-nav button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+    .slide { border-top: 1px solid var(--edge-soft); padding: 40px 0 36px; }
+    .slide:first-of-type { border-top: 0; }
+    .slide .kicker { color: var(--accent); font-size: 13px; letter-spacing: 0.04em; text-transform: uppercase; margin: 0 0 6px; }
+    .slide h1, .slide h2 { color: var(--bright); line-height: 1.25; margin: 0 0 18px; }
+    .slide h1 { font-size: clamp(28px, 6vw, 44px); }
+    .slide h2 { font-size: clamp(22px, 4.5vw, 30px); }
+    .slide p, .slide li { color: var(--text); }
+    .slide ul { padding-left: 22px; margin: 0 0 16px; }
+    .slide li { margin: 6px 0; }
+    .slide li strong, .slide p strong { color: var(--bright); }
+    .slide code { font-family: var(--font); font-size: 0.9em; background: var(--surface-raised); padding: 1px 5px; border-radius: 4px; color: var(--accent-bright); }
+    .lead { font-size: 1.15em; color: var(--muted) !important; }
+    .lesson {
+      margin: 20px 0 0; padding: 12px 16px; border-left: 3px solid var(--ok);
+      background: var(--surface-chrome); border-radius: 0 6px 6px 0; color: var(--text);
+    }
+    .lesson::before { content: "What we learned  "; color: var(--ok); font-weight: 700; }
+    .lesson.tip::before { content: "Tip  "; }
+    .quote { margin: 12px 0; padding: 10px 16px; background: var(--surface-chrome); border-radius: 6px; color: var(--accent-bright); font-style: italic; }
+    .quote cite { display: block; font-style: normal; color: var(--muted); font-size: 0.85em; margin-top: 4px; }
+    pre.sample {
+      background: var(--surface-chrome); border: 1px solid var(--edge-soft); border-radius: 6px;
+      padding: 14px 18px; overflow-x: auto; color: var(--text); font-size: 0.95em; line-height: 1.5; margin: 0 0 16px;
+    }
+    .two { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+    .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; margin: 0 0 8px; }
+    .card { background: var(--surface-chrome); border: 1px solid var(--edge-soft); border-radius: 8px; padding: 14px 16px; }
+    .card h3 { color: var(--bright); font-size: 1em; margin: 0 0 6px; }
+    .card p { margin: 0; font-size: 0.9em; color: var(--muted); }
+    .card p + p { margin-top: 6px; }
+    .card .ref { color: var(--muted); font-size: 0.8em; }
+    .timeline { list-style: none; padding-left: 0 !important; }
+    .timeline li { display: grid; grid-template-columns: 7.5em 1fr; gap: 12px; margin: 8px 0; }
+    .timeline .when { color: var(--accent); }
+    .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
+    .stat { background: var(--surface-chrome); border-radius: 8px; padding: 14px; }
+    .stat b { display: block; color: var(--bright); font-size: 1.8em; line-height: 1.1; }
+    .stat span { color: var(--muted); font-size: 0.85em; }
+    .flow { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 6px 0 18px; }
+    .flow span { background: var(--surface-raised); border-radius: 999px; padding: 4px 12px; font-size: 0.9em; color: var(--bright); }
+    .flow i { color: var(--muted); font-style: normal; }
+    details.more { margin-top: 16px; color: var(--muted); font-size: 0.92em; }
+    details.more summary { cursor: pointer; color: var(--accent-bright); }
+    details.more p, details.more li { color: var(--muted); }
+    @media (max-width: 640px) {
+      .two { grid-template-columns: 1fr; }
+      .timeline li { grid-template-columns: 1fr; gap: 0; }
+    }
+
+    /* ---- Presentation mode -------------------------------------------- */
+    .deck-nav { display: none; }
+    body.presenting { overflow: hidden; }
+    body.presenting .site-nav, body.presenting footer, body.presenting .story-intro { display: none; }
+    body.presenting .story { padding: 0; }
+    body.presenting .story > .wrap { max-width: none; padding: 0; }
+    body.presenting .slide {
+      display: none; position: fixed; inset: 0; border: 0; overflow-y: auto;
+      padding: 5vh max(24px, 7vw) 9vh; background: var(--surface-canvas);
+      font-size: clamp(16px, calc(0.9vw + 0.9vh), 26px);
+    }
+    body.presenting .slide.active { display: flex; flex-direction: column; justify-content: safe center; }
+    body.presenting .slide > * { max-width: 1150px; width: 100%; margin-left: auto; margin-right: auto; }
+    body.presenting .slide h1 { font-size: 2.6em; }
+    body.presenting .slide h2 { font-size: 1.75em; }
+    body.presenting details.more { display: none; }
+    body.presenting .deck-nav {
+      display: flex; align-items: center; gap: 10px; position: fixed; right: 16px; bottom: 14px; z-index: 20;
+      color: var(--muted); font-size: 13px;
+    }
+    .deck-nav button {
+      font: inherit; color: var(--text); background: var(--surface-raised); border: 1px solid var(--edge-soft);
+      border-radius: 4px; padding: 4px 10px; cursor: pointer;
+    }
+    .deck-progress { position: fixed; left: 0; bottom: 0; height: 3px; background: var(--accent); z-index: 20; transition: width 0.2s; }
+    body:not(.presenting) .deck-progress { display: none; }
+    @media (prefers-reduced-motion: reduce) { .deck-progress { transition: none; } }
+  </style>
+</head>
+<body>
+
+  <header class="site-nav">
+    <div class="wrap">
+      <a class="brand" href="index.html">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="4.5" y="5" width="15" height="14.5" rx="2"/><path d="M4.5 9h15"/><path d="M8.2 3v3M15.8 3v3"/><path d="M7.7 14l2.8 2.8L16.4 11"/></svg>
+        ChronoNote
+      </a>
+      <nav>
+        <a href="index.html">Home</a>
+        <a href="guide.html">Guide</a>
+        <a class="current" href="how-it-was-built.html">How it was built</a>
+        <a class="cta" href="https://github.com/marien/ChronoNote" target="_blank" rel="noopener">GitHub ↗</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="story">
+    <div class="wrap">
+
+      <div class="story-intro">
+        <p>Read it as a page, or present it: press <kbd>P</kbd> or the button. Arrow keys move, <kbd>Esc</kbd> leaves.</p>
+        <button class="present-btn" id="present" type="button">▶ Present</button>
+      </div>
+
+      <!-- 1 -->
+      <section class="slide" id="s-title">
+        <p class="kicker">September – October 2026</p>
+        <h1>How ChronoNote got built</h1>
+        <p class="lead">Six weeks of building a desktop app, a web app and a website with AI, without writing a single line of code myself. What worked, what didn't, and what I'd tell you if you want to try it.</p>
+        <p>Marien de Gelder · <a href="https://chrononote.mariendegelder.nl">chrononote.mariendegelder.nl</a> · <a href="https://github.com/marien/ChronoNote">github.com/marien/ChronoNote</a></p>
+        <p class="lesson tip">This is one way of doing it. Other tools and other ways of working do just as well, and sometimes better. Take what's useful.</p>
+      </section>
+
+      <!-- 2 -->
+      <section class="slide" id="s-start">
+        <p class="kicker">The starting point</p>
+        <h2>Four years of notes in Notepad</h2>
+        <div class="two">
+          <div>
+            <ul>
+              <li>Since <strong>15 February 2022</strong>: one plain <code>.txt</code> file per day, for meetings, logs and action items.</li>
+              <li>Over the years a small set of markers grew, made up as I went: <code>#</code> open, <code>v</code> done, <code>&gt;</code> moved to another day, <code>=&gt;</code> follow-up, <code>!</code> remember.</li>
+              <li>The format worked. The question was whether an app could <strong>show</strong> it better without changing a single byte of the files.</li>
+            </ul>
+          </div>
+<pre class="sample">Weekly sync
+===========
+# send the agenda to Sam
+v book the room
+&gt; review the budget
+Talked to Sam =&gt; # follow up
+! freeze starts Friday</pre>
+        </div>
+        <p class="lesson">Start from a real need you already have. You know exactly what "good" looks like, and you'll use the result every day, which is where most of the feedback comes from.</p>
+      </section>
+
+      <!-- 3 -->
+      <section class="slide" id="s-gemini">
+        <p class="kicker">Saturday 5 September</p>
+        <h2>A morning with Gemini: words and pictures first</h2>
+        <ul>
+          <li>I spent a morning with Gemini turning the format and my habits into a <strong>specification</strong>: what each marker means, how the screen should look, which keys do what.</li>
+          <li>Together we made a <strong>mockup</strong> of the main screen.</li>
+          <li>No code, no tools to install: just a conversation, until the idea was clear enough to explain to someone else.</li>
+        </ul>
+        <p class="lesson tip">Any chatbot can help you write a spec. The clearer the description, the better the first version. And the spec doesn't have to be perfect: it will grow with the app.</p>
+      </section>
+
+      <!-- 4 -->
+      <section class="slide" id="s-day1">
+        <p class="kicker">Sunday 6 September</p>
+        <h2>"What can you do with this?"</h2>
+        <ul>
+          <li>I gave the spec and the mockup to <strong>Claude Sonnet 5</strong> in <strong>Claude Code</strong> (the desktop app), and asked just that.</li>
+          <li>It read them, offered to build the application, and asked for approval to install the tools it needed (Node.js, Rust, the Windows build tools).</li>
+          <li><strong>Within an hour</strong> there was a first working version: a native Windows app (Tauri and Rust underneath, Svelte and CodeMirror for the editor).</li>
+          <li>The same day: the first commit (about 10,800 lines), a first round of real-life feedback, and <strong>versions 0.2.0 and 0.2.1</strong>.</li>
+        </ul>
+        <p class="lesson">The first hour is impressive. The real work is everything after it: making it reliable, keeping it that way, and finding a rhythm that you can keep up for weeks.</p>
+      </section>
+
+      <!-- 5 -->
+      <section class="slide" id="s-role">
+        <p class="kicker">Who does what</p>
+        <h2>I don't code. I describe, use, decide.</h2>
+        <div class="two">
+          <div>
+            <p><strong>My part</strong> (half an hour to an hour a day, more at weekends)</p>
+            <ul>
+              <li>Use the app every day, for real work</li>
+              <li>Say what I see and what I want</li>
+              <li>Choose between options the model offers</li>
+              <li>Confirm on my own machines that it works</li>
+            </ul>
+          </div>
+          <div>
+            <p><strong>The model's part</strong></p>
+            <ul>
+              <li>Design, code, tests, documentation</li>
+              <li>Finding the cause of a bug, not just the symptom</li>
+              <li>Releases, website, GitHub housekeeping</li>
+              <li>Telling me what it could <em>not</em> check</li>
+            </ul>
+          </div>
+        </div>
+        <div class="quote">"The tabs look unnaturally high and there seems to be space above and below the toolbar buttons."<cite>Feedback: describe what you see, not how to fix it</cite></div>
+        <div class="quote">"Don't create a new release until I ask you, in case I have more changes."<cite>A boundary: you stay in charge of what goes out</cite></div>
+        <details class="more"><summary>More kinds of instructions</summary>
+          <ul>
+            <li><strong>Work orders:</strong> "Start working on the newest GitHub issues." "Cut a release."</li>
+            <li><strong>Standing rules</strong> that the model writes down and keeps: after a release, delete merged branches without asking; never use function keys for shortcuts (my laptops need Fn for them).</li>
+            <li><strong>Corrections of a design:</strong> when the model proposed a hidden ID file to track calendar meetings, I said no: the plain text files are the whole truth, and the order of sections is enough. It built that instead.</li>
+          </ul>
+        </details>
+      </section>
+
+      <!-- 6 -->
+      <section class="slide" id="s-tests">
+        <p class="kicker">Early mistakes</p>
+        <h2>"Could you check whether this works?"</h2>
+        <ul>
+          <li>The first version had <strong>no automated tests</strong>. The model built a change and then asked <em>me</em> to try it in the app.</li>
+          <li>Fixes broke other things, and I became the test department. On day one a change even froze the interface.</li>
+          <li>On <strong>day two</strong> (7 September) we turned it around: unit tests and Rust tests running on GitHub for every change, and the same day an <strong>end-to-end harness</strong>: a real browser drives the real interface against a fake, in-memory backend.</li>
+          <li>From then on a bug fix starts with a test that fails, and the model shows proof (test output, screenshots) instead of asking me to check.</li>
+        </ul>
+        <p class="lesson">Ask for tests on day one. The model writes them gladly, it just may not do it unasked. Today: about 1,260 unit tests, about 1,000 end-to-end tests and about 180 Rust tests, run on every change.</p>
+        <details class="more"><summary>What tests still can't do</summary>
+          <p>Some things only show up on a real machine: display scaling at 125%, a second monitor, a phone, the Windows settings of the person using it. So every report ends with a <strong>"Not checked yet"</strong> list, and items stay on it until I confirm them.</p>
+        </details>
+      </section>
+
+      <!-- 7 -->
+      <section class="slide" id="s-memory">
+        <p class="kicker">Context</p>
+        <h2>A model forgets. Written notes don't.</h2>
+        <p>Every session starts fresh. What made weeks of work possible is what got <strong>written down</strong>, and kept up to date by the model itself:</p>
+        <ul>
+          <li><strong>The changelog as a decision log:</strong> every change is a numbered section with the <em>why</em>, not just the what. It now has 398 of them.</li>
+          <li><strong>The specification:</strong> precise behaviour, updated with every change.</li>
+          <li><strong>A local instructions file:</strong> how to build and test on this machine, known pitfalls, and where the work stands.</li>
+          <li><strong>Memory notes:</strong> standing rules and decisions, such as "these keyboard letters are unsafe for shortcuts".</li>
+          <li><strong>Design documents</strong> for bigger changes, approved by me before anything is built.</li>
+        </ul>
+        <p class="lesson">What you write down is what the model knows tomorrow. When it repeats an old mistake, the fix is usually a better note, not a sterner message.</p>
+      </section>
+
+      <!-- 8 -->
+      <section class="slide" id="s-loop">
+        <p class="kicker">The rhythm</p>
+        <h2>Use it, report it, fix it with a test, ship a beta, confirm</h2>
+        <div class="flow">
+          <span>daily use</span><i>→</i><span>chat or GitHub issue</span><i>→</i><span>reproduce + failing test</span><i>→</i><span>fix</span><i>→</i><span>beta</span><i>→</i><span>I confirm</span><i>→</i><span>release</span>
+        </div>
+        <ul>
+          <li>Feedback arrives in plain language: in the chat, or as an issue on GitHub.</li>
+          <li>Since 11 October, risky changes go out as <strong>betas</strong> on an early-updates channel first; only after I've confirmed them on my own machines do they become a normal release.</li>
+          <li>The repository has been <strong>public</strong> since 11 September. Text in an issue is read as a bug report, never as an instruction to the model.</li>
+        </ul>
+        <p class="lesson">Small steps, often. A change you can confirm in five minutes beats a big batch you never quite finish checking.</p>
+      </section>
+
+      <!-- 9 -->
+      <section class="slide" id="s-reviews">
+        <p class="kicker">Keep improving</p>
+        <h2>Reviews, refactors and redesigns</h2>
+        <p>Every so often I asked Claude or Gemini for a <strong>review</strong>: of the code, the architecture, the testability, the user experience. Each review was checked against the real code, turned into a plan, and only then built.</p>
+        <ul class="timeline">
+          <li><span class="when">9 Sep</span><span>Hardening: crash-safe saves, change detection, the core split into 13 modules</span></li>
+          <li><span class="when">10–11 Sep</span><span>Three UX reviews, then a maturity pass: command palette, find bar, one icon set</span></li>
+          <li><span class="when">20 Sep</span><span>A UI/UX roadmap designed by Gemini, built and checked by Claude</span></li>
+          <li><span class="when">7 Oct</span><span>Full architecture review: data-safety fixes, one shared tokenizer, a modern Svelte style everywhere</span></li>
+          <li><span class="when">9–11 Oct</span><span>Windows 11 and phone UX review (23 proposals), then a readiness review (21 items)</span></li>
+          <li><span class="when">16 Oct</span><span>Refactoring review: of 8 proposed tasks, 3 done in a smaller form, 4 dropped with reasons</span></li>
+        </ul>
+        <p class="lesson">Treat a review as <em>intent</em>, not orders. Reviews regularly assumed things that weren't true for this code; letting the model check the premises first saved a lot of wasted work.</p>
+        <details class="more"><summary>How big refactors stay safe</summary>
+          <p>Before replacing the code that reads the note format, the model froze its current behaviour on 329 sample lines in a "golden" snapshot test. The new code had to produce exactly the same result. For a CSS reorganisation it took screenshots before and after and compared them with zero tolerance.</p>
+        </details>
+      </section>
+
+      <!-- 10 -->
+      <section class="slide" id="s-platforms">
+        <p class="kicker">One codebase</p>
+        <h2>Desktop, web app and phone, from the same code</h2>
+        <ul>
+          <li><strong>Desktop app</strong> for Windows, installed and auto-updating.</li>
+          <li><strong>Web app</strong> in the browser (from 12 September), with OneDrive sync (19 September), <strong>installable on a phone</strong> like an app (a PWA).</li>
+          <li><strong>A live demo</strong> on the website, running the real app.</li>
+          <li>The trick: the interface talks to its storage through one typed contract with three implementations: the Rust desktop core, the browser's own storage, and an in-memory fake that also powers the tests and the demo.</li>
+        </ul>
+        <p>A <strong>native Android app</strong> was built and released (19 September), and dropped four days later: the installable web app did the same job with far less to build and maintain.</p>
+        <p class="lesson">Experiments are cheap when the model does the typing. Try things, and be willing to throw them away.</p>
+      </section>
+
+      <!-- 11 -->
+      <section class="slide" id="s-prs">
+        <p class="kicker">More than one model, part 1</p>
+        <h2>Working together through pull requests</h2>
+        <ul>
+          <li>From late September, <strong>Gemini (in Antigravity)</strong> worked on its own branches and opened <strong>pull requests</strong> on GitHub. Claude reviewed, fixed and merged them.</li>
+          <li>It worked, but every pull request needed real repair: tests failing, website files rebuilt that only belong in a release, a CSS rule that broke the tab bar, long translations overflowing, no changelog entries.</li>
+          <li>Each model also lacked the other's context: the notes, the pitfalls, the decisions.</li>
+        </ul>
+        <p class="lesson">Another model's work deserves the same review as a stranger's pull request: green tests, a check in the real app, and the "why" written down.</p>
+      </section>
+
+      <!-- 12 -->
+      <section class="slide" id="s-handoff">
+        <p class="kicker">More than one model, part 2</p>
+        <h2>One orchestrator, defined hand-offs</h2>
+        <div class="flow">
+          <span>Claude writes a brief</span><i>→</i><span>own worktree per task</span><i>→</i><span>Gemini implements</span><i>→</i><span>Claude reviews + fixes</span><i>→</i><span>full test suite</span><i>→</i><span>merge</span>
+        </div>
+        <ul>
+          <li>Since 7 October the main model <strong>orchestrates</strong>: it writes a precise brief per task (which files, what "done" means, which tests must pass), and a cheaper, fast model (Gemini Flash, sometimes Sonnet) does the implementation, each in its own copy of the code.</li>
+          <li>Every diff comes back for review. Small fixes the orchestrator does itself; bigger ones go back with a new brief.</li>
+          <li>Usage budgets decide the split: the Claude budget is kept for thinking and reviewing, the implementation runs mostly on another provider's budget.</li>
+          <li>Example: moving every interface component to the new Svelte style, nine tasks in one day; the 23 Windows 11 and phone proposals in a day and a half.</li>
+        </ul>
+        <p class="lesson">Run the <em>full</em> test suite before merging agent work. Once a merge turned the build red because three older tests described the old behaviour, which the agent had never run.</p>
+      </section>
+
+      <!-- 13 -->
+      <section class="slide" id="s-remote">
+        <p class="kicker">Where the work happens</p>
+        <h2>One machine does the work. I'm mostly somewhere else.</h2>
+        <ul>
+          <li>Claude Code runs on <strong>one development machine</strong>: the tools, the builds, the signing key, the test browsers.</li>
+          <li>Most of the conversation happens <strong>remotely</strong>: from the <strong>Claude mobile app</strong>, or with <strong>Remote Control</strong> from another laptop.</li>
+          <li>I test the results where I actually use them: the work laptop through the auto-updater, the phone through the web app.</li>
+        </ul>
+        <p class="lesson">The model needs one stable home with all its tools. You don't need to sit next to it: a quick decision from your phone keeps the work moving.</p>
+      </section>
+
+      <!-- 14 -->
+      <section class="slide" id="s-pipeline">
+        <p class="kicker">Build, release, publish</p>
+        <h2>From "cut a release" to installed, in one command</h2>
+        <div class="two">
+          <div>
+            <p><strong>On every change</strong> (GitHub Actions)</p>
+            <ul>
+              <li>Type checks, unit, Rust and browser tests</li>
+              <li>A native Windows job, and layouts at 100, 125 and 150% scaling</li>
+              <li>A guard that the test fakes never ship</li>
+              <li>Security audit, code scanning, dependency updates</li>
+            </ul>
+          </div>
+          <div>
+            <p><strong>One release script</strong> (since 29 September)</p>
+            <ul>
+              <li>Tests, version bump, tag, signed installer</li>
+              <li>Update manifest for stable or beta channel</li>
+              <li>Web app and demo rebuilt, website published</li>
+              <li>Checks the result, including the CI run on the release commit</li>
+            </ul>
+          </div>
+        </div>
+        <p class="lesson">Automate the boring part first. Every manual release step was forgotten at least once: the web app once stayed two releases behind because one rebuild step was missing from the release notes the model followed.</p>
+      </section>
+
+      <!-- 15 -->
+      <section class="slide" id="s-tough1">
+        <p class="kicker">Tough problems, solved</p>
+        <h2>Bugs that took real detective work</h2>
+        <div class="cards">
+          <div class="card">
+            <h3>The tab that overwrote the future</h3>
+            <p>Notes in OneDrive, edited on phone and PC. An old, unchanged tab on the PC quietly wrote its stale text over a newer version that had just synced in, and OneDrive started making conflict copies.</p>
+            <p><strong>Fix:</strong> remember a fingerprint of what was last read, never write a tab that hasn't changed, and refuse a write when the file changed underneath.</p>
+            <p class="ref">Changelog §178, §188, §292</p>
+          </div>
+          <div class="card">
+            <h3>Two saves, one file</h3>
+            <p>Random "Failed to save note" messages. A new test that saved the same note twice at the same moment reproduced it: Windows refuses the rename that makes a save crash-safe while another one is busy.</p>
+            <p><strong>Fix:</strong> one save at a time per process, and a retry for those brief refusals.</p>
+            <p class="ref">Changelog §97</p>
+          </div>
+          <div class="card">
+            <h3>Text that changed size</h3>
+            <p>On a laptop at 125%, text jumped in size for a moment on every tab switch. Not reproducible in tests. The cause: I have Windows animations <em>off</em>, and a "reduce motion" style made every new element animate from its defaults for one frame.</p>
+            <p><strong>Fix:</strong> one value. <strong>Lesson:</strong> test with the user's real settings.</p>
+            <p class="ref">Changelog §354</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- 16 -->
+      <section class="slide" id="s-tough2">
+        <p class="kicker">Tough problems, solved</p>
+        <h2>Where the app meets Windows</h2>
+        <div class="cards">
+          <div class="card">
+            <h3>Shortcuts that ate letters</h3>
+            <p>Ctrl+Alt+letter shortcuts worked fine on paper, but on an international keyboard Ctrl+Alt is AltGr, the key for accented letters: suddenly an <em>ö</em> couldn't be typed. "Windows accepted the shortcut" isn't the same as "it works for the user".</p>
+            <p><strong>Fix:</strong> a rule (only B, F, G, H, J, K, V are safe) and two tests that guard it.</p>
+            <p class="ref">Changelog §289</p>
+          </div>
+          <div class="card">
+            <h3>Docking a window like the taskbar</h3>
+            <p>For calls, I wanted the note as a strip at the bottom of the screen with Teams above it. Windows' own snap layouts can't do that, so the app registers as a toolbar, like the taskbar does, and watches its own window messages so it can't be dragged off its strip.</p>
+            <p>Several betas, each answering what I found in the one before: resizing moved it, it could still be dragged, minimizing kept the space reserved, unplugging screens confused it. Some checks needed my own hand: simulated mouse input from a test doesn't reach a native window drag.</p>
+            <p class="ref">Changelog §393–§398</p>
+          </div>
+        </div>
+        <p class="lesson">The hardest bugs were never in the logic. They were in the meeting point with the real world: sync, the OS, keyboards, screens, my own settings.</p>
+      </section>
+
+      <!-- 17 -->
+      <section class="slide" id="s-numbers">
+        <p class="kicker">6 September – 20 October 2026</p>
+        <h2>By the numbers</h2>
+        <div class="stats">
+          <div class="stat"><b>0</b><span>lines of code written by me</span></div>
+          <div class="stat"><b>900+</b><span>commits, on 42 different days</span></div>
+          <div class="stat"><b>128</b><span>releases, betas included</span></div>
+          <div class="stat"><b>398</b><span>decisions in the changelog</span></div>
+          <div class="stat"><b>~2,400</b><span>automated tests</span></div>
+          <div class="stat"><b>7</b><span>interface languages</span></div>
+          <div class="stat"><b>3</b><span>apps from one codebase</span></div>
+          <div class="stat"><b>½–1 h</b><span>of my time a typical day</span></div>
+        </div>
+      </section>
+
+      <!-- 18 -->
+      <section class="slide" id="s-coach">
+        <p class="kicker">If you want to try</p>
+        <h2>Some gentle advice</h2>
+        <ul>
+          <li><strong>Pick something you'll use yourself.</strong> Your own daily use is the best tester you'll get.</li>
+          <li><strong>Write the idea down first,</strong> with any chatbot. A page of description beats a clever prompt.</li>
+          <li><strong>Ask for tests and proof from the start,</strong> not "please check".</li>
+          <li><strong>Let the model keep a decision log</strong> and notes, and correct them when they're wrong.</li>
+          <li><strong>Describe what you see, decide between options,</strong> and leave the how to the model.</li>
+          <li><strong>Go in small steps,</strong> with a way back (git, betas).</li>
+          <li><strong>Mistakes will happen.</strong> Most are cheap to fix when you notice them early.</li>
+        </ul>
+        <p class="lesson tip">This was Claude Code, Gemini and Antigravity. Cursor, GitHub Copilot, Codex, Gemini CLI and others can work just as well. The habits matter more than the tool.</p>
+      </section>
+
+      <!-- 19 -->
+      <section class="slide" id="s-next">
+        <p class="kicker">What's next for the way of working</p>
+        <h2>Room to use AI even more</h2>
+        <ul>
+          <li><strong>Scheduled triage:</strong> a regular read-only pass over new issues and pull requests, with a short report.</li>
+          <li><strong>Agents testing the real app:</strong> driving the native window, not only the browser version.</li>
+          <li><strong>Visual review by a model:</strong> the screenshot gallery the tests already make, judged automatically for layout problems.</li>
+          <li><strong>A second opinion on every change:</strong> another model reviewing the orchestrator's own work, not only the other way round.</li>
+          <li><strong>Release from CI:</strong> the release built and signed on GitHub instead of on one machine.</li>
+          <li><strong>Native speakers</strong> checking the six machine-drafted translations.</li>
+          <li><strong>Knowing the cost:</strong> usage per change, to pick the right model for each job.</li>
+        </ul>
+      </section>
+
+      <!-- 20 -->
+      <section class="slide" id="s-end">
+        <p class="kicker">Thank you</p>
+        <h2>Six weeks, one app, a lot learned</h2>
+        <p class="lead">The surprise wasn't that AI can write an app. It was how much of the work is the same as with people: a clear goal, honest feedback, written decisions, tests, and small steps.</p>
+        <ul>
+          <li>The app and the guide: <a href="https://chrononote.mariendegelder.nl">chrononote.mariendegelder.nl</a></li>
+          <li>All code, issues and the full decision log: <a href="https://github.com/marien/ChronoNote">github.com/marien/ChronoNote</a></li>
+        </ul>
+      </section>
+
+    </div>
+  </main>
+
+  <div class="deck-progress" id="progress" aria-hidden="true"></div>
+  <div class="deck-nav" role="navigation" aria-label="Slides">
+    <button type="button" id="prev" aria-label="Previous slide">←</button>
+    <span id="counter" aria-live="polite"></span>
+    <button type="button" id="next" aria-label="Next slide">→</button>
+    <button type="button" id="exit">Esc</button>
+  </div>
+
+  <footer>
+    <div class="wrap">
+      <span>ChronoNote — MIT licensed.</span>
+      <span>
+        <a href="index.html">Home</a> ·
+        <a href="guide.html">Guide</a> ·
+        <a href="https://github.com/marien/ChronoNote" target="_blank" rel="noopener">GitHub</a> ·
+        <a href="privacy.html">Privacy</a>
+      </span>
+    </div>
+  </footer>
+
+  <script>
+    (function () {
+      var slides = Array.prototype.slice.call(document.querySelectorAll(".slide"));
+      var body = document.body;
+      var current = 0;
+      var counter = document.getElementById("counter");
+      var progress = document.getElementById("progress");
+
+      function show(i) {
+        current = Math.max(0, Math.min(slides.length - 1, i));
+        slides.forEach(function (s, n) { s.classList.toggle("active", n === current); });
+        slides[current].scrollTop = 0;
+        counter.textContent = (current + 1) + " / " + slides.length;
+        progress.style.width = ((current + 1) / slides.length * 100) + "%";
+        history.replaceState(null, "", "#" + slides[current].id);
+      }
+
+      function nearestSlide() {
+        var best = 0;
+        slides.forEach(function (s, n) { if (s.getBoundingClientRect().top < window.innerHeight / 3) best = n; });
+        return best;
+      }
+
+      function start(i) {
+        body.classList.add("presenting");
+        show(i === undefined ? nearestSlide() : i);
+      }
+
+      function stop() {
+        var target = slides[current];
+        body.classList.remove("presenting");
+        slides.forEach(function (s) { s.classList.remove("active"); });
+        target.scrollIntoView();
+      }
+
+      document.getElementById("present").addEventListener("click", function () { start(0); });
+      document.getElementById("prev").addEventListener("click", function () { show(current - 1); });
+      document.getElementById("next").addEventListener("click", function () { show(current + 1); });
+      document.getElementById("exit").addEventListener("click", stop);
+
+      document.addEventListener("keydown", function (e) {
+        if (e.ctrlKey || e.metaKey || e.altKey) return;
+        var presenting = body.classList.contains("presenting");
+        if (!presenting) {
+          if (e.key === "p" || e.key === "P") { e.preventDefault(); start(); }
+          return;
+        }
+        var k = e.key;
+        if (k === "ArrowRight" || k === "PageDown" || k === " " || k === "Enter") { e.preventDefault(); show(current + 1); }
+        else if (k === "ArrowLeft" || k === "PageUp" || k === "Backspace") { e.preventDefault(); show(current - 1); }
+        else if (k === "Home") { e.preventDefault(); show(0); }
+        else if (k === "End") { e.preventDefault(); show(slides.length - 1); }
+        else if (k === "Escape" || k === "p" || k === "P") { e.preventDefault(); stop(); }
+      });
+
+      // Swipe on a touch screen.
+      var x0 = null;
+      document.addEventListener("touchstart", function (e) { x0 = e.touches[0].clientX; }, { passive: true });
+      document.addEventListener("touchend", function (e) {
+        if (x0 === null || !body.classList.contains("presenting")) return;
+        var dx = e.changedTouches[0].clientX - x0;
+        if (Math.abs(dx) > 50) show(current + (dx < 0 ? 1 : -1));
+        x0 = null;
+      });
+
+      // ?present opens in presentation mode, at the slide in the hash if there is one.
+      if (/[?&]present\b/.test(location.search)) {
+        var at = slides.findIndex(function (s) { return "#" + s.id === location.hash; });
+        start(at < 0 ? 0 : at);
+      }
+    })();
+  </script>
+
+</body>
+</html>
