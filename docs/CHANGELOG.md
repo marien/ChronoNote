@@ -10771,7 +10771,7 @@ From a test-coverage review (2026-10-17): Vitest covers 41% of `src/lib` lines a
 - **Marien (#167, on 0.32.5-1):** with spell check on, clicking into a misspelled word (or moving into it with the keyboard) made its underline disappear almost at once, and the line menu then offered no corrections. Hovering over the word and right-clicking without moving the caret first did work.
 - **Cause (`src/lib/editor/spellcheck.ts`):** the word at the caret is deliberately left unmarked while typing (no red line under a half-typed word). The flag behind it, `isTyping`, was set by the first edit and never cleared, so from then on every caret move re-ran the check about 300 ms later with the caret's word excluded. The line menu only offers corrections for a marked word.
 - **Fix:** a caret move without an edit ends typing mode (`isTyping = false`) before the recheck. A word is now left unmarked only while it is actually being typed in.
-- Test: `spell-check.spec.ts` "#167": after an edit elsewhere, clicking and arrowing into a misspelled word keeps the mark and the menu's suggestion; typing in it still hides the mark. It failed on the old code. Not checked yet: the real Windows spell checker in the app.
+- Test: `spell-check.spec.ts` "#167": after an edit elsewhere, clicking and arrowing into a misspelled word keeps the mark and the menu's suggestion; typing in it still hides the mark. It failed on the old code. Confirmed by Marien in the real app with the Windows spell checker (2026-10-21).
 
 ## 403. Certificate checking: rustls-webpki 0.103.16, webpki-root-certs 1.0.10
 
