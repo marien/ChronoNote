@@ -6,7 +6,7 @@ then gets a line in its CHANGELOG section) or found broken (it then becomes a fi
 
 | Since | What to check | Where / how | Section |
 |---|---|---|---|
-| 2026-10-21 | The first CI run with the flaky-test report: tests that only passed on the retry show up as warnings on the run | Any Test run on GitHub after §411 | §411 |
+| 2026-10-21 | A test that only passes on CI's retry shows up as a warning on the run (the report runs on every push and said "no flaky tests" on its first run; the warning itself was only seen locally) | The next Test run with a flaky test | §411 |
 | 2026-10-21 | The Security Audit runs daily (04:00 UTC), and does not run for a push that changes no dependencies | GitHub Actions, Security Audit | §410 |
 | 2026-10-21 | Docked Peek with display switches on the laptop's own 125 % screen (the scaled-size matching is only unit-tested) | Work laptop, beta 0.32.5-6 or later | §407, §408 |
 | 2026-10-21 | Docked Peek while plugging the docking station in and out (not just switching display modes) | Work laptop, beta 0.32.5-6 or later; About -> Copy diagnostics if anything looks wrong | §404-§408 |
