@@ -48,6 +48,12 @@
 .find-opt-glyph::before {
   content: attr(data-glyph);
 }
+/* The monospace font leaves room above its letters, so "Aa" and "ab|" sat 1.5-2.5 px below the row's centre (measured
+   on the drawn pixels, find-bar-align.spec.ts). One shift for both keeps their baselines level. */
+.find-opt-glyph {
+  display: inline-block;
+  transform: translateY(-0.15em);
+}
 .find-opt-btn[aria-pressed="true"],
 .find-opt-btn.active {
   background: var(--accent);
@@ -77,7 +83,8 @@
   background: var(--surface-raised);
   border: 1px solid var(--edge-soft);
   border-radius: var(--radius-control);
-  padding: 4px 7px;
+  /* One pixel more above than below: the monospace text otherwise sits a little high (find-bar-align.spec.ts). */
+  padding: 5px 7px 3px;
   font-family: var(--font-mono);
   font-size: 12px;
   color: var(--text);

@@ -10824,3 +10824,12 @@ From a test-coverage review (2026-10-17): Vitest covers 41% of `src/lib` lines a
 
 - CI's native test (the §404 half dock) failed on the 0.32.5-5 release commit: after the repair Peek floated at the strip's full width. Cause in §407's review fix "a repair goes where the user dragged floating Peek": a check read "not docked", the dock happened, then it read the window's place (already the strip) and took that as the floating place. CI's slower runner hit the gap; locally it passed.
 - Fix (`peekWindow.ts`): the place is taken only when a second read of the native state, after reading the place, shows the same undocked window. Same for the full window's place outside Peek. A unit test makes the dock happen between the two reads (fails on 0.32.5-5's code). Gates: Vitest 1280, native 18 including the display-switch tests on the two screens.
+
+## 409. Find bar: symbols, text and buttons on one vertical centre
+
+**Status: on main, not released yet.**
+
+- **Marien (checking §401's "Aa"/"ab|" by eye):** the row looked a bit messy: the text in the box a little high, "Aa" and "ab|" a little low.
+- **Measured on the drawn pixels** (where each element's ink is, against the row's centre, in Chromium with Windows fonts): at 100 % the input text was -0.5 px, "Aa" +1.5 px and "ab|" +2.5 px; the arrows and close button within half a pixel. The monospace font leaves extra room above its letters, and the "|" reaches below the baseline.
+- **Fix (`03-editor.css`):** the option symbols move up 0.15em together (their baselines stay level); the input has one pixel more padding above than below (same height). Now every element is within 1 px of the centre at 100 %, 125 % and 150 % (mostly half a pixel, the rounding limit).
+- **Test:** new `find-bar-align.spec.ts` decodes its own screenshot in the page (canvas) and checks each element's ink centre at the three scales, Windows fonts only (runs locally and in CI's Windows layout job). It failed on the old CSS.
