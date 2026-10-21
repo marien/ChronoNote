@@ -219,6 +219,9 @@ export interface TauriCommands {
     returns: { x: number; y: number; width: number; height: number };
   };
   peek_undock: { args: NoArgs; returns: void };
+  /** §404: the native side's docked-Peek state, and docked-Peek logging (incl. the flight recorder). */
+  peek_dock_state: { args: NoArgs; returns: import("./peekWindow").DockState };
+  peek_log: { args: { kind: "event" | "detail" | "warn" | "dump"; message: string }; returns: void };
   /** Native child window for Windows 11 Snap Layouts (§B1). */
   snap_overlay_set_rect: {
     args: { x: number; y: number; width: number; height: number };

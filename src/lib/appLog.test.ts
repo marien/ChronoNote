@@ -25,7 +25,7 @@ describe("appLog", () => {
     const diag = await appLog.buildDiagnostics();
     expect(diag).toContain("ChronoNote version: 0.30.4");
     expect(diag).toContain("sample-tail-entry");
-    expect(apiMock.readLogTail).toHaveBeenCalledWith(100);
+    expect(apiMock.readLogTail).toHaveBeenCalledWith(300);
   });
 
   it("the error handler shows the message only once within a minute (fake timers)", () => {

@@ -808,8 +808,11 @@ test.describe("docked peek", () => {
     const calls = () => page.evaluate(() => window.__CHRONO_MOCK__!.windowCalls.filter((c) => c === "undock" || c.startsWith("dock")));
     await enterOnWeeklySync(page);
     await expect.poll(calls).toEqual(["dock 240"]);
-    // Rust has given the strip back itself and reports it.
-    await page.evaluate(() => window.__CHRONO_MOCK__!.emitEvent("peek-dock-lost"));
+    // Rust has given the strip back itself and reports it (§404: the page then checks the native state and floats).
+    await page.evaluate(() => {
+      window.__CHRONO_MOCK__!.peekDocked = false;
+      window.__CHRONO_MOCK__!.emitEvent("peek-dock-lost");
+    });
     await expect(page.locator("body.peek-mode")).toBeVisible();
     await expect(page.locator("#peek-bar").getByRole("button", { name: "Dock to the bottom of the screen" })).toBeVisible();
     await expect
@@ -819,7 +822,33 @@ test.describe("docked peek", () => {
     await page.keyboard.press("Escape");
     await expect(page.locator("body.peek-mode")).toHaveCount(0);
     await enterOnWeeklySync(page);
-    await expect.poll(calls).toEqual(["dock 240", "undock", "dock 240"]);
+    // No undock from the page: the native side had already given the strip back.
+    await expect.poll(calls).toEqual(["dock 240", "dock 240"]);
+    // The log tells the story (§404).
+    const log = await page.evaluate(() => window.__CHRONO_MOCK__!.peekLogLines);
+    expect(log.some((l) => l.startsWith("event: dock lost"))).toBe(true);
+    expect(log.some((l) => l.startsWith("warn: after dock lost: the page thought Peek was docked"))).toBe(true);
+  });
+
+  test("§404: a dock lost while Peek is still being entered is not dropped", async ({ page }) => {
+    await seedApp(page, { seed: { ...today(), peek: { dockBottom: true, dockHeight: 240, header: "always", fadeSeconds: 0 } } });
+    // The screens change right as Peek docks: the native side undocks and reports it before the page has finished.
+    await page.evaluate(() => {
+      const m = window.__CHRONO_MOCK__!;
+      const orig = (m as any).core.peek_dock_bottom;
+      (m as any).core.peek_dock_bottom = (args: { height: number }) => {
+        const r = orig(args);
+        setTimeout(() => {
+          m.peekDocked = false;
+          m.emitEvent("peek-dock-lost");
+        }, 0);
+        return r;
+      };
+    });
+    await enterOnWeeklySync(page);
+    await expect(page.locator("body.peek-mode")).toBeVisible();
+    // Peek ends up floating (its dock button offered), not believing it is docked.
+    await expect(page.locator("#peek-bar").getByRole("button", { name: "Dock to the bottom of the screen" })).toBeVisible();
   });
 
   test("docking is not a setting", async ({ page }) => {

@@ -363,6 +363,10 @@ export class MockBackend {
   windowCalls: string[] = [];
   /** Log lines accumulated by append_log. */
   logLines: string[] = [];
+  /** §404: the native dock state the mock reports (`peek_dock_state`); a test may set it to simulate a half dock. */
+  peekDocked = false;
+  /** §404: lines sent by `peek_log`, as `kind: message`. */
+  peekLogLines: string[] = [];
   /** What `plugin:dialog|open` (the folder picker) returns next. `null`
    * = user cancelled. Set by tests before triggering a Browse. */
   nextDialogResult: string | string[] | null = null;
@@ -1240,10 +1244,23 @@ export class MockBackend {
     // §393: a 1100x720 "screen"; the strip is full width at its bottom. Recorded for the tests.
     peek_dock_bottom: ({ height }) => {
       this.windowCalls.push(`dock ${height}`);
+      this.peekDocked = true;
       return { x: 0, y: 720 - height, width: 1100, height };
     },
     peek_undock: () => {
       this.windowCalls.push("undock");
+      this.peekDocked = false;
+    },
+    peek_dock_state: () => ({
+      docked: this.peekDocked,
+      registered: this.peekDocked,
+      lostPending: false,
+      window: null,
+      work: null,
+      monitors: 1,
+    }),
+    peek_log: ({ kind, message }) => {
+      this.peekLogLines.push(`${kind}: ${message}`);
     },
     snap_overlay_set_rect: () => {},
     zen_cover_monitor: () => {},

@@ -221,8 +221,15 @@ async function floatPeek(): Promise<void> {
 /** §398: the screens changed while Peek was docked (a monitor plugged in or out). Rust has already given the strip
  * back; Peek floats for the rest of this Peek. The docked choice itself is kept: the next Peek opens docked again. */
 export async function onPeekDockLost(): Promise<void> {
-  if (!get(peekMode) || !get(peekDocked)) return;
-  await floatPeek();
+  // §404: the native side has logged why. The page's consistency check does the rest: it floats Peek if the page
+  // still thinks it is docked. Going through the check (queued behind any transition on its way) instead of reading
+  // `peekDocked` here: while Peek was being entered or docked, that store still said "not docked" and the event was
+  // dropped, leaving the page docked and the native side not (review of §404).
+  void api.peekLog("event", `dock lost: ${get(peekMode) ? "checking Peek" : "not in Peek"}`).catch(() => {});
+  if (!get(peekMode)) return;
+  const win = await controller();
+  await win.check("dock lost");
+  peekDocked.set(win.isDocked());
 }
 
 export function togglePeek(): void {
@@ -557,6 +564,27 @@ export function wirePeek(): () => void {
       });
       cleanups.push(unlisten);
       cleanups.push(await listen("peek-dock-lost", () => void onPeekDockLost()));
+
+      // §404: when Windows moves or rescales the window while in Peek (a docking station plugged in or out, a monitor
+      // switched off), compare the page's idea of docked/floating with the native side and repair a mismatch. Once,
+      // half a second after the last such event, so a drag costs one check.
+      const { getCurrentWindow } = await import("@tauri-apps/api/window");
+      let timer: ReturnType<typeof setTimeout> | null = null;
+      const later = (reason: string) => {
+        if (!get(peekMode)) return;
+        if (timer) clearTimeout(timer);
+        timer = setTimeout(() => {
+          timer = null;
+          void controller().then(async (w) => {
+            await w.check(reason);
+            peekDocked.set(w.isDocked());
+          });
+        }, 500);
+      };
+      const w = getCurrentWindow();
+      cleanups.push(await w.onScaleChanged(() => later("scale change")));
+      cleanups.push(await w.onMoved(() => later("window moved")));
+      cleanups.push(() => timer && clearTimeout(timer));
     } catch {
       // No window events (tests): nothing to follow.
     }

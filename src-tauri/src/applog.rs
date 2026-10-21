@@ -1,3 +1,4 @@
+use std::collections::VecDeque;
 use std::fs::{self, OpenOptions};
 use std::io::{BufRead, BufReader, Write};
 use std::path::{Path, PathBuf};
@@ -7,6 +8,76 @@ static LOG_DIR: OnceLock<PathBuf> = OnceLock::new();
 static WRITE_LOCK: Mutex<()> = Mutex::new(());
 
 const MAX_LOG_SIZE: u64 = 1024 * 1024; // 1 MB
+
+/// The flight recorder (§404): detailed lines (every window move while Peek is docked, each step of entering and
+/// leaving Peek) are kept in memory only, the last `FLIGHT_CAP`, and written to the log only when something looks wrong
+/// or the user copies diagnostics. Events (dock, float, leave, a screen change) go to the log at once with `write`.
+static FLIGHT: Mutex<VecDeque<String>> = Mutex::new(VecDeque::new());
+const FLIGHT_CAP: usize = 400;
+
+fn timestamp() -> String {
+    chrono::Utc::now().format("%Y-%m-%d %H:%M:%S%.3f UTC").to_string()
+}
+
+/// Keeps a detail line in the flight recorder (memory only).
+pub fn detail(msg: &str) {
+    let line = format!("{}  {}", timestamp(), sanitize_message(msg));
+    if let Ok(mut f) = FLIGHT.lock() {
+        if f.len() >= FLIGHT_CAP {
+            f.pop_front();
+        }
+        f.push_back(line);
+    }
+}
+
+/// Writes the flight recorder to the log (oldest first, level TRACE) and empties it. Each kept line still carries the
+/// time it was recorded.
+pub fn dump(reason: &str) {
+    let lines: Vec<String> = FLIGHT.lock().map(|mut f| f.drain(..).collect()).unwrap_or_default();
+    if lines.is_empty() {
+        return;
+    }
+    let Some(dir) = LOG_DIR.get() else { return };
+    let mut all = vec![format!("flight recorder ({reason}): {} line(s) follow", lines.len())];
+    all.extend(lines.into_iter().map(|l| format!("  {l}")));
+    // One rotation check and one file open for the whole dump (§404).
+    write_many_at(dir, "TRACE", &all, MAX_LOG_SIZE);
+}
+
+/// Appends several lines at once (one rotation check, one open).
+pub fn write_many_at(dir: &Path, level: &str, msgs: &[String], max_bytes: u64) {
+    let _lock = WRITE_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+    rotate_if_needed(dir, max_bytes);
+    let ts = timestamp();
+    let text: String = msgs.iter().map(|m| format!("{ts}  {level}  {}\n", sanitize_message(m))).collect();
+    if let Ok(mut f) = OpenOptions::new().create(true).append(true).open(dir.join("app.log")) {
+        let _ = f.write_all(text.as_bytes());
+    }
+}
+
+fn rotate_if_needed(dir: &Path, max_bytes: u64) {
+    let log_file = dir.join("app.log");
+    if let Ok(meta) = fs::metadata(&log_file) {
+        if meta.len() > max_bytes {
+            let log_1 = dir.join("app.log.1");
+            let log_2 = dir.join("app.log.2");
+            let _ = fs::remove_file(&log_2);
+            let _ = fs::rename(&log_1, &log_2);
+            let _ = fs::remove_file(&log_1);
+            let _ = fs::rename(&log_file, &log_1);
+        }
+    }
+}
+
+/// Whether the run before this one wrote an exit line after its start line. Called at start-up, before the new start
+/// line. `None` when the log has no start line to judge by.
+pub fn previous_run_exited(tail: &str) -> Option<bool> {
+    let last = tail
+        .lines()
+        .rev()
+        .find(|l| l.contains("  start ChronoNote ") || l.contains("  exit: "))?;
+    Some(last.contains("  exit: "))
+}
 
 /// Initializes the log directory once per process. Creates the directory if missing.
 pub fn init(dir: PathBuf) {
@@ -23,23 +94,12 @@ pub fn sanitize_message(msg: &str) -> String {
 /// Appends a log line to `app.log` in the given directory, rotating if exceeding `max_bytes`.
 pub fn write_at(dir: &Path, level: &str, msg: &str, max_bytes: u64) {
     let _lock = WRITE_LOCK.lock().unwrap_or_else(|e| e.into_inner());
-
+    rotate_if_needed(dir, max_bytes);
     let log_file = dir.join("app.log");
-    let log_1 = dir.join("app.log.1");
-    let log_2 = dir.join("app.log.2");
-
-    if let Ok(meta) = fs::metadata(&log_file) {
-        if meta.len() > max_bytes {
-            let _ = fs::remove_file(&log_2);
-            let _ = fs::rename(&log_1, &log_2);
-            let _ = fs::remove_file(&log_1);
-            let _ = fs::rename(&log_file, &log_1);
-        }
-    }
 
     let sanitized = sanitize_message(msg);
-    let now = chrono::Utc::now().format("%Y-%m-%d %H:%M:%S UTC");
-    let line = format!("{now}  {level}  {sanitized}\n");
+    // Milliseconds: the window steps of a docking change happen within a few ms of each other (§404).
+    let line = format!("{}  {level}  {sanitized}\n", timestamp());
 
     if let Ok(mut f) = OpenOptions::new().create(true).append(true).open(&log_file) {
         let _ = f.write_all(line.as_bytes());
@@ -165,5 +225,26 @@ mod tests {
         let content = fs::read_to_string(dir.join("app.log")).unwrap();
         assert_eq!(content.lines().count(), 1);
         assert!(content.contains("multi | line | message | here"));
+    }
+
+    #[test]
+    fn lines_carry_milliseconds() {
+        let tmp = tempfile::tempdir().unwrap();
+        write_at(tmp.path(), "INFO", "x", 1000);
+        let content = fs::read_to_string(tmp.path().join("app.log")).unwrap();
+        // 2026-10-21 07:01:02.345 UTC  INFO  x
+        let ts = content.split("  ").next().unwrap();
+        assert!(ts.ends_with(" UTC") && ts.contains('.'), "{ts}");
+        assert_eq!(ts.split('.').nth(1).unwrap().len(), "345 UTC".len());
+    }
+
+    #[test]
+    fn previous_run_exit_is_judged_from_the_last_start_or_exit_line() {
+        let start = "2026-10-21 07:00:00.000 UTC  INFO  start ChronoNote 0.32.5-3 (windows x86_64)";
+        let exit = "2026-10-21 08:00:00.000 UTC  INFO  exit: window destroyed";
+        let other = "2026-10-21 07:30:00.000 UTC  PEEK  dock ...";
+        assert_eq!(previous_run_exited(&[start, other, exit].join("\n")), Some(true));
+        assert_eq!(previous_run_exited(&[exit, start, other].join("\n")), Some(false));
+        assert_eq!(previous_run_exited(other), None);
     }
 }

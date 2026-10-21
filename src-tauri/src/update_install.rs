@@ -116,9 +116,15 @@ pub async fn install_update(app: AppHandle, early: bool, on_event: Channel<Insta
         format!("{what}: {e}{}", log_hint(app))
     };
 
-    // A no-op before-exit hook: the plugin's default one destroys every window,
-    // which is exactly what hides a failed launch (see the module comment).
-    let mut builder = app.updater_builder().on_before_exit(|| {});
+    // The before-exit hook does not destroy the windows: the plugin's default one does,
+    // which is exactly what hides a failed launch (see the module comment). The plugin
+    // ends the process itself, skipping the window's Destroyed event, so this gives a
+    // docked Peek's screen strip back and writes the run's exit line (§404).
+    let exit_app = app.clone();
+    let mut builder = app.updater_builder().on_before_exit(move || {
+        crate::peek_dock::release_app(&exit_app, "installing an update");
+        crate::applog::write("INFO", "exit: installing an update");
+    });
     if let Some(endpoints) = updater_endpoints(early) {
         builder = builder
             .endpoints(endpoints)

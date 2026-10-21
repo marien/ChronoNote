@@ -427,6 +427,17 @@ export function peekUndock(): Promise<void> {
   return invoke("peek_undock", {});
 }
 
+/** §404: what the native side holds for docked Peek, for the page's consistency check. */
+export function peekDockState(): Promise<import("./peekWindow").DockState> {
+  return invoke("peek_dock_state", {});
+}
+
+/** §404: docked-Peek logging: "event" to the app log, "detail" to the flight recorder, "warn", or "dump" (write the
+ * flight recorder out, `message` = the reason). */
+export function peekLog(kind: "event" | "detail" | "warn" | "dump", message: string): Promise<void> {
+  return invoke("peek_log", { kind, message });
+}
+
 export function snapOverlaySetRect(x: number, y: number, width: number, height: number): Promise<void> {
   return invoke("snap_overlay_set_rect", { x, y, width, height });
 }

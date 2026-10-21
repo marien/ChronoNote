@@ -245,6 +245,18 @@ fn append_log(level: String, message: String) {
     applog::write(lvl, &message);
 }
 
+/// §404: the page's side of docked-Peek logging. "event" lines go to the log at once (level PEEK); "detail" lines go to
+/// the flight recorder; "dump" writes the recorder out, with the message as the reason.
+#[tauri::command]
+fn peek_log(kind: String, message: String) {
+    match kind.as_str() {
+        "event" => applog::write("PEEK", &message),
+        "warn" => applog::write("WARN", &format!("peek: {message}")),
+        "dump" => applog::dump(&message),
+        _ => applog::detail(&format!("page: {message}")),
+    }
+}
+
 #[tauri::command]
 fn read_log_tail(lines: u32) -> String {
     let limit = lines.min(500) as usize;
@@ -335,14 +347,26 @@ pub fn run() {
 
     builder
         // §393: a docked Peek must never leave its screen strip reserved behind a closed window.
-        .on_window_event(|window, event| {
-            if let tauri::WindowEvent::Destroyed = event {
+        .on_window_event(|window, event| match event {
+            tauri::WindowEvent::Destroyed => {
                 peek_dock::release(window);
+                applog::write("INFO", "exit: window destroyed");
             }
+            // The title bar's close button, Alt+F4 and the taskbar's Close all arrive here; the exit barrier may still
+            // keep the window open (unsaved scratchpads), so this is not yet an exit (§404).
+            tauri::WindowEvent::CloseRequested { .. } => applog::write("INFO", "close requested"),
+            _ => {}
         })
         .setup(|app| {
             if let Ok(dir) = app.path().app_log_dir() {
                 applog::init(dir);
+                // §404: a run that ended without an exit line crashed, was killed, or Windows went down under it.
+                if applog::previous_run_exited(&applog::tail(2000)) == Some(false) {
+                    applog::write(
+                        "WARN",
+                        "the previous run has no exit line: it crashed, was ended from Task Manager, or Windows shut down or lost power",
+                    );
+                }
                 applog::write(
                     "INFO",
                     &format!(
@@ -401,6 +425,8 @@ pub fn run() {
             save_scratchpad_drafts,
             load_scratchpad_drafts,
             append_log,
+            peek_log,
+            peek_dock::peek_dock_state,
             read_log_tail,
             open_log_folder,
             write_export_file,
@@ -413,8 +439,15 @@ pub fn run() {
             spell::spell_add,
             spell::spell_ignore,
         ])
-        .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+        .build(tauri::generate_context!())
+        .expect("error while running tauri application")
+        .run(|app, event| {
+            if let tauri::RunEvent::Exit = event {
+                // Normally already released with the window; a no-op then (§404).
+                peek_dock::release_app(app, "process ending");
+                applog::write("INFO", "exit: process ending");
+            }
+        });
 }
 
 #[cfg(test)]

@@ -908,6 +908,8 @@ export class WebBackend {
       throw new Error("docking Peek is a desktop feature");
     },
     peek_undock: async () => {},
+    peek_dock_state: async () => ({ docked: false, registered: false, lostPending: false, window: null, work: null, monitors: 0 }),
+    peek_log: async () => {},
     snap_overlay_set_rect: async () => {},
     zen_cover_monitor: async () => {},
     zen_prepare_leave: async () => {},

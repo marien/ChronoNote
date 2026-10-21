@@ -8,7 +8,7 @@ import { test, expect, type Page } from "@playwright/test";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
-import { RUNNABLE, TODAY, height, launch, nativeState, requestClose, shutdown, width, writeConfig, type Rect } from "./app";
+import { LOG, RUNNABLE, TODAY, height, launch, nativeState, requestClose, shutdown, width, writeConfig, type Rect } from "./app";
 
 test.skip(!RUNNABLE, "needs the native test build: npm run test:native");
 test.skip(process.platform !== "win32", "Windows only");
@@ -91,4 +91,49 @@ test("Peek from a maximized window: leaving maximizes it again", async () => {
   await leavePeek();
   await expect.poll(async () => (await nativeState()).maximized, { timeout: 10_000 }).toBe(true);
   await page.locator(".win-btn.win-max").click();
+});
+
+const logText = () => (fs.existsSync(LOG) ? fs.readFileSync(LOG, "utf8") : "");
+
+/** §404: the native side docked while the page believes Peek floats (a half dock). Leaving Peek used to keep the strip
+ * reserved and the window strip-sized. Now the move that docking makes triggers the page's check, which releases the
+ * strip by itself within a second; leaving afterwards restores the full window exactly. */
+test("a half dock (native docked, page floating) is found and released, and leaving restores the full window", async () => {
+  await expect.poll(async () => (await nativeState()).maximized, { timeout: 10_000 }).toBe(false);
+  const before = await nativeState();
+  await enterPeek(); // opens docked (remembered from the earlier test)
+  await page.locator("#peek-bar").getByRole("button", { name: "Float the window" }).click();
+  await expect.poll(async () => (await nativeState()).work.bottom, { timeout: 10_000 }).toBe(before.work.bottom);
+  // Dock behind the page's back.
+  await page.evaluate(() => (window as any).__TAURI_INTERNALS__.invoke("peek_dock_bottom", { height: 200 }));
+  await expect
+    .poll(() => logText().includes("the native side still held a dock the page did not know about; released it"), { timeout: 10_000 })
+    .toBe(true);
+  await expect.poll(async () => (await nativeState()).work.bottom, { timeout: 10_000 }).toBe(before.work.bottom);
+  // Back at a floating Peek's size, not the strip's full width.
+  await expect.poll(async () => width((await nativeState()).window), { timeout: 10_000 }).toBeLessThan(width(before.screen) / 2);
+  expect(logText()).toMatch(/TRACE {2}flight recorder \(half docked after window moved\)/);
+  await leavePeek();
+  await expect.poll(async () => sameRect((await nativeState()).window, before.window), { timeout: 10_000 }).toBe(true);
+  expect((await nativeState()).work.bottom).toBe(before.work.bottom);
+});
+
+test("docking, the strip and undocking are in the app log, with milliseconds", async () => {
+  const log = logText();
+  expect(log).toMatch(/\d{2}:\d{2}:\d{2}\.\d{3} UTC {2}PEEK {2}dock: height \d+/);
+  expect(log).toMatch(/PEEK {2}reserve: strip \[/);
+  expect(log).toMatch(/PEEK {2}undock \(asked by the page\): strip given back/);
+  expect(log).toMatch(/PEEK {2}enter Peek: full window \[/);
+  expect(log).toMatch(/PEEK {2}leave Peek: /);
+  // No note text in the log: the seeded actions never appear.
+  expect(log).not.toContain("first action");
+});
+
+test("a normal close writes exit lines; a run that was killed is reported at the next start", async () => {
+  await requestClose(page);
+  expect(logText()).toContain("exit: window destroyed");
+  page = await launch();
+  await shutdown(); // killed: no exit line
+  page = await launch();
+  expect(logText()).toContain("the previous run has no exit line");
 });

@@ -109,7 +109,14 @@ export async function buildDiagnostics(): Promise<string> {
   const notesCount = Object.keys(get(allNotesCache)).length;
   const calSync = get(calendarSyncEnabled) ? "on" : "off";
 
-  const tail = await api.readLogTail(100);
+  // §404: write the flight recorder (the last few hundred detailed docked-Peek lines, kept in memory) into the log
+  // first, so the copied diagnostics carry the full story of what just happened.
+  try {
+    await api.peekLog("dump", "diagnostics copied");
+  } catch {
+    // no native side (web app, tests)
+  }
+  const tail = await api.readLogTail(300);
 
   const lines = [
     `ChronoNote version: ${version}`,
@@ -130,7 +137,7 @@ export async function buildDiagnostics(): Promise<string> {
     `number of open tabs: ${openTabsCount}`,
     `number of notes known: ${notesCount}`,
     `calendar sync: ${calSync}`,
-    `--- last 100 log lines ---`,
+    `--- last 300 log lines ---`,
     tail,
   ];
 

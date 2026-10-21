@@ -6,7 +6,23 @@
  * a quick double toggle cannot interleave, and nothing here ever rejects (a window error must not break the app).
  * Sizes and positions are PHYSICAL pixels (what the OS reports), minimum sizes are LOGICAL. */
 
-import { peekDockBottom, peekSetBounds, peekSetTransparent, peekUndock } from "./tauriApi";
+import { peekDockBottom, peekDockState, peekLog, peekSetBounds, peekSetTransparent, peekUndock } from "./tauriApi";
+
+/** §404: what the native side holds (Rust `peek_dock_state`). */
+export interface DockState {
+  docked: boolean;
+  registered: boolean;
+  lostPending: boolean;
+  window: [number, number, number, number] | null;
+  work: [number, number, number, number] | null;
+  monitors: number;
+}
+
+/** §404: "event" = written to the app log at once; "detail" = the flight recorder (memory, written out when something
+ * looks wrong); "warn" = a problem found (and repaired); "dump" = write the flight recorder out now. */
+export type PeekLogKind = "event" | "detail" | "warn" | "dump";
+
+const fmtG = (g: PeekGeometry | null | undefined) => (g ? `[${g.x},${g.y} ${g.width}x${g.height}]` : "none");
 
 export interface PeekGeometry {
   x: number;
@@ -78,6 +94,15 @@ export function fitToMonitors(g: PeekGeometry, monitors: MonitorArea[]): PeekGeo
   return insideWork(g, best.work);
 }
 
+/** §404: whether the window's title bar can be reached: the middle of its top edge (a little below it) lies on a
+ * monitor's work area. A window that hangs a little off the bottom or a side is fine; one whose title bar is off screen
+ * cannot be dragged back. */
+export function titleBarReachable(g: PeekGeometry, monitors: MonitorArea[]): boolean {
+  const px = g.x + g.width / 2;
+  const py = g.y + Math.min(16, g.height / 2);
+  return monitors.some((m) => px >= m.work.x && px < m.work.x + m.work.width && py >= m.work.y && py < m.work.y + m.work.height);
+}
+
 /** Where Peek opens when there is no usable remembered position: centred horizontally on the current monitor, just above
  * the taskbar (the bottom of the work area), `margin` pixels clear of it. */
 export function defaultPeekGeometry(
@@ -121,6 +146,10 @@ export interface PeekWin {
   dockBottom(height: number): Promise<PeekGeometry>;
   /** Rust `peek_undock`: give the strip back. */
   undock(): Promise<void>;
+  /** §404: Rust `peek_dock_state`; null where there is no native side. */
+  dockState?(): Promise<DockState | null>;
+  /** §404: Rust `peek_log`. */
+  log?(kind: PeekLogKind, message: string): void;
 }
 
 export const PEEK_MIN_LOGICAL = { width: 240, height: 80 };
@@ -145,8 +174,26 @@ export function createPeekWindowController(win: PeekWin) {
   /** The strip Peek fills while docked; null when floating (or not in Peek). */
   let docked: PeekGeometry | null = null;
 
-  const run = <T>(job: () => Promise<T>, fallback: T): Promise<T> => {
-    const next = queue.then(job).catch(() => fallback);
+  /** The options Peek was last opened with, for floating it again after a repair (§404). */
+  let lastOptions: PeekEnterOptions | null = null;
+  /** Where leaving Peek last put the full window, for a repair after leaving (§404). */
+  let lastHome: PeekGeometry | null = null;
+
+  const log = (kind: PeekLogKind, message: string) => {
+    try {
+      win.log?.(kind, message);
+    } catch {
+      // logging must never break Peek
+    }
+  };
+
+  // §404: a failing step used to vanish here silently; now it is logged, and the flight recorder written out with it.
+  const run = <T>(name: string, job: () => Promise<T>, fallback: T): Promise<T> => {
+    const next = queue.then(job).catch((e) => {
+      log("warn", `${name} failed: ${String(e)}`);
+      log("dump", `${name} failed`);
+      return fallback;
+    });
     queue = next;
     return next;
   };
@@ -161,10 +208,65 @@ export function createPeekWindowController(win: PeekWin) {
     const scale = (await win.scaleFactor()) || 1;
     try {
       docked = await win.dockBottom(Math.round(logicalHeight * scale));
+      log("detail", `docked: strip ${fmtG(docked)}`);
       return true;
-    } catch {
+    } catch (e) {
+      log("event", `docking not possible, floating instead: ${String(e)}`);
       docked = null;
       return false;
+    }
+  };
+
+  /** §404: compares what this controller believes with what the native side holds, and repairs a mismatch (the "half
+   * docked" states: the page floating while the native side still holds the window to a strip, or the other way
+   * round). Runs inside a queued job, after each transition. */
+  const readNative = async (): Promise<DockState | null> => {
+    if (!win.dockState) return null;
+    let native = await win.dockState().catch(() => null);
+    // A screen change was just found: the native side undocks within a moment. Wait for it rather than skip the check:
+    // the event that announces it is ignored while a transition is still on its way (review of §404).
+    for (let i = 0; i < 10 && native?.lostPending; i++) {
+      await new Promise((r) => setTimeout(r, 100));
+      native = await win.dockState().catch(() => null);
+    }
+    return native;
+  };
+
+  const verify = async (after: string): Promise<void> => {
+    const native = await readNative();
+    if (!native) return;
+    log("detail", `check after ${after}: page ${full ? (docked ? "docked" : "floating") : "not in Peek"}, native ${JSON.stringify(native)}`);
+    if (native.lostPending) return; // still undocking after a second: the next check will see it
+    if (native.docked && !(full && docked)) {
+      log("warn", `after ${after}: the native side still held a dock the page did not know about; released it`);
+      log("dump", `half docked after ${after}`);
+      await win.undock();
+      // The window may have been held at the strip's size: put it back where it belongs now.
+      if (full && lastOptions) await placeFloating(lastOptions);
+      else if (!full && lastHome) await win.setBounds(lastHome);
+    } else if (!native.docked && full && docked) {
+      log("warn", `after ${after}: the page thought Peek was docked but the native side was not; floating it`);
+      log("dump", `half docked after ${after}`);
+      docked = null;
+      if (lastOptions) await placeFloating(lastOptions);
+    }
+  };
+
+  /** §404: after leaving Peek, the full window must be on a screen (it once vanished after a docking station change). */
+  const ensureOnScreen = async (): Promise<void> => {
+    const monitors = await win.monitors();
+    if (monitors.length === 0) return;
+    const now = await currentGeometry();
+    // Fine when mostly on a screen with its title bar reachable. Otherwise: pulled fully inside the screen it is mostly
+    // on, or, when it is mostly off every screen, to the default place on the current one.
+    const fit = fitToMonitors(now, monitors);
+    if (fit && titleBarReachable(now, monitors)) return;
+    const home = fit ?? defaultPeekGeometry(now, monitors, 0);
+    log("warn", `the window was ${fit ? "partly off screen (title bar out of reach)" : "off screen"} at ${fmtG(now)}; moved it to ${fmtG(home)}`);
+    log("dump", "window off screen");
+    if (home) {
+      lastHome = home;
+      await win.setBounds(home);
     }
   };
 
@@ -202,7 +304,8 @@ export function createPeekWindowController(win: PeekWin) {
 
   return {
     enter(o: PeekEnterOptions): Promise<void> {
-      return run(async () => {
+      return run("enter", async () => {
+        lastOptions = o;
         if (!full) {
           // A maximized window only reveals the size it will have when restored once it IS restored. Reading its
           // geometry while maximized would record the screen-sized rectangle, and putting that back before
@@ -211,49 +314,62 @@ export function createPeekWindowController(win: PeekWin) {
           if (maximized) await win.setMaximized(false);
           full = { geometry: await currentGeometry(), maximized };
         }
+        log("event", `enter Peek: full window ${fmtG(full.geometry)}${full.maximized ? " (maximized)" : ""}, ${o.dockLogicalHeight === undefined ? "floating" : `docked at ${o.dockLogicalHeight}`}`);
         await win.setTransparent(true);
         await win.setMinSize(PEEK_MIN_LOGICAL.width, PEEK_MIN_LOGICAL.height);
         if (o.dockLogicalHeight === undefined || !(await dockAt(o.dockLogicalHeight))) await placeFloating(o);
         await win.setAlwaysOnTop(o.alwaysOnTop);
         await win.reveal();
+        log("detail", `entered: window ${fmtG(await currentGeometry())}`);
+        await verify("enter");
       }, undefined);
     },
 
     /** §396: while in Peek, switch to docked. Resolves to the floating geometry it had (to remember for the way back),
      * or null when it was not floating or docking is not available. */
     dock(logicalHeight: number, alwaysOnTop: boolean): Promise<PeekGeometry | null> {
-      return run(async () => {
+      return run("dock", async () => {
         if (!full || docked) return null;
         const floating = await currentGeometry();
+        log("event", `dock button: floating window was ${fmtG(floating)}`);
         if (!(await dockAt(logicalHeight))) return null;
         await win.setAlwaysOnTop(alwaysOnTop);
         await win.reveal();
+        await verify("dock");
         return floating;
       }, null);
     },
 
-    /** §396: while in Peek, switch from docked to floating, placed like a floating Peek opens. */
+    /** §396: while in Peek, switch from docked to floating, placed like a floating Peek opens. Also used when the
+     * native side reports the dock lost (§398): the strip is already given back then, and the undock is a no-op. */
     float(o: PeekEnterOptions): Promise<void> {
-      return run(async () => {
+      return run("float", async () => {
         if (!full || !docked) return;
         docked = null;
         await win.undock();
         await placeFloating(o);
         await win.setAlwaysOnTop(o.alwaysOnTop);
         await win.reveal();
+        const now = await currentGeometry();
+        log("event", `float: window ${fmtG(now)}`);
+        await verify("float");
       }, undefined);
     },
 
     /** Puts the full window back; resolves to the compact geometry it had (to remember), or null. */
     leave(): Promise<PeekGeometry | null> {
-      return run(async () => {
+      return run("leave", async () => {
         if (!full) return null;
         const compact = await currentGeometry();
         const back = full;
         full = null;
         const wasDocked = docked !== null;
-        if (wasDocked) {
-          docked = null;
+        docked = null;
+        // §404: give the strip back whenever the native side still holds it, also when the page had lost track (the
+        // window kept the strip's size after leaving).
+        const native = win.dockState ? await win.dockState().catch(() => null) : null;
+        if (wasDocked || native?.docked) {
+          if (!wasDocked) log("warn", "leave: the native side still held a dock the page did not know about");
           await win.undock();
         }
         await win.setAlwaysOnTop(false);
@@ -262,11 +378,26 @@ export function createPeekWindowController(win: PeekWin) {
         // The screen the full window was on may be gone (a laptop undocked during the call): bring it back onto one.
         const monitors = await win.monitors();
         // Exactly where it was if enough of it is still on a screen; else onto the current one.
-        const onScreen = monitors.length === 0 || fitToMonitors(back.geometry, monitors) !== null;
-        const home = onScreen ? back.geometry : (defaultPeekGeometry(back.geometry, monitors, 0) ?? back.geometry);
+        // Exactly where it was when it is mostly on a screen with its title bar reachable; pulled fully inside that
+        // screen when the title bar is out of reach (§404); onto the current screen when its own is gone.
+        const fitted = monitors.length === 0 ? back.geometry : fitToMonitors(back.geometry, monitors);
+        const onScreen = fitted !== null;
+        const reachable = monitors.length === 0 || titleBarReachable(back.geometry, monitors);
+        const home = fitted
+          ? reachable
+            ? back.geometry
+            : fitted
+          : (defaultPeekGeometry(back.geometry, monitors, 0) ?? back.geometry);
+        lastHome = home;
         await win.setBounds(home);
         if (back.maximized) await win.setMaximized(true);
         await win.reveal();
+        log(
+          "event",
+          `leave Peek: ${wasDocked ? "was docked" : `was floating at ${fmtG(compact)}`}; full window back at ${fmtG(home)}${onScreen ? "" : " (its old screen is gone)"}${back.maximized ? ", maximized" : ""}`,
+        );
+        if (!back.maximized) await ensureOnScreen();
+        await verify("leave");
         // A docked strip is not a floating position to come back to.
         return wasDocked ? null : compact;
       }, null);
@@ -277,9 +408,17 @@ export function createPeekWindowController(win: PeekWin) {
       return docked !== null;
     },
 
+    /** §404: run the consistency check now (Peek calls it when Windows moves or rescales the window, which is what
+     * happens during a docking-station change). */
+    check(reason: string): Promise<void> {
+      return run("check", async () => {
+        if (full) await verify(reason);
+      }, undefined);
+    },
+
     /** Height changed by a setting or by the section growing: keep position and width. */
     setLogicalHeight(logicalHeight: number): Promise<void> {
-      return run(async () => {
+      return run("set height", async () => {
         // Docked, the strip keeps its own height (dragged by its top edge).
         if (!full || docked) return;
         const [g, scale] = [await currentGeometry(), (await win.scaleFactor()) || 1];
@@ -288,14 +427,14 @@ export function createPeekWindowController(win: PeekWin) {
     },
 
     setAlwaysOnTop(on: boolean): Promise<void> {
-      return run(async () => {
+      return run("always on top", async () => {
         if (full) await win.setAlwaysOnTop(on);
       }, undefined);
     },
 
     /** The compact window's current geometry while in Peek (for remembering), else null. */
     snapshot(): Promise<PeekGeometry | null> {
-      return run(async () => (full ? await currentGeometry() : null), null);
+      return run("snapshot", async () => (full ? await currentGeometry() : null), null);
     },
   };
 }
@@ -356,5 +495,9 @@ export async function nativePeekWindow(): Promise<PeekWin> {
     },
     dockBottom: (height) => peekDockBottom(height),
     undock: () => peekUndock(),
+    dockState: () => peekDockState(),
+    log: (kind, message) => {
+      void peekLog(kind, message).catch(() => {});
+    },
   };
 }

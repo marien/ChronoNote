@@ -13,11 +13,22 @@ const SCREEN: PeekGeometry = { x: 0, y: 0, width: 1920, height: 1040 };
 
 /** A fake window that records what the controller does to it. */
 function fakeWindow(
-  opts: { geometry?: PeekGeometry; maximized?: boolean; scale?: number; monitors?: MonitorArea[]; noDock?: boolean } = {},
+  opts: {
+    geometry?: PeekGeometry;
+    maximized?: boolean;
+    scale?: number;
+    monitors?: MonitorArea[];
+    noDock?: boolean;
+    /** §404: report a native dock state (and record peek_log lines); off = no native side, as before. */
+    native?: boolean;
+  } = {},
 ) {
   let geo: PeekGeometry = opts.geometry ?? { x: 100, y: 100, width: 1100, height: 700 };
   let maximized = opts.maximized ?? false;
   const log: string[] = [];
+  const peekLog: string[] = [];
+  /** What the native side holds; a test may flip it to make a half dock. */
+  const native = { docked: false };
   const win: PeekWin = {
     outerPosition: async () => ({ x: geo.x, y: geo.y }),
     size: async () => ({ width: geo.width, height: geo.height }),
@@ -40,12 +51,40 @@ function fakeWindow(
     dockBottom: async (height) => {
       if (opts.noDock) throw new Error("not available");
       log.push(`dock:${height}`);
+      native.docked = true;
       geo = { x: 0, y: 1040 - height, width: 1920, height };
       return geo;
     },
-    undock: async () => void log.push("undock"),
+    undock: async () => {
+      log.push("undock");
+      native.docked = false;
+    },
+    ...(opts.native
+      ? {
+          dockState: async () => ({
+            docked: native.docked,
+            registered: native.docked,
+            lostPending: false,
+            window: null,
+            work: null,
+            monitors: 1,
+          }),
+          log: (kind: string, message: string) => void peekLog.push(`${kind}: ${message}`),
+        }
+      : {}),
   };
-  return { win, log, get geo() { return geo; } };
+  return {
+    win,
+    log,
+    peekLog,
+    native,
+    get geo() {
+      return geo;
+    },
+    set geo(g: PeekGeometry) {
+      geo = g;
+    },
+  };
 }
 
 const enterOpts = { geometry: null, logicalWidth: 420, logicalHeight: 200, forceHeight: true, alwaysOnTop: true };
@@ -308,5 +347,110 @@ describe("fitToMonitors / defaultPeekGeometry", () => {
   it("the default is centred on the current monitor, just above the taskbar", () => {
     expect(defaultPeekGeometry({ width: 600, height: 300 }, [side, main], 12)).toEqual({ x: 660, y: 1040 - 300 - 12, width: 600, height: 300 });
     expect(defaultPeekGeometry({ width: 600, height: 300 }, [], 12)).toBeNull();
+  });
+});
+
+/** §404: the half-docked states seen on a work laptop with a docking station, and the logging around them. */
+describe("docked Peek: consistency with the native side, and logging", () => {
+  const docked = { ...enterOpts, dockLogicalHeight: 200 };
+
+  it("leaving Peek gives a dock back that the page had lost track of (the window kept the strip's size)", async () => {
+    const f = fakeWindow({ native: true });
+    const c = createPeekWindowController(f.win);
+    await c.enter(enterOpts); // floating, as far as the page knows
+    f.native.docked = true; // ...but the native side still holds a strip
+    await c.leave();
+    expect(f.log).toContain("undock");
+    expect(f.native.docked).toBe(false);
+    expect(f.geo).toEqual({ x: 100, y: 100, width: 1100, height: 700 });
+    expect(f.peekLog.some((l) => l.startsWith("warn: leave: the native side still held a dock"))).toBe(true);
+  });
+
+  it("a dock the page does not know about is released right after the step that found it, and the recorder written out", async () => {
+    const f = fakeWindow({ native: true });
+    const c = createPeekWindowController(f.win);
+    f.native.docked = true; // left over from an earlier, failed docking
+    await c.enter(enterOpts);
+    expect(f.native.docked).toBe(false);
+    expect(f.peekLog).toContain("dump: half docked after enter");
+  });
+
+  it("released while floating, the window goes back to a floating Peek's size (not the strip's)", async () => {
+    const f = fakeWindow({ native: true });
+    const c = createPeekWindowController(f.win);
+    await c.enter(enterOpts);
+    f.native.docked = true;
+    f.geo = { x: 0, y: 840, width: 1920, height: 200 }; // the native dock put it on a strip
+    await c.check("window moved");
+    expect(f.native.docked).toBe(false);
+    expect(f.geo.width).toBe(420);
+  });
+
+  it("when the page believes it is docked but the native side is not, Peek floats", async () => {
+    const f = fakeWindow({ native: true });
+    const c = createPeekWindowController(f.win);
+    await c.enter(docked);
+    expect(c.isDocked()).toBe(true);
+    f.native.docked = false; // the native side lost it without telling the page
+    await c.check("window moved"); // Peek runs this when Windows moves or rescales the window
+    expect(f.peekLog.some((l) => l.startsWith("warn: after window moved: the page thought Peek was docked"))).toBe(true);
+    expect(c.isDocked()).toBe(false);
+    expect(f.geo.width).toBe(420); // floating size, not the full-width strip
+  });
+
+  it("a consistent dock is left alone and only noted in the flight recorder", async () => {
+    const f = fakeWindow({ native: true });
+    const c = createPeekWindowController(f.win);
+    await c.enter(docked);
+    await c.leave();
+    expect(f.peekLog.filter((l) => l.startsWith("warn:"))).toEqual([]);
+    expect(f.peekLog.some((l) => l.startsWith("event: enter Peek"))).toBe(true);
+    expect(f.peekLog.some((l) => l.startsWith("event: leave Peek: was docked"))).toBe(true);
+    expect(f.log.filter((l) => l === "undock")).toHaveLength(1);
+  });
+
+  it("after leaving, a full window that ended up off every screen is brought back onto one", async () => {
+    const f = fakeWindow({ native: true });
+    const c = createPeekWindowController(f.win);
+    await c.enter(docked);
+    // The setBounds that puts the full window back lands it off screen (Windows moving it during a dock change).
+    const realSetBounds = f.win.setBounds;
+    let first = true;
+    f.win.setBounds = async (g) => {
+      if (first) {
+        first = false;
+        f.geo = { x: 6000, y: 100, width: g.width, height: g.height };
+        return;
+      }
+      await realSetBounds(g);
+    };
+    await c.leave();
+    expect(fitToMonitors(f.geo, [{ work: SCREEN, current: true }])).not.toBeNull();
+    expect(f.peekLog.some((l) => l.startsWith("warn: the window was off screen"))).toBe(true);
+  });
+
+  it("leaving keeps a window exactly where it was when its title bar is on a screen, and pulls it in when not", async () => {
+    // Slightly over the taskbar: left exactly as it was.
+    const a = fakeWindow({ native: true, geometry: { x: 329, y: 400, width: 1115, height: 729 } });
+    const ca = createPeekWindowController(a.win);
+    await ca.enter(enterOpts);
+    await ca.leave();
+    expect(a.geo).toEqual({ x: 329, y: 400, width: 1115, height: 729 });
+    // Title bar above the top of the screen (mostly still on it): pulled inside.
+    const b = fakeWindow({ native: true, geometry: { x: 329, y: -60, width: 1115, height: 729 } });
+    const cb = createPeekWindowController(b.win);
+    await cb.enter(enterOpts);
+    await cb.leave();
+    expect(b.geo).toEqual({ x: 329, y: 0, width: 1115, height: 729 });
+  });
+
+  it("a failing step is logged with its name instead of vanishing", async () => {
+    const f = fakeWindow({ native: true });
+    f.win.setTransparent = async () => {
+      throw new Error("boom");
+    };
+    await createPeekWindowController(f.win).enter(enterOpts);
+    expect(f.peekLog).toContain("warn: enter failed: Error: boom");
+    expect(f.peekLog).toContain("dump: enter failed");
   });
 });
