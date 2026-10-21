@@ -114,7 +114,7 @@ test("a half dock (native docked, page floating) is found and released, and leav
   await expect.poll(async () => (await nativeState()).work.bottom, { timeout: 10_000 }).toBe(before.work.bottom);
   // Back at a floating Peek's size, not the strip's full width.
   await expect.poll(async () => width((await nativeState()).window), { timeout: 10_000 }).toBeLessThan(width(before.screen) / 2);
-  expect(logText()).toMatch(/TRACE {2}flight recorder \(half docked after window moved\)/);
+  expect(logText()).toMatch(/TRACE {2}flight recorder \(half docked after window (moved|resized)\)/);
   await leavePeek();
   await expect.poll(async () => sameRect((await nativeState()).window, before.window), { timeout: 10_000 }).toBe(true);
   expect((await nativeState()).work.bottom).toBe(before.work.bottom);

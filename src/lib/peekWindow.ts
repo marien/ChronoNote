@@ -183,6 +183,32 @@ export function createPeekWindowController(win: PeekWin) {
   /** §405: a lost dock was found while Windows had the window minimized. Moving a minimized window does not change
    * where it comes back on restore (it came back at the strip's place and size), so the float waits for the restore. */
   let floatOnRestore = false;
+  /** §407: Windows 11 remembers where a window was in each screen setup and puts it back there when that setup returns
+   * (reproduced with Win+P on two screens). The window is one window in two roles, so after leaving Peek the full
+   * window came back where Peek had been (on the dock strip, or the floating spot), and Peek could come back where the
+   * full window had been. These lists hold the outer rectangles seen this session in each role; landing exactly on a
+   * rectangle of the other role is Windows' doing, never the user's. */
+  type Rect4 = [number, number, number, number];
+  type Seen = { r: Rect4; scale: number };
+  const seen = { strips: [] as Seen[], peek: [] as Seen[], home: [] as Seen[] };
+  const near = (list: Seen[], r: Rect4, scale: number) =>
+    list.some((s) => {
+      if (s.r.every((v, i) => Math.abs(v - r[i]) <= 6)) return true;
+      // Put back on a screen with other scaling, the size is scaled (a 1938x265 strip at 125 % came back 1550x212 at
+      // 100 %) and the place differs: the scaled size is what matches then.
+      if (s.scale === scale) return false;
+      const k = scale / s.scale;
+      return Math.abs((s.r[2] - s.r[0]) * k - (r[2] - r[0])) <= 6 && Math.abs((s.r[3] - s.r[1]) * k - (r[3] - r[1])) <= 6;
+    });
+  const remember = (list: Seen[], r: Rect4, scale: number) => {
+    if (near(list, r, scale)) return;
+    list.push({ r, scale });
+    if (list.length > 8) list.shift();
+  };
+  /** The last repair, so a window Windows keeps putting back is not moved back and forth forever. */
+  let lastRepair = { key: "", at: 0 };
+  /** Whether leaving Peek maximized the full window again. */
+  let homeMaximized = false;
   const minimized = async (): Promise<boolean> => (win.isMinimized ? await win.isMinimized().catch(() => false) : false);
 
   const log = (kind: PeekLogKind, message: string) => {
@@ -249,6 +275,45 @@ export function createPeekWindowController(win: PeekWin) {
       if (lastOptions) await placeFloating(lastOptions);
       return;
     }
+    const w = native.window;
+    // Peek is never maximized, so a maximized window is neither a landing to repair nor a place to remember.
+    const maximized = await win.isMaximized().catch(() => false);
+    const shown = !!w && !(await minimized()) && !maximized;
+    const scale = (await win.scaleFactor()) || 1;
+    if (w && shown && !native.docked) {
+      const key = w.join(",");
+      const again = key === lastRepair.key && Date.now() - lastRepair.at < 3000;
+      const onStrip = near(seen.strips, w, scale);
+      const onHome = near(seen.home, w, scale) && !near(seen.peek, w, scale);
+      if (!again && full && !docked && lastOptions && (onStrip || onHome)) {
+        lastRepair = { key, at: Date.now() };
+        log("warn", `after ${after}: Windows put Peek back where ${onStrip ? "its dock strip" : "the full window"} was in an earlier screen setup; placing it as floating`);
+        log("dump", `old place after ${after}`);
+        await placeFloating(lastOptions);
+        return;
+      }
+      if (!again && !full && lastHome && near(seen.peek, w, scale) && !near(seen.home, w, scale)) {
+        lastRepair = { key, at: Date.now() };
+        const monitors = await win.monitors();
+        const home = (monitors.length ? fitToMonitors(lastHome, monitors) : lastHome) ?? defaultPeekGeometry(lastHome, monitors, 0) ?? lastHome;
+        log("warn", `after ${after}: Windows put the full window back where Peek was in an earlier screen setup; moved it back to ${fmtG(home)}`);
+        log("dump", `old place after ${after}`);
+        await win.setBounds(home);
+        if (homeMaximized) await win.setMaximized(true);
+        return;
+      }
+    }
+    if (w && shown) {
+      if (native.docked) remember(seen.strips, w, scale);
+      if (full || native.docked) remember(seen.peek, w, scale);
+      else remember(seen.home, w, scale);
+      // Where the user has moved it since is where it belongs now (review of §407): a later repair goes there.
+      if (full && !docked && !native.docked && lastOptions) lastOptions = { ...lastOptions, geometry: await currentGeometry() };
+      if (!full && !native.docked && lastHome) {
+        lastHome = await currentGeometry();
+        homeMaximized = false;
+      }
+    } else if (!full && maximized && lastHome) homeMaximized = true;
     if (native.docked && !(full && docked)) {
       log("warn", `after ${after}: the native side still held a dock the page did not know about; released it`);
       log("dump", `half docked after ${after}`);
@@ -329,6 +394,8 @@ export function createPeekWindowController(win: PeekWin) {
           const maximized = await win.isMaximized();
           if (maximized) await win.setMaximized(false);
           full = { geometry: await currentGeometry(), maximized };
+          const before = win.dockState ? await win.dockState().catch(() => null) : null;
+          if (before?.window && !before.docked) remember(seen.home, before.window, (await win.scaleFactor()) || 1);
         }
         log("event", `enter Peek: full window ${fmtG(full.geometry)}${full.maximized ? " (maximized)" : ""}, ${o.dockLogicalHeight === undefined ? "floating" : `docked at ${o.dockLogicalHeight}`}`);
         await win.setTransparent(true);
@@ -408,6 +475,7 @@ export function createPeekWindowController(win: PeekWin) {
             : fitted
           : (defaultPeekGeometry(back.geometry, monitors, 0) ?? back.geometry);
         lastHome = home;
+        homeMaximized = back.maximized;
         await win.setBounds(home);
         if (back.maximized) await win.setMaximized(true);
         await win.reveal();
@@ -431,7 +499,8 @@ export function createPeekWindowController(win: PeekWin) {
      * happens during a docking-station change). */
     check(reason: string): Promise<void> {
       return run("check", async () => {
-        if (full) await verify(reason);
+        // Outside Peek only once Peek has been used this session (§407): the full window can land where Peek was.
+        if (full || seen.peek.length > 0) await verify(reason);
       }, undefined);
     },
 

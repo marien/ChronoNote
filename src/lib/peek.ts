@@ -570,8 +570,9 @@ export function wirePeek(): () => void {
       // half a second after the last such event, so a drag costs one check.
       const { getCurrentWindow } = await import("@tauri-apps/api/window");
       let timer: ReturnType<typeof setTimeout> | null = null;
+      // §407: also outside Peek, where the check only acts when Windows has put the full window back where Peek was (its
+      // dock strip or floating spot), and otherwise notes where the user has moved or resized the window.
       const later = (reason: string) => {
-        if (!get(peekMode)) return;
         if (timer) clearTimeout(timer);
         timer = setTimeout(() => {
           timer = null;
@@ -584,6 +585,7 @@ export function wirePeek(): () => void {
       const w = getCurrentWindow();
       cleanups.push(await w.onScaleChanged(() => later("scale change")));
       cleanups.push(await w.onMoved(() => later("window moved")));
+      cleanups.push(await w.onResized(() => later("window resized")));
       cleanups.push(() => timer && clearTimeout(timer));
     } catch {
       // No window events (tests): nothing to follow.

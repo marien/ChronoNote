@@ -65,7 +65,7 @@ function fakeWindow(
             docked: native.docked,
             registered: native.docked,
             lostPending: false,
-            window: null,
+            window: [geo.x, geo.y, geo.x + geo.width, geo.y + geo.height] as [number, number, number, number],
             work: null,
             monitors: 1,
           }),
@@ -421,6 +421,131 @@ describe("docked Peek: consistency with the native side, and logging", () => {
     expect(f.peekLog).toContain("event: restored after the screens changed: placing the floating window");
     await c.check("window moved"); // only once
     expect(f.peekLog.filter((l) => l.startsWith("event: restored after"))).toHaveLength(1);
+  });
+
+  // §407, reproduced on two screens with Win+P: Windows remembers where a window was for each screen setup. Docked
+  // when that setup ended, the window comes back on the strip when the setup returns, also after leaving Peek.
+  it("after leaving Peek, the full window put back on an old strip by Windows is moved home", async () => {
+    const f = fakeWindow({ native: true });
+    const c = createPeekWindowController(f.win);
+    const home = { ...f.geo };
+    await c.enter(docked);
+    const strip = { ...f.geo };
+    await c.float(enterOpts);
+    await c.leave();
+    expect(f.geo).toEqual(home);
+    f.geo = { ...strip }; // the screen setup changed back
+    await c.check("window moved");
+    expect(f.geo).toEqual(home);
+    expect(f.peekLog.some((l) => l.startsWith("warn: after window moved: Windows put the full window back where Peek was"))).toBe(true);
+    f.geo = { x: 300, y: 300, width: 900, height: 600 }; // the user's own move is left alone
+    await c.check("window moved");
+    expect(f.geo).toEqual({ x: 300, y: 300, width: 900, height: 600 });
+  });
+
+  it("a floating Peek put back on an old strip by Windows is placed as floating again", async () => {
+    const f = fakeWindow({ native: true });
+    const c = createPeekWindowController(f.win);
+    await c.enter(docked);
+    const strip = { ...f.geo };
+    await c.float(enterOpts);
+    const floating = { ...f.geo };
+    f.geo = { ...strip };
+    await c.check("window moved");
+    expect(f.geo).toEqual(floating);
+    expect(c.isDocked()).toBe(false);
+  });
+
+  it("after leaving Peek, the full window put back on the floating Peek's place is moved home", async () => {
+    const f = fakeWindow({ native: true });
+    const c = createPeekWindowController(f.win);
+    const home = { ...f.geo };
+    await c.enter(enterOpts);
+    const floating = { ...f.geo };
+    await c.leave();
+    f.geo = { ...floating };
+    await c.check("window moved");
+    expect(f.geo).toEqual(home);
+  });
+
+  it("a floating Peek put back on the full window's place is placed as floating again", async () => {
+    const f = fakeWindow({ native: true });
+    const c = createPeekWindowController(f.win);
+    const home = { ...f.geo };
+    await c.enter(enterOpts);
+    const floating = { ...f.geo };
+    f.geo = { ...home };
+    await c.check("window moved");
+    expect(f.geo).toEqual(floating);
+    expect(f.peekLog.some((l) => l.includes("where the full window was in an earlier screen setup"))).toBe(true);
+  });
+
+  // Review of §407 (Gemini): a repair must go where the user last put the window, not where leaving Peek put it.
+  it("a repair of the full window goes where the user moved it after leaving Peek", async () => {
+    const f = fakeWindow({ native: true });
+    const c = createPeekWindowController(f.win);
+    await c.enter(docked);
+    const strip = { ...f.geo };
+    await c.leave();
+    const moved = { x: 400, y: 150, width: 900, height: 650 };
+    f.geo = { ...moved };
+    await c.check("window moved"); // the user's own move: noted
+    f.geo = { ...strip };
+    await c.check("window moved");
+    expect(f.geo).toEqual(moved);
+  });
+
+  it("a repair of a floating Peek goes where the user dragged it", async () => {
+    const f = fakeWindow({ native: true });
+    const c = createPeekWindowController(f.win);
+    await c.enter(docked);
+    const strip = { ...f.geo };
+    await c.float(enterOpts);
+    const dragged = { x: 1200, y: 100, width: 420, height: 200 }; // fit-to-section keeps the height
+    f.geo = { ...dragged };
+    await c.check("window moved");
+    f.geo = { ...strip };
+    await c.check("window moved");
+    expect(f.geo).toEqual(dragged);
+  });
+
+  it("a maximized window is never repaired, and the same landing is not repaired twice in a row", async () => {
+    const f = fakeWindow({ native: true });
+    const c = createPeekWindowController(f.win);
+    await c.enter(docked);
+    const strip = { ...f.geo };
+    await c.leave();
+    f.geo = { ...strip };
+    await f.win.setMaximized(true);
+    await c.check("window moved");
+    expect(f.geo).toEqual(strip); // maximized: left alone
+    await f.win.setMaximized(false);
+    await c.check("window moved"); // repaired once
+    const repairs = () => f.peekLog.filter((l) => l.includes("Windows put the full window back")).length;
+    expect(repairs()).toBe(1);
+    f.geo = { ...strip }; // Windows puts it back at once
+    await c.check("window moved");
+    expect(repairs()).toBe(1); // not again within a few seconds: no back-and-forth
+  });
+
+  it("a strip put back on a screen with other scaling is recognised by its scaled size", async () => {
+    const f = fakeWindow({ native: true, scale: 1.25 });
+    const c = createPeekWindowController(f.win);
+    const home = { ...f.geo };
+    await c.enter(docked);
+    const strip = { ...f.geo };
+    await c.leave();
+    f.win.scaleFactor = async () => 1; // now on a 100 % screen
+    f.geo = { x: 3, y: 820, width: Math.round(strip.width / 1.25), height: Math.round(strip.height / 1.25) };
+    await c.check("window moved");
+    expect(f.geo).toEqual(home);
+  });
+
+  it("without Peek this session, moves of the full window are not checked at all", async () => {
+    const f = fakeWindow({ native: true });
+    const c = createPeekWindowController(f.win);
+    await c.check("window moved");
+    expect(f.peekLog).toEqual([]);
   });
 
   it("a consistent dock is left alone and only noted in the flight recorder", async () => {
