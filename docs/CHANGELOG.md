@@ -10820,7 +10820,7 @@ From a test-coverage review (2026-10-17): Vitest covers 41% of `src/lib` lines a
 
 ## 408. Docked Peek: a dock made while a check runs no longer becomes the floating place
 
-**Status: on main, not released yet.**
+**Status: released in beta 0.32.5-6 (early channel only).**
 
 - CI's native test (the §404 half dock) failed on the 0.32.5-5 release commit: after the repair Peek floated at the strip's full width. Cause in §407's review fix "a repair goes where the user dragged floating Peek": a check read "not docked", the dock happened, then it read the window's place (already the strip) and took that as the floating place. CI's slower runner hit the gap; locally it passed.
 - Fix (`peekWindow.ts`): the place is taken only when a second read of the native state, after reading the place, shows the same undocked window. Same for the full window's place outside Peek. A unit test makes the dock happen between the two reads (fails on 0.32.5-5's code). Gates: Vitest 1280, native 18 including the display-switch tests on the two screens.
