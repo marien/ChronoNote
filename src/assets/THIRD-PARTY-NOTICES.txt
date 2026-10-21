@@ -1892,7 +1892,7 @@ CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 ================================================================================
 ISC License
 
-rustls-webpki 0.103.15
+rustls-webpki 0.103.16
 
 Except as otherwise noted, this project is licensed under the following
 (ISC-style) terms:
@@ -4851,7 +4851,7 @@ SOFTWARE.
 ================================================================================
 MIT License
 
-chrononote 0.32.5-2
+chrononote 0.32.5-3
 brotli-decompressor 6.0.1
 chrono-tz 0.10.4
 chrono 0.4.45
