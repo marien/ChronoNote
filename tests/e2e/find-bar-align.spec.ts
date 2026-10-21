@@ -5,6 +5,9 @@ import { seedApp, editor, todayFilename } from "./helpers";
  * actually is), not on boxes. Marien (§409): the query, "No results", "Aa" and "ab|" should be bottom-aligned on the
  * text; centring each of them on the row (the first attempt) looked messy, since they differ in font and size. */
 
+// The e2e tsconfig has no Node types; Playwright runs specs in Node, where `process` exists.
+declare const process: { platform: string };
+
 type Box = { x: number; y: number; width: number; height: number };
 type Ink = { top: number; bottom: number };
 
