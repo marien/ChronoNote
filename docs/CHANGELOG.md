@@ -10806,3 +10806,4 @@ From a test-coverage review (2026-10-17): Vitest covers 41% of `src/lib` lines a
 **Status: on main (tooling only, not in the app).**
 
 - CodeQL found four issues in `scripts/visual-review.mjs` (§399, local tool): the temporary worktree had a predictable name in the temp folder (now `mkdtemp`, the worktree inside it), Playwright was started through a shell with `npx` (now Playwright's CLI with Node itself, no shell; `run` never uses a shell), and findings in `review.md`'s table escaped `|` but not backslashes (now both).
+- A second CodeQL pass on that commit found two more paths into `run`: the node_modules link was made with `cmd /c mklink` (a shell), and the `--before` ref went to git unchecked. The link is now `fs.symlinkSync(..., "junction")` (checked: it is removed without touching the real node_modules), and a ref that is not branch/tag/commit characters, or starts with `-`, is refused.

@@ -78,13 +78,15 @@ function captureBefore(ref) {
   // A folder only this process created (unpredictable name, private); the worktree goes inside it.
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "chrononote-visual-"));
   const wt = path.join(tmp, "wt");
+  // A ref is a branch, tag or commit; anything else (an option, say) is refused before it reaches git.
+  if (!/^[\w./~^@{}-]+$/.test(ref) || ref.startsWith("-")) throw new Error(`--before: not a git ref: ${ref}`);
   const add = run("git", ["worktree", "add", "--detach", "-q", wt, ref], { cwd: ROOT });
   if (add.status !== 0) throw new Error(`git worktree add ${ref} failed: ${add.stderr.trim()}`);
   const nm = path.join(wt, "node_modules");
   let count = 0;
   try {
-    if (process.platform === "win32") run("cmd", ["/c", "mklink", "/J", nm, path.join(ROOT, "node_modules")]);
-    else fs.symlinkSync(path.join(ROOT, "node_modules"), nm, "dir");
+    // A junction on Windows (no admin rights needed), a directory link elsewhere.
+    fs.symlinkSync(path.join(ROOT, "node_modules"), nm, process.platform === "win32" ? "junction" : "dir");
     for (const f of ["tests/e2e/visual-gallery.spec.ts", "playwright.config.ts"]) {
       fs.copyFileSync(path.join(ROOT, f), path.join(wt, f));
     }
