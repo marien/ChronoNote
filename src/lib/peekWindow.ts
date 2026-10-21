@@ -308,10 +308,17 @@ export function createPeekWindowController(win: PeekWin) {
       if (full || native.docked) remember(seen.peek, w, scale);
       else remember(seen.home, w, scale);
       // Where the user has moved it since is where it belongs now (review of §407): a later repair goes there.
-      if (full && !docked && !native.docked && lastOptions) lastOptions = { ...lastOptions, geometry: await currentGeometry() };
-      if (!full && !native.docked && lastHome) {
-        lastHome = await currentGeometry();
-        homeMaximized = false;
+      // Only when nothing changed between the two reads: a dock made in between (the window already on its strip, the
+      // native state read just before) must not become the floating place (CI caught that race).
+      if (!native.docked && ((full && !docked && lastOptions) || (!full && lastHome))) {
+        const g = await currentGeometry();
+        const again = win.dockState ? await win.dockState().catch(() => null) : null;
+        const same = !!again && !again.docked && !!again.window && again.window.every((v, i) => v === w[i]);
+        if (same && full && lastOptions) lastOptions = { ...lastOptions, geometry: g };
+        if (same && !full) {
+          lastHome = g;
+          homeMaximized = false;
+        }
       }
     } else if (!full && maximized && lastHome) homeMaximized = true;
     if (native.docked && !(full && docked)) {

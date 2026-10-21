@@ -509,6 +509,28 @@ describe("docked Peek: consistency with the native side, and logging", () => {
     expect(f.geo).toEqual(dragged);
   });
 
+  // CI (0.32.5-5): a dock made between reading the native state and reading the window's place made the strip the
+  // floating place, so the half-dock repair floated Peek at the strip's size.
+  it("a dock made while a check runs does not become the floating place", async () => {
+    const f = fakeWindow({ native: true });
+    const c = createPeekWindowController(f.win);
+    await c.enter(enterOpts);
+    const floating = { ...f.geo };
+    const outer = f.win.outerPosition;
+    let dockNow = true;
+    f.win.outerPosition = async () => {
+      if (dockNow) {
+        dockNow = false;
+        await f.win.dockBottom(200); // behind the page's back, just now
+      }
+      return outer();
+    };
+    await c.check("window moved"); // read "not docked", then the window: already the strip
+    await c.check("window moved"); // finds the half dock and repairs it
+    expect(f.native.docked).toBe(false);
+    expect(f.geo).toEqual(floating);
+  });
+
   it("a maximized window is never repaired, and the same landing is not repaired twice in a row", async () => {
     const f = fakeWindow({ native: true });
     const c = createPeekWindowController(f.win);
