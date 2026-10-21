@@ -19,6 +19,8 @@
     "test:native": "node scripts/native-test.mjs",
     "visual:review": "node scripts/visual-review.mjs",
     "check:e2e": "tsc -p tests/tsconfig.json",
+    "verify": "node scripts/verify.mjs",
+    "prepare": "node scripts/install-hooks.mjs",
     "notices": "node scripts/gen-notices.mjs",
     "notices:check": "node scripts/gen-notices.mjs --check",
     "tauri": "tauri"

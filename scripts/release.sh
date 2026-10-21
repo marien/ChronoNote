@@ -9,8 +9,9 @@
 #                      [--checklist-done] [--force-red] [--beta]
 #
 #   <notes-file>   Markdown release notes (the GitHub release body).
-#   --skip-gates   Skip check/vitest/cargo test/playwright (only if they were
-#                  just run on this exact commit).
+#   --skip-gates   Skip check/check:e2e/vitest/cargo test/playwright (only if
+#                  they were just run on this exact commit). The cargo audit
+#                  always runs.
 #   --dry-run      Run preflight + gates + print the plan; change nothing.
 #   --checklist-done  Required for a minor release (X.Y.0): confirms the
 #                  environment checklist below was run (it is printed when the
@@ -137,14 +138,23 @@ LIST
   exit 1
 fi
 
+# A new RustSec advisory turns CI's Security Audit red on the release commit
+# (it did for 0.32.1-1 and 0.32.5-2): check before building (§410). Needs
+# cargo-audit: cargo install cargo-audit --locked
+step "cargo audit"
+command -v cargo-audit >/dev/null 2>&1 || { echo "cargo-audit missing: cargo install cargo-audit --locked" >&2; exit 1; }
+# RUSTSEC-2024-0429: Linux-only glib (Tauri's GTK side), as in security-audit.yml.
+run audit bash -c 'cd src-tauri && cargo audit --ignore RUSTSEC-2024-0429'
+
 # --------------------------------------------------------------------- gates
 if [[ $SKIP_GATES == 0 ]]; then
   step "gates (sequential; never run Playwright twice concurrently)"
   run check     npm run check
+  run checke2e  npm run check:e2e
   run vitest    npm test -- --maxWorkers=2 --testTimeout=30000 --hookTimeout=30000
   run cargotest bash -c 'cd src-tauri && cargo test'
   run playwright npx playwright test --workers=2
-  for f in check vitest cargotest playwright; do
+  for f in check checke2e vitest cargotest playwright; do
     printf '   %-10s %s\n' "$f" "$(grep -Eio '[0-9]+ passed|test result: ok\.[^;]*|COMPLETED.*' "$LOGS/$f.log" | tail -1)"
   done
 else
@@ -235,7 +245,13 @@ fi
 
 # ------------------------------------------------------------------- publish
 step "publish"
-git push -q origin main --follow-tags
+# The pre-push hook (.githooks) would run the checks again on the bump commit;
+# the gates above already did, unless they were skipped.
+if [[ $SKIP_GATES == 0 ]]; then
+  CHRONONOTE_SKIP_VERIFY=1 git push -q origin main --follow-tags
+else
+  git push -q origin main --follow-tags
+fi
 ok "pushed main + $TAG"
 cp "$EXE" "$ASSETS/"
 if [[ $BETA == 1 ]]; then

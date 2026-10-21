@@ -1,0 +1,29 @@
+#!/bin/sh
+# Runs scripts/verify.mjs (svelte-check, the e2e type check, Vitest, cargo test when Rust changed) before a push, so
+# a push does not turn CI red on something a minute of local checks would have caught (§410). Installed by
+# `npm install` (scripts/install-hooks.mjs sets core.hooksPath to .githooks). Skip in an emergency: git push --no-verify.
+[ -n "$CHRONONOTE_SKIP_VERIFY" ] && exit 0
+
+zero=0000000000000000000000000000000000000000
+shas=""
+rust=""
+while read -r local_ref local_sha remote_ref remote_sha; do
+  [ "$local_sha" = "$zero" ] && continue # deleting a branch
+  case "$remote_ref" in
+    refs/heads/website-live | refs/tags/*) continue ;; # deploy branch and tags: no new code
+  esac
+  shas="$shas $local_sha"
+  if [ "$remote_sha" = "$zero" ]; then
+    base=$(git merge-base origin/main "$local_sha" 2>/dev/null)
+  else
+    base=$remote_sha
+  fi
+  if [ -n "$base" ] && git diff --name-only "$base" "$local_sha" 2>/dev/null | grep -q '^src-tauri/'; then
+    rust="--rust"
+  fi
+done
+[ -z "$shas" ] && exit 0
+
+command -v node >/dev/null 2>&1 || PATH="/c/Program Files/nodejs:$PATH"
+command -v cargo >/dev/null 2>&1 || PATH="$HOME/.cargo/bin:$PATH"
+exec node "$(git rev-parse --show-toplevel)/scripts/verify.mjs" $rust --pushing $shas

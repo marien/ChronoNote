@@ -64,7 +64,11 @@ npm run check                  # svelte-check: TypeScript and Svelte types
 npm test                       # Vitest: logic, grammar, contracts
 cd src-tauri && cargo test     # Rust: storage, agenda, spell check
 npm run test:e2e               # Playwright: the full frontend against a mock backend
+npm run verify                 # before pushing: types, test types, Vitest, cargo test when Rust changed
 ```
+
+`npm install` sets up a pre-push hook ([`.githooks/pre-push`](.githooks/pre-push)) that runs `npm run verify`; it
+skips when that already passed on the commit being pushed.
 
 CI ([`.github/workflows/test.yml`](.github/workflows/test.yml)) runs these on every push and pull request, plus a
 real-app test on Windows and the layout specs with Windows fonts. [`tests/e2e/README.md`](tests/e2e/README.md)

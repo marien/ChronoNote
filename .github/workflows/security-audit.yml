@@ -1,12 +1,29 @@
 name: Security Audit
 
+# §410: new advisories are published independently of our commits. Run on every push, the audit turned red on every
+# unrelated push until the dependency was updated (8 of 14 red runs in mid-October 2026). Now: on pushes and pull
+# requests that change dependencies, and daily, so a new advisory shows up once, within a day. The release script runs
+# cargo audit before building.
 on:
   push:
     branches: [main]
+    paths:
+      - "package.json"
+      - "package-lock.json"
+      - "src-tauri/Cargo.toml"
+      - "src-tauri/Cargo.lock"
+      - ".github/workflows/security-audit.yml"
   pull_request:
+    paths:
+      - "package.json"
+      - "package-lock.json"
+      - "src-tauri/Cargo.toml"
+      - "src-tauri/Cargo.lock"
+      - ".github/workflows/security-audit.yml"
   schedule:
-    # Run weekly on Sundays at 04:00 UTC
-    - cron: "0 4 * * 0"
+    # Daily at 04:00 UTC
+    - cron: "0 4 * * *"
+  workflow_dispatch:
 
 permissions:
   contents: read
