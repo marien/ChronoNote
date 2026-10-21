@@ -1,15 +1,16 @@
 import { test, expect, type Page } from "@playwright/test";
 import { seedApp, editor, todayFilename } from "./helpers";
 
-/** The find bar's controls are vertically centred on one line: measured on the drawn pixels (where the ink of each
- * symbol and text actually is), not on boxes, since a glyph's box says little about where its ink sits (Marien: the
- * input text sat a little high and "Aa" / "ab|" a little low). */
+/** The find bar's text stands on one baseline and its icons are centred, measured on the drawn pixels (where the ink
+ * actually is), not on boxes. Marien (§409): the query, "No results", "Aa" and "ab|" should be bottom-aligned on the
+ * text; centring each of them on the row (the first attempt) looked messy, since they differ in font and size. */
 
 type Box = { x: number; y: number; width: number; height: number };
+type Ink = { top: number; bottom: number };
 
-/** Rows of the screenshot of `area` that hold ink (pixels clearly different from the area's own background, sampled
- * at its top-left corner), within each of `boxes`; returns the vertical centre of the ink per box, in page pixels. */
-async function inkCentres(page: Page, area: Box, boxes: Box[]): Promise<number[]> {
+/** The ink rows of the screenshot of `area` within each of `boxes` (pixels clearly different from the box's own
+ * background, sampled at its top-left corner), in page pixels: bottom = the lowest inked row's lower edge. */
+async function ink(page: Page, area: Box, boxes: Box[]): Promise<Ink[]> {
   const png = await page.screenshot({ clip: area });
   return page.evaluate(
     async ({ data, area, boxes }) => {
@@ -45,7 +46,7 @@ async function inkCentres(page: Page, area: Box, boxes: Box[]): Promise<number[]
             }
           }
         }
-        return top < 0 ? NaN : area.y + (top + bottom + 1) / 2 / scale;
+        return { top: area.y + top / scale, bottom: area.y + (bottom + 1) / scale };
       });
     },
     { data: png.toString("base64"), area, boxes },
@@ -58,33 +59,67 @@ async function measure(page: Page) {
   await page.keyboard.press("ControlOrMeta+f");
   const bar = page.locator(".find-bar");
   await expect(bar).toBeVisible();
+  // No descenders, so the ink's bottom is the baseline: "wert" (no matches: "No results"), "Aa", and "ab" of "ab|".
+  await bar.locator(".find-input").first().fill("wert");
+  await expect(bar.locator(".find-count")).toHaveText("No results");
+  // Sometimes the query is selected; its highlight would count as ink.
+  await bar.locator(".find-input").first().press("End");
+  // The blinking text cursor in the query box reaches below the letters: caught by a screenshot, it moved the
+  // measured baseline (a flaky failure).
+  await page.addStyleTag({ content: ".find-input { caret-color: transparent !important; }" });
   await page.mouse.move(0, 0);
   const row = (await bar.locator(".find-row").first().boundingBox())!;
-  const input = (await bar.locator(".find-input").first().boundingBox())!;
-  // The input's text area: inside its border and padding.
-  const inputText = { x: input.x + 6, y: input.y + 2, width: input.width - 12, height: input.height - 4 };
-  const parts: Array<[string, Box]> = [["input text", inputText]];
-  const buttons = bar.locator(".find-row").first().locator("button");
+  const box = async (sel: string) => (await bar.locator(sel).first().boundingBox())!;
+  const input = await box(".find-input");
+  const count = await box(".find-count");
+  const aa = await box('.find-opt-glyph[data-glyph="Aa"]');
+  const ab = await box('.find-opt-glyph[data-glyph="ab|"]');
+  const rowBand = (b: Box) => ({ x: b.x, y: row.y, width: b.width, height: row.height });
+  const text: Array<[string, Box]> = [
+    ["query text", { x: input.x + 6, y: input.y + 2, width: input.width - 12, height: input.height - 4 }],
+    ["No results", rowBand(count)],
+    ["Aa", rowBand(aa)],
+    ["ab of ab|", rowBand({ ...ab, width: ab.width * 0.6 })],
+  ];
+  const icons: Array<[string, Box]> = [];
+  const buttons = bar.locator(".find-row").first().locator("button:not(.find-opt-btn)");
   for (let i = 0; i < (await buttons.count()); i++) {
     const b = (await buttons.nth(i).boundingBox())!;
-    parts.push([(await buttons.nth(i).getAttribute("aria-label")) ?? `button ${i}`, { x: b.x + 2, y: b.y + 2, width: b.width - 4, height: b.height - 4 }]);
+    icons.push([(await buttons.nth(i).getAttribute("aria-label")) ?? `button ${i}`, { x: b.x + 2, y: b.y + 2, width: b.width - 4, height: b.height - 4 }]);
   }
   const area = { x: Math.floor(row.x), y: Math.floor(row.y) - 2, width: Math.ceil(row.width), height: Math.ceil(row.height) + 4 };
-  const centres = await inkCentres(page, area, parts.map(([, b]) => b));
+  const found = await ink(page, area, [...text, ...icons].map(([, b]) => b));
+  const baselines = found.slice(0, text.length).map((f) => f.bottom);
+  const base = baselines[0];
   const rowCentre = row.y + row.height / 2;
-  const report = parts.map(([name], i) => `${name}: ${(centres[i] - rowCentre).toFixed(2)}`).join("\n");
-  console.log(`ink centre minus row centre (px):\n${report}`);
-  for (const [i, [name]] of parts.entries()) {
-    expect(Math.abs(centres[i] - rowCentre), `${name} off centre by ${(centres[i] - rowCentre).toFixed(2)} px`).toBeLessThanOrEqual(1);
+  console.log(
+    [
+      ...text.map(([name], i) => `${name}: baseline ${(baselines[i] - base).toFixed(2)} from the query's`),
+      ...icons.map(([name], i) => {
+        const f = found[text.length + i];
+        return `${name}: centre ${((f.top + f.bottom) / 2 - rowCentre).toFixed(2)} from the row's`;
+      }),
+    ].join("\n"),
+  );
+  // One device pixel of rounding either way.
+  const slack = 1;
+  for (const [i, [name]] of text.entries()) {
+    expect(Math.abs(baselines[i] - base), `${name}: baseline ${(baselines[i] - base).toFixed(2)} px from the query's`).toBeLessThanOrEqual(slack);
+  }
+  for (const [i, [name]] of icons.entries()) {
+    const f = found[text.length + i];
+    const off = (f.top + f.bottom) / 2 - rowCentre;
+    expect(Math.abs(off), `${name}: ${off.toFixed(2)} px off the row's centre`).toBeLessThanOrEqual(slack);
   }
 }
 
-// Windows fonts only: the offsets depend on the font, and the app runs on Windows (CI's Windows layout job runs it).
+// Windows fonts only: where the ink falls depends on the font, and the app runs on Windows (CI's Windows layout job
+// runs it).
 for (const scale of [1, 1.25, 1.5]) {
   test.describe(`at ${scale * 100} %`, () => {
     test.skip(process.platform !== "win32", "measured with Windows fonts");
     test.use({ deviceScaleFactor: scale });
-    test("the find bar's symbols, text and buttons share one vertical centre", async ({ page }) => {
+    test("the find bar's text stands on one baseline and its icons are centred", async ({ page }) => {
       await measure(page);
     });
   });
