@@ -56,7 +56,10 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
   workers: process.env.CI ? 2 : undefined,
-  reporter: process.env.CI ? [["github"], ["html", { open: "never" }]] : [["list"], ["html", { open: "never" }]],
+  // §411: on CI also a JSON report, read by scripts/report-flaky.mjs to list tests that only passed on the retry.
+  reporter: process.env.CI
+    ? [["github"], ["html", { open: "never" }], ["json", { outputFile: "test-results/results.json" }]]
+    : [["list"], ["html", { open: "never" }]],
   outputDir: "./test-results/e2e",
 
   use: {

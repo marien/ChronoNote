@@ -138,6 +138,13 @@ LIST
   exit 1
 fi
 
+# Every CHANGELOG section since the previous release needs a status (§411);
+# the statuses themselves are filled in just before the version bump.
+if [[ $BUMPED == 0 ]]; then
+  BETA_FLAG=""; [[ $BETA == 1 ]] && BETA_FLAG="--beta"
+  run changelog-check node scripts/changelog-status.mjs "$VERSION" $BETA_FLAG --check
+fi
+
 # A new RustSec advisory turns CI's Security Audit red on the release commit
 # (it did for 0.32.1-1 and 0.32.5-2): check before building (§410). Needs
 # cargo-audit: cargo install cargo-audit --locked
@@ -168,12 +175,24 @@ fi
 # ---------------------------------------------------------------------- bump
 step "version bump"
 if [[ $BUMPED == 0 ]]; then
+  # The CHANGELOG statuses for this release, in a commit of their own before
+  # the bump (which touches the version files only).
+  run changelog-status node scripts/changelog-status.mjs "$VERSION" $BETA_FLAG
+  if [[ -n "$(git status --porcelain docs/CHANGELOG.md)" ]]; then
+    git add docs/CHANGELOG.md
+    git commit -q -m "CHANGELOG: statuses for $TAG$TRAILER"
+    ok "CHANGELOG statuses filled in"
+  fi
   node -e '
     const fs=require("fs"),v=process.argv[1];
     for (const f of ["package.json","src-tauri/tauri.conf.json"]) {
       const s=fs.readFileSync(f,"utf8");
       fs.writeFileSync(f,s.replace(/("version":\s*")[^"]+(")/,`$1${v}$2`));
     }
+    // package-lock.json repeats the version twice (top level and the root package); it had stayed at an old one.
+    const lock=JSON.parse(fs.readFileSync("package-lock.json","utf8"));
+    lock.version=v; if (lock.packages && lock.packages[""]) lock.packages[""].version=v;
+    fs.writeFileSync("package-lock.json",JSON.stringify(lock,null,2)+"\n");
     let c=fs.readFileSync("src-tauri/Cargo.toml","utf8");
     fs.writeFileSync("src-tauri/Cargo.toml",c.replace(/^version = "[^"]+"/m,`version = "${v}"`));
   ' "$VERSION"
@@ -183,7 +202,7 @@ if [[ $BUMPED == 0 ]]; then
     run notices npm run notices
     git add src/assets/THIRD-PARTY-NOTICES.txt
   fi
-  git add package.json src-tauri/tauri.conf.json src-tauri/Cargo.toml src-tauri/Cargo.lock
+  git add package.json package-lock.json src-tauri/tauri.conf.json src-tauri/Cargo.toml src-tauri/Cargo.lock
   git commit -q -m "Bump version to $VERSION$TRAILER"
   ok "committed"
 else

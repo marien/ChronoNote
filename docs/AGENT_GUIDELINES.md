@@ -64,21 +64,24 @@ For the full design specifications, see:
 
 ## 4. Verification Protocol (Quality Gate)
 
-Every contributor or agent must run and pass all four quality checks before finishing a task:
+Every contributor or agent must run and pass these checks before finishing a task:
 
 ```bash
-# 1. Type-check Svelte and TypeScript
-npm run check
+# 1. Types (Svelte/TypeScript and the Playwright specs), unit tests, and when anything under src-tauri/ changed:
+#    cargo test and cargo clippy with warnings as errors. The same checks CI runs first; the pre-push hook runs it.
+npm run verify
 
-# 2. Run unit tests (tokens, date math, controller logic)
-npm test
+# 2. Browser tests for the area you changed (the full suite takes ~10 minutes; CI runs all of it)
+npx playwright test tests/e2e/<area>.spec.ts
 
-# 3. Run Rust unit tests (atomic storage, CAS hash checks)
-cargo test --manifest-path src-tauri/Cargo.toml
-
-# 4. Verify clean production desktop build
+# 3. Verify clean production desktop build
 npm run build
 ```
+
+Also: a change gets a numbered section in `docs/CHANGELOG.md` with a `**Status: on main, not released yet.**` line
+(the release script fills in the release); user-facing behaviour goes into `website/guide.html` (its shortcut table is
+checked against `src/lib/shortcuts.ts`) and `docs/spec.md`; anything that only a person can confirm (real hardware, a
+real account) goes into `docs/open-checks.md`.
 
 ### 4.1 Build Artifacts & Release Isolation
 - **NEVER** include compiled web app or demo app bundles (`website/webapp` or `website/demo`) in a feature PR or branch.

@@ -81,6 +81,7 @@ explains the Playwright harness.
 | [User guide](https://chrononote.mariendegelder.nl/guide.html) ([source](website/guide.html)) | How to use ChronoNote: symbols, shortcuts, workflows |
 | [`docs/spec.md`](docs/spec.md) | The precise product and technical reference: syntax, behaviour, storage, backends, testing |
 | [`docs/CHANGELOG.md`](docs/CHANGELOG.md) | The decision log: every change as a numbered section (§) with why it was made |
+| [`docs/open-checks.md`](docs/open-checks.md) | What is built but still needs a person to confirm it (real hardware, a later event) |
 | [Releases](https://github.com/marien/ChronoNote/releases) | Release notes per version |
 | [`docs/design/`](docs/design/README.md) | Design proposals and reviews behind larger changes |
 | [`docs/AGENT_GUIDELINES.md`](docs/AGENT_GUIDELINES.md) | Rules and invariants for anyone, human or AI agent, changing the code |

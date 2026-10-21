@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// The checks CI runs first, in one command (§410): svelte-check, the e2e type check, Vitest, and cargo test when Rust
+// The checks CI runs first, in one command (§410): svelte-check, the e2e type check, Vitest, and cargo test + clippy when Rust
 // changed. About one or two minutes; run it before every push (the pre-push hook in .githooks/ does). Three of the
 // fourteen red CI runs of mid-October 2026 were pushes that skipped one of these, mostly `check:e2e`.
 //
@@ -43,7 +43,12 @@ const steps = [
   ["svelte-check", node, [path.join("node_modules", "svelte-check", "bin", "svelte-check"), "--tsconfig", "./tsconfig.json", "--output", "machine"], ROOT],
   ["check:e2e", node, [path.join("node_modules", "typescript", "bin", "tsc"), "-p", "tests/tsconfig.json"], ROOT],
   ["vitest", node, [path.join("node_modules", "vitest", "vitest.mjs"), "run"], ROOT],
-  ...(rust ? [["cargo test", "cargo", ["test", "--quiet"], path.join(ROOT, "src-tauri")]] : []),
+  ...(rust
+    ? [
+        ["cargo test", "cargo", ["test", "--quiet"], path.join(ROOT, "src-tauri")],
+        ["cargo clippy", "cargo", ["clippy", "--all-targets", "--quiet", "--", "-D", "warnings"], path.join(ROOT, "src-tauri")],
+      ]
+    : []),
 ];
 
 let failed = false;
