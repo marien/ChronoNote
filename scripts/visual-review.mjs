@@ -48,17 +48,18 @@ const task = opt("--task") ?? "visual-review";
 const AGY = process.env.AGY ?? path.join(process.env.LOCALAPPDATA ?? "", "agy", "bin", "agy.exe");
 
 function run(cmd, cmdArgs, opts = {}) {
-  // npx is a .cmd on Windows and needs a shell; every argument passed here is a fixed word or a path without spaces.
-  const shell = process.platform === "win32" && cmd === "npx";
-  const r = spawnSync(shell ? [cmd, ...cmdArgs].join(" ") : cmd, shell ? [] : cmdArgs, { encoding: "utf8", shell, ...opts });
+  // Never through a shell: arguments are passed as they are, whatever paths they contain.
+  const r = spawnSync(cmd, cmdArgs, { encoding: "utf8", ...opts });
   if (r.error) throw r.error;
   return r;
 }
 
-/** Runs the gallery spec in `cwd` on its own Vite server (`port`), writing to `outDir`. */
+/** Runs the gallery spec in `cwd` on its own Vite server (`port`), writing to `outDir`. Playwright's CLI is started with
+ * this Node itself (npx is a .cmd on Windows and would need a shell). */
 function capture(cwd, outDir, port, extraEnv = {}) {
   fs.rmSync(outDir, { recursive: true, force: true });
-  const r = run("npx", ["playwright", "test", "tests/e2e/visual-gallery.spec.ts", "--project=chromium", "--workers=2", "--reporter=line"], {
+  const cli = path.join(cwd, "node_modules", "@playwright", "test", "cli.js");
+  const r = run(process.execPath, [cli, "test", "tests/e2e/visual-gallery.spec.ts", "--project=chromium", "--workers=2", "--reporter=line"], {
     cwd,
     env: { ...process.env, VISUAL_GALLERY: "1", VISUAL_OUT: outDir, E2E_PORT: String(port), E2E_MATRIX: "0", ...extraEnv },
   });
@@ -74,7 +75,9 @@ const pngCount = (dir) => (fs.existsSync(dir) ? fs.readdirSync(dir, { recursive:
 /** Captures the gallery of `ref` in a temporary detached worktree, with the CURRENT gallery spec and Playwright config
  * (the old commit may not have them), so both galleries show the same states. */
 function captureBefore(ref) {
-  const wt = path.join(os.tmpdir(), `chrononote-visual-${Date.now()}`);
+  // A folder only this process created (unpredictable name, private); the worktree goes inside it.
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "chrononote-visual-"));
+  const wt = path.join(tmp, "wt");
   const add = run("git", ["worktree", "add", "--detach", "-q", wt, ref], { cwd: ROOT });
   if (add.status !== 0) throw new Error(`git worktree add ${ref} failed: ${add.stderr.trim()}`);
   const nm = path.join(wt, "node_modules");
@@ -104,7 +107,10 @@ function captureBefore(ref) {
     } catch {
       linkGone = !fs.existsSync(nm);
     }
-    if (linkGone) run("git", ["worktree", "remove", "--force", wt], { cwd: ROOT });
+    if (linkGone) {
+      run("git", ["worktree", "remove", "--force", wt], { cwd: ROOT });
+      fs.rmSync(tmp, { recursive: true, force: true });
+    }
     else console.log(`   could not remove the node_modules link in ${wt}; remove it by hand (rmdir), then: git worktree remove --force ${wt}`);
   }
   return count;
@@ -299,7 +305,7 @@ const md = [
     : failed.length
       ? `No findings in the variants that were reviewed; **the review is incomplete** (${failed.length} variant(s) failed, see above).`
       : "No findings.",
-  ...all.map((f) => `| ${f.severity} | ${f.new === true ? "new" : f.new === false ? "was there" : ""} | ${f.variant} / ${f.state} | ${String(f.problem).replace(/\s*\r?\n\s*/g, " ").replace(/\|/g, "\\|")} |`),
+  ...all.map((f) => `| ${f.severity} | ${f.new === true ? "new" : f.new === false ? "was there" : ""} | ${f.variant} / ${f.state} | ${String(f.problem).replace(/\s*\r?\n\s*/g, " ").replace(/\\/g, "\\\\").replace(/\|/g, "\\|")} |`),
   ``,
   `Screenshots: test-results/visual/current/<variant>/<state>.png${paired ? " (and before/)" : ""}.`,
 ].join("\n");
