@@ -10775,14 +10775,14 @@ From a test-coverage review (2026-10-17): Vitest covers 41% of `src/lib` lines a
 
 ## 403. Certificate checking: rustls-webpki 0.103.16, webpki-root-certs 1.0.10
 
-**Status: on `main`, unreleased (after beta 0.32.5-2).**
+**Status: released in beta 0.32.5-3 (early channel only).**
 
 - The Security Audit went red on the 0.32.5-2 release commit: two advisories published the same day, RUSTSEC-2026-0370..0372 (rustls-webpki 0.103.15 may accept distrusted intermediate certificates) and RUSTSEC-2026-0382/0383 (webpki-root-certs bundled roots that are now distrusted). Both sit under the app's HTTPS connections (the updater talking to GitHub). The beta itself carries the old versions.
 - `cargo update -p rustls-webpki -p webpki-root-certs`: only `Cargo.lock` changes (0.103.15 -> 0.103.16, 1.0.9 -> 1.0.10). Same pattern as §382 (rustls). The four "unmaintained" notices in the same run (proc-macro-error, zbus_names, zvariant, zvariant_derive; Linux-only or build-time) are warnings, not failures.
 
 ## 404. Docked Peek with a docking station: screen changes, half-docked states, logging
 
-**Status: on branch `fix/peek-dock`, unreleased.**
+**Status: released in beta 0.32.5-3 (early channel only).**
 
 - **Marien (work laptop with a docking station, on 0.32.5-x):** docked Peek did not always switch to floating when the docking station was connected or disconnected; once the main window disappeared (quit from the taskbar); once the full window kept the docked strip's size after leaving Peek; entering Peek happens in visible steps and seemed able to stop half docked. No logging existed to see what happened.
 - **Causes found by reading the code (not reproduced on a docking station; this machine has one monitor):** (1) while docked, every move Windows made was rewritten back onto the strip of the monitor Peek docked on, including the move Windows makes to take the window off a monitor that went away: the window was forced onto coordinates that no longer existed (off screen). (2) The screen check compared with the setup saved at the last reservation, and a move during the change made Peek reserve again and save the NEW setup first, so the display-change message that followed saw no difference. Windows' own AppBar notification was ignored. (3) Docking was several steps; a failed step left the window registered and held while the page believed it floated, and errors were swallowed; leaving Peek then had the leftover hold squeeze the restored window back to strip size.
