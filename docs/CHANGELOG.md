@@ -10794,7 +10794,7 @@ From a test-coverage review (2026-10-17): Vitest covers 41% of `src/lib` lines a
 
 ## 405. Docked Peek: a dock lost while Windows has Peek minimized floats it when it comes back
 
-**Status: on main, not released yet.**
+**Status: released in beta 0.32.5-4 (early channel only).**
 
 - **Marien (work laptop, three monitors via a docking station, on 0.32.5-3):** switching the display setup several times with Peek docked, once the window came back where it had been docked, at the strip's size but no longer docked, and had to be resized by hand.
 - **The log (Copy diagnostics) showed it:** of the three switches, two floated Peek correctly. In the one to "external screens only", Windows minimized Peek about 0.1 s before the display change. The dock was found lost and Peek was floated, but on a minimized window; when Windows restored it, it put it back where it had been in that display setup: the strip, rescaled for the other monitor (1938x265 at 125 % -> 1550x212 at 100 %). The page and the native side then both said "floating", so nothing repaired it.
