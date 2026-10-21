@@ -10810,7 +10810,7 @@ From a test-coverage review (2026-10-17): Vitest covers 41% of `src/lib` lines a
 
 ## 407. Docked Peek: Windows putting the window back where it was in an earlier screen setup
 
-**Status: on main, not released yet.**
+**Status: released in beta 0.32.5-5 (early channel only).**
 
 - **Marien (work laptop, on 0.32.5-4):** after switching display modes with Peek docked, the full window (not in Peek) took the docked strip's size. The log showed leaving Peek had put the full window back correctly; what happened afterwards was not logged.
 - **Reproduced on this machine** (two screens, Marien's go-ahead to switch display modes with `DisplaySwitch.exe`, i.e. Win+P): Windows 11 remembers where a window was in each screen setup and puts it back there when that setup returns. ChronoNote's Peek and full window are the same window, so: dock Peek in "second screen only", switch to "extend", leave Peek, switch to "second screen only" again: the full window came back on the old dock strip, every time. Once that was fixed, it came back on the floating Peek's spot instead (the last place it had in that setup), and a floating Peek came back on its old strip. Windows also minimizes a window whose screen goes away (the §405 case) and remembers that per setup too; that is left as Windows does it.
