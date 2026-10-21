@@ -34,6 +34,8 @@ async function leavePeek() {
 }
 
 test.beforeAll(async () => {
+  // The test app's own log (its own identifier), emptied so lines from an earlier run cannot satisfy these tests.
+  fs.rmSync(LOG, { force: true });
   fs.writeFileSync(path.join(NOTES, TODAY), NOTE);
   // English UI (the dock button is found by its label); Peek floating, header always shown, no fade.
   writeConfig(NOTES, { languageMode: "en", peek: { header: "always", fadeSeconds: 0, dockBottom: false, defaultsVersion: 5 } });
@@ -116,6 +118,32 @@ test("a half dock (native docked, page floating) is found and released, and leav
   await leavePeek();
   await expect.poll(async () => sameRect((await nativeState()).window, before.window), { timeout: 10_000 }).toBe(true);
   expect((await nativeState()).work.bottom).toBe(before.work.bottom);
+});
+
+/** §405, from a work-laptop log: switching to "external screens only", Windows minimized docked Peek and then the dock
+ * was lost. Floating it while minimized did not stick: restored, Windows put it back at the strip's place and size
+ * (rescaled for the other monitor). The display switch is imitated: minimize, give the strip back behind the page's
+ * back, and send the event the native side sends. With one monitor Windows keeps a position set while minimized, so
+ * this cannot show the old failure; it shows that the float now waits, and that a real restore places it. */
+test("a dock lost while minimized floats Peek when Windows restores it", async () => {
+  const before = await nativeState();
+  await enterPeek();
+  const dockButton = page.locator("#peek-bar").getByRole("button", { name: "Dock to the bottom of the screen" });
+  if (await dockButton.count()) await dockButton.click(); // the previous test left it floating
+  await expect.poll(async () => (await nativeState()).work.bottom, { timeout: 10_000 }).toBeLessThan(before.work.bottom - 40);
+  const invoke = (cmd: string, args: object = {}) =>
+    page.evaluate(([c, a]) => (window as any).__TAURI_INTERNALS__.invoke(c, a), [cmd, args] as const);
+  await invoke("plugin:window|minimize", { label: "main" });
+  await expect.poll(async () => (await nativeState()).minimized, { timeout: 10_000 }).toBe(true);
+  await invoke("peek_undock");
+  await invoke("plugin:event|emit", { event: "peek-dock-lost", payload: null });
+  await expect.poll(() => logText().includes("the window is minimized: it floats when it is restored"), { timeout: 10_000 }).toBe(true);
+  await invoke("plugin:window|unminimize", { label: "main" });
+  await expect.poll(() => logText().includes("restored after the screens changed: placing the floating window"), { timeout: 10_000 }).toBe(true);
+  await expect.poll(async () => width((await nativeState()).window), { timeout: 10_000 }).toBeLessThan(width(before.screen) / 2);
+  expect((await nativeState()).work.bottom).toBe(before.work.bottom);
+  await leavePeek();
+  await expect.poll(async () => sameRect((await nativeState()).window, before.window), { timeout: 10_000 }).toBe(true);
 });
 
 test("docking, the strip and undocking are in the app log, with milliseconds", async () => {

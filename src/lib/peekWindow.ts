@@ -146,6 +146,8 @@ export interface PeekWin {
   dockBottom(height: number): Promise<PeekGeometry>;
   /** Rust `peek_undock`: give the strip back. */
   undock(): Promise<void>;
+  /** §405: whether Windows has the window minimized (optional: treated as not minimized when absent). */
+  isMinimized?(): Promise<boolean>;
   /** §404: Rust `peek_dock_state`; null where there is no native side. */
   dockState?(): Promise<DockState | null>;
   /** §404: Rust `peek_log`. */
@@ -178,6 +180,10 @@ export function createPeekWindowController(win: PeekWin) {
   let lastOptions: PeekEnterOptions | null = null;
   /** Where leaving Peek last put the full window, for a repair after leaving (§404). */
   let lastHome: PeekGeometry | null = null;
+  /** §405: a lost dock was found while Windows had the window minimized. Moving a minimized window does not change
+   * where it comes back on restore (it came back at the strip's place and size), so the float waits for the restore. */
+  let floatOnRestore = false;
+  const minimized = async (): Promise<boolean> => (win.isMinimized ? await win.isMinimized().catch(() => false) : false);
 
   const log = (kind: PeekLogKind, message: string) => {
     try {
@@ -237,6 +243,12 @@ export function createPeekWindowController(win: PeekWin) {
     if (!native) return;
     log("detail", `check after ${after}: page ${full ? (docked ? "docked" : "floating") : "not in Peek"}, native ${JSON.stringify(native)}`);
     if (native.lostPending) return; // still undocking after a second: the next check will see it
+    if (floatOnRestore && full && !docked && !native.docked && !(await minimized())) {
+      floatOnRestore = false;
+      log("event", "restored after the screens changed: placing the floating window");
+      if (lastOptions) await placeFloating(lastOptions);
+      return;
+    }
     if (native.docked && !(full && docked)) {
       log("warn", `after ${after}: the native side still held a dock the page did not know about; released it`);
       log("dump", `half docked after ${after}`);
@@ -248,7 +260,10 @@ export function createPeekWindowController(win: PeekWin) {
       log("warn", `after ${after}: the page thought Peek was docked but the native side was not; floating it`);
       log("dump", `half docked after ${after}`);
       docked = null;
-      if (lastOptions) await placeFloating(lastOptions);
+      if (await minimized()) {
+        floatOnRestore = true;
+        log("event", "the window is minimized: it floats when it is restored");
+      } else if (lastOptions) await placeFloating(lastOptions);
     }
   };
 
@@ -305,6 +320,7 @@ export function createPeekWindowController(win: PeekWin) {
   return {
     enter(o: PeekEnterOptions): Promise<void> {
       return run("enter", async () => {
+        floatOnRestore = false;
         lastOptions = o;
         if (!full) {
           // A maximized window only reveals the size it will have when restored once it IS restored. Reading its
@@ -329,6 +345,7 @@ export function createPeekWindowController(win: PeekWin) {
      * or null when it was not floating or docking is not available. */
     dock(logicalHeight: number, alwaysOnTop: boolean): Promise<PeekGeometry | null> {
       return run("dock", async () => {
+        floatOnRestore = false;
         if (!full || docked) return null;
         const floating = await currentGeometry();
         log("event", `dock button: floating window was ${fmtG(floating)}`);
@@ -345,6 +362,7 @@ export function createPeekWindowController(win: PeekWin) {
     float(o: PeekEnterOptions): Promise<void> {
       return run("float", async () => {
         if (!full || !docked) return;
+        floatOnRestore = false;
         docked = null;
         await win.undock();
         await placeFloating(o);
@@ -359,6 +377,7 @@ export function createPeekWindowController(win: PeekWin) {
     /** Puts the full window back; resolves to the compact geometry it had (to remember), or null. */
     leave(): Promise<PeekGeometry | null> {
       return run("leave", async () => {
+        floatOnRestore = false;
         if (!full) return null;
         const compact = await currentGeometry();
         const back = full;
@@ -458,6 +477,7 @@ export async function nativePeekWindow(): Promise<PeekWin> {
       }));
     },
     isMaximized: () => w.isMaximized(),
+    isMinimized: () => w.isMinimized(),
     setMaximized: (on) => (on ? w.maximize() : w.unmaximize()),
     setMinSize: (width, height) => w.setMinSize(new LogicalSize(width, height)),
     setBounds: async (g) => {

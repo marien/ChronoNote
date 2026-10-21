@@ -398,6 +398,31 @@ describe("docked Peek: consistency with the native side, and logging", () => {
     expect(f.geo.width).toBe(420); // floating size, not the full-width strip
   });
 
+  // §405, from a work-laptop log: Windows minimized Peek just before switching to "external screens only". Floating it
+  // while minimized did nothing useful (it came back at the strip's place and size); it now floats on restore.
+  it("a dock lost while Windows has the window minimized floats it once it is restored", async () => {
+    const f = fakeWindow({ native: true });
+    let min = false;
+    f.win.isMinimized = async () => min;
+    const c = createPeekWindowController(f.win);
+    await c.enter(docked);
+    min = true;
+    f.native.docked = false;
+    const boundsBefore = f.log.filter((l) => l.startsWith("bounds:")).length;
+    await c.check("dock lost");
+    expect(c.isDocked()).toBe(false);
+    expect(f.log.filter((l) => l.startsWith("bounds:"))).toHaveLength(boundsBefore); // not moved while minimized
+    expect(f.peekLog).toContain("event: the window is minimized: it floats when it is restored");
+    await c.check("window moved"); // still minimized: still waiting
+    expect(f.log.filter((l) => l.startsWith("bounds:"))).toHaveLength(boundsBefore);
+    min = false; // restored, at the strip's old place
+    await c.check("window moved");
+    expect(f.geo.width).toBe(420);
+    expect(f.peekLog).toContain("event: restored after the screens changed: placing the floating window");
+    await c.check("window moved"); // only once
+    expect(f.peekLog.filter((l) => l.startsWith("event: restored after"))).toHaveLength(1);
+  });
+
   it("a consistent dock is left alone and only noted in the flight recorder", async () => {
     const f = fakeWindow({ native: true });
     const c = createPeekWindowController(f.win);
