@@ -10727,7 +10727,7 @@ From a test-coverage review (2026-10-17): Vitest covers 41% of `src/lib` lines a
 
 ## 398. Docked Peek floats when the screens change
 
-**Status: released in beta 0.32.5-1 (early channel only), also in 0.32.5-2.**
+**Status: released in v0.32.5 (beta 0.32.5-1 first).**
 
 - **Marien:** with Peek docked, disconnecting the external monitors left Peek on about half the reserved strip and then it disappeared until Esc; reconnecting the screens sometimes brought it back, sometimes not. Suggested leaving docked Peek as soon as the number of screens changes.
 - **Cause (not reproduced; this dev machine has one monitor):** when monitors come or go, Windows moves every reserved AppBar strip on its own and sends the AppBar a notification that `peek_dock.rs` never handled (`uCallbackMessage` was noted as "not handled (yet)"), while the window hook kept anchoring the window to the old strip's coordinates. The strip, the anchor and the window ended up disagreeing.
@@ -10757,7 +10757,7 @@ From a test-coverage review (2026-10-17): Vitest covers 41% of `src/lib` lines a
 
 ## 401. Dependabot #164-#166 together; button names that include their visible text
 
-**Status: released in beta 0.32.5-2 (early channel only).**
+**Status: released in v0.32.5 (beta 0.32.5-2 first).**
 
 - **Applied on one branch** (the batch method): `taiki-e/install-action` 2.87.29 (CI only), `sha2` 0.10 -> 0.11.1 (Rust, the file-change hash), and the dev tools `@axe-core/playwright` 4.14.0, `svelte-check` 4.7.7, `vitest` 5.0.5. The PRs were closed with a comment pointing here.
 - **sha2:** the app compares the Rust hash of a file with the frontend's WebCrypto hash of the same text, so a changed output would make every note look changed on disk. A new Rust test pins the standard SHA-256 hex of two known inputs (`hash_bytes_is_standard_sha256_hex`); it passes on 0.11.
@@ -10766,7 +10766,7 @@ From a test-coverage review (2026-10-17): Vitest covers 41% of `src/lib` lines a
 
 ## 402. Spell check: a word keeps its underline and corrections when the caret moves into it (#167)
 
-**Status: released in beta 0.32.5-2 (early channel only).**
+**Status: released in v0.32.5 (beta 0.32.5-2 first).**
 
 - **Marien (#167, on 0.32.5-1):** with spell check on, clicking into a misspelled word (or moving into it with the keyboard) made its underline disappear almost at once, and the line menu then offered no corrections. Hovering over the word and right-clicking without moving the caret first did work.
 - **Cause (`src/lib/editor/spellcheck.ts`):** the word at the caret is deliberately left unmarked while typing (no red line under a half-typed word). The flag behind it, `isTyping`, was set by the first edit and never cleared, so from then on every caret move re-ran the check about 300 ms later with the caret's word excluded. The line menu only offers corrections for a marked word.
@@ -10775,14 +10775,14 @@ From a test-coverage review (2026-10-17): Vitest covers 41% of `src/lib` lines a
 
 ## 403. Certificate checking: rustls-webpki 0.103.16, webpki-root-certs 1.0.10
 
-**Status: released in beta 0.32.5-3 (early channel only).**
+**Status: released in v0.32.5 (beta 0.32.5-3 first).**
 
 - The Security Audit went red on the 0.32.5-2 release commit: two advisories published the same day, RUSTSEC-2026-0370..0372 (rustls-webpki 0.103.15 may accept distrusted intermediate certificates) and RUSTSEC-2026-0382/0383 (webpki-root-certs bundled roots that are now distrusted). Both sit under the app's HTTPS connections (the updater talking to GitHub). The beta itself carries the old versions.
 - `cargo update -p rustls-webpki -p webpki-root-certs`: only `Cargo.lock` changes (0.103.15 -> 0.103.16, 1.0.9 -> 1.0.10). Same pattern as §382 (rustls). The four "unmaintained" notices in the same run (proc-macro-error, zbus_names, zvariant, zvariant_derive; Linux-only or build-time) are warnings, not failures.
 
 ## 404. Docked Peek with a docking station: screen changes, half-docked states, logging
 
-**Status: released in beta 0.32.5-3 (early channel only).**
+**Status: released in v0.32.5 (beta 0.32.5-3 first).**
 
 - **Marien (work laptop with a docking station, on 0.32.5-x):** docked Peek did not always switch to floating when the docking station was connected or disconnected; once the main window disappeared (quit from the taskbar); once the full window kept the docked strip's size after leaving Peek; entering Peek happens in visible steps and seemed able to stop half docked. No logging existed to see what happened.
 - **Causes found by reading the code (not reproduced on a docking station; this machine has one monitor):** (1) while docked, every move Windows made was rewritten back onto the strip of the monitor Peek docked on, including the move Windows makes to take the window off a monitor that went away: the window was forced onto coordinates that no longer existed (off screen). (2) The screen check compared with the setup saved at the last reservation, and a move during the change made Peek reserve again and save the NEW setup first, so the display-change message that followed saw no difference. Windows' own AppBar notification was ignored. (3) Docking was several steps; a failed step left the window registered and held while the page believed it floated, and errors were swallowed; leaving Peek then had the leftover hold squeeze the restored window back to strip size.
@@ -10794,7 +10794,7 @@ From a test-coverage review (2026-10-17): Vitest covers 41% of `src/lib` lines a
 
 ## 405. Docked Peek: a dock lost while Windows has Peek minimized floats it when it comes back
 
-**Status: released in beta 0.32.5-4 (early channel only).**
+**Status: released in v0.32.5 (beta 0.32.5-4 first).**
 
 - **Marien (work laptop, three monitors via a docking station, on 0.32.5-3):** switching the display setup several times with Peek docked, once the window came back where it had been docked, at the strip's size but no longer docked, and had to be resized by hand.
 - **The log (Copy diagnostics) showed it:** of the three switches, two floated Peek correctly. In the one to "external screens only", Windows minimized Peek about 0.1 s before the display change. The dock was found lost and Peek was floated, but on a minimized window; when Windows restored it, it put it back where it had been in that display setup: the strip, rescaled for the other monitor (1938x265 at 125 % -> 1550x212 at 100 %). The page and the native side then both said "floating", so nothing repaired it.
@@ -10810,7 +10810,7 @@ From a test-coverage review (2026-10-17): Vitest covers 41% of `src/lib` lines a
 
 ## 407. Docked Peek: Windows putting the window back where it was in an earlier screen setup
 
-**Status: released in beta 0.32.5-5 (early channel only).**
+**Status: released in v0.32.5 (beta 0.32.5-5 first).**
 
 - **Marien (work laptop, on 0.32.5-4):** after switching display modes with Peek docked, the full window (not in Peek) took the docked strip's size. The log showed leaving Peek had put the full window back correctly; what happened afterwards was not logged.
 - **Reproduced on this machine** (two screens, Marien's go-ahead to switch display modes with `DisplaySwitch.exe`, i.e. Win+P): Windows 11 remembers where a window was in each screen setup and puts it back there when that setup returns. ChronoNote's Peek and full window are the same window, so: dock Peek in "second screen only", switch to "extend", leave Peek, switch to "second screen only" again: the full window came back on the old dock strip, every time. Once that was fixed, it came back on the floating Peek's spot instead (the last place it had in that setup), and a floating Peek came back on its old strip. Windows also minimizes a window whose screen goes away (the §405 case) and remembers that per setup too; that is left as Windows does it.
@@ -10820,14 +10820,14 @@ From a test-coverage review (2026-10-17): Vitest covers 41% of `src/lib` lines a
 
 ## 408. Docked Peek: a dock made while a check runs no longer becomes the floating place
 
-**Status: released in beta 0.32.5-6 (early channel only).**
+**Status: released in v0.32.5 (beta 0.32.5-6 first).**
 
 - CI's native test (the §404 half dock) failed on the 0.32.5-5 release commit: after the repair Peek floated at the strip's full width. Cause in §407's review fix "a repair goes where the user dragged floating Peek": a check read "not docked", the dock happened, then it read the window's place (already the strip) and took that as the floating place. CI's slower runner hit the gap; locally it passed.
 - Fix (`peekWindow.ts`): the place is taken only when a second read of the native state, after reading the place, shows the same undocked window. Same for the full window's place outside Peek. A unit test makes the dock happen between the two reads (fails on 0.32.5-5's code). Gates: Vitest 1280, native 18 including the display-switch tests on the two screens.
 
 ## 409. Find bar: all text on one baseline, icons centred
 
-**Status: released in beta 0.32.5-7 (early channel only).**
+**Status: released in v0.32.5 (beta 0.32.5-7 first).**
 
 - **Marien (checking §401's "Aa"/"ab|" by eye):** the row looked messy: the text in the box a little high, "Aa" and "ab|" a little low.
 - **First attempt (same day, replaced):** each element's ink centred on the row (the symbols moved up 0.15em, the input padding made uneven). Marien in `npm run tauri dev`: still messy; the query, "No results", "Aa" and "ab|" should be bottom-aligned on the text. Right: they differ in font (monospace vs the UI font) and size, so centring each one separately cannot put them on one line.
@@ -10876,7 +10876,7 @@ From a test-coverage review (2026-10-17): Vitest covers 41% of `src/lib` lines a
 
 ## 413. Fixes for the six bugs the new tests found
 
-**Status: released in beta 0.32.5-7 (early channel only).**
+**Status: released in v0.32.5 (beta 0.32.5-7 first).**
 
 - **Marien:** "Start working on those bugs" (the six suspected bugs of §412). Each skipped test was switched on, failed on the old code, and passes now.
 - **1. Desktop: "Keep my version" could lose the other version (data loss).** The write that resolves the conflict was treated as an ordinary edit, so the text it replaced was kept only when the newest earlier version was more than 5 minutes old; during active note-taking another device's text was overwritten without a copy (spec §6.6 says it is kept). `write_note` gets an optional `keepVersion` (Rust `keep_version`): when set and the write is accepted, the replaced text is always kept as an earlier version; a refused write keeps nothing. `resolveConflictKeepMine` passes it. Same in the mock and the web app backend; the web app backend also kept its version before the compare-and-swap check, so a refused write left one behind (now after, as in `storage.rs`). Implemented by Gemini 3.8 Flash from an exact design brief, reviewed by Claude. New Rust test and web backend test.
