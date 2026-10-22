@@ -147,6 +147,61 @@ describe("WebBackend - Earlier versions of a note", () => {
     expect(versions).toHaveLength(1);
   });
 
+  it("keeps previous text as a version when keepVersion is true even if newest version is within 5 minutes cooldown", async () => {
+    const startTime = new Date("2026-10-20T10:00:00Z").getTime();
+    vi.spyOn(Date, "now").mockReturnValue(startTime);
+
+    await backend.invoke("write_note", {
+      filename: "2026-10-20.txt",
+      content: "First draft",
+    });
+
+    await backend.invoke("write_note", {
+      filename: "2026-10-20.txt",
+      content: "Second draft",
+    });
+
+    // Advance only 2 minutes (<= 5 minutes)
+    vi.spyOn(Date, "now").mockReturnValue(startTime + 2 * 60 * 1000);
+    const meta = (await backend.invoke("get_file_metadata", { filename: "2026-10-20.txt" })) as {
+      contentHash: string;
+    };
+
+    // Refused write when hash does not match keeps nothing
+    await expect(
+      backend.invoke("write_note", {
+        filename: "2026-10-20.txt",
+        content: "Refused third draft",
+        expectedHash: "stale_hash",
+        keepVersion: true,
+      }),
+    ).rejects.toThrow("conflict: note changed on disk");
+
+    let versions = (await backend.invoke("list_versions", {
+      filename: "2026-10-20.txt",
+    })) as NoteVersion[];
+    expect(versions).toHaveLength(1);
+
+    // Accepted write with keepVersion: true overrides 5-minute cooldown
+    await backend.invoke("write_note", {
+      filename: "2026-10-20.txt",
+      content: "Third draft",
+      expectedHash: meta.contentHash,
+      keepVersion: true,
+    });
+
+    versions = (await backend.invoke("list_versions", {
+      filename: "2026-10-20.txt",
+    })) as NoteVersion[];
+    expect(versions).toHaveLength(2);
+
+    const newestVersionContent = await backend.invoke("read_version", {
+      filename: "2026-10-20.txt",
+      name: versions[0].name,
+    });
+    expect(newestVersionContent).toBe("Second draft");
+  });
+
   it("does not keep identical text twice in version history", async () => {
     await backend.keepVersion("2026-10-20.txt", "Same exact text\n");
     await backend.keepVersion("2026-10-20.txt", "Same exact text\n");

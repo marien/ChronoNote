@@ -44,8 +44,14 @@ const { apiMock } = vi.hoisted(() => {
     apiMock: {
       getFileMetadata: vi.fn((filename: string) => backend.invoke("get_file_metadata", { filename }) as Promise<FileMetadata>),
       readNoteWithMetadata: vi.fn((filename: string) => backend.invoke("read_note_with_metadata", { filename }) as Promise<NoteWithMetadata>),
-      writeNote: vi.fn((filename: string, content: string, expectedHash?: string | null) =>
-        backend.invoke("write_note", { filename, content, expectedHash: expectedHash ?? null }) as Promise<FileMetadata>,
+      writeNote: vi.fn(
+        (filename: string, content: string, expectedHash?: string | null, options?: { keepVersion?: boolean }) =>
+          backend.invoke("write_note", {
+            filename,
+            content,
+            expectedHash: expectedHash ?? null,
+            ...(options?.keepVersion !== undefined ? { keepVersion: options.keepVersion } : {}),
+          }) as Promise<FileMetadata>,
       ),
       writeConflictCopy: vi.fn((name: string, content: string) =>
         backend.invoke("write_conflict_copy", { name, content }) as Promise<string>,
@@ -235,7 +241,7 @@ describe("conflict resolution and drift detection (§94, §291, §292, spec §6.
 
       await resolveConflictKeepMine();
 
-      expect(apiMock.writeNote).toHaveBeenCalledWith(filename, local, diskHash);
+      expect(apiMock.writeNote).toHaveBeenCalledWith(filename, local, diskHash, { keepVersion: true });
       const onDisk = await invoke("read_note", { filename });
       expect(onDisk).toBe(local);
     });
@@ -324,6 +330,54 @@ describe("conflict resolution and drift detection (§94, §291, §292, spec §6.
         name: versions[0].name,
       });
       expect(savedVersionText).toBe(disk);
+    });
+
+    it("keeps the overwritten disk text as an earlier version even if another version was saved less than 5 minutes ago (spec §6.6)", async () => {
+      const now = Date.now();
+      vi.useFakeTimers();
+      vi.setSystemTime(now);
+
+      const filename = FILE;
+      const v0 = "version 0 initial\n";
+      const vExternal = "external edit on disk to be overwritten\n";
+      const vLocal = "my version that wins\n";
+
+      // 1. Initial note write
+      await invoke("write_note", { filename, content: v0, expectedHash: null });
+      const v0Meta = await invoke("get_file_metadata", { filename });
+      const v0Hash = v0Meta.contentHash!;
+
+      // 2. An earlier version was created 60 seconds ago (< 5 minutes cooldown)
+      backend.keepVersion(filename, v0, backend.notesDir, now - 60_000);
+
+      // 3. Tab is open at v0 baseline with local edits
+      const tabId = "tab-active";
+      tabs.set([makeTab({ id: tabId, filename, content: vLocal })]);
+      activeTabId.set(tabId);
+      markTabClean(tabId, v0Hash);
+
+      // 4. External change on disk
+      backend.setNote(filename, vExternal);
+      const extMeta = await invoke("get_file_metadata", { filename });
+      const extHash = extMeta.contentHash!;
+
+      // 5. Drift check opens conflict prompt
+      await checkActiveTabForDrift();
+      expect(get(modal)).toBe("conflict");
+      expect(get(conflictInfo)?.diskHash).toBe(extHash);
+
+      // 6. User chooses "Keep my version"
+      await resolveConflictKeepMine();
+
+      // Spec §6.6 requires that resolving conflict with "Keep mine" is an overwrite condition
+      // that saves the overwritten disk text (vExternal) as an earlier version first.
+      const versions = await invoke("list_versions", { filename });
+      const newestVersionContent = await invoke("read_version", {
+        filename,
+        name: versions[0].name,
+      });
+
+      expect(newestVersionContent).toBe(vExternal);
     });
   });
 
@@ -696,67 +750,7 @@ describe("conflict resolution and drift detection (§94, §291, §292, spec §6.
     });
   });
 
-  describe.skip("suspected bugs", () => {
-    // Documented behaviour:
-    // Spec §6.6: "Before an overwrite (when the note is emptied, when saved without an expected hash, on an import with Replace, or on a conflict resolved with 'Keep mine'), or when editing if the newest version is more than 5 minutes old, the note's previous text is saved to a hidden .chrononote-versions/<filename>/<timestamp>.txt subfolder."
-    // Brief §2: "The disk text that is overwritten is kept as an earlier version first (spec §6.6)."
-    //
-    // What the code does instead:
-    // When `resolveConflictKeepMine()` calls `api.writeNote(filename, content, expectedHash)`, it passes `c.diskHash` as expectedHash.
-    // The storage layer (`should_keep_version_at` in `storage.rs` and `MockBackend.ts`) checks:
-    //   `if expected_hash.is_none() || new_content.trim().is_empty() { return true; }`
-    //   `match newest_version_timestamp_at { Some((ms, _)) => now - ms > 5 * 60 * 1000 }`
-    // Because `expected_hash` is Some(diskHash), the overwrite condition is missed and the 5-minute cooldown is evaluated.
-    // If a version was already saved within the last 5 minutes (e.g. 1 minute ago), `should_keep_version` returns false
-    // and the overwritten disk text is NOT saved as an earlier version, losing the external version.
-    it("keeps the overwritten disk text as an earlier version even if another version was saved less than 5 minutes ago (spec §6.6)", async () => {
-      const now = Date.now();
-      vi.useFakeTimers();
-      vi.setSystemTime(now);
 
-      const filename = FILE;
-      const v0 = "version 0 initial\n";
-      const vExternal = "external edit on disk to be overwritten\n";
-      const vLocal = "my version that wins\n";
-
-      // 1. Initial note write
-      await invoke("write_note", { filename, content: v0, expectedHash: null });
-      const v0Meta = await invoke("get_file_metadata", { filename });
-      const v0Hash = v0Meta.contentHash!;
-
-      // 2. An earlier version was created 60 seconds ago (< 5 minutes cooldown)
-      backend.keepVersion(filename, v0, backend.notesDir, now - 60_000);
-
-      // 3. Tab is open at v0 baseline with local edits
-      const tabId = "tab-active";
-      tabs.set([makeTab({ id: tabId, filename, content: vLocal })]);
-      activeTabId.set(tabId);
-      markTabClean(tabId, v0Hash);
-
-      // 4. External change on disk
-      backend.setNote(filename, vExternal);
-      const extMeta = await invoke("get_file_metadata", { filename });
-      const extHash = extMeta.contentHash!;
-
-      // 5. Drift check opens conflict prompt
-      await checkActiveTabForDrift();
-      expect(get(modal)).toBe("conflict");
-      expect(get(conflictInfo)?.diskHash).toBe(extHash);
-
-      // 6. User chooses "Keep my version"
-      await resolveConflictKeepMine();
-
-      // Spec §6.6 requires that resolving conflict with "Keep mine" is an overwrite condition
-      // that saves the overwritten disk text (vExternal) as an earlier version first.
-      const versions = await invoke("list_versions", { filename });
-      const newestVersionContent = await invoke("read_version", {
-        filename,
-        name: versions[0].name,
-      });
-
-      expect(newestVersionContent).toBe(vExternal);
-    });
-  });
 
   // §412: the mock used to keep a version before its compare-and-swap check (storage.rs checks first); fixed.
   describe("a refused Keep my version", () => {
