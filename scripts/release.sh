@@ -109,7 +109,12 @@ ok "on main, clean, up to date; $CUR -> $VERSION"
 # v0.30.2 without anyone noticing). Skipped when this run is a resume after
 # the bump commit, which has no CI run of its own yet.
 if [[ $BUMPED == 0 ]]; then
-  CI="$(gh run list --workflow Test --branch main --limit 1 --json headSha,status,conclusion     -q '.[0] | "\(.headSha) \(.status) \(.conclusion)"')"
+  # GitHub's run list sometimes answers with an empty list ("null null null"; three refusals cutting v0.32.5): ask again.
+  for _ in 1 2 3 4 5 6; do
+    CI="$(gh run list --workflow Test --branch main --limit 1 --json headSha,status,conclusion     -q '.[0] | "\(.headSha) \(.status) \(.conclusion)"')"
+    [[ "$CI" != null* && -n "$CI" ]] && break
+    sleep 5
+  done
   read -r CI_SHA CI_STATUS CI_CONCLUSION <<<"$CI"
   if [[ "$CI_SHA" != "$(git rev-parse HEAD)" ]]; then
     echo "   NOTE: the last Test run is for ${CI_SHA:0:7}, not HEAD; its result: $CI_STATUS $CI_CONCLUSION"
@@ -321,7 +326,11 @@ fi
 # seen now and not at the next release.
 step "GitHub Test on the release commit"
 sleep 20
-RUN_ID="$(gh run list --workflow Test --branch main --limit 1 --json databaseId,headSha   -q ".[] | select(.headSha==\"$(git rev-parse HEAD)\") | .databaseId")"
+for _ in 1 2 3 4 5 6; do # see the preflight: the list is sometimes empty
+  RUN_ID="$(gh run list --workflow Test --branch main --limit 1 --json databaseId,headSha   -q ".[] | select(.headSha==\"$(git rev-parse HEAD)\") | .databaseId")"
+  [[ -n "$RUN_ID" ]] && break
+  sleep 10
+done
 if [[ -z "$RUN_ID" ]]; then
   echo "   WARNING: no Test run found for $(git rev-parse --short HEAD); check GitHub Actions"
 elif gh run watch "$RUN_ID" --exit-status >/dev/null 2>&1; then

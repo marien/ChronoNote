@@ -10885,3 +10885,9 @@ From a test-coverage review (2026-10-17): Vitest covers 41% of `src/lib` lines a
 - **5. Web app: the "Move notes to OneDrive?" prompt could be dismissed while notes were moving.** Escape and a click outside now do nothing while moving. Escape also closed the folder picker underneath (the app's own Escape handling saw the picker as the top overlay); it now closes only the prompt, like Cancel.
 - **6. Tab did not move between the prompt's buttons.** The folder picker's focus trap underneath pulled focus back. Open focus traps now form a stack and only the top one handles Tab (`focusTrap.ts`; applies to every dialog opened over another).
 - **Tests:** `npm run verify --rust` green (Vitest, cargo test, clippy), full browser suite and native tests run before merging.
+
+## 414. Release script: ask GitHub again when its run list comes back empty
+
+**Status: on main (tooling only, not in the app).**
+
+- Cutting v0.32.5, the release script's preflight refused three times with "GitHub Test run still null": GitHub's run list sometimes answers with an empty list (by hand: the same query returned the run, then "null", then the run again). The script now asks up to six times, 5 s apart, before deciding; the same for finding the release commit's Test run at the end. v0.32.5 itself was released by repeating the script, which changes nothing when its preflight refuses.
