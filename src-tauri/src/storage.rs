@@ -1194,12 +1194,13 @@ fn write_conflict_copy_at(root: &Path, name: &str, content: &str) -> Result<Stri
     Ok(target.to_string_lossy().into_owned())
 }
 
-pub fn write_note_at_time(
+fn write_note_at_time_internal(
     root: &Path,
     filename: &str,
     content: &str,
     expected_hash: Option<&str>,
     now: chrono::DateTime<chrono::Local>,
+    keep_version: bool,
 ) -> Result<FileMetadata, String> {
     if !is_valid_note_filename(filename) {
         return Err(format!("Invalid note filename: {filename}"));
@@ -1224,7 +1225,7 @@ pub fn write_note_at_time(
     if target.exists() {
         if let Ok(curr) = fs::read_to_string(&target) {
             if !curr.trim().is_empty() {
-                let should_keep = should_keep_version_at(root, filename, expected_hash, &content, now);
+                let should_keep = keep_version || should_keep_version_at(root, filename, expected_hash, &content, now);
                 if should_keep {
                     keep_version_at_time(root, filename, &curr, now)?;
                 }
@@ -1244,6 +1245,26 @@ pub fn write_note_at_time(
     })
 }
 
+pub fn write_note_at_time(
+    root: &Path,
+    filename: &str,
+    content: &str,
+    expected_hash: Option<&str>,
+    now: chrono::DateTime<chrono::Local>,
+) -> Result<FileMetadata, String> {
+    write_note_at_time_internal(root, filename, content, expected_hash, now, false)
+}
+
+pub fn write_note_keeping_version_at_time(
+    root: &Path,
+    filename: &str,
+    content: &str,
+    expected_hash: Option<&str>,
+    now: chrono::DateTime<chrono::Local>,
+) -> Result<FileMetadata, String> {
+    write_note_at_time_internal(root, filename, content, expected_hash, now, true)
+}
+
 fn write_note_at(
     root: &Path,
     filename: &str,
@@ -1251,6 +1272,15 @@ fn write_note_at(
     expected_hash: Option<&str>,
 ) -> Result<FileMetadata, String> {
     write_note_at_time(root, filename, content, expected_hash, chrono::Local::now())
+}
+
+pub fn write_note_keeping_version_at(
+    root: &Path,
+    filename: &str,
+    content: &str,
+    expected_hash: Option<&str>,
+) -> Result<FileMetadata, String> {
+    write_note_keeping_version_at_time(root, filename, content, expected_hash, chrono::Local::now())
 }
 
 /// #63: deletes a note file from disk — used when a dated tab closes
@@ -1692,8 +1722,14 @@ pub fn write_note(
     filename: &str,
     content: &str,
     expected_hash: Option<&str>,
+    keep_version: bool,
 ) -> Result<FileMetadata, String> {
-    write_note_at(&notes_root(app)?, filename, content, expected_hash)
+    let root = notes_root(app)?;
+    if keep_version {
+        write_note_keeping_version_at(&root, filename, content, expected_hash)
+    } else {
+        write_note_at(&root, filename, content, expected_hash)
+    }
 }
 
 pub fn delete_note(app: &AppHandle, filename: &str, expected_hash: Option<&str>) -> Result<(), String> {
@@ -3404,6 +3440,51 @@ mod tests {
     }
 
     #[test]
+    fn version_keep_version_true_keeps_version_within_cooldown_and_refused_keeps_nothing() {
+        let dir = tempdir().unwrap();
+        let root = dir.path();
+        let filename = "2026-10-11.txt";
+
+        let naive_base = chrono::NaiveDateTime::parse_from_str("20261011-100000", "%Y%m%d-%H%M%S").unwrap();
+        let t0 = chrono::Local.from_local_datetime(&naive_base).unwrap();
+
+        // Initial creation of note
+        let m0 = write_note_at_time(root, filename, "Draft 0", None, t0).unwrap();
+        assert_eq!(list_versions_at(root, filename).unwrap().len(), 0);
+
+        // Save 1 at t0 + 1m: keeps Draft 0 as version
+        let t1 = t0 + chrono::Duration::minutes(1);
+        let m1 = write_note_at_time(root, filename, "Draft 1", m0.content_hash.as_deref(), t1).unwrap();
+        let vers1 = list_versions_at(root, filename).unwrap();
+        assert_eq!(vers1.len(), 1);
+        assert_eq!(read_version_at(root, filename, &vers1[0].name).unwrap(), "Draft 0");
+
+        // The same write without keep_version 1 minute later keeps none (today's rule, unchanged)
+        let t2 = t1 + chrono::Duration::minutes(1);
+        let m2 = write_note_at_time(root, filename, "Draft 2", m1.content_hash.as_deref(), t2).unwrap();
+        let vers2 = list_versions_at(root, filename).unwrap();
+        assert_eq!(vers2.len(), 1);
+        assert_eq!(read_version_at(root, filename, &vers2[0].name).unwrap(), "Draft 0");
+
+        // A write with keep_version=true whose hash does not match is refused and keeps nothing
+        let t3 = t2 + chrono::Duration::minutes(1);
+        let stale_hash = "deadbeef";
+        let err = write_note_keeping_version_at_time(root, filename, "Refused Edit", Some(stale_hash), t3);
+        assert!(err.is_err());
+        let vers_refused = list_versions_at(root, filename).unwrap();
+        assert_eq!(vers_refused.len(), 1);
+        assert_eq!(read_version_at(root, filename, &vers_refused[0].name).unwrap(), "Draft 0");
+
+        // With a version saved 1 minute ago (within 5 min cooldown), a write with keep_version=true
+        // and a matching hash keeps the replaced text as the newest version
+        let _m3 = write_note_keeping_version_at_time(root, filename, "Draft 3", m2.content_hash.as_deref(), t3).unwrap();
+        let vers3 = list_versions_at(root, filename).unwrap();
+        assert_eq!(vers3.len(), 2);
+        assert_eq!(read_version_at(root, filename, &vers3[0].name).unwrap(), "Draft 2");
+        assert_eq!(read_version_at(root, filename, &vers3[1].name).unwrap(), "Draft 0");
+    }
+
+    #[test]
     fn version_deliberate_overwrite_always_keeps_version() {
         let dir = tempdir().unwrap();
         let root = dir.path();
@@ -3956,8 +4037,13 @@ mod tests {
                         let filename = args.get("filename").and_then(|v| v.as_str()).unwrap_or("");
                         let content = args.get("content").and_then(|v| v.as_str()).unwrap_or("");
                         let expected_hash = args.get("expectedHash").and_then(|v| v.as_str());
-                        write_note_at(root, filename, content, expected_hash)
-                            .map(|meta| serde_json::to_value(&meta).unwrap())
+                        let keep_version = args.get("keepVersion").and_then(|v| v.as_bool()).unwrap_or(false);
+                        if keep_version {
+                            write_note_keeping_version_at(root, filename, content, expected_hash)
+                        } else {
+                            write_note_at(root, filename, content, expected_hash)
+                        }
+                        .map(|meta| serde_json::to_value(&meta).unwrap())
                     }
                     "delete_note" => {
                         let filename = args.get("filename").and_then(|v| v.as_str()).unwrap_or("");

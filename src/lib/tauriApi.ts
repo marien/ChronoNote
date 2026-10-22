@@ -154,9 +154,18 @@ export function readNote(filename: string): Promise<string | null> {
 export function writeNote(
   filename: string,
   content: string,
-  expectedHash?: string,
+  expectedHash?: string | null,
+  options?: { keepVersion?: boolean },
 ): Promise<FileMetadata> {
-  return invoke("write_note", { filename, content, expectedHash: expectedHash ?? null });
+  const args: { filename: string; content: string; expectedHash: string | null; keepVersion?: boolean } = {
+    filename,
+    content,
+    expectedHash: expectedHash ?? null,
+  };
+  if (options?.keepVersion !== undefined) {
+    args.keepVersion = options.keepVersion;
+  }
+  return invoke("write_note", args);
 }
 
 /** #63: removes a note file from disk. A missing file is not an error —

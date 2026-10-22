@@ -101,6 +101,8 @@ export class WebOneDriveSyncEngine {
   private currentStatus: SyncStatus = "offline";
   private isSyncing = false;
   private lastSyncSuccessMs: number | null = null;
+  /** §413: keeps a text as an earlier version of a note (the backend's version history); set by WebBackend. */
+  keepVersion: ((filename: string, content: string) => Promise<void>) | null = null;
 
   constructor(getDb: () => Promise<IDBDatabase>, client?: OneDriveClient) {
     this.getDb = getDb;
@@ -500,6 +502,8 @@ export class WebOneDriveSyncEngine {
     const bases = await this.loadBases();
 
     if (resolution === "mine") {
+      // §413 (spec §6.6): the OneDrive text that "mine" overwrites on the next push is kept as an earlier version.
+      await this.keepVersion?.(name, pending.remoteContent);
       // Rebase onto the remote version we held the conflict against, so the
       // next push carries its etag (If-Match). Left stale, the upload gets a
       // 412 that the delta feed never re-reports and the choice never lands.
@@ -655,6 +659,13 @@ export class WebOneDriveSyncEngine {
         const settled: string[] = [];
         for (const name of tombstones) {
           const entry = cache.files[name];
+          // §413: a note that is back (recreated, or restored from the trash, before this sync) or held in a conflict
+          // is just forgotten, not deleted on OneDrive: the rule of the original engine (§184).
+          const backLocally = (await idbGet<StoredNote>(db, IDB_STORES.NOTES_CLOUD, name)) !== undefined;
+          if (backLocally || cache.conflicts[name]) {
+            settled.push(name);
+            continue;
+          }
           if (entry) {
             try {
               const res = await this.client.deleteItem(token, entry.id, entry.etag);

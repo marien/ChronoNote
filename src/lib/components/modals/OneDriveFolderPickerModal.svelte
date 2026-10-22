@@ -91,6 +91,8 @@
   }
 
   let pendingMigration = $state<{ folderId: string; folderPath: string; noteCount: number } | null>(null);
+  /** §413: true while the notes are being moved (or the folder switched): the dialog cannot be dismissed then. */
+  let migrationBusy = $state(false);
 
   async function finalizeFolderSelection(folderId: string, folderPath: string) {
     try {
@@ -160,10 +162,11 @@
   }
 
   async function handleConfirmMigration() {
-    if (!pendingMigration) return;
+    if (!pendingMigration || migrationBusy) return;
     const { folderId, folderPath } = pendingMigration;
-    if (!(await prepareFolderSwitchOrAbort(folderId))) return;
+    migrationBusy = true;
     try {
+      if (!(await prepareFolderSwitchOrAbort(folderId))) return;
       const res = await api.webMigrateBrowserNotes();
       if (res.conflictCount > 0) {
         showToast($t("oneDrivePicker.toast.movedWithConflicts", { count: res.conflictCount }));
@@ -171,24 +174,35 @@
       await finalizeFolderSelection(folderId, folderPath);
     } catch (e) {
       showToast(`${$t("oneDrivePicker.toast.migrationFailedPrefix")} ${e instanceof Error ? e.message : String(e)}`);
+    } finally {
+      migrationBusy = false;
     }
   }
 
   async function handleSkipMigration() {
-    if (!pendingMigration) return;
+    if (!pendingMigration || migrationBusy) return;
     const { folderId, folderPath } = pendingMigration;
-    if (!(await prepareFolderSwitchOrAbort(folderId))) return;
-    await finalizeFolderSelection(folderId, folderPath);
+    migrationBusy = true;
+    try {
+      if (!(await prepareFolderSwitchOrAbort(folderId))) return;
+      await finalizeFolderSelection(folderId, folderPath);
+    } finally {
+      migrationBusy = false;
+    }
   }
 
   function handleCancelMigration() {
+    if (migrationBusy) return; // a click outside while moving does nothing
     pendingMigration = null;
   }
 
   function handleKeydown(e: KeyboardEvent) {
     if (e.key === "Escape") {
       if (pendingMigration) {
-        pendingMigration = null;
+        // §413: Escape belongs to the "Move notes" prompt: it closes only that (like Cancel), or nothing while the
+        // notes are moving. Stopped here, in the capture phase, so App's Escape does not close this picker too.
+        e.stopImmediatePropagation();
+        if (!migrationBusy) pendingMigration = null;
       } else {
         onClose();
       }
@@ -196,7 +210,7 @@
   }
 </script>
 
-<svelte:window onkeydown={handleKeydown} />
+<svelte:window onkeydowncapture={handleKeydown} />
 
 <div class="overlay" role="presentation" use:closeOnOutsideClick={onClose}>
   <div

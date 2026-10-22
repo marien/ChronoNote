@@ -166,7 +166,7 @@ export async function resolveConflictKeepMine(): Promise<void> {
   try {
     // Compare-and-swap on the hash we showed the user, so a *third*
     // change since then re-opens the prompt instead of being clobbered.
-    const meta = await api.writeNote(c.filename, tab.content, c.diskHash);
+    const meta = await api.writeNote(c.filename, tab.content, c.diskHash, { keepVersion: true });
     markTabClean(c.tabId, meta.contentHash);
     invalidateDiskNotesCache();
     scheduleCloudPush();
