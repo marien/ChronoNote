@@ -95,6 +95,10 @@ export interface MockSeed {
   onboardingCompleted?: boolean;
   lastSyncSuccessMs?: number | null;
   backendKind?: "desktop" | "demo" | "web";
+  /** Notes in browser storage for web app tests. Defaults to `notes` when `backendKind === "web"` and no OneDrive folder is chosen. */
+  browserNotes?: Record<string, string>;
+  /** Notes in cloud storage for web app tests. */
+  cloudNotes?: Record<string, string>;
   /** Seeds `recent_notes_dirs` directly (normally only `set_notes_dir`
    * writes it). */
   recentNotesDirs?: string[];
@@ -352,6 +356,10 @@ export class MockBackend {
   oneDriveFolder: { folderId: string; folderPath: string } | null = { folderId: "folder-2", folderPath: "/Notes" };
   isMinimized: boolean = false;
   trash: MockTrashEntry[] = [];
+  backendKind: "desktop" | "demo" | "web" = "desktop";
+  browserNotes = new Map<string, string>();
+  cloudNotes = new Map<string, string>();
+  archiveNotes = new Map<string, string>();
 
   /** Every `invoke` call, in order — assert on persistence without
    * scraping the DOM. */
@@ -447,6 +455,22 @@ export class MockBackend {
     this.updateCheckVersion = seed.updateCheckVersion ?? "9.9.9";
     this.agendaJson = seed.agendaJson;
     this.isMinimized = seed.isMinimized ?? false;
+    this.backendKind = seed.backendKind ?? "desktop";
+    if (seed.browserNotes) {
+      for (const [k, v] of Object.entries(seed.browserNotes)) this.browserNotes.set(k, v);
+    } else if (seed.backendKind === "web" && (seed.oneDriveFolder === null || seed.oneDriveFolder === undefined)) {
+      for (const [k, v] of Object.entries(seed.notes ?? {})) this.browserNotes.set(k, v);
+    }
+    if (seed.cloudNotes) {
+      for (const [k, v] of Object.entries(seed.cloudNotes)) this.cloudNotes.set(k, v);
+    }
+    if (seed.otherDirs) {
+      for (const notes of Object.values(seed.otherDirs)) {
+        for (const [k, v] of Object.entries(notes)) {
+          if (!this.cloudNotes.has(k)) this.cloudNotes.set(k, v);
+        }
+      }
+    }
     for (const c of seed.oneDriveConflicts ?? []) this.oneDriveConflicts.set(c.name, c.remote);
     this.oneDriveSyncError = seed.oneDriveSyncError;
     if (seed.oneDriveFolder !== undefined) this.oneDriveFolder = seed.oneDriveFolder;
@@ -512,6 +536,12 @@ export class MockBackend {
       appVersion: this.appVersion,
       agendaJson: this.agendaJson,
       trash: this.trash,
+      backendKind: this.backendKind,
+      browserNotes: [...this.browserNotes],
+      cloudNotes: [...this.cloudNotes],
+      archiveNotes: [...this.archiveNotes],
+      oneDriveFolder: this.oneDriveFolder,
+      oneDriveConflicts: [...this.oneDriveConflicts],
       dirs: [...this.dirs].map(([path, d]) => [
         path,
         [...d.notes],
@@ -620,6 +650,20 @@ export class MockBackend {
           },
         ]),
       );
+      const ext = s as unknown as {
+        backendKind?: "desktop" | "demo" | "web";
+        browserNotes?: [string, string][];
+        cloudNotes?: [string, string][];
+        archiveNotes?: [string, string][];
+        oneDriveFolder?: { folderId: string; folderPath: string } | null;
+        oneDriveConflicts?: [string, string][];
+      };
+      if (ext.backendKind) b.backendKind = ext.backendKind;
+      if (ext.browserNotes) b.browserNotes = new Map(ext.browserNotes);
+      if (ext.cloudNotes) b.cloudNotes = new Map(ext.cloudNotes);
+      if (ext.archiveNotes) b.archiveNotes = new Map(ext.archiveNotes);
+      if (ext.oneDriveFolder !== undefined) b.oneDriveFolder = ext.oneDriveFolder;
+      if (ext.oneDriveConflicts) b.oneDriveConflicts = new Map(ext.oneDriveConflicts);
       return b;
     } catch {
       return null;
@@ -666,6 +710,18 @@ export class MockBackend {
   }
 
   // --- test-facing helpers (via window.__CHRONO_MOCK__) -------------------
+
+  getArchiveNotes(): Record<string, string> {
+    return Object.fromEntries(this.archiveNotes);
+  }
+
+  getBrowserNotes(): Record<string, string> {
+    return Object.fromEntries(this.browserNotes);
+  }
+
+  getCloudNotes(): Record<string, string> {
+    return Object.fromEntries(this.cloudNotes);
+  }
 
   getNote(filename: string, dirPath = this.notesDir): string | null {
     return this.dir(dirPath).notes.get(filename) ?? null;
@@ -841,7 +897,19 @@ export class MockBackend {
         pushRecentNotesDir(this.recentNotesDirs, this.notesDir, path);
       }
       this.notesDir = path;
-      this.dir(path); // materialise if brand-new
+      const d = this.dir(path); // materialise if brand-new
+      if (this.backendKind === "web") {
+        if (path === "Browser storage" || path === "browser") {
+          d.notes.clear();
+          for (const [k, v] of this.browserNotes) {
+            d.notes.set(k, v);
+          }
+        } else {
+          for (const [k, v] of this.cloudNotes) {
+            d.notes.set(k, v);
+          }
+        }
+      }
       return this.config();
     },
 
@@ -903,6 +971,10 @@ export class MockBackend {
       }
       const text = normalizeNoteText(content);
       this.dir().notes.set(filename, text);
+      if (this.backendKind === "web") {
+        if (!this.oneDriveFolder) this.browserNotes.set(filename, text);
+        else this.cloudNotes.set(filename, text);
+      }
       return fileMetadata(text);
     },
 
@@ -950,6 +1022,7 @@ export class MockBackend {
         }
         if (raw !== undefined) {
           this.dir().notes.delete(filename);
+        if (this.backendKind === "web" && !this.oneDriveFolder) this.browserNotes.delete(filename);
         }
       } else {
         const now = Date.now();
@@ -972,6 +1045,7 @@ export class MockBackend {
           content: text,
         });
         this.dir().notes.delete(filename);
+        if (this.backendKind === "web" && !this.oneDriveFolder) this.browserNotes.delete(filename);
       }
     },
 
@@ -1183,8 +1257,42 @@ export class MockBackend {
       this.scratchpadDrafts = { ...drafts };
     },
     load_scratchpad_drafts: () => ({ ...this.scratchpadDrafts }),
-    web_check_browser_notes: () => ({ count: 0, filenames: [] }),
-    web_migrate_browser_notes: () => ({ migratedCount: 0, conflictCount: 0 }),
+    web_check_browser_notes: () => {
+      const filenames = [...this.browserNotes.keys()].filter(isValidNoteFilename).sort();
+      return { count: filenames.length, filenames };
+    },
+    web_migrate_browser_notes: () => {
+      const validEntries = [...this.browserNotes.entries()].filter(([k]) => isValidNoteFilename(k));
+      if (validEntries.length === 0) return { migratedCount: 0, conflictCount: 0 };
+
+      for (const [k, v] of validEntries) {
+        this.archiveNotes.set(k, v);
+      }
+
+      let migratedCount = 0;
+      let conflictCount = 0;
+
+      for (const [filename, noteContent] of validEntries) {
+        const existingCloud = this.cloudNotes.get(filename);
+        if (existingCloud === undefined || existingCloud.trim() === "") {
+          this.cloudNotes.set(filename, noteContent);
+          migratedCount++;
+        } else if (existingCloud === noteContent || noteContent.trim() === "") {
+          migratedCount++;
+        } else {
+          // Both exist with different non-empty content: flag as conflict
+          this.cloudNotes.set(filename, noteContent);
+          this.oneDriveConflicts.set(filename, existingCloud);
+          conflictCount++;
+          migratedCount++;
+        }
+      }
+
+      this.browserNotes.clear();
+      this.dir().notes.clear();
+
+      return { migratedCount, conflictCount };
+    },
     onedrive_prepare_folder_switch: () => ({ ready: true, switched: false, archivedCount: 0 }),
     get_sync_health: () => ({
       status: "idle",
