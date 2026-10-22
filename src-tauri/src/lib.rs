@@ -67,9 +67,16 @@ async fn write_note(
     filename: String,
     content: String,
     expected_hash: Option<String>,
+    keep_version: Option<bool>,
 ) -> Result<storage::FileMetadata, String> {
     tauri::async_runtime::spawn_blocking(move || {
-        storage::write_note(&app, &filename, &content, expected_hash.as_deref())
+        storage::write_note(
+            &app,
+            &filename,
+            &content,
+            expected_hash.as_deref(),
+            keep_version.unwrap_or(false),
+        )
     })
     .await
     .map_err(|e| e.to_string())?

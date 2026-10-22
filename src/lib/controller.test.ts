@@ -951,7 +951,7 @@ describe("checkActiveTabForDrift (§94)", () => {
     await controller.checkActiveTabForDrift();
 
     await controller.resolveConflictKeepMine();
-    expect(apiMock.writeNote).toHaveBeenCalledWith(FILE, "mine", externalHash);
+    expect(apiMock.writeNote).toHaveBeenCalledWith(FILE, "mine", externalHash, { keepVersion: true });
     expect(get(controller.modal)).toBe("none");
 
     await new Promise((r) => setTimeout(r, 2050));

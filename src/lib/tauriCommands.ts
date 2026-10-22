@@ -48,7 +48,7 @@ export interface TauriCommands {
   list_note_files: { args: NoArgs; returns: string[] };
   read_note: { args: { filename: string }; returns: string | null };
   write_note: {
-    args: { filename: string; content: string; expectedHash: string | null };
+    args: { filename: string; content: string; expectedHash: string | null; keepVersion?: boolean };
     returns: FileMetadata;
   };
   /** #63: removes a note file from disk. A missing file is not an error —

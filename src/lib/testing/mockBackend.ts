@@ -950,7 +950,7 @@ export class MockBackend {
       return raw === undefined ? null : normalizeNoteText(raw);
     },
 
-    write_note: async ({ filename, content, expectedHash }) => {
+    write_note: async ({ filename, content, expectedHash, keepVersion }) => {
       if (!isValidNoteFilename(filename)) {
         throw new Error(`Invalid note filename: ${filename}`);
       }
@@ -966,7 +966,7 @@ export class MockBackend {
       // After the compare-and-swap, as in storage.rs: a refused write keeps no version (§412).
       const existing = this.dir().notes.get(filename);
       if (existing !== undefined && existing.trim().length > 0) {
-        if (this.shouldKeepVersion(filename, content, expectedHash ?? null)) {
+        if (keepVersion || this.shouldKeepVersion(filename, content, expectedHash ?? null)) {
           this.keepVersion(filename, existing);
         }
       }

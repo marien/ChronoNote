@@ -489,21 +489,22 @@ export class WebBackend {
       return note?.content ?? null;
     },
 
-    write_note: async ({ filename, content, expectedHash }) => {
+    write_note: async ({ filename, content, expectedHash, keepVersion }) => {
       if (!isValidNoteFilename(filename)) throw new Error(`Invalid note filename: ${filename}`);
       const db = await this.db();
       const store = await this.getActiveNotesStore();
       const current = await idbGet<StoredNote>(db, store, filename);
-      if (current && current.content.trim().length > 0) {
-        if (await this.shouldKeepVersion(filename, content, expectedHash ?? null)) {
-          await this.keepVersion(filename, current.content);
-        }
-      }
       // §94: compare-and-swap, same contract as storage.rs's write_note_at.
       if (typeof expectedHash === "string") {
         // A missing note matches the empty-content hash, like storage.rs.
         if ((current?.contentHash ?? (await sha256Hex(""))) !== expectedHash) {
           throw new Error(`conflict: note changed on disk: ${filename}`);
+        }
+      }
+      // After the compare-and-swap, as in storage.rs: a refused write keeps no version.
+      if (current && current.content.trim().length > 0) {
+        if (keepVersion || (await this.shouldKeepVersion(filename, content, expectedHash ?? null))) {
+          await this.keepVersion(filename, current.content);
         }
       }
       const text = normalizeNoteText(content);
