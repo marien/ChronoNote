@@ -373,7 +373,8 @@ test.describe("OneDrive migrate browser notes", () => {
 
   // --- Suspected bugs ---
 
-  test.describe.skip("suspected bugs", () => {
+  // §413: were suspected bugs (skipped) until the dialog's busy state and the nested focus trap were fixed.
+  test.describe("busy state and Tab inside the dialog", () => {
     test("while moving notes, clicking outside does not dismiss the dialog", async ({ page }) => {
       // Documented behaviour:
       //   Brief §2: "While moving, the button says 'Moving notes…' and the dialog cannot be dismissed."

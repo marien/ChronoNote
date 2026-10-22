@@ -27,8 +27,13 @@ const FOCUSABLE = [
   '[tabindex]:not([tabindex="-1"])',
 ].join(",");
 
+/** §413: open traps, oldest first. Only the newest (the dialog on top, e.g. the "Move notes" prompt over the OneDrive
+ * folder picker) handles Tab; otherwise the one underneath pulled focus back into itself. */
+const openTraps: HTMLElement[] = [];
+
 export function focusTrap(node: HTMLElement) {
   const previouslyFocused = document.activeElement as HTMLElement | null;
+  openTraps.push(node);
 
   function focusables(): HTMLElement[] {
     // Svelte's `{#if}` already removes absent controls from the DOM, so a
@@ -41,6 +46,7 @@ export function focusTrap(node: HTMLElement) {
 
   function onKeydown(e: KeyboardEvent) {
     if (e.key !== "Tab") return;
+    if (openTraps[openTraps.length - 1] !== node) return; // a dialog on top of this one handles it
     const items = focusables();
     const active = document.activeElement;
     const inside = node.contains(active);
@@ -85,6 +91,8 @@ export function focusTrap(node: HTMLElement) {
   return {
     destroy() {
       document.removeEventListener("keydown", onKeydown, true);
+      const at = openTraps.lastIndexOf(node);
+      if (at !== -1) openTraps.splice(at, 1);
       const editor = document.querySelector<HTMLElement>(".cm-content");
       const prev = previouslyFocused;
       const restorePrev =
