@@ -31,7 +31,11 @@ const added = new Set(
     .map((l) => l.slice(1).trim()),
 );
 
-const lines = fs.readFileSync(FILE, "utf8").split("\n");
+// A Windows checkout has CRLF line endings: split on either, write back the one the file had (a trailing "\r" made
+// every status pattern miss: the first real use, 0.32.5-7).
+const raw = fs.readFileSync(FILE, "utf8");
+const eol = raw.includes("\r\n") ? "\r\n" : "\n";
+const lines = raw.split(/\r?\n/);
 const missing = [];
 const changes = [];
 for (let i = 0; i < lines.length; i++) {
@@ -62,4 +66,4 @@ if (missing.length) {
   console.error(`changelog-status: no **Status:** line in:\n${missing.map((m) => `  ${m}`).join("\n")}`);
   process.exit(1);
 }
-if (!check && changes.length) fs.writeFileSync(FILE, lines.join("\n"));
+if (!check && changes.length) fs.writeFileSync(FILE, lines.join(eol));
