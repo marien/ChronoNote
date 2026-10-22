@@ -21,7 +21,8 @@ const pushing = args.includes("--pushing") ? args.slice(args.indexOf("--pushing"
 const git = (...a) => spawnSync("git", a, { cwd: ROOT, encoding: "utf8" }).stdout.trim();
 const head = git("rev-parse", "HEAD");
 const clean = git("status", "--porcelain", "--untracked-files=no") === "";
-const MARKER = path.join(ROOT, git("rev-parse", "--git-dir"), "chrononote-verified");
+// resolve, not join: in a worktree --git-dir is an absolute path (the main checkout gives ".git").
+const MARKER = path.resolve(ROOT, git("rev-parse", "--git-dir"), "chrononote-verified");
 
 const changed = new Set([
   ...git("diff", "--name-only", "origin/main...HEAD").split("\n"),
