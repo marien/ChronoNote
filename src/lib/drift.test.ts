@@ -756,16 +756,10 @@ describe("conflict resolution and drift detection (§94, §291, §292, spec §6.
 
       expect(newestVersionContent).toBe(vExternal);
     });
+  });
 
-    // Documented behaviour:
-    // Brief §2: "Keep my version: the disk file gets the tab's text, as a compare-and-swap on the hash the user was shown: if the file changed a THIRD time meanwhile, it is not overwritten and the prompt comes back. The disk text that is overwritten is kept as an earlier version first (spec §6.6)."
-    // Spec §6.6: "Before an overwrite ... the note's previous text is saved"
-    //
-    // What the code does instead:
-    // In `MockBackend.ts` lines 889-903, `write_note` calls `this.keepVersion(filename, existing)` BEFORE validating
-    // `currentHash !== expectedHash`. When a third change causes CAS rejection (the file is NOT overwritten),
-    // `MockBackend` has already archived the 3rd version into `versions`. In contrast, `storage.rs` correctly
-    // validates CAS before keeping the version.
+  // §412: the mock used to keep a version before its compare-and-swap check (storage.rs checks first); fixed.
+  describe("a refused Keep my version", () => {
     it("does not archive an earlier version if Keep my version fails CAS because the file changed a third time", async () => {
       const filename = FILE;
       const initial = "initial text\n";

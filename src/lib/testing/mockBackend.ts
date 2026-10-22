@@ -954,12 +954,6 @@ export class MockBackend {
       if (!isValidNoteFilename(filename)) {
         throw new Error(`Invalid note filename: ${filename}`);
       }
-      const existing = this.dir().notes.get(filename);
-      if (existing !== undefined && existing.trim().length > 0) {
-        if (this.shouldKeepVersion(filename, content, expectedHash ?? null)) {
-          this.keepVersion(filename, existing);
-        }
-      }
       // §94: compare-and-swap when the caller passed the hash it last saw.
       if (typeof expectedHash === "string") {
         const current = this.dir().notes.get(filename);
@@ -967,6 +961,13 @@ export class MockBackend {
         const currentHash = await sha256Hex(current === undefined ? "" : normalizeNoteText(current));
         if (currentHash !== expectedHash) {
           throw new Error(`conflict: note changed on disk: ${filename}`);
+        }
+      }
+      // After the compare-and-swap, as in storage.rs: a refused write keeps no version (§412).
+      const existing = this.dir().notes.get(filename);
+      if (existing !== undefined && existing.trim().length > 0) {
+        if (this.shouldKeepVersion(filename, content, expectedHash ?? null)) {
+          this.keepVersion(filename, existing);
         }
       }
       const text = normalizeNoteText(content);
