@@ -10891,3 +10891,12 @@ From a test-coverage review (2026-10-17): Vitest covers 41% of `src/lib` lines a
 **Status: on main (tooling only, not in the app).**
 
 - Cutting v0.32.5, the release script's preflight refused three times with "GitHub Test run still null": GitHub's run list sometimes answers with an empty list (by hand: the same query returned the run, then "null", then the run again). The script now asks up to six times, 5 s apart, before deciding; the same for finding the release commit's Test run at the end. v0.32.5 itself was released by repeating the script, which changes nothing when its preflight refuses.
+
+## 415. The "Updated to" notice is no longer lost behind an OneDrive sign-in
+
+**Status: on main, not released yet.**
+
+- **Marien (installed web app on his phone, v0.32.5):** after an update with an expired OneDrive sign-in, the info bar showed "sign-in expired"; signing in returned to the app and the "Updated to" notice never appeared. Closing the sign-in message instead did show it. He had noticed before that he did not always see it.
+- **Causes:** (1) the info bar shows one message at a time (conflicts, sign-in expired, update available, updated to), so the notice waited behind the sign-in message; but the version was recorded as seen at start-up, and the sign-in leaves the app and comes back through a full reload, which then found nothing to announce. (2) Every status-bar message cleared the notice: left over from when the notice shared the status bar's message slot (it moved to the info bar in v0.30).
+- **Fix (Marien's go-ahead on the proposal):** the version is recorded as seen when the notice is clicked ("What's new") or closed, not at start-up (`menu.ts` `markJustUpdatedSeen`; a fresh install still records it at once); status messages no longer clear it (`stores.ts`); the order stays (sign-in first). The desktop's bring-to-front after an update (§390) stays once per update: it remembers the version it raised the window for in the app's own browser storage, since the notice can now outlive the first start.
+- **Tests:** new `tests/e2e/updated-notice.spec.ts`: an update with an expired sign-in, a reload (the sign-in round trip), then the notice after signing in; a status message does not clear it (both fail on the old code); once closed it stays away after a reload. Two `controller.test.ts` cases changed to the new rule, one added (closing marks it seen). The existing "brought to the front once" test still passes.

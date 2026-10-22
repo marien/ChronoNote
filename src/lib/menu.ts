@@ -101,17 +101,27 @@ export function openCurrentReleaseNotes() {
   api.openExternalUrl(v ? `${PROJECT_URL}/releases/tag/v${v}` : `${PROJECT_URL}/releases`).catch(() => {});
 }
 
-/** #50: the status-bar "Updated to vX.Y.Z" link — opens the releases list
- * and dismisses the banner in one action (there's no separate close
- * button; this is the app's only way to act on it, and it only ever
- * shows once per version anyway). */
+/** #50: the info bar's "Updated to vX.Y.Z — What's new": opens the releases list and dismisses the notice. */
 export function openJustUpdatedReleaseNotes() {
   if (get(justUpdatedToVersion)) openReleasesPage();
-  justUpdatedToVersion.set(null);
+  markJustUpdatedSeen();
 }
 
 /** Dismisses the "Updated to vX.Y.Z" notice without navigating to the releases page. */
 export function dismissJustUpdatedNotice() {
+  markJustUpdatedSeen();
+}
+
+/** §415: the version counts as seen only once the notice was clicked or closed, not at start-up: an OneDrive sign-in
+ * reloads the web app before the user gets to the notice (it waits behind "sign-in expired"), and that reload used
+ * to find the version already marked as seen. */
+function markJustUpdatedSeen() {
+  const version = get(justUpdatedToVersion);
   justUpdatedToVersion.set(null);
+  if (version) {
+    api.setLastSeenVersion(version).catch(() => {
+      // Best-effort: worst case the notice shows once more at the next start.
+    });
+  }
 }
 

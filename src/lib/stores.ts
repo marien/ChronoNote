@@ -357,12 +357,9 @@ export const updateErrorDuring = writable<"check" | "install">("check");
 /** The update is downloaded and the installer is being started. */
 export const updateInstalling = writable(false);
 
-/** #50: set once on boot when this launch is the first after an in-place
- * update (the running app version differs from `AppConfig.lastSeenVersion`)
- * — the version just updated *to*, for a status-bar "Updated to vX.Y.Z"
- * link that opens its GitHub release page. `null` otherwise, and once
- * dismissed for the session — `boot.ts` persists the new version
- * immediately, so it's never shown again for that version. */
+/** #50: set on boot when the running version differs from `AppConfig.lastSeenVersion` (after an in-place update): the
+ * version just updated *to*, for the info bar's "Updated to vX.Y.Z — What's new". `null` otherwise. §415: the version is
+ * recorded as seen only when the notice is clicked or closed (`menu.ts`), so it survives reloads until then. */
 export const justUpdatedToVersion = writable<string | null>(null);
 
 /** #w1-infobar: session-only set of dismissed InfoBar keys (e.g. `update:${version}`, `conflicts:${count}`). */
@@ -492,9 +489,7 @@ export interface ToastOptions {
 
 export function showToast(msg: string, options?: ToastOptions | (() => void)) {
   const action = typeof options === "function" ? options : options?.action;
-  // The one-time "Updated to vX - What's new" banner shares the status bar's message slot and used to
-  // stay put (hiding every later message) until clicked or the app restarted: a new message replaces it.
-  justUpdatedToVersion.set(null);
+  // §415: the "Updated to vX" notice lives in the info bar now, not in this message slot: a message no longer clears it.
   toastMessage.set(msg);
   toastAction.set(action ?? null);
   if (toastTimer) clearTimeout(toastTimer);

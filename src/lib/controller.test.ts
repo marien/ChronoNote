@@ -2917,7 +2917,7 @@ describe("initApp — launch-time update check (§update-check)", () => {
 });
 
 describe("initApp — first launch after an update (#50)", () => {
-  it("shows a status-bar link when the running version differs from lastSeenVersion, and persists it", async () => {
+  it("shows the notice when the running version differs from lastSeenVersion, and does not mark it seen yet (§415)", async () => {
     apiMock.getConfig.mockResolvedValue({
       notesDir: "/notes",
       colorMode: "grayscale",
@@ -2930,7 +2930,8 @@ describe("initApp — first launch after an update (#50)", () => {
     apiMock.getAppVersion.mockResolvedValue("0.7.5");
     await controller.initApp();
     expect(get(controller.justUpdatedToVersion)).toBe("0.7.5");
-    expect(apiMock.setLastSeenVersion).toHaveBeenCalledWith("0.7.5");
+    // §415: only clicking or closing the notice records it (a reload before that, e.g. an OneDrive sign-in, shows it again).
+    expect(apiMock.setLastSeenVersion).not.toHaveBeenCalled();
   });
 
   it("shows nothing on a fresh install — lastSeenVersion omitted", async () => {
@@ -3111,12 +3112,21 @@ describe("openJustUpdatedReleaseNotes (#50, §follow-up: opens the releases list
     expect(apiMock.openExternalUrl).toHaveBeenCalledWith(expect.stringContaining("/releases"));
     expect(apiMock.openExternalUrl).not.toHaveBeenCalledWith(expect.stringContaining("/releases/tag/"));
     expect(get(controller.justUpdatedToVersion)).toBe(null);
+    expect(apiMock.setLastSeenVersion).toHaveBeenCalledWith("0.7.5"); // §415: seen now
   });
 
-  it("any other message replaces the banner instead of hiding behind it", () => {
+  it("closing the notice marks the version seen without opening anything (§415)", () => {
+    controller.justUpdatedToVersion.set("0.7.5");
+    controller.dismissJustUpdatedNotice();
+    expect(get(controller.justUpdatedToVersion)).toBe(null);
+    expect(apiMock.setLastSeenVersion).toHaveBeenCalledWith("0.7.5");
+    expect(apiMock.openExternalUrl).not.toHaveBeenCalled();
+  });
+
+  it("a status message no longer clears the notice: it lives in the info bar now (§415)", () => {
     controller.justUpdatedToVersion.set("0.7.5");
     controller.showToast("Saved.");
-    expect(get(controller.justUpdatedToVersion)).toBe(null);
+    expect(get(controller.justUpdatedToVersion)).toBe("0.7.5");
     expect(get(controller.toastMessage)).toBe("Saved.");
   });
 

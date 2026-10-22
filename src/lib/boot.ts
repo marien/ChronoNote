@@ -142,7 +142,16 @@ function wireWindowTitleSync() {
 /** After an in-app update the installer starts the app, and Windows keeps a process started that way from taking
  * the foreground: the window opened behind whatever was on top. Being topmost for a moment puts it at the top of the
  * window stack (Windows allows that), then the normal order resumes with this window first. Desktop app only. */
-async function bringToFrontAfterUpdate(): Promise<void> {
+async function bringToFrontAfterUpdate(version: string): Promise<void> {
+  // §415: once per update. The "Updated to" notice now stays until it is clicked or closed (the version is not marked
+  // as seen at start-up any more), so this remembers on its own that the window was raised for this version.
+  const KEY = "chrononote.raisedAfterUpdate";
+  try {
+    if (localStorage.getItem(KEY) === version) return;
+    localStorage.setItem(KEY, version);
+  } catch {
+    // No storage: raising again at the next start is harmless.
+  }
   try {
     const win = getCurrentWindow();
     await win.setAlwaysOnTop(true);
@@ -662,10 +671,12 @@ export async function initApp() {
   // version to say we updated *from*, so `lastSeenVersion` being unset
   // just means "record the current version, nothing to announce."
   if (cfg.lastSeenVersion && cfg.lastSeenVersion !== version) {
+    // §415: recorded as seen only when the notice is clicked or closed (menu.ts), so a reload before that (an
+    // OneDrive sign-in) shows it again.
     justUpdatedToVersion.set(version);
-    if (get(backendKind) === "desktop") void bringToFrontAfterUpdate();
-  }
-  if (cfg.lastSeenVersion !== version) {
+    if (get(backendKind) === "desktop") void bringToFrontAfterUpdate(version);
+  } else if (cfg.lastSeenVersion !== version) {
+    // Nothing to announce (a first install): record the version now.
     api.setLastSeenVersion(version).catch(() => {
       // Best-effort bookkeeping — worst case the notice repeats next launch.
     });
