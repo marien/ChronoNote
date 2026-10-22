@@ -6,7 +6,7 @@ then gets a line in its CHANGELOG section) or found broken (it then becomes a fi
 
 | Since | What to check | Where / how | Section |
 |---|---|---|---|
-| 2026-10-22 | After the next update of the installed web app with an expired OneDrive sign-in: sign in, and the "Updated to" notice still appears afterwards | Phone, installed web app; needs a release after v0.32.5 | §415 |
+| 2026-10-22 | After the installed web app updates (to v0.32.6 or later) with an expired OneDrive sign-in: sign in, and the "Updated to" notice still appears afterwards (the new version's own start decides, so the update to v0.32.6 already shows it) | Phone, installed web app | §415 |
 | 2026-10-22 | Desktop: a real conflict ("changed on disk" prompt) resolved with "Keep my version" leaves the other text under Earlier versions, also when you edited a minute before | Desktop app v0.32.5; edit a note on two devices synced by OneDrive | §413 |
 | 2026-10-22 | Web app with a real OneDrive account: a note deleted and recreated before the next sync stays on OneDrive; "Keep mine" on a sync conflict leaves the OneDrive text under Earlier versions | app.chrononote.mariendegelder.nl (v0.32.5) | §413 |
 | 2026-10-21 | A test that only passes on CI's retry shows up as a warning on the run (the report runs on every push and said "no flaky tests" on its first run; the warning itself was only seen locally) | The next Test run with a flaky test | §411 |

@@ -103,7 +103,8 @@ export async function launch(): Promise<Page> {
     }
   }
   const page = await (async () => {
-    for (let i = 0; i < 60; i++) {
+    // 60 s: on CI's runner a restart after a kill once took longer than the old 30 s ("no app page", 2026-10-22).
+    for (let i = 0; i < 120; i++) {
       const pages = browser!.contexts().flatMap((c) => c.pages());
       const app = pages.find((p) => !p.url().startsWith("devtools"));
       if (app) return app;
