@@ -10894,7 +10894,7 @@ From a test-coverage review (2026-10-17): Vitest covers 41% of `src/lib` lines a
 
 ## 415. The "Updated to" notice is no longer lost behind an OneDrive sign-in
 
-**Status: on main, not released yet.**
+**Status: released in v0.32.6.**
 
 - **Marien (installed web app on his phone, v0.32.5):** after an update with an expired OneDrive sign-in, the info bar showed "sign-in expired"; signing in returned to the app and the "Updated to" notice never appeared. Closing the sign-in message instead did show it. He had noticed before that he did not always see it.
 - **Causes:** (1) the info bar shows one message at a time (conflicts, sign-in expired, update available, updated to), so the notice waited behind the sign-in message; but the version was recorded as seen at start-up, and the sign-in leaves the app and comes back through a full reload, which then found nothing to announce. (2) Every status-bar message cleared the notice: left over from when the notice shared the status bar's message slot (it moved to the info bar in v0.30).
