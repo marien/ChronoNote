@@ -224,7 +224,8 @@ describe("WebOneDriveSync - Deleted-note tombstones", () => {
     expect(tombstones).toEqual(["2026-10-20.txt"]);
   });
 
-  describe.skip("suspected bugs", () => {
+  // §413: were suspected bugs (skipped) until the sync learned the rule.
+  describe("a deleted note that is back, or held in a conflict, is just forgotten", () => {
     it("forgets tombstone without sending DELETE if note is back on disk before next sync", async () => {
       // CHANGELOG §184: "delete_note now records a tombstone (.onedrive-deleted.json) when OneDrive
       // sync is set up, and the next sync sends DELETE with If-Match = the last synced etag. If the

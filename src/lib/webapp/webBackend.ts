@@ -134,6 +134,7 @@ export class WebBackend {
       STORE_META,
     ]);
     this.syncEngine = new WebOneDriveSyncEngine(() => this.db());
+    this.syncEngine.keepVersion = (filename, content) => this.keepVersion(filename, content);
   }
 
   private async db(): Promise<IDBDatabase> {

@@ -324,7 +324,8 @@ describe("WebBackend - Earlier versions of a note", () => {
     });
   });
 
-  describe.skip("suspected bugs", () => {
+  // §413: was a suspected bug (skipped) until Keep mine kept the OneDrive text.
+  describe("a OneDrive conflict resolved with Keep mine", () => {
     it("keeps previous text as a version when a conflict is resolved with Keep mine", async () => {
       // Spec §6.6: "Before an overwrite (when the note is emptied, saved without an expected hash,
       // on an import with Replace, or on a conflict resolved with 'Keep mine'), or when editing if
@@ -355,8 +356,11 @@ describe("WebBackend - Earlier versions of a note", () => {
         filename: "2026-10-20.txt",
       })) as NoteVersion[];
 
-      // According to spec §6.6, resolving with "Keep mine" keeps previous text as a version.
+      // According to spec §6.6, resolving with "Keep mine" keeps previous text as a version: here the OneDrive text
+      // that "mine" overwrites on the next push.
       expect(versions.length).toBeGreaterThan(0);
+      const newest = await backend.invoke("read_version", { filename: "2026-10-20.txt", name: versions[0].name });
+      expect(newest).toBe("Remote conflicting text");
     });
   });
 });
