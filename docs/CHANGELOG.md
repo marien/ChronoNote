@@ -10827,7 +10827,7 @@ From a test-coverage review (2026-10-17): Vitest covers 41% of `src/lib` lines a
 
 ## 409. Find bar: all text on one baseline, icons centred
 
-**Status: on main, not released yet.**
+**Status: released in beta 0.32.5-7 (early channel only).**
 
 - **Marien (checking §401's "Aa"/"ab|" by eye):** the row looked messy: the text in the box a little high, "Aa" and "ab|" a little low.
 - **First attempt (same day, replaced):** each element's ink centred on the row (the symbols moved up 0.15em, the input padding made uneven). Marien in `npm run tauri dev`: still messy; the query, "No results", "Aa" and "ab|" should be bottom-aligned on the text. Right: they differ in font (monospace vs the UI font) and size, so centring each one separately cannot put them on one line.
@@ -10876,7 +10876,7 @@ From a test-coverage review (2026-10-17): Vitest covers 41% of `src/lib` lines a
 
 ## 413. Fixes for the six bugs the new tests found
 
-**Status: on main, not released yet.**
+**Status: released in beta 0.32.5-7 (early channel only).**
 
 - **Marien:** "Start working on those bugs" (the six suspected bugs of §412). Each skipped test was switched on, failed on the old code, and passes now.
 - **1. Desktop: "Keep my version" could lose the other version (data loss).** The write that resolves the conflict was treated as an ordinary edit, so the text it replaced was kept only when the newest earlier version was more than 5 minutes old; during active note-taking another device's text was overwritten without a copy (spec §6.6 says it is kept). `write_note` gets an optional `keepVersion` (Rust `keep_version`): when set and the write is accepted, the replaced text is always kept as an earlier version; a refused write keeps nothing. `resolveConflictKeepMine` passes it. Same in the mock and the web app backend; the web app backend also kept its version before the compare-and-swap check, so a refused write left one behind (now after, as in `storage.rs`). Implemented by Gemini 3.8 Flash from an exact design brief, reviewed by Claude. New Rust test and web backend test.
