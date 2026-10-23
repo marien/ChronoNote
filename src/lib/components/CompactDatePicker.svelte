@@ -26,6 +26,10 @@
     value: string | null;
     range?: { from: string; to: string } | null;
     noneLabel?: string;
+    /** Due dates: read the typed word as a due word first (`wk44` = that week's Friday, `fri` = the next Friday),
+     * as `by:` does in the note. Otherwise (Export, calendar sync) the date picker's own words come first
+     * (`wk44` = that week's Monday). */
+    dueWords?: boolean;
     onPick: (iso: string | null) => void;
     onClose: () => void;
   }
@@ -35,6 +39,7 @@
     value,
     range = null,
     noneLabel,
+    dueWords = false,
     onPick,
     onClose,
   }: Props = $props();
@@ -124,9 +129,8 @@
   }
 
   function parseQuery(q: string): string | null {
-    const parsed =
-      parseDateQuery(q) ??
-      parseDueWord(q, today, $locale, getDueWordExtra());
+    const asDue = () => parseDueWord(q, today, $locale, getDueWordExtra());
+    const parsed = dueWords ? (asDue() ?? parseDateQuery(q)) : (parseDateQuery(q) ?? asDue());
     if (parsed) return parsed;
     const ym = q.trim().match(/^(\d{4})-(\d{1,2})$/);
     if (ym) {

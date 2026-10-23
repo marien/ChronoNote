@@ -1209,7 +1209,7 @@ test.describe("compact date picker - phone width (375px)", () => {
 // -----------------------------------------------------------------------------
 // 14. Suspected bugs
 // -----------------------------------------------------------------------------
-test.describe.skip("suspected bugs", () => {
+test.describe("fixed suspected bugs", () => {
   // Specification:
   // "Input: a slim text input on top understands dates and words: `today`, `tomorrow`, weekday names (next one after
   // today), `+3`, `wk44` (the Friday of that week for due dates), `10-30`, a full date, and the Dutch words with a Dutch

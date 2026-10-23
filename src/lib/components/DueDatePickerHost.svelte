@@ -66,6 +66,7 @@
     anchor={$dueDatePending.anchor}
     value={currentDueDate}
     noneLabel={$t("dueDate.picker.none")}
+    dueWords
     onPick={handlePick}
     onClose={handleClose}
   />
