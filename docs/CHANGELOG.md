@@ -10975,3 +10975,26 @@ Feature review B2, designed in `docs/design/due-dates-design.md` (Marien took al
   overview (each with an independent set), and four Playwright files, `due-dates-editor(.independent).spec.ts` and
   `due-dates-overview(.independent).spec.ts`.
 - **Not in this change:** `due:`/`overdue` search operators (B3), Waiting on by due date (B1), a calendar mark.
+
+## 420. Due-date pill keeps the width and height of its text
+
+**Status: on main, not released yet.**
+
+- **Seen (Marien, beta 0.33.0-2):** the pill broke two premises every glyph keeps. It was narrower than the
+  `by:2026-10-30` it replaces, so the end of the line moved when the caret entered or left it (measured: 9.4 ch instead
+  of 13). And it made the line slightly taller, so all text below moved by a fraction of a pixel on every caret move
+  into or out of the line (measured: 0.1-0.24 px at editor font sizes 11, 12, 16 and 20 px; a box on the text baseline
+  with a smaller font and a 1px border). Not caught in the design or the reviews: neither premise was checked.
+- **Fix (design: `docs/design/due-dates-design.md`, "How it looks"):** the pill's outer box is the token's exact
+  footprint, its width the token's length in `ch` (the editor font is monospace), one line tall, top-aligned and
+  clipped, with no border, padding or margin: the glyphs' recipe. The visible pill is an inner label (outline as an
+  inset shadow) with its text centred. `dueLabel` in `date.ts` picks the first form of at most 12 characters:
+  weekday + day + month (`vr 30 okt`), day + month (`17. Sept.`, German and Polish, whose weekday forms reach 14), for
+  another year day + month + year, then the numeric date, then the ISO date.
+- **Tests:** `glyph-layout.spec.ts` "due-date pill footprint (§420)": at editor font sizes 11-24 px the pill is 13 ch
+  wide, the text after it stays on its column and the line is exactly as tall as a plain line; moving the caret onto
+  and off the line leaves the lines below and the line's end where they were. Both tests fail on the 0.33.0-2 pill
+  and pass now, also in the Windows layout mode at 100/125/150 %. Vitest: `dueLabel` stays within 12 characters for
+  every day of two years in all 7 UI languages.
+- **Standing rule from now on:** every editor design that draws something in place of text states its width in `ch`
+  and how its height is kept, and tests both.

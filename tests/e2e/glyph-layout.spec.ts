@@ -576,3 +576,87 @@ test.describe("glyph line layout", () => {
   });
 });
 
+
+/** §420: a due-date pill keeps the footprint of the `by:YYYY-MM-DD` it replaces. Same width (13 ch: the text after it
+ * stays on the column it has in a line without the token), same height (at every editor font size), and nothing moves
+ * when the caret enters or leaves the line (the pill swaps for the raw text there). */
+test.describe("due-date pill footprint (§420)", () => {
+  const PILL = "# send the report by:2026-10-30 tail";
+  const RAW = "# send the report bx:2026-10-30 tail"; // the same characters, not a due date
+
+  const measure = () => {
+    const lines = [...document.querySelectorAll<HTMLElement>(".cm-editor .cm-line")];
+    const xOf = (el: HTMLElement, needle: string) => {
+      const w = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+      let n: Node | null;
+      while ((n = w.nextNode())) {
+        const i = n.nodeValue!.indexOf(needle);
+        if (i !== -1) {
+          const r = document.createRange();
+          r.setStart(n, i);
+          r.setEnd(n, i + 1);
+          return r.getBoundingClientRect().left;
+        }
+      }
+      return NaN;
+    };
+    const probe = document.createElement("span");
+    probe.textContent = "0".repeat(100);
+    lines[2].appendChild(probe);
+    const ch = probe.getBoundingClientRect().width / 100;
+    probe.remove();
+    const pill = lines[0].querySelector<HTMLElement>(".cm-due-pill");
+    return {
+      hasPill: !!pill,
+      pillWidthCh: pill ? pill.getBoundingClientRect().width / ch : NaN,
+      tailDelta: xOf(lines[0], "tail") - xOf(lines[1], "tail"),
+      pillLineHeight: lines[0].getBoundingClientRect().height,
+      plainLineHeight: lines[2].getBoundingClientRect().height,
+      lastTop: lines[lines.length - 1].getBoundingClientRect().top,
+    };
+  };
+
+  test("is exactly as wide as its source text and as tall as a plain line, at every font size", async ({ page }) => {
+    await seedApp(page, { seed: "empty" });
+    await setEditorText(page, [PILL, RAW, "plain line", "last line"].join("\n"));
+    // Caret on the last line, so the first line shows its pill.
+    await editor(page).locator(".cm-line").last().click();
+
+    for (const px of [11, 12, 13, 14, 15, 16, 17, 18, 20, 22, 24]) {
+      await page.evaluate((size) => {
+        document.querySelector<HTMLElement>(".cm-editor")!.style.setProperty("--editor-font-size", `${size}px`);
+      }, px);
+      await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
+      const m = await page.evaluate(measure);
+      expect(m.hasPill, `${px}px`).toBe(true);
+      expect(Math.abs(m.pillWidthCh - 13), `${px}px width in ch`).toBeLessThan(0.01);
+      expect(Math.abs(m.tailDelta), `${px}px: text after the pill`).toBeLessThan(0.5);
+      expect(m.pillLineHeight, `${px}px line height`).toBe(m.plainLineHeight);
+    }
+  });
+
+  test("nothing moves when the caret enters or leaves the line", async ({ page }) => {
+    await seedApp(page, { seed: "empty" });
+    await setEditorText(page, [PILL, RAW, "plain line", "a", "b", "last line"].join("\n"));
+    for (const px of [12, 16, 20]) {
+      await page.evaluate((size) => {
+        document.querySelector<HTMLElement>(".cm-editor")!.style.setProperty("--editor-font-size", `${size}px`);
+      }, px);
+      await editor(page).locator(".cm-line").nth(2).click();
+      await page.keyboard.press("Home");
+      const off = await page.evaluate(measure);
+      expect(off.hasPill, `${px}px pill off the caret line`).toBe(true);
+
+      await page.keyboard.press("ArrowUp");
+      await page.keyboard.press("ArrowUp");
+      const on = await page.evaluate(measure);
+      expect(on.hasPill, `${px}px raw text on the caret line`).toBe(false);
+      expect(on.lastTop, `${px}px: lines below stay put`).toBe(off.lastTop);
+      expect(Math.abs(on.tailDelta), `${px}px: line end stays put`).toBeLessThan(0.5);
+
+      await page.keyboard.press("ArrowDown");
+      const back = await page.evaluate(measure);
+      expect(back.lastTop, `${px}px: lines below stay put after leaving`).toBe(off.lastTop);
+    }
+  });
+});

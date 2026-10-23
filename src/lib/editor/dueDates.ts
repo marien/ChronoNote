@@ -12,7 +12,7 @@ import { currentDateISO, activeTabId, dueDatePending, modal } from "../stores";
 import { locale, t } from "../i18n";
 import { tokenizeLine, getLineActionParts } from "../grammar/tokenize";
 import { dueStatus } from "../tokens";
-import { parseDueWord, dueWordExtra, longDate, parseISODateLocal } from "../date";
+import { dueLabel, dueWordExtra, longDate, parseDueWord, parseISODateLocal } from "../date";
 import { openDateLink } from "../dateLinks";
 import { isMac } from "../platform";
 
@@ -25,6 +25,8 @@ export class DuePillWidget extends WidgetType {
     readonly resolved: boolean,
     readonly locale: string,
     readonly todayISO: string,
+    /** The source text's length: the pill is exactly this many `ch` wide (§420, the editor font is monospace). */
+    readonly chars: number,
   ) {
     super();
   }
@@ -37,7 +39,8 @@ export class DuePillWidget extends WidgetType {
       this.status === other.status &&
       this.resolved === other.resolved &&
       this.locale === other.locale &&
-      this.todayISO === other.todayISO
+      this.todayISO === other.todayISO &&
+      this.chars === other.chars
     );
   }
 
@@ -51,26 +54,22 @@ export class DuePillWidget extends WidgetType {
     }
 
     span.dataset.date = this.date;
+    // §420: the outer box is the source text's exact footprint (width here, one line tall in CSS); the visible pill
+    // is the inner label, so nothing about it can change the line's width or height.
+    span.style.width = `${this.chars}ch`;
 
     const translate = get(t);
-
-    let text = "";
-    if (this.status === "today") {
-      text = translate("dueDate.pill.today", undefined);
-    } else {
-      const dateYear = Number(this.date.slice(0, 4));
-      const todayYear = Number(this.todayISO.slice(0, 4));
-      const opts: Intl.DateTimeFormatOptions = {
-        weekday: "short",
-        day: "numeric",
-        month: "short",
-      };
-      if (dateYear !== todayYear) {
-        opts.year = "numeric";
-      }
-      text = new Intl.DateTimeFormat(this.locale, opts).format(parseISODateLocal(this.date));
-    }
-    span.textContent = text;
+    // Half a character of padding on each side: the label gets one character less than the footprint.
+    const maxChars = this.chars - 1;
+    const todayWord = translate("dueDate.pill.today", undefined);
+    const text =
+      this.status === "today" && todayWord.length <= maxChars
+        ? todayWord
+        : dueLabel(this.date, this.todayISO, this.locale, maxChars);
+    const label = document.createElement("span");
+    label.className = "cm-due-label";
+    label.textContent = text;
+    span.appendChild(label);
 
     let detail = longDate(this.locale, this.date);
     if (this.status === "overdue") {
@@ -153,7 +152,7 @@ function build(view: EditorView): DecorationSet {
               const state = part ? part.state : null;
               const resolved = state === "v" || state === ">" || state === "x";
               const status = dueStatus(tok.date, today);
-              const widget = new DuePillWidget(tok.date, status, resolved, loc, today);
+              const widget = new DuePillWidget(tok.date, status, resolved, loc, today, tok.to - tok.from);
               b.add(tokenFrom, tokenTo, Decoration.replace({ widget }));
             }
           } else if (tok.kind === "dueWord" && tok.word !== undefined) {

@@ -1,7 +1,8 @@
 # Due dates on actions (feature review B2)
 
-Status: approved 2026-10-23 (Marien took all six recommended decisions, see the end). Not built yet; the build plan
-is in "Build plan".
+Status: approved 2026-10-23 (Marien took all six recommended decisions, see the end); built and released in beta
+0.33.0-2 (§419). The pill is being reworked to keep the source's width and the line's height (see "How it looks"
+and "Rework: the pill's footprint").
 
 ## The problem
 
@@ -74,10 +75,40 @@ to remove it. Clicking a pill does the same.
 
 ## How it looks
 
-Off the caret line the token is drawn as a small pill at the end of the action, with the date written short in
-the UI language: `vr 30 okt` / `Fri 30 Oct` (the year only when it is not this year). On the caret line the
-raw `by:2026-10-30` text shows so it can be edited; hovering the pill shows it in the tooltip (as built: swapping the
-pill for raw text under the mouse would make the line jump).
+Off the caret line the token is drawn as a pill with the date written short in the UI language: `vr 30 okt` /
+`Fri 30 Oct`. On the caret line the raw `by:2026-10-30` text shows so it can be edited; hovering the pill shows it in
+the tooltip.
+
+**The pill keeps the source's footprint (reworked 2026-10-23, after Marien tried 0.33.0-2).** Two premises of
+ChronoNote hold for every glyph and must hold here too, and the first build broke both:
+
+1. **Text width.** Anything drawn in place of source text takes exactly the width of that text. The editor font is
+   monospace (Cascadia Code), so this is a width in `ch`: `by:2026-10-30` is 13 characters, so the pill is exactly
+   `13ch` wide (the token's own length, so a typed `By:` is the same). Measured in 0.33.0-2: the pill was 9.4 ch, so
+   the end of the line moved 3.6 characters when the caret entered or left it.
+2. **Line height.** Nothing on a line may change its height. The pill is a box exactly one line tall
+   (`height` and `line-height` = the editor's line height, `vertical-align: top`, `overflow: hidden`), the same
+   recipe as the glyphs (`.glyph-topic-open` and friends). Measured in 0.33.0-2: an inline box on the text baseline,
+   with a smaller font and a 1px border, made the line 0.1-0.24 px taller at 11, 12, 16 and 20 px (and other sizes at
+   125 %), so every line below moved when the caret entered or left the line.
+
+So the outer box is the token's exact footprint and has no border, padding or margin; the visible pill (border,
+background, rounded corners) is an inner element, centred vertically, filling the box's width, with the label centred
+in it. It cannot change the line's height because the outer box clips it. Prototyped in the browser at 11-24 px: zero
+extra height at every size, width 13.000 ch.
+
+**The label must fit in 12 characters** (13 minus half a character of padding on each side). The first form that fits
+wins: weekday + day + month (`vr 30 okt`, `Thu, Sep 17`); then day + month (`17. Sept.`); for another year,
+day + month + year (`17 sep 2027`), then the date with a two-digit year in the locale's numeric form; never longer
+than 12. Measured with Intl for the 7 UI languages: weekday + day + month fits everywhere except German
+(`Do., 17. Sept.`, 14) and Polish (`czw., 17 wrz`, 14) and French at its longest (13), which fall back to day + month.
+`today` / `vandaag` always fits.
+
+The raw text on the caret line, the dotted underline of an unreadable word and the colours are marks on the text
+itself: they never change width or height. Swapping pill and raw text when the caret moves therefore moves nothing.
+
+Not chosen: leaving the raw `by:2026-10-30` in place and only colouring it (no replacement at all, so both premises
+hold trivially); it keeps the date in ISO form, which Marien chose against in decision 2.
 
 | State of the action part | Pill |
 | :--- | :--- |
@@ -87,6 +118,23 @@ pill for raw text under the mouse would make the line jump).
 | done, won't-do, deferred | dimmed with the line, never coloured (the deadline no longer matters there) |
 
 Grayscale mode uses weight and an outline instead of colour, like the glyphs. Spell check skips the token.
+
+## Rework: the pill's footprint
+
+- `src/lib/editor/dueDates.ts`: the widget becomes an outer `span.cm-due-pill` (the footprint, its width set inline
+  to the token's length in `ch`) holding an inner `span.cm-due-label` (the visible pill and its text); a pure
+  `dueLabel(date, today, locale, maxChars = 12)` picks the first form that fits, unit-tested for all 7 languages,
+  this year and another year.
+- `src/styles/03-editor.css`: the outer box gets the glyph recipe (one line tall, `vertical-align: top`,
+  `overflow: hidden`, no border, padding or margin, full font size); the state colours, border and grayscale rules
+  move to the inner label, drawn with `box-shadow: inset` instead of `border` so its size does not depend on them.
+- `website/guide.html`: the example label is unchanged in meaning; the guide's own badge is not part of the editor.
+- **Tests that guard both premises from now on** (Playwright, in `glyph-layout.spec.ts` next to the glyph width
+  checks, and in the Windows layout job at 100/125/150 %): at editor font sizes 11-24 px, a line with a pill is
+  exactly as tall as a line without one; moving the caret onto and off that line leaves the top of every line below
+  it where it was; the pill is as wide as its source text (13 ch, measured against `0` characters), and the end of
+  the line does not move when the caret enters it.
+- Size: small (a widget DOM change, CSS, one pure function, tests): within what I do myself.
 
 ## Where it shows up
 
