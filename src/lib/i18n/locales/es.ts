@@ -947,4 +947,6 @@ export const es = {
   "toast.dateLink.sectionNotFound": (p) => `Sección no encontrada: ${p?.section ?? `section`}`,
   "navToast.dismiss": () => "Cerrar",
   "navToast.ariaLabel": () => "Atrás y adelante",
+  "dueDate.words.today": () => "hoy",
+  "dueDate.words.tomorrow": () => "manana,mañana",
 } satisfies Dictionary;

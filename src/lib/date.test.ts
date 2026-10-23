@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import { formatISO, todayISO, parseDateQuery, addMonths, monthGrid, parseISODateLocal, addDaysISO, monthName, longDate, weekdayAbbrev, isoWeek, isoWeekToMonday } from "./date";
+import { formatISO, todayISO, parseDateQuery, addMonths, monthGrid, parseISODateLocal, addDaysISO, monthName, longDate, weekdayAbbrev, isoWeek, isoWeekToMonday, parseDueWord, dueWordExtra } from "./date";
 
 describe("formatISO", () => {
   it("formats as zero-padded YYYY-MM-DD", () => {
@@ -183,5 +183,123 @@ describe("monthName / weekdayAbbrev (i18n roadmap)", () => {
     expect(weekdayAbbrev("en", 6)).toMatch(/sun/i);
     expect(weekdayAbbrev("nl", 0)).toMatch(/ma/i);
     expect(weekdayAbbrev("de", 0)).toMatch(/mo/i);
+  });
+});
+
+
+describe("parseDueWord (Section 3 date words)", () => {
+  const today = "2026-10-22"; // Thursday
+
+  it("resolves today / t", () => {
+    expect(parseDueWord("today", today, "en")).toBe("2026-10-22");
+    expect(parseDueWord("t", today, "en")).toBe("2026-10-22");
+    expect(parseDueWord("Today", today, "en")).toBe("2026-10-22");
+    expect(parseDueWord("  T  ", today, "en")).toBe("2026-10-22");
+  });
+
+  it("resolves tomorrow / tm", () => {
+    expect(parseDueWord("tomorrow", today, "en")).toBe("2026-10-23");
+    expect(parseDueWord("tm", today, "en")).toBe("2026-10-23");
+    expect(parseDueWord("Tomorrow", today, "en")).toBe("2026-10-23");
+  });
+
+  it("resolves English weekday names mon..sun, monday..sunday to next strictly after today", () => {
+    expect(parseDueWord("fri", today, "en")).toBe("2026-10-23");
+    expect(parseDueWord("friday", today, "en")).toBe("2026-10-23");
+    expect(parseDueWord("sat", today, "en")).toBe("2026-10-24");
+    expect(parseDueWord("saturday", today, "en")).toBe("2026-10-24");
+    expect(parseDueWord("sun", today, "en")).toBe("2026-10-25");
+    expect(parseDueWord("sunday", today, "en")).toBe("2026-10-25");
+    expect(parseDueWord("mon", today, "en")).toBe("2026-10-26");
+    expect(parseDueWord("monday", today, "en")).toBe("2026-10-26");
+    expect(parseDueWord("tue", today, "en")).toBe("2026-10-27");
+    expect(parseDueWord("tuesday", today, "en")).toBe("2026-10-27");
+    expect(parseDueWord("wed", today, "en")).toBe("2026-10-28");
+    expect(parseDueWord("wednesday", today, "en")).toBe("2026-10-28");
+    expect(parseDueWord("thu", today, "en")).toBe("2026-10-29");
+    expect(parseDueWord("thursday", today, "en")).toBe("2026-10-29");
+  });
+
+  it("resolves locale weekdays: Dutch vr and do, German fr, French ven", () => {
+    expect(parseDueWord("vr", today, "nl")).toBe("2026-10-23");
+    expect(parseDueWord("vrijdag", today, "nl")).toBe("2026-10-23");
+    expect(parseDueWord("do", today, "nl")).toBe("2026-10-29");
+    expect(parseDueWord("donderdag", today, "nl")).toBe("2026-10-29");
+
+    expect(parseDueWord("fr", today, "de")).toBe("2026-10-23");
+    expect(parseDueWord("freitag", today, "de")).toBe("2026-10-23");
+
+    expect(parseDueWord("ven", today, "fr")).toBe("2026-10-23");
+    expect(parseDueWord("vendredi", today, "fr")).toBe("2026-10-23");
+  });
+
+  it("resolves any word in extra.today / extra.tomorrow", () => {
+    const nlExtra = dueWordExtra("vandaag", "morgen");
+    expect(parseDueWord("vandaag", today, "nl", nlExtra)).toBe("2026-10-22");
+    expect(parseDueWord("morgen", today, "nl", nlExtra)).toBe("2026-10-23");
+
+    const frExtra = dueWordExtra("aujourdhui,auj", "demain");
+    expect(parseDueWord("aujourdhui", today, "fr", frExtra)).toBe("2026-10-22");
+    expect(parseDueWord("auj", today, "fr", frExtra)).toBe("2026-10-22");
+    expect(parseDueWord("demain", today, "fr", frExtra)).toBe("2026-10-23");
+  });
+
+  it("resolves +N (N = 1..999)", () => {
+    expect(parseDueWord("+1", today, "en")).toBe("2026-10-23");
+    expect(parseDueWord("+3", today, "en")).toBe("2026-10-25");
+    expect(parseDueWord("+999", today, "en")).toBe(addDaysISO(today, 999));
+  });
+
+  it("resolves wkN, wN, weekN (also with space, N = 1..53) to Friday of that week", () => {
+    // Week 44 of 2026 Friday is 2026-10-30
+    expect(parseDueWord("wk44", today, "en")).toBe("2026-10-30");
+    expect(parseDueWord("w44", today, "en")).toBe("2026-10-30");
+    expect(parseDueWord("week44", today, "en")).toBe("2026-10-30");
+    expect(parseDueWord("wk 44", today, "en")).toBe("2026-10-30");
+    expect(parseDueWord("w 44", today, "en")).toBe("2026-10-30");
+    expect(parseDueWord("week 44", today, "en")).toBe("2026-10-30");
+
+    // Invalid week 53 in a 52-week year gives null
+    expect(parseDueWord("wk53", "2025-10-22", "en")).toBeNull();
+    expect(parseDueWord("wk 53", "2025-10-22", "en")).toBeNull();
+  });
+
+  it("resolves MM-DD to that date this year or next year if past; invalid gives null", () => {
+    expect(parseDueWord("10-30", today, "en")).toBe("2026-10-30");
+    expect(parseDueWord("10-22", today, "en")).toBe("2026-10-22");
+    expect(parseDueWord("10-20", today, "en")).toBe("2027-10-20");
+    expect(parseDueWord("02-30", today, "en")).toBeNull();
+    expect(parseDueWord("13-01", today, "en")).toBeNull();
+  });
+
+  it("resolves valid YYYY-MM-DD to itself", () => {
+    expect(parseDueWord("2026-10-30", today, "en")).toBe("2026-10-30");
+    expect(parseDueWord("2027-05-15", today, "en")).toBe("2027-05-15");
+  });
+
+  it("returns null for anything else", () => {
+    expect(parseDueWord("friday-ish", today, "en")).toBeNull();
+    expect(parseDueWord("0", today, "en")).toBeNull();
+    expect(parseDueWord("+0", today, "en")).toBeNull();
+    expect(parseDueWord("-3", today, "en")).toBeNull();
+    expect(parseDueWord("2026-02-30", today, "en")).toBeNull();
+    expect(parseDueWord("", today, "en")).toBeNull();
+    expect(parseDueWord("   ", today, "en")).toBeNull();
+  });
+
+  it("English words always win over a locale word spelled the same", () => {
+    expect(parseDueWord("t", today, "nl")).toBe("2026-10-22");
+    expect(parseDueWord("today", today, "nl")).toBe("2026-10-22");
+    expect(parseDueWord("mon", today, "fr")).toBe("2026-10-26");
+  });
+
+  it("special test cases from brief: on a Friday fri gives next week's Friday", () => {
+    expect(parseDueWord("fri", "2026-10-23", "en")).toBe("2026-10-30");
+  });
+
+  it("special test cases from brief: on 2026-12-30 01-05 gives 2027-01-05 and wk1 gives Friday of week 1 of 2027", () => {
+    expect(parseDueWord("01-05", "2026-12-30", "en")).toBe("2027-01-05");
+    // Friday of week 1 of 2027 is 2027-01-08
+    expect(parseDueWord("wk1", "2026-12-30", "en")).toBe("2027-01-08");
   });
 });

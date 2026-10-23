@@ -177,3 +177,110 @@ describe("GLYPHS", () => {
     expect(glyphSpecForSymbol("v").cls).toBe("glyph-done");
   });
 });
+
+
+describe("tokenizeLine due and dueWord (Section 1 table)", () => {
+  it("# send the report by:2026-10-30 -> due 2026-10-30", () => {
+    expect(tokenizeLine("# send the report by:2026-10-30")).toEqual([
+      { kind: "action", from: 0, to: 2, symbol: "#", replaced: true },
+      { kind: "due", from: 18, to: 31, date: "2026-10-30", replaced: false },
+    ]);
+  });
+
+  it("# (budget) ask finance by:2026-11-03 -> due 2026-11-03", () => {
+    expect(tokenizeLine("# (budget) ask finance by:2026-11-03")).toEqual([
+      { kind: "action", from: 0, to: 2, symbol: "#", replaced: true },
+      { kind: "topicTag", from: 2, to: 10, replaced: false },
+      { kind: "due", from: 23, to: 36, date: "2026-11-03", replaced: false },
+    ]);
+  });
+
+  it("v sent by:2026-10-20 -> due 2026-10-20 (done actions still carry it)", () => {
+    expect(tokenizeLine("v sent by:2026-10-20")).toEqual([
+      { kind: "action", from: 0, to: 2, symbol: "v", replaced: true },
+      { kind: "due", from: 7, to: 20, date: "2026-10-20", replaced: false },
+    ]);
+  });
+
+  it(". budget => # send numbers by:2026-10-28 -> due 2026-10-28, in the consequence part", () => {
+    expect(tokenizeLine(". budget => # send numbers by:2026-10-28")).toEqual([
+      { kind: "topic", from: 0, to: 2, symbol: ".", replaced: true },
+      { kind: "arrow", from: 9, to: 12, replaced: true },
+      { kind: "consequence", from: 12, to: 14, symbol: "#", replaced: true },
+      { kind: "due", from: 27, to: 40, date: "2026-10-28", replaced: false },
+    ]);
+  });
+
+  it("# ask Sam => he agreed by:2026-10-28 -> due 2026-10-28, belongs to the # part", () => {
+    expect(tokenizeLine("# ask Sam => he agreed by:2026-10-28")).toEqual([
+      { kind: "action", from: 0, to: 2, symbol: "#", replaced: true },
+      { kind: "arrow", from: 10, to: 13, replaced: true },
+      { kind: "due", from: 23, to: 36, date: "2026-10-28", replaced: false },
+    ]);
+  });
+
+  it("=> @dana send the slides by:2026-10-29 -> due 2026-10-29, delegated part", () => {
+    expect(tokenizeLine("=> @dana send the slides by:2026-10-29")).toEqual([
+      { kind: "arrow", from: 0, to: 3, replaced: true },
+      { kind: "assignee", from: 3, to: 8, replaced: false },
+      { kind: "due", from: 25, to: 38, date: "2026-10-29", replaced: false },
+    ]);
+  });
+
+  it("# a by:2026-10-30 => # b by:2026-10-31 -> two due tokens, one per part", () => {
+    expect(tokenizeLine("# a by:2026-10-30 => # b by:2026-10-31")).toEqual([
+      { kind: "action", from: 0, to: 2, symbol: "#", replaced: true },
+      { kind: "due", from: 4, to: 17, date: "2026-10-30", replaced: false },
+      { kind: "arrow", from: 18, to: 21, replaced: true },
+      { kind: "consequence", from: 21, to: 23, symbol: "#", replaced: true },
+      { kind: "due", from: 25, to: 38, date: "2026-10-31", replaced: false },
+    ]);
+  });
+
+  it("# a by:2026-10-30 by:2026-10-31 -> one due token (the first)", () => {
+    expect(tokenizeLine("# a by:2026-10-30 by:2026-10-31")).toEqual([
+      { kind: "action", from: 0, to: 2, symbol: "#", replaced: true },
+      { kind: "due", from: 4, to: 17, date: "2026-10-30", replaced: false },
+    ]);
+  });
+
+  it("# call by:fri -> dueWord fri", () => {
+    expect(tokenizeLine("# call by:fri")).toEqual([
+      { kind: "action", from: 0, to: 2, symbol: "#", replaced: true },
+      { kind: "dueWord", from: 7, to: 13, word: "fri", replaced: false },
+    ]);
+  });
+
+  it("# call by:2026-02-30 -> dueWord 2026-02-30", () => {
+    expect(tokenizeLine("# call by:2026-02-30")).toEqual([
+      { kind: "action", from: 0, to: 2, symbol: "#", replaced: true },
+      { kind: "dueWord", from: 7, to: 20, word: "2026-02-30", replaced: false },
+    ]);
+  });
+
+  it("non-action lines yield none", () => {
+    for (const line of [
+      "o budget by:2026-10-30",
+      "- item by:2026-10-30",
+      "plain by:2026-10-30",
+      "! x by:2026-10-30",
+    ]) {
+      expect(tokenizeLine(line).some((t) => t.kind === "due" || t.kind === "dueWord")).toBe(false);
+    }
+  });
+
+  it("nearby, parenthesized, and empty by: yield none", () => {
+    for (const line of ["# nearby:2026-10-30", "# (by:2026-10-30)", "# by:"]) {
+      expect(tokenizeLine(line).some((t) => t.kind === "due" || t.kind === "dueWord")).toBe(false);
+    }
+  });
+
+  it("# send By:2026-10-30. -> due 2026-10-30, token ends before the .", () => {
+    const tokens = tokenizeLine("# send By:2026-10-30.");
+    expect(tokens).toEqual([
+      { kind: "action", from: 0, to: 2, symbol: "#", replaced: true },
+      { kind: "due", from: 7, to: 20, date: "2026-10-30", replaced: false },
+    ]);
+    expect("# send By:2026-10-30.".slice(7, 20)).toBe("By:2026-10-30");
+  });
+});

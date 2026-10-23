@@ -3,7 +3,7 @@
  * questions are answered from `tokenizeLine` (grammar/), so there is one definition
  * of each token. */
 import { ACTION_CLASS, BULLET_CLASS, NAME_CHAR } from "./grammar/symbols";
-import { tokenizeLine } from "./grammar/tokenize";
+import { getLineActionParts, tokenizeLine } from "./grammar/tokenize";
 
 // Kept as regexes: stripLeadingToken splices around the *last* arrow, which a token list would only make longer.
 const LEADING_ACTION = new RegExp(String.raw`^(\s*)${ACTION_CLASS}\s`);
@@ -751,4 +751,69 @@ export function listSections(text: string): SectionItem[] {
     });
   }
   return result;
+}
+
+
+export interface DueItem {
+  /** 0-based line index in the text. */
+  lineIdx: number;
+  /** Offsets of the due (or dueWord) token in the line. */
+  from: number;
+  to: number;
+  /** ISO date; undefined for a dueWord. */
+  date?: string;
+  /** The text after `by:` for a dueWord. */
+  word?: string;
+  /** The state of the action part it belongs to: "#", "v", ">", "x"; null for a delegated part. */
+  state: "#" | "v" | ">" | "x" | null;
+  /** True for a `=> @name` part. */
+  delegated: boolean;
+  /** The first @name of a delegated part, without the `@`. */
+  assignee?: string;
+}
+
+/** Every due / dueWord token in the text, in line order. */
+export function dueItems(text: string): DueItem[] {
+  const items: DueItem[] = [];
+  const lines = text.split("\n");
+  for (let lineIdx = 0; lineIdx < lines.length; lineIdx++) {
+    const line = lines[lineIdx];
+    const tokens = tokenizeLine(line);
+    const dueTokens = tokens.filter((t) => t.kind === "due" || t.kind === "dueWord");
+    if (dueTokens.length === 0) continue;
+
+    const actionParts = getLineActionParts(line, tokens);
+    for (const tok of dueTokens) {
+      const part = actionParts.find((p) => tok.from >= p.from && tok.from < p.to);
+      items.push({
+        lineIdx,
+        from: tok.from,
+        to: tok.to,
+        date: tok.date,
+        word: tok.word,
+        state: part ? part.state : null,
+        delegated: part ? part.delegated : false,
+        assignee: part?.assignee,
+      });
+    }
+  }
+  return items;
+}
+
+/** Open own actions (state "#", not delegated) with a due date strictly before `todayISO`. */
+export function countOverdue(text: string, todayISO: string): number {
+  let count = 0;
+  for (const item of dueItems(text)) {
+    if (item.state === "#" && !item.delegated && item.date !== undefined && item.date < todayISO) {
+      count++;
+    }
+  }
+  return count;
+}
+
+/** "overdue" (date < today), "today", or "later", for an ISO due date. Pure string compare on ISO dates. */
+export function dueStatus(dateISO: string, todayISO: string): "overdue" | "today" | "later" {
+  if (dateISO < todayISO) return "overdue";
+  if (dateISO === todayISO) return "today";
+  return "later";
 }

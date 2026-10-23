@@ -33,6 +33,9 @@ import {
   titleForMatching,
   stateFirst,
   listSections,
+  dueItems,
+  countOverdue,
+  dueStatus,
 } from "./tokens";
 
 describe("countActions", () => {
@@ -988,5 +991,240 @@ describe("listSections", () => {
   it("returns empty array for empty note or note without sections", () => {
     expect(listSections("")).toEqual([]);
     expect(listSections("Just some text\nwith # an action\nand no headings")).toEqual([]);
+  });
+});
+
+
+describe("dueItems", () => {
+  it("extracts state, delegated, and assignee correctly for various action lines", () => {
+    // # send the report by:2026-10-30
+    expect(dueItems("# send the report by:2026-10-30")).toEqual([
+      {
+        lineIdx: 0,
+        from: 18,
+        to: 31,
+        date: "2026-10-30",
+        word: undefined,
+        state: "#",
+        delegated: false,
+        assignee: undefined,
+      },
+    ]);
+
+    // # (budget) ask finance by:2026-11-03
+    expect(dueItems("# (budget) ask finance by:2026-11-03")).toEqual([
+      {
+        lineIdx: 0,
+        from: 23,
+        to: 36,
+        date: "2026-11-03",
+        word: undefined,
+        state: "#",
+        delegated: false,
+        assignee: undefined,
+      },
+    ]);
+
+    // v sent by:2026-10-20 (done actions still carry it)
+    expect(dueItems("v sent by:2026-10-20")).toEqual([
+      {
+        lineIdx: 0,
+        from: 7,
+        to: 20,
+        date: "2026-10-20",
+        word: undefined,
+        state: "v",
+        delegated: false,
+        assignee: undefined,
+      },
+    ]);
+
+    // > deferred by:2026-10-20
+    expect(dueItems("> deferred by:2026-10-20")).toEqual([
+      {
+        lineIdx: 0,
+        from: 11,
+        to: 24,
+        date: "2026-10-20",
+        word: undefined,
+        state: ">",
+        delegated: false,
+        assignee: undefined,
+      },
+    ]);
+
+    // x won't do by:2026-10-20
+    expect(dueItems("x won't do by:2026-10-20")).toEqual([
+      {
+        lineIdx: 0,
+        from: 11,
+        to: 24,
+        date: "2026-10-20",
+        word: undefined,
+        state: "x",
+        delegated: false,
+        assignee: undefined,
+      },
+    ]);
+
+    // . budget => # send numbers by:2026-10-28
+    expect(dueItems(". budget => # send numbers by:2026-10-28")).toEqual([
+      {
+        lineIdx: 0,
+        from: 27,
+        to: 40,
+        date: "2026-10-28",
+        word: undefined,
+        state: "#",
+        delegated: false,
+        assignee: undefined,
+      },
+    ]);
+
+    // # ask Sam => he agreed by:2026-10-28
+    expect(dueItems("# ask Sam => he agreed by:2026-10-28")).toEqual([
+      {
+        lineIdx: 0,
+        from: 23,
+        to: 36,
+        date: "2026-10-28",
+        word: undefined,
+        state: "#",
+        delegated: false,
+        assignee: undefined,
+      },
+    ]);
+
+    // => @dana send the slides by:2026-10-29
+    expect(dueItems("=> @dana send the slides by:2026-10-29")).toEqual([
+      {
+        lineIdx: 0,
+        from: 25,
+        to: 38,
+        date: "2026-10-29",
+        word: undefined,
+        state: null,
+        delegated: true,
+        assignee: "dana",
+      },
+    ]);
+
+    // # a by:2026-10-30 => # b by:2026-10-31
+    expect(dueItems("# a by:2026-10-30 => # b by:2026-10-31")).toEqual([
+      {
+        lineIdx: 0,
+        from: 4,
+        to: 17,
+        date: "2026-10-30",
+        word: undefined,
+        state: "#",
+        delegated: false,
+        assignee: undefined,
+      },
+      {
+        lineIdx: 0,
+        from: 25,
+        to: 38,
+        date: "2026-10-31",
+        word: undefined,
+        state: "#",
+        delegated: false,
+        assignee: undefined,
+      },
+    ]);
+
+    // # a by:2026-10-30 by:2026-10-31
+    expect(dueItems("# a by:2026-10-30 by:2026-10-31")).toEqual([
+      {
+        lineIdx: 0,
+        from: 4,
+        to: 17,
+        date: "2026-10-30",
+        word: undefined,
+        state: "#",
+        delegated: false,
+        assignee: undefined,
+      },
+    ]);
+
+    // # call by:fri
+    expect(dueItems("# call by:fri")).toEqual([
+      {
+        lineIdx: 0,
+        from: 7,
+        to: 13,
+        date: undefined,
+        word: "fri",
+        state: "#",
+        delegated: false,
+        assignee: undefined,
+      },
+    ]);
+
+    // # call by:2026-02-30
+    expect(dueItems("# call by:2026-02-30")).toEqual([
+      {
+        lineIdx: 0,
+        from: 7,
+        to: 20,
+        date: undefined,
+        word: "2026-02-30",
+        state: "#",
+        delegated: false,
+        assignee: undefined,
+      },
+    ]);
+  });
+
+  it("yields empty array for non-action lines", () => {
+    expect(dueItems("o budget by:2026-10-30\n- item by:2026-10-30\nplain by:2026-10-30\n! x by:2026-10-30")).toEqual([]);
+  });
+
+  it("preserves lineIdx across multiline text", () => {
+    const text = [
+      "# first by:2026-10-20",
+      "prose line",
+      "v second by:2026-10-21",
+      "=> @dana third by:2026-10-22",
+    ].join("\n");
+    const items = dueItems(text);
+    expect(items.map((i) => i.lineIdx)).toEqual([0, 2, 3]);
+  });
+});
+
+describe("countOverdue", () => {
+  it("counts open own actions strictly before today; excludes done, deferred, won't-do, delegated, dueWord, today, later", () => {
+    const today = "2026-10-22";
+    const text = [
+      "# overdue open own 1 by:2026-10-20", // COUNTED (+1)
+      "# overdue open own 2 by:2026-10-21", // COUNTED (+1)
+      ". topic => # consequence open by:2026-10-21", // COUNTED (+1)
+      "# due today by:2026-10-22", // today -> not counted
+      "# due tomorrow by:2026-10-23", // later -> not counted
+      "v overdue done by:2026-10-20", // done -> not counted
+      "> overdue deferred by:2026-10-20", // deferred -> not counted
+      "x overdue won't do by:2026-10-20", // won't do -> not counted
+      "=> @dana overdue delegated by:2026-10-20", // delegated -> not counted
+      "# open with word by:fri", // dueWord -> not counted
+      "o agenda topic by:2026-10-20", // topic -> not counted
+      "plain prose by:2026-10-20", // prose -> not counted
+    ].join("\n");
+
+    expect(countOverdue(text, today)).toBe(3);
+  });
+
+  it("returns 0 when text has no overdue open own actions", () => {
+    expect(countOverdue("# future by:2026-10-25", "2026-10-22")).toBe(0);
+    expect(countOverdue("# today by:2026-10-22", "2026-10-22")).toBe(0);
+    expect(countOverdue("", "2026-10-22")).toBe(0);
+  });
+});
+
+describe("dueStatus", () => {
+  it("classifies strictly on the boundaries", () => {
+    const today = "2026-10-22";
+    expect(dueStatus("2026-10-21", today)).toBe("overdue");
+    expect(dueStatus("2026-10-22", today)).toBe("today");
+    expect(dueStatus("2026-10-23", today)).toBe("later");
   });
 });

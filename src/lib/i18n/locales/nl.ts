@@ -933,4 +933,6 @@ export const nl = {
   "toast.dateLink.sectionNotFound": (p) => `Sectie niet gevonden: ${p?.section ?? `section`}`,
   "navToast.dismiss": () => "Sluiten",
   "navToast.ariaLabel": () => "Terug en vooruit",
+  "dueDate.words.today": () => "vandaag",
+  "dueDate.words.tomorrow": () => "morgen",
 } satisfies Dictionary;

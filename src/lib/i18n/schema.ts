@@ -935,6 +935,8 @@ export type TranslationParams = {
   "toast.dateLink.sectionNotFound": { section: string };
   "navToast.dismiss": undefined;
   "navToast.ariaLabel": undefined;
+  "dueDate.words.today": undefined;
+  "dueDate.words.tomorrow": undefined;
 };
 
 export type TranslationKey = keyof TranslationParams;
