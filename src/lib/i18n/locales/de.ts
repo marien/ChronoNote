@@ -298,6 +298,13 @@ export const de = {
   "actionDrawer.onlyOpen.label": () => "Nur offene",
   "actionDrawer.onlyOpen.title": () =>
     "Nur ungelöste (offene) Aktionen anzeigen — erledigte, verschobene und entfallene Zeilen ausblenden",
+  "actionDrawer.dueView.label": () => "Nach Fälligkeit",
+  "actionDrawer.dueView.title": () => "Offene Aktionen mit Fälligkeitsdatum, baldige zuerst",
+  "actionDrawer.dueView.overdue": () => "Überfällig",
+  "actionDrawer.dueView.today": () => "Heute",
+  "actionDrawer.dueView.thisWeek": () => "Diese Woche",
+  "actionDrawer.dueView.later": () => "Später",
+  "actionDrawer.dueView.empty": () => "Keine offenen Aktionen mit Fälligkeitsdatum. Fügen Sie eine mit by:fr oder Strg+Umschalt+D hinzu",
   "actionDrawer.empty.noMatch": ({ filter }) => `Keine Aktionen stimmen mit "${filter}" überein.`,
   "actionDrawer.empty.filterSubtitle": () =>
     "Probiere ein anderes Stichwort oder lösche den Suchfilter.",
@@ -472,6 +479,8 @@ export const de = {
   "statusBar.labelOpen": ({ count }) => `${count} offen`,
   "statusBar.labelDeferred": ({ count }) => `${count} verschoben`,
   "statusBar.labelDone": ({ count }) => `${count} erledigt`,
+  "statusBar.labelOverdue": ({ count }) => `${count} überfällig`,
+  "statusBar.overdueTitle": () => "Offene Aktionen nach Ablauf des Fälligkeitsdatums in allen Notizen. Klicken, um sie anzuzeigen",
   "statusBar.jumpNextActionTooltip": ({ combo }) => `Zur nächsten offenen Aktion springen (${combo})`,
   "statusBar.allActionsTooltip": () => "Aktionsleiste öffnen (alle Aktionen)",
   "statusBar.whatsNew": () => "Was ist neu",

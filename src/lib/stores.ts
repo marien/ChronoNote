@@ -149,6 +149,8 @@ export const chromeExpanded = writable<boolean>(false);
  * fixed default every time — in-memory only, like `chromeExpanded` above,
  * not persisted to disk. Defaults to on at launch. */
 export const actionDrawerShowOnlyOpen = writable<boolean>(true);
+export const actionDrawerDueView = writable<boolean>(false);
+export const actionDrawerScopeRequest = writable<"open" | "other" | "all" | null>(null);
 
 
 export const toastMessage = writable<string>("");

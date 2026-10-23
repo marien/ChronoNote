@@ -297,6 +297,13 @@ export const pl = {
   "actionDrawer.onlyOpen.label": () => "Tylko otwarte",
   "actionDrawer.onlyOpen.title": () =>
     "Pokaż tylko otwarte zadania — ukryj wykonane, odłożone i zaniechane",
+  "actionDrawer.dueView.label": () => "Według terminu",
+  "actionDrawer.dueView.title": () => "Otwarte zadania z terminem, najbliższe na początku",
+  "actionDrawer.dueView.overdue": () => "Po terminie",
+  "actionDrawer.dueView.today": () => "Dzisiaj",
+  "actionDrawer.dueView.thisWeek": () => "W tym tygodniu",
+  "actionDrawer.dueView.later": () => "Później",
+  "actionDrawer.dueView.empty": () => "Brak otwartych zadań z terminem. Dodaj zadanie z by:pt lub Ctrl+Shift+D",
   "actionDrawer.empty.noMatch": ({ filter }) => `Brak zadań pasujących do „${filter}”.`,
   "actionDrawer.empty.filterSubtitle": () =>
     "Spróbuj innego słowa kluczowego lub wyczyść filtr wyszukiwania.",
@@ -477,6 +484,8 @@ export const pl = {
   "statusBar.labelOpen": ({ count }) => `${count} otwarte`,
   "statusBar.labelDeferred": ({ count }) => `${count} odłożone`,
   "statusBar.labelDone": ({ count }) => `${count} wykonane`,
+  "statusBar.labelOverdue": ({ count }) => `${count} po terminie`,
+  "statusBar.overdueTitle": () => "Otwarte zadania po terminie we wszystkich notatkach. Kliknij, aby je zobaczyć",
   "statusBar.jumpNextActionTooltip": ({ combo }) => `Przejdź do następnego otwartego zadania (${combo})`,
   "statusBar.allActionsTooltip": () => "Otwórz panel zadań (wszystkie zadania)",
   "statusBar.whatsNew": () => "Co nowego",

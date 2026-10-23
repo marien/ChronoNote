@@ -254,6 +254,13 @@ export type TranslationParams = {
   "actionDrawer.scope.allFiles.title": undefined;
   "actionDrawer.onlyOpen.label": undefined;
   "actionDrawer.onlyOpen.title": undefined;
+  "actionDrawer.dueView.label": undefined;
+  "actionDrawer.dueView.title": undefined;
+  "actionDrawer.dueView.overdue": undefined;
+  "actionDrawer.dueView.today": undefined;
+  "actionDrawer.dueView.thisWeek": undefined;
+  "actionDrawer.dueView.later": undefined;
+  "actionDrawer.dueView.empty": undefined;
   "actionDrawer.empty.noMatch": { filter: string };
   "actionDrawer.empty.filterSubtitle": undefined;
   "actionDrawer.empty.allResolved": undefined;
@@ -446,6 +453,8 @@ export type TranslationParams = {
   "statusBar.labelOpen": { count: number };
   "statusBar.labelDeferred": { count: number };
   "statusBar.labelDone": { count: number };
+  "statusBar.labelOverdue": { count: number };
+  "statusBar.overdueTitle": undefined;
   "statusBar.jumpNextActionTooltip": { combo: string };
   "statusBar.allActionsTooltip": undefined;
   "statusBar.whatsNew": undefined;

@@ -3,7 +3,15 @@
  * today's top priorities. Split out of `controller.ts` in the v0.5.0
  * refactor. Depends on stores + persistence + tabs + tabSort + tokens. */
 import { get } from "svelte/store";
-import { actionSnapshot, allNotesCache, modal, showToast, tabs } from "./stores";
+import {
+  actionDrawerDueView,
+  actionDrawerScopeRequest,
+  actionSnapshot,
+  allNotesCache,
+  modal,
+  showToast,
+  tabs,
+} from "./stores";
 import { refreshAllNotesCache, updateNoteOnDisk, writeTabContent } from "./persistence";
 import { openOrCreateDatedFile } from "./tabs";
 import { compareTabsByRecency, sortFilenamesByRecency } from "./tabSort";
@@ -79,6 +87,18 @@ export async function buildActionSnapshotOtherNotes(): Promise<ActionSnapshotIte
 export function openActionDrawer() {
   actionSnapshot.set(buildActionSnapshotOpenTabs());
   modal.set("actions");
+}
+
+export function openActionDrawerDueView() {
+  actionDrawerDueView.set(true);
+  actionDrawerScopeRequest.set("all");
+  const modalValue = get(modal);
+  const pane = typeof document !== "undefined" ? document.querySelector(".actions-pane") : null;
+  if (modalValue === "actions" && pane) {
+    document.querySelector<HTMLElement>(".actions-pane .modal-input")?.focus();
+  } else {
+    openActionDrawer();
+  }
 }
 
 /** Opens the file if it isn't already a tab (reusing the same open-or-

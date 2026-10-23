@@ -44,6 +44,7 @@ Vervolgens doen — Ontdek je dagelijkse workflow
 Sneloverzicht markeringen (Probeer ze hieronder)
 ------------------------------------------------
 # Openstaande actie — vereist aandacht
+# De notulen versturen by:2026-10-30
 v Voltooide actie — alles afgerond!
 > Uitgestelde actie — doorgeschoven naar morgen of volgende vergadering
 x Geannuleerde actie — vervallen, niet meer van toepassing
@@ -92,6 +93,7 @@ Als Nächstes — Täglicher Workflow
 Token-Kurzübersicht (Unten ausprobieren)
 ---------------------------------------
 # Offene Aufgabe — benötigt Aufmerksamkeit
+# Protokoll senden by:2026-10-30
 v Erledigte Aufgabe — alles fertig!
 > Verschobene Aufgabe — auf morgen oder das nächste Meeting vertagt
 x Abgebrochene Aufgabe — entfällt, nicht mehr relevant
@@ -140,6 +142,7 @@ Siguiente paso — Descubre tu flujo diario
 Guía rápida de fichas (Pruébalas abajo)
 ---------------------------------------
 # Acción abierta — requiere atención
+# Enviar el acta by:2026-10-30
 v Acción completada — ¡todo listo!
 > Acción aplazada — pospuesta para mañana o la próxima reunión
 x Acción cancelada — descartada, ya no es relevante
@@ -188,6 +191,7 @@ Ensuite — Découvrez votre flux quotidien
 Aide-mémoire des jetons (Essayez-les ci-dessous)
 ------------------------------------------------
 # Action ouverte — nécessite votre attention
+# Envoyer le compte-rendu by:2026-10-30
 v Action terminée — tout est fait !
 > Action différée — reportée à demain ou à la prochaine réunion
 x Action annulée — abandonnée, n'est plus pertinente
@@ -236,6 +240,7 @@ Passaggi successivi — Scopri il tuo flusso quotidiano
 Riferimento rapido dei token (Provali qui sotto)
 -----------------------------------------------
 # Elemento aperto — richiede attenzione
+# Inviare il verbale by:2026-10-30
 v Elemento completato — tutto fatto!
 > Azione posticipata — rimandata a domani o alla prossima riunione
 x Azione annullata — non necessaria, non più rilevante
@@ -284,6 +289,7 @@ Następnie — Poznaj codzienny tryb pracy
 Szybki przewodnik po znacznikach (Wypróbuj poniżej)
 ---------------------------------------------------
 # Otwarte zadanie — wymaga uwagi
+# Wysłać protokół by:2026-10-30
 v Ukończone zadanie — zrobione!
 > Odłożone zadanie — przesunięte na jutro lub kolejne spotkanie
 x Anulowane zadanie — nieaktualne, bez znaczenia
@@ -333,6 +339,7 @@ Do Next — Discover Your Daily Workflow
 Token Quick Reference (Try them below)
 --------------------------------------
 # Open action item — needs attention
+# Send the minutes by:2026-10-30
 v Completed action item — all done!
 > Deferred action — pushed to tomorrow or next meeting
 x Cancelled action — won't do, no longer relevant

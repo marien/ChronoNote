@@ -48,6 +48,7 @@ const SAMPLE_PARAMS: Partial<Record<TranslationKey, unknown>> = {
   "statusBar.labelOpen": { count: 3 },
   "statusBar.labelDeferred": { count: 1 },
   "statusBar.labelDone": { count: 4 },
+  "statusBar.labelOverdue": { count: 3 },
   "statusBar.jumpNextActionTooltip": { combo: "Ctrl+J" },
   "infoBar.updateAvailable": { version: "0.14.2" },
   "infoBar.updated": { version: "0.14.2" },

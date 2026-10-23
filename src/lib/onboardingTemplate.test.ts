@@ -22,6 +22,9 @@ describe("getOnboardingTemplate", () => {
     // Verify Do First / Do Next conceptual structure
     expect(template).toMatch(/# .+/);
     expect(template).toContain("=> ");
+
+    // Verify example action with due date
+    expect(template).toMatch(/# .*by:\d{4}-\d{2}-\d{2}/);
   });
 
   it("falls back to English for unknown languages", () => {

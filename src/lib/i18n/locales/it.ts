@@ -297,6 +297,13 @@ export const it = {
   "actionDrawer.onlyOpen.label": () => "Solo aperte",
   "actionDrawer.onlyOpen.title": () =>
     "Mostra solo le azioni non risolte (aperte) — nascondi righe completate, rimandate e annullate",
+  "actionDrawer.dueView.label": () => "Per scadenza",
+  "actionDrawer.dueView.title": () => "Azioni aperte con scadenza, prima le più vicine",
+  "actionDrawer.dueView.overdue": () => "In ritardo",
+  "actionDrawer.dueView.today": () => "Oggi",
+  "actionDrawer.dueView.thisWeek": () => "Questa settimana",
+  "actionDrawer.dueView.later": () => "Più avanti",
+  "actionDrawer.dueView.empty": () => "Nessuna azione aperta con scadenza. Aggiungine una con by:ven o Ctrl+Maiusc+D",
   "actionDrawer.empty.noMatch": ({ filter }) => `Nessuna azione corrisponde a "${filter}".`,
   "actionDrawer.empty.filterSubtitle": () =>
     "Prova con una parola chiave diversa o cancella il filtro di ricerca.",
@@ -475,6 +482,8 @@ export const it = {
   "statusBar.labelOpen": ({ count }) => `${count} apert${count === 1 ? "a" : "e"}`,
   "statusBar.labelDeferred": ({ count }) => `${count} rimandat${count === 1 ? "a" : "e"}`,
   "statusBar.labelDone": ({ count }) => `${count} completat${count === 1 ? "a" : "e"}`,
+  "statusBar.labelOverdue": ({ count }) => `${count} in ritardo`,
+  "statusBar.overdueTitle": () => "Azioni aperte con scadenza superata, in tutte le note. Fai clic per vederle",
   "statusBar.jumpNextActionTooltip": ({ combo }) => `Passa all'azione aperta successiva (${combo})`,
   "statusBar.allActionsTooltip": () => "Apri pannello azioni (tutte le azioni)",
   "statusBar.whatsNew": () => "Novità",

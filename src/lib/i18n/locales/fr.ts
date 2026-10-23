@@ -297,6 +297,13 @@ export const fr = {
   "actionDrawer.onlyOpen.label": () => "Ouvertes uniquement",
   "actionDrawer.onlyOpen.title": () =>
     "Afficher uniquement les actions ouvertes — masquer les lignes terminées, reportées et abandonnées",
+  "actionDrawer.dueView.label": () => "Par échéance",
+  "actionDrawer.dueView.title": () => "Actions ouvertes avec une date d'échéance, les plus proches d'abord",
+  "actionDrawer.dueView.overdue": () => "En retard",
+  "actionDrawer.dueView.today": () => "Aujourd'hui",
+  "actionDrawer.dueView.thisWeek": () => "Cette semaine",
+  "actionDrawer.dueView.later": () => "Plus tard",
+  "actionDrawer.dueView.empty": () => "Aucune action ouverte avec une date d'échéance. Ajoutez-en une avec by:ven ou Ctrl+Maj+D",
   "actionDrawer.empty.noMatch": ({ filter }) => `Aucune action ne correspond à « ${filter} ».`,
   "actionDrawer.empty.filterSubtitle": () =>
     "Essayez un autre mot-clé ou effacez le filtre de recherche.",
@@ -476,6 +483,8 @@ export const fr = {
   "statusBar.labelOpen": ({ count }) => `${count} ouverte${count === 1 ? "" : "s"}`,
   "statusBar.labelDeferred": ({ count }) => `${count} reportée${count === 1 ? "" : "s"}`,
   "statusBar.labelDone": ({ count }) => `${count} terminée${count === 1 ? "" : "s"}`,
+  "statusBar.labelOverdue": ({ count }) => `${count} en retard`,
+  "statusBar.overdueTitle": () => "Actions ouvertes dont la date d'échéance est dépassée, dans toutes les notes. Cliquez pour les afficher",
   "statusBar.jumpNextActionTooltip": ({ combo }) => `Aller à l'action ouverte suivante (${combo})`,
   "statusBar.allActionsTooltip": () => "Ouvrir le volet d'actions (toutes les actions)",
   "statusBar.whatsNew": () => "Nouveautés",

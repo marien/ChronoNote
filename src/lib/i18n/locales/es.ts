@@ -295,6 +295,13 @@ export const es = {
   "actionDrawer.onlyOpen.label": () => "Solo pendientes",
   "actionDrawer.onlyOpen.title": () =>
     "Mostrar solo acciones no resueltas (pendientes) — ocultar líneas completadas, pospuestas y descartadas",
+  "actionDrawer.dueView.label": () => "Por fecha límite",
+  "actionDrawer.dueView.title": () => "Acciones abiertas con fecha límite, las más próximas primero",
+  "actionDrawer.dueView.overdue": () => "Vencidas",
+  "actionDrawer.dueView.today": () => "Hoy",
+  "actionDrawer.dueView.thisWeek": () => "Esta semana",
+  "actionDrawer.dueView.later": () => "Más tarde",
+  "actionDrawer.dueView.empty": () => "No hay acciones abiertas con fecha límite. Añade una con by:vie o Ctrl+Mayús+D",
   "actionDrawer.empty.noMatch": ({ filter }) => `Ninguna acción coincide con "${filter}".`,
   "actionDrawer.empty.filterSubtitle": () =>
     "Prueba con otra palabra clave o borra el filtro de búsqueda.",
@@ -473,6 +480,8 @@ export const es = {
   "statusBar.labelOpen": ({ count }) => `${count} pendiente${count === 1 ? "" : "s"}`,
   "statusBar.labelDeferred": ({ count }) => `${count} pospuesta${count === 1 ? "" : "s"}`,
   "statusBar.labelDone": ({ count }) => `${count} completada${count === 1 ? "" : "s"}`,
+  "statusBar.labelOverdue": ({ count }) => `${count} vencida${count === 1 ? "" : "s"}`,
+  "statusBar.overdueTitle": () => "Acciones abiertas con fecha límite vencida, en todas las notas. Haz clic para verlas",
   "statusBar.jumpNextActionTooltip": ({ combo }) => `Saltar a la siguiente acción pendiente (${combo})`,
   "statusBar.allActionsTooltip": () => "Abrir panel de acciones (todas las acciones)",
   "statusBar.whatsNew": () => "Novedades",
