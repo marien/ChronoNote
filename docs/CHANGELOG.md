@@ -10916,3 +10916,12 @@ From a test-coverage review (2026-10-17): Vitest covers 41% of `src/lib` lines a
 **Status: on main (tooling only, not in the app).**
 
 - **Marien:** to follow a release running in the background, every status message of `scripts/release.sh` should show how long the script has been running. Each step, `ok` line, warning and error now starts with `[hh:mm:ss]` since the start (bash's `$SECONDS`; helpers `ts` and `say`). The log tail printed on a failure and the minor-release checklist stay as they are.
+
+## 418. Test fix: the mock forgot an expired OneDrive sign-in on a reload
+
+**Status: on main (tests only, not in the app).**
+
+- **Seen:** `updated-notice.spec.ts` ("waits behind an expired sign-in and survives the reload", §415) failed on CI on the v0.33.0-1 release commit (the rerun passed) and locally about 4 times in 30 with `--repeat-each=30 --workers=4`, always after the reload: the info bar kept "Updated to 0.32.5" and the sign-in-expired message never came.
+- **Cause (traced with console logging of the startup sync on both page loads):** after the reload the startup sync ran normally (account and folder found, nothing in flight), but the mock answered `onedrive_sync_now` with success. The mock backend keeps its state across a reload in `sessionStorage`, written after every mutating command, and on the next load that snapshot wins over the seed; `oneDriveSyncError` was not in the snapshot. When the first page load had written something before the reload (a tab session or config write), the reloaded mock had no sign-in error; when it had not, the seed was used again and the test passed. Timing decided which. Not an app bug: the web app's expired sign-in lives in its stored token and outlives a reload, which is §415's real scenario.
+- **Fix:** `mockBackend.ts` saves and restores `oneDriveSyncError` with the rest of its state, and `onedrive_login` (which clears it) now counts as a mutating command, so a renewed sign-in also survives a reload.
+- **Tests:** the spec passes 60 of 60 (`--repeat-each=30 --workers=4`, twice); with the debug logging in place before the fix it failed 22 of 30.

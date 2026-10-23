@@ -192,6 +192,7 @@ const MUTATING_COMMANDS = new Set([
   "spell_add",
   "spell_ignore",
   "spell_set_languages",
+  "onedrive_login", // clears `oneDriveSyncError`
 ]);
 
 /** SHA-256 hex — the exact digest `storage.rs`'s `sha2` produces and
@@ -542,6 +543,8 @@ export class MockBackend {
       archiveNotes: [...this.archiveNotes],
       oneDriveFolder: this.oneDriveFolder,
       oneDriveConflicts: [...this.oneDriveConflicts],
+      // An expired sign-in outlives a reload, as the web app's stored (unrenewable) token does (§418).
+      oneDriveSyncError: this.oneDriveSyncError,
       dirs: [...this.dirs].map(([path, d]) => [
         path,
         [...d.notes],
@@ -657,6 +660,7 @@ export class MockBackend {
         archiveNotes?: [string, string][];
         oneDriveFolder?: { folderId: string; folderPath: string } | null;
         oneDriveConflicts?: [string, string][];
+        oneDriveSyncError?: string;
       };
       if (ext.backendKind) b.backendKind = ext.backendKind;
       if (ext.browserNotes) b.browserNotes = new Map(ext.browserNotes);
@@ -664,6 +668,7 @@ export class MockBackend {
       if (ext.archiveNotes) b.archiveNotes = new Map(ext.archiveNotes);
       if (ext.oneDriveFolder !== undefined) b.oneDriveFolder = ext.oneDriveFolder;
       if (ext.oneDriveConflicts) b.oneDriveConflicts = new Map(ext.oneDriveConflicts);
+      b.oneDriveSyncError = ext.oneDriveSyncError;
       return b;
     } catch {
       return null;
