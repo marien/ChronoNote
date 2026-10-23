@@ -6,7 +6,7 @@ then gets a line in its CHANGELOG section) or found broken (it then becomes a fi
 
 | Since | What to check | Where / how | Section |
 |---|---|---|---|
-| 2026-10-23 | Due dates in daily use: typing `by:vr` / `by:morgen` with the Dutch UI and leaving the line; the pill's size and colours at 125 % (dark and light, Color and Grayscale); the "N overdue" count after the app stayed open overnight | Desktop app, the next beta | §419 |
+| 2026-10-23 | Due dates in daily use: typing `by:vr` / `by:morgen` with the Dutch UI and leaving the line; the flag and outline at 125 % (dark and light, Color and Grayscale); the "N overdue" count after the app stayed open overnight; the compact date picker from a due date, Export and the calendar sync review | Desktop app, beta 0.33.0-5 | §419, §421, §422 |
 | 2026-10-23 | The new icon on the real taskbar (dark and light) and desktop: as large as the other apps' icons and sharp at 125 % (Windows caches icons: if the old one lingers after the update, sign out and in) | Desktop app after the next release | §416 |
 | 2026-10-22 | After the installed web app updates (to v0.32.6 or later) with an expired OneDrive sign-in: sign in, and the "Updated to" notice still appears afterwards (the new version's own start decides, so the update to v0.32.6 already shows it) | Phone, installed web app | §415 |
 | 2026-10-22 | Desktop: a real conflict ("changed on disk" prompt) resolved with "Keep my version" leaves the other text under Earlier versions, also when you edited a minute before | Desktop app v0.32.5; edit a note on two devices synced by OneDrive | §413 |

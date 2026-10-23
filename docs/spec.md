@@ -67,7 +67,7 @@ whole `=> ` token in one step, as if un-delegating the line.
 | `=> ` | `➔` | **Consequence / Follow-up** | Informational note or meeting outcome. |
 | `=> @name` | `➔` + editable `@name` badge | **Delegated Action** | Action owned by another individual, with no action-state of its own. `@name` stays real text — edit it directly to fix a typo. The name may contain a hyphen (`@jean-luc`); an `@name` is badged wherever it appears, on any line — after the arrow, mid-sentence, in plain prose, on an action or agenda-topic line; no `=> ` or leading action symbol needed. Written parenthesised — `(@name)`, or several at once, `(@a, @b, @c)` — each name is badged too. An `@` glued to a word (an email address, `dana@example.com`) or following a `/` (a URL path) is not a name. |
 | `=> <symbol> ` (`<symbol>` = `#`/`v`/`>`/`x`) | `➔` + the symbol's own glyph | **Consequence Action** | An action that is itself a consequence of the line (or text) before it — not delegated to anyone. Counts toward the same status-bar bucket its inner symbol would on its own. Mutually exclusive with `=> @name` — a line is either delegated-to-a-person or a consequence-action, never both. |
-| `(topic)` (right after the action symbol) | `(topic)` as an upright rounded pill (parentheses hidden until the line is edited or hovered, without shifting the text) | **Topic tag** | Groups actions by subject. Only recognised immediately after a leading `# `/`v `/`> `/`x ` or a `=> <symbol> `; a parenthesised word anywhere else, or in prose, stays plain text. Not counted anywhere. |
+| `(topic)` (right after the action symbol) | `(topic)` as an upright rounded pill (parentheses hidden except while the caret is in the pill or right next to it, §422; hovering does not show them; the text never shifts) | **Topic tag** | Groups actions by subject. Only recognised immediately after a leading `# `/`v `/`> `/`x ` or a `=> <symbol> `; a parenthesised word anywhere else, or in prose, stays plain text. Not counted anywhere. |
 | `by:YYYY-MM-DD` (in an action part) | drawn in place (§421): `by:` becomes a flag in its own three cells and one outline surrounds flag and date, built like the topic pill (no width, height or baseline change); the date stays text; muted, amber on the day, red once past, dimmed on a resolved line; the same on the caret line | **Due date** (§419) | Belongs to the action part it stands in (a leading `# v > x`, a `=> <symbol>`, a delegated `=> @name`; a plain `=> text` belongs to the part before it); the first per part counts. Not on topic, bullet, emphasis or prose lines, not as a one-word bracket `(by:…)`, not glued to a word or after `/ . @ : -`; a closing `) ] , . ; ! ? " '` right after the date is not part of it. An open own action past its date counts in the status bar's overdue item; a delegated one does not. See **Due dates** below. |
 | `! ` | rest of line rendered bold, in an emphasis color | **Emphasis / Remember** | Purely informational — not an action, not counted anywhere, doesn't block tab close. Searchable like any other line via Cross-Tab Search; no dedicated drawer. |
 | `Heading\n====` | Setext H1 Display | **Section / Meeting Header** | Section delimiter for manual section import and meeting action history. |
@@ -136,14 +136,24 @@ language (the next such day after today, so `fri` on a Friday is next week), `+N
 (the Friday of that ISO week, next year's when this year's is past), `MM-DD` (next year when already past), the UI
 language's words for today and tomorrow (`vandaag`, `morgen`), and a valid ISO date as is. English wins over a locale
 word spelled the same. Anything else stays as typed and gets a dotted underline ("Not a date"). Only lines the caret
-visited are rewritten; a note loaded from disk or synced is never changed. The flag: a plain click opens the date
-picker in due-date mode, `Ctrl/Cmd+Click` opens that day; the caret never stops inside `by:`, and Backspace right
-after the flag removes all of it. The digits are ordinary text (and a date link). The outline's tooltip holds the long
-date and "N days late" / "Due today". **Set due date…** (`Ctrl/Cmd+Shift+D`, palette, line menu, phone bar) opens the
-same picker for the action part nearest left of the caret (the state shortcuts' rule), on its current due date or
-today, with "No due date" to remove it; a date is added at the end of the part (before trailing forward links) or
-replaces the existing one. The picker's field also reads the due words in this mode. On a line without an action it
-shows a message. Forwarding copies the text, so the date travels and the deferred source stops counting.
+visited are rewritten; a note loaded from disk or synced is never changed. A plain click anywhere on the due date (flag
+or digits, §422) opens the **compact date picker** right below it, leaving the caret where it was; `Ctrl/Cmd+Click`
+opens that day. The caret never stops inside `by:`, and Backspace right after the flag removes all of it; the digits
+are reached with the keyboard. The outline's tooltip holds the long date and "N days late" / "Due today". **Set due
+date…** (`Ctrl/Cmd+Shift+D`, palette, line menu, phone bar) opens the same compact picker under the part's due date (or
+under the caret when it has none) for the action part nearest left of the caret (the state shortcuts' rule), on its
+current due date, with "No due date" to remove it; a date is added at the end of the part (before trailing forward
+links) or replaces the existing one. Its input reads the due words first (`wk44` = that week's Friday). On a line
+without an action it shows a message.
+
+**Compact date picker (§422):** a small popover (`CompactDatePicker.svelte`) for choosing a date without the note
+context: the editor's font size, about 200 px wide at 13 px, opened directly below what was clicked (above it when
+there is no room), with a slim input (dates and words: `today`, `tomorrow`, weekdays, `+3`, `wk44`, `10-30`, a full
+date, the UI language's words), month header, week numbers, today ringed, the current value filled, and no note,
+action or agenda markers. Arrows move a day / a week, PageUp/PageDown a month, Home/End the week's ends, Enter/Space
+picks, Escape or an outside click closes; app shortcuts do not fire while it is open. Used for due dates, Export's
+From/To (with the range shaded; a From after To, or a To before From, makes both the same day) and the calendar sync
+review's "Move to". The full top-bar picker (§5) stays for opening a dated note and for Copy to next occurrence. Forwarding copies the text, so the date travels and the deferred source stops counting.
 
 **Pasting onto an empty symbol:** pasting text whose first line starts with a
 symbol (`# call Dana`, `v sent`, `o budget`, `- item`) onto a line that holds

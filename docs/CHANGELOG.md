@@ -11024,3 +11024,30 @@ Feature review B2, designed in `docs/design/due-dates-design.md` (Marien took al
   same line height, and nothing moving when the caret enters or leaves the line; passes 30/30 at 100/125/150 %
   (5 repeats). The editor specs now check the flag, the outline's state classes and tooltip, the atomic `by:`, and
   that a click on the digits opens no picker.
+
+## 422. Topic pill quieter, due date click opens a compact date picker
+
+**Status: on main, not released yet.**
+
+Marien's feedback on beta 0.33.0-4:
+
+- **Topic pill:** its parentheses showed whenever the caret was on the line or the mouse over it. Now only while the
+  caret is in the pill or right next to it (`src/lib/editor/topicTagEditing.ts`, replacing `activeLines.ts` and its
+  `cm-line-touched` class), like the due-date flag that no longer turns back into `by:`. Also in forced-colours mode.
+- **Clicking a due date:** a click on the digits now opens the date picker too (it moved the caret before); clicking a
+  date with the mouse means changing it with the mouse. Ctrl/Cmd+Click on the digits still opens that day.
+- **Symbols drawer:** a "Due date" row with the real flag and outline; the topic tag text corrected (7 languages).
+- **Compact date picker:** due dates reused the full top-bar picker, at the top bar's position and with the note,
+  action and agenda markers, which confused. A new `CompactDatePicker.svelte` (approved mock-up): the editor's font
+  size, about 200 px wide, opened directly below the date or field, no markers, a slim input that reads dates and
+  words, full keyboard control. Used for due dates (Ctrl+Shift+D, a click on the date), Export's From/To (they were the
+  browser's own date fields; now buttons, with the range shaded) and the calendar sync review's "Move to" (also a
+  browser date field before). The full picker keeps opening dated notes and Copy to next occurrence, and lost its
+  due-date mode.
+- **Built by:** Claude (topic pill, clicks, drawer row) and Gemini 3.8 Flash (compact picker, from a brief), with an
+  independent Gemini test writer (49 tests from the specification) that found one bug, fixed before merge: `wk44` in
+  the due-date picker gave that week's Monday (the navigation reading) instead of its Friday; due dates now read due
+  words first. A Gemini review of Claude's own changes.
+- **Tests:** `compact-date-picker.spec.ts` and `compact-date-picker.independent.spec.ts` (placement, size, keys,
+  words, Export range, calendar sync, no markers, phone width, keyboard isolation); the due-date specs moved to the
+  compact picker; `glyph-layout.spec.ts` covers the topic pill rule (hidden on the line, on hover, shown at either edge).
