@@ -730,12 +730,13 @@ body.peek-mode .cm-overview-ruler {
   color: var(--muted);
 }
 
-/* Due date (§419, drawn in place §421). Nothing is replaced: the whole `by:YYYY-MM-DD` gets an outline drawn the
-   way the topic pill is (an inline border cancelled by a -1px margin, so the line is exactly as long as its text and
-   the border, on an inline box, does not change the line's height), and the date digits stay text on the line's
-   baseline. On the right the outline reaches 0.3ch into the space after the date, as padding cancelled by the same
-   negative margin, so the text after it never moves. `by:` stays in the text, transparent, and a flag is drawn over
-   its three cells as a mask (like the box glyphs' marks, §327), half a character in from the left for clearance. */
+/* Due date (§419, drawn in place §421). Nothing is replaced: the whole `by:YYYY-MM-DD` gets an outline the size of
+   the topic pill's, and the date digits stay text on the line's baseline. The outline is an outset 1px box-shadow,
+   which takes no layout room at any display scaling (a 1px border cancelled by a -1px margin moved the text after it
+   at 150 %, where Chrome draws the border 0.67px wide). On the right it reaches 0.3ch into the space after the date,
+   as padding cancelled by an equal negative margin, so the text after it never moves. `by:` stays in the text,
+   transparent, and a flag is drawn over its three cells as a mask (like the box glyphs' marks, §327), half a
+   character in from the left for clearance. */
 .cm-due {
   --due-ink: var(--muted);
   color: var(--due-ink);
