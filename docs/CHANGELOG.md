@@ -11027,7 +11027,7 @@ Feature review B2, designed in `docs/design/due-dates-design.md` (Marien took al
 
 ## 422. Topic pill quieter, due date click opens a compact date picker
 
-**Status: on main, not released yet.**
+**Status: released in beta 0.33.0-5 (early channel only).**
 
 Marien's feedback on beta 0.33.0-4:
 
