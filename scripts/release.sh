@@ -65,24 +65,28 @@ TRAILER=""
 [[ -n "${RELEASE_CO_AUTHOR:-}" ]] && TRAILER=$'\n\nCo-Authored-By: '"$RELEASE_CO_AUTHOR"
 NOTES_ABS="$(cd "$(dirname "$NOTES")" && pwd)/$(basename "$NOTES")"
 
-step() { printf '\n== %s\n' "$*"; }
-ok()   { printf '   ok: %s\n' "$*"; }
+# Every status line starts with the time since the script started, [hh:mm:ss], so the
+# progress of a background run can be followed from its output.
+ts()   { printf '[%02d:%02d:%02d]' $((SECONDS / 3600)) $((SECONDS % 3600 / 60)) $((SECONDS % 60)); }
+say()  { printf '%s %s\n' "$(ts)" "$*"; }
+step() { printf '\n%s == %s\n' "$(ts)" "$*"; }
+ok()   { say "   ok: $*"; }
 # run <name> <cmd...>: quiet, log to file, tail the log on failure
 run() {
   local name="$1"; shift
   if "$@" >"$LOGS/$name.log" 2>&1; then ok "$name"
-  else echo "   FAILED: $name  (log: $LOGS/$name.log)"; tail -40 "$LOGS/$name.log"; exit 1; fi
+  else say "   FAILED: $name  (log: $LOGS/$name.log)"; tail -40 "$LOGS/$name.log"; exit 1; fi
 }
 
 # ---------------------------------------------------------------- preflight
 step "preflight"
-[[ "$(git rev-parse --abbrev-ref HEAD)" == "main" ]] || { echo "not on main" >&2; exit 1; }
+[[ "$(git rev-parse --abbrev-ref HEAD)" == "main" ]] || { say "not on main" >&2; exit 1; }
 git fetch -q origin
-[[ -z "$(git status --porcelain)" ]] || { echo "working tree not clean" >&2; git status --short; exit 1; }
-[[ "$(git rev-list --count HEAD..origin/main)" == "0" ]] || { echo "main is behind origin/main" >&2; exit 1; }
-gh auth status >/dev/null 2>&1 || { echo "gh not authenticated" >&2; exit 1; }
+[[ -z "$(git status --porcelain)" ]] || { say "working tree not clean" >&2; git status --short; exit 1; }
+[[ "$(git rev-list --count HEAD..origin/main)" == "0" ]] || { say "main is behind origin/main" >&2; exit 1; }
+gh auth status >/dev/null 2>&1 || { say "gh not authenticated" >&2; exit 1; }
 [[ -f src-tauri/updater-signing-key.local && -f src-tauri/updater-signing-key-password.local ]] \
-  || { echo "updater signing key files missing" >&2; exit 1; }
+  || { say "updater signing key files missing" >&2; exit 1; }
 # "yes" when $1 is newer than $2 (X.Y.Z or X.Y.Z-N; semver: 0.31.0-2 < 0.31.0; $2 "none" = nothing yet).
 # Not `sort -V`, which puts 0.31.0-2 after 0.31.0.
 semver_newer() {
@@ -100,9 +104,9 @@ CUR="$(node -p "require('./package.json').version")"
 BUMPED=0; [[ "$CUR" == "$VERSION" ]] && BUMPED=1
 if [[ $BUMPED == 0 ]]; then
   [[ "$(semver_newer "$VERSION" "$CUR")" == "yes" ]] \
-    || { echo "$VERSION is not newer than current $CUR" >&2; exit 1; }
+    || { say "$VERSION is not newer than current $CUR" >&2; exit 1; }
 fi
-gh release view "$TAG" >/dev/null 2>&1 && { echo "GitHub release $TAG already exists" >&2; exit 1; }
+gh release view "$TAG" >/dev/null 2>&1 && { say "GitHub release $TAG already exists" >&2; exit 1; }
 ok "on main, clean, up to date; $CUR -> $VERSION"
 
 # CI must be green on what is being released (it was red from v0.30.0 to
@@ -117,12 +121,12 @@ if [[ $BUMPED == 0 ]]; then
   done
   read -r CI_SHA CI_STATUS CI_CONCLUSION <<<"$CI"
   if [[ "$CI_SHA" != "$(git rev-parse HEAD)" ]]; then
-    echo "   NOTE: the last Test run is for ${CI_SHA:0:7}, not HEAD; its result: $CI_STATUS $CI_CONCLUSION"
+    say "   NOTE: the last Test run is for ${CI_SHA:0:7}, not HEAD; its result: $CI_STATUS $CI_CONCLUSION"
   fi
   if [[ "$CI_STATUS" != "completed" ]]; then
-    echo "GitHub Test run still $CI_STATUS; wait for it" >&2; exit 1
+    say "GitHub Test run still $CI_STATUS; wait for it" >&2; exit 1
   elif [[ "$CI_CONCLUSION" != "success" && $FORCE_RED == 0 ]]; then
-    echo "GitHub's last Test run on main: $CI_CONCLUSION. Fix it, or pass --force-red with a reason in the notes." >&2; exit 1
+    say "GitHub's last Test run on main: $CI_CONCLUSION. Fix it, or pass --force-red with a reason in the notes." >&2; exit 1
   fi
   ok "GitHub Test: $CI_CONCLUSION"
 fi
@@ -154,7 +158,7 @@ fi
 # (it did for 0.32.1-1 and 0.32.5-2): check before building (§410). Needs
 # cargo-audit: cargo install cargo-audit --locked
 step "cargo audit"
-command -v cargo-audit >/dev/null 2>&1 || { echo "cargo-audit missing: cargo install cargo-audit --locked" >&2; exit 1; }
+command -v cargo-audit >/dev/null 2>&1 || { say "cargo-audit missing: cargo install cargo-audit --locked" >&2; exit 1; }
 # RUSTSEC-2024-0429: Linux-only glib (Tauri's GTK side), as in security-audit.yml.
 run audit bash -c 'cd src-tauri && cargo audit --ignore RUSTSEC-2024-0429'
 
@@ -167,7 +171,7 @@ if [[ $SKIP_GATES == 0 ]]; then
   run cargotest bash -c 'cd src-tauri && cargo test'
   run playwright npx playwright test --workers=2
   for f in check checke2e vitest cargotest playwright; do
-    printf '   %-10s %s\n' "$f" "$(grep -Eio '[0-9]+ passed|test result: ok\.[^;]*|COMPLETED.*' "$LOGS/$f.log" | tail -1)"
+    printf '%s    %-10s %s\n' "$(ts)" "$f" "$(grep -Eio '[0-9]+ passed|test result: ok\.[^;]*|COMPLETED.*' "$LOGS/$f.log" | tail -1)"
   done
 else
   step "gates skipped (--skip-gates)"
@@ -231,7 +235,7 @@ else
   export TAURI_SIGNING_PRIVATE_KEY_PASSWORD="$(cat src-tauri/updater-signing-key-password.local)"
   run tauri-build npm run tauri build
 fi
-[[ -f "$EXE" && -f "$EXE.sig" ]] || { echo "expected installer missing under $BUNDLE" >&2; exit 1; }
+[[ -f "$EXE" && -f "$EXE.sig" ]] || { say "expected installer missing under $BUNDLE" >&2; exit 1; }
 
 # --------------------------------------------------------------- latest.json
 # Must be named exactly latest.json on disk: `gh release create path#label`
@@ -265,7 +269,7 @@ else
   ok "bundles already fresh"
 fi
 fi
-[[ -z "$(git status --porcelain)" ]] || { echo "unexpected uncommitted changes after build:" >&2; git status --short; exit 1; }
+[[ -z "$(git status --porcelain)" ]] || { say "unexpected uncommitted changes after build:" >&2; git status --short; exit 1; }
 
 # ------------------------------------------------------------------- publish
 step "publish"
@@ -312,15 +316,15 @@ fi
 # -------------------------------------------------------------------- verify
 step "verify"
 NAMES="$(gh release view "$TAG" --json assets -q '.assets[].name' | sort | tr '\n' ' ')"
-echo "   assets: $NAMES"
+say "   assets: $NAMES"
 EXPECT="ChronoNote_${VERSION}_x64-setup.exe"
 [[ $BETA == 0 ]] && EXPECT="$EXPECT latest.json"
 for n in $EXPECT; do
-  [[ "$NAMES" == *"$n "* ]] || { echo "   MISSING asset: $n" >&2; exit 1; }
+  [[ "$NAMES" == *"$n "* ]] || { say "   MISSING asset: $n" >&2; exit 1; }
 done
 if [[ $BETA == 0 ]]; then
 LIVE="$(curl -fsSL "https://github.com/marien/ChronoNote/releases/latest/download/latest.json" | node -p "JSON.parse(require('fs').readFileSync(0,'utf8')).version")"
-[[ "$LIVE" == "$VERSION" ]] && ok "releases/latest serves $LIVE" || echo "   WARNING: releases/latest serves $LIVE (expected $VERSION)"
+[[ "$LIVE" == "$VERSION" ]] && ok "releases/latest serves $LIVE" || say "   WARNING: releases/latest serves $LIVE (expected $VERSION)"
 fi
 # The release commit gets its own Test run: wait for it, so a red build is
 # seen now and not at the next release.
@@ -332,12 +336,12 @@ for _ in 1 2 3 4 5 6; do # see the preflight: the list is sometimes empty
   sleep 10
 done
 if [[ -z "$RUN_ID" ]]; then
-  echo "   WARNING: no Test run found for $(git rev-parse --short HEAD); check GitHub Actions"
+  say "   WARNING: no Test run found for $(git rev-parse --short HEAD); check GitHub Actions"
 elif gh run watch "$RUN_ID" --exit-status >/dev/null 2>&1; then
   ok "Test run $RUN_ID green"
 else
-  echo "   WARNING: Test run $RUN_ID FAILED: gh run view $RUN_ID --log-failed"
+  say "   WARNING: Test run $RUN_ID FAILED: gh run view $RUN_ID --log-failed"
 fi
 echo
-echo "Released $TAG: https://github.com/marien/ChronoNote/releases/tag/$TAG"
-echo "Remaining by hand: CHANGELOG/CLAUDE.local.md/memory notes, comment+close any issues."
+say "Released $TAG: https://github.com/marien/ChronoNote/releases/tag/$TAG"
+say "Remaining by hand: CHANGELOG/CLAUDE.local.md/memory notes, comment+close any issues."
