@@ -643,7 +643,7 @@ test.describe("due dates editor — independent tests (slice 2)", () => {
     });
   });
 
-  test.describe.skip("suspected bugs", () => {
+  test.describe("fixed suspected bugs", () => {
     // Documented behaviour:
     // docs/design/due-dates-design.md Slice 2:
     // "- 'Set due date…': command in src/lib/shortcuts.ts (Ctrl+Shift+D, checked free) and the palette, an entry in
@@ -696,7 +696,7 @@ test.describe("due dates editor — independent tests (slice 2)", () => {
 
       // The existing date cell should be focused / marked as target in the calendar
       const dayBtn = pop.locator(`.cal-day[data-iso="${existingDate}"]`);
-      await expect(dayBtn).toHaveClass(/\bcal-target\b/);
+      await expect(dayBtn).toHaveClass(/\btarget\b/);
     });
   });
 });

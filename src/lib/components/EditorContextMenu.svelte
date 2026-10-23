@@ -415,6 +415,21 @@
         <span class="editor-context-label" title={$t("shortcuts.copyToNextOccurrence.label")}>{$t("editorMenu.copyToNext")}</span>
         <span class="editor-context-key">{formatShortcut("copyToNextOccurrence")}</span>
       </button>
+      {#if hasActionPart}
+        <button
+          type="button"
+          class="editor-context-item"
+          role="menuitem"
+          onclick={() => {
+            close();
+            controller.openDueDatePicker();
+          }}
+        >
+          <Icon name="date-note" size={14} />
+          <span class="editor-context-label">{$t("shortcuts.setDueDate.label")}</span>
+          <span class="editor-context-key">{formatShortcut("setDueDate")}</span>
+        </button>
+      {/if}
       <button
         type="button"
         class="editor-context-item"

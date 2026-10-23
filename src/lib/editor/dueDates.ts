@@ -36,7 +36,12 @@ export class DuePillWidget extends WidgetType {
       this.date === other.date &&
       this.status === other.status &&
       this.resolved === other.resolved &&
-      this.locale === other.locale
+      this.locale === other.locale &&
+      // The DOM carries the line and part it edits: a reused widget after lines were inserted above would point
+      // at the wrong line.
+      this.lineIdx === other.lineIdx &&
+      this.partFrom === other.partFrom &&
+      this.todayISO === other.todayISO
     );
   }
 

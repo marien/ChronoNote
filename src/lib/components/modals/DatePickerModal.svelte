@@ -77,7 +77,8 @@
       if (lineText !== undefined) {
         const tokens = tokenizeLine(lineText);
         const parts = getLineActionParts(lineText, tokens);
-        const part = parts.find((p) => p.from === pending.partFrom);
+        // partFrom may be the part's symbol (Ctrl+Shift+D) or its start (a pill click): find the part holding it.
+        const part = parts.find((p) => pending.partFrom >= p.from && pending.partFrom < p.to);
         if (part) {
           const dueTok = tokens.find((t) => (t.kind === "due" || t.kind === "dueWord") && t.from >= part.from && t.from < part.to);
           if (dueTok?.kind === "due" && dueTok.date) {
