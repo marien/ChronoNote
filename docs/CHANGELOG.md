@@ -10978,7 +10978,7 @@ Feature review B2, designed in `docs/design/due-dates-design.md` (Marien took al
 
 ## 420. Due-date pill keeps the width and height of its text
 
-**Status: on main, not released yet.**
+**Status: released in beta 0.33.0-3 (early channel only).**
 
 - **Seen (Marien, beta 0.33.0-2):** the pill broke two premises every glyph keeps. It was narrower than the
   `by:2026-10-30` it replaces, so the end of the line moved when the caret entered or left it (measured: 9.4 ch instead
