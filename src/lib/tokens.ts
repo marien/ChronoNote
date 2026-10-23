@@ -3,7 +3,10 @@
  * questions are answered from `tokenizeLine` (grammar/), so there is one definition
  * of each token. */
 import { ACTION_CLASS, BULLET_CLASS, NAME_CHAR } from "./grammar/symbols";
-import { tokenizeLine } from "./grammar/tokenize";
+import { getLineActionParts, tokenizeLine } from "./grammar/tokenize";
+import { parseDueWord } from "./date";
+// Matches trailing forward links at the end of a line (same as TRAILING_LINKS in paste.ts)
+const TRAILING_LINKS = /(?:\s*\([<>]\d{4}-\d{2}-\d{2}(?:#[^)]*)?\))+$/;
 
 // Kept as regexes: stripLeadingToken splices around the *last* arrow, which a token list would only make longer.
 const LEADING_ACTION = new RegExp(String.raw`^(\s*)${ACTION_CLASS}\s`);
@@ -751,4 +754,132 @@ export function listSections(text: string): SectionItem[] {
     });
   }
   return result;
+}
+
+
+export interface DueItem {
+  /** 0-based line index in the text. */
+  lineIdx: number;
+  /** Offsets of the due (or dueWord) token in the line. */
+  from: number;
+  to: number;
+  /** ISO date; undefined for a dueWord. */
+  date?: string;
+  /** The text after `by:` for a dueWord. */
+  word?: string;
+  /** The state of the action part it belongs to: "#", "v", ">", "x"; null for a delegated part. */
+  state: "#" | "v" | ">" | "x" | null;
+  /** True for a `=> @name` part. */
+  delegated: boolean;
+  /** The first @name of a delegated part, without the `@`. */
+  assignee?: string;
+}
+
+/** Every due / dueWord token in the text, in line order. */
+export function dueItems(text: string): DueItem[] {
+  const items: DueItem[] = [];
+  const lines = text.split("\n");
+  for (let lineIdx = 0; lineIdx < lines.length; lineIdx++) {
+    const line = lines[lineIdx];
+    const tokens = tokenizeLine(line);
+    const dueTokens = tokens.filter((t) => t.kind === "due" || t.kind === "dueWord");
+    if (dueTokens.length === 0) continue;
+
+    const actionParts = getLineActionParts(line, tokens);
+    for (const tok of dueTokens) {
+      const part = actionParts.find((p) => tok.from >= p.from && tok.from < p.to);
+      items.push({
+        lineIdx,
+        from: tok.from,
+        to: tok.to,
+        date: tok.date,
+        word: tok.word,
+        state: part ? part.state : null,
+        delegated: part ? part.delegated : false,
+        assignee: part?.assignee,
+      });
+    }
+  }
+  return items;
+}
+
+/** Open own actions (state "#", not delegated) with a due date strictly before `todayISO`. */
+export function countOverdue(text: string, todayISO: string): number {
+  let count = 0;
+  for (const item of dueItems(text)) {
+    if (item.state === "#" && !item.delegated && item.date !== undefined && item.date < todayISO) {
+      count++;
+    }
+  }
+  return count;
+}
+
+/** "overdue" (date < today), "today", or "later", for an ISO due date. Pure string compare on ISO dates. */
+export function dueStatus(dateISO: string, todayISO: string): "overdue" | "today" | "later" {
+  if (dateISO < todayISO) return "overdue";
+  if (dateISO === todayISO) return "today";
+  return "later";
+}
+
+/** Replaces every dueWord token on the line whose word parseDueWord understands with `by:<ISO>` (lowercase `by:`).
+ * Words it does not understand, and `due` tokens that are already dates, are left exactly as written.
+ * Returns null when nothing changed. */
+export function rewriteDueWords(
+  line: string,
+  todayISO: string,
+  locale: string,
+  extra?: { today: string[]; tomorrow: string[] },
+): string | null {
+  const tokens = tokenizeLine(line);
+  const dueWordTokens = tokens.filter((t) => t.kind === "dueWord" && t.word !== undefined);
+  if (dueWordTokens.length === 0) return null;
+
+  let changed = false;
+  let result = line;
+
+  for (let i = dueWordTokens.length - 1; i >= 0; i--) {
+    const tok = dueWordTokens[i];
+    const parsed = parseDueWord(tok.word!, todayISO, locale, extra);
+    if (parsed !== null) {
+      changed = true;
+      result = result.slice(0, tok.from) + `by:${parsed}` + result.slice(tok.to);
+    }
+  }
+
+  return changed ? result : null;
+}
+
+/** Pure helper doing the text work for setDueDateAt.
+ * Replaces the part's existing due/dueWord token with `by:<iso>`, or appends ` by:<iso>` at the end of that part
+ * (before trailing forward links if it is the last part), or with null removes the token and the one space before it. */
+export function withDueDate(line: string, partFrom: number, iso: string | null): string {
+  const tokens = tokenizeLine(line);
+  const parts = getLineActionParts(line, tokens);
+  if (parts.length === 0) return line;
+
+  const part = parts.find((p) => partFrom >= p.from && (partFrom < p.to || p === parts[parts.length - 1])) ?? parts[0];
+  const dueTok = tokens.find((t) => (t.kind === "due" || t.kind === "dueWord") && t.from >= part.from && t.from < part.to);
+
+  if (iso !== null) {
+    if (dueTok) {
+      return line.slice(0, dueTok.from) + `by:${iso}` + line.slice(dueTok.to);
+    }
+    const isLastPart = part === parts[parts.length - 1] || part.to >= line.length;
+    if (isLastPart) {
+      const match = TRAILING_LINKS.exec(line);
+      if (match) {
+        const linksStart = match.index;
+        return line.slice(0, linksStart).trimEnd() + ` by:${iso} ` + line.slice(linksStart).trimStart();
+      }
+      return line.trimEnd() + ` by:${iso}`;
+    }
+    const beforePartEnd = line.slice(0, part.to).trimEnd();
+    return beforePartEnd + ` by:${iso} ` + line.slice(part.to).trimStart();
+  }
+
+  // iso === null: remove existing token and the one space before it
+  if (!dueTok) return line;
+  const hasSpaceBefore = dueTok.from > 0 && line[dueTok.from - 1] === " ";
+  const removeStart = hasSpaceBefore ? dueTok.from - 1 : dueTok.from;
+  return line.slice(0, removeStart) + line.slice(dueTok.to);
 }

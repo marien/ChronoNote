@@ -75,8 +75,9 @@ to remove it. Clicking a pill does the same.
 ## How it looks
 
 Off the caret line the token is drawn as a small pill at the end of the action, with the date written short in
-the UI language: `vr 30 okt` / `Fri 30 Oct` (the year only when it is not this year). On the caret line, or while
-hovering, the raw `by:2026-10-30` text shows so it can be edited, the same way a topic tag shows its parentheses.
+the UI language: `vr 30 okt` / `Fri 30 Oct` (the year only when it is not this year). On the caret line the
+raw `by:2026-10-30` text shows so it can be edited; hovering the pill shows it in the tooltip (as built: swapping the
+pill for raw text under the mouse would make the line jump).
 
 | State of the action part | Pill |
 | :--- | :--- |

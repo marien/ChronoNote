@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { currentLineKind, editorApi, editorFocused, openCommandPalette } from "../../controller";
+  import { currentLineKind, editorApi, editorFocused, openCommandPalette, openDueDatePicker } from "../../controller";
   import Icon from "../../icons/Icon.svelte";
   import { t } from "../../i18n";
 
@@ -159,6 +159,19 @@
         title={$t("commandPalette.modal.ariaLabel")}
       >
         <Icon name="command" size={15} />
+      </button>
+      <button
+        type="button"
+        class="accessory-btn icon-btn"
+        onpointerdown={(e) => e.preventDefault()}
+        onclick={() => {
+          moreOpen = false;
+          openDueDatePicker();
+        }}
+        aria-label={$t("shortcuts.setDueDate.label")}
+        title={$t("shortcuts.setDueDate.label")}
+      >
+        <Icon name="date-note" size={15} />
       </button>
     </div>
   {/if}

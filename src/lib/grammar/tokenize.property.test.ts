@@ -100,6 +100,17 @@ function assertTokenInvariants(line: string, tokens: Token[]) {
         expect(slice.startsWith("(")).toBe(true);
         expect(slice.endsWith(")")).toBe(true);
         break;
+      case "due":
+        expect(token.replaced).toBe(false);
+        expect(token.date).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+        expect(/^by:/i.test(slice)).toBe(true);
+        break;
+      case "dueWord":
+        expect(token.replaced).toBe(false);
+        expect(typeof token.word).toBe("string");
+        expect(token.word!.length).toBeGreaterThan(0);
+        expect(/^by:/i.test(slice)).toBe(true);
+        break;
     }
   }
 
@@ -158,6 +169,54 @@ describe("tokenizeLine properties (fast-check)", () => {
       fc.property(realisticLineArb, (line: string) => {
         const tokens = tokenizeLine(line);
         assertTokenInvariants(line, tokens);
+      }),
+      { numRuns: 500 },
+    );
+  });
+
+  it("tokens stay sorted by from and never overlap on random lines that contain by: (500 runs)", () => {
+    const linesWithByArb = fc
+      .record({
+        indent: fc.constantFrom("", " ", "  "),
+        prefix: fc.constantFrom("# ", "v ", "> ", "x ", "o ", ". ", "- ", "* ", ""),
+        pre: fc.string({ maxLength: 20 }).map((s) => s.replace(/!/g, "")),
+        by: fc.constantFrom(
+          "by:2026-10-30",
+          "by:2026-10-30.",
+          "by:2026-02-30",
+          "by:fri",
+          "by:+3",
+          "by:wk44",
+          "by:today",
+          "by:",
+          "by: ",
+          "nearby:2026-10-30",
+          "(by:2026-10-30)",
+          "By:2026-10-30",
+        ),
+        post: fc.string({ maxLength: 20 }).map((s) => s.replace(/!/g, "")),
+        follow: fc.constantFrom(
+          "",
+          " => # by:2026-10-31",
+          " => @dana send by:2026-11-01",
+          " => he agreed by:2026-10-28",
+          " => . topic by:2026-10-28",
+        ),
+      })
+      .map(({ indent, prefix, pre, by, post, follow }) => `${indent}${prefix}${pre} ${by} ${post}${follow}`);
+
+    fc.assert(
+      fc.property(linesWithByArb, (line: string) => {
+        const tokens = tokenizeLine(line);
+        assertTokenInvariants(line, tokens);
+        // Tokens stay sorted by from
+        for (let i = 0; i < tokens.length - 1; i++) {
+          expect(tokens[i].from).toBeLessThanOrEqual(tokens[i + 1].from);
+        }
+        // Never overlap
+        for (let i = 0; i < tokens.length - 1; i++) {
+          expect(tokens[i].to).toBeLessThanOrEqual(tokens[i + 1].from);
+        }
       }),
       { numRuns: 500 },
     );

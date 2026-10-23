@@ -14,7 +14,9 @@ export type TokenKind =
   | "consequenceTopic" // the o . , after `=> `, with its trailing space
   | "assignee" // @name: after `=> `, bare, or inside a (@a, @b) list
   | "topicTag" // (topic) right after an action or topic symbol
-  | "paren"; // any other `(word)`: recognised (and consumed) but not decorated
+  | "paren" // any other `(word)`: recognised (and consumed) but not decorated
+  | "due" // by: followed by a valid calendar date YYYY-MM-DD
+  | "dueWord"; // by: followed by non-space chars not a valid ISO date
 
 export interface Token {
   kind: TokenKind;
@@ -25,6 +27,85 @@ export interface Token {
   symbol?: string;
   /** Drawn as a glyph widget (and atomic in the editor), not marked in place. */
   replaced: boolean;
+  /** ISO date YYYY-MM-DD for a "due" token. */
+  date?: string;
+  /** Text after "by:" for a "dueWord" token. */
+  word?: string;
+}
+
+export interface ActionPart {
+  from: number;
+  to: number;
+  state: "#" | "v" | ">" | "x" | null;
+  delegated: boolean;
+  assignee?: string;
+}
+
+export function isValidCalendarDate(year: number, month: number, day: number): boolean {
+  if (month < 1 || month > 12 || day < 1 || day > 31) return false;
+  const d = new Date(Date.UTC(year, month - 1, day));
+  return d.getUTCFullYear() === year && d.getUTCMonth() === month - 1 && d.getUTCDate() === day;
+}
+
+export function getLineActionParts(line: string, tokens: Token[]): ActionPart[] {
+  interface Part {
+    from: number;
+    to: number;
+    isAction: boolean;
+    state: "#" | "v" | ">" | "x" | null;
+    delegated: boolean;
+    assignee?: string;
+  }
+
+  const parts: Part[] = [];
+  const leadAction = tokens[0]?.kind === "action";
+  parts.push({
+    from: 0,
+    to: line.length,
+    isAction: leadAction,
+    state: leadAction ? (tokens[0].symbol as "#" | "v" | ">" | "x") : null,
+    delegated: false,
+  });
+
+  for (let i = 0; i < tokens.length; i++) {
+    const t = tokens[i];
+    if (t.kind !== "arrow") continue;
+    const next = tokens[i + 1];
+    if (!next || next.from !== t.to) continue;
+
+    if (next.kind === "consequence") {
+      parts[parts.length - 1].to = t.from;
+      parts.push({
+        from: t.from,
+        to: line.length,
+        isAction: true,
+        state: next.symbol as "#" | "v" | ">" | "x",
+        delegated: false,
+      });
+    } else if (next.kind === "assignee") {
+      parts[parts.length - 1].to = t.from;
+      const assigneeName = line.slice(next.from + 1, next.to);
+      parts.push({
+        from: t.from,
+        to: line.length,
+        isAction: true,
+        state: null,
+        delegated: true,
+        assignee: assigneeName,
+      });
+    } else if (next.kind === "consequenceTopic") {
+      parts[parts.length - 1].to = t.from;
+      parts.push({
+        from: t.from,
+        to: line.length,
+        isAction: false,
+        state: null,
+        delegated: false,
+      });
+    }
+  }
+
+  return parts.filter((p) => p.isAction && p.from < p.to);
 }
 
 /** Same pattern as `leadingTopicTag` in tokens.ts, kept here so the grammar has no
@@ -116,5 +197,64 @@ export function tokenizeLine(line: string): Token[] {
       tokens.push({ kind: from === tagFrom ? "topicTag" : "paren", from, to, replaced: false });
     }
   }
+
+  const actionParts = getLineActionParts(line, tokens);
+  if (actionParts.length > 0) {
+    // Not glued to a word, and not inside a URL path or an address (`…/by:x`, `a.by:x`, `@by:x`).
+    const DUE_RE = /(?<![\p{L}\p{N}_/.@:-])by:/giu;
+    for (const part of actionParts) {
+      DUE_RE.lastIndex = part.from;
+      let dm: RegExpExecArray | null;
+      while ((dm = DUE_RE.exec(line)) !== null) {
+        if (dm.index >= part.to) break;
+        const matchStart = dm.index;
+
+        if (tokens.some((t) => t.kind !== "emphasis" && matchStart >= t.from && matchStart < t.to)) {
+          continue;
+        }
+
+        const afterStart = matchStart + 3;
+        if (afterStart >= part.to) continue;
+
+        const sliceAfter = line.slice(afterStart, part.to);
+        const whiteIdx = sliceAfter.search(/\s/);
+        const rawWordEnd = whiteIdx === -1 ? part.to : afterStart + whiteIdx;
+        const rawWord = line.slice(afterStart, rawWordEnd);
+        if (rawWord.length === 0) continue;
+
+        const cleanWord = rawWord.replace(/[)\].,;!?"']+$/, "");
+        if (cleanWord.length === 0) continue;
+
+        const tokenTo = afterStart + cleanWord.length;
+
+        if (tokens.some((t) => t.kind !== "emphasis" && tokenTo > t.from && tokenTo <= t.to)) {
+          continue;
+        }
+
+        const isoMatch = /^(\d{4})-(\d{2})-(\d{2})$/.exec(cleanWord);
+        if (isoMatch && isValidCalendarDate(Number(isoMatch[1]), Number(isoMatch[2]), Number(isoMatch[3]))) {
+          tokens.push({
+            kind: "due",
+            from: matchStart,
+            to: tokenTo,
+            replaced: false,
+            date: cleanWord,
+          });
+        } else {
+          tokens.push({
+            kind: "dueWord",
+            from: matchStart,
+            to: tokenTo,
+            replaced: false,
+            word: cleanWord,
+          });
+        }
+
+        break;
+      }
+    }
+    tokens.sort((a, b) => a.from - b.from || a.to - b.to);
+  }
+
   return tokens;
 }

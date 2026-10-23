@@ -68,6 +68,7 @@ whole `=> ` token in one step, as if un-delegating the line.
 | `=> @name` | `➔` + editable `@name` badge | **Delegated Action** | Action owned by another individual, with no action-state of its own. `@name` stays real text — edit it directly to fix a typo. The name may contain a hyphen (`@jean-luc`); an `@name` is badged wherever it appears, on any line — after the arrow, mid-sentence, in plain prose, on an action or agenda-topic line; no `=> ` or leading action symbol needed. Written parenthesised — `(@name)`, or several at once, `(@a, @b, @c)` — each name is badged too. An `@` glued to a word (an email address, `dana@example.com`) or following a `/` (a URL path) is not a name. |
 | `=> <symbol> ` (`<symbol>` = `#`/`v`/`>`/`x`) | `➔` + the symbol's own glyph | **Consequence Action** | An action that is itself a consequence of the line (or text) before it — not delegated to anyone. Counts toward the same status-bar bucket its inner symbol would on its own. Mutually exclusive with `=> @name` — a line is either delegated-to-a-person or a consequence-action, never both. |
 | `(topic)` (right after the action symbol) | `(topic)` as an upright rounded pill (parentheses hidden until the line is edited or hovered, without shifting the text) | **Topic tag** | Groups actions by subject. Only recognised immediately after a leading `# `/`v `/`> `/`x ` or a `=> <symbol> `; a parenthesised word anywhere else, or in prose, stays plain text. Not counted anywhere. |
+| `by:YYYY-MM-DD` (in an action part) | a small date pill, `vr 30 okt` (UI language; year only when not this year): muted, amber `today` on the day, red once past; dimmed on a resolved line; raw text on the caret line | **Due date** (§419) | Belongs to the action part it stands in (a leading `# v > x`, a `=> <symbol>`, a delegated `=> @name`; a plain `=> text` belongs to the part before it); the first per part counts. Not on topic, bullet, emphasis or prose lines, not as a one-word bracket `(by:…)`, not glued to a word or after `/ . @ : -`; a closing `) ] , . ; ! ? " '` right after the date is not part of it. An open own action past its date counts in the status bar's overdue item; a delegated one does not. See **Due dates** below. |
 | `! ` | rest of line rendered bold, in an emphasis color | **Emphasis / Remember** | Purely informational — not an action, not counted anywhere, doesn't block tab close. Searchable like any other line via Cross-Tab Search; no dedicated drawer. |
 | `Heading\n====` | Setext H1 Display | **Section / Meeting Header** | Section delimiter for manual section import and meeting action history. |
 | `Heading\n----` | the `-` line drawn as a single rule | **Sub-section header** | Purely visual: a line of three or more `-` under a title inside a section. Not a section for Section History, Peek or the line menu (§366). |
@@ -127,6 +128,21 @@ its own tab, even if the source tab isn't the active one.
 the source line (where it went) and `(<YYYY-MM-DD#Section)` to the pasted line (where it came from), each line with
 the section it is in. Both are date links (Ctrl/Cmd+Click opens that day at that section; Ctrl+Alt+Left goes back).
 Forwarding again keeps the chain: the middle day reads `> task (<earlier) (>later)`. A full date anywhere is a link too.
+
+**Due dates (§419):** typed as a word and stored as a full date. When the caret leaves the line (inside the
+state-first rewrite, so one undo step with the movement) and on paste, `by:<word>` becomes `by:YYYY-MM-DD`, relative
+to today (not the note's date): `today`/`t`, `tomorrow`/`tm`, weekday names and abbreviations in English and the UI
+language (the next such day after today, so `fri` on a Friday is next week), `+N` days (1-999), `wkN`/`wN`/`weekN`
+(the Friday of that ISO week, next year's when this year's is past), `MM-DD` (next year when already past), the UI
+language's words for today and tomorrow (`vandaag`, `morgen`), and a valid ISO date as is. English wins over a locale
+word spelled the same. Anything else stays as typed and gets a dotted underline ("Not a date"). Only lines the caret
+visited are rewritten; a note loaded from disk or synced is never changed. The pill: plain click opens the date
+picker in due-date mode, `Ctrl/Cmd+Click` opens that day (a date link); its tooltip holds the raw text, the long date
+and "N days late" / "Due today". **Set due date…** (`Ctrl/Cmd+Shift+D`, palette, line menu, phone bar) opens the
+same picker for the action part nearest left of the caret (the state shortcuts' rule), on its current due date or
+today, with "No due date" to remove it; a date is added at the end of the part (before trailing forward links) or
+replaces the existing one. The picker's field also reads the due words in this mode. On a line without an action it
+shows a message. Forwarding copies the text, so the date travels and the deferred source stops counting.
 
 **Pasting onto an empty symbol:** pasting text whose first line starts with a
 symbol (`# call Dana`, `v sent`, `o budget`, `- item`) onto a line that holds
@@ -263,7 +279,11 @@ the action counts for the active note as buttons — a glyph in its colour
 plus "3 open", "1 deferred", "4 done" (`x`, won't-do, folds into done;
 the number alone at narrow widths). Clicking the open count jumps to the
 next open action (as `Ctrl/Cmd+J`); clicking deferred or done opens the
-Action Drawer with "Only open" off. A centre zone reserved for transient
+Action Drawer with "Only open" off. Only when something is late, a red
+"N overdue" item follows (§419): open own actions past their `by:` date in
+**all** notes (open tabs' unsaved text included, delegated lines not),
+never hidden by narrowing; clicking it opens the Action Drawer's due view
+on All files. A centre zone reserved for transient
 status messages (autosave confirmations, "nothing to import," etc.), empty
 otherwise — a message that points somewhere is clickable (sign-in expired
 opens the sync popover, "choose a folder" opens Settings, update available
@@ -540,6 +560,11 @@ reachable from the top bar, a shortcut, or the command palette:
   heading of the group at the top of the list stays pinned while you
   scroll (#77), so an action deep in a long group never loses its date;
   keyboard navigation keeps the selected row clear of the pinned heading.
+  A third toggle, "By due date" (§419, for the session, off by default),
+  lists only lines with an open own due date (delegated ones too when the
+  filter has `@`), grouped Overdue / Today / This week (to Sunday of the
+  ISO week) / Later, soonest first, each row naming its note; the text
+  filter still applies and the other keys work as in the normal view.
 - **Section History** (`Ctrl/Cmd+Shift+H`) — on a window 1000px or wider
   (not a phone, Zen or Peek) a pane docked right of the note (§343): the
   note stays editable and the app's shortcuts keep working in it, `F6`

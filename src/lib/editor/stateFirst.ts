@@ -1,7 +1,11 @@
 import { EditorState } from "@codemirror/state";
-import { stateFirst } from "../tokens";
+import { get } from "svelte/store";
+import { currentDateISO } from "../stores";
+import { locale, t } from "../i18n";
+import { rewriteDueWords, stateFirst } from "../tokens";
+import { dueWordExtra } from "../date";
 
-/** Transaction filter that rewrites a line to state-first when the selection head leaves it.
+/** Transaction filter that rewrites a line to state-first and rewrites due words when the selection head leaves it.
  * Appends a change for the previous line so it forms a single undo step with the movement. */
 export const stateFirstFilter = EditorState.transactionFilter.of((tr) => {
   // Only the user's own typing and caret moves: a note loaded from disk, a sync or a drawer edit is never rewritten.
@@ -24,8 +28,22 @@ export const stateFirstFilter = EditorState.transactionFilter.of((tr) => {
   // If caret is still on the same line, do not touch it (user may still be typing)
   if (prevLineInNew.number === newLine.number) return tr;
 
-  const rewritten = stateFirst(prevLineInNew.text);
-  if (!rewritten || rewritten === prevLineInNew.text) return tr;
+  const originalText = prevLineInNew.text;
+  const stateFirstResult = stateFirst(originalText);
+  const intermediateText = stateFirstResult ?? originalText;
+
+  const today = get(currentDateISO);
+  const loc = get(locale);
+  const translate = get(t);
+  const extra = dueWordExtra(
+    translate("dueDate.words.today", undefined) ?? "",
+    translate("dueDate.words.tomorrow", undefined) ?? "",
+  );
+
+  const dueResult = rewriteDueWords(intermediateText, today, loc, extra);
+  const rewritten = dueResult ?? (stateFirstResult !== null ? intermediateText : null);
+
+  if (!rewritten || rewritten === originalText) return tr;
 
   return [
     tr,

@@ -307,6 +307,12 @@
         controller.openCommandPalette("#");
         return;
       }
+      if (matchesShortcut(e, "setDueDate")) {
+        if (modalOwnsKeyboard(e)) return;
+        e.preventDefault();
+        controller.openDueDatePicker();
+        return;
+      }
       if (matchesShortcut(e, "findInNote")) {
         if (modalOwnsKeyboard(e)) return;
         // Catches Ctrl/Cmd+F when focus is in the find input or elsewhere

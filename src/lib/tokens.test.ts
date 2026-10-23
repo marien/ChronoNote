@@ -33,6 +33,11 @@ import {
   titleForMatching,
   stateFirst,
   listSections,
+  dueItems,
+  countOverdue,
+  dueStatus,
+  rewriteDueWords,
+  withDueDate,
 } from "./tokens";
 
 describe("countActions", () => {
@@ -988,5 +993,333 @@ describe("listSections", () => {
   it("returns empty array for empty note or note without sections", () => {
     expect(listSections("")).toEqual([]);
     expect(listSections("Just some text\nwith # an action\nand no headings")).toEqual([]);
+  });
+});
+
+
+describe("dueItems", () => {
+  it("extracts state, delegated, and assignee correctly for various action lines", () => {
+    // # send the report by:2026-10-30
+    expect(dueItems("# send the report by:2026-10-30")).toEqual([
+      {
+        lineIdx: 0,
+        from: 18,
+        to: 31,
+        date: "2026-10-30",
+        word: undefined,
+        state: "#",
+        delegated: false,
+        assignee: undefined,
+      },
+    ]);
+
+    // # (budget) ask finance by:2026-11-03
+    expect(dueItems("# (budget) ask finance by:2026-11-03")).toEqual([
+      {
+        lineIdx: 0,
+        from: 23,
+        to: 36,
+        date: "2026-11-03",
+        word: undefined,
+        state: "#",
+        delegated: false,
+        assignee: undefined,
+      },
+    ]);
+
+    // v sent by:2026-10-20 (done actions still carry it)
+    expect(dueItems("v sent by:2026-10-20")).toEqual([
+      {
+        lineIdx: 0,
+        from: 7,
+        to: 20,
+        date: "2026-10-20",
+        word: undefined,
+        state: "v",
+        delegated: false,
+        assignee: undefined,
+      },
+    ]);
+
+    // > deferred by:2026-10-20
+    expect(dueItems("> deferred by:2026-10-20")).toEqual([
+      {
+        lineIdx: 0,
+        from: 11,
+        to: 24,
+        date: "2026-10-20",
+        word: undefined,
+        state: ">",
+        delegated: false,
+        assignee: undefined,
+      },
+    ]);
+
+    // x won't do by:2026-10-20
+    expect(dueItems("x won't do by:2026-10-20")).toEqual([
+      {
+        lineIdx: 0,
+        from: 11,
+        to: 24,
+        date: "2026-10-20",
+        word: undefined,
+        state: "x",
+        delegated: false,
+        assignee: undefined,
+      },
+    ]);
+
+    // . budget => # send numbers by:2026-10-28
+    expect(dueItems(". budget => # send numbers by:2026-10-28")).toEqual([
+      {
+        lineIdx: 0,
+        from: 27,
+        to: 40,
+        date: "2026-10-28",
+        word: undefined,
+        state: "#",
+        delegated: false,
+        assignee: undefined,
+      },
+    ]);
+
+    // # ask Sam => he agreed by:2026-10-28
+    expect(dueItems("# ask Sam => he agreed by:2026-10-28")).toEqual([
+      {
+        lineIdx: 0,
+        from: 23,
+        to: 36,
+        date: "2026-10-28",
+        word: undefined,
+        state: "#",
+        delegated: false,
+        assignee: undefined,
+      },
+    ]);
+
+    // => @dana send the slides by:2026-10-29
+    expect(dueItems("=> @dana send the slides by:2026-10-29")).toEqual([
+      {
+        lineIdx: 0,
+        from: 25,
+        to: 38,
+        date: "2026-10-29",
+        word: undefined,
+        state: null,
+        delegated: true,
+        assignee: "dana",
+      },
+    ]);
+
+    // # a by:2026-10-30 => # b by:2026-10-31
+    expect(dueItems("# a by:2026-10-30 => # b by:2026-10-31")).toEqual([
+      {
+        lineIdx: 0,
+        from: 4,
+        to: 17,
+        date: "2026-10-30",
+        word: undefined,
+        state: "#",
+        delegated: false,
+        assignee: undefined,
+      },
+      {
+        lineIdx: 0,
+        from: 25,
+        to: 38,
+        date: "2026-10-31",
+        word: undefined,
+        state: "#",
+        delegated: false,
+        assignee: undefined,
+      },
+    ]);
+
+    // # a by:2026-10-30 by:2026-10-31
+    expect(dueItems("# a by:2026-10-30 by:2026-10-31")).toEqual([
+      {
+        lineIdx: 0,
+        from: 4,
+        to: 17,
+        date: "2026-10-30",
+        word: undefined,
+        state: "#",
+        delegated: false,
+        assignee: undefined,
+      },
+    ]);
+
+    // # call by:fri
+    expect(dueItems("# call by:fri")).toEqual([
+      {
+        lineIdx: 0,
+        from: 7,
+        to: 13,
+        date: undefined,
+        word: "fri",
+        state: "#",
+        delegated: false,
+        assignee: undefined,
+      },
+    ]);
+
+    // # call by:2026-02-30
+    expect(dueItems("# call by:2026-02-30")).toEqual([
+      {
+        lineIdx: 0,
+        from: 7,
+        to: 20,
+        date: undefined,
+        word: "2026-02-30",
+        state: "#",
+        delegated: false,
+        assignee: undefined,
+      },
+    ]);
+  });
+
+  it("yields empty array for non-action lines", () => {
+    expect(dueItems("o budget by:2026-10-30\n- item by:2026-10-30\nplain by:2026-10-30\n! x by:2026-10-30")).toEqual([]);
+  });
+
+  it("preserves lineIdx across multiline text", () => {
+    const text = [
+      "# first by:2026-10-20",
+      "prose line",
+      "v second by:2026-10-21",
+      "=> @dana third by:2026-10-22",
+    ].join("\n");
+    const items = dueItems(text);
+    expect(items.map((i) => i.lineIdx)).toEqual([0, 2, 3]);
+  });
+});
+
+describe("countOverdue", () => {
+  it("counts open own actions strictly before today; excludes done, deferred, won't-do, delegated, dueWord, today, later", () => {
+    const today = "2026-10-22";
+    const text = [
+      "# overdue open own 1 by:2026-10-20", // COUNTED (+1)
+      "# overdue open own 2 by:2026-10-21", // COUNTED (+1)
+      ". topic => # consequence open by:2026-10-21", // COUNTED (+1)
+      "# due today by:2026-10-22", // today -> not counted
+      "# due tomorrow by:2026-10-23", // later -> not counted
+      "v overdue done by:2026-10-20", // done -> not counted
+      "> overdue deferred by:2026-10-20", // deferred -> not counted
+      "x overdue won't do by:2026-10-20", // won't do -> not counted
+      "=> @dana overdue delegated by:2026-10-20", // delegated -> not counted
+      "# open with word by:fri", // dueWord -> not counted
+      "o agenda topic by:2026-10-20", // topic -> not counted
+      "plain prose by:2026-10-20", // prose -> not counted
+    ].join("\n");
+
+    expect(countOverdue(text, today)).toBe(3);
+  });
+
+  it("returns 0 when text has no overdue open own actions", () => {
+    expect(countOverdue("# future by:2026-10-25", "2026-10-22")).toBe(0);
+    expect(countOverdue("# today by:2026-10-22", "2026-10-22")).toBe(0);
+    expect(countOverdue("", "2026-10-22")).toBe(0);
+  });
+});
+
+describe("dueStatus", () => {
+  it("classifies strictly on the boundaries", () => {
+    const today = "2026-10-22";
+    expect(dueStatus("2026-10-21", today)).toBe("overdue");
+    expect(dueStatus("2026-10-22", today)).toBe("today");
+    expect(dueStatus("2026-10-23", today)).toBe("later");
+  });
+});
+
+describe("rewriteDueWords", () => {
+  const fixedToday = "2026-10-22"; // Thursday
+  const locale = "en";
+  const extra = { today: ["today", "t"], tomorrow: ["tomorrow", "tm"] };
+
+  it("rewrites a known word to an ISO date with fixed today", () => {
+    // fri after Thu 2026-10-22 is 2026-10-23
+    expect(rewriteDueWords("# call by:fri", fixedToday, locale, extra)).toBe("# call by:2026-10-23");
+    expect(rewriteDueWords("# call by:tomorrow", fixedToday, locale, extra)).toBe("# call by:2026-10-23");
+    expect(rewriteDueWords("# call by:today", fixedToday, locale, extra)).toBe("# call by:2026-10-22");
+  });
+
+  it("leaves unknown words untouched and returns null when nothing changed", () => {
+    expect(rewriteDueWords("# call by:unknown", fixedToday, locale, extra)).toBeNull();
+    expect(rewriteDueWords("# plain text without due words", fixedToday, locale, extra)).toBeNull();
+  });
+
+  it("leaves already-valid ISO due tokens untouched and returns null", () => {
+    expect(rewriteDueWords("# call by:2026-10-30", fixedToday, locale, extra)).toBeNull();
+  });
+
+  it("converts uppercase By:fri to lowercase by:", () => {
+    expect(rewriteDueWords("# call By:fri", fixedToday, locale, extra)).toBe("# call by:2026-10-23");
+    expect(rewriteDueWords("# call BY:tomorrow", fixedToday, locale, extra)).toBe("# call by:2026-10-23");
+  });
+
+  it("rewrites several parts on one line", () => {
+    const line = "# first by:fri => # second by:tomorrow";
+    expect(rewriteDueWords(line, fixedToday, locale, extra)).toBe(
+      "# first by:2026-10-23 => # second by:2026-10-23",
+    );
+  });
+});
+
+describe("withDueDate", () => {
+  it("adds due date at the end of an action part", () => {
+    expect(withDueDate("# task", 0, "2026-10-30")).toBe("# task by:2026-10-30");
+    expect(withDueDate("=> @dana send slides", 0, "2026-10-30")).toBe("=> @dana send slides by:2026-10-30");
+  });
+
+  it("replaces an existing due or dueWord token in place", () => {
+    expect(withDueDate("# task by:2026-10-15", 0, "2026-10-30")).toBe("# task by:2026-10-30");
+    expect(withDueDate("# task by:fri", 0, "2026-10-30")).toBe("# task by:2026-10-30");
+  });
+
+  it("removes due token and the one space before it with null", () => {
+    expect(withDueDate("# task by:2026-10-30", 0, null)).toBe("# task");
+    expect(withDueDate("# task by:fri", 0, null)).toBe("# task");
+  });
+
+  it("multi-part line changes only the right part", () => {
+    const line = "# part one => # part two";
+    // Target part one (index 0)
+    expect(withDueDate(line, 0, "2026-10-30")).toBe("# part one by:2026-10-30 => # part two");
+    // Target part two (index 14, where consequence is)
+    expect(withDueDate(line, 14, "2026-10-30")).toBe("# part one => # part two by:2026-10-30");
+
+    // Replace in multi-part line
+    const lineWithDates = "# part one by:2026-10-15 => # part two by:2026-10-20";
+    expect(withDueDate(lineWithDates, 0, "2026-10-30")).toBe(
+      "# part one by:2026-10-30 => # part two by:2026-10-20",
+    );
+    expect(withDueDate(lineWithDates, 30, "2026-10-30")).toBe(
+      "# part one by:2026-10-15 => # part two by:2026-10-30",
+    );
+
+    // Remove in multi-part line
+    expect(withDueDate(lineWithDates, 0, null)).toBe(
+      "# part one => # part two by:2026-10-20",
+    );
+    expect(withDueDate(lineWithDates, 30, null)).toBe(
+      "# part one by:2026-10-15 => # part two",
+    );
+  });
+
+  it("inserts before trailing forward links", () => {
+    expect(withDueDate("# task (>2026-11-01)", 0, "2026-10-30")).toBe(
+      "# task by:2026-10-30 (>2026-11-01)",
+    );
+    expect(withDueDate("# task (>2026-11-01) (<2026-10-01)", 0, "2026-10-30")).toBe(
+      "# task by:2026-10-30 (>2026-11-01) (<2026-10-01)",
+    );
+    // Replace with trailing forward links
+    expect(withDueDate("# task by:2026-10-15 (>2026-11-01)", 0, "2026-10-30")).toBe(
+      "# task by:2026-10-30 (>2026-11-01)",
+    );
+    // Remove with trailing forward links
+    expect(withDueDate("# task by:2026-10-15 (>2026-11-01)", 0, null)).toBe(
+      "# task (>2026-11-01)",
+    );
   });
 });

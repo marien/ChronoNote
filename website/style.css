@@ -446,6 +446,11 @@ section.alt {
   font-style: italic;
 }
 
+/* A due date (§419) draws like the topic pill but upright, as in the app. */
+.badge-due {
+  font-style: normal;
+}
+
 /* ---- Keyboard shortcuts (guide page) ------------------------------------- */
 
 kbd {

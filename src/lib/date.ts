@@ -61,6 +61,154 @@ export function parseDateQuery(input: string): string | null {
   return null;
 }
 
+const EN_WEEKDAYS: Record<string, number> = {
+  mon: 1,
+  monday: 1,
+  tue: 2,
+  tuesday: 2,
+  wed: 3,
+  wednesday: 3,
+  thu: 4,
+  thursday: 4,
+  fri: 5,
+  friday: 5,
+  sat: 6,
+  saturday: 6,
+  sun: 7,
+  sunday: 7,
+};
+
+function nextWeekdayISO(todayISO: string, targetDay: number): string {
+  const todayDate = parseISODateLocal(todayISO);
+  const dayOfWeek = todayDate.getDay();
+  const currentDay = dayOfWeek === 0 ? 7 : dayOfWeek;
+  let delta = (targetDay - currentDay) % 7;
+  if (delta <= 0) delta += 7;
+  return addDaysISO(todayISO, delta);
+}
+
+export function isValidCalendarDate(year: number, month: number, day: number): boolean {
+  if (month < 1 || month > 12 || day < 1 || day > 31) return false;
+  const d = new Date(Date.UTC(year, month - 1, day));
+  return d.getUTCFullYear() === year && d.getUTCMonth() === month - 1 && d.getUTCDate() === day;
+}
+
+export function dueWordExtra(todayWords: string, tomorrowWords: string): { today: string[]; tomorrow: string[] } {
+  return {
+    today: todayWords.split(",").map((s) => s.trim()).filter(Boolean),
+    tomorrow: tomorrowWords.split(",").map((s) => s.trim()).filter(Boolean),
+  };
+}
+
+/** Parses a due-date word (by:fri, by:+3, by:wk44, etc.) into an ISO date string or null. */
+export function parseDueWord(
+  word: string,
+  todayISO: string,
+  locale: string,
+  extra?: { today: string[]; tomorrow: string[] },
+): string | null {
+  const trimmed = word.trim().toLowerCase();
+  if (!trimmed) return null;
+  // Words are compared without a trailing dot (`fri.`, `ven.`, `morgen.`): locale abbreviations carry one.
+  const undotted = trimmed.replace(/\.$/, "");
+
+  // English words always win over a locale word that is spelled the same.
+  if (undotted === "today" || undotted === "t") return todayISO;
+  if (undotted === "tomorrow" || undotted === "tm") return addDaysISO(todayISO, 1);
+
+  if (extra?.today && extra.today.some((w) => w.trim().toLowerCase() === undotted)) {
+    return todayISO;
+  }
+  if (extra?.tomorrow && extra.tomorrow.some((w) => w.trim().toLowerCase() === undotted)) {
+    return addDaysISO(todayISO, 1);
+  }
+
+  if (EN_WEEKDAYS[undotted] !== undefined) {
+    return nextWeekdayISO(todayISO, EN_WEEKDAYS[undotted]);
+  }
+
+  // Locale weekdays: long and short from Intl.DateTimeFormat
+  const shortFmt = new Intl.DateTimeFormat(locale, { weekday: "short" });
+  const longFmt = new Intl.DateTimeFormat(locale, { weekday: "long" });
+  for (let i = 0; i < 7; i++) {
+    const refDate = new Date(2024, 0, 1 + i); // 2024-01-01 was Monday
+    const s = shortFmt.format(refDate).toLowerCase().replace(/\.$/, "");
+    const l = longFmt.format(refDate).toLowerCase().replace(/\.$/, "");
+    if (undotted === s || undotted === l) {
+      return nextWeekdayISO(todayISO, i + 1);
+    }
+  }
+
+  // +N (N = 1..999)
+  const plusMatch = /^\+([1-9]\d{0,2})$/.exec(trimmed);
+  if (plusMatch) {
+    return addDaysISO(todayISO, Number(plusMatch[1]));
+  }
+
+  // wkN, wN, weekN (also with a space, N = 1..53)
+  const weekMatch = /^(?:wk|w|week)\s*(\d{1,2})$/.exec(trimmed);
+  if (weekMatch) {
+    const w = Number(weekMatch[1]);
+    if (w >= 1 && w <= 53) {
+      const todayYear = Number(todayISO.slice(0, 4));
+      const monThisYear = isoWeekToMonday(todayYear, w);
+      const friThisYear = addDaysISO(monThisYear, 4);
+      const validThisYear = isoWeek(friThisYear) === w;
+
+      if (!validThisYear) {
+        return null;
+      }
+
+      if (friThisYear < todayISO) {
+        const nextYear = todayYear + 1;
+        const monNextYear = isoWeekToMonday(nextYear, w);
+        const friNextYear = addDaysISO(monNextYear, 4);
+        const validNextYear = isoWeek(friNextYear) === w;
+        return validNextYear ? friNextYear : null;
+      }
+
+      return friThisYear;
+    }
+    return null;
+  }
+
+  // MM-DD
+  const mmDdMatch = /^(\d{2})-(\d{2})$/.exec(trimmed);
+  if (mmDdMatch) {
+    const month = Number(mmDdMatch[1]);
+    const day = Number(mmDdMatch[2]);
+    const todayYear = Number(todayISO.slice(0, 4));
+
+    const candidateThisYear = `${todayYear}-${mmDdMatch[1]}-${mmDdMatch[2]}`;
+    if (candidateThisYear < todayISO) {
+      const nextYear = todayYear + 1;
+      if (isValidCalendarDate(nextYear, month, day)) {
+        return `${nextYear}-${mmDdMatch[1]}-${mmDdMatch[2]}`;
+      }
+      return null;
+    }
+
+    if (isValidCalendarDate(todayYear, month, day)) {
+      return candidateThisYear;
+    }
+    return null;
+  }
+
+  // YYYY-MM-DD valid
+  const isoMatch = /^(\d{4})-(\d{2})-(\d{2})$/.exec(trimmed);
+  if (isoMatch) {
+    const y = Number(isoMatch[1]);
+    const m = Number(isoMatch[2]);
+    const d = Number(isoMatch[3]);
+    if (isValidCalendarDate(y, m, d)) {
+      return trimmed;
+    }
+    return null;
+  }
+
+  return null;
+}
+
 /** Computes the ISO 8601 week number (1–53) for a YYYY-MM-DD date string.
  * Weeks start on Monday, and week 1 is the week with the year's first Thursday. */
 export function isoWeek(iso: string): number {

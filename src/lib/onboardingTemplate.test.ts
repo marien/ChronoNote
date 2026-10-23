@@ -22,6 +22,9 @@ describe("getOnboardingTemplate", () => {
     // Verify Do First / Do Next conceptual structure
     expect(template).toMatch(/# .+/);
     expect(template).toContain("=> ");
+
+    // Example action with a due word: never overdue, and it becomes a date once the caret leaves the line.
+    expect(template).toMatch(/^# .* by:fri$/m);
   });
 
   it("falls back to English for unknown languages", () => {
@@ -51,6 +54,15 @@ describe("isPristineOnboardingNote", () => {
     expect(legacy).not.toBe(current);
     expect(legacy).toContain("F2");
     expect(isPristineOnboardingNote(legacy)).toBe(true);
+  });
+
+  it.each(languages)("the %s example action uses the English word, understood in every UI language", (lang) => {
+    expect(getOnboardingTemplate(lang)).toMatch(/^# .* by:fri$/m);
+  });
+
+  it("treats the example's word turned into a date, or a changed date, as an edit", () => {
+    const template = getOnboardingTemplate("en");
+    expect(isPristineOnboardingNote(template.replace("by:fri", "by:2026-10-30"))).toBe(false);
   });
 
   it("rejects an edited template as not pristine", () => {

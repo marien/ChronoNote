@@ -9,6 +9,7 @@
   import { noteToMarkdown } from "../exportFormats";
   import { spellSuggest, spellAdd, spellIgnore } from "../tauriApi";
   import { recheckAll } from "../editor/spellcheck";
+  import { tokenizeLine, getLineActionParts } from "../grammar/tokenize";
 
   let menuEl = $state<HTMLDivElement>();
 
@@ -73,6 +74,7 @@
   const line = $derived($editorContextMenu?.line ?? "");
   const isAction = $derived(/^\s*(=>\s)?[#vx>]\s/.test(line));
   const isTopic = $derived(/^\s*[o.,]\s/.test(line));
+  const hasActionPart = $derived(getLineActionParts(line, tokenizeLine(line)).length > 0);
 
   // A section's title and underline are not lines to turn into an action or topic, to copy forward or to make a
   // section of; Section history, Copy to next occurrence and Peek need a section, so they are off above the first one.
@@ -81,7 +83,7 @@
   const inSection = $derived(role !== "outside");
 
   const lineItemCount = $derived(onTitle ? 0 : isAction ? 4 : isTopic ? 3 : 2);
-  const otherItemCount = $derived((onTitle ? 1 : 3) + ($backendKind === "desktop" ? 1 : 0) + (!isSelectionEmpty ? 1 : 0));
+  const otherItemCount = $derived((onTitle ? 1 : 3 + (hasActionPart ? 1 : 0)) + ($backendKind === "desktop" ? 1 : 0) + (!isSelectionEmpty ? 1 : 0));
   const spellItemCount = $derived(misspelled ? (suggestions ? Math.max(1, suggestions.length) : 1) + 2 : 0);
   const itemCount = $derived(1 + lineItemCount + otherItemCount + spellItemCount);
 
@@ -413,6 +415,21 @@
         <span class="editor-context-label" title={$t("shortcuts.copyToNextOccurrence.label")}>{$t("editorMenu.copyToNext")}</span>
         <span class="editor-context-key">{formatShortcut("copyToNextOccurrence")}</span>
       </button>
+      {#if hasActionPart}
+        <button
+          type="button"
+          class="editor-context-item"
+          role="menuitem"
+          onclick={() => {
+            close();
+            controller.openDueDatePicker();
+          }}
+        >
+          <Icon name="date-note" size={14} />
+          <span class="editor-context-label">{$t("shortcuts.setDueDate.label")}</span>
+          <span class="editor-context-key">{formatShortcut("setDueDate")}</span>
+        </button>
+      {/if}
       <button
         type="button"
         class="editor-context-item"

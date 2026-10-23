@@ -1,7 +1,11 @@
 import { EditorState } from "@codemirror/state";
+import { get } from "svelte/store";
 import { ACTION_CLASS, BULLET_CLASS, TOPIC_CLASS } from "../grammar/symbols";
-import { stateFirst } from "../tokens";
+import { rewriteDueWords, stateFirst } from "../tokens";
 import { OPEN_ACTION_LINE, takePendingPasteFrom, withFromLink } from "../paste";
+import { currentDateISO } from "../stores";
+import { locale, t } from "../i18n";
+import { dueWordExtra } from "../date";
 
 /** A line that so far holds only a symbol (`# `, `o `, `- `), with nothing typed after it. */
 const EMPTY_MARKER = new RegExp(String.raw`^(\s*)(?:${ACTION_CLASS}|${TOPIC_CLASS}|${BULLET_CLASS})\s+$`);
@@ -11,10 +15,19 @@ const PASTED_MARKER = new RegExp(String.raw`^\s*(?:${ACTION_CLASS}|${TOPIC_CLASS
 /** `fromSuffixes`: one `(<…)` link per pasted line (the paste forwards actions, §371); an open line gets its own,
  * replacing any links it carried. */
 export function rewritePasted(text: string, fromSuffixes?: string[]): string {
+  const today = get(currentDateISO);
+  const loc = get(locale);
+  const translate = get(t);
+  const extra = dueWordExtra(
+    translate("dueDate.words.today", undefined) ?? "",
+    translate("dueDate.words.tomorrow", undefined) ?? "",
+  );
+
   return text
     .split("\n")
     .map((line, i) => {
       let l = stateFirst(line) ?? line;
+      l = rewriteDueWords(l, today, loc, extra) ?? l;
       const suffix = fromSuffixes?.[i];
       if (suffix && OPEN_ACTION_LINE.test(l)) l = withFromLink(l, suffix);
       return l;

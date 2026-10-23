@@ -17,6 +17,8 @@
   } from "../controller";
   import { actionDrawerShowOnlyOpen, editorApi } from "../stores";
   import * as controller from "../controller";
+  import { overdueCount } from "../dueOverview";
+  import { openActionDrawerDueView } from "../actions";
   import Icon from "../icons/Icon.svelte";
   import CloudStatusButton from "./CloudStatusButton.svelte";
   import { formatCombo, formatShortcut, shortcutById } from "../shortcuts";
@@ -81,6 +83,18 @@
     >
       <span class="stat-line" aria-hidden="true"><span class="stat-glyph glyph-done" aria-hidden="true">☑</span><span class="stat-full" aria-hidden="true">{$t("statusBar.labelDone", { count: $statusCounts.closed })}</span><span class="stat-compact" aria-hidden="true">{$statusCounts.closed}</span></span>
     </button>
+    {#if $overdueCount > 0}
+      <button
+        type="button"
+        id="stat-overdue"
+        class="stat-count stat-overdue"
+        aria-label={$t("statusBar.labelOverdue", { count: $overdueCount })}
+        title={$t("statusBar.overdueTitle")}
+        onclick={openActionDrawerDueView}
+      >
+        <span class="stat-line" aria-hidden="true"><span class="stat-glyph glyph-open" aria-hidden="true">!</span><span class="stat-full" aria-hidden="true">{$t("statusBar.labelOverdue", { count: $overdueCount })}</span><span class="stat-compact" aria-hidden="true">{$overdueCount}</span></span>
+      </button>
+    {/if}
   </div>
 
   <div class="status-zone status-centre">
@@ -236,6 +250,15 @@
 .stat-count:hover {
   background: var(--surface-raised);
   color: var(--text);
+}
+
+.stat-count.stat-overdue {
+  color: var(--glyph-open-color);
+}
+
+:global([data-color-mode="grayscale"]) .stat-count.stat-overdue {
+  color: var(--text);
+  font-weight: bold;
 }
 
 .stat-glyph {

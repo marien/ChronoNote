@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { EditorState } from "@codemirror/state";
-import { mergePasteOverEmptyMarker, pasteOverEmptyMarker } from "./pasteOverEmptyMarker";
+import { mergePasteOverEmptyMarker, pasteOverEmptyMarker, rewritePasted } from "./pasteOverEmptyMarker";
+import { currentDateISO } from "../stores";
 
 function paste(doc: string, caret: number, text: string): { doc: string; caret: number } {
   const state = EditorState.create({ doc, selection: { anchor: caret }, extensions: [pasteOverEmptyMarker] });
@@ -41,5 +42,22 @@ describe("pasteOverEmptyMarker filter", () => {
   });
   it("rewrites list marker then state symbol on each pasted line", () => {
     expect(paste("", 0, "- # a\n1. o b")).toEqual({ doc: "# - a\no 1. b", caret: 12 });
+  });
+});
+
+describe("rewritePasted", () => {
+  it("rewrites due words in pasted actions", () => {
+    currentDateISO.set("2026-10-22");
+    // # call by:tomorrow -> # call by:2026-10-23
+    expect(rewritePasted("# call by:tomorrow")).toBe("# call by:2026-10-23");
+    // # call by:fri (Thursday today -> Friday is 2026-10-23)
+    expect(rewritePasted("# call by:fri")).toBe("# call by:2026-10-23");
+    // # x by:tomorrow
+    expect(rewritePasted("# x by:tomorrow")).toBe("# x by:2026-10-23");
+  });
+
+  it("leaves unknown words and plain lines untouched", () => {
+    expect(rewritePasted("# call by:foo")).toBe("# call by:foo");
+    expect(rewritePasted("plain text by:tomorrow")).toBe("plain text by:tomorrow");
   });
 });

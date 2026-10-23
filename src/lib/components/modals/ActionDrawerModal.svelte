@@ -3,7 +3,16 @@
   import * as controller from "../../controller";
   import { focusTrap } from "../../actions/focusTrap";
   import { sheetSwipe } from "../../actions/sheetSwipe";
-  import { actionDrawerShowOnlyOpen, actionSnapshot, activeTabId, tabs } from "../../controller";
+  import {
+    actionDrawerDueView,
+    actionDrawerScopeRequest,
+    actionDrawerShowOnlyOpen,
+    actionSnapshot,
+    activeTabId,
+    currentDateISO,
+    tabs,
+  } from "../../controller";
+  import { groupByDue, itemDueDate, type DueGroupKey } from "../../dueOverview";
   import { closeOnOutsideClick } from "../../actions/closeOnOutsideClick";
   import { innermostActionSymbol, stripLeadingToken } from "../../tokens";
   import { glyphForSymbol } from "../../editor/glyphLine";
@@ -74,8 +83,8 @@
     }
   }
 
-  async function setScope(next: "open" | "other" | "all") {
-    if (scope === next) return;
+  async function setScope(next: "open" | "other" | "all", force = false) {
+    if (scope === next && !force) return;
     scope = next;
     if (scope !== "open") loadingAllFiles = true;
     actionSnapshot.set(
@@ -95,6 +104,14 @@
     inputEl?.focus();
     inputEl?.select();
   }
+
+  $effect(() => {
+    const req = $actionDrawerScopeRequest;
+    if (req) {
+      actionDrawerScopeRequest.set(null);
+      void setScope(req, true);
+    }
+  });
 
   async function refreshSnapshot() {
     const currentItem = flatList[selectedIndex];
@@ -144,6 +161,11 @@
   );
 
   const filtered = $derived(liveSnapshot.filter((item) => {
+    if ($actionDrawerDueView) {
+      if (itemDueDate(item.line, showDelegated) === null) return false;
+      if (!filter) return true;
+      return item.line.toLowerCase().includes(filter.toLowerCase());
+    }
     // §44: toggle between today's behavior (open/deferred/delegated) and
     // strictly open only — an open `# ` line, or an open `=> #`
     // consequence-action (§41); resolved states are never "open."
@@ -159,25 +181,54 @@
   // template — at large result counts that indexOf call made the render
   // itself O(N^2) in match count (confirmed during large-dataset stress
   // testing, §38).
-  type IndexedItem = ActionSnapshotItem & { __flatIndex: number };
+  type IndexedItem = ActionSnapshotItem & { __flatIndex: number; dueDate?: string };
 
   interface Group {
     key: string;
-    filename: string;
+    label: string;
     items: IndexedItem[];
   }
 
-  const flatList = $derived(filtered.map((item, i): IndexedItem => ({ ...item, __flatIndex: i })));
+  const model = $derived.by(() => {
+    if ($actionDrawerDueView) {
+      const dueGroups = groupByDue(filtered, $currentDateISO, { showDelegated });
+      const labels: Record<DueGroupKey, string> = {
+        overdue: $t("actionDrawer.dueView.overdue"),
+        today: $t("actionDrawer.dueView.today"),
+        thisWeek: $t("actionDrawer.dueView.thisWeek"),
+        later: $t("actionDrawer.dueView.later"),
+      };
+      let idx = 0;
+      const groupsOut: Group[] = [];
+      const flatOut: IndexedItem[] = [];
+      for (const dg of dueGroups) {
+        const groupItems: IndexedItem[] = [];
+        for (const it of dg.items) {
+          const indexed: IndexedItem = { ...it, __flatIndex: idx++ };
+          groupItems.push(indexed);
+          flatOut.push(indexed);
+        }
+        groupsOut.push({
+          key: dg.key,
+          label: labels[dg.key],
+          items: groupItems,
+        });
+      }
+      return { flatList: flatOut, groups: groupsOut };
+    }
 
-  const groups = $derived.by((): Group[] => {
+    const flatOut: IndexedItem[] = filtered.map((item, i): IndexedItem => ({ ...item, __flatIndex: i }));
     const map = new Map<string, Group>();
-    for (const item of flatList) {
+    for (const item of flatOut) {
       const key = item.tabId ?? item.filename;
-      if (!map.has(key)) map.set(key, { key, filename: item.filename, items: [] });
+      if (!map.has(key)) map.set(key, { key, label: item.filename, items: [] });
       map.get(key)!.items.push(item);
     }
-    return Array.from(map.values());
+    return { flatList: flatOut, groups: Array.from(map.values()) };
   });
+
+  const flatList = $derived(model.flatList);
+  const groups = $derived(model.groups);
   const uncompletedCount = $derived(
     flatList.filter((i) => {
       const sym = innermostActionSymbol(i.line);
@@ -195,7 +246,7 @@
   // window math is shared with Search / History via `./virtualList`. This
   // component owns the row model and the DOM refs.
   type RawRow =
-    | { type: "header"; key: string; filename: string; count: number; height: number; isFirst: boolean }
+    | { type: "header"; key: string; label: string; count: number; height: number; isFirst: boolean }
     | { type: "item"; key: string; item: IndexedItem; height: number };
   type Row = RawRow & PlacedRow;
 
@@ -208,7 +259,7 @@
         out.push({
           type: "header",
           key: `h-${group.key}`,
-          filename: group.filename,
+          label: group.label,
           count: group.items.length,
           height: MODAL_HEADER_ROW_HEIGHT,
           isFirst,
@@ -369,6 +420,11 @@
         <span class="toggle-switch-track"></span>
         {$t("actionDrawer.onlyOpen.label")}
       </label>
+      <label class="toggle-switch" title={$t("actionDrawer.dueView.title")}>
+        <input type="checkbox" bind:checked={$actionDrawerDueView} />
+        <span class="toggle-switch-track"></span>
+        {$t("actionDrawer.dueView.label")}
+      </label>
     </div>
   </div>
   <div
@@ -382,7 +438,12 @@
     style="position: relative; overflow-y: auto;"
   >
     {#if flatList.length === 0}
-      {#if filter.trim()}
+      {#if $actionDrawerDueView && !filter.trim()}
+        <EmptyState
+          icon="actions"
+          title={$t("actionDrawer.dueView.empty")}
+        />
+      {:else if filter.trim()}
         <EmptyState
           icon="actions"
           title={$t("actionDrawer.empty.noMatch", { filter })}
@@ -404,7 +465,7 @@
         data-testid="sticky-date-header"
         style="height: {MODAL_HEADER_ROW_HEIGHT}px; margin-bottom: -{MODAL_HEADER_ROW_HEIGHT}px;"
       >
-        {groupHeaderLabel(stickyHeader.filename, stickyHeader.count)}
+        {groupHeaderLabel(stickyHeader.label, stickyHeader.count)}
       </div>
     {/if}
     <div style="position: relative; height: {totalHeight}px;">
@@ -416,7 +477,7 @@
               ? 'none'
               : '1px solid var(--border)'};"
           >
-            {groupHeaderLabel(row.filename, row.count)}
+            {groupHeaderLabel(row.label, row.count)}
           </div>
         {:else}
           {@const item = row.item}
@@ -438,7 +499,11 @@
               <span class={g.cls ?? ""}>{g.char}</span>
               <span class={sym === "v" || sym === "x" ? "item-completed" : ""} title={stripLeadingToken(item.line)}>{stripLeadingToken(item.line)}</span>
             </div>
-            {#if item.header}<span class="item-breadcrumb">· {item.header}</span>{/if}
+            {#if $actionDrawerDueView}
+              <span class="item-breadcrumb">{item.filename.replace(/\.txt$/, "")}{item.header ? ` · ${item.header}` : ""}</span>
+            {:else if item.header}
+              <span class="item-breadcrumb">· {item.header}</span>
+            {/if}
           </div>
         {/if}
       {/each}
