@@ -10925,3 +10925,46 @@ From a test-coverage review (2026-10-17): Vitest covers 41% of `src/lib` lines a
 - **Cause (traced with console logging of the startup sync on both page loads):** after the reload the startup sync ran normally (account and folder found, nothing in flight), but the mock answered `onedrive_sync_now` with success. The mock backend keeps its state across a reload in `sessionStorage`, written after every mutating command, and on the next load that snapshot wins over the seed; `oneDriveSyncError` was not in the snapshot. When the first page load had written something before the reload (a tab session or config write), the reloaded mock had no sign-in error; when it had not, the seed was used again and the test passed. Timing decided which. Not an app bug: the web app's expired sign-in lives in its stored token and outlives a reload, which is §415's real scenario.
 - **Fix:** `mockBackend.ts` saves and restores `oneDriveSyncError` with the rest of its state, and `onedrive_login` (which clears it) now counts as a mutating command, so a renewed sign-in also survives a reload.
 - **Tests:** the spec passes 60 of 60 (`--repeat-each=30 --workers=4`, twice); with the debug logging in place before the fix it failed 22 of 30.
+
+## 419. Due dates on actions (`by:`)
+
+**Status: on main (unreleased).**
+
+Feature review B2, designed in `docs/design/due-dates-design.md` (Marien took all six recommended decisions on
+2026-10-23). More actions have a real deadline, and nothing noticed when it passed.
+
+- **Syntax:** an optional `by:YYYY-MM-DD` in an action part (a leading `# v > x`, a `=> <symbol>` follow-up, or a
+  delegated `=> @name`), anywhere in the part, the first one counting. Not on topics, bullets, emphasis or prose,
+  not in brackets, not glued to a word or inside a URL or address. Plain text in the file: it travels with the line
+  when the action is forwarded (copy-forward, Shift+Enter, History take-over), and the source (`> `) stops counting.
+- **Typing:** `by:fri`, `by:tomorrow`/`tm`, `by:today`/`t`, `by:+3`, `by:wk44` (the Friday of that week),
+  `by:10-30` (next year when already past) and the UI language's words (`vr`, `morgen`) become the full date when
+  the caret leaves the line, inside the state-first rewrite (§367) so one Ctrl+Z restores what was typed; paste does
+  the same. A weekday means the next one after today (`fri` on a Friday is next week). Relative to today, not to the
+  note's date. A word it does not understand stays as typed with a dotted underline. A note is never rewritten until
+  the caret visits the line. `parseDueWord` in `date.ts` (the date picker's `parseDateQuery` is unchanged).
+- **Pill:** off the caret line the token is drawn as a short date in the UI language (`vr 30 okt`, the year only when
+  not this year): muted, amber `today` on the day, red once late (tooltip: the raw text, the long date, "N days
+  late"); dimmed on done, deferred and won't-do lines; grayscale uses weight and an outline. Raw text on the caret
+  line. Click opens the date picker; Ctrl+Click opens that day (D4 link). Spell check skips it.
+- **Set due date…** (`Ctrl+Shift+D`, palette, line menu, phone bar): the date picker in a due-date mode on the action
+  under the caret (nearest symbol to the left, as the state shortcuts), opening on its current date, with a "No due
+  date" button; the field also understands `fri`.
+- **Status bar:** a red "N overdue" item when open own actions are past their date in **any** note (delegated ones not
+  counted); never hidden by narrowing; click opens the Action Drawer's due view on All files. Counted from the
+  all-notes cache with open tabs' live text over it, memoised per note.
+- **Action Drawer:** a "By due date" toggle (session): open actions with a date, grouped Overdue / Today / This week
+  (to Sunday) / Later, soonest first, each row with its note; delegated lines only when the filter has `@`.
+- **Welcome note:** one example action due a week after the note's day (an untouched welcome note is still recognised
+  on a later day).
+- **Built by:** Gemini 3.8 Flash in three slices from briefs (`agent-tools/briefs/due-s1..s3`), each followed by an
+  independent Gemini test writer working from the design; Claude reviewed and integrated. Found and fixed before merge:
+  locale abbreviations typed with their dot, `!`/`?` after a date, `by:` inside URLs (slice 1 tests and review); a
+  fixed welcome-note date that would be overdue for every new user after 2026-10-30, a faint grayscale count (slice 3
+  review); 8 existing paste tests the slice deleted (restored, unchanged and green), a pill reused after lines were
+  inserted above it that would have edited the wrong line, the picker opening on today for indented or follow-up
+  actions, and the missing line-menu item (slice 2 review and tests).
+- **Tests:** 18 test files changed or added (about 4,300 lines): Vitest for the grammar, helpers, words, rewrite and
+  overview (each with an independent set), and four Playwright files, `due-dates-editor(.independent).spec.ts` and
+  `due-dates-overview(.independent).spec.ts`.
+- **Not in this change:** `due:`/`overdue` search operators (B3), Waiting on by due date (B1), a calendar mark.
