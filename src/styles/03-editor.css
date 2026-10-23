@@ -730,43 +730,58 @@ body.peek-mode .cm-overview-ruler {
   color: var(--muted);
 }
 
-/* Due date pill (ChronoNote Due Dates Slice 2) */
-.cm-due-pill {
+/* Due date pill (§419, footprint §420). The outer box is exactly the source text's footprint: its width is set inline
+   to the token's length in ch (the editor font is monospace), and it is one line tall, top-aligned and clipped, with
+   no border, padding or margin, the same recipe as the glyphs above, so it can never change the line's width or
+   height. The visible pill is the inner label; its outline is an inset box-shadow, which takes no room. */
+.cm-line .cm-due-pill {
   display: inline-block;
-  line-height: inherit;
-  font-size: 0.9em;
-  font-weight: 500;
-  padding: 0 4px;
-  margin: 0 2px;
-  border-radius: var(--radius-control);
-  vertical-align: baseline;
+  height: calc(var(--editor-line-height, 1.6) * 1em);
+  line-height: calc(var(--editor-line-height, 1.6) * 1em);
+  vertical-align: top;
+  overflow: hidden;
+  white-space: pre;
+  padding: 0;
+  margin: 0;
+  border: 0;
   box-sizing: border-box;
   cursor: pointer;
   user-select: none;
-  transition: border-color var(--motion-normal) ease, background-color var(--motion-normal) ease;
 }
 
-.cm-due-pill.cm-due-later {
+.cm-due-pill > .cm-due-label {
+  display: inline-block;
+  width: 100%;
+  box-sizing: border-box;
+  line-height: 1.35em;
+  padding: 0 0.5ch;
+  vertical-align: middle;
+  text-align: center;
+  overflow: hidden;
+  border-radius: var(--radius-control);
+}
+
+.cm-due-pill.cm-due-later > .cm-due-label {
   color: var(--muted);
-  border: 1px solid var(--edge-strong);
+  box-shadow: inset 0 0 0 1px var(--edge-strong);
   background: color-mix(in srgb, var(--text) 4%, transparent);
 }
 
-.cm-due-pill.cm-due-today {
+.cm-due-pill.cm-due-today > .cm-due-label {
   color: var(--state-warn);
-  border: 1px solid color-mix(in srgb, var(--state-warn) 40%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--state-warn) 40%, transparent);
   background: color-mix(in srgb, var(--state-warn) 12%, transparent);
 }
 
-.cm-due-pill.cm-due-overdue {
+.cm-due-pill.cm-due-overdue > .cm-due-label {
   color: var(--glyph-open-color);
-  border: 1px solid color-mix(in srgb, var(--glyph-open-color) 40%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--glyph-open-color) 40%, transparent);
   background: color-mix(in srgb, var(--glyph-open-color) 12%, transparent);
 }
 
-.cm-due-pill.cm-due-resolved {
+.cm-due-pill.cm-due-resolved > .cm-due-label {
   color: var(--muted);
-  border: 1px solid var(--edge-soft);
+  box-shadow: inset 0 0 0 1px var(--edge-soft);
   background: transparent;
 }
 
@@ -779,25 +794,24 @@ body.peek-mode .cm-overview-ruler {
   text-underline-offset: 3px;
 }
 
-[data-color-mode="grayscale"] .cm-due-pill {
+[data-color-mode="grayscale"] .cm-due-pill > .cm-due-label {
   color: var(--text);
-  border: 1px solid var(--edge-strong);
+  box-shadow: inset 0 0 0 1px var(--edge-strong);
   background: transparent;
 }
 
-[data-color-mode="grayscale"] .cm-due-pill.cm-due-today {
-  border: 1px solid var(--text);
-  font-weight: 500;
+[data-color-mode="grayscale"] .cm-due-pill.cm-due-today > .cm-due-label {
+  box-shadow: inset 0 0 0 1px var(--text);
 }
 
-[data-color-mode="grayscale"] .cm-due-pill.cm-due-overdue {
-  border: 1px solid var(--text);
+[data-color-mode="grayscale"] .cm-due-pill.cm-due-overdue > .cm-due-label {
+  box-shadow: inset 0 0 0 1px var(--text);
   font-weight: 700;
 }
 
-[data-color-mode="grayscale"] .cm-due-pill.cm-due-resolved {
+[data-color-mode="grayscale"] .cm-due-pill.cm-due-resolved > .cm-due-label {
   color: var(--muted);
-  border: 1px solid var(--edge-soft);
+  box-shadow: inset 0 0 0 1px var(--edge-soft);
 }
 
 
