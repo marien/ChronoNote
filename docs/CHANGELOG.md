@@ -11001,7 +11001,7 @@ Feature review B2, designed in `docs/design/due-dates-design.md` (Marien took al
 
 ## 421. Due date drawn in place: a flag for `by:`, the date stays text
 
-**Status: on main, not released yet.**
+**Status: released in beta 0.33.0-4 (early channel only).**
 
 - **Seen (Marien, beta 0.33.0-3):** the pill's label sat slightly below the sentence's baseline (it was a separate
   box centred in the line), and replacing the date with a short label did not work for him: he wanted the real
