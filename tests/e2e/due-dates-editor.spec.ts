@@ -9,6 +9,7 @@ import {
   mockNote,
   todayFilename,
   toast,
+  activeTabLabel,
 } from "./helpers";
 import { REFERENCE_TODAY } from "../../src/lib/testing/scenarios";
 import { addDaysISO, parseDueWord } from "../../src/lib/date";
@@ -222,5 +223,63 @@ test.describe("due dates editor (slice 2)", () => {
 
     const expectedFriday = parseDueWord("fri", REFERENCE_TODAY, "en")!;
     await expect.poll(async () => mockNote(page, todayFilename())).toContain(`by:${expectedFriday}`);
+  });
+
+  test.describe("§422 review: a click on a due date is ordinary text handling except a single plain click", () => {
+    const setup = async (page: import("@playwright/test").Page) => {
+      await seedApp(page, { seed: "empty" });
+      const date = addDaysISO(REFERENCE_TODAY, 4);
+      await setEditorText(page, `# plan trip by:${date} and more\nsecond line`);
+      await editor(page).locator(".cm-line").nth(1).click();
+      return { date, digits: page.locator(".cm-line").first().locator(".cm-due .cm-date-link") };
+    };
+    const selectedText = (page: import("@playwright/test").Page) =>
+      page.evaluate(() => document.getSelection()?.toString() ?? "");
+
+    test("a drag that starts on the date selects text and opens no picker", async ({ page }) => {
+      const { digits } = await setup(page);
+      const box = (await digits.boundingBox())!;
+      const end = (await page.locator(".cm-line").first().boundingBox())!;
+      await page.mouse.move(box.x + 4, box.y + box.height / 2);
+      await page.mouse.down();
+      await page.mouse.move(end.x + end.width - 4, box.y + box.height / 2, { steps: 8 });
+      await page.mouse.up();
+      await expect(page.locator(".compact-picker")).toHaveCount(0);
+      expect((await selectedText(page)).length).toBeGreaterThan(3);
+    });
+
+    test("a double click on the date selects it and leaves no picker open", async ({ page }) => {
+      const { digits } = await setup(page);
+      await digits.dblclick();
+      await expect(page.locator(".compact-picker")).toHaveCount(0);
+      expect((await selectedText(page)).length).toBeGreaterThan(0);
+    });
+
+    test("Shift+Click on the date extends the selection and opens no picker", async ({ page }) => {
+      const { digits } = await setup(page);
+      await page.keyboard.press("ControlOrMeta+Home");
+      await digits.click({ modifiers: ["Shift"] });
+      await expect(page.locator(".compact-picker")).toHaveCount(0);
+      expect(await selectedText(page)).toContain("plan trip");
+    });
+
+    test("Ctrl+Click on the digits opens that day without leaving a second cursor behind", async ({ page }) => {
+      const { date, digits } = await setup(page);
+      await digits.click({ modifiers: ["ControlOrMeta"] });
+      await expect(activeTabLabel(page)).toHaveText(date);
+      await page.keyboard.press("ControlOrMeta+Alt+ArrowLeft"); // Back
+      await expect(activeTabLabel(page)).not.toHaveText(date);
+      await expect(page.locator(".cm-cursorLayer .cm-cursor")).toHaveCount(1);
+    });
+
+    test("a click on the date while its picker is open closes it, and it stays closed", async ({ page }) => {
+      const { digits } = await setup(page);
+      await digits.click();
+      await expect(page.locator(".compact-picker")).toBeVisible();
+      await digits.click();
+      await expect(page.locator(".compact-picker")).toHaveCount(0);
+      await page.waitForTimeout(300);
+      await expect(page.locator(".compact-picker")).toHaveCount(0);
+    });
   });
 });

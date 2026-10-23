@@ -11047,7 +11047,11 @@ Marien's feedback on beta 0.33.0-4:
 - **Built by:** Claude (topic pill, clicks, drawer row) and Gemini 3.8 Flash (compact picker, from a brief), with an
   independent Gemini test writer (49 tests from the specification) that found one bug, fixed before merge: `wk44` in
   the due-date picker gave that week's Monday (the navigation reading) instead of its Friday; due dates now read due
-  words first. A Gemini review of Claude's own changes.
+  words first. A Gemini review of Claude's own changes found five real issues, all fixed with tests: a selection over
+  a topic pill (or a middle line of a multi-line selection) did not show its parentheses; a drag, a double click or
+  Shift+Click starting on a due date opened the picker instead of selecting text; Ctrl+Click on the digits left a
+  second cursor; a click on the date while its picker was open closed and reopened it. (Its sixth point, a second
+  pill on a line, does not apply: the grammar has at most one topic pill per line.)
 - **Tests:** `compact-date-picker.spec.ts` and `compact-date-picker.independent.spec.ts` (placement, size, keys,
   words, Export range, calendar sync, no markers, phone width, keyboard isolation); the due-date specs moved to the
   compact picker; `glyph-layout.spec.ts` covers the topic pill rule (hidden on the line, on hover, shown at either edge).

@@ -137,7 +137,7 @@ language (the next such day after today, so `fri` on a Friday is next week), `+N
 language's words for today and tomorrow (`vandaag`, `morgen`), and a valid ISO date as is. English wins over a locale
 word spelled the same. Anything else stays as typed and gets a dotted underline ("Not a date"). Only lines the caret
 visited are rewritten; a note loaded from disk or synced is never changed. A plain click anywhere on the due date (flag
-or digits, §422) opens the **compact date picker** right below it, leaving the caret where it was; `Ctrl/Cmd+Click`
+or digits, §422) opens the **compact date picker** right below it (the caret stays where it was; a drag, a double click or Shift+Click select text as usual and open nothing, and a click on the date while its picker is open closes it); `Ctrl/Cmd+Click`
 opens that day. The caret never stops inside `by:`, and Backspace right after the flag removes all of it; the digits
 are reached with the keyboard. The outline's tooltip holds the long date and "N days late" / "Due today". **Set due
 date…** (`Ctrl/Cmd+Shift+D`, palette, line menu, phone bar) opens the same compact picker under the part's due date (or

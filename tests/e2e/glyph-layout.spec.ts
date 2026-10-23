@@ -215,6 +215,33 @@ test.describe("glyph line layout", () => {
     await expect.poll(async () => (await measure()).editing).toBe(false);
   });
 
+  test("§422 review: a selection over a pill shows its parentheses, on every line it spans", async ({ page }) => {
+    await seedApp(page, { seed: "empty" });
+    // (A line has at most one topic pill: the grammar only reads the first `(topic)` after an action symbol.)
+    await setEditorText(page, ["# (billing) chase it", "# (budget) middle line", "plain line", "# (other) next"].join("\n"));
+    const editingCount = () => page.locator(".glyph-topic-editing").count();
+
+    // A caret away from every pill: none show.
+    await editor(page).locator(".cm-line").nth(2).click();
+    await expect.poll(editingCount).toBe(0);
+
+    // Select from the end of the first line into the last one: the pill on the middle line, which neither end of the
+    // selection touches, shows too; the first line's pill is not covered (the selection starts after it).
+    await page.keyboard.press("ControlOrMeta+Home");
+    await page.keyboard.press("End");
+    await page.keyboard.press("ControlOrMeta+Shift+End");
+    await expect.poll(editingCount).toBe(2);
+    await expect(page.locator(".cm-line").nth(1).locator(".glyph-topic-editing")).toHaveText("(budget)");
+
+    // Select all: every pill.
+    await page.keyboard.press("ControlOrMeta+a");
+    await expect.poll(editingCount).toBe(3);
+
+    // Back to a caret on the plain line: none.
+    await editor(page).locator(".cm-line").nth(2).click();
+    await expect.poll(editingCount).toBe(0);
+  });
+
   test("the glyph sits at the column its token started at, not centred in the cell (§87 / #16)", async ({ page }) => {
     await seedApp(page, { seed: "empty" });
     await setEditorText(page, "# open action\n  # indented open\nplain line");
