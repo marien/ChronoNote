@@ -10935,7 +10935,7 @@ Feature review B2, designed in `docs/design/due-dates-design.md` (Marien took al
 
 - **Syntax:** an optional `by:YYYY-MM-DD` in an action part (a leading `# v > x`, a `=> <symbol>` follow-up, or a
   delegated `=> @name`), anywhere in the part, the first one counting. Not on topics, bullets, emphasis or prose,
-  not in brackets, not glued to a word or inside a URL or address. Plain text in the file: it travels with the line
+  not as a one-word bracket `(by:…)`, not glued to a word or inside a URL or address. Plain text in the file: it travels with the line
   when the action is forwarded (copy-forward, Shift+Enter, History take-over), and the source (`> `) stops counting.
 - **Typing:** `by:fri`, `by:tomorrow`/`tm`, `by:today`/`t`, `by:+3`, `by:wk44` (the Friday of that week),
   `by:10-30` (next year when already past) and the UI language's words (`vr`, `morgen`) become the full date when
@@ -10955,15 +10955,22 @@ Feature review B2, designed in `docs/design/due-dates-design.md` (Marien took al
   all-notes cache with open tabs' live text over it, memoised per note.
 - **Action Drawer:** a "By due date" toggle (session): open actions with a date, grouped Overdue / Today / This week
   (to Sunday) / Later, soonest first, each row with its note; delegated lines only when the filter has `@`.
-- **Welcome note:** one example action due a week after the note's day (an untouched welcome note is still recognised
-  on a later day).
+- **Welcome note:** one example action ending in the word `by:fri` (English, understood in every UI language): it
+  becomes a date the first time the caret leaves the line, is never overdue as a word, and keeps the template the same
+  on every day, so the untouched-welcome-note check stays an exact comparison.
 - **Built by:** Gemini 3.8 Flash in three slices from briefs (`agent-tools/briefs/due-s1..s3`), each followed by an
   independent Gemini test writer working from the design; Claude reviewed and integrated. Found and fixed before merge:
   locale abbreviations typed with their dot, `!`/`?` after a date, `by:` inside URLs (slice 1 tests and review); a
   fixed welcome-note date that would be overdue for every new user after 2026-10-30, a faint grayscale count (slice 3
   review); 8 existing paste tests the slice deleted (restored, unchanged and green), a pill reused after lines were
   inserted above it that would have edited the wrong line, the picker opening on today for indented or follow-up
-  actions, and the missing line-menu item (slice 2 review and tests).
+  actions, and the missing line-menu item (slice 2 review and tests). A cross-model review (Gemini) of Claude's own
+  fixes and docs then found: the first welcome-note fix (a computed date, with dates ignored when checking for an
+  untouched note) let an edited date count as untouched, so the web app could close it without asking (now `by:fri`,
+  above); English words with a dot (`fri.`) not understood in other UI languages; `[by:…]` showing "Not a date" (a
+  closing `]`, quote or `!`/`?` after the date is now left out of the token); the pill fix redrawing every pill below
+  an inserted line (a click now finds its line from the pill's position) and an unreachable second click handler;
+  the guide's pill drawn in italics. All fixed, each with a test.
 - **Tests:** 18 test files changed or added (about 4,300 lines): Vitest for the grammar, helpers, words, rewrite and
   overview (each with an independent set), and four Playwright files, `due-dates-editor(.independent).spec.ts` and
   `due-dates-overview(.independent).spec.ts`.

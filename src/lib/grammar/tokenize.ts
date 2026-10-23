@@ -222,7 +222,7 @@ export function tokenizeLine(line: string): Token[] {
         const rawWord = line.slice(afterStart, rawWordEnd);
         if (rawWord.length === 0) continue;
 
-        const cleanWord = rawWord.replace(/[).,;!?]+$/, "");
+        const cleanWord = rawWord.replace(/[)\].,;!?"']+$/, "");
         if (cleanWord.length === 0) continue;
 
         const tokenTo = afterStart + cleanWord.length;

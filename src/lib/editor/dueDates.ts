@@ -24,28 +24,24 @@ export class DuePillWidget extends WidgetType {
     readonly status: "overdue" | "today" | "later",
     readonly resolved: boolean,
     readonly locale: string,
-    readonly lineIdx: number,
-    readonly partFrom: number,
     readonly todayISO: string,
   ) {
     super();
   }
 
+  // No line or part in here: a click finds them from the pill's position, so a pill reused after lines were
+  // inserted above it still edits its own line.
   eq(other: DuePillWidget): boolean {
     return (
       this.date === other.date &&
       this.status === other.status &&
       this.resolved === other.resolved &&
       this.locale === other.locale &&
-      // The DOM carries the line and part it edits: a reused widget after lines were inserted above would point
-      // at the wrong line.
-      this.lineIdx === other.lineIdx &&
-      this.partFrom === other.partFrom &&
       this.todayISO === other.todayISO
     );
   }
 
-  toDOM(_view: EditorView): HTMLElement {
+  toDOM(view: EditorView): HTMLElement {
     const span = document.createElement("span");
     span.className = "cm-due-pill";
     if (this.resolved) {
@@ -55,8 +51,6 @@ export class DuePillWidget extends WidgetType {
     }
 
     span.dataset.date = this.date;
-    span.dataset.lineIdx = String(this.lineIdx);
-    span.dataset.partFrom = String(this.partFrom);
 
     const translate = get(t);
 
@@ -100,8 +94,11 @@ export class DuePillWidget extends WidgetType {
         void openDateLink(this.date);
         return;
       }
-      const tabId = get(activeTabId);
-      dueDatePending.set({ tabId, lineIdx: this.lineIdx, partFrom: this.partFrom });
+      const pos = view.posAtDOM(span);
+      const line = view.state.doc.lineAt(pos);
+      const offset = pos - line.from;
+      const part = getLineActionParts(line.text, tokenizeLine(line.text)).find((p) => offset >= p.from && offset < p.to);
+      dueDatePending.set({ tabId: get(activeTabId), lineIdx: line.number - 1, partFrom: part?.from ?? offset });
       modal.set("date");
     };
 
@@ -156,8 +153,7 @@ function build(view: EditorView): DecorationSet {
               const state = part ? part.state : null;
               const resolved = state === "v" || state === ">" || state === "x";
               const status = dueStatus(tok.date, today);
-              const partFrom = part ? part.from : 0;
-              const widget = new DuePillWidget(tok.date, status, resolved, loc, line.number - 1, partFrom, today);
+              const widget = new DuePillWidget(tok.date, status, resolved, loc, today);
               b.add(tokenFrom, tokenTo, Decoration.replace({ widget }));
             }
           } else if (tok.kind === "dueWord" && tok.word !== undefined) {
@@ -216,36 +212,6 @@ export const dueDatesPlugin = ViewPlugin.fromClass(
       this.unsub();
     }
   },
-  {
-    decorations: (v) => v.decorations,
-    eventHandlers: {
-      click(e: MouseEvent, _view: EditorView) {
-        const pill = (e.target as HTMLElement)?.closest?.(".cm-due-pill") as HTMLElement | null;
-        if (!pill) return false;
-        e.preventDefault();
-        e.stopPropagation();
-        const date = pill.dataset.date;
-        const hasModifier = isMac ? e.metaKey : e.ctrlKey;
-        if (hasModifier && date) {
-          void openDateLink(date);
-          return true;
-        }
-        const lineIdx = Number(pill.dataset.lineIdx);
-        const partFrom = Number(pill.dataset.partFrom);
-        const tabId = get(activeTabId);
-        dueDatePending.set({ tabId, lineIdx, partFrom });
-        modal.set("date");
-        return true;
-      },
-      mousedown(e: MouseEvent) {
-        const pill = (e.target as HTMLElement)?.closest?.(".cm-due-pill");
-        if (pill) {
-          e.preventDefault();
-          e.stopPropagation();
-          return true;
-        }
-        return false;
-      },
-    },
-  },
+  // Clicks are handled by the pill's own listeners (`toDOM`).
+  { decorations: (v) => v.decorations },
 );

@@ -109,22 +109,22 @@ export function parseDueWord(
 ): string | null {
   const trimmed = word.trim().toLowerCase();
   if (!trimmed) return null;
-  // Locale abbreviations are compared without their dot (`ven.`, `Fr.`), so the typed word drops it too.
+  // Words are compared without a trailing dot (`fri.`, `ven.`, `morgen.`): locale abbreviations carry one.
   const undotted = trimmed.replace(/\.$/, "");
 
   // English words always win over a locale word that is spelled the same.
-  if (trimmed === "today" || trimmed === "t") return todayISO;
-  if (trimmed === "tomorrow" || trimmed === "tm") return addDaysISO(todayISO, 1);
+  if (undotted === "today" || undotted === "t") return todayISO;
+  if (undotted === "tomorrow" || undotted === "tm") return addDaysISO(todayISO, 1);
 
-  if (extra?.today && extra.today.some((w) => w.trim().toLowerCase() === trimmed)) {
+  if (extra?.today && extra.today.some((w) => w.trim().toLowerCase() === undotted)) {
     return todayISO;
   }
-  if (extra?.tomorrow && extra.tomorrow.some((w) => w.trim().toLowerCase() === trimmed)) {
+  if (extra?.tomorrow && extra.tomorrow.some((w) => w.trim().toLowerCase() === undotted)) {
     return addDaysISO(todayISO, 1);
   }
 
-  if (EN_WEEKDAYS[trimmed] !== undefined) {
-    return nextWeekdayISO(todayISO, EN_WEEKDAYS[trimmed]);
+  if (EN_WEEKDAYS[undotted] !== undefined) {
+    return nextWeekdayISO(todayISO, EN_WEEKDAYS[undotted]);
   }
 
   // Locale weekdays: long and short from Intl.DateTimeFormat

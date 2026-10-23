@@ -289,4 +289,10 @@ describe("tokenizeLine due and dueWord (Section 1 table)", () => {
       expect(kinds(line).filter((k) => k === "due" || k === "dueWord")).toEqual([]);
     }
   });
+
+  it("a closing bracket or quote after the date is not part of the token", () => {
+    for (const line of ["# task [by:2026-10-30]", '# task "by:2026-10-30"', "# really by:2026-10-30?!"]) {
+      expect(tokenizeLine(line).find((t) => t.kind === "due")?.date).toBe("2026-10-30");
+    }
+  });
 });

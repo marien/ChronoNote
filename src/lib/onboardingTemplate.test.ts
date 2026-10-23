@@ -23,8 +23,8 @@ describe("getOnboardingTemplate", () => {
     expect(template).toMatch(/# .+/);
     expect(template).toContain("=> ");
 
-    // Verify example action with due date
-    expect(template).toMatch(/# .*by:\d{4}-\d{2}-\d{2}/);
+    // Example action with a due word: never overdue, and it becomes a date once the caret leaves the line.
+    expect(template).toMatch(/^# .* by:fri$/m);
   });
 
   it("falls back to English for unknown languages", () => {
@@ -56,12 +56,13 @@ describe("isPristineOnboardingNote", () => {
     expect(isPristineOnboardingNote(legacy)).toBe(true);
   });
 
-  it("gives the example action a due date a week after the note's day", () => {
-    expect(getOnboardingTemplate("en", "2026-12-28")).toContain("# Send the minutes by:2027-01-04");
+  it.each(languages)("the %s example action uses the English word, understood in every UI language", (lang) => {
+    expect(getOnboardingTemplate(lang)).toMatch(/^# .* by:fri$/m);
   });
 
-  it("still recognises a welcome note written on an earlier day as pristine", () => {
-    expect(isPristineOnboardingNote(getOnboardingTemplate("nl", "2026-01-05"))).toBe(true);
+  it("treats the example's word turned into a date, or a changed date, as an edit", () => {
+    const template = getOnboardingTemplate("en");
+    expect(isPristineOnboardingNote(template.replace("by:fri", "by:2026-10-30"))).toBe(false);
   });
 
   it("rejects an edited template as not pristine", () => {

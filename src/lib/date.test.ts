@@ -302,4 +302,10 @@ describe("parseDueWord (Section 3 date words)", () => {
     // Friday of week 1 of 2027 is 2027-01-08
     expect(parseDueWord("wk1", "2026-12-30", "en")).toBe("2027-01-08");
   });
+
+  it("an English or extra word typed with a dot is understood in every UI language", () => {
+    expect(parseDueWord("fri.", today, "de")).toBe("2026-10-23");
+    expect(parseDueWord("tomorrow.", today, "nl")).toBe("2026-10-23");
+    expect(parseDueWord("morgen.", today, "nl", dueWordExtra("vandaag", "morgen"))).toBe("2026-10-23");
+  });
 });

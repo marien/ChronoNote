@@ -150,6 +150,25 @@ test.describe("due dates editor (slice 2)", () => {
     await expect(pop.locator(".cal-picker-title")).toHaveText("Due date");
   });
 
+  test("a pill clicked after a line was inserted above it changes its own line", async ({ page }) => {
+    await seedApp(page, { seed: "empty" });
+    const first = addDaysISO(REFERENCE_TODAY, 4);
+    const second = addDaysISO(REFERENCE_TODAY, 5);
+    await setEditorText(page, `top\n# a by:${first}\n# b by:${second}`);
+    // A new line above both actions, typed: the pills stay drawn (same look) while their lines move down.
+    await editor(page).locator(".cm-line").first().click();
+    await page.keyboard.press("Home");
+    await page.keyboard.press("Enter");
+
+    await page.locator(".cm-line").nth(2).locator(".cm-due-pill").click();
+    const pop = page.locator(".datepicker-pop");
+    await expect(pop).toBeVisible();
+    const picked = addDaysISO(REFERENCE_TODAY, 6);
+    await pop.locator(`.cal-day[data-iso="${picked}"]`).click();
+    await expect(pop).toBeHidden();
+    await expect.poll(async () => activeTabContent(page)).toBe(`\ntop\n# a by:${picked}\n# b by:${second}`);
+  });
+
   test("paste of # x by:tomorrow gives the ISO date", async ({ page }) => {
     await seedApp(page, { seed: "empty" });
     await editor(page).click();
