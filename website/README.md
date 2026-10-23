@@ -142,13 +142,11 @@ which is always a deliberate, separate step:
   `package.json` automatically) and commit that to `main` as part of the
   release, then promote to `website-live` the same way. See the root
   `CLAUDE.local.md`'s release workflow for exactly where this step sits.
-  **If the release touches `docs/design/icon-A-master.svg`** (a real icon
-  redesign, not every release): regenerate `website/assets/favicon.ico` /
-  `favicon-32.png` / `apple-touch-icon.png` from the freshly-regenerated
-  `src-tauri/icons/{icon.ico,32x32.png,128x128@2x.png}` (same source,
-  already the right sizes — no separate conversion needed) **and** bump
-  the `?v=` query param on all three `<link>` tags in `index.html`/
-  `demo.html`/`guide.html` to the new version. Browsers cache favicons
+  **If the icon changes** (`src/lib/appIconGeometry.ts`, a real icon
+  redesign, not every release): `node scripts/build-icons.mjs` regenerates
+  the website favicons along with every other icon file (§416), **and**
+  bump the `?v=` query param on the three icon `<link>` tags in every
+  `website/*.html` page to a new value. Browsers cache favicons
   extremely aggressively and mostly ignore normal cache-control headers,
   so without a new URL (the query param) a returning visitor can keep
   seeing the old icon indefinitely — this was missed for the v0.12.5 icon

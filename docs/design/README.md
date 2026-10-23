@@ -167,6 +167,20 @@ npx tauri icon docs/design/icon-A-master.svg
 ```
 
 That rewrites `src-tauri/icons/{32x32,128x128,128x128@2x}.png` and `icon.ico`.
+
+### Untiled, pixel-fitted (2026-10-23, §416)
+
+The tile is gone: a dark page with a white outline, rule, pins and check, inside a
+thin dark keyline, so it fills the frame and reads on dark and light taskbars alike.
+The geometry now lives in code, `src/lib/appIconGeometry.ts`, with whole-pixel
+drawings for 16-64 px; `icon-A-master.svg` is generated from it. Regenerate every
+icon file (desktop, web app, website and demo favicons) with:
+
+```
+node scripts/build-icons.mjs
+```
+
+Not `npx tauri icon`: it scales one master down and loses the pixel fitting.
 If a neutral-tile / in-app themed variant is wanted too, the geometry is in
 `icon-proposals.html` (concept A, grayscale + colour cells) — that file
 documents the *pre-0.7* mark and is kept for history, not current.

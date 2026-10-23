@@ -1,47 +1,50 @@
 <script lang="ts">
-  /** §merged-titlebar: the real app icon (the "daily agenda" mark on Obsidian Slate,
-   * `docs/design/icon-A-master.svg` — same shape `src-tauri/icons/*` and
-   * the desktop taskbar icon draw), for the title bar's far-left corner.
-   * Deliberately its own component, not an entry in `icons/paths.ts`'s `ICONS` map:
-   * everything in that set renders in `currentColor` so it follows the app's own
-   * theme/glyph-mode settings, but a title bar's app icon is a fixed brand mark —
-   * same obsidian tile + high-contrast knockout regardless of theme, exactly like
-   * a taskbar icon never re-themes itself. Colors are copied verbatim from the
-   * master SVG rather than referencing `--accent`-style tokens, on purpose. */
+  /** §merged-titlebar, §416: the real app icon (the "daily agenda" mark, no tile), for the
+   * title bar's far-left corner and the About panel. Drawn from `appIconGeometry.ts`, the
+   * same source as `src-tauri/icons/*` and the taskbar icon. Deliberately its own component,
+   * not an entry in `icons/paths.ts`'s `ICONS` map: everything in that set renders in
+   * `currentColor` so it follows the app's own theme/glyph-mode settings, but a title bar's
+   * app icon is a fixed brand mark, exactly like a taskbar icon never re-themes itself.
+   *
+   * The drawing is made for the icon's size in device pixels (16 px at 125 % is 20), so the
+   * pixel-fitted small sizes stay sharp at any display scale. */
+  import { onMount } from "svelte";
+  import { appIconInner } from "../appIconGeometry";
+
   interface Props {
     size?: number;
   }
 
   let { size = 16 }: Props = $props();
+
+  let dpr = $state(typeof window === "undefined" ? 1 : window.devicePixelRatio || 1);
+  const pixels = $derived(Math.max(1, Math.round(size * dpr)));
+
+  // A move to a screen with another scale (or a zoom) changes the ratio without
+  // necessarily resizing the window; a resolution query fires exactly then.
+  onMount(() => {
+    let query: MediaQueryList | undefined;
+    const watch = () => {
+      dpr = window.devicePixelRatio || 1;
+      query?.removeEventListener("change", watch);
+      query = window.matchMedia(`(resolution: ${dpr}dppx)`);
+      query.addEventListener("change", watch);
+    };
+    watch();
+    return () => query?.removeEventListener("change", watch);
+  });
 </script>
 
 <svg
   width={size}
   height={size}
-  viewBox="0 0 1024 1024"
+  viewBox="0 0 {pixels} {pixels}"
   xmlns="http://www.w3.org/2000/svg"
   aria-hidden="true"
   focusable="false"
   class="app-icon-svg"
 >
-  <defs>
-    <linearGradient id="appIconBgGrad" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stop-color="#2c2c32" />
-      <stop offset="100%" stop-color="#121214" />
-    </linearGradient>
-    <linearGradient id="appIconStrokeGrad" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stop-color="rgba(255, 255, 255, 0.45)" />
-      <stop offset="50%" stop-color="rgba(255, 255, 255, 0.15)" />
-      <stop offset="100%" stop-color="rgba(255, 255, 255, 0.05)" />
-    </linearGradient>
-  </defs>
-  <rect x="36" y="36" width="952" height="952" rx="232" fill="url(#appIconBgGrad)" stroke="url(#appIconStrokeGrad)" stroke-width="28" />
-  <g fill="none" stroke="#fafafa" stroke-width="68" stroke-linecap="round" stroke-linejoin="round">
-    <rect x="182" y="210" width="660" height="630" rx="130" />
-    <path d="M182 390H842" />
-    <path d="M350 135V275M674 135V275" />
-    <path d="M330 600L450 720L700 470" />
-  </g>
+  {@html appIconInner(pixels)}
 </svg>
 
 <style>
