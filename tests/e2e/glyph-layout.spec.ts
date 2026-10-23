@@ -638,24 +638,33 @@ test.describe("due-date pill footprint (§420)", () => {
   test("nothing moves when the caret enters or leaves the line", async ({ page }) => {
     await seedApp(page, { seed: "empty" });
     await setEditorText(page, [PILL, RAW, "plain line", "a", "b", "last line"].join("\n"));
+    const settle = () => page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
     for (const px of [12, 16, 20]) {
       await page.evaluate((size) => {
         document.querySelector<HTMLElement>(".cm-editor")!.style.setProperty("--editor-font-size", `${size}px`);
       }, px);
-      await editor(page).locator(".cm-line").nth(2).click();
-      await page.keyboard.press("Home");
+      await settle();
+      // Caret on the last line (off the pill line), by keyboard: a click's coordinates can land on the wrong line
+      // while a font-size change is still being laid out (seen at 125 % on CI).
+      await editor(page).locator(".cm-line").last().click();
+      await page.keyboard.press("ControlOrMeta+End");
+      await settle();
       const off = await page.evaluate(measure);
       expect(off.hasPill, `${px}px pill off the caret line`).toBe(true);
 
-      await page.keyboard.press("ArrowUp");
-      await page.keyboard.press("ArrowUp");
+      // Onto the pill line (the first line of the note).
+      await page.keyboard.press("ControlOrMeta+Home");
+      await settle();
       const on = await page.evaluate(measure);
       expect(on.hasPill, `${px}px raw text on the caret line`).toBe(false);
       expect(on.lastTop, `${px}px: lines below stay put`).toBe(off.lastTop);
       expect(Math.abs(on.tailDelta), `${px}px: line end stays put`).toBeLessThan(0.5);
 
+      // Off it again.
       await page.keyboard.press("ArrowDown");
+      await settle();
       const back = await page.evaluate(measure);
+      expect(back.hasPill, `${px}px pill again after leaving`).toBe(true);
       expect(back.lastTop, `${px}px: lines below stay put after leaving`).toBe(off.lastTop);
     }
   });
