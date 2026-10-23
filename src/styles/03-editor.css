@@ -730,6 +730,77 @@ body.peek-mode .cm-overview-ruler {
   color: var(--muted);
 }
 
+/* Due date pill (ChronoNote Due Dates Slice 2) */
+.cm-due-pill {
+  display: inline-block;
+  line-height: inherit;
+  font-size: 0.9em;
+  font-weight: 500;
+  padding: 0 4px;
+  margin: 0 2px;
+  border-radius: var(--radius-control);
+  vertical-align: baseline;
+  box-sizing: border-box;
+  cursor: pointer;
+  user-select: none;
+  transition: border-color var(--motion-normal) ease, background-color var(--motion-normal) ease;
+}
+
+.cm-due-pill.cm-due-later {
+  color: var(--muted);
+  border: 1px solid var(--edge-strong);
+  background: color-mix(in srgb, var(--text) 4%, transparent);
+}
+
+.cm-due-pill.cm-due-today {
+  color: var(--state-warn);
+  border: 1px solid color-mix(in srgb, var(--state-warn) 40%, transparent);
+  background: color-mix(in srgb, var(--state-warn) 12%, transparent);
+}
+
+.cm-due-pill.cm-due-overdue {
+  color: var(--glyph-open-color);
+  border: 1px solid color-mix(in srgb, var(--glyph-open-color) 40%, transparent);
+  background: color-mix(in srgb, var(--glyph-open-color) 12%, transparent);
+}
+
+.cm-due-pill.cm-due-resolved {
+  color: var(--muted);
+  border: 1px solid var(--edge-soft);
+  background: transparent;
+}
+
+.cm-due-raw {
+  color: var(--muted);
+}
+
+.cm-due-unknown {
+  text-decoration: underline dotted var(--muted);
+  text-underline-offset: 3px;
+}
+
+[data-color-mode="grayscale"] .cm-due-pill {
+  color: var(--text);
+  border: 1px solid var(--edge-strong);
+  background: transparent;
+}
+
+[data-color-mode="grayscale"] .cm-due-pill.cm-due-today {
+  border: 1px solid var(--text);
+  font-weight: 500;
+}
+
+[data-color-mode="grayscale"] .cm-due-pill.cm-due-overdue {
+  border: 1px solid var(--text);
+  font-weight: 700;
+}
+
+[data-color-mode="grayscale"] .cm-due-pill.cm-due-resolved {
+  color: var(--muted);
+  border: 1px solid var(--edge-soft);
+}
+
+
 /* §106: the action-state glyphs cycle on click. Subtle pointer + hover
    tint so it reads as interactive without adding chrome to every line. */
 .cm-line .glyph-cyclable {

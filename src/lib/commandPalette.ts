@@ -48,6 +48,7 @@ import {
   switchTab,
 } from "./tabs";
 import { openActionDrawer } from "./actions";
+import { openDueDatePicker } from "./dueDateCommands";
 import { openMeetingHistory } from "./history";
 import { peekSettings, togglePeek } from "./peek";
 import { noteCall } from "./callNote";
@@ -178,6 +179,13 @@ function commandItems(): PaletteItem[] {
   const color = get(colorMode);
   const translate = get(t);
   return [
+    {
+      id: "cmd-set-due-date",
+      label: translate("shortcuts.setDueDate.label", undefined),
+      hint: formatShortcut("setDueDate"),
+      group: "Commands",
+      run: openDueDatePicker,
+    },
     {
       id: "cmd-scratch",
       label: translate("shortcuts.newScratchpad.label", undefined),

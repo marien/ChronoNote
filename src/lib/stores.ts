@@ -401,6 +401,13 @@ export interface CopyForwardPending {
 }
 export const copyForwardPending = writable<CopyForwardPending | null>(null);
 
+export interface DueDatePending {
+  tabId: string;
+  lineIdx: number;
+  partFrom: number;
+}
+export const dueDatePending = writable<DueDatePending | null>(null);
+
 export const allNotesCache = writable<Record<string, string>>({});
 export const actionSnapshot = writable<ActionSnapshotItem[]>([]);
 /** One entry per dated note that has the section at all — past, today, and
@@ -477,6 +484,7 @@ export function closeAllModals() {
   // #66: a copy-forward waiting on a picked date is abandoned, not
   // resolved, if the picker closes any other way (Escape, outside click).
   copyForwardPending.set(null);
+  dueDatePending.set(null);
 }
 
 let toastTimer: ReturnType<typeof setTimeout> | undefined;

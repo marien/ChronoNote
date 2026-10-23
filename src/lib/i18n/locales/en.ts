@@ -935,4 +935,12 @@ export const en = {
   "navToast.ariaLabel": () => "Back and forward",
   "dueDate.words.today": () => "today,t",
   "dueDate.words.tomorrow": () => "tomorrow,tm",
+  "shortcuts.setDueDate.label": () => "Set due date…",
+  "dueDate.pill.today": () => "today",
+  "dueDate.pill.dueToday": () => "Due today",
+  "dueDate.pill.daysLate": ({ count } = { count: 1 }) => (count === 1 ? "1 day late" : `${count} days late`),
+  "dueDate.pill.notADate": () => "Not a date: use a day name, tomorrow, +3, wk44 or 2026-10-30",
+  "dueDate.picker.title": () => "Due date",
+  "dueDate.picker.none": () => "No due date",
+  "dueDate.toast.noAction": () => "Put the cursor on an action to give it a due date",
 } satisfies Dictionary;

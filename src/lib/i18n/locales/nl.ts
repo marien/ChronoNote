@@ -944,4 +944,12 @@ export const nl = {
   "navToast.ariaLabel": () => "Terug en vooruit",
   "dueDate.words.today": () => "vandaag",
   "dueDate.words.tomorrow": () => "morgen",
+  "shortcuts.setDueDate.label": () => "Deadline instellen…",
+  "dueDate.pill.today": () => "vandaag",
+  "dueDate.pill.dueToday": () => "Vandaag te doen",
+  "dueDate.pill.daysLate": ({ count } = { count: 1 }) => (count === 1 ? "1 dag te laat" : `${count} dagen te laat`),
+  "dueDate.pill.notADate": () => "Geen datum: gebruik een dagnaam, morgen, +3, wk44 of 2026-10-30",
+  "dueDate.picker.title": () => "Deadline",
+  "dueDate.picker.none": () => "Geen deadline",
+  "dueDate.toast.noAction": () => "Zet de cursor op een actie om er een deadline aan te geven",
 } satisfies Dictionary;

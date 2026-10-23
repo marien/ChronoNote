@@ -242,6 +242,10 @@ export const SHORTCUTS: ShortcutDef[] = [
     combos: [{ mod: true, shift: true, code: "Period" }],
   },
   {
+    id: "setDueDate",
+    combos: [{ mod: true, shift: true, code: "KeyD" }],
+  },
+  {
     id: "toggleZenMode",
     // Shift+F11 is Sublime Text's "Distraction Free Mode" chord, and needs no Ctrl+Alt (which is
     // AltGr on many European layouts and would fire while typing letters like a-with-diaeresis).
@@ -310,6 +314,7 @@ export const SHORTCUT_LABEL_KEYS = {
   openAbout: "shortcuts.openAbout.label",
   openShortcutsHelp: "shortcuts.openShortcutsHelp.label",
   copyToNextOccurrence: "shortcuts.copyToNextOccurrence.label",
+  setDueDate: "shortcuts.setDueDate.label",
   toggleZenMode: "shortcuts.toggleZenMode.label",
   togglePeekMode: "shortcuts.togglePeekMode.label",
   printNote: "print.menuItem",
@@ -444,6 +449,7 @@ export const DRAWER_ROWS: (string | [string, string])[] = [
   "caretLineNav",
   "convertToSection",
   "copyToNextOccurrence",
+  "setDueDate",
   "openActions",
   "openHistory",
   ["F6", "switchPane"],

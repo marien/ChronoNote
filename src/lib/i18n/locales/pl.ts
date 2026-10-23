@@ -978,4 +978,12 @@ export const pl = {
   "navToast.ariaLabel": () => "Wstecz i dalej",
   "dueDate.words.today": () => "dzis,dziś",
   "dueDate.words.tomorrow": () => "jutro",
+  "shortcuts.setDueDate.label": () => "Ustaw termin…",
+  "dueDate.pill.today": () => "dzisiaj",
+  "dueDate.pill.dueToday": () => "Termin dzisiaj",
+  "dueDate.pill.daysLate": ({ count } = { count: 1 }) => (count === 1 ? "1 dzień po terminie" : `${count} dni po terminie`),
+  "dueDate.pill.notADate": () => "To nie jest data: użyj nazwy dnia, jutro, +3, wk44 lub 2026-10-30",
+  "dueDate.picker.title": () => "Termin",
+  "dueDate.picker.none": () => "Brak terminu",
+  "dueDate.toast.noAction": () => "Umieść kursor na zadaniu, aby nadać mu termin",
 } satisfies Dictionary;

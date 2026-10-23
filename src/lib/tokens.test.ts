@@ -36,6 +36,8 @@ import {
   dueItems,
   countOverdue,
   dueStatus,
+  rewriteDueWords,
+  withDueDate,
 } from "./tokens";
 
 describe("countActions", () => {
@@ -1226,5 +1228,98 @@ describe("dueStatus", () => {
     expect(dueStatus("2026-10-21", today)).toBe("overdue");
     expect(dueStatus("2026-10-22", today)).toBe("today");
     expect(dueStatus("2026-10-23", today)).toBe("later");
+  });
+});
+
+describe("rewriteDueWords", () => {
+  const fixedToday = "2026-10-22"; // Thursday
+  const locale = "en";
+  const extra = { today: ["today", "t"], tomorrow: ["tomorrow", "tm"] };
+
+  it("rewrites a known word to an ISO date with fixed today", () => {
+    // fri after Thu 2026-10-22 is 2026-10-23
+    expect(rewriteDueWords("# call by:fri", fixedToday, locale, extra)).toBe("# call by:2026-10-23");
+    expect(rewriteDueWords("# call by:tomorrow", fixedToday, locale, extra)).toBe("# call by:2026-10-23");
+    expect(rewriteDueWords("# call by:today", fixedToday, locale, extra)).toBe("# call by:2026-10-22");
+  });
+
+  it("leaves unknown words untouched and returns null when nothing changed", () => {
+    expect(rewriteDueWords("# call by:unknown", fixedToday, locale, extra)).toBeNull();
+    expect(rewriteDueWords("# plain text without due words", fixedToday, locale, extra)).toBeNull();
+  });
+
+  it("leaves already-valid ISO due tokens untouched and returns null", () => {
+    expect(rewriteDueWords("# call by:2026-10-30", fixedToday, locale, extra)).toBeNull();
+  });
+
+  it("converts uppercase By:fri to lowercase by:", () => {
+    expect(rewriteDueWords("# call By:fri", fixedToday, locale, extra)).toBe("# call by:2026-10-23");
+    expect(rewriteDueWords("# call BY:tomorrow", fixedToday, locale, extra)).toBe("# call by:2026-10-23");
+  });
+
+  it("rewrites several parts on one line", () => {
+    const line = "# first by:fri => # second by:tomorrow";
+    expect(rewriteDueWords(line, fixedToday, locale, extra)).toBe(
+      "# first by:2026-10-23 => # second by:2026-10-23",
+    );
+  });
+});
+
+describe("withDueDate", () => {
+  it("adds due date at the end of an action part", () => {
+    expect(withDueDate("# task", 0, "2026-10-30")).toBe("# task by:2026-10-30");
+    expect(withDueDate("=> @dana send slides", 0, "2026-10-30")).toBe("=> @dana send slides by:2026-10-30");
+  });
+
+  it("replaces an existing due or dueWord token in place", () => {
+    expect(withDueDate("# task by:2026-10-15", 0, "2026-10-30")).toBe("# task by:2026-10-30");
+    expect(withDueDate("# task by:fri", 0, "2026-10-30")).toBe("# task by:2026-10-30");
+  });
+
+  it("removes due token and the one space before it with null", () => {
+    expect(withDueDate("# task by:2026-10-30", 0, null)).toBe("# task");
+    expect(withDueDate("# task by:fri", 0, null)).toBe("# task");
+  });
+
+  it("multi-part line changes only the right part", () => {
+    const line = "# part one => # part two";
+    // Target part one (index 0)
+    expect(withDueDate(line, 0, "2026-10-30")).toBe("# part one by:2026-10-30 => # part two");
+    // Target part two (index 14, where consequence is)
+    expect(withDueDate(line, 14, "2026-10-30")).toBe("# part one => # part two by:2026-10-30");
+
+    // Replace in multi-part line
+    const lineWithDates = "# part one by:2026-10-15 => # part two by:2026-10-20";
+    expect(withDueDate(lineWithDates, 0, "2026-10-30")).toBe(
+      "# part one by:2026-10-30 => # part two by:2026-10-20",
+    );
+    expect(withDueDate(lineWithDates, 30, "2026-10-30")).toBe(
+      "# part one by:2026-10-15 => # part two by:2026-10-30",
+    );
+
+    // Remove in multi-part line
+    expect(withDueDate(lineWithDates, 0, null)).toBe(
+      "# part one => # part two by:2026-10-20",
+    );
+    expect(withDueDate(lineWithDates, 30, null)).toBe(
+      "# part one by:2026-10-15 => # part two",
+    );
+  });
+
+  it("inserts before trailing forward links", () => {
+    expect(withDueDate("# task (>2026-11-01)", 0, "2026-10-30")).toBe(
+      "# task by:2026-10-30 (>2026-11-01)",
+    );
+    expect(withDueDate("# task (>2026-11-01) (<2026-10-01)", 0, "2026-10-30")).toBe(
+      "# task by:2026-10-30 (>2026-11-01) (<2026-10-01)",
+    );
+    // Replace with trailing forward links
+    expect(withDueDate("# task by:2026-10-15 (>2026-11-01)", 0, "2026-10-30")).toBe(
+      "# task by:2026-10-30 (>2026-11-01)",
+    );
+    // Remove with trailing forward links
+    expect(withDueDate("# task by:2026-10-15 (>2026-11-01)", 0, null)).toBe(
+      "# task (>2026-11-01)",
+    );
   });
 });

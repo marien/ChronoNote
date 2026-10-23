@@ -958,4 +958,12 @@ export const es = {
   "navToast.ariaLabel": () => "Atrás y adelante",
   "dueDate.words.today": () => "hoy",
   "dueDate.words.tomorrow": () => "manana,mañana",
+  "shortcuts.setDueDate.label": () => "Establecer fecha de vencimiento…",
+  "dueDate.pill.today": () => "hoy",
+  "dueDate.pill.dueToday": () => "Vence hoy",
+  "dueDate.pill.daysLate": ({ count } = { count: 1 }) => (count === 1 ? "1 día de retraso" : `${count} días de retraso`),
+  "dueDate.pill.notADate": () => "No es una fecha: use un día, mañana, +3, wk44 o 2026-10-30",
+  "dueDate.picker.title": () => "Fecha de vencimiento",
+  "dueDate.picker.none": () => "Sin fecha de vencimiento",
+  "dueDate.toast.noAction": () => "Coloque el cursor en una acción para asignarle una fecha de vencimiento",
 } satisfies Dictionary;
