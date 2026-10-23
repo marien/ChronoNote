@@ -140,6 +140,17 @@
         </div>
         <div class="modal-item" style="cursor: default;">
           <div class="modal-item-main">
+            <span>{$t("shortcuts.modal.dueDate")}</span>
+          </div>
+          <!-- The editor's own classes (§421), so the legend shows exactly what a note shows. -->
+          <div class="item-tag">
+            <kbd>by:fri</kbd>&nbsp;→&nbsp;<span class="cm-due cm-due-later" style="font-family: var(--font-mono); cursor: default;"
+              ><span class="cm-due-flag">by:</span>2026-10-30</span
+            >
+          </div>
+        </div>
+        <div class="modal-item" style="cursor: default;">
+          <div class="modal-item-main">
             <span>{$t("shortcuts.modal.consequenceAction", { shortcutHint: consequenceActionHint })}</span>
           </div>
           <div class="item-tag">

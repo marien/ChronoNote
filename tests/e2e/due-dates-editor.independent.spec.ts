@@ -619,17 +619,29 @@ test.describe("due dates editor — independent tests (slice 2)", () => {
       await expect(pop.locator(".cal-picker-title")).toHaveText("Due date");
     });
 
-    test("a click on the date digits places the caret there and opens no picker (§421)", async ({ page }) => {
+    test("a click on the date digits opens the date picker too, and leaves the caret where it was (§422)", async ({ page }) => {
       await seedApp(page, { seed: "empty" });
       const targetDate = addDaysISO(REFERENCE_TODAY, 4);
       await setEditorText(page, `# plan trip by:${targetDate}\nsecond line`);
       await editor(page).locator(".cm-line").nth(1).click();
 
-      // The digits are ordinary text inside the outline (the date link inside it).
       await page.locator(".cm-line").first().locator(".cm-due .cm-date-link").click();
+      const pop = page.locator(".datepicker-pop");
+      await expect(pop).toBeVisible();
+      await expect(pop.locator(`.cal-day[data-iso="${targetDate}"]`)).toHaveClass(/\btarget\b/);
+      await page.keyboard.press("Escape");
+      await expect.poll(() => cursorLine(page)).toBe(2);
+    });
+
+    test("Ctrl+Click on the date digits opens that day, not the picker", async ({ page }) => {
+      await seedApp(page, { seed: "empty" });
+      const targetDate = addDaysISO(REFERENCE_TODAY, 4);
+      await setEditorText(page, `# plan trip by:${targetDate}\nsecond line`);
+      await editor(page).locator(".cm-line").nth(1).click();
+
+      await page.locator(".cm-line").first().locator(".cm-due .cm-date-link").click({ modifiers: ["ControlOrMeta"] });
+      await expect(activeTabLabel(page)).toHaveText(targetDate);
       await expect(page.locator(".datepicker-pop")).toBeHidden();
-      await expect.poll(() => cursorLine(page)).toBe(1);
-      await expect(page.locator(".cm-line").first().locator(".cm-due-flag")).toBeVisible();
     });
   });
 

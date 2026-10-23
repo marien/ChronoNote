@@ -88,9 +88,9 @@ function build(view: EditorView): { decorations: DecorationSet; atomic: Decorati
   return { decorations: b.finish(), atomic: atomic.finish() };
 }
 
-/** The action part a flag belongs to, for the date picker (a click finds it from the flag's position). */
-function openPickerAt(view: EditorView, flag: HTMLElement) {
-  const pos = view.posAtDOM(flag);
+/** The action part a due date belongs to, for the date picker (a click finds it from the element's position). */
+function openPickerAt(view: EditorView, el: HTMLElement) {
+  const pos = view.posAtDOM(el);
   const line = view.state.doc.lineAt(pos);
   const offset = pos - line.from;
   const part = getLineActionParts(line.text, tokenizeLine(line.text)).find((p) => offset >= p.from && offset < p.to);
@@ -130,21 +130,26 @@ const dueDatesView = ViewPlugin.fromClass(
   {
     decorations: (v) => v.decorations,
     eventHandlers: {
-      // A click on the flag opens the date picker; Ctrl/Cmd+Click opens that day. A click on the digits is an
-      // ordinary click (Ctrl/Cmd+Click there is the date link's own). The picker opens on `click`, not `mousedown`:
-      // opened on mousedown, the click that follows lands outside it and closes it again.
+      // §422: a click anywhere on the due date (flag or digits) opens the date picker: clicking a date with the mouse
+      // means changing it with the mouse; the keyboard still reaches the digits. Ctrl/Cmd+Click opens that day (on the
+      // digits that is the date link's own handler, so it is left to it). The picker opens on `click`, not
+      // `mousedown`: opened on mousedown, the click that follows lands outside it and closes it again.
       mousedown(e: MouseEvent) {
-        if (e.button !== 0 || !(e.target as HTMLElement)?.closest?.(".cm-due-flag")) return false;
+        const target = e.target as HTMLElement;
+        if (e.button !== 0 || !target?.closest?.(".cm-due")) return false;
+        if ((isMac ? e.metaKey : e.ctrlKey) && target.closest(".cm-date-link")) return false;
         e.preventDefault(); // the caret stays where it was
         return true;
       },
       click(e: MouseEvent, view: EditorView) {
-        const flag = (e.target as HTMLElement)?.closest?.(".cm-due-flag") as HTMLElement | null;
-        if (!flag || e.button !== 0) return false;
+        const target = e.target as HTMLElement;
+        const due = target?.closest?.(".cm-due") as HTMLElement | null;
+        if (!due || e.button !== 0) return false;
+        const modifier = isMac ? e.metaKey : e.ctrlKey;
+        if (modifier && target.closest(".cm-date-link")) return false;
         e.preventDefault();
-        const date = (flag.closest(".cm-due") as HTMLElement | null)?.dataset.dueDate;
-        if ((isMac ? e.metaKey : e.ctrlKey) && date) void openDateLink(date);
-        else openPickerAt(view, flag);
+        if (modifier && due.dataset.dueDate) void openDateLink(due.dataset.dueDate);
+        else openPickerAt(view, due);
         return true;
       },
     },

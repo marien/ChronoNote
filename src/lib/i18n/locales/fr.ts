@@ -264,7 +264,9 @@ export const fr = {
     "Élément de liste à puces (Entrée poursuit, vide termine, Tab indente de deux espaces)",
   "shortcuts.modal.glyph.followUp": () => "Suivi — note simple découlant de cette ligne",
   "shortcuts.modal.topicTag": () =>
-    "Balise de sujet — regroupe les actions par thème, affichée en pastille juste après le symbole d'action ; les parenthèses réapparaissent à l'édition",
+    "Balise de sujet — regroupe les actions par thème, affichée en pastille juste après le symbole d'action ; les parenthèses apparaissent quand le curseur est dans la pastille ou juste à côté",
+  "shortcuts.modal.dueDate": () =>
+    "Échéance — tapez by: et un jour (ven, demain, +3) après une action ; en quittant la ligne, il devient la date complète. by: s'affiche comme un drapeau : orange le jour même, rouge une fois la date passée. Cliquez sur la date pour la modifier",
   "shortcuts.modal.dimmedLines": () =>
     "Les lignes terminées, reportées et abandonnées, ainsi que les points traités ou reportés, sont estompés ; les ouverts restent bien visibles (un point avec un suivi ouvert n'est estompé que jusqu'à la flèche)",
   "shortcuts.modal.boldEmphasis": () => "Mise en gras pour le reste de la ligne",

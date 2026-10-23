@@ -135,8 +135,7 @@
     forced-color-adjust: none;
   }
 
-  .cm-line-touched .glyph-topic .glyph-topic-paren,
-  .cm-line:hover .glyph-topic .glyph-topic-paren {
+  .glyph-topic-editing .glyph-topic-paren {
     color: CanvasText;
   }
 

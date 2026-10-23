@@ -172,28 +172,47 @@ test.describe("glyph line layout", () => {
           italic: pill ? getComputedStyle(pill).fontStyle : "",
           border: pill ? getComputedStyle(pill).borderTopColor : "",
           radius: pill ? getComputedStyle(pill).borderTopLeftRadius : "",
-          touched: lines[1].classList.contains("cm-line-touched"),
+          editing: !!lines[1].querySelector(".glyph-topic-editing"),
         };
       });
 
-    // Caret on the raw line: the pill's line is idle.
+    // Caret on the raw line: the pill is idle.
     await page.keyboard.press("ControlOrMeta+Home");
-    await expect.poll(async () => (await measure()).touched).toBe(false);
+    await expect.poll(async () => (await measure()).editing).toBe(false);
     const idle = await measure();
     expect(Math.abs(idle.delta)).toBeLessThan(1);
     expect(idle.parenColor).toBe("rgba(0, 0, 0, 0)"); // transparent
     expect(idle.italic).toBe("normal");
     expect(idle.radius).toBe("4px");
 
-    // Caret on the pill's line: the parentheses show, and nothing moved.
+    // §422: the caret on the pill's line but away from the pill (its end): still idle, parentheses hidden.
     await page.keyboard.press("ControlOrMeta+End");
-    await expect.poll(async () => (await measure()).touched).toBe(true);
+    await page.waitForTimeout(250); // any colour transition
+    const onLine = await measure();
+    expect(onLine.editing).toBe(false);
+    expect(onLine.parenColor).toBe("rgba(0, 0, 0, 0)");
+
+    // Hovering the pill does not show them either.
+    await page.locator(".cm-line").nth(1).locator(".glyph-topic").hover();
+    await page.waitForTimeout(250);
+    expect((await measure()).parenColor).toBe("rgba(0, 0, 0, 0)");
+
+    // Caret right before the pill (one step past the atomic `# ` glyph): the parentheses show, and nothing moved.
+    await page.keyboard.press("Home");
+    await page.keyboard.press("ArrowRight");
+    await expect.poll(async () => (await measure()).editing).toBe(true);
     await page.waitForTimeout(250); // the colour transition
     const editing = await measure();
     expect(Math.abs(editing.delta)).toBeLessThan(1);
     expect(editing.parenColor).not.toBe("rgba(0, 0, 0, 0)");
-    // No accent border on the focused line: the pill looks the same, apart from the parentheses.
+    // The pill looks the same, apart from the parentheses.
     expect(editing.border).toBe(idle.border);
+
+    // Right after the pill (past `)`): still shown; one more step into the text: hidden again.
+    for (let i = 0; i < "(billing)".length; i++) await page.keyboard.press("ArrowRight");
+    await expect.poll(async () => (await measure()).editing).toBe(true);
+    await page.keyboard.press("ArrowRight");
+    await expect.poll(async () => (await measure()).editing).toBe(false);
   });
 
   test("the glyph sits at the column its token started at, not centred in the cell (§87 / #16)", async ({ page }) => {

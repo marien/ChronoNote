@@ -258,7 +258,9 @@ export const en = {
     "Bulleted list item (Enter continues it, an empty one ends it, Tab nests by two spaces)",
   "shortcuts.modal.glyph.followUp": () => "Follow-up — a plain note leading from this line",
   "shortcuts.modal.topicTag": () =>
-    "Topic tag — group actions by subject, drawn as a pill only right after the action symbol; the parentheses show while you edit the line",
+    "Topic tag — group actions by subject, drawn as a pill only right after the action symbol; the parentheses show while the cursor is in or right next to the pill",
+  "shortcuts.modal.dueDate": () =>
+    "Due date — type by: and a day (fri, tomorrow, +3) after an action; it becomes the full date when you leave the line. by: shows as a flag: amber on the day, red once it has passed. Click the date to change it",
   "shortcuts.modal.dimmedLines": () =>
     "Done, deferred and won't-do lines, and discussed or postponed topics, are drawn dimmed; open ones stay at full strength (a topic with an open follow-up is dimmed only up to the arrow)",
   "shortcuts.modal.boldEmphasis": () => "Bold emphasis for the rest of the line",

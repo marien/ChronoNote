@@ -262,7 +262,9 @@ export const es = {
     "Elemento de lista con viñetas (Enter continúa, uno vacío termina, Tab sangra con dos espacios)",
   "shortcuts.modal.glyph.followUp": () => "Seguimiento — una nota simple derivada de esta línea",
   "shortcuts.modal.topicTag": () =>
-    "Etiqueta de tema — agrupa acciones por materia, mostrada como pastilla solo justo tras el símbolo de acción; los paréntesis se muestran mientras edita la línea",
+    "Etiqueta de tema — agrupa acciones por materia, mostrada como pastilla solo justo tras el símbolo de acción; los paréntesis se muestran cuando el cursor está en la pastilla o justo al lado",
+  "shortcuts.modal.dueDate": () =>
+    "Fecha límite — escribe by: y un día (vie, mañana, +3) tras una acción; al salir de la línea se convierte en la fecha completa. by: se muestra como una bandera: naranja el mismo día, roja cuando la fecha ya pasó. Haz clic en la fecha para cambiarla",
   "shortcuts.modal.dimmedLines": () =>
     "Las líneas completadas, pospuestas y descartadas, y los puntos tratados o aplazados, se muestran atenuados; los abiertos permanecen con intensidad normal (un punto con seguimiento abierto solo se atenúa hasta la flecha)",
   "shortcuts.modal.boldEmphasis": () => "Énfasis en negrita para el resto de la línea",

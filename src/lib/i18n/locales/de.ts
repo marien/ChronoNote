@@ -265,7 +265,9 @@ export const de = {
     "Aufzählungspunkt (Enter setzt fort, ein leerer Punkt beendet die Liste, Tab rückt um zwei Leerzeichen ein)",
   "shortcuts.modal.glyph.followUp": () => "Folgeaktion — eine einfache Notiz, die aus dieser Zeile hervorgeht",
   "shortcuts.modal.topicTag": () =>
-    "Themen-Tag — gruppiert Aktionen nach Thema, als Pille dargestellt nur direkt nach dem Aktionssymbol; die Klammern sind beim Bearbeiten der Zeile sichtbar",
+    "Themen-Tag — gruppiert Aktionen nach Thema, als Pille dargestellt nur direkt nach dem Aktionssymbol; die Klammern sind sichtbar, wenn der Cursor in oder direkt neben der Pille steht",
+  "shortcuts.modal.dueDate": () =>
+    "Fälligkeit — tippe by: und einen Tag (fr, morgen, +3) hinter eine Aktion; beim Verlassen der Zeile wird daraus das volle Datum. by: erscheint als Fähnchen: orange am Tag selbst, rot, wenn das Datum vorbei ist. Klicke auf das Datum, um es zu ändern",
   "shortcuts.modal.dimmedLines": () =>
     "Erledigte, verschobene und entfallene Zeilen sowie besprochene oder verschobene Agendapunkte werden abgeblendet dargestellt; offene bleiben in voller Stärke (ein Agendapunkt mit offener Folgeaufgabe nur bis zum Pfeil)",
   "shortcuts.modal.boldEmphasis": () => "Fette Hervorhebung für den Rest der Zeile",

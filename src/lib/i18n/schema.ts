@@ -225,6 +225,7 @@ export type TranslationParams = {
   "shortcuts.modal.glyph.bullet": undefined;
   "shortcuts.modal.glyph.followUp": undefined;
   "shortcuts.modal.topicTag": undefined;
+  "shortcuts.modal.dueDate": undefined;
   "shortcuts.modal.dimmedLines": undefined;
   "shortcuts.modal.boldEmphasis": undefined;
   /** Ends at "Sub-items:" — the trailing `<kbd>1.1.</kbd>, <kbd>1.2.</kbd>`

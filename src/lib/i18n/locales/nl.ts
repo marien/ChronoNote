@@ -262,7 +262,9 @@ export const nl = {
     "Opsommingsteken (Enter zet voort, een lege regel eindigt de lijst, Tab springt twee spaties in)",
   "shortcuts.modal.glyph.followUp": () => "Vervolg — een gewone notitie die uit deze regel voortkomt",
   "shortcuts.modal.topicTag": () =>
-    "Onderwerptag — groepeer acties per onderwerp, getekend als pil alleen direct na het actiesymbool; de haakjes zijn zichtbaar tijdens het bewerken van de regel",
+    "Onderwerptag — groepeer acties per onderwerp, getekend als pil alleen direct na het actiesymbool; de haakjes zijn zichtbaar als de cursor in of direct naast de pil staat",
+  "shortcuts.modal.dueDate": () =>
+    "Deadline — typ by: en een dag (vr, morgen, +3) achter een actie; bij het verlaten van de regel wordt het de volledige datum. by: wordt een vlaggetje: oranje op de dag zelf, rood als de datum voorbij is. Klik op de datum om hem te wijzigen",
   "shortcuts.modal.dimmedLines": () =>
     "Voltooide, doorgeschoven en vervallen regels, en besproken of uitgestelde agendapunten, worden gedimd weergegeven; open regels blijven op volle sterkte (een agendapunt met een open vervolgactie wordt alleen tot de pijl gedimd)",
   "shortcuts.modal.boldEmphasis": () => "Vetgedrukte nadruk voor de rest van de regel",

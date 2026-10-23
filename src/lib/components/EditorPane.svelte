@@ -9,7 +9,7 @@
   import { glyphAtomicRanges, liveGlyphs, lineStateAnnouncement } from "../editor/glyphs";
   import { setextRule } from "../editor/setextRule";
   import { resolvedLinesPlugin } from "../editor/resolvedLines";
-  import { activeLinesPlugin } from "../editor/activeLines";
+  import { topicTagEditingPlugin } from "../editor/topicTagEditing";
   import { clickableLinksPlugin } from "../editor/clickableLinks";
   import { dateLinksPlugin } from "../editor/dateLinks";
   import { dueDatesPlugin } from "../editor/dueDates";
@@ -724,7 +724,7 @@
       glyphAtomicRanges,
       setextRule,
       resolvedLinesPlugin,
-      activeLinesPlugin,
+      topicTagEditingPlugin,
       clickableLinksPlugin,
       dateLinksPlugin,
       dueDatesPlugin,
