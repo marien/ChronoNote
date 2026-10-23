@@ -63,6 +63,7 @@
   import MobileAccessoryBar from "./lib/components/mobile/MobileAccessoryBar.svelte";
   import MobileTabDrawer from "./lib/components/mobile/MobileTabDrawer.svelte";
   import DatePickerModal from "./lib/components/modals/DatePickerModal.svelte";
+  import DueDatePickerHost from "./lib/components/DueDatePickerHost.svelte";
   import ActionDrawerModal from "./lib/components/modals/ActionDrawerModal.svelte";
   import HistoryModal from "./lib/components/modals/HistoryModal.svelte";
   import SearchModal from "./lib/components/modals/SearchModal.svelte";
@@ -217,6 +218,7 @@
     }
 
     function modalOwnsKeyboard(e: KeyboardEvent): boolean {
+      if (document.querySelector(".compact-picker")) return true;
       if (get(modal) === "none") return false;
       if (
         dockedPane &&
@@ -967,6 +969,8 @@
   {:else if $modal === "versions"}
     <VersionsModal />
   {/if}
+
+  <DueDatePickerHost />
 {:else if bootError}
   <div class="boot-loading" role="alert">
     ChronoNote couldn't start.<br />

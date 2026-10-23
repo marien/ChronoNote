@@ -724,9 +724,9 @@ body.peek-mode .cm-overview-ruler {
   color: transparent;
   transition: color var(--motion-normal) ease;
 }
-/* The line being edited (caret or selection on it), or hovered: show the literal `(topic)`. */
-.cm-line-touched .glyph-topic .glyph-topic-paren,
-.cm-line:hover .glyph-topic .glyph-topic-paren {
+/* §422: only while the caret is in the pill or right next to it: show the literal `(topic)`. Hovering or being on the
+   line does not (`topicTagEditing.ts`). */
+.glyph-topic-editing .glyph-topic-paren {
   color: var(--muted);
 }
 
@@ -740,6 +740,7 @@ body.peek-mode .cm-overview-ruler {
 .cm-due {
   --due-ink: var(--muted);
   color: var(--due-ink);
+  cursor: pointer;
   --due-border: var(--edge-strong);
   box-shadow: 0 0 0 1px var(--due-border);
   border-radius: var(--radius-control);
@@ -750,7 +751,6 @@ body.peek-mode .cm-overview-ruler {
 
 .cm-due-flag {
   color: transparent;
-  cursor: pointer;
   background-color: var(--due-ink);
   -webkit-mask: var(--due-flag) no-repeat 0.55ch 50% / 1em 1em;
   mask: var(--due-flag) no-repeat 0.55ch 50% / 1em 1em;

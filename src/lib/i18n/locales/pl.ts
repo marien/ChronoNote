@@ -264,7 +264,9 @@ export const pl = {
     "Element listy punktowanej (Enter kontynuuje, pusty kończy, Tab tworzy wcięcie o 2 spacje)",
   "shortcuts.modal.glyph.followUp": () => "Kontynuacja — zwykła notatka wynikająca z tego wiersza",
   "shortcuts.modal.topicTag": () =>
-    "Etykieta tematu — grupuje zadania według wątku, wyświetlana jako pigułka zaraz po symbolu zadania; nawiasy pojawiają się przy edycji",
+    "Etykieta tematu — grupuje zadania według wątku, wyświetlana jako pigułka zaraz po symbolu zadania; nawiasy pojawiają się, gdy kursor jest w pigułce lub tuż obok niej",
+  "shortcuts.modal.dueDate": () =>
+    "Termin — wpisz by: i dzień (pt, jutro, +3) po zadaniu; po opuszczeniu wiersza staje się pełną datą. by: wyświetla się jako flaga: pomarańczowa w dniu terminu, czerwona po jego upływie. Kliknij datę, aby ją zmienić",
   "shortcuts.modal.dimmedLines": () =>
     "Wiersze wykonane, odłożone i zaniechane oraz omówione lub odłożone punkty agendy są przygaszone; otwarte pozostają w pełni wyraźne (punkt z otwartym dalszym krokiem jest przygaszony tylko do strzałki)",
   "shortcuts.modal.boldEmphasis": () => "Pogrubienie dla reszty wiersza",
@@ -591,6 +593,8 @@ export const pl = {
   "datePicker.today": () => "Dzisiaj",
   "datePicker.escToClose": () => "Esc, aby zamknąć",
   "datePicker.weekColumn": () => "tydz",
+  "compactPicker.ariaLabel": () => "Wybierz datę",
+  "compactPicker.placeholder": () => "pt, jutro, +3, wk44…",
 
   "moreActions.zen": () => "Tryb Zen",
   "moreActions.peek": () => "Peek",

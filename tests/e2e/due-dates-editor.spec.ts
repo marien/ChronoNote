@@ -9,6 +9,7 @@ import {
   mockNote,
   todayFilename,
   toast,
+  activeTabLabel,
 } from "./helpers";
 import { REFERENCE_TODAY } from "../../src/lib/testing/scenarios";
 import { addDaysISO, parseDueWord } from "../../src/lib/date";
@@ -102,13 +103,13 @@ test.describe("due dates editor (slice 2)", () => {
 
     // 1. Open picker with shortcut
     await page.keyboard.press("ControlOrMeta+Shift+KeyD");
-    const pop = page.locator(".datepicker-pop");
+    const pop = page.locator(".compact-picker");
     await expect(pop).toBeVisible();
-    await expect(pop.locator(".cal-picker-title")).toHaveText("Due date");
+    await expect(pop).toHaveAttribute("aria-label", "Choose a date");
 
     // Pick a day
     const targetIso1 = addDaysISO(REFERENCE_TODAY, 1);
-    await pop.locator(`.cal-day[data-iso="${targetIso1}"]`).click();
+    await pop.locator(`.cp-day[data-iso="${targetIso1}"]`).click();
     await expect(pop).toBeHidden();
     await expect.poll(async () => activeTabContent(page)).toContain(`by:${targetIso1}`);
 
@@ -117,7 +118,7 @@ test.describe("due dates editor (slice 2)", () => {
     await expect(pop).toBeVisible();
 
     const targetIso2 = addDaysISO(REFERENCE_TODAY, 3);
-    await pop.locator(`.cal-day[data-iso="${targetIso2}"]`).click();
+    await pop.locator(`.cp-day[data-iso="${targetIso2}"]`).click();
     await expect(pop).toBeHidden();
     await expect.poll(async () => activeTabContent(page)).toContain(`by:${targetIso2}`);
     await expect(await activeTabContent(page)).not.toContain(`by:${targetIso1}`);
@@ -125,14 +126,14 @@ test.describe("due dates editor (slice 2)", () => {
     // 3. Open picker again and remove due date
     await page.keyboard.press("ControlOrMeta+Shift+KeyD");
     await expect(pop).toBeVisible();
-    await pop.locator(".cal-none-btn").click();
+    await pop.locator(".cp-none").click();
     await expect(pop).toBeHidden();
     await expect.poll(async () => activeTabContent(page)).toBe("# buy milk");
 
     // 4. Open picker again, type a due word (e.g. "tomorrow") in jump input and press Enter
     await page.keyboard.press("ControlOrMeta+Shift+KeyD");
     await expect(pop).toBeVisible();
-    await pop.locator(".datepicker-jump").fill("tomorrow");
+    await pop.locator("input").fill("tomorrow");
     await page.keyboard.press("Enter");
     await expect(pop).toBeHidden();
     const tomorrowIso = addDaysISO(REFERENCE_TODAY, 1);
@@ -145,7 +146,7 @@ test.describe("due dates editor (slice 2)", () => {
     await editor(page).locator(".cm-line").first().click();
 
     await page.keyboard.press("ControlOrMeta+Shift+KeyD");
-    await expect(page.locator(".datepicker-pop")).toBeHidden();
+    await expect(page.locator(".compact-picker")).toBeHidden();
     await expect(toast(page)).toHaveText("Put the cursor on an action to give it a due date");
   });
 
@@ -159,9 +160,9 @@ test.describe("due dates editor (slice 2)", () => {
     await expect(pill).toBeVisible();
     await pill.click();
 
-    const pop = page.locator(".datepicker-pop");
+    const pop = page.locator(".compact-picker");
     await expect(pop).toBeVisible();
-    await expect(pop.locator(".cal-picker-title")).toHaveText("Due date");
+    await expect(pop).toHaveAttribute("aria-label", "Choose a date");
   });
 
   test("a pill clicked after a line was inserted above it changes its own line", async ({ page }) => {
@@ -175,10 +176,10 @@ test.describe("due dates editor (slice 2)", () => {
     await page.keyboard.press("Enter");
 
     await page.locator(".cm-line").nth(2).locator(".cm-due-flag").click();
-    const pop = page.locator(".datepicker-pop");
+    const pop = page.locator(".compact-picker");
     await expect(pop).toBeVisible();
     const picked = addDaysISO(REFERENCE_TODAY, 6);
-    await pop.locator(`.cal-day[data-iso="${picked}"]`).click();
+    await pop.locator(`.cp-day[data-iso="${picked}"]`).click();
     await expect(pop).toBeHidden();
     await expect.poll(async () => activeTabContent(page)).toBe(`\ntop\n# a by:${picked}\n# b by:${second}`);
   });
@@ -222,5 +223,63 @@ test.describe("due dates editor (slice 2)", () => {
 
     const expectedFriday = parseDueWord("fri", REFERENCE_TODAY, "en")!;
     await expect.poll(async () => mockNote(page, todayFilename())).toContain(`by:${expectedFriday}`);
+  });
+
+  test.describe("§422 review: a click on a due date is ordinary text handling except a single plain click", () => {
+    const setup = async (page: import("@playwright/test").Page) => {
+      await seedApp(page, { seed: "empty" });
+      const date = addDaysISO(REFERENCE_TODAY, 4);
+      await setEditorText(page, `# plan trip by:${date} and more\nsecond line`);
+      await editor(page).locator(".cm-line").nth(1).click();
+      return { date, digits: page.locator(".cm-line").first().locator(".cm-due .cm-date-link") };
+    };
+    const selectedText = (page: import("@playwright/test").Page) =>
+      page.evaluate(() => document.getSelection()?.toString() ?? "");
+
+    test("a drag that starts on the date selects text and opens no picker", async ({ page }) => {
+      const { digits } = await setup(page);
+      const box = (await digits.boundingBox())!;
+      const end = (await page.locator(".cm-line").first().boundingBox())!;
+      await page.mouse.move(box.x + 4, box.y + box.height / 2);
+      await page.mouse.down();
+      await page.mouse.move(end.x + end.width - 4, box.y + box.height / 2, { steps: 8 });
+      await page.mouse.up();
+      await expect(page.locator(".compact-picker")).toHaveCount(0);
+      expect((await selectedText(page)).length).toBeGreaterThan(3);
+    });
+
+    test("a double click on the date selects it and leaves no picker open", async ({ page }) => {
+      const { digits } = await setup(page);
+      await digits.dblclick();
+      await expect(page.locator(".compact-picker")).toHaveCount(0);
+      expect((await selectedText(page)).length).toBeGreaterThan(0);
+    });
+
+    test("Shift+Click on the date extends the selection and opens no picker", async ({ page }) => {
+      const { digits } = await setup(page);
+      await page.keyboard.press("ControlOrMeta+Home");
+      await digits.click({ modifiers: ["Shift"] });
+      await expect(page.locator(".compact-picker")).toHaveCount(0);
+      expect(await selectedText(page)).toContain("plan trip");
+    });
+
+    test("Ctrl+Click on the digits opens that day without leaving a second cursor behind", async ({ page }) => {
+      const { date, digits } = await setup(page);
+      await digits.click({ modifiers: ["ControlOrMeta"] });
+      await expect(activeTabLabel(page)).toHaveText(date);
+      await page.keyboard.press("ControlOrMeta+Alt+ArrowLeft"); // Back
+      await expect(activeTabLabel(page)).not.toHaveText(date);
+      await expect(page.locator(".cm-cursorLayer .cm-cursor")).toHaveCount(1);
+    });
+
+    test("a click on the date while its picker is open closes it, and it stays closed", async ({ page }) => {
+      const { digits } = await setup(page);
+      await digits.click();
+      await expect(page.locator(".compact-picker")).toBeVisible();
+      await digits.click();
+      await expect(page.locator(".compact-picker")).toHaveCount(0);
+      await page.waitForTimeout(300);
+      await expect(page.locator(".compact-picker")).toHaveCount(0);
+    });
   });
 });

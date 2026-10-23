@@ -405,6 +405,7 @@ export interface DueDatePending {
   tabId: string;
   lineIdx: number;
   partFrom: number;
+  anchor: { left: number; top: number; bottom: number };
 }
 export const dueDatePending = writable<DueDatePending | null>(null);
 

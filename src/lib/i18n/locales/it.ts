@@ -264,7 +264,9 @@ export const it = {
     "Elemento di elenco puntato (Invio continua, uno vuoto termina, Tab rientra di due spazi)",
   "shortcuts.modal.glyph.followUp": () => "Follow-up — una nota semplice collegata a questa riga",
   "shortcuts.modal.topicTag": () =>
-    "Tag argomento — raggruppa le azioni per argomento, mostrato come pillola solo subito dopo il simbolo dell'azione; le parentesi appaiono durante la modifica della riga",
+    "Tag argomento — raggruppa le azioni per argomento, mostrato come pillola solo subito dopo il simbolo dell'azione; le parentesi appaiono quando il cursore è nella pillola o subito accanto",
+  "shortcuts.modal.dueDate": () =>
+    "Scadenza — scrivi by: e un giorno (ven, domani, +3) dopo un'azione; uscendo dalla riga diventa la data completa. by: appare come una bandierina: arancione il giorno stesso, rossa quando la data è passata. Fai clic sulla data per cambiarla",
   "shortcuts.modal.dimmedLines": () =>
     "Le righe completate, rimandate e annullate, e i punti trattati o rinviati, appaiono attenuati; quelli aperti mantengono la piena intensità (un punto con follow-up aperto è attenuato solo fino alla freccia)",
   "shortcuts.modal.boldEmphasis": () => "Grassetto per il resto della riga",
@@ -587,6 +589,8 @@ export const it = {
   "datePicker.today": () => "Oggi",
   "datePicker.escToClose": () => "Esc per chiudere",
   "datePicker.weekColumn": () => "sett",
+  "compactPicker.ariaLabel": () => "Scegli una data",
+  "compactPicker.placeholder": () => "ven, domani, +3, wk44…",
 
   "moreActions.zen": () => "Modalità Zen",
   "moreActions.peek": () => "Peek",

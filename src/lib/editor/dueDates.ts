@@ -1,7 +1,7 @@
-import { Prec, RangeSetBuilder, StateEffect } from "@codemirror/state";
+import { type EditorSelection, Prec, RangeSetBuilder, StateEffect } from "@codemirror/state";
 import { Decoration, type DecorationSet, EditorView, ViewPlugin, type ViewUpdate } from "@codemirror/view";
 import { get } from "svelte/store";
-import { currentDateISO, activeTabId, dueDatePending, modal } from "../stores";
+import { currentDateISO, activeTabId, dueDatePending } from "../stores";
 import { locale, t } from "../i18n";
 import { tokenizeLine, getLineActionParts } from "../grammar/tokenize";
 import { dueStatus } from "../tokens";
@@ -88,14 +88,23 @@ function build(view: EditorView): { decorations: DecorationSet; atomic: Decorati
   return { decorations: b.finish(), atomic: atomic.finish() };
 }
 
-/** The action part a flag belongs to, for the date picker (a click finds it from the flag's position). */
-function openPickerAt(view: EditorView, flag: HTMLElement) {
-  const pos = view.posAtDOM(flag);
+/** The last plain mousedown on a due date: where, whether its picker was already open, and the selection before it
+ * (see the click handler). */
+let press: { x: number; y: number; pickerWasOpen: boolean; selection: EditorSelection } | null = null;
+
+/** The action part a due date belongs to, for the date picker (a click finds it from the element's position). */
+function openPickerAt(view: EditorView, el: HTMLElement) {
+  const pos = view.posAtDOM(el);
   const line = view.state.doc.lineAt(pos);
   const offset = pos - line.from;
   const part = getLineActionParts(line.text, tokenizeLine(line.text)).find((p) => offset >= p.from && offset < p.to);
-  dueDatePending.set({ tabId: get(activeTabId), lineIdx: line.number - 1, partFrom: part?.from ?? offset });
-  modal.set("date");
+  const rect = el.getBoundingClientRect();
+  dueDatePending.set({
+    tabId: get(activeTabId),
+    lineIdx: line.number - 1,
+    partFrom: part?.from ?? offset,
+    anchor: { left: rect.left, top: rect.top, bottom: rect.bottom },
+  });
 }
 
 const dueDatesView = ViewPlugin.fromClass(
@@ -130,21 +139,41 @@ const dueDatesView = ViewPlugin.fromClass(
   {
     decorations: (v) => v.decorations,
     eventHandlers: {
-      // A click on the flag opens the date picker; Ctrl/Cmd+Click opens that day. A click on the digits is an
-      // ordinary click (Ctrl/Cmd+Click there is the date link's own). The picker opens on `click`, not `mousedown`:
-      // opened on mousedown, the click that follows lands outside it and closes it again.
-      mousedown(e: MouseEvent) {
-        if (e.button !== 0 || !(e.target as HTMLElement)?.closest?.(".cm-due-flag")) return false;
-        e.preventDefault(); // the caret stays where it was
-        return true;
+      // §422: a single plain click anywhere on the due date (flag or digits) opens the date picker: clicking a date
+      // with the mouse means changing it with the mouse. Everything else stays ordinary text handling: a drag selects,
+      // a double click selects the word, Shift+Click extends the selection (none of them opens the picker), and a
+      // click on the date while its picker is open closes it (the picker's outside-click closes it; this click must not
+      // reopen it). Ctrl/Cmd+Click opens that day without adding a second cursor (on the digits the date link's own
+      // click handler opens it). The picker opens on `click`, not `mousedown`: opened on mousedown, the click that
+      // follows lands outside it and closes it again.
+      mousedown(e: MouseEvent, view: EditorView) {
+        press = null;
+        const target = e.target as HTMLElement;
+        if (e.button !== 0 || e.shiftKey || !target?.closest?.(".cm-due")) return false;
+        if (isMac ? e.metaKey : e.ctrlKey) {
+          e.preventDefault(); // no extra cursor at the date
+          return true;
+        }
+        press = { x: e.clientX, y: e.clientY, pickerWasOpen: get(dueDatePending) !== null, selection: view.state.selection };
+        return false; // CodeMirror places the caret / starts a selection as usual
       },
       click(e: MouseEvent, view: EditorView) {
-        const flag = (e.target as HTMLElement)?.closest?.(".cm-due-flag") as HTMLElement | null;
-        if (!flag || e.button !== 0) return false;
-        e.preventDefault();
-        const date = (flag.closest(".cm-due") as HTMLElement | null)?.dataset.dueDate;
-        if ((isMac ? e.metaKey : e.ctrlKey) && date) void openDateLink(date);
-        else openPickerAt(view, flag);
+        const target = e.target as HTMLElement;
+        const due = target?.closest?.(".cm-due") as HTMLElement | null;
+        const p = press;
+        press = null;
+        if (!due || e.button !== 0 || e.shiftKey) return false;
+        if (isMac ? e.metaKey : e.ctrlKey) {
+          if (target.closest(".cm-date-link") || !due.dataset.dueDate) return false;
+          void openDateLink(due.dataset.dueDate);
+          return true;
+        }
+        const moved = !p || Math.hypot(e.clientX - p.x, e.clientY - p.y) > 3;
+        if (moved || p.pickerWasOpen || e.detail > 1 || !view.state.selection.main.empty) return false;
+        // A plain click that opens the picker leaves the caret where it was before the click (the mousedown let
+        // CodeMirror move it, so a drag could start).
+        view.dispatch({ selection: p.selection });
+        openPickerAt(view, due);
         return true;
       },
     },

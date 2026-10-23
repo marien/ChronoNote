@@ -7,12 +7,39 @@
   import Icon from "../../icons/Icon.svelte";
   import Segmented from "../Segmented.svelte";
   import EmptyState from "../EmptyState.svelte";
+  import CompactDatePicker from "../CompactDatePicker.svelte";
   import { t } from "../../i18n";
 
   const review = $derived($calendarSyncReview);
 
   let syncBtn = $state<HTMLButtonElement>();
   let listEl = $state<HTMLDivElement>();
+
+  let activeIndex = $state<number | null>(null);
+  let pickerAnchor = $state<{ left: number; top: number; bottom: number } | null>(null);
+  let pickerValue = $state<string | null>(null);
+
+  function openPicker(index: number, el: HTMLElement, currentDate: string) {
+    const rect = el.getBoundingClientRect();
+    pickerAnchor = { left: rect.left, top: rect.top, bottom: rect.bottom };
+    activeIndex = index;
+    pickerValue = currentDate;
+  }
+
+  function handlePick(iso: string | null) {
+    if (activeIndex !== null && iso) {
+      controller.setSyncRemovalMoveDate(activeIndex, iso);
+    }
+    activeIndex = null;
+    pickerAnchor = null;
+    pickerValue = null;
+  }
+
+  function closePicker() {
+    activeIndex = null;
+    pickerAnchor = null;
+    pickerValue = null;
+  }
 
   // #78: opening the review puts focus on the Sync button, so Enter accepts the review as it stands.
   onMount(() => {
@@ -26,7 +53,7 @@
   function onKeydown(e: KeyboardEvent) {
     if (e.key !== "ArrowDown" && e.key !== "ArrowUp") return;
     const target = e.target as HTMLElement;
-    if (target.matches('input[type="date"], [role="radio"], select')) return;
+    if (target.matches('input[type="date"], [role="radio"], select, .sync-review-date')) return;
     const boxes = [...(listEl?.querySelectorAll<HTMLInputElement>('input[type="checkbox"]') ?? [])];
     if (boxes.length === 0) return;
     e.preventDefault();
@@ -104,12 +131,14 @@
                   onChange={(v) => controller.setSyncRemovalChoice(i, v as "flag" | "discard" | "move")}
                 />
                 {#if removal.choice === "move"}
-                  <input
-                    type="date"
+                  <button
+                    type="button"
                     class="sync-review-date"
-                    value={removal.moveDate}
-                    onchange={(e) => controller.setSyncRemovalMoveDate(i, e.currentTarget.value)}
-                  />
+                    onclick={(e) => openPicker(i, e.currentTarget, removal.moveDate)}
+                  >
+                    <Icon name="date-note" size={12} />
+                    <span>{removal.moveDate}</span>
+                  </button>
                 {/if}
               </div>
             </div>
@@ -129,5 +158,23 @@
         <button class="icon-btn btn-primary" bind:this={syncBtn} onclick={confirm}>{$t("calendarSyncReview.syncButton")}</button>
       </div>
     </div>
+
+    {#if activeIndex !== null && pickerAnchor}
+      <CompactDatePicker
+        anchor={pickerAnchor}
+        value={pickerValue}
+        onPick={handlePick}
+        onClose={closePicker}
+      />
+    {/if}
   </div>
 {/if}
+
+<style>
+  button.sync-review-date {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    cursor: pointer;
+  }
+</style>
