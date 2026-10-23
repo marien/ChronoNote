@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import { formatISO, todayISO, parseDateQuery, addMonths, monthGrid, parseISODateLocal, addDaysISO, monthName, longDate, weekdayAbbrev, isoWeek, isoWeekToMonday, parseDueWord, dueWordExtra, dueLabel } from "./date";
+import { formatISO, todayISO, parseDateQuery, addMonths, monthGrid, parseISODateLocal, addDaysISO, monthName, longDate, weekdayAbbrev, isoWeek, isoWeekToMonday, parseDueWord, dueWordExtra } from "./date";
 
 describe("formatISO", () => {
   it("formats as zero-padded YYYY-MM-DD", () => {
@@ -307,33 +307,5 @@ describe("parseDueWord (Section 3 date words)", () => {
     expect(parseDueWord("fri.", today, "de")).toBe("2026-10-23");
     expect(parseDueWord("tomorrow.", today, "nl")).toBe("2026-10-23");
     expect(parseDueWord("morgen.", today, "nl", dueWordExtra("vandaag", "morgen"))).toBe("2026-10-23");
-  });
-});
-
-describe("dueLabel (§420: the pill's label fits inside its by:YYYY-MM-DD)", () => {
-  const today = "2026-10-22";
-  const LOCALES = ["en", "nl", "de", "fr", "es", "it", "pl"];
-  // Every month and weekday this year and next, so the longest month and weekday names are in there.
-  const DATES = Array.from({ length: 730 }, (_, i) => addDaysISO("2026-01-01", i));
-
-  it.each(LOCALES)("never exceeds 12 characters in %s", (loc) => {
-    for (const iso of DATES) expect(dueLabel(iso, today, loc).length, iso).toBeLessThanOrEqual(12);
-  });
-
-  it("shows weekday, day and month this year where that fits", () => {
-    expect(dueLabel("2026-10-30", today, "nl")).toBe("vr 30 okt");
-    expect(dueLabel("2026-10-30", today, "en")).toBe("Fri, Oct 30");
-  });
-
-  it("drops the weekday when it would not fit (German)", () => {
-    expect(dueLabel("2026-09-17", today, "de")).toBe("17. Sept.");
-  });
-
-  it("adds the year for another year", () => {
-    expect(dueLabel("2027-09-17", today, "nl")).toBe("17 sep 2027");
-  });
-
-  it("respects a smaller limit, falling back to the ISO date as a last resort", () => {
-    expect(dueLabel("2026-10-30", today, "nl", 6).length).toBeLessThanOrEqual(10);
   });
 });

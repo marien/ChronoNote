@@ -75,11 +75,25 @@ to remove it. Clicking a pill does the same.
 
 ## How it looks
 
-Off the caret line the token is drawn as a pill with the date written short in the UI language: `vr 30 okt` /
-`Fri 30 Oct`. On the caret line the raw `by:2026-10-30` text shows so it can be edited; hovering the pill shows it in
-the tooltip.
+**As built since 0.33.0-4 (§421, Marien's choice of option A after trying 0.33.0-3): nothing is replaced but `by:`.**
+The date stays text, on the line's baseline. `by:` becomes a flag drawn over its own three cells (the characters stay,
+transparent; the flag half a character in from the left for clearance). One outline surrounds flag and date, built
+like the topic pill: an outset 1px shadow (no layout room at any display scaling; a 1px border with a -1px margin
+over-cancels at 150 %, where Chrome draws the border 0.67 px), the topic pill's corner radius and tint strength, and
+on the right 0.3 ch of padding cancelled by a -0.3 ch margin, so it reaches into the space after the date while the
+text after it stays on its column. States: muted (later), amber (today), red (overdue), dimmed (done, deferred, won't
+do); Grayscale: thin, solid, and solid with a bold flag and digits (no thicker border, so every outline keeps the
+topic pill's height). Drawn the same on the caret line: nothing changes when the caret moves. The caret never stops
+inside `by:` and Backspace after the flag removes it whole. A click on the flag opens the date picker, Ctrl+Click
+opens that day; the digits are ordinary text and a date link. Measured at 11-24 px and 100/125/150 %: width, height
+and baseline unchanged to within 0.01 px.
 
-**The pill keeps the source's footprint (reworked 2026-10-23, after Marien tried 0.33.0-2).** Two premises of
+The two earlier attempts are kept below for the record.
+
+*First attempt (0.33.0-2):* off the caret line the token was drawn as a pill with the date written short in the UI
+language: `vr 30 okt` / `Fri 30 Oct`. On the caret line the raw `by:2026-10-30` text showed so it could be edited.
+
+*Second attempt (0.33.0-3), the pill keeps the source's footprint (reworked 2026-10-23, after Marien tried 0.33.0-2).* Two premises of
 ChronoNote hold for every glyph and must hold here too, and the first build broke both:
 
 1. **Text width.** Anything drawn in place of source text takes exactly the width of that text. The editor font is

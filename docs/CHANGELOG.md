@@ -10998,3 +10998,29 @@ Feature review B2, designed in `docs/design/due-dates-design.md` (Marien took al
   every day of two years in all 7 UI languages.
 - **Standing rule from now on:** every editor design that draws something in place of text states its width in `ch`
   and how its height is kept, and tests both.
+
+## 421. Due date drawn in place: a flag for `by:`, the date stays text
+
+**Status: on main, not released yet.**
+
+- **Seen (Marien, beta 0.33.0-3):** the pill's label sat slightly below the sentence's baseline (it was a separate
+  box centred in the line), and replacing the date with a short label did not work for him: he wanted the real
+  `by:YYYY-MM-DD` with colour and an outline instead. Options were mocked up (a flag, an hourglass or an arrow for
+  `by:`, or no glyph); he chose the flag with one outline around flag and date, a little clearance on both sides,
+  matched to the topic pill, and in Grayscale bold rather than a thicker border.
+- **Now:** nothing is replaced but `by:`. Two mark decorations on the text itself (`src/lib/editor/dueDates.ts`, no
+  widget): `.cm-due` over the whole token (the outline, coloured by state) and `.cm-due-flag` over `by:` (its
+  characters transparent, a flag drawn as a mask over the three cells). The date digits stay text on the baseline and
+  stay a date link. Drawn the same on the caret line. `by:` is an atomic range: the caret skips it and Backspace after
+  it removes it whole. Click on the flag opens the date picker (on `click`: opened on mousedown, the following click
+  closed it again), Ctrl/Cmd+Click opens that day.
+- **The outline** is an outset 1px box-shadow, not a border: a 1px border cancelled by a -1px margin moved the text
+  after the date by 0.33-0.67 px at 150 %, where Chrome draws the border 0.67 px wide. Right clearance is 0.3 ch of
+  padding cancelled by a -0.3 ch margin. The plugin runs at the lowest precedence so its outline wraps the date link
+  instead of being split by it (CodeMirror draws lower-precedence marks outside higher ones).
+- **Removed:** the pill widget and `dueLabel` (§420).
+- **Tests:** `glyph-layout.spec.ts` "due date drawn in place (§421)": at 11-24 px one outline element holding the
+  unchanged token, the text after it and the digits on the same column and baseline as a line without the token, the
+  same line height, and nothing moving when the caret enters or leaves the line; passes 30/30 at 100/125/150 %
+  (5 repeats). The editor specs now check the flag, the outline's state classes and tooltip, the atomic `by:`, and
+  that a click on the digits opens no picker.

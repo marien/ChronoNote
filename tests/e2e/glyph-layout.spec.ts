@@ -577,16 +577,17 @@ test.describe("glyph line layout", () => {
 });
 
 
-/** §420: a due-date pill keeps the footprint of the `by:YYYY-MM-DD` it replaces. Same width (13 ch: the text after it
- * stays on the column it has in a line without the token), same height (at every editor font size), and nothing moves
- * when the caret enters or leaves the line (the pill swaps for the raw text there). */
-test.describe("due-date pill footprint (§420)", () => {
-  const PILL = "# send the report by:2026-10-30 tail";
+/** §421: a due date is drawn on its own text: `by:` becomes a flag over its own three cells and one outline surrounds
+ * the flag and the date. Nothing is replaced, so the line keeps its width (the text after it stays on the column it
+ * has in a line without the token), its height (at every editor font size) and its baseline (the date digits sit
+ * exactly where they would without the outline), and moving the caret onto or off the line changes nothing. */
+test.describe("due date drawn in place (§421)", () => {
+  const DUE = "# send the report by:2026-10-30 tail";
   const RAW = "# send the report bx:2026-10-30 tail"; // the same characters, not a due date
 
   const measure = () => {
     const lines = [...document.querySelectorAll<HTMLElement>(".cm-editor .cm-line")];
-    const xOf = (el: HTMLElement, needle: string) => {
+    const rectOf = (el: HTMLElement, needle: string) => {
       const w = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
       let n: Node | null;
       while ((n = w.nextNode())) {
@@ -595,76 +596,72 @@ test.describe("due-date pill footprint (§420)", () => {
           const r = document.createRange();
           r.setStart(n, i);
           r.setEnd(n, i + 1);
-          return r.getBoundingClientRect().left;
+          return r.getBoundingClientRect();
         }
       }
-      return NaN;
+      return null;
     };
-    const probe = document.createElement("span");
-    probe.textContent = "0".repeat(100);
-    lines[2].appendChild(probe);
-    const ch = probe.getBoundingClientRect().width / 100;
-    probe.remove();
-    const pill = lines[0].querySelector<HTMLElement>(".cm-due-pill");
+    const top0 = lines[0].getBoundingClientRect().top;
+    const top1 = lines[1].getBoundingClientRect().top;
     return {
-      hasPill: !!pill,
-      pillWidthCh: pill ? pill.getBoundingClientRect().width / ch : NaN,
-      tailDelta: xOf(lines[0], "tail") - xOf(lines[1], "tail"),
-      pillLineHeight: lines[0].getBoundingClientRect().height,
+      dueElements: lines[0].querySelectorAll(".cm-due").length,
+      dueText: lines[0].querySelector(".cm-due")?.textContent ?? "",
+      flags: lines[0].querySelectorAll(".cm-due .cm-due-flag").length,
+      tailDelta: rectOf(lines[0], "tail")!.left - rectOf(lines[1], "tail")!.left,
+      digitDeltaX: rectOf(lines[0], "-10-30")!.left - rectOf(lines[1], "-10-30")!.left,
+      baselineDelta: rectOf(lines[0], "-10-30")!.bottom - top0 - (rectOf(lines[1], "-10-30")!.bottom - top1),
+      dueLineHeight: lines[0].getBoundingClientRect().height,
       plainLineHeight: lines[2].getBoundingClientRect().height,
       lastTop: lines[lines.length - 1].getBoundingClientRect().top,
     };
   };
+  const settle = (page: import("@playwright/test").Page) =>
+    page.evaluate(() => new Promise((r) => setTimeout(r, 50)));
 
-  test("is exactly as wide as its source text and as tall as a plain line, at every font size", async ({ page }) => {
+  test("keeps the line's width, height and baseline, as one outline, at every font size", async ({ page }) => {
     await seedApp(page, { seed: "empty" });
-    await setEditorText(page, [PILL, RAW, "plain line", "last line"].join("\n"));
-    // Caret on the last line, so the first line shows its pill.
+    await setEditorText(page, [DUE, RAW, "plain line", "last line"].join("\n"));
     await editor(page).locator(".cm-line").last().click();
 
     for (const px of [11, 12, 13, 14, 15, 16, 17, 18, 20, 22, 24]) {
       await page.evaluate((size) => {
         document.querySelector<HTMLElement>(".cm-editor")!.style.setProperty("--editor-font-size", `${size}px`);
       }, px);
-      await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
+      await settle(page);
       const m = await page.evaluate(measure);
-      expect(m.hasPill, `${px}px`).toBe(true);
-      expect(Math.abs(m.pillWidthCh - 13), `${px}px width in ch`).toBeLessThan(0.01);
-      expect(Math.abs(m.tailDelta), `${px}px: text after the pill`).toBeLessThan(0.5);
-      expect(m.pillLineHeight, `${px}px line height`).toBe(m.plainLineHeight);
+      expect(m.dueElements, `${px}px: one outline element`).toBe(1);
+      expect(m.dueText, `${px}px: the whole token, unchanged`).toBe("by:2026-10-30");
+      expect(m.flags, `${px}px: one flag`).toBe(1);
+      expect(Math.abs(m.tailDelta), `${px}px: text after the date`).toBeLessThan(0.05);
+      expect(Math.abs(m.digitDeltaX), `${px}px: the digits' column`).toBeLessThan(0.05);
+      expect(Math.abs(m.baselineDelta), `${px}px: the digits' baseline`).toBeLessThan(0.05);
+      expect(m.dueLineHeight, `${px}px line height`).toBe(m.plainLineHeight);
     }
   });
 
   test("nothing moves when the caret enters or leaves the line", async ({ page }) => {
     await seedApp(page, { seed: "empty" });
-    await setEditorText(page, [PILL, RAW, "plain line", "a", "b", "last line"].join("\n"));
-    const settle = () => page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
+    await setEditorText(page, [DUE, RAW, "plain line", "a", "b", "last line"].join("\n"));
     for (const px of [12, 16, 20]) {
       await page.evaluate((size) => {
         document.querySelector<HTMLElement>(".cm-editor")!.style.setProperty("--editor-font-size", `${size}px`);
       }, px);
-      await settle();
-      // Caret on the last line (off the pill line), by keyboard: a click's coordinates can land on the wrong line
-      // while a font-size change is still being laid out (seen at 125 % on CI).
+      await settle(page);
       await editor(page).locator(".cm-line").last().click();
       await page.keyboard.press("ControlOrMeta+End");
-      await settle();
+      await settle(page);
       const off = await page.evaluate(measure);
-      expect(off.hasPill, `${px}px pill off the caret line`).toBe(true);
 
-      // Onto the pill line (the first line of the note).
       await page.keyboard.press("ControlOrMeta+Home");
-      await settle();
+      await settle(page);
       const on = await page.evaluate(measure);
-      expect(on.hasPill, `${px}px raw text on the caret line`).toBe(false);
+      expect(on.dueElements, `${px}px: drawn the same on the caret line`).toBe(1);
       expect(on.lastTop, `${px}px: lines below stay put`).toBe(off.lastTop);
-      expect(Math.abs(on.tailDelta), `${px}px: line end stays put`).toBeLessThan(0.5);
+      expect(Math.abs(on.tailDelta), `${px}px: line end stays put`).toBeLessThan(0.05);
 
-      // Off it again.
       await page.keyboard.press("ArrowDown");
-      await settle();
+      await settle(page);
       const back = await page.evaluate(measure);
-      expect(back.hasPill, `${px}px pill again after leaving`).toBe(true);
       expect(back.lastTop, `${px}px: lines below stay put after leaving`).toBe(off.lastTop);
     }
   });
