@@ -56,6 +56,14 @@ describe("isPristineOnboardingNote", () => {
     expect(isPristineOnboardingNote(legacy)).toBe(true);
   });
 
+  it("gives the example action a due date a week after the note's day", () => {
+    expect(getOnboardingTemplate("en", "2026-12-28")).toContain("# Send the minutes by:2027-01-04");
+  });
+
+  it("still recognises a welcome note written on an earlier day as pristine", () => {
+    expect(isPristineOnboardingNote(getOnboardingTemplate("nl", "2026-01-05"))).toBe(true);
+  });
+
   it("rejects an edited template as not pristine", () => {
     const template = getOnboardingTemplate("en");
     const edited = template + "\n# an extra task";

@@ -1,4 +1,8 @@
 import { isMac } from "./platform";
+import { addDaysISO, todayISO } from "./date";
+
+/** Any due date in the example line, so a welcome note written on another day still counts as untouched. */
+const DUE_DATE = /by:\d{4}-\d{2}-\d{2}/g;
 
 /**
  * Returns the interactive plain-text onboarding note template in the user's
@@ -9,8 +13,10 @@ import { isMac } from "./platform";
  * core semantic tokens (#, v, >, x, !, -, 1., =>, o, ., ,) by reading and
  * immediately executing their initial setup actions.
  */
-export function getOnboardingTemplate(lang: string): string {
+export function getOnboardingTemplate(lang: string, today: string = todayISO()): string {
   const mod = isMac ? "Cmd" : "Ctrl";
+  // The example due date is a week ahead, so a new user never starts with an overdue action.
+  const due = addDaysISO(today, 7);
   const normalized = (lang || "en").toLowerCase().slice(0, 2);
 
   switch (normalized) {
@@ -44,7 +50,7 @@ Vervolgens doen — Ontdek je dagelijkse workflow
 Sneloverzicht markeringen (Probeer ze hieronder)
 ------------------------------------------------
 # Openstaande actie — vereist aandacht
-# De notulen versturen by:2026-10-30
+# De notulen versturen by:${due}
 v Voltooide actie — alles afgerond!
 > Uitgestelde actie — doorgeschoven naar morgen of volgende vergadering
 x Geannuleerde actie — vervallen, niet meer van toepassing
@@ -93,7 +99,7 @@ Als Nächstes — Täglicher Workflow
 Token-Kurzübersicht (Unten ausprobieren)
 ---------------------------------------
 # Offene Aufgabe — benötigt Aufmerksamkeit
-# Protokoll senden by:2026-10-30
+# Protokoll senden by:${due}
 v Erledigte Aufgabe — alles fertig!
 > Verschobene Aufgabe — auf morgen oder das nächste Meeting vertagt
 x Abgebrochene Aufgabe — entfällt, nicht mehr relevant
@@ -142,7 +148,7 @@ Siguiente paso — Descubre tu flujo diario
 Guía rápida de fichas (Pruébalas abajo)
 ---------------------------------------
 # Acción abierta — requiere atención
-# Enviar el acta by:2026-10-30
+# Enviar el acta by:${due}
 v Acción completada — ¡todo listo!
 > Acción aplazada — pospuesta para mañana o la próxima reunión
 x Acción cancelada — descartada, ya no es relevante
@@ -191,7 +197,7 @@ Ensuite — Découvrez votre flux quotidien
 Aide-mémoire des jetons (Essayez-les ci-dessous)
 ------------------------------------------------
 # Action ouverte — nécessite votre attention
-# Envoyer le compte-rendu by:2026-10-30
+# Envoyer le compte-rendu by:${due}
 v Action terminée — tout est fait !
 > Action différée — reportée à demain ou à la prochaine réunion
 x Action annulée — abandonnée, n'est plus pertinente
@@ -240,7 +246,7 @@ Passaggi successivi — Scopri il tuo flusso quotidiano
 Riferimento rapido dei token (Provali qui sotto)
 -----------------------------------------------
 # Elemento aperto — richiede attenzione
-# Inviare il verbale by:2026-10-30
+# Inviare il verbale by:${due}
 v Elemento completato — tutto fatto!
 > Azione posticipata — rimandata a domani o alla prossima riunione
 x Azione annullata — non necessaria, non più rilevante
@@ -289,7 +295,7 @@ Następnie — Poznaj codzienny tryb pracy
 Szybki przewodnik po znacznikach (Wypróbuj poniżej)
 ---------------------------------------------------
 # Otwarte zadanie — wymaga uwagi
-# Wysłać protokół by:2026-10-30
+# Wysłać protokół by:${due}
 v Ukończone zadanie — zrobione!
 > Odłożone zadanie — przesunięte na jutro lub kolejne spotkanie
 x Anulowane zadanie — nieaktualne, bez znaczenia
@@ -339,7 +345,7 @@ Do Next — Discover Your Daily Workflow
 Token Quick Reference (Try them below)
 --------------------------------------
 # Open action item — needs attention
-# Send the minutes by:2026-10-30
+# Send the minutes by:${due}
 v Completed action item — all done!
 > Deferred action — pushed to tomorrow or next meeting
 x Cancelled action — won't do, no longer relevant
@@ -377,8 +383,9 @@ export function toLegacyOnboardingTemplate(template: string): string {
 export function isPristineOnboardingNote(content: string): boolean {
   // Template literals are LF-normalised by the language, whatever the source
   // file's line endings, so a plain comparison is enough.
+  const normalized = content.replace(DUE_DATE, "by:");
   return ONBOARDING_LANGS.some((l) => {
-    const current = getOnboardingTemplate(l);
-    return current === content || toLegacyOnboardingTemplate(current) === content;
+    const current = getOnboardingTemplate(l).replace(DUE_DATE, "by:");
+    return current === normalized || toLegacyOnboardingTemplate(current) === normalized;
   });
 }

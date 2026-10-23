@@ -257,7 +257,7 @@
 }
 
 :global([data-color-mode="grayscale"]) .stat-count.stat-overdue {
-  color: var(--muted);
+  color: var(--text);
   font-weight: bold;
 }
 
