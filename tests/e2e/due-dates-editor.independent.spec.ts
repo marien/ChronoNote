@@ -428,12 +428,12 @@ test.describe("due dates editor — independent tests (slice 2)", () => {
       await editor(page).locator(".cm-line").first().click();
 
       await page.keyboard.press("ControlOrMeta+Shift+KeyD");
-      const pop = page.locator(".datepicker-pop");
+      const pop = page.locator(".compact-picker");
       await expect(pop).toBeVisible();
-      await expect(pop.locator(".cal-picker-title")).toHaveText("Due date");
+      await expect(pop).toHaveAttribute("aria-label", "Choose a date");
 
       const targetDate = addDaysISO(REFERENCE_TODAY, 2);
-      await pop.locator(`.cal-day[data-iso="${targetDate}"]`).click();
+      await pop.locator(`.cp-day[data-iso="${targetDate}"]`).click();
       await expect(pop).toBeHidden();
 
       await expect.poll(async () => activeTabContent(page)).toBe(`# prepare release by:${targetDate}`);
@@ -449,11 +449,11 @@ test.describe("due dates editor — independent tests (slice 2)", () => {
       for (let i = 0; i < 4; i++) await page.keyboard.press("ArrowLeft");
 
       await page.keyboard.press("ControlOrMeta+Shift+KeyD");
-      const pop = page.locator(".datepicker-pop");
+      const pop = page.locator(".compact-picker");
       await expect(pop).toBeVisible();
 
       const targetDate = addDaysISO(REFERENCE_TODAY, 3);
-      await pop.locator(`.cal-day[data-iso="${targetDate}"]`).click();
+      await pop.locator(`.cp-day[data-iso="${targetDate}"]`).click();
       await expect(pop).toBeHidden();
 
       await expect.poll(async () => activeTabContent(page)).toBe(
@@ -467,11 +467,11 @@ test.describe("due dates editor — independent tests (slice 2)", () => {
       await editor(page).locator(".cm-line").first().click();
 
       await page.keyboard.press("ControlOrMeta+Shift+KeyD");
-      const pop = page.locator(".datepicker-pop");
+      const pop = page.locator(".compact-picker");
       await expect(pop).toBeVisible();
 
       const targetDate = addDaysISO(REFERENCE_TODAY, 4);
-      await pop.locator(`.cal-day[data-iso="${targetDate}"]`).click();
+      await pop.locator(`.cp-day[data-iso="${targetDate}"]`).click();
       await expect(pop).toBeHidden();
 
       await expect.poll(async () => activeTabContent(page)).toBe(
@@ -489,16 +489,16 @@ test.describe("due dates editor — independent tests (slice 2)", () => {
 
       // Replace date
       await page.keyboard.press("ControlOrMeta+Shift+KeyD");
-      const pop = page.locator(".datepicker-pop");
+      const pop = page.locator(".compact-picker");
       await expect(pop).toBeVisible();
-      await pop.locator(`.cal-day[data-iso="${replacementDate}"]`).click();
+      await pop.locator(`.cp-day[data-iso="${replacementDate}"]`).click();
       await expect(pop).toBeHidden();
       await expect.poll(async () => activeTabContent(page)).toBe(`# clean garage by:${replacementDate}`);
 
       // Remove date
       await page.keyboard.press("ControlOrMeta+Shift+KeyD");
       await expect(pop).toBeVisible();
-      await pop.locator(".cal-none-btn").click();
+      await pop.locator(".cp-none").click();
       await expect(pop).toBeHidden();
       await expect.poll(async () => activeTabContent(page)).toBe("# clean garage");
     });
@@ -509,7 +509,7 @@ test.describe("due dates editor — independent tests (slice 2)", () => {
       await editor(page).locator(".cm-line").first().click();
 
       await page.keyboard.press("ControlOrMeta+Shift+KeyD");
-      await expect(page.locator(".datepicker-pop")).toBeHidden();
+      await expect(page.locator(".compact-picker")).toBeHidden();
       await expect(toast(page)).toHaveText("Put the cursor on an action to give it a due date");
     });
 
@@ -519,7 +519,7 @@ test.describe("due dates editor — independent tests (slice 2)", () => {
       await editor(page).locator(".cm-line").first().click();
 
       await page.keyboard.press("ControlOrMeta+Shift+KeyD");
-      const pop = page.locator(".datepicker-pop");
+      const pop = page.locator(".compact-picker");
       await expect(pop).toBeVisible();
 
       await page.keyboard.press("Escape");
@@ -533,11 +533,11 @@ test.describe("due dates editor — independent tests (slice 2)", () => {
       await editor(page).locator(".cm-line").first().click();
 
       await page.keyboard.press("ControlOrMeta+Shift+KeyD");
-      const pop = page.locator(".datepicker-pop");
+      const pop = page.locator(".compact-picker");
       await expect(pop).toBeVisible();
 
       const expectedFriday = parseDueWord("fri", REFERENCE_TODAY, "en")!;
-      await pop.locator(".datepicker-jump").fill("fri");
+      await pop.locator("input").fill("fri");
       await page.keyboard.press("Enter");
       await expect(pop).toBeHidden();
 
@@ -559,9 +559,9 @@ test.describe("due dates editor — independent tests (slice 2)", () => {
       await expect(item).toBeVisible();
       await item.click();
 
-      const pop = page.locator(".datepicker-pop");
+      const pop = page.locator(".compact-picker");
       await expect(pop).toBeVisible();
-      await expect(pop.locator(".cal-picker-title")).toHaveText("Due date");
+      await expect(pop).toHaveAttribute("aria-label", "Choose a date");
     });
 
     test.describe("mobile accessory bar", () => {
@@ -581,9 +581,9 @@ test.describe("due dates editor — independent tests (slice 2)", () => {
         await expect(setDueDateBtn).toBeVisible();
         await setDueDateBtn.click();
 
-        const pop = page.locator(".datepicker-pop");
+        const pop = page.locator(".compact-picker");
         await expect(pop).toBeVisible();
-        await expect(pop.locator(".cal-picker-title")).toHaveText("Due date");
+        await expect(pop).toHaveAttribute("aria-label", "Choose a date");
       });
     });
   });
@@ -614,9 +614,9 @@ test.describe("due dates editor — independent tests (slice 2)", () => {
       await expect(pill).toBeVisible();
 
       await pill.click();
-      const pop = page.locator(".datepicker-pop");
+      const pop = page.locator(".compact-picker");
       await expect(pop).toBeVisible();
-      await expect(pop.locator(".cal-picker-title")).toHaveText("Due date");
+      await expect(pop).toHaveAttribute("aria-label", "Choose a date");
     });
 
     test("a click on the date digits opens the date picker too, and leaves the caret where it was (§422)", async ({ page }) => {
@@ -626,9 +626,9 @@ test.describe("due dates editor — independent tests (slice 2)", () => {
       await editor(page).locator(".cm-line").nth(1).click();
 
       await page.locator(".cm-line").first().locator(".cm-due .cm-date-link").click();
-      const pop = page.locator(".datepicker-pop");
+      const pop = page.locator(".compact-picker");
       await expect(pop).toBeVisible();
-      await expect(pop.locator(`.cal-day[data-iso="${targetDate}"]`)).toHaveClass(/\btarget\b/);
+      await expect(pop.locator(`.cp-day[data-iso="${targetDate}"]`)).toHaveClass(/\bselected\b/);
       await page.keyboard.press("Escape");
       await expect.poll(() => cursorLine(page)).toBe(2);
     });
@@ -641,7 +641,7 @@ test.describe("due dates editor — independent tests (slice 2)", () => {
 
       await page.locator(".cm-line").first().locator(".cm-due .cm-date-link").click({ modifiers: ["ControlOrMeta"] });
       await expect(activeTabLabel(page)).toHaveText(targetDate);
-      await expect(page.locator(".datepicker-pop")).toBeHidden();
+      await expect(page.locator(".compact-picker")).toBeHidden();
     });
   });
 
@@ -668,7 +668,7 @@ test.describe("due dates editor — independent tests (slice 2)", () => {
       await expect(dueItem).toBeVisible();
       await dueItem.click();
 
-      await expect(page.locator(".datepicker-pop")).toBeVisible();
+      await expect(page.locator(".compact-picker")).toBeVisible();
     });
 
     // Documented behaviour:
@@ -693,12 +693,12 @@ test.describe("due dates editor — independent tests (slice 2)", () => {
       for (let i = 0; i < 15; i++) await page.keyboard.press("ArrowLeft");
 
       await page.keyboard.press("ControlOrMeta+Shift+KeyD");
-      const pop = page.locator(".datepicker-pop");
+      const pop = page.locator(".compact-picker");
       await expect(pop).toBeVisible();
 
-      // The existing date cell should be focused / marked as target in the calendar
-      const dayBtn = pop.locator(`.cal-day[data-iso="${existingDate}"]`);
-      await expect(dayBtn).toHaveClass(/\btarget\b/);
+      // The existing date cell should be focused / marked as selected in the calendar
+      const dayBtn = pop.locator(`.cp-day[data-iso="${existingDate}"]`);
+      await expect(dayBtn).toHaveClass(/\bselected\b/);
     });
   });
 });

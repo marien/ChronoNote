@@ -593,6 +593,8 @@ export const pl = {
   "datePicker.today": () => "Dzisiaj",
   "datePicker.escToClose": () => "Esc, aby zamknąć",
   "datePicker.weekColumn": () => "tydz",
+  "compactPicker.ariaLabel": () => "Wybierz datę",
+  "compactPicker.placeholder": () => "pt, jutro, +3, wk44…",
 
   "moreActions.zen": () => "Tryb Zen",
   "moreActions.peek": () => "Peek",

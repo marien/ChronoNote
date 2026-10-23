@@ -3,6 +3,8 @@
   import { focusTrap } from "../../actions/focusTrap";
   import { closeOnOutsideClick } from "../../actions/closeOnOutsideClick";
   import Segmented from "../Segmented.svelte";
+  import CompactDatePicker from "../CompactDatePicker.svelte";
+  import Icon from "../../icons/Icon.svelte";
   import { t } from "../../i18n";
   import { activeTabId, tabs } from "../../stores";
   import {
@@ -39,6 +41,37 @@
   const initialRange = computeInitialRange();
   let fromDate = $state(initialRange.from);
   let toDate = $state(initialRange.to);
+
+  let activePicker = $state<"from" | "to" | null>(null);
+  let pickerAnchor = $state<{ left: number; top: number; bottom: number } | null>(null);
+
+  function openPicker(field: "from" | "to", el: HTMLElement) {
+    const rect = el.getBoundingClientRect();
+    pickerAnchor = { left: rect.left, top: rect.top, bottom: rect.bottom };
+    activePicker = field;
+  }
+
+  function handlePick(iso: string | null) {
+    if (!iso) return;
+    if (activePicker === "from") {
+      fromDate = iso;
+      if (fromDate > toDate) {
+        toDate = iso;
+      }
+    } else if (activePicker === "to") {
+      toDate = iso;
+      if (toDate < fromDate) {
+        fromDate = iso;
+      }
+    }
+    activePicker = null;
+    pickerAnchor = null;
+  }
+
+  function closePicker() {
+    activePicker = null;
+    pickerAnchor = null;
+  }
 
   onMount(() => {
     saveBtn?.focus();
@@ -97,21 +130,27 @@
         <div class="export-range-inputs">
           <label class="export-date-field">
             <span class="export-label">{$t("export.from")}</span>
-            <input
-              type="date"
-              class="modal-input"
-              bind:value={fromDate}
+            <button
+              type="button"
+              class="modal-input export-date-button"
               aria-label={$t("export.from")}
-            />
+              onclick={(e) => openPicker("from", e.currentTarget)}
+            >
+              <Icon name="date-note" size={14} />
+              <span>{fromDate}</span>
+            </button>
           </label>
           <label class="export-date-field">
             <span class="export-label">{$t("export.to")}</span>
-            <input
-              type="date"
-              class="modal-input"
-              bind:value={toDate}
+            <button
+              type="button"
+              class="modal-input export-date-button"
               aria-label={$t("export.to")}
-            />
+              onclick={(e) => openPicker("to", e.currentTarget)}
+            >
+              <Icon name="date-note" size={14} />
+              <span>{toDate}</span>
+            </button>
           </label>
         </div>
       {/if}
@@ -147,6 +186,16 @@
         {$t("common.cancel")}
       </button>
     </div>
+
+    {#if activePicker && pickerAnchor}
+      <CompactDatePicker
+        anchor={pickerAnchor}
+        value={activePicker === "from" ? fromDate : toDate}
+        range={{ from: fromDate, to: toDate }}
+        onPick={handlePick}
+        onClose={closePicker}
+      />
+    {/if}
   </div>
 </div>
 
@@ -185,6 +234,15 @@
     flex: 0 0 auto;
     width: auto;
     padding-inline: 16px;
+  }
+
+  .export-date-button {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: var(--font-mono);
+    cursor: pointer;
+    text-align: left;
   }
 
   /* The app's own colour tokens; the native date parts (calendar icon, picker) follow the app's theme, which can

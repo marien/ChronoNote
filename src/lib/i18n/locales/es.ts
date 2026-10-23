@@ -587,6 +587,8 @@ export const es = {
   "datePicker.today": () => "Hoy",
   "datePicker.escToClose": () => "Esc para cerrar",
   "datePicker.weekColumn": () => "sem",
+  "compactPicker.ariaLabel": () => "Elegir una fecha",
+  "compactPicker.placeholder": () => "vie, mañana, +3, wk44…",
 
   "moreActions.zen": () => "Modo Zen",
   "moreActions.peek": () => "Peek",

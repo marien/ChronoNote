@@ -592,6 +592,8 @@ export const fr = {
   "datePicker.today": () => "Aujourd'hui",
   "datePicker.escToClose": () => "Échap pour fermer",
   "datePicker.weekColumn": () => "sem",
+  "compactPicker.ariaLabel": () => "Choisir une date",
+  "compactPicker.placeholder": () => "ven, demain, +3, wk44…",
 
   "moreActions.zen": () => "Mode Zen",
   "moreActions.peek": () => "Peek",

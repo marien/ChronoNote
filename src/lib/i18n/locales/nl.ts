@@ -578,6 +578,8 @@ export const nl = {
   "datePicker.today": () => "Vandaag",
   "datePicker.escToClose": () => "Esc om te sluiten",
   "datePicker.weekColumn": () => "wk",
+  "compactPicker.ariaLabel": () => "Kies een datum",
+  "compactPicker.placeholder": () => "vr, morgen, +3, wk44…",
 
   "moreActions.zen": () => "Zen-modus",
   "moreActions.peek": () => "Peek",

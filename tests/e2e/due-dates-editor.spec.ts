@@ -102,13 +102,13 @@ test.describe("due dates editor (slice 2)", () => {
 
     // 1. Open picker with shortcut
     await page.keyboard.press("ControlOrMeta+Shift+KeyD");
-    const pop = page.locator(".datepicker-pop");
+    const pop = page.locator(".compact-picker");
     await expect(pop).toBeVisible();
-    await expect(pop.locator(".cal-picker-title")).toHaveText("Due date");
+    await expect(pop).toHaveAttribute("aria-label", "Choose a date");
 
     // Pick a day
     const targetIso1 = addDaysISO(REFERENCE_TODAY, 1);
-    await pop.locator(`.cal-day[data-iso="${targetIso1}"]`).click();
+    await pop.locator(`.cp-day[data-iso="${targetIso1}"]`).click();
     await expect(pop).toBeHidden();
     await expect.poll(async () => activeTabContent(page)).toContain(`by:${targetIso1}`);
 
@@ -117,7 +117,7 @@ test.describe("due dates editor (slice 2)", () => {
     await expect(pop).toBeVisible();
 
     const targetIso2 = addDaysISO(REFERENCE_TODAY, 3);
-    await pop.locator(`.cal-day[data-iso="${targetIso2}"]`).click();
+    await pop.locator(`.cp-day[data-iso="${targetIso2}"]`).click();
     await expect(pop).toBeHidden();
     await expect.poll(async () => activeTabContent(page)).toContain(`by:${targetIso2}`);
     await expect(await activeTabContent(page)).not.toContain(`by:${targetIso1}`);
@@ -125,14 +125,14 @@ test.describe("due dates editor (slice 2)", () => {
     // 3. Open picker again and remove due date
     await page.keyboard.press("ControlOrMeta+Shift+KeyD");
     await expect(pop).toBeVisible();
-    await pop.locator(".cal-none-btn").click();
+    await pop.locator(".cp-none").click();
     await expect(pop).toBeHidden();
     await expect.poll(async () => activeTabContent(page)).toBe("# buy milk");
 
     // 4. Open picker again, type a due word (e.g. "tomorrow") in jump input and press Enter
     await page.keyboard.press("ControlOrMeta+Shift+KeyD");
     await expect(pop).toBeVisible();
-    await pop.locator(".datepicker-jump").fill("tomorrow");
+    await pop.locator("input").fill("tomorrow");
     await page.keyboard.press("Enter");
     await expect(pop).toBeHidden();
     const tomorrowIso = addDaysISO(REFERENCE_TODAY, 1);
@@ -145,7 +145,7 @@ test.describe("due dates editor (slice 2)", () => {
     await editor(page).locator(".cm-line").first().click();
 
     await page.keyboard.press("ControlOrMeta+Shift+KeyD");
-    await expect(page.locator(".datepicker-pop")).toBeHidden();
+    await expect(page.locator(".compact-picker")).toBeHidden();
     await expect(toast(page)).toHaveText("Put the cursor on an action to give it a due date");
   });
 
@@ -159,9 +159,9 @@ test.describe("due dates editor (slice 2)", () => {
     await expect(pill).toBeVisible();
     await pill.click();
 
-    const pop = page.locator(".datepicker-pop");
+    const pop = page.locator(".compact-picker");
     await expect(pop).toBeVisible();
-    await expect(pop.locator(".cal-picker-title")).toHaveText("Due date");
+    await expect(pop).toHaveAttribute("aria-label", "Choose a date");
   });
 
   test("a pill clicked after a line was inserted above it changes its own line", async ({ page }) => {
@@ -175,10 +175,10 @@ test.describe("due dates editor (slice 2)", () => {
     await page.keyboard.press("Enter");
 
     await page.locator(".cm-line").nth(2).locator(".cm-due-flag").click();
-    const pop = page.locator(".datepicker-pop");
+    const pop = page.locator(".compact-picker");
     await expect(pop).toBeVisible();
     const picked = addDaysISO(REFERENCE_TODAY, 6);
-    await pop.locator(`.cal-day[data-iso="${picked}"]`).click();
+    await pop.locator(`.cp-day[data-iso="${picked}"]`).click();
     await expect(pop).toBeHidden();
     await expect.poll(async () => activeTabContent(page)).toBe(`\ntop\n# a by:${picked}\n# b by:${second}`);
   });

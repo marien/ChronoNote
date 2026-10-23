@@ -1,7 +1,7 @@
 import { Prec, RangeSetBuilder, StateEffect } from "@codemirror/state";
 import { Decoration, type DecorationSet, EditorView, ViewPlugin, type ViewUpdate } from "@codemirror/view";
 import { get } from "svelte/store";
-import { currentDateISO, activeTabId, dueDatePending, modal } from "../stores";
+import { currentDateISO, activeTabId, dueDatePending } from "../stores";
 import { locale, t } from "../i18n";
 import { tokenizeLine, getLineActionParts } from "../grammar/tokenize";
 import { dueStatus } from "../tokens";
@@ -94,8 +94,13 @@ function openPickerAt(view: EditorView, el: HTMLElement) {
   const line = view.state.doc.lineAt(pos);
   const offset = pos - line.from;
   const part = getLineActionParts(line.text, tokenizeLine(line.text)).find((p) => offset >= p.from && offset < p.to);
-  dueDatePending.set({ tabId: get(activeTabId), lineIdx: line.number - 1, partFrom: part?.from ?? offset });
-  modal.set("date");
+  const rect = el.getBoundingClientRect();
+  dueDatePending.set({
+    tabId: get(activeTabId),
+    lineIdx: line.number - 1,
+    partFrom: part?.from ?? offset,
+    anchor: { left: rect.left, top: rect.top, bottom: rect.bottom },
+  });
 }
 
 const dueDatesView = ViewPlugin.fromClass(

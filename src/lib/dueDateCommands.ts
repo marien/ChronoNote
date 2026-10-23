@@ -1,5 +1,5 @@
 import { get } from "svelte/store";
-import { activeTabId, dueDatePending, editorApi, modal, showToast, tabs } from "./stores";
+import { activeTabId, dueDatePending, editorApi, showToast, tabs } from "./stores";
 import { writeTabContent } from "./persistence";
 import { tokenizeLine, getLineActionParts, type ActionPart } from "./grammar/tokenize";
 import { pickActionSymbol, withDueDate, type ActionSymbolRef } from "./tokens";
@@ -135,10 +135,37 @@ export function openDueDatePicker(): void {
   const targetPart = picked ? picked.part : actionParts[0];
   const targetPartFrom = picked ? picked.index : targetPart.from;
 
+  let anchor = { left: 0, top: 0, bottom: 0 };
+  if (view) {
+    const lineFrom = view.state.doc.line(lineIdx + 1).from;
+    const dueTok = tokens.find(
+      (tok) =>
+        (tok.kind === "due" || tok.kind === "dueWord") &&
+        tok.from >= targetPart.from &&
+        tok.from < targetPart.to,
+    );
+    if (dueTok) {
+      const c1 = view.coordsAtPos(lineFrom + dueTok.from);
+      const c2 = view.coordsAtPos(lineFrom + dueTok.to);
+      if (c1 || c2) {
+        anchor = {
+          left: (c1 ?? c2)!.left,
+          top: Math.min(c1?.top ?? c2!.top, c2?.top ?? c1!.top),
+          bottom: Math.max(c1?.bottom ?? c2!.bottom, c2?.bottom ?? c1!.bottom),
+        };
+      }
+    } else {
+      const caret = view.coordsAtPos(view.state.selection.main.head);
+      if (caret) {
+        anchor = { left: caret.left, top: caret.top, bottom: caret.bottom };
+      }
+    }
+  }
+
   dueDatePending.set({
     tabId,
     lineIdx,
     partFrom: targetPartFrom,
+    anchor,
   });
-  modal.set("date");
 }

@@ -570,6 +570,9 @@ export type TranslationParams = {
   "datePicker.today": undefined;
   "datePicker.escToClose": undefined;
   "datePicker.weekColumn": undefined;
+  // Compact date picker (`CompactDatePicker.svelte`).
+  "compactPicker.ariaLabel": undefined;
+  "compactPicker.placeholder": undefined;
 
   // More Actions popover (`MoreActionsModal.svelte`, #56 top-bar overflow).
   "moreActions.zen": undefined;
