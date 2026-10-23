@@ -419,7 +419,7 @@ describe("dueTokens: grammar of existing lines does not change", () => {
   });
 });
 
-describe.skip("suspected bugs", () => {
+describe("fixed suspected bugs", () => {
   // Documented behaviour: Brief line 39: "Punctuation after the date at a sentence end is not part of the token."
   // What the code does instead: src/lib/grammar/tokenize.ts line 224: rawWord.replace(/[).,;]+$/, "") only strips
   // ), ., ,, ;. An exclamation mark `!` is not stripped, so "2026-10-30!" fails isValidCalendarDate and produces

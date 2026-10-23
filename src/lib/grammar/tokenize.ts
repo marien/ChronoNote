@@ -200,7 +200,8 @@ export function tokenizeLine(line: string): Token[] {
 
   const actionParts = getLineActionParts(line, tokens);
   if (actionParts.length > 0) {
-    const DUE_RE = /(?<![\p{L}\p{N}_])by:/giu;
+    // Not glued to a word, and not inside a URL path or an address (`…/by:x`, `a.by:x`, `@by:x`).
+    const DUE_RE = /(?<![\p{L}\p{N}_/.@:-])by:/giu;
     for (const part of actionParts) {
       DUE_RE.lastIndex = part.from;
       let dm: RegExpExecArray | null;
@@ -221,7 +222,7 @@ export function tokenizeLine(line: string): Token[] {
         const rawWord = line.slice(afterStart, rawWordEnd);
         if (rawWord.length === 0) continue;
 
-        const cleanWord = rawWord.replace(/[).,;]+$/, "");
+        const cleanWord = rawWord.replace(/[).,;!?]+$/, "");
         if (cleanWord.length === 0) continue;
 
         const tokenTo = afterStart + cleanWord.length;

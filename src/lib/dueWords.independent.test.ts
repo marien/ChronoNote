@@ -314,7 +314,7 @@ describe("dueWords: junk gives null, never a guess", () => {
   });
 });
 
-describe.skip("suspected bugs", () => {
+describe("fixed suspected bugs", () => {
   const today = "2026-10-22"; // Thursday
 
   // Documented behaviour: Brief line 51-52: "Words in Dutch, German, French (abbreviation with a trailing dot) via the locale"

@@ -283,4 +283,10 @@ describe("tokenizeLine due and dueWord (Section 1 table)", () => {
     ]);
     expect("# send By:2026-10-30.".slice(7, 20)).toBe("By:2026-10-30");
   });
+
+  it("a by: inside a URL path or an address is not a due token", () => {
+    for (const line of ["# see https://x.com/by:fri", "# see x.by:2026-10-30", "# mail me@by:fri", "# a-by:fri"]) {
+      expect(kinds(line).filter((k) => k === "due" || k === "dueWord")).toEqual([]);
+    }
+  });
 });

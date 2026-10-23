@@ -109,6 +109,8 @@ export function parseDueWord(
 ): string | null {
   const trimmed = word.trim().toLowerCase();
   if (!trimmed) return null;
+  // Locale abbreviations are compared without their dot (`ven.`, `Fr.`), so the typed word drops it too.
+  const undotted = trimmed.replace(/\.$/, "");
 
   // English words always win over a locale word that is spelled the same.
   if (trimmed === "today" || trimmed === "t") return todayISO;
@@ -132,7 +134,7 @@ export function parseDueWord(
     const refDate = new Date(2024, 0, 1 + i); // 2024-01-01 was Monday
     const s = shortFmt.format(refDate).toLowerCase().replace(/\.$/, "");
     const l = longFmt.format(refDate).toLowerCase().replace(/\.$/, "");
-    if (trimmed === s || trimmed === l) {
+    if (undotted === s || undotted === l) {
       return nextWeekdayISO(todayISO, i + 1);
     }
   }
