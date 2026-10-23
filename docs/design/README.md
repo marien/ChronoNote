@@ -1,5 +1,12 @@
 # Design notes
 
+## Due dates on actions (feature review B2)
+
+**[`due-dates-design.md`](due-dates-design.md)** — approved 2026-10-23: an optional `by:YYYY-MM-DD` in an
+action line (typed as `by:fri`, `by:tomorrow`, `by:+3`, rewritten to the full date when the caret leaves the line),
+drawn as a pill that turns amber on the day and red once late; a "By due date" view in the Action Drawer and an
+"N overdue" item in the status bar across all notes. No storage change, no notifications. Build plan in three slices.
+
 ## Refactoring review (October 2026)
 
 **[`refactoring-review-oct16-2026.md`](refactoring-review-oct16-2026.md)** — approved 2026-10-16:
