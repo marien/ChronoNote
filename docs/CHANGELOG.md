@@ -10903,7 +10903,7 @@ From a test-coverage review (2026-10-17): Vitest covers 41% of `src/lib` lines a
 
 ## 416. App icon without its tile, pixel-fitted for the taskbar
 
-**Status: on main, not yet released.**
+**Status: released in beta 0.33.0-1 (early channel only).**
 
 - **Marien (screenshots of his taskbar and desktop, 125 %):** the taskbar icon looked smaller than the other apps' icons; the desktop icon was the right size but softer around the edges.
 - **Causes:** (1) the near-black tile disappears against the dark (translucent, wallpaper-tinted) taskbar, so only the white calendar showed, about 64 % of the frame, while other apps' icons are visible edge to edge. (2) The tile's border was a white gradient fading to 5 %, a grey halo at small sizes; and every small size was scaled from one 1024 px master, so lines of about 3.2 px fell between pixels and got grey fringes. The ICO also had no 20/30/36/40 px frames, so at 125 % Windows scaled from 32 or 48.
@@ -10928,7 +10928,7 @@ From a test-coverage review (2026-10-17): Vitest covers 41% of `src/lib` lines a
 
 ## 419. Due dates on actions (`by:`)
 
-**Status: on main (unreleased).**
+**Status: released in beta 0.33.0-2 (early channel only).**
 
 Feature review B2, designed in `docs/design/due-dates-design.md` (Marien took all six recommended decisions on
 2026-10-23). More actions have a real deadline, and nothing noticed when it passed.
