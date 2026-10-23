@@ -937,6 +937,14 @@ export type TranslationParams = {
   "navToast.ariaLabel": undefined;
   "dueDate.words.today": undefined;
   "dueDate.words.tomorrow": undefined;
+  "shortcuts.setDueDate.label": undefined;
+  "dueDate.pill.today": undefined;
+  "dueDate.pill.dueToday": undefined;
+  "dueDate.pill.daysLate": { count: number };
+  "dueDate.pill.notADate": undefined;
+  "dueDate.picker.title": undefined;
+  "dueDate.picker.none": undefined;
+  "dueDate.toast.noAction": undefined;
 };
 
 export type TranslationKey = keyof TranslationParams;

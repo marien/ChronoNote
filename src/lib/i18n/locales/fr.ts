@@ -956,4 +956,12 @@ export const fr = {
   "navToast.ariaLabel": () => "Retour et avancer",
   "dueDate.words.today": () => "aujourdhui,auj",
   "dueDate.words.tomorrow": () => "demain",
+  "shortcuts.setDueDate.label": () => "Définir la date d'échéance…",
+  "dueDate.pill.today": () => "aujourd'hui",
+  "dueDate.pill.dueToday": () => "À faire aujourd'hui",
+  "dueDate.pill.daysLate": ({ count } = { count: 1 }) => (count === 1 ? "1 jour de retard" : `${count} jours de retard`),
+  "dueDate.pill.notADate": () => "Pas une date : utilisez un nom de jour, demain, +3, wk44 ou 2026-10-30",
+  "dueDate.picker.title": () => "Date d'échéance",
+  "dueDate.picker.none": () => "Pas de date d'échéance",
+  "dueDate.toast.noAction": () => "Placez le curseur sur une action pour lui attribuer une échéance",
 } satisfies Dictionary;

@@ -951,4 +951,12 @@ export const it = {
   "navToast.ariaLabel": () => "Indietro e avanti",
   "dueDate.words.today": () => "oggi",
   "dueDate.words.tomorrow": () => "domani",
+  "shortcuts.setDueDate.label": () => "Imposta data di scadenza…",
+  "dueDate.pill.today": () => "oggi",
+  "dueDate.pill.dueToday": () => "Scade oggi",
+  "dueDate.pill.daysLate": ({ count } = { count: 1 }) => (count === 1 ? "1 giorno di ritardo" : `${count} giorni di ritardo`),
+  "dueDate.pill.notADate": () => "Non è una data: usa un giorno, domani, +3, wk44 o 2026-10-30",
+  "dueDate.picker.title": () => "Data di scadenza",
+  "dueDate.picker.none": () => "Nessuna data di scadenza",
+  "dueDate.toast.noAction": () => "Posiziona il cursore su un'azione per assegnarle una data di scadenza",
 } satisfies Dictionary;

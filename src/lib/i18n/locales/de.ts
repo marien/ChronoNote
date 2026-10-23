@@ -940,4 +940,12 @@ export const de = {
   "navToast.ariaLabel": () => "Zurück und vorwärts",
   "dueDate.words.today": () => "heute",
   "dueDate.words.tomorrow": () => "morgen",
+  "shortcuts.setDueDate.label": () => "Fälligkeitsdatum festlegen…",
+  "dueDate.pill.today": () => "heute",
+  "dueDate.pill.dueToday": () => "Heute fällig",
+  "dueDate.pill.daysLate": ({ count } = { count: 1 }) => (count === 1 ? "1 Tag überfällig" : `${count} Tage überfällig`),
+  "dueDate.pill.notADate": () => "Kein Datum: Wochentag, morgen, +3, wk44 oder 2026-10-30 verwenden",
+  "dueDate.picker.title": () => "Fälligkeitsdatum",
+  "dueDate.picker.none": () => "Kein Fälligkeitsdatum",
+  "dueDate.toast.noAction": () => "Den Cursor auf eine Aktion setzen, um ein Fälligkeitsdatum festzulegen",
 } satisfies Dictionary;

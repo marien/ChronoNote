@@ -2,7 +2,7 @@
   import { get } from "svelte/store";
   import { onMount, tick, untrack } from "svelte";
   import * as controller from "../../controller";
-  import { activeTabId, allNotesCache, copyForwardPending, isMobile, tabs } from "../../controller";
+  import { activeTabId, allNotesCache, copyForwardPending, dueDatePending, editorApi, isMobile, setDueDateAt, tabs } from "../../controller";
   import * as api from "../../tauriApi";
   import { agendaFileExists, calendarSyncEnabled } from "../../stores";
   import { focusTrap } from "../../actions/focusTrap";
@@ -22,13 +22,23 @@
     parseDateQuery,
     parseISODateLocal,
     todayISO,
+    parseDueWord,
+    dueWordExtra,
   } from "../../date";
   import { countActions } from "../../tokens";
+  import { tokenizeLine, getLineActionParts } from "../../grammar/tokenize";
   import Icon from "../../icons/Icon.svelte";
   import { t, locale } from "../../i18n";
 
   const WEEKDAY_INDICES = [0, 1, 2, 3, 4, 5, 6];
   const today = todayISO();
+
+  function getDueWordExtra() {
+    return dueWordExtra(
+      get(t)("dueDate.words.today", undefined) ?? "",
+      get(t)("dueDate.words.tomorrow", undefined) ?? "",
+    );
+  }
 
   let popEl: HTMLDivElement;
   let gridEl: HTMLDivElement;
@@ -48,8 +58,44 @@
     return today;
   }
 
+  function getInitialIso(): string {
+    const pending = get(dueDatePending);
+    if (pending) {
+      let lineText: string | undefined;
+      const view = editorApi?.getView?.();
+      if (view && pending.tabId === get(activeTabId)) {
+        if (pending.lineIdx >= 0 && pending.lineIdx < view.state.doc.lines) {
+          const docLine = view.state.doc.line(pending.lineIdx + 1);
+          lineText = docLine.text;
+        }
+      } else {
+        const tab = get(tabs).find((t) => t.id === pending.tabId);
+        if (tab) {
+          lineText = tab.content.split("\n")[pending.lineIdx];
+        }
+      }
+      if (lineText !== undefined) {
+        const tokens = tokenizeLine(lineText);
+        const parts = getLineActionParts(lineText, tokens);
+        const part = parts.find((p) => p.from === pending.partFrom);
+        if (part) {
+          const dueTok = tokens.find((t) => (t.kind === "due" || t.kind === "dueWord") && t.from >= part.from && t.from < part.to);
+          if (dueTok?.kind === "due" && dueTok.date) {
+            return dueTok.date;
+          }
+          if (dueTok?.kind === "dueWord" && dueTok.word) {
+            const parsed = parseDueWord(dueTok.word, today, get(locale), getDueWordExtra());
+            if (parsed) return parsed;
+          }
+        }
+      }
+      return today;
+    }
+    return activeTabIso();
+  }
+
   // Which month the grid is showing, and which day has keyboard focus.
-  const initialIso = activeTabIso();
+  const initialIso = getInitialIso();
   const t0 = parseISODateLocal(initialIso);
   let year = $state(t0.getFullYear());
   let month = $state(t0.getMonth()); // 0-indexed
@@ -104,7 +150,7 @@
   });
   function followQuery(q: string) {
     if (q.trim() !== "") movedByKeyboard = true;
-    const parsed = parseDateQuery(q);
+    const parsed = parseDateQuery(q) ?? (get(dueDatePending) ? parseDueWord(q, today, get(locale), getDueWordExtra()) : null);
     if (parsed) {
       focusedIso = parsed;
       showMonthOf(parsed);
@@ -210,10 +256,12 @@
   }
 
   function commit(iso: string) {
-    // #66: "copy to next occurrence" reuses this same picker when its own
-    // search finds nothing — resolve that instead of the picker's normal
-    // "jump to this date" behavior when one is waiting.
-    if (get(copyForwardPending)) {
+    const pendingDue = get(dueDatePending);
+    if (pendingDue) {
+      dueDatePending.set(null);
+      setDueDateAt(pendingDue.tabId, pendingDue.lineIdx, pendingDue.partFrom, iso);
+      controller.closeAllModals();
+    } else if (get(copyForwardPending)) {
       controller.resolveCopyForwardPending(iso);
     } else {
       controller.commitDatePick(iso);
@@ -226,7 +274,8 @@
       // `followQuery` has already moved `focusedIso` to the best reading
       // of what's typed (a full date, or the 1st of a typed month); Enter
       // just commits wherever that landed.
-      commit(parseDateQuery(jumpQuery) ?? focusedIso);
+      const parsed = parseDateQuery(jumpQuery) ?? (get(dueDatePending) ? parseDueWord(jumpQuery, today, get(locale), getDueWordExtra()) : null);
+      commit(parsed ?? focusedIso);
     } else if (e.key === "ArrowDown" || (e.key === "Tab" && !e.shiftKey)) {
       e.preventDefault();
       focusFocusedDay();
@@ -271,6 +320,11 @@
   use:sheetSwipe
   style={anchorStyle}
 >
+  {#if $dueDatePending}
+    <div class="cal-picker-header">
+      <span class="cal-picker-title">{$t("dueDate.picker.title")}</span>
+    </div>
+  {/if}
   <input
     class="datepicker-jump"
     bind:this={inputEl}
@@ -344,6 +398,22 @@
 
   <div class="cal-foot">
     <button type="button" class="cal-today-btn" onclick={goToday}>{$t("datePicker.today")}</button>
+    {#if $dueDatePending}
+      <button
+        type="button"
+        class="cal-none-btn"
+        onclick={() => {
+          const p = get(dueDatePending);
+          if (p) {
+            dueDatePending.set(null);
+            setDueDateAt(p.tabId, p.lineIdx, p.partFrom, null);
+            controller.closeAllModals();
+          }
+        }}
+      >
+        {$t("dueDate.picker.none")}
+      </button>
+    {/if}
     {#if !$isMobile}<span class="cal-hint">{$t("datePicker.escToClose")}</span>{/if}
   </div>
 </div>
@@ -555,6 +625,33 @@
   background: var(--selected-bg);
   color: var(--selected-fg);
   box-shadow: inset 0 0 0 1px var(--selected-fg);
+}
+
+.cal-picker-header {
+  padding: 0 2px 6px;
+}
+
+.cal-picker-title {
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--text);
+}
+
+.cal-none-btn {
+  background: transparent;
+  border: none;
+  color: var(--muted);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: var(--type-caption);
+  font-weight: 500;
+  padding: 2px 4px;
+  border-radius: var(--radius-control);
+}
+
+.cal-none-btn:hover {
+  background: var(--surface-raised);
+  color: var(--text);
 }
 
 .cal-foot {

@@ -13,6 +13,8 @@ const EXCLUDED_TOKEN_KINDS: ReadonlySet<TokenKind> = new Set([
   "consequenceTopic",
   "assignee",
   "topicTag",
+  "due",
+  "dueWord",
 ]);
 
 const URL_REGEX = /https?:\/\/\S+/g;

@@ -12,6 +12,7 @@
   import { activeLinesPlugin } from "../editor/activeLines";
   import { clickableLinksPlugin } from "../editor/clickableLinks";
   import { dateLinksPlugin } from "../editor/dateLinks";
+  import { dueDatesPlugin } from "../editor/dueDates";
   import { pasteOverEmptyMarker } from "../editor/pasteOverEmptyMarker";
   import { stateFirstFilter } from "../editor/stateFirst";
   import { overviewRuler } from "../editor/overviewRuler";
@@ -726,6 +727,7 @@
       activeLinesPlugin,
       clickableLinksPlugin,
       dateLinksPlugin,
+      dueDatesPlugin,
       pasteOverEmptyMarker,
       stateFirstFilter,
       overviewRuler({ onJump: (lineIdx) => triggerLinePulse(lineIdx) }),
