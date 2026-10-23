@@ -31,21 +31,35 @@ test.describe("due dates editor (slice 2)", () => {
     await expect.poll(async () => activeTabContent(page)).toContain("by:fri");
   });
 
-  test("caret on the line shows raw text, off the line a pill with the short date", async ({ page }) => {
+  test("§421: the date stays text, by: becomes a flag, and both look the same on and off the caret line", async ({ page }) => {
     await seedApp(page, { seed: "empty" });
     const futureDate = addDaysISO(REFERENCE_TODAY, 5);
     await setEditorText(page, `# first line by:${futureDate}\nsecond line`);
+    const due = page.locator(".cm-line").first().locator(".cm-due");
 
     // Caret on the first line
     await editor(page).locator(".cm-line").first().click();
-    await expect(page.locator(".cm-line").first().locator(".cm-due-raw")).toBeVisible();
-    await expect(page.locator(".cm-line").first().locator(".cm-due-pill")).toHaveCount(0);
+    await expect(due).toHaveCount(1);
+    await expect(due).toHaveText(`by:${futureDate}`);
+    await expect(due.locator(".cm-due-flag")).toHaveText("by:");
 
-    // Move caret to second line
+    // Caret on the second line: drawn the same way.
     await page.keyboard.press("ArrowDown");
-    const firstLine = page.locator(".cm-line").first();
-    await expect(firstLine.locator(".cm-due-pill")).toBeVisible();
-    await expect(firstLine.locator(".cm-due-raw")).toHaveCount(0);
+    await expect(due).toHaveCount(1);
+    await expect(due).toHaveText(`by:${futureDate}`);
+    await expect(due.locator(".cm-due-flag")).toHaveText("by:");
+  });
+
+  test("§421: the caret never stops inside by:, and Backspace after the flag removes all of by:", async ({ page }) => {
+    await seedApp(page, { seed: "empty" });
+    const futureDate = addDaysISO(REFERENCE_TODAY, 5);
+    await setEditorText(page, `# call by:${futureDate}`);
+    await editor(page).locator(".cm-line").first().click();
+    await page.keyboard.press("End");
+    // From the end: 10 digits/dashes left of the caret, then the flag counts as one step.
+    for (let i = 0; i < 10; i++) await page.keyboard.press("ArrowLeft");
+    await page.keyboard.press("Backspace");
+    await expect.poll(async () => activeTabContent(page)).toBe(`# call ${futureDate}`);
   });
 
   test("pill classes for later / today / overdue / done line", async ({ page }) => {
@@ -61,11 +75,11 @@ test.describe("due dates editor (slice 2)", () => {
     await editor(page).locator(".cm-line").nth(4).click();
 
     const lines = page.locator(".cm-line");
-    await expect(lines.nth(0).locator(".cm-due-pill")).toHaveClass(/\bcm-due-later\b/);
-    await expect(lines.nth(1).locator(".cm-due-pill")).toHaveClass(/\bcm-due-today\b/);
-    await expect(lines.nth(2).locator(".cm-due-pill")).toHaveClass(/\bcm-due-overdue\b/);
-    await expect(lines.nth(3).locator(".cm-due-pill")).toHaveClass(/\bcm-due-resolved\b/);
-    await expect(lines.nth(3).locator(".cm-due-pill")).not.toHaveClass(/\bcm-due-overdue\b/);
+    await expect(lines.nth(0).locator(".cm-due")).toHaveClass(/\bcm-due-later\b/);
+    await expect(lines.nth(1).locator(".cm-due")).toHaveClass(/\bcm-due-today\b/);
+    await expect(lines.nth(2).locator(".cm-due")).toHaveClass(/\bcm-due-overdue\b/);
+    await expect(lines.nth(3).locator(".cm-due")).toHaveClass(/\bcm-due-resolved\b/);
+    await expect(lines.nth(3).locator(".cm-due")).not.toHaveClass(/\bcm-due-overdue\b/);
   });
 
   test("unknown word gets cm-due-unknown on untouched line", async ({ page }) => {
@@ -141,7 +155,7 @@ test.describe("due dates editor (slice 2)", () => {
     await setEditorText(page, `# plan sprint by:${futureDate}\nsecond line`);
     await editor(page).locator(".cm-line").nth(1).click();
 
-    const pill = page.locator(".cm-line").first().locator(".cm-due-pill");
+    const pill = page.locator(".cm-line").first().locator(".cm-due-flag");
     await expect(pill).toBeVisible();
     await pill.click();
 
@@ -160,7 +174,7 @@ test.describe("due dates editor (slice 2)", () => {
     await page.keyboard.press("Home");
     await page.keyboard.press("Enter");
 
-    await page.locator(".cm-line").nth(2).locator(".cm-due-pill").click();
+    await page.locator(".cm-line").nth(2).locator(".cm-due-flag").click();
     const pop = page.locator(".datepicker-pop");
     await expect(pop).toBeVisible();
     const picked = addDaysISO(REFERENCE_TODAY, 6);

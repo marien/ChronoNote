@@ -1,5 +1,6 @@
 import { test, expect } from "@playwright/test";
 import {
+  cursorLine,
   seedApp,
   editor,
   setEditorText,
@@ -167,7 +168,7 @@ test.describe("due dates editor — independent tests (slice 2)", () => {
       await expect.poll(async () => activeTabContent(page)).toContain(`by:${expectedTomorrow}`);
     });
 
-    test("due-today pill displays 'vandaag' when language is Dutch", async ({ page }) => {
+    test("a date due today is marked today, with the Dutch tooltip, and keeps its digits (§421)", async ({ page }) => {
       await seedApp(page, {
         seed: {
           notes: {},
@@ -177,10 +178,11 @@ test.describe("due dates editor — independent tests (slice 2)", () => {
       await setEditorText(page, `# taak vandaag by:${REFERENCE_TODAY}\nsecond line`);
       await editor(page).locator(".cm-line").nth(1).click();
 
-      const pill = page.locator(".cm-line").first().locator(".cm-due-pill");
-      await expect(pill).toBeVisible();
-      await expect(pill).toHaveClass(/\bcm-due-today\b/);
-      await expect(pill).toHaveText("vandaag");
+      const due = page.locator(".cm-line").first().locator(".cm-due");
+      await expect(due).toBeVisible();
+      await expect(due).toHaveClass(/\bcm-due-today\b/);
+      await expect(due).toHaveText(`by:${REFERENCE_TODAY}`);
+      await expect(due).toHaveAttribute("title", /Vandaag te doen/);
     });
   });
 
@@ -281,20 +283,21 @@ test.describe("due dates editor — independent tests (slice 2)", () => {
   });
 
   test.describe("4. Pill appearance, states, and midnight rollover", () => {
-    test("off the caret line a pill is shown; on the caret line raw text is shown", async ({ page }) => {
+    test("the flag and outline look the same on and off the caret line (§421)", async ({ page }) => {
       await seedApp(page, { seed: "empty" });
       const futureDate = addDaysISO(REFERENCE_TODAY, 4);
       await setEditorText(page, `# my task by:${futureDate}\nsecond line`);
+      const due = page.locator(".cm-line").first().locator(".cm-due");
 
       // Caret on first line
       await editor(page).locator(".cm-line").first().click();
-      await expect(page.locator(".cm-line").first().locator(".cm-due-raw")).toBeVisible();
-      await expect(page.locator(".cm-line").first().locator(".cm-due-pill")).toHaveCount(0);
+      await expect(due.locator(".cm-due-flag")).toBeVisible();
+      await expect(due).toHaveText(`by:${futureDate}`);
 
       // Move caret to second line
       await page.keyboard.press("ArrowDown");
-      await expect(page.locator(".cm-line").first().locator(".cm-due-pill")).toBeVisible();
-      await expect(page.locator(".cm-line").first().locator(".cm-due-raw")).toHaveCount(0);
+      await expect(due.locator(".cm-due-flag")).toBeVisible();
+      await expect(due).toHaveText(`by:${futureDate}`);
     });
 
     test("colours and classes for later / today / overdue / resolved states", async ({ page }) => {
@@ -318,13 +321,13 @@ test.describe("due dates editor — independent tests (slice 2)", () => {
       await editor(page).locator(".cm-line").nth(6).click();
 
       const lines = page.locator(".cm-line");
-      await expect(lines.nth(0).locator(".cm-due-pill")).toHaveClass(/\bcm-due-later\b/);
-      await expect(lines.nth(1).locator(".cm-due-pill")).toHaveClass(/\bcm-due-today\b/);
-      await expect(lines.nth(2).locator(".cm-due-pill")).toHaveClass(/\bcm-due-overdue\b/);
+      await expect(lines.nth(0).locator(".cm-due")).toHaveClass(/\bcm-due-later\b/);
+      await expect(lines.nth(1).locator(".cm-due")).toHaveClass(/\bcm-due-today\b/);
+      await expect(lines.nth(2).locator(".cm-due")).toHaveClass(/\bcm-due-overdue\b/);
       // Resolved lines (v, >, x) must all have cm-due-resolved
-      await expect(lines.nth(3).locator(".cm-due-pill")).toHaveClass(/\bcm-due-resolved\b/);
-      await expect(lines.nth(4).locator(".cm-due-pill")).toHaveClass(/\bcm-due-resolved\b/);
-      await expect(lines.nth(5).locator(".cm-due-pill")).toHaveClass(/\bcm-due-resolved\b/);
+      await expect(lines.nth(3).locator(".cm-due")).toHaveClass(/\bcm-due-resolved\b/);
+      await expect(lines.nth(4).locator(".cm-due")).toHaveClass(/\bcm-due-resolved\b/);
+      await expect(lines.nth(5).locator(".cm-due")).toHaveClass(/\bcm-due-resolved\b/);
     });
 
     test("overdue tooltip shows days late", async ({ page }) => {
@@ -333,7 +336,7 @@ test.describe("due dates editor — independent tests (slice 2)", () => {
       await setEditorText(page, `# late action by:${overdueDate}\ncaret line`);
       await editor(page).locator(".cm-line").nth(1).click();
 
-      const pill = page.locator(".cm-line").first().locator(".cm-due-pill");
+      const pill = page.locator(".cm-line").first().locator(".cm-due");
       await expect(pill).toBeVisible();
       await expect(pill).toHaveAttribute("title", /3 days late/i);
     });
@@ -344,7 +347,7 @@ test.describe("due dates editor — independent tests (slice 2)", () => {
       await setEditorText(page, `=> @dana send the slides by:${futureDate}\nsecond line`);
       await editor(page).locator(".cm-line").nth(1).click();
 
-      const pill = page.locator(".cm-line").first().locator(".cm-due-pill");
+      const pill = page.locator(".cm-line").first().locator(".cm-due");
       await expect(pill).toBeVisible();
       await expect(pill).toHaveClass(/\bcm-due-later\b/);
     });
@@ -368,29 +371,21 @@ test.describe("due dates editor — independent tests (slice 2)", () => {
 
       const lines = page.locator(".cm-line");
       for (let i = 0; i < 5; i++) {
-        await expect(lines.nth(i).locator(".cm-due-pill")).toHaveCount(0);
+        await expect(lines.nth(i).locator(".cm-due")).toHaveCount(0);
       }
-      await expect(lines.nth(5).locator(".cm-due-pill")).toBeVisible();
+      await expect(lines.nth(5).locator(".cm-due")).toBeVisible();
     });
 
-    test("the year shows only when the date is not in this year", async ({ page }) => {
+    test("the date is shown as written, in this year and the next (§421: nothing is replaced but by:)", async ({ page }) => {
       await seedApp(page, { seed: "empty" });
       const thisYearDate = addDaysISO(REFERENCE_TODAY, 5);
       const nextYearDate = addDaysISO(REFERENCE_TODAY, 400);
-      const thisYearStr = REFERENCE_TODAY.slice(0, 4);
-      const nextYearStr = nextYearDate.slice(0, 4);
 
       await setEditorText(page, `# this year by:${thisYearDate}\n# next year by:${nextYearDate}\ncaret line`);
       await editor(page).locator(".cm-line").nth(2).click();
 
-      const pillThisYear = page.locator(".cm-line").nth(0).locator(".cm-due-pill");
-      const pillNextYear = page.locator(".cm-line").nth(1).locator(".cm-due-pill");
-
-      await expect(pillThisYear).toBeVisible();
-      await expect(pillNextYear).toBeVisible();
-
-      expect(await pillThisYear.textContent()).not.toContain(thisYearStr);
-      expect(await pillNextYear.textContent()).toContain(nextYearStr);
+      await expect(page.locator(".cm-line").nth(0).locator(".cm-due")).toHaveText(`by:${thisYearDate}`);
+      await expect(page.locator(".cm-line").nth(1).locator(".cm-due")).toHaveText(`by:${nextYearDate}`);
     });
 
     test("the line's text length on disk is unchanged by the pill (display only)", async ({ page }) => {
@@ -400,7 +395,7 @@ test.describe("due dates editor — independent tests (slice 2)", () => {
       await setEditorText(page, `${expectedText}\ncaret line`);
       await editor(page).locator(".cm-line").nth(1).click();
 
-      await expect(page.locator(".cm-line").first().locator(".cm-due-pill")).toBeVisible();
+      await expect(page.locator(".cm-line").first().locator(".cm-due")).toBeVisible();
       await expect.poll(async () => mockNote(page, todayFilename())).toContain(expectedText);
       const note = await mockNote(page, todayFilename());
       expect(note?.split("\n")[0]).toBe(expectedText);
@@ -411,7 +406,7 @@ test.describe("due dates editor — independent tests (slice 2)", () => {
       await setEditorText(page, `# task by:${REFERENCE_TODAY}\ncaret line`);
       await editor(page).locator(".cm-line").nth(1).click();
 
-      const pill = page.locator(".cm-line").first().locator(".cm-due-pill");
+      const pill = page.locator(".cm-line").first().locator(".cm-due");
       await expect(pill).toBeVisible();
       await expect(pill).toHaveClass(/\bcm-due-today\b/);
 
@@ -600,7 +595,7 @@ test.describe("due dates editor — independent tests (slice 2)", () => {
       await setEditorText(page, `# plan trip by:${targetDate}\nsecond line`);
       await editor(page).locator(".cm-line").nth(1).click();
 
-      const pill = page.locator(".cm-line").first().locator(".cm-due-pill");
+      const pill = page.locator(".cm-line").first().locator(".cm-due-flag");
       await expect(pill).toBeVisible();
 
       // Ctrl+Click (or Meta+Click on Mac) opens that day's note
@@ -615,7 +610,7 @@ test.describe("due dates editor — independent tests (slice 2)", () => {
       await setEditorText(page, `# plan trip by:${targetDate}\nsecond line`);
       await editor(page).locator(".cm-line").nth(1).click();
 
-      const pill = page.locator(".cm-line").first().locator(".cm-due-pill");
+      const pill = page.locator(".cm-line").first().locator(".cm-due-flag");
       await expect(pill).toBeVisible();
 
       await pill.click();
@@ -624,22 +619,17 @@ test.describe("due dates editor — independent tests (slice 2)", () => {
       await expect(pop.locator(".cal-picker-title")).toHaveText("Due date");
     });
 
-    test("click elsewhere on the line places caret and reveals raw text", async ({ page }) => {
+    test("a click on the date digits places the caret there and opens no picker (§421)", async ({ page }) => {
       await seedApp(page, { seed: "empty" });
       const targetDate = addDaysISO(REFERENCE_TODAY, 4);
       await setEditorText(page, `# plan trip by:${targetDate}\nsecond line`);
       await editor(page).locator(".cm-line").nth(1).click();
 
-      // Line 1 displays pill while caret is on line 2
-      const line1 = page.locator(".cm-line").first();
-      await expect(line1.locator(".cm-due-pill")).toBeVisible();
-
-      // Click elsewhere on line 1 (not on the pill)
-      await editor(page).locator(".cm-line").first().click();
-
-      // Caret is now on line 1, revealing raw text and hiding pill
-      await expect(page.locator(".cm-line").first().locator(".cm-due-raw")).toBeVisible();
-      await expect(page.locator(".cm-line").first().locator(".cm-due-pill")).toHaveCount(0);
+      // The digits are ordinary text inside the outline (the date link inside it).
+      await page.locator(".cm-line").first().locator(".cm-due .cm-date-link").click();
+      await expect(page.locator(".datepicker-pop")).toBeHidden();
+      await expect.poll(() => cursorLine(page)).toBe(1);
+      await expect(page.locator(".cm-line").first().locator(".cm-due-flag")).toBeVisible();
     });
   });
 

@@ -730,63 +730,49 @@ body.peek-mode .cm-overview-ruler {
   color: var(--muted);
 }
 
-/* Due date pill (§419, footprint §420). The outer box is exactly the source text's footprint: its width is set inline
-   to the token's length in ch (the editor font is monospace), and it is one line tall, top-aligned and clipped, with
-   no border, padding or margin, the same recipe as the glyphs above, so it can never change the line's width or
-   height. The visible pill is the inner label; its outline is an inset box-shadow, which takes no room. */
-.cm-line .cm-due-pill {
-  display: inline-block;
-  height: calc(var(--editor-line-height, 1.6) * 1em);
-  line-height: calc(var(--editor-line-height, 1.6) * 1em);
-  vertical-align: top;
-  overflow: hidden;
-  white-space: pre;
-  padding: 0;
-  margin: 0;
-  border: 0;
-  box-sizing: border-box;
-  cursor: pointer;
-  user-select: none;
-}
-
-.cm-due-pill > .cm-due-label {
-  display: inline-block;
-  width: 100%;
-  box-sizing: border-box;
-  line-height: 1.35em;
-  padding: 0 0.5ch;
-  vertical-align: middle;
-  text-align: center;
-  overflow: hidden;
+/* Due date (§419, drawn in place §421). Nothing is replaced: the whole `by:YYYY-MM-DD` gets an outline the size of
+   the topic pill's, and the date digits stay text on the line's baseline. The outline is an outset 1px box-shadow,
+   which takes no layout room at any display scaling (a 1px border cancelled by a -1px margin moved the text after it
+   at 150 %, where Chrome draws the border 0.67px wide). On the right it reaches 0.3ch into the space after the date,
+   as padding cancelled by an equal negative margin, so the text after it never moves. `by:` stays in the text,
+   transparent, and a flag is drawn over its three cells as a mask (like the box glyphs' marks, §327), half a
+   character in from the left for clearance. */
+.cm-due {
+  --due-ink: var(--muted);
+  color: var(--due-ink);
+  --due-border: var(--edge-strong);
+  box-shadow: 0 0 0 1px var(--due-border);
   border-radius: var(--radius-control);
+  margin: 0 -0.3ch 0 0;
+  padding: 0 0.3ch 0 0;
+  background: color-mix(in srgb, var(--text) 6%, transparent);
 }
 
-.cm-due-pill.cm-due-later > .cm-due-label {
-  color: var(--muted);
-  box-shadow: inset 0 0 0 1px var(--edge-strong);
-  background: color-mix(in srgb, var(--text) 4%, transparent);
+.cm-due-flag {
+  color: transparent;
+  cursor: pointer;
+  background-color: var(--due-ink);
+  -webkit-mask: var(--due-flag) no-repeat 0.55ch 50% / 1em 1em;
+  mask: var(--due-flag) no-repeat 0.55ch 50% / 1em 1em;
+  --due-flag: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='black' stroke-width='1.6' stroke-linejoin='round'%3E%3Cpath d='M3.5 14.5V2M3.5 2.5h8.5l-2 3 2 3H3.5'/%3E%3C/svg%3E");
 }
 
-.cm-due-pill.cm-due-today > .cm-due-label {
-  color: var(--state-warn);
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--state-warn) 40%, transparent);
-  background: color-mix(in srgb, var(--state-warn) 12%, transparent);
+.cm-due.cm-due-today {
+  --due-ink: var(--state-warn);
+  --due-border: color-mix(in srgb, var(--state-warn) 45%, transparent);
+  background: color-mix(in srgb, var(--state-warn) 10%, transparent);
 }
 
-.cm-due-pill.cm-due-overdue > .cm-due-label {
-  color: var(--glyph-open-color);
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--glyph-open-color) 40%, transparent);
-  background: color-mix(in srgb, var(--glyph-open-color) 12%, transparent);
+.cm-due.cm-due-overdue {
+  --due-ink: var(--glyph-open-color);
+  --due-border: color-mix(in srgb, var(--glyph-open-color) 45%, transparent);
+  background: color-mix(in srgb, var(--glyph-open-color) 10%, transparent);
 }
 
-.cm-due-pill.cm-due-resolved > .cm-due-label {
-  color: var(--muted);
-  box-shadow: inset 0 0 0 1px var(--edge-soft);
+.cm-due.cm-due-resolved {
+  --due-ink: var(--muted);
+  --due-border: var(--edge-soft);
   background: transparent;
-}
-
-.cm-due-raw {
-  color: var(--muted);
 }
 
 .cm-due-unknown {
@@ -794,26 +780,30 @@ body.peek-mode .cm-overview-ruler {
   text-underline-offset: 3px;
 }
 
-[data-color-mode="grayscale"] .cm-due-pill > .cm-due-label {
-  color: var(--text);
-  box-shadow: inset 0 0 0 1px var(--edge-strong);
+/* Grayscale: no colour; the outline says the state. Thin (later), solid text-coloured (today), and for overdue the
+   same solid outline with a bold flag and bold digits (Cascadia's bold has the same advance, so no width change). */
+[data-color-mode="grayscale"] .cm-due {
+  --due-ink: var(--text);
   background: transparent;
 }
 
-[data-color-mode="grayscale"] .cm-due-pill.cm-due-today > .cm-due-label {
-  box-shadow: inset 0 0 0 1px var(--text);
+[data-color-mode="grayscale"] .cm-due.cm-due-today,
+[data-color-mode="grayscale"] .cm-due.cm-due-overdue {
+  --due-border: var(--text);
 }
 
-[data-color-mode="grayscale"] .cm-due-pill.cm-due-overdue > .cm-due-label {
-  box-shadow: inset 0 0 0 1px var(--text);
-  font-weight: 700;
+[data-color-mode="grayscale"] .cm-due.cm-due-overdue {
+  font-weight: bold;
 }
 
-[data-color-mode="grayscale"] .cm-due-pill.cm-due-resolved > .cm-due-label {
-  color: var(--muted);
-  box-shadow: inset 0 0 0 1px var(--edge-soft);
+[data-color-mode="grayscale"] .cm-due.cm-due-overdue .cm-due-flag {
+  --due-flag: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='black' stroke-width='2.4' stroke-linejoin='round'%3E%3Cpath d='M3.5 14.5V2M3.5 2.5h8.5l-2 3 2 3H3.5'/%3E%3C/svg%3E");
 }
 
+[data-color-mode="grayscale"] .cm-due.cm-due-resolved {
+  --due-ink: var(--muted);
+  --due-border: var(--edge-soft);
+}
 
 /* §106: the action-state glyphs cycle on click. Subtle pointer + hover
    tint so it reads as interactive without adding chrome to every line. */

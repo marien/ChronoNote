@@ -290,24 +290,6 @@ export function longDate(locale: string, iso: string): string {
   return new Intl.DateTimeFormat(locale, { day: "numeric", month: "long", year: "numeric" }).format(new Date(y, m - 1, d));
 }
 
-/** The short date a due pill shows (§420): the first form of at most `maxChars` characters, so the label always fits
- * inside the `by:YYYY-MM-DD` it replaces. This year: weekday + day + month ("vr 30 okt"), then day + month
- * ("17. Sept."); another year: day + month + year ("17 sep 2027"), then the numeric date with a two-digit year;
- * the ISO date itself (10 characters) as the last resort. */
-export function dueLabel(iso: string, todayISO: string, locale: string, maxChars = 12): string {
-  const [y, m, d] = iso.split("-").map(Number);
-  const date = new Date(y, m - 1, d);
-  const forms: Intl.DateTimeFormatOptions[] =
-    y === Number(todayISO.slice(0, 4))
-      ? [{ weekday: "short", day: "numeric", month: "short" }, { day: "numeric", month: "short" }]
-      : [{ day: "numeric", month: "short", year: "numeric" }, { day: "numeric", month: "numeric", year: "2-digit" }];
-  for (const form of forms) {
-    const text = new Intl.DateTimeFormat(locale, form).format(date);
-    if (text.length <= maxChars) return text;
-  }
-  return iso;
-}
-
 /** `weekdayIndex` is 0 = Monday ... 6 = Sunday, matching `monthGrid`'s own
  * Monday-first convention. 2024-01-01 was a Monday — used as a fixed,
  * arbitrary reference date purely to land on the right day of the week. */
