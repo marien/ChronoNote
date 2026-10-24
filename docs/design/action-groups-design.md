@@ -107,7 +107,9 @@ existing group looks today.
   resolved dims as a whole) and returns to full strength on hover / when the caret is in the group.
 - No resolved count in the editor (decided: drawer only).
 - Form 1 and form 2 lines: no change.
-- Peek, Zen, Section History previews and the read-only viewer use the same layer.
+- Peek and Zen use the same editor, so they get the lines too. Section History previews and the read-only viewer are
+  not CodeMirror; they follow later if wanted.
+- The lines show full strength while the caret is in the group (a layer cannot see hover).
 
 ## 5. Action Drawer
 
@@ -125,9 +127,11 @@ existing group looks today.
 - Children (form 3/4) are nested rows under the parent with the same tree lines; steps (form 2) are rows with a step
   number and a straight connector, so sequence and checklist read differently at a glance. A step keeps its number
   when earlier steps are hidden.
-- Every child and step is a full row: focusable, `Ctrl+Space` cycles *that* symbol, `Enter` jumps to it (the caret
-  lands at that part for a step), `Shift+Enter` forwards it. This needs part-level addressing in the drawer (line +
-  column of the symbol), which the editor's "a click changes exactly the glyph clicked" already has.
+- Every child and step is a full row: focusable, `Ctrl+Space` cycles *that* symbol, `Enter` jumps to its line,
+  `Shift+Enter` forwards a child line. This needs part-level addressing in the drawer (line + column of the symbol),
+  which the editor's "a click changes exactly the glyph clicked" already has. (First version: `Enter` on a step goes
+  to its line, not to the part; `Shift+Enter` on a step does nothing, since forwarding the line would forward the
+  parent; forwarding has never covered `=> <symbol>` parts.)
 - `Shift+Enter` on a parent forwards the parent line only, as now (decided). Its children stay where they are.
 - The parent shows a muted count of resolved children/steps (`1/3`). Display only; it never changes a state.
 - **Only open:** a group is shown when the parent or any child is open. The parent is always shown (dimmed when
