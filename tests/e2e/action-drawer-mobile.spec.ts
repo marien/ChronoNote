@@ -28,7 +28,7 @@ test.describe("Action Drawer mobile portrait layout (§222)", () => {
     await expect(item).toBeVisible();
     await expect(item.locator(".item-tag")).toHaveCount(0);
     await expect(item.locator(".item-breadcrumb")).toBeVisible();
-    await expect(item.locator(".item-breadcrumb")).toHaveText("· Operations");
+    await expect(item.locator(".item-breadcrumb")).toHaveText("Operations");
   });
 
   test("mobile portrait viewport hides line numbers and section breadcrumbs to maximize action text space", async ({ page }) => {
@@ -55,9 +55,10 @@ test.describe("Action Drawer mobile portrait layout (§222)", () => {
     });
     expect(mainMarginRight).toBe("0px");
 
-    // Verify title attribute is present on the action text for long-press / tooltip access
+    // Verify title attribute is present on the action text for long-press / tooltip access; it also carries the
+    // section the row no longer shows (§423)
     const textSpan = item.locator(".modal-item-main span").nth(1);
-    await expect(textSpan).toHaveAttribute("title", "Deploy release v0.16.0 to staging cluster and verify health metrics");
+    await expect(textSpan).toHaveAttribute("title", "Deploy release v0.16.0 to staging cluster and verify health metrics · Operations");
   });
 
   test("shortcuts modal keeps keycap tags visible on mobile", async ({ page }) => {

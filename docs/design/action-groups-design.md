@@ -162,8 +162,8 @@ Today the note and section (`24 Oct · Release`) sit on every row in italics, at
 the action when the pane is narrow. The action should be the focus:
 
 - **One line, right-aligned**, at caption size, in `--muted`, **not italic**. In the normal view it is the section
-  (the date is already the group heading); in the due view it is the short note date plus the section
-  (`24 Oct · Release`), because there the heading is Overdue / Today / ….
+  (the date is already the group heading); in the due view it is the note's date plus the section
+  (`2026-10-24 · Release`), because there the heading is Overdue / Today / ….
 - **Only on the hovered or selected (keyboard-focused) row.** Every other row shows the action text alone.
 - **Never at the cost of the action:** when the action text and the source do not both fit on the row, the source is
   not shown at all (not truncated, not wrapped). The action text keeps its ellipsis as now. (CSS: the row is a

@@ -485,7 +485,7 @@
           {@const g = glyphFor(item.line)}
           {@const sym = innermostActionSymbol(item.line)}
           <div
-            class="modal-item {idx === selectedIndex ? 'selected' : ''}"
+            class="modal-item action-row {idx === selectedIndex ? 'selected' : ''}"
             role="option"
             id="action-drawer-item-{idx}"
             aria-selected={idx === selectedIndex}
@@ -497,12 +497,12 @@
           >
             <div class="modal-item-main">
               <span class={g.cls ?? ""}>{g.char}</span>
-              <span class={sym === "v" || sym === "x" ? "item-completed" : ""} title={stripLeadingToken(item.line)}>{stripLeadingToken(item.line)}</span>
+              <span class={sym === "v" || sym === "x" ? "item-completed" : ""} title={[stripLeadingToken(item.line), item.header].filter(Boolean).join(" · ")}>{stripLeadingToken(item.line)}</span>
             </div>
             {#if $actionDrawerDueView}
               <span class="item-breadcrumb">{item.filename.replace(/\.txt$/, "")}{item.header ? ` · ${item.header}` : ""}</span>
             {:else if item.header}
-              <span class="item-breadcrumb">· {item.header}</span>
+              <span class="item-breadcrumb">{item.header}</span>
             {/if}
           </div>
         {/if}
