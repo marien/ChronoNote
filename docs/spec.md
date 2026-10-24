@@ -606,8 +606,9 @@ reachable from the top bar, a shortcut, or the command palette:
   unfolds it). `Ctrl+Space` cycles the row's own symbol; `Enter` jumps to its
   line; `Shift+Enter` forwards the row's line, and does nothing on a step. In
   the due view a group is listed once, under the earliest due date of its open
-  own lines, with its open descendants (delegated ones when the filter has
-  `@`, as everywhere in the drawer); dates are not inherited
+  own lines: a dated parent with its open descendants (delegated ones when the
+  filter has `@`, as everywhere in the drawer), an undated one as context for
+  just its dated descendants; dates are not inherited
   and the overdue count still counts lines. The row's source (section; note
   date and section in the due view) shows right-aligned only on the selected
   row, and not at all when it does not fit next to the action; the tooltip

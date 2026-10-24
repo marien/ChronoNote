@@ -186,7 +186,8 @@ towards the status bar's overdue item. Grouping only changes what the drawer's *
   under it in the due view (nested, collapsible, with the `1/3` count), also the ones without a date of their own.
   Resolved children are hidden and counted, as in section 5.
 - **A dated child brings its parent along as context.** When only a child (or step) has a due date, the group is
-  listed too, with the parent as context row and the dated child under it.
+  listed too, with the parent (and any line between) as context rows and only the dated lines under it; undated
+  siblings stay out of the due view.
 - **One place per group.** A group is listed once, in the bucket (Overdue / Today / This week / Later) of the
   **earliest open due date in the group**, parent or child. So a checklist whose parent is due Friday but whose
   `# build by:2026-10-22` is already late shows under Overdue, where it needs to be. Each dated line shows its own
