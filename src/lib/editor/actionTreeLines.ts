@@ -134,7 +134,8 @@ function getScrollBase(view: EditorView) {
 }
 
 export const actionTreeLinesLayer = layer({
-  above: false,
+  // Above the text: below it, the selection background covered the lines. They sit in the indentation, never on text.
+  above: true,
   class: "cm-action-tree-layer",
   markers(view: EditorView): readonly LayerMarker[] {
     if (typeof document === "undefined") return [];

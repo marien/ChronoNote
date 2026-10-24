@@ -450,10 +450,11 @@ textarea.modal-input.import-textarea {
   white-space: nowrap;
   margin-left: auto;
   padding-left: 12px;
-  visibility: hidden;
+  /* Not `visibility`: a hidden source must take no room, or the group counts before it stop lining up. */
+  display: none;
 }
 .modal-item.selected .item-breadcrumb {
-  visibility: visible;
+  display: inline;
 }
 .item-tag {
   font-size: var(--type-caption);
