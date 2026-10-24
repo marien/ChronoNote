@@ -11058,7 +11058,7 @@ Marien's feedback on beta 0.33.0-4:
 
 ## 423. Action groups: sub-actions joined in the note, nested in the Action Drawer
 
-**Status: on main, not released yet.**
+**Status: released in beta 0.33.0-6 (early channel only).**
 
 Marien writes multi-part actions four ways (a `: a, b, c` list, `=> #` steps on one line, indented action lines, and
 `=> #` lines under an action, indented or not). Design `docs/design/action-groups-design.md` with his decisions:
@@ -11102,7 +11102,7 @@ never closes its children, or the other way round).
 
 ## 424. Action Drawer groups drawn like the note
 
-**Status: on main, not released yet.**
+**Status: released in beta 0.33.0-6 (early channel only).**
 
 Marien tried §423 in a dev build: the note looked right, the Action Drawer did not. A parent's glyph got narrower when
 its text overflowed; the tree lines ran from under the chevron instead of the glyph, so a group looked different from
