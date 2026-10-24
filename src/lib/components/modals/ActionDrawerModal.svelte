@@ -280,11 +280,21 @@
           isFirst,
         });
         isFirst = false;
-        // The phone caps the shown depth at 2; the lines follow the shown depth.
-        const depths = group.rows.map((drow) => ($isMobile ? Math.min(drow.depth, 2) : drow.depth));
-        const tree = drawerTreeGuides(group.rows.map((drow, i) => ({ depth: depths[i], step: drow.item.kind === "step" })));
+        // The lines follow the real tree. The phone shows depth 2 and deeper at depth 2: those rows keep only the
+        // lines that pass by them, and a depth-2 parent starts no line (its children sit at its own glyph's place).
+        const cap = $isMobile ? 2 : Infinity;
+        const tree = drawerTreeGuides(group.rows.map((drow) => ({ depth: drow.depth, step: drow.item.kind === "step" })));
         group.rows.forEach((drow, i) => {
-          out.push({ type: "item", key: drow.item.id, drow, depth: depths[i], ...tree[i], height: MODAL_ITEM_ROW_HEIGHT });
+          const depth = Math.min(drow.depth, cap);
+          out.push({
+            type: "item",
+            key: drow.item.id,
+            drow,
+            depth,
+            guides: tree[i].guides.filter((g) => g.level < depth),
+            stub: tree[i].stub && drow.depth < cap,
+            height: MODAL_ITEM_ROW_HEIGHT,
+          });
         });
       }
       return out;
@@ -609,14 +619,15 @@
             {/if}
             <div class="modal-item-main">
               <span class="{g.cls ?? ''} item-glyph">{g.char}</span>
-              <span class={sym === "v" || sym === "x" ? "item-completed" : ""} title={[text, item.header].filter(Boolean).join(" · ")}>{text}</span>
+              <span class="item-text {sym === 'v' || sym === 'x' ? 'item-completed' : ''}" title={[text, item.header].filter(Boolean).join(" · ")}>{text}</span>
+              <!-- Inside the text's box: a long text then shortens itself instead of pushing the count off the row. -->
+              {#if r.progress}
+                <span
+                  class="item-progress"
+                  title={$t("actionDrawer.group.progressTitle", { resolved: r.progress.resolved, total: r.progress.total })}
+                >{r.progress.resolved}/{r.progress.total}</span>
+              {/if}
             </div>
-            {#if r.progress}
-              <span
-                class="item-progress"
-                title={$t("actionDrawer.group.progressTitle", { resolved: r.progress.resolved, total: r.progress.total })}
-              >{r.progress.resolved}/{r.progress.total}</span>
-            {/if}
             {#if $actionDrawerDueView}
               <span class="item-breadcrumb">{item.filename.replace(/\.txt$/, "")}{item.header ? ` · ${item.header}` : ""}</span>
             {:else if item.header}
@@ -664,10 +675,16 @@
   font-family: var(--font-mono);
   font-size: 12px;
 }
-/* One line, in the row's middle: the shared rows wrap and pack to the top, which pushed a long parent's count onto
-   a hidden second line and put the glyph above the tree lines' 50%. */
-.action-row {
-  flex-wrap: nowrap;
+/* The row wraps on purpose (a source that does not fit goes to a hidden second line, 06-modals.css) and packs its
+   lines to the top; the text's box fills the row's height so the glyph sits at 50%, where the tree lines meet it. */
+.action-row .modal-item-main {
+  height: 100%;
+}
+.item-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
 }
 /* The glyph never gives up width to a long text (it is not the first child when a chevron used to precede it). */
 .item-glyph {
@@ -733,7 +750,8 @@
 }
 .item-progress {
   flex: none;
-  margin-left: 8px;
+  margin-left: auto;
+  padding-left: 8px;
   font-size: var(--type-caption);
   color: var(--muted);
   font-variant-numeric: tabular-nums;

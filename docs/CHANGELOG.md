@@ -11120,3 +11120,22 @@ the note; the last child's line ran on below it; and a child group's glyph sat f
   wrap.
 - **Tests:** `actionDrawerRows.test.ts` (`drawerTreeGuides`); `action-groups-drawer.independent.spec.ts` checks the
   line starts at the parent glyph's middle and that a plain row's glyph lines up with a parent's.
+
+## 425. Action Drawer groups: fixes from the cross-model review of §424
+
+**Status: on main, not released yet.**
+
+Gemini 3.8 Flash reviewed §424 after it went out in 0.33.0-6 (Marien asked for the beta first). Two real issues:
+
+- **The source label lost its "only when it fits" (high):** §424 stopped drawer rows from wrapping to keep a long
+  parent's `1/3` count on the row, but the wrap is how §423 hides a source that does not fit (it goes to a second,
+  clipped line). Rows wrap again; the count now sits inside the text's box, so a long text shortens itself instead of
+  pushing the count away. The text's box fills the row's height, which keeps the glyph at the row's middle where the
+  tree lines meet it.
+- **Lines on the phone drew a depth-3 action as its grandparent's child (medium):** the phone shows depth 3 and deeper
+  at depth 2, and §424 computed the lines from those shown depths. They now come from the real tree: a row shown
+  shallower keeps only the lines passing by it, and a parent at depth 2 starts no line.
+
+Not taken: masking the line behind a step number of two digits (only when ten or more steps come before a child line);
+a single-pass `drawerTreeGuides` (its forward scans stop at the end of a subtree; a 200-step group costs ~20,000
+comparisons per rebuild).
