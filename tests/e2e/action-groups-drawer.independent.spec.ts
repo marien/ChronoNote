@@ -67,12 +67,17 @@ test.describe("Action Drawer Groups", () => {
     // Parent row release 0.34 has depth 0 and chevron
     const releaseRow = rows.nth(0);
     await expect(releaseRow.locator(".group-chevron")).toBeVisible();
-    await expect(releaseRow).toHaveCSS("padding-left", "14px");
+    await expect(releaseRow).toHaveCSS("padding-left", "18px");
 
-    // Nested child changelog has depth 1, left inset padding (32px), and tree-guide elbow
+    // Nested child changelog has depth 1, left inset padding (42px), and a tree-guide elbow
     const changelogRow = rows.nth(1);
-    await expect(changelogRow).toHaveCSS("padding-left", "32px");
-    await expect(changelogRow.locator(".tree-guide")).toBeVisible();
+    await expect(changelogRow).toHaveCSS("padding-left", "42px");
+    await expect(changelogRow.locator(".tree-guide.is-tee")).toBeVisible();
+
+    // The tree line runs from the parent's glyph, as in the editor, and the glyph keeps its width on a long row
+    const parentGlyph = await releaseRow.locator(".item-glyph").boundingBox();
+    const guide = await changelogRow.locator(".tree-guide.is-tee").boundingBox();
+    expect(Math.abs(guide!.x - (parentGlyph!.x + parentGlyph!.width / 2))).toBeLessThanOrEqual(1.5);
 
     // Step rows display their 1-based stepIndex number
     const accountsRow = rows.nth(4);
@@ -80,10 +85,11 @@ test.describe("Action Drawer Groups", () => {
     const introRow = rows.nth(5);
     await expect(introRow.locator(".step-number")).toHaveText("3.");
 
-    // Standalone row has depth 0, no chevron, and reserves chevron width (.group-chevron-slot)
+    // Standalone row has depth 0, no chevron, and its glyph lines up with a parent's (the chevron is in the gutter)
     const standaloneRow = rows.nth(6);
     await expect(standaloneRow.locator(".group-chevron")).toHaveCount(0);
-    await expect(standaloneRow.locator(".group-chevron-slot")).toBeVisible();
+    const standaloneGlyph = await standaloneRow.locator(".item-glyph").boundingBox();
+    expect(standaloneGlyph!.x).toBeCloseTo(parentGlyph!.x, 0);
   });
 
   test("the parent shows 1/3-style progress", async ({ page }) => {

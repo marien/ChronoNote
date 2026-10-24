@@ -144,9 +144,9 @@ existing group looks today.
 
 ### 5.1 Collapse and expand
 
-- A parent row (form 2, 3 or 4) gets a chevron in front of its glyph: `▾` expanded, `▸` collapsed. Form 1 and
-  ungrouped actions get none (their rows keep the same left edge as now: the chevron sits in a column every
-  top-level row reserves).
+- A parent row (form 2, 3 or 4) gets a chevron: `▾` expanded, `▸` collapsed. Form 1 and ungrouped actions get
+  none. The chevron sits in a gutter at the row's left edge at every depth, so the tree lines run from glyph to glyph
+  as in the note and every glyph of one depth lines up (§424; first built in front of the glyph).
 - Mouse: a click on the chevron toggles; a click anywhere else on the row still jumps to the line. On the phone the
   chevron has its own tap target of full row height.
 - Keyboard (the usual tree convention): `Right` expands a collapsed parent, or moves to its first child; `Left`

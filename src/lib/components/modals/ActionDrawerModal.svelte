@@ -16,6 +16,8 @@
   import {
     buildDrawerRows,
     buildDueDrawerRows,
+    drawerTreeGuides,
+    type TreeGuide,
     collapseKey,
     nodeState,
     nodeText,
@@ -185,6 +187,12 @@
   // template — at large result counts that indexOf call made the render
   // itself O(N^2) in match count (confirmed during large-dataset stress
   // testing, §38).
+  // Row geometry (px): a depth-0 glyph's left edge (the fold chevron sits in the gutter before it), the step per
+  // depth, and the middle of the glyph box where its tree line runs, like `GLYPH_CENTER_CH` in the editor.
+  const ROW_INSET = 18;
+  const TREE_INDENT = 24;
+  const GLYPH_CENTER = 5;
+
   type IndexedRow = DrawerRow<ActionSnapshotItem & { dueDate?: string }> & { __flatIndex: number };
 
   interface Group {
@@ -254,7 +262,7 @@
   // component owns the row model and the DOM refs.
   type RawRow =
     | { type: "header"; key: string; label: string; count: number; height: number; isFirst: boolean }
-    | { type: "item"; key: string; drow: IndexedRow; height: number };
+    | { type: "item"; key: string; drow: IndexedRow; depth: number; guides: TreeGuide[]; stub: boolean; height: number };
   type Row = RawRow & PlacedRow;
 
   const rows = $derived(
@@ -272,9 +280,12 @@
           isFirst,
         });
         isFirst = false;
-        for (const drow of group.rows) {
-          out.push({ type: "item", key: drow.item.id, drow, height: MODAL_ITEM_ROW_HEIGHT });
-        }
+        // The phone caps the shown depth at 2; the lines follow the shown depth.
+        const depths = group.rows.map((drow) => ($isMobile ? Math.min(drow.depth, 2) : drow.depth));
+        const tree = drawerTreeGuides(group.rows.map((drow, i) => ({ depth: depths[i], step: drow.item.kind === "step" })));
+        group.rows.forEach((drow, i) => {
+          out.push({ type: "item", key: drow.item.id, drow, depth: depths[i], ...tree[i], height: MODAL_ITEM_ROW_HEIGHT });
+        });
       }
       return out;
     })(),
@@ -558,40 +569,45 @@
           {@const g = glyphFor(item)}
           {@const sym = nodeState(item)}
           {@const text = nodeText(item)}
-          {@const d = $isMobile ? Math.min(r.depth, 2) : r.depth}
+          {@const d = row.depth}
           <div
             class="modal-item action-row {idx === selectedIndex ? 'selected' : ''} {r.contextOnly ? 'context-row' : ''}"
             role="option"
             id="action-drawer-item-{idx}"
             aria-selected={idx === selectedIndex}
             tabindex="0"
-            style="position: absolute; top: {row.top}px; left: 0; right: 0; height: {row.height}px; padding-left: calc(14px + {d} * 18px);"
+            style="position: absolute; top: {row.top}px; left: 0; right: 0; height: {row.height}px; padding-left: {ROW_INSET + d * TREE_INDENT}px;"
             onclick={() => controller.jumpToFileLine(item, docked ? { keepModal: true } : undefined)}
             onmouseenter={() => (selectedIndex = idx)}
             onkeydown={(e) => e.key === "Enter" && controller.jumpToFileLine(item, docked ? { keepModal: true } : undefined)}
           >
-            {#if d > 0}
-              {#if item.kind === "step"}
-                <span class="step-number" aria-hidden="true" style="left: calc(14px + {d - 1} * 18px - 6px);">{item.stepIndex}.</span>
-              {:else}
-                <span class="tree-guide" aria-hidden="true" style="left: calc(14px + {d - 1} * 18px + 2px);"></span>
-              {/if}
+            {#each row.guides as guide (guide.level)}
+              <span
+                class="tree-guide is-{guide.kind}"
+                aria-hidden="true"
+                style="left: {ROW_INSET + guide.level * TREE_INDENT + GLYPH_CENTER}px;"
+              ></span>
+            {/each}
+            {#if row.stub && r.expanded}
+              <span class="tree-guide is-stub" aria-hidden="true" style="left: {ROW_INSET + d * TREE_INDENT + GLYPH_CENTER}px;"></span>
+            {/if}
+            {#if item.kind === "step" && d > 0}
+              <span class="step-number" aria-hidden="true" style="right: calc(100% - {ROW_INSET + d * TREE_INDENT - 3}px);">{item.stepIndex}.</span>
+            {/if}
+            {#if r.hasChildren}
+              <!-- In a fold gutter at the row's left edge, so the tree lines run from glyph to glyph as in the editor. -->
+              <button
+                type="button"
+                class="group-chevron"
+                aria-expanded={r.expanded}
+                aria-label={r.expanded ? $t("actionDrawer.group.collapse") : $t("actionDrawer.group.expand")}
+                tabindex="-1"
+                onclick={(e) => onChevronClick(e, item)}
+              >
+                <Icon name="chevron-right" size={12} />
+              </button>
             {/if}
             <div class="modal-item-main">
-              {#if r.hasChildren}
-                <button
-                  type="button"
-                  class="group-chevron"
-                  aria-expanded={r.expanded}
-                  aria-label={r.expanded ? $t("actionDrawer.group.collapse") : $t("actionDrawer.group.expand")}
-                  tabindex="-1"
-                  onclick={(e) => onChevronClick(e, item)}
-                >
-                  <Icon name="chevron-right" size={12} />
-                </button>
-              {:else if r.depth === 0}
-                <span class="group-chevron-slot"></span>
-              {/if}
               <span class="{g.cls ?? ''} item-glyph">{g.char}</span>
               <span class={sym === "v" || sym === "x" ? "item-completed" : ""} title={[text, item.header].filter(Boolean).join(" · ")}>{text}</span>
             </div>
@@ -648,56 +664,70 @@
   font-family: var(--font-mono);
   font-size: 12px;
 }
-/* Rows of a group: the chevron (or an empty slot of its width on depth-0 rows) sits before the glyph; its
-   negative margin eats most of the row's gap so a child's glyph still lands to the right of its parent's. */
-.group-chevron,
-.group-chevron-slot {
+/* One line, in the row's middle: the shared rows wrap and pack to the top, which pushed a long parent's count onto
+   a hidden second line and put the glyph above the tree lines' 50%. */
+.action-row {
+  flex-wrap: nowrap;
+}
+/* The glyph never gives up width to a long text (it is not the first child when a chevron used to precede it). */
+.item-glyph {
   flex: none;
-  width: 12px;
-  height: 16px;
-  margin-right: -6px;
 }
-.group-chevron-slot {
-  display: inline-block;
-}
+/* The fold chevron sits in the gutter at the row's left edge, at every depth. */
 .group-chevron {
+  position: absolute;
+  left: 3px;
+  top: 50%;
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  width: 12px;
   height: 16px;
   padding: 0;
   border: none;
   background: none;
   color: inherit;
   cursor: pointer;
+  transform: translateY(-50%);
 }
 .group-chevron[aria-expanded="true"] {
-  transform: rotate(90deg);
+  transform: translateY(-50%) rotate(90deg);
 }
+/* Tree lines as in the editor: down from below the parent's glyph, an elbow to each line child's glyph, ending at
+   the last child's middle. `left` is the parent glyph's middle; the elbow reaches to 2px before the child's glyph. */
 .tree-guide {
   position: absolute;
   top: 0;
   bottom: 0;
-  width: 12px;
   border-left: 1px solid var(--muted);
   opacity: 0.6;
   pointer-events: none;
 }
-/* The elbow: a horizontal tick at mid-height; the full-height left border keeps siblings joined. */
-.tree-guide::after {
+.tree-guide.is-end {
+  bottom: 50%;
+}
+.tree-guide.is-stub {
+  top: calc(50% + 8px);
+}
+.tree-guide.is-tee::after,
+.tree-guide.is-end::after {
   content: "";
   position: absolute;
   left: 0;
-  right: 0;
-  top: 50%;
+  width: 17px;
   border-bottom: 1px solid var(--muted);
 }
+.tree-guide.is-tee::after {
+  top: 50%;
+}
+.tree-guide.is-end::after {
+  bottom: -1px;
+}
+/* A step's number, right-aligned just before its box. */
 .step-number {
   position: absolute;
   top: 50%;
-  width: 20px;
   transform: translateY(-50%);
-  text-align: right;
   color: var(--muted);
   pointer-events: none;
 }

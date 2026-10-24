@@ -166,7 +166,36 @@ export function buildDrawerRows<T extends ActionSnapshotItem>(items: T[], f: Dra
   return rows;
 }
 
-/** A node's own due date: the earliest date of the due tokens inside its own part, counted only when the node is
+/** One tree line a row draws at `level` (under the glyph of its ancestor at that depth): "tee" joins the row to that
+ *  ancestor and continues to a later sibling, "end" joins it as the last one, "through" passes by to a later child. */
+export interface TreeGuide {
+  level: number;
+  kind: "tee" | "end" | "through";
+}
+
+/** The drawer's tree lines, drawn as in the editor: from below a parent's glyph down to its last line child, with an
+ *  elbow to each line child; steps get none (they are parts of the parent's own line). `rows` in display order with
+ *  their shown depth. `stub`: the row's own line starts below its glyph. */
+export function drawerTreeGuides(rows: { depth: number; step: boolean }[]): { guides: TreeGuide[]; stub: boolean }[] {
+  // Is there a line child of the depth-k node above row i further down, before that node's subtree ends.
+  const laterLineChild = (i: number, k: number): boolean => {
+    for (let j = i + 1; j < rows.length && rows[j].depth > k; j++) {
+      if (rows[j].depth === k + 1 && !rows[j].step) return true;
+    }
+    return false;
+  };
+  return rows.map((r, i) => {
+    const guides: TreeGuide[] = [];
+    for (let k = 0; k < r.depth; k++) {
+      const more = laterLineChild(i, k);
+      if (k === r.depth - 1 && !r.step) guides.push({ level: k, kind: more ? "tee" : "end" });
+      else if (more) guides.push({ level: k, kind: "through" });
+    }
+    return { guides, stub: laterLineChild(i, r.depth) };
+  });
+}
+
+/** A node's own due date:the earliest date of the due tokens inside its own part, counted only when the node is
  *  open own or, with `showDelegated`, delegated. A whole node: `itemDueDate`, as today. */
 function ownDueDate(item: ActionSnapshotItem, showDelegated: boolean): string | null {
   if (isWhole(item)) return itemDueDate(item.line, showDelegated);

@@ -4,6 +4,7 @@ import {
   buildDrawerRows,
   buildDueDrawerRows,
   collapseKey,
+  drawerTreeGuides,
   nodeState,
   nodeText,
   type DrawerFilter,
@@ -318,5 +319,36 @@ describe("buildDueDrawerRows", () => {
     expect(groups.map((g) => g.key)).toEqual(["today"]);
     expect(groups[0].rows.map((r) => r.item.id)).toEqual(["1"]);
     expect(groups[0].rows[0].item.dueDate).toBe("2026-10-24");
+  });
+});
+
+describe("drawerTreeGuides", () => {
+  it("joins line children like the editor: the last child ends, a sub-group passes its parent's line through", () => {
+    // root / child a / grandchild / child b / step of b / next root
+    const rows = [
+      { depth: 0, step: false },
+      { depth: 1, step: false },
+      { depth: 2, step: false },
+      { depth: 1, step: false },
+      { depth: 2, step: true },
+      { depth: 0, step: false },
+    ];
+    expect(drawerTreeGuides(rows)).toEqual([
+      { guides: [], stub: true },
+      { guides: [{ level: 0, kind: "tee" }], stub: true },
+      { guides: [{ level: 0, kind: "through" }, { level: 1, kind: "end" }], stub: false },
+      { guides: [{ level: 0, kind: "end" }], stub: false },
+      { guides: [], stub: false },
+      { guides: [], stub: false },
+    ]);
+  });
+
+  it("a step between line children keeps the parent's line going", () => {
+    const rows = [
+      { depth: 0, step: false },
+      { depth: 1, step: true },
+      { depth: 1, step: false },
+    ];
+    expect(drawerTreeGuides(rows).map((g) => g.guides)).toEqual([[], [{ level: 0, kind: "through" }], [{ level: 0, kind: "end" }]]);
   });
 });

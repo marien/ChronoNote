@@ -11099,3 +11099,24 @@ never closes its children, or the other way round).
   `action-tree-lines.spec.ts` (footprint unchanged, line position, dimming, breaks) and
   `action-groups-drawer.independent.spec.ts`; the drawer and due-view specs follow the glyph class and the new
   grouping (a `=> @priya` line under an action is its child, so its parent comes along as context).
+
+## 424. Action Drawer groups drawn like the note
+
+**Status: on main, not released yet.**
+
+Marien tried §423 in a dev build: the note looked right, the Action Drawer did not. A parent's glyph got narrower when
+its text overflowed; the tree lines ran from under the chevron instead of the glyph, so a group looked different from
+the note; the last child's line ran on below it; and a child group's glyph sat further right than a plain child's.
+
+- **The glyph keeps its width:** it is `flex: none` (only the row's first child was protected, and a parent's first
+  child was the chevron).
+- **Lines as in the editor:** down from below the parent's glyph, an elbow into each child's glyph, ending at the last
+  child; a line passes by a sub-group to a later sibling; steps get none (they are parts of the parent's line).
+  `drawerTreeGuides` in `actionDrawerRows.ts` works out per row which lines it draws, from the shown depths.
+- **The chevron moved to a gutter** at the row's left edge, at every depth, so it never sits on a line and every row
+  of one depth has its glyph at the same place. One depth is now 24 px (was 18), a depth-0 glyph starts at 18 px.
+- **The group count showed on long parents only by luck:** the shared rows wrap, so a parent whose text overflowed
+  pushed its `1/3` onto a hidden second line (and lifted the row's content above its middle). Drawer rows no longer
+  wrap.
+- **Tests:** `actionDrawerRows.test.ts` (`drawerTreeGuides`); `action-groups-drawer.independent.spec.ts` checks the
+  line starts at the parent glyph's middle and that a plain row's glyph lines up with a parent's.

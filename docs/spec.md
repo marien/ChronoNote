@@ -600,8 +600,10 @@ reachable from the top bar, a shortcut, or the command palette:
   resolved (`1/3`, display only). With "Only open" on, a group is listed when
   the parent or a descendant is open: the parent always (dimmed when resolved,
   as context), resolved descendants hidden and counted. A text match on a
-  parent shows its group; on a child, the child with its ancestors. A chevron
-  before a parent's glyph (click, or `Right`/`Left` while the filter is empty)
+  parent shows its group; on a child, the child with its ancestors. The tree
+  lines run as in the note (from below the parent's glyph, an elbow into each
+  child's glyph, ending at the last child; none for steps). A chevron in a
+  gutter at the row's left edge (click, or `Right`/`Left` while the filter is empty)
   folds the group for the session (keyed by note + parent text; a text filter
   unfolds it). `Ctrl+Space` cycles the row's own symbol; `Enter` jumps to its
   line; `Shift+Enter` forwards the row's line, and does nothing on a step. In
