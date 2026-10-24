@@ -11142,7 +11142,7 @@ comparisons per rebuild).
 
 ## 426. Section History draws groups like the note; topic and due pills in Section History and the Action Drawer
 
-**Status: on main, not released yet.**
+**Status: released in beta 0.33.0-8 (early channel only).**
 
 Marien asked, after trying §423-§425: Section History should group actions the same way, and Section History did not
 draw due dates, nor the Action Drawer topics and due dates, the way the note does.
