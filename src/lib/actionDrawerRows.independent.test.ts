@@ -645,12 +645,11 @@ describe("src/lib/actionDrawerRows", () => {
       expect(nodeText(rows[0].item)).toBe("resolved parent");
       expect(rows[0].progress).toEqual({ resolved: 1, total: 3 });
 
-      // Open child 1 (with date) and open child 3 (without date) are shown; resolved child 2 is hidden
+      // The undated root is there for its dated child: only the dated child shows (design section 6, review
+      // finding); the resolved child 2 is hidden and counted. The row text keeps the `by:` date.
       const descendantTexts = rows.slice(1).map((r) => nodeText(r.item));
-      // The row text keeps the `by:` date, as the drawer always showed it.
-      expect(descendantTexts).toEqual(["child 1 by:2026-10-24", "child 3"]);
+      expect(descendantTexts).toEqual(["child 1 by:2026-10-24"]);
       expect(rows[1].item.dueDate).toBe("2026-10-24");
-      expect(rows[2].item.dueDate).toBeUndefined();
     });
 
     it("sorts groups inside buckets by key date, note date desc, scratchpads last, root line asc", () => {

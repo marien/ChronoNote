@@ -40,6 +40,12 @@ export function countActions(text: string): { open: number; closed: number; forw
  * by the Action Drawer's "only open" toggle (§44) and its glyph-only
  * display (§45), so both agree on exactly what counts as "this line's
  * action state." */
+/** Where `innermostActionSymbol`'s symbol sits in the line, or null (§423: the drawer cycles the symbol it shows). */
+export function innermostActionSymbolCol(line: string): number | null {
+  const tokens = tokenizeLine(line);
+  return (tokens.find((t) => t.kind === "consequence") ?? tokens.find((t) => t.kind === "action"))?.from ?? null;
+}
+
 export function innermostActionSymbol(line: string): "#" | "v" | ">" | "x" | null {
   const tokens = tokenizeLine(line);
   const sym = (tokens.find((t) => t.kind === "consequence") ?? tokens.find((t) => t.kind === "action"))?.symbol;

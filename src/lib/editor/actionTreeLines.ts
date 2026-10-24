@@ -146,7 +146,8 @@ export const actionTreeLinesLayer = layer({
     const cw = view.defaultCharacterWidth || 8;
 
     let col0 = base.left;
-    const vpLine = view.state.doc.lineAt(view.viewport.from);
+    // The viewport can still describe the longer document for a moment after a deletion.
+    const vpLine = view.state.doc.lineAt(Math.min(view.viewport.from, view.state.doc.length));
     const coords = view.coordsAtPos(vpLine.from);
     if (coords) {
       col0 = coords.left;

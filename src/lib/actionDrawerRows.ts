@@ -213,13 +213,17 @@ export function buildDueDrawerRows<T extends ActionSnapshotItem>(
     if (dueDate !== null) candidates.push({ filename: root.filename, lineIdx: root.lineIdx, dueDate, root });
   }
 
+  // A dated root brings its open descendants; a group listed only because of a dated child shows its root (and any
+  // line between) as context and just the dated lines, so undated siblings do not crowd the due view.
+  let rootDated = false;
   const ctx: WalkCtx<T, T & { dueDate?: string }> = {
     kids,
     needle: f.text.toLowerCase(),
     collapsed: f.collapsed,
     accept: (item, isRoot) => {
-      // Resolved descendants are hidden (they only count in `progress`); a root is listed because of its group.
-      if (isRoot) return dueOf(item) !== null || nodeState(item) === "#";
+      // Resolved descendants are hidden (they only count in `progress`).
+      if (isRoot) return rootDated;
+      if (!rootDated) return dueOf(item) !== null;
       if (nodeState(item) === "#") return true;
       return f.showDelegated && !isWhole(item) && item.delegated === true;
     },
@@ -233,7 +237,10 @@ export function buildDueDrawerRows<T extends ActionSnapshotItem>(
   const result: { key: DueGroupKey; rows: DrawerRow<T & { dueDate?: string }>[] }[] = [];
   for (const group of groupByDue(candidates, todayISO)) {
     const rows: DrawerRow<T & { dueDate?: string }>[] = [];
-    for (const c of group.items) rows.push(...walk(c.root, true, false, ctx));
+    for (const c of group.items) {
+      rootDated = dueOf(c.root) !== null;
+      rows.push(...walk(c.root, true, false, ctx));
+    }
     if (rows.length > 0) result.push({ key: group.key, rows });
   }
   return result;

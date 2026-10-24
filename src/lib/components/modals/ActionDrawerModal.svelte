@@ -137,11 +137,16 @@
     loadingAllFiles = false;
     await tick();
 
-    // By id first (a row keeps its id while its text changes), then today's filename + line match.
-    let nextIdx = prevId ? flatList.findIndex((r) => r.item.id === prevId) : -1;
-    if (nextIdx === -1 && prevFilename && prevLine) {
-      nextIdx = flatList.findIndex((r) => r.item.filename === prevFilename && r.item.line === prevLine);
-    }
+    // By content first (ids carry the line number, which an edit above the row shifts), the same part of that
+    // line (a parent and its steps share one line), then by id when the text itself changed.
+    const prevStep = currentItem?.stepIndex;
+    let nextIdx =
+      prevFilename && prevLine
+        ? flatList.findIndex(
+            (r) => r.item.filename === prevFilename && r.item.line === prevLine && r.item.stepIndex === prevStep,
+          )
+        : -1;
+    if (nextIdx === -1 && prevId) nextIdx = flatList.findIndex((r) => r.item.id === prevId);
     if (nextIdx !== -1) {
       selectedIndex = nextIdx;
       scrollSelectedIntoView();
@@ -417,7 +422,9 @@
     } else if (e.key === "Enter" && e.shiftKey) {
       e.preventDefault();
       const it = flatList[selectedIndex]?.item;
-      if (it) controller.forwardActionToTodayItem(it);
+      // The forwarded copy goes on top of today's note, which moves its lines down: rebuild the rows so later
+      // keys do not act on the line above.
+      if (it) void controller.forwardActionToTodayItem(it).then(() => refreshSnapshot());
     } else if (e.key === "Enter") {
       e.preventDefault();
       const it = flatList[selectedIndex]?.item;

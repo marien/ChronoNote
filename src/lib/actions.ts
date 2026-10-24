@@ -15,7 +15,13 @@ import {
 import { refreshAllNotesCache, updateNoteOnDisk, writeTabContent } from "./persistence";
 import { openOrCreateDatedFile } from "./tabs";
 import { compareTabsByRecency, sortFilenamesByRecency } from "./tabSort";
-import { cycleActionSymbol, cycleActionSymbolAt, getSectionHeaderForLine, normalizeHeaderTitle } from "./tokens";
+import {
+  cycleActionSymbol,
+  cycleActionSymbolAt,
+  getSectionHeaderForLine,
+  innermostActionSymbolCol,
+  normalizeHeaderTitle,
+} from "./tokens";
 import { actionTree, flattenActionTree, type ActionNode } from "./actionGroups";
 import { todayISO } from "./date";
 import { forwardLink, withFromLink, withToLink } from "./paste";
@@ -189,11 +195,23 @@ export function forwardActionToToday(tabId: string, lineIdx: number) {
 /** Toggle/forward for an Action Drawer item that may come from "All Files"
  * mode and not have an open tab yet — opens it first if needed. */
 export async function toggleActionLineItem(
-  item: { tabId?: string; filename: string; lineIdx: number; symbolCol?: number | null },
+  item: {
+    tabId?: string;
+    filename: string;
+    lineIdx: number;
+    symbolCol?: number | null;
+    delegated?: boolean;
+    whole?: boolean;
+    line?: string;
+  },
   direction: 1 | -1 = 1,
 ) {
+  // A delegated part has no state of its own: cycling "the line" would change its parent's symbol instead.
+  if (item.delegated && !item.whole) return;
+  // A line not split into rows shows its innermost symbol, so that is the one that cycles.
+  const symbolCol = item.symbolCol ?? (item.whole && item.line !== undefined ? innermostActionSymbolCol(item.line) : null);
   const tabId = item.tabId ?? (await ensureFileOpenAndGetTabId(item.filename));
-  toggleActionLine(tabId, item.lineIdx, direction, item.symbolCol);
+  toggleActionLine(tabId, item.lineIdx, direction, symbolCol);
 }
 
 export async function forwardActionToTodayItem(item: {

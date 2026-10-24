@@ -1022,6 +1022,29 @@ describe("toggleActionLine / forwardActionToToday", () => {
     expect(get(controller.tabs)[0].content).toBe("x do the thing");
   });
 
+  // §423 review findings: a drawer row only ever changes its own symbol.
+  it("a delegated step row changes nothing, not its parent's symbol", async () => {
+    controller.tabs.set([tab({ id: "a", content: "# task => @bob ask" })]);
+    const step = controller.buildActionSnapshotOpenTabs().find((i) => i.kind === "step")!;
+    await controller.toggleActionLineItem(step);
+    expect(get(controller.tabs)[0].content).toBe("# task => @bob ask");
+  });
+
+  it("a step row cycles its own symbol", async () => {
+    controller.tabs.set([tab({ id: "a", content: "# task => # one => # two" })]);
+    const two = controller.buildActionSnapshotOpenTabs().find((i) => i.stepIndex === 2)!;
+    await controller.toggleActionLineItem(two);
+    expect(get(controller.tabs)[0].content).toBe("# task => # one => v two");
+  });
+
+  it("a line not split into rows cycles the symbol the row shows (its first consequence)", async () => {
+    controller.tabs.set([tab({ id: "a", content: ". topic => # first => v second" })]);
+    const [item] = controller.buildActionSnapshotOpenTabs();
+    expect(item.whole).toBe(true);
+    await controller.toggleActionLineItem(item);
+    expect(get(controller.tabs)[0].content).toBe(". topic => v first => v second");
+  });
+
   it("forwards an open action to today, marking the source deferred", () => {
     controller.tabs.set([
       tab({ id: "src", filename: "2026-08-01.txt", content: "# call the client" }),

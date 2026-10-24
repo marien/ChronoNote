@@ -252,7 +252,8 @@ describe("buildDueDrawerRows", () => {
     const groups = buildDueDrawerRows(items, TODAY, { showDelegated: true, text: "", collapsed: new Set() });
     expect(groups.map((g) => g.key)).toEqual(["overdue"]);
     expect(plain(groups[0].rows)).toEqual(["Job", "@bob chase"]);
-    expect(groups[0].rows[0].contextOnly).toBe(false);
+    // The undated parent is there for its dated child: context.
+    expect(groups[0].rows[0].contextOnly).toBe(true);
   });
 
   it("a step's own date puts the group in its bucket", () => {
@@ -260,7 +261,20 @@ describe("buildDueDrawerRows", () => {
     const groups = buildDueDrawerRows(items, TODAY, { showDelegated: false, text: "", collapsed: new Set() });
     expect(groups.map((g) => g.key)).toEqual(["thisWeek"]);
     expect(plain(groups[0].rows)).toEqual(["Call bank", "get quote"]);
-    expect(groups[0].rows[0].contextOnly).toBe(false);
+    expect(groups[0].rows[0].contextOnly).toBe(true);
+  });
+
+  it("a group listed for a dated child shows only the dated lines, not undated siblings (review finding)", () => {
+    const items = itemsOf("n.txt", "# Release\n  # changelog\n  # build by:2026-10-20\n    # sign");
+    const groups = buildDueDrawerRows(items, TODAY, { showDelegated: false, text: "", collapsed: new Set() });
+    expect(plain(groups[0].rows)).toEqual(["Release", "build"]);
+    expect(groups[0].rows.map((r) => r.contextOnly)).toEqual([true, false]);
+  });
+
+  it("a dated parent still brings all its open descendants", () => {
+    const items = itemsOf("n.txt", "# Release by:2026-10-20\n  # changelog\n  v build\n  # announce");
+    const groups = buildDueDrawerRows(items, TODAY, { showDelegated: false, text: "", collapsed: new Set() });
+    expect(plain(groups[0].rows)).toEqual(["Release", "changelog", "announce"]);
   });
 
   it("sorts groups inside a bucket like today's list: date, note date descending, line", () => {

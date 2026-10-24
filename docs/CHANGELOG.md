@@ -11055,3 +11055,47 @@ Marien's feedback on beta 0.33.0-4:
 - **Tests:** `compact-date-picker.spec.ts` and `compact-date-picker.independent.spec.ts` (placement, size, keys,
   words, Export range, calendar sync, no markers, phone width, keyboard isolation); the due-date specs moved to the
   compact picker; `glyph-layout.spec.ts` covers the topic pill rule (hidden on the line, on hover, shown at either edge).
+
+## 423. Action groups: sub-actions joined in the note, nested in the Action Drawer
+
+**Status: on main, not released yet.**
+
+Marien writes multi-part actions four ways (a `: a, b, c` list, `=> #` steps on one line, indented action lines, and
+`=> #` lines under an action, indented or not). Design `docs/design/action-groups-design.md` with his decisions:
+indented lines are the standard for a checklist, `=>` steps mean "then"; grouping is visual only (closing a parent
+never closes its children, or the other way round).
+
+- **The rule, kept simple on purpose** (`src/lib/actionGroups.ts`, `actionTree`): an action line followed directly by
+  action lines indented more than it, or by `=> <symbol>` / `=> @name` lines at its own indent, is a parent; any other
+  line ends the group (an empty line, prose, a bullet, a topic, a plain `=> text`, a title) and nothing after it is
+  picked up again. Every later `=> <symbol>` / `=> @name` part on a group line is a numbered step.
+- **Editor:** a thin muted tree line from under the parent's glyph to its last child, an elbow into each indented
+  child (`src/lib/editor/actionTreeLines.ts`, a CodeMirror layer: no width, height or baseline change). It dims when
+  the whole group is resolved and the caret is not in it. Steps and `: a, b, c` lists look as before.
+- **Action Drawer:** one row per action instead of per line (`src/lib/actionDrawerRows.ts`). Children are nested rows
+  with a tree line, steps are numbered rows, the parent shows `1/3` (resolved of all descendants with a state,
+  display only). With "Only open", the parent always shows (dimmed when resolved) and resolved children are hidden
+  and counted. A text match on a parent shows its group, on a child the child with its ancestors. A chevron (or
+  `Right`/`Left` while the filter is empty) folds a group for the session. `Ctrl+Space` cycles the row's own symbol
+  (`cycleActionSymbolAt`); a delegated step has none and changes nothing; a line not split into rows cycles the
+  symbol it shows. `Shift+Enter` forwards a row's line as before (only the parent line, Marien's choice), not a step.
+- **Due view:** a group is listed once, under the earliest due date among its open own lines. A dated parent brings
+  its open children; a group listed only for a dated child shows the parent (and any line between) as context and
+  just the dated lines. Dates are not inherited: the status bar's overdue count still counts lines.
+- **Where an action comes from** (also asked): the section (note date and section in the due view) no longer sits in
+  italics under every action in the docked pane; it shows right-aligned in small grey text on the selected row only,
+  and not at all when it does not fit next to the action. The tooltip carries it.
+- **Built by:** Claude (design, briefs, the source label, integration, fixes) and, from briefs, Gemini 3.8 Flash
+  (`actionTree`, the editor tree lines) and Google-Sonnet (the drawer), each brief with an independent Gemini test
+  writer (49 + 80 tests from the brief only; their few wrong expectations were about details the brief left open and
+  were corrected). A Gemini review of the whole diff found five real issues, all fixed with tests: `Ctrl+Space` on a
+  delegated step changed its parent's symbol; a line not split into rows cycled a different symbol than it showed;
+  the docked pane reselected rows by line number after an edit above them; after `Shift+Enter` the rows of today's
+  note pointed one line too high (rows are now rebuilt after a forward); the tree-line layer could throw right after a
+  deletion shrank the document. Not taken: forwarding `=> #` lines (never supported), `aria-level` on listbox options
+  (not allowed there; the chevron button carries `aria-expanded`), incremental tree updates (daily notes are small).
+- **Tests:** `actionGroups.test.ts` + `.independent.test.ts`, `actionDrawerRows.test.ts` + `.independent.test.ts`,
+  `cycleActionSymbolAt.test.ts`, `editor/actionTreeLines.test.ts`, `controller.test.ts` (row toggles); Playwright
+  `action-tree-lines.spec.ts` (footprint unchanged, line position, dimming, breaks) and
+  `action-groups-drawer.independent.spec.ts`; the drawer and due-view specs follow the glyph class and the new
+  grouping (a `=> @priya` line under an action is its child, so its parent comes along as context).
