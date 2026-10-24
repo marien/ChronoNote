@@ -6,6 +6,7 @@ then gets a line in its CHANGELOG section) or found broken (it then becomes a fi
 
 | Since | What to check | Where / how | Section |
 |---|---|---|---|
+| 2026-10-24 | Action groups in your own notes: the tree lines under indented and `=> #` sub-actions at 125 % (dark and light), the docked Action Drawer's nested rows, step numbers, `1/3` counts and folding, Ctrl+Space on a child and a step, the due view with a dated child, and the source label only on the selected row | Desktop app, next beta | §423 |
 | 2026-10-23 | Due dates in daily use: typing `by:vr` / `by:morgen` with the Dutch UI and leaving the line; the flag and outline at 125 % (dark and light, Color and Grayscale); the "N overdue" count after the app stayed open overnight; the compact date picker from a due date, Export and the calendar sync review | Desktop app, beta 0.33.0-5 | §419, §421, §422 |
 | 2026-10-23 | The new icon on the real taskbar (dark and light) and desktop: as large as the other apps' icons and sharp at 125 % (Windows caches icons: if the old one lingers after the update, sign out and in) | Desktop app after the next release | §416 |
 | 2026-10-22 | After the installed web app updates (to v0.32.6 or later) with an expired OneDrive sign-in: sign in, and the "Updated to" notice still appears afterwards (the new version's own start decides, so the update to v0.32.6 already shows it) | Phone, installed web app | §415 |
