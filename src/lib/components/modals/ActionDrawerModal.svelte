@@ -21,10 +21,11 @@
     collapseKey,
     nodeState,
     nodeText,
+    nodeTextRange,
     type DrawerRow,
   } from "../../actionDrawerRows";
   import { closeOnOutsideClick } from "../../actions/closeOnOutsideClick";
-  import { glyphForSymbol } from "../../editor/glyphLine";
+  import { glyphForSymbol, parseGlyphLine } from "../../editor/glyphLine";
   import { groupHeaderLabel } from "../../ui/listFormat";
   import Icon from "../../icons/Icon.svelte";
   import Segmented from "../Segmented.svelte";
@@ -619,7 +620,19 @@
             {/if}
             <div class="modal-item-main">
               <span class="{g.cls ?? ''} item-glyph">{g.char}</span>
-              <span class="item-text {sym === 'v' || sym === 'x' ? 'item-completed' : ''}" title={[text, item.header].filter(Boolean).join(" · ")}>{text}</span>
+              <span class="item-text {sym === 'v' || sym === 'x' ? 'item-completed' : ''}" title={[text, item.header].filter(Boolean).join(" · ")}>
+                {#each parseGlyphLine(item.line, { today: $currentDateISO, ...nodeTextRange(item) }) as part}
+                  {#if part.parts}
+                    <span class={part.cls ?? ""} title={part.title}>
+                      {#each part.parts as subPart}
+                        <span class={subPart.cls ?? ""} title={subPart.title}>{subPart.text}</span>
+                      {/each}
+                    </span>
+                  {:else}
+                    <span class={part.cls ?? ""} title={part.title}>{part.text}</span>
+                  {/if}
+                {/each}
+              </span>
               <!-- Inside the text's box: a long text then shortens itself instead of pushing the count off the row. -->
               {#if r.progress}
                 <span

@@ -12,7 +12,9 @@ export interface RenderedPart extends GlyphPart {
 }
 
 export function renderResultLine(line: string, query = ""): RenderedPart[] {
-  const parts = parseGlyphLine(line);
+  // Flat parts, so the search highlight can split them: a topic stays one pill with its parentheses showing, a due
+  // date stays plain text.
+  const parts = parseGlyphLine(line).map((p): GlyphPart => (p.parts ? { text: p.text, cls: p.cls === "glyph-topic" ? p.cls : undefined } : p));
   const q = query.trim().toLowerCase();
   if (!q) return parts;
 

@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   nodeState,
   nodeText,
+  nodeTextRange,
   collapseKey,
   buildDrawerRows,
   buildDueDrawerRows,
@@ -199,6 +200,84 @@ describe("src/lib/actionDrawerRows", () => {
         header: "Notes",
       };
       expect(nodeText(legacy)).toBe("simple legacy action");
+    });
+
+    describe("nodeTextRange", () => {
+      it("item.line.slice(from, to) === nodeText(item) across whole lines, items without tree fields, line nodes, steps, delegated steps", () => {
+        // 1. Line nodes (with various symbols and indentation)
+        const lineNodes = makeSnapshotItems("# release 0.34\n  v changelog   \n  > build\n  x cancel");
+        for (const item of lineNodes) {
+          const { from, to } = nodeTextRange(item);
+          expect(item.line.slice(from, to)).toBe(nodeText(item));
+        }
+
+        // 2. Steps (consequence / follow-up steps)
+        const steps = makeSnapshotItems("# parent => # laptop => v accounts => > ship");
+        for (const item of steps) {
+          const { from, to } = nodeTextRange(item);
+          expect(item.line.slice(from, to)).toBe(nodeText(item));
+        }
+
+        // 3. Delegated steps
+        const delegated = makeSnapshotItems("# parent => @dana accounts\n  => @sam review");
+        for (const item of delegated) {
+          const { from, to } = nodeTextRange(item);
+          expect(item.line.slice(from, to)).toBe(nodeText(item));
+        }
+
+        // 4. Items without tree fields (legacy / flat snapshot items)
+        const legacyItems: ActionSnapshotItem[] = [
+          { id: "leg-1", filename: "n.txt", lineIdx: 0, line: "  # simple legacy action  ", header: "H" },
+          { id: "leg-2", filename: "n.txt", lineIdx: 1, line: "v done legacy", header: "H" },
+          { id: "leg-3", filename: "n.txt", lineIdx: 2, line: "> deferred legacy", header: "H" },
+          { id: "leg-4", filename: "n.txt", lineIdx: 3, line: "x cancelled legacy", header: "H" },
+        ];
+        for (const item of legacyItems) {
+          const { from, to } = nodeTextRange(item);
+          expect(item.line.slice(from, to)).toBe(nodeText(item));
+        }
+
+        // 5. Whole line items
+        const wholeItems: ActionSnapshotItem[] = [
+          { id: "wh-1", filename: "n.txt", lineIdx: 0, line: "# whole open item", header: "H", whole: true },
+          { id: "wh-2", filename: "n.txt", lineIdx: 1, line: "  v whole done item  ", header: "H", whole: true },
+        ];
+        for (const item of wholeItems) {
+          const { from, to } = nodeTextRange(item);
+          expect(item.line.slice(from, to)).toBe(nodeText(item));
+        }
+      });
+
+      it("handles steps with plain text and empty actions", () => {
+        const stepNoSymbol: ActionSnapshotItem = {
+          id: "s-1",
+          filename: "n.txt",
+          lineIdx: 0,
+          line: "# parent => plain follow up",
+          header: "H",
+          kind: "step",
+          partFrom: 9,
+          partTo: 27,
+          stepIndex: 1,
+        };
+        const { from: f1, to: t1 } = nodeTextRange(stepNoSymbol);
+        expect(stepNoSymbol.line.slice(f1, t1)).toBe("plain follow up");
+        expect(stepNoSymbol.line.slice(f1, t1)).toBe(nodeText(stepNoSymbol));
+
+        const emptyAction: ActionSnapshotItem = {
+          id: "empty-1",
+          filename: "n.txt",
+          lineIdx: 0,
+          line: "# ",
+          header: "H",
+          kind: "line",
+          partFrom: 0,
+          partTo: 2,
+        };
+        const { from: f2, to: t2 } = nodeTextRange(emptyAction);
+        expect(emptyAction.line.slice(f2, t2)).toBe("");
+        expect(emptyAction.line.slice(f2, t2)).toBe(nodeText(emptyAction));
+      });
     });
   });
 

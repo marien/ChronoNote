@@ -43,6 +43,32 @@ export function nodeText(item: ActionSnapshotItem): string {
   return part.replace(/^[#v>x](?:\s+|$)/, "");
 }
 
+/** The character range [from, to) within `item.line` corresponding to `nodeText(item)`,
+ *  such that `item.line.slice(from, to) === nodeText(item)`. */
+export function nodeTextRange(item: ActionSnapshotItem): { from: number; to: number } {
+  const isWholeNode = isWhole(item);
+  const partFrom = isWholeNode ? 0 : (item.partFrom ?? 0);
+  const partTo = isWholeNode ? item.line.length : (item.partTo ?? item.line.length);
+  const rawPart = item.line.slice(partFrom, partTo);
+
+  const leadWs = rawPart.match(/^\s*/)?.[0].length ?? 0;
+  const trimmedStart = rawPart.slice(leadWs);
+
+  let prefixLen = 0;
+  if (trimmedStart.startsWith("=>")) {
+    const m = trimmedStart.match(/^=>\s+(?:[#v>x](?:\s+|$))?/);
+    prefixLen = m ? m[0].length : 0;
+  } else {
+    const m = trimmedStart.match(/^[#v>x](?:\s+|$)/);
+    prefixLen = m ? m[0].length : 0;
+  }
+
+  const from = partFrom + leadWs + prefixLen;
+  const trailWs = rawPart.length - rawPart.trimEnd().length;
+  const to = Math.max(from, partTo - trailWs);
+  return { from, to };
+}
+
 /** Session key for a collapsed group: note + parent text. */
 export function collapseKey(item: ActionSnapshotItem): string {
   return `${item.filename}\u0000${nodeText(item)}`;

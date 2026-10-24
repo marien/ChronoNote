@@ -138,4 +138,72 @@ describe("parseGlyphLine", () => {
     expect(text("nothing special on this line")).toBe("nothing special on this line");
     expect(classed("nothing special on this line")).toEqual([]);
   });
+
+  describe("due dates and range clipping (S426)", () => {
+    const today = "2026-10-24";
+
+    it("renders due dates with status class, tooltip title, and flag subpart", () => {
+      const parts = parseGlyphLine("# task by:2026-10-30", { today });
+      const due = parts.find((p) => p.cls?.startsWith("cm-due"));
+      expect(due).toBeDefined();
+      expect(due?.cls).toBe("cm-due cm-due-later");
+      expect(due?.text).toBe("by:2026-10-30");
+      expect(due?.title).toBeDefined();
+      expect(due?.parts).toEqual([
+        { text: "by:", cls: "cm-due-flag" },
+        { text: "2026-10-30" },
+      ]);
+    });
+
+    it("marks overdue, today, and resolved statuses correctly", () => {
+      const overdue = parseGlyphLine("# task by:2026-10-20", { today });
+      expect(overdue.find((p) => p.cls?.startsWith("cm-due"))?.cls).toBe("cm-due cm-due-overdue");
+
+      const dueToday = parseGlyphLine("# task by:2026-10-24", { today });
+      expect(dueToday.find((p) => p.cls?.startsWith("cm-due"))?.cls).toBe("cm-due cm-due-today");
+
+      const resolvedV = parseGlyphLine("v task by:2026-10-20", { today });
+      expect(resolvedV.find((p) => p.cls?.startsWith("cm-due"))?.cls).toBe("cm-due cm-due-resolved");
+
+      const resolvedFwd = parseGlyphLine("> task by:2026-10-20", { today });
+      expect(resolvedFwd.find((p) => p.cls?.startsWith("cm-due"))?.cls).toBe("cm-due cm-due-resolved");
+
+      const resolvedX = parseGlyphLine("x task by:2026-10-20", { today });
+      expect(resolvedX.find((p) => p.cls?.startsWith("cm-due"))?.cls).toBe("cm-due cm-due-resolved");
+    });
+
+    it("marks consequence actions resolved based on the consequence state", () => {
+      const openConseq = parseGlyphLine("Talked => # follow up by:2026-10-20", { today });
+      expect(openConseq.find((p) => p.cls?.startsWith("cm-due"))?.cls).toBe("cm-due cm-due-overdue");
+
+      const doneConseq = parseGlyphLine("Talked => v follow up by:2026-10-20", { today });
+      expect(doneConseq.find((p) => p.cls?.startsWith("cm-due"))?.cls).toBe("cm-due cm-due-resolved");
+    });
+
+    it("keeps dueWord tokens as plain text", () => {
+      const parts = parseGlyphLine("# task by:tomorrow", { today });
+      expect(parts.some((p) => p.cls?.startsWith("cm-due"))).toBe(false);
+      expect(parts.map((p) => p.text).join("")).toBe("☐ task by:tomorrow");
+    });
+
+    it("clips parts according to from and to ranges", () => {
+      const line = "# (topic) review doc by:2026-10-30";
+      // Clip out the leading action glyph, keep topic and due date
+      const clipped = parseGlyphLine(line, { today, from: 2, to: line.length });
+      expect(clipped.map((p) => p.text).join("")).toBe("(topic) review doc by:2026-10-30");
+      expect(clipped[0].cls).toBe("glyph-topic");
+      expect(clipped[0].text).toBe("(topic)");
+      const due = clipped.find((p) => p.cls?.startsWith("cm-due"));
+      expect(due?.text).toBe("by:2026-10-30");
+
+      // Clip plain text and drop tokens outside range
+      const inner = parseGlyphLine(line, { today, from: 10, to: 20 });
+      expect(inner.map((p) => p.text).join("")).toBe("review doc");
+      expect(inner.every((p) => !p.cls)).toBe(true);
+
+      // Straddled token is emitted as plain text for the part inside
+      const straddled = parseGlyphLine(line, { today, from: 21, to: 26 });
+      expect(straddled).toEqual([{ text: "by:20" }]);
+    });
+  });
 });

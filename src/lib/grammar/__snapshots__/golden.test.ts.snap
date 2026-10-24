@@ -2507,6 +2507,19 @@ exports[`token behaviour snapshot (refactor R1) > edge cases 1`] = `
       },
       {
         "cls": "glyph-topic",
+        "parts": [
+          {
+            "cls": "glyph-topic-paren",
+            "text": "(",
+          },
+          {
+            "text": "topic",
+          },
+          {
+            "cls": "glyph-topic-paren",
+            "text": ")",
+          },
+        ],
         "text": "(topic)",
       },
       {
@@ -2587,6 +2600,19 @@ exports[`token behaviour snapshot (refactor R1) > edge cases 1`] = `
       },
       {
         "cls": "glyph-topic",
+        "parts": [
+          {
+            "cls": "glyph-topic-paren",
+            "text": "(",
+          },
+          {
+            "text": "topic",
+          },
+          {
+            "cls": "glyph-topic-paren",
+            "text": ")",
+          },
+        ],
         "text": "(topic)",
       },
       {
@@ -2664,6 +2690,19 @@ exports[`token behaviour snapshot (refactor R1) > edge cases 1`] = `
       },
       {
         "cls": "glyph-topic",
+        "parts": [
+          {
+            "cls": "glyph-topic-paren",
+            "text": "(",
+          },
+          {
+            "text": "topic",
+          },
+          {
+            "cls": "glyph-topic-paren",
+            "text": ")",
+          },
+        ],
         "text": "(topic)",
       },
       {
@@ -2880,6 +2919,19 @@ exports[`token behaviour snapshot (refactor R1) > edge cases 1`] = `
       },
       {
         "cls": "glyph-topic",
+        "parts": [
+          {
+            "cls": "glyph-topic-paren",
+            "text": "(",
+          },
+          {
+            "text": "topic",
+          },
+          {
+            "cls": "glyph-topic-paren",
+            "text": ")",
+          },
+        ],
         "text": "(topic)",
       },
       {
@@ -2957,6 +3009,19 @@ exports[`token behaviour snapshot (refactor R1) > edge cases 1`] = `
       },
       {
         "cls": "glyph-topic",
+        "parts": [
+          {
+            "cls": "glyph-topic-paren",
+            "text": "(",
+          },
+          {
+            "text": "topic",
+          },
+          {
+            "cls": "glyph-topic-paren",
+            "text": ")",
+          },
+        ],
         "text": "(topic)",
       },
       {
@@ -14196,6 +14261,19 @@ exports[`token behaviour snapshot (refactor R1) > scenario corpus 1`] = `
       },
       {
         "cls": "glyph-topic",
+        "parts": [
+          {
+            "cls": "glyph-topic-paren",
+            "text": "(",
+          },
+          {
+            "text": "interviews",
+          },
+          {
+            "cls": "glyph-topic-paren",
+            "text": ")",
+          },
+        ],
         "text": "(interviews)",
       },
       {
@@ -14924,6 +15002,19 @@ exports[`token behaviour snapshot (refactor R1) > scenario corpus 1`] = `
       },
       {
         "cls": "glyph-topic",
+        "parts": [
+          {
+            "cls": "glyph-topic-paren",
+            "text": "(",
+          },
+          {
+            "text": "sync",
+          },
+          {
+            "cls": "glyph-topic-paren",
+            "text": ")",
+          },
+        ],
         "text": "(sync)",
       },
       {
@@ -15355,6 +15446,19 @@ exports[`token behaviour snapshot (refactor R1) > scenario corpus 1`] = `
       },
       {
         "cls": "glyph-topic",
+        "parts": [
+          {
+            "cls": "glyph-topic-paren",
+            "text": "(",
+          },
+          {
+            "text": "interviews",
+          },
+          {
+            "cls": "glyph-topic-paren",
+            "text": ")",
+          },
+        ],
         "text": "(interviews)",
       },
       {
