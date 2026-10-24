@@ -611,7 +611,8 @@ reachable from the top bar, a shortcut, or the command palette:
   own lines: a dated parent with its open descendants (delegated ones when the
   filter has `@`, as everywhere in the drawer), an undated one as context for
   just its dated descendants; dates are not inherited
-  and the overdue count still counts lines. The row's source (section; note
+  and the overdue count still counts lines. A row's text is drawn like the
+  note (§426): the topic pill, the due date's flag and outline, `@name`. The row's source (section; note
   date and section in the due view) shows right-aligned only on the selected
   row, and not at all when it does not fit next to the action; the tooltip
   carries it.
@@ -646,7 +647,14 @@ reachable from the top bar, a shortcut, or the command palette:
   straight to that section and closes the drawer. The selected occurrence's
   *entire* body renders below,
   glyph-rendered and scrollable — the same rendering the editor itself
-  uses, not an extracted list of actions out of context. Keyboard: Up/Down
+  uses, not an extracted list of actions out of context. Action groups get
+  the editor's tree lines (§426: from below the parent's glyph, an elbow into
+  each line child's glyph, ending at the last child, dimmed when resolved;
+  drawn over the text, no layout change), and a wrapped line of a group
+  continues at its text column so it never runs under a line. Topic tags are
+  the editor's pill with transparent parentheses, due dates the flag and
+  outline in their state (overdue, today, later, resolved) with the date as
+  tooltip. Keyboard: Up/Down
   move a single-line selection, Shift+Up/Down grow or shrink a range from
   wherever it started, Left/Right cycle the browsed occurrence (wrapping
   at either end), Enter jumps to the source file. Mouse: click selects one

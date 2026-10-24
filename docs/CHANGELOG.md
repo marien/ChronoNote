@@ -11139,3 +11139,30 @@ Gemini 3.8 Flash reviewed §424 after it went out in 0.33.0-6 (Marien asked for 
 Not taken: masking the line behind a step number of two digits (only when ten or more steps come before a child line);
 a single-pass `drawerTreeGuides` (its forward scans stop at the end of a subtree; a 200-step group costs ~20,000
 comparisons per rebuild).
+
+## 426. Section History draws groups like the note; topic and due pills in Section History and the Action Drawer
+
+**Status: on main, not released yet.**
+
+Marien asked, after trying §423-§425: Section History should group actions the same way, and Section History did not
+draw due dates, nor the Action Drawer topics and due dates, the way the note does.
+
+- **One read-only rendering:** `parseGlyphLine` draws a due date as in the editor (one outline coloured by state,
+  overdue / today / later / resolved, the flag over `by:`, the date as tooltip; `dueTooltip.ts` is shared with the
+  editor) and a topic tag as the editor's idle pill (parentheses stay as text, transparent). Parts can now nest, and
+  a `from`/`to` range renders part of a line while tokenizing all of it (a topic tag is only one right after the
+  symbol).
+- **Action Drawer:** a row's text is that rendering of its own part of the line (`nodeTextRange`), so topic, due date
+  and `@name` look as in the note. Rows stay 36 px.
+- **Section History:** the occurrence body gets the editor's tree lines, per line and absolutely positioned (no layout
+  change, selection unchanged), from the same `treeConnectors(actionTree(lines))`. Lines of a group get a hanging
+  indent so a wrapped row starts at the text column and never runs under a line.
+- **Search result rows** keep flat parts (their highlight splits parts): the topic pill with visible parentheses and
+  the due date as plain text, as before.
+- **Built by:** Gemini 3.8 Flash from a brief (the rendering, the drawer, Section History), an independent Gemini test
+  writer from the brief only (4 files: `glyphLine.independent.test.ts`, `actionDrawerRows.range.independent.test.ts`,
+  `drawer-pills.independent.spec.ts`, `history-groups.independent.spec.ts`), all passing on the combined branch.
+  Claude reviewed the code and checked it in the browser, and added the transparent topic parentheses, the flat
+  search rows and the docs. The golden token snapshot gained the topic pills' nested parts and nothing else.
+- **Tests:** also `glyphLine.test.ts`, `actionDrawerRows.independent.test.ts` (`nodeTextRange`) and
+  `history-pane.spec.ts` (line geometry and unchanged line heights).

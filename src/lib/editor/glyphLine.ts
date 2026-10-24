@@ -104,7 +104,16 @@ export function parseGlyphLine(line: string, opts?: ParseGlyphLineOpts): GlyphPa
         parts.push({ text: line.slice(t.from, t.to), cls: "glyph-assignee" });
         break;
       case "topicTag":
-        parts.push({ text: line.slice(t.from, t.to), cls: "glyph-topic" });
+        // As in the editor when the caret is elsewhere: the parentheses stay as text, transparent (§426).
+        parts.push({
+          text: line.slice(t.from, t.to),
+          cls: "glyph-topic",
+          parts: [
+            { text: "(", cls: "glyph-topic-paren" },
+            { text: line.slice(t.from + 1, t.to - 1) },
+            { text: ")", cls: "glyph-topic-paren" },
+          ],
+        });
         break;
       case "due": {
         const part = actionParts.find((p) => t.from >= p.from && t.from < p.to);
