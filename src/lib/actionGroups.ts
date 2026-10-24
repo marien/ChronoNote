@@ -93,6 +93,9 @@ export function actionTree(lines: string[]): ActionNode[] {
       }
     }
 
+    // A group line always has an own part; the guard only keeps a tokenizer surprise from crashing the drawer.
+    if (actionParts.length === 0) isGroupLine = false;
+
     if (!isGroupLine) {
       // Non-group lines break any active run. If they hold actions (e.g. topic lines), they form a whole node.
       stack.length = 0;
