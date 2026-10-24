@@ -14,6 +14,9 @@
   } from "../../controller";
   import { closeOnOutsideClick } from "../../actions/closeOnOutsideClick";
   import { parseGlyphLine } from "../../editor/glyphLine";
+  import { treeConnectors, type TreeConnector } from "../../editor/actionTreeLines";
+  import { actionTree } from "../../actionGroups";
+  import { getLineWrapIndent } from "../../editor/wrapIndent";
   import Icon from "../../icons/Icon.svelte";
   import Segmented from "../Segmented.svelte";
   import EmptyState from "../EmptyState.svelte";
@@ -68,6 +71,69 @@
     if (clamped !== selectedIndex) selectedIndex = clamped;
   });
   const selectedOcc = $derived(occurrences[selectedIndex] as SectionOccurrence | undefined);
+  const connectors = $derived(selectedOcc ? treeConnectors(actionTree(selectedOcc.lines)) : []);
+  const groupLineIndices = $derived.by(() => {
+    const set = new Set<number>();
+    for (const c of connectors) {
+      set.add(c.parentLineIdx);
+      for (const child of c.children) {
+        set.add(child.lineIdx);
+      }
+    }
+    return set;
+  });
+
+  interface LineSegment {
+    kind: "vertical" | "horizontal";
+    style: string;
+    resolved: boolean;
+  }
+
+  function lineSegments(lineIdx: number, activeConnectors: TreeConnector[]): LineSegment[] {
+    const segments: LineSegment[] = [];
+    for (const c of activeConnectors) {
+      if (c.children.length === 0) continue;
+      const parentIdx = c.parentLineIdx;
+      const lastChild = c.children[c.children.length - 1];
+      const lastChildIdx = lastChild.lineIdx;
+      if (lineIdx < parentIdx || lineIdx > lastChildIdx) continue;
+
+      const x = `calc(4px + ${c.parentCol}ch + var(--glyph-outside-size) / 2)`;
+
+      if (lineIdx === parentIdx) {
+        segments.push({
+          kind: "vertical",
+          style: `left: ${x}; top: 1.5em; bottom: 0;`,
+          resolved: c.resolved,
+        });
+      } else {
+        const child = c.children.find((k) => k.lineIdx === lineIdx);
+        if (child) {
+          const isLast = lineIdx === lastChildIdx;
+          segments.push({
+            kind: "vertical",
+            style: isLast ? `left: ${x}; top: 0; height: 0.75em;` : `left: ${x}; top: 0; bottom: 0;`,
+            resolved: c.resolved,
+          });
+          if (child.col - c.parentCol >= 2) {
+            const width = `calc(${child.col - c.parentCol}ch - 2px - var(--glyph-outside-size) / 2)`;
+            segments.push({
+              kind: "horizontal",
+              style: `left: ${x}; top: 0.75em; width: ${width};`,
+              resolved: c.resolved,
+            });
+          }
+        } else {
+          segments.push({
+            kind: "vertical",
+            style: `left: ${x}; top: 0; bottom: 0;`,
+            resolved: c.resolved,
+          });
+        }
+      }
+    }
+    return segments;
+  }
   const openedFromFilename = $derived($tabs.find((t) => t.id === $historyOpenedFromTabId)?.filename);
 
   // Chat feedback: "keep today's tab button and destination section tab
@@ -753,8 +819,12 @@
               {#each selectedOcc.lines as line, i}
                 {@const abs = selectedOcc.startLineIdx + i}
                 {@const inSel = !!lineSelection && abs >= lineSelection.from && abs <= lineSelection.to}
+                {@const inGroup = groupLineIndices.has(i)}
+                {@const wrapIndent = inGroup ? getLineWrapIndent(line) : 0}
+                {@const segments = lineSegments(i, connectors)}
                 <div
-                  class="hp-line history-select-line {inSel ? 'history-line-selected' : ''}"
+                  class="hp-line history-select-line {inSel ? 'history-line-selected' : ''} {wrapIndent > 0 ? 'has-wrap-indent' : ''}"
+                  style={wrapIndent > 0 ? `--line-indent: ${wrapIndent}ch;` : undefined}
                   role="option"
                   id="history-line-{abs}"
                   aria-selected={inSel}
@@ -765,9 +835,11 @@
                     startLineSelection(abs, e.shiftKey);
                   }}
                   onmouseenter={() => dragOverLine(abs)}
-                >
-                  {#each parseGlyphLine(line) as part}<span class={part.cls ?? ""}>{part.text}</span>{/each}
-                </div>
+                >{#each segments as seg}<span
+                    class="cm-action-tree-line is-{seg.kind} {seg.resolved ? 'is-resolved' : ''}"
+                    style={seg.style}
+                    aria-hidden="true"
+                  ></span>{/each}{#each parseGlyphLine(line, { today: $currentDateISO }) as part}{#if part.parts}<span class={part.cls ?? ""} title={part.title}>{#each part.parts as subPart}<span class={subPart.cls ?? ""} title={subPart.title}>{subPart.text}</span>{/each}</span>{:else}<span class={part.cls ?? ""} title={part.title}>{part.text}</span>{/if}{/each}</div>
               {/each}
             {/if}
           </div>
@@ -1089,6 +1161,16 @@
   white-space: pre-wrap;
   word-break: break-word;
   min-height: 1.5em;
+  position: relative;
+}
+
+.hp-line.has-wrap-indent {
+  padding-left: calc(4px + var(--line-indent, 0ch));
+  text-indent: calc(-1 * var(--line-indent, 0ch));
+}
+
+.hp-line.has-wrap-indent > * {
+  text-indent: 0;
 }
 
 .hp-line.hp-muted {

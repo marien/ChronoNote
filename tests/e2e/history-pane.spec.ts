@@ -181,4 +181,103 @@ test.describe("Section History docked pane (Proposal C1)", () => {
     await page.waitForTimeout(800);
     await expect(active).toContainText("2026-09-04");
   });
+
+  test("Section History draws group tree lines with correct geometry and preserves line height", async ({ page }) => {
+    const today = todayFilename();
+    const groupedLines = [
+      "Weekly Sync",
+      "===========",
+      "# (ops) release by:2026-10-30",
+      "  # changelog",
+      "  # build",
+      "  v announce",
+    ];
+    const ungroupedLines = [
+      "Weekly Sync",
+      "===========",
+      "# (ops) release by:2026-10-30",
+      "# changelog",
+      "# build",
+      "v announce",
+    ];
+
+    await seedApp(page, {
+      seed: {
+        notes: {
+          [today]: groupedLines.join("\n"),
+        },
+        session: { openTabs: [today], activeTab: today },
+      },
+    });
+
+    await editor(page).locator(".cm-line", { hasText: "release" }).click();
+    await page.keyboard.press("ControlOrMeta+Shift+H");
+    await expect(page.locator(".history-pane")).toBeVisible();
+
+    const lines = page.locator(".history-pane .hp-line");
+    await expect(lines).toHaveCount(4);
+
+    // Parent line is index 0 ("# (ops) release by:2026-10-30")
+    const parentLine = lines.nth(0);
+    const parentGlyph = parentLine.locator(".glyph-open").first();
+    await expect(parentGlyph).toBeVisible();
+    // Also verify topic and due pills render in Section History
+    await expect(parentLine.locator(".glyph-topic")).toBeVisible();
+    await expect(parentLine.locator(".cm-due")).toBeVisible();
+    await expect(parentLine.locator(".cm-due-flag")).toBeVisible();
+
+    const parentGlyphBox = await parentGlyph.boundingBox();
+    expect(parentGlyphBox).not.toBeNull();
+    const parentGlyphMiddle = parentGlyphBox!.x + parentGlyphBox!.width / 2;
+
+    // Line 1 ("  # changelog") has a vertical line meeting the parent glyph's middle
+    const firstChildLine = lines.nth(1);
+    const vertLine = firstChildLine.locator(".cm-action-tree-line.is-vertical").first();
+    await expect(vertLine).toBeVisible();
+    const vertBox = await vertLine.boundingBox();
+    expect(vertBox).not.toBeNull();
+
+    // 1. The line meets the parent glyph's middle within 1px
+    expect(Math.abs(vertBox!.x - parentGlyphMiddle)).toBeLessThanOrEqual(1);
+
+    // 2. The last child's line ends at its middle
+    // Last child is index 3 ("  v announce")
+    const lastChildLine = lines.nth(3);
+    const lastChildBox = await lastChildLine.boundingBox();
+    expect(lastChildBox).not.toBeNull();
+    const lastVertLine = lastChildLine.locator(".cm-action-tree-line.is-vertical").first();
+    await expect(lastVertLine).toBeVisible();
+    const lastVertBox = await lastVertLine.boundingBox();
+    expect(lastVertBox).not.toBeNull();
+
+    const lastChildMiddleY = lastChildBox!.y + lastChildBox!.height / 2;
+    const lastVertBottomY = lastVertBox!.y + lastVertBox!.height;
+    expect(Math.abs(lastVertBottomY - lastChildMiddleY)).toBeLessThanOrEqual(1);
+
+    const groupedHeights: number[] = [];
+    for (let i = 0; i < 4; i++) {
+      const box = await lines.nth(i).boundingBox();
+      expect(box).not.toBeNull();
+      groupedHeights.push(box!.height);
+    }
+
+    // 3. Line heights are the same with and without groups
+    await page.keyboard.press("Escape");
+    await editor(page).click();
+    await page.keyboard.press("ControlOrMeta+A");
+    await page.keyboard.insertText(ungroupedLines.join("\n"));
+    await page.waitForTimeout(300);
+
+    await page.keyboard.press("ControlOrMeta+Shift+H");
+    await expect(page.locator(".history-pane")).toBeVisible();
+
+    const ungroupedHistoryLines = page.locator(".history-pane .hp-line");
+    await expect(ungroupedHistoryLines).toHaveCount(4);
+
+    for (let i = 0; i < 4; i++) {
+      const box = await ungroupedHistoryLines.nth(i).boundingBox();
+      expect(box).not.toBeNull();
+      expect(box!.height).toBeCloseTo(groupedHeights[i], 1);
+    }
+  });
 });

@@ -1,12 +1,23 @@
 import { ARROW_GLYPH, GLYPHS, glyphSpecForSymbol } from "../grammar/glyphs";
-import { tokenizeLine } from "../grammar/tokenize";
+import { getLineActionParts, tokenizeLine } from "../grammar/tokenize";
+import { dueStatus } from "../tokens";
+import { todayISO } from "../date";
+import { dueTooltip } from "../dueTooltip";
 
 /** One rendered piece of a line: `text` is what to show; `cls` (a
- * `.glyph-*` class) is set when it's a glyph or a styled span, absent for
- * plain text. */
+ * `.glyph-*` or `.cm-due*` class) is set when it's a glyph or a styled span, absent for
+ * plain text. Nested `parts` represent inner structure (e.g. flag + date inside a due pill). */
 export interface GlyphPart {
   text: string;
   cls?: string;
+  title?: string;
+  parts?: GlyphPart[];
+}
+
+export interface ParseGlyphLineOpts {
+  today?: string;
+  from?: number;
+  to?: number;
 }
 
 /** Exported for `ActionDrawerModal` (§127, finding B) — its row icon used
@@ -28,25 +39,54 @@ export function glyphForSymbol(sym: string): GlyphPart {
  *
  * Also applies the inline highlights: every `@name` on *any* line (not one
  * glued to a word, so emails are left alone), a parenthesised `(@name)` or
- * list `(@a, @b, @c)` (#126), and a `(topic)` tag immediately after the
- * action symbol (#36/#39). Text between tokens is emitted verbatim, one
- * part per gap. */
-export function parseGlyphLine(line: string): GlyphPart[] {
+ * list `(@a, @b, @c)` (#126), a `(topic)` tag immediately after the
+ * action symbol (#36/#39), and due dates (§426). Text between tokens is emitted verbatim,
+ * one part per gap. */
+export function parseGlyphLine(line: string, opts?: ParseGlyphLineOpts): GlyphPart[] {
+  const rangeFrom = opts?.from ?? 0;
+  const rangeTo = opts?.to ?? line.length;
+  if (rangeFrom >= rangeTo) return [{ text: "" }];
+
+  const today = opts?.today ?? todayISO();
   const tokens = tokenizeLine(line);
+  const actionParts = getLineActionParts(line, tokens);
 
   const parts: GlyphPart[] = [];
-  let at = 0; // chars of `line` already emitted
-  const gap = (to: number) => {
-    if (to > at) parts.push({ text: line.slice(at, to) });
+  let at = rangeFrom; // chars of `line` already emitted
+
+  const gap = (toIdx: number) => {
+    const start = Math.max(at, rangeFrom);
+    const end = Math.min(toIdx, rangeTo);
+    if (end > start) parts.push({ text: line.slice(start, end) });
   };
 
   for (let i = 0; i < tokens.length; i++) {
     const t = tokens[i];
+    if (t.to <= rangeFrom) continue;
+    if (t.from >= rangeTo) break;
+
+    // Straddles rangeFrom
+    if (t.from < rangeFrom) {
+      const end = Math.min(t.to, rangeTo);
+      parts.push({ text: line.slice(rangeFrom, end) });
+      at = end;
+      continue;
+    }
+
+    // Gap before token
     gap(t.from);
+
+    // Straddles rangeTo
+    if (t.to > rangeTo) {
+      parts.push({ text: line.slice(t.from, rangeTo) });
+      at = rangeTo;
+      break;
+    }
+
+    // Completely within [rangeFrom, rangeTo)
     switch (t.kind) {
       case "emphasis":
-        // Emit the rest of the line from the emphasis token's `from` as ONE part and stop.
-        parts.push({ text: line.slice(t.from), cls: "glyph-emphasis-line" });
+        parts.push({ text: line.slice(t.from, rangeTo), cls: "glyph-emphasis-line" });
         return parts;
       case "action":
       case "topic":
@@ -66,12 +106,29 @@ export function parseGlyphLine(line: string): GlyphPart[] {
       case "topicTag":
         parts.push({ text: line.slice(t.from, t.to), cls: "glyph-topic" });
         break;
-      default: // "paren": ordinary text, but its own part
+      case "due": {
+        const part = actionParts.find((p) => t.from >= p.from && t.from < p.to);
+        const resolved = part?.state === "v" || part?.state === ">" || part?.state === "x";
+        const status = resolved ? "resolved" : dueStatus(t.date!, today);
+        const title = dueTooltip(t.date!, dueStatus(t.date!, today), today);
+        parts.push({
+          text: line.slice(t.from, t.to),
+          cls: `cm-due cm-due-${status}`,
+          title,
+          parts: [
+            { text: line.slice(t.from, t.from + 3), cls: "cm-due-flag" },
+            { text: line.slice(t.from + 3, t.to) },
+          ],
+        });
+        break;
+      }
+      default: // "dueWord", "paren": ordinary text, but its own part
         parts.push({ text: line.slice(t.from, t.to) });
     }
     at = t.to;
   }
-  if (at < line.length) parts.push({ text: line.slice(at) });
+
+  if (at < rangeTo) parts.push({ text: line.slice(at, rangeTo) });
 
   return parts.length > 0 ? parts : [{ text: "" }];
 }

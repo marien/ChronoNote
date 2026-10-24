@@ -8,6 +8,7 @@ import { dueStatus } from "../tokens";
 import { dueWordExtra, longDate, parseDueWord, parseISODateLocal } from "../date";
 import { openDateLink } from "../dateLinks";
 import { isMac } from "../platform";
+import { dueTooltip } from "../dueTooltip";
 
 /** §421: a due date is drawn on its own text, never replaced. Two marks: `.cm-due` over the whole `by:YYYY-MM-DD`
  * (the outline, coloured by state, drawn like the topic pill so it changes neither width nor height) and
@@ -18,17 +19,6 @@ const forceRedraw = StateEffect.define<void>();
 
 const FLAG = Decoration.mark({ class: "cm-due-flag", attributes: { spellcheck: "false" } });
 
-function tooltip(date: string, status: "overdue" | "today" | "later", loc: string, today: string): string {
-  const translate = get(t);
-  let detail = longDate(loc, date);
-  if (status === "overdue") {
-    const days = Math.max(1, Math.round((parseISODateLocal(today).getTime() - parseISODateLocal(date).getTime()) / 86400000));
-    detail += `, ${translate("dueDate.pill.daysLate", { count: days })}`;
-  } else if (status === "today") {
-    detail += `, ${translate("dueDate.pill.dueToday", undefined)}`;
-  }
-  return detail;
-}
 
 function build(view: EditorView): { decorations: DecorationSet; atomic: DecorationSet } {
   const b = new RangeSetBuilder<Decoration>();
@@ -67,7 +57,7 @@ function build(view: EditorView): { decorations: DecorationSet; atomic: Decorati
             to,
             Decoration.mark({
               class: `cm-due ${resolved ? "cm-due-resolved" : `cm-due-${status}`}`,
-              attributes: { title: tooltip(tok.date, status, loc, today), "data-due-date": tok.date },
+              attributes: { title: dueTooltip(tok.date, status, today), "data-due-date": tok.date },
             }),
           );
           b.add(from, from + 3, FLAG);
