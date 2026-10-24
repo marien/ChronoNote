@@ -360,6 +360,14 @@ export function cycleActionSymbol(line: string, direction: 1 | -1 = 1): string |
   return replaceActionSymbol(line, (sym) => nextCycleSymbol(sym, direction));
 }
 
+/** Like `cycleActionSymbol`, but cycles exactly the symbol at `index` (one node's own symbol of a line that
+ *  holds several); `null` when the character there is not an action symbol. */
+export function cycleActionSymbolAt(line: string, index: number, direction: 1 | -1 = 1): string | null {
+  const ch = line[index];
+  if (ch === undefined || !ACTION_CYCLE_ORDER.includes(ch)) return null;
+  return line.slice(0, index) + nextCycleSymbol(ch, direction) + line.slice(index + 1);
+}
+
 /** What clicking an action glyph does: an open action (`#`) is closed (`v`); anything that is no longer
  * open (done, deferred or won't-do) is reopened (`#`). Two states only: click used to walk through all
  * four, which never landed where you wanted; the direct shortcuts (`Ctrl/Cmd+1`-`4`, `Ctrl+Space`) reach

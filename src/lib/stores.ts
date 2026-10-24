@@ -150,6 +150,9 @@ export const chromeExpanded = writable<boolean>(false);
  * not persisted to disk. Defaults to on at launch. */
 export const actionDrawerShowOnlyOpen = writable<boolean>(true);
 export const actionDrawerDueView = writable<boolean>(false);
+/** Action Drawer groups the user collapsed (`collapseKey`): session only, never persisted. Replace the set on
+ *  change so subscribers notice. */
+export const actionDrawerCollapsed = writable<Set<string>>(new Set());
 export const actionDrawerScopeRequest = writable<"open" | "other" | "all" | null>(null);
 
 
