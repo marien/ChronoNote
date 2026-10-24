@@ -12,9 +12,16 @@
     currentDateISO,
     tabs,
   } from "../../controller";
-  import { groupByDue, itemDueDate, type DueGroupKey } from "../../dueOverview";
+  import type { DueGroupKey } from "../../dueOverview";
+  import {
+    buildDrawerRows,
+    buildDueDrawerRows,
+    collapseKey,
+    nodeState,
+    nodeText,
+    type DrawerRow,
+  } from "../../actionDrawerRows";
   import { closeOnOutsideClick } from "../../actions/closeOnOutsideClick";
-  import { innermostActionSymbol, stripLeadingToken } from "../../tokens";
   import { glyphForSymbol } from "../../editor/glyphLine";
   import { groupHeaderLabel } from "../../ui/listFormat";
   import Icon from "../../icons/Icon.svelte";
@@ -33,7 +40,7 @@
     wrapIndex,
     type PlacedRow,
   } from "./virtualList";
-  import { isMobile, editorApi } from "../../stores";
+  import { actionDrawerCollapsed, isMobile, editorApi } from "../../stores";
 
   interface Props {
     docked?: boolean;
@@ -62,7 +69,7 @@
   onMount(() => {
     const active = $tabs.find((t) => t.id === $activeTabId);
     if (active) {
-      const idx = flatList.findIndex((it) => it.filename === active.filename);
+      const idx = flatList.findIndex((r) => r.item.filename === active.filename);
       if (idx !== -1) selectedIndex = idx;
     }
     // Not on a phone: focusing the filter raises the keyboard over the list.
@@ -114,7 +121,8 @@
   });
 
   async function refreshSnapshot() {
-    const currentItem = flatList[selectedIndex];
+    const currentItem = flatList[selectedIndex]?.item;
+    const prevId = currentItem?.id;
     const prevFilename = currentItem?.filename;
     const prevLine = currentItem?.line;
 
@@ -129,14 +137,14 @@
     loadingAllFiles = false;
     await tick();
 
-    if (prevFilename && prevLine) {
-      const nextIdx = flatList.findIndex(
-        (it) => it.filename === prevFilename && it.line === prevLine,
-      );
-      if (nextIdx !== -1) {
-        selectedIndex = nextIdx;
-        scrollSelectedIntoView();
-      }
+    // By id first (a row keeps its id while its text changes), then today's filename + line match.
+    let nextIdx = prevId ? flatList.findIndex((r) => r.item.id === prevId) : -1;
+    if (nextIdx === -1 && prevFilename && prevLine) {
+      nextIdx = flatList.findIndex((r) => r.item.filename === prevFilename && r.item.line === prevLine);
+    }
+    if (nextIdx !== -1) {
+      selectedIndex = nextIdx;
+      scrollSelectedIntoView();
     }
   }
 
@@ -152,46 +160,38 @@
 
   const showDelegated = $derived(filter.includes("@"));
 
-  const liveSnapshot = $derived(
-    $actionSnapshot.map((item) => {
+  const liveSnapshot = $derived.by(() => {
+    // Split each note once, not once per item: a note now yields several items per line group.
+    const linesByTab = new Map<string, string[]>();
+    return $actionSnapshot.map((item) => {
       const tab = $tabs.find((t) => t.id === item.tabId || t.filename === item.filename);
-      const line = tab ? (tab.content.split("\n")[item.lineIdx] ?? item.line) : item.line;
+      let line = item.line;
+      if (tab) {
+        let lines = linesByTab.get(tab.id);
+        if (!lines) linesByTab.set(tab.id, (lines = tab.content.split("\n")));
+        line = lines[item.lineIdx] ?? item.line;
+      }
       return { ...item, line, tabId: tab?.id ?? item.tabId };
-    }),
-  );
+    });
+  });
 
-  const filtered = $derived(liveSnapshot.filter((item) => {
-    if ($actionDrawerDueView) {
-      if (itemDueDate(item.line, showDelegated) === null) return false;
-      if (!filter) return true;
-      return item.line.toLowerCase().includes(filter.toLowerCase());
-    }
-    // §44: toggle between today's behavior (open/deferred/delegated) and
-    // strictly open only — an open `# ` line, or an open `=> #`
-    // consequence-action (§41); resolved states are never "open."
-    if ($actionDrawerShowOnlyOpen && innermostActionSymbol(item.line) !== "#") return false;
-    const isDelegated = item.line.includes("=> @");
-    if (isDelegated && !showDelegated) return false;
-    if (!filter) return true;
-    return item.line.toLowerCase().includes(filter.toLowerCase());
-  }));
-
-  // Carrying each item's position as data (assigned once, here) rather
-  // than looking it up per rendered row via flatList.indexOf(item) in the
+  // Carrying each row's position as data (assigned once, here) rather
+  // than looking it up per rendered row via flatList.indexOf(row) in the
   // template — at large result counts that indexOf call made the render
   // itself O(N^2) in match count (confirmed during large-dataset stress
   // testing, §38).
-  type IndexedItem = ActionSnapshotItem & { __flatIndex: number; dueDate?: string };
+  type IndexedRow = DrawerRow<ActionSnapshotItem & { dueDate?: string }> & { __flatIndex: number };
 
   interface Group {
     key: string;
     label: string;
-    items: IndexedItem[];
+    rows: IndexedRow[];
   }
 
   const model = $derived.by(() => {
+    const textFilter = { showDelegated, text: filter, collapsed: $actionDrawerCollapsed };
     if ($actionDrawerDueView) {
-      const dueGroups = groupByDue(filtered, $currentDateISO, { showDelegated });
+      const dueGroups = buildDueDrawerRows(liveSnapshot, $currentDateISO, textFilter);
       const labels: Record<DueGroupKey, string> = {
         overdue: $t("actionDrawer.dueView.overdue"),
         today: $t("actionDrawer.dueView.today"),
@@ -200,29 +200,31 @@
       };
       let idx = 0;
       const groupsOut: Group[] = [];
-      const flatOut: IndexedItem[] = [];
+      const flatOut: IndexedRow[] = [];
       for (const dg of dueGroups) {
-        const groupItems: IndexedItem[] = [];
-        for (const it of dg.items) {
-          const indexed: IndexedItem = { ...it, __flatIndex: idx++ };
-          groupItems.push(indexed);
+        const groupRows: IndexedRow[] = [];
+        for (const r of dg.rows) {
+          const indexed: IndexedRow = { ...r, __flatIndex: idx++ };
+          groupRows.push(indexed);
           flatOut.push(indexed);
         }
         groupsOut.push({
           key: dg.key,
           label: labels[dg.key],
-          items: groupItems,
+          rows: groupRows,
         });
       }
       return { flatList: flatOut, groups: groupsOut };
     }
 
-    const flatOut: IndexedItem[] = filtered.map((item, i): IndexedItem => ({ ...item, __flatIndex: i }));
+    const flatOut: IndexedRow[] = buildDrawerRows(liveSnapshot, { onlyOpen: $actionDrawerShowOnlyOpen, ...textFilter }).map(
+      (r, i): IndexedRow => ({ ...r, __flatIndex: i }),
+    );
     const map = new Map<string, Group>();
-    for (const item of flatOut) {
-      const key = item.tabId ?? item.filename;
-      if (!map.has(key)) map.set(key, { key, label: item.filename, items: [] });
-      map.get(key)!.items.push(item);
+    for (const r of flatOut) {
+      const key = r.item.tabId ?? r.item.filename;
+      if (!map.has(key)) map.set(key, { key, label: r.item.filename, rows: [] });
+      map.get(key)!.rows.push(r);
     }
     return { flatList: flatOut, groups: Array.from(map.values()) };
   });
@@ -230,8 +232,8 @@
   const flatList = $derived(model.flatList);
   const groups = $derived(model.groups);
   const uncompletedCount = $derived(
-    flatList.filter((i) => {
-      const sym = innermostActionSymbol(i.line);
+    flatList.filter((r) => {
+      const sym = nodeState(r.item);
       return sym !== "v" && sym !== "x";
     }).length,
   );
@@ -247,7 +249,7 @@
   // component owns the row model and the DOM refs.
   type RawRow =
     | { type: "header"; key: string; label: string; count: number; height: number; isFirst: boolean }
-    | { type: "item"; key: string; item: IndexedItem; height: number };
+    | { type: "item"; key: string; drow: IndexedRow; height: number };
   type Row = RawRow & PlacedRow;
 
   const rows = $derived(
@@ -260,13 +262,13 @@
           type: "header",
           key: `h-${group.key}`,
           label: group.label,
-          count: group.items.length,
+          count: group.rows.length,
           height: MODAL_HEADER_ROW_HEIGHT,
           isFirst,
         });
         isFirst = false;
-        for (const item of group.items) {
-          out.push({ type: "item", key: item.id, item, height: MODAL_ITEM_ROW_HEIGHT });
+        for (const drow of group.rows) {
+          out.push({ type: "item", key: drow.item.id, drow, height: MODAL_ITEM_ROW_HEIGHT });
         }
       }
       return out;
@@ -307,7 +309,7 @@
 
   function scrollSelectedIntoView() {
     if (!listEl) return;
-    const row = rows.find((r) => r.type === "item" && r.item.__flatIndex === selectedIndex);
+    const row = rows.find((r) => r.type === "item" && r.drow.__flatIndex === selectedIndex);
     if (!row) return;
     // The pinned heading covers the top `MODAL_HEADER_ROW_HEIGHT` px, so a
     // row scrolled to the very top would sit hidden underneath it.
@@ -324,8 +326,8 @@
   // would, since that's the info this column exists to convey; the
   // drawer's own icon column doesn't also draw the arrow the editor shows
   // for that form.
-  function glyphFor(line: string): { char: string; cls?: string } {
-    const sym = innermostActionSymbol(line);
+  function glyphFor(item: ActionSnapshotItem): { char: string; cls?: string } {
+    const sym = nodeState(item);
     if (sym) {
       const g = glyphForSymbol(sym);
       return { char: g.text, cls: g.cls };
@@ -335,6 +337,65 @@
     // a `.glyph-assignee` pill (that class's background/padding is meant
     // for a *name*, not a bare arrow) — kept as its own small inline style.
     return { char: "➔" };
+  }
+
+  // Collapses (or expands) the group of `item`, keeping the selection on the same row; when that row is gone
+  // (it sat inside the collapsed group) the selection lands on the group's parent.
+  async function setCollapsed(item: ActionSnapshotItem, collapse?: boolean) {
+    const key = collapseKey(item);
+    const has = $actionDrawerCollapsed.has(key);
+    const want = collapse ?? !has;
+    if (want === has) return;
+    const keepId = flatList[selectedIndex]?.item.id;
+    const next = new Set($actionDrawerCollapsed);
+    if (want) next.add(key);
+    else next.delete(key);
+    actionDrawerCollapsed.set(next);
+    await tick();
+    let idx = flatList.findIndex((r) => r.item.id === keepId);
+    if (idx === -1) idx = flatList.findIndex((r) => r.item.id === item.id);
+    if (idx !== -1) selectedIndex = idx;
+    scrollSelectedIntoView();
+  }
+
+  function onChevronClick(e: MouseEvent, item: ActionSnapshotItem) {
+    // The row must not jump to the line, and the filter keeps the keyboard.
+    e.stopPropagation();
+    void setCollapsed(item);
+    if (!$isMobile) inputEl?.focus();
+  }
+
+  // ArrowRight on a group: collapsed → expand; expanded → the next row (its first child).
+  function groupRight(): boolean {
+    const row = flatList[selectedIndex];
+    if (!row?.hasChildren) return false;
+    if (!row.expanded) {
+      void setCollapsed(row.item, false);
+    } else if (selectedIndex + 1 < flatList.length) {
+      selectedIndex += 1;
+      scrollSelectedIntoView();
+    }
+    return true;
+  }
+
+  // ArrowLeft: an expanded parent collapses; otherwise a nested row selects its parent row. With a text filter
+  // collapse is ignored, so only the second applies.
+  function groupLeft(): boolean {
+    const row = flatList[selectedIndex];
+    if (!row) return false;
+    if (row.hasChildren && row.expanded && filter === "") {
+      void setCollapsed(row.item, true);
+      return true;
+    }
+    if (row.depth > 0 && row.item.parentId !== undefined) {
+      const parentIdx = flatList.findIndex((r) => r.item.id === row.item.parentId);
+      if (parentIdx !== -1) {
+        selectedIndex = parentIdx;
+        scrollSelectedIntoView();
+        return true;
+      }
+    }
+    return false;
   }
 
   function onKeydown(e: KeyboardEvent) {
@@ -355,22 +416,26 @@
       scrollSelectedIntoView();
     } else if (e.key === "Enter" && e.shiftKey) {
       e.preventDefault();
-      const it = flatList[selectedIndex];
+      const it = flatList[selectedIndex]?.item;
       if (it) controller.forwardActionToTodayItem(it);
     } else if (e.key === "Enter") {
       e.preventDefault();
-      const it = flatList[selectedIndex];
+      const it = flatList[selectedIndex]?.item;
       if (it) controller.jumpToFileLine(it, docked ? { keepModal: true } : undefined);
     } else if (e.ctrlKey && e.shiftKey && e.code === "Space") {
       // §145: the reverse of the plain Ctrl+Space cycle below — checked
       // first since it would otherwise also match that broader condition.
       e.preventDefault();
-      const it = flatList[selectedIndex];
+      const it = flatList[selectedIndex]?.item;
       if (it) controller.toggleActionLineItem(it, -1);
     } else if (e.ctrlKey && e.code === "Space") {
       e.preventDefault();
-      const it = flatList[selectedIndex];
+      const it = flatList[selectedIndex]?.item;
       if (it) controller.toggleActionLineItem(it);
+    } else if ((e.key === "ArrowRight" || e.key === "ArrowLeft") && !e.ctrlKey && !e.metaKey && !e.altKey && !e.shiftKey) {
+      // In the filter field the keys keep moving the text caret unless the field is empty.
+      if (e.target === inputEl && filter !== "") return;
+      if (e.key === "ArrowRight" ? groupRight() : groupLeft()) e.preventDefault();
     } else if (e.key === "Escape") {
       e.preventDefault();
       handleClose();
@@ -480,25 +545,55 @@
             {groupHeaderLabel(row.label, row.count)}
           </div>
         {:else}
-          {@const item = row.item}
-          {@const idx = item.__flatIndex}
-          {@const g = glyphFor(item.line)}
-          {@const sym = innermostActionSymbol(item.line)}
+          {@const r = row.drow}
+          {@const item = r.item}
+          {@const idx = r.__flatIndex}
+          {@const g = glyphFor(item)}
+          {@const sym = nodeState(item)}
+          {@const text = nodeText(item)}
+          {@const d = $isMobile ? Math.min(r.depth, 2) : r.depth}
           <div
-            class="modal-item action-row {idx === selectedIndex ? 'selected' : ''}"
+            class="modal-item action-row {idx === selectedIndex ? 'selected' : ''} {r.contextOnly ? 'context-row' : ''}"
             role="option"
             id="action-drawer-item-{idx}"
             aria-selected={idx === selectedIndex}
             tabindex="0"
-            style="position: absolute; top: {row.top}px; left: 0; right: 0; height: {row.height}px;"
+            style="position: absolute; top: {row.top}px; left: 0; right: 0; height: {row.height}px; padding-left: calc(14px + {d} * 18px);"
             onclick={() => controller.jumpToFileLine(item, docked ? { keepModal: true } : undefined)}
             onmouseenter={() => (selectedIndex = idx)}
             onkeydown={(e) => e.key === "Enter" && controller.jumpToFileLine(item, docked ? { keepModal: true } : undefined)}
           >
+            {#if d > 0}
+              {#if item.kind === "step"}
+                <span class="step-number" aria-hidden="true" style="left: calc(14px + {d - 1} * 18px - 6px);">{item.stepIndex}.</span>
+              {:else}
+                <span class="tree-guide" aria-hidden="true" style="left: calc(14px + {d - 1} * 18px + 2px);"></span>
+              {/if}
+            {/if}
             <div class="modal-item-main">
+              {#if r.hasChildren}
+                <button
+                  type="button"
+                  class="group-chevron"
+                  aria-expanded={r.expanded}
+                  aria-label={r.expanded ? $t("actionDrawer.group.collapse") : $t("actionDrawer.group.expand")}
+                  tabindex="-1"
+                  onclick={(e) => onChevronClick(e, item)}
+                >
+                  <Icon name="chevron-right" size={12} />
+                </button>
+              {:else if r.depth === 0}
+                <span class="group-chevron-slot"></span>
+              {/if}
               <span class={g.cls ?? ""}>{g.char}</span>
-              <span class={sym === "v" || sym === "x" ? "item-completed" : ""} title={[stripLeadingToken(item.line), item.header].filter(Boolean).join(" · ")}>{stripLeadingToken(item.line)}</span>
+              <span class={sym === "v" || sym === "x" ? "item-completed" : ""} title={[text, item.header].filter(Boolean).join(" · ")}>{text}</span>
             </div>
+            {#if r.progress}
+              <span
+                class="item-progress"
+                title={$t("actionDrawer.group.progressTitle", { resolved: r.progress.resolved, total: r.progress.total })}
+              >{r.progress.resolved}/{r.progress.total}</span>
+            {/if}
             {#if $actionDrawerDueView}
               <span class="item-breadcrumb">{item.filename.replace(/\.txt$/, "")}{item.header ? ` · ${item.header}` : ""}</span>
             {:else if item.header}
@@ -545,5 +640,72 @@
 .modal-item {
   font-family: var(--font-mono);
   font-size: 12px;
+}
+/* Rows of a group: the chevron (or an empty slot of its width on depth-0 rows) sits before the glyph; its
+   negative margin eats most of the row's gap so a child's glyph still lands to the right of its parent's. */
+.group-chevron,
+.group-chevron-slot {
+  flex: none;
+  width: 12px;
+  margin-right: -6px;
+}
+.group-chevron {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 16px;
+  padding: 0;
+  border: none;
+  background: none;
+  color: inherit;
+  cursor: pointer;
+}
+.group-chevron[aria-expanded="true"] {
+  transform: rotate(90deg);
+}
+.tree-guide {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 12px;
+  border-left: 1px solid var(--muted);
+  opacity: 0.6;
+  pointer-events: none;
+}
+/* The elbow: a horizontal tick at mid-height; the full-height left border keeps siblings joined. */
+.tree-guide::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  border-bottom: 1px solid var(--muted);
+}
+.step-number {
+  position: absolute;
+  top: 50%;
+  width: 20px;
+  transform: translateY(-50%);
+  text-align: right;
+  color: var(--muted);
+  pointer-events: none;
+}
+.item-progress {
+  flex: none;
+  margin-left: 8px;
+  font-size: var(--type-caption);
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.modal-item.selected .item-progress,
+.modal-item.selected .step-number {
+  color: var(--selected-fg);
+}
+.context-row {
+  opacity: 0.6;
+}
+.context-row.selected {
+  opacity: 1;
 }
 </style>

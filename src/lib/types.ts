@@ -50,6 +50,16 @@ export interface ActionSnapshotItem {
   lineIdx: number;
   line: string;
   header: string;
+  /** §423: this item's place in its note's action tree (`actionTree`). */
+  kind?: "line" | "step";
+  partFrom?: number;
+  partTo?: number;
+  symbolCol?: number | null;
+  delegated?: boolean;
+  depth?: number;
+  parentId?: string;
+  stepIndex?: number;
+  whole?: boolean;
 }
 
 /** One dated note's rendition of a recurring section — every file that has

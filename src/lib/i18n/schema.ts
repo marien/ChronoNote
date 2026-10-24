@@ -247,6 +247,9 @@ export type TranslationParams = {
   "actionDrawer.modal.ariaLabel": undefined;
   "actionDrawer.filterPlaceholder": undefined;
   "actionDrawer.counter": { open: number; listed: number };
+  "actionDrawer.group.expand": undefined;
+  "actionDrawer.group.collapse": undefined;
+  "actionDrawer.group.progressTitle": { resolved: number; total: number };
   "actionDrawer.scope.openTabs.label": undefined;
   "actionDrawer.scope.openTabs.title": undefined;
   "actionDrawer.scope.otherNotes.label": undefined;
