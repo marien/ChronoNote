@@ -188,9 +188,26 @@
   display: block;
 }
 
+/* §423: the tree lines joining an action and its sub-actions (a layer, so the text never moves). */
+.cm-action-tree-layer {
+  pointer-events: none;
+}
+.cm-action-tree-line {
+  position: absolute;
+  pointer-events: none;
+  color: var(--muted);
+  opacity: 0.55;
+}
+.cm-action-tree-line.is-vertical { border-left: 1px solid currentColor; width: 0; }
+.cm-action-tree-line.is-horizontal { border-top: 1px solid currentColor; height: 0; }
+.cm-action-tree-line.is-resolved { opacity: 0.35; }
+@media (forced-colors: active) { .cm-action-tree-line { color: CanvasText; } }
+
 @media print {
   .cm-wrap-layer,
-  .cm-wrap-indicator {
+  .cm-wrap-indicator,
+
+  .cm-action-tree-layer {
     display: none !important;
   }
 }

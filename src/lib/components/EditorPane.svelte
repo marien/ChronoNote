@@ -9,6 +9,7 @@
   import { glyphAtomicRanges, liveGlyphs, lineStateAnnouncement } from "../editor/glyphs";
   import { setextRule } from "../editor/setextRule";
   import { resolvedLinesPlugin } from "../editor/resolvedLines";
+  import { actionTreeLinesExtension } from "../editor/actionTreeLines";
   import { topicTagEditingPlugin } from "../editor/topicTagEditing";
   import { clickableLinksPlugin } from "../editor/clickableLinks";
   import { dateLinksPlugin } from "../editor/dateLinks";
@@ -724,6 +725,7 @@
       glyphAtomicRanges,
       setextRule,
       resolvedLinesPlugin,
+      actionTreeLinesExtension(),
       topicTagEditingPlugin,
       clickableLinksPlugin,
       dateLinksPlugin,
