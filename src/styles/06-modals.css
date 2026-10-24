@@ -479,7 +479,8 @@ textarea.modal-input.import-textarea {
 /* Mobile portrait ergonomics (§222): unclutter action drawer and modal lists
    so task descriptions can be read across the full width of narrow viewports. */
 @media (max-width: 600px) {
-  .modal-item .item-breadcrumb {
+  .modal-item .item-breadcrumb,
+  .modal-item.selected .item-breadcrumb {
     display: none;
   }
   .modal-item:not(.shortcuts-list *) .item-tag {

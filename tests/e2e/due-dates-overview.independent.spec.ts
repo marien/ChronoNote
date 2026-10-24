@@ -395,9 +395,11 @@ test.describe("due dates slice 3 independent: overdue count and due view", () =>
     await expect(rows(page).first()).toContainText("alpha action");
 
     // 4. Delegated lines appear when filter contains '@'
+    // The `=> @priya` line directly under `v done action` is its child (§423): the done parent comes along as context.
     await filterInput(page).fill("@priya");
-    await expect(rows(page)).toHaveCount(1);
-    await expect(rows(page).first()).toContainText("delegated action");
+    await expect(rows(page)).toHaveCount(2);
+    await expect(rows(page).first()).toHaveClass(/context-row/);
+    await expect(rows(page).nth(1)).toContainText("delegated action");
     await expect(rows(page).first().locator(".item-breadcrumb")).toContainText(today);
 
     // Clear filter

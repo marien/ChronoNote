@@ -130,11 +130,12 @@ test.describe("Action Drawer Groups", () => {
     // With "Only open" off, resolved items become visible with item-completed styling
     const buildRow = drawer.locator('.modal-item[role="option"]', { hasText: "build" });
     await expect(buildRow).toBeVisible();
-    await expect(buildRow).toHaveClass(/item-completed/);
+    // The done style sits on the row's text, as it always has.
+    await expect(buildRow.locator(".item-completed")).toBeVisible();
 
     const laptopRow = drawer.locator('.modal-item[role="option"]', { hasText: "laptop" });
     await expect(laptopRow).toBeVisible();
-    await expect(laptopRow).toHaveClass(/item-completed/);
+    await expect(laptopRow.locator(".item-completed")).toBeVisible();
 
     // Toggle "Only open" back on: resolved items should be hidden again
     await onlyOpenToggle.click();

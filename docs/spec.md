@@ -109,8 +109,26 @@ phone buttons change the symbol nearest to the left of the caret, or, with none
 on the left, the nearest to the right; with no action symbol on the line,
 `Ctrl/Cmd+1`-`4` and the buttons turn the whole line into that action. For a
 multi-line selection each line is judged by its own reference column (the caret
-or selection end on the lines that hold them, the line start in between). The
-Action Drawer acts on whole lines (the last symbol).
+or selection end on the lines that hold them, the line start in between). In the
+Action Drawer, each row acts on its own symbol (see **Action groups**); a line that
+is not split into rows acts on its first consequence symbol, else its leading one.
+
+**Action groups (§423, `src/lib/actionGroups.ts`):** purely visual; no state
+changes another. A *group line* is an action line (leading `# v > x`) or an
+arrow line (`=> <symbol>` or `=> @name` as its first non-blank text), and not a
+section title. An action line followed directly by group lines that are indented
+more than it, or by arrow lines at its own indent, is a *parent*; those lines are
+its *children*, and a child indented more than the child above it is that
+child's child. Any other line ends the group: an empty line, prose, a bullet, a
+topic, a plain `=> text`, a line with prose before its first action part, a
+section title or underline, or a new action at the parent's indent or less;
+lines after it are not picked up again. On a group line, every action part after
+its own (`=> <symbol>`, `=> @name`) is a *step*, numbered from 1. In the editor a
+thin muted tree line (a CodeMirror layer: no width, height or baseline change)
+runs from under the parent's glyph to its last child, with an elbow into each
+indented child; it dims when the whole group is resolved and the caret is not in
+it. Steps get no line in the editor. The status bar still counts every action on
+its own.
 
 **Copy/paste deferral:** copying a `# ` line and pasting it into today's
 note, or into any *later*-dated note, marks the original line as `> `
@@ -576,6 +594,24 @@ reachable from the top bar, a shortcut, or the command palette:
   filter has `@`), grouped Overdue / Today / This week (to Sunday of the
   ISO week) / Later, soonest first, each row naming its note; the text
   filter still applies and the other keys work as in the normal view.
+  **Groups (§423):** one row per action, not per line. A parent's children
+  are nested rows under it with a tree line, its steps are rows numbered from
+  1, and the parent shows how many of all its descendants with a state are
+  resolved (`1/3`, display only). With "Only open" on, a group is listed when
+  the parent or a descendant is open: the parent always (dimmed when resolved,
+  as context), resolved descendants hidden and counted. A text match on a
+  parent shows its group; on a child, the child with its ancestors. A chevron
+  before a parent's glyph (click, or `Right`/`Left` while the filter is empty)
+  folds the group for the session (keyed by note + parent text; a text filter
+  unfolds it). `Ctrl+Space` cycles the row's own symbol; `Enter` jumps to its
+  line; `Shift+Enter` forwards the row's line, and does nothing on a step. In
+  the due view a group is listed once, under the earliest due date of its open
+  own lines, with its open descendants (delegated ones when the filter has
+  `@`, as everywhere in the drawer); dates are not inherited
+  and the overdue count still counts lines. The row's source (section; note
+  date and section in the due view) shows right-aligned only on the selected
+  row, and not at all when it does not fit next to the action; the tooltip
+  carries it.
 - **Section History** (`Ctrl/Cmd+Shift+H`) — on a window 1000px or wider
   (not a phone, Zen or Peek) a pane docked right of the note (§343): the
   note stays editable and the app's shortcuts keep working in it, `F6`

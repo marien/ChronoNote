@@ -585,7 +585,7 @@
               {:else if r.depth === 0}
                 <span class="group-chevron-slot"></span>
               {/if}
-              <span class={g.cls ?? ""}>{g.char}</span>
+              <span class="{g.cls ?? ''} item-glyph">{g.char}</span>
               <span class={sym === "v" || sym === "x" ? "item-completed" : ""} title={[text, item.header].filter(Boolean).join(" · ")}>{text}</span>
             </div>
             {#if r.progress}
@@ -647,7 +647,11 @@
 .group-chevron-slot {
   flex: none;
   width: 12px;
+  height: 16px;
   margin-right: -6px;
+}
+.group-chevron-slot {
+  display: inline-block;
 }
 .group-chevron {
   display: inline-flex;

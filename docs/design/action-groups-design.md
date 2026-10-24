@@ -194,8 +194,8 @@ towards the status bar's overdue item. Grouping only changes what the drawer's *
 - **No inheritance in counts or in the text.** An undated child of an overdue parent does not count as overdue in the
   status bar, and nothing is written to the note. (If Marien later wants children to count with the parent's date,
   that is a separate decision.)
-- Delegated children (`=> @dana … by:…`) are listed inside a group that is already shown; on their own they bring the
-  group into the due view only when the filter has `@`, as delegated lines do now.
+- Delegated children (`=> @dana … by:…`) are listed, and bring their group into the due view, only when the filter
+  has `@`, as delegated lines do everywhere in the drawer (an existing due-view test relies on that).
 - The normal view is unchanged by due dates: groups show as in section 5, each dated line with its pill.
 
 ```

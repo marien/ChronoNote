@@ -57,7 +57,7 @@ test.describe("Action Drawer mobile portrait layout (§222)", () => {
 
     // Verify title attribute is present on the action text for long-press / tooltip access; it also carries the
     // section the row no longer shows (§423)
-    const textSpan = item.locator(".modal-item-main span").nth(1);
+    const textSpan = item.locator(".modal-item-main span[title]");
     await expect(textSpan).toHaveAttribute("title", "Deploy release v0.16.0 to staging cluster and verify health metrics · Operations");
   });
 
