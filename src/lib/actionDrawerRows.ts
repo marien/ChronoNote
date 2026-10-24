@@ -37,7 +37,7 @@ export function nodeState(item: ActionSnapshotItem): State | null {
  *  `=> <symbol> ` / `=> `; a step's `=> <symbol> ` or `=> ` (a delegated part keeps its `@name`). Leading indentation
  *  and trailing whitespace removed. */
 export function nodeText(item: ActionSnapshotItem): string {
-  if (isWhole(item)) return stripLeadingToken(item.line);
+  if (isWhole(item)) return stripLeadingToken(item.line).trim();
   const part = item.line.slice(item.partFrom ?? 0, item.partTo ?? item.line.length).trim();
   if (part.startsWith("=>")) return part.replace(/^=>\s+(?:[#v>x](?:\s+|$))?/, "");
   return part.replace(/^[#v>x](?:\s+|$)/, "");

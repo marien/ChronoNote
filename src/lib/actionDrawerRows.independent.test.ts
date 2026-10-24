@@ -188,7 +188,8 @@ describe("src/lib/actionDrawerRows", () => {
 
     it("uses stripLeadingToken for whole nodes and items without tree fields", () => {
       const whole = makeSnapshotItems("o topic => # action part");
-      expect(nodeText(whole[0])).toBe("topic => # action part");
+      // stripLeadingToken drops the `=> # ` and keeps the topic symbol, as the drawer always showed it
+      expect(nodeText(whole[0])).toBe("o topic action part");
 
       const legacy: ActionSnapshotItem = {
         id: "leg-1",
@@ -374,7 +375,7 @@ describe("src/lib/actionDrawerRows", () => {
       const items = makeSnapshotItems("o team sync => # action item");
       const rows = buildDrawerRows(items, { ...emptyFilter, text: "team sync" });
       expect(rows).toHaveLength(1);
-      expect(nodeText(rows[0].item)).toBe("team sync => # action item");
+      expect(nodeText(rows[0].item)).toBe("o team sync action item");
     });
   });
 
@@ -588,7 +589,8 @@ describe("src/lib/actionDrawerRows", () => {
 
     it("distinguishes due-view bucket of a group whose earliest date is today vs overdue", () => {
       const overdueItems = makeSnapshotItems("# taskA by:2026-10-22", "2026-10-24.txt");
-      const todayItems = makeSnapshotItems("# taskB by:2026-10-24", "2026-10-24.txt");
+      // Another note: two items from the same note and line would share one id.
+      const todayItems = makeSnapshotItems("# taskB by:2026-10-24", "2026-10-23.txt");
       const allItems = [...overdueItems, ...todayItems];
 
       const groups = buildDueDrawerRows(allItems, today, {
@@ -645,7 +647,8 @@ describe("src/lib/actionDrawerRows", () => {
 
       // Open child 1 (with date) and open child 3 (without date) are shown; resolved child 2 is hidden
       const descendantTexts = rows.slice(1).map((r) => nodeText(r.item));
-      expect(descendantTexts).toEqual(["child 1", "child 3"]);
+      // The row text keeps the `by:` date, as the drawer always showed it.
+      expect(descendantTexts).toEqual(["child 1 by:2026-10-24", "child 3"]);
       expect(rows[1].item.dueDate).toBe("2026-10-24");
       expect(rows[2].item.dueDate).toBeUndefined();
     });
@@ -659,7 +662,7 @@ describe("src/lib/actionDrawerRows", () => {
         text: "",
         collapsed: new Set(),
       });
-      expect(groups[0].rows.map((r) => nodeText(r.item))).toEqual(["Task B", "Task A"]);
+      expect(groups[0].rows.map((r) => nodeText(r.item))).toEqual(["Task B by:2026-10-24", "Task A by:2026-10-24"]);
     });
 
     it("text filter in due view preserves ancestors as context and drops groups with no rows left", () => {
@@ -673,7 +676,7 @@ describe("src/lib/actionDrawerRows", () => {
       });
       expect(groups).toHaveLength(1);
       const texts = groups[0].rows.map((r) => nodeText(r.item));
-      expect(texts).toEqual(["release", "changelog"]);
+      expect(texts).toEqual(["release by:2026-10-24", "changelog"]);
       expect(groups[0].rows[0].contextOnly).toBe(true);
       expect(groups[0].rows[1].contextOnly).toBe(false);
     });
