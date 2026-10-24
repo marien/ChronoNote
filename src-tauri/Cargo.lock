@@ -493,7 +493,7 @@ dependencies = [
 
 [[package]]
 name = "chrononote"
-version = "0.33.0-7"
+version = "0.33.0-8"
 dependencies = [
  "chrono",
  "chrono-tz",
