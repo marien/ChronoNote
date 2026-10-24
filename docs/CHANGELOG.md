@@ -11123,7 +11123,7 @@ the note; the last child's line ran on below it; and a child group's glyph sat f
 
 ## 425. Action Drawer groups: fixes from the cross-model review of §424
 
-**Status: on main, not released yet.**
+**Status: released in beta 0.33.0-7 (early channel only).**
 
 Gemini 3.8 Flash reviewed §424 after it went out in 0.33.0-6 (Marien asked for the beta first). Two real issues:
 
