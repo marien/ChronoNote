@@ -40,6 +40,12 @@ export function countActions(text: string): { open: number; closed: number; forw
  * by the Action Drawer's "only open" toggle (§44) and its glyph-only
  * display (§45), so both agree on exactly what counts as "this line's
  * action state." */
+/** Where `innermostActionSymbol`'s symbol sits in the line, or null (§423: the drawer cycles the symbol it shows). */
+export function innermostActionSymbolCol(line: string): number | null {
+  const tokens = tokenizeLine(line);
+  return (tokens.find((t) => t.kind === "consequence") ?? tokens.find((t) => t.kind === "action"))?.from ?? null;
+}
+
 export function innermostActionSymbol(line: string): "#" | "v" | ">" | "x" | null {
   const tokens = tokenizeLine(line);
   const sym = (tokens.find((t) => t.kind === "consequence") ?? tokens.find((t) => t.kind === "action"))?.symbol;
@@ -358,6 +364,14 @@ function nextCycleSymbol(sym: string, direction: 1 | -1): string {
 }
 export function cycleActionSymbol(line: string, direction: 1 | -1 = 1): string | null {
   return replaceActionSymbol(line, (sym) => nextCycleSymbol(sym, direction));
+}
+
+/** Like `cycleActionSymbol`, but cycles exactly the symbol at `index` (one node's own symbol of a line that
+ *  holds several); `null` when the character there is not an action symbol. */
+export function cycleActionSymbolAt(line: string, index: number, direction: 1 | -1 = 1): string | null {
+  const ch = line[index];
+  if (ch === undefined || !ACTION_CYCLE_ORDER.includes(ch)) return null;
+  return line.slice(0, index) + nextCycleSymbol(ch, direction) + line.slice(index + 1);
 }
 
 /** What clicking an action glyph does: an open action (`#`) is closed (`v`); anything that is no longer

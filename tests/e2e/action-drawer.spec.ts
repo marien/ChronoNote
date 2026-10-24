@@ -102,12 +102,12 @@ test.describe("action drawer (Ctrl/Cmd+Shift+A)", () => {
     await filterInput(page).fill("recap email");
     const row = rows(page).first();
     await expect(row).toContainText("send the recap email");
-    await expect(row.locator("span").first()).toHaveText("☐");
+    await expect(row.locator(".item-glyph")).toHaveText("☐");
 
     await filterInput(page).focus();
     await page.keyboard.press("Control+Space");
 
-    await expect(row.locator("span").first()).toHaveText("☑");
+    await expect(row.locator(".item-glyph")).toHaveText("☑");
     await expect.poll(() => mockNote(page, "2026-09-07.txt")).toContain("=> v send the recap email");
   });
 
@@ -119,12 +119,12 @@ test.describe("action drawer (Ctrl/Cmd+Shift+A)", () => {
     await filterInput(page).fill("recap email");
     const row = rows(page).first();
     await expect(row).toContainText("send the recap email");
-    await expect(row.locator("span").first()).toHaveText("☐");
+    await expect(row.locator(".item-glyph")).toHaveText("☐");
 
     await filterInput(page).focus();
     await page.keyboard.press("Control+Shift+Space");
 
-    await expect(row.locator("span").first()).toHaveText("☒");
+    await expect(row.locator(".item-glyph")).toHaveText("☒");
     await expect.poll(() => mockNote(page, "2026-09-07.txt")).toContain("=> x send the recap email");
   });
 

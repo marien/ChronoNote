@@ -431,24 +431,30 @@ textarea.modal-input.import-textarea {
    floating overlay), since virtualized rows (§38) are absolutely
    positioned at a fixed height, and this keeps the change within that
    box rather than needing the list to actually reflow. */
+/* §423: where an action comes from is secondary. Shown only on the selected row (hover selects too), right-aligned,
+   and never at the action's cost: the row wraps, and a source that does not fit next to the action wraps onto a
+   second flex line that the large row gap pushes out of the fixed-height, clipped row. */
+.action-row {
+  flex-wrap: wrap;
+  overflow: hidden;
+  align-content: flex-start;
+  row-gap: 48px;
+}
+.action-row .modal-item-main {
+  flex: 1 1 auto;
+  margin-right: 0;
+}
 .item-breadcrumb {
   font-size: var(--type-caption);
   color: var(--muted);
   white-space: nowrap;
-  margin-right: 8px;
-  font-style: italic;
-  max-width: 50%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  flex-shrink: 0;
-  transition:
-    max-width var(--motion-normal) ease,
-    opacity var(--motion-normal) ease;
+  margin-left: auto;
+  padding-left: 12px;
+  /* Not `visibility`: a hidden source must take no room, or the group counts before it stop lining up. */
+  display: none;
 }
-.modal-item:hover .item-breadcrumb {
-  max-width: 0;
-  opacity: 0;
-  margin-right: 0;
+.modal-item.selected .item-breadcrumb {
+  display: inline;
 }
 .item-tag {
   font-size: var(--type-caption);
@@ -473,7 +479,8 @@ textarea.modal-input.import-textarea {
 /* Mobile portrait ergonomics (§222): unclutter action drawer and modal lists
    so task descriptions can be read across the full width of narrow viewports. */
 @media (max-width: 600px) {
-  .modal-item .item-breadcrumb {
+  .modal-item .item-breadcrumb,
+  .modal-item.selected .item-breadcrumb {
     display: none;
   }
   .modal-item:not(.shortcuts-list *) .item-tag {

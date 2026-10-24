@@ -15,39 +15,64 @@ import {
 import { refreshAllNotesCache, updateNoteOnDisk, writeTabContent } from "./persistence";
 import { openOrCreateDatedFile } from "./tabs";
 import { compareTabsByRecency, sortFilenamesByRecency } from "./tabSort";
-import { cycleActionSymbol, getSectionHeaderForLine, innermostActionSymbol, normalizeHeaderTitle } from "./tokens";
+import {
+  cycleActionSymbol,
+  cycleActionSymbolAt,
+  getSectionHeaderForLine,
+  innermostActionSymbolCol,
+  normalizeHeaderTitle,
+} from "./tokens";
+import { actionTree, flattenActionTree, type ActionNode } from "./actionGroups";
 import { todayISO } from "./date";
 import { forwardLink, withFromLink, withToLink } from "./paste";
 import { t } from "./i18n";
 import type { ActionSnapshotItem } from "./types";
 
-/** "Action lines" the drawer surfaces: all four action states (`# `/
- * `v `/`> `/`x `, standalone or indented, §50) and both `=> ` forms — a
- * consequence-action's own inner symbol (`=> <symbol>`, §41) and plain
- * delegated-to-a-person lines (`=> @name`). "Only Open" (§44/§67) is what
- * narrows this down to `#` alone; inclusion here covers every state so
- * turning that toggle off reveals `v `/`x ` lines too (previously
- * excluded from the drawer outright, regardless of the toggle). */
-function isActionLine(line: string): boolean {
-  return innermostActionSymbol(line) !== null || line.includes("=> @");
+/** The drawer's items for one note: every node of its action tree (§423), depth-first — a line's own part,
+ * its `=> <symbol>` / `=> @name` steps and its indented child lines. Covers all four action states
+ * (`# `/`v `/`>`/`x `, standalone or indented, §50), a consequence-action's own inner symbol (§41) and
+ * delegated-to-a-person parts (`=> @name`). "Only Open" (§44/§67) is what narrows this down to `#` alone;
+ * inclusion here covers every state so turning that toggle off reveals `v `/`x ` lines too. */
+function snapshotItemsForNote(
+  base: string,
+  tabId: string | undefined,
+  filename: string,
+  lines: string[],
+): ActionSnapshotItem[] {
+  const nodes = flattenActionTree(actionTree(lines));
+  const parentOf = new Map<ActionNode, ActionNode>();
+  for (const node of nodes) for (const child of node.children) parentOf.set(child, node);
+  const idOf = new Map<ActionNode, string>();
+  return nodes.map((node) => {
+    const id = node.kind === "step" ? `${base}-${node.lineIdx}-s${node.stepIndex}` : `${base}-${node.lineIdx}`;
+    idOf.set(node, id);
+    const parent = parentOf.get(node);
+    const item: ActionSnapshotItem = {
+      id,
+      tabId,
+      filename,
+      lineIdx: node.lineIdx,
+      line: lines[node.lineIdx],
+      header: normalizeHeaderTitle(getSectionHeaderForLine(lines, node.lineIdx)),
+      kind: node.kind,
+      partFrom: node.from,
+      partTo: node.to,
+      symbolCol: node.symbolCol,
+      delegated: node.delegated,
+      depth: node.depth,
+      whole: node.whole,
+    };
+    if (node.stepIndex !== undefined) item.stepIndex = node.stepIndex;
+    // A parent always precedes its children in the depth-first order, so its id is known by now.
+    if (parent) item.parentId = idOf.get(parent);
+    return item;
+  });
 }
 
 export function buildActionSnapshotOpenTabs(): ActionSnapshotItem[] {
   const snapshot: ActionSnapshotItem[] = [];
   for (const tab of [...get(tabs)].sort(compareTabsByRecency)) {
-    const lines = tab.content.split("\n");
-    lines.forEach((line, lineIdx) => {
-      if (isActionLine(line)) {
-        snapshot.push({
-          id: `${tab.id}-${lineIdx}`,
-          tabId: tab.id,
-          filename: tab.filename,
-          lineIdx,
-          line,
-          header: normalizeHeaderTitle(getSectionHeaderForLine(lines, lineIdx)),
-        });
-      }
-    });
+    snapshot.push(...snapshotItemsForNote(tab.id, tab.id, tab.filename, tab.content.split("\n")));
   }
   return snapshot;
 }
@@ -58,19 +83,9 @@ export async function buildActionSnapshotAllFiles(): Promise<ActionSnapshotItem[
   const openTabIdByFilename = new Map(get(tabs).filter((t) => !t.isScratchpad).map((t) => [t.filename, t.id]));
   const snapshot: ActionSnapshotItem[] = [];
   for (const filename of sortFilenamesByRecency(Object.keys(allSources))) {
-    const lines = allSources[filename].split("\n");
-    lines.forEach((line, lineIdx) => {
-      if (isActionLine(line)) {
-        snapshot.push({
-          id: `${filename}-${lineIdx}`,
-          tabId: openTabIdByFilename.get(filename),
-          filename,
-          lineIdx,
-          line,
-          header: normalizeHeaderTitle(getSectionHeaderForLine(lines, lineIdx)),
-        });
-      }
-    });
+    snapshot.push(
+      ...snapshotItemsForNote(filename, openTabIdByFilename.get(filename), filename, allSources[filename].split("\n")),
+    );
   }
   return snapshot;
 }
@@ -122,12 +137,16 @@ async function ensureFileOpenAndGetTabId(filename: string): Promise<string> {
  * it opens, so a completed item keeps its row (shown with the "done"
  * style) for as long as the drawer stays open, and only drops out on the
  * next fresh `openActionDrawer()` call. */
-export function toggleActionLine(tabId: string, lineIdx: number, direction: 1 | -1 = 1) {
+export function toggleActionLine(tabId: string, lineIdx: number, direction: 1 | -1 = 1, symbolCol?: number | null) {
   const list = get(tabs);
   const tab = list.find((t) => t.id === tabId);
   if (!tab) return;
   const lines = tab.content.split("\n");
-  const updated = cycleActionSymbol(lines[lineIdx], direction);
+  // A node of a line that holds several (a step, a parent) cycles its own symbol, not the line's first one.
+  const updated =
+    typeof symbolCol === "number"
+      ? cycleActionSymbolAt(lines[lineIdx], symbolCol, direction)
+      : cycleActionSymbol(lines[lineIdx], direction);
   if (updated === null) return;
   lines[lineIdx] = updated;
   tabs.set(writeTabContent(tabId, lines.join("\n"), list));
@@ -176,14 +195,33 @@ export function forwardActionToToday(tabId: string, lineIdx: number) {
 /** Toggle/forward for an Action Drawer item that may come from "All Files"
  * mode and not have an open tab yet — opens it first if needed. */
 export async function toggleActionLineItem(
-  item: { tabId?: string; filename: string; lineIdx: number },
+  item: {
+    tabId?: string;
+    filename: string;
+    lineIdx: number;
+    symbolCol?: number | null;
+    delegated?: boolean;
+    whole?: boolean;
+    line?: string;
+  },
   direction: 1 | -1 = 1,
 ) {
+  // A delegated part has no state of its own: cycling "the line" would change its parent's symbol instead.
+  if (item.delegated && !item.whole) return;
+  // A line not split into rows shows its innermost symbol, so that is the one that cycles.
+  const symbolCol = item.symbolCol ?? (item.whole && item.line !== undefined ? innermostActionSymbolCol(item.line) : null);
   const tabId = item.tabId ?? (await ensureFileOpenAndGetTabId(item.filename));
-  toggleActionLine(tabId, item.lineIdx, direction);
+  toggleActionLine(tabId, item.lineIdx, direction, symbolCol);
 }
 
-export async function forwardActionToTodayItem(item: { tabId?: string; filename: string; lineIdx: number }) {
+export async function forwardActionToTodayItem(item: {
+  tabId?: string;
+  filename: string;
+  lineIdx: number;
+  kind?: "line" | "step";
+}) {
+  // Forwarding a step is not supported: it would forward the parent's whole line.
+  if (item.kind === "step") return;
   const tabId = item.tabId ?? (await ensureFileOpenAndGetTabId(item.filename));
   forwardActionToToday(tabId, item.lineIdx);
 }
