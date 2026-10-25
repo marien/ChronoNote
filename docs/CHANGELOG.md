@@ -10896,6 +10896,8 @@ From a test-coverage review (2026-10-17): Vitest covers 41% of `src/lib` lines a
 
 **Status: released in v0.32.6.**
 
+Confirmed by Marien (2026-10-25): working as expected.
+
 - **Marien (installed web app on his phone, v0.32.5):** after an update with an expired OneDrive sign-in, the info bar showed "sign-in expired"; signing in returned to the app and the "Updated to" notice never appeared. Closing the sign-in message instead did show it. He had noticed before that he did not always see it.
 - **Causes:** (1) the info bar shows one message at a time (conflicts, sign-in expired, update available, updated to), so the notice waited behind the sign-in message; but the version was recorded as seen at start-up, and the sign-in leaves the app and comes back through a full reload, which then found nothing to announce. (2) Every status-bar message cleared the notice: left over from when the notice shared the status bar's message slot (it moved to the info bar in v0.30).
 - **Fix (Marien's go-ahead on the proposal):** the version is recorded as seen when the notice is clicked ("What's new") or closed, not at start-up (`menu.ts` `markJustUpdatedSeen`; a fresh install still records it at once); status messages no longer clear it (`stores.ts`); the order stays (sign-in first). The desktop's bring-to-front after an update (§390) stays once per update: it remembers the version it raised the window for in the app's own browser storage, since the notice can now outlive the first start.
@@ -10904,6 +10906,8 @@ From a test-coverage review (2026-10-17): Vitest covers 41% of `src/lib` lines a
 ## 416. App icon without its tile, pixel-fitted for the taskbar
 
 **Status: released in beta 0.33.0-1 (early channel only).**
+
+Confirmed by Marien (2026-10-25): working as expected.
 
 - **Marien (screenshots of his taskbar and desktop, 125 %):** the taskbar icon looked smaller than the other apps' icons; the desktop icon was the right size but softer around the edges.
 - **Causes:** (1) the near-black tile disappears against the dark (translucent, wallpaper-tinted) taskbar, so only the white calendar showed, about 64 % of the frame, while other apps' icons are visible edge to edge. (2) The tile's border was a white gradient fading to 5 %, a grey halo at small sizes; and every small size was scaled from one 1024 px master, so lines of about 3.2 px fell between pixels and got grey fringes. The ICO also had no 20/30/36/40 px frames, so at 125 % Windows scaled from 32 or 48.
@@ -10929,6 +10933,8 @@ From a test-coverage review (2026-10-17): Vitest covers 41% of `src/lib` lines a
 ## 419. Due dates on actions (`by:`)
 
 **Status: released in beta 0.33.0-2 (early channel only).**
+
+Confirmed by Marien (2026-10-25): working as expected.
 
 Feature review B2, designed in `docs/design/due-dates-design.md` (Marien took all six recommended decisions on
 2026-10-23). More actions have a real deadline, and nothing noticed when it passed.
@@ -11003,6 +11009,8 @@ Feature review B2, designed in `docs/design/due-dates-design.md` (Marien took al
 
 **Status: released in beta 0.33.0-4 (early channel only).**
 
+Confirmed by Marien (2026-10-25): working as expected.
+
 - **Seen (Marien, beta 0.33.0-3):** the pill's label sat slightly below the sentence's baseline (it was a separate
   box centred in the line), and replacing the date with a short label did not work for him: he wanted the real
   `by:YYYY-MM-DD` with colour and an outline instead. Options were mocked up (a flag, an hourglass or an arrow for
@@ -11028,6 +11036,8 @@ Feature review B2, designed in `docs/design/due-dates-design.md` (Marien took al
 ## 422. Topic pill quieter, due date click opens a compact date picker
 
 **Status: released in beta 0.33.0-5 (early channel only).**
+
+Confirmed by Marien (2026-10-25): working as expected.
 
 Marien's feedback on beta 0.33.0-4:
 
@@ -11059,6 +11069,8 @@ Marien's feedback on beta 0.33.0-4:
 ## 423. Action groups: sub-actions joined in the note, nested in the Action Drawer
 
 **Status: released in beta 0.33.0-6 (early channel only).**
+
+Confirmed by Marien (2026-10-25): working as expected.
 
 Marien writes multi-part actions four ways (a `: a, b, c` list, `=> #` steps on one line, indented action lines, and
 `=> #` lines under an action, indented or not). Design `docs/design/action-groups-design.md` with his decisions:
@@ -11143,6 +11155,8 @@ comparisons per rebuild).
 ## 426. Section History draws groups like the note; topic and due pills in Section History and the Action Drawer
 
 **Status: released in beta 0.33.0-8 (early channel only).**
+
+Confirmed by Marien (2026-10-25): working as expected.
 
 Marien asked, after trying §423-§425: Section History should group actions the same way, and Section History did not
 draw due dates, nor the Action Drawer topics and due dates, the way the note does.
