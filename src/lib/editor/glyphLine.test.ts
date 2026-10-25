@@ -206,4 +206,48 @@ describe("parseGlyphLine", () => {
       expect(straddled).toEqual([{ text: "by:20" }]);
     });
   });
+
+  describe("forward links in parseGlyphLine", () => {
+    it("renders forward link with section as a pill with nested parts", () => {
+      const parts = parseGlyphLine("task (>2026-10-26#Weekly Sync)");
+      const pill = parts.find((p) => p.cls === "cm-fwd-link");
+      expect(pill).toEqual({
+        text: "(>2026-10-26#Weekly Sync)",
+        cls: "cm-fwd-link",
+        title: "October 26, 2026 · Weekly Sync",
+        parts: [
+          { text: "(>", cls: "cm-fwd-dir cm-fwd-dir-to" },
+          { text: "2026-10-26" },
+          { text: "#", cls: "cm-fwd-sep" },
+          { text: "Weekly Sync" },
+          { text: ")", cls: "cm-fwd-paren" },
+        ],
+      });
+    });
+
+    it("renders back link without section as a pill with nested parts", () => {
+      const parts = parseGlyphLine("task (<2026-10-13)");
+      const pill = parts.find((p) => p.cls === "cm-fwd-link");
+      expect(pill).toEqual({
+        text: "(<2026-10-13)",
+        cls: "cm-fwd-link",
+        title: "October 13, 2026",
+        parts: [
+          { text: "(<", cls: "cm-fwd-dir cm-fwd-dir-from" },
+          { text: "2026-10-13" },
+          { text: ")", cls: "cm-fwd-paren" },
+        ],
+      });
+    });
+
+    it("renders two forward links on one line", () => {
+      const parts = parseGlyphLine("> task (<2026-10-20#Standup) (>2026-10-26#Weekly Sync)");
+      const pills = parts.filter((p) => p.cls === "cm-fwd-link");
+      expect(pills).toHaveLength(2);
+      expect(pills[0].title).toBe("October 20, 2026 · Standup");
+      expect(pills[0].parts?.[0].cls).toBe("cm-fwd-dir cm-fwd-dir-from");
+      expect(pills[1].title).toBe("October 26, 2026 · Weekly Sync");
+      expect(pills[1].parts?.[0].cls).toBe("cm-fwd-dir cm-fwd-dir-to");
+    });
+  });
 });

@@ -105,6 +105,16 @@ function assertTokenInvariants(line: string, tokens: Token[]) {
         expect(token.date).toMatch(/^\d{4}-\d{2}-\d{2}$/);
         expect(/^by:/i.test(slice)).toBe(true);
         break;
+      case "forwardLink":
+        expect(token.replaced).toBe(false);
+        expect(["<", ">"]).toContain(token.dir);
+        expect(token.date).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+        expect(slice.startsWith(`(${token.dir}${token.date}`)).toBe(true);
+        expect(slice.endsWith(")")).toBe(true);
+        if (token.section !== undefined) {
+          expect(typeof token.section).toBe("string");
+        }
+        break;
       case "dueWord":
         expect(token.replaced).toBe(false);
         expect(typeof token.word).toBe("string");

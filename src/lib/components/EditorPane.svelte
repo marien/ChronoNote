@@ -11,6 +11,7 @@
   import { resolvedLinesPlugin } from "../editor/resolvedLines";
   import { actionTreeLinesExtension } from "../editor/actionTreeLines";
   import { topicTagEditingPlugin } from "../editor/topicTagEditing";
+  import { forwardLinksPlugin } from "../editor/forwardLinks";
   import { clickableLinksPlugin } from "../editor/clickableLinks";
   import { dateLinksPlugin } from "../editor/dateLinks";
   import { dueDatesPlugin } from "../editor/dueDates";
@@ -727,6 +728,7 @@
       resolvedLinesPlugin,
       actionTreeLinesExtension(),
       topicTagEditingPlugin,
+      forwardLinksPlugin,
       clickableLinksPlugin,
       dateLinksPlugin,
       dueDatesPlugin,

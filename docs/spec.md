@@ -146,6 +146,11 @@ its own tab, even if the source tab isn't the active one.
 the source line (where it went) and `(<YYYY-MM-DD#Section)` to the pasted line (where it came from), each line with
 the section it is in. Both are date links (Ctrl/Cmd+Click opens that day at that section; Ctrl+Alt+Left goes back).
 Forwarding again keeps the chain: the middle day reads `> task (<earlier) (>later)`. A full date anywhere is a link too.
+Drawn as a quiet pill (§428), in the editor, Section History and the Action Drawer: the text stays as it is, its
+parentheses are the pill's padding (transparent), an arrow is drawn over `(>` (went to, →) or `(<` (came from, ←), and
+a small dot over the `#` before the section; the line's width and height do not change. While the caret is in the
+link or right next to it, or a selection covers it, the raw characters show. Search result rows show the raw text.
+`(2026-10-03)` and bare dates are not forward links and stay as they were.
 
 **Due dates (§419):** typed as a word and stored as a full date. When the caret leaves the line (inside the
 state-first rewrite, so one undo step with the movement) and on paste, `by:<word>` becomes `by:YYYY-MM-DD`, relative
