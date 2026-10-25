@@ -9,9 +9,9 @@ import {
 
 describe("weekReview pure model", () => {
   describe("defaultWeekForDate (decision 1b)", () => {
-    it("opens previous week on Monday, Saturday, and Sunday; current week otherwise", () => {
-      // 2026-10-25 is Sunday (week 43) -> opens previous week 42
-      expect(defaultWeekForDate("2026-10-25")).toEqual({ year: 2026, week: 42 });
+    it("opens the week just worked: the previous week on Monday, the current one on every other day", () => {
+      // 2026-10-25 is Sunday (week 43) -> the week ending today, 43
+      expect(defaultWeekForDate("2026-10-25")).toEqual({ year: 2026, week: 43 });
 
       // 2026-10-26 is Monday (week 44) -> opens previous week 43
       expect(defaultWeekForDate("2026-10-26")).toEqual({ year: 2026, week: 43 });
@@ -28,11 +28,11 @@ describe("weekReview pure model", () => {
       // 2026-10-30 is Friday (week 44) -> opens current week 44
       expect(defaultWeekForDate("2026-10-30")).toEqual({ year: 2026, week: 44 });
 
-      // 2026-10-31 is Saturday (week 44) -> opens previous week 43
-      expect(defaultWeekForDate("2026-10-31")).toEqual({ year: 2026, week: 43 });
+      // 2026-10-31 is Saturday (week 44) -> the week ending tomorrow, 44
+      expect(defaultWeekForDate("2026-10-31")).toEqual({ year: 2026, week: 44 });
 
-      // 2026-11-01 is Sunday (week 44) -> opens previous week 43
-      expect(defaultWeekForDate("2026-11-01")).toEqual({ year: 2026, week: 43 });
+      // 2026-11-01 is Sunday (week 44) -> the week ending today, 44
+      expect(defaultWeekForDate("2026-11-01")).toEqual({ year: 2026, week: 44 });
     });
   });
 

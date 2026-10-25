@@ -93,13 +93,13 @@ export function isoYearAndWeek(iso: string): { year: number; week: number } {
   return { year, week };
 }
 
-/** Which week opens (decision 1b): on Monday, Saturday and Sunday the previous ISO week,
- * otherwise the current one, relative to `todayISO()`. */
+/** Which week opens (decision 1b): the week that has just been worked. On Monday that is the previous ISO week; on
+ * Saturday and Sunday it is the current one, which ends that Sunday (as on any other day). */
 export function defaultWeekForDate(todayISO: string): { year: number; week: number } {
   const d = parseISODateLocal(todayISO);
   const day = d.getDay(); // 0 = Sun, 1 = Mon, ..., 6 = Sat
   const current = isoYearAndWeek(todayISO);
-  if (day === 0 || day === 1 || day === 6) {
+  if (day === 1) {
     const monday = isoWeekToMonday(current.year, current.week);
     const prevMonday = addDaysISO(monday, -7);
     return isoYearAndWeek(prevMonday);

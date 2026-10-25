@@ -11284,3 +11284,29 @@ shows delegated parts.
   (`drawer-filters.independent.spec.ts`); reviewed and checked in the browser by Claude. Tests also:
   `actionDrawerRows.test.ts` (operators, normal and due view), `action-drawer-filters.spec.ts` (chips, docked pane,
   phone).
+
+## 432. Week review (feature review A3)
+
+**Status: on main, not released yet.**
+
+Marien approved A3 on 2026-10-25 ("it should help me figure out which actions and topics are still open and require
+follow-up") and took all seven recommendations of `docs/design/week-review-design.md` (section 7). `Ctrl+Shift+K`,
+the palette, the More menu, or a click on a week number in the date picker opens one ISO week: per day and section,
+the open own actions (with groups, steps, due flags and pills as in the Action Drawer), open and postponed topics.
+Forwarded lines (`(>…)`) are not open; delegated parts stay on their action's row. Counts in the header (open
+actions, open topics, overdue), a muted "all done" line for a day or section with nothing open, "Show done" (off),
+and "N still open from earlier weeks", which opens the Action Drawer. It opens on the week just worked: the previous
+week on Monday, the current one on every other day. Same keys as the Action Drawer, plus `Left`/`Right`/`Home` for
+the week. Docked like Section History and Actions on a wide window.
+
+- **Code:** `weekReview.ts` (pure model: weeks, sections, open/done items, counts), `WeekReviewModal.svelte`, the
+  `weekReview` docked pane in `App.svelte`, shortcut `openWeekReview` (also bound in the editor, where CodeMirror's
+  own `Ctrl+Shift+K` deletes a line), 7 languages.
+- **Review fixes (Claude):** the view did not take the focus on opening (the list did not exist yet when it tried),
+  so `Left`/`Right` moved the caret in the note; it focuses after the first frame now. On a weekend it opened the
+  week before the one just worked (the brief said "previous week" for Saturday and Sunday; decision 1b means the week
+  just worked, which then ends that Sunday). In a narrow docked pane the "‹ week 42" buttons pushed the week number out
+  of the title and the overdue count out of view: arrows with a tooltip now, and the title and counts wrap.
+- **Built by:** Gemini 3.8 Flash from a brief, and an independent Gemini test writer from the design and brief only
+  (`week-review.independent.spec.ts`; one test assumed a click selects a row, but it jumps as in the Action Drawer:
+  it hovers now). Tests also `weekReview.test.ts`, `week-review.spec.ts`.

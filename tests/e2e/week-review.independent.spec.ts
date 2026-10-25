@@ -185,7 +185,7 @@ export const SEED_NOTES: Record<string, string> = {
 };
 
 test.describe("Week Review (independent tests)", () => {
-  test("1. Ctrl/Cmd+Shift+K opens the week review; Wednesday shows current ISO week, Monday and Sunday show previous week", async ({
+  test("1. Ctrl/Cmd+Shift+K opens the week review; Wednesday and Sunday show the current ISO week, Monday the previous one", async ({
     page,
   }) => {
     // 1a. With today set to Wednesday, current ISO week (Week 44) is shown
@@ -210,7 +210,8 @@ test.describe("Week Review (independent tests)", () => {
     pane = await openWeekReview(page);
     await expect(weekHeader(pane)).toContainText(/week\s*43|\b43\b/i);
 
-    // 1c. With today set to Sunday, previous week (Week 42) is shown
+    // 1c. With today set to Sunday, the week ending that day (Week 43) is shown. Review: the brief said "previous
+    // week" for the weekend, but decision 1b means the week just worked, which on a Sunday is the current ISO week.
     await seedApp(page, {
       seed: {
         notes: SEED_NOTES,
@@ -219,7 +220,7 @@ test.describe("Week Review (independent tests)", () => {
       now: NOW_SUNDAY_W43,
     });
     pane = await openWeekReview(page);
-    await expect(weekHeader(pane)).toContainText(/week\s*42|\b42\b/i);
+    await expect(weekHeader(pane)).toContainText(/week\s*43|\b43\b/i);
   });
 
   test("2. header shows week number and counts for open actions, open topics, and overdue actions", async ({
@@ -404,7 +405,9 @@ test.describe("Week Review (independent tests)", () => {
     // Select the action "send contract to client" (from 2026-10-27.txt line 3)
     const targetItem = weekItem(pane, "send contract to client");
     await expect(targetItem).toBeVisible();
-    await targetItem.click();
+    // Review: hover selects (a click already jumps, as in the Action Drawer, and the test's Enter then went to the
+    // note and added a line); the pane keeps the focus.
+    await targetItem.hover();
 
     // Press Enter to jump to the note
     await page.keyboard.press("Enter");

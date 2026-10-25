@@ -58,7 +58,9 @@
     void refreshAllNotesCache();
     mounted = true;
     if (!$isMobile) {
-      listEl?.focus();
+      // After the list has rendered, and after the keystroke that opened the view (the editor's own Ctrl+Shift+K)
+      // is done: focusing at once left the caret in the note, so Left/Right moved it instead of changing the week.
+      requestAnimationFrame(() => listEl?.focus());
     }
     document.addEventListener("keydown", onKeydown);
   });
@@ -420,21 +422,24 @@
       </span>
     </div>
     <div class="week-nav-actions">
+      <!-- Arrows only: in a narrow docked pane the labels pushed the week number out of the title. -->
       <button
         type="button"
         class="week-nav-btn"
-        aria-label={$t("weekReview.prevWeek")}
+        aria-label={$t("weekReview.prevWeekLabel", { week: prevWeekNumber })}
+        title={$t("weekReview.prevWeekLabel", { week: prevWeekNumber })}
         onclick={() => shiftWeek(-1)}
       >
-        {$t("weekReview.prevWeekLabel", { week: prevWeekNumber })}
+        <Icon name="chevron-left" size={12} />
       </button>
       <button
         type="button"
         class="week-nav-btn"
-        aria-label={$t("weekReview.nextWeek")}
+        aria-label={$t("weekReview.nextWeekLabel", { week: nextWeekNumber })}
+        title={$t("weekReview.nextWeekLabel", { week: nextWeekNumber })}
         onclick={() => shiftWeek(1)}
       >
-        {$t("weekReview.nextWeekLabel", { week: nextWeekNumber })}
+        <Icon name="chevron-right" size={12} />
       </button>
       <button
         type="button"
@@ -674,10 +679,8 @@
   color: var(--text-primary);
 }
 .week-title {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
   font-size: 14px;
+  line-height: 1.3;
 }
 .week-nav-actions {
   display: flex;
@@ -690,10 +693,10 @@
   border: 1px solid var(--border, rgba(255, 255, 255, 0.1));
   color: var(--text-primary);
   border-radius: 4px;
-  padding: 2px 8px;
-  font-size: 12px;
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 5px;
   cursor: pointer;
-  white-space: nowrap;
 }
 .week-nav-btn:hover {
   background: var(--surface-hover);
@@ -708,18 +711,19 @@
   font-size: 12px;
   color: var(--muted);
   flex-shrink: 0;
-  gap: 8px;
+  flex-wrap: wrap;
+  gap: 4px 8px;
 }
 .week-review-counts {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 6px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  gap: 2px 6px;
+  min-width: 0;
 }
 .count-pill {
   font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 .count-overdue {
   color: var(--color-warning, #f59e0b);
