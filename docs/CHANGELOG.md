@@ -11247,6 +11247,8 @@ opens on Ctrl/Cmd+Click).
 
 **Status: released in beta 0.33.1-1 (early channel only).**
 
+Confirmed by Marien (2026-10-25) on 0.33.1-1: restarts later in the day keep the saved tabs.
+
 Marien (0.33.0): with Startup set to "Last note", today's tab kept appearing although he had not opened it and today
 had no note. `restoreOrBootstrapTabs` (`boot.ts`) puts today's tab in the list on every start and only took it out
 again on the first start of a day (#125). Every later start the same day kept it: the restart after an update, reopening
