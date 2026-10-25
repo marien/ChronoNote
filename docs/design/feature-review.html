@@ -77,6 +77,12 @@ td a { text-decoration: none; font-weight: 600; }
 .shipped { border-top: 1px solid var(--line); margin-top: 14px; padding-top: 12px; }
 .shipped h4 { font: 600 12px var(--ui); text-transform: uppercase; letter-spacing: .06em; color: var(--ok); margin: 0 0 4px; }
 .shipped p { font-size: 14px; }
+.tag.no { background: color-mix(in srgb, var(--bad) 14%, transparent); color: var(--bad); }
+.decision { border-top: 1px solid var(--line); margin-top: 14px; padding-top: 12px; }
+.decision h4 { font: 600 12px var(--ui); text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 0 0 4px; }
+.approved .decision h4 { color: var(--ok); }
+.decision p { font-size: 14px; }
+.proposal.rejected { opacity: .72; }
 .status { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 16px 18px; margin: 24px 0; }
 .status h2 { margin: 0 0 8px; }
 
@@ -100,7 +106,8 @@ td a { text-decoration: none; font-weight: 600; }
       <li><b>Released in v0.32.0 (14 October):</b> the whole D section. <a href="#p-D1">D1</a> Replace, <a href="#p-D2">D2</a> spell check, <a href="#p-D3">D3</a> Go to section and <a href="#p-D4">D4</a> date links, with Back and Forward and forward links on every way of forwarding (CHANGELOG §369-§378).</li>
       <li><b>Released in v0.33.0 (25 October):</b> <a href="#p-B2">B2</a> due dates (§419-§422).</li>
       <li><b>Built alongside, not on this page:</b> sub-actions and numbered steps, joined by thin lines in the note, nested and foldable in the Action Drawer, and drawn the same in Section History (§423-§427, v0.33.0); forward links drawn as a small tag with an arrow (§428-§429, v0.33.0); "Last note" keeping your tabs on every start (§430, v0.33.1).</li>
-      <li><b>Still open:</b> A1, A2, A3, B1, B3, C1, C2, E1, E2. Their decision buttons below still work; the released cards show what shipped instead.</li>
+      <li><b>Approved on 25 October, next to build:</b> <a href="#p-A3">A3</a> Week review and <a href="#p-B3">B3</a> search filters in Actions.</li>
+      <li><b>Rejected on 25 October:</b> A1, A2, B1, C1, E1, E2, with your reasons on each card. <b>Not now:</b> C2.</li>
     </ul>
   </section>
 
@@ -158,43 +165,47 @@ td a { text-decoration: none; font-weight: 600; }
   <h2 id="a">A · Starting and closing the day</h2>
   <p>What happens before the first meeting and after the last.</p>
 
-  <section class="proposal" data-id="A1" data-title="Bring open actions forward at the start of the day" data-area="Day" data-adv="rec" data-eff="M">
+  <section class="proposal decided rejected" data-decision="rejected" data-id="A1" data-title="Bring open actions forward at the start of the day" data-area="Day" data-adv="rec" data-eff="M">
     <div class="phead"><span class="pid">A1</span><h3>Bring open actions forward at the start of the day</h3></div>
     <div class="cols">
       <div><h4>Now</h4><p>Open actions stay in the note where they were written. To carry them to today you copy and paste them (the source becomes <code>&gt; </code>), or forward them one at a time with <kbd>Shift</kbd>+<kbd>Enter</kbd> in Actions. After a few days the open work is spread over several notes, and Ctrl+J only walks through the current one.</p></div>
       <div><h4>Proposed</h4><p>A command "Bring open actions forward" (palette, the More menu, a shortcut such as <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>B</kbd>) opens a review list of every open <code># </code> from earlier notes, grouped by date, all ticked. Enter moves the ticked ones to the top of today's note under a "Carried over" heading and marks each source <code>&gt; </code>, the same rule as forwarding now. Optional setting: show this once when today's note is first opened, and only if there is something to bring.</p></div>
     </div>
     <p class="why">It's the daily chore the app already does for one action at a time. The review list keeps you in control: nothing moves until you confirm.</p>
+      <div class="decision"><h4>Your decision · 25 October 2026 · Rejected</h4><p>This does not fit my workflow. I like actions that stay in the context of the meeting they were raised in. The forward pills are meant to cover an exception.</p></div>
   </section>
 
-  <section class="proposal" data-id="A2" data-title="A template for new daily notes" data-area="Day" data-adv="opt" data-eff="S">
+  <section class="proposal decided rejected" data-decision="rejected" data-id="A2" data-title="A template for new daily notes" data-area="Day" data-adv="opt" data-eff="S">
     <div class="phead"><span class="pid">A2</span><h3>A template for new daily notes</h3></div>
     <div class="cols">
       <div><h4>Now</h4><p>A new day starts empty. Calendar sync fills in the meetings, but a fixed part of every day (a "Today" list, a standing "Inbox" section, a reminder line) is typed again each morning.</p></div>
       <div><h4>Proposed</h4><p>An optional plain-text file in the notes folder, <code>.chrononote-template.txt</code>, is copied into every new dated note before calendar sync adds the meetings. Optional per-weekday files (<code>.chrononote-template-mon.txt</code>) for days that look different. Settings shows whether a template is in use and opens the file. No template file means today's behaviour.</p></div>
     </div>
     <p class="why">The template syncs with the notes through OneDrive, so the web app uses the same one.</p>
+      <div class="decision"><h4>Your decision · 25 October 2026 · Rejected</h4><p>This does not fit my workflow.</p></div>
   </section>
 
-  <section class="proposal" data-id="A3" data-title="Week review" data-area="Day" data-adv="opt" data-eff="M">
+  <section class="proposal decided approved" data-decision="approved" data-id="A3" data-title="Week review" data-area="Day" data-adv="opt" data-eff="M">
     <div class="phead"><span class="pid">A3</span><h3>Week review</h3></div>
     <div class="cols">
       <div><h4>Now</h4><p>Seeing what happened this week means opening five notes, or searching with <code>since:</code>. A status update for a manager is put together by hand.</p></div>
       <div><h4>Proposed</h4><p>A read-only "Week review" view (palette, date picker week number): per day, what was done, what was decided (<code>=&gt;</code> lines), which topics were discussed, and what is still open or waiting on someone. Arrow keys move between weeks; Enter jumps to the line. "Copy as Markdown" puts a tidy summary on the clipboard. Nothing is written to any note.</p></div>
     </div>
+      <div class="decision"><h4>Your decision · 25 October 2026 · Approved</h4><p>Yes, this will help my Friday afternoon or Monday morning week review. It should help me figure out which actions and topics are still open and require follow-up.</p></div>
   </section>
 
   <!-- ================= B ================= -->
   <h2 id="b">B · Actions and people</h2>
   <p>What you owe, what others owe you, and by when.</p>
 
-  <section class="proposal" data-id="B1" data-title="Waiting on: delegated work you can close" data-area="Actions" data-adv="call" data-eff="M">
+  <section class="proposal decided rejected" data-decision="rejected" data-id="B1" data-title="Waiting on: delegated work you can close" data-area="Actions" data-adv="call" data-eff="M">
     <div class="phead"><span class="pid">B1</span><h3>Waiting on: delegated work you can close</h3></div>
     <div class="cols">
       <div><h4>Now</h4><p><code>=&gt; @dana send the slides</code> is a delegated action with no state of its own. Actions hides these lines unless the filter contains <code>@</code>. There is no way to mark one as received or done short of deleting the arrow, and no list of what each person still owes you.</p></div>
       <div><h4>Proposed</h4><p>Delegated lines get the same states as your own, written in the existing consequence-action form: <code>=&gt; # @dana send the slides</code> is waiting, <code>=&gt; v @dana …</code> is received, <code>=&gt; x @dana …</code> is dropped. Plain <code>=&gt; @dana</code> keeps meaning "waiting" so old notes stay valid. Actions gets a "Waiting on" switch that groups open delegated lines by person, oldest first, and Ctrl+Space closes one in place. Delegated lines stay out of your own open count and don't block closing a tab.</p></div>
     </div>
     <p class="why">This is the largest gap in the meeting workflow: an action leaves your list the moment it goes to someone else. Your call because it settles what a delegated line means.</p>
+      <div class="decision"><h4>Your decision · 25 October 2026 · Rejected</h4><p>I don't want to track other people's tasks. I don't like to have that maintenance overload. I'll get it by regularly reviewing what was discussed before by searching their names when I meet with them.</p></div>
   </section>
 
   <section class="proposal released" data-released="v0.33.0" data-id="B2" data-title="Due dates written in the line" data-area="Actions" data-adv="call" data-eff="M">
@@ -207,34 +218,37 @@ td a { text-decoration: none; font-weight: 600; }
       <div class="shipped"><h4>What shipped · v0.33.0 · §419-§422</h4><p><code>by:</code> with a date or a word (<code>by:fri</code>, <code>by:tomorrow</code>, Dutch words too), rewritten to the full date when you leave the line, or <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>D</kbd> for a compact date picker; a click on the date opens it too. Instead of a pill, the date is drawn in place: <code>by:</code> becomes a small flag and one outline surrounds flag and date, muted, amber on the day, red once past, so the line keeps its width. The status bar counts overdue actions across all notes. Instead of <code>due:</code> filters, the Action Drawer has a "By due date" view: Overdue, Today, This week, Later. Delegated lines can carry a date but stay out of your own count.</p></div>
   </section>
 
-  <section class="proposal" data-id="B3" data-title="Search filters in Actions" data-area="Actions" data-adv="rec" data-eff="S">
+  <section class="proposal decided approved" data-decision="approved" data-id="B3" data-title="Search filters in Actions" data-area="Actions" data-adv="rec" data-eff="S">
     <div class="phead"><span class="pid">B3</span><h3>Search filters in Actions</h3></div>
     <div class="cols">
       <div><h4>Now</h4><p>Cross-tab Search understands <code>tag:</code>, <code>has:@</code>, <code>since:</code> and <code>before:</code>, shown as removable chips. The Actions filter is plain text only, so "open actions about the budget from this month" isn't possible there.</p></div>
       <div><h4>Proposed</h4><p>The Actions filter uses the same parser and chips as Search. <code>tag:budget since:2026-10-01</code> works the same in both places, and typing <code>@dana</code> keeps today's meaning (show that person's delegated lines).</p></div>
     </div>
     <p class="why">The parser and chips exist already. This is mostly wiring and tests.</p>
+      <div class="decision"><h4>Your decision · 25 October 2026 · Approved</h4></div>
   </section>
 
   <!-- ================= C ================= -->
   <h2 id="c">C · Meetings</h2>
   <p>Before, during and after a recurring meeting.</p>
 
-  <section class="proposal" data-id="C1" data-title="Carry unfinished topics into the next meeting" data-area="Meetings" data-adv="rec" data-eff="M">
+  <section class="proposal decided rejected" data-decision="rejected" data-id="C1" data-title="Carry unfinished topics into the next meeting" data-area="Meetings" data-adv="rec" data-eff="M">
     <div class="phead"><span class="pid">C1</span><h3>Carry unfinished topics into the next meeting</h3></div>
     <div class="cols">
       <div><h4>Now</h4><p>When calendar sync creates a section for a recurring meeting, it starts empty. Topics that were still open (<code>o </code>) or postponed (<code>, </code>) last time, and open actions under that meeting, only arrive if you copy them over with Section History's "As agenda" or Copy to next occurrence.</p></div>
       <div><h4>Proposed</h4><p>A setting under Calendar: "Fill new meeting sections from the last occurrence". When sync adds a section, it brings the open and postponed topics from the previous occurrence as <code>o </code> and marks them carried in the source, the same rule as "As agenda". Open actions are listed under a "From last time" line. The sync review shows what will be carried, so you can untick items.</p></div>
     </div>
     <p class="why">Section History already does this by hand; this runs the same rule at the moment the meeting appears.</p>
+      <div class="decision"><h4>Your decision · 25 October 2026 · Rejected</h4><p>Copy as agenda is enough. Having not discussed a topic is rare in my workflow.</p></div>
   </section>
 
-  <section class="proposal" data-id="C2" data-title="Copy a meeting as a summary" data-area="Meetings" data-adv="rec" data-eff="S">
+  <section class="proposal decided later" data-decision="later" data-id="C2" data-title="Copy a meeting as a summary" data-area="Meetings" data-adv="rec" data-eff="S">
     <div class="phead"><span class="pid">C2</span><h3>Copy a meeting as a summary</h3></div>
     <div class="cols">
       <div><h4>Now</h4><p>Export copies a whole note as Markdown. Sending a summary of one meeting means selecting the section and cleaning up the symbols by hand.</p></div>
       <div><h4>Proposed</h4><p>"Copy section as summary" in the line menu, on the section title and in the palette. It puts a short plain-text summary on the clipboard, ready to paste into a mail or Teams: the title and date, then Decisions (<code>=&gt;</code> lines), Actions with their owner (<code>@name</code>, or "me"), Discussed and Postponed topics. Loose notes are left out.</p></div>
     </div>
+      <div class="decision"><h4>Your decision · 25 October 2026 · Not now</h4><p>Not now, could be a future topic.</p></div>
   </section>
 
   <!-- ================= D ================= -->
@@ -284,21 +298,23 @@ td a { text-decoration: none; font-weight: 600; }
   <h2 id="e">E · Capture from anywhere</h2>
   <p>Getting a thought into today's note without ChronoNote in front.</p>
 
-  <section class="proposal" data-id="E1" data-title="Quick add from anywhere" data-area="Capture" data-adv="rec" data-eff="M">
+  <section class="proposal decided rejected" data-decision="rejected" data-id="E1" data-title="Quick add from anywhere" data-area="Capture" data-adv="rec" data-eff="M">
     <div class="phead"><span class="pid">E1</span><h3>Quick add from anywhere</h3></div>
     <div class="cols">
       <div><h4>Now</h4><p>Writing something down while in another app means switching to ChronoNote, finding today's tab, and finding the right place. The call shortcut (Ctrl+Alt+J) helps only during a meeting.</p></div>
       <div><h4>Proposed</h4><p>A second system-wide shortcut, <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>K</kbd> (no AltGr letter on K; changeable), opens a one-line box on top of whatever you're doing. Type the line, press Enter: it's added to today's note as an open action, or under an "Inbox" section if your template (A2) has one. <kbd>Shift</kbd>+<kbd>Enter</kbd> adds it as a plain line, Escape cancels. The box goes away and focus returns to the app you were in.</p></div>
     </div>
     <p class="why">It reuses the global-shortcut binder and the small-window code from Peek, and only listens to its own key; it doesn't watch other apps.</p>
+      <div class="decision"><h4>Your decision · 25 October 2026 · Rejected</h4><p>ChronoNote is always open in my workflow, either in full mode or peek mode.</p></div>
   </section>
 
-  <section class="proposal" data-id="E2" data-title="Share to ChronoNote on the phone" data-area="Capture" data-adv="opt" data-eff="M">
+  <section class="proposal decided rejected" data-decision="rejected" data-id="E2" data-title="Share to ChronoNote on the phone" data-area="Capture" data-adv="opt" data-eff="M">
     <div class="phead"><span class="pid">E2</span><h3>Share to ChronoNote on the phone</h3></div>
     <div class="cols">
       <div><h4>Now</h4><p>The installed web app can't receive anything from other apps. A link or a piece of text has to be copied, then pasted into today's note.</p></div>
       <div><h4>Proposed</h4><p>Register the installed web app as a share target. ChronoNote then appears in the phone's Share sheet; shared text or a link is added to today's note as an open action and synced through OneDrive as usual. Android only: iPhones don't let web apps receive shares.</p></div>
     </div>
+      <div class="decision"><h4>Your decision · 25 October 2026 · Rejected</h4></div>
   </section>
 
   <h2 id="out">Considered and left out</h2>
@@ -324,23 +340,25 @@ td a { text-decoration: none; font-weight: 600; }
   var advText = { rec: "Recommended", opt: "Optional", call: "Your call" };
   var all = Array.prototype.slice.call(document.querySelectorAll(".proposal"));
   // Released proposals show what shipped instead of decision buttons; counts and "Copy decisions" cover the open ones.
-  var cards = all.filter(function (card) { return !card.dataset.released; });
+  var cards = all.filter(function (card) { return !card.dataset.released && !card.dataset.decision; });
+  var decTag = { approved: '<span class="tag rec">Approved</span>', rejected: '<span class="tag no">Rejected</span>', later: '<span class="tag">Not now</span>' };
+  if (cards.length === 0) { var bar = document.querySelector(".bar"); bar.hidden = true; bar.nextElementSibling.hidden = true; }
   var tbody = document.querySelector("#ovt tbody");
 
   all.forEach(function (card) {
     var id = card.dataset.id;
     var rel = card.dataset.released;
     card.id = "p-" + id;
-    var statusTag = rel ? '<span class="tag done">Released ' + rel + '</span>' : '<span class="tag">Open</span>';
+    var statusTag = rel ? '<span class="tag done">Released ' + rel + '</span>' : (decTag[card.dataset.decision] || '<span class="tag">Open</span>');
     var meta = document.createElement("div");
     meta.className = "meta";
-    meta.innerHTML = (rel ? statusTag : '') + '<span class="tag ' + card.dataset.adv + '">' + advText[card.dataset.adv] + '</span><span class="tag">' + card.dataset.area + '</span><span class="tag">Effort ' + card.dataset.eff + '</span>';
+    meta.innerHTML = (rel || card.dataset.decision ? statusTag : '') + '<span class="tag ' + card.dataset.adv + '">' + advText[card.dataset.adv] + '</span><span class="tag">' + card.dataset.area + '</span><span class="tag">Effort ' + card.dataset.eff + '</span>';
     card.querySelector(".phead").appendChild(meta);
 
     var tr = document.createElement("tr");
     tr.innerHTML = '<td><a href="#p-' + id + '">' + id + '</a></td><td>' + card.dataset.title + '</td><td>' + card.dataset.area + '</td><td><span class="tag ' + card.dataset.adv + '">' + advText[card.dataset.adv] + '</span></td><td>' + card.dataset.eff + '</td><td>' + statusTag + '</td>';
     tbody.appendChild(tr);
-    if (rel) return;
+    if (rel || card.dataset.decision) return;
 
     var dec = document.createElement("div");
     dec.className = "dec";
