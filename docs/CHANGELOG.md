@@ -11194,3 +11194,31 @@ box. The note is unchanged. `drawerTreeGuides` no longer tells steps from lines 
 - **Tests:** `actionDrawerRows.test.ts` (steps get tee/end like children);
   `action-groups-drawer.independent.spec.ts` (a step row's tree line, its number after the box). Checked in the
   browser: a one-line sequence and the same steps as `# 1.` lines render identically.
+
+## 428. Forward links drawn as a pill with a direction arrow
+
+**Status: on main, not released yet.**
+
+Marien asked (2026-10-25) to style forward links (§371) as a pill like the topic pill, with `>` and `<` replaced by a
+small glyph for what they mean. His choices: plain arrows (→ went to, ← came from), a quiet dot instead of the `#`
+before the section, the raw text while editing, neutral and quieter than the topic pill, in the editor, Section
+History and the Action Drawer; bare dates and `(2026-10-03)` stay as they were.
+
+- **Token:** `tokenizeLine` reads `(>YYYY-MM-DD#Section)` / `(<…)` (section optional, valid date) as `forwardLink`
+  (`dir`, `date`, `section`), anywhere on a line, ahead of `paren`.
+- **Editor** (`editor/forwardLinks.ts`): marks only, nothing replaced. The pill is an outset 1px box-shadow (as the due
+  date, §421); the arrow is a mask over the two cells `(` + `<`/`>`, the dot a small gradient over `#`, `)` is
+  transparent. Caret in or next to it, or a selection over it: `.cm-fwd-editing` shows the raw characters (like the
+  topic pill, §422). Ctrl/Cmd+Click anywhere on the pill opens the day at the section. The outer mark has the lowest
+  precedence so the date link inside stays one element.
+- **Read-only:** `parseGlyphLine` gives the pill as nested parts, so Section History and the Action Drawer show it;
+  search rows stay flat (raw text).
+- **Footprint:** line height unchanged; the end of a line with two pills lies 0.06-0.13 px from the same text without
+  them at 13-22 px (text split into spans rounds per run), and nothing moves when the caret enters or leaves.
+- **Built by:** Gemini 3.8 Flash from a brief, an independent Gemini test writer from the brief only (3 files).
+  Claude's review found the arrow invisible (its ink was `currentColor` on transparent text): fixed, with a test. The
+  independent footprint test multiplied an average character width by 64 and missed by 1.04 px at 18 px; it now
+  compares with the same line without pills (0.25 px).
+- **Tests:** `tokenize.test.ts`, `tokenize.property.test.ts`, `glyphLine.test.ts`,
+  `forwardLink.independent.test.ts`; Playwright `glyph-layout.spec.ts` (§428 footprint at 11-24 px, scale-150),
+  `forward-links.spec.ts`, `forward-link-pill.independent.spec.ts`, `forward-link-readonly.independent.spec.ts`.

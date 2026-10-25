@@ -20,8 +20,10 @@ test.describe("forward link pills in editor (Task S428-T / Section C)", () => {
   const line1 = "> review budget (<2026-10-20#Standup) (>2026-10-26#Weekly Sync)";
   const line2 = "> review budget";
   const line3 = "plain 2026-10-03 (2026-10-04)";
+  // line1 with the arrows and `#` swapped for `x`: the same characters' widths, but no forward link (no pill).
+  const line4 = "> review budget (x2026-10-20xStandup) (x2026-10-26xWeekly Sync)";
 
-  const SEED_TEXT = [line1, line2, line3].join("\n");
+  const SEED_TEXT = [line1, line2, line3, line4].join("\n");
 
   const seedNotes = {
     [todayFilename()]: SEED_TEXT,
@@ -52,7 +54,7 @@ test.describe("forward link pills in editor (Task S428-T / Section C)", () => {
     });
 
     const lines = editor(page).locator(".cm-line");
-    await expect(lines).toHaveCount(3);
+    await expect(lines).toHaveCount(4);
 
     const fwdLine = lines.nth(0);
     const plainLine = lines.nth(2);
@@ -95,33 +97,24 @@ test.describe("forward link pills in editor (Task S428-T / Section C)", () => {
       }, fontSize);
       await page.evaluate(() => new Promise((r) => setTimeout(r, 60)));
 
-      const metrics = await page.evaluate(({ rawLen }) => {
+      const metrics = await page.evaluate(() => {
         const lines = document.querySelectorAll<HTMLElement>(".cm-editor .cm-line");
         const fwdLine = lines[0];
         const plainLine = lines[2];
 
-        // Measure single char width on plain line using a Range across the entire text
-        const walker = document.createTreeWalker(plainLine, NodeFilter.SHOW_TEXT);
-        const textNode = walker.nextNode()!;
-        const plainRange = document.createRange();
-        plainRange.setStart(textNode, 0);
-        plainRange.setEnd(textNode, textNode.nodeValue!.length);
-        const plainWidth = plainRange.getBoundingClientRect().width;
-        const charWidth = plainWidth / textNode.nodeValue!.length;
-        const expectedWidth = rawLen * charWidth;
-
-        // Content width of fwdLine: range from start of first text node to end of last text node
-        const fwdWalker = document.createTreeWalker(fwdLine, NodeFilter.SHOW_TEXT);
-        let firstNode: Node | null = fwdWalker.nextNode();
-        let lastNode: Node | null = firstNode;
-        let next: Node | null;
-        while ((next = fwdWalker.nextNode())) {
-          lastNode = next;
-        }
-        const fwdRange = document.createRange();
-        fwdRange.setStart(firstNode!, 0);
-        fwdRange.setEnd(lastNode!, lastNode!.nodeValue?.length ?? 0);
-        const actualWidth = fwdRange.getBoundingClientRect().width;
+        // The right edge of a line's last character.
+        const endX = (el: HTMLElement) => {
+          const w = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+          let last: Node | null = null;
+          let n: Node | null;
+          while ((n = w.nextNode())) if (n.nodeValue) last = n;
+          const r = document.createRange();
+          r.setStart(last!, last!.nodeValue!.length - 1);
+          r.setEnd(last!, last!.nodeValue!.length);
+          return r.getBoundingClientRect().right;
+        };
+        const actualWidth = endX(fwdLine);
+        const expectedWidth = endX(lines[3]);
 
         const fwdHeight = fwdLine.getBoundingClientRect().height;
         const plainHeight = plainLine.getBoundingClientRect().height;
@@ -132,12 +125,13 @@ test.describe("forward link pills in editor (Task S428-T / Section C)", () => {
           fwdHeight,
           plainHeight,
         };
-      }, { rawLen: line1.length });
+      });
 
+      // Sub-pixel only (text split into spans rounds per run): measured 0.06-0.13px.
       expect(
         Math.abs(metrics.actualWidth - metrics.expectedWidth),
-        `fontSize ${fontSize}px: content width should match chars x charWidth within 1px`,
-      ).toBeLessThanOrEqual(1);
+        `fontSize ${fontSize}px: the line ends where the same text without pills ends`,
+      ).toBeLessThanOrEqual(0.25);
 
       expect(
         Math.abs(metrics.fwdHeight - metrics.plainHeight),
@@ -251,6 +245,7 @@ test.describe("forward link pills in editor (Task S428-T / Section C)", () => {
         return {
           dirColor: dir ? window.getComputedStyle(dir).color : null,
           sepColor: sep ? window.getComputedStyle(sep).color : null,
+          dirInk: dir ? window.getComputedStyle(dir).backgroundColor : null,
         };
       });
 
@@ -260,6 +255,8 @@ test.describe("forward link pills in editor (Task S428-T / Section C)", () => {
     expect(idleColors).not.toBeNull();
     expect(isColorTransparent(idleColors!.dirColor ?? "")).toBe(true);
     expect(isColorTransparent(idleColors!.sepColor ?? "")).toBe(true);
+    // Review: the arrow's ink must not follow the transparent text colour (it was currentColor and drew nothing).
+    expect(isColorTransparent(idleColors!.dirInk ?? "")).toBe(false);
 
     // Caret inside link 1: editing state
     await link1.click();

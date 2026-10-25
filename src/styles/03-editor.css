@@ -832,11 +832,13 @@ body.peek-mode .cm-overview-ruler {
   text-decoration: none;
 }
 
+/* The arrow over the two cells `(` + `<`/`>` (1.2em in a monospace font), a little in from the pill's edge. Its ink is
+   a fixed colour, not currentColor: the characters themselves are transparent. */
 .cm-fwd-dir {
   color: transparent;
-  background-color: currentColor;
-  -webkit-mask: var(--fwd-arrow) no-repeat 0.55ch 50% / 0.9em 0.9em;
-  mask: var(--fwd-arrow) no-repeat 0.55ch 50% / 0.9em 0.9em;
+  background-color: var(--muted);
+  -webkit-mask: var(--fwd-arrow) no-repeat 0.3ch 50% / 0.85em 0.85em;
+  mask: var(--fwd-arrow) no-repeat 0.3ch 50% / 0.85em 0.85em;
 }
 
 .cm-fwd-dir-to {
@@ -871,12 +873,6 @@ body.peek-mode .cm-overview-ruler {
 
 .cm-fwd-editing .cm-fwd-paren {
   color: var(--muted);
-}
-
-[data-color-mode="grayscale"] .cm-fwd-link {
-  color: var(--muted);
-  box-shadow: 0 0 0 1px var(--edge-soft);
-  background: color-mix(in srgb, var(--text) 4%, transparent);
 }
 
 [data-color-mode="grayscale"] .cm-due.cm-due-resolved {
