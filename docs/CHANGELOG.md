@@ -11245,7 +11245,7 @@ opens on Ctrl/Cmd+Click).
 
 ## 430. "Last note" start-up: later starts the same day restore exactly the saved tabs
 
-**Status: released in beta 0.33.1-1 (early channel only).**
+**Status: released in v0.33.1 (beta 0.33.1-1 first).**
 
 Confirmed by Marien (2026-10-25) on 0.33.1-1: restarts later in the day keep the saved tabs.
 
