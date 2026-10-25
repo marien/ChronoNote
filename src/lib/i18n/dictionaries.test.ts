@@ -112,6 +112,18 @@ const SAMPLE_PARAMS: Partial<Record<TranslationKey, unknown>> = {
   "toast.oneDriveSync.couldntStartSignInPrefix": { message: "network error" },
   "error.oneDriveTokenRequestFailed": { detail: "network error" },
   "error.oneDriveTokenExchangeRejected": { detail: "invalid_grant" },
+  "weekReview.header.weekTitle": { week: 44, range: "27 Oct - 2 Nov 2026" },
+  "weekReview.prevWeekLabel": { week: 43 },
+  "weekReview.nextWeekLabel": { week: 45 },
+  "weekReview.count.openAction": { count: 1 },
+  "weekReview.count.openActions": { count: 12 },
+  "weekReview.count.openTopic": { count: 1 },
+  "weekReview.count.openTopics": { count: 3 },
+  "weekReview.count.overdue": { count: 4 },
+  "weekReview.earlierWeeks": { count: 5 },
+  "weekReview.earlierWeeksSingle": { count: 1 },
+  "weekReview.sectionAllDone": { section: "Standup" },
+  "weekReview.openWeek": { week: 44 },
 };
 
 /** Defense in depth beyond the `satisfies Dictionary` compile-time check

@@ -212,6 +212,11 @@
     moveFocus(today);
   }
 
+  function onWeekClick(firstDayIso: string) {
+    const { year, week } = controller.isoYearAndWeek(firstDayIso);
+    void controller.openWeekReview({ year, week });
+  }
+
   function commit(iso: string) {
     if (get(copyForwardPending)) {
       controller.resolveCopyForwardPending(iso);
@@ -305,7 +310,14 @@
   <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
   <div class="cal-grid" role="group" aria-label={$t("datePicker.ariaLabel")} tabindex="-1" bind:this={gridEl} onkeydown={onGridKeydown}>
     {#each weeks as week (week.days[0].iso)}
-      <span class="cal-week-num" aria-hidden="true">{week.weekNum}</span>
+      <button
+        type="button"
+        class="cal-week-num"
+        aria-label={$t("weekReview.openWeek", { week: week.weekNum })}
+        onclick={() => onWeekClick(week.days[0].iso)}
+      >
+        {week.weekNum}
+      </button>
       {#each week.days as cell (cell.iso)}
         <button
           type="button"
@@ -463,12 +475,21 @@
 }
 
 .cal-week-num {
+  background: transparent;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  border-radius: 4px;
   color: var(--text-tertiary);
   font-size: 10.5px;
   display: flex;
   align-items: center;
   justify-content: center;
   font-variant-numeric: tabular-nums;
+}
+.cal-week-num:hover {
+  color: var(--text-primary);
+  background: var(--surface-hover);
   user-select: none;
 }
 

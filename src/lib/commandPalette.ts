@@ -50,6 +50,7 @@ import {
 import { openActionDrawer } from "./actions";
 import { openDueDatePicker } from "./dueDateCommands";
 import { openMeetingHistory } from "./history";
+import { openWeekReview } from "./weekReview";
 import { peekSettings, togglePeek } from "./peek";
 import { noteCall } from "./callNote";
 import { openCrossTabSearch } from "./search";
@@ -262,6 +263,13 @@ function commandItems(): PaletteItem[] {
       hint: formatShortcut("openHistory"),
       group: "Commands",
       run: openMeetingHistory,
+    },
+    {
+      id: "cmd-week-review",
+      label: translate("weekReview.modal.title", undefined),
+      hint: formatShortcut("openWeekReview"),
+      group: "Commands",
+      run: openWeekReview,
     },
     {
       id: "cmd-search",

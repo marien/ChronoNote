@@ -203,6 +203,10 @@ export const SHORTCUTS: ShortcutDef[] = [
     combos: [{ mod: true, shift: true, code: "KeyH" }],
   },
   {
+    id: "openWeekReview",
+    combos: [{ mod: true, shift: true, code: "KeyK" }],
+  },
+  {
     id: "findInNote",
     combos: [{ mod: true, code: "KeyF" }],
   },
@@ -305,6 +309,7 @@ export const SHORTCUT_LABEL_KEYS = {
   convertToSection: "shortcuts.convertToSection.label",
   openActions: "shortcuts.openActions.label",
   openHistory: "shortcuts.openHistory.label",
+  openWeekReview: "shortcuts.openWeekReview.label",
   findInNote: "shortcuts.findInNote.label",
   replaceInNote: "shortcuts.replaceInNote.label",
   goToSection: "shortcuts.goToSection.label",
@@ -452,6 +457,7 @@ export const DRAWER_ROWS: (string | [string, string])[] = [
   "setDueDate",
   "openActions",
   "openHistory",
+  "openWeekReview",
   ["F6", "switchPane"],
   "findInNote",
   "replaceInNote",
