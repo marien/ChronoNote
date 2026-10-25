@@ -11267,7 +11267,7 @@ The first start of the day is unchanged (today opens when it has content or meet
 
 ## 431. Search filters in the Action Drawer (feature review B3)
 
-**Status: on main, not released yet.**
+**Status: released in beta 0.34.0-1 (early channel only).**
 
 Marien approved B3 on 2026-10-25. The Action Drawer's filter now understands Search's operators, `is:open`,
 `is:done`, `tag:<topic>`, `has:@<name>`, `since:` and `before:`, shown as the same removable chips under the filter
@@ -11287,7 +11287,7 @@ shows delegated parts.
 
 ## 432. Week review (feature review A3)
 
-**Status: on main, not released yet.**
+**Status: released in beta 0.34.0-1 (early channel only).**
 
 Marien approved A3 on 2026-10-25 ("it should help me figure out which actions and topics are still open and require
 follow-up") and took all seven recommendations of `docs/design/week-review-design.md` (section 7). `Ctrl+Shift+K`,
