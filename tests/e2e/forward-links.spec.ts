@@ -48,6 +48,28 @@ test.describe("forward links navigation and modals (§428)", () => {
     await expect.poll(() => cursorLine(page)).toBe(5);
   });
 
+  test("the date in a pill keeps the pill's look: no link colour, no underline, no change on hover", async ({ page }) => {
+    await seedApp(page, { seed: seedData });
+    // Marien (0.33.0-9): the date darkened on hover and its underline disappeared and flashed back.
+    const date = editor(page).locator(".cm-date-link").filter({ hasText: "2026-09-03" });
+    await expect(date).toHaveCount(1);
+    const look = () =>
+      date.evaluate((el) => {
+        const cs = getComputedStyle(el);
+        const digits = el.querySelector(":scope > *") ?? el;
+        return { color: getComputedStyle(digits).color, line: cs.textDecorationLine, transition: cs.transitionDuration };
+      });
+    await editor(page).locator(".cm-line").first().click();
+    const idle = await look();
+    expect(idle.line).toBe("none");
+    await date.hover();
+    await page.waitForTimeout(300);
+    expect(await look()).toEqual(idle);
+    // ...and it is still a date link.
+    await date.click({ modifiers: ["ControlOrMeta"] });
+    await expect(activeTabLabel(page)).toHaveText("2026-09-03");
+  });
+
   test("Ctrl/Cmd+Click on the arrow (.cm-fwd-dir) also opens the target day", async ({ page }) => {
     await seedApp(page, { seed: seedData });
 

@@ -40,12 +40,16 @@ const dateLinkMatcher = new MatchDecorator({
     const prevChar = from > 0 ? view.state.doc.sliceString(from - 1, from) : "";
     const isBracketed = prevChar === "(" || prevChar === "<" || prevChar === ">";
     const dateTarget = isBracketed ? `(${matchedText})` : matchedText;
+    // §428: inside a forward link's pill the date is still a link (Ctrl/Cmd+Click), but drawn by the pill: no link
+    // colour, underline or hover change (this span wraps the pill's pieces, so the pill cannot undo `.cm-link`).
+    const before = from > 1 ? view.state.doc.sliceString(from - 2, from) : "";
+    const inPill = before === "(<" || before === "(>";
 
     add(
       from,
       from + matchedText.length,
       Decoration.mark({
-        class: "cm-link cm-date-link",
+        class: inPill ? "cm-date-link" : "cm-link cm-date-link",
         attributes: {
           "data-date-target": dateTarget,
           title,
