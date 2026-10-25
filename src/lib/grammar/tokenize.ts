@@ -182,7 +182,8 @@ export function tokenizeLine(line: string): Token[] {
   }
 
   const fwdLinks: Token[] = [];
-  FORWARD_LINK_RE.lastIndex = scanFrom;
+  // Only lines that can hold one run the regex: this runs for every line on every rebuild (perf.test.ts).
+  FORWARD_LINK_RE.lastIndex = line.includes("(>") || line.includes("(<") ? scanFrom : line.length;
   let fm: RegExpExecArray | null;
   while ((fm = FORWARD_LINK_RE.exec(line)) !== null) {
     const [full, dir, dateStr, section] = fm;
