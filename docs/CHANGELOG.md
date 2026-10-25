@@ -11223,13 +11223,16 @@ History and the Action Drawer; bare dates and `(2026-10-03)` stay as they were.
   `forwardLink.independent.test.ts`; Playwright `glyph-layout.spec.ts` (§428 footprint at 11-24 px, scale-150),
   `forward-links.spec.ts`, `forward-link-pill.independent.spec.ts`, `forward-link-readonly.independent.spec.ts`.
 
-## 429. Forward-link pill: the date no longer reacts to hover
+## 429. Forward-link pill: the date behaves like the due date's
 
 **Status: on main, not released yet.**
 
 Marien (0.33.0-9): in a forward-link pill the date darkened when the mouse was over it, its underline disappeared, and
-flashed back when the mouse left; the due date's digits do not do that. The date inside the pill was still an ordinary
-date link (`.cm-link`: text colour, underline, a hover change with a short transition), and that span wraps the pill's
-pieces, so §428's "no underline inside the pill" rule never matched. A date right after `(<` or `(>` is now marked
-`cm-date-link` without `cm-link`: still opened by Ctrl/Cmd+Click, drawn by the pill (muted, no underline, no hover
-change). Test: `forward-links.spec.ts` (look unchanged on hover, still opens; it failed on the old code).
+flashed back when the mouse left. He wants the due date's behaviour: a subtle line under the date (or date and
+section) that gets stronger on hover and returns to subtle afterwards. Cause: §428 added `.cm-fwd-link .cm-link:hover
+{ text-decoration: none; color: inherit }`, which switched the underline off on hover (and back with the link's
+colour transition). That rule is gone; the date is an ordinary date link again, styled exactly like the due date's
+(text colour, underline in `--edge-strong`, `--text` on hover, the same short transition). A first attempt that took
+the link styling away altogether was not what he meant and was reverted before release.
+Test: `forward-links.spec.ts` (idle look equal to the due date's, underline stronger on hover and back after, still
+opens on Ctrl/Cmd+Click).

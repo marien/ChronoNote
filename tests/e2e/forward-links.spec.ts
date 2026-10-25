@@ -48,23 +48,39 @@ test.describe("forward links navigation and modals (§428)", () => {
     await expect.poll(() => cursorLine(page)).toBe(5);
   });
 
-  test("the date in a pill keeps the pill's look: no link colour, no underline, no change on hover", async ({ page }) => {
-    await seedApp(page, { seed: seedData });
-    // Marien (0.33.0-9): the date darkened on hover and its underline disappeared and flashed back.
-    const date = editor(page).locator(".cm-date-link").filter({ hasText: "2026-09-03" });
+  test("the date in a pill behaves like the due date's: subtle underline, stronger on hover, back after", async ({ page }) => {
+    // Marien (0.33.0-9): the date darkened on hover and its underline disappeared and flashed back; he wants the due
+    // date's behaviour.
+    await seedApp(page, {
+      seed: {
+        ...seedData,
+        notes: { ...seedData.notes, "2026-09-07.txt": `${seedData.notes["2026-09-07.txt"]}\n# due action by:2026-09-20` },
+      },
+    });
+    const date = editor(page).locator(".cm-fwd-link .cm-date-link").filter({ hasText: "2026-09-03" });
+    const dueDate = editor(page).locator(".cm-due .cm-date-link");
     await expect(date).toHaveCount(1);
-    const look = () =>
-      date.evaluate((el) => {
+    await expect(dueDate).toHaveCount(1);
+    const look = (l: typeof date) =>
+      l.evaluate((el) => {
         const cs = getComputedStyle(el);
-        const digits = el.querySelector(":scope > *") ?? el;
-        return { color: getComputedStyle(digits).color, line: cs.textDecorationLine, transition: cs.transitionDuration };
+        return { color: cs.color, line: cs.textDecorationLine, lineColor: cs.textDecorationColor };
       });
-    await editor(page).locator(".cm-line").first().click();
-    const idle = await look();
-    expect(idle.line).toBe("none");
+    await page.locator(".cm-line").first().click();
+    await page.mouse.move(0, 0);
+    await page.waitForTimeout(300);
+    const idle = await look(date);
+    expect(idle).toEqual(await look(dueDate));
+    expect(idle.line).toBe("underline");
     await date.hover();
     await page.waitForTimeout(300);
-    expect(await look()).toEqual(idle);
+    const hovered = await look(date);
+    expect(hovered.line).toBe("underline");
+    expect(hovered.color).toBe(idle.color);
+    expect(hovered.lineColor).not.toBe(idle.lineColor);
+    await page.mouse.move(0, 0);
+    await page.waitForTimeout(300);
+    expect(await look(date)).toEqual(idle);
     // ...and it is still a date link.
     await date.click({ modifiers: ["ControlOrMeta"] });
     await expect(activeTabLabel(page)).toHaveText("2026-09-03");
