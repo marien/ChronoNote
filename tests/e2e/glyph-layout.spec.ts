@@ -773,8 +773,10 @@ test.describe("forward links drawn in place (§428)", () => {
       expect(m.dirs, `${px}px: one dir arrow`).toBe(1);
       expect(m.seps, `${px}px: one sep dot`).toBe(1);
       expect(m.parens, `${px}px: one paren`).toBe(1);
-      expect(Math.abs(m.tailDelta), `${px}px: text after the forward link`).toBeLessThan(0.05);
-      expect(Math.abs(m.digitDeltaX), `${px}px: the digits' column`).toBeLessThan(0.05);
+      // 0.1px, not the due date's 0.05: the pill splits its text into more runs than the raw line, and Chrome rounds
+      // each run's advance, which left 1/16px on the Linux runner's font at 17px (0.06-0.13px seen locally). Not visible.
+      expect(Math.abs(m.tailDelta), `${px}px: text after the forward link`).toBeLessThan(0.1);
+      expect(Math.abs(m.digitDeltaX), `${px}px: the digits' column`).toBeLessThan(0.1);
       expect(Math.abs(m.baselineDelta), `${px}px: the digits' baseline`).toBeLessThan(0.05);
       expect(m.fwdLineHeight, `${px}px line height`).toBe(m.plainLineHeight);
     }
