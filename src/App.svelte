@@ -75,6 +75,7 @@
   import ConflictModal from "./lib/components/modals/ConflictModal.svelte";
   import CommandPaletteModal from "./lib/components/modals/CommandPaletteModal.svelte";
   import MoreActionsModal from "./lib/components/modals/MoreActionsModal.svelte";
+  import WeekReviewModal from "./lib/components/modals/WeekReviewModal.svelte";
   import CalendarSyncReviewModal from "./lib/components/modals/CalendarSyncReviewModal.svelte";
   import DroppedNotesModal from "./lib/components/modals/DroppedNotesModal.svelte";
   import SyncConflictsModal from "./lib/components/modals/SyncConflictsModal.svelte";
@@ -130,6 +131,14 @@
           else document.querySelector<HTMLElement>(".actions-pane .modal-input")?.focus();
         } else {
           controller.openActionDrawer();
+        }
+      },
+      openWeekReview: () => {
+        if (dockedPane === "weekReview") {
+          if (document.querySelector(".week-review-pane")?.contains(document.activeElement)) editorApi?.focus();
+          else document.querySelector<HTMLElement>(".week-review-pane .modal-list")?.focus();
+        } else {
+          controller.openWeekReview();
         }
       },
       openHistory: () => {
@@ -222,7 +231,7 @@
       if (get(modal) === "none") return false;
       if (
         dockedPane &&
-        !(e.target instanceof Element && e.target.closest(`.${dockedPane}-pane`))
+        !(e.target instanceof Element && e.target.closest(dockedPane === "weekReview" ? ".week-review-pane" : `.${dockedPane}-pane`))
       ) {
         return false;
       }
@@ -249,6 +258,16 @@
             editorApi?.focus();
           } else {
             document.querySelector<HTMLElement>(".actions-pane .modal-input")?.focus();
+          }
+          return;
+        }
+        if (dockedPane === "weekReview") {
+          e.preventDefault();
+          const paneEl = document.querySelector(".week-review-pane");
+          if (paneEl && paneEl.contains(document.activeElement)) {
+            editorApi?.focus();
+          } else {
+            document.querySelector<HTMLElement>(".week-review-pane .modal-list")?.focus();
           }
           return;
         }
@@ -370,6 +389,11 @@
       if (matchesShortcut(e, "openActions") && dockedPane === "actions") {
         e.preventDefault();
         shortcutActions.openActions(e);
+        return;
+      }
+      if (matchesShortcut(e, "openWeekReview") && dockedPane === "weekReview") {
+        e.preventDefault();
+        shortcutActions.openWeekReview(e);
         return;
       }
       // "Ctrl+/ All keys" is in the footer of the drawers and panes, so it has to work from inside them: the Shortcuts
@@ -605,9 +629,9 @@
 
   let windowInnerWidth = $state(typeof window !== "undefined" ? window.innerWidth : 1200);
   const paneDocked = $derived(windowInnerWidth >= 1000 && !$isMobile && !$isZenMode && !$peekMode);
-  const dockedPane = $derived(($modal === "history" || $modal === "actions") && paneDocked ? $modal : null);
+  const dockedPane = $derived(($modal === "history" || $modal === "actions" || $modal === "weekReview") && paneDocked ? $modal : null);
 
-  let isDraggingPane = $state<"history" | "actions" | null>(null);
+  let isDraggingPane = $state<"history" | "actions" | "weekReview" | null>(null);
   let previousUserSelect = "";
 
   function computePaneWidth(share: number, windowWidth: number): number {
@@ -617,7 +641,7 @@
     return Math.min(maxW, Math.max(minW, raw));
   }
 
-  function handlePointerDown(pane: "history" | "actions", e: PointerEvent) {
+  function handlePointerDown(pane: "history" | "actions" | "weekReview", e: PointerEvent) {
     if (e.button !== 0) return;
     const target = e.currentTarget as HTMLElement;
     target.setPointerCapture(e.pointerId);
@@ -626,7 +650,7 @@
     document.body.style.userSelect = "none";
   }
 
-  function handlePointerMove(pane: "history" | "actions", e: PointerEvent) {
+  function handlePointerMove(pane: "history" | "actions" | "weekReview", e: PointerEvent) {
     if (isDraggingPane !== pane) return;
     const rawShare = (windowInnerWidth - e.clientX) / windowInnerWidth;
     const minShare = Math.max(0.18, 300 / windowInnerWidth);
@@ -639,7 +663,7 @@
     }
   }
 
-  function handlePointerUp(pane: "history" | "actions", e: PointerEvent) {
+  function handlePointerUp(pane: "history" | "actions" | "weekReview", e: PointerEvent) {
     if (isDraggingPane !== pane) return;
     isDraggingPane = null;
     document.body.style.userSelect = previousUserSelect;
@@ -655,7 +679,7 @@
     }
   }
 
-  function handleResizerKeyDown(pane: "history" | "actions", e: KeyboardEvent) {
+  function handleResizerKeyDown(pane: "history" | "actions" | "weekReview", e: KeyboardEvent) {
     if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
       e.preventDefault();
       const current = get(pane === "history" ? historyPaneShare : actionsPaneShare);
@@ -672,7 +696,7 @@
     }
   }
 
-  function handleResizerDblClick(pane: "history" | "actions") {
+  function handleResizerDblClick(pane: "history" | "actions" | "weekReview") {
     if (pane === "history") {
       void controller.setHistoryPaneShare(0.30);
     } else {
@@ -684,7 +708,7 @@
     historyDocked.set(paneDocked);
   });
 
-  let wasDockedPane: "history" | "actions" | null = null;
+  let wasDockedPane: "history" | "actions" | "weekReview" | null = null;
   $effect(() => {
     const current = dockedPane;
     if (wasDockedPane !== null && current === null && $modal === wasDockedPane) {
@@ -898,6 +922,34 @@
         <ActionDrawerModal docked />
       </aside>
     {/if}
+    {#if dockedPane === "weekReview"}
+      <aside
+        class="week-review-pane"
+        aria-label={$t("weekReview.modal.ariaLabel")}
+        style:width="{computePaneWidth($actionsPaneShare, windowInnerWidth)}px"
+      >
+        <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
+        <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+        <div
+          class="pane-resizer"
+          class:dragging={isDraggingPane === "weekReview"}
+          role="separator"
+          aria-orientation="vertical"
+          aria-label={$t("pane.resize")}
+          aria-valuenow={Math.round($actionsPaneShare * 100)}
+          aria-valuemin={18}
+          aria-valuemax={60}
+          tabindex="0"
+          onpointerdown={(e) => handlePointerDown("weekReview", e)}
+          onpointermove={(e) => handlePointerMove("weekReview", e)}
+          onpointerup={(e) => handlePointerUp("weekReview", e)}
+          onpointercancel={(e) => handlePointerUp("weekReview", e)}
+          onkeydown={(e) => handleResizerKeyDown("weekReview", e)}
+          ondblclick={() => handleResizerDblClick("weekReview")}
+        ></div>
+        <WeekReviewModal docked />
+      </aside>
+    {/if}
   </div>
   {#if $isMobile && $editorFocused}
     <MobileAccessoryBar />
@@ -940,6 +992,8 @@
     <DatePickerModal />
   {:else if $modal === "actions" && !paneDocked}
     <ActionDrawerModal />
+  {:else if $modal === "weekReview" && !paneDocked}
+    <WeekReviewModal />
   {:else if $modal === "history" && !paneDocked}
     <HistoryModal />
   {:else if $modal === "search"}

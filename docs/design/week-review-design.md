@@ -84,7 +84,8 @@ Wednesday 29 Oct
 
 ## 7. Decisions (Marien, 2026-10-25)
 
-All seven recommendations taken: 1b (last week on Monday and at the weekend, otherwise this week), 2a (`Ctrl+Shift+K`),
+All seven recommendations taken: 1b (the week just worked: on Monday the previous ISO week; on any other day,
+weekend included, the current one, which ends that Sunday), 2a (`Ctrl+Shift+K`),
 3b (one line "N still open from earlier weeks" that opens the Action Drawer on them), 4b (a muted line for a day or
 section with nothing open), 5a ("Show done" toggle, off by default), 6a (delegated parts only on their action's row),
 7a (`Ctrl+Space` and `Shift+Enter` as in the Action Drawer).

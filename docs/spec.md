@@ -706,6 +706,23 @@ reachable from the top bar, a shortcut, or the command palette:
   hidden this way, nothing is offered at all. Like every modal, it owns the
   keyboard while open — no shortcut
   (Ctrl/Cmd+Tab included) reaches the app underneath until it's closed.
+- **Week review** (`Ctrl/Cmd+Shift+K`, palette, More, a week number in the
+  date picker; §432, design `docs/design/week-review-design.md`) — one ISO
+  week from its dated notes, grouped by day and then by section: open own
+  actions (with their sub-actions and steps, drawn as in the Action
+  Drawer), open topics `o` and postponed topics `,`. A line with a
+  `(>…)` forward link is not open (it went elsewhere); a delegated part
+  shows only on its action's row. The header counts open actions, open
+  topics and overdue actions; a day or section with nothing open is one
+  muted "all done" line; "Show done" (off, per session) adds done and
+  cancelled actions, discussed topics and `=>` decisions; a line "N still
+  open from earlier weeks" opens the Action Drawer (all files, only open).
+  It opens on the week just worked: the previous week on a Monday, the
+  current one on other days. `Left`/`Right` previous/next week, `Home`
+  the opening week, `Up`/`Down`, `Enter` jumps (a click on a row jumps
+  too), `Ctrl+Space` and `Shift+Enter` as in the Action Drawer. Docked
+  right of the note on a window 1000px or wider (Actions' pane width), a
+  dialog otherwise. Reads only; nothing is written by opening it.
 - **Cross-Tab Search** (`Ctrl/Cmd+Shift+F`) — full-text search across
   either the open tabs or every file, same open-tabs/all-files toggle as
   the Action Drawer, results glyph-rendered like the drawer's own rows,

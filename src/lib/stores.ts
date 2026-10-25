@@ -56,7 +56,8 @@ export type ModalKind =
   // A dropped YYYY-MM-DD.txt that differs from the note already there: the user picks what to keep.
   | "droppedNotes"
   // Earlier versions of a note (Proposal B2).
-  | "versions";
+  | "versions"
+  | "weekReview";
 
 export const tabs = writable<NoteTab[]>([]);
 export const activeTabId = writable<string>("");
@@ -154,6 +155,9 @@ export const actionDrawerDueView = writable<boolean>(false);
  *  change so subscribers notice. */
 export const actionDrawerCollapsed = writable<Set<string>>(new Set());
 export const actionDrawerScopeRequest = writable<"open" | "other" | "all" | null>(null);
+export const weekReviewYear = writable<number>(0);
+export const weekReviewWeek = writable<number>(0);
+export const weekReviewShowDone = writable<boolean>(false);
 
 
 export const toastMessage = writable<string>("");
