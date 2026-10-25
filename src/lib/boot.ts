@@ -467,6 +467,11 @@ export async function restoreOrBootstrapTabs() {
 
     if (!isFirstOpenToday && session?.activeTab) {
       finalActive = restored.find((t) => t.filename === session.activeTab) ?? todayTab;
+      // §430: with "Last note", a later start the same day (an update's restart, reopening the app, a web-app reload)
+      // restores exactly the saved tabs: today's tab only comes back if it was open.
+      if (get(startupTabMode) === "smart_last_active" && finalActive !== todayTab) {
+        dropTodayTab = !(session.openTabs ?? []).includes(todayFilename);
+      }
     } else if (isFirstOpenToday && session?.activeTab && get(startupTabMode) === "smart_last_active") {
       // Smart decision logic (§spec 5.3):
       // 1. Check Today's Note: If today's note has non-whitespace content, open Today.

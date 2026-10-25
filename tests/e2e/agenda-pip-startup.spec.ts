@@ -168,3 +168,43 @@ test.describe("startup tab: Last note does not open an empty today (#125)", () =
     await expect(activeTabLabel(page)).toContainText(today);
   });
 });
+
+test.describe("startup tab: Last note on a later start the same day (§430)", () => {
+  const PAST = "2026-09-01.txt";
+  // No lastOpenedDate: seedApp stamps today's, so this is a later start the same day.
+  const seed = (openTabs: string[], mode: "smart_last_active" | "today" = "smart_last_active") => ({
+    ...scenario("empty"),
+    startupTabMode: mode,
+    notes: { [PAST]: "an older note\n" },
+    session: { openTabs, activeTab: PAST },
+  });
+
+  test("restores exactly the saved tabs: no today's tab that was not open", async ({ page }) => {
+    await seedApp(page, { seed: seed([PAST]) });
+    await expect(activeTabLabel(page)).toContainText("2026-09-01");
+    expect(await tabLabels(page)).toEqual(["2026-09-01"]);
+  });
+
+  test("a restart later in the day (an update, a reopen) does not bring today's tab back", async ({ page }) => {
+    // Marien (0.33.0): today's tab kept appearing although he had not opened it. First start of the day, then a
+    // restart: before §430 the restart added today's tab.
+    await seedApp(page, { seed: { ...seed([PAST]), session: { openTabs: [PAST], activeTab: PAST, lastOpenedDate: "2026-09-01" } } });
+    expect(await tabLabels(page)).toEqual(["2026-09-01"]);
+    await page.waitForTimeout(400); // the tab session is saved 150ms after a change
+    await page.reload();
+    await expect(activeTabLabel(page)).toContainText("2026-09-01");
+    expect(await tabLabels(page)).toEqual(["2026-09-01"]);
+  });
+
+  test("today's tab comes back when it was open", async ({ page }) => {
+    await seedApp(page, { seed: seed([PAST, TODAY_FILE]) });
+    await expect(activeTabLabel(page)).toContainText("2026-09-01");
+    expect(await tabLabels(page)).toContain(today);
+  });
+
+  test("the Today mode keeps adding today's tab", async ({ page }) => {
+    await seedApp(page, { seed: seed([PAST], "today") });
+    await expect(activeTabLabel(page)).toContainText("2026-09-01");
+    expect(await tabLabels(page)).toContain(today);
+  });
+});

@@ -11242,3 +11242,19 @@ colour transition). That rule is gone; the date is an ordinary date link again, 
 the link styling away altogether was not what he meant and was reverted before release.
 Test: `forward-links.spec.ts` (idle look equal to the due date's, underline stronger on hover and back after, still
 opens on Ctrl/Cmd+Click).
+
+## 430. "Last note" start-up: later starts the same day restore exactly the saved tabs
+
+**Status: on main, not released yet.**
+
+Marien (0.33.0): with Startup set to "Last note", today's tab kept appearing although he had not opened it and today
+had no note. `restoreOrBootstrapTabs` (`boot.ts`) puts today's tab in the list on every start and only took it out
+again on the first start of a day (#125). Every later start the same day kept it: the restart after an update, reopening
+the app, a notes-folder switch, and in the web app every reload (a OneDrive sign-in, the web app updating itself).
+Now, with "Last note", a later start restores exactly the saved tabs: today's tab only comes back when it was open.
+The first start of the day is unchanged (today opens when it has content or meetings), and so is "Today" mode.
+
+- **Mock fix found on the way:** the mock backend saved `startupTabMode` across a reload but never read it back, so
+  every reload in the tests ran in "Today" mode.
+- **Tests:** `agenda-pip-startup.spec.ts` (a later start without today's tab; a first start then a restart, which
+  failed on the old code; today's tab back when it was open; "Today" mode unchanged).

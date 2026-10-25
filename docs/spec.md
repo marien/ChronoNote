@@ -377,7 +377,11 @@ controls.
 **Notes & Sync** (notes location, startup, calendar and data)
 - **Startup:** which note opens on the first launch of each day — "Today"
   (default) or "Last note", which restores the previously active note
-  unless today already has content or meetings (`startupTabMode`).
+  unless today already has content or meetings (`startupTabMode`). With
+  "Last note", every later start the same day (a restart after an update,
+  reopening the app, a web-app reload) restores exactly the saved tabs:
+  today's tab only when it was open (§430). With "Today", today's tab is
+  opened on every start.
 - **Calendar** (desktop only): a single opt-in toggle, "Show 'Sync
   calendar for this day'" (off by default) — the top-bar/More-actions/
   command-palette button for it doesn't exist at all until turned on.
@@ -773,7 +777,9 @@ always opened too, and becomes active if the previously-active one
 couldn't be restored — including on the first launch of a new day, so
 the app lands on today rather than wherever it was left (unless Settings →
 Notes & Sync → Startup is "Last note" and today is still empty with no
-meetings, in which case the previously active note comes back). Cursor
+meetings, in which case the previously active note comes back; with "Last
+note", today's tab is only opened at all when it was open last time or
+it gets the focus, on any start, §430). Cursor
 position and scroll offset are remembered per tab for the rest of the
 session (not persisted across restarts); per-tab undo/redo history is
 also preserved across a tab switch within the same session.

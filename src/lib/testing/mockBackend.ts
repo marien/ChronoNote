@@ -591,6 +591,7 @@ export class MockBackend {
         fontSize?: number;
         lineHeight?: number;
         pureBlack?: boolean;
+        startupTabMode?: StartupTabMode;
         peek?: Partial<PeekConfig>;
         occurrenceHint?: boolean;
         statusBarVisible?: boolean;
@@ -631,6 +632,8 @@ export class MockBackend {
       b.lineHeight = s.lineHeight ?? 1.6;
       b.isMinimized = s.isMinimized ?? false;
       b.pureBlack = s.pureBlack ?? false;
+      // Saved but never read back before §430: a reload fell back to "today".
+      b.startupTabMode = s.startupTabMode ?? "today";
       b.peek = { ...PEEK_DEFAULTS, ...s.peek };
       b.occurrenceHint = s.occurrenceHint ?? false;
       b.statusBarVisible = s.statusBarVisible ?? true;
