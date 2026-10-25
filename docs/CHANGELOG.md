@@ -11225,7 +11225,7 @@ History and the Action Drawer; bare dates and `(2026-10-03)` stay as they were.
 
 ## 429. Forward-link pill: the date behaves like the due date's
 
-**Status: on main, not released yet.**
+**Status: released in beta 0.33.0-10 (early channel only).**
 
 Marien (0.33.0-9): in a forward-link pill the date darkened when the mouse was over it, its underline disappeared, and
 flashed back when the mouse left. He wants the due date's behaviour: a subtle line under the date (or date and
