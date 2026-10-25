@@ -11185,6 +11185,8 @@ draw due dates, nor the Action Drawer topics and due dates, the way the note doe
 
 **Status: released in beta 0.33.0-9 (early channel only).**
 
+Confirmed by Marien (2026-10-25): working as expected.
+
 Marien's choice for the open §423 question (2026-10-25). A sequence can be written on one line
 (`# onboard Lee => # laptop => # accounts`) or as numbered lines under the action (`# 1. laptop`, `# 2. accounts`,
 indented); both should look the same in the Action Drawer. So a step row now gets the tree line a child row gets, and
@@ -11198,6 +11200,8 @@ box. The note is unchanged. `drawerTreeGuides` no longer tells steps from lines 
 ## 428. Forward links drawn as a pill with a direction arrow
 
 **Status: released in beta 0.33.0-9 (early channel only).**
+
+Confirmed by Marien (2026-10-25): working as expected.
 
 Marien asked (2026-10-25) to style forward links (§371) as a pill like the topic pill, with `>` and `<` replaced by a
 small glyph for what they mean. His choices: plain arrows (→ went to, ← came from), a quiet dot instead of the `#`
@@ -11226,6 +11230,8 @@ History and the Action Drawer; bare dates and `(2026-10-03)` stay as they were.
 ## 429. Forward-link pill: the date behaves like the due date's
 
 **Status: released in beta 0.33.0-10 (early channel only).**
+
+Confirmed by Marien (2026-10-25): working as expected.
 
 Marien (0.33.0-9): in a forward-link pill the date darkened when the mouse was over it, its underline disappeared, and
 flashed back when the mouse left. He wants the due date's behaviour: a subtle line under the date (or date and
