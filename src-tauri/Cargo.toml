@@ -1,6 +1,6 @@
 [package]
 name = "chrononote"
-version = "0.33.1"
+version = "0.34.0-1"
 description = "ChronoNote - a minimalist plain-text daily notes and task editor"
 edition = "2021"
 license = "MIT"
