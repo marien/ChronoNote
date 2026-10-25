@@ -10905,7 +10905,7 @@ Confirmed by Marien (2026-10-25): working as expected.
 
 ## 416. App icon without its tile, pixel-fitted for the taskbar
 
-**Status: released in beta 0.33.0-1 (early channel only).**
+**Status: released in v0.33.0 (beta 0.33.0-1 first).**
 
 Confirmed by Marien (2026-10-25): working as expected.
 
@@ -10932,7 +10932,7 @@ Confirmed by Marien (2026-10-25): working as expected.
 
 ## 419. Due dates on actions (`by:`)
 
-**Status: released in beta 0.33.0-2 (early channel only).**
+**Status: released in v0.33.0 (beta 0.33.0-2 first).**
 
 Confirmed by Marien (2026-10-25): working as expected.
 
@@ -10984,7 +10984,7 @@ Feature review B2, designed in `docs/design/due-dates-design.md` (Marien took al
 
 ## 420. Due-date pill keeps the width and height of its text
 
-**Status: released in beta 0.33.0-3 (early channel only).**
+**Status: released in v0.33.0 (beta 0.33.0-3 first).**
 
 - **Seen (Marien, beta 0.33.0-2):** the pill broke two premises every glyph keeps. It was narrower than the
   `by:2026-10-30` it replaces, so the end of the line moved when the caret entered or left it (measured: 9.4 ch instead
@@ -11007,7 +11007,7 @@ Feature review B2, designed in `docs/design/due-dates-design.md` (Marien took al
 
 ## 421. Due date drawn in place: a flag for `by:`, the date stays text
 
-**Status: released in beta 0.33.0-4 (early channel only).**
+**Status: released in v0.33.0 (beta 0.33.0-4 first).**
 
 Confirmed by Marien (2026-10-25): working as expected.
 
@@ -11035,7 +11035,7 @@ Confirmed by Marien (2026-10-25): working as expected.
 
 ## 422. Topic pill quieter, due date click opens a compact date picker
 
-**Status: released in beta 0.33.0-5 (early channel only).**
+**Status: released in v0.33.0 (beta 0.33.0-5 first).**
 
 Confirmed by Marien (2026-10-25): working as expected.
 
@@ -11068,7 +11068,7 @@ Marien's feedback on beta 0.33.0-4:
 
 ## 423. Action groups: sub-actions joined in the note, nested in the Action Drawer
 
-**Status: released in beta 0.33.0-6 (early channel only).**
+**Status: released in v0.33.0 (beta 0.33.0-6 first).**
 
 Confirmed by Marien (2026-10-25): working as expected.
 
@@ -11114,7 +11114,7 @@ never closes its children, or the other way round).
 
 ## 424. Action Drawer groups drawn like the note
 
-**Status: released in beta 0.33.0-6 (early channel only).**
+**Status: released in v0.33.0 (beta 0.33.0-6 first).**
 
 Marien tried §423 in a dev build: the note looked right, the Action Drawer did not. A parent's glyph got narrower when
 its text overflowed; the tree lines ran from under the chevron instead of the glyph, so a group looked different from
@@ -11135,7 +11135,7 @@ the note; the last child's line ran on below it; and a child group's glyph sat f
 
 ## 425. Action Drawer groups: fixes from the cross-model review of §424
 
-**Status: released in beta 0.33.0-7 (early channel only).**
+**Status: released in v0.33.0 (beta 0.33.0-7 first).**
 
 Gemini 3.8 Flash reviewed §424 after it went out in 0.33.0-6 (Marien asked for the beta first). Two real issues:
 
@@ -11154,7 +11154,7 @@ comparisons per rebuild).
 
 ## 426. Section History draws groups like the note; topic and due pills in Section History and the Action Drawer
 
-**Status: released in beta 0.33.0-8 (early channel only).**
+**Status: released in v0.33.0 (beta 0.33.0-8 first).**
 
 Confirmed by Marien (2026-10-25): working as expected.
 
@@ -11183,7 +11183,7 @@ draw due dates, nor the Action Drawer topics and due dates, the way the note doe
 
 ## 427. Action Drawer: steps joined like sub-actions, number after the box
 
-**Status: released in beta 0.33.0-9 (early channel only).**
+**Status: released in v0.33.0 (beta 0.33.0-9 first).**
 
 Confirmed by Marien (2026-10-25): working as expected.
 
@@ -11199,7 +11199,7 @@ box. The note is unchanged. `drawerTreeGuides` no longer tells steps from lines 
 
 ## 428. Forward links drawn as a pill with a direction arrow
 
-**Status: released in beta 0.33.0-9 (early channel only).**
+**Status: released in v0.33.0 (beta 0.33.0-9 first).**
 
 Confirmed by Marien (2026-10-25): working as expected.
 
@@ -11229,7 +11229,7 @@ History and the Action Drawer; bare dates and `(2026-10-03)` stay as they were.
 
 ## 429. Forward-link pill: the date behaves like the due date's
 
-**Status: released in beta 0.33.0-10 (early channel only).**
+**Status: released in v0.33.0 (beta 0.33.0-10 first).**
 
 Confirmed by Marien (2026-10-25): working as expected.
 
