@@ -6,7 +6,7 @@ then gets a line in its CHANGELOG section) or found broken (it then becomes a fi
 
 | Since | What to check | Where / how | Section |
 |---|---|---|---|
-| 2026-10-25 | 0.33.0 on the phone and in the installed web app on a PC (title bar hidden): due dates and the compact date picker, the Action Drawer's groups (fold, Ctrl+Space or long-press), topic and forward-link pills, the new icon | Phone and PC, installed web app after it updates to 0.33.0 | §416-§429 |
+| 2026-10-25 | 0.33.1 on the phone and in the installed web app on a PC (title bar hidden): "Last note" keeps the tabs after a reload (§430); due dates and the compact date picker, the Action Drawer's groups (fold, Ctrl+Space or long-press), topic and forward-link pills, the new icon | Phone and PC, installed web app after it updates to 0.33.1 | §416-§430 |
 | 2026-10-22 | Desktop: a real conflict ("changed on disk" prompt) resolved with "Keep my version" leaves the other text under Earlier versions, also when you edited a minute before | Desktop app v0.32.5; edit a note on two devices synced by OneDrive | §413 |
 | 2026-10-22 | Web app with a real OneDrive account: a note deleted and recreated before the next sync stays on OneDrive; "Keep mine" on a sync conflict leaves the OneDrive text under Earlier versions | app.chrononote.mariendegelder.nl (v0.32.5) | §413 |
 | 2026-10-21 | A test that only passes on CI's retry shows up as a warning on the run (the report runs on every push and said "no flaky tests" on its first run; the warning itself was only seen locally) | The next Test run with a flaky test | §411 |
