@@ -11183,7 +11183,7 @@ draw due dates, nor the Action Drawer topics and due dates, the way the note doe
 
 ## 427. Action Drawer: steps joined like sub-actions, number after the box
 
-**Status: on main, not released yet.**
+**Status: released in beta 0.33.0-9 (early channel only).**
 
 Marien's choice for the open §423 question (2026-10-25). A sequence can be written on one line
 (`# onboard Lee => # laptop => # accounts`) or as numbered lines under the action (`# 1. laptop`, `# 2. accounts`,
@@ -11197,7 +11197,7 @@ box. The note is unchanged. `drawerTreeGuides` no longer tells steps from lines 
 
 ## 428. Forward links drawn as a pill with a direction arrow
 
-**Status: on main, not released yet.**
+**Status: released in beta 0.33.0-9 (early channel only).**
 
 Marien asked (2026-10-25) to style forward links (§371) as a pill like the topic pill, with `>` and `<` replaced by a
 small glyph for what they mean. His choices: plain arrows (→ went to, ← came from), a quiet dot instead of the `#`
