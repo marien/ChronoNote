@@ -11245,7 +11245,7 @@ opens on Ctrl/Cmd+Click).
 
 ## 430. "Last note" start-up: later starts the same day restore exactly the saved tabs
 
-**Status: on main, not released yet.**
+**Status: released in beta 0.33.1-1 (early channel only).**
 
 Marien (0.33.0): with Startup set to "Last note", today's tab kept appearing although he had not opened it and today
 had no note. `restoreOrBootstrapTabs` (`boot.ts`) puts today's tab in the list on every start and only took it out
