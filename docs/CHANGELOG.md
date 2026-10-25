@@ -11269,6 +11269,8 @@ The first start of the day is unchanged (today opens when it has content or meet
 
 **Status: released in beta 0.34.0-1 (early channel only).**
 
+Confirmed by Marien (2026-10-25) on 0.34.0-1.
+
 Marien approved B3 on 2026-10-25. The Action Drawer's filter now understands Search's operators, `is:open`,
 `is:done`, `tag:<topic>`, `has:@<name>`, `since:` and `before:`, shown as the same removable chips under the filter
 (`parseSearchQuery`, `removeChipFromQuery`); the rest of the filter is a substring as before, and typing `@` still

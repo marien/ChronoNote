@@ -1,0 +1,272 @@
+<title>Week Review Mockup</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+/* Layout: the app window in miniature: the note on the left as the editor draws it, the docked week review on the right in the same type and line
+   rhythm; review notes underneath. Values are ChronoNote's own tokens (01-tokens.css, 03-editor.css), dark first. */
+:root {
+  --canvas: #1e1e1e; --chrome: #252526; --raised: #37373b;
+  --text: #d4d4d4; --muted: #a6a6a6; --tertiary: #949494;
+  --edge-soft: rgba(255,255,255,.07); --edge-strong: rgba(255,255,255,.13);
+  --open: #ff6b6b; --done: #51cf66; --progress: #e5a50a; --cancelled: #868e96; --follow: #0098ff;
+  --assignee: #29a8ff; --assignee-bg: rgba(0,122,204,.15); --warn: #d8a24a;
+  --sel: rgba(255,255,255,.07); --accent: #38bdf8;
+  --page: #161617; --note-fg: #c9c9c9;
+  --mono: "Cascadia Code", "Cascadia Mono", "JetBrains Mono", Consolas, ui-monospace, monospace;
+  --ui: "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --fs: 13px; --lh: 1.6;
+  color-scheme: dark;
+}
+@media (prefers-color-scheme: light) { :root:not([data-theme="dark"]) {
+  --canvas: #ffffff; --chrome: #f3f3f3; --raised: #e6e6e6;
+  --text: #1b1b1b; --muted: #5f5f5f; --tertiary: #757575;
+  --edge-soft: rgba(0,0,0,.09); --edge-strong: rgba(0,0,0,.16);
+  --open: #d9383a; --done: #2b8a3e; --progress: #b25e00; --cancelled: #5c636a; --follow: #0a6fc2;
+  --assignee: #0a6fc2; --assignee-bg: rgba(10,111,194,.12); --warn: #b5771f;
+  --sel: rgba(0,0,0,.06); --accent: #0a6fc2; --page: #e9e9ea; --note-fg: #1b1b1b; color-scheme: light; } }
+:root[data-theme="light"] {
+  --canvas: #ffffff; --chrome: #f3f3f3; --raised: #e6e6e6;
+  --text: #1b1b1b; --muted: #5f5f5f; --tertiary: #757575;
+  --edge-soft: rgba(0,0,0,.09); --edge-strong: rgba(0,0,0,.16);
+  --open: #d9383a; --done: #2b8a3e; --progress: #b25e00; --cancelled: #5c636a; --follow: #0a6fc2;
+  --assignee: #0a6fc2; --assignee-bg: rgba(10,111,194,.12); --warn: #b5771f;
+  --sel: rgba(0,0,0,.06); --accent: #0a6fc2; --page: #e9e9ea; --note-fg: #1b1b1b; color-scheme: light; }
+
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--page); color: var(--text); font: 14px/1.5 var(--ui);
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 24px 48px; }
+.wrap { max-width: 1120px; margin: 0 auto; display: grid; gap: 20px; }
+h1 { font: 600 22px/1.25 var(--ui); margin: 0; text-wrap: balance; }
+.lede { color: var(--muted); margin: 4px 0 0; max-width: 72ch; }
+
+/* The app window */
+.win { border: 1px solid var(--edge-strong); border-radius: 8px; overflow: hidden; background: var(--canvas); }
+.bar { background: var(--chrome); border-bottom: 1px solid var(--edge-soft); font: 600 12px var(--mono); padding: 8px 14px; display: flex; gap: 10px; align-items: center; }
+.bar .tab { padding: 3px 10px; border-radius: 4px; background: var(--canvas); }
+.bar .tab::before { content: "\25CF"; color: var(--accent); margin-right: 6px; font-size: 9px; vertical-align: 1px; }
+.split { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 400px); min-height: 520px; }
+@media (max-width: 860px) { .split { grid-template-columns: 1fr; } .note { border-bottom: 1px solid var(--edge-soft); } }
+
+/* Editor-like text: one line = 13px x 1.6 */
+.mono { font-family: var(--mono); font-size: var(--fs); line-height: var(--lh); }
+.note { padding: 16px 20px; color: var(--note-fg); min-width: 0; overflow-x: auto; }
+.l { position: relative; white-space: pre; min-height: calc(var(--fs) * var(--lh)); }
+.title { color: var(--text); }
+.rule { color: transparent; background-image: linear-gradient(var(--tertiary), var(--tertiary)), linear-gradient(var(--tertiary), var(--tertiary));
+  background-size: 100% 1px; background-repeat: no-repeat; background-position: 0 calc(51% - .09em), 0 calc(51% + .09em); display: inline-block; }
+
+/* Glyphs: a 2ch cell, box 0.7em, as in the editor */
+.g { display: inline-block; width: 2ch; position: relative; vertical-align: baseline; }
+.g i { display: inline-block; width: .7em; height: .7em; box-sizing: border-box; border: 1.4px solid var(--c, var(--open)); border-radius: 1.5px; vertical-align: baseline; position: relative; }
+.g.open i { --c: var(--open); }
+.g.done i { --c: var(--done); }
+.g.done i::after { content: ""; position: absolute; inset: 0; background: var(--done);
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='black' stroke-width='3.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 8.6l3.4 3.4 6.6-8'/%3E%3C/svg%3E") center/100% no-repeat;
+          mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='black' stroke-width='3.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 8.6l3.4 3.4 6.6-8'/%3E%3C/svg%3E") center/100% no-repeat; }
+.g.x i { --c: var(--cancelled); }
+.g.x i::after { content: ""; position: absolute; inset: 0; background: var(--cancelled);
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='black' stroke-width='3.2' stroke-linecap='round'%3E%3Cpath d='M3.6 3.6l8.8 8.8M12.4 3.6l-8.8 8.8'/%3E%3C/svg%3E") center/100% no-repeat;
+          mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='black' stroke-width='3.2' stroke-linecap='round'%3E%3Cpath d='M3.6 3.6l8.8 8.8M12.4 3.6l-8.8 8.8'/%3E%3C/svg%3E") center/100% no-repeat; }
+.g.to i { border-radius: 50%; --c: var(--open); }
+.g.tp i { border-radius: 50%; --c: var(--progress); border-style: dashed; }
+.g.td i { border-radius: 50%; --c: var(--done); }
+.g.td i::after { content: ""; position: absolute; inset: 28%; border-radius: 50%; background: var(--done); }
+.arrow { color: var(--follow); font-weight: 700; }
+.who { color: var(--assignee); background: var(--assignee-bg); border-radius: 3px; }
+.topic { box-shadow: 0 0 0 1px var(--edge-strong); border-radius: 4px; background: color-mix(in srgb, var(--text) 6%, transparent); font-weight: 500; }
+.topic b { color: transparent; font-weight: inherit; }
+.due { box-shadow: 0 0 0 1px var(--dborder, var(--edge-strong)); border-radius: 4px; color: var(--dink, var(--muted)); background: var(--dbg, color-mix(in srgb, var(--text) 6%, transparent)); }
+.due.over { --dink: var(--open); --dborder: color-mix(in srgb, var(--open) 45%, transparent); --dbg: color-mix(in srgb, var(--open) 10%, transparent); }
+.due s { text-decoration: none; color: transparent; background: var(--dink, var(--muted));
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='black' stroke-width='1.6' stroke-linejoin='round'%3E%3Cpath d='M3.5 14.5V2M3.5 2.5h8.5l-2 3 2 3H3.5'/%3E%3C/svg%3E") no-repeat .55ch 50%/1em 1em;
+          mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='black' stroke-width='1.6' stroke-linejoin='round'%3E%3Cpath d='M3.5 14.5V2M3.5 2.5h8.5l-2 3 2 3H3.5'/%3E%3C/svg%3E") no-repeat .55ch 50%/1em 1em; }
+
+/* Tree lines as in the editor: from the parent glyph's middle, an elbow to 2px before the child's glyph */
+.tl { position: absolute; left: calc(var(--p) * 1ch + .35em); top: 0; border-left: 1px solid var(--tertiary); opacity: .55; pointer-events: none; }
+.tl.mid { bottom: 0; } .tl.end { height: 50%; }
+.tl::after { content: ""; position: absolute; left: 0; top: calc(var(--fs) * var(--lh) / 2); width: calc((var(--c) - var(--p)) * 1ch - .35em - 2px); border-top: 1px solid var(--tertiary); }
+
+/* The week review pane */
+.pane { background: var(--chrome); border-left: 1px solid var(--edge-soft); min-width: 0; display: flex; flex-direction: column; }
+@media (max-width: 860px) { .pane { border-left: 0; } }
+.ph { display: flex; align-items: center; gap: 8px; padding: 10px 14px 6px; }
+.ph h2 { margin: 0; font: 600 14px/1.3 var(--ui); flex: 1; min-width: 0; text-wrap: balance; }
+.nav { font: 12px var(--ui); color: var(--text); background: transparent; border: 1px solid var(--edge-strong); border-radius: 4px; padding: 1px 7px; cursor: pointer; }
+.nav:focus-visible, .earlier:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.counts { padding: 0 14px 8px; font: 12px/1.4 var(--ui); color: var(--muted); display: flex; flex-wrap: wrap; gap: 2px 12px; align-items: center; border-bottom: 1px solid var(--edge-soft); }
+.counts .over { color: var(--warn); font-weight: 600; }
+.counts label { margin-left: auto; display: inline-flex; gap: 6px; align-items: center; }
+.earlier { display: block; width: calc(100% - 28px); margin: 8px 14px 0; text-align: left; font: 12px var(--ui); color: var(--muted); background: transparent; border: 0; padding: 0; cursor: pointer; }
+.earlier u { text-decoration-color: var(--edge-strong); text-underline-offset: 3px; }
+.earlier code { font: 11.5px var(--mono); background: var(--raised); padding: 0 4px; border-radius: 3px; white-space: nowrap; }
+.list { padding: 6px 14px 14px; overflow-x: auto; }
+.day { font: 600 11px/1 var(--ui); letter-spacing: .06em; text-transform: uppercase; color: var(--tertiary); margin: 14px 0 4px; }
+.day:first-child { margin-top: 6px; }
+.row { border-radius: 3px; cursor: default; }
+/* Room for the selection edge: every line in the list starts 6px in, its tree lines move with it. */
+.list .l { margin-left: -6px; padding-left: 6px; }
+.list .tl { margin-left: 6px; }
+.row:hover, .row.sel { background: var(--sel); }
+.row.sel { box-shadow: inset 2px 0 var(--accent); }
+.alldone { color: var(--tertiary); font-style: italic; }
+.foot { margin-top: auto; padding: 8px 14px; border-top: 1px solid var(--edge-soft); font: 11.5px/1.5 var(--ui); color: var(--tertiary); }
+.foot kbd { font: 11px var(--mono); background: var(--raised); border-radius: 3px; padding: 0 4px; color: var(--muted); }
+
+/* Variant switch and the drawer inset */
+.variants { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; font-size: 13px; color: var(--muted); }
+.variants button { font: 600 12.5px var(--ui); border: 1px solid var(--edge-strong); background: var(--chrome); color: var(--text); border-radius: 999px; padding: 4px 12px; cursor: pointer; }
+.variants button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--canvas); }
+body.v-b .day { font: var(--fs)/var(--lh) var(--mono); letter-spacing: 0; text-transform: none; color: var(--text); font-weight: 600; margin: 14px 0 0; }
+body.v-b .day + .sec .title, body.v-b .day ~ .sec .title { }
+body.v-b .day::after { content: ""; display: block; height: calc(var(--fs) * var(--lh)); width: 20ch;
+  background-image: linear-gradient(var(--tertiary), var(--tertiary)); background-size: 100% 1px; background-repeat: no-repeat; background-position: 0 51%; }
+
+.drawer { border: 1px solid var(--edge-strong); border-radius: 8px; overflow: hidden; background: var(--chrome); max-width: 400px; }
+.drawer .in { display: flex; align-items: center; gap: 8px; padding: 10px 12px; border-bottom: 1px solid var(--edge-soft); }
+.drawer input { flex: 1; min-width: 0; font: 13px var(--mono); background: var(--canvas); color: var(--text); border: 1px solid var(--edge-strong); border-radius: 4px; padding: 4px 8px; }
+.chips { display: flex; gap: 6px; padding: 8px 12px 0; flex-wrap: wrap; }
+.chip { font: 12px var(--mono); background: var(--raised); border-radius: 999px; padding: 1px 8px; }
+.drawer .rows { padding: 8px 12px 12px; }
+.drawer .date { font: 600 11px var(--ui); letter-spacing: .06em; text-transform: uppercase; color: var(--tertiary); margin: 6px 0 2px; }
+
+.notes { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; }
+.notes div { background: var(--chrome); border: 1px solid var(--edge-soft); border-radius: 8px; padding: 12px 14px; min-width: 0; }
+.notes b { display: block; font-size: 13.5px; margin-bottom: 4px; }
+.notes p { margin: 0; font-size: 13.5px; color: var(--muted); }
+.lbl { font: 600 11px var(--ui); letter-spacing: .08em; text-transform: uppercase; color: var(--tertiary); }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<div class="wrap">
+  <div>
+    <div class="lbl">ChronoNote · week review · mockup for review, 25 October 2026</div>
+    <h1>Week review, drawn like the note</h1>
+    <p class="lede">The same week as in beta 0.34.0-1, redrawn with the editor's own type, line height, glyphs and section rule. Left: the note of Tuesday as the editor shows it. Right: the week review docked beside it.</p>
+  </div>
+
+  <div class="variants" role="group" aria-label="Day heading">
+    <span>Day heading:</span>
+    <button type="button" id="va" aria-pressed="true">A · small label</button>
+    <button type="button" id="vb" aria-pressed="false">B · note-style line with a single rule</button>
+  </div>
+
+  <div class="win">
+    <div class="bar"><span class="tab">2026-10-20</span></div>
+    <div class="split">
+      <div class="note mono" aria-label="Note of 2026-10-20 in the editor">
+        <div class="l title">Weekly Sync</div>
+        <div class="l"><span class="rule">===========</span></div>
+        <div class="l"><span class="g open"><i></i></span>send the budget to Dana <span class="due over"><s>by:</s>2026-10-22</span></div>
+        <div class="l"><span class="g open"><i></i></span>book the venue</div>
+        <div class="l">    <span class="tl mid" style="--p:0;--c:4"></span><span class="g open"><i></i></span>pick a date</div>
+        <div class="l">    <span class="tl end" style="--p:0;--c:4"></span><span class="g done"><i></i></span>ask finance</div>
+        <div class="l"><span class="g to"><i></i></span>hiring plan</div>
+        <div class="l"><span class="g tp"><i></i></span>office move</div>
+        <div class="l"> </div>
+        <div class="l title">Standup</div>
+        <div class="l"><span class="rule">=======</span></div>
+        <div class="l"><span class="g done"><i></i></span>fix the export bug</div>
+        <div class="l"><span class="g done"><i></i></span>review the logs</div>
+      </div>
+
+      <aside class="pane" aria-label="Week review">
+        <div class="ph">
+          <h2>Week 43 · 19 - 25 okt 2026</h2>
+          <button class="nav" type="button" title="week 42" aria-label="Vorige week (42)">‹</button>
+          <button class="nav" type="button" title="week 44" aria-label="Volgende week (44)">›</button>
+        </div>
+        <div class="counts">
+          <span>4 open acties</span><span>3 open agendapunten</span><span class="over">1 te laat</span>
+          <label><input type="checkbox" id="showdone"> Toon voltooid</label>
+        </div>
+        <button class="earlier" type="button" id="earlier"><u>3 nog open uit eerdere weken</u> · opent Acties met <code>before:2026-10-18 is:open</code></button>
+
+        <div class="list mono">
+          <div class="day">Dinsdag 20 okt</div>
+          <div class="sec">
+            <div class="l title">Weekly Sync</div>
+            <div class="l"><span class="rule">===========</span></div>
+            <div class="l row sel"><span class="g open"><i></i></span>send the budget to Dana <span class="due over"><s>by:</s>2026-10-22</span></div>
+            <div class="l row"><span class="g open"><i></i></span>book the venue</div>
+            <div class="l row">    <span class="tl end" style="--p:0;--c:4"></span><span class="g open"><i></i></span>pick a date</div>
+            <div class="l row done-only" hidden>    <span class="g done"><i></i></span>ask finance</div>
+            <div class="l row"><span class="g to"><i></i></span>hiring plan</div>
+            <div class="l row"><span class="g tp"><i></i></span>office move</div>
+          </div>
+          <div class="sec">
+            <div class="l title">Standup</div>
+            <div class="l"><span class="rule">=======</span></div>
+            <div class="l alldone open-only">alles voltooid</div>
+            <div class="l row done-only" hidden><span class="g done"><i></i></span>fix the export bug</div>
+          </div>
+
+          <div class="day">Donderdag 22 okt</div>
+          <div class="sec">
+            <div class="l title">1:1 Priya</div>
+            <div class="l"><span class="rule">=========</span></div>
+            <div class="l row"><span class="g to"><i></i></span>promotion case</div>
+            <div class="l row"><span class="g open"><i></i></span><span class="topic"><b>(</b>hiring<b>)</b></span> write the job post <span class="arrow">➔</span> <span class="who">@priya</span> review it</div>
+            <div class="l row done-only" hidden><span class="g td"><i></i></span>team survey</div>
+          </div>
+
+          <div class="day">Vrijdag 24 okt</div>
+          <div class="sec">
+            <div class="l title">Retro</div>
+            <div class="l"><span class="rule">=====</span></div>
+            <div class="l row"><span class="g open"><i></i></span>try pairing on the release</div>
+            <div class="l row done-only" hidden><span class="g x"><i></i></span>move the retro to Thursday</div>
+          </div>
+        </div>
+        <div class="foot"><kbd>Enter</kbd> naar regel · <kbd>Ctrl+Space</kbd> status · <kbd>Shift+Enter</kbd> naar vandaag · <kbd>←</kbd>/<kbd>→</kbd> week · <kbd>Home</kbd> deze week</div>
+      </aside>
+    </div>
+  </div>
+
+  <div>
+    <div class="lbl" style="margin-bottom:8px">What the "3 nog open uit eerdere weken" link opens</div>
+    <div class="drawer" aria-label="Action Drawer opened from the week review">
+      <div class="in"><input id="drawer-filter" value="before:2026-10-18 is:open" aria-label="Filter"></div>
+      <div class="chips"><span class="chip">before:2026-10-18</span><span class="chip">is:open</span></div>
+      <div class="rows mono">
+        <div class="date">2026-10-16 · Planning</div>
+        <div class="l"><span class="g open"><i></i></span>ask IT for the new laptops</div>
+        <div class="date">2026-10-14 · Weekly Sync</div>
+        <div class="l"><span class="g open"><i></i></span>draft the Q4 plan</div>
+        <div class="l"><span class="g open"><i></i></span>update the onboarding page</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="notes">
+    <div><b>Sections as in the note</b><p>Each meeting is its title with the note's double rule under it, instead of a grey uppercase bar. The rule is as wide as the title's own <code>===</code> line.</p></div>
+    <div><b>One editor line per item</b><p>Rows are 13 px Cascadia Code at line height 1.6, the editor's own rhythm (about 21 px), instead of 36 px boxes. Glyphs, tree lines, pills and the due flag are the editor's.</p></div>
+    <div><b>Selection</b><p>A light background with a thin accent edge on the left, instead of a solid blue bar, so a selected line still reads as text.</p></div>
+    <div><b>Earlier weeks, exactly</b><p>The link opens the Action Drawer on all files with <code>before:</code> (the Sunday before the shown week) and <code>is:open</code> filled in, so it lists exactly the actions the number counts.</p></div>
+    <div><b>Show done</b><p>Tick "Toon voltooid" in the mockup: done items appear in place, in their own colours, and a section's "alles voltooid" line gives way to them.</p></div>
+    <div><b>Day heading</b><p>Two options above: A keeps a small date label above the meetings; B writes the day as a bold line with a single rule, closer to the note itself.</p></div>
+  </div>
+</div>
+
+<script>
+(function () {
+  var a = document.getElementById("va"), b = document.getElementById("vb");
+  function set(v) {
+    document.body.classList.toggle("v-b", v === "b");
+    a.setAttribute("aria-pressed", String(v === "a"));
+    b.setAttribute("aria-pressed", String(v === "b"));
+    try { localStorage.setItem("wr-mock-variant", v); } catch (e) {}
+  }
+  a.addEventListener("click", function () { set("a"); });
+  b.addEventListener("click", function () { set("b"); });
+  try { if (localStorage.getItem("wr-mock-variant") === "b") set("b"); } catch (e) {}
+
+  var sd = document.getElementById("showdone");
+  sd.addEventListener("change", function () {
+    document.querySelectorAll(".done-only").forEach(function (el) { el.hidden = !sd.checked; });
+    document.querySelectorAll(".open-only").forEach(function (el) { el.hidden = sd.checked; });
+  });
+  var rows = Array.prototype.slice.call(document.querySelectorAll(".pane .row"));
+  rows.forEach(function (r) {
+    r.addEventListener("click", function () { rows.forEach(function (x) { x.classList.remove("sel"); }); r.classList.add("sel"); });
+  });
+})();
+</script>
