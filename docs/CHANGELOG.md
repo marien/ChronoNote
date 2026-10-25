@@ -11264,3 +11264,23 @@ The first start of the day is unchanged (today opens when it has content or meet
   today's note instead if it has notes or meetings." The guide says the same.
 - **Tests:** `agenda-pip-startup.spec.ts` (a later start without today's tab; a first start then a restart, which
   failed on the old code; today's tab back when it was open; "Today" mode unchanged).
+
+## 431. Search filters in the Action Drawer (feature review B3)
+
+**Status: on main, not released yet.**
+
+Marien approved B3 on 2026-10-25. The Action Drawer's filter now understands Search's operators, `is:open`,
+`is:done`, `tag:<topic>`, `has:@<name>`, `since:` and `before:`, shown as the same removable chips under the filter
+(`parseSearchQuery`, `removeChipFromQuery`); the rest of the filter is a substring as before, and typing `@` still
+shows delegated parts.
+
+- **Per row** (`nodeMatchesQuery` in `actionDrawerRows.ts`): the row's own part must match the text and every operator;
+  dates are the note's date (undated files never match a date operator). As with text, a match on a parent shows its
+  group and a match on a child shows it with its ancestors as context; any filter unfolds folded groups. Also in the
+  "By due date" view.
+- **`is:`** decides open/done while it is in the filter; the "Only open" toggle is disabled then, with a tooltip (7
+  languages). **`has:@name`** shows delegated parts.
+- **Built by:** Gemini 3.8 Flash from a brief and an independent Gemini test writer from the brief only
+  (`drawer-filters.independent.spec.ts`); reviewed and checked in the browser by Claude. Tests also:
+  `actionDrawerRows.test.ts` (operators, normal and due view), `action-drawer-filters.spec.ts` (chips, docked pane,
+  phone).

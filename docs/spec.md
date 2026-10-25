@@ -591,6 +591,14 @@ reachable from the top bar, a shortcut, or the command palette:
   Narrower, it opens as a dialog. A second toggle (remembered for
   the session, on by default) switches between showing every open/
   deferred/delegated/done/won't-do line or strictly open ones only.
+  The filter understands Search's operators (§431, feature review B3):
+  `is:open`, `is:done`, `tag:<topic>`, `has:@<name>`, `since:YYYY-MM-DD`,
+  `before:YYYY-MM-DD`, shown as removable chips under the filter; the
+  rest is a substring as before. They test a row's own part (dates: its
+  note's date; undated files never match a date), a match on a parent
+  shows its group and a match on a child shows it with its ancestors,
+  `has:@name` shows delegated parts, and `is:` decides open/done while it
+  is there (the "Only open" toggle is then disabled). Also in the due view.
   `Ctrl+Space` on a focused row cycles its state in place; `Enter` jumps
   to it; `Shift+Enter` forwards it to today (source becomes `> `,
   today's note gets a fresh `# ` copy on top). Opens focused on whatever

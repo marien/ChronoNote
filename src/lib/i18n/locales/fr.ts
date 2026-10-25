@@ -302,6 +302,7 @@ export const fr = {
   "actionDrawer.onlyOpen.label": () => "Ouvertes uniquement",
   "actionDrawer.onlyOpen.title": () =>
     "Afficher uniquement les actions ouvertes — masquer les lignes terminées, reportées et abandonnées",
+  "actionDrawer.onlyOpen.setByFilterTitle": () => "Défini par is: dans le filtre",
   "actionDrawer.dueView.label": () => "Par échéance",
   "actionDrawer.dueView.title": () => "Actions ouvertes avec une date d'échéance, les plus proches d'abord",
   "actionDrawer.dueView.overdue": () => "En retard",

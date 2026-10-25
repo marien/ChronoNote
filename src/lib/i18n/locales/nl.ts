@@ -300,6 +300,7 @@ export const nl = {
   "actionDrawer.onlyOpen.label": () => "Alleen open",
   "actionDrawer.onlyOpen.title": () =>
     "Toon alleen onopgeloste (open) acties — verberg voltooide, doorgeschoven en vervallen regels",
+  "actionDrawer.onlyOpen.setByFilterTitle": () => "Ingesteld door is: in het filter",
   "actionDrawer.dueView.label": () => "Op deadline",
   "actionDrawer.dueView.title": () => "Open acties met een deadline, eerstvolgende eerst",
   "actionDrawer.dueView.overdue": () => "Te laat",

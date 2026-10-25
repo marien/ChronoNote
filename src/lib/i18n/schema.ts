@@ -258,6 +258,7 @@ export type TranslationParams = {
   "actionDrawer.scope.allFiles.title": undefined;
   "actionDrawer.onlyOpen.label": undefined;
   "actionDrawer.onlyOpen.title": undefined;
+  "actionDrawer.onlyOpen.setByFilterTitle": undefined;
   "actionDrawer.dueView.label": undefined;
   "actionDrawer.dueView.title": undefined;
   "actionDrawer.dueView.overdue": undefined;
