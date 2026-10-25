@@ -1,6 +1,6 @@
 # Week review (feature review A3): design draft
 
-Status: draft for Marien's decisions (section 6). Approved as an idea on 2026-10-25: "Yes, this will help my Friday
+Status: decided (section 7), to be built. Approved as an idea on 2026-10-25: "Yes, this will help my Friday
 afternoon or Monday morning week review. It should help me figure out which actions and topics are still open and
 require follow-up."
 
@@ -81,3 +81,10 @@ Wednesday 29 Oct
 | 5 | Show done | a) toggle, off by default (as in section 2); b) always shown; c) not at all | **a** |
 | 6 | Delegated parts (`=> @name`) | a) shown on their action's row only; b) also listed per person under the section | **a** (B1 rejected) |
 | 7 | Editing from the view | a) `Ctrl+Space` and `Shift+Enter` as in the Action Drawer; b) read-only, Enter only | **a** |
+
+## 7. Decisions (Marien, 2026-10-25)
+
+All seven recommendations taken: 1b (last week on Monday and at the weekend, otherwise this week), 2a (`Ctrl+Shift+K`),
+3b (one line "N still open from earlier weeks" that opens the Action Drawer on them), 4b (a muted line for a day or
+section with nothing open), 5a ("Show done" toggle, off by default), 6a (delegated parts only on their action's row),
+7a (`Ctrl+Space` and `Shift+Enter` as in the Action Drawer).
