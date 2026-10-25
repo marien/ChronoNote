@@ -5,11 +5,13 @@ import {
   buildDueDrawerRows,
   collapseKey,
   drawerTreeGuides,
+  nodeMatchesQuery,
   nodeState,
   nodeText,
   type DrawerFilter,
 } from "./actionDrawerRows";
 import { cycleActionSymbolAt } from "./tokens";
+import { parseSearchQuery } from "./search";
 import type { ActionSnapshotItem } from "./types";
 
 /** Builds the snapshot items of one note the way `actions.ts` does. */
@@ -345,5 +347,194 @@ describe("drawerTreeGuides", () => {
       [{ level: 0, kind: "tee" }],
       [{ level: 0, kind: "end" }],
     ]);
+  });
+});
+
+describe("nodeMatchesQuery", () => {
+  const plan = "# Plan (work) => # step one @dana => v step two";
+  const items = itemsOf("2026-10-24.txt", plan);
+  const scratchpadItems = itemsOf("scratchpad.txt", "# note action (work)");
+
+  it("matches plain term substring case-insensitively", () => {
+    expect(nodeMatchesQuery(items[0], parseSearchQuery("plan"))).toBe(true);
+    expect(nodeMatchesQuery(items[0], parseSearchQuery("PLAN"))).toBe(true);
+    expect(nodeMatchesQuery(items[0], parseSearchQuery("missing"))).toBe(false);
+  });
+
+  it("matches tag:x in node's own part case-insensitively", () => {
+    expect(nodeMatchesQuery(items[0], parseSearchQuery("tag:work"))).toBe(true);
+    expect(nodeMatchesQuery(items[0], parseSearchQuery("tag:WORK"))).toBe(true);
+    expect(nodeMatchesQuery(items[1], parseSearchQuery("tag:work"))).toBe(false);
+  });
+
+  it("matches tag:x on a whole-line item", () => {
+    const wholeItem: ActionSnapshotItem = {
+      id: "w1",
+      filename: "2026-10-24.txt",
+      lineIdx: 0,
+      line: "# review budget (finance)",
+      header: "",
+      whole: true,
+    };
+    expect(nodeMatchesQuery(wholeItem, parseSearchQuery("tag:finance"))).toBe(true);
+    expect(nodeMatchesQuery(wholeItem, parseSearchQuery("tag:other"))).toBe(false);
+  });
+
+  it("matches has:@name as a word case-insensitively", () => {
+    expect(nodeMatchesQuery(items[1], parseSearchQuery("has:@dana"))).toBe(true);
+    expect(nodeMatchesQuery(items[1], parseSearchQuery("has:@DANA"))).toBe(true);
+    expect(nodeMatchesQuery(items[1], parseSearchQuery("has:@dan"))).toBe(false);
+    expect(nodeMatchesQuery(items[0], parseSearchQuery("has:@dana"))).toBe(false);
+  });
+
+  it("matches since and before date operators inclusive", () => {
+    expect(nodeMatchesQuery(items[0], parseSearchQuery("since:2026-10-24"))).toBe(true);
+    expect(nodeMatchesQuery(items[0], parseSearchQuery("since:2026-10-25"))).toBe(false);
+    expect(nodeMatchesQuery(items[0], parseSearchQuery("before:2026-10-24"))).toBe(true);
+    expect(nodeMatchesQuery(items[0], parseSearchQuery("before:2026-10-23"))).toBe(false);
+    expect(nodeMatchesQuery(items[0], parseSearchQuery("since:2026-10-20 before:2026-10-25"))).toBe(true);
+  });
+
+  it("scratchpad items never match a date operator", () => {
+    expect(nodeMatchesQuery(scratchpadItems[0], parseSearchQuery("since:2020-01-01"))).toBe(false);
+    expect(nodeMatchesQuery(scratchpadItems[0], parseSearchQuery("before:2030-01-01"))).toBe(false);
+    // But scratchpad matches non-date operators
+    expect(nodeMatchesQuery(scratchpadItems[0], parseSearchQuery("tag:work"))).toBe(true);
+  });
+
+  it("matches is:open for # and is:done for v", () => {
+    expect(nodeMatchesQuery(items[0], parseSearchQuery("is:open"))).toBe(true);
+    expect(nodeMatchesQuery(items[0], parseSearchQuery("is:done"))).toBe(false);
+    expect(nodeMatchesQuery(items[2], parseSearchQuery("is:done"))).toBe(true);
+    expect(nodeMatchesQuery(items[2], parseSearchQuery("is:open"))).toBe(false);
+  });
+});
+
+describe("buildDrawerRows with operators", () => {
+  const tree = "# Project (budget)\n  # subtask 1\n  v subtask 2";
+
+  it("tag on a parent shows its group", () => {
+    const items = itemsOf("2026-10-24.txt", tree);
+    const rows = buildDrawerRows(items, filter({ text: "tag:budget" }));
+    expect(texts(rows)).toEqual(["Project (budget)", "subtask 1", "subtask 2"]);
+    expect(rows.every((r) => !r.contextOnly)).toBe(true);
+  });
+
+  it("tag on a child shows it with its parent as context", () => {
+    const childTagTree = "# Project\n  # subtask 1 (urgent)\n  # subtask 2";
+    const items = itemsOf("2026-10-24.txt", childTagTree);
+    const rows = buildDrawerRows(items, filter({ text: "tag:urgent" }));
+    expect(texts(rows)).toEqual(["Project", "subtask 1 (urgent)"]);
+    expect(rows.map((r) => r.contextOnly)).toEqual([true, false]);
+  });
+
+  it("since and before filter items by note date", () => {
+    const early = itemsOf("2026-10-10.txt", "# early action");
+    const late = itemsOf("2026-10-25.txt", "# late action");
+    const all = [...early, ...late];
+
+    const sinceRows = buildDrawerRows(all, filter({ text: "since:2026-10-20" }));
+    expect(texts(sinceRows)).toEqual(["late action"]);
+
+    const beforeRows = buildDrawerRows(all, filter({ text: "before:2026-10-20" }));
+    expect(texts(beforeRows)).toEqual(["early action"]);
+  });
+
+  it("scratchpad items never match a date operator in buildDrawerRows", () => {
+    const scratch = itemsOf("scratchpad.txt", "# scratch action");
+    const dated = itemsOf("2026-10-24.txt", "# dated action");
+    const all = [...scratch, ...dated];
+
+    const rows = buildDrawerRows(all, filter({ text: "since:2026-01-01" }));
+    expect(texts(rows)).toEqual(["dated action"]);
+  });
+
+  it("is:done lists done actions although Only open is on", () => {
+    const items = itemsOf("2026-10-24.txt", tree);
+    const rows = buildDrawerRows(items, filter({ onlyOpen: true, text: "is:done" }));
+    expect(texts(rows)).toEqual(["Project (budget)", "subtask 2"]);
+    expect(rows.map((r) => r.contextOnly)).toEqual([true, false]);
+  });
+
+  it("has:@name shows delegated parts", () => {
+    const delegatedTree = "# Onboarding\n=> @dana send invite\n# other task";
+    const items = itemsOf("2026-10-24.txt", delegatedTree);
+    const rows = buildDrawerRows(items, filter({ text: "has:@dana" }));
+    expect(texts(rows)).toEqual(["Onboarding", "@dana send invite"]);
+    expect(rows.map((r) => r.contextOnly)).toEqual([true, false]);
+  });
+
+  it("an active operator unfolds folded groups", () => {
+    const items = itemsOf("2026-10-24.txt", tree);
+    const collapsed = new Set([collapseKey(items[0])]);
+
+    // Collapsed when no filter
+    const rowsCollapsed = buildDrawerRows(items, filter({ collapsed }));
+    expect(rowsCollapsed).toHaveLength(1);
+    expect(rowsCollapsed[0].expanded).toBe(false);
+
+    // Unfolded when tag operator is used
+    const rowsTag = buildDrawerRows(items, filter({ collapsed, text: "tag:budget" }));
+    expect(rowsTag).toHaveLength(3);
+    expect(rowsTag[0].expanded).toBe(true);
+  });
+});
+
+describe("buildDueDrawerRows with operators", () => {
+  const TODAY = "2026-10-24";
+  const dueTree = [
+    "# Release (launch) by:2026-10-24",
+    "  # build by:2026-10-24",
+    "  # test (qa) by:2026-10-24",
+    "# Other by:2026-10-24",
+    "  # task by:2026-10-24",
+  ].join("\n");
+
+  it("tag on a child shows it with its parent as context and drops unmatched groups", () => {
+    const items = itemsOf("2026-10-24.txt", dueTree);
+    const groups = buildDueDrawerRows(items, TODAY, {
+      showDelegated: false,
+      text: "tag:qa",
+      collapsed: new Set(),
+    });
+    expect(groups).toHaveLength(1);
+    expect(groups[0].rows.map((r) => nodeText(r.item).replace(/ by:\S+/, ""))).toEqual(["Release (launch)", "test (qa)"]);
+    expect(groups[0].rows.map((r) => r.contextOnly)).toEqual([true, false]);
+  });
+
+  it("tag on a parent shows its group in due view", () => {
+    const items = itemsOf("2026-10-24.txt", dueTree);
+    const groups = buildDueDrawerRows(items, TODAY, {
+      showDelegated: false,
+      text: "tag:launch",
+      collapsed: new Set(),
+    });
+    expect(groups).toHaveLength(1);
+    expect(groups[0].rows.map((r) => nodeText(r.item).replace(/ by:\S+/, ""))).toEqual(["Release (launch)", "build", "test (qa)"]);
+    expect(groups[0].rows.every((r) => !r.contextOnly)).toBe(true);
+  });
+
+  it("since and before filter groups in due view", () => {
+    const earlyItems = itemsOf("2026-10-10.txt", "# early by:2026-10-24");
+    const lateItems = itemsOf("2026-10-25.txt", "# late by:2026-10-24");
+    const all = [...earlyItems, ...lateItems];
+
+    const sinceGroups = buildDueDrawerRows(all, TODAY, {
+      showDelegated: false,
+      text: "since:2026-10-20",
+      collapsed: new Set(),
+    });
+    expect(sinceGroups).toHaveLength(1);
+    expect(sinceGroups[0].rows[0].item.filename).toBe("2026-10-25.txt");
+  });
+
+  it("scratchpad items never match a date operator in due view", () => {
+    const scratchItems = itemsOf("scratchpad.txt", "# scratch by:2026-10-24");
+    const groups = buildDueDrawerRows(scratchItems, TODAY, {
+      showDelegated: false,
+      text: "since:2020-01-01",
+      collapsed: new Set(),
+    });
+    expect(groups).toEqual([]);
   });
 });

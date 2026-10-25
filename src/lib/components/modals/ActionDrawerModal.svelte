@@ -13,6 +13,7 @@
     tabs,
   } from "../../controller";
   import type { DueGroupKey } from "../../dueOverview";
+  import { parseSearchQuery, removeChipFromQuery, type SearchFilterChip } from "../../search";
   import {
     buildDrawerRows,
     buildDueDrawerRows,
@@ -166,7 +167,15 @@
     }
   }
 
-  const showDelegated = $derived(filter.includes("@"));
+  const parsed = $derived(parseSearchQuery(filter));
+  const chips = $derived(parsed.chips);
+  const hasIsFilter = $derived(Boolean(parsed.operators.isOpen || parsed.operators.isDone));
+  const showDelegated = $derived(filter.includes("@") || Boolean(parsed.operators.hasAssignee));
+
+  function removeChip(chip: SearchFilterChip) {
+    filter = removeChipFromQuery(filter, chip);
+    inputEl?.focus();
+  }
 
   const liveSnapshot = $derived.by(() => {
     // Split each note once, not once per item: a note now yields several items per line group.
@@ -203,7 +212,7 @@
   }
 
   const model = $derived.by(() => {
-    const textFilter = { showDelegated, text: filter, collapsed: $actionDrawerCollapsed };
+    const textFilter = { showDelegated, text: parsed.term, collapsed: $actionDrawerCollapsed, parsed };
     if ($actionDrawerDueView) {
       const dueGroups = buildDueDrawerRows(liveSnapshot, $currentDateISO, textFilter);
       const labels: Record<DueGroupKey, string> = {
@@ -495,6 +504,23 @@
       <Icon name="close" size={14} />
     </button>
   </div>
+  {#if chips.length > 0}
+    <div class="search-chips-row">
+      {#each chips as chip, idx (chip.id ?? idx)}
+        <span class="search-chip">
+          <span class="chip-label">{chip.label}</span>
+          <button
+            type="button"
+            class="chip-remove-btn"
+            aria-label={$t("searchModal.removeFilterAriaLabel", { label: chip.label })}
+            onclick={() => removeChip(chip)}
+          >
+            ✕
+          </button>
+        </span>
+      {/each}
+    </div>
+  {/if}
   <div class="modal-input-wrap">
     <div class="settings-toggle-row">
       <Segmented
@@ -509,8 +535,12 @@
       {#if loadingAllFiles}
         <span class="modal-spinner" aria-label={$t("common.loading")}>⟳</span>
       {/if}
-      <label class="toggle-switch" title={$t("actionDrawer.onlyOpen.title")}>
-        <input type="checkbox" bind:checked={$actionDrawerShowOnlyOpen} />
+      <label
+        class="toggle-switch"
+        class:disabled={hasIsFilter}
+        title={hasIsFilter ? $t("actionDrawer.onlyOpen.setByFilterTitle") : $t("actionDrawer.onlyOpen.title")}
+      >
+        <input type="checkbox" bind:checked={$actionDrawerShowOnlyOpen} disabled={hasIsFilter} />
         <span class="toggle-switch-track"></span>
         {$t("actionDrawer.onlyOpen.label")}
       </label>

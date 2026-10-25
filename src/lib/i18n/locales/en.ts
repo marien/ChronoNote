@@ -296,6 +296,7 @@ export const en = {
   "actionDrawer.onlyOpen.label": () => "Only Open",
   "actionDrawer.onlyOpen.title": () =>
     "Show only unresolved (open) actions — hide done, deferred, and won't-do lines",
+  "actionDrawer.onlyOpen.setByFilterTitle": () => "Set by is: in the filter",
   "actionDrawer.dueView.label": () => "By due date",
   "actionDrawer.dueView.title": () => "Open actions with a due date, soonest first",
   "actionDrawer.dueView.overdue": () => "Overdue",

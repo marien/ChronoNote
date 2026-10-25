@@ -302,6 +302,7 @@ export const pl = {
   "actionDrawer.onlyOpen.label": () => "Tylko otwarte",
   "actionDrawer.onlyOpen.title": () =>
     "Pokaż tylko otwarte zadania — ukryj wykonane, odłożone i zaniechane",
+  "actionDrawer.onlyOpen.setByFilterTitle": () => "Ustawione przez is: w filtrze",
   "actionDrawer.dueView.label": () => "Według terminu",
   "actionDrawer.dueView.title": () => "Otwarte zadania z terminem, najbliższe na początku",
   "actionDrawer.dueView.overdue": () => "Po terminie",

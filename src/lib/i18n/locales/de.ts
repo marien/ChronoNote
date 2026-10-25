@@ -303,6 +303,7 @@ export const de = {
   "actionDrawer.onlyOpen.label": () => "Nur offene",
   "actionDrawer.onlyOpen.title": () =>
     "Nur ungelöste (offene) Aktionen anzeigen — erledigte, verschobene und entfallene Zeilen ausblenden",
+  "actionDrawer.onlyOpen.setByFilterTitle": () => "Festgelegt durch is: im Filter",
   "actionDrawer.dueView.label": () => "Nach Fälligkeit",
   "actionDrawer.dueView.title": () => "Offene Aktionen mit Fälligkeitsdatum, baldige zuerst",
   "actionDrawer.dueView.overdue": () => "Überfällig",
