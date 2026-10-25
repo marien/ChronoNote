@@ -302,6 +302,7 @@ export const it = {
   "actionDrawer.onlyOpen.label": () => "Solo aperte",
   "actionDrawer.onlyOpen.title": () =>
     "Mostra solo le azioni non risolte (aperte) — nascondi righe completate, rimandate e annullate",
+  "actionDrawer.onlyOpen.setByFilterTitle": () => "Impostato da is: nel filtro",
   "actionDrawer.dueView.label": () => "Per scadenza",
   "actionDrawer.dueView.title": () => "Azioni aperte con scadenza, prima le più vicine",
   "actionDrawer.dueView.overdue": () => "In ritardo",

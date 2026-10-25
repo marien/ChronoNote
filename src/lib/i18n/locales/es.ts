@@ -300,6 +300,7 @@ export const es = {
   "actionDrawer.onlyOpen.label": () => "Solo pendientes",
   "actionDrawer.onlyOpen.title": () =>
     "Mostrar solo acciones no resueltas (pendientes) — ocultar líneas completadas, pospuestas y descartadas",
+  "actionDrawer.onlyOpen.setByFilterTitle": () => "Definido por is: en el filtro",
   "actionDrawer.dueView.label": () => "Por fecha límite",
   "actionDrawer.dueView.title": () => "Acciones abiertas con fecha límite, las más próximas primero",
   "actionDrawer.dueView.overdue": () => "Vencidas",

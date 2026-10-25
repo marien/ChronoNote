@@ -3,6 +3,7 @@
 import type { ActionSnapshotItem } from "./types";
 import { groupByDue, itemDueDate, type DueGroupKey } from "./dueOverview";
 import { dueItems, innermostActionSymbol, stripLeadingToken } from "./tokens";
+import { escapeRegExp, parseSearchQuery, type ParsedSearchQuery } from "./search";
 
 export interface DrawerRow<T extends ActionSnapshotItem = ActionSnapshotItem> {
   item: T;
@@ -79,6 +80,7 @@ export interface DrawerFilter {
   showDelegated: boolean; // the text filter contains "@"
   text: string; // the text filter (case-insensitive substring)
   collapsed: ReadonlySet<string>;
+  parsed?: ParsedSearchQuery;
 }
 
 interface Index<T extends ActionSnapshotItem> {
@@ -129,21 +131,82 @@ function ownTextMatches(item: ActionSnapshotItem, needle: string): boolean {
   return (isWhole(item) ? item.line : nodeText(item)).toLowerCase().includes(needle);
 }
 
+/** Returns true when the search query contains a non-empty term or at least one operator. */
+export function hasActiveFilter(parsed: ParsedSearchQuery): boolean {
+  if (parsed.term.trim() !== "") return true;
+  if (parsed.chips && parsed.chips.length > 0) return true;
+  const ops = parsed.operators;
+  if (!ops) return false;
+  return Boolean(
+    ops.isOpen ||
+    ops.isDone ||
+    ops.tag ||
+    (ops.tags && ops.tags.length > 0) ||
+    ops.hasAssignee ||
+    ops.since ||
+    ops.before,
+  );
+}
+
+/** Evaluates whether `item` satisfies the search query's term and operators. */
+export function nodeMatchesQuery(item: ActionSnapshotItem, parsed: ParsedSearchQuery): boolean {
+  const text = isWhole(item) ? item.line : nodeText(item);
+  const ops = parsed.operators;
+
+  if (parsed.term) {
+    const termLower = parsed.term.trim().toLowerCase();
+    if (termLower && !text.toLowerCase().includes(termLower)) return false;
+  }
+
+  if (ops) {
+    if (ops.since || ops.before) {
+      const iso = item.filename.replace(/\.txt$/, "");
+      const isDated = /^\d{4}-\d{2}-\d{2}$/.test(iso);
+      if (!isDated) return false;
+      if (ops.since && iso < ops.since) return false;
+      if (ops.before && iso > ops.before) return false;
+    }
+
+    if (ops.isOpen && nodeState(item) !== "#") return false;
+    if (ops.isDone && nodeState(item) !== "v") return false;
+
+    const tags = ops.tags ?? (ops.tag ? [ops.tag] : []);
+    for (const tag of tags) {
+      if (!text.toLowerCase().includes(`(${tag.toLowerCase()})`)) return false;
+    }
+
+    if (ops.hasAssignee) {
+      const assigneeRegex = new RegExp(`@${escapeRegExp(ops.hasAssignee)}\\b`, "i");
+      if (!assigneeRegex.test(text)) return false;
+    }
+  }
+
+  return true;
+}
+
 /** Normal view's state rule (a): "Only open", and delegated parts only with `@` in the filter. */
-function passesState(item: ActionSnapshotItem, f: { onlyOpen: boolean; showDelegated: boolean }): boolean {
+function passesState(
+  item: ActionSnapshotItem,
+  f: { onlyOpen: boolean; showDelegated: boolean },
+  operators?: ParsedSearchQuery["operators"],
+): boolean {
   if (!isWhole(item) && item.delegated) return f.showDelegated; // no state of its own: "Only open" does not hide it
-  if (f.onlyOpen && nodeState(item) !== "#") return false;
+  const hasIs = Boolean(operators?.isOpen || operators?.isDone);
+  const onlyOpen = hasIs ? Boolean(operators?.isOpen) : f.onlyOpen;
+  if (onlyOpen && nodeState(item) !== "#") return false;
+  if (operators?.isDone && nodeState(item) !== "v") return false;
   if (isWhole(item) && item.line.includes("=> @") && !f.showDelegated) return false;
   return true;
 }
 
 interface WalkCtx<T extends ActionSnapshotItem, U extends T> {
   kids: Map<string, T[]>;
-  needle: string; // lower-cased text filter, "" for none
+  parsed: ParsedSearchQuery;
+  filterActive: boolean;
   collapsed: ReadonlySet<string>;
-  /** The state part of "passes" (the text part is applied by the walk). */
+  /** The state part of "passes" (the query part is applied by the walk). */
   accept: (item: T, isRoot: boolean) => boolean;
-  /** A group root is listed even when it does not pass (no text filter only). */
+  /** A group root is listed even when it does not pass (no filter only). */
   rootAlways: boolean;
   decorate: (item: T) => U;
 }
@@ -155,14 +218,16 @@ function walk<T extends ActionSnapshotItem, U extends T>(
   ancestorMatch: boolean,
   ctx: WalkCtx<T, U>,
 ): DrawerRow<U>[] {
-  // A match on a node's own text, or on one of its ancestors', makes the node's text part pass.
-  const textOk = ctx.needle === "" || ancestorMatch || ownTextMatches(item, ctx.needle);
+  // A match on a node's own text/operators, or on one of its ancestors', makes the node's query part pass.
+  const ownMatches = ctx.filterActive ? nodeMatchesQuery(item, ctx.parsed) : true;
+  const currentMatch = ancestorMatch || ownMatches;
+  const queryOk = !ctx.filterActive || currentMatch;
   const childRows: DrawerRow<U>[] = [];
-  for (const child of ctx.kids.get(item.id) ?? []) childRows.push(...walk(child, false, textOk, ctx));
-  const passes = textOk && ctx.accept(item, isRoot);
+  for (const child of ctx.kids.get(item.id) ?? []) childRows.push(...walk(child, false, currentMatch, ctx));
+  const passes = queryOk && ctx.accept(item, isRoot);
   const hasChildren = childRows.length > 0;
-  if (!passes && !hasChildren && !(isRoot && ctx.rootAlways && ctx.needle === "")) return [];
-  const collapsed = hasChildren && ctx.needle === "" && ctx.collapsed.has(collapseKey(item));
+  if (!passes && !hasChildren && !(isRoot && ctx.rootAlways && !ctx.filterActive)) return [];
+  const collapsed = hasChildren && !ctx.filterActive && ctx.collapsed.has(collapseKey(item));
   const row: DrawerRow<U> = {
     item: ctx.decorate(item),
     depth: item.depth ?? 0,
@@ -178,12 +243,16 @@ function walk<T extends ActionSnapshotItem, U extends T>(
 /** Normal view. `items` in snapshot order (several notes, each note's nodes depth-first). Returns the visible rows
  *  in the same order. */
 export function buildDrawerRows<T extends ActionSnapshotItem>(items: T[], f: DrawerFilter): DrawerRow<T>[] {
+  const parsed = f.parsed ?? parseSearchQuery(f.text);
+  const filterActive = hasActiveFilter(parsed);
+  const showDelegated = f.showDelegated || Boolean(parsed.operators.hasAssignee);
   const { roots, kids } = indexItems(items);
   const ctx: WalkCtx<T, T> = {
     kids,
-    needle: f.text.toLowerCase(),
+    parsed,
+    filterActive,
     collapsed: f.collapsed,
-    accept: (item) => passesState(item, f),
+    accept: (item) => passesState(item, { ...f, showDelegated }, parsed.operators),
     rootAlways: false,
     decorate: (item) => item,
   };
@@ -243,12 +312,15 @@ export function buildDueDrawerRows<T extends ActionSnapshotItem>(
   todayISO: string,
   f: Omit<DrawerFilter, "onlyOpen">,
 ): { key: DueGroupKey; rows: DrawerRow<T & { dueDate?: string }>[] }[] {
+  const parsed = f.parsed ?? parseSearchQuery(f.text);
+  const filterActive = hasActiveFilter(parsed);
+  const showDelegated = f.showDelegated || Boolean(parsed.operators.hasAssignee);
   const { roots, kids } = indexItems(items);
   const dueCache = new Map<string, string | null>();
   const dueOf = (item: T): string | null => {
     let due = dueCache.get(item.id);
     if (due === undefined) {
-      due = ownDueDate(item, f.showDelegated);
+      due = ownDueDate(item, showDelegated);
       dueCache.set(item.id, due);
     }
     return due;
@@ -274,14 +346,15 @@ export function buildDueDrawerRows<T extends ActionSnapshotItem>(
   let rootDated = false;
   const ctx: WalkCtx<T, T & { dueDate?: string }> = {
     kids,
-    needle: f.text.toLowerCase(),
+    parsed,
+    filterActive,
     collapsed: f.collapsed,
     accept: (item, isRoot) => {
       // Resolved descendants are hidden (they only count in `progress`).
       if (isRoot) return rootDated;
       if (!rootDated) return dueOf(item) !== null;
       if (nodeState(item) === "#") return true;
-      return f.showDelegated && !isWhole(item) && item.delegated === true;
+      return showDelegated && !isWhole(item) && item.delegated === true;
     },
     rootAlways: true,
     decorate: (item) => {
