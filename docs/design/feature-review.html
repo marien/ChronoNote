@@ -72,6 +72,14 @@ td a { text-decoration: none; font-weight: 600; }
 .dec button[aria-pressed="true"][data-v="reject"] { background: var(--bad); border-color: var(--bad); color: var(--surface); }
 .dec textarea { flex: 1 1 260px; min-width: 0; font: 13.5px/1.4 var(--ui); border: 1px solid var(--line); border-radius: 6px; padding: 6px 9px; background: var(--bg); color: var(--fg); resize: vertical; min-height: 34px; }
 
+.tag.done { background: color-mix(in srgb, var(--ok) 16%, transparent); color: var(--ok); }
+.proposal.released { border-color: color-mix(in srgb, var(--ok) 45%, var(--line)); }
+.shipped { border-top: 1px solid var(--line); margin-top: 14px; padding-top: 12px; }
+.shipped h4 { font: 600 12px var(--ui); text-transform: uppercase; letter-spacing: .06em; color: var(--ok); margin: 0 0 4px; }
+.shipped p { font-size: 14px; }
+.status { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 16px 18px; margin: 24px 0; }
+.status h2 { margin: 0 0 8px; }
+
 .waves { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin: 14px 0; }
 .waves div { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 14px 16px; min-width: 0; }
 .waves b { display: block; font: 600 14px var(--display); margin-bottom: 4px; }
@@ -82,9 +90,19 @@ td a { text-decoration: none; font-weight: 600; }
 </style>
 
 <div class="wrap">
-  <div class="eyebrow">ChronoNote feature review · v0.31.0 · 11 October 2026</div>
+  <div class="eyebrow">ChronoNote feature review · v0.31.0 · 11 October 2026 · status updated 25 October 2026 (v0.33.1)</div>
   <h1>ChronoNote Feature Review</h1>
   <p class="lede">Three review rounds made ChronoNote solid: the code (v0.27, v0.28), the design (v0.30) and readiness for other people (v0.31). This one looks at what it does for you during a working day. It follows the day from start to finish: starting the day, meetings, actions and the people you hand them to, writing and finding, capturing from elsewhere, and closing the week. Each card says what happens now, what I propose, and what it would cost.</p>
+
+  <section class="status" aria-labelledby="status">
+    <h2 id="status">Status on 25 October 2026</h2>
+    <ul>
+      <li><b>Released in v0.32.0 (14 October):</b> the whole D section. <a href="#p-D1">D1</a> Replace, <a href="#p-D2">D2</a> spell check, <a href="#p-D3">D3</a> Go to section and <a href="#p-D4">D4</a> date links, with Back and Forward and forward links on every way of forwarding (CHANGELOG §369-§378).</li>
+      <li><b>Released in v0.33.0 (25 October):</b> <a href="#p-B2">B2</a> due dates (§419-§422).</li>
+      <li><b>Built alongside, not on this page:</b> sub-actions and numbered steps, joined by thin lines in the note, nested and foldable in the Action Drawer, and drawn the same in Section History (§423-§427, v0.33.0); forward links drawn as a small tag with an arrow (§428-§429, v0.33.0); "Last note" keeping your tabs on every start (§430, v0.33.1).</li>
+      <li><b>Still open:</b> A1, A2, A3, B1, B3, C1, C2, E1, E2. Their decision buttons below still work; the released cards show what shipped instead.</li>
+    </ul>
+  </section>
 
   <div class="premise">
     <div><b>Plain text stays plain text</b><span>Anything new is written as readable text in the note, or kept out of the note entirely. No hidden IDs, no database.</span></div>
@@ -126,14 +144,14 @@ td a { text-decoration: none; font-weight: 600; }
 
   <h2 id="overview">Overview</h2>
   <p class="st"><span class="tag rec">Recommended</span> clear win, low risk · <span class="tag opt">Optional</span> good, but you can skip it · <span class="tag call">Your call</span> it changes how you write notes, so only you can decide. Effort: S = a day or less, M = a few days, L = a week or more.</p>
-  <div class="tablewrap"><table id="ovt"><thead><tr><th>ID</th><th>Proposal</th><th>Area</th><th>Advice</th><th>Effort</th></tr></thead><tbody></tbody></table></div>
+  <div class="tablewrap"><table id="ovt"><thead><tr><th>ID</th><th>Proposal</th><th>Area</th><th>Advice</th><th>Effort</th><th>Status</th></tr></thead><tbody></tbody></table></div>
 
   <h2 id="order">Suggested order</h2>
   <div class="waves">
-    <div><b>Wave 1 · small wins</b><span>D1, D3, C2, B3, A2. Contained, no new syntax, each a day or less.</span></div>
-    <div><b>Wave 2 · the daily loop</b><span>A1, C1, B1, D4. The biggest change to how a day feels.</span></div>
-    <div><b>Wave 3 · capture and review</b><span>E1, A3, then E2 and D2 if wanted.</span></div>
-    <div><b>Decide first</b><span>B1 and B2 add something you'd write into notes. Settle the syntax before anything is built.</span></div>
+    <div><b>Wave 1 · small wins</b><span><s>D1, D3,</s> C2, B3, A2. Contained, no new syntax, each a day or less. (D1 and D3 released in v0.32.0.)</span></div>
+    <div><b>Wave 2 · the daily loop</b><span>A1, C1, B1, <s>D4</s>. The biggest change to how a day feels. (D4 released in v0.32.0.)</span></div>
+    <div><b>Wave 3 · capture and review</b><span>E1, A3, then E2 <s>and D2</s> if wanted. (D2 released in v0.32.0.)</span></div>
+    <div><b>Decide first</b><span>B1 adds something you'd write into notes; settle its syntax before anything is built. (B2's was settled and released in v0.33.0.)</span></div>
   </div>
 
   <!-- ================= A ================= -->
@@ -179,13 +197,14 @@ td a { text-decoration: none; font-weight: 600; }
     <p class="why">This is the largest gap in the meeting workflow: an action leaves your list the moment it goes to someone else. Your call because it settles what a delegated line means.</p>
   </section>
 
-  <section class="proposal" data-id="B2" data-title="Due dates written in the line" data-area="Actions" data-adv="call" data-eff="M">
+  <section class="proposal released" data-released="v0.33.0" data-id="B2" data-title="Due dates written in the line" data-area="Actions" data-adv="call" data-eff="M">
     <div class="phead"><span class="pid">B2</span><h3>Due dates written in the line</h3></div>
     <div class="cols">
       <div><h4>Now</h4><p>An action has no date other than the note it's in. "Before Friday" lives in the text, and nothing notices when Friday passes.</p></div>
       <div><h4>Proposed</h4><p>An optional <code>by:</code> token at the end of an action, using the date words search already knows: <code># send the report by:2026-10-17</code>, typed as <code>by:fri</code> and rewritten to the full date when you leave the line (so the file stays unambiguous). The editor shows it as a small date pill: muted, then amber on the day, red once it has passed. Actions sorts and filters on it (<code>due:today</code>, <code>due:week</code>, <code>overdue</code>); the status bar counts overdue items. No notifications (see the "left out" list).</p></div>
     </div>
     <p class="why">Your call: it's new syntax in your notes. With A1 and B1 it covers most of what a separate task app would add.</p>
+      <div class="shipped"><h4>What shipped · v0.33.0 · §419-§422</h4><p><code>by:</code> with a date or a word (<code>by:fri</code>, <code>by:tomorrow</code>, Dutch words too), rewritten to the full date when you leave the line, or <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>D</kbd> for a compact date picker; a click on the date opens it too. Instead of a pill, the date is drawn in place: <code>by:</code> becomes a small flag and one outline surrounds flag and date, muted, amber on the day, red once past, so the line keeps its width. The status bar counts overdue actions across all notes. Instead of <code>due:</code> filters, the Action Drawer has a "By due date" view: Overdue, Today, This week, Later. Delegated lines can carry a date but stay out of your own count.</p></div>
   </section>
 
   <section class="proposal" data-id="B3" data-title="Search filters in Actions" data-area="Actions" data-adv="rec" data-eff="S">
@@ -222,39 +241,43 @@ td a { text-decoration: none; font-weight: 600; }
   <h2 id="d">D · Writing and finding</h2>
   <p>Editor basics that a Notepad replacement is expected to have.</p>
 
-  <section class="proposal" data-id="D1" data-title="Replace in the current note" data-area="Editor" data-adv="rec" data-eff="S">
+  <section class="proposal released" data-released="v0.32.0" data-id="D1" data-title="Replace in the current note" data-area="Editor" data-adv="rec" data-eff="S">
     <div class="phead"><span class="pid">D1</span><h3>Replace in the current note</h3></div>
     <div class="cols">
       <div><h4>Now</h4><p><kbd>Ctrl</kbd>+<kbd>F</kbd> finds, but there's no replace. Renaming a person or a project in a long note is done match by match.</p></div>
       <div><h4>Proposed</h4><p><kbd>Ctrl</kbd>+<kbd>H</kbd> (as in Notepad) opens the find bar with a Replace field: Replace and Replace all, match case and whole word. One undo step reverts a Replace all. Only the current note; renaming across notes stays out.</p></div>
     </div>
     <p class="why">CodeMirror's search already supports replacing; the find bar needs the field and the keys.</p>
+      <div class="shipped"><h4>What shipped · v0.32.0 · §369</h4><p>As proposed: <kbd>Ctrl</kbd>+<kbd>H</kbd> opens the find bar with a Replace row (a chevron shows or hides it, as in Notepad), Replace and Replace all, match case and whole word, one undo step for Replace all.</p></div>
   </section>
 
-  <section class="proposal" data-id="D2" data-title="Spell check (off by default)" data-area="Editor" data-adv="opt" data-eff="S">
+  <section class="proposal released" data-released="v0.32.0" data-id="D2" data-title="Spell check (off by default)" data-area="Editor" data-adv="opt" data-eff="S">
     <div class="phead"><span class="pid">D2</span><h3>Spell check (off by default)</h3></div>
     <div class="cols">
       <div><h4>Now</h4><p>No spell check. WebView2 has Windows' own spell checker built in, but the editor turns it off.</p></div>
       <div><h4>Proposed</h4><p>A setting under Editor, off by default. When on, misspelled words are underlined using the Windows input languages (Dutch and English together for you). Suggestions appear at the top of the line menu on right-click. <code>@names</code>, topic tags, URLs and tokens are skipped.</p></div>
     </div>
     <p class="why">Optional: in quick meeting notes the squiggles may bother you more than they help.</p>
+      <div class="shipped"><h4>What shipped · v0.32.0 · §370, §375-§378</h4><p>Off by default. Built on the Windows spell checker itself rather than WebView2's (which lost its marks in the editor), with its own underlines, suggestions plus Add to dictionary and Ignore in the line menu, and a language picker in Settings (default: your Windows languages plus English). The web app uses the browser's checker.</p></div>
   </section>
 
-  <section class="proposal" data-id="D3" data-title="Go to a section in the note" data-area="Editor" data-adv="rec" data-eff="S">
+  <section class="proposal released" data-released="v0.32.0" data-id="D3" data-title="Go to a section in the note" data-area="Editor" data-adv="rec" data-eff="S">
     <div class="phead"><span class="pid">D3</span><h3>Go to a section in the note</h3></div>
     <div class="cols">
       <div><h4>Now</h4><p>A day with eight meetings is a long note. Reaching the fourth section means scrolling or searching for its title.</p></div>
       <div><h4>Proposed</h4><p><kbd>Ctrl</kbd>+<kbd>G</kbd> opens a short list of the note's sections, each with its open-action count. Type to filter, Enter to jump. The same list in the palette with a <code>#</code> prefix, so <kbd>Ctrl</kbd>+<kbd>K</kbd> then <code>#stand</code> lands on the standup.</p></div>
     </div>
+      <div class="shipped"><h4>What shipped · v0.32.0 · §369</h4><p>As proposed: <kbd>Ctrl</kbd>+<kbd>G</kbd> opens the palette on <code>#</code> with the note's sections and their open-action counts; <code>#</code> typed in <kbd>Ctrl</kbd>+<kbd>K</kbd> does the same.</p></div>
   </section>
 
-  <section class="proposal" data-id="D4" data-title="Links to other days and sections" data-area="Editor" data-adv="opt" data-eff="M">
+  <section class="proposal released" data-released="v0.32.0" data-id="D4" data-title="Links to other days and sections" data-area="Editor" data-adv="opt" data-eff="M">
     <div class="phead"><span class="pid">D4</span><h3>Links to other days and sections</h3></div>
     <div class="cols">
       <div><h4>Now</h4><p>"See the notes from 3 October" is plain text. URLs are clickable with Ctrl+Click, but dates are not.</p></div>
       <div><h4>Proposed</h4><p>A full date in the text (<code>2026-10-03</code>) is a link: Ctrl+Click or middle-click opens that day's note, as with URLs. Written as <code>2026-10-03#Standup</code>, it opens that day at that section. Nothing changes in the file; the date is the link. The calendar's "has a note" styling shows whether the target exists.</p></div>
     </div>
     <p class="why">Optional: useful when you refer back often, otherwise invisible. No new syntax beyond the date you'd type anyway.</p>
+      <div class="shipped"><h4>What shipped · v0.32.0 · §371-§374; pills §428-§429 (v0.33.0)</h4><p>A full date is a link (Ctrl+Click, middle-click); a date with a section is a link in brackets: <code>(2026-10-03#Standup)</code>. Added on your request: Back and Forward (<kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>Left</kbd>/<kbd>Right</kbd>, the mouse buttons, a small toast), and forward links: forwarding an open action writes <code>(&gt;date#section)</code> on the source and <code>(&lt;date#section)</code> on the copy, on every way of forwarding. Since v0.33.0 these show as a small tag with an arrow (→ went to, ← came from).</p></div>
   </section>
 
   <!-- ================= E ================= -->
@@ -299,20 +322,25 @@ td a { text-decoration: none; font-weight: 600; }
   try { state = JSON.parse(localStorage.getItem(KEY) || "{}") || {}; } catch (e) { state = {}; }
   function save() { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {} }
   var advText = { rec: "Recommended", opt: "Optional", call: "Your call" };
-  var cards = Array.prototype.slice.call(document.querySelectorAll(".proposal"));
+  var all = Array.prototype.slice.call(document.querySelectorAll(".proposal"));
+  // Released proposals show what shipped instead of decision buttons; counts and "Copy decisions" cover the open ones.
+  var cards = all.filter(function (card) { return !card.dataset.released; });
   var tbody = document.querySelector("#ovt tbody");
 
-  cards.forEach(function (card) {
+  all.forEach(function (card) {
     var id = card.dataset.id;
+    var rel = card.dataset.released;
     card.id = "p-" + id;
+    var statusTag = rel ? '<span class="tag done">Released ' + rel + '</span>' : '<span class="tag">Open</span>';
     var meta = document.createElement("div");
     meta.className = "meta";
-    meta.innerHTML = '<span class="tag ' + card.dataset.adv + '">' + advText[card.dataset.adv] + '</span><span class="tag">' + card.dataset.area + '</span><span class="tag">Effort ' + card.dataset.eff + '</span>';
+    meta.innerHTML = (rel ? statusTag : '') + '<span class="tag ' + card.dataset.adv + '">' + advText[card.dataset.adv] + '</span><span class="tag">' + card.dataset.area + '</span><span class="tag">Effort ' + card.dataset.eff + '</span>';
     card.querySelector(".phead").appendChild(meta);
 
     var tr = document.createElement("tr");
-    tr.innerHTML = '<td><a href="#p-' + id + '">' + id + '</a></td><td>' + card.dataset.title + '</td><td>' + card.dataset.area + '</td><td><span class="tag ' + card.dataset.adv + '">' + advText[card.dataset.adv] + '</span></td><td>' + card.dataset.eff + '</td>';
+    tr.innerHTML = '<td><a href="#p-' + id + '">' + id + '</a></td><td>' + card.dataset.title + '</td><td>' + card.dataset.area + '</td><td><span class="tag ' + card.dataset.adv + '">' + advText[card.dataset.adv] + '</span></td><td>' + card.dataset.eff + '</td><td>' + statusTag + '</td>';
     tbody.appendChild(tr);
+    if (rel) return;
 
     var dec = document.createElement("div");
     dec.className = "dec";
