@@ -63,12 +63,12 @@ export const it = {
   "settings.calendar.agendaMissing.after": () =>
     " trovato ancora in questa cartella di note — il pulsante di sincronizzazione rimane disabilitato finché non ne esiste uno.",
   "settings.startup.sectionLabel": () => "Avvio",
-  "settings.startup.label": () => "Primo avvio del giorno",
+  "settings.startup.label": () => "All'avvio",
   "settings.startup.today": () => "Oggi",
   "settings.startup.smart": () => "Ultima nota",
-  "settings.startup.todayHint": () => "Apre sempre la nota di oggi al primo avvio di ogni giorno.",
+  "settings.startup.todayHint": () => "Apre la nota di oggi al primo avvio di ogni giorno e mantiene aperta la scheda di oggi.",
   "settings.startup.smartHint": () =>
-    "Apre la nota di oggi se ci sono note bozza o riunioni programmate; altrimenti ripristina il punto in cui ti eri fermato.",
+    "Ripristina le schede che avevi aperte. Al primo avvio del giorno apre invece la nota di oggi se contiene note o riunioni.",
   "settings.oneDrive.sectionLabel": () => "Sincronizzazione cloud OneDrive",
   "settings.oneDrive.safariTip.label": () => "Suggerimento per Safari:",
   "settings.oneDrive.safariTip.hint": () =>

@@ -67,12 +67,12 @@ export const de = {
   "settings.calendar.agendaMissing.after": () =>
     "-Datei in diesem Notizordner gefunden — die Synchronisierungsschaltfläche bleibt ausgegraut, bis eine existiert.",
   "settings.startup.sectionLabel": () => "Start",
-  "settings.startup.label": () => "Erster Start des Tages",
+  "settings.startup.label": () => "Beim Start",
   "settings.startup.today": () => "Heute",
   "settings.startup.smart": () => "Letzte Notiz",
-  "settings.startup.todayHint": () => "Öffnet beim ersten Start des Tages immer die heutige Notiz.",
+  "settings.startup.todayHint": () => "Öffnet beim ersten Start des Tages die heutige Notiz und lässt den Tab von heute geöffnet.",
   "settings.startup.smartHint": () =>
-    "Öffnet die heutige Notiz, wenn Entwürfe oder Termine vorliegen; stellt andernfalls den vorherigen Stand wieder her.",
+    "Stellt die Tabs wieder her, die Sie geöffnet hatten. Beim ersten Start des Tages wird stattdessen die heutige Notiz geöffnet, wenn sie Notizen oder Termine enthält.",
   "settings.oneDrive.sectionLabel": () => "OneDrive-Cloud-Synchronisierung",
   "settings.oneDrive.safariTip.label": () => "Safari-Tipp:",
   "settings.oneDrive.safariTip.hint": () =>

@@ -65,12 +65,12 @@ export const nl = {
   "settings.calendar.agendaMissing.after": () =>
     " bestand gevonden in deze notitiemap — de synchronisatieknop blijft grijs totdat er een bestaat.",
   "settings.startup.sectionLabel": () => "Opstarten",
-  "settings.startup.label": () => "Eerste keer opstarten van de dag",
+  "settings.startup.label": () => "Bij het opstarten",
   "settings.startup.today": () => "Vandaag",
   "settings.startup.smart": () => "Laatste notitie",
-  "settings.startup.todayHint": () => "Opent altijd de notitie van vandaag bij het eerste opstarten van de dag.",
+  "settings.startup.todayHint": () => "Opent de notitie van vandaag bij het eerste opstarten van de dag en houdt het tabblad van vandaag open.",
   "settings.startup.smartHint": () =>
-    "Opent de notitie van vandaag als u notities of geplande vergaderingen heeft; herstelt anders waar u was gebleven.",
+    "Herstelt de tabbladen die je open had. Bij het eerste opstarten van de dag opent de notitie van vandaag als die notities of vergaderingen heeft.",
   "settings.oneDrive.sectionLabel": () => "OneDrive-cloudsynchronisatie",
   "settings.oneDrive.safariTip.label": () => "Safari-tip:",
   "settings.oneDrive.safariTip.hint": () =>

@@ -65,12 +65,12 @@ export const en = {
   "settings.calendar.agendaMissing.after": () =>
     " file found in this notes folder yet — the sync button stays grayed out until one exists.",
   "settings.startup.sectionLabel": () => "Startup",
-  "settings.startup.label": () => "First launch of the day",
+  "settings.startup.label": () => "When the app starts",
   "settings.startup.today": () => "Today",
   "settings.startup.smart": () => "Last note",
-  "settings.startup.todayHint": () => "Always opens today's note on the first launch of each day.",
+  "settings.startup.todayHint": () => "Opens today's note on the first start of each day, and keeps today's tab open.",
   "settings.startup.smartHint": () =>
-    "Opens today's note if you have notes drafted or meetings scheduled; otherwise restores where you left off.",
+    "Restores the tabs you left open. On the first start of a day, opens today's note instead if it has notes or meetings.",
   "settings.oneDrive.sectionLabel": () => "OneDrive Cloud Sync",
   "settings.oneDrive.safariTip.label": () => "Safari Tip:",
   "settings.oneDrive.safariTip.hint": () =>

@@ -11256,5 +11256,9 @@ The first start of the day is unchanged (today opens when it has content or meet
 
 - **Mock fix found on the way:** the mock backend saved `startupTabMode` across a reload but never read it back, so
   every reload in the tests ran in "Today" mode.
+- **The setting says what it does** (Marien): its label was "First launch of the day", which no longer fits "Last
+  note". Now "When the app starts" (in all 7 languages), with hints: Today "Opens today's note on the first start of
+  each day, and keeps today's tab open.", Last note "Restores the tabs you left open. On the first start of a day, opens
+  today's note instead if it has notes or meetings." The guide says the same.
 - **Tests:** `agenda-pip-startup.spec.ts` (a later start without today's tab; a first start then a restart, which
   failed on the old code; today's tab back when it was open; "Today" mode unchanged).

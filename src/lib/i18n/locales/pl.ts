@@ -64,12 +64,12 @@ export const pl = {
   "settings.calendar.agendaMissing.after": () =>
     " w tym folderze notatek — przycisk synchronizacji pozostaje nieaktywny, dopóki plik nie powstanie.",
   "settings.startup.sectionLabel": () => "Uruchamianie",
-  "settings.startup.label": () => "Pierwsze uruchomienie w danym dniu",
+  "settings.startup.label": () => "Przy uruchomieniu",
   "settings.startup.today": () => "Dzisiaj",
   "settings.startup.smart": () => "Ostatnia notatka",
-  "settings.startup.todayHint": () => "Zawsze otwiera dzisiejszą notatkę przy pierwszym uruchomieniu w danym dniu.",
+  "settings.startup.todayHint": () => "Otwiera dzisiejszą notatkę przy pierwszym uruchomieniu w danym dniu i pozostawia otwartą kartę z dzisiejszą notatką.",
   "settings.startup.smartHint": () =>
-    "Otwiera dzisiejszą notatkę, jeśli masz sporządzone notatki lub zaplanowane spotkania; w przeciwnym razie przywraca ostatnie miejsce pracy.",
+    "Przywraca karty, które były otwarte. Przy pierwszym uruchomieniu w danym dniu otwiera zamiast tego dzisiejszą notatkę, jeśli zawiera notatki lub spotkania.",
   "settings.oneDrive.sectionLabel": () => "Synchronizacja w chmurze OneDrive",
   "settings.oneDrive.safariTip.label": () => "Wskazówka dla Safari:",
   "settings.oneDrive.safariTip.hint": () =>

@@ -64,12 +64,12 @@ export const fr = {
   "settings.calendar.agendaMissing.after": () =>
     " trouvé dans ce dossier de notes pour l'instant — le bouton reste grisé tant qu'il n'existe pas.",
   "settings.startup.sectionLabel": () => "Démarrage",
-  "settings.startup.label": () => "Premier lancement de la journée",
+  "settings.startup.label": () => "Au démarrage",
   "settings.startup.today": () => "Aujourd'hui",
   "settings.startup.smart": () => "Dernière note",
-  "settings.startup.todayHint": () => "Ouvre toujours la note d'aujourd'hui lors du premier lancement de chaque journée.",
+  "settings.startup.todayHint": () => "Ouvre la note d'aujourd'hui au premier lancement de chaque journée et garde l'onglet d'aujourd'hui ouvert.",
   "settings.startup.smartHint": () =>
-    "Ouvre la note d'aujourd'hui si vous avez des notes rédigées ou des réunions prévues ; sinon, reprend là où vous vous étiez arrêté.",
+    "Restaure les onglets que vous aviez ouverts. Au premier lancement de la journée, ouvre plutôt la note d'aujourd'hui si elle contient des notes ou des réunions.",
   "settings.oneDrive.sectionLabel": () => "Synchronisation cloud OneDrive",
   "settings.oneDrive.safariTip.label": () => "Astuce Safari :",
   "settings.oneDrive.safariTip.hint": () =>
