@@ -15,7 +15,8 @@
 }
 
 .history-pane,
-.actions-pane {
+.actions-pane,
+.week-review-pane {
   display: flex;
   flex-direction: column;
   min-width: 300px;
@@ -58,7 +59,8 @@
 }
 
 .history-pane-card,
-.actions-pane-card {
+.actions-pane-card,
+.week-review-pane-card {
   display: flex;
   flex-direction: column;
   flex: 1;
@@ -69,14 +71,16 @@
 }
 
 .history-pane-card .modal-input-wrap.modal-title,
-.actions-pane-card .modal-input-wrap.modal-title {
+.actions-pane-card .modal-input-wrap.modal-title,
+.week-review-pane-card .modal-input-wrap.modal-title {
   padding: 10px 14px;
   border-bottom: 1px solid var(--edge-soft);
   flex-shrink: 0;
 }
 
 .history-pane-card .modal-title .modal-input,
-.actions-pane-card .modal-title .modal-input {
+.actions-pane-card .modal-title .modal-input,
+.week-review-pane-card .modal-title .modal-input {
   flex: 1;
   min-width: 0;
   overflow: hidden;
@@ -85,19 +89,22 @@
 }
 
 .history-pane-card .history-body,
-.actions-pane-card .modal-list {
+.actions-pane-card .modal-list,
+.week-review-pane-card .modal-list {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
 }
 
-.actions-pane-card .modal-list {
+.actions-pane-card .modal-list,
+.week-review-pane-card .modal-list {
   max-height: none;
 }
 
 /* The pane is narrower than the dialog: let the key hints wrap instead of cutting them off. */
 .history-pane-card .modal-footer-hints,
-.actions-pane-card .modal-footer-hints {
+.actions-pane-card .modal-footer-hints,
+.week-review-pane-card .modal-footer-hints {
   white-space: normal;
   overflow: visible;
 }

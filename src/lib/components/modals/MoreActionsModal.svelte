@@ -93,6 +93,10 @@
     openExportModal();
   }
 
+  function openWeekReview() {
+    controller.openWeekReview();
+  }
+
   function print() {
     controller.closeAllModals();
     printActiveNote();
@@ -141,6 +145,10 @@
   {/if}
   <button type="button" class="more-actions-item" role="menuitem" onclick={exportNotes}>
     <Icon name="external" size={14} /><span>{$t("export.menuItem")}</span>
+  </button>
+  <button type="button" class="more-actions-item" role="menuitem" onclick={openWeekReview}>
+    <Icon name="actions" size={14} /><span>{$t("weekReview.modal.title")}</span>
+    <kbd>{formatShortcut("openWeekReview")}</kbd>
   </button>
   <button type="button" class="more-actions-item" role="menuitem" onclick={print}>
     <Icon name="tab-scratch" size={14} /><span>{$t("print.menuItem")}</span>
