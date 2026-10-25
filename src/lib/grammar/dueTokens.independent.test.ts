@@ -245,6 +245,7 @@ describe("dueTokens: where a due date counts (design Syntax)", () => {
     const tokens = tokenizeLine("# sync (>2026-10-14#Weekly Sync) by:2026-10-30");
     expect(tokens).toEqual([
       { kind: "action", from: 0, to: 2, symbol: "#", replaced: true },
+      { kind: "forwardLink", from: 7, to: 32, dir: ">", date: "2026-10-14", section: "Weekly Sync", replaced: false },
       { kind: "due", from: 33, to: 46, date: "2026-10-30", replaced: false },
     ]);
   });

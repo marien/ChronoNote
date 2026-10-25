@@ -712,3 +712,104 @@ test.describe("due date drawn in place (§421)", () => {
     }
   });
 });
+
+
+/** §428: a forward link is drawn on its own text: `(>` or `(<` becomes an arrow over its two cells, `#` becomes a
+ * dot, and one outline surrounds the pill. Nothing is replaced: width, height, and baseline remain byte-for-byte
+ * identical to plain text at every font size and display scaling. */
+test.describe("forward links drawn in place (§428)", () => {
+  const FWD = "# send the report (>2026-10-30#Weekly Sync) tail";
+  const RAW = "# send the report (?2026-10-30#Weekly Sync) tail"; // the same characters, not a forward link
+
+  const measure = () => {
+    const lines = [...document.querySelectorAll<HTMLElement>(".cm-editor .cm-line")];
+    const rectOf = (el: HTMLElement, needle: string) => {
+      const w = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+      let n: Node | null;
+      while ((n = w.nextNode())) {
+        const i = n.nodeValue!.indexOf(needle);
+        if (i !== -1) {
+          const r = document.createRange();
+          r.setStart(n, i);
+          r.setEnd(n, i + 1);
+          return r.getBoundingClientRect();
+        }
+      }
+      return null;
+    };
+    const top0 = lines[0].getBoundingClientRect().top;
+    const top1 = lines[1].getBoundingClientRect().top;
+    return {
+      fwdElements: lines[0].querySelectorAll(".cm-fwd-link").length,
+      fwdText: lines[0].querySelector(".cm-fwd-link")?.textContent ?? "",
+      dirs: lines[0].querySelectorAll(".cm-fwd-link .cm-fwd-dir").length,
+      seps: lines[0].querySelectorAll(".cm-fwd-link .cm-fwd-sep").length,
+      parens: lines[0].querySelectorAll(".cm-fwd-link .cm-fwd-paren").length,
+      tailDelta: rectOf(lines[0], "tail")!.left - rectOf(lines[1], "tail")!.left,
+      digitDeltaX: rectOf(lines[0], "-10-30")!.left - rectOf(lines[1], "-10-30")!.left,
+      baselineDelta: rectOf(lines[0], "-10-30")!.bottom - top0 - (rectOf(lines[1], "-10-30")!.bottom - top1),
+      fwdLineHeight: lines[0].getBoundingClientRect().height,
+      plainLineHeight: lines[2].getBoundingClientRect().height,
+      lastTop: lines[lines.length - 1].getBoundingClientRect().top,
+      isEditing: !!lines[0].querySelector(".cm-fwd-editing"),
+    };
+  };
+  const settle = (page: import("@playwright/test").Page) =>
+    page.evaluate(() => new Promise((r) => setTimeout(r, 50)));
+
+  test("keeps the line's width, height and baseline, as one outline, at every font size", async ({ page }) => {
+    await seedApp(page, { seed: "empty" });
+    await setEditorText(page, [FWD, RAW, "plain line", "last line"].join("\n"));
+    await editor(page).locator(".cm-line").last().click();
+
+    for (const px of [11, 12, 13, 14, 15, 16, 17, 18, 20, 22, 24]) {
+      await page.evaluate((size) => {
+        document.querySelector<HTMLElement>(".cm-editor")!.style.setProperty("--editor-font-size", `${size}px`);
+      }, px);
+      await settle(page);
+      const m = await page.evaluate(measure);
+      expect(m.fwdElements, `${px}px: one outline element`).toBe(1);
+      expect(m.fwdText, `${px}px: the whole token, unchanged`).toBe("(>2026-10-30#Weekly Sync)");
+      expect(m.dirs, `${px}px: one dir arrow`).toBe(1);
+      expect(m.seps, `${px}px: one sep dot`).toBe(1);
+      expect(m.parens, `${px}px: one paren`).toBe(1);
+      expect(Math.abs(m.tailDelta), `${px}px: text after the forward link`).toBeLessThan(0.05);
+      expect(Math.abs(m.digitDeltaX), `${px}px: the digits' column`).toBeLessThan(0.05);
+      expect(Math.abs(m.baselineDelta), `${px}px: the digits' baseline`).toBeLessThan(0.05);
+      expect(m.fwdLineHeight, `${px}px line height`).toBe(m.plainLineHeight);
+    }
+  });
+
+  test("nothing moves when the caret enters or leaves the link; with caret inside, .cm-fwd-editing is set", async ({ page }) => {
+    await seedApp(page, { seed: "empty" });
+    await setEditorText(page, [FWD, RAW, "plain line", "a", "b", "last line"].join("\n"));
+    for (const px of [12, 16, 20]) {
+      await page.evaluate((size) => {
+        document.querySelector<HTMLElement>(".cm-editor")!.style.setProperty("--editor-font-size", `${size}px`);
+      }, px);
+      await settle(page);
+      await editor(page).locator(".cm-line").last().click();
+      await page.keyboard.press("ControlOrMeta+End");
+      await settle(page);
+      const off = await page.evaluate(measure);
+      expect(off.isEditing, `${px}px: not editing when caret is elsewhere`).toBe(false);
+
+      // Move caret onto line 0, inside the forward link pill (position 22)
+      await page.keyboard.press("ControlOrMeta+Home");
+      for (let i = 0; i < 22; i++) await page.keyboard.press("ArrowRight");
+      await settle(page);
+      const on = await page.evaluate(measure);
+      expect(on.fwdElements, `${px}px: drawn the same on the caret line`).toBe(1);
+      expect(on.isEditing, `${px}px: .cm-fwd-editing is set when caret is inside`).toBe(true);
+      expect(on.lastTop, `${px}px: lines below stay put`).toBe(off.lastTop);
+      expect(Math.abs(on.tailDelta), `${px}px: line end stays put`).toBeLessThan(0.05);
+
+      await page.keyboard.press("ArrowDown");
+      await settle(page);
+      const back = await page.evaluate(measure);
+      expect(back.isEditing, `${px}px: not editing after leaving`).toBe(false);
+      expect(back.lastTop, `${px}px: lines below stay put after leaving`).toBe(off.lastTop);
+      expect(Math.abs(back.tailDelta), `${px}px: line end stays put after leaving`).toBeLessThan(0.05);
+    }
+  });
+});

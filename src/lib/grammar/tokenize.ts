@@ -16,7 +16,8 @@ export type TokenKind =
   | "topicTag" // (topic) right after an action or topic symbol
   | "paren" // any other `(word)`: recognised (and consumed) but not decorated
   | "due" // by: followed by a valid calendar date YYYY-MM-DD
-  | "dueWord"; // by: followed by non-space chars not a valid ISO date
+  | "dueWord" // by: followed by non-space chars not a valid ISO date
+  | "forwardLink"; // (>YYYY-MM-DD#Section) or (<YYYY-MM-DD#Section)
 
 export interface Token {
   kind: TokenKind;
@@ -29,6 +30,10 @@ export interface Token {
   replaced: boolean;
   /** ISO date YYYY-MM-DD for a "due" token. */
   date?: string;
+  /** Direction for a "forwardLink" token: ">" (to) or "<" (from). */
+  dir?: "<" | ">";
+  /** Optional section for a "forwardLink" token. */
+  section?: string;
   /** Text after "by:" for a "dueWord" token. */
   word?: string;
 }
@@ -125,6 +130,8 @@ const INLINE = new RegExp(
   "gu",
 );
 
+const FORWARD_LINK_RE = /\(([<>])(\d{4}-\d{2}-\d{2})(?:#([^)\r\n]+))?\)/gu;
+
 export function tokenizeLine(line: string): Token[] {
   const tokens: Token[] = [];
   let scanFrom = 0;
@@ -174,12 +181,34 @@ export function tokenizeLine(line: string): Token[] {
     }
   }
 
+  const fwdLinks: Token[] = [];
+  FORWARD_LINK_RE.lastIndex = scanFrom;
+  let fm: RegExpExecArray | null;
+  while ((fm = FORWARD_LINK_RE.exec(line)) !== null) {
+    const [full, dir, dateStr, section] = fm;
+    const parts = dateStr.split("-").map((p) => parseInt(p, 10));
+    if (isValidCalendarDate(parts[0], parts[1], parts[2])) {
+      fwdLinks.push({
+        kind: "forwardLink",
+        from: fm.index,
+        to: fm.index + full.length,
+        dir: dir as "<" | ">",
+        date: dateStr,
+        ...(section !== undefined ? { section } : {}),
+        replaced: false,
+      });
+    }
+  }
+
   const tagFrom = TOPIC_TAG.exec(line)?.[1].length ?? -1;
   INLINE.lastIndex = scanFrom;
   let m: RegExpExecArray | null;
   while ((m = INLINE.exec(line)) !== null) {
     const from = m.index;
     const to = from + m[0].length;
+    if (fwdLinks.some((f) => from < f.to && to > f.from)) {
+      continue;
+    }
     if (m[1] !== undefined) {
       tokens.push({ kind: "arrow", from, to: from + 3, replaced: true });
       tokens.push({ kind: "assignee", from: from + 3, to, replaced: false });
@@ -198,6 +227,7 @@ export function tokenizeLine(line: string): Token[] {
     }
   }
 
+  tokens.push(...fwdLinks);
   const actionParts = getLineActionParts(line, tokens);
   if (actionParts.length > 0) {
     // Not glued to a word, and not inside a URL path or an address (`…/by:x`, `a.by:x`, `@by:x`).
@@ -253,8 +283,9 @@ export function tokenizeLine(line: string): Token[] {
         break;
       }
     }
-    tokens.sort((a, b) => a.from - b.from || a.to - b.to);
+
   }
 
+  tokens.sort((a, b) => a.from - b.from || a.to - b.to);
   return tokens;
 }

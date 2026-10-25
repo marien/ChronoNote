@@ -135,6 +135,22 @@
     forced-color-adjust: none;
   }
 
+  /* Forward link pill */
+  .cm-fwd-link {
+    background: transparent;
+    box-shadow: 0 0 0 1px CanvasText;
+    color: CanvasText;
+  }
+
+  .cm-fwd-dir,
+  .cm-fwd-sep,
+  .cm-fwd-paren {
+    color: CanvasText;
+    mask: none;
+    -webkit-mask: none;
+    background: none;
+  }
+
   .glyph-topic-editing .glyph-topic-paren {
     color: CanvasText;
   }

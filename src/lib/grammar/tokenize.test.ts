@@ -290,6 +290,57 @@ describe("tokenizeLine due and dueWord (Section 1 table)", () => {
     }
   });
 
+  describe("forward links", () => {
+    it("> and < with and without section", () => {
+      expect(tokenizeLine("link (>2026-10-26)")).toEqual([
+        { kind: "forwardLink", from: 5, to: 18, dir: ">", date: "2026-10-26", replaced: false },
+      ]);
+      expect(tokenizeLine("link (<2026-10-13)")).toEqual([
+        { kind: "forwardLink", from: 5, to: 18, dir: "<", date: "2026-10-13", replaced: false },
+      ]);
+      expect(tokenizeLine("link (>2026-10-26#Weekly Sync)")).toEqual([
+        { kind: "forwardLink", from: 5, to: 30, dir: ">", date: "2026-10-26", section: "Weekly Sync", replaced: false },
+      ]);
+      expect(tokenizeLine("link (<2026-10-13#Standup)")).toEqual([
+        { kind: "forwardLink", from: 5, to: 26, dir: "<", date: "2026-10-13", section: "Standup", replaced: false },
+      ]);
+    });
+
+    it("two links on one line", () => {
+      const line = "> task (<2026-10-20#Standup) (>2026-10-26#Weekly Sync)";
+      const tokens = tokenizeLine(line);
+      expect(tokens).toEqual([
+        { kind: "action", from: 0, to: 2, symbol: ">", replaced: true },
+        { kind: "forwardLink", from: 7, to: 28, dir: "<", date: "2026-10-20", section: "Standup", replaced: false },
+        { kind: "forwardLink", from: 29, to: 54, dir: ">", date: "2026-10-26", section: "Weekly Sync", replaced: false },
+      ]);
+    });
+
+    it("invalid date is not a forward link", () => {
+      expect(kinds("task (>2026-02-30#Section)")).toEqual(["paren"]);
+      expect(kinds("task (>2026-02-30#Weekly Sync)")).toEqual([]);
+      expect(kinds("task (>2026-02-30)")).toEqual(["paren"]);
+      expect(kinds("task (<2026-13-01)")).toEqual(["paren"]);
+    });
+
+    it("(2026-10-03) without < or > is not a forward link", () => {
+      expect(tokenizeLine("note (2026-10-03)")).toEqual([
+        { kind: "paren", from: 5, to: 17, replaced: false },
+      ]);
+    });
+
+    it("a forward link right after an action symbol is a forwardLink, never topicTag", () => {
+      expect(tokenizeLine("# (>2026-10-26)")).toEqual([
+        { kind: "action", from: 0, to: 2, symbol: "#", replaced: true },
+        { kind: "forwardLink", from: 2, to: 15, dir: ">", date: "2026-10-26", replaced: false },
+      ]);
+      expect(tokenizeLine("# (<2026-10-13#Standup)")).toEqual([
+        { kind: "action", from: 0, to: 2, symbol: "#", replaced: true },
+        { kind: "forwardLink", from: 2, to: 23, dir: "<", date: "2026-10-13", section: "Standup", replaced: false },
+      ]);
+    });
+  });
+
   it("a closing bracket or quote after the date is not part of the token", () => {
     for (const line of ["# task [by:2026-10-30]", '# task "by:2026-10-30"', "# really by:2026-10-30?!"]) {
       expect(tokenizeLine(line).find((t) => t.kind === "due")?.date).toBe("2026-10-30");

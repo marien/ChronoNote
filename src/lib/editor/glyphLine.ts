@@ -1,7 +1,9 @@
 import { ARROW_GLYPH, GLYPHS, glyphSpecForSymbol } from "../grammar/glyphs";
 import { getLineActionParts, tokenizeLine } from "../grammar/tokenize";
 import { dueStatus } from "../tokens";
-import { todayISO } from "../date";
+import { longDate, todayISO } from "../date";
+import { locale } from "../i18n";
+import { get } from "svelte/store";
 import { dueTooltip } from "../dueTooltip";
 
 /** One rendered piece of a line: `text` is what to show; `cls` (a
@@ -115,6 +117,30 @@ export function parseGlyphLine(line: string, opts?: ParseGlyphLineOpts): GlyphPa
           ],
         });
         break;
+      case "forwardLink": {
+        const dirCls = t.dir === ">" ? "cm-fwd-dir cm-fwd-dir-to" : "cm-fwd-dir cm-fwd-dir-from";
+        const loc = get(locale);
+        const formattedDate = longDate(loc, t.date!);
+        const title = t.section ? `${formattedDate} · ${t.section}` : formattedDate;
+        const subParts: GlyphPart[] = [
+          { text: `(${t.dir}`, cls: dirCls },
+          { text: t.date! },
+        ];
+        if (t.section !== undefined) {
+          subParts.push(
+            { text: "#", cls: "cm-fwd-sep" },
+            { text: t.section },
+          );
+        }
+        subParts.push({ text: ")", cls: "cm-fwd-paren" });
+        parts.push({
+          text: line.slice(t.from, t.to),
+          cls: "cm-fwd-link",
+          title,
+          parts: subParts,
+        });
+        break;
+      }
       case "due": {
         const part = actionParts.find((p) => t.from >= p.from && t.from < p.to);
         const resolved = part?.state === "v" || part?.state === ">" || part?.state === "x";
