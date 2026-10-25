@@ -284,7 +284,7 @@
         // The lines follow the real tree. The phone shows depth 2 and deeper at depth 2: those rows keep only the
         // lines that pass by them, and a depth-2 parent starts no line (its children sit at its own glyph's place).
         const cap = $isMobile ? 2 : Infinity;
-        const tree = drawerTreeGuides(group.rows.map((drow) => ({ depth: drow.depth, step: drow.item.kind === "step" })));
+        const tree = drawerTreeGuides(group.rows);
         group.rows.forEach((drow, i) => {
           const depth = Math.min(drow.depth, cap);
           out.push({
@@ -602,9 +602,6 @@
             {#if row.stub && r.expanded}
               <span class="tree-guide is-stub" aria-hidden="true" style="left: {ROW_INSET + d * TREE_INDENT + GLYPH_CENTER}px;"></span>
             {/if}
-            {#if item.kind === "step" && d > 0}
-              <span class="step-number" aria-hidden="true" style="right: calc(100% - {ROW_INSET + d * TREE_INDENT - 3}px);">{item.stepIndex}.</span>
-            {/if}
             {#if r.hasChildren}
               <!-- In a fold gutter at the row's left edge, so the tree lines run from glyph to glyph as in the editor. -->
               <button
@@ -621,6 +618,8 @@
             <div class="modal-item-main">
               <span class="{g.cls ?? ''} item-glyph">{g.char}</span>
               <span class="item-text {sym === 'v' || sym === 'x' ? 'item-completed' : ''}" title={[text, item.header].filter(Boolean).join(" · ")}>
+                <!-- After the box, like `# 1. laptop` written as lines under the action (§427). -->
+                {#if item.kind === "step"}<span class="step-number">{`${item.stepIndex}. `}</span>{/if}
                 {#each parseGlyphLine(item.line, { today: $currentDateISO, ...nodeTextRange(item) }) as part}
                   {#if part.parts}
                     <span class={part.cls ?? ""} title={part.title}>
@@ -753,14 +752,6 @@
 .tree-guide.is-end::after {
   bottom: -1px;
 }
-/* A step's number, right-aligned just before its box. */
-.step-number {
-  position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
-  color: var(--muted);
-  pointer-events: none;
-}
 .item-progress {
   flex: none;
   margin-left: auto;
@@ -770,8 +761,7 @@
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
-.modal-item.selected .item-progress,
-.modal-item.selected .step-number {
+.modal-item.selected .item-progress {
   color: var(--selected-fg);
 }
 .context-row {

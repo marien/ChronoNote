@@ -11180,3 +11180,17 @@ draw due dates, nor the Action Drawer topics and due dates, the way the note doe
   search rows and the docs. The golden token snapshot gained the topic pills' nested parts and nothing else.
 - **Tests:** also `glyphLine.test.ts`, `actionDrawerRows.independent.test.ts` (`nodeTextRange`) and
   `history-pane.spec.ts` (line geometry and unchanged line heights).
+
+## 427. Action Drawer: steps joined like sub-actions, number after the box
+
+**Status: on main, not released yet.**
+
+Marien's choice for the open §423 question (2026-10-25). A sequence can be written on one line
+(`# onboard Lee => # laptop => # accounts`) or as numbered lines under the action (`# 1. laptop`, `# 2. accounts`,
+indented); both should look the same in the Action Drawer. So a step row now gets the tree line a child row gets, and
+its number follows the box as text (`☐ 1. laptop`), like a numbered line's own text, instead of standing before the
+box. The note is unchanged. `drawerTreeGuides` no longer tells steps from lines (only the depth matters).
+
+- **Tests:** `actionDrawerRows.test.ts` (steps get tee/end like children);
+  `action-groups-drawer.independent.spec.ts` (a step row's tree line, its number after the box). Checked in the
+  browser: a one-line sequence and the same steps as `# 1.` lines render identically.

@@ -85,6 +85,13 @@ test.describe("Action Drawer Groups", () => {
     const introRow = rows.nth(5);
     await expect(introRow.locator(".step-number")).toHaveText("3.");
 
+    // §427: steps are joined by tree lines like line children, and the number follows the box
+    await expect(accountsRow.locator(".tree-guide.is-tee")).toHaveCount(1);
+    await expect(introRow.locator(".tree-guide.is-end")).toHaveCount(1);
+    const stepGlyph = await accountsRow.locator(".item-glyph").boundingBox();
+    const stepNumber = await accountsRow.locator(".step-number").boundingBox();
+    expect(stepNumber!.x).toBeGreaterThan(stepGlyph!.x + stepGlyph!.width);
+
     // Standalone row has depth 0, no chevron, and its glyph lines up with a parent's (the chevron is in the gutter)
     const standaloneRow = rows.nth(6);
     await expect(standaloneRow.locator(".group-chevron")).toHaveCount(0);

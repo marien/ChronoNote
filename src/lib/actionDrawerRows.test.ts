@@ -323,32 +323,27 @@ describe("buildDueDrawerRows", () => {
 });
 
 describe("drawerTreeGuides", () => {
-  it("joins line children like the editor: the last child ends, a sub-group passes its parent's line through", () => {
+  it("joins children like the editor: the last child ends, a sub-group passes its parent's line through", () => {
     // root / child a / grandchild / child b / step of b / next root
-    const rows = [
-      { depth: 0, step: false },
-      { depth: 1, step: false },
-      { depth: 2, step: false },
-      { depth: 1, step: false },
-      { depth: 2, step: true },
-      { depth: 0, step: false },
-    ];
+    const rows = [{ depth: 0 }, { depth: 1 }, { depth: 2 }, { depth: 1 }, { depth: 2 }, { depth: 0 }];
     expect(drawerTreeGuides(rows)).toEqual([
       { guides: [], stub: true },
       { guides: [{ level: 0, kind: "tee" }], stub: true },
       { guides: [{ level: 0, kind: "through" }, { level: 1, kind: "end" }], stub: false },
-      { guides: [{ level: 0, kind: "end" }], stub: false },
-      { guides: [], stub: false },
+      { guides: [{ level: 0, kind: "end" }], stub: true },
+      { guides: [{ level: 1, kind: "end" }], stub: false },
       { guides: [], stub: false },
     ]);
   });
 
-  it("a step between line children keeps the parent's line going", () => {
-    const rows = [
-      { depth: 0, step: false },
-      { depth: 1, step: true },
-      { depth: 1, step: false },
-    ];
-    expect(drawerTreeGuides(rows).map((g) => g.guides)).toEqual([[], [{ level: 0, kind: "through" }], [{ level: 0, kind: "end" }]]);
+  it("steps are joined like line children (§427)", () => {
+    // `# onboard Lee => # laptop => # accounts` with an indented `# intro` after it
+    const rows = [{ depth: 0 }, { depth: 1 }, { depth: 1 }, { depth: 1 }];
+    expect(drawerTreeGuides(rows).map((g) => g.guides)).toEqual([
+      [],
+      [{ level: 0, kind: "tee" }],
+      [{ level: 0, kind: "tee" }],
+      [{ level: 0, kind: "end" }],
+    ]);
   });
 });

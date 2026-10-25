@@ -124,9 +124,9 @@ existing group looks today.
 
 (Shown with "Only open" on: the resolved child `build` and step ① `laptop` are hidden and counted.)
 
-- Children (form 3/4) are nested rows under the parent with the same tree lines; steps (form 2) are rows with a step
-  number and a straight connector, so sequence and checklist read differently at a glance. A step keeps its number
-  when earlier steps are hidden.
+- Children (form 3/4) are nested rows under the parent with the same tree lines; steps (form 2) too, with their number
+  after the box (`☐ 1. laptop`), so a one-line sequence looks the same as numbered lines (`# 1. laptop`) under the
+  action (decision 10.10). A step keeps its number when earlier steps are hidden.
 - Every child and step is a full row: focusable, `Ctrl+Space` cycles *that* symbol, `Enter` jumps to its line,
   `Shift+Enter` forwards a child line. This needs part-level addressing in the drawer (line + column of the symbol),
   which the editor's "a click changes exactly the glyph clicked" already has. (First version: `Enter` on a step goes
@@ -257,3 +257,6 @@ TODAY
 8. Groups can be collapsed and expanded in the drawer (section 5.1).
 9. The source of a row: small, grey, right-aligned, only on the hovered/selected row, dropped when it does not fit
    (section 5.2).
+10. (2026-10-25) Steps in the drawer: **tree lines like children, the number after the box**. A sequence can be
+    written on one line (`=> #`) or as numbered lines (`# 1.`, `# 2.` indented under the action), and both look the
+    same in the drawer; the note keeps showing each as written (§427).

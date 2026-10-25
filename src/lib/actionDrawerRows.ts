@@ -199,25 +199,26 @@ export interface TreeGuide {
   kind: "tee" | "end" | "through";
 }
 
-/** The drawer's tree lines, drawn as in the editor: from below a parent's glyph down to its last line child, with an
- *  elbow to each line child; steps get none (they are parts of the parent's own line). `rows` in display order with
- *  their shown depth. `stub`: the row's own line starts below its glyph. */
-export function drawerTreeGuides(rows: { depth: number; step: boolean }[]): { guides: TreeGuide[]; stub: boolean }[] {
-  // Is there a line child of the depth-k node above row i further down, before that node's subtree ends.
-  const laterLineChild = (i: number, k: number): boolean => {
+/** The drawer's tree lines, drawn as in the editor: from below a parent's glyph down to its last child, with an
+ *  elbow to each child. Steps get them too (§427: a one-line sequence looks like numbered lines under the action), so
+ *  only the depth matters. `rows` in display order with their shown depth. `stub`: the row's own line starts below
+ *  its glyph. */
+export function drawerTreeGuides(rows: { depth: number }[]): { guides: TreeGuide[]; stub: boolean }[] {
+  // Is there a child of the depth-k node above row i further down, before that node's subtree ends.
+  const laterChild = (i: number, k: number): boolean => {
     for (let j = i + 1; j < rows.length && rows[j].depth > k; j++) {
-      if (rows[j].depth === k + 1 && !rows[j].step) return true;
+      if (rows[j].depth === k + 1) return true;
     }
     return false;
   };
   return rows.map((r, i) => {
     const guides: TreeGuide[] = [];
     for (let k = 0; k < r.depth; k++) {
-      const more = laterLineChild(i, k);
-      if (k === r.depth - 1 && !r.step) guides.push({ level: k, kind: more ? "tee" : "end" });
+      const more = laterChild(i, k);
+      if (k === r.depth - 1) guides.push({ level: k, kind: more ? "tee" : "end" });
       else if (more) guides.push({ level: k, kind: "through" });
     }
-    return { guides, stub: laterLineChild(i, r.depth) };
+    return { guides, stub: laterChild(i, r.depth) };
   });
 }
 

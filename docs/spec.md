@@ -595,14 +595,15 @@ reachable from the top bar, a shortcut, or the command palette:
   ISO week) / Later, soonest first, each row naming its note; the text
   filter still applies and the other keys work as in the normal view.
   **Groups (§423):** one row per action, not per line. A parent's children
-  are nested rows under it with a tree line, its steps are rows numbered from
-  1, and the parent shows how many of all its descendants with a state are
+  are nested rows under it with a tree line, its steps are rows joined the
+  same way with their number after the box (`☐ 1. laptop`, §427, so a
+  one-line `=>` sequence looks like `# 1.` lines under the action), and the parent shows how many of all its descendants with a state are
   resolved (`1/3`, display only). With "Only open" on, a group is listed when
   the parent or a descendant is open: the parent always (dimmed when resolved,
   as context), resolved descendants hidden and counted. A text match on a
   parent shows its group; on a child, the child with its ancestors. The tree
   lines run as in the note (from below the parent's glyph, an elbow into each
-  child's glyph, ending at the last child; none for steps). A chevron in a
+  child's glyph, ending at the last child; steps too). A chevron in a
   gutter at the row's left edge (click, or `Right`/`Left` while the filter is empty)
   folds the group for the session (keyed by note + parent text; a text filter
   unfolds it). `Ctrl+Space` cycles the row's own symbol; `Enter` jumps to its
