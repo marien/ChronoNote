@@ -742,6 +742,8 @@
   text-overflow: ellipsis;
   white-space: nowrap;
   min-width: 0;
+  /* Room for a pill's 1px outline (a box-shadow outside the text) at the end and edges of the text. */
+  padding: 1px 0.4ch 1px 1px;
 }
 /* The glyph never gives up width to a long text (it is not the first child when a chevron used to precede it). */
 .item-glyph {

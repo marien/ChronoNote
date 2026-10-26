@@ -577,6 +577,12 @@ textarea.modal-input.import-textarea {
 .modal-item.action-row.selected {
   background: rgba(128, 128, 128, 0.20) !important;
   color: inherit !important;
+  /* Section History's selection: the line in semibold; its count and source stay regular. */
+  font-weight: 600;
+}
+.modal-item.action-row.selected .item-progress,
+.modal-item.action-row.selected .item-breadcrumb {
+  font-weight: 400;
 }
 .modal-item.action-row.selected .item-text {
   font-weight: 600;

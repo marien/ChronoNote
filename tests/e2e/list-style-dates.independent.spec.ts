@@ -479,8 +479,11 @@ test.describe("List style for week review and Action Drawer, and date setting (S
     await expect(d).toBeVisible();
 
     const dueRadio = d.getByRole("radio", { name: /By due date/i });
+    // Review: in the app the due view is a switch (checkbox), not a radio.
+    const dueSwitch = d.getByRole("checkbox", { name: /By due date/i });
     const dueSeg = d.locator(".seg span.on, [role='tab'][aria-selected='true']").filter({ hasText: /By due date/i });
     const isDueActive =
+      (await dueSwitch.isChecked().catch(() => false)) ||
       (await dueRadio.isChecked().catch(() => false)) ||
       (await dueSeg.isVisible().catch(() => false));
     expect(isDueActive).toBe(true);
