@@ -11368,7 +11368,7 @@ Three issues Marien filed after trying 0.34.0-2:
 
 ## 435. Peek: the dock button after a lost dock, and docking on the screen it was last docked on
 
-**Status: on main, not released yet.**
+**Status: released in beta 0.34.0-4 (early channel only).**
 
 Two issues Marien filed on 0.34.0-3:
 
