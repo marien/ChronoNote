@@ -5,6 +5,7 @@
   import { sheetSwipe } from "../../actions/sheetSwipe";
   import {
     actionDrawerDueView,
+    actionDrawerFilterRequest,
     actionDrawerScopeRequest,
     actionDrawerShowOnlyOpen,
     actionSnapshot,
@@ -28,6 +29,7 @@
   import { closeOnOutsideClick } from "../../actions/closeOnOutsideClick";
   import { glyphForSymbol, parseGlyphLine } from "../../editor/glyphLine";
   import { groupHeaderLabel } from "../../ui/listFormat";
+  import { noteDateLabel, noteISODate } from "../../noteDateLabel";
   import Icon from "../../icons/Icon.svelte";
   import Segmented from "../Segmented.svelte";
   import EmptyState from "../EmptyState.svelte";
@@ -36,6 +38,8 @@
   import {
     MODAL_HEADER_ROW_HEIGHT,
     MODAL_ITEM_ROW_HEIGHT,
+    ACTION_ITEM_ROW_HEIGHT,
+    ACTION_ITEM_ROW_HEIGHT_MOBILE,
     clampIndex,
     scrollToShow,
     stackHeight,
@@ -121,6 +125,14 @@
     if (req) {
       actionDrawerScopeRequest.set(null);
       void setScope(req, true);
+    }
+  });
+
+  $effect(() => {
+    const filterReq = $actionDrawerFilterRequest;
+    if (filterReq !== null) {
+      actionDrawerFilterRequest.set(null);
+      filter = filterReq;
     }
   });
 
@@ -275,6 +287,8 @@
     | { type: "item"; key: string; drow: IndexedRow; depth: number; guides: TreeGuide[]; stub: boolean; height: number };
   type Row = RawRow & PlacedRow;
 
+  const itemHeight = $derived($isMobile ? ACTION_ITEM_ROW_HEIGHT_MOBILE : ACTION_ITEM_ROW_HEIGHT);
+
   const rows = $derived(
     withTops<RawRow>(
     ((): RawRow[] => {
@@ -303,7 +317,7 @@
             depth,
             guides: tree[i].guides.filter((g) => g.level < depth),
             stub: tree[i].stub && drow.depth < cap,
-            height: MODAL_ITEM_ROW_HEIGHT,
+            height: itemHeight,
           });
         });
       }
@@ -584,24 +598,26 @@
     {#if stickyHeader}
       <!-- Zero net height (negative margin) so the scroll extent is unchanged. -->
       <div
-        class="modal-group-header modal-group-header-sticky"
+        class="band modal-group-header modal-group-header-sticky {stickyHeader.key === 'overdue' || stickyHeader.key === 'h-overdue' ? 'overdue' : ''}"
         aria-hidden="true"
         data-testid="sticky-date-header"
+        title={noteISODate(stickyHeader.label) ?? undefined}
         style="height: {MODAL_HEADER_ROW_HEIGHT}px; margin-bottom: -{MODAL_HEADER_ROW_HEIGHT}px;"
       >
-        {groupHeaderLabel(stickyHeader.label, stickyHeader.count)}
+        <span class="band-title band-date" title={noteISODate(stickyHeader.label) ?? undefined}>{$noteDateLabel(stickyHeader.label)}</span>
+        <small>{stickyHeader.count}</small>
       </div>
     {/if}
     <div style="position: relative; height: {totalHeight}px;">
       {#each visibleRows as row (row.key)}
         {#if row.type === "header"}
           <div
-            class="modal-group-header"
-            style="position: absolute; top: {row.top}px; left: 0; right: 0; height: {row.height}px; border-top: {row.isFirst
-              ? 'none'
-              : '1px solid var(--border)'};"
+            class="band modal-group-header {row.key === 'overdue' || row.key === 'h-overdue' ? 'overdue' : ''}"
+            title={noteISODate(row.label) ?? undefined}
+            style="position: absolute; top: {row.top}px; left: 0; right: 0; height: {row.height}px;"
           >
-            {groupHeaderLabel(row.label, row.count)}
+            <span class="band-title band-date" title={noteISODate(row.label) ?? undefined}>{$noteDateLabel(row.label)}</span>
+            <small>{row.count}</small>
           </div>
         {:else}
           {@const r = row.drow}
@@ -617,7 +633,7 @@
             id="action-drawer-item-{idx}"
             aria-selected={idx === selectedIndex}
             tabindex="0"
-            style="position: absolute; top: {row.top}px; left: 0; right: 0; height: {row.height}px; padding-left: {ROW_INSET + d * TREE_INDENT}px;"
+            style="position: absolute; top: {row.top}px; left: 6px; right: 6px; height: {row.height}px; padding-left: {ROW_INSET + d * TREE_INDENT}px;"
             onclick={() => controller.jumpToFileLine(item, docked ? { keepModal: true } : undefined)}
             onmouseenter={() => (selectedIndex = idx)}
             onkeydown={(e) => e.key === "Enter" && controller.jumpToFileLine(item, docked ? { keepModal: true } : undefined)}
@@ -671,7 +687,9 @@
               {/if}
             </div>
             {#if $actionDrawerDueView}
-              <span class="item-breadcrumb">{item.filename.replace(/\.txt$/, "")}{item.header ? ` · ${item.header}` : ""}</span>
+              <span class="item-breadcrumb" title={noteISODate(item.filename) ?? undefined}>
+                {$noteDateLabel(item.filename)}{item.header ? ` · ${item.header}` : ""}
+              </span>
             {:else if item.header}
               <span class="item-breadcrumb">{item.header}</span>
             {/if}
@@ -710,9 +728,6 @@
 {/if}
 
 <style>
-.modal-group-header {
-  font-family: var(--font-mono);
-}
 .modal-item {
   font-family: var(--font-mono);
   font-size: 12px;

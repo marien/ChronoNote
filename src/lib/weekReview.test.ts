@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   buildWeekReview,
+  countEarlierWeeksActionsInNote,
   defaultWeekForDate,
   formatWeekRange,
   isoYearAndWeek,
@@ -280,6 +281,65 @@ describe("weekReview pure model", () => {
       expect(model.days[0].sections[0].openItems).toHaveLength(2);
       expect(model.days[0].sections[1].title).toBe("Weekly Sync");
       expect(model.days[0].sections[1].openItems).toHaveLength(1);
+    });
+  });
+  describe("earlier-weeks open and overdue count (§433)", () => {
+    const today = "2026-10-28";
+
+    it("counts open own actions and overdue actions in a single note", () => {
+      const noteContent = [
+        "# regular open action",
+        "# overdue action by:2026-10-25",
+        "# future due action by:2026-10-30",
+        "# today due action by:2026-10-28",
+        "v completed action by:2026-10-20",
+        "=> @alice do something",
+        "# forwarded action (>2026-10-29#sec)",
+      ].join("\n");
+
+      const res = countEarlierWeeksActionsInNote(noteContent, today);
+      // Regular (1) + overdue (1) + future (1) + today (1) = 4 open own actions
+      expect(res.openActions).toBe(4);
+      // Only 2026-10-25 < 2026-10-28
+      expect(res.overdue).toBe(1);
+    });
+
+    it("aggregates earlier weeks open actions and overdue count in buildWeekReview", () => {
+      const notes = [
+        // Earlier week (Week 42)
+        {
+          filename: "2026-10-14.txt",
+          content: [
+            "# overdue earlier 1 by:2026-10-20",
+            "# overdue earlier 2 by:2026-10-22",
+            "# not overdue earlier by:2026-10-31",
+          ].join("\n"),
+        },
+        // Another earlier week (Week 43)
+        {
+          filename: "2026-10-21.txt",
+          content: [
+            "# open action without due",
+            "v done action",
+          ].join("\n"),
+        },
+        // Current week (Week 44: 2026-10-26 to 2026-11-01)
+        {
+          filename: "2026-10-27.txt",
+          content: [
+            "# current week action by:2026-10-25",
+          ].join("\n"),
+        },
+      ];
+
+      const model = buildWeekReview(notes, 2026, 44, today);
+      // Earlier notes (10-14 and 10-21): 3 + 1 = 4 open actions
+      expect(model.earlierWeeksOpenActions).toBe(4);
+      // Earlier overdue: 2 (from 10-14)
+      expect(model.earlierWeeksOverdue).toBe(2);
+      // Current week open action does not count toward earlier weeks
+      expect(model.counts.openActions).toBe(1);
+      expect(model.counts.overdue).toBe(1);
     });
   });
 });

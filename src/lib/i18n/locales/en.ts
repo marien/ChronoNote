@@ -32,9 +32,9 @@ export const en = {
   "settings.appearance.statusBar.label": () => "Show status bar",
   "settings.appearance.statusBar.hint": () =>
     "Display line, column, word count, and action metrics at the bottom",
-  "settings.appearance.tabLabels.label": () => "Tab labels",
+  "settings.appearance.tabLabels.label": () => "Dates in tabs and lists",
   "settings.appearance.tabLabels.hint": () =>
-    "How dated tabs are named; the full date is always in the tooltip.",
+    "How a note's date is shown on tabs and in Section History, Actions, Search and the week review; the full date is always in the tooltip.",
   "settings.appearance.tabLabels.iso": () => "ISO date",
   "settings.appearance.tabLabels.friendly": () => "Friendly",
   "settings.editor.sectionLabel": () => "Editor",
@@ -966,8 +966,8 @@ export const en = {
   "weekReview.count.overdue": ({ count }) => `${count} overdue`,
   "weekReview.showDone.label": () => "Show done",
   "weekReview.showDone.title": () => "Show completed and cancelled items",
-  "weekReview.earlierWeeks": ({ count }) => `${count} still open from earlier weeks`,
-  "weekReview.earlierWeeksSingle": ({ count }) => `${count} still open from earlier weeks`,
+  "weekReview.earlierWeeks": ({ count }) => `${count} open from earlier weeks`,
+  "weekReview.earlierWeeksSingle": ({ count }) => `${count} open from earlier weeks`,
   "weekReview.allDone": () => "all done",
   "weekReview.sectionAllDone": ({ section }) => `${section}: all done`,
   "weekReview.openWeek": ({ week }) => `Open week ${week} review`,

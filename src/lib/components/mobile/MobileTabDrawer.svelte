@@ -9,6 +9,7 @@
   import { sheetSwipe } from "../../actions/sheetSwipe";
   import { t } from "../../i18n";
   import { countActions } from "../../tokens";
+  import { noteDateLabel } from "../../noteDateLabel";
 
   // Same order as the desktop tab bar: dated notes by date, then scratchpads.
   const sortedTabs = $derived(controller.sortedTabsForDisplay($tabs));
@@ -93,7 +94,7 @@
           <div class="drawer-tab-icon">
             <Icon name={tab.isScratchpad ? "tab-scratch" : "tab-daily"} size={16} />
           </div>
-          <span class="drawer-tab-name">{tabLabel(tab)}</span>
+          <span class="drawer-tab-name" title={!tab.isScratchpad ? tab.filename.replace(/\.txt$/, "") : undefined}>{$noteDateLabel(tab.filename)}</span>
           {#if openCount > 0}
             <span class="drawer-tab-open-count" title={$t("statusBar.openCount", { count: openCount })}
               >☐ {openCount}</span

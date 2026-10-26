@@ -30,9 +30,9 @@ export const it = {
   "settings.appearance.statusBar.label": () => "Mostra barra di stato",
   "settings.appearance.statusBar.hint": () =>
     "Mostra riga, colonna, conteggio parole e statistiche delle azioni in basso",
-  "settings.appearance.tabLabels.label": () => "Etichette delle schede",
+  "settings.appearance.tabLabels.label": () => "Date nelle schede e negli elenchi",
   "settings.appearance.tabLabels.hint": () =>
-    "Come si chiamano le schede con data; la data completa è sempre nel suggerimento.",
+    "Come viene mostrata la data di una nota nelle schede e in Cronologia sezione, Azioni, Cerca e nel riepilogo settimanale; la data completa è sempre nella descrizione comando.",
   "settings.appearance.tabLabels.iso": () => "Data ISO",
   "settings.appearance.tabLabels.friendly": () => "Leggibile",
   "settings.editor.sectionLabel": () => "Editor",
@@ -991,8 +991,8 @@ export const it = {
   "weekReview.count.overdue": ({ count }) => `${count} scadute`,
   "weekReview.showDone.label": () => "Mostra completati",
   "weekReview.showDone.title": () => "Mostra elementi completati e annullati",
-  "weekReview.earlierWeeks": ({ count }) => `${count} ancora aperti dalle settimane precedenti`,
-  "weekReview.earlierWeeksSingle": ({ count }) => `${count} ancora aperto dalle settimane precedenti`,
+  "weekReview.earlierWeeks": ({ count }) => `${count} aperte dalle settimane precedenti`,
+  "weekReview.earlierWeeksSingle": ({ count }) => `${count} aperta dalle settimane precedenti`,
   "weekReview.allDone": () => "tutto completato",
   "weekReview.sectionAllDone": ({ section }) => `${section}: tutto completato`,
   "weekReview.openWeek": ({ week }) => `Apri riepilogo settimana ${week}`,

@@ -9,10 +9,12 @@
     isZenMode,
     mobileTabDrawerOpen,
     statusCounts,
+    tabLabelStyle,
     tabs,
   } from "../../controller";
   import Icon from "../../icons/Icon.svelte";
   import CloudStatusButton from "../CloudStatusButton.svelte";
+  import { noteDateLabel } from "../../noteDateLabel";
   import { parseISODateLocal, todayISO } from "../../date";
   import { locale, t } from "../../i18n";
   import { adjacentNoteDate, relativeDay } from "../../phoneNav";
@@ -57,15 +59,16 @@
   const formattedDate = $derived(formatFormattedDate(currentDate, $locale));
 
   const firstLine = $derived.by(() => {
-    if (rel === "today") return $t("phoneNav.today");
-    if (rel === "yesterday") return $t("phoneNav.yesterday");
-    if (rel === "tomorrow") return $t("phoneNav.tomorrow");
-    return formattedDate;
+    return $noteDateLabel(currentDate);
+
+
+
   });
 
   const secondLine = $derived.by(() => {
     const openCount = $statusCounts.open;
     const countText = openCount > 0 ? $t("phoneNav.openCount", { count: openCount }) : "";
+    if ($tabLabelStyle === "iso") return openCount > 0 ? countText : "";
     if (rel !== null) {
       return openCount > 0 ? `${formattedDate} · ${countText}` : formattedDate;
     }
@@ -159,7 +162,7 @@
     class="mobile-title-btn mobile-active-tab"
     data-datepicker-trigger
     data-date={activeTab && !activeTab.isScratchpad ? activeTab.filename.replace(/\.txt$/, "") : undefined}
-    title={$t("topBar.label.date")}
+    title={activeTab && !activeTab.isScratchpad ? activeTab.filename.replace(/\.txt$/, "") : $t("topBar.label.date")}
     onclick={controller.openDatePicker}
   >
     {#if activeTab?.isScratchpad}

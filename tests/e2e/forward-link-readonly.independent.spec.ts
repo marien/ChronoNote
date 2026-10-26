@@ -7,7 +7,7 @@ import {
 } from "./helpers";
 
 test.describe("forward links in readonly views (Action Drawer and Section History) (Task S428-T / Section D)", () => {
-  test("Action Drawer shows back link pill with cm-fwd-dir-from and preserves 36px row height", async ({
+  test("Action Drawer shows back link pill with cm-fwd-dir-from and preserves 21px row height", async ({
     page,
   }) => {
     const noteContent = "# call Dana (<2026-10-20#Standup)";
@@ -33,7 +33,7 @@ test.describe("forward links in readonly views (Action Drawer and Section Histor
 
     const box = await row.boundingBox();
     expect(box).not.toBeNull();
-    expect(box!.height).toBeCloseTo(36, 0);
+    expect(box!.height).toBeCloseTo(21, 0);
   });
 
   test("Section History occurrence body shows forward link pill with cm-fwd-dir-to", async ({

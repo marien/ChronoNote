@@ -65,7 +65,7 @@
   import { countActions } from "../tokens";
   import { locale, t } from "../i18n";
   import { focusTrap } from "../actions/focusTrap";
-  import { datedTabLabel } from "../tabLabel";
+  import { formatNoteDate } from "../noteDateLabel";
   import type { TabLabelStyle } from "../generated/tauri-types";
   import { openExportModal, printNote, printTitle } from "../exportNotes";
   import { openVersions } from "../versions";
@@ -164,7 +164,7 @@
    * `tabDateClass` below, so the template re-renders when either changes. The tab's `title`
    * is always the plain ISO name (`tabLabel`). */
   const stripLabel = (t: NoteTab, style: TabLabelStyle, today: string): string =>
-    t.isScratchpad ? t.filename : datedTabLabel(tabLabel(t), style, today, tabLabelWords, (d) => dayFormat.format(d));
+    formatNoteDate(t.filename, style, today, tabLabelWords, (d) => dayFormat.format(d));
 
   /** #68/#72: a daily tab's date relative to today — past/today/future get
    * a distinct look (§68's own CSS) so today's tab, the one most work

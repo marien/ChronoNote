@@ -130,7 +130,7 @@ test.describe("Week review (feature review A3 / §432)", () => {
 
     const earlierBtn = card.locator(".earlier-weeks-btn");
     await expect(earlierBtn).toBeVisible();
-    await expect(earlierBtn).toContainText("still open from earlier weeks");
+    await expect(earlierBtn).toContainText("open from earlier weeks");
 
     await earlierBtn.click();
     const actionsDrawer = modalCard(page, MODAL_LABELS.actions);

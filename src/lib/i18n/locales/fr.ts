@@ -31,9 +31,9 @@ export const fr = {
   "settings.appearance.statusBar.label": () => "Afficher la barre d'état",
   "settings.appearance.statusBar.hint": () =>
     "Afficher la ligne, la colonne, le nombre de mots et les métriques d'action en bas",
-  "settings.appearance.tabLabels.label": () => "Libellés des onglets",
+  "settings.appearance.tabLabels.label": () => "Dates dans les onglets et les listes",
   "settings.appearance.tabLabels.hint": () =>
-    "Nom des onglets datés ; la date complète est toujours dans l’infobulle.",
+    "Comment la date d'une note est affichée sur les onglets et dans Historique de section, Actions, Recherche et la revue de la semaine ; la date complète figure toujours dans l'infobulle.",
   "settings.appearance.tabLabels.iso": () => "Date ISO",
   "settings.appearance.tabLabels.friendly": () => "Lisible",
   "settings.editor.sectionLabel": () => "Éditeur",
@@ -996,8 +996,8 @@ export const fr = {
   "weekReview.count.overdue": ({ count }) => `${count} en retard`,
   "weekReview.showDone.label": () => "Afficher terminés",
   "weekReview.showDone.title": () => "Afficher les éléments terminés et annulés",
-  "weekReview.earlierWeeks": ({ count }) => `${count} encore ouverts des semaines précédentes`,
-  "weekReview.earlierWeeksSingle": ({ count }) => `${count} encore ouvert des semaines précédentes`,
+  "weekReview.earlierWeeks": ({ count }) => `${count} ouverts des semaines précédentes`,
+  "weekReview.earlierWeeksSingle": ({ count }) => `${count} ouvert des semaines précédentes`,
   "weekReview.allDone": () => "tout est terminé",
   "weekReview.sectionAllDone": ({ section }) => `${section} : tout est terminé`,
   "weekReview.openWeek": ({ week }) => `Ouvrir la revue de la semaine ${week}`,

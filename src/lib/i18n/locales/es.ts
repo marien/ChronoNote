@@ -30,9 +30,9 @@ export const es = {
   "settings.appearance.statusBar.label": () => "Mostrar barra de estado",
   "settings.appearance.statusBar.hint": () =>
     "Mostrar línea, columna, recuento de palabras y métricas de acciones en la parte inferior",
-  "settings.appearance.tabLabels.label": () => "Etiquetas de pestañas",
+  "settings.appearance.tabLabels.label": () => "Fechas en pestañas y listas",
   "settings.appearance.tabLabels.hint": () =>
-    "Cómo se llaman las pestañas con fecha; la fecha completa siempre está en la información emergente.",
+    "Cómo se muestra la fecha de una nota en las pestañas y en Historial de sección, Acciones, Buscar y la revisión semanal; la fecha completa siempre está en la información sobre herramientas.",
   "settings.appearance.tabLabels.iso": () => "Fecha ISO",
   "settings.appearance.tabLabels.friendly": () => "Legible",
   "settings.editor.sectionLabel": () => "Editor",
@@ -989,8 +989,8 @@ export const es = {
   "weekReview.count.overdue": ({ count }) => `${count} vencidas`,
   "weekReview.showDone.label": () => "Mostrar completadas",
   "weekReview.showDone.title": () => "Mostrar elementos completados y cancelados",
-  "weekReview.earlierWeeks": ({ count }) => `${count} aún abiertas de semanas anteriores`,
-  "weekReview.earlierWeeksSingle": ({ count }) => `${count} aún abierta de semanas anteriores`,
+  "weekReview.earlierWeeks": ({ count }) => `${count} abiertas de semanas anteriores`,
+  "weekReview.earlierWeeksSingle": ({ count }) => `${count} abierta de semanas anteriores`,
   "weekReview.allDone": () => "todo completado",
   "weekReview.sectionAllDone": ({ section }) => `${section}: todo completado`,
   "weekReview.openWeek": ({ week }) => `Abrir revisión de la semana ${week}`,

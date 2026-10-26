@@ -280,7 +280,7 @@ test.describe("Action Drawer Search Filters", () => {
     await expect(d).not.toContainText("pay invoice");
   });
 
-  test("9. rows stay 36px tall with chips present", async ({
+  test("9. rows stay 21px tall with chips present", async ({
     page,
   }) => {
     const d = await setupDrawer(page);
@@ -291,7 +291,7 @@ test.describe("Action Drawer Search Filters", () => {
     // Chips are present
     await expect(chips(page)).toHaveCount(1);
 
-    // Rows stay 36px tall
+    // Rows stay 21px tall
     const optionRows = rows(page);
     const count = await optionRows.count();
     expect(count).toBeGreaterThan(0);
@@ -301,7 +301,7 @@ test.describe("Action Drawer Search Filters", () => {
       await expect(row).toBeVisible();
       const box = await row.boundingBox();
       expect(box).not.toBeNull();
-      expect(Math.round(box!.height)).toBe(36);
+      expect(Math.round(box!.height)).toBe(21);
     }
   });
 });

@@ -1,3 +1,4 @@
+
 /** Pure model for Week Review (feature review A3 / §432).
  * From notes and an ISO week, builds the days of that week with their sections,
  * open items, done items, and counts. Pure and unit-tested. */
@@ -20,6 +21,7 @@ import {
   weekReviewWeek,
   weekReviewYear,
   actionDrawerScopeRequest,
+  actionDrawerFilterRequest,
   actionDrawerShowOnlyOpen,
   actionDrawerDueView,
 } from "./stores";
@@ -79,6 +81,7 @@ export interface WeekReviewModel {
   days: WeekReviewDay[];
   counts: WeekReviewCounts;
   earlierWeeksOpenActions: number;
+  earlierWeeksOverdue: number;
 }
 
 /** ISO year and week number for a YYYY-MM-DD date.
@@ -198,17 +201,38 @@ function parseSections(lines: string[]): RawSection[] {
 }
 
 /** Count open own actions in a single dated note content. */
-export function countOpenOwnActionsInNote(content: string): number {
+export interface EarlierWeeksActionsCount {
+  openActions: number;
+  overdue: number;
+}
+
+/** Count open own actions and overdue open own actions in a single dated note content (§433).
+ * M = open own actions in earlier dated notes whose by: date is before today. */
+export function countEarlierWeeksActionsInNote(
+  content: string,
+  todayISO: string,
+): EarlierWeeksActionsCount {
   const lines = content.split("\n");
   const nodes = flattenActionTree(actionTree(lines));
-  let count = 0;
+  let openActions = 0;
+  let overdue = 0;
   for (const node of nodes) {
     if (node.delegated) continue;
     if (node.state !== "#") continue;
-    if (isLineForwarded(lines[node.lineIdx])) continue;
-    count++;
+    const line = lines[node.lineIdx];
+    if (isLineForwarded(line)) continue;
+    openActions++;
+    const dueDate = ownDueDateForPart(line, node.from, node.to);
+    if (dueDate !== null && dueDate < todayISO) {
+      overdue++;
+    }
   }
-  return count;
+  return { openActions, overdue };
+}
+
+/** Count open own actions in a single dated note content. */
+export function countOpenOwnActionsInNote(content: string): number {
+  return countEarlierWeeksActionsInNote(content, "").openActions;
 }
 
 /** Parse items in one section. */
@@ -401,12 +425,15 @@ export function buildWeekReview(
   // Map notes by date
   const noteByDate = new Map<string, { filename: string; content: string }>();
   let earlierWeeksOpenActions = 0;
+  let earlierWeeksOverdue = 0;
 
   for (const n of notes) {
     const d = dateFromNoteFilename(n.filename);
     if (!d) continue; // ignore scratchpads and undated files
     if (d < mondayISO) {
-      earlierWeeksOpenActions += countOpenOwnActionsInNote(n.content);
+      const earlierCounts = countEarlierWeeksActionsInNote(n.content, todayISO);
+      earlierWeeksOpenActions += earlierCounts.openActions;
+      earlierWeeksOverdue += earlierCounts.overdue;
     } else if (daysInWeekSet.has(d)) {
       noteByDate.set(d, n);
     }
@@ -480,6 +507,7 @@ export function buildWeekReview(
     days,
     counts: totalCounts,
     earlierWeeksOpenActions,
+    earlierWeeksOverdue,
   };
 }
 
@@ -532,5 +560,24 @@ export function openActionDrawerAllFiles() {
   actionDrawerScopeRequest.set("all");
   actionDrawerShowOnlyOpen.set(true);
   actionDrawerDueView.set(false);
+  openActionDrawer();
+}
+
+
+/** Open the Action Drawer on All Files, showing only open items before the specified date (§433). */
+export function openActionDrawerEarlierWeeks(sundayBeforeISO: string) {
+  actionDrawerScopeRequest.set("all");
+  actionDrawerShowOnlyOpen.set(true);
+  actionDrawerDueView.set(false);
+  actionDrawerFilterRequest.set(`before:${sundayBeforeISO} is:open`);
+  openActionDrawer();
+}
+
+/** Open the Action Drawer in Due View, with the filter before the specified date (§433). */
+export function openActionDrawerEarlierOverdue(sundayBeforeISO: string) {
+  actionDrawerScopeRequest.set("all");
+  actionDrawerShowOnlyOpen.set(true);
+  actionDrawerDueView.set(true);
+  actionDrawerFilterRequest.set(`before:${sundayBeforeISO} is:open`);
   openActionDrawer();
 }

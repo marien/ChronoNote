@@ -24,6 +24,7 @@
   import type { HistoryDestination, SectionOccurrence } from "../../types";
   import { clampIndex, wrapIndex } from "./virtualList";
   import { isMobile, editorApi } from "../../stores";
+  import { noteDateLabel } from "../../noteDateLabel";
 
   interface Props {
     docked?: boolean;
@@ -728,7 +729,7 @@
           onclick={() => selectAndReveal(p.index)}
           ondblclick={() => controller.jumpToHistoryLine(occ)}
         >
-          <span class="history-occ-date">{occ.date}</span>
+          <span class="history-occ-date" title={occ.date}>{$noteDateLabel(occ.date)}</span>
           {#if heat}<span class="occ-dot has-{heat}" aria-hidden="true"></span>{/if}
         </button>
       {/each}
@@ -760,7 +761,7 @@
               }}
               ondblclick={() => controller.jumpToHistoryLine(occ)}
             >
-              <span class="history-occ-date">{occ.date}</span>
+              <span class="history-occ-date" title={occ.date}>{$noteDateLabel(occ.date)}</span>
               {#if heat}<span class="occ-dot has-{heat}" aria-hidden="true"></span>{/if}
             </button>
           {/each}
@@ -778,7 +779,7 @@
           onclick={() => selectAndReveal(p.index)}
           ondblclick={() => controller.jumpToHistoryLine(occ)}
         >
-          <span class="history-occ-date">{occ.date}</span>
+          <span class="history-occ-date" title={occ.date}>{$noteDateLabel(occ.date)}</span>
           {#if heat}<span class="occ-dot has-{heat}" aria-hidden="true"></span>{/if}
         </button>
       {/each}

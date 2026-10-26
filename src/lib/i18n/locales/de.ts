@@ -34,9 +34,9 @@ export const de = {
   "settings.appearance.statusBar.label": () => "Statusleiste anzeigen",
   "settings.appearance.statusBar.hint": () =>
     "Zeile, Spalte, Wortanzahl und Aktionsstatistiken unten anzeigen",
-  "settings.appearance.tabLabels.label": () => "Tab-Beschriftung",
+  "settings.appearance.tabLabels.label": () => "Datums in Tabs und Listen",
   "settings.appearance.tabLabels.hint": () =>
-    "Wie Tabs mit Datum heißen; das volle Datum steht immer im Tooltip.",
+    "Wie das Datum einer Notiz auf Tabs und in Abschnittsverlauf, Aktionen, Suche und im Wochenrückblick angezeigt wird; das vollständige Datum steht immer im Tooltip.",
   "settings.appearance.tabLabels.iso": () => "ISO-Datum",
   "settings.appearance.tabLabels.friendly": () => "Lesbar",
   "settings.editor.sectionLabel": () => "Editor",
@@ -980,8 +980,8 @@ export const de = {
   "weekReview.count.overdue": ({ count }) => `${count} überfällig`,
   "weekReview.showDone.label": () => "Erledigte anzeigen",
   "weekReview.showDone.title": () => "Erledigte und verworfene Punkte anzeigen",
-  "weekReview.earlierWeeks": ({ count }) => `${count} noch offen aus früheren Wochen`,
-  "weekReview.earlierWeeksSingle": ({ count }) => `${count} noch offen aus früheren Wochen`,
+  "weekReview.earlierWeeks": ({ count }) => `${count} offen aus früheren Wochen`,
+  "weekReview.earlierWeeksSingle": ({ count }) => `${count} offen aus früheren Wochen`,
   "weekReview.allDone": () => "alles erledigt",
   "weekReview.sectionAllDone": ({ section }) => `${section}: alles erledigt`,
   "weekReview.openWeek": ({ week }) => `Wochenrückblick für Woche ${week} öffnen`,
