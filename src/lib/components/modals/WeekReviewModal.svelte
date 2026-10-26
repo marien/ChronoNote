@@ -20,6 +20,7 @@
     isoYearAndWeek,
     type WeekReviewItem,
   } from "../../weekReview";
+  import { noteDateLabel } from "../../noteDateLabel";
   import { addDaysISO, isoWeekToMonday, todayISO, parseISODateLocal } from "../../date";
   import { toggleOpenClosed } from "../../tokens";
   import { writeTabContent, refreshAllNotesCache } from "../../persistence";
@@ -33,6 +34,9 @@
     withTops,
     type PlacedRow,
     MODAL_ITEM_ROW_HEIGHT,
+    MODAL_HEADER_ROW_HEIGHT,
+    ACTION_ITEM_ROW_HEIGHT,
+    ACTION_ITEM_ROW_HEIGHT_MOBILE,
   } from "./virtualList";
   import { t, locale } from "../../i18n";
   import Icon from "../../icons/Icon.svelte";
@@ -108,6 +112,10 @@
     buildWeekReview(noteList, $weekReviewYear, $weekReviewWeek, $currentDateISO),
   );
 
+  const sundayBeforeShownWeek = $derived(
+    addDaysISO(isoWeekToMonday($weekReviewYear, $weekReviewWeek), -1),
+  );
+
   const prevWeekNumber = $derived.by(() => {
     const mon = isoWeekToMonday($weekReviewYear, $weekReviewWeek);
     return isoYearAndWeek(addDaysISO(mon, -7)).week;
@@ -134,14 +142,6 @@
     selectedIndex = 0;
   }
 
-  function formatDayHeader(iso: string, loc: string): string {
-    const d = parseISODateLocal(iso);
-    return new Intl.DateTimeFormat(loc, {
-      weekday: "long",
-      day: "numeric",
-      month: "short",
-    }).format(d);
-  }
 
   function glyphFor(item: WeekReviewItem): { char: string; cls?: string } {
     if (item.itemKind === "decision") {
@@ -197,7 +197,10 @@
         type: "dayHeader";
         key: string;
         label: string;
+        date: string;
         filename: string;
+        openCount: number;
+        overdueCount: number;
         height: number;
       }
     | {
@@ -206,14 +209,8 @@
         label: string;
         filename: string;
         lineIdx: number;
-        height: number;
-      }
-    | {
-        type: "allDone";
-        key: string;
-        label: string;
-        filename: string;
-        lineIdx: number;
+        quiet: boolean;
+        showAllDone: boolean;
         height: number;
       }
     | {
@@ -229,6 +226,8 @@
 
   type Row = RawRow & PlacedRow;
 
+  const itemHeight = $derived($isMobile ? ACTION_ITEM_ROW_HEIGHT_MOBILE : ACTION_ITEM_ROW_HEIGHT);
+
   const builtRows = $derived.by(() => {
     const rawOut: RawRow[] = [];
     const flatOut: WeekReviewItem[] = [];
@@ -237,22 +236,13 @@
       rawOut.push({
         type: "dayHeader",
         key: `day-${day.date}`,
-        label: formatDayHeader(day.date, $locale),
+        label: day.date,
+        date: day.date,
         filename: day.filename,
-        height: MODAL_ITEM_ROW_HEIGHT,
+        openCount: day.counts.openActions + day.counts.openTopics,
+        overdueCount: day.counts.overdue,
+        height: MODAL_HEADER_ROW_HEIGHT,
       });
-
-      if (day.sections.length === 0) {
-        rawOut.push({
-          type: "allDone",
-          key: `alldone-${day.date}`,
-          label: $t("weekReview.allDone"),
-          filename: day.filename,
-          lineIdx: 0,
-          height: MODAL_ITEM_ROW_HEIGHT,
-        });
-        continue;
-      }
 
       for (let secIdx = 0; secIdx < day.sections.length; secIdx++) {
         const sec = day.sections[secIdx];
@@ -270,45 +260,36 @@
             })()
           : sec.openItems;
 
-        if (itemsInSection.length === 0) {
+        const isAllDone = sec.openItems.length === 0;
+
+        if (sec.title) {
           rawOut.push({
-            type: "allDone",
-            key: `alldone-${day.date}-${secIdx}`,
-            label: sec.title
-              ? $t("weekReview.sectionAllDone", { section: sec.title })
-              : $t("weekReview.allDone"),
+            type: "sectionHeader",
+            key: `sec-${day.date}-${secIdx}`,
+            label: sec.title,
             filename: day.filename,
             lineIdx: sec.lineRange.from,
-            height: MODAL_ITEM_ROW_HEIGHT,
+            quiet: isAllDone,
+            showAllDone: isAllDone && (!$weekReviewShowDone || itemsInSection.length === 0),
+            height: MODAL_HEADER_ROW_HEIGHT,
           });
-        } else {
-          if (sec.title) {
-            rawOut.push({
-              type: "sectionHeader",
-              key: `sec-${day.date}-${secIdx}`,
-              label: sec.title,
-              filename: day.filename,
-              lineIdx: sec.lineRange.from,
-              height: MODAL_ITEM_ROW_HEIGHT,
-            });
-          }
+        }
 
-          const tree = drawerTreeGuides(itemsInSection);
-          for (let i = 0; i < itemsInSection.length; i++) {
-            const it = itemsInSection[i];
-            const flatIdx = flatOut.length;
-            flatOut.push(it);
-            rawOut.push({
-              type: "item",
-              key: `item-${it.id}`,
-              item: it,
-              flatIndex: flatIdx,
-              depth: it.depth,
-              guides: tree[i].guides,
-              stub: tree[i].stub,
-              height: MODAL_ITEM_ROW_HEIGHT,
-            });
-          }
+        const tree = drawerTreeGuides(itemsInSection);
+        for (let i = 0; i < itemsInSection.length; i++) {
+          const it = itemsInSection[i];
+          const flatIdx = flatOut.length;
+          flatOut.push(it);
+          rawOut.push({
+            type: "item",
+            key: `item-${it.id}`,
+            item: it,
+            flatIndex: flatIdx,
+            depth: it.depth,
+            guides: tree[i].guides,
+            stub: tree[i].stub,
+            height: itemHeight,
+          });
         }
       }
     }
@@ -326,6 +307,17 @@
   $effect.pre(() => {
     const clamped = clampIndex(selectedIndex, flatList.length);
     if (clamped !== selectedIndex) selectedIndex = clamped;
+  });
+
+  type DayHeaderRow = Row & { type: "dayHeader" };
+  const dayHeaderRows = $derived(builtRows.rows.filter((r): r is DayHeaderRow => r.type === "dayHeader"));
+  const stickyDayHeader = $derived.by((): DayHeaderRow | null => {
+    let current: DayHeaderRow | null = null;
+    for (const h of dayHeaderRows) {
+      if (h.top <= scrollTop) current = h;
+      else break;
+    }
+    return current;
   });
 
   const visibleRows = $derived.by(() => {
@@ -482,20 +474,33 @@
   </div>
 
   {#if reviewModel.earlierWeeksOpenActions > 0}
-    <div class="earlier-weeks-bar">
+    <!-- svelte-ignore a11y_click_events_have_key_events -->
+    <div
+      class="earlier earlier-weeks-bar"
+      role="presentation"
+      onclick={(e) => {
+        if ((e.target as HTMLElement)?.closest('.earlier-overdue-btn')) return;
+        controller.openActionDrawerEarlierWeeks(sundayBeforeShownWeek);
+      }}
+    >
       <button
         type="button"
-        class="earlier-weeks-btn"
-        onclick={controller.openActionDrawerAllFiles}
-        title={$t("weekReview.earlierWeeks", { count: reviewModel.earlierWeeksOpenActions })}
+        class="earlier-link earlier-weeks earlier-weeks-btn"
+        onclick={() => controller.openActionDrawerEarlierWeeks(sundayBeforeShownWeek)}
+        title={`${$t("actionDrawer.modal.ariaLabel")}, ${$t("actionDrawer.scope.allFiles.label")}: before:${sundayBeforeShownWeek} is:open`}
       >
-        <Icon name="actions" size={12} />
-        <span>
-          {reviewModel.earlierWeeksOpenActions === 1
-            ? $t("weekReview.earlierWeeksSingle", { count: 1 })
-            : $t("weekReview.earlierWeeks", { count: reviewModel.earlierWeeksOpenActions })}
-        </span>
-      </button>
+        <u>{reviewModel.earlierWeeksOpenActions === 1
+          ? $t("weekReview.earlierWeeksSingle", { count: 1 })
+          : $t("weekReview.earlierWeeks", { count: reviewModel.earlierWeeksOpenActions })}</u>
+      </button>{#if reviewModel.earlierWeeksOverdue > 0}{", "}<button
+          type="button"
+          class="earlier-link earlier-overdue-btn"
+          onclick={() => controller.openActionDrawerEarlierOverdue(sundayBeforeShownWeek)}
+          title={`${$t("actionDrawer.modal.ariaLabel")}, ${$t("actionDrawer.dueView.label")}: before:${sundayBeforeShownWeek} is:open`}
+        >
+          <u class="overtxt">{$t("weekReview.count.overdue", { count: reviewModel.earlierWeeksOverdue })}</u>
+        </button>
+      {/if}
     </div>
   {/if}
 
@@ -521,8 +526,9 @@
           {#if row.type === "dayHeader"}
             <!-- svelte-ignore a11y_click_events_have_key_events -->
             <div
-              class="modal-group-header day-header"
+              class="band modal-group-header day-header"
               role="presentation"
+              title={row.date}
               style="position: absolute; top: {row.top}px; left: 0; right: 0; height: {row.height}px;"
               onclick={() =>
                 controller.jumpToFileLine(
@@ -530,12 +536,20 @@
                   docked ? { keepModal: true } : undefined,
                 )}
             >
-              <span class="day-header-title">{row.label}</span>
+              <span class="band-title d" title={row.date}>{$noteDateLabel(row.date)}</span>
+              <small>
+                {row.openCount} open
+                {#if row.overdueCount > 0}
+                  {" · "}
+                  <span class="over">{$t("weekReview.count.overdue", { count: row.overdueCount })}</span>
+                {/if}
+              </small>
             </div>
           {:else if row.type === "sectionHeader"}
             <!-- svelte-ignore a11y_click_events_have_key_events -->
             <div
-              class="modal-group-header section-header"
+              class="sec {row.quiet ? 'quiet' : ''}"
+              data-all-done={row.quiet ? "true" : undefined}
               role="presentation"
               style="position: absolute; top: {row.top}px; left: 0; right: 0; height: {row.height}px;"
               onclick={() =>
@@ -544,21 +558,10 @@
                   docked ? { keepModal: true } : undefined,
                 )}
             >
-              <span class="section-header-title">{row.label}</span>
-            </div>
-          {:else if row.type === "allDone"}
-            <!-- svelte-ignore a11y_click_events_have_key_events -->
-            <div
-              class="all-done-row"
-              role="presentation"
-              style="position: absolute; top: {row.top}px; left: 0; right: 0; height: {row.height}px;"
-              onclick={() =>
-                controller.jumpToFileLine(
-                  { filename: row.filename, lineIdx: row.lineIdx },
-                  docked ? { keepModal: true } : undefined,
-                )}
-            >
-              <span class="all-done-text">{row.label}</span>
+              <span class="t sec-title">{row.label}</span>
+              {#if row.showAllDone}
+                <span class="alldone">{$t("weekReview.allDone")}</span>
+              {/if}
             </div>
           {:else if row.type === "item"}
             {@const it = row.item}
@@ -575,7 +578,7 @@
               role="option"
               aria-selected={idx === selectedIndex}
               tabindex="0"
-              style="position: absolute; top: {row.top}px; left: 0; right: 0; height: {row.height}px; padding-left: {ROW_INSET +
+              style="position: absolute; top: {row.top}px; left: 6px; right: 6px; height: {row.height}px; padding-left: {ROW_INSET +
                 d * TREE_INDENT}px;"
               onclick={() => {
                 selectedIndex = idx;
@@ -665,37 +668,32 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 10px 14px;
-  border-bottom: 1px solid var(--edge-soft);
-  gap: 12px;
-  flex-shrink: 0;
 }
 .week-review-title-group {
   display: flex;
   align-items: center;
   gap: 8px;
-  min-width: 0;
-  font-weight: 600;
-  color: var(--text-primary);
 }
 .week-title {
+  margin: 0;
   font-size: 14px;
-  line-height: 1.3;
+  font-weight: 600;
+  font-family: var(--font-ui);
 }
-.week-nav-actions {
+.week-nav-buttons {
   display: flex;
   align-items: center;
-  gap: 6px;
-  flex-shrink: 0;
+  gap: 4px;
 }
 .week-nav-btn {
-  background: var(--surface-secondary, rgba(255, 255, 255, 0.05));
-  border: 1px solid var(--border, rgba(255, 255, 255, 0.1));
-  color: var(--text-primary);
-  border-radius: 4px;
   display: inline-flex;
   align-items: center;
-  padding: 3px 5px;
+  justify-content: center;
+  padding: 3px 6px;
+  border-radius: var(--radius-control);
+  background: var(--surface-secondary, rgba(255, 255, 255, 0.05));
+  border: 1px solid var(--border);
+  color: var(--text-primary);
   cursor: pointer;
 }
 .week-nav-btn:hover {
@@ -705,29 +703,23 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 8px 14px;
-  background: var(--surface-chrome, transparent);
-  border-bottom: 1px solid var(--edge-soft);
+  padding: 4px 12px 8px;
+  font-family: var(--font-ui);
   font-size: 12px;
-  color: var(--muted);
-  flex-shrink: 0;
-  flex-wrap: wrap;
-  gap: 4px 8px;
+  color: var(--text-tertiary, var(--muted));
+  border-bottom: 1px solid var(--border);
 }
 .week-review-counts {
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
-  gap: 2px 6px;
-  min-width: 0;
+  gap: 6px;
 }
 .count-pill {
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
+  color: var(--text-primary);
 }
 .count-overdue {
-  color: var(--color-warning, #f59e0b);
-  font-weight: 500;
+  color: var(--warn, #d8a24a);
+  font-weight: 600;
 }
 .count-sep {
   opacity: 0.5;
@@ -736,107 +728,31 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  flex-shrink: 0;
 }
-.earlier-weeks-bar {
-  padding: 4px 14px;
-  background: var(--surface-muted, rgba(255, 255, 255, 0.02));
-  border-bottom: 1px solid var(--edge-soft);
-  flex-shrink: 0;
-}
-.earlier-weeks-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  background: transparent;
-  border: none;
-  padding: 2px 4px;
-  color: var(--muted);
+.modal-footer {
+  padding: 6px 12px;
   font-size: 11.5px;
-  cursor: pointer;
-  border-radius: 4px;
-  text-decoration: underline;
-  text-underline-offset: 2px;
+  color: var(--text-tertiary);
+  border-top: 1px solid var(--border);
 }
-.earlier-weeks-btn:hover {
-  color: var(--text-primary);
-  background: var(--surface-hover);
-}
-.modal-list {
-  flex: 1;
-  min-height: 0;
-  overflow-y: auto;
-  outline: none;
-}
-.modal-group-header {
+.modal-footer-hints kbd {
   font-family: var(--font-mono);
-  display: flex;
-  align-items: center;
-  padding: 0 14px;
-  font-size: 12px;
-  color: var(--text-tertiary, var(--muted));
-  cursor: pointer;
-  user-select: none;
-  background: var(--surface-chrome, transparent);
+  font-size: 11px;
 }
-.day-header {
-  font-weight: 600;
-  color: var(--text-primary);
-  border-top: 1px solid var(--edge-soft);
-  background: var(--surface-secondary, rgba(255, 255, 255, 0.02));
-}
-.day-header:first-child {
-  border-top: none;
-}
-.section-header {
-  font-weight: 500;
-  padding-left: 20px;
-  color: var(--text-secondary, var(--text-primary));
-}
-.all-done-row {
-  display: flex;
-  align-items: center;
-  padding: 0 24px;
-  font-size: 12px;
-  color: var(--muted);
-  font-style: italic;
-  cursor: pointer;
-  user-select: none;
-}
-.all-done-row:hover {
-  color: var(--text-primary);
-}
-.modal-item {
-  font-family: var(--font-mono);
-  font-size: 12px;
-  display: flex;
-  align-items: center;
-  cursor: pointer;
-}
-.action-row .modal-item-main {
-  height: 100%;
-  display: flex;
-  align-items: center;
-  flex: 1;
-  min-width: 0;
+.item-glyph {
+  flex: none;
 }
 .item-text {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   min-width: 0;
-  margin-left: 4px;
+  /* Room for a pill's 1px outline (a box-shadow outside the text) at the end and edges of the text. */
+  padding: 1px 0.4ch 1px 1px;
 }
-.item-completed {
-  opacity: 0.55;
-  text-decoration: line-through;
-}
-.item-glyph {
-  flex: none;
-}
-.step-number {
-  color: var(--muted);
-  margin-right: 2px;
+/* As Section History's body: the selected row shows where the keyboard is. */
+.week-review-list:focus {
+  outline: none;
 }
 .tree-guide {
   position: absolute;
@@ -866,10 +782,8 @@
 .tree-guide.is-end::after {
   bottom: -1px;
 }
-.context-row {
-  opacity: 0.6;
-}
-.context-row.selected {
-  opacity: 1;
+.step-number {
+  color: var(--text-tertiary, var(--muted));
+  font-weight: 600;
 }
 </style>

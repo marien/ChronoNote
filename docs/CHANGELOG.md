@@ -11312,3 +11312,35 @@ the week. Docked like Section History and Actions on a wide window.
 - **Built by:** Gemini 3.8 Flash from a brief, and an independent Gemini test writer from the design and brief only
   (`week-review.independent.spec.ts`; one test assumed a click selects a row, but it jumps as in the Action Drawer:
   it hovers now). Tests also `weekReview.test.ts`, `week-review.spec.ts`.
+
+## 433. One list style for the week review and the Action Drawer; one date setting
+
+**Status: on main, not released yet.**
+
+Marien after trying the week review in 0.34.0-1: it should look like the main content; the boxes and the white space did
+not work, and the earlier-weeks link should open exactly what it counts. Three rounds of a mockup in the app's own styling
+(`docs/design/week-review-mockup.html`, design `docs/design/week-review-design.md` section 8) led to one list style for
+both views, which have the same purpose:
+
+- **Day band** instead of the uppercase bar with borders: the note's date (see below), sentence case, a quiet tint,
+  counts on the right, pinned while scrolling; in the drawer's due view the due groups.
+- **One editor line per item** on a desktop (the editor's font, 13px, line height 1.6; the phone keeps touch-height
+  rows), and **Section History's selection** (grey, the line in semibold) instead of white on blue.
+- **Week review only:** the meeting as a semibold heading with a compact double rule; muted, with "all done" on the same
+  line, when nothing in it is open. The drawer keeps showing the meeting only on the hovered or selected row.
+- **Earlier weeks:** "N open from earlier weeks, M overdue", two links with `before:<the Sunday before the week>
+  is:open` already in the drawer's filter: N on all files, M in the due view.
+
+**One date setting** (Marien: the tab-label setting only applied to the top bar). "Tab labels" is now "Dates in tabs and
+lists" (7 languages) and decides every place a note's date is a label: the top bar and the phone's tab list, Section
+History's date tabs, the Action Drawer's day headings and due-view source label, Search's group headings and the week
+review's day bands, always with the full date as tooltip (`noteDateLabel.ts`). The config key stays `tabLabelStyle`.
+
+- **Built by:** Gemini 3.8 Flash from a brief and an independent Gemini test writer (`list-style-dates.independent.spec.ts`).
+  Claude's review: the selected row was not semibold (only its text part), a stray space before the comma in the
+  earlier-weeks line, the phone's app bar title had become the ISO date under the default setting (restored: it is a
+  page title, "Today" with the date below, not a tab label), a pill's outline was clipped at the end of a row's text, and
+  the week review's list showed a focus frame (now as Section History). The independent test looked for the due view as a
+  radio; it is a switch. Five existing specs follow the new row height (36 to 21px) and wording; none removed.
+- **Tests:** `noteDateLabel.test.ts`, `weekReview.test.ts` (earlier-weeks overdue count), `week-review-and-drawer-style.spec.ts`,
+  `list-style-dates.independent.spec.ts`.

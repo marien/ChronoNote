@@ -288,8 +288,11 @@ bar; a dot marks the tab's date (past / today / future). Tabs stay ordered
 chronologically (earliest to latest), scratchpads after every dated tab;
 the strip auto-scrolls to keep the active tab in view, and scroll arrows
 appear when it overflows; an arrow is greyed out once the first / last tab is fully visible (no wrapping), and dragging over the tabs with the mouse scrolls the strip (§392). Labels are the ISO date, or, with Settings →
-Appearance → Tab labels set to Friendly, "Today" / "Yesterday" / "Tomorrow"
-and otherwise a short date ("Thu 9 Oct"), with the ISO date as tooltip. Middle-click closes a tab. Right after the last tab sits
+Appearance → Dates in tabs and lists (was "Tab labels", §433) set to Friendly, "Today" / "Yesterday" / "Tomorrow"
+and otherwise a short date ("Thu 9 Oct"), with the ISO date as tooltip. The same setting decides every place a note's
+date is a label: the phone's tab list, Section History's date tabs, the Action Drawer's day headings and source label,
+Search's group headings and the week review's day bands (§433). The phone's app bar keeps its own title ("Today" with
+the date below). Middle-click closes a tab. Right after the last tab sits
 a `+` split button: `+` makes a new scratchpad, its `▾` menu offers New
 scratchpad, Open dated note and Reopen closed tab.
 
@@ -591,6 +594,11 @@ reachable from the top bar, a shortcut, or the command palette:
   Narrower, it opens as a dialog. A second toggle (remembered for
   the session, on by default) switches between showing every open/
   deferred/delegated/done/won't-do line or strictly open ones only.
+  Since §433 its rows use the list style shared with the week review: a
+  quiet day band per note (the date as the date setting says) instead of
+  the uppercase bar, one editor line per item on a desktop (touch height
+  on the phone), Section History's selection (grey, semibold); no meeting
+  headings.
   The filter understands Search's operators (§431, feature review B3):
   `is:open`, `is:done`, `tag:<topic>`, `has:@<name>`, `since:YYYY-MM-DD`,
   `before:YYYY-MM-DD`, shown as removable chips under the filter; the
@@ -713,10 +721,17 @@ reachable from the top bar, a shortcut, or the command palette:
   Drawer), open topics `o` and postponed topics `,`. A line with a
   `(>…)` forward link is not open (it went elsewhere); a delegated part
   shows only on its action's row. The header counts open actions, open
-  topics and overdue actions; a day or section with nothing open is one
-  muted "all done" line; "Show done" (off, per session) adds done and
-  cancelled actions, discussed topics and `=>` decisions; a line "N still
-  open from earlier weeks" opens the Action Drawer (all files, only open).
+  topics and overdue actions. Drawn in the list style it shares with the
+  Action Drawer (§433, mockup `docs/design/week-review-mockup.html`): a
+  quiet day band per date (the date as the date setting says, counts on
+  the right, pinned while scrolling), the meeting as a semibold heading
+  with a compact double rule, muted with "all done" on its line when
+  nothing in it is open, and every item one editor line with Section
+  History's selection. "Show done" (off, per session) adds done and
+  cancelled actions, discussed topics and `=>` decisions. "N open from
+  earlier weeks, M overdue" are two links, both opening the Action Drawer
+  with `before:<the Sunday before the week> is:open` in its filter: N on
+  all files, M in the due view; ", M overdue" only when M > 0.
   It opens on the week just worked: the previous week on a Monday, the
   current one on other days. `Left`/`Right` previous/next week, `Home`
   the opening week, `Up`/`Down`, `Enter` jumps (a click on a row jumps

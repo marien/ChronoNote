@@ -11,7 +11,7 @@ const notes = Object.fromEntries(
 );
 const seed = { notes, session: { openTabs: DATES.map((d) => `${d}.txt`), activeTab: `${DATES[0]}.txt` } };
 
-const ROW = 36;
+const ROW = 21;
 const HEADER = 29;
 
 const list = (page: Page) => page.locator(".modal-list");

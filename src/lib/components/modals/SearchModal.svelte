@@ -7,6 +7,7 @@
   import { closeOnOutsideClick } from "../../actions/closeOnOutsideClick";
   import { renderResultLine } from "../../ui/resultRow";
   import { groupHeaderLabel } from "../../ui/listFormat";
+  import { noteDateLabel, noteISODate } from "../../noteDateLabel";
   import Icon from "../../icons/Icon.svelte";
   import Segmented from "../Segmented.svelte";
   import EmptyState from "../EmptyState.svelte";
@@ -288,11 +289,12 @@
           {#if row.type === "header"}
             <div
               class="modal-group-header"
+              title={noteISODate(row.filename) ?? undefined}
               style="position: absolute; top: {row.top}px; left: 0; right: 0; height: {row.height}px; border-top: {row.isFirst
                 ? 'none'
                 : '1px solid var(--border)'};"
             >
-              {groupHeaderLabel(row.filename, row.count)}
+              {groupHeaderLabel(row.filename, row.count, $noteDateLabel)}
             </div>
           {:else}
             {@const item = row.item}

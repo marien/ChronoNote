@@ -20,6 +20,8 @@ export const ROW_OVERSCAN_PX = 200;
  * constant. Kept here so the virtual math and the CSS can't drift apart
  * across the four modals. */
 export const MODAL_ITEM_ROW_HEIGHT = 36;
+export const ACTION_ITEM_ROW_HEIGHT = 21;
+export const ACTION_ITEM_ROW_HEIGHT_MOBILE = 36;
 export const MODAL_HEADER_ROW_HEIGHT = 29;
 export const SEARCH_ITEM_ROW_HEIGHT = 68;
 

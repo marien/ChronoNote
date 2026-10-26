@@ -11,7 +11,7 @@ test.describe("Action Drawer due date and topic pills (§426-T)", () => {
   const yesterday = addDaysISO(REFERENCE_TODAY, -1);
   const tomorrow = addDaysISO(REFERENCE_TODAY, 1);
 
-  test("draws topic pills and overdue/later due pills while maintaining 36px row height", async ({ page }) => {
+  test("draws topic pills and overdue/later due pills while maintaining 21px row height", async ({ page }) => {
     const noteContent = [
       `# (budget) review the plan by:${yesterday}`,
       `# call Dana by:${tomorrow}`,
@@ -66,11 +66,11 @@ test.describe("Action Drawer due date and topic pills (§426-T)", () => {
     await expect(row2.locator(".glyph-topic")).toHaveCount(0);
     await expect(row2.locator(".cm-due")).toHaveCount(0);
 
-    // Every row is still 36px tall
+    // Every row is still 21px tall
     for (let i = 0; i < 3; i++) {
       const box = await rows.nth(i).boundingBox();
       expect(box).not.toBeNull();
-      expect(box!.height).toBeCloseTo(36, 0);
+      expect(box!.height).toBeCloseTo(21, 0);
     }
   });
 
@@ -115,11 +115,11 @@ test.describe("Action Drawer due date and topic pills (§426-T)", () => {
     await expect(dueResolved2).toBeVisible();
     await expect(dueResolved2.locator(".cm-due-flag")).toBeVisible();
 
-    // Row heights still 36px
+    // Row heights still 21px
     for (let i = 0; i < 3; i++) {
       const box = await rows.nth(i).boundingBox();
       expect(box).not.toBeNull();
-      expect(box!.height).toBeCloseTo(36, 0);
+      expect(box!.height).toBeCloseTo(21, 0);
     }
   });
 });

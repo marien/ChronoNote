@@ -31,9 +31,9 @@ export const pl = {
   "settings.appearance.statusBar.label": () => "Pokaż pasek stanu",
   "settings.appearance.statusBar.hint": () =>
     "Wyświetlaj wiersz, kolumnę, liczbę słów i stan zadań na dole okna",
-  "settings.appearance.tabLabels.label": () => "Etykiety kart",
+  "settings.appearance.tabLabels.label": () => "Daty na kartach i w listach",
   "settings.appearance.tabLabels.hint": () =>
-    "Jak nazywane są karty z datą; pełna data jest zawsze w podpowiedzi.",
+    "Jak data notatki jest wyświetlana na kartach oraz w Historii sekcji, Działaniach, Szukaj i przeglądzie tygodnia; pełna data jest zawsze w etykiecie narzędzia.",
   "settings.appearance.tabLabels.iso": () => "Data ISO",
   "settings.appearance.tabLabels.friendly": () => "Czytelne",
   "settings.editor.sectionLabel": () => "Edytor",
@@ -1009,8 +1009,8 @@ export const pl = {
   "weekReview.count.overdue": ({ count }) => `${count} zaległych`,
   "weekReview.showDone.label": () => "Pokaż ukończone",
   "weekReview.showDone.title": () => "Pokaż ukończone i anulowane elementy",
-  "weekReview.earlierWeeks": ({ count }) => `${count} nadal otwartych z wcześniejszych tygodni`,
-  "weekReview.earlierWeeksSingle": ({ count }) => `${count} nadal otwarta z wcześniejszych tygodni`,
+  "weekReview.earlierWeeks": ({ count }) => `${count} otwartych z poprzednich tygodni`,
+  "weekReview.earlierWeeksSingle": ({ count }) => `${count} otwarta z poprzednich tygodni`,
   "weekReview.allDone": () => "wszystko ukończone",
   "weekReview.sectionAllDone": ({ section }) => `${section}: wszystko ukończone`,
   "weekReview.openWeek": ({ week }) => `Otwórz przegląd tygodnia ${week}`,
