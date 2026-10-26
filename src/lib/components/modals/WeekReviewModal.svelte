@@ -1,6 +1,5 @@
 <script lang="ts">
   import { onMount, onDestroy, tick } from "svelte";
-  import { get } from "svelte/store";
   import * as controller from "../../controller";
   import { currentDateISO, tabs } from "../../controller";
   import {
@@ -22,8 +21,7 @@
   } from "../../weekReview";
   import { noteDateLabel } from "../../noteDateLabel";
   import { addDaysISO, isoWeekToMonday, todayISO, parseISODateLocal } from "../../date";
-  import { toggleOpenClosed } from "../../tokens";
-  import { writeTabContent, refreshAllNotesCache } from "../../persistence";
+  import { refreshAllNotesCache } from "../../persistence";
   import { drawerTreeGuides, type TreeGuide, nodeTextRange } from "../../actionDrawerRows";
   import { glyphForSymbol, parseGlyphLine } from "../../editor/glyphLine";
   import {
@@ -144,52 +142,16 @@
 
 
   function glyphFor(item: WeekReviewItem): { char: string; cls?: string } {
-    if (item.itemKind === "decision") {
-      return { char: "➔", cls: "glyph-arrow" };
-    }
-    const sym = item.state ?? (item.itemKind === "topic" ? "o" : "#");
-    const g = glyphForSymbol(sym);
+    const g = glyphForSymbol(item.state ?? "#");
     return { char: g.text, cls: g.cls };
   }
 
   function textRangeFor(item: WeekReviewItem): { from: number; to: number } {
-    if (item.itemKind === "action" || item.itemKind === "step") {
-      return nodeTextRange(item as any);
-    }
-    if (item.itemKind === "topic") {
-      const lead = item.line.match(/^(\s*[o.,]\s*)/)?.[0].length ?? 0;
-      return { from: lead, to: item.line.length };
-    }
-    if (item.itemKind === "decision") {
-      const lead = item.line.match(/^(\s*=>\s*)/)?.[0].length ?? 0;
-      return { from: lead, to: item.line.length };
-    }
-    return { from: 0, to: item.line.length };
-  }
-
-  async function ensureTabOpen(filename: string): Promise<string> {
-    const existing = get(tabs).find((t) => t.filename === filename);
-    if (existing) return existing.id;
-    await controller.openOrCreateDatedFile(filename.replace(/\.txt$/, ""));
-    const opened = get(tabs).find((t) => t.filename === filename);
-    return opened!.id;
+    return nodeTextRange(item as any);
   }
 
   async function toggleItem(item: WeekReviewItem, dir: 1 | -1 = 1) {
-    if (item.itemKind === "action" || item.itemKind === "step") {
-      await controller.toggleActionLineItem(item, dir);
-    } else if (item.itemKind === "topic") {
-      const tabId = await ensureTabOpen(item.filename);
-      const list = get(tabs);
-      const tab = list.find((t) => t.id === tabId);
-      if (!tab) return;
-      const lines = tab.content.split("\n");
-      const updated = toggleOpenClosed(lines[item.lineIdx]);
-      if (updated) {
-        lines[item.lineIdx] = updated;
-        tabs.set(writeTabContent(tabId, lines.join("\n"), list));
-      }
-    }
+    await controller.toggleActionLineItem(item, dir);
   }
 
   type RawRow =
@@ -239,7 +201,7 @@
         label: day.date,
         date: day.date,
         filename: day.filename,
-        openCount: day.counts.openActions + day.counts.openTopics,
+        openCount: day.counts.openActions,
         overdueCount: day.counts.overdue,
         height: MODAL_HEADER_ROW_HEIGHT,
       });
@@ -260,6 +222,8 @@
             })()
           : sec.openItems;
 
+        // A meeting without any action (only topics or notes) is left out (#184).
+        if (sec.openItems.length === 0 && sec.doneItems.length === 0) continue;
         const isAllDone = sec.openItems.length === 0;
 
         if (sec.title) {
@@ -451,12 +415,6 @@
           ? $t("weekReview.count.openAction", { count: 1 })
           : $t("weekReview.count.openActions", { count: reviewModel.counts.openActions })}
       </span>
-      <span class="count-sep">·</span>
-      <span class="count-pill">
-        {reviewModel.counts.openTopics === 1
-          ? $t("weekReview.count.openTopic", { count: 1 })
-          : $t("weekReview.count.openTopics", { count: reviewModel.counts.openTopics })}
-      </span>
       {#if reviewModel.counts.overdue > 0}
         <span class="count-sep">·</span>
         <span class="count-pill count-overdue">
@@ -568,7 +526,7 @@
             {@const idx = row.flatIndex}
             {@const g = glyphFor(it)}
             {@const isCompleted =
-              it.state === "v" || it.state === "x" || it.state === "."}
+              it.state === "v" || it.state === "x"}
             {@const d = Math.min(row.depth, $isMobile ? 2 : Infinity)}
             <!-- svelte-ignore a11y_click_events_have_key_events -->
             <div

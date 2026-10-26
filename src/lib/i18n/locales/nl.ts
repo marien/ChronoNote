@@ -970,8 +970,6 @@ export const nl = {
   "weekReview.nextWeekLabel": ({ week }) => `week ${week} ›`,
   "weekReview.count.openAction": ({ count }) => `${count} open actie`,
   "weekReview.count.openActions": ({ count }) => `${count} open acties`,
-  "weekReview.count.openTopic": ({ count }) => `${count} open agendapunt`,
-  "weekReview.count.openTopics": ({ count }) => `${count} open agendapunten`,
   "weekReview.count.overdue": ({ count }) => (count === 1 ? "1 te laat" : `${count} te laat`),
   "weekReview.showDone.label": () => "Toon voltooid",
   "weekReview.showDone.title": () => "Toon voltooide en vervallen items",

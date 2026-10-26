@@ -55,7 +55,7 @@ test.describe("Week review (feature review A3 / §432)", () => {
     await expect(card).toBeVisible();
     await expect(card.locator(".week-title")).toContainText("Week 36");
     await expect(card).toContainText("prepare quarterly review");
-    await expect(card).toContainText("discuss roadmap");
+    await expect(card).not.toContainText("discuss roadmap"); // actions only (#184)
 
     // 2. Left changes week to 35
     await page.keyboard.press("ArrowLeft");

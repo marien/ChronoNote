@@ -133,6 +133,13 @@ function getScrollBase(view: EditorView) {
   };
 }
 
+// A line hidden by a block replace (Peek's section focus, a fold) has no block of its own: lineBlockAt returns the
+// hidden range's block, which has no height, so its connectors would be drawn at that block's top (#182).
+function isLineShown(view: EditorView, line: { from: number }): boolean {
+  const block = view.lineBlockAt(line.from);
+  return block.from === line.from && block.height > 0;
+}
+
 export const actionTreeLinesLayer = layer({
   // Above the text: below it, the selection background covered the lines. They sit in the indentation, never on text.
   above: true,
@@ -186,6 +193,7 @@ export const actionTreeLinesLayer = layer({
       if (parentLine.from > view.viewport.to || lastChildLine.to < view.viewport.from) {
         continue;
       }
+      if (!isLineShown(view, parentLine) || !isLineShown(view, lastChildLine)) continue;
 
       const isHeadOnConnector =
         headLineIdx === connector.parentLineIdx ||
@@ -214,6 +222,7 @@ export const actionTreeLinesLayer = layer({
         const childLineNum = child.lineIdx + 1;
         if (childLineNum < 1 || childLineNum > view.state.doc.lines) continue;
         const childLine = view.state.doc.line(childLineNum);
+        if (!isLineShown(view, childLine)) continue;
         const childBlock = view.lineBlockAt(childLine.from);
         const childTop = childBlock.top + docBaseY;
         const childMiddleY = Math.round(childTop + lh / 2);

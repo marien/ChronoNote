@@ -103,3 +103,9 @@ shown week) and `is:open` filled in. N opens the Action Drawer on all files; M o
 
 Day bands, Section History's date tabs, the drawer's source label and Search's group headings follow the date setting
 (renamed from "Tab labels" to "Dates in tabs and lists").
+
+## 9. Actions only (2026-10-26, #184)
+
+After trying beta 0.34.0-2 Marien chose to start with actions only: topics and `=>` decisions are left out of the
+week review, and so is a meeting without any action. Earlier sections of this document still describe topics; they
+are the original design, kept for when topics come back (CHANGELOG §434).

@@ -131,4 +131,21 @@ test.describe("action tree lines (§423)", () => {
     await seedWithText(page, "# a\n  # b\n\n  # c");
     await expect(page.locator(".cm-action-tree-line.is-horizontal")).toHaveCount(1);
   });
+
+  test("Peek draws no lines for groups in the hidden part of the note (#182)", async ({ page }) => {
+    const file = todayFilename();
+    await seedApp(page, {
+      seed: {
+        notes: { [file]: "Standup\n=======\n# release\n  # build\n  # announce\n\nEmpty\n=====\n" },
+        session: { openTabs: [file], activeTab: file },
+        peek: {},
+      },
+    });
+    await expect(page.locator(".cm-action-tree-line.is-vertical")).toHaveCount(1);
+    await editor(page).click();
+    await page.keyboard.press("ControlOrMeta+End");
+    await page.keyboard.press("ControlOrMeta+Shift+KeyP");
+    await expect(page.locator("body.peek-mode")).toBeVisible();
+    await expect(page.locator(".cm-action-tree-line")).toHaveCount(0);
+  });
 });

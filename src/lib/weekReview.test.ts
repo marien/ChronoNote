@@ -147,8 +147,8 @@ describe("weekReview pure model", () => {
     });
   });
 
-  describe("topics o, ., and ,", () => {
-    it("counts open (o) and postponed (,) topics as open topics, discussed (.) in done items", () => {
+  describe("actions only (#184)", () => {
+    it("leaves topics (o . ,) and => decisions out, also from the counts", () => {
       const notes = [
         {
           filename: "2026-10-27.txt",
@@ -164,18 +164,10 @@ describe("weekReview pure model", () => {
       ];
 
       const model = buildWeekReview(notes, 2026, 44, "2026-10-28");
-      expect(model.counts.openTopics).toBe(2); // o + ,
+      expect(model.counts).toEqual({ openActions: 0, overdue: 0 });
       const sec = model.days[0].sections[0];
-
-      // open items: o hiring plan, , budget discussion
-      expect(sec.openItems).toHaveLength(2);
-      expect(sec.openItems[0].state).toBe("o");
-      expect(sec.openItems[1].state).toBe(",");
-
-      // done items: . retro notes, => decided to launch on Friday
-      expect(sec.doneItems).toHaveLength(2);
-      expect(sec.doneItems[0].state).toBe(".");
-      expect(sec.doneItems[1].itemKind).toBe("decision");
+      expect(sec.openItems).toHaveLength(0);
+      expect(sec.doneItems).toHaveLength(0);
     });
   });
 
@@ -278,7 +270,7 @@ describe("weekReview pure model", () => {
       const model = buildWeekReview(notes, 2026, 44, "2026-10-28");
       expect(model.days[0].sections).toHaveLength(2);
       expect(model.days[0].sections[0].title).toBe("");
-      expect(model.days[0].sections[0].openItems).toHaveLength(2);
+      expect(model.days[0].sections[0].openItems).toHaveLength(1); // the topic is left out (#184)
       expect(model.days[0].sections[1].title).toBe("Weekly Sync");
       expect(model.days[0].sections[1].openItems).toHaveLength(1);
     });

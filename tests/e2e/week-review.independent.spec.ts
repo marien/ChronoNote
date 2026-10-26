@@ -223,7 +223,7 @@ test.describe("Week Review (independent tests)", () => {
     await expect(weekHeader(pane)).toContainText(/week\s*43|\b43\b/i);
   });
 
-  test("2. header shows week number and counts for open actions, open topics, and overdue actions", async ({
+  test("2. header shows week number and counts for open actions and overdue actions, no topics (#184)", async ({
     page,
   }) => {
     await seedApp(page, {
@@ -240,17 +240,15 @@ test.describe("Week Review (independent tests)", () => {
 
     // Counts for Week 44:
     // Open actions: 7 (check server logs, prepare presentation, draft slides, rehearse talk, send contract, update mockups, export assets)
-    // Open topics (open + postponed): 3 (discuss architecture, review roadmap, color palette choice)
     // Overdue actions: 2 (check server logs by:2026-10-25, update mockups by:2026-10-27; export assets by:2026-10-30 is not overdue)
     const openActionsCount = pane
       .locator('.stat-open, .count-actions, [data-stat="open-actions"], .week-stat-open')
       .or(pane.getByText(/7\s*open\s*(?:actions)?/i));
     await expect(openActionsCount.first()).toBeVisible();
 
-    const openTopicsCount = pane
-      .locator('.stat-topics, .count-topics, [data-stat="open-topics"], .week-stat-topics')
-      .or(pane.getByText(/3\s*(?:open\s*)?topics/i));
-    await expect(openTopicsCount.first()).toBeVisible();
+    // Actions only (#184): no topic count and no topic rows.
+    await expect(pane).not.toContainText(/open topics?/i);
+    await expect(pane).not.toContainText("discuss architecture");
 
     const overdueCount = pane
       .locator('.stat-overdue, .count-overdue, [data-stat="overdue"], .week-stat-overdue')
@@ -329,7 +327,7 @@ test.describe("Week Review (independent tests)", () => {
     await expect(allDoneLine.first()).toBeVisible();
   });
 
-  test("5. 'Show done' toggle is off by default and adds done/cancelled actions and discussed topics when enabled", async ({
+  test("5. 'Show done' toggle is off by default and adds done/cancelled actions (never topics) when enabled", async ({
     page,
   }) => {
     await seedApp(page, {
@@ -354,7 +352,7 @@ test.describe("Week Review (independent tests)", () => {
     // Resolved items are now added/revealed
     await expect(pane).toContainText("finish documentation");
     await expect(pane).toContainText("cancelled task");
-    await expect(pane).toContainText("past agenda item");
+    await expect(pane).not.toContainText("past agenda item");
   });
 
   test("6. ArrowRight / ArrowLeft navigate weeks and Home returns to opening week", async ({
@@ -374,7 +372,7 @@ test.describe("Week Review (independent tests)", () => {
     await pane.focus();
     await page.keyboard.press("ArrowLeft");
     await expect(weekHeader(pane)).toContainText(/week\s*43|\b43\b/i);
-    await expect(pane).toContainText("week 43 retro topic");
+    await expect(pane).toContainText("Sprint Planning");
 
     // ArrowRight navigates to next week (Week 44)
     await page.keyboard.press("ArrowRight");

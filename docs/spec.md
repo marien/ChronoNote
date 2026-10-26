@@ -718,17 +718,18 @@ reachable from the top bar, a shortcut, or the command palette:
   date picker; §432, design `docs/design/week-review-design.md`) — one ISO
   week from its dated notes, grouped by day and then by section: open own
   actions (with their sub-actions and steps, drawn as in the Action
-  Drawer), open topics `o` and postponed topics `,`. A line with a
+  Drawer). Actions only (#184): topics and `=>` decisions are not
+  shown, and a meeting without any action is left out. A line with a
   `(>…)` forward link is not open (it went elsewhere); a delegated part
-  shows only on its action's row. The header counts open actions, open
-  topics and overdue actions. Drawn in the list style it shares with the
+  shows only on its action's row. The header counts open and overdue
+  actions. Drawn in the list style it shares with the
   Action Drawer (§433, mockup `docs/design/week-review-mockup.html`): a
   quiet day band per date (the date as the date setting says, counts on
   the right, pinned while scrolling), the meeting as a semibold heading
-  with a compact double rule, muted with "all done" on its line when
+  with a compact double rule (one line, shortened with "…"), muted with "all done" on its line when
   nothing in it is open, and every item one editor line with Section
   History's selection. "Show done" (off, per session) adds done and
-  cancelled actions, discussed topics and `=>` decisions. "N open from
+  cancelled actions. "N open from
   earlier weeks, M overdue" are two links, both opening the Action Drawer
   with `before:<the Sunday before the week> is:open` in its filter: N on
   all files, M in the due view; ", M overdue" only when M > 0.
