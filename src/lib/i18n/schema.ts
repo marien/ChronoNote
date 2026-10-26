@@ -972,8 +972,6 @@ export type TranslationParams = {
   "weekReview.nextWeekLabel": { week: number };
   "weekReview.count.openAction": { count: number };
   "weekReview.count.openActions": { count: number };
-  "weekReview.count.openTopic": { count: number };
-  "weekReview.count.openTopics": { count: number };
   "weekReview.count.overdue": { count: number };
   "weekReview.showDone.label": undefined;
   "weekReview.showDone.title": undefined;

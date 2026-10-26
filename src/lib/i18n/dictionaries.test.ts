@@ -117,8 +117,6 @@ const SAMPLE_PARAMS: Partial<Record<TranslationKey, unknown>> = {
   "weekReview.nextWeekLabel": { week: 45 },
   "weekReview.count.openAction": { count: 1 },
   "weekReview.count.openActions": { count: 12 },
-  "weekReview.count.openTopic": { count: 1 },
-  "weekReview.count.openTopics": { count: 3 },
   "weekReview.count.overdue": { count: 4 },
   "weekReview.earlierWeeks": { count: 5 },
   "weekReview.earlierWeeksSingle": { count: 1 },

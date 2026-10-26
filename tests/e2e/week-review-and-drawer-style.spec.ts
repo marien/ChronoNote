@@ -282,4 +282,48 @@ test.describe("Dates in tabs and lists & shared list style (Part 1 & 2)", () => 
 
     await page.keyboard.press("Escape");
   });
+
+  test("a long meeting heading stays on one line, shortened, with 'all done' visible (#183)", async ({ page }) => {
+    const long = "Quarterly planning with the whole extended leadership team and every regional office lead";
+    await seedApp(page, {
+      seed: {
+        notes: { "2026-09-01.txt": `${long}\n${"=".repeat(long.length)}\nv completed item\n` },
+        session: { openTabs: ["2026-09-07.txt"], activeTab: "2026-09-07.txt" },
+      },
+    });
+    await page.setViewportSize({ width: 900, height: 700 });
+    await editor(page).click();
+    await page.keyboard.press("ControlOrMeta+Shift+K");
+    const weekReview = modalCard(page, MODAL_LABELS.weekReview);
+    await expect(weekReview).toBeVisible();
+
+    const title = weekReview.locator(".sec .sec-title");
+    await expect(title).toContainText("Quarterly planning");
+    const m = await title.evaluate((el) => {
+      const cs = getComputedStyle(el);
+      return { h: el.getBoundingClientRect().height, lh: parseFloat(cs.lineHeight), clipped: el.scrollWidth > el.clientWidth, ov: cs.textOverflow };
+    });
+    expect(m.clipped).toBe(true);
+    expect(m.ov).toBe("ellipsis");
+    expect(m.h).toBeLessThan(m.lh * 2);
+    await expect(weekReview.locator(".sec .alldone")).toBeInViewport();
+  });
+
+  test("topics and meetings without actions are left out (#184)", async ({ page }) => {
+    await seedApp(page, {
+      seed: {
+        notes: { "2026-09-01.txt": "Standup\n=======\n# open task\no open topic\n\nAgenda only\n===========\no budget\n" },
+        session: { openTabs: ["2026-09-07.txt"], activeTab: "2026-09-07.txt" },
+      },
+    });
+    await editor(page).click();
+    await page.keyboard.press("ControlOrMeta+Shift+K");
+    const weekReview = modalCard(page, MODAL_LABELS.weekReview);
+    await expect(weekReview).toBeVisible();
+    await expect(weekReview).toContainText("open task");
+    await expect(weekReview).not.toContainText("open topic");
+    await expect(weekReview).not.toContainText("Agenda only");
+    await weekReview.locator(".week-review-toggles .toggle-switch").click();
+    await expect(weekReview).not.toContainText("budget");
+  });
 });

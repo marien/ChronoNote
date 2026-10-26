@@ -28,7 +28,8 @@ import {
 import { refreshAllNotesCache } from "./persistence";
 import { openActionDrawer } from "./actions";
 
-export type WeekReviewItemKind = "action" | "step" | "topic" | "decision";
+// Actions only (#184): topics and `=>` decisions are not part of the week review.
+export type WeekReviewItemKind = "action" | "step";
 
 export interface WeekReviewItem {
   id: string;
@@ -36,8 +37,8 @@ export interface WeekReviewItem {
   lineIdx: number;
   line: string;
   itemKind: WeekReviewItemKind;
-  /** Action states: "#", "v", ">", "x"; topic states: "o", ".", ","; null for decision lines */
-  state: "#" | "v" | ">" | "x" | "o" | "." | "," | null;
+  /** Action states: "#", "v", ">", "x" */
+  state: "#" | "v" | ">" | "x" | null;
   depth: number;
   parentId?: string;
   hasChildren?: boolean;
@@ -54,7 +55,6 @@ export interface WeekReviewItem {
 
 export interface WeekReviewCounts {
   openActions: number;
-  openTopics: number;
   overdue: number;
 }
 
@@ -247,7 +247,6 @@ function parseSectionItems(
   const doneItems: WeekReviewItem[] = [];
   const counts: WeekReviewCounts = {
     openActions: 0,
-    openTopics: 0,
     overdue: 0,
   };
 
@@ -343,58 +342,6 @@ function parseSectionItems(
     item.hasChildren = doneItems.some((other) => other.parentId === item.id);
   }
 
-  // Parse topics and decisions on lines in the section
-  for (let lineIdx = section.bodyStart; lineIdx <= section.bodyEnd; lineIdx++) {
-    const line = lines[lineIdx];
-    if (line.trim() === "") continue;
-    const tokens = tokenizeLine(line);
-    const forwarded = isLineForwarded(line);
-
-    // Topic line (o, ., ,)
-    if (tokens[0]?.kind === "topic") {
-      const sym = tokens[0].symbol as "o" | "." | ",";
-      const topicItem: WeekReviewItem = {
-        id: `${filename}-${lineIdx}`,
-        filename,
-        lineIdx,
-        line,
-        itemKind: "topic",
-        state: sym,
-        depth: 0,
-      };
-
-      if (!forwarded && (sym === "o" || sym === ",")) {
-        counts.openTopics++;
-        openItems.push(topicItem);
-      } else if (sym === ".") {
-        doneItems.push(topicItem);
-      }
-      continue;
-    }
-
-    // Decision line: starts with `=> ` without consequence action or assignee
-    if (tokens[0]?.kind === "arrow" && line.slice(0, tokens[0].from).trim() === "") {
-      const nextTok = tokens.find((t) => t.from === tokens[0].to);
-      const isConsequence = nextTok?.kind === "consequence" || nextTok?.kind === "consequenceTopic";
-      const isAssignee = nextTok?.kind === "assignee";
-      if (!isConsequence && !isAssignee) {
-        const textAfter = line.slice(tokens[0].to).trim();
-        if (textAfter !== "") {
-          const decisionItem: WeekReviewItem = {
-            id: `${filename}-${lineIdx}`,
-            filename,
-            lineIdx,
-            line,
-            itemKind: "decision",
-            state: null,
-            depth: 0,
-          };
-          doneItems.push(decisionItem);
-        }
-      }
-    }
-  }
-
   // Sort items in note order (lineIdx, then stepIndex)
   const sortFn = (a: WeekReviewItem, b: WeekReviewItem) => {
     if (a.lineIdx !== b.lineIdx) return a.lineIdx - b.lineIdx;
@@ -442,7 +389,6 @@ export function buildWeekReview(
   const days: WeekReviewDay[] = [];
   const totalCounts: WeekReviewCounts = {
     openActions: 0,
-    openTopics: 0,
     overdue: 0,
   };
 
@@ -459,7 +405,6 @@ export function buildWeekReview(
 
     const dayCounts: WeekReviewCounts = {
       openActions: 0,
-      openTopics: 0,
       overdue: 0,
     };
 
@@ -475,7 +420,6 @@ export function buildWeekReview(
       );
 
       dayCounts.openActions += counts.openActions;
-      dayCounts.openTopics += counts.openTopics;
       dayCounts.overdue += counts.overdue;
 
       sections.push({
@@ -488,7 +432,6 @@ export function buildWeekReview(
     }
 
     totalCounts.openActions += dayCounts.openActions;
-    totalCounts.openTopics += dayCounts.openTopics;
     totalCounts.overdue += dayCounts.overdue;
 
     days.push({

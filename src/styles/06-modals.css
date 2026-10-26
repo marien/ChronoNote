@@ -621,6 +621,11 @@ textarea.modal-input.import-textarea {
   line-height: 1.35;
   color: var(--text);
   padding-bottom: 4px;
+  /* One line, shortened like the item rows (#183). */
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   background-image:
     linear-gradient(var(--text-tertiary, #949494), var(--text-tertiary, #949494)),
     linear-gradient(var(--text-tertiary, #949494), var(--text-tertiary, #949494));
@@ -642,6 +647,7 @@ textarea.modal-input.import-textarea {
   color: var(--text-tertiary, #949494);
   margin-left: auto;
   white-space: nowrap;
+  flex-shrink: 0;
 }
 .sec .alldone::before {
   content: "\2713  ";

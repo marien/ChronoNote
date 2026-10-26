@@ -11344,3 +11344,24 @@ review's day bands, always with the full date as tooltip (`noteDateLabel.ts`). T
   radio; it is a switch. Five existing specs follow the new row height (36 to 21px) and wording; none removed.
 - **Tests:** `noteDateLabel.test.ts`, `weekReview.test.ts` (earlier-weeks overdue count), `week-review-and-drawer-style.spec.ts`,
   `list-style-dates.independent.spec.ts`.
+
+## 434. Week review and Peek fixes from beta 0.34.0-2: actions only, one-line meeting headings, no stray tree line
+
+**Status: on main, not released yet.**
+
+Three issues Marien filed after trying 0.34.0-2:
+
+- **Actions only in the week review** (#184, Marien: "I want to start with focusing on actions"). Topics `o . ,` and
+  `=>` decisions are no longer collected (`weekReview.ts`), the header has no topic count any more (its two
+  translations removed in 7 languages), "Show done" adds only done and cancelled actions, and a meeting without any
+  action is left out instead of showing as "all done". Decisions went too: they are not actions either. Easy to bring
+  back if the week review should show them later.
+- **Long meeting headings wrapped** onto a second line (#183). The heading is now one line, shortened with "…" like the
+  item rows, and "all done" keeps its place on the right.
+- **A short line at the top left of Peek** (#182). Peek hides the rest of the note behind a block that has no height; the
+  action-group lines (§423) were still placed for groups in that hidden part, so their connectors all landed at its
+  top. `actionTreeLines.ts` now skips lines that have no block of their own (Peek's section focus, and folds).
+- **Tests:** `action-tree-lines.spec.ts` (Peek on a note with a group in another section: 3 stray lines before, 0
+  now), `week-review-and-drawer-style.spec.ts` (long heading on one line with an ellipsis; topics and action-less
+  meetings left out, also with Show done), `weekReview.test.ts`; `week-review.spec.ts` and
+  `week-review.independent.spec.ts` now expect no topics.
