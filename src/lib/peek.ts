@@ -188,20 +188,29 @@ async function refreshPosition(): Promise<string[]> {
  * and remembers the choice (`dockBottom`): Peek opens in the mode it was last in. */
 export async function togglePeekDock(): Promise<void> {
   const s = get(peekSettings);
-  const dock = !s.dockBottom;
+  // In Peek the button switches what Peek IS now. After a lost dock (a monitor plugged in) Peek floats while the saved
+  // choice still says docked; flipping the choice made the first press "float" a floating Peek (#186).
+  const dock = get(peekMode) ? !get(peekDocked) : !s.dockBottom;
   peekSettings.update((x) => ({ ...x, dockBottom: dock }));
   if (!get(peekMode)) return;
   const win = await controller();
   if (dock) {
     // Remember where the floating window was, for switching back.
-    const floating = await win.dock(s.dockHeight, s.alwaysOnTop);
+    const floating = await win.dock(s.dockHeight, s.alwaysOnTop, s.dockGeometry);
     if (floating) peekSettings.update((x) => ({ ...x, geometry: floating, useLinesHeight: false }));
+    rememberDockStrip(win);
     // Docking is not available here: stay floating.
     if (!win.isDocked()) peekSettings.update((x) => ({ ...x, dockBottom: false }));
   } else {
     await floatPeek();
   }
   peekDocked.set(win.isDocked());
+}
+
+/** Where Peek is docked now, so the next dock goes back to that screen (#187). */
+function rememberDockStrip(win: ReturnType<typeof createPeekWindowController>): void {
+  const strip = win.dockStrip();
+  if (strip) peekSettings.update((x) => ({ ...x, dockGeometry: strip }));
 }
 
 /** Switches a docked Peek to floating, placed where the floating window was last left (if still on a screen). */
@@ -398,7 +407,9 @@ export function wirePeek(): () => void {
             forceHeight: s.lines === 0 || s.geometry === null || s.useLinesHeight,
             alwaysOnTop: s.alwaysOnTop,
             dockLogicalHeight: s.dockBottom ? s.dockHeight : undefined,
+            dockGeometry: s.dockGeometry,
           });
+          rememberDockStrip(win);
           peekDocked.set(win.isDocked());
         } else {
           peekHeaderExpanded.set(false);

@@ -136,6 +136,9 @@ pub struct PeekConfig {
     pub dock_bottom: bool,
     /// Height of the docked strip, logical pixels. Its top edge can be dragged; the new height is remembered.
     pub dock_height: u32,
+    /// Where Peek was last docked (the strip, physical pixels): docking goes back to that screen while it is there,
+    /// like the floating window goes back to `geometry` (#187).
+    pub dock_geometry: Option<PeekGeometry>,
 }
 
 pub const PEEK_MAX_LINES: u32 = 15;
@@ -167,6 +170,7 @@ impl Default for PeekConfig {
             call_shortcut: PEEK_DEFAULT_CALL_SHORTCUT.to_string(),
             dock_bottom: false,
             dock_height: PEEK_DEFAULT_DOCK_HEIGHT,
+            dock_geometry: None,
         }
     }
 }
@@ -2220,6 +2224,7 @@ mod tests {
             call_shortcut: "Ctrl+Alt+K".to_string(),
             dock_bottom: true,
             dock_height: 300,
+            dock_geometry: Some(PeekGeometry { x: 0, y: 820, width: 1920, height: 220 }),
         };
         save_config_at(&path, &AppConfig { peek: peek.clone(), ..base }).unwrap();
         let on_disk = fs::read_to_string(&path).unwrap();

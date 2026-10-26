@@ -3,6 +3,7 @@ import {
   createPeekWindowController,
   defaultPeekGeometry,
   fitToMonitors,
+  monitorOf,
   type MonitorArea,
   type PeekGeometry,
   type PeekWin,
@@ -267,6 +268,47 @@ describe("createPeekWindowController", () => {
       expect(f.log).toEqual([]);
       await peek.enter({ ...enterOpts, dockLogicalHeight: 200 });
       expect(await peek.dock(200, true)).toBeNull();
+    });
+
+    describe("docks on the screen it was last docked on (#187)", () => {
+      const left: MonitorArea = { work: SCREEN, current: true };
+      const right: MonitorArea = { work: { x: 1920, y: 0, width: 1920, height: 1040 }, current: false };
+      const lastStrip = { x: 1920, y: 840, width: 1920, height: 200 };
+      /** Like the native side: the strip goes on the screen the window is mostly on. */
+      const twoScreens = (monitors: MonitorArea[]) => {
+        const f = fakeWindow({ monitors });
+        f.win.dockBottom = async (height) => {
+          const m = monitorOf(f.geo, monitors) ?? monitors[0];
+          f.log.push(`dock:${height}`);
+          f.geo = { x: m.work.x, y: m.work.y + m.work.height - height, width: m.work.width, height };
+          return f.geo;
+        };
+        return f;
+      };
+
+      it("entering Peek from a window on the other screen", async () => {
+        const f = twoScreens([left, right]);
+        const peek = createPeekWindowController(f.win);
+        await peek.enter({ ...enterOpts, dockLogicalHeight: 200, dockGeometry: lastStrip });
+        expect(f.geo).toEqual(lastStrip);
+        expect(peek.dockStrip()).toEqual(lastStrip);
+      });
+
+      it("the dock button on a Peek floating on the other screen", async () => {
+        const f = twoScreens([left, right]);
+        const peek = createPeekWindowController(f.win);
+        await peek.enter({ ...enterOpts, geometry: { x: 600, y: 500, width: 420, height: 200 }, forceHeight: false });
+        await peek.dock(200, true, lastStrip);
+        expect(f.geo).toEqual(lastStrip);
+      });
+
+      it("that screen is gone: docks on the window's screen, without moving it first", async () => {
+        const f = twoScreens([left]);
+        const peek = createPeekWindowController(f.win);
+        await peek.enter({ ...enterOpts, dockLogicalHeight: 200, dockGeometry: lastStrip });
+        expect(f.geo).toEqual({ x: 0, y: 840, width: 1920, height: 200 });
+        expect(f.log.some((l) => l.startsWith("bounds:"))).toBe(false);
+      });
     });
 
     it("where docking is not available, Peek floats as usual", async () => {

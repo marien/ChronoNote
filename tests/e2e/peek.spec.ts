@@ -830,6 +830,31 @@ test.describe("docked peek", () => {
     expect(log.some((l) => l.startsWith("warn: after dock lost: the page thought Peek was docked"))).toBe(true);
   });
 
+  test("after a lost dock, ONE press of the dock button docks again (#186)", async ({ page }) => {
+    await seedApp(page, { seed: { ...today(), peek: { dockBottom: true, dockHeight: 240, header: "always", fadeSeconds: 0 } } });
+    const calls = () => page.evaluate(() => window.__CHRONO_MOCK__!.windowCalls.filter((c) => c === "undock" || c.startsWith("dock")));
+    await enterOnWeeklySync(page);
+    await expect.poll(calls).toEqual(["dock 240"]);
+    await page.evaluate(() => {
+      window.__CHRONO_MOCK__!.peekDocked = false;
+      window.__CHRONO_MOCK__!.emitEvent("peek-dock-lost");
+    });
+    const dock = page.locator("#peek-bar").getByRole("button", { name: "Dock to the bottom of the screen" });
+    await expect(dock).toBeVisible();
+    await dock.click();
+    await expect.poll(calls).toEqual(["dock 240", "dock 240"]);
+    await expect(page.locator("#peek-bar").getByRole("button", { name: "Float the window" })).toBeVisible();
+    expect(await page.evaluate(() => window.__CHRONO_MOCK__!.peek.dockBottom)).toBe(true);
+  });
+
+  test("the strip Peek docked to is remembered, so the next dock goes back to that screen (#187)", async ({ page }) => {
+    await seedApp(page, { seed: { ...today(), peek: { dockBottom: true, dockHeight: 240, header: "always", fadeSeconds: 0 } } });
+    await enterOnWeeklySync(page);
+    await expect
+      .poll(() => page.evaluate(() => window.__CHRONO_MOCK__!.peek.dockGeometry))
+      .toEqual({ x: 0, y: 480, width: 1100, height: 240 });
+  });
+
   test("§404: a dock lost while Peek is still being entered is not dropped", async ({ page }) => {
     await seedApp(page, { seed: { ...today(), peek: { dockBottom: true, dockHeight: 240, header: "always", fadeSeconds: 0 } } });
     // The screens change right as Peek docks: the native side undocks and reports it before the page has finished.
