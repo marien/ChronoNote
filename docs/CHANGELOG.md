@@ -11347,7 +11347,7 @@ review's day bands, always with the full date as tooltip (`noteDateLabel.ts`). T
 
 ## 434. Week review and Peek fixes from beta 0.34.0-2: actions only, one-line meeting headings, no stray tree line
 
-**Status: on main, not released yet.**
+**Status: released in beta 0.34.0-3 (early channel only).**
 
 Three issues Marien filed after trying 0.34.0-2:
 
