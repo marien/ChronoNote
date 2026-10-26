@@ -184,15 +184,21 @@ async function refreshPosition(): Promise<string[]> {
   return files;
 }
 
+/** What Peek is on its way to (docked or not) while a transition is still running: entering, a press of the button,
+ * a lost dock being handled. `peekDocked` only changes once that is done, so a press in between reads this (review of
+ * §435: a quick second press, or one while Peek was still entering, went the wrong way). */
+let dockGoal: boolean | null = null;
+
 /** §396: the dock/undock button in Peek's header. Switches between docked to the bottom of the screen and floating,
  * and remembers the choice (`dockBottom`): Peek opens in the mode it was last in. */
 export async function togglePeekDock(): Promise<void> {
   const s = get(peekSettings);
   // In Peek the button switches what Peek IS now. After a lost dock (a monitor plugged in) Peek floats while the saved
   // choice still says docked; flipping the choice made the first press "float" a floating Peek (#186).
-  const dock = get(peekMode) ? !get(peekDocked) : !s.dockBottom;
+  const dock = get(peekMode) ? !(dockGoal ?? get(peekDocked)) : !s.dockBottom;
   peekSettings.update((x) => ({ ...x, dockBottom: dock }));
   if (!get(peekMode)) return;
+  dockGoal = dock;
   const win = await controller();
   if (dock) {
     // Remember where the floating window was, for switching back.
@@ -204,6 +210,7 @@ export async function togglePeekDock(): Promise<void> {
   } else {
     await floatPeek();
   }
+  if (dockGoal === dock) dockGoal = null;
   peekDocked.set(win.isDocked());
 }
 
@@ -236,8 +243,10 @@ export async function onPeekDockLost(): Promise<void> {
   // dropped, leaving the page docked and the native side not (review of §404).
   void api.peekLog("event", `dock lost: ${get(peekMode) ? "checking Peek" : "not in Peek"}`).catch(() => {});
   if (!get(peekMode)) return;
+  dockGoal = false;
   const win = await controller();
   await win.check("dock lost");
+  if (dockGoal === false) dockGoal = null;
   peekDocked.set(win.isDocked());
 }
 
@@ -400,6 +409,7 @@ export function wirePeek(): () => void {
         const s = get(peekSettings);
         if (on) {
           lastLines = s.lines;
+          dockGoal = s.dockBottom;
           await win.enter({
             geometry: s.geometry,
             logicalWidth: 420,
@@ -410,8 +420,10 @@ export function wirePeek(): () => void {
             dockGeometry: s.dockGeometry,
           });
           rememberDockStrip(win);
+          if (dockGoal === s.dockBottom) dockGoal = null;
           peekDocked.set(win.isDocked());
         } else {
+          dockGoal = null;
           peekHeaderExpanded.set(false);
           clearTimeout(introTimer);
           clearTimeout(fadeTimer);

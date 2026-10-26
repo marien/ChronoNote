@@ -6,6 +6,7 @@ then gets a line in its CHANGELOG section) or found broken (it then becomes a fi
 
 | Since | What to check | Where / how | Section |
 |---|---|---|---|
+| 2026-10-26 | Peek docking with two screens: dock on screen B, leave, move the full window to screen A, open Peek (and press the dock button on a Peek floating on A): it docks on B; after plugging in a monitor while docked, one press of the dock button docks again | Desktop app, next beta, two screens | §435 (#186 #187) |
 | 2026-10-26 | Peek without the small line top left; the week review with actions only (no topics, no meetings without actions) and long meeting headings on one line | Desktop app, next beta | §434 (#182 #183 #184) |
 | 2026-10-26 | The new list style in your own notes at 125 % (dark and light): the week review and the Action Drawer (day bands, one line per item, the grey selection, muted all-done meetings, the two earlier-weeks links), and the date setting "Dates in tabs and lists" on tabs, Section History, the drawer, Search and the week review | Desktop app, next beta | §433 |
 | 2026-10-25 | Week review in your own notes at 125 %: on a Monday and on a Friday, the open actions and topics per meeting, the counts, Show done, Ctrl+Space and Shift+Enter from the list, the earlier-weeks line; and the Action Drawer's new filters (`tag:`, `since:`, `is:done`) | Desktop app, next beta | §431, §432 |

@@ -302,6 +302,36 @@ describe("createPeekWindowController", () => {
         expect(f.geo).toEqual(lastStrip);
       });
 
+      it("moves by screen only: keeps its own size, to that screen's lower centre, then docks", async () => {
+        const f = twoScreens([left, right]);
+        const peek = createPeekWindowController(f.win);
+        const floating = { x: 600, y: 500, width: 420, height: 200 };
+        await peek.enter({ ...enterOpts, geometry: floating, forceHeight: false });
+        await peek.dock(200, true, lastStrip);
+        expect(f.log).toContain(`bounds:${1920 + (1920 - 420) / 2},840 420x200`);
+      });
+
+      it("the dock fails after the move: back where it was, not left on the other screen", async () => {
+        const f = twoScreens([left, right]);
+        const peek = createPeekWindowController(f.win);
+        const floating = { x: 600, y: 500, width: 420, height: 200 };
+        await peek.enter({ ...enterOpts, geometry: floating, forceHeight: false });
+        f.win.dockBottom = async () => {
+          throw new Error("ABM_NEW refused");
+        };
+        expect(await peek.dock(200, true, lastStrip)).toBeNull();
+        expect(f.geo).toEqual(floating);
+        expect(peek.isDocked()).toBe(false);
+      });
+
+      it("a minimized window is not moved first", async () => {
+        const f = twoScreens([left, right]);
+        f.win.isMinimized = async () => true;
+        const peek = createPeekWindowController(f.win);
+        await peek.enter({ ...enterOpts, dockLogicalHeight: 200, dockGeometry: lastStrip });
+        expect(f.log.some((l) => l.startsWith("bounds:"))).toBe(false);
+      });
+
       it("that screen is gone: docks on the window's screen, without moving it first", async () => {
         const f = twoScreens([left]);
         const peek = createPeekWindowController(f.win);

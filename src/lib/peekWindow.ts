@@ -239,23 +239,33 @@ export function createPeekWindowController(win: PeekWin) {
 
   /** The native side docks on the window's screen: first moves the window onto the screen of `at` when that screen is
    * still there and the window is on another one. Done while not docked yet, so a change of scale happens before the
-   * dock (a scale change while docked floats Peek, §404). */
-  const moveToScreenOf = async (at: PeekGeometry): Promise<void> => {
+   * dock (a scale change while docked floats Peek, §404). The window keeps its own size and goes to that screen's lower
+   * centre: only the screen counts, not the old strip's rectangle, which may not fit a changed layout. Never while
+   * minimized (moving a minimized window spoils where it is restored, §405). Resolves to where it was, if it moved. */
+  const moveToScreenOf = async (at: PeekGeometry): Promise<PeekGeometry | null> => {
+    if (await minimized()) return null;
     const monitors = await win.monitors();
-    if (monitors.length === 0) return;
+    if (monitors.length === 0) return null;
     const target = monitorOf(at, monitors);
-    if (!target || target === monitorOf(await currentGeometry(), monitors)) return;
-    const fit = fitToMonitors(at, monitors);
-    if (!fit) return;
-    log("detail", `dock: moving to the screen it was last docked on, ${fmtG(fit)}`);
-    await win.setBounds(fit);
+    const before = await currentGeometry();
+    if (!target || target === monitorOf(before, monitors)) return null;
+    const g = defaultPeekGeometry(before, [target], 0);
+    if (!g) return null;
+    log("detail", `dock: moving to the screen it was last docked on, ${fmtG(g)}`);
+    await win.setBounds(g);
+    return before;
   };
 
   /** Docks at `logicalHeight` (true), or reports that docking is not available here (false). The strip goes on the
    * screen of `at` (where Peek was last docked) when that screen is still there, else on the window's screen (#187). */
   const dockAt = async (logicalHeight: number, at?: PeekGeometry | null): Promise<boolean> => {
     // Best effort: not knowing the screens must never stop the dock itself.
-    if (at) await moveToScreenOf(at).catch((e) => log("warn", `dock: could not go to the last dock's screen: ${String(e)}`));
+    const movedFrom = at
+      ? await moveToScreenOf(at).catch((e) => {
+          log("warn", `dock: could not go to the last dock's screen: ${String(e)}`);
+          return null;
+        })
+      : null;
     const scale = (await win.scaleFactor()) || 1;
     try {
       docked = await win.dockBottom(Math.round(logicalHeight * scale));
@@ -264,6 +274,8 @@ export function createPeekWindowController(win: PeekWin) {
     } catch (e) {
       log("event", `docking not possible, floating instead: ${String(e)}`);
       docked = null;
+      // Not left on the other screen: back where it was (review of §435).
+      if (movedFrom) await win.setBounds(movedFrom);
       return false;
     }
   };

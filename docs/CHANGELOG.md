@@ -11365,3 +11365,28 @@ Three issues Marien filed after trying 0.34.0-2:
   now), `week-review-and-drawer-style.spec.ts` (long heading on one line with an ellipsis; topics and action-less
   meetings left out, also with Show done), `weekReview.test.ts`; `week-review.spec.ts` and
   `week-review.independent.spec.ts` now expect no topics.
+
+## 435. Peek: the dock button after a lost dock, and docking on the screen it was last docked on
+
+**Status: on main, not released yet.**
+
+Two issues Marien filed on 0.34.0-3:
+
+- **The dock button needed two presses after a lost dock** (#186). Connecting a monitor while docked floats Peek
+  (§398) but keeps the saved choice "docked", so the next Peek opens docked again. The button flipped that saved choice,
+  so its first press asked to float a Peek that was already floating. In Peek it now switches what Peek is now.
+- **Docking went to the screen the window was on** (#187), while a floating Peek goes back to where it was last left.
+  The last strip is now remembered (`PeekConfig.dockGeometry`, physical pixels, saved after every dock), and docking
+  goes back to that screen while it is connected: the window is moved there first and then docked. Moving first, not
+  telling the native side which screen, keeps a change of scale out of the dock (a scale change while docked counts as
+  a lost dock, §404). A screen that is gone: the window's own screen, as before. Moving there is best effort; not
+  knowing the screens never stops the dock.
+- **Review (Gemini):** four findings, all fixed: a dock that failed after the move left the window as a strip on the
+  other screen (now back where it was); the move used the old strip's rectangle, which a changed layout could turn into
+  a misplaced box (now only the screen counts: the window keeps its size, lower centre of that screen); a minimized
+  window was moved (spoils its restore, §405; now skipped); a quick second press, or one while Peek was still entering
+  or handling a lost dock, read the state before that finished (the button now reads where Peek is going).
+- **Tests:** `peekWindow.test.ts` (enter and the button on two screens; size kept on the move; back after a failed
+  dock; no move while minimized; the remembered screen gone), `peek.spec.ts`
+  (one press docks again after a lost dock, failing on the old code; the strip is saved). Not testable here without a
+  second real screen and Marien's hands: the actual move between two screens (open check).
