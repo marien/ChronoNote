@@ -57,6 +57,7 @@ h1 { font: 600 22px/1.25 var(--ui); margin: 0; text-wrap: balance; }
 .seg span { padding: 2px 8px; border-radius: 4px; color: var(--muted); }
 .seg .on { background: var(--raised); color: var(--text); }
 .earlier { margin: 0 12px 8px; font: 12px var(--ui); color: var(--muted); }
+.earlier .overtxt { color: var(--warn); font-weight: 600; }
 .earlier u { text-decoration-color: var(--edge-strong); text-underline-offset: 3px; }
 
 /* The shared list */
@@ -77,6 +78,12 @@ h1 { font: 600 22px/1.25 var(--ui); margin: 0; text-wrap: balance; }
   background-image: linear-gradient(var(--tertiary), var(--tertiary)), linear-gradient(var(--tertiary), var(--tertiary));
   background-size: 100% 1px; background-repeat: no-repeat; background-position: 0 calc(100% - 3px), 0 100%; }
 .sec .date { font: 12px var(--ui); color: var(--tertiary); white-space: nowrap; }
+/* A meeting with nothing open: heading and rule muted. */
+.sec.quiet .t { color: var(--tertiary); font-weight: 400; background-image: linear-gradient(var(--edge-strong), var(--edge-strong)), linear-gradient(var(--edge-strong), var(--edge-strong)); }
+/* The drawer's source: right-aligned and grey, only on the hovered or selected row, left out when it does not fit (as today). */
+.r .src { display: none; margin-left: auto; padding-left: 12px; font: 12px var(--ui); color: var(--tertiary); font-weight: 400; white-space: nowrap; }
+.r:hover .src, .r.sel .src { display: inline; }
+.r .cnt + .src { margin-left: 8px; }
 .sec .alldone { font: italic 12px var(--ui); color: var(--tertiary); margin-left: auto; white-space: nowrap; }
 .sec .alldone::before { content: "\2713  "; font-style: normal; color: var(--done); }
 
@@ -117,6 +124,10 @@ h1 { font: 600 22px/1.25 var(--ui); margin: 0; text-wrap: balance; }
 .tl::after { content: ""; position: absolute; left: 0; top: calc(var(--fs) * var(--lh) / 2); width: calc((var(--c) - var(--p)) * 1ch - .35em - 2px); border-top: 1px solid var(--tertiary); }
 .chev { position: absolute; left: -4px; color: var(--tertiary); font: 10px var(--ui); top: 50%; transform: translateY(-50%); }
 
+.variants { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; font-size: 13px; color: var(--muted); }
+.variants button { font: 600 12.5px var(--ui); border: 1px solid var(--edge-strong); background: var(--chrome); color: var(--text); border-radius: 999px; padding: 4px 12px; cursor: pointer; }
+.variants button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--canvas); }
+.variants button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .foot { padding: 6px 12px; border-top: 1px solid var(--edge-soft); font: 11.5px/1.5 var(--ui); color: var(--tertiary); }
 
 .notes { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; }
@@ -129,9 +140,15 @@ h1 { font: 600 22px/1.25 var(--ui); margin: 0; text-wrap: balance; }
 
 <div class="wrap">
   <div>
-    <div class="lbl">ChronoNote · action lists · mockup v2 for review, 25 October 2026</div>
+    <div class="lbl">ChronoNote · action lists · mockup v3 for review, 26 October 2026</div>
     <h1>One list style for the week review and the Action Drawer</h1>
-    <p class="lede">Both views answer the same question: what is still open, and where did it come from. They now share one way of drawing it: a quiet band per day (or per due group), the meeting as a heading with a compact double rule, and every item one editor line with Section History's selection. Hover a row to see the hover state; click one to select it.</p>
+    <p class="lede">Both views answer the same question: what is still open, and where did it come from. They now share one way of drawing it: a quiet band per day (or per due group), every item one editor line with Section History's selection. The week review adds the meeting as a heading with a compact double rule; the drawer keeps showing the meeting only on the hovered or selected row. Hover a row to see it; click one to select it.</p>
+  </div>
+
+  <div class="variants" role="group" aria-label="Datums">
+    <span>Instelling "Datums in tabs en lijsten":</span>
+    <button type="button" id="df" aria-pressed="true">Leesbaar</button>
+    <button type="button" id="di" aria-pressed="false">ISO-datum</button>
   </div>
 
   <div class="panes">
@@ -140,9 +157,9 @@ h1 { font: 600 22px/1.25 var(--ui); margin: 0; text-wrap: balance; }
       <section class="pane" aria-label="Week review">
         <div class="ph"><h2>Week 43 · 19 - 25 okt 2026</h2><span class="nav">‹</span><span class="nav">›</span></div>
         <div class="sub"><span>4 open acties</span><span>3 open agendapunten</span><span class="over">1 te laat</span><label><input type="checkbox" id="showdone"> Toon voltooid</label></div>
-        <div class="earlier"><u>3 nog open uit eerdere weken</u></div>
+        <div class="earlier"><u>3 open uit eerdere weken</u>, <span class="overtxt">1 te laat</span></div>
         <div class="list mono">
-          <div class="band">Dinsdag 20 oktober<small>3 open · <span class="over">1 te laat</span></small></div>
+          <div class="band"><span class="d" data-iso="2026-10-20" data-friendly="di 20 okt">di 20 okt</span><small>3 open · <span class="over">1 te laat</span></small></div>
           <div class="sec"><span class="t">Weekly Sync</span></div>
           <div class="r sel"><span class="g open"><i></i></span><span class="tx">send the budget to Dana <span class="due over"><s>by:</s>2026-10-22</span></span></div>
           <div class="r"><span class="g open"><i></i></span><span class="tx">book the venue</span><span class="cnt">1/2</span></div>
@@ -150,16 +167,16 @@ h1 { font: 600 22px/1.25 var(--ui); margin: 0; text-wrap: balance; }
           <div class="r i4 done-only" hidden><span class="g done"><i></i></span><span class="tx">ask finance</span></div>
           <div class="r"><span class="g to"><i></i></span><span class="tx">hiring plan</span></div>
           <div class="r"><span class="g tp"><i></i></span><span class="tx">office move</span></div>
-          <div class="sec"><span class="t">Standup</span><span class="alldone open-only">alles voltooid</span></div>
+          <div class="sec quiet"><span class="t">Standup</span><span class="alldone open-only">alles voltooid</span></div>
           <div class="r done-only" hidden><span class="g done"><i></i></span><span class="tx">fix the export bug</span></div>
 
-          <div class="band">Donderdag 22 oktober<small>2 open</small></div>
+          <div class="band"><span class="d" data-iso="2026-10-22" data-friendly="do 22 okt">do 22 okt</span><small>2 open</small></div>
           <div class="sec"><span class="t">1:1 Priya</span></div>
           <div class="r"><span class="g to"><i></i></span><span class="tx">promotion case</span></div>
           <div class="r"><span class="g open"><i></i></span><span class="tx"><span class="topic"><b>(</b>hiring<b>)</b></span> write the job post <span class="arrow">➔</span> <span class="who">@priya</span> review it</span></div>
           <div class="r done-only" hidden><span class="g td"><i></i></span><span class="tx">team survey</span></div>
 
-          <div class="band">Vrijdag 24 oktober<small>1 open</small></div>
+          <div class="band"><span class="d" data-iso="2026-10-24" data-friendly="vr 24 okt">vr 24 okt</span><small>1 open</small></div>
           <div class="sec"><span class="t">Retro</span></div>
           <div class="r"><span class="g open"><i></i></span><span class="tx">try pairing on the release</span></div>
           <div class="r done-only" hidden><span class="g x"><i></i></span><span class="tx">move the retro to Thursday</span></div>
@@ -174,17 +191,14 @@ h1 { font: 600 22px/1.25 var(--ui); margin: 0; text-wrap: balance; }
         <div class="filter"><span class="chip">before:2026-10-18</span><span class="chip">is:open</span></div>
         <div class="seg"><span>Open tabs</span><span>Overige notities</span><span class="on">Alle bestanden</span></div>
         <div class="list mono">
-          <div class="band">Donderdag 16 oktober<small>1 open</small></div>
-          <div class="sec"><span class="t">Planning</span></div>
-          <div class="r"><span class="g open"><i></i></span><span class="tx">ask IT for the new laptops</span></div>
+          <div class="band"><span class="d" data-iso="2026-10-16" data-friendly="do 16 okt">do 16 okt</span><small>1 open</small></div>
+          <div class="r"><span class="g open"><i></i></span><span class="tx">ask IT for the new laptops</span><span class="src">Planning</span></div>
 
-          <div class="band">Dinsdag 14 oktober<small>3 open</small></div>
-          <div class="sec"><span class="t">Weekly Sync</span></div>
-          <div class="r sel"><span class="g open"><i></i></span><span class="tx">draft the Q4 plan</span><span class="cnt">0/2</span></div>
-          <div class="r i4"><span class="tl mid" style="--p:0;--c:4"></span><span class="g open"><i></i></span><span class="tx">1. collect the numbers</span></div>
-          <div class="r i4"><span class="tl end" style="--p:0;--c:4"></span><span class="g open"><i></i></span><span class="tx">2. review with finance</span></div>
-          <div class="sec"><span class="t">Onboarding</span></div>
-          <div class="r"><span class="g open"><i></i></span><span class="tx">update the onboarding page</span></div>
+          <div class="band"><span class="d" data-iso="2026-10-14" data-friendly="di 14 okt">di 14 okt</span><small>3 open</small></div>
+          <div class="r sel"><span class="g open"><i></i></span><span class="tx">draft the Q4 plan</span><span class="cnt">0/2</span><span class="src">Weekly Sync</span></div>
+          <div class="r i4"><span class="tl mid" style="--p:0;--c:4"></span><span class="g open"><i></i></span><span class="tx">1. collect the numbers</span><span class="src">Weekly Sync</span></div>
+          <div class="r i4"><span class="tl end" style="--p:0;--c:4"></span><span class="g open"><i></i></span><span class="tx">2. review with finance</span><span class="src">Weekly Sync</span></div>
+          <div class="r"><span class="g open"><i></i></span><span class="tx">update the onboarding page</span><span class="src">Onboarding</span></div>
         </div>
         <div class="foot">Enter naar regel · Shift+Enter naar vandaag · Ctrl+Space status</div>
       </section>
@@ -197,18 +211,14 @@ h1 { font: 600 22px/1.25 var(--ui); margin: 0; text-wrap: balance; }
         <div class="seg"><span class="on">Op deadline</span></div>
         <div class="list mono">
           <div class="band overdue">Te laat<small>2</small></div>
-          <div class="sec"><span class="t">Weekly Sync</span><span class="date">di 20 okt</span></div>
-          <div class="r"><span class="g open"><i></i></span><span class="tx">send the budget to Dana <span class="due over"><s>by:</s>2026-10-22</span></span></div>
-          <div class="sec"><span class="t">Design Review</span><span class="date">wo 21 okt</span></div>
-          <div class="r sel"><span class="g open"><i></i></span><span class="tx">update mockups <span class="due over"><s>by:</s>2026-10-24</span></span></div>
+          <div class="r"><span class="g open"><i></i></span><span class="tx">send the budget to Dana <span class="due over"><s>by:</s>2026-10-22</span></span><span class="src"><span class="d" data-iso="2026-10-20" data-friendly="di 20 okt">di 20 okt</span> · Weekly Sync</span></div>
+          <div class="r sel"><span class="g open"><i></i></span><span class="tx">update mockups <span class="due over"><s>by:</s>2026-10-24</span></span><span class="src"><span class="d" data-iso="2026-10-21" data-friendly="wo 21 okt">wo 21 okt</span> · Design Review</span></div>
 
           <div class="band">Vandaag<small>1</small></div>
-          <div class="sec"><span class="t">Standup</span><span class="date">zo 25 okt</span></div>
-          <div class="r"><span class="g open"><i></i></span><span class="tx">send the release notes <span class="due today"><s>by:</s>2026-10-25</span></span></div>
+          <div class="r"><span class="g open"><i></i></span><span class="tx">send the release notes <span class="due today"><s>by:</s>2026-10-25</span></span><span class="src"><span class="d" data-iso="2026-10-25" data-friendly="zo 25 okt">zo 25 okt</span> · Standup</span></div>
 
           <div class="band">Deze week<small>1</small></div>
-          <div class="sec"><span class="t">1:1 Priya</span><span class="date">do 22 okt</span></div>
-          <div class="r"><span class="g open"><i></i></span><span class="tx">export assets <span class="due"><s>by:</s>2026-10-30</span></span></div>
+          <div class="r"><span class="g open"><i></i></span><span class="tx">export assets <span class="due"><s>by:</s>2026-10-30</span></span><span class="src"><span class="d" data-iso="2026-10-22" data-friendly="do 22 okt">do 22 okt</span> · 1:1 Priya</span></div>
         </div>
         <div class="foot">Enter naar regel · Ctrl+Space status</div>
       </section>
@@ -216,12 +226,13 @@ h1 { font: 600 22px/1.25 var(--ui); margin: 0; text-wrap: balance; }
   </div>
 
   <div class="notes">
-    <div><b>Day band</b><p>The day in words ("Dinsdag 20 oktober"), quiet, sentence case, with its counts on the right. It stays pinned at the top while you scroll, like the drawer's date heading does now. In the due view the bands are Te laat, Vandaag, Deze week, Later.</p></div>
-    <div><b>Meeting heading</b><p>The section title in the note's font, semibold, with a compact double rule just under it: the note's identity, at a smaller scale. "alles voltooid" sits on the same line instead of taking one of its own. In the due view the heading also carries the note's date.</p></div>
+    <div><b>One date setting</b><p>"Tablabels" becomes "Datums in tabs en lijsten" and applies everywhere a note's date is a label: the top bar and phone tabs, Section History's date tabs, the Action Drawer's day bands and source label, Search's group headings, and the week review's day bands. The full date stays in the tooltip.</p></div>
+    <div><b>Day band</b><p>The note's date as the setting "Datums in tabs en lijsten" says (Leesbaar: "di 20 okt", "Gisteren", "Vandaag"; or the ISO date), quiet, with its counts on the right. It stays pinned at the top while you scroll, like the drawer's date heading does now. In the due view the bands are Te laat, Vandaag, Deze week, Later.</p></div>
+    <div><b>Meeting heading (week review only)</b><p>The section title in the note's font, semibold, with a compact double rule just under it: the note's identity, at a smaller scale. A meeting with nothing open is muted, with "alles voltooid" on the same line.</p></div>
     <div><b>Items</b><p>One editor line each (13 px Cascadia Code, line height 1.6), the editor's glyphs, tree lines and pills. Headings and bands may be taller; items are not.</p></div>
     <div><b>Selection from Section History</b><p>Hover: a light grey background. Selected: a darker grey with the line in semibold, rounded. The same in all three views and in Section History.</p></div>
-    <div><b>What the drawer gains</b><p>Its rows sit under their meeting heading, so the hover-only source label is no longer needed. The uppercase bars with borders go; the filter chips and scope buttons stay as they are.</p></div>
-    <div><b>Earlier weeks</b><p>The week review's "3 nog open uit eerdere weken" opens the drawer exactly as in the middle pane: <code>before:</code> the Sunday before the week, and <code>is:open</code>, filled in.</p></div>
+    <div><b>The drawer</b><p>No meeting headings: as today, the meeting (in the due view: date and meeting) shows right-aligned in grey on the hovered or selected row, and only when it fits. The uppercase bars with borders become the day bands; filter chips and scope buttons stay as they are.</p></div>
+    <div><b>Earlier weeks</b><p>"3 open uit eerdere weken, 1 te laat" says how many of them are past their due date, and opens the drawer exactly as in the middle pane: <code>before:</code> the Sunday before the week, and <code>is:open</code>, filled in.</p></div>
   </div>
 </div>
 
@@ -232,6 +243,14 @@ h1 { font: 600 22px/1.25 var(--ui); margin: 0; text-wrap: balance; }
     document.querySelectorAll(".done-only").forEach(function (el) { el.hidden = !sd.checked; });
     document.querySelectorAll(".open-only").forEach(function (el) { el.hidden = sd.checked; });
   });
+  var bf = document.getElementById("df"), bi = document.getElementById("di");
+  function dates(style) {
+    document.querySelectorAll(".d").forEach(function (el) { el.textContent = el.dataset[style]; });
+    bf.setAttribute("aria-pressed", String(style === "friendly"));
+    bi.setAttribute("aria-pressed", String(style === "iso"));
+  }
+  bf.addEventListener("click", function () { dates("friendly"); });
+  bi.addEventListener("click", function () { dates("iso"); });
   document.querySelectorAll(".pane").forEach(function (pane) {
     var rows = Array.prototype.slice.call(pane.querySelectorAll(".r"));
     rows.forEach(function (r) {
