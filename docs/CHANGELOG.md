@@ -10792,6 +10792,8 @@ From a test-coverage review (2026-10-17): Vitest covers 41% of `src/lib` lines a
 - **Reviewed by Gemini 3.8 Flash** (cross-model review): nine findings, all valid, all fixed before merging (update install leaving the strip reserved, a lost dock dropped during entering, rectangles on leaving, a late repair after leaving, the move target, display scaling, sleep, restore order and destroy cleanup, the flight recorder flooded by drags).
 - **Tests:** Rust `dock_lost_reason` (monitor set, order, moved/resized monitor, window on another monitor), log milliseconds, previous-run exit; Vitest: half-dock repairs in both directions, re-placing after a repair, leaving with an off-screen window or an unreachable title bar, failing steps logged; Playwright: a dock lost during entering is not dropped, the §398 test now goes through the check; native (`npm run test:native`, real app): a half dock made behind the page's back is found and released by the move check and leaving restores the full window, the log lines, exit lines and the killed-run warning. Not reproducible here: a real docking station, monitors with other scaling, sleep with an unplugged dock.
 
+Confirmed by Marien (2026-10-26) on 0.34.0-4.
+
 ## 405. Docked Peek: a dock lost while Windows has Peek minimized floats it when it comes back
 
 **Status: released in v0.32.5 (beta 0.32.5-4 first).**
@@ -10800,6 +10802,8 @@ From a test-coverage review (2026-10-17): Vitest covers 41% of `src/lib` lines a
 - **The log (Copy diagnostics) showed it:** of the three switches, two floated Peek correctly. In the one to "external screens only", Windows minimized Peek about 0.1 s before the display change. The dock was found lost and Peek was floated, but on a minimized window; when Windows restored it, it put it back where it had been in that display setup: the strip, rescaled for the other monitor (1938x265 at 125 % -> 1550x212 at 100 %). The page and the native side then both said "floating", so nothing repaired it.
 - **Fix (`peekWindow.ts`):** when a lost dock is found while the window is minimized, the float waits (`floatOnRestore`) and is placed by the next check after the window is restored (Windows' restore moves the window, which runs the check). Logged as PEEK events ("the window is minimized: it floats when it is restored", "restored after the screens changed: placing the floating window"). Any transition clears it.
 - **Tests:** Vitest reproduces the log's sequence (fails on the old code). Native (`npm run test:native`): minimize docked Peek, release the strip behind the page's back, send `peek-dock-lost`, restore: Peek floats. On one monitor Windows keeps a position set while minimized, so this native test cannot show the old failure; it shows the float waits and that a real restore places it. The native window tests now start with an empty test-app log (an earlier run's lines had satisfied a log check). Not checked yet: the display switch on the docking station.
+
+Confirmed by Marien (2026-10-26) on 0.34.0-4.
 
 ## 406. Code scanning: the visual review script
 
@@ -10818,12 +10822,16 @@ From a test-coverage review (2026-10-17): Vitest covers 41% of `src/lib` lines a
 - **Tests:** Vitest: the full window back on an old strip or on the floating Peek's place is moved home, a floating Peek back on an old strip or on the full window's place is floated again, the user's own move is left alone, nothing is checked before Peek was used. Native, new `tests/native/display-switch.spec.ts` (changes the display mode, so only with `DISPLAY_SWITCH=1`, never on CI; always ends in "extend"): Marien's sequence (fails without the fix: the full window landed on the strip, then on the floating spot), and a loop through extend / second screen only / first screen only / duplicate in which Peek and the full window always stay on a screen. Not checked here: screens with different scaling (both are 100 %), plugging a docking station in or out.
 - **Reviewed by Gemini 3.8 Flash** (cross-model review, diff and changed files only): nine findings, seven valid and fixed: a maximized window could be repaired over and over (maximized windows are now neither repaired nor recorded, and the same landing is not repaired twice within 3 s); a repair went to where leaving Peek had put the window instead of where the user moved it since (outside Peek, the user's own moves and resizes now update that place, and also a dragged floating Peek's); screens with other scaling (a rectangle recorded at 125 % comes back scaled: it is now also matched by its scaled size); the native test assumed exactly two screens and could leave a three-screen machine in single-screen mode (it now uses the machine's own count); a test pressed Esc on a minimized window; two comments. Not changed: "a strip is not recorded when the dock is lost" (every dock is followed by a check that records it) and "PowerShell per poll" (the polls wait for each other). The check now also runs after a resize (a resize from the right edge does not move the window). On the real screens the reverse case also showed: in "second screen only", Windows put Peek on the full window's old place; it was floated again.
 
+Confirmed by Marien (2026-10-26) on 0.34.0-4.
+
 ## 408. Docked Peek: a dock made while a check runs no longer becomes the floating place
 
 **Status: released in v0.32.5 (beta 0.32.5-6 first).**
 
 - CI's native test (the §404 half dock) failed on the 0.32.5-5 release commit: after the repair Peek floated at the strip's full width. Cause in §407's review fix "a repair goes where the user dragged floating Peek": a check read "not docked", the dock happened, then it read the window's place (already the strip) and took that as the floating place. CI's slower runner hit the gap; locally it passed.
 - Fix (`peekWindow.ts`): the place is taken only when a second read of the native state, after reading the place, shows the same undocked window. Same for the full window's place outside Peek. A unit test makes the dock happen between the two reads (fails on 0.32.5-5's code). Gates: Vitest 1280, native 18 including the display-switch tests on the two screens.
+
+Confirmed by Marien (2026-10-26) on 0.34.0-4.
 
 ## 409. Find bar: all text on one baseline, icons centred
 
@@ -11005,6 +11013,8 @@ Feature review B2, designed in `docs/design/due-dates-design.md` (Marien took al
 - **Standing rule from now on:** every editor design that draws something in place of text states its width in `ch`
   and how its height is kept, and tests both.
 
+Confirmed by Marien (2026-10-26) on 0.34.0-4.
+
 ## 421. Due date drawn in place: a flag for `by:`, the date stays text
 
 **Status: released in v0.33.0 (beta 0.33.0-4 first).**
@@ -11133,6 +11143,8 @@ the note; the last child's line ran on below it; and a child group's glyph sat f
 - **Tests:** `actionDrawerRows.test.ts` (`drawerTreeGuides`); `action-groups-drawer.independent.spec.ts` checks the
   line starts at the parent glyph's middle and that a plain row's glyph lines up with a parent's.
 
+Confirmed by Marien (2026-10-26) on 0.34.0-4.
+
 ## 425. Action Drawer groups: fixes from the cross-model review of §424
 
 **Status: released in v0.33.0 (beta 0.33.0-7 first).**
@@ -11151,6 +11163,8 @@ Gemini 3.8 Flash reviewed §424 after it went out in 0.33.0-6 (Marien asked for 
 Not taken: masking the line behind a step number of two digits (only when ten or more steps come before a child line);
 a single-pass `drawerTreeGuides` (its forward scans stop at the end of a subtree; a 200-step group costs ~20,000
 comparisons per rebuild).
+
+Confirmed by Marien (2026-10-26) on 0.34.0-4.
 
 ## 426. Section History draws groups like the note; topic and due pills in Section History and the Action Drawer
 
@@ -11313,6 +11327,8 @@ the week. Docked like Section History and Actions on a wide window.
   (`week-review.independent.spec.ts`; one test assumed a click selects a row, but it jumps as in the Action Drawer:
   it hovers now). Tests also `weekReview.test.ts`, `week-review.spec.ts`.
 
+Confirmed by Marien (2026-10-26) on 0.34.0-4.
+
 ## 433. One list style for the week review and the Action Drawer; one date setting
 
 **Status: released in beta 0.34.0-2 (early channel only).**
@@ -11345,6 +11361,8 @@ review's day bands, always with the full date as tooltip (`noteDateLabel.ts`). T
 - **Tests:** `noteDateLabel.test.ts`, `weekReview.test.ts` (earlier-weeks overdue count), `week-review-and-drawer-style.spec.ts`,
   `list-style-dates.independent.spec.ts`.
 
+Confirmed by Marien (2026-10-26) on 0.34.0-4.
+
 ## 434. Week review and Peek fixes from beta 0.34.0-2: actions only, one-line meeting headings, no stray tree line
 
 **Status: released in beta 0.34.0-3 (early channel only).**
@@ -11365,6 +11383,8 @@ Three issues Marien filed after trying 0.34.0-2:
   now), `week-review-and-drawer-style.spec.ts` (long heading on one line with an ellipsis; topics and action-less
   meetings left out, also with Show done), `weekReview.test.ts`; `week-review.spec.ts` and
   `week-review.independent.spec.ts` now expect no topics.
+
+Confirmed by Marien (2026-10-26) on 0.34.0-4.
 
 ## 435. Peek: the dock button after a lost dock, and docking on the screen it was last docked on
 
@@ -11390,3 +11410,5 @@ Two issues Marien filed on 0.34.0-3:
   dock; no move while minimized; the remembered screen gone), `peek.spec.ts`
   (one press docks again after a lost dock, failing on the old code; the strip is saved). Not testable here without a
   second real screen and Marien's hands: the actual move between two screens (open check).
+
+Confirmed by Marien (2026-10-26) on 0.34.0-4.
