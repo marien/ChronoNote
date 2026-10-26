@@ -22,6 +22,7 @@ export const PEEK_DEFAULTS: PeekConfig = {
   callShortcut: "CommandOrControl+Alt+J",
   dockBottom: false,
   dockHeight: 220,
+  dockGeometry: null,
 };
 
 export function clampPeek(peek: PeekConfig): PeekConfig {

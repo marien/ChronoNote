@@ -16,7 +16,7 @@ export type PeekHeader = "always" | "hover" | "never";
 
 export type PeekGeometry = { x: number, y: number, width: number, height: number };
 
-export type PeekConfig = { lines: number, opacity: number, opacityHover: number, fadeSeconds: number, alwaysOnTop: boolean, header: PeekHeader, geometry: PeekGeometry | null, useLinesHeight: boolean, defaultsVersion: number, callShortcut: string, dockBottom: boolean, dockHeight: number };
+export type PeekConfig = { lines: number, opacity: number, opacityHover: number, fadeSeconds: number, alwaysOnTop: boolean, header: PeekHeader, geometry: PeekGeometry | null, useLinesHeight: boolean, defaultsVersion: number, callShortcut: string, dockBottom: boolean, dockHeight: number, dockGeometry: PeekGeometry | null };
 
 export type FileMetadata = { exists: boolean, contentHash: string | null, sizeBytes: number | null, modifiedMs: number | null };
 
