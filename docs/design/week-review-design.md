@@ -89,3 +89,17 @@ weekend included, the current one, which ends that Sunday), 2a (`Ctrl+Shift+K`),
 3b (one line "N still open from earlier weeks" that opens the Action Drawer on them), 4b (a muted line for a day or
 section with nothing open), 5a ("Show done" toggle, off by default), 6a (delegated parts only on their action's row),
 7a (`Ctrl+Space` and `Shift+Enter` as in the Action Drawer).
+
+## 8. Visual design and earlier weeks (Marien, 2026-10-26)
+
+After trying beta 0.34.0-1: the view should look like the main content. Mockup `docs/design/week-review-mockup.html` (v3,
+artifact Mhwf517jAYSFQWiQveBhvm) is one list style shared with the Action Drawer: a quiet day band per note date (counts on
+the right, pinned while scrolling; due groups in the drawer's due view), every item one editor line with Section History's
+selection, and in the week review only, the meeting as a semibold heading with a compact double rule, muted when nothing in
+it is open. The drawer keeps no meeting headings: the meeting shows on the hovered or selected row when it fits.
+
+The earlier-weeks line reads "N open from earlier weeks, M overdue": two links, both with `before:` (the Sunday before the
+shown week) and `is:open` filled in. N opens the Action Drawer on all files; M opens it in the due view.
+
+Day bands, Section History's date tabs, the drawer's source label and Search's group headings follow the date setting
+(renamed from "Tab labels" to "Dates in tabs and lists").

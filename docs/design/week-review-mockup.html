@@ -157,7 +157,7 @@ h1 { font: 600 22px/1.25 var(--ui); margin: 0; text-wrap: balance; }
       <section class="pane" aria-label="Week review">
         <div class="ph"><h2>Week 43 · 19 - 25 okt 2026</h2><span class="nav">‹</span><span class="nav">›</span></div>
         <div class="sub"><span>4 open acties</span><span>3 open agendapunten</span><span class="over">1 te laat</span><label><input type="checkbox" id="showdone"> Toon voltooid</label></div>
-        <div class="earlier"><u>3 open uit eerdere weken</u>, <span class="overtxt">1 te laat</span></div>
+        <div class="earlier"><u title="Acties, Alle bestanden: before:2026-10-18 is:open">3 open uit eerdere weken</u>, <u class="overtxt" title="Acties, Op deadline: before:2026-10-18 is:open">1 te laat</u></div>
         <div class="list mono">
           <div class="band"><span class="d" data-iso="2026-10-20" data-friendly="di 20 okt">di 20 okt</span><small>3 open · <span class="over">1 te laat</span></small></div>
           <div class="sec"><span class="t">Weekly Sync</span></div>
@@ -232,7 +232,7 @@ h1 { font: 600 22px/1.25 var(--ui); margin: 0; text-wrap: balance; }
     <div><b>Items</b><p>One editor line each (13 px Cascadia Code, line height 1.6), the editor's glyphs, tree lines and pills. Headings and bands may be taller; items are not.</p></div>
     <div><b>Selection from Section History</b><p>Hover: a light grey background. Selected: a darker grey with the line in semibold, rounded. The same in all three views and in Section History.</p></div>
     <div><b>The drawer</b><p>No meeting headings: as today, the meeting (in the due view: date and meeting) shows right-aligned in grey on the hovered or selected row, and only when it fits. The uppercase bars with borders become the day bands; filter chips and scope buttons stay as they are.</p></div>
-    <div><b>Earlier weeks</b><p>"3 open uit eerdere weken, 1 te laat" says how many of them are past their due date, and opens the drawer exactly as in the middle pane: <code>before:</code> the Sunday before the week, and <code>is:open</code>, filled in.</p></div>
+    <div><b>Earlier weeks</b><p>"3 open uit eerdere weken, 1 te laat": two links, both with <code>before:</code> the Sunday before the week and <code>is:open</code> filled in. "3 open uit eerdere weken" opens the drawer on Alle bestanden (the middle pane); "1 te laat" opens it on Op deadline, where the overdue ones are at the top.</p></div>
   </div>
 </div>
 
