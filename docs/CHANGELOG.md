@@ -11281,7 +11281,7 @@ The first start of the day is unchanged (today opens when it has content or meet
 
 ## 431. Search filters in the Action Drawer (feature review B3)
 
-**Status: released in beta 0.34.0-1 (early channel only).**
+**Status: released in v0.34.0 (beta 0.34.0-1 first).**
 
 Confirmed by Marien (2026-10-25) on 0.34.0-1.
 
@@ -11303,7 +11303,7 @@ shows delegated parts.
 
 ## 432. Week review (feature review A3)
 
-**Status: released in beta 0.34.0-1 (early channel only).**
+**Status: released in v0.34.0 (beta 0.34.0-1 first).**
 
 Marien approved A3 on 2026-10-25 ("it should help me figure out which actions and topics are still open and require
 follow-up") and took all seven recommendations of `docs/design/week-review-design.md` (section 7). `Ctrl+Shift+K`,
@@ -11331,7 +11331,7 @@ Confirmed by Marien (2026-10-26) on 0.34.0-4.
 
 ## 433. One list style for the week review and the Action Drawer; one date setting
 
-**Status: released in beta 0.34.0-2 (early channel only).**
+**Status: released in v0.34.0 (beta 0.34.0-2 first).**
 
 Marien after trying the week review in 0.34.0-1: it should look like the main content; the boxes and the white space did
 not work, and the earlier-weeks link should open exactly what it counts. Three rounds of a mockup in the app's own styling
@@ -11365,7 +11365,7 @@ Confirmed by Marien (2026-10-26) on 0.34.0-4.
 
 ## 434. Week review and Peek fixes from beta 0.34.0-2: actions only, one-line meeting headings, no stray tree line
 
-**Status: released in beta 0.34.0-3 (early channel only).**
+**Status: released in v0.34.0 (beta 0.34.0-3 first).**
 
 Three issues Marien filed after trying 0.34.0-2:
 
@@ -11388,7 +11388,7 @@ Confirmed by Marien (2026-10-26) on 0.34.0-4.
 
 ## 435. Peek: the dock button after a lost dock, and docking on the screen it was last docked on
 
-**Status: released in beta 0.34.0-4 (early channel only).**
+**Status: released in v0.34.0 (beta 0.34.0-4 first).**
 
 Two issues Marien filed on 0.34.0-3:
 
