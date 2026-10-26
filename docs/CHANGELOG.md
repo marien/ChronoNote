@@ -11315,7 +11315,7 @@ the week. Docked like Section History and Actions on a wide window.
 
 ## 433. One list style for the week review and the Action Drawer; one date setting
 
-**Status: on main, not released yet.**
+**Status: released in beta 0.34.0-2 (early channel only).**
 
 Marien after trying the week review in 0.34.0-1: it should look like the main content; the boxes and the white space did
 not work, and the earlier-weeks link should open exactly what it counts. Three rounds of a mockup in the app's own styling
