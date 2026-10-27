@@ -11412,3 +11412,25 @@ Two issues Marien filed on 0.34.0-3:
   second real screen and Marien's hands: the actual move between two screens (open check).
 
 Confirmed by Marien (2026-10-26) on 0.34.0-4.
+
+## 436. Website: the app's glyphs, glyph colours and app icon
+
+**Status: on main, not released yet.**
+
+Marien noticed that the website still looked like an older app. Three things had fallen behind:
+
+- **Glyph colours.** `website/style.css` still had the 0.6 cyan/violet set (§105), which §328 replaced in the app.
+  The site now uses the dark values of the app's colour mode (`[data-color-mode="color"]`): red open, green done, amber
+  deferred, grey won't do, blue follow-up and @name, yellow emphasis. Marien chose the colour mode over the app's
+  grayscale default: a website benefits from colour. The chrome accent (links, buttons) stays the blue the colour mode
+  uses for the active tab; `--muted` follows the app's D5 value (#a6a6a6).
+- **Drawn glyphs.** The squares were still the ☐ ☑ ☒ characters, with a separately placed "›" for deferred. They are
+  now drawn as in the app's drawers and legends (§327): a 0.78em square with a 1.4px border and an SVG mark, the topic
+  circles at the same size with the dot as the circle's own background, the due-date flag as the app's SVG. The
+  characters stay in the markup, transparent, so copied text is unchanged. In the guide's "what you type / what you
+  see" pairs every row keeps its height (checked at 100 % and 125 %).
+- **Header logo.** Every page's header had a hand-drawn calendar icon in the accent blue, not the §416 app icon. It is
+  now `website/assets/logo.svg`, which `scripts/build-icons.mjs` writes from `appIconGeometry.ts` (pixel-fitted at
+  its 20 px), so it follows the next icon change. The favicons and social image were already current.
+
+Live with the next stable release (the site deploys from `website-live`).
