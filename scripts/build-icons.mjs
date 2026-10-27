@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Regenerates every app icon file from src/lib/appIconGeometry.ts (§416): the desktop
-// icon set (src-tauri/icons), the web app's icons, the website's and demo's favicons, and
+// icon set (src-tauri/icons), the web app's icons, the website's and demo's favicons and header logo, and
 // the 1024 px master in docs/design. Rasterized with Playwright's Chromium (already a dev
 // dependency), so the pixel-fitted small sizes come out exactly as drawn; replaces
 // `npx tauri icon`, which only scales one master down.
@@ -85,6 +85,8 @@ for (const dir of ["website/assets", "demo-src/public"]) {
   write(`${dir}/apple-touch-icon.png`, touch);
 }
 write("website/assets/og-image.png", await png(appIconPlateSvg(512, 0.62), 512));
+// The website header's logo (§436), pixel-fitted at its 20 px.
+write("website/assets/logo.svg", appIconSvg(20) + "\n");
 
 // The 1024 px master, for design work and history: a title and description right after
 // the opening <svg> tag.
