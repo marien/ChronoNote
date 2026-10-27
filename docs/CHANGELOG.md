@@ -11433,4 +11433,6 @@ Marien noticed that the website still looked like an older app. Three things had
   now `website/assets/logo.svg`, which `scripts/build-icons.mjs` writes from `appIconGeometry.ts` (pixel-fitted at
   its 20 px), so it follows the next icon change. The favicons and social image were already current.
 
-Live with the next stable release (the site deploys from `website-live`).
+Released to the website on 2026-10-27, at Marien's request, by moving `website-live` forward ahead of the next app
+release. The host lets browsers keep `style.css` for a week (`max-age=604800`), so returning visitors got the new
+pages with the old stylesheet: every page now links `style.css?v=436`. Bump that number whenever `style.css` changes.
