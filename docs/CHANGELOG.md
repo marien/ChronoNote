@@ -11436,3 +11436,22 @@ Marien noticed that the website still looked like an older app. Three things had
 Released to the website on 2026-10-27, at Marien's request, by moving `website-live` forward ahead of the next app
 release. The host lets browsers keep `style.css` for a week (`max-age=604800`), so returning visitors got the new
 pages with the old stylesheet: every page now links `style.css?v=436`. Bump that number whenever `style.css` changes.
+
+## 437. Dependencies: Tauri 2.12.5, the updater and dialog plugins, CodeMirror view, Vite
+
+**Status: on main, not released yet.**
+
+The Dependabot batch of 2026-10-26 (#189-#193), taken together on one branch as before (§379-§382):
+
+- **Rust:** tauri 2.12.5, tauri-build 2.7.4 (with tauri-codegen, -macros, -runtime-wry, wry 0.57.1, tao 0.37.2),
+  tauri-plugin-updater 2.14.1, tauri-plugin-dialog 2.8.4 (rfd 0.17), tauri-plugin-single-instance 2.5.5. Only the
+  Tauri crates and what they pull in were updated, not the rest of `Cargo.lock`.
+- **JS:** the matching `@tauri-apps/plugin-updater` 2.14.1 and `plugin-dialog` 2.8.4 (Tauri wants the JS and Rust
+  plugin versions to match; Dependabot only proposed the Rust side), `@tauri-apps/cli` 2.12.4, Vite 8.3.5,
+  `@codemirror/view` 6.43.15, Svelte 5.57.3.
+- **CI:** taiki-e/install-action 2.87.31.
+
+The failed Rust check on #191 was the runner losing its disk mid-build (os error 433), not the update. **Tests:** verify
+(svelte-check, check:e2e, Vitest, cargo test, clippy) and the full local Playwright suite, including scale-150, where a
+CodeMirror view update once moved glyphs by a pixel (§379). The updater plugin changed, so the release goes through two
+betas: the first is installed by the old updater, the second is the first install by the new one.
