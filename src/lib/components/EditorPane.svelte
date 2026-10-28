@@ -827,13 +827,13 @@
         copy: (event, v) => {
           const sel = v.state.sliceDoc(v.state.selection.main.from, v.state.selection.main.to);
           controller.recordCopiedAction(sel, controller.getActiveTabId(), v.state.selection.main.from);
-          if (v.state.selection.ranges.length === 1 && !v.state.selection.main.empty) {
+          // #196: lists also go on the clipboard as HTML lists, for Teams, Outlook and Word. Without clipboardData
+          // CodeMirror's own copy runs.
+          if (event.clipboardData && v.state.selection.ranges.length === 1 && !v.state.selection.main.empty) {
             const html = noteTextToHtml(sel);
             if (html !== null) {
-              if (event.clipboardData) {
-                event.clipboardData.setData("text/plain", sel);
-                event.clipboardData.setData("text/html", html);
-              }
+              event.clipboardData.setData("text/plain", sel);
+              event.clipboardData.setData("text/html", html);
               event.preventDefault();
               return true;
             }
@@ -844,14 +844,12 @@
           // Cutting removes the selection from this note. Clear any pending copy-defer link
           // so cutting text cannot defer a stale previous copy.
           controller.recordCopiedAction("", controller.getActiveTabId());
-          if (v.state.selection.ranges.length === 1 && !v.state.selection.main.empty) {
+          if (event.clipboardData && v.state.selection.ranges.length === 1 && !v.state.selection.main.empty) {
             const sel = v.state.sliceDoc(v.state.selection.main.from, v.state.selection.main.to);
             const html = noteTextToHtml(sel);
             if (html !== null) {
-              if (event.clipboardData) {
-                event.clipboardData.setData("text/plain", sel);
-                event.clipboardData.setData("text/html", html);
-              }
+              event.clipboardData.setData("text/plain", sel);
+              event.clipboardData.setData("text/html", html);
               event.preventDefault();
               v.dispatch({ ...v.state.replaceSelection(""), userEvent: "delete.cut", scrollIntoView: true });
               return true;
@@ -860,6 +858,8 @@
           return false;
         },
         paste: (event, v) => {
+          // #196: a list copied from Teams, a browser, Word or Outlook only keeps its bullets and indentation in the
+          // HTML; anything else (and ChronoNote's own copies) pastes text/plain as before.
           const rawHtml = event.clipboardData?.getData("text/html");
           if (rawHtml) {
             const converted = htmlToNoteText(rawHtml);

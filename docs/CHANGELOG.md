@@ -11474,3 +11474,27 @@ fallback. **Tests:** `peekWindow.test.ts`: entering docked goes to the floating 
 (fails on the old code), the last strip without a floating place, the button on the floating window's screen; the
 §435 cases (move by screen only, a failed dock, minimized, a screen that is gone) now through entering. Not testable
 here without two real screens: the actual move (open check).
+
+## 439. Lists keep their bullets, numbers and indentation on the clipboard
+
+**Status: on main, not released yet.**
+
+Marien pasted a bulleted list with sub-bullets from Teams and got flat lines (#196). The editor only read the
+clipboard's plain text, and Teams, Outlook, Word and browsers put a list's structure only in its HTML.
+
+- **Pasting:** when the clipboard's HTML holds a list (`<li>`, or Word's `mso-list` paragraphs), the paste is converted
+  to ChronoNote's own list syntax: `- ` bullets and `1. ` numbers, two spaces per level, continuation lines under the
+  item's text. Everything else pastes the plain text as before. The converted text goes through the normal paste
+  handling (§86 paste-forward, state first, due words, pasting onto an empty `- `).
+- **Copying out:** a selection with a bullet or numbered line also goes on the clipboard as an HTML list, so it arrives
+  in Teams or Outlook as a list. The plain text is unchanged.
+- **Review:** the first version also converted ChronoNote's own copies back through their HTML on paste, which
+  collapsed repeated spaces, turned `*` bullets into `-` and broke the paste-forward link (it compares the copied
+  text). ChronoNote's HTML is now marked (`data-chrononote`) and pasted as plain text. A copy without clipboard data
+  now falls back to CodeMirror's own copy instead of copying nothing.
+- **How it was built:** design and briefs by Claude; implementation by Gemini 3.8 Flash; independent tests by a second
+  Gemini run from the brief only (17 Playwright tests, all passing on the first run); review and the fixes above by Claude.
+- **Tests:** `richClipboard.test.ts` (Teams, browser, Word bullets and numbers, start numbers, continuation lines,
+  no-list HTML, escaping, ChronoNote's own HTML left alone), `rich-clipboard.independent.spec.ts`, and
+  `rich-clipboard.spec.ts` (a copy within ChronoNote pastes back exactly; fails on the first version). Not testable
+  here: what the real Teams, Outlook and Word put on the clipboard (open check).

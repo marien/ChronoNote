@@ -121,8 +121,13 @@ export function noteTextToHtml(text: string): string | null {
   }
 
   closeAll();
-  return output;
+  // Marked as ChronoNote's own, so a paste back into ChronoNote takes the exact text/plain instead (see htmlToNoteText).
+  return `<div ${OWN_HTML_ATTR}="">${output}</div>`;
 }
+
+/** On the HTML ChronoNote puts on the clipboard. Converting it back would collapse spaces, turn `*` into `-` and change
+ * what the paste-forward link (§86) compares, so `htmlToNoteText` leaves it to the plain text. */
+const OWN_HTML_ATTR = "data-chrononote";
 
 const BLOCK_TAGS = new Set([
   "P", "DIV", "H1", "H2", "H3", "H4", "H5", "H6",
@@ -237,7 +242,7 @@ export function htmlToNoteText(html: string): string | null {
   const parser = new DOMParser();
   const doc = parser.parseFromString(html, "text/html");
 
-  if (!hasList(doc)) {
+  if (!hasList(doc) || doc.querySelector(`[${OWN_HTML_ATTR}]`)) {
     return null;
   }
 

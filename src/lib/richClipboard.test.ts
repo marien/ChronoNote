@@ -240,6 +240,8 @@ describe("richClipboard", () => {
   });
 
   describe("noteTextToHtml", () => {
+    const own = (inner: string) => `<div data-chrononote="">${inner}</div>`;
+
     it("returns null when no line is a bullet or numbered item", () => {
       expect(noteTextToHtml("")).toBeNull();
       expect(noteTextToHtml("Just a plain line")).toBeNull();
@@ -251,7 +253,7 @@ describe("richClipboard", () => {
       const text = "- Item 1\n  - Sub 1\n    - Subsub 1\n- Item 2";
       const html = noteTextToHtml(text);
       expect(html).toBe(
-        "<ul><li>Item 1<ul><li>Sub 1<ul><li>Subsub 1</li></ul></li></ul></li><li>Item 2</li></ul>"
+        own("<ul><li>Item 1<ul><li>Sub 1<ul><li>Subsub 1</li></ul></li></ul></li><li>Item 2</li></ul>")
       );
     });
 
@@ -259,7 +261,7 @@ describe("richClipboard", () => {
       const text = "4. Item four\n5. Item five";
       const html = noteTextToHtml(text);
       expect(html).toBe(
-        '<ol start="4"><li>Item four</li><li>Item five</li></ol>'
+        own('<ol start="4"><li>Item four</li><li>Item five</li></ol>')
       );
     });
 
@@ -267,7 +269,7 @@ describe("richClipboard", () => {
       const text = "- <b>Bold & dangerous</b> \"quotes\" <script>";
       const html = noteTextToHtml(text);
       expect(html).toBe(
-        "<ul><li>&lt;b&gt;Bold &amp; dangerous&lt;/b&gt; &quot;quotes&quot; &lt;script&gt;</li></ul>"
+        own("<ul><li>&lt;b&gt;Bold &amp; dangerous&lt;/b&gt; &quot;quotes&quot; &lt;script&gt;</li></ul>")
       );
     });
 
@@ -275,7 +277,7 @@ describe("richClipboard", () => {
       const text = "- Top list\nMiddle prose\n1. Numbered bottom";
       const html = noteTextToHtml(text);
       expect(html).toBe(
-        "<ul><li>Top list</li></ul><div>Middle prose</div><ol><li>Numbered bottom</li></ol>"
+        own("<ul><li>Top list</li></ul><div>Middle prose</div><ol><li>Numbered bottom</li></ol>")
       );
     });
 
@@ -283,7 +285,7 @@ describe("richClipboard", () => {
       const text = "- Item\n  Indented non-list";
       const html = noteTextToHtml(text);
       expect(html).toBe(
-        "<ul><li>Item</li></ul><div>&nbsp;&nbsp;Indented non-list</div>"
+        own("<ul><li>Item</li></ul><div>&nbsp;&nbsp;Indented non-list</div>")
       );
     });
 
@@ -291,7 +293,7 @@ describe("richClipboard", () => {
       const text = "- Item 1\n\n- Item 2";
       const html = noteTextToHtml(text);
       expect(html).toBe(
-        "<ul><li>Item 1</li></ul><div><br></div><ul><li>Item 2</li></ul>"
+        own("<ul><li>Item 1</li></ul><div><br></div><ul><li>Item 2</li></ul>")
       );
     });
 
@@ -299,7 +301,7 @@ describe("richClipboard", () => {
       const text = "- # call Dana\n- o agenda topic\n1. v completed action";
       const html = noteTextToHtml(text);
       expect(html).toBe(
-        "<ul><li># call Dana</li><li>o agenda topic</li></ul><ol><li>v completed action</li></ol>"
+        own("<ul><li># call Dana</li><li>o agenda topic</li></ul><ol><li>v completed action</li></ol>")
       );
     });
 
@@ -307,7 +309,7 @@ describe("richClipboard", () => {
       const text = "* Star bullet\n2) Paren numbered";
       const html = noteTextToHtml(text);
       expect(html).toBe(
-        '<ul><li>Star bullet</li></ul><ol start="2"><li>Paren numbered</li></ol>'
+        own('<ul><li>Star bullet</li></ul><ol start="2"><li>Paren numbered</li></ol>')
       );
     });
   });
@@ -328,8 +330,16 @@ describe("richClipboard", () => {
 
       const html = noteTextToHtml(x);
       expect(html).not.toBeNull();
-      const back = htmlToNoteText(html!);
+      // Another app keeps the list but not ChronoNote's marker.
+      const back = htmlToNoteText(html!.replace(' data-chrononote=""', ""));
       expect(back).toBe(x);
+    });
+
+    it("ChronoNote's own HTML is left to the plain text (exact spaces, `*` bullets, the paste-forward link)", () => {
+      expect(htmlToNoteText(noteTextToHtml("* a    b\n   - odd indent")!)).toBeNull();
+      // As Chrome hands it to a paste event, with its own wrapper around the fragment.
+      const wrapped = `<html><body><!--StartFragment-->${noteTextToHtml("- x")}<!--EndFragment--></body></html>`;
+      expect(htmlToNoteText(wrapped)).toBeNull();
     });
   });
 });
