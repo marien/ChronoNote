@@ -11415,7 +11415,7 @@ Confirmed by Marien (2026-10-26) on 0.34.0-4.
 
 ## 436. Website: the app's glyphs, glyph colours and app icon
 
-**Status: on main, not released yet.**
+**Status: released in beta 0.35.0-1 (early channel only).**
 
 Marien noticed that the website still looked like an older app. Three things had fallen behind:
 
@@ -11439,7 +11439,7 @@ pages with the old stylesheet: every page now links `style.css?v=436`. Bump that
 
 ## 437. Dependencies: Tauri 2.12.5, the updater and dialog plugins, CodeMirror view, Vite
 
-**Status: on main, not released yet.**
+**Status: released in beta 0.35.0-1 (early channel only).**
 
 The Dependabot batch of 2026-10-26 (#189-#193), taken together on one branch as before (§379-§382):
 
@@ -11458,7 +11458,7 @@ betas: the first is installed by the old updater, the second is the first instal
 
 ## 438. Peek: docking follows the screen where floating Peek is
 
-**Status: on main, not released yet.**
+**Status: released in beta 0.35.0-1 (early channel only).**
 
 Marien found on 0.34.0 that there was no way left to dock Peek on another screen (#195). Since §435 every dock went to
 the screen of the last strip (`PeekConfig.dockGeometry`), and only docking itself changed that strip, so Peek docked
@@ -11477,7 +11477,7 @@ here without two real screens: the actual move (open check).
 
 ## 439. Lists keep their bullets, numbers and indentation on the clipboard
 
-**Status: on main, not released yet.**
+**Status: released in beta 0.35.0-1 (early channel only).**
 
 Marien pasted a bulleted list with sub-bullets from Teams and got flat lines (#196). The editor only read the
 clipboard's plain text, and Teams, Outlook, Word and browsers put a list's structure only in its HTML.
