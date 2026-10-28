@@ -11455,3 +11455,22 @@ The failed Rust check on #191 was the runner losing its disk mid-build (os error
 (svelte-check, check:e2e, Vitest, cargo test, clippy) and the full local Playwright suite, including scale-150, where a
 CodeMirror view update once moved glyphs by a pixel (§379). The updater plugin changed, so the release goes through two
 betas: the first is installed by the old updater, the second is the first install by the new one.
+
+## 438. Peek: docking follows the screen where floating Peek is
+
+**Status: on main, not released yet.**
+
+Marien found on 0.34.0 that there was no way left to dock Peek on another screen (#195). Since §435 every dock went to
+the screen of the last strip (`PeekConfig.dockGeometry`), and only docking itself changed that strip, so Peek docked
+on the same screen for good. Now docked Peek goes where floating Peek is, which is the one place the user can move:
+
+- **The dock button** docks on the screen the floating window is on now (as before §435).
+- **Opening Peek docked** (from the full window) goes to the screen of the floating place (`PeekConfig.geometry`),
+  which is also where floating Peek opens. That still answers #187: before §435 it docked on the full window's screen.
+  Only before floating Peek has a place of its own does the last strip decide.
+
+So to dock on the other screen: float, move it there, dock. `dockGeometry` is still saved after every dock, as that
+fallback. **Tests:** `peekWindow.test.ts`: entering docked goes to the floating place's screen and not the last strip's
+(fails on the old code), the last strip without a floating place, the button on the floating window's screen; the
+§435 cases (move by screen only, a failed dock, minimized, a screen that is gone) now through entering. Not testable
+here without two real screens: the actual move (open check).

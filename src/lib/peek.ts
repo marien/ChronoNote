@@ -202,7 +202,8 @@ export async function togglePeekDock(): Promise<void> {
   const win = await controller();
   if (dock) {
     // Remember where the floating window was, for switching back.
-    const floating = await win.dock(s.dockHeight, s.alwaysOnTop, s.dockGeometry);
+    // On the screen floating Peek is on now: moving floating Peek is how the dock moves to another screen (#195).
+    const floating = await win.dock(s.dockHeight, s.alwaysOnTop);
     if (floating) peekSettings.update((x) => ({ ...x, geometry: floating, useLinesHeight: false }));
     rememberDockStrip(win);
     // Docking is not available here: stay floating.
@@ -214,7 +215,7 @@ export async function togglePeekDock(): Promise<void> {
   peekDocked.set(win.isDocked());
 }
 
-/** Where Peek is docked now, so the next dock goes back to that screen (#187). */
+/** Where Peek is docked now, for entering docked before floating Peek has a place of its own (#187, #195). */
 function rememberDockStrip(win: ReturnType<typeof createPeekWindowController>): void {
   const strip = win.dockStrip();
   if (strip) peekSettings.update((x) => ({ ...x, dockGeometry: strip }));
