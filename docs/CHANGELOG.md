@@ -11456,6 +11456,9 @@ The failed Rust check on #191 was the runner losing its disk mid-build (os error
 CodeMirror view update once moved glyphs by a pixel (§379). The updater plugin changed, so the release goes through two
 betas: the first is installed by the old updater, the second is the first install by the new one.
 
+Confirmed by Marien (2026-10-28): 0.35.0-1 installed through the old updater. The install by the new one (0.35.0-2)
+is still open.
+
 ## 438. Peek: docking follows the screen where floating Peek is
 
 **Status: released in beta 0.35.0-1 (early channel only).**
@@ -11474,6 +11477,8 @@ fallback. **Tests:** `peekWindow.test.ts`: entering docked goes to the floating 
 (fails on the old code), the last strip without a floating place, the button on the floating window's screen; the
 §435 cases (move by screen only, a failed dock, minimized, a screen that is gone) now through entering. Not testable
 here without two real screens: the actual move (open check).
+
+Confirmed by Marien (2026-10-28) on 0.35.0-1.
 
 ## 439. Lists keep their bullets, numbers and indentation on the clipboard
 
@@ -11498,3 +11503,5 @@ clipboard's plain text, and Teams, Outlook, Word and browsers put a list's struc
   no-list HTML, escaping, ChronoNote's own HTML left alone), `rich-clipboard.independent.spec.ts`, and
   `rich-clipboard.spec.ts` (a copy within ChronoNote pastes back exactly; fails on the first version). Not testable
   here: what the real Teams, Outlook and Word put on the clipboard (open check).
+
+Confirmed by Marien (2026-10-28) on 0.35.0-1 (desktop app). The web app gets it with the stable release.
