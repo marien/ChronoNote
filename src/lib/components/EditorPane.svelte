@@ -52,6 +52,7 @@
   import { editorContextMenu, findMatch, findOpen, readableLineLength, spellCheck, wordWrap } from "../controller";
   import { currentLineKind, editorFocused } from "../stores";
   import { lineKind } from "../lineKind";
+  import { htmlToNoteText, noteTextToHtml } from "../richClipboard";
 
   interface Props {
     content: string;
@@ -823,22 +824,64 @@
         blur: () => {
           queueMicrotask(() => editorFocused.set(false));
         },
-        copy: (_event, v) => {
+        copy: (event, v) => {
           const sel = v.state.sliceDoc(v.state.selection.main.from, v.state.selection.main.to);
           controller.recordCopiedAction(sel, controller.getActiveTabId(), v.state.selection.main.from);
+          // #196: lists also go on the clipboard as HTML lists, for Teams, Outlook and Word. Without clipboardData
+          // CodeMirror's own copy runs.
+          if (event.clipboardData && v.state.selection.ranges.length === 1 && !v.state.selection.main.empty) {
+            const html = noteTextToHtml(sel);
+            if (html !== null) {
+              event.clipboardData.setData("text/plain", sel);
+              event.clipboardData.setData("text/html", html);
+              event.preventDefault();
+              return true;
+            }
+          }
+          return false;
         },
-        cut: (_event, _v) => {
+        cut: (event, v) => {
           // Cutting removes the selection from this note. Clear any pending copy-defer link
           // so cutting text cannot defer a stale previous copy.
           controller.recordCopiedAction("", controller.getActiveTabId());
+          if (event.clipboardData && v.state.selection.ranges.length === 1 && !v.state.selection.main.empty) {
+            const sel = v.state.sliceDoc(v.state.selection.main.from, v.state.selection.main.to);
+            const html = noteTextToHtml(sel);
+            if (html !== null) {
+              event.clipboardData.setData("text/plain", sel);
+              event.clipboardData.setData("text/html", html);
+              event.preventDefault();
+              v.dispatch({ ...v.state.replaceSelection(""), userEvent: "delete.cut", scrollIntoView: true });
+              return true;
+            }
+          }
+          return false;
         },
         paste: (event, v) => {
+          // #196: a list copied from Teams, a browser, Word or Outlook only keeps its bullets and indentation in the
+          // HTML; anything else (and ChronoNote's own copies) pastes text/plain as before.
+          const rawHtml = event.clipboardData?.getData("text/html");
+          if (rawHtml) {
+            const converted = htmlToNoteText(rawHtml);
+            if (converted !== null) {
+              event.preventDefault();
+              const lineIdx = v.state.doc.lineAt(v.state.selection.main.head).number - 1;
+              const docText = v.state.doc.toString();
+              controller.handlePasteIntoTab(controller.getActiveTabId(), converted, {
+                targetLineIdx: lineIdx,
+                targetDocText: docText,
+              });
+              v.dispatch({ ...v.state.replaceSelection(converted), userEvent: "input.paste", scrollIntoView: true });
+              return true;
+            }
+          }
           const lineIdx = v.state.doc.lineAt(v.state.selection.main.head).number - 1;
           const docText = v.state.doc.toString();
           controller.handlePasteIntoTab(controller.getActiveTabId(), event.clipboardData?.getData("text/plain"), {
             targetLineIdx: lineIdx,
             targetDocText: docText,
           });
+          return false;
         },
         // The occurrence hint (and its Peek button) also shows for a section whose title line or underline the mouse
         // is over, so it can be used without clicking into the section first.
