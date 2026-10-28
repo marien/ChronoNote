@@ -847,7 +847,7 @@ test.describe("docked peek", () => {
     expect(await page.evaluate(() => window.__CHRONO_MOCK__!.peek.dockBottom)).toBe(true);
   });
 
-  test("the strip Peek docked to is remembered, so the next dock goes back to that screen (#187)", async ({ page }) => {
+  test("the strip Peek docked to is remembered, for docking before floating Peek has a place of its own (#187, #195)", async ({ page }) => {
     await seedApp(page, { seed: { ...today(), peek: { dockBottom: true, dockHeight: 240, header: "always", fadeSeconds: 0 } } });
     await enterOnWeeklySync(page);
     await expect

@@ -168,7 +168,8 @@ export interface PeekEnterOptions {
   alwaysOnTop: boolean;
   /** §393: dock to the bottom of the screen at this logical height instead of floating. */
   dockLogicalHeight?: number;
-  /** Where Peek was last docked: docking goes to that screen while it is there (#187). */
+  /** Where Peek was last docked: entering docked goes to that screen while it is there, when there is no floating
+   * place (`geometry`) to go by (#187, #195). */
   dockGeometry?: PeekGeometry | null;
 }
 
@@ -251,18 +252,18 @@ export function createPeekWindowController(win: PeekWin) {
     if (!target || target === monitorOf(before, monitors)) return null;
     const g = defaultPeekGeometry(before, [target], 0);
     if (!g) return null;
-    log("detail", `dock: moving to the screen it was last docked on, ${fmtG(g)}`);
+    log("detail", `dock: moving to the screen it docks on, ${fmtG(g)}`);
     await win.setBounds(g);
     return before;
   };
 
   /** Docks at `logicalHeight` (true), or reports that docking is not available here (false). The strip goes on the
-   * screen of `at` (where Peek was last docked) when that screen is still there, else on the window's screen (#187). */
+   * screen of `at` when that screen is still there, else on the window's screen (#187, #195). */
   const dockAt = async (logicalHeight: number, at?: PeekGeometry | null): Promise<boolean> => {
     // Best effort: not knowing the screens must never stop the dock itself.
     const movedFrom = at
       ? await moveToScreenOf(at).catch((e) => {
-          log("warn", `dock: could not go to the last dock's screen: ${String(e)}`);
+          log("warn", `dock: could not go to the dock's screen: ${String(e)}`);
           return null;
         })
       : null;
@@ -438,7 +439,9 @@ export function createPeekWindowController(win: PeekWin) {
         log("event", `enter Peek: full window ${fmtG(full.geometry)}${full.maximized ? " (maximized)" : ""}, ${o.dockLogicalHeight === undefined ? "floating" : `docked at ${o.dockLogicalHeight}`}`);
         await win.setTransparent(true);
         await win.setMinSize(PEEK_MIN_LOGICAL.width, PEEK_MIN_LOGICAL.height);
-        if (o.dockLogicalHeight === undefined || !(await dockAt(o.dockLogicalHeight, o.dockGeometry))) await placeFloating(o);
+        // Docked Peek goes on the screen where floating Peek is: so moving floating Peek moves the dock too (#195).
+        const dockScreen = o.geometry ?? o.dockGeometry;
+        if (o.dockLogicalHeight === undefined || !(await dockAt(o.dockLogicalHeight, dockScreen))) await placeFloating(o);
         await win.setAlwaysOnTop(o.alwaysOnTop);
         await win.reveal();
         log("detail", `entered: window ${fmtG(await currentGeometry())}`);
@@ -446,15 +449,15 @@ export function createPeekWindowController(win: PeekWin) {
       }, undefined);
     },
 
-    /** §396: while in Peek, switch to docked. Resolves to the floating geometry it had (to remember for the way back),
-     * or null when it was not floating or docking is not available. */
-    dock(logicalHeight: number, alwaysOnTop: boolean, at?: PeekGeometry | null): Promise<PeekGeometry | null> {
+    /** §396: while in Peek, switch to docked, on the screen the floating window is on (#195). Resolves to the floating
+     * geometry it had (to remember for the way back), or null when it was not floating or docking is not available. */
+    dock(logicalHeight: number, alwaysOnTop: boolean): Promise<PeekGeometry | null> {
       return run("dock", async () => {
         floatOnRestore = false;
         if (!full || docked) return null;
         const floating = await currentGeometry();
         log("event", `dock button: floating window was ${fmtG(floating)}`);
-        if (!(await dockAt(logicalHeight, at))) return null;
+        if (!(await dockAt(logicalHeight))) return null;
         await win.setAlwaysOnTop(alwaysOnTop);
         await win.reveal();
         await verify("dock");
