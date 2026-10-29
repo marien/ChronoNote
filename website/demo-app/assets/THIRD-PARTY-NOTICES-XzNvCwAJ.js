@@ -110,7 +110,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 
 ================================================================================
-@codemirror/view 6.43.14
+@codemirror/view 6.43.15
 MIT
 
 MIT License
@@ -291,7 +291,7 @@ PackageDownloadLocation: git+ssh://github.com/tauri-apps/tauri.git
 Creator: Person: Daniel Thompson-Yvetot
 
 ================================================================================
-@tauri-apps/plugin-dialog 2.8.3
+@tauri-apps/plugin-dialog 2.8.4
 MIT OR Apache-2.0
 
 SPDXVersion: SPDX-2.1
@@ -391,7 +391,7 @@ PackageDownloadLocation: git+ssh://github.com/tauri-apps/tauri.git
 Creator: Person: Daniel Thompson-Yvetot
 
 ================================================================================
-@tauri-apps/plugin-updater 2.14.0
+@tauri-apps/plugin-updater 2.14.1
 MIT OR Apache-2.0
 
 SPDXVersion: SPDX-2.1
@@ -464,7 +464,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 
 ================================================================================
-svelte 5.57.2
+svelte 5.57.3
 MIT
 
 Copyright (c) 2016-2025 [Svelte Contributors](https://github.com/sveltejs/svelte/graphs/contributors)
@@ -1006,7 +1006,7 @@ limitations under the License.
 Apache License 2.0
 
 dpi 0.1.2
-tao 0.37.1
+tao 0.37.2
 
 Apache License
                            Version 2.0, January 2004
@@ -2274,7 +2274,6 @@ THE SOFTWARE.
 ================================================================================
 MIT License
 
-bitflags 1.3.2
 bitflags 2.13.1
 glob 0.3.4
 log 0.4.34
@@ -2625,7 +2624,6 @@ DEALINGS IN THE SOFTWARE.
 ================================================================================
 MIT License
 
-png 0.17.16
 png 0.18.1
 
 Copyright (c) 2015 nwin
@@ -4276,12 +4274,12 @@ DEALINGS IN THE SOFTWARE.
 ================================================================================
 MIT License
 
-tauri-codegen 2.7.3
-tauri-macros 2.7.3
-tauri-runtime-wry 2.12.2
+tauri-codegen 2.7.4
+tauri-macros 2.7.4
+tauri-runtime-wry 2.12.3
 tauri-runtime 2.12.2
 tauri-utils 2.10.2
-tauri 2.12.4
+tauri 2.12.5
 
 MIT License
 
@@ -4423,7 +4421,7 @@ SOFTWARE.
 ================================================================================
 MIT License
 
-ico 0.5.0
+ico 0.6.0
 
 MIT License
 
@@ -4564,6 +4562,34 @@ SOFTWARE.
 ================================================================================
 MIT License
 
+rfd 0.17.2
+
+MIT License
+
+Copyright (c) 2020 Bilal Elmoussaoui
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+
+================================================================================
+MIT License
+
 window-vibrancy 0.8.1
 
 MIT License
@@ -4592,7 +4618,7 @@ SOFTWARE.
 ================================================================================
 MIT License
 
-wry 0.57.0
+wry 0.57.1
 
 MIT License
 
@@ -4705,7 +4731,7 @@ SOFTWARE.
 ================================================================================
 MIT License
 
-rfd 0.16.0
+rfd 0.17.2
 
 MIT License
 
@@ -4851,20 +4877,20 @@ SOFTWARE.
 ================================================================================
 MIT License
 
-chrononote 0.34.0
+chrononote 0.35.0
 brotli-decompressor 6.0.1
 chrono-tz 0.10.4
 chrono 0.4.45
 dpi 0.1.2
 minisign-verify 0.3.0
 siphasher 1.0.3
-tauri-plugin-dialog 2.8.3
+tauri-plugin-dialog 2.8.4
 tauri-plugin-fs 2.7.1
 tauri-plugin-global-shortcut 2.4.1
 tauri-plugin-opener 2.7.2
 tauri-plugin-process 2.4.0
-tauri-plugin-single-instance 2.5.4
-tauri-plugin-updater 2.14.0
+tauri-plugin-single-instance 2.5.5
+tauri-plugin-updater 2.14.1
 ts-rs-macros 12.0.1
 ts-rs 12.0.1
 webview2-com-macros 0.8.1
@@ -4881,15 +4907,12 @@ windows-registry 0.6.1
 windows-result 0.4.1
 windows-strings 0.5.1
 windows-sys 0.59.0
-windows-sys 0.60.2
 windows-sys 0.61.2
 windows-targets 0.52.6
-windows-targets 0.53.5
 windows-threading 0.2.1
 windows-version 0.1.7
 windows 0.62.2
 windows_x86_64_msvc 0.52.6
-windows_x86_64_msvc 0.53.1
 
 MIT License
 
