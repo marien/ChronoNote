@@ -11554,3 +11554,14 @@ section). Built by Claude without delegating, at Marien's request.
   the demo switching feature and theme without a reload); `guideShortcuts.test.ts` on the new guide;
   `site-version.mjs --check`. Checked by hand in the browser: both themes, phone width (no sideways scroll on any
   page), the Try links on the home page and in the guide's drawer. Not testable here: the live host (open check).
+
+## 441. The minor-release checklist: phone and web app after the release
+
+**Status: on main, not released yet.**
+
+Marien ran the checklist for 0.35.0 on 0.35.0-2 and pointed out that two of its items cannot be done before a stable
+release: betas only update the desktop app, so there is no web app to check on a phone or to install. They now come
+after the release: `release.sh` lists them separately when it asks for `--checklist-done`, prints them again at the
+end of a minor release, and they go into `docs/open-checks.md` until Marien confirms them. A problem found there
+becomes a patch release. The rest of the checklist (reduced motion, 125 %/150 %, a contrast theme, German on CI's
+fonts, right-click, long-press and focus in the window) is still done on the last beta.

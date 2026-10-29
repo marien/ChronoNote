@@ -132,18 +132,22 @@ if [[ $BUMPED == 0 ]]; then
 fi
 
 # A minor release carries bigger UI changes: run the environment checklist
-# (the v0.30 lessons) before cutting it.
+# (the v0.30 lessons) before cutting it. Betas never update the web app, so
+# the phone and the installed web app are checked right after the stable
+# release instead (AFTER_LIST, printed at the end; §441).
+AFTER_LIST='After a minor release, in the live web app (open checks until confirmed):
+  - A phone: keyboard, sheets, long-press, symbols bar on one row
+  - The web app installed on a PC (title bar hidden) and on a phone'
 if [[ "$VERSION" =~ \.0$ && $CHECKLIST == 0 && $BUMPED == 0 && $BETA == 0 ]]; then
   cat >&2 <<'LIST'
-Minor release: check these first, then re-run with --checklist-done.
+Minor release: check these on the last beta first, then re-run with --checklist-done.
   - Windows "Animation effects" off (prefers-reduced-motion): switch tabs, open drawers
   - Display scaling 125% and 150%
-  - A phone: keyboard, sheets, long-press, symbols bar on one row
-  - The web app installed on a PC (title bar hidden) and on a phone
   - A Windows contrast theme
   - German UI on CI's Linux fonts (GitHub Test run green)
   - Right-click, long-press and focus on every part of the window
 LIST
+  echo "$AFTER_LIST" >&2
   exit 1
 fi
 
@@ -347,3 +351,6 @@ fi
 echo
 say "Released $TAG: https://github.com/marien/ChronoNote/releases/tag/$TAG"
 say "Remaining by hand: CHANGELOG/CLAUDE.local.md/memory notes, comment+close any issues."
+if [[ "$VERSION" =~ \.0$ && $BETA == 0 ]]; then
+  say "$AFTER_LIST"
+fi
