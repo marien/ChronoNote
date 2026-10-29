@@ -11456,8 +11456,8 @@ The failed Rust check on #191 was the runner losing its disk mid-build (os error
 CodeMirror view update once moved glyphs by a pixel (§379). The updater plugin changed, so the release goes through two
 betas: the first is installed by the old updater, the second is the first install by the new one.
 
-Confirmed by Marien (2026-10-28): 0.35.0-1 installed through the old updater. The install by the new one (0.35.0-2)
-is still open.
+Confirmed by Marien: 0.35.0-1 installed through the old updater (2026-10-28), and 0.35.0-2 through the new one
+(2026-10-29).
 
 ## 438. Peek: docking follows the screen where floating Peek is
 
