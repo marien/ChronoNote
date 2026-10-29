@@ -7,7 +7,6 @@ then gets a line in its CHANGELOG section) or found broken (it then becomes a fi
 | Since | What to check | Where / how | Section |
 |---|---|---|---|
 | 2026-10-29 | The new website on the live host: pages, fonts and both themes load; Try links open the demo on the feature (needs the 0.35.0 demo rebuild); the download button gets 0.35.0's installer; a shared link shows the new social image | chrononote.mariendegelder.nl after 0.35.0 stable moves `website-live`; a phone too | §440 |
-| 2026-10-28 | The new updater plugin (2.14.1): 0.35.0-2 is the first install by the new one (0.35.0-1 through the old one was confirmed) | Desktop app 0.35.0-1 on the early channel: About → check for updates, install 0.35.0-2, About shows 0.35.0-2 | §437 |
 | 2026-10-28 | In the web app: a nested list pasted from Teams keeps its bullets and indentation (confirmed in the desktop app) | app.chrononote.mariendegelder.nl, once 0.35.0 is stable (betas do not update it) | §439 |
 | 2026-10-22 | Desktop: a real conflict ("changed on disk" prompt) resolved with "Keep my version" leaves the other text under Earlier versions, also when you edited a minute before | Desktop app v0.32.5; edit a note on two devices synced by OneDrive | §413 |
 | 2026-10-22 | Web app with a real OneDrive account: a note deleted and recreated before the next sync stays on OneDrive; "Keep mine" on a sync conflict leaves the OneDrive text under Earlier versions | app.chrononote.mariendegelder.nl (v0.32.5) | §413 |
