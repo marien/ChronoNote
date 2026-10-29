@@ -1,124 +1,164 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Your files — ChronoNote</title>
-  <meta name="description" content="Where ChronoNote stores notes, settings, drafts, and logs, and how to back up or move your files." />
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Your files: where ChronoNote keeps your notes · ChronoNote</title>
+  <meta name="description" content="Where ChronoNote keeps your notes, settings and earlier versions, and how to back them up, move them to a new PC or remove them. Every note is a plain .txt file you own." />
+  <link rel="canonical" href="https://chrononote.mariendegelder.nl/files.html" />
+  <meta name="theme-color" content="#f4f5f7" media="(prefers-color-scheme: light)" />
+  <meta name="theme-color" content="#111317" media="(prefers-color-scheme: dark)" />
+  <script>try { var t = localStorage.getItem("chrononote-theme"); if (t === "light" || t === "dark") document.documentElement.setAttribute("data-theme", t); } catch (e) {}</script>
+  <link rel="preload" href="assets/fonts/atkinson-hyperlegible-next.woff2" as="font" type="font/woff2" crossorigin />
   <link rel="icon" href="assets/favicon.ico?v=0.32.7" sizes="any" />
   <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png?v=0.32.7" />
   <link rel="apple-touch-icon" href="assets/apple-touch-icon.png?v=0.32.7" />
-  <meta property="og:type" content="website" />
+  <meta property="og:type" content="article" />
+  <meta property="og:site_name" content="ChronoNote" />
   <meta property="og:url" content="https://chrononote.mariendegelder.nl/files.html" />
-  <meta property="og:title" content="Your files — ChronoNote" />
-  <meta property="og:description" content="Where ChronoNote stores notes, settings, drafts, and logs, and how to back up or move your files." />
+  <meta property="og:title" content="Your files · ChronoNote" />
+  <meta property="og:description" content="Where ChronoNote keeps your notes, and how to back them up, move or remove them." />
   <meta property="og:image" content="https://chrononote.mariendegelder.nl/assets/og-image.png" />
-  <meta name="twitter:card" content="summary" />
-  <meta name="twitter:title" content="Your files — ChronoNote" />
-  <meta name="twitter:description" content="Where ChronoNote stores notes, settings, drafts, and logs, and how to back up or move your files." />
-  <meta name="twitter:image" content="https://chrononote.mariendegelder.nl/assets/og-image.png" />
-  <link rel="stylesheet" href="style.css?v=436" />
-  <script src="shortcuts.js" defer></script>
+  <meta name="twitter:card" content="summary_large_image" />
+  <link rel="stylesheet" href="style.css?v=440" />
+  <script src="site.js?v=440" defer></script>
+  <script src="docs.js?v=440" defer></script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      { "@type": "ListItem", "position": 1, "name": "ChronoNote", "item": "https://chrononote.mariendegelder.nl/" },
+      { "@type": "ListItem", "position": 2, "name": "Your files", "item": "https://chrononote.mariendegelder.nl/files.html" }
+    ]
+  }
+  </script>
 </head>
 <body>
+<a class="skip" href="#main">Skip to content</a>
 
-  <header class="site-nav">
-    <div class="wrap">
-      <a class="brand" href="index.html">
-        <img src="assets/logo.svg" width="20" height="20" alt="" />
-        ChronoNote
-      </a>
-      <nav>
-        <a href="index.html">Home</a>
-        <a href="guide.html">Guide</a>
-        <a class="current" href="files.html">Your files</a>
-        <a href="troubleshooting.html">Troubleshooting</a>
-        <a href="index.html#demo">Demo</a>
-        <a class="cta" href="https://github.com/marien/ChronoNote" target="_blank" rel="noopener">GitHub ↗</a>
-      </nav>
-    </div>
-  </header>
+<header class="nav" id="nav">
+  <div class="wrap">
+    <a class="brand" href="./" aria-label="ChronoNote home"><img src="assets/logo.svg" width="22" height="22" alt="" />ChronoNote</a>
+    <ul>
+      <li><a href="./#week">How it works</a></li>
+      <li><a href="./#demo">Demo</a></li>
+      <li><a href="./#features">Features</a></li>
+      <li><a href="./#get">Download</a></li>
+      <li><a href="guide.html">Guide</a></li>
+    </ul>
+    <button class="menu-btn" type="button" aria-expanded="false" aria-controls="nav">Menu</button>
+    <div class="theme"></div>
+    <a class="btn primary" href="./#demo">Try it now</a>
+  </div>
+</header>
 
-  <section style="padding-top: 48px; padding-bottom: 24px;">
-    <div class="wrap prose">
-      <h2 style="font-size: 32px; margin-bottom: 8px;">Your files</h2>
-      <p>
-        ChronoNote saves your data in open, plain-text files on your own computer.
-        You always own your notes, and you can open or edit them with any text editor.
-      </p>
-    </div>
-  </section>
+<div class="wrap docs-hero">
+  <span class="kicker">Your files</span>
+  <h1>Your notes are files you own.</h1>
+  <p class="lede">Every day is one plain <code>.txt</code> file in a folder you choose. Open it in any editor, back it up with any tool, sync it with any service. This page shows where everything is, and how to back it up, move it or remove it.</p>
+</div>
 
-  <section class="alt">
-    <div class="wrap prose">
-      <h2>Where your notes live</h2>
-      <p>
-        ChronoNote saves each day as one plain <code>YYYY-MM-DD.txt</code> file.
-        You pick the folder in Settings → Notes &amp; Sync.
-        The default location is <code>Documents\Notes</code> in your user profile.
-      </p>
-
-      <h2>Hidden items in the notes folder</h2>
-      <p>The app keeps a few hidden files and folders inside your notes folder:</p>
-      <ul>
-        <li><code>.chrononote-session.json</code> stores your open tabs and window session.</li>
-        <li><code>.chrononote-conflicts\</code> stores copies kept when a note changed on disk and in the app at the same time.</li>
-        <li><code>.chrononote-versions\</code> stores earlier versions of notes (kept for 30 days, at most 20 per note).</li>
-        <li><code>.chrononote-trash\</code> stores notes deleted in the last 30 days so they can be restored from Settings.</li>
-        <li><code>.agenda.json</code> is an optional file written by your own calendar export and read by ChronoNote for calendar sync.</li>
-        <li><code>&lt;name&gt;.corrupt-&lt;number&gt;</code> appears only if a settings or session file could not be read, set aside so the app could start.</li>
-      </ul>
-
-      <h2>Settings, drafts, and logs</h2>
-      <p>ChronoNote keeps application data in standard Windows folders:</p>
-      <ul>
-        <li>Settings live in <code>%APPDATA%\com.chrononote.app\config.json</code>.</li>
-        <li>Unsaved scratchpads live in <code>%APPDATA%\com.chrononote.app\.scratchpads-drafts.json</code>.</li>
-        <li>Logs live in <code>%LOCALAPPDATA%\com.chrononote.app\logs\</code> (today only <code>update.log</code>).</li>
-        <li>The desktop application itself installs per user under <code>%LOCALAPPDATA%\ChronoNote</code>.</li>
-      </ul>
-
-      <h2>Backing up</h2>
-      <p>
-        To back up your notes, copy your notes folder.
-        Because every note is a plain text file, any backup tool, external drive, or cloud service like OneDrive works without special tools.
-      </p>
-
-      <h2>Moving to a new PC</h2>
-      <p>To move your notes to a new computer:</p>
+<div class="wrap docs">
+  <nav class="toc" aria-label="On this page">
+    <details open>
+      <summary>On this page</summary>
       <ol>
-        <li>Install ChronoNote on the new computer.</li>
-        <li>Copy your notes folder to the new computer.</li>
-        <li>Open Settings → Notes &amp; Sync in ChronoNote and choose that folder.</li>
+        <li><a href="#folder">The notes folder</a></li>
+        <li><a href="#app-data">Settings and logs</a></li>
+        <li><a href="#backup">Backing up</a></li>
+        <li><a href="#new-pc">Moving to a new PC</a></li>
+        <li><a href="#uninstall">Uninstalling</a></li>
+        <li><a href="#webapp">The web app</a></li>
       </ol>
+    </details>
+  </nav>
 
-      <h2>Uninstalling</h2>
-      <p>
-        Uninstalling ChronoNote removes the application from <code>%LOCALAPPDATA%\ChronoNote</code>.
-        The uninstaller does not delete your notes folder, your settings in <code>%APPDATA%</code>, or your logs in <code>%LOCALAPPDATA%</code>.
-      </p>
+  <main class="doc" id="main">
 
-      <h2>The web app's storage</h2>
-      <p>
-        In the web app at <code>app.chrononote.mariendegelder.nl</code>, notes stay in your browser's IndexedDB storage on that device.
-        You can connect OneDrive to sync your notes with a folder you choose in your Microsoft account.
-        Clearing site data in your browser removes local notes. Synced notes stay safe in OneDrive.
-      </p>
-    </div>
-  </section>
+    <section id="folder" aria-labelledby="folder-h">
+      <h2 id="folder-h">The notes folder</h2>
+      <p class="intro">You pick the folder in Settings → Notes &amp; Sync; the default is <code>Documents\Notes</code>. Each day is a file named after its date. The app also keeps a few hidden files and folders there, so they travel with your notes.</p>
+<pre class="tree" aria-label="The notes folder">Documents\Notes\
+  2026-10-27.txt
+  2026-10-28.txt
+  <span class="hl">2026-10-29.txt</span>                 <span class="c">one file per day</span>
+  .chrononote-session.json       <span class="c">open tabs and window session</span>
+  .chrononote-versions\          <span class="c">earlier versions, 30 days, at most 20 per note</span>
+  .chrononote-trash\             <span class="c">notes deleted in the last 30 days</span>
+  .chrononote-conflicts\         <span class="c">copies kept when a note changed on disk and in the app at once</span>
+  .agenda.json                   <span class="c">optional: your calendar export, for calendar sync</span></pre>
+      <div class="prose">
+        <p>A file named <code>&lt;name&gt;.corrupt-&lt;number&gt;</code> appears only when a settings or session file could not be read and was set aside so the app could start. <a href="troubleshooting.html#corrupt">What to do with it</a>.</p>
+        <p>Earlier versions and recently deleted notes can be restored from inside the app: <a href="guide.html#recover">getting text back</a>.</p>
+      </div>
+    </section>
 
-  <footer>
-    <div class="wrap">
-      <span>ChronoNote — MIT licensed.</span>
-      <span>
-        <a href="index.html">Home</a> ·
-        <a href="https://github.com/marien/ChronoNote" target="_blank" rel="noopener">GitHub</a> ·
-        <a href="https://github.com/marien/ChronoNote/releases" target="_blank" rel="noopener">Releases</a> ·
-        <a href="how-it-was-built.html">How it was built</a> ·
-        <a href="privacy.html">Privacy</a>
-      </span>
-    </div>
-  </footer>
+    <section id="app-data" aria-labelledby="app-data-h">
+      <h2 id="app-data-h">Settings and logs</h2>
+      <p class="intro">The desktop app keeps its own data in the standard Windows folders, apart from your notes.</p>
+      <div class="tbl">
+        <table>
+          <thead><tr><th>What</th><th>Where</th></tr></thead>
+          <tbody>
+            <tr><td>Settings</td><td><code>%APPDATA%\com.chrononote.app\config.json</code></td></tr>
+            <tr><td>Unsaved scratchpads</td><td><code>%APPDATA%\com.chrononote.app\.scratchpads-drafts.json</code></td></tr>
+            <tr><td>Logs (today only <code>update.log</code>)</td><td><code>%LOCALAPPDATA%\com.chrononote.app\logs\</code></td></tr>
+            <tr><td>The app itself (installed per user)</td><td><code>%LOCALAPPDATA%\ChronoNote</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
 
+    <section id="backup" aria-labelledby="backup-h">
+      <h2 id="backup-h">Backing up</h2>
+      <div class="prose">
+        <p>Copy the notes folder. That is the whole backup: any backup tool, an external drive, OneDrive, Dropbox or git works, with no export step. Settings are optional to keep; ChronoNote starts fine without them.</p>
+      </div>
+    </section>
+
+    <section id="new-pc" aria-labelledby="new-pc-h">
+      <h2 id="new-pc-h">Moving to a new PC</h2>
+      <div class="prose">
+        <ol>
+          <li>Install ChronoNote on the new computer.</li>
+          <li>Copy the notes folder to it (or let OneDrive sync it there).</li>
+          <li>In ChronoNote, open Settings → Notes &amp; Sync and choose that folder.</li>
+        </ol>
+      </div>
+    </section>
+
+    <section id="uninstall" aria-labelledby="uninstall-h">
+      <h2 id="uninstall-h">Uninstalling</h2>
+      <div class="prose">
+        <p>Uninstalling removes the app from <code>%LOCALAPPDATA%\ChronoNote</code>. It does not delete your notes folder, your settings in <code>%APPDATA%</code> or your logs in <code>%LOCALAPPDATA%</code>, so a reinstall picks up where you left off. To remove everything, see <a href="privacy.html#remove">how to remove everything</a>.</p>
+      </div>
+    </section>
+
+    <section id="webapp" aria-labelledby="webapp-h">
+      <h2 id="webapp-h">The web app</h2>
+      <div class="prose">
+        <p>The web app at <a href="https://app.chrononote.mariendegelder.nl/" target="_blank" rel="noopener">app.chrononote.mariendegelder.nl</a> keeps notes in your browser's storage (IndexedDB) on that device. They are the same plain-text notes; export a backup any time from the menu.</p>
+        <p>Connect OneDrive (Settings → Notes &amp; Sync) to sync them with a folder in your Microsoft account, for example the same folder your PC uses. Clearing the browser's site data removes the notes on that device; synced notes stay in OneDrive.</p>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<footer>
+  <div class="wrap">
+    <span>ChronoNote · MIT licensed · made by Marien de Gelder</span>
+    <nav aria-label="Footer">
+      <a href="./">Home</a>
+      <a href="guide.html">Guide</a>
+      <a href="troubleshooting.html">Troubleshooting</a>
+      <a href="how-it-was-built.html">How it was built</a>
+      <a href="privacy.html">Privacy</a>
+      <a href="https://github.com/marien/ChronoNote/releases" target="_blank" rel="noopener">Releases</a>
+      <a href="https://github.com/marien/ChronoNote" target="_blank" rel="noopener">GitHub</a>
+    </nav>
+  </div>
+</footer>
 </body>
 </html>

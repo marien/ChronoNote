@@ -11505,3 +11505,52 @@ clipboard's plain text, and Teams, Outlook, Word and browsers put a list's struc
   here: what the real Teams, Outlook and Word put on the clipboard (open check).
 
 Confirmed by Marien (2026-10-28) on 0.35.0-1 (desktop app). The web app gets it with the stable release.
+
+## 440. A new website: plain text you can act on
+
+**Status: on main, not released yet.**
+
+Marien found the website too clearly AI-generated (every section the same centred heading over a grid of icon cards,
+monospace for all text, dark only) and asked for a new design that shows the advantages through the workflow, links
+every feature to the live demo, adds SEO, and follows the system's light or dark mode. Design first, reviewed in four
+rounds (`docs/design/website-redesign-mockup.html` and `docs/design/website-redesign/`, decisions in its review
+section). Built by Claude without delegating, at Marien's request.
+
+- **Message:** typing without friction, because everything is text with glyphs and actions drawn on top. Headline
+  "Write the way you think." / "Plain text you can act on." ("tick off" was rejected for its second meaning). Not only
+  about work: the examples mix a team meeting with a youth soccer committee and a church community committee.
+- **Home page:** a hero that wipes between what you see and what you typed (glyphs keep the width of their marks, as
+  in the editor); a one-line playground; "One week with ChronoNote" (Monday to Friday, the current week's dates, each
+  day with an HTML-drawn illustration); the live demo with a "Show me" list; why text; a feature index; the three ways
+  in; a FAQ.
+- **Try links:** every feature opens the demo on that feature. `demo-app/?try=<feature>` on the first load, and a
+  `postMessage` from the same origin after that, so switching features does not reload the demo
+  (`src/lib/testing/demoTry.ts`; features `today actions history week search palette date due zen`). The demo says
+  `chrononote-demo-ready` to the page around it. `?theme=light|dark` (and a `chrononote-theme` message) opens it in the
+  site's theme. On the guide the demo opens in a drawer beside the page; `demo.html?try=` passes the feature through.
+- **Demo notes:** a monthly church community committee (three occurrences, for section history) and a youth soccer
+  committee (`@Joan`, the search example), in `scenarios.ts`'s `"demo"` scenario only.
+- **Guide:** a contents column, "Start here", the marks drawn live in five groups, twelve workflows each with an
+  illustration and a Try link, and the shortcuts in five groups with a filter. The shortcut rows stay static HTML so
+  `guideShortcuts.test.ts` still checks them against the registry. Old anchors (`#vocabulary`, `#shortcuts`,
+  `#recover`, `#export`, `#mobile`) still work.
+- **Other pages, content reworked:** Your files (a folder tree, a table of app data, short task sections), Troubleshooting
+  (symptom, then what to do), Privacy (a summary table, and a new section on the website itself). How it was built keeps
+  its text (Marien's own account) in the new design.
+- **Theme:** follows the system, with a system/light/dark switch remembered in `localStorage`, applied before the first
+  paint; `theme-color` follows it.
+- **SEO:** canonical links, `robots.txt` (keeps `demo-app/` and `webapp/` out), `sitemap.xml`, JSON-LD
+  (`SoftwareApplication` and `FAQPage` on the home page, `BreadcrumbList` on the docs pages, `Article` on How it was
+  built), descriptive titles and descriptions, one `h1` per page, all text in the HTML, and a 1200×630 social image
+  (`summary_large_image`) rendered from `scripts/og-image.html` by `scripts/build-og-image.mjs` (no longer by
+  `build-icons.mjs`).
+- **Fonts:** Bricolage Grotesque, Atkinson Hyperlegible Next and JetBrains Mono, self-hosted latin subsets
+  (`website/assets/fonts/`, SIL OFL), so the site contacts no other host.
+- **Release step:** `scripts/site-version.mjs` writes a stable release's version and installer link into the site
+  (download buttons, `data-version`, JSON-LD); `release.sh` runs it for stable releases and commits it with the bundles.
+- **Files:** `website/style.css` (rewritten), `site.js` (theme, header, the mark renderer, the demo frame, Mac key
+  names; replaces `shortcuts.js`), `docs.js` (contents, shortcut filter, the Try drawer).
+- **Tests:** `demo-try.spec.ts` (every `?try=` feature, an unknown one ignored, `?theme=`, and messages from a page around
+  the demo switching feature and theme without a reload); `guideShortcuts.test.ts` on the new guide;
+  `site-version.mjs --check`. Checked by hand in the browser: both themes, phone width (no sideways scroll on any
+  page), the Try links on the home page and in the guide's drawer. Not testable here: the live host (open check).

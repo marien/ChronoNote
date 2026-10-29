@@ -111,7 +111,25 @@ function build(name: ScenarioName): MockSeed {
       // sync beyond this file.
       const today = todayISO();
       const d = (offset: number) => `${addDaysISO(today, offset)}.txt`;
+      // Not only work (§440): a monthly church community committee (for Section History, and the website's
+      // history example) and a youth soccer committee (the website's search example looks for @Joan).
       const notes: Record<string, string> = {
+        [d(-56)]: [
+          "Church community committee",
+          "==========================",
+          ". autumn collection",
+          "v new hymn books ordered",
+          "o Christmas market",
+          "=> @Ben runs the welcome coffee rota",
+        ].join("\n"),
+        [d(-28)]: [
+          "Church community committee",
+          "==========================",
+          ". Christmas market: date fixed",
+          "# (market) ask @Ruth for the stalls",
+          ", new members' evening",
+          "! The parish hall is booked from 1 December",
+        ].join("\n"),
         [d(-21)]: [
           "Planning Kickoff",
           "================",
@@ -172,6 +190,13 @@ function build(name: ScenarioName): MockSeed {
           "v shared the roadmap draft with Priya",
           "- Priya flagged the offline-mode edge case",
           "# write up the offline-mode edge case",
+          "",
+          "",
+          "Youth soccer committee",
+          "======================",
+          "o spring tournament",
+          "# (tournament) book the pitches",
+          "=> @Joan collects the kit sizes",
         ].join("\n"),
         [d(-10)]: [
           "Daily Standup",
@@ -224,6 +249,14 @@ function build(name: ScenarioName): MockSeed {
           "# prep interview questions for the onsite round",
           "v (interviews) schedule two more candidate calls",
           "=> (@Dana) send the signed offer letter once approved",
+          "",
+          "",
+          "Youth soccer committee",
+          "======================",
+          "v (tournament) book the pitches",
+          "=> # (tournament) ask @Joan for referees",
+          `# order the new kit by:${addDaysISO(today, 4)}`,
+          "! The pitch is ours until 16:00",
         ].join("\n"),
         [d(0)]: [
           "Daily Standup",
@@ -239,6 +272,13 @@ function build(name: ScenarioName): MockSeed {
           "- Priya reviewed the offline-mode doc",
           "=> @Priya sign off on the conflict-resolution approach",
           "# write up the offline-mode edge case",
+          "",
+          "",
+          "Church community committee",
+          "==========================",
+          "o Christmas market stalls",
+          "o welcome coffee rota (@Ruth, @Ben)",
+          "# (market) print the posters",
         ].join("\n"),
       };
       return {

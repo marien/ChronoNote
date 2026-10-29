@@ -13219,6 +13219,488 @@ exports[`token behaviour snapshot (refactor R1) > scenario corpus 1`] = `
     "findActionSymbols": [],
     "glyphLine": [
       {
+        "text": "Church community committee",
+      },
+    ],
+    "innermostActionSymbol": null,
+    "innermostTopicSymbol": null,
+    "isSetextUnderline": false,
+    "isTopicLikeLine": false,
+    "leadingTopicTag": null,
+    "line": "Church community committee",
+    "parseNumberedItem": null,
+    "stripLeadingToken": "Church community committee",
+    "toggleOpenClosed": null,
+  },
+  {
+    "countActions": {
+      "closed": 0,
+      "forwarded": 0,
+      "open": 0,
+    },
+    "cycleActionSymbol": "# autumn collection",
+    "editor": {
+      "atomic": [
+        {
+          "from": 0,
+          "to": 2,
+        },
+      ],
+      "decorations": [
+        {
+          "class": "glyph-topic-done",
+          "from": 0,
+          "kind": "replace",
+          "label": "◉",
+          "to": 2,
+        },
+      ],
+    },
+    "findActionSymbols": [
+      {
+        "index": 0,
+        "sym": ".",
+      },
+    ],
+    "glyphLine": [
+      {
+        "cls": "glyph-topic-done",
+        "text": "◉",
+      },
+      {
+        "text": " ",
+      },
+      {
+        "text": "autumn collection",
+      },
+    ],
+    "innermostActionSymbol": null,
+    "innermostTopicSymbol": ".",
+    "isSetextUnderline": false,
+    "isTopicLikeLine": true,
+    "leadingTopicTag": null,
+    "line": ". autumn collection",
+    "parseNumberedItem": null,
+    "stripLeadingToken": ". autumn collection",
+    "toggleOpenClosed": "o autumn collection",
+  },
+  {
+    "countActions": {
+      "closed": 1,
+      "forwarded": 0,
+      "open": 0,
+    },
+    "cycleActionSymbol": "> new hymn books ordered",
+    "editor": {
+      "atomic": [
+        {
+          "from": 0,
+          "to": 2,
+        },
+      ],
+      "decorations": [
+        {
+          "class": "glyph-done",
+          "from": 0,
+          "kind": "replace",
+          "label": "☑",
+          "to": 2,
+        },
+      ],
+    },
+    "findActionSymbols": [
+      {
+        "index": 0,
+        "sym": "v",
+      },
+    ],
+    "glyphLine": [
+      {
+        "cls": "glyph-done",
+        "text": "☑",
+      },
+      {
+        "text": " ",
+      },
+      {
+        "text": "new hymn books ordered",
+      },
+    ],
+    "innermostActionSymbol": "v",
+    "innermostTopicSymbol": null,
+    "isSetextUnderline": false,
+    "isTopicLikeLine": false,
+    "leadingTopicTag": null,
+    "line": "v new hymn books ordered",
+    "parseNumberedItem": null,
+    "stripLeadingToken": "new hymn books ordered",
+    "toggleOpenClosed": "# new hymn books ordered",
+  },
+  {
+    "countActions": {
+      "closed": 0,
+      "forwarded": 0,
+      "open": 0,
+    },
+    "cycleActionSymbol": "# Christmas market",
+    "editor": {
+      "atomic": [
+        {
+          "from": 0,
+          "to": 2,
+        },
+      ],
+      "decorations": [
+        {
+          "class": "glyph-topic-open",
+          "from": 0,
+          "kind": "replace",
+          "label": "○",
+          "to": 2,
+        },
+      ],
+    },
+    "findActionSymbols": [
+      {
+        "index": 0,
+        "sym": "o",
+      },
+    ],
+    "glyphLine": [
+      {
+        "cls": "glyph-topic-open",
+        "text": "○",
+      },
+      {
+        "text": " ",
+      },
+      {
+        "text": "Christmas market",
+      },
+    ],
+    "innermostActionSymbol": null,
+    "innermostTopicSymbol": "o",
+    "isSetextUnderline": false,
+    "isTopicLikeLine": true,
+    "leadingTopicTag": null,
+    "line": "o Christmas market",
+    "parseNumberedItem": null,
+    "stripLeadingToken": "o Christmas market",
+    "toggleOpenClosed": ". Christmas market",
+  },
+  {
+    "countActions": {
+      "closed": 0,
+      "forwarded": 0,
+      "open": 0,
+    },
+    "cycleActionSymbol": null,
+    "editor": {
+      "atomic": [
+        {
+          "from": 0,
+          "to": 3,
+        },
+      ],
+      "decorations": [
+        {
+          "class": "glyph-followup",
+          "from": 0,
+          "kind": "replace",
+          "label": "➔",
+          "to": 3,
+        },
+        {
+          "class": "glyph-assignee",
+          "from": 3,
+          "kind": "mark",
+          "to": 7,
+        },
+      ],
+    },
+    "findActionSymbols": [],
+    "glyphLine": [
+      {
+        "cls": "glyph-followup",
+        "text": "➔",
+      },
+      {
+        "text": " ",
+      },
+      {
+        "cls": "glyph-assignee",
+        "text": "@Ben",
+      },
+      {
+        "text": " runs the welcome coffee rota",
+      },
+    ],
+    "innermostActionSymbol": null,
+    "innermostTopicSymbol": null,
+    "isSetextUnderline": false,
+    "isTopicLikeLine": false,
+    "leadingTopicTag": null,
+    "line": "=> @Ben runs the welcome coffee rota",
+    "parseNumberedItem": null,
+    "stripLeadingToken": "@Ben runs the welcome coffee rota",
+    "toggleOpenClosed": null,
+  },
+  {
+    "countActions": {
+      "closed": 0,
+      "forwarded": 0,
+      "open": 0,
+    },
+    "cycleActionSymbol": "# Christmas market: date fixed",
+    "editor": {
+      "atomic": [
+        {
+          "from": 0,
+          "to": 2,
+        },
+      ],
+      "decorations": [
+        {
+          "class": "glyph-topic-done",
+          "from": 0,
+          "kind": "replace",
+          "label": "◉",
+          "to": 2,
+        },
+      ],
+    },
+    "findActionSymbols": [
+      {
+        "index": 0,
+        "sym": ".",
+      },
+    ],
+    "glyphLine": [
+      {
+        "cls": "glyph-topic-done",
+        "text": "◉",
+      },
+      {
+        "text": " ",
+      },
+      {
+        "text": "Christmas market: date fixed",
+      },
+    ],
+    "innermostActionSymbol": null,
+    "innermostTopicSymbol": ".",
+    "isSetextUnderline": false,
+    "isTopicLikeLine": true,
+    "leadingTopicTag": null,
+    "line": ". Christmas market: date fixed",
+    "parseNumberedItem": null,
+    "stripLeadingToken": ". Christmas market: date fixed",
+    "toggleOpenClosed": "o Christmas market: date fixed",
+  },
+  {
+    "countActions": {
+      "closed": 0,
+      "forwarded": 0,
+      "open": 1,
+    },
+    "cycleActionSymbol": "v (market) ask @Ruth for the stalls",
+    "editor": {
+      "atomic": [
+        {
+          "from": 0,
+          "to": 2,
+        },
+      ],
+      "decorations": [
+        {
+          "class": "glyph-open",
+          "from": 0,
+          "kind": "replace",
+          "label": "☐",
+          "to": 2,
+        },
+        {
+          "class": "glyph-topic-paren",
+          "from": 2,
+          "kind": "mark",
+          "to": 3,
+        },
+        {
+          "class": "glyph-topic",
+          "from": 2,
+          "kind": "mark",
+          "to": 10,
+        },
+        {
+          "class": "glyph-topic-paren",
+          "from": 9,
+          "kind": "mark",
+          "to": 10,
+        },
+        {
+          "class": "glyph-assignee",
+          "from": 15,
+          "kind": "mark",
+          "to": 20,
+        },
+      ],
+    },
+    "findActionSymbols": [
+      {
+        "index": 0,
+        "sym": "#",
+      },
+    ],
+    "glyphLine": [
+      {
+        "cls": "glyph-open",
+        "text": "☐",
+      },
+      {
+        "text": " ",
+      },
+      {
+        "cls": "glyph-topic",
+        "parts": [
+          {
+            "cls": "glyph-topic-paren",
+            "text": "(",
+          },
+          {
+            "text": "market",
+          },
+          {
+            "cls": "glyph-topic-paren",
+            "text": ")",
+          },
+        ],
+        "text": "(market)",
+      },
+      {
+        "text": " ask ",
+      },
+      {
+        "cls": "glyph-assignee",
+        "text": "@Ruth",
+      },
+      {
+        "text": " for the stalls",
+      },
+    ],
+    "innermostActionSymbol": "#",
+    "innermostTopicSymbol": null,
+    "isSetextUnderline": false,
+    "isTopicLikeLine": false,
+    "leadingTopicTag": {
+      "from": 2,
+      "to": 10,
+    },
+    "line": "# (market) ask @Ruth for the stalls",
+    "parseNumberedItem": null,
+    "stripLeadingToken": "(market) ask @Ruth for the stalls",
+    "toggleOpenClosed": "v (market) ask @Ruth for the stalls",
+  },
+  {
+    "countActions": {
+      "closed": 0,
+      "forwarded": 0,
+      "open": 0,
+    },
+    "cycleActionSymbol": "# new members' evening",
+    "editor": {
+      "atomic": [
+        {
+          "from": 0,
+          "to": 2,
+        },
+      ],
+      "decorations": [
+        {
+          "class": "glyph-topic-skipped",
+          "from": 0,
+          "kind": "replace",
+          "label": "◌",
+          "to": 2,
+        },
+      ],
+    },
+    "findActionSymbols": [
+      {
+        "index": 0,
+        "sym": ",",
+      },
+    ],
+    "glyphLine": [
+      {
+        "cls": "glyph-topic-skipped",
+        "text": "◌",
+      },
+      {
+        "text": " ",
+      },
+      {
+        "text": "new members' evening",
+      },
+    ],
+    "innermostActionSymbol": null,
+    "innermostTopicSymbol": ",",
+    "isSetextUnderline": false,
+    "isTopicLikeLine": true,
+    "leadingTopicTag": null,
+    "line": ", new members' evening",
+    "parseNumberedItem": null,
+    "stripLeadingToken": ", new members' evening",
+    "toggleOpenClosed": "o new members' evening",
+  },
+  {
+    "countActions": {
+      "closed": 0,
+      "forwarded": 0,
+      "open": 0,
+    },
+    "cycleActionSymbol": null,
+    "editor": {
+      "atomic": [],
+      "decorations": [
+        {
+          "class": "glyph-emphasis-line",
+          "from": 0,
+          "kind": "mark",
+          "to": 43,
+        },
+      ],
+    },
+    "findActionSymbols": [],
+    "glyphLine": [
+      {
+        "cls": "glyph-emphasis-line",
+        "text": "! The parish hall is booked from 1 December",
+      },
+    ],
+    "innermostActionSymbol": null,
+    "innermostTopicSymbol": null,
+    "isSetextUnderline": false,
+    "isTopicLikeLine": false,
+    "leadingTopicTag": null,
+    "line": "! The parish hall is booked from 1 December",
+    "parseNumberedItem": null,
+    "stripLeadingToken": "! The parish hall is booked from 1 December",
+    "toggleOpenClosed": null,
+  },
+  {
+    "countActions": {
+      "closed": 0,
+      "forwarded": 0,
+      "open": 0,
+    },
+    "cycleActionSymbol": null,
+    "editor": {
+      "atomic": [],
+      "decorations": [],
+    },
+    "findActionSymbols": [],
+    "glyphLine": [
+      {
         "text": "Planning Kickoff",
       },
     ],
@@ -14603,6 +15085,259 @@ exports[`token behaviour snapshot (refactor R1) > scenario corpus 1`] = `
     },
     "cycleActionSymbol": null,
     "editor": {
+      "atomic": [],
+      "decorations": [],
+    },
+    "findActionSymbols": [],
+    "glyphLine": [
+      {
+        "text": "Youth soccer committee",
+      },
+    ],
+    "innermostActionSymbol": null,
+    "innermostTopicSymbol": null,
+    "isSetextUnderline": false,
+    "isTopicLikeLine": false,
+    "leadingTopicTag": null,
+    "line": "Youth soccer committee",
+    "parseNumberedItem": null,
+    "stripLeadingToken": "Youth soccer committee",
+    "toggleOpenClosed": null,
+  },
+  {
+    "countActions": {
+      "closed": 0,
+      "forwarded": 0,
+      "open": 0,
+    },
+    "cycleActionSymbol": null,
+    "editor": {
+      "atomic": [],
+      "decorations": [],
+    },
+    "findActionSymbols": [],
+    "glyphLine": [
+      {
+        "text": "======================",
+      },
+    ],
+    "innermostActionSymbol": null,
+    "innermostTopicSymbol": null,
+    "isSetextUnderline": true,
+    "isTopicLikeLine": false,
+    "leadingTopicTag": null,
+    "line": "======================",
+    "parseNumberedItem": null,
+    "stripLeadingToken": "======================",
+    "toggleOpenClosed": null,
+  },
+  {
+    "countActions": {
+      "closed": 0,
+      "forwarded": 0,
+      "open": 0,
+    },
+    "cycleActionSymbol": "# spring tournament",
+    "editor": {
+      "atomic": [
+        {
+          "from": 0,
+          "to": 2,
+        },
+      ],
+      "decorations": [
+        {
+          "class": "glyph-topic-open",
+          "from": 0,
+          "kind": "replace",
+          "label": "○",
+          "to": 2,
+        },
+      ],
+    },
+    "findActionSymbols": [
+      {
+        "index": 0,
+        "sym": "o",
+      },
+    ],
+    "glyphLine": [
+      {
+        "cls": "glyph-topic-open",
+        "text": "○",
+      },
+      {
+        "text": " ",
+      },
+      {
+        "text": "spring tournament",
+      },
+    ],
+    "innermostActionSymbol": null,
+    "innermostTopicSymbol": "o",
+    "isSetextUnderline": false,
+    "isTopicLikeLine": true,
+    "leadingTopicTag": null,
+    "line": "o spring tournament",
+    "parseNumberedItem": null,
+    "stripLeadingToken": "o spring tournament",
+    "toggleOpenClosed": ". spring tournament",
+  },
+  {
+    "countActions": {
+      "closed": 0,
+      "forwarded": 0,
+      "open": 1,
+    },
+    "cycleActionSymbol": "v (tournament) book the pitches",
+    "editor": {
+      "atomic": [
+        {
+          "from": 0,
+          "to": 2,
+        },
+      ],
+      "decorations": [
+        {
+          "class": "glyph-open",
+          "from": 0,
+          "kind": "replace",
+          "label": "☐",
+          "to": 2,
+        },
+        {
+          "class": "glyph-topic-paren",
+          "from": 2,
+          "kind": "mark",
+          "to": 3,
+        },
+        {
+          "class": "glyph-topic",
+          "from": 2,
+          "kind": "mark",
+          "to": 14,
+        },
+        {
+          "class": "glyph-topic-paren",
+          "from": 13,
+          "kind": "mark",
+          "to": 14,
+        },
+      ],
+    },
+    "findActionSymbols": [
+      {
+        "index": 0,
+        "sym": "#",
+      },
+    ],
+    "glyphLine": [
+      {
+        "cls": "glyph-open",
+        "text": "☐",
+      },
+      {
+        "text": " ",
+      },
+      {
+        "cls": "glyph-topic",
+        "parts": [
+          {
+            "cls": "glyph-topic-paren",
+            "text": "(",
+          },
+          {
+            "text": "tournament",
+          },
+          {
+            "cls": "glyph-topic-paren",
+            "text": ")",
+          },
+        ],
+        "text": "(tournament)",
+      },
+      {
+        "text": " book the pitches",
+      },
+    ],
+    "innermostActionSymbol": "#",
+    "innermostTopicSymbol": null,
+    "isSetextUnderline": false,
+    "isTopicLikeLine": false,
+    "leadingTopicTag": {
+      "from": 2,
+      "to": 14,
+    },
+    "line": "# (tournament) book the pitches",
+    "parseNumberedItem": null,
+    "stripLeadingToken": "(tournament) book the pitches",
+    "toggleOpenClosed": "v (tournament) book the pitches",
+  },
+  {
+    "countActions": {
+      "closed": 0,
+      "forwarded": 0,
+      "open": 0,
+    },
+    "cycleActionSymbol": null,
+    "editor": {
+      "atomic": [
+        {
+          "from": 0,
+          "to": 3,
+        },
+      ],
+      "decorations": [
+        {
+          "class": "glyph-followup",
+          "from": 0,
+          "kind": "replace",
+          "label": "➔",
+          "to": 3,
+        },
+        {
+          "class": "glyph-assignee",
+          "from": 3,
+          "kind": "mark",
+          "to": 8,
+        },
+      ],
+    },
+    "findActionSymbols": [],
+    "glyphLine": [
+      {
+        "cls": "glyph-followup",
+        "text": "➔",
+      },
+      {
+        "text": " ",
+      },
+      {
+        "cls": "glyph-assignee",
+        "text": "@Joan",
+      },
+      {
+        "text": " collects the kit sizes",
+      },
+    ],
+    "innermostActionSymbol": null,
+    "innermostTopicSymbol": null,
+    "isSetextUnderline": false,
+    "isTopicLikeLine": false,
+    "leadingTopicTag": null,
+    "line": "=> @Joan collects the kit sizes",
+    "parseNumberedItem": null,
+    "stripLeadingToken": "@Joan collects the kit sizes",
+    "toggleOpenClosed": null,
+  },
+  {
+    "countActions": {
+      "closed": 0,
+      "forwarded": 0,
+      "open": 0,
+    },
+    "cycleActionSymbol": null,
+    "editor": {
       "atomic": [
         {
           "from": 0,
@@ -15540,6 +16275,318 @@ exports[`token behaviour snapshot (refactor R1) > scenario corpus 1`] = `
   },
   {
     "countActions": {
+      "closed": 1,
+      "forwarded": 0,
+      "open": 0,
+    },
+    "cycleActionSymbol": "> (tournament) book the pitches",
+    "editor": {
+      "atomic": [
+        {
+          "from": 0,
+          "to": 2,
+        },
+      ],
+      "decorations": [
+        {
+          "class": "glyph-done",
+          "from": 0,
+          "kind": "replace",
+          "label": "☑",
+          "to": 2,
+        },
+        {
+          "class": "glyph-topic-paren",
+          "from": 2,
+          "kind": "mark",
+          "to": 3,
+        },
+        {
+          "class": "glyph-topic",
+          "from": 2,
+          "kind": "mark",
+          "to": 14,
+        },
+        {
+          "class": "glyph-topic-paren",
+          "from": 13,
+          "kind": "mark",
+          "to": 14,
+        },
+      ],
+    },
+    "findActionSymbols": [
+      {
+        "index": 0,
+        "sym": "v",
+      },
+    ],
+    "glyphLine": [
+      {
+        "cls": "glyph-done",
+        "text": "☑",
+      },
+      {
+        "text": " ",
+      },
+      {
+        "cls": "glyph-topic",
+        "parts": [
+          {
+            "cls": "glyph-topic-paren",
+            "text": "(",
+          },
+          {
+            "text": "tournament",
+          },
+          {
+            "cls": "glyph-topic-paren",
+            "text": ")",
+          },
+        ],
+        "text": "(tournament)",
+      },
+      {
+        "text": " book the pitches",
+      },
+    ],
+    "innermostActionSymbol": "v",
+    "innermostTopicSymbol": null,
+    "isSetextUnderline": false,
+    "isTopicLikeLine": false,
+    "leadingTopicTag": {
+      "from": 2,
+      "to": 14,
+    },
+    "line": "v (tournament) book the pitches",
+    "parseNumberedItem": null,
+    "stripLeadingToken": "(tournament) book the pitches",
+    "toggleOpenClosed": "# (tournament) book the pitches",
+  },
+  {
+    "countActions": {
+      "closed": 0,
+      "forwarded": 0,
+      "open": 1,
+    },
+    "cycleActionSymbol": "=> v (tournament) ask @Joan for referees",
+    "editor": {
+      "atomic": [
+        {
+          "from": 0,
+          "to": 3,
+        },
+        {
+          "from": 3,
+          "to": 5,
+        },
+      ],
+      "decorations": [
+        {
+          "class": "glyph-followup",
+          "from": 0,
+          "kind": "replace",
+          "label": "➔",
+          "to": 3,
+        },
+        {
+          "class": "glyph-open",
+          "from": 3,
+          "kind": "replace",
+          "label": "☐",
+          "to": 5,
+        },
+        {
+          "class": "glyph-topic-paren",
+          "from": 5,
+          "kind": "mark",
+          "to": 6,
+        },
+        {
+          "class": "glyph-topic",
+          "from": 5,
+          "kind": "mark",
+          "to": 17,
+        },
+        {
+          "class": "glyph-topic-paren",
+          "from": 16,
+          "kind": "mark",
+          "to": 17,
+        },
+        {
+          "class": "glyph-assignee",
+          "from": 22,
+          "kind": "mark",
+          "to": 27,
+        },
+      ],
+    },
+    "findActionSymbols": [
+      {
+        "index": 3,
+        "sym": "#",
+      },
+    ],
+    "glyphLine": [
+      {
+        "cls": "glyph-followup",
+        "text": "➔",
+      },
+      {
+        "text": " ",
+      },
+      {
+        "cls": "glyph-open",
+        "text": "☐",
+      },
+      {
+        "text": " ",
+      },
+      {
+        "cls": "glyph-topic",
+        "parts": [
+          {
+            "cls": "glyph-topic-paren",
+            "text": "(",
+          },
+          {
+            "text": "tournament",
+          },
+          {
+            "cls": "glyph-topic-paren",
+            "text": ")",
+          },
+        ],
+        "text": "(tournament)",
+      },
+      {
+        "text": " ask ",
+      },
+      {
+        "cls": "glyph-assignee",
+        "text": "@Joan",
+      },
+      {
+        "text": " for referees",
+      },
+    ],
+    "innermostActionSymbol": "#",
+    "innermostTopicSymbol": null,
+    "isSetextUnderline": false,
+    "isTopicLikeLine": false,
+    "leadingTopicTag": {
+      "from": 5,
+      "to": 17,
+    },
+    "line": "=> # (tournament) ask @Joan for referees",
+    "parseNumberedItem": null,
+    "stripLeadingToken": "(tournament) ask @Joan for referees",
+    "toggleOpenClosed": "=> v (tournament) ask @Joan for referees",
+  },
+  {
+    "countActions": {
+      "closed": 0,
+      "forwarded": 0,
+      "open": 1,
+    },
+    "cycleActionSymbol": "v order the new kit by:2026-09-11",
+    "editor": {
+      "atomic": [
+        {
+          "from": 0,
+          "to": 2,
+        },
+      ],
+      "decorations": [
+        {
+          "class": "glyph-open",
+          "from": 0,
+          "kind": "replace",
+          "label": "☐",
+          "to": 2,
+        },
+      ],
+    },
+    "findActionSymbols": [
+      {
+        "index": 0,
+        "sym": "#",
+      },
+    ],
+    "glyphLine": [
+      {
+        "cls": "glyph-open",
+        "text": "☐",
+      },
+      {
+        "text": " ",
+      },
+      {
+        "text": "order the new kit ",
+      },
+      {
+        "cls": "cm-due cm-due-overdue",
+        "parts": [
+          {
+            "cls": "cm-due-flag",
+            "text": "by:",
+          },
+          {
+            "text": "2026-09-11",
+          },
+        ],
+        "text": "by:2026-09-11",
+        "title": "September 11, 2026, 48 days late",
+      },
+    ],
+    "innermostActionSymbol": "#",
+    "innermostTopicSymbol": null,
+    "isSetextUnderline": false,
+    "isTopicLikeLine": false,
+    "leadingTopicTag": null,
+    "line": "# order the new kit by:2026-09-11",
+    "parseNumberedItem": null,
+    "stripLeadingToken": "order the new kit by:2026-09-11",
+    "toggleOpenClosed": "v order the new kit by:2026-09-11",
+  },
+  {
+    "countActions": {
+      "closed": 0,
+      "forwarded": 0,
+      "open": 0,
+    },
+    "cycleActionSymbol": null,
+    "editor": {
+      "atomic": [],
+      "decorations": [
+        {
+          "class": "glyph-emphasis-line",
+          "from": 0,
+          "kind": "mark",
+          "to": 31,
+        },
+      ],
+    },
+    "findActionSymbols": [],
+    "glyphLine": [
+      {
+        "cls": "glyph-emphasis-line",
+        "text": "! The pitch is ours until 16:00",
+      },
+    ],
+    "innermostActionSymbol": null,
+    "innermostTopicSymbol": null,
+    "isSetextUnderline": false,
+    "isTopicLikeLine": false,
+    "leadingTopicTag": null,
+    "line": "! The pitch is ours until 16:00",
+    "parseNumberedItem": null,
+    "stripLeadingToken": "! The pitch is ours until 16:00",
+    "toggleOpenClosed": null,
+  },
+  {
+    "countActions": {
       "closed": 0,
       "forwarded": 0,
       "open": 0,
@@ -15723,6 +16770,226 @@ exports[`token behaviour snapshot (refactor R1) > scenario corpus 1`] = `
     "parseNumberedItem": null,
     "stripLeadingToken": "@Priya sign off on the conflict-resolution approach",
     "toggleOpenClosed": null,
+  },
+  {
+    "countActions": {
+      "closed": 0,
+      "forwarded": 0,
+      "open": 0,
+    },
+    "cycleActionSymbol": "# Christmas market stalls",
+    "editor": {
+      "atomic": [
+        {
+          "from": 0,
+          "to": 2,
+        },
+      ],
+      "decorations": [
+        {
+          "class": "glyph-topic-open",
+          "from": 0,
+          "kind": "replace",
+          "label": "○",
+          "to": 2,
+        },
+      ],
+    },
+    "findActionSymbols": [
+      {
+        "index": 0,
+        "sym": "o",
+      },
+    ],
+    "glyphLine": [
+      {
+        "cls": "glyph-topic-open",
+        "text": "○",
+      },
+      {
+        "text": " ",
+      },
+      {
+        "text": "Christmas market stalls",
+      },
+    ],
+    "innermostActionSymbol": null,
+    "innermostTopicSymbol": "o",
+    "isSetextUnderline": false,
+    "isTopicLikeLine": true,
+    "leadingTopicTag": null,
+    "line": "o Christmas market stalls",
+    "parseNumberedItem": null,
+    "stripLeadingToken": "o Christmas market stalls",
+    "toggleOpenClosed": ". Christmas market stalls",
+  },
+  {
+    "countActions": {
+      "closed": 0,
+      "forwarded": 0,
+      "open": 0,
+    },
+    "cycleActionSymbol": "# welcome coffee rota (@Ruth, @Ben)",
+    "editor": {
+      "atomic": [
+        {
+          "from": 0,
+          "to": 2,
+        },
+      ],
+      "decorations": [
+        {
+          "class": "glyph-topic-open",
+          "from": 0,
+          "kind": "replace",
+          "label": "○",
+          "to": 2,
+        },
+        {
+          "class": "glyph-assignee",
+          "from": 23,
+          "kind": "mark",
+          "to": 28,
+        },
+        {
+          "class": "glyph-assignee",
+          "from": 30,
+          "kind": "mark",
+          "to": 34,
+        },
+      ],
+    },
+    "findActionSymbols": [
+      {
+        "index": 0,
+        "sym": "o",
+      },
+    ],
+    "glyphLine": [
+      {
+        "cls": "glyph-topic-open",
+        "text": "○",
+      },
+      {
+        "text": " ",
+      },
+      {
+        "text": "welcome coffee rota (",
+      },
+      {
+        "cls": "glyph-assignee",
+        "text": "@Ruth",
+      },
+      {
+        "text": ", ",
+      },
+      {
+        "cls": "glyph-assignee",
+        "text": "@Ben",
+      },
+      {
+        "text": ")",
+      },
+    ],
+    "innermostActionSymbol": null,
+    "innermostTopicSymbol": "o",
+    "isSetextUnderline": false,
+    "isTopicLikeLine": true,
+    "leadingTopicTag": null,
+    "line": "o welcome coffee rota (@Ruth, @Ben)",
+    "parseNumberedItem": null,
+    "stripLeadingToken": "o welcome coffee rota (@Ruth, @Ben)",
+    "toggleOpenClosed": ". welcome coffee rota (@Ruth, @Ben)",
+  },
+  {
+    "countActions": {
+      "closed": 0,
+      "forwarded": 0,
+      "open": 1,
+    },
+    "cycleActionSymbol": "v (market) print the posters",
+    "editor": {
+      "atomic": [
+        {
+          "from": 0,
+          "to": 2,
+        },
+      ],
+      "decorations": [
+        {
+          "class": "glyph-open",
+          "from": 0,
+          "kind": "replace",
+          "label": "☐",
+          "to": 2,
+        },
+        {
+          "class": "glyph-topic-paren",
+          "from": 2,
+          "kind": "mark",
+          "to": 3,
+        },
+        {
+          "class": "glyph-topic",
+          "from": 2,
+          "kind": "mark",
+          "to": 10,
+        },
+        {
+          "class": "glyph-topic-paren",
+          "from": 9,
+          "kind": "mark",
+          "to": 10,
+        },
+      ],
+    },
+    "findActionSymbols": [
+      {
+        "index": 0,
+        "sym": "#",
+      },
+    ],
+    "glyphLine": [
+      {
+        "cls": "glyph-open",
+        "text": "☐",
+      },
+      {
+        "text": " ",
+      },
+      {
+        "cls": "glyph-topic",
+        "parts": [
+          {
+            "cls": "glyph-topic-paren",
+            "text": "(",
+          },
+          {
+            "text": "market",
+          },
+          {
+            "cls": "glyph-topic-paren",
+            "text": ")",
+          },
+        ],
+        "text": "(market)",
+      },
+      {
+        "text": " print the posters",
+      },
+    ],
+    "innermostActionSymbol": "#",
+    "innermostTopicSymbol": null,
+    "isSetextUnderline": false,
+    "isTopicLikeLine": false,
+    "leadingTopicTag": {
+      "from": 2,
+      "to": 10,
+    },
+    "line": "# (market) print the posters",
+    "parseNumberedItem": null,
+    "stripLeadingToken": "(market) print the posters",
+    "toggleOpenClosed": "v (market) print the posters",
   },
 ]
 `;

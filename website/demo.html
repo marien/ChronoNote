@@ -1,70 +1,45 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Live demo — ChronoNote</title>
-  <meta name="description" content="Try the real ChronoNote editor in your browser — full-screen, no marketing chrome, nothing saved." />
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Live demo · ChronoNote</title>
+  <meta name="description" content="Try the real ChronoNote editor in your browser, full screen, on example notes. Nothing is saved and nothing to install." />
+  <link rel="canonical" href="https://chrononote.mariendegelder.nl/demo.html" />
+  <meta name="theme-color" content="#f4f5f7" media="(prefers-color-scheme: light)" />
+  <meta name="theme-color" content="#111317" media="(prefers-color-scheme: dark)" />
+  <script>try { var t = localStorage.getItem("chrononote-theme"); if (t === "light" || t === "dark") document.documentElement.setAttribute("data-theme", t); } catch (e) {}</script>
   <link rel="icon" href="assets/favicon.ico?v=0.32.7" sizes="any" />
   <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png?v=0.32.7" />
   <link rel="apple-touch-icon" href="assets/apple-touch-icon.png?v=0.32.7" />
   <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="ChronoNote" />
   <meta property="og:url" content="https://chrononote.mariendegelder.nl/demo.html" />
-  <meta property="og:title" content="Live demo — ChronoNote" />
-  <meta property="og:description" content="Try the real ChronoNote editor in your browser — full-screen, no marketing chrome, nothing saved." />
+  <meta property="og:title" content="Live demo · ChronoNote" />
+  <meta property="og:description" content="The real ChronoNote editor in your browser, on example notes. Nothing is saved." />
   <meta property="og:image" content="https://chrononote.mariendegelder.nl/assets/og-image.png" />
-  <meta name="twitter:card" content="summary" />
-  <meta name="twitter:title" content="Live demo — ChronoNote" />
-  <meta name="twitter:description" content="Try the real ChronoNote editor in your browser — full-screen, no marketing chrome, nothing saved." />
-  <meta name="twitter:image" content="https://chrononote.mariendegelder.nl/assets/og-image.png" />
-  <link rel="stylesheet" href="style.css?v=436" />
-  <style>
-    body {
-      display: flex;
-      flex-direction: column;
-      height: 100vh;
-      overflow: hidden;
-    }
-    .demo-bar {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 16px;
-      padding: 10px 16px;
-      background: var(--surface-chrome);
-      border-bottom: 1px solid var(--edge-soft);
-      font-size: 13px;
-      color: var(--muted);
-      flex-shrink: 0;
-    }
-    .demo-bar a {
-      color: var(--text);
-    }
-    .demo-full-frame {
-      flex: 1;
-      min-height: 0;
-    }
-    .demo-full-frame iframe {
-      width: 100%;
-      height: 100%;
-      border: none;
-      display: block;
-      background: var(--surface-canvas);
-    }
-  </style>
+  <meta name="twitter:card" content="summary_large_image" />
+  <link rel="stylesheet" href="style.css?v=440" />
+  <script src="site.js?v=440" defer></script>
 </head>
-<body>
-
+<body class="demo-page">
   <div class="demo-bar">
-    <span>🎭 Live demo — fake data, nothing you do here is saved. Runs the real ChronoNote app.</span>
-    <span>
+    <a class="brand" href="./" aria-label="ChronoNote home"><img src="assets/logo.svg" width="20" height="20" alt="" />ChronoNote</a>
+    <span>Live demo on example notes. Nothing you do here is saved.</span>
+    <nav aria-label="Demo">
       <a href="https://app.chrononote.mariendegelder.nl/" target="_blank" rel="noopener">Use it for real ↗</a>
-      · <a href="index.html">← Back to chrononote</a>
-    </span>
+      <a href="guide.html">Guide</a>
+      <div class="theme"></div>
+    </nav>
   </div>
-  <div class="demo-full-frame">
-    <iframe src="demo-app/" title="ChronoNote live demo"></iframe>
-  </div>
-
+  <h1 class="visually-hidden">ChronoNote live demo</h1>
+  <iframe id="demoFrame" title="ChronoNote live demo"></iframe>
+  <script>
+    // demo.html?try=<feature> opens the demo on that feature (see src/lib/testing/demoTry.ts).
+    document.addEventListener("DOMContentLoaded", function () {
+      var feature = new URLSearchParams(location.search).get("try") || "today";
+      window.CN.demo(document.getElementById("demoFrame"), /^[a-z]+$/.test(feature) ? feature : "today");
+    });
+  </script>
 </body>
 </html>

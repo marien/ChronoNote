@@ -261,9 +261,11 @@ if [[ $BETA == 1 ]]; then
 else
 run build-demo   npm run build:demo
 run build-webapp npm run build:webapp
-if [[ -n "$(git status --porcelain website/demo-app website/webapp)" ]]; then
-  git add website/demo-app website/webapp
-  git commit -q -m "Rebuild demo and web app bundles for $TAG$TRAILER"
+# The website's download button, version and JSON-LD follow the stable release (§440).
+run site-version node scripts/site-version.mjs "$VERSION"
+if [[ -n "$(git status --porcelain website/demo-app website/webapp website/*.html)" ]]; then
+  git add website/demo-app website/webapp website/*.html
+  git commit -q -m "Rebuild demo and web app bundles and the site's version for $TAG$TRAILER"
   ok "committed"
 else
   ok "bundles already fresh"
