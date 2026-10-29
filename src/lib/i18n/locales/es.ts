@@ -205,6 +205,11 @@ export const es = {
   "occurrence.settings.hint.hint": () =>
     "Desactivado por defecto. Muestra < (2/5) > tras el título de una sección cuando otras notas tienen la misma sección; haga clic en las flechas para ir a ella. Alt+Izquierda / Alt+Derecha funcionan siempre dentro de una sección, con o sin la indicación.",
   "toast.boot.failedToSave.occurrenceHint": () => "Error al guardar la preferencia de la indicación de apariciones",
+  "phoneCompanion.settings.title": () => "Compañero móvil",
+  "phoneCompanion.settings.toggle.label": () => "Mantener un índice de reuniones para la app del teléfono",
+  "phoneCompanion.settings.toggle.hint.before": () => "Escribe ",
+  "phoneCompanion.settings.toggle.hint.after": () => " en la carpeta de notas: las reuniones de las dos semanas pasadas y próximas, para que una app del teléfono las consulte a través de OneDrive. Actívalo en un solo ordenador.",
+  "toast.boot.failedToSave.phoneCompanion": () => "No se pudo guardar la preferencia del compañero móvil",
   "peek.settings.callShortcut.label": () =>
     "Atajo: notas de la reunión en curso (funciona desde cualquier aplicación)",
   "commandPalette.peekCall": () =>

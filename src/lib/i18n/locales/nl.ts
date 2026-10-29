@@ -205,6 +205,11 @@ export const nl = {
   "occurrence.settings.hint.hint": () =>
     "Standaard uit. Toont < (2/5) > na de titel van een sectie als andere notities dezelfde sectie hebben; klik op de pijltjes om erheen te gaan. Alt+Links / Alt+Rechts werken altijd in een sectie, met of zonder hint.",
   "toast.boot.failedToSave.occurrenceHint": () => "Opslaan van de voorkomens-hint mislukt",
+  "phoneCompanion.settings.title": () => "Telefoon-companion",
+  "phoneCompanion.settings.toggle.label": () => "Een vergaderindex bijhouden voor de telefoon-app",
+  "phoneCompanion.settings.toggle.hint.before": () => "Schrijft ",
+  "phoneCompanion.settings.toggle.hint.after": () => " in de notitiemap: de vergaderingen van de afgelopen en komende twee weken, zodat een telefoon-app ze via OneDrive kan bekijken. Zet dit op één computer aan.",
+  "toast.boot.failedToSave.phoneCompanion": () => "Opslaan van de telefoon-companion-instelling mislukt",
   "peek.settings.callShortcut.label": () =>
     "Sneltoets: notities voor de vergadering die nu bezig is (werkt vanuit elke app)",
   "commandPalette.peekCall": () =>

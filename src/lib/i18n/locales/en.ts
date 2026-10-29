@@ -201,6 +201,11 @@ export const en = {
   "occurrence.settings.hint.hint": () =>
     "Off by default. Shows < (2/5) > after a section's title when other notes have the same section; click the arrows to go there. Alt+Left / Alt+Right always work in a section, with or without the hint.",
   "toast.boot.failedToSave.occurrenceHint": () => "Failed to save occurrence hint preference",
+  "phoneCompanion.settings.title": () => "Phone companion",
+  "phoneCompanion.settings.toggle.label": () => "Keep a meeting index for the phone app",
+  "phoneCompanion.settings.toggle.hint.before": () => "Writes ",
+  "phoneCompanion.settings.toggle.hint.after": () => " in the notes folder: the meetings of the past and coming two weeks, so a phone app can browse them through OneDrive. Turn it on on one computer only.",
+  "toast.boot.failedToSave.phoneCompanion": () => "Failed to save phone companion preference",
   "peek.settings.callShortcut.label": () =>
     "Shortcut: notes for the meeting that is on now (works from any app)",
   "commandPalette.peekCall": () =>

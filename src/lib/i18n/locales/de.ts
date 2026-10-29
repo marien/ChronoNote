@@ -208,6 +208,11 @@ export const de = {
   "occurrence.settings.hint.hint": () =>
     "Standardmäßig aus. Zeigt < (2/5) > hinter dem Titel eines Abschnitts, wenn andere Notizen denselben Abschnitt haben; mit den Pfeilen springen Sie dorthin. Alt+Links / Alt+Rechts funktionieren in einem Abschnitt immer, mit oder ohne Hinweis.",
   "toast.boot.failedToSave.occurrenceHint": () => "Speichern der Vorkommen-Einstellung fehlgeschlagen",
+  "phoneCompanion.settings.title": () => "Telefon-Begleiter",
+  "phoneCompanion.settings.toggle.label": () => "Besprechungsindex für die Telefon-App führen",
+  "phoneCompanion.settings.toggle.hint.before": () => "Schreibt ",
+  "phoneCompanion.settings.toggle.hint.after": () => " in den Notizordner: die Besprechungen der letzten und nächsten zwei Wochen, damit eine Telefon-App sie über OneDrive durchsuchen kann. Nur auf einem Computer einschalten.",
+  "toast.boot.failedToSave.phoneCompanion": () => "Einstellung für den Telefon-Begleiter konnte nicht gespeichert werden",
   "peek.settings.callShortcut.label": () =>
     "Tastenkürzel: Notizen zur laufenden Besprechung (funktioniert in jeder App)",
   "commandPalette.peekCall": () =>

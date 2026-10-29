@@ -110,6 +110,10 @@ export function setOccurrenceHint(enabled: boolean): Promise<AppConfig> {
   return updateConfig({ occurrenceHint: enabled });
 }
 
+export function setPhoneCompanion(enabled: boolean): Promise<AppConfig> {
+  return updateConfig({ phoneCompanion: enabled });
+}
+
 export function setStatusBarVisible(enabled: boolean): Promise<AppConfig> {
   return updateConfig({ statusBarVisible: enabled });
 }
@@ -208,6 +212,10 @@ export function readNoteWithMetadata(filename: string): Promise<NoteWithMetadata
  * absolute path written, for the confirmation toast. */
 export function writeConflictCopy(name: string, content: string): Promise<string> {
   return invoke("write_conflict_copy", { name, content });
+}
+
+export function writePhoneOutbox(content: string): Promise<void> {
+  return invoke("write_phone_outbox", { content });
 }
 
 export function readAllNotes(): Promise<[string, string][]> {

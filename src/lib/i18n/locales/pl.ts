@@ -207,6 +207,11 @@ export const pl = {
   "occurrence.settings.hint.hint": () =>
     "Domyślnie wyłączone. Pokazuje < (2/5) > po tytule sekcji, gdy ta sama sekcja jest w innych notatkach; kliknij strzałki, aby tam przejść. Alt+Strzałka w lewo / Alt+Strzałka w prawo działają w sekcji zawsze, ze wskaźnikiem lub bez niego.",
   "toast.boot.failedToSave.occurrenceHint": () => "Nie udało się zapisać ustawienia wskaźnika wystąpień",
+  "phoneCompanion.settings.title": () => "Towarzysz telefonu",
+  "phoneCompanion.settings.toggle.label": () => "Prowadź indeks spotkań dla aplikacji na telefon",
+  "phoneCompanion.settings.toggle.hint.before": () => "Zapisuje ",
+  "phoneCompanion.settings.toggle.hint.after": () => " w folderze notatek: spotkania z ostatnich i najbliższych dwóch tygodni, aby aplikacja na telefonie mogła je przeglądać przez OneDrive. Włącz tylko na jednym komputerze.",
+  "toast.boot.failedToSave.phoneCompanion": () => "Nie udało się zapisać ustawienia towarzysza telefonu",
   "peek.settings.callShortcut.label": () =>
     "Skrót: notatki do trwającego spotkania (działa z każdej aplikacji)",
   "commandPalette.peekCall": () =>

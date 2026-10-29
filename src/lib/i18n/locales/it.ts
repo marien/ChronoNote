@@ -207,6 +207,11 @@ export const it = {
   "occurrence.settings.hint.hint": () =>
     "Disattivato per impostazione predefinita. Mostra < (2/5) > dopo il titolo di una sezione quando altre note contengono la stessa sezione; fai clic sulle frecce per andarci. Alt+Sinistra / Alt+Destra funzionano sempre dentro una sezione, con o senza l'indicatore.",
   "toast.boot.failedToSave.occurrenceHint": () => "Impossibile salvare la preferenza dell'indicatore delle occorrenze",
+  "phoneCompanion.settings.title": () => "Compagno per il telefono",
+  "phoneCompanion.settings.toggle.label": () => "Mantieni un indice delle riunioni per l'app del telefono",
+  "phoneCompanion.settings.toggle.hint.before": () => "Scrive ",
+  "phoneCompanion.settings.toggle.hint.after": () => " nella cartella delle note: le riunioni delle due settimane passate e future, così un'app sul telefono può consultarle tramite OneDrive. Attivalo su un solo computer.",
+  "toast.boot.failedToSave.phoneCompanion": () => "Impossibile salvare l'impostazione del compagno per il telefono",
   "peek.settings.callShortcut.label": () =>
     "Scorciatoia: note della riunione in corso (funziona da qualsiasi app)",
   "commandPalette.peekCall": () =>

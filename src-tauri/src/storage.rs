@@ -353,6 +353,10 @@ pub struct AppConfig {
     /// Whether to check the early-updates channel (§F1). Off by default.
     #[serde(default)]
     pub early_updates: bool,
+    /// Phone companion: keep `.chrononote-mobile/outbox.json` (the meeting index a phone app reads) up to date.
+    /// Off by default; only one laptop should have it on (docs/design/mobile-companion-design.md).
+    #[serde(default)]
+    pub phone_companion: bool,
     #[serde(flatten)]
     #[ts(skip)]
     pub extra: serde_json::Map<String, serde_json::Value>,
@@ -408,6 +412,8 @@ pub struct ConfigPatch {
     pub onboarding_completed: Option<bool>,
     #[ts(optional)]
     pub early_updates: Option<bool>,
+    #[ts(optional)]
+    pub phone_companion: Option<bool>,
 }
 
 impl ConfigPatch {
@@ -478,6 +484,9 @@ impl ConfigPatch {
         }
         if let Some(v) = self.early_updates {
             cfg.early_updates = v;
+        }
+        if let Some(v) = self.phone_companion {
+            cfg.phone_companion = v;
         }
     }
 }
@@ -753,6 +762,7 @@ fn load_config_at(path: &Path, default_notes_dir: &Path) -> Result<AppConfig, St
         history_pane_share: default_pane_share(),
         actions_pane_share: default_pane_share(),
         early_updates: false,
+        phone_companion: false,
         extra: Default::default(),
     };
     save_config_at(path, &cfg)?;
@@ -827,6 +837,10 @@ fn read_note_at(root: &Path, filename: &str) -> Result<Option<String>, String> {
 /// `read_all_notes_at` because `is_valid_note_filename` rejects both the
 /// directory name and the timestamped `.txt` files it holds.
 const CONFLICTS_DIRNAME: &str = ".chrononote-conflicts";
+
+/// The phone companion's folder inside the notes folder: `outbox.json` (written here) and `inbox.json` (written by
+/// the phone). Hidden, and invisible to the note listings for the same reason as the conflicts folder.
+const MOBILE_DIRNAME: &str = ".chrononote-mobile";
 
 pub const VERSIONS_DIRNAME: &str = ".chrononote-versions";
 pub const VERSIONS_KEEP_DAYS: i64 = 30;
@@ -1196,6 +1210,11 @@ fn write_conflict_copy_at(root: &Path, name: &str, content: &str) -> Result<Stri
     let target = resolve_workspace_path(&dir, Path::new(name)).map_err(String::from)?;
     atomic_write(&target, content.as_bytes()).map_err(|e| e.to_string())?;
     Ok(target.to_string_lossy().into_owned())
+}
+
+fn write_phone_outbox_at(root: &Path, content: &str) -> Result<(), String> {
+    // Atomic, so the phone (through OneDrive) only ever sees the old file or the new one.
+    atomic_write(&root.join(MOBILE_DIRNAME).join("outbox.json"), content.as_bytes()).map_err(|e| e.to_string())
 }
 
 fn write_note_at_time_internal(
@@ -1760,6 +1779,10 @@ pub fn write_conflict_copy(app: &AppHandle, name: &str, content: &str) -> Result
     write_conflict_copy_at(&notes_root(app)?, name, content)
 }
 
+pub fn write_phone_outbox(app: &AppHandle, content: &str) -> Result<(), String> {
+    write_phone_outbox_at(&notes_root(app)?, content)
+}
+
 pub fn read_all_notes(app: &AppHandle) -> Result<Vec<(String, String)>, String> {
     read_all_notes_at(&notes_root(app)?)
 }
@@ -2065,6 +2088,7 @@ mod tests {
             history_pane_share: 0.35,
             actions_pane_share: 0.45,
             early_updates: false,
+            phone_companion: false,
             extra: Default::default(),
         };
         save_config_at(&path, &cfg).unwrap();
@@ -2143,6 +2167,7 @@ mod tests {
                 history_pane_share: default_pane_share(),
                 actions_pane_share: default_pane_share(),
                 early_updates: false,
+                phone_companion: false,
                 extra: Default::default(),
             };
             save_config_at(&path, &cfg).unwrap();
@@ -2288,6 +2313,30 @@ mod tests {
         cfg.status_bar_visible = false;
         save_config_at(&path, &cfg).unwrap();
         assert!(!load_config_at(&path, dir.path()).unwrap().status_bar_visible);
+    }
+
+    #[test]
+    fn phone_companion_is_off_by_default_and_round_trips() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("config.json");
+        fs::write(&path, r#"{"notesDir":"/n"}"#).unwrap();
+        assert!(!load_config_at(&path, dir.path()).unwrap().phone_companion);
+        let mut cfg = load_config_at(&path, dir.path()).unwrap();
+        ConfigPatch { phone_companion: Some(true), ..Default::default() }.apply(&mut cfg);
+        save_config_at(&path, &cfg).unwrap();
+        assert!(load_config_at(&path, dir.path()).unwrap().phone_companion);
+    }
+
+    #[test]
+    fn the_phone_outbox_is_written_and_replaced_in_its_hidden_folder_and_stays_out_of_the_note_list() {
+        let dir = tempfile::tempdir().unwrap();
+        fs::write(dir.path().join("2026-10-29.txt"), "x").unwrap();
+        write_phone_outbox_at(dir.path(), "{\"format\":1}").unwrap();
+        write_phone_outbox_at(dir.path(), "{\"format\":2}").unwrap();
+        let out = dir.path().join(".chrononote-mobile").join("outbox.json");
+        assert_eq!(fs::read_to_string(out).unwrap(), "{\"format\":2}");
+        assert_eq!(list_note_files_at(dir.path()).unwrap(), vec!["2026-10-29.txt".to_string()]);
+        assert_eq!(read_all_notes_at(dir.path()).unwrap().len(), 1);
     }
 
     #[test]

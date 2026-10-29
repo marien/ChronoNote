@@ -870,6 +870,9 @@ Notes deleted with content are moved to a hidden `.chrononote-trash/` subfolder 
 ### 6.6 Earlier Versions of a Note
 Before an overwrite (when the note is emptied, when saved without an expected hash, on an import with Replace, or on a conflict resolved with "Keep mine"), or when editing if the newest version is more than 5 minutes old, the note's previous text is saved to a hidden `.chrononote-versions/<filename>/<timestamp>.txt` subfolder. A background clean-up keeps every version saved today, collapses earlier days to the newest version per day, and removes versions older than 30 days along with empty folders. A tab's context menu provides "Earlier versions…", showing the list with a side-by-side diff against the current text and a restore action (which keeps the current text first). The web app keeps equivalent records in IndexedDB.
 
+### 6.7 Phone Companion Index (in development)
+Desktop only, off by default: Settings → Notes & Sync → "Phone companion". When on, ChronoNote keeps `.chrononote-mobile/outbox.json` in the notes folder up to date: the meetings of the 14 days before and after today (section titles in those days' notes, ad-hoc sections excluded, plus the agenda's live meetings on those days), each with its occurrences in that window and the 5 before it. Titles are matched as Section History matches them. The file is rebuilt at start, when the setting is turned on, at a day change, a few seconds after edits and when the window regains focus, and written (atomically) only when its content apart from `generatedAt` changed. Its format is in `docs/phone-companion-file-guide.md`; the phone app that reads it, and the inbox it will write, are described in `docs/design/mobile-companion-design.md`.
+
 ---
 
 ## 7. Distribution, Backends & the Update Mechanism

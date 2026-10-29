@@ -88,6 +88,7 @@ interface StoredConfig {
   occurrenceHint?: boolean;
   statusBarVisible?: boolean;
   earlyUpdates?: boolean;
+  phoneCompanion?: boolean;
   tabLabelStyle?: TabLabelStyle;
   historyPaneShare?: number;
   actionsPaneShare?: number;
@@ -278,6 +279,7 @@ export class WebBackend {
         startupTabMode: "today",
         statusBarVisible: true,
         earlyUpdates: false,
+        phoneCompanion: false,
         tabLabelStyle: "iso",
         historyPaneShare: 0.30,
         actionsPaneShare: 0.30,
@@ -322,6 +324,7 @@ export class WebBackend {
       occurrenceHint: cfg.occurrenceHint ?? false,
       statusBarVisible: cfg.statusBarVisible ?? true,
       earlyUpdates: cfg.earlyUpdates ?? false,
+      phoneCompanion: cfg.phoneCompanion ?? false,
       tabLabelStyle: cfg.tabLabelStyle ?? "iso",
       historyPaneShare: cfg.historyPaneShare ?? 0.30,
       actionsPaneShare: cfg.actionsPaneShare ?? 0.30,
@@ -468,6 +471,7 @@ export class WebBackend {
       if (patch.occurrenceHint !== undefined) cfg.occurrenceHint = patch.occurrenceHint;
       if (patch.statusBarVisible !== undefined) cfg.statusBarVisible = patch.statusBarVisible;
       if (patch.earlyUpdates !== undefined) cfg.earlyUpdates = patch.earlyUpdates;
+      if (patch.phoneCompanion !== undefined) cfg.phoneCompanion = patch.phoneCompanion;
       if (patch.tabLabelStyle !== undefined) cfg.tabLabelStyle = patch.tabLabelStyle;
       if (patch.historyPaneShare !== undefined) cfg.historyPaneShare = Math.min(0.60, Math.max(0.18, patch.historyPaneShare));
       if (patch.actionsPaneShare !== undefined) cfg.actionsPaneShare = Math.min(0.60, Math.max(0.18, patch.actionsPaneShare));
@@ -673,6 +677,10 @@ export class WebBackend {
       const ws = await this.getActiveWorkspace();
       const prefix = ws === "onedrive" ? "OneDrive" : NOTES_DIR_PLACEHOLDER;
       return `${prefix}/.chrononote-conflicts/${name}`;
+    },
+
+    write_phone_outbox: async () => {
+      throw new Error("The phone companion is not available in the web app.");
     },
 
     read_all_notes: async () => {

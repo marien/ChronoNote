@@ -71,6 +71,7 @@ export interface MockSeed {
   readableLineLength?: boolean;
   autoCheckUpdates?: boolean;
   earlyUpdates?: boolean;
+  phoneCompanion?: boolean;
   /** #50: the version this config last recorded seeing — seed a value
    * different from `appVersion` to simulate "first launch after an
    * update" in a test. `undefined`/omitted mirrors a fresh install or a
@@ -326,6 +327,9 @@ export class MockBackend {
   readableLineLength: boolean;
   autoCheckUpdates: boolean;
   earlyUpdates: boolean = false;
+  phoneCompanion: boolean = false;
+  /** `.chrononote-mobile/outbox.json` as `write_phone_outbox` last wrote it (not part of the snapshot). */
+  phoneOutbox: string | null = null;
   lastCheckUpdateEarly: boolean | null = null;
   lastCheckEarly: boolean | null = null;
   lastSeenVersion: string | null;
@@ -436,6 +440,7 @@ export class MockBackend {
     this.readableLineLength = seed.readableLineLength ?? false;
     this.autoCheckUpdates = seed.autoCheckUpdates ?? true;
     this.earlyUpdates = seed.earlyUpdates ?? false;
+    this.phoneCompanion = seed.phoneCompanion ?? false;
     this.lastSeenVersion = seed.lastSeenVersion ?? null;
     this.calendarSyncEnabled = seed.calendarSyncEnabled ?? false;
     this.fontSize = seed.fontSize ?? 13;
@@ -519,6 +524,7 @@ export class MockBackend {
       readableLineLength: this.readableLineLength,
       autoCheckUpdates: this.autoCheckUpdates,
       earlyUpdates: this.earlyUpdates,
+      phoneCompanion: this.phoneCompanion,
       lastSeenVersion: this.lastSeenVersion,
       calendarSyncEnabled: this.calendarSyncEnabled,
       fontSize: this.fontSize,
@@ -586,6 +592,7 @@ export class MockBackend {
         readableLineLength?: boolean;
         autoCheckUpdates?: boolean;
         earlyUpdates?: boolean;
+        phoneCompanion?: boolean;
         lastSeenVersion?: string | null;
         calendarSyncEnabled?: boolean;
         fontSize?: number;
@@ -625,6 +632,7 @@ export class MockBackend {
       b.mockSpellLanguages = s.mockSpellLanguages ?? (b.spellLanguages ? [...b.spellLanguages] : ["nl-NL"]);
       b.autoCheckUpdates = s.autoCheckUpdates ?? true;
       b.earlyUpdates = s.earlyUpdates ?? false;
+      b.phoneCompanion = s.phoneCompanion ?? false;
       b.lastSeenVersion = s.lastSeenVersion ?? null;
       b.calendarSyncEnabled = s.calendarSyncEnabled ?? false;
       b.readableLineLength = s.readableLineLength ?? false;
@@ -701,6 +709,7 @@ export class MockBackend {
       recentNotesDirs: [...this.recentNotesDirs],
       autoCheckUpdates: this.autoCheckUpdates,
       earlyUpdates: this.earlyUpdates,
+      phoneCompanion: this.phoneCompanion,
       lastSeenVersion: this.lastSeenVersion,
       calendarSyncEnabled: this.calendarSyncEnabled,
       fontSize: this.fontSize,
@@ -933,6 +942,7 @@ export class MockBackend {
       if (patch.readableLineLength !== undefined) this.readableLineLength = patch.readableLineLength;
       if (patch.autoCheckUpdates !== undefined) this.autoCheckUpdates = patch.autoCheckUpdates;
       if (patch.earlyUpdates !== undefined) this.earlyUpdates = patch.earlyUpdates;
+      if (patch.phoneCompanion !== undefined) this.phoneCompanion = patch.phoneCompanion;
       if (patch.calendarSyncEnabled !== undefined) this.calendarSyncEnabled = patch.calendarSyncEnabled;
       if (patch.fontSize !== undefined) this.fontSize = Math.min(18, Math.max(12, patch.fontSize));
       if (patch.lineHeight !== undefined) this.lineHeight = Math.min(1.8, Math.max(1.3, patch.lineHeight));
@@ -1139,6 +1149,10 @@ export class MockBackend {
       }
       this.dir().conflictCopies.set(name, content);
       return `${this.notesDir}/${CONFLICTS_DIRNAME}/${name}`;
+    },
+
+    write_phone_outbox: ({ content }) => {
+      this.phoneOutbox = content;
     },
 
     read_all_notes: () =>

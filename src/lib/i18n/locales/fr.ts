@@ -207,6 +207,11 @@ export const fr = {
   "occurrence.settings.hint.hint": () =>
     "Désactivé par défaut. Affiche < (2/5) > après le titre d'une section lorsque d'autres notes contiennent la même section ; cliquez sur les flèches pour y aller. Alt+Gauche / Alt+Droite fonctionnent toujours dans une section, avec ou sans l'indicateur.",
   "toast.boot.failedToSave.occurrenceHint": () => "Échec de l'enregistrement de l'indicateur d'occurrences",
+  "phoneCompanion.settings.title": () => "Compagnon mobile",
+  "phoneCompanion.settings.toggle.label": () => "Tenir un index des réunions pour l'app mobile",
+  "phoneCompanion.settings.toggle.hint.before": () => "Écrit ",
+  "phoneCompanion.settings.toggle.hint.after": () => " dans le dossier des notes : les réunions des deux semaines passées et à venir, pour qu'une app mobile les consulte via OneDrive. À activer sur un seul ordinateur.",
+  "toast.boot.failedToSave.phoneCompanion": () => "Échec de l'enregistrement du réglage du compagnon mobile",
   "peek.settings.callShortcut.label": () =>
     "Raccourci : notes de la réunion en cours (fonctionne depuis n'importe quelle application)",
   "commandPalette.peekCall": () =>

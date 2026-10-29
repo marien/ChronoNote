@@ -184,6 +184,11 @@ export type TranslationParams = {
   "occurrence.settings.hint.label": undefined;
   "occurrence.settings.hint.hint": undefined;
   "toast.boot.failedToSave.occurrenceHint": undefined;
+  "phoneCompanion.settings.title": undefined;
+  "phoneCompanion.settings.toggle.label": undefined;
+  "phoneCompanion.settings.toggle.hint.before": undefined;
+  "phoneCompanion.settings.toggle.hint.after": undefined;
+  "toast.boot.failedToSave.phoneCompanion": undefined;
   "occurrence.peek": undefined;
   "peek.settings.fitSection.label": undefined;
   "peek.settings.opacity.label": undefined;

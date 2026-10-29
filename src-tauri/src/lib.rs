@@ -171,6 +171,13 @@ async fn write_conflict_copy(app: AppHandle, name: String, content: String) -> R
 }
 
 #[tauri::command]
+async fn write_phone_outbox(app: AppHandle, content: String) -> Result<(), String> {
+    tauri::async_runtime::spawn_blocking(move || storage::write_phone_outbox(&app, &content))
+        .await
+        .map_err(|e| e.to_string())?
+}
+
+#[tauri::command]
 async fn read_all_notes(app: AppHandle) -> Result<Vec<(String, String)>, String> {
     // Reads every note in the folder. A plain `fn` command runs on the main thread, which is
     // also the UI thread: with a large folder (each read going through OneDrive's filter driver
@@ -418,6 +425,7 @@ pub fn run() {
             get_file_metadata,
             read_note_with_metadata,
             write_conflict_copy,
+            write_phone_outbox,
             read_all_notes,
             read_tab_session,
             write_tab_session,

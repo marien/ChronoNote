@@ -63,6 +63,8 @@ export interface TauriCommands {
   read_note_with_metadata: { args: { filename: string }; returns: NoteWithMetadata };
   write_conflict_copy: { args: { name: string; content: string }; returns: string };
   read_all_notes: { args: NoArgs; returns: [string, string][] };
+  /** Phone companion: writes `.chrononote-mobile/outbox.json` atomically (`phoneCompanion.ts`). */
+  write_phone_outbox: { args: { content: string }; returns: void };
   read_tab_session: { args: NoArgs; returns: TabSession | null };
   write_tab_session: {
     args: { openTabs: string[]; activeTab: string | null; lastOpenedDate: string | null };

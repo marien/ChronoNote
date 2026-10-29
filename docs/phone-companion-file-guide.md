@@ -52,7 +52,7 @@ without a format change.
 | `generatedAt` | When ChronoNote wrote the file, local time with offset. |
 | `appVersion` | The ChronoNote version that wrote it (informational). |
 | `window` | The days ChronoNote considered: 14 days before today up to 14 days after, both included. |
-| `meetings` | Every meeting in the window (section 2.1). Sorted by `title`. |
+| `meetings` | Every meeting in the window (section 2.1). Sorted by `title`, ignoring case. |
 | `results` | One entry per request ChronoNote has handled that is still in the inbox (section 4). |
 
 ### 2.1 Meetings
@@ -62,22 +62,26 @@ without a format change.
   (titles starting with `'` or `’`) and the day part are not meetings and are not listed.
 - **`key`:** a stable identifier, `m-` plus 6 hex characters, the same for all occurrences of one meeting and across
   outbox writes. Use it to tell meetings apart; don't derive anything from it.
-- **`title`:** the meeting's title as of its most recent occurrence, for display.
+- **`title`:** the meeting's title as of its most recent occurrence in the notes (cleaned as below), or the agenda's
+  title for a meeting that has no section yet, for display.
 - **`occurrences`:** oldest first. Every occurrence inside the window, plus the 5 most recent ones before the window,
   however far back. An occurrence is a day whose note has a section for this meeting. A meeting that is only on the
   agenda so far has no occurrence for that day yet.
 - **Occurrence `title`:** the section title exactly as written in that day's note (trimmed). The phone finds the
   section by comparing this with the titles it parses (section 5.2), so it needs none of ChronoNote's matching rules.
 
-Two titles are the same meeting when they are equal after ChronoNote removes a leading time range
+Two titles are the same meeting when they are equal, ignoring case, after ChronoNote removes a leading time range
 (`[09:00 - 09:30] `), a leading `[CANCELED] `, and a date (`YYYY-MM-DD`) at the start or end of the title together
-with a `-` or `:` next to it. So `Weekly Sync`, `Weekly Sync 2026-10-29` and `2026-10-29: Weekly Sync` are one meeting.
+with a `-` or `:` next to it. So `Weekly Sync`, `weekly sync 2026-10-29` and `2026-10-29: Weekly Sync` are one meeting.
+A day counts once per meeting (its first matching section). (For the record: `key` is the first 6 hex digits of the
+32-bit FNV-1a hash of that cleaned, lower-cased title in UTF-8.)
 
 ### 2.2 When it is written
 
 When ChronoNote starts, after it has processed the inbox, when the day changes, and when the set of meetings in the
-window changes (a section title added or renamed in a note, or a meeting added or moved in `.agenda.json`). Not for
-ordinary edits. Only when its content (apart from `generatedAt`) changed. Written atomically: a reader sees the old
+window changes (a section title added or renamed in a note, or a meeting added or moved in `.agenda.json`). ChronoNote
+checks a few seconds after edits and when its window regains focus, but writes only when the content (apart from
+`generatedAt`) changed, so ordinary edits don't touch the file. Pretty-printed, ending with a newline. Written atomically: a reader sees the old
 file or the new one, never half of one.
 
 The outbox can be behind the notes. That is expected: a new occurrence is always inside the window, and the phone
