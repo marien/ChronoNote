@@ -1,5 +1,16 @@
 # Design notes
 
+## Mobile companion through OneDrive (outbox and inbox)
+
+**[`mobile-companion-design.md`](mobile-companion-design.md)** — decided 2026-10-29 (Marien's answers in §13):
+preparing meetings on a restricted corporate device that allows Microsoft's own apps, with a Power App and without
+an app registration. The app reads the notes and
+`.agenda.json` through flows (display only); ChronoNote's `.chrononote-mobile/outbox.json` holds only an index of
+earlier meeting occurrences and request results, written at start, after inbox runs, at day change and when the
+window's meetings change (new section titles, agenda changes), never for an ordinary edit. The app writes proposals
+(add a line, change a state) to `inbox.json`; ChronoNote applies what still fits and holds conflicts for review. One
+writer per file; desktop only; phased.
+
 ## Due dates on actions (feature review B2)
 
 **[`due-dates-design.md`](due-dates-design.md)** — approved 2026-10-23: an optional `by:YYYY-MM-DD` in an
