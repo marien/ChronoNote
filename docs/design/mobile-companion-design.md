@@ -293,8 +293,9 @@ without a connection; requests made offline wait there and are sent once there's
   website.
 - **Settings:** "Phone companion", an opt-in switch under Notes & Sync, off by default (section 13.7). The window and
   the number of earlier occurrences are fixed (section 13.1).
-- **Spec and guide:** a reference file for the two formats and the phone's parsing subset (section 4.4), in the style
-  of `docs/agenda-file-guide.md`, precise enough to build the app from. A spec section and a short guide entry.
+- **Spec and guide:** the reference for the two formats and the phone's parsing rules is
+  `docs/phone-companion-file-guide.md` (draft, 2026-10-29), precise enough to build the app from. Still to come: a
+  spec section and a short guide entry.
 - **Tests:** unit tests for the index (meetings across the window edge, date-in-title occurrences, ad-hoc `'`
   sections) and for matching (duplicates, rewording, an already-done line, a missing section or note), Playwright for
   the toast and conflict dialog against the mock, and an independent test writer from this brief.
