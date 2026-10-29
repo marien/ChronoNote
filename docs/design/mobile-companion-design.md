@@ -262,11 +262,20 @@ are versioned, even though CI can't test them.
   `YYYY-MM-DD.txt` files, `.agenda.json` and `outbox.json`.
 - `ChronoNote – read`: takes a list of file paths; *Get file content using path* for each (in an *Apply to each* with
   parallel runs on), responds with `[{ "name", "text" }]`.
-- `ChronoNote – write inbox`: takes the full inbox text; *Create file* or *Update file*. Concurrency 1.
+- `ChronoNote – write inbox`: takes the full inbox text; *Create file* (it creates `.chrononote-mobile` when missing
+  and overwrites an existing file, section 14). Concurrency 1.
 
-**Refresh:** list, then read only the files that are needed (the window, the outbox's occurrence dates, the agenda,
-the outbox) and changed since the app's last refresh. Everything else comes from the copy on the device. The first
-refresh reads them all.
+**Refresh:** reading is the slow part (about a third of a second per file, section 14), so the app reads as little as
+it can and never makes the user wait for it:
+
+1. On opening, show the copy on the device at once (`LoadData`), marked with the time of the last refresh.
+2. List (under a second), then read only the files that are needed and whose modified time differs from the copy:
+   the window's notes, the agenda and the outbox. On an ordinary refresh that is a few files.
+3. Earlier occurrences outside the window are read when a meeting's history is opened, not on refresh, and kept
+   on the device like the rest.
+4. Save the copy (`SaveData`).
+
+The first refresh on a new device reads the whole window (about 20 notes, some seconds) with a progress label.
 
 **Screens:**
 
@@ -325,12 +334,16 @@ without a connection; requests made offline wait there and are sent once there's
   has it on (section 13.6).
 - **OneDrive delay.** A request reaches the laptop only after the OneDrive client has synced the inbox; notes and the
   outbox reach the phone only after the laptop has uploaded them. Minutes, normally.
-- **A large notes folder.** *List files in folder* returns a limited number of files per call. With years of daily
-  notes the list flow may need paging, or a search on the file names of the dates it needs. To check in phase 1.
+- **A large notes folder.** *List files in folder* returns a limited number of files per call. It returned all 198
+  notes in the feasibility check; with years more the list flow may need paging, or a search on the file names of the
+  dates it needs.
+- **Slow reads.** About 10 seconds for 30 notes (section 14). Handled by the refresh in section 8; if it still feels
+  slow, the read flow's per-file overhead is the thing to work on.
 - **The phone's parser drifts from ChronoNote's rules.** Display only (section 4.4); the reference file is the
   agreement, and a ChronoNote syntax change means checking the app.
-- **Organisation policies.** A data policy (DLP) can block a connector, and an organisation can limit Power Apps. Checked in phase 1
-  with the list and read flows before anything else is built.
+- **Organisation policies.** A data policy (DLP) can block a connector, and an organisation can limit Power Apps. No
+  block in the feasibility check (section 14); a policy can still change later, which would stop the phone side but
+  never touch the notes.
 - **The Power App is maintained by hand.** Format changes need a matching change in the app; the `format` number makes
   a mismatch visible instead of silent.
 
@@ -346,3 +359,22 @@ without a connection; requests made offline wait there and are sent once there's
 7. **Name and switch:** "Phone companion" in Settings → Notes & Sync, off by default.
 8. **A new meeting's history:** the index is refreshed when the window's meetings change, both through a new section
    title in a note and through meetings added or moved in `.agenda.json` during the day (section 4.2).
+
+## 14. Feasibility check (Marien, 2026-10-29)
+
+Three throwaway flows and a one-screen test app, run against the real notes folder on the phone:
+
+| Check | Result |
+| :--- | :--- |
+| Data policy (DLP) | No error saving or running the flows, or adding them to the app. |
+| Listing | 198 of 198 notes; 806 ms on the phone. |
+| Reading 30 notes | 10.2 s on the phone (concurrency 20 accepted with the array variable). |
+| Content form | Readable text, no base64 decoding needed. |
+| `ParseJSON`, gallery | Works. |
+| `SaveData`/`LoadData` offline | Works: the notes came back in flight mode. |
+| Hidden folder | *Create file* made `.chrononote-mobile` by itself. |
+| Second write | *Create file* overwrote the file: no *Update file* needed. |
+| Overall | "Felt a bit slow, but for the rest ok." |
+
+Conclusion: the design works in this environment. Reading is the one weak spot, which is why the refresh (section 8)
+shows the device's copy first, reads only changed files, and reads earlier occurrences only when they are opened.
