@@ -60,13 +60,22 @@ function meetingTitle(rawTitle: string): string | null {
   return titleForMatching(normalized) || null;
 }
 
-/** The section titles of one note, trimmed, in order. */
-function sectionTitles(content: string): string[] {
+/** Parsed titles per note, reused while its text is the same string: a rebuild after an edit re-parses only the
+ * notes that changed, not the whole folder. */
+const titleCache = new Map<string, { content: string; titles: string[] }>();
+
+/** The section titles of one note, trimmed, in order (as `listSections` finds them). */
+function sectionTitles(filename: string, content: string): string[] {
+  const cached = titleCache.get(filename);
+  if (cached && cached.content === content) return cached.titles;
   const lines = content.split("\n");
   const titles: string[] = [];
   for (let i = 0; i + 1 < lines.length; i++) {
-    if (isSetextUnderline(lines[i + 1]) && lines[i].trim() !== "") titles.push(lines[i].trim());
+    if (isSetextUnderline(lines[i + 1]) && !isSetextUnderline(lines[i]) && lines[i].trim() !== "") {
+      titles.push(lines[i].trim());
+    }
   }
+  titleCache.set(filename, { content, titles });
   return titles;
 }
 
@@ -104,7 +113,7 @@ export function buildOutbox(input: {
     .sort((a, b) => (a[1] < b[1] ? -1 : 1));
   for (const [filename, date] of dated) {
     const seenToday = new Set<string>();
-    for (const raw of sectionTitles(input.notes[filename])) {
+    for (const raw of sectionTitles(filename, input.notes[filename])) {
       const match = meetingTitle(raw);
       if (!match) continue;
       const id = match.toLowerCase();
@@ -169,21 +178,30 @@ export const phoneCompanionEnabled = writable(false);
 /** How long after the last edit the outbox is rebuilt; edits rarely change the meetings, so there is no hurry. */
 const EDIT_DEBOUNCE_MS = 5000;
 
+/** Waits this long after boot before the first build, so it doesn't compete with the editor's first paint. */
+const BOOT_DELAY_MS = 3000;
+
 let lastWritten: string | null = null;
 let timer: ReturnType<typeof setTimeout> | null = null;
 let running: Promise<void> | null = null;
 let rerun = false;
+let freshPending = false;
 let wired = false;
 let warned = false;
+/** The window's notes as last read from disk (null: no such file). The folder-wide cache is read once per session,
+ * so notes that OneDrive changes underneath (edited on another device) only show up through this. */
+let windowDisk: Record<string, string | null> = {};
 
 function active(): boolean {
   return get(phoneCompanionEnabled) && get(backendKind) === "desktop";
 }
 
-/** Rebuilds the outbox and writes it when its content changed. Runs one at a time; a request while one runs
- * makes it run once more afterwards. */
-export async function updatePhoneOutbox(): Promise<void> {
+/** Rebuilds the outbox and writes it when its content changed. `fresh` re-reads the window's notes from disk first
+ * (start, focus, day change); a rebuild after an edit uses what is loaded. Runs one at a time; a request while one
+ * runs makes it run once more afterwards. */
+export async function updatePhoneOutbox(fresh = true): Promise<void> {
   if (!active()) return;
+  freshPending ||= fresh;
   if (running) {
     rerun = true;
     return running;
@@ -191,7 +209,9 @@ export async function updatePhoneOutbox(): Promise<void> {
   running = (async () => {
     do {
       rerun = false;
-      await writeIfChanged();
+      const readDisk = freshPending;
+      freshPending = false;
+      await writeIfChanged(readDisk);
     } while (rerun && active());
   })().finally(() => {
     running = null;
@@ -199,17 +219,30 @@ export async function updatePhoneOutbox(): Promise<void> {
   return running;
 }
 
-async function writeIfChanged(): Promise<void> {
+async function readWindowFromDisk(today: string): Promise<void> {
+  const names: string[] = [];
+  for (let d = -WINDOW_DAYS; d <= WINDOW_DAYS; d++) names.push(`${addDaysISO(today, d)}.txt`);
+  const read = await Promise.all(names.map(async (n) => [n, await api.readNote(n).catch(() => null)] as const));
+  windowDisk = Object.fromEntries(read);
+}
+
+async function writeIfChanged(readDisk: boolean): Promise<void> {
   try {
-    await refreshAllNotesCache();
-    const notes: Record<string, string> = { ...get(allNotesCache) };
-    for (const tab of get(tabs)) if (!tab.isScratchpad) notes[tab.filename] = tab.content;
     const today = get(currentDateISO);
+    await refreshAllNotesCache();
+    if (readDisk) await readWindowFromDisk(today);
+    const notes: Record<string, string> = { ...get(allNotesCache) };
+    for (const [name, content] of Object.entries(windowDisk)) {
+      if (content === null) delete notes[name];
+      else notes[name] = content;
+    }
+    for (const tab of get(tabs)) if (!tab.isScratchpad) notes[tab.filename] = tab.content;
     // Agenda trouble (no file, a broken file) just means no agenda meetings in the index.
     const agenda = await api.readAgendaAfter(addDaysISO(today, -WINDOW_DAYS - 1)).catch(() => [] as [string, string][]);
     const outbox = buildOutbox({ notes, agenda, today, appVersion: get(appVersion), now: new Date() });
     const content = contentOf(outbox);
-    if (content === lastWritten) return;
+    // Turned off while this was reading: write nothing.
+    if (content === lastWritten || !active()) return;
     await api.writePhoneOutbox(outboxJson(outbox));
     lastWritten = content;
     warned = false;
@@ -220,33 +253,51 @@ async function writeIfChanged(): Promise<void> {
   }
 }
 
-/** Asks for a rebuild after the edit debounce (edits, window focus). */
-export function schedulePhoneOutbox(delayMs = EDIT_DEBOUNCE_MS): void {
+/** Asks for a rebuild after a delay: after edits (debounced, from what is loaded) or on window focus (`fresh`, with
+ * the window's notes re-read from disk). A pending fresh request stays fresh when an edit reschedules it. */
+export function schedulePhoneOutbox(delayMs = EDIT_DEBOUNCE_MS, fresh = false): void {
   if (!active()) return;
+  freshPending ||= fresh;
   if (timer) clearTimeout(timer);
   timer = setTimeout(() => {
     timer = null;
-    void updatePhoneOutbox();
+    void updatePhoneOutbox(false);
   }, delayMs);
 }
 
-/** Called once at boot (desktop): writes the outbox now when the setting is on, and keeps it up to date. */
+/** Called once at boot (desktop): builds the outbox shortly after boot when the setting is on, and keeps it up to
+ * date. */
 export function wirePhoneCompanion(): void {
   if (wired) return;
   wired = true;
   // Svelte stores call a subscriber at once with the current value; the first call of each is the boot itself.
+  let booted = false;
   phoneCompanionEnabled.subscribe((on) => {
-    if (on) void updatePhoneOutbox();
+    if (on) {
+      if (booted) void updatePhoneOutbox();
+      else schedulePhoneOutbox(BOOT_DELAY_MS, true);
+    }
+    booted = true;
   });
   let day: string | null = null;
   currentDateISO.subscribe((today) => {
     if (day !== null && today !== day) void updatePhoneOutbox();
     day = today;
   });
-  tabs.subscribe(() => schedulePhoneOutbox());
+  let first = true;
+  tabs.subscribe(() => {
+    if (!first) schedulePhoneOutbox();
+    first = false;
+  });
 }
 
 export async function setPhoneCompanion(enabled: boolean): Promise<void> {
+  if (!enabled) {
+    // Turned on again later, it writes afresh: the file may have been removed or changed meanwhile.
+    if (timer) clearTimeout(timer);
+    timer = null;
+    lastWritten = null;
+  }
   phoneCompanionEnabled.set(enabled);
   try {
     await api.setPhoneCompanion(enabled);
@@ -262,5 +313,8 @@ export function resetPhoneCompanionForTests(): void {
   lastWritten = null;
   running = null;
   rerun = false;
+  freshPending = false;
   warned = false;
+  windowDisk = {};
+  titleCache.clear();
 }

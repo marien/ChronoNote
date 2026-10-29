@@ -1,6 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+/** What `readNote` finds on disk. */
+const disk = vi.hoisted(() => ({ files: {} as Record<string, string> }));
 const apiMock = vi.hoisted(() => ({
+  readNote: vi.fn(async (name: string): Promise<string | null> => disk.files[name] ?? null),
   readAgendaAfter: vi.fn(async (_after: string): Promise<[string, string][]> => []),
   writePhoneOutbox: vi.fn(async (_content: string) => {}),
   setPhoneCompanion: vi.fn(async (_on: boolean) => ({})),
@@ -16,6 +19,7 @@ import {
   phoneCompanionEnabled,
   resetPhoneCompanionForTests,
   schedulePhoneOutbox,
+  setPhoneCompanion,
   updatePhoneOutbox,
 } from "./phoneCompanion";
 import { allNotesCache, appVersion, backendKind, currentDateISO, tabs } from "./stores";
@@ -98,6 +102,11 @@ describe("buildOutbox", () => {
     expect(o.meetings.map((m) => m.title)).toEqual(["Real"]);
   });
 
+  it("doesn't take an underline right under another underline for a title", () => {
+    const o = build({ "2026-10-29.txt": "Standup\n=======\n=======\n" });
+    expect(o.meetings.map((m) => m.title)).toEqual(["Standup"]);
+  });
+
   it("counts a meeting once per day", () => {
     const o = build({ "2026-10-29.txt": section("Standup") + "\n" + section("Standup") });
     expect(o.meetings[0].occurrences).toEqual([{ date: "2026-10-29", title: "Standup" }]);
@@ -140,8 +149,52 @@ describe("updatePhoneOutbox", () => {
     phoneCompanionEnabled.set(true);
     currentDateISO.set(TODAY);
     appVersion.set("0.36.0");
-    allNotesCache.set({ "2026-10-28.txt": section("Standup") });
+    disk.files = { "2026-10-28.txt": section("Standup") };
+    allNotesCache.set({ ...disk.files });
     tabs.set([]);
+    apiMock.readNote.mockClear();
+  });
+
+  function writtenTitles(call = -1): string[] {
+    const calls = apiMock.writePhoneOutbox.mock.calls;
+    return JSON.parse(calls.at(call)![0]).meetings.map((m: { title: string }) => m.title);
+  }
+
+  it("re-reads the window's notes from disk on a fresh rebuild, not after an edit", async () => {
+    await updatePhoneOutbox();
+    expect(apiMock.readNote).toHaveBeenCalledTimes(29);
+    // OneDrive brings in a changed note and a new one; the folder-wide cache still has the old text.
+    disk.files = { "2026-10-28.txt": section("Standup renamed"), "2026-11-02.txt": section("Offsite") };
+    apiMock.readNote.mockClear();
+    await updatePhoneOutbox(false);
+    expect(apiMock.readNote).not.toHaveBeenCalled();
+    expect(apiMock.writePhoneOutbox).toHaveBeenCalledTimes(1);
+    await updatePhoneOutbox(true);
+    expect(writtenTitles()).toEqual(["Offsite", "Standup renamed"]);
+  });
+
+  it("drops a window note that is gone from disk", async () => {
+    disk.files = {};
+    await updatePhoneOutbox();
+    expect(writtenTitles()).toEqual([]);
+  });
+
+  it("writes nothing when turned off while building, and writes afresh when turned on again", async () => {
+    await updatePhoneOutbox();
+    let release!: () => void;
+    apiMock.readAgendaAfter.mockImplementationOnce(() => new Promise((r) => (release = () => r([]))));
+    tabs.set([{ id: "t", filename: "2026-10-29.txt", content: section("Planning"), isScratchpad: false }]);
+    const run = updatePhoneOutbox();
+    await vi.waitFor(() => expect(release).toBeTypeOf("function"));
+    await setPhoneCompanion(false);
+    release();
+    await run;
+    expect(apiMock.writePhoneOutbox).toHaveBeenCalledTimes(1);
+    tabs.set([]);
+    await setPhoneCompanion(true);
+    await updatePhoneOutbox();
+    // Same content as the first write, written again because turning it off forgot what was written.
+    expect(apiMock.writePhoneOutbox).toHaveBeenCalledTimes(2);
   });
   afterEach(() => {
     vi.useRealTimers();
@@ -157,8 +210,7 @@ describe("updatePhoneOutbox", () => {
     tabs.set([{ id: "t", filename: "2026-10-29.txt", content: section("Planning"), isScratchpad: false }]);
     await updatePhoneOutbox();
     expect(apiMock.writePhoneOutbox).toHaveBeenCalledTimes(2);
-    const written = JSON.parse(apiMock.writePhoneOutbox.mock.calls[1][0]);
-    expect(written.meetings.map((m: { title: string }) => m.title)).toEqual(["Planning", "Standup"]);
+    expect(writtenTitles(1)).toEqual(["Planning", "Standup"]);
   });
 
   it("uses an open tab's text over the disk copy, and ignores scratchpads", async () => {

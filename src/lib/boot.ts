@@ -238,8 +238,9 @@ function wireDriftDetection() {
       if (get(calendarSyncEnabled) && (get(backendKind) !== "web" || !!get(oneDriveAccount))) {
         void refreshAgendaFileExists();
       }
-      // The agenda feed and OneDrive change files while ChronoNote is in the background: rebuild the phone index.
-      schedulePhoneOutbox(0);
+      // The agenda feed and OneDrive change files while ChronoNote is in the background: rebuild the phone index
+      // with the window's notes re-read from disk.
+      schedulePhoneOutbox(0, true);
       // #72: also the fastest way to notice a midnight rollover that
       // happened while the app sat unfocused — no need to wait out the
       // rollover interval's own delay once the app is actually looked at
