@@ -80,7 +80,7 @@ test.describe("demo messages from the website", () => {
       f.src = src;
       (window as unknown as { __ready: boolean }).__ready = false;
       addEventListener("message", (e) => {
-        if (e.data?.type === "chrononote-demo-ready") (window as unknown as { __ready: boolean }).__ready = true;
+        if (e.origin === location.origin && e.data?.type === "chrononote-demo-ready") (window as unknown as { __ready: boolean }).__ready = true;
       });
       document.body.appendChild(f);
     }, DEMO);

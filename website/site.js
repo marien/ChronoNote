@@ -93,7 +93,7 @@
   }
   function render(line) {
     var indent = (line.match(/^ +/) || [""])[0];
-    var rest = line.slice(indent.length), out = indent, lead = null, i;
+    var rest = line.slice(indent.length), out = esc(indent), lead = null, i;
     if (rest.indexOf("! ") === 0) return out + '<span class="g g2 emph-mark">!</span><span class="emph">' + inline(rest.slice(2)) + "</span>";
     for (i = 0; i < LEAD.length; i++) if (rest.indexOf(LEAD[i][0]) === 0) { lead = LEAD[i]; break; }
     if (!lead) {
