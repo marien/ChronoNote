@@ -1,0 +1,625 @@
+<title>ChronoNote Site Redesign</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Atkinson+Hyperlegible+Next:ital,wght@0,400;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="site.css">
+<style>
+/* Home page only. Shared tokens, nav, editor window and glyphs live in site.css. */
+.hero { padding-block: clamp(40px, 6vw, 88px) clamp(48px, 7vw, 96px); }
+.hero .wrap { display: grid; gap: clamp(32px, 5vw, 64px); grid-template-columns: minmax(0, 1fr); align-items: center; }
+@media (min-width: 980px) { .hero .wrap { grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr); } }
+.hero h1 { font-size: clamp(2.6rem, 1.6rem + 4.2vw, 4.4rem); line-height: 1; font-weight: 800; letter-spacing: -0.025em; }
+.hero h1 .mk {
+  font-family: var(--f-mono); font-weight: 600; font-size: 0.8em; letter-spacing: -0.04em;
+  background: linear-gradient(transparent 58%, var(--marker) 58%); padding: 0 0.08em;
+}
+.hero h1 .gl { color: var(--g-done); }
+.hero .lede { margin-top: 22px; }
+.cta { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 30px; }
+.facts { display: flex; flex-wrap: wrap; gap: 6px 18px; margin: 22px 0 0; font-size: 0.88rem; color: var(--ink-2); padding: 0; list-style: none; }
+.facts li::before { content: "✓"; color: var(--g-done); font-weight: 700; margin-right: 6px; }
+
+.wipe { position: relative; user-select: none; touch-action: pan-y; cursor: ew-resize; }
+.layer-render { position: absolute; inset: 0; background: var(--ed-bg); clip-path: inset(0 calc(100% - var(--cut, 50%)) 0 0); }
+.handle { position: absolute; top: 0; bottom: 0; left: var(--cut, 50%); width: 2px; margin-left: -1px; background: var(--blue); }
+.handle span {
+  position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 30px; height: 30px; border-radius: 50%;
+  background: var(--blue); color: #fff; display: grid; place-items: center; font: 700 13px var(--f-mono);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.25);
+}
+.wipe-labels {
+  display: flex; justify-content: space-between; padding: 0 14px; height: 34px; align-items: center;
+  font: 0.74rem var(--f-mono); color: var(--ed-dim); border-top: 1px solid var(--ed-rule); background: var(--ed-chrome);
+}
+.wipe-labels b { color: var(--ed-ink); font-weight: 600; }
+
+.play { border-block: 1px solid var(--rule); background: var(--sheet); padding-block: 44px; }
+.play .wrap { display: grid; gap: 22px 48px; grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 900px) { .play .wrap { grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr); align-items: start; } }
+.play h2 { font-size: clamp(1.5rem, 1.2rem + 1.2vw, 2rem); }
+.play p { color: var(--ink-2); margin-top: 10px; }
+.field { display: grid; gap: 10px; }
+.field label { font: 0.78rem var(--f-mono); color: var(--ink-2); text-transform: uppercase; letter-spacing: 0.06em; }
+#line { width: 100%; font: 1rem var(--f-mono); padding: 13px 14px; border-radius: 8px; border: 1px solid var(--rule); background: var(--paper); color: var(--ink); }
+#line:focus { outline: 2px solid var(--blue); outline-offset: 0; border-color: transparent; }
+.out { display: grid; gap: 8px; }
+.out .row { display: grid; grid-template-columns: 6.5rem minmax(0, 1fr); gap: 12px; align-items: baseline; }
+.out .row > span:first-child { font: 0.74rem var(--f-mono); color: var(--ink-2); text-transform: uppercase; letter-spacing: 0.05em; }
+.out .note { padding: 10px 14px; border-radius: 8px; background: var(--ed-bg); border: 1px solid var(--ed-rule); overflow-x: auto; font-size: 15px; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { font: 0.82rem var(--f-mono); padding: 5px 10px; border-radius: 999px; border: 1px solid var(--rule); background: var(--paper); color: var(--ink); cursor: pointer; }
+.chip:hover, .chip[aria-pressed="true"] { border-color: var(--blue); color: var(--blue); }
+#meaning { font-size: 0.95rem; color: var(--ink-2); min-height: 1.6em; }
+
+.days { display: flex; border-bottom: 1px solid var(--rule); overflow-x: auto; scrollbar-width: none; }
+.days button {
+  flex: 1 0 auto; background: none; border: 0; border-bottom: 3px solid transparent; margin-bottom: -1px;
+  padding: 12px 18px 14px; text-align: left; color: var(--ink-2); cursor: pointer; font: inherit; min-width: 7.5rem;
+}
+.days button .d { display: block; font: 0.74rem var(--f-mono); text-transform: uppercase; letter-spacing: 0.06em; }
+.days button .t { display: block; font: 700 1rem var(--f-display); color: var(--ink); margin-top: 2px; white-space: nowrap; }
+.days button[aria-selected="true"] { border-bottom-color: var(--blue); }
+.days button[aria-selected="true"] .d { color: var(--blue); }
+.days button:hover .t { color: var(--blue); }
+.daypanel { display: grid; gap: 32px 56px; padding-top: 40px; grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 900px) { .daypanel { grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr); align-items: start; } }
+.daypanel h3 { font-size: clamp(1.5rem, 1.2rem + 1vw, 2rem); }
+.daypanel .copy { display: grid; gap: 16px; align-content: start; }
+.daypanel .copy p { color: var(--ink-2); }
+.daypanel .keys { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; font-size: 0.92rem; color: var(--ink-2); }
+.daypanel .win .note { font-size: clamp(11.5px, 2.6vw, 14px); overflow-x: auto; }
+.daypanel[hidden] { display: none; }
+@media (prefers-reduced-motion: no-preference) {
+  .daypanel:not([hidden]) { animation: rise 0.35s ease-out; }
+  @keyframes rise { from { opacity: 0.4; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+}
+
+.demo { background: var(--sheet); border-block: 1px solid var(--rule); }
+.demo-grid { display: grid; gap: 24px; grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 1000px) { .demo-grid { grid-template-columns: 15rem minmax(0, 1fr); } }
+.launcher { display: grid; gap: 4px; align-content: start; }
+.launcher .lab { font: 0.74rem var(--f-mono); color: var(--ink-2); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 6px; }
+.launcher button {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; align-items: center; text-align: left;
+  padding: 9px 12px; border-radius: 8px; border: 1px solid transparent; background: none; color: var(--ink); font: inherit; font-size: 0.95rem; cursor: pointer;
+}
+.launcher button:hover, .launcher button.on { background: var(--blue-wash); border-color: color-mix(in srgb, var(--blue) 35%, transparent); }
+.launcher button kbd { font-size: 0.72rem; }
+@media (max-width: 999px) {
+  .launcher { grid-auto-flow: column; grid-auto-columns: max-content; overflow-x: auto; padding-bottom: 6px; }
+  .launcher .lab { display: none; }
+  .launcher button { border-color: var(--rule); }
+  .launcher button kbd { display: none; }
+}
+.frame { border-radius: 12px; overflow: hidden; border: 1px solid var(--ed-rule); box-shadow: var(--shadow); background: var(--ed-bg); position: relative; }
+.frame iframe { display: block; width: 100%; height: min(78vh, 720px); min-height: 520px; border: 0; }
+.poster { position: absolute; inset: 0; display: grid; place-items: center; align-content: center; gap: 14px; text-align: center; padding: 24px; background: var(--ed-bg); color: var(--ed-ink); }
+.poster p { color: var(--ed-dim); font-size: 0.92rem; max-width: 26rem; }
+.toast {
+  position: absolute; left: 50%; bottom: 18px; transform: translateX(-50%); background: var(--ink); color: var(--paper);
+  padding: 8px 14px; border-radius: 8px; font-size: 0.9rem; box-shadow: var(--shadow); pointer-events: none; max-width: calc(100% - 32px);
+}
+.demo-foot { display: flex; flex-wrap: wrap; gap: 10px 24px; margin-top: 18px; font-size: 0.92rem; color: var(--ink-2); }
+
+.pt { display: grid; gap: 40px 64px; grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 900px) { .pt { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: start; } }
+.pt .win .note { font-size: clamp(11.5px, 2.6vw, 14px); overflow-x: auto; }
+.claims { display: grid; gap: 26px; padding: 0; margin: 0; list-style: none; }
+.claims li { display: grid; gap: 6px; padding-left: 18px; border-left: 2px solid var(--rule); }
+.claims li p { color: var(--ink-2); }
+
+.index { display: grid; grid-template-columns: minmax(0, 1fr); border-top: 1px solid var(--rule); }
+@media (min-width: 760px) { .index { grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 48px; } }
+.index > div { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 16px; padding: 18px 0; border-bottom: 1px solid var(--rule); }
+.index h3 { font-size: 1.08rem; }
+.index p { grid-column: 1 / -1; color: var(--ink-2); font-size: 0.97rem; }
+.index .where { font: 0.72rem var(--f-mono); color: var(--ink-2); text-transform: uppercase; letter-spacing: 0.05em; align-self: center; }
+.index .try { grid-column: 1 / -1; justify-self: start; }
+
+.get { display: grid; gap: 16px; grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 900px) { .get { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+.get > div { background: var(--sheet); border: 1px solid var(--rule); border-radius: 12px; padding: 24px; display: grid; gap: 14px; align-content: start; }
+.get > div.main { border-color: var(--ink); box-shadow: var(--shadow); }
+.get dl { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 6px 14px; margin: 0; font-size: 0.93rem; }
+.get dt { color: var(--ink-2); }
+.get dd { margin: 0; }
+.get .btn { justify-content: center; }
+
+.faq { max-width: 46rem; }
+.faq details { border-bottom: 1px solid var(--rule); padding: 16px 0; }
+.faq summary { cursor: pointer; font: 700 1.08rem var(--f-display); list-style: none; display: flex; justify-content: space-between; gap: 16px; }
+.faq summary::after { content: "+"; font-family: var(--f-mono); color: var(--ink-2); }
+.faq details[open] summary::after { content: "−"; }
+.faq details p { color: var(--ink-2); margin-top: 10px; }
+</style>
+
+<header class="nav" id="nav">
+  <div class="wrap">
+    <a class="brand" href="#top" aria-label="ChronoNote home">
+      <svg viewBox="0 0 20 20" aria-hidden="true"><rect x="3" y="3" width="14" height="15" rx="2.9" fill="currentColor"/><g fill="none" stroke="var(--paper)" stroke-width="2"><path d="M3 8H17"/><path d="M6 11L9 14L15 8"/></g><g stroke="currentColor" stroke-width="2"><path d="M6 0V5M14 0V5"/></g></svg>
+      ChronoNote
+    </a>
+    <ul>
+      <li><a href="#week">How it works</a></li>
+      <li><a href="#demo">Demo</a></li>
+      <li><a href="#plain">Why text</a></li>
+      <li><a href="#features">Features</a></li>
+      <li><a href="#get">Download</a></li>
+      <li><a href="guide.html">Guide</a></li>
+    </ul>
+    <button class="menu-btn" aria-expanded="false" aria-controls="nav">Menu</button>
+    <div class="theme"></div>
+    <a class="btn primary" href="#demo" data-try="today">Try it now</a>
+  </div>
+</header>
+
+<main id="top">
+
+<section class="hero">
+  <div class="wrap">
+    <div>
+      <span class="kicker">Write the way you think.</span>
+      <h1>Plain text you can <span class="gl" id="headline">act on</span>.</h1>
+      <p class="lede">ChronoNote is a notes app for everything you keep track of: meetings at work, the soccer club
+        committee, the church community, your own plans. You just type. A few small marks turn lines into checkboxes, owners and due dates you can
+        click, filter and review, and the note stays plain text the whole time.</p>
+      <div class="cta">
+        <a class="btn primary" href="#demo" data-try="today">Try the demo</a>
+        <a class="btn" href="#get">Download for Windows</a>
+        <a class="btn" href="#get">Open the web app ↗</a>
+      </div>
+      <ul class="facts">
+        <li>Free and open source</li>
+        <li>No account</li>
+        <li>Works offline</li>
+        <li>Windows and any browser</li>
+      </ul>
+    </div>
+
+    <figure class="win" style="margin:0">
+      <div class="win-bar" aria-hidden="true">
+        <span class="win-tab" id="tabPrev">2026-10-27</span>
+        <span class="win-tab on" id="tabToday">2026-10-29</span>
+        <span class="spacer">Ctrl+K</span>
+      </div>
+      <div class="wipe" id="wipe" role="slider" tabindex="0" aria-label="Compare what ChronoNote shows with the plain text it saves" aria-valuemin="0" aria-valuemax="100" aria-valuenow="50">
+        <pre class="note layer-raw" id="raw" aria-hidden="true"></pre>
+        <pre class="note layer-render" id="rendered"></pre>
+        <div class="handle" aria-hidden="true"><span>⇆</span></div>
+      </div>
+      <figcaption class="wipe-labels"><span><b>What you see</b></span><span><b>What you typed</b></span></figcaption>
+    </figure>
+  </div>
+</section>
+
+<section class="play" aria-labelledby="play-h">
+  <div class="wrap">
+    <div>
+      <span class="kicker">The whole vocabulary fits on a sticky note</span>
+      <h2 id="play-h">Type a line, see what it becomes.</h2>
+      <p>Each mark is one to three characters at the start of a line. Nothing to set up, no menus to click through: keep typing at the speed you think.</p>
+    </div>
+    <div class="field">
+      <label for="line">Your line</label>
+      <input id="line" autocomplete="off" spellcheck="false" value="# (tournament) ask @Joan for referees by:fri">
+      <div class="chips" id="chips" aria-label="Examples"></div>
+      <div class="out">
+        <div class="row"><span>You see</span><pre class="note" id="seeOut"></pre></div>
+        <div class="row"><span>Saved as</span><pre class="note" id="fileOut"></pre></div>
+      </div>
+      <p id="meaning" aria-live="polite"></p>
+    </div>
+  </div>
+</section>
+
+<section id="week" aria-labelledby="week-h">
+  <div class="wrap">
+    <div class="head">
+      <span class="kicker">How it works</span>
+      <h2 id="week-h">One week with ChronoNote</h2>
+      <p class="lede">The team meeting in the morning, the soccer club or the church committee in the evening. Same notes, same marks, one list of what is still open. Every step opens in the real app.</p>
+    </div>
+    <div class="days" role="tablist" id="days" aria-label="Days of the week"></div>
+    <div id="panels"></div>
+  </div>
+</section>
+
+<section class="demo" id="demo" aria-labelledby="demo-h">
+  <div class="wrap">
+    <div class="head">
+      <span class="kicker">Live demo</span>
+      <h2 id="demo-h">This is the real app. Go ahead and type.</h2>
+      <p class="lede">The same build as the desktop and web app, running on example notes in your browser. Nothing is saved; reload to start over.</p>
+    </div>
+    <div class="demo-grid">
+      <div class="launcher" id="launcher"><span class="lab">Show me</span></div>
+      <div>
+        <div class="frame">
+          <iframe id="demoFrame" title="ChronoNote live demo" tabindex="-1"></iframe>
+          <div class="poster" id="poster">
+            <svg width="44" height="44" viewBox="0 0 20 20" aria-hidden="true"><rect x="3" y="3" width="14" height="15" rx="2.9" fill="var(--blue)"/><g fill="none" stroke="#fff" stroke-width="2"><path d="M3 8H17"/><path d="M6 11L9 14L15 8"/></g></svg>
+            <button class="btn primary" id="startDemo">Start the demo</button>
+            <p>Loads about 1.8 MB. Or pick something under "Show me" to jump straight to it.</p>
+          </div>
+          <div class="toast" id="toast" hidden></div>
+        </div>
+        <div class="demo-foot">
+          <span>Liked it? <a href="#get">Keep your notes in the web app</a>, same editor, saved in your browser.</span>
+          <a href="#review">Open full screen ↗</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="plain" aria-labelledby="plain-h">
+  <div class="wrap pt">
+    <div>
+      <div class="head" style="margin-bottom:28px">
+        <span class="kicker">Why text</span>
+        <h2 id="plain-h">Nothing between you and your notes.</h2>
+        <p class="lede">No forms, no fields, no drag handles. Every line is text you can type over, cut, paste and undo. The glyphs are drawn on top; underneath, the note is exactly what you typed.</p>
+      </div>
+      <div class="win" role="img" aria-label="The same note opened in Notepad">
+        <div class="win-bar"><span class="win-tab on" id="npTitle">2026-10-29.txt · Notepad</span></div>
+        <pre class="note" id="npBody"></pre>
+      </div>
+    </div>
+    <ul class="claims">
+      <li><h3>Edit without friction</h3><p>Change a to-do into done by typing <code>v</code> over the <code>#</code>, or click the glyph. Move a line, merge two, paste a list from an email: it is all just text.</p></li>
+      <li><h3>Readable anywhere</h3><p>Each day is a <code>.txt</code> file. Notepad, VS Code, your phone's file viewer or a search tool all read it, and the marks were chosen so <code># call Sam</code> still looks like a to-do.</p></li>
+      <li><h3>Yours, without an account</h3><p>The desktop app keeps notes in a folder on your disk. The web app keeps them in your browser, or in your own OneDrive folder if you connect one. No tracking.</p></li>
+      <li><h3>Nothing slips through</h3><p>Open actions follow you: a note with open work asks before it closes, the status bar counts what is late, and the week review shows what is still waiting.</p></li>
+    </ul>
+  </div>
+</section>
+
+<section id="features" aria-labelledby="feat-h" style="padding-top:0">
+  <div class="wrap">
+    <div class="head">
+      <span class="kicker">Everything else</span>
+      <h2 id="feat-h">Small app, deep where it counts</h2>
+    </div>
+    <div class="index" id="index"></div>
+    <p style="margin-top:24px"><a href="guide.html">Everything in detail in the guide →</a></p>
+  </div>
+</section>
+
+<section id="get" aria-labelledby="get-h" style="padding-top:0">
+  <div class="wrap">
+    <div class="head">
+      <span class="kicker">Get ChronoNote</span>
+      <h2 id="get-h">Three ways in, the same notes</h2>
+      <p class="lede">Start in the browser, move to the desktop later. The notes are the same plain text either way.</p>
+    </div>
+    <div class="get">
+      <div>
+        <h3>Demo</h3>
+        <p>Try every feature on example notes. Nothing is kept.</p>
+        <dl><dt>Notes</dt><dd>Example data, reset on reload</dd><dt>Needs</dt><dd>Any modern browser</dd></dl>
+        <a class="btn" href="#demo" data-try="today">Open the demo</a>
+      </div>
+      <div class="main">
+        <h3>Desktop app</h3>
+        <p>The full app for Windows 10 and 11, with Peek: a slim always-on-top strip for notes during calls.</p>
+        <dl><dt>Notes</dt><dd>A folder on your disk</dd><dt>Updates</dt><dd>Built in, signed</dd><dt>Version</dt><dd>0.34.0</dd></dl>
+        <a class="btn primary" href="#get">Download for Windows</a>
+      </div>
+      <div>
+        <h3>Web app</h3>
+        <p>The same editor in your browser. Add it to your phone's home screen and it opens like an app.</p>
+        <dl><dt>Notes</dt><dd>In your browser, or your OneDrive folder</dd><dt>Needs</dt><dd>Any modern browser, Mac and Linux too</dd></dl>
+        <a class="btn" href="#get">Open the web app ↗</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section aria-labelledby="faq-h" style="padding-top:0">
+  <div class="wrap">
+    <div class="head"><span class="kicker">Questions</span><h2 id="faq-h">Before you start</h2></div>
+    <div class="faq">
+      <details><summary>Is it really free?</summary><p>Yes. ChronoNote is MIT-licensed open source. There is no paid tier and no account.</p></details>
+      <details><summary>Is it only for work?</summary><p>No. Anything with meetings, people and things to do fits: a soccer club committee, a church community, a renovation, your own week. Use one notes folder for all of it, and topics like <code>(club)</code> to keep things apart.</p></details>
+      <details><summary>Where are my notes stored?</summary><p>In the desktop app, in a folder you choose, one <code>.txt</code> file per day. In the web app, in your browser's storage, or in a OneDrive folder you connect. The demo stores nothing.</p></details>
+      <details><summary>Does it work on a Mac or on my phone?</summary><p>The desktop app is for Windows. On a Mac, Linux or a phone, use the web app; it can sync with the same OneDrive folder as your PC.</p></details>
+      <details><summary>Can I bring my existing notes?</summary><p>Any text works. Drop a day's <code>.txt</code> file or a backup onto the window to import it; nothing is overwritten without asking.</p></details>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>ChronoNote · MIT licensed · made by Marien de Gelder</span>
+    <nav aria-label="Footer"><a href="guide.html">Guide</a><a href="#review">Your files</a><a href="#review">Troubleshooting</a><a href="#review">How it was built</a><a href="#review">Privacy</a><a href="#review">GitHub</a></nav>
+  </div>
+</footer>
+
+<section class="review" id="review" aria-labelledby="rev-h">
+  <div class="wrap">
+    <span class="stamp">Review notes, not part of the site · approved design</span>
+    <h2 id="rev-h">The approved design, and what was decided</h2>
+    <p style="margin-top:12px">Everything above is a working prototype of the new home page, and <a href="guide.html">the guide</a> is part of it. The demo is the real <code>demo-app</code> bundle; the "Show me" and Try buttons drive it by sending the app's own shortcuts into the frame. Links that would leave the page point here.</p>
+
+    <h3>Decisions (Marien, 2026-10-29)</h3>
+    <div class="tbl"><table>
+      <thead><tr><th>Topic</th><th>Decision</th></tr></thead>
+      <tbody>
+        <tr><td>Message</td><td>Frictionless editing: everything is text, made prettier and interactive with glyphs and actions on top. One file per day is a supporting point, not the headline. Not only about work.</td></tr>
+        <tr><td>Headline</td><td>"Write the way you think." above <strong>"Plain text you can act on."</strong> ("tick off" was dropped for its second meaning.)</td></tr>
+        <tr><td>Non-work examples</td><td>A youth soccer committee and a church community committee, next to the team meeting. Also added to the demo's example notes.</td></tr>
+        <tr><td>Illustrations</td><td>Drawn in HTML, not screenshots.</td></tr>
+        <tr><td>Guide</td><td>Reworked on the same principles, with Try links.</td></tr>
+        <tr><td>Other pages</td><td>Your files, Troubleshooting, Privacy and How it was built: new design and a content rework.</td></tr>
+        <tr><td>Theme</td><td>Follows the system, with a switch (system, light, dark).</td></tr>
+        <tr><td>Go-live</td><td>Together with 0.35.0 stable, so the Try links work from day one.</td></tr>
+        <tr><td>Who builds it</td><td>Claude, all of it (no Gemini this time).</td></tr>
+        <tr><td>Download link and version</td><td>Both updated by <code>release.sh</code> as a stable-release step.</td></tr>
+        <tr><td>Language</td><td>English only for now; a translated site is for later.</td></tr>
+        <tr><td>Fonts</td><td>Bricolage Grotesque, Atkinson Hyperlegible Next, JetBrains Mono, self-hosted.</td></tr>
+        <tr><td>Social image</td><td>New, generated from HTML.</td></tr>
+        <tr><td>Analytics, search consoles</td><td>No.</td></tr>
+      </tbody>
+    </table></div>
+
+    <h3>Opening a feature in the demo</h3>
+    <p>For the real site I would add a small, explicit entry point to <code>src/main-demo.ts</code> instead of faking key presses:</p>
+    <div class="tbl"><table>
+      <thead><tr><th>Link</th><th>Opens</th><th>Via</th></tr></thead>
+      <tbody>
+        <tr><td><code>demo-app/?try=actions</code></td><td>Action drawer</td><td>palette command <code>cmd-actions</code></td></tr>
+        <tr><td><code>?try=history</code></td><td>Section history of the church committee</td><td>caret into the section, then <code>cmd-history</code></td></tr>
+        <tr><td><code>?try=week-review</code></td><td>Week review</td><td><code>cmd-week-review</code></td></tr>
+        <tr><td><code>?try=search&amp;q=is:open+has:@Joan</code></td><td>Search, pre-filled</td><td><code>cmd-search</code> + query</td></tr>
+        <tr><td><code>?try=palette</code>, <code>date</code>, <code>due</code>, <code>zen</code></td><td>Palette, date picker, due view, Zen</td><td>existing commands</td></tr>
+        <tr><td><code>?try=today</code></td><td>Caret at the end of today's note</td><td>new, small</td></tr>
+        <tr><td><code>?theme=light|dark</code></td><td>Demo in the site's theme</td><td>sets the theme setting for the session</td></tr>
+      </tbody>
+    </table></div>
+    <p style="margin-top:10px"><code>demo.html?try=…</code> passes the parameters through, so every Try link also works full screen and can be shared. Unknown values are ignored. One e2e test per value.</p>
+    <p style="margin-top:10px"><strong>Demo notes:</strong> the demo's example notes are all work today. Add a "Youth soccer committee" (actions for <code>@Joan</code>, topic <code>(tournament)</code>) and a monthly "Church community committee" (<code>@Ruth</code>, topic <code>(market)</code>, a few earlier occurrences for section history), so the examples on the site are there when people click Try. This changes the demo scenario in <code>scenarios.ts</code> only.</p>
+
+    <h3>SEO (today the site has only titles, descriptions and Open Graph)</h3>
+    <ul>
+      <li><code>&lt;link rel="canonical"&gt;</code> on every page; <code>robots.txt</code> and <code>sitemap.xml</code> (none exist yet).</li>
+      <li>JSON-LD: <code>SoftwareApplication</code> (free, Windows + web, version, download URL) on the home page, <code>FAQPage</code> for the questions, <code>BreadcrumbList</code> on the guide pages.</li>
+      <li>A new 1200×630 social image in the new style, and <code>twitter:card</code> to <code>summary_large_image</code>.</li>
+      <li>Page titles that say what it is, for example "ChronoNote: plain-text notes and actions for meetings, at work and beyond".</li>
+      <li>One <code>h1</code> per page and real headings; the hero text, vocabulary and shortcut tables are in the HTML, not drawn by script.</li>
+      <li><code>noindex</code> on <code>demo-app/</code> (it duplicates <code>demo.html</code>); the web app subdomain gets its own short description.</li>
+      <li>Speed: the 1.8 MB demo loads only on "Start" or a Try link; fonts self-hosted as woff2 subsets (also keeps visitors' IP addresses away from Google, which matters for the privacy page); no layout shift from fonts.</li>
+      <li><code>theme-color</code> for light and dark; the saved theme is applied by a two-line script in <code>&lt;head&gt;</code> so there is no flash of the wrong theme.</li>
+    </ul>
+
+    <h3>Scope of the implementation</h3>
+    <ol>
+      <li><code>site.css</code> and <code>site.js</code> as in this prototype, shared header with the theme switch and footer on all eight pages; Your files, Troubleshooting, Privacy and How it was built rewritten in the docs layout of the guide.</li>
+      <li>New <code>index.html</code>, <code>guide.html</code> and <code>demo.html</code>, plain HTML with small scripts (no framework, no build step, as today). The guide's shortcut rows stay static HTML so <code>guideShortcuts.test.ts</code> keeps checking them.</li>
+      <li><code>?try=</code> and <code>?theme=</code> in the demo entry, plus the soccer and church notes in the demo scenario, with e2e tests.</li>
+      <li><code>release.sh</code>: on a stable release, write the version and the download link into the site.</li>
+      <li>SEO files and markup; self-hosted fonts; the new social image.</li>
+      <li>Checks: Vitest (the guide test), Lighthouse for performance, accessibility and SEO, phone width, both themes.</li>
+      <li>On a branch with a PR; merged to <code>main</code> before 0.35.0 stable, and live when the release moves <code>website-live</code>.</li>
+    </ol>
+  </div>
+</section>
+
+<script src="site.js"></script>
+<script>
+(() => {
+  const { iso, today, add, nextDow, esc, render, renderNote, rawNote, syncFrameTheme } = window.CN;
+  const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const $ = (s) => document.querySelector(s);
+  const T = iso(today);
+  $("#tabToday").textContent = T; $("#tabPrev").textContent = iso(add(-2));
+  $("#npTitle").textContent = T + ".txt · Notepad";
+
+  /* ---- hero wipe ---- */
+  const HERO = [
+    "Team sync",
+    "=========",
+    "- shipped the new sign-up form",
+    `# (launch) check the analytics by:${iso(add(1))}`,
+    "=> @Priya owns the release notes",
+    "v reply to the support backlog",
+    "",
+    "Youth soccer committee",
+    "======================",
+    "o spring tournament",
+    ". new kit sponsor",
+    "=> # (tournament) ask @Joan for referees",
+    "! The pitch is ours until 16:00",
+  ].join("\n");
+  $("#raw").innerHTML = rawNote(HERO);
+  $("#rendered").innerHTML = renderNote(HERO);
+  $("#npBody").innerHTML = rawNote(HERO);
+  const wipe = $("#wipe");
+  const setCut = (p) => { p = Math.max(0, Math.min(100, p)); wipe.style.setProperty("--cut", p + "%"); wipe.setAttribute("aria-valuenow", Math.round(p)); };
+  let dragging = false;
+  const fromEvent = (e) => { const r = wipe.getBoundingClientRect(); setCut(((e.clientX - r.left) / r.width) * 100); };
+  wipe.addEventListener("pointerdown", (e) => { dragging = true; wipe.setPointerCapture(e.pointerId); fromEvent(e); });
+  wipe.addEventListener("pointermove", (e) => { if (dragging) fromEvent(e); });
+  wipe.addEventListener("pointerup", () => { dragging = false; });
+  wipe.addEventListener("keydown", (e) => {
+    const now = +wipe.getAttribute("aria-valuenow");
+    const to = { ArrowLeft: now - 5, ArrowRight: now + 5, Home: 0, End: 100 }[e.key];
+    if (to !== undefined) { setCut(to); e.preventDefault(); }
+  });
+  if (reduce) setCut(62);
+  else {
+    setCut(0);
+    const t0 = performance.now() + 500, dur = 1400;
+    const step = (t) => { const k = Math.min(1, Math.max(0, (t - t0) / dur)); if (!dragging) setCut((1 - Math.pow(1 - k, 3)) * 62); if (k < 1 && !dragging) requestAnimationFrame(step); };
+    requestAnimationFrame(step);
+  }
+
+  /* ---- playground ---- */
+  const MEANING = {
+    "=> ": "Follow-up from the line above.", "# ": "Open action: something still to do.", "v ": "Done.", "> ": "Deferred to a later day.",
+    "x ": "Won't do.", "- ": "Bullet. Not an action.", "* ": "Bullet. Not an action.", "o ": "Meeting topic, to discuss.",
+    ". ": "Topic discussed.", ", ": "Topic not discussed, carried to the next meeting.", "! ": "Emphasis: worth remembering.",
+  };
+  const DAYS = { sun: 0, mon: 1, tue: 2, wed: 3, thu: 4, fri: 5, sat: 6 };
+  const normalise = (line) => line.replace(/by:(today|tomorrow|mon|tue|wed|thu|fri|sat|sun|\+\d+)\b/i, (_, w) => {
+    w = w.toLowerCase();
+    return "by:" + iso(w === "today" ? today : w === "tomorrow" ? add(1) : w[0] === "+" ? add(+w.slice(1)) : nextDow(DAYS[w]));
+  });
+  const EX = ["# call Sam about the room", "v booked the venue", "> review the contract", "x reprint the flyers",
+    "=> @Priya owns the release notes", "o budget for next season", "! The board meets Thursday", "# (market) stall rota by:tomorrow", "1. agenda first"];
+  const chips = $("#chips"), input = $("#line");
+  EX.forEach((ex) => {
+    const b = document.createElement("button"); b.className = "chip"; b.type = "button"; b.textContent = ex.split(" ")[0];
+    b.title = ex; b.setAttribute("aria-label", "Example: " + ex);
+    b.onclick = () => { input.value = ex; update(); input.focus(); };
+    chips.append(b);
+  });
+  function update() {
+    const saved = normalise(input.value);
+    $("#seeOut").innerHTML = render(saved) || " ";
+    $("#fileOut").textContent = saved || " ";
+    let m = "Plain text. Start the line with a mark to make it something.";
+    for (const k of Object.keys(MEANING)) if (saved.startsWith(k)) { m = MEANING[k]; break; }
+    if (/^\d+(\.\d+)*[.)] /.test(saved)) m = "Numbered list. Enter continues the numbering.";
+    const topic = saved.match(/^\S+ \((\w[\w -]*)\) /);
+    if (topic) m += ` (${topic[1]}) is a topic, to group actions.`;
+    if (/by:\d{4}/.test(saved)) m += " The due date is written out in full when you leave the line.";
+    if (/@[\w-]/.test(saved)) m += " @names become owner badges you can filter on.";
+    $("#meaning").textContent = m;
+    chips.querySelectorAll(".chip").forEach((c) => c.setAttribute("aria-pressed", String(saved.startsWith(c.textContent + " "))));
+  }
+  input.addEventListener("input", update); update();
+
+  /* ---- the week ---- */
+  const monday = add(-((today.getDay() + 6) % 7));
+  const dd = (n) => { const d = new Date(monday); d.setDate(d.getDate() + n); return d.toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" }); };
+  const weekNo = (d) => { const t = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate())); t.setUTCDate(t.getUTCDate() + 4 - (t.getUTCDay() || 7)); return Math.ceil(((t - Date.UTC(t.getUTCFullYear(), 0, 1)) / 864e5 + 1) / 7); };
+  const WEEK = [
+    { t: "Write it down", h: "Monday: type as it happens",
+      p: "ChronoNote opens on today's note. Give a meeting a title, underline it with <code>===</code>, and type. A <code>#</code> makes a to-do, <code>=&gt; @name</code> hands it to someone. You never leave the keyboard or fill in a form.",
+      k: "<kbd>Enter</kbd> continues the list", try: "today", tl: "Write in today's note",
+      fig: () => `<div class="win"><div class="win-bar"><span class="win-tab on">${iso(monday)}</span></div><pre class="note">${renderNote("Team sync\n=========\n- shipped the new sign-up form\n# (launch) check the analytics\n=> @Priya owns the release notes")}</pre></div>` },
+    { t: "Close and hand off", h: "Tuesday: close, defer or hand off",
+      p: "Click a glyph to close an action, or press <kbd>Ctrl+Space</kbd> at the caret. Open work from every day and every part of your life collects in the action drawer, grouped by topic, by person or by due date.",
+      k: "<kbd>Ctrl+Shift+A</kbd> action drawer", try: "actions", tl: "Open the action drawer",
+      fig: () => `<div class="win"><div class="split"><pre class="note">${renderNote("v reply to the support backlog\n# check the analytics\n> plan the retro\nx reprint the flyers")}</pre><div class="pane"><div class="ttl">Open actions · 5</div><span class="date">launch</span><span class="r">${render("# check the analytics")}</span><span class="date">tournament</span><span class="r">${render("# ask @Joan for referees")}</span><span class="r">${render("# match schedule")}</span><span class="date">market</span><span class="r">${render("# ask @Ruth for the stalls")}</span></div></div></div>` },
+    { t: "Remember last time", h: "Wednesday: the committee remembers itself",
+      p: "Use the same section title each time and section history shows every earlier meeting beside the note. Carry a line forward to tonight, or reuse last month's agenda with every topic open again.",
+      k: "<kbd>Ctrl+Shift+H</kbd> section history", try: "history", tl: "Open section history",
+      fig: () => `<div class="win"><div class="split"><pre class="note">${renderNote("Church community committee\n==========================\no Christmas market\no welcome coffee rota\n")}</pre><div class="pane"><div class="ttl">Church committee · 3 earlier</div><span class="date">${iso(add(-28))}</span><span class="r">${render(". autumn collection")}</span><span class="r sel">${render("# (market) ask @Ruth for the stalls")}</span><span class="date">${iso(add(-56))}</span><span class="r">${render("v new hymn books ordered")}</span></div></div></div>` },
+    { t: "Find anything", h: "Thursday: what is Joan still doing?",
+      p: "Search every day at once. Filters like <code>is:open</code>, <code>has:@Joan</code>, <code>tag:tournament</code> and <code>since:</code> become chips, and results look exactly like the lines in your notes.",
+      k: "<kbd>Ctrl+Shift+F</kbd> search all notes", try: "search", tl: "Search the demo notes",
+      fig: () => `<div class="win"><div class="searchbar"><span class="pill">has:@Joan</span><span class="pill">is:open</span></div><pre class="note">${renderNote(`${iso(add(-3))}\n=> # (tournament) ask @Joan for referees\n\n${iso(add(-31))}\n=> @Joan collects the kit sizes`)}</pre></div>` },
+    { t: "Review the week", h: "Friday: the whole week in one list",
+      p: "The week review lists every action from Monday to Sunday, from work and everything else: what is still open, what is late, and with one switch what got done. Close or forward straight from the list and start Monday clean.",
+      k: "<kbd>Ctrl+Shift+K</kbd> week review", try: "week", tl: "Open the week review",
+      fig: () => `<div class="win"><div class="win-bar"><span class="win-tab on">Week ${weekNo(today)} · ${dd(0)} – ${dd(6)}</span></div><pre class="note">${renderNote("Team sync\n=========\n# check the analytics\n> plan the retro\n\nYouth soccer committee\n======================\n# ask @Joan for referees\n\nChurch community committee\n==========================\n# ask @Ruth for the stalls")}</pre></div>` },
+  ];
+  const tabs = $("#days"), panels = $("#panels");
+  WEEK.forEach((w, i) => {
+    const b = document.createElement("button");
+    b.role = "tab"; b.id = "tab" + i; b.setAttribute("aria-controls", "panel" + i); b.setAttribute("aria-selected", String(i === 0)); b.tabIndex = i === 0 ? 0 : -1;
+    b.innerHTML = `<span class="d">${dd(i)}</span><span class="t">${w.t}</span>`;
+    b.onclick = () => select(i);
+    tabs.append(b);
+    const p = document.createElement("div");
+    p.className = "daypanel"; p.role = "tabpanel"; p.id = "panel" + i; p.setAttribute("aria-labelledby", "tab" + i); p.hidden = i !== 0;
+    p.innerHTML = `<div class="copy"><h3>${w.h}</h3><p>${w.p}</p><div class="keys">${w.k}</div><button class="try" data-try="${w.try}">${w.tl} in the demo</button></div>${w.fig()}`;
+    panels.append(p);
+  });
+  function select(i) {
+    tabs.querySelectorAll("[role=tab]").forEach((t, j) => { t.setAttribute("aria-selected", String(i === j)); t.tabIndex = i === j ? 0 : -1; });
+    panels.querySelectorAll(".daypanel").forEach((p, j) => { p.hidden = i !== j; });
+  }
+  tabs.addEventListener("keydown", (e) => {
+    const cur = [...tabs.children].findIndex((t) => t.getAttribute("aria-selected") === "true");
+    const n = e.key === "ArrowRight" ? (cur + 1) % 5 : e.key === "ArrowLeft" ? (cur + 4) % 5 : -1;
+    if (n >= 0) { select(n); tabs.children[n].focus(); e.preventDefault(); }
+  });
+
+  /* ---- feature index ---- */
+  const FEATURES = [
+    ["Action drawer", "Every open action in one list, by date, topic, person or due date, with the same filters as search.", "actions", "All"],
+    ["Section history", "Recurring meetings collect their past notes; carry lines forward or reuse an agenda.", "history", "All"],
+    ["Week review", "Monday to Sunday's actions in one list, to close the week properly.", "week", "All"],
+    ["Search with filters", "<code>is:open</code>, <code>has:@name</code>, <code>tag:</code>, <code>since:</code> across every day.", "search", "All"],
+    ["Due dates", "<code>by:fri</code> becomes a date, turns amber on the day and red when late.", "due", "All"],
+    ["Command palette", "<kbd>Ctrl+K</kbd> for every command, with its shortcut beside it.", "palette", "All"],
+    ["Jump to any day", "A date picker that shows which days have open work, with week numbers.", "date", "All"],
+    ["Zen mode", "Hide every bar and just write.", "zen", "All"],
+    ["Peek", "A slim always-on-top strip, docked to the screen edge, for notes during calls.", null, "Windows"],
+    ["Calendar sync", "Today's meetings become sections; anything cancelled is reviewed, never dropped.", null, "Windows"],
+    ["Lists that paste well", "Bullets and numbering survive paste from Teams, Word and browsers, and copy back out.", "today", "All"],
+    ["Seven languages", "English, Dutch, German, French, Spanish, Italian and Portuguese.", null, "All"],
+  ];
+  $("#index").innerHTML = FEATURES.map(([h, p, t, w]) => `<div><h3>${h}</h3><span class="where">${w}</span><p>${p}</p>${t ? `<button class="try" data-try="${t}">Try it</button>` : ""}</div>`).join("");
+
+  /* ---- demo + Try links ---- */
+  const SHOW = [
+    ["today", "Today's note", "", null],
+    ["actions", "Open actions", "Ctrl+Shift+A", { key: "A", ctrl: 1, shift: 1 }],
+    ["history", "Section history", "Ctrl+Shift+H", { key: "H", ctrl: 1, shift: 1 }],
+    ["week", "Week review", "Ctrl+Shift+K", { key: "K", ctrl: 1, shift: 1 }],
+    ["search", "Search", "Ctrl+Shift+F", { key: "F", ctrl: 1, shift: 1 }],
+    ["palette", "Command palette", "Ctrl+K", { key: "k", ctrl: 1 }],
+    ["date", "Jump to a date", "Ctrl+O", { key: "o", ctrl: 1 }],
+    ["due", "Due dates", "Ctrl+Shift+A", { key: "A", ctrl: 1, shift: 1 }],
+    ["zen", "Zen mode", "Shift+F11", { key: "F11", shift: 1 }],
+  ];
+  const launcher = $("#launcher");
+  SHOW.forEach(([id, label, k]) => { const b = document.createElement("button"); b.type = "button"; b.dataset.try = id; b.innerHTML = `<span>${label}</span>${k ? `<kbd>${k}</kbd>` : ""}`; launcher.append(b); });
+  const frame = $("#demoFrame"), poster = $("#poster"), toast = $("#toast");
+  let loaded = null;
+  function loadDemo() {
+    if (loaded) return loaded;
+    poster.hidden = true;
+    loaded = new Promise((res) => {
+      frame.addEventListener("load", () => {
+        const t0 = Date.now();
+        const poll = () => {
+          let ok = false;
+          try { ok = !!frame.contentDocument.querySelector(".cm-content"); } catch (e) { return res(false); }
+          if (ok) { try { syncFrameTheme(frame); } catch (e) { /* ignore */ } }
+          if (ok || Date.now() - t0 > 8000) res(ok); else setTimeout(poll, 120);
+        };
+        poll();
+      }, { once: true });
+      frame.src = "demo-app/index.html";
+    });
+    return loaded;
+  }
+  function say(msg) { toast.textContent = msg; toast.hidden = false; clearTimeout(say.t); say.t = setTimeout(() => (toast.hidden = true), 2600); }
+  async function tryFeature(id) {
+    const row = SHOW.find((r) => r[0] === id) || SHOW[0];
+    launcher.querySelectorAll("button").forEach((b) => b.classList.toggle("on", b.dataset.try === id));
+    const ok = await loadDemo();
+    if (!ok) return say("Opened the demo.");
+    try {
+      const w = frame.contentWindow, doc = frame.contentDocument;
+      doc.dispatchEvent(new w.KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+      const cm = doc.querySelector(".cm-content");
+      if (cm) cm.focus();
+      if (id === "today" && cm) { w.getSelection().selectAllChildren(cm); w.getSelection().collapseToEnd(); }
+      if (row[3]) {
+        const k = row[3], code = k.key.length === 1 ? "Key" + k.key.toUpperCase() : k.key;
+        (doc.activeElement || doc.body).dispatchEvent(new w.KeyboardEvent("keydown", { key: k.key, code, ctrlKey: !!k.ctrl, shiftKey: !!k.shift, bubbles: true, cancelable: true }));
+      }
+      say(row[2] ? `${row[1]} · ${row[2]} in the app` : "Type anywhere in today's note.");
+    } catch (e) { say("Opened the demo."); }
+  }
+  $("#startDemo").onclick = () => tryFeature("today");
+  document.addEventListener("click", (e) => {
+    const t = e.target.closest("[data-try]");
+    if (!t) return;
+    e.preventDefault();
+    $("#demo").scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" });
+    tryFeature(t.dataset.try);
+  });
+  // a Try link from the guide arrives as #try-<feature>
+  const m = location.hash.match(/^#try-([a-z]+)$/);
+  if (m) { $("#demo").scrollIntoView(); tryFeature(m[1]); }
+})();
+</script>
