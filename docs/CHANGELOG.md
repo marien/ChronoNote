@@ -11415,7 +11415,7 @@ Confirmed by Marien (2026-10-26) on 0.34.0-4.
 
 ## 436. Website: the app's glyphs, glyph colours and app icon
 
-**Status: released in beta 0.35.0-1 (early channel only).**
+**Status: released in v0.35.0 (beta 0.35.0-1 first).**
 
 Marien noticed that the website still looked like an older app. Three things had fallen behind:
 
@@ -11439,7 +11439,7 @@ pages with the old stylesheet: every page now links `style.css?v=436`. Bump that
 
 ## 437. Dependencies: Tauri 2.12.5, the updater and dialog plugins, CodeMirror view, Vite
 
-**Status: released in beta 0.35.0-1 (early channel only).**
+**Status: released in v0.35.0 (beta 0.35.0-1 first).**
 
 The Dependabot batch of 2026-10-26 (#189-#193), taken together on one branch as before (§379-§382):
 
@@ -11461,7 +11461,7 @@ Confirmed by Marien: 0.35.0-1 installed through the old updater (2026-10-28), an
 
 ## 438. Peek: docking follows the screen where floating Peek is
 
-**Status: released in beta 0.35.0-1 (early channel only).**
+**Status: released in v0.35.0 (beta 0.35.0-1 first).**
 
 Marien found on 0.34.0 that there was no way left to dock Peek on another screen (#195). Since §435 every dock went to
 the screen of the last strip (`PeekConfig.dockGeometry`), and only docking itself changed that strip, so Peek docked
@@ -11482,7 +11482,7 @@ Confirmed by Marien (2026-10-28) on 0.35.0-1.
 
 ## 439. Lists keep their bullets, numbers and indentation on the clipboard
 
-**Status: released in beta 0.35.0-1 (early channel only).**
+**Status: released in v0.35.0 (beta 0.35.0-1 first).**
 
 Marien pasted a bulleted list with sub-bullets from Teams and got flat lines (#196). The editor only read the
 clipboard's plain text, and Teams, Outlook, Word and browsers put a list's structure only in its HTML.
@@ -11508,7 +11508,7 @@ Confirmed by Marien (2026-10-28) on 0.35.0-1 (desktop app). The web app gets it 
 
 ## 440. A new website: plain text you can act on
 
-**Status: on main, not released yet.**
+**Status: released in v0.35.0.**
 
 Marien found the website too clearly AI-generated (every section the same centred heading over a grid of icon cards,
 monospace for all text, dark only) and asked for a new design that shows the advantages through the workflow, links
@@ -11557,7 +11557,7 @@ section). Built by Claude without delegating, at Marien's request.
 
 ## 441. The minor-release checklist: phone and web app after the release
 
-**Status: on main, not released yet.**
+**Status: released in v0.35.0.**
 
 Marien ran the checklist for 0.35.0 on 0.35.0-2 and pointed out that two of its items cannot be done before a stable
 release: betas only update the desktop app, so there is no web app to check on a phone or to install. They now come
