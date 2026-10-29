@@ -1,18 +1,39 @@
 # ChronoNote website
 
-Plain static HTML/CSS — no build step for the site itself, no framework.
-Three pages:
+Plain static HTML, CSS and a little JS: no build step for the site itself, no framework. The design (§440) is in
+`docs/design/website-redesign-mockup.html`, with the decisions in its review section.
 
-- `index.html` — landing page, with the live demo embedded partway down
-  and a CTA linking to the web app
-- `guide.html` — full token vocabulary, keyboard shortcuts, workflow walkthrough
-- `demo.html` — the same live demo, full-screen, no marketing chrome around it
+Pages:
 
-`style.css` hand-ports the desktop app's design tokens (`src/app.css`'s
-charcoal surface palette, the monospace font stack, the "color" glyph
-palette used as the site's accent) — it does not import the app's
-stylesheet directly, so keep the two in sync by eye if the app's palette
-ever changes.
+- `index.html`: the home page, with the live demo, "One week with ChronoNote" and the Try links
+- `guide.html`: the marks, the workflows and every shortcut; Try links open the demo in a drawer beside it
+- `files.html`, `troubleshooting.html`, `privacy.html`: docs pages in the guide's layout
+- `how-it-was-built.html`: the story, also presentable as slides (press P)
+- `demo.html`: the live demo full screen; `demo.html?try=<feature>` opens it on a feature
+
+Shared files:
+
+- `style.css`: the whole design (tokens for light and dark, the editor window, the glyphs, every page's layout). The
+  glyph colours are the app's "color" glyph palette (`src/styles/01-tokens.css`): keep them in step by hand.
+- `site.js`: the theme switch (system/light/dark, `localStorage` key `chrononote-theme`), the header, `window.CN` (a
+  small renderer that draws the marks for the examples: `<pre data-note="render">` holds the plain text, `{today+1}`
+  style placeholders become dates), the demo frame (`CN.demo(frame, feature)`), and Cmd for Ctrl on a Mac.
+- `docs.js`: the docs pages' contents column, the guide's shortcut filter and its Try drawer.
+- `assets/fonts/`: self-hosted latin subsets (SIL OFL), so the site contacts no other host.
+- `robots.txt`, `sitemap.xml` (update `lastmod` when a page changes a lot), and JSON-LD in the pages.
+- `assets/og-image.png`: the social image, rendered from `scripts/og-image.html` by `node scripts/build-og-image.mjs`.
+
+**Try links.** `demo-app/?try=<feature>` (`today actions history week search palette date due zen`) and
+`?theme=light|dark` are read by `src/lib/testing/demoTry.ts` and `bootMock.ts`; once loaded, the demo takes
+`{ type: "chrononote-try", feature }` and `{ type: "chrononote-theme", mode }` messages from the same origin and says
+`chrononote-demo-ready` when it listens. The examples they open (the church and soccer committees, `@Joan`) are in the
+`"demo"` scenario in `scenarios.ts`. New behaviour reaches the live site only with a demo rebuild at release.
+
+**Version and download link.** `index.html`'s download buttons, its `data-version` and the JSON-LD name a version;
+`release.sh` runs `node scripts/site-version.mjs <X.Y.Z>` for every stable release. Never edit them by hand.
+
+**The guide's shortcut rows** stay static HTML, one `<div class="shortcut-row">` per line: `guideShortcuts.test.ts`
+reads them and checks every shortcut in the registry is there.
 
 This folder also holds two **built** bundles of the real ChronoNote
 frontend, each its own Vite target sharing the same `src/` tree as the

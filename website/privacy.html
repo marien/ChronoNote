@@ -1,131 +1,174 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Privacy — ChronoNote</title>
-  <meta name="description" content="ChronoNote privacy statement: no analytics, no telemetry, and complete control over your data." />
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Privacy · ChronoNote</title>
+  <meta name="description" content="ChronoNote collects nothing: no accounts, no analytics, no telemetry. Where your notes live, what the update check sends, what OneDrive access is for, and how to remove everything." />
+  <link rel="canonical" href="https://chrononote.mariendegelder.nl/privacy.html" />
+  <meta name="theme-color" content="#f4f5f7" media="(prefers-color-scheme: light)" />
+  <meta name="theme-color" content="#111317" media="(prefers-color-scheme: dark)" />
+  <script>try { var t = localStorage.getItem("chrononote-theme"); if (t === "light" || t === "dark") document.documentElement.setAttribute("data-theme", t); } catch (e) {}</script>
+  <link rel="preload" href="assets/fonts/atkinson-hyperlegible-next.woff2" as="font" type="font/woff2" crossorigin />
   <link rel="icon" href="assets/favicon.ico?v=0.32.7" sizes="any" />
   <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png?v=0.32.7" />
   <link rel="apple-touch-icon" href="assets/apple-touch-icon.png?v=0.32.7" />
-  <meta property="og:type" content="website" />
+  <meta property="og:type" content="article" />
+  <meta property="og:site_name" content="ChronoNote" />
   <meta property="og:url" content="https://chrononote.mariendegelder.nl/privacy.html" />
-  <meta property="og:title" content="Privacy — ChronoNote" />
-  <meta property="og:description" content="ChronoNote privacy statement: no analytics, no telemetry, and complete control over your data." />
+  <meta property="og:title" content="Privacy · ChronoNote" />
+  <meta property="og:description" content="No accounts, no analytics, no telemetry. Your notes stay with you." />
   <meta property="og:image" content="https://chrononote.mariendegelder.nl/assets/og-image.png" />
-  <meta name="twitter:card" content="summary" />
-  <meta name="twitter:title" content="Privacy — ChronoNote" />
-  <meta name="twitter:description" content="ChronoNote privacy statement: no analytics, no telemetry, and complete control over your data." />
-  <meta name="twitter:image" content="https://chrononote.mariendegelder.nl/assets/og-image.png" />
-  <link rel="stylesheet" href="style.css?v=436" />
-  <script src="shortcuts.js" defer></script>
+  <meta name="twitter:card" content="summary_large_image" />
+  <link rel="stylesheet" href="style.css?v=440" />
+  <script src="site.js?v=440" defer></script>
+  <script src="docs.js?v=440" defer></script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      { "@type": "ListItem", "position": 1, "name": "ChronoNote", "item": "https://chrononote.mariendegelder.nl/" },
+      { "@type": "ListItem", "position": 2, "name": "Privacy", "item": "https://chrononote.mariendegelder.nl/privacy.html" }
+    ]
+  }
+  </script>
 </head>
 <body>
+<a class="skip" href="#main">Skip to content</a>
 
-  <header class="site-nav">
-    <div class="wrap">
-      <a class="brand" href="index.html">
-        <img src="assets/logo.svg" width="20" height="20" alt="" />
-        ChronoNote
-      </a>
-      <nav>
-        <a href="index.html">Home</a>
-        <a href="guide.html">Guide</a>
-        <a href="files.html">Your files</a>
-        <a href="troubleshooting.html">Troubleshooting</a>
-        <a href="index.html#demo">Demo</a>
-        <a class="cta" href="https://github.com/marien/ChronoNote" target="_blank" rel="noopener">GitHub ↗</a>
-      </nav>
-    </div>
-  </header>
+<header class="nav" id="nav">
+  <div class="wrap">
+    <a class="brand" href="./" aria-label="ChronoNote home"><img src="assets/logo.svg" width="22" height="22" alt="" />ChronoNote</a>
+    <ul>
+      <li><a href="./#week">How it works</a></li>
+      <li><a href="./#demo">Demo</a></li>
+      <li><a href="./#features">Features</a></li>
+      <li><a href="./#get">Download</a></li>
+      <li><a href="guide.html">Guide</a></li>
+    </ul>
+    <button class="menu-btn" type="button" aria-expanded="false" aria-controls="nav">Menu</button>
+    <div class="theme"></div>
+    <a class="btn primary" href="./#demo">Try it now</a>
+  </div>
+</header>
 
-  <section style="padding-top: 48px; padding-bottom: 24px;">
-    <div class="wrap prose">
-      <h2 style="font-size: 32px; margin-bottom: 8px;">Privacy</h2>
-      <p style="color: var(--muted); font-size: 14px; margin-bottom: 12px;">Last updated: 10 October 2026</p>
-      <p>
-        ChronoNote is built to keep your notes private and under your control.
-        There are no accounts, no tracking scripts, and no telemetry services.
-      </p>
-    </div>
-  </section>
+<div class="wrap docs-hero">
+  <span class="kicker">Privacy</span>
+  <h1>Your notes stay with you.</h1>
+  <p class="lede">ChronoNote has no accounts, no analytics and no telemetry, and no servers of its own. What you type goes nowhere except your own OneDrive, if you turn on sync.</p>
+  <p class="updated" style="margin-top: 14px">Last updated: 29 October 2026</p>
+</div>
 
-  <section class="alt">
-    <div class="wrap prose">
-      <h2>What is not collected</h2>
-      <p>
-        ChronoNote does not collect analytics, telemetry, or personal data.
-        There are no advertising networks or third-party trackers on the website, in the web app, or in the desktop app.
-        ChronoNote has no servers of its own: what you type goes nowhere except your own OneDrive, if you turn on sync.
-      </p>
-
-      <h2>Where notes live</h2>
-      <p>
-        <strong>Desktop app:</strong> Your notes live locally on your hard drive in your chosen notes folder (default <code>Documents\Notes</code>).
-        They never leave your computer unless you back them up or sync that folder yourself.
-      </p>
-      <p>
-        <strong>Web app:</strong> Your notes live inside your browser's IndexedDB storage on your device.
-      </p>
-      <p>
-        <strong>OneDrive:</strong> If you turn on cloud sync in the web app, your notes sync directly between your browser and the folder you pick in your own OneDrive (a personal or work account).
-        The notes stay in your own cloud account.
-      </p>
-
-      <h2>The update check</h2>
-      <p>
-        The desktop app queries GitHub for <code>latest.json</code> on startup and when you click Check for updates in Settings → About.
-      </p>
-      <p>
-        This request only checks the latest release version on GitHub.
-        It sends no personal details, settings, or note contents.
-        You can turn off automatic update checks in Settings → About.
-      </p>
-
-      <h2>OneDrive permissions and why</h2>
-      <p>
-        When you connect OneDrive in the web app, Microsoft asks for three permissions:
-      </p>
-      <ul>
-        <li><code>Files.ReadWrite</code>: allows ChronoNote to read and write note files in the folder you select. The app only accesses that specific notes folder.</li>
-        <li><code>offline_access</code>: keeps you signed in so you do not have to reconnect your Microsoft account on every visit.</li>
-        <li><code>User.Read</code>: reads your basic profile to display which Microsoft account is connected.</li>
-      </ul>
-      <p>
-        The sign-in token is stored only in your browser storage and is deleted immediately when you sign out.
-      </p>
-
-      <h2>How to remove everything</h2>
-      <p>To delete all ChronoNote data completely:</p>
-      <p><strong>On desktop:</strong></p>
+<div class="wrap docs">
+  <nav class="toc" aria-label="On this page">
+    <details open>
+      <summary>On this page</summary>
       <ol>
-        <li>Uninstall ChronoNote via Windows Settings or Control Panel.</li>
-        <li>Delete your notes folder (default <code>Documents\Notes</code>).</li>
-        <li>Delete your settings and drafts in <code>%APPDATA%\com.chrononote.app</code>.</li>
-        <li>Delete your logs in <code>%LOCALAPPDATA%\com.chrononote.app</code>.</li>
+        <li><a href="#summary">In short</a></li>
+        <li><a href="#notes">Where notes live</a></li>
+        <li><a href="#updates">The update check</a></li>
+        <li><a href="#onedrive">OneDrive access</a></li>
+        <li><a href="#website">This website</a></li>
+        <li><a href="#remove">Removing everything</a></li>
       </ol>
-      <p><strong>On the web app:</strong></p>
-      <ol>
-        <li>Click <strong>Sign out</strong> in Settings → Notes &amp; Sync to remove your Microsoft tokens.</li>
-        <li>Clear site data for <code>app.chrononote.mariendegelder.nl</code> in your browser settings to remove all local notes.</li>
-        <li>If you used OneDrive sync, delete the notes folder from your OneDrive.</li>
-      </ol>
-    </div>
-  </section>
+    </details>
+  </nav>
 
-  <footer>
-    <div class="wrap">
-      <span>ChronoNote — MIT licensed.</span>
-      <span>
-        <a href="index.html">Home</a> ·
-        <a href="guide.html">Guide</a> ·
-        <a href="https://github.com/marien/ChronoNote" target="_blank" rel="noopener">GitHub</a> ·
-        <a href="https://github.com/marien/ChronoNote/releases" target="_blank" rel="noopener">Releases</a> ·
-        <a href="how-it-was-built.html">How it was built</a> ·
-        <a href="privacy.html">Privacy</a>
-      </span>
-    </div>
-  </footer>
+  <main class="doc" id="main">
 
+    <section id="summary" aria-labelledby="summary-h">
+      <h2 id="summary-h">In short</h2>
+      <div class="tbl">
+        <table>
+          <thead><tr><th>Part</th><th>Your notes are</th><th>Sent anywhere</th></tr></thead>
+          <tbody>
+            <tr><td>Desktop app</td><td>In a folder on your disk</td><td>Only a version check to GitHub (no personal data); you can turn it off</td></tr>
+            <tr><td>Web app</td><td>In your browser's storage on that device</td><td>Nothing, unless you connect OneDrive</td></tr>
+            <tr><td>OneDrive sync</td><td>In a folder in your own Microsoft account</td><td>Directly between your browser and your OneDrive</td></tr>
+            <tr><td>Live demo</td><td>Example notes in memory</td><td>Nothing</td></tr>
+            <tr><td>This website</td><td>Not applicable</td><td>Nothing: no cookies, no trackers, nothing loaded from other sites</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="prose"><p>There are no advertising networks or third-party trackers anywhere: not on the website, in the web app or in the desktop app.</p></div>
+    </section>
+
+    <section id="notes" aria-labelledby="notes-h">
+      <h2 id="notes-h">Where notes live</h2>
+      <div class="prose">
+        <p><strong>Desktop app:</strong> in your chosen notes folder (default <code>Documents\Notes</code>). They never leave your computer unless you back up or sync that folder yourself. <a href="files.html">Everything the app stores, and where</a>.</p>
+        <p><strong>Web app:</strong> in your browser's IndexedDB storage on your device.</p>
+        <p><strong>OneDrive:</strong> when you turn on sync in the web app, notes go directly between your browser and the folder you pick in your own OneDrive (a personal or work account). They stay in your account.</p>
+      </div>
+    </section>
+
+    <section id="updates" aria-labelledby="updates-h">
+      <h2 id="updates-h">The update check</h2>
+      <div class="prose">
+        <p>The desktop app asks GitHub for <code>latest.json</code> when it starts and when you click <strong>Check for updates</strong> in Settings → About. The request only reads the latest version number; it sends no personal details, settings or note contents. You can turn off automatic checks in Settings → About.</p>
+      </div>
+    </section>
+
+    <section id="onedrive" aria-labelledby="onedrive-h">
+      <h2 id="onedrive-h">OneDrive access</h2>
+      <p class="intro">When you connect OneDrive in the web app, Microsoft asks you to allow three permissions.</p>
+      <div class="tbl">
+        <table>
+          <thead><tr><th>Permission</th><th>Why</th></tr></thead>
+          <tbody>
+            <tr><td><code>Files.ReadWrite</code></td><td>To read and write the note files in the folder you select. ChronoNote only uses that folder.</td></tr>
+            <tr><td><code>offline_access</code></td><td>To keep you signed in, so you don't have to reconnect on every visit.</td></tr>
+            <tr><td><code>User.Read</code></td><td>To show which Microsoft account is connected.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="prose"><p>The sign-in token is kept only in your browser's storage and is deleted when you sign out.</p></div>
+    </section>
+
+    <section id="website" aria-labelledby="website-h">
+      <h2 id="website-h">This website</h2>
+      <div class="prose">
+        <p>The website sets no cookies and has no analytics. Fonts and scripts come from this site itself, so your browser contacts no other host. The only thing it stores is your choice of light or dark theme, in your own browser (<code>localStorage</code>), and only when you change it.</p>
+        <p>The download button and the GitHub links take you to GitHub, which has its <a href="https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement" target="_blank" rel="noopener">own privacy statement</a>.</p>
+      </div>
+    </section>
+
+    <section id="remove" aria-labelledby="remove-h">
+      <h2 id="remove-h">Removing everything</h2>
+      <div class="prose">
+        <h3>Desktop app</h3>
+        <ol>
+          <li>Uninstall ChronoNote via Windows Settings or Control Panel.</li>
+          <li>Delete your notes folder (default <code>Documents\Notes</code>).</li>
+          <li>Delete your settings and drafts in <code>%APPDATA%\com.chrononote.app</code>.</li>
+          <li>Delete your logs in <code>%LOCALAPPDATA%\com.chrononote.app</code>.</li>
+        </ol>
+        <h3>Web app</h3>
+        <ol>
+          <li>Click <strong>Sign out</strong> in Settings → Notes &amp; Sync to remove your Microsoft tokens.</li>
+          <li>Clear site data for <code>app.chrononote.mariendegelder.nl</code> in your browser settings to remove the local notes.</li>
+          <li>If you used OneDrive sync, delete the notes folder from your OneDrive.</li>
+        </ol>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<footer>
+  <div class="wrap">
+    <span>ChronoNote · MIT licensed · made by Marien de Gelder</span>
+    <nav aria-label="Footer">
+      <a href="./">Home</a>
+      <a href="guide.html">Guide</a>
+      <a href="files.html">Your files</a>
+      <a href="troubleshooting.html">Troubleshooting</a>
+      <a href="how-it-was-built.html">How it was built</a>
+      <a href="https://github.com/marien/ChronoNote/releases" target="_blank" rel="noopener">Releases</a>
+      <a href="https://github.com/marien/ChronoNote" target="_blank" rel="noopener">GitHub</a>
+    </nav>
+  </div>
+</footer>
 </body>
 </html>

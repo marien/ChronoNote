@@ -1,129 +1,65 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>How ChronoNote Was Built</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>How ChronoNote was built, with AI and without writing code</title>
   <meta name="description" content="Six weeks of building a desktop and web app with AI, without writing code: what worked, what didn't, and how the way of working grew." />
+  <link rel="canonical" href="https://chrononote.mariendegelder.nl/how-it-was-built.html" />
+  <meta name="theme-color" content="#f4f5f7" media="(prefers-color-scheme: light)" />
+  <meta name="theme-color" content="#111317" media="(prefers-color-scheme: dark)" />
+  <script>try { var t = localStorage.getItem("chrononote-theme"); if (t === "light" || t === "dark") document.documentElement.setAttribute("data-theme", t); } catch (e) {}</script>
+  <link rel="preload" href="assets/fonts/atkinson-hyperlegible-next.woff2" as="font" type="font/woff2" crossorigin />
+  <link rel="preload" href="assets/fonts/bricolage-grotesque.woff2" as="font" type="font/woff2" crossorigin />
   <link rel="icon" href="assets/favicon.ico?v=0.32.7" sizes="any" />
   <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png?v=0.32.7" />
   <link rel="apple-touch-icon" href="assets/apple-touch-icon.png?v=0.32.7" />
-  <link rel="stylesheet" href="style.css?v=436" />
-  <style>
-    /* ---- Page mode ---------------------------------------------------- */
-    .story { padding: 24px 0 64px; }
-    .story-intro { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; margin: 8px 0 24px; }
-    .story-intro p { margin: 0; color: var(--muted); font-size: 14px; }
-    .present-btn {
-      font: inherit; font-size: 14px; color: var(--bright); background: var(--surface-raised);
-      border: 1px solid var(--edge-strong); border-radius: 4px; padding: 6px 14px; cursor: pointer;
-    }
-    .present-btn:hover { background: var(--surface-overlay); }
-    .present-btn:focus-visible, .deck-nav button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-
-    .slide { border-top: 1px solid var(--edge-soft); padding: 40px 0 36px; }
-    .slide:first-of-type { border-top: 0; }
-    .slide .kicker { color: var(--accent); font-size: 13px; letter-spacing: 0.04em; text-transform: uppercase; margin: 0 0 6px; }
-    .slide h1, .slide h2 { color: var(--bright); line-height: 1.25; margin: 0 0 18px; }
-    .slide h1 { font-size: clamp(28px, 6vw, 44px); }
-    .slide h2 { font-size: clamp(22px, 4.5vw, 30px); }
-    .slide p, .slide li { color: var(--text); }
-    .slide ul { padding-left: 22px; margin: 0 0 16px; }
-    .slide li { margin: 6px 0; }
-    .slide li strong, .slide p strong { color: var(--bright); }
-    .slide code { font-family: var(--font); font-size: 0.9em; background: var(--surface-raised); padding: 1px 5px; border-radius: 4px; color: var(--accent-bright); }
-    .lead { font-size: 1.15em; color: var(--muted) !important; }
-    .lesson {
-      margin: 20px 0 0; padding: 12px 16px; border-left: 3px solid var(--ok);
-      background: var(--surface-chrome); border-radius: 0 6px 6px 0; color: var(--text);
-    }
-    .lesson::before { content: "What we learned  "; color: var(--ok); font-weight: 700; }
-    .lesson.tip::before { content: "Tip  "; }
-    .quote { margin: 12px 0; padding: 10px 16px; background: var(--surface-chrome); border-radius: 6px; color: var(--accent-bright); font-style: italic; }
-    .quote cite { display: block; font-style: normal; color: var(--muted); font-size: 0.85em; margin-top: 4px; }
-    pre.sample {
-      background: var(--surface-chrome); border: 1px solid var(--edge-soft); border-radius: 6px;
-      padding: 14px 18px; overflow-x: auto; color: var(--text); font-size: 0.95em; line-height: 1.5; margin: 0 0 16px;
-    }
-    .two { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
-    .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; margin: 0 0 8px; }
-    .card { background: var(--surface-chrome); border: 1px solid var(--edge-soft); border-radius: 8px; padding: 14px 16px; }
-    .card h3 { color: var(--bright); font-size: 1em; margin: 0 0 6px; }
-    .card p { margin: 0; font-size: 0.9em; color: var(--muted); }
-    .card p + p { margin-top: 6px; }
-    .card .ref { color: var(--muted); font-size: 0.8em; }
-    .timeline { list-style: none; padding-left: 0 !important; }
-    .timeline li { display: grid; grid-template-columns: 7.5em 1fr; gap: 12px; margin: 8px 0; }
-    .timeline .when { color: var(--accent); }
-    .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
-    .stat { background: var(--surface-chrome); border-radius: 8px; padding: 14px; }
-    .stat b { display: block; color: var(--bright); font-size: 1.8em; line-height: 1.1; }
-    .stat span { color: var(--muted); font-size: 0.85em; }
-    .flow { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 6px 0 18px; }
-    .flow span { background: var(--surface-raised); border-radius: 999px; padding: 4px 12px; font-size: 0.9em; color: var(--bright); }
-    .flow i { color: var(--muted); font-style: normal; }
-    details.more { margin-top: 16px; color: var(--muted); font-size: 0.92em; }
-    details.more summary { cursor: pointer; color: var(--accent-bright); }
-    details.more p, details.more li { color: var(--muted); }
-    @media (max-width: 640px) {
-      .two { grid-template-columns: 1fr; }
-      .timeline li { grid-template-columns: 1fr; gap: 0; }
-    }
-
-    /* ---- Presentation mode -------------------------------------------- */
-    .deck-nav { display: none; }
-    body.presenting { overflow: hidden; }
-    body.presenting .site-nav, body.presenting footer, body.presenting .story-intro { display: none; }
-    body.presenting .story { padding: 0; }
-    body.presenting .story > .wrap { max-width: none; padding: 0; }
-    body.presenting .slide {
-      display: none; position: fixed; inset: 0; border: 0; overflow-y: auto;
-      padding: 5vh max(24px, 7vw) 9vh; background: var(--surface-canvas);
-      font-size: clamp(16px, calc(0.9vw + 0.9vh), 26px);
-    }
-    body.presenting .slide.active { display: flex; flex-direction: column; justify-content: safe center; }
-    body.presenting .slide > * { max-width: 1150px; width: 100%; margin-left: auto; margin-right: auto; }
-    body.presenting .slide h1 { font-size: 2.6em; }
-    body.presenting .slide h2 { font-size: 1.75em; }
-    body.presenting details.more { display: none; }
-    body.presenting .deck-nav {
-      display: flex; align-items: center; gap: 10px; position: fixed; right: 16px; bottom: 14px; z-index: 20;
-      color: var(--muted); font-size: 13px;
-    }
-    .deck-nav button {
-      font: inherit; color: var(--text); background: var(--surface-raised); border: 1px solid var(--edge-soft);
-      border-radius: 4px; padding: 4px 10px; cursor: pointer;
-    }
-    .deck-progress { position: fixed; left: 0; bottom: 0; height: 3px; background: var(--accent); z-index: 20; transition: width 0.2s; }
-    body:not(.presenting) .deck-progress { display: none; }
-    @media (prefers-reduced-motion: reduce) { .deck-progress { transition: none; } }
-  </style>
+  <meta property="og:type" content="article" />
+  <meta property="og:site_name" content="ChronoNote" />
+  <meta property="og:url" content="https://chrononote.mariendegelder.nl/how-it-was-built.html" />
+  <meta property="og:title" content="How ChronoNote was built" />
+  <meta property="og:description" content="Six weeks of building a desktop and web app with AI, without writing code: what worked, what didn't, and what I'd tell you if you want to try it." />
+  <meta property="og:image" content="https://chrononote.mariendegelder.nl/assets/og-image.png" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <link rel="stylesheet" href="style.css?v=440" />
+  <script src="site.js?v=440" defer></script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "How ChronoNote got built",
+    "author": { "@type": "Person", "name": "Marien de Gelder" },
+    "datePublished": "2026-10-20",
+    "image": "https://chrononote.mariendegelder.nl/assets/og-image.png",
+    "mainEntityOfPage": "https://chrononote.mariendegelder.nl/how-it-was-built.html"
+  }
+  </script>
 </head>
 <body>
+<a class="skip" href="#main">Skip to content</a>
 
-  <header class="site-nav">
-    <div class="wrap">
-      <a class="brand" href="index.html">
-        <img src="assets/logo.svg" width="20" height="20" alt="" />
-        ChronoNote
-      </a>
-      <nav>
-        <a href="index.html">Home</a>
-        <a href="guide.html">Guide</a>
-        <a href="files.html">Your files</a>
-        <a href="troubleshooting.html">Troubleshooting</a>
-        <a href="index.html#demo">Demo</a>
-        <a class="cta" href="https://github.com/marien/ChronoNote" target="_blank" rel="noopener">GitHub ↗</a>
-      </nav>
-    </div>
-  </header>
+<header class="nav" id="nav">
+  <div class="wrap">
+    <a class="brand" href="./" aria-label="ChronoNote home"><img src="assets/logo.svg" width="22" height="22" alt="" />ChronoNote</a>
+    <ul>
+      <li><a href="./#week">How it works</a></li>
+      <li><a href="./#demo">Demo</a></li>
+      <li><a href="./#features">Features</a></li>
+      <li><a href="./#get">Download</a></li>
+      <li><a href="guide.html">Guide</a></li>
+    </ul>
+    <button class="menu-btn" type="button" aria-expanded="false" aria-controls="nav">Menu</button>
+    <div class="theme"></div>
+    <a class="btn primary" href="./#demo">Try it now</a>
+  </div>
+</header>
 
-  <main class="story">
+  <main class="story" id="main">
     <div class="wrap">
 
       <div class="story-intro">
         <p>Read it as a page, or present it: press <kbd>P</kbd> or the button. Arrow keys move, <kbd>Esc</kbd> leaves.</p>
-        <button class="present-btn" id="present" type="button">▶ Present</button>
+        <button class="btn" id="present" type="button">▶ Present</button>
       </div>
 
       <!-- 1 -->
@@ -253,7 +189,7 @@ Talked to Sam =&gt; # follow up
       <section class="slide" id="s-loop">
         <p class="kicker">The rhythm</p>
         <h2>Use it, report it, fix it with a test, ship a beta, confirm</h2>
-        <div class="flow">
+        <div class="chain">
           <span>daily use</span><i>→</i><span>chat or GitHub issue</span><i>→</i><span>reproduce + failing test</span><i>→</i><span>fix</span><i>→</i><span>beta</span><i>→</i><span>I confirm</span><i>→</i><span>release</span>
         </div>
         <ul>
@@ -313,7 +249,7 @@ Talked to Sam =&gt; # follow up
       <section class="slide" id="s-handoff">
         <p class="kicker">More than one model, part 2</p>
         <h2>One orchestrator, defined hand-offs</h2>
-        <div class="flow">
+        <div class="chain">
           <span>Claude writes a brief</span><i>→</i><span>own worktree per task</span><i>→</i><span>Gemini implements</span><i>→</i><span>Claude reviews + fixes</span><i>→</i><span>full test suite</span><i>→</i><span>merge</span>
         </div>
         <ul>
@@ -481,14 +417,16 @@ Talked to Sam =&gt; # follow up
 
   <footer>
     <div class="wrap">
-      <span>ChronoNote — MIT licensed.</span>
-      <span>
-        <a href="index.html">Home</a> ·
-        <a href="guide.html">Guide</a> ·
-        <a href="https://github.com/marien/ChronoNote" target="_blank" rel="noopener">GitHub</a> ·
-        <a href="https://github.com/marien/ChronoNote/releases" target="_blank" rel="noopener">Releases</a> ·
+      <span>ChronoNote · MIT licensed · made by Marien de Gelder</span>
+      <nav aria-label="Footer">
+        <a href="./">Home</a>
+        <a href="guide.html">Guide</a>
+        <a href="files.html">Your files</a>
+        <a href="troubleshooting.html">Troubleshooting</a>
         <a href="privacy.html">Privacy</a>
-      </span>
+        <a href="https://github.com/marien/ChronoNote/releases" target="_blank" rel="noopener">Releases</a>
+        <a href="https://github.com/marien/ChronoNote" target="_blank" rel="noopener">GitHub</a>
+      </nav>
     </div>
   </footer>
 

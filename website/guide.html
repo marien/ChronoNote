@@ -1,585 +1,490 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Guide — ChronoNote</title>
-  <meta name="description" content="How ChronoNote's token vocabulary, keyboard shortcuts, and core workflows work." />
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Guide: every mark, workflow and shortcut · ChronoNote</title>
+  <meta name="description" content="How to use ChronoNote: the marks for actions, follow-ups, topics and due dates, workflows like section history and the week review, Peek for calls, every keyboard shortcut, and the web app on your phone." />
+  <link rel="canonical" href="https://chrononote.mariendegelder.nl/guide.html" />
+  <meta name="theme-color" content="#f4f5f7" media="(prefers-color-scheme: light)" />
+  <meta name="theme-color" content="#111317" media="(prefers-color-scheme: dark)" />
+  <script>try { var t = localStorage.getItem("chrononote-theme"); if (t === "light" || t === "dark") document.documentElement.setAttribute("data-theme", t); } catch (e) {}</script>
+  <link rel="preload" href="assets/fonts/atkinson-hyperlegible-next.woff2" as="font" type="font/woff2" crossorigin />
+  <link rel="preload" href="assets/fonts/bricolage-grotesque.woff2" as="font" type="font/woff2" crossorigin />
   <link rel="icon" href="assets/favicon.ico?v=0.32.7" sizes="any" />
   <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png?v=0.32.7" />
   <link rel="apple-touch-icon" href="assets/apple-touch-icon.png?v=0.32.7" />
-  <meta property="og:type" content="website" />
+  <meta property="og:type" content="article" />
+  <meta property="og:site_name" content="ChronoNote" />
   <meta property="og:url" content="https://chrononote.mariendegelder.nl/guide.html" />
-  <meta property="og:title" content="Guide — ChronoNote" />
-  <meta property="og:description" content="How ChronoNote's token vocabulary, keyboard shortcuts, and core workflows work." />
+  <meta property="og:title" content="The ChronoNote guide" />
+  <meta property="og:description" content="Every mark, workflow and shortcut in ChronoNote, with a live demo beside each one." />
   <meta property="og:image" content="https://chrononote.mariendegelder.nl/assets/og-image.png" />
-  <meta name="twitter:card" content="summary" />
-  <meta name="twitter:title" content="Guide — ChronoNote" />
-  <meta name="twitter:description" content="How ChronoNote's token vocabulary, keyboard shortcuts, and core workflows work." />
-  <meta name="twitter:image" content="https://chrononote.mariendegelder.nl/assets/og-image.png" />
-  <link rel="stylesheet" href="style.css?v=436" />
-  <script src="shortcuts.js" defer></script>
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <link rel="stylesheet" href="style.css?v=440" />
+  <script src="site.js?v=440" defer></script>
+  <script src="docs.js?v=440" defer></script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      { "@type": "ListItem", "position": 1, "name": "ChronoNote", "item": "https://chrononote.mariendegelder.nl/" },
+      { "@type": "ListItem", "position": 2, "name": "Guide", "item": "https://chrononote.mariendegelder.nl/guide.html" }
+    ]
+  }
+  </script>
 </head>
 <body>
+<a class="skip" href="#main">Skip to content</a>
 
-  <header class="site-nav">
-    <div class="wrap">
-      <a class="brand" href="index.html">
-        <img src="assets/logo.svg" width="20" height="20" alt="" />
-        ChronoNote
-      </a>
-      <nav>
-        <a href="index.html">Home</a>
-        <a class="current" href="guide.html">Guide</a>
-        <a href="files.html">Your files</a>
-        <a href="troubleshooting.html">Troubleshooting</a>
-        <a href="index.html#demo">Demo</a>
-        <a class="cta" href="https://github.com/marien/ChronoNote" target="_blank" rel="noopener">GitHub ↗</a>
-      </nav>
-    </div>
-  </header>
+<header class="nav" id="nav">
+  <div class="wrap">
+    <a class="brand" href="./" aria-label="ChronoNote home"><img src="assets/logo.svg" width="22" height="22" alt="" />ChronoNote</a>
+    <ul>
+      <li><a href="./#week">How it works</a></li>
+      <li><a href="./#demo">Demo</a></li>
+      <li><a href="./#features">Features</a></li>
+      <li><a href="./#get">Download</a></li>
+      <li><a href="guide.html" aria-current="page">Guide</a></li>
+    </ul>
+    <button class="menu-btn" type="button" aria-expanded="false" aria-controls="nav">Menu</button>
+    <div class="theme"></div>
+    <a class="btn primary" href="demo.html" data-try="today">Try it now</a>
+  </div>
+</header>
 
-  <section style="padding-top: 48px; padding-bottom: 24px;">
-    <div class="wrap prose">
-      <h2 style="font-size: 32px; margin-bottom: 8px;">The guide</h2>
-      <p>
-        ChronoNote has no hidden format and no settings you're required to learn before
-        it's useful — but a handful of typed tokens do a lot of work once you know them.
-        This page covers all of it: the vocabulary, every shortcut, and the workflows
-        they add up to.
-      </p>
-      <p>
-        The short version: notes are one plain <code>.txt</code> file per day. Type a
-        token at the start of a line and it turns into a glyph on screen while the
-        file on disk keeps the literal characters you typed — always. Nothing here is
-        a special save format; open any note in Notepad and it reads exactly the same.
-      </p>
-    </div>
-  </section>
+<div class="wrap docs-hero">
+  <span class="kicker">Guide</span>
+  <h1>Everything ChronoNote does, and how.</h1>
+  <p class="lede">The marks, the workflows and every shortcut. A <span class="try" aria-hidden="true">Try it</span> link opens the live demo beside this page, on that feature, so you can try it without losing your place.</p>
+</div>
 
-  <section class="alt" id="vocabulary">
-    <div class="wrap">
-      <div class="section-head">
-        <span class="eyebrow">Vocabulary</span>
-        <h2>Every token, and what it means</h2>
-        <p>Each is at most three characters, typed at the start of a line.</p>
-      </div>
-      <table class="token-table">
-        <thead>
-          <tr>
-            <th>Type this</th>
-            <th>See this</th>
-            <th>Meaning</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td><code># </code></td>
-            <td><span class="glyph glyph-open">☐︎</span></td>
-            <td><strong>Open action.</strong> Something still to do. Closing a note dated today or earlier asks first while one of these is unresolved; a note dated in the future closes without asking.</td>
-          </tr>
-          <tr>
-            <td><code>v </code></td>
-            <td><span class="glyph glyph-done">☑︎</span></td>
-            <td><strong>Done.</strong> Resolved.</td>
-          </tr>
-          <tr>
-            <td><code>&gt; </code></td>
-            <td><span class="glyph glyph-progress">☐︎</span></td>
-            <td><strong>Deferred.</strong> Resolved for today, but pushed forward to a later note — used when you copy/forward a task to a future day. Like done and won't-do lines it is drawn dimmed, so open work stands out.</td>
-          </tr>
-          <tr>
-            <td><code>x </code></td>
-            <td><span class="glyph glyph-cancelled">☒︎</span></td>
-            <td><strong>Won't do.</strong> Resolved, but distinct from done — this one just isn't happening.</td>
-          </tr>
-          <tr>
-            <td><code>- </code> or <code>* </code></td>
-            <td>•</td>
-            <td><strong>Bulleted list item.</strong> Purely structural — not an action, doesn't block anything. Indent two spaces to nest.</td>
-          </tr>
-          <tr>
-            <td><code>1. </code> <code>2) </code> <code>1.1. </code></td>
-            <td>1.</td>
-            <td><strong>Numbered list item.</strong> Plain text, no glyph, and not an action. <kbd>Enter</kbd> continues with the next number (<code>1.</code> → <code>2.</code>, <code>1.1.</code> → <code>1.2.</code>), an empty item ends the list, <kbd>Tab</kbd> nests it by two spaces. Start anywhere — <code>7.</code> works — and numbers are never rewritten, except that a new item you insert in the middle with <kbd>Enter</kbd> pushes the following numbers down by one. It must be the first thing on the line: <code>3.5 hours</code> is just text.</td>
-          </tr>
-          <tr>
-            <td><code>=&gt; </code></td>
-            <td><span class="glyph glyph-followup">➔︎</span></td>
-            <td><strong>Follow-up.</strong> A plain note or outcome leading from the line above.</td>
-          </tr>
-          <tr>
-            <td><code>=&gt; @name</code></td>
-            <td><span class="glyph glyph-followup">➔︎</span> <span class="badge-assignee">@name</span></td>
-            <td><strong>Delegated.</strong> Owned by someone else — no action-state of its own. <code>@name</code> stays real, editable text (fix a typo directly); names may contain a hyphen. Any <code>@name</code>, anywhere on a line, gets the same badge (an email address is left alone).</td>
-          </tr>
-          <tr>
-            <td><code>(@name)</code> or <code>(@a, @b, @c)</code></td>
-            <td><span class="badge-assignee">@name</span></td>
-            <td><strong>Delegated, parenthesised.</strong> The same badge, handy for a list — several names at once each get their own. Like any <code>@name</code>, it needs no <code>=&gt; </code> or leading action symbol, and works in plain prose and on agenda topic lines too.</td>
-          </tr>
-          <tr>
-            <td><code>=&gt; #</code> / <code>v</code> / <code>&gt;</code> / <code>x</code></td>
-            <td><span class="glyph glyph-followup">➔︎</span> <span class="glyph glyph-open">☐︎</span></td>
-            <td><strong>Consequence action.</strong> A follow-up that's itself an action, closed or reopened by clicking its glyph like any other. Mutually exclusive with delegating to a person.</td>
-          </tr>
-          <tr>
-            <td><code># (topic)</code></td>
-            <td><span class="badge-topic">(topic)</span></td>
-            <td><strong>Topic tag.</strong> Groups actions by subject — recognised only right after a leading action symbol. The parentheses only show while the cursor is in the tag or right next to it.</td>
-          </tr>
-          <tr>
-            <td><code># … by:fri</code></td>
-            <td><span class="badge-topic badge-due"><span class="due-flag">⚑</span> 2026-10-30</span></td>
-            <td><strong>Due date.</strong> Type <code>by:</code> and a day (<code>fri</code>, <code>tomorrow</code>, <code>+3</code>, <code>wk44</code>, <code>10-30</code>) at the end of an action; when you leave the line it becomes the full date, so the file stays unambiguous. <code>by:</code> shows as a small flag and the date gets an outline: amber on the day, red once it has passed. Click the date to change it in a small calendar. Or press <kbd>Ctrl+Shift+D</kbd> to pick the date. The status bar counts late actions in all your notes, and the Action Drawer's “By due date” view lists them soonest first.</td>
-          </tr>
-          <tr>
-            <td><code>o </code></td>
-            <td><span class="glyph glyph-topic-open">○</span></td>
-            <td><strong>Meeting topic — to discuss.</strong> A discussion item, not a task — never counted as an action, never in the calendar heatmap, never visited by the open-action jump shortcut. <kbd>Enter</kbd> continues the list the same way an action line does.</td>
-          </tr>
-          <tr>
-            <td><code>. </code></td>
-            <td><span class="glyph glyph-topic-done">◉</span></td>
-            <td><strong>Discussed.</strong> Resolved for this meeting — dimmed like a closed action, but still never counted as one.</td>
-          </tr>
-          <tr>
-            <td><code>, </code></td>
-            <td><span class="glyph glyph-topic-skipped">◌</span></td>
-            <td><strong>Not discussed.</strong> Skipped this meeting, carried to the next one. Copying/forwarding a note defers an open <code>o </code> topic to this state, the same way it defers an open action to <code>&gt; </code>.</td>
-          </tr>
-          <tr>
-            <td><code>! </code></td>
-            <td><span class="glyph glyph-emphasis">like this</span></td>
-            <td><strong>Emphasis.</strong> The rest of the line renders bold. Informational only, but searchable like any other line.</td>
-          </tr>
-          <tr>
-            <td>A line, then <code>====</code></td>
-            <td><em>underlined heading</em></td>
-            <td><strong>Section header.</strong> What Section History matches recurring sections by, and what a calendar sync matches meeting titles against.</td>
-          </tr>
-        </tbody>
-      </table>
-      <p style="margin-top: 20px; color: var(--muted); font-size: 14px;">
-        Click a glyph to close an open action, or to reopen one that is done, deferred or won't-do. On a line
-        with several actions (<code># call Sam =&gt; # book a room</code>) a click changes exactly the glyph you clicked.
-        From the keyboard the action nearest to the left of the caret is the one that changes (or, with none on the
-        left, the nearest to its right), and on a line with none <kbd>Ctrl+1</kbd>–<kbd>4</kbd> turn the whole line into that action.
-      </p>
-    </div>
-  </section>
-
-  <section id="shortcuts">
-    <div class="wrap">
-      <div class="section-head">
-        <span class="eyebrow">Reference</span>
-        <h2>Keyboard shortcuts</h2>
-        <p>Nearly everything has one — the mouse is optional.</p>
-      </div>
-      <div class="shortcut-grid">
-        <div class="shortcut-row"><span>Command palette — run any command, jump to a tab, date or action</span><kbd>Ctrl+K</kbd></div>
-        <div class="shortcut-row"><span>Tap Alt: a letter appears on each title bar command — press it to run that command (desktop)</span><kbd>Alt</kbd></div>
-        <div class="shortcut-row"><span>New scratchpad</span><kbd>Ctrl+N</kbd></div>
-        <div class="shortcut-row"><span>Reopen most recently closed tab</span><kbd>Ctrl+Shift+T</kbd></div>
-        <div class="shortcut-row"><span>Open / create a dated note</span><kbd>Ctrl+O</kbd></div>
-        <div class="shortcut-row"><span>Close current tab</span><kbd>Ctrl+W</kbd></div>
-        <div class="shortcut-row"><span>Next / previous tab</span><kbd>Ctrl+Tab</kbd></div>
-        <div class="shortcut-row"><span>Indent / dedent a line or selection (two spaces)</span><kbd>Tab</kbd> / <kbd>Shift+Tab</kbd></div>
-        <div class="shortcut-row"><span>Undo / redo (kept per tab)</span><kbd>Ctrl+Z</kbd> / <kbd>Ctrl+Shift+Z</kbd></div>
-        <div class="shortcut-row"><span>Bigger / smaller text in the note (remembered)</span><kbd>Ctrl+scroll</kbd></div>
-        <div class="shortcut-row"><span>Close the open action at the caret</span><kbd>Ctrl+Space</kbd></div>
-        <div class="shortcut-row"><span>Reopen the done action at the caret</span><kbd>Ctrl+Shift+Space</kbd></div>
-        <div class="shortcut-row"><span>Open the action at the caret, or in each selected line</span><kbd>Ctrl+Shift+O</kbd></div>
-        <div class="shortcut-row"><span>Set the action at the caret to open — a plain line becomes one</span><kbd>Ctrl+1</kbd></div>
-        <div class="shortcut-row"><span>Set the action at the caret to done — a plain line becomes one</span><kbd>Ctrl+2</kbd></div>
-        <div class="shortcut-row"><span>Set the action at the caret to deferred — a plain line becomes one</span><kbd>Ctrl+3</kbd></div>
-        <div class="shortcut-row"><span>Set the action at the caret to won't-do — a plain line becomes one</span><kbd>Ctrl+4</kbd></div>
-        <div class="shortcut-row"><span>Set the line at the caret to a topic: to discuss / discussed / not discussed</span><kbd>Ctrl+5</kbd> / <kbd>Ctrl+6</kbd> / <kbd>Ctrl+7</kbd></div>
-        <div class="shortcut-row"><span>Jump to next / previous open action</span><kbd>Ctrl+J</kbd> / <kbd>Ctrl+Shift+J</kbd></div>
-        <div class="shortcut-row"><span>Caret to the start of the line, then the previous line / the start of the next line</span><kbd>Ctrl+↑</kbd> / <kbd>Ctrl+↓</kbd></div>
-        <div class="shortcut-row"><span>Convert this line into a section header</span><kbd>Ctrl+Shift+S</kbd></div>
-        <div class="shortcut-row"><span>Copy this section to its next occurrence</span><kbd>Ctrl+Shift+.</kbd></div>
-        <div class="shortcut-row"><span>Set due date…</span><kbd>Ctrl+Shift+D</kbd></div>
-        <div class="shortcut-row"><span>Actions drawer</span><kbd>Ctrl+Shift+A</kbd></div>
-        <div class="shortcut-row"><span>Section history</span><kbd>Ctrl+Shift+H</kbd></div>
-        <div class="shortcut-row"><span>Week review</span><kbd>Ctrl+Shift+K</kbd></div>
-        <div class="shortcut-row"><span>With History or Actions open beside the note: switch between the note and the pane (the pane's own shortcut does the same)</span><kbd>F6</kbd></div>
-        <div class="shortcut-row"><span>Find in this note</span><kbd>Ctrl+F</kbd></div>
-        <div class="shortcut-row"><span>Replace in this note</span><kbd>Ctrl+H</kbd></div>
-        <div class="shortcut-row"><span>Go to a section of this note</span><kbd>Ctrl+G</kbd></div>
-        <div class="shortcut-row"><span>Back / forward after following a date link</span><kbd>Ctrl+Alt+←</kbd> / <kbd>Ctrl+Alt+→</kbd></div>
-        <div class="shortcut-row"><span>Cross-tab search</span><kbd>Ctrl+Shift+F</kbd></div>
-        <div class="shortcut-row"><span>Sync calendar for this day (opt-in, desktop only)</span><kbd>Ctrl+Shift+C</kbd></div>
-        <div class="shortcut-row"><span>Previous / next occurrence of the section at the caret (also inside Peek; not on a Mac)</span><kbd>Alt+←</kbd> / <kbd>Alt+→</kbd></div>
-        <div class="shortcut-row"><span>Peek: compact note window for the section at the caret (desktop only)</span><kbd>Ctrl+Shift+P</kbd></div>
-        <div class="shortcut-row"><span>Peek on the meeting that is on now, or a new call section (desktop only, works from any app)</span><kbd>Ctrl+Alt+J</kbd></div>
-        <div class="shortcut-row"><span>Zen mode: hide the bars and just write (desktop and web; plain F11 too in the desktop app)</span><kbd>Shift+F11</kbd></div>
-        <div class="shortcut-row"><span>Print this note</span><kbd>Ctrl+P</kbd></div>
-        <div class="shortcut-row"><span>Export notes</span><kbd>Ctrl+Shift+E</kbd></div>
-        <div class="shortcut-row"><span>Settings</span><kbd>Ctrl+,</kbd></div>
-        <div class="shortcut-row"><span>About ChronoNote</span><kbd>Ctrl+Shift+,</kbd></div>
-        <div class="shortcut-row"><span>Shortcuts &amp; symbols (this list, in-app)</span><kbd>Ctrl+/</kbd></div>
-        <div class="shortcut-row"><span>Close whatever's open</span><kbd>Escape</kbd></div>
-      </div>
-    </div>
-  </section>
-
-  <section class="alt">
-    <div class="wrap">
-      <div class="section-head">
-        <span class="eyebrow">Putting it together</span>
-        <h2>How a week actually flows</h2>
-      </div>
-      <div class="workflow">
-        <div class="workflow-step">
-          <div class="num">1</div>
-          <div>
-            <h3>Open today, type what's happening</h3>
-            <p>ChronoNote opens on today's note the first time you launch it each day. (Settings → Notes &amp; Sync →
-              Startup can bring back the tabs you had open instead; on the first start of a day today's note still
-              opens when it has notes or meetings.) Give a meeting a title and underline it to make a section, then log actions as they come up.</p>
-            <div class="snippet-pair">
-              <div>
-                <div class="snippet-pair-label">What you type</div>
-                <div class="snippet">Daily Standup
-=============
-- yesterday: fixed the sync retry bug
-# scope the Q3 roadmap doc</div>
-              </div>
-              <div>
-                <div class="snippet-pair-label">What you see</div>
-                <div class="snippet snippet-rendered">Daily Standup
-<span class="rendered-rule">=============</span>
-<span class="rendered-bullet">yesterday: fixed the sync retry bug</span>
-<span class="glyph glyph-open">☐︎</span> scope the Q3 roadmap doc</div>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div class="workflow-step">
-          <div class="num">2</div>
-          <div>
-            <h3>Resolve, delegate, or defer</h3>
-            <p>Click a glyph to close an open action (or reopen a closed one), press <kbd>Ctrl+Space</kbd> to close the one at the caret, or <kbd>Ctrl+1</kbd>-<kbd>4</kbd> to set any state directly. Hand something off with
-              <kbd>=&gt; @name</kbd> — it stays a real, editable name, not a locked-in reference.</p>
-            <div class="snippet-pair">
-              <div>
-                <div class="snippet-pair-label">What you type</div>
-                <div class="snippet">v scope the Q3 roadmap doc
-=> @Priya loop in design on the sync UI</div>
-              </div>
-              <div>
-                <div class="snippet-pair-label">What you see</div>
-                <div class="snippet snippet-rendered"><span class="glyph glyph-done">☑︎</span> scope the Q3 roadmap doc
-<span class="glyph glyph-followup">➔︎</span> <span class="badge-assignee">@Priya</span> loop in design on the sync UI</div>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div class="workflow-step">
-          <div class="num">3</div>
-          <div>
-            <h3>Let recurring meetings remember themselves</h3>
-            <p>Reuse the same section title tomorrow — "Daily Standup" again, or "1:1 — Priya" next week —
-              and <kbd>Ctrl+Shift+H</kbd> pulls up every prior occurrence, aggregated, right from wherever
-              your cursor sits in the current one. On a wide window it opens beside the note, so you can keep
-              typing while you read: move to another section and History follows; drag its edge to make it
-              wider or narrower. The Actions list (<kbd>Ctrl+Shift+A</kbd>) works the same way.</p>
-            <p>Select lines in an occurrence (<kbd>↑</kbd>/<kbd>↓</kbd>, <kbd>Shift</kbd> to extend,
-              <kbd>Ctrl+A</kbd> for all of them) and carry them forward with "Add to today" or "Add to next
-              occurrence". The old lines are marked as forwarded, and whatever was deferred comes back open.
-              Choose <strong>As agenda</strong> to reuse a whole past agenda as a template: the same, but every
-              agenda topic (<code>o</code>, <code>.</code> and <code>,</code>) is open again in the new note.</p>
-          </div>
-        </div>
-        <div class="workflow-step">
-          <div class="num">4</div>
-          <div>
-            <h3>Let your calendar fill itself in</h3>
-            <p>Turn on "Sync calendar for this day" in Settings (off by default), and <kbd>Ctrl+Shift+C</kbd>
-              reads a <code>.agenda.json</code> file kept up to date by whatever already syncs your real
-              calendar, matches meeting titles against today's sections, and shows a review step before
-              writing anything — new meetings are a checklist, and any section no longer on the agenda gets
-              flagged for you to leave, discard, or move rather than silently dropped. A meeting the calendar
-              marks as cancelled, declined or forwarded (a title starting with <code>Canceled:</code>, <code>Declined:</code>,
-              <code>Followed:</code> and so on) counts as removed, named by the rest of its title, and
-              <code>Placeholder:</code> or <code>Confirmed -</code> in front of a title is dropped. The review opens with
-              focus on Sync; <kbd>↑</kbd> and <kbd>↓</kbd> move between the checkboxes.</p>
-            <p>A small dot on the sync button tells you when the open note differs from the calendar. Opening an
-              empty note for today (or a later day) with meetings in the calendar fills in the meeting sections
-              straight away, no review needed. A section whose title starts with <code>'</code> — an ad-hoc call
-              like <code>'Quick call with Dave</code> — is never matched to the calendar and never flagged.</p>
-            <p>Something needs to write that file for this to work — the exact schema (and how to keep it fed from
-              whatever you already use to sync your real calendar) is in the
-              <a href="https://github.com/marien/ChronoNote/blob/main/docs/agenda-file-guide.md" target="_blank" rel="noopener">.agenda.json reference</a>
-              on GitHub.</p>
-          </div>
-        </div>
-        <div class="workflow-step">
-          <div class="num">5</div>
-          <div>
-            <h3>Find anything, across every day</h3>
-            <p><kbd>Ctrl+Shift+F</kbd> searches every open tab or the whole notes folder at once. Results
-              render the same glyph-aware way the editor does, so a search hit reads exactly like the real
-              line, with the line before and after for context. Narrow it with <code>is:open</code>,
-              <code>is:done</code>, <code>tag:topic</code>, <code>has:@name</code>, <code>since:2026-09-01</code> or
-              <code>before:2026-09-20</code>; each shows up as a chip you can click away. The Action Drawer's filter
-              (<kbd>Ctrl+Shift+A</kbd>) understands the same words, so <code>tag:budget since:2026-10-01</code> lists
-              this month's open budget actions.</p>
-          </div>
-        </div>
-        <div class="workflow-step">
-          <div class="num">6</div>
-          <div>
-            <h3>Look back at the week</h3>
-            <p><kbd>Ctrl+Shift+K</kbd> shows one week: per day and per meeting, the actions that are still
-              open, with how many are late. On a Monday it opens on last week, otherwise on this one; the arrow keys
-              go back and forward a week. Turn on "Show done" to see what was finished as well. Press
-              <kbd>Enter</kbd> on a line to go there, or close or forward it right from the list as in the Action
-              Drawer. Open actions from earlier weeks are one click away at the top.</p>
-          </div>
-        </div>
-        <div class="workflow-step">
-          <div class="num">7</div>
-          <div>
-            <h3>Jot something that isn't dated yet</h3>
-            <p><kbd>Ctrl+N</kbd> opens a scratchpad — kept in memory only, never written to disk until you
-              promote it into a real dated note. Closing one with real content unsaved asks first; nothing
-              disappears by accident.</p>
-          </div>
-        </div>
-        <div class="workflow-step">
-          <div class="num">8</div>
-          <div>
-            <h3>Keep lists as lists</h3>
-            <p>Start a line with <code>- </code> for a bullet or <code>1. </code> (or <code>2) </code>, or
-              <code>1.1. </code> for a sub-item) for a numbered list, and <kbd>Enter</kbd> carries it on. An empty
-              item ends the list; <kbd>Tab</kbd> nests it. Numbers are plain text. The one time they change is when you
-              press <kbd>Enter</kbd> in the middle of a list: the new item takes the next number and the items after it
-              (and their sub-items) shift down by one, up to the first blank line.</p>
-            <p>A list you copy from Teams, Outlook, Word or a web page keeps its bullets, numbers and indentation when
-              you paste it, and a list you copy from ChronoNote arrives in those apps as a real list. Anything that is
-              not a list pastes as plain text, as before.</p>
-            <p>An action can have sub-actions: put them on the lines right below it, indented with <kbd>Tab</kbd>.
-              A thin line joins them in the note, and the Action Drawer lists them under their action with a count
-              such as <code>1/3</code> and an arrow that folds the group away. Steps you plan in order can go on one
-              line instead (<code># onboard Lee =&gt; # laptop =&gt; # accounts</code>); the drawer lists each step,
-              numbered, under the action. Section History draws the same lines, and both it and the Action Drawer show
-              topics and due dates as they look in the note. An empty line, or any line that is not an action, ends a group. Closing an
-              action never closes its sub-actions, or the other way round.</p>
-          </div>
-        </div>
-        <div class="workflow-step">
-          <div class="num">9</div>
-          <div>
-            <h3>Write without distraction, your way</h3>
-            <p><kbd>Shift+F11</kbd> hides the bars for Zen mode (<kbd>Esc</kbd> brings them back). In Settings, set the
-              editor's font size (or <kbd>Ctrl</kbd>+scroll in the note) and line spacing, and switch on pure black in
-              dark mode for OLED screens. The date picker (<kbd>Ctrl+O</kbd>) shows at a glance which days have a
-              note (bold), which have open actions (an amber ring) and, with calendar sync on, which only have
-              meetings so far (a dashed ring), with ISO week numbers down the side; type <code>wk 42</code> to jump
-              to that week.</p>
-            <p>Spell check is off until you switch it on (Settings → Appearance). The desktop app uses the Windows
-              spell checker: pick the languages it checks, and right-click a marked word for suggestions,
-              <strong>Add to dictionary</strong> or <strong>Ignore</strong>. In the web app your browser does the
-              checking (<kbd>Shift</kbd>+right-click for its suggestions).</p>
-          </div>
-        </div>
-        <div class="workflow-step">
-          <div class="num">10</div>
-          <div>
-            <h3>Take notes during a call</h3>
-            <p>In the desktop app, <kbd>Ctrl+Shift+P</kbd> (<kbd>Cmd+Shift+P</kbd> on a Mac) turns ChronoNote into
-              <strong>Peek</strong>: a small, see-through, always-on-top window that
-              shows only the section your cursor was in, so you can keep looking at the people you are talking
-              to. It is the same editor, so everything you type is a normal edit, and it stays inside its
-              section; press the shortcut again (or <kbd>Esc</kbd>) to get the full window back exactly as it was.</p>
-            <p><kbd>Ctrl+Alt+J</kbd> works from any app, even while a call window has the focus, and opens
-              Peek on the meeting that is on right now according to your
-              <code>.agenda.json</code> — or on a new <code>'Call 14:05</code> section placed in time order between
-              the day's meetings, when there is none. Inside Peek, <kbd>Alt+←</kbd> / <kbd>Alt+→</kbd> step through
-              earlier and later occurrences of the same section, and a quiet <code>‹ (2/5) ›</code> after any
-              section title (a setting, Settings → Appearance) shows where this note sits among them, with a small
-              Peek icon to open that section in Peek with the mouse.</p>
-            <p>The window is more solid while you type or point at it and fades to a see-through level a few
-              seconds later; the opacities, fade time, header strip (always, hover or hidden) and shortcuts are in
-              Settings.</p>
-            <p>The dock button in Peek's header (next to minimize) moves Peek into a solid strip along the bottom of the
-              screen: maximized windows, such as a Teams call, use the space above it. Drag its top edge to change the
-              height. Peek docks on the screen where floating Peek is: to dock on another screen, float Peek, move it
-              there and dock again. The same button lets it float again, and Peek opens the way you last used it.</p>
-          </div>
-        </div>
-        <div class="workflow-step">
-          <div class="num">11</div>
-          <div>
-            <h3>Follow an action from day to day</h3>
-            <p>Copy an open action and paste it into a later note, and the original is marked as forwarded. Both
-              lines also get a link: the old one points to where it went, the new one to where it came from. Forward
-              it again and the chain carries on, so you can always trace where something started.</p>
-            <div class="snippet-pair">
-              <div>
-                <div class="snippet-pair-label">The earlier note</div>
-                <div class="snippet">&gt; book the venue (&gt;2026-10-14#Team Sync)</div>
-              </div>
-              <div>
-                <div class="snippet-pair-label">The later note</div>
-                <div class="snippet"># book the venue (&lt;2026-10-13#Team Sync)</div>
-              </div>
-            </div>
-            <p>In the note, a link shows as a small quiet tag with an arrow: → where it went, ← where it came from.
-              Put the cursor in it to see and edit the text as typed.</p>
-            <p><kbd>Ctrl</kbd>+click a link to open that day at that section. Any date in brackets works the
-              same way, so <code>(2026-10-02#Budget review)</code> is a link you can type yourself.
-              <kbd>Ctrl+Alt+←</kbd> takes you back to where you were (and a small card at the top right offers
-              Back and Forward until you close it). <kbd>Ctrl+G</kbd> jumps to any section of the open note, and
-              <kbd>Ctrl+H</kbd> replaces text in it.</p>
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <section id="recover">
-    <div class="wrap prose">
-      <div class="section-head">
-        <span class="eyebrow">Safety nets</span>
-        <h2>Getting text back</h2>
-      </div>
-      <p>
-        ChronoNote keeps <strong>earlier versions</strong> of each note: one every few minutes while you edit today,
-        then one per day, for 30 days. Right-click a tab and choose <strong>Earlier versions…</strong> to compare any of
-        them side by side with the current text and restore it (the current text is kept as a version first).
-      </p>
-      <p>
-        A note you delete with text in it goes to <strong>Recently deleted</strong> (in Settings) for 30 days, where you
-        can restore it. In the desktop app both are hidden folders inside your notes folder, so they travel with it; the
-        web app keeps them in the browser's storage.
-      </p>
-    </div>
-  </section>
-
-  <section class="alt" id="export">
-    <div class="wrap prose">
-      <div class="section-head">
-        <span class="eyebrow">Export and print</span>
-        <h2>Exporting and printing notes</h2>
-      </div>
-      <p>
-        Export a note or a date range as Markdown or standalone HTML from the More menu, the tab context menu,
-        or the command palette. Actions become standard <code>- [ ]</code> checkboxes, section titles become
-        <code>##</code> headings, and deferred or struck tasks keep their annotations. You can also copy a selection
-        as Markdown directly from the editor's context menu, or print the active note (<kbd>Ctrl+P</kbd> / <kbd>Cmd+P</kbd>)
-        with all glyphs styled for print.
-      </p>
-    </div>
-  </section>
-
-  <section>
-    <div class="wrap prose">
-      <div class="section-head">
-        <span class="eyebrow">Bringing notes in</span>
-        <h2>Migrating from somewhere else</h2>
-      </div>
-      <p>
-        Already keeping notes in another tool? Settings → Notes &amp; Sync → Data → "Import notes from a file…"
-        brings them in, once they're converted to ChronoNote's plain-text format — one
-        <code>.txt</code> file per day, tokens like <code># </code> and <code>=&gt; </code>
-        turned into actions and follow-ups.
-      </p>
-      <p>
-        The <a href="https://github.com/marien/ChronoNote/blob/main/docs/migration-guide.md" target="_blank" rel="noopener">migration guide</a>
-        on GitHub spells out the exact file format a conversion script (or an AI agent) needs
-        to produce, down to the token syntax and how recurring section titles get matched —
-        precise enough to hand off directly rather than reverse-engineer from this page.
-      </p>
-      <p>
-        In the web app you can also drag a backup file or a day's <code>.txt</code> note onto the window. A note whose
-        date already exists is never overwritten: if the text differs, you are shown both versions and choose to keep
-        yours, use the dropped file, or keep both. If the web app's OneDrive sign-in expires (it can only be renewed for
-        about a day), it says so and offers <strong>Sign in again</strong> — nothing is signed out and your unsynced
-        edits are kept.
-      </p>
-    </div>
-  </section>
-
-  <section class="alt" id="mobile">
-    <div class="wrap prose">
-      <div class="section-head">
-        <span class="eyebrow">On your phone</span>
-        <h2>ChronoNote on your phone</h2>
-      </div>
-      <p>
-        The web app is the same editor with the same tokens and the same plain
-        <code>.txt</code> files, with a touch accessory bar above the keyboard for the
-        symbols and actions. The bar at the top shows which day you're on and its open
-        actions, with arrows to the previous and next note; the bar at the bottom takes you
-        to the note, Actions, History and Search. Long-press a glyph for that line's menu.
-        Installed to your home screen, it opens full-screen like a native app — no store,
-        no APK.
-      </p>
-
-      <h3>Installing it</h3>
-      <p>
-        Open <a href="https://app.chrononote.mariendegelder.nl/" target="_blank" rel="noopener">app.chrononote.mariendegelder.nl</a>
-        in your phone's browser, then use the browser's own "Add to Home Screen" (or
-        "Install app") option — in Chrome on Android that's the menu (⋮) →
-        <strong>Add to Home screen</strong>; in Safari on iOS it's the Share button →
-        <strong>Add to Home Screen</strong>. From then on, the home-screen icon opens
-        it directly, and updates arrive automatically the next time you open it.
-      </p>
-
-      <h3>Connecting OneDrive</h3>
+<div class="wrap docs">
+  <nav class="toc" aria-label="On this page">
+    <details open>
+      <summary>On this page</summary>
       <ol>
-        <li>Open Settings, go to the <strong>Notes &amp; Sync</strong> tab, and under OneDrive Cloud Sync tap <strong>Connect Microsoft Account</strong>. Sign in in the page that opens; you're returned to ChronoNote.</li>
-        <li>Pick the OneDrive folder that holds your notes — the one your PC's OneDrive client syncs. The folder picker opens by itself once you're connected; <strong>Choose folder…</strong> reopens it.</li>
-        <li>That's it. A spinner in the status bar shows a sync running, and <strong>Sync now</strong> in Settings starts one whenever you like.</li>
+        <li><a href="#start">Start here</a></li>
+        <li><a href="#vocabulary">The marks</a></li>
+        <li><a href="#workflows">Workflows</a></li>
+        <li class="sub"><a href="#w-capture">Write it down</a></li>
+        <li class="sub"><a href="#w-close">Close and hand off</a></li>
+        <li class="sub"><a href="#w-history">Recurring meetings</a></li>
+        <li class="sub"><a href="#w-forward">Follow an action</a></li>
+        <li class="sub"><a href="#w-due">Due dates</a></li>
+        <li class="sub"><a href="#w-find">Find anything</a></li>
+        <li class="sub"><a href="#w-week">The week review</a></li>
+        <li class="sub"><a href="#w-lists">Lists and sub-actions</a></li>
+        <li class="sub"><a href="#w-scratch">Scratchpad</a></li>
+        <li class="sub"><a href="#w-comfort">Your way of writing</a></li>
+        <li class="sub"><a href="#w-calendar">Calendar sync</a></li>
+        <li class="sub"><a href="#w-peek">Notes during a call</a></li>
+        <li><a href="#shortcuts">Shortcuts</a></li>
+        <li><a href="#recover">Getting text back</a></li>
+        <li><a href="#export">Export and print</a></li>
+        <li><a href="#import">Bringing notes in</a></li>
+        <li><a href="#mobile">On your phone</a></li>
       </ol>
-      <p>
-        ChronoNote syncs when you open the app, when you come back to it, and after you save
-        a note. Notes are plain text on your phone and in OneDrive.
-      </p>
+    </details>
+  </nav>
 
-      <h3>When the same note changed in two places</h3>
-      <p>
-        If you edited a note on your phone and it also changed in OneDrive, the two versions
-        are merged line by line — additions from both sides are kept. Only when both sides
-        changed the same lines does ChronoNote hold the note back instead of guessing. The
-        status bar then shows <strong>⚠ 1 sync conflict</strong>; tap it to see both
-        versions and choose <strong>Keep this device's</strong>, <strong>Use OneDrive's</strong>
-        or <strong>Keep both</strong> (the OneDrive text goes under a marker line at the end so you can
-        tidy it). Nothing is overwritten until you choose, and no conflict copies are left
-        lying around in your folder.
-      </p>
+  <main class="doc" id="main">
 
-      <h3>Deleting notes</h3>
-      <p>
-        Like on the desktop, closing a daily note you've emptied deletes it, and that
-        deletion syncs so the empty file doesn't linger in OneDrive. A note deleted in
-        OneDrive (for instance from your PC) disappears from your phone on the next sync.
-      </p>
-    </div>
-  </section>
+    <section id="start" aria-labelledby="start-h">
+      <h2 id="start-h">Start here</h2>
+      <div class="step">
+        <div class="copy">
+          <p>Three things get you going. Everything else on this page is there when you want it.</p>
+          <ol>
+            <li><strong>Give a meeting or topic a title</strong> and underline it with <code>===</code>. That makes a section.</li>
+            <li><strong>Start a line with a mark</strong>: <code>#</code> for a to-do, <code>=&gt; @name</code> to hand something off, <code>o</code> for a topic to discuss.</li>
+            <li><strong>Press <kbd>Ctrl+K</kbd></strong> for every other command. The palette shows each command's shortcut, so you learn them as you go.</li>
+          </ol>
+          <p>It is all text. Type over a mark to change it, select and delete, paste from an email, undo. The glyphs follow. Open any note in Notepad and it reads exactly as you typed it: nothing is stored anywhere else.</p>
+          <div class="meta"><button class="try" type="button" data-try="today">Try it in today's demo note</button></div>
+        </div>
+        <div class="win pair">
+          <div><div class="lab">What you type</div><pre class="note" data-note="raw">
+Church community committee
+==========================
+o Christmas market
+# book the parish hall
+=&gt; @Ruth asks the choir</pre></div>
+          <div><div class="lab">What you see</div><pre class="note" data-note="render">
+Church community committee
+==========================
+o Christmas market
+# book the parish hall
+=&gt; @Ruth asks the choir</pre></div>
+        </div>
+      </div>
+    </section>
 
-  <section>
-    <div class="wrap" style="text-align: center;">
-      <h2 style="color: var(--bright); margin-bottom: 16px;">See it for yourself</h2>
-      <a class="btn btn-primary" href="index.html#demo">Open the live demo</a>
-    </div>
-  </section>
+    <section id="vocabulary" aria-labelledby="vocabulary-h">
+      <h2 id="vocabulary-h">The marks</h2>
+      <p class="intro">Each mark is one to three characters, typed at the start of a line. On screen it becomes a glyph of exactly the same width, so nothing shifts while you type; in the file it stays what you typed.</p>
+      <div class="vocab">
+        <div class="vgroup">
+          <h3>Actions <button class="try" type="button" data-try="actions">Try it</button></h3>
+          <div class="vrow"><span class="type"><code># </code></span><pre class="see" data-note="render"># call the printer</pre><span class="what"><strong>Open action.</strong> Something still to do. Closing a note dated today or earlier asks first while one of these is open; a note dated in the future closes without asking.</span></div>
+          <div class="vrow"><span class="type"><code>v </code></span><pre class="see" data-note="render">v call the printer</pre><span class="what"><strong>Done.</strong></span></div>
+          <div class="vrow"><span class="type"><code>&gt; </code></span><pre class="see" data-note="render">&gt; call the printer</pre><span class="what"><strong>Deferred.</strong> Resolved for today, pushed forward to a later note. Drawn dimmed, like done and won't-do, so open work stands out.</span></div>
+          <div class="vrow"><span class="type"><code>x </code></span><pre class="see" data-note="render">x call the printer</pre><span class="what"><strong>Won't do.</strong> Resolved, but not done: this one just isn't happening.</span></div>
+        </div>
+        <div class="vgroup">
+          <h3>Follow-ups and people <button class="try" type="button" data-try="search">Try it</button></h3>
+          <div class="vrow"><span class="type"><code>=&gt; </code></span><pre class="see" data-note="render">=&gt; they agreed on May</pre><span class="what"><strong>Follow-up.</strong> A note or outcome leading from the line above.</span></div>
+          <div class="vrow"><span class="type"><code>=&gt; @name</code></span><pre class="see" data-note="render">=&gt; @Joan finds referees</pre><span class="what"><strong>Handed off.</strong> Someone else owns it; no action state of its own. <code>@name</code> stays real text you can edit, names may contain a hyphen, and any <code>@name</code> anywhere on a line gets the same badge (an email address is left alone).</span></div>
+          <div class="vrow"><span class="type"><code>(@a, @b)</code></span><pre class="see" data-note="render">o coffee rota (@Ruth, @Ben)</pre><span class="what"><strong>Several people.</strong> Each name gets its own badge, on any line, agenda topics included.</span></div>
+          <div class="vrow"><span class="type"><code>=&gt; # </code></span><pre class="see" data-note="render">=&gt; # send the minutes</pre><span class="what"><strong>Consequence action.</strong> A follow-up that is itself an action, closed by clicking its glyph like any other. Also <code>=&gt; v</code>, <code>=&gt; &gt;</code> and <code>=&gt; x</code>.</span></div>
+        </div>
+        <div class="vgroup">
+          <h3>Organising <button class="try" type="button" data-try="due">Try it</button></h3>
+          <div class="vrow"><span class="type"><code># (topic)</code></span><pre class="see" data-note="render"># (market) stall rota</pre><span class="what"><strong>Topic.</strong> Groups actions in the action drawer and in search (<code>tag:market</code>). Recognised right after an action mark; the brackets show only while the caret is next to them.</span></div>
+          <div class="vrow"><span class="type"><code>by:fri</code></span><pre class="see" data-note="render"># order the kit by:{today+2}</pre><span class="what"><strong>Due date.</strong> Type <code>by:</code> and a day (<code>fri</code>, <code>tomorrow</code>, <code>+3</code>, <code>wk44</code>, <code>10-30</code>) at the end of an action; when you leave the line it becomes the full date. Amber on the day, red once it has passed.</span></div>
+          <div class="vrow"><span class="type"><code>! </code></span><pre class="see" data-note="render">! The pitch is ours until 16:00</pre><span class="what"><strong>Emphasis.</strong> The line is drawn bold. Informational, but searchable like any other line.</span></div>
+        </div>
+        <div class="vgroup">
+          <h3>Meeting topics <button class="try" type="button" data-try="history">Try it</button></h3>
+          <div class="vrow"><span class="type"><code>o </code></span><pre class="see" data-note="render">o spring tournament</pre><span class="what"><strong>To discuss.</strong> An agenda item, not a task: never counted as an action, never in the open-action jump.</span></div>
+          <div class="vrow"><span class="type"><code>. </code></span><pre class="see" data-note="render">. spring tournament</pre><span class="what"><strong>Discussed.</strong> Dimmed like a closed action.</span></div>
+          <div class="vrow"><span class="type"><code>, </code></span><pre class="see" data-note="render">, spring tournament</pre><span class="what"><strong>Not discussed.</strong> Skipped this time, carried to the next meeting. Forwarding a note turns an open <code>o</code> topic into this.</span></div>
+        </div>
+        <div class="vgroup">
+          <h3>Structure <button class="try" type="button" data-try="today">Try it</button></h3>
+          <div class="vrow"><span class="type"><code>Title</code>
+<code>=====</code></span><pre class="see" data-note="render">
+Committee
+=========</pre><span class="what"><strong>Section.</strong> A line underlined with <code>=</code>. Section history matches recurring sections by this title, and calendar sync matches meetings against it.</span></div>
+          <div class="vrow"><span class="type"><code>- </code> <code>* </code></span><pre class="see" data-note="render">- bring the keys</pre><span class="what"><strong>Bullet.</strong> Purely structure, not an action. Indent two spaces to nest.</span></div>
+          <div class="vrow"><span class="type"><code>1. </code> <code>2) </code> <code>1.1. </code></span><pre class="see" data-note="render">1. welcome and agenda</pre><span class="what"><strong>Numbered item.</strong> Plain text. <kbd>Enter</kbd> continues the numbering, an empty item ends the list, <kbd>Tab</kbd> nests it. It must be the first thing on the line: <code>3.5 hours</code> is just text.</span></div>
+          <div class="vrow"><span class="type"><code>(&gt;date#Section)</code></span><pre class="see" data-note="render">&gt; call Sam (&gt;{today+7}#Committee)</pre><span class="what"><strong>Link.</strong> Added when you forward an action; <kbd>Ctrl</kbd>+click to follow it. Any date in brackets works, so you can type one yourself.</span></div>
+        </div>
+      </div>
+      <p class="intro" style="margin-top: 24px">Click a glyph to close an open action, or to reopen one that is done, deferred or won't-do. On a line with several actions (<code># call Sam =&gt; # book a room</code>) a click changes exactly the glyph you clicked. From the keyboard, the action nearest to the left of the caret changes; on a line without one, <kbd>Ctrl+1</kbd> to <kbd>Ctrl+4</kbd> turn the whole line into that action.</p>
+    </section>
 
-  <footer>
-    <div class="wrap">
-      <span>ChronoNote — MIT licensed.</span>
-      <span>
-        <a href="index.html">Home</a> ·
-        <a href="https://github.com/marien/ChronoNote" target="_blank" rel="noopener">GitHub</a> ·
-        <a href="https://github.com/marien/ChronoNote/releases" target="_blank" rel="noopener">Releases</a> ·
-        <a href="how-it-was-built.html">How it was built</a> ·
-        <a href="privacy.html">Privacy</a>
-      </span>
-    </div>
-  </footer>
+    <section id="workflows" aria-labelledby="workflows-h">
+      <h2 id="workflows-h">Workflows</h2>
+      <p class="intro">How the marks add up, roughly in the order you meet them in a week.</p>
+      <div class="flow">
 
+        <article class="step" id="w-capture">
+          <div class="copy">
+            <h3>Write it down</h3>
+            <p>ChronoNote opens on today's note the first time you start it each day. (Settings → Notes &amp; Sync → Startup can bring back the tabs you had open instead; on the first start of a day today's note still opens when it has notes or meetings.) Give a meeting a title, underline it, and log what happens.</p>
+            <p>Nothing to fill in: a mark at the start of a line is all it takes, and you change it later by typing over it.</p>
+            <div class="meta"><button class="try" type="button" data-try="today">Write in today's demo note</button></div>
+          </div>
+          <div class="win"><div class="win-bar"><span class="win-tab on" data-today="{today}">Today</span></div><pre class="note" data-note="render">
+Team sync
+=========
+- shipped the new sign-up form
+# (launch) check the analytics
+=&gt; @Priya owns the release notes</pre></div>
+        </article>
+
+        <article class="step" id="w-close">
+          <div class="copy">
+            <h3>Close, defer or hand off</h3>
+            <p>Click a glyph to close an open action, or to reopen a closed one. <kbd>Ctrl+Space</kbd> closes the one at the caret, and <kbd>Ctrl+1</kbd> to <kbd>Ctrl+4</kbd> set open, done, deferred or won't-do directly. Hand something off with <code>=&gt; @name</code>: it stays a name you can edit, not a locked-in reference.</p>
+            <p>The action drawer (<kbd>Ctrl+Shift+A</kbd>) lists the open actions of the open tabs or of every note, by date, topic, person or due date. On a wide window it opens beside the note so you keep typing; drag its edge to resize it.</p>
+            <div class="meta"><button class="try" type="button" data-try="actions">Open the action drawer</button></div>
+          </div>
+          <div class="win"><div class="split"><pre class="note" data-note="render">
+v reply to the backlog
+# check the analytics
+=&gt; @Joan finds referees</pre><div class="pane" data-pane>
+<div class="ttl">Open actions · 4</div>
+<span class="date">launch</span><span class="r">#&nbsp;check the analytics</span>
+<span class="date">tournament</span><span class="r">#&nbsp;order the new kit</span>
+<span class="date">market</span><span class="r">#&nbsp;print the posters</span>
+</div></div></div>
+        </article>
+
+        <article class="step" id="w-history">
+          <div class="copy">
+            <h3>Let recurring meetings remember themselves</h3>
+            <p>Reuse a section title (the committee again next month, "1:1 Priya" next week) and <kbd>Ctrl+Shift+H</kbd> shows every earlier occurrence, wherever your caret is in the current one. On a wide window it opens beside the note and follows you from section to section.</p>
+            <p>Select lines in an occurrence (<kbd>↑</kbd>/<kbd>↓</kbd>, <kbd>Shift</kbd> to extend, <kbd>Ctrl+A</kbd> for all) and choose <strong>Add to today</strong> or <strong>Add to next occurrence</strong>: the old lines are marked as forwarded, and whatever was deferred comes back open. <strong>As agenda</strong> reuses a whole past agenda with every topic open again.</p>
+            <div class="meta"><button class="try" type="button" data-try="history">Open section history</button></div>
+          </div>
+          <div class="win"><div class="split"><pre class="note" data-note="render">
+Church community committee
+==========================
+o Christmas market stalls
+</pre><div class="pane" data-pane>
+<div class="ttl">Church committee · 2 earlier</div>
+<span class="date">{today-28}</span><span class="r">.&nbsp;Christmas market: date fixed</span><span class="r sel">#&nbsp;(market) ask @Ruth for the stalls</span>
+<span class="date">{today-56}</span><span class="r">v&nbsp;new hymn books ordered</span>
+</div></div></div>
+        </article>
+
+        <article class="step" id="w-forward">
+          <div class="copy">
+            <h3>Follow an action from day to day</h3>
+            <p>Copy an open action and paste it into a later note, and the original is marked as forwarded. Both lines get a link: the old one to where it went, the new one to where it came from. Forward it again and the chain carries on.</p>
+            <p>A link shows as a quiet tag with an arrow; put the caret in it to see the text as typed. <kbd>Ctrl</kbd>+click opens that day at that section, and <kbd>Ctrl+Alt+←</kbd> takes you back. <kbd>Ctrl+G</kbd> jumps to any section of the open note.</p>
+            <div class="meta"><button class="try" type="button" data-try="today">Try it in the demo</button></div>
+          </div>
+          <div class="win pair">
+            <div><div class="lab">The earlier note</div><pre class="note" data-note="render">&gt; book the hall (&gt;{today}#Committee)</pre></div>
+            <div><div class="lab">Today's note</div><pre class="note" data-note="render"># book the hall (&lt;{today-28}#Committee)</pre></div>
+          </div>
+        </article>
+
+        <article class="step" id="w-due">
+          <div class="copy">
+            <h3>Give an action a date</h3>
+            <p>End an action with <code>by:</code> and a day: <code>by:fri</code>, <code>by:tomorrow</code>, <code>by:+3</code>, <code>by:wk44</code>. When you leave the line it becomes the full date, so the file stays unambiguous. Click the date to change it in a small calendar, or press <kbd>Ctrl+Shift+D</kbd>.</p>
+            <p>The status bar counts late actions in all your notes, and the action drawer's <strong>By due date</strong> view lists them soonest first.</p>
+            <div class="meta"><button class="try" type="button" data-try="due">See actions by due date</button></div>
+          </div>
+          <div class="win pair">
+            <div><div class="lab">While you type</div><pre class="note" data-note="render"># order the new kit by:fri</pre></div>
+            <div><div class="lab">After you leave the line</div><pre class="note" data-note="render"># order the new kit by:{friday}</pre></div>
+          </div>
+        </article>
+
+        <article class="step" id="w-find">
+          <div class="copy">
+            <h3>Find anything, across every day</h3>
+            <p><kbd>Ctrl+Shift+F</kbd> searches the open tabs or the whole notes folder. Results look like the lines in your notes, with the line before and after for context. Narrow it with <code>is:open</code>, <code>is:done</code>, <code>tag:tournament</code>, <code>has:@Joan</code>, <code>since:2026-09-01</code> or <code>before:2026-09-20</code>; each becomes a chip you can click away.</p>
+            <p>The action drawer's filter understands the same words, so <code>tag:market since:2026-10-01</code> lists this month's open market actions.</p>
+            <div class="meta"><button class="try" type="button" data-try="search">Search the demo notes</button></div>
+          </div>
+          <div class="win"><div class="searchbar"><span class="pill">has:@Joan</span><span class="pill">is:open</span></div><pre class="note" data-note="render">
+{today-3}
+=&gt; # (tournament) ask @Joan for referees</pre></div>
+        </article>
+
+        <article class="step" id="w-week">
+          <div class="copy">
+            <h3>Look back at the week</h3>
+            <p><kbd>Ctrl+Shift+K</kbd> shows one week, per day and per meeting: the actions still open, and how many are late. On a Monday it opens on last week, otherwise on this one; the arrow keys go a week back or forward. Turn on <strong>Show done</strong> to see what was finished as well.</p>
+            <p>Press <kbd>Enter</kbd> on a line to go there, or close or forward it right from the list. Open actions from earlier weeks are one click away at the top.</p>
+            <div class="meta"><button class="try" type="button" data-try="week">Open the week review</button></div>
+          </div>
+          <div class="win"><div class="win-bar"><span class="win-tab on">Week review</span></div><pre class="note" data-note="render">
+Team sync
+=========
+# check the analytics
+&gt; plan the retro
+
+Youth soccer committee
+======================
+# ask @Joan for referees</pre></div>
+        </article>
+
+        <article class="step" id="w-lists">
+          <div class="copy">
+            <h3>Lists and sub-actions</h3>
+            <p>Start a line with <code>- </code> for a bullet or <code>1. </code> (or <code>2) </code>, or <code>1.1. </code> for a sub-item) for a numbered list; <kbd>Enter</kbd> carries it on, an empty item ends it, <kbd>Tab</kbd> nests it. Numbers are plain text and only change when you press <kbd>Enter</kbd> in the middle of a list: the items after it shift down by one, up to the first blank line.</p>
+            <p>A list copied from Teams, Outlook, Word or a web page keeps its bullets, numbers and indentation when you paste it, and a list copied from ChronoNote arrives in those apps as a real list.</p>
+            <p>Indent actions under an action with <kbd>Tab</kbd> to make sub-actions: a thin line joins them, and the action drawer lists them under their action with a count such as <code>1/3</code>. Steps in order can share one line: <code># onboard Lee =&gt; # laptop =&gt; # accounts</code>. Closing an action never closes its sub-actions, or the other way round.</p>
+            <div class="meta"><button class="try" type="button" data-try="today">Try it in today's note</button></div>
+          </div>
+          <div class="win"><pre class="note" data-note="render">
+# spring tournament
+  v book the pitches
+  # (tournament) match schedule
+  # ask @Joan for referees</pre></div>
+        </article>
+
+        <article class="step" id="w-scratch">
+          <div class="copy">
+            <h3>Jot something that isn't dated yet</h3>
+            <p><kbd>Ctrl+N</kbd> opens a scratchpad. It is kept in memory only, never written to disk until you promote it into a dated note, and closing one with text in it asks first: nothing disappears by accident.</p>
+            <div class="meta"><button class="try" type="button" data-try="palette">Find Scratchpad in the palette</button></div>
+          </div>
+        </article>
+
+        <article class="step" id="w-comfort">
+          <div class="copy">
+            <h3>Write your way</h3>
+            <p><kbd>Shift+F11</kbd> hides the bars for Zen mode (<kbd>Esc</kbd> brings them back). In Settings, set the editor's font size (or <kbd>Ctrl</kbd>+scroll in the note) and line spacing, choose colour or quiet grey glyphs, and switch on pure black in dark mode for OLED screens.</p>
+            <p>The date picker (<kbd>Ctrl+O</kbd>) shows at a glance which days have a note (bold), which have open actions (an amber ring) and, with calendar sync on, which only have meetings so far (a dashed ring), with ISO week numbers down the side; type <code>wk 42</code> to jump to that week.</p>
+            <p>Spell check is off until you switch it on (Settings → Appearance). The desktop app uses the Windows spell checker: pick its languages, and right-click a marked word for suggestions, <strong>Add to dictionary</strong> or <strong>Ignore</strong>. In the web app your browser does the checking (<kbd>Shift</kbd>+right-click for its suggestions).</p>
+            <div class="meta"><button class="try" type="button" data-try="zen">Try Zen mode</button><button class="try" type="button" data-try="date">Open the date picker</button></div>
+          </div>
+        </article>
+
+        <article class="step" id="w-calendar">
+          <div class="copy">
+            <h3>Let your calendar fill in the day</h3>
+            <p>Turn on <strong>Sync calendar for this day</strong> in Settings (off by default), and <kbd>Ctrl+Shift+C</kbd> reads a <code>.agenda.json</code> file kept up to date by whatever already syncs your calendar. It matches meeting titles against the day's sections and shows a review before writing anything: new meetings are a checklist, and a section no longer on the agenda is flagged for you to leave, discard or move, never dropped silently.</p>
+            <p>A meeting the calendar marks as cancelled, declined or forwarded (a title starting with <code>Canceled:</code>, <code>Declined:</code>, <code>Followed:</code> and so on) counts as removed; <code>Placeholder:</code> or <code>Confirmed -</code> in front of a title is dropped. A small dot on the sync button shows when the open note differs from the calendar, and an empty note for today or later fills in its meetings straight away. A section starting with <code>'</code>, like <code>'Quick call with Dave</code>, is never matched or flagged.</p>
+            <p>Something has to write that file: the <a href="https://github.com/marien/ChronoNote/blob/main/docs/agenda-file-guide.md" target="_blank" rel="noopener">.agenda.json reference</a> describes it.</p>
+            <div class="meta"><span class="where">Windows app</span></div>
+          </div>
+          <div class="win"><div class="win-bar"><span class="win-tab on" data-today="{today}">Today</span></div><pre class="note" data-note="render">
+Team sync
+=========
+
+Budget review
+=============
+
+'Quick call with Dave
+=====================</pre></div>
+        </article>
+
+        <article class="step" id="w-peek">
+          <div class="copy">
+            <h3>Take notes during a call</h3>
+            <p><kbd>Ctrl+Shift+P</kbd> turns ChronoNote into <strong>Peek</strong>: a small, see-through, always-on-top window that shows only the section your caret was in, so you keep looking at the people you are talking to. It is the same editor and stays inside its section; press the shortcut again (or <kbd>Esc</kbd>) to get the full window back as it was.</p>
+            <p><kbd>Ctrl+Alt+J</kbd> works from any app, even while a call window has the focus, and opens Peek on the meeting that is on now according to your <code>.agenda.json</code>, or on a new <code>'Call 14:05</code> section placed in time order. Inside Peek, <kbd>Alt+←</kbd> / <kbd>Alt+→</kbd> step through earlier and later occurrences of the section.</p>
+            <p>Peek is more solid while you type or point at it and fades a few seconds later; the opacities, fade time, header strip and shortcuts are in Settings. The dock button moves Peek into a solid strip along the bottom of the screen it is on; maximised windows, such as a Teams call, use the space above it. Drag its top edge to change the height.</p>
+            <div class="meta"><span class="where">Windows app</span></div>
+          </div>
+          <div class="win narrow"><div class="win-bar"><span class="win-tab on">Peek · Budget review</span><span class="spacer">‹ 2/5 ›</span></div><pre class="note" data-note="render">
+o numbers for Q1
+# send @Sam the sheet
+=&gt; they agreed on May</pre></div>
+        </article>
+
+      </div>
+    </section>
+
+    <section id="shortcuts" aria-labelledby="shortcuts-h">
+      <h2 id="shortcuts-h">Shortcuts</h2>
+      <p class="intro">Nearly everything has one; the mouse is optional. On a Mac, Ctrl is Cmd. In the app, <kbd>Ctrl+/</kbd> shows this list.</p>
+      <div class="sc-tools">
+        <label for="scFilter" class="kicker">Filter</label>
+        <input id="scFilter" type="search" placeholder="Try &quot;action&quot;, &quot;peek&quot; or &quot;Shift+H&quot;" autocomplete="off" />
+        <span class="count" id="scCount" aria-live="polite"></span>
+      </div>
+      <div class="sc-groups">
+        <div class="sc-group">
+          <h3>Everyday</h3>
+          <div class="shortcut-row"><span>Command palette: run any command, jump to a tab, date or action</span><span><kbd>Ctrl+K</kbd></span></div>
+          <div class="shortcut-row"><span>Open or create a dated note</span><span><kbd>Ctrl+O</kbd></span></div>
+          <div class="shortcut-row"><span>New scratchpad</span><span><kbd>Ctrl+N</kbd></span></div>
+          <div class="shortcut-row"><span>Close the tab</span><span><kbd>Ctrl+W</kbd></span></div>
+          <div class="shortcut-row"><span>Reopen the most recently closed tab</span><span><kbd>Ctrl+Shift+T</kbd></span></div>
+          <div class="shortcut-row"><span>Next / previous tab</span><span><kbd>Ctrl+Tab</kbd></span></div>
+          <div class="shortcut-row"><span>Undo / redo (kept per tab)</span><span><kbd>Ctrl+Z</kbd> / <kbd>Ctrl+Shift+Z</kbd></span></div>
+          <div class="shortcut-row"><span>Bigger / smaller text in the note (remembered)</span><span><kbd>Ctrl+scroll</kbd></span></div>
+          <div class="shortcut-row"><span>Tap Alt: a letter appears on each title bar command; press it to run that command (desktop)</span><span><kbd>Alt</kbd></span></div>
+          <div class="shortcut-row"><span>Settings</span><span><kbd>Ctrl+,</kbd></span></div>
+          <div class="shortcut-row"><span>About ChronoNote</span><span><kbd>Ctrl+Shift+,</kbd></span></div>
+          <div class="shortcut-row"><span>Shortcuts and marks, in the app</span><span><kbd>Ctrl+/</kbd></span></div>
+          <div class="shortcut-row"><span>Close whatever is open</span><span><kbd>Escape</kbd></span></div>
+        </div>
+        <div class="sc-group">
+          <h3>Actions and topics</h3>
+          <div class="shortcut-row"><span>Close the open action at the caret</span><span><kbd>Ctrl+Space</kbd></span></div>
+          <div class="shortcut-row"><span>Reopen the done action at the caret</span><span><kbd>Ctrl+Shift+Space</kbd></span></div>
+          <div class="shortcut-row"><span>Open the action at the caret, or in each selected line</span><span><kbd>Ctrl+Shift+O</kbd></span></div>
+          <div class="shortcut-row"><span>Set the action at the caret to open (a plain line becomes one)</span><span><kbd>Ctrl+1</kbd></span></div>
+          <div class="shortcut-row"><span>Set the action at the caret to done (a plain line becomes one)</span><span><kbd>Ctrl+2</kbd></span></div>
+          <div class="shortcut-row"><span>Set the action at the caret to deferred (a plain line becomes one)</span><span><kbd>Ctrl+3</kbd></span></div>
+          <div class="shortcut-row"><span>Set the action at the caret to won't do (a plain line becomes one)</span><span><kbd>Ctrl+4</kbd></span></div>
+          <div class="shortcut-row"><span>Topic: to discuss / discussed / not discussed</span><span><kbd>Ctrl+5</kbd> / <kbd>Ctrl+6</kbd> / <kbd>Ctrl+7</kbd></span></div>
+          <div class="shortcut-row"><span>Jump to the next / previous open action</span><span><kbd>Ctrl+J</kbd> / <kbd>Ctrl+Shift+J</kbd></span></div>
+          <div class="shortcut-row"><span>Set due date…</span><span><kbd>Ctrl+Shift+D</kbd></span></div>
+        </div>
+        <div class="sc-group">
+          <h3>Panes and views</h3>
+          <div class="shortcut-row"><span>Action drawer</span><span><kbd>Ctrl+Shift+A</kbd></span></div>
+          <div class="shortcut-row"><span>Section history</span><span><kbd>Ctrl+Shift+H</kbd></span></div>
+          <div class="shortcut-row"><span>Week review</span><span><kbd>Ctrl+Shift+K</kbd></span></div>
+          <div class="shortcut-row"><span>Search the open tabs or all notes</span><span><kbd>Ctrl+Shift+F</kbd></span></div>
+          <div class="shortcut-row"><span>With history or actions open beside the note: switch between the note and the pane</span><span><kbd>F6</kbd></span></div>
+          <div class="shortcut-row"><span>Zen mode: hide the bars and just write (plain F11 too in the desktop app)</span><span><kbd>Shift+F11</kbd></span></div>
+        </div>
+        <div class="sc-group">
+          <h3>Editing and moving around</h3>
+          <div class="shortcut-row"><span>Indent / outdent a line or selection (two spaces)</span><span><kbd>Tab</kbd> / <kbd>Shift+Tab</kbd></span></div>
+          <div class="shortcut-row"><span>Make this line a section header</span><span><kbd>Ctrl+Shift+S</kbd></span></div>
+          <div class="shortcut-row"><span>Copy this section to its next occurrence</span><span><kbd>Ctrl+Shift+.</kbd></span></div>
+          <div class="shortcut-row"><span>Find in this note</span><span><kbd>Ctrl+F</kbd></span></div>
+          <div class="shortcut-row"><span>Replace in this note</span><span><kbd>Ctrl+H</kbd></span></div>
+          <div class="shortcut-row"><span>Go to a section of this note</span><span><kbd>Ctrl+G</kbd></span></div>
+          <div class="shortcut-row"><span>Caret to the start of the line, then the line above / below</span><span><kbd>Ctrl+↑</kbd> / <kbd>Ctrl+↓</kbd></span></div>
+          <div class="shortcut-row"><span>Back / forward after following a date link</span><span><kbd>Ctrl+Alt+←</kbd> / <kbd>Ctrl+Alt+→</kbd></span></div>
+          <div class="shortcut-row"><span>Previous / next occurrence of the section at the caret (also in Peek; not on a Mac)</span><span><kbd>Alt+←</kbd> / <kbd>Alt+→</kbd></span></div>
+          <div class="shortcut-row"><span>Print this note</span><span><kbd>Ctrl+P</kbd></span></div>
+          <div class="shortcut-row"><span>Export notes</span><span><kbd>Ctrl+Shift+E</kbd></span></div>
+        </div>
+        <div class="sc-group">
+          <h3>Desktop app only</h3>
+          <div class="shortcut-row"><span>Peek: a compact window for the section at the caret</span><span><kbd>Ctrl+Shift+P</kbd></span></div>
+          <div class="shortcut-row"><span>Peek on the meeting that is on now, or a new call section (from any app)</span><span><kbd>Ctrl+Alt+J</kbd></span></div>
+          <div class="shortcut-row"><span>Sync the calendar for this day (opt-in)</span><span><kbd>Ctrl+Shift+C</kbd></span></div>
+        </div>
+      </div>
+      <p class="sc-empty" id="scEmpty" hidden>No shortcut matches. The command palette (<kbd>Ctrl+K</kbd>) finds commands by name too.</p>
+    </section>
+
+    <section id="recover" aria-labelledby="recover-h">
+      <h2 id="recover-h">Getting text back</h2>
+      <div class="prose">
+        <p>ChronoNote keeps <strong>earlier versions</strong> of each note: one every few minutes while you edit today, then one per day, for 30 days. Right-click a tab and choose <strong>Earlier versions…</strong> to compare any of them side by side with the current text and restore it. The current text is kept as a version first.</p>
+        <p>A note you delete with text in it goes to <strong>Recently deleted</strong> (in Settings) for 30 days, where you can restore it. In the desktop app both are hidden folders inside your notes folder, so they travel with it; the web app keeps them in the browser's storage. <a href="files.html">Where everything is kept</a>.</p>
+      </div>
+    </section>
+
+    <section id="export" aria-labelledby="export-h">
+      <h2 id="export-h">Export and print</h2>
+      <div class="prose">
+        <p>Export a note or a date range as Markdown or standalone HTML from the More menu, the tab's menu or the command palette. Actions become <code>- [ ]</code> checkboxes, section titles become <code>##</code> headings, and deferred or won't-do tasks keep their marks. Copy a selection as Markdown from the editor's context menu, or print the note (<kbd>Ctrl+P</kbd>) with the glyphs styled for paper.</p>
+        <div class="meta" style="margin-top: 12px"><button class="try" type="button" data-try="palette">Find Export in the palette</button></div>
+      </div>
+    </section>
+
+    <section id="import" aria-labelledby="import-h">
+      <h2 id="import-h">Bringing notes in</h2>
+      <div class="prose">
+        <p>Settings → Notes &amp; Sync → Data → <strong>Import notes from a file…</strong> brings notes in once they are in ChronoNote's format: one <code>.txt</code> file per day, with marks like <code>#</code> and <code>=&gt;</code>. The <a href="https://github.com/marien/ChronoNote/blob/main/docs/migration-guide.md" target="_blank" rel="noopener">migration guide</a> on GitHub describes the format precisely enough to hand to a conversion script or an AI assistant.</p>
+        <p>In the web app you can also drag a backup or a day's <code>.txt</code> file onto the window. A note for a date that already exists is never overwritten: when the text differs, you see both versions and choose to keep yours, use the dropped file, or keep both.</p>
+      </div>
+    </section>
+
+    <section id="mobile" aria-labelledby="mobile-h">
+      <h2 id="mobile-h">On your phone</h2>
+      <div class="prose">
+        <p>The web app is the same editor with the same plain-text notes. A bar above the keyboard holds the marks and actions; the bar at the top shows the day and its open actions, with arrows to the previous and next note; the bar at the bottom takes you to the note, Actions, History and Search. Long-press a glyph for that line's menu. On the phone the week review opens from the date picker's week numbers.</p>
+        <h3>Installing it</h3>
+        <p>Open <a href="https://app.chrononote.mariendegelder.nl/" target="_blank" rel="noopener">app.chrononote.mariendegelder.nl</a> in your phone's browser. In Chrome on Android: menu (⋮) → <strong>Add to Home screen</strong>. In Safari on iOS: the Share button → <strong>Add to Home Screen</strong>. From then on the icon opens it full screen, and updates arrive the next time you open it.</p>
+        <h3>Connecting OneDrive</h3>
+        <ol>
+          <li>Open Settings → <strong>Notes &amp; Sync</strong>, and under OneDrive tap <strong>Connect Microsoft Account</strong>. Sign in on the page that opens; you come back to ChronoNote.</li>
+          <li>Pick the OneDrive folder that holds your notes, the one your PC's OneDrive syncs. The folder picker opens by itself; <strong>Choose folder…</strong> reopens it.</li>
+          <li>That's it. A spinner in the status bar shows a sync running, and <strong>Sync now</strong> in Settings starts one.</li>
+        </ol>
+        <p>ChronoNote syncs when you open the app, when you come back to it, and after you save a note. If the OneDrive sign-in expires, it says so and offers <strong>Sign in again</strong>; your unsynced edits are kept.</p>
+        <h3>When a note changed in two places</h3>
+        <p>Changes from both sides are merged line by line. Only when both sides changed the same lines does ChronoNote hold the note back, and the status bar shows <strong>⚠ 1 sync conflict</strong>. Tap it to see both versions and choose <strong>Keep this device's</strong>, <strong>Use OneDrive's</strong> or <strong>Keep both</strong> (the OneDrive text goes under a marker line at the end). Nothing is overwritten until you choose.</p>
+        <h3>Deleting notes</h3>
+        <p>As on the desktop, closing a daily note you have emptied deletes it, and that deletion syncs. A note deleted in OneDrive disappears from your phone on the next sync.</p>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<footer>
+  <div class="wrap">
+    <span>ChronoNote · MIT licensed · made by Marien de Gelder</span>
+    <nav aria-label="Footer">
+      <a href="./">Home</a>
+      <a href="files.html">Your files</a>
+      <a href="troubleshooting.html">Troubleshooting</a>
+      <a href="how-it-was-built.html">How it was built</a>
+      <a href="privacy.html">Privacy</a>
+      <a href="https://github.com/marien/ChronoNote/releases" target="_blank" rel="noopener">Releases</a>
+      <a href="https://github.com/marien/ChronoNote" target="_blank" rel="noopener">GitHub</a>
+    </nav>
+  </div>
+</footer>
+
+<div class="scrim" id="scrim" hidden></div>
+<aside class="drawer" id="drawer" aria-label="Live demo" aria-hidden="true">
+  <header><strong>Live demo</strong><span class="what" id="drawerWhat"></span><span class="spacer"></span><a href="demo.html" id="drawerFull">Full screen ↗</a><button type="button" id="drawerClose">Close</button></header>
+  <iframe id="demoFrame" title="ChronoNote live demo"></iframe>
+</aside>
 </body>
 </html>

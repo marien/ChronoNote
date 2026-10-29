@@ -1,0 +1,47 @@
+<!doctype html>
+<!-- The website's social image (1200x630): rendered to website/assets/og-image.png by scripts/build-og-image.mjs. §440 -->
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8" />
+<link rel="stylesheet" href="../website/style.css" />
+<style>
+  html, body { width: 1200px; height: 630px; overflow: hidden; }
+  body::before { display: none; }
+  .card { width: 1200px; height: 630px; display: grid; grid-template-columns: 520px 1fr; gap: 48px; align-items: center; padding: 0 64px; background: var(--paper); }
+  .brand { font-size: 30px; gap: 12px; margin-bottom: 40px; }
+  .brand img { width: 40px; height: 40px; }
+  h1 { font-size: 76px; line-height: 0.98; font-weight: 800; letter-spacing: -0.03em; }
+  h1 .gl { color: var(--g-done); }
+  .kicker { font-size: 17px; margin-bottom: 18px; }
+  .card .sub { margin-top: 26px; font-size: 25px; color: var(--ink-2); line-height: 1.4; }
+  .win .note { font-size: 19px; padding: 22px 26px 26px; }
+  .win-bar { height: 44px; font-size: 15px; }
+</style>
+</head>
+<body>
+  <div class="card">
+    <div>
+      <div class="brand"><img src="../website/assets/logo.svg" alt="" />ChronoNote</div>
+      <span class="kicker">Write the way you think.</span>
+      <h1>Plain text you can <span class="gl">act on</span>.</h1>
+      <p class="sub">Notes for meetings and actions, at work and beyond. Free for Windows and any browser.</p>
+    </div>
+    <div class="win">
+      <div class="win-bar"><span class="win-tab on">Today</span></div>
+      <pre class="note" data-note="render">
+Team sync
+=========
+# (launch) check the analytics
+=&gt; @Priya owns the release notes
+v reply to the support backlog
+
+Youth soccer committee
+======================
+o spring tournament
+=&gt; # ask @Joan for referees
+! The pitch is ours until 16:00</pre>
+    </div>
+  </div>
+  <script src="../website/site.js"></script>
+</body>
+</html>

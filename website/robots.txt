@@ -1,0 +1,6 @@
+User-agent: *
+# The bare demo bundle duplicates demo.html; the web app lives on its own subdomain.
+Disallow: /demo-app/
+Disallow: /webapp/
+
+Sitemap: https://chrononote.mariendegelder.nl/sitemap.xml

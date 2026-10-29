@@ -1,270 +1,549 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>ChronoNote — plain-text notes that think in tasks</title>
-  <meta name="description" content="ChronoNote is a minimalist, keyboard-driven desktop app and web app for daily notes, meeting logs, and action items — pure plain text, no database, ever." />
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>ChronoNote: plain-text notes and actions for meetings, at work and beyond</title>
+  <meta name="description" content="ChronoNote is a free, keyboard-driven notes app for meetings and the actions that come out of them. Type freely; small marks become checkboxes, owners and due dates, and every note stays plain text. For Windows and any browser." />
+  <link rel="canonical" href="https://chrononote.mariendegelder.nl/" />
+  <meta name="theme-color" content="#f4f5f7" media="(prefers-color-scheme: light)" />
+  <meta name="theme-color" content="#111317" media="(prefers-color-scheme: dark)" />
+  <script>try { var t = localStorage.getItem("chrononote-theme"); if (t === "light" || t === "dark") document.documentElement.setAttribute("data-theme", t); } catch (e) {}</script>
+  <link rel="preload" href="assets/fonts/atkinson-hyperlegible-next.woff2" as="font" type="font/woff2" crossorigin />
+  <link rel="preload" href="assets/fonts/bricolage-grotesque.woff2" as="font" type="font/woff2" crossorigin />
   <link rel="icon" href="assets/favicon.ico?v=0.32.7" sizes="any" />
   <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png?v=0.32.7" />
   <link rel="apple-touch-icon" href="assets/apple-touch-icon.png?v=0.32.7" />
   <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="ChronoNote" />
   <meta property="og:url" content="https://chrononote.mariendegelder.nl/" />
-  <meta property="og:title" content="ChronoNote — plain-text notes that think in tasks" />
-  <meta property="og:description" content="A minimalist, keyboard-driven desktop app and web app for daily notes, meeting logs, and action items — pure plain text, no database, ever." />
+  <meta property="og:title" content="ChronoNote: plain text you can act on" />
+  <meta property="og:description" content="A free, keyboard-driven notes app for meetings and the actions that come out of them, at work and beyond. Every note stays plain text." />
   <meta property="og:image" content="https://chrononote.mariendegelder.nl/assets/og-image.png" />
-  <meta name="twitter:card" content="summary" />
-  <meta name="twitter:title" content="ChronoNote — plain-text notes that think in tasks" />
-  <meta name="twitter:description" content="A minimalist, keyboard-driven desktop app and web app for daily notes, meeting logs, and action items — pure plain text, no database, ever." />
-  <meta name="twitter:image" content="https://chrononote.mariendegelder.nl/assets/og-image.png" />
-  <link rel="stylesheet" href="style.css?v=436" />
-  <script src="shortcuts.js" defer></script>
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta property="og:image:alt" content="ChronoNote: plain text you can act on, with a note shown as typed and as drawn by the app" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <link rel="stylesheet" href="style.css?v=440" />
+  <script src="site.js?v=440" defer></script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "ChronoNote",
+    "description": "A keyboard-driven notes app for meetings and the actions that come out of them. Every note is a plain .txt file; small marks become checkboxes, owners and due dates.",
+    "url": "https://chrononote.mariendegelder.nl/",
+    "image": "https://chrononote.mariendegelder.nl/assets/og-image.png",
+    "applicationCategory": "ProductivityApplication",
+    "operatingSystem": "Windows 10, Windows 11, Web browser",
+    "softwareVersion": "0.34.0",
+    "downloadUrl": "https://github.com/marien/ChronoNote/releases/download/v0.34.0/ChronoNote_0.34.0_x64-setup.exe",
+    "license": "https://opensource.org/licenses/MIT",
+    "isAccessibleForFree": true,
+    "offers": { "@type": "Offer", "price": "0", "priceCurrency": "EUR" },
+    "author": { "@type": "Person", "name": "Marien de Gelder" },
+    "sameAs": ["https://github.com/marien/ChronoNote"]
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      { "@type": "Question", "name": "Is ChronoNote really free?", "acceptedAnswer": { "@type": "Answer", "text": "Yes. ChronoNote is MIT-licensed open source. There is no paid tier and no account." } },
+      { "@type": "Question", "name": "Is it only for work?", "acceptedAnswer": { "@type": "Answer", "text": "No. Anything with meetings, people and things to do fits: a soccer club committee, a church community, a renovation, your own week. Use one notes folder for all of it, and topics to keep things apart." } },
+      { "@type": "Question", "name": "Where are my notes stored?", "acceptedAnswer": { "@type": "Answer", "text": "In the desktop app, in a folder you choose, one .txt file per day. In the web app, in your browser's storage, or in a OneDrive folder you connect. The demo stores nothing." } },
+      { "@type": "Question", "name": "Does it work on a Mac or on my phone?", "acceptedAnswer": { "@type": "Answer", "text": "The desktop app is for Windows. On a Mac, Linux or a phone, use the web app; it can sync with the same OneDrive folder as your PC." } },
+      { "@type": "Question", "name": "Can I bring my existing notes?", "acceptedAnswer": { "@type": "Answer", "text": "Any text works. Drop a day's .txt file or a backup onto the window to import it; nothing is overwritten without asking." } }
+    ]
+  }
+  </script>
 </head>
 <body>
+<a class="skip" href="#main">Skip to content</a>
 
-  <header class="site-nav">
-    <div class="wrap">
-      <a class="brand" href="index.html">
-        <img src="assets/logo.svg" width="20" height="20" alt="" />
-        ChronoNote
-      </a>
-      <nav>
-        <a class="current" href="index.html">Home</a>
-        <a href="guide.html">Guide</a>
-        <a href="files.html">Your files</a>
-        <a href="troubleshooting.html">Troubleshooting</a>
-        <a href="#demo">Demo</a>
-        <a class="cta" href="https://github.com/marien/ChronoNote" target="_blank" rel="noopener">GitHub ↗</a>
-      </nav>
+<header class="nav" id="nav">
+  <div class="wrap">
+    <a class="brand" href="./" aria-label="ChronoNote home"><img src="assets/logo.svg" width="22" height="22" alt="" />ChronoNote</a>
+    <ul>
+      <li><a href="#week">How it works</a></li>
+      <li><a href="#demo">Demo</a></li>
+      <li><a href="#features">Features</a></li>
+      <li><a href="#get">Download</a></li>
+      <li><a href="guide.html">Guide</a></li>
+    </ul>
+    <button class="menu-btn" type="button" aria-expanded="false" aria-controls="nav">Menu</button>
+    <div class="theme"></div>
+    <a class="btn primary" href="#demo" data-try="today">Try it now</a>
+  </div>
+</header>
+
+<main id="main">
+
+<section class="hero">
+  <div class="wrap">
+    <div>
+      <span class="kicker">Write the way you think.</span>
+      <h1>Plain text you can <span class="gl">act on</span>.</h1>
+      <p class="lede">ChronoNote is a notes app for everything you keep track of: meetings at work, the soccer club committee,
+        the church community, your own plans. You just type. A few small marks turn lines into checkboxes, owners and due
+        dates you can click, filter and review, and the note stays plain text the whole time.</p>
+      <div class="cta">
+        <a class="btn primary" href="#demo" data-try="today">Try the demo</a>
+        <a class="btn" href="https://github.com/marien/ChronoNote/releases/download/v0.34.0/ChronoNote_0.34.0_x64-setup.exe" data-download>Download for Windows</a>
+        <a class="btn" href="https://app.chrononote.mariendegelder.nl/" target="_blank" rel="noopener">Open the web app ↗</a>
+      </div>
+      <ul class="facts">
+        <li>Free and open source</li>
+        <li>No account</li>
+        <li>Works offline</li>
+        <li>Windows and any browser</li>
+      </ul>
     </div>
-  </header>
 
-  <section class="hero">
-    <div class="wrap">
-      <h1>Plain-text notes that<br />think in tasks.</h1>
-      <p class="lede">
-        A keyboard-driven daily notes app for meetings, logs, and action items.
-        Every note is a plain <code>.txt</code> file you already own — no database,
-        no proprietary format, nothing to lock you in.
-      </p>
-      <div class="cta-row">
-        <a class="btn btn-primary" href="#demo">Try the live demo</a>
-        <a class="btn" href="guide.html">Read the guide</a>
+    <figure class="win">
+      <div class="win-bar" aria-hidden="true">
+        <span class="win-tab on" data-today="{today}">Today</span>
+        <span class="spacer">Ctrl+K</span>
+      </div>
+      <div class="wipe" id="wipe" role="slider" tabindex="0" aria-label="Compare what ChronoNote shows with the plain text it saves" aria-valuemin="0" aria-valuemax="100" aria-valuenow="62">
+        <pre class="note" data-note="raw" aria-hidden="true">
+Team sync
+=========
+- shipped the new sign-up form
+# (launch) check the analytics by:{today+1}
+=&gt; @Priya owns the release notes
+v reply to the support backlog
+
+Youth soccer committee
+======================
+o spring tournament
+. new kit sponsor
+=&gt; # (tournament) ask @Joan for referees
+! The pitch is ours until 16:00</pre>
+        <pre class="note layer-render" data-note="render">
+Team sync
+=========
+- shipped the new sign-up form
+# (launch) check the analytics by:{today+1}
+=&gt; @Priya owns the release notes
+v reply to the support backlog
+
+Youth soccer committee
+======================
+o spring tournament
+. new kit sponsor
+=&gt; # (tournament) ask @Joan for referees
+! The pitch is ours until 16:00</pre>
+        <div class="handle" aria-hidden="true"><span>⇆</span></div>
+      </div>
+      <figcaption class="wipe-labels"><span><b>What you see</b></span><span><b>What you typed</b></span></figcaption>
+    </figure>
+  </div>
+</section>
+
+<section class="play" aria-labelledby="play-h">
+  <div class="wrap">
+    <div>
+      <span class="kicker">The whole vocabulary fits on a sticky note</span>
+      <h2 id="play-h">Type a line, see what it becomes.</h2>
+      <p>Each mark is one to three characters at the start of a line. Nothing to set up, no menus to click through: keep typing at the speed you think.</p>
+    </div>
+    <div class="field">
+      <label for="line">Your line</label>
+      <input id="line" autocomplete="off" spellcheck="false" value="# (tournament) ask @Joan for referees by:fri" />
+      <div class="chips" id="chips" aria-label="Examples">
+        <button class="chip" type="button" data-ex="# call Sam about the room">#</button>
+        <button class="chip" type="button" data-ex="v booked the venue">v</button>
+        <button class="chip" type="button" data-ex="&gt; review the contract">&gt;</button>
+        <button class="chip" type="button" data-ex="x reprint the flyers">x</button>
+        <button class="chip" type="button" data-ex="=&gt; @Priya owns the release notes">=&gt;</button>
+        <button class="chip" type="button" data-ex="o budget for next season">o</button>
+        <button class="chip" type="button" data-ex="! The board meets Thursday">!</button>
+        <button class="chip" type="button" data-ex="# (market) stall rota by:tomorrow">by:</button>
+        <button class="chip" type="button" data-ex="1. welcome and agenda">1.</button>
+      </div>
+      <div class="out">
+        <div class="row"><span>You see</span><pre class="note" id="seeOut"> </pre></div>
+        <div class="row"><span>Saved as</span><pre class="note" id="fileOut"> </pre></div>
+      </div>
+      <p id="meaning" aria-live="polite"></p>
+    </div>
+  </div>
+</section>
+
+<section id="week" aria-labelledby="week-h">
+  <div class="wrap">
+    <div class="head">
+      <span class="kicker">How it works</span>
+      <h2 id="week-h">One week with ChronoNote</h2>
+      <p class="lede">The team meeting in the morning, the soccer club or the church committee in the evening. Same notes, same marks, one list of what is still open. Every step opens in the real app.</p>
+    </div>
+    <div class="days" role="tablist" id="days" aria-label="Days of the week">
+      <button role="tab" type="button" id="tab0" aria-controls="panel0" aria-selected="true"><span class="d">Monday</span><span class="t">Write it down</span></button>
+      <button role="tab" type="button" id="tab1" aria-controls="panel1" aria-selected="false" tabindex="-1"><span class="d">Tuesday</span><span class="t">Close and hand off</span></button>
+      <button role="tab" type="button" id="tab2" aria-controls="panel2" aria-selected="false" tabindex="-1"><span class="d">Wednesday</span><span class="t">Remember last time</span></button>
+      <button role="tab" type="button" id="tab3" aria-controls="panel3" aria-selected="false" tabindex="-1"><span class="d">Thursday</span><span class="t">Find anything</span></button>
+      <button role="tab" type="button" id="tab4" aria-controls="panel4" aria-selected="false" tabindex="-1"><span class="d">Friday</span><span class="t">Review the week</span></button>
+    </div>
+
+    <div class="daypanel" role="tabpanel" id="panel0" aria-labelledby="tab0">
+      <div class="copy">
+        <h3>Monday: type as it happens</h3>
+        <p>ChronoNote opens on today's note. Give a meeting a title, underline it with <code>===</code>, and type. A <code>#</code> makes a to-do, <code>=&gt; @name</code> hands it to someone. You never leave the keyboard or fill in a form.</p>
+        <div class="keys"><kbd>Enter</kbd> continues the list</div>
+        <button class="try" type="button" data-try="today">Write in today's note in the demo</button>
+      </div>
+      <div class="win"><div class="win-bar"><span class="win-tab on">Monday</span></div><pre class="note" data-note="render">
+Team sync
+=========
+- shipped the new sign-up form
+# (launch) check the analytics
+=&gt; @Priya owns the release notes</pre></div>
+    </div>
+
+    <div class="daypanel" role="tabpanel" id="panel1" aria-labelledby="tab1" hidden>
+      <div class="copy">
+        <h3>Tuesday: close, defer or hand off</h3>
+        <p>Click a glyph to close an action, or press <kbd>Ctrl+Space</kbd> at the caret. Open work from every day and every part of your life collects in the action drawer, grouped by topic, by person or by due date.</p>
+        <div class="keys"><kbd>Ctrl+Shift+A</kbd> action drawer</div>
+        <button class="try" type="button" data-try="actions">Open the action drawer in the demo</button>
+      </div>
+      <div class="win"><div class="split"><pre class="note" data-note="render">
+v reply to the support backlog
+# check the analytics
+&gt; plan the retro
+x reprint the flyers</pre><div class="pane" data-pane>
+<div class="ttl">Open actions · 4</div>
+<span class="date">launch</span><span class="r">#&nbsp;check the analytics</span>
+<span class="date">tournament</span><span class="r">#&nbsp;ask @Joan for referees</span><span class="r">#&nbsp;order the new kit</span>
+<span class="date">market</span><span class="r">#&nbsp;print the posters</span>
+</div></div></div>
+    </div>
+
+    <div class="daypanel" role="tabpanel" id="panel2" aria-labelledby="tab2" hidden>
+      <div class="copy">
+        <h3>Wednesday: the committee remembers itself</h3>
+        <p>Use the same section title each time and section history shows every earlier meeting beside the note. Carry a line forward to tonight, or reuse last month's agenda with every topic open again.</p>
+        <div class="keys"><kbd>Ctrl+Shift+H</kbd> section history</div>
+        <button class="try" type="button" data-try="history">Open section history in the demo</button>
+      </div>
+      <div class="win"><div class="split"><pre class="note" data-note="render">
+Church community committee
+==========================
+o Christmas market stalls
+o welcome coffee rota
+</pre><div class="pane" data-pane>
+<div class="ttl">Church committee · 2 earlier</div>
+<span class="date">{today-28}</span><span class="r">.&nbsp;Christmas market: date fixed</span><span class="r sel">#&nbsp;(market) ask @Ruth for the stalls</span>
+<span class="date">{today-56}</span><span class="r">v&nbsp;new hymn books ordered</span>
+</div></div></div>
+    </div>
+
+    <div class="daypanel" role="tabpanel" id="panel3" aria-labelledby="tab3" hidden>
+      <div class="copy">
+        <h3>Thursday: what is Joan still doing?</h3>
+        <p>Search every day at once. Filters like <code>is:open</code>, <code>has:@Joan</code>, <code>tag:tournament</code> and <code>since:</code> become chips, and results look exactly like the lines in your notes.</p>
+        <div class="keys"><kbd>Ctrl+Shift+F</kbd> search all notes</div>
+        <button class="try" type="button" data-try="search">Search the demo notes</button>
+      </div>
+      <div class="win"><div class="searchbar"><span class="pill">has:@Joan</span><span class="pill">is:open</span></div><pre class="note" data-note="render">
+{today-3}
+=&gt; # (tournament) ask @Joan for referees
+
+{today-12}
+=&gt; @Joan collects the kit sizes</pre></div>
+    </div>
+
+    <div class="daypanel" role="tabpanel" id="panel4" aria-labelledby="tab4" hidden>
+      <div class="copy">
+        <h3>Friday: the whole week in one list</h3>
+        <p>The week review lists every action from Monday to Sunday, from work and everything else: what is still open, what is late, and with one switch what got done. Close or forward straight from the list and start Monday clean.</p>
+        <div class="keys"><kbd>Ctrl+Shift+K</kbd> week review</div>
+        <button class="try" type="button" data-try="week">Open the week review in the demo</button>
+      </div>
+      <div class="win"><div class="win-bar"><span class="win-tab on">Week review</span></div><pre class="note" data-note="render">
+Team sync
+=========
+# check the analytics
+&gt; plan the retro
+
+Youth soccer committee
+======================
+# ask @Joan for referees
+
+Church community committee
+==========================
+# (market) print the posters</pre></div>
+    </div>
+  </div>
+</section>
+
+<section class="demo" id="demo" aria-labelledby="demo-h">
+  <div class="wrap">
+    <div class="head">
+      <span class="kicker">Live demo</span>
+      <h2 id="demo-h">This is the real app. Go ahead and type.</h2>
+      <p class="lede">The same build as the desktop and web app, running on example notes in your browser. Nothing is saved; reload to start over.</p>
+    </div>
+    <div class="demo-grid">
+      <div class="launcher" id="launcher">
+        <span class="lab">Show me</span>
+        <button type="button" data-try="today"><span>Today's note</span></button>
+        <button type="button" data-try="actions"><span>Open actions</span><kbd>Ctrl+Shift+A</kbd></button>
+        <button type="button" data-try="history"><span>Section history</span><kbd>Ctrl+Shift+H</kbd></button>
+        <button type="button" data-try="week"><span>Week review</span><kbd>Ctrl+Shift+K</kbd></button>
+        <button type="button" data-try="search"><span>Search</span><kbd>Ctrl+Shift+F</kbd></button>
+        <button type="button" data-try="due"><span>Due dates</span></button>
+        <button type="button" data-try="palette"><span>Command palette</span><kbd>Ctrl+K</kbd></button>
+        <button type="button" data-try="date"><span>Jump to a date</span><kbd>Ctrl+O</kbd></button>
+        <button type="button" data-try="zen"><span>Zen mode</span><kbd>Shift+F11</kbd></button>
+      </div>
+      <div>
+        <div class="frame">
+          <iframe id="demoFrame" title="ChronoNote live demo"></iframe>
+          <div class="poster" id="poster">
+            <img src="assets/logo.svg" width="44" height="44" alt="" />
+            <button class="btn primary" type="button" data-try="today">Start the demo</button>
+            <p>Loads about 2 MB. Or pick something under "Show me" to go straight to it.</p>
+          </div>
+        </div>
+        <div class="demo-foot">
+          <span>Liked it? <a href="https://app.chrononote.mariendegelder.nl/" target="_blank" rel="noopener">Keep your notes in the web app</a>, same editor, saved in your browser.</span>
+          <a href="demo.html">Open full screen ↗</a>
+        </div>
       </div>
     </div>
-  </section>
+  </div>
+</section>
 
-  <section id="demo">
-    <div class="wrap">
-      <div class="section-head">
-        <span class="eyebrow">See it in action</span>
-        <h2>This is the real app, running live</h2>
-        <p>Seeded with a few weeks of fake meeting notes — nothing you do here is saved anywhere.</p>
+<section id="plain" aria-labelledby="plain-h">
+  <div class="wrap pt">
+    <div>
+      <div class="head" style="margin-bottom: 28px">
+        <span class="kicker">Why text</span>
+        <h2 id="plain-h">Nothing between you and your notes.</h2>
+        <p class="lede">No forms, no fields, no drag handles. Every line is text you can type over, cut, paste and undo. The glyphs are drawn on top; underneath, the note is exactly what you typed.</p>
       </div>
-      <div class="app-frame">
-        <div class="frame-bar">
-          <span class="frame-dot"></span><span class="frame-dot"></span><span class="frame-dot"></span>
-          <span class="frame-label">ChronoNote — demo data</span>
-        </div>
-        <iframe
-          id="demo-iframe"
-          src="demo-app/"
-          title="ChronoNote live demo"
-          loading="lazy"
-        ></iframe>
-      </div>
-      <p class="demo-note">
-        Try: <kbd>Ctrl+O</kbd> to jump to a date, <kbd>Ctrl+Shift+A</kbd> for open actions,
-        <kbd>Ctrl+Shift+H</kbd> for section history, <kbd>Ctrl+K</kbd> for the command palette.
-        Full reference in the <a href="guide.html#shortcuts">guide</a> · <a href="demo.html">open full-screen ↗</a>
-      </p>
-      <div class="cta-row" style="margin-top: 28px;">
-        <a class="btn btn-primary" href="https://app.chrononote.mariendegelder.nl/" target="_blank" rel="noopener">
-          Start using it — free, in your browser ↗
-        </a>
-        <a class="btn" href="https://github.com/marien/ChronoNote/releases" target="_blank" rel="noopener">
-          Or install the desktop app ↗
-        </a>
-      </div>
-      <p class="demo-note">
-        Liked the demo? The web app is the same editor with your notes actually saved — in this browser, no account,
-        no install. Export a backup any time, or move to the desktop app for notes that live on your disk.
-      </p>
+      <figure class="win">
+        <div class="win-bar"><span class="win-tab on"><span data-today="{today}.txt">today.txt</span>&nbsp;· Notepad</span></div>
+        <pre class="note" data-note="raw">
+Team sync
+=========
+- shipped the new sign-up form
+# (launch) check the analytics by:{today+1}
+=&gt; @Priya owns the release notes
+v reply to the support backlog
+
+Youth soccer committee
+======================
+o spring tournament
+=&gt; # (tournament) ask @Joan for referees</pre>
+        <figcaption class="visually-hidden">The same note opened in Notepad: plain text.</figcaption>
+      </figure>
     </div>
-  </section>
+    <ul class="claims">
+      <li><h3>Edit without friction</h3><p>Change a to-do into done by typing <code>v</code> over the <code>#</code>, or click the glyph. Move a line, merge two, paste a list from an email: it is all just text.</p></li>
+      <li><h3>Readable anywhere</h3><p>Each day is a <code>.txt</code> file. Notepad, VS Code, your phone's file viewer or a search tool all read it, and the marks were chosen so <code># call Sam</code> still looks like a to-do.</p></li>
+      <li><h3>Yours, without an account</h3><p>The desktop app keeps notes in a folder on your disk. The web app keeps them in your browser, or in your own OneDrive folder if you connect one. No tracking. <a href="files.html">Where everything is kept</a>.</p></li>
+      <li><h3>Nothing slips through</h3><p>Open actions follow you: a note with open work asks before it closes, the status bar counts what is late, and the week review shows what is still waiting.</p></li>
+    </ul>
+  </div>
+</section>
 
-  <section class="alt">
-    <div class="wrap">
-      <div class="section-head">
-        <span class="eyebrow">Why ChronoNote</span>
-        <h2>Built for the way meetings and days actually work</h2>
-        <p>A small, deliberate set of tokens replace themselves with glyphs as you type — the file on disk stays plain text the whole time.</p>
+<section id="features" aria-labelledby="feat-h" style="padding-top: 0">
+  <div class="wrap">
+    <div class="head">
+      <span class="kicker">Everything else</span>
+      <h2 id="feat-h">Small app, deep where it counts</h2>
+    </div>
+    <div class="index">
+      <div><h3>Action drawer</h3><span class="where">All</span><p>Every open action in one list, by date, topic, person or due date, with the same filters as search.</p><button class="try" type="button" data-try="actions">Try it</button></div>
+      <div><h3>Section history</h3><span class="where">All</span><p>Recurring meetings collect their past notes; carry lines forward or reuse an agenda.</p><button class="try" type="button" data-try="history">Try it</button></div>
+      <div><h3>Week review</h3><span class="where">All</span><p>Monday to Sunday's actions in one list, to close the week properly.</p><button class="try" type="button" data-try="week">Try it</button></div>
+      <div><h3>Search with filters</h3><span class="where">All</span><p><code>is:open</code>, <code>has:@name</code>, <code>tag:</code>, <code>since:</code> across every day.</p><button class="try" type="button" data-try="search">Try it</button></div>
+      <div><h3>Due dates</h3><span class="where">All</span><p><code>by:fri</code> becomes a date, turns amber on the day and red when late.</p><button class="try" type="button" data-try="due">Try it</button></div>
+      <div><h3>Command palette</h3><span class="where">All</span><p><kbd>Ctrl+K</kbd> for every command, with its shortcut beside it.</p><button class="try" type="button" data-try="palette">Try it</button></div>
+      <div><h3>Jump to any day</h3><span class="where">All</span><p>A date picker that shows which days have open work, with week numbers.</p><button class="try" type="button" data-try="date">Try it</button></div>
+      <div><h3>Zen mode</h3><span class="where">All</span><p>Hide every bar and just write.</p><button class="try" type="button" data-try="zen">Try it</button></div>
+      <div><h3>Peek</h3><span class="where">Windows</span><p>A slim always-on-top strip, docked to the screen edge, for notes during calls.</p></div>
+      <div><h3>Calendar sync</h3><span class="where">Windows</span><p>Today's meetings become sections; anything cancelled is reviewed, never dropped.</p></div>
+      <div><h3>Lists that paste well</h3><span class="where">All</span><p>Bullets and numbering survive paste from Teams, Word and browsers, and copy back out.</p><button class="try" type="button" data-try="today">Try it</button></div>
+      <div><h3>Seven languages</h3><span class="where">All</span><p>English, Dutch, German, French, Spanish, Italian and Portuguese.</p></div>
+    </div>
+    <p style="margin-top: 24px"><a href="guide.html">Everything in detail in the guide →</a></p>
+  </div>
+</section>
+
+<section id="get" aria-labelledby="get-h" style="padding-top: 0">
+  <div class="wrap">
+    <div class="head">
+      <span class="kicker">Get ChronoNote</span>
+      <h2 id="get-h">Three ways in, the same notes</h2>
+      <p class="lede">Start in the browser, move to the desktop later. The notes are the same plain text either way.</p>
+    </div>
+    <div class="get">
+      <div>
+        <h3>Demo</h3>
+        <p>Try every feature on example notes. Nothing is kept.</p>
+        <dl><dt>Notes</dt><dd>Example data, reset on reload</dd><dt>Needs</dt><dd>Any modern browser</dd></dl>
+        <a class="btn" href="#demo" data-try="today">Open the demo</a>
       </div>
-      <div class="feature-grid">
-        <div class="feature-card">
-          <span class="icon">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="4" width="6" height="6" rx="1.4"/><path d="M5 7l1.4 1.4L9 5.6"/><path d="M13 7h7"/><rect x="3.5" y="14" width="6" height="6" rx="1.4"/><path d="M13 17h7"/></svg>
-          </span>
-          <h3>Actions that carry forward</h3>
-          <p>Type <code>#&nbsp;</code> and it becomes a checkbox. Tabs can't be closed silently while one's still open — a task never quietly disappears at the end of the day.</p>
-        </div>
-        <div class="feature-card">
-          <span class="icon">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="4" width="12" height="12" rx="2"/><rect x="4" y="8" width="12" height="12" rx="2"/><path d="M12 12l-2 2 2 2M9 14h5"/></svg>
-          </span>
-          <h3>Section history</h3>
-          <p>Name a section "Daily Standup" or "1:1 — Priya" and ChronoNote aggregates every past occurrence — see what you agreed to last time, instantly.</p>
-        </div>
-        <div class="feature-card">
-          <span class="icon">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="6"/><path d="M8 10.5h6M8 12.5h4"/><path d="M15.5 15.5L20 20"/></svg>
-          </span>
-          <h3>Cross-tab search</h3>
-          <p>Search every open tab or your entire notes folder at once, with results rendered the same glyph-aware way as the editor itself.</p>
-        </div>
-        <div class="feature-card">
-          <span class="icon">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M7.5 8l4 4-4 4"/><path d="M13 16h5"/></svg>
-          </span>
-          <h3>Keyboard-first</h3>
-          <p>A command palette (<kbd>Ctrl+K</kbd>), a full shortcut set, and an anchored date picker — the mouse is optional for almost everything.</p>
-        </div>
-        <div class="feature-card">
-          <span class="icon">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="11" y="4" width="9" height="16" rx="2"/><path d="M3.5 8.5h6M3.5 12h6M3.5 15.5h6"/><path d="M7.5 10l2 2-2 2"/></svg>
-          </span>
-          <h3>Calendar-aware sections</h3>
-          <p>An opt-in sync turns today's meetings into sections automatically, matched by title against what's already there — anything no longer on the agenda is reviewed, never silently dropped.</p>
-        </div>
-        <div class="feature-card">
-          <span class="icon">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M13 3H7a1 1 0 0 0-1 1v11"/><path d="M13 3l4 4v6"/><path d="M17 7h-4V3"/><path d="M8 19h8M12 15v8"/></svg>
-          </span>
-          <h3>Just plain text, always</h3>
-          <p>One <code>.txt</code> file per day, on your own disk. Open it in Notepad, grep it, sync it however you already sync files — no export step, ever.</p>
-        </div>
-        <div class="feature-card">
-          <span class="icon">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6h11M9 12h11M9 18h11"/><path d="M4 6h.01M4 12h.01M4 18h.01"/></svg>
-          </span>
-          <h3>Lists that keep going</h3>
-          <p>Bullets and numbered lists — <code>1.</code>, <code>2)</code>, even sub-lists like <code>1.1.</code>. <kbd>Enter</kbd> carries the numbering on, an empty item ends the list, <kbd>Tab</kbd> nests it. Still plain text.</p>
-        </div>
-        <div class="feature-card">
-          <span class="icon">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M8 21H5a2 2 0 0 1-2-2v-3M16 21h3a2 2 0 0 0 2-2v-3"/></svg>
-          </span>
-          <h3>Write without distraction</h3>
-          <p><kbd>Shift+F11</kbd> hides every bar for Zen mode. Set your own font size and line spacing, and switch on pure black for OLED screens.</p>
-        </div>
-        <div class="feature-card">
-          <span class="icon">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg>
-          </span>
-          <h3>In your browser, too</h3>
-          <p>The web app has the same editor and syncs through OneDrive. Drop a backup or a day's <code>.txt</code> file onto the window to bring it in — nothing is overwritten without asking.</p>
-        </div>
+      <div class="main">
+        <h3>Desktop app</h3>
+        <p>The full app for Windows 10 and 11, with Peek: a slim always-on-top strip for notes during calls.</p>
+        <dl><dt>Notes</dt><dd>A folder on your disk</dd><dt>Updates</dt><dd>Built in, signed</dd><dt>Version</dt><dd data-version>0.34.0</dd></dl>
+        <a class="btn primary" href="https://github.com/marien/ChronoNote/releases/download/v0.34.0/ChronoNote_0.34.0_x64-setup.exe" data-download>Download for Windows</a>
+        <p class="small">Windows may warn about an unknown publisher; <a href="troubleshooting.html#blocked">what to do</a>. <a href="https://github.com/marien/ChronoNote/releases" target="_blank" rel="noopener">All releases</a>.</p>
+      </div>
+      <div>
+        <h3>Web app</h3>
+        <p>The same editor in your browser. Add it to your phone's home screen and it opens like an app.</p>
+        <dl><dt>Notes</dt><dd>In your browser, or your OneDrive folder</dd><dt>Needs</dt><dd>Any modern browser, Mac and Linux too</dd></dl>
+        <a class="btn" href="https://app.chrononote.mariendegelder.nl/" target="_blank" rel="noopener">Open the web app ↗</a>
       </div>
     </div>
-  </section>
+  </div>
+</section>
 
-  <section>
-    <div class="wrap">
-      <div class="section-head">
-        <span class="eyebrow">The token vocabulary</span>
-        <h2>A handful of tokens, replaced live as you type</h2>
-        <p>The file on disk always stays exactly what you typed — this is a display layer, not a hidden format.</p>
-      </div>
-      <table class="token-table" style="max-width: 640px; margin: 0 auto;">
-        <tbody>
-          <tr>
-            <td><code># </code></td>
-            <td><span class="glyph glyph-open">☐︎</span></td>
-            <td>Open action</td>
-          </tr>
-          <tr>
-            <td><code>v </code></td>
-            <td><span class="glyph glyph-done">☑︎</span></td>
-            <td>Done</td>
-          </tr>
-          <tr>
-            <td><code>&gt; </code></td>
-            <td><span class="glyph glyph-progress">☐︎</span></td>
-            <td>Deferred / forwarded</td>
-          </tr>
-          <tr>
-            <td><code>x </code></td>
-            <td><span class="glyph glyph-cancelled">☒︎</span></td>
-            <td>Won't do</td>
-          </tr>
-          <tr>
-            <td><code>=&gt; </code></td>
-            <td><span class="glyph glyph-followup">➔︎</span></td>
-            <td>Follow-up / delegated to <span class="badge-assignee">@name</span></td>
-          </tr>
-          <tr>
-            <td><code>! </code></td>
-            <td><span class="glyph glyph-emphasis">bold text</span></td>
-            <td>Emphasis — worth remembering</td>
-          </tr>
-        </tbody>
-      </table>
-      <p style="text-align: center; margin-top: 24px;">
-        <a href="guide.html#vocabulary">See the full vocabulary and every workflow in the guide →</a>
-      </p>
+<section aria-labelledby="faq-h" style="padding-top: 0">
+  <div class="wrap">
+    <div class="head"><span class="kicker">Questions</span><h2 id="faq-h">Before you start</h2></div>
+    <div class="faq">
+      <details><summary>Is it really free?</summary><p>Yes. ChronoNote is MIT-licensed open source. There is no paid tier and no account.</p></details>
+      <details><summary>Is it only for work?</summary><p>No. Anything with meetings, people and things to do fits: a soccer club committee, a church community, a renovation, your own week. Use one notes folder for all of it, and topics like <code>(club)</code> to keep things apart.</p></details>
+      <details><summary>Where are my notes stored?</summary><p>In the desktop app, in a folder you choose, one <code>.txt</code> file per day. In the web app, in your browser's storage, or in a OneDrive folder you connect. The demo stores nothing. <a href="files.html">More about your files</a>.</p></details>
+      <details><summary>Does it work on a Mac or on my phone?</summary><p>The desktop app is for Windows. On a Mac, Linux or a phone, use the web app; it can sync with the same OneDrive folder as your PC.</p></details>
+      <details><summary>Can I bring my existing notes?</summary><p>Any text works. Drop a day's <code>.txt</code> file or a backup onto the window to import it; nothing is overwritten without asking. <a href="guide.html#import">Importing notes</a>.</p></details>
     </div>
-  </section>
+  </div>
+</section>
 
-  <section class="alt" id="mobile">
-    <div class="wrap">
-      <div class="section-head">
-        <span class="eyebrow">On your phone</span>
-        <h2>Install the web app to your home screen</h2>
-        <p>The web app is a full Progressive Web App — open it once in your phone's browser, add it to your home screen, and it behaves like a native app from then on.</p>
-      </div>
-      <div class="feature-grid">
-        <div class="feature-card">
-          <span class="icon">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="3" width="10" height="18" rx="2"/><path d="M11 18h2"/></svg>
-          </span>
-          <h3>Launches full-screen</h3>
-          <p>No browser chrome, no address bar — a home-screen icon that opens straight into the editor, with a touch-friendly accessory bar for the token vocabulary.</p>
-        </div>
-        <div class="feature-card">
-          <span class="icon">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M7 18h10a4 4 0 0 0 .6-7.95A5.5 5.5 0 0 0 7.2 9 4.5 4.5 0 0 0 7 18z"/></svg>
-          </span>
-          <h3>Syncs through OneDrive</h3>
-          <p>Pick a OneDrive folder and your daily notes are on your phone and your PC. It syncs when you open the app, after you save, and on demand — with the same held-conflict handling as the desktop app.</p>
-        </div>
-        <div class="feature-card">
-          <span class="icon">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg>
-          </span>
-          <h3>Nothing to install from a store</h3>
-          <p>No APK, no store listing, no app-store review — it's the same web app you can already try above, just pinned to your home screen.</p>
-        </div>
-      </div>
-      <div class="cta-row" style="margin-top: 28px;">
-        <a class="btn btn-primary" href="https://app.chrononote.mariendegelder.nl/" target="_blank" rel="noopener">
-          Open the web app on your phone ↗
-        </a>
-      </div>
-    </div>
-  </section>
+</main>
 
-  <footer>
-    <div class="wrap">
-      <span>ChronoNote — MIT licensed.</span>
-      <span>
-        <a href="guide.html">Guide</a> ·
-        <a href="https://github.com/marien/ChronoNote" target="_blank" rel="noopener">GitHub</a> ·
-        <a href="https://github.com/marien/ChronoNote/releases" target="_blank" rel="noopener">Releases</a> ·
-        <a href="how-it-was-built.html">How it was built</a> ·
-        <a href="privacy.html">Privacy</a>
-      </span>
-    </div>
-  </footer>
+<footer>
+  <div class="wrap">
+    <span>ChronoNote · MIT licensed · made by Marien de Gelder</span>
+    <nav aria-label="Footer">
+      <a href="guide.html">Guide</a>
+      <a href="files.html">Your files</a>
+      <a href="troubleshooting.html">Troubleshooting</a>
+      <a href="how-it-was-built.html">How it was built</a>
+      <a href="privacy.html">Privacy</a>
+      <a href="https://github.com/marien/ChronoNote/releases" target="_blank" rel="noopener">Releases</a>
+      <a href="https://github.com/marien/ChronoNote" target="_blank" rel="noopener">GitHub</a>
+    </nav>
+  </div>
+</footer>
 
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  "use strict";
+  var CN = window.CN;
+  var $ = function (s) { return document.querySelector(s); };
+  var reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  /* ---- the hero: drag between what you see and what you typed ---- */
+  var wipe = $("#wipe");
+  function setCut(p) {
+    p = Math.max(0, Math.min(100, p));
+    wipe.style.setProperty("--cut", p + "%");
+    wipe.setAttribute("aria-valuenow", String(Math.round(p)));
+  }
+  var dragging = false;
+  function fromEvent(e) { var r = wipe.getBoundingClientRect(); setCut(((e.clientX - r.left) / r.width) * 100); }
+  wipe.addEventListener("pointerdown", function (e) { dragging = true; wipe.setPointerCapture(e.pointerId); fromEvent(e); });
+  wipe.addEventListener("pointermove", function (e) { if (dragging) fromEvent(e); });
+  wipe.addEventListener("pointerup", function () { dragging = false; });
+  wipe.addEventListener("keydown", function (e) {
+    var now = +wipe.getAttribute("aria-valuenow");
+    var to = { ArrowLeft: now - 5, ArrowRight: now + 5, Home: 0, End: 100 }[e.key];
+    if (to !== undefined) { setCut(to); e.preventDefault(); }
+  });
+  if (!reduce) {
+    setCut(0);
+    var t0 = performance.now() + 500;
+    var step = function (t) {
+      var k = Math.min(1, Math.max(0, (t - t0) / 1400));
+      if (!dragging) setCut((1 - Math.pow(1 - k, 3)) * 62);
+      if (k < 1 && !dragging) requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+  }
+
+  /* ---- the playground ---- */
+  var MEANING = [
+    ["=> ", "Follow-up from the line above."], ["# ", "Open action: something still to do."], ["v ", "Done."],
+    ["> ", "Deferred to a later day."], ["x ", "Won't do."], ["- ", "Bullet. Not an action."], ["* ", "Bullet. Not an action."],
+    ["o ", "Meeting topic, to discuss."], [". ", "Topic discussed."], [", ", "Topic not discussed, carried to the next meeting."],
+    ["! ", "Emphasis: worth remembering."],
+  ];
+  var DAYS = { sun: 0, mon: 1, tue: 2, wed: 3, thu: 4, fri: 5, sat: 6 };
+  function normalise(line) {
+    return line.replace(/by:(today|tomorrow|mon|tue|wed|thu|fri|sat|sun|\+\d+)\b/i, function (_, w) {
+      w = w.toLowerCase();
+      var d = w === "today" ? CN.today : w === "tomorrow" ? CN.add(1) : w.charAt(0) === "+" ? CN.add(+w.slice(1)) : CN.nextDow(DAYS[w]);
+      return "by:" + CN.iso(d);
+    });
+  }
+  var input = $("#line"), chips = $("#chips");
+  function update() {
+    var saved = normalise(input.value);
+    $("#seeOut").innerHTML = CN.render(saved) || " ";
+    $("#fileOut").textContent = saved || " ";
+    var m = "Plain text. Start the line with a mark to make it something.";
+    for (var i = 0; i < MEANING.length; i++) if (saved.indexOf(MEANING[i][0]) === 0) { m = MEANING[i][1]; break; }
+    if (/^\d+(\.\d+)*[.)] /.test(saved)) m = "Numbered list. Enter continues the numbering.";
+    var topic = saved.match(/^\S+ \((\w[\w -]*)\) /);
+    if (topic) m += " (" + topic[1] + ") is a topic, to group actions.";
+    if (/by:\d{4}/.test(saved)) m += " The due date is written out in full when you leave the line.";
+    if (/@[\w-]/.test(saved)) m += " @names become owner badges you can filter on.";
+    $("#meaning").textContent = m;
+    chips.querySelectorAll(".chip").forEach(function (c) { c.setAttribute("aria-pressed", String(input.value === c.dataset.ex)); });
+  }
+  chips.querySelectorAll(".chip").forEach(function (c) {
+    c.setAttribute("aria-label", "Example: " + c.dataset.ex);
+    c.addEventListener("click", function () { input.value = c.dataset.ex; update(); input.focus(); });
+  });
+  input.addEventListener("input", update);
+  update();
+
+  /* ---- the week: real dates of this week, and tabs ---- */
+  var monday = CN.add(-((CN.today.getDay() + 6) % 7));
+  var tabs = Array.prototype.slice.call(document.querySelectorAll("#days [role=tab]"));
+  tabs.forEach(function (t, i) {
+    var d = new Date(monday); d.setDate(d.getDate() + i);
+    t.querySelector(".d").textContent = d.toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" });
+    t.addEventListener("click", function () { select(i); });
+  });
+  function select(i) {
+    tabs.forEach(function (t, j) { t.setAttribute("aria-selected", String(i === j)); t.tabIndex = i === j ? 0 : -1; });
+    document.querySelectorAll(".daypanel").forEach(function (p, j) { p.hidden = i !== j; });
+  }
+  $("#days").addEventListener("keydown", function (e) {
+    var cur = tabs.findIndex(function (t) { return t.getAttribute("aria-selected") === "true"; });
+    var n = e.key === "ArrowRight" ? (cur + 1) % tabs.length : e.key === "ArrowLeft" ? (cur + tabs.length - 1) % tabs.length : -1;
+    if (n >= 0) { select(n); tabs[n].focus(); e.preventDefault(); }
+  });
+
+  /* ---- Try links: scroll to the demo and open the feature there ---- */
+  var frame = $("#demoFrame"), launcher = $("#launcher");
+  function tryFeature(feature) {
+    $("#poster").hidden = true;
+    launcher.querySelectorAll("button").forEach(function (b) { b.classList.toggle("on", b.dataset.try === feature); });
+    CN.demo(frame, feature);
+  }
+  document.addEventListener("click", function (e) {
+    var t = e.target.closest("[data-try]");
+    if (!t) return;
+    e.preventDefault();
+    if (!t.closest("#demo")) $("#demo").scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" });
+    tryFeature(t.dataset.try);
+  });
+  // #try-<feature>, from a link elsewhere (the guide's "open full demo", a shared link)
+  var m = location.hash.match(/^#try-([a-z]+)$/);
+  if (m) { $("#demo").scrollIntoView(); tryFeature(m[1]); }
+});
+</script>
 </body>
 </html>

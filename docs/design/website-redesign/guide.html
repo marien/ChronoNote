@@ -1,0 +1,400 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Guide · ChronoNote</title>
+<meta name="description" content="Every ChronoNote mark, shortcut and workflow: actions, follow-ups, topics, due dates, section history, the week review, Peek and the web app.">
+<script>try { var t = localStorage.getItem("chrononote-theme"); if (t === "light" || t === "dark") document.documentElement.setAttribute("data-theme", t); } catch (e) {}</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Atkinson+Hyperlegible+Next:ital,wght@0,400;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="site.css">
+<style>
+/* try-it drawer: the demo opens beside the guide, so the reader keeps their place */
+.drawer { position: fixed; inset: 0 0 0 auto; width: min(760px, 100vw); z-index: 40; background: var(--ed-bg); border-left: 1px solid var(--ed-rule); box-shadow: var(--shadow); display: grid; grid-template-rows: auto minmax(0, 1fr); transform: translateX(102%); transition: transform 0.25s ease-out; padding-bottom: env(safe-area-inset-bottom, 0px); }
+.drawer.open { transform: none; }
+@media (prefers-reduced-motion: reduce) { .drawer { transition: none; } }
+.drawer header { display: flex; align-items: center; gap: 12px; padding: 10px 14px; padding-top: calc(10px + env(safe-area-inset-top, 0px)); border-bottom: 1px solid var(--ed-rule); background: var(--ed-chrome); font-size: 0.92rem; color: var(--ed-ink); }
+.drawer header .spacer { margin-left: auto; }
+.drawer header button { border: 1px solid var(--rule); background: var(--sheet); color: var(--ink); border-radius: 6px; padding: 4px 10px; font: inherit; cursor: pointer; }
+.drawer iframe { width: 100%; height: 100%; border: 0; display: block; }
+.scrim { position: fixed; inset: 0; z-index: 35; background: rgba(0, 0, 0, 0.25); }
+</style>
+</head>
+<body>
+
+<header class="nav" id="nav">
+  <div class="wrap">
+    <a class="brand" href="./" aria-label="ChronoNote home">
+      <svg viewBox="0 0 20 20" aria-hidden="true"><rect x="3" y="3" width="14" height="15" rx="2.9" fill="currentColor"/><g fill="none" stroke="var(--paper)" stroke-width="2"><path d="M3 8H17"/><path d="M6 11L9 14L15 8"/></g><g stroke="currentColor" stroke-width="2"><path d="M6 0V5M14 0V5"/></g></svg>
+      ChronoNote
+    </a>
+    <ul>
+      <li><a href="./#week">How it works</a></li>
+      <li><a href="./#demo">Demo</a></li>
+      <li><a href="./#features">Features</a></li>
+      <li><a href="./#get">Download</a></li>
+      <li><a href="guide.html" aria-current="page">Guide</a></li>
+    </ul>
+    <button class="menu-btn" aria-expanded="false" aria-controls="nav">Menu</button>
+    <div class="theme"></div>
+    <a class="btn primary" href="#" data-try="today">Try it now</a>
+  </div>
+</header>
+
+<div class="wrap docs-hero">
+  <span class="kicker">Guide</span>
+  <h1>Everything ChronoNote does, and how.</h1>
+  <p class="lede">The marks, the workflows and every shortcut. Anything with a <span class="try" style="pointer-events:none">Try it</span> link opens beside this page in the live demo, so you can try it without losing your place.</p>
+</div>
+
+<div class="wrap docs">
+  <nav class="toc" aria-label="On this page">
+    <details open id="tocBox">
+      <summary>On this page</summary>
+      <ol id="toc">
+        <li><a href="#start">Start here</a></li>
+        <li><a href="#marks">The marks</a></li>
+        <li><a href="#workflows">Workflows</a></li>
+        <li class="sub"><a href="#w-capture">Write it down</a></li>
+        <li class="sub"><a href="#w-close">Close and hand off</a></li>
+        <li class="sub"><a href="#w-history">Recurring meetings</a></li>
+        <li class="sub"><a href="#w-forward">Follow an action</a></li>
+        <li class="sub"><a href="#w-due">Due dates</a></li>
+        <li class="sub"><a href="#w-find">Find anything</a></li>
+        <li class="sub"><a href="#w-week">The week review</a></li>
+        <li class="sub"><a href="#w-lists">Lists and sub-actions</a></li>
+        <li class="sub"><a href="#w-scratch">Scratchpad</a></li>
+        <li class="sub"><a href="#w-comfort">Your way of writing</a></li>
+        <li class="sub"><a href="#w-calendar">Calendar sync</a></li>
+        <li class="sub"><a href="#w-peek">Notes during a call</a></li>
+        <li><a href="#shortcuts">Shortcuts</a></li>
+        <li><a href="#safety">Getting text back</a></li>
+        <li><a href="#export">Export and print</a></li>
+        <li><a href="#import">Bringing notes in</a></li>
+        <li><a href="#phone">On your phone</a></li>
+      </ol>
+    </details>
+  </nav>
+
+  <main class="doc">
+
+    <section id="start">
+      <h2>Start here</h2>
+      <div class="step">
+        <div class="copy">
+          <p>You need three things to get going. Everything else on this page is there when you want it.</p>
+          <ol class="prose" style="padding-left:1.2em; display:grid; gap:8px; margin:0">
+            <li><strong>Give a meeting or topic a title</strong> and underline it with <code>===</code>. That makes a section.</li>
+            <li><strong>Start a line with a mark</strong>: <code>#</code> for a to-do, <code>=&gt; @name</code> to hand something off, <code>o</code> for a topic to discuss.</li>
+            <li><strong>Press <kbd>Ctrl+K</kbd></strong> for every other command. The palette shows each one's shortcut, so you learn them as you go.</li>
+          </ol>
+          <p>It is all text. Type over a mark to change it, select and delete, paste from an email, undo. The glyphs follow.</p>
+          <button class="try" data-try="today">Try it in today's demo note</button>
+        </div>
+        <div class="win pair">
+          <div><div class="lab">What you type</div><pre class="note" data-raw="Church community committee&#10;==========================&#10;o Christmas market&#10;# book the parish hall&#10;=> @Ruth asks the choir"></pre></div>
+          <div><div class="lab">What you see</div><pre class="note" data-render="Church community committee&#10;==========================&#10;o Christmas market&#10;# book the parish hall&#10;=> @Ruth asks the choir"></pre></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="marks">
+      <h2>The marks</h2>
+      <p class="intro">Each mark is one to three characters, typed at the start of a line. On screen it becomes a glyph of exactly the same width, so nothing shifts while you type; in the file it stays what you typed.</p>
+      <div class="vocab" id="vocab"></div>
+      <p class="intro" style="margin-top:24px">Click a glyph to close an open action, or to reopen one that is done, deferred or won't-do. On a line with several actions (<code># call Sam =&gt; # book a room</code>) a click changes exactly the glyph you clicked. From the keyboard, <kbd>Ctrl+1</kbd> to <kbd>Ctrl+4</kbd> set the action nearest the caret, or turn a plain line into one.</p>
+    </section>
+
+    <section id="workflows">
+      <h2>Workflows</h2>
+      <p class="intro">How the marks add up, roughly in the order you would meet them in a week.</p>
+      <div class="flow" id="flow"></div>
+    </section>
+
+    <section id="shortcuts">
+      <h2>Shortcuts</h2>
+      <p class="intro">Nearly everything has one; the mouse is optional. On a Mac, Ctrl is Cmd. In the app, <kbd>Ctrl+/</kbd> shows this list.</p>
+      <div class="sc-tools">
+        <label for="scFilter" class="kicker" style="margin:0; flex-basis:100%">Filter</label>
+        <input id="scFilter" type="search" placeholder="Try &quot;action&quot;, &quot;peek&quot; or &quot;Shift+H&quot;" autocomplete="off">
+        <span class="count" id="scCount" aria-live="polite"></span>
+      </div>
+      <div class="sc-groups" id="scGroups"></div>
+      <p class="sc-empty" id="scEmpty" hidden>No shortcut matches. The command palette (<kbd>Ctrl+K</kbd>) finds commands by name too.</p>
+    </section>
+
+    <section id="safety">
+      <h2>Getting text back</h2>
+      <div class="prose">
+        <p>ChronoNote keeps <strong>earlier versions</strong> of each note: one every few minutes while you edit today, then one per day, for 30 days. Right-click a tab and choose <strong>Earlier versions…</strong> to compare any of them side by side with the current text and restore it. The current text is kept as a version first.</p>
+        <p>A note you delete with text in it goes to <strong>Recently deleted</strong> (in Settings) for 30 days. In the desktop app both are hidden folders inside your notes folder, so they travel with it; the web app keeps them in the browser's storage.</p>
+      </div>
+    </section>
+
+    <section id="export">
+      <h2>Export and print</h2>
+      <div class="prose">
+        <p>Export a note or a date range as Markdown or standalone HTML from the More menu, the tab menu or the command palette. Actions become <code>- [ ]</code> checkboxes and section titles become <code>##</code> headings. Copy a selection as Markdown from the editor's context menu, or print the note (<kbd>Ctrl+P</kbd>) with the glyphs styled for paper.</p>
+        <button class="try" data-try="palette" style="margin-top:12px">Find Export in the palette</button>
+      </div>
+    </section>
+
+    <section id="import">
+      <h2>Bringing notes in</h2>
+      <div class="prose">
+        <p>Settings → Notes &amp; Sync → Data → <strong>Import notes from a file…</strong> brings in notes once they are in ChronoNote's format: one <code>.txt</code> file per day, with marks like <code>#</code> and <code>=&gt;</code>. The <a href="#">migration guide</a> on GitHub describes the format precisely enough to hand to a conversion script or an AI assistant.</p>
+        <p>In the web app you can also drop a backup or a day's <code>.txt</code> file onto the window. A note for a date that already exists is never overwritten: you see both versions and choose.</p>
+      </div>
+    </section>
+
+    <section id="phone">
+      <h2>On your phone</h2>
+      <div class="prose">
+        <p>The web app is the same editor, with a bar above the keyboard for the marks and actions. Long-press a glyph for that line's menu. Add it to your home screen and it opens full screen like an app, without a store.</p>
+        <h3>Installing it</h3>
+        <p>Open <a href="#">app.chrononote.mariendegelder.nl</a> in your phone's browser. In Chrome on Android: menu (⋮) → <strong>Add to Home screen</strong>. In Safari on iOS: Share → <strong>Add to Home Screen</strong>.</p>
+        <h3>Connecting OneDrive</h3>
+        <ol>
+          <li>Settings → <strong>Notes &amp; Sync</strong> → <strong>Connect Microsoft Account</strong>, and sign in.</li>
+          <li>Pick the OneDrive folder that holds your notes, the one your PC syncs.</li>
+          <li>Done. It syncs when you open the app, when you come back to it and after you save.</li>
+        </ol>
+        <h3>When a note changed in two places</h3>
+        <p>Changes from both sides are merged line by line. Only when both changed the same lines does ChronoNote hold the note back and show <strong>⚠ 1 sync conflict</strong>; tap it to choose which version to keep, or keep both. Nothing is overwritten until you choose.</p>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<footer>
+  <div class="wrap">
+    <span>ChronoNote · MIT licensed · made by Marien de Gelder</span>
+    <nav aria-label="Footer"><a href="./">Home</a><a href="guide.html">Guide</a><a href="#">Your files</a><a href="#">Troubleshooting</a><a href="#">Privacy</a><a href="#">GitHub</a></nav>
+  </div>
+</footer>
+
+<div class="scrim" id="scrim" hidden></div>
+<aside class="drawer" id="drawer" aria-label="Live demo" aria-hidden="true">
+  <header><strong>Live demo</strong><span id="drawerWhat" style="color:var(--ed-dim)"></span><span class="spacer"></span><button type="button" id="drawerClose">Close <kbd>Esc</kbd></button></header>
+  <iframe id="demoFrame" title="ChronoNote live demo" tabindex="-1"></iframe>
+</aside>
+
+<script src="site.js"></script>
+<script>
+(() => {
+  const { iso, add, today, esc, render, renderNote, rawNote, syncFrameTheme } = window.CN;
+  const $ = (s) => document.querySelector(s);
+  document.querySelectorAll("[data-raw]").forEach((el) => { el.innerHTML = rawNote(el.dataset.raw); });
+  document.querySelectorAll("[data-render]").forEach((el) => { el.innerHTML = renderNote(el.dataset.render); });
+
+  /* ---- the marks ---- */
+  const D = iso(add(1));
+  const VOCAB = [
+    ["Actions", "actions", [
+      ["# ", "# call the printer", "<strong>Open action.</strong> Something still to do. A note dated today or earlier asks before it closes while one is open."],
+      ["v ", "v call the printer", "<strong>Done.</strong>"],
+      ["> ", "> call the printer", "<strong>Deferred.</strong> Pushed to a later note. Drawn dimmed, like done and won't-do, so open work stands out."],
+      ["x ", "x call the printer", "<strong>Won't do.</strong> Resolved, but not done."],
+    ]],
+    ["Follow-ups and people", "search", [
+      ["=> ", "=> they agreed on May", "<strong>Follow-up.</strong> An outcome of the line above."],
+      ["=> @name", "=> @Joan finds referees", "<strong>Handed off.</strong> Someone else owns it. <code>@name</code> stays editable text; any <code>@name</code> anywhere gets the badge."],
+      ["(@a, @b)", "o coffee rota (@Ruth, @Ben)", "<strong>Several people.</strong> Each name gets its own badge, on any line."],
+      ["=> # ", "=> # send the minutes", "<strong>Consequence action.</strong> A follow-up that is itself an action."],
+    ]],
+    ["Organising", "due", [
+      ["# (topic)", "# (market) stall rota", "<strong>Topic.</strong> Groups actions in the drawer and in search (<code>tag:market</code>). The brackets show only while the caret is next to them."],
+      ["by:fri", `# order the kit by:${D}`, "<strong>Due date.</strong> Type <code>by:</code> and a day (<code>fri</code>, <code>tomorrow</code>, <code>+3</code>, <code>wk44</code>); it is written out as a date when you leave the line. Amber on the day, red when late."],
+      ["! ", "! The pitch is ours until 16:00", "<strong>Emphasis.</strong> The line is drawn bold. Worth remembering."],
+    ]],
+    ["Meeting topics", "history", [
+      ["o ", "o spring tournament", "<strong>To discuss.</strong> An agenda item, never counted as an action."],
+      [". ", ". spring tournament", "<strong>Discussed.</strong>"],
+      [", ", ", spring tournament", "<strong>Not discussed.</strong> Carried to the next meeting."],
+    ]],
+    ["Structure", "today", [
+      ["Title\n=====", "Committee\n=========", "<strong>Section.</strong> A line underlined with <code>=</code>. Section history and calendar sync match on this title."],
+      ["- ", "- bring the keys", "<strong>Bullet.</strong> Also <code>* </code>. Indent two spaces to nest."],
+      ["1. ", "1. welcome", "<strong>Numbered item.</strong> Also <code>2)</code> and <code>1.1.</code>; <kbd>Enter</kbd> continues the numbering."],
+      ["(>date#Section)", "> call Sam (>2026-11-04#Committee)", "<strong>Link.</strong> Added when you forward an action; <kbd>Ctrl</kbd>+click to follow. You can type one yourself."],
+    ]],
+  ];
+  $("#vocab").innerHTML = VOCAB.map(([g, tr, rows]) => `<div class="vgroup"><h3>${g}<button class="try" data-try="${tr}">Try it</button></h3>${rows.map(([t, ex, what]) =>
+    `<div class="vrow"><span class="type">${t.split("\n").map((l) => `<span>${esc(l)}</span>`).join("\n")}</span><span class="see">${ex.includes("\n") ? renderNote(ex) : render(ex)}</span><span class="what">${what}</span></div>`).join("")}</div>`).join("");
+
+  /* ---- workflows ---- */
+  const win = (title, body) => `<div class="win">${title ? `<div class="win-bar"><span class="win-tab on">${title}</span></div>` : ""}${body}</div>`;
+  const note = (t) => `<pre class="note">${renderNote(t)}</pre>`;
+  const pane = (left, ttl, rows) => `<div class="split">${note(left)}<div class="pane"><div class="ttl">${ttl}</div>${rows}</div></div>`;
+  const r = (l, sel) => `<span class="r${sel ? " sel" : ""}">${render(l)}</span>`;
+  const dt = (n) => `<span class="date">${iso(add(n))}</span>`;
+  const FLOW = [
+    ["w-capture", "Write it down", "All", "today", "Write in today's note",
+      "<p>ChronoNote opens on today's note. Give a meeting a title, underline it and type what happens. Settings → Notes &amp; Sync → Startup can bring back yesterday's tabs instead.</p><p>Nothing to fill in: a mark at the start of a line is all it takes, and you can change it later by typing over it.</p>",
+      () => win(iso(today), note("Team sync\n=========\n- shipped the new sign-up form\n# (launch) check the analytics\n=> @Priya owns the release notes"))],
+    ["w-close", "Close and hand off", "All", "actions", "Open the action drawer",
+      "<p>Click a glyph to close an action or reopen it, or press <kbd>Ctrl+Space</kbd> at the caret. <kbd>Ctrl+1</kbd> to <kbd>Ctrl+4</kbd> set open, done, deferred or won't-do directly. Hand something off with <code>=&gt; @name</code>.</p><p>The action drawer (<kbd>Ctrl+Shift+A</kbd>) lists open actions from every day, by date, topic, person or due date. On a wide window it opens beside the note.</p>",
+      () => win("", pane("v reply to the backlog\n# check the analytics\n=> @Joan finds referees", "Open actions · 5", `<span class="date">launch</span>${r("# check the analytics")}<span class="date">tournament</span>${r("# match schedule")}<span class="date">market</span>${r("# ask @Ruth for the stalls")}`))],
+    ["w-history", "Let recurring meetings remember themselves", "All", "history", "Open section history",
+      "<p>Use the same section title again and <kbd>Ctrl+Shift+H</kbd> shows every earlier occurrence beside the note. It follows the caret from section to section.</p><p>Select lines in an occurrence and choose <strong>Add to today</strong> or <strong>Add to next occurrence</strong>. <strong>As agenda</strong> reuses a whole past agenda with every topic open again.</p>",
+      () => win("", pane("Church community committee\n==========================\no Christmas market\n", "Church committee · 3 earlier", `${dt(-28)}${r(". autumn collection")}${r("# (market) ask @Ruth for the stalls", 1)}${dt(-56)}${r("v new hymn books ordered")}`))],
+    ["w-forward", "Follow an action from day to day", "All", "today", "Try it in today's note",
+      "<p>Copy an open action into a later note and the original is marked as forwarded. Both lines get a link: the old one to where it went, the new one to where it came from. <kbd>Ctrl</kbd>+click a link to go there and <kbd>Ctrl+Alt+←</kbd> to come back.</p>",
+      () => `<div class="win pair"><div><div class="lab">The earlier note</div>${note(`> book the venue (>${iso(add(1))}#Committee)`)}</div><div><div class="lab">The later note</div>${note(`# book the venue (<${iso(today)}#Committee)`)}</div></div>`],
+    ["w-due", "Give an action a date", "All", "due", "See due actions",
+      "<p>End an action with <code>by:</code> and a day: <code>by:fri</code>, <code>by:tomorrow</code>, <code>by:+3</code>, <code>by:wk44</code>. When you leave the line it becomes the full date, so the file stays unambiguous. Click the date to change it, or press <kbd>Ctrl+Shift+D</kbd>.</p><p>The status bar counts late actions in all notes; the drawer's <strong>By due date</strong> view lists them soonest first.</p>",
+      () => `<div class="win pair"><div><div class="lab">While typing</div>${note("# order the kit by:fri")}</div><div><div class="lab">After you leave the line</div>${note(`# order the kit by:${CN.iso(CN.nextDow(5))}`)}</div></div>`],
+    ["w-find", "Find anything, across every day", "All", "search", "Search the demo notes",
+      "<p><kbd>Ctrl+Shift+F</kbd> searches the open tabs or the whole notes folder. Results look like the lines in your notes, with the line before and after. Narrow it with <code>is:open</code>, <code>is:done</code>, <code>tag:tournament</code>, <code>has:@Joan</code>, <code>since:</code> and <code>before:</code>; each becomes a chip you can click away. The action drawer's filter understands the same words.</p>",
+      () => win("", `<div class="searchbar"><span class="pill">has:@Joan</span><span class="pill">is:open</span></div>${note(`${iso(add(-3))}\n=> # (tournament) ask @Joan for referees`)}`)],
+    ["w-week", "Look back at the week", "All", "week", "Open the week review",
+      "<p><kbd>Ctrl+Shift+K</kbd> shows one week, per day and per meeting: the actions still open, and how many are late. On a Monday it opens on last week. Turn on <strong>Show done</strong> to see what was finished. Close or forward straight from the list.</p>",
+      () => win("Week review", note("Team sync\n=========\n# check the analytics\n> plan the retro\n\nYouth soccer committee\n======================\n# ask @Joan for referees"))],
+    ["w-lists", "Lists and sub-actions", "All", "today", "Try it in today's note",
+      "<p><code>- </code> starts a bullet and <code>1. </code> a numbered list; <kbd>Enter</kbd> carries it on, an empty item ends it and <kbd>Tab</kbd> nests it. Lists pasted from Teams, Outlook, Word or a web page keep their bullets and numbers, and copy back out as real lists.</p><p>Indent actions under an action to make sub-actions; the drawer shows them with a count such as <code>1/3</code>.</p>",
+      () => win("", note("# spring tournament\n  v book the pitches\n  # (tournament) match schedule\n  # ask @Joan for referees"))],
+    ["w-scratch", "Jot something that isn't dated yet", "All", "palette", "Find Scratchpad in the palette",
+      "<p><kbd>Ctrl+N</kbd> opens a scratchpad. It stays in memory until you promote it into a dated note, and closing one with text in it asks first.</p>", null],
+    ["w-comfort", "Write your way", "All", "zen", "Try Zen mode",
+      "<p><kbd>Shift+F11</kbd> hides the bars. In Settings, choose the font size (or <kbd>Ctrl</kbd>+scroll), line spacing, colour or quiet grey glyphs, and pure black for OLED screens. The date picker (<kbd>Ctrl+O</kbd>) shows which days have notes and open actions, with week numbers; type <code>wk 42</code> to jump there. Spell check uses Windows' checker on the desktop and your browser's in the web app.</p>", null],
+    ["w-calendar", "Let your calendar fill in the day", "Windows", null, null,
+      "<p>With calendar sync on (Settings, off by default), <kbd>Ctrl+Shift+C</kbd> reads an <code>.agenda.json</code> file kept up to date by whatever syncs your calendar, and turns today's meetings into sections. A review step shows new and removed meetings before anything is written; nothing is dropped silently. A section starting with <code>'</code>, such as <code>'Quick call with Dave</code>, is left alone.</p>",
+      () => win(iso(today), note("Team sync\n=========\n\nBudget review\n=============\n\n'Quick call with Dave\n====================="))],
+    ["w-peek", "Take notes during a call", "Windows", null, null,
+      "<p><kbd>Ctrl+Shift+P</kbd> turns ChronoNote into <strong>Peek</strong>: a small see-through window, always on top, showing only the section you were in. It fades while you look at the call and becomes solid when you type. The dock button moves it into a strip along the bottom of the screen; maximised windows use the space above.</p><p><kbd>Ctrl+Alt+J</kbd> works from any app and opens Peek on the meeting that is on now, or on a new call section.</p>",
+      () => `<div class="win" style="max-width:26rem"><div class="win-bar"><span class="win-tab on">Peek · Budget review</span><span class="spacer">‹ 2/5 ›</span></div>${note("o numbers for Q1\n# send @Sam the sheet\n=> they agreed on May")}</div>`],
+  ];
+  $("#flow").innerHTML = FLOW.map(([id, h, where, tr, tl, copy, fig]) => `<article class="step" id="${id}"><div class="copy"><h3>${h}</h3>${copy}<div class="meta">${where === "All" ? "" : `<span class="where">${where} app</span>`}${tr ? `<button class="try" data-try="${tr}">${tl}</button>` : ""}</div></div>${fig ? fig() : ""}</article>`).join("");
+
+  /* ---- shortcuts (the real guide keeps these rows as static HTML for guideShortcuts.test.ts) ---- */
+  const SC = [
+    ["Everyday", [
+      ["Command palette: run any command, jump to a tab, date or action", "Ctrl+K"],
+      ["Open or create a dated note", "Ctrl+O"],
+      ["New scratchpad", "Ctrl+N"],
+      ["Close the tab", "Ctrl+W"],
+      ["Reopen the last closed tab", "Ctrl+Shift+T"],
+      ["Next / previous tab", "Ctrl+Tab"],
+      ["Undo / redo (kept per tab)", "Ctrl+Z|Ctrl+Shift+Z"],
+      ["Bigger / smaller text (remembered)", "Ctrl+scroll"],
+      ["Tap Alt: a letter on each title bar command (desktop)", "Alt"],
+      ["Settings", "Ctrl+,"],
+      ["About ChronoNote", "Ctrl+Shift+,"],
+      ["Shortcuts and marks, in the app", "Ctrl+/"],
+      ["Close whatever is open", "Escape"],
+    ]],
+    ["Actions and topics", [
+      ["Close the open action at the caret", "Ctrl+Space"],
+      ["Reopen the done action at the caret", "Ctrl+Shift+Space"],
+      ["Open the action at the caret, or in each selected line", "Ctrl+Shift+O"],
+      ["Set to open / done / deferred / won't do", "Ctrl+1|Ctrl+2|Ctrl+3|Ctrl+4"],
+      ["Topic: to discuss / discussed / not discussed", "Ctrl+5|Ctrl+6|Ctrl+7"],
+      ["Next / previous open action", "Ctrl+J|Ctrl+Shift+J"],
+      ["Set due date…", "Ctrl+Shift+D"],
+    ]],
+    ["Panes and views", [
+      ["Action drawer", "Ctrl+Shift+A"],
+      ["Section history", "Ctrl+Shift+H"],
+      ["Week review", "Ctrl+Shift+K"],
+      ["Search all notes", "Ctrl+Shift+F"],
+      ["Switch between the note and the pane beside it", "F6"],
+      ["Zen mode: hide the bars", "Shift+F11"],
+    ]],
+    ["Editing and moving around", [
+      ["Indent / outdent (two spaces)", "Tab|Shift+Tab"],
+      ["Make this line a section header", "Ctrl+Shift+S"],
+      ["Copy this section to its next occurrence", "Ctrl+Shift+."],
+      ["Find / replace in this note", "Ctrl+F|Ctrl+H"],
+      ["Go to a section of this note", "Ctrl+G"],
+      ["Start of the line, then the line above / below", "Ctrl+↑|Ctrl+↓"],
+      ["Back / forward after following a link", "Ctrl+Alt+←|Ctrl+Alt+→"],
+      ["Previous / next occurrence of this section", "Alt+←|Alt+→"],
+      ["Print this note", "Ctrl+P"],
+      ["Export notes", "Ctrl+Shift+E"],
+    ]],
+    ["Desktop app only", [
+      ["Peek: a compact window for this section", "Ctrl+Shift+P"],
+      ["Peek on the meeting that is on now, from any app", "Ctrl+Alt+J"],
+      ["Sync the calendar for this day", "Ctrl+Shift+C"],
+    ]],
+  ];
+  const kbds = (k) => k.split("|").map((x) => `<kbd>${esc(x)}</kbd>`).join(" / ");
+  $("#scGroups").innerHTML = SC.map(([g, rows]) => `<div class="sc-group"><h3>${g}</h3>${rows.map(([what, k]) => `<div class="shortcut-row" data-q="${esc((what + " " + k).toLowerCase())}"><span>${esc(what)}</span><span>${kbds(k)}</span></div>`).join("")}</div>`).join("");
+  const total = document.querySelectorAll(".shortcut-row").length;
+  const count = $("#scCount");
+  count.textContent = total + " shortcuts";
+  $("#scFilter").addEventListener("input", (e) => {
+    const q = e.target.value.trim().toLowerCase();
+    let shown = 0;
+    document.querySelectorAll(".sc-group").forEach((g) => {
+      let any = false;
+      g.querySelectorAll(".shortcut-row").forEach((row) => { const hit = !q || row.dataset.q.includes(q); row.hidden = !hit; if (hit) { any = true; shown++; } });
+      g.hidden = !any;
+    });
+    count.textContent = q ? `${shown} of ${total}` : total + " shortcuts";
+    $("#scEmpty").hidden = shown > 0;
+  });
+
+  /* ---- contents: highlight the section in view ---- */
+  const links = [...document.querySelectorAll("#toc a")];
+  const targets = links.map((a) => document.querySelector(a.getAttribute("href")));
+  const spy = () => {
+    let cur = 0;
+    targets.forEach((t, i) => { if (t && t.getBoundingClientRect().top < 120) cur = i; });
+    links.forEach((a, i) => a.classList.toggle("on", i === cur));
+  };
+  addEventListener("scroll", spy, { passive: true }); spy();
+  const tocBox = $("#tocBox");
+  const narrow = matchMedia("(max-width: 999px)");
+  const syncToc = () => { tocBox.open = !narrow.matches; };
+  narrow.addEventListener("change", syncToc); syncToc();
+  links.forEach((a) => a.addEventListener("click", () => { if (narrow.matches) tocBox.open = false; }));
+
+  /* ---- Try it: the demo opens in a drawer beside the guide ---- */
+  const KEYS = {
+    actions: ["Action drawer", { key: "A", ctrl: 1, shift: 1 }], history: ["Section history", { key: "H", ctrl: 1, shift: 1 }],
+    week: ["Week review", { key: "K", ctrl: 1, shift: 1 }], search: ["Search", { key: "F", ctrl: 1, shift: 1 }],
+    palette: ["Command palette", { key: "k", ctrl: 1 }], due: ["Due dates", { key: "A", ctrl: 1, shift: 1 }],
+    zen: ["Zen mode", { key: "F11", shift: 1 }], today: ["Today's note", null],
+  };
+  const drawer = $("#drawer"), scrim = $("#scrim"), frame = $("#demoFrame");
+  let loaded = null, opener = null;
+  const load = () => loaded || (loaded = new Promise((res) => {
+    frame.addEventListener("load", () => {
+      const t0 = Date.now();
+      const poll = () => {
+        let ok = false;
+        try { ok = !!frame.contentDocument.querySelector(".cm-content"); } catch (e) { return res(false); }
+        if (ok) { try { syncFrameTheme(frame); } catch (e) { /* ignore */ } }
+        if (ok || Date.now() - t0 > 8000) res(ok); else setTimeout(poll, 120);
+      };
+      poll();
+    }, { once: true });
+    frame.src = "demo-app/index.html";
+  }));
+  function close() { drawer.classList.remove("open"); drawer.setAttribute("aria-hidden", "true"); scrim.hidden = true; if (opener) opener.focus(); }
+  async function open(id, from) {
+    opener = from;
+    const [label, k] = KEYS[id] || KEYS.today;
+    $("#drawerWhat").textContent = label;
+    drawer.classList.add("open"); drawer.setAttribute("aria-hidden", "false"); scrim.hidden = false;
+    $("#drawerClose").focus();
+    if (!(await load())) return;
+    try {
+      const w = frame.contentWindow, doc = frame.contentDocument;
+      doc.dispatchEvent(new w.KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+      const cm = doc.querySelector(".cm-content");
+      if (cm) { cm.focus(); if (!k) { w.getSelection().selectAllChildren(cm); w.getSelection().collapseToEnd(); } }
+      if (k) (doc.activeElement || doc.body).dispatchEvent(new w.KeyboardEvent("keydown", { key: k.key, code: k.key.length === 1 ? "Key" + k.key.toUpperCase() : k.key, ctrlKey: !!k.ctrl, shiftKey: !!k.shift, bubbles: true, cancelable: true }));
+    } catch (e) { /* the demo still opens */ }
+  }
+  document.addEventListener("click", (e) => { const t = e.target.closest("[data-try]"); if (!t) return; e.preventDefault(); open(t.dataset.try, t); });
+  $("#drawerClose").onclick = close; scrim.onclick = close;
+  addEventListener("keydown", (e) => { if (e.key === "Escape" && drawer.classList.contains("open")) close(); });
+})();
+</script>
+</body>
+</html>

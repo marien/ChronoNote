@@ -23,4 +23,8 @@ bootMockBackend(params);
 
 const app = mount(App, { target: document.getElementById("app")! });
 
+// The website's Try links and theme switch (§440): ?try=, ?theme= and postMessage from the same origin.
+const { installDemoTry } = await import("./lib/testing/demoTry");
+installDemoTry(params);
+
 export default app;

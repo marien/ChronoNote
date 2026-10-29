@@ -77,14 +77,14 @@ write("webapp-src/public/icons/icon-512.png", await png(appIconSvg(512), 512));
 write("webapp-src/public/icons/icon-256-maskable.png", plate);
 write("webapp-src/public/icons/icon-512-maskable.png", await png(appIconPlateSvg(512, 0.6), 512));
 
-// Website and demo favicons, with the same plated iOS icon; the social preview too.
+// Website and demo favicons, with the same plated iOS icon. (The social preview is a page of its own since §440:
+// scripts/build-og-image.mjs.)
 const touch = plate;
 for (const dir of ["website/assets", "demo-src/public"]) {
   write(`${dir}/favicon.ico`, icoFile);
   write(`${dir}/favicon-32.png`, at(32));
   write(`${dir}/apple-touch-icon.png`, touch);
 }
-write("website/assets/og-image.png", await png(appIconPlateSvg(512, 0.62), 512));
 // The website header's logo (§436), pixel-fitted at its 20 px.
 write("website/assets/logo.svg", appIconSvg(20) + "\n");
 

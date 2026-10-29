@@ -30,6 +30,10 @@ export function bootMockBackend(params: URLSearchParams): MockBackend {
     }
   }
 
+  // ?theme=light|dark: the website's demo opens in the site's theme (§440).
+  const theme = params.get("theme");
+  if (seed && (theme === "light" || theme === "dark")) seed = { ...seed, themeMode: theme };
+
   const backend = installMockTauri(seed);
 
   if (seed?.backendKind) {
