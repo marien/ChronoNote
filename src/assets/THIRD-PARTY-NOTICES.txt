@@ -4877,7 +4877,7 @@ SOFTWARE.
 ================================================================================
 MIT License
 
-chrononote 0.35.0-2
+chrononote 0.35.0
 brotli-decompressor 6.0.1
 chrono-tz 0.10.4
 chrono 0.4.45
