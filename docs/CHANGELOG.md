@@ -11565,3 +11565,13 @@ after the release: `release.sh` lists them separately when it asks for `--checkl
 end of a minor release, and they go into `docs/open-checks.md` until Marien confirms them. A problem found there
 becomes a patch release. The rest of the checklist (reduced motion, 125 %/150 %, a contrast theme, German on CI's
 fonts, right-click, long-press and focus in the window) is still done on the last beta.
+
+## 442. Website: the header shows the real app icon in dark mode too
+
+**Status: live on the website (website only, no app release).**
+
+The new website (§440) inverted the header's logo in dark mode, so it showed a white plate with dark lines: the
+reverse of the app icon. That came from the prototype, which drew a simplified icon in the text colour; it was never
+a decision. Marien noticed it on the live site. The header now shows `assets/logo.svg` unchanged in both themes, as
+the old site did (its white lines carry the shape on a dark header). The stylesheet's cache key went to `?v=442` so
+returning visitors get the new CSS. Published by fast-forwarding `website-live` (Marien's OK).

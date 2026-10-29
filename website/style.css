@@ -211,8 +211,6 @@ section { padding-block: clamp(56px, 8vw, 112px); }
 .nav .wrap { display: flex; align-items: center; gap: 16px; height: 60px; }
 .brand { display: flex; align-items: center; gap: 9px; font: 800 1.08rem var(--f-display); color: var(--ink); text-decoration: none; }
 .brand img { width: 22px; height: 22px; display: block; }
-:root[data-theme="dark"] .brand img { filter: invert(1); }
-@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .brand img { filter: invert(1); } }
 .nav ul { display: flex; gap: 2px; list-style: none; margin: 0 0 0 auto; padding: 0; }
 .nav ul a { color: var(--ink-2); text-decoration: none; font-size: 0.94rem; padding: 6px 10px; border-radius: 6px; display: block; }
 .nav ul a:hover { color: var(--ink); background: var(--blue-wash); }
