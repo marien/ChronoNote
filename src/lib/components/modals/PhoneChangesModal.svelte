@@ -23,17 +23,20 @@
   const current = $derived($phoneConflicts.find((c) => c.request.id === selectedId) ?? $phoneConflicts[0]);
 
   let busy = $state(false);
-  let noteLines = $state<{ line: number; text: string; kind: LineKind }[] | null>(null);
+  // undefined while loading, null when the section is gone.
+  let noteLines = $state<{ line: number; text: string; kind: LineKind }[] | null | undefined>(undefined);
   let selectedLineIndex = $state<number | null>(null);
+  let loadSeq = 0;
 
   async function loadLines() {
     selectedLineIndex = null;
-    if (!current) {
-      noteLines = null;
-      return;
-    }
-    const note = await phoneConflictNote(current.request.date);
-    noteLines = sectionStateLines(note, current.request.section);
+    const seq = ++loadSeq;
+    noteLines = undefined;
+    if (!current) return;
+    const { date, section } = current.request;
+    const note = await phoneConflictNote(date);
+    // A slower load for a conflict shown earlier must not overwrite this one's lines.
+    if (seq === loadSeq) noteLines = sectionStateLines(note, section);
   }
 
   $effect(() => {
@@ -49,7 +52,7 @@
   );
 
   const reasonText = $derived.by(() => {
-    if (!current) return "";
+    if (!current || noteLines === undefined) return "";
     if (noteLines === null) return $t("phoneChanges.reason.sectionGone");
     if (current.reason === "lineAmbiguous") return $t("phoneChanges.reason.lineAmbiguous");
     return $t("phoneChanges.reason.lineChanged");
@@ -138,9 +141,9 @@
 
         <div class="reason-text">{reasonText}</div>
 
-        <div class="field-block">
-          <div class="field-label">{$t("phoneChanges.nowInNote")}</div>
-          {#if matchingLines.length > 0}
+        {#if matchingLines.length > 0}
+          <div class="field-block">
+            <div class="field-label">{$t("phoneChanges.nowInNote")}</div>
             <div class="radio-list" role="radiogroup">
               {#each matchingLines as item (item.line)}
                 <label class="radio-row">
@@ -155,8 +158,8 @@
                 </label>
               {/each}
             </div>
-          {/if}
-        </div>
+          </div>
+        {/if}
 
         <div class="conflict-actions-row">
           {#if matchingLines.length > 0}

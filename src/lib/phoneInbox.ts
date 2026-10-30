@@ -65,7 +65,6 @@ export async function phoneConflictNote(date: string): Promise<string> {
   }
 }
 
-
 /** Request id to what became of it. A Map: ids come from a file we don't control (`__proto__` is a valid key there). */
 type Ledger = Map<string, LedgerEntry>;
 
@@ -369,6 +368,16 @@ function noteToLines(note: string): string[] {
   return s.split("\n");
 }
 
+/** Records a conflict choice and republishes conflicts and results. A failed ledger save is logged, not fatal: the
+ * note may already be written, and the session's ledger (see `memory`) keeps the choice; the next run saves again. */
+async function recordChoice(ledger: Ledger, id: string, entry: LedgerEntry): Promise<void> {
+  ledger.set(id, entry);
+  await saveLedger(ledger).catch((e) => logWarn(`phone companion: saving the ledger failed: ${e}`));
+  phoneConflicts.set(conflictsOf(ledger));
+  const read = await readInbox();
+  setOutboxResults(resultsFor(ledger, read.kind === "ok" ? inboxIds(read.inbox.requests) : [...ledger.keys()]));
+}
+
 /** Resolves a held phone conflict: skip, add as new line, or apply to a chosen line. */
 export async function resolvePhoneConflict(id: string, choice: ConflictChoice): Promise<ResolveResult> {
   if (!phoneCompanionActive()) return "gone";
@@ -381,11 +390,7 @@ export async function resolvePhoneConflict(id: string, choice: ConflictChoice): 
     const now = localIsoWithOffset(new Date());
 
     if (choice === "skip") {
-      ledger.set(id, { result: "rejected", reason: "skipped", at: now, request: entry.request });
-      await saveLedger(ledger);
-      phoneConflicts.set(conflictsOf(ledger));
-      const read = await readInbox();
-      setOutboxResults(resultsFor(ledger, read.kind === "ok" ? inboxIds(read.inbox.requests) : [...ledger.keys()]));
+      await recordChoice(ledger, id, { result: "rejected", reason: "skipped", at: now, request: entry.request });
       shouldUpdateOutbox = true;
       return "done";
     }
@@ -415,11 +420,7 @@ export async function resolvePhoneConflict(id: string, choice: ConflictChoice): 
       });
       if (!writeRes.ok) return "failed";
 
-      ledger.set(id, { result: "applied", at: now, request: entry.request });
-      await saveLedger(ledger);
-      phoneConflicts.set(conflictsOf(ledger));
-      const read = await readInbox();
-      setOutboxResults(resultsFor(ledger, read.kind === "ok" ? inboxIds(read.inbox.requests) : [...ledger.keys()]));
+      await recordChoice(ledger, id, { result: "applied", at: now, request: entry.request });
       shouldUpdateOutbox = true;
       return "done";
     }
@@ -450,11 +451,7 @@ export async function resolvePhoneConflict(id: string, choice: ConflictChoice): 
       if (!writeRes.ok) return "failed";
       if (writeRes.data === "noteChanged") return "noteChanged";
 
-      ledger.set(id, { result: "applied", at: now, request: entry.request });
-      await saveLedger(ledger);
-      phoneConflicts.set(conflictsOf(ledger));
-      const read = await readInbox();
-      setOutboxResults(resultsFor(ledger, read.kind === "ok" ? inboxIds(read.inbox.requests) : [...ledger.keys()]));
+      await recordChoice(ledger, id, { result: "applied", at: now, request: entry.request });
       shouldUpdateOutbox = true;
       return "done";
     }
