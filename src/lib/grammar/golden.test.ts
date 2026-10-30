@@ -2,7 +2,7 @@
 // current token code does with a large corpus of note lines, so the later
 // tokenizer rewrite can be compared line by line. Test-only: if one of these
 // snapshots changes, the grammar's behaviour changed.
-import { describe, expect, it, vi } from "vitest";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { EditorState } from "@codemirror/state";
 import { EditorView, type DecorationSet } from "@codemirror/view";
 import { liveGlyphs, glyphAtomicRanges } from "../editor/glyphs";
@@ -95,9 +95,6 @@ function scenarioLines(): string[] {
   const lines: string[] = [];
   // scenarios.ts reads a build-time constant that only the demo bundle defines.
   vi.stubGlobal("__DEMO_APP_VERSION__", undefined);
-  vi.useFakeTimers();
-  // The "demo" scenario is built from the real clock; pin it.
-  vi.setSystemTime(new Date(`${REFERENCE_TODAY}T12:00:00`));
   try {
     for (const name of SCENARIO_NAMES) {
       const seed = scenario(name);
@@ -114,11 +111,20 @@ function scenarioLines(): string[] {
       }
     }
   } finally {
-    vi.useRealTimers();
     vi.unstubAllGlobals();
   }
   return lines;
 }
+
+// The "demo" scenario is built from the real clock, and due-date tooltips ("48 days late") are rendered from it:
+// pin the date for the whole file. Only `Date`: the editors' own timers stay real.
+beforeAll(() => {
+  vi.useFakeTimers({ toFake: ["Date"] });
+  vi.setSystemTime(new Date(`${REFERENCE_TODAY}T12:00:00`));
+});
+afterAll(() => {
+  vi.useRealTimers();
+});
 
 const EDGE_CASES: string[] = [
   "# open action",
