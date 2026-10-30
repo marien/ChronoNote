@@ -182,6 +182,10 @@ test.describe("phone companion: phone changes notice and dialog", () => {
     // "Review" button opens dialog titled "Changes from your phone"
     const reviewBtn = infoBar.getByRole("button", { name: "Review" });
     await expect(reviewBtn).toBeVisible();
+    // The command opens the dialog itself when something needs a look: close it to test the Review button.
+    await expect(phoneChangesDialog(page)).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(phoneChangesDialog(page)).toBeHidden();
     await reviewBtn.click();
 
     const dialog = phoneChangesDialog(page);
@@ -220,6 +224,10 @@ test.describe("phone companion: phone changes notice and dialog", () => {
     await triggerApplyPhoneChanges(page);
 
     const infoBar = page.getByRole("status");
+    // The command opens the dialog itself when something needs a look: close it to test the Review button.
+    await expect(phoneChangesDialog(page)).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(phoneChangesDialog(page)).toBeHidden();
     await infoBar.getByRole("button", { name: "Review" }).click();
 
     const dialog = phoneChangesDialog(page);
@@ -285,6 +293,10 @@ test.describe("phone companion: phone changes notice and dialog", () => {
     await triggerApplyPhoneChanges(page);
 
     const infoBar = page.getByRole("status");
+    // The command opens the dialog itself when something needs a look: close it to test the Review button.
+    await expect(phoneChangesDialog(page)).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(phoneChangesDialog(page)).toBeHidden();
     await infoBar.getByRole("button", { name: "Review" }).click();
 
     const dialog = phoneChangesDialog(page);
@@ -331,6 +343,10 @@ test.describe("phone companion: phone changes notice and dialog", () => {
     await triggerApplyPhoneChanges(page);
 
     const infoBar = page.getByRole("status");
+    // The command opens the dialog itself when something needs a look: close it to test the Review button.
+    await expect(phoneChangesDialog(page)).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(phoneChangesDialog(page)).toBeHidden();
     await infoBar.getByRole("button", { name: "Review" }).click();
 
     const dialog = phoneChangesDialog(page);
@@ -420,6 +436,10 @@ test.describe("phone companion: phone changes notice and dialog", () => {
 
     const infoBar = page.getByRole("status");
     await expect(infoBar).toContainText("1 change from your phone needs a look.");
+    // The command opens the dialog itself when something needs a look: close it to test the Review button.
+    await expect(phoneChangesDialog(page)).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(phoneChangesDialog(page)).toBeHidden();
     await infoBar.getByRole("button", { name: "Review" }).click();
 
     const dialog = phoneChangesDialog(page);

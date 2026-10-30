@@ -78,7 +78,7 @@ describe("sectionStateLines", () => {
     ". choose menu",
     "",
     "[14:00 - 15:00] Review",
-    "----------------------",
+    "======================",
     "# prepare slides",
     ", next steps",
   ].join("\n");
