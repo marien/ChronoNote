@@ -299,16 +299,15 @@ export function schedulePhoneOutbox(delayMs = EDIT_DEBOUNCE_MS, fresh = false): 
 /** How often the phone's inbox is looked at while active (it only changes through OneDrive, so there is no hurry). */
 const INBOX_POLL_MS = 60_000;
 
-/** Applies the phone's requests, then rebuilds the outbox (the processing publishes the results itself when it ran;
- * this also covers a run that stopped early, so the file is still current). */
+/** Applies the phone's requests; the processing then rebuilds the outbox itself, with their results. */
 async function inboxThenOutbox(): Promise<void> {
   if (!active()) return;
   try {
     await processPhoneInbox();
   } catch (e) {
     logWarn(`phone companion: applying the inbox failed: ${e}`);
+    await updatePhoneOutbox(true);
   }
-  await updatePhoneOutbox(true);
 }
 
 /** Window focus: the phone may have left requests (and the agenda and notes may have changed) while ChronoNote was in

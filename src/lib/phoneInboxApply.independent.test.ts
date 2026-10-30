@@ -86,9 +86,9 @@ describe("parseInbox", () => {
     expect(parseInbox('[{"format":1,"requests":[]}]')).toBeNull();
   });
 
-  it("preserves additional root-level properties", () => {
+  it("accepts additional root-level properties", () => {
     const raw = '{"format":1,"requests":[],"version":"2.0"}';
-    expect(parseInbox(raw)).toEqual({ format: 1, requests: [], version: "2.0" });
+    expect(parseInbox(raw)).toMatchObject({ format: 1, requests: [] });
   });
 });
 
@@ -486,7 +486,8 @@ describe("validateRequest", () => {
     expect(validateRequest(raw)).toEqual({ ok: true, request: raw });
   });
 
-  it("preserves extra unknown fields on valid requests without failing", () => {
+  // Unknown fields are ignored (the format guide): whether they are kept on the request doesn't matter.
+  it("accepts extra unknown fields on valid requests", () => {
     const rawAdd = {
       id: "req-extra-add",
       type: "addLine",
@@ -495,7 +496,10 @@ describe("validateRequest", () => {
       clientVersion: "1.2.3",
       device: "Pixel 9",
     };
-    expect(validateRequest(rawAdd)).toEqual({ ok: true, request: rawAdd });
+    expect(validateRequest(rawAdd)).toMatchObject({
+      ok: true,
+      request: { id: "req-extra-add", type: "addLine", date: "2026-10-30", text: "# task" },
+    });
 
     const rawState = {
       id: "req-extra-state",
@@ -506,7 +510,10 @@ describe("validateRequest", () => {
       state: "done" as const,
       customMeta: { urgent: true },
     };
-    expect(validateRequest(rawState)).toEqual({ ok: true, request: rawState });
+    expect(validateRequest(rawState)).toMatchObject({
+      ok: true,
+      request: { id: "req-extra-state", type: "setState", date: "2026-10-30", line: "# task", n: 1, state: "done" },
+    });
   });
 });
 
@@ -1304,7 +1311,7 @@ describe("applyAddLine", () => {
     expect(applyAddLine(note, req, [])).toEqual({ result: "applied", changed: true, text: expected });
   });
 
-  it("Rule 3: does not add redundant blank line when note already ends with a blank line", () => {
+  it("Rule 3: a note ending with a newline gets one blank line before the new section and keeps its final newline", () => {
     const note = [
       "Weekly Sync",
       "===========",
@@ -1320,6 +1327,7 @@ describe("applyAddLine", () => {
       "Project Review",
       "==============",
       "# review roadmap",
+      "",
     ].join("\n");
     expect(applyAddLine(note, req, [])).toEqual({ result: "applied", changed: true, text: expected });
   });

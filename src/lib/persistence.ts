@@ -320,7 +320,8 @@ export async function updateNoteOnDisk(
   for (let attempt = 1; ; attempt++) {
     const { content, metadata } = await api.readNoteWithMetadata(filename);
     const next = change(content ?? "");
-    if (content !== null && next === content) return next;
+    // Nothing to change, also for a file that doesn't exist: no write (and no empty file created).
+    if ((content ?? "") === next) return next;
     // A file that doesn't exist yet matches the empty-content hash, so creating it is guarded too:
     // if another device creates it in between, the write is refused and retried.
     const guard: WriteGuard = { kind: "hash", hash: metadata.contentHash ?? EMPTY_CONTENT_HASH };
@@ -478,4 +479,32 @@ export function writeTabContent(
   }
   if (tabId === get(activeTabId) && editorApi) editorApi.setContent(newContent);
   return next;
+}
+
+function setTabText(tabId: string, content: string): void {
+  tabs.set(get(tabs).map((x) => (x.id === tabId ? { ...x, content } : x)));
+  if (tabId === get(activeTabId) && editorApi) editorApi.setContent(content);
+}
+
+/** `writeTabContent` for a caller that must know the text reached the disk (the phone companion reports changes as
+ * applied). Awaits the write; when it fails, the tab and editor go back to `restoreTo` and the error is thrown. A
+ * write refused because the file changed on disk is not an error here: the tab keeps the change and the usual
+ * conflict dialog decides between the versions. */
+export async function writeTabContentAndWait(
+  tabId: string,
+  newContent: string,
+  restoreTo: string,
+  options?: { keepVersion?: boolean },
+): Promise<void> {
+  cancelScheduledSave(tabId);
+  const tab = get(tabs).find((x) => x.id === tabId && !x.isScratchpad);
+  if (!tab) throw new Error("the tab was closed");
+  setTabText(tabId, newContent);
+  try {
+    await writeNoteAndInvalidateCache(tab.filename, newContent, { kind: "tabBaseline" }, options);
+  } catch (e) {
+    if (isWriteConflictError(e)) return;
+    setTabText(tabId, restoreTo);
+    throw e;
+  }
 }

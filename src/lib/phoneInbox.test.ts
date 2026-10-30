@@ -136,6 +136,38 @@ describe("processPhoneInbox", () => {
     expect(ledger().handled.r1.result).toBe("applied");
   });
 
+  it("an open tab whose write fails gets its text back, and the request stays unhandled for the next run", async () => {
+    const before = "Day\n\nStandup\n=======\n# a\n";
+    tabs.set([{ id: "t1", filename: NOTE, isScratchpad: false, content: before }]);
+    apiMock.writeNote.mockRejectedValueOnce(new Error("disk full"));
+    disk.inbox = inboxOf([addLine("r1", "o from phone")]);
+    const run = await processPhoneInbox();
+    expect(get(tabs)[0].content).toBe(before);
+    expect(run!.applied).toEqual([]);
+    expect(disk.ledger === null || !("r1" in ledger().handled)).toBe(true);
+    expect(lastOutbox().results).toEqual([]);
+    await processPhoneInbox();
+    expect(get(tabs)[0].content).toBe(before + "o from phone\n");
+    expect(ledger().handled.r1.result).toBe("applied");
+  });
+
+  it("a failed ledger save doesn't make this session apply a request twice", async () => {
+    apiMock.writePhoneLedger.mockRejectedValueOnce(new Error("locked"));
+    disk.inbox = inboxOf([addLine("r1", "o x")]);
+    await processPhoneInbox();
+    await processPhoneInbox();
+    expect(disk.files[NOTE]).toBe("Day\n\nStandup\n=======\n# a\no x\n");
+    // The next run saves it after all.
+    expect(ledger().handled.r1.result).toBe("applied");
+  });
+
+  it("a setState for a day without a note is a conflict and creates no file", async () => {
+    disk.inbox = inboxOf([setState("r1", "# a", "done", { date: "2026-11-02" })]);
+    await processPhoneInbox();
+    expect("2026-11-02.txt" in disk.files).toBe(false);
+    expect(ledger().handled.r1).toMatchObject({ result: "conflict", reason: "lineChanged" });
+  });
+
   it("does not treat a scratchpad with that name as the note's tab", async () => {
     tabs.set([{ id: "s1", filename: NOTE, isScratchpad: true, content: "" }]);
     disk.inbox = inboxOf([addLine("r1", "o x")]);
@@ -212,7 +244,7 @@ describe("processPhoneInbox", () => {
     expect(lastOutbox().results.map((r) => r.id)).toEqual(["r2"]);
   });
 
-  it("a missing inbox file drops every ledger entry and leaves notes and results alone", async () => {
+  it("a missing inbox file (OneDrive can hide one while syncing) keeps the ledger and results, and changes no note", async () => {
     disk.inbox = inboxOf([addLine("r1", "o x")]);
     await processPhoneInbox();
     const outboxWrites = apiMock.writePhoneOutbox.mock.calls.length;
@@ -220,9 +252,13 @@ describe("processPhoneInbox", () => {
     disk.inbox = null;
     const run = await processPhoneInbox();
     expect(run).toMatchObject({ applied: [], conflicts: [], rejected: [] });
-    expect(ledger().handled).toEqual({});
+    expect(Object.keys(ledger().handled)).toEqual(["r1"]);
     expect(apiMock.writeNote).not.toHaveBeenCalled();
     expect(apiMock.writePhoneOutbox.mock.calls.length).toBe(outboxWrites);
+    // Back with the same request: not applied a second time.
+    disk.inbox = inboxOf([addLine("r1", "o x")]);
+    await processPhoneInbox();
+    expect(apiMock.writeNote).not.toHaveBeenCalled();
   });
 
   it("a newer format rejects every request not yet handled, without touching notes", async () => {
@@ -238,7 +274,7 @@ describe("processPhoneInbox", () => {
     ]);
   });
 
-  it("a broken inbox changes nothing: no note, ledger or outbox write", async () => {
+  it("a broken inbox changes no note or ledger, and the outbox keeps the known results", async () => {
     disk.files = { [NOTE]: "x\n" };
     disk.ledger = JSON.stringify({ format: 1, handled: { old: { result: "applied", at: "2026-10-29T09:00:00+01:00", request: {} } } });
     for (const text of ["{ not json", "[]", '{"format":1}', "", "\uFEFF"]) {
@@ -247,8 +283,8 @@ describe("processPhoneInbox", () => {
     }
     expect(apiMock.writeNote).not.toHaveBeenCalled();
     expect(apiMock.writePhoneLedger).not.toHaveBeenCalled();
-    expect(apiMock.writePhoneOutbox).not.toHaveBeenCalled();
     expect(Object.keys(ledger().handled)).toEqual(["old"]);
+    expect(lastOutbox().results).toEqual([{ id: "old", result: "applied", at: "2026-10-29T09:00:00+01:00" }]);
   });
 
   it("an inbox that can't be read (too large) is treated as broken", async () => {

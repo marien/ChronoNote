@@ -143,6 +143,15 @@ describe("applySetState", () => {
     });
   });
 
+  it("rule 2: an action request never matches a topic with the same text, or the reverse", () => {
+    const changed = { result: "conflict", reason: "lineChanged" };
+    expect(applySetState("Weekly\n======\no b\n", setState("# b", 3, "open", "Weekly"))).toEqual(changed);
+    expect(applySetState("Weekly\n======\n# b\n", setState("o b", 3, "open", "Weekly"))).toEqual(changed);
+    // A topic with the same text beside the action doesn't hide that the action is done already.
+    const both = "Weekly\n======\nv b\no b\n";
+    expect(applySetState(both, setState("# b", 3, "done", "Weekly"))).toEqual({ result: "applied", text: both, changed: false });
+  });
+
   it("rule 2: the line is in another state, absent, or one of several: lineChanged", () => {
     const changed = { result: "conflict", reason: "lineChanged" };
     expect(applySetState("Weekly\n======\nx b\n", setState("# b", 3, "done", "Weekly"))).toEqual(changed);

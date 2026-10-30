@@ -5,7 +5,7 @@
 import { get, writable } from "svelte/store";
 import { logWarn } from "./appLog";
 import { sha256Hex } from "./hash";
-import { flushAllPendingSaves, updateNoteOnDisk, writeTabContent } from "./persistence";
+import { flushAllPendingSaves, updateNoteOnDisk, writeTabContentAndWait } from "./persistence";
 import {
   localIsoWithOffset,
   phoneCompanionActive,
@@ -21,7 +21,7 @@ import {
   type ApplyOutcome,
   type InboxRequest,
 } from "./phoneInboxApply";
-import { tabs } from "./stores";
+import { notesDir, tabs } from "./stores";
 import * as api from "./tauriApi";
 
 export interface LedgerEntry {
@@ -54,7 +54,13 @@ function isRecord(v: unknown): v is Record<string, unknown> {
   return typeof v === "object" && v !== null && !Array.isArray(v);
 }
 
+/** The ledger as this session last read or wrote it, for its notes folder. The disk copy can lag behind (a failed
+ * save): the session never re-applies a request it handled itself, and saves again on its next run. */
+let memory: { dir: string; ledger: Ledger; dirty: boolean } | null = null;
+
 async function loadLedger(): Promise<Ledger> {
+  const dir = get(notesDir);
+  if (memory && memory.dir === dir) return new Map(memory.ledger);
   const ledger: Ledger = new Map();
   try {
     const text = await api.readPhoneLedger();
@@ -69,11 +75,22 @@ async function loadLedger(): Promise<Ledger> {
   } catch {
     // Unreadable is empty: the notes are the truth, and a lost ledger costs at worst a repeated request.
   }
+  memory = { dir, ledger: new Map(ledger), dirty: false };
   return ledger;
 }
 
 async function saveLedger(ledger: Ledger): Promise<void> {
+  memory = { dir: get(notesDir), ledger: new Map(ledger), dirty: true };
   await api.writePhoneLedger(JSON.stringify({ format: 1, handled: Object.fromEntries(ledger) }, null, 2) + "\n");
+  memory.dirty = false;
+}
+
+/** Runs and conflict choices change the ledger one at a time. */
+let queue: Promise<unknown> = Promise.resolve();
+function exclusive<T>(fn: () => Promise<T>): Promise<T> {
+  const p = queue.then(fn, fn);
+  queue = p.catch(() => {});
+  return p;
 }
 
 function conflictsOf(ledger: Ledger): LedgerEntry[] {
@@ -146,10 +163,15 @@ async function applyToNote(date: string, reqs: InboxRequest[]): Promise<Map<stri
         agenda = []; // no agenda file or a broken one: the section simply goes at the end
       }
     }
-    const tab = get(tabs).find((t) => !t.isScratchpad && t.filename === filename);
-    if (tab) {
+    const open = get(tabs).find((t) => !t.isScratchpad && t.filename === filename);
+    if (open) {
+      // The tab's own edits reach the disk first, so the change goes on top of what is saved.
+      await flushAllPendingSaves();
+      const tab = get(tabs).find((t) => t.id === open.id);
+      if (!tab) return null; // closed meanwhile: next run
       const text = applyAll(tab.content, reqs, agenda, outcomes);
-      if (text !== tab.content) tabs.set(writeTabContent(tab.id, text, get(tabs), { keepVersion: true }));
+      // Awaited: a change is only reported as applied once it is on disk.
+      if (text !== tab.content) await writeTabContentAndWait(tab.id, text, tab.content, { keepVersion: true });
     } else {
       await updateNoteOnDisk(
         filename,
@@ -179,18 +201,14 @@ async function runOnce(): Promise<PhoneInboxRun> {
 
   if (read.kind !== "ok") {
     lastKey = read.key;
-    if (read.kind === "missing") {
-      warnedBroken = false;
-      // Nothing is in the inbox any more, so nothing is handled any more; the results stay as they were.
-      if (ledger.size > 0) {
-        ledger.clear();
-        await saveLedger(ledger).catch((e) => logWarn(`phone companion: saving the ledger failed: ${e}`));
-      }
-      phoneConflicts.set([]);
-    } else if (!warnedBroken) {
+    // Handle nothing and keep the ledger and results as they are: OneDrive can hide a file for a moment while it
+    // syncs, and forgetting the ledger then would apply its requests a second time when it is back.
+    if (read.kind === "broken" && !warnedBroken) {
       warnedBroken = true;
       logWarn(`phone companion: the inbox is not usable and is left alone: ${read.why}`);
     }
+    setOutboxResults(resultsFor(ledger, [...ledger.keys()]));
+    phoneConflicts.set(conflictsOf(ledger));
     return run;
   }
   warnedBroken = false;
@@ -247,11 +265,12 @@ async function runOnce(): Promise<PhoneInboxRun> {
       dropped = true;
     }
   }
-  if (entries.length > 0 || dropped) {
+  if (entries.length > 0 || dropped || memory?.dirty) {
+    // A failed save is logged, not fatal: the session remembers (see `memory`), and publishing the results lets the
+    // phone take the handled requests out of the inbox, so they can't come back after a restart either.
     await saveLedger(ledger).catch((e) => logWarn(`phone companion: saving the ledger failed: ${e}`));
   }
   setOutboxResults(resultsFor(ledger, order));
-  await updatePhoneOutbox(true);
 
   const rank = new Map<string, number>();
   order.forEach((id, i) => rank.set(id, rank.get(id) ?? i));
@@ -270,8 +289,9 @@ async function runOnce(): Promise<PhoneInboxRun> {
 let running: Promise<PhoneInboxRun | null> | null = null;
 let rerun = false;
 
-/** Applies the requests of the phone's inbox that are not in the ledger yet. One run at a time; a call while one runs
- * waits for it and then runs once more. Null when the phone companion is not active. */
+/** Applies the requests of the phone's inbox that are not in the ledger yet, then rebuilds the outbox (with the
+ * window's notes re-read) so it carries the results. One run at a time; a call while one runs waits for it and then
+ * runs once more. Null when the phone companion is not active. */
 export async function processPhoneInbox(): Promise<PhoneInboxRun | null> {
   if (!phoneCompanionActive()) return null;
   if (running) {
@@ -282,8 +302,9 @@ export async function processPhoneInbox(): Promise<PhoneInboxRun | null> {
     let last: PhoneInboxRun | null = null;
     do {
       rerun = false;
-      last = await runOnce();
+      last = await exclusive(runOnce);
     } while (rerun && phoneCompanionActive());
+    await updatePhoneOutbox(true);
     return last;
   })().finally(() => {
     running = null;
@@ -293,7 +314,7 @@ export async function processPhoneInbox(): Promise<PhoneInboxRun | null> {
 
 /** The periodic check: runs only when the inbox's text is not the one the last run handled. */
 export async function pollPhoneInbox(): Promise<PhoneInboxRun | null> {
-  if (!phoneCompanionActive()) return null;
+  if (!phoneCompanionActive() || running) return null;
   try {
     const read = await readInbox();
     if (read.key === lastKey) return null;
@@ -307,16 +328,18 @@ export async function pollPhoneInbox(): Promise<PhoneInboxRun | null> {
 /** For the conflict dialog: leaves a held request alone for good (the phone sees it as rejected, reason `skipped`). */
 export async function resolvePhoneConflict(id: string, choice: "skip"): Promise<void> {
   if (choice !== "skip" || !phoneCompanionActive()) return;
-  if (running) await running.catch(() => {});
-  const ledger = await loadLedger();
-  const entry = ledger.get(id);
-  if (!entry || entry.result !== "conflict") return;
-  ledger.set(id, { result: "rejected", reason: "skipped", at: localIsoWithOffset(new Date()), request: entry.request });
-  await saveLedger(ledger);
-  phoneConflicts.set(conflictsOf(ledger));
-  const read = await readInbox();
-  setOutboxResults(resultsFor(ledger, read.kind === "ok" ? inboxIds(read.inbox.requests) : [...ledger.keys()]));
-  await updatePhoneOutbox(true);
+  const changed = await exclusive(async () => {
+    const ledger = await loadLedger();
+    const entry = ledger.get(id);
+    if (!entry || entry.result !== "conflict") return false;
+    ledger.set(id, { result: "rejected", reason: "skipped", at: localIsoWithOffset(new Date()), request: entry.request });
+    await saveLedger(ledger);
+    phoneConflicts.set(conflictsOf(ledger));
+    const read = await readInbox();
+    setOutboxResults(resultsFor(ledger, read.kind === "ok" ? inboxIds(read.inbox.requests) : [...ledger.keys()]));
+    return true;
+  });
+  if (changed) await updatePhoneOutbox(true);
 }
 
 function inboxIds(requests: unknown[]): string[] {
@@ -329,6 +352,8 @@ function inboxIds(requests: unknown[]): string[] {
 export function resetPhoneInboxForTests(): void {
   lastKey = null;
   warnedBroken = false;
+  memory = null;
+  queue = Promise.resolve();
   running = null;
   rerun = false;
   phoneInboxRun.set(null);

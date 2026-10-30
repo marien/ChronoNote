@@ -202,7 +202,10 @@ export function applySetState(note: string, req: SetStateRequest): ApplyOutcome 
     const similar: string[] = [];
     for (let i = body.start; i < body.end; i++) {
       const s = stateSymbolOf(lines[i]);
-      if (s && lines[i].slice(0, s.index) === before && lines[i].slice(s.index + 1) === after) similar.push(s.sym);
+      // Same kind only: an action request never matches a topic with the same text, or the reverse.
+      if (s && s.kind === want.kind && lines[i].slice(0, s.index) === before && lines[i].slice(s.index + 1) === after) {
+        similar.push(s.sym);
+      }
     }
     if (similar.length === 1 && stateOfSymbol(similar[0]) === req.state) return unchanged(note);
     return conflict("lineChanged");
