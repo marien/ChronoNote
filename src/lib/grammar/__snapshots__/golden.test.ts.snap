@@ -16526,7 +16526,7 @@ exports[`token behaviour snapshot (refactor R1) > scenario corpus 1`] = `
         "text": "order the new kit ",
       },
       {
-        "cls": "cm-due cm-due-overdue",
+        "cls": "cm-due cm-due-later",
         "parts": [
           {
             "cls": "cm-due-flag",
@@ -16537,7 +16537,7 @@ exports[`token behaviour snapshot (refactor R1) > scenario corpus 1`] = `
           },
         ],
         "text": "by:2026-09-11",
-        "title": "September 11, 2026, 48 days late",
+        "title": "September 11, 2026",
       },
     ],
     "innermostActionSymbol": "#",
