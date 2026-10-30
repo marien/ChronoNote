@@ -54,6 +54,8 @@ describe("buildOutbox", () => {
     expect(o.generatedAt).toMatch(/^2026-10-29T08:40:12[+-]\d{2}:\d{2}$/);
     expect(o.meetings).toEqual([]);
     expect(o.results).toEqual([]);
+    const results = [{ id: "r1", result: "applied" as const, at: "2026-10-29T09:01:03+01:00" }];
+    expect(buildOutbox({ notes: {}, agenda: [], today: TODAY, appVersion: "0.36.0", now: NOW, results }).results).toEqual(results);
   });
 
   it("treats titles with a time range, [CANCELED] or a date as one meeting, keeping each title as written", () => {

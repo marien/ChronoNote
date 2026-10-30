@@ -72,7 +72,7 @@ import { checkForUpdatesOnLaunch } from "./updates";
 import { applyPeekConfig } from "./peek";
 import { wireMica } from "./mica";
 import { occurrenceHint } from "./occurrences";
-import { phoneCompanionEnabled, schedulePhoneOutbox, wirePhoneCompanion } from "./phoneCompanion";
+import { phoneCompanionEnabled, phoneCompanionOnFocus, wirePhoneCompanion } from "./phoneCompanion";
 import { locale, t } from "./i18n";
 import { isFromNewerApp } from "./configSchema";
 import { describeApiError } from "./apiError";
@@ -238,9 +238,9 @@ function wireDriftDetection() {
       if (get(calendarSyncEnabled) && (get(backendKind) !== "web" || !!get(oneDriveAccount))) {
         void refreshAgendaFileExists();
       }
-      // The agenda feed and OneDrive change files while ChronoNote is in the background: rebuild the phone index
-      // with the window's notes re-read from disk.
-      schedulePhoneOutbox(0, true);
+      // The agenda feed and OneDrive change files while ChronoNote is in the background: apply the phone's requests, then
+      // rebuild the phone index with the window's notes re-read from disk.
+      phoneCompanionOnFocus();
       // #72: also the fastest way to notice a midnight rollover that
       // happened while the app sat unfocused — no need to wait out the
       // rollover interval's own delay once the app is actually looked at

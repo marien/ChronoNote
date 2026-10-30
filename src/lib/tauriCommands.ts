@@ -65,6 +65,11 @@ export interface TauriCommands {
   read_all_notes: { args: NoArgs; returns: [string, string][] };
   /** Phone companion: writes `.chrononote-mobile/outbox.json` atomically (`phoneCompanion.ts`). */
   write_phone_outbox: { args: { content: string }; returns: void };
+  /** Phone companion: the text of `.chrononote-mobile/inbox.json`, null when missing (`phoneInbox.ts`). */
+  read_phone_inbox: { args: NoArgs; returns: string | null };
+  /** Phone companion: the ledger of handled requests, in the app's data dir per notes folder (not in OneDrive). */
+  read_phone_ledger: { args: NoArgs; returns: string | null };
+  write_phone_ledger: { args: { content: string }; returns: void };
   read_tab_session: { args: NoArgs; returns: TabSession | null };
   write_tab_session: {
     args: { openTabs: string[]; activeTab: string | null; lastOpenedDate: string | null };

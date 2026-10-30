@@ -112,7 +112,7 @@ Common fields:
 | `made` | When the request was made, local time with offset (informational, shown in ChronoNote's dialogs). |
 | `type` | `addLine` or `setState`. |
 | `date` | The note's day, `YYYY-MM-DD`. |
-| `section` | The section's title, as written in the note or as on the agenda. Leave it out for the day part (the lines above the first section). |
+| `section` | The section's title, as written in the note or as on the agenda; titles are compared as in section 2.1, and the first matching section in the note is used. Leave it out (or empty) for the day part (the lines above the first section). |
 
 Requests are handled in the order listed.
 
@@ -122,9 +122,11 @@ Requests are handled in the order listed.
 | :--- | :--- |
 | `text` | The new line, including its token: `# ` action, `o ` topic, `! ` emphasis, `- ` bullet, `=> @name ` delegated, or none for plain text. One line: no line breaks. At most 1000 characters. |
 
-ChronoNote adds the line after the last non-blank line of the section. If the note has no such section but that day's
-agenda has the meeting, the section is created where calendar sync would put it; otherwise at the end of the note. If
-the note doesn't exist, it is created. An `addLine` never conflicts.
+ChronoNote adds the line after the last non-blank line of the section (directly under its underline when the section
+is empty); for the day part, after the last non-blank line above the first section, or as the first line of the note
+when there is none. If the note has no such section, it is created: before the first existing section whose meeting
+comes later on that day's agenda when the agenda has this meeting, otherwise at the end of the note. If the note
+doesn't exist, it is created. An `addLine` never conflicts.
 
 ### 3.2 `setState`
 
@@ -136,6 +138,12 @@ the note doesn't exist, it is created. An `addLine` never conflicts.
 
 The state belongs to the line's first symbol after the indentation (section 5.3); a line starting with `=> ` and an
 action symbol counts as an action. ChronoNote replaces only that symbol and leaves the rest of the line as it is.
+
+ChronoNote looks for the line only inside the named section (or the day part), as exactly the text in `line`. If
+several lines are equal, the one at line number `n` is used; if none is there, the request conflicts
+(`lineAmbiguous`). If no line is equal, a single line that differs only in its state symbol is taken as the line:
+when it already has the requested state the request is `applied`, otherwise (or with none or several such lines) it
+conflicts (`lineChanged`), as it does when the section is missing.
 
 Refused (`rejected`, reason `invalid`): a state that doesn't fit the line's kind, a line that isn't an action or
 topic, and a deferred action (`> `): it was forwarded to another day and changes there.
@@ -161,7 +169,8 @@ The phone side, on each refresh:
 4. Writes `inbox.json` back only if it changed. If more than one device runs the app, it first reads the inbox again
    and merges by `id`.
 
-ChronoNote drops a result from the outbox once its `id` is no longer in the inbox.
+ChronoNote drops a result from the outbox once its `id` is no longer in the inbox. While `inbox.json` is missing or
+can't be read (not JSON, larger than 1 MB), ChronoNote handles nothing and leaves the results as they were.
 
 ## 5. Reading a note
 

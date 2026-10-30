@@ -72,6 +72,8 @@ export interface MockSeed {
   autoCheckUpdates?: boolean;
   earlyUpdates?: boolean;
   phoneCompanion?: boolean;
+  /** Seeds `.chrononote-mobile/inbox.json` (the phone's requests) as text. */
+  phoneInbox?: string;
   /** #50: the version this config last recorded seeing — seed a value
    * different from `appVersion` to simulate "first launch after an
    * update" in a test. `undefined`/omitted mirrors a fresh install or a
@@ -188,6 +190,7 @@ const MUTATING_COMMANDS = new Set([
   "restore_from_trash",
   "restore_version",
   "write_conflict_copy",
+  "write_phone_ledger",
   "write_tab_session",
   "import_notes_bundle",
   "spell_add",
@@ -330,6 +333,10 @@ export class MockBackend {
   phoneCompanion: boolean = false;
   /** `.chrononote-mobile/outbox.json` as `write_phone_outbox` last wrote it (not part of the snapshot). */
   phoneOutbox: string | null = null;
+  /** `.chrononote-mobile/inbox.json` as the phone left it (seedable, not part of the snapshot). */
+  phoneInbox: string | null = null;
+  /** The phone-request ledger `write_phone_ledger` last wrote (part of the snapshot, as the real one survives a restart). */
+  phoneLedger: string | null = null;
   lastCheckUpdateEarly: boolean | null = null;
   lastCheckEarly: boolean | null = null;
   lastSeenVersion: string | null;
@@ -441,6 +448,7 @@ export class MockBackend {
     this.autoCheckUpdates = seed.autoCheckUpdates ?? true;
     this.earlyUpdates = seed.earlyUpdates ?? false;
     this.phoneCompanion = seed.phoneCompanion ?? false;
+    this.phoneInbox = seed.phoneInbox ?? null;
     this.lastSeenVersion = seed.lastSeenVersion ?? null;
     this.calendarSyncEnabled = seed.calendarSyncEnabled ?? false;
     this.fontSize = seed.fontSize ?? 13;
@@ -525,6 +533,7 @@ export class MockBackend {
       autoCheckUpdates: this.autoCheckUpdates,
       earlyUpdates: this.earlyUpdates,
       phoneCompanion: this.phoneCompanion,
+      phoneLedger: this.phoneLedger,
       lastSeenVersion: this.lastSeenVersion,
       calendarSyncEnabled: this.calendarSyncEnabled,
       fontSize: this.fontSize,
@@ -593,6 +602,7 @@ export class MockBackend {
         autoCheckUpdates?: boolean;
         earlyUpdates?: boolean;
         phoneCompanion?: boolean;
+        phoneLedger?: string | null;
         lastSeenVersion?: string | null;
         calendarSyncEnabled?: boolean;
         fontSize?: number;
@@ -633,6 +643,7 @@ export class MockBackend {
       b.autoCheckUpdates = s.autoCheckUpdates ?? true;
       b.earlyUpdates = s.earlyUpdates ?? false;
       b.phoneCompanion = s.phoneCompanion ?? false;
+      b.phoneLedger = s.phoneLedger ?? null;
       b.lastSeenVersion = s.lastSeenVersion ?? null;
       b.calendarSyncEnabled = s.calendarSyncEnabled ?? false;
       b.readableLineLength = s.readableLineLength ?? false;
@@ -1153,6 +1164,14 @@ export class MockBackend {
 
     write_phone_outbox: ({ content }) => {
       this.phoneOutbox = content;
+    },
+
+    read_phone_inbox: () => this.phoneInbox,
+
+    read_phone_ledger: () => this.phoneLedger,
+
+    write_phone_ledger: ({ content }) => {
+      this.phoneLedger = content;
     },
 
     read_all_notes: () =>

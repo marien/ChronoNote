@@ -218,6 +218,18 @@ export function writePhoneOutbox(content: string): Promise<void> {
   return invoke("write_phone_outbox", { content });
 }
 
+export function readPhoneInbox(): Promise<string | null> {
+  return invoke("read_phone_inbox", {});
+}
+
+export function readPhoneLedger(): Promise<string | null> {
+  return invoke("read_phone_ledger", {});
+}
+
+export function writePhoneLedger(content: string): Promise<void> {
+  return invoke("write_phone_ledger", { content });
+}
+
 export function readAllNotes(): Promise<[string, string][]> {
   return invoke("read_all_notes", {});
 }

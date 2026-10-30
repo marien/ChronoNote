@@ -683,6 +683,14 @@ export class WebBackend {
       throw new Error("The phone companion is not available in the web app.");
     },
 
+    read_phone_inbox: async () => null,
+
+    read_phone_ledger: async () => null,
+
+    write_phone_ledger: async () => {
+      throw new Error("The phone companion is not available in the web app.");
+    },
+
     read_all_notes: async () => {
       const db = await this.db();
       const store = await this.getActiveNotesStore();

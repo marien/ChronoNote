@@ -4,7 +4,8 @@
  *
  * Desktop only, off by default (`AppConfig.phoneCompanion`). The outbox is written at start, when the day changes,
  * and when the window's meetings change; it is rebuilt after edits and on focus, but only written when its content
- * (apart from `generatedAt`) differs from what this session last wrote. */
+ * (apart from `generatedAt`) differs from what this session last wrote. Phase 2 (`phoneInbox.ts`) applies the
+ * phone's requests first, so the outbox carries their results. */
 import { get, writable } from "svelte/store";
 import { logWarn } from "./appLog";
 import { addDaysISO } from "./date";
@@ -13,6 +14,7 @@ import { allNotesCache, appVersion, backendKind, currentDateISO, showToast, tabs
 import { t } from "./i18n";
 import * as api from "./tauriApi";
 import { isSetextUnderline, normalizeHeaderTitle, titleForMatching } from "./tokens";
+import { pollPhoneInbox, processPhoneInbox } from "./phoneInbox";
 
 /** Days before and after today that the outbox covers (Marien's decision 1, 2026-10-29). */
 export const WINDOW_DAYS = 14;
@@ -30,13 +32,21 @@ export interface OutboxMeeting {
   occurrences: OutboxOccurrence[];
 }
 
+/** What became of one request of the phone's inbox, in inbox order (file guide, section 4). */
+export interface OutboxResult {
+  id: string;
+  result: "applied" | "conflict" | "rejected";
+  reason?: string;
+  at: string;
+}
+
 export interface Outbox {
   format: 1;
   generatedAt: string;
   appVersion: string;
   window: { from: string; to: string };
   meetings: OutboxMeeting[];
-  results: [];
+  results: OutboxResult[];
 }
 
 const DATED_NOTE = /^(\d{4}-\d{2}-\d{2})\.txt$/;
@@ -100,6 +110,7 @@ export function buildOutbox(input: {
   today: string;
   appVersion: string;
   now: Date;
+  results?: OutboxResult[];
 }): Outbox {
   const from = addDaysISO(input.today, -WINDOW_DAYS);
   const to = addDaysISO(input.today, WINDOW_DAYS);
@@ -156,7 +167,7 @@ export function buildOutbox(input: {
     appVersion: input.appVersion,
     window: { from, to },
     meetings,
-    results: [],
+    results: input.results ?? [],
   };
 }
 
@@ -192,8 +203,21 @@ let warned = false;
  * so notes that OneDrive changes underneath (edited on another device) only show up through this. */
 let windowDisk: Record<string, string | null> = {};
 
-function active(): boolean {
+/** The setting is on and this is the desktop app (the only place the notes folder is reachable by the phone). */
+export function phoneCompanionActive(): boolean {
   return get(phoneCompanionEnabled) && get(backendKind) === "desktop";
+}
+
+function active(): boolean {
+  return phoneCompanionActive();
+}
+
+/** The results of the phone's requests the next outbox carries (set by `phoneInbox.ts`). */
+let outboxResults: OutboxResult[] = [];
+
+/** Stores the results the outbox lists from now on; the caller rebuilds the outbox (`updatePhoneOutbox`). */
+export function setOutboxResults(results: OutboxResult[]): void {
+  outboxResults = results;
 }
 
 /** Rebuilds the outbox and writes it when its content changed. `fresh` re-reads the window's notes from disk first
@@ -239,7 +263,14 @@ async function writeIfChanged(readDisk: boolean): Promise<void> {
     for (const tab of get(tabs)) if (!tab.isScratchpad) notes[tab.filename] = tab.content;
     // Agenda trouble (no file, a broken file) just means no agenda meetings in the index.
     const agenda = await api.readAgendaAfter(addDaysISO(today, -WINDOW_DAYS - 1)).catch(() => [] as [string, string][]);
-    const outbox = buildOutbox({ notes, agenda, today, appVersion: get(appVersion), now: new Date() });
+    const outbox = buildOutbox({
+      notes,
+      agenda,
+      today,
+      appVersion: get(appVersion),
+      now: new Date(),
+      results: outboxResults,
+    });
     const content = contentOf(outbox);
     // Turned off while this was reading: write nothing.
     if (content === lastWritten || !active()) return;
@@ -265,8 +296,29 @@ export function schedulePhoneOutbox(delayMs = EDIT_DEBOUNCE_MS, fresh = false): 
   }, delayMs);
 }
 
-/** Called once at boot (desktop): builds the outbox shortly after boot when the setting is on, and keeps it up to
- * date. */
+/** How often the phone's inbox is looked at while active (it only changes through OneDrive, so there is no hurry). */
+const INBOX_POLL_MS = 60_000;
+
+/** Applies the phone's requests, then rebuilds the outbox (the processing publishes the results itself when it ran;
+ * this also covers a run that stopped early, so the file is still current). */
+async function inboxThenOutbox(): Promise<void> {
+  if (!active()) return;
+  try {
+    await processPhoneInbox();
+  } catch (e) {
+    logWarn(`phone companion: applying the inbox failed: ${e}`);
+  }
+  await updatePhoneOutbox(true);
+}
+
+/** Window focus: the phone may have left requests (and the agenda and notes may have changed) while ChronoNote was in
+ * the background. */
+export function phoneCompanionOnFocus(): void {
+  void inboxThenOutbox();
+}
+
+/** Called once at boot (desktop): applies the phone's requests and builds the outbox shortly after boot when the
+ * setting is on, and keeps both up to date. */
 export function wirePhoneCompanion(): void {
   if (wired) return;
   wired = true;
@@ -274,11 +326,15 @@ export function wirePhoneCompanion(): void {
   let booted = false;
   phoneCompanionEnabled.subscribe((on) => {
     if (on) {
-      if (booted) void updatePhoneOutbox();
-      else schedulePhoneOutbox(BOOT_DELAY_MS, true);
+      // At boot the requests are applied before the first outbox build, so that one already carries their results.
+      if (booted) void inboxThenOutbox();
+      else setTimeout(() => void inboxThenOutbox(), BOOT_DELAY_MS);
     }
     booted = true;
   });
+  setInterval(() => {
+    if (active()) void pollPhoneInbox();
+  }, INBOX_POLL_MS);
   let day: string | null = null;
   currentDateISO.subscribe((today) => {
     if (day !== null && today !== day) void updatePhoneOutbox();
@@ -316,5 +372,6 @@ export function resetPhoneCompanionForTests(): void {
   freshPending = false;
   warned = false;
   windowDisk = {};
+  outboxResults = [];
   titleCache.clear();
 }
