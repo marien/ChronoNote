@@ -226,31 +226,93 @@ companion setting is off).
 Unknown fields must be ignored. The outbox can be behind the notes (a meeting added today may not be in it yet): the
 app also looks at the window's notes itself.
 
-## 10. Visual language
+## 10. Look: like ChronoNote
 
-One glyph per line kind and state, in a fixed-width column before the body, so lines align:
+The app should read as ChronoNote at a glance: the same symbols, colours and themes. For a visual reference, open the
+live demo on the website `chrononote.mariendegelder.nl` ("Try it") in a browser at phone width.
 
-| Kind / state | Glyph | Body style |
+### 10.1 Themes and colours
+
+Two themes, **dark by default**, with a Dark/Light switch on the Days screen remembered on the device (canvas apps
+can't reliably follow the phone's own setting). Define every colour once as a named formula (for example a record
+`Theme` chosen by the switch) and use only those in controls.
+
+| Token | Dark | Light | Used for |
+| :--- | :--- | :--- | :--- |
+| canvas | `#1E1E1E` | `#FFFFFF` | screen background, note area |
+| chrome | `#252526` | `#F3F3F3` | top bar, status line, bottom bars |
+| raised | `#37373B` | `#E7E7E7` | pressed rows, buttons, chips |
+| edge | white at 7% | black at 9% | dividers between rows |
+| text | `#D4D4D4` | `#1B1B1B` | note text, titles |
+| muted | `#A6A6A6` | `#5F5F5F` | secondary text, agenda-only meetings |
+| tertiary | `#949494` | `#757575` | the rules under titles, captions |
+| accent | `#0A74C2` | `#0A6FC2` | selected items, primary buttons (white text) |
+| open | `#FF6B6B` | `#D9383A` | open action box, open topic ring |
+| done | `#51CF66` | `#2B8A3E` | done action box and check, discussed topic |
+| progress | `#E5A50A` | `#B25E00` | deferred action box and chevron, postponed topic |
+| cancelled | `#868E96` | `#5C636A` | won't-do box and cross |
+| follow-up | `#0098FF` | `#0066B8` | the ➔ arrow |
+| person | `#29A8FF` on `#007ACC` at 15% | `#0066B8` on `#0066B8` at 12% | `@name` badge |
+| emphasis | `#FFD43B` | `#F08C00` | emphasis line text |
+| error | `#D66B63` | `#C4463E` | "Couldn't refresh" |
+
+### 10.2 Fonts and sizes
+
+- **Note text** (lines, titles, bodies): monospace, as in ChronoNote: `Font.'Courier New'`, 14 to 15 pt. Check it on
+  the phone; if it renders poorly there, use `Font.'Segoe UI'` and say so.
+- **App text** (bars, buttons, dates, status): `Font.'Segoe UI'`. Screen titles 20 pt semibold, body 14 pt,
+  captions 12 pt in muted.
+- Line height about 1.6 × the font size. Touch targets at least 44 px high.
+
+### 10.3 Symbols
+
+Each line's symbol sits in a fixed-width column (two monospace characters wide; three for the ➔ arrow) before the
+body, so text aligns as in ChronoNote. Indent each level by two monospace characters.
+
+Actions and topics are **drawn shapes, not font characters**: an Image control whose `Image` is
+`"data:image/svg+xml;utf8," & EncodeUrl(svg)`, about 0.75 × the font size square, aligned to the text's baseline.
+Replace `C` below with the colour's hex value (`#` included, before encoding).
+
+| Line | Colour | SVG |
 | :--- | :--- | :--- |
-| action open | ☐ | normal |
-| action done | ☑ | grey, strikethrough |
-| action won't do | ☒ | grey, strikethrough |
-| action deferred | ➜ | grey |
-| topic open | ○ | normal |
-| topic discussed | ● | grey |
-| topic postponed | ◐ | grey |
-| follow-up | ⇒ | normal |
-| delegated | ⇒ | normal, `@name` bold |
-| bullet | • | normal |
-| emphasis | (none) | bold |
-| text | (none) | normal |
-| section title | (none) | bold, larger, with space above |
-| sub-heading | (none) | bold |
+| action open | open | `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><rect x='1.2' y='1.2' width='13.6' height='13.6' rx='1.5' fill='none' stroke='C' stroke-width='1.6'/></svg>` |
+| action done | done | the open box, plus `<g transform='translate(2.4 2.4) scale(0.7)'><path d='M3 8.6l3.4 3.4 6.6-8' fill='none' stroke='C' stroke-width='3.4' stroke-linecap='round' stroke-linejoin='round'/></g>` before `</svg>` |
+| action won't do | cancelled | the open box, plus the same `<g …>` with `<path d='M3.6 3.6l8.8 8.8M12.4 3.6l-8.8 8.8' … stroke-width='3.2' …/>` |
+| action deferred | progress | the open box, plus the same `<g …>` with `<path d='M5.6 2.8l5.2 5.2-5.2 5.2' … stroke-width='3.4' …/>` |
+| topic open | open | `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><circle cx='8' cy='8' r='6.3' fill='none' stroke='C' stroke-width='1.6'/></svg>` |
+| topic discussed | done | the topic ring, plus `<circle cx='8' cy='8' r='3.4' fill='C'/>` |
+| topic postponed | progress | the topic ring with `stroke-dasharray='2.6 1.8'` |
 
-Indent each line by its level (about 16 px per level). Underline lines (`===`, `---`) are never shown. Use the app's
-default light theme, body text at least 14 pt, touch targets at least 44 px high. A "Show done" switch (one,
-app-wide, remembered on the device) hides done and won't-do actions and discussed topics, and the lines nested under
-them.
+The rest are characters in the note font:
+
+| Line | Symbol | Style |
+| :--- | :--- | :--- |
+| follow-up, delegated (`=>`) | ➔ | follow-up colour, bold |
+| bullet (`-`, `*`) | • | text colour |
+| `@name` in any line | the name with its `@` | person colour, semibold, on its badge background, small rounded corners |
+| emphasis (`!`) | (no symbol, the `!` is hidden) | emphasis colour, bold |
+| text, follow-up body | as written | text colour |
+
+The **body text keeps the text colour in every state**: ChronoNote shows a done or won't-do line's state by its box,
+not by greying or striking through the text.
+
+### 10.4 Titles
+
+- A **section title** is drawn as its text in the note font, text colour, with a **double rule** under it in
+  tertiary: two 1 px lines about 2 px apart, the width of the note area (this is how ChronoNote draws the `===`
+  line). Some space above each title except the first.
+- A **sub-heading** is its text with a **single** 1 px tertiary rule under it (the `---` line).
+- The underline characters themselves are never shown.
+
+### 10.5 Layout
+
+- **Top bar** in chrome: back button where there is one, the screen's title (a date like "Thu 30 Oct", or a meeting
+  title) in 20 pt semibold, and the screen's buttons on the right as icons.
+- **Status line** under the top bar in chrome, 12 pt muted ("Updated 08:40").
+- **Content** on canvas, with 16 px side margins. Lists (Days screen) have rows separated by edge-coloured dividers;
+  a pressed row shows raised.
+- **Show done:** one switch, app-wide, remembered on the device, hides done and won't-do actions and discussed
+  topics, and the lines nested under them.
 
 ## 11. Power Fx hints
 
@@ -262,3 +324,28 @@ them.
   section is the last title whose number is lower. Parse only the notes on screen, not the whole folder.
 - Dates: `Text(d, "yyyy-mm-dd")` for file names; `DateValue` with the ISO string to go back.
 - `GUID()` makes request ids in phase 2.
+
+## 12. Sources in the repository
+
+ChronoNote is open source. When a detail here is unclear, these files are the ground truth (this reference wins
+where they seem to differ; then ask). The links point at the `feat/phone-companion` branch; once it is merged, the
+same paths are on `main`.
+
+| What | File |
+| :--- | :--- |
+| These instructions | [docs/phone-companion-powerapps/](https://github.com/marien/ChronoNote/tree/feat/phone-companion/docs/phone-companion-powerapps) |
+| The design and its reasons (outbox, inbox, phases, risks) | [docs/design/mobile-companion-design.md](https://github.com/marien/ChronoNote/blob/feat/phone-companion/docs/design/mobile-companion-design.md) |
+| The file formats (the agreement both sides build against) | [docs/phone-companion-file-guide.md](https://github.com/marien/ChronoNote/blob/feat/phone-companion/docs/phone-companion-file-guide.md) |
+| The calendar file in full (timezone rules, validation) | [docs/agenda-file-guide.md](https://github.com/marien/ChronoNote/blob/feat/phone-companion/docs/agenda-file-guide.md) |
+| The note syntax and every behaviour (section 2.2: tokens) | [docs/spec.md](https://github.com/marien/ChronoNote/blob/feat/phone-companion/docs/spec.md) |
+| The user guide, with the syntax as users learn it | [website/guide.html](https://github.com/marien/ChronoNote/blob/feat/phone-companion/website/guide.html) |
+| How ChronoNote builds the outbox | [src/lib/phoneCompanion.ts](https://github.com/marien/ChronoNote/blob/feat/phone-companion/src/lib/phoneCompanion.ts) |
+| Sections and title matching (`isSetextUnderline`, `normalizeHeaderTitle`, `titleForMatching`) | [src/lib/tokens.ts](https://github.com/marien/ChronoNote/blob/feat/phone-companion/src/lib/tokens.ts) |
+| Line kinds | [src/lib/lineKind.ts](https://github.com/marien/ChronoNote/blob/feat/phone-companion/src/lib/lineKind.ts) |
+| Agenda title rules (removed meetings, status words) | [src/lib/agendaTitles.ts](https://github.com/marien/ChronoNote/blob/feat/phone-companion/src/lib/agendaTitles.ts) |
+| Symbols per token | [src/lib/grammar/glyphs.ts](https://github.com/marien/ChronoNote/blob/feat/phone-companion/src/lib/grammar/glyphs.ts) |
+| Colours (dark, light, colour and grayscale modes) | [src/styles/01-tokens.css](https://github.com/marien/ChronoNote/blob/feat/phone-companion/src/styles/01-tokens.css) |
+| How the symbols and title rules are drawn | [src/styles/03-editor.css](https://github.com/marien/ChronoNote/blob/feat/phone-companion/src/styles/03-editor.css) |
+| How the phone web app lays things out | [src/styles/09-mobile.css](https://github.com/marien/ChronoNote/blob/feat/phone-companion/src/styles/09-mobile.css) |
+
+The live demo (`chrononote.mariendegelder.nl`, "Try it") shows all of it running, also at phone width.

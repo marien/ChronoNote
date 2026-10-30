@@ -91,13 +91,13 @@ user's Studio has them, otherwise as formulas with `With`.
 
 ### Days (start screen)
 
-- Top: "ChronoNote", a refresh button, and one status line ("Updated 08:40", "Reading 10 of 23…", "Offline · copy
+- Top: "ChronoNote", a refresh button, the Dark/Light switch (reference 10.1), and one status line ("Updated 08:40", "Reading 10 of 23…", "Offline · copy
   from 08:40", "Couldn't refresh · copy from 08:40").
 - A list in three groups: **Today**, **Coming days** (tomorrow to +14, nearest first), **Earlier** (yesterday to -14,
   nearest first). Today is always shown; other days only when they have a note or agenda meetings.
 - Each day: its date ("Thu 30 Oct"), "3 open · 2 to discuss" (open actions, open topics; omitted when zero), then its
   meetings in note order: section titles (time range and `[CANCELED]` removed for display; ad-hoc sections in
-  italic), followed by agenda meetings that have no section yet, in grey with "agenda", ordered by start time.
+  italic), followed by agenda meetings that have no section yet, in muted with "agenda", ordered by start time.
 - Tap a day → Day screen. Tap a meeting → Meeting screen at that day's occurrence (an agenda-only meeting opens at
   that day with "No notes yet").
 
@@ -105,8 +105,9 @@ user's Studio has them, otherwise as formulas with `With`.
 
 - Top: back, the date, previous/next day buttons (to the nearest day with a note or agenda meetings), the "Show done"
   switch.
-- The note drawn line by line (reference 10). Section titles are tappable → Meeting screen. Underlines are not shown.
-- After the note: agenda meetings without a section, each as a grey title with "On the agenda, no notes yet".
+- The note drawn line by line (reference 10): symbols, colours, the rules under titles and sub-headings. Section
+  titles are tappable → Meeting screen.
+- After the note: agenda meetings without a section, each as a muted title with "On the agenda, no notes yet".
 - No note and no agenda: "No note for this day." A day outside the copy (beyond the window): a "Load this day"
   button that reads that one note with `CNRead`, keeps it in the copy, and shows it.
 
@@ -132,9 +133,10 @@ The user checks these on the phone:
 1. Opening the app shows the Days screen from the copy within about 2 seconds, then refreshes by itself.
 2. Today, the coming days and the earlier days show the right meetings and counts, compared with ChronoNote on the
    laptop.
-3. Agenda meetings without notes yet appear in grey; canceled and declined ones don't appear.
-4. A day's note reads like it does in ChronoNote: glyphs, indentation, done items grey and struck through,
-   sub-headings bold, no `===` lines.
+3. Agenda meetings without notes yet appear muted; canceled and declined ones don't appear.
+4. A day's note looks like it does in ChronoNote (dark theme, colour symbols): the same boxes, circles and arrows in
+   the same colours, `@name` badges, yellow emphasis lines, the indentation, a double rule under each section title
+   and a single one under sub-headings, no `=` or `-` characters. The Light switch gives ChronoNote's light theme.
 5. "Show done" hides and shows done and won't-do actions and discussed topics, also after closing and reopening the
    app.
 6. Tapping a meeting opens it; older/newer walks through its occurrences, including ones from before the 4-week
