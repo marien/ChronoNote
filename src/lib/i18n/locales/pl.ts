@@ -1024,4 +1024,46 @@ export const pl = {
   "weekReview.footer.thisWeek": () => "ten tydzień",
   "weekReview.empty.title": () => "Brak notatek w tym tygodniu",
   "weekReview.empty.subtitle": () => "W tym tygodniu nie ma żadnych datowanych notatek.",
+
+  "phoneCompanion.toast.applied": ({ count = 1 }: { count: number } = { count: 1 }) => {
+    if (count === 1) return "Zastosowano 1 zmianę z telefonu.";
+    const mod10 = count % 10;
+    const mod100 = count % 100;
+    if (mod10 >= 2 && mod10 <= 4 && !(mod100 >= 12 && mod100 <= 14)) {
+      return `Zastosowano ${count} zmiany z telefonu.`;
+    }
+    return `Zastosowano ${count} zmian z telefonu.`;
+  },
+  "phoneCompanion.toast.nothingNew": () => "Brak nowych zmian z telefonu.",
+  "infoBar.phoneConflicts": ({ count = 1 }: { count: number } = { count: 1 }) => {
+    if (count === 1) return "1 zmiana z telefonu wymaga sprawdzenia.";
+    const mod10 = count % 10;
+    const mod100 = count % 100;
+    if (mod10 >= 2 && mod10 <= 4 && !(mod100 >= 12 && mod100 <= 14)) {
+      return `${count} zmiany z telefonu wymagają sprawdzenia.`;
+    }
+    return `${count} zmian z telefonu wymaga sprawdzenia.`;
+  },
+  "infoBar.review": () => "Sprawdź",
+  "phoneChanges.title": () => "Zmiany z telefonu",
+  "phoneChanges.needsLook": () => "Do sprawdzenia",
+  "phoneChanges.applied": () => "Zastosowane",
+  "phoneChanges.none": () => "Nic z telefonu nie wymaga sprawdzenia.",
+  "phoneChanges.ask.add": () => "Dodaj wiersz",
+  "phoneChanges.ask.open": () => "Otwórz ponownie",
+  "phoneChanges.ask.done": () => "Oznacz jako zrobione",
+  "phoneChanges.ask.wontdo": () => "Oznacz jako porzucone",
+  "phoneChanges.ask.discussed": () => "Oznacz jako omówione",
+  "phoneChanges.ask.postponed": () => "Oznacz jako przełożone",
+  "phoneChanges.phoneSaw": () => "Telefon widział",
+  "phoneChanges.nowInNote": () => "Teraz w notatce",
+  "phoneChanges.reason.lineChanged": () => "Ten wiersz zmienił się na komputerze po odczytaniu go przez telefon.",
+  "phoneChanges.reason.lineAmbiguous": () => "Ten wiersz występuje więcej niż raz i został przeniesiony, więc nie wiadomo, o który chodzi.",
+  "phoneChanges.reason.sectionGone": () => "Tego spotkania nie ma już w notatce z tego dnia.",
+  "phoneChanges.applyToLine": () => "Zastosuj do wybranego wiersza",
+  "phoneChanges.addAsNew": () => "Dodaj jako nowy wiersz",
+  "phoneChanges.skip": () => "Pomiń",
+  "phoneChanges.noteChanged": () => "Notatka się zmieniła. Sprawdź ponownie i wybierz.",
+  "phoneChanges.writeFailed": () => "Nie udało się zmienić notatki. Spróbuj ponownie.",
+  "commandPalette.applyPhoneChanges.label": () => "Zastosuj zmiany z telefonu",
 } satisfies Dictionary;

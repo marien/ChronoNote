@@ -10,12 +10,14 @@ export interface InfoBarItem {
 export interface InfoBarState {
   backendKind: string;
   syncConflictsCount: number;
+  phoneConflictsCount: number;
   oneDriveSignInExpired: boolean;
   updateStatus: string;
   updateAvailableVersion: string | null;
   justUpdatedToVersion: string | null;
   callbacks: {
     openSyncConflicts: () => void;
+    openPhoneChanges: () => void;
     signInAgain: () => void;
     openAbout: () => void;
     openJustUpdatedReleaseNotes: () => void;
@@ -23,7 +25,9 @@ export interface InfoBarState {
   };
   translate: {
     conflictsText: (count: number) => string;
+    phoneConflictsText: (count: number) => string;
     resolveLabel: () => string;
+    reviewLabel: () => string;
     signInExpiredText: () => string;
     signInAgainLabel: () => string;
     updateAvailableText: (version: string) => string;
@@ -36,9 +40,10 @@ export interface InfoBarState {
 /**
  * Pure function choosing the ONE message to show in the InfoBar, in priority order:
  * 1. Sync conflicts (warning, "Resolve" -> openSyncConflicts)
- * 2. Sign-in expired (warning, "Sign in again" -> signInAgain)
- * 3. Update available on desktop/demo only, not web (info, "View update" -> modal.set("about"))
- * 4. Just updated (success, "What's new" -> openJustUpdatedReleaseNotes, dismiss also calls dismissJustUpdatedNotice)
+ * 2. Phone conflicts (warning, "Review" -> openPhoneChanges)
+ * 3. Sign-in expired (warning, "Sign in again" -> signInAgain)
+ * 4. Update available on desktop/demo only, not web (info, "View update" -> modal.set("about"))
+ * 5. Just updated (success, "What's new" -> openJustUpdatedReleaseNotes, dismiss also calls dismissJustUpdatedNotice)
  *
  * An item whose key is in `dismissed` is skipped.
  */
@@ -57,7 +62,21 @@ export function pickInfoBar(state: InfoBarState, dismissed: ReadonlySet<string>)
     }
   }
 
-  // 2. Sign-in expired
+  // 2. Phone conflicts
+  if (state.phoneConflictsCount > 0) {
+    const key = `phone-conflicts:${state.phoneConflictsCount}`;
+    if (!dismissed.has(key)) {
+      return {
+        key,
+        severity: "warning",
+        text: state.translate.phoneConflictsText(state.phoneConflictsCount),
+        actionLabel: state.translate.reviewLabel(),
+        action: state.callbacks.openPhoneChanges,
+      };
+    }
+  }
+
+  // 3. Sign-in expired
   if (state.oneDriveSignInExpired) {
     const key = "signin-expired";
     if (!dismissed.has(key)) {

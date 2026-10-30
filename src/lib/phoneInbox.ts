@@ -16,10 +16,14 @@ import {
 import {
   applyAddLine,
   applySetState,
+  applyStateAtLine,
+  lineWithState,
   parseInbox,
   validateRequest,
+  type AddLineRequest,
   type ApplyOutcome,
   type InboxRequest,
+  type SetStateRequest,
 } from "./phoneInboxApply";
 import { notesDir, tabs } from "./stores";
 import * as api from "./tauriApi";
@@ -44,6 +48,23 @@ export interface PhoneInboxRun {
 export const phoneInboxRun = writable<PhoneInboxRun | null>(null);
 /** Every request held back as a conflict, for the conflict dialog. */
 export const phoneConflicts = writable<LedgerEntry[]>([]);
+
+export type ConflictChoice = "skip" | "add" | { line: number; text: string };
+export type ResolveResult = "done" | "noteChanged" | "failed" | "gone";
+
+/** The note's current text for the dialog: the open (non-scratchpad) tab's content, else the file ("" when missing). */
+export async function phoneConflictNote(date: string): Promise<string> {
+  const filename = `${date}.txt`;
+  const open = get(tabs).find((t) => !t.isScratchpad && t.filename === filename);
+  if (open) return open.content;
+  try {
+    const { content } = await api.readNoteWithMetadata(filename);
+    return content ?? "";
+  } catch {
+    return "";
+  }
+}
+
 
 /** Request id to what became of it. A Map: ids come from a file we don't control (`__proto__` is a valid key there). */
 type Ledger = Map<string, LedgerEntry>;
@@ -149,44 +170,61 @@ function applyAll(note: string, reqs: InboxRequest[], agenda: string[], outcomes
   return text;
 }
 
-/** Applies one note's requests, to the open tab or to the file. Null when writing failed (nothing is recorded then,
- * so the requests are tried again). The earlier text stays as an earlier version, so the run can be undone. */
-async function applyToNote(date: string, reqs: InboxRequest[]): Promise<Map<string, Outcome> | null> {
+/** Shared helper for writing note content to open tab or closed disk file. */
+async function writeNoteWithUpdate<T>(
+  date: string,
+  change: (current: string) => { text: string; data: T },
+): Promise<{ ok: true; data: T } | { ok: false }> {
   const filename = `${date}.txt`;
-  const outcomes = new Map<string, Outcome>();
   try {
-    let agenda: string[] = [];
-    if (reqs.some((r) => r.type === "addLine")) {
-      try {
-        agenda = (await api.readAgendaForDate(date)) ?? [];
-      } catch {
-        agenda = []; // no agenda file or a broken one: the section simply goes at the end
-      }
-    }
     const open = get(tabs).find((t) => !t.isScratchpad && t.filename === filename);
     if (open) {
-      // The tab's own edits reach the disk first, so the change goes on top of what is saved.
       await flushAllPendingSaves();
       const tab = get(tabs).find((t) => t.id === open.id);
-      if (!tab) return null; // closed meanwhile: next run
-      const text = applyAll(tab.content, reqs, agenda, outcomes);
-      // Awaited: a change is only reported as applied once it is on disk.
-      if (text !== tab.content) await writeTabContentAndWait(tab.id, text, tab.content, { keepVersion: true });
+      if (!tab) return { ok: false };
+      const { text, data } = change(tab.content);
+      if (text !== tab.content) {
+        await writeTabContentAndWait(tab.id, text, tab.content, { keepVersion: true });
+      }
+      return { ok: true, data };
     } else {
+      let resultData: T;
       await updateNoteOnDisk(
         filename,
         (current) => {
-          outcomes.clear(); // retried when the file changed in between
-          return applyAll(current, reqs, agenda, outcomes);
+          const res = change(current);
+          resultData = res.data;
+          return res.text;
         },
         { keepVersion: true },
       );
+      return { ok: true, data: resultData! };
     }
-    return outcomes;
   } catch (e) {
-    logWarn(`phone companion: applying requests to ${filename} failed: ${e}`);
-    return null;
+    logWarn(`phone companion: applying to ${filename} failed: ${e}`);
+    return { ok: false };
   }
+}
+
+/** Applies one note's requests, to the open tab or to the file. Null when writing failed (nothing is recorded then,
+ * so the requests are tried again). The earlier text stays as an earlier version, so the run can be undone. */
+async function applyToNote(date: string, reqs: InboxRequest[]): Promise<Map<string, Outcome> | null> {
+  const outcomes = new Map<string, Outcome>();
+  let agenda: string[] = [];
+  if (reqs.some((r) => r.type === "addLine")) {
+    try {
+      agenda = (await api.readAgendaForDate(date)) ?? [];
+    } catch {
+      agenda = [];
+    }
+  }
+  const res = await writeNoteWithUpdate(date, (current) => {
+    outcomes.clear();
+    const text = applyAll(current, reqs, agenda, outcomes);
+    return { text, data: undefined };
+  });
+  if (!res.ok) return null;
+  return outcomes;
 }
 
 /** The key of the inbox text the last run handled (null: none yet, or a note could not be written and a retry is due). */
@@ -325,21 +363,107 @@ export async function pollPhoneInbox(): Promise<PhoneInboxRun | null> {
   }
 }
 
-/** For the conflict dialog: leaves a held request alone for good (the phone sees it as rejected, reason `skipped`). */
-export async function resolvePhoneConflict(id: string, choice: "skip"): Promise<void> {
-  if (choice !== "skip" || !phoneCompanionActive()) return;
-  const changed = await exclusive(async () => {
+function noteToLines(note: string): string[] {
+  if (note === "") return [];
+  const s = note.endsWith("\n") ? note.slice(0, -1) : note;
+  return s.split("\n");
+}
+
+/** Resolves a held phone conflict: skip, add as new line, or apply to a chosen line. */
+export async function resolvePhoneConflict(id: string, choice: ConflictChoice): Promise<ResolveResult> {
+  if (!phoneCompanionActive()) return "gone";
+  let shouldUpdateOutbox = false;
+  const result = await exclusive(async (): Promise<ResolveResult> => {
     const ledger = await loadLedger();
     const entry = ledger.get(id);
-    if (!entry || entry.result !== "conflict") return false;
-    ledger.set(id, { result: "rejected", reason: "skipped", at: localIsoWithOffset(new Date()), request: entry.request });
-    await saveLedger(ledger);
-    phoneConflicts.set(conflictsOf(ledger));
-    const read = await readInbox();
-    setOutboxResults(resultsFor(ledger, read.kind === "ok" ? inboxIds(read.inbox.requests) : [...ledger.keys()]));
-    return true;
+    if (!entry || entry.result !== "conflict") return "gone";
+
+    const now = localIsoWithOffset(new Date());
+
+    if (choice === "skip") {
+      ledger.set(id, { result: "rejected", reason: "skipped", at: now, request: entry.request });
+      await saveLedger(ledger);
+      phoneConflicts.set(conflictsOf(ledger));
+      const read = await readInbox();
+      setOutboxResults(resultsFor(ledger, read.kind === "ok" ? inboxIds(read.inbox.requests) : [...ledger.keys()]));
+      shouldUpdateOutbox = true;
+      return "done";
+    }
+
+    const req = entry.request;
+    if (req.type !== "setState") return "gone";
+
+    if (choice === "add") {
+      const lineToAdd = lineWithState(req.line, req.state) ?? req.line;
+      const addReq: AddLineRequest = {
+        id: req.id,
+        type: "addLine",
+        date: req.date,
+        text: lineToAdd,
+        ...(req.section !== undefined ? { section: req.section } : {}),
+      };
+      let agenda: string[] = [];
+      try {
+        agenda = (await api.readAgendaForDate(req.date)) ?? [];
+      } catch {
+        agenda = [];
+      }
+      const writeRes = await writeNoteWithUpdate(req.date, (current) => {
+        const out = applyAddLine(current, addReq, agenda);
+        const text = out.result === "applied" ? out.text : current;
+        return { text, data: "done" as const };
+      });
+      if (!writeRes.ok) return "failed";
+
+      ledger.set(id, { result: "applied", at: now, request: entry.request });
+      await saveLedger(ledger);
+      phoneConflicts.set(conflictsOf(ledger));
+      const read = await readInbox();
+      setOutboxResults(resultsFor(ledger, read.kind === "ok" ? inboxIds(read.inbox.requests) : [...ledger.keys()]));
+      shouldUpdateOutbox = true;
+      return "done";
+    }
+
+    if (typeof choice === "object" && choice !== null && "line" in choice) {
+      const currentNote = await phoneConflictNote(req.date);
+      const lines = noteToLines(currentNote);
+      if (choice.line < 0 || choice.line >= lines.length || lines[choice.line] !== choice.text) {
+        return "noteChanged";
+      }
+      const initialOutcome = applyStateAtLine(currentNote, choice.line, req.state);
+      if (initialOutcome.result !== "applied") {
+        return "noteChanged";
+      }
+
+      const writeRes = await writeNoteWithUpdate(req.date, (current) => {
+        const curLines = noteToLines(current);
+        if (choice.line < 0 || choice.line >= curLines.length || curLines[choice.line] !== choice.text) {
+          return { text: current, data: "noteChanged" as const };
+        }
+        const outcome = applyStateAtLine(current, choice.line, req.state);
+        if (outcome.result !== "applied") {
+          return { text: current, data: "noteChanged" as const };
+        }
+        return { text: outcome.text, data: "done" as const };
+      });
+
+      if (!writeRes.ok) return "failed";
+      if (writeRes.data === "noteChanged") return "noteChanged";
+
+      ledger.set(id, { result: "applied", at: now, request: entry.request });
+      await saveLedger(ledger);
+      phoneConflicts.set(conflictsOf(ledger));
+      const read = await readInbox();
+      setOutboxResults(resultsFor(ledger, read.kind === "ok" ? inboxIds(read.inbox.requests) : [...ledger.keys()]));
+      shouldUpdateOutbox = true;
+      return "done";
+    }
+
+    return "gone";
   });
-  if (changed) await updatePhoneOutbox(true);
+
+  if (shouldUpdateOutbox) await updatePhoneOutbox(true);
+  return result;
 }
 
 function inboxIds(requests: unknown[]): string[] {

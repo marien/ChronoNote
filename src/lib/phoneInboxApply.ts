@@ -12,6 +12,7 @@ import {
 } from "./tokens";
 
 export type PhoneState = "open" | "done" | "wontdo" | "discussed" | "postponed";
+export type LineKind = "action" | "topic";
 interface RequestBase {
   id: string;
   made?: string;
@@ -136,7 +137,66 @@ function lastNonBlank(lines: string[], start: number, end: number): number {
 
 // --- Line state ---
 
-type Kind = "action" | "topic";
+type Kind = LineKind;
+
+/** The kind of a line's state symbol (as `stateSymbolOf` finds it), or null when it has none. */
+export function stateKindOf(line: string): LineKind | null {
+  return stateSymbolOf(line)?.kind ?? null;
+}
+
+/** The lines of `section` (same section matching as applySetState; undefined/blank = the day part) that carry a state
+ * symbol, deferred `>` lines left out. `line` is the 0-based line index in the note. null when the section is gone. */
+export function sectionStateLines(
+  note: string,
+  section: string | undefined,
+): { line: number; text: string; kind: LineKind }[] | null {
+  const { lines } = toLines(note);
+  const titles = titleIndexes(lines);
+  const body = bodyOf(lines, titles, section);
+  if (!body) return null;
+  const out: { line: number; text: string; kind: LineKind }[] = [];
+  for (let i = body.start; i < body.end; i++) {
+    const sym = stateSymbolOf(lines[i]);
+    if (sym && sym.sym !== ">") {
+      out.push({ line: i, text: lines[i], kind: sym.kind });
+    }
+  }
+  return out;
+}
+
+/** `line` with its state symbol replaced by the one for `state` (same kind), or null when that is not possible. */
+export function lineWithState(line: string, state: PhoneState): string | null {
+  const sym = stateSymbolOf(line);
+  if (!sym || sym.sym === ">") return null;
+  const newSym = SYMBOLS[sym.kind][state];
+  if (newSym === undefined) return null;
+  if (stateOfSymbol(sym.sym) === state) return line;
+
+  const col = sym.index + 1;
+  return sym.kind === "action"
+    ? setActionSymbolTo(line, newSym as "#" | "v" | "x", col)
+    : setTopicSymbolTo(line, newSym as "o" | "." | ",", col);
+}
+
+/** Sets the state of line `line` (0-based). `rejected`/`invalid` when that line has no state symbol, has `>`, or the
+ * state doesn't fit its kind (done on a topic, discussed on an action...). Already in that state: applied, unchanged. */
+export function applyStateAtLine(note: string, line: number, state: PhoneState): ApplyOutcome {
+  const { lines, trailing } = toLines(note);
+  const rejected: ApplyOutcome = { result: "rejected", reason: "invalid" };
+  if (line < 0 || line >= lines.length) return rejected;
+  const targetLine = lines[line];
+  const sym = stateSymbolOf(targetLine);
+  if (!sym || sym.sym === ">") return rejected;
+  const newSym = SYMBOLS[sym.kind][state];
+  if (newSym === undefined) return rejected;
+  if (stateOfSymbol(sym.sym) === state) return unchanged(note);
+
+  const replaced = lineWithState(targetLine, state);
+  if (replaced === null) return rejected;
+  const next = [...lines];
+  next[line] = replaced;
+  return { result: "applied", text: fromLines(next, trailing), changed: replaced !== targetLine };
+}
 
 /** The symbol that gives a line its state: its first symbol after the indentation, or right after a leading `=> `. */
 function stateSymbolOf(line: string): { index: number; sym: string; kind: Kind } | null {
@@ -178,7 +238,7 @@ const unchanged = (note: string): ApplyOutcome => ({ result: "applied", text: no
 
 /** Applies a setState to one note's text (LF line endings). Rules: spec section 6.7. */
 export function applySetState(note: string, req: SetStateRequest): ApplyOutcome {
-  const { lines, trailing } = toLines(note);
+  const { lines } = toLines(note);
   const body = bodyOf(lines, titleIndexes(lines), req.section);
   if (!body) return conflict("lineChanged");
 
@@ -211,24 +271,7 @@ export function applySetState(note: string, req: SetStateRequest): ApplyOutcome 
     return conflict("lineChanged");
   }
 
-  const line = lines[target];
-  const sym = stateSymbolOf(line);
-  const rejected: ApplyOutcome = { result: "rejected", reason: "invalid" };
-  if (!sym || sym.sym === ">") return rejected;
-  const newSym = SYMBOLS[sym.kind][req.state];
-  if (newSym === undefined) return rejected;
-  if (stateOfSymbol(sym.sym) === req.state) return unchanged(note);
-
-  // Column just after the symbol: the one `setActionSymbolTo` / `setTopicSymbolTo` then change.
-  const col = sym.index + 1;
-  const replaced =
-    sym.kind === "action"
-      ? setActionSymbolTo(line, newSym as "#" | "v" | "x", col)
-      : setTopicSymbolTo(line, newSym as "o" | "." | ",", col);
-  if (replaced === null) return rejected;
-  const next = [...lines];
-  next[target] = replaced;
-  return { result: "applied", text: fromLines(next, trailing), changed: replaced !== line };
+  return applyStateAtLine(note, target, req.state);
 }
 
 /** Applies an addLine. `agendaTitles`: that day's live agenda meeting titles in agenda order (already cleaned, as

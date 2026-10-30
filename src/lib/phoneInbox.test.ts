@@ -37,6 +37,7 @@ import {
   phoneInboxRun,
   pollPhoneInbox,
   processPhoneInbox,
+  phoneConflictNote,
   resetPhoneInboxForTests,
   resolvePhoneConflict,
 } from "./phoneInbox";
@@ -405,5 +406,111 @@ describe("processPhoneInbox", () => {
       expect(apiMock.writePhoneLedger).not.toHaveBeenCalled();
       expect(ledger().handled.r1.result).toBe("applied");
     });
+
+    it("resolve to a line applies and records applied and saves the ledger", async () => {
+      disk.files[NOTE] = "Day\n\nStandup\n=======\n# call the venue\n# book the room\n";
+      disk.inbox = inboxOf([setState("c1", "# nowhere", "done")]);
+      await processPhoneInbox();
+      expect(get(phoneConflicts)).toHaveLength(1);
+
+      apiMock.writePhoneLedger.mockClear();
+      const res = await resolvePhoneConflict("c1", { line: 5, text: "# book the room" });
+      expect(res).toBe("done");
+      expect(disk.files[NOTE]).toContain("v book the room");
+      expect(ledger().handled.c1).toMatchObject({ result: "applied", at: expect.any(String) });
+      expect(get(phoneConflicts)).toEqual([]);
+      expect(apiMock.writePhoneLedger).toHaveBeenCalled();
+      expect(lastOutbox().results).toEqual([
+        { id: "c1", result: "applied", at: expect.any(String) },
+      ]);
+    });
+
+    it("the line changed -> noteChanged, nothing written", async () => {
+      disk.files[NOTE] = "Day\n\nStandup\n=======\n# call the venue\n# book the room\n";
+      disk.inbox = inboxOf([setState("c1", "# nowhere", "done")]);
+      await processPhoneInbox();
+      expect(get(phoneConflicts)).toHaveLength(1);
+
+      apiMock.writeNote.mockClear();
+      apiMock.writePhoneLedger.mockClear();
+      const res = await resolvePhoneConflict("c1", { line: 4, text: "# modified line" });
+      expect(res).toBe("noteChanged");
+      expect(apiMock.writeNote).not.toHaveBeenCalled();
+      expect(apiMock.writePhoneLedger).not.toHaveBeenCalled();
+      expect(ledger().handled.c1.result).toBe("conflict");
+      expect(get(phoneConflicts)).toHaveLength(1);
+    });
+
+    it("add adds the line with the requested state's symbol in the section", async () => {
+      disk.files[NOTE] = "Day\n\nStandup\n=======\n# a\n";
+      disk.inbox = inboxOf([setState("c1", "# missing action", "done")]);
+      await processPhoneInbox();
+      expect(get(phoneConflicts)).toHaveLength(1);
+
+      const res = await resolvePhoneConflict("c1", "add");
+      expect(res).toBe("done");
+      expect(disk.files[NOTE]).toBe("Day\n\nStandup\n=======\n# a\nv missing action\n");
+      expect(ledger().handled.c1).toMatchObject({ result: "applied", at: expect.any(String) });
+      expect(get(phoneConflicts)).toEqual([]);
+    });
+
+    it("write failure -> failed, still a conflict", async () => {
+      disk.files[NOTE] = "Day\n\nStandup\n=======\n# a\n";
+      disk.inbox = inboxOf([setState("c1", "# missing action", "done")]);
+      await processPhoneInbox();
+      expect(get(phoneConflicts)).toHaveLength(1);
+
+      apiMock.writeNote.mockRejectedValueOnce(new Error("disk full"));
+      const res = await resolvePhoneConflict("c1", "add");
+      expect(res).toBe("failed");
+      expect(ledger().handled.c1.result).toBe("conflict");
+      expect(get(phoneConflicts)).toHaveLength(1);
+    });
+
+    it("unknown id -> gone", async () => {
+      const res = await resolvePhoneConflict("unknown", "skip");
+      expect(res).toBe("gone");
+    });
+
+    it("open tab path: modifies open tab and keeps version", async () => {
+      const content = "Day\n\nStandup\n=======\n# call\n";
+      tabs.set([
+        {
+          id: "tab1",
+          filename: NOTE,
+          title: "Today",
+          content,
+          isScratchpad: false,
+          cleanHash: "hash1",
+        } as any,
+      ]);
+      disk.inbox = inboxOf([setState("c1", "# nowhere", "done")]);
+      await processPhoneInbox();
+      expect(get(phoneConflicts)).toHaveLength(1);
+
+      const res = await resolvePhoneConflict("c1", { line: 4, text: "# call" });
+      expect(res).toBe("done");
+      expect(get(tabs)[0].content).toBe("Day\n\nStandup\n=======\nv call\n");
+      expect(ledger().handled.c1).toMatchObject({ result: "applied" });
+    });
+
+    it("phoneConflictNote returns open tab content, else disk content, else empty string", async () => {
+      disk.files[NOTE] = "disk content";
+      expect(await phoneConflictNote(TODAY)).toBe("disk content");
+      expect(await phoneConflictNote("2099-01-01")).toBe("");
+
+      tabs.set([
+        {
+          id: "tab1",
+          filename: NOTE,
+          title: "Today",
+          content: "tab content",
+          isScratchpad: false,
+          cleanHash: "hash1",
+        } as any,
+      ]);
+      expect(await phoneConflictNote(TODAY)).toBe("tab content");
+    });
+
   });
 });

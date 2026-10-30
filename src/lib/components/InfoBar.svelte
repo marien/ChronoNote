@@ -9,6 +9,8 @@
     updateStatus,
   } from "../stores";
   import * as controller from "../controller";
+  import { phoneConflicts } from "../phoneInbox";
+  import { openPhoneChanges } from "../phoneInboxUi";
   import { pickInfoBar, type InfoBarItem } from "../infoBar";
   import Icon from "../icons/Icon.svelte";
   import { t } from "../i18n";
@@ -18,12 +20,14 @@
       {
         backendKind: $backendKind,
         syncConflictsCount: $syncConflicts.length,
+        phoneConflictsCount: $phoneConflicts.length,
         oneDriveSignInExpired: $oneDriveSignInExpired,
         updateStatus: $updateStatus,
         updateAvailableVersion: $updateAvailableVersion,
         justUpdatedToVersion: $justUpdatedToVersion,
         callbacks: {
           openSyncConflicts: controller.openSyncConflicts,
+          openPhoneChanges,
           signInAgain: controller.signInAgain,
           openAbout: controller.openAbout,
           openJustUpdatedReleaseNotes: controller.openJustUpdatedReleaseNotes,
@@ -31,7 +35,9 @@
         },
         translate: {
           conflictsText: (count: number) => $t("statusBar.conflicts.count", { count }),
+          phoneConflictsText: (count: number) => $t("infoBar.phoneConflicts", { count }),
           resolveLabel: () => $t("infoBar.resolve"),
+          reviewLabel: () => $t("infoBar.review"),
           signInExpiredText: () => $t("infoBar.signInExpired"),
           signInAgainLabel: () => $t("statusBar.oneDrive.signInAgain"),
           updateAvailableText: (version: string) => $t("infoBar.updateAvailable", { version }),

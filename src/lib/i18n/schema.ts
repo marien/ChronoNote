@@ -992,6 +992,33 @@ export type TranslationParams = {
   "weekReview.footer.thisWeek": undefined;
   "weekReview.empty.title": undefined;
   "weekReview.empty.subtitle": undefined;
+
+  // Phone companion phase 2 UI
+  "phoneCompanion.toast.applied": { count: number };
+  "phoneCompanion.toast.nothingNew": undefined;
+  "infoBar.phoneConflicts": { count: number };
+  "infoBar.review": undefined;
+  "phoneChanges.title": undefined;
+  "phoneChanges.needsLook": undefined;
+  "phoneChanges.applied": undefined;
+  "phoneChanges.none": undefined;
+  "phoneChanges.ask.add": undefined;
+  "phoneChanges.ask.open": undefined;
+  "phoneChanges.ask.done": undefined;
+  "phoneChanges.ask.wontdo": undefined;
+  "phoneChanges.ask.discussed": undefined;
+  "phoneChanges.ask.postponed": undefined;
+  "phoneChanges.phoneSaw": undefined;
+  "phoneChanges.nowInNote": undefined;
+  "phoneChanges.reason.lineChanged": undefined;
+  "phoneChanges.reason.lineAmbiguous": undefined;
+  "phoneChanges.reason.sectionGone": undefined;
+  "phoneChanges.applyToLine": undefined;
+  "phoneChanges.addAsNew": undefined;
+  "phoneChanges.skip": undefined;
+  "phoneChanges.noteChanged": undefined;
+  "phoneChanges.writeFailed": undefined;
+  "commandPalette.applyPhoneChanges.label": undefined;
 };
 
 export type TranslationKey = keyof TranslationParams;

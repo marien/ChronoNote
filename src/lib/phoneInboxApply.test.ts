@@ -7,6 +7,10 @@ import {
   type AddLineRequest,
   type PhoneState,
   type SetStateRequest,
+  stateKindOf,
+  sectionStateLines,
+  applyStateAtLine,
+  lineWithState,
 } from "./phoneInboxApply";
 
 const NOTE = ["Day line", "", "Weekly", "======", "# a", "# b", "", "Other", "=====", "# a", ""].join("\n");
@@ -369,5 +373,131 @@ describe("applyAddLine", () => {
       }
       expect(out.split("\n").length).toBeGreaterThan(note.split("\n").length);
     }
+  });
+});
+
+describe("stateKindOf", () => {
+  it("returns the line kind for actions and topics", () => {
+    expect(stateKindOf("# open action")).toBe("action");
+    expect(stateKindOf("v done action")).toBe("action");
+    expect(stateKindOf("x wontdo action")).toBe("action");
+    expect(stateKindOf("o open topic")).toBe("topic");
+    expect(stateKindOf(". discussed topic")).toBe("topic");
+    expect(stateKindOf(", postponed topic")).toBe("topic");
+  });
+
+  it("handles indentation and leading => arrows", () => {
+    expect(stateKindOf("  # indented action")).toBe("action");
+    expect(stateKindOf("  o indented topic")).toBe("topic");
+    expect(stateKindOf("=> # consequence action")).toBe("action");
+    expect(stateKindOf("=> o consequence topic")).toBe("topic");
+    expect(stateKindOf("  => v indented consequence")).toBe("action");
+  });
+
+  it("returns null for plain text, bullets, or invalid syntax", () => {
+    expect(stateKindOf("plain line")).toBeNull();
+    expect(stateKindOf("- bullet")).toBeNull();
+    expect(stateKindOf("")).toBeNull();
+  });
+});
+
+describe("sectionStateLines", () => {
+  const NOTE_WITH_SECTIONS = [
+    "# day action",
+    "plain day line",
+    "> day forwarded",
+    "o day topic",
+    "",
+    "Weekly",
+    "======",
+    "# weekly action 1",
+    "> weekly forwarded",
+    ". weekly topic",
+    "plain section line",
+    "x weekly action 2",
+    "",
+    "Empty",
+    "=====",
+    "",
+  ].join("\n");
+
+  it("day part vs section: returns lines carrying state symbol for undefined/blank section", () => {
+    expect(sectionStateLines(NOTE_WITH_SECTIONS, undefined)).toEqual([
+      { line: 0, text: "# day action", kind: "action" },
+      { line: 3, text: "o day topic", kind: "topic" },
+    ]);
+    expect(sectionStateLines(NOTE_WITH_SECTIONS, "")).toEqual([
+      { line: 0, text: "# day action", kind: "action" },
+      { line: 3, text: "o day topic", kind: "topic" },
+    ]);
+  });
+
+  it("finds lines in named section with deferred > lines left out", () => {
+    expect(sectionStateLines(NOTE_WITH_SECTIONS, "Weekly")).toEqual([
+      { line: 7, text: "# weekly action 1", kind: "action" },
+      { line: 9, text: ". weekly topic", kind: "topic" },
+      { line: 11, text: "x weekly action 2", kind: "action" },
+    ]);
+  });
+
+  it("returns null when the section is gone", () => {
+    expect(sectionStateLines(NOTE_WITH_SECTIONS, "NonExistent")).toBeNull();
+  });
+
+  it("returns empty array when section has no state lines", () => {
+    expect(sectionStateLines(NOTE_WITH_SECTIONS, "Empty")).toEqual([]);
+  });
+});
+
+describe("applyStateAtLine", () => {
+  const NOTE_TEXT = ["# action 1", "o topic 1", "> forwarded", "plain text"].join("\n");
+
+  it("applies new state to the target line index", () => {
+    const res = applyStateAtLine(NOTE_TEXT, 0, "done");
+    expect(res).toEqual({
+      result: "applied",
+      changed: true,
+      text: ["v action 1", "o topic 1", "> forwarded", "plain text"].join("\n"),
+    });
+  });
+
+  it("returns unchanged when already in that state", () => {
+    const res = applyStateAtLine(NOTE_TEXT, 0, "open");
+    expect(res).toEqual({ result: "applied", changed: false, text: NOTE_TEXT });
+  });
+
+  it("rejects wrong kind (done on topic, discussed on action)", () => {
+    expect(applyStateAtLine(NOTE_TEXT, 1, "done")).toEqual({ result: "rejected", reason: "invalid" });
+    expect(applyStateAtLine(NOTE_TEXT, 0, "discussed")).toEqual({ result: "rejected", reason: "invalid" });
+  });
+
+  it("rejects line with > or lines without state symbol or out of range", () => {
+    expect(applyStateAtLine(NOTE_TEXT, 2, "open")).toEqual({ result: "rejected", reason: "invalid" });
+    expect(applyStateAtLine(NOTE_TEXT, 3, "open")).toEqual({ result: "rejected", reason: "invalid" });
+    expect(applyStateAtLine(NOTE_TEXT, -1, "open")).toEqual({ result: "rejected", reason: "invalid" });
+    expect(applyStateAtLine(NOTE_TEXT, 99, "open")).toEqual({ result: "rejected", reason: "invalid" });
+  });
+});
+
+describe("lineWithState", () => {
+  it("replaces state symbol on => # line", () => {
+    expect(lineWithState("=> # call venue", "done")).toBe("=> v call venue");
+    expect(lineWithState("=> o discuss venue", "postponed")).toBe("=> , discuss venue");
+  });
+
+  it("preserves indentation and extra tokens", () => {
+    expect(lineWithState("  # indented task", "wontdo")).toBe("  x indented task");
+    expect(lineWithState("    o (tag) task", "discussed")).toBe("    . (tag) task");
+  });
+
+  it("returns same line when already in requested state", () => {
+    expect(lineWithState("# task", "open")).toBe("# task");
+  });
+
+  it("returns null when not possible (wrong kind, deferred >, plain text)", () => {
+    expect(lineWithState("o topic", "done")).toBeNull();
+    expect(lineWithState("# action", "discussed")).toBeNull();
+    expect(lineWithState("> forwarded", "open")).toBeNull();
+    expect(lineWithState("plain text", "open")).toBeNull();
   });
 });

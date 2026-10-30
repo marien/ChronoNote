@@ -73,6 +73,7 @@ import { applyPeekConfig } from "./peek";
 import { wireMica } from "./mica";
 import { occurrenceHint } from "./occurrences";
 import { phoneCompanionEnabled, phoneCompanionOnFocus, wirePhoneCompanion } from "./phoneCompanion";
+import { wirePhoneInboxUi } from "./phoneInboxUi";
 import { locale, t } from "./i18n";
 import { isFromNewerApp } from "./configSchema";
 import { describeApiError } from "./apiError";
@@ -676,7 +677,10 @@ export async function initApp() {
   const version = await api.getAppVersion();
   appVersion.set(version);
   // After the version is known: the outbox carries it.
-  if (get(backendKind) === "desktop") wirePhoneCompanion();
+  if (get(backendKind) === "desktop") {
+    wirePhoneCompanion();
+    wirePhoneInboxUi();
+  }
   // #50: a first launch after an in-place update shows a one-time
   // "Updated to vX.Y.Z" status-bar link (see StatusBar.svelte); a fresh
   // install or a config from before this field existed has no prior
