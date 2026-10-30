@@ -256,8 +256,8 @@ that by reading `inbox.json` back before each write and merging by `id`.
 Built in Power Apps Studio on the organisation's side, not in this repo: Marien has another AI model write the app
 and the flows there, from build instructions written here, and orchestrates the phases. Nothing (code, notes,
 organisation details) comes back; only behaviour questions and test results do. The instructions, one shared
-reference and a brief per phase, are the Claude doc "Phone companion: Power Apps build instructions"
-(https://claude.ai/artifact/Lcsrg88wh4iSYRNCvD8MVp); they decide the app's design and behaviour, and must change
+reference and a brief per phase, are in `docs/phone-companion-powerapps/` (also as the Claude doc "Phone companion:
+Power Apps build instructions", https://claude.ai/artifact/Lcsrg88wh4iSYRNCvD8MVp, kept in step); they decide the app's design and behaviour, and must change
 together with this document and `docs/phone-companion-file-guide.md`. The flows are named `CNList`, `CNRead` and
 `CNWriteInbox` there.
 
