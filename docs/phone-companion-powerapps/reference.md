@@ -269,19 +269,67 @@ can't reliably follow the phone's own setting). Define every colour once as a na
 Each line's symbol sits in a fixed-width column (two monospace characters wide; three for the ➔ arrow) before the
 body, so text aligns as in ChronoNote. Indent each level by two monospace characters.
 
-Actions and topics are **drawn shapes, not font characters**: an Image control whose `Image` is
-`"data:image/svg+xml;utf8," & EncodeUrl(svg)`, about 0.75 × the font size square, aligned to the text's baseline.
-Replace `C` below with the colour's hex value (`#` included, before encoding).
+Actions and topics are **drawn shapes, not font characters**. The seven SVGs below are complete: copy each one as it
+is and only replace every `C` (there are one or two) with the colour's hex value from 10.2, `#` included, in the
+current theme. They use single quotes, so they fit inside a Power Fx string as they are.
 
-| Line | Colour | SVG |
-| :--- | :--- | :--- |
-| action open | open | `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><rect x='1.2' y='1.2' width='13.6' height='13.6' rx='1.5' fill='none' stroke='C' stroke-width='1.6'/></svg>` |
-| action done | done | the open box, plus `<g transform='translate(2.4 2.4) scale(0.7)'><path d='M3 8.6l3.4 3.4 6.6-8' fill='none' stroke='C' stroke-width='3.4' stroke-linecap='round' stroke-linejoin='round'/></g>` before `</svg>` |
-| action won't do | cancelled | the open box, plus the same `<g …>` with `<path d='M3.6 3.6l8.8 8.8M12.4 3.6l-8.8 8.8' … stroke-width='3.2' …/>` |
-| action deferred | progress | the open box, plus the same `<g …>` with `<path d='M5.6 2.8l5.2 5.2-5.2 5.2' … stroke-width='3.4' …/>` |
-| topic open | open | `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><circle cx='8' cy='8' r='6.3' fill='none' stroke='C' stroke-width='1.6'/></svg>` |
-| topic discussed | done | the topic ring, plus `<circle cx='8' cy='8' r='3.4' fill='C'/>` |
-| topic postponed | progress | the topic ring with `stroke-dasharray='2.6 1.8'` |
+Two ways to show them, both fine:
+
+- **Inline in an HtmlText control** (the line drawn as HTML): put the SVG in the HTML and give the `<svg>` element a
+  size and baseline, for example insert `width='0.7em' height='0.7em' style='vertical-align:-0.05em'` after `<svg`
+  for a box, and `0.66em` for a ring (ChronoNote draws rings a little smaller, because a circle of the same size reads
+  larger). Follow it with a gap so the body starts two monospace characters after the symbol's start.
+- **As an Image control:** `Image = "data:image/svg+xml;utf8," & EncodeUrl(svg)`, about 0.7 × the font size square
+  (0.66 × for rings), its bottom on the text's baseline.
+
+Where they come from: ChronoNote draws the box and ring with a CSS border and the mark with an SVG mask
+(`src/styles/03-editor.css`, the `.glyph-*` rules, see section 12). These SVGs put the same shapes in one picture:
+a 16 × 16 box with a 1.6 stroke and corner radius 1.5, the mark scaled to 0.7 inside it, and a ring of radius 6.3.
+
+**action open** (colour: open), `# `
+
+```
+<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><rect x='1.2' y='1.2' width='13.6' height='13.6' rx='1.5' fill='none' stroke='C' stroke-width='1.6'/></svg>
+```
+
+**action done** (colour: done), `v `
+
+```
+<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><rect x='1.2' y='1.2' width='13.6' height='13.6' rx='1.5' fill='none' stroke='C' stroke-width='1.6'/><g transform='translate(2.4 2.4) scale(0.7)' fill='none' stroke='C' stroke-width='3.4' stroke-linecap='round' stroke-linejoin='round'><path d='M3 8.6l3.4 3.4 6.6-8'/></g></svg>
+```
+
+**action won't do** (colour: cancelled), `x `
+
+```
+<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><rect x='1.2' y='1.2' width='13.6' height='13.6' rx='1.5' fill='none' stroke='C' stroke-width='1.6'/><g transform='translate(2.4 2.4) scale(0.7)' fill='none' stroke='C' stroke-width='3.2' stroke-linecap='round' stroke-linejoin='round'><path d='M3.6 3.6l8.8 8.8M12.4 3.6l-8.8 8.8'/></g></svg>
+```
+
+**action deferred** (colour: progress), `> `
+
+```
+<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><rect x='1.2' y='1.2' width='13.6' height='13.6' rx='1.5' fill='none' stroke='C' stroke-width='1.6'/><g transform='translate(2.4 2.4) scale(0.7)' fill='none' stroke='C' stroke-width='3.4' stroke-linecap='round' stroke-linejoin='round'><path d='M5.6 2.8l5.2 5.2-5.2 5.2'/></g></svg>
+```
+
+**topic open** (colour: open), `o `
+
+```
+<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><circle cx='8' cy='8' r='6.3' fill='none' stroke='C' stroke-width='1.6'/></svg>
+```
+
+**topic discussed** (colour: done), `. `
+
+```
+<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><circle cx='8' cy='8' r='6.3' fill='none' stroke='C' stroke-width='1.6'/><circle cx='8' cy='8' r='3.4' fill='C'/></svg>
+```
+
+**topic postponed** (colour: progress), `, `
+
+```
+<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><circle cx='8' cy='8' r='6.3' fill='none' stroke='C' stroke-width='1.6' stroke-dasharray='2.6 1.8'/></svg>
+```
+
+The same symbols appear wherever a line's state is shown: the meeting screen, the Add screen's preview, the Pending
+list and the line menu (phase 2).
 
 The rest are characters in the note font:
 
