@@ -19,6 +19,16 @@ const date = localIso();
 const yesterdayDate = localIso(new Date(Date.now() - 86_400_000));
 const YESTERDAY = `${yesterdayDate}.txt`;
 const read = (name: string) => fs.readFileSync(path.join(NOTES, name), "utf8");
+type Result = { id: string; result: string };
+/** The outbox's results, or null while it isn't written yet: a throw would end `expect.poll` at once, and CI's runner
+ * reaches this before the app's first outbox write. */
+function outboxResults(): Result[] | null {
+  try {
+    return JSON.parse(fs.readFileSync(path.join(MOBILE, "outbox.json"), "utf8")).results ?? null;
+  } catch {
+    return null;
+  }
+}
 
 let page: Page;
 
@@ -55,9 +65,8 @@ test("applies the phone's requests to the open note and to a closed file", async
 });
 
 test("reports the results in the outbox and keeps a ledger outside the notes folder", async () => {
-  const outbox = () => JSON.parse(fs.readFileSync(path.join(MOBILE, "outbox.json"), "utf8"));
-  await expect.poll(() => outbox().results?.length ?? 0, { timeout: 30_000 }).toBe(4);
-  const byId = Object.fromEntries(outbox().results.map((r: { id: string; result: string }) => [r.id, r.result]));
+  await expect.poll(() => outboxResults()?.length ?? 0, { timeout: 30_000 }).toBe(4);
+  const byId = Object.fromEntries(outboxResults()!.map((r) => [r.id, r.result]));
   expect(byId).toEqual({ r1: "applied", r2: "conflict", r3: "applied", r4: "applied" });
   // One ledger per notes folder, named after the first 16 hex digits of the SHA-256 of its path.
   const key = createHash("sha256").update(NOTES).digest("hex").slice(0, 16);
@@ -79,9 +88,7 @@ test("the conflict is resolved in the dialog and written to the note", async () 
     "Weekly Sync\n===========\nv call the venue\nv book the room for Thursday\n",
   );
   await expect(bar).toBeHidden();
-  const r2 = () =>
-    JSON.parse(fs.readFileSync(path.join(MOBILE, "outbox.json"), "utf8")).results.find((r: { id: string }) => r.id === "r2");
-  await expect.poll(() => r2()?.result, { timeout: 15_000 }).toBe("applied");
+  await expect.poll(() => outboxResults()?.find((r) => r.id === "r2")?.result, { timeout: 15_000 }).toBe("applied");
   await page.keyboard.press("Escape");
 });
 
