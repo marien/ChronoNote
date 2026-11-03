@@ -11578,7 +11578,7 @@ returning visitors get the new CSS. Published by fast-forwarding `website-live` 
 
 ## 443. Phone companion: a phone app of your own through OneDrive
 
-**Status: on main, not released yet.**
+**Status: released in beta 0.36.0-1 (early channel only).**
 
 Marien's work phone only allows a fixed set of apps, so the web app can't run there. The phone companion lets a phone
 app built with tools that phone does allow (a Power App with Power Automate flows) read the meetings and propose
