@@ -16,6 +16,7 @@
   import { dateLinksPlugin } from "../editor/dateLinks";
   import { dueDatesPlugin } from "../editor/dueDates";
   import { pasteOverEmptyMarker } from "../editor/pasteOverEmptyMarker";
+  import { editorChanges } from "../editor/editorChanges";
   import { stateFirstFilter } from "../editor/stateFirst";
   import { overviewRuler } from "../editor/overviewRuler";
   import { wrapIndentExtension } from "../editor/wrapIndent";
@@ -1015,7 +1016,8 @@
       getContent: () => view!.state.doc.toString(),
       setContent: (text: string) => {
         if (!view) return;
-        view.dispatch({ changes: { from: 0, to: view.state.doc.length, insert: text } });
+        const changes = editorChanges(view.state.doc.toString(), text);
+        if (changes.length) view.dispatch({ changes });
       },
       insertAtCursor: (text: string) => {
         if (!view) return;

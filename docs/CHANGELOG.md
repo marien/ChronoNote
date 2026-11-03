@@ -11606,3 +11606,20 @@ one computer only.
   briefs), browser tests against the mock, and `tests/native/phone-companion.spec.ts` against the real app (inbox,
   ledger, outbox, dialog, nothing applied twice after a restart). Built by Gemini runs from briefs, with Claude's and
   Gemini's cross-reviews. Not testable here: the real Power App on a work phone (open check).
+
+## 444. Outside changes to the open note keep the caret and the scroll position
+
+**Status: on main, not released yet.**
+
+Marien, testing the phone companion end to end on 0.36.0-1 (it works: lines added and states changed on the phone
+are applied): when changes are applied, the caret and the view jump to the top of the note. Every rewrite of the open
+note from outside the editor goes through `EditorApi.setContent`, which replaced the whole document in one change,
+and CodeMirror maps a caret inside a replaced range to its start. `setContent` now dispatches only what differs
+(`src/lib/editor/editorChanges.ts`): shared lines at the start and end stay, the middle is compared line by line (the
+LCS of `lineDiff.ts`), and each run of changed lines becomes its own change, trimmed to the characters that differ.
+One change from the first to the last difference would not do: a caret between a line ticked off above it and a line
+added below it would still land on the first. So the caret stays on its line and the view does not scroll, for the
+phone companion and equally for the other outside rewrites (a merge after an outside change, drift, restoring an
+earlier version, defer, import); undo also steps back only the lines that changed. Tests: `editorChanges.test.ts`
+(every case gives the new text at any caret; the caret stays between changes above and below) and
+`tests/e2e/phone-changes-caret.spec.ts` (applying a done state above and a new line below a scrolled-down caret).
