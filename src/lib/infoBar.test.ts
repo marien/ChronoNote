@@ -5,12 +5,14 @@ function createMockState(overrides: Partial<InfoBarState> = {}): InfoBarState {
   return {
     backendKind: "desktop",
     syncConflictsCount: 0,
+    phoneConflictsCount: 0,
     oneDriveSignInExpired: false,
     updateStatus: "idle",
     updateAvailableVersion: null,
     justUpdatedToVersion: null,
     callbacks: {
       openSyncConflicts: vi.fn(),
+      openPhoneChanges: vi.fn(),
       signInAgain: vi.fn(),
       openAbout: vi.fn(),
       openJustUpdatedReleaseNotes: vi.fn(),
@@ -18,7 +20,9 @@ function createMockState(overrides: Partial<InfoBarState> = {}): InfoBarState {
     },
     translate: {
       conflictsText: (count: number) => `${count} sync conflicts`,
+      phoneConflictsText: (count: number) => `${count} phone conflicts`,
       resolveLabel: () => "Resolve",
+      reviewLabel: () => "Review",
       signInExpiredText: () => "Your OneDrive sign-in has expired. Click to sign in again.",
       signInAgainLabel: () => "Sign in again",
       updateAvailableText: (v: string) => `ChronoNote ${v} is available.`,
@@ -34,6 +38,45 @@ describe("pickInfoBar", () => {
   it("returns null when no notifications are pending", () => {
     const state = createMockState();
     expect(pickInfoBar(state, new Set())).toBeNull();
+  });
+
+
+  it("shows phone conflicts when phoneConflictsCount > 0", () => {
+    const state = createMockState({
+      phoneConflictsCount: 1,
+    });
+    const item = pickInfoBar(state, new Set());
+    expect(item).not.toBeNull();
+    expect(item?.key).toBe("phone-conflicts:1");
+    expect(item?.severity).toBe("warning");
+    expect(item?.actionLabel).toBe("Review");
+    expect(item?.text).toBe("1 phone conflicts");
+
+    item?.action();
+    expect(state.callbacks.openPhoneChanges).toHaveBeenCalled();
+  });
+
+  it("orders phone conflicts after sync conflicts but before sign-in expired", () => {
+    const state = createMockState({
+      syncConflictsCount: 1,
+      phoneConflictsCount: 2,
+      oneDriveSignInExpired: true,
+    });
+    const item1 = pickInfoBar(state, new Set());
+    expect(item1?.key).toBe("conflicts:1");
+
+    const item2 = pickInfoBar(state, new Set(["conflicts:1"]));
+    expect(item2?.key).toBe("phone-conflicts:2");
+    expect(item2?.actionLabel).toBe("Review");
+  });
+
+  it("skips phone conflicts when its dismissed key is present", () => {
+    const state = createMockState({
+      phoneConflictsCount: 2,
+      oneDriveSignInExpired: true,
+    });
+    const item = pickInfoBar(state, new Set(["phone-conflicts:2"]));
+    expect(item?.key).toBe("signin-expired");
   });
 
   it("prioritizes sync conflicts over everything else", () => {

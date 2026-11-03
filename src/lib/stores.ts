@@ -53,6 +53,7 @@ export type ModalKind =
   // OneDrive sync: notes whose local and cloud versions couldn't be
   // merged automatically, waiting on the user's choice.
   | "syncConflicts"
+  | "phoneChanges"
   // A dropped YYYY-MM-DD.txt that differs from the note already there: the user picks what to keep.
   | "droppedNotes"
   // Earlier versions of a note (Proposal B2).

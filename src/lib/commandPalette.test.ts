@@ -152,6 +152,23 @@ describe("buildPaletteResults prefix query modes", () => {
     expect(exportCmd).toBeDefined();
     expect(exportCmd?.group).toBe("Commands");
   });
+
+  it("registers apply phone changes command when phone companion active", async () => {
+    const { phoneCompanionEnabled } = await import("./phoneCompanion");
+    const { backendKind } = await import("./stores");
+    backendKind.set("desktop");
+    phoneCompanionEnabled.set(true);
+
+    const items = await buildPaletteResults(">apply phone");
+    const cmd = items.find((i) => i.id === "cmd-apply-phone-changes");
+    expect(cmd).toBeDefined();
+    expect(cmd?.group).toBe("Commands");
+
+    phoneCompanionEnabled.set(false);
+    const inactiveItems = await buildPaletteResults(">apply phone");
+    expect(inactiveItems.find((i) => i.id === "cmd-apply-phone-changes")).toBeUndefined();
+  });
+
 });
 
 describe("Selection Snapshotting & Focus Restoration (Decision 2)", () => {

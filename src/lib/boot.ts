@@ -72,6 +72,8 @@ import { checkForUpdatesOnLaunch } from "./updates";
 import { applyPeekConfig } from "./peek";
 import { wireMica } from "./mica";
 import { occurrenceHint } from "./occurrences";
+import { phoneCompanionEnabled, phoneCompanionOnFocus, wirePhoneCompanion } from "./phoneCompanion";
+import { wirePhoneInboxUi } from "./phoneInboxUi";
 import { locale, t } from "./i18n";
 import { isFromNewerApp } from "./configSchema";
 import { describeApiError } from "./apiError";
@@ -237,6 +239,9 @@ function wireDriftDetection() {
       if (get(calendarSyncEnabled) && (get(backendKind) !== "web" || !!get(oneDriveAccount))) {
         void refreshAgendaFileExists();
       }
+      // The agenda feed and OneDrive change files while ChronoNote is in the background: apply the phone's requests, then
+      // rebuild the phone index with the window's notes re-read from disk.
+      phoneCompanionOnFocus();
       // #72: also the fastest way to notice a midnight rollover that
       // happened while the app sat unfocused — no need to wait out the
       // rollover interval's own delay once the app is actually looked at
@@ -593,6 +598,7 @@ export async function initApp() {
   startupTabMode.set(cfg.startupTabMode ?? "today");
   applyPeekConfig(cfg.peek);
   occurrenceHint.set(cfg.occurrenceHint ?? false);
+  phoneCompanionEnabled.set(cfg.phoneCompanion ?? false);
   statusBarVisible.set(cfg.statusBarVisible ?? true);
   tabLabelStyle.set(cfg.tabLabelStyle ?? "iso");
   historyPaneShare.set(cfg.historyPaneShare ?? 0.30);
@@ -670,6 +676,11 @@ export async function initApp() {
   activeTabId.subscribe(() => scheduleTabSessionSave());
   const version = await api.getAppVersion();
   appVersion.set(version);
+  // After the version is known: the outbox carries it.
+  if (get(backendKind) === "desktop") {
+    wirePhoneCompanion();
+    wirePhoneInboxUi();
+  }
   // #50: a first launch after an in-place update shows a one-time
   // "Updated to vX.Y.Z" status-bar link (see StatusBar.svelte); a fresh
   // install or a config from before this field existed has no prior

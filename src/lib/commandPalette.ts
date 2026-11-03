@@ -48,6 +48,8 @@ import {
   switchTab,
 } from "./tabs";
 import { openActionDrawer } from "./actions";
+import { phoneCompanionActive } from "./phoneCompanion";
+import { applyPhoneChangesNow } from "./phoneInboxUi";
 import { openDueDatePicker } from "./dueDateCommands";
 import { openMeetingHistory } from "./history";
 import { openWeekReview } from "./weekReview";
@@ -292,6 +294,16 @@ function commandItems(): PaletteItem[] {
             hint: formatShortcut("syncCalendar"),
             group: "Commands",
             run: syncCalendarFromFile,
+          },
+        ]
+      : []),
+    ...(phoneCompanionActive()
+      ? [
+          {
+            id: "cmd-apply-phone-changes",
+            label: translate("commandPalette.applyPhoneChanges.label", undefined),
+            group: "Commands",
+            run: applyPhoneChangesNow,
           },
         ]
       : []),

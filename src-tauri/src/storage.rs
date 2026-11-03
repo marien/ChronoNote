@@ -353,6 +353,10 @@ pub struct AppConfig {
     /// Whether to check the early-updates channel (§F1). Off by default.
     #[serde(default)]
     pub early_updates: bool,
+    /// Phone companion: keep `.chrononote-mobile/outbox.json` (the meeting index a phone app reads) up to date.
+    /// Off by default; only one laptop should have it on (docs/design/mobile-companion-design.md).
+    #[serde(default)]
+    pub phone_companion: bool,
     #[serde(flatten)]
     #[ts(skip)]
     pub extra: serde_json::Map<String, serde_json::Value>,
@@ -408,6 +412,8 @@ pub struct ConfigPatch {
     pub onboarding_completed: Option<bool>,
     #[ts(optional)]
     pub early_updates: Option<bool>,
+    #[ts(optional)]
+    pub phone_companion: Option<bool>,
 }
 
 impl ConfigPatch {
@@ -478,6 +484,9 @@ impl ConfigPatch {
         }
         if let Some(v) = self.early_updates {
             cfg.early_updates = v;
+        }
+        if let Some(v) = self.phone_companion {
+            cfg.phone_companion = v;
         }
     }
 }
@@ -753,6 +762,7 @@ fn load_config_at(path: &Path, default_notes_dir: &Path) -> Result<AppConfig, St
         history_pane_share: default_pane_share(),
         actions_pane_share: default_pane_share(),
         early_updates: false,
+        phone_companion: false,
         extra: Default::default(),
     };
     save_config_at(path, &cfg)?;
@@ -827,6 +837,10 @@ fn read_note_at(root: &Path, filename: &str) -> Result<Option<String>, String> {
 /// `read_all_notes_at` because `is_valid_note_filename` rejects both the
 /// directory name and the timestamped `.txt` files it holds.
 const CONFLICTS_DIRNAME: &str = ".chrononote-conflicts";
+
+/// The phone companion's folder inside the notes folder: `outbox.json` (written here) and `inbox.json` (written by
+/// the phone). Hidden, and invisible to the note listings for the same reason as the conflicts folder.
+const MOBILE_DIRNAME: &str = ".chrononote-mobile";
 
 pub const VERSIONS_DIRNAME: &str = ".chrononote-versions";
 pub const VERSIONS_KEEP_DAYS: i64 = 30;
@@ -1196,6 +1210,53 @@ fn write_conflict_copy_at(root: &Path, name: &str, content: &str) -> Result<Stri
     let target = resolve_workspace_path(&dir, Path::new(name)).map_err(String::from)?;
     atomic_write(&target, content.as_bytes()).map_err(|e| e.to_string())?;
     Ok(target.to_string_lossy().into_owned())
+}
+
+fn write_phone_outbox_at(root: &Path, content: &str) -> Result<(), String> {
+    // Atomic, so the phone (through OneDrive) only ever sees the old file or the new one.
+    atomic_write(&root.join(MOBILE_DIRNAME).join("outbox.json"), content.as_bytes()).map_err(|e| e.to_string())
+}
+
+/// The phone's requests are a few lines of JSON; anything bigger is not from the phone app.
+const MAX_PHONE_INBOX_BYTES: u64 = 1024 * 1024;
+
+fn read_phone_inbox_at(root: &Path) -> Result<Option<String>, String> {
+    let path = root.join(MOBILE_DIRNAME).join("inbox.json");
+    let meta = match fs::metadata(&path) {
+        Ok(m) => m,
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(None),
+        Err(e) => return Err(e.to_string()),
+    };
+    if meta.len() > MAX_PHONE_INBOX_BYTES {
+        return Err("inbox too large".to_string());
+    }
+    match fs::read(&path) {
+        // Checked again on what was read: the file can grow between the two calls (OneDrive).
+        Ok(bytes) if bytes.len() as u64 > MAX_PHONE_INBOX_BYTES => Err("inbox too large".to_string()),
+        Ok(bytes) => String::from_utf8(bytes).map(Some).map_err(|e| e.to_string()),
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(None),
+        Err(e) => Err(e.to_string()),
+    }
+}
+
+/// The ledger of handled phone requests lives in the app's data dir, one file per notes folder (the
+/// first 16 hex digits of the SHA-256 of the folder's path), outside OneDrive on purpose: a second
+/// machine syncing the same notes must not inherit what this one handled.
+fn phone_ledger_path_at(data_dir: &Path, notes_dir: &Path) -> PathBuf {
+    let key = hash_bytes(notes_dir.to_string_lossy().as_bytes());
+    data_dir.join("phone-companion").join(format!("{}.json", &key[..16]))
+}
+
+fn read_phone_ledger_at(data_dir: &Path, notes_dir: &Path) -> Result<Option<String>, String> {
+    match fs::read_to_string(phone_ledger_path_at(data_dir, notes_dir)) {
+        Ok(s) => Ok(Some(s)),
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(None),
+        Err(e) => Err(e.to_string()),
+    }
+}
+
+fn write_phone_ledger_at(data_dir: &Path, notes_dir: &Path, content: &str) -> Result<(), String> {
+    atomic_write(&phone_ledger_path_at(data_dir, notes_dir), content.as_bytes()).map_err(|e| e.to_string())
 }
 
 fn write_note_at_time_internal(
@@ -1760,6 +1821,26 @@ pub fn write_conflict_copy(app: &AppHandle, name: &str, content: &str) -> Result
     write_conflict_copy_at(&notes_root(app)?, name, content)
 }
 
+pub fn read_phone_inbox(app: &AppHandle) -> Result<Option<String>, String> {
+    read_phone_inbox_at(&notes_root(app)?)
+}
+
+fn app_data_root(app: &AppHandle) -> Result<PathBuf, String> {
+    app.path().app_data_dir().map_err(|e| e.to_string())
+}
+
+pub fn read_phone_ledger(app: &AppHandle) -> Result<Option<String>, String> {
+    read_phone_ledger_at(&app_data_root(app)?, &notes_root(app)?)
+}
+
+pub fn write_phone_ledger(app: &AppHandle, content: &str) -> Result<(), String> {
+    write_phone_ledger_at(&app_data_root(app)?, &notes_root(app)?, content)
+}
+
+pub fn write_phone_outbox(app: &AppHandle, content: &str) -> Result<(), String> {
+    write_phone_outbox_at(&notes_root(app)?, content)
+}
+
 pub fn read_all_notes(app: &AppHandle) -> Result<Vec<(String, String)>, String> {
     read_all_notes_at(&notes_root(app)?)
 }
@@ -2065,6 +2146,7 @@ mod tests {
             history_pane_share: 0.35,
             actions_pane_share: 0.45,
             early_updates: false,
+            phone_companion: false,
             extra: Default::default(),
         };
         save_config_at(&path, &cfg).unwrap();
@@ -2143,6 +2225,7 @@ mod tests {
                 history_pane_share: default_pane_share(),
                 actions_pane_share: default_pane_share(),
                 early_updates: false,
+                phone_companion: false,
                 extra: Default::default(),
             };
             save_config_at(&path, &cfg).unwrap();
@@ -2288,6 +2371,83 @@ mod tests {
         cfg.status_bar_visible = false;
         save_config_at(&path, &cfg).unwrap();
         assert!(!load_config_at(&path, dir.path()).unwrap().status_bar_visible);
+    }
+
+    #[test]
+    fn phone_companion_is_off_by_default_and_round_trips() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("config.json");
+        fs::write(&path, r#"{"notesDir":"/n"}"#).unwrap();
+        assert!(!load_config_at(&path, dir.path()).unwrap().phone_companion);
+        let mut cfg = load_config_at(&path, dir.path()).unwrap();
+        ConfigPatch { phone_companion: Some(true), ..Default::default() }.apply(&mut cfg);
+        save_config_at(&path, &cfg).unwrap();
+        assert!(load_config_at(&path, dir.path()).unwrap().phone_companion);
+    }
+
+    #[test]
+    fn the_phone_outbox_is_written_and_replaced_in_its_hidden_folder_and_stays_out_of_the_note_list() {
+        let dir = tempfile::tempdir().unwrap();
+        fs::write(dir.path().join("2026-10-29.txt"), "x").unwrap();
+        write_phone_outbox_at(dir.path(), "{\"format\":1}").unwrap();
+        write_phone_outbox_at(dir.path(), "{\"format\":2}").unwrap();
+        let out = dir.path().join(".chrononote-mobile").join("outbox.json");
+        assert_eq!(fs::read_to_string(out).unwrap(), "{\"format\":2}");
+        assert_eq!(list_note_files_at(dir.path()).unwrap(), vec!["2026-10-29.txt".to_string()]);
+        assert_eq!(read_all_notes_at(dir.path()).unwrap().len(), 1);
+    }
+
+    #[test]
+    fn the_phone_inbox_is_none_when_missing_and_read_back_as_text() {
+        let dir = tempfile::tempdir().unwrap();
+        assert_eq!(read_phone_inbox_at(dir.path()).unwrap(), None);
+        let folder = dir.path().join(".chrononote-mobile");
+        fs::create_dir_all(&folder).unwrap();
+        fs::write(folder.join("inbox.json"), "{\"format\":1,\"requests\":[]}").unwrap();
+        assert_eq!(read_phone_inbox_at(dir.path()).unwrap().as_deref(), Some("{\"format\":1,\"requests\":[]}"));
+    }
+
+    #[test]
+    fn a_phone_inbox_over_one_megabyte_is_an_error_but_exactly_one_megabyte_is_read() {
+        let dir = tempfile::tempdir().unwrap();
+        let folder = dir.path().join(".chrononote-mobile");
+        fs::create_dir_all(&folder).unwrap();
+        fs::write(folder.join("inbox.json"), vec![b' '; 1024 * 1024]).unwrap();
+        assert_eq!(read_phone_inbox_at(dir.path()).unwrap().unwrap().len(), 1024 * 1024);
+        fs::write(folder.join("inbox.json"), vec![b' '; 1024 * 1024 + 1]).unwrap();
+        assert_eq!(read_phone_inbox_at(dir.path()).unwrap_err(), "inbox too large");
+    }
+
+    #[test]
+    fn the_phone_ledger_is_missing_then_read_back_and_replaced() {
+        let data = tempfile::tempdir().unwrap();
+        let notes = Path::new("/notes/a");
+        assert_eq!(read_phone_ledger_at(data.path(), notes).unwrap(), None);
+        write_phone_ledger_at(data.path(), notes, "{\"format\":1}").unwrap();
+        write_phone_ledger_at(data.path(), notes, "{\"format\":1,\"handled\":{}}").unwrap();
+        assert_eq!(
+            read_phone_ledger_at(data.path(), notes).unwrap().as_deref(),
+            Some("{\"format\":1,\"handled\":{}}")
+        );
+    }
+
+    #[test]
+    fn the_phone_ledger_path_differs_per_notes_folder_and_is_a_16_hex_digit_key() {
+        let data = Path::new("/data");
+        let a = phone_ledger_path_at(data, Path::new("/notes/a"));
+        let b = phone_ledger_path_at(data, Path::new("/notes/b"));
+        assert_ne!(a, b);
+        assert_eq!(a, phone_ledger_path_at(data, Path::new("/notes/a")));
+        assert_eq!(a.parent().unwrap(), data.join("phone-companion"));
+        let stem = a.file_stem().unwrap().to_string_lossy().into_owned();
+        assert_eq!(stem.len(), 16);
+        assert!(stem.chars().all(|c| c.is_ascii_hexdigit() && !c.is_ascii_uppercase()));
+        assert_eq!(a.extension().unwrap(), "json");
+
+        // Another notes folder does not see this one's ledger.
+        let tmp = tempfile::tempdir().unwrap();
+        write_phone_ledger_at(tmp.path(), Path::new("/notes/a"), "x").unwrap();
+        assert_eq!(read_phone_ledger_at(tmp.path(), Path::new("/notes/b")).unwrap(), None);
     }
 
     #[test]

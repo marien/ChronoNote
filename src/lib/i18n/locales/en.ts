@@ -201,6 +201,11 @@ export const en = {
   "occurrence.settings.hint.hint": () =>
     "Off by default. Shows < (2/5) > after a section's title when other notes have the same section; click the arrows to go there. Alt+Left / Alt+Right always work in a section, with or without the hint.",
   "toast.boot.failedToSave.occurrenceHint": () => "Failed to save occurrence hint preference",
+  "phoneCompanion.settings.title": () => "Phone companion",
+  "phoneCompanion.settings.toggle.label": () => "Keep a meeting index for the phone app",
+  "phoneCompanion.settings.toggle.hint.before": () => "Writes ",
+  "phoneCompanion.settings.toggle.hint.after": () => " in the notes folder: the meetings of the past and coming two weeks, so a phone app can browse them through OneDrive. Turn it on on one computer only.",
+  "toast.boot.failedToSave.phoneCompanion": () => "Failed to save phone companion preference",
   "peek.settings.callShortcut.label": () =>
     "Shortcut: notes for the meeting that is on now (works from any app)",
   "commandPalette.peekCall": () =>
@@ -976,4 +981,32 @@ export const en = {
   "weekReview.footer.thisWeek": () => "this week",
   "weekReview.empty.title": () => "No notes for this week",
   "weekReview.empty.subtitle": () => "There are no dated notes in this week.",
+
+  "phoneCompanion.toast.applied": ({ count = 1 }: { count: number } = { count: 1 }) =>
+    count === 1 ? "1 change from your phone applied." : `${count} changes from your phone applied.`,
+  "phoneCompanion.toast.nothingNew": () => "No new changes from your phone.",
+  "infoBar.phoneConflicts": ({ count = 1 }: { count: number } = { count: 1 }) =>
+    count === 1 ? "1 change from your phone needs a look." : `${count} changes from your phone need a look.`,
+  "infoBar.review": () => "Review",
+  "phoneChanges.title": () => "Changes from your phone",
+  "phoneChanges.needsLook": () => "Needs a look",
+  "phoneChanges.applied": () => "Applied",
+  "phoneChanges.none": () => "Nothing from your phone needs a look.",
+  "phoneChanges.ask.add": () => "Add a line",
+  "phoneChanges.ask.open": () => "Reopen",
+  "phoneChanges.ask.done": () => "Mark as done",
+  "phoneChanges.ask.wontdo": () => "Mark as won't do",
+  "phoneChanges.ask.discussed": () => "Mark as discussed",
+  "phoneChanges.ask.postponed": () => "Mark as postponed",
+  "phoneChanges.phoneSaw": () => "Your phone saw",
+  "phoneChanges.nowInNote": () => "In the note now",
+  "phoneChanges.reason.lineChanged": () => "This line changed on the computer after your phone read it.",
+  "phoneChanges.reason.lineAmbiguous": () => "This line appears more than once and moved, so it isn't clear which one is meant.",
+  "phoneChanges.reason.sectionGone": () => "This meeting is no longer in that day's note.",
+  "phoneChanges.applyToLine": () => "Apply to the chosen line",
+  "phoneChanges.addAsNew": () => "Add as a new line",
+  "phoneChanges.skip": () => "Skip",
+  "phoneChanges.noteChanged": () => "The note changed. Look again and choose.",
+  "phoneChanges.writeFailed": () => "Couldn't change the note. Try again.",
+  "commandPalette.applyPhoneChanges.label": () => "Apply phone changes",
 } satisfies Dictionary;

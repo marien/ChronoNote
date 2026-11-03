@@ -6,6 +6,7 @@ then gets a line in its CHANGELOG section) or found broken (it then becomes a fi
 
 | Since | What to check | Where / how | Section |
 |---|---|---|---|
+| 2026-11-03 | Phone companion end to end: the beta installs and runs on the work laptop; with the setting on, the Power App sees the outbox's meetings, and its added and ticked-off lines arrive in the notes (and a conflict in the dialog) | Work laptop with 0.36.0-1 and the work phone, once the Power App's phase 2 is built | §443 |
 | 2026-10-29 | Minor-release checklist, the part a beta cannot reach: on a phone the keyboard, sheets, long-press and the symbols bar on one row; the web app installed on a PC (title bar hidden) and on a phone | app.chrononote.mariendegelder.nl, right after 0.35.0 stable | §441 |
 | 2026-10-29 | The new website on the live host: pages, fonts and both themes load; Try links open the demo on the feature (needs the 0.35.0 demo rebuild); the download button gets 0.35.0's installer; a shared link shows the new social image | chrononote.mariendegelder.nl after 0.35.0 stable moves `website-live`; a phone too | §440 |
 | 2026-10-28 | In the web app: a nested list pasted from Teams keeps its bullets and indentation (confirmed in the desktop app) | app.chrononote.mariendegelder.nl, once 0.35.0 is stable (betas do not update it) | §439 |

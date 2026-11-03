@@ -301,23 +301,32 @@ export function writeNoteAndInvalidateCache(
   filename: string,
   content: string,
   guard: WriteGuard = { kind: "none" },
+  options?: { keepVersion?: boolean },
 ): Promise<void> {
   const hasOpenTab = get(tabs).some((t) => !t.isScratchpad && t.filename === filename);
   if (!hasOpenTab) diskNotesCacheRaw = null;
-  return writeNoteRaw(filename, content, guard);
+  return writeNoteRaw(filename, content, guard, options);
 }
 
 /** Read-change-write for a note with no open tab, guarded by the hash read with it.
- * Retries twice if the file changed in between. Returns the text that was written. */
-export async function updateNoteOnDisk(filename: string, change: (current: string) => string): Promise<string> {
+ * Retries twice if the file changed in between. Returns the text that was written; when `change` returns the
+ * text of an existing file unchanged, nothing is written (a rewrite would only touch the file for the sync client).
+ * `options.keepVersion` keeps the previous text as an earlier version (§6.6). */
+export async function updateNoteOnDisk(
+  filename: string,
+  change: (current: string) => string,
+  options?: { keepVersion?: boolean },
+): Promise<string> {
   for (let attempt = 1; ; attempt++) {
     const { content, metadata } = await api.readNoteWithMetadata(filename);
     const next = change(content ?? "");
+    // Nothing to change, also for a file that doesn't exist: no write (and no empty file created).
+    if ((content ?? "") === next) return next;
     // A file that doesn't exist yet matches the empty-content hash, so creating it is guarded too:
     // if another device creates it in between, the write is refused and retried.
     const guard: WriteGuard = { kind: "hash", hash: metadata.contentHash ?? EMPTY_CONTENT_HASH };
     try {
-      await writeNoteAndInvalidateCache(filename, next, guard);
+      await writeNoteAndInvalidateCache(filename, next, guard, options);
       return next;
     } catch (e) {
       if (!isWriteConflictError(e) || attempt >= 3) throw e;
@@ -378,7 +387,12 @@ export function noteClosingWithContent(filename: string, content: string): void 
   if (diskNotesCacheRaw !== null) diskNotesCacheRaw[filename] = content;
 }
 
-function writeNoteRaw(filename: string, content: string, guard: WriteGuard): Promise<void> {
+function writeNoteRaw(
+  filename: string,
+  content: string,
+  guard: WriteGuard,
+  options?: { keepVersion?: boolean },
+): Promise<void> {
   const previous = writeChains.get(filename) ?? Promise.resolve();
   const p = previous
     .catch(() => {})
@@ -389,7 +403,7 @@ function writeNoteRaw(filename: string, content: string, guard: WriteGuard): Pro
         const tab = get(tabs).find((t) => !t.isScratchpad && t.filename === filename);
         expected = tab ? getTabCleanHash(tab.id) : undefined;
       }
-      return api.writeNote(filename, content, expected);
+      return options ? api.writeNote(filename, content, expected, options) : api.writeNote(filename, content, expected);
     });
   inFlightWrites.add(p);
   inFlightFilenames.add(filename);
@@ -447,17 +461,50 @@ export function updateActiveTabContent(newContent: string) {
  * caller does the `tabs.set`). Used by every path that rewrites a note
  * from outside the editor: the Action Drawer, section import, the
  * copy/paste-forward defer. */
-export function writeTabContent(tabId: string, newContent: string, list: NoteTab[]): NoteTab[] {
+export function writeTabContent(
+  tabId: string,
+  newContent: string,
+  list: NoteTab[],
+  options?: { keepVersion?: boolean },
+): NoteTab[] {
   cancelScheduledSave(tabId);
   const idx = list.findIndex((t) => t.id === tabId);
   if (idx === -1) return list;
   const next = [...list];
   next[idx] = { ...next[idx], content: newContent };
   if (!next[idx].isScratchpad) {
-    writeNoteAndInvalidateCache(next[idx].filename, newContent, { kind: "tabBaseline" }).catch((e) => {
+    writeNoteAndInvalidateCache(next[idx].filename, newContent, { kind: "tabBaseline" }, options).catch((e) => {
       if (!isWriteConflictError(e)) showToast(get(t)("toast.persistence.failedToSaveNote", undefined));
     });
   }
   if (tabId === get(activeTabId) && editorApi) editorApi.setContent(newContent);
   return next;
+}
+
+function setTabText(tabId: string, content: string): void {
+  tabs.set(get(tabs).map((x) => (x.id === tabId ? { ...x, content } : x)));
+  if (tabId === get(activeTabId) && editorApi) editorApi.setContent(content);
+}
+
+/** `writeTabContent` for a caller that must know the text reached the disk (the phone companion reports changes as
+ * applied). Awaits the write; when it fails, the tab and editor go back to `restoreTo` and the error is thrown. A
+ * write refused because the file changed on disk is not an error here: the tab keeps the change and the usual
+ * conflict dialog decides between the versions. */
+export async function writeTabContentAndWait(
+  tabId: string,
+  newContent: string,
+  restoreTo: string,
+  options?: { keepVersion?: boolean },
+): Promise<void> {
+  cancelScheduledSave(tabId);
+  const tab = get(tabs).find((x) => x.id === tabId && !x.isScratchpad);
+  if (!tab) throw new Error("the tab was closed");
+  setTabText(tabId, newContent);
+  try {
+    await writeNoteAndInvalidateCache(tab.filename, newContent, { kind: "tabBaseline" }, options);
+  } catch (e) {
+    if (isWriteConflictError(e)) return;
+    setTabText(tabId, restoreTo);
+    throw e;
+  }
 }

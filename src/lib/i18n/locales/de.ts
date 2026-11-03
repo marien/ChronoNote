@@ -208,6 +208,11 @@ export const de = {
   "occurrence.settings.hint.hint": () =>
     "Standardmäßig aus. Zeigt < (2/5) > hinter dem Titel eines Abschnitts, wenn andere Notizen denselben Abschnitt haben; mit den Pfeilen springen Sie dorthin. Alt+Links / Alt+Rechts funktionieren in einem Abschnitt immer, mit oder ohne Hinweis.",
   "toast.boot.failedToSave.occurrenceHint": () => "Speichern der Vorkommen-Einstellung fehlgeschlagen",
+  "phoneCompanion.settings.title": () => "Telefon-Begleiter",
+  "phoneCompanion.settings.toggle.label": () => "Besprechungsindex für die Telefon-App führen",
+  "phoneCompanion.settings.toggle.hint.before": () => "Schreibt ",
+  "phoneCompanion.settings.toggle.hint.after": () => " in den Notizordner: die Besprechungen der letzten und nächsten zwei Wochen, damit eine Telefon-App sie über OneDrive durchsuchen kann. Nur auf einem Computer einschalten.",
+  "toast.boot.failedToSave.phoneCompanion": () => "Einstellung für den Telefon-Begleiter konnte nicht gespeichert werden",
   "peek.settings.callShortcut.label": () =>
     "Tastenkürzel: Notizen zur laufenden Besprechung (funktioniert in jeder App)",
   "commandPalette.peekCall": () =>
@@ -990,4 +995,32 @@ export const de = {
   "weekReview.footer.thisWeek": () => "diese Woche",
   "weekReview.empty.title": () => "Keine Notizen für diese Woche",
   "weekReview.empty.subtitle": () => "In dieser Woche gibt es keine datierten Notizen.",
+
+  "phoneCompanion.toast.applied": ({ count = 1 }: { count: number } = { count: 1 }) =>
+    count === 1 ? "1 Änderung vom Telefon übernommen." : `${count} Änderungen vom Telefon übernommen.`,
+  "phoneCompanion.toast.nothingNew": () => "Keine neuen Änderungen vom Telefon.",
+  "infoBar.phoneConflicts": ({ count = 1 }: { count: number } = { count: 1 }) =>
+    count === 1 ? "1 Änderung vom Telefon muss geprüft werden." : `${count} Änderungen vom Telefon müssen geprüft werden.`,
+  "infoBar.review": () => "Prüfen",
+  "phoneChanges.title": () => "Änderungen vom Telefon",
+  "phoneChanges.needsLook": () => "Zu prüfen",
+  "phoneChanges.applied": () => "Übernommen",
+  "phoneChanges.none": () => "Nichts vom Telefon muss geprüft werden.",
+  "phoneChanges.ask.add": () => "Zeile hinzufügen",
+  "phoneChanges.ask.open": () => "Wieder öffnen",
+  "phoneChanges.ask.done": () => "Als erledigt markieren",
+  "phoneChanges.ask.wontdo": () => "Als verworfen markieren",
+  "phoneChanges.ask.discussed": () => "Als besprochen markieren",
+  "phoneChanges.ask.postponed": () => "Als verschoben markieren",
+  "phoneChanges.phoneSaw": () => "Das Telefon sah",
+  "phoneChanges.nowInNote": () => "Jetzt in der Notiz",
+  "phoneChanges.reason.lineChanged": () => "Diese Zeile wurde am Computer geändert, nachdem das Telefon sie gelesen hat.",
+  "phoneChanges.reason.lineAmbiguous": () => "Diese Zeile kommt mehrmals vor und wurde verschoben, daher ist unklar, welche gemeint ist.",
+  "phoneChanges.reason.sectionGone": () => "Diese Besprechung steht nicht mehr in der Notiz dieses Tages.",
+  "phoneChanges.applyToLine": () => "Auf gewählte Zeile anwenden",
+  "phoneChanges.addAsNew": () => "Als neue Zeile hinzufügen",
+  "phoneChanges.skip": () => "Überspringen",
+  "phoneChanges.noteChanged": () => "Die Notiz hat sich geändert. Bitte erneut prüfen und wählen.",
+  "phoneChanges.writeFailed": () => "Die Notiz konnte nicht geändert werden. Versuche es erneut.",
+  "commandPalette.applyPhoneChanges.label": () => "Änderungen vom Telefon übernehmen",
 } satisfies Dictionary;

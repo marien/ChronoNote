@@ -205,6 +205,11 @@ export const es = {
   "occurrence.settings.hint.hint": () =>
     "Desactivado por defecto. Muestra < (2/5) > tras el título de una sección cuando otras notas tienen la misma sección; haga clic en las flechas para ir a ella. Alt+Izquierda / Alt+Derecha funcionan siempre dentro de una sección, con o sin la indicación.",
   "toast.boot.failedToSave.occurrenceHint": () => "Error al guardar la preferencia de la indicación de apariciones",
+  "phoneCompanion.settings.title": () => "Compañero móvil",
+  "phoneCompanion.settings.toggle.label": () => "Mantener un índice de reuniones para la app del teléfono",
+  "phoneCompanion.settings.toggle.hint.before": () => "Escribe ",
+  "phoneCompanion.settings.toggle.hint.after": () => " en la carpeta de notas: las reuniones de las dos semanas pasadas y próximas, para que una app del teléfono las consulte a través de OneDrive. Actívalo en un solo ordenador.",
+  "toast.boot.failedToSave.phoneCompanion": () => "No se pudo guardar la preferencia del compañero móvil",
   "peek.settings.callShortcut.label": () =>
     "Atajo: notas de la reunión en curso (funciona desde cualquier aplicación)",
   "commandPalette.peekCall": () =>
@@ -999,4 +1004,32 @@ export const es = {
   "weekReview.footer.thisWeek": () => "esta semana",
   "weekReview.empty.title": () => "No hay notas para esta semana",
   "weekReview.empty.subtitle": () => "No hay notas con fecha en esta semana.",
+
+  "phoneCompanion.toast.applied": ({ count = 1 }: { count: number } = { count: 1 }) =>
+    count === 1 ? "1 cambio del teléfono aplicado." : `${count} cambios del teléfono aplicados.`,
+  "phoneCompanion.toast.nothingNew": () => "No hay cambios nuevos del teléfono.",
+  "infoBar.phoneConflicts": ({ count = 1 }: { count: number } = { count: 1 }) =>
+    count === 1 ? "1 cambio del teléfono necesita revisión." : `${count} cambios del teléfono necesitan revisión.`,
+  "infoBar.review": () => "Revisar",
+  "phoneChanges.title": () => "Cambios del teléfono",
+  "phoneChanges.needsLook": () => "Por revisar",
+  "phoneChanges.applied": () => "Aplicados",
+  "phoneChanges.none": () => "Nada del teléfono necesita revisión.",
+  "phoneChanges.ask.add": () => "Añadir una línea",
+  "phoneChanges.ask.open": () => "Reabrir",
+  "phoneChanges.ask.done": () => "Marcar como hecho",
+  "phoneChanges.ask.wontdo": () => "Marcar como descartado",
+  "phoneChanges.ask.discussed": () => "Marcar como tratado",
+  "phoneChanges.ask.postponed": () => "Marcar como aplazado",
+  "phoneChanges.phoneSaw": () => "El teléfono veía",
+  "phoneChanges.nowInNote": () => "Ahora en la nota",
+  "phoneChanges.reason.lineChanged": () => "Esta línea cambió en el ordenador después de que el teléfono la leyera.",
+  "phoneChanges.reason.lineAmbiguous": () => "Esta línea aparece más de una vez y se movió, así que no está claro a cuál se refiere.",
+  "phoneChanges.reason.sectionGone": () => "Esta reunión ya no está en la nota de ese día.",
+  "phoneChanges.applyToLine": () => "Aplicar a la línea elegida",
+  "phoneChanges.addAsNew": () => "Añadir como línea nueva",
+  "phoneChanges.skip": () => "Omitir",
+  "phoneChanges.noteChanged": () => "La nota cambió. Vuelve a mirar y elige.",
+  "phoneChanges.writeFailed": () => "No se pudo cambiar la nota. Inténtalo de nuevo.",
+  "commandPalette.applyPhoneChanges.label": () => "Aplicar cambios del teléfono",
 } satisfies Dictionary;

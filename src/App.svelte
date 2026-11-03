@@ -79,6 +79,7 @@
   import CalendarSyncReviewModal from "./lib/components/modals/CalendarSyncReviewModal.svelte";
   import DroppedNotesModal from "./lib/components/modals/DroppedNotesModal.svelte";
   import SyncConflictsModal from "./lib/components/modals/SyncConflictsModal.svelte";
+  import PhoneChangesModal from "./lib/components/modals/PhoneChangesModal.svelte";
   import OneDriveFolderPickerModal from "./lib/components/modals/OneDriveFolderPickerModal.svelte";
   import ExportModal from "./lib/components/modals/ExportModal.svelte";
   import VersionsModal from "./lib/components/modals/VersionsModal.svelte";
@@ -1018,6 +1019,8 @@
     <CalendarSyncReviewModal />
   {:else if $modal === "syncConflicts"}
     <SyncConflictsModal />
+  {:else if $modal === "phoneChanges"}
+    <PhoneChangesModal />
   {:else if $modal === "droppedNotes"}
     <DroppedNotesModal />
   {:else if $modal === "versions"}

@@ -11575,3 +11575,34 @@ reverse of the app icon. That came from the prototype, which drew a simplified i
 a decision. Marien noticed it on the live site. The header now shows `assets/logo.svg` unchanged in both themes, as
 the old site did (its white lines carry the shape on a dark header). The stylesheet's cache key went to `?v=442` so
 returning visitors get the new CSS. Published by fast-forwarding `website-live` (Marien's OK).
+
+## 443. Phone companion: a phone app of your own through OneDrive
+
+**Status: on main, not released yet.**
+
+Marien's work phone only allows a fixed set of apps, so the web app can't run there. The phone companion lets a phone
+app built with tools that phone does allow (a Power App with Power Automate flows) read the meetings and propose
+changes through OneDrive, while ChronoNote on the desktop stays the only writer of the notes. Design and decisions:
+`docs/design/mobile-companion-design.md`; the formats both sides build against: `docs/phone-companion-file-guide.md`;
+the Power App is built on the organisation's side from `docs/phone-companion-powerapps/` (nothing comes back from
+there but questions and test results). Off by default: Settings → Notes & Sync → **Phone companion**, desktop only,
+one computer only.
+
+- **Outbox (phase 1):** `.chrononote-mobile/outbox.json` in the notes folder: the meetings of the past and coming two
+  weeks plus each meeting's five earlier occurrences, keyed by a hash of the matching title. Written atomically and
+  only when it changed: at start, on the setting, at a day change, after edits (5 s debounce) and on focus (re-reads
+  the window's notes from disk, so OneDrive's changes count).
+- **Inbox (phase 2):** the phone's `.chrononote-mobile/inbox.json` holds `addLine` and `setState` requests. Each is
+  applied once (a ledger of handled ids per notes folder in the app's own data folder, never in OneDrive: a second
+  computer must not inherit it), to the open tab or the file, keeping the note's earlier text as an earlier version.
+  A request whose line changed on the computer is held as a conflict; the results go back to the phone in the outbox
+  once the notes are on disk. A missing or broken inbox (OneDrive syncing) changes nothing.
+- **UI:** a toast with the number applied (click: the dialog), an info bar line when changes need a look, the
+  **Changes from your phone** dialog (apply to a chosen line, add as a new line, or skip; nothing is written if the
+  note changed meanwhile), and **Apply phone changes** in the command palette. Texts in all 7 languages.
+- **Not yet:** deferring an action to another day from the phone (needs the forward link and a second note; design
+  §10, Marien: not now).
+- **Tests:** unit tests for the outbox, the text rules and the engine, independent tests for both (written from the
+  briefs), browser tests against the mock, and `tests/native/phone-companion.spec.ts` against the real app (inbox,
+  ledger, outbox, dialog, nothing applied twice after a restart). Built by Gemini runs from briefs, with Claude's and
+  Gemini's cross-reviews. Not testable here: the real Power App on a work phone (open check).

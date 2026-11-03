@@ -205,6 +205,11 @@ export const nl = {
   "occurrence.settings.hint.hint": () =>
     "Standaard uit. Toont < (2/5) > na de titel van een sectie als andere notities dezelfde sectie hebben; klik op de pijltjes om erheen te gaan. Alt+Links / Alt+Rechts werken altijd in een sectie, met of zonder hint.",
   "toast.boot.failedToSave.occurrenceHint": () => "Opslaan van de voorkomens-hint mislukt",
+  "phoneCompanion.settings.title": () => "Telefoon-companion",
+  "phoneCompanion.settings.toggle.label": () => "Een vergaderindex bijhouden voor de telefoon-app",
+  "phoneCompanion.settings.toggle.hint.before": () => "Schrijft ",
+  "phoneCompanion.settings.toggle.hint.after": () => " in de notitiemap: de vergaderingen van de afgelopen en komende twee weken, zodat een telefoon-app ze via OneDrive kan bekijken. Zet dit op één computer aan.",
+  "toast.boot.failedToSave.phoneCompanion": () => "Opslaan van de telefoon-companion-instelling mislukt",
   "peek.settings.callShortcut.label": () =>
     "Sneltoets: notities voor de vergadering die nu bezig is (werkt vanuit elke app)",
   "commandPalette.peekCall": () =>
@@ -985,4 +990,32 @@ export const nl = {
   "weekReview.footer.thisWeek": () => "deze week",
   "weekReview.empty.title": () => "Geen notities voor deze week",
   "weekReview.empty.subtitle": () => "Er zijn geen gedateerde notities in deze week.",
+
+  "phoneCompanion.toast.applied": ({ count = 1 }: { count: number } = { count: 1 }) =>
+    count === 1 ? "1 wijziging van je telefoon verwerkt." : `${count} wijzigingen van je telefoon verwerkt.`,
+  "phoneCompanion.toast.nothingNew": () => "Geen nieuwe wijzigingen van je telefoon.",
+  "infoBar.phoneConflicts": ({ count = 1 }: { count: number } = { count: 1 }) =>
+    count === 1 ? "1 wijziging van je telefoon moet je nakijken." : `${count} wijzigingen van je telefoon moet je nakijken.`,
+  "infoBar.review": () => "Bekijken",
+  "phoneChanges.title": () => "Wijzigingen van je telefoon",
+  "phoneChanges.needsLook": () => "Nakijken",
+  "phoneChanges.applied": () => "Verwerkt",
+  "phoneChanges.none": () => "Niets van je telefoon hoeft nagekeken te worden.",
+  "phoneChanges.ask.add": () => "Regel toevoegen",
+  "phoneChanges.ask.open": () => "Heropenen",
+  "phoneChanges.ask.done": () => "Afvinken",
+  "phoneChanges.ask.wontdo": () => "Markeren als niet doen",
+  "phoneChanges.ask.discussed": () => "Markeren als besproken",
+  "phoneChanges.ask.postponed": () => "Markeren als uitgesteld",
+  "phoneChanges.phoneSaw": () => "Je telefoon zag",
+  "phoneChanges.nowInNote": () => "Nu in de notitie",
+  "phoneChanges.reason.lineChanged": () => "Deze regel is op de computer veranderd nadat je telefoon hem las.",
+  "phoneChanges.reason.lineAmbiguous": () => "Deze regel staat er meer dan eens en is verschoven, dus het is niet duidelijk welke bedoeld is.",
+  "phoneChanges.reason.sectionGone": () => "Deze vergadering staat niet meer in de notitie van die dag.",
+  "phoneChanges.applyToLine": () => "Toepassen op gekozen regel",
+  "phoneChanges.addAsNew": () => "Als nieuwe regel toevoegen",
+  "phoneChanges.skip": () => "Overslaan",
+  "phoneChanges.noteChanged": () => "De notitie is veranderd. Kijk opnieuw en kies.",
+  "phoneChanges.writeFailed": () => "Kon de notitie niet aanpassen. Probeer het opnieuw.",
+  "commandPalette.applyPhoneChanges.label": () => "Wijzigingen van telefoon verwerken",
 } satisfies Dictionary;

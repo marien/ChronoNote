@@ -45,6 +45,7 @@
   import AboutPanel from "../AboutPanel.svelte";
   import { PEEK_DEFAULTS, peekSettings, type PeekHeaderMode } from "../../peek";
   import { occurrenceHint, setOccurrenceHint } from "../../occurrences";
+  import { phoneCompanionEnabled, setPhoneCompanion } from "../../phoneCompanion";
   import { locale, t, REVIEWED_LOCALES, type SupportedLocale } from "../../i18n";
 
   const LANGUAGE_OPTIONS: { value: SupportedLocale; label: string }[] = [
@@ -854,6 +855,21 @@
                 {$t("settings.calendar.agendaMissing.before")}<code>.agenda.json</code>{$t("settings.calendar.agendaMissing.after")}
               </div>
             {/if}
+          </section>
+        {/if}
+
+        {#if $backendKind === "desktop"}
+          <section class="s-group">
+            <div class="settings-section-label">{$t("phoneCompanion.settings.title")}</div>
+            <SettingToggle
+              label={$t("phoneCompanion.settings.toggle.label")}
+              checked={$phoneCompanionEnabled}
+              onChange={(v) => void setPhoneCompanion(v)}
+            >
+              {#snippet description()}
+                {$t("phoneCompanion.settings.toggle.hint.before")}<code>.chrononote-mobile/outbox.json</code>{$t("phoneCompanion.settings.toggle.hint.after")}
+              {/snippet}
+            </SettingToggle>
           </section>
         {/if}
 
