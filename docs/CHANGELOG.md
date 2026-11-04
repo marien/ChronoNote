@@ -11623,3 +11623,31 @@ phone companion and equally for the other outside rewrites (a merge after an out
 earlier version, defer, import); undo also steps back only the lines that changed. Tests: `editorChanges.test.ts`
 (every case gives the new text at any caret; the caret stays between changes above and below) and
 `tests/e2e/phone-changes-caret.spec.ts` (applying a done state above and a new line below a scrolled-down caret).
+
+## 445. Phone companion: faster, fresher refresh (`meetings.json`, heartbeat, 15-second inbox check)
+
+**Status: on main, not released yet.**
+
+Marien, after the first end-to-end test on 0.36.0-1: refreshing on the phone was fairly slow and the phone was often
+out of date. Marien proposed three changes; with three more of Claude's, "do all six" (design section 15):
+
+- **`meetings.json`:** the meeting index (`window`, `meetings`) moves out of the outbox into its own
+  `.chrononote-mobile/meetings.json` (format 1), written as the outbox was: only when the meetings change. The outbox
+  keeps only the results and goes to format 2, so it stays small. A phone app built for format 1 shows "Update the
+  app" rather than misreading it; the build instructions tell the app to read an outbox of format 1 as before, for
+  0.36.0-1.
+- **Heartbeat:** while ChronoNote runs with the setting on, it rewrites `outbox.json` at least every 5 minutes, so the
+  phone can tell from its age that the computer is off or asleep ("Computer last seen ‹time›").
+- **Inbox check every 15 seconds** instead of 60: a small local file, skipped when its text is unchanged, and the one
+  wait on the computer's side of a round trip.
+- **Phone side** (`docs/phone-companion-powerapps/update-1-refresh.md`, and folded into phase 1 and 2): the list flow
+  also lists `.chrononote-mobile`, so the companion files are read only when their modified time changed (the outbox
+  was read on every refresh); a check timer that runs the refresh every 30 seconds while a request waits, every
+  minute otherwise, doubling to 10 minutes while nothing changes (each flow run counts toward the daily request
+  limit, so a check only lists); timings in the status line to see where the time goes; and, only if those show the
+  reads dominate, one flow for a whole refresh (described, not built).
+
+New Tauri command `write_phone_meetings` (mock and web backends too). The Settings hint now names the
+`.chrononote-mobile` folder. Built by a Gemini run from Claude's brief, with independent tests written from the same
+brief by a second run (`phoneCompanion.split.independent.test.ts`, all passing on the code unchanged); Claude reviewed
+and simplified the heartbeat check (no rebuild loop while a write keeps failing).

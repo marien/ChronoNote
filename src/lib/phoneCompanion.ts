@@ -229,7 +229,6 @@ const BOOT_DELAY_MS = 3000;
 let lastWrittenMeetings: string | null = null;
 let lastWrittenOutbox: string | null = null;
 let lastOutboxWriteTime: number | null = null;
-let firstBuildDone = false;
 let timer: ReturnType<typeof setTimeout> | null = null;
 let running: Promise<void> | null = null;
 let rerun = false;
@@ -238,6 +237,13 @@ let wired = false;
 let pollInterval: ReturnType<typeof setInterval> | null = null;
 let unsubs: (() => void)[] = [];
 let warnedMeetings = false;
+let warnedUpdate = false;
+
+/** The outbox was written this session and that is HEARTBEAT_MS ago or more. (Before its first write, or after a
+ * failed one, its content counts as unwritten, so the next run writes it anyway.) */
+function heartbeatDue(): boolean {
+  return lastOutboxWriteTime !== null && Date.now() - lastOutboxWriteTime >= HEARTBEAT_MS;
+}
 let warnedOutbox = false;
 /** The window's notes as last read from disk (null: no such file). The folder-wide cache is read once per session,
  * so notes that OneDrive changes underneath (edited on another device) only show up through this. */
@@ -327,16 +333,14 @@ async function writeIfChanged(readDisk: boolean): Promise<void> {
     }
 
     // 2. outbox.json: written when content apart from generatedAt differs (results changed or app version), and also
-    // whenever the last outbox write this session is >= HEARTBEAT_MS ago (or none yet and first build already ran).
+    // whenever the last outbox write this session is >= HEARTBEAT_MS ago.
     const outbox = buildOutbox({
       appVersion: get(appVersion),
       now,
       results: outboxResults,
     });
     const outboxContent = contentOfOutbox(outbox);
-    const heartbeatDue = lastOutboxWriteTime !== null && Date.now() - lastOutboxWriteTime >= HEARTBEAT_MS;
-    const outboxDue = outboxContent !== lastWrittenOutbox || heartbeatDue || (lastOutboxWriteTime === null && firstBuildDone);
-    if (outboxDue && active()) {
+    if ((outboxContent !== lastWrittenOutbox || heartbeatDue()) && active()) {
       try {
         await api.writePhoneOutbox(outboxJson(outbox));
         lastWrittenOutbox = outboxContent;
@@ -347,10 +351,11 @@ async function writeIfChanged(readDisk: boolean): Promise<void> {
         warnedOutbox = true;
       }
     }
-
-    firstBuildDone = true;
+    warnedUpdate = false;
   } catch (e) {
-    if (!warnedOutbox && !warnedMeetings) logWarn(`phone companion: update failed: ${e}`);
+    // Logged once per failure streak: a folder that stays unreadable should not flood the log on every edit.
+    if (!warnedUpdate) logWarn(`phone companion: updating the companion files failed: ${e}`);
+    warnedUpdate = true;
   }
 }
 
@@ -403,10 +408,7 @@ export function wirePhoneCompanion(): void {
   pollInterval = setInterval(() => {
     if (active()) {
       void pollPhoneInbox();
-      const heartbeatDue =
-        (lastOutboxWriteTime !== null && Date.now() - lastOutboxWriteTime >= HEARTBEAT_MS) ||
-        (lastOutboxWriteTime === null && firstBuildDone);
-      if (heartbeatDue) void updatePhoneOutbox(false);
+      if (heartbeatDue()) void updatePhoneOutbox(false);
     }
   }, INBOX_POLL_MS);
   let day: string | null = null;
@@ -433,7 +435,6 @@ export async function setPhoneCompanion(enabled: boolean): Promise<void> {
     lastWrittenMeetings = null;
     lastWrittenOutbox = null;
     lastOutboxWriteTime = null;
-    firstBuildDone = false;
   }
   phoneCompanionEnabled.set(enabled);
   try {
@@ -455,12 +456,12 @@ export function resetPhoneCompanionForTests(): void {
   lastWrittenMeetings = null;
   lastWrittenOutbox = null;
   lastOutboxWriteTime = null;
-  firstBuildDone = false;
   running = null;
   rerun = false;
   freshPending = false;
   warnedMeetings = false;
   warnedOutbox = false;
+  warnedUpdate = false;
   windowDisk = {};
   outboxResults = [];
   titleCache.clear();
