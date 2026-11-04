@@ -11609,7 +11609,7 @@ one computer only.
 
 ## 444. Outside changes to the open note keep the caret and the scroll position
 
-**Status: on main, not released yet.**
+**Status: released in beta 0.36.0-2 (early channel only).**
 
 Marien, testing the phone companion end to end on 0.36.0-1 (it works: lines added and states changed on the phone
 are applied): when changes are applied, the caret and the view jump to the top of the note. Every rewrite of the open
@@ -11626,7 +11626,7 @@ earlier version, defer, import); undo also steps back only the lines that change
 
 ## 445. Phone companion: faster, fresher refresh (`meetings.json`, heartbeat, 15-second inbox check)
 
-**Status: on main, not released yet.**
+**Status: released in beta 0.36.0-2 (early channel only).**
 
 Marien, after the first end-to-end test on 0.36.0-1: refreshing on the phone was fairly slow and the phone was often
 out of date. Marien proposed three changes; with three more of Claude's, "do all six" (design section 15):
