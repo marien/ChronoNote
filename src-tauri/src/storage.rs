@@ -1212,6 +1212,11 @@ fn write_conflict_copy_at(root: &Path, name: &str, content: &str) -> Result<Stri
     Ok(target.to_string_lossy().into_owned())
 }
 
+fn write_phone_meetings_at(root: &Path, content: &str) -> Result<(), String> {
+    // Atomic, so the phone (through OneDrive) only ever sees the old file or the new one.
+    atomic_write(&root.join(MOBILE_DIRNAME).join("meetings.json"), content.as_bytes()).map_err(|e| e.to_string())
+}
+
 fn write_phone_outbox_at(root: &Path, content: &str) -> Result<(), String> {
     // Atomic, so the phone (through OneDrive) only ever sees the old file or the new one.
     atomic_write(&root.join(MOBILE_DIRNAME).join("outbox.json"), content.as_bytes()).map_err(|e| e.to_string())
@@ -1837,6 +1842,10 @@ pub fn write_phone_ledger(app: &AppHandle, content: &str) -> Result<(), String> 
     write_phone_ledger_at(&app_data_root(app)?, &notes_root(app)?, content)
 }
 
+pub fn write_phone_meetings(app: &AppHandle, content: &str) -> Result<(), String> {
+    write_phone_meetings_at(&notes_root(app)?, content)
+}
+
 pub fn write_phone_outbox(app: &AppHandle, content: &str) -> Result<(), String> {
     write_phone_outbox_at(&notes_root(app)?, content)
 }
@@ -2383,6 +2392,18 @@ mod tests {
         ConfigPatch { phone_companion: Some(true), ..Default::default() }.apply(&mut cfg);
         save_config_at(&path, &cfg).unwrap();
         assert!(load_config_at(&path, dir.path()).unwrap().phone_companion);
+    }
+
+    #[test]
+    fn the_phone_meetings_file_is_written_and_replaced_in_its_hidden_folder_and_stays_out_of_the_note_list() {
+        let dir = tempfile::tempdir().unwrap();
+        fs::write(dir.path().join("2026-10-29.txt"), "x").unwrap();
+        write_phone_meetings_at(dir.path(), "{\"format\":1}").unwrap();
+        write_phone_meetings_at(dir.path(), "{\"format\":1,\"meetings\":[]}").unwrap();
+        let out = dir.path().join(".chrononote-mobile").join("meetings.json");
+        assert_eq!(fs::read_to_string(out).unwrap(), "{\"format\":1,\"meetings\":[]}");
+        assert_eq!(list_note_files_at(dir.path()).unwrap(), vec!["2026-10-29.txt".to_string()]);
+        assert_eq!(read_all_notes_at(dir.path()).unwrap().len(), 1);
     }
 
     #[test]

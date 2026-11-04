@@ -214,6 +214,10 @@ export function writeConflictCopy(name: string, content: string): Promise<string
   return invoke("write_conflict_copy", { name, content });
 }
 
+export function writePhoneMeetings(content: string): Promise<void> {
+  return invoke("write_phone_meetings", { content });
+}
+
 export function writePhoneOutbox(content: string): Promise<void> {
   return invoke("write_phone_outbox", { content });
 }

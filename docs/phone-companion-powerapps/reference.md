@@ -11,13 +11,14 @@ phase file seem to disagree, ask the user before building.
   a notes folder that OneDrive syncs. It is the **only program that edits notes**.
 - **The phone app (yours)** reads the notes through flows, shows them, and in phase 2 writes *requests* (add a line,
   change an action's state) to one file, `inbox.json`. ChronoNote applies them and reports the outcome in
-  `outbox.json`.
+  `outbox.json`; it keeps the meeting index in `meetings.json`.
 - The user's organisation allows only Microsoft apps on the phone, so everything goes through Power Apps, Power
   Automate and the OneDrive for Business connector.
 
 ## 2. Ground rules
 
-1. **Never write, rename or delete** a note (`*.txt`), `.agenda.json` or `.chrononote-mobile/outbox.json`. The only
+1. **Never write, rename or delete** a note (`*.txt`), `.agenda.json`, `.chrononote-mobile/meetings.json` or
+   `.chrononote-mobile/outbox.json`. The only
    file the app ever writes is `.chrononote-mobile/inbox.json`, and only from phase 2 on.
 2. **Standard connectors only:** OneDrive for Business, plus the Power Apps trigger and response actions. No premium
    connectors, no Dataverse, no custom connectors, no HTTP actions, no SharePoint lists.
@@ -67,6 +68,7 @@ All paths are relative to the notes folder (`NotesPath`).
 | :--- | :--- | :--- |
 | `YYYY-MM-DD.txt` | ChronoNote | reads |
 | `.agenda.json` | an external calendar feed | reads |
+| `.chrononote-mobile/meetings.json` | ChronoNote | reads |
 | `.chrononote-mobile/outbox.json` | ChronoNote | reads |
 | `.chrononote-mobile/inbox.json` | the app (phase 2) | writes |
 
@@ -190,10 +192,16 @@ meeting has four strings:
 - An agenda meeting already has a section in that day's note when its cleaned title equals a section's title after
   removing the time range and `[CANCELED]` from the section title (steps 1 and 2 of section 7), ignoring case.
 
-## 9. `outbox.json` (written by ChronoNote)
+## 9. `meetings.json` and `outbox.json` (written by ChronoNote)
 
-Path `.chrononote-mobile/outbox.json`. Rewritten whenever its content changes; may be missing (ChronoNote's phone
-companion setting is off).
+Both in `.chrononote-mobile/`, both may be missing (ChronoNote's phone companion setting is off). Unknown fields must
+be ignored. (ChronoNote 0.36.0-1 wrote one `outbox.json`, format 1, holding both the meetings and the results; see
+9.3.)
+
+### 9.1 `meetings.json`: the meeting index
+
+Path `.chrononote-mobile/meetings.json`. The larger of the two; rewritten only when the meetings change (a section
+title added or renamed, the agenda changed, the day changed).
 
 ```json
 {
@@ -206,9 +214,6 @@ companion setting is off).
       { "date": "2026-09-10", "title": "Weekly Sync" },
       { "date": "2026-10-22", "title": "[09:00 - 09:30] Weekly Sync" },
       { "date": "2026-10-29", "title": "Weekly Sync 2026-10-29" } ] }
-  ],
-  "results": [
-    { "id": "6f0c8a52-1d7e-4b8e-9a51-0c3f2b7d9e11", "result": "applied", "at": "2026-10-29T09:01:03+01:00" }
   ]
 }
 ```
@@ -221,10 +226,42 @@ companion setting is off).
 | `key` | A stable id per meeting. Don't derive anything from it. |
 | `title` | Display title (the latest occurrence's matching title, or the agenda title). |
 | `occurrences` | Oldest first: every day in the window with a section for this meeting, plus the 5 most recent days before the window, however far back. `title` is the section title exactly as written that day (trimmed), so the app finds the section by plain comparison. |
+
+The index can be behind the notes (a meeting added today may not be in it yet): the app also looks at the window's
+notes itself.
+
+### 9.2 `outbox.json`: results and heartbeat
+
+Path `.chrononote-mobile/outbox.json`. Small; rewritten when the results change, and at least every 5 minutes while
+ChronoNote runs with the phone companion on.
+
+```json
+{
+  "format": 2,
+  "generatedAt": "2026-10-29T09:01:03+01:00",
+  "appVersion": "0.36.0",
+  "results": [
+    { "id": "6f0c8a52-1d7e-4b8e-9a51-0c3f2b7d9e11", "result": "applied", "at": "2026-10-29T09:01:03+01:00" }
+  ]
+}
+```
+
+| Field | Meaning |
+| :--- | :--- |
+| `format` | 2. A higher number: the app must not use the file and shows "Update the app". |
+| `generatedAt` | When ChronoNote wrote it, local time with offset. |
 | `results` | Phase 2: outcomes of inbox requests (`phase-2.md`). |
 
-Unknown fields must be ignored. The outbox can be behind the notes (a meeting added today may not be in it yet): the
-app also looks at the window's notes itself.
+**Is the computer on?** The outbox's modified time (from the listing) is never much more than 5 minutes old while
+ChronoNote runs. Older than 15 minutes means the computer is asleep, off or offline, or ChronoNote is closed: requests
+wait until it is back. ChronoNote looks at the inbox every 15 seconds, so once OneDrive has brought the inbox to the
+computer, a request's result follows within about 15 seconds (plus OneDrive's delay back to the phone).
+
+### 9.3 An older ChronoNote (0.36.0-1)
+
+If `outbox.json` has `format` 1, it comes from ChronoNote 0.36.0-1 and holds `window`, `meetings` and `results` in
+one file, and there is no `meetings.json`. Use its `meetings` as the index and its `results` as the results. It is
+not rewritten every 5 minutes, so don't show "Computer last seen" for it.
 
 ## 10. Look: like ChronoNote
 
@@ -376,24 +413,23 @@ not by greying or striking through the text.
 ## 12. Sources in the repository
 
 ChronoNote is open source. When a detail here is unclear, these files are the ground truth (this reference wins
-where they seem to differ; then ask). The links point at the `feat/phone-companion` branch; once it is merged, the
-same paths are on `main`.
+where they seem to differ; then ask). The links point at `main`.
 
 | What | File |
 | :--- | :--- |
-| These instructions | [docs/phone-companion-powerapps/](https://github.com/marien/ChronoNote/tree/feat/phone-companion/docs/phone-companion-powerapps) |
-| The design and its reasons (outbox, inbox, phases, risks) | [docs/design/mobile-companion-design.md](https://github.com/marien/ChronoNote/blob/feat/phone-companion/docs/design/mobile-companion-design.md) |
-| The file formats (the agreement both sides build against) | [docs/phone-companion-file-guide.md](https://github.com/marien/ChronoNote/blob/feat/phone-companion/docs/phone-companion-file-guide.md) |
-| The calendar file in full (timezone rules, validation) | [docs/agenda-file-guide.md](https://github.com/marien/ChronoNote/blob/feat/phone-companion/docs/agenda-file-guide.md) |
-| The note syntax and every behaviour (section 2.2: tokens) | [docs/spec.md](https://github.com/marien/ChronoNote/blob/feat/phone-companion/docs/spec.md) |
-| The user guide, with the syntax as users learn it | [website/guide.html](https://github.com/marien/ChronoNote/blob/feat/phone-companion/website/guide.html) |
-| How ChronoNote builds the outbox | [src/lib/phoneCompanion.ts](https://github.com/marien/ChronoNote/blob/feat/phone-companion/src/lib/phoneCompanion.ts) |
-| Sections and title matching (`isSetextUnderline`, `normalizeHeaderTitle`, `titleForMatching`) | [src/lib/tokens.ts](https://github.com/marien/ChronoNote/blob/feat/phone-companion/src/lib/tokens.ts) |
-| Line kinds | [src/lib/lineKind.ts](https://github.com/marien/ChronoNote/blob/feat/phone-companion/src/lib/lineKind.ts) |
-| Agenda title rules (removed meetings, status words) | [src/lib/agendaTitles.ts](https://github.com/marien/ChronoNote/blob/feat/phone-companion/src/lib/agendaTitles.ts) |
-| Symbols per token | [src/lib/grammar/glyphs.ts](https://github.com/marien/ChronoNote/blob/feat/phone-companion/src/lib/grammar/glyphs.ts) |
-| Colours (dark, light, colour and grayscale modes) | [src/styles/01-tokens.css](https://github.com/marien/ChronoNote/blob/feat/phone-companion/src/styles/01-tokens.css) |
-| How the symbols and title rules are drawn | [src/styles/03-editor.css](https://github.com/marien/ChronoNote/blob/feat/phone-companion/src/styles/03-editor.css) |
-| How the phone web app lays things out | [src/styles/09-mobile.css](https://github.com/marien/ChronoNote/blob/feat/phone-companion/src/styles/09-mobile.css) |
+| These instructions | [docs/phone-companion-powerapps/](https://github.com/marien/ChronoNote/tree/main/docs/phone-companion-powerapps) |
+| The design and its reasons (outbox, inbox, phases, risks) | [docs/design/mobile-companion-design.md](https://github.com/marien/ChronoNote/blob/main/docs/design/mobile-companion-design.md) |
+| The file formats (the agreement both sides build against) | [docs/phone-companion-file-guide.md](https://github.com/marien/ChronoNote/blob/main/docs/phone-companion-file-guide.md) |
+| The calendar file in full (timezone rules, validation) | [docs/agenda-file-guide.md](https://github.com/marien/ChronoNote/blob/main/docs/agenda-file-guide.md) |
+| The note syntax and every behaviour (section 2.2: tokens) | [docs/spec.md](https://github.com/marien/ChronoNote/blob/main/docs/spec.md) |
+| The user guide, with the syntax as users learn it | [website/guide.html](https://github.com/marien/ChronoNote/blob/main/website/guide.html) |
+| How ChronoNote builds `meetings.json` and `outbox.json` | [src/lib/phoneCompanion.ts](https://github.com/marien/ChronoNote/blob/main/src/lib/phoneCompanion.ts) |
+| Sections and title matching (`isSetextUnderline`, `normalizeHeaderTitle`, `titleForMatching`) | [src/lib/tokens.ts](https://github.com/marien/ChronoNote/blob/main/src/lib/tokens.ts) |
+| Line kinds | [src/lib/lineKind.ts](https://github.com/marien/ChronoNote/blob/main/src/lib/lineKind.ts) |
+| Agenda title rules (removed meetings, status words) | [src/lib/agendaTitles.ts](https://github.com/marien/ChronoNote/blob/main/src/lib/agendaTitles.ts) |
+| Symbols per token | [src/lib/grammar/glyphs.ts](https://github.com/marien/ChronoNote/blob/main/src/lib/grammar/glyphs.ts) |
+| Colours (dark, light, colour and grayscale modes) | [src/styles/01-tokens.css](https://github.com/marien/ChronoNote/blob/main/src/styles/01-tokens.css) |
+| How the symbols and title rules are drawn | [src/styles/03-editor.css](https://github.com/marien/ChronoNote/blob/main/src/styles/03-editor.css) |
+| How the phone web app lays things out | [src/styles/09-mobile.css](https://github.com/marien/ChronoNote/blob/main/src/styles/09-mobile.css) |
 
 The live demo (`chrononote.mariendegelder.nl`, "Try it") shows all of it running, also at phone width.

@@ -72,7 +72,11 @@ test("reports the results in the outbox and keeps a ledger outside the notes fol
   const key = createHash("sha256").update(NOTES).digest("hex").slice(0, 16);
   const ledger = JSON.parse(fs.readFileSync(path.join(CONFIG_DIR, "phone-companion", `${key}.json`), "utf8"));
   expect(Object.keys(ledger.handled).sort()).toEqual(["r1", "r2", "r3", "r4"]);
-  expect(fs.readdirSync(MOBILE).sort()).toEqual(["inbox.json", "outbox.json"]);
+  expect(fs.readdirSync(MOBILE).sort()).toEqual(["inbox.json", "meetings.json", "outbox.json"]);
+  const outbox = JSON.parse(fs.readFileSync(path.join(MOBILE, "outbox.json"), "utf8"));
+  expect(outbox.format).toBe(2);
+  const meetings = JSON.parse(fs.readFileSync(path.join(MOBILE, "meetings.json"), "utf8"));
+  expect(meetings.meetings).toBeDefined();
 });
 
 test("the conflict is resolved in the dialog and written to the note", async () => {

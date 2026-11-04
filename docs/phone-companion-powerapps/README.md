@@ -10,6 +10,7 @@ turn them into briefs.
 | [reference.md](reference.md) | The model, every phase: ground rules, verified environment facts, delivery format, file formats, note syntax, matching rules, visual language. |
 | [phase-1.md](phase-1.md) | The model: read-only app (flows `CNList` and `CNRead`, the copy on the device, Days, Day and Meeting screens). |
 | [phase-2.md](phase-2.md) | The model: proposing changes through `inbox.json` (flow `CNWriteInbox`, line menu, Add and Pending screens). |
+| [update-1-refresh.md](update-1-refresh.md) | The model, for an app that has phases 1 and 2: the faster refresh (`meetings.json`, modified times for the companion files, the check timer, "Computer last seen", timings). Needs ChronoNote 0.36.0-2. |
 
 ## How to use this
 
@@ -21,13 +22,16 @@ the file formats; the model owns the Power Apps and Power Automate implementatio
 2. **Phase 2 (proposing changes): wait.** It needs ChronoNote to process the inbox, which is not built yet. When the
    ChronoNote side is ready, hand over `reference.md` and `phase-2.md` in a fresh conversation with the model, plus
    the app as it stands.
-3. **Later:** deferring an action to another day from the phone (design section 10). Not briefed yet.
+3. **Update 1 (faster refresh):** for an app built from phases 1 and 2 before 2026-11-04. Give the model
+   `reference.md` and `update-1-refresh.md`, and install ChronoNote 0.36.0-2 at the same time (the outbox's format
+   changed).
+4. **Later:** deferring an action to another day from the phone (design section 10). Not briefed yet.
 
 ## Before you start phase 1
 
-- **The meeting index needs a ChronoNote build from the `feat/phone-companion` branch.** The released 0.35.0 does
-  not write `outbox.json`. Without it the app still shows the 4-week window's notes; only a meeting's history before
-  the window is missing.
+- **The meeting index needs ChronoNote 0.36.0-2 or later** with Settings → Notes & Sync → Phone companion on, on
+  one computer. Without it the app still shows the 4-week window's notes; only a meeting's history before the window
+  is missing.
 - **Your notes folder path** as the OneDrive connector shows it. The flows need it; nothing else does.
 - **Building the flows is click work:** the brief gives the model exact expressions, and it turns them into steps.
 
@@ -43,7 +47,7 @@ Nothing about the organisation, the notes' content or the app's code needs to co
 
 ## Ground rules the briefs give the model
 
-- The app never writes a note, the agenda or the outbox. In phase 2 it writes one file only:
+- The app never writes a note, the agenda, `meetings.json` or the outbox. In phase 2 it writes one file only:
   `.chrononote-mobile/inbox.json`.
 - Standard connectors only (OneDrive for Business). No premium connectors, no Dataverse, no custom connectors, no
   HTTP.

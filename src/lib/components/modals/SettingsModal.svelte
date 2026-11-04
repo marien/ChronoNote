@@ -867,7 +867,7 @@
               onChange={(v) => void setPhoneCompanion(v)}
             >
               {#snippet description()}
-                {$t("phoneCompanion.settings.toggle.hint.before")}<code>.chrononote-mobile/outbox.json</code>{$t("phoneCompanion.settings.toggle.hint.after")}
+                {$t("phoneCompanion.settings.toggle.hint.before")}<code>.chrononote-mobile</code>{$t("phoneCompanion.settings.toggle.hint.after")}
               {/snippet}
             </SettingToggle>
           </section>

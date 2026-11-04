@@ -5,22 +5,30 @@ const disk = vi.hoisted(() => ({ files: {} as Record<string, string> }));
 const apiMock = vi.hoisted(() => ({
   readNote: vi.fn(async (name: string): Promise<string | null> => disk.files[name] ?? null),
   readAgendaAfter: vi.fn(async (_after: string): Promise<[string, string][]> => []),
+  writePhoneMeetings: vi.fn(async (_content: string) => {}),
   writePhoneOutbox: vi.fn(async (_content: string) => {}),
+  readPhoneInbox: vi.fn(async (): Promise<string | null> => null),
   setPhoneCompanion: vi.fn(async (_on: boolean) => ({})),
 }));
 vi.mock("./tauriApi", () => apiMock);
 vi.mock("./persistence", () => ({ refreshAllNotesCache: vi.fn(async () => {}) }));
 
 import {
+  buildMeetings,
   buildOutbox,
+  HEARTBEAT_MS,
+  INBOX_POLL_MS,
   localIsoWithOffset,
   meetingKey,
+  meetingsJson,
   outboxJson,
   phoneCompanionEnabled,
   resetPhoneCompanionForTests,
   schedulePhoneOutbox,
+  setOutboxResults,
   setPhoneCompanion,
   updatePhoneOutbox,
+  wirePhoneCompanion,
 } from "./phoneCompanion";
 import { allNotesCache, appVersion, backendKind, currentDateISO, tabs } from "./stores";
 
@@ -32,7 +40,7 @@ function section(title: string, ...lines: string[]): string {
 }
 
 function build(notes: Record<string, string>, agenda: [string, string][] = []) {
-  return buildOutbox({ notes, agenda, today: TODAY, appVersion: "0.36.0", now: NOW });
+  return buildMeetings({ notes, agenda, today: TODAY, appVersion: "0.36.0", now: NOW });
 }
 
 describe("meetingKey", () => {
@@ -44,7 +52,7 @@ describe("meetingKey", () => {
   });
 });
 
-describe("buildOutbox", () => {
+describe("buildMeetings", () => {
   it("has the file's header fields and a window of 14 days each way", () => {
     const o = build({});
     expect(o.format).toBe(1);
@@ -53,9 +61,6 @@ describe("buildOutbox", () => {
     expect(o.generatedAt).toBe(localIsoWithOffset(NOW));
     expect(o.generatedAt).toMatch(/^2026-10-29T08:40:12[+-]\d{2}:\d{2}$/);
     expect(o.meetings).toEqual([]);
-    expect(o.results).toEqual([]);
-    const results = [{ id: "r1", result: "applied" as const, at: "2026-10-29T09:01:03+01:00" }];
-    expect(buildOutbox({ notes: {}, agenda: [], today: TODAY, appVersion: "0.36.0", now: NOW, results }).results).toEqual(results);
   });
 
   it("treats titles with a time range, [CANCELED] or a date as one meeting, keeping each title as written", () => {
@@ -136,17 +141,40 @@ describe("buildOutbox", () => {
   });
 
   it("is written as two-space JSON with a final newline", () => {
-    const text = outboxJson(build({}));
+    const text = meetingsJson(build({}));
     expect(text.endsWith("}\n")).toBe(true);
     expect(text).toContain('\n  "format": 1,');
+  });
+});
+
+describe("buildOutbox", () => {
+  it("builds the format 2 outbox with results and no meetings or window keys", () => {
+    const results = [{ id: "r1", result: "applied" as const, at: "2026-10-29T09:01:03+01:00" }];
+    const o = buildOutbox({ appVersion: "0.36.0", now: NOW, results });
+    expect(o.format).toBe(2);
+    expect(o.appVersion).toBe("0.36.0");
+    expect(o.generatedAt).toBe(localIsoWithOffset(NOW));
+    expect(o.results).toEqual(results);
+    expect((o as unknown as Record<string, unknown>).meetings).toBeUndefined();
+    expect((o as unknown as Record<string, unknown>).window).toBeUndefined();
+  });
+
+  it("defaults results to empty array when omitted", () => {
+    const o = buildOutbox({ appVersion: "0.36.0", now: NOW });
+    expect(o.results).toEqual([]);
+    const text = outboxJson(o);
+    expect(text.endsWith("}\n")).toBe(true);
+    expect(text).toContain('\n  "format": 2,');
   });
 });
 
 describe("updatePhoneOutbox", () => {
   beforeEach(() => {
     resetPhoneCompanionForTests();
+    apiMock.writePhoneMeetings.mockClear();
     apiMock.writePhoneOutbox.mockClear();
     apiMock.readAgendaAfter.mockClear();
+    apiMock.readPhoneInbox.mockClear();
     backendKind.set("desktop");
     phoneCompanionEnabled.set(true);
     currentDateISO.set(TODAY);
@@ -157,8 +185,13 @@ describe("updatePhoneOutbox", () => {
     apiMock.readNote.mockClear();
   });
 
+  afterEach(() => {
+    vi.useRealTimers();
+    phoneCompanionEnabled.set(false);
+  });
+
   function writtenTitles(call = -1): string[] {
-    const calls = apiMock.writePhoneOutbox.mock.calls;
+    const calls = apiMock.writePhoneMeetings.mock.calls;
     return JSON.parse(calls.at(call)![0]).meetings.map((m: { title: string }) => m.title);
   }
 
@@ -170,7 +203,7 @@ describe("updatePhoneOutbox", () => {
     apiMock.readNote.mockClear();
     await updatePhoneOutbox(false);
     expect(apiMock.readNote).not.toHaveBeenCalled();
-    expect(apiMock.writePhoneOutbox).toHaveBeenCalledTimes(1);
+    expect(apiMock.writePhoneMeetings).toHaveBeenCalledTimes(1);
     await updatePhoneOutbox(true);
     expect(writtenTitles()).toEqual(["Offsite", "Standup renamed"]);
   });
@@ -191,27 +224,28 @@ describe("updatePhoneOutbox", () => {
     await setPhoneCompanion(false);
     release();
     await run;
+    expect(apiMock.writePhoneMeetings).toHaveBeenCalledTimes(1);
     expect(apiMock.writePhoneOutbox).toHaveBeenCalledTimes(1);
     tabs.set([]);
     await setPhoneCompanion(true);
     await updatePhoneOutbox();
     // Same content as the first write, written again because turning it off forgot what was written.
+    expect(apiMock.writePhoneMeetings).toHaveBeenCalledTimes(2);
     expect(apiMock.writePhoneOutbox).toHaveBeenCalledTimes(2);
-  });
-  afterEach(() => {
-    vi.useRealTimers();
-    phoneCompanionEnabled.set(false);
   });
 
   it("writes once, and again only when the content changes", async () => {
     await updatePhoneOutbox();
+    expect(apiMock.writePhoneMeetings).toHaveBeenCalledTimes(1);
     expect(apiMock.writePhoneOutbox).toHaveBeenCalledTimes(1);
     expect(apiMock.readAgendaAfter).toHaveBeenCalledWith("2026-10-14");
     await updatePhoneOutbox();
+    expect(apiMock.writePhoneMeetings).toHaveBeenCalledTimes(1);
     expect(apiMock.writePhoneOutbox).toHaveBeenCalledTimes(1);
     tabs.set([{ id: "t", filename: "2026-10-29.txt", content: section("Planning"), isScratchpad: false }]);
     await updatePhoneOutbox();
-    expect(apiMock.writePhoneOutbox).toHaveBeenCalledTimes(2);
+    expect(apiMock.writePhoneMeetings).toHaveBeenCalledTimes(2);
+    expect(apiMock.writePhoneOutbox).toHaveBeenCalledTimes(1);
     expect(writtenTitles(1)).toEqual(["Planning", "Standup"]);
   });
 
@@ -221,7 +255,7 @@ describe("updatePhoneOutbox", () => {
       { id: "b", filename: "2026-10-27.txt", content: section("Scratch"), isScratchpad: true },
     ]);
     await updatePhoneOutbox();
-    const written = JSON.parse(apiMock.writePhoneOutbox.mock.calls[0][0]);
+    const written = JSON.parse(apiMock.writePhoneMeetings.mock.calls[0][0]);
     expect(written.meetings.map((m: { title: string }) => m.title)).toEqual(["Renamed"]);
   });
 
@@ -231,20 +265,22 @@ describe("updatePhoneOutbox", () => {
     phoneCompanionEnabled.set(true);
     backendKind.set("web");
     await updatePhoneOutbox();
+    expect(apiMock.writePhoneMeetings).not.toHaveBeenCalled();
     expect(apiMock.writePhoneOutbox).not.toHaveBeenCalled();
   });
 
   it("still writes when the agenda can't be read", async () => {
     apiMock.readAgendaAfter.mockRejectedValueOnce(new Error("AgendaInvalid"));
     await updatePhoneOutbox();
+    expect(apiMock.writePhoneMeetings).toHaveBeenCalledTimes(1);
     expect(apiMock.writePhoneOutbox).toHaveBeenCalledTimes(1);
   });
 
   it("retries a failed write on the next update", async () => {
-    apiMock.writePhoneOutbox.mockRejectedValueOnce(new Error("locked"));
+    apiMock.writePhoneMeetings.mockRejectedValueOnce(new Error("locked"));
     await updatePhoneOutbox();
     await updatePhoneOutbox();
-    expect(apiMock.writePhoneOutbox).toHaveBeenCalledTimes(2);
+    expect(apiMock.writePhoneMeetings).toHaveBeenCalledTimes(2);
   });
 
   it("debounces scheduled rebuilds", async () => {
@@ -252,8 +288,83 @@ describe("updatePhoneOutbox", () => {
     schedulePhoneOutbox();
     schedulePhoneOutbox();
     await vi.advanceTimersByTimeAsync(4999);
-    expect(apiMock.writePhoneOutbox).not.toHaveBeenCalled();
+    expect(apiMock.writePhoneMeetings).not.toHaveBeenCalled();
     await vi.advanceTimersByTimeAsync(1);
-    await vi.waitFor(() => expect(apiMock.writePhoneOutbox).toHaveBeenCalledTimes(1));
+    await vi.waitFor(() => expect(apiMock.writePhoneMeetings).toHaveBeenCalledTimes(1));
+  });
+
+  it("meetings.json is not rewritten when only results change and vice versa", async () => {
+    await updatePhoneOutbox();
+    expect(apiMock.writePhoneMeetings).toHaveBeenCalledTimes(1);
+    expect(apiMock.writePhoneOutbox).toHaveBeenCalledTimes(1);
+    apiMock.writePhoneMeetings.mockClear();
+    apiMock.writePhoneOutbox.mockClear();
+
+    // 1. Only results change
+    setOutboxResults([{ id: "r1", result: "applied", at: "2026-10-29T09:00:00+01:00" }]);
+    await updatePhoneOutbox(false);
+    expect(apiMock.writePhoneOutbox).toHaveBeenCalledTimes(1);
+    expect(apiMock.writePhoneMeetings).not.toHaveBeenCalled();
+    apiMock.writePhoneMeetings.mockClear();
+    apiMock.writePhoneOutbox.mockClear();
+
+    // 2. Only meetings change (vice versa)
+    tabs.set([{ id: "t", filename: "2026-10-29.txt", content: section("Planning"), isScratchpad: false }]);
+    await updatePhoneOutbox(false);
+    expect(apiMock.writePhoneMeetings).toHaveBeenCalledTimes(1);
+    expect(apiMock.writePhoneOutbox).not.toHaveBeenCalled();
+  });
+
+  it("heartbeat writes outbox with newer generatedAt after 5 min without rewriting meetings.json", async () => {
+    vi.useFakeTimers({ now: new Date(2026, 9, 29, 8, 0, 0) });
+    wirePhoneCompanion();
+    await updatePhoneOutbox();
+    expect(apiMock.writePhoneOutbox).toHaveBeenCalledTimes(1);
+    expect(apiMock.writePhoneMeetings).toHaveBeenCalledTimes(1);
+    const firstOutbox = JSON.parse(apiMock.writePhoneOutbox.mock.calls[0][0]);
+    apiMock.writePhoneOutbox.mockClear();
+    apiMock.writePhoneMeetings.mockClear();
+
+    // Advance 4 minutes 59 seconds: no outbox write before 5 min with nothing changed
+    await vi.advanceTimersByTimeAsync(4 * 60_000 + 59_000);
+    expect(apiMock.writePhoneOutbox).not.toHaveBeenCalled();
+    expect(apiMock.writePhoneMeetings).not.toHaveBeenCalled();
+
+    // Advance across 5 minutes (next 15 s interval tick at 5m 00s)
+    await vi.advanceTimersByTimeAsync(16_000);
+    expect(apiMock.writePhoneOutbox).toHaveBeenCalledTimes(1);
+    expect(apiMock.writePhoneMeetings).not.toHaveBeenCalled();
+    const secondOutbox = JSON.parse(apiMock.writePhoneOutbox.mock.calls[0][0]);
+    expect(secondOutbox.generatedAt).not.toBe(firstOutbox.generatedAt);
+    expect(secondOutbox.generatedAt).toBe(localIsoWithOffset(new Date(2026, 9, 29, 8, 5, 0)));
+  });
+
+  it("polls the inbox every 15 s", async () => {
+    expect(INBOX_POLL_MS).toBe(15_000);
+    expect(HEARTBEAT_MS).toBe(300_000);
+    vi.useFakeTimers();
+    wirePhoneCompanion();
+    // Advance past boot delay and first interval
+    await vi.advanceTimersByTimeAsync(15_000);
+    apiMock.readPhoneInbox.mockClear();
+
+    // Now test that subsequent polls happen every 15 s
+    await vi.advanceTimersByTimeAsync(14_999);
+    expect(apiMock.readPhoneInbox).not.toHaveBeenCalled();
+    await vi.advanceTimersByTimeAsync(1);
+    expect(apiMock.readPhoneInbox).toHaveBeenCalledTimes(1);
+    await vi.advanceTimersByTimeAsync(15_000);
+    expect(apiMock.readPhoneInbox).toHaveBeenCalledTimes(2);
+  });
+
+  it("a failing meetings write still writes the outbox", async () => {
+    apiMock.writePhoneMeetings.mockRejectedValueOnce(new Error("disk full"));
+    await updatePhoneOutbox();
+    expect(apiMock.writePhoneMeetings).toHaveBeenCalledTimes(1);
+    expect(apiMock.writePhoneOutbox).toHaveBeenCalledTimes(1);
+    // Next update: retries meetings write, but outbox is not rewritten
+    await updatePhoneOutbox();
+    expect(apiMock.writePhoneMeetings).toHaveBeenCalledTimes(2);
+    expect(apiMock.writePhoneOutbox).toHaveBeenCalledTimes(1);
   });
 });

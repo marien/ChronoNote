@@ -679,6 +679,10 @@ export class WebBackend {
       return `${prefix}/.chrononote-conflicts/${name}`;
     },
 
+    write_phone_meetings: async () => {
+      throw new Error("The phone companion is not available in the web app.");
+    },
+
     write_phone_outbox: async () => {
       throw new Error("The phone companion is not available in the web app.");
     },

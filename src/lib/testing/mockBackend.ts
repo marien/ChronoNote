@@ -331,6 +331,8 @@ export class MockBackend {
   autoCheckUpdates: boolean;
   earlyUpdates: boolean = false;
   phoneCompanion: boolean = false;
+  /** `.chrononote-mobile/meetings.json` as `write_phone_meetings` last wrote it (not part of the snapshot). */
+  phoneMeetings: string | null = null;
   /** `.chrononote-mobile/outbox.json` as `write_phone_outbox` last wrote it (not part of the snapshot). */
   phoneOutbox: string | null = null;
   /** `.chrononote-mobile/inbox.json` as the phone left it (seedable, not part of the snapshot). */
@@ -1160,6 +1162,10 @@ export class MockBackend {
       }
       this.dir().conflictCopies.set(name, content);
       return `${this.notesDir}/${CONFLICTS_DIRNAME}/${name}`;
+    },
+
+    write_phone_meetings: ({ content }) => {
+      this.phoneMeetings = content;
     },
 
     write_phone_outbox: ({ content }) => {

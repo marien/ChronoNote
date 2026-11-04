@@ -25,6 +25,7 @@ const apiMock = vi.hoisted(() => ({
   readAllNotes: vi.fn(async (): Promise<[string, string][]> => Object.entries(disk.files)),
   readAgendaForDate: vi.fn(async (_date: string): Promise<string[]> => []),
   readAgendaAfter: vi.fn(async (_after: string): Promise<[string, string][]> => []),
+  writePhoneMeetings: vi.fn(async (_content: string) => {}),
   writePhoneOutbox: vi.fn(async (_content: string) => {}),
   setPhoneCompanion: vi.fn(async (_on: boolean) => ({})),
   saveScratchpadDrafts: vi.fn(async (_drafts: Record<string, string>) => {}), // flushAllPendingSaves saves drafts too

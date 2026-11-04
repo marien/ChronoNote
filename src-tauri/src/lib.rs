@@ -171,6 +171,13 @@ async fn write_conflict_copy(app: AppHandle, name: String, content: String) -> R
 }
 
 #[tauri::command]
+async fn write_phone_meetings(app: AppHandle, content: String) -> Result<(), String> {
+    tauri::async_runtime::spawn_blocking(move || storage::write_phone_meetings(&app, &content))
+        .await
+        .map_err(|e| e.to_string())?
+}
+
+#[tauri::command]
 async fn write_phone_outbox(app: AppHandle, content: String) -> Result<(), String> {
     tauri::async_runtime::spawn_blocking(move || storage::write_phone_outbox(&app, &content))
         .await
@@ -446,6 +453,7 @@ pub fn run() {
             get_file_metadata,
             read_note_with_metadata,
             write_conflict_copy,
+            write_phone_meetings,
             write_phone_outbox,
             read_phone_inbox,
             read_phone_ledger,

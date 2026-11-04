@@ -1,6 +1,7 @@
 # Mobile companion through OneDrive (outbox and inbox): design draft
 
-Status: reviewed and decided, 2026-10-29 (Marien's answers in section 13). Nothing built yet. First draft 2026-10-28;
+Status: reviewed and decided, 2026-10-29 (Marien's answers in section 13). Built and released in beta 0.36.0-1
+(§443); the refresh reworked on 2026-11-04 (section 15: `meetings.json` split out of the outbox, heartbeat). First draft 2026-10-28;
 revised 2026-10-29 (the phone reads the notes itself).
 
 ## 1. Why
@@ -64,9 +65,14 @@ the others); export, search, trash and the web app's OneDrive sync must be check
 
 ```
 .chrononote-mobile/
-  outbox.json    written by ChronoNote only
+  meetings.json  written by ChronoNote only (since §445; before, the meetings were in the outbox)
+  outbox.json    written by ChronoNote only (since §445 only the results, format 2)
   inbox.json     written by the phone side only
 ```
+
+Sections 4.1 and 4.2 describe the first version, with the meetings in the outbox; since §445 they are in
+`meetings.json` with the same fields, and the outbox carries `results` and a heartbeat (section 15). The exact formats
+are in `docs/phone-companion-file-guide.md`.
 
 Both start with `"format": 1`, so either side can recognise a file it doesn't understand yet and leave it alone
 instead of misreading it.
@@ -383,3 +389,34 @@ Three throwaway flows and a one-screen test app, run against the real notes fold
 
 Conclusion: the design works in this environment. Reading is the one weak spot, which is why the refresh (section 8)
 shows the device's copy first, reads only changed files, and reads earlier occurrences only when they are opened.
+
+## 15. Faster, fresher refresh (Marien, 2026-11-04; §445)
+
+After the first end-to-end test on 0.36.0-1 (it worked), Marien found refreshing fairly slow and the phone frequently
+out of date, and proposed splitting the meetings out of the outbox, reading only files whose modified time changed,
+and checking the outbox more often but backing off when it doesn't change. Agreed, with three additions; "do all six".
+
+A phone change makes four trips: the phone's flow writes the inbox to OneDrive, OneDrive brings it to the laptop,
+ChronoNote notices and applies it (then writes the note and the outbox), OneDrive uploads those, and the phone
+refreshes. Each flow run from Power Apps costs a few seconds on its own, so the number of flow runs per refresh
+matters more than the number of files.
+
+1. **`meetings.json` separate from `outbox.json`.** The meeting index (large, changes rarely) moves to its own file
+   (format 1); the outbox keeps only the results (format 2, small). The phone reads each only when it changed. A
+   phone app built for format 1 shows "Update the app" on the new outbox rather than misreading it.
+2. **The list flow lists `.chrononote-mobile` too**, so `meetings.json` and `outbox.json` have modified times like the
+   notes and are read only when they changed (the notes already were; the outbox was read on every refresh).
+3. **Adaptive refresh on the phone:** while the app is open, a cheap check (the listing only) every 30 seconds while
+   a request waits for its result, otherwise every minute, doubling while nothing changes up to 10 minutes; back to
+   frequent on any change or user action. Reads happen only for files the listing shows changed. Power Apps timers
+   run only while the app is in front, and every flow run counts toward the daily Power Platform request limit, so
+   the frequent check is never a read.
+4. **ChronoNote checks the inbox every 15 seconds** instead of 60 (a small local file, skipped when unchanged).
+5. **Heartbeat:** while ChronoNote runs with the setting on, it rewrites `outbox.json` at least every 5 minutes, so
+   the outbox's age tells the phone whether the computer is on. Older than about 15 minutes: the app says "Computer
+   last seen ‹time› · your changes wait". About 12 small writes an hour; OneDrive keeps a version of each, which is
+   harmless for a file this size.
+6. **Measure before building more:** the refresh shows how long each step took. If reading dominates, the next step is
+   one flow that receives the app's known modified times and returns the listing plus only the changed files, so a
+   refresh with nothing new is a single flow run (described as optional in the build instructions'
+   `update-1-refresh.md`).

@@ -83,7 +83,8 @@ Concurrency of the flow: 1 (Settings of the trigger), so two writes never overla
 - **Making a request** sets `waiting`, saves, and sends when connected.
 - **Sending** writes the inbox with every request whose status is `waiting`, `sent` or `conflict`, in order made; on
   success `waiting` becomes `sent`. Offline, requests stay `waiting` and go with the next refresh.
-- **On every refresh** (after reading the outbox): for each result whose `id` is in `colRequests`, set `status`,
+- **On every refresh that read the outbox** (it is read only when its modified time changed, phase 1 section 3):
+  for each result whose `id` is in `colRequests`, set `status`,
   `reason`, `resultAt`. Then, if any request in the inbox is now `applied` or `rejected`, write the inbox again
   without them.
 - **Changing a request** is allowed while it is `waiting` or `sent`: change its fields in place (same `id`) and send
@@ -91,7 +92,9 @@ Concurrency of the flow: 1 (Settings of the trigger), so two writes never overla
 - Keep `applied` and `rejected` requests on the device for 14 days for the Pending screen, then drop them.
 - A line added on the phone and then ticked off before ChronoNote handled it is one `addLine` whose text changes (for
   example `# call Sam` to `v call Sam`); requests never refer to each other.
-- If the outbox's `format` is above 1: send nothing, show "Update the app".
+- If the outbox's `format` is above 2: send nothing, show "Update the app".
+- While any request is `waiting` or `sent`, the check timer runs every 30 seconds (phase 1 section 3.1), so a result
+  shows soon after it arrives.
 
 ## 6. Screens
 
@@ -146,7 +149,7 @@ and the line shows as in the note.
 With ChronoNote running on the laptop and the phone companion on:
 
 1. Ticking off an open action on the phone shows it as done with a pending dot; within a few minutes (OneDrive delay)
-   the laptop's note has `v ` on that line, and after a refresh the dot is gone.
+   the laptop's note has `v ` on that line, and the dot goes by itself while the app stays open (no refresh tap).
 2. Adding an action, a topic, a note, an emphasis line and a delegated line to a meeting puts each at the end of that
    section on the laptop, with the right token.
 3. Adding to an agenda meeting that has no section yet creates the section on the laptop.

@@ -1,12 +1,12 @@
-# The phone companion files: `outbox.json` and `inbox.json`
+# The phone companion files: `meetings.json`, `outbox.json` and `inbox.json`
 
 A reference for building the phone side of the phone companion (a Power App with a few Power Automate flows, or
 anything else that can read and write files in OneDrive). It is meant to be precise enough to build from: every rule
 below is what ChronoNote does or expects. The design and its reasons are in
 `docs/design/mobile-companion-design.md`; the calendar feed is described in `docs/agenda-file-guide.md`.
 
-Status: draft, on the `feat/phone-companion` branch. Nothing here is built yet; this file is the agreement the code
-and the app are built against.
+Status: built. ChronoNote 0.36.0-1 wrote the first version (one `outbox.json` with the meetings and the results,
+format 1); from 0.36.0-2 on the meetings are in their own `meetings.json` and the outbox is format 2 (CHANGELOG §445).
 
 ## 1. Who writes what
 
@@ -14,18 +14,26 @@ and the app are built against.
 | :--- | :--- | :--- |
 | `YYYY-MM-DD.txt` (the notes) | ChronoNote only | ChronoNote, phone |
 | `.agenda.json` | the external calendar feed | ChronoNote, phone |
+| `.chrononote-mobile/meetings.json` | ChronoNote only | phone |
 | `.chrononote-mobile/outbox.json` | ChronoNote only | phone |
 | `.chrononote-mobile/inbox.json` | the phone side only | ChronoNote |
 
 All paths are relative to the root of the notes folder. **The phone never writes a note file**; it proposes changes in
 the inbox and ChronoNote makes them. ChronoNote never writes, renames or deletes `inbox.json`.
 
-Both companion files are UTF-8 JSON without a byte-order mark. Each starts with `"format": 1`. A reader that finds a
-higher `format` than it knows must not use the file (the app shows "update the app"; ChronoNote reports every request
-as `rejected` with reason `format`). Fields not described here must be ignored, so either side can add fields later
-without a format change.
+The companion files are UTF-8 JSON without a byte-order mark. Each starts with a `"format"` number: `meetings.json`
+and `inbox.json` are format 1, `outbox.json` is format 2. A reader that finds a higher `format` than it knows must
+not use the file (the app shows "update the app"; ChronoNote reports every request as `rejected` with reason
+`format`). Fields not described here must be ignored, so either side can add fields later without a format change.
 
-## 2. `outbox.json`
+The two files ChronoNote writes differ in size and pace: `meetings.json` is the larger one and changes only when the
+meetings change; `outbox.json` is small and changes after every request, and at least every 5 minutes while
+ChronoNote runs (section 2.4). A phone that lists the `.chrononote-mobile` folder can read each one only when its
+modified time changed.
+
+## 2. `meetings.json` and `outbox.json`
+
+`meetings.json`:
 
 ```json
 {
@@ -38,11 +46,6 @@ without a format change.
       { "date": "2026-09-10", "title": "Weekly Sync" },
       { "date": "2026-10-22", "title": "Weekly Sync" },
       { "date": "2026-10-29", "title": "Weekly Sync 2026-10-29" } ] }
-  ],
-  "results": [
-    { "id": "6f0c8a52-1d7e-4b8e-9a51-0c3f2b7d9e11", "result": "applied", "at": "2026-10-29T09:01:03+01:00" },
-    { "id": "a91d3c07-5e2f-4a6b-8c90-7b1e4d2f6a38", "result": "conflict", "reason": "lineChanged",
-      "at": "2026-10-29T09:01:03+01:00" }
   ]
 }
 ```
@@ -53,6 +56,26 @@ without a format change.
 | `appVersion` | The ChronoNote version that wrote it (informational). |
 | `window` | The days ChronoNote considered: 14 days before today up to 14 days after, both included. |
 | `meetings` | Every meeting in the window (section 2.1). Sorted by `title`, ignoring case. |
+
+`outbox.json` (section 2.3):
+
+```json
+{
+  "format": 2,
+  "generatedAt": "2026-10-29T09:01:03+01:00",
+  "appVersion": "0.36.0",
+  "results": [
+    { "id": "6f0c8a52-1d7e-4b8e-9a51-0c3f2b7d9e11", "result": "applied", "at": "2026-10-29T09:01:03+01:00" },
+    { "id": "a91d3c07-5e2f-4a6b-8c90-7b1e4d2f6a38", "result": "conflict", "reason": "lineChanged",
+      "at": "2026-10-29T09:01:03+01:00" }
+  ]
+}
+```
+
+| Field | Meaning |
+| :--- | :--- |
+| `generatedAt` | When ChronoNote wrote the file, local time with offset. At most about 5 minutes old while ChronoNote runs (section 2.4). |
+| `appVersion` | The ChronoNote version that wrote it (informational). |
 | `results` | One entry per request ChronoNote has handled that is still in the inbox (section 4). |
 
 ### 2.1 Meetings
@@ -61,7 +84,7 @@ without a format change.
   inside the window (after the agenda's own title rules, section 6.2, leaving out removed meetings). Ad-hoc sections
   (titles starting with `'` or `’`) and the day part are not meetings and are not listed.
 - **`key`:** a stable identifier, `m-` plus 6 hex characters, the same for all occurrences of one meeting and across
-  outbox writes. Use it to tell meetings apart; don't derive anything from it.
+  writes. Use it to tell meetings apart; don't derive anything from it.
 - **`title`:** the meeting's title as of its most recent occurrence in the notes (cleaned as below), or the agenda's
   title for a meeting that has no section yet, for display.
 - **`occurrences`:** oldest first. Every occurrence inside the window, plus the 5 most recent ones before the window,
@@ -76,16 +99,36 @@ with a `-` or `:` next to it. So `Weekly Sync`, `weekly sync 2026-10-29` and `20
 A day counts once per meeting (its first matching section). (For the record: `key` is the first 6 hex digits of the
 32-bit FNV-1a hash of that cleaned, lower-cased title in UTF-8.)
 
-### 2.2 When it is written
+### 2.2 When `meetings.json` is written
 
 When ChronoNote starts, after it has processed the inbox, when the day changes, and when the set of meetings in the
 window changes (a section title added or renamed in a note, or a meeting added or moved in `.agenda.json`). ChronoNote
 checks a few seconds after edits and when its window regains focus, but writes only when the content (apart from
-`generatedAt`) changed, so ordinary edits don't touch the file. Pretty-printed, ending with a newline. Written atomically: a reader sees the old
-file or the new one, never half of one.
+`generatedAt`) changed, so ordinary edits don't touch the file.
 
-The outbox can be behind the notes. That is expected: a new occurrence is always inside the window, and the phone
+`meetings.json` can be behind the notes. That is expected: a new occurrence is always inside the window, and the phone
 reads the window's notes directly.
+
+### 2.3 When `outbox.json` is written
+
+When its content (apart from `generatedAt`) changed: after ChronoNote handled requests from the inbox, once the notes
+they changed are on disk. And in any case when ChronoNote last wrote it 5 minutes ago or more, while ChronoNote runs
+with the phone companion on: then only `generatedAt` is new (section 2.4).
+
+ChronoNote looks at `inbox.json` every 15 seconds while it runs (skipping a file it has already handled), and when
+its window regains focus. So a request is handled within about 15 seconds of OneDrive bringing the inbox to the
+computer, and its result is in `outbox.json` right after.
+
+Both files are pretty-printed, ending with a newline, and written atomically: a reader sees the old file or the new
+one, never half of one. `meetings.json` is written before `outbox.json` when both change at once.
+
+### 2.4 Is ChronoNote running?
+
+Because ChronoNote rewrites `outbox.json` at least every 5 minutes while it runs, an outbox whose `generatedAt` (or
+whose modified time in OneDrive) is much older means ChronoNote isn't running with the phone companion on, or the
+computer isn't syncing: asleep, switched off, offline. Requests then wait in the inbox until it is back. Allow for
+OneDrive's own delay: 15 minutes is a fair point to tell the user "the computer was last seen at ‹time›". Compare with
+the phone's clock and allow for its time zone (`generatedAt` carries its offset).
 
 ## 3. `inbox.json`
 
@@ -163,7 +206,7 @@ ticked off before it reached ChronoNote is one `addLine` with its final text; re
 
 The phone side, on each refresh:
 
-1. Reads `outbox.json`.
+1. Reads `outbox.json` (when it changed since the last read).
 2. Removes requests whose result is `applied` or `rejected` from the inbox (keeping its own history to show them).
 3. Keeps `conflict` requests, without letting them be changed, until their result becomes `applied` or `rejected`.
 4. Writes `inbox.json` back only if it changed. If more than one device runs the app, it first reads the inbox again

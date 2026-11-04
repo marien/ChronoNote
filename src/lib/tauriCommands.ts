@@ -63,6 +63,9 @@ export interface TauriCommands {
   read_note_with_metadata: { args: { filename: string }; returns: NoteWithMetadata };
   write_conflict_copy: { args: { name: string; content: string }; returns: string };
   read_all_notes: { args: NoArgs; returns: [string, string][] };
+
+  /** Phone companion: writes `.chrononote-mobile/meetings.json` atomically (`phoneCompanion.ts`). */
+  write_phone_meetings: { args: { content: string }; returns: void };
   /** Phone companion: writes `.chrononote-mobile/outbox.json` atomically (`phoneCompanion.ts`). */
   write_phone_outbox: { args: { content: string }; returns: void };
   /** Phone companion: the text of `.chrononote-mobile/inbox.json`, null when missing (`phoneInbox.ts`). */
