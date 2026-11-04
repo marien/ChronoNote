@@ -17,14 +17,24 @@ notes folder path as the OneDrive connector shows it (for example `/Documents/No
 2. **OneDrive for Business → List files in folder**, Folder = `outputs('NotesPath')`.
 3. **Data operation → Select** from its `value`, key/value mode: `name` → `item()?['Name']`, `modified` →
    `item()?['LastModified']`, `folder` → `item()?['IsFolder']`.
-4. **Respond to a PowerApp or flow**, Text output `files` = `string(body('Select'))`.
+4. **Initialize variable** `mobile`, Array, value `[]`.
+5. **OneDrive for Business → List files in folder**, renamed `List_mobile`, Folder =
+   `concat(outputs('NotesPath'), '/.chrononote-mobile')`.
+6. **Data operation → Select**, renamed `Select_mobile`, from `body('List_mobile')?['value']`: `name` →
+   `concat('.chrononote-mobile/', item()?['Name'])`, `modified` → `item()?['LastModified']`, `folder` →
+   `item()?['IsFolder']`.
+7. **Set variable** `mobile` = `body('Select_mobile')`.
+8. **Respond to a PowerApp or flow**, *Configure run after* on the Set variable step = "is successful", "has failed"
+   and "is skipped" (the folder is missing while ChronoNote's setting is off, so `List_mobile` fails and the next two
+   steps are skipped): Text output `files` = `string(union(body('Select'), variables('mobile')))`.
 
-The app keeps only entries with `folder` false whose name is a note (`YYYY-MM-DD.txt`) or `.agenda.json`.
+The app keeps only entries with `folder` false whose name is a note (`YYYY-MM-DD.txt`), `.agenda.json`,
+`.chrononote-mobile/meetings.json` or `.chrononote-mobile/outbox.json`.
 
 ### `CNRead`: the text of some files
 
 1. Trigger with one Text input (`names`): file paths relative to the notes folder, separated by commas, for example
-   `2026-10-30.txt,.agenda.json,.chrononote-mobile/outbox.json`. *Compose* `NotesPath`.
+   `2026-10-30.txt,.agenda.json,.chrononote-mobile/meetings.json`. *Compose* `NotesPath`.
 2. **Initialize variable** `results`, Array, empty.
 3. **Apply to each** over `split(triggerBody()?['text'], ',')`; Settings: concurrency on, degree 20. Inside:
     1. **Get file content using path**, File path = `concat(outputs('NotesPath'), '/', items('Apply_to_each'))`.
@@ -35,7 +45,7 @@ The app keeps only entries with `folder` false whose name is a note (`YYYY-MM-DD
 4. After the loop, **Respond to a PowerApp or flow**, *Configure run after* = "is successful" and "has failed": Text
    output `files` = `string(variables('results'))`.
 
-A missing file (the outbox when ChronoNote's setting is off, a note deleted since the listing) comes back as
+A missing file (a note deleted since the listing, a companion file removed meanwhile) comes back as
 `{ "name": …, "missing": true }` instead of failing the whole call.
 
 ## 2. The copy on the device
@@ -44,30 +54,65 @@ A missing file (the outbox when ChronoNote's setting is off, a note deleted sinc
 | :--- | :--- | :--- |
 | `colFiles` | last listing: `name`, `modified` | `cnFiles` |
 | `colNotes` | files read: `name`, `modified` (from the listing when read), `text` | `cnNotes` |
-| `colMeta` | one row: `lastRefresh`, `showDone` | `cnMeta` |
+| `colMeta` | one row: `lastRefresh`, `showDone`, `lastTimings` (text, section 3) | `cnMeta` |
 
 On start: `LoadData` all three (ignore missing), show the Days screen from them at once, then refresh if connected.
 
 ## 3. Refresh
 
-Runs on start, from a refresh button on the Days screen, and when the Days screen becomes visible and the last
-refresh is more than 5 minutes old. One at a time (ignore a second request while one runs).
+Runs on start, from a refresh button on the Days screen, and from the check timer (section 3.1). One at a time
+(ignore a second request while one runs). A refresh with nothing changed is one flow run (`CNList`) and reads
+nothing.
 
 1. Not connected (`!Connection.Connected`): show "Offline · copy from ‹time›" and stop.
-2. Call `CNList`; parse into `colFiles`.
+2. Call `CNList`; parse into `colFiles`. Note how long the call took (`DateDiff(start, Now(),
+   TimeUnit.Milliseconds)`).
 3. **Needed files:** the notes in `colFiles` dated from 14 days before today to 14 days after, `.agenda.json` if
-   listed, and every note already in `colNotes` that is still listed (older occurrences read earlier).
-4. **To read:** needed files whose `colFiles.modified` differs from the copy's `modified` or that have no copy; plus
-   always `.chrononote-mobile/outbox.json` (it is not in the listing and is small).
-5. Read them with `CNRead` in batches of 10 names, showing "Reading 10 of 23…" on the Days screen.
-6. Merge: replace copies by name; remove copies that came back `missing` and copies of notes no longer in
+   listed, `.chrononote-mobile/meetings.json` and `.chrononote-mobile/outbox.json` if listed, and every note already
+   in `colNotes` that is still listed (older occurrences read earlier).
+4. **To read:** needed files whose `colFiles.modified` differs from the copy's `modified` or that have no copy. Store
+   each copy's `modified` from the listing when it is read, so the next refresh skips it. (The companion files are in
+   the listing now; nothing is read "always".)
+5. Read them with `CNRead` in batches of 10 names, showing "Reading 10 of 23…" on the Days screen. Note the total
+   time of the reads.
+6. Merge: replace copies by name; remove copies that came back `missing` and copies of files no longer in
    `colFiles`.
-7. Parse the outbox (`ParseJSON`) into a global; if it is missing, unreadable or has `format` above 1, use none (for a
-   higher format also show "Update the app").
-8. `SaveData` the collections; set `lastRefresh` = `Now()`.
+7. Parse into globals (`ParseJSON`), only when the file was read or the global is still empty (after a start):
+   - `meetings.json` → the meeting index; `format` above 1: use none and show "Update the app".
+   - `outbox.json` → the results (phase 2); `format` above 2: use none and show "Update the app". `format` 1 comes
+     from an older ChronoNote: take both the index and the results from it (reference 9.3).
+   - Missing or unreadable: none (no error shown).
+8. `SaveData` the collections; set `lastRefresh` = `Now()` and `lastTimings` = for example
+   `"list 0.8 s · read 3 files 2.1 s"` (`"list 0.8 s · nothing to read"` when nothing was read).
+9. Tell the check timer whether anything changed (any file read or any copy removed), section 3.1.
 
 On a flow error keep the copy and show "Couldn't refresh · copy from ‹time›" with a retry. First start without a copy
 and without a connection: "Connect once to load your notes."
+
+### 3.1 Checking for changes
+
+A **Timer** control on each screen (Days, Day, Meeting, and phase 2's screens) with the same settings, so checking
+goes on whichever screen is open: `Duration` = `gblCheckEvery * 1000`, `Repeat` and `AutoStart` on, `OnTimerEnd` =
+run the refresh (skip when one is running or when offline). Power Apps runs timers only while the app is open and in
+front; that is fine (the refresh on start covers the rest).
+
+`gblCheckEvery` (seconds):
+
+- **30** while a request waits for its result (phase 2: any request with status `waiting` or `sent`).
+- Otherwise **60** after a refresh that found changes, after the user acts (opens a screen, taps refresh, makes a
+  request), and at start.
+- After a refresh that found nothing changed, **double it**, up to **600** (1, 2, 4, 8, 10 minutes).
+
+Every flow run counts toward the user's daily Power Platform request limit, which is why the timer only lists (one
+flow run) and reads nothing unless the listing shows a change. Don't check more often than this.
+
+### 3.2 Is the computer on?
+
+From the listing: when `.chrononote-mobile/outbox.json` is listed and its `modified` is more than 15 minutes before
+now, show on the Days screen, under the status line: "Computer last seen ‹time› · changes wait until it's back"
+(‹time› = that `modified`, in the phone's local time; `modified` is UTC and ends in `Z`, so convert it before
+comparing with `Now()`). ChronoNote rewrites the outbox at least every 5 minutes while it runs (reference 9.2). Not
+for an outbox with `format` 1 (reference 9.3), and not while offline (then the offline status says enough).
 
 ## 4. Parsing
 
@@ -91,8 +136,10 @@ user's Studio has them, otherwise as formulas with `With`.
 
 ### Days (start screen)
 
-- Top: "ChronoNote", a refresh button, the Dark/Light switch (reference 10.1), and one status line ("Updated 08:40", "Reading 10 of 23…", "Offline · copy
-  from 08:40", "Couldn't refresh · copy from 08:40").
+- Top: "ChronoNote", a refresh button, the Dark/Light switch (reference 10.1), and one status line ("Updated 08:40",
+  "Reading 10 of 23…", "Offline · copy from 08:40", "Couldn't refresh · copy from 08:40"). After "Updated 08:40",
+  in muted text, the last refresh's timings (`lastTimings`, section 3): "Updated 08:40 · list 0.8 s · read 3 files
+  2.1 s". Under it, when it applies, "Computer last seen …" (section 3.2).
 - A list in three groups: **Today**, **Coming days** (tomorrow to +14, nearest first), **Earlier** (yesterday to -14,
   nearest first). Today is always shown; other days only when they have a note or agenda meetings.
 - Each day: its date ("Thu 30 Oct"), "3 open · 2 to discuss" (open actions, open topics; omitted when zero), then its
@@ -116,14 +163,14 @@ user's Studio has them, otherwise as formulas with `With`.
 - Top: back, the meeting's display title, "3 of 7 · Thu 30 Oct", older/newer buttons, the "Show done" switch, and
   "Open day" (Day screen at the shown date).
 - Body: the lines of that section on that date (the title and underline left out), drawn like the Day screen.
-- **Occurrences** of a meeting, by date, oldest first, no date twice: the outbox meeting whose matching title equals
+- **Occurrences** of a meeting, by date, oldest first, no date twice: the index's meeting whose matching title equals
   this one (all its `occurrences`), plus every day in the window whose note has a section with this matching title,
   plus (today and later only) agenda days in the window without a section, shown as "On the agenda, no notes yet".
 - **Start at** the occurrence that was tapped; otherwise the latest on or before today, otherwise the first upcoming.
 - **An occurrence not in the copy** (before the window): read that note with `CNRead` when it is shown, with
   "Loading…", and keep it in the copy. Also read the next older one in the background, so stepping back feels
   instant.
-- Find the section in the note by comparing matching titles (reference 7). Without an outbox, history is the window
+- Find the section in the note by comparing matching titles (reference 7). Without an index, history is the window
   only; then show under the counter: "Earlier meetings appear when the phone companion is on in ChronoNote."
 
 ## 6. Done when
@@ -145,7 +192,11 @@ The user checks these on the phone:
    meeting with the plain one.
 8. An ad-hoc section (title starting with `'`) is shown in its day but is never a meeting.
 9. After editing one note on the laptop and waiting for OneDrive, a refresh reads only that note (the status line
-   counts 1, plus the outbox) and shows the change.
+   says "read 1 file"; with the outbox's heartbeat in between, 2) and shows the change, also without tapping
+   refresh, within a few minutes while the app is open.
 10. In flight mode the app opens and shows everything it showed before, with the offline status line.
-11. A refresh with nothing changed takes under 5 seconds.
-12. Nothing in the notes folder changes because of the app (check the folder's modified times).
+11. A refresh with nothing changed reads nothing ("nothing to read") and takes under 5 seconds.
+12. With ChronoNote closed on the laptop for 20 minutes, the Days screen says "Computer last seen ‹time›"; it goes
+    away within a few minutes of starting ChronoNote again.
+13. Left open on one screen with nothing changing, the app checks less and less often (up to every 10 minutes).
+14. Nothing in the notes folder changes because of the app (check the folder's modified times).
