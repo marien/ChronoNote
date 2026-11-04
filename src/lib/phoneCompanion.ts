@@ -1,11 +1,11 @@
-/** Phone companion, phase 1: keeps `.chrononote-mobile/outbox.json` up to date, the meeting index a phone app (a
- * Power App reading the notes folder through OneDrive) uses to browse meetings and their earlier occurrences.
+/** Phone companion: keeps `.chrononote-mobile/meetings.json` (the meeting index) and `.chrononote-mobile/outbox.json`
+ * (request results + heartbeat) up to date for a phone app reading the notes folder through OneDrive.
  * Format: `docs/phone-companion-file-guide.md`; design: `docs/design/mobile-companion-design.md`.
  *
- * Desktop only, off by default (`AppConfig.phoneCompanion`). The outbox is written at start, when the day changes,
- * and when the window's meetings change; it is rebuilt after edits and on focus, but only written when its content
- * (apart from `generatedAt`) differs from what this session last wrote. Phase 2 (`phoneInbox.ts`) applies the
- * phone's requests first, so the outbox carries their results. */
+ * Desktop only, off by default (`AppConfig.phoneCompanion`). `meetings.json` is written at start, when the day changes,
+ * and when the window's meetings change (debounced after edits, fresh on focus). `outbox.json` is written when results
+ * change and as a regular heartbeat (every 5 minutes). Phase 2 (`phoneInbox.ts`) applies the phone's requests first,
+ * so the outbox carries their results. */
 import { get, writable } from "svelte/store";
 import { logWarn } from "./appLog";
 import { addDaysISO } from "./date";
@@ -20,6 +20,12 @@ import { pollPhoneInbox, processPhoneInbox } from "./phoneInbox";
 export const WINDOW_DAYS = 14;
 /** Earlier occurrences listed per meeting, before the window. */
 export const EARLIER_OCCURRENCES = 5;
+
+/** How often the outbox is rewritten as a heartbeat so the phone can tell ChronoNote is running. */
+export const HEARTBEAT_MS = 5 * 60_000;
+
+/** How often the phone's inbox is looked at while active (a round trip from the phone waits for this check). */
+export const INBOX_POLL_MS = 15_000;
 
 export interface OutboxOccurrence {
   date: string;
@@ -40,12 +46,18 @@ export interface OutboxResult {
   at: string;
 }
 
-export interface Outbox {
+export interface PhoneMeetings {
   format: 1;
   generatedAt: string;
   appVersion: string;
   window: { from: string; to: string };
   meetings: OutboxMeeting[];
+}
+
+export interface Outbox {
+  format: 2;
+  generatedAt: string;
+  appVersion: string;
   results: OutboxResult[];
 }
 
@@ -102,16 +114,15 @@ export function localIsoWithOffset(d: Date): string {
   );
 }
 
-/** Builds the outbox from every note (`filename -> content`) and the agenda's live meetings (`[date, title]`, already
- * cleaned by the agenda's own title rules). Pure, so it is tested without a backend. */
-export function buildOutbox(input: {
+/** Builds the meetings index from every note (`filename -> content`) and the agenda's live meetings (`[date, title]`,
+ * already cleaned by the agenda's own title rules). Pure, so it is tested without a backend. */
+export function buildMeetings(input: {
   notes: Record<string, string>;
   agenda: [string, string][];
   today: string;
   appVersion: string;
   now: Date;
-  results?: OutboxResult[];
-}): Outbox {
+}): PhoneMeetings {
   const from = addDaysISO(input.today, -WINDOW_DAYS);
   const to = addDaysISO(input.today, WINDOW_DAYS);
   const inWindow = (date: string) => date >= from && date <= to;
@@ -167,38 +178,67 @@ export function buildOutbox(input: {
     appVersion: input.appVersion,
     window: { from, to },
     meetings,
+  };
+}
+
+/** Builds the outbox (format 2, request results + heartbeat). Pure, so it is tested without a backend. */
+export function buildOutbox(input: {
+  appVersion: string;
+  now: Date;
+  results?: OutboxResult[];
+}): Outbox {
+  return {
+    format: 2,
+    generatedAt: localIsoWithOffset(input.now),
+    appVersion: input.appVersion,
     results: input.results ?? [],
   };
 }
 
-/** The file's text: two-space JSON with a final newline. */
+/** The meetings file's text: two-space JSON with a final newline. */
+export function meetingsJson(meetings: PhoneMeetings): string {
+  return JSON.stringify(meetings, null, 2) + "\n";
+}
+
+/** The outbox file's text: two-space JSON with a final newline. */
 export function outboxJson(outbox: Outbox): string {
   return JSON.stringify(outbox, null, 2) + "\n";
 }
 
+/** The meetings index's content apart from `generatedAt`, for "did anything change". */
+function contentOfMeetings(meetings: PhoneMeetings): string {
+  return JSON.stringify({ ...meetings, generatedAt: "" });
+}
+
 /** The outbox's content apart from `generatedAt`, for "did anything change". */
-function contentOf(outbox: Outbox): string {
+function contentOfOutbox(outbox: Outbox): string {
   return JSON.stringify({ ...outbox, generatedAt: "" });
 }
 
-// --- Keeping the file up to date ---
+// --- Keeping the files up to date ---
 
-/** Setting: keep the outbox up to date (Settings → Notes & Sync). */
+/** Setting: keep the companion files up to date (Settings → Notes & Sync). */
 export const phoneCompanionEnabled = writable(false);
 
-/** How long after the last edit the outbox is rebuilt; edits rarely change the meetings, so there is no hurry. */
+/** How long after the last edit meetings are rebuilt; edits rarely change the meetings, so there is no hurry. */
 const EDIT_DEBOUNCE_MS = 5000;
 
 /** Waits this long after boot before the first build, so it doesn't compete with the editor's first paint. */
 const BOOT_DELAY_MS = 3000;
 
-let lastWritten: string | null = null;
+let lastWrittenMeetings: string | null = null;
+let lastWrittenOutbox: string | null = null;
+let lastOutboxWriteTime: number | null = null;
+let firstBuildDone = false;
 let timer: ReturnType<typeof setTimeout> | null = null;
 let running: Promise<void> | null = null;
 let rerun = false;
 let freshPending = false;
 let wired = false;
-let warned = false;
+let pollInterval: ReturnType<typeof setInterval> | null = null;
+let unsubs: (() => void)[] = [];
+let warnedMeetings = false;
+let warnedOutbox = false;
 /** The window's notes as last read from disk (null: no such file). The folder-wide cache is read once per session,
  * so notes that OneDrive changes underneath (edited on another device) only show up through this. */
 let windowDisk: Record<string, string | null> = {};
@@ -220,7 +260,7 @@ export function setOutboxResults(results: OutboxResult[]): void {
   outboxResults = results;
 }
 
-/** Rebuilds the outbox and writes it when its content changed. `fresh` re-reads the window's notes from disk first
+/** Rebuilds meetings.json and outbox.json and writes them when due. `fresh` re-reads the window's notes from disk first
  * (start, focus, day change); a rebuild after an edit uses what is loaded. Runs one at a time; a request while one
  * runs makes it run once more afterwards. */
 export async function updatePhoneOutbox(fresh = true): Promise<void> {
@@ -263,24 +303,54 @@ async function writeIfChanged(readDisk: boolean): Promise<void> {
     for (const tab of get(tabs)) if (!tab.isScratchpad) notes[tab.filename] = tab.content;
     // Agenda trouble (no file, a broken file) just means no agenda meetings in the index.
     const agenda = await api.readAgendaAfter(addDaysISO(today, -WINDOW_DAYS - 1)).catch(() => [] as [string, string][]);
-    const outbox = buildOutbox({
+    const now = new Date();
+
+    // 1. meetings.json: rebuilt at start, setting on, day change, after edits debounced 5 s, focus with fresh disk read,
+    // after inbox processing; written only when its content apart from generatedAt differs from what this session last wrote.
+    const meetings = buildMeetings({
       notes,
       agenda,
       today,
       appVersion: get(appVersion),
-      now: new Date(),
+      now,
+    });
+    const meetingsContent = contentOfMeetings(meetings);
+    if (meetingsContent !== lastWrittenMeetings && active()) {
+      try {
+        await api.writePhoneMeetings(meetingsJson(meetings));
+        lastWrittenMeetings = meetingsContent;
+        warnedMeetings = false;
+      } catch (e) {
+        if (!warnedMeetings) logWarn(`phone companion: writing meetings failed: ${e}`);
+        warnedMeetings = true;
+      }
+    }
+
+    // 2. outbox.json: written when content apart from generatedAt differs (results changed or app version), and also
+    // whenever the last outbox write this session is >= HEARTBEAT_MS ago (or none yet and first build already ran).
+    const outbox = buildOutbox({
+      appVersion: get(appVersion),
+      now,
       results: outboxResults,
     });
-    const content = contentOf(outbox);
-    // Turned off while this was reading: write nothing.
-    if (content === lastWritten || !active()) return;
-    await api.writePhoneOutbox(outboxJson(outbox));
-    lastWritten = content;
-    warned = false;
+    const outboxContent = contentOfOutbox(outbox);
+    const heartbeatDue = lastOutboxWriteTime !== null && Date.now() - lastOutboxWriteTime >= HEARTBEAT_MS;
+    const outboxDue = outboxContent !== lastWrittenOutbox || heartbeatDue || (lastOutboxWriteTime === null && firstBuildDone);
+    if (outboxDue && active()) {
+      try {
+        await api.writePhoneOutbox(outboxJson(outbox));
+        lastWrittenOutbox = outboxContent;
+        lastOutboxWriteTime = Date.now();
+        warnedOutbox = false;
+      } catch (e) {
+        if (!warnedOutbox) logWarn(`phone companion: writing the outbox failed: ${e}`);
+        warnedOutbox = true;
+      }
+    }
+
+    firstBuildDone = true;
   } catch (e) {
-    // Logged once per failure streak: a folder that stays unwritable should not flood the log on every edit.
-    if (!warned) logWarn(`phone companion: writing the outbox failed: ${e}`);
-    warned = true;
+    if (!warnedOutbox && !warnedMeetings) logWarn(`phone companion: update failed: ${e}`);
   }
 }
 
@@ -295,9 +365,6 @@ export function schedulePhoneOutbox(delayMs = EDIT_DEBOUNCE_MS, fresh = false): 
     void updatePhoneOutbox(false);
   }, delayMs);
 }
-
-/** How often the phone's inbox is looked at while active (it only changes through OneDrive, so there is no hurry). */
-const INBOX_POLL_MS = 60_000;
 
 /** Applies the phone's requests; the processing then rebuilds the outbox itself, with their results. */
 async function inboxThenOutbox(): Promise<void> {
@@ -323,35 +390,50 @@ export function wirePhoneCompanion(): void {
   wired = true;
   // Svelte stores call a subscriber at once with the current value; the first call of each is the boot itself.
   let booted = false;
-  phoneCompanionEnabled.subscribe((on) => {
-    if (on) {
-      // At boot the requests are applied before the first outbox build, so that one already carries their results.
-      if (booted) void inboxThenOutbox();
-      else setTimeout(() => void inboxThenOutbox(), BOOT_DELAY_MS);
+  unsubs.push(
+    phoneCompanionEnabled.subscribe((on) => {
+      if (on) {
+        // At boot the requests are applied before the first outbox build, so that one already carries their results.
+        if (booted) void inboxThenOutbox();
+        else setTimeout(() => void inboxThenOutbox(), BOOT_DELAY_MS);
+      }
+      booted = true;
+    }),
+  );
+  pollInterval = setInterval(() => {
+    if (active()) {
+      void pollPhoneInbox();
+      const heartbeatDue =
+        (lastOutboxWriteTime !== null && Date.now() - lastOutboxWriteTime >= HEARTBEAT_MS) ||
+        (lastOutboxWriteTime === null && firstBuildDone);
+      if (heartbeatDue) void updatePhoneOutbox(false);
     }
-    booted = true;
-  });
-  setInterval(() => {
-    if (active()) void pollPhoneInbox();
   }, INBOX_POLL_MS);
   let day: string | null = null;
-  currentDateISO.subscribe((today) => {
-    if (day !== null && today !== day) void updatePhoneOutbox();
-    day = today;
-  });
+  unsubs.push(
+    currentDateISO.subscribe((today) => {
+      if (day !== null && today !== day) void updatePhoneOutbox();
+      day = today;
+    }),
+  );
   let first = true;
-  tabs.subscribe(() => {
-    if (!first) schedulePhoneOutbox();
-    first = false;
-  });
+  unsubs.push(
+    tabs.subscribe(() => {
+      if (!first) schedulePhoneOutbox();
+      first = false;
+    }),
+  );
 }
 
 export async function setPhoneCompanion(enabled: boolean): Promise<void> {
   if (!enabled) {
-    // Turned on again later, it writes afresh: the file may have been removed or changed meanwhile.
+    // Turned on again later, it writes afresh: the files may have been removed or changed meanwhile.
     if (timer) clearTimeout(timer);
     timer = null;
-    lastWritten = null;
+    lastWrittenMeetings = null;
+    lastWrittenOutbox = null;
+    lastOutboxWriteTime = null;
+    firstBuildDone = false;
   }
   phoneCompanionEnabled.set(enabled);
   try {
@@ -365,11 +447,20 @@ export async function setPhoneCompanion(enabled: boolean): Promise<void> {
 export function resetPhoneCompanionForTests(): void {
   if (timer) clearTimeout(timer);
   timer = null;
-  lastWritten = null;
+  if (pollInterval) clearInterval(pollInterval);
+  pollInterval = null;
+  for (const unsub of unsubs) unsub();
+  unsubs = [];
+  wired = false;
+  lastWrittenMeetings = null;
+  lastWrittenOutbox = null;
+  lastOutboxWriteTime = null;
+  firstBuildDone = false;
   running = null;
   rerun = false;
   freshPending = false;
-  warned = false;
+  warnedMeetings = false;
+  warnedOutbox = false;
   windowDisk = {};
   outboxResults = [];
   titleCache.clear();
