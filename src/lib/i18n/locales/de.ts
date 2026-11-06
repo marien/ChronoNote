@@ -183,8 +183,12 @@ export const de = {
   "shortcuts.toggleZenMode.label": () => "Zen-Modus (ablenkungsfreie Ansicht)",
   "shortcuts.togglePeekMode.label": () =>
     "Peek: kompaktes, durchsichtiges Notizfenster für den Abschnitt am Cursor",
+  "shortcuts.newCall.label": () =>
+    "Neuen Ad-hoc-Anruf in Peek starten",
   "commandPalette.togglePeekMode": () =>
     "Peek umschalten (kompaktes Notizfenster für Gespräche)",
+  "commandPalette.newCall": () =>
+    "Neuer Anruf",
   "peek.toast.noSection": () =>
     "Setze den Cursor in einen Abschnitt, um ihn anzuzeigen.",
   "peek.toast.titleExists": () =>
@@ -197,6 +201,8 @@ export const de = {
   "peek.float": () => "Frei schweben lassen",
   "peek.rename": () =>
     "Klicken, um diesen Anruf zu benennen",
+  "peek.switch": () => "Laufende Besprechungen",
+  "peek.newCall": () => "Neuer Anruf",
   "peek.prev": () =>
     "Vorheriges Vorkommen",
   "peek.next": () =>

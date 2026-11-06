@@ -205,3 +205,80 @@ body.peek-mode #app {
 .occ-hint-peek svg {
   display: block;
 }
+
+/* Peek meeting switcher panel */
+#peek-switcher {
+  position: absolute;
+  top: 30px;
+  left: 6px;
+  right: 6px;
+  max-height: calc(100vh - 30px);
+  overflow-y: auto;
+  z-index: 50;
+  box-sizing: border-box;
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+  padding: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.peek-switch-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 8px;
+  border-radius: var(--radius-control);
+  font-size: 12px;
+  cursor: pointer;
+  user-select: none;
+  color: var(--text);
+}
+
+.peek-switch-item:hover,
+.peek-switch-item.selected {
+  background: var(--surface-hover, color-mix(in srgb, var(--text) 10%, transparent));
+  color: var(--text);
+}
+
+.peek-switch-item.is-current {
+  font-weight: 600;
+}
+
+.peek-switch-time {
+  font-family: var(--font-mono);
+  color: var(--muted);
+  font-size: 11px;
+  flex: 0 0 auto;
+}
+
+.peek-switch-title {
+  flex: 1 1 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.peek-switch-mark {
+  flex: 0 0 auto;
+  width: 14px;
+  text-align: center;
+  color: var(--tab-active-border);
+}
+
+.peek-switch-hint {
+  margin-left: auto;
+  font-size: 11px;
+  color: var(--muted);
+  font-family: var(--font-mono);
+}
+
+.peek-btn[data-testid="peek-switch"] {
+  font-size: 11px;
+  font-family: var(--font-mono);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}

@@ -181,8 +181,12 @@ export const it = {
   "shortcuts.toggleZenMode.label": () => "Modalità Zen (schermo senza distrazioni)",
   "shortcuts.togglePeekMode.label": () =>
     "Peek: finestra di note compatta e semitrasparente per la sezione del cursore",
+  "shortcuts.newCall.label": () =>
+    "Avvia una nuova chiamata ad-hoc in Peek",
   "commandPalette.togglePeekMode": () =>
     "Attiva/disattiva Peek (finestra di note compatta per le chiamate)",
+  "commandPalette.newCall": () =>
+    "Nuova chiamata",
   "commandPalette.toggleStatusBar": () => "Attiva/disattiva barra di stato",
   "peek.toast.noSection": () =>
     "Metti il cursore in una sezione per darle un'occhiata.",
@@ -196,6 +200,8 @@ export const it = {
   "peek.float": () => "Finestra mobile",
   "peek.rename": () =>
     "Fai clic per assegnare un nome a questa chiamata",
+  "peek.switch": () => "Riunioni in corso",
+  "peek.newCall": () => "Nuova chiamata",
   "peek.prev": () =>
     "Occorrenza precedente",
   "peek.next": () =>

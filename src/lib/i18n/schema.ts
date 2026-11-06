@@ -166,7 +166,9 @@ export type TranslationParams = {
   "shortcuts.copyToNextOccurrence.label": undefined;
   "shortcuts.toggleZenMode.label": undefined;
   "shortcuts.togglePeekMode.label": undefined;
+  "shortcuts.newCall.label": undefined;
   "commandPalette.togglePeekMode": undefined;
+  "commandPalette.newCall": undefined;
   "peek.toast.noSection": undefined;
   "peek.toast.titleExists": undefined;
   "peek.expand": undefined;
@@ -174,6 +176,8 @@ export type TranslationParams = {
   "peek.dock": undefined;
   "peek.float": undefined;
   "peek.rename": undefined;
+  "peek.switch": undefined;
+  "peek.newCall": undefined;
   "peek.prev": undefined;
   "peek.next": undefined;
   "peek.settings.callShortcut.label": undefined;

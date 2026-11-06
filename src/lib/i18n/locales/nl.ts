@@ -180,8 +180,12 @@ export const nl = {
   "shortcuts.toggleZenMode.label": () => "Zen-modus (afleidingsvrij canvas)",
   "shortcuts.togglePeekMode.label": () =>
     "Peek: compact doorzichtig notitievenster voor de sectie bij de cursor",
+  "shortcuts.newCall.label": () =>
+    "Start een nieuw ad-hocgesprek in Peek",
   "commandPalette.togglePeekMode": () =>
     "Peek omschakelen (compact notitievenster voor gesprekken)",
+  "commandPalette.newCall": () =>
+    "Nieuw gesprek",
   "peek.toast.noSection": () =>
     "Zet de cursor in een sectie om die te bekijken.",
   "peek.toast.titleExists": () =>
@@ -194,6 +198,8 @@ export const nl = {
   "peek.float": () => "Los laten zweven",
   "peek.rename": () =>
     "Klik om dit gesprek een naam te geven",
+  "peek.switch": () => "Lopende vergaderingen",
+  "peek.newCall": () => "Nieuw gesprek",
   "peek.prev": () =>
     "Vorige keer",
   "peek.next": () =>

@@ -176,8 +176,12 @@ export const en = {
   "shortcuts.toggleZenMode.label": () => "Zen mode (distraction-free canvas)",
   "shortcuts.togglePeekMode.label": () =>
     "Peek: compact see-through note window for the section at the caret",
+  "shortcuts.newCall.label": () =>
+    "Start a new ad-hoc call in Peek",
   "commandPalette.togglePeekMode": () =>
     "Toggle Peek (compact note window for calls)",
+  "commandPalette.newCall": () =>
+    "New call",
   "peek.toast.noSection": () =>
     "Put the cursor in a section to peek at it.",
   "peek.toast.titleExists": () =>
@@ -190,6 +194,8 @@ export const en = {
   "peek.float": () => "Float the window",
   "peek.rename": () =>
     "Click to name this call",
+  "peek.switch": () => "Meetings on now",
+  "peek.newCall": () => "New call",
   "peek.prev": () =>
     "Previous occurrence",
   "peek.next": () =>

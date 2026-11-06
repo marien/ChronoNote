@@ -54,7 +54,7 @@ import { openDueDatePicker } from "./dueDateCommands";
 import { openMeetingHistory } from "./history";
 import { openWeekReview } from "./weekReview";
 import { peekSettings, togglePeek } from "./peek";
-import { noteCall } from "./callNote";
+import { newCall, noteCall } from "./callNote";
 import { openCrossTabSearch } from "./search";
 import { canSyncCalendarForActiveTab, syncCalendarFromFile } from "./calendarSyncActions";
 import { openAbout, openGlyphLegend, openSettings, openShortcutsHelp } from "./menu";
@@ -366,6 +366,13 @@ function commandItems(): PaletteItem[] {
             group: "Commands" as const,
             run: () => void noteCall(),
           },
+          {
+            id: "cmd-new-call",
+            label: translate("commandPalette.newCall", undefined),
+            hint: formatShortcut("newCall"),
+            group: "Commands" as const,
+            run: () => void newCall(),
+          },
         ]
       : []),
     {
@@ -671,8 +678,19 @@ export async function buildPaletteResults(query: string): Promise<PaletteItem[]>
   const commandsOnly = q.startsWith(">");
   const term = commandsOnly ? q.slice(1).trim() : q;
   const pool = commandsOnly ? commandItems() : [...commandItems(), ...openTabItems()];
+  // Order (stable within each group): labels that contain the query as typed, then other label matches, then matches
+  // through the hint. "new call" also matched "New scratchpad Ctrl+N, Ctrl+T" and the call shortcut's longer label,
+  // which both came first, so Enter did the wrong thing.
+  const exact: PaletteItem[] = [];
   const out: PaletteItem[] = [];
+  const hintOnly: PaletteItem[] = [];
+  const typed = term.trim().toLowerCase();
   for (const it of pool) {
+    const at = typed ? it.label.toLowerCase().indexOf(typed) : -1;
+    if (at >= 0) {
+      exact.push({ ...it, matchedIndices: Array.from({ length: typed.length }, (_, k) => at + k) });
+      continue;
+    }
     const labelMatch = fuzzyMatchWithIndices(it.label, term);
     if (labelMatch) {
       out.push({ ...it, matchedIndices: labelMatch.indices });
@@ -682,9 +700,12 @@ export async function buildPaletteResults(query: string): Promise<PaletteItem[]>
       // spurious character underlines are not rendered across the label text.
       const fullMatch = fuzzyMatchWithIndices(`${it.label} ${it.hint ?? ""}`, term);
       if (fullMatch) {
-        out.push({ ...it, matchedIndices: [] });
+        hintOnly.push({ ...it, matchedIndices: [] });
       }
     }
   }
-  return out;
+  // Within each group only: the palette draws a header where the group changes, so the groups keep their order.
+  const groupOrder = new Map<string, number>();
+  for (const it of pool) if (!groupOrder.has(it.group)) groupOrder.set(it.group, groupOrder.size);
+  return [...exact, ...out, ...hintOnly].sort((a, b) => groupOrder.get(a.group)! - groupOrder.get(b.group)!);
 }

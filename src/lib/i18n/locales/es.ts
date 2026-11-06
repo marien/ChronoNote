@@ -179,8 +179,12 @@ export const es = {
   "shortcuts.toggleZenMode.label": () => "Modo Zen (lienzo sin distracciones)",
   "shortcuts.togglePeekMode.label": () =>
     "Peek: ventana de notas compacta y translúcida para la sección del cursor",
+  "shortcuts.newCall.label": () =>
+    "Iniciar una nueva llamada ad-hoc en Peek",
   "commandPalette.togglePeekMode": () =>
     "Activar/desactivar Peek (ventana de notas compacta para llamadas)",
+  "commandPalette.newCall": () =>
+    "Nueva llamada",
   "commandPalette.toggleStatusBar": () => "Alternar barra de estado",
   "peek.toast.noSection": () =>
     "Coloque el cursor en una sección para echarle un vistazo.",
@@ -194,6 +198,8 @@ export const es = {
   "peek.float": () => "Ventana flotante",
   "peek.rename": () =>
     "Haz clic para nombrar esta llamada",
+  "peek.switch": () => "Reuniones en curso",
+  "peek.newCall": () => "Nueva llamada",
   "peek.prev": () =>
     "Aparición anterior",
   "peek.next": () =>

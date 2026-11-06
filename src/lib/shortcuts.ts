@@ -266,6 +266,10 @@ export const SHORTCUTS: ShortcutDef[] = [
     combos: [{ mod: true, shift: true, code: "KeyP" }],
   },
   {
+    id: "newCall",
+    combos: [{ mod: true, shift: true, code: "KeyM" }],
+  },
+  {
     id: "printNote",
     combos: [{ mod: true, code: "KeyP" }],
   },
@@ -322,6 +326,7 @@ export const SHORTCUT_LABEL_KEYS = {
   setDueDate: "shortcuts.setDueDate.label",
   toggleZenMode: "shortcuts.toggleZenMode.label",
   togglePeekMode: "shortcuts.togglePeekMode.label",
+  newCall: "shortcuts.newCall.label",
   printNote: "print.menuItem",
   openExport: "export.menuItem",
   clickGlyph: "shortcuts.clickGlyph.label",
@@ -343,7 +348,7 @@ export function shortcutById(id: string): ShortcutDef {
 /** Shortcuts of features that are switched off (here: Peek, which only exists in the desktop app and is switched on
  * by `wirePeek` there). A switched-off shortcut has no combos at all, so it neither matches a key press nor appears in
  * the Shortcuts drawer (the drawer drops rows with no combo) or anywhere else a combo is displayed. */
-const switchedOff = new Set<string>(["togglePeekMode"]);
+const switchedOff = new Set<string>(["togglePeekMode", "newCall"]);
 export function setShortcutEnabled(id: string, enabled: boolean): void {
   if (enabled) switchedOff.delete(id);
   else switchedOff.add(id);
@@ -466,6 +471,7 @@ export const DRAWER_ROWS: (string | [string, string])[] = [
   "syncCalendar",
   "toggleZenMode",
   "togglePeekMode",
+  "newCall",
   "printNote",
   "openExport",
   "openSettings",
