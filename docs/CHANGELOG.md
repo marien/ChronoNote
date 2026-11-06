@@ -11505,6 +11505,7 @@ clipboard's plain text, and Teams, Outlook, Word and browsers put a list's struc
   here: what the real Teams, Outlook and Word put on the clipboard (open check).
 
 Confirmed by Marien (2026-10-28) on 0.35.0-1 (desktop app). The web app gets it with the stable release.
+Confirmed in the web app by Marien (2026-11-06) on 0.36.0.
 
 ## 440. A new website: plain text you can act on
 
@@ -11555,6 +11556,8 @@ section). Built by Claude without delegating, at Marien's request.
   `site-version.mjs --check`. Checked by hand in the browser: both themes, phone width (no sideways scroll on any
   page), the Try links on the home page and in the guide's drawer. Not testable here: the live host (open check).
 
+Confirmed on the live host by Marien (2026-11-06), with 0.36.0.
+
 ## 441. The minor-release checklist: phone and web app after the release
 
 **Status: released in v0.35.0.**
@@ -11565,6 +11568,8 @@ after the release: `release.sh` lists them separately when it asks for `--checkl
 end of a minor release, and they go into `docs/open-checks.md` until Marien confirms them. A problem found there
 becomes a patch release. The rest of the checklist (reduced motion, 125 %/150 %, a contrast theme, German on CI's
 fonts, right-click, long-press and focus in the window) is still done on the last beta.
+
+The after-release items confirmed by Marien (2026-11-06) on 0.36.0 (they were still open from 0.35.0).
 
 ## 442. Website: the header shows the real app icon in dark mode too
 
@@ -11654,4 +11659,4 @@ New Tauri command `write_phone_meetings` (mock and web backends too). The Settin
 brief by a second run (`phoneCompanion.split.independent.test.ts`, all passing on the code unchanged); Claude reviewed
 and simplified the heartbeat check (no rebuild loop while a write keeps failing).
 
-Confirmed by Marien (2026-11-06) on 0.36.0-2 on the work laptop.
+Confirmed by Marien (2026-11-06) on 0.36.0-2 on the work laptop, and with the Power App's Update 1 on 0.36.0.
