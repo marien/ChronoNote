@@ -11578,7 +11578,7 @@ returning visitors get the new CSS. Published by fast-forwarding `website-live` 
 
 ## 443. Phone companion: a phone app of your own through OneDrive
 
-**Status: released in beta 0.36.0-1 (early channel only).**
+**Status: released in v0.36.0 (beta 0.36.0-1 first).**
 
 Marien's work phone only allows a fixed set of apps, so the web app can't run there. The phone companion lets a phone
 app built with tools that phone does allow (a Power App with Power Automate flows) read the meetings and propose
@@ -11609,7 +11609,7 @@ one computer only.
 
 ## 444. Outside changes to the open note keep the caret and the scroll position
 
-**Status: released in beta 0.36.0-2 (early channel only).**
+**Status: released in v0.36.0 (beta 0.36.0-2 first).**
 
 Marien, testing the phone companion end to end on 0.36.0-1 (it works: lines added and states changed on the phone
 are applied): when changes are applied, the caret and the view jump to the top of the note. Every rewrite of the open
@@ -11628,7 +11628,7 @@ Confirmed by Marien (2026-11-06) on 0.36.0-2 on the work laptop.
 
 ## 445. Phone companion: faster, fresher refresh (`meetings.json`, heartbeat, 15-second inbox check)
 
-**Status: released in beta 0.36.0-2 (early channel only).**
+**Status: released in v0.36.0 (beta 0.36.0-2 first).**
 
 Marien, after the first end-to-end test on 0.36.0-1: refreshing on the phone was fairly slow and the phone was often
 out of date. Marien proposed three changes; with three more of Claude's, "do all six" (design section 15):
