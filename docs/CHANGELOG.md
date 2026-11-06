@@ -11624,6 +11624,8 @@ earlier version, defer, import); undo also steps back only the lines that change
 (every case gives the new text at any caret; the caret stays between changes above and below) and
 `tests/e2e/phone-changes-caret.spec.ts` (applying a done state above and a new line below a scrolled-down caret).
 
+Confirmed by Marien (2026-11-06) on 0.36.0-2 on the work laptop.
+
 ## 445. Phone companion: faster, fresher refresh (`meetings.json`, heartbeat, 15-second inbox check)
 
 **Status: released in beta 0.36.0-2 (early channel only).**
@@ -11651,3 +11653,5 @@ New Tauri command `write_phone_meetings` (mock and web backends too). The Settin
 `.chrononote-mobile` folder. Built by a Gemini run from Claude's brief, with independent tests written from the same
 brief by a second run (`phoneCompanion.split.independent.test.ts`, all passing on the code unchanged); Claude reviewed
 and simplified the heartbeat check (no rebuild loop while a write keeps failing).
+
+Confirmed by Marien (2026-11-06) on 0.36.0-2 on the work laptop.
