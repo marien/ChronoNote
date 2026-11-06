@@ -11675,7 +11675,8 @@ at the end: the same rule the call shortcut uses when it inserts one (`insertSec
 time as a meeting it comes after the meeting. An ad-hoc call without a time stays with the section above it, as
 before, and without start times (the agenda unreadable) nothing changes. Moving a call does not light the sync dot on
 its own. Tests: `calendarReconcile.test.ts` (a call under a removed or cancelled meeting, a note with no meetings
-yet, reordered meetings, calls among themselves, the same time, no time, no starts).
+yet, reordered meetings, calls among themselves, the same time, no time, no starts). Confirmed by Marien (2026-11-07)
+on a dev build.
 
 ## 447. Peek: switch between the meetings on now, and start a new ad-hoc call
 
@@ -11707,3 +11708,5 @@ of relying on there being no meeting.
   showed `‹1/2›` (the brief's placeholder brackets), two explanatory comments had been dropped, a helper script was
   committed, and the palette ranking above; two of the independent tests read the brief differently from the build
   brief (the highlight starts on the shown section; one meeting on now still lists it) and were aligned with it.
+
+Confirmed by Marien (2026-11-07) on a dev build.
