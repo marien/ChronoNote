@@ -14,7 +14,7 @@ import { todayISO } from "./date";
 import { extractSectionBody } from "./history";
 import { t } from "./i18n";
 import { createGlobalShortcutBinder } from "./globalShortcut";
-import { enterPeek, leavePeek, peekMode, peekSettings, startPeekRename } from "./peek";
+import { enterPeek, leavePeek, peekMode, peekSettings, retargetPeek, startPeekRename } from "./peek";
 import { writeTabContent } from "./persistence";
 import { underlineFor } from "./sectionFormat";
 import { isWindowMinimized, restoreAndFocusWindow } from "./windowChrome";
@@ -35,6 +35,72 @@ const toMinutes = (hhmm: string): number | null => {
   const m = /^(\d{1,2}):(\d{2})$/.exec(hhmm.trim());
   return m ? Number(m[1]) * 60 + Number(m[2]) : null;
 };
+
+/** How long an ad-hoc call counts as "on now" after the time in its title. */
+export const CALL_RECENT_MIN = 60;
+
+export interface NowItem {
+  /** The section title as it is (or will be) in the note: the agenda title for a meeting, the section title for a call. */
+  title: string;
+  kind: "meeting" | "call";
+  /** Start in minutes since midnight. */
+  minutes: number;
+}
+
+/** What is on at `nowMin` in today's note `content`:
+ *  - every agenda meeting that is running (start <= nowMin < end) or starts within CALL_LOOKAHEAD_MIN (start > nowMin
+ *    and start - nowMin <= CALL_LOOKAHEAD_MIN); entries whose start or end does not parse are left out; a title that
+ *    appears more than once (same matching key as `sectionMinutes` uses) only once, the earliest;
+ *  - every ad-hoc call section of `content` (`listSections`, title starting with ' or ’) whose `adhocMinutes` is in
+ *    [nowMin - CALL_RECENT_MIN, nowMin].
+ * Sorted by `minutes`, then meetings before calls, then title. Empty when nothing is on. */
+export function sectionsOnNow(entries: readonly AgendaEntry[], content: string, nowMin: number): NowItem[] {
+  const meetingsByKey = new Map<string, { entry: AgendaEntry; start: number }>();
+  for (const e of entries) {
+    const start = toMinutes(e.start);
+    const end = toMinutes(e.end);
+    if (start === null || end === null) continue;
+    const isRunning = start <= nowMin && nowMin < end;
+    const isSoon = start > nowMin && start - nowMin <= CALL_LOOKAHEAD_MIN;
+    if (!isRunning && !isSoon) continue;
+    const k = key(e.title);
+    const existing = meetingsByKey.get(k);
+    if (!existing || start < existing.start) {
+      meetingsByKey.set(k, { entry: e, start });
+    }
+  }
+
+  const calls: NowItem[] = [];
+  const sections = listSections(content.split("\n"));
+  for (const s of sections) {
+    if (!/^['’]/.test(s.title.trim())) continue;
+    const m = adhocMinutes(s.title);
+    if (m === null) continue;
+    if (m >= nowMin - CALL_RECENT_MIN && m <= nowMin) {
+      calls.push({
+        title: s.title,
+        kind: "call",
+        minutes: m,
+      });
+    }
+  }
+
+  const items: NowItem[] = [
+    ...Array.from(meetingsByKey.values()).map(({ entry, start }) => ({
+      title: entry.title,
+      kind: "meeting" as const,
+      minutes: start,
+    })),
+    ...calls,
+  ];
+
+  items.sort((a, b) => {
+    if (a.minutes !== b.minutes) return a.minutes - b.minutes;
+    if (a.kind !== b.kind) return a.kind === "meeting" ? -1 : 1;
+    return a.title.localeCompare(b.title);
+  });
+  return items;
+}
 
 /** Minutes before a meeting's start from which pressing the shortcut counts as that meeting (joining a bit early). */
 export const CALL_LOOKAHEAD_MIN = 10;
@@ -93,10 +159,115 @@ export function insertSection(content: string, title: string, minutes: number, e
   return lines.join("\n");
 }
 
+/** `title`, or when `content` already has a section with that title (compared as `insertSection`'s callers compare:
+ * `titleForMatching(normalizeHeaderTitle(x)).toLowerCase()`), `title (2)`, `title (3)`, ... the first that is free. */
+export function uniqueSectionTitle(content: string, title: string): string {
+  const existingKeys = new Set(listSections(content.split("\n")).map((s) => key(s.title)));
+  if (!existingKeys.has(key(title))) return title;
+  let i = 2;
+  while (existingKeys.has(key(`${title} (${i})`))) {
+    i++;
+  }
+  return `${title} (${i})`;
+}
+
 const pad = (n: number) => String(n).padStart(2, "0");
 const hhmm = (d: Date) => `${pad(d.getHours())}:${pad(d.getMinutes())}`;
 
 let busy = false;
+
+/** Today's agenda entries (the `api.readAgendaEntriesForDate` mapping noteCall uses; [] on error). */
+export async function todayAgendaEntries(): Promise<AgendaEntry[]> {
+  const date = todayISO();
+  return api
+    .readAgendaEntriesForDate(date)
+    .then((rows) => rows.map(([start, end, title]) => ({ start, end, title })))
+    .catch(() => []);
+}
+
+async function peekOnTodaySectionImpl(
+  title: string,
+  minutes: number,
+  rename: boolean | "if-new",
+  passedEntries?: readonly AgendaEntry[],
+  knownWasOpened?: boolean,
+): Promise<boolean> {
+  const date = todayISO();
+  const filename = `${date}.txt`;
+  const wasAlreadyOpen = get(tabs).some((x) => x.filename === filename && !x.isScratchpad);
+  await openOrCreateDatedFile(date);
+  const wasOpened = knownWasOpened ?? !wasAlreadyOpen;
+  let tab = get(tabs).find((x) => x.filename === filename && !x.isScratchpad);
+  if (!tab) return false;
+  // A brand-new day fills its meeting sections by itself (silent calendar sync); wait for any in-flight sync to settle.
+  if (!tab.content.trim()) {
+    await whenSilentSyncSettled(tab.id);
+    tab = get(tabs).find((x) => x.id === tab!.id) ?? tab;
+  }
+
+  const entries = passedEntries ?? (await todayAgendaEntries());
+  const target = titleForMatching(normalizeHeaderTitle(title));
+  let content = tab.content;
+  let newlyInserted = false;
+  if (!extractSectionBody(content.split("\n"), target)) {
+    content = insertSection(content, title, minutes, entries);
+    tabs.set(writeTabContent(tab.id, content, get(tabs)));
+    newlyInserted = true;
+  }
+  const body = extractSectionBody(content.split("\n"), target);
+  await jumpToFileLine({ tabId: tab.id, filename, lineIdx: body ? body.startLineIdx : 0 });
+  // Peek is told which section to show.
+  let shown = false;
+  if (get(peekMode)) {
+    shown = retargetPeek(target, wasOpened);
+  } else {
+    shown = await enterPeek(target);
+  }
+  const shouldRename = rename === "if-new" ? newlyInserted : rename;
+  if (shown && shouldRename) {
+    startPeekRename();
+  }
+  return shown;
+}
+
+/** Shows section `title` of today's note in Peek (entering Peek, or retargeting it when already in Peek), creating the
+ * section in its place in time (`minutes`) when the note does not have it. `rename`: start renaming it (new calls).
+ * Desktop only; returns whether Peek now shows it. */
+export async function peekOnTodaySection(title: string, minutes: number, rename: boolean): Promise<boolean> {
+  if (get(backendKind) !== "desktop" || busy) return false;
+  busy = true;
+  try {
+    return await peekOnTodaySectionImpl(title, minutes, rename);
+  } finally {
+    busy = false;
+  }
+}
+
+/** Ctrl+Shift+M, the + button in the Peek bar, the command palette: a NEW ad-hoc call at the current time
+ * (`uniqueSectionTitle(content, t("call.adhocTitle", { time }))`), always new even when a meeting is on, shown in Peek
+ * with its name selected for typing (as noteCall does for a new call). Works in and outside Peek. Desktop only. */
+export async function newCall(now: Date = new Date()): Promise<boolean> {
+  if (get(backendKind) !== "desktop" || busy) return false;
+  busy = true;
+  try {
+    const date = todayISO();
+    const filename = `${date}.txt`;
+    const wasAlreadyOpen = get(tabs).some((x) => x.filename === filename && !x.isScratchpad);
+    await openOrCreateDatedFile(date);
+    let tab = get(tabs).find((x) => x.filename === filename && !x.isScratchpad);
+    if (!tab) return false;
+    if (!tab.content.trim()) {
+      await whenSilentSyncSettled(tab.id);
+      tab = get(tabs).find((x) => x.id === tab!.id) ?? tab;
+    }
+    const nowMin = now.getHours() * 60 + now.getMinutes();
+    const baseTitle = get(t)("call.adhocTitle", { time: hhmm(now) });
+    const title = uniqueSectionTitle(tab.content, baseTitle);
+    return await peekOnTodaySectionImpl(title, nowMin, true, undefined, !wasAlreadyOpen);
+  } finally {
+    busy = false;
+  }
+}
 
 /** The shortcut: Peek on the meeting that is on now, or on a new ad-hoc call section; pressed again it leaves Peek.
  * Returns whether Peek was entered. */
@@ -112,43 +283,12 @@ export async function noteCall(now: Date = new Date()): Promise<boolean> {
   }
   busy = true;
   try {
-    const date = todayISO();
-    const entries: AgendaEntry[] = await api
-      .readAgendaEntriesForDate(date)
-      .then((rows) => rows.map(([start, end, title]) => ({ start, end, title })))
-      .catch(() => []);
+    const entries = await todayAgendaEntries();
     const nowMin = now.getHours() * 60 + now.getMinutes();
     const meeting = pickMeeting(entries, nowMin);
     const title = meeting ? meeting.title : get(t)("call.adhocTitle", { time: hhmm(now) });
     const minutes = meeting ? (toMinutes(meeting.start) ?? nowMin) : nowMin;
-
-    await openOrCreateDatedFile(date);
-    const filename = `${date}.txt`;
-    let tab = get(tabs).find((x) => x.filename === filename && !x.isScratchpad);
-    if (!tab) return false;
-    // A brand-new day fills its meeting sections by itself (silent calendar sync); wait for any in-flight sync to settle.
-    if (!tab.content.trim()) {
-      await whenSilentSyncSettled(tab.id);
-      tab = get(tabs).find((x) => x.id === tab!.id) ?? tab;
-    }
-
-    const target = titleForMatching(normalizeHeaderTitle(title));
-    let content = tab.content;
-    let newlyInserted = false;
-    if (!extractSectionBody(content.split("\n"), target)) {
-      content = insertSection(content, title, minutes, entries);
-      tabs.set(writeTabContent(tab.id, content, get(tabs)));
-      newlyInserted = true;
-    }
-    const body = extractSectionBody(content.split("\n"), target);
-    await jumpToFileLine({ tabId: tab.id, filename, lineIdx: body ? body.startLineIdx : 0 });
-    // Peek is told which section to show. Reading it back from where the caret landed showed the NEXT meeting
-    // whenever a section had no empty line under its title (the first body line was the next title).
-    const entered = await enterPeek(target);
-    if (entered && newlyInserted && !meeting) {
-      startPeekRename();
-    }
-    return entered;
+    return await peekOnTodaySectionImpl(title, minutes, !meeting ? "if-new" : false, entries);
   } finally {
     busy = false;
   }

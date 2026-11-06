@@ -83,6 +83,8 @@ export const onPeekLeft = new Set<() => void>();
 export const peekTarget = writable<string | null>(null);
 /** Lines the section needs right now (reported by the editor), for fit-to-section sizing. */
 export const peekFitLines = writable(0);
+/** The "on now" list in the Peek bar is open. */
+export const peekSwitcherOpen = writable(false);
 /** Header overlay expanded: true while the pointer is over the window in "hover" and "never" modes. */
 export const peekHeaderExpanded = writable(false);
 /** True while renaming an ad-hoc call section in the header bar. */
@@ -320,6 +322,7 @@ export async function enterPeek(section?: string): Promise<boolean> {
 export function leavePeek(options: { keepTabs?: boolean } = {}): void {
   if (!get(peekMode)) return;
   peekRenaming.set(false);
+  peekSwitcherOpen.set(false);
   const target = get(peekTarget);
   const shownTab = get(activeTabId);
   const caret = editorApi ? editorApi.getCursorLineIdx() : null;
@@ -365,6 +368,25 @@ export async function stepPeekOccurrence(direction: -1 | 1): Promise<void> {
     }
   }
   void refreshPosition();
+}
+
+/** While in Peek: show section `target` (matching form) of the active tab instead. Records the tab in peekSeen /
+ * peekOpened (`opened` = Peek had to open it) as stepPeekOccurrence does, clears renaming, resets peekFitLines to 0 and
+ * calls refreshPosition(). Returns false when not in Peek. */
+export function retargetPeek(target: string, opened?: boolean): boolean {
+  if (!get(peekMode)) return false;
+  const tab = get(tabs).find((x) => x.id === get(activeTabId));
+  if (tab && !peekSeen.has(tab.id)) {
+    peekSeen.set(tab.id, tab.content);
+    if (opened) peekOpened.add(tab.id);
+  } else if (tab && opened) {
+    peekOpened.add(tab.id);
+  }
+  peekRenaming.set(false);
+  peekTarget.set(target);
+  peekFitLines.set(0);
+  void refreshPosition();
+  return true;
 }
 
 /** Past / today / future for the shown note, as the tab strip colours it. */
@@ -426,6 +448,7 @@ export function wirePeek(): () => void {
         } else {
           dockGoal = null;
           peekHeaderExpanded.set(false);
+          peekSwitcherOpen.set(false);
           clearTimeout(introTimer);
           clearTimeout(fadeTimer);
           peekInFocus.set(false);
@@ -618,6 +641,7 @@ export function wirePeek(): () => void {
 
   // Peek is part of the desktop app: its in-app shortcut is listed and active from startup (it stays off on the web).
   setShortcutEnabled("togglePeekMode", true);
+  setShortcutEnabled("newCall", true);
 
   // Peek on the section at the caret is an in-app shortcut only (`togglePeekMode`, Ctrl+Shift+P). The one system-wide
   // Peek shortcut is the call-note one (`callNote.ts`): it also leaves Peek when it is showing.

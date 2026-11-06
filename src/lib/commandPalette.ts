@@ -54,7 +54,7 @@ import { openDueDatePicker } from "./dueDateCommands";
 import { openMeetingHistory } from "./history";
 import { openWeekReview } from "./weekReview";
 import { peekSettings, togglePeek } from "./peek";
-import { noteCall } from "./callNote";
+import { newCall, noteCall } from "./callNote";
 import { openCrossTabSearch } from "./search";
 import { canSyncCalendarForActiveTab, syncCalendarFromFile } from "./calendarSyncActions";
 import { openAbout, openGlyphLegend, openSettings, openShortcutsHelp } from "./menu";
@@ -365,6 +365,13 @@ function commandItems(): PaletteItem[] {
             hint: get(peekSettings).callShortcut,
             group: "Commands" as const,
             run: () => void noteCall(),
+          },
+          {
+            id: "cmd-new-call",
+            label: translate("commandPalette.newCall", undefined),
+            hint: formatShortcut("newCall"),
+            group: "Commands" as const,
+            run: () => void newCall(),
           },
         ]
       : []),

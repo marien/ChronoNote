@@ -28,6 +28,7 @@
     peekInFocus,
     peekDocked,
     peekSettings,
+    peekSwitcherOpen,
     windowWidth,
   } from "./lib/controller";
   import { matchesShortcut } from "./lib/shortcuts";
@@ -160,6 +161,7 @@
       openShortcutsHelp: () => controller.openShortcutsHelp(),
       toggleZenMode: () => isZenMode.update((v) => !v),
       togglePeekMode: () => controller.togglePeek(),
+      newCall: () => void controller.newCall(),
       printNote: () => printActiveNote(),
       openExport: () => openExportModal(),
       navigateBack: () => void controller.navigateBack(),
@@ -326,6 +328,10 @@
       if (matchesShortcut(e, "goToSection")) {
         if (modalOwnsKeyboard(e)) return;
         e.preventDefault();
+        if (get(peekMode)) {
+          peekSwitcherOpen.update((v) => !v);
+          return;
+        }
         controller.openCommandPalette("#");
         return;
       }

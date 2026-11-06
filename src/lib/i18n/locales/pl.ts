@@ -182,8 +182,12 @@ export const pl = {
   "shortcuts.toggleZenMode.label": () => "Tryb Zen (przestrzeń bez rozpraszaczy)",
   "shortcuts.togglePeekMode.label": () =>
     "Peek: kompaktowe, półprzezroczyste okno notatek dla sekcji przy kursorze",
+  "shortcuts.newCall.label": () =>
+    "Rozpocznij nową rozmowę ad-hoc w Peek",
   "commandPalette.togglePeekMode": () =>
     "Przełącz Peek (kompaktowe okno notatek na rozmowy)",
+  "commandPalette.newCall": () =>
+    "Nowa rozmowa",
   "peek.toast.noSection": () =>
     "Umieść kursor w sekcji, aby w nią zerknąć.",
   "peek.toast.titleExists": () =>
@@ -196,6 +200,8 @@ export const pl = {
   "peek.float": () => "Okno pływające",
   "peek.rename": () =>
     "Kliknij, aby nazwać tę rozmowę",
+  "peek.switch": () => "Trwające spotkania",
+  "peek.newCall": () => "Nowa rozmowa",
   "peek.prev": () =>
     "Poprzednie wystąpienie",
   "peek.next": () =>
