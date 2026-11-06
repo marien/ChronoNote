@@ -6,7 +6,8 @@ then gets a line in its CHANGELOG section) or found broken (it then becomes a fi
 
 | Since | What to check | Where / how | Section |
 |---|---|---|---|
-| 2026-10-29 | Minor-release checklist, the part a beta cannot reach: on a phone the keyboard, sheets, long-press and the symbols bar on one row; the web app installed on a PC (title bar hidden) and on a phone | app.chrononote.mariendegelder.nl, right after 0.35.0 stable | §441 |
+| 2026-11-06 | Phone companion, faster refresh: the Power App built from Update 1 works with 0.36.0 (`meetings.json`, outbox format 2, "Computer last seen"), and the status-line timings show where a refresh spends its time | Work laptop and phone, `docs/phone-companion-powerapps/update-1-refresh.md` | §445 |
+| 2026-10-29 | Minor-release checklist, the part a beta cannot reach: on a phone the keyboard, sheets, long-press and the symbols bar on one row; the web app installed on a PC (title bar hidden) and on a phone | app.chrononote.mariendegelder.nl, now on 0.36.0 (open since 0.35.0) | §441 |
 | 2026-10-29 | The new website on the live host: pages, fonts and both themes load; Try links open the demo on the feature (needs the 0.35.0 demo rebuild); the download button gets 0.35.0's installer; a shared link shows the new social image | chrononote.mariendegelder.nl after 0.35.0 stable moves `website-live`; a phone too | §440 |
 | 2026-10-28 | In the web app: a nested list pasted from Teams keeps its bullets and indentation (confirmed in the desktop app) | app.chrononote.mariendegelder.nl, once 0.35.0 is stable (betas do not update it) | §439 |
 | 2026-10-22 | Desktop: a real conflict ("changed on disk" prompt) resolved with "Keep my version" leaves the other text under Earlier versions, also when you edited a minute before | Desktop app v0.32.5; edit a note on two devices synced by OneDrive | §413 |
