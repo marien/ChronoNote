@@ -307,4 +307,58 @@ describe("#92: a [CANCELED] section that flagRemovedSection actually produces (a
       expect(result.removedWithContent).toEqual([]);
     });
   });
+
+  // §446: with the meetings' start times, an ad-hoc call with a time in its title is placed by that time.
+  describe("ad-hoc calls placed by their time", () => {
+    const sec = (title: string, body?: string) => [title, "=".repeat(title.length), ...(body ? [body] : [])].join("\n");
+    const note = (...blocks: string[]) => blocks.join("\n\n\n") + "\n";
+    const starts = { Standup: "09:00", Review: "14:00", Retro: "16:00" };
+
+    it("a call whose meeting above was removed goes between the meetings, not to the end", () => {
+      const content = note(sec("Standup", "s"), sec("Planning", "p"), sec("'Call 13:52", "c"), sec("Review", "r"));
+      const result = computeCalendarSync(content, ["Standup", "Review", "Retro"], [], starts);
+      expect(result.content).toBe(note(sec("Standup", "s"), sec("'Call 13:52", "c"), sec("Review", "r"), sec("Retro")));
+      expect(result.removedWithContent).toEqual([{ header: "Planning", lines: ["p"] }]);
+    });
+
+    it("a call on a note with no meetings yet lands among the new meetings by time", () => {
+      const content = note(sec("'Call 13:52", "c"));
+      const result = computeCalendarSync(content, ["Standup", "Review"], [], starts);
+      expect(result.content).toBe(note(sec("Standup"), sec("'Call 13:52", "c"), sec("Review")));
+    });
+
+    it("calls follow the time order when the meetings are reordered, and sort among themselves", () => {
+      const content = note(sec("Review", "r"), sec("'Call 15:00", "b"), sec("'Call 10:30", "a"), sec("Standup", "s"));
+      const result = computeCalendarSync(content, ["Standup", "Review"], [], starts);
+      expect(result.content).toBe(
+        note(sec("Standup", "s"), sec("'Call 10:30", "a"), sec("Review", "r"), sec("'Call 15:00", "b")),
+      );
+    });
+
+    it("a call at the same time as a meeting comes after it", () => {
+      const content = note(sec("'Call 14:00", "c"), sec("Review", "r"));
+      const result = computeCalendarSync(content, ["Review"], [], starts);
+      expect(result.content).toBe(note(sec("Review", "r"), sec("'Call 14:00", "c")));
+    });
+
+    it("a call under a cancelled meeting goes by its time, ahead of the cancelled section", () => {
+      const content = note(sec("Standup", "s"), sec("[CANCELED] Old sync", "o"), sec("'Call 10:30", "c"), sec("Review", "r"));
+      const result = computeCalendarSync(content, ["Standup", "Review"], [], starts);
+      expect(result.content).toBe(
+        note(sec("Standup", "s"), sec("'Call 10:30", "c"), sec("Review", "r"), sec("[CANCELED] Old sync", "o")),
+      );
+    });
+
+    it("an ad-hoc call without a time still stays with the section above it", () => {
+      const content = note(sec("Review", "r"), sec("'Quick chat", "q"), sec("Standup", "s"));
+      const result = computeCalendarSync(content, ["Standup", "Review"], [], starts);
+      expect(result.content).toBe(note(sec("Standup", "s"), sec("Review", "r"), sec("'Quick chat", "q")));
+    });
+
+    it("without start times nothing changes (a call stays with the section above)", () => {
+      const content = note(sec("Review", "r"), sec("'Call 10:30", "a"), sec("Standup", "s"));
+      const result = computeCalendarSync(content, ["Standup", "Review"]);
+      expect(result.content).toBe(note(sec("Standup", "s"), sec("Review", "r"), sec("'Call 10:30", "a")));
+    });
+  });
 });

@@ -474,6 +474,8 @@ export interface CalendarSyncReviewState {
   agendaTitles: string[];
   /** #78: titles of the day's cancelled/declined/forwarded meetings (see `computeCalendarSync`). */
   removedTitles: string[];
+  /** §446: meeting starts by title, so ad-hoc calls are placed by their time (see `computeCalendarSync`). */
+  agendaStarts: Record<string, string>;
   newItems: CalendarSyncNewItem[];
   reorderedTitles: string[];
   removedEmpty: string[];

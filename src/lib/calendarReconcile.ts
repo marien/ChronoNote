@@ -54,6 +54,19 @@ export function isAdhocSection(header: string): boolean {
   return ADHOC_PREFIX.test(stripCancelledPrefix(header));
 }
 
+const toMinutes = (hhmm: string): number | null => {
+  const m = /^(\d{1,2}):(\d{2})$/.exec(hhmm.trim());
+  return m ? Number(m[1]) * 60 + Number(m[2]) : null;
+};
+
+/** The time of an ad-hoc call from its title (`'Call 14:05`): the last HH:MM in it, as `callNote.ts` reads it. */
+function adhocMinutes(header: string): number | null {
+  if (!isAdhocSection(header)) return null;
+  const all = [...header.matchAll(/(\d{1,2}):(\d{2})/g)];
+  const last = all[all.length - 1];
+  return last ? Number(last[1]) * 60 + Number(last[2]) : null;
+}
+
 function parseSections(content: string): { preamble: string[]; sections: ParsedSection[] } {
   const allLines = content.split("\n");
   const headerIdxs: number[] = [];
@@ -102,8 +115,20 @@ export function computeCalendarSync(
    * these titles is treated as a removed meeting wherever it sits in the note (not only inside the
    * calendar block), unless the day also has a live meeting with the same title. */
   removedTitles: string[] = [],
+  /** §446: each meeting's start ("HH:MM") by title, from `.agenda.json`. With them, an ad-hoc call with a time in its
+   * title goes between the meetings by that time (as the call shortcut inserts it) instead of following the section
+   * above it. Without them (a pasted list) ad-hoc calls stay with the section above, as before. */
+  agendaStarts: Record<string, string> = {},
 ): CalendarSyncResult {
-  const { preamble, sections: allSections } = parseSections(content);
+  const { preamble, sections: parsedSections } = parseSections(content);
+  const startByKey = new Map<string, number>();
+  for (const [title, start] of Object.entries(agendaStarts)) {
+    const m = toMinutes(start);
+    const k = matchKey(title);
+    if (m !== null && !startByKey.has(k)) startByKey.set(k, m);
+  }
+  const timedAdhoc = startByKey.size > 0 ? parsedSections.filter((s) => adhocMinutes(s.header) !== null) : [];
+  const allSections = parsedSections.filter((s) => !timedAdhoc.includes(s));
   const agenda = agendaTitles
     .map((t) => t.trim())
     .filter((t) => t.length > 0)
@@ -221,6 +246,19 @@ export function computeCalendarSync(
       finalBlockLines.push(adhoc.lines);
     }
   });
+
+  // Timed ad-hoc calls, in note order, each before the first block section that happens later (else at the end).
+  const minutesOf = (header: string): number | null =>
+    isAdhocSection(header) ? adhocMinutes(header) : (startByKey.get(matchKey(stripCancelledPrefix(header))) ?? null);
+  for (const s of timedAdhoc) {
+    const own = adhocMinutes(s.header)!;
+    const at = finalBlockLines.findIndex((lines) => {
+      const m = minutesOf(lines[0].trim());
+      return m !== null && m > own;
+    });
+    if (at < 0) finalBlockLines.push(s.lines);
+    else finalBlockLines.splice(at, 0, s.lines);
+  }
 
   const newContent = joinBlocks(preamble, [...before.map((s) => s.lines), ...finalBlockLines]);
 

@@ -11660,3 +11660,19 @@ brief by a second run (`phoneCompanion.split.independent.test.ts`, all passing o
 and simplified the heartbeat check (no rebuild loop while a write keeps failing).
 
 Confirmed by Marien (2026-11-06) on 0.36.0-2 on the work laptop, and with the Power App's Update 1 on 0.36.0.
+
+## 446. Calendar sync places ad-hoc calls by their time
+
+**Status: on main, not released yet.**
+
+Marien: running the calendar sync moved ad-hoc calls (sections starting with `'`) to the end of the note, also the
+ones with a start time in the title that the call shortcut creates (`'Call 13:52`). The sync never looked at that
+time: it kept each ad-hoc call attached to the section above it, and when that section was a meeting no longer on the
+calendar in the same form (removed, cancelled, renamed), its ad-hoc calls were put after everything else. Now the
+sync also reads each meeting's start from `.agenda.json` (`readAgendaEntriesForDate`) and puts an ad-hoc call with a
+time in its title before the first section that starts later (a meeting by its start, another call by its time), else
+at the end: the same rule the call shortcut uses when it inserts one (`insertSection` in `callNote.ts`). At the same
+time as a meeting it comes after the meeting. An ad-hoc call without a time stays with the section above it, as
+before, and without start times (the agenda unreadable) nothing changes. Moving a call does not light the sync dot on
+its own. Tests: `calendarReconcile.test.ts` (a call under a removed or cancelled meeting, a note with no meetings
+yet, reordered meetings, calls among themselves, the same time, no time, no starts).

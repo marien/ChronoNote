@@ -771,7 +771,10 @@ reachable from the top bar, a shortcut, or the command palette:
   dated note differs from `.agenda.json` — checked on tab switch, shortly
   after edits and on window focus; a section whose title starts with `'`
   or `’` is an **ad-hoc call**, never matched to a meeting, never flagged
-  as removed and never lighting the dot; and opening an **empty** note
+  as removed and never lighting the dot (a sync places one with a time in
+  its title, `'Call 13:52`, between the meetings by that time and their
+  starts in `.agenda.json`, at the same time after the meeting; one
+  without a time stays after the section above it); and opening an **empty** note
   for today or later while meetings exist for it fills the meeting
   sections **silently**, without the review, with the caret on line 3 (it
   writes the file at once, so opening a future day with meetings creates

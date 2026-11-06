@@ -34,6 +34,20 @@ import { describeApiError } from "./apiError";
 import { sha256Hex } from "./drift";
 import type { NoteTab } from "./types";
 
+/** §446: each meeting's start ("HH:MM") by title for `date`, the first entry's when a title repeats; {} if unreadable. */
+async function readAgendaStarts(date: string): Promise<Record<string, string>> {
+  const starts: Record<string, string> = {};
+  try {
+    for (const [start, , title] of await api.readAgendaEntriesForDate(date)) {
+      const key = title.trim();
+      if (key && !(key in starts)) starts[key] = start;
+    }
+  } catch {
+    // Without the times, ad-hoc calls simply stay with the section above them.
+  }
+  return starts;
+}
+
 /** "Today or a future date only" — a scratchpad has no date at all, and a
  * past-dated note has nothing left to reconcile against. */
 export function canSyncCalendarForActiveTab(): boolean {
@@ -61,7 +75,7 @@ export async function checkCalendarSyncDiff(): Promise<void> {
     const agendaTitles = (await api.readAgendaForDate(date)).map((t) => t.trim()).filter((t) => t.length > 0);
     const removedTitles = (await api.readAgendaRemovedForDate(date)).map((t) => t.trim()).filter((t) => t.length > 0);
 
-    const result = computeCalendarSync(tab.content, agendaTitles, removedTitles);
+    const result = computeCalendarSync(tab.content, agendaTitles, removedTitles, await readAgendaStarts(date));
     const hasDiff =
       result.newTitles.length > 0 ||
       result.removedEmpty.length > 0 ||
@@ -224,15 +238,21 @@ export async function refreshAgendaFileExists(): Promise<void> {
  * of a real report: unchecking a meeting did nothing) would never match,
  * so the uncheck would silently have no effect. Cleaning here once makes
  * this safe by construction regardless of what `.agenda.json` contains. */
-function openCalendarSyncReview(tab: NoteTab, agendaTitles: string[], removedTitles: string[] = []) {
+function openCalendarSyncReview(
+  tab: NoteTab,
+  agendaTitles: string[],
+  removedTitles: string[] = [],
+  agendaStarts: Record<string, string> = {},
+) {
   const cleaned = agendaTitles.map((t) => t.trim()).filter((t) => t.length > 0);
   const removed = removedTitles.map((t) => t.trim()).filter((t) => t.length > 0);
-  const result = computeCalendarSync(tab.content, cleaned, removed);
+  const result = computeCalendarSync(tab.content, cleaned, removed, agendaStarts);
   calendarSyncReview.set({
     tabId: tab.id,
     originalContent: tab.content,
     agendaTitles: cleaned,
     removedTitles: removed,
+    agendaStarts,
     newItems: result.newTitles.map((title) => ({ title, checked: true })),
     reorderedTitles: result.reorderedTitles,
     removedEmpty: result.removedEmpty,
@@ -264,7 +284,7 @@ export async function syncCalendarFromFile(): Promise<void> {
     showToast(get(t)("toast.calendarSync.noMeetingsOn", { date }));
     return;
   }
-  openCalendarSyncReview(tab, agendaTitles, removedTitles);
+  openCalendarSyncReview(tab, agendaTitles, removedTitles, await readAgendaStarts(date));
 }
 
 export function toggleSyncNewItem(index: number) {
@@ -318,7 +338,7 @@ export async function confirmCalendarSync(): Promise<void> {
     return true;
   });
 
-  const result = computeCalendarSync(review.originalContent, finalAgenda, review.removedTitles);
+  const result = computeCalendarSync(review.originalContent, finalAgenda, review.removedTitles, review.agendaStarts);
   let content = result.content;
   const moves: { targetDate: string; removal: CalendarSyncRemoval }[] = [];
   for (const removal of review.removals) {
