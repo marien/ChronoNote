@@ -73,7 +73,8 @@
   }
 
   // Enter, Tab, Escape and leaving the field all end the rename; whichever comes first clears `peekRenaming`, so the
-  // blur that moving the focus to the editor causes right after is a no-op.
+  // blur that moving the focus to the editor causes right after is a no-op. (No separate "cancelling" flag: the browser
+  // does not fire blur when the input is removed, so such a flag could stay set and swallow the next rename.)
   function commitRename() {
     if (!get(peekRenaming)) return;
     renamePeekSection(inputValue);
@@ -85,7 +86,7 @@
     editorApi?.focus();
   }
 
-  // F2: name the call (ad-hoc call sections only).
+  // F2: name the call (ad-hoc call sections only). The editor no longer binds F2 (open-action jumps are Ctrl+J).
   function handleWindowKeydown(e: KeyboardEvent) {
     if (e.key !== "F2" || e.ctrlKey || e.metaKey || e.altKey || e.shiftKey) return;
     if (!isAdhoc || $peekRenaming) return;
@@ -235,7 +236,7 @@
   });
 
   const switchLabel = $derived(
-    shownOnNowIdx >= 0 ? `‹${shownOnNowIdx + 1}/${onNowItems.length}›` : `‹${onNowItems.length}›`,
+    shownOnNowIdx >= 0 ? `${shownOnNowIdx + 1}/${onNowItems.length}` : `${onNowItems.length}`,
   );
 </script>
 

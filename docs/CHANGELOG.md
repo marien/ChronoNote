@@ -11676,3 +11676,34 @@ time as a meeting it comes after the meeting. An ad-hoc call without a time stay
 before, and without start times (the agenda unreadable) nothing changes. Moving a call does not light the sync dot on
 its own. Tests: `calendarReconcile.test.ts` (a call under a removed or cancelled meeting, a note with no meetings
 yet, reordered meetings, calls among themselves, the same time, no time, no starts).
+
+## 447. Peek: switch between the meetings on now, and start a new ad-hoc call
+
+**Status: on main, not released yet.**
+
+Marien, using Peek during calls: an ad-hoc call that starts a few minutes before a meeting got that meeting (the
+call shortcut counts a meeting starting within 10 minutes as on now, and only makes a call when nothing is on), and
+with overlapping meetings the shortcut picks the latest-starting one, which may be the wrong one; to change it you had
+to leave Peek. Marien's ideas, as decided (2026-11-06): switch between overlapping meetings in Peek, from a short list
+that stays current so you never have to leave Peek, and start an ad-hoc call with a button or in-app shortcut instead
+of relying on there being no meeting.
+
+- **On now:** `sectionsOnNow` (`callNote.ts`) lists the agenda meetings running or starting within 10 minutes and
+  the ad-hoc calls of the last 60 minutes (`CALL_RECENT_MIN`). With two or more, the Peek bar shows a chip `i/n`;
+  the chip or Ctrl+G in Peek (outside Peek still the section search) opens the list, with **New call** last. Choosing
+  one retargets Peek (`retargetPeek` in `peek.ts`, through `peekOnTodaySection`, which creates a missing section
+  in time order). The list is recomputed when it opens, every minute and when the shown section changes.
+- **New call:** `newCall()`: the `+` button in the bar (also in the thin strip), Ctrl+Shift+M (desktop only; M is
+  free in the registry and in CodeMirror's keymaps), the command palette and the list: always a new
+  `'Call HH:MM` (`uniqueSectionTitle` adds ` (2)` for a second one in the same minute), named at once as before.
+  The call shortcut's own choice (`pickMeeting`) is unchanged: when it guesses wrong, one click or key fixes it.
+- **Command palette ranking:** typing "new call" ran **New scratchpad**: every item matching the query in order (also
+  through its shortcut text, "Ctrl+N, Ctrl+T") was listed in a fixed order, so Enter took the first. Now, within each
+  group, labels that contain the query as typed come first, then other label matches, then matches through the
+  shortcut text. (Groups keep their order: the palette draws a header where the group changes, and mixing them gave a
+  duplicate key.)
+- Built by a Gemini run from Claude's brief; independent tests written from a second brief by another run
+  (`callNote.nowlist.independent.test.ts`, `tests/e2e/peek-switch.independent.spec.ts`). Claude's review: the chip
+  showed `‹1/2›` (the brief's placeholder brackets), two explanatory comments had been dropped, a helper script was
+  committed, and the palette ranking above; two of the independent tests read the brief differently from the build
+  brief (the highlight starts on the shown section; one meeting on now still lists it) and were aligned with it.

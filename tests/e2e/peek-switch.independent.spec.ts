@@ -133,9 +133,12 @@ test.describe("Peek switcher and new call", () => {
     // Navigate with ArrowDown
     await page.keyboard.press("ArrowDown");
     // One of the options has aria-selected="true"
-    await expect(options.filter({ has: page.locator('[aria-selected="true"]') })).toHaveCount(1);
+    // (The option itself carries aria-selected, so filter on the element, not on a descendant.)
+    await expect(switcher.locator('[role="option"][aria-selected="true"]')).toHaveCount(1);
 
-    // Select the first option (Standup) using keyboard
+    // Select the first option (Standup) using keyboard. The highlight started on the shown section (Design review, 2nd)
+    // and ArrowDown moved it to "New call", so it takes two ArrowUps.
+    await page.keyboard.press("ArrowUp");
     await page.keyboard.press("ArrowUp");
     await page.keyboard.press("Enter");
 
@@ -296,7 +299,8 @@ test.describe("Peek switcher and new call", () => {
       .toBe(true);
   });
 
-  test("one meeting on now: no chip; Ctrl+G in Peek shows only 'New call'", async ({ page }) => {
+  // The test brief said "only 'New call'" here; the build brief (the intended behaviour) lists the meeting on now too.
+  test("one meeting on now: no chip; Ctrl+G in Peek shows that meeting and 'New call'", async ({ page }) => {
     const note = ["Standup", "=======", "o notes"].join("\n");
     await seed(page, {
       notes: { [TODAY]: note },
@@ -311,13 +315,14 @@ test.describe("Peek switcher and new call", () => {
     const chip = page.locator('#peek-bar [data-testid="peek-switch"]');
     await expect(chip).toBeHidden();
 
-    // Press Ctrl+G in Peek: opens switcher with only "New call"
+    // Press Ctrl+G in Peek: opens switcher with the meeting and "New call"
     await page.keyboard.press("ControlOrMeta+KeyG");
     const switcher = page.locator("#peek-switcher");
     await expect(switcher).toBeVisible();
 
     const options = switcher.locator('[role="option"]');
-    await expect(options).toHaveCount(1);
+    await expect(options).toHaveCount(2);
+    await expect(options.first()).toContainText("Standup");
     await expect(page.locator('#peek-switcher [data-testid="peek-switch-new-call"]')).toBeVisible();
   });
 
