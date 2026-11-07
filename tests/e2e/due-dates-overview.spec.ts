@@ -46,7 +46,7 @@ test.describe("due dates slice 3: status bar and Action Drawer due view", () => 
       },
     });
 
-    const statOverdue = page.locator("#stat-overdue");
+    const statOverdue = page.locator("#stat-due .stat-due-overdue");
     // 2 overdue actions: past1 in open tab and past2 in closed note (delegated is not counted)
     await expect(statOverdue).toBeVisible();
     await expect(statOverdue.locator(".stat-full")).toHaveText("2 overdue");
@@ -78,7 +78,7 @@ test.describe("due dates slice 3: status bar and Action Drawer due view", () => 
     });
 
     // Absent at zero
-    await expect(page.locator("#stat-overdue")).toHaveCount(0);
+    await expect(page.locator("#stat-due .stat-due-overdue")).toHaveCount(0);
   });
 
   test("clicking overdue item opens drawer in due view on All files with groups, order, and toggle", async ({
@@ -104,7 +104,7 @@ test.describe("due dates slice 3: status bar and Action Drawer due view", () => 
     });
 
     // Click overdue button
-    await page.locator("#stat-overdue").click();
+    await page.locator("#stat-due").click();
 
     // Drawer opens in All files scope with due view enabled
     await expect(drawer(page)).toBeVisible();
@@ -168,7 +168,7 @@ test.describe("due dates slice 3: status bar and Action Drawer due view", () => 
     });
 
     // Open via overdue button
-    await page.locator("#stat-overdue").click();
+    await page.locator("#stat-due").click();
     await expect(drawer(page)).toBeVisible();
 
     // Filter to closed task
@@ -186,7 +186,7 @@ test.describe("due dates slice 3: status bar and Action Drawer due view", () => 
     await expect(editor(page)).toContainText(`closed task to forward by:${past}`);
 
     // Reopen drawer
-    await page.locator("#stat-overdue").click();
+    await page.locator("#stat-due").click();
     await expect(drawer(page)).toBeVisible();
 
     // Shift+Enter forwards it to today

@@ -4,7 +4,7 @@
  * of each token. */
 import { ACTION_CLASS, BULLET_CLASS, NAME_CHAR } from "./grammar/symbols";
 import { getLineActionParts, tokenizeLine } from "./grammar/tokenize";
-import { parseDueWord } from "./date";
+import { addDaysISO, parseDueWord } from "./date";
 // Matches trailing forward links at the end of a line (same as TRAILING_LINKS in paste.ts)
 const TRAILING_LINKS = /(?:\s*\([<>]\d{4}-\d{2}-\d{2}(?:#[^)]*)?\))+$/;
 
@@ -822,6 +822,25 @@ export function countOverdue(text: string, todayISO: string): number {
   let count = 0;
   for (const item of dueItems(text)) {
     if (item.state === "#" && !item.delegated && item.date !== undefined && item.date < todayISO) {
+      count++;
+    }
+  }
+  return count;
+}
+
+/** Open own actions (state "#", not delegated) with a due date between `todayISO` and `todayISO + (days - 1)` inclusive. */
+export function countUpcoming(text: string, todayISO: string, days = 7): number {
+  if (days <= 0) return 0;
+  const maxDate = addDaysISO(todayISO, days - 1);
+  let count = 0;
+  for (const item of dueItems(text)) {
+    if (
+      item.state === "#" &&
+      !item.delegated &&
+      item.date !== undefined &&
+      item.date >= todayISO &&
+      item.date <= maxDate
+    ) {
       count++;
     }
   }

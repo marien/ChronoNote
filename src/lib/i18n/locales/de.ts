@@ -497,7 +497,10 @@ export const de = {
   "statusBar.labelDeferred": ({ count }) => `${count} verschoben`,
   "statusBar.labelDone": ({ count }) => `${count} erledigt`,
   "statusBar.labelOverdue": ({ count }) => `${count} überfällig`,
-  "statusBar.overdueTitle": () => "Offene Aktionen nach Ablauf des Fälligkeitsdatums in allen Notizen. Klicken, um sie anzuzeigen",
+  "statusBar.labelUpcoming": ({ count }) => `${count} anstehend`,
+  "statusBar.dueTitle": () =>
+    "Offene Aktionen, die in den nächsten 7 Tagen fällig oder überfällig sind, in allen Notizen. Klicken, um sie anzuzeigen",
+  "statusBar.dueMore": ({ count }) => `+${count} weitere`,
   "statusBar.jumpNextActionTooltip": ({ combo }) => `Zur nächsten offenen Aktion springen (${combo})`,
   "statusBar.allActionsTooltip": () => "Aktionsleiste öffnen (alle Aktionen)",
   "statusBar.whatsNew": () => "Was ist neu",
@@ -580,7 +583,7 @@ export const de = {
   "searchModal.removeFilterAriaLabel": ({ label }) => `Filter ${label} entfernen`,
   "searchModal.noMatches": ({ query }) => `Keine Treffer für "${query}".`,
   "searchModal.emptySubtitle": () =>
-    "Überprüfe die Schreibweise oder verwende Suchoperatoren wie is:open oder #tag.",
+    "Überprüfe die Schreibweise oder verwende Suchoperatoren wie is:open, due: oder #tag.",
   "searchModal.footer.open": () => "Öffnen",
   "searchModal.footer.select": () => "Auswählen",
 

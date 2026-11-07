@@ -468,7 +468,9 @@ export type TranslationParams = {
   "statusBar.labelDeferred": { count: number };
   "statusBar.labelDone": { count: number };
   "statusBar.labelOverdue": { count: number };
-  "statusBar.overdueTitle": undefined;
+  "statusBar.labelUpcoming": { count: number };
+  "statusBar.dueTitle": undefined;
+  "statusBar.dueMore": { count: number };
   "statusBar.jumpNextActionTooltip": { combo: string };
   "statusBar.allActionsTooltip": undefined;
   "statusBar.whatsNew": undefined;

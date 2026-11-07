@@ -488,7 +488,10 @@ export const en = {
   "statusBar.labelDeferred": ({ count }) => `${count} deferred`,
   "statusBar.labelDone": ({ count }) => `${count} done`,
   "statusBar.labelOverdue": ({ count }) => `${count} overdue`,
-  "statusBar.overdueTitle": () => "Open actions past their due date, in all notes. Click to see them",
+  "statusBar.labelUpcoming": ({ count }) => `${count} upcoming`,
+  "statusBar.dueTitle": () =>
+    "Open actions due in the next 7 days and past their due date, in all notes. Click to see them",
+  "statusBar.dueMore": ({ count }) => `+${count} more`,
   "statusBar.jumpNextActionTooltip": ({ combo }) => `Jump to next open action (${combo})`,
   "statusBar.allActionsTooltip": () => "Open Action Drawer (all actions)",
   "statusBar.whatsNew": () => "What's new",
@@ -571,7 +574,7 @@ export const en = {
   "searchModal.removeFilterAriaLabel": ({ label }) => `Remove filter ${label}`,
   "searchModal.noMatches": ({ query }) => `No matches for "${query}".`,
   "searchModal.emptySubtitle": () =>
-    "Check your spelling or try using search operators like is:open or #tag.",
+    "Check your spelling or try using search operators like is:open, due: or #tag.",
   "searchModal.footer.open": () => "Open",
   "searchModal.footer.select": () => "Select",
 

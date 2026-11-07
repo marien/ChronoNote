@@ -498,7 +498,10 @@ export const es = {
   "statusBar.labelDeferred": ({ count }) => `${count} pospuesta${count === 1 ? "" : "s"}`,
   "statusBar.labelDone": ({ count }) => `${count} completada${count === 1 ? "" : "s"}`,
   "statusBar.labelOverdue": ({ count }) => `${count} vencida${count === 1 ? "" : "s"}`,
-  "statusBar.overdueTitle": () => "Acciones abiertas con fecha límite vencida, en todas las notas. Haz clic para verlas",
+  "statusBar.labelUpcoming": ({ count }) => `${count} próxima${count === 1 ? "" : "s"}`,
+  "statusBar.dueTitle": () =>
+    "Acciones abiertas que vencen en los próximos 7 días o ya vencidas, en todas las notas. Haz clic para verlas",
+  "statusBar.dueMore": ({ count }) => `+${count} más`,
   "statusBar.jumpNextActionTooltip": ({ combo }) => `Saltar a la siguiente acción pendiente (${combo})`,
   "statusBar.allActionsTooltip": () => "Abrir panel de acciones (todas las acciones)",
   "statusBar.whatsNew": () => "Novedades",
@@ -584,7 +587,7 @@ export const es = {
   "searchModal.removeFilterAriaLabel": ({ label }) => `Eliminar filtro ${label}`,
   "searchModal.noMatches": ({ query }) => `Sin coincidencias para "${query}".`,
   "searchModal.emptySubtitle": () =>
-    "Revisa la ortografía o usa operadores de búsqueda como is:open o #tag.",
+    "Revisa la ortografía o usa operadores de búsqueda como is:open, due: o #tag.",
   "searchModal.footer.open": () => "Abrir",
   "searchModal.footer.select": () => "Seleccionar",
 

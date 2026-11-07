@@ -502,7 +502,10 @@ export const pl = {
   "statusBar.labelDeferred": ({ count }) => `${count} odłożone`,
   "statusBar.labelDone": ({ count }) => `${count} wykonane`,
   "statusBar.labelOverdue": ({ count }) => `${count} po terminie`,
-  "statusBar.overdueTitle": () => "Otwarte zadania po terminie we wszystkich notatkach. Kliknij, aby je zobaczyć",
+  "statusBar.labelUpcoming": ({ count }) => `${count} nadchodzące`,
+  "statusBar.dueTitle": () =>
+    "Otwarte zadania z terminem w ciągu najbliższych 7 dni oraz po terminie we wszystkich notatkach. Kliknij, aby je zobaczyć",
+  "statusBar.dueMore": ({ count }) => `+${count} więcej`,
   "statusBar.jumpNextActionTooltip": ({ combo }) => `Przejdź do następnego otwartego zadania (${combo})`,
   "statusBar.allActionsTooltip": () => "Otwórz panel zadań (wszystkie zadania)",
   "statusBar.whatsNew": () => "Co nowego",
@@ -590,7 +593,7 @@ export const pl = {
   "searchModal.removeFilterAriaLabel": ({ label }) => `Usuń filtr ${label}`,
   "searchModal.noMatches": ({ query }) => `Brak wyników dla „${query}”.`,
   "searchModal.emptySubtitle": () =>
-    "Sprawdź pisownię lub użyj operatorów wyszukiwania, takich jak is:open lub #tag.",
+    "Sprawdź pisownię lub użyj operatorów wyszukiwania, takich jak is:open, due: lub #tag.",
   "searchModal.footer.open": () => "Otwórz",
   "searchModal.footer.select": () => "Wybierz",
 

@@ -144,12 +144,17 @@ export function hasActiveFilter(parsed: ParsedSearchQuery): boolean {
     (ops.tags && ops.tags.length > 0) ||
     ops.hasAssignee ||
     ops.since ||
-    ops.before,
+    ops.before ||
+    ops.due,
   );
 }
 
 /** Evaluates whether `item` satisfies the search query's term and operators. */
-export function nodeMatchesQuery(item: ActionSnapshotItem, parsed: ParsedSearchQuery): boolean {
+export function nodeMatchesQuery(
+  item: ActionSnapshotItem,
+  parsed: ParsedSearchQuery,
+  showDelegated?: boolean,
+): boolean {
   const text = isWhole(item) ? item.line : nodeText(item);
   const ops = parsed.operators;
 
@@ -169,6 +174,26 @@ export function nodeMatchesQuery(item: ActionSnapshotItem, parsed: ParsedSearchQ
 
     if (ops.isOpen && nodeState(item) !== "#") return false;
     if (ops.isDone && nodeState(item) !== "v") return false;
+
+    if (ops.due) {
+      const delegatedActive = Boolean(showDelegated) || Boolean(ops.hasAssignee);
+      if (isWhole(item)) {
+        const hasDue = dueItems(item.line).some((d) =>
+          d.date === ops.due &&
+          ((!d.delegated && d.state === "#") || (delegatedActive && d.delegated))
+        );
+        if (!hasDue) return false;
+      } else {
+        const counts = (nodeState(item) === "#" && !item.delegated) || (delegatedActive && item.delegated === true);
+        if (!counts) return false;
+        const from = item.partFrom ?? 0;
+        const to = item.partTo ?? item.line.length;
+        const hasDue = dueItems(item.line).some((d) =>
+          d.date === ops.due && d.from >= from && d.from < to
+        );
+        if (!hasDue) return false;
+      }
+    }
 
     const tags = ops.tags ?? (ops.tag ? [ops.tag] : []);
     for (const tag of tags) {
@@ -204,6 +229,7 @@ interface WalkCtx<T extends ActionSnapshotItem, U extends T> {
   parsed: ParsedSearchQuery;
   filterActive: boolean;
   collapsed: ReadonlySet<string>;
+  showDelegated?: boolean;
   /** The state part of "passes" (the query part is applied by the walk). */
   accept: (item: T, isRoot: boolean) => boolean;
   /** A group root is listed even when it does not pass (no filter only). */
@@ -219,7 +245,7 @@ function walk<T extends ActionSnapshotItem, U extends T>(
   ctx: WalkCtx<T, U>,
 ): DrawerRow<U>[] {
   // A match on a node's own text/operators, or on one of its ancestors', makes the node's query part pass.
-  const ownMatches = ctx.filterActive ? nodeMatchesQuery(item, ctx.parsed) : true;
+  const ownMatches = ctx.filterActive ? nodeMatchesQuery(item, ctx.parsed, ctx.showDelegated) : true;
   const currentMatch = ancestorMatch || ownMatches;
   const queryOk = !ctx.filterActive || currentMatch;
   const childRows: DrawerRow<U>[] = [];
@@ -252,6 +278,7 @@ export function buildDrawerRows<T extends ActionSnapshotItem>(items: T[], f: Dra
     parsed,
     filterActive,
     collapsed: f.collapsed,
+    showDelegated,
     accept: (item) => passesState(item, { ...f, showDelegated }, parsed.operators),
     rootAlways: false,
     decorate: (item) => item,
@@ -349,6 +376,7 @@ export function buildDueDrawerRows<T extends ActionSnapshotItem>(
     parsed,
     filterActive,
     collapsed: f.collapsed,
+    showDelegated,
     accept: (item, isRoot) => {
       // Resolved descendants are hidden (they only count in `progress`).
       if (isRoot) return rootDated;
@@ -364,7 +392,7 @@ export function buildDueDrawerRows<T extends ActionSnapshotItem>(
   };
 
   const result: { key: DueGroupKey; rows: DrawerRow<T & { dueDate?: string }>[] }[] = [];
-  for (const group of groupByDue(candidates, todayISO)) {
+  for (const group of groupByDue(candidates, todayISO, { days: 7, showDelegated })) {
     const rows: DrawerRow<T & { dueDate?: string }>[] = [];
     for (const c of group.items) {
       rootDated = dueOf(c.root) !== null;
