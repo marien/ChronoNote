@@ -89,9 +89,12 @@
 
   // The menu sizes to its longest item; its measured width keeps it on screen.
   let menuWidth = $state(260);
+  // Measured once drawn (the CSS caps it at the window's height and scrolls, e.g. many spelling suggestions in the
+  // small Peek window, Marien 2026-11-07); the estimate only covers the first frame.
+  let measuredHeight = $state(0);
   let contextPos = $derived.by(() => {
     if (!$editorContextMenu) return { x: 8, y: 8 };
-    const menuHeight = itemCount * 32 + 48;
+    const menuHeight = measuredHeight || itemCount * 32 + 48;
     const x = Math.min($editorContextMenu.x, window.innerWidth - menuWidth - 8);
     const y = Math.min($editorContextMenu.y, window.innerHeight - menuHeight - 8);
     return { x: Math.max(8, x), y: Math.max(8, y) };
@@ -171,6 +174,7 @@
     class="editor-context-menu"
     bind:this={menuEl}
     bind:offsetWidth={menuWidth}
+    bind:offsetHeight={measuredHeight}
     style="top: {contextPos.y}px; left: {contextPos.x}px;"
     role="menu"
     tabindex="-1"

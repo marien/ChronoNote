@@ -19,13 +19,22 @@
   let badges = $state<BadgeInfo[]>([]);
 
   function updateBadges() {
-    const elements = document.querySelectorAll<HTMLElement>("#top-bar [data-keytip]");
+    // In Peek and Zen the top bar folds to height 0 with overflow hidden: its buttons keep their boxes, so check
+    // each one is inside the bar as drawn, else the tips appear on the note's top edge (Marien, 2026-11-07).
+    const bar = document.querySelector<HTMLElement>("#top-bar");
+    const barRect = bar?.getBoundingClientRect();
+    // The body classes count at once, while the bar is still folding away.
+    const folded = document.body.classList.contains("peek-mode") || document.body.classList.contains("zen-mode");
+    const barShown =
+      !folded && !!bar && !!barRect && barRect.height >= 1 && window.getComputedStyle(bar).opacity !== "0";
+    const elements = barShown ? document.querySelectorAll<HTMLElement>("#top-bar [data-keytip]") : [];
     const list: BadgeInfo[] = [];
     for (const el of elements) {
       const key = el.getAttribute("data-keytip");
       if (!key) continue;
       const rect = el.getBoundingClientRect();
       if (rect.width === 0 && rect.height === 0) continue;
+      if (rect.top < barRect!.top - 1 || rect.bottom > barRect!.bottom + 1) continue;
       const style = window.getComputedStyle(el);
       if (style.visibility === "hidden" || style.display === "none") continue;
 
@@ -36,6 +45,8 @@
       });
     }
     badges = list;
+    // Nothing to show: don't stay on, or the next letter key would be swallowed with no tip to explain it.
+    if (list.length === 0 && tipState.active) tipState = { active: false, armed: false };
   }
 
   $effect(() => {

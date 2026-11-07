@@ -11710,3 +11710,21 @@ of relying on there being no meeting.
   brief (the highlight starts on the shown section; one meeting on now still lists it) and were aligned with it.
 
 Confirmed by Marien (2026-11-07) on a dev build.
+
+## 448. Peek: no key tips on the note's top edge, and the line menu stays inside the window
+
+**Status: on main, not released yet.**
+
+Marien, in Peek (2026-11-07): pressing Alt sometimes showed the key tips along the top of the Peek window, and the
+right-click menu on a misspelled word did not fit in the window when it had many suggestions.
+
+- **Key tips:** in Peek and Zen the top bar folds to height 0 with overflow hidden, but its buttons keep their boxes
+  (just above the window), so the tips were drawn half-visible on the note's top edge. `KeyTips.svelte` now draws
+  none while the body has `peek-mode` or `zen-mode` (at once, also while the bar is still folding away) or while the
+  bar is not drawn, and only for buttons inside the bar as drawn; with nothing to show the tips switch off again, so
+  the next letter key reaches the note instead of being swallowed.
+- **Line menu:** its place was worked out from an estimated height (32 px per item) and it had no height limit. It is
+  now at most the window's height minus 16 px and scrolls inside (`03-editor.css`), and its place uses its measured
+  height (`EditorContextMenu.svelte`).
+- Test: `tests/e2e/peek-overlays.spec.ts` (Alt in Peek shows nothing and the next letter is typed; in a 520x240
+  window the menu with suggestions is inside the window, scrolls, and its last item can be reached).

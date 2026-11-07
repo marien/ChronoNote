@@ -985,6 +985,10 @@ body.peek-mode .cm-overview-ruler {
   width: max-content;
   min-width: 260px;
   max-width: min(440px, calc(100vw - 16px));
+  /* Never taller than the window (the Peek window is small): scroll inside instead. */
+  max-height: calc(100vh - 16px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
   background: var(--surface-overlay);
   background: color-mix(in srgb, var(--surface-overlay) 88%, transparent);
   backdrop-filter: blur(20px) saturate(125%);
