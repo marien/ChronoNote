@@ -59,7 +59,7 @@ test.describe("due dates slice 3 independent: overdue count and due view", () =>
       },
     });
 
-    const statOverdue = page.locator("#stat-overdue");
+    const statOverdue = page.locator("#stat-due .stat-due-overdue");
     // Expected count:
     // closedDate: 1 (# closed overdue)
     // activeDate: 1 (# active overdue) + 2 (# multi 1 and # multi 2) = 3
@@ -103,7 +103,7 @@ test.describe("due dates slice 3 independent: overdue count and due view", () =>
       },
     });
 
-    const statOverdue = page.locator("#stat-overdue");
+    const statOverdue = page.locator("#stat-due .stat-due-overdue");
     await expect(statOverdue).toBeVisible();
     await expect(statOverdue.locator(".stat-full")).toHaveText("1 overdue");
 
@@ -140,7 +140,7 @@ test.describe("due dates slice 3 independent: overdue count and due view", () =>
     });
 
     // Zero overdue at start
-    await expect(page.locator("#stat-overdue")).toHaveCount(0);
+    await expect(page.locator("#stat-due .stat-due-overdue")).toHaveCount(0);
 
     // Fast-forward clock past midnight to next morning (2026-09-08T09:00:00)
     await page.clock.setFixedTime(new Date("2026-09-08T09:00:00"));
@@ -149,7 +149,7 @@ test.describe("due dates slice 3 independent: overdue count and due view", () =>
     await page.evaluate(() => window.dispatchEvent(new Event("focus")));
 
     // The due-today action is now overdue!
-    const statOverdue = page.locator("#stat-overdue");
+    const statOverdue = page.locator("#stat-due .stat-due-overdue");
     await expect(statOverdue).toBeVisible();
     await expect(statOverdue.locator(".stat-full")).toHaveText("1 overdue");
   });
@@ -170,7 +170,7 @@ test.describe("due dates slice 3 independent: overdue count and due view", () =>
       },
     });
 
-    const statOverdue = page.locator("#stat-overdue");
+    const statOverdue = page.locator("#stat-due .stat-due-overdue");
     const statFolderName = page.locator(".status-folder-name");
     const statWords = page.locator("#stat-words");
     const statPos = page.locator("#stat-pos");
@@ -221,7 +221,7 @@ test.describe("due dates slice 3 independent: overdue count and due view", () =>
       },
     });
 
-    const statOverdue = page.locator("#stat-overdue");
+    const statOverdue = page.locator("#stat-due .stat-due-overdue");
     await expect(statOverdue).toBeVisible();
     await expect(statOverdue.locator(".stat-full")).toHaveText("3 overdue");
 
@@ -289,7 +289,7 @@ test.describe("due dates slice 3 independent: overdue count and due view", () =>
     await expect(statOverdue.locator(".stat-full")).toHaveText("3 overdue");
   });
 
-  test("due view groups on Monday vs Sunday: 'This week' ends on Sunday and is omitted when today is Sunday", async ({
+  test("due view groups on Monday vs Sunday: one heading per day up to today + 6, then Later (§449; was 'This week' to Sunday)", async ({
     page,
   }) => {
     await page.setViewportSize({ width: 950, height: 720 });
@@ -312,18 +312,19 @@ test.describe("due dates slice 3 independent: overdue count and due view", () =>
       },
     });
 
-    await page.locator("#stat-overdue").click();
+    await page.locator("#stat-due").click();
     await expect(drawer(page)).toBeVisible();
     await expect(dueToggleInput(page)).toBeChecked();
 
     const groupHeadersMonday = drawer(page).locator(".modal-group-header:not(.modal-group-header-sticky)");
     await expect(groupHeadersMonday.nth(0)).toContainText("Overdue");
     await expect(groupHeadersMonday.nth(1)).toContainText("Today");
-    await expect(groupHeadersMonday.nth(2)).toContainText("This week");
-    await expect(groupHeadersMonday.nth(3)).toContainText("Later");
-
-    // This week contains 2 items
-    await expect(groupHeadersMonday.nth(2)).toContainText("2");
+    await expect(groupHeadersMonday.nth(2)).toContainText(/Wed.*9|9.*Wed/);
+    await expect(groupHeadersMonday.nth(3)).toContainText(/Sun.*13|13.*Sun/);
+    // 2026-09-14 is today + 7: Later
+    await expect(groupHeadersMonday.nth(4)).toContainText("Later");
+    await expect(groupHeadersMonday).toHaveCount(5);
+    await expect(drawer(page)).not.toContainText("This week");
 
     // --- Scenario B: Today is Sunday 2026-09-13 (ISO week ends today, no days remaining in this week) ---
     const sunday = "2026-09-13";
@@ -341,15 +342,15 @@ test.describe("due dates slice 3 independent: overdue count and due view", () =>
       },
     });
 
-    await page.locator("#stat-overdue").click();
+    await page.locator("#stat-due").click();
     await expect(drawer(page)).toBeVisible();
 
     const groupHeadersSunday = drawer(page).locator(".modal-group-header:not(.modal-group-header-sticky)");
-    // 'This week' must be omitted! Only Overdue, Today, Later appear
+    // The window rolls past Sunday: 2026-09-14 is tomorrow, not Later
     await expect(groupHeadersSunday).toHaveCount(3);
     await expect(groupHeadersSunday.nth(0)).toContainText("Overdue");
     await expect(groupHeadersSunday.nth(1)).toContainText("Today");
-    await expect(groupHeadersSunday.nth(2)).toContainText("Later");
+    await expect(groupHeadersSunday.nth(2)).toContainText("Tomorrow");
     await expect(drawer(page)).not.toContainText("This week");
   });
 
@@ -377,7 +378,7 @@ test.describe("due dates slice 3 independent: overdue count and due view", () =>
     });
 
     // Open drawer via status bar overdue button
-    await page.locator("#stat-overdue").click();
+    await page.locator("#stat-due").click();
     await expect(drawer(page)).toBeVisible();
     await expect(dueToggleInput(page)).toBeChecked();
 
@@ -449,7 +450,7 @@ test.describe("due dates slice 3 independent: overdue count and due view", () =>
       },
     });
 
-    await page.locator("#stat-overdue").click();
+    await page.locator("#stat-due").click();
     await expect(drawer(page)).toBeVisible();
 
     // 1. Enter jumps to line and closes modal
@@ -463,7 +464,7 @@ test.describe("due dates slice 3 independent: overdue count and due view", () =>
     await expect.poll(() => cursorLine(page)).toBe(2);
 
     // 2. Reopen drawer, Ctrl+Space closes row and it leaves the view, modal stays open
-    await page.locator("#stat-overdue").click();
+    await page.locator("#stat-due").click();
     await expect(drawer(page)).toBeVisible();
 
     await filterInput(page).fill("overdue row A");
@@ -501,7 +502,7 @@ test.describe("due dates slice 3 independent: overdue count and due view", () =>
       },
     });
 
-    await page.locator("#stat-overdue").click();
+    await page.locator("#stat-due").click();
     const pane = page.locator(".actions-pane");
     await expect(pane).toBeVisible();
     await expect(page.locator(".overlay")).toHaveCount(0); // Docked pane has no overlay
@@ -547,7 +548,7 @@ test.describe("due dates slice 3 independent: overdue count and due view", () =>
     });
 
     // Status bar overdue button is absent
-    await expect(page.locator("#stat-overdue")).toHaveCount(0);
+    await expect(page.locator("#stat-due")).toHaveCount(0);
 
     // Open Action Drawer via keyboard shortcut Ctrl+Shift+A
     await page.keyboard.press("ControlOrMeta+Shift+A");

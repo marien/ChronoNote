@@ -66,6 +66,34 @@ describe("parseSearchQuery operator parser (Decision 7 / Area 8.2)", () => {
     expect(res.operators.before).toBe("2026-09-20");
     expect(res.chips).toHaveLength(2);
   });
+
+  it("parses 'due:' operator with ISO date or relative word", () => {
+    // ISO date
+    const res1 = parseSearchQuery("due:2026-10-25 invoice");
+    expect(res1.term).toBe("invoice");
+    expect(res1.operators.due).toBe("2026-10-25");
+    expect(res1.chips).toHaveLength(1);
+    expect(res1.chips[0]).toMatchObject({
+      id: "op-due-2026-10-25",
+      raw: "due:2026-10-25",
+      label: "due:2026-10-25",
+      kind: "due",
+      value: "2026-10-25",
+    });
+
+    // Relative word with search context
+    const ctx = { todayISO: "2026-10-24", weekStartsOn: "monday" as const, locale: "en" };
+    const res2 = parseSearchQuery("due:tomorrow deploy", ctx);
+    expect(res2.term).toBe("deploy");
+    expect(res2.operators.due).toBe("2026-10-25");
+    expect(res2.chips[0].label).toBe("due:2026-10-25");
+
+    // Unrecognized due word remains in term
+    const res3 = parseSearchQuery("due:notaword deploy", ctx);
+    expect(res3.term).toBe("due:notaword deploy");
+    expect(res3.operators.due).toBeUndefined();
+    expect(res3.chips).toHaveLength(0);
+  });
 });
 
 describe("runSearch 3-line context extraction and operator filtering", () => {
@@ -158,6 +186,23 @@ describe("runSearch 3-line context extraction and operator filtering", () => {
     expect(results.every((r) => r.tabFilename === "2026-09-15.txt")).toBe(true);
   });
 
+  it("filters with 'due:' operator", () => {
+    tabs.set([
+      {
+        id: "tab-due",
+        filename: "due.txt",
+        content: "# task due on date by:2026-09-30\n# task due other by:2026-10-05\nplain line",
+        isScratchpad: false,
+        isDirty: false,
+      } as NoteTab,
+    ]);
+    runSearch("due:2026-09-30", "open");
+    let results: any[] = [];
+    searchResultsStore.subscribe((r) => (results = r))();
+    expect(results).toHaveLength(1);
+    expect(results[0].line).toBe("# task due on date by:2026-09-30");
+  });
+
   it("handles repeated identical operators without crashing or producing duplicate chips", () => {
     const parsed = parseSearchQuery("is:open is:open tag:ui tag:ui");
     expect(parsed.chips).toHaveLength(2);
@@ -223,5 +268,11 @@ describe("regex-safe operators and chip removal", () => {
     const q = "tag:ui tag:api foo";
     const chip = parseSearchQuery(q).chips.find((c) => c.value === "ui")!;
     expect(removeChipFromQuery(q, chip)).toBe("tag:api foo");
+  });
+
+  it("removing a due chip drops the due operator", () => {
+    const q = "due:2026-10-25 deploy";
+    const chip = parseSearchQuery(q).chips.find((c) => c.kind === "due")!;
+    expect(removeChipFromQuery(q, chip)).toBe("deploy");
   });
 });

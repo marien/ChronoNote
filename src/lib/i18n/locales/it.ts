@@ -500,7 +500,10 @@ export const it = {
   "statusBar.labelDeferred": ({ count }) => `${count} rimandat${count === 1 ? "a" : "e"}`,
   "statusBar.labelDone": ({ count }) => `${count} completat${count === 1 ? "a" : "e"}`,
   "statusBar.labelOverdue": ({ count }) => `${count} in ritardo`,
-  "statusBar.overdueTitle": () => "Azioni aperte con scadenza superata, in tutte le note. Fai clic per vederle",
+  "statusBar.labelUpcoming": ({ count }) => `${count} in arrivo`,
+  "statusBar.dueTitle": () =>
+    "Azioni aperte in scadenza nei prossimi 7 giorni e scadute, in tutte le note. Fai clic per vederle",
+  "statusBar.dueMore": ({ count }) => `+${count} altri`,
   "statusBar.jumpNextActionTooltip": ({ combo }) => `Passa all'azione aperta successiva (${combo})`,
   "statusBar.allActionsTooltip": () => "Apri pannello azioni (tutte le azioni)",
   "statusBar.whatsNew": () => "Novità",
@@ -586,7 +589,7 @@ export const it = {
   "searchModal.removeFilterAriaLabel": ({ label }) => `Rimuovi filtro ${label}`,
   "searchModal.noMatches": ({ query }) => `Nessuna corrispondenza per "${query}".`,
   "searchModal.emptySubtitle": () =>
-    "Controlla l'ortografia o usa operatori di ricerca come is:open o #tag.",
+    "Controlla l'ortografia o usa operatori di ricerca come is:open, due: o #tag.",
   "searchModal.footer.open": () => "Apri",
   "searchModal.footer.select": () => "Seleziona",
 

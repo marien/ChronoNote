@@ -4,12 +4,17 @@ import { allNotesCache, currentDateISO, tabs } from "./stores";
 import * as tokens from "./tokens";
 import {
   _resetMemoForTest,
+  compareDueSoonItems,
   dueGroupForDate,
+  dueSummary,
+  dueSummaryMemo,
+  extractActionText,
   getSundayOfIsoWeek,
   groupByDue,
   itemDueDate,
   overdueCount,
   overdueCountMemo,
+  type DueSoonItem,
 } from "./dueOverview";
 import type { NoteTab } from "./types";
 
@@ -262,5 +267,104 @@ describe("groupByDue", () => {
     const withDel = groupByDue(items, today, { showDelegated: true });
     expect(withDel.length).toBe(1);
     expect(withDel[0].key).toBe("overdue");
+  });
+
+  it("groups by day:YYYY-MM-DD when days: 7 option is provided", () => {
+    const today = "2026-10-22"; // Thursday
+    const items = [
+      { filename: "2026-10-20.txt", lineIdx: 0, line: "# overdue by:2026-10-20" },
+      { filename: "2026-10-22.txt", lineIdx: 0, line: "# today by:2026-10-22" },
+      { filename: "2026-10-22.txt", lineIdx: 1, line: "# tomorrow by:2026-10-23" },
+      { filename: "2026-10-22.txt", lineIdx: 2, line: "# day 6 by:2026-10-28" },
+      { filename: "2026-10-22.txt", lineIdx: 3, line: "# later by:2026-10-29" },
+    ];
+
+    const groups = groupByDue(items, today, { days: 7 });
+    expect(groups.map((g) => g.key)).toEqual([
+      "overdue",
+      "today",
+      "day:2026-10-23",
+      "day:2026-10-28",
+      "later",
+    ]);
+  });
+});
+
+describe("extractActionText", () => {
+  it("extracts plain action text stripping symbol and by: token", () => {
+    expect(extractActionText("# Buy milk by:2026-10-25")).toBe("Buy milk");
+    expect(extractActionText("#   Trim trees  by:2026-10-25  ")).toBe("Trim trees");
+    expect(extractActionText("=> @dana send slides by:2026-10-25")).toBe("@dana send slides");
+  });
+});
+
+describe("compareDueSoonItems", () => {
+  const itemA: DueSoonItem = {
+    date: "2026-10-20",
+    lineIdx: 2,
+    text: "Task A",
+    section: null,
+    filename: "2026-10-15.txt",
+  };
+  const itemB: DueSoonItem = {
+    date: "2026-10-20",
+    lineIdx: 1,
+    text: "Task B",
+    section: null,
+    filename: "2026-10-18.txt",
+  };
+  const itemC: DueSoonItem = {
+    date: "2026-10-22",
+    lineIdx: 0,
+    text: "Task C",
+    section: null,
+    filename: "2026-10-10.txt",
+  };
+
+  it("sorts by dueDate ascending first", () => {
+    expect(compareDueSoonItems(itemA, itemC)).toBeLessThan(0);
+    expect(compareDueSoonItems(itemC, itemA)).toBeGreaterThan(0);
+  });
+
+  it("tie-breaks with noteDate descending (more recent note first)", () => {
+    expect(compareDueSoonItems(itemB, itemA)).toBeLessThan(0);
+    expect(compareDueSoonItems(itemA, itemB)).toBeGreaterThan(0);
+  });
+});
+
+describe("dueSummary store", () => {
+  beforeEach(() => {
+    _resetMemoForTest();
+    allNotesCache.set({});
+    tabs.set([]);
+    currentDateISO.set("2026-10-24");
+  });
+
+  it("computes counts and lists of overdue and rolling 7-day upcoming items", () => {
+    allNotesCache.set({
+      "2026-10-20.txt": "# overdue 1 by:2026-10-20\n# overdue 2 by:2026-10-21",
+      "2026-10-24.txt": "# due today by:2026-10-24\n# due tomorrow by:2026-10-25",
+      "2026-10-30.txt": "# due day 6 by:2026-10-30\n# due day 7 by:2026-10-31",
+    });
+
+    const summary = get(dueSummary);
+    expect(summary.overdue).toBe(2);
+    expect(summary.upcoming).toBe(3); // today (24), tomorrow (25), day 6 (30)
+    expect(summary.dueToday > 0).toBe(true);
+
+    const overdueTexts = summary.items.filter((i) => i.date < "2026-10-24").map((i) => i.text);
+    const upcomingTexts = summary.items.filter((i) => i.date >= "2026-10-24").map((i) => i.text);
+    expect(overdueTexts).toEqual(["overdue 1", "overdue 2"]);
+    expect(upcomingTexts).toEqual(["due today", "due tomorrow", "due day 6"]);
+  });
+
+  it("hasToday is false when no items due today", () => {
+    allNotesCache.set({
+      "2026-10-25.txt": "# due tomorrow by:2026-10-25",
+    });
+
+    const summary = get(dueSummary);
+    expect(summary.upcoming).toBe(1);
+    expect(summary.dueToday > 0).toBe(false);
   });
 });

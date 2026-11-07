@@ -14,14 +14,21 @@
 import { get } from "svelte/store";
 import { allNotesCache, modal, searchResultsStore, tabs } from "./stores";
 import { compareTabsByRecency, sortFilenamesByRecency } from "./tabSort";
-import { innermostActionSymbol } from "./tokens";
+import { dueItems, innermostActionSymbol } from "./tokens";
+import { isValidCalendarDate, parseDueWord } from "./date";
 import type { SearchResultItem } from "./types";
+
+export interface SearchContext {
+  todayISO: string;
+  locale: string;
+  extra?: { today: string[]; tomorrow: string[] };
+}
 
 export interface SearchFilterChip {
   id: string;
   raw: string;
   label: string;
-  kind: "is" | "tag" | "has" | "since" | "before";
+  kind: "is" | "tag" | "has" | "since" | "before" | "due";
   value: string;
   startIndex?: number;
   endIndex?: number;
@@ -37,11 +44,12 @@ export interface ParsedSearchQuery {
     hasAssignee?: string;
     since?: string;
     before?: string;
+    due?: string;
   };
   chips: SearchFilterChip[];
 }
 
-export function parseSearchQuery(query: string): ParsedSearchQuery {
+export function parseSearchQuery(query: string, ctx?: SearchContext): ParsedSearchQuery {
   const chips: SearchFilterChip[] = [];
   const operators: ParsedSearchQuery["operators"] = {};
   const remainingTokens: string[] = [];
@@ -185,6 +193,36 @@ export function parseSearchQuery(query: string): ParsedSearchQuery {
       } else {
         remainingTokens.push(token);
       }
+    } else if (lower.startsWith("due:")) {
+      const val = token.slice(4).trim();
+      let resolved: string | null = null;
+      const isoMatch = /^(\d{4})-(\d{2})-(\d{2})$/.exec(val);
+      if (isoMatch && isValidCalendarDate(Number(isoMatch[1]), Number(isoMatch[2]), Number(isoMatch[3]))) {
+        resolved = val;
+      }
+      if (!resolved && ctx) {
+        resolved = parseDueWord(val, ctx.todayISO, ctx.locale, ctx.extra);
+      }
+      if (resolved) {
+        operators.due = resolved;
+        const existingIdx = chips.findIndex((c) => c.kind === "due");
+        const chip: SearchFilterChip = {
+          id: `op-due-${resolved}`,
+          raw: token,
+          label: `due:${resolved}`,
+          kind: "due",
+          value: resolved,
+          startIndex,
+          endIndex,
+        };
+        if (existingIdx !== -1) {
+          chips[existingIdx] = chip;
+        } else {
+          chips.push(chip);
+        }
+      } else {
+        remainingTokens.push(token);
+      }
     } else {
       remainingTokens.push(token);
     }
@@ -205,11 +243,13 @@ export function escapeRegExp(s: string): string {
 
 /** Removes a filter chip's operator from the raw query. Every token that parses to the same
  * operator is removed: a repeated or superseded operator would otherwise leave the chip behind. */
-export function removeChipFromQuery(query: string, chip: SearchFilterChip): string {
+export function removeChipFromQuery(query: string, chip: SearchFilterChip, ctx?: SearchContext): string {
   const kept: string[] = [];
   for (const token of query.split(/\s+/).filter(Boolean)) {
-    const c = parseSearchQuery(token).chips[0];
-    const same = c && c.kind === chip.kind && (chip.kind !== "tag" || c.value === chip.value);
+    const c = parseSearchQuery(token, ctx).chips[0];
+    const same =
+      (c && c.kind === chip.kind && (chip.kind !== "tag" || c.value === chip.value)) ||
+      (chip.kind === "due" && token.toLowerCase().startsWith("due:"));
     if (!same) kept.push(token);
   }
   return kept.join(" ");
@@ -220,14 +260,14 @@ export function openCrossTabSearch() {
   modal.set("search");
 }
 
-export function runSearch(query: string, scope: "open" | "all" = "open") {
+export function runSearch(query: string, scope: "open" | "all" = "open", ctx?: SearchContext) {
   const q = query.trim();
   if (!q) {
     searchResultsStore.set([]);
     return;
   }
 
-  const parsed = parseSearchQuery(query);
+  const parsed = parseSearchQuery(query, ctx);
   if (parsed.chips.length === 0 && !parsed.term) {
     searchResultsStore.set([]);
     return;
@@ -253,6 +293,10 @@ export function runSearch(query: string, scope: "open" | "all" = "open") {
     }
     if (operators.isOpen && innermostActionSymbol(line) !== "#") return false;
     if (operators.isDone && innermostActionSymbol(line) !== "v") return false;
+    if (operators.due) {
+      const hasDue = dueItems(line).some((d) => d.date === operators.due && !d.delegated && d.state === "#");
+      if (!hasDue) return false;
+    }
     for (const target of tagsTarget) {
       if (!line.toLowerCase().includes(target)) return false;
     }

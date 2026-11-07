@@ -29,11 +29,12 @@
   import { closeOnOutsideClick } from "../../actions/closeOnOutsideClick";
   import { glyphForSymbol, parseGlyphLine } from "../../editor/glyphLine";
   import { groupHeaderLabel } from "../../ui/listFormat";
-  import { noteDateLabel, noteISODate } from "../../noteDateLabel";
+  import { friendlyDayLabel, noteDateLabel, noteISODate } from "../../noteDateLabel";
+  import { dueWordExtra } from "../../date";
   import Icon from "../../icons/Icon.svelte";
   import Segmented from "../Segmented.svelte";
   import EmptyState from "../EmptyState.svelte";
-  import { t } from "../../i18n";
+  import { locale, t } from "../../i18n";
   import type { ActionSnapshotItem } from "../../types";
   import {
     MODAL_HEADER_ROW_HEIGHT,
@@ -179,13 +180,22 @@
     }
   }
 
-  const parsed = $derived(parseSearchQuery(filter));
+  const searchCtx = $derived({
+    todayISO: $currentDateISO,
+    locale: $locale,
+    extra: dueWordExtra(
+      $t("dueDate.words.today", undefined) ?? "",
+      $t("dueDate.words.tomorrow", undefined) ?? "",
+    ),
+  });
+
+  const parsed = $derived(parseSearchQuery(filter, searchCtx));
   const chips = $derived(parsed.chips);
   const hasIsFilter = $derived(Boolean(parsed.operators.isOpen || parsed.operators.isDone));
   const showDelegated = $derived(filter.includes("@") || Boolean(parsed.operators.hasAssignee));
 
   function removeChip(chip: SearchFilterChip) {
-    filter = removeChipFromQuery(filter, chip);
+    filter = removeChipFromQuery(filter, chip, searchCtx);
     inputEl?.focus();
   }
 
@@ -227,7 +237,7 @@
     const textFilter = { showDelegated, text: parsed.term, collapsed: $actionDrawerCollapsed, parsed };
     if ($actionDrawerDueView) {
       const dueGroups = buildDueDrawerRows(liveSnapshot, $currentDateISO, textFilter);
-      const labels: Record<DueGroupKey, string> = {
+      const labels: Record<string, string> = {
         overdue: $t("actionDrawer.dueView.overdue"),
         today: $t("actionDrawer.dueView.today"),
         thisWeek: $t("actionDrawer.dueView.thisWeek"),
@@ -245,7 +255,9 @@
         }
         groupsOut.push({
           key: dg.key,
-          label: labels[dg.key],
+          label: dg.key.startsWith("day:")
+            ? $friendlyDayLabel(dg.key.slice(4))
+            : (labels[dg.key] ?? dg.key),
           rows: groupRows,
         });
       }

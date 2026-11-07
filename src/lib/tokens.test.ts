@@ -35,6 +35,7 @@ import {
   listSections,
   dueItems,
   countOverdue,
+  countUpcoming,
   dueStatus,
   rewriteDueWords,
   withDueDate,
@@ -1219,6 +1220,48 @@ describe("countOverdue", () => {
     expect(countOverdue("# future by:2026-10-25", "2026-10-22")).toBe(0);
     expect(countOverdue("# today by:2026-10-22", "2026-10-22")).toBe(0);
     expect(countOverdue("", "2026-10-22")).toBe(0);
+  });
+});
+
+describe("countUpcoming", () => {
+  it("counts open own actions due within rolling window (today through today + days - 1)", () => {
+    const today = "2026-10-22"; // Thursday. 7-day window is 2026-10-22 through 2026-10-28 inclusive
+    const text = [
+      "# overdue by:2026-10-21", // past -> not upcoming
+      "# due today by:2026-10-22", // COUNTED (+1)
+      "# due tomorrow by:2026-10-23", // COUNTED (+1)
+      "# due day 6 by:2026-10-28", // COUNTED (+1, 22 + 6 = 28)
+      "# due day 7 by:2026-10-29", // day 7 (beyond rolling 7) -> not counted
+      "# chained 1 by:2026-10-24 => # chained 2 by:2026-10-25", // COUNTED (+2)
+      "v done today by:2026-10-22", // done -> not counted
+      "> deferred today by:2026-10-22", // deferred -> not counted
+      "x won't do today by:2026-10-22", // won't do -> not counted
+      "=> @dana delegated today by:2026-10-22", // delegated -> not counted
+      "# open with word by:fri", // dueWord -> not counted
+      "o agenda topic by:2026-10-22", // topic -> not counted
+      "plain prose by:2026-10-22", // prose -> not counted
+    ].join("\n");
+
+    expect(countUpcoming(text, today)).toBe(5);
+  });
+
+  it("respects custom days parameter", () => {
+    const today = "2026-10-22";
+    const text = [
+      "# due today by:2026-10-22",
+      "# due tomorrow by:2026-10-23",
+      "# due in 3 days by:2026-10-25",
+    ].join("\n");
+
+    expect(countUpcoming(text, today, 1)).toBe(1); // only today
+    expect(countUpcoming(text, today, 2)).toBe(2); // today + tomorrow
+    expect(countUpcoming(text, today, 7)).toBe(3); // all three
+  });
+
+  it("returns 0 when text has no upcoming open own actions", () => {
+    expect(countUpcoming("# past by:2026-10-20", "2026-10-22")).toBe(0);
+    expect(countUpcoming("# distant future by:2026-11-20", "2026-10-22")).toBe(0);
+    expect(countUpcoming("", "2026-10-22")).toBe(0);
   });
 });
 

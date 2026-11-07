@@ -11728,3 +11728,30 @@ right-click menu on a misspelled word did not fit in the window when it had many
   height (`EditorContextMenu.svelte`).
 - Test: `tests/e2e/peek-overlays.spec.ts` (Alt in Peek shows nothing and the next letter is typed; in a 520x240
   window the menu with suggestions is inside the window, scrolls, and its last item can be reached).
+
+## 449. What is due soon: "N upcoming" in the status bar, `due:` in the filters, a heading per day
+
+**Status: on main, not released yet.**
+
+Marien (2026-11-07): a quiet way to see how many actions, and which, are due on a given day. The status bar showed
+only what was already late; for work he opens ChronoNote daily, for his volunteer work not, so a cue that only shows
+on the day itself can be missed, and the status bar is crowded already. Options discussed: a count for the day of the
+open tab (left out: it repeats the flags in the note and fails on days he doesn't look), dots in the date picker (left
+out: due actions are written on other days, so the dot leads to the wrong note), a "Due on this day" command (left
+out by Marien). His choices: one combined item, a rolling 7 days, own actions only, plus `due:` and day headings.
+
+- **Status bar:** the overdue item became one due item, `2 overdue · 3 upcoming` (`#stat-due`, `dueSummary` in
+  `dueOverview.ts`, one pass per text and memoised per text like the overdue count; `countUpcoming` in
+  `tokens.ts`). Upcoming = open own due dates from today to today + 6; amber when one is due today. Its tooltip
+  lists the items (at most 8, then "+N more"), so which ones shows without opening anything; a click opens the due
+  view as before. Missing a few days loses nothing: what passes its date moves to the overdue part.
+- **`due:<day>`** in the Actions filter and Search, with the day words `by:` takes (`parseSearchQuery(query, ctx)`
+  resolves them from today; without ctx only an ISO date).
+- **Due view:** "This week" (to Sunday) became one heading per day up to today + 6 (`groupByDue(..., { days: 7 })`;
+  without the option the old four groups stay). Day headings and the tooltip always use the friendly form
+  (`friendlyDayLabel`): with the tab setting on ISO dates the weekday, the point of a day heading, was lost.
+- Built by a Gemini run from Claude's brief; independent tests from a second brief by another run
+  (`dueUpcoming.independent.test.ts`, `tests/e2e/due-upcoming.independent.spec.ts`). Claude's review: counting in
+  three passes per keystroke made one, ISO day headings, the guide sentence; two existing specs that expected "This
+  week" updated to the new headings; three mistakes in the independent tests fixed (reading the tooltip before the
+  closed notes are read, a line assumed outside a section, a locator matching five headings).

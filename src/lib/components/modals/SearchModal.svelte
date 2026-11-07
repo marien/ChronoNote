@@ -13,7 +13,8 @@
   import EmptyState from "../EmptyState.svelte";
   import type { SearchResultItem } from "../../types";
   import { parseSearchQuery, removeChipFromQuery, type SearchFilterChip } from "../../search";
-  import { t } from "../../i18n";
+  import { dueWordExtra } from "../../date";
+  import { locale, t } from "../../i18n";
   import {
     MODAL_HEADER_ROW_HEIGHT,
     SEARCH_ITEM_ROW_HEIGHT,
@@ -25,7 +26,7 @@
     wrapIndex,
     type PlacedRow,
   } from "./virtualList";
-  import { isMobile } from "../../stores";
+  import { currentDateISO, isMobile } from "../../stores";
   import { formatCombo, shortcutById } from "../../shortcuts";
 
   const allKeysShortcut = formatCombo(shortcutById("openShortcutsHelp").combos[0]);
@@ -36,12 +37,21 @@
   let inputEl: HTMLInputElement;
   let searching = $state(false);
 
-  const parsed = $derived(parseSearchQuery(query));
+  const searchCtx = $derived({
+    todayISO: $currentDateISO,
+    locale: $locale,
+    extra: dueWordExtra(
+      $t("dueDate.words.today", undefined) ?? "",
+      $t("dueDate.words.tomorrow", undefined) ?? "",
+    ),
+  });
+
+  const parsed = $derived(parseSearchQuery(query, searchCtx));
   const chips = $derived(parsed.chips);
   const queryTerm = $derived(parsed.term);
 
   function removeChip(chip: SearchFilterChip) {
-    query = removeChipFromQuery(query, chip);
+    query = removeChipFromQuery(query, chip, searchCtx);
     inputEl?.focus();
   }
 
@@ -83,6 +93,7 @@
   $effect(() => {
     const q = query;
     const sc = scope;
+    const ctx = searchCtx;
     let searchDebounceTimer: ReturnType<typeof setTimeout> | null = null;
     if (sc === "all" && q.trim()) {
       searching = true;
@@ -92,13 +103,13 @@
         // the thread — otherwise setting `searching = true` and running
         // the scan in the same tick means the spinner never gets drawn.
         requestAnimationFrame(() => {
-          controller.runSearch(q, sc);
+          controller.runSearch(q, sc, ctx);
           searching = false;
         });
       }, 200);
     } else {
       searching = false;
-      controller.runSearch(q, sc);
+      controller.runSearch(q, sc, ctx);
     }
     return () => {
       if (searchDebounceTimer) clearTimeout(searchDebounceTimer);

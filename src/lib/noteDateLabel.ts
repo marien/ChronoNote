@@ -73,3 +73,15 @@ export const noteDateLabel = derived(
     };
   },
 );
+
+/** The friendly label whatever the tab setting: for due days (§449), where the weekday is the point
+ * (Today / Tomorrow / Wed 9 Sep). */
+export const friendlyDayLabel = derived([currentDateISO, locale, t], ([$today, $loc, $t]) => {
+  const dayFormat = new Intl.DateTimeFormat($loc, { weekday: "short", day: "numeric", month: "short" });
+  const words: TabLabelWords = {
+    today: $t("phoneNav.today"),
+    yesterday: $t("phoneNav.yesterday"),
+    tomorrow: $t("phoneNav.tomorrow"),
+  };
+  return (isoDate: string): string => formatNoteDate(isoDate, "friendly", $today, words, (d) => dayFormat.format(d));
+});

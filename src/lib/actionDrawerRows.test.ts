@@ -5,6 +5,7 @@ import {
   buildDueDrawerRows,
   collapseKey,
   drawerTreeGuides,
+  hasActiveFilter,
   nodeMatchesQuery,
   nodeState,
   nodeText,
@@ -218,12 +219,12 @@ describe("buildDueDrawerRows", () => {
 
   it("places a group by the earliest own due date among its nodes, parent later than child", () => {
     const groups = buildDueDrawerRows(itemsOf("n.txt", note), TODAY, { showDelegated: false, text: "", collapsed: new Set() });
-    expect(groups.map((g) => g.key)).toEqual(["overdue", "today", "later"]);
-    const [overdue, today, later] = groups;
+    expect(groups.map((g) => g.key)).toEqual(["overdue", "today", "day:2026-10-30"]);
+    const [overdue, today, kidGroup] = groups;
     expect(plain(overdue.rows)).toEqual(["Parent", "child one"]);
     expect(overdue.rows.map((r) => r.item.dueDate)).toEqual(["2026-12-01", "2026-10-20"]);
     expect(plain(today.rows)).toEqual(["Solo"]);
-    expect(plain(later.rows)).toEqual(["Other", "kid"]);
+    expect(plain(kidGroup.rows)).toEqual(["Other", "kid"]);
   });
 
   it("hides resolved descendants but counts them in the progress", () => {
@@ -234,10 +235,10 @@ describe("buildDueDrawerRows", () => {
 
   it("a dated child brings an undated, resolved parent as context", () => {
     const groups = buildDueDrawerRows(itemsOf("n.txt", note), TODAY, { showDelegated: false, text: "", collapsed: new Set() });
-    const later = groups.find((g) => g.key === "later")!;
-    expect(later.rows.map((r) => r.contextOnly)).toEqual([true, false]);
-    expect(later.rows[0].item.dueDate).toBeUndefined();
-    expect(later.rows[1].item.dueDate).toBe("2026-10-30");
+    const kidGroup = groups.find((g) => g.key === "day:2026-10-30")!;
+    expect(kidGroup.rows.map((r) => r.contextOnly)).toEqual([true, false]);
+    expect(kidGroup.rows[0].item.dueDate).toBeUndefined();
+    expect(kidGroup.rows[1].item.dueDate).toBe("2026-10-30");
   });
 
   it("does not list a group without any own due date", () => {
@@ -262,7 +263,7 @@ describe("buildDueDrawerRows", () => {
   it("a step's own date puts the group in its bucket", () => {
     const items = itemsOf("n.txt", "# Call bank => # get quote by:2026-10-25 => v send form by:2026-10-01");
     const groups = buildDueDrawerRows(items, TODAY, { showDelegated: false, text: "", collapsed: new Set() });
-    expect(groups.map((g) => g.key)).toEqual(["thisWeek"]);
+    expect(groups.map((g) => g.key)).toEqual(["day:2026-10-25"]);
     expect(plain(groups[0].rows)).toEqual(["Call bank", "get quote"]);
     expect(groups[0].rows[0].contextOnly).toBe(true);
   });
@@ -407,6 +408,44 @@ describe("nodeMatchesQuery", () => {
     expect(nodeMatchesQuery(items[0], parseSearchQuery("is:done"))).toBe(false);
     expect(nodeMatchesQuery(items[2], parseSearchQuery("is:done"))).toBe(true);
     expect(nodeMatchesQuery(items[2], parseSearchQuery("is:open"))).toBe(false);
+  });
+
+  it("matches due:YYYY-MM-DD on open own or visible delegated action", () => {
+    const duePlan = "# Plan by:2026-10-25 => # step one by:2026-10-26 => @dana step two by:2026-10-25 => v step three by:2026-10-25";
+    const dueItems = itemsOf("2026-10-24.txt", duePlan);
+
+    // item 0: open own with by:2026-10-25
+    expect(nodeMatchesQuery(dueItems[0], parseSearchQuery("due:2026-10-25"))).toBe(true);
+    expect(nodeMatchesQuery(dueItems[0], parseSearchQuery("due:2026-10-26"))).toBe(false);
+
+    // item 1: open own with by:2026-10-26
+    expect(nodeMatchesQuery(dueItems[1], parseSearchQuery("due:2026-10-26"))).toBe(true);
+    expect(nodeMatchesQuery(dueItems[1], parseSearchQuery("due:2026-10-25"))).toBe(false);
+
+    // item 2: delegated with by:2026-10-25
+    // without showDelegated or has:@dana, delegated item does NOT match
+    expect(nodeMatchesQuery(dueItems[2], parseSearchQuery("due:2026-10-25"), false)).toBe(false);
+    // with showDelegated: true, it matches
+    expect(nodeMatchesQuery(dueItems[2], parseSearchQuery("due:2026-10-25"), true)).toBe(true);
+    // with has:@dana in query, it matches even if showDelegated is false
+    expect(nodeMatchesQuery(dueItems[2], parseSearchQuery("due:2026-10-25 has:@dana"), false)).toBe(true);
+
+    // item 3: resolved ('v') with by:2026-10-25 does NOT match
+    expect(nodeMatchesQuery(dueItems[3], parseSearchQuery("due:2026-10-25"))).toBe(false);
+  });
+});
+
+describe("hasActiveFilter", () => {
+  it("recognises plain term and any active operator including due:", () => {
+    expect(hasActiveFilter(parseSearchQuery(""))).toBe(false);
+    expect(hasActiveFilter(parseSearchQuery("hello"))).toBe(true);
+    expect(hasActiveFilter(parseSearchQuery("is:open"))).toBe(true);
+    expect(hasActiveFilter(parseSearchQuery("is:done"))).toBe(true);
+    expect(hasActiveFilter(parseSearchQuery("tag:work"))).toBe(true);
+    expect(hasActiveFilter(parseSearchQuery("has:@alice"))).toBe(true);
+    expect(hasActiveFilter(parseSearchQuery("since:2026-10-01"))).toBe(true);
+    expect(hasActiveFilter(parseSearchQuery("before:2026-10-31"))).toBe(true);
+    expect(hasActiveFilter(parseSearchQuery("due:2026-10-25"))).toBe(true);
   });
 });
 

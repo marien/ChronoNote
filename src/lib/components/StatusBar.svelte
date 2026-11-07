@@ -11,14 +11,17 @@
     statusSelection,
     statusWordCount,
     syncConflicts,
+    currentDateISO,
     toastAction,
     toastMessage,
     updateStatus,
   } from "../controller";
   import { actionDrawerShowOnlyOpen, editorApi } from "../stores";
   import * as controller from "../controller";
-  import { overdueCount } from "../dueOverview";
+  import { dueSummary } from "../dueOverview";
   import { openActionDrawerDueView } from "../actions";
+  import { friendlyDayLabel } from "../noteDateLabel";
+  import { parseISODateLocal } from "../date";
   import Icon from "../icons/Icon.svelte";
   import CloudStatusButton from "./CloudStatusButton.svelte";
   import { formatCombo, formatShortcut, shortcutById } from "../shortcuts";
@@ -47,6 +50,38 @@
   const hasCentreMessage = $derived(Boolean(
     $toastMessage && !$isMobile && $toastMessage.length <= LONG_TOAST_CHARS,
   ));
+
+  const dueAriaLabel = $derived.by(() => {
+    const parts: string[] = [];
+    if ($dueSummary.overdue > 0) {
+      parts.push($t("statusBar.labelOverdue", { count: $dueSummary.overdue }));
+    }
+    if ($dueSummary.upcoming > 0) {
+      parts.push($t("statusBar.labelUpcoming", { count: $dueSummary.upcoming }));
+    }
+    return parts.join(", ");
+  });
+
+  const dueTooltipText = $derived.by(() => {
+    const lines = [$t("statusBar.dueTitle")];
+    const itemsToShow = $dueSummary.items.slice(0, 8);
+    for (const item of itemsToShow) {
+      const day = $friendlyDayLabel(item.date);
+      let line = `${day} · ${item.text}`;
+      if (item.section) {
+        line += ` (${item.section})`;
+      }
+      if (item.date < $currentDateISO) {
+        const days = Math.max(1, Math.round((parseISODateLocal($currentDateISO).getTime() - parseISODateLocal(item.date).getTime()) / 86400000));
+        line += ` · ${$t("dueDate.pill.daysLate", { count: days })}`;
+      }
+      lines.push(line);
+    }
+    if ($dueSummary.items.length > 8) {
+      lines.push($t("statusBar.dueMore", { count: $dueSummary.items.length - 8 }));
+    }
+    return lines.join("\n");
+  });
 </script>
 
 <div id="status-bar" class:has-centre-message={hasCentreMessage}>
@@ -83,16 +118,26 @@
     >
       <span class="stat-line" aria-hidden="true"><span class="stat-glyph glyph-done" aria-hidden="true">☑</span><span class="stat-full" aria-hidden="true">{$t("statusBar.labelDone", { count: $statusCounts.closed })}</span><span class="stat-compact" aria-hidden="true">{$statusCounts.closed}</span></span>
     </button>
-    {#if $overdueCount > 0}
+    {#if $dueSummary.overdue > 0 || $dueSummary.upcoming > 0}
       <button
         type="button"
-        id="stat-overdue"
-        class="stat-count stat-overdue"
-        aria-label={$t("statusBar.labelOverdue", { count: $overdueCount })}
-        title={$t("statusBar.overdueTitle")}
+        id="stat-due"
+        class="stat-count"
+        aria-label={dueAriaLabel}
+        title={dueTooltipText}
         onclick={openActionDrawerDueView}
       >
-        <span class="stat-line" aria-hidden="true"><span class="stat-glyph glyph-open" aria-hidden="true">!</span><span class="stat-full" aria-hidden="true">{$t("statusBar.labelOverdue", { count: $overdueCount })}</span><span class="stat-compact" aria-hidden="true">{$overdueCount}</span></span>
+        <span class="stat-line" aria-hidden="true">
+          {#if $dueSummary.overdue > 0}
+            <span class="stat-due-overdue"><span class="stat-glyph glyph-open" aria-hidden="true">!</span><span class="stat-full" aria-hidden="true">{$t("statusBar.labelOverdue", { count: $dueSummary.overdue })}</span><span class="stat-compact" aria-hidden="true">{$dueSummary.overdue}</span></span>
+          {/if}
+          {#if $dueSummary.overdue > 0 && $dueSummary.upcoming > 0}
+            <span aria-hidden="true"> · </span>
+          {/if}
+          {#if $dueSummary.upcoming > 0}
+            <span class="stat-due-upcoming" class:has-today={$dueSummary.dueToday > 0}><span class="stat-full" aria-hidden="true">{$t("statusBar.labelUpcoming", { count: $dueSummary.upcoming })}</span><span class="stat-compact" aria-hidden="true">{$dueSummary.upcoming}</span></span>
+          {/if}
+        </span>
       </button>
     {/if}
   </div>
@@ -252,13 +297,21 @@
   color: var(--text);
 }
 
-.stat-count.stat-overdue {
+.stat-due-overdue {
   color: var(--glyph-open-color);
 }
 
-:global([data-color-mode="grayscale"]) .stat-count.stat-overdue {
+:global([data-color-mode="grayscale"]) .stat-due-overdue {
   color: var(--text);
   font-weight: bold;
+}
+
+.stat-due-upcoming.has-today {
+  color: var(--state-warn);
+}
+
+:global([data-color-mode="grayscale"]) .stat-due-upcoming.has-today {
+  color: inherit;
 }
 
 .stat-glyph {

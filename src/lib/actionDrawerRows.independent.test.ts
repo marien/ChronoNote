@@ -647,9 +647,9 @@ describe("src/lib/actionDrawerRows", () => {
         text: "",
         collapsed: new Set(),
       });
-      // The resolved root has no own due date; earliest date is open child's 2026-10-25 -> thisWeek
+      // The resolved root has no own due date; earliest date is open child's 2026-10-25 -> day:2026-10-25
       expect(groups).toHaveLength(1);
-      expect(groups[0].key).toBe("thisWeek");
+      expect(groups[0].key).toBe("day:2026-10-25");
       expect(groups[0].rows[0].item.dueDate).toBeUndefined();
       expect(groups[0].rows[1].item.dueDate).toBe("2026-10-25");
     });

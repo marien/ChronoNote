@@ -492,7 +492,10 @@ export const nl = {
   "statusBar.labelDeferred": ({ count }) => `${count} doorgeschoven`,
   "statusBar.labelDone": ({ count }) => `${count} voltooid`,
   "statusBar.labelOverdue": ({ count }) => `${count} te laat`,
-  "statusBar.overdueTitle": () => "Open acties waarvan de deadline is verstreken, in alle notities. Klik om ze te zien",
+  "statusBar.labelUpcoming": ({ count }) => `${count} binnenkort`,
+  "statusBar.dueTitle": () =>
+    "Open acties die de komende 7 dagen vervallen of te laat zijn, in alle notities. Klik om ze te zien",
+  "statusBar.dueMore": ({ count }) => `+${count} meer`,
   "statusBar.jumpNextActionTooltip": ({ combo }) => `Naar volgende open actie springen (${combo})`,
   "statusBar.allActionsTooltip": () => "Actielade openen (alle acties)",
   "statusBar.whatsNew": () => "Wat is er nieuw",
@@ -575,7 +578,7 @@ export const nl = {
   "searchModal.removeFilterAriaLabel": ({ label }) => `Filter ${label} verwijderen`,
   "searchModal.noMatches": ({ query }) => `Geen overeenkomsten voor "${query}".`,
   "searchModal.emptySubtitle": () =>
-    "Controleer de spelling of gebruik zoekoperators zoals is:open of #tag.",
+    "Controleer de spelling of gebruik zoekoperators zoals is:open, due: of #tag.",
   "searchModal.footer.open": () => "Openen",
   "searchModal.footer.select": () => "Selecteren",
 
