@@ -317,11 +317,16 @@ the action counts for the active note as buttons — a glyph in its colour
 plus "3 open", "1 deferred", "4 done" (`x`, won't-do, folds into done;
 the number alone at narrow widths). Clicking the open count jumps to the
 next open action (as `Ctrl/Cmd+J`); clicking deferred or done opens the
-Action Drawer with "Only open" off. Only when something is late, a red
-"N overdue" item follows (§419): open own actions past their `by:` date in
-**all** notes (open tabs' unsaved text included, delegated lines not),
-never hidden by narrowing; clicking it opens the Action Drawer's due view
-on All files. A centre zone reserved for transient
+Action Drawer with "Only open" off. Only when something is late or due
+soon, one due item follows (§419, §449): a red "N overdue" part (open own
+actions past their `by:` date) and an "N upcoming" part (due today up to
+today + 6, a rolling 7-day window; amber when one is due today), joined by
+`·` when both show (numbers only at narrow widths). Counted per due date in
+**all** notes (open tabs' unsaved text included, delegated parts not), never
+hidden by narrowing. Its tooltip lists them, soonest first, at most 8, as
+`<day> · <action> (<section>)` (the day always friendly: Today, Tomorrow,
+Thu 10 Sep; overdue ones add how late), then "+N more". Clicking it opens
+the Action Drawer's due view on All files. A centre zone reserved for transient
 status messages (autosave confirmations, "nothing to import," etc.), empty
 otherwise — a message that points somewhere is clickable (sign-in expired
 opens the sync popover, "choose a folder" opens Settings, update available
@@ -602,7 +607,10 @@ reachable from the top bar, a shortcut, or the command palette:
   headings.
   The filter understands Search's operators (§431, feature review B3):
   `is:open`, `is:done`, `tag:<topic>`, `has:@<name>`, `since:YYYY-MM-DD`,
-  `before:YYYY-MM-DD`, shown as removable chips under the filter; the
+  `before:YYYY-MM-DD`, `due:<day>` (§449: open own action parts due that
+  day, delegated ones too while delegated parts are shown; the day as
+  `by:` takes it, `due:fri`, `due:+3`, resolved from today, the chip
+  showing the date), shown as removable chips under the filter; the
   rest is a substring as before. They test a row's own part (dates: its
   note's date; undated files never match a date), a match on a parent
   shows its group and a match on a child shows it with its ancestors,
@@ -617,8 +625,9 @@ reachable from the top bar, a shortcut, or the command palette:
   keyboard navigation keeps the selected row clear of the pinned heading.
   A third toggle, "By due date" (§419, for the session, off by default),
   lists only lines with an open own due date (delegated ones too when the
-  filter has `@`), grouped Overdue / Today / This week (to Sunday of the
-  ISO week) / Later, soonest first, each row naming its note; the text
+  filter has `@`), grouped Overdue / Today / one heading per day from
+  tomorrow to today + 6 (Tomorrow, Thu 10 Sep: always the friendly form,
+  §449; before, one "This week" to Sunday) / Later, soonest first, each row naming its note; the text
   filter still applies and the other keys work as in the normal view.
   **Groups (§423):** one row per action, not per line. A parent's children
   are nested rows under it with a tree line, its steps are rows joined the
@@ -745,7 +754,8 @@ reachable from the top bar, a shortcut, or the command palette:
   the Action Drawer, results glyph-rendered like the drawer's own rows,
   each with the line before and after the match. Operators narrow the
   results and appear as removable chips: `is:open`, `is:done`, `tag:<topic>`,
-  `has:@<name>`, `since:YYYY-MM-DD`, `before:YYYY-MM-DD`. Opening a result
+  `has:@<name>`, `since:YYYY-MM-DD`, `before:YYYY-MM-DD`, `due:<day>` (a
+  line with an open own action part due that day, §449). Opening a result
   briefly pulses the target line.
 - **Sync Calendar for This Day** (`Ctrl/Cmd+Shift+C`, see tenet 4) — an
   opt-in feature (Settings → Notes & Sync → Calendar, §3.4; hidden entirely until turned

@@ -20,7 +20,7 @@
   import * as controller from "../controller";
   import { dueSummary } from "../dueOverview";
   import { openActionDrawerDueView } from "../actions";
-  import { noteDateLabel } from "../noteDateLabel";
+  import { friendlyDayLabel } from "../noteDateLabel";
   import { parseISODateLocal } from "../date";
   import Icon from "../icons/Icon.svelte";
   import CloudStatusButton from "./CloudStatusButton.svelte";
@@ -66,7 +66,7 @@
     const lines = [$t("statusBar.dueTitle")];
     const itemsToShow = $dueSummary.items.slice(0, 8);
     for (const item of itemsToShow) {
-      const day = $noteDateLabel(item.date);
+      const day = $friendlyDayLabel(item.date);
       let line = `${day} · ${item.text}`;
       if (item.section) {
         line += ` (${item.section})`;

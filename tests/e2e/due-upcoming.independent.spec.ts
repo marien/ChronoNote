@@ -173,6 +173,8 @@ test.describe("due dates upcoming, due: filter, and per-day headings", () => {
 
     const button = statDue(page);
     await expect(button).toBeVisible();
+    // The closed notes are read after the first render: wait until all 10 items are in.
+    await expect(button).toHaveAttribute("title", /\+2 more$/);
 
     const title = await button.getAttribute("title");
     expect(title).toBeTruthy();
@@ -194,11 +196,11 @@ test.describe("due dates upcoming, due: filter, and per-day headings", () => {
     expect(gravelLine).not.toContain("#");
     expect(gravelLine).not.toContain("by:");
 
-    // Non-section items do not have parentheses
-    const cementLine = lines.find((l) => l.includes("order cement"));
-    expect(cementLine).toBeDefined();
-    expect(cementLine).toContain("· order cement");
-    expect(cementLine).not.toContain("(");
+    // Items outside a section have no section in parentheses (the 2026-09-03 note has no section)
+    const legacyLine = lines.find((l) => l.includes("fix legacy bug"));
+    expect(legacyLine).toBeDefined();
+    expect(legacyLine).toContain("· fix legacy bug");
+    expect(legacyLine).not.toContain("(");
 
     // 8th item is pour concrete
     expect(lines[8]).toContain("pour concrete");
@@ -397,6 +399,6 @@ test.describe("due dates upcoming, due: filter, and per-day headings", () => {
 
     // Crucially: no "This week" heading anywhere in the due view
     await expect(headers.filter({ hasText: "This week" })).toHaveCount(0);
-    await expect(drawer(page).locator(".modal-group-header")).not.toContainText("This week");
+    await expect(drawer(page)).not.toContainText("This week");
   });
 });

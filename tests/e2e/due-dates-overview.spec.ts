@@ -113,11 +113,11 @@ test.describe("due dates slice 3: status bar and Action Drawer due view", () => 
     const allFilesRadio = drawer(page).getByRole("radio", { name: "All Files" });
     await expect(allFilesRadio).toBeChecked();
 
-    // Verify the groups appear in order: Overdue, Today, This week, Later
+    // Verify the groups appear in order: Overdue, Today, one heading per day in the next 7 days (§449), Later
     const groupHeaders = drawer(page).locator(".modal-group-header:not(.modal-group-header-sticky)");
     await expect(groupHeaders.nth(0)).toContainText("Overdue");
     await expect(groupHeaders.nth(1)).toContainText("Today");
-    await expect(groupHeaders.nth(2)).toContainText("This week");
+    await expect(groupHeaders.nth(2)).toContainText(/Thu.*10|10.*Thu/);
     await expect(groupHeaders.nth(3)).toContainText("Later");
 
     // Overdue items inside the group are ordered by due date ascending: past2 (09-03) before past1 (09-05)

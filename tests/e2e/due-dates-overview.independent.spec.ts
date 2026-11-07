@@ -289,7 +289,7 @@ test.describe("due dates slice 3 independent: overdue count and due view", () =>
     await expect(statOverdue.locator(".stat-full")).toHaveText("3 overdue");
   });
 
-  test("due view groups on Monday vs Sunday: 'This week' ends on Sunday and is omitted when today is Sunday", async ({
+  test("due view groups on Monday vs Sunday: one heading per day up to today + 6, then Later (§449; was 'This week' to Sunday)", async ({
     page,
   }) => {
     await page.setViewportSize({ width: 950, height: 720 });
@@ -319,11 +319,12 @@ test.describe("due dates slice 3 independent: overdue count and due view", () =>
     const groupHeadersMonday = drawer(page).locator(".modal-group-header:not(.modal-group-header-sticky)");
     await expect(groupHeadersMonday.nth(0)).toContainText("Overdue");
     await expect(groupHeadersMonday.nth(1)).toContainText("Today");
-    await expect(groupHeadersMonday.nth(2)).toContainText("This week");
-    await expect(groupHeadersMonday.nth(3)).toContainText("Later");
-
-    // This week contains 2 items
-    await expect(groupHeadersMonday.nth(2)).toContainText("2");
+    await expect(groupHeadersMonday.nth(2)).toContainText(/Wed.*9|9.*Wed/);
+    await expect(groupHeadersMonday.nth(3)).toContainText(/Sun.*13|13.*Sun/);
+    // 2026-09-14 is today + 7: Later
+    await expect(groupHeadersMonday.nth(4)).toContainText("Later");
+    await expect(groupHeadersMonday).toHaveCount(5);
+    await expect(drawer(page)).not.toContainText("This week");
 
     // --- Scenario B: Today is Sunday 2026-09-13 (ISO week ends today, no days remaining in this week) ---
     const sunday = "2026-09-13";
@@ -345,11 +346,11 @@ test.describe("due dates slice 3 independent: overdue count and due view", () =>
     await expect(drawer(page)).toBeVisible();
 
     const groupHeadersSunday = drawer(page).locator(".modal-group-header:not(.modal-group-header-sticky)");
-    // 'This week' must be omitted! Only Overdue, Today, Later appear
+    // The window rolls past Sunday: 2026-09-14 is tomorrow, not Later
     await expect(groupHeadersSunday).toHaveCount(3);
     await expect(groupHeadersSunday.nth(0)).toContainText("Overdue");
     await expect(groupHeadersSunday.nth(1)).toContainText("Today");
-    await expect(groupHeadersSunday.nth(2)).toContainText("Later");
+    await expect(groupHeadersSunday.nth(2)).toContainText("Tomorrow");
     await expect(drawer(page)).not.toContainText("This week");
   });
 

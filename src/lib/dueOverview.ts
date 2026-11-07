@@ -121,8 +121,10 @@ export const dueSummary: Readable<{
       } else {
         const lines = text.split("\n");
         const items: DueSoonItem[] = [];
-        const overdue = tokens.countOverdue(text, $currentDateISO);
-        const upcoming = tokens.countUpcoming(text, $currentDateISO, 7);
+        // One pass over the due items (the same rules as countOverdue and countUpcoming): this runs on every
+        // keystroke for the note being typed in.
+        let overdue = 0;
+        let upcoming = 0;
         let dueToday = 0;
 
         for (const d of tokens.dueItems(text)) {
@@ -130,6 +132,8 @@ export const dueSummary: Readable<{
           const isOverdue = d.date < $currentDateISO;
           const isUpcoming = d.date >= $currentDateISO && d.date <= maxUpcoming;
           if (!isOverdue && !isUpcoming) continue;
+          if (isOverdue) overdue++;
+          else upcoming++;
           if (d.date === $currentDateISO) dueToday++;
 
           const line = lines[d.lineIdx] ?? "";

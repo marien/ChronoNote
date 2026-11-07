@@ -29,7 +29,7 @@
   import { closeOnOutsideClick } from "../../actions/closeOnOutsideClick";
   import { glyphForSymbol, parseGlyphLine } from "../../editor/glyphLine";
   import { groupHeaderLabel } from "../../ui/listFormat";
-  import { noteDateLabel, noteISODate } from "../../noteDateLabel";
+  import { friendlyDayLabel, noteDateLabel, noteISODate } from "../../noteDateLabel";
   import { dueWordExtra } from "../../date";
   import Icon from "../../icons/Icon.svelte";
   import Segmented from "../Segmented.svelte";
@@ -256,7 +256,7 @@
         groupsOut.push({
           key: dg.key,
           label: dg.key.startsWith("day:")
-            ? $noteDateLabel(dg.key.slice(4))
+            ? $friendlyDayLabel(dg.key.slice(4))
             : (labels[dg.key] ?? dg.key),
           rows: groupRows,
         });
