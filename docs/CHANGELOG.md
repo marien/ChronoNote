@@ -11663,7 +11663,7 @@ Confirmed by Marien (2026-11-06) on 0.36.0-2 on the work laptop, and with the Po
 
 ## 446. Calendar sync places ad-hoc calls by their time
 
-**Status: on main, not released yet.**
+**Status: released in beta 0.37.0-1 (early channel only).**
 
 Marien: running the calendar sync moved ad-hoc calls (sections starting with `'`) to the end of the note, also the
 ones with a start time in the title that the call shortcut creates (`'Call 13:52`). The sync never looked at that
@@ -11680,7 +11680,7 @@ on a dev build.
 
 ## 447. Peek: switch between the meetings on now, and start a new ad-hoc call
 
-**Status: on main, not released yet.**
+**Status: released in beta 0.37.0-1 (early channel only).**
 
 Marien, using Peek during calls: an ad-hoc call that starts a few minutes before a meeting got that meeting (the
 call shortcut counts a meeting starting within 10 minutes as on now, and only makes a call when nothing is on), and
@@ -11713,7 +11713,7 @@ Confirmed by Marien (2026-11-07) on a dev build.
 
 ## 448. Peek: no key tips on the note's top edge, and the line menu stays inside the window
 
-**Status: on main, not released yet.**
+**Status: released in beta 0.37.0-1 (early channel only).**
 
 Marien, in Peek (2026-11-07): pressing Alt sometimes showed the key tips along the top of the Peek window, and the
 right-click menu on a misspelled word did not fit in the window when it had many suggestions.
@@ -11731,7 +11731,7 @@ right-click menu on a misspelled word did not fit in the window when it had many
 
 ## 449. What is due soon: "N upcoming" in the status bar, `due:` in the filters, a heading per day
 
-**Status: on main, not released yet.**
+**Status: released in beta 0.37.0-1 (early channel only).**
 
 Marien (2026-11-07): a quiet way to see how many actions, and which, are due on a given day. The status bar showed
 only what was already late; for work he opens ChronoNote daily, for his volunteer work not, so a cue that only shows
