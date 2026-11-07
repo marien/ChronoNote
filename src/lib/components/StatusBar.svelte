@@ -128,16 +128,14 @@
         onclick={openActionDrawerDueView}
       >
         <span class="stat-line" aria-hidden="true">
-          {#if $dueSummary.overdue > 0}
-            <span class="stat-due-overdue"><span class="stat-glyph glyph-open" aria-hidden="true">!</span><span class="stat-full" aria-hidden="true">{$t("statusBar.labelOverdue", { count: $dueSummary.overdue })}</span><span class="stat-compact" aria-hidden="true">{$dueSummary.overdue}</span></span>
-          {/if}
-          {#if $dueSummary.overdue > 0 && $dueSummary.upcoming > 0}
-            <span aria-hidden="true"> · </span>
-          {/if}
-          {#if $dueSummary.upcoming > 0}
-            <span class="stat-due-upcoming" class:has-today={$dueSummary.dueToday > 0}><span class="stat-full" aria-hidden="true">{$t("statusBar.labelUpcoming", { count: $dueSummary.upcoming })}</span><span class="stat-compact" aria-hidden="true">{$dueSummary.upcoming}</span></span>
-          {/if}
-        </span>
+          <span
+            class="stat-glyph stat-due-flag"
+            class:is-overdue={$dueSummary.overdue > 0}
+            class:is-today={$dueSummary.overdue === 0 && $dueSummary.dueToday > 0}
+            aria-hidden="true">⚑</span><!-- No whitespace between the parts: the flag's margin is the only gap.
+          -->{#if $dueSummary.overdue > 0}<span class="stat-due-overdue"><span class="stat-full" aria-hidden="true">{$t("statusBar.labelOverdue", { count: $dueSummary.overdue })}</span><span class="stat-compact" aria-hidden="true">{$dueSummary.overdue}</span></span>{/if}<!--
+          -->{#if $dueSummary.overdue > 0 && $dueSummary.upcoming > 0}<span class="stat-due-sep" aria-hidden="true">·</span>{/if}<!--
+          -->{#if $dueSummary.upcoming > 0}<span class="stat-due-upcoming" class:has-today={$dueSummary.dueToday > 0}><span class="stat-full" aria-hidden="true">{$t("statusBar.labelUpcoming", { count: $dueSummary.upcoming })}</span><span class="stat-compact" aria-hidden="true">{$dueSummary.upcoming}</span></span>{/if}</span>
       </button>
     {/if}
   </div>
@@ -319,6 +317,44 @@
   font-weight: bold;
   /* Inside `.stat-line`, plain text: the box stands on the baseline next to its label. */
   margin-right: 5px;
+}
+
+/* §449: the due date's flag (the editor's `.cm-due-flag` drawing) in the action squares' box: the same
+   `--glyph-outside-size`, bottom on the text baseline, the character kept but transparent and moved out. Coloured
+   by the most pressing part: red with something overdue, amber with something due today. */
+.stat-due-flag {
+  --flag-ink: var(--text);
+  display: inline-block;
+  width: var(--glyph-outside-size);
+  height: var(--glyph-outside-size);
+  overflow: hidden;
+  vertical-align: baseline;
+  line-height: 1;
+  text-indent: -2em;
+  white-space: nowrap;
+  color: transparent;
+  background-color: var(--flag-ink);
+  -webkit-mask: var(--stat-due-flag-icon) center / contain no-repeat;
+  mask: var(--stat-due-flag-icon) center / contain no-repeat;
+  --stat-due-flag-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='black' stroke-width='1.6' stroke-linejoin='round'%3E%3Cpath d='M3.5 14.5V2M3.5 2.5h8.5l-2 3 2 3H3.5'/%3E%3C/svg%3E");
+}
+
+/* Spaced by margin: the template has no whitespace between the parts. */
+.stat-due-sep {
+  margin: 0 0.4em;
+  color: var(--muted);
+}
+
+.stat-due-flag.is-overdue {
+  --flag-ink: var(--glyph-open-color);
+}
+
+.stat-due-flag.is-today {
+  --flag-ink: var(--state-warn);
+}
+
+:global([data-color-mode="grayscale"]) .stat-due-flag {
+  --flag-ink: var(--text);
 }
 /* Glyph and label in one line of text so they share a baseline (a flex row centres each item instead). */
 .stat-line {

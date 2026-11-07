@@ -51,7 +51,8 @@ test.describe("due dates slice 3: status bar and Action Drawer due view", () => 
     await expect(statOverdue).toBeVisible();
     await expect(statOverdue.locator(".stat-full")).toHaveText("2 overdue");
     await expect(statOverdue.locator(".stat-compact")).toHaveText("2");
-    await expect(statOverdue.locator(".stat-glyph")).toHaveText("!");
+    // §449: the due flag leads the whole item, red while something is overdue
+    await expect(page.locator("#stat-due .stat-due-flag")).toHaveClass(/is-overdue/);
 
     // Close the overdue action in the active editor (past1)
     const actionLine = editor(page).locator(".cm-line").filter({ hasText: "action overdue in tab" });

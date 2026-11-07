@@ -318,7 +318,9 @@ plus "3 open", "1 deferred", "4 done" (`x`, won't-do, folds into done;
 the number alone at narrow widths). Clicking the open count jumps to the
 next open action (as `Ctrl/Cmd+J`); clicking deferred or done opens the
 Action Drawer with "Only open" off. Only when something is late or due
-soon, one due item follows (§419, §449): a red "N overdue" part (open own
+soon, one due item follows (§419, §449), led by the due date's flag in the
+action squares' box (§450: same size, baseline and gap; red with something
+overdue, amber with something due today, else plain): a red "N overdue" part (open own
 actions past their `by:` date) and an "N upcoming" part (due today up to
 today + 6, a rolling 7-day window; amber when one is due today), joined by
 `·` when both show (numbers only at narrow widths). Counted per due date in

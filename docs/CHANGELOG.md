@@ -11755,3 +11755,16 @@ out by Marien). His choices: one combined item, a rolling 7 days, own actions on
   three passes per keystroke made one, ISO day headings, the guide sentence; two existing specs that expected "This
   week" updated to the new headings; three mistakes in the independent tests fixed (reading the tooltip before the
   closed notes are read, a line assumed outside a section, a locator matching five headings).
+
+## 450. The due item in the status bar starts with the due flag
+
+**Status: on main, not released yet.**
+
+Marien, on 0.37.0-1 (2026-11-07): the due item looked bare next to the counts with their action squares; add the due
+date's glyph, sized like the action glyphs. The overdue part's `!` (drawn in the open-action square, so it read as an
+open action) is gone; one flag now leads the whole item: the editor's `by:` flag drawing as a mask in the action
+squares' box (`--glyph-outside-size`, bottom on the text baseline, 5 px to the label), red with something overdue,
+amber with something due today, else the text colour; no colour in grayscale. The template has no whitespace between
+the parts (Svelte turned line breaks into an extra space after the flag and dropped the spaces inside `" · "`), so the
+separator is spaced by margin (`.stat-due-sep`). Test: `tests/e2e/due-flag.spec.ts` (size, baseline and gap equal to
+the open count's square within 0.1 px, colours, separator spacing); `due-dates-overview.spec.ts` checked the `!`.
