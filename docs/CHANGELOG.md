@@ -11663,7 +11663,7 @@ Confirmed by Marien (2026-11-06) on 0.36.0-2 on the work laptop, and with the Po
 
 ## 446. Calendar sync places ad-hoc calls by their time
 
-**Status: released in beta 0.37.0-1 (early channel only).**
+**Status: released in v0.37.0 (beta 0.37.0-1 first).**
 
 Marien: running the calendar sync moved ad-hoc calls (sections starting with `'`) to the end of the note, also the
 ones with a start time in the title that the call shortcut creates (`'Call 13:52`). The sync never looked at that
@@ -11680,7 +11680,7 @@ on a dev build.
 
 ## 447. Peek: switch between the meetings on now, and start a new ad-hoc call
 
-**Status: released in beta 0.37.0-1 (early channel only).**
+**Status: released in v0.37.0 (beta 0.37.0-1 first).**
 
 Marien, using Peek during calls: an ad-hoc call that starts a few minutes before a meeting got that meeting (the
 call shortcut counts a meeting starting within 10 minutes as on now, and only makes a call when nothing is on), and
@@ -11713,7 +11713,7 @@ Confirmed by Marien (2026-11-07) on a dev build.
 
 ## 448. Peek: no key tips on the note's top edge, and the line menu stays inside the window
 
-**Status: released in beta 0.37.0-1 (early channel only).**
+**Status: released in v0.37.0 (beta 0.37.0-1 first).**
 
 Marien, in Peek (2026-11-07): pressing Alt sometimes showed the key tips along the top of the Peek window, and the
 right-click menu on a misspelled word did not fit in the window when it had many suggestions.
@@ -11731,7 +11731,7 @@ right-click menu on a misspelled word did not fit in the window when it had many
 
 ## 449. What is due soon: "N upcoming" in the status bar, `due:` in the filters, a heading per day
 
-**Status: released in beta 0.37.0-1 (early channel only).**
+**Status: released in v0.37.0 (beta 0.37.0-1 first).**
 
 Marien (2026-11-07): a quiet way to see how many actions, and which, are due on a given day. The status bar showed
 only what was already late; for work he opens ChronoNote daily, for his volunteer work not, so a cue that only shows
@@ -11758,7 +11758,7 @@ out by Marien). His choices: one combined item, a rolling 7 days, own actions on
 
 ## 450. The due item in the status bar starts with the due flag
 
-**Status: on main, not released yet.**
+**Status: released in v0.37.0.**
 
 Marien, on 0.37.0-1 (2026-11-07): the due item looked bare next to the counts with their action squares; add the due
 date's glyph, sized like the action glyphs. The overdue part's `!` (drawn in the open-action square, so it read as an
@@ -11771,7 +11771,7 @@ the open count's square within 0.1 px, colours, separator spacing); `due-dates-o
 
 ## 451. Web app: notes a OneDrive sync brings in reach the due item and the Actions view
 
-**Status: on main, not released yet.**
+**Status: released in v0.37.0.**
 
 Marien (2026-11-08): after a day or two away the web app (sign-in renewed) didn't show dated actions he had made
 the day before, unless he opened their notes. The sync did download them: its delta query fetches exactly the
@@ -11792,7 +11792,7 @@ re-read.)
 
 ## 452. Release script: no pre-release environment checklist for minor releases
 
-**Status: on main, not released yet.**
+**Status: released in v0.37.0.**
 
 Marien (2026-11-08): the checklist `release.sh` demanded before a minor release (`--checklist-done`: Windows
 Animation effects off, 125 %/150 % scaling, a contrast theme, German on CI's Linux fonts, right-click/long-press/
