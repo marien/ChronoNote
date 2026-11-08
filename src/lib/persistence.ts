@@ -11,6 +11,7 @@ import {
   activeTabId,
   getTabCleanHash,
   markTabClean,
+  notesChangedBySync,
   oneDriveAccount,
   saveState,
   showToast,
@@ -230,9 +231,37 @@ export function invalidateDiskNotesCache() {
   diskNotesCacheRaw = null;
 }
 
+/** §451: a sync wrote or deleted these notes in local storage. Re-reads just those into the disk layer and
+ * republishes `allNotesCache`, so everything built on it (the status bar's due item, an open Actions view)
+ * catches up without a full read. If the disk layer was never read, the next full read sees them anyway; if it
+ * was dropped while the visible list still holds older content, read it all again. */
+export async function updateNotesInCache(filenames: string[]): Promise<void> {
+  if (diskReadInFlight) await diskReadInFlight.catch(() => {});
+  if (diskNotesCacheRaw !== null && filenames.length > 0) {
+    const read = await Promise.all(
+      filenames.map(async (fn) => {
+        try {
+          return [fn, await api.readNote(fn)] as const;
+        } catch {
+          return [fn, undefined] as const; // not a note the cache holds (or a transient read error): leave it
+        }
+      }),
+    );
+    if (diskNotesCacheRaw !== null) {
+      for (const [fn, content] of read) {
+        if (content === null) delete diskNotesCacheRaw[fn];
+        else if (content !== undefined) diskNotesCacheRaw[fn] = content;
+      }
+    }
+  }
+  if (diskNotesCacheRaw !== null || Object.keys(get(allNotesCache)).length > 0) await refreshAllNotesCache();
+  if (filenames.length > 0) notesChangedBySync.update((n) => n + 1);
+}
+
 registerSyncHooks({
   flushPendingSaves: flushAllPendingSaves,
   invalidateCache: invalidateDiskNotesCache,
+  notesChanged: updateNotesInCache,
 });
 
 export async function refreshAllNotesCache() {

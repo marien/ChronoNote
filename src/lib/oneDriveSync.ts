@@ -28,6 +28,8 @@ export function openOneDriveStatus() {
 export type SyncHooks = {
   flushPendingSaves?: () => Promise<void>;
   invalidateCache?: () => void;
+  /** §451: the sync reported which notes it wrote or deleted; update the list of all notes for just those. */
+  notesChanged?: (filenames: string[]) => Promise<void>;
 };
 
 let syncHooks: SyncHooks = {};
@@ -90,7 +92,13 @@ export function syncOneDriveNow(opts: { notify?: boolean } = {}): Promise<void> 
         oneDriveSignInExpired.set(true);
       }
       await refreshSyncConflicts();
-      syncHooks.invalidateCache?.();
+      // §451: a sync that says what it changed updates just those notes (and the views built on the list of all
+      // notes follow); one that doesn't drops the whole disk layer so the next reader reads it all again.
+      if (result.changedFiles && syncHooks.notesChanged) {
+        if (result.changedFiles.length > 0) await syncHooks.notesChanged(result.changedFiles).catch(() => {});
+      } else {
+        syncHooks.invalidateCache?.();
+      }
       void checkActiveTabForDrift();
       void refreshAgendaFileExists();
       if (announce) {

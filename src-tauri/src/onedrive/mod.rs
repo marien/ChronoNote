@@ -55,6 +55,11 @@ pub struct OneDriveSyncResult {
     #[serde(skip_serializing_if = "Option::is_none")]
     #[ts(optional)]
     pub message: Option<AppError>,
+    /// §451: the notes this sync wrote, merged or deleted locally, so the app can update its in-memory list of
+    /// all notes for just those (the web app's sync engine fills it in).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
+    pub changed_files: Option<Vec<String>>,
 }
 
 /// i18n Phase 2 (docs/design/i18n-roadmap.md): why `prepare_folder_switch`

@@ -126,6 +126,21 @@ describe("OneDriveClient", () => {
     expect(result.deltaLink).toBe("https://graph.microsoft.com/v1.0/delta-token-final");
   });
 
+  it("getFolderDelta throws DeltaResyncRequiredError on 410 Gone (§451), a plain Error otherwise", async () => {
+    const { DeltaResyncRequiredError } = await import("./oneDriveClient");
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({ ok: false, status: 410, text: async () => '{"error":{"code":"resyncRequired"}}' }),
+    );
+    await expect(client.getFolderDelta("t", "f", "https://graph/delta?token=old")).rejects.toBeInstanceOf(
+      DeltaResyncRequiredError,
+    );
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: false, status: 503, text: async () => "busy" }));
+    const err = await client.getFolderDelta("t", "f").catch((e) => e);
+    expect(err).toBeInstanceOf(Error);
+    expect(err).not.toBeInstanceOf(DeltaResyncRequiredError);
+  });
+
   it("downloadFileContent gets text content", async () => {
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,

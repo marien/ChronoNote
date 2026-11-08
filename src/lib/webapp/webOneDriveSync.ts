@@ -26,7 +26,7 @@ import {
   exchangeCode as authExchangeCode,
   type StoredAuth,
 } from "./webOneDriveAuth";
-import { OneDriveClient } from "./oneDriveClient";
+import { DeltaResyncRequiredError, OneDriveClient } from "./oneDriveClient";
 import { merge3 } from "./lineMerge";
 import { describeApiError, toAppError } from "../apiError";
 import { normalizeNoteText } from "../noteText";
@@ -636,6 +636,9 @@ export class WebOneDriveSyncEngine {
   private async executeSync(): Promise<OneDriveSyncResult> {
     this.isSyncing = true;
     this.setStatus("syncing");
+    // §451: every note this sync writes or deletes locally, reported back (also when a later step fails) so the
+    // app can update its list of all notes for just those.
+    const changed = new Set<string>();
 
     try {
       const db = await this.getDb();
@@ -686,7 +689,16 @@ export class WebOneDriveSyncEngine {
       }
 
       // Phase 2: Pull Remote Changes via delta query
-      const deltaRes = await this.client.getFolderDelta(token, folderCfg.folderId, cache.deltaLink);
+      let deltaRes;
+      try {
+        deltaRes = await this.client.getFolderDelta(token, folderCfg.folderId, cache.deltaLink);
+      } catch (e) {
+        // §451: the saved delta link expired. Start over with a full listing: unchanged files are skipped by
+        // their eTag, and the full-listing rules below sort out files that are gone.
+        if (!(e instanceof DeltaResyncRequiredError) || !cache.deltaLink) throw e;
+        cache.deltaLink = undefined;
+        deltaRes = await this.client.getFolderDelta(token, folderCfg.folderId, undefined);
+      }
       const isFullListing = !cache.deltaLink;
       const seenInListing = new Set<string>();
 
@@ -706,6 +718,7 @@ export class WebOneDriveSyncEngine {
             const cached = cache.files[name];
             if (!localNote || (cached && cached.localHash === localNote.contentHash)) {
               await idbDelete(db, IDB_STORES.NOTES_CLOUD, name);
+              if (localNote) changed.add(name);
               delete cache.files[name];
               delete bases[name];
             } else {
@@ -759,6 +772,7 @@ export class WebOneDriveSyncEngine {
             contentHash: remoteHash,
             modifiedMs: Date.now(),
           });
+          changed.add(filename);
           bases[filename] = remoteContent;
           cache.files[filename] = rebased;
           delete cache.conflicts[filename];
@@ -775,6 +789,7 @@ export class WebOneDriveSyncEngine {
               contentHash: remoteHash,
               modifiedMs: Date.now(),
             });
+            changed.add(filename);
             bases[filename] = remoteContent;
             cache.files[filename] = rebased;
             delete cache.conflicts[filename];
@@ -792,6 +807,7 @@ export class WebOneDriveSyncEngine {
                 contentHash: mergedHash,
                 modifiedMs: Date.now(),
               });
+              changed.add(filename);
               bases[filename] = remoteContent;
               cache.files[filename] = rebased;
               delete cache.conflicts[filename];
@@ -812,6 +828,7 @@ export class WebOneDriveSyncEngine {
             const localNote = await idbGet<StoredNote>(db, IDB_STORES.NOTES_CLOUD, filename);
             if (!localNote || localNote.contentHash === cached.localHash) {
               await idbDelete(db, IDB_STORES.NOTES_CLOUD, filename);
+              if (localNote) changed.add(filename);
               delete cache.files[filename];
               delete bases[filename];
             } else {
@@ -878,7 +895,7 @@ export class WebOneDriveSyncEngine {
       await idbPut(db, IDB_STORES.META, "onedrive_last_sync_success", this.lastSyncSuccessMs);
 
       this.setStatus("idle");
-      return { success: true };
+      return { success: true, changedFiles: [...changed] };
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       const isOffline =
@@ -887,7 +904,7 @@ export class WebOneDriveSyncEngine {
         msg.toLowerCase().includes("offline");
 
       this.setStatus(isOffline ? "offline" : "error");
-      return { success: false, message: otherError(msg) };
+      return { success: false, message: otherError(msg), ...(changed.size > 0 ? { changedFiles: [...changed] } : {}) };
     } finally {
       this.isSyncing = false;
     }

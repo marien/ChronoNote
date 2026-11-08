@@ -419,6 +419,9 @@ export interface DueDatePending {
 export const dueDatePending = writable<DueDatePending | null>(null);
 
 export const allNotesCache = writable<Record<string, string>>({});
+/** §451: counts syncs that changed notes in local storage, so a view holding its own snapshot of all notes (the
+ * Actions view on Other notes / All files) can rebuild it. */
+export const notesChangedBySync = writable(0);
 export const actionSnapshot = writable<ActionSnapshotItem[]>([]);
 /** One entry per dated note that has the section at all — past, today, and
  * future, whether or not it has any content — so Section History's

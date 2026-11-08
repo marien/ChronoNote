@@ -14,6 +14,15 @@ export interface DeltaQueryResult {
   deltaLink?: string;
 }
 
+/** §451: Graph answers a delta query with 410 Gone when the saved delta link is too old to continue from
+ * (`resyncRequired`); the caller then has to start over with a full listing. */
+export class DeltaResyncRequiredError extends Error {
+  constructor(detail: string) {
+    super(`Graph delta query error (410): ${detail}`);
+    this.name = "DeltaResyncRequiredError";
+  }
+}
+
 export type DeleteResult = "deleted" | "changed";
 
 export type UploadResult =
@@ -141,6 +150,7 @@ export class OneDriveClient {
 
       if (!resp.ok) {
         const err = await resp.text().catch(() => "");
+        if (resp.status === 410) throw new DeltaResyncRequiredError(err);
         throw new Error(`Graph delta query error (${resp.status}): ${err}`);
       }
 

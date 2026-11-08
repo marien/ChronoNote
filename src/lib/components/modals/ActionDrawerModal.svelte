@@ -11,6 +11,7 @@
     actionSnapshot,
     activeTabId,
     currentDateISO,
+    notesChangedBySync,
     tabs,
   } from "../../controller";
   import type { DueGroupKey } from "../../dueOverview";
@@ -169,6 +170,19 @@
       scrollSelectedIntoView();
     }
   }
+
+  // §451: a sync changed notes in local storage: rebuild the snapshot when it covers notes beyond the open tabs.
+  // A store subscription (not an $effect) so the rebuild's own state writes can't retrigger it.
+  onMount(() => {
+    let first = true;
+    return notesChangedBySync.subscribe(() => {
+      if (first) {
+        first = false;
+        return;
+      }
+      if (scope !== "open") void refreshSnapshot();
+    });
+  });
 
   function handleFocusIn(e: FocusEvent) {
     if (!docked || !mounted) return;

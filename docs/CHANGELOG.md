@@ -11768,3 +11768,24 @@ amber with something due today, else the text colour; no colour in grayscale. Th
 the parts (Svelte turned line breaks into an extra space after the flag and dropped the spaces inside `" · "`), so the
 separator is spaced by margin (`.stat-due-sep`). Test: `tests/e2e/due-flag.spec.ts` (size, baseline and gap equal to
 the open count's square within 0.1 px, colours, separator spacing); `due-dates-overview.spec.ts` checked the `!`.
+
+## 451. Web app: notes a OneDrive sync brings in reach the due item and the Actions view
+
+**Status: on main, not released yet.**
+
+Marien (2026-11-08): after a day or two away the web app (sign-in renewed) didn't show dated actions he had made
+the day before, unless he opened their notes. The sync did download them: its delta query fetches exactly the
+files whose eTag changed. But the app's list of all notes (`allNotesCache`, read once ~1.5 s after start) was only
+marked stale after a sync, never re-read, so the status bar's due item kept its old counts, and an Actions view
+open on Other notes / All files kept its snapshot. (Search, the date picker and a freshly opened Actions view did
+re-read.)
+
+- The web sync engine reports the notes it wrote, merged or deleted locally (`OneDriveSyncResult.changedFiles`,
+  also on a sync that fails after pulling). `syncOneDriveNow` hands them to `updateNotesInCache` (persistence.ts),
+  which re-reads just those into the disk layer and republishes `allNotesCache`; a result without the list keeps
+  the old behaviour (drop the disk layer). `notesChangedBySync` makes an open Actions view rebuild its snapshot.
+- Found on the way: an expired delta link (Graph answers 410 Gone, `resyncRequired`, after a long gap) failed every
+  sync from then on. `getFolderDelta` now throws `DeltaResyncRequiredError` and the sync starts over once with a
+  full listing (the existing full-listing rules: unchanged files skipped by eTag, files gone from OneDrive removed
+  only when unchanged locally).
+- Tests: `syncNotesCache.test.ts`, new cases in `webOneDriveSync.test.ts` and `oneDriveClient.test.ts`.

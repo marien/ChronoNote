@@ -354,4 +354,87 @@ describe("WebOneDriveSyncEngine lifecycle & sync", () => {
       expect(JSON.stringify([...mockStores.notes_cloud], null, 0) + JSON.stringify([...mockStores.meta])).toBe(snapshot);
     });
   });
+
+  // §451: the sync reports which notes it changed locally, and starts over when the delta link expired.
+  describe("changed notes and an expired delta link", () => {
+    function signedIn() {
+      mockStores.meta.set(IDB_META_KEYS.ONEDRIVE_AUTH, {
+        accessToken: "valid-tok",
+        refreshToken: "ref-tok",
+        expiresAt: Math.floor(Date.now() / 1000) + 3600,
+        account: { email: "a@b.com", displayName: "A" },
+      });
+      mockStores.meta.set(IDB_META_KEYS.ONEDRIVE_FOLDER, { folderId: "folder-xyz", folderPath: "/Notes" });
+    }
+
+    it("lists downloaded and deleted notes, not unchanged or uploaded ones", async () => {
+      signedIn();
+      const keep = "same\n";
+      const keepHash = await computeSha256Hex(keep);
+      const gone = "old\n";
+      const goneHash = await computeSha256Hex(gone);
+      mockStores.notes_cloud.set("2026-09-10.txt", { content: keep, contentHash: keepHash, modifiedMs: 1 });
+      mockStores.notes_cloud.set("2026-09-11.txt", { content: gone, contentHash: goneHash, modifiedMs: 1 });
+      mockStores.notes_cloud.set("2026-09-12.txt", { content: "mine\n", contentHash: "local-only", modifiedMs: 1 });
+      mockStores.meta.set(IDB_META_KEYS.ONEDRIVE_CACHE, {
+        deltaLink: "d1",
+        files: {
+          "2026-09-10.txt": { id: "i10", etag: "e10", localHash: keepHash },
+          "2026-09-11.txt": { id: "i11", etag: "e11", localHash: goneHash },
+        },
+        conflicts: {},
+      });
+      (mockClient.getFolderDelta as any).mockResolvedValue({
+        changes: [
+          { id: "i10", name: "2026-09-10.txt", etag: "e10", isDeleted: false },
+          { id: "i11", name: "2026-09-11.txt", isDeleted: true },
+          { id: "i13", name: "2026-09-13.txt", etag: "e13", isDeleted: false },
+        ],
+        deltaLink: "d2",
+      });
+      (mockClient.downloadFileContent as any).mockResolvedValue("# new by:2026-09-14\n");
+
+      const res = await engine.syncNow();
+      expect(res.success).toBe(true);
+      expect([...(res.changedFiles ?? [])].sort()).toEqual(["2026-09-11.txt", "2026-09-13.txt"]);
+      expect(mockStores.notes_cloud.get("2026-09-13.txt").content).toBe("# new by:2026-09-14\n");
+    });
+
+    it("an empty list when nothing came down", async () => {
+      signedIn();
+      const res = await engine.syncNow();
+      expect(res).toEqual({ success: true, changedFiles: [] });
+    });
+
+    it("starts over with a full listing when Graph says the delta link expired (410)", async () => {
+      signedIn();
+      const { DeltaResyncRequiredError } = await import("./oneDriveClient");
+      mockStores.meta.set(IDB_META_KEYS.ONEDRIVE_CACHE, { deltaLink: "stale", files: {}, conflicts: {} });
+      (mockClient.getFolderDelta as any)
+        .mockRejectedValueOnce(new DeltaResyncRequiredError("resyncRequired"))
+        .mockResolvedValueOnce({
+          changes: [{ id: "i13", name: "2026-09-13.txt", etag: "e13", isDeleted: false }],
+          deltaLink: "fresh",
+        });
+      (mockClient.downloadFileContent as any).mockResolvedValue("x\n");
+
+      const res = await engine.syncNow();
+      expect(res.success).toBe(true);
+      expect(res.changedFiles).toEqual(["2026-09-13.txt"]);
+      const calls = (mockClient.getFolderDelta as any).mock.calls;
+      expect(calls[0][2]).toBe("stale");
+      expect(calls[1][2]).toBeUndefined();
+      expect(mockStores.meta.get(IDB_META_KEYS.ONEDRIVE_CACHE).deltaLink).toBe("fresh");
+    });
+
+    it("other delta errors still fail the sync without a retry", async () => {
+      signedIn();
+      mockStores.meta.set(IDB_META_KEYS.ONEDRIVE_CACHE, { deltaLink: "d1", files: {}, conflicts: {} });
+      (mockClient.getFolderDelta as any).mockRejectedValue(new Error("Graph delta query error (500): boom"));
+      const res = await engine.syncNow();
+      expect(res.success).toBe(false);
+      expect((mockClient.getFolderDelta as any).mock.calls.length).toBe(1);
+      expect(mockStores.meta.get(IDB_META_KEYS.ONEDRIVE_CACHE).deltaLink).toBe("d1");
+    });
+  });
 });

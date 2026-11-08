@@ -50,7 +50,7 @@ export type FolderSwitchBlocked = { "reason": "syncFailed", folderPath: string, 
 
 export type FolderSwitchResult = { ready: boolean, switched: boolean, archivedCount: number, blocked?: FolderSwitchBlocked };
 
-export type OneDriveSyncResult = { success: boolean, message?: AppError };
+export type OneDriveSyncResult = { success: boolean, message?: AppError, changedFiles?: Array<string> };
 
 export type SyncConflict = { name: string, local: string, remote: string };
 

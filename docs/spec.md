@@ -940,6 +940,13 @@ stores with separate tab sessions; existing browser notes can be moved across
 rather than overwritten. Choosing a different folder syncs the old one first
 and clears the local mirror. Requires a "Single-page application" redirect URI
 in the Entra app registration. See `CHANGELOG.md` §187-§188.
+Each sync asks OneDrive only for what changed since the last one (a delta
+link); if OneDrive answers that the link is too old (410), the sync starts
+over with a full listing, where unchanged files are skipped by their eTag.
+The sync reports which notes it wrote, merged or deleted locally, and the
+app re-reads just those into its list of all notes, so the status bar's due
+item and an open Actions view on other notes or all files include notes
+changed elsewhere without opening them (§451).
 
 ### 7.4 Demo Backend
 The same in-memory mock backend the Playwright test suite runs against
