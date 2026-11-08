@@ -13,9 +13,8 @@
 #                  they were just run on this exact commit). The cargo audit
 #                  always runs.
 #   --dry-run      Run preflight + gates + print the plan; change nothing.
-#   --checklist-done  Required for a minor release (X.Y.0): confirms the
-#                  environment checklist below was run (it is printed when the
-#                  flag is missing, and the script stops).
+#   --checklist-done  No longer needed (§452: the pre-release checklist was
+#                  dropped); accepted and ignored.
 #   --force-red    Release although GitHub's last Test run on main failed.
 #                  Say why in the release notes.
 #   --beta         An early-updates build (F1): version X.Y.Z-N (N numeric, so
@@ -131,25 +130,15 @@ if [[ $BUMPED == 0 ]]; then
   ok "GitHub Test: $CI_CONCLUSION"
 fi
 
-# A minor release carries bigger UI changes: run the environment checklist
-# (the v0.30 lessons) before cutting it. Betas never update the web app, so
-# the phone and the installed web app are checked right after the stable
-# release instead (AFTER_LIST, printed at the end; §441).
+# A minor release: the phone and the installed web app are checked right after
+# the stable release (betas never update the web app; AFTER_LIST, printed at
+# the end; §441). The pre-release environment checklist (reduced motion,
+# 125/150 % scaling, contrast theme, German on CI fonts, right-click/long-press/
+# focus) was dropped on 2026-11-08 (§452): none of it had caught anything for a
+# long time. --checklist-done is still accepted and does nothing.
 AFTER_LIST='After a minor release, in the live web app (open checks until confirmed):
   - A phone: keyboard, sheets, long-press, symbols bar on one row
   - The web app installed on a PC (title bar hidden) and on a phone'
-if [[ "$VERSION" =~ \.0$ && $CHECKLIST == 0 && $BUMPED == 0 && $BETA == 0 ]]; then
-  cat >&2 <<'LIST'
-Minor release: check these on the last beta first, then re-run with --checklist-done.
-  - Windows "Animation effects" off (prefers-reduced-motion): switch tabs, open drawers
-  - Display scaling 125% and 150%
-  - A Windows contrast theme
-  - German UI on CI's Linux fonts (GitHub Test run green)
-  - Right-click, long-press and focus on every part of the window
-LIST
-  echo "$AFTER_LIST" >&2
-  exit 1
-fi
 
 # Every CHANGELOG section since the previous release needs a status (§411);
 # the statuses themselves are filled in just before the version bump.

@@ -11789,3 +11789,13 @@ re-read.)
   full listing (the existing full-listing rules: unchanged files skipped by eTag, files gone from OneDrive removed
   only when unchanged locally).
 - Tests: `syncNotesCache.test.ts`, new cases in `webOneDriveSync.test.ts` and `oneDriveClient.test.ts`.
+
+## 452. Release script: no pre-release environment checklist for minor releases
+
+**Status: on main, not released yet.**
+
+Marien (2026-11-08): the checklist `release.sh` demanded before a minor release (`--checklist-done`: Windows
+Animation effects off, 125 %/150 % scaling, a contrast theme, German on CI's Linux fonts, right-click/long-press/
+focus everywhere) had not turned up an issue for a long time; drop it. The flag is still accepted and ignored. The
+after-release list for the phone and the installed web app (§441) stays. Should one of those problems come back,
+the checks are in Claude's memory to bring back.
