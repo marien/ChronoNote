@@ -132,6 +132,15 @@ const INLINE = new RegExp(
 
 const FORWARD_LINK_RE = /\(([<>])(\d{4}-\d{2}-\d{2})(?:#([^)\r\n]+))?\)/gu;
 
+/** #208: `! - item` / `! * item` (also after an action or topic symbol: `# ! - item`) is an emphasised list item: a
+ * bullet right after the `! ` is drawn as one. Returns where the scan continues. */
+function pushBulletAfterEmphasis(tokens: Token[], line: string, scanFrom: number): number {
+  const bullet = BULLET_AFTER_STATE.exec(line.slice(scanFrom));
+  if (!bullet) return scanFrom;
+  tokens.push({ kind: "bullet", from: scanFrom, to: scanFrom + bullet[0].length, symbol: bullet[1], replaced: true });
+  return scanFrom + bullet[0].length;
+}
+
 export function tokenizeLine(line: string): Token[] {
   const tokens: Token[] = [];
   let scanFrom = 0;
@@ -141,7 +150,7 @@ export function tokenizeLine(line: string): Token[] {
     const indent = emphasisLead[1].length;
     // The editor marks from the `!`; its inline tokens are still found after the `! `.
     tokens.push({ kind: "emphasis", from: indent, to: line.length, symbol: "!", replaced: false });
-    scanFrom = indent + 2;
+    scanFrom = pushBulletAfterEmphasis(tokens, line, indent + 2);
   } else {
     const lead = LINE_START.exec(line);
     if (lead) {
@@ -175,7 +184,7 @@ export function tokenizeLine(line: string): Token[] {
             symbol: "!",
             replaced: false,
           });
-          scanFrom += 2;
+          scanFrom = pushBulletAfterEmphasis(tokens, line, scanFrom + 2);
         }
       }
     }

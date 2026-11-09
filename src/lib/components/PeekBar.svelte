@@ -235,6 +235,10 @@
     );
   });
 
+  // #209: the chip shows whenever the list holds a section other than the shown one, e.g. an overrunning meeting
+  // (no longer on now by the calendar) with only the next meeting on now.
+  const canSwitch = $derived(onNowItems.length >= 2 || (onNowItems.length === 1 && shownOnNowIdx < 0));
+
   const switchLabel = $derived(
     shownOnNowIdx >= 0 ? `${shownOnNowIdx + 1}/${onNowItems.length}` : `${onNowItems.length}`,
   );
@@ -331,7 +335,7 @@
           <span class="peek-title" data-tauri-drag-region>{title}</span>
         {/if}
       {/if}
-      {#if onNowItems.length >= 2}
+      {#if canSwitch}
         <button
           type="button"
           class="peek-btn"
