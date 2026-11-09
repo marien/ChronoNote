@@ -11849,3 +11849,14 @@ meeting's start, just when he wanted to switch: the shown meeting had passed its
 meeting was on now, and the chip needed two. It now shows whenever the list holds a section other than the shown one
 (`canSwitch` in `PeekBar.svelte`), so here as `1`. `Ctrl+G` already opened the list. Test: a case in
 `tests/e2e/peek-switch.independent.spec.ts`.
+
+## 456. Peek: the on-now chip's numbers on the title's baseline
+
+**Status: on main, not released yet.**
+
+Marien (2026-11-09): the chip with the meeting numbers (`2/2`) did not line up in the Peek bar. It was set in 11px
+monospace with line-height 1, which put its baseline 1.5 px above the title's and the `1/1` count's (12px, the bar's
+font); 12px monospace still sat 1 px high, its line metrics differ from the bar's font. The chip now uses the bar's
+font at 12px with a normal line height (tabular figures kept), with 2px vertical padding so its hover box stays the
+size of the other buttons'. Test: `tests/e2e/peek-bar-layout.spec.ts` (a layout spec, so also with Windows fonts at
+100/125/150 %): chip and count within 0.5 px of the title's baseline, the chip inside the bar.

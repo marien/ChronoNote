@@ -276,9 +276,12 @@ body.peek-mode #app {
   font-family: var(--font-mono);
 }
 
+/* The chip's numbers sit on the title's baseline: the bar's own font and size, like the `1/1` count, with a normal line
+   height. (11px monospace with line-height 1 sat 1.5px higher; monospace at 12px still 1px, its metrics differ.) */
 .peek-btn[data-testid="peek-switch"] {
-  font-size: 11px;
-  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: normal;
+  padding: 2px 6px;
   font-weight: 500;
   font-variant-numeric: tabular-nums;
 }

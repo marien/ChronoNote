@@ -12,7 +12,7 @@ import { defineConfig, devices } from "@playwright/test";
 /** Specs that exercise layout, tabs, menus and settings: the ones the environment projects re-run. */
 const LAYOUT_SPECS = [
   "tab-switch-width", "tab-archetypes", "titlebar", "merged-titlebar", "topbar-collapse", "editor-context-menu",
-  "glyph-layout", "word-wrap", "settings", "history-pane", "actions-pane", "pane-resize", "visual-audit",
+  "glyph-layout", "word-wrap", "settings", "history-pane", "actions-pane", "pane-resize", "visual-audit", "peek-bar-layout",
 ].map((name) => `**/${name}.spec.ts`);
 
 /** Specs that check colours or read screenshot pixels against a dark background: meaningless in a contrast theme, where
