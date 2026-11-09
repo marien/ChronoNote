@@ -11799,3 +11799,29 @@ Animation effects off, 125 %/150 % scaling, a contrast theme, German on CI's Lin
 focus everywhere) had not turned up an issue for a long time; drop it. The flag is still accepted and ignored. The
 after-release list for the phone and the installed web app (§441) stays. Should one of those problems come back,
 the checks are in Claude's memory to bring back.
+
+## 453. Secret scan before every push and in CI; no CI token left behind; release logs cleaned up
+
+**Status: on main, not released yet.**
+
+Marien (2026-11-09) asked for a security audit of the local setup and the GitHub project: had a secret leaked, and
+could one leak later? Nothing had leaked (the full history, all release assets, the web app and demo bundles,
+issues and PRs, and the local transcripts and agent logs were searched, also for the signing key's and password's
+exact content). Three gaps are closed here:
+
+- GitHub's push protection only knows provider token formats, not the Tauri/minisign updater key, so only
+  `.gitignore` kept the key out of a commit. `scripts/secret-scan.mjs` now runs first in `npm run verify` (and so in
+  the pre-push hook, also when verify had already passed on the commit) and in CI's Frontend job. It scans every file
+  git would commit and, locally, the lines added by commits not on origin/main yet. It looks for the updater key's
+  and password's own content (read from the `.local` files, also from a worktree; overlapping 40-character pieces,
+  so a part or a decoded copy is found too) and for common secret patterns (PEM and minisign private keys, a
+  base64-wrapped Tauri secret key, GitHub, Anthropic, Google, AWS, Slack and Microsoft tokens, JWTs). It prints the
+  file, the line and the kind, never the secret. A known false positive can carry `secret-scan: allow`.
+- Every `actions/checkout` sets `persist-credentials: false`: the job's (read-only) token no longer stays in
+  `.git/config` for the later steps; no workflow pushes.
+- `release.sh` removes its `mktemp` work folder when it ends; after a failure it keeps it and prints where the logs
+  are.
+
+Not done: GitHub's scanning for generic ("non-provider") patterns is only offered for organization repositories on
+GitHub Team with Secret Protection, not for a personal public repository. Test: `src/lib/secretScan.test.ts`
+(fake key and password, built at run time).
