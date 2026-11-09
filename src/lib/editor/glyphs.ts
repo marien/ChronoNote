@@ -240,7 +240,10 @@ export function buildGlyphDecorations(view: EditorView): { decorations: Decorati
       const line = doc.lineAt(pos);
       doneTo = line.to;
       pos = line.to + 1;
+      let afterEmphasis = false; // #208: a bullet right after `! ` takes the emphasis colour
       for (const t of tokenizeLine(line.text)) {
+        const emphasisBullet = afterEmphasis && t.kind === "bullet";
+        afterEmphasis = t.kind === "emphasis";
         const a = line.from + t.from;
         const b = line.from + t.to;
         if (t.replaced) atomic.add(a, b, ATOMIC);
@@ -252,7 +255,9 @@ export function buildGlyphDecorations(view: EditorView): { decorations: Decorati
             deco.add(a, b, Decoration.replace({ widget: new InlineGlyphWidget(ARROW_GLYPH.char, ARROW_GLYPH.cls, false, "=>") }));
             break;
           case "bullet":
-            deco.add(a, b, Decoration.replace({ widget: new InlineGlyphWidget(GLYPHS.bullet.char, GLYPHS.bullet.cls) }));
+            deco.add(a, b, Decoration.replace({
+              widget: new InlineGlyphWidget(GLYPHS.bullet.char, emphasisBullet ? `${GLYPHS.bullet.cls} glyph-bullet-emphasis` : GLYPHS.bullet.cls),
+            }));
             break;
           case "action":
           case "topic":

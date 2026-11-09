@@ -703,6 +703,10 @@ body.peek-mode .cm-overview-ruler {
   color: var(--text);
   font-weight: normal;
 }
+/* #208: the bullet of a `! - item` line takes the emphasis colour, like the rest of the line. */
+.glyph-bullet.glyph-bullet-emphasis {
+  color: var(--glyph-emphasis-color);
+}
 .glyph-assignee {
   background: var(--glyph-assignee-bg);
   border-radius: 3px;

@@ -500,6 +500,9 @@ test.describe("editor — token glyphs", () => {
     const first = editor(page).locator(".cm-line").nth(0);
     await expect(first.locator(".glyph-bullet")).toHaveCount(1);
     await expect(first.locator(".glyph-emphasis-line").last()).toContainText("first");
+    // The bullet takes the emphasis colour (yellow), not the text colour of a plain bullet.
+    const colourOf = (sel: string) => first.locator(sel).first().evaluate((el) => getComputedStyle(el).color);
+    expect(await colourOf(".glyph-bullet")).toBe(await colourOf(".glyph-emphasis-line"));
     await page.keyboard.press("Enter");
     await page.keyboard.type("second");
     await page.keyboard.press("Enter"); // empty `! - `

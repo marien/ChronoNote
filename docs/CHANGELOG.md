@@ -11836,8 +11836,9 @@ action or topic symbol as `# ! - item`, in the §367 order: state, `!`, list mar
 the line an emphasis token and a bullet token (`pushBulletAfterEmphasis`), so the editor draws the bullet glyph in the
 bold line, read-only views (`parseGlyphLine`) do the same, the line wraps under the item's text, Enter continues with
 `! - ` / `# ! - ` (an empty one exits) and Enter before the `!` is a plain newline. `- ! item` (list marker first)
-is unchanged: the `!` stays text. Tests: `src/lib/grammar/emphasisBullet.test.ts`, a case in
-`tests/e2e/editor-tokens.spec.ts`.
+is unchanged: the `!` stays text. Marien, on a dev build (2026-11-09): the bullet stayed in the text colour; it now
+takes the emphasis colour like the rest of the line (`glyph-bullet-emphasis`, editor and read-only views). Tests:
+`src/lib/grammar/emphasisBullet.test.ts`, a case in `tests/e2e/editor-tokens.spec.ts` (also the bullet's colour).
 
 ## 455. Peek: the on-now chip stays while the shown meeting overruns (#209)
 

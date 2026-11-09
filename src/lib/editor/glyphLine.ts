@@ -93,7 +93,7 @@ export function parseGlyphLine(line: string, opts?: ParseGlyphLineOpts): GlyphPa
         if (b?.kind === "bullet" && b.to <= rangeTo) {
           parts.push(
             { text: line.slice(t.from, b.from), cls: "glyph-emphasis-line" },
-            { text: GLYPHS.bullet.char, cls: GLYPHS.bullet.cls },
+            { text: GLYPHS.bullet.char, cls: `${GLYPHS.bullet.cls} glyph-bullet-emphasis` },
             { text: " " },
           );
           if (rangeTo > b.to) parts.push({ text: line.slice(b.to, rangeTo), cls: "glyph-emphasis-line" });

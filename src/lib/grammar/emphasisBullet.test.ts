@@ -37,7 +37,7 @@ describe("emphasised list items (#208)", () => {
     expect(text("! - item")).toBe("! • item");
     expect(classed("! - item")).toEqual([
       ["glyph-emphasis-line", "! "],
-      ["glyph-bullet", "•"],
+      ["glyph-bullet glyph-bullet-emphasis", "•"],
       ["glyph-emphasis-line", "item"],
     ]);
     expect(text("  # ! * urgent")).toBe("  ☐ ! • urgent");
