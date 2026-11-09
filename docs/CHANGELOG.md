@@ -11802,7 +11802,7 @@ the checks are in Claude's memory to bring back.
 
 ## 453. Secret scan before every push and in CI; no CI token left behind; release logs cleaned up
 
-**Status: on main, not released yet.**
+**Status: released in v0.37.1.**
 
 Marien (2026-11-09) asked for a security audit of the local setup and the GitHub project: had a secret leaked, and
 could one leak later? Nothing had leaked (the full history, all release assets, the web app and demo bundles,
@@ -11828,7 +11828,7 @@ GitHub Team with Secret Protection, not for a personal public repository. Test: 
 
 ## 454. `! - item`: an emphasised list item (#208)
 
-**Status: on main, not released yet.**
+**Status: released in v0.37.1.**
 
 Marien (#208, 2026-11-09): to mark a list item as important, a `!` before the `-` or `*` turned the line into plain
 emphasis, with the `- ` as text. Now a bullet right after the `! ` (`! - item`, `! * item`, indented, or after an
@@ -11842,7 +11842,7 @@ takes the emphasis colour like the rest of the line (`glyph-bullet-emphasis`, ed
 
 ## 455. Peek: the on-now chip stays while the shown meeting overruns (#209)
 
-**Status: on main, not released yet.**
+**Status: released in v0.37.1.**
 
 Marien (#209, 2026-11-09): in an overrunning meeting the Peek bar showed the on-now chip a few minutes before the
 next meeting (two on now: the running one and the next, starting within 10 minutes), but it went away at the next
@@ -11853,7 +11853,7 @@ meeting was on now, and the chip needed two. It now shows whenever the list hold
 
 ## 456. Peek: the on-now chip's numbers on the title's baseline
 
-**Status: on main, not released yet.**
+**Status: released in v0.37.1.**
 
 Marien (2026-11-09): the chip with the meeting numbers (`2/2`) did not line up in the Peek bar. It was set in 11px
 monospace with line-height 1, which put its baseline 1.5 px above the title's and the `1/1` count's (12px, the bar's
