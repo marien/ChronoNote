@@ -501,4 +501,35 @@ test.describe("Peek switcher and new call", () => {
     await expect(chip).toBeVisible();
     await expect(chip).toHaveText("2");
   });
+
+  // #209: Peek stays on a meeting that overruns its calendar end; once only the next meeting is on now, the chip must
+  // still be there to switch to it (it needed two sections on now before).
+  test("an overrunning meeting: the chip stays when only the next meeting is on now", async ({ page }) => {
+    const note = ["Morning Sync", "============", "o sync notes"].join("\n");
+    await seed(page, {
+      notes: { [TODAY]: note },
+      agendaJson: agenda(["09:00", "09:30", "Morning Sync"], ["09:30", "10:30", "Late Sync"]),
+      now: new Date("2026-09-07T09:25:00"),
+    });
+
+    await runCallShortcutFromPalette(page);
+    await expect(page.locator("#peek-bar")).toContainText("Morning Sync");
+    const chip = page.locator('#peek-bar [data-testid="peek-switch"]');
+    // 09:25: Morning Sync running, Late Sync starting within 10 minutes.
+    await expect(chip).toHaveText("1/2");
+
+    // 09:32: Morning Sync is over by the calendar but still shown; only Late Sync is on now.
+    await page.clock.setFixedTime(new Date("2026-09-07T09:32:00"));
+    await page.keyboard.press("ControlOrMeta+KeyG"); // the list is worked out again when it opens
+    await expect(page.locator("#peek-switcher")).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(page.locator("#peek-switcher")).toHaveCount(0);
+    await expect(page.locator("#peek-bar")).toContainText("Morning Sync");
+    await expect(chip).toBeVisible();
+    await expect(chip).toHaveText("1");
+
+    await chip.click();
+    await page.locator('#peek-switcher [role="option"]', { hasText: "Late Sync" }).click();
+    await expect(page.locator("#peek-bar")).toContainText("Late Sync");
+  });
 });

@@ -11825,3 +11825,27 @@ exact content). Three gaps are closed here:
 Not done: GitHub's scanning for generic ("non-provider") patterns is only offered for organization repositories on
 GitHub Team with Secret Protection, not for a personal public repository. Test: `src/lib/secretScan.test.ts`
 (fake key and password, built at run time).
+
+## 454. `! - item`: an emphasised list item (#208)
+
+**Status: on main, not released yet.**
+
+Marien (#208, 2026-11-09): to mark a list item as important, a `!` before the `-` or `*` turned the line into plain
+emphasis, with the `- ` as text. Now a bullet right after the `! ` (`! - item`, `! * item`, indented, or after an
+action or topic symbol as `# ! - item`, in the §367 order: state, `!`, list marker) is a bullet: the tokenizer gives
+the line an emphasis token and a bullet token (`pushBulletAfterEmphasis`), so the editor draws the bullet glyph in the
+bold line, read-only views (`parseGlyphLine`) do the same, the line wraps under the item's text, Enter continues with
+`! - ` / `# ! - ` (an empty one exits) and Enter before the `!` is a plain newline. `- ! item` (list marker first)
+is unchanged: the `!` stays text. Tests: `src/lib/grammar/emphasisBullet.test.ts`, a case in
+`tests/e2e/editor-tokens.spec.ts`.
+
+## 455. Peek: the on-now chip stays while the shown meeting overruns (#209)
+
+**Status: on main, not released yet.**
+
+Marien (#209, 2026-11-09): in an overrunning meeting the Peek bar showed the on-now chip a few minutes before the
+next meeting (two on now: the running one and the next, starting within 10 minutes), but it went away at the next
+meeting's start, just when he wanted to switch: the shown meeting had passed its calendar end, so only the next
+meeting was on now, and the chip needed two. It now shows whenever the list holds a section other than the shown one
+(`canSwitch` in `PeekBar.svelte`), so here as `1`. `Ctrl+G` already opened the list. Test: a case in
+`tests/e2e/peek-switch.independent.spec.ts`.

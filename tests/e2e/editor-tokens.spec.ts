@@ -495,6 +495,20 @@ test.describe("editor — token glyphs", () => {
     expect((await statusCounts(page)).open).toBe(1);
   });
 
+  test("#208: `! - item` is an emphasised list item: bullet glyph, bold text, Enter continues and exits", async ({ page }) => {
+    await typeInEditor(page, "! - first");
+    const first = editor(page).locator(".cm-line").nth(0);
+    await expect(first.locator(".glyph-bullet")).toHaveCount(1);
+    await expect(first.locator(".glyph-emphasis-line").last()).toContainText("first");
+    await page.keyboard.press("Enter");
+    await page.keyboard.type("second");
+    await page.keyboard.press("Enter"); // empty `! - `
+    await page.keyboard.press("Enter"); // exits the list
+    await page.keyboard.type("plain");
+    expect(await activeTabContent(page)).toBe("! - first\n! - second\nplain");
+    await expect(editor(page).locator(".cm-line").nth(1).locator(".glyph-bullet")).toHaveCount(1);
+  });
+
   test("topic tag after topic symbol: o (budget) item shows topic pill", async ({ page }) => {
     await setEditorText(page, "o (budget) item");
     await expect(editor(page).locator(".glyph-topic-open")).toHaveCount(1);

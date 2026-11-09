@@ -58,7 +58,9 @@ export function getLineWrapIndent(lineText: string): number {
     return numberedPad.replace(/\t/g, "  ").length;
   }
 
-  // 5. Bullet or emphasis list item: e.g. "- text", "* text", "! important"
+  // 5. Bullet or emphasis list item: e.g. "- text", "* text", "! important", "! - important item" (#208)
+  const emphasisBullet = lineText.match(/^(\s*)!\s[-*]\s/);
+  if (emphasisBullet) return emphasisBullet[1].replace(/\t/g, "  ").length + 4;
   const bullet = lineText.match(/^(\s*)([-*!])\s/);
   if (bullet) {
     const expanded = bullet[1].replace(/\t/g, "  ");

@@ -499,7 +499,8 @@
           return true;
         }
       }
-      const match = line.text.match(/^(\s*)([-*])\s/);
+      // #208: `! - item` continues as `! - `.
+      const match = line.text.match(/^(\s*)((?:! )?[-*])\s/);
       if (!match) {
         if (isTopicLikeLine(line.text)) {
           if (!insertBullet) {
@@ -592,7 +593,7 @@
       }
       // Shift+Enter aligns under the bullet's *text* (past the marker),
       // not just at the bullet's own indentation — two spaces further in.
-      const insertText = insertBullet ? `\n${indent}${marker} ` : `\n${indent}  `;
+      const insertText = insertBullet ? `\n${indent}${marker} ` : `\n${indent}${" ".repeat(marker.length + 1)}`;
       v.dispatch({
         changes: { from: pos, to: pos, insert: insertText },
         selection: { anchor: pos + insertText.length },

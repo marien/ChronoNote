@@ -87,9 +87,21 @@ export function parseGlyphLine(line: string, opts?: ParseGlyphLineOpts): GlyphPa
 
     // Completely within [rangeFrom, rangeTo)
     switch (t.kind) {
-      case "emphasis":
+      case "emphasis": {
+        // #208: `! - item` draws the bullet inside the emphasised line.
+        const b = tokens[i + 1];
+        if (b?.kind === "bullet" && b.to <= rangeTo) {
+          parts.push(
+            { text: line.slice(t.from, b.from), cls: "glyph-emphasis-line" },
+            { text: GLYPHS.bullet.char, cls: GLYPHS.bullet.cls },
+            { text: " " },
+          );
+          if (rangeTo > b.to) parts.push({ text: line.slice(b.to, rangeTo), cls: "glyph-emphasis-line" });
+          return parts;
+        }
         parts.push({ text: line.slice(t.from, rangeTo), cls: "glyph-emphasis-line" });
         return parts;
+      }
       case "action":
       case "topic":
       case "consequence":

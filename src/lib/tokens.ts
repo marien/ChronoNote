@@ -134,7 +134,8 @@ export function actionLineEnter(
     return { insert: `\n${indent}# ${nextMarker} ` };
   }
 
-  const actionBullet = lineText.match(/^(\s*)([#vx>])\s+([-*])(\s|$)(.*)$/);
+  // Also `# ! - item` (#208): the new line is `# ! - `.
+  const actionBullet = lineText.match(/^(\s*)([#vx>])\s+((?:!\s)?[-*])(\s|$)(.*)$/);
   if (actionBullet) {
     const [, indent, , marker, , text] = actionBullet;
     if (text.trim() === "") return { removeSymbol: true };
@@ -391,9 +392,10 @@ export function isTopicLikeLine(line: string): boolean {
 /** The length of the indentation before a line's leading marker (bullet, action or topic symbol, or a leading
  * `=> `); `null` when the line does not start with one. */
 export function leadingMarkerIndent(line: string): number | null {
-  const first = tokenizeLine(line)[0];
+  const [first, second] = tokenizeLine(line);
   if (!first) return null;
   if (first.kind === "action" || first.kind === "topic" || first.kind === "bullet") return first.from;
+  if (first.kind === "emphasis" && second?.kind === "bullet") return first.from; // `! - item` (#208)
   if (first.kind === "arrow" && line.slice(0, first.from).trim() === "") return first.from;
   return null;
 }
