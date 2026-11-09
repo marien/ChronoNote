@@ -95,10 +95,9 @@ const scanFile = (rel) => {
   const abs = path.resolve(ROOT, rel);
   let buf;
   try {
-    if (!fs.statSync(abs).isFile()) return;
     buf = fs.readFileSync(abs);
   } catch {
-    return; // deleted in the working tree
+    return; // deleted in the working tree, or a folder (a submodule)
   }
   if (buf.subarray(0, 8000).includes(0)) return; // binary
   scanText(buf.toString("utf8"), (i) => `${rel.replace(/\\/g, "/")}:${i + 1}`, needles, hits);
