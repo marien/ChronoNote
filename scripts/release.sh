@@ -58,6 +58,9 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"; cd "$ROOT"
 export PATH="/c/Program Files/nodejs:/c/Users/marie/.cargo/bin:$PATH"
 TAG="v$VERSION"
 WORK="$(mktemp -d)"; LOGS="$WORK/logs"; mkdir -p "$LOGS"
+# §453: remove the work folder when the script ends. On a failure its logs are kept and their place is printed.
+# shellcheck disable=SC2154
+trap 'rc=$?; if [[ $rc == 0 ]]; then rm -rf "$WORK"; else echo "release logs kept in $LOGS" >&2; fi' EXIT
 # Optional commit trailer, e.g. RELEASE_CO_AUTHOR="Some Model 6 <noreply@anthropic.com>".
 # Deliberately not hardcoded: model names change; the caller passes the current one.
 TRAILER=""

@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// The checks CI runs first, in one command (§410): svelte-check, the e2e type check, Vitest, and cargo test + clippy when Rust
+// The checks CI runs first, in one command (§410): the secret scan (§453), svelte-check, the e2e type check, Vitest, and cargo test + clippy when Rust
 // changed. About one or two minutes; run it before every push (the pre-push hook in .githooks/ does). Three of the
 // fourteen red CI runs of mid-October 2026 were pushes that skipped one of these, mostly `check:e2e`.
 //
@@ -29,6 +29,17 @@ const changed = new Set([
   ...git("diff", "--name-only", "HEAD").split("\n"),
 ]);
 const rust = args.includes("--rust") || [...changed].some((f) => f.startsWith("src-tauri/"));
+const node = process.execPath;
+
+// §453: the secret scan runs on every call, also when the checks below already passed on this commit (a second of
+// work; it reads the local signing key files, so it can catch the one secret GitHub's push protection cannot).
+const scan = spawnSync(node, [path.join(ROOT, "scripts", "secret-scan.mjs")], { cwd: ROOT, encoding: "utf8" });
+console.log(`verify: ${scan.status === 0 ? "ok  " : "FAIL"} secret scan`);
+if (scan.status !== 0) {
+  console.log(`${scan.stdout ?? ""}${scan.stderr ?? ""}`.trim());
+  console.log("verify: failed. Do not push until the secret is out of the files and the commits.");
+  process.exit(1);
+}
 
 if (pushing.length > 0 && clean) {
   const [sha, kind] = (fs.existsSync(MARKER) ? fs.readFileSync(MARKER, "utf8") : "").trim().split(" ");
@@ -39,7 +50,6 @@ if (pushing.length > 0 && clean) {
 }
 if (!clean) console.log("verify: note: there are uncommitted changes; this checks the working tree, not only the commits");
 
-const node = process.execPath;
 const steps = [
   ["svelte-check", node, [path.join("node_modules", "svelte-check", "bin", "svelte-check"), "--tsconfig", "./tsconfig.json", "--output", "machine"], ROOT],
   ["check:e2e", node, [path.join("node_modules", "typescript", "bin", "tsc"), "-p", "tests/tsconfig.json"], ROOT],
