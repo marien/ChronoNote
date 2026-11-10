@@ -62,9 +62,11 @@ test.describe("numbered lists: Enter", () => {
     expect(await activeTabContent(page)).toBe("1. a\nplain text");
   });
 
-  test("an empty item exits at any indentation, for sub-items too", async ({ page }) => {
+  test("an empty sub-item converts to parent group marker, then exits on next Enter", async ({ page }) => {
     await setEditorText(page, "1. a\n  1.1. b\n  1.2. ");
     await caretAtEndOfLine(page, 2);
+    await page.keyboard.press("Enter");
+    expect(await activeTabContent(page)).toBe("1. a\n  1.1. b\n2. ");
     await page.keyboard.press("Enter");
     expect(await activeTabContent(page)).toBe("1. a\n  1.1. b\n");
   });
@@ -138,13 +140,13 @@ test.describe("numbered sub-lists (1.1.)", () => {
     expect(await activeTabContent(page)).toBe("1.2.3) deep\n1.2.4) ");
   });
 
-  test("a sub-list under its parent: numbers are never rewritten when you indent", async ({ page }) => {
+  test("a sub-list under its parent: numbers are rewritten when you indent under text", async ({ page }) => {
     await setEditorText(page, "1. parent\n2. child");
     await caretAtEndOfLine(page, 1);
     await page.keyboard.press("Tab");
-    expect(await activeTabContent(page)).toBe("1. parent\n  2. child");
+    expect(await activeTabContent(page)).toBe("1. parent\n   1. child");
     await page.keyboard.press("Enter");
-    expect(await activeTabContent(page)).toBe("1. parent\n  2. child\n  3. ");
+    expect(await activeTabContent(page)).toBe("1. parent\n   1. child\n   2. ");
   });
 
   test("typing your own sub-numbers works: an indented 1.1. list under a 1. item", async ({ page }) => {
@@ -392,5 +394,96 @@ test.describe("numbered lists: an item inserted in the middle renumbers the rest
     expect(await activeTabContent(page)).toBe("1. a\n2. \n3. b\n4. c");
     await page.keyboard.press("ControlOrMeta+z");
     expect(await activeTabContent(page)).toBe("1. a\n2. b\n3. c");
+  });
+});
+
+test.describe("numbered lists: smarter nesting", () => {
+  test.beforeEach(async ({ page }) => {
+    await seedApp(page, { seed: "empty" });
+  });
+
+  test("Backspace on the first item's marker renumbers the rest from 1", async ({ page }) => {
+    await setEditorText(page, "1. first\n2. second\n3. third");
+    await page.keyboard.press("ControlOrMeta+Home");
+    for (let i = 0; i < 3; i++) await page.keyboard.press("ArrowRight");
+    await page.keyboard.press("Backspace");
+    expect(await activeTabContent(page)).toBe("first\n1. second\n2. third");
+  });
+
+  test("Tab on a selection that ends at the start of a line leaves that line alone", async ({ page }) => {
+    await setEditorText(page, "1. a\n2. b\n3. c\n4. d");
+    await page.keyboard.press("ControlOrMeta+Home");
+    await page.keyboard.press("ArrowDown");
+    await page.keyboard.press("Shift+ArrowDown");
+    await page.keyboard.press("Shift+ArrowDown");
+    await page.keyboard.press("Tab");
+    expect(await activeTabContent(page)).toBe("1. a\n   1. b\n   2. c\n2. d");
+  });
+
+  test("Tab and Shift+Tab with the caret inside the text keep the caret on the same character", async ({ page }) => {
+    await setEditorText(page, "1. a\n2. bcd\n3. e");
+    await caretAtEndOfLine(page, 1);
+    await page.keyboard.press("ArrowLeft");
+    await page.keyboard.press("Tab");
+    await page.keyboard.type("X");
+    expect(await activeTabContent(page)).toBe("1. a\n   1. bcXd\n2. e");
+    await page.keyboard.press("Shift+Tab");
+    await page.keyboard.type("Y");
+    expect(await activeTabContent(page)).toBe("1. a\n2. bcXYd\n3. e");
+  });
+
+  test("Tab indents under parent text and restarts numbering at 1", async ({ page }) => {
+    await setEditorText(page, "1. a\n2. b");
+    await caretAtEndOfLine(page, 1);
+    await page.keyboard.press("Tab");
+    expect(await activeTabContent(page)).toBe("1. a\n   1. b");
+  });
+
+  test("Shift+Tab outdents to parent indent and renumbers outer and child groups", async ({ page }) => {
+    await setEditorText(page, "1. a\n   1. b\n   2. c\n2. d");
+    await caretAtEndOfLine(page, 1);
+    await page.keyboard.press("Shift+Tab");
+    expect(await activeTabContent(page)).toBe("1. a\n2. b\n   1. c\n3. d");
+  });
+
+  test("Backspace on marker converts to continuation spaces; second Backspace deletes leading whitespace", async ({ page }) => {
+    await setEditorText(page, "1. a\n2. b");
+    await page.keyboard.press("ControlOrMeta+Home");
+    await page.keyboard.press("ArrowDown");
+    for (let i = 0; i < 3; i++) await page.keyboard.press("ArrowRight");
+    await page.keyboard.press("Backspace");
+    expect(await activeTabContent(page)).toBe("1. a\n   b");
+    await page.keyboard.press("Backspace");
+    expect(await activeTabContent(page)).toBe("1. a\nb");
+  });
+
+  test("Enter on an empty sub-item replaces it with the next marker in the parent group", async ({ page }) => {
+    await setEditorText(page, "1. parent\n   1.1. child\n   1.2. ");
+    await caretAtEndOfLine(page, 2);
+    await page.keyboard.press("Enter");
+    expect(await activeTabContent(page)).toBe("1. parent\n   1.1. child\n2. ");
+  });
+
+  test("deleting a whole item line renumbers subsequent items", async ({ page }) => {
+    await setEditorText(page, "1. a\n2. b\n3. c");
+    await page.keyboard.press("ControlOrMeta+Home");
+    await page.keyboard.press("Home");
+    await page.keyboard.press("Shift+ArrowDown");
+    await page.keyboard.press("Delete");
+    expect(await activeTabContent(page)).toBe("1. b\n2. c");
+  });
+
+  test("Alt+ArrowDown moving an item renumbers items in doc order", async ({ page }) => {
+    await setEditorText(page, "1. a\n2. b\n3. c");
+    await page.keyboard.press("ControlOrMeta+Home");
+    await page.keyboard.press("Alt+ArrowDown");
+    expect(await activeTabContent(page)).toBe("1. b\n2. a\n3. c");
+  });
+
+  test("Tab on a sub-bullet with a numbered predecessor indents under its text", async ({ page }) => {
+    await setEditorText(page, "1. a\n- b");
+    await caretAtEndOfLine(page, 1);
+    await page.keyboard.press("Tab");
+    expect(await activeTabContent(page)).toBe("1. a\n   - b");
   });
 });

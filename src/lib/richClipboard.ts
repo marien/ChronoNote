@@ -13,7 +13,7 @@ function escapeHtml(str: string): string {
 
 interface ListLineInfo {
   type: "ul" | "ol";
-  depth: number;
+  indent: number;
   text: string;
   startNum: number;
 }
@@ -23,11 +23,10 @@ function parseListLine(line: string): ListLineInfo | null {
   const isBulletDashOrStar = new RegExp(String.raw`^([ ]*)(${BULLET_CLASS})(?:\s+(.*)|\s+$)`).exec(line);
   if (isBulletDashOrStar) {
     const indent = isBulletDashOrStar[1];
-    const depth = Math.floor(indent.length / 2);
     const itemText = isBulletDashOrStar[3] !== undefined ? isBulletDashOrStar[3].trim() : "";
     return {
       type: "ul",
-      depth,
+      indent: indent.length,
       text: itemText,
       startNum: 1,
     };
@@ -35,11 +34,10 @@ function parseListLine(line: string): ListLineInfo | null {
 
   const numItem = parseNumberedItem(line);
   if (numItem) {
-    const depth = Math.floor(numItem.indent.length / 2);
     const startNum = numItem.numbers[numItem.numbers.length - 1];
     return {
       type: "ol",
-      depth,
+      indent: numItem.indent.length,
       text: numItem.text,
       startNum,
     };
@@ -65,10 +63,10 @@ export function noteTextToHtml(text: string): string | null {
   if (!hasAnyList) return null;
 
   let output = "";
-  const stack: { type: "ul" | "ol"; depth: number }[] = [];
+  const stack: { type: "ul" | "ol"; indent: number }[] = [];
 
-  function closeDownTo(targetDepth: number) {
-    while (stack.length > 0 && stack[stack.length - 1].depth > targetDepth) {
+  function closeDownTo(targetIndent: number) {
+    while (stack.length > 0 && stack[stack.length - 1].indent > targetIndent) {
       const top = stack.pop()!;
       output += `</li></${top.type}>`;
     }
@@ -96,9 +94,9 @@ export function noteTextToHtml(text: string): string | null {
       }
     } else {
       // List line
-      closeDownTo(item.depth);
+      closeDownTo(item.indent);
 
-      if (stack.length > 0 && stack[stack.length - 1].depth === item.depth) {
+      if (stack.length > 0 && stack[stack.length - 1].indent === item.indent) {
         if (stack[stack.length - 1].type === item.type) {
           output += "</li>";
         } else {
@@ -107,13 +105,13 @@ export function noteTextToHtml(text: string): string | null {
         }
       }
 
-      if (stack.length === 0 || stack[stack.length - 1].depth < item.depth) {
+      if (stack.length === 0 || stack[stack.length - 1].indent < item.indent) {
         if (item.type === "ol" && item.startNum !== 1) {
           output += `<ol start="${item.startNum}">`;
         } else {
           output += `<${item.type}>`;
         }
-        stack.push({ type: item.type, depth: item.depth });
+        stack.push({ type: item.type, indent: item.indent });
       }
 
       output += `<li>${escapeHtml(item.text)}`;
@@ -258,17 +256,26 @@ export function htmlToNoteText(html: string): string | null {
   }
 
   let wordCounters: number[] = [];
+  interface ParentListItem {
+    isNumbered: boolean;
+    number: number;
+    indent: string;
+  }
+  const parentStack: ParentListItem[] = [];
+  let wordParents: ParentListItem[] = [];
 
   function processListContainer(listEl: Element) {
     wordCounters = [];
+    wordParents = [];
     const isOl = listEl.tagName === "OL";
     const startAttr = listEl.getAttribute("start");
     let counter = isOl ? (startAttr && !isNaN(parseInt(startAttr, 10)) ? parseInt(startAttr, 10) : 1) : 1;
-    const depth = getListDepth(listEl);
+
+    let lastLiItem: ParentListItem | null = null;
 
     for (const child of Array.from(listEl.children)) {
       if (child.tagName === "LI") {
-        processLi(child as Element, depth, isOl, counter);
+        lastLiItem = processLi(child as Element, isOl, counter);
         if (isOl) {
           if (child.hasAttribute("value") && !isNaN(parseInt(child.getAttribute("value")!, 10))) {
             counter = parseInt(child.getAttribute("value")!, 10) + 1;
@@ -277,14 +284,20 @@ export function htmlToNoteText(html: string): string | null {
           }
         }
       } else if (child.tagName === "UL" || child.tagName === "OL") {
-        processListContainer(child as Element);
+        if (lastLiItem !== null) {
+          parentStack.push(lastLiItem);
+          processListContainer(child as Element);
+          parentStack.pop();
+        } else {
+          processListContainer(child as Element);
+        }
       } else {
         walkNode(child);
       }
     }
   }
 
-  function processLi(li: Element, depth: number, isParentOl: boolean, currentCounter: number) {
+  function processLi(li: Element, isParentOl: boolean, currentCounter: number): ParentListItem {
     const isCheckbox = li.querySelector('input[type="checkbox"]') !== null;
     const isNumbered = !isCheckbox && isParentOl;
     let number = currentCounter;
@@ -292,8 +305,17 @@ export function htmlToNoteText(html: string): string | null {
       number = parseInt(li.getAttribute("value")!, 10);
     }
 
+    let indent = "";
+    if (parentStack.length > 0) {
+      const p = parentStack[parentStack.length - 1];
+      if (p.isNumbered) {
+        indent = p.indent + " ".repeat(String(p.number).length + 2);
+      } else {
+        indent = p.indent + "  ";
+      }
+    }
+
     const markerStr = isNumbered ? `${number}. ` : "- ";
-    const indent = "  ".repeat(depth);
     const continuationIndent = isNumbered
       ? indent + " ".repeat(String(number).length + 2)
       : indent + "  ";
@@ -322,10 +344,14 @@ export function htmlToNoteText(html: string): string | null {
       }
     }
 
+    const currentItemInfo: ParentListItem = { isNumbered, number, indent };
+
     for (const child of Array.from(li.childNodes)) {
       if (child.nodeType === Node.ELEMENT_NODE && (child.nodeName === "UL" || child.nodeName === "OL")) {
         flushItemNodes();
+        parentStack.push(currentItemInfo);
         processListContainer(child as Element);
+        parentStack.pop();
       } else {
         currentNodes.push(child);
       }
@@ -338,6 +364,8 @@ export function htmlToNoteText(html: string): string | null {
         addLine(indent + markerStr.trimEnd());
       }
     }
+
+    return currentItemInfo;
   }
 
   function walkNode(node: Node) {
@@ -348,6 +376,7 @@ export function htmlToNoteText(html: string): string | null {
       t = t.replace(/[ \t\n]+/g, " ").replace(/^[ ]+/, "").replace(/\u00a0/g, " ").trimEnd();
       if (t !== "") {
         wordCounters = [];
+        wordParents = [];
         addLine(t);
       }
       return;
@@ -380,6 +409,7 @@ export function htmlToNoteText(html: string): string | null {
       let itemNumber = 1;
 
       wordCounters.length = depth + 1;
+      wordParents.length = depth + 1;
 
       if (numMatch) {
         isNumbered = true;
@@ -395,7 +425,17 @@ export function htmlToNoteText(html: string): string | null {
         markerStr = `${itemNumber}. `;
       }
 
-      const indent = "  ".repeat(depth);
+      let indent = "";
+      if (depth > 0) {
+        const p = wordParents[depth - 1];
+        if (p && p.isNumbered) {
+          indent = p.indent + " ".repeat(String(p.number).length + 2);
+        } else {
+          indent = (p ? p.indent : "") + "  ";
+        }
+      }
+      wordParents[depth] = { isNumbered, number: itemNumber, indent };
+
       const continuationIndent = isNumbered
         ? indent + " ".repeat(String(itemNumber).length + 2)
         : indent + "  ";
@@ -423,6 +463,7 @@ export function htmlToNoteText(html: string): string | null {
 
     if (tag === "PRE") {
       wordCounters = [];
+      wordParents = [];
       const text = el.textContent || "";
       const preLines = text.split(/\r?\n/);
       for (const l of preLines) {

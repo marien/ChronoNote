@@ -11861,3 +11861,47 @@ font); 12px monospace still sat 1 px high, its line metrics differ from the bar'
 font at 12px with a normal line height (tabular figures kept), with 2px vertical padding so its hover box stays the
 size of the other buttons'. Test: `tests/e2e/peek-bar-layout.spec.ts` (a layout spec, so also with Windows fonts at
 100/125/150 %): chip and count within 0.5 px of the title's baseline, the chip inside the bar.
+
+## 457. Smarter numbered lists: nesting under the text, renumbering, sub-bullets
+
+**Status: on main, not released yet.**
+
+Marien (2026-11-10): numbered lists should behave like a word processor's. Sub-items belong three spaces in (under the
+text of `1. `), not two; indenting an item should start its numbering again; removing a number should renumber the
+items after it; a numbered list can hold bullets. He approved a proposal of cases, built as proposed:
+
+- **Tab** on a list line goes to the text column of the numbered item before it at the same indent (3 under `1. `,
+  4 under `10. `, 5 under `1.2. `); with a bullet or nothing there it is the old +2. **Shift+Tab** goes back to the
+  parent's indent. A selection of lines moves by the delta of its first list line.
+- **Indenting** makes the item part of the group under its new parent: alone or first there it becomes `1`, otherwise
+  it takes its place in their sequence and style (`2.1.` stays dotted). **Outdenting** continues the outer list; the
+  items that followed it become its children, numbered from 1.
+- **Backspace** right after the marker removes it and lines the text up under the previous item's text (the line
+  continues that item); a second one takes it back to that item's indent.
+- **Renumbering** keeps each group consecutive from the number its first item had before the edit (a list may start
+  at 4), rewrites dotted prefixes to the parent's numbers and keeps the rest of the line byte for byte. Besides the
+  commands above it runs from one transaction filter for user deletes, cuts, line moves (Alt+Up/Down), pastes and
+  drops that add or remove a line break; typing a number, deleting a digit, undo and redo never renumber. Enter keeps
+  #123's insert handling.
+- **Enter on an empty sub-item** (numbered or bullet) with a numbered parent moves it out as the parent list's next
+  number; with a bullet parent or none the line is cleared as before.
+- **Clipboard (§439):** pasted lists nest under the parent's text (numbered) or 2 further (bullet); copying nests
+  `<ol>`/`<ul>` by structure, so old 2-space and new 3-space lists both work. Nothing rewrites existing notes: every
+  rule compares indents (smaller/larger), never exact widths.
+
+Code: `src/lib/numberedLists.ts` (pure: blocks, parents, groups, targets, renumbering), `src/lib/editor/numberedListKeys.ts`
+(Tab/Shift+Tab/Backspace at high precedence, falling through to the defaults; the renumber filter; edits change only
+the differing part of a line, so the caret stays on its character). Built by Gemini 3.8 Flash from a brief; reviewed
+and reworked here (the caret jumped to a line end because whole lines were replaced; a line move at the list's first
+line lost the start number; the dispatch code was simplified into one helper). Independent tests written from the
+brief alone by a second Gemini run (`src/lib/numberedLists.independent.test.ts`,
+`tests/e2e/numbered-lists-smart.independent.spec.ts`); two of its 64 unit cases disagreed with the code: one had the
+caret inside the marker's spaces (test fixed), one expected the second Backspace to go back to the item's indent
+rather than column 0 (better: the code was changed). Also `src/lib/numberedLists.test.ts`, the smarter-nesting
+describe in `tests/e2e/numbered-lists.spec.ts` (including the caret staying in place) and updated clipboard tests.
+Cross-model review (Gemini, of the reworked code): fixed Backspace on the first item's marker not renumbering the
+rest (the line without its marker ends the block), top-level or under-a-bullet dotted lists (`1.1.`) losing their
+prefix, a Shift+Down selection ending at a line start taking that line along, the second Backspace on tab-indented
+lines, and list edits scanning the whole note (now only the run of lines around the edit). A selection indented
+together also starts again at 1. Not taken: adopting a `)` group's delimiter when a `.` item joins it (the two stay
+separate lists, as designed).
